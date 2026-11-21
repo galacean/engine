@@ -210,7 +210,6 @@ describe("MeshCollider", () => {
     const stayCount = recorder.onTriggerStay.mock.calls.length;
     update();
     expect(recorder.onTriggerStay).toHaveBeenCalledTimes(stayCount + 1);
-    // The rebuilt shape no longer reaches the probe
     collider.mesh = createCubeMesh(engine, 0.2);
     collider.convex = true;
     update(2);
@@ -700,7 +699,7 @@ describe("MeshCollider", () => {
     expect(Number.isFinite(collider.entity.transform.worldPosition.y)).toBe(true);
     expect(Number.isFinite(body.inertiaTensor.x)).toBe(true);
 
-    // Replacing mesh/convex while zero-scaled keeps it safely detached until scale recovers
+    // Change both cooking inputs while detached so recovery cannot reuse the old shape.
     body.isKinematic = true;
     collider.convex = false;
     expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), hit)).toBe(false);
@@ -726,7 +725,7 @@ describe("MeshCollider", () => {
       collider.convex = convex;
       collider.mesh = mesh;
 
-      // Exact minimum PhysX scale (1e-6) rounds to 1e-6f in float32 and must remain valid for raycasts
+      // Use the exact minimum to catch a Float32 round-off rejection.
       entity.transform.setScale(1e-6, 1e-6, 1e-6);
       const hit = new HitResult();
       expect(physics.raycast(rayAt(0), hit)).toBe(true);
@@ -738,7 +737,6 @@ describe("MeshCollider", () => {
       entity.transform.setScale(1e7, 1, 1);
       expect(physics.raycast(rayAt(0), hit)).toBe(false);
 
-      // Recovers cleanly when scale returns within [1e-6, 1e6]
       entity.transform.setScale(1e-6, 1e-6, 1e-6);
       expect(physics.raycast(rayAt(0), hit)).toBe(true);
       expect(hit.collider).toBe(collider);
@@ -779,7 +777,7 @@ describe("MeshCollider", () => {
 
       collider.mesh = gpuOnly;
       expect(collider.mesh).toBe(gpuOnly);
-      // Unrelated query and fixed step both succeed without throwing, and old geometry is removed
+      // Missing CPU data must remove the old geometry without aborting unrelated queries or steps.
       expect(() => physics.raycast(rayAt(10, 10), hit)).not.toThrow();
       expect(hit.collider).toBe(otherBox);
       expect(physics.raycast(rayAt(0))).toBe(false);
@@ -795,7 +793,6 @@ describe("MeshCollider", () => {
       expect(physics.raycast(rayAt(0))).toBe(false);
       expect(warnings.mock.calls.length + errors.mock.calls.length).toBeGreaterThanOrEqual(2);
 
-      // Replacing with a readable mesh recovers cleanly
       collider.mesh = createBufferMesh(true);
       expect(physics.raycast(rayAt(0), hit) && hit.collider === collider).toBe(true);
     }

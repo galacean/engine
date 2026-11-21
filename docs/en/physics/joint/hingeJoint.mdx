@@ -102,8 +102,8 @@ const hingeJoint = entity.addComponent(HingeJoint);
 // Set the connected object
 hingeJoint.connectedBody = targetEntity.getComponent(Rigidbody);
 
-// Set the rotation axis
-hingeJoint.axis.set(0, 1, 0); // Rotate around Y-axis
+// Rotate around the joint's local Y axis.
+hingeJoint.axis.set(0, 1, 0);
 ```
 
 ### Motion Limits
@@ -114,7 +114,7 @@ hingeJoint.useLimits = true;
 hingeJoint.limits = new JointLimits();
 hingeJoint.limits.min = -45;         // Minimum angle
 hingeJoint.limits.max = 45;          // Maximum angle
-hingeJoint.limits.contactDistance = 0.1; // Contact distance (radians)
+hingeJoint.limits.contactDistance = 0.1; // Activate the hard limit within 0.1 radians of either bound.
 
 // Enable elastic limits
 hingeJoint.useSpring = true;
@@ -128,7 +128,7 @@ hingeJoint.limits.damping = 0.2;    // Damping coefficient
 // Enable motor
 hingeJoint.useMotor = true;
 hingeJoint.motor = new JointMotor();
-hingeJoint.motor.targetVelocity = Math.PI; // Target angular velocity (radians/second)
+hingeJoint.motor.targetVelocity = Math.PI; // Half a revolution per second.
 hingeJoint.motor.forceLimit = 500;      // Maximum torque
 hingeJoint.motor.freeSpin = false;      // Free spin
 hingeJoint.motor.gearRatio = 1;         // Gear ratio

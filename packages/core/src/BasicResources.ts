@@ -30,7 +30,7 @@ import { Color } from "@galacean/engine-math";
  * @internal
  */
 export class BasicResources {
-  // The native physics backend is process-wide, so Colliders of every Engine share this default material.
+  // The default material belongs to the shared native physics backend.
   static physicsDefaultMaterial: IPhysicsMaterial;
   private static _maskReadInsideRenderStates: RenderStateElementMap | null = null;
   private static _maskReadOutsideRenderStates: RenderStateElementMap | null = null;

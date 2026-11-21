@@ -60,8 +60,7 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   // The spawn position for the merged box — clearly offset so we can visually verify
   const spawnPos = new Vector3(5, 3, 0);
 
-  // On collision: destroy both, create a new green box at spawnPos.
-  // The new box is created inside contact dispatch and must keep spawnPos, not a pose written back from the old boxes.
+  // The green box must keep its spawn pose when this contact callback destroys the original pair.
   box1.addComponent(
     class extends Script {
       onCollisionEnter(): void {

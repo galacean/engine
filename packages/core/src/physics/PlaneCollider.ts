@@ -4,8 +4,8 @@ import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 
 /**
- * An infinite plane collider facing the Entity's local +Y axis.
- * @remarks Galacean extension. A plane can only be static or belong to a kinematic Rigidbody.
+ * An infinite plane collider with a +Y normal before its local rotation is applied.
+ * @remarks Simulation and queries use the plane when static or owned by a kinematic {@link Rigidbody}.
  */
 export class PlaneCollider extends Collider {
   /**

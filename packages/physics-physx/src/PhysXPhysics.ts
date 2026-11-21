@@ -57,8 +57,9 @@ export class PhysXPhysics implements IPhysics {
 
   /**
    * Create a PhysXPhysics instance.
-   * @param runtimeMode - Runtime mode, `Auto` prefers WebAssembly SIMD if supported @see {@link PhysXRuntimeMode}
-   * @param runtimeUrls - Manually specify the runtime URLs
+   * @param runtimeMode - Runtime mode. `Auto` prefers WebAssembly SIMD when supported.
+   * @param runtimeUrls - Override the runtime URLs
+   * @see {@link PhysXRuntimeMode}
    */
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;

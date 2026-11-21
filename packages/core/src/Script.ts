@@ -39,7 +39,7 @@ export class Script extends Component {
   private _contactEventRegistered: boolean = false;
 
   /**
-   * Called when be enabled first time, only once.
+   * Called once when this script first participates in hierarchy activation.
    */
   onAwake(): void {}
 
@@ -83,24 +83,23 @@ export class Script extends Component {
   onPhysicsUpdate(): void {}
 
   /**
-   * Called when the trigger enter.
-   * @param other - The other Collider
-   * @param self - The Collider on this script's Entity that received the event
+   * Called when a trigger overlap begins.
+   * @param other - The collider on the other side of the overlap
+   * @param self - The collider on this script's entity
    */
   onTriggerEnter(other: Collider, self: Collider): void {}
 
   /**
-   * Called when the trigger exit.
-   * @param other - The other Collider
-   * @param self - The Collider on this script's Entity that received the event
+   * Called when a trigger overlap ends.
+   * @param other - The collider on the other side of the overlap
+   * @param self - The collider on this script's entity
    */
   onTriggerExit(other: Collider, self: Collider): void {}
 
   /**
-   * Called when the trigger stay.
-   * @remarks onTriggerStay is called every frame while the trigger stay.
-   * @param other - The other Collider
-   * @param self - The Collider on this script's Entity that received the event
+   * Called on subsequent physics steps while a trigger overlap continues.
+   * @param other - The collider on the other side of the overlap
+   * @param self - The collider on this script's entity
    */
   onTriggerStay(other: Collider, self: Collider): void {}
 
@@ -126,31 +125,31 @@ export class Script extends Component {
   onCollisionStay(other: Collision): void {}
 
   /**
-   * Called when the pointer is down while over the Collider.
+   * Called when a pointer press is dispatched to this entity.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerDown(eventData: PointerEventData): void {}
 
   /**
-   * Called when the pointer is up while over the Collider.
+   * Called when a pointer release is dispatched to this entity.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerUp(eventData: PointerEventData): void {}
 
   /**
-   * Called when the pointer is down and up with the same collider.
+   * Called when this entity receives both the pointer press and release for a click.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerClick(eventData: PointerEventData): void {}
 
   /**
-   *  Called when the pointer enters the Collider.
+   * Called when this entity joins the pointer's hit path.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerEnter(eventData: PointerEventData): void {}
 
   /**
-   * Called when the pointer exits the Collider.
+   * Called when this entity leaves the pointer's hit path.
    * @param eventData - The pointer event data that triggered this callback
    */
   onPointerExit(eventData: PointerEventData): void {}

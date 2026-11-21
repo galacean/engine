@@ -1,4 +1,5 @@
 import {
+  AmbientLight,
   AssetPromise,
   AssetType,
   BackgroundMode,
@@ -7,105 +8,48 @@ import {
   Loader,
   LoadItem,
   Logger,
+  Material,
   Mesh,
   resourceLoader,
   ResourceManager,
-  Scene
+  Scene,
+  Texture2D
 } from "@galacean/engine-core";
 import { resolveRefItem } from "./schema/refs";
 import type { RefItem } from "./schema/CommonSchema";
 import type { SceneFile } from "./schema/SceneSchema";
 import { ParserContext, ParserType, SceneParser } from "./resource-deserialize";
 
-function loadRef<T extends EngineObject>(
-  refs: RefItem[],
-  index: number,
-  resourceManager: ResourceManager,
-  label: string
-): Promise<T | null> {
-  const ref = resolveRefItem(refs, index, "SceneLoader", label);
-  return resourceManager.getResourceByRef<T>(ref);
-}
-
 /**
  * Apply scene-level data (ambient, background, shadow, fog, AO) to a Scene.
  * @internal
  */
-export function applySceneData(
+export async function applySceneData(
   scene: Scene,
   sceneData: SceneFile["scene"],
   resourceManager: ResourceManager,
   refs: RefItem[]
 ): Promise<void> {
-  const promises: Promise<unknown>[] = [];
-
-  try {
-    // parse ambient light
-    const ambient = sceneData.ambient;
-    if (ambient) {
-      const useSH = ambient.diffuseMode === DiffuseMode.SphericalHarmonics;
-
-      scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
-      scene.ambientLight.specularIntensity = ambient.specularIntensity;
-      scene.ambientLight.diffuseMode = ambient.diffuseMode;
-      const solidColor = ambient.diffuseSolidColor;
-      if (solidColor) {
-        scene.ambientLight.diffuseSolidColor.set(solidColor[0], solidColor[1], solidColor[2], solidColor[3]);
-      }
-
-      if (ambient.ambientLight != null) {
-        promises.push(
-          loadRef<any>(refs, ambient.ambientLight, resourceManager, "scene.ambient.ambientLight").then(
-            (ambientLight) => {
-              scene.ambientLight.specularTexture = ambientLight?.specularTexture;
-              if (useSH) {
-                scene.ambientLight.diffuseSphericalHarmonics = ambientLight?.diffuseSphericalHarmonics;
-              }
-            }
-          )
-        );
-      }
+  const ambient = sceneData.ambient;
+  if (ambient) {
+    const light = scene.ambientLight;
+    light.diffuseIntensity = ambient.diffuseIntensity;
+    light.specularIntensity = ambient.specularIntensity;
+    light.diffuseMode = ambient.diffuseMode;
+    const solidColor = ambient.diffuseSolidColor;
+    if (solidColor) {
+      light.diffuseSolidColor.set(solidColor[0], solidColor[1], solidColor[2], solidColor[3]);
     }
+  }
 
-    // parse background
-    const background = sceneData.background;
-    scene.background.mode = background.mode;
-
-    switch (scene.background.mode) {
-      case BackgroundMode.SolidColor: {
-        const color = background.color;
-        scene.background.solidColor.set(color[0], color[1], color[2], color[3]);
-        break;
-      }
-      case BackgroundMode.Sky:
-        if (background.skyMesh != null && background.skyMaterial != null) {
-          promises.push(
-            loadRef<Mesh>(refs, background.skyMesh, resourceManager, "scene.background.skyMesh").then((mesh) => {
-              scene.background.sky.mesh = mesh;
-            }),
-            loadRef<any>(refs, background.skyMaterial, resourceManager, "scene.background.skyMaterial").then(
-              (material) => {
-                scene.background.sky.material = material;
-              }
-            )
-          );
-        } else {
-          Logger.warn("Sky background mode requires skyMesh and skyMaterial");
-        }
-        break;
-      case BackgroundMode.Texture:
-        if (background.texture != null) {
-          promises.push(
-            loadRef<any>(refs, background.texture, resourceManager, "scene.background.texture").then((texture) => {
-              scene.background.texture = texture;
-            })
-          );
-          scene.background.textureFillMode = background.textureFillMode ?? scene.background.textureFillMode;
-        }
-        break;
-    }
-  } catch (error) {
-    return Promise.reject(error);
+  const background = sceneData.background;
+  const targetBackground = scene.background;
+  targetBackground.mode = background.mode;
+  if (background.mode === BackgroundMode.SolidColor) {
+    const color = background.color;
+    targetBackground.solidColor.set(color[0], color[1], color[2], color[3]);
+  } else if (background.mode === BackgroundMode.Texture && background.texture != null) {
+    targetBackground.textureFillMode = background.textureFillMode ?? targetBackground.textureFillMode;
   }
 
   // parse shadow
@@ -155,7 +99,53 @@ export function applySceneData(
     if (ambientOcclusion.minHorizonAngle != undefined) sceneAO.minHorizonAngle = ambientOcclusion.minHorizonAngle;
   }
 
-  return Promise.all(promises).then(() => {});
+  const promises: Promise<unknown>[] = [];
+  const applyRef = <T extends EngineObject>(
+    index: number,
+    label: string,
+    apply: (resource: T | null) => void
+  ): void => {
+    const ref = resolveRefItem(refs, index, "SceneLoader", label);
+    promises.push(
+      resourceManager.getResourceByRef<T>(ref).then((resource) => {
+        if (!scene.destroyed && !scene.pendingDestroy) apply(resource);
+      })
+    );
+  };
+  try {
+    if (ambient?.ambientLight != null) {
+      applyRef<AmbientLight>(ambient.ambientLight, "scene.ambient.ambientLight", (resource) => {
+        if (!resource) return;
+        const light = scene.ambientLight;
+        light.specularTexture = resource.specularTexture;
+        if (ambient.diffuseMode === DiffuseMode.SphericalHarmonics) {
+          light.diffuseSphericalHarmonics = resource.diffuseSphericalHarmonics;
+        }
+      });
+    }
+    if (background.mode === BackgroundMode.Sky) {
+      if (background.skyMesh != null && background.skyMaterial != null) {
+        const sky = targetBackground.sky;
+        applyRef<Mesh>(background.skyMesh, "scene.background.skyMesh", (mesh) => (sky.mesh = mesh));
+        applyRef<Material>(
+          background.skyMaterial,
+          "scene.background.skyMaterial",
+          (material) => (sky.material = material)
+        );
+      } else {
+        Logger.warn("Sky background mode requires skyMesh and skyMaterial");
+      }
+    } else if (background.mode === BackgroundMode.Texture && background.texture != null) {
+      applyRef<Texture2D>(
+        background.texture,
+        "scene.background.texture",
+        (texture) => (targetBackground.texture = texture)
+      );
+    }
+  } catch (error) {
+    promises.push(Promise.reject(error));
+  }
+  await Promise.all(promises);
 }
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
@@ -168,13 +158,15 @@ class SceneLoader extends Loader<Scene> {
         .then((data: SceneFile) => {
           const scene = new Scene(engine, data.scene.name ?? "");
           const context = new ParserContext(engine, ParserType.Scene, scene);
-          const parser = new SceneParser(data, context, scene);
-          parser._collectDependentAssets(data);
           context._setTaskCompleteProgress = setTaskCompleteProgress;
-          return parser
-            .start()
-            .then(() => applySceneData(scene, data.scene, resourceManager, data.refs))
-            .then(() => resolve(scene));
+          return context
+            ._load(async () => {
+              const parser = new SceneParser(data, context);
+              parser._collectDependentAssets();
+              await parser.start();
+              await applySceneData(scene, data.scene, resourceManager, data.refs);
+            })
+            .then(resolve);
         })
         .catch(reject);
     });

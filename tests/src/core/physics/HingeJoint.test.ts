@@ -99,8 +99,7 @@ describe("HingeJoint", function () {
     joint.automaticConnectedAnchor = true;
     joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
-    joint.axis.x = 0;
-    joint.axis.y = 1;
+    joint.axis.set(0, 1, 0);
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
@@ -477,7 +476,8 @@ describe("HingeJoint", function () {
     expect(Math.abs(negVelX)).toBeCloseTo(Math.abs(posVelX), 3);
 
     negJoint.axis.x = 0;
-    negJoint.axis.z = 1;
+    expect(negJoint.axis.x).toBe(-1);
+    negJoint.axis.set(0, 0, 1);
     expect(negJoint.axis.z).toBeCloseTo(1, 5);
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(Number.isFinite(negBox.getComponent(Rigidbody).angularVelocity.z)).toBe(true);
@@ -574,19 +574,16 @@ describe("HingeJoint", function () {
     engine.sceneManager.activeScene.physics._update(0.2);
     expect(motorJoint.velocity).toBeGreaterThan(3);
 
-    // Clearing motor to null while useMotor=true stops driving immediately
     motorJoint.motor = null;
     motorBody.angularVelocity.set(0, 0, 0);
     engine.sceneManager.activeScene.physics._update(0.2);
     expect(Math.abs(motorJoint.velocity)).toBeLessThan(0.05);
 
-    // Disable -> re-enable with useMotor=true and motor=null keeps drive disabled
     motorJoint.enabled = false;
     motorJoint.enabled = true;
     engine.sceneManager.activeScene.physics._update(0.2);
     expect(Math.abs(motorJoint.velocity)).toBeLessThan(0.05);
 
-    // Re-assigning a motor resumes driving
     motorJoint.motor = motor;
     engine.sceneManager.activeScene.physics._update(0.2);
     expect(motorJoint.velocity).toBeGreaterThan(3);
@@ -688,12 +685,13 @@ describe("HingeJoint", function () {
     for (const invalid of [new Vector3(NaN, 1, 0), new Vector3(Infinity, 0, 0), new Vector3(0, -Infinity, 0)]) {
       expect(() => (joint.axis = invalid)).toThrow();
     }
-    // Whole-vector zero assignment does not drift JS axis away from native
+    // Zero edits retain the last valid direction.
     joint.axis = new Vector3(0, 1, 0);
     joint.axis = new Vector3(0, 0, 0);
+    joint.axis.set(0, 0, 0);
     expect(joint.axis.y).toBeCloseTo(1, 5);
 
-    // In-place NaN throws and keeps JS axis and native PxRevoluteJoint synchronized on fallback (1, 0, 0)
+    // Invalid in-place edits leave the component and PhysX in sync even after re-creation.
     const body = box.getComponent(Rigidbody)!;
     const motor = new JointMotor();
     motor.targetVelocity = 5;
@@ -701,27 +699,29 @@ describe("HingeJoint", function () {
     joint.motor = motor;
     joint.useMotor = true;
     expect(() => (joint.axis.x = NaN)).toThrow();
-    expect(joint.axis.x).toBeCloseTo(1, 5);
-    expect(joint.axis.y).toBeCloseTo(0, 5);
-    expect(joint.axis.z).toBeCloseTo(0, 5);
+    expect(joint.axis).deep.include({ x: 0, y: 1, z: 0 });
+    joint.enabled = false;
+    joint.enabled = true;
     engine.sceneManager.activeScene.physics._update(0.2);
-    expect(Math.abs(body.angularVelocity.x)).toBeGreaterThan(50);
-    expect(Math.abs(body.angularVelocity.y)).toBeLessThan(1);
+    expect(Math.abs(body.angularVelocity.x)).toBeLessThan(1);
+    expect(Math.abs(body.angularVelocity.y)).toBeGreaterThan(50);
     expect(Math.abs(body.angularVelocity.z)).toBeLessThan(1);
 
     // Overflow vector throws in setter without mutating existing axis
     expect(() => (joint.axis = new Vector3(1.5e308, 1.5e308, 0))).toThrow();
-    expect(joint.axis.x).toBeCloseTo(1, 5);
+    expect(joint.axis.y).toBeCloseTo(1, 5);
 
-    // Pre-enable transient zero axis must not break connected relative rotation sync on enable
-    const anchor = addBox(new Vector3(1, 1, 1), new Vector3(0, 8, 0));
+    // Set the connected pose before enabling to exercise axis recovery during joint creation.
+    const anchor = addBox(new Vector3(1, 1, 1), new Vector3(5, 8, 0));
     anchor.transform.setRotation(0, 90, 0);
     anchor.getComponent(Rigidbody)!.isKinematic = true;
 
-    const child = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const child = addBox(new Vector3(1, 1, 1), new Vector3(5, 5, 0));
     child.isActive = false;
     const childJoint = child.addComponent(HingeJoint);
+    childJoint.axis.set(0, 0, 1);
     childJoint.axis.set(0, 0, 0);
+    expect(childJoint.axis.z).toBe(1);
     childJoint.connectedBody = anchor.getComponent(Rigidbody)!;
     child.isActive = true;
     engine.sceneManager.activeScene.physics._update(1 / 60);

@@ -18,6 +18,7 @@ import {
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
+import { HeadlessEngine } from "@galacean/engine-rhi-null";
 import { HorizontalAlignmentMode, UITransform } from "@galacean/engine-ui";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
 import { PrefabParser } from "../../../../packages/loader/src/prefab/PrefabParser";
@@ -25,6 +26,7 @@ import { PrefabParser } from "../../../../packages/loader/src/prefab/PrefabParse
 describe("Rigidbody", function () {
   let engine: Engine;
   let rootEntity: Entity;
+  let backend: ReturnType<typeof createPhysics>;
 
   function addPlane(x: number, y: number, z: number) {
     const planeEntity = rootEntity.createChild("PlaneEntity");
@@ -58,9 +60,10 @@ describe("Rigidbody", function () {
   }
 
   beforeAll(async function () {
+    backend = createPhysics();
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas"),
-      physics: createPhysics()
+      physics: backend
     });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
@@ -76,6 +79,62 @@ describe("Rigidbody", function () {
   });
 
   afterEach(() => vi.restoreAllMocks());
+
+  it("writes back both bodies when a Transform setter updates another engine and disables its body", async () => {
+    const inner = await HeadlessEngine.create({ physics: backend });
+    const outer = await HeadlessEngine.create({ physics: backend });
+    const now = performance.now() + 100;
+    vi.spyOn(performance, "now").mockReturnValue(now);
+    try {
+      const innerScene = inner.sceneManager.activeScene;
+      inner.time.maximumDeltaTime = innerScene.physics.fixedTimeStep;
+      const innerEntity = innerScene.createRootEntity();
+      innerEntity.transform.setPosition(10, 10, 0);
+      innerEntity.addComponent(BoxCollider);
+      const innerBody = innerEntity.addComponent(Rigidbody);
+      innerBody.useGravity = false;
+      innerBody.linearVelocity.x = 3;
+
+      let outerBody: Rigidbody;
+      class UpdatingTransform extends Transform {
+        override get worldPosition(): Vector3 {
+          return super.worldPosition;
+        }
+
+        override set worldPosition(value: Vector3) {
+          inner.update();
+          outerBody.enabled = false;
+          super.worldPosition = value;
+        }
+      }
+      const outerScene = outer.sceneManager.activeScene;
+      outer.time.maximumDeltaTime = outerScene.physics.fixedTimeStep;
+      const outerEntity = outerScene.createRootEntity();
+      const transform = outerEntity.addComponent(UpdatingTransform);
+      outerEntity.addComponent(BoxCollider);
+      outerBody = outerEntity.addComponent(Rigidbody);
+      outerBody.useGravity = false;
+      outerBody.linearVelocity.x = 2;
+      const sibling = outerScene.createRootEntity();
+      sibling.transform.setPosition(0, 4, 0);
+      sibling.addComponent(BoxCollider);
+      const siblingBody = sibling.addComponent(Rigidbody);
+      siblingBody.useGravity = false;
+      siblingBody.linearVelocity.z = 4;
+
+      outer.update();
+
+      expect(transform.worldPosition.x).toBeCloseTo(2 * outer.time.deltaTime);
+      expect(transform.worldPosition.y).toBe(0);
+      expect(outerBody.enabled).toBe(false);
+      expect(sibling.transform.worldPosition.z).toBeCloseTo(4 * outer.time.deltaTime);
+      expect(innerEntity.transform.worldPosition.x).toBeCloseTo(10 + 3 * inner.time.deltaTime);
+      expect(innerEntity.transform.worldPosition.y).toBe(10);
+    } finally {
+      outer.destroy();
+      inner.destroy();
+    }
+  });
 
   it("linearDamping", function () {
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
@@ -471,7 +530,7 @@ describe("Rigidbody", function () {
     const boxCollider = box.getComponent(Rigidbody);
     expect(boxCollider.solverIterations).eq(4);
 
-    // Non-finite values throw; out-of-range and fractional values clamp to integer [1, 255]
+    // Include inputs that would wrap when converted to native solver counts.
     for (const invalid of [NaN, Infinity, -Infinity]) {
       expect(() => (boxCollider.solverIterations = invalid)).toThrow();
     }
@@ -489,7 +548,7 @@ describe("Rigidbody", function () {
 
     engine.sceneManager.activeScene.physics._update(1 / 60);
 
-    // With valid minimum solverIterations = 1, overlapping boxes resolve cleanly without Release-build UB
+    // Exercise the minimum accepted iteration count in a real contact.
     expect(Number.isFinite(boxCollider.linearVelocity.x)).toBe(true);
     expect(Math.abs(formatValue(boxCollider.linearVelocity.x))).lessThan(10);
 
@@ -503,7 +562,6 @@ describe("Rigidbody", function () {
     boxCollider2.applyForce(new Vector3(10, 0, 0));
     engine.sceneManager.activeScene.physics._update(1 / 60);
 
-    // Normal collision
     expect(Math.abs(formatValue(boxCollider2.linearVelocity.x))).lessThan(4);
   });
 
@@ -1071,7 +1129,7 @@ describe("Rigidbody", function () {
     const targetRot = new Quaternion();
     Quaternion.rotationYawPitchRoll(Math.PI / 2, 0, 0, targetRot);
 
-    // Case 1: move(pos) then move(rot) with non-zero centerOfMass
+    // Move position first so rotation must preserve the queued translation.
     const boxA = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
     const bodyA = boxA.getComponent(Rigidbody);
     bodyA.isKinematic = true;
@@ -1084,7 +1142,7 @@ describe("Rigidbody", function () {
     expect(boxA.transform.worldPosition.z).toBeCloseTo(-1, 4);
     expect(Math.abs(Quaternion.dot(boxA.transform.worldRotationQuaternion, targetRot))).toBeCloseTo(1, 4);
 
-    // Case 2: move(rot) then move(pos) in the same step
+    // Reverse the calls so translation must preserve the queued rotation.
     const boxB = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 5, 0));
     const bodyB = boxB.getComponent(Rigidbody);
     bodyB.isKinematic = true;
@@ -1096,7 +1154,7 @@ describe("Rigidbody", function () {
     expect(boxB.transform.worldPosition.z).toBeCloseTo(2, 4);
     expect(Math.abs(Quaternion.dot(boxB.transform.worldRotationQuaternion, targetRot))).toBeCloseTo(1, 4);
 
-    // Case 3: direct transform teleport between move(pos) and move(rot) starts from the teleported position
+    // A direct Transform edit becomes the starting pose for the next move.
     bodyB.move(new Vector3(99, 99, 99));
     boxB.transform.setPosition(10, 11, 12);
     const rot2 = new Quaternion();

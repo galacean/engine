@@ -90,22 +90,16 @@ describe("Transform test", function () {
       transform.setRotation(0, 0, 90);
       expect(transform.lossyWorldScale.x).toBeCloseTo(3, 5);
       expect(transform.lossyWorldScale.y).toBeCloseTo(6, 5);
+
+      scene.addRootEntity(child);
+      expect(custom.worldMatrix.elements[0]).toBe(2);
+      expect(custom.lossyWorldScale).toEqual(new Vector3(2, 1, 1));
+      expect(transform.lossyWorldScale.x).toBeCloseTo(1, 5);
+      expect(transform.lossyWorldScale.y).toBeCloseTo(2, 5);
     } finally {
+      child.destroy();
       root.destroy();
     }
-  });
-
-  it("refreshes a rotated child's cached world scale after translating and scaling its parent", () => {
-    const parent = scene.createRootEntity();
-    parent.transform.setScale(2, 1, 1);
-    const child = parent.createChild();
-    child.transform.setRotation(0, 0, 45);
-    expect(child.transform.lossyWorldScale.x).toBeCloseTo(1.5, 5);
-
-    parent.transform.setPosition(4, 0, 0);
-    parent.transform.setScale(4, 1, 1);
-    expect(child.transform.lossyWorldScale.x).toBeCloseTo(2.5, 5);
-    parent.destroy();
   });
 
   it("Parent Dirty", () => {

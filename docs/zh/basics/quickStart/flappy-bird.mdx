@@ -540,7 +540,7 @@ class Pipe extends Script {
     const center =
       Math.random() * (this._upLimit - this._downLimit) + this._downLimit;
 
-    // 水管实体上有两个 BoxCollider 组件，分别对应上下两根水管
+    // 先添加上方水管的碰撞器，使预制体中的顺序与这里的读取顺序一致。
     const [upCollider, downCollider] = pipe.getComponents(BoxCollider, []);
 
     const upPipe = pipe.findByName("up_pipe");

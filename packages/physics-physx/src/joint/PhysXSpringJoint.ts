@@ -4,7 +4,7 @@ import { ISpringJoint } from "@galacean/engine-design";
 import { PhysXCollider } from "../PhysXCollider";
 
 /**
- * a joint that maintains an upper or lower bound (or both) on the distance between two points on different objects
+ * PhysX distance joint with a spring response.
  */
 export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
   constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
@@ -18,9 +18,9 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat
     );
-    this._pxJoint.setDistanceJointFlag(2, true); // enable max distance;
-    this._pxJoint.setDistanceJointFlag(4, true); // enable min distance;
-    this._pxJoint.setDistanceJointFlag(8, true); // enable spring;
+    this._pxJoint.setDistanceJointFlag(2, true); // eMAX_DISTANCE_ENABLED
+    this._pxJoint.setDistanceJointFlag(4, true); // eMIN_DISTANCE_ENABLED
+    this._pxJoint.setDistanceJointFlag(8, true); // eSPRING_ENABLED
   }
 
   /**

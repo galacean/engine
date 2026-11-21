@@ -29,7 +29,9 @@ label: Physics
 1. **关节端点**：每个关节都包含两个作用对象：
 
    - 主体刚体：挂载关节组件的实体上的刚体
-   - 连接对象：通过 `connectedBody` 属性指定的目标刚体或世界空间中的点
+   - 连接对象：`connectedBody` 指定目标刚体，设为 `null` 时连接到世界空间。
+
+   两个刚体都在同一场景中启用时，关节约束生效。刚体暂时不可用时，关节保留连接设置，等两个刚体再次生效后自动重连。
 
 2. **锚点设置**：
 
@@ -66,13 +68,12 @@ const hingeJoint = entity.addComponent(HingeJoint);
 所有关节都可以设置连接目标和锚点:
 
 ```typescript
-// 设置连接的目标刚体
 joint.connectedBody = targetEntity.getComponent(Rigidbody);
 
-// 设置关节在自身刚体上的锚点
+// 锚点使用关节自身刚体的局部坐标。
 joint.anchor.set(0, 1, 0);
 
-// 手动设置关节在目标刚体上的连接点
+// 关闭自动计算后，使用目标刚体的局部坐标设置连接点。
 joint.automaticConnectedAnchor = false;
 joint.connectedAnchor.set(0, 0, 0);
 ```

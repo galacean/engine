@@ -5,9 +5,8 @@ import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 
 /**
- * Character controller in PhysX.
- * @remarks PhysX cannot remove a controller from a scene and add it back, so the native controller lives only while
- * the controller is in a scene and is rebuilt from the stored state when it enters one.
+ * PhysX character controller with settings that persist across scene removal.
+ * @remarks The scene’s controller manager creates the native controller on entry and releases it on removal.
  */
 export class PhysXCharacterController implements ICharacterController {
   private static _tempVec = new Vector3();
@@ -43,10 +42,11 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.setCapsule }
    */
-  setCapsule(radius: number, height: number): void {
-    const controller = this._isBox ? null : this._pxController;
+  setCapsule(radius: number, height: number, stepOffset: number): void {
     radius = Math.fround(radius);
     height = Math.fround(height);
+    const maxStepOffset = Math.fround(height + 2 * radius);
+    const controller = this._syncStepOffset(stepOffset, maxStepOffset, false);
     if (controller) {
       if (radius !== this._radius) controller.setRadius(radius);
       if (height !== this._height) controller.setHeight(height);
@@ -60,12 +60,12 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.setBox }
    */
-  setBox(halfExtents: Vector3): void {
-    const controller = this._isBox ? this._pxController : null;
+  setBox(halfExtents: Vector3, stepOffset: number): void {
     const size = (this._halfExtents ||= new Vector3());
     const x = Math.fround(halfExtents.x);
     const y = Math.fround(halfExtents.y);
     const z = Math.fround(halfExtents.z);
+    const controller = this._syncStepOffset(stepOffset, 2 * y, true);
     if (controller) {
       if (y !== size.y) controller.setHalfHeight(y);
       if (x !== size.x) controller.setHalfSideExtent(x);
@@ -129,7 +129,6 @@ export class PhysXCharacterController implements ICharacterController {
     this._center.copyFrom(center);
     const controller = this._pxController;
     if (controller) {
-      // The query proxy can still be at the previous pose after move().
       const posePosition = PhysXCharacterController._tempVec;
       Vector3.add(position, center, posePosition);
       this._syncControllerPose(controller, posePosition);
@@ -148,14 +147,6 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   /**
-   * {@inheritDoc ICharacterController.setStepOffset }
-   */
-  setStepOffset(offset: number): void {
-    this._stepOffset = offset;
-    this._pxController?.setStepOffset(offset);
-  }
-
-  /**
    * {@inheritDoc ICharacterController.setNonWalkableMode }
    */
   setNonWalkableMode(flag: number): void {
@@ -171,7 +162,7 @@ export class PhysXCharacterController implements ICharacterController {
     const controller = this._pxController;
     if (controller) {
       controller.setUpDirection(up);
-      // Refresh the target with the new orientation.
+      // Changing the up direction leaves the query proxy at its prior orientation.
       this._syncControllerPose(controller, controller.getPosition());
     }
   }
@@ -207,8 +198,23 @@ export class PhysXCharacterController implements ICharacterController {
     this._scene = null;
   }
 
+  private _syncStepOffset(offset: number, maximum: number, box: boolean) {
+    // PhysX validates the step against the rounded geometry only at creation.
+    offset = Math.fround(offset);
+    if (!(offset >= 0 && offset <= maximum && Number.isFinite(offset))) {
+      this._stepOffset = -1;
+      return null;
+    }
+    const controller = this._isBox === box ? this._pxController : null;
+    if (offset !== this._stepOffset) {
+      this._stepOffset = offset;
+      controller?.setStepOffset(offset);
+    }
+    return controller;
+  }
+
   private _rebuild(): void {
-    // Rebuild even after a failed creation, so corrected geometry takes effect
+    // Retry creation when the geometry changes after a rejected descriptor.
     if (this._scene) {
       this.getWorldPosition(this._worldPosition);
       this._destroyPXController();
@@ -217,6 +223,12 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   private _createPXController(): void {
+    if (this._stepOffset < 0) {
+      console.error(
+        "CharacterController: stepOffset must be representable by PhysX and within the controller's world height."
+      );
+      return;
+    }
     const physX = this._physXPhysics._physX;
     const scene = this._scene!;
     let desc: any;
@@ -232,7 +244,7 @@ export class PhysXCharacterController implements ICharacterController {
       desc.height = this._height;
       desc.climbingMode = 1; // Constrained
     }
-    // Create the proxy actor at its pose: setPosition only moves it in the next simulation
+    // Set the initial descriptor position so queries see the correct pose before the first step.
     const position = PhysXCharacterController._tempVec;
     Vector3.add(this._worldPosition, this._center, position);
     desc.position = position;
@@ -246,7 +258,6 @@ export class PhysXCharacterController implements ICharacterController {
     desc.delete();
 
     if (!pxController) {
-      // PhysX rejects invalid descriptors (non-positive extents, or stepOffset above the geometry allows)
       console.error("CharacterController: failed to create the controller, check its geometry and stepOffset.");
       return;
     }
@@ -270,7 +281,7 @@ export class PhysXCharacterController implements ICharacterController {
 
   private _syncControllerPose(controller: any, position: Vector3): void {
     if (!controller.setPosition(position)) return;
-    // Publish the target computed by PhysX on the proxy so scene queries see it immediately.
+    // Apply the kinematic target immediately so queries see the updated pose before the next step.
     const actor = controller.getActor();
     actor.setGlobalPose(actor.getKinematicTarget(), true);
     actor.delete();

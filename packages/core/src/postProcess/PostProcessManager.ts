@@ -73,24 +73,27 @@ export class PostProcessManager {
       let interpFactor = 1; // Global default value
       if (!isGlobal) {
         const currentColliders = PostProcessManager._tempColliders;
+        const entity = postProcess.entity;
+        const count = entity.getComponents(Collider, currentColliders).length;
+        if (count === 0) {
+          if (Logger.isEnabled) {
+            Logger.warn(`Local post-process volume "${entity.name}" requires a Collider.`);
+          }
+          continue;
+        }
         const cameraPosition = camera.entity.transform.worldPosition;
         const blendDistance = postProcess.blendDistance;
-
-        let hasCollider = false;
-        // Find closest distance to current postProcess, 0 means it's inside it
-        let closestDistance = Number.POSITIVE_INFINITY;
-
-        postProcess.entity.getComponents(Collider, currentColliders);
-        for (let j = 0, m = currentColliders.length; j < m; j++) {
+        let closestDistance = Infinity;
+        for (let j = 0; j < count; j++) {
           const collider = currentColliders[j];
           if (!collider.enabled) {
             continue;
           }
           if (!physicsSynced) {
+            // Volume queries need current collider poses even when the frame has no physics step.
             this.scene.physics._syncColliders();
             physicsSynced = true;
           }
-          hasCollider = true;
           const distance = collider._getVolumeDistance(cameraPosition);
           if (distance >= 0 && distance < closestDistance) {
             closestDistance = distance;
@@ -99,17 +102,7 @@ export class PostProcessManager {
         }
         currentColliders.length = 0;
 
-        if (!hasCollider) {
-          Logger.warn(
-            `No collider found in the entity:"${
-              postProcess.entity.name
-            }", the local mode of post process will not take effect.`
-          );
-          continue;
-        }
-
-        // Post process has no influence, ignore it
-        if (closestDistance > blendDistance) {
+        if (closestDistance === Infinity || closestDistance > blendDistance) {
           continue;
         }
 

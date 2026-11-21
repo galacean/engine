@@ -81,7 +81,7 @@ export class SpringJoint extends Joint {
   }
 
   /**
-   * The degree of damping of the joint spring of the joint.
+   * The damping applied by the spring.
    */
   get damping(): number {
     return this._damping;

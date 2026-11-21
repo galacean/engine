@@ -51,7 +51,7 @@ label: Physics
 | [**contactOffset**](/apis/core/#Collider-contactOffset) | 接触偏移。非有限值会抛出异常，负值会被限制为 0 | 0.02 |
 | [**attachedRigidbody**](/apis/core/#Collider-attachedRigidbody) | 只读。拥有该碰撞器的刚体，没有时为 `null` | - |
 
-形状尺寸跟随实体的世界缩放。物理无法表示带切变的世界变换（被旋转且非等比缩放的祖先会产生切变），切变部分会被忽略，并只输出一次警告。
+形状尺寸跟随实体的世界缩放。实体在非等比缩放的祖先下旋转可能产生切变，物理会忽略切变。开启日志时，碰撞器会提示一次。
 
 | 方法 | 描述 |
 | :-- | :-- |
@@ -114,12 +114,11 @@ PlaneCollider 没有形状属性。它是朝向实体局部 +Y 轴的无限平�
 ```typescript
 import { BoxCollider, PlaneCollider, Vector3 } from "@galacean/engine";
 
-// 墙：实体及其祖先上没有刚体，因此是静态的
+// 墙体及其祖先没有刚体，因此墙体是静态的。
 const wall = rootEntity.createChild("wall");
 const wallCollider = wall.addComponent(BoxCollider);
 wallCollider.size = new Vector3(5, 3, 0.5);
 
-// 无限大的地面
 const ground = rootEntity.createChild("ground");
 ground.addComponent(PlaneCollider);
 ```
@@ -129,13 +128,12 @@ ground.addComponent(PlaneCollider);
 ```typescript
 import { BoxCollider, Rigidbody, SphereCollider, Vector3 } from "@galacean/engine";
 
-// 一个下落的盒子
 const box = rootEntity.createChild("box");
 box.transform.setPosition(0, 5, 0);
 box.addComponent(Rigidbody);
 box.addComponent(BoxCollider);
 
-// 复合形状：刚体所在实体和子实体上的碰撞器
+// 机器人刚体同时拥有躯干和头部的碰撞器。
 const robot = rootEntity.createChild("robot");
 robot.addComponent(Rigidbody);
 const body = robot.addComponent(BoxCollider);
@@ -171,13 +169,12 @@ import { BoxCollider, PhysicsMaterial, SphereCollider } from "@galacean/engine";
 const sharedMaterial = new PhysicsMaterial(engine);
 sharedMaterial.dynamicFriction = 0.4;
 
-// 两个碰撞器共享同一个材质
 const box = entity.addComponent(BoxCollider);
 const sphere = entity.addComponent(SphereCollider);
 box.material = sharedMaterial;
 sphere.material = sharedMaterial;
 
-// 创建实例材质，只修改盒子的弹性
+// 盒子使用独立材质，球体继续使用共享材质。
 const instance = box.getInstanceMaterial();
 instance.bounciness = 0.8;
 ```

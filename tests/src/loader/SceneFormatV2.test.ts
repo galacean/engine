@@ -1,5 +1,7 @@
 import "@galacean/engine-loader";
 import {
+  AssetPromise,
+  AssetType,
   BackgroundTextureFillMode,
   BackgroundMode,
   Camera,
@@ -16,8 +18,10 @@ import {
   Script,
   ShadowCascadesMode,
   ShadowResolution,
-  Transform
+  Transform,
+  resourceLoader
 } from "@galacean/engine-core";
+import type { PrefabResource } from "@galacean/engine-loader";
 import type { SceneFile } from "../../../packages/loader/src/schema/SceneSchema";
 import { applySceneData } from "../../../packages/loader/src/SceneLoader";
 import {
@@ -509,7 +513,7 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
 
-    expect(() => new SceneParser(data, context, scene)).toThrow(
+    expect(() => new SceneParser(data, context)).toThrow(
       'Unsupported scene format version "undefined". Expected "2.0".'
     );
   });
@@ -519,7 +523,7 @@ describe("SceneParser v2 entity tree", () => {
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     await parser.start();
 
     expect(scene.rootEntitiesCount).to.equal(1);
@@ -535,7 +539,7 @@ describe("SceneParser v2 entity tree", () => {
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     await parser.start();
 
     expect(scene.rootEntitiesCount).to.equal(2);
@@ -561,7 +565,7 @@ describe("SceneParser v2 entity tree", () => {
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     await parser.start();
 
     const entity = scene.rootEntities[0];
@@ -581,7 +585,7 @@ describe("SceneParser v2 entity tree", () => {
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     await parser.start();
 
     const entity = scene.rootEntities[0];
@@ -598,7 +602,7 @@ describe("SceneParser v2 entity tree", () => {
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     await parser.start();
 
     const a = scene.rootEntities[0];
@@ -613,7 +617,7 @@ describe("SceneParser v2 entity tree", () => {
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     await parser.start();
 
     const entity = scene.rootEntities[0];
@@ -634,7 +638,7 @@ describe("SceneParser v2 entity tree", () => {
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     await parser.start();
 
     const entity = scene.rootEntities[0];
@@ -659,7 +663,7 @@ describe("SceneParser v2 entity tree", () => {
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     await parser.start();
 
     const component = scene.rootEntities[0].getComponent(CallOrderComponent);
@@ -694,7 +698,7 @@ describe("SceneParser v2 entity tree", () => {
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     await parser.start();
 
     const postProcess = scene.rootEntities[0].getComponent(PostProcess);
@@ -710,8 +714,75 @@ describe("SceneParser v2 entity tree", () => {
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     await expect(parser.start()).rejects.toThrow("UnregisteredComponent999");
+  });
+
+  it("destroys scene entities when a serialized component call fails", async () => {
+    const failure = new Error("Scene setup failed");
+    let failedEntity: Entity;
+    let failedScene: Scene;
+    class FailsSceneSetup extends Script {
+      fail(): void {
+        failedEntity = this.entity;
+        failedScene = this.scene!;
+        throw failure;
+      }
+    }
+    Loader.registerClass("FailsSceneSetup", FailsSceneSetup);
+    const data = createSceneData(
+      [{ components: [0] }],
+      [{ type: "FailsSceneSetup", calls: [{ method: "fail" }] }],
+      [0]
+    );
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+    try {
+      await expect(engine.resourceManager.load({ url, type: AssetType.Scene })).rejects.toThrow(failure);
+      expect(failedEntity.destroyed).toBe(true);
+      expect(failedScene.destroyed).toBe(true);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  });
+
+  it("fails promptly and leaves no instance when a sibling prefab arrives after scene loading failed", async () => {
+    const resources = engine.resourceManager;
+    const prefabData = { version: "2.0", refs: [], entities: [{}], components: [], root: 0 };
+    const prefabUrl = URL.createObjectURL(new Blob([JSON.stringify(prefabData)], { type: "application/json" }));
+    const source = await resources.load<PrefabResource>({ url: prefabUrl, type: AssetType.Prefab });
+    let release: () => void;
+    @resourceLoader("DelayedScenePrefab", ["delayedScenePrefab"])
+    class DelayedScenePrefabLoader extends Loader<PrefabResource> {
+      override load(): AssetPromise<PrefabResource> {
+        return new AssetPromise((resolve) => (release = () => resolve(source)));
+      }
+    }
+
+    const virtualPath = "delayed-source.prefab";
+    resources.registerVirtualResources([
+      { virtualPath, path: "delayed-source.delayedScenePrefab", type: "DelayedScenePrefab" }
+    ]);
+    const sourceLoad = resources.load<PrefabResource>(virtualPath);
+    const data = createSceneData(
+      [{ instance: { asset: 0 } }, { instance: { asset: 1 } }],
+      [],
+      [0, 1],
+      [{ url: virtualPath }]
+    );
+    const sceneUrl = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+    try {
+      await expect(resources.load({ url: sceneUrl, type: AssetType.Scene })).rejects.toThrow("instance.asset");
+      release();
+      await sourceLoad;
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      expect(source.refCount).toBe(0);
+      expect(source.destroy()).toBe(true);
+    } finally {
+      release();
+      source.destroy(true);
+      URL.revokeObjectURL(prefabUrl);
+      URL.revokeObjectURL(sceneUrl);
+    }
   });
 
   it("should collect dependent assets from refs array", () => {
@@ -739,14 +810,14 @@ describe("SceneParser v2 entity tree", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     context._setTaskCompleteProgress = () => {};
-    const parser = new SceneParser(data, context, scene);
+    const parser = new SceneParser(data, context);
     const getResourceByRef = vi
       .spyOn(engine.resourceManager as any, "getResourceByRef")
       .mockResolvedValue({ _addReferCount() {} } as any);
 
     let collectedRefs: Array<{ url: string; key?: string }>;
     try {
-      parser._collectDependentAssets(data);
+      parser._collectDependentAssets();
       collectedRefs = getResourceByRef.mock.calls.map((args) => args[0] as any);
     } finally {
       getResourceByRef.mockRestore();

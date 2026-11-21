@@ -15,9 +15,10 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
   }
 
   /**
-   * {@inheritDoc IColliderShape.setLocalPose}
+   * {@inheritDoc IColliderShape.setLocalPose }
    */
   override setLocalPose(position: Vector3, rotation: Quaternion): void {
+    // Map the native plane normal from X to the engine plane’s Y axis.
     this._setLocalPose(position, rotation, PhysXPlaneColliderShape._yAxis);
   }
 }

@@ -1,26 +1,34 @@
-import { IPhysicsEvents, IPhysicsScene, PhysicsEventState } from "@galacean/engine-design";
+import { IDynamicCollider, IPhysicsEvents, IPhysicsScene, PhysicsEventState } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
+import type { Entity } from "../Entity";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
+import { DisorderedArray } from "../utils/DisorderedArray";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { Rigidbody } from "./Rigidbody";
 
 /**
- * A physics scene is a collection of colliders and constraints which can interact.
- * @remarks Component changes are collected and applied in one pass before each simulation step and each query, so the
- * order in which components are enabled never produces intermediate native states.
+ * Simulates colliders, rigidbodies, and constraints in a scene.
+ * @remarks Pending Rigidbody poses and Collider changes are synchronized before simulation and scene queries.
+ * Casts normalize world-space directions internally and only report hits at positive distances.
+ * An invalid direction or a non-positive distance is a miss. Single-hit casts clear a supplied {@link HitResult}
+ * on a miss.
  */
 export class PhysicsScene {
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static _tempDirection = new Vector3();
   private static _raycastHitPool: HitResult[] = [];
   private static _raycastSeenHits = new Set<HitResult>();
+  private static readonly _bodyPoses: [Vector3, Quaternion][] = [];
   private static readonly _collisionMethods = ["onCollisionEnter", "onCollisionStay", "onCollisionExit"] as const;
   private static readonly _triggerMethods = ["onTriggerEnter", "onTriggerStay", "onTriggerExit"] as const;
+  private static _bodyIndexSetter = (body: Rigidbody, index: number) => {
+    body._index = index;
+  };
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -29,7 +37,7 @@ export class PhysicsScene {
   private _restTime: number = 0;
   private _fixedTimeStep: number = 1 / 60;
 
-  private _bodies: Rigidbody[] = [];
+  private _bodies = new DisorderedArray<Rigidbody>();
   private _bodyOrderDirty = false;
   private _dirtyBodies: Rigidbody[] = [];
   private _dirtyColliders: Collider[] = [];
@@ -109,53 +117,41 @@ export class PhysicsScene {
   }
 
   /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @returns Returns True if the ray intersects with a collider, otherwise false
+   * Tests whether a world-space ray hits a collider.
    */
   raycast(ray: Ray): boolean;
 
   /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns True if the ray intersects with a collider, otherwise false
+   * Tests whether a world-space ray hits a collider.
+   * @param outHitResult - Receives the closest hit.
    */
   raycast(ray: Ray, outHitResult: HitResult): boolean;
 
   /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
-   * @returns Returns True if the ray intersects with a collider, otherwise false
+   * Tests whether a world-space ray hits a collider.
+   * @param distance - Maximum distance in world units.
    */
   raycast(ray: Ray, distance: number): boolean;
 
   /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns True if the ray intersects with a collider, otherwise false
+   * Tests whether a world-space ray hits a collider.
+   * @param distance - Maximum distance in world units.
+   * @param outHitResult - Receives the closest hit.
    */
   raycast(ray: Ray, distance: number, outHitResult: HitResult): boolean;
 
   /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when casting
-   * @returns Returns True if the ray intersects with a collider, otherwise false
+   * Tests whether a world-space ray hits a collider.
+   * @param distance - Maximum distance in world units.
+   * @param layerMask - Collision layers to include.
    */
   raycast(ray: Ray, distance: number, layerMask: Layer): boolean;
 
   /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when casting
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns True if the ray intersects with a collider, otherwise false.
+   * Tests whether a world-space ray hits a collider.
+   * @param distance - Maximum distance in world units.
+   * @param layerMask - Collision layers to include.
+   * @param outHitResult - Receives the closest hit.
    */
   raycast(ray: Ray, distance: number, layerMask: Layer, outHitResult: HitResult): boolean;
 
@@ -205,45 +201,29 @@ export class PhysicsScene {
   }
 
   /**
-   * Casts a ray and writes all hits in unspecified order.
-   * @param ray - World-space ray; its direction is normalized internally
-   * @param outHitResults - Receives the hits, reusing existing objects; resized to the hit count
-   * @returns Whether any hit was found
-   *
-   * @remarks All result objects, including caller-supplied ones, are borrowed and overwritten on reuse.
-   * Copy values to retain them. Unused objects are cleared and recycled for other queries.
-   * Reuse the array without clearing it; manually removed objects are not pooled.
-   * Do not share objects across output arrays or resubmit recycled objects. Duplicate entries share the last write.
+   * Writes ray hits in unspecified order and returns whether any hit was found.
+   * @param outHitResults - Reusable array, resized to the hit count. Discard references to recycled entries.
    */
   raycastAll(ray: Ray, outHitResults: HitResult[]): boolean;
 
   /**
-   * Casts a ray and writes all hits in unspecified order.
-   * @param ray - World-space ray; its direction is normalized internally
-   * @param distance - Maximum query distance; non-positive values return no hits
-   * @param outHitResults - Receives the hits, reusing existing objects; resized to the hit count
-   * @returns Whether any hit was found
-   *
-   * @remarks All result objects, including caller-supplied ones, are borrowed and overwritten on reuse.
-   * Copy values to retain them. Unused objects are cleared and recycled for other queries.
-   * Reuse the array without clearing it; manually removed objects are not pooled.
-   * Do not share objects across output arrays or resubmit recycled objects. Duplicate entries share the last write.
+   * Writes ray hits in unspecified order and returns whether any hit was found.
+   * @param distance - Maximum distance in world units.
+   * @param outHitResults - Reusable array, resized to the hit count. Discard references to recycled entries.
    */
   raycastAll(ray: Ray, distance: number, outHitResults: HitResult[]): boolean;
 
   /**
-   * Casts a ray and optionally writes all hits in unspecified order.
-   * @param ray - World-space ray; its direction is normalized internally
-   * @param distance - Maximum query distance; defaults to `Number.MAX_VALUE`
-   * @param layerMask - Collision layers to include; defaults to `Layer.Everything`
-   * @param outHitResults - Receives the hits; resized to the hit count. Omit to test for a hit only
-   * @returns Whether any hit was found
-   *
-   * @remarks All result objects, including caller-supplied ones, are borrowed and overwritten on reuse.
-   * Copy values to retain them. Unused objects are cleared and recycled for other queries.
-   * Reuse the array without clearing it; manually removed objects are not pooled.
-   * Do not share objects across output arrays or resubmit recycled objects. Duplicate entries share the last write.
-   * Non-positive distances or directions that cannot be normalized clear the output; hits at distance 0 are ignored.
+   * Tests a world-space ray and optionally writes all hits in unspecified order.
+   * @param ray - World-space ray. The direction is normalized internally.
+   * @param distance - Maximum distance in world units. Defaults to `Number.MAX_VALUE`.
+   * @param layerMask - Collision layers to include. Defaults to `Layer.Everything`.
+   * @param outHitResults - Reusable output array, resized to the hit count. Omit to test for a hit only.
+   * @returns Whether any hit was found.
+   * @remarks Reuse the array as-is. This call overwrites existing entries and may recycle entries it trims,
+   * including caller-supplied objects. Copy hit values to retain them and discard references to recycled entries.
+   * Keep result objects in a single output array. Duplicate entries show the last hit written to the shared object.
+   * Only positive-distance hits are reported. Invalid directions and non-positive distances empty the output.
    */
   raycastAll(ray: Ray, distance?: number, layerMask?: Layer, outHitResults?: HitResult[]): boolean;
 
@@ -282,7 +262,7 @@ export class PhysicsScene {
     }
     const length = outHitResults.length;
     if (hitCount < length) {
-      // Preserve active aliases and recycle each unused object only once
+      // Caller entries can alias retained hits or each other. Recycle only unreferenced objects once.
       const seenHits = PhysicsScene._raycastSeenHits;
       for (let i = 0; i < hitCount; i++) {
         seenHits.add(outHitResults[i]);
@@ -302,42 +282,30 @@ export class PhysicsScene {
   }
 
   /**
-   * Casts a box through the Scene and returns true if there is any hit.
-   * @param center - The center of the box
-   * @param halfExtents - Half the size of the box in each dimension
-   * @param direction - The direction to sweep along
-   * @returns Returns true if the box intersects with any collider, otherwise false
+   * Tests whether sweeping a box hits a collider.
+   * @param halfExtents - Half the box size along each of its axes, in world units.
    */
   boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3): boolean;
 
   /**
-   * Casts a box through the Scene and returns true if there is any hit.
-   * @param center - The center of the box
-   * @param halfExtents - Half the size of the box in each dimension
-   * @param direction - The direction to sweep along
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the box intersects with any collider, otherwise false
+   * Tests whether sweeping a box hits a collider.
+   * @param halfExtents - Half the box size along each of its axes, in world units.
+   * @param outHitResult - Receives the closest hit.
    */
   boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, outHitResult: HitResult): boolean;
 
   /**
-   * Casts a box through the Scene and returns true if there is any hit.
-   * @param center - The center of the box
-   * @param halfExtents - Half the size of the box in each dimension
-   * @param direction - The direction to sweep along
-   * @param distance - The max distance to sweep
-   * @returns Returns true if the box intersects with any collider, otherwise false
+   * Tests whether sweeping a box hits a collider.
+   * @param halfExtents - Half the box size along each of its axes, in world units.
+   * @param distance - Maximum distance in world units.
    */
   boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, distance: number): boolean;
 
   /**
-   * Casts a box through the Scene and returns true if there is any hit.
-   * @param center - The center of the box
-   * @param halfExtents - Half the size of the box in each dimension
-   * @param direction - The direction to sweep along
-   * @param distance - The max distance to sweep
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the box intersects with any collider, otherwise false
+   * Tests whether sweeping a box hits a collider.
+   * @param halfExtents - Half the box size along each of its axes, in world units.
+   * @param distance - Maximum distance in world units.
+   * @param outHitResult - Receives the closest hit.
    */
   boxCast(
     center: Vector3,
@@ -348,15 +316,14 @@ export class PhysicsScene {
   ): boolean;
 
   /**
-   * Casts a box through the Scene and returns true if there is any hit.
-   * @param center - The center of the box
-   * @param halfExtents - Half the size of the box in each dimension
-   * @param direction - The direction to sweep along
-   * @param orientation - The rotation of the box. @defaultValue `Quaternion(0, 0, 0, 1)`
-   * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
-   * @param outHitResult - Optional HitResult object to store detailed hit information
-   * @returns Returns true if the box intersects with any collider, otherwise false
+   * Tests whether sweeping a box hits a collider.
+   * @param center - Initial center in world space.
+   * @param halfExtents - Half the box size along each of its axes, in world units.
+   * @param direction - Sweep direction in world space.
+   * @param orientation - Rotation of the box in world space.
+   * @param distance - Maximum distance in world units.
+   * @param layerMask - Collision layers to include.
+   * @param outHitResult - Receives the closest hit.
    */
   boxCast(
     center: Vector3,
@@ -382,7 +349,6 @@ export class PhysicsScene {
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
 
-    // Parse parameters based on new overload patterns
     if (typeof orientationOrDistanceOrResult === "number") {
       distance = orientationOrDistanceOrResult;
       if (distanceOrResult?.constructor === HitResult) {
@@ -427,54 +393,37 @@ export class PhysicsScene {
   }
 
   /**
-   * Casts a sphere through the Scene and returns true if there is any hit.
-   * @param center - The center of the sphere
-   * @param radius - The radius of the sphere
-   * @param direction - The direction to sweep along
-   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   * Tests whether sweeping a sphere hits a collider.
    */
   sphereCast(center: Vector3, radius: number, direction: Vector3): boolean;
 
   /**
-   * Casts a sphere through the Scene and returns true if there is any hit.
-   * @param center - The center of the sphere
-   * @param radius - The radius of the sphere
-   * @param direction - The direction to sweep along
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   * Tests whether sweeping a sphere hits a collider.
+   * @param outHitResult - Receives the closest hit.
    */
   sphereCast(center: Vector3, radius: number, direction: Vector3, outHitResult: HitResult): boolean;
 
   /**
-   * Casts a sphere through the Scene and returns true if there is any hit.
-   * @param center - The center of the sphere
-   * @param radius - The radius of the sphere
-   * @param direction - The direction to sweep along
-   * @param distance - The max distance to sweep
-   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   * Tests whether sweeping a sphere hits a collider.
+   * @param distance - Maximum distance in world units.
    */
   sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number): boolean;
 
   /**
-   * Casts a sphere through the Scene and returns true if there is any hit.
-   * @param center - The center of the sphere
-   * @param radius - The radius of the sphere
-   * @param direction - The direction to sweep along
-   * @param distance - The max distance to sweep
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   * Tests whether sweeping a sphere hits a collider.
+   * @param distance - Maximum distance in world units.
+   * @param outHitResult - Receives the closest hit.
    */
   sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number, outHitResult: HitResult): boolean;
 
   /**
-   * Casts a sphere through the Scene and returns true if there is any hit.
-   * @param center - The center of the sphere
-   * @param radius - The radius of the sphere
-   * @param direction - The direction to sweep along
-   * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the sphere intersects with any collider, otherwise false
+   * Tests whether sweeping a sphere hits a collider.
+   * @param center - Initial center in world space.
+   * @param radius - Radius in world units.
+   * @param direction - Sweep direction in world space.
+   * @param distance - Maximum distance in world units.
+   * @param layerMask - Collision layers to include.
+   * @param outHitResult - Receives the closest hit.
    */
   sphereCast(
     center: Vector3,
@@ -497,7 +446,6 @@ export class PhysicsScene {
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
 
-    // Parse parameters based on new overload patterns
     if (typeof distanceOrResult === "number") {
       distance = distanceOrResult;
       if (layerMaskOrResult?.constructor === HitResult) {
@@ -535,46 +483,30 @@ export class PhysicsScene {
   }
 
   /**
-   * Casts a capsule through the Scene and returns true if there is any hit.
-   * @param center - The center of the capsule
-   * @param radius - The radius of the capsule
-   * @param height - The height of the capsule
-   * @param direction - The direction to sweep along
-   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   * Tests whether sweeping a capsule hits a collider.
+   * @param height - Length of the cylindrical section in world units, excluding both caps.
    */
   capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3): boolean;
 
   /**
-   * Casts a capsule through the Scene and returns true if there is any hit.
-   * @param center - The center of the capsule
-   * @param radius - The radius of the capsule
-   * @param height - The height of the capsule
-   * @param direction - The direction to sweep along
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   * Tests whether sweeping a capsule hits a collider.
+   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param outHitResult - Receives the closest hit.
    */
   capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, outHitResult: HitResult): boolean;
 
   /**
-   * Casts a capsule through the Scene and returns true if there is any hit.
-   * @param center - The center of the capsule
-   * @param radius - The radius of the capsule
-   * @param height - The height of the capsule
-   * @param direction - The direction to sweep along
-   * @param distance - The max distance to sweep
-   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   * Tests whether sweeping a capsule hits a collider.
+   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param distance - Maximum distance in world units.
    */
   capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, distance: number): boolean;
 
   /**
-   * Casts a capsule through the Scene and returns true if there is any hit.
-   * @param center - The center of the capsule
-   * @param radius - The radius of the capsule
-   * @param height - The height of the capsule
-   * @param direction - The direction to sweep along
-   * @param distance - The max distance to sweep
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the capsule intersects with any collider, otherwise false
+   * Tests whether sweeping a capsule hits a collider.
+   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param distance - Maximum distance in world units.
+   * @param outHitResult - Receives the closest hit.
    */
   capsuleCast(
     center: Vector3,
@@ -586,16 +518,15 @@ export class PhysicsScene {
   ): boolean;
 
   /**
-   * Casts a capsule through the Scene and returns true if there is any hit.
-   * @param center - The center of the capsule
-   * @param radius - The radius of the capsule
-   * @param height - The height of the capsule
-   * @param direction - The direction to sweep along
-   * @param orientation - The rotation of the capsule. @defaultValue `Quaternion(0, 0, 0, 1)`
-   * @param distance - The max distance to sweep. @defaultValue `Number.MAX_VALUE`
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when sweeping. @defaultValue `Layer.Everything`
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns True if the capsule intersects with any collider, otherwise false
+   * Tests whether sweeping a capsule hits a collider.
+   * @param center - Initial center in world space.
+   * @param radius - Radius in world units.
+   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param direction - Sweep direction in world space.
+   * @param orientation - World-space rotation of the capsule, whose local long axis is X.
+   * @param distance - Maximum distance in world units.
+   * @param layerMask - Collision layers to include.
+   * @param outHitResult - Receives the closest hit.
    */
   capsuleCast(
     center: Vector3,
@@ -670,13 +601,13 @@ export class PhysicsScene {
   }
 
   /**
-   * Get all colliders that overlap with a box in the scene.
-   * @param center - The center of the box
-   * @param halfExtents - Half the size of the box in each dimension
-   * @param orientation - The rotation of the box. @defaultValue `Quaternion(0, 0, 0, 1)`
-   * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
-   * @param colliders - Array to store overlapping colliders. @defaultValue `[]`
-   * @returns The colliders overlapping with the box
+   * Finds the colliders overlapping a box.
+   * @param center - Center in world space.
+   * @param halfExtents - Half the box size along each of its axes, in world units.
+   * @param orientation - Rotation of the box in world space. Defaults to the identity rotation.
+   * @param layerMask - Collision layers to include. Defaults to `Layer.Everything`.
+   * @param colliders - Output array whose contents are replaced. Omit to allocate an array.
+   * @returns The output array, emptied when the dimensions are invalid or there are no overlaps.
    */
   overlapBoxAll(
     center: Vector3,
@@ -696,12 +627,12 @@ export class PhysicsScene {
   }
 
   /**
-   * Get all colliders that overlap with a sphere in the scene.
-   * @param center - The center of the sphere
-   * @param radius - The radius of the sphere
-   * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
-   * @param colliders - Array to store overlapping colliders. @defaultValue `[]`
-   * @returns The colliders overlapping with the sphere
+   * Finds the colliders overlapping a sphere.
+   * @param center - Center in world space.
+   * @param radius - Radius in world units.
+   * @param layerMask - Collision layers to include. Defaults to `Layer.Everything`.
+   * @param colliders - Output array whose contents are replaced. Omit to allocate an array.
+   * @returns The output array, emptied when the dimensions are invalid or there are no overlaps.
    */
   overlapSphereAll(
     center: Vector3,
@@ -720,14 +651,14 @@ export class PhysicsScene {
   }
 
   /**
-   * Get all colliders that overlap with a capsule in the scene.
-   * @param center - The center of the capsule
-   * @param radius - The radius of the capsule
-   * @param height - The height of the capsule
-   * @param orientation - The rotation of the capsule. @defaultValue `Quaternion(0, 0, 0, 1)`
-   * @param layerMask - Layer mask that is used to selectively filter colliders. @defaultValue `Layer.Everything`
-   * @param colliders - Array to store overlapping colliders. @defaultValue `[]`
-   * @returns The colliders overlapping with the capsule
+   * Finds the colliders overlapping a capsule.
+   * @param center - Center in world space.
+   * @param radius - Radius in world units.
+   * @param height - Length of the cylindrical section in world units, excluding both caps.
+   * @param orientation - World-space rotation of the capsule, whose local long axis is X. Defaults to the identity rotation.
+   * @param layerMask - Collision layers to include. Defaults to `Layer.Everything`.
+   * @param colliders - Output array whose contents are replaced. Omit to allocate an array.
+   * @returns The output array, emptied when the dimensions are invalid or there are no overlaps.
    */
   overlapCapsuleAll(
     center: Vector3,
@@ -762,11 +693,25 @@ export class PhysicsScene {
       componentsManager.callScriptOnPhysicsUpdate();
       this._syncColliders();
       nativePhysicsScene.update(fixedTimeStep);
-      if (this._bodyOrderDirty) {
+      if (this._bodyOrderDirty && !bodies.isLopping) {
         this._sortBodies();
       }
-      for (let i = 0, n = bodies.length; i < n; i++) {
-        bodies[i]._writeBack();
+      const count = bodies.length;
+      if (count > 0) {
+        // Keep the pose leased through Transform accessors, which can update another scene.
+        const poses = PhysicsScene._bodyPoses;
+        const pose: [Vector3, Quaternion] = poses.pop() ?? [new Vector3(), new Quaternion()];
+        const elements = bodies._elements;
+        bodies._startLoop();
+        try {
+          const [position, rotation] = pose;
+          for (let j = 0; j < count; j++) {
+            elements[j]?._writeBack(position, rotation);
+          }
+        } finally {
+          bodies._endLoop(PhysicsScene._bodyIndexSetter);
+          poses.push(pose);
+        }
       }
       this._dispatchEvents(nativePhysicsScene.updateEvents());
     }
@@ -816,11 +761,11 @@ export class PhysicsScene {
   /**
    * @internal
    */
-  _addRigidbody(body: Rigidbody): void {
-    this._nativePhysicsScene.addCollider(body._getNativeActor());
+  _addRigidbody(body: Rigidbody, actor: IDynamicCollider): void {
+    this._nativePhysicsScene.addCollider(actor);
     const bodies = this._bodies;
     body._index = bodies.length;
-    bodies.push(body);
+    bodies.add(body);
     this._bodyOrderDirty = true;
     PhysicsScene._addDirty(this._dirtyBodies, body);
     body._markMassDirty();
@@ -845,10 +790,11 @@ export class PhysicsScene {
       body._massDirtyIndex = -1;
     }
     const bodies = this._bodies;
-    const last = bodies.pop()!;
-    if (last !== body) {
-      bodies[body._index] = last;
-      last._index = body._index;
+    const moved = bodies.deleteByIndex(body._index);
+    if (moved) {
+      moved._index = body._index;
+    }
+    if (moved || bodies.isLopping) {
       this._bodyOrderDirty = true;
     }
     body._index = -1;
@@ -862,9 +808,14 @@ export class PhysicsScene {
     PhysicsScene._addDirty(this._dirtyBodies, body);
   }
 
-  /** @internal */
-  _invalidateBodyOrder(): void {
-    this._bodyOrderDirty = true;
+  /**
+   * @internal
+   * Reorder the writeback list when reparenting can change the order of registered bodies.
+   */
+  _invalidateBodyOrder(root: Entity): void {
+    if (!this._bodyOrderDirty && this._bodies.length > 1) {
+      this._bodyOrderDirty = root._children.length > 0 || (root.getComponent(Rigidbody)?._index ?? -1) !== -1;
+    }
   }
 
   /**
@@ -892,6 +843,7 @@ export class PhysicsScene {
    * @internal
    */
   _gc(): void {
+    this._bodies.garbageCollection();
     PhysicsScene._raycastHitPool.length = 0;
     PhysicsScene._raycastSeenHits.clear();
     this._nativePhysicsScene?.gc();
@@ -901,16 +853,19 @@ export class PhysicsScene {
    * @internal
    */
   _destroy(): void {
+    //@ts-ignore
+    this._gravity._onValueChanged = null;
     PhysicsScene._raycastHitPool.length = 0;
     PhysicsScene._raycastSeenHits.clear();
     this._nativePhysicsScene?.destroy();
+    this._nativePhysicsScene = null!;
   }
 
   private _sortBodies(): void {
     this._bodyOrderDirty = false;
-    const bodies = this._bodies;
+    const { _elements: bodies, length } = this._bodies;
     // Publish ancestors first so each body's world pose is converted against its parent's simulated pose.
-    for (let i = 0, n = bodies.length - 1; i < n; i++) {
+    for (let i = 0, n = length - 1; i < n; i++) {
       let body = bodies[i];
       for (let parent = body.entity.parent; parent; parent = parent.parent) {
         const ancestor = parent.getComponent(Rigidbody);
@@ -1033,7 +988,7 @@ export class PhysicsScene {
     const { x, y, z } = direction;
     const length = Math.sqrt(x * x + y * y + z * z);
     if (!(length > MathUtil.zeroTolerance && Number.isFinite(length))) return null;
-    // A Transform getter can query the scene during sync and reuse the same native direction.
+    // Synchronize first so a query made by a Transform getter cannot overwrite this direction.
     this._syncColliders();
     const inverseLength = 1 / length;
     return PhysicsScene._tempDirection.set(x * inverseLength, y * inverseLength, z * inverseLength);

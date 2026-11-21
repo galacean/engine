@@ -4,14 +4,13 @@ import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
-import { Scene } from "../../Scene";
 import { TransformModifyFlags } from "../../Transform";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
 import { Rigidbody } from "../Rigidbody";
 
 /**
- * A base class providing common functionality for joints.
+ * A constraint between the Entity's Rigidbody and another body or the world.
  * @decorator `@dependentComponents(Rigidbody, DependentMode.AutoAdd)`
  */
 @dependentComponents(Rigidbody, DependentMode.AutoAdd)
@@ -24,7 +23,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   private _connectedBodyInfo = new JointBodyInfo();
   private _connectedBody: Rigidbody | null = null;
   @ignoreClone
-  protected _nativeJoint: IJoint | null;
+  protected _nativeJoint: IJoint | null = null;
   private _force = Infinity;
   private _torque = Infinity;
   private _automaticConnectedAnchor = true;
@@ -33,49 +32,39 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   private _calculatedConnectedAnchor: Vector3 | null = null;
 
   /**
-   * The connected Rigidbody, or null to connect to a fixed point in world space.
+   * The connected Rigidbody, or null to constrain against the world.
+   * @remarks With a connected body, the constraint is active only while both bodies are registered in the same scene.
+   * Destroying the connected body clears the connection.
+   * @throws When assigned a destroyed body, the joint's own body, or a body from another engine.
    */
   get connectedBody(): Rigidbody | null {
-    return this._getConnectedBody();
+    return this._connectedBody;
   }
 
   set connectedBody(value: Rigidbody | null) {
     if (value) {
       if (value.destroyed) {
-        value = null;
+        throw new Error("Joint: connectedBody has been destroyed.");
       } else if (value.engine !== this.engine) {
         throw new Error("Joint: connectedBody belongs to another engine.");
-      } else if (value === this.entity.getComponent(Rigidbody)) {
-        console.error("Joint: cannot connect a Rigidbody to itself.");
-        return;
-      } else if (!Joint._isSameScene(this.scene, value.scene)) {
-        console.error("Joint: connectedBody belongs to another scene.");
-        return;
+      } else if (value.entity === this.entity) {
+        throw new Error("Joint: cannot connect a Rigidbody to itself.");
       }
     }
     const preBody = this._connectedBody;
     if (preBody !== value) {
       preBody?.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
-      preBody?._detachConnectedJoint(this);
+      preBody?._detachJoint(this);
       value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
-      value?._attachConnectedJoint(this);
+      value?._attachJoint(this);
+      if (this._nativeJoint) Joint._wakeBody(preBody);
       this._connectedBody = value;
-      const samePhysicalScene = value && (!value.scene || !this.scene || value.scene === this.scene);
-      this._nativeJoint?.setConnectedCollider(samePhysicalScene ? Joint._getBodyActor(value) : null);
-      this._updateRotation();
-      if (this._automaticConnectedAnchor) {
-        this._calculateConnectedAnchor();
-      } else {
-        this._updateActualAnchor(AnchorOwner.Connected);
-      }
-      if (this._nativeJoint) {
-        Joint._wakeBody(preBody);
-      }
+      this._syncActiveJoint();
     }
   }
 
   /**
-   * The anchor position.
+   * The anchor in this Entity's local space.
    */
   get anchor(): Vector3 {
     return this._bodyInfo.anchor;
@@ -89,10 +78,9 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   /**
-   * The connected anchor position.
-   * @remarks Reads the authored value once written, otherwise the last effective anchor.
-   * Simulation uses the calculated anchor while `automaticConnectedAnchor` is true.
-   * The value is local to the connected body when set, otherwise it is in world space.
+   * The anchor in the connected body's local space, or in world space when {@link connectedBody} is null.
+   * @remarks Reads the authored value if one was set, otherwise the last calculated anchor.
+   * Simulation uses the calculated anchor while {@link automaticConnectedAnchor} is enabled.
    */
   get connectedAnchor(): Vector3 {
     const anchor = this._connectedBodyInfo.anchor;
@@ -111,8 +99,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   /**
-   * Whether to calculate the connected anchor automatically to match the world position of `anchor`.
-   * @remarks Disabling uses the authored anchor, or preserves the calculated anchor if none was authored.
+   * Whether the connected anchor automatically matches the world position of {@link anchor}.
+   * @remarks Disabling uses the authored connected anchor if available, or keeps the calculated one.
    */
   get automaticConnectedAnchor(): boolean {
     return this._automaticConnectedAnchor;
@@ -229,10 +217,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   constructor(entity: Entity) {
     super(entity);
     this._onAnchorChanged = this._onAnchorChanged.bind(this);
-    //@ts-ignore
     this._bodyInfo.anchor._onValueChanged = this._onAnchorChanged;
     this._handleConnectedAnchorChanged = this._handleConnectedAnchorChanged.bind(this);
-    //@ts-ignore
     this._connectedBodyInfo.anchor._onValueChanged = this._handleConnectedAnchorChanged;
 
     this._onSelfTransformChanged = this._onSelfTransformChanged.bind(this);
@@ -244,31 +230,17 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   /**
    * @internal
    */
-  override _onSceneChanged(scene: Scene): void {
-    const body = this._connectedBody;
-    if (body && !body.destroyed && !Joint._isSameScene(scene, body.scene)) {
-      this._onConnectedBodyCrossScene();
-    }
-  }
-
-  /**
-   * @internal
-   */
   override _onEnableInScene(): void {
-    this._nativeJoint = this._createJoint(this.entity.getComponent(Rigidbody)!._getNativeActor());
-    this._syncNative();
-    this._updateRotation();
+    this.entity.getComponent(Rigidbody)!._attachJoint(this);
+    this._syncActiveJoint();
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    if (this._nativeJoint) {
-      this._nativeJoint.destroy();
-      this._nativeJoint = null;
-      this._wakeBodies();
-    }
+    this.entity.getComponent(Rigidbody)!._detachJoint(this);
+    this._destroyNativeJoint();
   }
 
   /**
@@ -276,141 +248,97 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    */
   _onClone(target: Joint): void {
     const targetAnchor = target._bodyInfo.anchor;
-    //@ts-ignore
     targetAnchor._onValueChanged = null;
     targetAnchor.copyFrom(this._bodyInfo.anchor);
-    //@ts-ignore
     targetAnchor._onValueChanged = target._onAnchorChanged;
 
     const targetConnectedAnchor = target._connectedBodyInfo.anchor;
-    //@ts-ignore
     targetConnectedAnchor._onValueChanged = null;
     targetConnectedAnchor.copyFrom(this._connectedBodyInfo.anchor);
-    //@ts-ignore
     targetConnectedAnchor._onValueChanged = target._handleConnectedAnchorChanged;
 
-    const connectedBody = target._getConnectedBody();
+    const connectedBody = target._connectedBody;
     connectedBody?.entity._updateFlagManager.addListener(target._onConnectedTransformChanged);
-    connectedBody?._attachConnectedJoint(target);
+    connectedBody?._attachJoint(target);
   }
 
   /**
+   * Clears an authored connection when its target is destroyed.
    * @internal
-   * Detach from a connected Rigidbody before its native actor is released.
    */
-  _onConnectedBodyDestroyed(): void {
-    this._detachConnectedBody(false);
+  _onBodyDestroyed(body: Rigidbody): void {
+    if (this._connectedBody === body) this.connectedBody = null;
   }
 
   /**
+   * Reconciles the constraint with both bodies' native scene registrations.
    * @internal
-   * Detach from a connected Rigidbody before its native actor enters a different scene.
    */
-  _onConnectedBodyCrossScene(): void {
-    console.error("Joint: connectedBody belongs to another scene.");
-    this._detachConnectedBody(true);
-  }
-
-  /**
-   * @internal
-   * Temporarily clear the native connected actor while a scene merge moves the connected body between scenes.
-   */
-  _detachNativeConnectedBody(): void {
-    this._nativeJoint?.setConnectedCollider(null);
-  }
-
-  /**
-   * @internal
-   * Re-attach the native connected actor once the connected body arrives in this joint's scene.
-   */
-  _syncNativeConnectedBody(): void {
-    if (this._nativeJoint) {
-      const body = this._getConnectedBody();
-      if (body && (!body.scene || body.scene === this.scene)) {
-        this._nativeJoint.setConnectedCollider(Joint._getBodyActor(body));
-        this._updateRotation();
-        if (this._automaticConnectedAnchor) {
-          this._calculateConnectedAnchor();
-        } else {
-          this._updateActualAnchor(AnchorOwner.Connected);
-        }
-      }
-    }
-  }
-
-  private _detachConnectedBody(detachFromBody: boolean): void {
-    const body = this._connectedBody;
-    if (!body) {
+  _syncActiveJoint(): void {
+    const scene = this._registeredScene;
+    if (!scene) return;
+    const bodyActor = this.entity.getComponent(Rigidbody)!._getRegisteredActor(scene);
+    const connectedBody = this._connectedBody;
+    const connectedActor = connectedBody?._getRegisteredActor(scene) ?? null;
+    if (!bodyActor || (connectedBody && !connectedActor)) {
+      this._destroyNativeJoint();
       return;
     }
-    body.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
-    if (detachFromBody) {
-      body._detachConnectedJoint(this);
-    }
-    this._connectedBody = null;
-    this._nativeJoint?.setConnectedCollider(null);
-    this._updateRotation();
-    if (this._automaticConnectedAnchor) {
-      this._calculateConnectedAnchor();
+    const nativeJoint = this._nativeJoint;
+    if (nativeJoint) {
+      nativeJoint.setConnectedCollider(connectedActor);
+      this._syncConnectedFrame();
     } else {
-      this._updateActualAnchor(AnchorOwner.Connected);
+      const joint = (this._nativeJoint = this._createJoint(bodyActor));
+      if (connectedActor) joint.setConnectedCollider(connectedActor);
+      this._syncNative();
     }
   }
 
   protected override _onDestroy(): void {
+    this._bodyInfo.anchor._onValueChanged = null;
+    this._connectedBodyInfo.anchor._onValueChanged = null;
     super._onDestroy();
     this.entity._updateFlagManager.removeListener(this._onSelfTransformChanged);
     const connectedBody = this._connectedBody;
     if (connectedBody) {
       connectedBody.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
-      connectedBody._detachConnectedJoint(this);
+      connectedBody._detachJoint(this);
       this._connectedBody = null;
     }
   }
 
   protected abstract _createJoint(actor: IDynamicCollider): IJoint;
 
-  /**
-   * A destroyed Rigidbody must not recreate its native actor through a joint that still references it.
-   */
-  private static _getBodyActor(body: Rigidbody | null): IDynamicCollider | null {
-    return body && !body.destroyed ? body._getNativeActor() : null;
-  }
-
-  private static _isSameScene(a: Scene | null | undefined, b: Scene | null | undefined): boolean {
-    return !a || !b || a === b || a._mergingInto === b || b._mergingInto === a;
-  }
-
-  private _getConnectedBody(): Rigidbody | null {
-    const body = this._connectedBody;
-    if (body && (body.destroyed || !Joint._isSameScene(this.scene, body.scene))) {
-      body.entity._updateFlagManager.removeListener(this._onConnectedTransformChanged);
-      body._detachConnectedJoint(this);
-      this._connectedBody = null;
-      return null;
+  /** @internal */
+  protected _destroyNativeJoint(): void {
+    const nativeJoint = this._nativeJoint;
+    if (nativeJoint) {
+      nativeJoint.destroy();
+      this._nativeJoint = null;
+      this._wakeBodies();
     }
-    return body;
   }
 
   protected _syncNative(): void {
-    if (this._nativeJoint) {
-      const connectedBody = this._getConnectedBody();
-      // Defer native attachment while mergeScenes has not yet moved connectedBody into this.scene
-      const samePhysicalScene = connectedBody && (!connectedBody.scene || connectedBody.scene === this.scene);
-      this._nativeJoint.setConnectedCollider(samePhysicalScene ? Joint._getBodyActor(connectedBody) : null);
-      this._updateActualAnchor(AnchorOwner.Self);
-      if (this._automaticConnectedAnchor) {
-        this._calculateConnectedAnchor();
-      } else {
-        this._updateActualAnchor(AnchorOwner.Connected);
-      }
-      this._nativeJoint.setConnectedMassScale(this._connectedBodyInfo.massScale);
-      this._nativeJoint.setConnectedInertiaScale(this._connectedBodyInfo.inertiaScale);
-      this._nativeJoint.setMassScale(this._bodyInfo.massScale);
-      this._nativeJoint.setInertiaScale(this._bodyInfo.inertiaScale);
-      this._nativeJoint.setBreakForce(this._force);
-      this._nativeJoint.setBreakTorque(this._torque);
+    const nativeJoint = this._nativeJoint!;
+    this._updateActualAnchor(AnchorOwner.Self);
+    this._syncConnectedFrame();
+    nativeJoint.setConnectedMassScale(this._connectedBodyInfo.massScale);
+    nativeJoint.setConnectedInertiaScale(this._connectedBodyInfo.inertiaScale);
+    nativeJoint.setMassScale(this._bodyInfo.massScale);
+    nativeJoint.setInertiaScale(this._bodyInfo.inertiaScale);
+    nativeJoint.setBreakForce(this._force);
+    nativeJoint.setBreakTorque(this._torque);
+  }
+
+  private _syncConnectedFrame(): void {
+    if (this._automaticConnectedAnchor) {
+      this._calculateConnectedAnchor();
+    } else {
+      this._updateActualAnchor(AnchorOwner.Connected);
     }
+    this._updateRotation();
   }
 
   private _calculateConnectedAnchor(): void {
@@ -420,9 +348,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     const connectedAnchor = authored
       ? (this._calculatedConnectedAnchor ||= new Vector3())
       : this._connectedBodyInfo.anchor;
-    const connectedBody = this._getConnectedBody();
+    const connectedBody = this._connectedBody;
 
-    // @ts-ignore
     connectedAnchor._onValueChanged = null;
     if (connectedBody) {
       const tempVector3 = Joint._tempVector3;
@@ -434,7 +361,6 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       Vector3.transformCoordinate(bodyInfo.anchor, this.entity.transform.worldMatrix, connectedAnchor);
     }
     if (!authored) {
-      // @ts-ignore
       connectedAnchor._onValueChanged = this._handleConnectedAnchorChanged;
       this._calculatedConnectedAnchor?.copyFrom(connectedAnchor);
     }
@@ -469,7 +395,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   private _updateRotation(): void {
     let rotation = this.entity.transform.worldRotationQuaternion;
-    const connectedBody = this._getConnectedBody();
+    const connectedBody = this._connectedBody;
     if (connectedBody) {
       const relativeRotation = Joint._tempQuat;
       Quaternion.invert(connectedBody.entity.transform.worldRotationQuaternion, relativeRotation);
@@ -492,7 +418,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     if (flag & AnchorOwner.Connected) {
       const connectedBodyInfo = this._connectedBodyInfo;
       const anchor = (this._automaticConnectedAnchor && this._calculatedConnectedAnchor) || connectedBodyInfo.anchor;
-      const connectedBody = this._getConnectedBody();
+      const connectedBody = this._connectedBody;
       if (connectedBody) {
         const worldScale = connectedBody.entity.transform.lossyWorldScale;
         Vector3.multiply(anchor, worldScale, connectedBodyInfo.actualAnchor);
@@ -506,7 +432,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   protected _wakeBodies(): void {
     Joint._wakeBody(this.entity.getComponent(Rigidbody));
-    Joint._wakeBody(this._connectedBody);
+    const body = this._connectedBody;
+    if (body?.scene === this.scene) Joint._wakeBody(body);
   }
 
   private static _wakeBody(body: Rigidbody | null | undefined): void {

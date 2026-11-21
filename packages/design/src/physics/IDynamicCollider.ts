@@ -2,20 +2,20 @@ import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICollider } from "./ICollider";
 
 /**
- * Interface of physics dynamic collider.
+ * Native dynamic rigid actor.
  */
 export interface IDynamicCollider extends ICollider {
   /**
-   * Set global transform of collider.
-   * @param position - The global position
-   * @param rotation - The global rotation
+   * Set the actor pose immediately and update any pending kinematic target to match.
+   * @param position - The world-space position
+   * @param rotation - The world-space rotation
    */
   setWorldTransform(position: Vector3, rotation: Quaternion): void;
 
   /**
-   * Get global transform of collider.
-   * @param outPosition - The global position
-   * @param outRotation - The global rotation
+   * Write the current world-space pose of the actor.
+   * @param outPosition - Receives the position
+   * @param outRotation - Receives the rotation
    */
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void;
 
@@ -155,9 +155,10 @@ export interface IDynamicCollider extends ICollider {
   addTorque(torque: Vector3): void;
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param positionOrRotation - The desired position or rotation for the kinematic actor
-   * @param rotation - The desired rotation for the kinematic actor
+   * Set a world-space target pose for the next simulation step.
+   * @param positionOrRotation - The target position or rotation
+   * @param rotation - The target rotation when passing both position and rotation
+   * @remarks A partial update preserves the other component of the pending target, or of the current pose if there is no target.
    */
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void;
 

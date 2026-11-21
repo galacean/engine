@@ -15,7 +15,7 @@ import {
 } from "./shape";
 
 /**
- * The interface of physics creation.
+ * Creates and configures objects for the physics backend.
  */
 export interface IPhysics {
   /**
@@ -25,7 +25,7 @@ export interface IPhysics {
   initialize(): Promise<void>;
 
   /**
-   * Create physics scene.
+   * Create a native simulation scene.
    */
   createPhysicsScene(): IPhysicsScene;
 
@@ -44,9 +44,9 @@ export interface IPhysics {
   createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider;
 
   /**
-   * Create character controller.
-   * @param uniqueID - Collider unique id
-   * @param material - The physics material
+   * Create a character controller for later insertion into a scene.
+   * @param uniqueID - The collider ID reported by queries and events
+   * @param material - The controller material
    */
   createCharacterController(uniqueID: number, material: IPhysicsMaterial): ICharacterController;
 
@@ -57,33 +57,33 @@ export interface IPhysics {
   createPhysicsMaterial(properties: IPhysicsMaterialProperties): IPhysicsMaterial;
 
   /**
-   * Create box collider shape.
-   * @param uniqueID - Collider unique id
-   * @param halfExtents - Scaled half extents of the box
+   * Create a box collider shape.
+   * @param uniqueID - The collider ID reported by queries and events
+   * @param halfExtents - Half the size along each box axis, with entity scale applied
    * @param material - The material of this shape
    */
   createBoxColliderShape(uniqueID: number, halfExtents: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
 
   /**
-   * Create sphere collider shape.
-   * @param uniqueID - Collider unique id
-   * @param radius - Scaled radius of the sphere
+   * Create a sphere collider shape.
+   * @param uniqueID - The collider ID reported by queries and events
+   * @param radius - The radius with entity scale applied
    * @param material - The material of this shape
    */
   createSphereColliderShape(uniqueID: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape;
 
   /**
-   * Create plane collider shape.
-   * @param uniqueID - Collider unique id
+   * Create a plane collider shape.
+   * @param uniqueID - The collider ID reported by queries and events
    * @param material - The material of this shape
    */
   createPlaneColliderShape(uniqueID: number, material: IPhysicsMaterial): IPlaneColliderShape;
 
   /**
-   * Create capsule collider shape.
-   * @param uniqueID - Collider unique id
-   * @param radius - Scaled radius of the capsule
-   * @param halfHeight - Scaled half height of the cylinder, excluding caps
+   * Create a capsule collider shape.
+   * @param uniqueID - The collider ID reported by queries and events
+   * @param radius - The radius with entity scale applied
+   * @param halfHeight - Half the cylindrical height, with entity scale applied
    * @param material - The material of this shape
    * @param upAxis - The local up axis
    */
@@ -96,14 +96,15 @@ export interface IPhysics {
   ): ICapsuleColliderShape;
 
   /**
-   * Create mesh collider shape.
-   * @param uniqueID - Collider unique id
-   * @param positions - Vertex positions
-   * @param indices - Index array (null for convex mesh)
+   * Create a collider shape from cooked mesh data.
+   * @param uniqueID - The collider ID reported by queries and events
+   * @param positions - Unscaled vertices in mesh-local space
+   * @param indices - Triangle indices, or null for a convex mesh
    * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)
    * @param material - The material of this shape
    * @param cookingFlags - Cooking flags
-   * @param scale - Absolute world scale
+   * @param scale - The absolute world scale applied to the cooked mesh
+   * @returns The shape, or null if mesh cooking or shape creation fails
    */
   createMeshColliderShape(
     uniqueID: number,
@@ -150,7 +151,7 @@ export interface IPhysics {
   setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void;
 
   /**
-   * Destroy physics scene.
+   * Release the physics backend.
    */
   destroy(): void;
 }

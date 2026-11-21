@@ -81,7 +81,7 @@ label: Physics
 - [**constraints**](/apis/core/#Rigidbody-constraints)  
   用于冻结物体在特定轴向上的运动。可以分别锁定位置和旋转的 X、Y、Z 轴向运动。
   ```typescript
-  // 限制Y轴位置和所有旋转
+  // 锁定沿 Y 轴的移动和绕各轴的旋转。
   rigidbody.constraints =
     RigidbodyConstraints.FreezePositionY |
     RigidbodyConstraints.FreezeRotationX |
@@ -161,21 +161,19 @@ class PhysicsController extends Script {
     this._rigidbody = this.entity.getComponent(Rigidbody);
     this._rigidbody.linearDamping = 0.1;
     this._rigidbody.angularDamping = 0.1;
-    // 锁定 X 轴和 Z 轴旋转
     this._rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
   }
 
   onUpdate() {
     const inputManager = this.engine.inputManager;
-    // 施加持续力（如推力）
+    // 按住 W 时每帧施加推力。
     if (inputManager.isKeyHeldDown(Keys.KeyW)) {
       this._rigidbody.applyForce(new Vector3(0, 0, 10));
     }
-    // 施加扭矩
     if (inputManager.isKeyHeldDown(Keys.KeyR)) {
       this._rigidbody.applyTorque(new Vector3(0, 10, 0));
     }
-    // 直接设置速度（如跳跃）
+    // 跳跃时保留水平速度。
     if (inputManager.isKeyDown(Keys.Space)) {
       const velocity = this._rigidbody.linearVelocity;
       this._rigidbody.linearVelocity = new Vector3(velocity.x, 5, velocity.z);
@@ -237,11 +235,11 @@ class SleepController extends Script {
 ```typescript
 import { Rigidbody, Vector3 } from "@galacean/engine";
 
-// 根据所拥有的碰撞器自动计算（默认）
+// 默认根据所属碰撞器计算质心和惯性张量。
 const rigidbody = entity.addComponent(Rigidbody);
 rigidbody.mass = 1.0;
 
-// 在另一个实体上手动设置
+// 手动赋值前，先关闭两项自动计算。
 const customRigidbody = otherEntity.addComponent(Rigidbody);
 customRigidbody.automaticCenterOfMass = false;
 customRigidbody.automaticInertiaTensor = false;

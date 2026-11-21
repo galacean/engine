@@ -221,7 +221,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   override setWorldTransform(position: Vector3, rotation: Quaternion): void {
     const transform = this._transform(position, rotation);
     this._pxActor.setGlobalPose(transform, true);
-    // PhysX setGlobalPose does not clear a pending kinematic target; override it so the teleport is not undone on step
+    // Replace the pending target so the next simulation step preserves the new pose.
     if (this._pxActor.getKinematicTarget()) {
       this._pxActor.setKinematicTarget(transform.translation, transform.rotation);
     }

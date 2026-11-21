@@ -5,9 +5,9 @@ import { IColliderShape } from "./IColliderShape";
  */
 export interface ICapsuleColliderShape extends IColliderShape {
   /**
-   * Set the scaled dimensions and up axis of the capsule.
-   * @param radius - Scaled radius
-   * @param halfHeight - Scaled half height of the cylinder, excluding caps
+   * Set the dimensions and local orientation of the capsule.
+   * @param radius - The radius with entity scale applied
+   * @param halfHeight - Half the cylindrical height, with entity scale applied
    * @param upAxis - The local up axis
    */
   setDimensions(radius: number, halfHeight: number, upAxis: number): void;

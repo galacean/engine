@@ -13,9 +13,10 @@ export class BoxCollider extends Collider {
   private _size = new Vector3(1, 1, 1);
 
   /**
-   * The size of the box in the Entity's local space. Negative components are clamped to 0.
+   * The box size in local units. Finite negative components are clamped to 0.
    * @defaultValue `(1, 1, 1)`
-   * @remarks A box with any non-positive effective world extent is excluded from simulation and queries until positive.
+   * @remarks Mutating the returned vector changes the size. Simulation and queries require valid, positive world extents.
+   * @throws When a component is non-finite.
    */
   get size(): Vector3 {
     return this._size;
@@ -57,6 +58,12 @@ export class BoxCollider extends Collider {
     }
     shape.setHalfExtents(extents);
     return shape;
+  }
+
+  protected override _onDestroy(): void {
+    //@ts-ignore
+    this._size._onValueChanged = null;
+    super._onDestroy();
   }
 
   private _onSizeChanged(): void {

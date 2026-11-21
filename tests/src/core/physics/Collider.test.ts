@@ -200,6 +200,38 @@ describe("Collider", () => {
     expect(physics.raycast(originRay, 5)).toBe(false);
   });
 
+  it("keeps a compound child at its world position when the root overrides its local matrix", () => {
+    class MatrixTransform extends Transform {
+      private readonly _matrix = new Matrix();
+
+      constructor(entity: Entity) {
+        super(entity);
+        this._matrix.elements[12] = 10;
+      }
+
+      override get localMatrix(): Matrix {
+        return this._matrix;
+      }
+    }
+
+    const bodyEntity = new Entity(engine, "custom body", MatrixTransform);
+    const entity = new Entity(engine);
+    bodyEntity.addChild(entity);
+    entity.transform.setPosition(1, 0, 0);
+    const collider = entity.addComponent(BoxCollider);
+    bodyEntity.addComponent(Rigidbody).isKinematic = true;
+    root.scene.addRootEntity(bodyEntity);
+    try {
+      const hit = new HitResult();
+      const ray = new Ray(new Vector3(entity.transform.worldPosition.x, 0, -3), new Vector3(0, 0, 1));
+      expect(physics.raycast(ray, 5, hit) && hit.collider === collider).toBe(true);
+      ray.origin.x = 1;
+      expect(physics.raycast(ray, 5)).toBe(false);
+    } finally {
+      bodyEntity.destroy();
+    }
+  });
+
   it.each([
     { placement: "static", compound: false },
     { placement: "compound", compound: true }
@@ -207,23 +239,13 @@ describe("Collider", () => {
     const cast = (x: number, y = 0) => physics.raycast(new Ray(new Vector3(x, y, -3), new Vector3(0, 0, 1)), 5);
     let nestedResult: boolean | undefined;
     let queryDuringSync = false;
-    const query = (): void => {
-      if (queryDuringSync) {
-        queryDuringSync = false;
-        nestedResult = cast(compound ? 5.1 : 0, 20);
-      }
-    };
-    class StaticQueryingTransform extends Transform {
+    class QueryingTransform extends Transform {
       override get worldPosition(): Vector3 {
-        query();
+        if (queryDuringSync) {
+          queryDuringSync = false;
+          nestedResult = cast(compound ? 5.1 : 0, 20);
+        }
         return super.worldPosition;
-      }
-    }
-
-    class CompoundQueryingTransform extends Transform {
-      override get localMatrix(): Matrix {
-        query();
-        return super.localMatrix;
       }
     }
 
@@ -240,7 +262,7 @@ describe("Collider", () => {
     }
     const otherBox = otherBoxEntity.addComponent(BoxCollider);
     if (compound) otherBox.center.x = 5;
-    targetBoxEntity.addComponent(compound ? CompoundQueryingTransform : StaticQueryingTransform);
+    targetBoxEntity.addComponent(QueryingTransform);
     const box = targetBoxEntity.addComponent(BoxCollider);
     box.center.x = 2;
     expect(cast(2)).toBe(true);
@@ -553,20 +575,18 @@ describe("Collider", () => {
     update(2);
     expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
 
-    // Static to dynamic
     const body = volume.addComponent(Rigidbody);
     body.useGravity = false;
     update(2);
     expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
     expect(recorder.onTriggerExit).not.toHaveBeenCalled();
 
-    // Dynamic to static
     body.destroy();
     update(2);
     expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
     expect(recorder.onTriggerExit).not.toHaveBeenCalled();
 
-    // A real separation still exits exactly once
+    // The pair survives ownership changes. Separating the colliders ends it.
     probe.transform.setPosition(10, 0, 0);
     update(2);
     expect(recorder.onTriggerExit).toHaveBeenCalledOnce();
@@ -620,7 +640,7 @@ describe("Collider", () => {
     Vector3.transformByQuat(point, transform.worldRotationQuaternion, point);
     Vector3.add(point, transform.worldPosition, point);
     const closest = new Vector3();
-    // The query must reflect the current lossy scale, not the scale from before the simulated rotation
+    // Read through a query before another simulation step can refresh the rotated shape.
     expect(box.getClosestPoint(point, closest)).toBeCloseTo(10 - 0.5 * transform.lossyWorldScale.x, 2);
   });
 
@@ -644,7 +664,7 @@ describe("Collider", () => {
     flushB();
     sceneA.addRootEntity(probe);
     update();
-    // The removed scene updates first: its deferred cleanup must not touch the other scene's pairs
+    // Step the source first so its deferred trigger cleanup runs before the destination's.
     updateB();
     expect(() => update(2)).not.toThrow();
     const enters = recorder.onTriggerEnter.mock.calls.length;
@@ -827,7 +847,6 @@ describe("Collider", () => {
       expect(box.size.y).toBe(2);
       expect(physics.raycast(ray, hit)).toBe(false);
 
-      // Setting positive size attaches cleanly with outward normal
       box.size.set(2, 2, 2);
       expect(physics.raycast(ray, hit)).toBe(true);
       expect(hit.collider).toBe(box);
@@ -912,12 +931,11 @@ describe("Collider", () => {
       expect(capsule.height).toBe(0);
       expect(physics.raycast(ray, hit)).toBe(false);
 
-      // Height = 0 stays detached (consistent with PxCapsuleGeometry::isValid() and getClosestPoint)
+      // A zero cylinder height cannot form a valid PhysX capsule for distance queries.
       capsule.radius = 1;
       expect(physics.raycast(ray, hit)).toBe(false);
       expect(capsule.getClosestPoint(new Vector3(-5, 5, 0), new Vector3())).toBe(-1);
 
-      // Positive radius and height attach cleanly with valid normal and getClosestPoint
       capsule.height = 2;
       expect(physics.raycast(ray, hit)).toBe(true);
       expect(hit.normal.x).toBeCloseTo(-1, 4);
@@ -1031,7 +1049,6 @@ describe("Collider", () => {
       expect(entity.transform.position.y).toBeLessThan(19.9);
       expect(syncSpy).not.toHaveBeenCalled();
 
-      // Explicit scale edits still mark dirty and sync
       entity.transform.setScale(2, 2, 2);
       update(1);
       expect(syncSpy).toHaveBeenCalledTimes(1);
@@ -1118,7 +1135,7 @@ describe("Collider", () => {
         }
       }
 
-      // 3. Pure Y rotation on a uniform compound body emits 0 redundant native geometry / mass writes
+      // Uniform scale makes pure Y rotation a pose-only edit.
       const bodyEntity = root.createChild("rotate-uniform");
       bodyEntity.transform.setScale(2, 2, 2);
       const body = bodyEntity.addComponent(Rigidbody);

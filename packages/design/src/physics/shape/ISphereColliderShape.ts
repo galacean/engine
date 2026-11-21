@@ -5,7 +5,7 @@ import { IColliderShape } from "./IColliderShape";
  */
 export interface ISphereColliderShape extends IColliderShape {
   /**
-   * Set the scaled radius of the sphere.
+   * Set the radius of the sphere with entity scale applied.
    */
   setRadius(radius: number): void;
 }

@@ -161,21 +161,19 @@ class PhysicsController extends Script {
     this._rigidbody = this.entity.getComponent(Rigidbody);
     this._rigidbody.linearDamping = 0.1;
     this._rigidbody.angularDamping = 0.1;
-    // Lock X and Z rotation
     this._rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
   }
 
   onUpdate() {
     const inputManager = this.engine.inputManager;
-    // Apply a continuous force (e.g., thrust)
+    // Apply thrust every frame while W is held.
     if (inputManager.isKeyHeldDown(Keys.KeyW)) {
       this._rigidbody.applyForce(new Vector3(0, 0, 10));
     }
-    // Apply a torque
     if (inputManager.isKeyHeldDown(Keys.KeyR)) {
       this._rigidbody.applyTorque(new Vector3(0, 10, 0));
     }
-    // Set the velocity directly (e.g., jump)
+    // Jump without changing horizontal velocity.
     if (inputManager.isKeyDown(Keys.Space)) {
       const velocity = this._rigidbody.linearVelocity;
       this._rigidbody.linearVelocity = new Vector3(velocity.x, 5, velocity.z);
@@ -237,11 +235,11 @@ class SleepController extends Script {
 ```typescript
 import { Rigidbody, Vector3 } from "@galacean/engine";
 
-// Automatic calculation from the attached Colliders (default)
+// The default center of mass and inertia come from the attached colliders.
 const rigidbody = entity.addComponent(Rigidbody);
 rigidbody.mass = 1.0;
 
-// Manual settings on another Entity
+// Disable both calculations before assigning these values manually.
 const customRigidbody = otherEntity.addComponent(Rigidbody);
 customRigidbody.automaticCenterOfMass = false;
 customRigidbody.automaticInertiaTensor = false;

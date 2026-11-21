@@ -3,7 +3,7 @@ import { Engine } from "../../Engine";
 import { Joint } from "./Joint";
 
 /*
- * A fixed joint permits no relative movement between two Rigidbodies, which are glued together.
+ * Locks the relative position and rotation of the connected bodies.
  */
 export class FixedJoint extends Joint {
   protected override _createJoint(actor: IDynamicCollider): IJoint {

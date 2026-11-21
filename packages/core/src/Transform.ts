@@ -228,27 +228,26 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /**
-   * Approximate world scale along the three local axes.
-   * @remarks Inherited non-uniform scale can shear a rotated child, which three scale values cannot fully represent.
+   * World scale along the local axes.
+   * @remarks The vector approximates scale when the world matrix contains shear, as when a rotated entity inherits
+   * non-uniform scale.
    */
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
       const parent = this._getParentTransform();
       const scale = this._lossyWorldScale;
-      if (parent) {
-        // Clear the ancestor's scale flag so its next scale change reaches this descendant.
-        const parentScale = parent.lossyWorldScale;
-        if (
-          this._usesTRSMatrix &&
-          (parent._getWorldUniformScaling() || (parent._usesTRSMatrix && this._isLocalScaleAligned()))
-        ) {
-          Vector3.multiply(parentScale, this._scale, scale);
+      if (
+        this._usesTRSMatrix &&
+        (!parent || parent._getWorldUniformScaling() || (parent._usesTRSMatrix && this._isLocalScaleAligned()))
+      ) {
+        if (parent) {
+          Vector3.multiply(parent.lossyWorldScale, this._scale, scale);
         } else {
-          const e = this._getScaleMatrix().elements;
-          scale.set(e[0], e[4], e[8]);
+          scale.copyFrom(this._scale);
         }
       } else {
-        scale.copyFrom(this._scale);
+        const e = this._getScaleMatrix().elements;
+        scale.set(e[0], e[4], e[8]);
       }
       this._setDirtyFlagFalse(TransformModifyFlags.WorldScale);
     }
@@ -256,8 +255,9 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /**
-   * Local matrix.
-   * @remarks Need to re-assign after modification to ensure that the modification takes effect.
+   * The transform matrix relative to the parent.
+   * @remarks Reassign this property after editing the matrix in place. Later edits to local position, rotation,
+   * or scale rebuild the matrix from those values.
    */
   get localMatrix(): Matrix {
     if (this._isContainDirtyFlag(TransformModifyFlags.LocalMatrix)) {
@@ -294,8 +294,8 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /**
-   * World matrix.
-   * @remarks Need to re-assign after modification to ensure that the modification takes effect.
+   * The transform matrix in world space.
+   * @remarks Reassign this property after editing the matrix in place. Setting it updates the local matrix relative to the parent.
    */
   get worldMatrix(): Matrix {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldMatrix)) {
@@ -331,7 +331,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   constructor(entity: Entity) {
     super(entity);
 
-    // Layout subclasses can inherit the matrix and rotation calculations.
+    // Subclasses that inherit the relevant accessors can still use the base pose and scale calculations.
     const hasOwn = Object.prototype.hasOwnProperty;
     const customFlags = Transform._customMatrixFlag | Transform._customWorldPoseFlag;
     for (
@@ -339,15 +339,15 @@ export class Transform extends Component implements ICloneHook<Transform> {
       prototype !== Transform.prototype;
       prototype = Object.getPrototypeOf(prototype)
     ) {
-      if (hasOwn.call(prototype, "worldMatrix") || hasOwn.call(prototype, "worldRotationQuaternion")) {
+      if (
+        hasOwn.call(prototype, "localMatrix") ||
+        hasOwn.call(prototype, "worldMatrix") ||
+        hasOwn.call(prototype, "worldRotationQuaternion")
+      ) {
         this._dirtyFlag |= customFlags;
         break;
       }
-      if (
-        hasOwn.call(prototype, "localMatrix") ||
-        hasOwn.call(prototype, "rotationQuaternion") ||
-        hasOwn.call(prototype, "lossyWorldScale")
-      ) {
+      if (hasOwn.call(prototype, "rotationQuaternion") || hasOwn.call(prototype, "lossyWorldScale")) {
         this._dirtyFlag |= Transform._customMatrixFlag;
       }
       if (hasOwn.call(prototype, "worldPosition")) this._dirtyFlag |= Transform._customWorldPoseFlag;
@@ -620,6 +620,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /**
+   * Copies local position, rotation, and scale so the destination rebuilds its own matrix.
    * @internal
    */
   _copyLocalPoseFrom(source: Transform): void {
@@ -731,11 +732,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
     this._setDirtyFlagFalse(TransformModifyFlags.WorldPosition);
   }
 
-  /**
-   * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
-   * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
-   * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
-   */
   private _updateWorldPositionFlag(): void {
     if (!this._isContainDirtyFlags(TransformModifyFlags.WmWp)) {
       this._worldAssociatedChange(TransformModifyFlags.WmWp);
@@ -746,14 +742,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
   }
 
-  /**
-   * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
-   * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
-   * Get worldRotationQuaternion: Will trigger the world rotation (in quaternion) update of itself and all parent entities.
-   * Get worldRotation: Will trigger the world rotation(in euler and quaternion) update of itself and world rotation(in quaternion) update of all parent entities.
-   * Get worldScale: Will trigger the scaling update of itself and all parent entities.
-   * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
-   */
   private _updateWorldRotationFlag() {
     const parent = this._getParentTransform();
     const parentWorldUniformScaling = parent ? parent._getWorldUniformScaling() : true;
@@ -763,20 +751,11 @@ export class Transform extends Component implements ICloneHook<Transform> {
       flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
       const children = this._entity._children;
       for (let i = 0, n = children.length; i < n; i++) {
-        children[i].transform?._updateWorldPositionAndRotationFlag(flags); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
+        children[i].transform?._updateWorldPositionAndRotationFlag(flags);
       }
     }
   }
 
-  /**
-   * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
-   * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
-   * Get worldRotationQuaternion: Will trigger the world rotation (in quaternion) update of itself and all parent entities.
-   * Get worldRotation: Will trigger the world rotation(in euler and quaternion) update of itself and world rotation(in quaternion) update of all parent entities.
-   * Get worldScale: Will trigger the scaling update of itself and all parent entities.
-   * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
-   * @param flags - Dirty flag
-   */
   private _updateWorldPositionAndRotationFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
@@ -788,13 +767,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
   }
 
-  /**
-   * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
-   * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
-   * Get worldScale: Will trigger the scaling update of itself and all parent entities.
-   * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix) to be false.
-   * @param flags - Dirty flag
-   */
   private _updateWorldScaleFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
@@ -806,13 +778,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
   }
 
-  /**
-   * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
-   * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
-   * Get worldScale: Will trigger the scaling update of itself and all parent entities.
-   * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix) to be false.
-   * @param flags - Dirty flag
-   */
   private _updateWorldPositionAndScaleFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
@@ -823,10 +788,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
   }
 
-  /**
-   * Update all world transform property dirty flag, the principle is the same as above.
-   * @param flags - Dirty flag
-   */
   private _updateAllWorldFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
@@ -948,14 +909,17 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /**
-   * Whether the built-in TRS fields describe the matrices and rotations.
+   * Whether the transform uses the base local TRS for matrix and scale calculations.
    * @internal
    */
   get _usesTRSMatrix(): boolean {
     return !this._isContainDirtyFlag(Transform._authoredLocalMatrixFlag | Transform._customMatrixFlag);
   }
 
-  /** @internal Whether a subclass overrides a world-space pose accessor. */
+  /**
+   * Whether an accessor override can supply a world pose that requires reading the world-space getters.
+   * @internal
+   */
   get _hasCustomWorldPose(): boolean {
     return this._isContainDirtyFlag(Transform._customWorldPoseFlag);
   }

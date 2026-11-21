@@ -459,7 +459,6 @@ describe("Script", () => {
         expect(entity.getComponent(ThrowingScript)).to.equal(null);
         expect(destroyCalls).to.equal(1);
 
-        // A second destroy() must be a no-op and must not invoke onDestroy again
         expect(() => script.destroy()).to.not.throw();
         expect(destroyCalls).to.equal(1);
       } finally {

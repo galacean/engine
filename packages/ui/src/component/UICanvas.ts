@@ -687,6 +687,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const preRealMode = this._realRenderMode;
     if (preRealMode !== curRealMode) {
       this._realRenderMode = curRealMode;
+      // Teardown supplies the old registry owner after the component has cleared its registration.
       const componentsManager = (scene ?? this._registeredScene!)._componentsManager;
       switch (preRealMode) {
         case CanvasRenderMode.ScreenSpaceOverlay:

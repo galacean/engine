@@ -77,8 +77,9 @@ export class Component extends EngineObject {
   }
 
   /**
-   * Destroys this component.
-   * @throws If immediate removal would leave a dependent component on a live entity without a provider.
+   * Removes this component from its entity and runs its teardown.
+   * @remarks During a frame, removal is deferred until the frame ends.
+   * @throws If removal would leave a remaining component on a live entity without its required provider.
    */
   override destroy(): void {
     if (this._destroyed) return;
@@ -114,19 +115,16 @@ export class Component extends EngineObject {
   _onEnableInScene(): void {}
 
   /**
+   * Releases registration from the scene that registered this component.
    * @internal
-   * Release registration from the given scene, which can differ from the Entity's current scene.
+   * @param _scene - Registration owner, which may differ from the entity's current scene
    */
   _onDisableInScene(_scene: Scene): void {}
 
   /**
+   * Releases scene registration without changing hierarchy activation.
    * @internal
-   */
-  _onSceneChanged(_scene: Scene): void {}
-
-  /**
-   * @internal
-   * Deactivate in scene while the owning Entity remains active (used during atomic component replacement).
+   * @returns Whether the component had a scene registration
    */
   _deactivateInScene(): boolean {
     const scene = this._registeredScene;
@@ -147,22 +145,18 @@ export class Component extends EngineObject {
       this._syncSceneRegistration();
     }
 
-    // Process active in hierarchy
     if (activeChangeFlag & ActiveChangeFlag.Hierarchy) {
       if (value) {
-        // Awake condition is un awake && current entity is active in hierarchy
         if (!this._awoken && entity._isActiveInHierarchy) {
           this._awoken = true;
           this._onAwake();
         }
-        // Developer maybe do `isActive = false` in `onAwake` method
-        // Enable condition is phased active state is false && current component is active in hierarchy
+        // onAwake can change the entity's activation or the component's enabled state.
         if (!this._phasedActive && entity._isActiveInHierarchy && this._enabled) {
           this._phasedActive = true;
           this._onEnable();
         }
       } else {
-        // Disable condition is phased active state is true && current component is inActive in hierarchy
         if (this._phasedActive && !(entity._isActiveInHierarchy && this._enabled)) {
           this._phasedActive = false;
           this._onDisable();

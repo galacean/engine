@@ -2,20 +2,20 @@ import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICollider } from "./ICollider";
 
 /**
- * Interface of a native static actor.
+ * Native static rigid actor.
  */
 export interface IStaticCollider extends ICollider {
   /**
-   * Set global transform of collider.
-   * @param position - The global position
-   * @param rotation - The global rotation
+   * Set the world-space pose of the actor.
+   * @param position - The world-space position
+   * @param rotation - The world-space rotation
    */
   setWorldTransform(position: Vector3, rotation: Quaternion): void;
 
   /**
-   * Get global transform of collider.
-   * @param outPosition - The global position
-   * @param outRotation - The global rotation
+   * Write the current world-space pose of the actor.
+   * @param outPosition - Receives the position
+   * @param outRotation - Receives the rotation
    */
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void;
 }

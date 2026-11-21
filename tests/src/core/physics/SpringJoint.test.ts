@@ -262,7 +262,7 @@ describe("SpringJoint", function () {
     body.sleep();
     expect(body.isSleeping()).toBe(true);
 
-    // Changing minDistance on a sleeping body wakes it without calling body.wakeUp()
+    // Let the body sleep first so the resulting movement verifies the joint's wake-up.
     joint.minDistance = 2;
     expect(body.isSleeping()).toBe(false);
     engine.sceneManager.activeScene.physics._update(0.5);

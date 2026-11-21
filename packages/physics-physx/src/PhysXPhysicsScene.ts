@@ -32,6 +32,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxScene: any;
   private _pxSceneQueries: any;
   private _physXSimulationCallbackInstance: any;
+  private _raycastBuffers?: Float64Array[];
+  private _raycastDepth = 0;
 
   private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private readonly _physicsEvents = {
@@ -41,7 +43,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   };
 
   private _triggerEventPool: TriggerEvent[] = [];
-  // Trigger pairs are scene-local: only shapes on actors of this scene can form a pair
+  // Store each scene-local pair under its two collider IDs in ascending order.
   private _eventMap: Record<number, Record<number, TriggerEvent | undefined>> = Object.create(null);
   private _shapeChanges = new Map<number, boolean>();
 
@@ -70,7 +72,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         const pairs = (this._eventMap[small] ||= Object.create(null));
         const existing = pairs[big];
         if (existing) {
-          // Found again after the shape was removed and added back: the overlap continues
+          // Treat a rediscovered pair as a continuous overlap.
           existing.state = PhysicsEventState.Stay;
           return;
         }
@@ -229,12 +231,29 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     layerMask: number,
     onHit: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): void {
-    // Keep the values stable if a hit callback starts another query
-    const hits: Float64Array = this._pxSceneQueries
-      .raycastAll(origin, direction, Math.min(distance, 3.4e38), layerMask)
-      .slice();
-    for (let i = 0; i < hits.length; i += 8) {
-      this._readHit(hits, i, onHit);
+    const hits: Float64Array = this._pxSceneQueries.raycastAll(
+      origin,
+      direction,
+      Math.min(distance, 3.4e38),
+      layerMask
+    );
+    const length = hits.length;
+    if (!length) return;
+
+    // Nested queries can overwrite the WASM view. Keep a separate snapshot for each active dispatch.
+    const buffers = (this._raycastBuffers ||= []);
+    const depth = this._raycastDepth++;
+    try {
+      let buffer = buffers[depth];
+      if (!buffer || buffer.length < length) {
+        buffers[depth] = buffer = new Float64Array(length);
+      }
+      buffer.set(hits);
+      for (let i = 0; i < length; i += 8) {
+        this._readHit(buffer, i, onHit);
+      }
+    } finally {
+      this._raycastDepth--;
     }
   }
 
@@ -347,6 +366,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.gc }
    */
   gc(): void {
+    const buffers = this._raycastBuffers;
+    if (buffers) buffers.length = 0;
     const { contactEvents, contactEventCount } = this._physicsEvents;
     contactEvents.length = contactEventCount;
   }
@@ -355,13 +376,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.destroy }
    */
   destroy(): void {
+    this._raycastBuffers = undefined;
     this._boxGeometry?.delete();
     this._sphereGeometry?.delete();
     this._capsuleGeometry?.delete();
 
     this._physXSimulationCallbackInstance.delete();
     this._pxSceneQueries.delete();
-    // Need to release the controller manager before release the scene.
+    // The controller manager releases its controllers through the scene.
     this._pxControllerManager?.release();
     this._pxScene.release();
   }
@@ -389,8 +411,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   /**
    * @internal
-   * Its active trigger pairs end in the next step unless the id is added back before it, as when a Collider moves to
-   * another actor or rebuilds its shape, and PhysX finds them again. Pairs of an id that is not added back end silently.
+   * Queue removal for the next simulation step. Pairs for a collider that stays removed end silently.
+   * If the same collider ID returns before the step, rediscovered pairs continue and the others emit exits.
    */
   _removeColliderShape(id: number): void {
     this._shapeChanges.set(id, false);
@@ -485,7 +507,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         if (first === false || second === false) {
           this._retireTrigger(event, i);
         } else if (first || second) {
-          // PhysX can find the reattached pair again and turn this exit into a stay.
+          // Start with an exit and let PhysX restore the stay if it reports the pair again.
           event.state = PhysicsEventState.Exit;
         }
       }
@@ -520,7 +542,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     event.shape1Id = shape1ID;
     event.state = state;
 
-    // Copy the borrowed native values before the next contact pair reuses the buffer
+    // Copy the native contact data before PhysX reuses the buffer for another pair.
     const bufferedContacts = event._bufferedContacts;
     const count = (bufferedContacts.contactCount = contacts.length / 10);
     for (let i = 0; i < count; i++) {
@@ -535,7 +557,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 }
 
 /**
- * Trigger event to store interactive object ids and state.
+ * Tracks a trigger pair by collider ID.
  */
 class TriggerEvent implements ITriggerEvent {
   state: PhysicsEventState;

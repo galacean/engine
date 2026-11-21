@@ -85,7 +85,7 @@ describe("PhysicsMaterialLoader", () => {
     engine.sceneManager.activeScene.addRootEntity(instance);
     const material = instance.getComponent(BoxCollider)!.material;
     expect(instance.getComponent(SphereCollider)!.material).toBe(material);
-    // Template components retain dependencies through the Prefab; only the two instance Colliders count.
+    // The Prefab retains the template material. The Collider reference count covers the two instances.
     expect(material.refCount).toBe(2);
     expect(prefab.destroy()).toBe(false);
     engine.resourceManager.gc();

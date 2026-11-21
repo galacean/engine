@@ -71,9 +71,10 @@ export class Scene extends EngineObject {
   _sceneManager: SceneManager | null;
   /** @internal */
   _rootEntities: Entity[] = [];
-  /** @internal Destination scene while `SceneManager.mergeScenes` is transferring roots from this scene. */
-  _mergingInto: Scene | null = null;
-  /** @internal Number of active `Entity._setActiveComponents` batches currently executing against this scene. */
+  /**
+   * Number of component activation or deactivation batches running for this scene.
+   * @internal
+   */
   _activeProcessCount: number = 0;
 
   private _pendingPhysicsDestroy: boolean = false;
@@ -93,7 +94,7 @@ export class Scene extends EngineObject {
   private _enableTransparentShadow = false;
 
   /**
-   * Whether the scene is active.
+   * Whether the scene activates its entity hierarchy while registered with the engine.
    */
   get isActive(): boolean {
     return this._isActive;
@@ -102,7 +103,7 @@ export class Scene extends EngineObject {
   set isActive(value: boolean) {
     if (this._isActive !== value) {
       const manager = this._sceneManager;
-      if (manager) this._assertActivationIdle();
+      if (manager) this._assertActivationIdle(value);
       this._isActive = value;
       if (manager) this._processActive(value);
     }
@@ -310,15 +311,15 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Append an entity.
-   * @param entity - The root entity to add
+   * Appends an entity as a root. An entity already in this scene's root list keeps its position.
+   * @param entity - The entity to attach as a root
    */
   addRootEntity(entity: Entity): void;
 
   /**
-   * Append an entity.
-   * @param index - specified index
-   * @param entity - The root entity to add
+   * Inserts an entity as a root. An entity already in this scene's root list keeps its position.
+   * @param index - Zero-based insertion position
+   * @param entity - The entity to attach as a root
    */
   addRootEntity(index: number, entity: Entity): void;
 
@@ -344,8 +345,8 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Remove an entity.
-   * @param entity - The root entity to remove
+   * Detaches one of this scene's roots without destroying it.
+   * @param entity - The root entity to detach
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene === this) {
@@ -408,11 +409,16 @@ export class Scene extends EngineObject {
   }
 
   /**
+   * Rejects scene activation changes that would reenter a root's lifecycle callbacks.
    * @internal
    */
-  _assertActivationIdle(): void {
+  _assertActivationIdle(active: boolean): void {
     if (this._activeProcessCount !== 0 && !this._destroyed) {
-      throw new Error("Cannot change a scene's activation while its entities' lifecycle callbacks are running.");
+      const roots = this._rootEntities;
+      for (let i = roots.length - 1; i >= 0; i--) {
+        const root = roots[i];
+        if (root._isActive && root._isActiveInHierarchy !== active) root._assertActivationIdle();
+      }
     }
   }
 
@@ -426,6 +432,8 @@ export class Scene extends EngineObject {
     let firstError: unknown;
     let hasError = false;
     for (let i = roots.length - 1; i >= 0; i--) {
+      // A callback can change the scene's activation before the remaining roots are visited.
+      if (active !== (this._isActive && !!this._sceneManager)) break;
       const root = roots[i];
       if (root._scene === this && root._isRoot && root._isActive && root._isActiveInHierarchy !== active) {
         try {
@@ -446,8 +454,8 @@ export class Scene extends EngineObject {
   }
 
   /**
+   * Releases deferred physics resources once no activation batches remain.
    * @internal
-   * Release deferred native physics resources once all active component batches on this scene have drained.
    */
   _flushPendingPhysicsDestroy(): void {
     if (this._pendingPhysicsDestroy) {
@@ -508,7 +516,6 @@ export class Scene extends EngineObject {
       }
     };
 
-    // Remove from sceneManager
     const sceneManager = this._engine.sceneManager;
     runStep(() => sceneManager.removeScene(this));
 

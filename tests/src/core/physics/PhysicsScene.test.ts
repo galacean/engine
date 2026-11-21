@@ -397,7 +397,7 @@ describe("Physics Test", () => {
       expect(outHitResult.normal).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.entity).to.be.null;
 
-      // Test that initial overlap is skipped when ray origin is inside boxShape.
+      // Use an origin strictly inside the box to avoid a boundary hit.
       // Use a strictly-inside origin (2.9,2.9,2.9) rather than the box corner
       // (3,3,3), which is a boundary point whose hit/miss depends on PhysX edge
       // tolerance and can flake regardless of the initial-overlap-skip behavior.
@@ -419,7 +419,6 @@ describe("Physics Test", () => {
       expect(physicsScene.raycast(ray, 0, Layer.Everything, outHitResult)).to.eq(false);
       expect(physicsScene.raycast(ray, -1, Layer.Everything, outHitResult)).to.eq(false);
 
-      // Test that raycast nothing if boxShape is disabled.
       boxShape.enabled = false;
       expect(physicsScene.raycast(ray, outHitResult)).to.eq(false);
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(false);
@@ -596,9 +595,11 @@ describe("Physics Test", () => {
       expect(nativeHitIds).to.have.length(2);
       expect(new Set(nativeHitIds).size).to.eq(2);
       const nestedHitIds: number[] = [];
+      const nestedHits: HitResult[] = [];
       nativeScene.raycastAll(ray.origin, ray.direction, 100, Layer.Everything, (shapeID) => {
         nestedHitIds.push(shapeID);
-        physicsScene.raycast(ray, 100, Layer.Layer1);
+        expect(physicsScene.raycastAll(ray, 100, Layer.Layer1, nestedHits)).to.eq(true);
+        expect(nestedHits.map((hit) => hit.collider)).to.deep.equal([farShape]);
       });
       expect(nestedHitIds).to.have.members(nativeHitIds);
 
@@ -1091,6 +1092,27 @@ describe("Physics Test", () => {
       expect(results.every((hit, index) => hit.point === previousPoints[index])).to.eq(true);
       expect(results.every((hit, index) => hit.normal === previousNormals[index])).to.eq(true);
 
+      const query = physicsScene._nativePhysicsScene;
+      const reverseOrigin = new Vector3(hitCount * 2, 0, 0);
+      const reverseDirection = new Vector3(-1, 0, 0);
+      const outer = new Map<number, number>();
+      let innerCount = 0;
+      query.raycastAll(ray.origin, ray.direction, 1000, Layer.Everything, (id, distance) => {
+        outer.set(id, distance);
+        if (innerCount === 0) {
+          query.raycastAll(reverseOrigin, reverseDirection, 1000, Layer.Everything, () => innerCount++);
+        }
+      });
+      expect(innerCount).toBe(hitCount);
+      expect(outer.size).toBe(hitCount);
+      for (const hit of results) {
+        expect(outer.get(hit.collider._id)).toBe(hit.distance);
+      }
+
+      // Reuse the output from the larger query to detect stale tail hits.
+      expect(physicsScene.raycastAll(ray, 2, results)).toBe(true);
+      expect(results).toHaveLength(1);
+
       root.destroy();
     });
 
@@ -1210,7 +1232,6 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box boxShape to test against
       const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
 
@@ -1251,7 +1272,7 @@ describe("Physics Test", () => {
         physicsScene.boxCast(center, halfExtents, direction, orientation, 0.1, Layer.Everything, outHitResult)
       ).to.eq(false);
 
-      // Test that initial overlap is skipped when sweep starts inside a boxShape.
+      // The starting volume overlaps the box, so it must be ignored by the sweep.
       center.set(0, 0, 0);
       expect(
         physicsScene.boxCast(
@@ -1324,7 +1345,6 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box boxShape to test against
       const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
 
@@ -1360,7 +1380,6 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box boxShape to test against
       const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
 
@@ -1388,7 +1407,7 @@ describe("Physics Test", () => {
       // Test sphereCast with distance limit
       expect(physicsScene.sphereCast(center, radius, direction, 0.1, Layer.Everything, outHitResult)).to.eq(false);
 
-      // Test that initial overlap is skipped when sphere starts inside a boxShape.
+      // Start inside the box to exercise initial-overlap filtering.
       center.set(0, 0, 0);
       expect(
         physicsScene.sphereCast(center, radius, direction, Number.MAX_VALUE, Layer.Everything, outHitResult)
@@ -1421,7 +1440,6 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box boxShape to test against
       const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
 
@@ -1457,7 +1475,6 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box boxShape to test against
       const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
 
@@ -1508,7 +1525,7 @@ describe("Physics Test", () => {
         physicsScene.capsuleCast(center, radius, height, direction, orientation, 0.1, Layer.Everything, outHitResult)
       ).to.eq(false);
 
-      // Test that initial overlap is skipped when capsule starts inside a boxShape.
+      // Start inside the box to exercise initial-overlap filtering.
       center.set(0, 0, 0);
       expect(
         physicsScene.capsuleCast(
@@ -1587,7 +1604,6 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const sweepTestRoot = root.createChild("root");
 
-      // Create a box boxShape to test against
       const boxShape = sweepTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
 
@@ -1624,7 +1640,6 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const overlapTestRoot = root.createChild("root");
 
-      // Create a box boxShape to test against
       const boxShape = overlapTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
 
@@ -1649,7 +1664,6 @@ describe("Physics Test", () => {
       );
       expect(shapesMask).to.have.length(0);
 
-      // Test overlapBox when box contains boxShape
       center.set(0, 0, 0);
       halfExtents.set(2, 2, 2);
       const shapesContain = physicsScene.overlapBoxAll(center, halfExtents, orientation, Layer.Everything);
@@ -1725,7 +1739,6 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const overlapTestRoot = root.createChild("root");
 
-      // Create a box boxShape to test against
       const boxShape = overlapTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
 
@@ -1745,7 +1758,6 @@ describe("Physics Test", () => {
         0
       );
 
-      // Test overlapSphere when sphere contains boxShape
       center.set(0, 0, 0);
       let sphereRadius = 2;
       const sContain = enginePhysX.sceneManager.scenes[0].physics.overlapSphereAll(
@@ -1796,7 +1808,6 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("root");
       const overlapTestRoot = root.createChild("root");
 
-      // Create a box boxShape to test against
       const boxShape = overlapTestRoot.addComponent(BoxCollider);
       boxShape.size = new Vector3(1, 1, 1);
 
@@ -1826,7 +1837,6 @@ describe("Physics Test", () => {
         enginePhysX.sceneManager.scenes[0].physics.overlapCapsuleAll(center, radius, height, orientation, Layer.Layer1)
       ).to.have.length(0);
 
-      // Test overlapCapsule when capsule contains boxShape
       center.set(0, 0, 0);
       let capsuleRadius = 2;
       let capsuleHeight = 4;
@@ -2739,7 +2749,7 @@ describe("Physics Test", () => {
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 0)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 1)).toHaveLength(1);
 
-      // Float32 underflow / overflow extents safely return false / []
+      // Exercise values that are positive in JS but invalid after Float32 conversion.
       expect(physicsScene.boxCast(origin, new Vector3(1e-40, 1, 1), dir, 20, hit)).toBe(false);
       expect(physicsScene.boxCast(origin, new Vector3(1e40, 1, 1), dir, 20, hit)).toBe(false);
       expect(physicsScene.sphereCast(origin, 1e-40, dir, 20, hit)).toBe(false);

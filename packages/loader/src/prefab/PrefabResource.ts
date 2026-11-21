@@ -23,22 +23,26 @@ export class PrefabResource extends ReferResource {
   }
 
   /**
-   * Instantiate the prefab.
-   * @returns A detached prefab instance that must be added to a parent Entity or Scene to update and render
+   * Creates a detached instance of this prefab.
+   * @remarks Add the instance to a scene hierarchy for it to update and render.
+   * @throws If this prefab is pending destruction or has been destroyed.
    */
   instantiate(): Entity {
-    return this._root?.clone();
+    if (this.pendingDestroy || this.destroyed) {
+      throw new Error("Cannot instantiate a prefab that is pending destruction or destroyed.");
+    }
+    return this._root.clone();
   }
 
   /**
-   * Clone a detached template root and retain its source for this prefab's lifetime.
+   * Clones a source root into this template, retaining each source once.
+   * @remarks Descendants retain their original template owners so they can outlive this prefab.
    * @internal
    */
   _instantiateTemplate(source: PrefabResource | GLTFResource): Entity {
     const sources = (this._templateSources ||= new Set());
     const count = sources.size;
     if (sources.add(source).size !== count) {
-      // GC checks the source's reference count when collecting its assets.
       source._addReferCount(1);
     }
     const root = source instanceof PrefabResource ? source._root : source._defaultSceneRoot;
@@ -46,11 +50,10 @@ export class PrefabResource extends ReferResource {
   }
 
   /**
+   * Associates each `ReferResource` with its prefab owner once so resource collection can account for this prefab.
    * @internal
    */
   _addDependenceAsset(resource: unknown): void {
-    // ReflectionParser also passes non-ReferResource assets such as Shader, which have no superResource association.
-    // _superResources is a plain array, so the Set ensures each dependency is associated and disassociated exactly once.
     if (!this.destroyed && resource instanceof ReferResource) {
       const assets = (this._dependenceAssets ||= new Set());
       const count = assets.size;

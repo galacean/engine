@@ -74,7 +74,6 @@ function createWavyTerrain(engine: WebGLEngine, rootEntity: Entity) {
   // Create mesh (shared for physics and visual)
   const terrainMesh = createTerrainMesh(engine, gridSize, scale);
 
-  // Static triangle mesh collider
   entity.addComponent(MeshCollider).mesh = terrainMesh;
   const renderer = entity.addComponent(MeshRenderer);
   renderer.mesh = terrainMesh;

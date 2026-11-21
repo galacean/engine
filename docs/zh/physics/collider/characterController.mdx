@@ -63,7 +63,7 @@ label: Physics
 ### 特有属性
 | 属性 | 描述 | 默认值 |
 | ---- | ---- | ------ |
-| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | 角色可以自动跨越的最大台阶高度。<ul><li>必须大于等于 0，负值会被限制为 0</li><li>实际可跨越高度 = stepOffset + contactOffset</li></ul> | 0.5 |
+| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | 请求的台阶高度，使用世界单位。若超过控制器沿 `upDirection` 缩放后的高度，PhysX 将暂停该控制器的模拟和查询。有限负值会限制为 0。 | 0.5 |
 | [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | 角色可以行走的最大斜坡角度（度）。<ul><li>超过此角度的斜面将被视为不可行走的墙壁</li><li>影响角色的爬坡能力</li></ul> | 45° |
 | [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | 定义如何处理不可行走的表面。<ul><li>PreventClimbing：阻止角色攀爬不可行走的斜坡，但不会强制其他移动（默认）</li><li>PreventClimbingAndForceSliding：阻止角色攀爬不可行走的斜坡，并强制角色沿斜坡滑下</li></ul> | PreventClimbing |
 | [**upDirection**](/apis/core/#CharacterController-upDirection) | 定义角色的向上方向。默认为 (0, 1, 0)，即世界空间的 Y 轴向上。影响移动和碰撞检测的方向判定 | (0, 1, 0) |
@@ -91,13 +91,13 @@ label: Physics
 
 ### 基础配置
 ```typescript
-// 创建角色控制器（默认为胶囊体）
+// 新建控制器默认使用胶囊体。
 const controller = entity.addComponent(CharacterController);
 controller.radius = 0.5;
 controller.height = 1;
 controller.center = new Vector3(0, 1, 0);
 
-// 或者使用盒
+// 改用盒体时，设置其沿局部轴的完整尺寸。
 // controller.geometry = CharacterControllerGeometry.Box;
 // controller.size = new Vector3(1, 2, 1);
 
@@ -119,9 +119,7 @@ class CharacterMovement extends Script {
     const displacement = new Vector3();
     Vector3.scale(this._velocity, deltaTime, displacement);
 
-    // 执行移动并获取碰撞标志
-    // minDist: 最小移动距离，通常设为0
-    // deltaTime: 经过的时间，用于物理计算
+    // 帧时长以秒传入。将最小移动距离设为 0，避免过滤小幅移动。
     const collisionFlags = controller.move(displacement, 0, deltaTime);
     
     // 处理碰撞响应

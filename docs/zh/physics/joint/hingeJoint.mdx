@@ -102,8 +102,8 @@ const hingeJoint = entity.addComponent(HingeJoint);
 // 设置连接对象
 hingeJoint.connectedBody = targetEntity.getComponent(Rigidbody);
 
-// 设置旋转轴
-hingeJoint.axis.set(0, 1, 0); // Y轴旋转
+// 绕关节的局部 Y 轴旋转。
+hingeJoint.axis.set(0, 1, 0);
 ```
 
 ### 运动限制
@@ -114,7 +114,7 @@ hingeJoint.useLimits = true;
 hingeJoint.limits = new JointLimits();
 hingeJoint.limits.min = -45;         // 最小角度
 hingeJoint.limits.max = 45;          // 最大角度
-hingeJoint.limits.contactDistance = 0.1; // 接触距离（弧度）
+hingeJoint.limits.contactDistance = 0.1; // 距任一边界 0.1 弧度时启用硬限制。
 
 // 启用弹性限制
 hingeJoint.useSpring = true;
@@ -128,7 +128,7 @@ hingeJoint.limits.damping = 0.2;    // 阻尼系数
 // 启用马达
 hingeJoint.useMotor = true;
 hingeJoint.motor = new JointMotor();
-hingeJoint.motor.targetVelocity = Math.PI; // 目标角速度(弧度/秒)
+hingeJoint.motor.targetVelocity = Math.PI; // 每秒半圈。
 hingeJoint.motor.forceLimit = 500;      // 最大扭矩
 hingeJoint.motor.freeSpin = false;      // 自由旋转
 hingeJoint.motor.gearRatio = 1;         // 齿轮比

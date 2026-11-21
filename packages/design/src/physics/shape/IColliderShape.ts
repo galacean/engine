@@ -2,14 +2,14 @@ import { Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
 import { IPhysicsMaterial } from "../IPhysicsMaterial";
 
 /**
- * Interface for physics collider shape.
- * @remarks Set a new shape's local pose before attaching it. New shapes participate in simulation and scene queries by default.
+ * A native shape that can be attached to a rigid actor.
+ * @remarks Set the shape's local pose before attaching it. New shapes participate in simulation and scene queries by default.
  */
 export interface IColliderShape {
   /**
    * Set the pose of the shape relative to its actor.
-   * @param position - The relative position, already scaled
-   * @param rotation - The relative rotation
+   * @param position - The actor-relative position, with entity scale applied
+   * @param rotation - The actor-relative rotation
    */
   setLocalPose(position: Vector3, rotation: Quaternion): void;
 
@@ -46,8 +46,8 @@ export interface IColliderShape {
   /**
    * Query the closest point on the shape.
    * @param point - The point in world space
-   * @returns A vector whose `w` is the squared distance, or -1 when unavailable.
-   * For a positive distance, `x`, `y`, and `z` give the closest point in world space.
+   * @returns A borrowed vector whose `w` is the squared distance, zero for an interior or surface point, or -1 when unavailable.
+   * For a positive distance, `x`, `y`, and `z` give the closest point in world space. Copy the result before retaining it.
    */
   pointDistance(point: Vector3): Vector4;
   /**

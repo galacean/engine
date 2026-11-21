@@ -309,7 +309,7 @@ describe("Collider layer validation", () => {
       crateBody.sleep();
       expect(crateBody.isSleeping()).toBe(true);
 
-      // Flip ONLY the collision matrix entry for Layer5 <-> Layer6 (do NOT touch any collider's collisionLayer)
+      // Leave collider layers unchanged so the pair updates come from the matrix edit alone.
       triggerRecorder.onTriggerStay.mockClear();
       triggerRecorder.onTriggerExit.mockClear();
       otherRecorder.onTriggerEnter.mockClear();
@@ -327,12 +327,11 @@ describe("Collider layer validation", () => {
       expect(otherRecorder.onTriggerEnter).not.toHaveBeenCalled();
       expect(otherRecorder.onTriggerStay).toHaveBeenCalled();
 
-      // Sleeping solid crate wakes, fires onCollisionExit, and falls straight through the floor
+      // The resting crate must wake when the matrix removes its supporting contact.
       update(25);
       expect(crateRecorder.onCollisionExit).toHaveBeenCalled();
       expect(crate.transform.position.y).toBeLessThan(0.5);
 
-      // Re-enabling Layer5 <-> Layer6 fires onTriggerEnter again on the next step
       triggerRecorder.onTriggerEnter.mockClear();
       physics.setColliderLayerCollision(Layer.Layer5, Layer.Layer6, true);
       update(1);

@@ -42,7 +42,7 @@ export class JointMotor extends DataObject {
   }
 
   /**
-   * Gear ration for the motor
+   * The motor's gear ratio.
    */
   get gearRatio(): number {
     return this._gearRatio;

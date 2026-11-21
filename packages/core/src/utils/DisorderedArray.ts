@@ -11,7 +11,7 @@ export class DisorderedArray<T> {
   /** @internal */
   _elements: T[];
 
-  private _loopCounter = 0; // Ignore nested loops, use counter to solve the problem
+  private _loopCounter = 0;
   private _blankCount = 0;
 
   /**
@@ -101,9 +101,9 @@ export class DisorderedArray<T> {
   }
 
   /**
-   * Loop through all elements.
-   * @param callbackFn - The callback function
-   * @param swapFn - The swap function can process the element after the callback function, it will be called after end looping(`isLopping` = true)
+   * Visits the entries present when iteration begins, skipping entries deleted by callbacks.
+   * @param callbackFn - Called for each remaining entry
+   * @param swapFn - Receives each element moved during compaction after the outermost iteration ends
    */
   forEach(callbackFn: (element: T, index: number) => void, swapFn?: (element: T, index: number) => void): void {
     this._startLoop();
@@ -119,9 +119,9 @@ export class DisorderedArray<T> {
   }
 
   /**
-   * Loop through all elements and clean up the blank elements.
-   * @param callbackFn - The callback function
-   * @param swapFn - The swap function can process the element after the callback function,  it will be called after end looping(`isLopping` = true)
+   * Visits the initial entries and removes the visited entries when this is the outermost iteration.
+   * @param callbackFn - Called for each remaining entry
+   * @param swapFn - Receives retained elements and their new indices during compaction
    */
   forEachAndClean(callbackFn: (element: T, index: number) => void, swapFn?: (element: T, index: number) => void): void {
     this._startLoop();
@@ -154,12 +154,18 @@ export class DisorderedArray<T> {
     this._elements.length = this.length;
   }
 
-  /** @internal */
+  /**
+   * Defers compaction so removals cannot shift indices during iteration.
+   * @internal
+   */
   _startLoop(): void {
     ++this._loopCounter;
   }
 
-  /** @internal */
+  /**
+   * Compacts deferred removals when the outermost iteration ends.
+   * @internal
+   */
   _endLoop(swapFn: ((e: T, idx: number) => void) | undefined): void {
     if (--this._loopCounter !== 0) {
       return;

@@ -94,7 +94,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
       _pxCookingParams: cookingParams
     } = this._physXPhysics;
 
-    // Apply per-shape cooking flags
+    // The cooking instance is shared, so set its preprocessing flags for each cook.
     let preprocessFlags = 0;
     if (cookingFlags & MeshColliderShapeCookingFlag.VertexWelding) {
       preprocessFlags |= 1; // eWELD_VERTICES
@@ -193,7 +193,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
 
   private _allocateIndices(indices: Uint8Array | Uint16Array | Uint32Array, isU32: boolean): number {
     const physX = this._physXPhysics._physX;
-    // Uint8Array and Uint16Array both write as Uint16 (PhysX minimum index size)
+    // PhysX accepts 16- or 32-bit indices, so widen 8-bit input to 16 bits.
     const TypedArrayCtor = isU32 ? Uint32Array : Uint16Array;
     const ptr = physX._malloc(indices.length * TypedArrayCtor.BYTES_PER_ELEMENT);
     const heap = isU32 ? physX.HEAPU32 : physX.HEAPU16;

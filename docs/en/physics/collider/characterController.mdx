@@ -63,7 +63,7 @@ The geometry follows the Entity's world scale. `rotation` inherited from Collide
 ### Specific Properties
 | Property | Description | Default |
 |----------|-------------|---------|
-| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | Maximum step height the character can automatically climb.<ul><li>Must be greater than or equal to 0; negative values are clamped to 0</li><li>Actual climbable height = stepOffset + contactOffset</li></ul> | 0.5 |
+| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | Requested step height in world units. PhysX excludes the controller from simulation and queries while this value exceeds its scaled height along `upDirection`. Finite negative values are clamped to 0. | 0.5 |
 | [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | Maximum slope angle (in degrees) the character can walk on.<ul><li>Surfaces steeper than this angle will be treated as unwalkable walls</li><li>Affects the character's climbing ability</li></ul> | 45° |
 | [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | Defines how to handle unwalkable surfaces.<ul><li>PreventClimbing: Prevents the character from climbing unwalkable slopes but doesn't force other movements (default)</li><li>PreventClimbingAndForceSliding: Prevents the character from climbing unwalkable slopes and forces the character to slide down</li></ul> | PreventClimbing |
 | [**upDirection**](/apis/core/#CharacterController-upDirection) | Defines the character's up direction. Default is (0, 1, 0), which means Y-axis up in world space. Affects movement and collision detection direction | (0, 1, 0) |
@@ -91,13 +91,13 @@ The `move()` function returns a collision flag value that indicates the characte
 
 ### Basic Configuration
 ```typescript
-// Create character controller (a capsule by default)
+// A new controller uses capsule geometry.
 const controller = entity.addComponent(CharacterController);
 controller.radius = 0.5;
 controller.height = 1;
 controller.center = new Vector3(0, 1, 0);
 
-// Or use a box
+// To use a box, configure its full size along the local axes.
 // controller.geometry = CharacterControllerGeometry.Box;
 // controller.size = new Vector3(1, 2, 1);
 
@@ -119,9 +119,7 @@ class CharacterMovement extends Script {
     const displacement = new Vector3();
     Vector3.scale(this._velocity, deltaTime, displacement);
 
-    // Execute movement and get collision flags
-    // minDist: Minimum movement distance, usually set to 0
-    // deltaTime: Elapsed time for physics calculations
+    // Pass the frame duration in seconds. Use a zero minimum distance to avoid filtering out small moves.
     const collisionFlags = controller.move(displacement, 0, deltaTime);
     
     // Handle collision response

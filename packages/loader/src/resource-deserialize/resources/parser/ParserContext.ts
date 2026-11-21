@@ -18,7 +18,7 @@ export enum ParserType {
 /**
  * @internal
  */
-export class ParserContext {
+export class ParserContext<T extends ReferResource | Scene = ReferResource | Scene> {
   /** @internal */
   static _findComponent(components: readonly Component[], type: ComponentConstructor, index: number): Component | null {
     let matchIndex = 0;
@@ -33,11 +33,11 @@ export class ParserContext {
 
   /** Runtime Entity instances, indexed by the flat entities[] position. */
   entityInstances: Entity[] = [];
-  /** Components waiting for props/calls application (Stage 4). */
+  /** Components whose base properties and calls have yet to be applied. */
   pendingComponents: Array<{ instance: Component; config: ComponentSchema }> = [];
-  /** Selector order where removals or dependency-ordered construction changed the live component list. */
+  /** Component selector order when it differs from the live list. Removed template slots stay reserved. */
   componentSnapshots: Map<Entity, Component[]> | null = null;
-  /** Pre-removal children lists for parents with removedEntities, preserving $entity indices. */
+  /** Affected parents' child lists before removals, used to resolve $entity indices without retargeting. */
   childSnapshots: Map<Entity, Entity[]> | null = null;
 
   readonly resourceManager: ResourceManager;
@@ -48,27 +48,56 @@ export class ParserContext {
   constructor(
     public readonly engine: Engine,
     public readonly type = ParserType.Scene,
-    public readonly resource: ReferResource | Scene
+    public readonly resource: T
   ) {
     this.resourceManager = engine.resourceManager;
   }
 
-  clear() {
-    this.entityInstances.length = 0;
-    this.pendingComponents.length = 0;
-    this.componentSnapshots = null;
-    this.childSnapshots = null;
+  /** @internal */
+  async _load(parse: () => Promise<void>): Promise<T> {
+    const resource = this.resource;
+    const entities = this.entityInstances;
+    try {
+      await parse();
+      if (resource.destroyed || resource.pendingDestroy) {
+        throw new Error("Cannot complete loading a scene or prefab being destroyed.");
+      }
+      return resource;
+    } catch (error) {
+      try {
+        if (resource instanceof ReferResource) resource.destroy(true);
+        else resource.destroy();
+      } catch {
+        // Preserve the load error if disposing the resource fails.
+      }
+      for (let i = 0, n = entities.length; i < n; i++) {
+        const entity = entities[i];
+        if (!entity || entity.destroyed) continue;
+        try {
+          entity.destroy();
+        } catch {
+          // Continue disposing entities that did not reach the resource's hierarchy.
+        }
+      }
+      throw error;
+    } finally {
+      entities.length = 0;
+      this.pendingComponents.length = 0;
+      this.componentSnapshots = null;
+      this.childSnapshots = null;
+    }
   }
 
   /** @internal */
   _setTaskCompleteProgress: (loaded: number, total: number) => void;
 
   /** @internal */
-  _addDependentAsset(promise: AssetPromise<any>): void {
+  _addDependentAsset(promise: AssetPromise<unknown>): void {
     ++this._total;
-    promise.finally(() => {
+    const onSettled = () => {
       ++this._loaded;
       this._setTaskCompleteProgress(this._loaded, this._total);
-    });
+    };
+    promise.then(onSettled, onSettled);
   }
 }

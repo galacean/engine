@@ -6,6 +6,8 @@ import { ColliderShapeUpAxis } from "./enums/ColliderShapeUpAxis";
 
 /**
  * A capsule-shaped collider.
+ * @remarks The absolute world scale along {@link direction} scales the height. The larger scale across the other two
+ * axes scales the radius. Simulation and queries require both effective dimensions to be positive.
  */
 export class CapsuleCollider extends Collider {
   private _radius = 1;
@@ -34,7 +36,7 @@ export class CapsuleCollider extends Collider {
   }
 
   /**
-   * The height of the cylindrical part, excluding both caps, in the Entity's local space. Finite negative values are clamped to 0.
+   * The cylinder height in local units, excluding both caps. Finite negative values are clamped to 0.
    * @defaultValue 2
    * @throws When the value is not finite.
    */

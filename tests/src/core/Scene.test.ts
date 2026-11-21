@@ -182,6 +182,58 @@ describe("Scene", () => {
       scene.destroy();
     });
 
+    it("lets a newly attached child's onAwake deactivate the scene", () => {
+      const scene = new Scene(engine);
+      engine.sceneManager.addScene(scene);
+      const parent = scene.createRootEntity();
+      const child = new Entity(engine);
+      const callbacks: string[] = [];
+      child.addComponent(
+        class extends Script {
+          override onAwake(): void {
+            scene.isActive = false;
+            callbacks.push("awake");
+          }
+
+          override onEnable(): void {
+            callbacks.push("enable");
+          }
+        }
+      );
+      try {
+        parent.addChild(child);
+        expect([scene.isActive, parent.isActiveInHierarchy, child.isActiveInHierarchy]).toEqual([false, false, false]);
+        expect(callbacks).toEqual(["awake"]);
+      } finally {
+        scene.destroy();
+      }
+    });
+
+    it("stops activating other roots when an awake entity becomes a child and deactivates the scene", () => {
+      const scene = new Scene(engine);
+      scene.isActive = false;
+      engine.sceneManager.addScene(scene);
+      const untouched = scene.createRootEntity();
+      const mover = scene.createRootEntity();
+      const parent = scene.createRootEntity();
+      mover.addComponent(
+        class extends Script {
+          override onAwake(): void {
+            parent.addChild(this.entity);
+            scene.isActive = false;
+          }
+        }
+      );
+      try {
+        scene.isActive = true;
+        expect(mover.parent).toBe(parent);
+        expect(scene.isActive).toBe(false);
+        expect([untouched, mover, parent].map((entity) => entity.isActiveInHierarchy)).toEqual([false, false, false]);
+      } finally {
+        scene.destroy();
+      }
+    });
+
     it("deactivates remaining roots when a root onDisable throws", () => {
       const scene = new Scene(engine);
       engine.sceneManager.addScene(scene);
@@ -330,7 +382,7 @@ describe("Scene", () => {
         expect(survivor.destroyedCount).toBe(1);
         expect((engine as any)._frameInProcess).toBe(false);
 
-        // Subsequent immediate destroy works cleanly (not stuck in deferred frame mode)
+        // The failed frame must release the latch that defers destruction.
         const followUp = testScene.createRootEntity("follow-up");
         followUp.destroy();
         expect(followUp.destroyed).toBe(true);
@@ -427,7 +479,7 @@ describe("Scene", () => {
         }
       }
 
-      // Case A: Engine.update() pending destroy throws firstError AND deferred _destroy() also throws
+      // An error during deferred teardown must preserve the earlier frame error.
       const tempEngineA = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const sceneA1 = tempEngineA.sceneManager.scenes[0];
       const sceneA2 = new Scene(tempEngineA);
@@ -450,7 +502,7 @@ describe("Scene", () => {
       expect(trackA2.destroyedFlag).toBe(true);
       expect(tempEngineA.sceneManager._allCreatedScenes.length).toBe(0);
 
-      // Case B: Direct Engine.destroy() with 2 scenes where scene 1 throws -> scene 2 and engine still tear down cleanly
+      // A failing scene must not prevent teardown of the other scenes.
       const tempEngineB = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const sceneB1 = tempEngineB.sceneManager.scenes[0];
       const sceneB2 = new Scene(tempEngineB);
@@ -501,7 +553,7 @@ describe("Scene", () => {
         const driver = root.addComponent(ThrowAfterQueueScript);
         driver.targets = [throwingDestroy, survivor];
 
-        // Primary onUpdate error is preserved while pending destroys still drain before update returns
+        // The frame must drain pending destruction even after onUpdate throws.
         expect(() => engine.update()).toThrow("update-boom");
         expect(throwingDestroy.destroyed).toBe(true);
         expect(throwingDestroy.pendingDestroy).toBe(false);

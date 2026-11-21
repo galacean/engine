@@ -2,38 +2,36 @@ import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICollider } from "../ICollider";
 
 /**
- * a base interface providing common functionality for joints.
+ * Common configuration for native joints.
  */
 export interface IJoint {
   /**
-   * The connected collider.
+   * Connect the joint to a second actor, or to the world if the value is absent.
    */
   setConnectedCollider(value: ICollider | null | undefined): void;
 
   /**
-   * The connected anchor position.
-   * @remarks If a connected body is set, this anchor is relative offset, or the anchor is world position.
+   * Set the anchor in the connected actor’s frame, or in world space for a world connection.
    */
   setConnectedAnchor(value: Vector3): void;
 
   /**
-   * The anchor position.
+   * Set the anchor in the owning actor’s frame.
    */
   setAnchor(value: Vector3): void;
 
   /**
-   *  The scale to apply to the inverse mass of collider1 for resolving this constraint.
+   * Set the connected actor’s mass multiplier for this constraint.
    */
   setConnectedMassScale(value: number): void;
 
   /**
-   * The rotation of the joint.
-   * @param value The rotation of the joint.
+   * Set the joint frame rotation relative to the connected actor, or in world space for a world connection.
    */
   setRotation(value: Quaternion): void;
 
   /**
-   * The scale to apply to the inverse mass of collider0 for resolving this constraint.
+   * Set the owning actor’s mass multiplier for this constraint.
    */
   setMassScale(value: number): void;
 

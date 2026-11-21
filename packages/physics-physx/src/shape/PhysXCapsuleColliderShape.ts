@@ -8,7 +8,7 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
  * Capsule collider shape in PhysX.
  */
 export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
-  // PhysX capsules are aligned with X.
+  // Rotate the native X axis onto the requested capsule axis.
   private static readonly _axes: readonly (Quaternion | null)[] = [
     null,
     PhysXCapsuleColliderShape._yAxis,
@@ -34,7 +34,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   }
 
   /**
-   * {@inheritDoc IColliderShape.setLocalPose}
+   * {@inheritDoc IColliderShape.setLocalPose }
    */
   override setLocalPose(position: Vector3, rotation: Quaternion): void {
     this._localPosition.copyFrom(position);

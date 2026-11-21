@@ -65,20 +65,6 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  static _notifySceneChanged(entity: Entity, scene: Scene): void {
-    const components = entity._components;
-    for (let i = components.length - 1; i >= 0; i--) {
-      components[i]._onSceneChanged(scene);
-    }
-    const children = entity._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      Entity._notifySceneChanged(children[i], scene);
-    }
-  }
-
-  /**
-   * @internal
-   */
   static _removeFromChildren(children: Entity[], entity: Entity): void {
     const count = children.length - 1;
     for (let i = entity._siblingIndex; i < count; i++) {
@@ -151,7 +137,7 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Whether to activate locally.
+   * The entity's local activation setting, independent of its ancestors and scene.
    */
   get isActive(): boolean {
     return this._isActive;
@@ -173,7 +159,7 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Whether it is active in the hierarchy.
+   * Whether this entity and its ancestors are locally active in an active scene registered with the engine.
    */
   get isActiveInHierarchy(): boolean {
     return this._isActiveInHierarchy;
@@ -234,10 +220,10 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Create a entity.
-   * @param engine - The engine the entity belongs to
-   * @param name - The name of the entity
-   * @param components - The types of components you wish to add
+   * Creates a detached entity with a transform and optional components.
+   * @param engine - The engine that owns the entity
+   * @param name - The entity name
+   * @param components - Component types to add. The last `Transform` type supplies the entity's transform
    */
   constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
@@ -254,7 +240,7 @@ export class Entity extends EngineObject {
 
     Entity._checkTransformDependencies(transformType);
     const transform = <Transform>new transformType(this);
-    // Constructors may add components, but Transform always owns slot zero
+    // Insert the transform at slot zero even if its constructor added other components.
     this._components.unshift(transform);
     this._transform = transform;
     transform._setActive(true, ActiveChangeFlag.All);
@@ -274,10 +260,11 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Add component based on the component type.
-   * @param type - The type of the component
-   * @param args - The arguments of the component
-   * @returns	The component which has been added
+   * Creates a component on this entity.
+   * @remarks A `Transform` type replaces the current transform and copies its stored local position, rotation, and scale.
+   * @param type - The component type to construct
+   * @param args - Additional arguments passed to the component constructor
+   * @returns The new component
    */
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
     const isTransform = Entity._isTransformType(type);
@@ -456,10 +443,24 @@ export class Entity extends EngineObject {
   /** @internal */
   _clone(templateOwner?: ReferResource): Entity {
     const cloneMap = new Map<object, object>();
-    // Component constructors can start another clone while the type array is in use.
-    const cloneEntity = this._createCloneEntity(cloneMap, [], templateOwner);
-    this._parseCloneEntity(this, cloneEntity, cloneMap);
-    return cloneEntity;
+    let cloneEntity: Entity | undefined;
+    try {
+      // Component constructors can start another clone while the type array is in use.
+      cloneEntity = this._createCloneEntity(cloneMap, [], templateOwner);
+      this._parseCloneEntity(this, cloneEntity, cloneMap);
+      return cloneEntity;
+    } catch (error) {
+      for (const target of cloneEntity ? [cloneEntity] : cloneMap.values()) {
+        if (target instanceof Entity) {
+          try {
+            target.destroy();
+          } catch {
+            // Continue disposing partial clones and preserve the clone error.
+          }
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -481,10 +482,9 @@ export class Entity extends EngineObject {
   }
 
   /**
+   * Removes components before adding their replacements, respecting their dependencies.
    * @internal
-   * Apply removals in reverse dependency order and additions in dependency order.
-   * When a removed component is replaced by a type in `addedTypes`, surviving scene-active dependents are temporarily
-   * deactivated in the scene and re-activated against the replacement.
+   * @remarks Scene-registered dependents of a replaced provider temporarily unregister so they can bind to its replacement.
    */
   _applyComponentChanges(
     removed: readonly Component[],
@@ -544,7 +544,7 @@ export class Entity extends EngineObject {
     const moveWithDependenciesBefore = (comp: Component, limitIndex: number): number => {
       const currentIndex = components.indexOf(comp);
       if (currentIndex <= limitIndex) return limitIndex;
-      // Moving only predecessors keeps currentIndex valid.
+      // Moving only predecessors leaves the source index of this component unchanged.
       let type = comp.constructor as ComponentConstructor;
       while (type && type !== Component) {
         const depInfo = ComponentsDependencies._dependenciesMap.get(type);
@@ -656,6 +656,7 @@ export class Entity extends EngineObject {
 
   /**
    * Destroys this entity, its components, and its descendants.
+   * @remarks During a frame, destruction is deferred until the frame ends.
    */
   override destroy(): void {
     if (this._destroyed) return;
@@ -788,7 +789,8 @@ export class Entity extends EngineObject {
     this._dispatchModify(EntityModifyFlags.Parent, this);
   }
 
-  private _assertActivationIdle(): void {
+  /** @internal */
+  _assertActivationIdle(): void {
     if (this._activeChangedComponents) {
       throw new Error("Cannot change an entity's activation while its lifecycle callbacks are running.");
     }
@@ -858,7 +860,12 @@ export class Entity extends EngineObject {
     if (requestError) throw requestError;
     const current = this._getActiveFlags();
     const target = Entity._getOwnerActiveFlags(parent, scene);
-    const deactivation = current & (~target | (oldScene !== scene ? ActiveChangeFlag.Scene : ActiveChangeFlag.None));
+    const lost = current & ~target;
+    // An onDisable callback can move the target, so release the source scene before calling it.
+    const deactivation =
+      lost & ActiveChangeFlag.Hierarchy
+        ? current
+        : lost | (oldScene !== scene ? current & ActiveChangeFlag.Scene : ActiveChangeFlag.None);
     if (deactivation || (this._isActive && target & ~current)) {
       this._assertActivationIdle();
     }
@@ -867,7 +874,7 @@ export class Entity extends EngineObject {
     let failed = false;
     if (deactivation) {
       try {
-        // Keep both source links valid while user callbacks run.
+        // Deactivation callbacks can still inspect the source parent and scene.
         this._processInActive(deactivation);
       } catch (error) {
         firstError = error;
@@ -897,10 +904,9 @@ export class Entity extends EngineObject {
         this._isRoot = !parent;
         Entity._addToChildren(siblings, this, index);
         if (parent?._isActiveInScene && this._isActiveInScene) {
-          destination!.physics._invalidateBodyOrder();
+          destination!.physics._invalidateBodyOrder(this);
         }
         if (oldScene !== destination) Entity._assignOwnerScene(this, destination);
-        if (oldScene !== destination && destination) Entity._notifySceneChanged(this, destination);
         if (parent !== oldParent || !wasRoot) this._setParentChange();
         oldParent?._dispatchModify(EntityModifyFlags.Child, oldParent);
         parent?._dispatchModify(EntityModifyFlags.Child, parent);
@@ -1020,7 +1026,7 @@ export class Entity extends EngineObject {
   }
 
   private _setInActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {
-    // Children-first, reverse traversal for safe removeChild during callbacks
+    // Queue descendants before ancestors so child teardown runs first.
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];

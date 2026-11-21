@@ -5,7 +5,7 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
 
 /**
- * A joint which behaves in a similar way to a hinge or axle.
+ * PhysX revolute joint.
  */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   private _axisRotationQuaternion = new Quaternion();
@@ -41,6 +41,7 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
     const normalizedY = y / len;
     const normalizedZ = z / len;
     const axisRotationQuaternion = this._axisRotationQuaternion;
+    // Rotate PhysX’s local X axis onto the requested hinge axis.
     const lateral = Math.hypot(normalizedY, normalizedZ);
     if (lateral > 0) {
       const halfAngle = Math.atan2(lateral, x / len) * 0.5;
@@ -52,6 +53,7 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
         Math.cos(halfAngle)
       );
     } else if (x < 0) {
+      // Use a stable rotation axis for the antiparallel case.
       axisRotationQuaternion.set(0, 1, 0, 0);
     } else {
       axisRotationQuaternion.set(0, 0, 0, 1);

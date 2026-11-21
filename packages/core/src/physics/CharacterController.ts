@@ -10,13 +10,12 @@ import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
 
 /**
- * A character controller moved by {@link move} with a "collide-and-slide" algorithm.
- * @remarks
- * The controller has inline geometry, a capsule by default or an axis-aligned box, and is never owned by a
- * {@link Rigidbody}. Its geometry follows the Entity's world scale; {@link Collider.rotation} does not apply.
+ * A capsule or box that moves and slides along obstacles through {@link move}.
+ * @remarks The Entity's world scale sizes the shape, and {@link upDirection} orients it. The controller moves
+ * independently of Rigidbody ownership and Entity rotation.
  */
 export class CharacterController extends Collider {
-  private static _tempMovePosition = new Vector3();
+  private static readonly _movePositions: Vector3[] = [];
   private static _tempWorldScale = new Vector3();
   private static _tempExtents = new Vector3();
 
@@ -28,6 +27,8 @@ export class CharacterController extends Collider {
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
+  @ignoreClone
+  private _lastValidUpDirection?: Vector3;
   private _slopeLimit = 45;
 
   @ignoreClone
@@ -71,7 +72,7 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The height of the capsule's cylindrical part, excluding both caps, in the Entity's local space. Finite negative values are clamped to 0.
+   * The cylinder height in local units, excluding both caps. Finite negative values are clamped to 0.
    * @defaultValue 1
    * @throws When the value is not finite.
    */
@@ -91,15 +92,15 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The box size in the Entity's local space. Negative components are clamped to 0.
+   * The box size in local units. Finite negative components are clamped to 0.
    * @defaultValue `(1, 1, 1)`
    * @remarks Mutating the returned vector updates the box size.
+   * @throws When a component is non-finite.
    */
   get size(): Vector3 {
     let size = this._size;
     if (!size) {
       this._size = size = new Vector3(1, 1, 1);
-      //@ts-ignore
       size._onValueChanged = this._onSizeChanged.bind(this);
     }
     return size;
@@ -130,8 +131,11 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The step offset for the controller, the value must be greater than or equal to 0.
-   * @remarks Character can overcome obstacle less than the height(stepOffset + contactOffset).
+   * The step height used when climbing obstacles, in world units. Finite negative values are clamped to 0.
+   * @defaultValue 0.5
+   * @remarks PhysX excludes the controller from simulation and queries when the step height rounds to a non-finite
+   * value or exceeds the scaled height along {@link upDirection}.
+   * @throws When the value is non-finite.
    */
   get stepOffset(): number {
     return this._stepOffset;
@@ -144,13 +148,12 @@ export class CharacterController extends Collider {
     value = Math.max(0, value);
     if (this._stepOffset !== value) {
       this._stepOffset = value;
-      (<ICharacterController>this._native)?.setStepOffset(value);
       this._setGeometryDirty();
     }
   }
 
   /**
-   * The value of the non-walkable mode.
+   * How the controller behaves on slopes steeper than {@link slopeLimit}.
    */
   get nonWalkableMode(): ControllerNonWalkableMode {
     return this._nonWalkableMode;
@@ -164,7 +167,10 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The up direction for the controller.
+   * The mutable up direction in world space.
+   * @defaultValue `(0, 1, 0)`
+   * @remarks Assigning or mutating the vector normalizes nonzero values. A zero value retains the previous direction.
+   * @throws When the vector length is non-finite.
    */
   get upDirection(): Vector3 {
     return this._upDirection;
@@ -177,16 +183,13 @@ export class CharacterController extends Collider {
     if (!Number.isFinite(len)) {
       throw new Error("CharacterController upDirection must be finite.");
     }
-    if (len === 0) {
-      console.warn("CharacterController: upDirection cannot be a zero vector.");
-      return;
-    }
-    this._applyUpDirection(x / len, y / len, z / len);
+    if (len > 0) this._applyUpDirection(x / len, y / len, z / len);
   }
 
   /**
-   * The slope limit in degrees for the controller.
+   * The slope limit in degrees, clamped to the range 0 to 90.
    * @defaultValue 45
+   * @throws When the value is non-finite.
    */
   get slopeLimit(): number {
     return this._slopeLimit;
@@ -209,7 +212,6 @@ export class CharacterController extends Collider {
   constructor(entity: Entity) {
     super(entity);
     this._setUpDirection = this._setUpDirection.bind(this);
-    //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection;
   }
 
@@ -221,14 +223,13 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * Moves the character using a "collide-and-slide" algorithm, then writes the result to the Entity's world position.
-   * @remarks `entity.transform.worldPosition` updates immediately. With PhysX, `move()` advances the controller's
-   * proxy kinematic actor on the next simulation step, so triggers and scene queries observe the moved pose after that
-   * step; teleporting via `entity.transform` updates scene queries immediately.
-   * @param disp - Displacement vector
-   * @param minDist - The minimum travelled distance to consider
-   * @param elapsedTime - Time elapsed since last call
-   * @returns The ControllerCollisionFlag, or 0 when the controller is not active in a scene
+   * Moves the controller and immediately updates the Entity's world position.
+   * @remarks With PhysX, scene queries see the moved shape after the next simulation step. Trigger callbacks are
+   * dispatched by simulation steps. For immediate query updates, set the Entity's world position directly.
+   * @param disp - Requested displacement in world space.
+   * @param minDist - Stop sweeping when the remaining displacement reaches this distance or less, in world units.
+   * @param elapsedTime - Time since the previous move, in seconds.
+   * @returns A bit mask of {@link ControllerCollisionFlag} values, or 0 if inactive or no collision is reported.
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): number {
     const scene = this._registeredScene;
@@ -241,12 +242,18 @@ export class CharacterController extends Collider {
       return 0;
     }
     const flags = controller.move(disp, minDist, elapsedTime);
-    const position = CharacterController._tempMovePosition;
-    controller.getWorldPosition(position);
-    const transform = this.entity.transform;
-    transform.worldPosition = position;
-    // Cache what the Entity reports so the next sync does not teleport the controller over a rounding difference
-    this._nativePosition.copyFrom(transform.worldPosition);
+    const positions = CharacterController._movePositions;
+    const position = positions.pop() ?? new Vector3();
+    try {
+      controller.getWorldPosition(position);
+      const transform = this.entity.transform;
+      transform.worldPosition = position;
+      // Cache the published position so the next sync does not teleport over a rounding difference.
+      this._nativePosition.copyFrom(transform.worldPosition);
+    } finally {
+      // A custom Transform setter can move another controller before consuming this position.
+      positions.push(position);
+    }
     return flags;
   }
 
@@ -270,12 +277,14 @@ export class CharacterController extends Collider {
    * @internal
    */
   override _sync(): void {
+    const scene = this._registeredScene!;
     const transform = this.entity.transform;
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
     transform.worldMatrix;
     const lossyScale = transform.lossyWorldScale;
     const position = transform.worldPosition;
     const colliderCenter = this.center;
+    if (this._registeredScene !== scene) return;
     const scale = CharacterController._tempWorldScale.set(
       Math.abs(lossyScale.x),
       Math.abs(lossyScale.y),
@@ -324,14 +333,15 @@ export class CharacterController extends Collider {
     if (syncGeometry) {
       this._geometryDirty = false;
       this._nativeScale.copyFrom(scale);
+      const stepOffset = this._stepOffset;
       if (box) {
-        controller.setBox(dimensions);
+        controller.setBox(dimensions, stepOffset);
       } else {
-        controller.setCapsule(dimensions.x, dimensions.y);
+        controller.setCapsule(dimensions.x, dimensions.y, stepOffset);
       }
     }
     if (force) {
-      this._registeredScene!.physics._nativePhysicsScene.addCharacterController(controller);
+      scene.physics._nativePhysicsScene.addCharacterController(controller);
       this._inScene = true;
     }
   }
@@ -353,11 +363,8 @@ export class CharacterController extends Collider {
     controller.setContactOffset(this.contactOffset);
     controller.setCollisionLayer(this._collisionLayerIndex);
     controller.setIsSceneQuery(this.isSceneQuery);
-    controller.setStepOffset(this._stepOffset);
     controller.setNonWalkableMode(this._nonWalkableMode);
-    if (this._upDirection.lengthSquared() > 0) {
-      controller.setUpDirection(this._upDirection);
-    }
+    controller.setUpDirection(this._upDirection);
     controller.setSlopeLimit(this._slopeLimit);
     return controller;
   }
@@ -383,6 +390,14 @@ export class CharacterController extends Collider {
     return null;
   }
 
+  /** @internal */
+  protected override _onDestroy(): void {
+    this._upDirection._onValueChanged = null;
+    const size = this._size;
+    if (size) size._onValueChanged = null;
+    super._onDestroy();
+  }
+
   private _onSizeChanged(): void {
     const finite = CharacterController._clampBoxSize(this._size);
     this._setGeometryDirty();
@@ -403,16 +418,29 @@ export class CharacterController extends Collider {
       this._applyUpDirection(0, 1, 0);
       throw new Error("CharacterController upDirection must be finite.");
     }
-    if (len !== 0) this._applyUpDirection(x / len, y / len, z / len);
+    if (len === 0) {
+      const previous = this._lastValidUpDirection;
+      this._writeUpDirection(previous?.x ?? 0, previous?.y ?? 1, previous?.z ?? 0);
+      return;
+    }
+    this._applyUpDirection(x / len, y / len, z / len);
   }
 
   private _applyUpDirection(x: number, y: number, z: number): void {
+    const previous = this._lastValidUpDirection;
+    this._writeUpDirection(x, y, z);
+    if (x !== (previous?.x ?? 0) || y !== (previous?.y ?? 1) || z !== (previous?.z ?? 0)) {
+      (this._lastValidUpDirection ||= new Vector3()).set(x, y, z);
+      (<ICharacterController>this._native)?.setUpDirection(this._upDirection);
+    }
+  }
+
+  private _writeUpDirection(x: number, y: number, z: number): void {
     const up = this._upDirection;
-    //@ts-ignore
+    if (x === up.x && y === up.y && z === up.z) return;
+    const listener = up._onValueChanged;
     up._onValueChanged = null;
     up.set(x, y, z);
-    //@ts-ignore
-    up._onValueChanged = this._setUpDirection;
-    (<ICharacterController>this._native)?.setUpDirection(up);
+    up._onValueChanged = listener;
   }
 }

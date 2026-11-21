@@ -1,20 +1,24 @@
 import { WebGLEngine } from "@galacean/engine";
 import {
   BoxCollider,
+  CharacterController,
   Collider,
   Collision,
   ContactPoint,
   Entity,
   Layer,
+  Logger,
   MeshCollider,
   PhysicsMaterial,
   PhysicsScene,
   PrimitiveMesh,
   Rigidbody,
+  Scene,
   Script,
-  SphereCollider
+  SphereCollider,
+  Transform
 } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { Ray, Vector3 } from "@galacean/engine-math";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPhysics } from "../../utils/physics";
 
@@ -94,7 +98,7 @@ describe("Rigidbody ownership", () => {
     }
   }
 
-  /** Overlapping Colliders as sorted names; comparing native-backed objects directly breaks failure diffs. */
+  /** Sorts overlapping collider names to make failed assertions readable. */
   function hits(x: number, y: number, z: number, layer = Layer.Everything): string[] {
     return names(physics.overlapSphereAll(new Vector3(x, y, z), 0.05, layer));
   }
@@ -153,6 +157,76 @@ describe("Rigidbody ownership", () => {
   });
 
   describe("hierarchy ownership", () => {
+    it.each([
+      { name: "BoxCollider", type: BoxCollider },
+      { name: "CharacterController", type: CharacterController },
+      { name: "Rigidbody", type: Rigidbody }
+    ])("honors deactivation while reading $name world pose", ({ type }) => {
+      let armed = false;
+      class DisablingTransform extends Transform {
+        override get worldPosition(): Vector3 {
+          if (armed) {
+            armed = false;
+            component.enabled = false;
+          }
+          return super.worldPosition;
+        }
+      }
+      const entity = new Entity(engine, "disables during pose read", DisablingTransform);
+      if (type === Rigidbody) entity.addComponent(BoxCollider);
+      const component = entity.addComponent(type);
+      armed = true;
+      root.addChild(entity);
+
+      const ray = new Ray(new Vector3(0, 1004, 0), new Vector3(0, -1, 0));
+      expect(physics.raycast(ray, 8)).toBe(false);
+      expect(component.enabled).toBe(false);
+      component.enabled = true;
+      expect(physics.raycast(ray, 8)).toBe(true);
+    });
+
+    it("moves query registration when a disable callback moves the target parent to another scene", () => {
+      const source = engine.sceneManager.activeScene;
+      const destination = new Scene(engine);
+      engine.sceneManager.addScene(destination);
+      const moving = source.createRootEntity("moving");
+      const driver = source.createRootEntity("driver");
+      const target = source.createRootEntity("target");
+      moving.addComponent(BoxCollider);
+      moving.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            if (target.scene !== destination) destination.addRootEntity(target);
+          }
+        }
+      );
+      const moveChild = driver.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            target.addChild(moving);
+          }
+        }
+      );
+
+      const ray = new Ray(new Vector3(0, 4, 0), new Vector3(0, -1, 0));
+      try {
+        expect(source.physics.raycast(ray, 8)).toBe(true);
+        expect(destination.physics.raycast(ray, 8)).toBe(false);
+
+        source.isActive = false;
+
+        expect(moving.scene).toBe(destination);
+        expect(moving.parent).toBe(target);
+        expect(source.physics.raycast(ray, 8)).toBe(false);
+        expect(destination.physics.raycast(ray, 8)).toBe(true);
+      } finally {
+        moveChild.destroy();
+        driver.destroy();
+        source.isActive = true;
+        destination.destroy();
+      }
+    });
+
     it("lets the nearest Rigidbody own Colliders on its Entity and descendants", () => {
       const bodyEntity = root.createChild("body");
       const own = bodyEntity.addComponent(SphereCollider);
@@ -165,7 +239,6 @@ describe("Rigidbody ownership", () => {
       expect(childCollider.attachedRigidbody).toBe(body);
 
       update(30);
-      // The whole group falls together and the child keeps its offset
       const bodyY = bodyEntity.transform.worldPosition.y;
       expect(bodyY).toBeLessThan(1000);
       expect(child.transform.worldPosition.y).toBeCloseTo(bodyY, 5);
@@ -274,7 +347,6 @@ describe("Rigidbody ownership", () => {
 
       secondEntity.addChild(entity);
       expect(sphere.attachedRigidbody).toBe(second);
-      // Same-scene reparenting keeps the local transform
       expect(hits(10, 1000, 0)).toEqual(names([sphere]));
       expect(hits(0, 1000, 0)).toEqual([]);
 
@@ -469,23 +541,29 @@ describe("Rigidbody ownership", () => {
   });
 
   it("warns once about sheared world transforms, which physics cannot represent", () => {
-    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const parent = root.createChild("parent");
-    parent.transform.setScale(2, 1, 3);
-    const child = parent.createChild("child");
-    child.transform.setRotation(15, -25, 35);
-    child.addComponent(BoxCollider);
-    update(2);
-    expect(warnings).toHaveBeenCalledTimes(1);
-    expect(String(warnings.mock.calls[0][0])).toMatch(/sheared/);
+    Logger.enable();
+    const warnings = vi.spyOn(Logger, "warn").mockImplementation(() => {});
+    try {
+      const parent = root.createChild("parent");
+      parent.transform.setScale(2, 1, 3);
+      const child = parent.createChild("child");
+      child.transform.setRotation(15, -25, 35);
+      child.addComponent(BoxCollider);
+      update(2);
+      expect(warnings).toHaveBeenCalledTimes(1);
+      expect(String(warnings.mock.calls[0][0])).toMatch(/sheared/);
 
-    warnings.mockClear();
-    const uniform = root.createChild("uniform");
-    uniform.transform.setScale(2, 2, 2);
-    const rotated = uniform.createChild("rotated");
-    rotated.transform.setRotation(15, -25, 35);
-    rotated.addComponent(BoxCollider);
-    update();
-    expect(warnings).not.toHaveBeenCalled();
+      warnings.mockClear();
+      const uniform = root.createChild("uniform");
+      uniform.transform.setScale(2, 2, 2);
+      const rotated = uniform.createChild("rotated");
+      rotated.transform.setRotation(15, -25, 35);
+      rotated.addComponent(BoxCollider);
+      update();
+      expect(warnings).not.toHaveBeenCalled();
+    } finally {
+      warnings.mockRestore();
+      Logger.disable();
+    }
   });
 });

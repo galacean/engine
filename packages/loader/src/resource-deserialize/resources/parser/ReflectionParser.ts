@@ -1,4 +1,5 @@
 import { Component, EngineObject, Entity, Loader } from "@galacean/engine-core";
+import { Vector3 } from "@galacean/engine-math";
 import { resolveRefItem } from "../../../schema/refs";
 import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } from "../../../schema/CommonSchema";
 import { ParserContext, ParserType } from "./ParserContext";
@@ -47,8 +48,8 @@ export class ReflectionParser {
   }
 
   /**
-   * Resolve arguments, execute each call, and apply its result block before continuing.
-   * @remarks Pending mutations stop when an enclosing engine object or the owning resource is destroyed.
+   * Runs calls sequentially, awaiting arguments, method results, and any result mutations before the next call.
+   * @remarks Skips a mutation if its target, an enclosing engine object, or the owning resource has been destroyed.
    */
   async parseCalls(
     instance: any,
@@ -74,7 +75,7 @@ export class ReflectionParser {
         if (!this._canMutate(callTargets)) continue;
       }
       const method = target?.[call.method];
-      // A method getter can destroy an owner before returning a value.
+      // Reading the method can invoke a getter that destroys one of its owners.
       if (!this._canMutate(callTargets)) continue;
       if (typeof method !== "function") {
         const prefix = path?.length ? `${path.join(".")}.` : "";
@@ -219,6 +220,24 @@ export class ReflectionParser {
     // $signal — signal binding: register listeners on the existing Signal instance
     if ("$signal" in obj) {
       return this._resolveSignal(originValue, obj.$signal as SignalListener[], targets);
+    }
+
+    if (originValue instanceof Vector3) {
+      const { x, y, z } = obj;
+      if (typeof x === "number" && typeof y === "number" && typeof z === "number") {
+        let completeVector = true;
+        for (const key in obj) {
+          if (key !== "x" && key !== "y" && key !== "z") {
+            completeVector = false;
+            break;
+          }
+        }
+        if (completeVector) {
+          // Set all coordinates before the vector's change callback sees the new value.
+          if (this._canMutate(targets)) originValue.set(x, y, z);
+          return Promise.resolve(originValue);
+        }
+      }
     }
 
     // Plain object — recurse each value, modifying originValue in place or building a new object

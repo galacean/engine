@@ -62,13 +62,12 @@ The connection target must be a [Rigidbody](/en/docs/physics/collider/rigidbody)
 // Add fixed joint component
 const fixedJoint = entity.addComponent(FixedJoint);
 
-// Set the connected Rigidbody
 fixedJoint.connectedBody = targetEntity.getComponent(Rigidbody);
 
-// Set anchor point
+// Coordinates in the joint's own Rigidbody space.
 fixedJoint.anchor.set(0, 1, 0);
 
-// Set connection point
+// Manual coordinates in the connected Rigidbody's local space.
 fixedJoint.automaticConnectedAnchor = false;
 fixedJoint.connectedAnchor.set(0, 0, 0);
 ```

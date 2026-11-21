@@ -541,7 +541,7 @@ class Pipe extends Script {
     const center =
       Math.random() * (this._upLimit - this._downLimit) + this._downLimit;
 
-    // The pipe Entity has two BoxCollider components: one for each pipe
+    // Add the upper collider first so the prefab order matches this lookup.
     const [upCollider, downCollider] = pipe.getComponents(BoxCollider, []);
 
     const upPipe = pipe.findByName("up_pipe");

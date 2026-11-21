@@ -158,7 +158,7 @@ class AIPerception {
   private readonly _detectedColliders: Collider[] = [];
   
   checkVisionRange(aiPosition: Vector3, visionRadius: number): Entity[] {
-    this._detectedColliders.length = 0; // Clear array
+    this._detectedColliders.length = 0;
     
     const detectedColliders = physicsScene.overlapSphereAll(
       aiPosition,

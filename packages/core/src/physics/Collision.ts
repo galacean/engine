@@ -10,23 +10,20 @@ export class Collision {
   /** @internal */
   _nativeCollision: ICollision;
 
-  /** The other Collider in the collision. */
+  /** The Collider on the other side of this contact pair. */
   collider: Collider;
-  /** The Collider that receives this collision; contact normals and impulses point from the other Collider to it. */
+  /** The receiving Collider. Contact normals and impulses are oriented from {@link collider} toward this Collider. */
   selfCollider: Collider;
 
-  /**
-   * Count of contact points.
-   */
+  /** The number of contact points in this callback. */
   get contactCount(): number {
     return this._nativeCollision.contactCount;
   }
 
   /**
-   * Write contact points to the supplied array.
-   * @param outContacts - The array to fill, reusing its existing contact points
-   * @returns The number of entries written
-   * @remarks The array grows as needed. Entries beyond the returned count are left unchanged.
+   * Copies contact points into the supplied array.
+   * @param outContacts - Output array. Existing contact objects are reused, and the array grows as needed.
+   * @returns The number of entries written. Entries beyond this count are left unchanged.
    */
   getContacts(outContacts: ContactPoint[]): number {
     const nativeCollision = this._nativeCollision;

@@ -12,9 +12,9 @@ type MeshData = {
 };
 
 /**
- * A collider based on mesh geometry, either as a convex hull or as the original triangle mesh.
- * @remarks A triangle mesh (`convex = false`) can only be static or belong to a kinematic {@link Rigidbody}, and
- * cannot be a trigger. Validation and native mesh cooking run when the Collider synchronizes with the physics scene.
+ * A collider based on a triangle mesh or a convex hull.
+ * @remarks Simulation and queries exclude a triangle mesh used as a trigger or owned by a non-kinematic
+ * {@link Rigidbody}. The mesh is validated and cooked during physics synchronization.
  */
 export class MeshCollider extends Collider {
   @ignoreClone
@@ -37,9 +37,9 @@ export class MeshCollider extends Collider {
   private _triggerRejected = false;
 
   /**
-   * The mesh used for collision detection.
-   * @remarks The mesh must keep its data accessible (`keepMeshData` before upload). A non-convex collider also needs
-   * indices. Invalid meshes are excluded from simulation and queries until replaced with a valid mesh.
+   * The mesh used for collision detection, or null to remove the shape.
+   * @remarks Keep the mesh data accessible when uploading it. Both modes need positions, and triangle meshes also
+   * need indices. Simulation and queries exclude a mesh if cooking fails.
    */
   get mesh(): ModelMesh | null {
     return this._mesh;
@@ -59,8 +59,6 @@ export class MeshCollider extends Collider {
   /**
    * Whether to use a convex hull generated from the mesh vertices.
    * @defaultValue false
-   * @remarks A non-convex mesh cannot be a trigger or belong to a non-kinematic {@link Rigidbody}; invalid
-   * combinations are excluded from simulation and queries until resolved.
    */
   get convex(): boolean {
     return this._convex;
@@ -91,8 +89,10 @@ export class MeshCollider extends Collider {
   }
 
   /**
-   * Get the distance and the closest point on the Collider from a point.
-   * @remarks Only supported when {@link convex} is true.
+   * Finds the closest point in a convex hull.
+   * @param point - Point to measure from in world space.
+   * @param outClosestPoint - Receives the closest point in world space. Left unchanged if the query fails.
+   * @returns Distance in world units, 0 for a point inside or on the hull, or -1 if the hull is unavailable.
    */
   override getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
     if (this._mesh && !this._convex) {
@@ -104,7 +104,7 @@ export class MeshCollider extends Collider {
 
   /**
    * @internal
-   * @inheritdoc
+   * @inheritDoc
    */
   override _getVolumeDistance(point: Vector3, outClosestPoint?: Vector3): number {
     if (!this._convex) {
@@ -138,7 +138,7 @@ export class MeshCollider extends Collider {
 
   /**
    * @internal
-   * @inheritdoc
+   * @inheritDoc
    */
   override _onClone(target: MeshCollider): void {
     super._onClone(target);

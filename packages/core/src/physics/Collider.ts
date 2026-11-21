@@ -6,6 +6,7 @@ import {
   IStaticCollider
 } from "@galacean/engine-design";
 import { MathUtil, Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
+import { Logger } from "../base";
 import { BasicResources } from "../BasicResources";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
@@ -30,20 +31,13 @@ class ColliderSyncScratch {
 }
 
 /**
- * Base class for colliders.
- * @remarks
- * The nearest {@link Rigidbody} on the Collider's Entity or its ancestors owns the Collider. Without one, the Collider
- * is static and follows its own Entity. Disabling the owning Rigidbody removes its Colliders from simulation and
- * queries; it never turns them into static Colliders.
+ * A collision shape attached to an Entity.
+ * @remarks The nearest {@link Rigidbody} on the Entity or its ancestors owns the shape. With no owner, it is static
+ * and follows its Entity's transform. A disabled owner keeps its shapes out of simulation and queries.
+ * {@link CharacterController} moves independently of Rigidbody ownership.
  *
- * Geometry that only supports kinematic bodies, a non-convex {@link MeshCollider} or a {@link PlaneCollider}, is
- * excluded from simulation and queries while its owner is a non-kinematic Rigidbody, and an error is logged. Adding
- * such a Rigidbody or moving the Collider under one cannot be rejected, so the Collider rejoins when the Rigidbody
- * becomes kinematic or no longer owns it.
- *
- * Moving a Collider between Rigidbodies, or between a Rigidbody and static, keeps its trigger pairs when they still
- * overlap after the next step; pairs that no longer overlap end with `onTriggerExit`. Its collision pairs restart with
- * another `onCollisionEnter`.
+ * On PhysX, transferring a Collider to another actor preserves trigger pairs that still overlap on the next step
+ * and reports `onTriggerExit` for pairs that separate. Continuing contacts start a new collision pair.
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
@@ -127,8 +121,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   private _materialInstanced = false;
 
   /**
-   * The Rigidbody that owns this Collider: the nearest one on this Entity or its ancestors.
-   * @remarks Derived from the hierarchy. It does not change when either component is disabled.
+   * The owning Rigidbody, even if disabled, or null if there is no owner.
    */
   get attachedRigidbody(): Rigidbody | null {
     if (this._dirtyIndex === -1 && this._nativeActor) {
@@ -153,7 +146,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * The local rotation of the Collider, in degrees.
-   * @remarks A non-uniform world scale is applied along the rotated axes of the Collider, not the Entity's axes.
+   * @remarks World scale sizes the shape along its own axes before this rotation is applied.
    */
   get rotation(): Vector3 {
     return this._rotation;
@@ -179,8 +172,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * @internal
    * @beta
-   * Whether this Collider participates in scene queries, including raycasts, shape casts, and overlap queries.
-   * This does not affect collision response.
+   * Whether raycasts, shape casts, and overlap queries can find this Collider. Simulation uses its collision flags
+   * independently.
    */
   get isSceneQuery(): boolean {
     return this._isSceneQuery;
@@ -194,9 +187,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   /**
-   * Contact offset for this Collider. Finite negative values are clamped to 0.
+   * The contact offset in world units. Ordinary colliders clamp finite negative values to 0.
    * @defaultValue 0.02
-   * @throws When the value is not finite, or not positive on a CharacterController.
+   * @throws When the value is non-finite, or when a CharacterController receives a non-positive value.
    */
   get contactOffset(): number {
     return this._contactOffset;
@@ -235,10 +228,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   /**
-   * The collision layer of this Collider, only a single layer is supported.
+   * The Collider's single collision layer, used for simulation filtering and scene queries.
    * @defaultValue `Layer.Layer0`
-   * @remarks Changing the layer keeps active pairs that still pass the collision matrix. A trigger pair that no longer
-   * passes ends with `onTriggerExit`.
+   * @remarks On PhysX, pairs that still pass the collision matrix continue, and trigger pairs that fail it exit.
+   * @throws When assigned a value other than one of `Layer.Layer0` through `Layer.Layer31`.
    */
   get collisionLayer(): Layer {
     // Unsigned shift keeps Layer31 positive
@@ -311,10 +304,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   /**
-   * Get the instance material for this Collider.
-   * @remarks Clones {@link material} or creates a default {@link PhysicsMaterial} when not yet instanced, assigns it,
-   * and reuses it until {@link material} is set to a different material or null.
-   * @returns The Collider-specific material instance
+   * Returns a material instance for this Collider.
+   * @remarks The first call clones the assigned {@link material} or creates a default material, then assigns the
+   * instance to this Collider. Later calls reuse it until the material changes.
    */
   getInstanceMaterial(): PhysicsMaterial {
     if (!this._materialInstanced) {
@@ -325,10 +317,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   /**
-   * Get the distance and the closest point on the Collider from a point.
-   * @param point - Location in world space you want to find the closest point to
-   * @param outClosestPoint - The closest point on the Collider in world space
-   * @returns The distance between the point and the Collider, or -1 when the Collider is not in simulation
+   * Finds the closest point in this Collider's volume.
+   * @param point - Point to measure from in world space.
+   * @param outClosestPoint - Receives the closest point in world space. Left unchanged if the query fails.
+   * @returns Distance in world units, 0 for a point inside or on the Collider, or -1 if the shape is unavailable.
    */
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
     this._registeredScene?.physics._syncColliders();
@@ -384,7 +376,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * @inheritdoc
+   * @inheritDoc
    */
   _onClone(target: Collider): void {
     // _material is @ignoreClone: assign it through the setter so the target retains its own reference.
@@ -396,11 +388,14 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * Reconcile native ownership and pose with the hierarchy. Called by the physics scene before simulation and queries.
    */
   _sync(): void {
+    const scene = this._registeredScene!;
     const transform = this.entity.transform;
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
-    this._checkShear(transform.worldMatrix);
+    const worldMatrix = transform.worldMatrix;
+    if (Logger.isEnabled && !this._shearWarned) this._checkShear(worldMatrix);
 
     const lossyScale = transform.lossyWorldScale;
+    if (this._registeredScene !== scene) return;
     const body = this._findRigidbody();
     if (body && !body.isKinematic && !this._supportsDynamicBody()) {
       if (this._rejectedBody !== body) {
@@ -432,9 +427,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
 
       const attachedActor = this._nativeActor;
-      const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform);
-      this._syncShapePose(shape, body, scratch, shape !== previousShape);
-      if (!attachedActor) {
+      const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform, scene);
+      if (!actor || !this._syncShapePose(shape, body, scratch, shape !== previousShape, scene)) return;
+      if (!this._nativeActor) {
         if (!actor.addShape(shape)) {
           console.error(`${this.constructor.name}: failed to attach to the native actor.`);
           return;
@@ -442,7 +437,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
         if (body) {
           body._attachCollider(this);
         } else {
-          this._registeredScene!.physics._nativePhysicsScene.addCollider(actor);
+          scene.physics._nativePhysicsScene.addCollider(actor);
         }
         this._nativeActor = actor;
         this._attachedBody = body;
@@ -498,8 +493,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * Detach from the owning Rigidbody's actor before the actor is released. The Rigidbody marks this Collider dirty so
-   * the next sync makes it static.
+   * Detach before the Rigidbody releases its actor so the next sync can resolve the new owner.
    */
   _onBodyDestroyed(): void {
     this._nativeActor!.removeShape(<IColliderShape>this._native);
@@ -618,6 +612,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @internal
    */
   protected override _onDestroy(): void {
+    //@ts-ignore
+    this._center._onValueChanged = this._rotation._onValueChanged = null;
     super._onDestroy();
     this.entity._updateFlagManager.removeListener(this._onTransformChanged);
     this._native?.destroy();
@@ -640,9 +636,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._markDirty();
   }
 
-  private _syncStaticActor(transform: Transform): IStaticCollider {
+  private _syncStaticActor(transform: Transform, scene: Scene): IStaticCollider | null {
     const position = transform.worldPosition;
     const rotation = transform.worldRotationQuaternion;
+    if (this._registeredScene !== scene) return null;
     let actor = this._staticActor;
     if (!actor) {
       this._staticActor = actor = Engine._nativePhysics.createStaticCollider(position, rotation);
@@ -664,8 +661,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
     shape: IColliderShape,
     body: Rigidbody | null,
     scratch: ColliderSyncScratch,
-    force: boolean
-  ): void {
+    force: boolean,
+    scene: Scene
+  ): boolean {
     const { position, rotation, scale } = scratch;
     const euler = this._rotation;
     Quaternion.rotationYawPitchRoll(
@@ -684,10 +682,13 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
     }
 
+    // Custom Transform accessors can unregister the collider before its pose is ready to commit.
+    if (this._registeredScene !== scene || this._native !== shape) return false;
     const nativePosition = this._nativePosition;
     const nativeRotation = this._nativeRotation;
     if (
       force ||
+      !nativeRotation ||
       Collider._differsF32(position, nativePosition) ||
       Collider._rotationDiffersF32(rotation, nativeRotation)
     ) {
@@ -696,6 +697,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       shape.setLocalPose(position, rotation);
       this._attachedBody?._markMassDirty();
     }
+    return true;
   }
 
   private _transformPoseToBodySpace(entity: Entity, body: Entity, scratch: ColliderSyncScratch): void {
@@ -735,9 +737,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   private _checkShear(worldMatrix: Matrix): void {
-    if (this._shearWarned) {
-      return;
-    }
     // A rotated, non-uniformly scaled ancestor can skew the basis; a TRS pose cannot represent it
     const e = worldMatrix.elements;
     const xLengthSquared = e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
@@ -753,7 +752,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       yz * yz > tolerance * yLengthSquared * zLengthSquared
     ) {
       this._shearWarned = true;
-      console.warn(
+      Logger.warn(
         `${this.constructor.name}: the world transform of "${this.entity.name}" is sheared, which physics cannot represent; the shape ignores the shear.`
       );
     }

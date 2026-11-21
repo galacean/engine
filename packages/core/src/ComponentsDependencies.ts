@@ -34,9 +34,9 @@ export class ComponentsDependencies {
   }
 
   /**
+   * Runs requested additions in dependency order, preferring requested providers over automatic additions.
    * @internal
-   * Prefer requested providers before their dependents. If a requested dependency chain is blocked,
-   * retry with declared AutoAdd types to avoid exploring combinations of nested providers.
+   * @remarks Falls back to declared AutoAdd types for blocked provider chains, without searching every combination.
    */
   static _forEachInAddOrder(
     entity: Entity,
@@ -137,10 +137,10 @@ export class ComponentsDependencies {
   }
 
   /**
+   * Visits selected dependents before removing their last provider.
    * @internal
-   * Remove a dependent before its last provider, preserving source order otherwise.
-   * @param components - Stable snapshot of the components selected for removal
-   * @param onRemove - Removes the component at the given index from its entity synchronously
+   * @param components - Stable list of the components selected for removal
+   * @param onRemove - Removes the component at the given index synchronously so subsequent visits see the updated entity
    */
   static _forEachInRemoveOrder(components: readonly Component[], onRemove: (index: number) => void): void {
     const n = components.length;
@@ -205,10 +205,11 @@ export class ComponentsDependencies {
   }
 
   /**
+   * Checks whether the entity can remove an instance of `type`.
    * @internal
-   * Verify that removing `type` from `entity` does not leave any surviving component with an unsatisfied dependency.
-   * When `replace` supplies a replacement type (or list of types) satisfying a dependency, returns `true` and appends
-   * each satisfied `(dependency, dependents)` record to `replacedEntries` when provided.
+   * @param replace - Candidate replacements. When passing a list, also supply `replacedEntries` to collect dependents that need a replacement
+   * @returns Whether a replacement was accepted to satisfy the dependency check
+   * @throws If a dependent would lose its last provider
    */
   static _removeCheck(
     entity: Entity,

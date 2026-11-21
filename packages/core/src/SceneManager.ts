@@ -1,5 +1,4 @@
 import { Engine } from "./Engine";
-import { Entity } from "./Entity";
 import { Scene } from "./Scene";
 import { AssetPromise } from "./asset/AssetPromise";
 import { AssetType } from "./asset/AssetType";
@@ -27,15 +26,15 @@ export class SceneManager {
   constructor(public readonly engine: Engine) {}
 
   /**
-   * Add scene.
-   * @param scene - The scene which want to be added
+   * Registers a scene at the end of the scene list.
+   * @param scene - A scene owned by this engine
    */
   addScene(scene: Scene): void;
 
   /**
-   * Add scene at specified index.
-   * @param index - specified index
-   * @param child - The scene which want to be added
+   * Registers or moves a scene at the given position.
+   * @param index - Zero-based position in the scene list
+   * @param scene - A scene owned by this engine
    */
   addScene(index: number, scene: Scene): void;
 
@@ -66,7 +65,7 @@ export class SceneManager {
       }
     } else {
       const active = targetScene.isActive;
-      if (active) targetScene._assertActivationIdle();
+      if (active) targetScene._assertActivationIdle(true);
       targetScene._sceneManager = this;
       scenes.add(index, targetScene);
       if (active) targetScene._processActive(true);
@@ -74,15 +73,15 @@ export class SceneManager {
   }
 
   /**
-   * Remove scene.
-   * @param scene - The scene which want to be removed
+   * Unregisters a scene and deactivates its entity hierarchy without destroying it.
+   * @param scene - The scene to unregister
    */
   removeScene(scene: Scene): void {
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
     if (index !== -1) {
       const active = scene.isActive;
-      if (active) scene._assertActivationIdle();
+      if (active) scene._assertActivationIdle(false);
       scenes.removeByIndex(index);
       scene._sceneManager = null;
       if (active) scene._processActive(false);
@@ -110,48 +109,24 @@ export class SceneManager {
   }
 
   /**
-   * Merge the source scene into the target scene.
-   * @remarks the global information of destScene will be used after the merge, and the lightingMap information will be merged.
-   * @param sourceScene - source scene
-   * @param destScene - target scene
+   * Moves root entities from the source scene into the destination scene.
+   * @remarks The moved entities use the destination's scene settings. The source scene remains available.
+   * @param sourceScene - The scene to move roots from
+   * @param destScene - The scene to receive the roots
    */
   mergeScenes(sourceScene: Scene, destScene: Scene): void {
-    if (
-      sourceScene === destScene ||
-      sourceScene.destroyed ||
-      sourceScene.pendingDestroy ||
-      destScene.destroyed ||
-      destScene.pendingDestroy
+    if (sourceScene === destScene) return;
+    const roots = sourceScene._rootEntities;
+    while (
+      roots.length > 0 &&
+      !sourceScene.destroyed &&
+      !sourceScene.pendingDestroy &&
+      !destScene.destroyed &&
+      !destScene.pendingDestroy
     ) {
-      return;
-    }
-
-    const prevMergingInto = sourceScene._mergingInto;
-    sourceScene._mergingInto = destScene;
-    try {
-      const oldRootEntities = sourceScene._rootEntities;
-      while (
-        oldRootEntities.length > 0 &&
-        !sourceScene.destroyed &&
-        !sourceScene.pendingDestroy &&
-        !destScene.destroyed &&
-        !destScene.pendingDestroy
-      ) {
-        const root = oldRootEntities[0];
-        destScene.addRootEntity(root);
-        if (oldRootEntities[0] === root) {
-          break;
-        }
-      }
-    } finally {
-      sourceScene._mergingInto = prevMergingInto;
-      if (!sourceScene.destroyed) {
-        // If a callback aborted the merge partway, detach any joints left spanning sourceScene and destScene
-        const remainingRoots = sourceScene._rootEntities;
-        for (let i = 0, n = remainingRoots.length; i < n; i++) {
-          Entity._notifySceneChanged(remainingRoots[i], sourceScene);
-        }
-      }
+      const root = roots[0];
+      destScene.addRootEntity(root);
+      if (roots[0] === root) break;
     }
   }
 

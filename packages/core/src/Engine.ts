@@ -331,7 +331,6 @@ export class Engine extends EventDispatcher {
       const scenes = this._sceneManager._scenes.getLoopArray();
       const sceneCount = scenes.length;
 
-      // Sort cameras and fire script `onStart`
       for (let i = 0; i < sceneCount; i++) {
         const scene = scenes[i];
         if (!scene.isActive || scene.destroyed) continue;
@@ -340,7 +339,6 @@ export class Engine extends EventDispatcher {
         componentsManager.callScriptOnStart();
       }
 
-      // Update physics and fire `onPhysicsUpdate`
       if (physicsInitialized) {
         for (let i = 0; i < sceneCount; i++) {
           const scene = scenes[i];
@@ -349,38 +347,33 @@ export class Engine extends EventDispatcher {
         }
       }
 
-      // Fire `onPointerXX`
       inputManager._firePointerScript(scenes);
 
-      // Fire `onUpdate`
       for (let i = 0; i < sceneCount; i++) {
         const scene = scenes[i];
         if (!scene.isActive || scene.destroyed) continue;
         scene._componentsManager.callScriptOnUpdate(deltaTime);
       }
 
-      // Update `Animator` logic
       for (let i = 0; i < sceneCount; i++) {
         const scene = scenes[i];
         if (!scene.isActive || scene.destroyed) continue;
         scene._componentsManager.callAnimationUpdate(deltaTime);
       }
 
-      // Fire `onLateUpdate`
       for (let i = 0; i < sceneCount; i++) {
         const scene = scenes[i];
         if (!scene.isActive || scene.destroyed) continue;
         scene._componentsManager.callScriptOnLateUpdate(deltaTime);
       }
 
-      // Render scene and fire `onBeginRender` and `onEndRender`
       if (!this._hardwareRenderer.isContextLost()) {
         this._render(scenes);
       }
     } catch (error) {
       firstError = error;
     } finally {
-      // Always drain pending destroys queued during this frame even if an earlier phase threw
+      // Finish deferred destruction even if a frame callback throws.
       try {
         this._processPendingDestroyObjects();
       } catch (error) {

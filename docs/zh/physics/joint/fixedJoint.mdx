@@ -62,13 +62,12 @@ label: Physics
 // 添加固定关节组件
 const fixedJoint = entity.addComponent(FixedJoint);
 
-// 设置连接的目标刚体
 fixedJoint.connectedBody = targetEntity.getComponent(Rigidbody);
 
-// 设置锚点
+// 锚点使用关节自身刚体的局部坐标。
 fixedJoint.anchor.set(0, 1, 0);
 
-// 手动设置连接点
+// 手动连接点使用目标刚体的局部坐标。
 fixedJoint.automaticConnectedAnchor = false;
 fixedJoint.connectedAnchor.set(0, 0, 0);
 ```

@@ -7,6 +7,7 @@ import {
   CharacterController,
   Engine,
   Entity,
+  Logger,
   PlaneCollider,
   PostProcess,
   PostProcessEffect,
@@ -425,17 +426,18 @@ describe("PostProcess", () => {
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(intensity1, intensity2, 0));
 
-      // Moving the component center updates the local volume.
       collider.center.set(radius * 2, 0, 0);
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity2);
       collider.enabled = false;
+      const volumeWarning = vi.spyOn(Logger, "warn");
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity1);
+      expect(volumeWarning).not.toHaveBeenCalled();
+      volumeWarning.mockRestore();
       collider.enabled = true;
       collider.center.set(0, 0, 0);
 
-      // Local volumes use the closest enabled Collider component on the Entity.
       const secondCollider = postEntity.addComponent(SphereCollider);
       secondCollider.radius = 1;
       const moveBeforeRender = cameraEntity.addComponent(
@@ -452,7 +454,7 @@ describe("PostProcess", () => {
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity1);
 
-      // A Collider whose Rigidbody is disabled or whose geometry has no pointDistance logs nothing per frame
+      // Inactive and unsupported volumes must not produce warnings on each update.
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const body = postEntity.addComponent(Rigidbody);

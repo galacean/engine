@@ -7,11 +7,11 @@ import { IColliderShape } from "./IColliderShape";
 export interface IMeshColliderShape extends IColliderShape {
   /**
    * Update mesh data and scale without changing the geometry type.
-   * @param positions - Vertex positions
-   * @param indices - Index array (null for convex mesh)
+   * @param positions - Unscaled vertices in mesh-local space
+   * @param indices - Triangle indices, or null for a convex mesh
    * @param cookingFlags - Cooking flags
    * @param scale - Absolute world scale
-   * @returns Whether the update succeeded; failure leaves the shape unchanged
+   * @returns Whether cooking succeeded. A cooking failure preserves the previous geometry.
    */
   setMeshData(
     positions: Vector3[],

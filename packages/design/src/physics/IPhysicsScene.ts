@@ -4,7 +4,8 @@ import { ICollider } from "./ICollider";
 import { IPhysicsEvents } from "./IPhysicsEvents";
 
 /**
- * Interface for physics manager.
+ * A native simulation scene with scene queries and buffered events.
+ * @remarks Hit callbacks receive scratch vectors. Copy them before retaining the values or starting another query.
  */
 export interface IPhysicsScene {
   /**
@@ -26,20 +27,20 @@ export interface IPhysicsScene {
   removeCollider(collider: ICollider): void;
 
   /**
-   * Add ICharacterController into the manager.
-   * @param characterController The Character Controller.
+   * Add a character controller to the scene.
+   * @param characterController - The controller configured for this scene
    */
   addCharacterController(characterController: ICharacterController): void;
 
   /**
-   * Remove ICharacterController.
-   * @param characterController The Character Controller.
+   * Remove a character controller from the scene.
+   * @param characterController - The controller to remove
    */
   removeCharacterController(characterController: ICharacterController): void;
 
   /**
-   * Call on every frame to update pose of objects.
-   * @param elapsedTime - Step time of update.
+   * Advance the simulation by one step.
+   * @param elapsedTime - The step duration in seconds
    */
   update(elapsedTime: number): void;
 
@@ -50,8 +51,9 @@ export interface IPhysicsScene {
   setContactEventEnabled(enabled: boolean): void;
 
   /**
-   * Collect buffered collision and trigger events.
-   * Must be called after update() and after syncing transforms back from physics.
+   * Collect buffered collision and trigger events for the completed step.
+   * @remarks Call once per step, after reading the new poses from physics.
+   * @returns Borrowed event records for immediate dispatch
    */
   updateEvents(): IPhysicsEvents;
 
@@ -61,7 +63,7 @@ export interface IPhysicsScene {
    * @param direction - The normalized world-space ray direction
    * @param distance - The maximum query distance
    * @param layerMask - The collision layers to include
-   * @param outHitResult - The optional hit callback; copy its borrowed point and normal vectors before retaining them
+   * @param outHitResult - The optional hit callback receiving the hit point and normal
    * @returns Whether an enabled query shape was hit
    */
   raycast(
@@ -78,7 +80,7 @@ export interface IPhysicsScene {
    * @param direction - The normalized world-space ray direction
    * @param distance - The maximum query distance
    * @param layerMask - The collision layers to include
-   * @param onHit - The per-hit callback; copy its borrowed point and normal vectors before retaining them
+   * @param onHit - The callback invoked for each hit
    */
   raycastAll(
     origin: Vector3,
@@ -96,7 +98,7 @@ export interface IPhysicsScene {
    * @param direction - The normalized world-space sweep direction
    * @param distance - The maximum sweep distance
    * @param layerMask - The collision layers to include
-   * @param outHitResult - The optional hit callback; copy its borrowed point and normal vectors before retaining them
+   * @param outHitResult - The optional hit callback receiving the hit point and normal
    * @returns Whether an enabled query shape was hit
    */
   boxCast(
@@ -116,7 +118,7 @@ export interface IPhysicsScene {
    * @param direction - The normalized world-space sweep direction
    * @param distance - The maximum sweep distance
    * @param layerMask - The collision layers to include
-   * @param outHitResult - The optional hit callback; copy its borrowed point and normal vectors before retaining them
+   * @param outHitResult - The optional hit callback receiving the hit point and normal
    * @returns Whether an enabled query shape was hit
    */
   sphereCast(
@@ -133,11 +135,11 @@ export interface IPhysicsScene {
    * @param center - The world-space capsule center
    * @param radius - The capsule radius
    * @param height - The height between the capsule's hemisphere centers
-   * @param orientation - The world-space capsule rotation
+   * @param orientation - World-space rotation of the capsule, whose local long axis is X
    * @param direction - The normalized world-space sweep direction
    * @param distance - The maximum sweep distance
    * @param layerMask - The collision layers to include
-   * @param outHitResult - The optional hit callback; copy its borrowed point and normal vectors before retaining them
+   * @param outHitResult - The optional hit callback receiving the hit point and normal
    * @returns Whether an enabled query shape was hit
    */
   capsuleCast(
@@ -175,7 +177,7 @@ export interface IPhysicsScene {
    * @param center - The world-space capsule center
    * @param radius - The capsule radius
    * @param height - The height between the capsule's hemisphere centers
-   * @param orientation - The world-space capsule rotation
+   * @param orientation - World-space rotation of the capsule, whose local long axis is X
    * @param layerMask - The collision layers to include
    * @returns Borrowed shape IDs; consume them before the next physics operation
    */

@@ -10,8 +10,9 @@ export class SphereCollider extends Collider {
   private _radius = 1;
 
   /**
-   * The radius of the sphere in the Entity's local space. Finite negative values are clamped to 0.
+   * The radius in local units. Finite negative values are clamped to 0.
    * @defaultValue 1
+   * @remarks The largest absolute world scale component determines the world radius. A zero world radius disables the shape.
    * @throws When the value is not finite.
    */
   get radius(): number {

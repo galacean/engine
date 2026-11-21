@@ -5,7 +5,7 @@ import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 
 /**
- * Abstract native rigid actor that holds collider shapes.
+ * PhysX rigid actor with a set of attached shapes.
  */
 export abstract class PhysXCollider implements ICollider {
   private static _tempTransform: {
@@ -57,7 +57,7 @@ export abstract class PhysXCollider implements ICollider {
     }
     this._shapes[this._shapes.indexOf(previousShape)] = newShape;
     this._pxActor.detachShape(previousShape._pxShape, true);
-    // Both shapes carry the same Collider id, so removing and adding it back keeps its trigger pairs
+    // Re-register the same collider ID so a continuing overlap can stay active.
     const scene = this._scene;
     if (scene) {
       scene._removeColliderShape(previousShape._id);
@@ -94,7 +94,7 @@ export abstract class PhysXCollider implements ICollider {
    */
   _transform(pos: Vector3, rot: Quaternion): { translation: Vector3; rotation: Quaternion } {
     const transform = PhysXCollider._tempTransform;
-    // A Transform's vectors carry callbacks that keep its Entity alive.
+    // Keep entity-owned vectors out of the shared pose to avoid retaining their change callbacks.
     transform.translation.copyFrom(pos);
     Quaternion.normalize(rot, transform.rotation);
     return transform;
