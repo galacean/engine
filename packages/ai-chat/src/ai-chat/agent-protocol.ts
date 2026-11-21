@@ -15,6 +15,7 @@ import type {
 } from "./agent-types";
 import type { ConversationHistorySnapshot } from "./conversation-history";
 import type { AgentImageReference } from "./agent-image-store";
+import type { CompactionAnchors } from "./context-compaction";
 
 const MAX_SCRIPT_CHARS = 32 * 1024;
 // Conciseness is presentation guidance; the protocol bound protects retained context.
@@ -142,18 +143,10 @@ export function buildAgentToolDefinitions(definition: AgentApplicationDefinition
       function: {
         name: "pick",
         description: [
-          "查询快照中指定像素的对象身份和估算表面位置。file_path 使用 snapshot 或用户附图返回的 .ai/snapshots/ 路径。",
-          "【输入】",
-          "坐标使用该图片的像素尺寸，原点在左上角。points 批量查询点，region 查询多边形或笔刷区域。二者只传一个，另一个传 null。offset/limit 仅用于区域分页。",
-          "根据图片、标记和用户指令选择目标像素。查询使用标记下面的原始场景数据。pick 不识别箭头，也不判断所选像素是否符合用户意图。点选用于获取画面中对象的身份，不是创建成功的判据；未命中不能证明对象不存在。",
-          "【按任务使用结果】",
-          "需要截图中的位置时，使用 points 命中的 estimatedPosition 作为拍摄时的估算世界坐标。按编辑接口的放置规则使用该坐标。仅使用位置不需要解析命中对象的编辑归属。",
-          "需要修改命中的对象时，使用 ref 查询它当前的身份和编辑归属，再调用对应编辑接口。局部命中只确定命中对象，不代表用户授权修改整组。",
-          "目标像素已确定且结果包含所需位置或身份时，即可进入对应编辑步骤。若仍不确定用户指向哪里，重新判断图片和标记。重复查询同一像素不会增加定位信息。",
-          "【结果边界】",
-          "ref 包含运行时节点、组件和可选实例身份。estimatedPosition 由拍摄帧的深度和相机矩阵还原，精度受像素分辨率和深度量化影响。它不证明当前表面状态或放置条件。",
-          "区域查询不返回代表位置。未命中不返回位置，也不证明没有物体。currentScene 仅比较作者状态版本，不保证相机或动态对象未变化。",
-          "查询不点击、不改变选择、不移动相机。快照过期或任务需要当前画面时再拍摄。新图需要重新定位像素。"
+          "查询快照中指定像素的对象身份和估算表面位置。file_path 使用 .ai/snapshots/ 路径。",
+          "坐标按图片像素尺寸（左上角为原点）；points 与 region 二选一，另一项传 null；offset/limit 仅用于 region 分页。",
+          "仅需位置时用 points 命中的 estimatedPosition；需修改对象时用 ref 查归属后再调编辑接口（局部命中不代表整组授权）。",
+          "region 不返回代表位置；未命中不证明无物体；只读，不点击、不改选择、不移相机；不识别手绘箭头。"
         ].join("\n"),
         parameters,
         strict: true
@@ -231,6 +224,7 @@ export function buildAgentMessages(input: {
   transcript?: readonly AgentMessage[];
   taskInTranscript?: boolean;
   images?: readonly AgentImageReference[];
+  compactedAnchors?: CompactionAnchors;
 }): AgentMessage[] {
   const hostEnvironment = [
     "在虚拟项目中编辑当前应用。skills/ 说明如何完成任务；declare/editor/ 是 execute 可用接口的声明；declare/engine/ 是 Script 资产使用的 Engine 与宿主模块声明；.ai/outputs/ 保存会话内的超长输出；.ai/snapshots/ 保存图片及其拍摄帧信息，均不持久化。项目资产的 .meta 描述物料本身。execute 代码在 Worker 中调用已注册的 tools.* 与 editor.* API。Script 资产在游戏中运行。",
@@ -282,7 +276,8 @@ export function buildAgentMessages(input: {
         JSON.stringify({
           observedAt: input.observedAt ?? new Date().toISOString(),
           snapshot: input.worldThumbnail,
-          ...(input.images?.length ? { images: input.images } : {})
+          ...(input.images?.length ? { images: input.images } : {}),
+          ...(input.compactedAnchors ? { compactedAnchors: input.compactedAnchors } : {})
         })
       )
     }

@@ -98,6 +98,25 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
   });
 
   it("exposes water.digRiver in water/SKILL.md API_INDEX and links every world tool declaration", () => {
+    const withDigRiver = createSeedWorldWaterAgentKnowledge(
+      SEED_WORLD_API_NAMES.filter((name) => name.startsWith("water.") && name !== "water.digRiver"),
+      { includeDigRiver: true }
+    );
+    const withIndex = withDigRiver.skills[0]?.content.split("## 接口索引")[1] ?? "";
+    expect(withIndex).toContain("[tools.water.digRiver](declare/editor/world/tools/water.digRiver.d.ts)");
+    expect(withDigRiver.modules.some((m) => m.id === "declare/world/tools/water.digRiver.d.ts")).toBe(false);
+    expect(withDigRiver.modules.some((m) => m.id === "declare/world/common/AgentTools.d.ts")).toBe(false);
+    expect(withDigRiver.entries.some((e) => e.name === "water.digRiver")).toBe(false);
+
+    const withoutDigRiver = createSeedWorldWaterAgentKnowledge(
+      SEED_WORLD_API_NAMES.filter((name) => name.startsWith("water.") && name !== "water.digRiver"),
+      { includeDigRiver: false }
+    );
+    const withoutIndex = withoutDigRiver.skills[0]?.content.split("## 接口索引")[1] ?? "";
+    expect(withoutIndex).not.toContain("[tools.water.digRiver]");
+    expect(withoutDigRiver.modules.some((m) => m.id === "declare/world/tools/water.digRiver.d.ts")).toBe(false);
+    expect(withoutDigRiver.modules.some((m) => m.id === "declare/world/common/AgentTools.d.ts")).toBe(false);
+
     const waterSkill = files.read("skills/water/SKILL.md");
     expect(waterSkill).toContain("tools.water.digRiver");
     expect(waterSkill).toContain("declare/editor/world/tools/water.digRiver.d.ts");
@@ -192,6 +211,13 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
     const def = {
       toolNames: [...SEED_WORLD_API_NAMES],
       skills: catalog.skills,
+      captureSnapshot: async () => ({
+        image: { blob: new Blob(), width: 1, height: 1 },
+        metadata: {}
+      }),
+      imageResources: {
+        pick: () => ({})
+      },
       scriptApi: {
         hostNotes: catalog.hostNotes ?? "",
         entries: [],
@@ -212,7 +238,7 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
     const messageBytes = messages.reduce((sum, m) => sum + Buffer.byteLength(String(m.content ?? ""), "utf8"), 0);
     const toolBytes = tools.reduce((sum, t) => sum + Buffer.byteLength(JSON.stringify(t), "utf8"), 0);
 
-    // Guard against silent initial context bloat (will be tightened further in M3 after pick slimming)
-    expect(messageBytes + toolBytes).toBeLessThanOrEqual(30_000);
+    // M3 tightened: full toolset including snapshot + slimmed pick stays under 27KB
+    expect(messageBytes + toolBytes).toBeLessThanOrEqual(27_000);
   });
 });

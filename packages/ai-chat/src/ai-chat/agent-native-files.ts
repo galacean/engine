@@ -3,6 +3,7 @@ import { activateCommittedEdit } from "./agent-edit-activation";
 import * as z from "zod";
 import {
   assertProjectPath,
+  type ProjectFileSnapshot,
   type VirtualProjectFiles
 } from "@galacean/engine-project/project-files/virtual-project-files";
 import { compileProjectGlob } from "@galacean/engine-project/project-files/project-glob";
@@ -24,8 +25,9 @@ const MAX_OMITTED_DEPENDENCY_LINES = 12;
 const MAX_DEPENDENCY_SCAN = 48;
 const declarationPath = (id: string) => `declare/editor/${id.replace(/^declare\//, "")}`;
 const RELATIVE_MODULE_FROM_RE =
-  /(?:^|[\n;])\s*(?:import|export)\b[^"';\n]*(?:\{[^}]*\}[^"';\n]*)?["'](\.\.?\/[^"'\n]+)["']/g;
+  /(?:^|[\n;])\s*(?:import|export)\b[^{"';\n]*(?:\{[^{}"';]*\}[^{"';\n]*)?\bfrom\s+["'](\.\.?\/[^"'\n]+)["']|(?:^|[\n;])\s*import\s+["'](\.\.?\/[^"'\n]+)["']/g;
 const DYNAMIC_RELATIVE_IMPORT_RE = /\bimport\(\s*["'](\.\.?\/[^"'\n]+)["']\s*\)/g;
+const declareRelativeImportCache = new WeakMap<VirtualProjectFiles, Map<string, readonly string[]>>();
 
 type OmittedDependencyReason = "size" | "budget" | "paginated";
 type OmittedDependency = { path: string; bytes: number; reason: OmittedDependencyReason };
@@ -171,9 +173,10 @@ export class AgentNativeFiles {
           },
           signal
         );
+        const snapshot = files.snapshot();
         // Stream-only knowledge and binary descriptors need no edit observation.
         try {
-          const text = files.readContent(input.file_path);
+          const text = snapshot.readContent(input.file_path);
           if (!input.file_path.startsWith(".ai/") && observedContent !== undefined && text === observedContent)
             this.observed.set(input.file_path, observedContent);
           else this.observed.delete(input.file_path);
@@ -195,7 +198,7 @@ export class AgentNativeFiles {
           result.path.startsWith("declare/") &&
           result.path.endsWith(".d.ts")
         ) {
-          const { blocks, paths, omitted } = this.collectInlineDependencies(files, result.path, primary, {
+          const { blocks, paths, omitted } = this.collectInlineDependencies(files, snapshot, result.path, primary, {
             paginated: Boolean(result.next),
             rootSourceFallback: primaryRaw
           });
@@ -387,6 +390,7 @@ export class AgentNativeFiles {
 
   private collectInlineDependencies(
     files: VirtualProjectFiles,
+    snapshot: ProjectFileSnapshot,
     rootPath: string,
     primaryContent: string,
     options: { paginated?: boolean; rootSourceFallback?: string } = {}
@@ -399,7 +403,7 @@ export class AgentNativeFiles {
     for (const module of modules) {
       const candidate = declarationPath(module.id);
       const resolvedPath =
-        files.kind(candidate) === "file" ? candidate : files.kind(module.id) === "file" ? module.id : candidate;
+        snapshot.kind(candidate) === "file" ? candidate : snapshot.kind(module.id) === "file" ? module.id : candidate;
       byId.set(module.id, module);
       byPath.set(resolvedPath, module);
       pathById.set(module.id, resolvedPath);
@@ -457,24 +461,24 @@ export class AgentNativeFiles {
             }
           }
         }
-        pushDependency(depPath, readDeclarationText(files, depPath) ?? depModule.source);
+        pushDependency(depPath, readDeclarationText(snapshot, depPath) ?? depModule.source);
       }
       return { blocks, paths, omitted };
     }
 
-    const rootSource = readDeclarationText(files, rootPath) ?? options.rootSourceFallback;
+    const rootSource = readDeclarationText(snapshot, rootPath) ?? options.rootSourceFallback;
     if (!rootSource) return { blocks: [], paths: [], omitted: [] };
-    const initialImports = resolveRelativeDeclarationImports(files, rootPath, rootSource);
+    const initialImports = resolveRelativeDeclarationImports(files, snapshot, rootPath, rootSource);
     if (!initialImports.length) return { blocks: [], paths: [], omitted: [] };
     if (!paginated) claimed.add(rootPath);
     const visitedPaths = new Set<string>([rootPath, ...initialImports]);
     const queue = [...initialImports];
     while (queue.length > 0) {
       const depPath = queue.shift()!;
-      const depSource = readDeclarationText(files, depPath);
+      const depSource = readDeclarationText(snapshot, depPath);
       if (depSource === undefined) continue;
       if (visitedPaths.size < MAX_DEPENDENCY_SCAN) {
-        for (const childPath of resolveRelativeDeclarationImports(files, depPath, depSource)) {
+        for (const childPath of resolveRelativeDeclarationImports(files, snapshot, depPath, depSource)) {
           if (!visitedPaths.has(childPath)) {
             visitedPaths.add(childPath);
             queue.push(childPath);
@@ -487,9 +491,9 @@ export class AgentNativeFiles {
   }
 }
 
-function readDeclarationText(files: VirtualProjectFiles, path: string): string | undefined {
+function readDeclarationText(snapshot: ProjectFileSnapshot, path: string): string | undefined {
   try {
-    const content = files.readContent(path);
+    const content = snapshot.readContent(path);
     return typeof content === "string" ? content : undefined;
   } catch {
     return undefined;
@@ -553,11 +557,23 @@ function normalizePosixRelative(baseFile: string, specifier: string): string | u
   return parts.join("/");
 }
 
-function resolveRelativeDeclarationImports(files: VirtualProjectFiles, fromPath: string, source: string): string[] {
+function resolveRelativeDeclarationImports(
+  files: VirtualProjectFiles,
+  snapshot: ProjectFileSnapshot,
+  fromPath: string,
+  source: string
+): readonly string[] {
+  const cacheable = fromPath.startsWith("declare/");
+  let byPath = cacheable ? declareRelativeImportCache.get(files) : undefined;
+  if (byPath?.has(fromPath)) return byPath.get(fromPath)!;
+
   const resolved: string[] = [];
   const seen = new Set<string>();
   const specifiers: string[] = [];
-  for (const match of source.matchAll(RELATIVE_MODULE_FROM_RE)) specifiers.push(match[1]);
+  for (const match of source.matchAll(RELATIVE_MODULE_FROM_RE)) {
+    const spec = match[1] ?? match[2];
+    if (spec) specifiers.push(spec);
+  }
   for (const match of source.matchAll(DYNAMIC_RELATIVE_IMPORT_RE)) specifiers.push(match[1]);
   for (const specifier of specifiers) {
     const clean = specifier.split(/[?#]/, 1)[0];
@@ -571,7 +587,7 @@ function resolveRelativeDeclarationImports(files: VirtualProjectFiles, fromPath:
       `${stripped}/index.d.ts`
     ];
     for (const candidate of candidates) {
-      if (files.kind(candidate) === "file") {
+      if (snapshot.kind(candidate) === "file") {
         if (candidate !== fromPath && !seen.has(candidate)) {
           seen.add(candidate);
           resolved.push(candidate);
@@ -579,6 +595,13 @@ function resolveRelativeDeclarationImports(files: VirtualProjectFiles, fromPath:
         break;
       }
     }
+  }
+  if (cacheable) {
+    if (!byPath) {
+      byPath = new Map();
+      declareRelativeImportCache.set(files, byPath);
+    }
+    byPath.set(fromPath, resolved);
   }
   return resolved;
 }

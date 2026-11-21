@@ -10,16 +10,16 @@ type MarkdownNode = {
 };
 
 /**
- * Host knowledge is mounted under editor/, but its sources also contain
- * document-relative links. Publish one canonical view for both read and grep.
- * Only known file references in prose are rewritten; executable examples,
+ * Host knowledge is mounted under skills/ and declare/, while its sources may
+ * contain document-relative links. Publish one canonical view for both read and
+ * grep. Only known file references in prose are rewritten; executable examples,
  * declaration imports, user documents and external URLs retain their bytes.
  */
 export function canonicalKnowledgePaths(source: string, path: string, paths: ReadonlySet<string>): string {
   const resolve = (reference: string): string | undefined => {
     if (/^(?:[a-z][a-z\d+.-]*:|\/|#)/i.test(reference)) return undefined;
     const [file, fragment = ""] = reference.split(/(?=#)/, 2);
-    if (paths.has(file)) return undefined; // Already project-relative, including editor/... links.
+    if (paths.has(file)) return undefined; // Already project-relative (e.g. skills/... or declare/...).
     const parts = path.split("/").slice(0, -1);
     for (const part of file.split("/")) {
       if (part === "..") {

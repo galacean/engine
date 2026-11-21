@@ -164,12 +164,52 @@ describe("native Agent Tool Calling protocol", () => {
 
   it("exposes visual observation only for applications with a capture provider", () => {
     expect(buildAgentToolDefinitions(definition).some(tool => tool.function.name === "snapshot")).toBe(false);
-    const visual = { ...definition, captureSnapshot: vi.fn() };
-    const snapshotTool = buildAgentToolDefinitions(visual).find(tool => tool.function.name === "snapshot");
+    const visual = {
+      ...definition,
+      captureSnapshot: vi.fn(),
+      imageResources: { pick: vi.fn() }
+    };
+    const tools = buildAgentToolDefinitions(visual);
+    const snapshotTool = tools.find(tool => tool.function.name === "snapshot");
+    const pickTool = tools.find(tool => tool.function.name === "pick");
     expect(snapshotTool).toBeDefined();
     expect(snapshotTool!.function.description).toContain("不需要为了“再看一眼”调用 snapshot");
+    expect(pickTool).toBeDefined();
+    expect(Buffer.byteLength(JSON.stringify(pickTool), "utf8")).toBeLessThan(2400);
+    expect(Buffer.byteLength(pickTool!.function.description, "utf8")).toBeLessThan(600);
+    expect(pickTool!.function.description).toContain("estimatedPosition");
+    expect(pickTool!.function.description).toContain("points 与 region 二选一");
     expect(parseAgentToolCall({ id: "view", type: "function", function: { name: "snapshot", arguments: "{}" } })).toEqual({ type: "snapshot" });
     expect(() => parseAgentToolCall({ id: "view", type: "function", function: { name: "snapshot", arguments: '{"target":"other"}' } })).toThrow("不接受参数");
+  });
+
+  it("injects compactedAnchors into world_state only when present", () => {
+    const base = buildAgentMessages({
+      systemPrompt: "system",
+      taskId: "t1",
+      userInput: "hi",
+      inputSource: "text",
+      worldThumbnail: { rev: 1 }
+    });
+    const baseState = JSON.parse(readSystemInjection(base.at(-1)!.content)!.body);
+    expect(baseState).not.toHaveProperty("compactedAnchors");
+
+    const withAnchors = buildAgentMessages({
+      systemPrompt: "system",
+      taskId: "t1",
+      userInput: "hi",
+      inputSource: "text",
+      worldThumbnail: { rev: 2 },
+      compactedAnchors: {
+        readPaths: ["skills/water/SKILL.md"],
+        committed: [{ status: "committed", transactionId: "tx-1", revision: 2 }]
+      }
+    });
+    const anchorState = JSON.parse(readSystemInjection(withAnchors.at(-1)!.content)!.body);
+    expect(anchorState.compactedAnchors).toEqual({
+      readPaths: ["skills/water/SKILL.md"],
+      committed: [{ status: "committed", transactionId: "tx-1", revision: 2 }]
+    });
   });
 
   it("parses registered Tool Calls and rejects unknown names", () => {

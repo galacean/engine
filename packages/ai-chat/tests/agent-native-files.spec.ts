@@ -417,3 +417,39 @@ it("keeps structured omittedDependencies aligned with rendered lines when trimme
   expect(structuredOmitted).toEqual(renderedPaths);
   expect(omittedBlock).toContain(`(+${12 - renderedPaths.length} more omitted dependencies)`);
 });
+
+it("caches declare relative import resolution and uses a single snapshot per read without regex stalls", async () => {
+  const runtimeProvider = {
+    paths: () => [
+      "declare/engine/pkg/types/Leaf.d.ts",
+      "declare/engine/pkg/types/BigClass.d.ts"
+    ],
+    read: (path: string) =>
+      ({
+        "declare/engine/pkg/types/Leaf.d.ts": "export interface Leaf { id: number; }\n",
+        "declare/engine/pkg/types/BigClass.d.ts":
+          'import type { Leaf } from "./Leaf";\n' +
+          Array.from({ length: 40 }, (_, i) => `export declare class Entity${i} {\n  value: number;\n  method(x: Leaf): void;\n}`).join("\n")
+      })[path]
+  };
+  const projectFiles = createAgentProjectFiles({ entries: [], modules: [] }, [runtimeProvider]);
+  const snapshotSpy = vi.spyOn(projectFiles, "snapshot");
+  const freshApi = () =>
+    new AgentNativeFiles(
+      () => projectFiles,
+      () => ({ scriptApi: { catalog: "API", entries: [], modules: [] }, toolNames: [] }),
+      new Map(),
+      () => "unused"
+    );
+  const signal = new AbortController().signal;
+
+  const first = await freshApi().execute("read", { file_path: "declare/engine/pkg/types/BigClass.d.ts" }, "c1", signal);
+  const snapshotsAfterFirst = snapshotSpy.mock.calls.length;
+  expect(first.content).toContain('<dependency path="declare/engine/pkg/types/Leaf.d.ts">');
+  // One snapshot inside readAgentFile + one snapshot inside AgentNativeFiles.execute("read")
+  expect(snapshotsAfterFirst).toBeLessThanOrEqual(3);
+
+  const second = await freshApi().execute("read", { file_path: "declare/engine/pkg/types/BigClass.d.ts" }, "c2", signal);
+  expect(second.content).toContain('<dependency path="declare/engine/pkg/types/Leaf.d.ts">');
+  expect(snapshotSpy.mock.calls.length - snapshotsAfterFirst).toBeLessThanOrEqual(3);
+});

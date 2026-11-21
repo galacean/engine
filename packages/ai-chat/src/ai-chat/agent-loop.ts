@@ -913,7 +913,7 @@ export class AgentLoop {
         };
         const decisionResultOriginal = decisionResult;
         batchClaimedDeclarations = collectActiveReadPaths(transcript.active);
-        const batchProjectFiles = calls.some(
+        const batchSnapshot = calls.some(
           (call) =>
             call.decision.type === "file" &&
             call.decision.name === "read" &&
@@ -921,9 +921,9 @@ export class AgentLoop {
             call.decision.input.file_path.startsWith("declare/") &&
             call.decision.input.file_path.endsWith(".d.ts")
         )
-          ? makeProjectFiles()
+          ? makeProjectFiles().snapshot()
           : undefined;
-        const encoder = batchProjectFiles ? new TextEncoder() : undefined;
+        const encoder = batchSnapshot ? new TextEncoder() : undefined;
         for (const call of calls) {
           if (
             call.decision.type === "file" &&
@@ -934,9 +934,9 @@ export class AgentLoop {
           ) {
             const path = call.decision.input.file_path;
             const limit = typeof call.decision.input.limit === "number" ? call.decision.input.limit : 2000;
-            if (batchProjectFiles && encoder && path.startsWith("declare/") && path.endsWith(".d.ts")) {
+            if (batchSnapshot && encoder && path.startsWith("declare/") && path.endsWith(".d.ts")) {
               try {
-                const text = batchProjectFiles.readContent(path);
+                const text = batchSnapshot.readContent(path);
                 if (typeof text === "string") {
                   const lines = text.split("\n");
                   const estimatedWindowBytes = encoder.encode(text).byteLength + lines.length * 28;
@@ -1132,7 +1132,8 @@ export class AgentLoop {
         conversationHistory: input.conversationHistory,
         transcript: input.transcript.active,
         taskInTranscript: true,
-        images: input.images.references()
+        images: input.images.references(),
+        compactedAnchors: input.transcript.compactedAnchors
       });
       if (correction) messages.push(correction);
       const contextRequest = input.transcript.captureRequest(messages);

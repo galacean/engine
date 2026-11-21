@@ -121,4 +121,51 @@ describe("compaction contract", () => {
     expect(text).not.toContain("server summary");
     expect(text).toContain("protected image prevents compaction");
   });
+
+  it("extracts bounded read-path and committed-receipt anchors from dropped messages while keeping summary verbatim", () => {
+    const richTail: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [
+          { id: "r1", type: "function", function: { name: "read", arguments: '{"file_path":"skills/water/SKILL.md"}' } },
+          { id: "e1", type: "function", function: { name: "execute", arguments: '{"code":"await tools.water.digRiver(...)"}' } }
+        ]
+      },
+      {
+        role: "tool",
+        toolCallId: "r1",
+        content:
+          '<path>skills/water/SKILL.md</path>\n<type>file</type>\n<content>\n1: water\n</content>\n<dependency path="declare/editor/world/tools/water.digRiver.d.ts">\n1: export {}\n</dependency>'
+      },
+      {
+        role: "tool",
+        toolCallId: "e1",
+        content: JSON.stringify({
+          ok: true,
+          result: { riverId: "r-1" },
+          receipt: {
+            executionId: "t1:1",
+            status: "committed",
+            transactionId: "tx-42",
+            revision: 7,
+            commands: [{ call: 1, tool: "water.digRiver", status: "settled", ok: true }]
+          }
+        })
+      }
+    ];
+    const { context, request, sent } = prepare(richTail);
+    expect(context.compactedAnchors).toBeUndefined();
+    context.applyResponse(request, sent, {
+      ...compacted,
+      replacement: { prefixLength: 2, cutIndex: 3, summary: "server summary verbatim" }
+    });
+    expect(context.active).toEqual([{ role: "user", content: "server summary verbatim" }]);
+    expect(context.compactedAnchors).toEqual({
+      readPaths: ["skills/water/SKILL.md", "declare/editor/world/tools/water.digRiver.d.ts"],
+      committed: [{ status: "committed", transactionId: "tx-42", revision: 7, commands: ["water.digRiver"] }]
+    });
+    context.clear();
+    expect(context.compactedAnchors).toBeUndefined();
+  });
 });

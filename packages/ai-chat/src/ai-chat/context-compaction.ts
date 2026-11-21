@@ -4,6 +4,16 @@ import { readSystemInjection } from "./agent-protocol";
 
 export type ContextCompactionBudget = { triggerTokens?: number; targetTokens?: number };
 export type ContextCompactionRequest = ContextCompactionBudget & { version: 2; protectedPrefixLength: number };
+export type CompactionCommittedAnchor = {
+  status: "committed" | "completed";
+  transactionId?: string;
+  revision?: number;
+  commands?: readonly string[];
+};
+export type CompactionAnchors = {
+  readPaths?: readonly string[];
+  committed?: readonly CompactionCommittedAnchor[];
+};
 export type ContextCompactionResult = {
   version: 2;
   status: "not_needed" | "compacted" | "failed";
@@ -99,10 +109,16 @@ type ContextRequest = {
   consumed: boolean;
 };
 
+const MAX_COMPACTED_READ_PATHS = 24;
+const MAX_COMPACTED_COMMITTED = 12;
+
 /** Canonical evidence is append-only; only the active request history is replaced. */
 export class AgentContextTranscript {
   readonly #canonical: AgentMessage[] = [];
   #active: AgentMessage[] = [];
+  #compactedReadPaths = new Set<string>();
+  #compactedCommitted: CompactionCommittedAnchor[] = [];
+  #compactedCommittedKeys = new Set<string>();
   #revision = 0;
   readonly #requests = new WeakSet<ContextRequest>();
 
@@ -111,6 +127,13 @@ export class AgentContextTranscript {
   }
   get active(): AgentMessage[] {
     return structuredClone(this.#active);
+  }
+  get compactedAnchors(): CompactionAnchors | undefined {
+    if (!this.#compactedReadPaths.size && !this.#compactedCommitted.length) return undefined;
+    return {
+      ...(this.#compactedReadPaths.size ? { readPaths: [...this.#compactedReadPaths] } : {}),
+      ...(this.#compactedCommitted.length ? { committed: structuredClone(this.#compactedCommitted) } : {})
+    };
   }
 
   /** Cancellation releases pixels immediately while retaining textual recovery evidence. */
@@ -144,6 +167,9 @@ export class AgentContextTranscript {
   clear(): void {
     this.#canonical.length = 0;
     this.#active.length = 0;
+    this.#compactedReadPaths.clear();
+    this.#compactedCommitted.length = 0;
+    this.#compactedCommittedKeys.clear();
     this.#revision++;
   }
 
@@ -282,6 +308,7 @@ export class AgentContextTranscript {
       throw new ContextCompactionError("replacement removes a protected system message or image");
     }
     validateToolGroups(tail, cutIndex);
+    this.#recordCompactedAnchors(tail.slice(0, cutIndex));
     // A retry correction is request-local. Keep the summary, never replay an old correction.
     this.#active = [
       { role: "user", content: summary },
@@ -289,6 +316,77 @@ export class AgentContextTranscript {
     ];
     this.#revision++;
     return result;
+  }
+
+  #recordCompactedAnchors(dropped: readonly AgentMessage[]): void {
+    const pushReadPath = (path: string) => {
+      if (!path.startsWith("skills/") && !path.startsWith("declare/")) return;
+      this.#compactedReadPaths.delete(path);
+      this.#compactedReadPaths.add(path);
+      while (this.#compactedReadPaths.size > MAX_COMPACTED_READ_PATHS) {
+        const oldest = this.#compactedReadPaths.values().next().value;
+        if (oldest === undefined) break;
+        this.#compactedReadPaths.delete(oldest);
+      }
+    };
+    for (const message of dropped) {
+      if (message.role !== "tool" || typeof message.content !== "string") continue;
+      if (!message.content.includes("(Continue with read offset=")) {
+        const primary = message.content.match(/^<path>([^<\n]+)<\/path>/);
+        if (primary) pushReadPath(primary[1]);
+      }
+      for (const match of message.content.matchAll(/<dependency path="([^"\n]+)">/g)) {
+        pushReadPath(match[1]);
+      }
+      if (!message.content.startsWith("{")) continue;
+      try {
+        const parsed = JSON.parse(message.content) as Record<string, unknown>;
+        const receipt =
+          parsed &&
+          typeof parsed === "object" &&
+          parsed.ok === true &&
+          parsed.receipt &&
+          typeof parsed.receipt === "object"
+            ? (parsed.receipt as Record<string, unknown>)
+            : undefined;
+        if (!receipt) continue;
+        const status = receipt.status;
+        if (status !== "committed" && status !== "completed") continue;
+        const commands = Array.isArray(receipt.commands)
+          ? receipt.commands
+              .filter(
+                (entry): entry is Record<string, unknown> =>
+                  Boolean(entry) &&
+                  typeof entry === "object" &&
+                  (entry as Record<string, unknown>).status === "settled" &&
+                  (entry as Record<string, unknown>).ok === true
+              )
+              .map((entry) =>
+                typeof entry.tool === "string" ? entry.tool : typeof entry.name === "string" ? entry.name : undefined
+              )
+              .filter((name): name is string => Boolean(name))
+              .slice(0, 8)
+          : [];
+        if (status === "completed" && !commands.length) continue;
+        const executionId = typeof receipt.executionId === "string" ? receipt.executionId : undefined;
+        const transactionId = typeof receipt.transactionId === "string" ? receipt.transactionId : undefined;
+        const revision = typeof receipt.revision === "number" ? receipt.revision : undefined;
+        const key = executionId ?? `${status}:${transactionId ?? ""}:${revision ?? ""}:${commands.join(",")}`;
+        if (this.#compactedCommittedKeys.has(key)) continue;
+        this.#compactedCommittedKeys.add(key);
+        this.#compactedCommitted.push({
+          status,
+          ...(transactionId ? { transactionId } : {}),
+          ...(revision !== undefined ? { revision } : {}),
+          ...(commands.length ? { commands } : {})
+        });
+        if (this.#compactedCommitted.length > MAX_COMPACTED_COMMITTED) {
+          this.#compactedCommitted.shift();
+        }
+      } catch {
+        // Ignore non-JSON or malformed tool messages.
+      }
+    }
   }
 }
 
