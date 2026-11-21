@@ -75,7 +75,7 @@ export class TransformFeedbackSimulator {
     }
 
     program.bind();
-    program.groupingOtherUniformBlock();
+    program.regroupUniformBlocks();
     program.uploadUniforms(program.rendererUniformBlock, shaderData);
     program.uploadUniforms(program.otherUniformBlock, shaderData);
     program.uploadUniforms(program.multiGroupUniformBlock, shaderData);

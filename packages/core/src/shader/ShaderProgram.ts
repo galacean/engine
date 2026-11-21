@@ -202,9 +202,9 @@ export class ShaderProgram implements IPlatformShaderProgram {
   }
 
   /**
-   * Grouping other data.
+   * Regroup uniform blocks when shader property groups change.
    */
-  groupingOtherUniformBlock(): void {
+  regroupUniformBlocks(): void {
     const conflictVersion = ShaderProperty._groupConflictVersion;
     if (this._groupConflictVersion !== conflictVersion) {
       this._groupConflictVersion = conflictVersion;
