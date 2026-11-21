@@ -37,14 +37,19 @@ export class ShaderProperty {
     return ShaderProperty._propertyNameMap[propertyName]?._getGroup();
   }
 
+  private static _getSingleBit(mask: number): number | undefined {
+    if (mask === 0 || (mask & (mask - 1)) !== 0) {
+      return undefined;
+    }
+    return 31 - Math.clz32(mask);
+  }
+
   /** @internal */
   _uniqueId: number;
   /** @internal */
   _groupMask: number = 0;
   /** @internal */
-  _type: ShaderPropertyType;
-  /** @internal */
-  _hasTypeConflict: boolean = false;
+  _typeMask: number = 0;
 
   /** Shader property name. */
   readonly name: string;
@@ -53,7 +58,7 @@ export class ShaderProperty {
    * Shader property type.
    */
   get type(): ShaderPropertyType {
-    return this._type;
+    return <ShaderPropertyType>ShaderProperty._getSingleBit(this._typeMask);
   }
 
   /**
@@ -68,11 +73,7 @@ export class ShaderProperty {
    * @internal
    */
   _getGroup(): ShaderDataGroup | undefined {
-    const mask = this._groupMask;
-    if (mask === 0 || (mask & (mask - 1)) !== 0) {
-      return undefined;
-    }
-    return <ShaderDataGroup>(31 - Math.clz32(mask));
+    return <ShaderDataGroup>ShaderProperty._getSingleBit(this._groupMask);
   }
 
   /**

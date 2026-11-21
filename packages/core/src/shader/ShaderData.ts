@@ -680,11 +680,12 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     property._addGroup(this._group);
 
     const id = property._uniqueId;
-    if (property._type === undefined) {
-      property._type = type;
-    } else if (property._type !== type || property._hasTypeConflict) {
-      property._hasTypeConflict = true;
-      this._releasePropertyValue(id, value);
+    const typeBit = 1 << type;
+    if (property._typeMask !== typeBit) {
+      property._typeMask |= typeBit;
+      if (property._typeMask !== typeBit) {
+        this._releasePropertyValue(id, value);
+      }
     }
 
     const propertyValueMap = this._propertyValueMap;
