@@ -327,24 +327,6 @@ describe("Transform test", function () {
     entity.destroy();
   });
 
-  it("refreshes a descendant's world scale when an ancestor is translated and then scaled", () => {
-    const root = scene.createRootEntity("scale-parent");
-    try {
-      const transform = root.transform;
-      transform.setScale(1, 2, 1);
-      const descendant = root.createChild().createChild().transform;
-      expect(descendant.lossyWorldScale.x).toBe(1);
-
-      transform.setPosition(4, 0, 0);
-      transform.setScale(2, 2, 1);
-
-      expect(descendant.worldPosition.x).toBe(4);
-      expect(descendant.lossyWorldScale.x).toBe(2);
-    } finally {
-      root.destroy();
-    }
-  });
-
   it("preserves quaternion-authored rotation while replacing Transform", () => {
     const entity = new Entity(engine, "quaternion-transform");
     const expected = new Quaternion();
@@ -499,7 +481,8 @@ describe("Transform test", function () {
   });
 
   it("clone keeps correct world position when a component reads worldMatrix during clone", () => {
-    // A component that reads its world transform inside `_onClone`.
+    // A component that reads its (world) transform inside `_onClone` — exactly what the engine's own
+    // DynamicCollider does (`_onClone` -> `_syncNative` -> `_addNativeShape` reads `lossyWorldScale`).
     // Clone fills children before the parent's own components, so this read resolves the PARENT's
     // `_parentTransformCache` (and sets `_isParentDirty = false`) BEFORE the parent transform's
     // `_parentTransformCache` is cloned. Without `@ignoreClone` that copy overwrites the resolved

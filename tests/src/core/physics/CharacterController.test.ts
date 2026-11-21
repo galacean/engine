@@ -831,5 +831,55 @@ describe("CharacterController", () => {
       expect(physics.raycast(centerRay, 10, Layer.Layer6, hit)).toBe(true);
       expect(hit.collider).toBe(shiftCC);
     });
+
+    it("uses the authored position and center before composing the native controller pose", () => {
+      const entity = engine.sceneManager.activeScene.createRootEntity("offset-controller");
+      try {
+        const x = 2 ** 23;
+        entity.transform.setPosition(x, 10, 0);
+        const cc = entity.addComponent(CharacterController);
+        cc.geometry = CharacterControllerGeometry.Box;
+        cc.size.set(0.1, 1, 0.1);
+        cc.stepOffset = 0.05;
+        cc.contactOffset = 0.01;
+        cc.center.x = -x;
+        cc.collisionLayer = Layer.Layer6;
+        const hit = new HitResult();
+        const hits = (x: number) =>
+          physics.raycast(new Ray(new Vector3(x, 10, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit) &&
+          hit.collider === cc;
+
+        expect(hits(0)).toBe(true);
+        entity.transform.position.x += 0.25;
+        expect(hits(0)).toBe(false);
+        expect(hits(0.25)).toBe(true);
+        cc.center.x += 0.25;
+        expect(hits(0.25)).toBe(false);
+        expect(hits(0.5)).toBe(true);
+      } finally {
+        entity.destroy();
+      }
+    });
+
+    it("retries creation after a scale edit makes the native step offset valid", () => {
+      const entity = engine.sceneManager.activeScene.createRootEntity("controller-rescale");
+      try {
+        entity.transform.setPosition(0, 10, 0);
+        const cc = entity.addComponent(CharacterController);
+        cc.geometry = CharacterControllerGeometry.Box;
+        cc.size.set(1, 1.5, 1);
+        cc.stepOffset = 1.5 + 2 ** -23;
+        cc.collisionLayer = Layer.Layer6;
+        const hit = new HitResult();
+        const ray = new Ray(new Vector3(0, 10, 5), new Vector3(0, 0, -1));
+        expect(physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(false);
+
+        entity.transform.scale.y = 1 + 2 ** -24;
+        expect(physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(true);
+        expect(hit.collider).toBe(cc);
+      } finally {
+        entity.destroy();
+      }
+    });
   });
 });

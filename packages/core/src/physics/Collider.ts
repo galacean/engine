@@ -39,15 +39,15 @@ import { Rigidbody } from "./Rigidbody";
 export class Collider extends Component implements ICloneHook<Collider> {
   private static _idGenerator = 0;
   private static _tempPosition = new Vector3();
+  private static _tempBodyOffset = new Vector3();
   private static _tempRotation = new Quaternion();
-  private static _tempLocalRotation = new Quaternion();
-  private static _tempBodyRotation = new Quaternion();
+  private static _tempRelativeRotation = new Quaternion();
   private static _tempScale = new Vector3();
   private static _shearTolerance = 1e-4;
 
   /**
    * @internal
-   * Whether two vectors differ at the Float32 precision the native physics stores.
+   * Compare positions submitted directly as native Float32 vectors.
    */
   static _differsF32(a: Vector3, b: Vector3): boolean {
     return (
@@ -398,19 +398,11 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     this._rejectedBody = null;
 
-    const prevShape = this._native;
-    const nativeScale = this._nativeScale;
-    const prevScaleX = nativeScale.x;
-    const prevScaleY = nativeScale.y;
-    const prevScaleZ = nativeScale.z;
     const shape = this._syncNativeShape(scale);
     if (!shape) {
       this._detach();
       return;
     }
-    const scaleUpdated =
-      prevShape === shape &&
-      (nativeScale.x !== prevScaleX || nativeScale.y !== prevScaleY || nativeScale.z !== prevScaleZ);
 
     const actor = body ? body._getNativeActor() : this._getStaticActor();
     let forcePose = false;
@@ -428,7 +420,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     this._failedTransferTarget = undefined;
     this._failedTransferFallback = null;
-    this._syncPose(shape, body, scale, forcePose, scaleUpdated);
+    this._syncPose(shape, body, scale, forcePose);
   }
 
   /**
@@ -731,55 +723,36 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return actor;
   }
 
-  private _syncPose(
-    shape: IColliderShape,
-    body: Rigidbody | null,
-    scale: Vector3,
-    force: boolean,
-    scaleUpdated = false
-  ): void {
-    const scaleChanged = this._syncNativeScale(shape, scale, force) || scaleUpdated;
-    if (scaleChanged) {
-      body?._markMassDirty();
-    }
-
-    const transform = this.entity.transform;
-    const worldPosition = transform.worldPosition;
-    const worldRotation = transform.worldRotationQuaternion;
+  private _syncPose(shape: IColliderShape, body: Rigidbody | null, scale: Vector3, force: boolean): void {
+    const entity = this.entity;
     const position = Collider._tempPosition;
     const rotation = Collider._tempRotation;
-    const localRotation = Collider._tempLocalRotation;
-
     const euler = this._rotation;
     Quaternion.rotationYawPitchRoll(
       MathUtil.degreeToRadian(euler.y),
       MathUtil.degreeToRadian(euler.x),
       MathUtil.degreeToRadian(euler.z),
-      localRotation
+      rotation
     );
     Vector3.multiply(this._center, scale, position);
 
     if (body) {
-      // Pose relative to the Rigidbody Entity: inverse(bodyRotation) * (world center - bodyPosition)
-      const bodyTransform = body.entity.transform;
-      const inverseBodyRotation = Collider._tempBodyRotation;
-      Quaternion.invert(bodyTransform.worldRotationQuaternion, inverseBodyRotation);
-      Vector3.transformByQuat(position, worldRotation, position);
-      position.add(worldPosition).subtract(bodyTransform.worldPosition);
-      Vector3.transformByQuat(position, inverseBodyRotation, position);
-      Quaternion.multiply(inverseBodyRotation, worldRotation, rotation);
-      Quaternion.multiply(rotation, localRotation, rotation);
+      const bodyEntity = body.entity;
+      if (entity !== bodyEntity) {
+        this._transformPoseToBodySpace(entity, bodyEntity, position, rotation);
+      }
     } else {
-      rotation.copyFrom(localRotation);
       const staticActor = this._staticActor;
       if (staticActor) {
+        const transform = entity.transform;
+        const worldPosition = transform.worldPosition;
+        const worldRotation = transform.worldRotationQuaternion;
         const nativeWorldPosition = this._nativeWorldPosition;
-        const worldPositionChanged = scaleChanged
-          ? worldPosition.x !== nativeWorldPosition.x ||
-            worldPosition.y !== nativeWorldPosition.y ||
-            worldPosition.z !== nativeWorldPosition.z
-          : !Vector3.equals(worldPosition, nativeWorldPosition);
-        if (force || worldPositionChanged || !Quaternion.equals(worldRotation, this._nativeWorldRotation)) {
+        if (
+          force ||
+          Collider._differsF32(worldPosition, nativeWorldPosition) ||
+          !Quaternion.equals(worldRotation, this._nativeWorldRotation)
+        ) {
           nativeWorldPosition.copyFrom(worldPosition);
           this._nativeWorldRotation.copyFrom(worldRotation);
           staticActor.setWorldTransform(worldPosition, worldRotation);
@@ -787,16 +760,44 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
     }
 
+    if (this._syncNativeScale(shape, scale, force)) {
+      body?._markMassDirty();
+    }
     const nativePosition = this._nativePosition;
-    const positionChanged = scaleChanged
-      ? position.x !== nativePosition.x || position.y !== nativePosition.y || position.z !== nativePosition.z
-      : !Vector3.equals(position, nativePosition);
-    if (force || positionChanged || !Quaternion.equals(rotation, this._nativeRotation)) {
+    if (force || Collider._differsF32(position, nativePosition) || !Quaternion.equals(rotation, this._nativeRotation)) {
       nativePosition.copyFrom(position);
       this._nativeRotation.copyFrom(rotation);
       shape.setLocalPose(position, rotation);
       body?._markMassDirty();
     }
+  }
+
+  private _transformPoseToBodySpace(entity: Entity, body: Entity, position: Vector3, rotation: Quaternion): void {
+    // Accumulate the child origin and rotation in the body's local frame, where rigid body motion cancels out.
+    const offset = Collider._tempBodyOffset.set(0, 0, 0);
+    const relativeRotation = Collider._tempRelativeRotation.set(0, 0, 0, 1);
+    let current: Entity | null = entity;
+    while (current && current !== body) {
+      const transform = current.transform;
+      Vector3.transformToVec3(offset, transform.localMatrix, offset);
+      Quaternion.multiply(transform.rotationQuaternion, relativeRotation, relativeRotation);
+      current = current.parent;
+    }
+    const bodyTransform = body.transform;
+    if (current) {
+      // The native actor has no scale. Apply the body's signed scale to the child origin.
+      Vector3.multiply(offset, bodyTransform.lossyWorldScale, offset);
+    } else {
+      // If transfer failed, the previous native owner can be outside the current hierarchy.
+      const transform = entity.transform;
+      Quaternion.invert(bodyTransform.worldRotationQuaternion, relativeRotation);
+      Vector3.subtract(transform.worldPosition, bodyTransform.worldPosition, offset);
+      Vector3.transformByQuat(offset, relativeRotation, offset);
+      Quaternion.multiply(relativeRotation, transform.worldRotationQuaternion, relativeRotation);
+    }
+    Vector3.transformByQuat(position, relativeRotation, position);
+    position.add(offset);
+    Quaternion.multiply(relativeRotation, rotation, rotation);
   }
 
   private _checkShear(worldMatrix: Matrix): void {

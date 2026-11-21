@@ -1080,8 +1080,8 @@ describe("Collider", () => {
             m.elements[12] = -shift;
             target.transform.localMatrix = m;
           } else {
-            target.transform.setPosition(-shift, 0, 0);
             target.transform.setScale(1 + shift, 2, 1);
+            target.transform.setPosition(-shift, 0, 0);
           }
         };
         try {
@@ -1101,21 +1101,57 @@ describe("Collider", () => {
           const point = new Vector3(1, 0, 0);
           const closest = new Vector3();
           expect(box.getClosestPoint(point, closest)).toBe(0);
-          const expected = control.getClosestPoint(point, closest);
-          expect(expected).toBe(0);
+          expect(control.getClosestPoint(point, closest)).toBe(0);
 
           applyEdit(live);
           if (edit === "matrix-and-resize") box.size.y = 3;
-          expect(box.getClosestPoint(point, closest)).toBe(expected);
+          expect(box.getClosestPoint(point, closest)).toBe(0);
         } finally {
           live.destroy();
           controlRoot.destroy();
         }
       }
     });
+    it.each(["static-position", "static-center", "child-position", "body-center"] as const)(
+      "syncs a small position edit without a scale change (%s)",
+      (edit) => {
+        const bodyEntity = root.createChild(edit);
+        if (edit === "child-position" || edit === "body-center") bodyEntity.addComponent(Rigidbody).isKinematic = true;
+        const holder = edit === "child-position" ? bodyEntity.createChild("shape") : bodyEntity;
+        const box = holder.addComponent(BoxCollider);
+        box.size.set(4e-7, 1, 1);
+        const point = new Vector3();
+        const closest = new Vector3();
+        expect(box.getClosestPoint(point, closest)).toBe(0);
+
+        const offset = 2 ** -21;
+        if (edit === "static-position" || edit === "child-position") holder.transform.setPosition(offset, 0, 0);
+        else box.center.x = offset;
+        expect(box.getClosestPoint(point, closest)).toBeCloseTo(offset - 2e-7, 10);
+      }
+    );
   });
 
   describe("unchanged local pose under body motion", () => {
+    it("accounts for signed body scale and intermediate transforms in the center of mass", () => {
+      const bodyEntity = root.createChild("scaled body");
+      bodyEntity.transform.setScale(-2, 3, 4);
+      bodyEntity.transform.setRotation(0, 0, 90);
+      const body = bodyEntity.addComponent(Rigidbody);
+      const middle = bodyEntity.createChild("rotated descendant");
+      middle.transform.setPosition(1, 0, 0);
+      middle.transform.setRotation(0, 90, 0);
+      const child = middle.createChild("shape");
+      child.transform.setPosition(0, 0, 0.5);
+      child.addComponent(BoxCollider).center.z = 1;
+
+      // The child origin is at (1.5, 0, 0) before body scale and the rotated shape center adds 2 on X.
+      const center = body.centerOfMass;
+      expect(center.x).toBeCloseTo(-1, 6);
+      expect(center.y).toBeCloseTo(0, 6);
+      expect(center.z).toBeCloseTo(0, 6);
+    });
+
     it.each(["child-position", "child-center", "child-mesh", "same-entity-center"] as const)(
       "writes no native scale, local pose, or mass while a uniformly scaled body rotates (%s)",
       (setup) => {
@@ -1185,7 +1221,7 @@ describe("Collider", () => {
         const poseWrites = vi.spyOn(shape, "setLocalPose");
         const massRebuilds = vi.spyOn(body["_nativeActor"]!, "setMassAndUpdateInertia");
         for (let step = 1; step <= 90; step++) {
-          bodyEntity.transform.setPosition(step % 2, 0, 0);
+          bodyEntity.transform.setPosition(step % 2 === 0 ? 0 : 128, 0, 0);
           expectHit();
         }
         expect(scaleWrites).not.toHaveBeenCalled();

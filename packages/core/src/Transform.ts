@@ -56,8 +56,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
   private _parentTransformCache: Transform | null = null;
   @ignoreClone
   private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus;
-  @ignoreClone
-  private _worldScaleSubtreeDirty = true;
 
   /**
    * Local position.
@@ -242,12 +240,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
         this._lossyWorldScale.copyFrom(this._scale);
       }
       this._setDirtyFlagFalse(TransformModifyFlags.WorldScale);
-      // A descendant can resolve scale through the world matrix without resolving any ancestor's scale.
-      let transform: Transform | null = this;
-      while (transform?._worldScaleSubtreeDirty) {
-        transform._worldScaleSubtreeDirty = false;
-        transform = transform._getParentTransform();
-      }
     }
     return this._lossyWorldScale;
   }
@@ -645,10 +637,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   protected _isContainDirtyFlags(targetDirtyFlags: number): boolean {
-    return (
-      (this._dirtyFlag & targetDirtyFlags) === targetDirtyFlags &&
-      (this._worldScaleSubtreeDirty || !(targetDirtyFlags & TransformModifyFlags.WorldScale))
-    );
+    return (this._dirtyFlag & targetDirtyFlags) === targetDirtyFlags;
   }
 
   protected _isContainDirtyFlag(type: number): boolean {
@@ -666,9 +655,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
   protected _worldAssociatedChange(type: number): void {
     const dispatchFlags = type & ~this._dirtyFlag;
     this._dirtyFlag |= type;
-    if (type & TransformModifyFlags.WorldScale) {
-      this._worldScaleSubtreeDirty = true;
-    }
     this._entity._updateFlagManager.dispatch(dispatchFlags);
   }
 
