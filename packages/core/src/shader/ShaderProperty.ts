@@ -7,7 +7,7 @@ import { ShaderPropertyType } from "./enums/ShaderPropertyType";
 export class ShaderProperty {
   /** @internal */
   static _propertyIdMap: Record<number, ShaderProperty> = Object.create(null);
-  /** @internal Increments whenever a property starts being shared by multiple groups */
+  /** @internal */
   static _groupConflictVersion: number = 0;
 
   private static _propertyNameCounter: number = 0;
@@ -39,11 +39,11 @@ export class ShaderProperty {
 
   /** @internal */
   _uniqueId: number;
-  /** @internal Bit mask of every group this property has been set in */
+  /** @internal */
   _groupMask: number = 0;
-  /** @internal The first type this property was set with */
+  /** @internal */
   _type: ShaderPropertyType;
-  /** @internal Whether the property has been set with more than one type */
+  /** @internal */
   _hasTypeConflict: boolean = false;
 
   /** Shader property name. */
@@ -69,7 +69,6 @@ export class ShaderProperty {
    */
   _getGroup(): ShaderDataGroup | undefined {
     const mask = this._groupMask;
-    // Zero or multiple bits set means the group is unknown or ambiguous
     if (mask === 0 || (mask & (mask - 1)) !== 0) {
       return undefined;
     }
@@ -92,7 +91,6 @@ export class ShaderProperty {
     const bit = 1 << group;
     if ((mask & bit) === 0) {
       this._groupMask = mask | bit;
-      // The property becomes shared by multiple groups, programs must regroup it
       mask !== 0 && ShaderProperty._groupConflictVersion++;
     }
   }

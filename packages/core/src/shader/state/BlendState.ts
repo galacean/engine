@@ -72,7 +72,6 @@ export class BlendState extends DataObject {
     renderElementData: ShaderData | undefined,
     defaultValue: BlendFactor
   ): BlendFactor {
-    // Render element values override material values
     const value =
       property._groupMask & (1 << ShaderDataGroup.RenderElement) ? renderElementData?.getFloat(property) : undefined;
     return value ?? materialData.getFloat(property) ?? defaultValue;

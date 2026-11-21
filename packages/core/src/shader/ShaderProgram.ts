@@ -34,7 +34,6 @@ export class ShaderProgram implements IPlatformShaderProgram {
       .join("\n");
   }
 
-  // Prefer the most specific owner, so renderer values override shared material values
   private static _findValue(
     id: number,
     sceneData: ShaderData | undefined,
@@ -59,7 +58,6 @@ export class ShaderProgram implements IPlatformShaderProgram {
   readonly materialUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
   readonly renderElementUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
   readonly otherUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
-  /** Uniforms whose name is set in multiple groups, resolved from the owning shader data per draw. */
   readonly multiGroupUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
 
   /** @internal */
@@ -153,7 +151,7 @@ export class ShaderProgram implements IPlatformShaderProgram {
   }
 
   /**
-   * Upload uniforms whose name is set in multiple groups, using the most specific shader data that holds the value.
+   * Upload uniforms shared by multiple shader data groups.
    */
   uploadMultiGroupUniforms(
     sceneData: ShaderData | undefined,
@@ -261,7 +259,6 @@ export class ShaderProgram implements IPlatformShaderProgram {
     }
   }
 
-  // Move uniforms whose name became shared by multiple groups after they were grouped
   private _extractMultiGroupUniforms(): void {
     const blocks = [
       this.sceneUniformBlock,
@@ -295,7 +292,6 @@ export class ShaderProgram implements IPlatformShaderProgram {
     } else if ((<Texture>value).destroyed === false || (Array.isArray(value) && Array.isArray(textureDefault))) {
       uniform.applyFunc(uniform, value);
     } else {
-      // Destroyed textures and non-texture values left by another shader fall back to defaults
       uniform.applyFunc(uniform, textureDefault);
     }
   }

@@ -286,7 +286,6 @@ export class ShaderUniform {
   }
 
   uploadTextureArray(shaderUniform: ShaderUniform, value: Texture[]): void {
-    // A single texture left by another shader falls back to defaults
     if (!Array.isArray(value)) {
       value = <Texture[]>shaderUniform.textureDefault;
     }

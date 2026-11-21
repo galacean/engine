@@ -25,9 +25,8 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   @ignoreClone
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
-  // Types of properties whose name is set with several types, other properties use the first type
   @ignoreClone
-  private _propertyTypeMap: Record<number, ShaderPropertyType> = Object.create(null);
+  private _conflictPropertyTypeMap: Record<number, ShaderPropertyType> = Object.create(null);
   @ignoreClone
   private _batchSharedFields: number[] = [];
   @ignoreClone
@@ -609,24 +608,24 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     }
     const referCount = target._getReferCount();
     const propertyValueMap = this._propertyValueMap;
-    const propertyTypeMap = this._propertyTypeMap;
+    const conflictPropertyTypeMap = this._conflictPropertyTypeMap;
     const targetPropertyValueMap = target._propertyValueMap;
-    const targetPropertyTypeMap = target._propertyTypeMap;
+    const targetConflictPropertyTypeMap = target._conflictPropertyTypeMap;
     for (const key in targetPropertyValueMap) {
       if (referCount > 0) this._addTexturesReferCount(targetPropertyValueMap[key], -referCount);
       if (!(key in propertyValueMap)) {
         delete targetPropertyValueMap[key];
-        delete targetPropertyTypeMap[key];
+        delete targetConflictPropertyTypeMap[key];
       }
     }
     const keys = Object.keys(propertyValueMap);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
       const property = <ShaderPropertyValueType>propertyValueMap[k];
-      if (k in propertyTypeMap) {
-        targetPropertyTypeMap[k] = propertyTypeMap[k];
+      if (k in conflictPropertyTypeMap) {
+        targetConflictPropertyTypeMap[k] = conflictPropertyTypeMap[k];
       } else {
-        delete targetPropertyTypeMap[k];
+        delete targetConflictPropertyTypeMap[k];
       }
       if (property != null) {
         if (typeof property === "number") {
@@ -640,7 +639,6 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
           referCount > 0 && this._addTexturesReferCount(<ShaderPropertyValueType>cloned, referCount);
         } else {
           const targetProperty = targetPropertyValueMap[k];
-          // The same name may hold another value type in the target
           if (targetProperty && targetProperty.constructor === property.constructor) {
             targetProperty.copyFrom(property);
           } else {
@@ -681,13 +679,11 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     if (firstType === undefined) {
       property._type = type;
     } else if (firstType !== type || property._hasTypeConflict) {
-      // The name holds several value types, so track the type per shader data
       property._hasTypeConflict = true;
-      const propertyTypeMap = this._propertyTypeMap;
-      const lastType = id in propertyValueMap ? (propertyTypeMap[id] ?? firstType) : undefined;
-      propertyTypeMap[id] = type;
+      const conflictPropertyTypeMap = this._conflictPropertyTypeMap;
+      const lastType = id in propertyValueMap ? (conflictPropertyTypeMap[id] ?? firstType) : undefined;
+      conflictPropertyTypeMap[id] = type;
       if (lastType !== undefined && lastType !== type) {
-        // Release the previous value as its own type
         this._refCount > 0 && this._transferTextureReferences(id, lastType, null);
         this._updateRendererBatchSharedFields(id, lastType, null);
         propertyValueMap[id] = null;
