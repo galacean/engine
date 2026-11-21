@@ -236,15 +236,17 @@ export class Transform extends Component implements ICloneHook<Transform> {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
       const parent = this._getParentTransform();
       const scale = this._lossyWorldScale;
-      if (
-        this._usesTRSMatrix &&
-        (!parent || parent._getWorldUniformScaling() || (parent._usesTRSMatrix && this._isLocalScaleAligned()))
-      ) {
-        if (parent) {
-          Vector3.multiply(parent.lossyWorldScale, this._scale, scale);
+      if (parent) {
+        // Clear ancestor WorldScale dirty flags on both paths.
+        const parentLossyWorldScale = parent.lossyWorldScale;
+        if (this._usesTRSMatrix && parent._getWorldUniformScaling()) {
+          Vector3.multiply(parentLossyWorldScale, this._scale, scale);
         } else {
-          scale.copyFrom(this._scale);
+          const e = this._getScaleMatrix().elements;
+          scale.set(e[0], e[4], e[8]);
         }
+      } else if (this._usesTRSMatrix) {
+        scale.copyFrom(this._scale);
       } else {
         const e = this._getScaleMatrix().elements;
         scale.set(e[0], e[4], e[8]);
@@ -796,11 +798,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
         children[i].transform?._updateAllWorldFlag(flags);
       }
     }
-  }
-
-  private _isLocalScaleAligned(): boolean {
-    const rotation = this.rotationQuaternion;
-    return rotation.x === 0 && rotation.y === 0 && rotation.z === 0;
   }
 
   private _restoreTRS(): boolean {

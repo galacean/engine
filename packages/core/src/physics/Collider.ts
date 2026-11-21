@@ -418,7 +418,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const depth = Collider._syncDepth++;
     try {
       const scratch = (Collider._syncScratch[depth] ||= new ColliderSyncScratch());
-      const scale = scratch.scale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+      const scale = this._resolveScale(body, lossyScale, scratch.scale);
       const previousShape = this._native;
       const shape = this._syncNativeShape(scale);
       if (!shape) {
@@ -734,6 +734,42 @@ export class Collider extends Component implements ICloneHook<Collider> {
     Vector3.transformByQuat(position, relativeRotation, position);
     position.add(offset);
     Quaternion.multiply(relativeRotation, rotation, rotation);
+  }
+
+  private _resolveScale(body: Rigidbody | null, lossyScale: Vector3, out: Vector3): Vector3 {
+    if (body) {
+      const bodyEntity = body.entity;
+      if (this.entity !== bodyEntity) {
+        const bodyTransform = bodyEntity.transform;
+        const bodyParent = bodyEntity.parent;
+        if (
+          bodyTransform._usesTRSMatrix &&
+          !bodyTransform._hasCustomWorldPose &&
+          (!bodyParent || bodyParent.transform._getWorldUniformScaling())
+        ) {
+          out.set(1, 1, 1);
+          let current: Entity | null = this.entity;
+          for (; current !== bodyEntity; current = current!.parent) {
+            const transform = current!.transform;
+            if (!transform._usesTRSMatrix || transform._hasCustomWorldPose) {
+              current = null;
+              break;
+            }
+            const rotation = transform.rotationQuaternion;
+            if (rotation.x !== 0 || rotation.y !== 0 || rotation.z !== 0) {
+              current = null;
+              break;
+            }
+            Vector3.multiply(out, transform.scale, out);
+          }
+          if (current === bodyEntity) {
+            Vector3.multiply(out, bodyTransform.lossyWorldScale, out);
+            return out.set(Math.abs(out.x), Math.abs(out.y), Math.abs(out.z));
+          }
+        }
+      }
+    }
+    return out.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
   }
 
   private _checkShear(worldMatrix: Matrix): void {

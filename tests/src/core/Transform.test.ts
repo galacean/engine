@@ -7,11 +7,12 @@ import {
   MeshRenderer,
   Scene,
   Script,
-  Transform
+  Transform,
+  TransformModifyFlags
 } from "@galacean/engine-core";
-import { Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { Matrix, Matrix3x3, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -100,6 +101,106 @@ describe("Transform test", function () {
       child.destroy();
       root.destroy();
     }
+  });
+
+  it("updates child world scale after a parent position and scale edit following a child read", () => {
+    const parent = scene.createRootEntity("scale parent");
+    const child = parent.createChild("scale child");
+    // Reading only the child also cleans ancestor WorldScale so later propagation cannot prune
+    expect(child.transform.lossyWorldScale.x).to.equal(1);
+
+    parent.transform.position.set(4, 0, 0);
+    parent.transform.setScale(2, 1, 1);
+    expect(child.transform.lossyWorldScale.x).to.equal(2);
+    expect(child.transform.worldPosition.x).to.equal(4);
+    parent.destroy();
+  });
+
+  it("updates child world scale after a parent rotation and scale edit following a child read", () => {
+    const parent = scene.createRootEntity("rotated scale parent");
+    parent.transform.setScale(2, 2, 2);
+    const child = parent.createChild("rotated scale child");
+    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(2, 2, 2));
+
+    // A uniformly scaled parent rotation does not notify children of a scale change
+    parent.transform.setRotation(0, 90, 0);
+    parent.transform.setScale(3, 3, 3);
+    const scale = child.transform.lossyWorldScale;
+    expect(scale.x).to.be.closeTo(3, 1e-6);
+    expect(scale.y).to.be.closeTo(3, 1e-6);
+    expect(scale.z).to.be.closeTo(3, 1e-6);
+    parent.destroy();
+  });
+
+  it("uses uniform ancestor fast path recursively and falls back to matrix scale decomposition when non-uniform", () => {
+    const grandparent = scene.createRootEntity("grandparent");
+    const parent = grandparent.createChild("parent");
+    const child = parent.createChild("child");
+    const scaleMatMultiplySpy = vi.spyOn(Matrix3x3, "multiply");
+    try {
+      // Uniform ancestors with negative scale and arbitrary rotations take the exact scalar-multiply fast path
+      grandparent.transform.setScale(2, 2, 2);
+      parent.transform.setScale(-1, -1, -1);
+      parent.transform.setRotation(0, 90, 0);
+      child.transform.setScale(1, 3, 5);
+      child.transform.setRotation(45, 0, 0);
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(-2, -6, -10));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+
+      // Non-uniform ancestor after a position edit must still notify and fall back to matrix scale decomposition
+      grandparent.transform.setScale(1, 2, 3);
+      parent.transform.setScale(1, 1, 1);
+      parent.transform.setRotation(0, 0, 0);
+      child.transform.setScale(4, 5, 6);
+      child.transform.setRotation(90, 0, 0);
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(2);
+
+      parent.transform.setPosition(4, 0, 0);
+      grandparent.transform.setScale(2, 2, 3);
+      const afterNonUniform = child.transform.lossyWorldScale;
+      expect(afterNonUniform.x).to.be.closeTo(8, 1e-6);
+      expect(afterNonUniform.y).to.be.closeTo(15, 1e-6);
+      expect(afterNonUniform.z).to.be.closeTo(12, 1e-6);
+
+      // Establish a clean uniform baseline before testing set localMatrix after position + uniform rotation
+      grandparent.transform.setScale(2, 2, 2);
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(8, 10, 12));
+
+      parent.transform.setPosition(1, 2, 3);
+      parent.transform.setRotation(0, 90, 0);
+      const matrix = new Matrix();
+      Matrix.affineTransformation(new Vector3(5, 5, 5), new Quaternion(), new Vector3(1, 2, 3), matrix);
+      parent.transform.localMatrix = matrix;
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(40, 50, 60));
+    } finally {
+      scaleMatMultiplySpy.mockRestore();
+      grandparent.destroy();
+    }
+  });
+
+  it("preserves WorldScale listener fidelity across position, uniform rotation, and scale changes", () => {
+    const parent = scene.createRootEntity("listener scale parent");
+    const child = parent.createChild("listener scale child");
+    const childFlags: number[] = [];
+    // @ts-ignore
+    child._updateFlagManager.addListener((type?: number) => {
+      if (typeof type === "number") childFlags.push(type);
+    });
+
+    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(1, 1, 1));
+    childFlags.length = 0;
+
+    // Position and uniform rotation must not dirty or dispatch WorldScale
+    parent.transform.setPosition(4, 0, 0);
+    parent.transform.setRotation(0, 90, 0);
+    expect(childFlags.some((flag) => (flag & TransformModifyFlags.WorldScale) !== 0)).to.equal(false);
+
+    parent.transform.setScale(2, 1, 1);
+    expect(childFlags.some((flag) => (flag & TransformModifyFlags.WorldScale) !== 0)).to.equal(true);
+    expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(2, 1, 1));
+
+    parent.destroy();
   });
 
   it("Parent Dirty", () => {
