@@ -3012,7 +3012,7 @@ describe("ScreenSpaceReflection v2", () => {
     expect(drainGlErrors(gl)).toEqual([]);
   });
 
-  it("TBDR invalidateFramebuffer: skips fullscreen Blitter LOAD, discards SSR DepthStencil and MSAA/Depth STORE cleanly with 0 GL errors", async () => {
+  it("TBDR load/store actions: uses non-scissored clear for fullscreen Blitter LOAD and invalidates SSR DepthStencil and MSAA/Depth STORE cleanly with 0 GL errors", async () => {
     const { engine, scene, gl } = await createTestEngine(256, 192);
     createdEngines.push(engine);
 
@@ -3041,6 +3041,7 @@ describe("ScreenSpaceReflection v2", () => {
     stepFrames(engine, 3);
 
     const calls: Array<{ target: number; attachments: number[] }> = [];
+    const clearCalls: Array<{ mask: number; scissorEnabled: boolean; fbo: WebGLFramebuffer | null }> = [];
     const invSpy = vi.spyOn(gl, "invalidateFramebuffer").mockImplementation(function (
       this: WebGL2RenderingContext,
       target: number,
@@ -3049,15 +3050,31 @@ describe("ScreenSpaceReflection v2", () => {
       calls.push({ target, attachments: Array.from(attachments) });
       return WebGL2RenderingContext.prototype.invalidateFramebuffer.call(this, target, attachments);
     });
+    const clearSpy = vi.spyOn(gl, "clear").mockImplementation(function (
+      this: WebGL2RenderingContext,
+      mask: number
+    ) {
+      clearCalls.push({
+        mask,
+        scissorEnabled: this.isEnabled(this.SCISSOR_TEST),
+        fbo: this.getParameter(this.FRAMEBUFFER_BINDING)
+      });
+      return WebGL2RenderingContext.prototype.clear.call(this, mask);
+    });
 
     try {
-      // 1) Non-MSAA High HDR frame: Blitter color LOAD skip + SSR & internalColorTarget DepthStencil STORE skip
+      // 1) Non-MSAA High HDR frame: Blitter uses non-scissored gl.clear(COLOR) (never invalidateFramebuffer(COLOR0)
+      //    which triggers ANGLE-Metal RobustResourceInit CPU replaceRegion), while SSR & internalColorTarget still
+      //    discard DepthStencil STORE via invalidateFramebuffer.
       cam.msaaSamples = MSAASamples.None;
       engine.update();
       expect(
         calls.some(
           (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.COLOR_ATTACHMENT0
         )
+      ).toBe(false);
+      expect(
+        clearCalls.some((c) => c.fbo !== null && c.mask === gl.COLOR_BUFFER_BIT && !c.scissorEnabled)
       ).toBe(true);
       expect(
         calls.some(
@@ -3100,6 +3117,7 @@ describe("ScreenSpaceReflection v2", () => {
       expect(drainGlErrors(gl)).toEqual([]);
     } finally {
       invSpy.mockRestore();
+      clearSpy.mockRestore();
     }
   });
 

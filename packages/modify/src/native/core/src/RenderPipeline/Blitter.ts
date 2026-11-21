@@ -1,4 +1,4 @@
-import { Vector4 } from "@galacean/engine-math";
+import { Color, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Material } from "../material";
@@ -27,6 +27,7 @@ export class Blitter {
   })();
   private static _texelSize = new Vector4();
   private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
+  private static _clearColor = new Color(0, 0, 0, 0);
 
   /**
    * Blit texture to destination render target using a triangle.
@@ -124,6 +125,7 @@ export class Blitter {
         scissorRect.w === targetHeight);
     if (
       invalidateColor &&
+      destination !== null &&
       viewport.x === 0 &&
       viewport.y === 0 &&
       viewport.z === 1 &&
@@ -134,7 +136,9 @@ export class Blitter {
       !appliedState.stencilState.enabled &&
       appliedState.blendState.targetBlendState.colorWriteMask === ColorWriteMask.All
     ) {
-      rhi.invalidateRenderTarget?.(destination, CameraClearFlags.Color);
+      // Full-RT non-scissored clear maps to TBDR hardware MTLLoadActionClear (0 DRAM read)
+      // while marking the attachment Initialized to avoid ANGLE-Metal RobustResourceInit CPU replaceRegion.
+      rhi.clearRenderTarget(engine, CameraClearFlags.Color, Blitter._clearColor);
     }
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
