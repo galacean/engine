@@ -1,27 +1,30 @@
 /**
  * Shader Property type.
+ * @remarks enumeration can be combined using bit operations.
  */
 export enum ShaderPropertyType {
+  /** None type. */
+  None = 0,
   /** Float type. */
-  Float,
+  Float = 0x1,
   /** Int type. */
-  Int,
+  Int = 0x2,
   /** Vector2 type. */
-  Vector2,
+  Vector2 = 0x4,
   /** Vector3 type. */
-  Vector3,
+  Vector3 = 0x8,
   /** Vector4 type. */
-  Vector4,
+  Vector4 = 0x10,
   /** Matrix type. */
-  Matrix,
+  Matrix = 0x20,
   /** Color type. */
-  Color,
+  Color = 0x40,
   /** Texture type. */
-  Texture,
+  Texture = 0x80,
   /** Float array type. */
-  FloatArray,
+  FloatArray = 0x100,
   /** Int array type. */
-  IntArray,
+  IntArray = 0x200,
   /** Texture array type. */
-  TextureArray
+  TextureArray = 0x400
 }
