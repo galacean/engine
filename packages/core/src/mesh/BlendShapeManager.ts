@@ -286,6 +286,23 @@ export class BlendShapeManager {
     this._vertices = null;
   }
 
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._clearBlendShapes();
+    if (this._vertexTexture) {
+      this._vertexTexture.destroy(true);
+      this._vertexTexture = null!;
+    }
+    const vertexBuffers = this._vertexBuffers;
+    for (let i = 0, n = vertexBuffers.length; i < n; i++) {
+      vertexBuffers[i]?.destroy(true);
+    }
+    vertexBuffers.length = 0;
+    this._vertices = null;
+  }
+
   private _createVertexBuffers(vertexCount: number, noLongerAccessible: boolean): void {
     const {
       _engine: engine,
@@ -293,6 +310,9 @@ export class BlendShapeManager {
       _blendShapeCount: blendShapeCount,
       _vertexBuffers: vertexBuffers
     } = this;
+    for (let i = 0, n = vertexBuffers.length; i < n; i++) {
+      vertexBuffers[i]?.destroy(true);
+    }
     const vertexFloatCount = this._vertexElementCount * 3;
     const vertexByteCount = vertexFloatCount * 4;
     const maxCountSingleBuffer = Math.floor(255 / vertexByteCount); // 255: Attribute MaxStride
@@ -313,6 +333,7 @@ export class BlendShapeManager {
 
       const usage = noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic;
       const blendShapeBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, byteLength, usage);
+      blendShapeBuffer.isGCIgnored = true;
       modelMesh._setVertexBufferBinding(bufferBindingOffset + i, new VertexBufferBinding(blendShapeBuffer, stride));
       vertexBuffers[i] = blendShapeBuffer;
     }
@@ -332,7 +353,7 @@ export class BlendShapeManager {
     let blendShapeDataTexture = this._vertexTexture;
     const blendShapeCount = this._blendShapes.length;
 
-    blendShapeDataTexture && blendShapeDataTexture.destroy();
+    blendShapeDataTexture && blendShapeDataTexture.destroy(true);
 
     blendShapeDataTexture = new Texture2DArray(
       this._engine,
@@ -343,6 +364,7 @@ export class BlendShapeManager {
       false,
       false
     );
+    blendShapeDataTexture.isGCIgnored = true;
     blendShapeDataTexture.filterMode = TextureFilterMode.Point;
 
     this._vertices = new Float32Array(blendShapeCount * textureWidth * textureHeight * 4);

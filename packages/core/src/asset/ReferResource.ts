@@ -46,10 +46,8 @@ export abstract class ReferResource extends EngineObject implements IReferable {
       const superResources = this._superResources!;
       if (superResources?.length) {
         if (isGC) {
-          for (let i = 0, n = superResources.length; i < n; i++) {
-            if (superResources[i].refCount > 0) {
-              return false;
-            }
+          if (this._isRetainedBySuperResource()) {
+            return false;
           }
         } else {
           return false;
@@ -72,9 +70,14 @@ export abstract class ReferResource extends EngineObject implements IReferable {
    * @internal
    */
   _disassociationSuperResource(superResource: ReferResource): void {
-    const superResources = this._superResources!;
+    const superResources = this._superResources;
+    if (!superResources) {
+      return;
+    }
     const index = superResources.indexOf(superResource);
-    superResources.splice(index, 1);
+    if (index !== -1) {
+      superResources.splice(index, 1);
+    }
   }
 
   /**
@@ -108,6 +111,19 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     if (refCount > 0) {
       this._addReferCount(-refCount);
     }
+  }
+
+  private _isRetainedBySuperResource(): boolean {
+    const superResources = this._superResources;
+    if (superResources) {
+      for (let i = 0, n = superResources.length; i < n; i++) {
+        const superResource = superResources[i];
+        if (superResource.refCount > 0 || superResource.isGCIgnored || superResource._isRetainedBySuperResource()) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
 

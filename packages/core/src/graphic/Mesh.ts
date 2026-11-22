@@ -61,6 +61,7 @@ export abstract class Mesh extends ReferResource {
     super(engine);
     this.name = name;
     this._primitive = new Primitive(engine);
+    this._primitive.isGCIgnored = true;
     this._onBoundsChanged = this._onBoundsChanged.bind(this);
 
     const bounds = this._bounds;
@@ -178,7 +179,7 @@ export abstract class Mesh extends ReferResource {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._primitive.destroy();
+    this._primitive.destroy(true);
   }
 
   /**

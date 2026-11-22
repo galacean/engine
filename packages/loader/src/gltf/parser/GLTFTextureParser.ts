@@ -67,12 +67,17 @@ export class GLTFTextureParser extends GLTFParser {
         const buffer = buffers![bufferView.buffer];
         const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
         return ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType).then((image) => {
+          if (context._isAborted) {
+            return null as unknown as Texture2D;
+          }
           const { width, height } = image;
           const format = TextureFormat.R8G8B8A8_UNorm;
           const generateMipmap =
             (samplerInfo?.mipmap ?? true) &&
             engine._hardwareRenderer.supportsGenerateMipmaps(format, isSRGBColorSpace!);
-          const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
+          const texture = context._trackResource(
+            new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace)
+          );
           texture.setImageSource(image);
           texture.generateMipmaps();
 
@@ -92,7 +97,6 @@ export class GLTFTextureParser extends GLTFParser {
 
   parse(context: GLTFParserContext, textureIndex: number): AssetPromise<Texture> {
     const textureInfo = context.glTF.textures![textureIndex];
-    const glTFResource = context.glTFResource;
     const { sampler, source: imageIndex = 0, name: textureName, extensions } = textureInfo;
     const isSRGBColorSpace = this._isSRGBColorSpace(textureIndex, context.glTF.materials);
 
@@ -112,8 +116,11 @@ export class GLTFTextureParser extends GLTFParser {
     }
 
     return AssetPromise.resolve(texture).then((texture) => {
+      if (!texture || context._isAborted) {
+        return texture;
+      }
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
-      texture._associationSuperResource(glTFResource);
+      context._trackResource(texture);
       return texture;
     });
   }

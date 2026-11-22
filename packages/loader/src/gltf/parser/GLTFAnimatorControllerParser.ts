@@ -19,6 +19,9 @@ export class GLTFAnimatorControllerParser extends GLTFParser {
     return context
       .get<AnimationClip>(GLTFParserType.Animation)
       .then((animations) => {
+        if (context._isAborted) {
+          return null;
+        }
         const animatorController = this._createAnimatorController(context, animations);
         return AssetPromise.resolve(animatorController);
       })
@@ -33,7 +36,7 @@ export class GLTFAnimatorControllerParser extends GLTFParser {
   ): AnimatorController {
     const { glTFResource } = context;
     const engine = glTFResource.engine;
-    const animatorController = new AnimatorController(engine);
+    const animatorController = context._trackResource(new AnimatorController(engine));
     const layer = new AnimatorControllerLayer("layer");
     const animatorStateMachine = new AnimatorStateMachine();
     animatorController.addLayer(layer);

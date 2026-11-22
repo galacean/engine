@@ -38,6 +38,8 @@ export class GLTFResource extends ReferResource {
   /** @internal */
   _extensionsData: Record<string, any>;
 
+  private _associatedResources: Set<ReferResource> = new Set();
+
   /**
    * Extensions data.
    */
@@ -63,24 +65,57 @@ export class GLTFResource extends ReferResource {
     return sceneRoot.clone();
   }
 
-  protected override _onDestroy(): void {
-    super._onDestroy();
-
-    const { textures, materials, meshes } = this;
-    textures && this._disassociateResources(textures);
-    materials && this._disassociateResources(materials);
-    if (meshes) {
-      for (let i = 0, n = meshes.length; i < n; i++) {
-        const meshArr = meshes[i];
-        meshArr && this._disassociateResources(meshArr);
+  /**
+   * @internal
+   */
+  _associateResource(resource: ReferResource): void {
+    if (this._destroyed) {
+      if (!resource.destroyed && !resource.isGCIgnored) {
+        resource.destroy(false);
       }
+      return;
+    }
+    if (!this._associatedResources.has(resource)) {
+      this._associatedResources.add(resource);
+      resource._associationSuperResource(this);
     }
   }
 
-  private _disassociateResources(resources: ReferResource[]): void {
-    for (let i = 0, n = resources.length; i < n; i++) {
-      resources[i]?._disassociationSuperResource(this);
+  /**
+   * @internal
+   */
+  _getAssociatedResources(): ReferResource[] {
+    return Array.from(this._associatedResources);
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+
+    const { _sceneRoots: sceneRoots, _defaultSceneRoot: defaultSceneRoot, entities } = this;
+    if (sceneRoots) {
+      for (let i = 0, n = sceneRoots.length; i < n; i++) {
+        const root = sceneRoots[i];
+        if (root && !root.destroyed) {
+          root.destroy();
+        }
+      }
     }
+    if (defaultSceneRoot && !defaultSceneRoot.destroyed) {
+      defaultSceneRoot.destroy();
+    }
+    if (entities) {
+      for (let i = 0, n = entities.length; i < n; i++) {
+        const entity = entities[i];
+        if (entity && !entity.destroyed) {
+          entity.destroy();
+        }
+      }
+    }
+
+    this._associatedResources.forEach((resource) => {
+      resource._disassociationSuperResource(this);
+    });
+    this._associatedResources.clear();
   }
 
   /**

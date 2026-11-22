@@ -212,7 +212,12 @@ export class BasicResources {
    * @internal
    */
   _getBlinnPhongMaterial(): BlinnPhongMaterial {
-    return (this._blinnPhongMaterial ||= new BlinnPhongMaterial(this.engine));
+    if (!this._blinnPhongMaterial) {
+      const material = new BlinnPhongMaterial(this.engine);
+      material.isGCIgnored = true;
+      this._blinnPhongMaterial = material;
+    }
+    return this._blinnPhongMaterial;
   }
 
   /**

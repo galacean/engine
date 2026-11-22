@@ -813,6 +813,9 @@ describe("glTF instance test", function () {
     glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
     expect(glTFResourceCache).to.be.not.null;
     expect(materials[0].destroyed).to.be.false;
+    expect(meshes[0][0].destroyed).to.be.false;
+    expect(meshes[0][0]._primitive.destroyed).to.be.false;
+    expect(meshes[0][0].vertexBufferBindings[0]!.buffer.destroyed).to.be.false;
 
     // Test GC with no instance exist
     instance.destroy();
@@ -820,6 +823,9 @@ describe("glTF instance test", function () {
     glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
     expect(glTFResourceCache).to.be.null;
     expect(materials[0].destroyed).to.be.true;
+    expect(meshes[0][0].destroyed).to.be.true;
+    expect(meshes[0][0].vertexBufferBindings[0]!.buffer.destroyed).to.be.true;
+    expect(glTFResource._defaultSceneRoot.destroyed).to.be.true;
   });
 });
 
@@ -902,12 +908,156 @@ describe("glTF instance test", function () {
     expect(materials[0].destroyed).to.be.false;
 
     // Test destroy glTFResource directly
+    const templateRoot = glTFResource._defaultSceneRoot;
     glTFResource.destroy();
     expect(glTFResource.destroyed).to.be.true;
+    expect(templateRoot.destroyed).to.be.true;
 
     // Test destroy glTFResource directly with glTFResource already destroyed
     expect(materials[0].destroyed).to.be.false;
     materials[0].destroy();
     expect(materials[0].destroyed).to.be.true;
+  });
+
+  it("GLTFResource isGCIgnored retains all sub-resources across gc() and sweeps cleanly once released", async () => {
+    engine.resourceManager.gc();
+    const referPool = (engine.resourceManager as any)._referResourcePool as Record<number, object>;
+    const graphicPool = (engine.resourceManager as any)._graphicResourcePool as Record<number, object>;
+    const referBefore = Object.keys(referPool).length;
+    const graphicBefore = Object.keys(graphicPool).length;
+
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testB.gltf"
+    });
+    glTFResource.isGCIgnored = true;
+    const mesh = glTFResource.meshes![0][0];
+    const vertexBuffer = mesh.vertexBufferBindings[0]!.buffer;
+
+    engine.resourceManager.gc();
+    expect(glTFResource.destroyed).to.be.false;
+    expect(glTFResource.materials![0].destroyed).to.be.false;
+    expect(mesh.destroyed).to.be.false;
+    expect(mesh._primitive.destroyed).to.be.false;
+    expect(vertexBuffer.destroyed).to.be.false;
+
+    glTFResource.isGCIgnored = false;
+    glTFResource.destroy();
+    engine.resourceManager.gc();
+
+    expect(glTFResource.destroyed).to.be.true;
+    expect(glTFResource._defaultSceneRoot.destroyed).to.be.true;
+    expect(glTFResource.materials![0].destroyed).to.be.true;
+    expect(mesh.destroyed).to.be.true;
+    expect(vertexBuffer.destroyed).to.be.true;
+    expect(Object.keys(referPool).length).to.equal(referBefore);
+    expect(Object.keys(graphicPool).length).to.equal(graphicBefore);
+  });
+
+  it("protects in-flight GLTFResource allocations from concurrent gc() and cleans up on cancel", async () => {
+    engine.resourceManager.gc();
+    const referPool = (engine.resourceManager as any)._referResourcePool as Record<number, object>;
+    const graphicPool = (engine.resourceManager as any)._graphicResourcePool as Record<number, object>;
+    const referBefore = Object.keys(referPool).length;
+    const graphicBefore = Object.keys(graphicPool).length;
+
+    const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    const bufferUri = `data:application/octet-stream;base64,${btoa(
+      String.fromCharCode(...new Uint8Array(positions.buffer))
+    )}`;
+    const delayedUri = "https://mock.local/delayed-gc-test.bin";
+    const gltfUrl = URL.createObjectURL(
+      new Blob(
+        [
+          JSON.stringify({
+            asset: { version: "2.0" },
+            buffers: [
+              { uri: bufferUri, byteLength: positions.byteLength },
+              { uri: delayedUri, byteLength: positions.byteLength }
+            ],
+            bufferViews: [
+              { buffer: 0, byteOffset: 0, byteLength: positions.byteLength },
+              { buffer: 1, byteOffset: 0, byteLength: positions.byteLength }
+            ],
+            accessors: [
+              { componentType: 5126, count: 3, type: "VEC3", bufferView: 0, min: [0, 0, 0], max: [1, 1, 0] },
+              { componentType: 5126, count: 3, type: "VEC3", bufferView: 1, min: [0, 0, 0], max: [1, 1, 0] }
+            ],
+            materials: [{ pbrMetallicRoughness: { baseColorFactor: [1, 0, 0, 1] } }],
+            meshes: [
+              { primitives: [{ attributes: { POSITION: 0 }, material: 0 }] },
+              { primitives: [{ attributes: { POSITION: 1 }, material: 0 }] }
+            ],
+            nodes: [{ mesh: 0 }, { mesh: 1 }],
+            scenes: [{ nodes: [0, 1] }],
+            scene: 0
+          })
+        ],
+        { type: "model/gltf+json" }
+      )
+    );
+
+    const originalRequest = (engine.resourceManager as any)._requestByRemoteUrl;
+    let resolveDelayed!: (buf: ArrayBuffer) => void;
+    let markRequested!: () => void;
+    const requested = new Promise<void>((resolve) => {
+      markRequested = resolve;
+    });
+    const requestSpy = vi.spyOn(engine.resourceManager as any, "_requestByRemoteUrl").mockImplementation(function (
+      this: any,
+      url: string,
+      config: any
+    ) {
+      if (url === delayedUri) {
+        markRequested();
+        return new AssetPromise<ArrayBuffer>((resolve) => {
+          resolveDelayed = resolve;
+        });
+      }
+      return originalRequest.call(this, url, config);
+    });
+
+    try {
+      // Case 1: gc() during in-flight parse must not destroy in-flight allocations
+      const waitForPartialAllocations = async () => {
+        for (let i = 0; i < 50; i++) {
+          if (Object.keys(referPool).length > referBefore && Object.keys(graphicPool).length > graphicBefore) return;
+          await new Promise((resolve) => setTimeout(resolve, 2));
+        }
+        expect(Object.keys(referPool).length).to.be.greaterThan(referBefore);
+        expect(Object.keys(graphicPool).length).to.be.greaterThan(graphicBefore);
+      };
+      const loadingOk = engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url: gltfUrl });
+      await requested;
+      await waitForPartialAllocations();
+      engine.resourceManager.gc();
+      resolveDelayed(positions.buffer.slice(0));
+      const loaded = await loadingOk;
+      expect(loaded.destroyed).to.be.false;
+      expect(loaded.isGCIgnored).to.be.false;
+      expect(loaded.meshes![0][0].destroyed).to.be.false;
+      expect(loaded.meshes![0][0].vertexBufferBindings[0]!.buffer.destroyed).to.be.false;
+      loaded.destroy();
+      engine.resourceManager.gc();
+      expect(Object.keys(referPool).length).to.equal(referBefore);
+      expect(Object.keys(graphicPool).length).to.equal(graphicBefore);
+
+      // Case 2: canceling in-flight parse releases partial allocations even if delayed buffer resolves later
+      const requestedCancel = new Promise<void>((resolve) => {
+        markRequested = resolve;
+      });
+      const loadingCancel = engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url: gltfUrl });
+      await requestedCancel;
+      await waitForPartialAllocations();
+      loadingCancel.cancel();
+      await expect(loadingCancel).rejects.toBe("canceled");
+      resolveDelayed(positions.buffer.slice(0));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(Object.keys(referPool).length).to.equal(referBefore);
+      expect(Object.keys(graphicPool).length).to.equal(graphicBefore);
+    } finally {
+      requestSpy.mockRestore();
+      URL.revokeObjectURL(gltfUrl);
+    }
   });
 });

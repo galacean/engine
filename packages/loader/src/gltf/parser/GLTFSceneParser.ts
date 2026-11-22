@@ -34,6 +34,7 @@ export class GLTFSceneParser extends GLTFParser {
     let sceneRoot: Entity;
 
     sceneRoot = new Entity(engine, "GLTF_ROOT");
+    context._trackEntity(sceneRoot);
     sceneRoot._markAsTemplate(glTFResource);
     for (let i = 0; i < sceneNodes.length; i++) {
       sceneRoot.addChild(context.get<Entity>(GLTFParserType.Entity, sceneNodes[i]));
@@ -50,6 +51,9 @@ export class GLTFSceneParser extends GLTFParser {
     }
 
     return AssetPromise.all(promises).then(() => {
+      if (context._isAborted || sceneRoot.destroyed) {
+        return sceneRoot;
+      }
       GLTFParser.executeExtensionsAdditiveAndParse(sceneExtensions, context, sceneRoot, sceneInfo);
       return sceneRoot;
     });
@@ -71,6 +75,9 @@ export class GLTFSceneParser extends GLTFParser {
     }
 
     return AssetPromise.resolve(promise).then(() => {
+      if (context._isAborted) {
+        return [];
+      }
       const promises: AssetPromise<unknown[]>[] = [];
       const children = entityInfo.children;
 
@@ -143,6 +150,9 @@ export class GLTFSceneParser extends GLTFParser {
       AssetPromise.all(materialPromises)
     ])
       .then(([meshes, skin, materials]) => {
+        if (context._isAborted || entity.destroyed) {
+          return;
+        }
         const basicResources = context.glTFResource.engine._basicResources;
         for (let i = 0; i < rendererCount; i++) {
           const material = materials[i] || basicResources._getBlinnPhongMaterial();
