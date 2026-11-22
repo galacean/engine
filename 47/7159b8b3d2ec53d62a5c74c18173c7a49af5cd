@@ -1,0 +1,69 @@
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  s_a4d9dd90218d81::t_eae659099cb0f3 102-107
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_a4d9dd90218d81::t_a01e73c548b48d 17,43-45,63-66,68-69,71-75,113,170,181,214-227,238-246,270-273,287,368-370,381-383,400-402,462-466,529-533,585,598
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_ddcb4c457b701b 1348
+  s_d2c65ec75a2f3e::t_de6803bc0d3571 459,469,613,644,667,688,702,717,750,770,785,1231,1252,1267,1294,1347,1387-1388,1403,1425,1830,1904,1959,1971,1994
+  s_d2c65ec75a2f3e::t_28a336205f562d 456-458
+  s_d2c65ec75a2f3e::t_d1f143757c7310 460-462,466-468
+  s_d2c65ec75a2f3e::t_55c27f09a45970 470
+  s_d2c65ec75a2f3e::t_63cd46d8478231 610-612
+  s_d2c65ec75a2f3e::t_2f02442e6f4eb7 614
+  s_d2c65ec75a2f3e::t_4b999fab753c00 641-643
+  s_d2c65ec75a2f3e::t_df98b853e578df 645-647,664-666
+  s_d2c65ec75a2f3e::t_c21ed0eafa754a 668-670,685-687
+  s_d2c65ec75a2f3e::t_1b091c15bb66c9 689-691,699-701
+  s_d2c65ec75a2f3e::t_9474c1f80fc5ad 703-705,714-716
+  s_d2c65ec75a2f3e::t_dd0f5eb717b400 718-720,747-749
+  s_d2c65ec75a2f3e::t_4b550451e14fc4 751-753,767-769
+  s_d2c65ec75a2f3e::t_6d847c1668ecad 771-773,782-784
+  s_d2c65ec75a2f3e::t_d9ed958be06901 786
+  s_d2c65ec75a2f3e::t_88232aff5c0a3a 1228-1230
+  s_d2c65ec75a2f3e::t_85e66dad0de19c 1232-1234,1249-1251
+  s_d2c65ec75a2f3e::t_f2031b65167982 1253-1255
+  s_d2c65ec75a2f3e::t_eeab163a8b096c 1264-1266
+  s_d2c65ec75a2f3e::t_2cdc412a211103 1268-1270,1291-1293
+  s_d2c65ec75a2f3e::t_33f52fe7565275 1295-1297
+  s_d2c65ec75a2f3e::t_1429fb985ba30a 1344-1346
+  s_d2c65ec75a2f3e::t_eedd4dde448532 1349-1351,1384-1386
+  s_d2c65ec75a2f3e::t_f8d3645309e53a 1389-1391,1400-1402
+  s_d2c65ec75a2f3e::t_e7b1c4e22d2ae4 1404-1406,1422-1424
+  s_d2c65ec75a2f3e::t_f37045d5134e18 1426-1428
+  s_d2c65ec75a2f3e::t_226a04eb97ec7a 1827-1829
+  s_d2c65ec75a2f3e::t_a4beedcf5462f7 1831-1833,1901-1903
+  s_d2c65ec75a2f3e::t_6f31d548888f23 1905-1907,1956-1958
+  s_d2c65ec75a2f3e::t_c50f85620cf977 1960-1962,1968-1970
+  s_d2c65ec75a2f3e::t_b24d027297b83c 1972-1974,1991-1993
+  s_d2c65ec75a2f3e::t_8d48e124134b0a 1995
+docs/en/physics/overall.mdx
+  s_d2c65ec75a2f3e::t_b0913def9197b4 28-35
+docs/zh/physics/overall.mdx
+  s_d2c65ec75a2f3e::t_613fe58a925d00 28-35
+packages/physics-physx/src/PhysXDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_0cfea0153079e3 62-73,111-120,128-138,158-162,166-167,177-185,190-191,196,210-211,231-271
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "477159b8b3d2ec53d62a5c74c18173c7a49af5cd",
+  "prompts": {},
+  "sessions": {
+    "s_a4d9dd90218d81": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1fc06-e419-7d62-a252-2e83fbdcf328",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
