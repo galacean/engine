@@ -44,7 +44,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
         return false;
       }
 
-      if (this._superResources?.size && (!isGC || this._isRetainedBySuperResource())) {
+      if (this._superResources?.size && (!isGC || this._hasActiveSuperResource())) {
         return false;
       }
     }
@@ -117,10 +117,10 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     this._superResources = null;
   }
 
-  private _isRetainedBySuperResource(): boolean {
+  private _hasActiveSuperResource(): boolean {
     if (this._superResources) {
       for (const superResource of this._superResources) {
-        if (superResource._refCount > 0 || superResource.isGCIgnored || superResource._isRetainedBySuperResource()) {
+        if (superResource._refCount > 0 || superResource.isGCIgnored || superResource._hasActiveSuperResource()) {
           return true;
         }
       }
