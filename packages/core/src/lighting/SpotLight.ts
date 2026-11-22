@@ -45,12 +45,14 @@ export class SpotLight extends Light {
    * @defaultValue `100`
    */
   get distance(): number {
-    return this._distance;
+    return this._distance > 0 ? this._distance : Infinity;
   }
 
   set distance(value: number) {
     if (!Number.isNaN(value)) {
-      this._distance = Math.max(value, SpotLight._minDistance);
+      const clamped = Math.max(value, SpotLight._minDistance);
+      // Store 0.0 for unlimited range (Infinity or values overflowing FP32 to Infinity) for GPU upload.
+      this._distance = Number.isFinite(Math.fround(clamped)) ? clamped : 0.0;
     }
   }
 
@@ -104,8 +106,7 @@ export class SpotLight extends Light {
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
 
-    // GPU convention: cutoffDistance <= 0.0 represents unlimited range (Infinity or > FP32 max).
-    data.distance[distanceStart] = Number.isFinite(Math.fround(this._distance)) ? this._distance : 0.0;
+    data.distance[distanceStart] = this._distance;
     data.angleCos[angleCosStart] = Math.cos(this.angle);
     data.penumbraCos[penumbraCosStart] = Math.cos(this.angle + this.penumbra);
   }

@@ -31,8 +31,10 @@ bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
 #endif
 
 
-// Frostbite / Filament / Unity standard windowed inverse-square distance attenuation.
-// cutoffDistance <= 0.0 represents unlimited range (distance == Infinity).
+// Physically based windowed inverse-square distance attenuation (Frostbite / Filament / glTF):
+//   attenuation = (1 / max(d^2, 1e-4)) * (1 - min(d^2 / R^2, 1)^2)^2
+// where d^2 = distanceSq and R = cutoffDistance.
+// When cutoffDistance <= 0.0 (CPU passes 0.0 for unlimited distance), range cutoff is disabled.
 float getDistanceAttenuation(float distanceSq, float cutoffDistance) {
     float attenuation = 1.0 / max(distanceSq, 1e-4);
     if (cutoffDistance > 0.0) {
