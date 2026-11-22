@@ -9,7 +9,7 @@ declare global {
     interface VegetationConfigApi {
       /**
        * 调用入口：await tools.vegetation.config.reset(input)
-       * 重置植被分布、花区、草地外观与地表配色配置的作者参数覆盖，恢复为系统默认或继承值。本系统包含组件：landscape, landscapePopulation, landscapeInfluence, flowers, flowerInfluence, grassAppearance, surfacePalette, plantMaterial；省略 component 且不传筛选条件时先返回组件目录。
+       * 重置植被分布、花区、草地外观与地表配色配置的作者参数覆盖，恢复为系统默认或继承值。本系统包含组件：landscape, landscapePopulation, landscapeInfluence, flowers, flowerInfluence, grassAppearance, surfacePalette, plantMaterial；单组件操作须指定 component。
        * @param input - 指定 component（单组件系统可省略）及可选 fields；省略 fields 重置该组件全部作者覆盖。
        * @returns 返回提交状态、最新 versionToken、changedIds、diagnostics 和可选 message。
        */

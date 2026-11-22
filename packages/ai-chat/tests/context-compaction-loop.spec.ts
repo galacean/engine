@@ -212,7 +212,7 @@ it("backs off compaction retries when no seen images remain to offload and resum
   });
 });
 
-it("never offloads an unseen image that arrived after the latest assistant turn", async () => {
+it("retains a newly arrived image for at least one follow-up round before offloading on compaction failure", async () => {
   const image = { blob: fixtureBlob("data:image/png;base64,YQ=="), width: 1, height: 1 };
   const failedCompaction: ContextCompactionResult = {
     version: 2,
@@ -224,8 +224,9 @@ it("never offloads an unseen image that arrived after the latest assistant turn"
     reason: "no replaceable messages are available for summarization"
   };
   request.mockResolvedValueOnce(tool("view", "snapshot"));
-  // On round 1, the snapshot image is the newest user message (after assistant tool("view")) and has NOT been
-  // followed by any assistant message in transcript yet when applyResponse runs.
+  // On round 1, the snapshot image arrived after the previous assistant turn (tool("view")).
+  // When compaction fails during round 1 (before round 1's assistant message is appended), keep
+  // the fresh image for the follow-up round so multi-step tool chains retain visual continuity.
   request.mockResolvedValueOnce({ ...tool("a"), contextCompaction: failedCompaction });
   request.mockResolvedValueOnce(final());
 
@@ -235,7 +236,7 @@ it("never offloads an unseen image that arrived after the latest assistant turn"
   });
   await loop.run("task", { contextCompaction: { triggerTokens: 48000, targetTokens: 20000 } });
 
-  // Unseen image must remain intact in round 2 as well (backoff kicks in instead of offloading an unseen photo).
+  // Freshly arrived snapshot stays intact in round 2 while backoff suppresses immediate compaction retry.
   expect(messages(2).some((m) => m.role === "user" && m.image)).toBe(true);
   expect(request.mock.calls[2][0].contextCompaction).toBeUndefined();
 });

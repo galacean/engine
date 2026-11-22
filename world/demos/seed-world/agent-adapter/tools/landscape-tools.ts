@@ -19,6 +19,7 @@ import {
   VEGETATION_INSPECT_KINDS,
   authoringResultSchema,
   appliedAuthoringResultSchema,
+  authoredVegetationRefSchema,
   mutationControlShape,
   previewAssetMutationResultSchema,
   terrainAssetMutationResultSchema,
@@ -27,6 +28,7 @@ import {
   terrainRefSchema,
   terrainSelectionResultSchema,
   terrainStrictRefSchema,
+  updatableVegetationRefSchema,
   vegetationInspectAssetSchema,
   vegetationInspectKindSchema,
   vegetationRefSchema,
@@ -312,7 +314,7 @@ const vegetationCreatedSchema = z.strictObject({
 export const vegetationCreateResultSchema = z
   .discriminatedUnion("status", [
     appliedAuthoringResultSchema.extend({
-      assetRef: vegetationStrictRefSchema.describe("本次 vegetation.create 返回的稳定引用；可直接复用给 vegetation.inspect、vegetation.update 或 vegetation.delete"),
+      assetRef: authoredVegetationRefSchema.describe("本次 vegetation.create 返回的稳定引用；可直接复用给 vegetation.inspect、vegetation.update（按 kind 收窄后）或 vegetation.delete"),
       created: vegetationCreatedSchema
     }),
     previewAssetMutationResultSchema.extend({ created: vegetationCreatedSchema })
@@ -364,7 +366,7 @@ const vegetationUpdatedSchema = z.strictObject({
 export const vegetationUpdateResultSchema = z
   .discriminatedUnion("status", [
     appliedAuthoringResultSchema.extend({
-      assetRef: vegetationStrictRefSchema.describe("本次 vegetation.update 返回的稳定引用；可直接复用给 vegetation.inspect、vegetation.update 或 vegetation.delete"),
+      assetRef: updatableVegetationRefSchema.describe("本次 vegetation.update 返回的稳定引用；可直接复用给 vegetation.inspect、vegetation.update（按 kind/source 收窄后）或 vegetation.delete"),
       updated: vegetationUpdatedSchema
     }),
     previewAssetMutationResultSchema.extend({ updated: vegetationUpdatedSchema })

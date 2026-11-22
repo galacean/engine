@@ -106,7 +106,7 @@ const authoringResultSummaryShape = {
   createdRefs: z.array(worldRefSchema).describe("新建资产的有界稳定引用摘要"),
   updatedRefs: z.array(worldRefSchema).describe("更新资产的有界稳定引用摘要"),
   deletedRefs: z.array(worldRefSchema).describe(
-    "已删除资产的有界身份摘要；这些 Ref 已是 tombstone，不能再检查或作为空间锚点。验证删除应把这些 Ref 的 id 传给 WorldSelector.ids"
+    "已删除资产的有界身份摘要；这些 Ref 已是 tombstone，不能再检查或作为空间锚点。验证删除应把这些 Ref 的 id 传给对应系统 query 的 ids"
   ),
   refsTruncated: z.boolean().describe("引用数组是否因有界返回而被截断；计数始终是完整值"),
   affectedBounds: worldBoundsSchema.nullable().describe("本次编辑影响的世界范围；没有可定义范围时为 null"),
@@ -343,6 +343,47 @@ export const vegetationStrictRefSchema = z
 export const terrainStrictRefSchema = z
   .strictObject({ ...worldRefSchema.shape, kind: terrainInspectKindSchema })
   .describe("地形地貌或岩石资产的稳定引用");
+export const TERRAIN_GENERIC_AUTHORABLE_KINDS = [
+  "mountain",
+  "ridge",
+  "canyon",
+  "valley",
+  "slope",
+  "plateau",
+  "basin"
+] as const;
+export const authoredTerrainRefSchema = z
+  .union([
+    z.intersection(worldRefSchema, z.object({ domain: z.literal("terrain"), kind: z.literal("hill"), source: z.literal("authored") })),
+    z.intersection(
+      worldRefSchema,
+      z.object({ domain: z.literal("terrain"), kind: z.enum(TERRAIN_GENERIC_AUTHORABLE_KINDS), source: z.literal("authored") })
+    )
+  ])
+  .describe("terrain.create/update 返回的玩家可编辑地形地貌稳定引用");
+export const authoredVegetationRefSchema = z
+  .union([
+    z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.literal("tree"), source: z.literal("authored") })),
+    z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.literal("shrub"), source: z.literal("authored") })),
+    z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.enum(["forest", "shrubland"]), source: z.literal("authored") })),
+    z.intersection(
+      worldRefSchema,
+      z.object({ domain: z.literal("vegetation"), kind: z.enum(["grassland", "flower-field", "aquatic-grass-bed"]), source: z.literal("authored") })
+    )
+  ])
+  .describe("vegetation.create 返回的玩家可编辑植被稳定引用");
+export const updatableVegetationRefSchema = z
+  .union([
+    z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.literal("tree"), source: z.literal("authored") })),
+    z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.literal("tree"), source: z.literal("natural") })),
+    z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.literal("shrub"), source: z.literal("authored") })),
+    z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.enum(["forest", "shrubland"]), source: z.literal("authored") })),
+    z.intersection(
+      worldRefSchema,
+      z.object({ domain: z.literal("vegetation"), kind: z.enum(["grassland", "flower-field", "aquatic-grass-bed"]), source: z.literal("authored") })
+    )
+  ])
+  .describe("vegetation.update 返回的植被稳定引用");
 export const queriedVegetationAssetSchema = z
   .strictObject({
     ...worldAssetBaseShape,
@@ -386,7 +427,7 @@ export const terrainSelectionResultSchema = z
 export const terrainAssetMutationResultSchema = z
   .discriminatedUnion("status", [
     appliedAuthoringResultSchema.extend({
-      assetRef: terrainStrictRefSchema.describe("本次 terrain.create/update 返回的稳定引用；可直接复用给 terrain.inspect、terrain.update 或 terrain.delete")
+      assetRef: authoredTerrainRefSchema.describe("本次 terrain.create/update 返回的稳定引用；可直接复用给 terrain.inspect、terrain.update（按 kind 收窄后）或 terrain.delete")
     }),
     previewAssetMutationResultSchema
   ])

@@ -295,6 +295,21 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
     expect(catalog.hostNotes).not.toMatch(/\bworld\.(?:query|inspect|delete|tag|selection|parameters|animals)\b|world-objects/);
   });
 
+  it("publishes every terrain/vegetation asset declaration and typechecks live query/create->inspect/update chains", () => {
+    expect(files.read("skills/terrain/references/asset-types.md")).toContain("[TerrainAsset](declare/editor/world/assets/TerrainAsset.d.ts)");
+    expect(files.read("skills/vegetation/references/asset-types.md")).toContain("[TreeAsset](declare/editor/world/assets/TreeAsset.d.ts)");
+    const checker = new AgentJavaScriptChecker(agentTypecheckLibraries);
+    const chains = [
+      `const q = await tools.terrain.query({ limit: 1 }); const a = q.items[0]; if (a) await tools.terrain.inspect({ ref: a.ref });`,
+      `const q = await tools.terrain.query({ kinds: ["terrain"], limit: 1 }); const a = q.items[0]; if (a && a.type === "terrain") await tools.terrain.inspect({ ref: a.ref });`,
+      `const c = await tools.terrain.create({ kind: "hill", target: { anchor: { kind: "viewer" }, relation: { kind: "at" } } }); if (c.status === "applied") { await tools.terrain.inspect({ ref: c.assetRef }); await tools.terrain.delete({ refs: [c.assetRef] }); if (c.assetRef.kind === "hill") await tools.terrain.update({ ref: c.assetRef, patch: { peakReliefMetres: 80 } }); }`,
+      `const c = await tools.vegetation.create({ plant: "tree", distribution: { kind: "single" }, target: { anchor: { kind: "viewer" }, relation: { kind: "at" } } }); if (c.status === "applied") { await tools.vegetation.inspect({ ref: c.assetRef }); await tools.vegetation.delete({ refs: [c.assetRef] }); if (c.assetRef.kind === "tree") await tools.vegetation.update({ ref: c.assetRef, patch: { seed: 42 } }); }`
+    ];
+    for (const code of chains) {
+      expect(checker.check(code, catalog.modules), code).toBeUndefined();
+    }
+  });
+
   it("keeps generic runtime-editor skills decoupled from host-specific scene path literals", () => {
     const genericEditorSkillPaths = skillMarkdowns.filter((p) =>
       /^skills\/(?:scene-nodes|components|assets|scripting|history)\//.test(p)

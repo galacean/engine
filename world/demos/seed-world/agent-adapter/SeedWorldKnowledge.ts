@@ -1,7 +1,9 @@
 import { SEED_WORLD_API_CONTRACTS } from "./contracts/SeedWorldContractRegistry.ts";
 import { SEED_WORLD_API_DECLARATION_MODULES, SEED_WORLD_API_SEARCH_ENTRIES } from "./contracts/generated/SeedWorldApiSearchRegistry.ts";
+import { SEED_WORLD_ASSET_TYPE_CATALOG, type SeedWorldAssetKind } from "@galacean/engine-world-planning/agent-adapter/contracts/SeedWorldAssetContracts";
 import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 import { collectPlanningSystemKnowledge } from "./SeedWorldSystemDeclarations.ts";
+import { TERRAIN_INSPECT_KINDS, VEGETATION_INSPECT_KINDS } from "./tools/tool-contract.ts";
 import type { AgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import { parseAgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-skills";
 import animalsSkill from "@galacean/engine-animals/skills/animals/SKILL.md?raw";
@@ -28,34 +30,17 @@ const SKILL_DOMAINS: Readonly<Record<string, readonly string[]>> = {
   vegetation: ["vegetation"],
   animals: ["animals"]
 };
+const assetDeclarationModules = (kinds: readonly SeedWorldAssetKind[]): ReadonlySet<string> =>
+  new Set(kinds.map((kind) => `assets/${SEED_WORLD_ASSET_TYPE_CATALOG[kind].typeSymbol}.d.ts`));
+
 const SKILL_ASSET_MODULES: Readonly<Record<string, { inspectTool: string; modules: ReadonlySet<string> }>> = {
   vegetation: {
     inspectTool: "vegetation.inspect",
-    modules: new Set([
-      "assets/TreeAsset.d.ts",
-      "assets/ForestAsset.d.ts",
-      "assets/ShrubAsset.d.ts",
-      "assets/ShrublandAsset.d.ts",
-      "assets/GrasslandAsset.d.ts",
-      "assets/FlowerFieldAsset.d.ts",
-      "assets/AquaticGrassBedAsset.d.ts",
-      "assets/MushroomAsset.d.ts"
-    ])
+    modules: assetDeclarationModules(VEGETATION_INSPECT_KINDS)
   },
   terrain: {
     inspectTool: "terrain.inspect",
-    modules: new Set([
-      "assets/BaseTerrainAsset.d.ts",
-      "assets/MountainAsset.d.ts",
-      "assets/HillAsset.d.ts",
-      "assets/RidgeAsset.d.ts",
-      "assets/CanyonAsset.d.ts",
-      "assets/ValleyAsset.d.ts",
-      "assets/SlopeAsset.d.ts",
-      "assets/PlateauAsset.d.ts",
-      "assets/BasinAsset.d.ts",
-      "assets/RockAsset.d.ts"
-    ])
+    modules: assetDeclarationModules(TERRAIN_INSPECT_KINDS)
   }
 };
 const HOST_NOTES = [

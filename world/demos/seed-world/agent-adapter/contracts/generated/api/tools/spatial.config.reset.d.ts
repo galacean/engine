@@ -9,7 +9,7 @@ declare global {
     interface SpatialConfigApi {
       /**
        * 调用入口：await tools.spatial.config.reset(input)
-       * 重置世界生成、风格、布局、POI、道路与展示视角配置的作者参数覆盖，恢复为系统默认或继承值。本系统包含组件：world, worldTemplate, landscapeComposition, subjectView, population, distribution, poi, anchor, layout, regionalAppearance, network, wayfinding, roadWidth, roadPath, suspensionBridge, solid, farming；省略 component 且不传筛选条件时先返回组件目录。
+       * 重置世界生成、风格、布局、POI、道路与展示视角配置的作者参数覆盖，恢复为系统默认或继承值。本系统包含组件：world, worldTemplate, landscapeComposition, subjectView, population, distribution, poi, anchor, layout, regionalAppearance, network, wayfinding, roadWidth, roadPath, suspensionBridge, solid, farming；单组件操作须指定 component。
        * @param input - 指定 component（单组件系统可省略）及可选 fields；省略 fields 重置该组件全部作者覆盖。
        * @returns 返回提交状态、最新 versionToken、changedIds、diagnostics 和可选 message。
        */

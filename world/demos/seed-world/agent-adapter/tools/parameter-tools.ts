@@ -255,9 +255,12 @@ const configMutationOutputSchema = z.object({
 function buildSystemConfigContracts(spec: SystemConfigSpec) {
   const componentEnum = z.enum(spec.components);
   const componentListText = spec.components.join(", ");
-  const defaultHint = spec.defaultComponent
-    ? `默认读取/修改 "${spec.defaultComponent}" 组件。`
+  const getDefaultHint = spec.defaultComponent
+    ? `默认读取 "${spec.defaultComponent}" 组件。`
     : `本系统包含组件：${componentListText}；省略 component 且不传筛选条件时先返回组件目录。`;
+  const mutateDefaultHint = spec.defaultComponent
+    ? `默认修改 "${spec.defaultComponent}" 组件。`
+    : `本系统包含组件：${componentListText}；单组件操作须指定 component。`;
 
   const getInput = z.strictObject({
     ...pageInputShape,
@@ -300,18 +303,28 @@ function buildSystemConfigContracts(spec: SystemConfigSpec) {
     })
   ]);
 
-  const updateInput = z.strictObject({
-    entityId: text.optional().describe('目标规划实体 ID；默认 "world"'),
-    component: componentEnum.optional().describe(
-      spec.defaultComponent
-        ? `目标组件名；默认 "${spec.defaultComponent}"`
-        : `目标组件名（${componentListText}）；单组件更新时必填`
-    ),
-    values: z.record(z.string(), parameterValue).optional().describe("要设置的字段键值对；使用 config.get 声明的真实字段键"),
-    base: baseTargetSchema.nullable().optional().describe("可选：设置或清除参数继承来源；null 表示清除继承"),
-    operations: z.array(batchOpSchema).min(1).optional().describe("可选：一次原子提交多个本系统组件的 set/reset/base 操作"),
-    versionToken: text.optional().describe("可选乐观并发令牌；省略时自动读取最新版本")
-  });
+  const updateInput = z
+    .strictObject({
+      entityId: text.optional().describe('目标规划实体 ID；默认 "world"'),
+      component: componentEnum.optional().describe(
+        spec.defaultComponent
+          ? `目标组件名；默认 "${spec.defaultComponent}"`
+          : `目标组件名（${componentListText}）；单组件更新时必填`
+      ),
+      values: z.record(z.string(), parameterValue).optional().describe("要设置的字段键值对；使用 config.get 声明的真实字段键（不可与 operations 同时传入）"),
+      base: baseTargetSchema.nullable().optional().describe("可选：设置或清除参数继承来源；null 表示清除继承（不可与 operations 同时传入）"),
+      operations: z.array(batchOpSchema).min(1).optional().describe("可选：一次原子提交多个本系统组件的 set/reset/base 操作（不可与顶层 values/base 同时传入）"),
+      versionToken: text.optional().describe("可选乐观并发令牌；省略时自动读取最新版本")
+    })
+    .superRefine((value, context) => {
+      if (value.operations?.length && (value.values !== undefined || value.base !== undefined)) {
+        context.addIssue({
+          code: "custom",
+          path: ["operations"],
+          message: "operations 与顶层 values/base 互斥，请将全部写操作合并到 operations 中，或仅使用单组件 values/base。"
+        });
+      }
+    });
 
   const resetInput = z.strictObject({
     entityId: text.optional().describe('目标规划实体 ID；默认 "world"'),
@@ -331,7 +344,7 @@ function buildSystemConfigContracts(spec: SystemConfigSpec) {
       domain: spec.domain,
       effect: "read",
       inputMode: "optional",
-      description: `读取${spec.label}的字段声明、当前有效值、作者覆盖或规划实体列表。${defaultHint}`,
+      description: `读取${spec.label}的字段声明、当前有效值、作者覆盖或规划实体列表。${getDefaultHint}`,
       inputDescription: "可按 component、fields、search、tags 定向读取；传 queryEntities/kind/authoredOnly 查询规划实体；按 nextOffset 分页。",
       outputDescription: "返回 mode（components/inspect/entities）、versionToken、availableComponents，以及对应组件目录、字段声明与有效值或实体列表。",
       input: getInput,
@@ -340,8 +353,8 @@ function buildSystemConfigContracts(spec: SystemConfigSpec) {
     update: defineSeedWorldApiContract({
       name: `${spec.system}.config.update`,
       domain: spec.domain,
-      description: `原子更新${spec.label}的作者参数。${defaultHint}`,
-      inputDescription: "提供 values（或 operations）和真实字段键；entityId 默认 world，versionToken 省略时自动读取最新版本号。",
+      description: `原子更新${spec.label}的作者参数。${mutateDefaultHint}`,
+      inputDescription: "提供 values（或 operations，两者互斥）和真实字段键；entityId 默认 world，versionToken 省略时自动读取最新版本号。",
       outputDescription: "返回提交状态（accepted/rejected/superseded）、最新 versionToken、changedIds、diagnostics 和可选 message。",
       input: updateInput,
       output: configMutationOutputSchema
@@ -349,7 +362,7 @@ function buildSystemConfigContracts(spec: SystemConfigSpec) {
     reset: defineSeedWorldApiContract({
       name: `${spec.system}.config.reset`,
       domain: spec.domain,
-      description: `重置${spec.label}的作者参数覆盖，恢复为系统默认或继承值。${defaultHint}`,
+      description: `重置${spec.label}的作者参数覆盖，恢复为系统默认或继承值。${mutateDefaultHint}`,
       inputDescription: "指定 component（单组件系统可省略）及可选 fields；省略 fields 重置该组件全部作者覆盖。",
       outputDescription: "返回提交状态、最新 versionToken、changedIds、diagnostics 和可选 message。",
       input: resetInput,
@@ -510,9 +523,27 @@ export function createSeedWorldParameterTools(
           const targetComponents = snapshot.components.filter(
             (component) => declaredByType.has(component.type) && (!effectiveComponent || component.type === effectiveComponent)
           );
+          const snapshotComponentTypes = new Set(targetComponents.map((component) => component.type));
+          // Entity-scoped components (e.g. poi, roadPath, rockObb, relief) do not live on "world".
+          // When entityId is omitted, still expose their declared field schema without fabricating values.
+          if (!input.entityId) {
+            for (const definition of declared) {
+              if (snapshotComponentTypes.has(definition.type)) continue;
+              if (effectiveComponent && definition.type !== effectiveComponent) continue;
+              if (!effectiveComponent && !definition.fields.some(fieldMatches)) continue;
+              targetComponents.push({
+                type: definition.type,
+                values: {},
+                local: {},
+                sources: {},
+                limits: {}
+              });
+            }
+          }
 
           const { readPlanningSystemInherited } = await import("../SeedWorldSystemDeclarations.ts");
           for (const component of targetComponents) {
+            if (!snapshotComponentTypes.has(component.type)) continue;
             const definition = declaredByType.get(component.type)!;
             const matchingKeys = definition.fields.filter(fieldMatches).map((f) => f.key);
             const allKeys = new Set([

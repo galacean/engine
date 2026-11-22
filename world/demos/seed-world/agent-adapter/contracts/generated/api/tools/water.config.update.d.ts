@@ -9,8 +9,8 @@ declare global {
     interface WaterConfigApi {
       /**
        * 调用入口：await tools.water.config.update(input)
-       * 原子更新湖泊与河流规划配置的作者参数。本系统包含组件：lakes, rivers；省略 component 且不传筛选条件时先返回组件目录。
-       * @param input - 提供 values（或 operations）和真实字段键；entityId 默认 world，versionToken 省略时自动读取最新版本号。
+       * 原子更新湖泊与河流规划配置的作者参数。本系统包含组件：lakes, rivers；单组件操作须指定 component。
+       * @param input - 提供 values（或 operations，两者互斥）和真实字段键；entityId 默认 world，versionToken 省略时自动读取最新版本号。
        * @returns 返回提交状态（accepted/rejected/superseded）、最新 versionToken、changedIds、diagnostics 和可选 message。
        */
       update(input: {
@@ -18,20 +18,20 @@ declare global {
         entityId?: string;
         /** 目标组件名（lakes, rivers）；单组件更新时必填。 */
         component?: "lakes" | "rivers";
-        /** 要设置的字段键值对；使用 config.get 声明的真实字段键。 */
+        /** 要设置的字段键值对；使用 config.get 声明的真实字段键（不可与 operations 同时传入）。 */
         values?: {
           [key: string]: (number | boolean | string) | (Array<{
               [key: string]: number | boolean | string;
             }>);
         };
-        /** 可选：设置或清除参数继承来源；null 表示清除继承。 */
+        /** 可选：设置或清除参数继承来源；null 表示清除继承（不可与 operations 同时传入）。 */
         base?: ({
           /** 继承来源的规划实体 ID。 最少 1 个字符。 */
           entityId: string;
           /** 继承来源的组件名。 */
           component: "lakes" | "rivers";
         }) | null;
-        /** 可选：一次原子提交多个本系统组件的 set/reset/base 操作。 最少 1 个元素。 */
+        /** 可选：一次原子提交多个本系统组件的 set/reset/base 操作（不可与顶层 values/base 同时传入）。 最少 1 个元素。 */
         operations?: Array<({
             op: "set";
             /** 最少 1 个字符。 */

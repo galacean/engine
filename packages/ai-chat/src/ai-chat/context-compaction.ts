@@ -178,11 +178,13 @@ export class AgentContextTranscript {
   }
 
   /**
-   * Offload image payloads that the model has already seen (strictly before the
-   * latest assistant turn) when server-side compaction cannot reduce the context
-   * because an earlier image pins the remaining tool history. Newly submitted
-   * user photos or snapshots after the latest assistant turn stay intact, and
-   * imagePath references remain usable with read/pick.
+   * Offload image payloads that precede the latest historical assistant turn in
+   * `#active` when server-side compaction cannot reduce the context because an
+   * earlier image pins the remaining tool history. Because `#requestModelTurn`
+   * runs this before the current round's assistant message is appended, a newly
+   * submitted photo or snapshot stays visible for at least one follow-up round
+   * (preserving visual continuity across multi-step `pick`/`read` -> `execute`
+   * chains), and `imagePath` references remain usable with `read`/`pick`.
    */
   offloadSeenImagesForCompaction(): number {
     let latestAssistantIndex = -1;

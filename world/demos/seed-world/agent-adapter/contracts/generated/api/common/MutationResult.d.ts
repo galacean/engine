@@ -28,7 +28,7 @@ export type MutationResult = ({
   createdRefs: Array<Ref>;
   /** 更新资产的有界稳定引用摘要。 */
   updatedRefs: Array<Ref>;
-  /** 已删除资产的有界身份摘要；这些 Ref 已是 tombstone，不能再检查或作为空间锚点。验证删除应把这些 Ref 的 id 传给 WorldSelector.ids。 */
+  /** 已删除资产的有界身份摘要；这些 Ref 已是 tombstone，不能再检查或作为空间锚点。验证删除应把这些 Ref 的 id 传给对应系统 query 的 ids。 */
   deletedRefs: Array<Ref>;
   /** 引用数组是否因有界返回而被截断；计数始终是完整值。 */
   refsTruncated: boolean;
@@ -59,7 +59,7 @@ export type MutationResult = ({
   createdRefs: Array<Ref>;
   /** 更新资产的有界稳定引用摘要。 */
   updatedRefs: Array<Ref>;
-  /** 已删除资产的有界身份摘要；这些 Ref 已是 tombstone，不能再检查或作为空间锚点。验证删除应把这些 Ref 的 id 传给 WorldSelector.ids。 */
+  /** 已删除资产的有界身份摘要；这些 Ref 已是 tombstone，不能再检查或作为空间锚点。验证删除应把这些 Ref 的 id 传给对应系统 query 的 ids。 */
   deletedRefs: Array<Ref>;
   /** 引用数组是否因有界返回而被截断；计数始终是完整值。 */
   refsTruncated: boolean;
@@ -90,7 +90,7 @@ export type MutationResult = ({
   createdRefs: Array<Ref>;
   /** 更新资产的有界稳定引用摘要。 */
   updatedRefs: Array<Ref>;
-  /** 已删除资产的有界身份摘要；这些 Ref 已是 tombstone，不能再检查或作为空间锚点。验证删除应把这些 Ref 的 id 传给 WorldSelector.ids。 */
+  /** 已删除资产的有界身份摘要；这些 Ref 已是 tombstone，不能再检查或作为空间锚点。验证删除应把这些 Ref 的 id 传给对应系统 query 的 ids。 */
   deletedRefs: Array<Ref>;
   /** 引用数组是否因有界返回而被截断；计数始终是完整值。 */
   refsTruncated: boolean;

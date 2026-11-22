@@ -9,7 +9,7 @@ declare global {
     interface AnimalsConfigApi {
       /**
        * 调用入口：await tools.animals.config.get(input)
-       * 读取动物种群与激活配置的字段声明、当前有效值、作者覆盖或规划实体列表。默认读取/修改 "animals" 组件。
+       * 读取动物种群与激活配置的字段声明、当前有效值、作者覆盖或规划实体列表。默认读取 "animals" 组件。
        * @param input - 可按 component、fields、search、tags 定向读取；传 queryEntities/kind/authoredOnly 查询规划实体；按 nextOffset 分页。
        * @returns 返回 mode（components/inspect/entities）、versionToken、availableComponents，以及对应组件目录、字段声明与有效值或实体列表。
        */

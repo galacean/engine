@@ -56,6 +56,25 @@ describe("single POI size weight authoring persistence", () => {
     };
     const described = await call("get", { component: "poi", fields: ["sizeWeight", "actualAreaM2", "active"] });
     expect(described.availableComponents).toContain("poi");
+    expect(described.components[0].fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: "sizeWeight", default: 1, min: 0.001 }),
+      expect.objectContaining({ key: "actualAreaM2", readonly: true })
+    ]));
+    expect(described.components[0].values).toEqual({});
+    const reliefTool = tools.find(tool => tool.name === "terrain.config.get")!;
+    const reliefDescribed = reliefTool.parseOutput(
+      await reliefTool.execute(reliefTool.parseInput({ component: "relief" }), { signal: new AbortController().signal })
+    ) as any;
+    expect(reliefDescribed.components[0].type).toBe("relief");
+    expect(reliefDescribed.components[0].fields.length).toBeGreaterThan(0);
+    const updateTool = tools.find(tool => tool.name === "spatial.config.update")!;
+    expect(() =>
+      updateTool.parseInput({
+        component: "poi",
+        values: { sizeWeight: 1.5 },
+        operations: [{ op: "set", component: "population", values: { villageMin: 2 } }]
+      })
+    ).toThrow(/互斥/);
     const queried = await call("get", { component: "poi", kind: "poi", limit: 1 });
     const id = queried.entities[0].id;
     const inspected = await call("get", { entityId: id, component: "poi", fields: ["sizeWeight", "actualAreaM2", "active"] });
