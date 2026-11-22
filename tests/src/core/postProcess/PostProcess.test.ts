@@ -9,6 +9,7 @@ import {
   Engine,
   Entity,
   Logger,
+  MeshCollider,
   MeshRenderer,
   PlaneCollider,
   PostProcess,
@@ -445,11 +446,26 @@ describe("PostProcess", () => {
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity2);
       collider.enabled = false;
+      Logger.enable();
       const volumeWarning = vi.spyOn(Logger, "warn");
-      engine.update();
-      expect(bloomBlend.intensity.value).to.equal(intensity1);
-      expect(volumeWarning).not.toHaveBeenCalled();
-      volumeWarning.mockRestore();
+      try {
+        engine.update();
+        expect(bloomBlend.intensity.value).to.equal(intensity1);
+        expect(volumeWarning).not.toHaveBeenCalled();
+
+        const emptyVolumeEntity = scene.createRootEntity("empty-local-volume");
+        try {
+          const emptyVolume = emptyVolumeEntity.addComponent(PostProcess);
+          emptyVolume.isGlobal = false;
+          engine.update();
+          expect(volumeWarning).toHaveBeenCalledTimes(1);
+        } finally {
+          emptyVolumeEntity.destroy();
+        }
+      } finally {
+        volumeWarning.mockRestore();
+        Logger.disable();
+      }
       collider.enabled = true;
       collider.center.set(0, 0, 0);
 
@@ -469,33 +485,43 @@ describe("PostProcess", () => {
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity1);
 
-      // Inactive and unsupported volumes must not produce warnings on each update.
+      // Disabled Rigidbodies and active unsupported colliders must not produce warnings on each update.
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-      const body = postEntity.addComponent(Rigidbody);
-      body.isKinematic = true;
-      body.enabled = false;
-      engine.update();
-      expect(bloomBlend.intensity.value).to.equal(intensity1);
-      expect(warnSpy).not.toHaveBeenCalled();
-      expect(errorSpy).not.toHaveBeenCalled();
+      try {
+        const body = postEntity.addComponent(Rigidbody);
+        body.isKinematic = true;
+        body.enabled = false;
+        engine.update();
+        expect(bloomBlend.intensity.value).to.equal(intensity1);
+        expect(warnSpy).not.toHaveBeenCalled();
+        expect(errorSpy).not.toHaveBeenCalled();
 
-      const plane = postEntity.addComponent(PlaneCollider);
-      const controller = postEntity.addComponent(CharacterController);
-      engine.update();
-      expect(bloomBlend.intensity.value).to.equal(intensity1);
-      expect(warnSpy).not.toHaveBeenCalled();
-      expect(errorSpy).not.toHaveBeenCalled();
-      plane.destroy();
-      controller.destroy();
+        body.destroy();
+        collider.enabled = false;
+        const plane = postEntity.addComponent(PlaneCollider);
+        const controller = postEntity.addComponent(CharacterController);
+        const meshCollider = postEntity.addComponent(MeshCollider);
+        meshCollider.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2, { keepMeshData: true });
+        engine.update();
+        expect(bloomBlend.intensity.value).to.equal(intensity1);
+        expect(warnSpy).not.toHaveBeenCalled();
+        expect(errorSpy).not.toHaveBeenCalled();
+        plane.destroy();
+        controller.destroy();
+        meshCollider.destroy();
 
-      body.enabled = true;
-      cameraEntity.transform.position.set(radius / 2, 0, 0);
-      engine.update();
-      expect(bloomBlend.intensity.value).to.equal(intensity2);
-      body.destroy();
-      warnSpy.mockRestore();
-      errorSpy.mockRestore();
+        collider.enabled = true;
+        const activeBody = postEntity.addComponent(Rigidbody);
+        activeBody.isKinematic = true;
+        cameraEntity.transform.position.set(radius / 2, 0, 0);
+        engine.update();
+        expect(bloomBlend.intensity.value).to.equal(intensity2);
+        activeBody.destroy();
+      } finally {
+        warnSpy.mockRestore();
+        errorSpy.mockRestore();
+      }
 
       engine.destroy();
     }

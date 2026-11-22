@@ -15,6 +15,7 @@ import {
   MeshCollider,
   PlaneCollider,
   PrimitiveMesh,
+  Scene,
   Script,
   Transform
 } from "@galacean/engine-core";
@@ -977,23 +978,30 @@ describe("Rigidbody", function () {
   });
 
   it("applies a pending mesh removal before switching to dynamic", function () {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const bodyEntity = rootEntity.createChild("mesh body");
     bodyEntity.addComponent(BoxCollider);
     const body = bodyEntity.addComponent(Rigidbody);
     body.isKinematic = true;
     const child = bodyEntity.createChild("mesh child");
     const mesh = child.addComponent(MeshCollider);
-    mesh.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
+    mesh.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2, { keepMeshData: true });
     const physics = engine.sceneManager.activeScene.physics;
+    const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
+    const hit = new HitResult();
+    expect(physics.raycast(ray, 10, hit) && hit.collider === mesh).toBe(true);
+    expect(errors).not.toHaveBeenCalled();
     physics._update(physics.fixedTimeStep);
 
     // Reparent and switch in the same frame: the native actor must not keep the pending triangle mesh
     rootEntity.addChild(child);
     body.isKinematic = false;
     body.wakeUp();
+    expect(physics.raycast(ray, 10, hit) && hit.collider === mesh).toBe(true);
     for (let i = 0; i < 30; i++) {
       physics._update(physics.fixedTimeStep);
     }
+    expect(errors).not.toHaveBeenCalled();
     expect(bodyEntity.transform.position.y).below(-0.1);
   });
 
@@ -2007,5 +2015,185 @@ describe("Rigidbody", function () {
     dynamicBody.applyImpulse(new Vector3(2, 0, 0));
     physics._update(physics.fixedTimeStep);
     expect(dynamicBody.linearVelocity.x).toBeCloseTo(1, 4);
+  });
+
+  it("detaches reparented child shapes when a disabled Rigidbody moves across scenes", () => {
+    const sourceScene = engine.sceneManager.activeScene;
+    const otherScene = new Scene(engine);
+    engine.sceneManager.addScene(otherScene);
+    try {
+      const parent = sourceScene.createRootEntity("disabled-body");
+      parent.transform.setPosition(0, 50, 0);
+      const body = parent.addComponent(Rigidbody);
+      const child = parent.createChild("reparented-child");
+      const box = child.addComponent(BoxCollider);
+
+      body.enabled = false;
+      const newParent = sourceScene.createRootEntity("new-parent");
+      newParent.transform.setPosition(0, 50, 0);
+      newParent.addChild(child);
+      otherScene.addRootEntity(parent);
+
+      expect(box.attachedRigidbody).toBeNull();
+      const ray = new Ray(new Vector3(0, 55, 0), new Vector3(0, -1, 0));
+      expect(sourceScene.physics.raycast(ray, 10)).toBe(true);
+      expect(otherScene.physics.raycast(ray, 10)).toBe(false);
+      parent.transform.setPosition(0, 80, 0);
+      expect(otherScene.physics.raycast(new Ray(new Vector3(0, 85, 0), new Vector3(0, -1, 0)), 10)).toBe(false);
+    } finally {
+      otherScene.destroy();
+    }
+  });
+
+  it("guards re-entrant destruction and deactivation during move, applyForce, and applyExplosionForce", () => {
+    for (const action of ["destroy", "disable", "kinematic"] as const) {
+      let armed = false;
+      class ReentrantTransform extends Transform {
+        override get worldPosition(): Vector3 {
+          if (armed) {
+            armed = false;
+            if (action === "destroy") body.destroy();
+            else if (action === "disable") body.enabled = false;
+            else body.isKinematic = true;
+          }
+          return super.worldPosition;
+        }
+      }
+      const entity = new Entity(engine, `reentrant-${action}`, ReentrantTransform);
+      entity.addComponent(BoxCollider);
+      const body = entity.addComponent(Rigidbody);
+      body.useGravity = false;
+      rootEntity.addChild(entity);
+
+      armed = true;
+      expect(() => body.applyForce(new Vector3(1, 0, 0))).not.toThrow();
+      if (!body.destroyed) {
+        body.enabled = true;
+        body.isKinematic = false;
+        armed = true;
+        expect(() => body.applyExplosionForce(10, new Vector3(), 5)).not.toThrow();
+      }
+      if (!body.destroyed) {
+        body.enabled = true;
+        body.isKinematic = true;
+        armed = true;
+        expect(() => body.move(new Vector3(1, 0, 0))).not.toThrow();
+      }
+      entity.destroy();
+    }
+  });
+
+  it("flushes mass edits on disabled Rigidbodies when reading centerOfMass or inertiaTensor", () => {
+    const entity = rootEntity.createChild("disabled-mass");
+    const box = entity.addComponent(BoxCollider);
+    box.size.set(2, 2, 2);
+    box.center.set(3, 0, 0);
+    const body = entity.addComponent(Rigidbody);
+    body.mass = 2;
+    const baseInertiaX = body.inertiaTensor.x;
+
+    body.enabled = false;
+    body.mass = 10;
+    expect(body.centerOfMass.x).toBeCloseTo(3, 4);
+    expect(body.inertiaTensor.x).toBeCloseTo(baseInertiaX * 5, 4);
+  });
+
+  it("skips getGlobalPose for continuously sleeping bodies while preserving sleeping nested body world poses", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 30, 0));
+    const body = box.getComponent(Rigidbody);
+    body.useGravity = false;
+    body.sleep();
+    physics._update(physics.fixedTimeStep);
+    expect(body.isSleeping()).toBe(true);
+
+    const pxActor = (body as any)._nativeActor._pxActor;
+    const poseSpy = vi.spyOn(pxActor, "getGlobalPose");
+    physics._update(physics.fixedTimeStep);
+    physics._update(physics.fixedTimeStep);
+    expect(poseSpy).not.toHaveBeenCalled();
+
+    const parent = rootEntity.createChild("moving-parent");
+    const parentBody = parent.addComponent(Rigidbody);
+    parentBody.isKinematic = true;
+    const child = parent.createChild("sleeping-child");
+    child.transform.setPosition(0, 20, 0);
+    child.addComponent(BoxCollider);
+    const childBody = child.addComponent(Rigidbody);
+    childBody.useGravity = false;
+    childBody.sleep();
+    physics._update(physics.fixedTimeStep);
+
+    parentBody.move(new Vector3(10, 0, 0));
+    physics._update(physics.fixedTimeStep);
+    expect(child.transform.worldPosition.x).toBeCloseTo(0, 4);
+    expect(child.transform.worldPosition.y).toBeCloseTo(20, 4);
+  });
+
+  it("re-arms child transform dirty flags after compound Rigidbody writeback", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const parent = rootEntity.createChild("compound-move");
+    const body = parent.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.linearVelocity = new Vector3(2, 0, 0);
+    const child = parent.createChild("child");
+    const box = child.addComponent(BoxCollider);
+
+    physics._update(physics.fixedTimeStep);
+    child.transform.position.set(0, 5, 0);
+    const hit = new HitResult();
+    expect(
+      physics.raycast(new Ray(new Vector3(parent.transform.worldPosition.x, 8, 0), new Vector3(0, -1, 0)), 10, hit)
+    ).toBe(true);
+    expect(hit.collider).toBe(box);
+    expect(hit.point.y).toBeCloseTo(5.5, 2);
+  });
+
+  it("supports prototype Script.onSleep/onWake, unwinds exceptions, and applies sleep() during entity deactivation", () => {
+    const events: string[] = [];
+    const holder = rootEntity.createChild("proto-sleep-holder");
+    holder.transform.setPosition(0, 40, 0);
+    holder.addComponent(BoxCollider);
+    const body = holder.addComponent(Rigidbody);
+    body.useGravity = false;
+    const physics = engine.sceneManager.activeScene.physics;
+
+    let failNext = false;
+    class ProtoSleepScript extends Script {
+      override onWake(target: Rigidbody): void {
+        if (target === body) events.push("wake");
+      }
+      override onSleep(target: Rigidbody): void {
+        if (target === body) events.push("sleep");
+        if (failNext) {
+          failNext = false;
+          throw new Error("sleep boom");
+        }
+      }
+    }
+    const script = holder.addComponent(ProtoSleepScript);
+    physics._update(physics.fixedTimeStep);
+    expect(events).toEqual(["wake"]);
+
+    failNext = true;
+    body.sleep();
+    expect(() => physics._update(physics.fixedTimeStep)).toThrow("sleep boom");
+    expect((holder as any)._scripts.isLopping).toBe(false);
+    script.enabled = false;
+    expect((holder as any)._scripts.length).toBe(0);
+
+    // Calling sleep() during deactivation executes immediately without deferring onto _pendingSleeps.
+    const deactEntity = rootEntity.createChild("deact-sleep");
+    deactEntity.addComponent(BoxCollider);
+    deactEntity.addComponent(
+      class extends Script {
+        override onDisable(): void {
+          deactBody.sleep();
+        }
+      }
+    );
+    const deactBody = deactEntity.addComponent(Rigidbody);
+    deactEntity.isActive = false;
+    expect((deactBody as any)._sleepPending).toBe(false);
   });
 });

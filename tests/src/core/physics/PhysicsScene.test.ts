@@ -2780,6 +2780,31 @@ describe("Physics Test", () => {
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 1, 1e40)).toEqual([]);
     });
 
+    it("stops remaining physics substeps when an onPhysicsUpdate callback deactivates the scene", () => {
+      const scene = new Scene(enginePhysX);
+      enginePhysX.sceneManager.addScene(scene);
+      const root = scene.createRootEntity("deactivate-in-substep");
+      let armed = false;
+      let calls = 0;
+      root.addComponent(
+        class extends Script {
+          override onPhysicsUpdate(): void {
+            if (!armed) return;
+            calls++;
+            scene.isActive = false;
+          }
+        }
+      );
+      try {
+        enginePhysX.update();
+        armed = true;
+        scene.physics._update(scene.physics.fixedTimeStep * 3);
+        expect(calls).toBe(1);
+      } finally {
+        scene.destroy();
+      }
+    });
+
     afterEach(() => {
       vi.restoreAllMocks();
       for (const root of enginePhysX.sceneManager.activeScene.rootEntities.slice()) {

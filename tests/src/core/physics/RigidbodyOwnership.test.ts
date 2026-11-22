@@ -634,6 +634,291 @@ describe("Rigidbody ownership", () => {
       expect(secondCalls).toBe(0);
       expect(childCalls).toBe(0);
     });
+
+    it.each([
+      { kind: "trigger", action: "disable" },
+      { kind: "trigger", action: "destroy" },
+      { kind: "collision", action: "disable" },
+      { kind: "collision", action: "destroy" }
+    ] as const)(
+      "does not fall back to the child Entity on a second $kind event after the first callback performs $action",
+      ({ kind, action }) => {
+        for (let i = 0; i < 2; i++) {
+          const target = root.createChild(`target-${i}`);
+          target.transform.setPosition(i * 0.25, 0, 0);
+          const targetBox = target.addComponent(BoxCollider);
+          targetBox.isTrigger = kind === "trigger";
+        }
+
+        const parent = root.createChild("compound-body");
+        const body = addBody(parent, false, false);
+        const child = parent.createChild("child");
+        child.addComponent(SphereCollider);
+
+        let parentCalls = 0;
+        let childCalls = 0;
+        if (kind === "trigger") {
+          parent.addComponent(
+            class extends Script {
+              override onTriggerEnter(): void {
+                parentCalls++;
+                if (action === "disable") body.enabled = false;
+                else body.destroy();
+              }
+            }
+          );
+          child.addComponent(
+            class extends Script {
+              override onTriggerEnter(): void {
+                childCalls++;
+              }
+            }
+          );
+        } else {
+          parent.addComponent(
+            class extends Script {
+              override onCollisionEnter(): void {
+                parentCalls++;
+                if (action === "disable") body.enabled = false;
+                else body.destroy();
+              }
+            }
+          );
+          child.addComponent(
+            class extends Script {
+              override onCollisionEnter(): void {
+                childCalls++;
+              }
+            }
+          );
+        }
+
+        update();
+        expect(parentCalls).toBe(action === "destroy" ? 1 : 2);
+        expect(childCalls).toBe(0);
+      }
+    );
+
+    it("emits balanced Exit/Enter when an active trigger collider is reparented across bodies", () => {
+      const zoneEntity = root.createChild("zone");
+      const zone = zoneEntity.addComponent(BoxCollider);
+      zone.isTrigger = true;
+      const zoneRecorder = zoneEntity.addComponent(TriggerRecorder);
+
+      const entityA = root.createChild("bodyA");
+      addBody(entityA, true);
+      const recorderA = entityA.addComponent(TriggerRecorder);
+
+      const entityB = root.createChild("bodyB");
+      addBody(entityB, true);
+      const recorderB = entityB.addComponent(TriggerRecorder);
+
+      const child = entityA.createChild("probe");
+      const childCollider = child.addComponent(SphereCollider);
+      const childRecorder = child.addComponent(TriggerRecorder);
+
+      update(2);
+      expect(recorderA.enters).toEqual([[zone, childCollider]]);
+      expect(zoneRecorder.enters).toEqual([[childCollider, zone]]);
+
+      //Case (a): reparent while staying overlapping -> Exit on bodyA, Enter on bodyB
+      entityB.addChild(child);
+      update();
+      expect(recorderA.exits).toEqual([[zone, childCollider]]);
+      expect(recorderB.enters).toEqual([[zone, childCollider]]);
+      expect(zoneRecorder.enters).toHaveLength(1);
+      expect(zoneRecorder.exits).toHaveLength(0);
+
+      update();
+      expect(recorderB.stays.length).toBeGreaterThanOrEqual(1);
+
+      //Case (b): reparent back to bodyA and move out in same step -> Exit on bodyB, nothing on bodyA
+      recorderA.enters.length = 0;
+      recorderA.exits.length = 0;
+      recorderB.exits.length = 0;
+      entityA.addChild(child);
+      entityA.transform.setPosition(20, 0, 0);
+      update(2);
+      expect(recorderB.exits).toEqual([[zone, childCollider]]);
+      expect(recorderA.enters).toHaveLength(0);
+      expect(recorderA.exits).toHaveLength(0);
+      expect(childRecorder.enters).toHaveLength(0);
+      expect(childRecorder.exits).toHaveLength(0);
+    });
+
+    it("prevents orphaned Exit on child when owning Rigidbody is destroyed after separating", () => {
+      const zone = root.createChild("zone").addComponent(BoxCollider);
+      zone.isTrigger = true;
+
+      const entityA = root.createChild("bodyA");
+      const bodyA = addBody(entityA, true);
+      const recorderA = entityA.addComponent(TriggerRecorder);
+
+      const child = entityA.createChild("probe");
+      const childCollider = child.addComponent(SphereCollider);
+      const childRecorder = child.addComponent(TriggerRecorder);
+
+      update(2);
+      expect(recorderA.enters).toEqual([[zone, childCollider]]);
+
+      entityA.transform.setPosition(20, 0, 0);
+      bodyA.destroy();
+      update(2);
+      expect(childRecorder.exits).toHaveLength(0);
+      expect(recorderA.exits).toHaveLength(0);
+    });
+
+    it("handles destroying the destination Rigidbody inside Exit before next-step static fallback", () => {
+      const zoneEntity = root.createChild("zone");
+      const zone = zoneEntity.addComponent(BoxCollider);
+      zone.isTrigger = true;
+      // Keep zone kinematic so the child remains overlapping with a dynamic/kinematic body after bodyB is destroyed.
+      addBody(zoneEntity, true);
+
+      const entityA = root.createChild("bodyA");
+      addBody(entityA, true);
+      const entityB = root.createChild("bodyB");
+      const bodyB = addBody(entityB, true);
+      const recorderB = entityB.addComponent(TriggerRecorder);
+
+      let aExits = 0;
+      entityA.addComponent(
+        class extends Script {
+          override onTriggerExit(): void {
+            aExits++;
+            bodyB.destroy();
+          }
+        }
+      );
+
+      const child = entityA.createChild("probe");
+      const childCollider = child.addComponent(SphereCollider);
+      const childRecorder = child.addComponent(TriggerRecorder);
+
+      update(2);
+      entityB.addChild(child);
+      update();
+      expect(aExits).toBe(1);
+      expect(recorderB.enters).toHaveLength(0);
+      expect(childRecorder.enters).toHaveLength(0);
+
+      // On the next step while still overlapping, the now-static collider receives Enter cleanly (not Stay)
+      update();
+      expect(aExits).toBe(1);
+      expect(childRecorder.enters).toEqual([[zone, childCollider]]);
+    });
+
+    it("routes compound Stay/Exit, nested Rigidbody contacts, and inner-body destroy transfer", () => {
+      const groundEntity = root.createChild("ground");
+      const ground = groundEntity.addComponent(BoxCollider);
+
+      const outerEntity = root.createChild("outer");
+      outerEntity.transform.setPosition(0, 0.75, 0);
+      addBody(outerEntity, false, false);
+      let outerEnter = 0;
+      let outerStay = 0;
+      let outerExit = 0;
+      outerEntity.addComponent(
+        class extends Script {
+          override onCollisionEnter(): void {
+            outerEnter++;
+          }
+          override onCollisionStay(): void {
+            outerStay++;
+          }
+          override onCollisionExit(): void {
+            outerExit++;
+          }
+        }
+      );
+
+      const innerEntity = outerEntity.createChild("inner");
+      const inner = addBody(innerEntity, false, false);
+      let innerEnter = 0;
+      let innerStay = 0;
+      let innerExit = 0;
+      innerEntity.addComponent(
+        class extends Script {
+          override onCollisionEnter(): void {
+            innerEnter++;
+          }
+          override onCollisionStay(): void {
+            innerStay++;
+          }
+          override onCollisionExit(): void {
+            innerExit++;
+          }
+        }
+      );
+
+      const leaf = innerEntity.createChild("leaf");
+      const leafCollider = leaf.addComponent(SphereCollider);
+      leafCollider.radius = 0.5;
+      const leafRecorder = leaf.addComponent(ContactRecorder);
+
+      update();
+      expect(innerEnter).toBe(1);
+      expect(outerEnter).toBe(0);
+      expect(leafRecorder.enterCount).toBe(0);
+
+      update();
+      expect(innerStay).toBe(1);
+      expect(outerStay).toBe(0);
+
+      // Destroying inner Rigidbody transfers leaf ownership to outer Rigidbody and fires inner Exit -> outer Enter
+      inner.destroy();
+      expect(leafCollider.attachedRigidbody).toBe(outerEntity.getComponent(Rigidbody));
+      update();
+      expect(outerEnter).toBe(1);
+      expect(leafRecorder.enterCount).toBe(0);
+
+      outerEntity.transform.setPosition(0, 10, 0);
+      update();
+      expect(outerExit).toBe(1);
+      expect(leafRecorder.exitCount).toBe(0);
+      expect(innerExit).toBe(0);
+    });
+
+    it("stops dispatching remaining collision scripts on the Rigidbody Entity when the first destroys the Rigidbody", () => {
+      root.createChild("ground").addComponent(BoxCollider);
+      const parent = root.createChild("parent");
+      parent.transform.setPosition(0, 0.75, 0);
+      const body = addBody(parent, false, false);
+      let firstCalls = 0;
+      let secondCalls = 0;
+      let childCalls = 0;
+
+      parent.addComponent(
+        class extends Script {
+          override onCollisionEnter(): void {
+            firstCalls++;
+            body.destroy();
+          }
+        }
+      );
+      parent.addComponent(
+        class extends Script {
+          override onCollisionEnter(): void {
+            secondCalls++;
+          }
+        }
+      );
+
+      const child = parent.createChild("child");
+      child.addComponent(SphereCollider).radius = 0.5;
+      child.addComponent(
+        class extends Script {
+          override onCollisionEnter(): void {
+            childCalls++;
+          }
+        }
+      );
+
+      update();
+      expect(firstCalls).toBe(1);
+      expect(secondCalls).toBe(0);
+      expect(childCalls).toBe(0);
+    });
   });
 
   describe("material", () => {

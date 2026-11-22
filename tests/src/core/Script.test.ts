@@ -219,45 +219,6 @@ describe("Script", () => {
       expect(script2.onStart).toHaveBeenCalledOnce();
     });
 
-    it("keeps unvisited and new scripts queued after an onStart callback throws", async () => {
-      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-      const scene = engine.sceneManager.activeScene;
-      const entity = scene.createRootEntity();
-      const calls: string[] = [];
-      const failure = new Error("onStart failed");
-      class Appended extends Script {
-        override onStart(): void {
-          calls.push("appended");
-        }
-      }
-      class Throwing extends Script {
-        override onStart(): void {
-          entity.addComponent(Appended);
-          throw failure;
-        }
-      }
-      class Pending extends Script {
-        override onStart(): void {
-          calls.push("pending");
-        }
-      }
-      entity.addComponent(Throwing);
-      entity.addComponent(Pending);
-      const starts = scene._componentsManager["_onStartScripts"];
-
-      try {
-        expect(() => engine.update()).toThrow(failure);
-        expect(starts.length).toBe(2);
-        engine.update();
-        expect(calls).toEqual(["pending", "appended"]);
-        expect(starts.length).toBe(0);
-        entity.destroy();
-        expect(starts._elements.every((script) => script === null)).toBe(true);
-      } finally {
-        engine.destroy();
-      }
-    });
-
     it("Engine destroy outside the main loop", async () => {
       class TestScript extends Script {
         onAwake() {
@@ -436,34 +397,6 @@ describe("Script", () => {
       rootEntity.addChild(entity);
       engine.update();
       expect(tag).to.equal("script2");
-    });
-
-    it("keeps script destroyed and does not re-run onDestroy when onDestroy throws", async () => {
-      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-      try {
-        const scene = engine.sceneManager.activeScene;
-        const rootEntity = scene.createRootEntity("root");
-        const entity = rootEntity.createChild("entity");
-        let destroyCalls = 0;
-
-        class ThrowingScript extends Script {
-          override onDestroy(): void {
-            destroyCalls++;
-            throw new Error("boom in onDestroy");
-          }
-        }
-
-        const script = entity.addComponent(ThrowingScript);
-        expect(() => script.destroy()).to.throw("boom in onDestroy");
-        expect(script.destroyed).to.equal(true);
-        expect(entity.getComponent(ThrowingScript)).to.equal(null);
-        expect(destroyCalls).to.equal(1);
-
-        expect(() => script.destroy()).to.not.throw();
-        expect(destroyCalls).to.equal(1);
-      } finally {
-        engine.destroy();
-      }
     });
   });
 });

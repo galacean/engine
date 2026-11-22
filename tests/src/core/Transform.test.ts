@@ -774,8 +774,8 @@ describe("Transform test", function () {
   });
 
   it("clone keeps correct world position when a component reads worldMatrix during clone", () => {
-    // A component that reads its (world) transform inside `_onClone` — exactly what the engine's own
-    // DynamicCollider does (`_onClone` -> `_syncNative` -> `_addNativeShape` reads `lossyWorldScale`).
+    // A component that reads its (world) transform inside `_onClone` — e.g., a physics
+    // component reading `lossyWorldScale` / `worldMatrix` when initialized or cloned.
     // Clone fills children before the parent's own components, so this read resolves the PARENT's
     // `_parentTransformCache` (and sets `_isParentDirty = false`) BEFORE the parent transform's
     // `_parentTransformCache` is cloned. Without `@ignoreClone` that copy overwrites the resolved

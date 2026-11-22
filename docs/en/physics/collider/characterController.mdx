@@ -61,7 +61,7 @@ The geometry follows the Entity's world scale. `rotation` inherited from Collide
 ### Specific Properties
 | Property | Description | Default |
 |----------|-------------|---------|
-| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | Requested step height in world units. PhysX excludes the controller from simulation and queries while this value exceeds its scaled height along `upDirection`. Finite negative values are clamped to 0. | 0.5 |
+| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | Requested step height in world units. PhysX excludes the controller from simulation and queries while this value exceeds its height scaled by the Entity's world Y scale. Finite negative values are clamped to 0. | 0.5 |
 | [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | Maximum slope angle (in degrees) the character can walk on.<ul><li>Surfaces steeper than this angle will be treated as unwalkable walls</li><li>Affects the character's climbing ability</li></ul> | 45° |
 | [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | Defines how to handle unwalkable surfaces.<ul><li>PreventClimbing: Prevents the character from climbing unwalkable slopes but doesn't force other movements (default)</li><li>PreventClimbingAndForceSliding: Prevents the character from climbing unwalkable slopes and forces the character to slide down</li></ul> | PreventClimbing |
 | [**upDirection**](/apis/core/#CharacterController-upDirection) | Defines the character's up direction. Default is (0, 1, 0), which means Y-axis up in world space. Affects movement and collision detection direction | (0, 1, 0) |

@@ -2,6 +2,7 @@ import { createPhysics } from "../../utils/physics";
 import {
   BoxCollider,
   CharacterController,
+  Collider,
   ControllerCollisionFlag,
   ControllerNonWalkableMode,
   Entity,
@@ -760,13 +761,14 @@ describe("CharacterController", () => {
       recoverEntity.transform.setPosition(7, 4, -2);
       recoverCC.collisionLayer = Layer.Layer3;
       recoverCC.isSceneQuery = true;
-      recoverCC.nonWalkableMode = ControllerNonWalkableMode.ForceSliding;
+      recoverCC.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding;
       recoverCC.upDirection = new Vector3(0, 1, 0);
       expect(errors).not.toHaveBeenCalled();
 
       recoverCC.stepOffset = 0.3;
       recoverCC.move(new Vector3(0, 0, 0), 0.0001, physics.fixedTimeStep);
       expect(errors).not.toHaveBeenCalled();
+      expect(recoverCC.nonWalkableMode).toBe(ControllerNonWalkableMode.PreventClimbingAndForceSliding);
       expect(recoverEntity.transform.position.x).toBeCloseTo(7, 4);
       expect(recoverEntity.transform.position.y).toBeCloseTo(4, 4);
       expect(recoverEntity.transform.position.z).toBeCloseTo(-2, 4);
@@ -938,6 +940,67 @@ describe("CharacterController", () => {
       } finally {
         entity.destroy();
       }
+    });
+
+    it("throws on non-finite upDirection assignment while preserving the prior native orientation", () => {
+      const entity = root.createChild("nan-up-cct");
+      entity.transform.setPosition(0, 0, 0);
+      const cc = entity.addComponent(CharacterController);
+      cc.radius = 1;
+      cc.height = 4;
+      cc.stepOffset = 0.2;
+      cc.upDirection = new Vector3(1, 0, 0);
+
+      expect(() => (cc.upDirection = new Vector3(Number.NaN, 0, 0))).toThrow();
+      expect([cc.upDirection.x, cc.upDirection.y, cc.upDirection.z]).toEqual([1, 0, 0]);
+
+      const hit = new HitResult();
+      expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(cc);
+      expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+    });
+
+    it("remains unowned by sibling or ancestor Rigidbodies and dispatches trigger events to its own Entity", () => {
+      const ancestor = root.createChild("ancestor");
+      ancestor.addComponent(BoxCollider);
+      const ancestorBody = ancestor.addComponent(Rigidbody);
+      ancestorBody.isKinematic = true;
+      let ancestorTriggers = 0;
+      ancestor.addComponent(
+        class extends Script {
+          override onTriggerEnter(): void {
+            ancestorTriggers++;
+          }
+        }
+      );
+
+      const zone = root.createChild("zone").addComponent(BoxCollider);
+      zone.size.set(4, 4, 4);
+      zone.isTrigger = true;
+      zone.entity.transform.setPosition(5, 2, 0);
+
+      const child = ancestor.createChild("child-cct");
+      child.transform.setPosition(5, 2, 0);
+      const siblingBody = child.addComponent(Rigidbody);
+      siblingBody.isKinematic = true;
+      const cc = child.addComponent(CharacterController);
+      const enters: [Collider, Collider][] = [];
+      child.addComponent(
+        class extends Script {
+          override onTriggerEnter(other: Collider, self: Collider): void {
+            enters.push([other, self]);
+          }
+        }
+      );
+
+      expect(cc.attachedRigidbody).toBeNull();
+      cc.move(new Vector3(0.5, 0, 0), 0.001, physics.fixedTimeStep);
+      expect(child.transform.worldPosition.x).toBeCloseTo(5.5, 3);
+      expect(ancestor.transform.worldPosition.x).toBe(0);
+
+      physics._update(physics.fixedTimeStep);
+      expect(enters).toEqual([[zone, cc]]);
+      expect(ancestorTriggers).toBe(0);
     });
   });
 });

@@ -28,30 +28,30 @@ The connection target must be a [Rigidbody](/en/docs/physics/collider/rigidbody)
 ## Property Description
 
 ### Connected Body
-- **connectedBody**  
+- [**connectedBody**](/apis/core/#FixedJoint-connectedBody)  
   Specifies the target Rigidbody to connect to. When set to null, the joint connects to a fixed point in world space, allowing you to fix objects at specific positions in space.
 
 ### Anchor Settings
-- **anchor**  
+- [**anchor**](/apis/core/#FixedJoint-anchor)  
   Defines the anchor point position on the joint's own Rigidbody, using local coordinates. This point defines the joint's connection position.
 
-- **connectedAnchor**  
+- [**connectedAnchor**](/apis/core/#FixedJoint-connectedAnchor)  
   Defines the connection point position. Its meaning depends on the connectedBody setting:
   - When connectedBody is null, represents an absolute position in world space
   - When connectedBody is not null, represents a relative position in the local space of the connected Rigidbody
 
-- **automaticConnectedAnchor**  
+- [**automaticConnectedAnchor**](/apis/core/#FixedJoint-automaticConnectedAnchor)  
   Whether to automatically calculate the connectedAnchor value. When enabled, the system automatically sets the connection point to maintain initial relative positions. Set to false for manual precise control of the connection point.
 
 ### Break Thresholds
-- **breakForce**  
+- [**breakForce**](/apis/core/#FixedJoint-breakForce)  
   Maximum force the joint can withstand before breaking. Set to Infinity for an unbreakable joint. This property can be used to simulate destructible connections between objects.
 
-- **breakTorque**  
+- [**breakTorque**](/apis/core/#FixedJoint-breakTorque)  
   Maximum torque the joint can withstand before breaking. Set to Infinity for an unbreakable joint. Used in conjunction with breakForce to simulate more realistic connection destruction.
 
 ### Physics Calculation Intervention
-- **connectedMassScale** and **massScale**  
+- [**connectedMassScale**](/apis/core/#FixedJoint-connectedMassScale) and [**massScale**](/apis/core/#FixedJoint-massScale)  
   Used to adjust the mass influence of the connected and own Rigidbodies respectively. These scaling values affect joint constraint calculations, allowing fine-tuning of joint physics behavior. Default value is 1.0, increasing values increases the corresponding Rigidbody's "importance" in constraint solving.
 
 ## Script Usage

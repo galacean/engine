@@ -669,6 +669,16 @@ describe("MeshCollider", () => {
     collider.isTrigger = false;
     expect(collider.isTrigger).toBe(false);
     expect(physics.raycast(rayAt(0))).toBe(true);
+
+    // Clearing mesh = null after a trigger rejection resets the rejection latch for the next assignment.
+    collider.isTrigger = true;
+    expect(physics.raycast(rayAt(0))).toBe(false);
+    expect(errors).toHaveBeenCalledTimes(3);
+    collider.mesh = null;
+    expect(physics.raycast(rayAt(0))).toBe(false);
+    collider.mesh = createCubeMesh(engine, 1);
+    expect(physics.raycast(rayAt(0))).toBe(false);
+    expect(errors).toHaveBeenCalledTimes(4);
   });
 
   it.each([false, true])("becomes queryable after starting at uniform zero scale (convex=%s)", (convex) => {

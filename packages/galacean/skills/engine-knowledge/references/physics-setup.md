@@ -6,15 +6,15 @@ Use this reference when choosing who owns motion, when synchronization occurs, o
 
 - Physics is opt-in through Engine configuration. Without a provider, physics components and physics-backed picking do not have a simulation owner.
 - A Collider component (`BoxCollider`, `SphereCollider`, `CapsuleCollider`, `PlaneCollider`, `MeshCollider`) is the shape. The nearest `Rigidbody` on its Entity or ancestors owns it; without one it is static and follows its own Entity. Build compound bodies from several Colliders on the Rigidbody's Entity or its descendants. An Entity can have at most one Rigidbody.
-- Disabling a Rigidbody removes it and its Colliders from simulation and queries without making them static; removing the Rigidbody makes them static. `PlaneCollider` and a `MeshCollider` with `convex = false` can only be static or kinematic.
+- Disabling a Rigidbody removes it and its Colliders from simulation and queries without making them static; removing the Rigidbody lets the next ancestor Rigidbody take ownership or makes them static if there is no ancestor body. `PlaneCollider` and a `MeshCollider` with `convex = false` can only be static or kinematic.
 - A non-kinematic Rigidbody is simulation-owned. Drive continuous motion through velocity, forces, and torque rather than competing transform writes.
 - A direct Transform change is synchronized to the native actor before the next physics step or query as a teleport. It is not swept through the path between the old and new pose.
 - A kinematic Rigidbody is application-owned. Use `Rigidbody.move` when interactions along the movement path matter; a direct Transform assignment still has teleport semantics.
-- After each simulation step, the native pose of every enabled Rigidbody is written back to its Transform. `CharacterController.move` writes the Entity's world position immediately.
+- After each simulation step, the native pose of every enabled Rigidbody with `simulationEnabled = true` is written back to its Transform. `CharacterController.move` writes the Entity's world position immediately.
 
 ## Fixed-step order
 
-Within a physics step, active Scripts receive `onPhysicsUpdate`, pending component and Transform changes are synchronized to the native scene, the provider simulates, Rigidbody poses are read back, and collision or trigger events are dispatched.
+Within a physics step, active Scripts receive `onPhysicsUpdate`, pending component and Transform changes are synchronized to the native scene, the provider simulates, simulated Rigidbody poses are read back, and collision, trigger, and sleep/wake events are dispatched.
 
 This ordering means a pose or force chosen in `onPhysicsUpdate` affects the upcoming step. Rendered-frame callbacks must not assume exactly one simulation step has occurred.
 
