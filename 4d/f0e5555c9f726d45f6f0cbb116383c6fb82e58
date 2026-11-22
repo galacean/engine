@@ -1,0 +1,21 @@
+e2e/fixtures/originImage/Physics_physx-mesh-collider.jpg
+  s_3cd6502d102d7f::t_e1e9dc30013f68 2-3
+tests/src/core/lighting/LightAttenuation.test.ts
+  s_3cd6502d102d7f::t_0172d52a56de22 19-26,30-34,45,47-75,95,97,126-130,132-133,135-139,141-143,145-146,149-172,175,178,181-183,185-190,192-194,196-197,199-201,203-205,207-209,211-212,214-217,219-221,223-225
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4df0e5555c9f726d45f6f0cbb116383c6fb82e58",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

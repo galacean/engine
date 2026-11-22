@@ -1,0 +1,47 @@
+e2e/fixtures/originImage/Animator_animator-customAnimationClip.jpg
+  s_3cd6502d102d7f::t_6662e25049957b 2-3
+e2e/fixtures/originImage/Physics_physx-collision-group.jpg
+  s_3cd6502d102d7f::t_3a043efe957e80 2-3
+e2e/fixtures/originImage/Physics_physx-collision.jpg
+  s_3cd6502d102d7f::t_92d0120531e214 2-3
+e2e/fixtures/originImage/Physics_physx-customUrl.jpg
+  s_3cd6502d102d7f::t_0a6620e54ee094 2-3
+e2e/fixtures/originImage/Physics_physx-mesh-collider-data.jpg
+  s_3cd6502d102d7f::t_f834b0093130fa 2-3
+e2e/fixtures/originImage/Physics_physx-mesh-collider.jpg
+  s_3cd6502d102d7f::t_8b4db863d21784 2-3
+examples/src/buffer-mesh-independent.ts
+  s_3cd6502d102d7f::t_789434d5f0d865 74-75
+examples/src/buffer-mesh-interleaved.ts
+  s_3cd6502d102d7f::t_1860fc94fde053 31-32
+packages/core/src/lighting/PointLight.ts
+  s_3cd6502d102d7f::t_610f8baaedd1be 14,26-42,72-75,103
+packages/core/src/lighting/SpotLight.ts
+  s_3cd6502d102d7f::t_bb1e4b10bf2bf0 1,18,33,42-57,107-110,142
+packages/loader/src/gltf/extensions/KHR_lights_punctual.ts
+  s_3cd6502d102d7f::t_3bdfe1d91ef01b 33-34
+packages/shader/src/ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl
+  s_3cd6502d102d7f::t_0b3bf6ae595e42 91-106,115-135
+packages/shader/src/ShaderLibrary/Lighting/Light.glsl
+  s_3cd6502d102d7f::t_331adcb2dffe87 34-46
+packages/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl
+  s_3cd6502d102d7f::t_ea0508312d9641 64-69,78-88
+tests/src/core/lighting/LightAttenuation.test.ts
+  s_3cd6502d102d7f::t_3793d9e1c2c355 1-256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8c2d7b216a5d3b810e048051179529e9d3e55f95",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

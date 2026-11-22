@@ -1,0 +1,16 @@
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases-v4.ts
+  h_ddbf152d31b140 408
+packages/building/src/skills/building/SKILL.md
+  h_ddbf152d31b140 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "844eb2f2e91455bb13f1bc1f156a70f009e780a9",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
