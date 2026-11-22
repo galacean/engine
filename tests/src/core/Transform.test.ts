@@ -50,59 +50,6 @@ describe("Transform test", function () {
     expect(transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
   });
 
-  it("uses the matrix basis for an aligned child of a matrix-authored parent", () => {
-    const parent = scene.createRootEntity();
-    const child = parent.createChild();
-    const matrix = new Matrix();
-    matrix.elements[1] = matrix.elements[4] = 0.0625;
-    parent.transform.localMatrix = matrix;
-
-    expect(child.transform.lossyWorldScale.x).toBeCloseTo(1, 5);
-    parent.transform.setScale(2, 3, 4);
-    expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 4));
-    parent.destroy();
-  });
-
-  it("uses custom local matrices for child and descendant world scale", () => {
-    class MatrixScalingTransform extends Transform {
-      private readonly _matrix = new Matrix();
-
-      constructor(entity: Entity) {
-        super(entity);
-        this._matrix.elements[0] = 2;
-      }
-
-      override get localMatrix(): Matrix {
-        return this._matrix;
-      }
-    }
-
-    const root = scene.createRootEntity();
-    const child = root.createChild();
-    const grandchild = child.createChild();
-    const custom = child.addComponent(MatrixScalingTransform);
-    try {
-      root.transform.setScale(3, 3, 3);
-      expect(custom.worldMatrix.elements[0]).toBe(6);
-      expect(custom.lossyWorldScale).toEqual(new Vector3(6, 3, 3));
-
-      const transform = grandchild.transform;
-      expect(transform.lossyWorldScale).toEqual(new Vector3(6, 3, 3));
-      transform.setRotation(0, 0, 90);
-      expect(transform.lossyWorldScale.x).toBeCloseTo(3, 5);
-      expect(transform.lossyWorldScale.y).toBeCloseTo(6, 5);
-
-      scene.addRootEntity(child);
-      expect(custom.worldMatrix.elements[0]).toBe(2);
-      expect(custom.lossyWorldScale).toEqual(new Vector3(2, 1, 1));
-      expect(transform.lossyWorldScale.x).toBeCloseTo(1, 5);
-      expect(transform.lossyWorldScale.y).toBeCloseTo(2, 5);
-    } finally {
-      child.destroy();
-      root.destroy();
-    }
-  });
-
   it("updates child world scale after a parent position and scale edit following a child read", () => {
     const parent = scene.createRootEntity("scale parent");
     const child = parent.createChild("scale child");
@@ -154,7 +101,8 @@ describe("Transform test", function () {
       child.transform.setScale(4, 5, 6);
       child.transform.setRotation(90, 0, 0);
       expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
-      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(2);
+      // Unrotated parent uses exact scalar multiplication; rotated child still falls back to matrix decomposition.
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(1);
 
       parent.transform.setPosition(4, 0, 0);
       grandparent.transform.setScale(2, 2, 3);
@@ -176,6 +124,135 @@ describe("Transform test", function () {
     } finally {
       scaleMatMultiplySpy.mockRestore();
       grandparent.destroy();
+    }
+  });
+
+  it("uses matrix scale decomposition for authored sheared localMatrix and restores TRS after edits", () => {
+    const parent = scene.createRootEntity();
+    const child = parent.createChild();
+    try {
+      const matrix = new Matrix();
+      matrix.elements[1] = matrix.elements[4] = 0.0625;
+      matrix.elements[10] = Math.hypot(1, 0.0625);
+      parent.transform.localMatrix = matrix;
+
+      expect(parent.transform.lossyWorldScale.x).toBeCloseTo(1, 5);
+      expect(child.transform.lossyWorldScale.x).toBeCloseTo(1, 5);
+
+      parent.transform.setScale(2, 3, 4);
+      expect(parent.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 4));
+      expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 4));
+    } finally {
+      parent.destroy();
+    }
+  });
+
+  it("uses matrix scale decomposition for Transform subclasses overriding matrix or scale accessors", () => {
+    class MatrixScalingTransform extends Transform {
+      private readonly _matrix = new Matrix();
+
+      constructor(entity: Entity) {
+        super(entity);
+        this._matrix.elements[0] = 2;
+      }
+
+      override get localMatrix(): Matrix {
+        return this._matrix;
+      }
+    }
+
+    class CustomScaleTransform extends Transform {
+      private readonly _customScale = new Vector3(9, 9, 9);
+
+      override get lossyWorldScale(): Vector3 {
+        return this._customScale;
+      }
+    }
+
+    const root = scene.createRootEntity();
+    const child = root.createChild();
+    const grandchild = child.createChild();
+    const custom = child.addComponent(MatrixScalingTransform);
+    const scaleRoot = scene.createRootEntity();
+    const scaleChild = scaleRoot.createChild();
+    scaleRoot.addComponent(CustomScaleTransform);
+    try {
+      root.transform.setScale(3, 3, 3);
+      expect(custom.worldMatrix.elements[0]).toBe(6);
+      expect(custom.lossyWorldScale).toEqual(new Vector3(6, 3, 3));
+
+      const transform = grandchild.transform;
+      expect(transform.lossyWorldScale).toEqual(new Vector3(6, 3, 3));
+      transform.setRotation(0, 0, 90);
+      expect(transform.lossyWorldScale.x).toBeCloseTo(3, 5);
+      expect(transform.lossyWorldScale.y).toBeCloseTo(6, 5);
+
+      scene.addRootEntity(child);
+      expect(custom.worldMatrix.elements[0]).toBe(2);
+      expect(custom.lossyWorldScale).toEqual(new Vector3(2, 1, 1));
+      expect(transform.lossyWorldScale.x).toBeCloseTo(1, 5);
+      expect(transform.lossyWorldScale.y).toBeCloseTo(2, 5);
+
+      expect(scaleChild.transform.lossyWorldScale).toEqual(new Vector3(1, 1, 1));
+    } finally {
+      child.destroy();
+      root.destroy();
+      scaleRoot.destroy();
+    }
+  });
+
+  it("keeps unrotated child lossyWorldScale exact without matrix decomposition while a non-uniform parent rotates", () => {
+    const parent = scene.createRootEntity("non-uniform-parent");
+    const child = parent.createChild("unrotated-child");
+    const grandchild = child.createChild("unrotated-grandchild");
+    const scaleMatMultiplySpy = vi.spyOn(Matrix3x3, "multiply");
+    try {
+      parent.transform.setScale(2, 3, 2);
+      grandchild.transform.setScale(2, 0.5, 4);
+
+      for (let step = 1; step <= 90; step++) {
+        parent.transform.setRotation(0, step * 3.7, 0);
+        expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 2));
+        expect(grandchild.transform.lossyWorldScale).toEqual(new Vector3(4, 1.5, 8));
+      }
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+
+      child.transform.setRotation(0, 0, 90);
+      expect(child.transform.lossyWorldScale).toEqual(new Vector3(3, 2, 2));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(1);
+
+      scaleMatMultiplySpy.mockClear();
+      child.transform.setRotationQuaternion(0, 0, 0, -1);
+      parent.transform.setRotation(0, 37, 0);
+      expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 2));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+
+      child.transform.setRotation(0, 0, 0);
+      parent.transform.setRotation(0, 74, 0);
+      expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 2));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+
+      // Unrotated child under a sheared parent still matches its matrix scale without extra multiplication.
+      const shearGrandparent = scene.createRootEntity("shear-grandparent");
+      const shearParent = shearGrandparent.createChild("shear-parent");
+      const shearChild = shearParent.createChild("shear-child");
+      try {
+        shearGrandparent.transform.setScale(2, 1, 1);
+        shearParent.transform.setRotation(0, 0, 45);
+        shearChild.transform.setScale(2, 3, 4);
+        const parentScale = shearParent.transform.lossyWorldScale.clone();
+        scaleMatMultiplySpy.mockClear();
+        const childScale = shearChild.transform.lossyWorldScale;
+        expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+        expect(childScale.x).toBeCloseTo(parentScale.x * 2, 6);
+        expect(childScale.y).toBeCloseTo(parentScale.y * 3, 6);
+        expect(childScale.z).toBeCloseTo(parentScale.z * 4, 6);
+      } finally {
+        shearGrandparent.destroy();
+      }
+    } finally {
+      scaleMatMultiplySpy.mockRestore();
+      parent.destroy();
     }
   });
 
