@@ -1,16 +1,5 @@
 import { createPhysics } from "../../utils/physics";
-import {
-  Component,
-  dependentComponents,
-  DependentMode,
-  HingeJoint,
-  JointLimits,
-  JointMotor,
-  Entity,
-  Rigidbody,
-  BoxCollider,
-  Engine
-} from "@galacean/engine-core";
+import { HingeJoint, JointLimits, JointMotor, Entity, Rigidbody, BoxCollider, Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
@@ -649,32 +638,6 @@ describe("HingeJoint", function () {
     body.sleep();
     joint.axis.set(0, 1, 0);
     expect(body.isSleeping()).toBe(false);
-  });
-
-  it("keeps motor and limits listeners alive when HingeJoint destroy is rejected by a dependent component", function () {
-    @dependentComponents(HingeJoint, DependentMode.CheckOnly)
-    class HingeConsumer extends Component {}
-
-    engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
-    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
-    const joint = box.addComponent(HingeJoint);
-    const motor = new JointMotor();
-    motor.targetVelocity = 0;
-    motor.forceLimit = 500;
-    joint.motor = motor;
-    joint.useMotor = true;
-    const consumer = box.addComponent(HingeConsumer);
-
-    expect(() => joint.destroy()).toThrow();
-    expect(joint.destroyed).toBe(false);
-
-    // Motor listener must still work after rejected destroy
-    motor.targetVelocity = 6;
-    engine.sceneManager.activeScene.physics._update(0.2);
-    expect(joint.velocity).toBeGreaterThan(3);
-
-    consumer.destroy();
-    expect(() => joint.destroy()).not.toThrow();
   });
 
   it("validates HingeJoint.axis and keeps rotation sync working after pre-enable zero axis", function () {

@@ -1,4 +1,3 @@
-import type { Scene } from "../../Scene";
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
 import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
@@ -219,9 +218,9 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   /**
    * @internal
    */
-  override _onDisableInScene(scene: Scene): void {
-    super._onDisableInScene(scene);
-    scene._maskManager.removeSpriteMask(this);
+  override _onDisableInScene(): void {
+    super._onDisableInScene();
+    this.scene!._maskManager.removeSpriteMask(this);
   }
 
   /**

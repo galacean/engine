@@ -39,8 +39,6 @@ import { XRManager } from "./xr/XRManager";
  * Engine.
  */
 export class Engine extends EventDispatcher {
-  private static readonly _noFrameError = {};
-
   /** @internal */
   static _builtinShaders: BuiltinShaders;
 
@@ -317,91 +315,77 @@ export class Engine extends EventDispatcher {
 
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
-    const noError = Engine._noFrameError;
-    let firstError: unknown = noError;
-    try {
-      this._renderElementPool.clear();
-      this._textRenderElementPool.clear();
 
-      this.xrManager?._update();
-      const { inputManager, _physicsInitialized: physicsInitialized } = this;
-      inputManager._update();
+    this._renderElementPool.clear();
+    this._textRenderElementPool.clear();
 
-      this._refreshActivePostProcessPasses();
-      const scenes = this._sceneManager._scenes.getLoopArray();
-      const sceneCount = scenes.length;
+    this.xrManager?._update();
+    const { inputManager, _physicsInitialized: physicsInitialized } = this;
+    inputManager._update();
 
+    this._refreshActivePostProcessPasses();
+    const scenes = this._sceneManager._scenes.getLoopArray();
+    const sceneCount = scenes.length;
+
+    // Sort cameras and fire script `onStart`
+    for (let i = 0; i < sceneCount; i++) {
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
+      const componentsManager = scene._componentsManager;
+      componentsManager.sortCameras();
+      componentsManager.callScriptOnStart();
+    }
+
+    // Update physics and fire `onPhysicsUpdate`
+    if (physicsInitialized) {
       for (let i = 0; i < sceneCount; i++) {
         const scene = scenes[i];
         if (!scene.isActive || scene.destroyed) continue;
-        const componentsManager = scene._componentsManager;
-        componentsManager.sortCameras();
-        componentsManager.callScriptOnStart();
-      }
-
-      if (physicsInitialized) {
-        for (let i = 0; i < sceneCount; i++) {
-          const scene = scenes[i];
-          if (!scene.isActive || scene.destroyed) continue;
-          scene.physics._update(deltaTime);
-        }
-      }
-
-      inputManager._firePointerScript(scenes);
-
-      for (let i = 0; i < sceneCount; i++) {
-        const scene = scenes[i];
-        if (!scene.isActive || scene.destroyed) continue;
-        scene._componentsManager.callScriptOnUpdate(deltaTime);
-      }
-
-      for (let i = 0; i < sceneCount; i++) {
-        const scene = scenes[i];
-        if (!scene.isActive || scene.destroyed) continue;
-        scene._componentsManager.callAnimationUpdate(deltaTime);
-      }
-
-      for (let i = 0; i < sceneCount; i++) {
-        const scene = scenes[i];
-        if (!scene.isActive || scene.destroyed) continue;
-        scene._componentsManager.callScriptOnLateUpdate(deltaTime);
-      }
-
-      if (!this._hardwareRenderer.isContextLost()) {
-        this._render(scenes);
-      }
-    } catch (error) {
-      firstError = error;
-    } finally {
-      // Finish deferred destruction even if a frame callback throws.
-      try {
-        this._processPendingDestroyObjects();
-      } catch (error) {
-        if (firstError === noError) firstError = error;
-      }
-
-      this._frameInProcess = false;
-
-      if (this._waitingDestroy) {
-        try {
-          this._destroy();
-        } catch (error) {
-          if (firstError === noError) firstError = error;
-        }
-      }
-
-      if (this._waitingGC) {
-        try {
-          this._gc();
-        } catch (error) {
-          if (firstError === noError) firstError = error;
-        } finally {
-          this._waitingGC = false;
-        }
+        scene.physics._update(deltaTime);
       }
     }
-    if (firstError !== noError) {
-      throw firstError;
+
+    // Fire `onPointerXX`
+    inputManager._firePointerScript(scenes);
+
+    // Fire `onUpdate`
+    for (let i = 0; i < sceneCount; i++) {
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
+      scene._componentsManager.callScriptOnUpdate(deltaTime);
+    }
+
+    // Update `Animator` logic
+    for (let i = 0; i < sceneCount; i++) {
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
+      scene._componentsManager.callAnimationUpdate(deltaTime);
+    }
+
+    // Fire `onLateUpdate`
+    for (let i = 0; i < sceneCount; i++) {
+      const scene = scenes[i];
+      if (!scene.isActive || scene.destroyed) continue;
+      scene._componentsManager.callScriptOnLateUpdate(deltaTime);
+    }
+
+    // Render scene and fire `onBeginRender` and `onEndRender`
+    if (!this._hardwareRenderer.isContextLost()) {
+      this._render(scenes);
+    }
+
+    // Process pending destroys
+    this._processPendingDestroyObjects();
+
+    this._frameInProcess = false;
+
+    if (this._waitingDestroy) {
+      this._destroy();
+    }
+
+    if (this._waitingGC) {
+      this._gc();
+      this._waitingGC = false;
     }
   }
 
@@ -495,68 +479,36 @@ export class Engine extends EventDispatcher {
   private _processPendingDestroyObjects(): void {
     const pending = this._pendingDestroyObjects;
     this._processingPendingDestroys = true;
-    let firstError: unknown;
-    let hasError = false;
-    try {
-      for (let i = 0, n = pending.length; i < n; i++) {
-        try {
-          pending[i].destroy();
-        } catch (error) {
-          if (!hasError) {
-            firstError = error;
-            hasError = true;
-          }
-        }
-      }
-    } finally {
-      pending.length = 0;
-      this._processingPendingDestroys = false;
+    for (let i = 0, n = pending.length; i < n; i++) {
+      pending[i].destroy();
     }
-    if (hasError) {
-      throw firstError;
-    }
+    pending.length = 0;
+    this._processingPendingDestroys = false;
   }
 
   private _destroy(): void {
     this._destroyed = true;
     this._waitingDestroy = false;
 
-    let firstError: unknown;
-    let hasError = false;
-    const runStep = (step: () => void): void => {
-      try {
-        step();
-      } catch (error) {
-        if (!hasError) {
-          firstError = error;
-          hasError = true;
-        }
-      }
-    };
+    this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize);
+    this._canvas._destroy();
 
-    runStep(() => this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize));
-    runStep(() => this._canvas._destroy());
+    this._sceneManager._destroyAllScene();
+    this._resourceManager._destroy();
 
-    runStep(() => this._sceneManager._destroyAllScene());
-    runStep(() => this._resourceManager._destroy());
-
-    runStep(() => this.inputManager._destroy());
-    runStep(() => this._batcherManager.destroy());
-    runStep(() => this._renderTargetPool.gc());
-    runStep(() => this.xrManager?._destroy());
-    runStep(() => this.dispatch(EngineEventType.Shutdown, this));
+    this.inputManager._destroy();
+    this._batcherManager.destroy();
+    this._renderTargetPool.gc();
+    this.xrManager?._destroy();
+    this.dispatch(EngineEventType.Shutdown, this);
 
     // Cancel animation
-    runStep(() => this.pause());
+    this.pause();
 
-    runStep(() => Shader._clear(this));
-    runStep(() => this._hardwareRenderer.destroy());
+    Shader._clear(this);
+    this._hardwareRenderer.destroy();
 
-    runStep(() => this.removeAllEventListeners());
-
-    if (hasError) {
-      throw firstError;
-    }
+    this.removeAllEventListeners();
   }
 
   /**

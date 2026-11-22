@@ -26,15 +26,15 @@ export class SceneManager {
   constructor(public readonly engine: Engine) {}
 
   /**
-   * Registers a scene at the end of the scene list.
-   * @param scene - A scene owned by this engine
+   * Add scene.
+   * @param scene - The scene which want to be added
    */
   addScene(scene: Scene): void;
 
   /**
-   * Registers or moves a scene at the given position.
-   * @param index - Zero-based position in the scene list
-   * @param scene - A scene owned by this engine
+   * Add scene at specified index.
+   * @param index - specified index
+   * @param child - The scene which want to be added
    */
   addScene(index: number, scene: Scene): void;
 
@@ -64,27 +64,24 @@ export class SceneManager {
         scenes.add(index, targetScene);
       }
     } else {
-      const active = targetScene.isActive;
-      if (active) targetScene._assertActivationIdle(true);
       targetScene._sceneManager = this;
       scenes.add(index, targetScene);
-      if (active) targetScene._processActive(true);
+      targetScene.isActive && targetScene._processActive(true);
     }
   }
 
   /**
-   * Unregisters a scene and deactivates its entity hierarchy without destroying it.
-   * @param scene - The scene to unregister
+   * Remove scene.
+   * @param scene - The scene which want to be removed
    */
   removeScene(scene: Scene): void {
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
     if (index !== -1) {
-      const active = scene.isActive;
-      if (active) scene._assertActivationIdle(false);
+      const removedScene = scenes.getArray()[index];
       scenes.removeByIndex(index);
       scene._sceneManager = null;
-      if (active) scene._processActive(false);
+      removedScene.isActive && removedScene._processActive(false);
     }
   }
 
@@ -109,24 +106,15 @@ export class SceneManager {
   }
 
   /**
-   * Moves root entities from the source scene into the destination scene.
-   * @remarks The moved entities use the destination's scene settings. The source scene remains available.
-   * @param sourceScene - The scene to move roots from
-   * @param destScene - The scene to receive the roots
+   * Merge the source scene into the target scene.
+   * @remarks the global information of destScene will be used after the merge, and the lightingMap information will be merged.
+   * @param sourceScene - source scene
+   * @param destScene - target scene
    */
   mergeScenes(sourceScene: Scene, destScene: Scene): void {
-    if (sourceScene === destScene) return;
-    const roots = sourceScene._rootEntities;
-    while (
-      roots.length > 0 &&
-      !sourceScene.destroyed &&
-      !sourceScene.pendingDestroy &&
-      !destScene.destroyed &&
-      !destScene.pendingDestroy
-    ) {
-      const root = roots[0];
-      destScene.addRootEntity(root);
-      if (roots[0] === root) break;
+    const oldRootEntities = sourceScene.rootEntities;
+    while (oldRootEntities.length > 0) {
+      destScene.addRootEntity(oldRootEntities[0]);
     }
   }
 
@@ -135,24 +123,8 @@ export class SceneManager {
    */
   _destroyAllScene(): void {
     const allCreatedScenes = this._allCreatedScenes;
-    let firstError: unknown;
-    let hasError = false;
     while (allCreatedScenes.length > 0) {
-      const scene = allCreatedScenes[0];
-      try {
-        scene.destroy();
-      } catch (error) {
-        if (!hasError) {
-          firstError = error;
-          hasError = true;
-        }
-        if (allCreatedScenes[0] === scene) {
-          allCreatedScenes.shift();
-        }
-      }
-    }
-    if (hasError) {
-      throw firstError;
+      allCreatedScenes[0].destroy();
     }
   }
 

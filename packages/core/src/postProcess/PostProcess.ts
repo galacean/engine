@@ -1,4 +1,3 @@
-import type { Scene } from "../Scene";
 import { Logger } from "../base";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
@@ -125,8 +124,8 @@ export class PostProcess extends Component {
    * @internal
    * @inheritdoc
    */
-  override _onDisableInScene(scene: Scene): void {
-    scene.postProcessManager._removePostProcess(this);
+  override _onDisableInScene() {
+    this.scene!.postProcessManager._removePostProcess(this);
   }
 
   /**

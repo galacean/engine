@@ -4,6 +4,7 @@ import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
+import type { Scene } from "../../Scene";
 import { TransformModifyFlags } from "../../Transform";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
@@ -30,6 +31,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   private _connectedAnchorAuthored = false;
   @ignoreClone
   private _calculatedConnectedAnchor: Vector3 | null = null;
+  @ignoreClone
+  private _registeredScene: Scene | null = null;
 
   /**
    * The connected Rigidbody, or null to constrain against the world.
@@ -231,6 +234,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    * @internal
    */
   override _onEnableInScene(): void {
+    this._registeredScene = this.scene ?? null;
     this.entity.getComponent(Rigidbody)!._attachJoint(this);
     this._syncActiveJoint();
   }
@@ -239,7 +243,9 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    * @internal
    */
   override _onDisableInScene(): void {
-    this.entity.getComponent(Rigidbody)!._detachJoint(this);
+    if (!this._registeredScene) return;
+    this._registeredScene = null;
+    this.entity.getComponent(Rigidbody)?._detachJoint(this);
     this._destroyNativeJoint();
   }
 
@@ -277,7 +283,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   _syncActiveJoint(): void {
     const scene = this._registeredScene;
     if (!scene) return;
-    const bodyActor = this.entity.getComponent(Rigidbody)!._getRegisteredActor(scene);
+    const bodyActor = this.entity.getComponent(Rigidbody)?._getRegisteredActor(scene) ?? null;
     const connectedBody = this._connectedBody;
     const connectedActor = connectedBody?._getRegisteredActor(scene) ?? null;
     if (!bodyActor || (connectedBody && !connectedActor)) {

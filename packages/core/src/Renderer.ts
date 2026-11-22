@@ -1,4 +1,3 @@
-import type { Scene } from "./Scene";
 // @ts-ignore
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
@@ -306,8 +305,8 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   /**
    * @internal
    */
-  override _onDisableInScene(scene: Scene): void {
-    const componentsManager = scene._componentsManager;
+  override _onDisableInScene(): void {
+    const componentsManager = this.scene!._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
     }

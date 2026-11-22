@@ -1,4 +1,3 @@
-import type { Scene } from "@galacean/engine";
 import {
   VertexMergeBatcher,
   Color,
@@ -163,8 +162,8 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  override _onDisableInScene(scene: Scene): void {
-    this._overrideUpdate && scene._componentsManager.removeOnUpdateRenderers(this);
+  override _onDisableInScene(): void {
+    this._overrideUpdate && this.scene!._componentsManager.removeOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);

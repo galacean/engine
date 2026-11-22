@@ -1,4 +1,3 @@
-import type { Scene } from "../Scene";
 import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import type { Entity } from "../Entity";
 import type { RenderContext } from "../RenderPipeline/RenderContext";
@@ -178,9 +177,9 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  override _onDisableInScene(scene: Scene): void {
+  override _onDisableInScene(): void {
     this._particleSystemManager?.remove(this);
-    super._onDisableInScene(scene);
+    super._onDisableInScene();
   }
 
   /**

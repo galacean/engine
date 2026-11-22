@@ -34,156 +34,6 @@ export class ComponentsDependencies {
   }
 
   /**
-   * Runs requested additions in dependency order, preferring requested providers over automatic additions.
-   * @internal
-   * @remarks Falls back to declared AutoAdd types for blocked provider chains, without searching every combination.
-   */
-  static _forEachInAddOrder(
-    entity: Entity,
-    types: readonly ComponentConstructor[],
-    onAdd: (index: number) => void
-  ): void {
-    const n = types.length;
-    if (n === 0) return;
-    if (n === 1) {
-      onAdd(0);
-      return;
-    }
-
-    const added = new Uint8Array(n);
-    let prerequisites: (number | ComponentConstructor)[] | undefined;
-    let resolving: ComponentConstructor[] | undefined;
-    const dependencies = ComponentsDependencies._dependenciesMap;
-    type DependencyOrder = "batch" | "requested" | "declared";
-
-    const hasProvider = (type: ComponentConstructor): boolean => {
-      if (entity.getComponent(type)) return true;
-      if (!prerequisites) return false;
-      for (let i = 0, count = prerequisites.length; i < count; i++) {
-        const planned = prerequisites[i];
-        const candidate = typeof planned === "number" ? types[planned] : planned;
-        if (candidate === type || candidate.prototype instanceof type) return true;
-      }
-      return false;
-    };
-
-    const prove = (type: ComponentConstructor, index: number, order: DependencyOrder): boolean =>
-      order === "batch" ? plan(type, index, "requested") || plan(type, index, "declared") : plan(type, index, order);
-
-    const plan = (type: ComponentConstructor, index: number, order: DependencyOrder): boolean => {
-      if (resolving?.includes(type)) return false;
-      const required = order === "batch";
-      const start = prerequisites?.length ?? 0;
-      let stack: ComponentConstructor[] | undefined;
-      requirements: for (let current = type; current !== Component; current = Object.getPrototypeOf(current)) {
-        const info = dependencies.get(current);
-        if (!info) continue;
-        const { components, mode } = info;
-        for (let i = 0, count = components.length; i < count; i++) {
-          const dependency = components[i];
-          if (hasProvider(dependency)) continue;
-          if (!stack) {
-            stack = resolving ||= [];
-            stack.push(type);
-          }
-          let provided = false;
-          let autoAdd = mode === DependentMode.AutoAdd;
-          const matchSubtype = order !== "declared" || mode === DependentMode.CheckOnly;
-          for (let j = 0; j < n; j++) {
-            if (added[j]) continue;
-            const candidate = types[j];
-            if (candidate !== dependency && !(matchSubtype && candidate.prototype instanceof dependency)) continue;
-            if (!required || candidate === dependency) autoAdd = false;
-            provided = prove(candidate, j, order);
-            if (provided || !required) break;
-          }
-          if (!provided && autoAdd) {
-            provided = prove(dependency, -1, order);
-          }
-          if (!provided) {
-            if (required) break requirements;
-            // Keep a rejected provider's prerequisites from running their constructors.
-            if (prerequisites) prerequisites.length = start;
-            stack.pop();
-            return false;
-          }
-        }
-      }
-      stack?.pop();
-      if (required && !prerequisites?.length) {
-        onAdd(index);
-      } else {
-        (prerequisites ||= []).push(index === -1 ? type : index);
-      }
-      return true;
-    };
-
-    for (let i = 0; i < n; i++) {
-      if (added[i]) continue;
-      added[i] = 1;
-      plan(types[i], i, "batch");
-      if (!prerequisites?.length) continue;
-      for (let j = 0, count = prerequisites.length; j < count; j++) {
-        const planned = prerequisites[j];
-        if (typeof planned === "number") {
-          added[planned] = 1;
-          onAdd(planned);
-        } else if (!entity.getComponent(planned)) {
-          entity.addComponent(planned);
-        }
-      }
-      prerequisites.length = 0;
-    }
-  }
-
-  /**
-   * Visits selected dependents before removing their last provider.
-   * @internal
-   * @param components - Stable list of the components selected for removal
-   * @param onRemove - Removes the component at the given index synchronously so subsequent visits see the updated entity
-   */
-  static _forEachInRemoveOrder(components: readonly Component[], onRemove: (index: number) => void): void {
-    const n = components.length;
-    if (n === 0) return;
-    if (n === 1) {
-      onRemove(0);
-      return;
-    }
-
-    const visited = new Uint8Array(n);
-    const visit = (index: number): void => {
-      if (visited[index]) return;
-      visited[index] = 1;
-
-      const component = components[index];
-      if (component.destroyed) return;
-      const entity = component.entity;
-      let type = component.constructor as ComponentConstructor;
-      while (type && type !== Component) {
-        const invDeps = ComponentsDependencies._invDependenciesMap.get(type);
-        if (invDeps) {
-          if (ComponentsDependencies._hasAnotherProvider(entity._components, type)) break;
-          for (let i = 0, len = invDeps.length; i < len; i++) {
-            const dependent = invDeps[i];
-            for (let j = 0; j < n; j++) {
-              if (!visited[j] && components[j].entity === entity && components[j] instanceof dependent) {
-                visit(j);
-              }
-            }
-          }
-        }
-        type = Object.getPrototypeOf(type);
-      }
-
-      onRemove(index);
-    };
-
-    for (let i = 0; i < n; i++) {
-      visit(i);
-    }
-  }
-
-  /**
    * @internal
    */
   static _hasDependencies(type: ComponentConstructor): boolean {
@@ -196,63 +46,47 @@ export class ComponentsDependencies {
     return false;
   }
 
-  private static _hasAnotherProvider(components: readonly Component[], type: ComponentConstructor): boolean {
-    let count = 0;
-    for (let i = 0, n = components.length; i < n; i++) {
-      if (components[i] instanceof type && ++count > 1) return true;
-    }
-    return false;
-  }
-
   /**
-   * Checks whether the entity can remove an instance of `type`.
    * @internal
-   * @param replace - Candidate replacements. When passing a list, also supply `replacedEntries` to collect dependents that need a replacement
-   * @returns Whether a replacement was accepted to satisfy the dependency check
-   * @throws If a dependent would lose its last provider
    */
-  static _removeCheck(
-    entity: Entity,
-    type: ComponentConstructor,
-    replace?: ComponentConstructor | readonly ComponentConstructor[],
-    replacedEntries?: Array<{ dependency: ComponentConstructor; dependents: Component[] }>
-  ): boolean {
+  static _removeCheck(entity: Entity, type: ComponentConstructor, replace?: ComponentConstructor): void {
     const components = entity._components;
     const n = components.length;
-    let usedReplacement = false;
     while (type !== Component) {
-      if (typeof replace === "function" && (replace === type || replace.prototype instanceof type)) {
-        return true;
+      // The replacement still satisfies this type and all of its base types
+      if (replace && (replace === type || replace.prototype instanceof type)) {
+        return;
+      }
+      let count = 0;
+      for (let i = 0; i < n; i++) {
+        if (components[i] instanceof type && ++count > 1) return;
       }
       const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
       if (invDependencies) {
-        if (ComponentsDependencies._hasAnotherProvider(components, type)) return usedReplacement;
-        let dependents: Component[] | null = null;
         for (let i = 0, len = invDependencies.length; i < len; i++) {
-          const dependentType = invDependencies[i];
-          for (let j = 0; j < n; j++) {
-            const comp = components[j];
-            if (!(comp instanceof dependentType)) continue;
-            if (!dependents) {
-              if (
-                typeof replace === "function" ||
-                !replace?.some((candidate) => candidate === type || candidate.prototype instanceof type)
-              ) {
-                throw `Should remove ${dependentType.name} before remove ${type.name}`;
-              }
-              dependents = [];
-            }
-            if (!dependents.includes(comp)) dependents.push(comp);
+          if (entity.getComponent(invDependencies[i])) {
+            throw `Should remove ${invDependencies[i].name} before remove ${type.name}`;
           }
-        }
-        if (dependents) {
-          replacedEntries!.push({ dependency: type, dependents });
-          usedReplacement = true;
         }
       }
       type = Object.getPrototypeOf(type);
     }
-    return usedReplacement;
+  }
+
+  /**
+   * @internal
+   */
+  static _addDependency(
+    targetInfo: DependentInfo,
+    dependentComponent: ComponentConstructor,
+    map: Map<DependentInfo, ComponentConstructor[]>
+  ): void {
+    const components = map.get(targetInfo);
+    if (!components) {
+      map.set(targetInfo, [dependentComponent]);
+    } else {
+      components.includes(dependentComponent) || components.push(dependentComponent);
+    }
   }
 
   /**

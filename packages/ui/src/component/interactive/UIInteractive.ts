@@ -1,4 +1,3 @@
-import type { Scene } from "@galacean/engine";
 import { Entity, EntityModifyFlags, Script, ignoreClone } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
@@ -190,8 +189,8 @@ export class UIInteractive extends Script implements IGroupAble {
   /**
    * @internal
    */
-  override _onDisableInScene(scene: Scene): void {
-    super._onDisableInScene(scene);
+  override _onDisableInScene(): void {
+    super._onDisableInScene();
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
     this._isPointerInside = this._isPointerDragging = false;

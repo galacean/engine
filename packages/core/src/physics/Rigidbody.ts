@@ -50,6 +50,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   _index = -1;
 
   @ignoreClone
+  private _registeredScene: Scene | null = null;
+  @ignoreClone
   private _sleepEventId = 0;
   @ignoreClone
   private _sleepPending = false;
@@ -509,7 +511,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       }
       this._nativeActor?.setMotionState(value, this._useCCD);
       // Revisit the hierarchy so previously excluded shapes can rejoin when the body becomes kinematic.
-      this._phasedActiveInScene && this._markCollidersDirty();
+      this._registeredScene && this._markCollidersDirty();
     }
   }
 
@@ -707,7 +709,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (!this._isKinematic) throw new Error("Rigidbody.move requires a kinematic body.");
     if (!this._simulationEnabled) return;
     // Teleport pending transform edits first so the move starts from the current pose
-    this._phasedActiveInScene && this._getSyncedActor()!.move(positionOrRotation, rotation);
+    this._registeredScene && this._getSyncedActor()!.move(positionOrRotation, rotation);
   }
 
   /**
@@ -776,7 +778,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /** @internal */
   override _onEnableInScene(): void {
-    const scene = this._registeredScene!;
+    const scene = this.scene;
+    if (!scene) return;
+    this._registeredScene = scene;
     const actor = this._getNativeActor();
     if (this._registeredScene !== scene || this._index !== -1) return;
     scene.physics._addRigidbody(this, actor);
@@ -789,7 +793,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /**
    * @internal
    */
-  override _onDisableInScene(scene: Scene): void {
+  override _onDisableInScene(): void {
+    const scene = this._registeredScene;
+    if (!scene) return;
+    this._registeredScene = null;
     if (this._sleepPending) scene.physics._scheduleSleep(this, false);
     this._setSleepEventRegistration(scene, false);
     this._syncJoints();

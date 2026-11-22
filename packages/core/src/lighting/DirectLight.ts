@@ -1,4 +1,3 @@
-import type { Scene } from "../Scene";
 import { Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { ShaderData } from "../shader";
@@ -78,8 +77,8 @@ export class DirectLight extends Light {
   /**
    * @internal
    */
-  override _onDisableInScene(scene: Scene): void {
-    scene._lightManager._detachDirectLight(this);
+  override _onDisableInScene(): void {
+    this.scene!._lightManager._detachDirectLight(this);
   }
 }
 

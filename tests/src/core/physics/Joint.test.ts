@@ -556,24 +556,11 @@ describe("Joint", function () {
     }
   });
 
-  it("allows Joint before Rigidbody in Entity constructor and rejects duplicate Rigidbody", function () {
-    const entity = new Entity(engine, "joint-first", FixedJoint, Rigidbody);
-    rootEntity.addChild(entity);
-    expect(entity.getComponents(Rigidbody, [])).toHaveLength(1);
-    expect(entity.getComponents(FixedJoint, [])).toHaveLength(1);
-    expect(entity._components.indexOf(entity.getComponent(Rigidbody)!)).toBeLessThan(
-      entity._components.indexOf(entity.getComponent(FixedJoint)!)
-    );
-    expect(() => entity.destroy()).not.toThrow();
-
-    const multi = new Entity(engine, "multi-joint-first", FixedJoint, HingeJoint, Rigidbody);
-    expect(multi.getComponents(Rigidbody, [])).toHaveLength(1);
-    expect(multi.getComponent(FixedJoint)).not.toBeNull();
-    expect(multi.getComponent(HingeJoint)).not.toBeNull();
-    expect(() => multi.destroy()).not.toThrow();
-
+  it("rejects duplicate Rigidbody on the same Entity", function () {
     expect(() => new Entity(engine, "dup-rb-1", Rigidbody, Rigidbody)).toThrow(/already has a Rigidbody/);
-    expect(() => new Entity(engine, "dup-rb-2", FixedJoint, Rigidbody, Rigidbody)).toThrow(/already has a Rigidbody/);
+    const entity = new Entity(engine, "joint-then-rb", FixedJoint);
+    expect(() => entity.addComponent(Rigidbody)).toThrow(/already has a Rigidbody/);
+    entity.destroy();
   });
 
   it("detaches an active joint immediately when connectedBody is destroyed without toggling enabled", function () {
@@ -772,117 +759,13 @@ describe("Joint", function () {
     }
   });
 
-  it("handles re-entrant and throwing onDisable callbacks safely during SceneManager.mergeScenes", function () {
-    // The callback redirects an unvisited root while the destination is inactive.
-    const srcA = new Scene(engine, "merge-reentrant-src");
-    const dstA = new Scene(engine, "merge-reentrant-dst"); // intentionally inactive (not added to sceneManager)
-    const thirdScene = new Scene(engine, "merge-reentrant-third");
-    engine.sceneManager.addScene(srcA);
-    engine.sceneManager.addScene(thirdScene);
-    try {
-      const root0 = new Entity(engine, "root0");
-      root0.transform.setPosition(0, 10, 0);
-      root0.addComponent(BoxCollider);
-      const body0 = root0.addComponent(Rigidbody);
-      body0.isKinematic = true;
-
-      const root1 = new Entity(engine, "root1");
-      root1.transform.setPosition(0, 6, 0);
-      root1.addComponent(BoxCollider);
-      root1.addComponent(Rigidbody);
-      const joint1 = root1.addComponent(FixedJoint);
-      joint1.connectedBody = body0;
-
-      class HijackOnDisable extends Script {
-        override onDisable(): void {
-          thirdScene.addRootEntity(root0);
-        }
-      }
-      root1.addComponent(HijackOnDisable);
-
-      srcA.addRootEntity(root0);
-      srcA.addRootEntity(root1);
-
-      engine.sceneManager.mergeScenes(srcA, dstA);
-
-      expect(srcA.rootEntitiesCount).toBe(0);
-      expect(dstA.rootEntities).toEqual([root1]);
-      expect(thirdScene.rootEntities).toEqual([root0]);
-      expect(root0.scene).toBe(thirdScene);
-      expect(root1.scene).toBe(dstA);
-      expect(joint1.connectedBody).toBe(body0);
-
-      // Destroying all scenes completes cleanly with no dual-scene hang or stale pointers
-      thirdScene.destroy();
-      dstA.destroy();
-      srcA.destroy();
-      expect(thirdScene.destroyed).toBe(true);
-      expect(dstA.destroyed).toBe(true);
-      expect(srcA.destroyed).toBe(true);
-    } finally {
-      if (!thirdScene.destroyed) thirdScene.destroy();
-      if (!dstA.destroyed) dstA.destroy();
-      if (!srcA.destroyed) srcA.destroy();
-    }
-
-    // A callback throws after part of the transfer when the joint actors may be separated.
-    const srcB = new Scene(engine, "merge-throw-src");
-    const dstB = new Scene(engine, "merge-throw-dst"); // intentionally inactive
-    engine.sceneManager.addScene(srcB);
-    try {
-      const root0 = new Entity(engine, "throw-root0");
-      root0.addComponent(BoxCollider);
-      const body0 = root0.addComponent(Rigidbody);
-      body0.isKinematic = true;
-
-      const root1 = new Entity(engine, "throw-root1");
-      class ThrowOnDisable extends Script {
-        override onDisable(): void {
-          throw new Error("merge-onDisable-boom");
-        }
-      }
-      root1.addComponent(ThrowOnDisable);
-
-      const root2 = new Entity(engine, "throw-root2");
-      root2.addComponent(BoxCollider);
-      root2.addComponent(Rigidbody);
-      const joint2 = root2.addComponent(FixedJoint);
-      joint2.connectedBody = body0;
-
-      srcB.addRootEntity(root0);
-      srcB.addRootEntity(root1);
-      srcB.addRootEntity(root2);
-
-      expect(() => engine.sceneManager.mergeScenes(srcB, dstB)).toThrow("merge-onDisable-boom");
-
-      expect(dstB.rootEntities).toEqual([root0, root1]);
-      expect(srcB.rootEntities).toEqual([root2]);
-      expect(root0.scene).toBe(dstB);
-      expect(root1.scene).toBe(dstB);
-      expect(root2.scene).toBe(srcB);
-      expect(joint2.connectedBody).toBe(body0);
-
-      dstB.destroy();
-      srcB.destroy();
-      expect(dstB.destroyed).toBe(true);
-      expect(srcB.destroyed).toBe(true);
-    } finally {
-      if (!dstB.destroyed) dstB.destroy();
-      if (!srcB.destroyed) srcB.destroy();
-    }
-  });
-
-  it("keeps Rigidbody alive when destroy is blocked by a Joint and cleans up on entity.destroy or deferred destroy", function () {
+  it("cleans up Joint and Rigidbody on entity.destroy and deferred destroy", function () {
     const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const body = box.getComponent(Rigidbody)!;
     const joint = box.addComponent(FixedJoint);
     const physics = engine.sceneManager.activeScene.physics;
     const ray = new Ray(new Vector3(-3, 5, 0), new Vector3(1, 0, 0));
 
-    expect(() => body.destroy()).toThrow(/Joint/);
-    expect(body.destroyed).toBe(false);
-    expect(body.pendingDestroy).toBe(false);
-    expect(box.getComponent(Rigidbody)).toBe(body);
     expect(physics.raycast(ray, 10)).toBe(true);
 
     // Entity destruction tears down Joint before Rigidbody cleanly

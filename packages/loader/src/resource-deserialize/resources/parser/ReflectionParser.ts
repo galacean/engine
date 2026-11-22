@@ -1,12 +1,12 @@
-import { Component, EngineObject, Entity, Loader } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { Component, Entity, Loader } from "@galacean/engine-core";
 import { resolveRefItem } from "../../../schema/refs";
 import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } from "../../../schema/CommonSchema";
 import { ParserContext, ParserType } from "./ParserContext";
 
-type MutationTargets = EngineObject | { target: EngineObject; parent: MutationTargets };
-
 export class ReflectionParser {
+  /** @internal shared with HierarchyParser; each use must length=0 -> getComponents -> read -> length=0 synchronously. */
+  static _componentBuffer: Component[] = [];
+
   constructor(
     private readonly _context: ParserContext,
     private readonly _refs: RefItem[]
@@ -16,121 +16,68 @@ export class ReflectionParser {
    * Apply v2 props to a component/object instance.
    * Each prop value is resolved recursively (handling $ref, $number, $type, $class, $entity, $component, $signal).
    */
-  parseProps(
-    instance: any,
-    props?: Record<string, unknown>,
-    targets: MutationTargets | undefined = instance instanceof EngineObject ? instance : undefined
-  ): Promise<any> {
-    if (!props) return Promise.resolve(instance);
-
-    let promises: Promise<any>[] | null = null;
-    try {
+  parseProps(instance: any, props?: Record<string, unknown>): Promise<any> {
+    const promises: Promise<any>[] = [];
+    if (props) {
       for (const key in props) {
-        if (!this._canMutate(targets)) break;
-        const raw = props[key];
-        if (raw == null || typeof raw !== "object") {
-          instance[key] = raw;
-        } else {
-          (promises ||= []).push(
-            this._resolveValue(raw, targets, instance[key]).then((v) => {
-              if (this._canMutate(targets)) {
-                instance[key] = v;
-              }
-            })
-          );
-        }
+        const promise = this._resolveValue(props[key], instance[key]).then((v) => {
+          instance[key] = v;
+        });
+        promises.push(promise);
       }
-    } catch (error) {
-      if (!promises) return Promise.reject(error);
-      promises.push(Promise.reject(error));
     }
-    return promises ? Promise.all(promises).then(() => instance) : Promise.resolve(instance);
+    return Promise.all(promises).then(() => instance);
   }
 
   /**
-   * Runs calls sequentially, awaiting arguments, method results, and any result mutations before the next call.
-   * @remarks Skips a mutation if its target, an enclosing engine object, or the owning resource has been destroyed.
+   * Execute calls sequentially on a target instance.
+   * Call args are resolved with the same v2 value rules as props.
    */
-  async parseCalls(
-    instance: any,
-    calls?: CallSpec[],
-    targets: MutationTargets | undefined = instance instanceof EngineObject ? instance : undefined
-  ): Promise<any> {
-    if (!calls) return instance;
+  parseCalls(instance: any, calls?: CallSpec[]): Promise<any> {
+    if (!calls?.length) return Promise.resolve(instance);
 
+    let chain = Promise.resolve();
     for (let i = 0, n = calls.length; i < n; i++) {
-      if (!this._canMutate(targets)) break;
       const call = calls[i];
-      const path = call.target;
-      let target = instance;
-      let callTargets = targets;
-      if (path !== undefined) {
-        if (!Array.isArray(path) || path.some((key) => typeof key !== "string" || key.length === 0)) {
-          throw new Error(`Call "${call.method}" target must be an array of non-empty strings`);
+      chain = chain.then(() => {
+        let target = instance;
+        if (call.target !== undefined) {
+          if (!Array.isArray(call.target) || call.target.some((key) => typeof key !== "string" || key.length === 0)) {
+            return Promise.reject(new Error(`Call "${call.method}" target must be an array of non-empty strings`));
+          }
+          for (const key of call.target) target = target?.[key];
         }
-        for (const key of path) {
-          target = target?.[key];
-          callTargets = ReflectionParser._withMutationTarget(callTargets, target);
+        const method = target?.[call.method];
+        if (typeof method !== "function") {
+          const path = call.target?.length ? `${call.target.join(".")}.` : "";
+          return Promise.reject(new Error(`Call target does not have method "${path}${call.method}"`));
         }
-        if (!this._canMutate(callTargets)) continue;
-      }
-      const method = target?.[call.method];
-      // Reading the method can invoke a getter that destroys one of its owners.
-      if (!this._canMutate(callTargets)) continue;
-      if (typeof method !== "function") {
-        const prefix = path?.length ? `${path.join(".")}.` : "";
-        throw new Error(`Call target does not have method "${prefix}${call.method}"`);
-      }
 
-      const args = call.args;
-      const resolvedArgs = await (args?.length
-        ? Promise.all(args.map((arg) => this._resolveValue(arg, callTargets)))
-        : undefined);
-      if (!this._canMutate(callTargets)) continue;
-
-      const result = await method.apply(target, resolvedArgs);
-      if (call.result && this._canMutate(callTargets)) {
-        if (result == null || (typeof result !== "object" && typeof result !== "function")) {
-          throw new Error(`Call "${call.method}" returned ${result} and cannot be mutated by result`);
-        }
-        await this.parseMutationBlock(result, call.result, ReflectionParser._withMutationTarget(callTargets, result));
-      }
+        return Promise.all((call.args ?? []).map((arg) => this._resolveValue(arg)))
+          .then((resolvedArgs) => Promise.resolve(method.apply(target, resolvedArgs)))
+          .then((result) => {
+            if (!call.result) return result;
+            if (result == null || (typeof result !== "object" && typeof result !== "function")) {
+              return Promise.reject(
+                new Error(`Call "${call.method}" returned ${result} and cannot be mutated by result`)
+              );
+            }
+            return this.parseMutationBlock(result, call.result);
+          });
+      });
     }
 
-    return instance;
+    return chain.then(() => instance);
   }
 
   /**
    * Apply props before executing calls from the same mutation block.
    */
-  parseMutationBlock(
-    target: any,
-    block?: MutationBlock,
-    targets: MutationTargets | undefined = target instanceof EngineObject ? target : undefined
-  ): Promise<any> {
+  parseMutationBlock(target: any, block?: MutationBlock): Promise<any> {
     if (!block) return Promise.resolve(target);
-    const props = this.parseProps(target, block.props, targets);
-    const calls = block.calls;
-    return calls?.length ? props.then(() => this.parseCalls(target, calls, targets)) : props;
-  }
-
-  private static _withMutationTarget(
-    targets: MutationTargets | undefined,
-    target: unknown
-  ): MutationTargets | undefined {
-    if (!(target instanceof EngineObject)) return targets;
-    if (!targets) return target;
-    if (targets === target || (!(targets instanceof EngineObject) && targets.target === target)) return targets;
-    return { target, parent: targets };
-  }
-
-  private _canMutate(targets: MutationTargets | undefined): boolean {
-    if (this._context.resource.destroyed) return false;
-    while (targets && !(targets instanceof EngineObject)) {
-      if (targets.target.destroyed) return false;
-      targets = targets.parent;
-    }
-    return !targets?.destroyed;
+    return this.parseProps(target, block.props)
+      .then(() => this.parseCalls(target, block.calls))
+      .then(() => target);
   }
 
   /**
@@ -148,9 +95,9 @@ export class ReflectionParser {
    * 9. { $signal }    → signal binding
    * 10. plain object  → recurse values (modify originValue in place if exists)
    */
-  private _resolveValue(value: unknown, targets: MutationTargets | undefined, originValue?: any): Promise<any> {
+  private _resolveValue(value: unknown, originValue?: any): Promise<any> {
     if (value == null || typeof value !== "object") return Promise.resolve(value);
-    if (Array.isArray(value)) return Promise.all(value.map((v) => this._resolveValue(v, targets)));
+    if (Array.isArray(value)) return Promise.all(value.map((v) => this._resolveValue(v)));
 
     const obj = value as Record<string, unknown>;
 
@@ -168,7 +115,7 @@ export class ReflectionParser {
         return Promise.reject(error);
       }
       return context.resourceManager.getResourceByRef(refItem).then((resource) => {
-        if (resource && context.type === ParserType.Prefab && this._canMutate(targets)) {
+        if (resource && context.type === ParserType.Prefab) {
           // @ts-ignore
           context.resource._addDependenceAsset(resource);
         }
@@ -191,13 +138,9 @@ export class ReflectionParser {
       }
       const constructorArgs = Array.isArray($args) ? $args : [];
       return this._resolveRegisteredClass($type, "$type").then((Class) => {
-        if (!this._canMutate(targets)) return;
-        return Promise.all(constructorArgs.map((arg) => this._resolveValue(arg, targets))).then((args) => {
-          if (!this._canMutate(targets)) return;
+        return Promise.all(constructorArgs.map((arg) => this._resolveValue(arg))).then((args) => {
           const instance = new Class(...args);
-          return Object.keys(rest).length > 0
-            ? this.parseProps(instance, rest, ReflectionParser._withMutationTarget(targets, instance))
-            : instance;
+          return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
         });
       });
     }
@@ -219,25 +162,7 @@ export class ReflectionParser {
 
     // $signal — signal binding: register listeners on the existing Signal instance
     if ("$signal" in obj) {
-      return this._resolveSignal(originValue, obj.$signal as SignalListener[], targets);
-    }
-
-    if (originValue instanceof Vector3) {
-      const { x, y, z } = obj;
-      if (typeof x === "number" && typeof y === "number" && typeof z === "number") {
-        let completeVector = true;
-        for (const key in obj) {
-          if (key !== "x" && key !== "y" && key !== "z") {
-            completeVector = false;
-            break;
-          }
-        }
-        if (completeVector) {
-          // Set all coordinates before the vector's change callback sees the new value.
-          if (this._canMutate(targets)) originValue.set(x, y, z);
-          return Promise.resolve(originValue);
-        }
-      }
+      return this._resolveSignal(originValue, obj.$signal as SignalListener[]);
     }
 
     // Plain object — recurse each value, modifying originValue in place or building a new object
@@ -245,7 +170,11 @@ export class ReflectionParser {
       originValue && typeof originValue === "object" && !Array.isArray(originValue)
         ? originValue
         : ({} as Record<string, unknown>);
-    return this.parseProps(target, obj, ReflectionParser._withMutationTarget(targets, target));
+    const promises: Promise<any>[] = [];
+    for (const key in obj) {
+      promises.push(this._resolveValue(obj[key], target[key]).then((v) => (target[key] = v)));
+    }
+    return Promise.all(promises).then(() => target);
   }
 
   private _getRegisteredClass(value: unknown, sentinel: "$type" | "$class"): any {
@@ -267,7 +196,7 @@ export class ReflectionParser {
     }
   }
 
-  private _resolveSignal(signal: any, listeners: SignalListener[], targets: MutationTargets | undefined): Promise<any> {
+  private _resolveSignal(signal: any, listeners: SignalListener[]): Promise<any> {
     if (!signal || typeof signal.on !== "function") {
       return Promise.reject(new Error("$signal requires a pre-initialized Signal instance on the target property"));
     }
@@ -275,10 +204,8 @@ export class ReflectionParser {
       const targetComponent = this._resolveComponent(listener.target.$component);
       if (!targetComponent) return Promise.resolve();
 
-      return Promise.all((listener.args ?? []).map((a) => this._resolveValue(a, targets))).then((resolvedArgs) => {
-        if (!targetComponent.destroyed && this._canMutate(targets)) {
-          signal.on(targetComponent, listener.methodName, ...resolvedArgs);
-        }
+      return Promise.all((listener.args ?? []).map((a) => this._resolveValue(a))).then((resolvedArgs) => {
+        signal.on(targetComponent, listener.methodName, ...resolvedArgs);
       });
     });
     return Promise.all(promises).then(() => signal);
@@ -289,19 +216,20 @@ export class ReflectionParser {
     if (!entity) return null;
     const type = Loader.getClass(comp.type);
     if (!type) return null;
-    const components = this._context.componentSnapshots?.get(entity) ?? entity._components;
-    const result = ParserContext._findComponent(components, type, comp.index);
-    return result?.destroyed ? null : result;
+    const buffer = ReflectionParser._componentBuffer;
+    buffer.length = 0;
+    entity.getComponents(type, buffer);
+    const result = buffer[comp.index] ?? null;
+    buffer.length = 0;
+    return result;
   }
 
   private _resolveEntityRef(path: number[]): Entity | null {
     if (!path || path.length === 0) return null;
-    let entity: Entity | null = this._context.entityInstances[path[0]] ?? null;
-    const childSnapshots = this._context.childSnapshots;
+    let entity = this._context.entityInstances[path[0]] ?? null;
     for (let i = 1, n = path.length; entity && i < n; i++) {
-      const children = childSnapshots?.get(entity) ?? entity.children;
-      entity = children[path[i]] ?? null;
+      entity = entity.children[path[i]] ?? null;
     }
-    return entity && !entity.destroyed ? entity : null;
+    return entity;
   }
 }

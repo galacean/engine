@@ -1,4 +1,3 @@
-import type { Scene } from "./Scene";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { ignoreClone } from "./clone/CloneDecorators";
@@ -263,7 +262,8 @@ export class Script extends Component {
   /**
    * @internal
    */
-  override _onDisableInScene(scene: Scene): void {
+  override _onDisableInScene(): void {
+    const scene = this.scene!;
     const componentsManager = scene._componentsManager;
     const { prototype } = Script;
 
@@ -292,25 +292,8 @@ export class Script extends Component {
    * @internal
    */
   protected override _onDestroy(): void {
-    let firstError: unknown;
-    let hasError = false;
-    try {
-      super._onDestroy();
-    } catch (error) {
-      firstError = error;
-      hasError = true;
-    }
-    try {
-      this.onDestroy();
-    } catch (error) {
-      if (!hasError) {
-        firstError = error;
-        hasError = true;
-      }
-    }
-    if (hasError) {
-      throw firstError;
-    }
+    super._onDestroy();
+    this.onDestroy();
   }
 
   /** @internal */

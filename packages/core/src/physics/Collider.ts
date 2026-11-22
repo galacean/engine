@@ -85,6 +85,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /** @internal The Rigidbody whose native actor holds the shape. */
   @ignoreClone
   _attachedBody: Rigidbody | null = null;
+  @ignoreClone
+  protected _registeredScene: Scene | null = null;
 
   /** Index of the single collision layer. */
   protected _collisionLayerIndex = 0;
@@ -364,13 +366,17 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @internal
    */
   override _onEnableInScene(): void {
+    this._registeredScene = this.scene ?? null;
     this._markDirty();
   }
 
   /**
    * @internal
    */
-  override _onDisableInScene(scene: Scene): void {
+  override _onDisableInScene(): void {
+    const scene = this._registeredScene;
+    if (!scene) return;
+    this._registeredScene = null;
     scene.physics._removeCollider(this);
   }
 
