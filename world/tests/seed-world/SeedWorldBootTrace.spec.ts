@@ -2,6 +2,7 @@ import zlib from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { seedWorldBootTrace } from "../../demos/seed-world/src/SeedWorldBootTrace";
 import { summarizeSeedWorldShaderAudit } from "../../demos/seed-world/src/SeedWorldShaderAudit";
+import { PlanningWorkerClient } from "../../demos/seed-world/src/planning/semantic-study/PlanningWorkerClient";
 import {
   mergeSeedWorldBinaryAssetMaps,
   parseSeedWorldCommonBinaryBundle,
@@ -149,5 +150,113 @@ describe("parseSeedWorldCommonBinaryBundle", () => {
     expect(merged?.size).toBe(2);
     expect(Array.from(merged!.get("b")!)).toEqual([2]);
     expect(() => releaseSeedWorldCommonBinaryBundle()).not.toThrow();
+  });
+});
+
+describe("SeedWorldBootTrace resource category classification", () => {
+  it("classifies all seed-world-*-bundle artifacts (common, building, text, future splits) under bundle", () => {
+    const originalGetEntries = performance.getEntriesByType;
+    performance.getEntriesByType = ((type: string) => {
+      if (type !== "resource") return [];
+      return [
+        {
+          name: "https://example.test/assets/seed-world-common-bin-bundle-aaaaaaaa.bin",
+          initiatorType: "fetch",
+          startTime: 10,
+          duration: 20,
+          transferSize: 500_000,
+          decodedBodySize: 500_000
+        },
+        {
+          name: "https://example.test/assets/seed-world-building-bin-bundle-bbbbbbbb.bin",
+          initiatorType: "fetch",
+          startTime: 15,
+          duration: 25,
+          transferSize: 1_350_000,
+          decodedBodySize: 1_350_000
+        },
+        {
+          name: "https://example.test/assets/seed-world-project-text-bundle-cccccccc.json",
+          initiatorType: "fetch",
+          startTime: 20,
+          duration: 10,
+          transferSize: 250_000,
+          decodedBodySize: 900_000
+        }
+      ];
+    }) as typeof performance.getEntriesByType;
+    try {
+      seedWorldBootTrace.reset();
+      const snap = seedWorldBootTrace.snapshot();
+      expect(snap.resourceStats.byCategory.bundle?.count).toBe(3);
+      expect(snap.resourceStats.byCategory.bundle?.transferBytes).toBe(2_100_000);
+      expect(snap.resourceStats.byCategory.mesh).toBeUndefined();
+    } finally {
+      performance.getEntriesByType = originalGetEntries;
+      seedWorldBootTrace.dispose(false);
+    }
+  });
+});
+
+describe("PlanningWorkerClient.prewarm ownership and failure recovery", () => {
+  it("recovers cleanly if a prewarmed worker fails before initialize(), isolates instances, and terminates on dispose()", async () => {
+    const instances: FakeWorker[] = [];
+    class FakeWorker {
+      onmessage: ((e: { data: unknown }) => void) | null = null;
+      onerror: ((e: { message?: string }) => void) | null = null;
+      terminated = false;
+      posted: unknown[] = [];
+      constructor() {
+        instances.push(this);
+      }
+      postMessage(msg: unknown) {
+        this.posted.push(msg);
+      }
+      terminate() {
+        this.terminated = true;
+      }
+    }
+    const originalWorker = globalThis.Worker;
+    (globalThis as unknown as { Worker: typeof Worker }).Worker = FakeWorker as unknown as typeof Worker;
+    try {
+      const clientA = new PlanningWorkerClient();
+      const clientB = new PlanningWorkerClient();
+      clientA.prewarm();
+      expect(instances).toHaveLength(1);
+      const firstWorker = instances[0]!;
+      expect(firstWorker.onerror).not.toBeNull();
+
+      // Another client must never steal clientA's prewarmed worker.
+      const pendingB = clientB.initialize(7);
+      expect(instances).toHaveLength(2);
+      expect(firstWorker.posted).toHaveLength(0);
+      instances[1]!.onerror?.({ message: "worker-b error" });
+      await expect(pendingB).rejects.toThrow("worker-b error");
+      clientB.dispose();
+
+      // Pre-adoption failure terminates and discards the dead prewarmed worker;
+      // subsequent initialize() spawns a fresh Worker instead of hanging forever.
+      firstWorker.onerror?.({ message: "early fetch failure" });
+      expect(firstWorker.terminated).toBe(true);
+
+      const pendingA = clientA.initialize(42);
+      expect(instances).toHaveLength(3);
+      const freshWorker = instances[2]!;
+      expect(freshWorker.posted).toHaveLength(1);
+      freshWorker.onmessage?.({
+        data: { type: "initialized", requestId: (freshWorker.posted[0] as { requestId: number }).requestId, document: { version: 2 } }
+      });
+      await expect(pendingA).resolves.toEqual({ version: 2 });
+      clientA.dispose();
+
+      // Disposing an unadopted prewarmed client terminates its Worker cleanly.
+      const clientC = new PlanningWorkerClient();
+      clientC.prewarm();
+      expect(instances).toHaveLength(4);
+      clientC.dispose();
+      expect(instances[3]!.terminated).toBe(true);
+    } finally {
+      (globalThis as unknown as { Worker: typeof Worker }).Worker = originalWorker;
+    }
   });
 });

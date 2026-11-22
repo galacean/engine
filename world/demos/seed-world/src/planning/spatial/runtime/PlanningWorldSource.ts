@@ -26,7 +26,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   load(seed: number): Promise<PlanningDocument | undefined>; save(document: PlanningDocument): Promise<void>;
   retainWater?(document: PlanningDocument): PlanningDocument;
   initialize?(document: PlanningDocument, result: SemanticResult, waterResetRequest?: string): Promise<PlanningDocument>;
-}) {
+}, workerClient?: PlanningWorkerClient) {
   const query = new URLSearchParams(search);
   const raw = query.get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
@@ -38,7 +38,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
     resetPlanningFarmSaveChoice(document);
     if (import.meta.env.DEV && query.get("desertSkyLab") === "1") updateDesertPreviewRelief(document);
   }
-  const client = new PlanningWorkerClient();
+  const client = workerClient ?? new PlanningWorkerClient();
   if (!handoff) {
     const template = initialPlanningTemplate(search, seed,
       document ? exportPlanningRecipe(document).parameters.worldTemplate?.id ?? "" : undefined);

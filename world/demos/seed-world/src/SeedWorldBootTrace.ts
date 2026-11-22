@@ -190,7 +190,7 @@ function classifyResourceCategory(url: string, initiatorType: string): string {
   } catch {
     pathname = url.toLowerCase().split(/[?#]/)[0] ?? "";
   }
-  if (pathname.includes("seed-world-common-bin-bundle") || pathname.includes("seed-world-project-text-bundle")) {
+  if (/(?:^|\/)seed-world-[a-z0-9-]+-bundle(?:-[a-f0-9]+)?\.(?:bin|json)$/i.test(pathname)) {
     return "bundle";
   }
   if (pathname.endsWith(".wasm") || pathname.endsWith(".wasm.br")) return "wasm";

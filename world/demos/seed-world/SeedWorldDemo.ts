@@ -228,8 +228,21 @@ import {
   createPlanningWorldSource,
   type PlanningWorldHandoff
 } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
-import { prewarmPlanningWorker } from "./src/planning/semantic-study/PlanningWorkerClient.ts";
+import { PlanningWorkerClient } from "./src/planning/semantic-study/PlanningWorkerClient.ts";
 import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
+
+/** Explicit opt-in host interface for acceptance & benchmark harnesses (registered via globalThis.__seedWorldOnDiagnosticHost). */
+export interface SeedWorldDiagnosticHost {
+  readonly engine: WebGLEngine;
+  readonly tools: PlanningSeedWorldSession | undefined;
+  readonly ready: boolean;
+  readonly animals: PlanningAnimalHost | undefined;
+  readonly current: PlanningSeedScenePublication["current"];
+}
+
+type SeedWorldDiagnosticGlobal = typeof globalThis & {
+  __seedWorldOnDiagnosticHost?: (host: SeedWorldDiagnosticHost | undefined) => void;
+};
 
 function waterAgentKnowledge() {
   return createSeedWorldWaterAgentKnowledge(WATER_QUERY_CONTRACTS.map(item => item.name), { includeDigRiver: true });
@@ -285,6 +298,8 @@ export async function mountSeedWorldDemo(
   let engine: WebGLEngine | undefined;
   let orb: WorldBubbleLoadingScene | undefined;
   let scene: Scene | undefined;
+  const planningWorker = new PlanningWorkerClient();
+  let bootEmptyBuildingGeneratorId: string | undefined;
   let source: Awaited<ReturnType<typeof createPlanningWorldSource>> | undefined;
   let sourceTask: ReturnType<typeof createPlanningWorldSource> | undefined;
   let publication: PlanningSeedScenePublication | undefined;
@@ -450,6 +465,7 @@ export async function mountSeedWorldDemo(
       () => {
         disposed = true;
         ready = false;
+        (globalThis as SeedWorldDiagnosticGlobal).__seedWorldOnDiagnosticHost?.(undefined);
         seedWorldBootTrace.dispose(true);
         editorLifetime.abort();
         unmountProjectSave?.();
@@ -504,6 +520,7 @@ export async function mountSeedWorldDemo(
             (value) => value.dispose(),
             () => {}
           );
+        planningWorker.dispose();
         resizeObserver?.disconnect();
       }
     ],
@@ -604,12 +621,13 @@ export async function mountSeedWorldDemo(
   );
   try {
     // Overlap Planning Worker boot and startup asset bundle fetches with WebGLEngine + Loading Orb initialization.
-    prewarmPlanningWorker();
+    planningWorker.prewarm();
     const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
     let prefetchedCommonBinaryAssets: ReadonlyMap<string, Uint8Array> | undefined;
     let prefetchedBuildingBinaryAssets: ReadonlyMap<string, Uint8Array> | undefined;
+    let prefetchedBinaryReleased = false;
     const syncPrefetchedBinaryAssets = () => {
-      if (disposed || !engine) return;
+      if (disposed || !engine || prefetchedBinaryReleased) return;
       (
         engine.resourceManager as {
           setPrefetchedBinaryAssets?: (assets: ReadonlyMap<string, Uint8Array> | undefined) => void;
@@ -688,6 +706,21 @@ export async function mountSeedWorldDemo(
         );
       }
     }
+    (globalThis as SeedWorldDiagnosticGlobal).__seedWorldOnDiagnosticHost?.({
+      engine: engine!,
+      get tools() {
+        return tools;
+      },
+      get ready() {
+        return ready;
+      },
+      get animals() {
+        return animals;
+      },
+      get current() {
+        return publication?.current;
+      }
+    });
     pickPreparation = timed("new RuntimePickPreparation", () =>
       new RuntimePickPreparation(engine!, { deferStart: true })
     );
@@ -749,7 +782,7 @@ export async function mountSeedWorldDemo(
     }
     const planningStorage = new PlanningProjectStorage(runtimeProject, seedWorldProjectFormats);
     sourceTask = timed("createPlanningWorldSource (parallel)", () =>
-      createPlanningWorldSource(pageUrl.search, handoff, planningStorage)
+      createPlanningWorldSource(pageUrl.search, handoff, planningStorage, planningWorker)
     );
     void sourceTask.catch(() => {});
     // Overlap startup shaders and farming scene setup while WorldPlanning.worker.ts
@@ -2174,7 +2207,7 @@ export async function mountSeedWorldDemo(
               // Startup has no outer project transaction. Later initialization is
               // contributed during editor preparation, never from runtime publication.
               if (!ready && !context.projectTransaction)
-                await timed("initializeBuildingScene", () =>
+                bootEmptyBuildingGeneratorId = await timed("initializeBuildingScene", () =>
                   initializeBuildingScene(runtimeProject!, nativeEditor!.editor, plan, buildingTerrain, signal)
                 );
               candidateMasonry = await timed("nativeBuildingHost.prepare", () =>
@@ -2661,17 +2694,21 @@ export async function mountSeedWorldDemo(
       }
     });
     nativeEditor.editor.registerPreparation(
-      buildingScenePreparation(runtimeProject.projectPackage.project.scene, (edit, signal) =>
-        buildingInitializationInputs(
-          edit,
-          signal,
-          {
-            document: source!.session.document,
-            result: source!.session.result!
-          },
-          rockFormations,
-          initialBuildingDocument
-        )
+      buildingScenePreparation(
+        runtimeProject.projectPackage.project.scene,
+        (edit, signal) =>
+          buildingInitializationInputs(
+            edit,
+            signal,
+            {
+              document: source!.session.document,
+              result: source!.session.result!
+            },
+            rockFormations,
+            initialBuildingDocument
+          ),
+        undefined,
+        { bootEmptyInitializedGeneratorId: () => bootEmptyBuildingGeneratorId }
       ),
       { name: "building-initialization", dependencies: {
         scene: { componentTypes: ["BuildingGeneratorComponent"], hierarchy: true },
@@ -3011,63 +3048,6 @@ export async function mountSeedWorldDemo(
     ready = true;
     audio?.audio.setLoadDeferred(false);
     shaderAudit?.setPhase("post-ready");
-    let bgWarmupDone: Promise<void> = Promise.resolve();
-    if ((deferredShaderVariants.length > 0 || collectDeferredVariants) && !disposed) {
-      const initialVariantsToWarm = deferredShaderVariants;
-      const deferredCollector = collectDeferredVariants;
-      deferredShaderVariants = [];
-      collectDeferredVariants = undefined;
-      const parallelBgWarmup = Boolean(startupWarmupReport?.parallelCompileSupported);
-      bgWarmupDone = new Promise<void>((resolve) => {
-        const idleWarmupTimer = window.setTimeout(() => {
-          if (disposed || editorLifetime.signal.aborted) {
-            resolve();
-            return;
-          }
-          void (async () => {
-            const collected = deferredCollector ? await deferredCollector() : [];
-            const variantsToWarm = [...initialVariantsToWarm, ...collected];
-            if (disposed || editorLifetime.signal.aborted || variantsToWarm.length === 0) return;
-            shaderAudit?.recordWarmupRequested(startupAttempted, variantsToWarm.length);
-            const bgReport = await warmupSeedWorldShaderVariants(engine!, variantsToWarm, {
-              strict: false,
-              signal: editorLifetime.signal,
-              preserveOrder: true,
-              frameBudgetMilliseconds: 4,
-              maximumPendingPrograms: parallelBgWarmup ? 8 : 1,
-              ssrVerifyReceiverDepth
-            });
-            if (!disposed) {
-              seedWorldBootTrace.setMeta({
-                bgWarmup: {
-                  requested: bgReport.requested,
-                  compiled: bgReport.compiled,
-                  elapsedMs: Math.round(bgReport.elapsedMilliseconds),
-                  longestVariantMs: Math.round(bgReport.longestVariantMilliseconds),
-                  completedAtMs: Math.round(performance.now())
-                }
-              });
-              seedWorldBootTrace.event(
-                "info",
-                "shader-warmup-bg",
-                `compiled ${bgReport.compiled}/${bgReport.requested} deferred variants in ${Math.round(bgReport.elapsedMilliseconds)}ms`,
-                `longest=${Math.round(bgReport.longestVariantMilliseconds)}ms parallelCompile=${parallelBgWarmup}`
-              );
-            }
-          })()
-            .catch(() => {})
-            .finally(resolve);
-        }, parallelBgWarmup ? 200 : 300);
-        editorLifetime.signal.addEventListener(
-          "abort",
-          () => {
-            window.clearTimeout(idleWarmupTimer);
-            resolve();
-          },
-          { once: true }
-        );
-      });
-    }
     disconnectEditorAssets = timed("tools.connectProject", () => tools!.application.connectProject(runtimeProject!));
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
     if (typeof savedEditor === "string")
@@ -3237,6 +3217,109 @@ export async function mountSeedWorldDemo(
     canvas.dataset.status = "ready";
     document.body.dataset.worldReady = "true";
     seedWorldBootTrace.finish();
+    // Release the decompressed SWB1 prefetch buffers once startup leaf loading completes;
+    // rare post-ready lazy loads or context restores transparently fall back to HTTP-cached URLs.
+    prefetchedBinaryReleased = true;
+    prefetchedCommonBinaryAssets = undefined;
+    prefetchedBuildingBinaryAssets = undefined;
+    engine?.resourceManager?.setPrefetchedBinaryAssets?.(undefined);
+    releaseSeedWorldCommonBinaryBundle();
+    // The world is already visible and navigable. Post-ready GPU compile work is priority-ordered:
+    // 1. Short interactive capture-path warmup (`pickPreparation.flush #1` + `worldPicker.prepareSnapshot`)
+    //    runs first so AI view capture and the screenshot entry become available within ~1-2s.
+    // 2. Long-tail offscreen shader warmup (`bgWarmupDone`) starts right after capture-path warmup settles,
+    //    keeping both GPU compile queues mutually exclusive without starving interactive entries.
+    // 3. The instant-camera presentation mounts the screenshot entry once capture-path warmup finishes.
+    const photoPreparationStarted = performance.now();
+    canvas.dataset.photoPreparation = "loading";
+    const preparingPicker = worldPicker,
+      preparingPicks = pickPreparation,
+      preparingViews = viewSnapshots;
+    const preparingTools = tools;
+    const capturePathWarmup = (async () => {
+      if (disposed || editorLifetime.signal.aborted) return;
+      await timed("pickPreparation.flush #1", () => preparingPicks.flush(editorLifetime.signal));
+      await timed("worldPicker.prepareSnapshot", () =>
+        preparingPicker.prepareSnapshot(
+          (visitor) => snapshotPicks.visit(visitor),
+          editorLifetime.signal,
+          preparingViews.budget
+        )
+      );
+      canvas.dataset.snapshotWarmupMs = String(performance.now() - photoPreparationStarted);
+    })();
+    // A failed warm-up does not block captures: a capture runs the same path and reports its own error.
+    snapshotWarmup = capturePathWarmup.then(
+      () => {},
+      () => {}
+    );
+    const bgWarmupDone: Promise<void> =
+      (deferredShaderVariants.length > 0 || collectDeferredVariants) && !disposed
+        ? new Promise<void>((resolve) => {
+            const initialVariantsToWarm = deferredShaderVariants;
+            const deferredCollector = collectDeferredVariants;
+            deferredShaderVariants = [];
+            collectDeferredVariants = undefined;
+            const parallelBgWarmup = Boolean(startupWarmupReport?.parallelCompileSupported);
+            let idleWarmupTimer: number | undefined;
+            const onAbort = () => {
+              if (idleWarmupTimer !== undefined) window.clearTimeout(idleWarmupTimer);
+              resolve();
+            };
+            editorLifetime.signal.addEventListener("abort", onAbort, { once: true });
+            void snapshotWarmup!.then(() => {
+              if (disposed || editorLifetime.signal.aborted) {
+                editorLifetime.signal.removeEventListener("abort", onAbort);
+                resolve();
+                return;
+              }
+              idleWarmupTimer = window.setTimeout(() => {
+                idleWarmupTimer = undefined;
+                if (disposed || editorLifetime.signal.aborted) {
+                  editorLifetime.signal.removeEventListener("abort", onAbort);
+                  resolve();
+                  return;
+                }
+                void (async () => {
+                  const collected = deferredCollector ? await deferredCollector() : [];
+                  const variantsToWarm = [...initialVariantsToWarm, ...collected];
+                  if (disposed || editorLifetime.signal.aborted || variantsToWarm.length === 0) return;
+                  shaderAudit?.recordWarmupRequested(startupAttempted, variantsToWarm.length);
+                  const bgReport = await warmupSeedWorldShaderVariants(engine!, variantsToWarm, {
+                    strict: false,
+                    signal: editorLifetime.signal,
+                    preserveOrder: true,
+                    frameBudgetMilliseconds: 4,
+                    maximumPendingPrograms: parallelBgWarmup ? 8 : 1,
+                    ssrVerifyReceiverDepth
+                  });
+                  if (!disposed) {
+                    seedWorldBootTrace.setMeta({
+                      bgWarmup: {
+                        requested: bgReport.requested,
+                        compiled: bgReport.compiled,
+                        elapsedMs: Math.round(bgReport.elapsedMilliseconds),
+                        longestVariantMs: Math.round(bgReport.longestVariantMilliseconds),
+                        completedAtMs: Math.round(performance.now())
+                      }
+                    });
+                    seedWorldBootTrace.event(
+                      "info",
+                      "shader-warmup-bg",
+                      `compiled ${bgReport.compiled}/${bgReport.requested} deferred variants in ${Math.round(bgReport.elapsedMilliseconds)}ms`,
+                      `longest=${Math.round(bgReport.longestVariantMilliseconds)}ms parallelCompile=${parallelBgWarmup}`
+                    );
+                  }
+                })()
+                  .catch(() => {})
+                  .finally(() => {
+                    editorLifetime.signal.removeEventListener("abort", onAbort);
+                    resolve();
+                  });
+              }, parallelBgWarmup ? 200 : 300);
+            });
+          })
+        : Promise.resolve();
     if (bootTraceParam) {
       void seedWorldBootTrace.reportToDiag("ready");
       const postReadyDelay = new Promise<void>((resolve) => {
@@ -3256,41 +3339,6 @@ export async function mountSeedWorldDemo(
         }
       });
     }
-    // Release the decompressed SWB1 prefetch buffers once startup leaf loading completes;
-    // rare post-ready lazy loads or context restores transparently fall back to HTTP-cached URLs.
-    prefetchedCommonBinaryAssets = undefined;
-    prefetchedBuildingBinaryAssets = undefined;
-    engine?.resourceManager?.setPrefetchedBinaryAssets?.(undefined);
-    releaseSeedWorldCommonBinaryBundle();
-    // The world is already visible and navigable. Two independent preparations start now:
-    // 1. The capture path of the world camera. The assistant's snapshot and the user's photo both use it,
-    //    so it runs first and a view capture waits for it.
-    // 2. The instant-camera presentation (models, photo workspace). Only the user's photo needs it,
-    //    so it only gates the screenshot entry, which is mounted when it has finished.
-    const photoPreparationStarted = performance.now();
-    canvas.dataset.photoPreparation = "loading";
-    const preparingPicker = worldPicker,
-      preparingPicks = pickPreparation,
-      preparingViews = viewSnapshots;
-    const preparingTools = tools;
-    const capturePathWarmup = (async () => {
-      await bgWarmupDone;
-      if (disposed || editorLifetime.signal.aborted) return;
-      await timed("pickPreparation.flush #1", () => preparingPicks.flush(editorLifetime.signal));
-      await timed("worldPicker.prepareSnapshot", () =>
-        preparingPicker.prepareSnapshot(
-          (visitor) => snapshotPicks.visit(visitor),
-          editorLifetime.signal,
-          preparingViews.budget
-        )
-      );
-      canvas.dataset.snapshotWarmupMs = String(performance.now() - photoPreparationStarted);
-    })();
-    // A failed warm-up does not block captures: a capture runs the same path and reports its own error.
-    snapshotWarmup = capturePathWarmup.then(
-      () => {},
-      () => {}
-    );
     void (async () => {
       const [, { SeedWorldLassoPanel }, { SeedWorldInstantCamera }] = await Promise.all([
         capturePathWarmup,

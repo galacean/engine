@@ -78,7 +78,7 @@ function inspectFlashAppBuild(outputRoot) {
   const assetsRoot = resolve(outputRoot, "assets");
   if (!existsSync(assetsRoot)) throw new Error(`Flash App build is missing ${assetsRoot}`);
   const assetNames = readdirSync(assetsRoot).filter((name) => statSync(resolve(assetsRoot, name)).isFile());
-  assertClassicWorkerPayloads(assetsRoot, assetNames);
+  assertClassicWorkerPayloads(outputRoot, assetsRoot, assetNames);
 
   const grasslandsOutput = resolve(outputRoot, "packages/terrain/src/data/grasslands");
   if (existsSync(grasslandsOutput)) {
@@ -137,9 +137,7 @@ function inspectFlashAppBuild(outputRoot) {
     }
     const rel = filePath.slice(outputRoot.length + 1).split(sep).join("/");
     if (
-      /^assets\/seed-world-project-text-bundle-[a-f0-9]+\.json$/u.test(rel) ||
-      /^assets\/seed-world-common-bin-bundle-[a-f0-9]+\.bin$/u.test(rel) ||
-      /^assets\/seed-world-building-bin-bundle-[a-f0-9]+\.bin$/u.test(rel) ||
+      /^assets\/seed-world-[a-z0-9-]+-bundle-[a-f0-9]+\.(?:bin|json)$/u.test(rel) ||
       /^assets\/esbuild-[a-f0-9]+\.wasm$/u.test(rel)
     ) {
       unoffloadedCdnWarnings.push(rel);
@@ -156,9 +154,28 @@ function inspectFlashAppBuild(outputRoot) {
   return { fileCount, totalBytes };
 }
 
-function assertClassicWorkerPayloads(assetsRoot, assetNames) {
+function assertClassicWorkerPayloads(outputRoot, assetsRoot, assetNames) {
   const jsAssetNames = assetNames.filter((name) => name.endsWith(".js"));
   const referencedWorkers = new Set();
+  const assertRelativeJsUrlTargets = (source, ownerLabel) => {
+    for (const match of source.matchAll(
+      /new URL\(\s*(["'])([^"']+)\1\s*,\s*(?:import\.meta\.url|\(self\.__FLASH_APP_WORKER_BASE_URL__\|\|self\.location\.href\))\s*\)/gu
+    )) {
+      const rawRef = match[2];
+      if (/^(?:[a-z]+:|\/|#)/i.test(rawRef)) continue;
+      const cleanRef = rawRef.split(/[?#]/)[0];
+      if (!cleanRef || cleanRef === "." || cleanRef === ".." || cleanRef.endsWith("/")) continue;
+      const target = resolve(assetsRoot, cleanRef);
+      if (!target.startsWith(`${outputRoot}${sep}`) || !existsSync(target) || !statSync(target).isFile()) {
+        throw new Error(
+          `Flash App ${ownerLabel} references missing local asset "${rawRef}" (expected ${target.slice(outputRoot.length + 1)})`
+        );
+      }
+      if (statSync(target).size === 0) {
+        throw new Error(`Flash App ${ownerLabel} references empty local asset "${rawRef}"`);
+      }
+    }
+  };
   for (const assetName of jsAssetNames) {
     const source = readFileSync(resolve(assetsRoot, assetName), "utf8");
     if (/new Worker\([^;]*\{\s*type:\s*["']module["']\s*\}/u.test(source)) {
@@ -181,6 +198,7 @@ function assertClassicWorkerPayloads(assetsRoot, assetNames) {
         `Flash App chunk ${assetName} resolves a relative URL against self.location (${relativeSelfLocationMatch[0]}), which fails in about:srcdoc and split-origin CDN deployments`
       );
     }
+    assertRelativeJsUrlTargets(source, `chunk ${assetName}`);
     for (const match of source.matchAll(
       /__flashAppCreateClassicWorker\(\s*new URL\(\s*(["'])([^"']+)\1\s*,\s*import\.meta\.url\s*\)\.href\s*\)/gu
     )) {
@@ -204,6 +222,7 @@ function assertClassicWorkerPayloads(assetsRoot, assetNames) {
     if (/,\s*self\.location\.href\s*\)/u.test(payload)) {
       throw new Error(`Flash App Worker ${workerFile} still resolves relative URLs against bare self.location.href`);
     }
+    assertRelativeJsUrlTargets(payload, `worker ${workerFile}`);
   }
   const missingWorkers = requiredClassicWorkers
     .filter(({ pattern }) => ![...referencedWorkers].some((name) => pattern.test(name)))

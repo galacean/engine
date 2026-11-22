@@ -6,19 +6,6 @@ import { adoptPlanningHeightmap, cachedPlanningHeightmap } from "@galacean/engin
 import type { PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { seedWorldBootTrace } from "../../SeedWorldBootTrace.ts";
 let ownerSequence = 0;
-let prewarmedWorker: Worker | null = null;
-
-/** Spawns an idle Planning Worker early so its JS bundle downloads and boots in parallel with WebGL/Orb setup. */
-export function prewarmPlanningWorker(): void {
-  if (prewarmedWorker || typeof Worker !== "function") return;
-  try {
-    prewarmedWorker = new Worker(new URL("./WorldPlanning.worker.ts", import.meta.url), {
-      type: "module"
-    });
-  } catch {
-    prewarmedWorker = null;
-  }
-}
 
 export class PlanningWorkerClient {
   private readonly owner = ++ownerSequence;
@@ -98,91 +85,99 @@ export class PlanningWorkerClient {
       this.dispatch();
     }).finally(() => signal?.removeEventListener("abort", abort));
   }
+  /** Pre-spawns this client's Worker early so its JS bundle downloads and boots in parallel with WebGL/Orb setup. */
+  prewarm(): void {
+    if (this.worker || typeof Worker !== "function") return;
+    try {
+      this.ensureWorker();
+    } catch {
+      // Best-effort prewarm; initialize()/run() surfaces any real worker startup error.
+    }
+  }
+  private ensureWorker(): Worker {
+    if (this.worker) return this.worker;
+    const worker = (this.worker = new Worker(new URL("./WorldPlanning.worker.ts", import.meta.url), {
+      type: "module"
+    }));
+    worker.onmessage = ({ data }: MessageEvent<PlanningWorkerResponse>) => {
+      if (this.worker !== worker) return;
+      if (data.type === "progress") {
+        seedWorldBootTrace.event("info", "planning-worker", data.stage);
+        if (this.active?.id === data.requestId) this.onProgress?.(data.stage);
+        return;
+      }
+      this.inFlight = false;
+      if (this.active?.id === data.requestId) {
+        const active = this.active;
+        this.active = null;
+        if (data.type === "error") active.reject(new Error(data.message));
+        else if (data.type === "initialized") {
+          if (active.type === "initialize") active.resolve(data.document);
+          else active.reject(new Error("Unexpected planning initialization response"));
+        } else if (active.type !== "generate") {
+          active.reject(new Error("Unexpected planning generation response"));
+        } else {
+          try {
+            if (
+              data.type === "water" &&
+              (!this.base ||
+                this.baseRequestId !== data.baseRequestId ||
+                this.runtimeSignature !== data.runtimeSignature ||
+                this.base.waterOverlay?.mode !== "overlay" ||
+                this.base.waterOverlay.baseSignature !== data.baseSignature ||
+                data.result.waterOverlay?.baseSignature !== data.baseSignature)
+            )
+              throw Error("Water worker patch baseline mismatch");
+            const result: SemanticResult =
+              data.type === "water"
+                ? { ...data.result, plan: mergePlanningWaterPatch(this.base!.plan, data.plan) }
+                : data.type === "landscape"
+                  ? { ...data.result, plan: { ...this.base!.plan, ...data.plan } }
+                  : data.result;
+            const baseHeight = this.base && cachedPlanningHeightmap(this.base.plan);
+            if (data.type === "water" && !baseHeight) throw Error("Water worker height baseline missing");
+            const height =
+              data.type === "water"
+                ? applyPlanningWaterHeightPatch(baseHeight!, data.heightPatch)
+                : (data.height ?? cachedPlanningHeightmap(result.plan));
+            if (height) adoptPlanningHeightmap(result.plan, height);
+            this.known.set(result, data.requestId);
+            result.planningWorkerToken = {
+              owner: this.owner,
+              generation: this.generation,
+              requestId: data.requestId
+            };
+            active.resolve(result);
+          } catch (error) {
+            this.releaseWorker();
+            active.reject(error instanceof Error ? error : new Error(String(error)));
+          }
+        }
+      }
+      this.dispatch();
+      if (!this.inFlight && !this.queued && !this.active) {
+        if (this.idleReleaseTimer !== undefined) clearTimeout(this.idleReleaseTimer);
+        this.idleReleaseTimer = setTimeout(() => {
+          this.idleReleaseTimer = undefined;
+          if (!this.inFlight && !this.queued && !this.active && this.worker) this.releaseWorker();
+        }, 400);
+      }
+    };
+    worker.onerror = (event) => {
+      seedWorldBootTrace.event("error", "planning-worker", event.message || "后台规划线程未能完成请求");
+      if (this.worker === worker) this.fail(new Error(event.message || "后台规划线程未能完成请求"));
+    };
+    return worker;
+  }
   private dispatch(): void {
     if (this.inFlight || !this.queued) return;
     try {
-      if (!this.worker) {
-        const adopted = prewarmedWorker;
-        prewarmedWorker = null;
-        const worker = (this.worker =
-          adopted ??
-          new Worker(new URL("./WorldPlanning.worker.ts", import.meta.url), {
-            type: "module"
-          }));
-        worker.onmessage = ({ data }: MessageEvent<PlanningWorkerResponse>) => {
-          if (this.worker !== worker) return;
-          if (data.type === "progress") {
-            seedWorldBootTrace.event("info", "planning-worker", data.stage);
-            if (this.active?.id === data.requestId) this.onProgress?.(data.stage);
-            return;
-          }
-          this.inFlight = false;
-          if (this.active?.id === data.requestId) {
-            const active = this.active;
-            this.active = null;
-            if (data.type === "error") active.reject(new Error(data.message));
-            else if (data.type === "initialized") {
-              if (active.type === "initialize") active.resolve(data.document);
-              else active.reject(new Error("Unexpected planning initialization response"));
-            } else if (active.type !== "generate") {
-              active.reject(new Error("Unexpected planning generation response"));
-            } else {
-              try {
-                if (
-                  data.type === "water" &&
-                  (!this.base ||
-                    this.baseRequestId !== data.baseRequestId ||
-                    this.runtimeSignature !== data.runtimeSignature ||
-                    this.base.waterOverlay?.mode !== "overlay" ||
-                    this.base.waterOverlay.baseSignature !== data.baseSignature ||
-                    data.result.waterOverlay?.baseSignature !== data.baseSignature)
-                )
-                  throw Error("Water worker patch baseline mismatch");
-                const result: SemanticResult =
-                  data.type === "water"
-                    ? { ...data.result, plan: mergePlanningWaterPatch(this.base!.plan, data.plan) }
-                    : data.type === "landscape"
-                      ? { ...data.result, plan: { ...this.base!.plan, ...data.plan } }
-                      : data.result;
-                const baseHeight = this.base && cachedPlanningHeightmap(this.base.plan);
-                if (data.type === "water" && !baseHeight) throw Error("Water worker height baseline missing");
-                const height =
-                  data.type === "water"
-                    ? applyPlanningWaterHeightPatch(baseHeight!, data.heightPatch)
-                    : (data.height ?? cachedPlanningHeightmap(result.plan));
-                if (height) adoptPlanningHeightmap(result.plan, height);
-                this.known.set(result, data.requestId);
-                result.planningWorkerToken = {
-                  owner: this.owner,
-                  generation: this.generation,
-                  requestId: data.requestId
-                };
-                active.resolve(result);
-              } catch (error) {
-                this.releaseWorker();
-                active.reject(error instanceof Error ? error : new Error(String(error)));
-              }
-            }
-          }
-          this.dispatch();
-          if (!this.inFlight && !this.queued && !this.active) {
-            if (this.idleReleaseTimer !== undefined) clearTimeout(this.idleReleaseTimer);
-            this.idleReleaseTimer = setTimeout(() => {
-              this.idleReleaseTimer = undefined;
-              if (!this.inFlight && !this.queued && !this.active && this.worker) this.releaseWorker();
-            }, 400);
-          }
-        };
-        worker.onerror = (event) => {
-          seedWorldBootTrace.event("error", "planning-worker", event.message || "后台规划线程未能完成请求");
-          if (this.worker === worker) this.fail(new Error(event.message || "后台规划线程未能完成请求"));
-        };
-      }
+      const worker = this.ensureWorker();
       const request = this.queued;
       this.queued = null;
       this.inFlight = true;
       if (request.type === "initialize") {
-        this.worker.postMessage(request);
+        worker.postMessage(request);
         return;
       }
       this.base = request.previousSnapshot;
@@ -194,7 +189,7 @@ export class PlanningWorkerClient {
       this.baseRequestId = previousRequestId;
       this.runtimeSignature = request.runtimeSignature;
       const baseHeight = this.base?.waterOverlay?.mode === "overlay" && cachedPlanningHeightmap(this.base.plan);
-      this.worker.postMessage(
+      worker.postMessage(
         previousRequestId === undefined
           ? request
           : {

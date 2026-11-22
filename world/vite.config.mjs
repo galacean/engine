@@ -235,11 +235,12 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
             }
           }
 
-          // Rewrite `new URL("<rel>", import.meta.url)` and classic-worker `new URL("<rel>", (self.__FLASH_APP_WORKER_BASE_URL__||self.location.href))`
-          // inside JS chunks & classic worker scripts.
+          // Rewrite `new URL("<rel>", import.meta.url)`, bare worker `new URL("<rel>", self.location.href)`,
+          // and classic-worker `new URL("<rel>", (self.__FLASH_APP_WORKER_BASE_URL__||self.location.href))`
+          // inside JS chunks & classic worker scripts so CDN URL rewriting is order-independent.
           const rewriteJsUrls = (code, baseDir) =>
             code.replace(
-              /new URL\(\s*(["'])([^"']+)\1\s*,\s*(import\.meta\.url|\(self\.__FLASH_APP_WORKER_BASE_URL__\|\|self\.location\.href\))\s*\)/gu,
+              /new URL\(\s*(["'])([^"']+)\1\s*,\s*(import\.meta\.url|self\.location\.href|\(self\.__FLASH_APP_WORKER_BASE_URL__\|\|self\.location\.href\))\s*\)/gu,
               (match, quote, rel, baseExpr) => {
                 if (/^(?:[a-z]+:|\/|#)/i.test(rel)) return match;
                 const [rawPath, suffix = ""] = rel.split(/(?=[?#])/);
@@ -500,8 +501,8 @@ export default {
       shaderLibrary: shaderLibrary(path.join(root, "packages/modify/.cache/shader-src/ShaderLibrary"))
     }),
     waterBuild.createWaterShaderProductionAssetPlugin(path.join(root, "packages/water/src/water/shaders")),
-    ...(demo === "seed-world" ? [seedWorldAssetBundles({ offloadCdn: flashApp })] : []),
-    ...(flashApp ? [flashAppClassicWorkers()] : [])
+    ...(flashApp ? [flashAppClassicWorkers()] : []),
+    ...(demo === "seed-world" ? [seedWorldAssetBundles({ offloadCdn: flashApp })] : [])
   ],
   server: { host: "127.0.0.1", port: 5193, open: `/world/demos/${demo}/index.html`, fs: { allow: [root] } },
   resolve: {

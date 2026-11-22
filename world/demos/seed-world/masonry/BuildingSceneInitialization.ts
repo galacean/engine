@@ -18,10 +18,21 @@ interface BuildingLayouts {
   roots: Record<string, string>;
 }
 
+export interface BuildingScenePreparationOptions {
+  /**
+   * Optional supplier returning a `BuildingGeneratorComponent` id whose 0-building startup
+   * fast-path skipped boot-time scene mutation. On the first subsequent editor transaction
+   * (`startupPlan === undefined`), that generator converges `initialized: true` in-place
+   * without running `inputs()`, restoring the one-time initialization invariant.
+   */
+  readonly bootEmptyInitializedGeneratorId?: () => string | undefined;
+}
+
 /** Initialize each layout once. The Scene keeps previous native buildings under inactive layout roots. */
 export function buildingScenePreparation(scenePath: string,
   inputs: (edit: AuthoringEdit, signal: AbortSignal) => Promise<Inputs>,
-  startupPlan?: IslandPlan): RuntimeEditPreparation {
+  startupPlan?: IslandPlan,
+  options?: BuildingScenePreparationOptions): RuntimeEditPreparation {
   return async (edit, signal, context) => {
     const shared = context?.after.scene(scenePath);
     if (shared && !shared.hasInstances) {
@@ -31,7 +42,7 @@ export function buildingScenePreparation(scenePath: string,
       if (!generator || generator.props?.enabled === false || (!startupPlan && generator.props?.initialized === true)) return;
     }
     const marker = `${scenePath}.building-layouts.json`;
-    const selection = await edit.run(({ draft }) => {
+    const selection = await edit.run(({ draft, edited }) => {
       const scene = new RuntimeSceneEdit(draft, scenePath);
       const generators = scene.queryComponents({ type: "BuildingGeneratorComponent" });
       if (generators.length > 1) throw Error("Scene has multiple building generators");
@@ -53,6 +64,20 @@ export function buildingScenePreparation(scenePath: string,
         visited.add(id);
         if (entities.find(entity => entity.id === id)?.isActive === false) return;
       }
+      if (
+        !startupPlan &&
+        !initialized &&
+        !layouts &&
+        identity.id === options?.bootEmptyInitializedGeneratorId?.()
+      ) {
+        const frames = (scene.readEntity(identity.entityId).children ?? [])
+          .filter((id) => id.startsWith("building-group:["));
+        if (frames.length === 0) {
+          scene.updateComponent(identity.id, { initialized: true });
+          edited();
+          return;
+        }
+      }
       return { identity, initialized, layouts };
     });
     if (!selection) return;
@@ -63,7 +88,7 @@ export function buildingScenePreparation(scenePath: string,
     const parent = await edit.run(({ draft, edited }) => {
       const { identity, initialized, layouts } = selection;
       const scene = new RuntimeSceneEdit(draft, scenePath);
-      if (!layouts && !planHasBuildings) {
+      if (startupPlan && !layouts && !planHasBuildings) {
         const frames = (scene.readEntity(identity.entityId).children ?? [])
           .filter((id) => id.startsWith("building-group:["));
         if (frames.length === 0) return undefined;
@@ -138,18 +163,69 @@ function buildingLayoutKey(plan: IslandPlan): string {
   return JSON.stringify([plan.parameters.seed, plan.parameters.worldTemplate?.id ?? ""]);
 }
 
+/**
+ * Fast-path check for 0-building startup scenes without opening a heavyweight `RuntimeProjectEdit`.
+ * Returns `{ skip: true, emptyGeneratorId }` when the scene needs zero boot-time edits, or `{ skip: false }`
+ * to fall through to the full `buildingScenePreparation` transaction.
+ */
+function inspectEmptyStartupBuildingScene(
+  project: RuntimeProjectSession,
+  plan: IslandPlan
+): { skip: false } | { skip: true; emptyGeneratorId?: string } {
+  if (hasInitialBuildings(plan)) return { skip: false };
+  const scenePath = project.projectPackage.project.scene;
+  const marker = `${scenePath}.building-layouts.json`;
+  if (project.projectPackage.documents?.[marker] !== undefined) return { skip: false };
+  const rawScene = project.projectPackage.contents[scenePath];
+  if (typeof rawScene !== "string") return { skip: false };
+  let source: GalaceanSourceSceneFile;
+  try {
+    source = JSON.parse(rawScene) as GalaceanSourceSceneFile;
+  } catch {
+    return { skip: false };
+  }
+  const entities = source.entities ?? [];
+  if (entities.some((entity) => Boolean((entity as { instance?: unknown }).instance))) return { skip: false };
+  const components = source.components ?? [];
+  const generators = components.filter((component) => component.type === "BuildingGeneratorComponent");
+  if (generators.length > 1) return { skip: false };
+  const generator = generators[0];
+  if (!generator) return { skip: true };
+  if (generator.props?.enabled === false || generator.props?.initialized === true) return { skip: true };
+  const owner = entities.find((entity) => (entity.components ?? []).includes(generator.id));
+  if (!owner) return { skip: false };
+  const parents = new Map<string, string>();
+  for (const entity of entities) {
+    for (const child of entity.children ?? []) parents.set(child, entity.id);
+  }
+  const visited = new Set<string>();
+  for (let id: string | undefined = owner.id; id; id = parents.get(id)) {
+    if (visited.has(id)) return { skip: false };
+    visited.add(id);
+    if (entities.find((entity) => entity.id === id)?.isActive === false) return { skip: true };
+  }
+  const frames = (owner.children ?? []).filter((id) => id.startsWith("building-group:["));
+  if (frames.length > 0) return { skip: false };
+  return { skip: true, emptyGeneratorId: generator.id };
+}
+
 /** Bootstrap outside an outer project activation. Later edits use the
- * same preparation in their outer transaction, including marker and children. */
+ * same preparation in their outer transaction, including marker and children.
+ * Returns the `BuildingGeneratorComponent` id if a 0-building startup fast-path skipped boot-time mutation.
+ */
 export async function initializeBuildingScene(project: RuntimeProjectSession, editor: RuntimeEditor,
-  plan: IslandPlan, terrain: ConstructionTerrainSource, signal: AbortSignal): Promise<void> {
+  plan: IslandPlan, terrain: ConstructionTerrainSource, signal: AbortSignal): Promise<string | undefined> {
+  const fastCheck = inspectEmptyStartupBuildingScene(project, plan);
+  if (fastCheck.skip) return fastCheck.emptyGeneratorId;
   const edit = editor.beginEdit(crypto.randomUUID(), signal);
   try {
     await seedWorldBootTrace.span("building.preparation", () =>
       buildingScenePreparation(project.projectPackage.project.scene, async () => ({ plan, terrain }), plan)(edit, signal)
     );
-    if (!edit.hasChanges()) return;
+    if (!edit.hasChanges()) return undefined;
     await seedWorldBootTrace.span("building.edit.prepare", () => edit.prepare(signal));
     await seedWorldBootTrace.span("building.edit.commit", () => edit.commit());
     await seedWorldBootTrace.span("building.edit.activate", () => edit.activate(signal));
+    return undefined;
   } finally { edit.discard(); }
 }

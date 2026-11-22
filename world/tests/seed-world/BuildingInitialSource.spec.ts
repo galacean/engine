@@ -19,8 +19,12 @@ import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/reso
 import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { RUNTIME_PROJECT_SAVE_VERSION } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
+import { RuntimePreparationViews } from "@galacean/engine-runtime-editor/runtime-editor/runtime-preparation-context";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
-import { buildingScenePreparation } from "../../demos/seed-world/masonry/BuildingSceneInitialization";
+import {
+  buildingScenePreparation,
+  initializeBuildingScene
+} from "../../demos/seed-world/masonry/BuildingSceneInitialization";
 
 it("keeps the mounted parts the design lays when the initial plan is saved as native author Source", async () => {
   const plan = structuredClone(buildingGenerationPlan);
@@ -108,3 +112,82 @@ it("keeps initialized legacy building frames and hand-placed children on reload"
   expect(draft.read(path)).toBe(before);
   expect(withAsset).not.toHaveBeenCalled();
 }, 60000);
+
+it("skips boot-time editor mutation for 0-building templates and converges initialized:true without re-running inputs on later edits", async () => {
+  const path = "Seed.scene";
+  const grid = {
+    samples: new Uint16Array(4),
+    resolution: 2,
+    origin: [0, 0] as [number, number],
+    size: 1024,
+    decode: { offset: 0, scale: 1 }
+  };
+  const zeroPlan = {
+    ...buildingGenerationPlan,
+    parameters: { ...buildingGenerationPlan.parameters, worldTemplate: { id: "titan-wasteland" } },
+    buildings: [],
+    fences: [],
+    courtyards: []
+  };
+  const projectPackage = {
+    version: RUNTIME_PROJECT_SAVE_VERSION,
+    project: { scene: path, files: [{ virtualPath: path, path, type: "Scene" }] },
+    contents: {
+      [path]: JSON.stringify({
+        asset: { version: "2.0" },
+        scene: { rootEntities: ["generator"] },
+        entities: [{ id: "generator", components: ["init"], children: [] }],
+        components: [{ id: "init", type: "BuildingGeneratorComponent", props: { initialized: false } }]
+      })
+    }
+  };
+  const beginEdit = vi.fn();
+  const emptyGeneratorId = await initializeBuildingScene(
+    { projectPackage } as any,
+    { beginEdit } as any,
+    zeroPlan,
+    { grid, revision: 0 },
+    new AbortController().signal
+  );
+  // Fast-path skips opening a heavyweight RuntimeProjectEdit during boot.
+  expect(beginEdit).not.toHaveBeenCalled();
+  expect(emptyGeneratorId).toBe("init");
+
+  // Subsequent editor transactions converge `initialized: true` in-place with 0 `inputs()` calls.
+  const editInputs = vi.fn(async () => ({ plan: zeroPlan, terrain: { grid, revision: 1 } }));
+  const registered = buildingScenePreparation(path, editInputs, undefined, {
+    bootEmptyInitializedGeneratorId: () => emptyGeneratorId
+  });
+  const editDraft1 = new RuntimeProjectEdit(structuredClone(projectPackage), nativeAssetFormats(() => ({})));
+  const views1 = new RuntimePreparationViews(projectPackage as any);
+  editDraft1.writeDocument("planning.json", JSON.stringify({ revision: 1 }));
+  let edited1 = false;
+  await registered(
+    {
+      run: async (fn: any) => fn({ draft: editDraft1, edited: () => { edited1 = true; } }),
+      withAsset: vi.fn()
+    } as any,
+    new AbortController().signal,
+    views1.current(editDraft1)
+  );
+  expect(edited1).toBe(true);
+  expect(editInputs).not.toHaveBeenCalled();
+  expect(JSON.parse(editDraft1.read(path) as string).components[0].props.initialized).toBe(true);
+
+  // Edit #2 hits the fast `initialized === true` early-return guard with 0 writes and 0 `inputs()` calls.
+  const pkgAfterEdit1 = editDraft1.preview();
+  const editDraft2 = new RuntimeProjectEdit(structuredClone(pkgAfterEdit1), nativeAssetFormats(() => ({})));
+  const views2 = new RuntimePreparationViews(pkgAfterEdit1);
+  editDraft2.writeDocument("planning.json", JSON.stringify({ revision: 2 }));
+  let edited2 = false;
+  await registered(
+    {
+      run: async (fn: any) => fn({ draft: editDraft2, edited: () => { edited2 = true; } }),
+      withAsset: vi.fn()
+    } as any,
+    new AbortController().signal,
+    views2.current(editDraft2)
+  );
+  expect(edited2).toBe(false);
+  expect(editInputs).not.toHaveBeenCalled();
+});

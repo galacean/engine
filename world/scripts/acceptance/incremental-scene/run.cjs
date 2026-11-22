@@ -25,6 +25,9 @@ if (!out || !url || !trial) throw Error("Set BENCH_OUTPUT, BENCH_URL and BENCH_T
         long: [],
         last: 0
       });
+      globalThis.__seedWorldOnDiagnosticHost = (host) => {
+        globalThis.__sceneBenchHost = host;
+      };
       globalThis.__sceneBenchCall = (name, fn) => {
         if (!state.record) return fn();
         const start = performance.now();

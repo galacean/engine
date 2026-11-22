@@ -49,6 +49,9 @@ const demo =
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     await context.addInitScript({ path: path.join(__dirname, "observe.js") });
     await context.addInitScript(() => {
+      window.__seedWorldOnDiagnosticHost = (host) => {
+        window.__diag = host;
+      };
       window.__sourceWrites = [];
       window.__auditStages = [];
       window.__auditSync = (name, fn) => {
@@ -71,13 +74,15 @@ const demo =
           body = result.body;
           hooks.push({ file, hits: result.hits });
           if (file === "SeedWorldDemo.ts") {
-            const anchor = "pickPreparation = new RuntimePickPreparation(engine)";
-            if (!body.includes(anchor)) throw Error("Missing engine anchor");
-            body = body.replace(
-              anchor,
-              "window.__diag={engine,get tools(){return tools},get ready(){return ready},get animals(){return animals},get current(){return publication?.current}};" +
-                anchor
-            );
+            if (!body.includes("__seedWorldOnDiagnosticHost")) {
+              const anchor = "pickPreparation = new RuntimePickPreparation(engine)";
+              if (!body.includes(anchor)) throw Error("Missing engine anchor");
+              body = body.replace(
+                anchor,
+                "window.__diag={engine,get tools(){return tools},get ready(){return ready},get animals(){return animals},get current(){return publication?.current}};" +
+                  anchor
+              );
+            }
             const publication = "const preparePublicationContent = async (document2, result, context) => {";
             if (body.includes(publication))
               body = body.replace(

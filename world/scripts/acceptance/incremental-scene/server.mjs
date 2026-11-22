@@ -99,6 +99,8 @@ const plugin = {
     const file = id.split("?")[0];
     if (process.env.BENCH_DIAGNOSTICS === "1") code = instrumentPreparationDiagnostics(code, file);
     if (file.endsWith("/SeedWorldDemo.ts")) {
+      if (code.includes("__seedWorldOnDiagnosticHost")) return code;
+      // Legacy fallback for BENCH_VARIANT=before snapshots predating __seedWorldOnDiagnosticHost.
       const anchor = "pickPreparation = new RuntimePickPreparation(engine);";
       if (!code.includes(anchor)) throw Error("Missing Seed World diagnostic anchor");
       return code.replace(
