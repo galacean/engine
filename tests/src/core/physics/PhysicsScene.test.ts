@@ -1594,7 +1594,7 @@ describe("Physics Test", () => {
           outHitResult
         )
       ).to.eq(true);
-      expect(outHitResult.distance).to.be.eq(0.5);
+      expect(outHitResult.distance).to.be.eq(1);
       expect(outHitResult.collider).to.be.eq(boxShape2);
 
       // Test capsuleCast with parallel direction
@@ -1616,7 +1616,7 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
-    it("uses the total height in capsule sweeps and overlaps", () => {
+    it("uses the total height and Y-axis default orientation in capsule sweeps and overlaps", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physics = scene.physics;
       const root = scene.createRootEntity();
@@ -1625,16 +1625,21 @@ describe("Physics Test", () => {
 
       const radius = 0.5;
       const height = 2;
-      const center = new Vector3(-5, 0, 0);
+      const center = new Vector3(0, -5, 0);
       const hit = new HitResult();
-      expect(physics.capsuleCast(center, radius, height, new Vector3(1, 0, 0), 10, hit)).toBe(true);
+      expect(physics.capsuleCast(center, radius, height, new Vector3(0, 1, 0), 10, hit)).toBe(true);
       expect(hit.collider).toBe(target);
       expect(hit.distance).toBeCloseTo(3.5, 4);
 
-      center.x = -1.75;
-      expect(physics.overlapCapsuleAll(center, radius, height)).toEqual([]);
-      center.x = -1.25;
-      expect(physics.overlapCapsuleAll(center, radius, height)).toEqual([target]);
+      expect(physics.overlapCapsuleAll(new Vector3(0, -1.75, 0), radius, height)).toEqual([]);
+      expect(physics.overlapCapsuleAll(new Vector3(0, -1.25, 0), radius, height)).toEqual([target]);
+
+      // Perpendicular X extent is the radius (0.5) unless orientation aligns the capsule with X.
+      expect(physics.overlapCapsuleAll(new Vector3(-1.25, 0, 0), radius, height)).toEqual([]);
+      expect(physics.overlapCapsuleAll(new Vector3(-0.75, 0, 0), radius, height)).toEqual([target]);
+      const alignedX = new Quaternion();
+      Quaternion.rotationEuler(0, 0, Math.PI / 2, alignedX);
+      expect(physics.overlapCapsuleAll(new Vector3(-1.25, 0, 0), radius, height, alignedX)).toEqual([target]);
 
       root.destroy();
     });

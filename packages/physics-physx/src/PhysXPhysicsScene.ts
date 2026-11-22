@@ -15,6 +15,7 @@ import { PhysXPhysics } from "./PhysXPhysics";
  */
 export class PhysXPhysicsScene implements IPhysicsScene {
   private static readonly _emptyExcluded: number[] = [];
+  private static readonly _capsuleYAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _tempPose: { translation: Vector3; rotation: Quaternion } = {
@@ -354,7 +355,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   ): boolean {
     return this._sweepSingle(
       this._getCapsuleGeometry(radius, height),
-      PhysXPhysicsScene._queryPose(center, orientation),
+      PhysXPhysicsScene._queryPose(center, orientation, PhysXPhysicsScene._capsuleYAxis),
       direction,
       distance,
       layerMask,
@@ -400,7 +401,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   ): Uint32Array {
     return this._pxSceneQueries.overlap(
       this._getCapsuleGeometry(radius, height),
-      PhysXPhysicsScene._queryPose(center, orientation),
+      PhysXPhysicsScene._queryPose(center, orientation, PhysXPhysicsScene._capsuleYAxis),
       layerMask,
       true,
       PhysXPhysicsScene._emptyExcluded
@@ -509,11 +510,26 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return (this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, halfHeight));
   }
 
-  private static _queryPose(center: Vector3, orientation?: Quaternion): { translation: Vector3; rotation: Quaternion } {
+  private static _queryPose(
+    center: Vector3,
+    orientation?: Quaternion,
+    axis?: Quaternion
+  ): { translation: Vector3; rotation: Quaternion } {
     const pose = PhysXPhysicsScene._tempPose;
     pose.translation.copyFrom(center);
-    const rotation = pose.rotation.set(0, 0, 0, 1);
-    if (orientation) Quaternion.normalize(orientation, rotation);
+    const rotation = pose.rotation;
+    if (orientation) {
+      if (axis) {
+        Quaternion.multiply(orientation, axis, rotation);
+        rotation.normalize();
+      } else {
+        Quaternion.normalize(orientation, rotation);
+      }
+    } else if (axis) {
+      rotation.copyFrom(axis);
+    } else {
+      rotation.set(0, 0, 0, 1);
+    }
     return pose;
   }
 

@@ -177,7 +177,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * The center of the Collider in the Entity's local space.
-   * @remarks The center is scaled by the absolute world scale, so a negative scale does not mirror it.
+   * @remarks Scaled by the Entity's signed world scale, so negative scaling mirrors the offset.
    */
   get center(): Vector3 {
     return this._center;
@@ -452,16 +452,20 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
 
     // Transform accessors can query the scene and synchronize other Colliders before this pose is committed.
+    const scaleX = lossyScale.x;
+    const scaleY = lossyScale.y;
+    const scaleZ = lossyScale.z;
     const depth = Collider._syncDepth++;
     try {
       const scratch = (Collider._syncScratch[depth] ||= new ColliderSyncScratch());
-      const scale = scratch.scale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+      const scale = scratch.scale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
       const previousShape = this._native;
       const shape = this._syncNativeShape(scale);
       if (!shape) {
         this._detach();
         return;
       }
+      scale.set(scaleX, scaleY, scaleZ);
 
       const attachedActor = this._nativeActor;
       const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform, scene);

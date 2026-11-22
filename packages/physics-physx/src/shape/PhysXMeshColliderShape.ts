@@ -1,4 +1,4 @@
-import { MeshColliderShapeCookingFlag, Vector3 } from "@galacean/engine";
+import { MeshColliderCookingFlag, Vector3 } from "@galacean/engine";
 import { IMeshColliderShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
@@ -96,10 +96,10 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
 
     // The cooking instance is shared, so set its preprocessing flags for each cook.
     let preprocessFlags = 0;
-    if (cookingFlags & MeshColliderShapeCookingFlag.VertexWelding) {
+    if (cookingFlags & MeshColliderCookingFlag.VertexWelding) {
       preprocessFlags |= 1; // eWELD_VERTICES
     }
-    if (!(cookingFlags & MeshColliderShapeCookingFlag.Cleaning)) {
+    if (!(cookingFlags & MeshColliderCookingFlag.Cleaning)) {
       preprocessFlags |= 2; // eDISABLE_CLEAN_MESH
     }
     physX.setCookingMeshPreprocessParams(cookingParams, preprocessFlags);

@@ -1,5 +1,5 @@
-export * from "./MeshColliderShapeCookingFlag";
+export * from "./MeshColliderCookingFlag";
 export * from "./PhysicsMaterialCombineMode";
-export * from "./ColliderShapeUpAxis";
+export * from "./CapsuleColliderDirection";
 export * from "./ControllerCollisionFlag";
 export * from "./ControllerNonWalkableMode";

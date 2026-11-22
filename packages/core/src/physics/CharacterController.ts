@@ -230,11 +230,10 @@ export class CharacterController extends Collider {
     const position = transform.worldPosition;
     const colliderCenter = this.center;
     if (this._registeredScene !== scene) return;
-    const scale = CharacterController._tempWorldScale.set(
-      Math.abs(lossyScale.x),
-      Math.abs(lossyScale.y),
-      Math.abs(lossyScale.z)
-    );
+    const scaleX = lossyScale.x;
+    const scaleY = lossyScale.y;
+    const scaleZ = lossyScale.z;
+    const scale = CharacterController._tempWorldScale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
     const force = !this._inScene;
     const syncGeometry = force || this._geometryDirty || this._scaleChanged(scale);
     let radius = 0;
@@ -249,9 +248,9 @@ export class CharacterController extends Collider {
     }
 
     const controller = (this._controller ||= this._createNative());
-    const centerX = colliderCenter.x * scale.x;
-    const centerY = colliderCenter.y * scale.y;
-    const centerZ = colliderCenter.z * scale.z;
+    const centerX = colliderCenter.x * scaleX;
+    const centerY = colliderCenter.y * scaleY;
+    const centerZ = colliderCenter.z * scaleZ;
     const syncedCenter = this._syncedCenter;
     const nativePosition = this._nativePosition;
     if (

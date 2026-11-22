@@ -16,7 +16,7 @@ import {
   Loader,
   type LoadItem,
   MeshCollider,
-  MeshColliderShapeCookingFlag,
+  MeshColliderCookingFlag,
   MeshTopology,
   ModelMesh,
   PhysicsScene,
@@ -686,7 +686,7 @@ describe("Physics gameplay integration", () => {
       }
 
       // 3b. Replace old hull whose CPU data was released by base call while also changing cookingFlags and convex
-      const flags = MeshColliderShapeCookingFlag.Cleaning;
+      const flags = MeshColliderCookingFlag.Cleaning;
       const flagsOuter = await loadPrefab("r11-flags-outer.prefab", {
         version: "2.0",
         refs: [{ url: "r11-empty-base.prefab" }, { url: "r11-indexed.mesh" }, { url: "r11-releasable.mesh" }],
@@ -816,7 +816,7 @@ describe("Physics gameplay integration", () => {
                 convex: true,
                 mesh: { $ref: 0 },
                 ...(withCookingFlags
-                  ? { cookingFlags: MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding }
+                  ? { cookingFlags: MeshColliderCookingFlag.Cleaning | MeshColliderCookingFlag.VertexWelding }
                   : {})
               }
             }
@@ -881,7 +881,7 @@ describe("Physics gameplay integration", () => {
                       props: {
                         isTrigger: false,
                         convex: false,
-                        cookingFlags: MeshColliderShapeCookingFlag.Cleaning,
+                        cookingFlags: MeshColliderCookingFlag.Cleaning,
                         mesh: { $ref: 1 }
                       }
                     }
@@ -899,7 +899,7 @@ describe("Physics gameplay integration", () => {
           const mc = inst.getComponent(MeshCollider)!;
           expect(mc.mesh).toBe(collinearMesh);
           expect(mc.isTrigger).toBe(false);
-          expect(mc.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+          expect(mc.cookingFlags).toBe(MeshColliderCookingFlag.Cleaning);
           expect(scene.physics.raycast(ray, 10)).toBe(false);
           expect(errSpy).toHaveBeenCalled();
 

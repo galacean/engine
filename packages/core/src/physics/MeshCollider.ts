@@ -4,7 +4,7 @@ import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { Collider } from "./Collider";
-import { MeshColliderShapeCookingFlag } from "./enums/MeshColliderShapeCookingFlag";
+import { MeshColliderCookingFlag } from "./enums/MeshColliderCookingFlag";
 
 type MeshData = {
   positions: Vector3[];
@@ -26,15 +26,15 @@ export class MeshCollider extends Collider {
   @ignoreClone
   private _mesh: ModelMesh | null = null;
   private _convex = false;
-  private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
+  private _cookingFlags = MeshColliderCookingFlag.Cleaning | MeshColliderCookingFlag.VertexWelding;
 
   @ignoreClone
   private _nativeMesh: ModelMesh | null = null;
   @ignoreClone
   private _nativeConvex = false;
   @ignoreClone
-  private _nativeCookingFlags: MeshColliderShapeCookingFlag =
-    MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
+  private _nativeCookingFlags: MeshColliderCookingFlag =
+    MeshColliderCookingFlag.Cleaning | MeshColliderCookingFlag.VertexWelding;
   @ignoreClone
   private _nativeTrigger = false;
   @ignoreClone
@@ -78,13 +78,13 @@ export class MeshCollider extends Collider {
 
   /**
    * Cooking flags for the mesh.
-   * @defaultValue `MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding`
+   * @defaultValue `MeshColliderCookingFlag.Cleaning | MeshColliderCookingFlag.VertexWelding`
    */
-  get cookingFlags(): MeshColliderShapeCookingFlag {
+  get cookingFlags(): MeshColliderCookingFlag {
     return this._cookingFlags;
   }
 
-  set cookingFlags(value: MeshColliderShapeCookingFlag) {
+  set cookingFlags(value: MeshColliderCookingFlag) {
     if (this._cookingFlags !== value || this._rejection === MeshSyncRejection.CookFailed) {
       this._cookingFlags = value;
       this._rejection = MeshSyncRejection.None;

@@ -201,7 +201,7 @@ capsuleCast(
 const characterCenter = new Vector3(0, 1, 0);
 const characterRadius = 0.5;
 const characterHeight = 1.8;
-const upright = new Quaternion().rotateZ(Math.PI / 2);
+const upright = new Quaternion();
 const jumpDirection = new Vector3(0, 1, 0);
 const jumpHeight = 2.0;
 
@@ -254,7 +254,7 @@ if (physicsScene.capsuleCast(
 - **halfExtents** (boxCast) - Half-size of the box
 - **radius** (sphereCast/capsuleCast) - Radius of the sphere/capsule
 - **height** (capsuleCast) - Total height in world units, including both caps. If the height is at most twice the radius, the cast returns `false`. Use `sphereCast` for a sphere.
-- **orientation** (boxCast/capsuleCast) - Shape rotation (defaults to no rotation)
+- **orientation** (boxCast/capsuleCast) - Shape rotation (defaults to no rotation; a capsule's default local long axis is Y)
 
 ## Performance Optimization Tips
 
@@ -267,7 +267,7 @@ if (physicsScene.capsuleCast(
 // Performance optimization example
 class PhysicsQuery {
   private static readonly _hitResult = new HitResult();
-  private static readonly _upright = new Quaternion().rotateZ(Math.PI / 2);
+  private static readonly _upright = new Quaternion();
   private static readonly _playerLayerMask = Layer.Layer0 | Layer.Layer1;
   
   static checkPlayerMovement(center: Vector3, direction: Vector3): boolean {

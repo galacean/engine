@@ -151,7 +151,7 @@ export interface IPhysicsScene {
    * @param center - The world-space capsule center
    * @param radius - The capsule radius
    * @param height - The height between the capsule's hemisphere centers
-   * @param orientation - World-space rotation of the capsule, whose local long axis is X
+   * @param orientation - World-space rotation of the capsule, whose local long axis is Y
    * @param direction - The normalized world-space sweep direction
    * @param distance - The maximum sweep distance
    * @param layerMask - The collision layers to include
@@ -193,7 +193,7 @@ export interface IPhysicsScene {
    * @param center - The world-space capsule center
    * @param radius - The capsule radius
    * @param height - The height between the capsule's hemisphere centers
-   * @param orientation - World-space rotation of the capsule, whose local long axis is X
+   * @param orientation - World-space rotation of the capsule, whose local long axis is Y
    * @param layerMask - The collision layers to include
    * @returns Borrowed shape IDs; consume them before the next physics operation
    */

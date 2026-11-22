@@ -1005,5 +1005,22 @@ describe("CharacterController", () => {
       expect(enters).toEqual([[zone, cc]]);
       expect(ancestorTriggers).toBe(0);
     });
+
+    it("mirrors center offsets across negative Entity scale while keeping radius and height positive", () => {
+      const entity = root.createChild("mirrored-cct");
+      entity.transform.setScale(-2, 2, 1);
+      const cc = entity.addComponent(CharacterController);
+      cc.radius = 0.5;
+      cc.height = 2;
+      cc.center.set(1, 1, 0);
+      cc.collisionLayer = Layer.Layer6;
+
+      const hit = new HitResult();
+      expect(physics.raycast(new Ray(new Vector3(-2, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)).toBe(true);
+      expect(hit.collider).toBe(cc);
+      // PhysX PxController scales its query proxy half-extents by default scaleCoeff (0.8): 2 + (1 + 1) * 0.8 = 3.6.
+      expect(hit.point.y).toBeCloseTo(3.6, 3);
+      expect(physics.raycast(new Ray(new Vector3(2, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
+    });
   });
 });

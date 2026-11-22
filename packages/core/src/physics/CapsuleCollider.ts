@@ -2,7 +2,7 @@ import { ICapsuleColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
-import { ColliderShapeUpAxis } from "./enums/ColliderShapeUpAxis";
+import { CapsuleColliderDirection } from "./enums/CapsuleColliderDirection";
 
 /**
  * A capsule-shaped collider.
@@ -12,7 +12,7 @@ import { ColliderShapeUpAxis } from "./enums/ColliderShapeUpAxis";
 export class CapsuleCollider extends Collider {
   private _radius = 1;
   private _height = 4;
-  private _direction = ColliderShapeUpAxis.Y;
+  private _direction = CapsuleColliderDirection.Y;
 
   /**
    * The radius of the capsule in the Entity's local space. Finite negative values are clamped to 0.
@@ -59,13 +59,13 @@ export class CapsuleCollider extends Collider {
 
   /**
    * The local axis the capsule is aligned with.
-   * @defaultValue `ColliderShapeUpAxis.Y`
+   * @defaultValue `CapsuleColliderDirection.Y`
    */
-  get direction(): ColliderShapeUpAxis {
+  get direction(): CapsuleColliderDirection {
     return this._direction;
   }
 
-  set direction(value: ColliderShapeUpAxis) {
+  set direction(value: CapsuleColliderDirection) {
     if (this._direction !== value) {
       this._direction = value;
       this._geometryDirty = true;
@@ -78,15 +78,15 @@ export class CapsuleCollider extends Collider {
     let radialScale: number;
     let heightScale: number;
     switch (direction) {
-      case ColliderShapeUpAxis.X:
+      case CapsuleColliderDirection.X:
         radialScale = Math.max(scale.y, scale.z);
         heightScale = scale.x;
         break;
-      case ColliderShapeUpAxis.Y:
+      case CapsuleColliderDirection.Y:
         radialScale = Math.max(scale.x, scale.z);
         heightScale = scale.y;
         break;
-      case ColliderShapeUpAxis.Z:
+      case CapsuleColliderDirection.Z:
         radialScale = Math.max(scale.x, scale.y);
         heightScale = scale.z;
         break;

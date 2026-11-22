@@ -8,7 +8,7 @@ import {
   HitResult,
   Layer,
   MeshCollider,
-  MeshColliderShapeCookingFlag,
+  MeshColliderCookingFlag,
   ModelMesh,
   PhysicsMaterial,
   PhysicsScene,
@@ -348,7 +348,7 @@ describe("MeshCollider", () => {
             collider.mesh = createCubeMesh(engine, 1.1);
             break;
           case "cookingFlags":
-            collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+            collider.cookingFlags = MeshColliderCookingFlag.Cleaning;
             break;
           case "convex":
             collider.convex = true;
@@ -421,8 +421,8 @@ describe("MeshCollider", () => {
       collider.convex = !convex;
       expect(collider.convex).toBe(!convex);
       expect(physics.raycast(rayAt(0))).toBe(false);
-      collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
-      expect(collider.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+      collider.cookingFlags = MeshColliderCookingFlag.Cleaning;
+      expect(collider.cookingFlags).toBe(MeshColliderCookingFlag.Cleaning);
       expect(physics.raycast(rayAt(0))).toBe(false);
       expect(warnings).toHaveBeenCalledTimes(2);
 
@@ -492,15 +492,15 @@ describe("MeshCollider", () => {
       mesh.setPositions([new Vector3()]);
       mesh.setIndices(new Uint16Array([0, 0, 0]));
       const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-      collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
-      expect(collider.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+      collider.cookingFlags = MeshColliderCookingFlag.Cleaning;
+      expect(collider.cookingFlags).toBe(MeshColliderCookingFlag.Cleaning);
       expect(collider.mesh).toBe(mesh);
       expect(physics.raycast(rayAt(0))).toBe(false);
       expect(errors).toHaveBeenCalled();
       mesh.setPositions(positions);
       mesh.setIndices(indices);
-      collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
-      expect(collider.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+      collider.cookingFlags = MeshColliderCookingFlag.Cleaning;
+      expect(collider.cookingFlags).toBe(MeshColliderCookingFlag.Cleaning);
       expect(physics.raycast(rayAt(0))).toBe(true);
     }
   );
@@ -571,7 +571,7 @@ describe("MeshCollider", () => {
       update();
       collider.mesh = createCubeMesh(engine, 1.1);
       update(2);
-      collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+      collider.cookingFlags = MeshColliderCookingFlag.Cleaning;
       update(2);
       expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
       expect(recorder.onTriggerExit).not.toHaveBeenCalled();
@@ -595,12 +595,12 @@ describe("MeshCollider", () => {
 
   it("stores cooking flags before assigning geometry", () => {
     const collider = root.addComponent(MeshCollider);
-    collider.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+    collider.cookingFlags = MeshColliderCookingFlag.Cleaning;
     collider.mesh = createCubeMesh(engine);
     const hit = new HitResult();
     expect(physics.raycast(rayAt(0), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
-    expect(collider.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
+    expect(collider.cookingFlags).toBe(MeshColliderCookingFlag.Cleaning);
   });
 
   it.each([false, true])("clones independent mesh components and retains shared meshes (kinematic=%s)", (kinematic) => {

@@ -581,7 +581,7 @@ export class PhysicsScene {
    * @param radius - Radius in world units.
    * @param height - Total height in world units, including both caps. Must exceed twice the radius.
    * @param direction - Sweep direction in world space.
-   * @param orientation - World-space rotation of the capsule, whose local long axis is X.
+   * @param orientation - World-space rotation of the capsule, whose local long axis is Y.
    * @param distance - Maximum distance in world units.
    * @param layerMask - Collision layers to include.
    * @param outHitResult - Receives the closest hit.
@@ -704,7 +704,7 @@ export class PhysicsScene {
    * @param center - Center in world space.
    * @param radius - Radius in world units.
    * @param height - Total height in world units, including both caps. Must exceed twice the radius.
-   * @param orientation - World-space rotation of the capsule, whose local long axis is X. Defaults to the identity rotation.
+   * @param orientation - World-space rotation of the capsule, whose local long axis is Y. Defaults to the identity rotation.
    * @param layerMask - Collision layers to include. Defaults to `Layer.Everything`.
    * @param colliders - Output array whose contents are replaced. Omit to allocate an array.
    * @returns The output array, emptied when the dimensions are invalid or there are no overlaps.

@@ -2,7 +2,7 @@ import { createPhysics } from "../../utils/physics";
 import {
   BoxCollider,
   CapsuleCollider,
-  ColliderShapeUpAxis,
+  CapsuleColliderDirection,
   Entity,
   HitResult,
   Layer,
@@ -343,7 +343,7 @@ describe("Collider", () => {
     expect(geometryWrites).toHaveBeenCalledTimes(1);
   });
 
-  it.each([ColliderShapeUpAxis.X, ColliderShapeUpAxis.Y, ColliderShapeUpAxis.Z])(
+  it.each([CapsuleColliderDirection.X, CapsuleColliderDirection.Y, CapsuleColliderDirection.Z])(
     "updates capsule radius, total height and direction %s",
     (direction) => {
       const capsule = root.addComponent(CapsuleCollider);
@@ -410,7 +410,7 @@ describe("Collider", () => {
     expectPoint(closest, 11, 22, 33);
   });
 
-  it("uses the largest absolute world scale for the sphere and scales its center", () => {
+  it("uses the largest absolute world scale for the sphere and signed scale for its center", () => {
     const sphere = root.addComponent(SphereCollider);
     sphere.radius = 2;
     sphere.center.set(1, 2, 3);
@@ -418,13 +418,13 @@ describe("Collider", () => {
     root.transform.setScale(-2, 3, 4);
     root.transform.setRotation(0, 90, 0);
     const closest = new Vector3();
-    expect(sphere.getClosestPoint(new Vector3(40, 26, 28), closest)).toBeCloseTo(10);
-    expectPoint(closest, 30, 26, 28);
-    expect(sphere.getClosestPoint(new Vector3(22, 26, 28), closest)).toBe(0);
-    expectPoint(closest, 22, 26, 28);
+    expect(sphere.getClosestPoint(new Vector3(40, 26, 32), closest)).toBeCloseTo(10);
+    expectPoint(closest, 30, 26, 32);
+    expect(sphere.getClosestPoint(new Vector3(22, 26, 32), closest)).toBe(0);
+    expectPoint(closest, 22, 26, 32);
   });
 
-  it.each([ColliderShapeUpAxis.X, ColliderShapeUpAxis.Y, ColliderShapeUpAxis.Z])(
+  it.each([CapsuleColliderDirection.X, CapsuleColliderDirection.Y, CapsuleColliderDirection.Z])(
     "scales capsule length along direction %s and radius across it",
     (direction) => {
       const capsule = root.addComponent(CapsuleCollider);
@@ -478,7 +478,7 @@ describe("Collider", () => {
     else collider.radius = 2;
     if (collider instanceof CapsuleCollider) {
       collider.height = 7;
-      collider.direction = ColliderShapeUpAxis.Z;
+      collider.direction = CapsuleColliderDirection.Z;
     }
     const clone = source.clone();
     root.addChild(clone);
@@ -881,7 +881,7 @@ describe("Collider", () => {
 
       // Scale (0, 1, 1) makes X-direction worldHeight = 0 (detached), while Y-direction stays valid
       entity.transform.setScale(0, 1, 1);
-      capsule.direction = ColliderShapeUpAxis.X;
+      capsule.direction = CapsuleColliderDirection.X;
       expect(physics.raycast(ray, hit)).toBe(false);
       physics.gravity.set(0, -9.81, 0);
       update(5);
@@ -889,7 +889,7 @@ describe("Collider", () => {
       expect(Number.isFinite(body.inertiaTensor.x)).toBe(true);
 
       entity.transform.setPosition(0, 5, 0);
-      capsule.direction = ColliderShapeUpAxis.Y;
+      capsule.direction = CapsuleColliderDirection.Y;
       expect(physics.raycast(ray, hit)).toBe(true);
       expect(hit.collider).toBe(capsule);
     });
@@ -944,7 +944,7 @@ describe("Collider", () => {
       const entity = root.createChild("sync-capsule");
       entity.transform.setPosition(0, 5, 0);
       const capsule = entity.addComponent(CapsuleCollider);
-      capsule.direction = ColliderShapeUpAxis.X;
+      capsule.direction = CapsuleColliderDirection.X;
       const ray = new Ray(new Vector3(-5, 5, 0), new Vector3(1, 0, 0));
       const hit = new HitResult();
 
@@ -954,7 +954,7 @@ describe("Collider", () => {
 
       // Same-frame transition: (X, scale=(1,1,1)) -> (Y, scale=(0,1,1)) stays valid
       entity.transform.setScale(0, 1, 1);
-      capsule.direction = ColliderShapeUpAxis.Y;
+      capsule.direction = CapsuleColliderDirection.Y;
       expect(physics.raycast(ray, hit)).toBe(true);
       expect(hit.distance).toBeCloseTo(4);
       expect(setGeometrySpy).toHaveBeenCalledTimes(1);
@@ -962,7 +962,7 @@ describe("Collider", () => {
       // Same-frame reverse transition: (Y, scale=(0,1,1)) -> (X, scale=(1,0,1)) stays valid
       setGeometrySpy.mockClear();
       entity.transform.setScale(1, 0, 1);
-      capsule.direction = ColliderShapeUpAxis.X;
+      capsule.direction = CapsuleColliderDirection.X;
       capsule.radius = 0.5;
       capsule.height = 4;
       expect(physics.raycast(ray, hit)).toBe(true);
@@ -1290,9 +1290,9 @@ describe("Collider", () => {
       child.transform.setPosition(0, 0, 0.5);
       child.addComponent(BoxCollider).center.z = 1;
 
-      // The child origin is at (1.5, 0, 0) before body scale and the rotated shape center adds 2 on X.
+      // The child origin + center are at (2.5, 0, 0) in body-local space before body scale (-2, 3, 4) -> (-5, 0, 0).
       const center = body.centerOfMass;
-      expect(center.x).toBeCloseTo(-1, 6);
+      expect(center.x).toBeCloseTo(-5, 6);
       expect(center.y).toBeCloseTo(0, 6);
       expect(center.z).toBeCloseTo(0, 6);
     });
@@ -1374,5 +1374,35 @@ describe("Collider", () => {
         expect(massRebuilds).not.toHaveBeenCalled();
       }
     );
+
+    it("mirrors Collider.center under negative scale for static colliders and compound pose-only updates", () => {
+      const hit = new HitResult();
+      const staticEntity = root.createChild("static-mirrored-box");
+      staticEntity.transform.setScale(-1, 1, 1);
+      const staticBox = staticEntity.addComponent(BoxCollider);
+      staticBox.size.set(1, 1, 1);
+      staticBox.center.set(2, 0, 0);
+      expect(physics.raycast(new Ray(new Vector3(-2, 5, 0), new Vector3(0, -1, 0)), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(staticBox);
+      expect(physics.raycast(new Ray(new Vector3(2, 5, 0), new Vector3(0, -1, 0)), 10)).toBe(false);
+
+      const bodyEntity = root.createChild("compound-mirrored-body");
+      bodyEntity.transform.setScale(-1, 1, 1);
+      bodyEntity.addComponent(Rigidbody).isKinematic = true;
+      const child = bodyEntity.createChild("mirrored-child");
+      child.transform.setPosition(0, 0, 0);
+      const childBox = child.addComponent(BoxCollider);
+      childBox.size.set(1, 1, 1);
+      childBox.center.set(2, 0, 0);
+      expect(physics.raycast(new Ray(new Vector3(-2, 5, 0), new Vector3(0, -1, 0)), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(childBox);
+      expect(physics.raycast(new Ray(new Vector3(2, 5, 0), new Vector3(0, -1, 0)), 10)).toBe(false);
+
+      // Subsequent position-only child edit triggers _poseOnlyDirty and must preserve signed _poseScale.
+      child.transform.setPosition(0, 0, 3);
+      expect(physics.raycast(new Ray(new Vector3(-2, 5, 3), new Vector3(0, -1, 0)), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(childBox);
+      expect(physics.raycast(new Ray(new Vector3(2, 5, 3), new Vector3(0, -1, 0)), 10)).toBe(false);
+    });
   });
 });

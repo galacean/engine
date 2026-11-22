@@ -43,14 +43,14 @@ All Collider components share these properties:
 
 | Property | Description | Default |
 | :-- | :-- | :-- |
-| [**center**](/apis/core/#Collider-center) | Center of the shape in the Entity's local space, scaled by the Entity's world scale | (0, 0, 0) |
+| [**center**](/apis/core/#Collider-center) | Center of the shape in the Entity's local space, scaled by the Entity's signed world scale | (0, 0, 0) |
 | [**isTrigger**](/apis/core/#Collider-isTrigger) | Whether the Collider is a trigger, which reports overlaps without a collision response. See [Collision Events](/en/docs/physics/collider/event) | false |
 | [**material**](/apis/core/#Collider-material) | The assigned [physics material](#physics-material), or `null` to use the shared default material | null |
 | [**collisionLayer**](/apis/core/#Collider-collisionLayer) | The collision layer of this Collider, a single layer only. See [Collision Layer](/en/docs/physics/collider/collisionLayer) | Layer.Layer0 |
 | [**contactOffset**](/apis/core/#Collider-contactOffset) | Contact offset. Non-finite values throw; negative values are clamped to 0 | 0.02 |
 | [**attachedRigidbody**](/apis/core/#Collider-attachedRigidbody) | Read-only. The Rigidbody that owns this Collider, or `null` | - |
 
-Shape sizes follow the Entity's world scale. Physics ignores shear, which can occur when an Entity rotates under a non-uniformly scaled ancestor. With logging enabled, the Collider warns once.
+Shape sizes follow the absolute values of the Entity's world scale, while `center` uses signed world scale so negative scaling mirrors offsets. Physics ignores shear, which can occur when an Entity rotates under a non-uniformly scaled ancestor. With logging enabled, the Collider warns once.
 
 | Method | Description |
 | :-- | :-- |
@@ -77,11 +77,11 @@ Shape sizes follow the Entity's world scale. Physics ignores shear, which can oc
 | :-- | :-- | :-- |
 | [**radius**](/apis/core/#CapsuleCollider-radius) | Radius of the capsule in the Entity's local space | 1 |
 | [**height**](/apis/core/#CapsuleCollider-height) | Total height including both caps | 4 |
-| [**direction**](/apis/core/#CapsuleCollider-direction) | The local axis the capsule is aligned with | ColliderShapeUpAxis.Y |
+| [**direction**](/apis/core/#CapsuleCollider-direction) | The local axis the capsule is aligned with | CapsuleColliderDirection.Y |
 
 ### PlaneCollider
 
-PlaneCollider has no shape properties. It is an infinite plane facing the Entity's local +Y axis; use the Entity's rotation to orient it.
+PlaneCollider has no shape properties. It is an infinite plane facing the Entity's local +Y axis; use the Entity's rotation to orient it. It can only be static or belong to a kinematic Rigidbody, and does not support `getClosestPoint()` (returns `-1`) or volume-distance queries.
 
 ### MeshCollider
 
@@ -89,7 +89,7 @@ PlaneCollider has no shape properties. It is an infinite plane facing the Entity
 | :-- | :-- | :-- |
 | [**mesh**](/apis/core/#MeshCollider-mesh) | The [ModelMesh](/apis/core/#ModelMesh) used for collision. Its data must stay accessible after upload, and a triangle mesh also needs indices; invalid meshes are excluded from simulation and queries until replaced with a valid mesh | null |
 | [**convex**](/apis/core/#MeshCollider-convex) | Whether to use a convex hull generated from the mesh vertices. A non-convex mesh cannot be a trigger or belong to a non-kinematic Rigidbody; invalid combinations are excluded until resolved | false |
-| [**cookingFlags**](/apis/core/#MeshCollider-cookingFlags) | Mesh cooking flags | Cleaning \| VertexWelding |
+| [**cookingFlags**](/apis/core/#MeshCollider-cookingFlags) | Mesh cooking flags (`MeshColliderCookingFlag`) | Cleaning \| VertexWelding |
 
 ## Physics Material
 
@@ -201,6 +201,8 @@ Earlier versions attached shape objects to a `StaticCollider` or `DynamicCollide
 | `shape.rotation` | Use the Entity's or a child Entity's `Transform.rotation` |
 | `meshShape.isConvex` | `meshCollider.convex` |
 | `capsuleShape.upAxis` | `capsuleCollider.direction` |
+| `ColliderShapeUpAxis` | `CapsuleColliderDirection` |
+| `MeshColliderShapeCookingFlag` | `MeshColliderCookingFlag` |
 | `shape.material` / `shape.getInstanceMaterial(engine)` | `collider.material` / `collider.getInstanceMaterial()` |
 | `shape.isTrigger` | `collider.isTrigger` |
 | `joint.connectedCollider` | `joint.connectedBody` (a `Rigidbody` or `null`) |
@@ -210,7 +212,7 @@ Earlier versions attached shape objects to a `StaticCollider` or `DynamicCollide
 | `overlap*All()` returning `ColliderShape[]` | `overlap*All()` returning `Collider[]` |
 | `characterController.addShape(capsule)` | `characterController.radius`, `height` and `center` |
 
-To preserve existing gameplay, add twice the radius to authored capsule heights on both colliders and character controllers. Multiply authored angular velocities and angular velocity limits by `Math.PI / 180` to convert them to radians per second.
+To preserve existing gameplay, add twice the radius to authored capsule heights on both colliders and character controllers, and multiply authored angular velocities and angular velocity limits by `Math.PI / 180` to convert them to radians per second. `PhysicsScene.capsuleCast` and `overlapCapsuleAll` now align default capsules with the local Y axis (matching `CapsuleCollider` and `CharacterController`) instead of PhysX's native X axis, and negative world scale mirrors `Collider.center` offsets rather than discarding the sign.
 
 ## More Information
 
