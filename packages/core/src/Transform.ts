@@ -10,6 +10,8 @@ import type { ICloneHook } from "./clone/ICloneHook";
  * @remarks A `Transform` subclass must not declare component dependencies.
  */
 export class Transform extends Component implements ICloneHook<Transform> {
+  private static readonly _authoredLocalMatrixFlag = 0x40000000;
+  private static readonly _customMatrixFlag = 0x20000000;
   private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
@@ -232,18 +234,25 @@ export class Transform extends Component implements ICloneHook<Transform> {
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
       const parent = this._getParentTransform();
+      const scale = this._lossyWorldScale;
       if (parent) {
         // Clear ancestor WorldScale dirty flags on both paths.
         const parentLossyWorldScale = parent.lossyWorldScale;
-        if (parent._getWorldUniformScaling()) {
-          Vector3.multiply(parentLossyWorldScale, this._scale, this._lossyWorldScale);
+        if (
+          this._usesTRSMatrix &&
+          (parent._getWorldUniformScaling() ||
+            (!parent._isContainDirtyFlag(Transform._customMatrixFlag) && this._isLocalRotationIdentity()))
+        ) {
+          Vector3.multiply(parentLossyWorldScale, this._scale, scale);
         } else {
-          const scaleMat = this._getScaleMatrix();
-          const e = scaleMat.elements;
-          this._lossyWorldScale.set(e[0], e[4], e[8]);
+          const e = this._getScaleMatrix().elements;
+          scale.set(e[0], e[4], e[8]);
         }
+      } else if (this._usesTRSMatrix) {
+        scale.copyFrom(this._scale);
       } else {
-        this._lossyWorldScale.copyFrom(this._scale);
+        const e = this._getScaleMatrix().elements;
+        scale.set(e[0], e[4], e[8]);
       }
       this._setDirtyFlagFalse(TransformModifyFlags.WorldScale);
     }
@@ -272,8 +281,11 @@ export class Transform extends Component implements ICloneHook<Transform> {
 
     value.decompose(position, rotationQuaternion, scale);
     this._onLocalMatrixChanging();
-    this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat | Transform._authoredLocalMatrixFlag);
+    this._setDirtyFlagTrue(
+      TransformModifyFlags.LocalEuler |
+        (this._isContainDirtyFlag(TransformModifyFlags.LocalMatrix) ? 0 : Transform._authoredLocalMatrixFlag)
+    );
 
     // @ts-ignore
     position._onValueChanged = this._onPositionChanged;
@@ -281,13 +293,8 @@ export class Transform extends Component implements ICloneHook<Transform> {
     rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
     // @ts-ignore
     scale._onValueChanged = this._onScaleChanged;
-    const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
-    if (this._localUniformScaling !== localUniformScaling) {
-      this._localUniformScaling = localUniformScaling;
-      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
-    } else {
-      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWs);
-    }
+    this._localUniformScaling = scale.x === scale.y && scale.y === scale.z;
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
   }
 
   /**
@@ -327,6 +334,24 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   constructor(entity: Entity) {
     super(entity);
+
+    const hasOwn = Object.prototype.hasOwnProperty;
+    for (
+      let prototype = Object.getPrototypeOf(this);
+      prototype !== Transform.prototype;
+      prototype = Object.getPrototypeOf(prototype)
+    ) {
+      if (
+        hasOwn.call(prototype, "localMatrix") ||
+        hasOwn.call(prototype, "worldMatrix") ||
+        hasOwn.call(prototype, "rotationQuaternion") ||
+        hasOwn.call(prototype, "worldRotationQuaternion") ||
+        hasOwn.call(prototype, "lossyWorldScale")
+      ) {
+        this._dirtyFlag |= Transform._customMatrixFlag;
+        break;
+      }
+    }
 
     this._onPositionChanged = this._onPositionChanged.bind(this);
     this._onWorldPositionChanged = this._onWorldPositionChanged.bind(this);
@@ -621,7 +646,9 @@ export class Transform extends Component implements ICloneHook<Transform> {
     this._localUniformScaling = source._localUniformScaling;
 
     const rotationDirtyBits = TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalQuat;
-    this._dirtyFlag = (this._dirtyFlag & ~rotationDirtyBits) | (source._dirtyFlag & rotationDirtyBits);
+    this._dirtyFlag =
+      (this._dirtyFlag & ~(rotationDirtyBits | Transform._authoredLocalMatrixFlag)) |
+      (source._dirtyFlag & rotationDirtyBits);
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
     this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
   }
@@ -687,7 +714,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   @ignoreClone
   protected _onPositionChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
-    this._updateWorldPositionFlag();
+    if (!this._restoreTRS()) this._updateWorldPositionFlag();
   }
 
   @ignoreClone
@@ -809,13 +836,31 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
   }
 
+  private _restoreTRS(): boolean {
+    if (!this._isContainDirtyFlag(Transform._authoredLocalMatrixFlag)) return false;
+    this._setDirtyFlagFalse(Transform._authoredLocalMatrixFlag);
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+    return true;
+  }
+
+  private _isLocalRotationIdentity(): boolean {
+    if (this._isContainDirtyFlag(TransformModifyFlags.LocalQuat)) {
+      const rotation = this._rotation;
+      return rotation.x === 0 && rotation.y === 0 && rotation.z === 0;
+    }
+    const q = this._rotationQuaternion;
+    return q.x === 0 && q.y === 0 && q.z === 0 && (q.w === 1 || q.w === -1);
+  }
+
   private _getScaleMatrix(): Matrix3x3 {
     const invRotation = Transform._tempQuat0;
     const invRotationMat = Transform._tempMat30;
     const worldRotScaMat = Transform._tempMat31;
     const scaMat = Transform._tempMat32;
-    worldRotScaMat.copyFromMatrix(this.worldMatrix);
-    Quaternion.invert(this.worldRotationQuaternion, invRotation);
+    const worldMatrix = this.worldMatrix;
+    const worldRotation = this.worldRotationQuaternion;
+    worldRotScaMat.copyFromMatrix(worldMatrix);
+    Quaternion.invert(worldRotation, invRotation);
     Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
     Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
     return scaMat;
@@ -850,7 +895,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   private _onRotationChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalEuler);
-    this._updateWorldRotationFlag();
+    if (!this._restoreTRS()) this._updateWorldRotationFlag();
   }
 
   @ignoreClone
@@ -869,7 +914,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   private _onRotationQuaternionChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalEuler);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
-    this._updateWorldRotationFlag();
+    if (!this._restoreTRS()) this._updateWorldRotationFlag();
   }
 
   @ignoreClone
@@ -891,20 +936,25 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const { x, y, z } = this._scale;
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
     const localUniformScaling = x == y && y == z;
-    if (this._localUniformScaling !== localUniformScaling) {
-      this._localUniformScaling = localUniformScaling;
+    const uniformChanged = this._localUniformScaling !== localUniformScaling;
+    this._localUniformScaling = localUniformScaling;
+    if (this._restoreTRS()) return;
+    if (uniformChanged) {
       this._updateWorldScaleFlag(TransformModifyFlags.WmWsWus);
     } else {
       this._updateWorldScaleFlag(TransformModifyFlags.WmWs);
     }
   }
 
+  private get _usesTRSMatrix(): boolean {
+    return !this._isContainDirtyFlag(Transform._authoredLocalMatrixFlag | Transform._customMatrixFlag);
+  }
+
   private _getWorldUniformScaling(): boolean {
     if (this._isContainDirtyFlag(TransformModifyFlags.IsWorldUniformScaling)) {
-      const localUniformScaling = this._localUniformScaling;
-      if (localUniformScaling) {
+      if (this._localUniformScaling && this._usesTRSMatrix) {
         const parent = this._getParentTransform();
-        this._worldUniformScaling = localUniformScaling && (parent ? parent._getWorldUniformScaling() : true);
+        this._worldUniformScaling = !parent || parent._getWorldUniformScaling();
       } else {
         this._worldUniformScaling = false;
       }
