@@ -1,11 +1,24 @@
 packages/core/src/RenderPipeline/BasicRenderPipeline.ts
   h_bd4dd7d663e619 364-365
+  s_3cd6502d102d7f::t_bd990f38811703 235,244-249,257-266,295-298,305-314,394-404
 packages/rhi-webgl/src/GLRenderTarget.ts
   h_bd4dd7d663e619 24,41,214-215
+  s_3cd6502d102d7f::t_bd990f38811703 114-128,131-150,153-155
 packages/rhi-webgl/src/WebGLGraphicDevice.ts
   h_bd4dd7d663e619 157-158,185-186,757-758,769-773
 tests/src/core/RenderPipeline/Blitter.test.ts
   h_bd4dd7d663e619 7,55,83,115,127-131,144-146,157,191,210-211,255,277-280,281,294-298,315,343-365,382,403,407,417-425,437-441,458,463-464,479,481-485,497-500,502,504-506,519,522,528-543,561,605-607,614-615
+  s_3cd6502d102d7f::t_bd990f38811703 5,324,388,391-396,405,415-416,431-432,442,444,447,449,452,454-456,476,544,551,570,572-598
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  s_3cd6502d102d7f::t_bd990f38811703 4,52-62
+packages/core/src/postProcess/FinalPass.ts
+  s_3cd6502d102d7f::t_bd990f38811703 9,68-78,80-90,92-102
+packages/core/src/RenderPipeline/Blitter.ts
+  s_3cd6502d102d7f::t_bd990f38811703 36,47,59-60,71,99-101
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_3cd6502d102d7f::t_bd990f38811703 7,80,181,192
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  s_3cd6502d102d7f::t_bd990f38811703 9,141-151,156-166,171-181
 ---
 {
   "schema_version": "authorship/3.0.0",
@@ -15,6 +28,16 @@ tests/src/core/RenderPipeline/Blitter.test.ts
   "humans": {
     "h_bd4dd7d663e619": {
       "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  },
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
     }
   }
 }
