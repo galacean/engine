@@ -1213,8 +1213,8 @@ describe("glTF instance test", function () {
       expect(sharedTexture.destroyed).to.be.false;
       expect(engine.resourceManager.getFromCache(sharedTextureUrl)).to.equal(sharedTexture);
       expect(remappedMaterial.destroyed).to.be.false;
-      expect((sharedTexture as any)._superResources?.length ?? 0).to.equal(0);
-      expect((remappedMaterial as any)._superResources?.length ?? 0).to.equal(0);
+      expect((sharedTexture as any)._superResources?.size ?? 0).to.equal(0);
+      expect((remappedMaterial as any)._superResources?.size ?? 0).to.equal(0);
     } finally {
       requestSpy.mockRestore();
       URL.revokeObjectURL(gltfUrl);

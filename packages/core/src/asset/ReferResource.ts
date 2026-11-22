@@ -11,7 +11,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   isGCIgnored: boolean = false;
 
   private _refCount: number = 0;
-  private _superResources: ReferResource[] | null = null;
+  private _superResources: Set<ReferResource> | null = null;
   private _subResources: Set<ReferResource> | null = null;
 
   /**
@@ -44,15 +44,8 @@ export abstract class ReferResource extends EngineObject implements IReferable {
         return false;
       }
 
-      const superResources = this._superResources!;
-      if (superResources?.length) {
-        if (isGC) {
-          if (this._isRetainedBySuperResource()) {
-            return false;
-          }
-        } else {
-          return false;
-        }
+      if (this._superResources?.size && (!isGC || this._isRetainedBySuperResource())) {
+        return false;
       }
     }
 
@@ -64,29 +57,17 @@ export abstract class ReferResource extends EngineObject implements IReferable {
    * @internal
    */
   _associationSuperResource(superResource: ReferResource): void {
-    if (superResource._destroyed) {
-      return;
-    }
-    const subResources = (superResource._subResources ||= new Set());
-    if (!subResources.has(this)) {
-      subResources.add(this);
-      (this._superResources ||= []).push(superResource);
-    }
+    if (this._destroyed || superResource._destroyed) return;
+    (this._superResources ||= new Set()).add(superResource);
+    (superResource._subResources ||= new Set()).add(this);
   }
 
   /**
    * @internal
    */
   _disassociationSuperResource(superResource: ReferResource): void {
+    this._superResources?.delete(superResource);
     superResource._subResources?.delete(this);
-    const superResources = this._superResources;
-    if (!superResources) {
-      return;
-    }
-    const index = superResources.indexOf(superResource);
-    if (index !== -1) {
-      superResources.splice(index, 1);
-    }
   }
 
   /**
@@ -96,9 +77,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     const subResources = this._subResources;
     if (subResources) {
       this._subResources = null;
-      subResources.forEach((subResource) => {
-        subResource._disassociationSuperResource(this);
-      });
+      subResources.forEach((sub) => sub._superResources?.delete(this));
     }
   }
 
@@ -134,24 +113,14 @@ export abstract class ReferResource extends EngineObject implements IReferable {
       this._addReferCount(-refCount);
     }
     this._disassociationAllSubResources();
-    const superResources = this._superResources;
-    if (superResources) {
-      for (let i = superResources.length - 1; i >= 0; i--) {
-        superResources[i]._subResources?.delete(this);
-      }
-      superResources.length = 0;
-    }
+    this._superResources?.forEach((superResource) => superResource._subResources?.delete(this));
+    this._superResources = null;
   }
 
   private _isRetainedBySuperResource(): boolean {
-    const superResources = this._superResources;
-    if (superResources) {
-      for (let i = 0, n = superResources.length; i < n; i++) {
-        const superResource = superResources[i];
-        if (
-          !superResource.destroyed &&
-          (superResource.refCount > 0 || superResource.isGCIgnored || superResource._isRetainedBySuperResource())
-        ) {
+    if (this._superResources) {
+      for (const superResource of this._superResources) {
+        if (superResource._refCount > 0 || superResource.isGCIgnored || superResource._isRetainedBySuperResource()) {
           return true;
         }
       }
