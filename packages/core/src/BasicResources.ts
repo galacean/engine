@@ -130,7 +130,7 @@ export class BasicResources {
   readonly meshMagentaMaterial: Material;
   readonly particleMagentaMaterial: Material;
 
-  private _blinnPhongMaterial: BlinnPhongMaterial;
+  private _blinnPhongDefaultMaterial: BlinnPhongMaterial;
   private _prefilteredDFGTexture: Texture2D;
 
   get prefilteredDFGTexture(): Texture2D {
@@ -211,13 +211,13 @@ export class BasicResources {
   /**
    * @internal
    */
-  _getBlinnPhongMaterial(): BlinnPhongMaterial {
-    if (!this._blinnPhongMaterial) {
+  _getBlinnPhongDefaultMaterial(): BlinnPhongMaterial {
+    if (!this._blinnPhongDefaultMaterial) {
       const material = new BlinnPhongMaterial(this.engine);
       material.isGCIgnored = true;
-      this._blinnPhongMaterial = material;
+      this._blinnPhongDefaultMaterial = material;
     }
-    return this._blinnPhongMaterial;
+    return this._blinnPhongDefaultMaterial;
   }
 
   /**

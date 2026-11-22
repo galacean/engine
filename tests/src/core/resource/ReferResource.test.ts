@@ -92,7 +92,7 @@ describe("ReferResource", () => {
   });
 
   it("preserves built-in post-process and fallback BlinnPhong materials across gc()", () => {
-    const fallbackMaterial = (engine as any)._basicResources._getBlinnPhongMaterial() as Material;
+    const fallbackMaterial = (engine as any)._basicResources._getBlinnPhongDefaultMaterial() as Material;
     const startupMaterials = engine.resourceManager.findResourcesByType(Material);
     expect(startupMaterials.length).toBeGreaterThan(0);
 
