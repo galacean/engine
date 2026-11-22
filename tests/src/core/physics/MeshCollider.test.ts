@@ -158,11 +158,11 @@ describe("MeshCollider", () => {
     expect(recorder.onCollisionEnter).toHaveBeenCalled();
   });
 
-  it("applies the mesh center, local rotation, entity pose and material", () => {
+  it("applies the mesh center, entity pose and material", () => {
     const collider = addMesh();
     collider.center.set(1, 2, 3);
-    collider.rotation.set(0, 90, 0);
     collider.entity.transform.setPosition(10, 0, 0);
+    collider.entity.transform.setRotation(0, 90, 0);
     collider.entity.transform.setScale(2, 1, 1);
     const material = new PhysicsMaterial(engine);
     material.staticFriction = 0.5;
@@ -170,9 +170,10 @@ describe("MeshCollider", () => {
     material.bounciness = 0.2;
     collider.material = material;
     const hit = new HitResult();
-    expect(physics.raycast(new Ray(new Vector3(12, 5, 3), new Vector3(0, -1, 0)), hit)).toBe(true);
+    expect(physics.raycast(new Ray(new Vector3(13, 5, -3.5), new Vector3(0, -1, 0)), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
     expect(hit.point.y).toBeCloseTo(3);
+    expect(physics.raycast(new Ray(new Vector3(14.5, 5, -2), new Vector3(0, -1, 0)), hit)).toBe(false);
     expect(collider.material).toBe(material);
     expect(collider.material.dynamicFriction).toBe(0.3);
   });

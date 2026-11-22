@@ -1,5 +1,5 @@
 import { ICollider, IColliderShape, IPhysicsMaterial, IStaticCollider } from "@galacean/engine-design";
-import { MathUtil, Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Logger } from "../base";
 import { BasicResources } from "../BasicResources";
 import { ignoreClone } from "../clone/CloneDecorators";
@@ -19,7 +19,6 @@ class ColliderSyncScratch {
   readonly position = new Vector3();
   readonly bodyOffset = new Vector3();
   readonly rotation = new Quaternion();
-  readonly relativeRotation = new Quaternion();
   readonly inverseBodyRotation = new Quaternion();
   readonly scale = new Vector3();
 }
@@ -158,7 +157,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
   private _nativeWorldRotation: Quaternion;
 
   private _center = new Vector3();
-  private _rotation = new Vector3();
   protected _isTrigger = false;
   private _isSceneQuery = true;
   private _contactOffset = 0.02;
@@ -188,20 +186,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
   set center(value: Vector3) {
     if (this._center !== value) {
       this._center.copyFrom(value);
-    }
-  }
-
-  /**
-   * The local rotation of the Collider, in degrees.
-   * @remarks World scale sizes the shape along its own axes before this rotation is applied.
-   */
-  get rotation(): Vector3 {
-    return this._rotation;
-  }
-
-  set rotation(value: Vector3) {
-    if (this._rotation !== value) {
-      this._rotation.copyFrom(value);
     }
   }
 
@@ -328,8 +312,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     entity._updateFlagManager.addListener(this._onTransformChanged);
     //@ts-ignore
     this._center._onValueChanged = this._markDirty;
-    //@ts-ignore
-    this._rotation._onValueChanged = this._markDirty;
   }
 
   /**
@@ -688,7 +670,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   protected override _onDestroy(): void {
     //@ts-ignore
-    this._center._onValueChanged = this._rotation._onValueChanged = null;
+    this._center._onValueChanged = null;
     super._onDestroy();
     this.entity._updateFlagManager.removeListener(this._onTransformChanged);
     this._destroyNative();
@@ -753,13 +735,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     scene: Scene
   ): boolean {
     const { position, rotation, scale } = scratch;
-    const euler = this._rotation;
-    Quaternion.rotationYawPitchRoll(
-      MathUtil.degreeToRadian(euler.y),
-      MathUtil.degreeToRadian(euler.x),
-      MathUtil.degreeToRadian(euler.z),
-      rotation
-    );
+    rotation.set(0, 0, 0, 1);
     Vector3.multiply(this._center, scale, position);
 
     if (body) {
@@ -790,15 +766,14 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   private _transformPoseToBodySpace(entity: Entity, body: Entity, scratch: ColliderSyncScratch): void {
     // Accumulate the child origin and rotation in the body's local frame, where rigid body motion cancels out.
-    const { position, rotation, bodyOffset: offset, relativeRotation } = scratch;
+    const { position, rotation, bodyOffset: offset } = scratch;
     offset.set(0, 0, 0);
-    relativeRotation.set(0, 0, 0, 1);
     let current = entity;
     for (; current !== body; current = current.parent!) {
       const transform = current.transform;
       if (transform._hasCustomWorldPose) break;
       Vector3.transformToVec3(offset, transform.localMatrix, offset);
-      Quaternion.multiply(transform.rotationQuaternion, relativeRotation, relativeRotation);
+      Quaternion.multiply(transform.rotationQuaternion, rotation, rotation);
     }
     const bodyTransform = body.transform;
     const parent = body.parent;
@@ -810,7 +785,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
         // An overridden world pose may differ from the pose composed from the local matrices.
         const transform = entity.transform;
         Vector3.subtract(transform.worldPosition, bodyTransform.worldPosition, offset);
-        Quaternion.multiply(inverseRotation, transform.worldRotationQuaternion, relativeRotation);
+        Quaternion.multiply(inverseRotation, transform.worldRotationQuaternion, rotation);
       } else {
         // Inherited shear still affects the child origin even though the native shape ignores shear.
         Vector3.transformNormal(offset, bodyTransform.worldMatrix, offset);
@@ -819,9 +794,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
     } else {
       Vector3.multiply(offset, bodyTransform.lossyWorldScale, offset);
     }
-    Vector3.transformByQuat(position, relativeRotation, position);
+    Vector3.transformByQuat(position, rotation, position);
     position.add(offset);
-    Quaternion.multiply(relativeRotation, rotation, rotation);
   }
 
   private _checkShear(worldMatrix: Matrix): void {

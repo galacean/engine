@@ -307,21 +307,17 @@ describe("Collider", () => {
     { name: "CapsuleCollider", Type: CapsuleCollider },
     { name: "PlaneCollider", Type: PlaneCollider }
   ])("$name shared properties", ({ Type }) => {
-    it("stores center, local rotation, contact offset and material before and after synchronization", () => {
+    it("stores center, contact offset and material before and after synchronization", () => {
       const collider = root.createChild("geometry").addComponent(Type);
       const center = new Vector3(1, 2, -1);
-      const rotation = new Vector3(40, -182, 720);
       collider.center = center;
-      collider.rotation = rotation;
       collider.contactOffset = 0.3;
       const material = new PhysicsMaterial(engine);
       collider.material = material;
       physics.overlapSphereAll(new Vector3(0, 10, 0), 0.1);
 
       expectPoint(collider.center, 1, 2, -1);
-      expectPoint(collider.rotation, 40, -182, 720);
       expect(collider.center).not.toBe(center);
-      expect(collider.rotation).not.toBe(rotation);
       expect(collider.material).toBe(material);
       expect(collider.contactOffset).toBe(0.3);
 
@@ -428,7 +424,7 @@ describe("Collider", () => {
     }
   );
 
-  it("applies plane center and local rotation to raycasts", () => {
+  it("applies plane center and entity rotation to raycasts", () => {
     const plane = root.addComponent(PlaneCollider);
     const hit = new HitResult();
     const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
@@ -438,12 +434,12 @@ describe("Collider", () => {
     plane.center = new Vector3(0, 2, 0);
     expect(physics.raycast(ray, hit)).toBe(true);
     expect(hit.distance).toBeCloseTo(3);
-    plane.rotation = new Vector3(0, 0, -90);
+    root.transform.setRotation(0, 0, -90);
     ray.origin.set(5, 3, 0);
     ray.direction.set(-1, 0, 0);
     expect(physics.raycast(ray, hit)).toBe(true);
     expect(hit.collider).toBe(plane);
-    expect(hit.distance).toBeCloseTo(5);
+    expect(hit.distance).toBeCloseTo(3);
 
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const closest = new Vector3(9, 8, 7);
@@ -456,12 +452,11 @@ describe("Collider", () => {
     const box = root.addComponent(BoxCollider);
     box.size.set(2, 4, 6);
     box.center.set(1, 2, 3);
-    box.rotation.set(0, 0, 90);
     root.transform.setPosition(10, 20, 30);
     root.transform.setScale(2, 3, 4);
     root.transform.setRotation(0, 90, 0);
     // Scaled center (2,6,12), rotated by the Entity, gives world center (22,26,28).
-    // Box half extents (2,6,12) become (12,2,6) in world space.
+    // Box half extents (2,6,12) become (12,6,2) in world space.
     const closest = new Vector3();
     expect(box.getClosestPoint(new Vector3(40, 26, 28), closest)).toBeCloseTo(6);
     expectPoint(closest, 34, 26, 28);
@@ -538,7 +533,6 @@ describe("Collider", () => {
     const source = root.createChild("source");
     const collider = source.addComponent(Type);
     collider.center.set(1, 2, 3);
-    collider.rotation.set(0, 90, 0);
     if (collider instanceof BoxCollider) collider.size.set(2, 3, 4);
     else collider.radius = 2;
     if (collider instanceof CapsuleCollider) {
@@ -552,7 +546,6 @@ describe("Collider", () => {
     expect(copy).not.toBe(collider);
     expect(copy.center).not.toBe(collider.center);
     expectPoint(copy.center, 1, 2, 3);
-    expectPoint(copy.rotation, 0, 90, 0);
     const closest = new Vector3();
     const originalDistance = collider.getClosestPoint(new Vector3(10, 2, 3), closest);
     expect(copy.getClosestPoint(new Vector3(30, 2, 3), closest)).toBeCloseTo(originalDistance);
@@ -1337,18 +1330,15 @@ describe("Collider", () => {
   it.each(["static actor", "rigidbody", "shape pose"] as const)(
     "applies a small authored rotation to the %s",
     (route) => {
-      if (route === "rigidbody") root.addComponent(Rigidbody).isKinematic = true;
-      const box = root.addComponent(BoxCollider);
+      if (route !== "static actor") root.addComponent(Rigidbody).isKinematic = true;
+      const shapeEntity = route === "shape pose" ? root.createChild("child") : root;
+      const box = shapeEntity.addComponent(BoxCollider);
       box.size.set(200000, 1, 0.04);
       const ray = new Ray(new Vector3(90000, 2, 0), new Vector3(0, -1, 0));
       const hit = new HitResult();
       expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
 
-      if (route === "shape pose") {
-        box.rotation.y = 0.00005;
-      } else {
-        root.transform.rotation.y = 0.00005;
-      }
+      shapeEntity.transform.rotation.y = 0.00005;
       expect(physics.raycast(ray)).toBe(false);
       ray.origin.z = -0.07854;
       expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);

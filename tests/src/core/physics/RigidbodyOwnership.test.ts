@@ -117,7 +117,7 @@ describe("Rigidbody ownership", () => {
   }
 
   describe("static Colliders", () => {
-    it("follow the Entity's world position, rotation and scale, including center and local rotation", () => {
+    it("follow the Entity's world position, rotation and scale, including center", () => {
       const parent = root.createChild("parent");
       parent.transform.setPosition(10, 0, 0);
       parent.transform.setScale(2, 2, 2);
@@ -133,13 +133,13 @@ describe("Rigidbody ownership", () => {
       expect(hits(13.9, 1000, -2)).toEqual(names([box]));
       expect(hits(10, 1000, 3)).toEqual([]);
 
-      box.rotation = new Vector3(0, 90, 0);
+      entity.transform.setRotation(0, 0, 0);
       expect(hits(13.9, 1000, -2)).toEqual([]);
-      expect(hits(10, 1000, 1.9)).toEqual(names([box]));
+      expect(hits(12, 1000, 3.9)).toEqual(names([box]));
 
       parent.transform.setPosition(-10, 0, 0);
-      expect(hits(-10, 1000, 1.9)).toEqual(names([box]));
-      expect(hits(10, 1000, 1.9)).toEqual([]);
+      expect(hits(-8, 1000, 3.9)).toEqual(names([box]));
+      expect(hits(12, 1000, 3.9)).toEqual([]);
     });
 
     it("are created at the final transform after cloning, never at the origin", () => {

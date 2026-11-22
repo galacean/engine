@@ -44,7 +44,6 @@ All Collider components share these properties:
 | Property | Description | Default |
 | :-- | :-- | :-- |
 | [**center**](/apis/core/#Collider-center) | Center of the shape in the Entity's local space, scaled by the Entity's world scale | (0, 0, 0) |
-| [**rotation**](/apis/core/#Collider-rotation) | Local rotation of the shape, in degrees | (0, 0, 0) |
 | [**isTrigger**](/apis/core/#Collider-isTrigger) | Whether the Collider is a trigger, which reports overlaps without a collision response. See [Collision Events](/en/docs/physics/collider/event) | false |
 | [**material**](/apis/core/#Collider-material) | The assigned [physics material](#physics-material), or `null` to use the shared default material | null |
 | [**collisionLayer**](/apis/core/#Collider-collisionLayer) | The collision layer of this Collider, a single layer only. See [Collision Layer](/en/docs/physics/collider/collisionLayer) | Layer.Layer0 |
@@ -82,7 +81,7 @@ Shape sizes follow the Entity's world scale. Physics ignores shear, which can oc
 
 ### PlaneCollider
 
-PlaneCollider has no shape properties. It is an infinite plane facing the Entity's local +Y axis; use the Entity's rotation or the Collider's `rotation` to orient it.
+PlaneCollider has no shape properties. It is an infinite plane facing the Entity's local +Y axis; use the Entity's rotation to orient it.
 
 ### MeshCollider
 
@@ -199,7 +198,7 @@ Earlier versions attached shape objects to a `StaticCollider` or `DynamicCollide
 | Several shapes on one collider | Several Collider components on the same Entity, or on child Entities under the Rigidbody |
 | `removeShape()` / `clearShapes()` / `shapes` | Removed: disable or destroy the Collider component |
 | `shape.position` | `collider.center` |
-| `shape.rotation` | `collider.rotation` (degrees) |
+| `shape.rotation` | Use the Entity's or a child Entity's `Transform.rotation` |
 | `meshShape.isConvex` | `meshCollider.convex` |
 | `capsuleShape.upAxis` | `capsuleCollider.direction` |
 | `shape.material` / `shape.getInstanceMaterial(engine)` | `collider.material` / `collider.getInstanceMaterial()` |

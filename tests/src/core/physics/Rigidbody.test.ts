@@ -648,16 +648,17 @@ describe("Rigidbody", function () {
     function addAsymmetricBody(name: string) {
       const entity = rootEntity.createChild(name);
       const body = entity.addComponent(Rigidbody);
-      const shape = entity.addComponent(BoxCollider);
+      const shapeEntity = entity.createChild("shape");
+      const shape = shapeEntity.addComponent(BoxCollider);
       shape.size.set(2, 4, 6);
-      return { body, shape };
+      return { body, shapeEntity };
     }
     const reference = addAsymmetricBody("reference");
     const target = addAsymmetricBody("target");
     expect(target.body.inertiaTensorRotation.w).toBeCloseTo(1);
-    reference.shape.rotation.z = 30;
+    reference.shapeEntity.transform.rotation.z = 30;
     const expected = reference.body.inertiaTensorRotation;
-    target.shape.rotation.z = 30;
+    target.shapeEntity.transform.rotation.z = 30;
     target.body.inertiaTensor = new Vector3(2, 3, 4);
 
     const actual = target.body.inertiaTensorRotation;

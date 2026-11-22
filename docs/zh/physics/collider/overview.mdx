@@ -44,7 +44,6 @@ label: Physics
 | 属性 | 描述 | 默认值 |
 | :-- | :-- | :-- |
 | [**center**](/apis/core/#Collider-center) | 形状在实体局部空间中的中心，会乘以实体的世界缩放 | (0, 0, 0) |
-| [**rotation**](/apis/core/#Collider-rotation) | 形状的局部旋转，单位为角度 | (0, 0, 0) |
 | [**isTrigger**](/apis/core/#Collider-isTrigger) | 是否为触发器。触发器只报告重叠，不产生碰撞响应。见[碰撞事件](/docs/physics/collider/event) | false |
 | [**material**](/apis/core/#Collider-material) | 指定的[物理材质](#物理材质)，为 `null` 时使用共享默认材质 | null |
 | [**collisionLayer**](/apis/core/#Collider-collisionLayer) | 碰撞器所属的碰撞层，只能是单个层。见[碰撞层](/docs/physics/collider/collisionLayer) | Layer.Layer0 |
@@ -82,7 +81,7 @@ label: Physics
 
 ### PlaneCollider
 
-PlaneCollider 没有形状属性。它是朝向实体局部 +Y 轴的无限平面，可通过实体旋转或碰撞器的 `rotation` 调整朝向。
+PlaneCollider 没有形状属性。它是朝向实体局部 +Y 轴的无限平面，可通过实体旋转调整朝向。
 
 ### MeshCollider
 
@@ -199,7 +198,7 @@ instance.bounciness = 0.8;
 | 一个碰撞器上添加多个形状 | 在同一实体上添加多个碰撞器组件，或放在刚体下的子实体上 |
 | `removeShape()` / `clearShapes()` / `shapes` | 已移除：禁用或销毁碰撞器组件 |
 | `shape.position` | `collider.center` |
-| `shape.rotation` | `collider.rotation`（角度） |
+| `shape.rotation` | 使用实体或子实体的 `Transform.rotation` |
 | `meshShape.isConvex` | `meshCollider.convex` |
 | `capsuleShape.upAxis` | `capsuleCollider.direction` |
 | `shape.material` / `shape.getInstanceMaterial(engine)` | `collider.material` / `collider.getInstanceMaterial()` |
