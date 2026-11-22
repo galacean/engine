@@ -66,7 +66,7 @@ export class GLTFResource extends ReferResource {
   protected override _onDestroy(): void {
     super._onDestroy();
 
-    const { _sceneRoots: sceneRoots, _defaultSceneRoot: defaultSceneRoot, entities } = this;
+    const { _sceneRoots: sceneRoots, entities } = this;
     if (sceneRoots) {
       for (let i = 0, n = sceneRoots.length; i < n; i++) {
         const root = sceneRoots[i];
@@ -75,13 +75,10 @@ export class GLTFResource extends ReferResource {
         }
       }
     }
-    if (defaultSceneRoot && !defaultSceneRoot.destroyed) {
-      defaultSceneRoot.destroy();
-    }
     if (entities) {
       for (let i = 0, n = entities.length; i < n; i++) {
         const entity = entities[i];
-        if (entity && !entity.destroyed) {
+        if (entity && !entity.parent && !entity.destroyed) {
           entity.destroy();
         }
       }
