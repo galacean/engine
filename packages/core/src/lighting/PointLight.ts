@@ -35,10 +35,9 @@ export class PointLight extends Light {
   }
 
   set distance(value: number) {
-    if (Number.isNaN(value)) {
-      return;
+    if (!Number.isNaN(value)) {
+      this._distance = Math.max(value, PointLight._minDistance);
     }
-    this._distance = Math.max(value, PointLight._minDistance);
   }
 
   /**
@@ -70,9 +69,8 @@ export class PointLight extends Light {
     data.position[positionStart + 1] = position.y;
     data.position[positionStart + 2] = position.z;
 
-    const distance = this._distance;
-    // GPU convention: cutoffDistance <= 0.0 represents unlimited range (distance === Infinity).
-    data.distance[distanceStart] = Number.isFinite(distance) ? distance : 0.0;
+    // GPU convention: cutoffDistance <= 0.0 represents unlimited range (Infinity or > FP32 max).
+    data.distance[distanceStart] = Number.isFinite(Math.fround(this._distance)) ? this._distance : 0.0;
   }
 
   /**

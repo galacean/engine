@@ -49,10 +49,9 @@ export class SpotLight extends Light {
   }
 
   set distance(value: number) {
-    if (Number.isNaN(value)) {
-      return;
+    if (!Number.isNaN(value)) {
+      this._distance = Math.max(value, SpotLight._minDistance);
     }
-    this._distance = Math.max(value, SpotLight._minDistance);
   }
 
   /**
@@ -105,9 +104,8 @@ export class SpotLight extends Light {
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
 
-    const distance = this._distance;
-    // GPU convention: cutoffDistance <= 0.0 represents unlimited range (distance === Infinity).
-    data.distance[distanceStart] = Number.isFinite(distance) ? distance : 0.0;
+    // GPU convention: cutoffDistance <= 0.0 represents unlimited range (Infinity or > FP32 max).
+    data.distance[distanceStart] = Number.isFinite(Math.fround(this._distance)) ? this._distance : 0.0;
     data.angleCos[angleCosStart] = Math.cos(this.angle);
     data.penumbraCos[penumbraCosStart] = Math.cos(this.angle + this.penumbra);
   }

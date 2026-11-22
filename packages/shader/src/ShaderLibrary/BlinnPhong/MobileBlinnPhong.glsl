@@ -52,6 +52,15 @@ void initBlinnPhongMaterial(vec2 uv, out vec4 ambient, out vec4 emission, out ve
     ambient = vec4(scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity, 1.0) * diffuse;
 }
 
+void accumulateBlinnPhongLight(
+    vec3 N, vec3 V, vec3 direction, vec3 lightColor,
+    inout vec3 lightDiffuse, inout vec3 lightSpecular
+) {
+    lightDiffuse += lightColor * max(dot(N, direction), 0.0);
+    vec3 halfDir = normalize(V + direction);
+    lightSpecular += lightColor * pow(clamp(dot(N, halfDir), 0.0, 1.0), material_Shininess);
+}
+
 // Calculate Blinn-Phong lighting
 // shadowAttenuation: pre-computed shadow factor (1.0 = no shadow)
 void calculateBlinnPhongLighting(
@@ -85,52 +94,32 @@ void calculateBlinnPhongLighting(
     #endif
 
     #ifdef SCENE_POINT_LIGHT_COUNT
-        PointLight pointLight;
         for (int i = 0; i < SCENE_POINT_LIGHT_COUNT; i++) {
             if (!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])) {
-                pointLight = getPointLight(i);
-
+                PointLight pointLight = getPointLight(i);
                 vec3 lVector = pointLight.position - worldPos;
                 float distanceSq = dot(lVector, lVector);
                 float attenuation = getDistanceAttenuation(distanceSq, pointLight.distance);
                 if (attenuation > 0.0) {
                     vec3 direction = lVector * inversesqrt(max(distanceSq, 1e-12));
-                    vec3 attenuatedColor = pointLight.color * attenuation;
-
-                    float d = max(dot(N, direction), 0.0);
-                    lightDiffuse += attenuatedColor * d;
-
-                    vec3 halfDir = normalize(V + direction);
-                    float s = pow(clamp(dot(N, halfDir), 0.0, 1.0), material_Shininess);
-                    lightSpecular += attenuatedColor * s;
+                    accumulateBlinnPhongLight(N, V, direction, pointLight.color * attenuation, lightDiffuse, lightSpecular);
                 }
             }
         }
     #endif
 
     #ifdef SCENE_SPOT_LIGHT_COUNT
-        SpotLight spotLight;
         for (int i = 0; i < SCENE_SPOT_LIGHT_COUNT; i++) {
             if (!isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])) {
-                spotLight = getSpotLight(i);
-
+                SpotLight spotLight = getSpotLight(i);
                 vec3 lVector = spotLight.position - worldPos;
                 float distanceSq = dot(lVector, lVector);
                 float attenuation = getDistanceAttenuation(distanceSq, spotLight.distance);
                 if (attenuation > 0.0) {
                     vec3 direction = lVector * inversesqrt(max(distanceSq, 1e-12));
-                    float angleCos = dot(direction, -spotLight.direction);
-                    float spotEffect = smoothstep(spotLight.penumbraCos, spotLight.angleCos, angleCos);
-                    attenuation *= spotEffect;
+                    attenuation *= smoothstep(spotLight.penumbraCos, spotLight.angleCos, dot(direction, -spotLight.direction));
                     if (attenuation > 0.0) {
-                        vec3 attenuatedColor = spotLight.color * attenuation;
-
-                        float d = max(dot(N, direction), 0.0);
-                        lightDiffuse += attenuatedColor * d;
-
-                        vec3 halfDir = normalize(V + direction);
-                        float s = pow(clamp(dot(N, halfDir), 0.0, 1.0), material_Shininess);
-                        lightSpecular += attenuatedColor * s;
+                        accumulateBlinnPhongLight(N, V, direction, spotLight.color * attenuation, lightDiffuse, lightSpecular);
                     }
                 }
             }

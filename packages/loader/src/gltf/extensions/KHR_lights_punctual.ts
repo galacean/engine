@@ -31,7 +31,7 @@ class KHR_lights_punctual extends GLTFExtensionParser {
     }
 
     if (!(light instanceof DirectLight)) {
-      light.distance = range !== undefined ? range : Infinity;
+      light.distance = range ?? Infinity;
     }
 
     if (spot && light instanceof SpotLight) {

@@ -79,9 +79,7 @@ void surfaceShading(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfDat
 		float attenuation = getDistanceAttenuation( distanceSq, spotLight.distance );
 		if ( attenuation > 0.0 ) {
 			vec3 direction = lVector * inversesqrt( max( distanceSq, 1e-12 ) );
-			float angleCos = dot( direction, -spotLight.direction );
-			float spotEffect = smoothstep( spotLight.penumbraCos, spotLight.angleCos, angleCos );
-			attenuation *= spotEffect;
+			attenuation *= smoothstep( spotLight.penumbraCos, spotLight.angleCos, dot( direction, -spotLight.direction ) );
 			if ( attenuation > 0.0 ) {
 				FUNCTION_SURFACE_SHADING( varyings, surfaceData, bsdfData, direction, spotLight.color * attenuation, totalDiffuseColor, totalSpecularColor );
 			}
