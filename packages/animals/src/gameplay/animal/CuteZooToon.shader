@@ -135,6 +135,27 @@ Shader "Animal/CuteZooToon" {
         #endif
       }
 
+      #ifdef NEED_CALCULATE_SHADOWS
+        // Receiver-side 1-texel normal offset suppresses sunlit self-shadow acne on curved
+        // low-poly animal meshes without shifting ground contact shadows.
+        float sampleToonShadow(vec3 positionWS, vec3 normal, float ndotl, out float shadowFloor) {
+          #if SCENE_SHADOW_CASCADED_COUNT == 1
+            mediump int cascadeIndex = 0;
+          #else
+            mediump int cascadeIndex = min(computeCascadeIndex(positionWS), SCENE_SHADOW_CASCADED_COUNT);
+          #endif
+          mat4 shadowMatrix = scene_ShadowMatrices[cascadeIndex];
+          float row0Len = length(vec3(shadowMatrix[0].x, shadowMatrix[1].x, shadowMatrix[2].x));
+          float texelWS = row0Len > 1e-6 ? clamp(scene_ShadowMapSize.x / row0Len, 0.0, 0.5) : 0.0;
+          vec3 biasedPosWS = positionWS + normal * (texelWS * (1.0 - max(ndotl, 0.0) * 0.5));
+          vec3 shadowCoord = (shadowMatrix * vec4(biasedPosWS, 1.0)).xyz;
+          shadowFloor = (shadowCoord.z > 0.0 && shadowCoord.z < 1.0)
+            ? 1.0 - scene_ShadowInfo.x * (1.0 - getShadowFade(positionWS))
+            : 1.0;
+          return sampleShadowMap(positionWS, shadowCoord);
+        }
+      #endif
+
       void toonFragment(ToonVaryings v) {
         vec4 albedo = material_BaseColor;
         #ifdef MATERIAL_HAS_BASETEXTURE
@@ -151,15 +172,22 @@ Shader "Animal/CuteZooToon" {
         vec3 environment = toonEnvironment(normal);
         vec3 illumination = environment;
         #ifdef SCENE_DIRECT_LIGHT_COUNT
-          float visibility = 1.0;
+          float shadowVisibility = 1.0;
+          float shadowFloor = 1.0;
           #ifdef NEED_CALCULATE_SHADOWS
-            visibility = sampleShadowMap(v.positionWS, getShadowCoord(v.positionWS));
+            float sunNdotL = dot(normal, -scene_DirectLightDirection[0]);
+            shadowVisibility = sampleToonShadow(v.positionWS, normal, sunNdotL, shadowFloor);
           #endif
-          visibility *= sampleVolumetricCloudShadow(v.positionWS);
+          float cloudVisibility = sampleVolumetricCloudShadow(v.positionWS);
           for (int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i++) {
             if (!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])) {
-              float shadow = i == 0 ? visibility : 1.0;
-              float halfLambert = dot(normal, -scene_DirectLightDirection[i]) * 0.5 + 0.5;
+              float ndotl = dot(normal, -scene_DirectLightDirection[i]);
+              float halfLambert = ndotl * 0.5 + 0.5;
+              // Cap leaked back-face shadow texels at the scene's shadow floor across a
+              // smooth per-pixel terminator while keeping external shadows on sunlit sides.
+              float shadow = i == 0
+                ? min(shadowVisibility, mix(shadowFloor, 1.0, smoothstep(0.0, 0.25, ndotl))) * cloudVisibility
+                : 1.0;
               float value = halfLambert * clamp(shadow * 0.5 + 0.8, 0.0, 1.0);
               vec3 shade = animal_ShadeColor;
               #ifdef ANIMAL_TOON_SECOND_SHADE
