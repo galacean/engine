@@ -1,5 +1,6 @@
 import type { HeadlessSeedWorldFixture, TurnExecutionRecord } from "./seed-world-headless-fixture.ts";
 import { SEED_WORLD_MODEL } from "../../../demos/seed-world/assistant/SeedWorldModel.ts";
+import { EXTENDED_V4_CASES } from "./benchmark-cases-v4.ts";
 
 export interface CaseCheck {
   name: string;
@@ -89,7 +90,7 @@ export interface BenchmarkCaseDefinition {
   verify(fixture: HeadlessSeedWorldFixture, turns: readonly TurnExecutionRecord[]): Promise<CaseCheck[]> | CaseCheck[];
 }
 
-function getAllProjectSceneData(fixture: HeadlessSeedWorldFixture): {
+export function getAllProjectSceneData(fixture: HeadlessSeedWorldFixture): {
   sceneJson: any;
   prefabs: Record<string, any>;
   materials: Record<string, any>;
@@ -132,7 +133,7 @@ function getAllProjectSceneData(fixture: HeadlessSeedWorldFixture): {
   };
 }
 
-function combinedFinalText(turns: readonly TurnExecutionRecord[]): string {
+export function combinedFinalText(turns: readonly TurnExecutionRecord[]): string {
   return turns
     .map((t) => {
       const outcome = t.taskResult?.result;
@@ -141,7 +142,7 @@ function combinedFinalText(turns: readonly TurnExecutionRecord[]): string {
     .join("\n");
 }
 
-function allCalledTools(turns: readonly TurnExecutionRecord[]): Set<string> {
+export function allCalledTools(turns: readonly TurnExecutionRecord[]): Set<string> {
   const names = new Set<string>();
   for (const turn of turns) {
     for (const call of turn.toolCalls) names.add(call.toolName);
@@ -156,12 +157,12 @@ function allCalledTools(turns: readonly TurnExecutionRecord[]): Set<string> {
   return names;
 }
 
-function hasTool(called: ReadonlySet<string>, name: string): boolean {
+export function hasTool(called: ReadonlySet<string>, name: string): boolean {
   const bare = name.replace(/^(?:tools|editor)\./, "");
   return called.has(name) || called.has(bare) || called.has(`tools.${bare}`) || called.has(`editor.${bare}`);
 }
 
-function entityName(entity: any): string {
+export function entityName(entity: any): string {
   if (typeof entity?.name === "string" && entity.name) return entity.name;
   const overrides = entity?.instance?.overrides?.entityProps;
   if (Array.isArray(overrides)) {
@@ -171,7 +172,7 @@ function entityName(entity: any): string {
   return "";
 }
 
-function entityPos(entity: any): [number, number, number] | undefined {
+export function entityPos(entity: any): [number, number, number] | undefined {
   if (Array.isArray(entity?.position) && entity.position.length >= 3) {
     return [Number(entity.position[0]) || 0, Number(entity.position[1]) || 0, Number(entity.position[2]) || 0];
   }
@@ -193,13 +194,13 @@ function entityPos(entity: any): [number, number, number] | undefined {
   return undefined;
 }
 
-function entityAssetRef(entity: any): string | undefined {
+export function entityAssetRef(entity: any): string | undefined {
   return entity?.instance?.asset?.$ref ?? entity?.prefab?.assetId;
 }
 
-const INITIAL_ENTITY_IDS = new Set(["building-host", "farm-owner", "lake-root", "lantern-root"]);
+export const INITIAL_ENTITY_IDS = new Set(["building-host", "farm-owner", "lake-root", "lantern-root"]);
 
-function isUserBuildingPrefab(virtualPath: string): boolean {
+export function isUserBuildingPrefab(virtualPath: string): boolean {
   return !virtualPath.startsWith("Building/Presets/") && !virtualPath.startsWith("Building/Units/");
 }
 
@@ -491,7 +492,7 @@ export function extractCaseTelemetry(
   };
 }
 
-export const BENCHMARK_CASES: readonly BenchmarkCaseDefinition[] = [
+const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
   {
     id: "01_direct_time_query",
     name: "直接查询当前时间、天气与季节（零修改）",
@@ -1578,7 +1579,7 @@ export const BENCHMARK_CASES: readonly BenchmarkCaseDefinition[] = [
       const itemList = Array.isArray(snap.items) ? snap.items : Object.values(snap.items ?? {});
       const pendingCount = itemList.reduce((sum: number, item: any) => {
         const contents = item?.contents ?? item?.items ?? {};
-        return sum + Object.values(contents).reduce((a: number, b: any) => a + Number(b || 0), 0);
+        return sum + Number(Object.values(contents).reduce((a: number, b: any) => a + Number(b || 0), 0));
       }, 0);
       const called = allCalledTools(turns);
       const calledHarvest = [...called].some((name) => name === "harvest" || name.endsWith(".harvest"));
@@ -1589,3 +1590,46 @@ export const BENCHMARK_CASES: readonly BenchmarkCaseDefinition[] = [
     }
   }
 ];
+
+export const BENCHMARK_CASES: readonly BenchmarkCaseDefinition[] = [...CORE_AND_V3_CASES, ...EXTENDED_V4_CASES];
+
+const SMOKE_PREFIXES = ["03_", "05_", "06_", "08_", "10_", "15_", "16_", "19_", "20_", "21_", "22_", "23_", "24_"];
+
+/**
+ * Filter cases by BENCH_SUITE (smoke | crud | hard | domain:<skill> | full) and/or BENCH_CASES.
+ */
+export function selectBenchmarkCases(suiteRaw?: string, casesRaw?: string): readonly BenchmarkCaseDefinition[] {
+  let pool: readonly BenchmarkCaseDefinition[] = BENCHMARK_CASES;
+  const suite = suiteRaw?.trim().toLowerCase();
+  if (suite && suite !== "full") {
+    if (suite === "smoke") {
+      pool = pool.filter((c) => SMOKE_PREFIXES.some((p) => c.id.startsWith(p)));
+    } else if (suite === "hard") {
+      pool = pool.filter((c) => {
+        const num = Number(c.id.slice(0, 3).replace(/_.*$/, ""));
+        return (num >= 19 && num <= 24) || num >= 66;
+      });
+    } else if (suite === "crud") {
+      pool = pool.filter((c) => {
+        const num = Number(c.id.slice(0, 3).replace(/_.*$/, ""));
+        return (num >= 1 && num <= 18) || (num >= 25 && num <= 65);
+      });
+    } else if (suite.startsWith("domain:")) {
+      const domain = suite.slice("domain:".length).trim();
+      pool = pool.filter(
+        (c) =>
+          c.category.toLowerCase().includes(domain) ||
+          c.expectedSkills.some((s) => s.toLowerCase().includes(`skills/${domain}`))
+      );
+    } else {
+      throw new Error(`Unknown BENCH_SUITE '${suiteRaw}'. Expected: full | smoke | crud | hard | domain:<name>`);
+    }
+  }
+  const filterRaw = casesRaw?.trim();
+  if (!filterRaw) return pool;
+  const tokens = filterRaw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return pool.filter((c) => tokens.some((tok) => c.id === tok || c.id.startsWith(tok)));
+}

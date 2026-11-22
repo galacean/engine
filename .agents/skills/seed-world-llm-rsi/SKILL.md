@@ -15,7 +15,7 @@ description: >-
 
 ## 核心闭环（6 步）
 
-完整操作规范见 [RSI 闭环手册](references/rsi-loop.md)；指标与 42 题全 Skill×CRUD 矩阵见 [指标与审计标准](references/metrics-and-audit.md)；实战避坑与待办见 [Harness 避坑与 Backlog](references/harness-and-pitfalls.md)。
+完整操作规范见 [RSI 闭环手册](references/rsi-loop.md)；指标与 100 题全 Skill×CRUD×高难矩阵（v4）见 [指标与审计标准](references/metrics-and-audit.md)；实战避坑与待办见 [Harness 避坑与 Backlog](references/harness-and-pitfalls.md)。
 
 1. **隔离工作树与探活**：
    - 默认不污染用户脏工作区；基于目标分支（默认 `origin/experimental/engine-next`）拉隔离 worktree，或按用户明确要求评测当前工作区。
@@ -27,10 +27,12 @@ description: >-
 2. **静态图谱审计（纯离线）**：
    - 运行 `static-audit.spec.ts`（通过 `STATIC_AUDIT_OUT_PATH` 指定输出路径），校验 5 条红线：不可达文档为 `0`、注册工具 100% 入 `API_INDEX`/链接、`editor.*` 链路不漏 `native/api.d.ts`、大依赖不静默丢弃、无新陈旧术语回流。
 3. **分层无头基准压测（串行）**：
-   - 始终串行打本地 `127.0.0.1:8082`，强制校验 `BENCH_EXPECTED_MODEL`（默认 `DeepSeek-V4.1-Flash`），开启 `BENCH_SKIP_EXISTING=1` 断点续跑：
-     - **冒烟**：`BENCH_CASES=01,03`
-     - **高杠杆 A/B（推荐日常 RSI）**：`BENCH_CASES=03,05,06,08,10,15,16,19,20,21,22,23,24`
-     - **全量矩阵（15 Skill × CRUD + 复合/语音/遵守度）**：留空（42 题，支持 `BENCH_SKIP_EXISTING=1` 分批断点续跑）
+   - 始终串行打本地 `127.0.0.1:8082`，强制校验 `BENCH_EXPECTED_MODEL`（默认 `DeepSeek-V4.1-Flash`），开启 `BENCH_SKIP_EXISTING=1` 断点续跑，按 `BENCH_SUITE` 或 `BENCH_CASES` 选档：
+     - **冒烟 / 快速 A/B**：`BENCH_SUITE=smoke`（核心 13 题，~10 分钟）或 `BENCH_CASES=01,03`
+     - **单领域切片**：`BENCH_SUITE=domain:water` / `domain:farming` / `domain:assets` 等（~3–5 分钟）
+     - **原子 CRUD 矩阵**：`BENCH_SUITE=crud`（59 题：`01–18, 25–65`，覆盖全部 23 个一级/二级 Skill 与 70+ 公开接口）
+     - **高难专项（空间/多轮/语音/复合/红线）**：`BENCH_SUITE=hard`（41 题）
+     - **全量生产矩阵（v4）**：`BENCH_SUITE=full` 或留空（**100 题**，支持 `BENCH_SKIP_EXISTING=1` 分批断点续跑）
 4. **Trace 五类归因**：
    - 先严格区分 **Transport 故障 / Fixture 漂移 / 公共链路断点 / Skill&Knowledge 缺口 / 模型能力上限**，严禁把网络或夹具故障当 LLM 缺陷修。
 5. **按 ROI 分层改造**：

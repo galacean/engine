@@ -3,20 +3,14 @@ import os from "node:os";
 import path from "node:path";
 import { expect, it } from "vitest";
 import { createHeadlessSeedWorldFixture, type TurnExecutionRecord } from "./seed-world-headless-fixture.ts";
-import { BENCHMARK_CASES, extractCaseTelemetry, type CaseMetrics } from "./benchmark-cases.ts";
+import { BENCHMARK_CASES, extractCaseTelemetry, selectBenchmarkCases, type CaseMetrics } from "./benchmark-cases.ts";
 
 const DEFAULT_OUT_DIR = path.join(os.tmpdir(), "seed-world-llm-bench", "traces");
 const DEFAULT_SUMMARY_PATH = path.join(os.tmpdir(), "seed-world-llm-bench", "summary.json");
 const EXPECTED_MODEL = process.env.BENCH_EXPECTED_MODEL?.trim() || "DeepSeek-V4.1-Flash";
 
 function selectCases() {
-  const filterRaw = process.env.BENCH_CASES?.trim();
-  if (!filterRaw) return BENCHMARK_CASES;
-  const tokens = filterRaw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return BENCHMARK_CASES.filter((c) => tokens.some((tok) => c.id === tok || c.id.startsWith(tok)));
+  return selectBenchmarkCases(process.env.BENCH_SUITE, process.env.BENCH_CASES);
 }
 
 const TRANSIENT_TRANSPORT_ERROR_RE =

@@ -69,6 +69,7 @@ import {
   type RuntimeProjectPackage
 } from "@galacean/engine-project/runtime-editor/project/runtime-project.ts";
 import type { PlanningParameterCommand } from "@galacean/engine-world-planning/spatial/PlanningSession.ts";
+import { PLANT_MATERIAL_SLOTS, plantMaterialField } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters.ts";
 import type { PlanningWaterCreation } from "@galacean/engine-world-planning/spatial/PlanningWaterAuthoring.ts";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel.ts";
 import * as planningHeightmaps from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
@@ -402,7 +403,7 @@ export interface HeadlessSeedWorldFixture {
     getRemovedIds(): readonly string[];
     getEnvironmentMutations(): readonly Record<string, unknown>[];
     getRiversCreated(): readonly PlanningWaterCreation[];
-    getParameterState(): { activationDistance: number; versionToken: string; applyCalls: unknown[] };
+    getParameterState(): { activationDistance: number; versionToken: string; applyCalls: unknown[]; plantMaterialOverrides: Record<string, number> };
     getAnimalSpawns(): readonly Record<string, unknown>[];
     getAnimalCommands(): readonly Record<string, unknown>[];
     getAnimalReceipts(): readonly Record<string, unknown>[];
@@ -413,6 +414,7 @@ export interface HeadlessSeedWorldFixture {
   runTurn(prompt: string, turnIndex?: number, options?: { inputSource?: "text" | "voice" }): Promise<TurnExecutionRecord>;
   seedPreUndoTransaction(entityName?: string): Promise<string>;
   seedMatureCrop(plotId?: string): Promise<void>;
+  seedAuthoredTree(position?: [number, number, number]): void;
   dispose(): Promise<void>;
 }
 
@@ -700,6 +702,28 @@ export async function createHeadlessSeedWorldFixture(options: {
   let paramVersionToken = "v1";
   let paramVersionCounter = 1;
   const paramApplyCalls: unknown[] = [];
+  const plantMaterialOverrides: Record<string, number> = {};
+  const plantMaterialDefaults: Record<string, number> = {};
+  const plantMaterialFields: Array<Record<string, unknown>> = [];
+  for (const slot of PLANT_MATERIAL_SLOTS) {
+    const rgb = slot.defaultColor ?? [0.5, 0.5, 0.5];
+    (["r", "g", "b"] as const).forEach((ch, idx) => {
+      const key = plantMaterialField(slot.assetId, slot.materialId, ch);
+      plantMaterialDefaults[key] = Number(rgb[idx] ?? 0.5);
+      plantMaterialFields.push({
+        key,
+        label: `${slot.label} (${ch})`,
+        type: "number",
+        description: `Linear ${ch} channel`,
+        editEffect: "material",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        worldWritable: true,
+        default: plantMaterialDefaults[key]
+      });
+    });
+  }
 
   const applyEnvironmentPatch = (input: Record<string, unknown>) => {
     environmentMutations.push(structuredClone(input));
@@ -1244,10 +1268,20 @@ export async function createHeadlessSeedWorldFixture(options: {
         ],
         scopes: { world: true, instances: [] }
       };
-      return component && component !== "animals" ? [] : [animalsSchema];
+      const plantMaterialSchema = {
+        type: "plantMaterial",
+        label: "植被共享材质",
+        description: "世界级植被部位共享材质线性 RGB 参数",
+        version: 1,
+        fields: plantMaterialFields,
+        scopes: { world: true, instances: [] }
+      };
+      const all = [animalsSchema, plantMaterialSchema];
+      return component ? all.filter((s) => s.type === component) : all;
     },
     query: (filter) => {
-      if (filter && (filter as { component?: string }).component && (filter as { component?: string }).component !== "animals") {
+      const comp = filter && (filter as { component?: string }).component;
+      if (comp && comp !== "animals" && comp !== "plantMaterial") {
         return [];
       }
       return [
@@ -1255,13 +1289,21 @@ export async function createHeadlessSeedWorldFixture(options: {
           id: "world",
           name: "World",
           kind: "world",
-          authoredFields: { animals: ["activationDistance"] },
-          components: ["animals"]
+          authoredFields: {
+            animals: ["activationDistance"],
+            plantMaterial: Object.keys(plantMaterialOverrides)
+          },
+          components: ["animals", "plantMaterial"]
         }
       ];
     },
     inspect: (id: string) => {
       if (id !== "world") throw new Error(`Unknown entity '${id}'`);
+      const pmValues: Record<string, number> = { ...plantMaterialDefaults, ...plantMaterialOverrides };
+      const pmSources: Record<string, string[]> = {};
+      for (const k of Object.keys(plantMaterialDefaults)) {
+        pmSources[k] = k in plantMaterialOverrides ? ["world"] : ["default"];
+      }
       return {
         id: "world",
         name: "World",
@@ -1274,6 +1316,13 @@ export async function createHeadlessSeedWorldFixture(options: {
             sources: { activationDistance: ["world"] },
             local: { activationDistance },
             limits: { activationDistance: { min: 32, max: 1024 } }
+          },
+          {
+            type: "plantMaterial",
+            values: pmValues,
+            sources: pmSources,
+            local: { ...plantMaterialOverrides },
+            limits: {}
           }
         ]
       };
@@ -1296,6 +1345,19 @@ export async function createHeadlessSeedWorldFixture(options: {
           } else if (cmd.op === "reset") {
             activationDistance = 256;
           }
+        } else if (cmd.entity === "world" && cmd.component === "plantMaterial") {
+          if (cmd.op === "set" && cmd.values) {
+            for (const [k, v] of Object.entries(cmd.values)) {
+              if (typeof v === "number") plantMaterialOverrides[k] = v;
+            }
+          } else if (cmd.op === "reset") {
+            const fields = (cmd as { fields?: readonly string[] }).fields;
+            if (Array.isArray(fields) && fields.length) {
+              for (const k of fields) delete plantMaterialOverrides[k];
+            } else {
+              for (const k of Object.keys(plantMaterialOverrides)) delete plantMaterialOverrides[k];
+            }
+          }
         }
       }
       paramVersionCounter += 1;
@@ -1305,7 +1367,7 @@ export async function createHeadlessSeedWorldFixture(options: {
         versionToken: paramVersionToken,
         changedIds: ["world"],
         diagnostics: [{ status: "applied", required: false }],
-        message: `activationDistance=${activationDistance}`
+        message: `activationDistance=${activationDistance}, plantMaterialOverrides=${Object.keys(plantMaterialOverrides).length}`
       };
     }
   };
@@ -1932,6 +1994,19 @@ export async function createHeadlessSeedWorldFixture(options: {
     await farmingArea.service.checkpoint();
   }
 
+  function seedAuthoredTree(position: [number, number, number] = [8, 0, -9]) {
+    objects.push({
+      worldId: "seed-world-42",
+      objectId: "authored-tree-player-1",
+      objectKind: "tree",
+      worldRevision: 4,
+      position,
+      footprintMetres: [2, 2],
+      source: { kind: "authoring", sourceId: "authored-tree-player-1" },
+      properties: { treeSpeciesProfileKey: "pine", yawRadians: 0, scale: [1, 1, 1] }
+    });
+  }
+
   return {
     engine,
     scene,
@@ -1953,7 +2028,8 @@ export async function createHeadlessSeedWorldFixture(options: {
       getParameterState: () => ({
         activationDistance,
         versionToken: paramVersionToken,
-        applyCalls: structuredClone(paramApplyCalls)
+        applyCalls: structuredClone(paramApplyCalls),
+        plantMaterialOverrides: { ...plantMaterialOverrides }
       }),
       getAnimalSpawns: () => structuredClone(animalSpawns),
       getAnimalCommands: () => structuredClone(animalCommands),
@@ -1967,6 +2043,7 @@ export async function createHeadlessSeedWorldFixture(options: {
     runTurn,
     seedPreUndoTransaction,
     seedMatureCrop,
+    seedAuthoredTree,
     async dispose() {
       session.dispose();
       agentLoop.dispose();

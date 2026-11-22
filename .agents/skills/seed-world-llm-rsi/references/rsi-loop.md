@@ -55,12 +55,13 @@ STATIC_AUDIT_OUT_PATH="$OUT_DIR/static-audit-before.json" \
 
 由于本地 8082 上游模型并发与速率受限，**始终串行执行**，并按场景选档，避免动辄耗时 40 分钟：
 
-| 档位 | `BENCH_CASES` | 预计耗时 | 适用时机 |
+| 档位 | `BENCH_SUITE` / `BENCH_CASES` | 预计耗时 | 适用时机 |
 | --- | --- | --- | --- |
-| **Smoke（冒烟）** | `01,03` | ~2–3 分钟 | 验证通道、路由、夹具是否正常；CR 微调后快速回归 |
-| **Core（核心高杠杆 + 难例）** | `03,05,06,08,10,15,16,19,20,21,22,23,24` | ~10–18 分钟 | 每轮 RSI 改造的快速 Before vs After A/B 对照 |
-| **Targeted（定向）** | 按改动域选 2–4 题 | ~2–5 分钟 | 单模块 Skill / Knowledge / Declare 调整验证 |
-| **Full Matrix（全量 42 题）** | 留空（全部 42 题，覆盖 15 Skill × CRUD） | ~40–70 分钟（支持断点续跑） | 换模型、大改协议/契约或阶段终验 |
+| **Smoke（快速 A/B）** | `BENCH_SUITE=smoke`（13 题：`03,05,06,08,10,15,16,19..24`） | ~10–15 分钟 | 每轮 RSI 改造的快速 Before vs After A/B 对照 |
+| **Domain Slice（单域定向）** | `BENCH_SUITE=domain:<name>`（如 `water`/`farming`/`assets`） | ~3–6 分钟 | 单模块 Skill / Knowledge / Declare 调整验证 |
+| **CRUD Matrix（全接口 CRUD）** | `BENCH_SUITE=crud`（59 题：`01–18, 25–65`，覆齐 23 Skill + 70+ 公开 API） | ~40–55 分钟 | API 契约调整或新增工具回归 |
+| **Hard（聪明度/合规专项）** | `BENCH_SUITE=hard`（41 题：空间/多轮/语音/复合/红线） | ~30–45 分钟 | 提示词协议、上下文压缩、语音与红线专项压测 |
+| **Full Matrix（全量 100 题）** | `BENCH_SUITE=full` 或留空（**全部 100 题**） | ~75–110 分钟（支持断点续跑） | 换模型、大改协议/契约或大版本架构重构前后黄金基线 |
 
 运行命令（支持 `BENCH_SKIP_EXISTING=1` 断点续跑）：
 
