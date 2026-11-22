@@ -136,6 +136,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   @ignoreClone
   private _poseOnlyDirty = false;
   @ignoreClone
+  private _poseScale = new Vector3(1, 1, 1);
+  @ignoreClone
   protected _nativeScale = new Vector3(1, 1, 1);
   @ignoreClone
   protected readonly _nativePosition = new Vector3();
@@ -437,7 +439,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       const depth = Collider._syncDepth++;
       try {
         const scratch = (Collider._syncScratch[depth] ||= new ColliderSyncScratch());
-        scratch.scale.copyFrom(this._nativeScale);
+        scratch.scale.copyFrom(this._poseScale);
         this._syncShapePose(this._native, this._attachedBody, scratch, false, scene);
       } finally {
         Collider._syncDepth = depth;
@@ -496,6 +498,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
         this._nativeActor = actor;
         this._attachedBody = body;
       }
+      this._poseScale.copyFrom(scale);
     } finally {
       Collider._syncDepth = depth;
     }

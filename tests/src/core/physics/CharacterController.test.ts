@@ -821,11 +821,12 @@ describe("CharacterController", () => {
         clone.destroy();
       }
 
-      // In-place NaN throws and syncs fallback (0, 1, 0) back to native immediately
+      // In-place NaN throws and restores prior valid upDirection (1, 0, 0) in JS and native
       expect(() => (cc.upDirection.x = NaN)).toThrow();
-      expect(cc.upDirection.y).toBeCloseTo(1, 5);
-      expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
-      expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+      expect([cc.upDirection.x, cc.upDirection.y, cc.upDirection.z]).toEqual([1, 0, 0]);
+      expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(cc);
+      expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
     });
 
     it("syncs sub-1e-6 scale, position, and center edits without dropping updates", () => {
@@ -942,7 +943,7 @@ describe("CharacterController", () => {
       }
     });
 
-    it("throws on non-finite upDirection assignment while preserving the prior native orientation", () => {
+    it("throws on non-finite upDirection assignment or in-place mutation while preserving the prior native orientation", () => {
       const entity = root.createChild("nan-up-cct");
       entity.transform.setPosition(0, 0, 0);
       const cc = entity.addComponent(CharacterController);
@@ -952,6 +953,8 @@ describe("CharacterController", () => {
       cc.upDirection = new Vector3(1, 0, 0);
 
       expect(() => (cc.upDirection = new Vector3(Number.NaN, 0, 0))).toThrow();
+      expect([cc.upDirection.x, cc.upDirection.y, cc.upDirection.z]).toEqual([1, 0, 0]);
+      expect(() => (cc.upDirection.x = Number.NaN)).toThrow();
       expect([cc.upDirection.x, cc.upDirection.y, cc.upDirection.z]).toEqual([1, 0, 0]);
 
       const hit = new HitResult();

@@ -67,14 +67,14 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
-   * {@inheritDoc IStaticCollider.setWorldTransform }
+   * {@inheritDoc ICollider.setWorldTransform }
    */
   setWorldTransform(position: Vector3, rotation: Quaternion): void {
     this._pxActor.setGlobalPose(this._transform(position, rotation), true);
   }
 
   /**
-   * {@inheritDoc IStaticCollider.getWorldTransform }
+   * {@inheritDoc ICollider.getWorldTransform }
    */
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void {
     const { translation, rotation } = this._pxActor.getGlobalPose();

@@ -49,9 +49,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /** @internal Index in the physics scene's enabled bodies. */
   @ignoreClone
   _index = -1;
-  /** @internal */
   @ignoreClone
-  _writingBack = false;
+  private _writingBack = false;
 
   @ignoreClone
   private _wasSleeping = false;
@@ -793,7 +792,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._registeredScene = scene;
     this._wasSleeping = false;
     const actor = this._getNativeActor();
-    if (this._registeredScene !== scene || this._index !== -1) return;
+    if (!actor || this._registeredScene !== scene || this._index !== -1) return;
     this._detachOrphanedColliders();
     scene.physics._addRigidbody(this, actor);
     if (this._sleepPending) scene.physics._scheduleSleep(this, true);
@@ -874,12 +873,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   _getNativeActor(): IDynamicCollider {
     let actor = this._nativeActor;
     if (!actor) {
+      if (this.destroyed) return null!;
       const transform = this.entity.transform;
       const position = transform.worldPosition;
       const rotation = transform.worldRotationQuaternion;
-      // Reading a custom Transform can register this body recursively.
+      // Reading a custom Transform can register or destroy this body recursively.
       actor = this._nativeActor;
-      if (actor) return actor;
+      if (actor || this.destroyed) return actor!;
       this._nativeActor = actor = Engine._nativePhysics.createDynamicCollider(position, rotation);
       this._nativePosition = position.clone();
       this._nativeRotation = rotation.clone();
@@ -1021,8 +1021,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const transform = this.entity.transform;
     const worldPosition = transform.worldPosition;
     const positionChanged = !Vector3.equals(position, worldPosition);
-    const standardTransform = !transform._hasCustomWorldPose;
-    if (standardTransform) this._writingBack = true;
+    this._writingBack = true;
     try {
       if (positionChanged) transform.worldPosition = position;
 
@@ -1032,18 +1031,11 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
       if (positionChanged || rotationChanged) {
         // A constrained Transform can change position while resolving a rotation write.
-        const finalPosition = transform.worldPosition;
-        const finalRotation = rotationChanged ? transform.worldRotationQuaternion : worldRotation;
-        if (
-          standardTransform &&
-          ((positionChanged && !Vector3.equals(finalPosition, position)) ||
-            (rotationChanged && !Quaternion.equals(finalRotation, rotation)))
-        ) {
-          this._registeredScene?.physics._markBodyDirty(this);
-        } else {
-          this._nativePosition.copyFrom(finalPosition);
-          this._nativeRotation.copyFrom(finalRotation);
-        }
+        this._nativePosition.copyFrom(transform.worldPosition);
+        this._nativeRotation.copyFrom(transform.worldRotationQuaternion);
+      } else {
+        this._nativePosition.copyFrom(worldPosition);
+        this._nativeRotation.copyFrom(worldRotation);
       }
     } finally {
       this._writingBack = false;

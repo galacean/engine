@@ -6,11 +6,13 @@ import {
   Collision,
   ContactPoint,
   Entity,
+  HitResult,
   Layer,
   Logger,
   MeshCollider,
   PhysicsMaterial,
   PhysicsScene,
+  PlaneCollider,
   PrimitiveMesh,
   Rigidbody,
   Scene,
@@ -971,5 +973,206 @@ describe("Rigidbody ownership", () => {
       warnings.mockRestore();
       Logger.disable();
     }
+  });
+
+  it("preserves world scale on _poseOnlyDirty fast path for PlaneCollider and non-uniformly scaled SphereCollider", () => {
+    const planeBodyEntity = root.createChild("scaled-plane-body");
+    const planeBody = planeBodyEntity.addComponent(Rigidbody);
+    planeBody.isKinematic = true;
+    const planeChild = planeBodyEntity.createChild("scaled-plane");
+    planeChild.transform.setScale(1, 3, 1);
+    const plane = planeChild.addComponent(PlaneCollider);
+    plane.center.set(0, 2, 0);
+    plane.collisionLayer = Layer.Layer6;
+
+    const hit = new HitResult();
+    update();
+    expect(physics.raycast(new Ray(new Vector3(0, 1010, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(plane);
+    expect(hit.point.y).toBeCloseTo(1006, 2);
+
+    // Trigger _poseOnlyDirty without marking WorldScale dirty.
+    planeChild.transform.setPosition(1, 0, 0);
+    update();
+    expect(physics.raycast(new Ray(new Vector3(1, 1010, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(plane);
+    expect(hit.point.y).toBeCloseTo(1006, 2);
+
+    planeBodyEntity.destroy();
+
+    const sphereBodyEntity = root.createChild("scaled-sphere-body");
+    const sphereBody = sphereBodyEntity.addComponent(Rigidbody);
+    sphereBody.isKinematic = true;
+    const sphereChild = sphereBodyEntity.createChild("scaled-sphere");
+    const sphere = sphereChild.addComponent(SphereCollider);
+    sphere.radius = 0.5;
+    sphere.center.set(0, 10, 0);
+    sphere.collisionLayer = Layer.Layer6;
+
+    // First sync at (1, 1, 1) so _nativeScale is committed as (1, 1, 1).
+    update();
+    // Shrink Y/Z while keeping max scale 1 so SphereCollider skips _syncGeometry and keeps _nativeScale = (1, 1, 1).
+    sphereChild.transform.setScale(1, 0.2, 0.2);
+    update();
+    expect(physics.raycast(new Ray(new Vector3(0, 1004, 0), new Vector3(0, -1, 0)), 3, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(sphere);
+    expect(hit.point.y).toBeCloseTo(1002.5, 2);
+
+    // Trigger _poseOnlyDirty without marking WorldScale dirty; center * (1, 0.2, 0.2) must stay at y=1002.
+    sphereChild.transform.setPosition(2, 0, 0);
+    update();
+    expect(physics.raycast(new Ray(new Vector3(2, 1011, 0), new Vector3(0, -1, 0)), 3, Layer.Layer6, hit)).toBe(false);
+    expect(physics.raycast(new Ray(new Vector3(2, 1004, 0), new Vector3(0, -1, 0)), 3, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(sphere);
+    expect(hit.point.y).toBeCloseTo(1002.5, 2);
+  });
+
+  it("keeps trigger Enter/Exit balanced when a collider's owning Rigidbody is destroyed during Enter", () => {
+    const createZone = (parent: Entity, onEnter: (other: Collider) => void) => {
+      const zoneEntity = parent.createChild("zone");
+      const zoneBody = zoneEntity.addComponent(Rigidbody);
+      zoneBody.isKinematic = true;
+      const zone = zoneEntity.addComponent(BoxCollider);
+      zone.size.set(4, 4, 4);
+      zone.isTrigger = true;
+      zoneEntity.addComponent(
+        class extends Script {
+          override onTriggerEnter(other: Collider): void {
+            onEnter(other);
+          }
+        }
+      );
+      return { zoneEntity, zone };
+    };
+
+    const createLog = (entity: Entity) => {
+      const events: string[] = [];
+      entity.addComponent(
+        class extends Script {
+          override onTriggerEnter(): void {
+            events.push("enter");
+          }
+          override onTriggerStay(): void {
+            events.push("stay");
+          }
+          override onTriggerExit(): void {
+            events.push("exit");
+          }
+        }
+      );
+      return events;
+    };
+
+    // Case 1: zone runs first (cur0) and destroys target's same-entity Rigidbody before target runs Enter.
+    const case1 = root.createChild("enter-before-target");
+    createZone(case1, () => {
+      if (!targetBody1.destroyed) targetBody1.destroy();
+    });
+    const target1 = case1.createChild("target1");
+    const targetBody1 = target1.addComponent(Rigidbody);
+    targetBody1.isKinematic = true;
+    target1.addComponent(BoxCollider);
+    const log1 = createLog(target1);
+
+    update();
+    expect(targetBody1.destroyed).toBe(true);
+    expect(log1).toEqual([]);
+    update();
+    expect(log1).toEqual(["enter"]);
+    case1.destroy();
+
+    // Case 2: target runs first (cur0) and gets Enter, then zone destroys target's same-entity Rigidbody; separating still emits Exit.
+    const case2 = root.createChild("target-before-zone");
+    const target2 = case2.createChild("target2");
+    const targetBody2 = target2.addComponent(Rigidbody);
+    targetBody2.isKinematic = true;
+    target2.addComponent(BoxCollider);
+    const log2 = createLog(target2);
+    const { zoneEntity: zone2 } = createZone(case2, () => {
+      if (!targetBody2.destroyed) targetBody2.destroy();
+    });
+
+    update();
+    expect(targetBody2.destroyed).toBe(true);
+    expect(log2).toEqual(["enter"]);
+    zone2.transform.setPosition(20, 0, 0);
+    update();
+    expect(log2).toEqual(["enter", "exit"]);
+    case2.destroy();
+
+    // Case 3: zoneA destroys target's shared Rigidbody before zoneB's Enter in the same step; no orphaned Exit follows.
+    const case3 = root.createChild("multi-trigger-same-step");
+    createZone(case3, () => {
+      if (!targetBody3.destroyed) targetBody3.destroy();
+    });
+    createZone(case3, () => {});
+    const target3 = case3.createChild("target3");
+    const targetBody3 = target3.addComponent(Rigidbody);
+    targetBody3.isKinematic = true;
+    target3.addComponent(BoxCollider);
+    const log3 = createLog(target3);
+
+    update();
+    expect(targetBody3.destroyed).toBe(true);
+    expect(log3).toEqual([]);
+    update();
+    expect(log3).toEqual(["enter", "enter"]);
+    case3.destroy();
+
+    // Case 4 & 5: single-pair Exit and multi-pair same-step Exit where zone destroys target's same-entity Rigidbody in Exit.
+    const createExitZone = (parent: Entity, onExit: () => void) => {
+      const zoneEntity = parent.createChild("exit-zone");
+      const zoneBody = zoneEntity.addComponent(Rigidbody);
+      zoneBody.isKinematic = true;
+      const zone = zoneEntity.addComponent(BoxCollider);
+      zone.size.set(4, 4, 4);
+      zone.isTrigger = true;
+      zoneEntity.addComponent(
+        class extends Script {
+          override onTriggerExit(): void {
+            onExit();
+          }
+        }
+      );
+      return zoneEntity;
+    };
+
+    const case4 = root.createChild("exit-side0-destroy");
+    const zone4 = createExitZone(case4, () => {
+      if (!targetBody4.destroyed) targetBody4.destroy();
+    });
+    const target4 = case4.createChild("target4");
+    const targetBody4 = target4.addComponent(Rigidbody);
+    targetBody4.isKinematic = true;
+    target4.addComponent(BoxCollider);
+    const log4 = createLog(target4);
+
+    update();
+    expect(log4).toEqual(["enter"]);
+    zone4.transform.setPosition(20, 0, 0);
+    update();
+    expect(targetBody4.destroyed).toBe(true);
+    expect(log4).toEqual(["enter", "exit"]);
+    case4.destroy();
+
+    const case5 = root.createChild("exit-multi-pair-same-step");
+    const zone5a = createExitZone(case5, () => {
+      if (!targetBody5.destroyed) targetBody5.destroy();
+    });
+    const zone5b = createExitZone(case5, () => {});
+    const target5 = case5.createChild("target5");
+    const targetBody5 = target5.addComponent(Rigidbody);
+    targetBody5.isKinematic = true;
+    target5.addComponent(BoxCollider);
+    const log5 = createLog(target5);
+
+    update();
+    expect(log5).toEqual(["enter", "enter"]);
+    zone5a.transform.setPosition(20, 0, 0);
+    zone5b.transform.setPosition(20, 0, 0);
+    update();
+    expect(targetBody5.destroyed).toBe(true);
+    expect(log5).toEqual(["enter", "enter", "exit", "exit"]);
+    case5.destroy();
   });
 });

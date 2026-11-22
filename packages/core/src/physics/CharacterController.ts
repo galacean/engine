@@ -355,10 +355,6 @@ export class CharacterController extends Collider {
 
   private _applyUpDirection(value: Vector3): void {
     const up = this._upDirection;
-    if (value === up && !Number.isFinite(Math.hypot(value.x, value.y, value.z))) {
-      value.set(0, 1, 0);
-      throw new Error("CharacterController upDirection must be finite.");
-    }
     if (
       Collider._syncUnitVector(
         up,

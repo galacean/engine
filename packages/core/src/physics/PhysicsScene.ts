@@ -1054,17 +1054,24 @@ export class PhysicsScene {
           }
           const state = event.dispatchState;
           if (state === PhysicsEventState.Enter) {
-            const entry = triggerReceivers.get(event);
+            let entry = triggerReceivers.get(event);
             if (entry) {
-              entry.receiver0 = cur0;
-              entry.receiver1 = cur1;
+              entry.receiver0 = null;
+              entry.receiver1 = null;
               entry.stamp = stamp;
             } else {
-              triggerReceivers.set(event, { receiver0: cur0, receiver1: cur1, stamp });
+              entry = { receiver0: null, receiver1: null, stamp };
+              triggerReceivers.set(event, entry);
             }
             liveCount++;
-            PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
-            PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
+            if (!cur0.destroyed) {
+              entry.receiver0 = cur0;
+              PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
+            }
+            if (!cur1.destroyed) {
+              entry.receiver1 = cur1;
+              PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
+            }
           } else if (state === PhysicsEventState.Stay) {
             const entry = triggerReceivers.get(event);
             if (entry) {
@@ -1076,21 +1083,9 @@ export class PhysicsScene {
           } else {
             const entry = triggerReceivers.get(event);
             if (entry) triggerReceivers.delete(event);
-            const target0 = !entry
-              ? cur0
-              : entry.receiver0 === null
-                ? null
-                : entry.receiver0.entity === cur0.entity && !cur0.destroyed
-                  ? cur0
-                  : entry.receiver0;
-            const target1 = !entry
-              ? cur1
-              : entry.receiver1 === null
-                ? null
-                : entry.receiver1.entity === cur1.entity && !cur1.destroyed
-                  ? cur1
-                  : entry.receiver1;
+            const target0 = PhysicsScene._resolveTriggerExitTarget(entry?.receiver0, cur0, collider0);
             if (target0) PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
+            const target1 = PhysicsScene._resolveTriggerExitTarget(entry?.receiver1, cur1, collider1);
             if (target1) PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
           }
         }
@@ -1141,6 +1136,7 @@ export class PhysicsScene {
       return;
     }
     if (entry) {
+      if (current.destroyed) return;
       if (isFirst) entry.receiver0 = current;
       else entry.receiver1 = current;
       if (previous === null) {
@@ -1149,6 +1145,20 @@ export class PhysicsScene {
       }
     }
     PhysicsScene._dispatchScripts(PhysicsEventState.Stay, current, self, other);
+  }
+
+  private static _resolveTriggerExitTarget(
+    previous: Rigidbody | Collider | null | undefined,
+    current: Rigidbody | Collider,
+    collider: Collider
+  ): Rigidbody | Collider | null {
+    if (previous === undefined) return current;
+    if (previous === null) return null;
+    if (previous.entity === current.entity) {
+      if (!current.destroyed) return current;
+      if (!collider.destroyed && previous.entity === collider.entity) return collider;
+    }
+    return previous;
   }
 
   private _dispatchSleepEvent(id: number, method: "onSleep" | "onWake"): void {

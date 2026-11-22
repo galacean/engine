@@ -2196,4 +2196,78 @@ describe("Rigidbody", function () {
     deactEntity.isActive = false;
     expect((deactBody as any)._sleepPending).toBe(false);
   });
+
+  it("does not allocate a native actor if a custom Transform destroys the Rigidbody during activation", () => {
+    let body!: Rigidbody;
+    class DestroyOnActivateTransform extends Transform {
+      override get worldPosition(): Vector3 {
+        body?.destroy();
+        return super.worldPosition;
+      }
+    }
+    const entity = new Entity(engine, "destroy-on-activate", DestroyOnActivateTransform);
+    entity.isActive = false;
+    rootEntity.addChild(entity);
+    body = entity.addComponent(Rigidbody);
+
+    const spy = vi.spyOn(Engine._nativePhysics, "createDynamicCollider");
+    try {
+      entity.isActive = true;
+      expect(body.destroyed).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("does not re-dirty moving bodies during write-back while still syncing subsequent user Transform edits", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const entity = rootEntity.createChild("writeback-dirty-check");
+    const box = entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.linearVelocity = new Vector3(1, 0, 0);
+    body.angularVelocity = new Vector3(0, 1, 0);
+
+    physics._update(physics.fixedTimeStep);
+    const setWorldTransform = vi.spyOn(body._getNativeActor(), "setWorldTransform");
+    try {
+      physics._update(physics.fixedTimeStep);
+      expect(setWorldTransform).not.toHaveBeenCalled();
+
+      entity.transform.setPosition(0, 5, 0);
+      const hit = new HitResult();
+      expect(physics.raycast(new Ray(new Vector3(0, 5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(box);
+      expect(physics.raycast(new Ray(new Vector3(0, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+      expect(setWorldTransform).toHaveBeenCalledTimes(1);
+    } finally {
+      setWorldTransform.mockRestore();
+    }
+  });
+
+  it("does not sync native pose on a co-moving child Rigidbody when parent write-back shifts its Transform equally", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const parent = rootEntity.createChild("co-moving-parent");
+    parent.addComponent(BoxCollider);
+    const parentBody = parent.addComponent(Rigidbody);
+    parentBody.useGravity = false;
+    parentBody.linearVelocity = new Vector3(1, 0, 0);
+
+    const child = parent.createChild("co-moving-child");
+    child.transform.setPosition(0, 5, 0);
+    child.addComponent(BoxCollider);
+    const childBody = child.addComponent(Rigidbody);
+    childBody.useGravity = false;
+    childBody.linearVelocity = new Vector3(1, 0, 0);
+
+    physics._update(physics.fixedTimeStep);
+    const setChildWorldTransform = vi.spyOn(childBody._getNativeActor(), "setWorldTransform");
+    try {
+      physics._update(physics.fixedTimeStep);
+      expect(setChildWorldTransform).not.toHaveBeenCalled();
+    } finally {
+      setChildWorldTransform.mockRestore();
+    }
+  });
 });
