@@ -638,4 +638,31 @@ describe("ModelMesh Test", async function () {
     mesh.uploadData(false);
     expect(mesh.vertexBufferBindings.length).eq(3);
   });
+
+  it("does not advance vertex data version when buffer readback throws", () => {
+    const mesh = new ModelMesh(engine);
+    const makeVertexBuffer = (x: number, readable: boolean): Buffer =>
+      new Buffer(engine, BufferBindFlag.VertexBuffer, new Float32Array([x, 0, 0]), BufferUsage.Static, readable);
+
+    const initial = makeVertexBuffer(1, true);
+    const unreadable = makeVertexBuffer(3, false);
+    const recovered = makeVertexBuffer(3, true);
+    try {
+      mesh.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0)]);
+      mesh.setVertexBufferBinding(initial, 12, 0);
+      expect(mesh.getPositions()![0].x).toBe(1);
+
+      mesh.setVertexBufferBinding(unreadable, 12, 0);
+      expect(() => mesh.getPositions()).toThrow();
+      expect(() => mesh.getPositions()).toThrow();
+
+      mesh.setVertexBufferBinding(recovered, 12, 0);
+      expect(mesh.getPositions()![0].x).toBe(3);
+    } finally {
+      mesh.destroy();
+      initial.destroy();
+      unreadable.destroy();
+      recovered.destroy();
+    }
+  });
 });
