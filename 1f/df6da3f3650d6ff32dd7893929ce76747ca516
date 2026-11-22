@@ -1,0 +1,38 @@
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases-v4.ts
+  h_ddbf152d31b140 249-250,257-258,271,274,282,289-292,294-295,297,301-302,308-311,313-314,325,592-593,599,758-760,803,845,913-914,922,981-982,988,998-999,1012
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases.ts
+  h_ddbf152d31b140 716-719,721-723,730-731,739,741,743-744,746,751,786-788,796,976,1103,1105-1106,1113,1128,1231,1235,1246,1255,1257-1258,1265,1272-1275,1277-1278,1280,1284-1285,1291-1294,1296-1297,1299,1305-1307,1341-1346,1352-1354
+world/scripts/acceptance/worker-api-audit/cases.cjs
+  h_ddbf152d31b140 24-25,28-29,32-33,36-37,63-64,67-68,71-72,75-76,79-80,83-84,87-88
+world/scripts/acceptance/worker-api-audit/report.cjs
+  h_ddbf152d31b140 109,117,119
+world/scripts/acceptance/worker-api-audit/world-cases.cjs
+  h_ddbf152d31b140 20-22,26-27,32-33,38-39,58,60,62,65,67,70-72,77,80,87,89-90,107
+world/tests/seed-world/AgentKnowledgeAudit.spec.ts
+  h_ddbf152d31b140 284-297
+world/tests/seed-world/AgentSkillsVfs.spec.ts
+  h_ddbf152d31b140 36,42
+world/tests/seed-world/MemberRangeAgent.spec.ts
+  h_ddbf152d31b140 30,33,37,39-44,49,51
+world/tests/seed-world/PoiSizeWeightPersistence.spec.ts
+  h_ddbf152d31b140 46,49,54,57-62,70-75,79-84
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  h_ddbf152d31b140 73,81-85,89,93-94,97,99-100,138,141,174,205-206,209-210,214,1140,1143,1149,1156,1847,1867,1871-1872,1894
+world/tests/seed-world/SeedWorldAnimalTools.spec.ts
+  h_ddbf152d31b140 24,35-36,113,143
+world/tests/seed-world/SeedWorldKnowledge.spec.ts
+  h_ddbf152d31b140 19,31,33-35,69-75,118,133,156,163,167,169
+world/tests/seed-world/SeedWorldToolCatalog.spec.ts
+  h_ddbf152d31b140 34-39,42-43,47-49,52-78,81-82,99-102,109,113,259,261-264,276,278,286-287,379-381,384-388,425,555,558-562,564-565,581-588,615,617,629,632,639-641,675-677
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1fdf6da3f3650d6ff32dd7893929ce76747ca516",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
