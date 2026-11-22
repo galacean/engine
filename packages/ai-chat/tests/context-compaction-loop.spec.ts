@@ -138,3 +138,104 @@ it("continues from the compacted transcript without resurrecting discarded Tool 
   expect(restored.some(message => message.role === "tool" && message.toolCallId === "old")).toBe(false);
   expect(restored.some(message => message.role === "tool" && message.toolCallId === "kept")).toBe(true);
 });
+
+it("offloads already-seen images to unblock server compaction after a non-reducing failure", async () => {
+  const image = { blob: fixtureBlob("data:image/png;base64,YQ=="), width: 1, height: 1 };
+  request.mockResolvedValueOnce(tool("view", "snapshot"));
+  request.mockResolvedValueOnce(tool("a"));
+  request.mockResolvedValueOnce({
+    ...tool("b"),
+    contextCompaction: {
+      version: 2,
+      status: "failed",
+      strategy: "summary",
+      beforeTokens: 50000,
+      afterTokens: 50000,
+      durationMs: 5000,
+      reason: "the rebuilt context did not reduce the estimated token count"
+    }
+  });
+  request.mockResolvedValueOnce({ ...tool("c"), contextCompaction: compact(6, "unblocked summary") });
+  request.mockResolvedValueOnce(final());
+
+  const loop = createTestAgentLoop({
+    tools: [],
+    definition: { ...definition, captureSnapshot: async () => ({ image, metadata: { view: 1 } }) }
+  });
+  await loop.run("task", { contextCompaction: { triggerTokens: 48000, targetTokens: 20000 } });
+
+  // Before the failure, the snapshot image was sent to the model.
+  expect(messages(1).some((m) => m.role === "user" && m.image)).toBe(true);
+  expect(messages(2).some((m) => m.role === "user" && m.image)).toBe(true);
+  // After the non-reducing failure, the already-seen image payload is offloaded to text while keeping imagePath,
+  // and compaction is retried immediately on the next round.
+  expect(messages(3).some((m) => m.role === "user" && m.image)).toBe(false);
+  expect(messages(3).some((m) => m.role === "user" && m.content.includes("Image offloaded from this request"))).toBe(true);
+  expect(request.mock.calls[3][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 48000,
+    targetTokens: 20000
+  });
+  expect(messages(4)[3]).toEqual({ role: "user", content: "unblocked summary" });
+});
+
+it("backs off compaction retries when no seen images remain to offload and resumes after transcript growth", async () => {
+  const failedCompaction: ContextCompactionResult = {
+    version: 2,
+    status: "failed",
+    strategy: "summary",
+    beforeTokens: 50000,
+    afterTokens: 50000,
+    durationMs: 4000,
+    reason: "the rebuilt context did not reduce the estimated token count"
+  };
+  request.mockResolvedValueOnce({ ...tool("a"), contextCompaction: failedCompaction });
+  request.mockResolvedValueOnce(tool("b"));
+  request.mockResolvedValueOnce(tool("c"));
+  request.mockResolvedValueOnce(tool("d"));
+  request.mockResolvedValueOnce(final());
+
+  const loop = createTestAgentLoop({ tools: [], definition });
+  await loop.run("task", { contextCompaction: { triggerTokens: 48000, targetTokens: 20000 } });
+
+  // Round 0 sends compaction and fails with nothing to offload -> next 2 rounds (+2, +4 msgs) omit compaction.
+  expect(request.mock.calls[0][0].contextCompaction).toBeDefined();
+  expect(request.mock.calls[1][0].contextCompaction).toBeUndefined();
+  expect(request.mock.calls[2][0].contextCompaction).toBeUndefined();
+  // By Round 3 (+6 messages appended: 3 assistant+tool pairs), compaction resumes.
+  expect(request.mock.calls[3][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 48000,
+    targetTokens: 20000
+  });
+});
+
+it("never offloads an unseen image that arrived after the latest assistant turn", async () => {
+  const image = { blob: fixtureBlob("data:image/png;base64,YQ=="), width: 1, height: 1 };
+  const failedCompaction: ContextCompactionResult = {
+    version: 2,
+    status: "failed",
+    strategy: "summary",
+    beforeTokens: 50000,
+    afterTokens: 50000,
+    durationMs: 3000,
+    reason: "no replaceable messages are available for summarization"
+  };
+  request.mockResolvedValueOnce(tool("view", "snapshot"));
+  // On round 1, the snapshot image is the newest user message (after assistant tool("view")) and has NOT been
+  // followed by any assistant message in transcript yet when applyResponse runs.
+  request.mockResolvedValueOnce({ ...tool("a"), contextCompaction: failedCompaction });
+  request.mockResolvedValueOnce(final());
+
+  const loop = createTestAgentLoop({
+    tools: [],
+    definition: { ...definition, captureSnapshot: async () => ({ image, metadata: { view: 1 } }) }
+  });
+  await loop.run("task", { contextCompaction: { triggerTokens: 48000, targetTokens: 20000 } });
+
+  // Unseen image must remain intact in round 2 as well (backoff kicks in instead of offloading an unseen photo).
+  expect(messages(2).some((m) => m.role === "user" && m.image)).toBe(true);
+  expect(request.mock.calls[2][0].contextCompaction).toBeUndefined();
+});

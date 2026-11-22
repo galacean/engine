@@ -35,6 +35,7 @@ import { requestAsapChat, type AsapModelError } from "./asap-chat";
 import {
   AgentContextTranscript,
   createContextCompactionRequest,
+  isCompactionUnreducibleFailure,
   type ContextCompactionRequest
 } from "./context-compaction";
 import { EMPTY_CONVERSATION_HISTORY, type ConversationHistorySnapshot } from "./conversation-history";
@@ -233,6 +234,7 @@ export class AgentLoop {
     if (this.running) throw new AgentBusyError();
 
     const contextCompaction = createContextCompactionRequest(options.contextCompaction);
+    const compactionState = { skipUntilActiveLength: 0 };
     const taskContext = options.context === undefined ? undefined : structuredClone(toAgentValue(options.context));
     const taskId = crypto.randomUUID();
     const controller = new AbortController();
@@ -454,6 +456,7 @@ export class AgentLoop {
             transcript,
             images,
             contextCompaction,
+            compactionState,
             systemPrompt,
             tools: modelTools,
             model,
@@ -1106,6 +1109,7 @@ export class AgentLoop {
     transcript: AgentContextTranscript;
     images: AgentImageStore;
     contextCompaction: ContextCompactionRequest;
+    compactionState: { skipUntilActiveLength: number };
     systemPrompt: string;
     tools: AgentModelToolDefinition[];
     model?: string;
@@ -1179,12 +1183,15 @@ export class AgentLoop {
           });
         throwIfAborted(input.signal);
         requestStarted = true;
+        const shouldSendCompaction = input.transcript.activeLength >= input.compactionState.skipUntilActiveLength;
         result = await requestAsapChat({
           timeoutMs: deadline - performance.now(),
           onRecovery,
           messages,
           imageBudget: input.images.budget,
-          contextCompaction: { ...input.contextCompaction, protectedPrefixLength: contextRequest.prefixLength },
+          ...(shouldSendCompaction
+            ? { contextCompaction: { ...input.contextCompaction, protectedPrefixLength: contextRequest.prefixLength } }
+            : {}),
           model: input.model,
           tools: input.tools,
           toolChoice: "auto",
@@ -1240,6 +1247,18 @@ export class AgentLoop {
         attempt.category = "context";
         attempt.error = getErrorMessage(error, "Invalid contextCompaction");
         throw new AgentModelRequestFailure(normalizeError(error), [...attempts, attempt]);
+      }
+      if (attempt.contextCompaction?.status === "compacted") {
+        input.compactionState.skipUntilActiveLength = 0;
+      } else if (attempt.contextCompaction?.status === "failed") {
+        const unblocked = isCompactionUnreducibleFailure(attempt.contextCompaction)
+          ? input.transcript.offloadSeenImagesForCompaction()
+          : 0;
+        if (unblocked > 0) {
+          input.compactionState.skipUntilActiveLength = 0;
+        } else {
+          input.compactionState.skipUntilActiveLength = input.transcript.activeLength + 6;
+        }
       }
       try {
         if (result.finishReason === "length") {

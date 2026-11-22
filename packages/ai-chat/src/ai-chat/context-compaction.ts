@@ -111,6 +111,16 @@ type ContextRequest = {
 
 const MAX_COMPACTED_READ_PATHS = 24;
 const MAX_COMPACTED_COMMITTED = 12;
+const COMPACTION_UNREDUCIBLE_REASON_RE =
+  /did not reduce the estimated token count|no replaceable messages are available/i;
+
+export function isCompactionUnreducibleFailure(result: ContextCompactionResult | undefined): boolean {
+  return (
+    result?.status === "failed" &&
+    typeof result.reason === "string" &&
+    COMPACTION_UNREDUCIBLE_REASON_RE.test(result.reason)
+  );
+}
 
 /** Canonical evidence is append-only; only the active request history is replaced. */
 export class AgentContextTranscript {
@@ -127,6 +137,9 @@ export class AgentContextTranscript {
   }
   get active(): AgentMessage[] {
     return structuredClone(this.#active);
+  }
+  get activeLength(): number {
+    return this.#active.length;
   }
   get compactedAnchors(): CompactionAnchors | undefined {
     if (!this.#compactedReadPaths.size && !this.#compactedCommitted.length) return undefined;
@@ -154,6 +167,36 @@ export class AgentContextTranscript {
       const message = this.#active[i];
       if (message.role !== "user" || !message.image) continue;
       if (remaining-- > 0) continue;
+      this.#active[i] = {
+        role: "user",
+        content: `${message.content}\n[Image offloaded from this request. Use read with file_path set to imagePath to view the original screenshot.]`
+      };
+      offloaded++;
+    }
+    if (offloaded) this.#revision++;
+    return offloaded;
+  }
+
+  /**
+   * Offload image payloads that the model has already seen (strictly before the
+   * latest assistant turn) when server-side compaction cannot reduce the context
+   * because an earlier image pins the remaining tool history. Newly submitted
+   * user photos or snapshots after the latest assistant turn stay intact, and
+   * imagePath references remain usable with read/pick.
+   */
+  offloadSeenImagesForCompaction(): number {
+    let latestAssistantIndex = -1;
+    for (let i = this.#active.length - 1; i >= 0; i--) {
+      if (this.#active[i]?.role === "assistant") {
+        latestAssistantIndex = i;
+        break;
+      }
+    }
+    if (latestAssistantIndex <= 0) return 0;
+    let offloaded = 0;
+    for (let i = 0; i < latestAssistantIndex; i++) {
+      const message = this.#active[i];
+      if (message.role !== "user" || !message.image) continue;
       this.#active[i] = {
         role: "user",
         content: `${message.content}\n[Image offloaded from this request. Use read with file_path set to imagePath to view the original screenshot.]`
