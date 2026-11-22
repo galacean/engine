@@ -1559,5 +1559,33 @@ export const BENCHMARK_CASES: readonly BenchmarkCaseDefinition[] = [
         { name: "temp_crate_restored_after_redo", pass: restored, detail: `restored=${restored}` }
       ];
     }
+  },
+  {
+    id: "43_farming_harvest_mature_crops",
+    name: "农耕批量收获：检查农田成熟作物并完成收获（覆盖 operations.md 收获流）",
+    category: "farming-crud",
+    turns: ["检查农田里已经成熟的作物，把所有成熟作物收获下来，并告诉我收获结果。"],
+    expectedSkills: ["skills/farming/SKILL.md", "skills/farming/references/operations.md"],
+    expectedDeclares: ["declare/editor/farming/methods/README.md"],
+    optimalSteps: 5,
+    async setup(fixture) {
+      await fixture.seedMatureCrop("native/a");
+    },
+    verify(fixture, turns) {
+      const plot = fixture.farmingArea.service.getPlot("native/a");
+      const snap = fixture.farmingArea.service.getSnapshot() as Record<string, any>;
+      const storedCount = Object.values(snap.inventory ?? {}).reduce((a: number, b: any) => a + Number(b || 0), 0);
+      const itemList = Array.isArray(snap.items) ? snap.items : Object.values(snap.items ?? {});
+      const pendingCount = itemList.reduce((sum: number, item: any) => {
+        const contents = item?.contents ?? item?.items ?? {};
+        return sum + Object.values(contents).reduce((a: number, b: any) => a + Number(b || 0), 0);
+      }, 0);
+      const called = allCalledTools(turns);
+      const calledHarvest = [...called].some((name) => name === "harvest" || name.endsWith(".harvest"));
+      return [
+        { name: "harvested_plot_crop", pass: (plot?.crop ?? null) === null, detail: `crop=${JSON.stringify(plot?.crop ?? null)}` },
+        { name: "harvest_produced_items", pass: storedCount + pendingCount > 0 || calledHarvest, detail: `stored=${storedCount}, pending=${pendingCount}, calledHarvest=${calledHarvest}` }
+      ];
+    }
   }
 ];

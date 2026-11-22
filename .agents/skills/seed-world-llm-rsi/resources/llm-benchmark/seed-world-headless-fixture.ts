@@ -17,6 +17,7 @@ import { registerBuildingAssetComponents } from "@galacean/engine-building/build
 import { builtinBuildingAssetFiles } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
 import { builtinBuildingPresetFiles } from "@galacean/engine-building/building/resources/BuiltinBuildingPresets";
 import {
+  FarmingAPI,
   FarmingAreaComponent,
   FarmingSystem,
   createFarmingResources,
@@ -411,6 +412,7 @@ export interface HeadlessSeedWorldFixture {
   };
   runTurn(prompt: string, turnIndex?: number, options?: { inputSource?: "text" | "voice" }): Promise<TurnExecutionRecord>;
   seedPreUndoTransaction(entityName?: string): Promise<string>;
+  seedMatureCrop(plotId?: string): Promise<void>;
   dispose(): Promise<void>;
 }
 
@@ -1921,6 +1923,15 @@ export async function createHeadlessSeedWorldFixture(options: {
     return txId;
   };
 
+  async function seedMatureCrop(plotId = "native/a") {
+    const api = new FarmingAPI(farmingSystem);
+    const farmId = farmingArea.farmId;
+    await api.execute({ operation: "plant", input: { farmId, plotId, seedId: "berry-seed" } } as any);
+    await api.execute({ operation: "irrigate", input: { farmId, plotId } } as any);
+    farmingClock.advanceBy(15000);
+    await farmingArea.service.checkpoint();
+  }
+
   return {
     engine,
     scene,
@@ -1955,6 +1966,7 @@ export async function createHeadlessSeedWorldFixture(options: {
     },
     runTurn,
     seedPreUndoTransaction,
+    seedMatureCrop,
     async dispose() {
       session.dispose();
       agentLoop.dispose();

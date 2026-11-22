@@ -3,6 +3,8 @@ import { createAgentProjectFiles } from "@galacean/engine-ai-chat/ai-chat/agent-
 import { parseAgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-skills";
 import { AgentNativeFiles } from "@galacean/engine-ai-chat/ai-chat/agent-native-files";
 import { buildAgentMessages, buildAgentSystemPrompt, buildAgentToolDefinitions } from "@galacean/engine-ai-chat/ai-chat/agent-protocol";
+import { AgentJavaScriptChecker } from "@galacean/engine-ai-chat/ai-chat/agent-script-checker";
+import { agentTypecheckLibraries } from "@galacean/engine-ai-chat/script-checking/typecheck-libraries";
 import { engineRuntimeFiles } from "@galacean/engine-runtime-editor/runtime-editor-agent/engine-runtime-files";
 import { WATER_QUERY_CONTRACTS } from "@galacean/engine-world-planning/spatial/runtime/WaterQueryContract.ts";
 import { seedWorldNativeKnowledge } from "../../demos/seed-world/agent-adapter/SeedWorldAgentDefinition.ts";
@@ -12,6 +14,7 @@ import {
 } from "../../demos/seed-world/agent-adapter/SeedWorldKnowledge.ts";
 import { SEED_WORLD_API_NAMES } from "../../demos/seed-world/agent-adapter/contracts/SeedWorldContractRegistry.ts";
 import searchCloudSkill from "../../../packages/runtime-editor/src/retrieval-agent/search-cloud.md?raw";
+import { FARMING_SYSTEM_EDITOR_DECLARATION } from "@galacean/engine-farming/farming/native/FarmingAPIDeclarations";
 import { FARMING_METHOD_DOCS } from "@galacean/engine-farming/farming/native/FarmingMethodDocs";
 import { farmingSkill, farmingSkillDocuments } from "@galacean/engine-farming/farming/native/FarmingSkill";
 
@@ -40,6 +43,12 @@ function buildFullKnowledgeCatalog() {
 
   const modulesById = new Map((base.modules ?? []).map((m) => [m.id, m]));
   for (const m of waterKnowledge.modules ?? []) modulesById.set(m.id, m);
+  modulesById.set("farming/FarmingSystem.d.ts", {
+    id: "farming/FarmingSystem.d.ts",
+    source: FARMING_SYSTEM_EDITOR_DECLARATION,
+    imports: [],
+    toolNames: []
+  });
 
   return {
     ...base,
@@ -240,5 +249,49 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
 
     // M3 tightened: full toolset including snapshot + slimmed pick stays under 27KB
     expect(messageBytes + toolBytes).toBeLessThanOrEqual(27_000);
+  });
+
+  it("typechecks every published js code example across all skills/**/*.md against the live declaration surface", () => {
+    const checker = new AgentJavaScriptChecker(agentTypecheckLibraries);
+    const failures: Array<{ path: string; blockIndex: number; message: string }> = [];
+    let checkedBlocks = 0;
+
+    for (const p of skillMarkdowns) {
+      const content = files.read(p);
+      const blocks = [...content.matchAll(/```(?:js|javascript)\n([\s\S]*?)```/g)];
+      blocks.forEach((match, blockIndex) => {
+        checkedBlocks++;
+        let preamble = "";
+        if (p === "skills/water/SKILL.md") {
+          preamble = 'const scene = "Scenes/Main.scene";\n';
+        } else if (p === "skills/assets/use-model/SKILL.md" && blockIndex === 1) {
+          preamble = "const x = 0, y = 0, z = 0;\n";
+        } else if (p === "skills/farming/references/operations.md" && blockIndex === 0) {
+          preamble =
+            'const system = (await editor.component.query({type:"FarmingSystem"})).items[0]; const farmId = "f"; const plotId = "p"; const cropId = "c";\n';
+        }
+        const err = checker.check(preamble + match[1], catalog.modules);
+        if (err) {
+          failures.push({ path: p, blockIndex, message: err.message });
+        }
+      });
+    }
+
+    expect(checkedBlocks).toBeGreaterThanOrEqual(8);
+    expect(failures).toEqual([]);
+  });
+
+  it("keeps generic runtime-editor skills decoupled from host-specific scene path literals", () => {
+    const genericEditorSkillPaths = skillMarkdowns.filter((p) =>
+      /^skills\/(?:scene-nodes|components|assets|scripting|history)\//.test(p)
+    );
+    const hostSceneLeaks: string[] = [];
+    for (const p of genericEditorSkillPaths) {
+      const text = files.read(p);
+      if (/\b(?:Scenes\/Main\.scene|Scene\/SeedWorld\.scene)\b/.test(text)) {
+        hostSceneLeaks.push(p);
+      }
+    }
+    expect(hostSceneLeaks).toEqual([]);
   });
 });
