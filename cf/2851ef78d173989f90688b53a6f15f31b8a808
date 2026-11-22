@@ -1,0 +1,30 @@
+examples/seed-world/warmup/export/tool-provenance.json
+  s_3cd6502d102d7f::t_d91d0b590d63c6 1-3,6-7,9-11,13-15
+  s_3cd6502d102d7f::t_01ee3051a48e24 4-5,8,12
+examples/seed-world/warmup/export/README.md
+  s_3cd6502d102d7f::t_01ee3051a48e24 1-22
+examples/seed-world/warmup/export/convert.mjs
+  s_3cd6502d102d7f::t_d91d0b590d63c6 1-142
+examples/seed-world/warmup/export/translate-native.mjs
+  s_3cd6502d102d7f::t_d91d0b590d63c6 1-52
+examples/seed-world/warmup/export/lighting.mjs
+  s_3cd6502d102d7f::t_d91d0b590d63c6 1-44
+examples/seed-world/warmup/export/native-shaders.mjs
+  s_3cd6502d102d7f::t_d91d0b590d63c6 1-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cf2851ef78d173989f90688b53a6f15f31b8a808",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
