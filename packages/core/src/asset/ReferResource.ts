@@ -118,7 +118,10 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     if (superResources) {
       for (let i = 0, n = superResources.length; i < n; i++) {
         const superResource = superResources[i];
-        if (superResource.refCount > 0 || superResource.isGCIgnored || superResource._isRetainedBySuperResource()) {
+        if (
+          !superResource.destroyed &&
+          (superResource.refCount > 0 || superResource.isGCIgnored || superResource._isRetainedBySuperResource())
+        ) {
           return true;
         }
       }

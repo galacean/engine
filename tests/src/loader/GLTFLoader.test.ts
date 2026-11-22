@@ -9,6 +9,7 @@ import {
   RenderFace,
   SkinnedMeshRenderer,
   SpotLight,
+  Texture2D,
   TextureCoordinate,
   TextureFilterMode,
   TextureWrapMode,
@@ -1055,9 +1056,171 @@ describe("glTF instance test", function () {
       await new Promise((resolve) => setTimeout(resolve, 20));
       expect(Object.keys(referPool).length).to.equal(referBefore);
       expect(Object.keys(graphicPool).length).to.equal(graphicBefore);
+
+      // Case 3: canceling during an active frame (_frameInProcess = true) still releases partial allocations on frame flush
+      const requestedInFrame = new Promise<void>((resolve) => {
+        markRequested = resolve;
+      });
+      const loadingInFrame = engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url: gltfUrl });
+      await requestedInFrame;
+      await waitForPartialAllocations();
+      (engine as any)._frameInProcess = true;
+      try {
+        loadingInFrame.cancel();
+      } finally {
+        (engine as any)._frameInProcess = false;
+      }
+      await expect(loadingInFrame).rejects.toBe("canceled");
+      (engine as any)._processPendingDestroyObjects();
+      resolveDelayed(positions.buffer.slice(0));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(Object.keys(referPool).length).to.equal(referBefore);
+      expect(Object.keys(graphicPool).length).to.equal(graphicBefore);
     } finally {
       requestSpy.mockRestore();
       URL.revokeObjectURL(gltfUrl);
+    }
+  });
+
+  it("preserves external cached URI textures and remapped materials when an in-flight glTF load is canceled", async () => {
+    engine.resourceManager.gc();
+    const sharedTexture = new Texture2D(engine, 2, 2);
+    const sharedTextureUrl = "https://mock.local/shared-external.png";
+    engine.resourceManager._addAsset(sharedTextureUrl, sharedTexture);
+
+    const remappedMaterial = new PBRMaterial(engine);
+    const remappedMaterialUrl = "virtual://shared-remapped-material";
+    engine.resourceManager._objectPool[remappedMaterialUrl] = remappedMaterial;
+
+    const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    const bufferUri = `data:application/octet-stream;base64,${btoa(
+      String.fromCharCode(...new Uint8Array(positions.buffer))
+    )}`;
+    const delayedUri = "https://mock.local/delayed-external-preserve.bin";
+    const gltfUrl = URL.createObjectURL(
+      new Blob(
+        [
+          JSON.stringify({
+            asset: { version: "2.0" },
+            buffers: [
+              { uri: bufferUri, byteLength: positions.byteLength },
+              { uri: delayedUri, byteLength: positions.byteLength }
+            ],
+            bufferViews: [
+              { buffer: 0, byteOffset: 0, byteLength: positions.byteLength },
+              { buffer: 1, byteOffset: 0, byteLength: positions.byteLength }
+            ],
+            accessors: [
+              { componentType: 5126, count: 3, type: "VEC3", bufferView: 0, min: [0, 0, 0], max: [1, 1, 0] },
+              { componentType: 5126, count: 3, type: "VEC3", bufferView: 1, min: [0, 0, 0], max: [1, 1, 0] }
+            ],
+            images: [{ uri: sharedTextureUrl }],
+            textures: [{ source: 0 }],
+            materials: [
+              {
+                extensions: {
+                  GALACEAN_materials_remap: { url: remappedMaterialUrl }
+                }
+              },
+              {
+                pbrMetallicRoughness: {
+                  baseColorTexture: { index: 0 },
+                  metallicRoughnessTexture: { index: 0 }
+                },
+                normalTexture: { index: 0 },
+                occlusionTexture: { index: 0 },
+                emissiveTexture: { index: 0 },
+                extensions: {
+                  KHR_materials_clearcoat: {
+                    clearcoatFactor: 1,
+                    clearcoatTexture: { index: 0 },
+                    clearcoatRoughnessTexture: { index: 0 },
+                    clearcoatNormalTexture: { index: 0 }
+                  },
+                  KHR_materials_sheen: {
+                    sheenColorTexture: { index: 0 },
+                    sheenRoughnessTexture: { index: 0 }
+                  },
+                  KHR_materials_specular: {
+                    specularTexture: { index: 0 },
+                    specularColorTexture: { index: 0 }
+                  },
+                  KHR_materials_transmission: {
+                    transmissionFactor: 0.5,
+                    transmissionTexture: { index: 0 }
+                  },
+                  KHR_materials_anisotropy: {
+                    anisotropyStrength: 0.5,
+                    anisotropyTexture: { index: 0 }
+                  },
+                  KHR_materials_iridescence: {
+                    iridescenceFactor: 0.5,
+                    iridescenceTexture: { index: 0 },
+                    iridescenceThicknessTexture: { index: 0 }
+                  },
+                  KHR_materials_volume: {
+                    thicknessFactor: 0.5,
+                    thicknessTexture: { index: 0 }
+                  }
+                }
+              }
+            ],
+            meshes: [
+              { primitives: [{ attributes: { POSITION: 0 }, material: 0 }] },
+              { primitives: [{ attributes: { POSITION: 1 }, material: 1 }] }
+            ],
+            nodes: [{ mesh: 0 }, { mesh: 1 }],
+            scenes: [{ nodes: [0, 1] }],
+            scene: 0
+          })
+        ],
+        { type: "model/gltf+json" }
+      )
+    );
+
+    const originalRequest = (engine.resourceManager as any)._requestByRemoteUrl;
+    let resolveDelayed!: (buf: ArrayBuffer) => void;
+    let markRequested!: () => void;
+    const requested = new Promise<void>((resolve) => {
+      markRequested = resolve;
+    });
+    const requestSpy = vi.spyOn(engine.resourceManager as any, "_requestByRemoteUrl").mockImplementation(function (
+      this: any,
+      url: string,
+      config: any
+    ) {
+      if (url === delayedUri) {
+        markRequested();
+        return new AssetPromise<ArrayBuffer>((resolve) => {
+          resolveDelayed = resolve;
+        });
+      }
+      return originalRequest.call(this, url, config);
+    });
+
+    try {
+      const loading = engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url: gltfUrl });
+      await requested;
+      // Wait for material 0 (remapped), material 1 (owned + clearcoat), and shared texture association to complete
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      loading.cancel();
+      await expect(loading).rejects.toBe("canceled");
+      resolveDelayed(positions.buffer.slice(0));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      // External shared assets must survive abort and remain cached with no dangling superResource association
+      expect(sharedTexture.destroyed).to.be.false;
+      expect(engine.resourceManager.getFromCache(sharedTextureUrl)).to.equal(sharedTexture);
+      expect(remappedMaterial.destroyed).to.be.false;
+      expect((sharedTexture as any)._superResources?.length ?? 0).to.equal(0);
+      expect((remappedMaterial as any)._superResources?.length ?? 0).to.equal(0);
+    } finally {
+      requestSpy.mockRestore();
+      URL.revokeObjectURL(gltfUrl);
+      delete engine.resourceManager._objectPool[remappedMaterialUrl];
+      sharedTexture.destroy(true);
+      remappedMaterial.destroy(true);
     }
   });
 });

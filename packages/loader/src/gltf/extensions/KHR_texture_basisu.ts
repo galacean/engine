@@ -34,6 +34,9 @@ class KHR_texture_basisu extends GLTFExtensionParser {
         })
         .onProgress(undefined, context._onTaskDetail)
         .then<Texture2D>((texture) => {
+          if (context._isAborted) {
+            return texture;
+          }
           if (!texture.name) {
             texture.name = textureName || imageName || `texture_${index}`;
           }
@@ -51,6 +54,9 @@ class KHR_texture_basisu extends GLTFExtensionParser {
       return context
         .get<ArrayBuffer>(GLTFParserType.Buffer, bufferView.buffer)
         .then((buffer) => {
+          if (context._isAborted) {
+            return null as unknown as Texture2D;
+          }
           const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 
           return KTX2Loader._parseBuffer(imageBuffer, engine)
@@ -76,7 +82,9 @@ class KHR_texture_basisu extends GLTFExtensionParser {
             });
         })
         .catch((e) => {
-          Logger.error("KHR_texture_basisu: buffer error", e);
+          if (!context._isAborted) {
+            Logger.error("KHR_texture_basisu: buffer error", e);
+          }
         });
     }
   }

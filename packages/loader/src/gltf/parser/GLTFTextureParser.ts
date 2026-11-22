@@ -55,6 +55,9 @@ export class GLTFTextureParser extends GLTFParser {
         })
         .onProgress(undefined, context._onTaskDetail)
         .then<Texture2D>((texture) => {
+          if (context._isAborted) {
+            return texture;
+          }
           texture.name = textureName || imageName || texture.name || `texture_${textureIndex}`;
           samplerInfo && GLTFUtils.parseSampler(texture, samplerInfo);
           return texture;
@@ -120,7 +123,7 @@ export class GLTFTextureParser extends GLTFParser {
         return texture;
       }
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
-      context._trackResource(texture);
+      context.glTFResource._associateResource(texture);
       return texture;
     });
   }

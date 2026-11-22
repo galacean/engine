@@ -478,9 +478,11 @@ export class ModelMesh extends Mesh {
     // Destroy internal vertex buffer immediately
     const internalVertexBufferIndex = this._internalVertexBufferCreatedInfo.z;
     if (internalVertexBufferIndex !== -1) {
+      if (this._primitive.vertexBufferBindings[internalVertexBufferIndex]?.buffer === this._internalVertexBuffer) {
+        this._setVertexBufferBinding(internalVertexBufferIndex, null);
+      }
       this._internalVertexBuffer?.destroy(true);
       this._internalVertexBuffer = null;
-      this._setVertexBufferBinding(internalVertexBufferIndex, null);
       this._internalVertexBufferCreatedInfo.z = -1;
     }
 
@@ -643,10 +645,10 @@ export class ModelMesh extends Mesh {
       const indexBuffer = this._primitive.indexBufferBinding?._buffer;
       if (indices) {
         if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
-          indexBuffer?.destroy(true);
           const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
           newIndexBuffer.isGCIgnored = true;
           this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat!));
+          indexBuffer?.destroy(true);
         } else {
           indexBuffer.setData(indices);
           if (this._primitive.indexBufferBinding!._format !== this._indicesFormat) {
@@ -654,15 +656,19 @@ export class ModelMesh extends Mesh {
           }
         }
       } else if (indexBuffer) {
-        indexBuffer.destroy(true);
         this._setIndexBufferBinding(null);
+        indexBuffer.destroy(true);
       }
 
       this._indicesChangeFlag = false;
     }
 
     const blendShapeManager = this._blendShapeManager;
-    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(releaseData);
+    if (blendShapeManager._blendShapeCount > 0) {
+      blendShapeManager._update(releaseData);
+    } else {
+      blendShapeManager._destroyHost();
+    }
 
     if (releaseData) {
       this._accessible = false;
@@ -746,13 +752,13 @@ export class ModelMesh extends Mesh {
     for (let i = 0; i < bindings.length; i++) {
       bindings[i]?.buffer._dataUpdateManager.removeListener(this._vertexBufferInfos[i].onBufferChanged);
     }
+    super._onDestroy();
     if (this._internalVertexBuffer) {
       this._internalVertexBuffer.destroy(true);
       this._internalVertexBuffer = null;
     }
     this._primitive.indexBufferBinding?._buffer.destroy(true);
     this._blendShapeManager._destroy();
-    super._onDestroy();
     this._releaseCache(true);
   }
 
@@ -808,9 +814,11 @@ export class ModelMesh extends Mesh {
       // Destroy old internal vertex buffer
       const createdInternalBufferIndex = bufferCreatedInfo.z;
       if (createdInternalBufferIndex !== -1) {
+        if (this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer === this._internalVertexBuffer) {
+          this._setVertexBufferBinding(createdInternalBufferIndex, null);
+        }
         this._internalVertexBuffer?.destroy(true);
         this._internalVertexBuffer = null;
-        this._setVertexBufferBinding(createdInternalBufferIndex, null);
       }
 
       const vertexBufferIndex = this._internalVertexBufferIndex;

@@ -101,6 +101,9 @@ export class GLTFAnimationParser extends GLTFParser {
     promises.push(context.get<Entity>(GLTFParserType.Scene));
 
     return AssetPromise.all(promises).then(() => {
+      if (context._isAborted) {
+        return animationClip;
+      }
       for (let j = 0, m = channels.length; j < m; j++) {
         const glTFChannel = channels[j];
         const { target } = glTFChannel;
@@ -239,6 +242,9 @@ export class GLTFAnimationParser extends GLTFParser {
       ) || GLTFAnimationParser._parseStandardProperty(context, new AnimationClip(name), animationInfo);
 
     return AssetPromise.resolve(animationClipPromise).then((animationClip) => {
+      if (context._isAborted) {
+        return animationClip;
+      }
       GLTFParser.executeExtensionsAdditiveAndParse(animationInfo.extensions, context, animationClip, animationInfo);
       return animationClip;
     });

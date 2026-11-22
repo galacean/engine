@@ -11,7 +11,6 @@ import {
   ReferResource,
   ResourceManager,
   Skin,
-  Texture,
   Texture2D,
   TypedArray
 } from "@galacean/engine-core";
@@ -42,7 +41,7 @@ export class GLTFParserContext {
 
   private _resourceCache = new Map<string, any>();
   private _aborted = false;
-  private _ownedEntities: Entity[] = [];
+  private _ownedResources = new Set<ReferResource>();
   private readonly _remoteAssetBaseURL: string;
   private _progress = {
     taskDetail: {},
@@ -83,6 +82,13 @@ export class GLTFParserContext {
 
     if (resource) {
       return resource;
+    }
+
+    if (this._aborted) {
+      if (type === GLTFParserType.Entity) {
+        return index === undefined ? [] : (null as unknown as Entity);
+      }
+      return new AssetPromise<T | null>(() => {});
     }
 
     const glTFSchemaKey = glTFSchemaMap[type];
@@ -143,7 +149,8 @@ export class GLTFParserContext {
         }
 
         this.resourceManager.addContentRestorer(this.contentRestorer);
-        this._ownedEntities.length = 0;
+        this._ownedResources.clear();
+        this._getPromises.length = 0;
         return glTFResource;
       });
     });
@@ -162,19 +169,6 @@ export class GLTFParserContext {
   /**
    * @internal
    */
-  _trackEntity(entity: Entity): void {
-    if (this._aborted) {
-      if (!entity.destroyed) {
-        entity.destroy();
-      }
-      return;
-    }
-    this._ownedEntities.push(entity);
-  }
-
-  /**
-   * @internal
-   */
   _trackResource<T extends ReferResource>(resource: T): T {
     if (this._aborted) {
       if (!resource.destroyed && !resource.isGCIgnored) {
@@ -182,6 +176,7 @@ export class GLTFParserContext {
       }
       return resource;
     }
+    this._ownedResources.add(resource);
     this.glTFResource._associateResource(resource);
     return resource;
   }
@@ -201,46 +196,19 @@ export class GLTFParserContext {
     }
     getPromises.length = 0;
 
-    const ownedEntities = this._ownedEntities;
-    for (let i = 0, n = ownedEntities.length; i < n; i++) {
-      const entity = ownedEntities[i];
-      if (entity && !entity.destroyed) {
-        entity.destroy();
-      }
-    }
-    ownedEntities.length = 0;
-
-    const resources = this.glTFResource._getAssociatedResources();
+    // Disassociate before destroying glTFResource so owned resources can be released even during deferred frame teardown
+    this.glTFResource._disassociateAllResources();
     this.glTFResource.isGCIgnored = false;
     if (!this.glTFResource.destroyed) {
       this.glTFResource.destroy(true);
     }
 
-    // Release partially constructed resources from the failed/canceled parse in dependency order
-    for (let i = 0, n = resources.length; i < n; i++) {
-      const resource = resources[i];
-      if (!resource.destroyed && !resource.isGCIgnored && resource instanceof Material) {
-        resource.destroy(false);
-      }
-    }
-    for (let i = 0, n = resources.length; i < n; i++) {
-      const resource = resources[i];
-      if (
-        !resource.destroyed &&
-        !resource.isGCIgnored &&
-        !(resource instanceof Texture) &&
-        !(resource instanceof Buffer)
-      ) {
-        resource.destroy(false);
-      }
-    }
-    for (let i = 0, n = resources.length; i < n; i++) {
-      const resource = resources[i];
+    this._ownedResources.forEach((resource) => {
       if (!resource.destroyed && !resource.isGCIgnored) {
         resource.destroy(false);
       }
-    }
-    this._resourceCache.clear();
+    });
+    this._ownedResources.clear();
   }
 
   /**
@@ -314,7 +282,9 @@ export class GLTFParserContext {
           }
         })
         .catch((e) => {
-          Logger.error("GLTFParserContext", `Failed to load ${glTFResourceKey} ${index}: ${e}`);
+          if (!this._aborted) {
+            Logger.error("GLTFParserContext", `Failed to load ${glTFResourceKey} ${index}: ${e}`);
+          }
         });
     }
   }

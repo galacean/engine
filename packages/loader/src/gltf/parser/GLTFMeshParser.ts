@@ -250,6 +250,9 @@ export class GLTFMeshParser extends GLTFParser {
     }
 
     return AssetPromise.all(promises).then(() => {
+      if (context._isAborted || mesh.destroyed) {
+        return;
+      }
       for (const blendShape of blendShapeCollection) {
         mesh.addBlendShape(blendShape.blendShape);
         meshRestoreInfo.blendShapes.push(blendShape.restoreInfo);
@@ -273,17 +276,14 @@ export class GLTFMeshParser extends GLTFParser {
 
         if (mesh) {
           if (mesh instanceof ModelMesh) {
-            context._trackResource(mesh);
+            glTFResource._associateResource(mesh);
             resolve(mesh);
           } else {
             mesh.then((mesh) => {
               if (context._isAborted) {
-                if (mesh && !mesh.destroyed && !mesh.isGCIgnored) {
-                  mesh.destroy(false);
-                }
                 return;
               }
-              context._trackResource(mesh);
+              glTFResource._associateResource(mesh);
               resolve(mesh);
             }, reject);
           }

@@ -80,6 +80,15 @@ describe("ReferResource", () => {
     expect(outer.destroyed).eq(true);
     expect(inner.destroyed).eq(true);
     expect(texture.destroyed).eq(true);
+
+    // A destroyed superResource whose isGCIgnored stayed true must not retain children
+    const deadOwner = new TestSuperResource(engine);
+    const orphan = new Texture2D(engine, 1, 1);
+    deadOwner.isGCIgnored = true;
+    orphan._associationSuperResource(deadOwner);
+    deadOwner.destroy(true);
+    engine.resourceManager.gc();
+    expect(orphan.destroyed).eq(true);
   });
 
   it("preserves built-in post-process and fallback BlinnPhong materials across gc()", () => {
@@ -126,5 +135,55 @@ describe("ReferResource", () => {
     expect(indexBuffer.destroyed).eq(true);
     if (blendShapeTexture) expect(blendShapeTexture.destroyed).eq(true);
     for (const buffer of blendShapeBuffers) expect(buffer.destroyed).eq(true);
+  });
+
+  it("releases previous BlendShape GPU hosts cleanly across mode switches and clearBlendShapes()", () => {
+    const mesh = new ModelMesh(engine, "blendshape-switch-mesh");
+    mesh.isGCIgnored = true;
+    mesh.setPositions([new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
+    const addMorph = (name: string) => {
+      const bs = new BlendShape(name);
+      bs.addFrame(1, [new Vector3(0, 1, 0), new Vector3(0, 1, 0), new Vector3(0, 1, 0)]);
+      mesh.addBlendShape(bs);
+    };
+
+    // Start in VertexBuffer mode (1 blend shape)
+    addMorph("bs0");
+    mesh.uploadData(false);
+    const vbModeBuffers = [...mesh._blendShapeManager._vertexBuffers];
+    expect(vbModeBuffers.length).toBeGreaterThan(0);
+    expect(mesh._blendShapeManager._vertexTexture).toBeUndefined();
+
+    // Add enough blend shapes to switch into Texture2DArray mode -> old vertex buffers must be unbound and destroyed
+    for (let i = 1; i <= 10; i++) {
+      addMorph(`bs${i}`);
+    }
+    mesh.uploadData(false);
+    for (const buffer of vbModeBuffers) {
+      expect(buffer.destroyed).eq(true);
+      expect(mesh.vertexBufferBindings.some((binding) => binding?.buffer === buffer)).eq(false);
+    }
+    const texHost = mesh._blendShapeManager._vertexTexture;
+    expect(texHost).toBeDefined();
+    expect(texHost.destroyed).eq(false);
+
+    // Switch back to VertexBuffer mode -> old Texture2DArray host must be destroyed
+    mesh.clearBlendShapes();
+    addMorph("bs_back");
+    mesh.uploadData(false);
+    expect(texHost.destroyed).eq(true);
+    const secondVbBuffers = [...mesh._blendShapeManager._vertexBuffers];
+    expect(secondVbBuffers.length).toBeGreaterThan(0);
+    expect(secondVbBuffers[0].destroyed).eq(false);
+
+    // Clear all blend shapes and upload -> releases VertexBuffer host and leaves no destroyed bindings
+    mesh.clearBlendShapes();
+    mesh.uploadData(false);
+    for (const buffer of secondVbBuffers) {
+      expect(buffer.destroyed).eq(true);
+      expect(mesh.vertexBufferBindings.some((binding) => binding?.buffer === buffer)).eq(false);
+    }
+
+    mesh.destroy();
   });
 });

@@ -26,6 +26,9 @@ class KHR_materials_variants extends GLTFExtensionParser {
       context
         .get<Material>(GLTFParserType.Material, materialIndex)
         .then((material) => {
+          if (!material || context._isAborted || renderer.destroyed) {
+            return;
+          }
           extensionData.push({
             renderer,
             material,
@@ -33,7 +36,9 @@ class KHR_materials_variants extends GLTFExtensionParser {
           });
         })
         .catch((e) => {
-          Logger.error("KHR_materials_variants: material error", e);
+          if (!context._isAborted) {
+            Logger.error("KHR_materials_variants: material error", e);
+          }
         });
     }
   }

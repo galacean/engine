@@ -69,13 +69,7 @@ export class GLTFResource extends ReferResource {
    * @internal
    */
   _associateResource(resource: ReferResource): void {
-    if (this._destroyed) {
-      if (!resource.destroyed && !resource.isGCIgnored) {
-        resource.destroy(false);
-      }
-      return;
-    }
-    if (!this._associatedResources.has(resource)) {
+    if (!this._destroyed && !this._associatedResources.has(resource)) {
       this._associatedResources.add(resource);
       resource._associationSuperResource(this);
     }
@@ -84,8 +78,11 @@ export class GLTFResource extends ReferResource {
   /**
    * @internal
    */
-  _getAssociatedResources(): ReferResource[] {
-    return Array.from(this._associatedResources);
+  _disassociateAllResources(): void {
+    this._associatedResources.forEach((resource) => {
+      resource._disassociationSuperResource(this);
+    });
+    this._associatedResources.clear();
   }
 
   protected override _onDestroy(): void {
@@ -112,10 +109,7 @@ export class GLTFResource extends ReferResource {
       }
     }
 
-    this._associatedResources.forEach((resource) => {
-      resource._disassociationSuperResource(this);
-    });
-    this._associatedResources.clear();
+    this._disassociateAllResources();
   }
 
   /**

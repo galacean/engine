@@ -26,7 +26,9 @@ export class GLTFAnimatorControllerParser extends GLTFParser {
         return AssetPromise.resolve(animatorController);
       })
       .catch((e) => {
-        Logger.error("GLTFAnimatorControllerParser: animator controller error", e);
+        if (!context._isAborted) {
+          Logger.error("GLTFAnimatorControllerParser: animator controller error", e);
+        }
       });
   }
 

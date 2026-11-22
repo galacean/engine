@@ -34,8 +34,8 @@ export class GLTFSceneParser extends GLTFParser {
     let sceneRoot: Entity;
 
     sceneRoot = new Entity(engine, "GLTF_ROOT");
-    context._trackEntity(sceneRoot);
     sceneRoot._markAsTemplate(glTFResource);
+    (glTFResource._sceneRoots ||= [])[index] = sceneRoot;
     for (let i = 0; i < sceneNodes.length; i++) {
       sceneRoot.addChild(context.get<Entity>(GLTFParserType.Entity, sceneNodes[i]));
     }
@@ -190,7 +190,9 @@ export class GLTFSceneParser extends GLTFParser {
         }
       })
       .catch((e) => {
-        Logger.error("GLTFSceneParser: create renderer error", e);
+        if (!context._isAborted) {
+          Logger.error("GLTFSceneParser: create renderer error", e);
+        }
       });
   }
 

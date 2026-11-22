@@ -289,18 +289,44 @@ export class BlendShapeManager {
   /**
    * @internal
    */
+  _destroyHost(): void {
+    this._destroyVertexTexture();
+    this._destroyVertexBuffers();
+    this._lastHostCreatedInfo.set(0, 0, 0, 0);
+    this._vertices = null;
+  }
+
+  /**
+   * @internal
+   */
   _destroy(): void {
     this._clearBlendShapes();
+    this._destroyHost();
+  }
+
+  private _destroyVertexBuffers(): void {
+    const vertexBuffers = this._vertexBuffers;
+    const bindingOffset = this._bufferBindingOffset;
+    const modelMesh = this._modelMesh;
+    const bindings = modelMesh._primitive.vertexBufferBindings;
+    for (let i = vertexBuffers.length - 1; i >= 0; i--) {
+      const buffer = vertexBuffers[i];
+      if (buffer) {
+        // Clear matching bindings before destroying to keep refCount balanced and avoid dangling slots
+        if (!modelMesh.destroyed && bindingOffset !== -1 && bindings[bindingOffset + i]?.buffer === buffer) {
+          modelMesh._setVertexBufferBinding(bindingOffset + i, null);
+        }
+        buffer.destroy(true);
+      }
+    }
+    vertexBuffers.length = 0;
+  }
+
+  private _destroyVertexTexture(): void {
     if (this._vertexTexture) {
       this._vertexTexture.destroy(true);
       this._vertexTexture = null!;
     }
-    const vertexBuffers = this._vertexBuffers;
-    for (let i = 0, n = vertexBuffers.length; i < n; i++) {
-      vertexBuffers[i]?.destroy(true);
-    }
-    vertexBuffers.length = 0;
-    this._vertices = null;
   }
 
   private _createVertexBuffers(vertexCount: number, noLongerAccessible: boolean): void {
@@ -310,9 +336,8 @@ export class BlendShapeManager {
       _blendShapeCount: blendShapeCount,
       _vertexBuffers: vertexBuffers
     } = this;
-    for (let i = 0, n = vertexBuffers.length; i < n; i++) {
-      vertexBuffers[i]?.destroy(true);
-    }
+    this._destroyVertexTexture();
+    this._destroyVertexBuffers();
     const vertexFloatCount = this._vertexElementCount * 3;
     const vertexByteCount = vertexFloatCount * 4;
     const maxCountSingleBuffer = Math.floor(255 / vertexByteCount); // 255: Attribute MaxStride
@@ -350,12 +375,11 @@ export class BlendShapeManager {
       textureWidth = maxTextureSize;
     }
 
-    let blendShapeDataTexture = this._vertexTexture;
+    this._destroyVertexBuffers();
+    this._destroyVertexTexture();
+
     const blendShapeCount = this._blendShapes.length;
-
-    blendShapeDataTexture && blendShapeDataTexture.destroy(true);
-
-    blendShapeDataTexture = new Texture2DArray(
+    const blendShapeDataTexture = new Texture2DArray(
       this._engine,
       textureWidth,
       textureHeight,
