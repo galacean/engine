@@ -127,7 +127,7 @@ export class Script extends Component {
   /**
    * Called after a physics step when the Rigidbody on this Entity goes to sleep.
    * @param body - The sleeping Rigidbody.
-   * @remarks Declare sleep and wake callbacks before the script enters the scene or during onAwake/onEnable/onStart.
+   * @remarks Declare sleep and wake callbacks on a Script subclass or before the script enters the scene.
    * When fetching results, PhysX collects the latest transition for each subscribed body and can report its initial state.
    */
   onSleep?(body: Rigidbody): void;
@@ -208,7 +208,6 @@ export class Script extends Component {
    */
   override _onAwake(): void {
     this.onAwake();
-    this._syncSleepEventRegistration();
   }
 
   /**
@@ -216,7 +215,6 @@ export class Script extends Component {
    */
   override _onEnable(): void {
     this.onEnable();
-    this._syncSleepEventRegistration();
   }
 
   /**
@@ -252,7 +250,9 @@ export class Script extends Component {
     }
 
     this._entity._addScript(this);
-    this._syncSleepEventRegistration();
+    if (this.onSleep || this.onWake) {
+      this._entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
+    }
     if (this._hasCollisionEventCallbacks()) {
       this._contactEventRegistered = true;
       this.scene!.physics._addContactEventConsumer(1);
@@ -294,13 +294,6 @@ export class Script extends Component {
   protected override _onDestroy(): void {
     super._onDestroy();
     this.onDestroy();
-  }
-
-  /** @internal */
-  _syncSleepEventRegistration(): void {
-    if (!this.destroyed && (this.onSleep || this.onWake)) {
-      this._entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
-    }
   }
 
   private _hasCollisionEventCallbacks(): boolean {

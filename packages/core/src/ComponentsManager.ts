@@ -188,7 +188,6 @@ export class ComponentsManager {
           script._started = true;
           this.removeOnStartScript(script);
           script.onStart();
-          script._syncSleepEventRegistration();
         },
         (element: Script, index: number) => {
           element._onStartIndex = index;

@@ -1424,67 +1424,29 @@ describe("Rigidbody", function () {
     expect(second.onWake).toHaveBeenCalledTimes(2);
   });
 
-  it.each(["onAwake", "onEnable", "onStart", "post-addComponent"] as const)(
-    "registers Script sleep callbacks assigned in %s",
-    async (phase) => {
-      let now = 10000;
-      vi.spyOn(performance, "now").mockImplementation(() => now);
-      const testEngine = await HeadlessEngine.create({ physics: backend });
-      try {
-        const wakeCalls: Rigidbody[] = [];
-        const sleepCalls: Rigidbody[] = [];
-        const scene = testEngine.sceneManager.activeScene;
-        const box = scene.createRootEntity().createChild("sleep-script");
-        box.addComponent(BoxCollider);
-        const body = box.addComponent(Rigidbody);
-        body.useGravity = false;
+  it("registers Script sleep callbacks assigned before entering the scene", () => {
+    const wakeCalls: Rigidbody[] = [];
+    const sleepCalls: Rigidbody[] = [];
+    const holder = rootEntity.createChild("holder");
+    holder.isActive = false;
+    const box = holder.createChild("sleep-script");
+    box.addComponent(BoxCollider);
+    const body = box.addComponent(Rigidbody);
+    body.useGravity = false;
 
-        if (phase === "post-addComponent") {
-          const script = box.addComponent(Script);
-          script.onWake = (target) => wakeCalls.push(target);
-          script.onSleep = (target) => sleepCalls.push(target);
-        } else {
-          box.addComponent(
-            class extends Script {
-              override onAwake(): void {
-                if (phase === "onAwake") {
-                  this.onWake = (target) => wakeCalls.push(target);
-                  this.onSleep = (target) => sleepCalls.push(target);
-                }
-              }
+    const script = box.addComponent(Script);
+    script.onWake = (target) => wakeCalls.push(target);
+    script.onSleep = (target) => sleepCalls.push(target);
 
-              override onEnable(): void {
-                if (phase === "onEnable") {
-                  this.onWake = (target) => wakeCalls.push(target);
-                  this.onSleep = (target) => sleepCalls.push(target);
-                }
-              }
+    holder.isActive = true;
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(physics.fixedTimeStep);
+    expect(wakeCalls).toEqual([body]);
 
-              override onStart(): void {
-                if (phase === "onStart") {
-                  this.onWake = (target) => wakeCalls.push(target);
-                  this.onSleep = (target) => sleepCalls.push(target);
-                }
-              }
-            }
-          );
-        }
-
-        const physics = scene.physics;
-        testEngine.time.maximumDeltaTime = physics.fixedTimeStep;
-        now += (physics.fixedTimeStep + 1e-3) * 1000;
-        testEngine.update();
-        expect(wakeCalls).toEqual([body]);
-
-        body.sleep();
-        now += (physics.fixedTimeStep + 1e-3) * 1000;
-        testEngine.update();
-        expect(sleepCalls).toEqual([body]);
-      } finally {
-        testEngine.destroy();
-      }
-    }
-  );
+    body.sleep();
+    physics._update(physics.fixedTimeStep);
+    expect(sleepCalls).toEqual([body]);
+  });
 
   it.each([true, false])("merges partial inherited prefab input with manual input first: %s", async (inputFirst) => {
     Loader.registerClass("Rigidbody", Rigidbody);
