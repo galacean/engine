@@ -227,55 +227,6 @@ describe("SeedWorldAgentApplication final architecture", () => {
 
 
 
-  it("updates and inspects natural water colors without terrain mutations, and previews without publication", async () => {
-    const { engine } = createHarness();
-    let color = [40, 80, 120] as const;
-    engine.readWaterColor = vi.fn(() => color);
-    engine.updateWaterColor = vi.fn(async (_ref, next) => {
-      color = next as typeof color;
-      return next;
-    });
-    const application = new SeedWorldAgentApplication(engine);
-    const ref = application.selectWorld({ kinds: ["ocean"], limit: 1 }).items[0]!.ref;
-    const tool = createSeedWorldTools(application).find(({ name }) => name === "water.update")!;
-    const preview = await tool.execute(
-      tool.parseInput({ ref, patch: { colorRgb: [0, 0, 0] }, executionMode: "preview" }),
-      { signal }
-    );
-    expect(preview).toMatchObject({ status: "preview", updatedCount: 0, colorRgb: [0, 0, 0] });
-    expect(engine.updateWaterColor).not.toHaveBeenCalled();
-    const result = await tool.execute(tool.parseInput({ ref, patch: { colorRgb: [0, 0, 0] } }), { signal });
-    expect(result).toMatchObject({
-      status: "applied",
-      assetRef: expect.objectContaining({ id: ref.id, source: "natural" }),
-      updatedCount: 1,
-      colorRgb: [0, 0, 0]
-    });
-    expect(application.inspectWorld(ref)).toMatchObject({ properties: { colorRgb: [0, 0, 0] } });
-    expect(application.resolvePickedObject(ref.id)).toEqual({ ref, type: ref.kind });
-    expect(engine.mutateWorldResource).not.toHaveBeenCalled();
-    expect(engine.mutateWorldResources).not.toHaveBeenCalled();
-  });
-
-  it("rejects unpublished, stale, aborted, and failed water color edits without claiming success", async () => {
-    const { engine } = createHarness();
-    const application = new SeedWorldAgentApplication(engine);
-    const ref = application.selectWorld({ kinds: ["ocean"], limit: 1 }).items[0]!.ref;
-    const patch = { colorRgb: [0, 0, 0] as const };
-    engine.updateWaterColor = vi.fn().mockRejectedValue(new Error("publication failed"));
-    await expect(application.updateWaterFeature(ref, patch, {}, signal)).rejects.toThrow("NOT_EDITABLE");
-    engine.readWaterColor = vi.fn(() => [40, 80, 120] as const);
-    await expect(application.updateWaterFeature({ ...ref, id: "missing" }, patch, {}, signal)).rejects.toThrow(
-      "no longer exists"
-    );
-    await expect(application.updateWaterFeature(ref, patch, { expectedWorldRevision: 999 }, signal)).rejects.toThrow();
-    const controller = new AbortController();
-    controller.abort();
-    await expect(application.updateWaterFeature(ref, patch, {}, controller.signal)).rejects.toThrow("aborted");
-    expect(engine.updateWaterColor).not.toHaveBeenCalled();
-    await expect(application.updateWaterFeature(ref, patch, {}, signal)).rejects.toThrow("publication failed");
-  });
-
   it("updates one existing shared effect, counts its members, and leaves other effects and recipes untouched", async () => {
     const trees = [naturalTree(0, "a"), naturalTree(1, "b"), naturalTree(2, "c"), naturalTree(3, "d")];
     trees.forEach((tree, index) =>
@@ -375,7 +326,7 @@ describe("SeedWorldAgentApplication final architecture", () => {
           position: [0, 2, 14]
         }),
         expect.objectContaining({
-          ref: expect.objectContaining({ domain: "water", kind: "lake", source: "authored" })
+          ref: expect.objectContaining({ domain: "water", kind: "ocean", source: "natural" })
         })
       ])
     );
@@ -412,67 +363,39 @@ describe("SeedWorldAgentApplication final architecture", () => {
       current: { ...thumbnail.viewer.current, capturedAt: expect.any(String) } } });
   });
 
-  it("updates an authored lake through its absolute water-level contract", async () => {
-    const { engine } = createHarness();
-    const application = new SeedWorldAgentApplication(engine);
-    const lake = application.selectWorld({
-      domains: ["water"],
-      kinds: ["lake"],
-      sources: ["authored"],
-      limit: 1
-    }).items[0]!;
-
-    await application.updateWaterFeature(lake.ref, { waterLevelMetres: 8 }, {}, signal);
-    const updated = application.selectWorld({
-      domains: ["water"],
-      kinds: ["lake"],
-      sources: ["authored"],
-      limit: 1
-    }).items[0]!;
-
-    expect(application.inspectWorld(updated.ref)).toMatchObject({
-      properties: {
-        canonicalWaterLevelMetres: 10,
-        minimumWaterLevelMetres: 8,
-        maximumWaterLevelMetres: 10,
-        waterLevelMetres: 8
-      }
-    });
-    expect(engine.mutateWorldResource).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "update",
-        resourceType: "water-body",
-        patch: { waterLevelMetres: 8 }
-      }),
-      signal
-    );
-  });
-
-  it("keeps inside, intersects and near as distinct asset relations", () => {
+  it("keeps inside, intersects and near as distinct asset relations", async () => {
     const { engine } = createHarness([naturalTree(0, "inside-cell"), naturalTree(10, "edge-cell")]);
     const application = new SeedWorldAgentApplication(engine);
-    const authoredLake = { domains: ["water" as const], kinds: ["lake"], sources: ["authored" as const] };
+    await application.createVegetation(
+      {
+        plant: "grass",
+        distribution: { kind: "area", radiusMetres: 6 },
+        target: { anchor: { kind: "position", x: 8, z: 12 }, relation: { kind: "at" } }
+      },
+      signal
+    );
+    const authoredMeadow = { domains: ["vegetation" as const], kinds: ["grassland"], sources: ["authored" as const] };
 
     expect(
       application.selectWorld({
         domains: ["vegetation"],
         kinds: ["tree"],
-        relatedTo: [{ selector: authoredLake, relation: "intersects" }]
+        relatedTo: [{ selector: authoredMeadow, relation: "intersects" }]
       })
     ).toMatchObject({ matchedCount: 2 });
     expect(
       application.selectWorld({
         domains: ["vegetation"],
         kinds: ["tree"],
-        relatedTo: [{ selector: authoredLake, relation: "inside" }]
+        relatedTo: [{ selector: authoredMeadow, relation: "inside" }]
       })
     ).toMatchObject({ matchedCount: 1 });
-    const lakeRef = application.selectWorld({ ...authoredLake, limit: 1 }).items[0]!.ref;
+    const meadowRef = application.selectWorld({ ...authoredMeadow, limit: 1 }).items[0]!.ref;
     expect(
       application.selectWorld({
         domains: ["vegetation"],
         kinds: ["tree"],
-        spatial: { anchor: { kind: "world-ref", ref: lakeRef }, relation: "inside" }
+        spatial: { anchor: { kind: "world-ref", ref: meadowRef }, relation: "inside" }
       })
     ).toMatchObject({ matchedCount: 1 });
     expect(
@@ -548,12 +471,11 @@ describe("SeedWorldAgentApplication final architecture", () => {
       results: [{ ref: { id: originalTreeRef.id, revision: 4 }, tags: ["stable"] }]
     });
 
-    await application.createWaterFeature(
+    await application.createVegetation(
       {
-        kind: "pond",
-        target: viewerOffset(18),
-        radiusMetres: 5,
-        depthMetres: 2
+        plant: "tree",
+        distribution: { kind: "single" },
+        target: viewerOffset(18)
       },
       signal
     );
@@ -562,7 +484,7 @@ describe("SeedWorldAgentApplication final architecture", () => {
     ).resolves.toMatchObject({ updatedCount: 1, assetRef: { id: hill.assetRef!.id, revision: 6 } });
   });
 
-  it("creates, queries, updates and deletes authored terrain and water assets", async () => {
+  it("creates, queries, updates and deletes authored terrain assets", async () => {
     const { engine } = createHarness();
     const application = new SeedWorldAgentApplication(engine);
     const target = viewerOffset(8);
@@ -588,6 +510,15 @@ describe("SeedWorldAgentApplication final architecture", () => {
       sources: ["authored"],
       limit: 1
     }).items[0]!;
+    expect(application.selectWorld({ ids: [terrain.ref.id] })).toMatchObject({
+      matchedCount: 1,
+      items: [{ ref: { id: terrain.ref.id, domain: "terrain", kind: "mountain" } }]
+    });
+    expect(() =>
+      application.selectWorld({
+        filters: [{ field: "ref.id", operator: "eq", value: terrain.ref.id }]
+      })
+    ).toThrow(/use selector\.ids\/domains\/kinds\/sources for identity/);
     await application.updateTerrainFeature(terrain.ref, { elevationDeltaMetres: 31, roughness: 0.7 }, {}, signal);
     terrain = application.selectWorld({
       domains: ["terrain"],
@@ -600,55 +531,11 @@ describe("SeedWorldAgentApplication final architecture", () => {
       properties: { elevationDeltaMetres: 31, roughness: 0.7 }
     });
     expect(await application.deleteWorld({ refs: [terrain.ref] }, signal)).toMatchObject({ deletedCount: 1 });
-
-    expect(
-      await application.createWaterFeature(
-        {
-          kind: "river",
-          target,
-          lengthMetres: 80,
-          widthMetres: 7,
-          depthMetres: 2,
-          flowSpeed: 1.5,
-          meander: 0.4
-        },
-        signal
-      )
-    ).toMatchObject({
-      createdRefs: [expect.objectContaining({ domain: "water", kind: "river", source: "authored" })]
-    });
-    let river = application.selectWorld({
-      domains: ["water"],
-      kinds: ["river"],
-      sources: ["authored"],
-      limit: 1
-    }).items[0]!;
-    expect(application.selectWorld({ ids: [river.ref.id] })).toMatchObject({
-      matchedCount: 1,
-      items: [{ ref: { id: river.ref.id, domain: "water", kind: "river" } }]
-    });
-    expect(() =>
-      application.selectWorld({
-        filters: [{ field: "ref.id", operator: "eq", value: river.ref.id }]
-      })
-    ).toThrow(/use selector\.ids\/domains\/kinds\/sources for identity/);
-    await application.updateWaterFeature(river.ref, { widthMetres: 12, flowSpeed: 2.5 }, {}, signal);
-    river = application.selectWorld({
-      domains: ["water"],
-      kinds: ["river"],
-      sources: ["authored"],
-      limit: 1
-    }).items[0]!;
-    expect(application.inspectWorld(river.ref)).toMatchObject({
-      type: "river",
-      properties: { widthMetres: 12, flowSpeed: 2.5 }
-    });
-    expect(await application.deleteWorld({ refs: [river.ref] }, signal)).toMatchObject({ deletedCount: 1 });
     expect(
       application.selectWorld({
-        ids: [river.ref.id],
-        domains: ["water"],
-        kinds: ["river"]
+        ids: [terrain.ref.id],
+        domains: ["terrain"],
+        kinds: ["mountain"]
       }).matchedCount
     ).toBe(0);
   });
@@ -1850,19 +1737,6 @@ it("queries the published native vegetation catalog and re-resolves it after sce
   expect(application.selectWorld({ kinds: ["tree"] }).matchedCount).toBe(0);
   expect(() => application.inspectWorld(ref)).toThrow("no longer exists");
 });
-
-it("forwards water edit policy and rejects simple basin edits before calling the engine", async () => {
-  const { engine } = createHarness();
-  const application = new SeedWorldAgentApplication(engine);
-  const ref = application.selectWorld({ domains: ["water"], kinds: ["lake"], sources: ["authored"], limit: 1 }).items[0].ref;
-  const edit = { mode: "simple" as const, affectTerrain: false, rebuildShoreVegetation: false };
-  await application.updateWaterFeature(ref, { waterLevelMetres: 8 }, { edit }, signal);
-  expect(engine.mutateWorldResource).toHaveBeenCalledWith(expect.objectContaining({ resourceType: "water-body", patch: { waterLevelMetres: 8 } }), signal, edit);
-  vi.mocked(engine.mutateWorldResource).mockClear();
-  await expect(application.updateWaterFeature(ref, { depthMetres: 3 }, { edit }, signal)).rejects.toThrow("TERRAIN_CHANGE_REQUIRED");
-  expect(engine.mutateWorldResource).not.toHaveBeenCalled();
-});
-
 
 it("validates planned building inspection through the application boundary without inventing authored-design properties", async () => {
   const { engine } = createHarness();

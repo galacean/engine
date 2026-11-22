@@ -108,7 +108,16 @@ it("stages native plant anchors with one terrain frame and retains transforms an
   };
   const tree = plant("tree", 3, 4), flower = plant("flowers", 7, 8);
   const runtime = Object.create(PlanningNaturalVegetationRuntime.prototype) as PlanningNaturalVegetationRuntime;
-  Object.assign(runtime, { trees: [tree], cells: new Map([["0/0", { plants: [flower] }]]), groundingFields: fields(2), sources: [new Map()], disposed: false });
+  Object.assign(runtime, {
+    trees: [tree],
+    cells: new Map([["0/0", { plants: [flower] }]]),
+    groundingFields: fields(2),
+    groundingTargetTrees: [],
+    groundingTargetTreeRecords: [],
+    groundingTargetCells: [],
+    sources: [new Map()],
+    disposed: false
+  });
   const batches: unknown[] = [];
   runtime.visitPickBatches(batch => batches.push(batch));
   const frame = runtime.prepareGrounding(fields(9));
