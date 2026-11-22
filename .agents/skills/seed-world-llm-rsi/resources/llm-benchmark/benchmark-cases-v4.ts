@@ -405,7 +405,7 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
       const generatedItems = [...called].some((c) => c.includes("generateItems")) || /\bgenerateItems\b/.test(scriptCode);
       const configuredContainer = [...called].some((c) => c.includes("setContainerCount")) || /\bsetContainerCount\b/.test(scriptCode);
       const snap = fixture.farmingArea.service.getSnapshot() as Record<string, any>;
-      const rawItems = snap.items?.items ?? snap.items;
+      const rawItems = snap.items?.instances ?? snap.items?.items ?? snap.items;
       const itemCount = Array.isArray(rawItems) ? rawItems.length : Object.keys(rawItems ?? {}).length;
       const storageContainers = snap.storage?.containers ?? snap.containers ?? {};
       const containerCount = Array.isArray(storageContainers) ? storageContainers.length : Object.keys(storageContainers).length;
