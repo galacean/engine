@@ -1,0 +1,18 @@
+packages/core/src/RenderPipeline/Blitter.ts
+  h_bd4dd7d663e619 9
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_bd4dd7d663e619 184,187,756
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_bd4dd7d663e619 1-4,5-6,8,11-21,23-45,47-54,56-60,62-63,65,67-68,101,111,113-115,130-131,132,147-148,172,193,211-212,213,223-226,228,238-239,251-254,256-259,260,270-276,299,312-314,316-323,325-343,382-397,399-409,411-418,420,422,424,426,427-431,470-472,473,475-477,478,480-482,483,485-486,488-489,490,492-493,495-496,497,499-500,502-503,504,506-507,509-511,513-520,526-536,538,606-613,617-620,645-646,649-653
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cb70e6cfc237f9ff01184ce0c3867c3d35a507ea",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
