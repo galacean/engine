@@ -58,16 +58,16 @@
 
 ### Part A：全 12 系统原子能力与 CRUD 矩阵（`01`–`18`, `25`–`68`，共 62 题）
 
-- **`01`–`18`**（18 题）：核心基线与历史对照回归（环境、建筑、水体、地形、植被、世界对象、规划参数、空间、动物、农耕、场景节点/组件、云端资产、脚本、历史、多轮复用）。
-- **`25`–`43`**（19 题）：15 个一级 Skill 完整 CRUD（含环境 `skyColor`/`lightning`、规划参数 `reset`+`receipt`、空间 `viewer`/`resolve`/`check`、农耕成熟收获流 `43`）。
-- **`44`–`68`**（25 题）：覆齐全部 23 个一级/二级 Skill、全部非视觉公开接口与独立 Schema 分支：
+- **`01`–`18`**（18 题）：核心基线与历史对照回归（环境、建筑、水体、地形、植被、分系统配置、空间、动物、农耕、场景节点/组件、云端资产、脚本、历史、多轮复用）。
+- **`25`–`43`**（19 题）：各系统一级 Skill 完整 CRUD（含环境 `skyColor`/`lightning`、分系统 `*.config.get/update/reset`、空间 `viewer`/`resolve`/`check`、农耕成熟收获流 `43`）。
+- **`44`–`68`**（25 题）：覆齐全部一级/二级 Skill、全部非视觉公开接口与独立 Schema 分支：
   - `44` 环境只读（`time.get`/`atmosphere.get`）；`45`–`46` 建筑子生成器（`buildTower`/`buildWall`/`buildFence`/`buildSteps`）；
   - `47`–`49` 水体 `capabilities`/`sampleDrops`、手动建 `WaterBodyComponent`、实例独立克隆材质；
   - `50`–`51` 地形 `patch lower`、非 `hill` 语义地貌（`plateau`）创建/修改 + `patch raise`；
-  - `52`–`55` 植被草/花、单棵树(`single`)+水草(`aquatic-grass`)+玩家树移位(`vegetation.update`)、共享材质改色与重置(`world.parameters.materials.inspect/apply`)、删除玩家林区；
-  - `56`–`57` 世界对象选区保存/取回+标签增删(`tag.update`)、删自然岩石(`rock`)与不可编辑自然河道边界(`NOT_EDITABLE`)；
+  - `52`–`55` 植被草/花、单棵树(`single`)+水草(`aquatic-grass`)+玩家树移位(`vegetation.update`)、共享材质改色与重置(`vegetation.materials.inspect/apply`)、删除玩家林区；
+  - `56`–`57` 地形与岩石只读查询与详情(`terrain.query`/`terrain.inspect`)、删自然岩石(`terrain.delete`)与不可编辑自然地貌边界(`NOT_EDITABLE`)；
   - `58`–`60` 农耕开垦与删地块(`inspectCultivation`/`hoe`/`deletePlot`)、毁苗清未成熟作物(`damageCrop`)、物品/容器写流转与诊断(`getDiagnostics`/`getEnvironment`/`generateItems`/`setContainerCount`)；
-  - `61`–`68` 运行时节点树与组件读取(`runtime.entity.*`/`runtime.component.*`)、资产 `list/info/inspect`/`mesh-material`/`use-image`、Prefab `entity.revert`/`component.revert`、`history.read`、项目文档外层 `write/edit/delete`。
+  - `61`–`68` 运行时节点树与组件读取(`tools.runtime.entity.*`/`tools.runtime.component.*`)、资产 `list/info/read`/`mesh-material`/`use-image`、Prefab `entity.revert`/`component.revert`、`history.read`、项目文档外层 `write/edit/delete`。
 
 ### Part B：真实玩家高难场景与红线矩阵（`19`–`24` + `69`–`89`，共 27 题）
 

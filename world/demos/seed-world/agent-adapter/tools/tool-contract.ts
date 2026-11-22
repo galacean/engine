@@ -331,6 +331,26 @@ export const TERRAIN_INSPECT_KINDS = [
   "basin",
   "rock"
 ] as const;
+export const VEGETATION_PLANT_KINDS = [
+  "tree",
+  "forest",
+  "shrub",
+  "shrubland",
+  "grassland",
+  "flower-field",
+  "aquatic-grass-bed"
+] as const;
+export const TERRAIN_LANDFORM_KINDS = [
+  "terrain",
+  "mountain",
+  "hill",
+  "ridge",
+  "canyon",
+  "valley",
+  "slope",
+  "plateau",
+  "basin"
+] as const;
 export const vegetationInspectKindSchema = z
   .enum(VEGETATION_INSPECT_KINDS)
   .describe("植被与菌类资产种类");
@@ -338,10 +358,22 @@ export const terrainInspectKindSchema = z
   .enum(TERRAIN_INSPECT_KINDS)
   .describe("地形地貌与岩石资产种类");
 export const vegetationStrictRefSchema = z
-  .strictObject({ ...worldRefSchema.shape, kind: vegetationInspectKindSchema })
+  .union(
+    [
+      z.strictObject({ ...worldRefSchema.shape, domain: z.literal("vegetation"), kind: z.enum(VEGETATION_PLANT_KINDS) }),
+      z.strictObject({ ...worldRefSchema.shape, domain: z.literal("object"), kind: z.literal("mushroom") })
+    ],
+    { error: "植被引用 domain 与 kind 不符合资产类型目录" }
+  )
   .describe("植被或菌类资产的稳定引用");
 export const terrainStrictRefSchema = z
-  .strictObject({ ...worldRefSchema.shape, kind: terrainInspectKindSchema })
+  .union(
+    [
+      z.strictObject({ ...worldRefSchema.shape, domain: z.literal("terrain"), kind: z.enum(TERRAIN_LANDFORM_KINDS) }),
+      z.strictObject({ ...worldRefSchema.shape, domain: z.literal("object"), kind: z.literal("rock") })
+    ],
+    { error: "地形与岩石引用 domain 与 kind 不符合资产类型目录" }
+  )
   .describe("地形地貌或岩石资产的稳定引用");
 export const TERRAIN_GENERIC_AUTHORABLE_KINDS = [
   "mountain",

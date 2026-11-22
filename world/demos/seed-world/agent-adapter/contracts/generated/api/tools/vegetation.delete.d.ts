@@ -21,12 +21,17 @@ declare global {
        */
       delete(input: ({
         /** 要精确删除的 1 到 64 个植被稳定资产引用。 元素数量：1 到 64。 */
-        refs: Array<{
+        refs: Array<({
             /** 世界资产的稳定唯一标识；只能复用 API 返回值。 字符长度：1 到 240。 */
             id: string;
-            /** 资产所属语义领域。 */
-            domain: AssetDomain;
-            kind: VegetationAssetKind;
+            domain: "vegetation";
+            kind: "tree" | "forest" | "shrub" | "shrubland" | "grassland" | "flower-field" | "aquatic-grass-bed";
+            source: AssetSource;
+          }) | {
+            /** 世界资产的稳定唯一标识；只能复用 API 返回值。 字符长度：1 到 240。 */
+            id: string;
+            domain: "object";
+            kind: "mushroom";
             source: AssetSource;
           }>;
         /** 默认 apply；preview 只返回影响估算。 */

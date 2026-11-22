@@ -308,6 +308,30 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
     for (const code of chains) {
       expect(checker.check(code, catalog.modules), code).toBeUndefined();
     }
+
+    // Negative static-contract guards: multi-component *.config.reset requires component, and delete refs narrow domain
+    expect(checker.check(`await tools.spatial.config.reset({ fields: ["seed"] });`, catalog.modules)).toBeDefined();
+    expect(checker.check(`await tools.animals.config.reset({ fields: ["enabled"] });`, catalog.modules)).toBeUndefined();
+    expect(
+      checker.check(
+        `await tools.terrain.delete({ refs: [{ id: "f", domain: "vegetation", kind: "hill", source: "authored" }] });`,
+        catalog.modules
+      )
+    ).toBeDefined();
+    expect(
+      checker.check(
+        `const q = await tools.terrain.query({ limit: 1 }); if (q.items[0]) await tools.terrain.delete({ refs: [q.items[0].ref] });`,
+        catalog.modules
+      )
+    ).toBeUndefined();
+  });
+
+  it("keeps runtime-editor prefab/scripting docs aligned with asset.create content and declare/engine read rules", () => {
+    const prefabSkill = files.read("skills/assets/use-prefab/SKILL.md");
+    expect(prefabSkill).toContain("content: JSON.stringify");
+    expect(prefabSkill).not.toContain('type: "Prefab", data');
+    const scriptingSkill = files.read("skills/scripting/SKILL.md");
+    expect(scriptingSkill).not.toContain("读取时会自动内联关联的 `Transform`");
   });
 
   it("keeps generic runtime-editor skills decoupled from host-specific scene path literals", () => {

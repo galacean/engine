@@ -328,7 +328,7 @@ function buildSystemConfigContracts(spec: SystemConfigSpec) {
 
   const resetInput = z.strictObject({
     entityId: text.optional().describe('目标规划实体 ID；默认 "world"'),
-    component: componentEnum.optional().describe(
+    component: (spec.defaultComponent ? componentEnum.optional() : componentEnum).describe(
       spec.defaultComponent
         ? `目标组件名；默认 "${spec.defaultComponent}"`
         : `目标组件名（${componentListText}）`
@@ -452,27 +452,34 @@ export function createSeedWorldParameterTools(
                 )
               );
             const entities = rawEntities
-              .map((entity) => ({
-                ...entity,
-                components: entity.components.filter((type) => declaredFields.has(type)),
-                ...(entity.authoredFields
-                  ? {
-                      authoredFields: Object.fromEntries(
-                        Object.entries(entity.authoredFields)
-                          .filter(([type]) => declaredFields.has(type))
-                          .map(([type, fields]) => [type, fields.filter((f) => declaredFields.get(type)!.has(f))])
-                      )
-                    }
-                  : {}),
-                ...(entity.authoredBases
-                  ? {
-                      authoredBases: Object.fromEntries(
-                        Object.entries(entity.authoredBases).filter(([type]) => declaredFields.has(type))
-                      )
-                    }
-                  : {})
-              }))
-              .filter((entity) => entity.components.length > 0);
+              .map((entity) => {
+                const authoredFields = entity.authoredFields
+                  ? Object.fromEntries(
+                      Object.entries(entity.authoredFields)
+                        .filter(([type]) => declaredFields.has(type))
+                        .map(([type, fields]) => [type, fields.filter((f) => declaredFields.get(type)!.has(f))] as const)
+                        .filter(([, fields]) => fields.length > 0)
+                    )
+                  : undefined;
+                const authoredBases = entity.authoredBases
+                  ? Object.fromEntries(
+                      Object.entries(entity.authoredBases).filter(([type]) => declaredFields.has(type))
+                    )
+                  : undefined;
+                return {
+                  ...entity,
+                  components: entity.components.filter((type) => declaredFields.has(type)),
+                  ...(authoredFields ? { authoredFields } : {}),
+                  ...(authoredBases ? { authoredBases } : {})
+                };
+              })
+              .filter((entity) => {
+                if (entity.components.length === 0) return false;
+                if (!input.authoredOnly) return true;
+                const hasAuthoredFields = Object.values(entity.authoredFields ?? {}).some((fields) => fields.length > 0);
+                const hasAuthoredBases = Object.keys(entity.authoredBases ?? {}).length > 0;
+                return hasAuthoredFields || hasAuthoredBases;
+              });
             return boundedPage(entities, input, (page, pagination) => ({
               ...pagination,
               system: spec.system,

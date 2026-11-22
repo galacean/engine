@@ -562,7 +562,7 @@ export const terrainInspectInputSchema = z.strictObject({
   ref: terrainStrictRefSchema.describe("terrain.query 或 terrain.create 返回的稳定地形/岩石资产引用")
 });
 export const terrainDeleteInputSchema = createDomainDeleteInputSchema(
-  terrainInspectKindSchema,
+  terrainStrictRefSchema,
   terrainSelectors.deleteSelector,
   "地形与岩石"
 );
@@ -572,7 +572,7 @@ export const vegetationInspectInputSchema = z.strictObject({
   ref: vegetationStrictRefSchema.describe("vegetation.query 或 vegetation.create 返回的稳定植被资产引用")
 });
 export const vegetationDeleteInputSchema = createDomainDeleteInputSchema(
-  vegetationInspectKindSchema,
+  vegetationStrictRefSchema,
   vegetationSelectors.deleteSelector,
   "植被"
 );

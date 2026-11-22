@@ -98,7 +98,7 @@ BENCH_EXPECTED_MODEL="DeepSeek-V4.1-Flash" \
 改造严格遵守 **“公共链路 > 宿主组装 > 领域知识 > 单点特判”** 的优先级，并守住 4 层单一事实源（SSOT）分工：
 
 - **L0 协议与工具定义（`packages/ai-chat`）**：只放跨域硬不变量、极简工具 Schema、依赖内联/去重、TS 静态检查 `repairContext`、循环收敛护栏。
-- **L1 一级 Skill 目录**：按用户高频意图路由，保证 1 跳直达；横切能力（如 `world.parameters`）须在关联 Skill 首段交叉链接。
+- **L1 一级 Skill 目录**：按用户高频意图路由，保证 1 跳直达；系统级配置能力（`*.config.*`）归属各自系统 Skill 并在首段明确引导。
 - **L2 Skill 正文 & `references/`**：只写**决策知识**（何时选哪条链路、坐标系/手性、色板、默认值、避坑、完成停止判据），统一用项目根路径链接。
 - **L3 Declare（`.d.ts`）**：**唯一类型真相源**，既给 LLM 按需读，又驱动 `execute` 前的 TS 静态检查。
 

@@ -409,15 +409,18 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
     id: "61_runtime_entity_tree_inspection",
     name: "运行时检视 R：遍历运行时根节点并 inspect 节点实时变换与组件列表",
     category: "runtime-read",
-    turns: ["用运行时检视接口（editor.runtime.entity）列出当前激活场景的运行时根节点，并 inspect 其中 'Lantern' 节点的实时世界位置和挂载组件数量，不要修改场景。"],
-    expectedSkills: ["skills/scene-nodes/SKILL.md"],
-    expectedDeclares: ["declare/editor/native/api.d.ts"],
+    turns: ["用运行时检视接口（tools.runtime.entity）列出当前激活场景的运行时根节点，并 inspect 其中 'Lantern' 节点的实时世界位置和挂载组件数量，不要修改场景。"],
+    expectedSkills: ["skills/runtime/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/world/tools/runtime.entity.children.d.ts",
+      "declare/editor/world/tools/runtime.entity.inspect.d.ts"
+    ],
     optimalSteps: 4,
     verify(fixture, turns) {
       const called = allCalledTools(turns);
       return [
-        { name: "called_runtime_children", pass: hasTool(called, "editor.runtime.entity.children"), detail: `called=${[...called].join(",")}` },
-        { name: "called_runtime_inspect", pass: hasTool(called, "editor.runtime.entity.inspect"), detail: `called=${[...called].join(",")}` }
+        { name: "called_runtime_children", pass: hasTool(called, "tools.runtime.entity.children"), detail: `called=${[...called].join(",")}` },
+        { name: "called_runtime_inspect", pass: hasTool(called, "tools.runtime.entity.inspect"), detail: `called=${[...called].join(",")}` }
       ];
     }
   },
@@ -425,23 +428,26 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
     id: "62_runtime_component_query_and_read",
     name: "运行时组件 R：查询 BuildingHost 上的 BuildingManager 并读取 buildStatus",
     category: "runtime-read",
-    turns: ["用运行时组件查询接口（editor.runtime.component）查找场景里的 BuildingManager 组件并读取它的 buildStatus 状态，只读汇报结果。"],
-    expectedSkills: ["skills/components/SKILL.md", "skills/building/SKILL.md"],
-    expectedDeclares: ["declare/editor/native/api.d.ts"],
+    turns: ["用运行时组件查询接口（tools.runtime.component）查找场景里的 BuildingManager 组件并读取它的 buildStatus 状态，只读汇报结果。"],
+    expectedSkills: ["skills/runtime/SKILL.md"],
+    expectedDeclares: [
+      "declare/editor/world/tools/runtime.component.query.d.ts",
+      "declare/editor/world/tools/runtime.component.read.d.ts"
+    ],
     optimalSteps: 4,
     verify(fixture, turns) {
       const called = allCalledTools(turns);
       return [
-        { name: "called_runtime_component_query", pass: hasTool(called, "editor.runtime.component.query"), detail: `called=${[...called].join(",")}` },
-        { name: "called_runtime_component_read", pass: hasTool(called, "editor.runtime.component.read"), detail: `called=${[...called].join(",")}` }
+        { name: "called_runtime_component_query", pass: hasTool(called, "tools.runtime.component.query"), detail: `called=${[...called].join(",")}` },
+        { name: "called_runtime_component_read", pass: hasTool(called, "tools.runtime.component.read"), detail: `called=${[...called].join(",")}` }
       ];
     }
   },
   {
     id: "63_assets_list_filter_info_inspect",
-    name: "资产 R（list/info/inspect）：按类型过滤资产列表、查元数据并检查模型包围盒",
+    name: "资产 R（list/info/read）：按类型过滤资产列表、查元数据并检查模型结构与包围盒",
     category: "assets-read",
-    turns: ["列出项目里所有材质和预制体资产，读取其中一个资产的元数据（info），并查看项目里 GLB 模型的检查信息（inspect），只读不修改。"],
+    turns: ["列出项目里所有材质和预制体资产，读取其中一个资产的元数据（info），并读取项目里 GLB 模型的检查信息（read），只读不修改。"],
     expectedSkills: ["skills/assets/SKILL.md", "skills/assets/inspect/SKILL.md"],
     expectedDeclares: ["declare/editor/native/api.d.ts"],
     optimalSteps: 4,
@@ -449,7 +455,7 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
       const called = allCalledTools(turns);
       return [
         { name: "called_asset_list", pass: hasTool(called, "editor.asset.list"), detail: `called=${[...called].join(",")}` },
-        { name: "called_asset_info_or_inspect", pass: hasTool(called, "editor.asset.info") || hasTool(called, "editor.asset.inspect"), detail: `called=${[...called].join(",")}` }
+        { name: "called_asset_info_or_read", pass: hasTool(called, "editor.asset.info") && hasTool(called, "editor.asset.read"), detail: `called=${[...called].join(",")}` }
       ];
     }
   },

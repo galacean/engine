@@ -128,18 +128,15 @@ export function createDomainSelectorSchema<const Kind extends string>(
   };
 }
 
-export function createDomainDeleteInputSchema<const Kind extends string, SelectorSchema extends z.ZodType>(
-  kindSchema: z.ZodEnum<Record<Kind, Kind>>,
+export function createDomainDeleteInputSchema<RefSchema extends z.ZodType, SelectorSchema extends z.ZodType>(
+  refSchema: RefSchema,
   deleteSelector: SelectorSchema,
   label: string
 ) {
-  const domainRef = z
-    .strictObject({ ...worldRefSchema.shape, kind: kindSchema })
-    .describe(`要精确删除的${label}稳定资产引用`);
   return z
     .union([
       z.strictObject({
-        refs: z.array(domainRef).min(1).max(64).describe(`要精确删除的 1 到 64 个${label}稳定资产引用`),
+        refs: z.array(refSchema).min(1).max(64).describe(`要精确删除的 1 到 64 个${label}稳定资产引用`),
         ...mutationControlShape
       }),
       z.strictObject({

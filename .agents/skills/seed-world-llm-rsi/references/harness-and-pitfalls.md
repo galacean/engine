@@ -45,11 +45,11 @@
 ### P1（中期降本减噪与防退化）
 1. **`pick` 工具定义瘦身 / 按需暴露**：`pick` 单体约 3.5 KB（占 12 个工具定义总字节 21.5%），纯文本任务使用率为 0；可精简 schema 或仅在存在图片附件 / 执行过 `snapshot` 后注入。
 2. **Compaction 工作记忆锚点保活**：长会话触发 compaction 后，目前会把已读 `.d.ts` 与关键实体/资产 ID 映射洗掉导致重读；可在 compaction 摘要模板中强制保留“已确认 ID 映射 + 关键 API 签名 + 已提交状态”。
-3. **`declare/engine/` 通用 BFS 内联加缓存 + 长会话压测**：监控重型 barrel（`Entity.d.ts`、`Script.d.ts`）是否提前触发 transcript compaction。
+3. **`declare/editor/` 自动内联加缓存 + `declare/engine/` 按需直读**：`declare/engine/` 不自动内联，避免重型 barrel（`Entity.d.ts`、`Script.d.ts`）提前触发 transcript compaction。
 4. **把 `static-audit.spec.ts` 固化为离线 CI 门禁**，并清理残留术语（`AssetCatalog`、`/assets`、`agent-knowledge-paths.ts` 旧路径注释）。
 5. **补齐 `createSeedWorldWaterAgentKnowledge` 独立单测**，解耦 `{ includeDigRiver: true }` 对基础 catalog 的隐式假设。
 
 ### P2（架构契约收敛）
-1. **统一三层命名空间（`tools.world.*` / `editor.*` / `tools.runtime.*`）的新增 API 约定**：过滤参数统一 `filters`、关键词统一 `search`、集合返回统一 `{ items }`，持续压缩 `TS2339`/`TS2353` 摩擦。
+1. **统一三层命名空间（`tools.<system>.*` / `editor.*` / `tools.runtime.*`）的新增 API 约定**：过滤参数统一 `filters`、关键词统一 `search`、集合返回统一 `{ items }`，持续压缩 `TS2339`/`TS2353` 摩擦。
 2. **超大 `.d.ts`（如 57 KB `FarmingSystem.d.ts`）拆分子声明或支持 Symbol Outline 读取**，避免分页截断。
-3. **跨系统横切能力路由优化**：评估 `world.parameters`（Case `10` 当前仍存在 `wrong_skill_first`）是否提升为一级 Skill 或优化首跳路由摘要。
+3. **跨系统配置能力路由优化**：确保各系统 `*.config.{get,update,reset}` 在对应一级 Skill 中清晰披露，避免跨系统配置误路由。

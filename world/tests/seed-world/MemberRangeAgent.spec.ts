@@ -58,4 +58,18 @@ it("lets the public Agent discover and author one large element with ordinary me
   const guide = knowledge.documents.find(document => document.path === "skills/spatial/references/components.md")!.content;
   expect(guide).toContain("layout.memberMin/memberMax");
   expect(guide).not.toContain("layout.pattern to single");
+
+  // Multi-component *.config.reset requires component at schema level; single-component animals allows omitting it.
+  const spatialReset = tools.find(tool => tool.name === "spatial.config.reset")!;
+  const animalsReset = tools.find(tool => tool.name === "animals.config.reset")!;
+  expect(() => spatialReset.parseInput({ fields: ["seed"] })).toThrow();
+  expect(() => spatialReset.parseInput({ component: "world", fields: ["offshoreCoverage"] })).not.toThrow();
+  expect(() => animalsReset.parseInput({ fields: ["enabled"] })).not.toThrow();
+
+  // *.config.get({ authoredOnly: true }) filters out entities that have no non-empty authored overrides in that system.
+  const envGet = tools.find(tool => tool.name === "environment.config.get")!;
+  const envAuthored = envGet.parseOutput(
+    await envGet.execute(envGet.parseInput({ authoredOnly: true }), { signal: new AbortController().signal })
+  ) as any;
+  expect(envAuthored.entities.find((entity: any) => entity.id === "world")).toBeUndefined();
 }, 60000);

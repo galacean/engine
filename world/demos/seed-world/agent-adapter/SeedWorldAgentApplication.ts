@@ -756,11 +756,13 @@ export class SeedWorldAgentApplication {
         lastSelectedRefs: this._lastSelectedRefs
       }),
       capabilityManifest: Object.freeze({
-        world: "query, inspect, delete, tag, save selections and undo persistent assets",
-        time: "read and update time or season",
-        spatial: "navigate the viewer; only this domain may mutate viewer pose",
-        celestial: "weather, wind, precipitation, cloud, fog and lightning",
-        landscape: "terrain, water-system and vegetation authoring"
+        terrain: "query, inspect, create, update, delete, patch landforms/rocks and configure terrain parameters",
+        vegetation: "query, inspect, create, update, delete plants, tint plant materials and configure ecology parameters",
+        water: "dig rivers, sample water/drops, query capabilities/diagnostics and configure water parameters",
+        animals: "catalog, query, spawn, command animals and configure animal population",
+        environment: "read/update time, atmosphere and configure lighting/post-process/weather parameters",
+        spatial: "read viewer, resolve/search/check spatial targets, teleport and configure world layout parameters",
+        runtime: "read-only inspection of live runtime entities and components"
       })
     });
   }
@@ -1726,6 +1728,9 @@ export class SeedWorldAgentApplication {
       if (isAddressableObjectRef(ref) && !authoredResourceIds.has(ref.id)) {
         const object = objectsById.get(ref.id);
         if (!object) throw new Error(`World object '${ref.id}' does not exist in revision ${this._currentRevision()}`);
+        if (object.objectKind !== ref.kind) {
+          throw new Error(`WorldRef '${ref.id}' declared kind '${ref.kind}', but object is '${object.objectKind}'`);
+        }
         if (!isRemovableObjectKind(object.objectKind)) {
           throw new Error(`World object kind '${object.objectKind}' has no persistent removal atom`);
         }
@@ -1747,6 +1752,12 @@ export class SeedWorldAgentApplication {
         continue;
       }
       const resource = this._requireFeatureResource(ref, ref.domain);
+      const actualRef = this._assets.refForAuthoringResource(resource);
+      if (!actualRef || actualRef.domain !== ref.domain || actualRef.kind !== ref.kind) {
+        throw new Error(
+          `WorldRef '${ref.id}' declared '${ref.domain}/${ref.kind}', but resource is '${actualRef?.domain ?? "unknown"}/${actualRef?.kind ?? "unknown"}'`
+        );
+      }
       mutations.push(deleteMutation(resource));
       logicalDeletedRefs.push(ref);
       affectedBounds = unionBounds(affectedBounds, this._assets.boundsForAuthoringResource(resource));

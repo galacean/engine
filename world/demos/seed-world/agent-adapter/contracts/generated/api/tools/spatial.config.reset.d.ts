@@ -17,7 +17,7 @@ declare global {
         /** 目标规划实体 ID；默认 "world"。 最少 1 个字符。 */
         entityId?: string;
         /** 目标组件名（world, worldTemplate, landscapeComposition, subjectView, population, distribution, poi, anchor, layout, regionalAppearance, network, wayfinding, roadWidth, roadPath, suspensionBridge, solid, farming）。 */
-        component?: "world" | "worldTemplate" | "landscapeComposition" | "subjectView" | "population" | "distribution" | "poi" | "anchor" | "layout" | "regionalAppearance" | "network" | "wayfinding" | "roadWidth" | "roadPath" | "suspensionBridge" | "solid" | "farming";
+        component: "world" | "worldTemplate" | "landscapeComposition" | "subjectView" | "population" | "distribution" | "poi" | "anchor" | "layout" | "regionalAppearance" | "network" | "wayfinding" | "roadWidth" | "roadPath" | "suspensionBridge" | "solid" | "farming";
         /** 要恢复默认的字段键列表；省略时清除该组件全部作者覆盖。 */
         fields?: Array<string>;
         /** 可选乐观并发令牌；省略时自动读取最新版本。 最少 1 个字符。 */

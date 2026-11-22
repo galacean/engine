@@ -1808,3 +1808,56 @@ it("merges picked and published vegetation identities before counting and pagina
  expect(result.items[0].position).toEqual([1,2,3]);
  expect(app.inspectWorld(ref).properties).toMatchObject({proceduralAssetId:"real",planningEntityId:"same-tree",headingDegrees:20});
 });
+
+it("enforces domain/kind isolation on terrain.delete and vegetation.delete refs at both schema and runtime layers", async () => {
+  const mushroom: SeedWorldObject = {
+    worldId: "seed-world-1",
+    worldRevision: 1,
+    objectId: "mushroom-1",
+    objectKind: "mushroom",
+    position: [12, 0, 12],
+    footprintMetres: [1, 1],
+    source: { kind: "population", sourceId: "pop-1" },
+    properties: {}
+  };
+  const { engine } = createHarness([mushroom]);
+  const app = new SeedWorldAgentApplication(engine);
+  const tools = createSeedWorldTools(app);
+  const terrainDelete = tools.find((tool) => tool.name === "terrain.delete")!;
+  const vegetationDelete = tools.find((tool) => tool.name === "vegetation.delete")!;
+
+  const forest = await app.createVegetation(
+    { plant: "tree", distribution: { kind: "area", count: 2, radiusMetres: 10 }, target: viewerOffset(8) },
+    signal
+  );
+
+  // Schema rejects mismatched (domain, kind) pairs in both terrain.delete and vegetation.delete
+  expect(() =>
+    terrainDelete.parseInput({
+      refs: [{ id: forest.assetRef!.id, domain: "vegetation", kind: "hill", source: "authored" }]
+    })
+  ).toThrow();
+  expect(() =>
+    vegetationDelete.parseInput({
+      refs: [{ id: "hill-1", domain: "terrain", kind: "tree", source: "authored" }]
+    })
+  ).toThrow();
+
+  // Runtime deleteWorld rejects forged kind on natural objects (mushroom ID claimed as rock)
+  await expect(
+    terrainDelete.execute(
+      terrainDelete.parseInput({
+        refs: [{ id: "mushroom-1", domain: "object", kind: "rock", source: "natural" }]
+      }),
+      { signal }
+    )
+  ).rejects.toThrow(/declared kind 'rock', but object is 'mushroom'/);
+
+  // Runtime deleteWorld rejects mismatched kind on authored resources
+  await expect(
+    app.deleteWorld(
+      { refs: [{ id: forest.assetRef!.id, domain: "vegetation", kind: "tree", source: "authored" }] },
+      signal
+    )
+  ).rejects.toThrow(/declared 'vegetation\/tree', but resource is 'vegetation\/forest'/);
+});
