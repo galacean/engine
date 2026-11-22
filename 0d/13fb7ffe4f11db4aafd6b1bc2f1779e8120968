@@ -1,0 +1,34 @@
+packages/core/src/particle/ParticleRenderer.ts
+  s_d2c65ec75a2f3e::t_b61f3a5bccc6c3 195
+  s_d2c65ec75a2f3e::t_79f3584477087b 231-232
+tests/src/core/particle/ParticleInterpolation.test.ts
+  s_d2c65ec75a2f3e::t_8f615d168ab5d5 80-88
+  s_d2c65ec75a2f3e::t_983a83e391532e 1-19,21-60,67-79,89-108,114-115,117-125,127-130
+  s_d2c65ec75a2f3e::t_62533b1fca45f0 20,61-66,109-113,116,126
+packages/core/src/particle/modules/MainModule.ts
+  s_d2c65ec75a2f3e::t_b61f3a5bccc6c3 79-80,312,340,342-345
+  s_d2c65ec75a2f3e::t_79f3584477087b 2,309-311,341,346-355
+  s_d2c65ec75a2f3e::t_0b5054b4b5fd9d 307,335
+  s_d2c65ec75a2f3e::t_da0cd6e519b30f 356,368-372
+  s_d2c65ec75a2f3e::t_c7b234b3905524 357
+packages/core/src/particle/ParticleBounds.ts
+  s_d2c65ec75a2f3e::t_8f615d168ab5d5 455-457
+  s_d2c65ec75a2f3e::t_0b5054b4b5fd9d 253,423,436,438-450
+  s_d2c65ec75a2f3e::t_b61f3a5bccc6c3 26-27,55,57-60,62-66,70-90,94,252,254-255,420,422,429-430,433-434
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0d13fb7ffe4f11db4aafd6b1bc2f1779e8120968",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
