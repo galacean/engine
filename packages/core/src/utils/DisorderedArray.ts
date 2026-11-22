@@ -11,7 +11,7 @@ export class DisorderedArray<T> {
   /** @internal */
   _elements: T[];
 
-  private _loopCounter = 0;
+  private _loopCounter = 0; // Ignore nested loops, use counter to solve the problem
   private _blankCount = 0;
 
   /**
@@ -101,42 +101,34 @@ export class DisorderedArray<T> {
   }
 
   /**
-   * Visits the entries present when iteration begins, skipping entries deleted by callbacks.
-   * @param callbackFn - Called for each remaining entry
-   * @param swapFn - Receives each element moved during compaction after the outermost iteration ends
+   * Loop through all elements.
+   * @param callbackFn - The callback function
+   * @param swapFn - The swap function can process the element after the callback function, it will be called after end looping(`isLopping` = true)
    */
   forEach(callbackFn: (element: T, index: number) => void, swapFn?: (element: T, index: number) => void): void {
     this._startLoop();
-    try {
-      const elements = this._elements;
-      for (let i = 0, n = this.length; i < n; i++) {
-        const element = elements[i];
-        element && callbackFn(element, i);
-      }
-    } finally {
-      this._endLoop(swapFn);
+    const elements = this._elements;
+    for (let i = 0, n = this.length; i < n; i++) {
+      const element = elements[i];
+      element && callbackFn(element, i);
     }
+    this._endLoop(swapFn);
   }
 
   /**
-   * Visits the initial entries and removes the visited entries when this is the outermost iteration.
-   * @param callbackFn - Called for each remaining entry
-   * @param swapFn - Receives retained elements and their new indices during compaction
+   * Loop through all elements and clean up the blank elements.
+   * @param callbackFn - The callback function
+   * @param swapFn - The swap function can process the element after the callback function,  it will be called after end looping(`isLopping` = true)
    */
   forEachAndClean(callbackFn: (element: T, index: number) => void, swapFn?: (element: T, index: number) => void): void {
     this._startLoop();
     const preEnd = this.length;
     const elements = this._elements;
-    let next = 0;
-    try {
-      while (next < preEnd) {
-        const i = next++;
-        const element = elements[i];
-        element && callbackFn(element, i);
-      }
-    } finally {
-      this._endLoopAndClean(next, elements, swapFn);
+    for (let i = 0, n = preEnd; i < n; i++) {
+      const element = elements[i];
+      element && callbackFn(element, i);
     }
+    this._endLoopAndClean(preEnd, elements, swapFn);
   }
 
   /**
@@ -154,18 +146,12 @@ export class DisorderedArray<T> {
     this._elements.length = this.length;
   }
 
-  /**
-   * Defers compaction so removals cannot shift indices during iteration.
-   * @internal
-   */
+  /** @internal */
   _startLoop(): void {
     ++this._loopCounter;
   }
 
-  /**
-   * Compacts deferred removals when the outermost iteration ends.
-   * @internal
-   */
+  /** @internal */
   _endLoop(swapFn: ((e: T, idx: number) => void) | undefined): void {
     if (--this._loopCounter !== 0) {
       return;
@@ -211,7 +197,6 @@ export class DisorderedArray<T> {
       const element = elements[i];
       if (!element) continue;
       elements[index] = element;
-      elements[i] = null!;
       swapFn?.(element, index);
       index++;
     }
