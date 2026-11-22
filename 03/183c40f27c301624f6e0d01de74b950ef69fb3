@@ -1,0 +1,27 @@
+tests/fixtures/shader-loader/legacy-seed-text.shaderc
+  s_3cd6502d102d7f::t_dc472b17944513 1-57
+tests/src/shader-compiler/WebGPUBackend.test.ts
+  s_3cd6502d102d7f::t_b89525a844b33d 107-109,112,115,118-131
+  s_3cd6502d102d7f::t_1a669d16bd2f91 110-111,113-114,116-117
+  s_3cd6502d102d7f::t_4837387abf23f0 528-558,560
+packages/shader-compiler/src/webgpu/StageInterface.ts
+  s_3cd6502d102d7f::t_b89525a844b33d 30-43
+tests/src/loader/ShaderLoader.test.ts
+  s_3cd6502d102d7f::t_dc472b17944513 37,58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "03183c40f27c301624f6e0d01de74b950ef69fb3",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_171a11afaf879a 143,153-162,172-174,179-218,220-224,229-231,268-271,274-299,305-315,323
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  h_171a11afaf879a 76-78,82-83,216-225,386-387,398,407,416,419,421-430,482-485,516-517,577,778,796,1402-1403,1425,1429-1431,1483,1490-1507,1542-1547,1616-1622,1677
+world/tests/seed-world/TerrainFarShader.spec.ts
+  h_171a11afaf879a 233-249
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1cffe647c5f67a468484e368aeabb18b45a02f4d",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

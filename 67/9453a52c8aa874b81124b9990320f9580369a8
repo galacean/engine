@@ -1,0 +1,55 @@
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  s_e2303031158e7e::t_52ce31caa057c3 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_e2303031158e7e::t_6ac52afb69c0ce 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_e2303031158e7e::t_db00362992f89e 1
+packages/terrain/src/shaders/Surface.shader
+  s_e2303031158e7e::t_74285ec81f0fe6 22-24,60,70-72,85-88,145,156-158,226-229,257,277-282
+packages/terrain/src/shaders/Vegetation.shader
+  s_e2303031158e7e::t_928f6a6e2c2932 59-63,68-70,74-76,95,195-199,207-209,271,294,296,321,375-379,383
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  s_e2303031158e7e::t_77057c929617e9 49-51,58-59,61-85,195-196,198-222,255-337,470,523-564
+packages/terrain/src/shaders/shared/GrassSurfaceField.glsl
+  s_e2303031158e7e::t_0ea8ef2fd1ef64 9-10
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  s_e2303031158e7e::t_f83a393d5ff057 372-439
+packages/terrain/src/shaders/shared/VegetationWind.glsl
+  s_e2303031158e7e::t_30be32d6bc505c 1040-1041
+packages/terrain/src/shaders/surface/SurfaceCoverage.glsl
+  s_e2303031158e7e::t_fd197bfc673f30 227
+packages/terrain/src/shaders/surface/SurfaceDepthShadowPass.glsl
+  s_e2303031158e7e::t_78def00305c0aa 37-40,49-51,106-108,130-135,160
+packages/terrain/src/shaders/surface/SurfaceEvaluation.glsl
+  s_e2303031158e7e::t_460f35ef61cac8 113-114,172
+packages/terrain/src/shaders/vegetation/ProceduralTreeLeafFrame.glsl
+  s_e2303031158e7e::t_396d78695eb1f0 31-34,39-40,50-56,58,64-77,90-120,140-144
+packages/terrain/src/shaders/vegetation/VegetationDepthShadowPass.glsl
+  s_e2303031158e7e::t_2d347ae91b9640 25-31,95,97-100,111-113,166-168,181-183,193,206
+packages/terrain/src/shaders/vegetation/VegetationEvaluation.glsl
+  s_e2303031158e7e::t_b0e644acd2bda7 240-241,319-323
+packages/world-planning/src/runtime/hydrology-v1/SeedWorldWaterAuthoringPresetsV1.ts
+  s_e2303031158e7e::t_3906b6a8d7cff5 61,94-95,99
+packages/world-planning/src/spatial/PlanningWeather.ts
+  s_e2303031158e7e::t_5ff257d89c9e43 119
+world/demos/seed-world/SeedWorldDemo.ts
+  s_e2303031158e7e::t_0c2b1e2518da15 1007-1009
+world/demos/seed-world/src/DesertPresentation.ts
+  s_e2303031158e7e::t_f0dd74022c70b7 78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "679453a52c8aa874b81124b9990320f9580369a8",
+  "prompts": {},
+  "sessions": {
+    "s_e2303031158e7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20340-0cac-71a0-a908-80a1eea93636",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

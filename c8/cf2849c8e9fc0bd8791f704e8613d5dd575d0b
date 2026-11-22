@@ -1,0 +1,44 @@
+packages/building/package.json
+  h_ddbf152d31b140 148-150
+packages/building/src/building/parts/architecture/BuildingCpuClient.ts
+  h_ddbf152d31b140 3,133-187,199-200
+packages/building/src/building/parts/architecture/BuildingInitialGroup.ts
+  h_ddbf152d31b140 1-96
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_ddbf152d31b140 221-224
+packages/building/src/building/parts/architecture/BuildingWorker.ts
+  h_ddbf152d31b140 2,114-122
+packages/building/src/building/parts/architecture/BuildingWorkerProtocol.ts
+  h_ddbf152d31b140 3,21-31,42
+packages/building/tests/BuildingCpuClient.spec.ts
+  h_ddbf152d31b140 245-293
+packages/world-planning/src/masonry/BuildingInitialSource.ts
+  h_ddbf152d31b140 6-9,25-56,58-60,62-67
+packages/world-planning/src/semantic-study/PlanningRaster.worker.ts
+  h_ddbf152d31b140 52-69
+packages/world-planning/src/semantic-study/PlanningRasterClient.ts
+  h_ddbf152d31b140 8-18,21,28,36-37,44-75,122-127,130,150-157,162-165,174-181,184,225,237-238
+packages/world-planning/tests/PlanningRasterClient.spec.ts
+  h_ddbf152d31b140 1-150
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 28,1366-1368,1874-1933,1935-2003,2005-2017,2136-2146,2189-2191,2249-2253,2258-2265,2269,2273-2278,2391-2392,2406-2407,2779-2782
+world/demos/seed-world/masonry/BuildingSceneInitialization.ts
+  h_ddbf152d31b140 6,30-31,135,220,226-231
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHost.ts
+  h_ddbf152d31b140 103-122,126-129
+world/tests/seed-world/AnimalSuspendedRecovery.spec.ts
+  h_ddbf152d31b140 307-364
+world/tests/seed-world/BuildingInitialSource.spec.ts
+  h_ddbf152d31b140 194-259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c8cf2849c8e9fc0bd8791f704e8613d5dd575d0b",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

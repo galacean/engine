@@ -1,0 +1,31 @@
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  h_ddbf152d31b140 269-271
+world/tests/seed-world/SeedWorldRockLodCells.spec.ts
+  h_ddbf152d31b140 12-15,40-42,343-388
+world/tests/seed-world/SeedWorldPerfTour.spec.ts
+  h_ddbf152d31b140 4,8-9,145-229
+world/demos/seed-world/src/SeedWorldPerfTour.ts
+  h_ddbf152d31b140 706-770,826,969
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 1296-1352
+packages/building/src/building/runtime/MasonryLodTransition.ts
+  h_ddbf152d31b140 40-43
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  h_ddbf152d31b140 483-493
+packages/building/tests/MasonryResidency.spec.ts
+  h_ddbf152d31b140 2,535-554
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 78-82,484,503-504,971-972,975-978,3395-3421,3425,3427-3428
+  h_ddbf152d31b140 3394,3422-3424
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4d4b2381d51883acab149985ae0912ab56eaf646",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

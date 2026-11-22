@@ -1,0 +1,24 @@
+packages/core/src/graphic/Mesh.ts
+  h_bd4dd7d663e619 181
+packages/core/src/graphic/Primitive.ts
+  h_bd4dd7d663e619 42
+packages/core/src/mesh/BlendShapeManager.ts
+  h_bd4dd7d663e619 319,327
+packages/core/src/mesh/ModelMesh.ts
+  h_bd4dd7d663e619 484,493,652,661,758,761,821
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  h_bd4dd7d663e619 228
+tests/src/core/resource/ReferResource.test.ts
+  h_bd4dd7d663e619 187-223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e73ee4cb2e43bbc637cb0c8e4a189c81e4e1a54d",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

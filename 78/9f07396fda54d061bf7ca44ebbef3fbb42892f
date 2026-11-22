@@ -1,0 +1,16 @@
+packages/core/src/audio/AudioSource.ts
+  h_ddbf152d31b140 85-89,138-139,162,164-166,169-172,187,224-229,280,282,294-302
+tests/src/core/audio/AudioSourcePendingPlayback.test.ts
+  h_ddbf152d31b140 620-726,967-1046
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "789f07396fda54d061bf7ca44ebbef3fbb42892f",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

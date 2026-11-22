@@ -1,0 +1,21 @@
+tests/benchmarks/webgl2-submission/results/acceptance.md
+  s_3cd6502d102d7f::t_39551adfaac4bc 32
+  s_3cd6502d102d7f::t_8129af0b2d1994 3,47,51,65
+  s_3cd6502d102d7f::t_da1e848d8c641c 24-27,30,41-43,57,60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "035390e080a11f1fde1e6bfd35c367b1322bf74a",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
