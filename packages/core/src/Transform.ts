@@ -10,8 +10,6 @@ import type { ICloneHook } from "./clone/ICloneHook";
  * @remarks A `Transform` subclass must not declare component dependencies.
  */
 export class Transform extends Component implements ICloneHook<Transform> {
-  private static readonly _customMatrixFlag = 0x20000000;
-  private static readonly _customWorldPoseFlag = 0x10000000;
   private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
@@ -234,24 +232,18 @@ export class Transform extends Component implements ICloneHook<Transform> {
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
       const parent = this._getParentTransform();
-      const scale = this._lossyWorldScale;
       if (parent) {
         // Clear ancestor WorldScale dirty flags on both paths.
         const parentLossyWorldScale = parent.lossyWorldScale;
-        if (
-          !this._hasCustomMatrix &&
-          (parent._getWorldUniformScaling() || (!parent._hasCustomMatrix && this._isLocalRotationIdentity()))
-        ) {
-          Vector3.multiply(parentLossyWorldScale, this._scale, scale);
+        if (parent._getWorldUniformScaling() || this._isLocalRotationIdentity()) {
+          Vector3.multiply(parentLossyWorldScale, this._scale, this._lossyWorldScale);
         } else {
-          const e = this._getScaleMatrix().elements;
-          scale.set(e[0], e[4], e[8]);
+          const scaleMat = this._getScaleMatrix();
+          const e = scaleMat.elements;
+          this._lossyWorldScale.set(e[0], e[4], e[8]);
         }
-      } else if (!this._hasCustomMatrix) {
-        scale.copyFrom(this._scale);
       } else {
-        const e = this._getScaleMatrix().elements;
-        scale.set(e[0], e[4], e[8]);
+        this._lossyWorldScale.copyFrom(this._scale);
       }
       this._setDirtyFlagFalse(TransformModifyFlags.WorldScale);
     }
@@ -335,28 +327,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   constructor(entity: Entity) {
     super(entity);
-
-    const hasOwn = Object.prototype.hasOwnProperty;
-    const customFlags = Transform._customMatrixFlag | Transform._customWorldPoseFlag;
-    for (
-      let prototype = Object.getPrototypeOf(this);
-      prototype !== Transform.prototype;
-      prototype = Object.getPrototypeOf(prototype)
-    ) {
-      if (
-        hasOwn.call(prototype, "localMatrix") ||
-        hasOwn.call(prototype, "worldMatrix") ||
-        hasOwn.call(prototype, "worldRotationQuaternion")
-      ) {
-        this._dirtyFlag |= customFlags;
-        break;
-      }
-      if (hasOwn.call(prototype, "rotationQuaternion") || hasOwn.call(prototype, "lossyWorldScale")) {
-        this._dirtyFlag |= Transform._customMatrixFlag;
-      }
-      if (hasOwn.call(prototype, "worldPosition")) this._dirtyFlag |= Transform._customWorldPoseFlag;
-      if ((this._dirtyFlag & customFlags) === customFlags) break;
-    }
 
     this._onPositionChanged = this._onPositionChanged.bind(this);
     this._onWorldPositionChanged = this._onWorldPositionChanged.bind(this);
@@ -758,8 +728,8 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   private _updateWorldRotationFlag() {
     const parent = this._getParentTransform();
-    const preserveWorldScale = !this._hasCustomMatrix && (!parent || parent._getWorldUniformScaling());
-    let flags = preserveWorldScale ? TransformModifyFlags.WmWeWq : TransformModifyFlags.WmWeWqWs;
+    const parentWorldUniformScaling = parent ? parent._getWorldUniformScaling() : true;
+    let flags = parentWorldUniformScaling ? TransformModifyFlags.WmWeWq : TransformModifyFlags.WmWeWqWs;
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
       flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
@@ -780,9 +750,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
    * @param flags - Dirty flag
    */
   private _updateWorldPositionAndRotationFlag(flags: TransformModifyFlags): void {
-    if (this._hasCustomMatrix) {
-      flags |= TransformModifyFlags.WorldScale;
-    }
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
       flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
@@ -856,10 +823,8 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const invRotationMat = Transform._tempMat30;
     const worldRotScaMat = Transform._tempMat31;
     const scaMat = Transform._tempMat32;
-    const worldMatrix = this.worldMatrix;
-    const worldRotation = this.worldRotationQuaternion;
-    worldRotScaMat.copyFromMatrix(worldMatrix);
-    Quaternion.invert(worldRotation, invRotation);
+    worldRotScaMat.copyFromMatrix(this.worldMatrix);
+    Quaternion.invert(this.worldRotationQuaternion, invRotation);
     Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
     Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
     return scaMat;
@@ -944,21 +909,12 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /** @internal */
-  get _hasCustomMatrix(): boolean {
-    return this._isContainDirtyFlag(Transform._customMatrixFlag);
-  }
-
-  /** @internal */
-  get _hasCustomWorldPose(): boolean {
-    return this._isContainDirtyFlag(Transform._customWorldPoseFlag);
-  }
-
-  /** @internal */
   _getWorldUniformScaling(): boolean {
     if (this._isContainDirtyFlag(TransformModifyFlags.IsWorldUniformScaling)) {
-      if (this._localUniformScaling && !this._hasCustomMatrix) {
+      const localUniformScaling = this._localUniformScaling;
+      if (localUniformScaling) {
         const parent = this._getParentTransform();
-        this._worldUniformScaling = !parent || parent._getWorldUniformScaling();
+        this._worldUniformScaling = localUniformScaling && (parent ? parent._getWorldUniformScaling() : true);
       } else {
         this._worldUniformScaling = false;
       }
