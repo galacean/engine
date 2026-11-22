@@ -1,0 +1,25 @@
+packages/shader-compiler/README.md
+  s_3cd6502d102d7f::t_8bcf1972358147 90
+tests/src/shader-compiler/AutomaticUniformBlocks.test.ts
+  s_3cd6502d102d7f::t_e64adc6e32f054 270-275,292-302
+  s_3cd6502d102d7f::t_4e8dabb8af5b59 276-291
+packages/design/src/shader-compiler/ShaderUniformVariant.ts
+  s_3cd6502d102d7f::t_7ceb048b9f7753 437-439
+  s_3cd6502d102d7f::t_8a7934ea7532d9 349-350,365,430-436,440-454,456
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "feb6603d71ac80efd378fb0e5466cbbac23ca5e9",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
