@@ -1,7 +1,9 @@
 packages/core/src/RenderPipeline/BasicRenderPipeline.ts
   h_bd4dd7d663e619 12,238-241,341-350,359-361
+  s_3cd6502d102d7f::t_3413f86856a944 236-237,243,287,392
 packages/core/src/RenderPipeline/Blitter.ts
   h_bd4dd7d663e619 4,61,76
+  s_3cd6502d102d7f::t_3413f86856a944 38-53
 packages/core/src/RenderPipeline/RenderContext.ts
   h_bd4dd7d663e619 6,73-82,85-95
 packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
@@ -18,14 +20,26 @@ packages/core/src/texture/RenderTarget.ts
   h_bd4dd7d663e619 267-268
 packages/rhi-webgl/src/GLRenderTarget.ts
   h_bd4dd7d663e619 3,17-23,77-89,165,169-184,188,190-191,207-214,218,227-230
+  s_3cd6502d102d7f::t_3413f86856a944 145,186-187,189,192-193
 packages/rhi-webgl/src/GLTexture.ts
   h_bd4dd7d663e619 582
 packages/rhi-webgl/src/GLTexture2DArray.ts
   h_bd4dd7d663e619 117
 packages/rhi-webgl/src/WebGLGraphicDevice.ts
   h_bd4dd7d663e619 22-23,159-164,535-539,541-543,560-563,570-588,597,658,712,738,790,796-873
+  s_3cd6502d102d7f::t_3413f86856a944 534,549,551-552,769-771
 tests/src/core/RenderPipeline/Blitter.test.ts
   h_bd4dd7d663e619 11-12,25,53,68,77,79-90,93,95-118,124-134,141-151,157-158,160-163,165-217,222-230,235,237-245,248-258,269-277,290-301,308-319,485,495-498,500-505,522-532,624-625,631-638,673-679,685-686
+  s_3cd6502d102d7f::t_3413f86856a944 7,10,17,40-44,71,73,75,332,396,404,413,424,434,452,457,462,484,487,493-494,499,506,510-518,520-521,533-573,589,591-608,612-614,617-623,639-640,643,656,658,661,669-672,683-684,687-704,706,711-714
+packages/core/src/postProcess/FinalPass.ts
+  s_3cd6502d102d7f::t_3413f86856a944 68,80,92
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  s_3cd6502d102d7f::t_3413f86856a944 141,156,171
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_3cd6502d102d7f::t_bd990f38811703 81-90,192-201,205,220
+  s_3cd6502d102d7f::t_3413f86856a944 80,191
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  s_3cd6502d102d7f::t_3413f86856a944 52
 ---
 {
   "schema_version": "authorship/3.0.0",
@@ -35,6 +49,16 @@ tests/src/core/RenderPipeline/Blitter.test.ts
   "humans": {
     "h_bd4dd7d663e619": {
       "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  },
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
     }
   }
 }
