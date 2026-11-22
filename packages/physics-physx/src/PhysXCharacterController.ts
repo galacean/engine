@@ -19,10 +19,8 @@ export class PhysXCharacterController implements ICharacterController {
   private _physXPhysics: PhysXPhysics;
   private _scene: PhysXPhysicsScene | null = null;
   private _pxMaterial: any;
-  private _isBox = false;
   private _radius = 0.5;
   private _height = 1;
-  private _halfExtents: Vector3;
   private _center = new Vector3();
   private _worldPosition = new Vector3();
   private _contactOffset = 0.02;
@@ -46,33 +44,13 @@ export class PhysXCharacterController implements ICharacterController {
     radius = Math.fround(radius);
     height = Math.fround(height);
     const maxStepOffset = Math.fround(height + 2 * radius);
-    const controller = this._syncStepOffset(stepOffset, maxStepOffset, false);
+    const controller = this._syncStepOffset(stepOffset, maxStepOffset);
     if (controller) {
       if (radius !== this._radius) controller.setRadius(radius);
       if (height !== this._height) controller.setHeight(height);
     }
-    this._isBox = false;
     this._radius = radius;
     this._height = height;
-    if (!controller) this._rebuild();
-  }
-
-  /**
-   * {@inheritDoc ICharacterController.setBox }
-   */
-  setBox(halfExtents: Vector3, stepOffset: number): void {
-    const size = (this._halfExtents ||= new Vector3());
-    const x = Math.fround(halfExtents.x);
-    const y = Math.fround(halfExtents.y);
-    const z = Math.fround(halfExtents.z);
-    const controller = this._syncStepOffset(stepOffset, 2 * y, true);
-    if (controller) {
-      if (y !== size.y) controller.setHalfHeight(y);
-      if (x !== size.x) controller.setHalfSideExtent(x);
-      if (z !== size.z) controller.setHalfForwardExtent(z);
-    }
-    this._isBox = true;
-    size.set(x, y, z);
     if (!controller) this._rebuild();
   }
 
@@ -198,14 +176,14 @@ export class PhysXCharacterController implements ICharacterController {
     this._scene = null;
   }
 
-  private _syncStepOffset(offset: number, maximum: number, box: boolean) {
+  private _syncStepOffset(offset: number, maximum: number) {
     // PhysX validates the step against the rounded geometry only at creation.
     offset = Math.fround(offset);
     if (!(offset >= 0 && offset <= maximum && Number.isFinite(offset))) {
       this._stepOffset = -1;
       return null;
     }
-    const controller = this._isBox === box ? this._pxController : null;
+    const controller = this._pxController;
     if (offset !== this._stepOffset) {
       this._stepOffset = offset;
       controller?.setStepOffset(offset);
@@ -231,19 +209,10 @@ export class PhysXCharacterController implements ICharacterController {
     }
     const physX = this._physXPhysics._physX;
     const scene = this._scene!;
-    let desc: any;
-    if (this._isBox) {
-      const halfExtents = this._halfExtents;
-      desc = new physX.PxBoxControllerDesc();
-      desc.halfHeight = halfExtents.y;
-      desc.halfSideExtent = halfExtents.x;
-      desc.halfForwardExtent = halfExtents.z;
-    } else {
-      desc = new physX.PxCapsuleControllerDesc();
-      desc.radius = this._radius;
-      desc.height = this._height;
-      desc.climbingMode = physX.PxCapsuleClimbingMode.eCONSTRAINED;
-    }
+    const desc = new physX.PxCapsuleControllerDesc();
+    desc.radius = this._radius;
+    desc.height = this._height;
+    desc.climbingMode = physX.PxCapsuleClimbingMode.eCONSTRAINED;
     // Set the initial descriptor position so queries see the correct pose before the first step.
     const position = PhysXCharacterController._tempVec;
     Vector3.add(this._worldPosition, this._center, position);

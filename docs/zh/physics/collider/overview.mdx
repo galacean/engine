@@ -14,7 +14,7 @@ label: Physics
 | [**CapsuleCollider**](/apis/core/#CapsuleCollider) | 胶囊 |  |
 | [**PlaneCollider**](/apis/core/#PlaneCollider) | 朝向实体局部 +Y 轴的无限平面 | 只能是静态或运动学 |
 | [**MeshCollider**](/apis/core/#MeshCollider) | 由网格生成的凸包或三角网格 | 三角网格（`convex = false`）只能是静态或运动学 |
-| [**CharacterController**](/apis/core/#CharacterController) | 自带移动算法的胶囊或盒 | 见[角色控制器](/docs/physics/collider/characterController) |
+| [**CharacterController**](/apis/core/#CharacterController) | 自带移动算法的胶囊 | 见[角色控制器](/docs/physics/collider/characterController) |
 
 ## 静态还是受物理驱动
 
@@ -209,7 +209,7 @@ instance.bounciness = 0.8;
 | `collision.shape` | `collision.collider`（另一个碰撞器）和 `collision.selfCollider` |
 | `hitResult.shape` | `hitResult.collider` |
 | 返回 `ColliderShape[]` 的 `overlap*All()` | 返回 `Collider[]` 的 `overlap*All()` |
-| `characterController.addShape(capsuleOrBox)` | `characterController.geometry`、`radius`、`height`、`size` 和 `center` |
+| `characterController.addShape(capsule)` | `characterController.radius`、`height` 和 `center` |
 
 迁移旧场景、Prefab 或脚本时，把碰撞体和角色控制器的胶囊高度加上两倍半径。将刚体角速度和最大角速度乘以 `Math.PI / 180`，即可换算为弧度/秒。
 

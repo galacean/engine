@@ -16,7 +16,7 @@ label: Physics
 | 移动方式 | 通过 `move()` 方法直接控制位移 | 通过施加力或设置速度来移动 |
 | 碰撞响应 | 手动处理碰撞响应，自动处理台阶和斜坡 | 基于物理模拟的碰撞响应 |
 | 重力处理 | 需要手动实现重力效果 | 自动应用场景重力 |
-| 形状 | 内置的胶囊体或盒，由 `geometry` 选择 | 所在实体及子实体上的任意碰撞器组件 |
+| 形状 | 内置胶囊体 | 所在实体及子实体上的任意碰撞器组件 |
 | 适用场景 | 角色控制、第一/第三人称游戏 | 物理模拟、刚体运动 |
 
 <Callout type="positive">
@@ -31,10 +31,10 @@ label: Physics
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*nEMXRKiqpy8AAAAAAAAAAAAAesJ_AQ/original" />
 
-2. 选择控制器的 `geometry`，并设置其尺寸（胶囊体用 `radius` 和 `height`，盒用 `size`）和 `center`，使其与角色的外形尽量匹配。
+2. 设置胶囊体的 `radius`、`height` 和 `center`，使其与角色的外形尽量匹配。
 
 <Callout type="positive">
-角色控制器自带几何形状，不使用其他碰撞器组件，也不会被任何刚体拥有。通常建议角色使用默认的胶囊体。
+角色控制器自带胶囊几何形状，不使用其他碰撞器组件，也不会被任何刚体拥有。
 </Callout>
 
 3. 根据需要设置控制器的属性，各属性的含义和作用请参考下文。
@@ -44,10 +44,8 @@ label: Physics
 ### 几何形状
 | 属性 | 描述 | 默认值 |
 | ---- | ---- | ------ |
-| [**geometry**](/apis/core/#CharacterController-geometry) | `CharacterControllerGeometry.Capsule`（沿 `upDirection` 的胶囊体）或 `CharacterControllerGeometry.Box`（轴对齐的盒） | Capsule |
 | [**radius**](/apis/core/#CharacterController-radius) | 胶囊体在实体局部空间中的半径 | 0.5 |
 | [**height**](/apis/core/#CharacterController-height) | 胶囊总高度，包含两端半球 | 2 |
-| [**size**](/apis/core/#CharacterController-size) | 盒在实体局部空间中的尺寸 | (1, 1, 1) |
 | [**center**](/apis/core/#Collider-center) | 几何形状在实体局部空间中的中心 | (0, 0, 0) |
 
 几何形状跟随实体的世界缩放。继承自 Collider 的 `rotation` 对角色控制器不生效。
@@ -91,15 +89,10 @@ label: Physics
 
 ### 基础配置
 ```typescript
-// 新建控制器默认使用胶囊体。
 const controller = entity.addComponent(CharacterController);
 controller.radius = 0.5;
 controller.height = 2;
 controller.center = new Vector3(0, 1, 0);
-
-// 改用盒体时，设置其沿局部轴的完整尺寸。
-// controller.geometry = CharacterControllerGeometry.Box;
-// controller.size = new Vector3(1, 2, 1);
 
 // 配置控制器属性
 controller.stepOffset = 0.5;      // 设置台阶高度
@@ -238,8 +231,7 @@ class CharacterMovement extends Script {
 ## 限制和注意事项
 
 1. **几何形状**
-   - 控制器只有一个内置的胶囊体或盒；实体上的其他碰撞器组件是独立的碰撞器
-   - 建议角色使用胶囊体
+   - 控制器只有一个内置胶囊体；实体上的其他碰撞器组件是独立的碰撞器
    - 控制器不能作为触发器，也不支持 `getClosestPoint`
 
 2. **性能考虑**

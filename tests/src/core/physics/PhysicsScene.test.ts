@@ -13,8 +13,7 @@ import {
   Scene,
   Script,
   SphereCollider,
-  Transform,
-  CharacterControllerGeometry
+  Transform
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import type { IPhysicsScene } from "@galacean/engine-design";
@@ -450,7 +449,6 @@ describe("Physics Test", () => {
 
       const characterController = rootEntityCharacter.addComponent(CharacterController);
       characterController.collisionLayer = Layer.Layer3;
-      characterController.geometry = CharacterControllerGeometry.Box;
 
       // Test that raycast character controller.
       ray = new Ray(new Vector3(-2, 0, 0), new Vector3(1, 0, 0).normalize());
@@ -1019,7 +1017,6 @@ describe("Physics Test", () => {
       const entity = root.createChild("controller");
       const controller = entity.addComponent(CharacterController);
       controller.collisionLayer = Layer.Layer31;
-      controller.geometry = CharacterControllerGeometry.Box;
       controller.isSceneQuery = false;
       const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0));
       const hits: HitResult[] = [];
@@ -2373,7 +2370,6 @@ describe("Physics Test", () => {
       enginePhysX.sceneManager.addScene(newScene);
       const root = newScene.createRootEntity("root");
       const characterController = root.addComponent(CharacterController);
-      characterController.geometry = CharacterControllerGeometry.Box;
       newScene.physics._update(newScene.physics.fixedTimeStep);
       newScene.destroy();
       expect(characterController.destroyed).eq(true);

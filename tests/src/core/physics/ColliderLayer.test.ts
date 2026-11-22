@@ -2,7 +2,6 @@ import { WebGLEngine } from "@galacean/engine";
 import {
   BoxCollider,
   CharacterController,
-  CharacterControllerGeometry,
   Collider,
   Entity,
   HitResult,
@@ -125,37 +124,32 @@ describe("Collider layer initialization", () => {
     expectMesh();
   });
 
-  it.each([CharacterControllerGeometry.Capsule, CharacterControllerGeometry.Box])(
-    "synchronizes controller geometry=%s query poses before the first simulation step",
-    (geometry) => {
-      const entity = root.createChild("controller");
-      entity.transform.setPosition(3, 0, 0);
-      const controller = entity.addComponent(CharacterController);
-      controller.geometry = geometry;
-      controller.collisionLayer = Layer.Layer7;
-      const center = new Vector3(3, 1000, 0);
-      const ray = new Ray(new Vector3(3, 1000, 3), new Vector3(0, 0, -1));
-      const hit = new HitResult();
+  it("synchronizes controller query poses before the first simulation step", () => {
+    const entity = root.createChild("controller");
+    entity.transform.setPosition(3, 0, 0);
+    const controller = entity.addComponent(CharacterController);
+    controller.collisionLayer = Layer.Layer7;
+    const center = new Vector3(3, 1000, 0);
+    const ray = new Ray(new Vector3(3, 1000, 3), new Vector3(0, 0, -1));
+    const hit = new HitResult();
 
-      expect.soft(physics.raycast(ray, 5, Layer.Layer7, hit)).toBe(true);
-      expect.soft(hit.collider === controller).toBe(true);
-      expect.soft(physics.overlapSphereAll(center, 0.1, Layer.Layer7).includes(controller)).toBe(true);
+    expect.soft(physics.raycast(ray, 5, Layer.Layer7, hit)).toBe(true);
+    expect.soft(hit.collider === controller).toBe(true);
+    expect.soft(physics.overlapSphereAll(center, 0.1, Layer.Layer7).includes(controller)).toBe(true);
 
-      physics._update(1 / 60);
-      expect(physics.raycast(ray, 5, Layer.Layer7, hit)).toBe(true);
-      expect(hit.collider).toBe(controller);
-      const overlaps = physics.overlapSphereAll(center, 0.1, Layer.Layer7);
-      expect(overlaps).toHaveLength(1);
-      expect(overlaps[0]).toBe(controller);
-    }
-  );
+    physics._update(1 / 60);
+    expect(physics.raycast(ray, 5, Layer.Layer7, hit)).toBe(true);
+    expect(hit.collider).toBe(controller);
+    const overlaps = physics.overlapSphereAll(center, 0.1, Layer.Layer7);
+    expect(overlaps).toHaveLength(1);
+    expect(overlaps[0]).toBe(controller);
+  });
 
   it.each([true, false])(
     "preserves the layer and query flag of an initially enabled=%s controller clone",
     (enabled) => {
       const source = root.createChild("source");
       const controller = source.addComponent(CharacterController);
-      controller.geometry = CharacterControllerGeometry.Box;
       controller.enabled = enabled;
       controller.collisionLayer = Layer.Layer7;
       controller.isSceneQuery = false;

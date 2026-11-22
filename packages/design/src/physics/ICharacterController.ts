@@ -2,7 +2,7 @@ import { Vector3 } from "@galacean/engine-math";
 import { IPhysicsMaterial } from "./IPhysicsMaterial";
 
 /**
- * Native character controller with its own geometry.
+ * Native capsule character controller.
  * @remarks The caller applies entity scale to geometry dimensions and the center offset before passing them in.
  */
 export interface ICharacterController {
@@ -13,13 +13,6 @@ export interface ICharacterController {
    * @param stepOffset - The requested step height in world units
    */
   setCapsule(radius: number, height: number, stepOffset: number): void;
-
-  /**
-   * Use a box aligned to the controller’s up direction.
-   * @param halfExtents - The half side extent, half height along up, and half forward extent in x, y, and z
-   * @param stepOffset - The requested step height in world units
-   */
-  setBox(halfExtents: Vector3, stepOffset: number): void;
 
   /**
    * Set the contact offset.

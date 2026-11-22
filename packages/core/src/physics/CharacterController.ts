@@ -4,26 +4,21 @@ import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { CharacterControllerGeometry } from "./enums/CharacterControllerGeometry";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
 
 /**
- * A capsule or box that moves and slides along obstacles through {@link move}.
+ * A capsule that moves and slides along obstacles through {@link move}.
  * @remarks The Entity's world scale sizes the shape, and {@link upDirection} orients it. The controller moves
  * independently of Rigidbody ownership and Entity rotation.
  */
 export class CharacterController extends Collider {
   private static readonly _movePositions: Vector3[] = [];
   private static _tempWorldScale = new Vector3();
-  private static _tempExtents = new Vector3();
 
-  private _geometry = CharacterControllerGeometry.Capsule;
   private _radius = 0.5;
   private _height = 2;
-  @ignoreClone
-  private _size: Vector3;
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
@@ -35,21 +30,6 @@ export class CharacterController extends Collider {
   private _inScene = false;
   @ignoreClone
   private _syncedCenter = new Vector3();
-
-  /**
-   * The geometry type of the controller.
-   * @defaultValue `CharacterControllerGeometry.Capsule`
-   */
-  get geometry(): CharacterControllerGeometry {
-    return this._geometry;
-  }
-
-  set geometry(value: CharacterControllerGeometry) {
-    if (this._geometry !== value) {
-      this._geometry = value;
-      this._setGeometryDirty();
-    }
-  }
 
   /**
    * The capsule radius in the Entity's local space. Finite negative values are clamped to 0.
@@ -89,31 +69,6 @@ export class CharacterController extends Collider {
     if (this._height !== value) {
       this._height = value;
       this._setGeometryDirty();
-    }
-  }
-
-  /**
-   * The box size in local units. Finite negative components are clamped to 0.
-   * @defaultValue `(1, 1, 1)`
-   * @remarks Mutating the returned vector updates the box size.
-   * @throws When a component is non-finite.
-   */
-  get size(): Vector3 {
-    let size = this._size;
-    if (!size) {
-      this._size = size = new Vector3(1, 1, 1);
-      size._onValueChanged = this._onSizeChanged.bind(this);
-    }
-    return size;
-  }
-
-  set size(value: Vector3) {
-    if (!Number.isFinite(value.x) || !Number.isFinite(value.y) || !Number.isFinite(value.z)) {
-      throw new Error("CharacterController size must be finite.");
-    }
-    const size = this.size;
-    if (size !== value) {
-      size.copyFrom(value);
     }
   }
 
@@ -216,13 +171,6 @@ export class CharacterController extends Collider {
     this._upDirection._onValueChanged = this._setUpDirection;
   }
 
-  /** @internal */
-  override _onClone(target: CharacterController): void {
-    super._onClone(target);
-    const size = this._size;
-    if (size) target.size = size;
-  }
-
   /**
    * Moves the controller and immediately updates the Entity's world position.
    * @remarks With PhysX, scene queries see the moved shape after the next simulation step. Trigger callbacks are
@@ -293,21 +241,12 @@ export class CharacterController extends Collider {
     );
     const force = !this._inScene;
     const syncGeometry = force || this._geometryDirty || this._scaleChanged(scale);
-    const box = this._geometry === CharacterControllerGeometry.Box;
-    const dimensions = CharacterController._tempExtents;
+    let radius = 0;
+    let height = 0;
     if (syncGeometry) {
-      if (box) {
-        const size = this._size;
-        dimensions.set((size?.x ?? 1) * scale.x * 0.5, (size?.y ?? 1) * scale.y * 0.5, (size?.z ?? 1) * scale.z * 0.5);
-      } else {
-        const radius = this._radius;
-        dimensions.set(radius * Math.max(scale.x, scale.z), (this._height - 2 * radius) * scale.y, 0);
-      }
-      if (
-        !Collider._isValidPositiveFloat32(dimensions.x) ||
-        !Collider._isValidPositiveFloat32(dimensions.y) ||
-        (box && !Collider._isValidPositiveFloat32(dimensions.z))
-      ) {
+      radius = this._radius * Math.max(scale.x, scale.z);
+      height = (this._height - 2 * this._radius) * scale.y;
+      if (!Collider._isValidPositiveFloat32(radius) || !Collider._isValidPositiveFloat32(height)) {
         this._detach();
         return;
       }
@@ -335,12 +274,7 @@ export class CharacterController extends Collider {
     if (syncGeometry) {
       this._geometryDirty = false;
       this._nativeScale.copyFrom(scale);
-      const stepOffset = this._stepOffset;
-      if (box) {
-        controller.setBox(dimensions, stepOffset);
-      } else {
-        controller.setCapsule(dimensions.x, dimensions.y, stepOffset);
-      }
+      controller.setCapsule(radius, height, this._stepOffset);
     }
     if (force) {
       scene.physics._nativePhysicsScene.addCharacterController(controller);
@@ -395,15 +329,7 @@ export class CharacterController extends Collider {
   /** @internal */
   protected override _onDestroy(): void {
     this._upDirection._onValueChanged = null;
-    const size = this._size;
-    if (size) size._onValueChanged = null;
     super._onDestroy();
-  }
-
-  private _onSizeChanged(): void {
-    const finite = CharacterController._clampBoxSize(this._size);
-    this._setGeometryDirty();
-    if (!finite) throw new Error("CharacterController size must be finite.");
   }
 
   private _setGeometryDirty(): void {

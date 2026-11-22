@@ -16,7 +16,7 @@ While both the Character Controller and a [Rigidbody](/en/docs/physics/collider/
 | Movement Method | Direct displacement control via `move()` method | Movement through forces or velocity |
 | Collision Response | Manual collision response, automatic step and slope handling | Physics-based collision response |
 | Gravity Handling | Requires manual gravity implementation | Automatic scene gravity application |
-| Shape | Inline capsule or box, selected by `geometry` | Any Collider components on its Entity and children |
+| Shape | Inline capsule | Any Collider components on its Entity and children |
 | Use Cases | Character control, first/third-person games | Physics simulation, rigid body motion |
 
 <Callout type="positive">
@@ -31,10 +31,10 @@ Recommendations:
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*nEMXRKiqpy8AAAAAAAAAAAAAesJ_AQ/original" />
 
-2. Choose the controller's `geometry` and set its size (`radius` and `height` for a capsule, `size` for a box) and `center` to match the character's appearance as closely as possible.
+2. Set the capsule's `radius`, `height`, and `center` to match the character's appearance as closely as possible.
 
 <Callout type="positive">
-The Character Controller carries its own geometry instead of using other Collider components, and it is never owned by a Rigidbody. A capsule, the default, is recommended for characters.
+The Character Controller carries its own capsule geometry instead of using other Collider components, and it is never owned by a Rigidbody.
 </Callout>
 
 3. Adjust the controller's properties according to your needs. The meaning and function of each property are explained below.
@@ -44,10 +44,8 @@ The Character Controller carries its own geometry instead of using other Collide
 ### Geometry
 | Property | Description | Default |
 |----------|-------------|---------|
-| [**geometry**](/apis/core/#CharacterController-geometry) | `CharacterControllerGeometry.Capsule` (a capsule along `upDirection`) or `CharacterControllerGeometry.Box` (an axis-aligned box) | Capsule |
 | [**radius**](/apis/core/#CharacterController-radius) | Capsule radius in the Entity's local space | 0.5 |
 | [**height**](/apis/core/#CharacterController-height) | Total capsule height including both caps | 2 |
-| [**size**](/apis/core/#CharacterController-size) | Box size in the Entity's local space | (1, 1, 1) |
 | [**center**](/apis/core/#Collider-center) | Center of the geometry in the Entity's local space | (0, 0, 0) |
 
 The geometry follows the Entity's world scale. `rotation` inherited from Collider does not apply to the controller.
@@ -91,15 +89,11 @@ The `move()` function returns a collision flag value that indicates the characte
 
 ### Basic Configuration
 ```typescript
-// A new controller uses capsule geometry.
+// Create a capsule controller.
 const controller = entity.addComponent(CharacterController);
 controller.radius = 0.5;
 controller.height = 2;
 controller.center = new Vector3(0, 1, 0);
-
-// To use a box, configure its full size along the local axes.
-// controller.geometry = CharacterControllerGeometry.Box;
-// controller.size = new Vector3(1, 2, 1);
 
 // Configure controller properties
 controller.stepOffset = 0.5;      // Set step height
@@ -239,8 +233,7 @@ class CharacterMovement extends Script {
 ## Limitations and Considerations
 
 1. **Geometry**
-   - The controller has exactly one inline capsule or box; other Collider components on the Entity are separate Colliders
-   - A capsule is recommended for characters
+   - The controller has a single inline capsule; other Collider components on the Entity are separate Colliders
    - The controller cannot be a trigger and does not support `getClosestPoint`
 
 2. **Performance Considerations**

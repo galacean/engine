@@ -14,7 +14,7 @@ A Collider ([Collider](/apis/core/#Collider)) is a component that gives an Entit
 | [**CapsuleCollider**](/apis/core/#CapsuleCollider) | Capsule |  |
 | [**PlaneCollider**](/apis/core/#PlaneCollider) | Infinite plane facing the Entity's local +Y axis | Static or kinematic only |
 | [**MeshCollider**](/apis/core/#MeshCollider) | Convex hull or triangle mesh built from a mesh | Triangle mesh (`convex = false`) is static or kinematic only |
-| [**CharacterController**](/apis/core/#CharacterController) | Capsule or box with its own movement algorithm | See [Character Controller](/en/docs/physics/collider/characterController) |
+| [**CharacterController**](/apis/core/#CharacterController) | Capsule with its own movement algorithm | See [Character Controller](/en/docs/physics/collider/characterController) |
 
 ## Static or Simulated
 
@@ -209,7 +209,7 @@ Earlier versions attached shape objects to a `StaticCollider` or `DynamicCollide
 | `collision.shape` | `collision.collider` (the other Collider) and `collision.selfCollider` |
 | `hitResult.shape` | `hitResult.collider` |
 | `overlap*All()` returning `ColliderShape[]` | `overlap*All()` returning `Collider[]` |
-| `characterController.addShape(capsuleOrBox)` | `characterController.geometry`, `radius`, `height`, `size` and `center` |
+| `characterController.addShape(capsule)` | `characterController.radius`, `height` and `center` |
 
 To preserve existing gameplay, add twice the radius to authored capsule heights on both colliders and character controllers. Multiply authored angular velocities and angular velocity limits by `Math.PI / 180` to convert them to radians per second.
 

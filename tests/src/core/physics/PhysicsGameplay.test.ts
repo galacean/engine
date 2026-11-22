@@ -4,7 +4,6 @@ import {
   BoxCollider,
   CapsuleCollider,
   CharacterController,
-  CharacterControllerGeometry,
   Collision,
   ControllerCollisionFlag,
   ControllerNonWalkableMode,
@@ -215,15 +214,15 @@ describe("Physics gameplay integration", () => {
   it("navigates character controllers across stairs, barriers, walkable slopes, and ForceSliding steep slopes", () => {
     root.createChild("floor").addComponent(PlaneCollider);
 
-    // Track 1 (z = -3): Stairs + Box CharacterController (stepOffset = 0.55)
+    // Track 1 (z = -3): Stairs + CharacterController (stepOffset = 0.55)
     addStaticBox("stair-1", new Vector3(-2.0, 0.175, -3), new Vector3(1.5, 0.35, 1.8), 0, 0.6);
     addStaticBox("stair-2", new Vector3(-0.5, 0.35, -3), new Vector3(1.5, 0.7, 1.8), 0, 0.6);
     addStaticBox("stair-3", new Vector3(2.25, 0.525, -3), new Vector3(4.0, 1.05, 1.8), 0, 0.6);
     const stairRole = root.createChild("cc-stairs");
-    stairRole.transform.setPosition(-5.0, 0.65, -3);
+    stairRole.transform.setPosition(-5.0, 0.75, -3);
     const stairCC = stairRole.addComponent(CharacterController);
-    stairCC.geometry = CharacterControllerGeometry.Box;
-    stairCC.size = new Vector3(0.7, 1.2, 0.7);
+    stairCC.radius = 0.35;
+    stairCC.height = 1.4;
     stairCC.stepOffset = 0.55;
 
     // Track 2 (z = 0): Tall barrier blocked by low stepOffset = 0.08
@@ -231,7 +230,6 @@ describe("Physics gameplay integration", () => {
     const blockedRole = root.createChild("cc-blocked");
     blockedRole.transform.setPosition(-5.0, 0.75, 0);
     const blockedCC = blockedRole.addComponent(CharacterController);
-    blockedCC.geometry = CharacterControllerGeometry.Capsule;
     blockedCC.radius = 0.35;
     blockedCC.height = 1.4;
     blockedCC.stepOffset = 0.08;
@@ -241,7 +239,6 @@ describe("Physics gameplay integration", () => {
     const climbRole = root.createChild("cc-slope-ok");
     climbRole.transform.setPosition(-4.8, 0.75, 3);
     const climbCC = climbRole.addComponent(CharacterController);
-    climbCC.geometry = CharacterControllerGeometry.Capsule;
     climbCC.radius = 0.35;
     climbCC.height = 1.4;
     climbCC.slopeLimit = 45;
@@ -254,7 +251,6 @@ describe("Physics gameplay integration", () => {
       // Start directly above the mid-slope so both land squarely on the 60 deg incline
       role.transform.setPosition(0, 3.2, z);
       const cc = role.addComponent(CharacterController);
-      cc.geometry = CharacterControllerGeometry.Capsule;
       cc.radius = 0.35;
       cc.height = 1.4;
       cc.slopeLimit = 45;

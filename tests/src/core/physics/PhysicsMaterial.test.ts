@@ -11,7 +11,6 @@ import {
   MeshCollider,
   ModelMesh,
   CharacterController,
-  CharacterControllerGeometry,
   PlaneCollider,
   Loader
 } from "@galacean/engine-core";
@@ -290,7 +289,6 @@ describe("PhysicsMaterial", () => {
       const entity = rootEntity.createChild("materialController");
       entity.transform.setPosition(100, 100, 0);
       const controller = entity.addComponent(Type);
-      if (controller instanceof CharacterController) controller.geometry = CharacterControllerGeometry.Box;
       const shared = new PhysicsMaterial(engine);
       if (assigned) controller.material = shared;
       const dropProbe = () => {

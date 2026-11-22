@@ -270,24 +270,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return f >= 1.17549435e-38 && Number.isFinite(f);
   }
 
-  protected static _clampBoxSize(size: Vector3): boolean {
-    const { x, y, z } = size;
-    const finiteX = Number.isFinite(x);
-    const finiteY = Number.isFinite(y);
-    const finiteZ = Number.isFinite(z);
-    const finite = finiteX && finiteY && finiteZ;
-    if (!finite || x < 0 || y < 0 || z < 0) {
-      //@ts-ignore
-      const listener = size._onValueChanged;
-      //@ts-ignore
-      size._onValueChanged = null;
-      size.set(finiteX && x >= 0 ? x : 0, finiteY && y >= 0 ? y : 0, finiteZ && z >= 0 ? z : 0);
-      //@ts-ignore
-      size._onValueChanged = listener;
-    }
-    return finite;
-  }
-
   /**
    * @internal
    */
