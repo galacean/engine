@@ -69,16 +69,13 @@ export class GLTFResource extends ReferResource {
     const { _sceneRoots: sceneRoots, entities } = this;
     if (sceneRoots) {
       for (let i = 0, n = sceneRoots.length; i < n; i++) {
-        const root = sceneRoots[i];
-        if (root && !root.destroyed) {
-          root.destroy();
-        }
+        sceneRoots[i]?.destroy();
       }
     }
     if (entities) {
       for (let i = 0, n = entities.length; i < n; i++) {
         const entity = entities[i];
-        if (entity && !entity.parent && !entity.destroyed) {
+        if (entity && !entity.parent) {
           entity.destroy();
         }
       }
