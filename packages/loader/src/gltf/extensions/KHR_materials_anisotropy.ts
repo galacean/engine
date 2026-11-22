@@ -1,7 +1,7 @@
-import { PBRMaterial } from "@galacean/engine-core";
+import { Logger, PBRMaterial, Texture2D } from "@galacean/engine-core";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialsAnisotropy } from "./GLTFExtensionSchema";
 
@@ -15,15 +15,15 @@ class KHR_materials_anisotropy extends GLTFExtensionParser {
 
     if (anisotropyTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(anisotropyTexture, "Anisotropy texture");
-      GLTFMaterialParser._bindTexture(
-        context,
-        material,
-        anisotropyTexture.index,
-        (texture) => {
+
+      context
+        .get<Texture2D>(GLTFParserType.Texture, anisotropyTexture.index)
+        .then((texture) => {
           material.anisotropyTexture = texture;
-        },
-        "KHR_materials_anisotropy: anisotropy texture error"
-      );
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_anisotropy: anisotropy texture error", e);
+        });
     }
   }
 }

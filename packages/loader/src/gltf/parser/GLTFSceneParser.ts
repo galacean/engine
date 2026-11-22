@@ -51,9 +51,6 @@ export class GLTFSceneParser extends GLTFParser {
     }
 
     return AssetPromise.all(promises).then(() => {
-      if (context._isAborted || sceneRoot.destroyed) {
-        return sceneRoot;
-      }
       GLTFParser.executeExtensionsAdditiveAndParse(sceneExtensions, context, sceneRoot, sceneInfo);
       return sceneRoot;
     });
@@ -150,9 +147,6 @@ export class GLTFSceneParser extends GLTFParser {
       AssetPromise.all(materialPromises)
     ])
       .then(([meshes, skin, materials]) => {
-        if (context._isAborted || entity.destroyed) {
-          return;
-        }
         const basicResources = context.glTFResource.engine._basicResources;
         for (let i = 0; i < rendererCount; i++) {
           const material = materials[i] || basicResources._getBlinnPhongMaterial();
@@ -190,9 +184,7 @@ export class GLTFSceneParser extends GLTFParser {
         }
       })
       .catch((e) => {
-        if (!context._isAborted) {
-          Logger.error("GLTFSceneParser: create renderer error", e);
-        }
+        Logger.error("GLTFSceneParser: create renderer error", e);
       });
   }
 

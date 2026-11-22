@@ -20,9 +20,6 @@ export class GLTFSkinParser extends GLTFParser {
     // parse IBM
     const accessor = glTF.accessors![inverseBindMatrices!];
     const skinPromise = GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
-      if (context._isAborted) {
-        return skin;
-      }
       const entities = context.get<Entity>(GLTFParserType.Entity);
       const buffer = bufferInfo.data;
       for (let i = 0; i < jointCount; i++) {

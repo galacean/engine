@@ -29,31 +29,6 @@ export class GLTFMaterialParser extends GLTFParser {
   /**
    * @internal
    */
-  static _bindTexture(
-    context: GLTFParserContext,
-    material: Material,
-    textureIndex: number,
-    onLoaded: (texture: Texture2D) => void,
-    errorTag: string
-  ): void {
-    context
-      .get<Texture2D>(GLTFParserType.Texture, textureIndex)
-      .then((texture) => {
-        if (!texture || context._isAborted || material.destroyed) {
-          return;
-        }
-        onLoaded(texture);
-      })
-      .catch((e) => {
-        if (!context._isAborted) {
-          Logger.error(errorTag, e);
-        }
-      });
-  }
-
-  /**
-   * @internal
-   */
   static _parseStandardProperty(
     context: GLTFParserContext,
     material: UnlitMaterial | PBRMaterial,
@@ -78,11 +53,9 @@ export class GLTFMaterialParser extends GLTFParser {
         material.baseColor.copyFromArray(baseColorFactor);
       }
       if (baseColorTexture) {
-        GLTFMaterialParser._bindTexture(
-          context,
-          material,
-          baseColorTexture.index,
-          (texture) => {
+        context
+          .get<Texture2D>(GLTFParserType.Texture, baseColorTexture.index)
+          .then((texture) => {
             material.baseTexture = texture;
             GLTFParser.executeExtensionsAdditiveAndParse(
               baseColorTexture.extensions,
@@ -90,9 +63,10 @@ export class GLTFMaterialParser extends GLTFParser {
               material,
               baseColorTexture
             );
-          },
-          "GLTFMaterialParser: baseColorTexture error"
-        );
+          })
+          .catch((e) => {
+            Logger.error("GLTFMaterialParser: baseColorTexture error", e);
+          });
       }
 
       if (material.constructor === PBRMaterial) {
@@ -100,15 +74,14 @@ export class GLTFMaterialParser extends GLTFParser {
         material.roughness = roughnessFactor ?? 1;
         if (metallicRoughnessTexture) {
           GLTFMaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Roughness metallic");
-          GLTFMaterialParser._bindTexture(
-            context,
-            material,
-            metallicRoughnessTexture.index,
-            (texture) => {
+          context
+            .get<Texture2D>(GLTFParserType.Texture, metallicRoughnessTexture.index)
+            .then((texture) => {
               material.roughnessMetallicTexture = texture;
-            },
-            "GLTFMaterialParser: metallicRoughnessTexture error"
-          );
+            })
+            .catch((e) => {
+              Logger.error("GLTFMaterialParser: metallicRoughnessTexture error", e);
+            });
         }
       }
     }
@@ -116,15 +89,14 @@ export class GLTFMaterialParser extends GLTFParser {
     if (material.constructor === PBRMaterial) {
       if (emissiveTexture) {
         GLTFMaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
-        GLTFMaterialParser._bindTexture(
-          context,
-          material,
-          emissiveTexture.index,
-          (texture) => {
+        context
+          .get<Texture2D>(GLTFParserType.Texture, emissiveTexture.index)
+          .then((texture) => {
             material.emissiveTexture = texture;
-          },
-          "GLTFMaterialParser: emissiveTexture error"
-        );
+          })
+          .catch((e) => {
+            Logger.error("GLTFMaterialParser: emissiveTexture error", e);
+          });
       }
 
       if (emissiveFactor) {
@@ -134,15 +106,15 @@ export class GLTFMaterialParser extends GLTFParser {
       if (normalTexture) {
         const { index, scale } = normalTexture;
         GLTFMaterialParser._checkOtherTextureTransform(normalTexture, "Normal");
-        GLTFMaterialParser._bindTexture(
-          context,
-          material,
-          index,
-          (texture) => {
+
+        context
+          .get<Texture2D>(GLTFParserType.Texture, index)
+          .then((texture) => {
             material.normalTexture = texture;
-          },
-          "GLTFMaterialParser: normalTexture error"
-        );
+          })
+          .catch((e) => {
+            Logger.error("GLTFMaterialParser: emissiveTexture error", e);
+          });
 
         if (scale !== undefined) {
           material.normalTextureIntensity = scale;
@@ -152,15 +124,15 @@ export class GLTFMaterialParser extends GLTFParser {
       if (occlusionTexture) {
         const { index, strength, texCoord } = occlusionTexture;
         GLTFMaterialParser._checkOtherTextureTransform(occlusionTexture, "Occlusion");
-        GLTFMaterialParser._bindTexture(
-          context,
-          material,
-          index,
-          (texture) => {
+
+        context
+          .get<Texture2D>(GLTFParserType.Texture, index)
+          .then((texture) => {
             material.occlusionTexture = texture;
-          },
-          "GLTFMaterialParser: occlusionTexture error"
-        );
+          })
+          .catch((e) => {
+            Logger.error("GLTFMaterialParser: occlusionTexture error", e);
+          });
 
         if (strength !== undefined) {
           material.occlusionTextureIntensity = strength;

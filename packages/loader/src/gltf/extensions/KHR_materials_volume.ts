@@ -1,7 +1,8 @@
-import { PBRMaterial } from "@galacean/engine-core";
+import { Logger, PBRMaterial, Texture2D } from "@galacean/engine-core";
+import { Color } from "@galacean/engine-math";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialsVolume } from "./GLTFExtensionSchema";
 
@@ -23,15 +24,15 @@ class KHR_materials_volume extends GLTFExtensionParser {
 
     if (thicknessTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(thicknessTexture, "Thickness texture");
-      GLTFMaterialParser._bindTexture(
-        context,
-        material,
-        thicknessTexture.index,
-        (texture) => {
+
+      context
+        .get<Texture2D>(GLTFParserType.Texture, thicknessTexture.index)
+        .then((texture) => {
           material.thicknessTexture = texture;
-        },
-        "KHR_materials_volume: thickness texture error"
-      );
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_volume: thickness texture error", e);
+        });
     }
   }
 }

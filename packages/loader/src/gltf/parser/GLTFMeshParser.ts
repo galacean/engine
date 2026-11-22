@@ -140,9 +140,6 @@ export class GLTFMeshParser extends GLTFParser {
       if (indices !== undefined) {
         const indexAccessor = gltf.accessors![indices];
         const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, indexAccessor).then((accessorBuffer) => {
-          if (context._isAborted || mesh.destroyed) {
-            return;
-          }
           mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>accessorBuffer.data);
           mesh.addSubMesh(0, indexAccessor.count, mode);
           meshRestoreInfo.indexBuffer = accessorBuffer.restoreInfo;
@@ -250,9 +247,6 @@ export class GLTFMeshParser extends GLTFParser {
     }
 
     return AssetPromise.all(promises).then(() => {
-      if (context._isAborted || mesh.destroyed) {
-        return;
-      }
       for (const blendShape of blendShapeCollection) {
         mesh.addBlendShape(blendShape.blendShape);
         meshRestoreInfo.blendShapes.push(blendShape.restoreInfo);

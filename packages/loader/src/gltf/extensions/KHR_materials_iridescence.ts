@@ -1,7 +1,7 @@
-import { PBRMaterial } from "@galacean/engine-core";
+import { Logger, PBRMaterial, Texture2D } from "@galacean/engine-core";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialsIridescence } from "./GLTFExtensionSchema";
 
@@ -23,27 +23,27 @@ class KHR_materials_iridescence extends GLTFExtensionParser {
 
     if (iridescenceTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(iridescenceTexture, "Iridescence texture");
-      GLTFMaterialParser._bindTexture(
-        context,
-        material,
-        iridescenceTexture.index,
-        (texture) => {
+
+      context
+        .get<Texture2D>(GLTFParserType.Texture, iridescenceTexture.index)
+        .then((texture) => {
           material.iridescenceTexture = texture;
-        },
-        "KHR_materials_iridescence: iridescence texture error"
-      );
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_iridescence: iridescence texture error", e);
+        });
     }
     if (iridescenceThicknessTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(iridescenceThicknessTexture, "IridescenceThickness texture");
-      GLTFMaterialParser._bindTexture(
-        context,
-        material,
-        iridescenceThicknessTexture.index,
-        (texture) => {
+
+      context
+        .get<Texture2D>(GLTFParserType.Texture, iridescenceThicknessTexture.index)
+        .then((texture) => {
           material.iridescenceThicknessTexture = texture;
-        },
-        "KHR_materials_iridescence: iridescence thickness error"
-      );
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_iridescence: iridescence thickness error", e);
+        });
     }
   }
 }

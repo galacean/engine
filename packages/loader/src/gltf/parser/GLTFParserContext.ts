@@ -92,7 +92,7 @@ export class GLTFParserContext {
     }
 
     const glTFSchemaKey = glTFSchemaMap[type];
-    const isSubAsset = !!glTFResourceMap[type];
+    let shouldHandleSubAsset = false;
 
     if (glTFSchemaKey) {
       const glTFItems = this.glTF[glTFSchemaKey];
@@ -104,18 +104,40 @@ export class GLTFParserContext {
               : AssetPromise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index)));
         } else {
           resource = parser.parse(this, index);
-          isSubAsset && this._handleSubAsset(resource, type, index);
+          shouldHandleSubAsset = !!glTFResourceMap[type];
         }
       } else {
         resource = AssetPromise.resolve(null);
       }
     } else {
       resource = parser.parse(this, index);
-      isSubAsset && this._handleSubAsset(resource, type, index);
+      shouldHandleSubAsset = !!glTFResourceMap[type];
     }
 
-    if (resource instanceof AssetPromise) {
-      this._getPromises.push(resource);
+    if (resource instanceof AssetPromise || resource instanceof Promise) {
+      const rawPromise = resource as AssetPromise<T | null> | Promise<T | null>;
+      if (rawPromise instanceof AssetPromise) {
+        this._getPromises.push(rawPromise);
+      }
+      // Single abort gate: suppress downstream continuations and cancel errors once aborted
+      resource = new AssetPromise<T | null>((resolve, reject) => {
+        rawPromise.then(
+          (value) => {
+            if (!this._aborted) {
+              resolve(value);
+            }
+          },
+          (reason) => {
+            if (!this._aborted) {
+              reject(reason);
+            }
+          }
+        );
+      });
+    }
+
+    if (shouldHandleSubAsset) {
+      this._handleSubAsset(resource, type, index);
     }
     cache.set(cacheKey, resource);
     return resource;
@@ -136,9 +158,12 @@ export class GLTFParserContext {
         this.get<AnimationClip>(GLTFParserType.Animation),
         this.get<AnimatorController>(GLTFParserType.AnimatorController)
       ]).then(() => {
-        if (this._aborted || this.glTFResource.destroyed) {
-          this._abort();
+        if (this._aborted) {
           return this.glTFResource;
+        }
+        if (this.glTFResource.destroyed) {
+          this._abort();
+          throw new Error("GLTFResource was destroyed during load.");
         }
         const glTFResource = this.glTFResource;
         const animatorController = glTFResource.animatorController;
@@ -251,9 +276,6 @@ export class GLTFParserContext {
 
       (<AssetPromise<T>>resource)
         .then((item: T) => {
-          if (this._aborted) {
-            return;
-          }
           if (index == undefined) {
             this.glTFResource[glTFResourceKey] = item;
           } else {
@@ -282,9 +304,7 @@ export class GLTFParserContext {
           }
         })
         .catch((e) => {
-          if (!this._aborted) {
-            Logger.error("GLTFParserContext", `Failed to load ${glTFResourceKey} ${index}: ${e}`);
-          }
+          Logger.error("GLTFParserContext", `Failed to load ${glTFResourceKey} ${index}: ${e}`);
         });
     }
   }

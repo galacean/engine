@@ -19,16 +19,11 @@ export class GLTFAnimatorControllerParser extends GLTFParser {
     return context
       .get<AnimationClip>(GLTFParserType.Animation)
       .then((animations) => {
-        if (context._isAborted) {
-          return null;
-        }
         const animatorController = this._createAnimatorController(context, animations);
         return AssetPromise.resolve(animatorController);
       })
       .catch((e) => {
-        if (!context._isAborted) {
-          Logger.error("GLTFAnimatorControllerParser: animator controller error", e);
-        }
+        Logger.error("GLTFAnimatorControllerParser: animator controller error", e);
       });
   }
 

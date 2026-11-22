@@ -1,7 +1,7 @@
-import { PBRMaterial } from "@galacean/engine-core";
+import { Logger, PBRMaterial, Texture2D } from "@galacean/engine-core";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialsSpecular } from "./GLTFExtensionSchema";
 
@@ -23,28 +23,28 @@ class KHR_materials_specular extends GLTFExtensionParser {
 
     if (specularTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(specularTexture, "Specular intensity texture");
-      GLTFMaterialParser._bindTexture(
-        context,
-        material,
-        specularTexture.index,
-        (texture) => {
+
+      context
+        .get<Texture2D>(GLTFParserType.Texture, specularTexture.index)
+        .then((texture) => {
           material.specularIntensityTexture = texture;
-        },
-        "KHR_materials_specular: specularTexture error"
-      );
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_specular: specularTexture error", e);
+        });
     }
 
     if (specularColorTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(specularColorTexture, "Specular color texture");
-      GLTFMaterialParser._bindTexture(
-        context,
-        material,
-        specularColorTexture.index,
-        (texture) => {
+
+      context
+        .get<Texture2D>(GLTFParserType.Texture, specularColorTexture.index)
+        .then((texture) => {
           material.specularColorTexture = texture;
-        },
-        "KHR_materials_specular: SpecularColorTexture error"
-      );
+        })
+        .catch((e) => {
+          Logger.error("KHR_materials_specular: SpecularColorTexture error", e);
+        });
     }
   }
 }
