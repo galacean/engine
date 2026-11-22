@@ -1,0 +1,14 @@
+packages/core/src/utils/DisorderedArray.ts
+  h_dd004f51a3e5ec 14,104-106,110-113,115,119-121,127-129,131,149,154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "021089379d95213df3f593a4d80e2bbd6e6f1e9e",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
