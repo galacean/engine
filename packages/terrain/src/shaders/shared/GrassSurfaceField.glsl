@@ -6,6 +6,8 @@
 // Surface and attached blades use the same distance at their shared root.
 float terrainProjectGrassSurfaceField(vec3 positionWS) {
   float vista = grassColorFieldVistaBlendWeight(positionWS);
+  if (vista <= 0.001) return sampleGrassColorField(positionWS.xz);
+  if (vista >= 0.999) return sampleGrassVistaColorField(positionWS.xz);
   return mix(sampleGrassColorField(positionWS.xz), sampleGrassVistaColorField(positionWS.xz), vista);
 }
 

@@ -34,8 +34,10 @@ struct SurfaceDepthShadowVaryings {
   #ifdef MATERIAL_SURFACE_ALPHA_CLIP
     vec2 uv;
   #endif
-  vec3 sourcePositionWS;
-  #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
+  #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
+    vec3 sourcePositionWS;
+  #endif
+  #if defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && defined(RENDERER_LOD_DITHER)
     float assetAssemblyLodFade;
   #endif
   #ifdef RENDERER_GENERATION_REVEAL
@@ -43,6 +45,9 @@ struct SurfaceDepthShadowVaryings {
     #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
       vec3 treeDissolveTint;
     #endif
+  #endif
+  #if !defined(MATERIAL_SURFACE_ALPHA_CLIP) && !defined(TERRAIN_PROJECT_ENTRANCE_WAVE) && !(defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && defined(RENDERER_LOD_DITHER)) && !defined(RENDERER_GENERATION_REVEAL)
+    float _emptyVaryingPad;
   #endif
 };
 
@@ -98,7 +103,9 @@ SurfaceDepthShadowVaryings terrainProjectBuildSurfaceDepthShadowVaryings(Attribu
   #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
     positionOS.xyz = terrainProjectAssetAssemblyPositionOS(positionOS.xyz, attributes);
     normalOS = terrainProjectAssetAssemblyNormalOS(normalOS, attributes);
-    varyings.assetAssemblyLodFade = terrainProjectAssetAssemblyLodFade(attributes);
+    #ifdef RENDERER_LOD_DITHER
+      varyings.assetAssemblyLodFade = terrainProjectAssetAssemblyLodFade(attributes);
+    #endif
   #endif
   vec3 positionWS = (renderer_ModelMat * positionOS).xyz;
   vec3 normalWS = normalize(mat3(renderer_NormalMat) * normalOS);
@@ -120,7 +127,12 @@ SurfaceDepthShadowVaryings terrainProjectBuildSurfaceDepthShadowVaryings(Attribu
       proceduralTreeGroundWindCarrierNormalWS
     );
   #endif
-  varyings.sourcePositionWS = positionWS;
+  #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
+    varyings.sourcePositionWS = positionWS;
+  #endif
+  #if !defined(MATERIAL_SURFACE_ALPHA_CLIP) && !defined(TERRAIN_PROJECT_ENTRANCE_WAVE) && !(defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && defined(RENDERER_LOD_DITHER)) && !defined(RENDERER_GENERATION_REVEAL)
+    varyings._emptyVaryingPad = 0.0;
+  #endif
   #ifdef RENDERER_GENERATION_REVEAL
     #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
       varyings.treeDissolveTint = material_TreeDissolvePalette[terrainProjectProceduralTreeCatalogIndex(attributes)].rgb;
@@ -145,7 +157,7 @@ void terrainProjectDiscardInvalidSurfaceDepthShadow(SurfaceDepthShadowVaryings v
   #if defined(MATERIAL_SURFACE_ALPHA_CLIP) && defined(MATERIAL_HAS_BASETEXTURE)
     if (texture2D(material_BaseTexture, varyings.uv).a < 0.5) discard;
   #endif
-  #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
+  #if defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && defined(RENDERER_LOD_DITHER)
     applyTerrainProjectInstanceLodDither(gl_FragCoord.xy, varyings.assetAssemblyLodFade);
   #else
     applyTerrainProjectLodDither(gl_FragCoord.xy);

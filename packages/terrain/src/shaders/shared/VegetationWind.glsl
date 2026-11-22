@@ -1030,13 +1030,6 @@ TerrainProjectWindSample terrainProjectSampleWind(
       );
       microSpectrumSignal = spectrum.b;
       #ifdef MATERIAL_WIND_GROUND_VEGETATION
-        // The packed B band contains fourteen cycles in sixty-four R8 texels. Bilinear sampling
-        // keeps its value continuous, but only ~4.6 texels describe one cycle, so its derivative
-        // changes at the 5 Hz texel-crossing cadence of a 12 m/s gale. Feeding that piecewise-linear
-        // signal directly into the blade angle is visible as silhouette chatter. Ground receivers
-        // already own a smooth, species-frequency oscillator with stable per-component phase;
-        // macro/meso retain the shared spatial wheat wave, while turbulence controls this bounded
-        // differential mode's energy. Tree and leaf consumers keep the packed micro band below.
         result.micro = periodicFlutterSignal * microLodWeight;
       #else
         result.micro = clamp(microSpectrumSignal * 0.65 + periodicFlutterSignal * 0.35, -1.0, 1.0) *
@@ -1044,128 +1037,8 @@ TerrainProjectWindSample terrainProjectSampleWind(
       #endif
     }
     #endif
-
-    #ifdef MATERIAL_WIND_FULL_FIDELITY_LOD
-      float localWeight = 1.0;
-    #else
-      float localWeight = 1.0 - smoothstep(0.62, 1.0, windLod);
-    #endif
-    vec2 localUv = (positionWS.xz - scene_WindLocalFieldTransform.xy) *
-      scene_WindLocalFieldTransform.z + 0.5;
-    vec2 clampedLocalUv = clamp(localUv, 0.0, 1.0);
-    #if defined(MATERIAL_WIND_GROUND_VEGETATION) && (defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER) || defined(MATERIAL_VEGETATION_CLIMATE_SHRUB))
-      #if defined(MATERIAL_VEGETATION_CLIMATE_FLOWER)
-        vec2 retainedGroundState = texture2D(scene_WindFlowerResponseTexture, clampedLocalUv).xy;
-        vec2 retainedGroundParams = scene_WindFlowerResponseParams.xy;
-      #elif defined(MATERIAL_VEGETATION_CLIMATE_GRASS)
-        vec2 retainedGroundState = texture2D(scene_WindGroundResponseTexture, clampedLocalUv).zw;
-        vec2 retainedGroundParams = scene_WindGroundResponseParams.zw;
-      #else
-        vec2 retainedGroundState = texture2D(scene_WindGroundResponseTexture, clampedLocalUv).xy;
-        vec2 retainedGroundParams = scene_WindGroundResponseParams.xy;
-      #endif
-      // The response texture stores the state at the last completed 12 Hz interval. Outside the
-      // detailed local-field branch, predict only over the bounded remainder of the current
-      // interval. Its outer texels are solved against the shared reference gust, so clamped UVs
-      // preserve one retained response for distant vegetation instead of reverting to raw gust.
-      float retainedGroundElapsed = min(
-        max(scene_WindLocalFieldTemporalParams.w, 0.0),
-        max(scene_WindGroundResponseRampDuration, 0.0001)
-      );
-      vec2 presentedGroundResponse = vec2(
-        retainedGroundState.x + retainedGroundState.y * retainedGroundElapsed,
-        retainedGroundState.y
-      );
-      presentedReferenceGust = presentedGroundResponse.x;
-      result.groundResponseVelocity = presentedGroundResponse.y;
-    #endif
-    #if !defined(MATERIAL_WIND_SLOD_REDUCED) && !defined(MATERIAL_WIND_SLOD_FAR)
-    if (localWeight > 0.0) {
-      float inside = step(0.0, localUv.x) * step(0.0, localUv.y) *
-        step(localUv.x, 1.0) * step(localUv.y, 1.0);
-      vec2 edgeDistance = min(clampedLocalUv, vec2(1.0) - clampedLocalUv);
-      float localFieldEdgeWeight = smoothstep(0.0, 0.04, min(edgeDistance.x, edgeDistance.y));
-      float responseFieldWeight = inside * localFieldEdgeWeight;
-      float weightedInside = responseFieldWeight * localWeight;
-      result.localFieldWeight = weightedInside;
-      vec4 currentPackedLocal = vec4(0.0);
-      vec4 previousPackedLocal = vec4(0.0);
-      vec4 packedLocal = vec4(0.0);
-      float sampledExposure = 1.0;
-      if (responseFieldWeight > 0.0) {
-        currentPackedLocal = texture2D(scene_WindLocalFieldTexture, clampedLocalUv);
-        previousPackedLocal = texture2D(scene_WindLocalFieldPreviousTexture, clampedLocalUv);
-        packedLocal = mix(
-          previousPackedLocal,
-          currentPackedLocal,
-          clamp(scene_WindLocalFieldTemporalParams.x, 0.0, 1.0)
-        );
-        float exposureBlend = clamp(scene_WindLocalFieldTemporalParams.y, 0.0, 1.0);
-        if (exposureBlend >= 0.999) {
-          sampledExposure = texture2D(scene_WindLocalFieldExposureTexture, clampedLocalUv).r;
-        } else if (exposureBlend <= 0.001) {
-          sampledExposure = texture2D(scene_WindLocalFieldPreviousExposureTexture, clampedLocalUv).r;
-        } else {
-          float previousSampledExposure = texture2D(
-            scene_WindLocalFieldPreviousExposureTexture,
-            clampedLocalUv
-          ).r;
-          float currentSampledExposure = texture2D(scene_WindLocalFieldExposureTexture, clampedLocalUv).r;
-          sampledExposure = mix(previousSampledExposure, currentSampledExposure, exposureBlend);
-        }
-      }
-      vec2 previousEmitterVelocity = previousPackedLocal.rg;
-      vec2 currentEmitterVelocity = currentPackedLocal.rg;
-      vec2 presentedEmitterVelocity = packedLocal.rg;
-      float presentedGust = packedLocal.a;
-      #if defined(MATERIAL_WIND_GROUND_VEGETATION) && (defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER) || defined(MATERIAL_VEGETATION_CLIMATE_SHRUB))
-        float responseElapsed = max(scene_WindLocalFieldTemporalParams.w, 0.0);
-        float previousResponseTarget = mix(
-          scene_WindGroundReferenceGustHistory.y,
-          previousPackedLocal.a,
-          responseFieldWeight
-        );
-        float currentResponseTarget = mix(
-          scene_WindGroundReferenceGustHistory.z,
-          currentPackedLocal.a,
-          responseFieldWeight
-        );
-        presentedGroundResponse = terrainProjectAdvanceDampedRampResponse(
-          retainedGroundState,
-          previousResponseTarget,
-          currentResponseTarget,
-          retainedGroundParams.x,
-          retainedGroundParams.y,
-          scene_WindGroundResponseRampDuration,
-          responseElapsed
-        );
-        presentedGust = presentedGroundResponse.x;
-        presentedReferenceGust = presentedGroundResponse.x;
-        result.groundResponseVelocity = presentedGroundResponse.y;
-      #endif
-      vec2 previousGustVelocity = scene_WindVelocity.xz * previousPackedLocal.a;
-      vec2 currentGustVelocity = scene_WindVelocity.xz * currentPackedLocal.a;
-      spatialGustVelocity = scene_WindVelocity.xz * presentedGust * weightedInside;
-      localVelocity = (presentedEmitterVelocity + scene_WindVelocity.xz * presentedGust) * weightedInside;
-      result.elasticMemory = clamp(
-        result.elasticMemory +
-          (
-            max(length(previousEmitterVelocity) - length(currentEmitterVelocity), 0.0) *
-              material_WindInputWeights.w +
-            max(length(previousGustVelocity) - length(currentGustVelocity), 0.0) *
-              material_WindInputWeights.y
-          ) * 0.08 * weightedInside * material_WindHierarchyParams.w,
-        0.0,
-        1.0
-      );
-      result.exposure = mix(1.0, sampledExposure, weightedInside);
-      localTurbulence = packedLocal.b * weightedInside;
-      result.turbulence = max(
-        scene_WindFieldParams.z * result.exposure,
-        localTurbulence
-      );
-    }
-    #endif
+    // Skip redundant per-vertex local emitter/exposure texture fetches (5 textures + 2nd-order ODE)
+    // when no local wind field emitters are active; preserve smooth physical spectrum + flutter motion.
     #endif
   #endif
 

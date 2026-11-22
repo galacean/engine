@@ -369,6 +369,74 @@
   }
 
   #if defined(MATERIAL_TERRAIN_UNTEXTURED_SINGLE_MAP) || defined(MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP)
+  // Lightweight root-only evaluation for grass vertices: omits unused tangentNormal,
+  // metallic, smoothness, ambientOcclusion and sandWeight blending.
+  TerrainProjectLayerBlend terrainProjectSimpleGrassRootSurface(vec3 positionWS) {
+    TerrainProjectLayerBlend blend;
+    #ifdef TERRAIN_PROJECT_SAND_GLINTS
+      blend.sandWeight = 0.0;
+    #endif
+    blend.albedo = vec3(0.0);
+    blend.tangentNormal = vec3(0.0, 0.0, 1.0);
+    blend.metallic = 0.0;
+    blend.smoothness = 0.0;
+    blend.ambientOcclusion = 1.0;
+    blend.snowResponse = 0.0;
+    blend.grassWeight = 0.0;
+    blend.roadWeight = 0.0;
+    blend.weight = 0.0;
+    int region;
+    int alphamapOffset;
+    int alphamapCount;
+    if (!terrainProjectResolveLayerGroups(positionWS.xz, region, alphamapOffset, alphamapCount)) return blend;
+    vec4 weights = terrainProjectSampleAlphamap(alphamapOffset, positionWS.xz, region);
+    vec4 layerIndices = GROUND_TerrainFirstLayerIndices;
+    #ifdef MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP
+      vec4 sharedColor = vec4(0.0);
+      if (dot(weights, GROUND_TerrainSimpleTextureChannels) > 0.0) {
+        vec4 texel = textureLod(
+          GROUND_TerrainLayerSingleDiffuse,
+          positionWS.xz * GROUND_TerrainSimpleTextureTransform.xy + GROUND_TerrainSimpleTextureTransform.zw,
+          0.0
+        );
+        sharedColor = mix(GROUND_TerrainSimpleTextureMin, GROUND_TerrainSimpleTextureMax, texel);
+      }
+    #endif
+    for (int channel = 0; channel < 4; channel++) {
+      if (layerIndices[channel] >= -0.5) {
+        float weight = weights[channel];
+        vec4 color = GROUND_TerrainSimpleColors[channel];
+        vec4 surface = GROUND_TerrainSimpleSurfaces[channel];
+        #ifdef MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP
+          color = mix(color, sharedColor, GROUND_TerrainSimpleTextureChannels[channel]);
+        #endif
+        #ifdef MATERIAL_TERRAIN_GRASS_SHADING
+          if (surface.w == 1.0) color.rgb = vec3(1.0);
+          #ifdef MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP
+            if (surface.w == 2.0) color.rgb = GROUND_TerrainSimpleTextureChannels[channel] > 0.5 ? color.rgb * GROUND_TerrainRoadColor.rgb : GROUND_TerrainRoadColor.rgb;
+          #else
+            if (surface.w == 2.0) color.rgb = GROUND_TerrainRoadColor.rgb;
+          #endif
+        #endif
+        #if defined(MATERIAL_TERRAIN_GRASS_SHADING) || defined(MATERIAL_TERRAIN_ROAD_PALETTE)
+          blend.roadWeight += (surface.w == 2.0 ? weight : 0.0);
+        #endif
+        blend.grassWeight += (surface.w == 1.0 ? weight : 0.0);
+        blend.albedo += color.rgb * weight;
+        blend.snowResponse += surface.z * weight;
+        blend.weight += weight;
+      }
+    }
+    if (blend.weight > 0.0) {
+      float inverseWeight = 1.0 / blend.weight;
+      blend.albedo *= inverseWeight;
+      blend.snowResponse *= inverseWeight;
+      blend.grassWeight *= inverseWeight;
+      blend.roadWeight *= inverseWeight;
+    }
+    return blend;
+  }
+
   TerrainProjectLayerBlend terrainProjectSimpleGroundSurface(vec3 positionWS, vec2 positionDx, vec2 positionDy) {
     TerrainProjectLayerBlend blend;
     #ifdef TERRAIN_PROJECT_SAND_GLINTS

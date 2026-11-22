@@ -75,7 +75,7 @@ export function configureDesertClouds(environment: WorldEnvironmentRuntime, oasi
       ? { baseAltitude: 670, thickness: 310 }
       : { baseAltitude: 950, thickness: 170 });
     if (oasisCoverage !== undefined) {
-      environment.setCloudQuality("high");
+      environment.setCloudQuality("economy");
       environment.setCloudShapeProfile({ envelopeScale: 0.47, topDensityMultiplier: 0.28, detailNoiseMultiplier: 1.12 });
     }
   } finally {

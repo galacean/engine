@@ -19,6 +19,9 @@ Shader "Terrain/Surface" {
       FragmentShader = SurfaceFragment;
 
       #define TERRAIN_PROJECT_FORWARD_PASS
+      #ifndef RENDERER_WORLD_PICK
+        #define TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+      #endif
       #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && \
         ((defined(MATERIAL_HAS_NORMALTEXTURE) && !defined(MATERIAL_WORLD_NORMAL)) || defined(MATERIAL_ENABLE_COVERAGE))
         #define NEED_VERTEX_TANGENT
@@ -54,7 +57,7 @@ Shader "Terrain/Surface" {
           float worldPickId;
         #endif
         vec2 uv;
-        vec3 sourcePositionOS;
+        float sourcePositionOSY;
         #ifdef MATERIAL_COVERAGE_VERTEX_MASK
           vec4 coverageColor;
         #endif
@@ -64,7 +67,9 @@ Shader "Terrain/Surface" {
         vec3 positionWS;
         #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
           vec3 assetAssemblyColor;
-          float assetAssemblyLodFade;
+          #ifdef RENDERER_LOD_DITHER
+            float assetAssemblyLodFade;
+          #endif
         #endif
         #ifdef RENDERER_GENERATION_REVEAL
           vec4 generationRevealData;
@@ -77,8 +82,10 @@ Shader "Terrain/Surface" {
         #endif
         vec3 normalWS;
         #ifdef NEED_VERTEX_TANGENT
-          vec3 tangentWS;
-          vec3 bitangentWS;
+          vec4 tangentWS;
+        #endif
+        #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+          float cloudShadow;
         #endif
         vec4 positionCS;
         #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
@@ -135,7 +142,7 @@ Shader "Terrain/Surface" {
           #endif
         #endif
 
-        varyings.sourcePositionOS = positionOS.xyz;
+        varyings.sourcePositionOSY = positionOS.y;
         #ifdef MATERIAL_COVERAGE_USE_LOCAL_NORMAL
           varyings.sourceNormalOS = normalOS;
         #endif
@@ -146,7 +153,9 @@ Shader "Terrain/Surface" {
             tangentOS.xyz = terrainProjectAssetAssemblyTangentOS(tangentOS.xyz, attributes);
           #endif
           varyings.assetAssemblyColor = terrainProjectAssetAssemblyColor(attributes);
-          varyings.assetAssemblyLodFade = terrainProjectAssetAssemblyLodFade(attributes);
+          #ifdef RENDERER_LOD_DITHER
+            varyings.assetAssemblyLodFade = terrainProjectAssetAssemblyLodFade(attributes);
+          #endif
         #endif
 
         #ifdef RENDERER_HAS_UV
@@ -214,8 +223,10 @@ Shader "Terrain/Surface" {
           #endif
         #endif
         #ifdef NEED_VERTEX_TANGENT
-          varyings.tangentWS = proceduralTreeTangentWS;
-          varyings.bitangentWS = cross(varyings.normalWS, varyings.tangentWS) * tangentOS.w;
+          varyings.tangentWS = vec4(proceduralTreeTangentWS, tangentOS.w);
+        #endif
+        #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+          varyings.cloudShadow = sampleVolumetricCloudShadow(varyings.positionWS);
         #endif
         #if defined(TERRAIN_PROJECT_ENTRANCE_WAVE) || defined(RENDERER_GENERATION_REVEAL) || defined(MATERIAL_WIND_PROCEDURAL_TREE)
           varyings.positionCS = camera_VPMat * vec4(varyings.positionWS, 1.0);
@@ -243,7 +254,7 @@ Shader "Terrain/Surface" {
       }
 
       void SurfaceFragment(Varyings varyings) {
-        #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
+        #if defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && defined(RENDERER_LOD_DITHER)
           applyTerrainProjectInstanceLodDither(gl_FragCoord.xy, varyings.assetAssemblyLodFade);
         #else
           applyTerrainProjectLodDither(gl_FragCoord.xy);
@@ -263,7 +274,12 @@ Shader "Terrain/Surface" {
           gl_FragColor = vec4(mod(pickId, 256.0), mod(floor(pickId / 256.0), 256.0), floor(pickId / 65536.0), 255.0) / 255.0;
           return;
         #endif
-        TerrainProjectLightingResult lighting = evaluateTerrainProjectLighting(varyings, surfaceData);
+        #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+          float shadowAttenuation = sampleTerrainProjectShadow(varyings) * varyings.cloudShadow;
+          TerrainProjectLightingResult lighting = evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation);
+        #else
+          TerrainProjectLightingResult lighting = evaluateTerrainProjectLighting(varyings, surfaceData);
+        #endif
         vec4 color = vec4(terrainProjectFinalLighting(lighting), 1.0);
         #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
           color.rgb = applyTerrainProjectEntranceWave(color.rgb, varyings.positionWS);

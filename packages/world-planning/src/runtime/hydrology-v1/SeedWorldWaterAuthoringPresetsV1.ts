@@ -58,7 +58,7 @@ export function registerSeedWorldAuthoredBasinAuthoringV1(
         geometry: "high",
         surfaceShading: "high",
         sceneFields: "scene-color-depth",
-        opaqueDownsampling: "2x",
+        opaqueDownsampling: "4x",
         reflectionBudget: { environment: true, screenSpace: true },
         query: "dense",
         spatialField
@@ -91,13 +91,12 @@ export function registerSeedWorldLakeAuthoringV1(
     assets.registerQualityPlan(
       createWaterQualityPlanV2({
         id: qualityPlanId,
-        // Heightfield currently selects its material octave budget from the
-        // geometry axis. Both axes therefore stay High to preserve the exact
-        // Integrated Look; Seed varies only query and spatial-field budgets.
+        // Keep High geometry/surfaceShading for AOT cache hit and exact Integrated Look;
+        // use 4x opaque downsampling to cut mobile compute mipmap cost.
         geometry: "high",
         surfaceShading: "high",
         sceneFields: "scene-color-depth",
-        opaqueDownsampling: "2x",
+        opaqueDownsampling: "4x",
         reflectionBudget: { environment: true, screenSpace: true },
         query: "off",
         spatialField: {

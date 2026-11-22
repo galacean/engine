@@ -46,33 +46,44 @@ struct Attributes {
   #define TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
   #if !defined(RENDERER_GRASS_MATCH_GROUND) && !defined(MATERIAL_GRASS_GROUND_SURFACE) && (defined(RENDERER_TERRAIN_UNTEXTURED_SINGLE_MAP) || defined(RENDERER_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP))
     #define TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
+    #if !defined(RENDERER_ROCK_GRASS_GROUND) && !defined(RENDERER_GRASS_ROCK_APPEARANCE) && !defined(TERRAIN_PROJECT_SURFACE_GRASS_ATTACHMENT_ACTIVE)
+      #define TERRAIN_PROJECT_GRASS_PACKED_VARYINGS
+    #endif
   #endif
 #endif
 struct Varyings {
-  #ifdef RENDERER_GRASS_ROCK_APPEARANCE
-    vec4 rockAppearance;
-    vec4 rockAppearanceNormalSnow;
-  #endif
-
   #ifdef RENDERER_WORLD_PICK
     float worldPickId;
   #endif
-  vec3 rootPositionWS;
-  vec3 terrainNormalWS;
-  vec3 positionWS;
-  vec3 grassColor;
-  vec3 surfaceWeights;
-  #ifdef RENDERER_ROCK_GRASS_GROUND
-    vec4 rockGround;
-    vec4 rockGroundNormal;
-  #endif
-  #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
+  #ifdef TERRAIN_PROJECT_GRASS_PACKED_VARYINGS
+    vec3 positionWS;
     vec4 rootGroundBase;
-    vec4 groundReliefNormalWeight;
+    vec3 shadingNormalWS;
+    #ifndef SCENE_SURFACE_CLIMATE_DRY
+      float tipWeight;
+    #endif
+  #else
+    #ifdef RENDERER_GRASS_ROCK_APPEARANCE
+      vec4 rockAppearance;
+      vec4 rockAppearanceNormalSnow;
+    #endif
+    vec3 rootPositionWS;
+    vec3 terrainNormalWS;
+    vec3 positionWS;
+    vec3 grassColor;
+    vec3 surfaceWeights;
+    #ifdef RENDERER_ROCK_GRASS_GROUND
+      vec4 rockGround;
+      vec4 rockGroundNormal;
+    #endif
+    #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
+      vec4 rootGroundBase;
+      vec4 groundReliefNormalWeight;
+    #endif
+    float tipWeight;
+    vec3 windCarrierNormalWS;
+    vec3 windBentNormalWS;
   #endif
-  float tipWeight;
-  vec3 windCarrierNormalWS;
-  vec3 windBentNormalWS;
   vec4 positionCS;
   #if SCENE_FOG_MODE != 0
     vec3 positionVS;
@@ -178,29 +189,38 @@ vec3 grassWindPosition(
 
 Varyings grassCulledVaryings() {
   Varyings output;
-  #ifdef RENDERER_GRASS_ROCK_APPEARANCE
-    output.rockAppearance = vec4(0.0);
-    output.rockAppearanceNormalSnow = vec4(0.0, 1.0, 0.0, 0.0);
-  #endif
   #ifdef RENDERER_WORLD_PICK
     output.worldPickId = 0.0;
   #endif
-  output.rootPositionWS = vec3(0.0);
-  output.terrainNormalWS = vec3(0.0, 1.0, 0.0);
-  output.positionWS = vec3(0.0);
-  output.grassColor = vec3(0.0);
-  output.surfaceWeights = vec3(0.0);
-  #ifdef RENDERER_ROCK_GRASS_GROUND
-    output.rockGround = vec4(0.0);
-    output.rockGroundNormal = vec4(0.0, 1.0, 0.0, 0.0);
-  #endif
-  #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
+  #ifdef TERRAIN_PROJECT_GRASS_PACKED_VARYINGS
+    output.positionWS = vec3(0.0);
     output.rootGroundBase = vec4(0.0);
-    output.groundReliefNormalWeight = vec4(0.0, 1.0, 0.0, 0.0);
+    output.shadingNormalWS = vec3(0.0, 1.0, 0.0);
+    #ifndef SCENE_SURFACE_CLIMATE_DRY
+      output.tipWeight = 0.0;
+    #endif
+  #else
+    #ifdef RENDERER_GRASS_ROCK_APPEARANCE
+      output.rockAppearance = vec4(0.0);
+      output.rockAppearanceNormalSnow = vec4(0.0, 1.0, 0.0, 0.0);
+    #endif
+    output.rootPositionWS = vec3(0.0);
+    output.terrainNormalWS = vec3(0.0, 1.0, 0.0);
+    output.positionWS = vec3(0.0);
+    output.grassColor = vec3(0.0);
+    output.surfaceWeights = vec3(0.0);
+    #ifdef RENDERER_ROCK_GRASS_GROUND
+      output.rockGround = vec4(0.0);
+      output.rockGroundNormal = vec4(0.0, 1.0, 0.0, 0.0);
+    #endif
+    #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
+      output.rootGroundBase = vec4(0.0);
+      output.groundReliefNormalWeight = vec4(0.0, 1.0, 0.0, 0.0);
+    #endif
+    output.tipWeight = 0.0;
+    output.windCarrierNormalWS = vec3(0.0, 1.0, 0.0);
+    output.windBentNormalWS = vec3(0.0, 1.0, 0.0);
   #endif
-  output.tipWeight = 0.0;
-  output.windCarrierNormalWS = vec3(0.0, 1.0, 0.0);
-  output.windBentNormalWS = vec3(0.0, 1.0, 0.0);
   output.positionCS = vec4(2.0, 2.0, 2.0, 1.0);
   #if SCENE_FOG_MODE != 0
     output.positionVS = vec3(0.0);
@@ -232,6 +252,89 @@ Varyings GrassVertex(Attributes attributes) {
   #ifdef RENDERER_WORLD_PICK
     output.worldPickId = renderer_WorldPickBase + float(gl_InstanceID) * renderer_WorldPickInstanced;
   #endif
+  #ifdef TERRAIN_PROJECT_GRASS_PACKED_VARYINGS
+    vec3 positionOS = terrainProjectDetailPositionOS(attributes.POSITION, attributes);
+    vec3 rootOS = terrainProjectDetailOriginOS(attributes);
+    vec4 rootPosition = renderer_ModelMat * vec4(rootOS, 1.0);
+    vec3 vRootPositionWS = rootPosition.xyz / rootPosition.w;
+    #ifdef RENDERER_SEED_WORLD_DETAIL_COMPACT
+      vec3 vTerrainNormalWS = normalize(attributes.DETAIL_TERRAIN_NORMAL);
+      vec3 vSurfaceWeights = attributes.DETAIL_SURFACE_WEIGHTS;
+    #else
+      vec3 vTerrainNormalWS = vec3(0.0, 1.0, 0.0);
+      vec3 vSurfaceWeights = vec3(1.0, 0.0, 0.0);
+    #endif
+
+    float bladeScale = terrainProjectGrassDistanceVisibility(vRootPositionWS);
+    #ifdef RENDERER_GRASS_DENSITY_LOD
+      bladeScale *= terrainProjectGrassDensityVisibility(vRootPositionWS);
+    #endif
+    farmWeight = terrainProjectFarmGroundCoverage(vRootPositionWS.xz);
+    bladeScale *= terrainProjectFarmGrassScale(vSurfaceWeights.x, farmWeight);
+    if (bladeScale <= 0.0001) {
+      return grassCulledVaryings();
+    }
+    positionOS = mix(rootOS, positionOS, bladeScale);
+
+    float authoredHeight = 0.16685753;
+    float tipWeight = clamp(attributes.POSITION.y / authoredHeight, 0.0, 1.0);
+
+    reliefWeight = terrainProjectSurfaceReliefWeight(vRootPositionWS);
+    // Keep physical wind sway & directional wind normal with 0 extra finite-difference spectrum fetches.
+    int carrierNormalMode = reliefWeight >= 0.9999 ? 0 : 1;
+
+    vec3 vWindCarrierNormalWS;
+    vec3 vWindBentNormalWS;
+    vec4 worldPosition = renderer_ModelMat * vec4(positionOS, 1.0);
+    worldPosition.xyz = grassWindPosition(
+      vRootPositionWS,
+      worldPosition.xyz,
+      tipWeight,
+      carrierNormalMode,
+      vWindCarrierNormalWS,
+      vWindBentNormalWS
+    );
+    output.positionWS = worldPosition.xyz / worldPosition.w;
+    output.positionCS = camera_VPMat * worldPosition;
+    #if SCENE_FOG_MODE != 0
+      output.positionVS = (camera_ViewMat * worldPosition).xyz;
+    #endif
+    #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
+      vec3 probeIrradiance;
+      bool hasProbe = sampleProbeVolume(
+        output.positionWS,
+        vTerrainNormalWS,
+        normalize(camera_Position - output.positionWS),
+        probeIrradiance
+      );
+      output.probeIrradiance = probeIrradiance;
+      output.probeWeight = hasProbe ? 1.0 : 0.0;
+    #endif
+    #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
+      output.shadowCoord = getShadowCoord(output.positionWS);
+    #endif
+    gl_Position = output.positionCS;
+
+    TerrainProjectLayerBlend root = terrainProjectSimpleGrassRootSurface(vRootPositionWS);
+    vec3 rootColor = terrainProjectGroundColor(root, vRootPositionWS);
+    rootColor = terrainProjectBlendFarmGroundColor(rootColor, vRootPositionWS.xz, farmWeight);
+    output.rootGroundBase = vec4(rootColor, root.snowResponse);
+
+    float bladeShadeWeight = terrainProjectGrassBladeShadeWeight(tipWeight);
+    vec3 windFieldNormal = terrainProjectGrassWindFieldNormal(vTerrainNormalWS, vWindCarrierNormalWS, vWindBentNormalWS);
+    vec3 vShadingNormal = normalize(mix(vTerrainNormalWS, windFieldNormal, bladeShadeWeight));
+    if (reliefWeight > 0.0) {
+      vec3 reliefNormal = terrainProjectSurfaceReliefNormal(
+        vRootPositionWS, vTerrainNormalWS, root.grassWeight * root.weight
+      );
+      vShadingNormal = normalize(mix(vShadingNormal, reliefNormal, reliefWeight));
+    }
+    output.shadingNormalWS = vShadingNormal;
+    #ifndef SCENE_SURFACE_CLIMATE_DRY
+      output.tipWeight = tipWeight;
+    #endif
+    return output;
+  #else
   #ifdef MATERIAL_GRASS_GROUND_SURFACE
     // A ground surface shares the grass palette and lighting, but has no blade deformation or distance collapse.
     vec4 worldPosition = renderer_ModelMat * vec4(attributes.POSITION, 1.0);
@@ -364,6 +467,7 @@ Varyings GrassVertex(Attributes attributes) {
   #endif
 
   return output;
+  #endif
 }
 
 void GrassFragment(Varyings input) {
@@ -416,6 +520,48 @@ void GrassFragment(Varyings input) {
       color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
     }
     gl_FragColor = vec4(color, farmGroundWeight);
+  #elif defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS)
+    vec3 surfaceColor = input.rootGroundBase.rgb;
+    vec3 shadingNormal = normalize(input.shadingNormalWS);
+    SurfaceData surfaceData = terrainProjectBuildSurfaceData(
+      input,
+      surfaceColor,
+      shadingNormal,
+      0.0,
+      0.0,
+      1.0
+    );
+    #ifndef SCENE_SURFACE_CLIMATE_DRY
+      if (dot(scene_SurfaceClimate, scene_SurfaceClimate) > 0.0) {
+        float bladeAppearanceWeight = terrainProjectGrassBladeAppearanceWeight(input.tipWeight);
+        float snowResponse = mix(
+          input.rootGroundBase.a,
+          material_GrassSurfaceSnowResponse.w,
+          bladeAppearanceWeight
+        );
+        terrainProjectApplySurfaceClimate(
+          surfaceData,
+          shadingNormal,
+          vec3(1.0, 0.0, snowResponse)
+        );
+      }
+    #endif
+    #ifdef TERRAIN_PROJECT_GROUND_SHADOW_PCF
+      float shadowAttenuation = sampleTerrainProjectGroundShadow(input, shadowPositionDx, shadowPositionDy);
+    #else
+      float shadowAttenuation = sampleTerrainProjectShadow(input);
+    #endif
+    vec3 color = max(
+      terrainProjectFinalLighting(evaluateTerrainProjectLightingWithShadow(input, surfaceData, shadowAttenuation)),
+      vec3(0.0)
+    );
+    #if SCENE_FOG_MODE != 0
+      color = fog(vec4(color, 1.0), input.positionVS).rgb;
+    #endif
+    if (renderer_GrassLodDebugColor.a > 0.0) {
+      color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
+    }
+    gl_FragColor = vec4(color, 1.0);
   #else
   vec3 surfaceWeights = max(input.surfaceWeights, vec3(0.0));
   float surfaceWeight = dot(surfaceWeights, vec3(1.0));

@@ -237,7 +237,8 @@ SurfaceData evaluateVegetationMaterial(Varyings varyings, bool isFrontFacing, fl
   vec3 shadingNormal = geometryNormal;
   #ifdef MATERIAL_HAS_NORMALTEXTURE
     #ifdef NEED_VERTEX_TANGENT
-      mat3 tangentToWorld = mat3(varyings.tangentWS, varyings.bitangentWS, geometryNormal);
+      vec3 bitangentWS = cross(geometryNormal, varyings.tangentWS.xyz) * varyings.tangentWS.w;
+      mat3 tangentToWorld = mat3(varyings.tangentWS.xyz, bitangentWS, geometryNormal);
     #else
       mat3 tangentToWorld = getTBNByDerivatives(
         materialUv,
@@ -315,7 +316,11 @@ SurfaceData evaluateVegetationMaterial(Varyings varyings, bool isFrontFacing, fl
   #if defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER)
     terrainProjectApplyVegetationGrassClimate(surfaceData, geometryNormal);
   #elif defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
-    terrainProjectApplyVegetationLeafClimate(surfaceData, geometryNormal, varyings.sourcePositionOS.y);
+    #ifdef MATERIAL_ENABLE_SECOND_COLOR
+      terrainProjectApplyVegetationLeafClimate(surfaceData, geometryNormal, varyings.sourcePositionOS.y);
+    #else
+      terrainProjectApplyVegetationLeafClimate(surfaceData, geometryNormal, varyings.sourcePositionOSY);
+    #endif
   #elif defined(MATERIAL_VEGETATION_CLIMATE_SHRUB)
     terrainProjectApplyVegetationShrubClimate(surfaceData, geometryNormal);
   #elif defined(MATERIAL_VEGETATION_CLIMATE_BRANCH)

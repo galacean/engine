@@ -22,9 +22,13 @@
 
 struct Varyings {
   vec2 uv;
-  vec3 sourcePositionWS;
-  vec3 positionWS;
-  #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
+  #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
+    vec3 sourcePositionWS;
+  #endif
+  #if !defined(TERRAIN_PROJECT_SHADOW_CASTER_PASS) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
+    vec3 positionWS;
+  #endif
+  #if defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && defined(RENDERER_LOD_DITHER)
     float assetAssemblyLodFade;
   #endif
   #ifdef RENDERER_GENERATION_REVEAL
@@ -88,10 +92,12 @@ Varyings terrainProjectBuildVegetationDepthShadowVaryings(Attributes attributes)
 
   vec3 proceduralTreeWindOriginOS = vec3(0.0);
   #ifdef RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME
-    ProceduralTreeLeafFrame proceduralLeafFrame = terrainProjectProceduralTreeLeafFrame(attributes);
+    ProceduralTreeLeafFrame proceduralLeafFrame = terrainProjectProceduralTreeLeafDepthFrame(attributes);
     positionOS.xyz = terrainProjectProceduralTreeLeafPositionOS(proceduralLeafFrame, attributes.LEAF_SHAPE_POSITION);
-    normalOS = terrainProjectProceduralTreeLeafNormalOS(proceduralLeafFrame, attributes.LEAF_SHAPE_NORMAL);
-    normalOS = terrainProjectProceduralTreeLeafShadingNormalOS(positionOS.xyz, normalOS);
+    #ifdef TERRAIN_PROJECT_SHADOW_CASTER_PASS
+      normalOS = terrainProjectProceduralTreeLeafNormalOS(proceduralLeafFrame, attributes.LEAF_SHAPE_NORMAL);
+      normalOS = terrainProjectProceduralTreeLeafShadingNormalOS(positionOS.xyz, normalOS);
+    #endif
     proceduralTreeWindOriginOS = proceduralLeafFrame.pivotOS;
   #elif defined(MATERIAL_WIND_PROCEDURAL_TREE)
     proceduralTreeWindOriginOS = attributes.LEAF_PIVOT;
@@ -102,7 +108,9 @@ Varyings terrainProjectBuildVegetationDepthShadowVaryings(Attributes attributes)
     #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT)
       tangentOS.xyz = terrainProjectAssetAssemblyTangentOS(tangentOS.xyz, attributes);
     #endif
-    varyings.assetAssemblyLodFade = terrainProjectAssetAssemblyLodFade(attributes);
+    #ifdef RENDERER_LOD_DITHER
+      varyings.assetAssemblyLodFade = terrainProjectAssetAssemblyLodFade(attributes);
+    #endif
   #else
     normalOS = terrainProjectDetailNormalOS(normalOS, attributes);
     #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT)
@@ -155,7 +163,9 @@ Varyings terrainProjectBuildVegetationDepthShadowVaryings(Attributes attributes)
       groundWindCarrierNormalWS
     );
   #endif
-  varyings.sourcePositionWS = positionWS;
+  #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
+    varyings.sourcePositionWS = positionWS;
+  #endif
   #ifdef RENDERER_GENERATION_REVEAL
     #if defined(MATERIAL_PROCEDURAL_TREE_DENSITY_TRANSITION) && defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
       varyings.treeDissolveTint = material_TreeDissolvePalette[terrainProjectProceduralTreeCatalogIndex(attributes)].rgb;
@@ -168,7 +178,9 @@ Varyings terrainProjectBuildVegetationDepthShadowVaryings(Attributes attributes)
   #ifdef RENDERER_GENERATION_REVEAL
     positionWS = terrainProjectApplyGenerationRevealPosition(positionWS, varyings.generationRevealData);
   #endif
-  varyings.positionWS = positionWS;
+  #if !defined(TERRAIN_PROJECT_SHADOW_CASTER_PASS) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
+    varyings.positionWS = positionWS;
+  #endif
   #ifdef TERRAIN_PROJECT_SHADOW_CASTER_PASS
     gl_Position = terrainProjectShadowClipPosition(applyTerrainProjectShadowBias(positionWS, normalWS));
   #else
@@ -178,7 +190,7 @@ Varyings terrainProjectBuildVegetationDepthShadowVaryings(Attributes attributes)
 }
 
 void terrainProjectDiscardInvalidVegetationDepthShadow(Varyings varyings) {
-  #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
+  #if defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && defined(RENDERER_LOD_DITHER)
     applyTerrainProjectInstanceLodDither(gl_FragCoord.xy, varyings.assetAssemblyLodFade);
   #else
     applyTerrainProjectLodDither(gl_FragCoord.xy);
@@ -191,7 +203,7 @@ void terrainProjectDiscardInvalidVegetationDepthShadow(Varyings varyings) {
   #endif
   #if defined(MATERIAL_HAS_BASETEXTURE) || defined(RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY)
     float alphaCoverage = 1.0;
-    #ifdef MATERIAL_VEGETATION_CLIMATE_LEAF
+    #if !defined(TERRAIN_PROJECT_SHADOW_CASTER_PASS) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
       vec3 geometricFaceNormal = normalize(cross(dFdx(varyings.positionWS), dFdy(varyings.positionWS)));
       vec3 coverageViewDirection = normalize(camera_Position - varyings.positionWS);
       float grazingVisibility = abs(dot(geometricFaceNormal, coverageViewDirection));

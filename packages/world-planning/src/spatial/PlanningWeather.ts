@@ -116,7 +116,7 @@ export function applyPlanningWeather(
   if (Object.keys(shapeProfile).length) environment.setCloudShapeProfile?.(shapeProfile);
   if (hasCustomMorphology) {
     const brightFloor = values.cloudAmbientFloor !== undefined ? Number(values.cloudAmbientFloor) : undefined;
-    environment.setCloudQuality?.("high");
+    environment.setCloudQuality?.("economy");
     environment.setCloudLightingProfile?.({
       lightMarchDistanceScale: 0.35,
       extinctionScale: 0.024,

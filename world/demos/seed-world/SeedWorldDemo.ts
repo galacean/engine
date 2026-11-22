@@ -1004,7 +1004,9 @@ export async function mountSeedWorldDemo(
     const solarPosition = startupArt?.solarPosition
       ? { ...PROCEDURAL_SKY_SOLAR_POSITION, ...startupArt.solarPosition }
       : desert?.DESERT_SOLAR_POSITION;
-    if (desert) sun.shadowType = ShadowType.SoftLow;
+    // WebGL2 sampler2DShadow already performs hardware 2x2 bilinear PCF in 1 tap (ShadowType.Hard)
+    // instead of 9-18 taps (SoftHigh) or 4-8 taps + slope-gradient math (SoftLow).
+    sun.shadowType = ShadowType.Hard;
     lighting = createIntegratedWorldLightingRuntime(sun.entity, scene!, sun, post, solarPosition);
     lighting.setTuning({
       playing: false,

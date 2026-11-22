@@ -110,7 +110,8 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
   vec3 baseTangentNormal = vec3(0.0, 0.0, 1.0);
   #if (defined(MATERIAL_HAS_NORMALTEXTURE) && !defined(MATERIAL_WORLD_NORMAL)) || defined(MATERIAL_ENABLE_COVERAGE)
     #ifdef NEED_VERTEX_TANGENT
-      mat3 tangentToWorld = mat3(varyings.tangentWS, varyings.bitangentWS, geometryNormal);
+      vec3 bitangentWS = cross(geometryNormal, varyings.tangentWS.xyz) * varyings.tangentWS.w;
+      mat3 tangentToWorld = mat3(varyings.tangentWS.xyz, bitangentWS, geometryNormal);
     #else
       mat3 tangentToWorld = getTBNByDerivatives(
         materialUv,
@@ -168,7 +169,7 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
   #endif
   #ifdef MATERIAL_PROCEDURAL_TREE_TRUNK_VERTICAL_GRADIENT
     float trunkNormalizedHeight = clamp(
-      (varyings.sourcePositionOS.y - material_TrunkVerticalGradientBounds.x) *
+      (varyings.sourcePositionOSY - material_TrunkVerticalGradientBounds.x) *
         material_TrunkVerticalGradientBounds.y,
       0.0,
       1.0

@@ -56,26 +56,27 @@ Shader "Terrain/Vegetation" {
           float worldPickId;
         #endif
         vec2 uv;
-        vec3 sourcePositionOS;
+        #ifdef MATERIAL_ENABLE_SECOND_COLOR
+          vec3 sourcePositionOS;
+        #elif defined(MATERIAL_ENABLE_TRANSLUCENCY) || (!defined(SCENE_SURFACE_CLIMATE_DRY) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF))
+          float sourcePositionOSY;
+        #endif
         vec3 positionWS;
         #ifdef MATERIAL_VEGETATION_SHARED_GRASS_APPEARANCE
           vec4 sharedGrassRootTip;
           vec3 sharedGrassColorOverrideMask;
-        #endif
-        #if defined(MATERIAL_WIND_GROUND_VEGETATION) && (defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER))
-          vec3 groundWindDiagnostics;
-          vec3 groundWindBaseNormalWS;
-          vec3 groundWindCarrierNormalWS;
+          #ifdef MATERIAL_WIND_GROUND_VEGETATION
+            vec3 groundWindCarrierNormalWS;
+          #endif
         #endif
         #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
           vec3 assetAssemblyColor;
-          float assetAssemblyLodFade;
+          #ifdef RENDERER_LOD_DITHER
+            float assetAssemblyLodFade;
+          #endif
         #endif
         #if defined(RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
           float proceduralLeafShape;
-        #endif
-        #ifdef RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME
-          float proceduralTreeCanopyNormalConcentration;
         #endif
         #if (defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME) || defined(RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION)) && defined(MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION)
           float proceduralTreeCanopyOpticalDepth;
@@ -91,8 +92,7 @@ Shader "Terrain/Vegetation" {
         #endif
         vec3 normalWS;
         #ifdef NEED_VERTEX_TANGENT
-          vec3 tangentWS;
-          vec3 bitangentWS;
+          vec4 tangentWS;
         #endif
         vec4 positionCS;
         #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
@@ -114,15 +114,9 @@ Shader "Terrain/Vegetation" {
         vec3 renderer_GrassColorOverrideMask;
       #endif
       #include "shared/VegetationWind.glsl"
-      #ifdef MATERIAL_WIND_GRASS_FLOWER_FIELD
-        #include "shared/GroundWindAppearance.glsl"
-      #endif
       #include "shared/LodDither.glsl"
       #include "shared/EntranceWave.glsl"
       #include "shared/Lighting.glsl"
-      #ifdef MATERIAL_WIND_GRASS_FLOWER_FIELD
-        #include "shared/GroundWindLighting.glsl"
-      #endif
       #ifdef MATERIAL_ENABLE_TRANSLUCENCY
         #include "vegetation/VegetationTranslucency.glsl"
       #endif
@@ -181,7 +175,6 @@ Shader "Terrain/Vegetation" {
           normalOS = terrainProjectProceduralTreeLeafNormalOS(proceduralLeafFrame, attributes.LEAF_SHAPE_NORMAL);
           normalOS = terrainProjectProceduralTreeLeafShadingNormalOS(positionOS.xyz, normalOS);
           proceduralTreeWindOriginOS = proceduralLeafFrame.pivotOS;
-          varyings.proceduralTreeCanopyNormalConcentration = proceduralLeafFrame.canopyNormalConcentration;
           #ifdef MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION
             varyings.proceduralTreeCanopyOpticalDepth = proceduralLeafFrame.canopyOpticalDepth;
           #endif
@@ -199,7 +192,11 @@ Shader "Terrain/Vegetation" {
         #if defined(RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION) && defined(MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION)
           varyings.proceduralTreeCanopyOpticalDepth = attributes.PLANT_CANOPY_DEPTH;
         #endif
-        varyings.sourcePositionOS = positionOS.xyz;
+        #ifdef MATERIAL_ENABLE_SECOND_COLOR
+          varyings.sourcePositionOS = positionOS.xyz;
+        #elif defined(MATERIAL_ENABLE_TRANSLUCENCY) || (!defined(SCENE_SURFACE_CLIMATE_DRY) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF))
+          varyings.sourcePositionOSY = positionOS.y;
+        #endif
         normalOS = normalize(mix(normalOS, vec3(0.0, 1.0, 0.0), material_LightingFlatness));
         #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
           normalOS = terrainProjectAssetAssemblyNormalOS(normalOS, attributes);
@@ -207,7 +204,9 @@ Shader "Terrain/Vegetation" {
             tangentOS.xyz = terrainProjectAssetAssemblyTangentOS(tangentOS.xyz, attributes);
           #endif
           varyings.assetAssemblyColor = terrainProjectAssetAssemblyColor(attributes);
-          varyings.assetAssemblyLodFade = terrainProjectAssetAssemblyLodFade(attributes);
+          #ifdef RENDERER_LOD_DITHER
+            varyings.assetAssemblyLodFade = terrainProjectAssetAssemblyLodFade(attributes);
+          #endif
         #else
           normalOS = terrainProjectDetailNormalOS(normalOS, attributes);
           #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT)
@@ -226,9 +225,6 @@ Shader "Terrain/Vegetation" {
         float windShadingResponse;
         vec3 groundWindDiagnostics;
         vec3 groundWindCarrierNormalWS;
-        #if defined(MATERIAL_WIND_GROUND_VEGETATION) && (defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER))
-          vec3 groundWindBaseNormalWS;
-        #endif
         #if defined(RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD) && defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME)
           vec3 leafOriginWS;
           terrainProjectBuildProceduralTreeLeafFrame(
@@ -238,9 +234,6 @@ Shader "Terrain/Vegetation" {
             tangentWS,
             leafOriginWS
           );
-          #if defined(MATERIAL_WIND_GROUND_VEGETATION) && (defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER))
-            groundWindBaseNormalWS = varyings.normalWS;
-          #endif
           varyings.positionWS = terrainProjectApplyVegetationWind(
             varyings.positionWS,
             leafOriginWS,
@@ -261,9 +254,6 @@ Shader "Terrain/Vegetation" {
               clamp((restPositionWS.y - renderer_GrassRootPositionHeight.y) / renderer_GrassRootPositionHeight.w, 0.0, 1.0));
             varyings.sharedGrassColorOverrideMask = renderer_GrassColorOverrideMask;
           #endif
-          #if defined(MATERIAL_WIND_GROUND_VEGETATION) && (defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER))
-            groundWindBaseNormalWS = varyings.normalWS;
-          #endif
           #ifdef NEED_VERTEX_TANGENT
             tangentWS = normalize(mat3(renderer_NormalMat) * tangentOS.xyz);
           #endif
@@ -278,9 +268,7 @@ Shader "Terrain/Vegetation" {
             groundWindCarrierNormalWS
           );
         #endif
-        #if defined(MATERIAL_WIND_GROUND_VEGETATION) && (defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER))
-          varyings.groundWindDiagnostics = groundWindDiagnostics;
-          varyings.groundWindBaseNormalWS = groundWindBaseNormalWS;
+        #if defined(MATERIAL_VEGETATION_SHARED_GRASS_APPEARANCE) && defined(MATERIAL_WIND_GROUND_VEGETATION)
           varyings.groundWindCarrierNormalWS = groundWindCarrierNormalWS;
         #endif
         #ifdef RENDERER_GENERATION_REVEAL
@@ -302,11 +290,10 @@ Shader "Terrain/Vegetation" {
           varyings.positionVS = (camera_ViewMat * vec4(varyings.positionWS, 1.0)).xyz;
         #endif
         #ifdef NEED_VERTEX_TANGENT
-          varyings.tangentWS = tangentWS;
           #if defined(RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD) && defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME)
-            varyings.bitangentWS = cross(varyings.normalWS, varyings.tangentWS);
+            varyings.tangentWS = vec4(tangentWS, 1.0);
           #else
-            varyings.bitangentWS = cross(varyings.normalWS, varyings.tangentWS) * tangentOS.w;
+            varyings.tangentWS = vec4(tangentWS, tangentOS.w);
           #endif
         #endif
         varyings.positionCS = camera_VPMat * vec4(varyings.positionWS, 1.0);
@@ -331,7 +318,7 @@ Shader "Terrain/Vegetation" {
       }
 
       void VegetationFragment(Varyings varyings) {
-        #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
+        #if defined(RENDERER_ASSET_ASSEMBLY_INSTANCE) && defined(RENDERER_LOD_DITHER)
           applyTerrainProjectInstanceLodDither(gl_FragCoord.xy, varyings.assetAssemblyLodFade);
         #else
           applyTerrainProjectLodDither(gl_FragCoord.xy);
@@ -385,10 +372,15 @@ Shader "Terrain/Vegetation" {
         #endif
         vec3 transmission = vec3(0.0);
         #ifdef MATERIAL_ENABLE_TRANSLUCENCY
+          #ifdef MATERIAL_ENABLE_SECOND_COLOR
+            float transmissionSourceY = varyings.sourcePositionOS.y;
+          #else
+            float transmissionSourceY = varyings.sourcePositionOSY;
+          #endif
           transmission = terrainProjectEvaluateVegetationTransmission(
             surfaceData.normal,
             surfaceData.position,
-            varyings.sourcePositionOS.y,
+            transmissionSourceY,
             surfaceData.viewDir,
             surfaceData.albedoColor,
             lighting.shadowAttenuation,
@@ -399,38 +391,6 @@ Shader "Terrain/Vegetation" {
           terrainProjectFinalLighting(lighting) + transmission + surfaceData.emissiveColor,
           1.0
         );
-        #ifdef MATERIAL_WIND_GRASS_FLOWER_FIELD
-          float groundWindColorContrast = max(scene_GroundWindAdvection.z, 0.001);
-          #ifdef MATERIAL_VEGETATION_SHARED_GRASS_APPEARANCE
-            float groundWindColorHeightWeight = terrainProjectGrassBladeShadeWeight(varyings.sharedGrassRootTip.w);
-            vec3 groundWindBaseNormalWS = terrainProjectSharedGrassGroundNormal(varyings.sharedGrassRootTip.xz);
-          #else
-            float groundWindColorHeightWeight = terrainProjectGroundWindColorHeightWeight(
-              varyings.groundWindDiagnostics.x
-            );
-            vec3 groundWindBaseNormalWS = varyings.groundWindBaseNormalWS;
-          #endif
-          vec3 groundWindColorNormal = terrainProjectGroundWindColorNormal(
-            groundWindBaseNormalWS,
-            varyings.groundWindCarrierNormalWS,
-            groundWindColorHeightWeight,
-            groundWindColorContrast
-          );
-          float groundWindRawLightingSweep = terrainProjectGroundWindLightingSweep(
-            groundWindColorNormal
-          );
-          float groundWindBaseLightingSweep = terrainProjectGroundWindLightingSweep(
-            groundWindBaseNormalWS
-          );
-          float groundWindLightingSweep = terrainProjectGroundWindLightingBand(
-            groundWindRawLightingSweep,
-            groundWindBaseLightingSweep,
-            groundWindColorContrast
-          );
-          float groundWindAppearanceWeight =
-            clamp(scene_GroundWindShape.z, 0.0, 1.0) *
-            groundWindColorHeightWeight;
-        #endif
         #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
           color.rgb = applyTerrainProjectEntranceWave(color.rgb, varyings.positionWS);
         #endif
@@ -439,24 +399,6 @@ Shader "Terrain/Vegetation" {
             color.rgb = terrainProjectApplyGenerationRevealTint(color.rgb, varyings.generationRevealData, varyings.treeDissolveTint);
           #else
             color.rgb = terrainProjectApplyGenerationRevealColor(color.rgb, varyings.generationRevealData);
-          #endif
-        #endif
-        #ifdef MATERIAL_WIND_GRASS_FLOWER_FIELD
-          #ifdef MATERIAL_VEGETATION_CLIMATE_GRASS
-            color.rgb = terrainProjectApplyGrassGroundWindColor(
-              color.rgb,
-              groundWindLightingSweep,
-              groundWindAppearanceWeight,
-              groundWindColorContrast
-            );
-          #else
-            color.rgb = terrainProjectApplyFlowerGroundWindColor(
-              color.rgb,
-              surfaceData.albedoColor,
-              groundWindLightingSweep,
-              groundWindAppearanceWeight,
-              groundWindColorContrast
-            );
           #endif
         #endif
         #if SCENE_FOG_MODE != 0

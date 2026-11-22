@@ -224,7 +224,7 @@ TerrainProjectSurfaceCoverageResult terrainProjectApplySurfaceCoverage(
   #endif
   float overlayNormal = mix(
     coverageNormal,
-    varyings.sourcePositionOS.y,
+    varyings.sourcePositionOSY,
     material_CoverageOverlayMethod
   );
   float offsetNormal = overlayNormal + (1.0 - material_CoverageOffset);
