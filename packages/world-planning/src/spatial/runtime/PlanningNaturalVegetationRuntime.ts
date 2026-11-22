@@ -896,7 +896,7 @@ export class PlanningNaturalVegetationRuntime {
       runtime.population = population;
       runtime.height = height;
       runtime.planner = new PlanningNaturalVegetation(plan, height, fields, population, initialAssets, presentation);
-      let editablePlants = planningEditablePlants(plan, height, initialAssets);
+      let editablePlants = planningEditablePlants(plan, height, initialAssets, population);
       await runtime.ensureGpuAssetsForWorld(plan, runtime.planner, editablePlants, rocks.signal);
       if (runtime.plantAssets !== initialAssets) {
         runtime.planner = new PlanningNaturalVegetation(
@@ -907,7 +907,7 @@ export class PlanningNaturalVegetationRuntime {
           runtime.plantAssets,
           presentation
         );
-        editablePlants = planningEditablePlants(plan, height, runtime.plantAssets);
+        editablePlants = planningEditablePlants(plan, height, runtime.plantAssets, population);
       }
 
       // Pending placement candidates are not validated trees and need no entities.
@@ -976,7 +976,7 @@ export class PlanningNaturalVegetationRuntime {
     if (this.populateMetadataFromCatalog(liveCatalog)) {
       this.plantAssets = this.buildPlantAssetsFromMetadata();
     }
-    let instances = planningEditablePlants(plan, this.height, this.plantAssets);
+    let instances = planningEditablePlants(plan, this.height, this.plantAssets, this.population);
     let nextPlanner = new PlanningNaturalVegetation(
       plan,
       this.height,
@@ -989,7 +989,7 @@ export class PlanningNaturalVegetationRuntime {
     await this.ensureGpuAssetsForWorld(plan, nextPlanner, instances, signal);
     signal?.throwIfAborted();
     if (this.plantAssets !== prevAssets) {
-      instances = planningEditablePlants(plan, this.height, this.plantAssets);
+      instances = planningEditablePlants(plan, this.height, this.plantAssets, this.population);
       nextPlanner = new PlanningNaturalVegetation(
         plan,
         this.height,
@@ -2426,7 +2426,7 @@ export class PlanningNaturalVegetationRuntime {
       this.plantAssets,
       this.presentation
     );
-    let desired = planningEditablePlants(plan, height, this.plantAssets);
+    let desired = planningEditablePlants(plan, height, this.plantAssets, population);
     const prevAssets = this.plantAssets;
     await this.ensureGpuAssetsForWorld(plan, nextPlanner, desired, signal);
     signal.throwIfAborted();
@@ -2439,7 +2439,7 @@ export class PlanningNaturalVegetationRuntime {
         this.plantAssets,
         this.presentation
       );
-      desired = planningEditablePlants(plan, height, this.plantAssets);
+      desired = planningEditablePlants(plan, height, this.plantAssets, population);
     }
     nextPlanner.setGroundExclusions([...this.groundExclusions.values()].flat());
     const stage = this.owner.createChild("Prepared water vegetation");
@@ -2536,6 +2536,8 @@ export class PlanningNaturalVegetationRuntime {
     const rollback = () => {
       if (state !== "committed") return;
       const errors: unknown[] = [];
+      this.abortAllInstancedTreeEffects(true);
+      for (const plant of created) this.abortPlantEffect(plant);
       for (const root of [...created.map((p) => p.root), ...[...replacements.values()].map((c) => c.root)])
         try {
           root.isActive = false;
@@ -2554,6 +2556,7 @@ export class PlanningNaturalVegetationRuntime {
       this.treeRecords.splice(0, this.treeRecords.length, ...previous.treeRecords);
       this.treeRecordPool.clear();
       for (const [id, rec] of previous.treeRecordPool) this.treeRecordPool.set(id, rec);
+      for (const rec of this.treeRecords) rec.excluded = this.groundExcluded(rec.instance);
       this.instancedTrees?.setCell("trees", this.treeRecords);
       for (const key of replacements.keys()) {
         const old = previous.cells.get(key);
@@ -2586,6 +2589,10 @@ export class PlanningNaturalVegetationRuntime {
           throw Error("Stale water vegetation");
         signal.throwIfAborted();
         this.abortAllInstancedTreeEffects(true);
+        const prevRecById = new Map(previous.treeRecords.map((rec) => [rec.instance.id, rec]));
+        const prevPlantIds = new Set(previous.trees.map((tree) => tree.instance.id));
+        const nextRecIds = new Set(nextTreeRecords.map((rec) => rec.instance.id));
+        const nextPlantIds = new Set(nextTrees.map((tree) => tree.instance.id));
         state = "committed";
         try {
           for (const root of oldActivity.keys()) root.isActive = false;
@@ -2605,6 +2612,7 @@ export class PlanningNaturalVegetationRuntime {
           for (const tree of retiredTrees)
             if (!nextTrees.some((next) => next.instance.id === tree.instance.id))
               this.treePool.delete(tree.instance.id);
+          for (const rec of nextTreeRecords) rec.excluded = this.groundExcluded(rec.instance);
           this.treeRecords.splice(0, this.treeRecords.length, ...nextTreeRecords);
           this.treeRecordPool.clear();
           for (const rec of nextTreeRecords) this.treeRecordPool.set(rec.instance.id, rec);
@@ -2616,6 +2624,76 @@ export class PlanningNaturalVegetationRuntime {
           this.population = population;
           this.planner = nextPlanner;
           resetDiagnostics();
+
+          // Play CRUD rainbow effects for newly added, structurally updated, or removed
+          // area/cluster forest trees & shrubland shrubs (capped at 32 nearest to camera).
+          const camPos = this.camera?.entity?.transform?.worldPosition;
+          const camX = camPos?.x ?? 0;
+          const camZ = camPos?.z ?? 0;
+          const instancedEffectCandidates: Array<{
+            instance: LandscapePlantInstance;
+            ground: number;
+            kind: "enter" | "exit" | "update";
+            record?: InstancedUnderstoryRecord;
+            distSq: number;
+          }> = [];
+          for (const rec of nextTreeRecords) {
+            const id = rec.instance.id;
+            const prevRec = prevRecById.get(id);
+            let kind: "enter" | "update" | undefined;
+            if (!prevRec && !prevPlantIds.has(id)) {
+              kind = "enter";
+            } else if (prevRec && prevRec !== rec) {
+              const a = prevRec.instance;
+              const b = rec.instance;
+              const structuralChanged =
+                a.assetId !== b.assetId ||
+                a.position[0] !== b.position[0] ||
+                a.position[2] !== b.position[2] ||
+                a.yaw !== b.yaw ||
+                a.scale !== b.scale ||
+                JSON.stringify(a.scaleAxes) !== JSON.stringify(b.scaleAxes) ||
+                JSON.stringify(a.appearance) !== JSON.stringify(b.appearance);
+              if (structuralChanged) kind = "update";
+            }
+            if (kind && !this.groundExcluded(rec.instance)) {
+              const dx = rec.instance.position[0] - camX;
+              const dz = rec.instance.position[2] - camZ;
+              instancedEffectCandidates.push({
+                instance: rec.instance,
+                ground: rec.groundHeight,
+                kind,
+                record: rec,
+                distSq: dx * dx + dz * dz
+              });
+            }
+          }
+          for (const prevRec of previous.treeRecords) {
+            const id = prevRec.instance.id;
+            if (!nextRecIds.has(id) && !nextPlantIds.has(id) && !this.groundExcluded(prevRec.instance)) {
+              const dx = prevRec.instance.position[0] - camX;
+              const dz = prevRec.instance.position[2] - camZ;
+              instancedEffectCandidates.push({
+                instance: prevRec.instance,
+                ground: prevRec.groundHeight,
+                kind: "exit",
+                distSq: dx * dx + dz * dz
+              });
+            }
+          }
+          if (instancedEffectCandidates.length > 0) {
+            instancedEffectCandidates.sort((a, b) => a.distSq - b.distSq);
+            const maxEffects = Math.min(32, instancedEffectCandidates.length);
+            for (let i = 0; i < maxEffects; i++) {
+              const candidate = instancedEffectCandidates[i]!;
+              this.playInstancedTreeEffect(candidate.instance, candidate.ground, candidate.kind, candidate.record);
+            }
+          }
+          for (const plant of created) {
+            if (!prevPlantIds.has(plant.instance.id) && !prevRecById.has(plant.instance.id)) {
+              this.playPlantEffect(plant, "enter");
+            }
+          }
         } catch (error) {
           rollback();
           throw error;
@@ -2873,9 +2951,7 @@ export class PlanningNaturalVegetationRuntime {
       authoredPlantIds: (this.plan.authoredResources ?? [])
         .filter(
           (resource) =>
-            resource.resourceType === "vegetation-brush" &&
-            resource.properties.distributionKind === "single" &&
-            ["tree", "shrub"].includes(resource.properties.category)
+            resource.resourceType === "vegetation-brush" && ["tree", "shrub"].includes(resource.properties.category)
         )
         .map((resource) => resource.resourceId),
       flowers: this.plan.flowerRegions ?? [],

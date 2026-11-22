@@ -163,20 +163,46 @@ export function planningNaturalTrees(
   });
 }
 
-/** Visible generated trees and independently authored single plants share the native
+/** Visible generated trees and authored woody plants (single, cluster, and area) share the native
  * asset pool. Their projection does not participate in ecological constraints. */
 export function planningEditablePlants(
   plan: IslandPlan,
   ground: Pick<PlanningHeightmap, "sample">,
-  assets: readonly PlanningPlantAsset[]
+  assets: readonly PlanningPlantAsset[],
+  population?: Pick<SeedWorldPopulationPreview, "treeInstances">
 ): LandscapePlantInstance[] {
   const generated = planningNaturalTrees(plan, ground, assets);
-  const resources = (plan.authoredResources ?? []).filter(
+  const allResources = plan.authoredResources ?? [];
+  const removed = planningRemovedObjectIds(allResources);
+  const singleResources = allResources.filter(
     (resource) =>
       resource.resourceType === "object-removal" ||
       (resource.resourceType === "vegetation-brush" && resource.properties.distributionKind === "single")
   );
-  const authored = compileAuthoredVegetation(resources, plan.parameters.width, plan.parameters.seed);
+  const areaBrushResources = allResources.filter(
+    (resource) =>
+      resource.resourceType === "vegetation-brush" &&
+      resource.properties.distributionKind !== "single" &&
+      (resource.properties.category === "tree" || resource.properties.category === "shrub")
+  );
+  const areaBrushIds = new Set(areaBrushResources.map((resource) => resource.resourceId));
+  const authoredSingle = compileAuthoredVegetation(singleResources, plan.parameters.width, plan.parameters.seed);
+  const authoredArea =
+    areaBrushIds.size === 0
+      ? []
+      : population
+        ? population.treeInstances.filter(
+            (instance) =>
+              instance.authoringBrushId !== undefined &&
+              areaBrushIds.has(instance.authoringBrushId) &&
+              !removed.has(instance.id)
+          )
+        : compileAuthoredVegetation(
+            [...allResources.filter((resource) => resource.resourceType === "object-removal"), ...areaBrushResources],
+            plan.parameters.width,
+            plan.parameters.seed
+          );
+  const authored = [...authoredSingle, ...authoredArea];
   const indexedAssets = new Map(assets.map((asset) => [asset.id, asset]));
   return [
     ...generated,
@@ -201,12 +227,13 @@ export function planningEditablePlants(
       if (![...spans, ...dimensions].every((v) => Number.isFinite(v) && v > 0))
         throw new Error(`Invalid authored plant dimensions: ${plant.id}`);
       const scale = Math.min(...dimensions.map((v, axis) => v / spans[axis]));
+      const ownerId = plant.authoringBrushId ?? plant.id;
       return {
         id: plant.id,
         assetId,
         layerId: plant.category === "tree" ? "乔木" : "小灌木",
-        clusterId: plant.id,
-        scopeId: plant.id,
+        clusterId: ownerId,
+        scopeId: ownerId,
         position: [center.x, ground.sample(center), center.z],
         yaw: (plant.yawRadians * 180) / Math.PI,
         scale,

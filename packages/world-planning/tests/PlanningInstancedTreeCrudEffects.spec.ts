@@ -61,6 +61,12 @@ vi.mock("../src/spatial/runtime/PlanningNaturalVegetation", async () => {
     anchors: unknown[] = [];
     layers: unknown[] = [];
     setGroundExclusions() {}
+    compileCell() {
+      return {
+        instances: [],
+        diagnostics: { layers: {}, populations: {}, decorations: {}, rejected: {} }
+      };
+    }
   }
   return {
     ...actual,
@@ -111,7 +117,25 @@ function createRuntimeFixture(initialRecords: InstancedUnderstoryRecord[] = []) 
   Object.assign(runtime, {
     disposed: false,
     time: 1.5,
-    owner: { engine: { resourceManager: { load: vi.fn(async () => ({ data: { assets: [] } })) } } },
+    owner: {
+      engine: { resourceManager: { load: vi.fn(async () => ({ data: { assets: [] } })) } },
+      createChild: (name: string) => ({
+        name,
+        isActive: false,
+        children: [],
+        destroyed: false,
+        pendingDestroy: false,
+        createChild: (childName: string) => ({
+          name: childName,
+          isActive: false,
+          children: [],
+          destroyed: false,
+          pendingDestroy: false,
+          destroy() {}
+        }),
+        destroy() {}
+      })
+    },
     camera: { entity: { transform: { worldPosition: { x: 0, y: 2, z: 0 } } } },
     plan: { parameters: { width: 256, depth: 256, seed: 1 }, authoredResources: [] },
     height: { sample: () => 5 },
@@ -363,5 +387,175 @@ describe("instanced tree CRUD rainbow effects", () => {
     expect(createdTempRoots[0]!.destroyed).toBe(true);
     expect(runtime.treeRecordPool.get("tree-cover")!.excluded).toBe(true);
     expect(runtime.instancedTreeEffects.size).toBe(0);
+  });
+
+  it("plays enter/update/exit rainbow effects in prepareWaterImpact for forest/shrubland, skips height-only shifts, caps at 32 nearest, and cleans up on rollback", async () => {
+    const { runtime, createdTempRoots } = createRuntimeFixture();
+    const signal = new AbortController().signal;
+    const bounds = { minimumX: 0, maximumX: 0, minimumZ: 0, maximumZ: 0 };
+
+    // 1. Create a 40-tree forest + shrubland -> should play enter on 32 nearest instances
+    const forestPlants = Array.from({ length: 40 }, (_, i) =>
+      makeInstance({
+        id: `population:forest-1:${i}`,
+        layerId: i % 2 === 0 ? "乔木" : "小灌木",
+        scopeId: "forest-1",
+        clusterId: "forest-1",
+        position: [10 + i * 2, 5, 0]
+      })
+    );
+    mocks.editablePlants = forestPlants;
+    const createUpdate = await runtime.prepareWaterImpact(
+      { ...runtime.plan },
+      runtime.height,
+      runtime.groundingFields,
+      runtime.population,
+      bounds,
+      signal
+    );
+    createUpdate.commit();
+
+    expect(effectCalls).toHaveLength(32);
+    expect(effectCalls.every((c) => c.kind === "enter")).toBe(true);
+    // Nearest 32 (indices 0..31) animate; farthest 8 (32..39) stay directly in instanced pool
+    expect(effectCalls.map((c) => c.root.id)).toContain("population:forest-1:0");
+    expect(effectCalls.map((c) => c.root.id)).toContain("population:forest-1:31");
+    expect(effectCalls.map((c) => c.root.id)).not.toContain("population:forest-1:32");
+    expect(runtime.treeRecordPool.get("population:forest-1:0")!.excluded).toBe(true);
+    expect(runtime.treeRecordPool.get("population:forest-1:32")!.excluded).toBe(false);
+
+    // Rollback must abort all 32 active effects and destroy temp plants with zero leaks
+    createUpdate.rollback();
+    expect(runtime.instancedTreeEffects.size).toBe(0);
+    expect(createdTempRoots.every((r) => r.destroyed)).toBe(true);
+    expect(runtime.treeRecords).toHaveLength(0);
+
+    // Re-commit a 2-tree forest and complete entrance
+    effectCalls.length = 0;
+    const twoTrees = [
+      makeInstance({ id: "population:forest-2:0", scopeId: "forest-2", position: [8, 5, 4] }),
+      makeInstance({ id: "population:forest-2:1", scopeId: "forest-2", layerId: "小灌木", position: [12, 5, 4] })
+    ];
+    mocks.editablePlants = twoTrees;
+    const commitTwo = await runtime.prepareWaterImpact(
+      { ...runtime.plan },
+      runtime.height,
+      runtime.groundingFields,
+      runtime.population,
+      bounds,
+      signal
+    );
+    commitTwo.commit();
+    commitTwo.finalize();
+    expect(effectCalls).toHaveLength(2);
+    for (const c of effectCalls) {
+      c.onComplete?.();
+      c.resolve();
+    }
+    await Promise.resolve();
+    expect(runtime.treeRecordPool.get("population:forest-2:0")!.excluded).toBe(false);
+    expect(runtime.treeRecordPool.get("population:forest-2:1")!.excluded).toBe(false);
+
+    // 2. Ground-height-only shift (e.g. terrain patch re-grounding) must NOT flash rainbow
+    effectCalls.length = 0;
+    mocks.editablePlants = twoTrees.map((t) => ({ ...t, position: [t.position[0], 6.2, t.position[2]] as const }));
+    const heightOnlyUpdate = await runtime.prepareWaterImpact(
+      { ...runtime.plan },
+      runtime.height,
+      runtime.groundingFields,
+      runtime.population,
+      bounds,
+      signal
+    );
+    heightOnlyUpdate.commit();
+    heightOnlyUpdate.finalize();
+    expect(effectCalls).toHaveLength(0);
+
+    // 3. Structural move on member 0 + delete member 1 + add member 2 -> update + exit + enter
+    effectCalls.length = 0;
+    mocks.editablePlants = [
+      makeInstance({ id: "population:forest-2:0", scopeId: "forest-2", position: [14, 6.2, 4] }),
+      makeInstance({ id: "population:forest-2:2", scopeId: "forest-2", position: [16, 6.2, 4] })
+    ];
+    const mixedUpdate = await runtime.prepareWaterImpact(
+      { ...runtime.plan },
+      runtime.height,
+      runtime.groundingFields,
+      runtime.population,
+      bounds,
+      signal
+    );
+    mixedUpdate.commit();
+    mixedUpdate.finalize();
+    expect(effectCalls).toHaveLength(3);
+    const kindsById = Object.fromEntries(effectCalls.map((c) => [c.root.id, c.kind]));
+    expect(kindsById).toEqual({
+      "population:forest-2:0": "update",
+      "population:forest-2:1": "exit",
+      "population:forest-2:2": "enter"
+    });
+  });
+
+  it("projects authored area/cluster forest and shrubland brushes in planningEditablePlants", async () => {
+    const actual = await vi.importActual<typeof import("../src/spatial/runtime/PlanningNaturalVegetation")>(
+      "../src/spatial/runtime/PlanningNaturalVegetation"
+    );
+    const { NATURAL_VEGETATION_PALETTES } = await import("../src/runtime/NaturalVegetationLayers");
+    const assets = [...NATURAL_VEGETATION_PALETTES.trees, ...NATURAL_VEGETATION_PALETTES.shrubs].map((id) => ({
+      id,
+      bounds: { min: [-1, 0, -1] as [number, number, number], max: [1, 4, 1] as [number, number, number] },
+      height: 4,
+      radius: 1.4,
+      footprintArea: 4
+    }));
+    const plan = {
+      parameters: { width: 256, depth: 256, seed: 42 },
+      landscapes: [],
+      authoredResources: [
+        {
+          resourceType: "vegetation-brush",
+          resourceId: "forest-brush-1",
+          properties: {
+            category: "tree",
+            plantKind: "tree",
+            distributionKind: "cluster",
+            x: 120,
+            z: 120,
+            radiusMetres: 15,
+            densityScale: 1,
+            requestedPlantCount: 4,
+            seed: 7
+          }
+        },
+        {
+          resourceType: "vegetation-brush",
+          resourceId: "shrub-brush-1",
+          properties: {
+            category: "shrub",
+            plantKind: "shrub",
+            distributionKind: "area",
+            x: 140,
+            z: 140,
+            radiusMetres: 8,
+            densityScale: 0.2,
+            requestedPlantCount: 3,
+            seed: 9
+          }
+        },
+        {
+          resourceType: "object-removal",
+          resourceId: "rm-1",
+          properties: { objectKind: "tree", objectId: "population:forest-brush-1:0" }
+        }
+      ]
+    } as any;
+
+    const projected = actual.planningEditablePlants(plan, { sample: () => 3 }, assets);
+    const forestMembers = projected.filter((p) => p.scopeId === "forest-brush-1");
+    const shrubMembers = projected.filter((p) => p.scopeId === "shrub-brush-1");
+    expect(forestMembers).toHaveLength(3); // 4 minus 1 removed
+    expect(forestMembers.every((p) => p.layerId === "乔木")).toBe(true);
+    expect(shrubMembers).toHaveLength(3);
+    expect(shrubMembers.every((p) => p.layerId === "小灌木")).toBe(true);
   });
 });

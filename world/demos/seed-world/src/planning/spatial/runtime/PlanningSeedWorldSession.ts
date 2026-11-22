@@ -206,7 +206,6 @@ export class PlanningSeedWorldSession {
               .filter(
                 (resource) =>
                   resource.resourceType === "vegetation-brush" &&
-                  resource.properties.distributionKind === "single" &&
                   ["tree", "shrub"].includes(resource.properties.category)
               )
               .map((resource) => resource.resourceId),

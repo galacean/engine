@@ -16,10 +16,19 @@ export function planningVegetationCatalog(runtime: { getAuthoringSnapshot(): Pla
     ...trees.map(instance => {
       const [x, y, z] = instance.position, radius = instance.radius;
       const kind = instance.layerId === "乔木" ? "tree" : "shrub";
+      const brushId = instance.scopeId && authored.has(instance.scopeId)
+        ? instance.scopeId
+        : authored.has(instance.id)
+          ? instance.id
+          : undefined;
+      const parent = brushId && brushId !== instance.id
+        ? { id: brushId, domain: "vegetation" as const, kind: kind === "tree" ? ("forest" as const) : ("shrubland" as const), source: "authored" as const }
+        : undefined;
       return {
-        ref: { id: instance.id, domain: "vegetation" as const, kind, source: authored.has(instance.id) ? "authored" as const : "natural" as const },
+        ref: { id: instance.id, domain: "vegetation" as const, kind, source: brushId ? "authored" as const : "natural" as const },
         position: instance.position,
         bounds: { minimum: [x - radius, y, z - radius] as const, maximum: [x + radius, y + instance.height, z + radius] as const },
+        ...(parent ? { relations: { parent } } : {}),
         properties: { assetKind: kind, proceduralAssetId: instance.assetId, planningEntityId: instance.id,
           headingDegrees: instance.yaw, scale: instance.scaleAxes ?? [instance.scale, instance.scale, instance.scale] }
       };
@@ -37,10 +46,15 @@ export function planningVegetationObjects(snapshot: PlantSnapshot, revision: num
   const authored = new Set(snapshot.authoredPlantIds);
   return snapshot.trees.map(instance => {
     const [x, y, z] = instance.position, radius = instance.radius;
+    const brushId = instance.scopeId && authored.has(instance.scopeId)
+      ? instance.scopeId
+      : authored.has(instance.id)
+        ? instance.id
+        : undefined;
     return { catalogOwner: "planning", worldId: `seed-world-${snapshot.seed}`, worldRevision: revision,
       objectId: instance.id, objectKind: instance.layerId === "乔木" ? "tree" : "shrub", position: instance.position,
       footprintMetres: [radius * 2, radius * 2],
-      source: { kind: authored.has(instance.id) ? "authoring" : "population", sourceId: instance.id },
+      source: { kind: brushId ? "authoring" : "population", sourceId: brushId ?? instance.id },
       properties: { proceduralAssetId: instance.assetId, yawRadians: instance.yaw * Math.PI / 180,
         scale: instance.scaleAxes ?? [instance.scale, instance.scale, instance.scale],
         bounds: { minimum: [x - radius, y, z - radius], maximum: [x + radius, y + instance.height, z + radius] } } };

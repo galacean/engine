@@ -74,7 +74,14 @@ export class SeedWorldAssetManager {
     const assets = [
       ...legacy.filter(
         (asset) =>
-          publishedVegetation === undefined || asset.ref.domain !== "vegetation" || asset.ref.kind === "grassland"
+          publishedVegetation === undefined ||
+          asset.ref.domain !== "vegetation" ||
+          asset.ref.kind === "grassland" ||
+          (asset.ref.source === "authored" &&
+            (asset.ref.kind === "forest" ||
+              asset.ref.kind === "shrubland" ||
+              asset.ref.kind === "flower-field" ||
+              asset.ref.kind === "aquatic-grass-bed"))
       ),
       ...this._additionalAssets().filter((asset) => requestedDomains.has(asset.ref.domain)),
       ...(publishedVegetation ?? [])
