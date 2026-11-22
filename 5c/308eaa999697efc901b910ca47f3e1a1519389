@@ -1,0 +1,23 @@
+tests/src/rhi-webgpu/NativeRendering.test.ts
+  s_3cd6502d102d7f::t_0c9cef95b018c2 137,179-180,183,187-188
+packages/rhi-webgpu/src/WebGPUShaderProgram.ts
+  s_3cd6502d102d7f::t_0c9cef95b018c2 388
+packages/rhi-webgpu/src/WebGPUGraphicDevice.ts
+  s_3cd6502d102d7f::t_0c9cef95b018c2 1216,1218-1222,1226
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5c308eaa999697efc901b910ca47f3e1a1519389",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
