@@ -1319,7 +1319,7 @@ export class PlanningNaturalVegetationRuntime {
       }
     }
     const pickBatches: SeedWorldArrayPickBatch[] = [];
-    const pickId = resolvePlanningNaturalPlantPick(instance, tree);
+    const pickId = resolvePlanningNaturalPlantPick(instance, tree, source.kind);
     const levelRenderers: MeshRenderer[][] = [];
     const lods = collapsedLevels.map(({ screenRelativeTransitionHeight, level, specimen }) => {
       const currentLevelRenderers: MeshRenderer[] = [];
@@ -1548,7 +1548,7 @@ export class PlanningNaturalVegetationRuntime {
       levels: collapsedLevels,
       receiveShadows,
       interactionOccluder: !PLANT_GROUND_COVER_VARIATIONS.has(instance.assetId),
-      pickId: resolvePlanningNaturalPlantPick(instance, tree),
+      pickId: resolvePlanningNaturalPlantPick(instance, tree, source.kind),
       excluded: this.groundExcluded(instance),
       resolveColor: (binding) => this.plantColor(instance, binding),
       resolveOverrideMask: (materialId) => {

@@ -8,6 +8,7 @@ description: 创建、查询、修改或删除山丘、峡谷、岩石等地貌�
 创建或修改前，先选定语义地貌类型。`terrain.patch` 只改变局部地面高度，不创建独立资产。
 
 - 查询、查看详情与删除已有地形地貌或岩石：直接用 `terrain.query`、`terrain.inspect`、`terrain.delete`（自然岩石支持删除，自然地貌无局部删除原子能力）。
+- 树脚散落的伴生石块（如 `pick` 命中的 `InstancedBatch:rock-*` 且无 `instanceKey`）属于自然植被伴生层，不在 `terrain.query` 独立岩石目录内，整体密度由 `vegetation.config` 的 `companionStoneDensity` 控制。
 - 读写地形骨架、缓坡、岩石配色与离岛规划参数：用 `terrain.config.get`、`terrain.config.update`、`terrain.config.reset`。
 - 解析空间落点见 [spatial](skills/spatial/SKILL.md)。不要假设支持任意平整或跨系统事务。
 

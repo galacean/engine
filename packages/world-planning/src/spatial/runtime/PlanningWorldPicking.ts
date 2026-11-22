@@ -78,8 +78,10 @@ export function resolvePlanningDetailPick(category: "grass" | "flower", owner?: 
 /** The producer retains the area owner; random instance IDs are never parsed as authoring IDs. */
 export function resolvePlanningNaturalPlantPick(
   instance: Pick<LandscapePlantInstance, "id" | "scopeId">,
-  tree: boolean
-): string {
+  tree: boolean,
+  kind?: "stone"
+): string | undefined {
+  if (kind === "stone") return undefined;
   return tree ? instance.id : (instance.scopeId ?? PLANNING_GRASSLAND_ID);
 }
 
