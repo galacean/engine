@@ -59,9 +59,9 @@ STATIC_AUDIT_OUT_PATH="$OUT_DIR/static-audit-before.json" \
 | --- | --- | --- | --- |
 | **Smoke（快速 A/B）** | `BENCH_SUITE=smoke`（13 题：`03,05,06,08,10,15,16,19..24`） | ~10–15 分钟 | 每轮 RSI 改造的快速 Before vs After A/B 对照 |
 | **Domain Slice（单域定向）** | `BENCH_SUITE=domain:<name>`（如 `water`/`farming`/`assets`） | ~3–6 分钟 | 单模块 Skill / Knowledge / Declare 调整验证 |
-| **CRUD Matrix（全接口 CRUD）** | `BENCH_SUITE=crud`（59 题：`01–18, 25–65`，覆齐 23 Skill + 70+ 公开 API） | ~40–55 分钟 | API 契约调整或新增工具回归 |
-| **Hard（聪明度/合规专项）** | `BENCH_SUITE=hard`（41 题：空间/多轮/语音/复合/红线） | ~30–45 分钟 | 提示词协议、上下文压缩、语音与红线专项压测 |
-| **Full Matrix（全量 100 题）** | `BENCH_SUITE=full` 或留空（**全部 100 题**） | ~75–110 分钟（支持断点续跑） | 换模型、大改协议/契约或大版本架构重构前后黄金基线 |
+| **CRUD Matrix（全接口 CRUD）** | `BENCH_SUITE=crud`（62 题：`01–18, 25–68`，覆齐全 12 系统所有非视觉公开 API 与分支） | ~45–60 分钟 | API 契约调整或新增工具回归 |
+| **Hard（聪明度/合规专项）** | `BENCH_SUITE=hard`（27 题：`19–24, 69–89`，空间/多轮/语音/复合/红线） | ~20–30 分钟 | 提示词协议、上下文压缩、语音与红线专项压测 |
+| **Full Matrix（全量 89 题）** | `BENCH_SUITE=full` 或留空（**全部 89 题**） | ~65–90 分钟（支持断点续跑） | 换模型、大改协议/契约或大版本架构重构前后黄金基线 |
 
 运行命令（支持 `BENCH_SKIP_EXISTING=1` 断点续跑）：
 

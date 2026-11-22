@@ -1,4 +1,4 @@
-# 静态审计红线、动态遥测指标与 100 题基准清单（v4）
+# 静态审计红线、动态遥测指标与 89 题全能力基准清单（v4）
 
 ## 一、静态审计指标（`static-audit.spec.ts`）
 
@@ -51,30 +51,32 @@
 
 ---
 
-## 三、当前 100 题无头基准矩阵（v4：全 23 个一级/二级 Skill × 70 公开 API 全量 CRUD + 35 高难场景）
+## 三、当前 89 题无头全能力基准矩阵（v4：按系统能力驱动，零凑数、零遗漏）
 
-> 源码拆分：`01`–`43` 位于 `resources/llm-benchmark/benchmark-cases.ts`，`44`–`100` 位于 `resources/llm-benchmark/benchmark-cases-v4.ts`，统一导出为 `BENCHMARK_CASES`（共 100 题），支持 `BENCH_SUITE=smoke|crud|hard|domain:<name>|full` 分层执行。
+> 源码拆分：`01`–`43` 位于 `resources/llm-benchmark/benchmark-cases.ts`，`44`–`89` 位于 `resources/llm-benchmark/benchmark-cases-v4.ts`，统一导出为 `BENCHMARK_CASES`（共 89 题），支持 `BENCH_SUITE=smoke|crud|hard|domain:<name>|full` 分层执行。
+> 注：视觉视口像素拾取（`snapshot` / `pick`）依赖真实 WebGL 画面，归入浏览器视觉验收，不在纯无头文本夹具中伪造。
 
-### Part A：基础与全量原子 CRUD 矩阵（`01`–`18`, `25`–`65`，共 59 题）
+### Part A：全 12 系统原子能力与 CRUD 矩阵（`01`–`18`, `25`–`68`，共 62 题）
 
-- **`01`–`18`**（18 题）：原基础回归与多轮复用基线（环境、建筑、水体、地形、植被、世界对象、规划参数、空间、动物、农耕、场景节点/组件、云端资产、脚本、历史、多轮复用）。
-- **`25`–`43`**（19 题）：15 个一级 Skill 完整 CRUD 补齐（含 `43_farming_harvest_mature_crops` 农耕成熟收获流）。
-- **`44`–`65`**（22 题）：补齐全部 8 个二级 Skill 与 70 个公开接口（100% 覆齐）：
+- **`01`–`18`**（18 题）：核心基线与历史对照回归（环境、建筑、水体、地形、植被、世界对象、规划参数、空间、动物、农耕、场景节点/组件、云端资产、脚本、历史、多轮复用）。
+- **`25`–`43`**（19 题）：15 个一级 Skill 完整 CRUD（含环境 `skyColor`/`lightning`、规划参数 `reset`+`receipt`、空间 `viewer`/`resolve`/`check`、农耕成熟收获流 `43`）。
+- **`44`–`68`**（25 题）：覆齐全部 23 个一级/二级 Skill、全部非视觉公开接口与独立 Schema 分支：
   - `44` 环境只读（`time.get`/`atmosphere.get`）；`45`–`46` 建筑子生成器（`buildTower`/`buildWall`/`buildFence`/`buildSteps`）；
-  - `47`–`49` 水体 `capabilities`/`sampleDrops`、手动创建 `WaterBodyComponent`、实例独立克隆材质；
-  - `50`–`51` 地形 `patch` 挖坑/整平；`52`–`54` 植被草/花、共享材质改色与重置（`world.parameters.materials.inspect/apply`）、删除林区；
-  - `55`–`56` 世界对象选区取回+打标（`selection.get`/`tag.update`）、规划参数 `query`/`apply`/`receipt`；
-  - `57`–`59` 空间 `viewer`/`resolve`、运行时节点树与组件读取（`runtime.entity.{children,inspect}`、`runtime.component.{query,read}`）；
-  - `60`–`65` 资产 `list/info/inspect`、`mesh-material`、`use-image`、Prefab `entity.revert`/`component.revert`、`history.read`、项目文档外层 `write/edit/delete`。
+  - `47`–`49` 水体 `capabilities`/`sampleDrops`、手动建 `WaterBodyComponent`、实例独立克隆材质；
+  - `50`–`51` 地形 `patch lower`、非 `hill` 语义地貌（`plateau`）创建/修改 + `patch raise`；
+  - `52`–`55` 植被草/花、单棵树(`single`)+水草(`aquatic-grass`)+玩家树移位(`vegetation.update`)、共享材质改色与重置(`world.parameters.materials.inspect/apply`)、删除玩家林区；
+  - `56`–`57` 世界对象选区保存/取回+标签增删(`tag.update`)、删自然岩石(`rock`)与不可编辑自然河道边界(`NOT_EDITABLE`)；
+  - `58`–`60` 农耕开垦与删地块(`inspectCultivation`/`hoe`/`deletePlot`)、毁苗清未成熟作物(`damageCrop`)、物品/容器写流转与诊断(`getDiagnostics`/`getEnvironment`/`generateItems`/`setContainerCount`)；
+  - `61`–`68` 运行时节点树与组件读取(`runtime.entity.*`/`runtime.component.*`)、资产 `list/info/inspect`/`mesh-material`/`use-image`、Prefab `entity.revert`/`component.revert`、`history.read`、项目文档外层 `write/edit/delete`。
 
-### Part B：真实玩家高难场景与红线矩阵（`19`–`24` + `66`–`100`，共 41 题）
+### Part B：真实玩家高难场景与红线矩阵（`19`–`24` + `69`–`89`，共 27 题）
 
 - **`19`–`24`**（6 题）：首批复合编排、语音错字、多轮指代、范围红线、能力诚实边界。
-- **`66`–`71`**（6 题，`spatial-hard`）：左右身后相对偏移、两树中点、湖内点自动避水、高地搜索传送、朝向玩家放置、多点坡度/水面只读评估。
-- **`72`–`79`**（8 题，`multi-turn-hard`）：2–3 轮连续口语追改（山高微调、天气演进、节点移位改名缩放、两柱择一删除、撤二保一、脚本升速加浮动、动物召唤后发令、农耕播种浇水闭环）。
-- **`80`–`85`**（6 题，`voice-hard`，`inputSource: "voice"`）：高频同音错字（松鼠→松树、小核→小河、红专→红砖、鸡活距离→激活距离、小血→小雪、第一快地交水→第一块地浇水、测回→撤回）。
-- **`86`–`93`**（8 题，`compound-hard`）：溪畔小屋、围栏农庄、夜晚灯笼路+脚本、秋日迷雾林+共享叶色、山顶瞭望塔、云端直升机+悬停脚本、收获重播闭环、建改撤重删全生命周期。
-- **`94`–`100`**（7 题，`compliance-hard`）：纯盘点严格零修改、拒绝 16 人联机/爆破、共享材质防误伤、被引用 Prefab 先解绑再删、`preview` 影响估算零删除、只删 authored 树保自然树、回复零内部 API/路径/UUID 泄露。
+- **`69`–`73`**（5 题，`spatial-hard`）：左右身后相对偏移、两树中点、湖内点自动避水、朝向玩家放置、多点坡度/水面只读评估。
+- **`74`–`76`**（3 题，`multi-turn-hard`）：左右二选一精准删、撤二保一、脚本增量改写重编。
+- **`77`–`79`**（3 题，`voice-hard`，`inputSource: "voice"`）：跨系统歧义（松鼠→松树/小核→小河）、技术参数词（鸡活距离→激活距离）、口语填充词（测回→撤回）。
+- **`80`–`84`**（5 题，`compound-hard`）：农庄复合布置、夜晚灯笼路+脚本、秋日迷雾林+共享叶色、云端直升机+悬停脚本、收获重播闭环。
+- **`85`–`89`**（5 题，`compliance-hard`）：纯盘点严格零修改、共享材质防误伤、被引用 Prefab 先解绑再删、`preview` 影响估算零删除、只删 authored 树保自然树。
 
 ### 扩展新用例原则
 每当新增一个世界引擎领域（如道路、NPC、任务、UI、音频）时，在 `benchmark-cases-v4.ts` 同步追加对应原子 CRUD 与高难用例，明确填写 `expectedSkills`、`expectedDeclares`、`optimalSteps` 和确定性的 `verify()` 状态断言（严禁只检查文本回复）。

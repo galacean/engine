@@ -414,6 +414,7 @@ export interface HeadlessSeedWorldFixture {
   runTurn(prompt: string, turnIndex?: number, options?: { inputSource?: "text" | "voice" }): Promise<TurnExecutionRecord>;
   seedPreUndoTransaction(entityName?: string): Promise<string>;
   seedMatureCrop(plotId?: string): Promise<void>;
+  seedYoungCrop(plotId?: string): Promise<void>;
   seedAuthoredTree(position?: [number, number, number]): void;
   dispose(): Promise<void>;
 }
@@ -715,7 +716,7 @@ export async function createHeadlessSeedWorldFixture(options: {
         label: `${slot.label} (${ch})`,
         type: "number",
         description: `Linear ${ch} channel`,
-        editEffect: "material",
+        editEffect: "instance",
         min: 0,
         max: 1,
         step: 0.01,
@@ -797,10 +798,26 @@ export async function createHeadlessSeedWorldFixture(options: {
     if (typeof input.snowIntensity === "number") environment.snowIntensity = input.snowIntensity;
     if (typeof input.cloudCoverage === "number") environment.cloudCoverage = input.cloudCoverage;
     if (typeof input.fogIntensity === "number") environment.fogIntensity = input.fogIntensity;
-    const atmosphere = input.atmosphere as { cloudCoverage?: number; fogIntensity?: number } | undefined;
+    const atmosphere = input.atmosphere as { cloudCoverage?: number; cloudiness?: number; fogIntensity?: number; skyColorRgb?: readonly [number, number, number] | null } | undefined;
     if (atmosphere && typeof atmosphere === "object") {
       if (typeof atmosphere.cloudCoverage === "number") environment.cloudCoverage = atmosphere.cloudCoverage;
+      if (typeof atmosphere.cloudiness === "number") environment.cloudCoverage = atmosphere.cloudiness;
       if (typeof atmosphere.fogIntensity === "number") environment.fogIntensity = atmosphere.fogIntensity;
+      if (atmosphere.skyColorRgb === null) {
+        delete (environment as Record<string, unknown>).skyColorRgb;
+      } else if (Array.isArray(atmosphere.skyColorRgb) && atmosphere.skyColorRgb.length === 3) {
+        (environment as Record<string, unknown>).skyColorRgb = [...atmosphere.skyColorRgb];
+      }
+    }
+    if (input.skyColorRgb === null) {
+      delete (environment as Record<string, unknown>).skyColorRgb;
+    } else if (Array.isArray(input.skyColorRgb) && input.skyColorRgb.length === 3) {
+      (environment as Record<string, unknown>).skyColorRgb = [...input.skyColorRgb];
+    }
+    const lightning = input.lightning as { frequency?: number; intensity?: number } | undefined;
+    if (lightning && typeof lightning === "object") {
+      if (typeof lightning.frequency === "number") environment.lightningFrequency = lightning.frequency;
+      if (typeof lightning.intensity === "number") environment.lightningIntensity = lightning.intensity;
     }
     const weatherChannels = input.weatherChannels as Record<string, unknown> | undefined;
     if (weatherChannels && typeof weatherChannels === "object") {
@@ -925,7 +942,20 @@ export async function createHeadlessSeedWorldFixture(options: {
         properties: { ...resources[idx]!.properties, ...mutation.patch }
       } as SeedWorldAuthoringResource;
       resources[idx] = updated;
-      return { action: mutation.action, resourceType: mutation.resourceType, resourceId: mutation.resourceId, resource: updated };
+      let realizedPlantCount: number | undefined;
+      if (
+        updated.resourceType === "vegetation-brush" &&
+        ((updated.properties as any)?.category === "tree" || (updated.properties as any)?.category === "shrub")
+      ) {
+        realizedPlantCount = realizeVegetation(mutation.resourceId, updated.properties);
+      }
+      return {
+        action: mutation.action,
+        resourceType: mutation.resourceType,
+        resourceId: mutation.resourceId,
+        resource: updated,
+        ...(realizedPlantCount !== undefined ? { realizedPlantCount } : {})
+      };
     });
     return {
       transactionId: `tx-${revision}`,
@@ -1994,6 +2024,13 @@ export async function createHeadlessSeedWorldFixture(options: {
     await farmingArea.service.checkpoint();
   }
 
+  async function seedYoungCrop(plotId = "native/a") {
+    const api = new FarmingAPI(farmingSystem);
+    const farmId = farmingArea.farmId;
+    await api.execute({ operation: "plant", input: { farmId, plotId, seedId: "berry-seed" } } as any);
+    await farmingArea.service.checkpoint();
+  }
+
   function seedAuthoredTree(position: [number, number, number] = [8, 0, -9]) {
     objects.push({
       worldId: "seed-world-42",
@@ -2043,6 +2080,7 @@ export async function createHeadlessSeedWorldFixture(options: {
     runTurn,
     seedPreUndoTransaction,
     seedMatureCrop,
+    seedYoungCrop,
     seedAuthoredTree,
     async dispose() {
       session.dispose();

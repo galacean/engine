@@ -1084,8 +1084,9 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
       const matJson = JSON.stringify(materials);
       const compJson = JSON.stringify(sceneJson.components ?? []);
       const combined = `${matJson}\n${compJson}`;
-      // Reddish color: high r (>0.5) and lower b (<0.4)
-      const hasRed = /"r":\s*(?:0\.[6-9]\d*|1(?:\.0+)?)[,\s\S]{0,60}?"b":\s*0\.[0-3]\d*/.test(combined) ||
+      // Reddish color: high r (>0.5) and lower b (<0.4), including exact integers 1 and 0
+      const hasRed =
+        /"r":\s*(?:0\.[6-9]\d*|1(?:\.0+)?)[,\s\S]{0,60}?"b":\s*0(?:\.[0-3]\d*)?(?=[,\}\s])/.test(combined) ||
         /"baseColor":\s*\{\s*"r":\s*(?:0\.[6-9]\d*|1(?:\.0+)?)/.test(combined);
       return [
         { name: "three_turns_completed", pass: turns.length === 3, detail: `turns=${turns.length}` },
@@ -1148,21 +1149,28 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
   },
   {
     id: "25_environment_wind_fog_cloud_update",
-    name: "环境更新（风/雾/云）：调大风速并增加轻雾与多云覆盖",
+    name: "环境全通道更新（风/雾/云/天空色/闪电）：调大风速、加轻雾多云、天空染暖紫并加闪电",
     category: "environment-write",
-    turns: ["把风调大一点，加上轻雾，再把天空云量调多一些。"],
+    turns: ["把风调大一点，加上轻雾、多云覆盖和轻微闪电，再把天空颜色调成偏暖紫色（线性 RGB 约 [0.55, 0.35, 0.65]）。"],
     expectedSkills: ["skills/environment/SKILL.md"],
     expectedDeclares: ["declare/editor/world/tools/atmosphere.update.d.ts"],
     optimalSteps: 4,
     verify(fixture, turns) {
       const muts = fixture.state.getEnvironmentMutations();
+      const s = fixture.state.getLiveState();
       const called = allCalledTools(turns);
       const serialized = JSON.stringify(muts);
       const touchedAtmosphere = hasTool(called, "tools.atmosphere.update");
       const touchedWindOrFogOrCloud = /wind|fog|cloud/i.test(serialized);
+      const touchedSkyOrLightning =
+        Boolean((s.environment as any).skyColorRgb) ||
+        /skyColorRgb|lightning/i.test(serialized) ||
+        s.environment.lightningFrequency > 0 ||
+        s.environment.lightningIntensity > 0;
       return [
         { name: "called_atmosphere_update", pass: touchedAtmosphere, detail: `called=${[...called].join(",")}` },
-        { name: "updated_wind_fog_or_cloud", pass: touchedWindOrFogOrCloud && muts.length > 0, detail: `muts=${serialized.slice(0, 180)}` }
+        { name: "updated_wind_fog_or_cloud", pass: touchedWindOrFogOrCloud && muts.length > 0, detail: `muts=${serialized.slice(0, 180)}` },
+        { name: "updated_sky_color_or_lightning", pass: touchedSkyOrLightning, detail: `skyColorRgb=${JSON.stringify((s.environment as any).skyColorRgb ?? null)}, lightning=${s.environment.lightningFrequency}/${s.environment.lightningIntensity}` }
       ];
     }
   },
@@ -1281,33 +1289,36 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
   },
   {
     id: "31_world_parameters_reset",
-    name: "规划参数 R+Reset：查询动物激活距离并重置为默认值",
+    name: "规划参数 R+Reset+Receipt：查询动物激活距离、重置默认值并查回执",
     category: "world-parameters",
-    turns: ["先查一下动物系统当前的 activationDistance 参数，再把它 reset 重置回默认值。"],
+    turns: ["先查一下动物系统当前的 activationDistance 参数，把它 reset 重置回默认值，并查一下这次参数应用的 receipt 回执确认生效。"],
     expectedSkills: ["skills/world-objects/parameters/SKILL.md"],
     expectedDeclares: [
       "declare/editor/world/tools/world.parameters.describe.d.ts",
       "declare/editor/world/tools/world.parameters.inspect.d.ts",
-      "declare/editor/world/tools/world.parameters.apply.d.ts"
+      "declare/editor/world/tools/world.parameters.apply.d.ts",
+      "declare/editor/world/tools/world.parameters.receipt.d.ts"
     ],
-    optimalSteps: 5,
+    optimalSteps: 6,
     verify(fixture, turns) {
       const paramState = fixture.state.getParameterState();
       const called = allCalledTools(turns);
       const usedReset = JSON.stringify(paramState.applyCalls).includes('"reset"');
       return [
         { name: "called_parameters_apply", pass: hasTool(called, "tools.world.parameters.apply"), detail: `called=${[...called].join(",")}` },
-        { name: "used_reset_op", pass: usedReset, detail: `applyCalls=${JSON.stringify(paramState.applyCalls).slice(0, 180)}` }
+        { name: "used_reset_op", pass: usedReset, detail: `applyCalls=${JSON.stringify(paramState.applyCalls).slice(0, 180)}` },
+        { name: "checked_parameters_receipt", pass: hasTool(called, "tools.world.parameters.receipt"), detail: `called=${[...called].join(",")}` }
       ];
     }
   },
   {
     id: "32_spatial_resolve_and_check",
-    name: "空间解析与落点检查：解析玩家右侧 20 米坐标并检查该点地形高度与坡度",
+    name: "空间只读三件套：查询玩家实时位姿、解析右侧 20 米坐标并检查地形高度与坡度",
     category: "spatial-read",
-    turns: ["帮我解析玩家右侧 20 米的位置坐标，并用空间检查工具确认该位置的高度、坡度和是否适合放置物体，不要修改场景。"],
+    turns: ["先读取玩家当前的实时相机位置与朝向（spatial.viewer），再解析玩家右侧 20 米的位置坐标，并用空间检查工具确认该位置的高度、坡度和是否适合放置物体，不要修改场景。"],
     expectedSkills: ["skills/spatial/SKILL.md"],
     expectedDeclares: [
+      "declare/editor/world/tools/spatial.viewer.d.ts",
       "declare/editor/world/tools/spatial.resolve.d.ts",
       "declare/editor/world/tools/spatial.check.d.ts"
     ],
@@ -1316,6 +1327,7 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
       const called = allCalledTools(turns);
       const removed = fixture.state.getRemovedIds();
       return [
+        { name: "called_spatial_viewer", pass: hasTool(called, "tools.spatial.viewer"), detail: `called=${[...called].join(",")}` },
         { name: "called_spatial_resolve", pass: hasTool(called, "tools.spatial.resolve"), detail: `called=${[...called].join(",")}` },
         { name: "called_spatial_check", pass: hasTool(called, "tools.spatial.check"), detail: `called=${[...called].join(",")}` },
         { name: "scope_read_only", pass: removed.length === 0 && fixture.state.getTeleports().length === 0, detail: `teleports=${fixture.state.getTeleports().length}` }
@@ -1506,7 +1518,7 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
       const called = allCalledTools(turns);
       const stillPresent = files.some((f) => f.virtualPath === "Scripts/TempPulse.ts");
       return [
-        { name: "read_and_updated_script", pass: hasTool(called, "editor.asset.read") && hasTool(called, "editor.asset.update"), detail: `called=${[...called].join(",")}` },
+        { name: "read_and_updated_script", pass: (hasTool(called, "editor.asset.read") || called.has("read")) && (hasTool(called, "editor.asset.update") || called.has("edit")), detail: `called=${[...called].join(",")}` },
         { name: "checked_refs_and_deleted", pass: hasTool(called, "editor.asset.references") && hasTool(called, "editor.asset.delete") && !stillPresent, detail: `stillPresent=${stillPresent}` }
       ];
     }
@@ -1607,12 +1619,12 @@ export function selectBenchmarkCases(suiteRaw?: string, casesRaw?: string): read
     } else if (suite === "hard") {
       pool = pool.filter((c) => {
         const num = Number(c.id.slice(0, 3).replace(/_.*$/, ""));
-        return (num >= 19 && num <= 24) || num >= 66;
+        return (num >= 19 && num <= 24) || num >= 69;
       });
     } else if (suite === "crud") {
       pool = pool.filter((c) => {
         const num = Number(c.id.slice(0, 3).replace(/_.*$/, ""));
-        return (num >= 1 && num <= 18) || (num >= 25 && num <= 65);
+        return (num >= 1 && num <= 18) || (num >= 25 && num <= 68);
       });
     } else if (suite.startsWith("domain:")) {
       const domain = suite.slice("domain:".length).trim();

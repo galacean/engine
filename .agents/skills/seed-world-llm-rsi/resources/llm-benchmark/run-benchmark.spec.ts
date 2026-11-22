@@ -218,5 +218,5 @@ it(
       expect(m.modelVerified, `${m.caseId} modelVerified`).toBe(true);
     }
   },
-  3_600_000
+  7_200_000
 );
