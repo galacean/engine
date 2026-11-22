@@ -256,6 +256,68 @@ describe("Transform test", function () {
     }
   });
 
+  it("reports internal TRS, world-pose override, and world uniform scaling flags accurately", () => {
+    class CustomWorldPositionTransform extends Transform {
+      override get worldPosition(): Vector3 {
+        return super.worldPosition;
+      }
+    }
+
+    class CustomLossyScaleTransform extends Transform {
+      override get lossyWorldScale(): Vector3 {
+        return super.lossyWorldScale;
+      }
+    }
+
+    class CustomWorldMatrixTransform extends Transform {
+      override get worldMatrix(): Matrix {
+        return super.worldMatrix;
+      }
+    }
+
+    const parent = scene.createRootEntity("flags-parent");
+    const child = parent.createChild("flags-child");
+    const posEntity = scene.createRootEntity("custom-pos");
+    const scaleEntity = scene.createRootEntity("custom-scale");
+    const matrixEntity = scene.createRootEntity("custom-matrix");
+    try {
+      const parentTransform = parent.transform;
+      const childTransform = child.transform;
+      expect(childTransform._usesTRSMatrix).toBe(true);
+      expect(childTransform._hasCustomWorldPose).toBe(false);
+      expect(childTransform._getWorldUniformScaling()).toBe(true);
+
+      parentTransform.setScale(2, 1, 1);
+      expect(childTransform._getWorldUniformScaling()).toBe(false);
+
+      parentTransform.localMatrix = new Matrix();
+      expect(parentTransform._usesTRSMatrix).toBe(false);
+      expect(parentTransform._getWorldUniformScaling()).toBe(false);
+
+      parentTransform.setScale(2, 2, 2);
+      expect(parentTransform._usesTRSMatrix).toBe(true);
+      expect(parentTransform._getWorldUniformScaling()).toBe(true);
+      expect(childTransform._getWorldUniformScaling()).toBe(true);
+
+      const posTransform = posEntity.addComponent(CustomWorldPositionTransform);
+      expect(posTransform._usesTRSMatrix).toBe(true);
+      expect(posTransform._hasCustomWorldPose).toBe(true);
+
+      const scaleTransform = scaleEntity.addComponent(CustomLossyScaleTransform);
+      expect(scaleTransform._usesTRSMatrix).toBe(false);
+      expect(scaleTransform._hasCustomWorldPose).toBe(false);
+
+      const matrixTransform = matrixEntity.addComponent(CustomWorldMatrixTransform);
+      expect(matrixTransform._usesTRSMatrix).toBe(false);
+      expect(matrixTransform._hasCustomWorldPose).toBe(true);
+    } finally {
+      parent.destroy();
+      posEntity.destroy();
+      scaleEntity.destroy();
+      matrixEntity.destroy();
+    }
+  });
+
   it("preserves WorldScale listener fidelity across position, uniform rotation, and scale changes", () => {
     const parent = scene.createRootEntity("listener scale parent");
     const child = parent.createChild("listener scale child");

@@ -12,6 +12,7 @@ import type { ICloneHook } from "./clone/ICloneHook";
 export class Transform extends Component implements ICloneHook<Transform> {
   private static readonly _authoredLocalMatrixFlag = 0x40000000;
   private static readonly _customMatrixFlag = 0x20000000;
+  private static readonly _customWorldPoseFlag = 0x10000000;
   private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
@@ -336,6 +337,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
     super(entity);
 
     const hasOwn = Object.prototype.hasOwnProperty;
+    const customFlags = Transform._customMatrixFlag | Transform._customWorldPoseFlag;
     for (
       let prototype = Object.getPrototypeOf(this);
       prototype !== Transform.prototype;
@@ -344,13 +346,16 @@ export class Transform extends Component implements ICloneHook<Transform> {
       if (
         hasOwn.call(prototype, "localMatrix") ||
         hasOwn.call(prototype, "worldMatrix") ||
-        hasOwn.call(prototype, "rotationQuaternion") ||
-        hasOwn.call(prototype, "worldRotationQuaternion") ||
-        hasOwn.call(prototype, "lossyWorldScale")
+        hasOwn.call(prototype, "worldRotationQuaternion")
       ) {
-        this._dirtyFlag |= Transform._customMatrixFlag;
+        this._dirtyFlag |= customFlags;
         break;
       }
+      if (hasOwn.call(prototype, "rotationQuaternion") || hasOwn.call(prototype, "lossyWorldScale")) {
+        this._dirtyFlag |= Transform._customMatrixFlag;
+      }
+      if (hasOwn.call(prototype, "worldPosition")) this._dirtyFlag |= Transform._customWorldPoseFlag;
+      if ((this._dirtyFlag & customFlags) === customFlags) break;
     }
 
     this._onPositionChanged = this._onPositionChanged.bind(this);
@@ -946,11 +951,18 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
   }
 
-  private get _usesTRSMatrix(): boolean {
+  /** @internal */
+  get _usesTRSMatrix(): boolean {
     return !this._isContainDirtyFlag(Transform._authoredLocalMatrixFlag | Transform._customMatrixFlag);
   }
 
-  private _getWorldUniformScaling(): boolean {
+  /** @internal */
+  get _hasCustomWorldPose(): boolean {
+    return this._isContainDirtyFlag(Transform._customWorldPoseFlag);
+  }
+
+  /** @internal */
+  _getWorldUniformScaling(): boolean {
     if (this._isContainDirtyFlag(TransformModifyFlags.IsWorldUniformScaling)) {
       if (this._localUniformScaling && this._usesTRSMatrix) {
         const parent = this._getParentTransform();
