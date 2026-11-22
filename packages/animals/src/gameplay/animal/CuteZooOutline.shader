@@ -43,7 +43,9 @@
           mat4 skinMatrix = getSkinMatrix(attributes);
           position = skinMatrix * position;
           #ifdef RENDERER_HAS_NORMAL
-            normal = normal * INVERSE_MAT(mat3(skinMatrix));
+            mat3 skinMat3 = mat3(skinMatrix);
+            float skinDet = determinant(skinMat3);
+            normal = abs(skinDet) > 1e-6 ? normal * INVERSE_MAT(skinMat3) : skinMat3 * normal;
           #endif
         #endif
         vec4 world = renderer_ModelMat * position;
@@ -53,7 +55,7 @@
             float cameraDistance = distance(camera_Position, world.xyz);
             outlineWidth *= 1.0 - smoothstep(animal_OutlineFadeStart, animal_OutlineFadeEnd, cameraDistance);
           #endif
-          world.xyz += normalize(mat3(renderer_NormalMat) * normal) * outlineWidth;
+          world.xyz += safeNormalize(mat3(renderer_NormalMat) * normal) * outlineWidth;
         #endif
         gl_Position = camera_VPMat * world;
         #if SCENE_FOG_MODE != 0

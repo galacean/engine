@@ -83,7 +83,9 @@ Shader "Animal/CuteZooToon" {
           mat4 skinMatrix = getSkinMatrix(attributes);
           position = skinMatrix * position;
           #ifdef RENDERER_HAS_NORMAL
-            normal = normal * INVERSE_MAT(mat3(skinMatrix));
+            mat3 skinMat3 = mat3(skinMatrix);
+            float skinDet = determinant(skinMat3);
+            normal = abs(skinDet) > 1e-6 ? normal * INVERSE_MAT(skinMat3) : skinMat3 * normal;
           #endif
         #endif
         vec4 worldPosition = renderer_ModelMat * position;
@@ -127,7 +129,7 @@ Shader "Animal/CuteZooToon" {
       // UTS double-shade feather: the transition ends at the authored threshold.
       float toonBand(float value, float threshold) {
         #ifdef ANIMAL_TOON_FEATHER
-          return clamp((value - threshold + animal_Feather) / animal_Feather, 0.0, 1.0);
+          return clamp((value - threshold + animal_Feather) / max(animal_Feather, 1e-5), 0.0, 1.0);
         #else
           return step(threshold, value);
         #endif
@@ -142,7 +144,7 @@ Shader "Animal/CuteZooToon" {
           if (albedo.a < material_AlphaCutoff) discard;
         #endif
         #ifdef RENDERER_HAS_NORMAL
-          vec3 normal = normalize(v.normalWS) * (float(gl_FrontFacing) * 2.0 - 1.0);
+          vec3 normal = safeNormalize(v.normalWS) * (float(gl_FrontFacing) * 2.0 - 1.0);
         #else
           vec3 normal = vec3(0.0, 1.0, 0.0);
         #endif
@@ -172,12 +174,13 @@ Shader "Animal/CuteZooToon" {
           }
         #endif
         #ifdef ANIMAL_TOON_RIM
-          vec3 viewDirection = normalize(camera_Position - v.positionWS);
-          float rim = pow(1.0 - max(0.0, dot(normal, viewDirection)), animal_RimPower);
+          vec3 viewDirection = safeNormalize(camera_Position - v.positionWS);
+          float rimBase = clamp(1.0 - clamp(dot(normal, viewDirection), 0.0, 1.0), 0.0, 1.0);
+          float rim = rimBase > 0.0 ? pow(rimBase, max(animal_RimPower, 1e-4)) : 0.0;
           // Light-dependent rim, never a self-lit floor at night.
           illumination += max(environment, illumination) * animal_RimColor * rim * animal_RimStrength;
         #endif
-        vec4 color = vec4(albedo.rgb * illumination * animal_Brightness, 1.0);
+        vec4 color = vec4(max(albedo.rgb * illumination * animal_Brightness, vec3(0.0)), 1.0);
         #if SCENE_FOG_MODE != 0
           color = fog(color, v.positionVS);
         #endif

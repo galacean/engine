@@ -5,7 +5,9 @@ import {
   BloomEffect,
   Camera,
   Color,
+  DirectLight,
   MeshRenderer,
+  PBRMaterial,
   PostProcess,
   PrimitiveMesh,
   RenderTarget,
@@ -15,6 +17,11 @@ import {
   UnlitMaterial,
   WebGLEngine
 } from "@galacean/engine";
+import {
+  CUTE_ZOO_TOON_APPEARANCE,
+  createCuteZooToonMaterial
+} from "@galacean/engine-animals/gameplay/animal/CuteZooToonMaterial";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 describe("Bloom single-pass 13-tap downsample and in-place upsample", () => {
   it("clamps maxIterations and clones BloomEffect parameters", async () => {
@@ -272,6 +279,104 @@ describe("Bloom single-pass 13-tap downsample and in-place upsample", () => {
         }
         expect(prevDiag).toBeLessThan(centerVal);
       }
+    } finally {
+      bloomCamera.renderTarget = null;
+      destTarget.destroy(true);
+      bloomEngine.destroy();
+    }
+  });
+
+  it("sanitizes NaN/Inf in BloomPrefilter and renders head-on CuteZooToon rim+outline without bloom flashes", async () => {
+    const size = 128;
+    const htmlCanvas = document.createElement("canvas");
+    htmlCanvas.width = size;
+    htmlCanvas.height = size;
+    const bloomEngine = await WebGLEngine.create({ canvas: htmlCanvas, shaderCompiler: new ShaderCompiler() });
+    const bloomScene = bloomEngine.sceneManager.scenes[0];
+    bloomScene.background.solidColor.set(0, 0, 0, 1);
+
+    const cameraEntity = bloomScene.createRootEntity("camera");
+    cameraEntity.transform.setPosition(0, 0, 10);
+    const bloomCamera = cameraEntity.addComponent(Camera);
+    bloomCamera.isOrthographic = true;
+    bloomCamera.orthographicSize = size / 2;
+    bloomCamera.enablePostProcess = true;
+    bloomCamera.enableHDR = true;
+
+    const lightEntity = bloomScene.createRootEntity("sun");
+    lightEntity.transform.setRotation(-45, 30, 0);
+    lightEntity.addComponent(DirectLight);
+
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
+    bloomCamera.renderTarget = destTarget;
+
+    const dotEntity = bloomScene.createRootEntity("bad-pixel");
+    const renderer = dotEntity.addComponent(MeshRenderer);
+    renderer.mesh = PrimitiveMesh.createCuboid(bloomEngine, 4, 4, 1);
+    const unlitMat = new UnlitMaterial(bloomEngine);
+    renderer.setMaterial(unlitMat);
+
+    const pp = bloomScene.createRootEntity("post-process").addComponent(PostProcess);
+    const bloomEffect = pp.addEffect(BloomEffect);
+    bloomEffect.downScale.value = BloomDownScaleMode.Quarter;
+    bloomEffect.maxIterations.value = 5;
+    bloomEffect.threshold.value = 0.5;
+    bloomEffect.scatter.value = 0.7;
+    bloomEffect.intensity.value = 1;
+
+    try {
+      const gl = (bloomEngine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+      const outPixels = new Uint8Array(size * size * 4);
+      const readPixel = (x: number, y: number) => {
+        const idx = (y * size + x) * 4;
+        return [outPixels[idx], outPixels[idx + 1], outPixels[idx + 2]];
+      };
+
+      for (const hq of [false, true]) {
+        bloomEffect.highQualityFiltering.value = hq;
+        for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+          unlitMat.baseColor.set(bad, bad, bad, 1);
+          while (gl.getError() !== gl.NO_ERROR);
+          bloomEngine.update();
+          expect(gl.getError()).toBe(gl.NO_ERROR);
+
+          destColorTexture.getPixelBuffer(outPixels);
+          expect(readPixel(72, 64)).toEqual([0, 0, 0]);
+          expect(readPixel(96, 64)).toEqual([0, 0, 0]);
+        }
+
+        bloomEffect.intensity.value = 0.001;
+        unlitMat.baseColor.set(65504, 65504, 65504, 1);
+        while (gl.getError() !== gl.NO_ERROR);
+        bloomEngine.update();
+        expect(gl.getError()).toBe(gl.NO_ERROR);
+        destColorTexture.getPixelBuffer(outPixels);
+        expect(readPixel(70, 64)[0]).toBeGreaterThan(0);
+        expect(readPixel(0, 0)[2]).toBeLessThan(255);
+        bloomEffect.intensity.value = 1;
+      }
+
+      // Render a CuteZooToon sphere with rim + outline head-on (where dot(N, V) == 1.0) under HDR Quarter Bloom
+      const sourcePbr = new PBRMaterial(bloomEngine);
+      sourcePbr.baseColor.set(0.35, 0.35, 0.35, 1);
+      const toonMat = createCuteZooToonMaterial(sourcePbr, { ...CUTE_ZOO_TOON_APPEARANCE, texture: false });
+      renderer.mesh = PrimitiveMesh.createSphere(bloomEngine, 16, 24);
+      renderer.setMaterial(toonMat);
+      bloomEffect.highQualityFiltering.value = false;
+      bloomEffect.threshold.value = 0.9;
+      bloomEffect.intensity.value = 0.35;
+
+      while (gl.getError() !== gl.NO_ERROR);
+      bloomEngine.update();
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+
+      destColorTexture.getPixelBuffer(outPixels);
+      expect(readPixel(8, 8)).toEqual([0, 0, 0]);
+      expect(readPixel(64, 64)[0]).toBeGreaterThan(0);
+
+      toonMat.destroy();
+      sourcePbr.destroy();
     } finally {
       bloomCamera.renderTarget = null;
       destTarget.destroy(true);
