@@ -689,6 +689,12 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     }
   }
 
+  /** Marks cell membership dirty so external `record.excluded` toggles re-upload even when the camera is stationary. */
+  markMembershipDirty(): void {
+    if (this.disposed) return;
+    this.membershipDirty = true;
+  }
+
   /** Updates cached Y positions in-place after terrain/rock grounding commits without rebuilding Entities. */
   updateCellGroundHeights(cellKey: string, resolveHeight: (record: InstancedUnderstoryRecord) => number): void {
     if (this.disposed) return;
