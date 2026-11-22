@@ -39,7 +39,6 @@ export class Primitive extends GraphicsResource {
 
   constructor(engine: Engine) {
     super(engine);
-    this.isGCIgnored = true;
     this._platformPrimitive = engine._hardwareRenderer.createPlatformPrimitive(this);
   }
 

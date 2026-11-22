@@ -316,6 +316,7 @@ export class BlendShapeManager {
         if (!modelMesh.destroyed && bindingOffset !== -1 && bindings[bindingOffset + i]?.buffer === buffer) {
           modelMesh._setVertexBufferBinding(bindingOffset + i, null);
         }
+        buffer._disassociationSuperResource(modelMesh);
         buffer.destroy();
       }
     }
@@ -324,6 +325,7 @@ export class BlendShapeManager {
 
   private _destroyVertexTexture(): void {
     if (this._vertexTexture) {
+      this._vertexTexture._disassociationSuperResource(this._modelMesh);
       this._vertexTexture.destroy();
       this._vertexTexture = null!;
     }
@@ -358,7 +360,7 @@ export class BlendShapeManager {
 
       const usage = noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic;
       const blendShapeBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, byteLength, usage);
-      blendShapeBuffer.isGCIgnored = true;
+      blendShapeBuffer._associationSuperResource(modelMesh);
       modelMesh._setVertexBufferBinding(bufferBindingOffset + i, new VertexBufferBinding(blendShapeBuffer, stride));
       vertexBuffers[i] = blendShapeBuffer;
     }
@@ -388,7 +390,7 @@ export class BlendShapeManager {
       false,
       false
     );
-    blendShapeDataTexture.isGCIgnored = true;
+    blendShapeDataTexture._associationSuperResource(this._modelMesh);
     blendShapeDataTexture.filterMode = TextureFilterMode.Point;
 
     this._vertices = new Float32Array(blendShapeCount * textureWidth * textureHeight * 4);

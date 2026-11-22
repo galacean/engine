@@ -128,7 +128,17 @@ describe("ReferResource", () => {
     if (blendShapeTexture) expect(blendShapeTexture.destroyed).eq(false);
     for (const buffer of blendShapeBuffers) expect(buffer.destroyed).eq(false);
 
-    mesh.destroy();
+    // Owned GPU sub-resources are superResource-associated (not forced isGCIgnored) and protected from direct destroy()
+    expect(primitive.isGCIgnored).eq(false);
+    expect(vertexBuffer.isGCIgnored).eq(false);
+    expect(indexBuffer.isGCIgnored).eq(false);
+    expect(primitive.destroy()).eq(false);
+    expect(vertexBuffer.destroy()).eq(false);
+    expect(indexBuffer.destroy()).eq(false);
+
+    // Once mesh is no longer retained, gc() collects the entire owned subtree
+    mesh.isGCIgnored = false;
+    engine.resourceManager.gc();
     expect(mesh.destroyed).eq(true);
     expect(primitive.destroyed).eq(true);
     expect(vertexBuffer.destroyed).eq(true);

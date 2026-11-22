@@ -476,15 +476,8 @@ export class ModelMesh extends Mesh {
     vertexElementMap[VertexAttribute.UV7] || this.setUVs(null, 7);
 
     // Destroy internal vertex buffer immediately
-    const internalVertexBufferIndex = this._internalVertexBufferCreatedInfo.z;
-    if (internalVertexBufferIndex !== -1) {
-      if (this._primitive.vertexBufferBindings[internalVertexBufferIndex]?.buffer === this._internalVertexBuffer) {
-        this._setVertexBufferBinding(internalVertexBufferIndex, null);
-      }
-      this._internalVertexBuffer?.destroy();
-      this._internalVertexBuffer = null;
-      this._internalVertexBufferCreatedInfo.z = -1;
-    }
+    this._destroyInternalVertexBuffer();
+    this._internalVertexBufferCreatedInfo.z = -1;
 
     this._internalVertexBufferStride = 0;
     this._internalVertexElementsOffset = count;
@@ -647,9 +640,12 @@ export class ModelMesh extends Mesh {
       if (indices) {
         if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
           const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
-          newIndexBuffer.isGCIgnored = true;
+          newIndexBuffer._associationSuperResource(this);
           this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat!));
-          indexBuffer?.destroy();
+          if (indexBuffer) {
+            indexBuffer._disassociationSuperResource(this);
+            indexBuffer.destroy();
+          }
         } else {
           indexBuffer.setData(indices);
           if (this._primitive.indexBufferBinding!._format !== this._indicesFormat) {
@@ -658,6 +654,7 @@ export class ModelMesh extends Mesh {
         }
       } else if (indexBuffer) {
         this._setIndexBufferBinding(null);
+        indexBuffer._disassociationSuperResource(this);
         indexBuffer.destroy();
       }
 
@@ -754,11 +751,12 @@ export class ModelMesh extends Mesh {
       bindings[i]?.buffer._dataUpdateManager.removeListener(this._vertexBufferInfos[i].onBufferChanged);
     }
     super._onDestroy();
-    if (this._internalVertexBuffer) {
-      this._internalVertexBuffer.destroy();
-      this._internalVertexBuffer = null;
+    this._destroyInternalVertexBuffer();
+    const indexBuffer = this._primitive.indexBufferBinding?._buffer;
+    if (indexBuffer) {
+      indexBuffer._disassociationSuperResource(this);
+      indexBuffer.destroy();
     }
-    this._primitive.indexBufferBinding?._buffer.destroy();
     this._blendShapeManager._destroy();
     this._releaseCache(true);
   }
@@ -813,14 +811,7 @@ export class ModelMesh extends Mesh {
     const needByteLength = bufferStride * vertexCount;
     if (bufferCreatedInfo.x * bufferCreatedInfo.y !== needByteLength) {
       // Destroy old internal vertex buffer
-      const createdInternalBufferIndex = bufferCreatedInfo.z;
-      if (createdInternalBufferIndex !== -1) {
-        if (this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer === this._internalVertexBuffer) {
-          this._setVertexBufferBinding(createdInternalBufferIndex, null);
-        }
-        this._internalVertexBuffer?.destroy();
-        this._internalVertexBuffer = null;
-      }
+      this._destroyInternalVertexBuffer();
 
       const vertexBufferIndex = this._internalVertexBufferIndex;
       const isCreate = bufferStride * this.vertexCount > 0;
@@ -830,11 +821,28 @@ export class ModelMesh extends Mesh {
 
         const bufferUsage = releaseData ? BufferUsage.Static : BufferUsage.Dynamic;
         const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, needByteLength, bufferUsage, true);
-        vertexBuffer.isGCIgnored = true;
+        vertexBuffer._associationSuperResource(this);
         this._internalVertexBuffer = vertexBuffer;
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
       }
       bufferCreatedInfo.set(bufferStride, vertexCount, isCreate ? vertexBufferIndex : -1);
+    }
+  }
+
+  private _destroyInternalVertexBuffer(): void {
+    const internalVertexBuffer = this._internalVertexBuffer;
+    if (internalVertexBuffer) {
+      const createdIndex = this._internalVertexBufferCreatedInfo.z;
+      if (
+        !this.destroyed &&
+        createdIndex !== -1 &&
+        this._primitive.vertexBufferBindings[createdIndex]?.buffer === internalVertexBuffer
+      ) {
+        this._setVertexBufferBinding(createdIndex, null);
+      }
+      internalVertexBuffer._disassociationSuperResource(this);
+      internalVertexBuffer.destroy();
+      this._internalVertexBuffer = null;
     }
   }
 
