@@ -13,13 +13,6 @@ export interface IDynamicCollider extends ICollider {
   setWorldTransform(position: Vector3, rotation: Quaternion): void;
 
   /**
-   * Write the current world-space pose of the actor.
-   * @param outPosition - Receives the position
-   * @param outRotation - Receives the rotation
-   */
-  getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void;
-
-  /**
    * Sets the linear damping coefficient.
    * @param value - Linear damping coefficient
    */

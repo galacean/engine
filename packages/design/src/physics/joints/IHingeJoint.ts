@@ -18,7 +18,7 @@ export interface IHingeJoint extends IJoint {
   /**
    * The angular velocity of the joint in radians per second.
    */
-  getVelocity(): Readonly<number>;
+  getVelocity(): number;
 
   /**
    * Set an angular hard limit.

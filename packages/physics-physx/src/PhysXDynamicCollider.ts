@@ -9,6 +9,8 @@ import { PhysXPhysics } from "./PhysXPhysics";
 export class PhysXDynamicCollider extends PhysXCollider implements IDynamicCollider {
   private static _tempRotation = new Quaternion();
 
+  private _isKinematic = false;
+
   constructor(physXPhysics: PhysXPhysics, position: Vector3, rotation: Quaternion) {
     super(physXPhysics);
     const transform = this._transform(position, rotation);
@@ -187,6 +189,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    * {@inheritDoc IDynamicCollider.setMotionState }
    */
   setMotionState(isKinematic: boolean, useCCD: boolean): void {
+    this._isKinematic = isKinematic;
     const { eENABLE_CCD, eENABLE_SPECULATIVE_CCD, eKINEMATIC, eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES } =
       this._physXPhysics._physX.PxRigidBodyFlag;
     const actor = this._pxActor;
@@ -278,7 +281,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     const transform = this._transform(position, rotation);
     this._pxActor.setGlobalPose(transform, true);
     // Replace the pending target so the next simulation step preserves the new pose.
-    if (this._pxActor.getKinematicTarget()) {
+    if (this._isKinematic && this._pxActor.getKinematicTarget()) {
       this._pxActor.setKinematicTarget(transform.translation, transform.rotation);
     }
   }

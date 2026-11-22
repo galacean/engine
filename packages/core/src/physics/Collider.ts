@@ -1,10 +1,4 @@
-import {
-  ICharacterController,
-  ICollider,
-  IColliderShape,
-  IPhysicsMaterial,
-  IStaticCollider
-} from "@galacean/engine-design";
+import { ICollider, IColliderShape, IPhysicsMaterial, IStaticCollider } from "@galacean/engine-design";
 import { MathUtil, Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Logger } from "../base";
 import { BasicResources } from "../BasicResources";
@@ -73,12 +67,59 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return a !== b && Math.fround(a) !== Math.fround(b);
   }
 
+  /**
+   * @internal
+   * Normalize a unit direction vector in place, restoring its prior valid direction on invalid input.
+   * @returns Whether the resulting direction changed relative to the previous valid value.
+   */
+  static _syncUnitVector(
+    target: Vector3,
+    source: Vector3,
+    lastValid: Vector3 | undefined,
+    defaultX: number,
+    defaultY: number,
+    defaultZ: number,
+    errorMessage: string
+  ): boolean {
+    const prevX = lastValid?.x ?? defaultX;
+    const prevY = lastValid?.y ?? defaultY;
+    const prevZ = lastValid?.z ?? defaultZ;
+    let { x, y, z } = source;
+    const length = Math.hypot(x, y, z);
+    const finite = Number.isFinite(length);
+    if (!finite || length === 0) {
+      if (source === target) {
+        Collider._writeVectorUnchecked(target, prevX, prevY, prevZ);
+      }
+      if (!finite) {
+        throw new Error(errorMessage);
+      }
+      return false;
+    }
+    x /= length;
+    y /= length;
+    z /= length;
+    Collider._writeVectorUnchecked(target, x, y, z);
+    return x !== prevX || y !== prevY || z !== prevZ;
+  }
+
+  private static _writeVectorUnchecked(target: Vector3, x: number, y: number, z: number): void {
+    if (target.x === x && target.y === y && target.z === z) return;
+    //@ts-ignore
+    const listener = target._onValueChanged;
+    //@ts-ignore
+    target._onValueChanged = null;
+    target.set(x, y, z);
+    //@ts-ignore
+    target._onValueChanged = listener;
+  }
+
   /** @internal */
   @ignoreClone
   _id: number;
-  /** @internal The native shape or controller, created from the current fields when first needed. */
+  /** @internal The native shape, created from the current fields when first needed. */
   @ignoreClone
-  _native: IColliderShape | ICharacterController | null = null;
+  _native: IColliderShape | null = null;
   /** @internal */
   @ignoreClone
   _dirtyIndex = -1;
@@ -92,6 +133,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   protected _collisionLayerIndex = 0;
   @ignoreClone
   protected _geometryDirty = false;
+  @ignoreClone
+  private _poseOnlyDirty = false;
   @ignoreClone
   protected _nativeScale = new Vector3(1, 1, 1);
   @ignoreClone
@@ -184,7 +227,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   set isSceneQuery(value: boolean) {
     if (this._isSceneQuery !== value) {
       this._isSceneQuery = value;
-      this._native?.setIsSceneQuery(value);
+      this._onIsSceneQueryChanged(value);
     }
   }
 
@@ -225,7 +268,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       this._material && this._addResourceReferCount(this._material, -1);
       value && this._addResourceReferCount(value, 1);
       this._material = value;
-      this._native?.setMaterial(this._getNativeMaterial());
+      this._onMaterialChanged(this._getNativeMaterial());
     }
   }
 
@@ -244,7 +287,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const index = Collider._getLayerIndex(value);
     if (this._collisionLayerIndex !== index) {
       this._collisionLayerIndex = index;
-      this._native?.setCollisionLayer(index);
+      this._onCollisionLayerChanged(index);
     }
   }
 
@@ -329,7 +372,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       return -1;
     }
 
-    const res = (<IColliderShape>this._native).pointDistance(point);
+    const res = this._native!.pointDistance(point);
     const distance = res.w;
     if (distance < 0) {
       return -1;
@@ -377,9 +420,31 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   _sync(): void {
     const scene = this._registeredScene!;
+    const poseOnly = this._poseOnlyDirty;
+    this._poseOnlyDirty = false;
     const transform = this.entity.transform;
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
     const worldMatrix = transform.worldMatrix;
+    if (
+      poseOnly &&
+      this._nativeActor &&
+      this._attachedBody &&
+      !this._attachedBody.destroyed &&
+      !this._geometryDirty &&
+      this._native &&
+      this._registeredScene === scene
+    ) {
+      const depth = Collider._syncDepth++;
+      try {
+        const scratch = (Collider._syncScratch[depth] ||= new ColliderSyncScratch());
+        scratch.scale.copyFrom(this._nativeScale);
+        this._syncShapePose(this._native, this._attachedBody, scratch, false, scene);
+      } finally {
+        Collider._syncDepth = depth;
+      }
+      return;
+    }
+
     if (Logger.isEnabled && !this._shearWarned) this._checkShear(worldMatrix);
 
     const lossyScale = transform.lossyWorldScale;
@@ -418,6 +483,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform, scene);
       if (!actor || !this._syncShapePose(shape, body, scratch, shape !== previousShape, scene)) return;
       if (!this._nativeActor) {
+        if (body && (body.destroyed || this._findRigidbody() !== body)) return;
         if (!actor.addShape(shape)) {
           console.error(`${this.constructor.name}: failed to attach to the native actor.`);
           return;
@@ -442,7 +508,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   _detach(physicsScene?: PhysicsScene): void {
     const actor = this._nativeActor;
     if (actor) {
-      actor.removeShape(<IColliderShape>this._native);
+      actor.removeShape(this._native!);
       const body = this._attachedBody;
       if (body) {
         body._detachCollider(this);
@@ -460,6 +526,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   @ignoreClone
   _markDirty(): void {
+    this._poseOnlyDirty = false;
     this._registeredScene?.physics._markColliderDirty(this);
   }
 
@@ -484,7 +551,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * Detach before the Rigidbody releases its actor so the next sync can resolve the new owner.
    */
   _onBodyDestroyed(): void {
-    this._nativeActor!.removeShape(<IColliderShape>this._native);
+    this._nativeActor!.removeShape(this._native!);
     this._nativeActor = null;
     this._attachedBody = null;
     this._markDirty();
@@ -516,7 +583,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @returns The active native shape, or null when the current fields cannot produce one
    */
   protected _syncNativeShape(scale: Vector3): IColliderShape | null {
-    const previous = <IColliderShape | null>this._native;
+    const previous = this._native;
     if (previous && !this._geometryDirty && !this._scaleChanged(scale)) {
       return previous;
     }
@@ -553,7 +620,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @returns Whether the replacement was committed; on failure the new shape is released
    */
   protected _replaceNativeShape(shape: IColliderShape | null): boolean {
-    const previous = <IColliderShape>this._native;
+    const previous = this._native!;
     const actor = this._nativeActor;
     if (actor) {
       if (!shape) {
@@ -584,10 +651,27 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._native?.setContactOffset(value);
   }
 
+  protected _onIsSceneQueryChanged(value: boolean): void {
+    this._native?.setIsSceneQuery(value);
+  }
+
+  protected _onMaterialChanged(material: IPhysicsMaterial): void {
+    this._native?.setMaterial(material);
+  }
+
+  protected _onCollisionLayerChanged(layerIndex: number): void {
+    this._native?.setCollisionLayer(layerIndex);
+  }
+
+  protected _destroyNative(): void {
+    this._native?.destroy();
+    this._native = null;
+  }
+
   protected _setIsTrigger(value: boolean): void {
     if (this._isTrigger !== value) {
       this._isTrigger = value;
-      (<IColliderShape>this._native)?.setIsTrigger(value);
+      this._native?.setIsTrigger(value);
       this._attachedBody?._markMassDirty();
     }
   }
@@ -604,8 +688,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._center._onValueChanged = this._rotation._onValueChanged = null;
     super._onDestroy();
     this.entity._updateFlagManager.removeListener(this._onTransformChanged);
-    this._native?.destroy();
-    this._native = null;
+    this._destroyNative();
     this._staticActor?.destroy();
     this._staticActor = null;
     this._material && this._addResourceReferCount(this._material, -1);
@@ -619,6 +702,20 @@ export class Collider extends Component implements ICloneHook<Collider> {
     // A Collider attached to a Rigidbody on its own Entity shares that actor's world pose;
     // only scale or hierarchy changes (both include WorldScale) can alter its local shape.
     if (this._attachedBody?.entity === this.entity && !(type & TransformModifyFlags.WorldScale)) {
+      return;
+    }
+    if (
+      !(type & TransformModifyFlags.WorldScale) &&
+      this._dirtyIndex === -1 &&
+      this._nativeActor &&
+      this._attachedBody &&
+      !this._geometryDirty
+    ) {
+      const scene = this._registeredScene;
+      if (scene) {
+        this._poseOnlyDirty = true;
+        scene.physics._markColliderDirty(this);
+      }
       return;
     }
     this._markDirty();

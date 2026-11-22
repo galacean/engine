@@ -1,4 +1,10 @@
-import { IDynamicCollider, IPhysicsEvents, IPhysicsScene, PhysicsEventState } from "@galacean/engine-design";
+import {
+  IDynamicCollider,
+  IPhysicsEvents,
+  IPhysicsScene,
+  ITriggerEvent,
+  PhysicsEventState
+} from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -9,6 +15,12 @@ import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { Rigidbody } from "./Rigidbody";
+
+interface TriggerReceivers {
+  receiver0: Rigidbody | Collider | null;
+  receiver1: Rigidbody | Collider | null;
+  stamp: number;
+}
 
 /**
  * Simulates colliders, rigidbodies, and constraints in a scene.
@@ -23,8 +35,29 @@ export class PhysicsScene {
   private static _raycastHitPool: HitResult[] = [];
   private static _raycastSeenHits = new Set<HitResult>();
   private static readonly _bodyPoses: [Vector3, Quaternion][] = [];
-  private static readonly _collisionMethods = ["onCollisionEnter", "onCollisionStay", "onCollisionExit"] as const;
-  private static readonly _triggerMethods = ["onTriggerEnter", "onTriggerStay", "onTriggerExit"] as const;
+  private static readonly _dispatchReceivers: (Rigidbody | Collider | null)[][] = [];
+  private static readonly _parsedCastArgs = {
+    orientation: new Quaternion(),
+    distance: Number.MAX_VALUE,
+    layerMask: Layer.Everything,
+    hitResult: undefined as HitResult | undefined
+  };
+  private static readonly _collisionMethods: Record<
+    PhysicsEventState,
+    "onCollisionEnter" | "onCollisionStay" | "onCollisionExit"
+  > = {
+    [PhysicsEventState.Enter]: "onCollisionEnter",
+    [PhysicsEventState.Stay]: "onCollisionStay",
+    [PhysicsEventState.Exit]: "onCollisionExit"
+  };
+  private static readonly _triggerMethods: Record<
+    PhysicsEventState,
+    "onTriggerEnter" | "onTriggerStay" | "onTriggerExit"
+  > = {
+    [PhysicsEventState.Enter]: "onTriggerEnter",
+    [PhysicsEventState.Stay]: "onTriggerStay",
+    [PhysicsEventState.Exit]: "onTriggerExit"
+  };
   private static _bodyIndexSetter = (body: Rigidbody, index: number) => {
     body._index = index;
   };
@@ -44,6 +77,8 @@ export class PhysicsScene {
   private _pendingSleeps?: Set<Rigidbody>;
   private _collision: Collision;
   private readonly _eventTargets = new Map<number, Rigidbody>();
+  private readonly _triggerReceivers = new Map<ITriggerEvent, TriggerReceivers>();
+  private _triggerStepStamp = 0;
   private _nextEventId = 0;
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
@@ -51,6 +86,24 @@ export class PhysicsScene {
   _nativePhysicsScene: IPhysicsScene;
 
   private _contactEventConsumerCount = 0;
+  private _activeHitResult: HitResult | null = null;
+  private _activeHitResults: HitResult[] | null = null;
+  private _activeHitCount = 0;
+
+  private readonly _onSingleHit = (colliderID: number, distance: number, position: Vector3, normal: Vector3): void => {
+    this._setHitResult(this._activeHitResult!, colliderID, distance, position, normal);
+  };
+
+  private readonly _onMultiHit = (
+    colliderID: number,
+    hitDistance: number,
+    position: Vector3,
+    normal: Vector3
+  ): void => {
+    const hitResult = (this._activeHitResults![this._activeHitCount++] ||=
+      PhysicsScene._raycastHitPool.pop() ?? new HitResult());
+    this._setHitResult(hitResult, colliderID, hitDistance, position, normal);
+  };
 
   /**
    * The gravity of physics scene.
@@ -187,13 +240,19 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
-      result = this._nativePhysicsScene.raycast(
-        ray.origin,
-        normalizedDirection,
-        distance,
-        layerMask,
-        hitResult ? this._createHitCallback(hitResult) : undefined
-      );
+      const prevHit = this._activeHitResult;
+      this._activeHitResult = hitResult ?? null;
+      try {
+        result = this._nativePhysicsScene.raycast(
+          ray.origin,
+          normalizedDirection,
+          distance,
+          layerMask,
+          hitResult ? this._onSingleHit : undefined
+        );
+      } finally {
+        this._activeHitResult = prevHit;
+      }
     }
 
     if (!result && hitResult) {
@@ -251,16 +310,17 @@ export class PhysicsScene {
     let hitCount = 0;
     const normalizedDirection = distance > 0 ? this._syncCastDirection(ray.direction) : null;
     if (normalizedDirection) {
-      this._nativePhysicsScene.raycastAll(
-        ray.origin,
-        normalizedDirection,
-        distance,
-        layerMask,
-        (colliderID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
-          const hitResult = (outHitResults[hitCount++] ||= pool.pop() ?? new HitResult());
-          this._setHitResult(hitResult, colliderID, hitDistance, position, normal);
-        }
-      );
+      const prevResults = this._activeHitResults;
+      const prevCount = this._activeHitCount;
+      this._activeHitResults = outHitResults;
+      this._activeHitCount = 0;
+      try {
+        this._nativePhysicsScene.raycastAll(ray.origin, normalizedDirection, distance, layerMask, this._onMultiHit);
+        hitCount = this._activeHitCount;
+      } finally {
+        this._activeHitResults = prevResults;
+        this._activeHitCount = prevCount;
+      }
     }
     const length = outHitResults.length;
     if (hitCount < length) {
@@ -274,7 +334,7 @@ export class PhysicsScene {
         if (hitResult && !seenHits.has(hitResult)) {
           seenHits.add(hitResult);
           this._clearHitResult(hitResult);
-          pool.push(hitResult);
+          if (pool.length < 256) pool.push(hitResult);
         }
       }
       seenHits.clear();
@@ -343,49 +403,39 @@ export class PhysicsScene {
     direction: Vector3,
     orientationOrDistanceOrResult?: Quaternion | number | HitResult,
     distanceOrResult?: number | HitResult,
-    layerMaskOrResult?: Layer | HitResult,
+    layerMaskOrResult?: Layer,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult | undefined;
-    let orientation = PhysicsScene._identityQuaternion;
-    let distance = Number.MAX_VALUE;
-    let layerMask = Layer.Everything;
-
-    if (typeof orientationOrDistanceOrResult === "number") {
-      distance = orientationOrDistanceOrResult;
-      if (distanceOrResult?.constructor === HitResult) {
-        hitResult = distanceOrResult;
-      }
-    } else if (orientationOrDistanceOrResult?.constructor === HitResult) {
-      hitResult = orientationOrDistanceOrResult;
-    } else if (orientationOrDistanceOrResult?.constructor === Quaternion) {
-      orientation = orientationOrDistanceOrResult;
-      if (typeof distanceOrResult === "number") {
-        distance = distanceOrResult;
-        if (typeof layerMaskOrResult === "number") {
-          layerMask = layerMaskOrResult;
-        }
-      }
-    }
-
-    if (outHitResult) {
-      hitResult = outHitResult;
-    }
+    const parsed = PhysicsScene._parseOrientedCastArgs(
+      orientationOrDistanceOrResult,
+      distanceOrResult,
+      layerMaskOrResult,
+      outHitResult
+    );
+    const { orientation, distance, layerMask, hitResult } = parsed;
+    parsed.hitResult = undefined;
+    parsed.orientation = PhysicsScene._identityQuaternion;
 
     const normalizedDirection =
       distance > 0 && PhysicsScene._isValidBoxExtents(halfExtents) ? this._syncCastDirection(direction) : null;
 
     let result = false;
     if (normalizedDirection) {
-      result = this._nativePhysicsScene.boxCast(
-        center,
-        orientation,
-        halfExtents,
-        normalizedDirection,
-        distance,
-        layerMask,
-        hitResult ? this._createHitCallback(hitResult) : undefined
-      );
+      const prevHit = this._activeHitResult;
+      this._activeHitResult = hitResult ?? null;
+      try {
+        result = this._nativePhysicsScene.boxCast(
+          center,
+          orientation,
+          halfExtents,
+          normalizedDirection,
+          distance,
+          layerMask,
+          hitResult ? this._onSingleHit : undefined
+        );
+      } finally {
+        this._activeHitResult = prevHit;
+      }
     }
 
     if (!result && hitResult) {
@@ -468,14 +518,20 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
-      result = this._nativePhysicsScene.sphereCast(
-        center,
-        radius,
-        normalizedDirection,
-        distance,
-        layerMask,
-        hitResult ? this._createHitCallback(hitResult) : undefined
-      );
+      const prevHit = this._activeHitResult;
+      this._activeHitResult = hitResult ?? null;
+      try {
+        result = this._nativePhysicsScene.sphereCast(
+          center,
+          radius,
+          normalizedDirection,
+          distance,
+          layerMask,
+          hitResult ? this._onSingleHit : undefined
+        );
+      } finally {
+        this._activeHitResult = prevHit;
+      }
     }
 
     if (!result && hitResult) {
@@ -548,34 +604,18 @@ export class PhysicsScene {
     direction: Vector3,
     orientationOrDistanceOrResult?: Quaternion | number | HitResult,
     distanceOrResult?: number | HitResult,
-    layerMaskOrResult?: Layer | HitResult,
+    layerMaskOrResult?: Layer,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult | undefined;
-    let orientation = PhysicsScene._identityQuaternion;
-    let distance = Number.MAX_VALUE;
-    let layerMask = Layer.Everything;
-
-    if (typeof orientationOrDistanceOrResult === "number") {
-      distance = orientationOrDistanceOrResult;
-      if (distanceOrResult?.constructor === HitResult) {
-        hitResult = distanceOrResult;
-      }
-    } else if (orientationOrDistanceOrResult?.constructor === HitResult) {
-      hitResult = orientationOrDistanceOrResult;
-    } else if (orientationOrDistanceOrResult?.constructor === Quaternion) {
-      orientation = orientationOrDistanceOrResult;
-      if (typeof distanceOrResult === "number") {
-        distance = distanceOrResult;
-        if (typeof layerMaskOrResult === "number") {
-          layerMask = layerMaskOrResult;
-        }
-      }
-    }
-
-    if (outHitResult) {
-      hitResult = outHitResult;
-    }
+    const parsed = PhysicsScene._parseOrientedCastArgs(
+      orientationOrDistanceOrResult,
+      distanceOrResult,
+      layerMaskOrResult,
+      outHitResult
+    );
+    const { orientation, distance, layerMask, hitResult } = parsed;
+    parsed.hitResult = undefined;
+    parsed.orientation = PhysicsScene._identityQuaternion;
 
     const cylinderHeight = height - 2 * radius;
     const normalizedDirection =
@@ -585,16 +625,22 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
-      result = this._nativePhysicsScene.capsuleCast(
-        center,
-        radius,
-        cylinderHeight,
-        orientation,
-        normalizedDirection,
-        distance,
-        layerMask,
-        hitResult ? this._createHitCallback(hitResult) : undefined
-      );
+      const prevHit = this._activeHitResult;
+      this._activeHitResult = hitResult ?? null;
+      try {
+        result = this._nativePhysicsScene.capsuleCast(
+          center,
+          radius,
+          cylinderHeight,
+          orientation,
+          normalizedDirection,
+          distance,
+          layerMask,
+          hitResult ? this._onSingleHit : undefined
+        );
+      } finally {
+        this._activeHitResult = prevHit;
+      }
     }
 
     if (!result && hitResult) {
@@ -695,6 +741,7 @@ export class PhysicsScene {
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
       const scene = this._scene;
+      if (scene.destroyed || !scene.isActive) return;
       componentsManager.callScriptOnPhysicsUpdate();
       if (scene.destroyed || !scene.isActive) return;
       this._syncColliders();
@@ -737,9 +784,8 @@ export class PhysicsScene {
    * @internal
    * Apply pending component changes to the native scene: Rigidbody poses first, then Collider ownership and poses
    * relative to them, and finally the mass properties that depend on the attached Colliders.
-   * @returns Whether the specified body's normal mass update was deferred.
    */
-  _syncColliders(deferMassFor?: Rigidbody): boolean {
+  _syncColliders(): void {
     const dirtyBodies = this._dirtyBodies;
     while (dirtyBodies.length) {
       const body = dirtyBodies.pop()!;
@@ -753,14 +799,11 @@ export class PhysicsScene {
       collider._sync();
     }
     const massDirtyBodies = this._massDirtyBodies;
-    let deferred = false;
     while (massDirtyBodies.length) {
       const body = massDirtyBodies.pop()!;
       body._massDirtyIndex = -1;
-      if (body === deferMassFor) deferred = true;
-      else body._updateMass();
+      body._updateMass();
     }
-    return deferred;
   }
 
   /**
@@ -786,7 +829,9 @@ export class PhysicsScene {
     const bodies = this._bodies;
     body._index = bodies.length;
     bodies.add(body);
-    this._bodyOrderDirty = true;
+    if (body.entity._children.length > 0) {
+      this._bodyOrderDirty = true;
+    }
     PhysicsScene._addDirty(this._dirtyBodies, body);
     body._markMassDirty();
   }
@@ -814,8 +859,10 @@ export class PhysicsScene {
     if (moved) {
       moved._index = body._index;
     }
-    if (moved || bodies.isLopping) {
+    if (bodies.isLopping) {
       this._bodyOrderDirty = true;
+    } else if (moved) {
+      this._checkBodyOrder(moved);
     }
     body._index = -1;
     this._nativePhysicsScene.removeCollider(body._getNativeActor());
@@ -872,10 +919,19 @@ export class PhysicsScene {
     this._eventTargets.delete(id);
   }
 
-  /**
-   * @internal
-   */
-  _addContactEventConsumer(delta: 1 | -1): void {
+  /** @internal */
+  _onScriptEnabled(script: Script, flags: number): void {
+    if (flags & 1) this._addContactEventConsumer(1);
+    if (flags & 2) script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
+  }
+
+  /** @internal */
+  _onScriptDisabled(script: Script, flags: number): void {
+    if (flags & 1) this._addContactEventConsumer(-1);
+    if (flags & 2) script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
+  }
+
+  private _addContactEventConsumer(delta: 1 | -1): void {
     const wasEnabled = this._contactEventConsumerCount > 0;
     this._contactEventConsumerCount += delta;
     const enabled = this._contactEventConsumerCount > 0;
@@ -903,6 +959,7 @@ export class PhysicsScene {
     PhysicsScene._raycastHitPool.length = 0;
     PhysicsScene._raycastSeenHits.clear();
     this._eventTargets.clear();
+    this._triggerReceivers.clear();
     this._pendingSleeps?.clear();
     this._nativePhysicsScene?.destroy();
     this._nativePhysicsScene = null!;
@@ -936,44 +993,162 @@ export class PhysicsScene {
 
     if (contactEventCount > 0) {
       const collision = (this._collision ||= new Collision());
+      const receivers = PhysicsScene._dispatchReceivers.pop() ?? [];
+      for (let i = 0; i < contactEventCount; i++) {
+        const event = contactEvents[i];
+        const collider0 = physicalObjectsMap[event.shape0Id];
+        const collider1 = physicalObjectsMap[event.shape1Id];
+        receivers[i * 2] = collider0 ? (collider0._attachedBody ?? collider0) : null;
+        receivers[i * 2 + 1] = collider1 ? (collider1._attachedBody ?? collider1) : null;
+      }
       try {
         for (let i = 0; i < contactEventCount; i++) {
           const event = contactEvents[i];
           const collider0 = physicalObjectsMap[event.shape0Id];
           const collider1 = physicalObjectsMap[event.shape1Id];
-          if (!collider0 || !collider1) continue;
+          const receiver0 = receivers[i * 2];
+          const receiver1 = receivers[i * 2 + 1];
+          if (!collider0 || !collider1 || !receiver0 || !receiver1) continue;
           collision._nativeCollision = event;
           const state = event.state;
-          const receiver0 = collider0._attachedBody ?? collider0;
-          const receiver1 = collider1._attachedBody ?? collider1;
           PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1, collision);
           PhysicsScene._dispatchScripts(state, receiver1, collider1, collider0, collision);
         }
       } finally {
+        events.contactEventCount = 0;
+        receivers.length = 0;
+        PhysicsScene._dispatchReceivers.push(receivers);
         collision._nativeCollision = null!;
         collision.collider = null!;
         collision.selfCollider = null!;
       }
     }
 
-    for (let i = 0, n = triggerEvents.length; i < n; i++) {
-      const event = triggerEvents[i];
-      const collider0 = physicalObjectsMap[event.index1];
-      const collider1 = physicalObjectsMap[event.index2];
-      if (!collider0 || !collider1) continue;
-      const state = event.dispatchState;
-      const receiver0 = collider0._attachedBody ?? collider0;
-      const receiver1 = collider1._attachedBody ?? collider1;
-      PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1);
-      PhysicsScene._dispatchScripts(state, receiver1, collider1, collider0);
+    const triggerCount = triggerEvents.length;
+    if (triggerCount === 0) {
+      if (this._triggerReceivers.size > 0) {
+        this._triggerReceivers.clear();
+      }
+    } else {
+      const receivers = PhysicsScene._dispatchReceivers.pop() ?? [];
+      for (let i = 0; i < triggerCount; i++) {
+        const event = triggerEvents[i];
+        const collider0 = physicalObjectsMap[event.index1];
+        const collider1 = physicalObjectsMap[event.index2];
+        receivers[i * 2] = collider0 ? (collider0._attachedBody ?? collider0) : null;
+        receivers[i * 2 + 1] = collider1 ? (collider1._attachedBody ?? collider1) : null;
+      }
+      try {
+        const triggerReceivers = this._triggerReceivers;
+        const stamp = ++this._triggerStepStamp;
+        let liveCount = 0;
+        for (let i = 0; i < triggerCount; i++) {
+          const event = triggerEvents[i];
+          const collider0 = physicalObjectsMap[event.index1];
+          const collider1 = physicalObjectsMap[event.index2];
+          const cur0 = receivers[i * 2];
+          const cur1 = receivers[i * 2 + 1];
+          if (!collider0 || !collider1 || !cur0 || !cur1) {
+            triggerReceivers.delete(event);
+            continue;
+          }
+          const state = event.dispatchState;
+          if (state === PhysicsEventState.Enter) {
+            const entry = triggerReceivers.get(event);
+            if (entry) {
+              entry.receiver0 = cur0;
+              entry.receiver1 = cur1;
+              entry.stamp = stamp;
+            } else {
+              triggerReceivers.set(event, { receiver0: cur0, receiver1: cur1, stamp });
+            }
+            liveCount++;
+            PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
+            PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
+          } else if (state === PhysicsEventState.Stay) {
+            const entry = triggerReceivers.get(event);
+            if (entry) {
+              entry.stamp = stamp;
+              liveCount++;
+            }
+            this._dispatchTriggerStaySide(entry, true, cur0, collider0, collider1);
+            this._dispatchTriggerStaySide(entry, false, cur1, collider1, collider0);
+          } else {
+            const entry = triggerReceivers.get(event);
+            if (entry) triggerReceivers.delete(event);
+            const target0 = !entry
+              ? cur0
+              : entry.receiver0 === null
+                ? null
+                : entry.receiver0.entity === cur0.entity && !cur0.destroyed
+                  ? cur0
+                  : entry.receiver0;
+            const target1 = !entry
+              ? cur1
+              : entry.receiver1 === null
+                ? null
+                : entry.receiver1.entity === cur1.entity && !cur1.destroyed
+                  ? cur1
+                  : entry.receiver1;
+            if (target0) PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
+            if (target1) PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
+          }
+        }
+        // Only prune unvisited entries after a full pass so an exception mid-dispatch keeps remaining pairs intact.
+        if (triggerReceivers.size > liveCount) {
+          for (const [key, entry] of triggerReceivers) {
+            if (entry.stamp !== stamp) {
+              triggerReceivers.delete(key);
+            }
+          }
+        }
+      } finally {
+        receivers.length = 0;
+        PhysicsScene._dispatchReceivers.push(receivers);
+      }
     }
 
     const { bodySleepEventIds, bodySleepEventCount } = events;
-    for (let i = 0; i < bodySleepEventCount; i++) {
-      const id = bodySleepEventIds[i];
-      if (id < 0) this._dispatchSleepEvent(-id, "onSleep");
-      else this._dispatchSleepEvent(id, "onWake");
+    try {
+      for (let i = 0; i < bodySleepEventCount; i++) {
+        const id = bodySleepEventIds[i];
+        if (id < 0) this._dispatchSleepEvent(-id, "onSleep");
+        else this._dispatchSleepEvent(id, "onWake");
+      }
+    } finally {
+      events.bodySleepEventCount = 0;
     }
+  }
+
+  private _dispatchTriggerStaySide(
+    entry: TriggerReceivers | undefined,
+    isFirst: boolean,
+    current: Rigidbody | Collider,
+    self: Collider,
+    other: Collider
+  ): void {
+    const previous = entry ? (isFirst ? entry.receiver0 : entry.receiver1) : undefined;
+    if (previous && previous.entity !== current.entity) {
+      PhysicsScene._dispatchScripts(PhysicsEventState.Exit, previous, self, other);
+      if (self.destroyed || other.destroyed || current.destroyed) {
+        if (isFirst) entry!.receiver0 = null;
+        else entry!.receiver1 = null;
+        return;
+      }
+      if (isFirst) entry!.receiver0 = current;
+      else entry!.receiver1 = current;
+      PhysicsScene._dispatchScripts(PhysicsEventState.Enter, current, self, other);
+      return;
+    }
+    if (entry) {
+      if (isFirst) entry.receiver0 = current;
+      else entry.receiver1 = current;
+      if (previous === null) {
+        PhysicsScene._dispatchScripts(PhysicsEventState.Enter, current, self, other);
+        return;
+      }
+    }
+    PhysicsScene._dispatchScripts(PhysicsEventState.Stay, current, self, other);
   }
 
   private _dispatchSleepEvent(id: number, method: "onSleep" | "onWake"): void {
@@ -1064,6 +1239,42 @@ export class PhysicsScene {
     );
   }
 
+  private static _parseOrientedCastArgs(
+    orientationOrDistanceOrResult?: Quaternion | number | HitResult,
+    distanceOrResult?: number | HitResult,
+    layerMask?: Layer,
+    outHitResult?: HitResult
+  ) {
+    const args = PhysicsScene._parsedCastArgs;
+    let hitResult: HitResult | undefined;
+    let orientation = PhysicsScene._identityQuaternion;
+    let distance = Number.MAX_VALUE;
+    let mask = Layer.Everything;
+
+    if (typeof orientationOrDistanceOrResult === "number") {
+      distance = orientationOrDistanceOrResult;
+      if (distanceOrResult?.constructor === HitResult) {
+        hitResult = distanceOrResult;
+      }
+    } else if (orientationOrDistanceOrResult?.constructor === HitResult) {
+      hitResult = orientationOrDistanceOrResult;
+    } else if (orientationOrDistanceOrResult?.constructor === Quaternion) {
+      orientation = orientationOrDistanceOrResult;
+      if (typeof distanceOrResult === "number") {
+        distance = distanceOrResult;
+        if (typeof layerMask === "number") {
+          mask = layerMask;
+        }
+      }
+    }
+
+    args.orientation = orientation;
+    args.distance = distance;
+    args.layerMask = mask;
+    args.hitResult = outHitResult ?? hitResult;
+    return args;
+  }
+
   private _syncCastDirection(direction: Vector3): Vector3 | null {
     const { x, y, z } = direction;
     const length = Math.sqrt(x * x + y * y + z * z);
@@ -1076,14 +1287,6 @@ export class PhysicsScene {
 
   private _setGravity(): void {
     this._nativePhysicsScene?.setGravity(this._gravity);
-  }
-
-  private _createHitCallback(
-    outHitResult: HitResult
-  ): (colliderID: number, distance: number, position: Vector3, normal: Vector3) => void {
-    return (colliderID: number, distance: number, position: Vector3, normal: Vector3) => {
-      this._setHitResult(outHitResult, colliderID, distance, position, normal);
-    };
   }
 
   private _setHitResult(

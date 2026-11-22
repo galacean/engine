@@ -8,6 +8,7 @@ import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { ActiveChangeFlag } from "../enums/ActiveChangeFlag";
 import type { Scene } from "../Scene";
+import { Script } from "../Script";
 import { Transform } from "../Transform";
 import { Collider } from "./Collider";
 import type { Joint } from "./joint/Joint";
@@ -48,7 +49,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /** @internal Index in the physics scene's enabled bodies. */
   @ignoreClone
   _index = -1;
+  /** @internal */
+  @ignoreClone
+  _writingBack = false;
 
+  @ignoreClone
+  private _wasSleeping = false;
   @ignoreClone
   private _registeredScene: Scene | null = null;
   @ignoreClone
@@ -185,9 +191,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       this._mass = value;
       if (this._registeredScene) {
         this._markMassDirty(MassChanges.Mass);
-      } else {
-        this._nativeActor?.setMass(value);
-        this._massChanges &= ~MassChanges.Mass;
+      } else if (this._nativeActor) {
+        this._massChanges |= MassChanges.Mass;
       }
     }
   }
@@ -206,13 +211,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
     const scene = this._registeredScene;
     if (!scene || this._index === -1) return false;
-    const pendingMass = scene.physics._syncColliders(this);
+    scene.physics._syncColliders();
     if (this._registeredScene !== scene || this._index === -1) return false;
     const mass = this._nativeActor!.setDensity(density, this._automaticCenterOfMass, this._automaticInertiaTensor);
-    if (mass === 0) {
-      if (pendingMass) this._markMassDirty(MassChanges.None);
-      return false;
-    }
+    if (mass === 0) return false;
     this._mass = mass;
     this._massChanges = MassChanges.None;
     return true;
@@ -474,6 +476,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   set simulationEnabled(value: boolean) {
     if (this._simulationEnabled !== value) {
       this._simulationEnabled = value;
+      this._wasSleeping = false;
       if (!value) this._cancelPendingSleep();
       this._nativeActor?.setSimulationEnabled(value);
       this._syncSleepEventRegistration();
@@ -496,6 +499,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
       this._isKinematic = value;
+      this._wasSleeping = false;
       if (value) {
         this._cancelPendingSleep();
       } else {
@@ -680,7 +684,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     upwardOffset = 0,
     mode: ForceMode = ForceMode.Force
   ): void {
-    if (this._index !== -1 && this._getSyncedActor()?.addExplosionForce(strength, origin, radius, upwardOffset, mode)) {
+    if (this._index === -1) return;
+    const actor = this._getSyncedActor();
+    if (actor && this._index !== -1 && actor.addExplosionForce(strength, origin, radius, upwardOffset, mode)) {
       this._cancelPendingSleep();
     }
   }
@@ -707,9 +713,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
     if (!this._isKinematic) throw new Error("Rigidbody.move requires a kinematic body.");
-    if (!this._simulationEnabled) return;
+    if (!this._simulationEnabled || !this._registeredScene) return;
     // Teleport pending transform edits first so the move starts from the current pose
-    this._registeredScene && this._getSyncedActor()!.move(positionOrRotation, rotation);
+    const actor = this._getSyncedActor();
+    if (actor && this._index !== -1 && this._isKinematic && this._simulationEnabled) {
+      actor.move(positionOrRotation, rotation);
+    }
   }
 
   /**
@@ -746,6 +755,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /** @internal Wakes the native actor while preserving an explicit sleep request for activation. */
   _wakeNative(): void {
+    this._wasSleeping = false;
     if (this._index !== -1 && !this.destroyed && !this._isKinematic && this._simulationEnabled) {
       this._nativeActor!.wakeUp();
     }
@@ -781,8 +791,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const scene = this.scene;
     if (!scene) return;
     this._registeredScene = scene;
+    this._wasSleeping = false;
     const actor = this._getNativeActor();
     if (this._registeredScene !== scene || this._index !== -1) return;
+    this._detachOrphanedColliders();
     scene.physics._addRigidbody(this, actor);
     if (this._sleepPending) scene.physics._scheduleSleep(this, true);
     this._syncSleepEventRegistration();
@@ -797,19 +809,24 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const scene = this._registeredScene;
     if (!scene) return;
     this._registeredScene = null;
+    this._wasSleeping = false;
     if (this._sleepPending) scene.physics._scheduleSleep(this, false);
     this._setSleepEventRegistration(scene, false);
     this._syncJoints();
+    this._detachOrphanedColliders();
+    scene.physics._removeRigidbody(this);
+  }
+
+  private _detachOrphanedColliders(): void {
     const colliders = this._attachedColliders;
     for (let i = colliders.length - 1; i >= 0; i--) {
       const collider = colliders[i];
       if (collider._findRigidbody() !== this) {
-        // A hierarchy change may be waiting for the next collider sync.
+        // A hierarchy change while disabled or before re-entry may belong to another scene.
         collider._detach();
         collider._markDirty();
       }
     }
-    scene.physics._removeRigidbody(this);
   }
 
   /** @internal Reconcile native sleep notifications with the active observers on this Entity. */
@@ -818,10 +835,11 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (!scene || this._index === -1) return;
 
     if (this._simulationEnabled) {
+      const { prototype } = Script;
       const scripts = this.entity._scripts;
       for (let i = 0, count = scripts.length; i < count; i++) {
         const script = scripts.get(i);
-        if (script?.onSleep || script?.onWake) {
+        if (script && (script.onSleep !== prototype.onSleep || script.onWake !== prototype.onWake)) {
           this._setSleepEventRegistration(scene, true);
           return;
         }
@@ -973,6 +991,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       const nativePosition = this._nativePosition;
       const nativeRotation = this._nativeRotation;
       if (Collider._differsF32(position, nativePosition) || Collider._rotationDiffersF32(rotation, nativeRotation)) {
+        this._wasSleeping = false;
         nativePosition.copyFrom(position);
         nativeRotation.copyFrom(rotation);
         actor.setWorldTransform(position, rotation);
@@ -986,19 +1005,49 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    */
   _writeBack(position: Vector3, rotation: Quaternion): void {
     if (!this._simulationEnabled) return;
-    this._nativeActor!.getWorldTransform(position, rotation);
+    const actor = this._nativeActor!;
+    if (!this._isKinematic) {
+      if (actor.isSleeping()) {
+        if (this._wasSleeping) return;
+        this._wasSleeping = true;
+      } else {
+        this._wasSleeping = false;
+      }
+    } else {
+      this._wasSleeping = false;
+    }
+
+    actor.getWorldTransform(position, rotation);
     const transform = this.entity.transform;
     const worldPosition = transform.worldPosition;
     const positionChanged = !Vector3.equals(position, worldPosition);
-    if (positionChanged) transform.worldPosition = position;
+    const standardTransform = !transform._hasCustomWorldPose;
+    if (standardTransform) this._writingBack = true;
+    try {
+      if (positionChanged) transform.worldPosition = position;
 
-    const worldRotation = transform.worldRotationQuaternion;
-    const rotationChanged = !Quaternion.equals(rotation, worldRotation);
-    if (rotationChanged) transform.worldRotationQuaternion = rotation;
+      const worldRotation = transform.worldRotationQuaternion;
+      const rotationChanged = !Quaternion.equals(rotation, worldRotation);
+      if (rotationChanged) transform.worldRotationQuaternion = rotation;
 
-    // A constrained Transform can change position while resolving a rotation write.
-    this._nativePosition.copyFrom(positionChanged || rotationChanged ? transform.worldPosition : worldPosition);
-    this._nativeRotation.copyFrom(rotationChanged ? transform.worldRotationQuaternion : worldRotation);
+      if (positionChanged || rotationChanged) {
+        // A constrained Transform can change position while resolving a rotation write.
+        const finalPosition = transform.worldPosition;
+        const finalRotation = rotationChanged ? transform.worldRotationQuaternion : worldRotation;
+        if (
+          standardTransform &&
+          ((positionChanged && !Vector3.equals(finalPosition, position)) ||
+            (rotationChanged && !Quaternion.equals(finalRotation, rotation)))
+        ) {
+          this._registeredScene?.physics._markBodyDirty(this);
+        } else {
+          this._nativePosition.copyFrom(finalPosition);
+          this._nativeRotation.copyFrom(finalRotation);
+        }
+      }
+    } finally {
+      this._writingBack = false;
+    }
   }
 
   /**
@@ -1008,6 +1057,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   _updateMass(): void {
     const changes = this._massChanges;
     this._massChanges = MassChanges.None;
+    if (changes === MassChanges.None) return;
     const actor = this._nativeActor;
     if (!actor) return;
     const mass = this._mass;
@@ -1097,20 +1147,25 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * Synchronizes pending Collider and mass changes before returning the native actor.
    */
   private _getSyncedActor(): IDynamicCollider | null {
-    this._registeredScene?.physics._syncColliders();
+    if (this._registeredScene) {
+      this._registeredScene.physics._syncColliders();
+    } else if (this._massChanges && this._nativeActor) {
+      this._updateMass();
+    }
     return this._nativeActor;
   }
 
   private _getForceActor(): IDynamicCollider | null {
     if (this._index === -1 || this._isKinematic || !this._simulationEnabled) return null;
     this._cancelPendingSleep();
-    return this._getSyncedActor();
+    const actor = this._getSyncedActor();
+    return actor && this._index !== -1 && !this._isKinematic && this._simulationEnabled ? actor : null;
   }
 
   /** @internal */
   _isActivating(): boolean {
     for (let entity: Entity | null = this.entity; entity; entity = entity.parent) {
-      if (entity._activeChangedComponents) return true;
+      if (entity._isActivating) return true;
     }
     return false;
   }
@@ -1130,6 +1185,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   @ignoreClone
   private _onTransformChanged(): void {
+    if (this._writingBack) return;
+    this._wasSleeping = false;
     this._registeredScene?.physics._markBodyDirty(this);
   }
 
@@ -1158,12 +1215,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   @ignoreClone
   private _handleInertiaTensorChanged(): void {
     if (this._automaticInertiaTensor) {
-      if (this._registeredScene?.physics._syncColliders(this)) {
-        // Changing mass alone does not change the principal axes.
-        if (this._massChanges & MassChanges.Geometry) this._updateMass();
-        else this._markMassDirty(MassChanges.None);
-      }
+      // Changing mass alone does not move the principal axes; defer scalar mass until manual flags commit.
+      const deferMass = this._massDirtyIndex !== -1 && (this._massChanges & ~MassChanges.Mass) === 0;
+      if (deferMass) this._massChanges = MassChanges.None;
+      this._registeredScene?.physics._syncColliders();
       this._nativeActor?.getInertiaTensorRotation(this._inertiaTensorRotation);
+      if (deferMass && !this.destroyed) this._markMassDirty(MassChanges.Mass);
     }
     this._automaticInertiaTensor = false;
     this._nativeActor?.setInertiaTensor(this._inertiaTensor);

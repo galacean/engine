@@ -96,6 +96,7 @@ export abstract class PhysXCollider implements ICollider {
     const transform = PhysXCollider._tempTransform;
     // Keep entity-owned vectors out of the shared pose to avoid retaining their change callbacks.
     transform.translation.copyFrom(pos);
+    transform.rotation.set(0, 0, 0, 1);
     Quaternion.normalize(rot, transform.rotation);
     return transform;
   }

@@ -90,6 +90,10 @@ export class CapsuleCollider extends Collider {
         radialScale = Math.max(scale.x, scale.y);
         heightScale = scale.z;
         break;
+      default: {
+        const exhaustive: never = direction;
+        throw new Error(`Unsupported CapsuleCollider direction: ${exhaustive}`);
+      }
     }
     const radius = this._radius * radialScale;
     const halfHeight = (this._height * 0.5 - this._radius) * heightScale;

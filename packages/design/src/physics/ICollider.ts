@@ -1,3 +1,4 @@
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { IColliderShape } from "./shape";
 
 /**
@@ -5,6 +6,20 @@ import { IColliderShape } from "./shape";
  * @remarks Collision layers belong to the shapes attached to the actor.
  */
 export interface ICollider {
+  /**
+   * Set the world-space pose of the actor.
+   * @param position - The world-space position
+   * @param rotation - The world-space rotation
+   */
+  setWorldTransform(position: Vector3, rotation: Quaternion): void;
+
+  /**
+   * Write the current world-space pose of the actor.
+   * @param outPosition - Receives the position
+   * @param outRotation - Receives the rotation
+   */
+  getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void;
+
   /**
    * Attach a shape.
    * @param shape - Shape to attach

@@ -107,27 +107,29 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
 
     const verticesPtr = this._allocatePositions(positions);
     if (!verticesPtr) return null;
+    let indicesPtr = 0;
     let pxMesh: any;
 
-    if (this._isConvex) {
-      pxMesh = cooking.createConvexMesh(verticesPtr, positions.length, physics);
-      physX._free(verticesPtr);
-
-      if (!pxMesh) {
-        this._logConvexCookingError(physX);
-        return null;
+    try {
+      if (this._isConvex) {
+        pxMesh = cooking.createConvexMesh(verticesPtr, positions.length, physics);
+        if (!pxMesh) {
+          this._logConvexCookingError(physX);
+          return null;
+        }
+      } else {
+        const isU32 = indices instanceof Uint32Array;
+        indicesPtr = this._allocateIndices(indices!, isU32);
+        if (!indicesPtr) return null;
+        pxMesh = cooking.createTriMesh(verticesPtr, positions.length, indicesPtr, indices!.length / 3, !isU32, physics);
+        if (!pxMesh) {
+          this._logTriMeshCookingError(physX);
+          return null;
+        }
       }
-    } else {
-      const isU32 = indices instanceof Uint32Array;
-      const indicesPtr = this._allocateIndices(indices!, isU32);
-      pxMesh = cooking.createTriMesh(verticesPtr, positions.length, indicesPtr, indices!.length / 3, !isU32, physics);
+    } finally {
       physX._free(verticesPtr);
-      physX._free(indicesPtr);
-
-      if (!pxMesh) {
-        this._logTriMeshCookingError(physX);
-        return null;
-      }
+      if (indicesPtr) physX._free(indicesPtr);
     }
 
     return pxMesh;
@@ -196,6 +198,10 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     // PhysX accepts 16- or 32-bit indices, so widen 8-bit input to 16 bits.
     const TypedArrayCtor = isU32 ? Uint32Array : Uint16Array;
     const ptr = physX._malloc(indices.length * TypedArrayCtor.BYTES_PER_ELEMENT);
+    if (!ptr) {
+      console.error("PhysXMeshColliderShape: could not allocate index data.");
+      return 0;
+    }
     const heap = isU32 ? physX.HEAPU32 : physX.HEAPU16;
     new TypedArrayCtor(heap.buffer, ptr, indices.length).set(indices);
     return ptr;

@@ -10,7 +10,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
-import { CloneMode, registerDefaultCloneMode } from "./clone/CloneDecorators";
+import { CloneMode, ignoreClone, registerDefaultCloneMode } from "./clone/CloneDecorators";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { EntityModifyFlags } from "./enums/EntityModifyFlags";
@@ -132,11 +132,14 @@ export class Entity extends EngineObject {
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
+  /** @internal */
+  @ignoreClone
+  _isActivating: boolean = false;
+
   private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity | null = null;
-  /** @internal */
-  _activeChangedComponents: Component[] | null | undefined;
+  private _activeChangedComponents: Component[] | null | undefined;
   private _modifyFlagManager: UpdateFlagManager;
 
   /**
@@ -609,9 +612,14 @@ export class Entity extends EngineObject {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
-    this._activeChangedComponents = this._scene!._componentsManager.getActiveChangedTempList();
-    this._setActiveInHierarchy(this._activeChangedComponents!, activeChangeFlag);
-    this._setActiveComponents(true, activeChangeFlag);
+    this._isActivating = true;
+    try {
+      this._activeChangedComponents = this._scene!._componentsManager.getActiveChangedTempList();
+      this._setActiveInHierarchy(this._activeChangedComponents!, activeChangeFlag);
+      this._setActiveComponents(true, activeChangeFlag);
+    } finally {
+      this._isActivating = false;
+    }
   }
 
   /**

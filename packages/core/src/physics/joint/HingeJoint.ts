@@ -1,6 +1,7 @@
 import { IDynamicCollider, IHingeJoint } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
+import { Collider } from "../Collider";
 import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
@@ -52,7 +53,7 @@ export class HingeJoint extends Joint {
   /**
    * The angular velocity of the joint in radians per second.
    */
-  get velocity(): Readonly<number> {
+  get velocity(): number {
     const nativeJoint = <IHingeJoint>this._nativeJoint;
     if (nativeJoint) {
       this._velocity = nativeJoint.getVelocity();
@@ -249,36 +250,13 @@ export class HingeJoint extends Joint {
 
   private _setAxis(value: Vector3): void {
     const axis = this._axis;
-    const previous = this._lastValidAxis;
-    const previousX = previous?.x ?? 1;
-    const previousY = previous?.y ?? 0;
-    const previousZ = previous?.z ?? 0;
-    let { x, y, z } = value;
-    const length = Math.hypot(x, y, z);
-    const finite = Number.isFinite(length);
-    if (!finite || length === 0) {
-      if (value === axis) this._writeAxis(axis, previousX, previousY, previousZ);
-      if (!finite) throw new Error("HingeJoint axis must be finite.");
-      return;
+    if (Collider._syncUnitVector(axis, value, this._lastValidAxis, 1, 0, 0, "HingeJoint axis must be finite.")) {
+      (this._lastValidAxis ||= new Vector3()).copyFrom(axis);
+      const nativeJoint = <IHingeJoint | null>this._nativeJoint;
+      if (nativeJoint) {
+        nativeJoint.setAxis(axis);
+        this._wakeBodies();
+      }
     }
-    x /= length;
-    y /= length;
-    z /= length;
-    this._writeAxis(axis, x, y, z);
-    if (x === previousX && y === previousY && z === previousZ) return;
-    (this._lastValidAxis ||= new Vector3()).set(x, y, z);
-    const nativeJoint = <IHingeJoint | null>this._nativeJoint;
-    if (nativeJoint) {
-      nativeJoint.setAxis(axis);
-      this._wakeBodies();
-    }
-  }
-
-  private _writeAxis(axis: Vector3, x: number, y: number, z: number): void {
-    if (axis.x === x && axis.y === y && axis.z === z) return;
-    const listener = axis._onValueChanged;
-    axis._onValueChanged = null;
-    axis.set(x, y, z);
-    axis._onValueChanged = listener;
   }
 }

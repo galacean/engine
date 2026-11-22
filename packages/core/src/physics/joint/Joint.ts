@@ -86,12 +86,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    * Simulation uses the calculated anchor while {@link automaticConnectedAnchor} is enabled.
    */
   get connectedAnchor(): Vector3 {
-    const anchor = this._connectedBodyInfo.anchor;
-    if (!this._connectedAnchorAuthored) {
-      // A retained reference can still be edited after switching to automatic mode.
-      this._calculatedConnectedAnchor ||= anchor.clone();
-    }
-    return anchor;
+    return this._connectedBodyInfo.anchor;
   }
 
   set connectedAnchor(value: Vector3) {
@@ -350,25 +345,25 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   private _calculateConnectedAnchor(): void {
     if (!this._nativeJoint) return;
     const bodyInfo = this._bodyInfo;
-    const authored = this._connectedAnchorAuthored;
-    const connectedAnchor = authored
-      ? (this._calculatedConnectedAnchor ||= new Vector3())
-      : this._connectedBodyInfo.anchor;
+    const calculated = (this._calculatedConnectedAnchor ||= new Vector3());
     const connectedBody = this._connectedBody;
+    const selfMatrix = this.entity.transform.worldMatrix;
 
-    connectedAnchor._onValueChanged = null;
     if (connectedBody) {
+      const connectedMatrix = connectedBody.entity.transform.worldMatrix;
       const tempVector3 = Joint._tempVector3;
       const tempMatrix = Joint._tempMatrix;
-      Vector3.transformCoordinate(bodyInfo.anchor, this.entity.transform.worldMatrix, tempVector3);
-      Matrix.invert(connectedBody.entity.transform.worldMatrix, tempMatrix);
-      Vector3.transformCoordinate(tempVector3, tempMatrix, connectedAnchor);
+      Vector3.transformCoordinate(bodyInfo.anchor, selfMatrix, tempVector3);
+      Matrix.invert(connectedMatrix, tempMatrix);
+      Vector3.transformCoordinate(tempVector3, tempMatrix, calculated);
     } else {
-      Vector3.transformCoordinate(bodyInfo.anchor, this.entity.transform.worldMatrix, connectedAnchor);
+      Vector3.transformCoordinate(bodyInfo.anchor, selfMatrix, calculated);
     }
-    if (!authored) {
-      connectedAnchor._onValueChanged = this._handleConnectedAnchorChanged;
-      this._calculatedConnectedAnchor?.copyFrom(connectedAnchor);
+    if (!this._connectedAnchorAuthored) {
+      const anchor = this._connectedBodyInfo.anchor;
+      anchor._onValueChanged = null;
+      anchor.copyFrom(calculated);
+      anchor._onValueChanged = this._handleConnectedAnchorChanged;
     }
     this._updateActualAnchor(AnchorOwner.Connected);
   }

@@ -11,6 +11,12 @@ type MeshData = {
   indices: Uint8Array | Uint16Array | Uint32Array | null;
 };
 
+const enum MeshSyncRejection {
+  None = 0,
+  TriggerOnNonConvex = 1,
+  CookFailed = 2
+}
+
 /**
  * A collider based on a triangle mesh or a convex hull.
  * @remarks Simulation and queries exclude a triangle mesh used as a trigger or owned by a non-kinematic
@@ -32,9 +38,7 @@ export class MeshCollider extends Collider {
   @ignoreClone
   private _nativeTrigger = false;
   @ignoreClone
-  private _cookFailed = false;
-  @ignoreClone
-  private _triggerRejected = false;
+  private _rejection = MeshSyncRejection.None;
 
   /**
    * The mesh used for collision detection, or null to remove the shape.
@@ -46,12 +50,12 @@ export class MeshCollider extends Collider {
   }
 
   set mesh(value: ModelMesh | null) {
-    if (this._mesh !== value || this._cookFailed) {
+    if (this._mesh !== value || this._rejection === MeshSyncRejection.CookFailed) {
       this._setMesh(value);
       if (!value) {
         this._nativeMesh = null;
       }
-      this._cookFailed = false;
+      this._rejection = MeshSyncRejection.None;
       this._markDirty();
     }
   }
@@ -65,9 +69,9 @@ export class MeshCollider extends Collider {
   }
 
   set convex(value: boolean) {
-    if (this._convex !== value || this._cookFailed) {
+    if (this._convex !== value || this._rejection === MeshSyncRejection.CookFailed) {
       this._convex = value;
-      this._cookFailed = false;
+      this._rejection = MeshSyncRejection.None;
       this._markDirty();
     }
   }
@@ -81,9 +85,9 @@ export class MeshCollider extends Collider {
   }
 
   set cookingFlags(value: MeshColliderShapeCookingFlag) {
-    if (this._cookingFlags !== value || this._cookFailed) {
+    if (this._cookingFlags !== value || this._rejection === MeshSyncRejection.CookFailed) {
       this._cookingFlags = value;
-      this._cookFailed = false;
+      this._rejection = MeshSyncRejection.None;
       this._markDirty();
     }
   }
@@ -149,8 +153,11 @@ export class MeshCollider extends Collider {
   protected override _setIsTrigger(value: boolean): void {
     if (this._isTrigger !== value) {
       this._isTrigger = value;
+      if (!value && this._rejection === MeshSyncRejection.TriggerOnNonConvex) {
+        this._rejection = MeshSyncRejection.None;
+      }
       if (this._native && this._convex && this._nativeConvex) {
-        (<IColliderShape>this._native).setIsTrigger(value);
+        this._native.setIsTrigger(value);
         this._nativeTrigger = value;
         this._attachedBody?._markMassDirty();
       } else {
@@ -162,7 +169,7 @@ export class MeshCollider extends Collider {
   protected override _syncNativeShape(scale: Vector3): IColliderShape | null {
     const mesh = this._mesh;
     if (!mesh) {
-      this._triggerRejected = false;
+      this._rejection = MeshSyncRejection.None;
       if (this._native) {
         this._replaceNativeShape(null);
       }
@@ -174,15 +181,17 @@ export class MeshCollider extends Collider {
       return null;
     }
     if (!this._convex && this._isTrigger) {
-      if (!this._triggerRejected) {
-        this._triggerRejected = true;
+      if (this._rejection !== MeshSyncRejection.TriggerOnNonConvex) {
+        this._rejection = MeshSyncRejection.TriggerOnNonConvex;
         console.error("MeshCollider: isTrigger is only supported when convex is true.");
       }
       return null;
     }
-    this._triggerRejected = false;
+    if (this._rejection === MeshSyncRejection.TriggerOnNonConvex) {
+      this._rejection = MeshSyncRejection.None;
+    }
 
-    if (this._cookFailed) {
+    if (this._rejection === MeshSyncRejection.CookFailed) {
       return null;
     }
 
@@ -197,7 +206,7 @@ export class MeshCollider extends Collider {
       const meshData = MeshCollider._getMeshData(mesh, this._convex);
       const updated = meshData && this._cook(previous, meshData, scale);
       if (!updated) {
-        this._cookFailed = true;
+        this._rejection = MeshSyncRejection.CookFailed;
         this._replaceNativeShape(null);
         this._nativeMesh = null;
         return null;

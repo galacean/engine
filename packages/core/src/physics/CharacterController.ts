@@ -1,4 +1,4 @@
-import { ICharacterController } from "@galacean/engine-design";
+import { ICharacterController, IPhysicsMaterial } from "@galacean/engine-design";
 import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
@@ -26,6 +26,8 @@ export class CharacterController extends Collider {
   private _lastValidUpDirection?: Vector3;
   private _slopeLimit = 45;
 
+  @ignoreClone
+  private _controller: ICharacterController | null = null;
   @ignoreClone
   private _inScene = false;
   @ignoreClone
@@ -90,7 +92,7 @@ export class CharacterController extends Collider {
    * The step height used when climbing obstacles, in world units. Finite negative values are clamped to 0.
    * @defaultValue 0.5
    * @remarks PhysX excludes the controller from simulation and queries when the step height rounds to a non-finite
-   * value or exceeds the scaled height along {@link upDirection}.
+   * value or exceeds the world-Y scaled capsule height.
    * @throws When the value is non-finite.
    */
   get stepOffset(): number {
@@ -118,7 +120,7 @@ export class CharacterController extends Collider {
   set nonWalkableMode(value: ControllerNonWalkableMode) {
     if (this._nonWalkableMode !== value) {
       this._nonWalkableMode = value;
-      (<ICharacterController>this._native)?.setNonWalkableMode(value);
+      this._controller?.setNonWalkableMode(value);
     }
   }
 
@@ -133,13 +135,7 @@ export class CharacterController extends Collider {
   }
 
   set upDirection(value: Vector3) {
-    if (this._upDirection === value) return;
-    const { x, y, z } = value;
-    const len = Math.hypot(x, y, z);
-    if (!Number.isFinite(len)) {
-      throw new Error("CharacterController upDirection must be finite.");
-    }
-    if (len > 0) this._applyUpDirection(x / len, y / len, z / len);
+    if (value !== this._upDirection) this._applyUpDirection(value);
   }
 
   /**
@@ -158,7 +154,7 @@ export class CharacterController extends Collider {
     value = MathUtil.clamp(value, 0, 90);
     if (this._slopeLimit !== value) {
       this._slopeLimit = value;
-      (<ICharacterController>this._native)?.setSlopeLimit(value);
+      this._controller?.setSlopeLimit(value);
     }
   }
 
@@ -167,8 +163,8 @@ export class CharacterController extends Collider {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._setUpDirection = this._setUpDirection.bind(this);
-    this._upDirection._onValueChanged = this._setUpDirection;
+    this._onUpDirectionChanged = this._onUpDirectionChanged.bind(this);
+    this._upDirection._onValueChanged = this._onUpDirectionChanged;
   }
 
   /**
@@ -186,7 +182,7 @@ export class CharacterController extends Collider {
       return 0;
     }
     scene.physics._syncColliders();
-    const controller = <ICharacterController | null>this._native;
+    const controller = this._controller;
     if (!this._inScene || !controller) {
       return 0;
     }
@@ -252,7 +248,7 @@ export class CharacterController extends Collider {
       }
     }
 
-    const controller = <ICharacterController>(this._native ||= this._createNative());
+    const controller = (this._controller ||= this._createNative());
     const centerX = colliderCenter.x * scale.x;
     const centerY = colliderCenter.y * scale.y;
     const centerZ = colliderCenter.z * scale.z;
@@ -287,9 +283,7 @@ export class CharacterController extends Collider {
    */
   override _detach(physicsScene?: PhysicsScene): void {
     if (this._inScene) {
-      (physicsScene ?? this._registeredScene!.physics)._nativePhysicsScene.removeCharacterController(
-        <ICharacterController>this._native
-      );
+      (physicsScene ?? this._registeredScene!.physics)._nativePhysicsScene.removeCharacterController(this._controller!);
       this._inScene = false;
     }
   }
@@ -317,8 +311,25 @@ export class CharacterController extends Collider {
   }
 
   protected override _onContactOffsetChanged(value: number): void {
-    super._onContactOffsetChanged(value);
+    this._controller?.setContactOffset(value);
     this._setGeometryDirty();
+  }
+
+  protected override _onIsSceneQueryChanged(value: boolean): void {
+    this._controller?.setIsSceneQuery(value);
+  }
+
+  protected override _onMaterialChanged(material: IPhysicsMaterial): void {
+    this._controller?.setMaterial(material);
+  }
+
+  protected override _onCollisionLayerChanged(layerIndex: number): void {
+    this._controller?.setCollisionLayer(layerIndex);
+  }
+
+  protected override _destroyNative(): void {
+    this._controller?.destroy();
+    this._controller = null;
   }
 
   /** @internal */
@@ -338,37 +349,29 @@ export class CharacterController extends Collider {
   }
 
   @ignoreClone
-  private _setUpDirection(): void {
+  private _onUpDirectionChanged(): void {
+    this._applyUpDirection(this._upDirection);
+  }
+
+  private _applyUpDirection(value: Vector3): void {
     const up = this._upDirection;
-    const { x, y, z } = up;
-    const len = Math.hypot(x, y, z);
-    if (!Number.isFinite(len)) {
-      this._applyUpDirection(0, 1, 0);
+    if (value === up && !Number.isFinite(Math.hypot(value.x, value.y, value.z))) {
+      value.set(0, 1, 0);
       throw new Error("CharacterController upDirection must be finite.");
     }
-    if (len === 0) {
-      const previous = this._lastValidUpDirection;
-      this._writeUpDirection(previous?.x ?? 0, previous?.y ?? 1, previous?.z ?? 0);
-      return;
+    if (
+      Collider._syncUnitVector(
+        up,
+        value,
+        this._lastValidUpDirection,
+        0,
+        1,
+        0,
+        "CharacterController upDirection must be finite."
+      )
+    ) {
+      (this._lastValidUpDirection ||= new Vector3()).copyFrom(up);
+      this._controller?.setUpDirection(up);
     }
-    this._applyUpDirection(x / len, y / len, z / len);
-  }
-
-  private _applyUpDirection(x: number, y: number, z: number): void {
-    const previous = this._lastValidUpDirection;
-    this._writeUpDirection(x, y, z);
-    if (x !== (previous?.x ?? 0) || y !== (previous?.y ?? 1) || z !== (previous?.z ?? 0)) {
-      (this._lastValidUpDirection ||= new Vector3()).set(x, y, z);
-      (<ICharacterController>this._native)?.setUpDirection(this._upDirection);
-    }
-  }
-
-  private _writeUpDirection(x: number, y: number, z: number): void {
-    const up = this._upDirection;
-    if (x === up.x && y === up.y && z === up.z) return;
-    const listener = up._onValueChanged;
-    up._onValueChanged = null;
-    up.set(x, y, z);
-    up._onValueChanged = listener;
   }
 }
