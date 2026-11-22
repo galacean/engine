@@ -88,21 +88,22 @@ void calculateBlinnPhongLighting(
         PointLight pointLight;
         for (int i = 0; i < SCENE_POINT_LIGHT_COUNT; i++) {
             if (!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])) {
-                pointLight.color = scene_PointLightColor[i];
-                pointLight.position = scene_PointLightPosition[i];
-                pointLight.distance = scene_PointLightDistance[i];
+                pointLight = getPointLight(i);
 
-                vec3 direction = worldPos - pointLight.position;
-                float dist = length(direction);
-                direction /= dist;
-                float decay = clamp(1.0 - pow(dist / pointLight.distance, 4.0), 0.0, 1.0);
+                vec3 lVector = pointLight.position - worldPos;
+                float distanceSq = dot(lVector, lVector);
+                float attenuation = getDistanceAttenuation(distanceSq, pointLight.distance);
+                if (attenuation > 0.0) {
+                    vec3 direction = lVector * inversesqrt(max(distanceSq, 1e-12));
+                    vec3 attenuatedColor = pointLight.color * attenuation;
 
-                float d = max(dot(N, -direction), 0.0) * decay;
-                lightDiffuse += pointLight.color * d;
+                    float d = max(dot(N, direction), 0.0);
+                    lightDiffuse += attenuatedColor * d;
 
-                vec3 halfDir = normalize(V - direction);
-                float s = pow(clamp(dot(N, halfDir), 0.0, 1.0), material_Shininess) * decay;
-                lightSpecular += pointLight.color * s;
+                    vec3 halfDir = normalize(V + direction);
+                    float s = pow(clamp(dot(N, halfDir), 0.0, 1.0), material_Shininess);
+                    lightSpecular += attenuatedColor * s;
+                }
             }
         }
     #endif
@@ -111,26 +112,27 @@ void calculateBlinnPhongLighting(
         SpotLight spotLight;
         for (int i = 0; i < SCENE_SPOT_LIGHT_COUNT; i++) {
             if (!isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])) {
-                spotLight.color = scene_SpotLightColor[i];
-                spotLight.position = scene_SpotLightPosition[i];
-                spotLight.direction = scene_SpotLightDirection[i];
-                spotLight.distance = scene_SpotLightDistance[i];
-                spotLight.angleCos = scene_SpotLightAngleCos[i];
-                spotLight.penumbraCos = scene_SpotLightPenumbraCos[i];
+                spotLight = getSpotLight(i);
 
-                vec3 direction = spotLight.position - worldPos;
-                float lightDistance = length(direction);
-                direction /= lightDistance;
-                float angleCos = dot(direction, -spotLight.direction);
-                float decay = clamp(1.0 - pow(lightDistance / spotLight.distance, 4.0), 0.0, 1.0);
-                float spotEffect = smoothstep(spotLight.penumbraCos, spotLight.angleCos, angleCos);
-                float decayTotal = decay * spotEffect;
-                float d = max(dot(N, direction), 0.0) * decayTotal;
-                lightDiffuse += spotLight.color * d;
+                vec3 lVector = spotLight.position - worldPos;
+                float distanceSq = dot(lVector, lVector);
+                float attenuation = getDistanceAttenuation(distanceSq, spotLight.distance);
+                if (attenuation > 0.0) {
+                    vec3 direction = lVector * inversesqrt(max(distanceSq, 1e-12));
+                    float angleCos = dot(direction, -spotLight.direction);
+                    float spotEffect = smoothstep(spotLight.penumbraCos, spotLight.angleCos, angleCos);
+                    attenuation *= spotEffect;
+                    if (attenuation > 0.0) {
+                        vec3 attenuatedColor = spotLight.color * attenuation;
 
-                vec3 halfDir = normalize(V + direction);
-                float s = pow(clamp(dot(N, halfDir), 0.0, 1.0), material_Shininess) * decayTotal;
-                lightSpecular += spotLight.color * s;
+                        float d = max(dot(N, direction), 0.0);
+                        lightDiffuse += attenuatedColor * d;
+
+                        vec3 halfDir = normalize(V + direction);
+                        float s = pow(clamp(dot(N, halfDir), 0.0, 1.0), material_Shininess);
+                        lightSpecular += attenuatedColor * s;
+                    }
+                }
             }
         }
     #endif

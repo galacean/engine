@@ -31,6 +31,19 @@ bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
 #endif
 
 
+// Frostbite / Filament / Unity standard windowed inverse-square distance attenuation.
+// cutoffDistance <= 0.0 represents unlimited range (distance == Infinity).
+float getDistanceAttenuation(float distanceSq, float cutoffDistance) {
+    float attenuation = 1.0 / max(distanceSq, 1e-4);
+    if (cutoffDistance > 0.0) {
+        float invDistance = 1.0 / cutoffDistance;
+        float factor = min(distanceSq * (invDistance * invDistance), 1.0);
+        float smoothFactor = 1.0 - factor * factor;
+        attenuation *= smoothFactor * smoothFactor;
+    }
+    return attenuation;
+}
+
 // Point light
 #ifdef SCENE_POINT_LIGHT_COUNT
 

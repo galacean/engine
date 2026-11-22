@@ -11,6 +11,7 @@ export class PointLight extends Light {
   private static _colorProperty: ShaderProperty = ShaderProperty.getByName("scene_PointLightColor");
   private static _positionProperty: ShaderProperty = ShaderProperty.getByName("scene_PointLightPosition");
   private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("scene_PointLightDistance");
+  private static readonly _minDistance = 1e-4;
 
   /**
    * @internal
@@ -22,8 +23,23 @@ export class PointLight extends Light {
     shaderData.setFloatArray(PointLight._distanceProperty, data.distance);
   }
 
-  /** Defines a distance cutoff at which the light's intensity must be considered zero. */
-  distance: number = 100;
+  private _distance: number = 100;
+
+  /**
+   * Defines a distance cutoff at which the light's intensity reaches zero.
+   * @remarks Set to `Infinity` for unlimited range (pure inverse-square falloff). Values `<= 0` are clamped to a minimal positive cutoff.
+   * @defaultValue `100`
+   */
+  get distance(): number {
+    return this._distance;
+  }
+
+  set distance(value: number) {
+    if (Number.isNaN(value)) {
+      return;
+    }
+    this._distance = Math.max(value, PointLight._minDistance);
+  }
 
   /**
    * Get light position.
@@ -53,7 +69,10 @@ export class PointLight extends Light {
     data.position[positionStart] = position.x;
     data.position[positionStart + 1] = position.y;
     data.position[positionStart + 2] = position.z;
-    data.distance[distanceStart] = this.distance;
+
+    const distance = this._distance;
+    // GPU convention: cutoffDistance <= 0.0 represents unlimited range (distance === Infinity).
+    data.distance[distanceStart] = Number.isFinite(distance) ? distance : 0.0;
   }
 
   /**
@@ -81,6 +100,6 @@ export interface IPointLightShaderData {
   color: Float32Array;
   // Light position.
   position: Float32Array;
-  // Defines a distance cutoff at which the light's intensity must be considered zero.
+  // Defines a distance cutoff at which the light's intensity must be considered zero (0 represents unlimited range).
   distance: Float32Array;
 }

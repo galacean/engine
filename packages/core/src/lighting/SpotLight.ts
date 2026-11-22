@@ -1,4 +1,4 @@
-import { Matrix, Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -15,6 +15,7 @@ export class SpotLight extends Light {
   private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightDistance");
   private static _angleCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightAngleCos");
   private static _penumbraCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightPenumbraCos");
+  private static readonly _minDistance = 1e-4;
 
   /**
    * @internal
@@ -29,8 +30,7 @@ export class SpotLight extends Light {
     shaderData.setFloatArray(SpotLight._penumbraCosProperty, data.penumbraCos);
   }
 
-  /** Defines a distance cutoff at which the light's intensity must be considered zero. */
-  distance: number = 100;
+  private _distance: number = 100;
   /** Angle, in radians, from centre of spotlight where falloff begins. */
   angle: number = Math.PI / 6;
   /** Angle, in radians, from falloff begins to ends. */
@@ -38,6 +38,22 @@ export class SpotLight extends Light {
 
   @ignoreClone
   private _inverseDirection: Vector3 = new Vector3();
+
+  /**
+   * Defines a distance cutoff at which the light's intensity reaches zero.
+   * @remarks Set to `Infinity` for unlimited range (pure inverse-square falloff). Values `<= 0` are clamped to a minimal positive cutoff.
+   * @defaultValue `100`
+   */
+  get distance(): number {
+    return this._distance;
+  }
+
+  set distance(value: number) {
+    if (Number.isNaN(value)) {
+      return;
+    }
+    this._distance = Math.max(value, SpotLight._minDistance);
+  }
 
   /**
    * Get light position.
@@ -88,7 +104,10 @@ export class SpotLight extends Light {
     data.direction[directionStart] = direction.x;
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
-    data.distance[distanceStart] = this.distance;
+
+    const distance = this._distance;
+    // GPU convention: cutoffDistance <= 0.0 represents unlimited range (distance === Infinity).
+    data.distance[distanceStart] = Number.isFinite(distance) ? distance : 0.0;
     data.angleCos[angleCosStart] = Math.cos(this.angle);
     data.penumbraCos[penumbraCosStart] = Math.cos(this.angle + this.penumbra);
   }
@@ -120,7 +139,7 @@ export interface ISpotLightShaderData {
   position: Float32Array;
   // Light direction
   direction: Float32Array;
-  // Defines a distance cutoff at which the light's intensity must be considered zero.
+  // Defines a distance cutoff at which the light's intensity must be considered zero (0 represents unlimited range).
   distance: Float32Array;
   // Angle, in radians, from centre of spotlight where falloff begins.
   angleCos: Float32Array;
