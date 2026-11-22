@@ -984,12 +984,39 @@ export async function createHeadlessSeedWorldFixture(options: {
       removedObjectIds: [...removedIds]
     }),
     queryWorldPoints: (input) => {
+      const effectiveHeightAt = (x: number, z: number): number => {
+        let h = syntheticHeightAt(x, z);
+        for (const r of resources) {
+          const p = r.properties as Record<string, any> | undefined;
+          if (!p) continue;
+          const cx = typeof p.x === "number" ? p.x : typeof p.centerX === "number" ? p.centerX : undefined;
+          const cz = typeof p.z === "number" ? p.z : typeof p.centerZ === "number" ? p.centerZ : undefined;
+          if (cx === undefined || cz === undefined) continue;
+          const dist = Math.hypot(x - cx, z - cz);
+          if (r.resourceType === "terrain-feature") {
+            const radius = Number(p.radiusMetres ?? p.radius ?? p.overallRadiusMetres ?? 20);
+            const height = Number(p.peakHeightMetres ?? p.heightMetres ?? p.baseElevationMetres ?? p.amplitude ?? 0);
+            if (radius > 0 && dist < radius && Number.isFinite(height)) {
+              const t = 1 - dist / radius;
+              h += height * t * t * (3 - 2 * t);
+            }
+          } else if (r.resourceType === "terrain-patch") {
+            const radius = Number(p.radiusMetres ?? p.radius ?? 10);
+            const delta = Number(p.deltaMetres ?? p.delta ?? p.heightDeltaMetres ?? (p.operation === "lower" ? -2 : 2));
+            if (radius > 0 && dist < radius && Number.isFinite(delta)) {
+              const t = 1 - dist / radius;
+              h += delta * t * t * (3 - 2 * t);
+            }
+          }
+        }
+        return h;
+      };
       if (input.mode === "sample") {
         return {
           samples: input.positions.map((pos: { x: number; z: number } | readonly [number, number]) => {
             const x = Array.isArray(pos) ? Number(pos[0]) : Number((pos as { x: number }).x);
             const z = Array.isArray(pos) ? Number(pos[1]) : Number((pos as { z: number }).z);
-            const h = syntheticHeightAt(x, z);
+            const h = effectiveHeightAt(x, z);
             const water = isInsideInitialLake(x, z);
             return {
               insideWorld: Math.abs(x) <= 512 && Math.abs(z) <= 512,

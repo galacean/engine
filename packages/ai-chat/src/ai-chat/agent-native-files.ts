@@ -23,6 +23,7 @@ const MAX_SINGLE_DEPENDENCY_BYTES = 16 * 1024;
 const MAX_INLINE_DEPENDENCY_BYTES = 18 * 1024;
 const MAX_OMITTED_DEPENDENCY_LINES = 12;
 const MAX_DEPENDENCY_SCAN = 48;
+const isBarrelDeclarationPath = (path: string) => path === "index.d.ts" || path.endsWith("/index.d.ts");
 const declarationPath = (id: string) => `declare/editor/${id.replace(/^declare\//, "")}`;
 const RELATIVE_MODULE_FROM_RE =
   /(?:^|[\n;])\s*(?:import|export)\b[^{"';\n]*(?:\{[^{}"';]*\}[^{"';\n]*)?\bfrom\s+["'](\.\.?\/[^"'\n]+)["']|(?:^|[\n;])\s*import\s+["'](\.\.?\/[^"'\n]+)["']/g;
@@ -85,7 +86,7 @@ const descriptions: Record<AgentFileToolName, string> = {
   read: [
     "Read a virtual file. file_path is relative to the project root. Use host knowledge links directly, without a directory prefix.",
     "Text results include line numbers. offset defaults to 1 and uses 1-based numbering. limit defaults to 2000. Large results report the next line offset. Page boundaries keep rows intact. Long lines return a partial line and next={offset,column}; column is a 1-based UTF-16 position. Follow next unchanged to read the remainder without losing text.",
-    'Read an existing document before write/edit. Read it again if it changes. For skills/ and declare/ files, pass null for offset, column and limit to read the full document and activate automatic declaration dependency inlining. Reading a declaration under declare/ automatically appends unread small imported declarations in <dependency path="..."> blocks; do not re-read declarations already present in context. Read any remaining <omitted_dependencies> needed for the chosen call together.',
+    'Read an existing document before write/edit. Read it again if it changes. For skills/ and declare/editor/ files, pass null for offset, column and limit to read the full document and activate automatic declaration dependency inlining. Reading a declaration under declare/editor/ automatically appends unread small imported declarations in <dependency path="..."> blocks; do not re-read declarations already present in context. Read any remaining <omitted_dependencies> or declare/engine/ files on demand as needed.',
     "Files under .ai/snapshots/ return the saved image and capture metadata. Pass null for offset, column and limit. User photos and snapshot results already include their images in context. Use read when you need to examine that image again. This returns the same image, without a new capture or more detail.",
     "Other binary files return descriptors."
   ].join("\n"),
@@ -195,7 +196,7 @@ export class AgentNativeFiles {
         if (
           (input.offset ?? 1) === 1 &&
           (input.column ?? 1) === 1 &&
-          result.path.startsWith("declare/") &&
+          result.path.startsWith("declare/editor/") &&
           result.path.endsWith(".d.ts")
         ) {
           const { blocks, paths, omitted } = this.collectInlineDependencies(files, snapshot, result.path, primary, {
@@ -416,31 +417,32 @@ export class AgentNativeFiles {
     const blocks: string[] = [];
     const paths: string[] = [];
     const omitted: OmittedDependency[] = [];
-    const pushDependency = (depPath: string, depSource: string) => {
-      if (claimed.has(depPath)) return;
+    const pushDependency = (depPath: string, depSource: string): boolean => {
+      if (claimed.has(depPath)) return false;
       const rawBytes = encoder.encode(depSource).byteLength;
       if (paginated) {
         omitted.push({ path: depPath, bytes: rawBytes, reason: "paginated" });
-        return;
+        return false;
       }
       const block = formatDependencyBlock(depPath, depSource);
       const blockBytes = encoder.encode(block).byteLength;
       if (blockBytes > MAX_SINGLE_DEPENDENCY_BYTES) {
         omitted.push({ path: depPath, bytes: rawBytes, reason: "size" });
-        return;
+        return false;
       }
       if (
         inlineBytes + blockBytes > MAX_INLINE_DEPENDENCY_BYTES ||
         totalResponseBytes + blockBytes > MAX_READ_RESULT_BYTES - 1024
       ) {
         omitted.push({ path: depPath, bytes: rawBytes, reason: "budget" });
-        return;
+        return false;
       }
       claimed.add(depPath);
       inlineBytes += blockBytes;
       totalResponseBytes += blockBytes;
       blocks.push(block);
       paths.push(depPath);
+      return true;
     };
 
     if (rootModule) {
@@ -453,7 +455,8 @@ export class AgentNativeFiles {
         const depModule = byId.get(depId);
         const depPath = pathById.get(depId);
         if (!depModule || !depPath) continue;
-        if (visitedIds.size < MAX_DEPENDENCY_SCAN) {
+        const inlined = pushDependency(depPath, readDeclarationText(snapshot, depPath) ?? depModule.source);
+        if (inlined && !isBarrelDeclarationPath(depPath) && visitedIds.size < MAX_DEPENDENCY_SCAN) {
           for (const childId of depModule.imports) {
             if (!visitedIds.has(childId)) {
               visitedIds.add(childId);
@@ -461,7 +464,6 @@ export class AgentNativeFiles {
             }
           }
         }
-        pushDependency(depPath, readDeclarationText(snapshot, depPath) ?? depModule.source);
       }
       return { blocks, paths, omitted };
     }
@@ -479,7 +481,8 @@ export class AgentNativeFiles {
       const depPath = queue.shift()!;
       const depSource = readDeclarationText(snapshot, depPath);
       if (depSource === undefined) continue;
-      if (visitedPaths.size < MAX_DEPENDENCY_SCAN) {
+      const inlined = pushDependency(depPath, depSource);
+      if (inlined && !isBarrelDeclarationPath(depPath) && visitedPaths.size < MAX_DEPENDENCY_SCAN) {
         for (const childPath of resolveRelativeDeclarationImports(files, snapshot, depPath, depSource)) {
           if (!visitedPaths.has(childPath)) {
             visitedPaths.add(childPath);
@@ -487,7 +490,6 @@ export class AgentNativeFiles {
           }
         }
       }
-      pushDependency(depPath, depSource);
     }
     return { blocks, paths, omitted };
   }

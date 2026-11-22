@@ -288,23 +288,23 @@ it("auto-inlines transitive small declaration dependencies once across parallel 
   expect(readAfterCompaction.content).toContain('<dependency path="declare/editor/world/common/Ref.d.ts">');
 });
 
-it("auto-inlines relative imports for declare/engine declarations and deduplicates parallel reads", async () => {
+it("auto-inlines relative imports for declare/editor declarations and deduplicates parallel reads", async () => {
   const runtimeProvider = {
     paths: () => [
-      "declare/engine/pkg/types/Leaf.d.ts",
-      "declare/engine/pkg/types/Mid.d.ts",
-      "declare/engine/pkg/types/EntryA.d.ts",
-      "declare/engine/pkg/types/EntryB.d.ts",
-      "declare/engine/pkg/types/physics/index.d.ts"
+      "declare/editor/custom/Leaf.d.ts",
+      "declare/editor/custom/Mid.d.ts",
+      "declare/editor/custom/EntryA.d.ts",
+      "declare/editor/custom/EntryB.d.ts",
+      "declare/editor/custom/physics/index.d.ts"
     ],
     read: (path: string) =>
       ({
-        "declare/engine/pkg/types/Leaf.d.ts": "export interface Leaf { value: number; }\n",
-        "declare/engine/pkg/types/Mid.d.ts": 'import type { Leaf } from "./Leaf";\nexport interface Mid { leaf: Leaf; }\n',
-        "declare/engine/pkg/types/physics/index.d.ts": "export interface ColliderShape {}\n",
-        "declare/engine/pkg/types/EntryA.d.ts":
+        "declare/editor/custom/Leaf.d.ts": "export interface Leaf { value: number; }\n",
+        "declare/editor/custom/Mid.d.ts": 'import type { Leaf } from "./Leaf";\nexport interface Mid { leaf: Leaf; }\n',
+        "declare/editor/custom/physics/index.d.ts": "export interface ColliderShape {}\n",
+        "declare/editor/custom/EntryA.d.ts":
           'import { Mid } from "./Mid";\nimport { ColliderShape } from "./physics";\nexport type Maker = typeof import("./Leaf");\nexport interface EntryA { mid: Mid; shape: ColliderShape; }\n',
-        "declare/engine/pkg/types/EntryB.d.ts": 'export * from "./Mid";\nexport interface EntryB { id: string; }\n'
+        "declare/editor/custom/EntryB.d.ts": 'export * from "./Mid";\nexport interface EntryB { id: string; }\n'
       })[path]
   };
   const projectFiles = createAgentProjectFiles({ entries: [], modules: [] }, [runtimeProvider]);
@@ -319,13 +319,13 @@ it("auto-inlines relative imports for declare/engine declarations and deduplicat
   );
   const signal = new AbortController().signal;
   const [readA, readB] = await Promise.all([
-    api.execute("read", { file_path: "declare/engine/pkg/types/EntryA.d.ts" }, "ea", signal),
-    api.execute("read", { file_path: "declare/engine/pkg/types/EntryB.d.ts" }, "eb", signal)
+    api.execute("read", { file_path: "declare/editor/custom/EntryA.d.ts" }, "ea", signal),
+    api.execute("read", { file_path: "declare/editor/custom/EntryB.d.ts" }, "eb", signal)
   ]);
   const combined = `${readA.content}\n${readB.content}`;
-  expect(combined.match(/<dependency path="declare\/engine\/pkg\/types\/Mid\.d\.ts">/g)).toHaveLength(1);
-  expect(combined.match(/<dependency path="declare\/engine\/pkg\/types\/Leaf\.d\.ts">/g)).toHaveLength(1);
-  expect(combined.match(/<dependency path="declare\/engine\/pkg\/types\/physics\/index\.d\.ts">/g)).toHaveLength(1);
+  expect(combined.match(/<dependency path="declare\/editor\/custom\/Mid\.d\.ts">/g)).toHaveLength(1);
+  expect(combined.match(/<dependency path="declare\/editor\/custom\/Leaf\.d\.ts">/g)).toHaveLength(1);
+  expect(combined.match(/<dependency path="declare\/editor\/custom\/physics\/index\.d\.ts">/g)).toHaveLength(1);
 });
 
 it("inlines 13KB dependencies under the 16KB cap and reports omitted dependencies for oversized or paginated declarations", async () => {
@@ -418,16 +418,16 @@ it("keeps structured omittedDependencies aligned with rendered lines when trimme
   expect(omittedBlock).toContain(`(+${12 - renderedPaths.length} more omitted dependencies)`);
 });
 
-it("caches declare relative import resolution and uses a single snapshot per read without regex stalls", async () => {
+it("caches declare/editor relative import resolution and uses a single snapshot per read without regex stalls", async () => {
   const runtimeProvider = {
     paths: () => [
-      "declare/engine/pkg/types/Leaf.d.ts",
-      "declare/engine/pkg/types/BigClass.d.ts"
+      "declare/editor/custom/Leaf.d.ts",
+      "declare/editor/custom/BigClass.d.ts"
     ],
     read: (path: string) =>
       ({
-        "declare/engine/pkg/types/Leaf.d.ts": "export interface Leaf { id: number; }\n",
-        "declare/engine/pkg/types/BigClass.d.ts":
+        "declare/editor/custom/Leaf.d.ts": "export interface Leaf { id: number; }\n",
+        "declare/editor/custom/BigClass.d.ts":
           'import type { Leaf } from "./Leaf";\n' +
           Array.from({ length: 40 }, (_, i) => `export declare class Entity${i} {\n  value: number;\n  method(x: Leaf): void;\n}`).join("\n")
       })[path]
@@ -443,13 +443,63 @@ it("caches declare relative import resolution and uses a single snapshot per rea
     );
   const signal = new AbortController().signal;
 
-  const first = await freshApi().execute("read", { file_path: "declare/engine/pkg/types/BigClass.d.ts" }, "c1", signal);
+  const first = await freshApi().execute("read", { file_path: "declare/editor/custom/BigClass.d.ts" }, "c1", signal);
   const snapshotsAfterFirst = snapshotSpy.mock.calls.length;
-  expect(first.content).toContain('<dependency path="declare/engine/pkg/types/Leaf.d.ts">');
+  expect(first.content).toContain('<dependency path="declare/editor/custom/Leaf.d.ts">');
   // One snapshot inside readAgentFile + one snapshot inside AgentNativeFiles.execute("read")
   expect(snapshotsAfterFirst).toBeLessThanOrEqual(3);
 
-  const second = await freshApi().execute("read", { file_path: "declare/engine/pkg/types/BigClass.d.ts" }, "c2", signal);
-  expect(second.content).toContain('<dependency path="declare/engine/pkg/types/Leaf.d.ts">');
+  const second = await freshApi().execute("read", { file_path: "declare/editor/custom/BigClass.d.ts" }, "c2", signal);
+  expect(second.content).toContain('<dependency path="declare/editor/custom/Leaf.d.ts">');
   expect(snapshotSpy.mock.calls.length - snapshotsAfterFirst).toBeLessThanOrEqual(3);
+});
+
+it("does not auto-inline dependencies for declare/engine declarations and blocks barrel fan-out or skipped-parent leaks under declare/editor", async () => {
+  const huge = Array.from({ length: 300 }, (_, i) => `export type Huge${i} = "${"x".repeat(60)}";`).join("\n");
+  const runtimeProvider = {
+    paths: () => [
+      "declare/engine/pkg/types/PointLight.d.ts",
+      "declare/engine/pkg/types/Light.d.ts",
+      "declare/editor/custom/Root.d.ts",
+      "declare/editor/custom/Good.d.ts",
+      "declare/editor/custom/Huge.d.ts",
+      "declare/editor/custom/HugeChild.d.ts",
+      "declare/editor/custom/barrel/index.d.ts",
+      "declare/editor/custom/barrel/Noise.d.ts"
+    ],
+    read: (path: string) =>
+      ({
+        "declare/engine/pkg/types/PointLight.d.ts":
+          'import { Light } from "./Light";\nexport declare class PointLight extends Light {}\n',
+        "declare/engine/pkg/types/Light.d.ts": "export declare class Light { intensity: number; }\n",
+        "declare/editor/custom/Root.d.ts":
+          'import { Noise } from "./barrel";\nimport { Huge } from "./Huge";\nimport { Good } from "./Good";\nexport interface Root { good: Good; }\n',
+        "declare/editor/custom/Good.d.ts": "export interface Good { ok: true; }\n",
+        "declare/editor/custom/Huge.d.ts": `import { HugeChild } from "./HugeChild";\n${huge}\nexport interface Huge { c: HugeChild; }\n`,
+        "declare/editor/custom/HugeChild.d.ts": "export interface HugeChild {}\n",
+        "declare/editor/custom/barrel/index.d.ts": 'export * from "./Noise";\n',
+        "declare/editor/custom/barrel/Noise.d.ts": "export interface Noise {}\n"
+      })[path]
+  };
+  const projectFiles = createAgentProjectFiles({ entries: [], modules: [] }, [runtimeProvider]);
+  const api = new AgentNativeFiles(
+    () => projectFiles,
+    () => ({ scriptApi: { catalog: "API", entries: [], modules: [] }, toolNames: [] }),
+    new Map(),
+    () => "unused"
+  );
+  const signal = new AbortController().signal;
+
+  // declare/engine/** returns the requested file directly without auto-inlining
+  const engineRes = await api.execute("read", { file_path: "declare/engine/pkg/types/PointLight.d.ts" }, "e1", signal);
+  expect(engineRes.content).toContain("export declare class PointLight extends Light");
+  expect(engineRes.content).not.toContain("<dependency ");
+  expect(engineRes.content).not.toContain("<omitted_dependencies>");
+
+  // declare/editor/** inlines Good.d.ts, skips oversized Huge.d.ts without leaking HugeChild.d.ts, and does not fan out barrel/index.d.ts to Noise.d.ts
+  const editorRes = await api.execute("read", { file_path: "declare/editor/custom/Root.d.ts" }, "e2", signal);
+  expect(editorRes.content).toContain('<dependency path="declare/editor/custom/Good.d.ts">');
+  expect(editorRes.content).toContain("declare/editor/custom/Huge.d.ts");
+  expect(editorRes.content).not.toContain("HugeChild.d.ts");
+  expect(editorRes.content).not.toContain("Noise.d.ts");
 });
