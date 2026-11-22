@@ -337,6 +337,60 @@ export const vegetationInspectKindSchema = z
 export const terrainInspectKindSchema = z
   .enum(TERRAIN_INSPECT_KINDS)
   .describe("地形地貌与岩石资产种类");
+export const vegetationStrictRefSchema = z
+  .strictObject({ ...worldRefSchema.shape, kind: vegetationInspectKindSchema })
+  .describe("植被或菌类资产的稳定引用");
+export const terrainStrictRefSchema = z
+  .strictObject({ ...worldRefSchema.shape, kind: terrainInspectKindSchema })
+  .describe("地形地貌或岩石资产的稳定引用");
+export const queriedVegetationAssetSchema = z
+  .strictObject({
+    ...worldAssetBaseShape,
+    type: vegetationInspectKindSchema,
+    ref: vegetationStrictRefSchema,
+    distanceMetres: z.number().optional().describe("资产到本次查询锚点的距离；它是查询上下文，不属于资产本身")
+  })
+  .superRefine(requireMatchingAssetIdentity)
+  .describe("vegetation.query 返回的植被 Asset 投影，以及可选的查询距离");
+export const queriedTerrainAssetSchema = z
+  .strictObject({
+    ...worldAssetBaseShape,
+    type: terrainInspectKindSchema,
+    ref: terrainStrictRefSchema,
+    distanceMetres: z.number().optional().describe("资产到本次查询锚点的距离；它是查询上下文，不属于资产本身")
+  })
+  .superRefine(requireMatchingAssetIdentity)
+  .describe("terrain.query 返回的地形与岩石 Asset 投影，以及可选的查询距离");
+export const vegetationSelectionResultSchema = z
+  .strictObject({
+    selectionId: z.string().describe("本次查询的选择标识"),
+    matchedCount: z.number().int().nonnegative().describe("完整匹配数量，不受 limit 限制"),
+    offset: z.number().int().nonnegative().describe("当前页在完整排序结果中的起始下标"),
+    nextOffset: z.number().int().positive().optional().describe("存在时表示仍有下一页；下一次查询原样作为 offset 传入"),
+    pageLimitedByBytes: z.literal(true).optional().describe("为 true 时当前页因 Agent 传输字节预算而提前结束；继续使用 nextOffset 即可"),
+    items: z.array(queriedVegetationAssetSchema).describe("植被公共 Asset 查询投影；ref 可直接传给 vegetation.inspect 或 vegetation.delete"),
+    resolvedBounds: worldBoundsSchema.optional().describe("返回 assets 合并后的包围盒")
+  })
+  .describe("一次有界植被资产查询结果");
+export const terrainSelectionResultSchema = z
+  .strictObject({
+    selectionId: z.string().describe("本次查询的选择标识"),
+    matchedCount: z.number().int().nonnegative().describe("完整匹配数量，不受 limit 限制"),
+    offset: z.number().int().nonnegative().describe("当前页在完整排序结果中的起始下标"),
+    nextOffset: z.number().int().positive().optional().describe("存在时表示仍有下一页；下一次查询原样作为 offset 传入"),
+    pageLimitedByBytes: z.literal(true).optional().describe("为 true 时当前页因 Agent 传输字节预算而提前结束；继续使用 nextOffset 即可"),
+    items: z.array(queriedTerrainAssetSchema).describe("地形与岩石公共 Asset 查询投影；ref 可直接传给 terrain.inspect 或 terrain.delete"),
+    resolvedBounds: worldBoundsSchema.optional().describe("返回 assets 合并后的包围盒")
+  })
+  .describe("一次有界地形与岩石资产查询结果");
+export const terrainAssetMutationResultSchema = z
+  .discriminatedUnion("status", [
+    appliedAuthoringResultSchema.extend({
+      assetRef: terrainStrictRefSchema.describe("本次 terrain.create/update 返回的稳定引用；可直接复用给 terrain.inspect、terrain.update 或 terrain.delete")
+    }),
+    previewAssetMutationResultSchema
+  ])
+  .describe("创建或更新一个持久地形资产的成功结果");
 export const vegetationInspectAssetSchema = z
   .union([
     treeAssetSchema,

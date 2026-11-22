@@ -18,18 +18,20 @@ import {
   TERRAIN_INSPECT_KINDS,
   VEGETATION_INSPECT_KINDS,
   authoringResultSchema,
-  appliedAssetMutationResultSchema,
-  assetMutationResultSchema,
+  appliedAuthoringResultSchema,
   mutationControlShape,
   previewAssetMutationResultSchema,
-  selectionResultSchema,
+  terrainAssetMutationResultSchema,
   terrainInspectAssetSchema,
   terrainInspectKindSchema,
   terrainRefSchema,
+  terrainSelectionResultSchema,
+  terrainStrictRefSchema,
   vegetationInspectAssetSchema,
   vegetationInspectKindSchema,
   vegetationRefSchema,
-  worldRefSchema
+  vegetationSelectionResultSchema,
+  vegetationStrictRefSchema
 } from "./tool-contract.ts";
 
 export const terrainFeatureRefSchema = terrainRefSchema;
@@ -309,7 +311,10 @@ const vegetationCreatedSchema = z.strictObject({
 });
 export const vegetationCreateResultSchema = z
   .discriminatedUnion("status", [
-    appliedAssetMutationResultSchema.extend({ created: vegetationCreatedSchema }),
+    appliedAuthoringResultSchema.extend({
+      assetRef: vegetationStrictRefSchema.describe("本次 vegetation.create 返回的稳定引用；可直接复用给 vegetation.inspect、vegetation.update 或 vegetation.delete"),
+      created: vegetationCreatedSchema
+    }),
     previewAssetMutationResultSchema.extend({ created: vegetationCreatedSchema })
   ])
   .superRefine((value, context) => {
@@ -358,7 +363,10 @@ const vegetationUpdatedSchema = z.strictObject({
 });
 export const vegetationUpdateResultSchema = z
   .discriminatedUnion("status", [
-    appliedAssetMutationResultSchema.extend({ updated: vegetationUpdatedSchema }),
+    appliedAuthoringResultSchema.extend({
+      assetRef: vegetationStrictRefSchema.describe("本次 vegetation.update 返回的稳定引用；可直接复用给 vegetation.inspect、vegetation.update 或 vegetation.delete"),
+      updated: vegetationUpdatedSchema
+    }),
     previewAssetMutationResultSchema.extend({ updated: vegetationUpdatedSchema })
   ])
   .superRefine((value, context) => {
@@ -470,7 +478,7 @@ export const vegetationUpdateInputSchema = z.union([
     patch: z.strictObject({
       treeShape: treeShapePatchSchema,
       treeShapeScope: z.literal("shared-effect").describe("复用面板共享参数，所有使用该配方及效果的树一起变化；不提供单树覆盖。"),
-      treeEffectIndex: z.number().int().min(1).max(7).optional().describe("仅用户明确指定效果编号时填写；省略则使用引用树的当前效果。")
+      treeEffectIndex: z.number().int().min(1).max(7).optional().describe("可编辑共享效果槽位为 1–7（0 为只读基线，不可编辑）；引用树当前处于 1–7 时可省略沿用原槽位，若 inspect 显示当前为 0 则必须显式指定 1–7 中的槽位。")
     }),
     ...mutationControlShape
   }),
@@ -508,7 +516,7 @@ export const terrainFeatureCreateContract = defineSeedWorldApiContract({
   outputDescription:
     "assetRef 是新地貌可直接复用的稳定引用；另返回事务标识和实际效果摘要。",
   input: terrainFeatureCreateSchema,
-  output: assetMutationResultSchema
+  output: terrainAssetMutationResultSchema
 });
 export const terrainFeatureUpdateContract = defineSeedWorldApiContract({
   name: "terrain.update",
@@ -519,7 +527,7 @@ export const terrainFeatureUpdateContract = defineSeedWorldApiContract({
   outputDescription:
     "assetRef 是可直接复用的稳定引用；另返回事务标识和实际效果摘要。",
   input: terrainFeatureUpdateInputSchema,
-  output: assetMutationResultSchema
+  output: terrainAssetMutationResultSchema
 });
 export const vegetationCreateContract = defineSeedWorldApiContract({
   name: "vegetation.create",
@@ -549,9 +557,7 @@ const vegetationSelectors = createDomainSelectorSchema(vegetationInspectKindSche
 
 export const terrainQueryInputSchema = terrainSelectors.queryInput;
 export const terrainInspectInputSchema = z.strictObject({
-  ref: z
-    .strictObject({ ...worldRefSchema.shape, kind: terrainInspectKindSchema })
-    .describe("terrain.query 或 terrain.create 返回的稳定地形/岩石资产引用")
+  ref: terrainStrictRefSchema.describe("terrain.query 或 terrain.create 返回的稳定地形/岩石资产引用")
 });
 export const terrainDeleteInputSchema = createDomainDeleteInputSchema(
   terrainInspectKindSchema,
@@ -561,9 +567,7 @@ export const terrainDeleteInputSchema = createDomainDeleteInputSchema(
 
 export const vegetationQueryInputSchema = vegetationSelectors.queryInput;
 export const vegetationInspectInputSchema = z.strictObject({
-  ref: z
-    .strictObject({ ...worldRefSchema.shape, kind: vegetationInspectKindSchema })
-    .describe("vegetation.query 或 vegetation.create 返回的稳定植被资产引用")
+  ref: vegetationStrictRefSchema.describe("vegetation.query 或 vegetation.create 返回的稳定植被资产引用")
 });
 export const vegetationDeleteInputSchema = createDomainDeleteInputSchema(
   vegetationInspectKindSchema,
@@ -580,7 +584,7 @@ export const terrainQueryContract = defineSeedWorldApiContract({
   inputDescription: "可按 kinds、sources、ids、spatial、filters、sort 筛选；省略条件时查询全部地形与岩石资产。若 nextOffset 存在，继续分页。",
   outputDescription: "返回完整 matchedCount、offset、可选 nextOffset 和公共 Asset 投影 items。把 item.ref 传给 terrain.inspect 读取类型专属 properties。",
   input: terrainQueryInputSchema,
-  output: selectionResultSchema
+  output: terrainSelectionResultSchema
 });
 
 export const terrainInspectContract = defineSeedWorldApiContract({
@@ -613,7 +617,7 @@ export const vegetationQueryContract = defineSeedWorldApiContract({
   inputDescription: "可按 kinds、sources、ids、spatial、filters、sort 筛选；省略条件时查询全部植被资产。若 nextOffset 存在，继续分页。",
   outputDescription: "返回完整 matchedCount、offset、可选 nextOffset 和公共 Asset 投影 items。把 item.ref 传给 vegetation.inspect 读取类型专属 properties。",
   input: vegetationQueryInputSchema,
-  output: selectionResultSchema
+  output: vegetationSelectionResultSchema
 });
 
 export const vegetationInspectContract = defineSeedWorldApiContract({

@@ -20,6 +20,8 @@ import {
   inspectedWorldAssetSchema,
   jsonObjectSchema,
   liveWorldStateSchema,
+  queriedTerrainAssetSchema,
+  queriedVegetationAssetSchema,
   queriedWorldAssetSchema,
   seasonSchema,
   terrainInspectAssetSchema,
@@ -64,6 +66,8 @@ registerPublic("Ref", worldRefSchema);
 registerPublic("AssetRelations", assetRelationsSchema);
 registerPublic("Asset", worldAssetSchema);
 registerPublic("QueriedAsset", queriedWorldAssetSchema);
+registerPublic("QueriedVegetationAsset", queriedVegetationAssetSchema);
+registerPublic("QueriedTerrainAsset", queriedTerrainAssetSchema);
 
 const concreteAssetTypeNames = Object.values(SEED_WORLD_ASSET_TYPE_CATALOG).map(({ typeSymbol }) => typeSymbol);
 const concreteAssetTypeNameSet = new Set<string>(concreteAssetTypeNames);
@@ -140,9 +144,13 @@ const typeModules: GeneratedModule[] = [
     ].sort();
     const dependencies = name === "QueriedAsset"
       ? ["Asset"]
-      : concreteAssetTypeNameSet.has(name)
-        ? concreteAssetDeclarationDependencies(name)
-        : schemaDependencies;
+      : name === "QueriedVegetationAsset"
+        ? ["Asset", "VegetationAssetKind"]
+        : name === "QueriedTerrainAsset"
+          ? ["Asset", "TerrainAssetKind"]
+          : concreteAssetTypeNameSet.has(name)
+            ? concreteAssetDeclarationDependencies(name)
+            : schemaDependencies;
     return createDeclarationModule(
       moduleIdByTypeName.get(name)!,
       renderNamedSchemaModule(name, inputSchemaNames.has(name), dependencies),
@@ -225,6 +233,12 @@ function renderNamedSchemaModule(
 ): string {
   if (name === "Asset") return renderAssetModule(dependencies);
   if (name === "QueriedAsset") return renderQueriedAssetModule(dependencies);
+  if (name === "QueriedVegetationAsset") {
+    return renderDomainQueriedAssetModule("QueriedVegetationAsset", "VegetationAssetKind", "vegetation.query 返回的植被与菌类 Asset 投影；ref 可直接传给 vegetation.inspect 或 vegetation.delete。", dependencies);
+  }
+  if (name === "QueriedTerrainAsset") {
+    return renderDomainQueriedAssetModule("QueriedTerrainAsset", "TerrainAssetKind", "terrain.query 返回的地形地貌与岩石 Asset 投影；ref 可直接传给 terrain.inspect 或 terrain.delete。", dependencies);
+  }
   const concreteKind = concreteAssetKindByTypeName.get(name);
   if (concreteKind) return renderConcreteAssetModule(name, concreteKind, dependencies);
   const schema = schemas[name]!;
@@ -266,6 +280,24 @@ function renderQueriedAssetModule(dependencies: readonly string[]): string {
     doc("资产查询接口返回的公共 Asset 投影。distanceMetres 只描述本次查询上下文，不属于资产本身。"),
     [
       "export type QueriedAsset = Asset & {",
+      "  /** 资产到本次查询锚点的距离，单位为米。 */",
+      "  distanceMetres?: number;",
+      "};"
+    ].join("\n")
+  ].filter(Boolean).join("\n\n");
+}
+
+function renderDomainQueriedAssetModule(
+  name: string,
+  kindTypeName: string,
+  description: string,
+  dependencies: readonly string[]
+): string {
+  return [
+    renderTypeImports(`common/${name}.d.ts`, dependencies),
+    doc(description),
+    [
+      `export type ${name} = Asset<${kindTypeName}> & {`,
       "  /** 资产到本次查询锚点的距离，单位为米。 */",
       "  distanceMetres?: number;",
       "};"
@@ -711,6 +743,10 @@ function assertDeclarationModulesTypeCheck(modules: readonly GeneratedModule[]):
     "async function verifyQueryToUpdateEvidenceChain(): Promise<void> {",
     '  const result = await tools.vegetation.query({ kinds: ["tree"], sources: ["authored"] });',
     "  const item = result.items[0];",
+    "  if (item) {",
+    "    await tools.vegetation.inspect({ ref: item.ref });",
+    "    await tools.vegetation.delete({ refs: [item.ref] });",
+    "  }",
     '  if (!item || item.type !== "tree") return;',
     "  const ref = item.ref;",
     '  if (ref.source !== "authored") return;',
@@ -719,6 +755,22 @@ function assertDeclarationModulesTypeCheck(modules: readonly GeneratedModule[]):
     "  void domain;",
     "}",
     "void verifyQueryToUpdateEvidenceChain;",
+    "async function verifyCreateAndDomainQueryChaining(): Promise<void> {",
+    '  const created = await tools.vegetation.create({ plant: "tree", distribution: { kind: "single" }, target: { anchor: { kind: "viewer" }, relation: { kind: "at" } } });',
+    '  if (created.status === "applied") {',
+    "    await tools.vegetation.inspect({ ref: created.assetRef });",
+    "    await tools.vegetation.delete({ refs: [created.assetRef] });",
+    "  }",
+    "  const terrainQuery = await tools.terrain.query();",
+    "  const terrainItem = terrainQuery.items[0];",
+    "  if (terrainItem) {",
+    "    await tools.terrain.inspect({ ref: terrainItem.ref });",
+    "    await tools.terrain.delete({ refs: [terrainItem.ref] });",
+    "    // @ts-expect-error Terrain query refs cannot be inspected by vegetation.inspect.",
+    "    await tools.vegetation.inspect({ ref: terrainItem.ref });",
+    "  }",
+    "}",
+    "void verifyCreateAndDomainQueryChaining;",
     "async function rejectNaturalTreeMove(): Promise<void> {",
     '  if (queriedAsset.type !== "tree") return;',
     "  const ref = queriedAsset.ref;",

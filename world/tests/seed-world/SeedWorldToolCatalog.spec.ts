@@ -16,6 +16,11 @@ import {
   SEED_WORLD_API_SEARCH_CATALOG,
   SEED_WORLD_API_SEARCH_ENTRIES
 } from "../../demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry";
+import {
+  TERRAIN_INSPECT_KINDS,
+  VEGETATION_INSPECT_KINDS,
+  queriedWorldAssetSchema
+} from "../../demos/seed-world/agent-adapter/tools/tool-contract";
 import { SEED_WORLD_MAXIMUM_EXACT_VEGETATION_INSTANCES } from "@galacean/engine-world-planning/world/SeedWorldPlanner.ts";
 
 const API_NAMES = [
@@ -422,17 +427,35 @@ describe("Seed World final API contracts", () => {
   });
 
   it("keeps query reference domains consistent with every catalog kind and source", () => {
-    const query = createSeedWorldTools(application).find(({ name }) => name === "vegetation.query")!;
+    const tools = createSeedWorldTools(application);
+    const vegetationQuery = tools.find(({ name }) => name === "vegetation.query")!;
+    const terrainQuery = tools.find(({ name }) => name === "terrain.query")!;
+    const vegetationKinds = new Set<string>(VEGETATION_INSPECT_KINDS);
+    const terrainKinds = new Set<string>(TERRAIN_INSPECT_KINDS);
     for (const [kind, { domain }] of Object.entries(SEED_WORLD_ASSET_TYPE_CATALOG)) {
       for (const source of ["natural", "authored"]) {
-        const result = {
-          selectionId: "selection-identity", matchedCount: 1, offset: 0,
-          items: [{ type: kind, ref: { id: `test-${kind}`, domain, kind, source } }]
-        };
-        expect(query.parseOutput(result)).toEqual(result);
+        const item = { type: kind, ref: { id: `test-${kind}`, domain, kind, source } };
+        expect(queriedWorldAssetSchema.parse(item)).toEqual(item);
+        const wrongDomain = (domain === "vegetation" ? "water" : "vegetation") as typeof domain;
+        expect(() =>
+          queriedWorldAssetSchema.parse({
+            ...item,
+            ref: { ...item.ref, domain: wrongDomain }
+          })
+        ).toThrow(/资产类型目录/);
+
+        const result = { selectionId: "selection-identity", matchedCount: 1, offset: 0, items: [item] };
         const invalid = structuredClone(result);
-        invalid.items[0].ref.domain = (domain === "vegetation" ? "water" : "vegetation") as typeof domain;
-        expect(() => query.parseOutput(invalid)).toThrow(/资产类型目录/);
+        invalid.items[0].ref.domain = wrongDomain;
+        if (vegetationKinds.has(kind)) {
+          expect(vegetationQuery.parseOutput(result)).toEqual(result);
+          expect(() => vegetationQuery.parseOutput(invalid)).toThrow(/资产类型目录/);
+          expect(() => terrainQuery.parseOutput(result)).toThrow();
+        } else if (terrainKinds.has(kind)) {
+          expect(terrainQuery.parseOutput(result)).toEqual(result);
+          expect(() => terrainQuery.parseOutput(invalid)).toThrow(/资产类型目录/);
+          expect(() => vegetationQuery.parseOutput(result)).toThrow();
+        }
       }
     }
   });
@@ -611,6 +634,8 @@ describe("Seed World final API contracts", () => {
     expect(sourceForType("Asset")).not.toContain("distanceMetres");
     expect(sourceForType("QueriedAsset")).toContain("export type QueriedAsset = Asset &");
     expect(sourceForType("QueriedAsset")).toContain("distanceMetres?: number");
+    expect(sourceForType("QueriedVegetationAsset")).toContain("export type QueriedVegetationAsset = Asset<VegetationAssetKind> &");
+    expect(sourceForType("QueriedTerrainAsset")).toContain("export type QueriedTerrainAsset = Asset<TerrainAssetKind> &");
 
     const inspectClosure = declarationClosure(entries, modules, ["vegetation.inspect"]);
     expect(inspectClosure.filter((id) => id.startsWith("assets/"))).toHaveLength(0);
@@ -623,13 +648,14 @@ describe("Seed World final API contracts", () => {
       "common/AssetRelations.d.ts",
       "common/AssetSource.d.ts",
       "common/Bounds.d.ts",
-      "common/QueriedAsset.d.ts",
+      "common/QueriedVegetationAsset.d.ts",
       "common/Ref.d.ts",
       "common/Vec3.d.ts",
+      "common/VegetationAssetKind.d.ts",
       "tools/vegetation.query.d.ts"
     ]));
     expect(queryClosure.filter((id) => id.startsWith("assets/"))).toHaveLength(0);
-    expect([...modules.keys()].filter((id) => id.startsWith("common/"))).toHaveLength(24);
+    expect([...modules.keys()].filter((id) => id.startsWith("common/"))).toHaveLength(26);
     for (const removed of [
       "WorldAssetSummary", "Selection", "WorldQueryInput", "WorldInspectInput",
       "TerrainRef", "WaterRef", "VegetationRef", "ObjectRef", "InfrastructureRef", "PoiRef"

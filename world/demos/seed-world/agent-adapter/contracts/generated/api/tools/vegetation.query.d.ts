@@ -7,7 +7,7 @@ import type { AssetKind } from "../common/AssetKind";
 import type { AssetSource } from "../common/AssetSource";
 import type { Bounds } from "../common/Bounds";
 import type { JsonValue } from "../common/JsonValue";
-import type { QueriedAsset } from "../common/QueriedAsset";
+import type { QueriedVegetationAsset } from "../common/QueriedVegetationAsset";
 import type { Ref } from "../common/Ref";
 import type { VegetationAssetKind } from "../common/VegetationAssetKind";
 declare global {
@@ -141,8 +141,8 @@ declare global {
         nextOffset?: number;
         /** 为 true 时当前页因 Agent 传输字节预算而提前结束；继续使用 nextOffset 即可。 */
         pageLimitedByBytes?: true;
-        /** 按排序和 limit 返回的公共 Asset 查询投影；按 type 选择具体资产声明后再调用对应 inspect 读取详情。 */
-        items: Array<QueriedAsset>;
+        /** 植被公共 Asset 查询投影；ref 可直接传给 vegetation.inspect 或 vegetation.delete。 */
+        items: Array<QueriedVegetationAsset>;
         /** 返回 assets 合并后的包围盒。 */
         resolvedBounds?: Bounds;
       }>;
