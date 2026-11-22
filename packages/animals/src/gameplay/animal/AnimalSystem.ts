@@ -156,7 +156,7 @@ export class AnimalSystem {
     let remaining = seconds;
     try {
       while (remaining > 1e-8 && this._moving.size) {
-        const dt = Math.min(remaining, 1 / 60);
+        const dt = Math.min(remaining, 1 / 30);
         remaining -= dt;
         this._deferringPose = remaining > 1e-8;
         this._substepDt = dt;

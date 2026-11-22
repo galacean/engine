@@ -59,6 +59,7 @@ import { planningAnimalFoodPathClear } from "./PlanningAnimalFoodClearance.ts";
 import { planningAnimalCartApproach, type PlanningAnimalCartApproach } from "./PlanningAnimalCartApproach.ts";
 
 const DISTANT_ANIMAL_UPDATE_SECONDS = 5;
+const ANIMAL_FIXED_STEP_SECONDS = 1 / 30;
 const CUTE_ZOO_PLAIN_APPEARANCE = Object.freeze({ ...CUTE_ZOO_TOON_APPEARANCE, outline: false });
 const OUTLINE_ZERO_DISTANCE = CUTE_ZOO_TOON_APPEARANCE.outlineFadeEnd ?? 0;
 const OUTLINE_OFF_HYSTERESIS_METERS = 0.25;
@@ -163,6 +164,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   private sampleCursor = 0;
   private interaction = animalInteractionConfig();
   private previousPlayer?: { x: number; z: number };
+  private simulationAccumulator = 0;
 
   /** Construct only after the host explicitly enables animals; model requests start on visible demand. */
   constructor(
@@ -581,25 +583,31 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     const deltaTime = Math.min(Math.max(seconds, 0), 0.1);
     p.fireflies?.population.prepare(deltaTime, this.observer(), this.interactions.fireflies?.activity() ?? 0);
     if (p.active.size || p.coarse.size || (p.fireflies?.population.visibility ?? 0) > 0) {
-      p.navigation.beginAnimalUpdate?.();
-      try {
-        p.system.update(Math.min(Math.max(seconds, 0), 0.1));
-        for (const actor of p.coarse) {
-          const position = actor.animal!.position;
-          if (actor.x === position.x && actor.z === position.z) continue;
-          actor.x = position.x;
-          actor.z = position.z;
-          this.admit(p, actor);
+      this.simulationAccumulator = Math.min(this.simulationAccumulator + deltaTime, 0.1);
+      const stepCount = Math.floor((this.simulationAccumulator + 1e-6) / ANIMAL_FIXED_STEP_SECONDS);
+      if (stepCount > 0) {
+        const stepSeconds = stepCount * ANIMAL_FIXED_STEP_SECONDS;
+        this.simulationAccumulator = Math.max(0, this.simulationAccumulator - stepSeconds);
+        p.navigation.beginAnimalUpdate?.();
+        try {
+          p.system.update(stepSeconds);
+          for (const actor of p.coarse) {
+            const position = actor.animal!.position;
+            if (actor.x === position.x && actor.z === position.z) continue;
+            actor.x = position.x;
+            actor.z = position.z;
+            this.admit(p, actor);
+          }
+        } finally {
+          p.navigation.endAnimalUpdate?.();
         }
-      } finally {
-        p.navigation.endAnimalUpdate?.();
-      }
-      for (const actor of p.active) {
-        const position = actor.animal!.position;
-        if (position.x !== actor.x || position.z !== actor.z) {
-          actor.x = position.x;
-          actor.z = position.z;
-          this.admit(p, actor);
+        for (const actor of p.active) {
+          const position = actor.animal!.position;
+          if (position.x !== actor.x || position.z !== actor.z) {
+            actor.x = position.x;
+            actor.z = position.z;
+            this.admit(p, actor);
+          }
         }
       }
       if (OUTLINE_ZERO_DISTANCE > 0 && p.active.size) {
@@ -1351,6 +1359,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
 
   private releasePopulation(): void {
     this.previousPlayer = undefined;
+    this.simulationAccumulator = 0;
     const p = this.population;
     this.population = undefined;
     if (p) destroyPopulation(p);

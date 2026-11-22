@@ -591,9 +591,9 @@ export class GroundAnimalCrowd {
     return true;
   }
 
-  /** Integrate one shared simulation substep; callers limit steps to at most 1/60 second. */
+  /** Integrate one shared simulation substep; callers limit steps to at most 1/30 second. */
   advance(seconds: number): void {
-    if (!(seconds > 0) || seconds > 1 / 60 + 1e-8) throw new RangeError("Crowd requires a positive bounded substep");
+    if (!(seconds > 0) || seconds > 1 / 30 + 1e-8) throw new RangeError("Crowd requires a positive bounded substep");
     const active = this.activeList;
     const activeCount = active.length;
     if (activeCount === 0) return;
