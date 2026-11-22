@@ -184,6 +184,42 @@ describe("ReferResource", () => {
       expect(mesh.vertexBufferBindings.some((binding) => binding?.buffer === buffer)).eq(false);
     }
 
-    mesh.destroy();
+    // Referenced mesh: internal VB/IB/BlendShape replacements and force destroy release owned hosts via normal destroy()
+    addMorph("bs_ref");
+    mesh.setIndices(new Uint16Array([0, 1, 2]));
+    mesh.uploadData(false);
+    mesh._addReferCount(2);
+    const refVb = mesh.vertexBufferBindings[0]!.buffer;
+    const refIb = mesh._primitive.indexBufferBinding!.buffer;
+    const refBsBuffers = [...mesh._blendShapeManager._vertexBuffers];
+    expect(refVb.refCount).eq(2);
+    expect(refIb.refCount).eq(2);
+    expect(refBsBuffers[0].refCount).eq(2);
+
+    mesh.setPositions([new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)]);
+    mesh.setIndices(new Uint16Array([0, 1, 2, 1, 3, 2]));
+    mesh.clearBlendShapes();
+    const bs4 = new BlendShape("bs_ref_4");
+    bs4.addFrame(1, [new Vector3(0, 1, 0), new Vector3(0, 1, 0), new Vector3(0, 1, 0), new Vector3(0, 1, 0)]);
+    mesh.addBlendShape(bs4);
+    mesh.uploadData(false);
+    expect(refVb.destroyed).eq(true);
+    expect(refIb.destroyed).eq(true);
+    for (const buffer of refBsBuffers) {
+      expect(buffer.destroyed).eq(true);
+    }
+
+    const finalPrimitive = mesh._primitive;
+    const finalVb = mesh.vertexBufferBindings[0]!.buffer;
+    const finalIb = finalPrimitive.indexBufferBinding!.buffer;
+    const finalBsBuffers = [...mesh._blendShapeManager._vertexBuffers];
+    mesh.destroy(true);
+    expect(mesh.destroyed).eq(true);
+    expect(finalPrimitive.destroyed).eq(true);
+    expect(finalVb.destroyed).eq(true);
+    expect(finalIb.destroyed).eq(true);
+    for (const buffer of finalBsBuffers) {
+      expect(buffer.destroyed).eq(true);
+    }
   });
 });

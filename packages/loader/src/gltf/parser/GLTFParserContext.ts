@@ -225,7 +225,7 @@ export class GLTFParserContext {
     this.glTFResource._disassociateAllResources();
     this.glTFResource.isGCIgnored = false;
     if (!this.glTFResource.destroyed) {
-      this.glTFResource.destroy(true);
+      this.glTFResource.destroy();
     }
 
     this._ownedResources.forEach((resource) => {

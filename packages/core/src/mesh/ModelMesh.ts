@@ -481,7 +481,7 @@ export class ModelMesh extends Mesh {
       if (this._primitive.vertexBufferBindings[internalVertexBufferIndex]?.buffer === this._internalVertexBuffer) {
         this._setVertexBufferBinding(internalVertexBufferIndex, null);
       }
-      this._internalVertexBuffer?.destroy(true);
+      this._internalVertexBuffer?.destroy();
       this._internalVertexBuffer = null;
       this._internalVertexBufferCreatedInfo.z = -1;
     }
@@ -490,6 +490,7 @@ export class ModelMesh extends Mesh {
     this._internalVertexElementsOffset = count;
     this._advancedElementUpdateFlag = VertexElementFlags.None;
     this._vertexCountDirty = true;
+    this._blendShapeManager._destroyHost();
     this._blendShapeManager._bufferBindingOffset = -1;
     this._blendShapeManager._vertexElementOffset = count;
   }
@@ -648,7 +649,7 @@ export class ModelMesh extends Mesh {
           const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
           newIndexBuffer.isGCIgnored = true;
           this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat!));
-          indexBuffer?.destroy(true);
+          indexBuffer?.destroy();
         } else {
           indexBuffer.setData(indices);
           if (this._primitive.indexBufferBinding!._format !== this._indicesFormat) {
@@ -657,7 +658,7 @@ export class ModelMesh extends Mesh {
         }
       } else if (indexBuffer) {
         this._setIndexBufferBinding(null);
-        indexBuffer.destroy(true);
+        indexBuffer.destroy();
       }
 
       this._indicesChangeFlag = false;
@@ -754,10 +755,10 @@ export class ModelMesh extends Mesh {
     }
     super._onDestroy();
     if (this._internalVertexBuffer) {
-      this._internalVertexBuffer.destroy(true);
+      this._internalVertexBuffer.destroy();
       this._internalVertexBuffer = null;
     }
-    this._primitive.indexBufferBinding?._buffer.destroy(true);
+    this._primitive.indexBufferBinding?._buffer.destroy();
     this._blendShapeManager._destroy();
     this._releaseCache(true);
   }
@@ -817,7 +818,7 @@ export class ModelMesh extends Mesh {
         if (this._primitive.vertexBufferBindings[createdInternalBufferIndex]?.buffer === this._internalVertexBuffer) {
           this._setVertexBufferBinding(createdInternalBufferIndex, null);
         }
-        this._internalVertexBuffer?.destroy(true);
+        this._internalVertexBuffer?.destroy();
         this._internalVertexBuffer = null;
       }
 

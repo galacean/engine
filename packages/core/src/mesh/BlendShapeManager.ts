@@ -316,7 +316,7 @@ export class BlendShapeManager {
         if (!modelMesh.destroyed && bindingOffset !== -1 && bindings[bindingOffset + i]?.buffer === buffer) {
           modelMesh._setVertexBufferBinding(bindingOffset + i, null);
         }
-        buffer.destroy(true);
+        buffer.destroy();
       }
     }
     vertexBuffers.length = 0;
@@ -324,7 +324,7 @@ export class BlendShapeManager {
 
   private _destroyVertexTexture(): void {
     if (this._vertexTexture) {
-      this._vertexTexture.destroy(true);
+      this._vertexTexture.destroy();
       this._vertexTexture = null!;
     }
   }
