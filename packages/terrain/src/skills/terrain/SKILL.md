@@ -1,6 +1,6 @@
 ---
 name: terrain
-description: 创建、查询、修改或删除山丘、峡谷、岩石等地貌资产，局部调整地面高度或地形配置时使用。
+description: 创建、查询、修改或删除山丘、峡谷、岩石/石头等地貌资产，局部调整地面高度或地形配置时使用。
 ---
 
 # 地形
@@ -10,6 +10,7 @@ description: 创建、查询、修改或删除山丘、峡谷、岩石等地貌�
 - 查询、查看详情与删除已有地形地貌或岩石：直接用 `terrain.query`、`terrain.inspect`、`terrain.delete`（自然岩石支持删除，自然地貌无局部删除原子能力）。
 - 树脚散落的伴生石块（如 `pick` 命中的 `InstancedBatch:rock-*` 且无 `instanceKey`）属于自然植被伴生层，不在 `terrain.query` 独立岩石目录内，整体密度由 `vegetation.config` 的 `companionStoneDensity` 控制。
 - 读写地形骨架、缓坡、岩石配色与离岛规划参数：用 `terrain.config.get`、`terrain.config.update`、`terrain.config.reset`。
+- **岩石改色边界**：程序化岩石/石头没有单块独立材质或场景材质组件（不要去查场景节点、组件或运行时对象，不要读原生编辑 API），不支持只改单块岩石的颜色。岩石配色属于全局 `terrain.config` 共享参数，会影响全图岩石；若用户要求只改某块岩石/石头颜色，不要修改全局 `terrain.config`，也无需预先查询岩石列表、读取 `terrain.config.get` 或搜索模型，直接如实说明不支持单块改色并询问是否同意统一调整全图岩石配色。
 - 解析空间落点见 [spatial](skills/spatial/SKILL.md)。不要假设支持任意平整或跨系统事务。
 
 ## 接口索引

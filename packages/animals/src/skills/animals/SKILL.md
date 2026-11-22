@@ -75,6 +75,12 @@ description: 查询、生成、控制世界中的动物，或调整动物种群�
 - 宿主停用或未就绪时，生成请求会被拒绝。
 - `editor.history.undo`（见[原生编辑 API](declare/editor/native/api.d.ts)）不会撤销 spawn。持久的初始数量通过 `tools.animals.config.update` 配置。
 
+## 能力边界
+
+- 动物系统目前**不支持**删除单只动物、给单只动物改色或缩放体型（无 `animals.delete` / `animals.update` 接口）。
+- 动物由动物宿主独立管理，没有可编辑的场景 `Entity` / `Transform` / `Material` 组件（不要去查 `editor.entity` / `editor.component` / `runtime.*`）。
+- 收到删除、改色或缩放单只动物的请求时，直接如实说明当前不支持，不要私自停用动物系统或修改全局种群配置；仅在用户同意后，才通过 `tools.animals.config.update` 调整全局物种数量（例如将某物种 `min/max` 设为 `0/0` 排除该物种）。
+
 ## 接口索引
 
 <!-- API_INDEX: generated from executable contracts at load time. -->

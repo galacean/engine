@@ -5,13 +5,13 @@ description: 挖河、创建或编辑湖泊与河流，以及查询海洋、水�
 
 # 水体
 
-在 Seed World 中，挖河或溪流（例如「在我面前挖一条河」）时，读取[挖河接口](declare/editor/world/tools/water.digRiver.d.ts)，调用一次 `tools.water.digRiver`。没有指定尺寸或距离时传 `{}`。它在同一事务中生成河床和原生流水面。外层提交且激活无错误后即视为完成，可直接汇报结果；仅当用户明确要求核验水深或河道状态时，在下一次 `execute` 中用 `tools.water.sample` 抽样 1–2 个返回中心线的 `x/z` 点即可。
+在 Seed World 中，挖河或溪流（例如「在我面前挖一条河」）时，读取[挖河接口](declare/editor/world/tools/water.digRiver.d.ts)，调用一次 `tools.water.digRiver`。没有指定尺寸或距离时传 `{}`。它在同一事务中生成河床和原生流水面。外层提交且激活无错误后即视为完成，可直接汇报结果；仅当用户明确要求核验水深或河道状态时，在下一次 `execute` 中用 `tools.water.sample` 抽样 1–2 个返回中心线的 `x/z` 点即可。注意 `tools.water.digRiver` **仅用于挖河/溪流**，不存在 `water.create` / `water.update` / `water.delete` 快捷工具。
 
-编辑已有水体组件和手动配置水体使用公共 `editor.entity`、`editor.component` 和 `editor.asset`。先读[原生编辑 API](declare/editor/native/api.d.ts)，查询 `WaterBodyComponent` 并读取 `props.authoring`。资产 Ref 和运行时 `waterId` 都不是 Source 组件身份。读写湖泊/河流规划参数可用 `tools.water.config.get/update/reset`。
+编辑已有水体组件和手动配置水体直接走公共 `editor.entity`、`editor.component` 和 `editor.asset`（不要去找不存在的 `water.create`/`update`/`delete`）。先读[原生编辑 API](declare/editor/native/api.d.ts)，查询 `WaterBodyComponent` 并读取 `props.authoring`。资产 Ref 和运行时 `waterId` 都不是 Source 组件身份。读写湖泊/河流规划参数可用 `tools.water.config.get/update/reset`。
 
 ## 创建与修改
 
-- 新建用 `editor.entity.create` 后 `editor.component.add({scene,entityId,type:"WaterBodyComponent",props:{authoring}})`，或实例化已有原生 Prefab。需要完整 shape、地床来源和 Material 引用；不自动提供地床或雕刻 Terrain。
+- 新建湖泊/池塘**没有**一键快捷工具；新建用 `editor.entity.create` 后 `editor.component.add({scene,entityId,type:"WaterBodyComponent",props:{authoring}})`，或实例化已有原生 Prefab。需要完整 shape、地床来源和 Material 引用；单独添加 `WaterBodyComponent` **不会**自动提供地床或雕刻湖盆 Terrain（如需新建湖泊必须同步规划地形凹坑，如 `terrain.patch`，或先向用户如实说明限制）。
 - 配置字段为 `shape`、`terrain`、`quality`、`material`、`connections`、`visible`、`priority`、`interaction`。`enabled` 是 `props` 的同级组件属性。
 - `component.update` 只合并顶层 props，嵌套值整体替换。先读取当前草稿，合并需要修改的子字段，再写回完整 authoring。Quality 内的预算组也要保留其他字段；不要把局部 Quality 对象当作深合并补丁。
 - 批量修改在同一次 execute 中多次调用公共 API；新建后可立即在当前草稿继续读取或修改。整个事务通过校验后统一提交。
