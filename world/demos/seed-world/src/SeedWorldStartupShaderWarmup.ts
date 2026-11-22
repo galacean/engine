@@ -65,8 +65,6 @@ export interface SeedWorldStartupShaderWarmupDeps {
    * until `collectDeferredVariants()` is invoked after first-screen reveal.
    */
   readonly deferSecondaryCollection?: boolean;
-  /** Optional hook invoked after presentation prep finishes and right before collecting spawn-frame primary variants. */
-  readonly beforePrimaryCollect?: () => void;
   readonly onWarmupEvent?: (message: string, detail: string) => void;
   readonly warmupOperations?: {
     readonly hasParallelShaderCompile?: typeof hasParallelShaderCompile;
@@ -211,7 +209,6 @@ export async function runSeedWorldStartupShaderWarmup(
     if (deps.isDisposed()) {
       throw new DOMException("Seed page disposed during shader preparation", "AbortError");
     }
-    deps.beforePrimaryCollect?.();
     if (!deferSecondaryPrep) {
       vegetationWarmup = deps.prepareVegetationShaderWarmup?.();
       rockGrassWarmup = deps.prepareRockGrassShaderWarmup?.();

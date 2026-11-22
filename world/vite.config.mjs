@@ -366,11 +366,6 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
   };
 }
 
-/**
- * Local dev/preview receiver for Seed World's opt-in perf frame capture (?debug=1&panel=1).
- * Writes JSONL into the gitignored repo `tmp/` directory by default (overridable via `WORLD_PERF_DIAG_LOG`)
- * so any developer can capture mobile/desktop frame breakdowns out of the box without editing config.
- */
 const PREVIEW_GZIP_EXTENSIONS = new Set([
   ".html",
   ".js",
@@ -474,6 +469,11 @@ function previewGzipPlugin() {
   };
 }
 
+/**
+ * Local dev/preview receiver for Seed World's opt-in perf frame capture (?debug=1&panel=1).
+ * Writes JSONL into the gitignored repo `tmp/` directory by default (overridable via `WORLD_PERF_DIAG_LOG`)
+ * so any developer can capture mobile/desktop frame breakdowns out of the box without editing config.
+ */
 function mobileDiagPlugin() {
   const diagLog = process.env.WORLD_PERF_DIAG_LOG
     ? path.resolve(process.env.WORLD_PERF_DIAG_LOG)
