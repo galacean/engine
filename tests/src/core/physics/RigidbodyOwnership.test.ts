@@ -17,8 +17,7 @@ import {
   Rigidbody,
   Scene,
   Script,
-  SphereCollider,
-  Transform
+  SphereCollider
 } from "@galacean/engine-core";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -159,34 +158,6 @@ describe("Rigidbody ownership", () => {
   });
 
   describe("hierarchy ownership", () => {
-    it.each([
-      { name: "BoxCollider", type: BoxCollider },
-      { name: "CharacterController", type: CharacterController },
-      { name: "Rigidbody", type: Rigidbody }
-    ])("honors deactivation while reading $name world pose", ({ type }) => {
-      let armed = false;
-      class DisablingTransform extends Transform {
-        override get worldPosition(): Vector3 {
-          if (armed) {
-            armed = false;
-            component.enabled = false;
-          }
-          return super.worldPosition;
-        }
-      }
-      const entity = new Entity(engine, "disables during pose read", DisablingTransform);
-      if (type === Rigidbody) entity.addComponent(BoxCollider);
-      const component = entity.addComponent(type);
-      armed = true;
-      root.addChild(entity);
-
-      const ray = new Ray(new Vector3(0, 1004, 0), new Vector3(0, -1, 0));
-      expect(physics.raycast(ray, 8)).toBe(false);
-      expect(component.enabled).toBe(false);
-      component.enabled = true;
-      expect(physics.raycast(ray, 8)).toBe(true);
-    });
-
     it("moves query registration when a disable callback moves the target parent to another scene", () => {
       const source = engine.sceneManager.activeScene;
       const destination = new Scene(engine);

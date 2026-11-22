@@ -34,7 +34,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxScene: any;
   private _pxSceneQueries: any;
   private _physXSimulationCallbackInstance: any;
-  private _raycastBuffers?: Float64Array[];
 
   /** @internal */
   _contactData = new Float32Array(2560);
@@ -274,22 +273,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       PhysXPhysicsScene._emptyExcluded,
       false
     );
-    const length = hits.length;
-    if (!length) return;
-
-    // Nested queries can overwrite the WASM view. Keep a separate snapshot for each active dispatch.
-    const buffers = (this._raycastBuffers ||= []);
-    let buffer = buffers.pop();
-    if (!buffer || buffer.length < length) {
-      let nextLength = buffer ? buffer.length * 2 : 144;
-      while (nextLength < length) nextLength *= 2;
-      buffer = new Float64Array(nextLength);
+    for (let i = 0, length = hits.length; i < length; i += 9) {
+      this._readHit(hits, i, onHit);
     }
-    buffer.set(hits);
-    for (let i = 0; i < length; i += 9) {
-      this._readHit(buffer, i, onHit);
-    }
-    buffers.push(buffer);
   }
 
   /**
@@ -407,8 +393,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.gc }
    */
   gc(): void {
-    const buffers = this._raycastBuffers;
-    if (buffers) buffers.length = 0;
     this._triggerEventPool.length = 0;
     const events = this._physicsEvents;
     if (events.contactEventCount === 0) {
@@ -428,7 +412,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.destroy }
    */
   destroy(): void {
-    this._raycastBuffers = undefined;
     this._boxGeometry?.delete();
     this._sphereGeometry?.delete();
     this._capsuleGeometry?.delete();

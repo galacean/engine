@@ -403,7 +403,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       Quaternion.multiply(relativeRotation, rotation, relativeRotation);
       rotation = relativeRotation;
     }
-    this._nativeJoint?.setRotation(rotation);
+    this._nativeJoint!.setRotation(rotation);
   }
 
   private _updateActualAnchor(flag: AnchorOwner): void {

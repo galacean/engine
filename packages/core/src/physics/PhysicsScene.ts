@@ -10,7 +10,6 @@ import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
-import { DisorderedArray } from "../utils/DisorderedArray";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
@@ -34,7 +33,8 @@ export class PhysicsScene {
   private static _tempDirection = new Vector3();
   private static _raycastHitPool: HitResult[] = [];
   private static _raycastSeenHits = new Set<HitResult>();
-  private static readonly _bodyPoses: [Vector3, Quaternion][] = [];
+  private static readonly _tempPosition = new Vector3();
+  private static readonly _tempRotation = new Quaternion();
   private static readonly _dispatchReceivers: (Rigidbody | Collider | null)[][] = [];
   private static readonly _parsedCastArgs = {
     orientation: new Quaternion(),
@@ -58,9 +58,6 @@ export class PhysicsScene {
     [PhysicsEventState.Stay]: "onTriggerStay",
     [PhysicsEventState.Exit]: "onTriggerExit"
   };
-  private static _bodyIndexSetter = (body: Rigidbody, index: number) => {
-    body._index = index;
-  };
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -69,7 +66,7 @@ export class PhysicsScene {
   private _restTime: number = 0;
   private _fixedTimeStep: number = 1 / 60;
 
-  private _bodies = new DisorderedArray<Rigidbody>();
+  private _bodies: Rigidbody[] = [];
   private _bodyOrderDirty = false;
   private _dirtyBodies: Rigidbody[] = [];
   private _dirtyColliders: Collider[] = [];
@@ -240,7 +237,6 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
-      const prevHit = this._activeHitResult;
       this._activeHitResult = hitResult ?? null;
       result = this._nativePhysicsScene.raycast(
         ray.origin,
@@ -249,7 +245,7 @@ export class PhysicsScene {
         layerMask,
         hitResult ? this._onSingleHit : undefined
       );
-      this._activeHitResult = prevHit;
+      this._activeHitResult = null;
     }
 
     if (!result && hitResult) {
@@ -307,14 +303,11 @@ export class PhysicsScene {
     let hitCount = 0;
     const normalizedDirection = distance > 0 ? this._syncCastDirection(ray.direction) : null;
     if (normalizedDirection) {
-      const prevResults = this._activeHitResults;
-      const prevCount = this._activeHitCount;
       this._activeHitResults = outHitResults;
       this._activeHitCount = 0;
       this._nativePhysicsScene.raycastAll(ray.origin, normalizedDirection, distance, layerMask, this._onMultiHit);
       hitCount = this._activeHitCount;
-      this._activeHitResults = prevResults;
-      this._activeHitCount = prevCount;
+      this._activeHitResults = null;
     }
     const length = outHitResults.length;
     if (hitCount < length) {
@@ -415,7 +408,6 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
-      const prevHit = this._activeHitResult;
       this._activeHitResult = hitResult ?? null;
       result = this._nativePhysicsScene.boxCast(
         center,
@@ -426,7 +418,7 @@ export class PhysicsScene {
         layerMask,
         hitResult ? this._onSingleHit : undefined
       );
-      this._activeHitResult = prevHit;
+      this._activeHitResult = null;
     }
 
     if (!result && hitResult) {
@@ -509,7 +501,6 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
-      const prevHit = this._activeHitResult;
       this._activeHitResult = hitResult ?? null;
       result = this._nativePhysicsScene.sphereCast(
         center,
@@ -519,7 +510,7 @@ export class PhysicsScene {
         layerMask,
         hitResult ? this._onSingleHit : undefined
       );
-      this._activeHitResult = prevHit;
+      this._activeHitResult = null;
     }
 
     if (!result && hitResult) {
@@ -613,7 +604,6 @@ export class PhysicsScene {
 
     let result = false;
     if (normalizedDirection) {
-      const prevHit = this._activeHitResult;
       this._activeHitResult = hitResult ?? null;
       result = this._nativePhysicsScene.capsuleCast(
         center,
@@ -625,7 +615,7 @@ export class PhysicsScene {
         layerMask,
         hitResult ? this._onSingleHit : undefined
       );
-      this._activeHitResult = prevHit;
+      this._activeHitResult = null;
     }
 
     if (!result && hitResult) {
@@ -730,7 +720,6 @@ export class PhysicsScene {
       componentsManager.callScriptOnPhysicsUpdate();
       if (scene.destroyed || !scene.isActive) return;
       this._syncColliders();
-      if (scene.destroyed) return;
       const pendingSleeps = this._pendingSleeps;
       if (pendingSleeps?.size) {
         for (const body of pendingSleeps) {
@@ -741,24 +730,18 @@ export class PhysicsScene {
         }
       }
       nativePhysicsScene.update(fixedTimeStep);
-      if (this._bodyOrderDirty && !bodies.isLopping) {
+      if (this._bodyOrderDirty) {
         this._sortBodies();
       }
       const count = bodies.length;
       if (count > 0) {
-        // Keep the pose leased through Transform accessors, which can update another scene.
-        const poses = PhysicsScene._bodyPoses;
-        const pose: [Vector3, Quaternion] = poses.pop() ?? [new Vector3(), new Quaternion()];
-        const elements = bodies._elements;
-        bodies._startLoop();
-        const [position, rotation] = pose;
+        const position = PhysicsScene._tempPosition;
+        const rotation = PhysicsScene._tempRotation;
         for (let j = 0; j < count; j++) {
-          elements[j]?._writeBack(position, rotation);
+          bodies[j]._writeBack(position, rotation);
         }
-        bodies._endLoop(PhysicsScene._bodyIndexSetter);
-        poses.push(pose);
       }
-      if (!scene.destroyed) this._dispatchEvents(nativePhysicsScene.updateEvents());
+      this._dispatchEvents(nativePhysicsScene.updateEvents());
     }
   }
 
@@ -810,7 +793,7 @@ export class PhysicsScene {
     this._nativePhysicsScene.addCollider(actor);
     const bodies = this._bodies;
     body._index = bodies.length;
-    bodies.add(body);
+    bodies.push(body);
     if (body.entity._children.length > 0) {
       this._bodyOrderDirty = true;
     }
@@ -837,14 +820,11 @@ export class PhysicsScene {
       body._massDirtyIndex = -1;
     }
     const bodies = this._bodies;
-    const moved = bodies.deleteByIndex(body._index);
-    if (moved) {
-      moved._index = body._index;
-    }
-    if (bodies.isLopping) {
-      this._bodyOrderDirty = true;
-    } else if (moved) {
-      this._checkBodyOrder(moved);
+    const last = bodies.pop()!;
+    if (last !== body) {
+      bodies[body._index] = last;
+      last._index = body._index;
+      this._checkBodyOrder(last);
     }
     body._index = -1;
     this._nativePhysicsScene.removeCollider(body._getNativeActor());
@@ -926,7 +906,6 @@ export class PhysicsScene {
    * @internal
    */
   _gc(): void {
-    this._bodies.garbageCollection();
     PhysicsScene._raycastHitPool.length = 0;
     PhysicsScene._raycastSeenHits.clear();
     this._nativePhysicsScene?.gc();
@@ -949,7 +928,8 @@ export class PhysicsScene {
 
   private _sortBodies(): void {
     this._bodyOrderDirty = false;
-    const { _elements: bodies, length } = this._bodies;
+    const bodies = this._bodies;
+    const length = bodies.length;
     // Publish ancestors first so each body's world pose is converted against its parent's simulated pose.
     for (let i = 0, n = length - 1; i < n; i++) {
       let body = bodies[i];
@@ -1257,7 +1237,6 @@ export class PhysicsScene {
     const { x, y, z } = direction;
     const length = Math.sqrt(x * x + y * y + z * z);
     if (!(length > MathUtil.zeroTolerance && Number.isFinite(length))) return null;
-    // Synchronize first so a query made by a Transform getter cannot overwrite this direction.
     this._syncColliders();
     const inverseLength = 1 / length;
     return PhysicsScene._tempDirection.set(x * inverseLength, y * inverseLength, z * inverseLength);

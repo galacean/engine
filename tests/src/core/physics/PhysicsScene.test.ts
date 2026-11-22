@@ -12,8 +12,7 @@ import {
   PhysicsScene,
   Scene,
   Script,
-  SphereCollider,
-  Transform
+  SphereCollider
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import type { IPhysicsScene } from "@galacean/engine-design";
@@ -511,44 +510,6 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
-    it("keeps the outer ray direction when collider sync issues another raycast", () => {
-      const scene = enginePhysX.sceneManager.activeScene;
-      const root = scene.createRootEntity();
-      const outerRay = new Ray(new Vector3(0, 43, 0), new Vector3(1, 0, 0));
-      const innerRay = new Ray(outerRay.origin, new Vector3(0, 1, 0));
-      let trace: boolean | undefined;
-      let queryDuringSync = false;
-      class QueryTransform extends Transform {
-        override get worldMatrix() {
-          if (queryDuringSync) {
-            queryDuringSync = false;
-            trace = scene.physics.raycast(innerRay, 5);
-          }
-          return super.worldMatrix;
-        }
-      }
-
-      const other = new Entity(enginePhysX, "reentrant", QueryTransform);
-      root.addChild(other);
-      try {
-        const target = root.createChild("target");
-        target.transform.setPosition(3, 43, 0);
-        target.addComponent(BoxCollider);
-        other.transform.setPosition(-3, 43, 0);
-        other.addComponent(BoxCollider);
-        const result = new HitResult();
-        expect(scene.physics.raycast(outerRay, 5, result)).toBe(true);
-
-        other.transform.setPosition(-4, 43, 0);
-        queryDuringSync = true;
-        expect(scene.physics.raycast(outerRay, 5, result)).toBe(true);
-        expect(trace).toBe(false);
-        expect(result.entity).toBe(target);
-      } finally {
-        root.destroy();
-      }
-    });
-
     it("raycastAll", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
@@ -582,14 +543,6 @@ describe("Physics Test", () => {
       );
       expect(nativeHitIds).to.have.length(2);
       expect(new Set(nativeHitIds).size).to.eq(2);
-      const nestedHitIds: number[] = [];
-      const nestedHits: HitResult[] = [];
-      nativeScene.raycastAll(ray.origin, ray.direction, 100, Layer.Everything, (shapeID) => {
-        nestedHitIds.push(shapeID);
-        expect(physicsScene.raycastAll(ray, 100, Layer.Layer1, nestedHits)).to.eq(true);
-        expect(nestedHits.map((hit) => hit.collider)).to.deep.equal([farShape]);
-      });
-      expect(nestedHitIds).to.have.members(nativeHitIds);
 
       const previousHits = results.slice();
       const previousDistances = previousHits.map((hit) => hit.distance);
@@ -1078,23 +1031,6 @@ describe("Physics Test", () => {
       expect(results.every((hit, index) => hit === previousHits[index])).to.eq(true);
       expect(results.every((hit, index) => hit.point === previousPoints[index])).to.eq(true);
       expect(results.every((hit, index) => hit.normal === previousNormals[index])).to.eq(true);
-
-      const query = physicsScene._nativePhysicsScene;
-      const reverseOrigin = new Vector3(hitCount * 2, 0, 0);
-      const reverseDirection = new Vector3(-1, 0, 0);
-      const outer = new Map<number, number>();
-      let innerCount = 0;
-      query.raycastAll(ray.origin, ray.direction, 1000, Layer.Everything, (id, distance) => {
-        outer.set(id, distance);
-        if (innerCount === 0) {
-          query.raycastAll(reverseOrigin, reverseDirection, 1000, Layer.Everything, () => innerCount++);
-        }
-      });
-      expect(innerCount).toBe(hitCount);
-      expect(outer.size).toBe(hitCount);
-      for (const hit of results) {
-        expect(outer.get(hit.collider._id)).toBe(hit.distance);
-      }
 
       // Reuse the output from the larger query to detect stale tail hits.
       expect(physicsScene.raycastAll(ray, 2, results)).toBe(true);

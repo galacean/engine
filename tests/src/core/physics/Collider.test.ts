@@ -14,8 +14,7 @@ import {
   Rigidbody,
   Scene,
   Script,
-  SphereCollider,
-  Transform
+  SphereCollider
 } from "@galacean/engine-core";
 import { Matrix, Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
@@ -163,62 +162,6 @@ describe("Collider", () => {
     expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
     expect(box.attachedRigidbody).toBe(body);
     expect(geometryWrites).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    { placement: "static", compound: false },
-    { placement: "compound", compound: true }
-  ])("keeps a $placement Collider's pose during a nested query", ({ compound }) => {
-    const cast = (x: number, y = 0) => physics.raycast(new Ray(new Vector3(x, y, -3), new Vector3(0, 0, 1)), 5);
-    let nestedResult: boolean | undefined;
-    let queryDuringSync = false;
-    class QueryingTransform extends Transform {
-      override get worldPosition(): Vector3 {
-        if (!compound && queryDuringSync) {
-          queryDuringSync = false;
-          nestedResult = cast(0, 20);
-        }
-        return super.worldPosition;
-      }
-
-      override get localMatrix(): Matrix {
-        if (compound && queryDuringSync) {
-          queryDuringSync = false;
-          nestedResult = cast(5.1, 20);
-        }
-        return super.localMatrix;
-      }
-    }
-
-    const other = root.createChild();
-    other.transform.setPosition(0, 20, 0);
-    const target = root.createChild();
-    let otherBoxEntity = other;
-    let targetBoxEntity = target;
-    if (compound) {
-      other.addComponent(Rigidbody).isKinematic = true;
-      target.addComponent(Rigidbody).isKinematic = true;
-      otherBoxEntity = other.createChild();
-      targetBoxEntity = target.createChild();
-    }
-    const otherBox = otherBoxEntity.addComponent(BoxCollider);
-    if (compound) otherBox.center.x = 5;
-    targetBoxEntity.addComponent(QueryingTransform);
-    const box = targetBoxEntity.addComponent(BoxCollider);
-    box.center.x = 2;
-    expect(cast(2)).toBe(true);
-
-    if (compound) {
-      otherBox.center.x = 5.1;
-    } else {
-      other.transform.setScale(3, 3, 3);
-    }
-    box.center.x = 2.5;
-    queryDuringSync = true;
-
-    expect(cast(2.5)).toBe(true);
-    expect(nestedResult).toBe(true);
-    expect(cast(compound ? 5.1 : 7.5)).toBe(false);
   });
 
   it("keeps Box geometry and mass unchanged when a UITransform only rotates", () => {

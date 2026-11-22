@@ -14,7 +14,7 @@ import { Rigidbody } from "./Rigidbody";
  * independently of Rigidbody ownership and Entity rotation.
  */
 export class CharacterController extends Collider {
-  private static readonly _movePositions: Vector3[] = [];
+  private static readonly _tempMovePosition = new Vector3();
   private static _tempWorldScale = new Vector3();
 
   private _radius = 0.5;
@@ -187,15 +187,12 @@ export class CharacterController extends Collider {
     }
     const controller = this._controller!;
     const flags = controller.move(disp, minDist, elapsedTime);
-    const positions = CharacterController._movePositions;
-    const position = positions.pop() ?? new Vector3();
+    const position = CharacterController._tempMovePosition;
     controller.getWorldPosition(position);
     const transform = this.entity.transform;
     transform.worldPosition = position;
     // Cache the published position so the next sync does not teleport over a rounding difference.
     this._nativePosition.copyFrom(transform.worldPosition);
-    // A custom Transform setter can move another controller before consuming this position.
-    positions.push(position);
     return flags;
   }
 
@@ -226,7 +223,6 @@ export class CharacterController extends Collider {
     const lossyScale = transform.lossyWorldScale;
     const position = transform.worldPosition;
     const colliderCenter = this.center;
-    if (this._registeredScene !== scene) return;
     const scaleX = lossyScale.x;
     const scaleY = lossyScale.y;
     const scaleZ = lossyScale.z;

@@ -16,12 +16,10 @@ import {
   PlaneCollider,
   PrimitiveMesh,
   Scene,
-  Script,
-  Transform
+  Script
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
-import { HeadlessEngine } from "@galacean/engine-rhi-null";
 import { HorizontalAlignmentMode, UITransform } from "@galacean/engine-ui";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
 import { PrefabParser } from "../../../../packages/loader/src/prefab/PrefabParser";
@@ -87,62 +85,6 @@ describe("Rigidbody", function () {
   });
 
   afterEach(() => vi.restoreAllMocks());
-
-  it("writes back both bodies when a Transform setter updates another engine and disables its body", async () => {
-    const inner = await HeadlessEngine.create({ physics: backend });
-    const outer = await HeadlessEngine.create({ physics: backend });
-    const now = performance.now() + 100;
-    vi.spyOn(performance, "now").mockReturnValue(now);
-    try {
-      const innerScene = inner.sceneManager.activeScene;
-      inner.time.maximumDeltaTime = innerScene.physics.fixedTimeStep;
-      const innerEntity = innerScene.createRootEntity();
-      innerEntity.transform.setPosition(10, 10, 0);
-      innerEntity.addComponent(BoxCollider);
-      const innerBody = innerEntity.addComponent(Rigidbody);
-      innerBody.useGravity = false;
-      innerBody.linearVelocity.x = 3;
-
-      let outerBody: Rigidbody;
-      class UpdatingTransform extends Transform {
-        override get worldPosition(): Vector3 {
-          return super.worldPosition;
-        }
-
-        override set worldPosition(value: Vector3) {
-          inner.update();
-          outerBody.enabled = false;
-          super.worldPosition = value;
-        }
-      }
-      const outerScene = outer.sceneManager.activeScene;
-      outer.time.maximumDeltaTime = outerScene.physics.fixedTimeStep;
-      const outerEntity = outerScene.createRootEntity();
-      const transform = outerEntity.addComponent(UpdatingTransform);
-      outerEntity.addComponent(BoxCollider);
-      outerBody = outerEntity.addComponent(Rigidbody);
-      outerBody.useGravity = false;
-      outerBody.linearVelocity.x = 2;
-      const sibling = outerScene.createRootEntity();
-      sibling.transform.setPosition(0, 4, 0);
-      sibling.addComponent(BoxCollider);
-      const siblingBody = sibling.addComponent(Rigidbody);
-      siblingBody.useGravity = false;
-      siblingBody.linearVelocity.z = 4;
-
-      outer.update();
-
-      expect(transform.worldPosition.x).toBeCloseTo(2 * outer.time.deltaTime);
-      expect(transform.worldPosition.y).toBe(0);
-      expect(outerBody.enabled).toBe(false);
-      expect(sibling.transform.worldPosition.z).toBeCloseTo(4 * outer.time.deltaTime);
-      expect(innerEntity.transform.worldPosition.x).toBeCloseTo(10 + 3 * inner.time.deltaTime);
-      expect(innerEntity.transform.worldPosition.y).toBe(10);
-    } finally {
-      outer.destroy();
-      inner.destroy();
-    }
-  });
 
   it("linearDamping", function () {
     const box = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
@@ -227,35 +169,6 @@ describe("Rigidbody", function () {
     expect(transform.worldPosition.x).toBe(0);
 
     const ray = new Ray(new Vector3(2, 0, -2), new Vector3(0, 0, 1));
-    const hit = new HitResult();
-    expect(physics.raycast(ray, 4, hit)).toBe(true);
-    expect(hit.collider).toBe(collider);
-  });
-
-  it("keeps the simulated pose when the Transform adjusts position during rotation write-back", () => {
-    class OffsetOnRotationTransform extends Transform {
-      override get worldRotationQuaternion(): Quaternion {
-        return super.worldRotationQuaternion;
-      }
-
-      override set worldRotationQuaternion(value: Quaternion) {
-        super.worldRotationQuaternion = value;
-        this.position.x = value.z === 0 ? 0 : 5;
-      }
-    }
-
-    const entity = rootEntity.createChild();
-    const transform = entity.addComponent(OffsetOnRotationTransform);
-    const collider = entity.addComponent(BoxCollider);
-    const body = entity.addComponent(Rigidbody);
-    body.isKinematic = true;
-    body.move(new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2));
-
-    const physics = engine.sceneManager.activeScene.physics;
-    physics._update(physics.fixedTimeStep);
-    expect(transform.worldPosition.x).toBe(5);
-
-    const ray = new Ray(new Vector3(0, 0, -2), new Vector3(0, 0, 1));
     const hit = new HitResult();
     expect(physics.raycast(ray, 4, hit)).toBe(true);
     expect(hit.collider).toBe(collider);
@@ -2102,44 +2015,6 @@ describe("Rigidbody", function () {
     }
   });
 
-  it("guards re-entrant destruction and deactivation during move, applyForce, and applyExplosionForce", () => {
-    for (const action of ["destroy", "disable", "kinematic"] as const) {
-      let armed = false;
-      class ReentrantTransform extends Transform {
-        override get worldPosition(): Vector3 {
-          if (armed) {
-            armed = false;
-            if (action === "destroy") body.destroy();
-            else if (action === "disable") body.enabled = false;
-            else body.isKinematic = true;
-          }
-          return super.worldPosition;
-        }
-      }
-      const entity = new Entity(engine, `reentrant-${action}`, ReentrantTransform);
-      entity.addComponent(BoxCollider);
-      const body = entity.addComponent(Rigidbody);
-      body.useGravity = false;
-      rootEntity.addChild(entity);
-
-      armed = true;
-      expect(() => body.applyForce(new Vector3(1, 0, 0))).not.toThrow();
-      if (!body.destroyed) {
-        body.enabled = true;
-        body.isKinematic = false;
-        armed = true;
-        expect(() => body.applyExplosionForce(10, new Vector3(), 5)).not.toThrow();
-      }
-      if (!body.destroyed) {
-        body.enabled = true;
-        body.isKinematic = true;
-        armed = true;
-        expect(() => body.move(new Vector3(1, 0, 0))).not.toThrow();
-      }
-      entity.destroy();
-    }
-  });
-
   it("flushes mass edits on disabled Rigidbodies when reading centerOfMass or inertiaTensor", () => {
     const entity = rootEntity.createChild("disabled-mass");
     const box = entity.addComponent(BoxCollider);
@@ -2246,29 +2121,6 @@ describe("Rigidbody", function () {
     const deactBody = deactEntity.addComponent(Rigidbody);
     deactEntity.isActive = false;
     expect((deactBody as any)._sleepPending).toBe(false);
-  });
-
-  it("does not allocate a native actor if a custom Transform destroys the Rigidbody during activation", () => {
-    let body!: Rigidbody;
-    class DestroyOnActivateTransform extends Transform {
-      override get worldPosition(): Vector3 {
-        body?.destroy();
-        return super.worldPosition;
-      }
-    }
-    const entity = new Entity(engine, "destroy-on-activate", DestroyOnActivateTransform);
-    entity.isActive = false;
-    rootEntity.addChild(entity);
-    body = entity.addComponent(Rigidbody);
-
-    const spy = vi.spyOn(Engine._nativePhysics, "createDynamicCollider");
-    try {
-      entity.isActive = true;
-      expect(body.destroyed).toBe(true);
-      expect(spy).not.toHaveBeenCalled();
-    } finally {
-      spy.mockRestore();
-    }
   });
 
   it("does not re-dirty moving bodies during write-back while still syncing subsequent user Transform edits", () => {
