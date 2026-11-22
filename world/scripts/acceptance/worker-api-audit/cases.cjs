@@ -5,7 +5,7 @@ const add = (tool, body, id = tool) => cases.push({ id, tool, source: body });
 const scene = "Scene/SeedWorld.scene";
 const prefix = `const scene=${JSON.stringify(scene)};`;
 const farm =
-  'const systems=await editor.component.query({type:"FarmingSystem"});if(!systems.length)throw Error("No FarmingSystem");const system=systems[0];';
+  'const {items:systems}=await editor.component.query({type:"FarmingSystem"});if(!systems.length)throw Error("No FarmingSystem");const system=systems[0];';
 const area =
   farm +
   'const areas=await system.list();const area=areas.value.find(x=>x.initialized&&x.active);if(!area)throw Error("No active farm");const farmId=area.farmId;';
@@ -38,16 +38,16 @@ add(
 );
 add(
   "runtime.entity.inspect",
-  'const roots=await tools.runtime.entity.children({limit:10});const root=roots.entities.find(x=>x.entity);if(!root?.entity)throw Error("No root");const r=await tools.runtime.entity.inspect({entityId:root.entity.entityId});if(r.status!=="found")throw Error("Missing root");return r;'
+  'const roots=await tools.runtime.entity.children({limit:10});const root=roots.items.find(x=>x.entity);if(!root?.entity)throw Error("No root");const r=await tools.runtime.entity.inspect({entityId:root.entity.entityId});if(r.status!=="found")throw Error("Missing root");return r;'
 );
 add("runtime.entity.children", "const r=await tools.runtime.entity.children({limit:5});return r;");
 add(
   "runtime.component.query",
-  'const roots=await tools.runtime.entity.children({limit:100});const root=roots.entities.find(x=>x.entity?.components.length);if(!root?.entity)throw Error("No root component");const r=await tools.runtime.component.query({entityId:root.entity.entityId});if(!r.components.length)throw Error("Missing components");return r;'
+  'const roots=await tools.runtime.entity.children({limit:100});const root=roots.items.find(x=>x.entity?.components.length);if(!root?.entity)throw Error("No root component");const r=await tools.runtime.component.query({entityId:root.entity.entityId});if(!r.items.length)throw Error("Missing components");return r;'
 );
 add(
   "runtime.component.read",
-  'const roots=await tools.runtime.entity.children({limit:100});const root=roots.entities.find(x=>x.entity?.components.length);if(!root?.entity)throw Error("No root component");const q=await tools.runtime.component.query({entityId:root.entity.entityId});const c=q.components[0];const r=await tools.runtime.component.read({componentId:c.componentId,fields:c.properties.slice(0,2)});if(r.status!=="found")throw Error("Missing component");return r;'
+  'const roots=await tools.runtime.entity.children({limit:100});const root=roots.items.find(x=>x.entity?.components.length);if(!root?.entity)throw Error("No root component");const q=await tools.runtime.component.query({entityId:root.entity.entityId});const c=q.items[0];const r=await tools.runtime.component.read({componentId:c.componentId,fields:c.properties.slice(0,2)});if(r.status!=="found")throw Error("Missing component");return r;'
 );
 add("spatial.viewer", "const r=await tools.spatial.viewer();return r;");
 add("spatial.resolve", 'const r=await tools.spatial.resolve({anchor:{kind:"viewer"},relation:{kind:"at"}});return r;');
@@ -65,11 +65,11 @@ add(
 );
 add(
   "world.animals.describe",
-  'const q=await tools.world.animals.query({visible:true});const animal=q.animals.find(x=>x.loaded);if(!animal)throw Error("No loaded visible animal");const r=await tools.world.animals.describe({id:animal.id});if(!r.available||!r.skills.length)throw Error("Animal unavailable");return r;'
+  'const q=await tools.world.animals.query({visible:true});const animal=q.items.find(x=>x.loaded);if(!animal)throw Error("No loaded visible animal");const r=await tools.world.animals.describe({id:animal.id});if(!r.available||!r.skills.length)throw Error("Animal unavailable");return r;'
 );
 add(
   "world.animals.catalog",
-  'const r=await tools.world.animals.catalog({view:"resources",limit:5});if(!r.entries.length)throw Error("No animal resources");return r;'
+  'const r=await tools.world.animals.catalog({view:"resources",limit:5});if(!r.items.length)throw Error("No animal resources");return r;'
 );
 add(
   "world.parameters.describe",
@@ -89,7 +89,7 @@ add(
 );
 add(
   "asset.list",
-  'const r=await editor.asset.list({});if(!r.length)throw Error("No project assets");return r.map(x=>({path:x.path,type:x.type}));'
+  'const r=await editor.asset.list({});if(!r.items.length)throw Error("No project assets");return r.items.map(x=>({path:x.path,type:x.type}));'
 );
 add("asset.info", prefix + "return await editor.asset.info({path:scene});");
 add(
@@ -110,17 +110,17 @@ add(
 add(
   "component.query",
   prefix +
-    'const r=await editor.component.query({scene,type:"PlanningProjectAuthoring"});if(!r.length)throw Error("No authoring owner");return r;'
+    'const r=await editor.component.query({scene,type:"PlanningProjectAuthoring"});if(!r.items.length)throw Error("No authoring owner");return r;'
 );
 add(
   "component.read",
   prefix +
-    'const q=await editor.component.query({scene,type:"PlanningProjectAuthoring"});const r=await editor.component.read({scene,id:q[0].id});return {id:r.id,type:r.type,bytes:JSON.stringify(r).length};'
+    'const q=await editor.component.query({scene,type:"PlanningProjectAuthoring"});const r=await editor.component.read({scene,id:q.items[0].id});return {id:r.id,type:r.type,bytes:JSON.stringify(r).length};'
 );
 add("history.query", "return await editor.history.query({limit:5});");
 for (const name of ["capabilities", "diagnostics"])
   add("water." + name, `return await tools.water.${name}({});`);
-add("water.verify", prefix + 'const waters=await editor.component.query({scene,type:"WaterBodyComponent"});if(!waters.length)throw Error("No Water fixture");return await tools.water.verify({target:{scene,id:waters[0].id}});');
+add("water.verify", prefix + 'const {items:waters}=await editor.component.query({scene,type:"WaterBodyComponent"});if(!waters.length)throw Error("No Water fixture");return await tools.water.verify({target:{scene,id:waters[0].id}});');
 add("water.sample", 'return await tools.water.sample({x:0,z:0});');
 add("water.sampleDrops", 'return await tools.water.sampleDrops({x:0,y:0,z:0});');
 add(

@@ -46,7 +46,7 @@ return {plotId, cropInstanceId: crop.instanceId, commandId: receipt.commandId};
 - 已提交但验证失败的项目，必须先按 commandId 验证，不能重新发出收获。
 
 ```js
-const systems = await editor.component.query({type: "FarmingSystem"});
+const { items: systems } = await editor.component.query({type: "FarmingSystem"});
 if (systems.length !== 1) throw new Error("请明确目标系统");
 const system = systems[0];
 const farms = (await system.list()).value;

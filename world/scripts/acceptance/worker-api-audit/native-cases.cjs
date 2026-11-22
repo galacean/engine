@@ -43,36 +43,36 @@ add(
 add(
   "component.update",
   find +
-    'const c=(await editor.component.query({scene,entityId:e.id,type:"PointLight"}))[0];return await editor.component.update({scene,id:c.id,props:{intensity:0.25}});',
+    'const c=(await editor.component.query({scene,entityId:e.id,type:"PointLight"})).items[0];return await editor.component.update({scene,id:c.id,props:{intensity:0.25}});',
   find +
-    'const c=(await editor.component.query({scene,entityId:e.id,type:"PointLight"}))[0];const r=await editor.component.read({scene,id:c.id});if(r.props?.intensity!==0.25)throw Error("Component update missing");return r;'
+    'const c=(await editor.component.query({scene,entityId:e.id,type:"PointLight"})).items[0];const r=await editor.component.read({scene,id:c.id});if(r.props?.intensity!==0.25)throw Error("Component update missing");return r;'
 );
 add(
   "component.revert",
   find +
-    'const c=(await editor.component.query({scene,entityId:e.id,type:"PointLight"}))[0];return await editor.component.revert({scene,id:c.id,keys:["intensity"]});',
+    'const c=(await editor.component.query({scene,entityId:e.id,type:"PointLight"})).items[0];return await editor.component.revert({scene,id:c.id,keys:["intensity"]});',
   find +
-    'const c=(await editor.component.query({scene,entityId:e.id,type:"PointLight"}))[0];const r=await editor.component.read({scene,id:c.id});if(r.props?.intensity!==0)throw Error("Component revert missing");return r;'
+    'const c=(await editor.component.query({scene,entityId:e.id,type:"PointLight"})).items[0];const r=await editor.component.read({scene,id:c.id});if(r.props?.intensity!==0)throw Error("Component revert missing");return r;'
 );
 add(
   "entity.reparent",
   find +
     'const parent=await editor.entity.create({scene,name:"Audit Parent",position:[2,0,0]});return await editor.entity.reparent({scene,id:e.id,parentEntityId:parent.id});',
   find +
-    'const r=(await editor.entity.list({scene,name:"Audit Parent"})).items[0];const children=await editor.entity.list({scene,parentId:r.id});if(!children.items.some(x=>x.id===e.id))throw Error("Wrong parent");return children;'
+    'const r=(await editor.entity.list({scene,name:"Audit Parent"})).items[0];const children=await editor.entity.list({scene,parentEntityId:r.id});if(!children.items.some(x=>x.id===e.id))throw Error("Wrong parent");return children;'
 );
 add(
   "component.add",
   find + 'return await editor.component.add({scene,entityId:e.id,type:"SpotLight",props:{enabled:false,intensity:0}});',
   find +
-    'const r=await editor.component.query({scene,entityId:e.id,type:"SpotLight"});if(r.length!==1)throw Error("Missing added component");return r;'
+    'const r=await editor.component.query({scene,entityId:e.id,type:"SpotLight"});if(r.items.length!==1)throw Error("Missing added component");return r;'
 );
 add(
   "component.remove",
   find +
-    'const c=(await editor.component.query({scene,entityId:e.id,type:"SpotLight"}))[0];return await editor.component.remove({scene,id:c.id});',
+    'const c=(await editor.component.query({scene,entityId:e.id,type:"SpotLight"})).items[0];return await editor.component.remove({scene,id:c.id});',
   find +
-    'const r=await editor.component.query({scene,entityId:e.id,type:"SpotLight"});if(r.length)throw Error("Component survived removal");return r;'
+    'const r=await editor.component.query({scene,entityId:e.id,type:"SpotLight"});if(r.items.length)throw Error("Component survived removal");return r;'
 );
 add(
   "history.read",
@@ -82,13 +82,13 @@ add(
   "history.undo",
   'const q=await editor.history.query({limit:1});if(!q.items.length)throw Error("No history");return await editor.history.undo({transactionIds:[q.items[0].transactionId]});',
   find +
-    'const r=await editor.component.query({scene,entityId:e.id,type:"SpotLight"});if(r.length!==1)throw Error("Undo did not restore");return r;'
+    'const r=await editor.component.query({scene,entityId:e.id,type:"SpotLight"});if(r.items.length!==1)throw Error("Undo did not restore");return r;'
 );
 add(
   "history.redo",
   'const q=await editor.history.query({direction:"redo",limit:1});if(!q.items.length)throw Error("No redo");return await editor.history.redo({transactionIds:[q.items[0].transactionId]});',
   find +
-    'const r=await editor.component.query({scene,entityId:e.id,type:"SpotLight"});if(r.length)throw Error("Redo did not remove");return r;'
+    'const r=await editor.component.query({scene,entityId:e.id,type:"SpotLight"});if(r.items.length)throw Error("Redo did not remove");return r;'
 );
 add(
   "entity.delete",
@@ -98,7 +98,7 @@ add(
 add(
   "asset.delete",
   'return await editor.asset.delete({path:"Audit/Template.prefab"});',
-  'const r=await editor.asset.list({});if(r.some(x=>x.path==="Audit/Template.prefab"))throw Error("Asset survived");return {deleted:true};'
+  'const r=await editor.asset.list({});if(r.items.some(x=>x.path==="Audit/Template.prefab"))throw Error("Asset survived");return {deleted:true};'
 );
 cases.push({
   id: "asset.import",

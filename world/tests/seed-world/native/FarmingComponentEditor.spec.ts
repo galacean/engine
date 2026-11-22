@@ -34,7 +34,7 @@ async function fixture(...args: Parameters<typeof nativeFixture>) {
     const result = tool.parseOutput(await tool.execute(tool.parseInput(input), {signal: new AbortController().signal}));
     return toAgentValue(result);
   });
-  const [farm] = await editor.component.query({type:"FarmingSystem", scene: identity.scene});
+  const { items: [farm] } = await editor.component.query({type:"FarmingSystem", scene: identity.scene});
   return {f, extension, editor, identity, farm: farm as any, covered, remove: () => {mounted = false;}};
 }
 
@@ -127,7 +127,7 @@ it("checks public examples and rejects obsolete region identity and missing comm
   for (const source of examples) expect(checker.check(source, modules)).toBeUndefined();
   for (const source of [
     'await editor.component.query({type:"FarmingSystem",farmId:"native-farm"});',
-    'const [system]=await editor.component.query({type:"FarmingSystem"}); await system.plant({plotId:"native/a",seedId:"berry-seed"});'
+    'const { items: [system] } = await editor.component.query({type:"FarmingSystem"}); await system.plant({plotId:"native/a",seedId:"berry-seed"});'
   ]) expect(checker.check(source, modules)).toBeDefined();
 });
 
@@ -138,14 +138,14 @@ it("invalidates a deleted component proxy and does not expose a fabricated singl
   expect((await farm.list()).value).toEqual([]);
   expect((await farm.getDiagnostics()).ok).toBe(true);
   remove();
-  expect(await editor.component.query({type:"FarmingSystem"})).toEqual([]);
+  expect(await editor.component.query({type:"FarmingSystem"})).toEqual({ items: [] });
   await expect(farm.list()).rejects.toThrow("Component removed");
 });
 
 it("retains command receipts and saved effects when a later script step fails", async () => {
   const {f, extension} = await fixture();
   const source = `
-    const [system] = await editor.component.query({type:"FarmingSystem"});
+    const { items: [system] } = await editor.component.query({type:"FarmingSystem"});
     const farms = (await system.list()).value;
     await system.plant({farmId:farms[0].farmId,plotId:"native/a",seedId:"berry-seed"},{commandId:"component-plant"});
     throw new Error("later failure");
@@ -226,7 +226,7 @@ it.each(["SKILL.md", "references/operations.md", "references/saves-and-assets.md
   const {extension} = await fixture();
   const modules = withNativeEditingKnowledge(extension.definition.scriptApi).modules;
   const results = jsBlocks(file).map((source, index) => {
-    const prefix = file.endsWith("operations.md") && index === 0 ? 'const system = (await editor.component.query({type:"FarmingSystem"}))[0]; const farmId = "f"; const plotId = "p"; const cropId = "c";\n' : "";
+    const prefix = file.endsWith("operations.md") && index === 0 ? 'const system = (await editor.component.query({type:"FarmingSystem"})).items[0]; const farmId = "f"; const plotId = "p"; const cropId = "c";\n' : "";
     return { index, error: checker.check(prefix + source, modules) };
   });
   expect(results.filter(result => result.error)).toEqual([]);
@@ -235,7 +235,7 @@ it.each(["SKILL.md", "references/operations.md", "references/saves-and-assets.md
 it("operations.md plant and harvest examples run on the published surface", async () => {
   const {extension, f} = await fixture();
   const [plant, harvest] = jsBlocks("references/operations.md");
-  const head = 'const system = (await editor.component.query({type:"FarmingSystem"}))[0]; const farmId = (await system.list()).value[0].farmId; const plotId = "native/a"; const cropId = (await system.getCatalog({farmId})).value.seeds[0].cropId;\n';
+  const head = 'const system = (await editor.component.query({type:"FarmingSystem"})).items[0]; const farmId = (await system.list()).value[0].farmId; const plotId = "native/a"; const cropId = (await system.getCatalog({farmId})).value.seeds[0].cropId;\n';
   const planted: any = await runScript(extension, head + plant);
   expect(planted.receipt.status).toBe("completed");
   expect(f.area.service.getPlot("native/a")!.crop).toBeTruthy();

@@ -57,13 +57,13 @@ for (const [name, parameters] of [
 ]) {
   add(
     "building.generate",
-    `const groups=await editor.component.query({scene:"Scene/SeedWorld.scene",type:"BuildingGroupComponent"});if(!groups.length)throw Error("No building groups");const group=await editor.component.read({scene:"Scene/SeedWorld.scene",id:groups[0].id});const library=group.props?.assetLibrary;if(!library||typeof library!=="object"||!("$ref" in library)||typeof library.$ref!=="string")throw Error("No library");const r=await tools.building.generate({generator:${JSON.stringify("European." + name)},parameters:${JSON.stringify(parameters)},source:{id:"audit-generated",assetLibrary:library.$ref}});const source=JSON.parse(r.content);if(!source.components.length)throw Error("Empty generator output");return {bytes:r.content.length,entities:source.entities.length,components:source.components.length};`,
+    `const {items:groups}=await editor.component.query({scene:"Scene/SeedWorld.scene",type:"BuildingGroupComponent"});if(!groups.length)throw Error("No building groups");const group=await editor.component.read({scene:"Scene/SeedWorld.scene",id:groups[0].id});const library=group.props?.assetLibrary;if(!library||typeof library!=="object"||!("$ref" in library)||typeof library.$ref!=="string")throw Error("No library");const r=await tools.building.generate({generator:${JSON.stringify("European." + name)},parameters:${JSON.stringify(parameters)},source:{id:"audit-generated",assetLibrary:library.$ref}});const source=JSON.parse(r.content);if(!source.components.length)throw Error("Empty generator output");return {bytes:r.content.length,entities:source.entities.length,components:source.components.length};`,
     undefined,
     "building." + name
   );
 }
 const animal =
-  'const q=await tools.world.animals.query({visible:true});const a=q.animals.find(x=>x.loaded);if(!a)throw Error("No loaded animal");const d=await tools.world.animals.describe({id:a.id});const skill=d.skills.find(x=>!x.requiresTarget&&!x.background);if(!skill)throw Error("No direct skill");';
+  'const q=await tools.world.animals.query({visible:true});const a=q.items.find(x=>x.loaded);if(!a)throw Error("No loaded animal");const d=await tools.world.animals.describe({id:a.id});const skill=d.skills.find(x=>!x.requiresTarget&&!x.background);if(!skill)throw Error("No direct skill");';
 add(
   "world.animals.command",
   animal +
@@ -76,7 +76,7 @@ add(
 );
 add(
   "world.animals.spawn",
-  'const q=await tools.world.animals.query({visible:true});const a=q.animals.find(x=>x.loaded);if(!a)throw Error("No animal fixture");const r=await tools.world.animals.spawn({requestId:"audit-spawn",typeId:a.typeId});if(r.status!=="accepted")throw Error("Spawn rejected: "+r.reason);return r;',
+  'const q=await tools.world.animals.query({visible:true});const a=q.items.find(x=>x.loaded);if(!a)throw Error("No animal fixture");const r=await tools.world.animals.spawn({requestId:"audit-spawn",typeId:a.typeId});if(r.status!=="accepted")throw Error("Spawn rejected: "+r.reason);return r;',
   'const q=await tools.world.animals.query({limit:100});if(q.matchedCount!==40)throw Error("Spawn not retained");return {count:q.matchedCount};'
 );
 add(

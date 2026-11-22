@@ -83,13 +83,13 @@ it("component queries observe same-execute creation and deletion without marking
   const editor = createAgentEditorFacade([], call, tools.map(tool => tool.name));
   const entity = await editor.entity.create({scene: "main.scene", name: "light"}) as {id: string};
   const component = await editor.component.add({scene: "main.scene", entityId: entity.id, type: "DirectLight", props: {shadowStrength: 0.2}}) as {id: string};
-  expect(await editor.component.query({scene: "main.scene", type: "DirectLight"})).toEqual([
-    {scene: "main.scene", entityId: entity.id, id: component.id, type: "DirectLight"}
-  ]);
+  expect(await editor.component.query({scene: "main.scene", type: "DirectLight"})).toEqual({
+    items: [{scene: "main.scene", entityId: entity.id, id: component.id, type: "DirectLight"}]
+  });
   expect(await editor.component.read({scene: "main.scene", id: component.id})).toMatchObject({props: {shadowStrength: 0.2}});
   expect(edits).toBe(2);
   expect(tools.find(item => item.name === "component.query")!.effect).toBe("read");
   await editor.component.remove({scene: "main.scene", id: component.id});
-  expect(await editor.component.query({scene: "main.scene"})).toEqual([]);
+  expect(await editor.component.query({scene: "main.scene"})).toEqual({ items: [] });
   expect(edits).toBe(3);
 });

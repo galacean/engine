@@ -3,7 +3,7 @@
 const scene = 'const scene="Scene/SeedWorld.scene";';
 const fixture =
   scene +
-  'const waters=await editor.component.query({scene,type:"WaterBodyComponent"});if(!waters.length)throw Error("No Water fixture");const target={scene,id:waters[0].id};const record=await editor.component.read(target);const input=record.props?.authoring;if(!input||typeof input!=="object"||Array.isArray(input))throw Error("Missing authoring");';
+  'const {items:waters}=await editor.component.query({scene,type:"WaterBodyComponent"});if(!waters.length)throw Error("No Water fixture");const target={scene,id:waters[0].id};const record=await editor.component.read(target);const input=record.props?.authoring;if(!input||typeof input!=="object"||Array.isArray(input))throw Error("Missing authoring");';
 const cases = [];
 function add(id, tool, source, verify) {
   cases.push({ id: "water." + id, tool, source, ...(verify ? { verify } : {}) });
@@ -49,7 +49,7 @@ add(
   "remove",
   "component.remove",
   scene +
-    'const entities=await editor.entity.list({scene,name:"Audit Water"});if(!entities.items.length)throw Error("Missing Audit Water");const components=await editor.component.query({scene,entityId:entities.items[0].id,type:"WaterBodyComponent"});return await editor.component.remove({scene,id:components[0].id});'
+    'const entities=await editor.entity.list({scene,name:"Audit Water"});if(!entities.items.length)throw Error("Missing Audit Water");const {items:components}=await editor.component.query({scene,entityId:entities.items[0].id,type:"WaterBodyComponent"});return await editor.component.remove({scene,id:components[0].id});'
 );
 for (const name of ["capabilities", "diagnostics", "verify"])
   add(name, "water." + name, fixture + `return await tools.water.${name}({target});`);

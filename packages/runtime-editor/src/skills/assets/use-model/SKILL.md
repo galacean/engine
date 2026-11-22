@@ -11,7 +11,7 @@ GLTF 资产不是 Prefab。放置模型的做法是：在节点上挂一个 Scri
 
 下面两次 execute 就能放好一个外部模型（接口签名见[原生编辑 API](declare/editor/native/api.d.ts)）。不需要再读其他文档，除非任务超出这个流程。
 
-已知默认主场景路径（如 `"Scenes/Main.scene"`）时直接使用，无需先读 `project.json`；未知时再查 `project.json`。落点用已知坐标，相对位置按宿主的空间 Skill 解析。
+宿主环境已声明默认主场景路径时直接使用，无需先读 `project.json`；未知时再查 `project.json`。落点用已知坐标，相对位置按宿主的空间 Skill 解析。
 
 ```js
 // 第 1 次 execute：导入模型，创建加载脚本
