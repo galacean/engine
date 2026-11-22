@@ -719,7 +719,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   sleep(): void {
     if (this._isKinematic || !this._simulationEnabled) return;
     const scene = this._registeredScene;
-    if (!scene || this._index === -1 || scene._activeProcessCount > 0) {
+    if (!scene || this._index === -1 || this._isActivating()) {
       this._sleepPending = true;
       if (this._index !== -1) scene?.physics._scheduleSleep(this, true);
     } else {
@@ -964,6 +964,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   _syncPose(): void {
     const actor = this._nativeActor;
     if (actor) {
+      this._registeredScene?.physics._checkBodyOrder(this);
       const transform = this.entity.transform;
       // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
       transform.worldMatrix;
@@ -1104,6 +1105,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (this._index === -1 || this._isKinematic || !this._simulationEnabled) return null;
     this._cancelPendingSleep();
     return this._getSyncedActor();
+  }
+
+  /** @internal */
+  _isActivating(): boolean {
+    for (let entity: Entity | null = this.entity; entity; entity = entity.parent) {
+      if (entity._activeChangedComponents) return true;
+    }
+    return false;
   }
 
   /** @internal Consumes a sleep request after the scene has synchronized all Collider edits. */

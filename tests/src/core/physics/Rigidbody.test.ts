@@ -687,6 +687,26 @@ describe("Rigidbody", function () {
     expect(entity.transform.worldPosition.y < 5).toBe(cancel);
   });
 
+  it("honors sleep requested in onAwake before a child collider enters the scene", () => {
+    const entity = new Entity(engine, "compound sleep on awake");
+    entity.transform.position.y = 5;
+    const body = entity.addComponent(Rigidbody);
+    entity.addComponent(
+      class extends Script {
+        onAwake(): void {
+          body.sleep();
+        }
+      }
+    );
+    entity.createChild("child-shape").addComponent(BoxCollider);
+    rootEntity.addChild(entity);
+
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(physics.fixedTimeStep);
+    expect(body.isSleeping()).toBe(true);
+    expect(entity.transform.worldPosition.y).toBe(5);
+  });
+
   it("honors sleep requested before a world joint enters simulation", () => {
     const entity = new Entity(engine, "sleep during joint registration");
     entity.transform.position.y = 5;

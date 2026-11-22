@@ -1,7 +1,6 @@
 import { IDynamicCollider, IPhysicsEvents, IPhysicsScene, PhysicsEventState } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import type { Entity } from "../Entity";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
@@ -701,9 +700,13 @@ export class PhysicsScene {
       this._syncColliders();
       if (scene.destroyed) return;
       const pendingSleeps = this._pendingSleeps;
-      if (pendingSleeps?.size && scene._activeProcessCount === 0) {
-        for (const body of pendingSleeps) body._applyScheduledSleep();
-        pendingSleeps.clear();
+      if (pendingSleeps?.size) {
+        for (const body of pendingSleeps) {
+          if (!body._isActivating()) {
+            pendingSleeps.delete(body);
+            body._applyScheduledSleep();
+          }
+        }
       }
       nativePhysicsScene.update(fixedTimeStep);
       if (this._bodyOrderDirty && !bodies.isLopping) {
@@ -827,11 +830,18 @@ export class PhysicsScene {
 
   /**
    * @internal
-   * Reorder the writeback list when reparenting can change the order of registered bodies.
+   * Reorder the writeback list when a dirty body now sits below a later-indexed ancestor body.
    */
-  _invalidateBodyOrder(root: Entity): void {
-    if (!this._bodyOrderDirty && this._bodies.length > 1) {
-      this._bodyOrderDirty = root._children.length > 0 || (root.getComponent(Rigidbody)?._index ?? -1) !== -1;
+  _checkBodyOrder(body: Rigidbody): void {
+    if (this._bodyOrderDirty || this._bodies.length <= 1) return;
+    const bodyIndex = body._index;
+    if (bodyIndex === -1) return;
+    for (let parent = body.entity.parent; parent; parent = parent.parent) {
+      const ancestor = parent.getComponent(Rigidbody);
+      if (ancestor && ancestor._index > bodyIndex) {
+        this._bodyOrderDirty = true;
+        return;
+      }
     }
   }
 

@@ -73,8 +73,6 @@ export class Scene extends EngineObject {
   _sceneManager: SceneManager | null;
   /** @internal */
   _rootEntities: Entity[] = [];
-  /** @internal */
-  _activeProcessCount: number = 0;
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -374,9 +372,6 @@ export class Scene extends EngineObject {
       (!rootEntity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
     }
     activeChangeFlag && rootEntity._processActive(activeChangeFlag);
-    if (oldScene === this && !isRoot && rootEntity._isActiveInScene) {
-      this.physics._invalidateBodyOrder(rootEntity);
-    }
   }
 
   /**

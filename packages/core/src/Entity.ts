@@ -135,7 +135,8 @@ export class Entity extends EngineObject {
   private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity | null = null;
-  private _activeChangedComponents: Component[] | null | undefined;
+  /** @internal */
+  _activeChangedComponents: Component[] | null | undefined;
   private _modifyFlagManager: UpdateFlagManager;
 
   /**
@@ -701,9 +702,6 @@ export class Entity extends EngineObject {
         }
 
         activeChangeFlag && this._processActive(activeChangeFlag);
-        if (parentScene && oldScene === parentScene && this._isActiveInScene) {
-          parentScene.physics._invalidateBodyOrder(this);
-        }
       } else {
         let inActiveChangeFlag = ActiveChangeFlag.None;
         this._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
@@ -737,20 +735,14 @@ export class Entity extends EngineObject {
 
   private _setActiveComponents(isActive: boolean, activeChangeFlag: ActiveChangeFlag): void {
     const activeChangedComponents = this._activeChangedComponents!;
-    const ownerScene = this._scene!;
-    ownerScene._activeProcessCount++;
-    try {
-      for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
-        const component = activeChangedComponents[i];
-        // Skip components whose scene was already cleared by an earlier callback's removeChild
-        if (!isActive && !component._entity._scene) continue;
-        component._setActive(isActive, activeChangeFlag);
-      }
-    } finally {
-      ownerScene._activeProcessCount--;
-      ownerScene._componentsManager.putActiveChangedTempList(activeChangedComponents);
-      this._activeChangedComponents = null;
+    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
+      const component = activeChangedComponents[i];
+      // Skip components whose scene was already cleared by an earlier callback's removeChild
+      if (!isActive && !component._entity._scene) continue;
+      component._setActive(isActive, activeChangeFlag);
     }
+    this._scene!._componentsManager.putActiveChangedTempList(activeChangedComponents);
+    this._activeChangedComponents = null;
   }
 
   private _setActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {
