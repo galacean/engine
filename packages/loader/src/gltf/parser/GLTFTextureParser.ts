@@ -100,6 +100,7 @@ export class GLTFTextureParser extends GLTFParser {
 
   parse(context: GLTFParserContext, textureIndex: number): AssetPromise<Texture> {
     const textureInfo = context.glTF.textures![textureIndex];
+    const glTFResource = context.glTFResource;
     const { sampler, source: imageIndex = 0, name: textureName, extensions } = textureInfo;
     const isSRGBColorSpace = this._isSRGBColorSpace(textureIndex, context.glTF.materials);
 
@@ -123,7 +124,7 @@ export class GLTFTextureParser extends GLTFParser {
         return texture;
       }
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
-      context.glTFResource._associateResource(texture);
+      texture._associationSuperResource(glTFResource);
       return texture;
     });
   }

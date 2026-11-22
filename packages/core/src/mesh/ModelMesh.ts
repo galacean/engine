@@ -752,11 +752,7 @@ export class ModelMesh extends Mesh {
     }
     super._onDestroy();
     this._destroyInternalVertexBuffer();
-    const indexBuffer = this._primitive.indexBufferBinding?._buffer;
-    if (indexBuffer) {
-      indexBuffer._disassociationSuperResource(this);
-      indexBuffer.destroy();
-    }
+    this._primitive.indexBufferBinding?._buffer.destroy();
     this._blendShapeManager._clearBlendShapes();
     this._blendShapeManager._destroyHost();
     this._releaseCache(true);

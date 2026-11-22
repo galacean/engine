@@ -38,8 +38,6 @@ export class GLTFResource extends ReferResource {
   /** @internal */
   _extensionsData: Record<string, any>;
 
-  private _associatedResources: Set<ReferResource> = new Set();
-
   /**
    * Extensions data.
    */
@@ -65,26 +63,6 @@ export class GLTFResource extends ReferResource {
     return sceneRoot.clone();
   }
 
-  /**
-   * @internal
-   */
-  _associateResource(resource: ReferResource): void {
-    if (!this._destroyed && !this._associatedResources.has(resource)) {
-      this._associatedResources.add(resource);
-      resource._associationSuperResource(this);
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _disassociateAllResources(): void {
-    this._associatedResources.forEach((resource) => {
-      resource._disassociationSuperResource(this);
-    });
-    this._associatedResources.clear();
-  }
-
   protected override _onDestroy(): void {
     super._onDestroy();
 
@@ -108,8 +86,6 @@ export class GLTFResource extends ReferResource {
         }
       }
     }
-
-    this._disassociateAllResources();
   }
 
   /**

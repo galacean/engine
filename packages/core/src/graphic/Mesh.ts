@@ -179,7 +179,6 @@ export abstract class Mesh extends ReferResource {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._primitive._disassociationSuperResource(this);
     this._primitive.destroy();
   }
 

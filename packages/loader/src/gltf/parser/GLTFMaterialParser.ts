@@ -195,7 +195,7 @@ export class GLTFMaterialParser extends GLTFParser {
       material ||= engine._basicResources._getBlinnPhongDefaultMaterial();
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, material, materialInfo);
       if (!isDefaultFallback) {
-        glTFResource._associateResource(material);
+        material._associationSuperResource(glTFResource);
       }
       return material;
     });

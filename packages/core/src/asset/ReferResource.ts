@@ -12,6 +12,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
 
   private _refCount: number = 0;
   private _superResources: ReferResource[] | null = null;
+  private _subResources: Set<ReferResource> | null = null;
 
   /**
    * Counted by valid references.
@@ -63,13 +64,21 @@ export abstract class ReferResource extends EngineObject implements IReferable {
    * @internal
    */
   _associationSuperResource(superResource: ReferResource): void {
-    (this._superResources ||= []).push(superResource);
+    if (superResource._destroyed) {
+      return;
+    }
+    const subResources = (superResource._subResources ||= new Set());
+    if (!subResources.has(this)) {
+      subResources.add(this);
+      (this._superResources ||= []).push(superResource);
+    }
   }
 
   /**
    * @internal
    */
   _disassociationSuperResource(superResource: ReferResource): void {
+    superResource._subResources?.delete(this);
     const superResources = this._superResources;
     if (!superResources) {
       return;
@@ -77,6 +86,19 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     const index = superResources.indexOf(superResource);
     if (index !== -1) {
       superResources.splice(index, 1);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _disassociationAllSubResources(): void {
+    const subResources = this._subResources;
+    if (subResources) {
+      this._subResources = null;
+      subResources.forEach((subResource) => {
+        subResource._disassociationSuperResource(this);
+      });
     }
   }
 
@@ -110,6 +132,14 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     const refCount = this._getReferCount();
     if (refCount > 0) {
       this._addReferCount(-refCount);
+    }
+    this._disassociationAllSubResources();
+    const superResources = this._superResources;
+    if (superResources) {
+      for (let i = superResources.length - 1; i >= 0; i--) {
+        superResources[i]._subResources?.delete(this);
+      }
+      superResources.length = 0;
     }
   }
 
