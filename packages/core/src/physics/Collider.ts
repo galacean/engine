@@ -6,6 +6,7 @@ import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { Layer } from "../Layer";
+import type { Scene } from "../Scene";
 import { Transform } from "../Transform";
 import { ColliderShape } from "./shape/ColliderShape";
 import type { MeshColliderShape } from "./shape/MeshColliderShape";
@@ -138,8 +139,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
-    this.scene!.physics._removeCollider(this);
+  override _onDisableInScene(scene: Scene): void {
+    scene.physics._removeCollider(this);
   }
 
   /**

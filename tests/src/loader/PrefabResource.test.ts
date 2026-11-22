@@ -1,6 +1,19 @@
 import { expect, beforeAll, afterAll, describe, it } from "vitest";
-import { WebGLEngine } from "@galacean/engine";
-import { Loader, MeshRenderer, Script } from "@galacean/engine-core";
+import { AssetType, WebGLEngine } from "@galacean/engine";
+import {
+  AssetPromise,
+  DependentMode,
+  Entity,
+  Loader,
+  MeshRenderer,
+  Script,
+  Transform,
+  dependentComponents,
+  resourceLoader
+} from "@galacean/engine-core";
+import type { PrefabResource } from "@galacean/engine-loader";
+import { UICanvas, UITransform } from "@galacean/engine-ui";
+import type { GLTFResource } from "../../../packages/loader/src/gltf/GLTFResource";
 import { PrefabParser } from "../../../packages/loader/src/prefab/PrefabParser";
 import type { PrefabFile } from "../../../packages/loader/src/schema/PrefabSchema";
 
@@ -44,8 +57,324 @@ afterAll(() => {
   engine?.destroy();
 });
 
+function createPrefabUrl(data: PrefabFile, virtualPath?: string): string {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+  if (virtualPath) {
+    engine.resourceManager.registerVirtualResources([{ virtualPath, path: url, type: AssetType.Prefab }]);
+  }
+  return url;
+}
+
+async function loadPrefab(data: PrefabFile): Promise<PrefabResource> {
+  const url = createPrefabUrl(data);
+  try {
+    return await engine.resourceManager.load<PrefabResource>({ url, type: AssetType.Prefab });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+describe("Prefab mutation blocks", () => {
+  it("applies an entity override after its added component finishes a base call", async () => {
+    class RenameInBaseCall extends Script {
+      rename(): void {
+        this.entity.name = "base call";
+      }
+    }
+    Loader.registerClass("RenameInBaseCall", RenameInBaseCall);
+    const template: PrefabFile = {
+      version: "2.0",
+      refs: [],
+      root: 0,
+      entities: [{ name: "template" }],
+      components: []
+    };
+    const templatePath = "entity-override-order.prefab";
+    const templateUrl = createPrefabUrl(template, templatePath);
+    try {
+      const prefab = await loadPrefab({
+        version: "2.0",
+        refs: [{ url: templatePath }],
+        root: 0,
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                entityProps: [{ path: [], name: "instance override" }],
+                addedComponents: [{ target: [], component: 0 }]
+              }
+            }
+          }
+        ],
+        components: [{ type: "RenameInBaseCall", calls: [{ method: "rename" }] }]
+      });
+      const instance = prefab.instantiate();
+      try {
+        expect(instance.name).toBe("instance override");
+      } finally {
+        instance.destroy();
+        prefab.destroy();
+      }
+    } finally {
+      URL.revokeObjectURL(templateUrl);
+    }
+  });
+
+  it.each([false, true])(
+    "resolves component references in authored order (prefab additions: %s)",
+    async (additions) => {
+      const baseType = "OrderedReferenceBase";
+      const providerType = "OrderedReferenceProvider";
+      const consumerType = "OrderedReferenceConsumer";
+      class OrderedReferenceBase extends Script {
+        label = "";
+      }
+      class OrderedReferenceProvider extends OrderedReferenceBase {}
+      @dependentComponents(OrderedReferenceProvider, DependentMode.CheckOnly)
+      class OrderedReferenceConsumer extends Script {
+        target: OrderedReferenceBase;
+      }
+      Loader.registerClass(baseType, OrderedReferenceBase);
+      Loader.registerClass(providerType, OrderedReferenceProvider);
+      Loader.registerClass(consumerType, OrderedReferenceConsumer);
+
+      const components = [
+        {
+          type: consumerType,
+          props: { target: { $component: { entity: [0], type: baseType, index: 0 } } }
+        },
+        { type: baseType, props: { label: "base" } },
+        { type: providerType, props: { label: "provider" } }
+      ];
+      const data: PrefabFile = { version: "2.0", refs: [], entities: [{ components: [0, 1, 2] }], components, root: 0 };
+      let templateUrl: string;
+      if (additions) {
+        const templatePath = "ordered-components.prefab";
+        templateUrl = createPrefabUrl({ ...data, entities: [{}], components: [] }, templatePath);
+        data.refs = [{ url: templatePath }];
+        data.entities = [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [0, 1, 2].map((component) => ({ target: [], component })),
+                componentProps: [
+                  { path: [], selector: { type: baseType, index: 0 }, props: { label: "overridden base" } }
+                ]
+              }
+            }
+          }
+        ];
+      }
+      try {
+        const prefab = await loadPrefab(data);
+        const instance = prefab.instantiate();
+        try {
+          const target = instance.getComponent(OrderedReferenceConsumer)!.target;
+          expect(target.label).toBe(additions ? "overridden base" : "base");
+          expect(instance.getComponent(OrderedReferenceProvider)!.label).toBe("provider");
+        } finally {
+          instance.destroy();
+          prefab.destroy();
+        }
+      } finally {
+        if (templateUrl) URL.revokeObjectURL(templateUrl);
+      }
+    }
+  );
+
+  it("resolves an automatic dependency when the instance removes an unrelated component", async () => {
+    class RemovedTemplateScript extends Script {}
+    class AutomaticProvider extends Script {}
+    @dependentComponents(AutomaticProvider, DependentMode.AutoAdd)
+    class AutomaticConsumer extends Script {
+      target: AutomaticProvider;
+    }
+    Loader.registerClass("RemovedTemplateScript", RemovedTemplateScript);
+    Loader.registerClass("AutomaticProvider", AutomaticProvider);
+    Loader.registerClass("AutomaticConsumer", AutomaticConsumer);
+
+    const template: PrefabFile = {
+      version: "2.0",
+      refs: [],
+      root: 0,
+      entities: [{ components: [0] }],
+      components: [{ type: "RemovedTemplateScript" }]
+    };
+    const templatePath = "automatic-provider.prefab";
+    const templateUrl = createPrefabUrl(template, templatePath);
+    try {
+      const prefab = await loadPrefab({
+        version: "2.0",
+        refs: [{ url: templatePath }],
+        root: 0,
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                removedComponents: [{ path: [], selectors: [{ type: "RemovedTemplateScript", index: 0 }] }],
+                addedComponents: [{ target: [], component: 0 }]
+              }
+            }
+          }
+        ],
+        components: [
+          {
+            type: "AutomaticConsumer",
+            props: { target: { $component: { entity: [0], type: "AutomaticProvider", index: 0 } } }
+          }
+        ]
+      });
+      const instance = prefab.instantiate();
+      try {
+        const provider = instance.getComponent(AutomaticProvider);
+        expect(provider).not.toBeNull();
+        expect(instance.getComponent(AutomaticConsumer)!.target?.instanceId).toBe(provider!.instanceId);
+        expect(instance.getComponent(RemovedTemplateScript)).toBeNull();
+      } finally {
+        instance.destroy();
+        prefab.destroy();
+      }
+    } finally {
+      URL.revokeObjectURL(templateUrl);
+    }
+  });
+
+  it.each([false, true])("keeps the prefab Transform slot with UI (explicit: %s)", async (explicit) => {
+    class TransformSlotObserver extends Script {
+      label: string;
+      observedTransform: Transform;
+      survivor: TransformSlotObserver;
+    }
+    const observerType = "TransformSlotObserver";
+    Loader.registerClass(observerType, TransformSlotObserver);
+    Loader.registerClass("UICanvas", UICanvas);
+    Loader.registerClass("UITransform", UITransform);
+
+    const template: PrefabFile = {
+      version: "2.0",
+      refs: [],
+      root: 0,
+      entities: [{ components: [0, 1] }],
+      components: [
+        { type: observerType, props: { label: "removed" } },
+        { type: observerType, props: { label: "survivor" } }
+      ]
+    };
+    const templatePath = `transform-slot-${explicit}.prefab`;
+    const templateUrl = createPrefabUrl(template, templatePath);
+
+    try {
+      const components = [
+        { type: "UICanvas" },
+        ...(explicit ? [{ type: "UITransform" }] : []),
+        {
+          type: observerType,
+          props: {
+            observedTransform: { $component: { entity: [0], type: "Transform", index: 0 } },
+            survivor: { $component: { entity: [0], type: observerType, index: 1 } }
+          }
+        }
+      ];
+      const prefab = await loadPrefab({
+        ...template,
+        refs: [{ url: templatePath }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                removedComponents: [{ path: [], selectors: [{ type: observerType, index: 0 }] }],
+                addedComponents: components.map((_, component) => ({ target: [], component })),
+                componentProps: [{ path: [], selector: { type: observerType, index: 2 }, props: { label: "added" } }]
+              }
+            }
+          }
+        ],
+        components
+      });
+      const instance = prefab.instantiate();
+      try {
+        const [survivor, observer] = instance.getComponents(TransformSlotObserver, []);
+        expect([survivor.label, observer.label]).toEqual(["survivor", "added"]);
+        expect(observer.survivor).toBe(survivor);
+        expect(instance.transform).toBeInstanceOf(UITransform);
+        expect(observer.observedTransform?.instanceId).toBe(instance.transform.instanceId);
+      } finally {
+        instance.destroy();
+        prefab.destroy();
+      }
+    } finally {
+      URL.revokeObjectURL(templateUrl);
+    }
+  });
+
+  it.each([false, true])("handles started property rejections when a setter throws (nested: %s)", async (nested) => {
+    const failure = new Error("prefab property setter failed");
+    class RejectingProperties extends Script {
+      state = {
+        set invalid(_value: boolean) {
+          throw failure;
+        }
+      };
+
+      set invalid(_value: boolean) {
+        throw failure;
+      }
+    }
+    Loader.registerClass("RejectingProperties", RejectingProperties);
+    const props = { resource: { $ref: 0 }, invalid: true };
+
+    await expect(
+      loadPrefab({
+        version: "2.0",
+        refs: [],
+        root: 0,
+        entities: [{ components: [0] }],
+        components: [{ type: "RejectingProperties", props: nested ? { state: props } : props }]
+      })
+    ).rejects.toThrow(failure);
+  });
+
+  it("applies result blocks to plain objects with a destroyed property", async () => {
+    const results: number[] = [];
+    class ReturnsObject extends Script {
+      createResult() {
+        return {
+          destroyed: true,
+          value: 0,
+          report() {
+            results.push(this.value);
+          }
+        };
+      }
+    }
+    Loader.registerClass("ReturnsObject", ReturnsObject);
+
+    const prefab = await loadPrefab({
+      version: "2.0",
+      refs: [],
+      root: 0,
+      entities: [{ components: [0] }],
+      components: [
+        {
+          type: "ReturnsObject",
+          calls: [{ method: "createResult", result: { props: { value: 42 }, calls: [{ method: "report" }] } }]
+        }
+      ]
+    });
+    try {
+      expect(results).toEqual([42]);
+    } finally {
+      prefab.destroy();
+    }
+  });
+});
+
 describe("PrefabResource refCount", () => {
-  it("should reject prefab data with an unsupported version", () => {
+  it("rejects loading a prefab with an unsupported version", async () => {
     const prefabData = {
       version: "1.0",
       refs: [],
@@ -54,9 +383,69 @@ describe("PrefabResource refCount", () => {
       root: 0
     } as any;
 
-    expect(() => PrefabParser.parse(engine, "invalid.prefab", prefabData)).toThrow(
-      'Unsupported prefab format version "1.0". Expected "2.0".'
+    await expect(loadPrefab(prefabData)).rejects.toThrow('Unsupported prefab format version "1.0". Expected "2.0".');
+  });
+
+  it("rejects instantiation as soon as prefab destruction is accepted", async () => {
+    const prefab = await loadPrefab({
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "root" }],
+      components: [],
+      root: 0
+    });
+
+    const instantiate = () => prefab.instantiate().destroy();
+    const error = "Cannot instantiate a prefab that is pending destruction or destroyed.";
+    const entity = engine.sceneManager.activeScene!.createRootEntity();
+    entity.addComponent(
+      class extends Script {
+        override onUpdate(): void {
+          expect(prefab.destroy()).toBe(true);
+          expect(prefab.pendingDestroy).toBe(true);
+          expect(instantiate).toThrow(error);
+        }
+      }
     );
+    try {
+      engine.update();
+      expect(prefab.destroyed).toBe(true);
+      expect(instantiate).toThrow(error);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("releases partial instances when a descendant component fails to clone", async () => {
+    const failure = new Error("child component construction failed");
+    let partialChild: Entity;
+    let fail = false;
+    class CloneFailure extends Script {
+      constructor(entity: Entity) {
+        super(entity);
+        if (fail) {
+          partialChild = entity;
+          throw failure;
+        }
+      }
+    }
+    Loader.registerClass("CloneFailure", CloneFailure);
+    const prefab = await loadPrefab({
+      version: "2.0",
+      refs: [],
+      entities: [{ children: [1] }, { components: [0] }],
+      components: [{ type: "CloneFailure" }],
+      root: 0
+    });
+
+    fail = true;
+    try {
+      expect(() => prefab.instantiate()).toThrow(failure);
+      expect(partialChild.destroyed).toBe(true);
+      expect(prefab.refCount).toBe(0);
+    } finally {
+      prefab.destroy(true);
+    }
   });
 
   it("should increase and decrease with instantiated entities", async () => {
@@ -158,10 +547,40 @@ describe("PrefabResource refCount", () => {
       delete engine.resourceManager._objectPool["nested-root-instance.prefab"];
     }
   });
+
+  it("releases a glTF source after destroying its prefab template", async () => {
+    const sourcePath = "nested-template.gltf";
+    const sourceData = { asset: { version: "2.0" }, scene: 0, scenes: [{ nodes: [] }] };
+    const sourceUrl = URL.createObjectURL(new Blob([JSON.stringify(sourceData)], { type: "model/gltf+json" }));
+    const resources = engine.resourceManager;
+    resources.registerVirtualResources([{ virtualPath: sourcePath, path: sourceUrl, type: AssetType.GLTF }]);
+
+    let source: GLTFResource;
+    let prefab: PrefabResource;
+    try {
+      source = await resources.load<GLTFResource>(sourcePath);
+      prefab = await loadPrefab({
+        version: "2.0",
+        refs: [{ url: sourcePath }],
+        entities: [{ instance: { asset: 0 } }],
+        components: [],
+        root: 0
+      });
+      expect(source.destroy()).toBe(false);
+      expect(prefab.destroy()).toBe(true);
+      expect(source.refCount).toBe(0);
+      resources.gc();
+      expect(source.destroyed).toBe(true);
+    } finally {
+      prefab?.destroy();
+      source?.destroy();
+      URL.revokeObjectURL(sourceUrl);
+    }
+  });
 });
 
-describe("$ref null guard in Prefab mode", () => {
-  it("should not add null to dependence assets when $ref resolves to null", async () => {
+describe("Missing Prefab references", () => {
+  it("resolves a missing asset to null and releases the prefab", async () => {
     const prefabData: PrefabFile = {
       version: "2.0",
       refs: [{ url: "missing-asset.png" }],
@@ -170,15 +589,14 @@ describe("$ref null guard in Prefab mode", () => {
       root: 0
     };
 
-    const prefab = await PrefabParser.parse(engine, "test.prefab", prefabData);
-    // @ts-ignore — access private field for verification
-    expect(prefab._dependenceAssets.size).toBe(0);
-
-    // Verify the component property was actually resolved to null (not skipped)
+    const prefab = await loadPrefab(prefabData);
     const root = prefab.instantiate();
-    const script = root.getComponent(DiceScript);
-    expect(script.skinMesh).toBeNull();
-    root.destroy();
+    try {
+      expect(root.getComponent(DiceScript)!.skinMesh).toBeNull();
+    } finally {
+      root.destroy();
+      expect(prefab.destroy()).toBe(true);
+    }
   });
 });
 
@@ -500,6 +918,51 @@ describe("Prefab instance overrides", () => {
     root.destroy();
     // @ts-ignore
     delete engine.resourceManager._objectPool["nested-ae.prefab"];
+  });
+
+  it("applies sequential additions and removals beneath an added prefab entity", async () => {
+    const templatePath = "sequential-added-entities.prefab";
+    const template: PrefabFile = { version: "2.0", refs: [], root: 0, entities: [{}], components: [] };
+    const templateUrl = createPrefabUrl(template, templatePath);
+
+    let prefab: PrefabResource | undefined;
+    try {
+      prefab = await loadPrefab({
+        version: "2.0",
+        refs: [{ url: templatePath }],
+        root: 0,
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedEntities: [
+                  { parent: [], entity: 1 },
+                  { parent: [0], entity: 2 },
+                  { parent: [0], entity: 3 }
+                ],
+                removedEntities: [[0, 0]]
+              }
+            }
+          },
+          { name: "branch" },
+          { name: "removed" },
+          { name: "survivor" }
+        ],
+        components: []
+      });
+      const instance = prefab.instantiate();
+      try {
+        expect(instance.children.map((child) => [child.name, ...child.children.map((leaf) => leaf.name)])).toEqual([
+          ["branch", "survivor"]
+        ]);
+      } finally {
+        instance.destroy();
+      }
+    } finally {
+      prefab?.destroy();
+      URL.revokeObjectURL(templateUrl);
+    }
   });
 
   it("should remove entities via removedEntities", async () => {
@@ -899,4 +1362,547 @@ describe("Cross-prefab $component ref", () => {
     // @ts-ignore
     delete engine.resourceManager._objectPool["deep-comp-nested.prefab"];
   });
+
+  it("should preserve base.calls state boundary when merging same-target component overrides", async () => {
+    class StateCaptureScript extends Script {
+      value = 0;
+      captured: number[] = [];
+      capture(): void {
+        this.captured.push(this.value);
+      }
+    }
+    Loader.registerClass("StateCaptureScript", StateCaptureScript);
+
+    const templatePath = "calls-boundary-base.prefab";
+    const templateUrl = createPrefabUrl(
+      {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "root" }],
+        components: [],
+        root: 0
+      },
+      templatePath
+    );
+
+    try {
+      const outerPrefab = await loadPrefab({
+        version: "2.0",
+        refs: [{ url: templatePath }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [
+                  { target: [], component: 0 },
+                  { target: [], component: 1 },
+                  { target: [], component: 2 }
+                ],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "StateCaptureScript", index: 0 },
+                    props: { value: 2 },
+                    calls: [{ method: "capture" }]
+                  },
+                  {
+                    path: [],
+                    selector: { type: "StateCaptureScript", index: 1 },
+                    props: { value: 20 }
+                  },
+                  {
+                    path: [],
+                    selector: { type: "StateCaptureScript", index: 2 },
+                    props: { value: 200 },
+                    calls: [{ method: "capture" }]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [
+          { type: "StateCaptureScript", props: { value: 1 }, calls: [{ method: "capture" }] },
+          { type: "StateCaptureScript", props: { value: 10 }, calls: [{ method: "capture" }] },
+          { type: "StateCaptureScript", props: { value: 100 } }
+        ],
+        root: 0
+      });
+
+      const root = outerPrefab.instantiate();
+      try {
+        const scripts = root.getComponents(StateCaptureScript, []);
+        expect(scripts).toHaveLength(3);
+        expect(scripts[0].captured).toEqual([1, 2]);
+        expect(scripts[0].value).toBe(2);
+        expect(scripts[1].captured).toEqual([10]);
+        expect(scripts[1].value).toBe(20);
+        expect(scripts[2].captured).toEqual([200]);
+        expect(scripts[2].value).toBe(200);
+      } finally {
+        root.destroy();
+        outerPrefab.destroy();
+      }
+    } finally {
+      URL.revokeObjectURL(templateUrl);
+    }
+  });
+
+  it("should await cross-component async base calls before executing override calls and props", async () => {
+    class AsyncProviderScript extends Script {
+      ready = false;
+      initAsync(): Promise<void> {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            this.ready = true;
+            resolve();
+          }, 10);
+        });
+      }
+    }
+    class AsyncConsumerScript extends Script {
+      observedReady = false;
+      observe(provider: AsyncProviderScript): void {
+        this.observedReady = provider.ready;
+      }
+    }
+    class AsyncPropObserverScript extends Script {
+      provider: AsyncProviderScript | null = null;
+      observedReady = false;
+      set trigger(_v: boolean) {
+        this.observedReady = !!this.provider?.ready;
+      }
+    }
+    Loader.registerClass("AsyncProviderScript", AsyncProviderScript);
+    Loader.registerClass("AsyncConsumerScript", AsyncConsumerScript);
+    Loader.registerClass("AsyncPropObserverScript", AsyncPropObserverScript);
+
+    const templatePath = "async-barrier-base.prefab";
+    const templateUrl = createPrefabUrl(
+      {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "root", components: [0] }],
+        components: [{ type: "AsyncConsumerScript" }],
+        root: 0
+      },
+      templatePath
+    );
+
+    try {
+      const outerPrefab = await loadPrefab({
+        version: "2.0",
+        refs: [{ url: templatePath }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [
+                  { target: [], component: 0 },
+                  { target: [], component: 1 }
+                ],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "AsyncConsumerScript", index: 0 },
+                    calls: [
+                      {
+                        method: "observe",
+                        args: [{ $component: { entity: [0], type: "AsyncProviderScript", index: 0 } }]
+                      }
+                    ]
+                  },
+                  {
+                    path: [],
+                    selector: { type: "AsyncPropObserverScript", index: 0 },
+                    props: { trigger: true }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [
+          { type: "AsyncProviderScript", calls: [{ method: "initAsync" }] },
+          {
+            type: "AsyncPropObserverScript",
+            props: { provider: { $component: { entity: [0], type: "AsyncProviderScript", index: 0 } } }
+          }
+        ],
+        root: 0
+      });
+
+      const root = outerPrefab.instantiate();
+      try {
+        const provider = root.getComponent(AsyncProviderScript)!;
+        const consumer = root.getComponent(AsyncConsumerScript)!;
+        const propObserver = root.getComponent(AsyncPropObserverScript)!;
+        expect(provider.ready).toBe(true);
+        expect(consumer.observedReady).toBe(true);
+        expect(propObserver.observedReady).toBe(true);
+      } finally {
+        root.destroy();
+        outerPrefab.destroy();
+      }
+    } finally {
+      URL.revokeObjectURL(templateUrl);
+    }
+  });
+
+  it("should keep setter side effects independent of unrelated base calls and skip overrides on components destroyed during base calls", async () => {
+    const seen: string[] = [];
+    class SideEffectObserver extends Script {
+      set label(v: string) {
+        seen.push(v);
+      }
+      noop(): void {}
+      destroySibling(): void {
+        this.entity.getComponents(SideEffectObserver, [])[1].destroy();
+      }
+      probeDestroyed(): void {
+        seen.push(`destroyed=${this.destroyed}`);
+      }
+    }
+    Loader.registerClass("SideEffectObserver", SideEffectObserver);
+
+    const templatePath = "r6-observer-base.prefab";
+    const templateUrl = createPrefabUrl(
+      {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "template" }],
+        components: [],
+        root: 0
+      },
+      templatePath
+    );
+
+    try {
+      for (const withUnrelatedCall of [false, true]) {
+        seen.length = 0;
+        const outerPrefab = await loadPrefab({
+          version: "2.0",
+          refs: [{ url: templatePath }],
+          entities: [
+            {
+              instance: {
+                asset: 0,
+                overrides: {
+                  addedComponents: [
+                    { target: [], component: 0 },
+                    { target: [], component: 1 }
+                  ],
+                  componentProps: [
+                    {
+                      path: [],
+                      selector: { type: "SideEffectObserver", index: 0 },
+                      props: { label: "instance" }
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          components: [
+            { type: "SideEffectObserver", props: { label: "base" } },
+            { type: "SideEffectObserver", ...(withUnrelatedCall ? { calls: [{ method: "noop" }] } : {}) }
+          ],
+          root: 0
+        });
+        const instance = outerPrefab.instantiate();
+        try {
+          expect(seen).toEqual(["base", "instance"]);
+        } finally {
+          instance.destroy();
+          outerPrefab.destroy();
+        }
+      }
+
+      // A component destroyed by a base call must receive no override calls.
+      seen.length = 0;
+      const disposedPrefab = await loadPrefab({
+        version: "2.0",
+        refs: [{ url: templatePath }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                addedComponents: [
+                  { target: [], component: 0 },
+                  { target: [], component: 1 }
+                ],
+                componentProps: [
+                  {
+                    path: [],
+                    selector: { type: "SideEffectObserver", index: 1 },
+                    calls: [{ method: "probeDestroyed" }]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        components: [
+          { type: "SideEffectObserver", calls: [{ method: "destroySibling" }] },
+          { type: "SideEffectObserver" }
+        ],
+        root: 0
+      });
+      const disposedRoot = disposedPrefab.instantiate();
+      try {
+        expect(disposedRoot.getComponents(SideEffectObserver, [])).toHaveLength(1);
+        expect(seen).toEqual([]);
+      } finally {
+        disposedRoot.destroy();
+        disposedPrefab.destroy();
+      }
+    } finally {
+      URL.revokeObjectURL(templateUrl);
+    }
+  });
+
+  it.each([
+    { overrides: false, fails: false },
+    { overrides: true, fails: false },
+    { overrides: false, fails: true }
+  ])("runs a sibling call while another is waiting ($overrides, $fails)", async ({ overrides, fails }) => {
+    const type = "ConcurrentPrefabScript";
+    const failure = new Error("sibling prefab call failed");
+    const seen: string[] = [];
+    let start: () => void;
+    let release: () => void;
+    const started = new Promise<void>((resolve) => (start = resolve));
+    const waiting = new Promise<void>((resolve) => (release = resolve));
+    class ConcurrentPrefabScript extends Script {
+      async waitForSibling(): Promise<void> {
+        seen.push("waiting");
+        start();
+        await waiting;
+        seen.push("resumed");
+      }
+
+      async signal(): Promise<void> {
+        await started;
+        seen.push("signalled");
+        if (fails) throw failure;
+        release();
+      }
+    }
+    Loader.registerClass(type, ConcurrentPrefabScript);
+
+    const calls = [[{ method: "waitForSibling" }], [{ method: "signal" }]];
+    let data: PrefabFile = {
+      version: "2.0",
+      refs: [],
+      root: 0,
+      entities: [{ components: [0, 1] }],
+      components: calls.map((calls) => ({ type, calls }))
+    };
+    let templateUrl: string;
+    if (overrides) {
+      const template = { ...data, components: [{ type }, { type }] };
+      const templatePath = "concurrent-template.prefab";
+      templateUrl = createPrefabUrl(template, templatePath);
+      data = {
+        ...data,
+        refs: [{ url: templatePath }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: {
+                componentProps: calls.map((calls, index) => ({ path: [], selector: { type, index }, calls }))
+              }
+            }
+          }
+        ],
+        components: []
+      };
+    }
+
+    try {
+      const parsed = loadPrefab(data);
+      if (fails) {
+        await expect(parsed).rejects.toThrow(failure);
+        expect(seen).toEqual(["waiting", "signalled"]);
+      } else {
+        const prefab = await parsed;
+        expect(seen).toEqual(["waiting", "signalled", "resumed"]);
+        prefab.destroy();
+      }
+    } finally {
+      release();
+      if (templateUrl) URL.revokeObjectURL(templateUrl);
+    }
+  });
+
+  it.each(["component", "result", "target path"])("stops pending writes on a destroyed %s", async (mode) => {
+    const invoked: string[] = [];
+    const state = { record: () => invoked.push("call") };
+    class DestroyingSetterScript extends Script {
+      readonly state = state;
+
+      set remove(_value: boolean) {
+        this.destroy();
+      }
+
+      set later(_value: boolean) {
+        invoked.push("setter");
+      }
+
+      count(): void {
+        invoked.push("call");
+      }
+    }
+    Loader.registerClass("DestroyingSetterScript", DestroyingSetterScript);
+    class ReturnsDestroyingScript extends Script {
+      get child(): DestroyingSetterScript {
+        return this.entity.getComponent(DestroyingSetterScript)!;
+      }
+
+      getResult(): DestroyingSetterScript {
+        return this.child;
+      }
+    }
+    Loader.registerClass("ReturnsDestroyingScript", ReturnsDestroyingScript);
+    class DestroyCallTargetArgument {
+      constructor(target: DestroyingSetterScript) {
+        target.destroy();
+      }
+    }
+    Loader.registerClass("DestroyCallTargetArgument", DestroyCallTargetArgument);
+
+    const mutations = {
+      props: { state: { asset: { $ref: 0 } }, remove: true, later: true },
+      calls: [{ method: "count" }]
+    };
+    const call =
+      mode === "result"
+        ? { method: "getResult", result: mutations }
+        : {
+            target: ["child", "state"],
+            method: "record",
+            args: [
+              {
+                $type: "DestroyCallTargetArgument",
+                $args: [{ $component: { entity: [0], type: "DestroyingSetterScript", index: 0 } }]
+              }
+            ]
+          };
+    const components =
+      mode === "component"
+        ? [{ type: "DestroyingSetterScript", ...mutations }]
+        : [{ type: "DestroyingSetterScript" }, { type: "ReturnsDestroyingScript", calls: [call] }];
+
+    const assetPath = "destroying-setter.json";
+    const assetUrl = URL.createObjectURL(new Blob(['{"value":1}'], { type: "application/json" }));
+    engine.resourceManager.registerVirtualResources([{ virtualPath: assetPath, path: assetUrl, type: AssetType.JSON }]);
+    try {
+      const prefab = await loadPrefab({
+        version: "2.0",
+        refs: [{ url: assetPath }],
+        root: 0,
+        entities: [{ components: components.map((_, index) => index) }],
+        components
+      });
+      const instance = prefab.instantiate();
+      try {
+        expect(instance.getComponent(DestroyingSetterScript)).toBeNull();
+        expect(invoked).toEqual([]);
+        expect("asset" in state).toBe(false);
+      } finally {
+        instance.destroy();
+        prefab.destroy();
+      }
+    } finally {
+      URL.revokeObjectURL(assetUrl);
+    }
+  });
+
+  it.each(["method", "argument", "constructor argument"])(
+    "stops pending calls after a sibling load failure (waiting for %s)",
+    async (waitingFor) => {
+      const type = "InterruptedPrefabScript";
+      const valueType = "InterruptedPrefabProperty";
+      const assetType = "DelayedPrefabArgument";
+      const virtualPath = "delayed.prefab-argument";
+      const failure = new Error("sibling prefab call failed");
+      let waitStarted: () => void;
+      let release: () => void;
+      const started = new Promise<void>((resolve) => (waitStarted = resolve));
+      const waiting = new Promise<void>((resolve) => (release = resolve));
+      const events: string[] = [];
+
+      @resourceLoader(assetType, [], false)
+      class DelayedArgumentLoader extends Loader<void> {
+        override load(): AssetPromise<void> {
+          waitStarted();
+          return AssetPromise.resolve(waiting);
+        }
+      }
+
+      class InterruptedPrefabScript extends Script {
+        async wait(): Promise<void> {
+          waitStarted();
+          await waiting;
+          events.push("resumed");
+        }
+
+        async fail(): Promise<void> {
+          await started;
+          throw failure;
+        }
+
+        record(): void {
+          events.push("called");
+        }
+
+        override onDestroy(): void {
+          events.push("destroyed");
+        }
+      }
+
+      class InterruptedPrefabProperty {
+        constructor() {
+          events.push("constructed");
+        }
+      }
+
+      Loader.registerClass(type, InterruptedPrefabScript);
+      Loader.registerClass(valueType, InterruptedPrefabProperty);
+      engine.resourceManager.registerVirtualResources([{ virtualPath, path: virtualPath, type: assetType }]);
+      try {
+        const reference = { $ref: 0 };
+        const argument = waitingFor === "argument" ? reference : { $type: valueType, $args: [reference] };
+        await expect(
+          loadPrefab({
+            version: "2.0",
+            refs: [{ url: virtualPath }],
+            root: 0,
+            entities: [{ components: [0, 1] }],
+            components: [
+              {
+                type,
+                calls:
+                  waitingFor === "method"
+                    ? [{ method: "wait" }, { method: "record" }]
+                    : [{ method: "record", args: [argument] }]
+              },
+              { type, calls: [{ method: "fail" }] }
+            ]
+          })
+        ).rejects.toThrow(failure);
+        expect(events).toEqual(["destroyed", "destroyed"]);
+      } finally {
+        release();
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(events).toEqual(
+        waitingFor === "method" ? ["destroyed", "destroyed", "resumed"] : ["destroyed", "destroyed"]
+      );
+    }
+  );
 });

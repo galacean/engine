@@ -2,6 +2,7 @@ import { ICharacterController } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
+import type { Scene } from "../Scene";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { BoxColliderShape, CapsuleColliderShape } from "./shape";
@@ -155,8 +156,8 @@ export class CharacterController extends Collider {
   /**
    * @internal
    */
-  override _onDisableInScene() {
-    this.scene!.physics._removeCharacterController(this);
+  override _onDisableInScene(scene: Scene) {
+    scene.physics._removeCharacterController(this);
   }
 
   protected override _syncNative(): void {
