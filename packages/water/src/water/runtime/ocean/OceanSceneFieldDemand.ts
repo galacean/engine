@@ -191,8 +191,8 @@ function sampleSignedShoreDistance(
 /** Allocation-free production resolver whose result is overwritten by each call */
 export class OceanSceneFieldDemandResolver {
   private readonly _atlas: Readonly<OceanNearshoreStaticAtlas>;
-  private readonly _horizontalDisplacementMetres: number;
-  private readonly _verticalDisplacementMetres: number;
+  private _horizontalDisplacementMetres: number;
+  private _verticalDisplacementMetres: number;
   private readonly _horizontalSamplingErrorMetres: number;
   private readonly _coarseDryDistance: CoarseDryDistanceField;
   private readonly _result: MutableOceanSceneFieldDemandResult = {
@@ -225,6 +225,19 @@ export class OceanSceneFieldDemandResolver {
     const cellSizeZ = 1 / (atlas.worldToUv[1] * atlas.height);
     this._horizontalSamplingErrorMetres = Math.hypot(cellSizeX, cellSizeZ) + atlas.shoreDistanceRange / 127;
     this._coarseDryDistance = buildCoarseDryDistanceField(atlas, cellSizeX, cellSizeZ);
+  }
+
+  setMaximumDisplacement(horizontalMagnitude: number, vertical: number): void {
+    if (
+      !Number.isFinite(horizontalMagnitude) ||
+      !Number.isFinite(vertical) ||
+      horizontalMagnitude < 0 ||
+      vertical < 0
+    ) {
+      throw new RangeError("Ocean SceneField displacement bounds must be finite and non-negative.");
+    }
+    this._horizontalDisplacementMetres = horizontalMagnitude;
+    this._verticalDisplacementMetres = vertical;
   }
 
   resolve(

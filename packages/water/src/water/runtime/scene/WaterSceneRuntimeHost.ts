@@ -487,6 +487,19 @@ export class WaterSceneRuntimeHost {
     this._backends.register(backend);
   }
 
+  /** Committed active water body render roots whose inactive LOD/far-only children still need shader warmup. */
+  get shaderWarmupRoots(): readonly Entity[] {
+    if (this.destroyed) return [];
+    const roots: Entity[] = [];
+    for (let index = 0; index < this._activeBodyList.length; index++) {
+      const entry = this._activeBodyList[index]!;
+      if (entry.handle.active && entry.handle.visible && !entry.root.destroyed) {
+        roots.push(entry.root);
+      }
+    }
+    return roots;
+  }
+
   /**
    * Acquires one deterministic Host-scoped Backend installation. The factory
    * runs only for the first owner; a new owner reuses an installation that is

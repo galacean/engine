@@ -130,29 +130,36 @@
         vec4 waveGridWeight = oceanGeometryWaveGridWeight(waveWavelength, samplingCellSize);
 
         // Preserve Ocean's inclusive i <= WaveCount loop and cumulative fade/frequency mutation.
-        if (oceanMaximum4(waveGridWeight) > 0.0) {
+        if (fadeFactor > 0.0001 && oceanMaximum4(waveGridWeight) > 0.0) {
           vec3 viewDirection = cameraVector / viewDistance;
-          float projectedPixelsPerMetre = 0.5
-            * max(material_OceanBandlimitViewportHeight, 1.0)
-            * abs(camera_ProjMat[1][1]);
-          #ifndef CAMERA_ORTHOGRAPHIC
-            projectedPixelsPerMetre /= viewDistance;
-          #endif
           float grazingWeight = smoothstep(
             {{VALUE_025_GLSL_BANDLIMIT_GRAZINGFADESTARTSINE}},
             {{VALUE_026_GLSL_BANDLIMIT_GRAZINGFADEENDSINE}},
             abs(viewDirection.y)
           );
+          if (grazingWeight > 0.0001) {
+            float projectedPixelsPerMetre = 0.5
+              * max(material_OceanBandlimitViewportHeight, 1.0)
+              * abs(camera_ProjMat[1][1]);
+            #ifndef CAMERA_ORTHOGRAPHIC
+              projectedPixelsPerMetre /= viewDistance;
+            #endif
 {{OCEAN_WAVE_SPECTRUM}}
+          }
         }
 
         offset.y /= {{VALUE_028_GLSL_LOOK_WAVE_COUNT}};
         offset.xz *= {{VALUE_029_GLSL_WAVEKERNEL_HORIZONTALSCALEPERWAVEHEIGHT}} * material_OceanWaveParameters.x;
         offset.y *= material_OceanWaveParameters.x;
-        offset *= waterConnectionFacts(worldPosition4.xz).x;
+        vec4 vertConnectionFacts = waterConnectionFacts(worldPosition4.xz);
+        offset *= vertConnectionFacts.x;
         worldPosition4.xyz += offset;
         worldPosition4.y += material_WaterLevel;
-        vec3 macroNormal = waterConnectionNormal(worldPosition4.xz, safeNormalize3(normalSum, vec3(0.0, 1.0, 0.0)));
+        vec3 rawMacroNormal = safeNormalize3(normalSum, vec3(0.0, 1.0, 0.0));
+        vec3 macroNormal = safeNormalize3(
+          mix(vec3(0.0, 1.0, 0.0), rawMacroNormal, vertConnectionFacts.x),
+          vec3(0.0, 1.0, 0.0)
+        );
         vec3 tangent = safeNormalize3(vec3(1.0, -macroNormal.x / max(macroNormal.y, 0.05), 0.0), vec3(1.0, 0.0, 0.0));
         output.worldPosition = worldPosition4.xyz;
         output.macroNormalWS = macroNormal;
@@ -169,7 +176,8 @@
 
 
       void frag(Varyings input) {
-        if (waterConnectionFacts(input.worldPosition.xz).w < 0.5) discard;
+        vec4 connectionFacts = waterConnectionFacts(input.worldPosition.xz);
+        if (connectionFacts.w < 0.5) discard;
         vec2 nearshoreUv = input.worldPosition.xz * material_NearshoreWorldToUv.xy
           + material_NearshoreWorldToUv.zw;
         vec4 outsideEdges = vec4(
@@ -217,10 +225,11 @@
         if (coverage <= 0.001) discard;
 
 {{SHARED_GEOMETRY_BRIDGE}}
+        float pixelDistance = distance(camera_Position, input.worldPosition);
         float farFieldWeight = smoothstep(
           material_OceanFarTransition.x,
           material_OceanFarTransition.y,
-          distance(camera_Position, input.worldPosition)
+          pixelDistance
         );
         if (
           farFieldWeight >= 0.999
@@ -240,7 +249,7 @@
           vec3(1.0, 0.0, 0.0)
         );
         vec3 bitangent = safeNormalize3(cross(macroNormal, tangent), vec3(0.0, 0.0, 1.0));
-        vec3 tangentNormal = sampleDetailNormal(input.worldPosition.xz, input.worldPosition, elapsedTime);
+        vec3 tangentNormal = sampleDetailNormal(input.worldPosition.xz, pixelDistance, elapsedTime);
         vec3 detailNormal = safeNormalize3(
           tangent * tangentNormal.x + bitangent * tangentNormal.y + macroNormal * tangentNormal.z,
           macroNormal
@@ -248,85 +257,124 @@
         vec3 viewDirection = safeNormalize3(camera_Position - input.worldPosition, vec3(0.0, 1.0, 0.0));
         vec2 screenUv = input.clipPosition.xy / input.clipPosition.w * 0.5 + 0.5;
         float surfaceEyeDepth = -input.positionVS.z;
-        float centeredDepthRaw = texture2D(camera_DepthTexture, screenUv).r;
-        float centeredEyeDepth = remapDepthBufferEyeDepth(centeredDepthRaw);
-        float centeredDepthAvailable = material_CameraFeaturesAvailable
-          * step(surfaceEyeDepth + 0.0001, centeredEyeDepth)
-          * step(centeredDepthRaw, 0.999999);
-        float centeredViewDepth = max(centeredEyeDepth - surfaceEyeDepth, 0.0) * centeredDepthAvailable;
-
-        detailNormal = waterConnectionNormal(input.worldPosition.xz, detailNormal);
-        vec3 cameraForwardWS = safeNormalize3(
-          -camera_ViewInvMat[2].xyz,
-          safeNormalize3(input.worldPosition - camera_Position, vec3(0.0, 0.0, -1.0))
-        );
-        vec2 refractionOffset = physicalRefractionOffset(
-          screenUv,
-          cameraForwardWS,
-          detailNormal,
-          material_RefractionEnabled * material_RefractionStrength * material_AppearanceV2RefractionUvScale
-        ) / max(abs(input.clipPosition.w), 1.0);
-        vec2 requestedDisplacedUv = screenUv + refractionOffset;
-        float refractionScreenInterior = screenInterior(requestedDisplacedUv);
-        float requestedDisplacedDepthRaw = (refractionScreenInterior > 0.5 && dot(refractionOffset, refractionOffset) > 1e-10)
-          ? texture2D(camera_DepthTexture, requestedDisplacedUv).r
-          : centeredDepthRaw;
-        float requestedDisplacedEyeDepth = remapDepthBufferEyeDepth(requestedDisplacedDepthRaw);
-        float refractionValidity = material_CameraFeaturesAvailable
-          * refractionScreenInterior
-          * step(surfaceEyeDepth + 0.0001, requestedDisplacedEyeDepth)
-          * step(requestedDisplacedDepthRaw, 0.999999);
-        refractionOffset *= refractionValidity;
-        vec2 displacedUv = screenUv + refractionOffset;
-        float displacedDepthRaw = mix(centeredDepthRaw, requestedDisplacedDepthRaw, refractionValidity);
-        float displacedEyeDepth = remapDepthBufferEyeDepth(displacedDepthRaw);
-        float displacedDepthAvailable = material_CameraFeaturesAvailable
-          * step(surfaceEyeDepth + 0.0001, displacedEyeDepth)
-          * step(displacedDepthRaw, 0.999999);
-        vec3 centeredSceneColor;
-        vec3 refractedSceneColor;
-        if (refractionValidity > 0.9999 && material_RefractionEnabled > 0.5) {
-          refractedSceneColor = texture2D(camera_OpaqueTexture, displacedUv).rgb;
-          centeredSceneColor = refractedSceneColor;
-        } else {
-          centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
-          refractedSceneColor = refractionValidity > 0.001
-            ? texture2D(camera_OpaqueTexture, displacedUv).rgb
-            : centeredSceneColor;
+        float centeredDepthRaw = 1.0;
+        float centeredEyeDepth = surfaceEyeDepth;
+        float centeredDepthAvailable = 0.0;
+        float centeredViewDepth = 0.0;
+        if (material_CameraFeaturesAvailable > 0.5) {
+          centeredDepthRaw = texture2D(camera_DepthTexture, screenUv).r;
+          centeredEyeDepth = remapDepthBufferEyeDepth(centeredDepthRaw);
+          centeredDepthAvailable = step(surfaceEyeDepth + 0.0001, centeredEyeDepth)
+            * step(centeredDepthRaw, 0.999999);
+          centeredViewDepth = max(centeredEyeDepth - surfaceEyeDepth, 0.0) * centeredDepthAvailable;
         }
-        float fallbackViewDepth = mix(verticalDepth, centeredViewDepth, centeredDepthAvailable);
-        float viewDepth = mix(
-          fallbackViewDepth,
-          max(displacedEyeDepth - surfaceEyeDepth, 0.0),
-          displacedDepthAvailable
+
+        detailNormal = safeNormalize3(
+          mix(vec3(0.0, 1.0, 0.0), detailNormal, connectionFacts.x),
+          vec3(0.0, 1.0, 0.0)
         );
-        float sceneRayEyeScale = surfaceEyeDepth / max(length(camera_Position - input.worldPosition), 0.001);
+        float sceneRayEyeScale = surfaceEyeDepth / max(pixelDistance, 0.001);
         vec3 fieldViewDirection = viewDirection;
-#ifdef CAMERA_ORTHOGRAPHIC
-        sceneRayEyeScale = 1.0;
-        fieldViewDirection = cameraForwardWS;
-#endif
-        float fallbackRayDistance = waterSurfaceDerivedSceneRayDepth(verticalDepth, waterSurface_macroNormalWS, fieldViewDirection);
-        float sceneRayDepth = mix(fallbackRayDistance, viewDepth / max(sceneRayEyeScale, 0.001), max(centeredDepthAvailable, displacedDepthAvailable));
-        vec3 opaquePosition = displacedDepthAvailable > 0.5
-          ? reconstructOpaquePositionWS(displacedUv, displacedEyeDepth)
-          : (centeredDepthAvailable > 0.5
-            ? reconstructOpaquePositionWS(screenUv, centeredEyeDepth)
-            : input.worldPosition - vec3(0.0, verticalDepth, 0.0));
-        float exactSurfaceNormalDepth = abs(dot(
-          input.worldPosition - opaquePosition,
-          normalize(waterSurface_macroNormalWS)
-        ));
-        float sampledSurfaceNormalDepth = mix(
-          verticalDepth,
-          exactSurfaceNormalDepth,
-          max(centeredDepthAvailable, displacedDepthAvailable)
+        #ifdef CAMERA_ORTHOGRAPHIC
+          vec3 orthoCameraForwardWS = safeNormalize3(
+            -camera_ViewInvMat[2].xyz,
+            safeNormalize3(input.worldPosition - camera_Position, vec3(0.0, 0.0, -1.0))
+          );
+          sceneRayEyeScale = 1.0;
+          fieldViewDirection = orthoCameraForwardWS;
+        #endif
+
+        // Deep open water (>= 6m conservative depth and optically opaque density >= 99.3%)
+        // skips displaced depth, scene opaque read, and inverse-view reconstruction while
+        // preserving grazing shallow-beach refraction, clear-water tuning, and submerged rocks/props.
+        float effectiveDeepDepth = centeredDepthAvailable > 0.5
+          ? min(centeredViewDepth, verticalDepth)
+          : verticalDepth;
+        float deepOpticalExponent = effectiveDeepDepth * max(
+          max(material_AppearanceV2DepthCoefficient0, 0.0),
+          max(material_AppearanceV2DepthCoefficient1, 0.0)
         );
-        float grazingCorrection = pow(
-          1.0 - clamp(dot(viewDirection, waterSurface_macroNormalWS), 0.0, 1.0),
-          64.0
-        );
-        float surfaceNormalDepth = mix(sampledSurfaceNormalDepth, viewDepth, grazingCorrection);
+        bool deepOpaqueWater = material_AppearanceV2DepthDeepColor.a >= 0.95
+          && effectiveDeepDepth >= 6.0
+          && deepOpticalExponent >= 5.0
+          && coverage >= 0.999;
+        float refractionValidity = 0.0;
+        vec3 centeredSceneColor = vec3(0.0);
+        vec3 refractedSceneColor = vec3(0.0);
+        float viewDepth = effectiveDeepDepth;
+        float sceneRayDepth = centeredDepthAvailable > 0.5
+          ? effectiveDeepDepth / max(sceneRayEyeScale, 0.001)
+          : waterSurfaceDerivedSceneRayDepth(effectiveDeepDepth, waterSurface_macroNormalWS, fieldViewDirection);
+        vec3 opaquePosition = input.worldPosition - vec3(0.0, effectiveDeepDepth, 0.0);
+        float surfaceNormalDepth = effectiveDeepDepth;
+        if (!deepOpaqueWater) {
+          vec3 cameraForwardWS = safeNormalize3(
+            -camera_ViewInvMat[2].xyz,
+            safeNormalize3(input.worldPosition - camera_Position, vec3(0.0, 0.0, -1.0))
+          );
+          vec2 refractionOffset = physicalRefractionOffset(
+            screenUv,
+            cameraForwardWS,
+            detailNormal,
+            material_RefractionEnabled * material_RefractionStrength * material_AppearanceV2RefractionUvScale
+          ) / max(abs(input.clipPosition.w), 1.0);
+          vec2 requestedDisplacedUv = screenUv + refractionOffset;
+          float refractionScreenInterior = screenInterior(requestedDisplacedUv);
+          float requestedDisplacedDepthRaw = (refractionScreenInterior > 0.5 && dot(refractionOffset, refractionOffset) > 1e-10)
+            ? texture2D(camera_DepthTexture, requestedDisplacedUv).r
+            : centeredDepthRaw;
+          float requestedDisplacedEyeDepth = remapDepthBufferEyeDepth(requestedDisplacedDepthRaw);
+          refractionValidity = material_CameraFeaturesAvailable
+            * refractionScreenInterior
+            * step(surfaceEyeDepth + 0.0001, requestedDisplacedEyeDepth)
+            * step(requestedDisplacedDepthRaw, 0.999999);
+          refractionOffset *= refractionValidity;
+          vec2 displacedUv = screenUv + refractionOffset;
+          float displacedDepthRaw = mix(centeredDepthRaw, requestedDisplacedDepthRaw, refractionValidity);
+          float displacedEyeDepth = remapDepthBufferEyeDepth(displacedDepthRaw);
+          float displacedDepthAvailable = material_CameraFeaturesAvailable
+            * step(surfaceEyeDepth + 0.0001, displacedEyeDepth)
+            * step(displacedDepthRaw, 0.999999);
+          if (refractionValidity > 0.9999 && material_RefractionEnabled > 0.5) {
+            refractedSceneColor = texture2D(camera_OpaqueTexture, displacedUv).rgb;
+            centeredSceneColor = refractedSceneColor;
+          } else {
+            centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
+            refractedSceneColor = refractionValidity > 0.001
+              ? texture2D(camera_OpaqueTexture, displacedUv).rgb
+              : centeredSceneColor;
+          }
+          float fallbackViewDepth = mix(verticalDepth, centeredViewDepth, centeredDepthAvailable);
+          viewDepth = mix(
+            fallbackViewDepth,
+            max(displacedEyeDepth - surfaceEyeDepth, 0.0),
+            displacedDepthAvailable
+          );
+          float fallbackRayDistance = waterSurfaceDerivedSceneRayDepth(verticalDepth, waterSurface_macroNormalWS, fieldViewDirection);
+          sceneRayDepth = mix(fallbackRayDistance, viewDepth / max(sceneRayEyeScale, 0.001), max(centeredDepthAvailable, displacedDepthAvailable));
+          opaquePosition = displacedDepthAvailable > 0.5
+            ? reconstructOpaquePositionWS(displacedUv, displacedEyeDepth)
+            : (centeredDepthAvailable > 0.5
+              ? reconstructOpaquePositionWS(screenUv, centeredEyeDepth)
+              : input.worldPosition - vec3(0.0, verticalDepth, 0.0));
+          float exactSurfaceNormalDepth = abs(dot(
+            input.worldPosition - opaquePosition,
+            normalize(waterSurface_macroNormalWS)
+          ));
+          float sampledSurfaceNormalDepth = mix(
+            verticalDepth,
+            exactSurfaceNormalDepth,
+            max(centeredDepthAvailable, displacedDepthAvailable)
+          );
+          float grazingBase = 1.0 - clamp(dot(viewDirection, waterSurface_macroNormalWS), 0.0, 1.0);
+          float g2 = grazingBase * grazingBase;
+          float g4 = g2 * g2;
+          float g8 = g4 * g4;
+          float g16 = g8 * g8;
+          float g32 = g16 * g16;
+          float grazingCorrection = g32 * g32;
+          surfaceNormalDepth = mix(sampledSurfaceNormalDepth, viewDepth, grazingCorrection);
+        }
 
         float centeredDepthBehind = smoothstep(0.03, 0.22, centeredViewDepth);
 {{SHARED_BOUNDARY_RESPONSE}}
@@ -336,11 +384,9 @@
         float waterFog = waterDensity * baseColor.a;
 
         vec2 offsetVector = clamp(vec2(input.waveOffsetY) + detailNormal.xz, vec2(0.0), vec2(1.0));
-        float verticalIntersectionGradient = 1.0 - clamp(
-          exp(surfaceNormalDepth) / material_OceanIntersectionParameters.y,
-          0.0,
-          1.0
-        );
+        float verticalIntersectionGradient = deepOpaqueWater
+          ? 0.0
+          : (1.0 - clamp(exp(surfaceNormalDepth) / material_OceanIntersectionParameters.y, 0.0, 1.0));
         float shoreIntersectionGradient = appearanceBoundaryMask0;
         float intersectionGradient = max(verticalIntersectionGradient, shoreIntersectionGradient) * coverage;
         float intersectionDistance = clamp(
@@ -372,29 +418,40 @@
         }
 
         // Non-River Ocean keeps water.slope at zero; vertex alpha is absent on this generated mesh.
-        float baseFoam = clamp(material_OceanSurfaceFoamParameters.y, 0.0, 1.0);
-        float foamMask = clamp(1.0 - baseFoam, 0.0, 1.0);
-        vec4 foamUv = packedUv(
-          input.worldPosition.xz + offsetVector * material_OceanSurfaceFoamMapping.y,
-          material_OceanSurfaceFoamMapping.zw,
-          vec2(-elapsedTime),
-          material_OceanSurfaceFoamParameters.w,
-          material_OceanSurfaceFoamParameters.z,
-          material_OceanSurfaceFoamMapping.x
-        );
-        float foamTexture = 0.0;
-        if (material_OceanTextureEnabled.w > 0.5) foamTexture = clamp(
-          texture2D(material_FoamTexture, foamUv.xy).r
-            + texture2D(material_FoamTexture, foamUv.zw).r,
-          0.0,
-          1.0
-        );
-        float surfaceFoam = smoothstep(foamMask, foamMask + 1.0, foamTexture)
-          * material_OceanSurfaceFoamColor.a * material_OceanSurfaceFoamParameters.x * material_OceanTextureEnabled.w;
+        // Smoothly fade surface foam before the far-field transition and skip both texture fetches once faded.
+        float foamDistanceFade = 1.0 - smoothstep(64.0, material_OceanFarTransition.x, pixelDistance);
+        float surfaceFoam = 0.0;
+        if (
+          material_OceanTextureEnabled.w > 0.5
+          && material_OceanSurfaceFoamParameters.x > 0.0
+          && foamDistanceFade > 0.001
+        ) {
+          float baseFoam = clamp(material_OceanSurfaceFoamParameters.y, 0.0, 1.0);
+          float foamMask = clamp(1.0 - baseFoam, 0.0, 1.0);
+          vec4 foamUv = packedUv(
+            input.worldPosition.xz + offsetVector * material_OceanSurfaceFoamMapping.y,
+            material_OceanSurfaceFoamMapping.zw,
+            vec2(-elapsedTime),
+            material_OceanSurfaceFoamParameters.w,
+            material_OceanSurfaceFoamParameters.z,
+            material_OceanSurfaceFoamMapping.x
+          );
+          float foamTexture = clamp(
+            texture2D(material_FoamTexture, foamUv.xy).r
+              + texture2D(material_FoamTexture, foamUv.zw).r,
+            0.0,
+            1.0
+          );
+          surfaceFoam = smoothstep(foamMask, foamMask + 1.0, foamTexture)
+            * material_OceanSurfaceFoamColor.a * material_OceanSurfaceFoamParameters.x * foamDistanceFade;
+        }
         float flattening = clamp(max(intersection, surfaceFoam), 0.0, 1.0);
         detailNormal = safeNormalize3(mix(detailNormal, macroNormal, flattening), macroNormal);
 
-        float horizonFactor = pow(1.0 - clamp(dot(viewDirection, vec3(0.0, 1.0, 0.0)), 0.0, 1.0), 8.0) * material_OceanHorizonColor.a;
+        float horizonBase = 1.0 - clamp(dot(viewDirection, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
+        float horizonPow2 = horizonBase * horizonBase;
+        float horizonPow4 = horizonPow2 * horizonPow2;
+        float horizonFactor = horizonPow4 * horizonPow4 * material_OceanHorizonColor.a;
         vec3 lightDirectionVector = -scene_SunlightDirection;
         float sunlightAvailable = step(0.00000001, dot(lightDirectionVector, lightDirectionVector));
         vec3 lightDirection = safeNormalize3(lightDirectionVector, vec3(0.0, 1.0, 0.0));
@@ -413,13 +470,12 @@
         vec3 diffuseLighting = lighting.diffuseRadiance;
 
         vec3 reflectionNormal = safeNormalize3(mix(macroNormal, detailNormal, material_OceanReflectionNormalBlend), macroNormal);
-        vec3 analyticReflection = waterSurfaceResolveAnalyticReflectionFallbackV2(reflectionNormal.y, material_Roughness, 1.0);
         vec3 reflectionDirection = reflect(-viewDirection, reflectionNormal);
         float reflectionNormalDotView = clamp(dot(reflectionNormal, viewDirection), 0.0, 1.0);
         float reflectionSamplingRoughness = material_Roughness;
+        float analyticNormalY = reflectionNormal.y;
         if (farFieldWeight > 0.0) {
-          // Converge the sampling facts before blending the remaining near-only
-          // depth/foam/transmission contributions into the far closure.
+          // Converge lighting & reflection facts into one unified closure evaluation (no second cubemap/closure pass).
           reflectionDirection = safeNormalize3(mix(
             reflectionDirection, oceanFarReflectionDirection(viewDirection), farFieldWeight
           ), vec3(0.0, 1.0, 0.0));
@@ -427,26 +483,34 @@
             reflectionNormalDotView, oceanFarReflectionNormalDotView(viewDirection), farFieldWeight
           );
           reflectionSamplingRoughness = mix(material_Roughness, material_OceanFarReflectionFilter.x, farFieldWeight);
+          analyticNormalY = mix(analyticNormalY, 1.0, farFieldWeight);
+          vec3 farDiffuseLighting = waterSurfaceAmbientDiffuseRadiance(vec3(0.0, 1.0, 0.0))
+            + unshadowedSunlightColor * max(lightDirection.y, 0.0);
+          diffuseLighting = mix(diffuseLighting, farDiffuseLighting, farFieldWeight);
         }
+        vec3 analyticReflection = waterSurfaceResolveAnalyticReflectionFallbackV2(analyticNormalY, reflectionSamplingRoughness, 1.0);
         vec3 environmentReflection;
         float environmentValidity;
         waterSurfaceSampleRawEnvironmentReflectionV2(reflectionDirection, waterSurface_positionWS, reflectionSamplingRoughness, environmentReflection, environmentValidity);
+        float nearScale = 1.0 - farFieldWeight;
         vec3 sunReflection = waterSurfaceDirectionalHighlightV2(
           sunlightColor, lightDirection, viewDirection, macroNormal, detailNormal,
           material_AppearanceV2DirectionalHighlightDistortion, material_AppearanceV2DirectionalHighlightExponent,
           material_AppearanceV2DirectionalHighlightStrength, material_AppearanceV2DirectionalHighlightSharp
-        );
+        ) * nearScale;
         float edgeFade = clamp(surfaceNormalDepth / 0.187, 0.0, 1.0);
+        float causticsDepthFade = deepOpaqueWater ? 0.0 : (1.0 - smoothstep(4.0, 6.0, surfaceNormalDepth));
+        float causticsDistanceFade = 1.0 - smoothstep(56.0, 96.0, pixelDistance);
         float causticsMask = clamp(
           (1.0 - waterFog) - intersection - surfaceFoam,
           0.0,
           1.0
-        ) * coverage;
+        ) * coverage * causticsDepthFade * causticsDistanceFade * nearScale;
         float mainLightIntensity = dot(unshadowedSunlightColor, vec3(0.3, 0.59, 0.11));
         float causticsWeight = causticsMask * material_OceanCausticsParameters.y
           * mainLightIntensity * cloudShadowAttenuation * material_OceanCausticsParameters.x * material_OceanTextureEnabled.z;
         vec3 caustics = vec3(0.0);
-        if (causticsWeight > 0.0) {
+        if (causticsWeight > 0.005) {
           vec2 causticsTime = vec2(-elapsedTime) * material_OceanCausticsMotion.x;
           vec2 causticsBase = opaquePosition.xz
             + mix(macroNormal, detailNormal, material_OceanCausticsParameters.w).xz;
@@ -467,7 +531,7 @@
           safeNormalize3(macroNormal + detailNormal * 0.1, macroNormal),
           material_OceanTranslucencyParameters.y, material_OceanTranslucencyParameters.z,
           material_OceanTranslucencyParameters.w, material_OceanTranslucencyCurvatureMask,
-          clamp(waterFog + edgeFade, 0.0, 1.0) * material_OceanTranslucencyParameters.x
+          clamp(waterFog + edgeFade, 0.0, 1.0) * material_OceanTranslucencyParameters.x * nearScale
         );
         WaterSurfaceRawRefractionFactsV2 rawRefractionFacts;
         rawRefractionFacts.centeredSceneSample = centeredSceneColor;
@@ -501,12 +565,22 @@
         rawContributionPolicy.ssrCompositeIntensity = 0.0;
         rawContributionPolicy.foamIntensity = material_OceanFoamIntensity;
         WaterSurfaceResolvedRawContributionsV2 resolvedContributions = waterSurfaceResolveRawContributionsV2(rawRefractionFacts, rawReflectionFacts, waterSurfaceResolveRawFoamWeightV2(rawFoamFacts, rawContributionPolicy), rawContributionPolicy);
+        vec3 farBaseColor = mix(material_OceanDeepColor.rgb, material_OceanHorizonColor.rgb, horizonFactor);
+        float iorRatio = (material_IndexOfRefraction - 1.0) / (material_IndexOfRefraction + 1.0);
         WaterSurfaceFinalClosureV2Input closureInput;
-        closureInput.additionalTransmissionRadiance = (caustics + translucencyRadiance) * waterConnectionFacts(input.worldPosition.xz).x;
+        closureInput.additionalTransmissionRadiance = (caustics + translucencyRadiance) * connectionFacts.x;
         closureInput.primarySceneColor = resolvedContributions.refractionSceneColor;
-        closureInput.surfaceColor = mix(material_AppearanceV2DepthShallowColor.rgb, material_OceanHorizonColor.rgb, horizonFactor);
-        closureInput.depthColor = mix(appearanceDepthTintColor, material_OceanHorizonColor.rgb, horizonFactor);
-        closureInput.depthFactor = appearanceDepthTintFactor;
+        closureInput.surfaceColor = mix(
+          mix(material_AppearanceV2DepthShallowColor.rgb, material_OceanHorizonColor.rgb, horizonFactor),
+          farBaseColor,
+          farFieldWeight
+        );
+        closureInput.depthColor = mix(
+          mix(appearanceDepthTintColor, material_OceanHorizonColor.rgb, horizonFactor),
+          farBaseColor,
+          farFieldWeight
+        );
+        closureInput.depthFactor = mix(appearanceDepthTintFactor, 1.0, farFieldWeight);
         closureInput.diffuseLighting = diffuseLighting;
         closureInput.primaryColorClosureModel = 3.0;
         closureInput.absorptionCoefficient = material_AbsorptionCoefficient;
@@ -514,40 +588,44 @@
         closureInput.scatteringCoefficient = material_ScatteringCoefficient;
         closureInput.opticalDepth = min(viewDepth, material_MaximumSurfaceOpticalDistance);
         closureInput.refractionColor = resolvedContributions.refractionSceneColor;
-        closureInput.refractionWeight = resolvedContributions.refractionWeight;
+        closureInput.refractionWeight = resolvedContributions.refractionWeight * nearScale;
         closureInput.reflectionRadiance = resolvedContributions.reflectionRadiance;
-        closureInput.fresnelF0 = pow((material_IndexOfRefraction - 1.0) / (material_IndexOfRefraction + 1.0), 2.0);
-        closureInput.perceptualRoughness = effectiveSurfaceRoughness;
+        closureInput.fresnelF0 = iorRatio * iorRatio;
+        closureInput.perceptualRoughness = mix(effectiveSurfaceRoughness, material_Roughness, farFieldWeight);
         closureInput.normalDotView = reflectionNormalDotView;
         closureInput.transmissionFresnelWeight = 1.0;
         closureInput.reflectionIntensity = material_ReflectionIntensity;
         closureInput.directSpecularRadiance = sunReflection;
-        closureInput.boundaryColor = appearanceBoundaryColor;
+        closureInput.boundaryColor = appearanceBoundaryColor * nearScale;
         closureInput.foamColor = mix(material_OceanSurfaceFoamColor.rgb, material_OceanIntersectionColor.rgb, intersection);
-        closureInput.foamWeight = resolvedContributions.foamWeight;
+        closureInput.foamWeight = resolvedContributions.foamWeight * nearScale;
         closureInput.baseAlpha = 1.0;
         closureInput.clarity = 1.0;
-        closureInput.coastalAlpha = edgeFade * appearanceCoastalAlpha;
+        closureInput.coastalAlpha = mix(edgeFade * appearanceCoastalAlpha, 1.0, farFieldWeight);
         closureInput.coastalAlphaWeight = 1.0;
-        closureInput.coverage = waterSurface_coverage;
+        closureInput.coverage = mix(waterSurface_coverage, 1.0, farFieldWeight);
         closureInput.compositionSceneColor = centeredSceneColor;
         closureInput.precomposedReplace = 1.0;
         #ifdef MATERIAL_WATER_CONNECTIONS
-        // Both sides approach clear, flat water before their authored optical response resumes.
-        float connectionWeight = waterConnectionFacts(input.worldPosition.xz).x;
+        // Both sides approach clear, flat water before their authored optical response resumes,
+        // and converge cleanly to the shared far closure across the far-field transition band.
+        float connectionWeight = mix(connectionFacts.x, 1.0, farFieldWeight);
         closureInput.depthFactor *= connectionWeight;
         closureInput.opticalDepth *= connectionWeight;
         closureInput.directSpecularRadiance *= connectionWeight;
         closureInput.perceptualRoughness = mix(0.1, closureInput.perceptualRoughness, connectionWeight);
 #endif
-        vec4 resolvedWaterClosure = waterSurfaceEvaluateFinalClosureV2(closureInput, resolvedContributions.foamWeight, baseColor.a);
+        float deepOpacityRamp = (material_AppearanceV2DepthDeepColor.a >= 0.95 && deepOpticalExponent >= 4.0)
+          ? smoothstep(4.5, 6.0, effectiveDeepDepth) * smoothstep(4.0, 5.0, deepOpticalExponent)
+          : 0.0;
+        float resolvedDepthOpacity = mix(baseColor.a, 1.0, max(deepOpacityRamp, farFieldWeight));
+        vec4 resolvedWaterClosure = waterSurfaceEvaluateFinalClosureV2(
+          closureInput,
+          closureInput.foamWeight,
+          resolvedDepthOpacity
+        );
         vec3 finalColor = resolvedWaterClosure.rgb;
-        float finalAlpha = resolvedWaterClosure.a;
-
-        if (farFieldWeight > 0.0) {
-          finalColor = mix(finalColor, oceanFarFieldRadiance(input.worldPosition), farFieldWeight);
-          finalAlpha = mix(finalAlpha, coverage, farFieldWeight);
-        }
+        float finalAlpha = mix(resolvedWaterClosure.a, coverage, farFieldWeight);
 
 {{VALUE_031_CREATEOCEANSCENEFOGAPPLICATION_FINALCOLOR}}
           resolvedWaterClosure = vec4(finalColor, finalAlpha);

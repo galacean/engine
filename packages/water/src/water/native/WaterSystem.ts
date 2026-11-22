@@ -464,6 +464,10 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
   get ready(): Promise<void> {
     return this._tail.then(() => {});
   }
+  /** Active committed water render roots whose inactive LOD/far-only subtrees still require deferred shader warmup. */
+  get shaderWarmupRoots(): readonly Entity[] {
+    return this._disposed || !this._host ? [] : this._host.shaderWarmupRoots;
+  }
 
   override onEnable(): void {
     const scene = this.entity.scene!;

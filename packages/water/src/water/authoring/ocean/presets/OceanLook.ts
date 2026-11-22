@@ -17,7 +17,7 @@ export const OCEAN_LOOK = Object.freeze({
     steepness: 5,
     normalStrength: 0.16,
     fadeStartMetres: 25,
-    fadeEndMetres: 286.97916,
+    fadeEndMetres: 160,
     direction: Object.freeze([-1, -1, -1, -1] as const),
     animationSpeed: 1
   }),
@@ -28,7 +28,7 @@ export const OCEAN_LOOK = Object.freeze({
     speed: 0.8,
     subSpeed: -0.8,
     distanceTiling: 0.25,
-    distanceFadeStartMetres: 0,
+    distanceFadeStartMetres: 24,
     distanceFadeEndMetres: 80
   }),
   color: Object.freeze({
@@ -177,40 +177,39 @@ export const OCEAN_WAVE_DISPLACEMENT_ENVELOPE = deriveOceanWaveDisplacementEnvel
 export const OCEAN_RENDER_BUDGET = Object.freeze({
   gpuBudgetBasis: "geometry+nearshore-atlas+ocean-textures" as const,
   /** Camera-following high-detail square. Its boundary stays beyond the macro-wave fade. */
-  nearFieldWindowSizeMetres: 640,
+  nearFieldWindowSizeMetres: 384,
   nearFieldCellSizeMetres: 2,
   /**
    * Watertight concentric rings around the snapped near-field origin.
-   * Inner 128m half-extent keeps >= 112m around the camera at 2m resolution even at worst ±16m snap
-   * (preserving full 2m waves across 0..96m with a smooth 96..112m bandlimit transition);
-   * mid 192m steps to 4m and outer 320m steps to 8m to join graded-far-field 1:1.
+   * Inner 64m half-extent keeps >= 48m around the camera at 2m resolution even at worst ±16m snap
+   * (preserving full 2m waves across 0..32m with a smooth 32..48m bandlimit transition);
+   * mid rings step 4m (96m), 8m (128m), and outer 16m (192m) to join graded-far-field 1:1.
    */
   nearFieldConcentricRings: Object.freeze([
-    Object.freeze({ outerHalfExtentMetres: 128, cellSizeMetres: 2 }),
-    Object.freeze({ outerHalfExtentMetres: 192, cellSizeMetres: 4 }),
-    Object.freeze({ outerHalfExtentMetres: 320, cellSizeMetres: 8 })
+    Object.freeze({ outerHalfExtentMetres: 64, cellSizeMetres: 2 }),
+    Object.freeze({ outerHalfExtentMetres: 96, cellSizeMetres: 4 }),
+    Object.freeze({ outerHalfExtentMetres: 128, cellSizeMetres: 8 }),
+    Object.freeze({ outerHalfExtentMetres: 192, cellSizeMetres: 16 })
   ] as const),
-  /** Keeps the complete camera-relative topology on a stable world lattice (divisible by outer 8m cells). */
+  /** Keeps the complete camera-relative topology on a stable world lattice (divisible by outer 16m cells). */
   nearFieldSnapSizeMetres: 32,
-  /** Four 320m quadrants keep every near-field Mesh on Uint16 indices. */
+  /** Four 192m quadrants keep every near-field Mesh on Uint16 indices. */
   nearFieldMeshAxisCount: 2,
   /** Detailed shading converges to the shared far closure before the nearest possible moving-grid edge. */
-  farFieldClosureTransitionStartMetres: 160,
-  farFieldClosureTransitionEndMetres: 288,
+  farFieldClosureTransitionStartMetres: 112,
+  farFieldClosureTransitionEndMetres: 176,
   /** One Nearshore coverage lookup plus one borrowed distant-environment lookup. */
   farFieldMaximumTextureSampleCount: 2,
   /**
    * One immutable camera-relative square-ring mesh. The last marker loop is projected by the vertex shader;
    * every preceding loop keeps real world depth so terrain and fog remain continuous.
    */
-  farFieldRingHalfExtentsMetres: Object.freeze([
-    320, 512, 768, 1_024, 1_536, 2_048, 3_072, 4_096, 6_144, 8_192, 16_384
-  ] as const),
-  /** 8m segments at the 320m join align exactly to every fourth 2m near-field vertex. */
-  farFieldRingSegmentsPerEdge: 80,
+  farFieldRingHalfExtentsMetres: Object.freeze([192, 384, 768, 1_536, 3_072, 6_144, 8_192, 16_384] as const),
+  /** 16m segments at the 192m join align 1:1 to every outer near-field vertex. */
+  farFieldRingSegmentsPerEdge: 24,
   farFieldMaximumDrawCount: 1,
-  farFieldMaximumResidentTriangleCount: 6_400,
-  farFieldMaximumResidentVertexCount: 3_520,
+  farFieldMaximumResidentTriangleCount: 1_344,
+  farFieldMaximumResidentVertexCount: 768,
   /** A planar center fill replaces the detailed grid only after the far-only proof succeeds. */
   farOnlyFillMaximumDrawCount: 1,
   farOnlyFillMaximumResidentTriangleCount: 2,

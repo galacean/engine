@@ -272,22 +272,20 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
   #if {{ADDITIONAL_TRANSMISSION_ENABLED}} == 1
     color += closure.additionalTransmissionRadiance;
   #endif
+  vec3 reflectionBrdfWeight = waterSurfaceEnvironmentSpecularWeight(
+    closure.fresnelF0,
+    closure.perceptualRoughness,
+    closure.normalDotView
+  );
   #if {{ROUGH_TRANSMISSION_ENABLED}} == 1
     // Match the energy removed from a rough transmitted lobe to its integrated
     // environment BRDF; smooth Schlick would blacken a rough grazing horizon.
-    float transmissionFresnel = clamp(waterSurfaceEnvironmentSpecularWeight(
-      closure.fresnelF0, closure.perceptualRoughness, closure.normalDotView
-    ).x, 0.0, 1.0);
+    float transmissionFresnel = clamp(reflectionBrdfWeight.x, 0.0, 1.0);
   #endif
   color *= mix(
     1.0,
     1.0 - {{TRANSMISSION_FRESNEL}},
     clamp(closure.transmissionFresnelWeight, 0.0, 1.0)
-  );
-  vec3 reflectionBrdfWeight = waterSurfaceEnvironmentSpecularWeight(
-    closure.fresnelF0,
-    closure.perceptualRoughness,
-    closure.normalDotView
   );
   color += closure.reflectionRadiance
     * reflectionBrdfWeight

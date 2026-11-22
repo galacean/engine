@@ -162,6 +162,11 @@ export class PlanningWaterRuntime {
     return this.system.developmentTargets;
   }
 
+  /** Committed water render roots whose inactive presentation subtrees (e.g. Ocean near-field in far-only) still need shader warmup. */
+  get shaderWarmupRoots(): readonly Entity[] {
+    return this.destroyed ? [] : this.system.shaderWarmupRoots;
+  }
+
   constructor(private readonly options: PlanningWaterRuntimeOptions) {
     this.componentRoot = options.root.createChild("Planning native water");
     this.system = this.componentRoot.addComponent(WaterSystem);

@@ -34,7 +34,7 @@ import {
 } from "./OceanMaterial";
 import type { OceanNearshoreFieldResource } from "./OceanNearshoreFieldResource";
 import { createOceanNearshoreFieldTexture } from "./OceanNearshoreFieldTextureFactory";
-import { OCEAN_TUNING_LIMITS, type OceanRuntimeTuning } from "./OceanRuntimeTuning";
+import { type OceanRuntimeTuning } from "./OceanRuntimeTuning";
 import {
   OceanSceneFieldDemandResolver,
   type OceanSceneFieldCameraPosition,
@@ -84,6 +84,18 @@ export function computeOceanOwnedGpuBytes(input: Readonly<OceanGpuFootprintInput
   return values.reduce((total, value) => total + value, 0);
 }
 
+function resolveActiveWaveDisplacement(
+  tuning: Readonly<OceanRuntimeTuning>
+): Readonly<{ readonly x: number; readonly y: number; readonly z: number }> {
+  const heightRatio = tuning.wave.height / OCEAN_LOOK.wave.height;
+  const steepnessRatio = tuning.wave.steepness / OCEAN_LOOK.wave.steepness;
+  return Object.freeze({
+    x: OCEAN_WAVE_DISPLACEMENT_ENVELOPE.maximumXMetres * heightRatio * steepnessRatio,
+    y: OCEAN_WAVE_DISPLACEMENT_ENVELOPE.maximumYMetres * heightRatio,
+    z: OCEAN_WAVE_DISPLACEMENT_ENVELOPE.maximumZMetres * heightRatio * steepnessRatio
+  });
+}
+
 function cleanupRuntime(actions: readonly (() => void)[], errors: unknown[] = []): void {
   for (const action of actions) {
     try {
@@ -114,7 +126,7 @@ export class OceanWaterRuntimeController {
   private readonly _materialState: OceanMaterialState;
   private readonly _farMaterialState: OceanFarMaterialState;
   private readonly _connectionBinding: WaterConnectionBinding | undefined;
-  private readonly _maximumDisplacement: Readonly<{ readonly x: number; readonly y: number; readonly z: number }>;
+  private _maximumDisplacement: Readonly<{ readonly x: number; readonly y: number; readonly z: number }>;
   private readonly _sceneFieldDemandResolver: OceanSceneFieldDemandResolver;
   private _bandlimitViewportHeight: number;
   private _config: OceanWaterRuntimeConfig;
@@ -170,19 +182,8 @@ export class OceanWaterRuntimeController {
         compiledHash: compiled.compiledHash ?? compiled.nearshoreResource.identity.compiledHash
       }
     );
-    this._maximumDisplacement = Object.freeze({
-      x:
-        OCEAN_WAVE_DISPLACEMENT_ENVELOPE.maximumXMetres *
-        (OCEAN_TUNING_LIMITS.wave.height.maximum / OCEAN_LOOK.wave.height) *
-        (OCEAN_TUNING_LIMITS.wave.steepness.maximum / OCEAN_LOOK.wave.steepness),
-      y:
-        OCEAN_WAVE_DISPLACEMENT_ENVELOPE.maximumYMetres *
-        (OCEAN_TUNING_LIMITS.wave.height.maximum / OCEAN_LOOK.wave.height),
-      z:
-        OCEAN_WAVE_DISPLACEMENT_ENVELOPE.maximumZMetres *
-        (OCEAN_TUNING_LIMITS.wave.height.maximum / OCEAN_LOOK.wave.height) *
-        (OCEAN_TUNING_LIMITS.wave.steepness.maximum / OCEAN_LOOK.wave.steepness)
-    });
+    const initialTuning = config.color ? { ...OCEAN_LOOK, color: config.color } : OCEAN_LOOK;
+    this._maximumDisplacement = resolveActiveWaveDisplacement(initialTuning);
     this._sceneFieldDemandResolver = new OceanSceneFieldDemandResolver(compiled.nearshoreResource.atlas, {
       horizontalMagnitude: Math.hypot(this._maximumDisplacement.x, this._maximumDisplacement.z),
       vertical: this._maximumDisplacement.y
@@ -219,7 +220,7 @@ export class OceanWaterRuntimeController {
         cellSizeXZ: config.nearshoreDescriptor.grid.cellSizeXZ,
         outsidePolicy: config.nearshoreDescriptor.outsidePolicy
       } as const;
-      const tuning = config.color ? { ...OCEAN_LOOK, color: config.color } : OCEAN_LOOK;
+      const tuning = initialTuning;
       materialState = createOceanMaterial(engine, {
         renderContract: config.renderContract,
         tuning,
@@ -273,6 +274,8 @@ export class OceanWaterRuntimeController {
         {
           layer: parent.layer,
           nearshore: config.nearshoreDescriptor,
+          nearshoreAtlas: atlas,
+          connectionCoverageBounds: config.connections?.map((port) => port.coverageBounds),
           surfaceCenterXZ: config.surfaceCenterXZ,
           size: config.size,
           waterLevel: config.waterLevel,
@@ -454,6 +457,17 @@ export class OceanWaterRuntimeController {
     this._assertActive();
     setOceanRuntimeTuning(this._materialState, tuning);
     setOceanFarRuntimeTuning(this._farMaterialState, tuning);
+    const nextDisplacement = resolveActiveWaveDisplacement(this._materialState.tuning);
+    this._maximumDisplacement = nextDisplacement;
+    this._geometry.setMaximumDisplacement(nextDisplacement);
+    this._sceneFieldDemandResolver.setMaximumDisplacement(
+      Math.hypot(nextDisplacement.x, nextDisplacement.z),
+      nextDisplacement.y
+    );
+    if (this._terrainOcclusionProvider) {
+      this._geometry.refreshTerrainOcclusion(this._terrainOcclusionProvider);
+    }
+    this._refreshCameraSceneFieldDemand(this._lastCameraPosition);
   }
 
   update(deltaTime: number): void {

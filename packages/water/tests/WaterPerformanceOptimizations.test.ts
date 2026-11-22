@@ -86,19 +86,23 @@ import oceanFarAotShaderSource from "../../terrain/src/data/seed-world/source/Sh
 import seedWorldProject from "../../terrain/src/data/seed-world/project.json";
 
 describe("Water P0 + P1 performance optimizations", () => {
-  it("builds a watertight 3-ring concentric Ocean near-field mesh (~51.6k tris) with +Y winding and exact seams", () => {
+  it("builds a watertight 4-ring concentric Ocean near-field mesh (12.6k tris) + graded far mesh (1.3k tris) with +Y winding and exact seams", () => {
     const layout = resolveFiniteOceanNearFieldLayout();
     const farLayout = resolveGradedOceanFarFieldLayout();
-    expect(layout.triangleCount).toBe(51_648);
-    expect(layout.vertexCount).toBe(26_372);
+    expect(layout.triangleCount).toBe(12_576);
+    expect(layout.vertexCount).toBe(6_532);
     expect(layout.cellSizeMetres).toBe(2);
-    expect(layout.outerCellSizeMetres).toBe(8);
+    expect(layout.outerCellSizeMetres).toBe(16);
     expect(layout.rings.map((ring) => [ring.outerHalfExtentMetres, ring.cellSizeMetres])).toEqual([
-      [128, 2],
-      [192, 4],
-      [320, 8]
+      [64, 2],
+      [96, 4],
+      [128, 8],
+      [192, 16]
     ]);
-    // Outer ring matches graded-far-field 8m segments 1-to-1.
+    expect(farLayout.triangleCount).toBe(1_344);
+    expect(farLayout.vertexCount).toBe(768);
+    expect(layout.triangleCount + farLayout.triangleCount).toBe(13_920);
+    // Outer ring matches graded-far-field 16m segments 1-to-1.
     expect((farLayout.innerHalfExtentMetres * 2) / farLayout.segmentsPerEdge).toBe(layout.outerCellSizeMetres);
 
     let totalArea = 0;
@@ -162,7 +166,7 @@ describe("Water P0 + P1 performance optimizations", () => {
     expect(totalVertices).toBe(layout.vertexCount);
     expect(totalArea).toBeCloseTo(layout.windowSizeMetres * layout.windowSizeMetres, 4);
 
-    // Every boundary edge (count === 1) must lie exclusively on the outer ±320m square and have length 8m.
+    // Every boundary edge (count === 1) must lie exclusively on the outer ±192m square and have length 16m.
     let outerBoundaryEdgeCount = 0;
     for (const [ek, count] of edgeCounts) {
       if (count === 2) continue;
@@ -171,15 +175,15 @@ describe("Water P0 + P1 performance optimizations", () => {
       const [ax, az] = aStr!.split(",").map(Number) as [number, number];
       const [bx, bz] = bStr!.split(",").map(Number) as [number, number];
       const onOuterBorder =
-        (Math.abs(ax) === 320 && Math.abs(bx) === 320) || (Math.abs(az) === 320 && Math.abs(bz) === 320);
+        (Math.abs(ax) === 192 && Math.abs(bx) === 192) || (Math.abs(az) === 192 && Math.abs(bz) === 192);
       expect(onOuterBorder, `interior T-junction or crack at edge ${ek}`).toBe(true);
-      expect(Math.hypot(bx - ax, bz - az)).toBe(8);
+      expect(Math.hypot(bx - ax, bz - az)).toBe(16);
       outerBoundaryEdgeCount++;
     }
     expect(outerBoundaryEdgeCount).toBe(farLayout.segmentsPerEdge * 4);
   });
 
-  it("switches inland cameras beyond 304m to Ocean far-only even when RGBA8 shore SDF saturates at 64m", () => {
+  it("switches inland cameras beyond 192m to Ocean far-only even when RGBA8 shore SDF saturates at 64m", () => {
     const width = 256;
     const height = 256;
     const worldSize = 1024; // 4m per texel
@@ -211,16 +215,22 @@ describe("Water P0 + P1 performance optimizations", () => {
       { horizontalMagnitude: 2, vertical: 1 }
     );
 
+    expect(OCEAN_SCENE_FIELD_DEMAND_BUDGET.detailedClosureEndMetres).toBe(176);
     expect(OCEAN_SCENE_FIELD_DEMAND_BUDGET.releaseMarginMetres).toBe(16);
     expect(OCEAN_SCENE_FIELD_DEMAND_BUDGET.reacquireMarginMetres).toBe(8);
 
-    // Center of island (512, 512) is ~480m from wet ocean (> 304m release threshold) -> far-only!
+    // Center of island (512, 512) is ~480m from wet ocean (> 192m release threshold) -> far-only!
     const inland = resolver.resolve(512, 10, 512, 0, true);
     expect(inland.required).toBe(false);
     expect(inland.reason).toBe("far-only");
     expect(inland.conservativeHorizontalDryDistanceMetres).toBeGreaterThan(400);
 
-    // Coastal position (150, 512) is ~118m from wet ocean (< 296m reacquire threshold) -> detailed!
+    // Typical Seed World inland spawn (~210m from wet ocean > 192m release threshold) -> far-only!
+    const spawnInland = resolver.resolve(260, 10, 512, 0, true);
+    expect(spawnInland.required).toBe(false);
+    expect(spawnInland.reason).toBe("far-only");
+
+    // Coastal position (150, 512) is ~118m from wet ocean (< 184m reacquire threshold) -> detailed!
     const coastal = resolver.resolve(150, 10, 512, 0, false);
     expect(coastal.required).toBe(true);
     expect(coastal.reason).toBe("detailed-closure");
@@ -235,26 +245,28 @@ describe("Water P0 + P1 performance optimizations", () => {
     expect(lakeShaderSource).toContain("refractionSampleValidity > 0.001");
     expect(oceanShaderSource).toContain("refractionValidity > 0.001");
 
-    // Ocean vertex shader applies continuous camera-distance sampling cell size across all wave groups
+    // Ocean vertex shader applies continuous camera-distance sampling cell size across all 4 rings
     expect(oceanShaderSource).toContain("oceanGeometryEffectiveSamplingCellSize");
+    expect(oceanShaderSource).toContain("smoothstep(32.0, 48.0, distanceToCamera)");
+    expect(oceanShaderSource).toContain("smoothstep(64.0, 80.0, distanceToCamera)");
     expect(oceanShaderSource).toContain("smoothstep(96.0, 112.0, distanceToCamera)");
-    expect(oceanShaderSource).toContain("smoothstep(160.0, 176.0, distanceToCamera)");
     expect(oceanShaderSource).not.toContain("oceanGeometryWaveGridWeight(waveWavelength, attributes.TEXCOORD_0.x)");
 
-    // Mathematical invariance check: effectiveSamplingCellSize is continuous across 128m/192m seams and 32m snap
+    // Mathematical invariance check: effectiveSamplingCellSize is continuous across 64m/96m/128m seams and 32m snap
     const smoothstep = (e0: number, e1: number, x: number) => {
       const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
       return t * t * (3 - 2 * t);
     };
-    const continuousCell = (d: number) => 2 + 2 * smoothstep(96, 112, d) + 4 * smoothstep(160, 176, d);
+    const continuousCell = (d: number) =>
+      2 + 2 * smoothstep(32, 48, d) + 4 * smoothstep(64, 80, d) + 8 * smoothstep(96, 112, d);
     const meshCell = (dx: number, dz: number) => {
       const r = Math.max(Math.abs(dx), Math.abs(dz));
-      return r < 128 ? 2 : r < 192 ? 4 : 8;
+      return r < 64 ? 2 : r < 96 ? 4 : r < 128 ? 8 : 16;
     };
     const effective = (wx: number, wz: number, camX: number, camZ: number, snapX: number, snapZ: number) =>
       Math.max(meshCell(wx - snapX, wz - snapZ), continuousCell(Math.hypot(wx - camX, wz - camZ)));
     // Camera right at the 32m snap boundary (x = 16): snapping origin from 0 -> 32 changes no world point's effective cell size.
-    for (let wx = -240; wx <= 280; wx += 4) {
+    for (let wx = -160; wx <= 192; wx += 4) {
       expect(effective(wx, 0, 16, 0, 0, 0)).toBeCloseTo(effective(wx, 0, 16, 0, 32, 0), 6);
     }
 
@@ -554,6 +566,136 @@ describe("Water P0 + P1 performance optimizations", () => {
       expect(controller.hasCameraVisibleSurfaceChunk(allVisible)).toBe(false);
       controller.root.isActive = true;
       expect(controller.hasCameraVisibleSurfaceChunk(allVisible)).toBe(true);
+
+      // P0 regression: looking away (e.g. straight up at sky) enters far-only without locking out detailed recovery.
+      const noneVisible = { isVisible: () => false };
+      expect(controller.hasCameraVisibleSurfaceChunk(noneVisible)).toBe(false);
+      const geomInternal = (controller as unknown as { _geometry: { _presentationPath: string } })._geometry;
+      expect(geomInternal._presentationPath).toBe("far-only");
+      expect(controller.hasCameraVisibleSurfaceChunk(allVisible)).toBe(true);
+      expect(geomInternal._presentationPath).toBe("detailed");
+    } finally {
+      controller?.destroy();
+      resource?.dispose();
+      normal.destroy();
+      engine.destroy();
+    }
+  });
+
+  it("culls 100% dry Ocean near quadrants and tightens partially-wet quadrant bounds to actual wet area", async () => {
+    registerNativeWater();
+    const engine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      shaderCompiler: new ShaderCompiler()
+    });
+    let controller: OceanWaterRuntimeController | undefined;
+    let resource: OceanNearshoreFieldResource | undefined;
+    const normal = new Texture2D(engine, 4, 4, undefined, false, false);
+    try {
+      // Build a 1024m x 1024m island atlas where ONLY x >= 480 (east half) is wet ocean and x < 480 is dry land.
+      const width = 128;
+      const height = 128;
+      const cellSize = 8;
+      const bedHeights = new Float32Array(width * height);
+      const signedShoreDistances = new Float32Array(width * height);
+      for (let z = 0; z < height; z++) {
+        for (let x = 0; x < width; x++) {
+          const worldX = x * cellSize + cellSize * 0.5;
+          const idx = z * width + x;
+          const wet = worldX >= 480;
+          bedHeights[idx] = wet ? -12 : 10;
+          signedShoreDistances[idx] = worldX - 480;
+        }
+      }
+      const nearshoreDescriptor = {
+        schemaVersion: 1 as const,
+        id: "dry-quadrant-test-nearshore",
+        waterLevel: 0,
+        grid: {
+          originXZ: [cellSize * 0.5, cellSize * 0.5] as const,
+          cellSizeXZ: [cellSize, cellSize] as const,
+          width,
+          height
+        },
+        bedHeights,
+        signedShoreDistances,
+        wetSource: { kind: "water-level" as const, minimumDepth: 0.01 },
+        outsidePolicy: {
+          negativeX: "dry" as const,
+          positiveX: "deep-ocean" as const,
+          negativeZ: "dry" as const,
+          positiveZ: "dry" as const
+        }
+      };
+      const compiled = OceanNearshoreCompiler.compile(nearshoreDescriptor);
+      expect(compiled.valid).toBe(true);
+      resource = OceanNearshoreFieldResource.create(compiled.data!);
+      const root = engine.sceneManager.activeScene.createRootEntity("DryCullOceanRoot");
+      // Camera at x = 352 (128m inland from shore at x = 480, snapped center = 352):
+      // West quadrants [160..352] are 100% dry; East quadrants [352..544] are wet only in [~470..544].
+      const cameraPos = { x: 352, y: 10, z: 512 };
+      controller = new OceanWaterRuntimeController(
+        engine,
+        root,
+        {
+          waterBodyId: "dry-cull-ocean",
+          waterLevel: 0,
+          nearshoreDescriptor,
+          surfaceCenterXZ: [512, 512],
+          size: 2048,
+          surfaceTopology: "finite",
+          capabilityMode: "render-and-query",
+          sceneFogEnabled: false,
+          surfaceShader: Shader.find("Water/Ocean.v1")!,
+          textures: describeOceanTextures([normal, normal, null, null, null])
+        },
+        { physicalSurfaceHash: resource.identity.physicalSurfaceHash, nearshoreResource: resource },
+        () => cameraPos
+      );
+
+      const chunks = (
+        controller as unknown as {
+          _geometry: {
+            _chunks: Array<{
+              region: string;
+              entity: { name: string };
+              renderer: { enabled: boolean; bounds: { min: Vector3; max: Vector3 } };
+              hasWetArea: boolean;
+              wetWorldBounds: { min: Vector3; max: Vector3 };
+            }>;
+          };
+        }
+      )._geometry._chunks.filter((c) => c.region === "near");
+
+      const westChunks = chunks.filter((c) => c.entity.name.startsWith("near-0-"));
+      const eastChunks = chunks.filter((c) => c.entity.name.startsWith("near-1-"));
+      expect(westChunks.length).toBe(2);
+      expect(eastChunks.length).toBe(2);
+
+      // 100% dry west quadrants are skipped and do not trigger terrain occlusion queries.
+      for (const west of westChunks) {
+        expect(west.hasWetArea).toBe(false);
+        expect(west.renderer.enabled).toBe(false);
+      }
+      // Partially wet east quadrants have tightened bounds starting near shore (~460+), not at camera (352).
+      for (const east of eastChunks) {
+        expect(east.hasWetArea).toBe(true);
+        expect(east.renderer.enabled).toBe(true);
+        expect(east.wetWorldBounds.min.x).toBeGreaterThan(440);
+        expect(east.renderer.bounds.min.x).toBeGreaterThan(440);
+      }
+
+      const occlusionSpy = vi.fn(() => false);
+      controller.refreshTerrainOcclusion({ isOccluded: occlusionSpy });
+      expect(occlusionSpy).toHaveBeenCalledTimes(2); // Only the 2 wet east quadrants are tested
+
+      // Moving camera offshore (x = 704) snaps all 4 quadrants into wet ocean -> all 4 become active.
+      cameraPos.x = 704;
+      controller.update(0.016);
+      for (const chunk of chunks) {
+        expect(chunk.hasWetArea).toBe(true);
+        expect(chunk.renderer.enabled).toBe(true);
+      }
     } finally {
       controller?.destroy();
       resource?.dispose();
@@ -858,6 +1000,16 @@ describe("Water P0 + P1 performance optimizations", () => {
       expect(source, `${label}: single reconstructOpaquePositionWS`).toContain("displacedDepthAvailable > 0.5");
       expect(source, `${label}: on-demand centeredSceneColor`).toContain("if (refractionValidity > 0.9999 && material_RefractionEnabled > 0.5)");
       expect(source, `${label}: zero-offset depth reuse`).toContain("dot(refractionOffset, refractionOffset) > 1e-10");
+      expect(source, `${label}: deep opaque early-out`).toContain("bool deepOpaqueWater");
+      expect(source, `${label}: deep optical density & conservative min depth gate`).toContain("float deepOpticalExponent");
+      expect(source, `${label}: grazing shallow depth protection`).toContain("min(centeredViewDepth, verticalDepth)");
+      expect(source, `${label}: caustics depth/distance gate`).toContain("causticsDepthFade");
+      expect(source, `${label}: foam distance early-out`).toContain("foamDistanceFade");
+      expect(source, `${label}: near-only detail normal early-out`).toContain("if (fadeFactor >= 0.999)");
+      expect(source, `${label}: cached connectionFacts`).toContain("vec4 connectionFacts = waterConnectionFacts");
+      expect(source, `${label}: no double oceanFarFieldRadiance in transition band`).not.toContain(
+        "mix(finalColor, oceanFarFieldRadiance"
+      );
     }
 
     // Verify compiled Seed World AOT .shaderc and builtin lake-heightfield-high-hybrid-v2.shaderc contain the rebuilt shaders.

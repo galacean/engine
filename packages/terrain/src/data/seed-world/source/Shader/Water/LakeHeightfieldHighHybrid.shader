@@ -1285,15 +1285,15 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
   vec3 boundaryContribution = closure.boundaryColor * max(closure.diffuseLighting, vec3(0.0));
   float litSceneColorClosure = step(1.5, closure.primaryColorClosureModel);
   color += boundaryContribution * litSceneColorClosure;
-  color *= mix(
-    1.0,
-    1.0 - fresnel,
-    clamp(closure.transmissionFresnelWeight, 0.0, 1.0)
-  );
   vec3 reflectionBrdfWeight = waterSurfaceEnvironmentSpecularWeight(
     closure.fresnelF0,
     closure.perceptualRoughness,
     closure.normalDotView
+  );
+  color *= mix(
+    1.0,
+    1.0 - fresnel,
+    clamp(closure.transmissionFresnelWeight, 0.0, 1.0)
   );
   color += closure.reflectionRadiance
     * reflectionBrdfWeight

@@ -10,10 +10,11 @@ import {
   ModelMesh,
   VertexAttribute
 } from "@galacean/engine-core";
-import { Vector2, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Vector2, Vector3 } from "@galacean/engine-math";
 import { OCEAN_LOOK, OCEAN_RENDER_BUDGET } from "../../authoring/ocean/presets/OceanLook";
 import type { OceanNearshoreDescriptorV1 } from "../../authoring/ocean/OceanNearshoreDescriptor";
 import { OceanNearshoreOutsidePolicy } from "../../authoring/ocean/OceanNearshoreTypes";
+import type { OceanNearshoreStaticAtlas } from "../../compiler/ocean/OceanNearshoreCompiledTypes";
 import type { WaterCameraVisibilityProvider, WaterTerrainOcclusionProvider } from "../body/WaterBackendRegistry";
 import { applyWaterSurfaceRendererContract } from "../surface/WaterSurfaceRendererContract";
 
@@ -34,6 +35,12 @@ interface OceanGeometryChunk {
   readonly mesh: ModelMesh;
   readonly ownedBuffers: readonly Buffer[];
   readonly terrainOcclusionKey: string;
+  readonly localMinX: number;
+  readonly localMaxX: number;
+  readonly localMinZ: number;
+  readonly localMaxZ: number;
+  readonly wetWorldBounds: BoundingBox;
+  hasWetArea: boolean;
   terrainOccluded: boolean;
   readonly vertexCount: number;
   readonly triangleCount: number;
@@ -92,6 +99,10 @@ export interface FiniteOceanSurfaceGeometryMetrics {
 
 export interface FiniteOceanSurfaceGeometryConfig {
   readonly nearshore: Readonly<OceanNearshoreDescriptorV1>;
+  /** Optional compiled RGBA8 nearshore atlas for O(1) dry-quadrant & tight wet-bounds culling. */
+  readonly nearshoreAtlas?: Readonly<OceanNearshoreStaticAtlas>;
+  /** Optional river/lake connection world bounds [minX, minZ, maxX, maxZ] kept conservatively wet. */
+  readonly connectionCoverageBounds?: ReadonlyArray<readonly [number, number, number, number]>;
   readonly surfaceCenterXZ: readonly [number, number];
   readonly size: number;
   readonly waterLevel: number;
@@ -662,6 +673,217 @@ export function createFiniteOceanNearFieldQuadrantTopology(
   return { positions, uvs, indices: new Uint16Array(indices) };
 }
 
+const WET_GRID_MAX_EDGE = 128;
+
+interface MutableWetRectQuery {
+  hasWet: boolean;
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
+/**
+ * Conservative 2D prefix-sum index over the nearshore atlas and outside policies.
+ * Supports zero-GC O(log N) dry-quadrant skipping and tight wet world-AABB queries on grid snaps.
+ */
+class OceanWetnessGrid {
+  private readonly _width: number;
+  private readonly _height: number;
+  private readonly _stride: number;
+  private readonly _prefixSum: Int32Array;
+  private readonly _atlasMinX: number;
+  private readonly _atlasMaxX: number;
+  private readonly _atlasMinZ: number;
+  private readonly _atlasMaxZ: number;
+  private readonly _coarseCellX: number;
+  private readonly _coarseCellZ: number;
+  private readonly _negXDeep: boolean;
+  private readonly _posXDeep: boolean;
+  private readonly _negZDeep: boolean;
+  private readonly _posZDeep: boolean;
+
+  constructor(
+    descriptor: Readonly<OceanNearshoreDescriptorV1>,
+    atlas: Readonly<OceanNearshoreStaticAtlas>,
+    connectionCoverageBounds?: ReadonlyArray<readonly [number, number, number, number]>
+  ) {
+    const grid = descriptor.grid;
+    const atlasMinX = grid.originXZ[0] - grid.cellSizeXZ[0] * 0.5;
+    const atlasMinZ = grid.originXZ[1] - grid.cellSizeXZ[1] * 0.5;
+    const worldSpanX = grid.cellSizeXZ[0] * grid.width;
+    const worldSpanZ = grid.cellSizeXZ[1] * grid.height;
+    this._atlasMinX = atlasMinX;
+    this._atlasMaxX = atlasMinX + worldSpanX;
+    this._atlasMinZ = atlasMinZ;
+    this._atlasMaxZ = atlasMinZ + worldSpanZ;
+
+    const width = Math.min(atlas.width, WET_GRID_MAX_EDGE);
+    const height = Math.min(atlas.height, WET_GRID_MAX_EDGE);
+    this._width = width;
+    this._height = height;
+    this._stride = width + 1;
+    this._coarseCellX = worldSpanX / width;
+    this._coarseCellZ = worldSpanZ / height;
+
+    const outside = descriptor.outsidePolicy;
+    this._negXDeep = outside.negativeX === OceanNearshoreOutsidePolicy.DeepOcean;
+    this._posXDeep = outside.positiveX === OceanNearshoreOutsidePolicy.DeepOcean;
+    this._negZDeep = outside.negativeZ === OceanNearshoreOutsidePolicy.DeepOcean;
+    this._posZDeep = outside.positiveZ === OceanNearshoreOutsidePolicy.DeepOcean;
+
+    // Conservative shore halo covers bilinear filtering, shader AA fringe, and RGBA8 quantization.
+    const shoreHaloMetres = Math.max(grid.cellSizeXZ[0], grid.cellSizeXZ[1]) * 2.0 + 2.0;
+    const shoreRange = Math.max(atlas.shoreDistanceRange, 0.0001);
+    const minimumPotentialShoreCode = Math.max(0, Math.floor(128 - (shoreHaloMetres / shoreRange) * 127));
+
+    const cells = new Uint8Array(width * height);
+    const pixels = atlas.pixels.borrowTypedArray();
+    const pixelCount = pixels.length;
+    for (let z = 0; z < atlas.height; z++) {
+      const cz = Math.min(height - 1, Math.floor((z * height) / atlas.height));
+      const rowOffset = z * atlas.width;
+      const coarseRow = cz * width;
+      for (let x = 0; x < atlas.width; x++) {
+        const offset = (rowOffset + x) * 4;
+        if (offset + 3 < pixelCount && (pixels[offset]! > 0 || pixels[offset + 3]! >= minimumPotentialShoreCode)) {
+          const cx = Math.min(width - 1, Math.floor((x * width) / atlas.width));
+          cells[coarseRow + cx] = 1;
+        }
+      }
+    }
+
+    if (connectionCoverageBounds) {
+      for (let i = 0; i < connectionCoverageBounds.length; i++) {
+        const bounds = connectionCoverageBounds[i]!;
+        const cMinX = Math.max(0, Math.floor((bounds[0] - atlasMinX) / this._coarseCellX));
+        const cMaxX = Math.min(width - 1, Math.floor((bounds[2] - atlasMinX) / this._coarseCellX));
+        const cMinZ = Math.max(0, Math.floor((bounds[1] - atlasMinZ) / this._coarseCellZ));
+        const cMaxZ = Math.min(height - 1, Math.floor((bounds[3] - atlasMinZ) / this._coarseCellZ));
+        for (let cz = cMinZ; cz <= cMaxZ; cz++) {
+          const coarseRow = cz * width;
+          for (let cx = cMinX; cx <= cMaxX; cx++) cells[coarseRow + cx] = 1;
+        }
+      }
+    }
+
+    const stride = this._stride;
+    const prefixSum = new Int32Array(stride * (height + 1));
+    for (let z = 0; z < height; z++) {
+      const srcRow = z * width;
+      const prevRow = z * stride;
+      const dstRow = (z + 1) * stride;
+      let rowAcc = 0;
+      for (let x = 0; x < width; x++) {
+        rowAcc += cells[srcRow + x]!;
+        prefixSum[dstRow + x + 1] = prefixSum[prevRow + x + 1]! + rowAcc;
+      }
+    }
+    this._prefixSum = prefixSum;
+  }
+
+  private _rectSum(x0: number, z0: number, x1: number, z1: number): number {
+    const ps = this._prefixSum;
+    const s = this._stride;
+    return ps[(z1 + 1) * s + (x1 + 1)]! - ps[z0 * s + (x1 + 1)]! - ps[(z1 + 1) * s + x0]! + ps[z0 * s + x0]!;
+  }
+
+  queryWetRect(minX: number, maxX: number, minZ: number, maxZ: number, out: MutableWetRectQuery): void {
+    let hasWet = false;
+    let wMinX = Number.POSITIVE_INFINITY;
+    let wMaxX = Number.NEGATIVE_INFINITY;
+    let wMinZ = Number.POSITIVE_INFINITY;
+    let wMaxZ = Number.NEGATIVE_INFINITY;
+
+    // 1. Inside atlas intersection via O(log N) prefix-sum binary search.
+    const ix0 = Math.max(minX, this._atlasMinX);
+    const ix1 = Math.min(maxX, this._atlasMaxX);
+    const iz0 = Math.max(minZ, this._atlasMinZ);
+    const iz1 = Math.min(maxZ, this._atlasMaxZ);
+    if (ix0 < ix1 && iz0 < iz1) {
+      const cMinX = Math.max(0, Math.min(this._width - 1, Math.floor((ix0 - this._atlasMinX) / this._coarseCellX)));
+      const cMaxX = Math.max(
+        cMinX,
+        Math.min(this._width - 1, Math.ceil((ix1 - this._atlasMinX) / this._coarseCellX) - 1)
+      );
+      const cMinZ = Math.max(0, Math.min(this._height - 1, Math.floor((iz0 - this._atlasMinZ) / this._coarseCellZ)));
+      const cMaxZ = Math.max(
+        cMinZ,
+        Math.min(this._height - 1, Math.ceil((iz1 - this._atlasMinZ) / this._coarseCellZ) - 1)
+      );
+      if (this._rectSum(cMinX, cMinZ, cMaxX, cMaxZ) > 0) {
+        let lo = cMinX;
+        let hi = cMaxX;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (this._rectSum(cMinX, cMinZ, mid, cMaxZ) > 0) hi = mid;
+          else lo = mid + 1;
+        }
+        const wetCMinX = lo;
+        lo = wetCMinX;
+        hi = cMaxX;
+        while (lo < hi) {
+          const mid = (lo + hi + 1) >> 1;
+          if (this._rectSum(mid, cMinZ, cMaxX, cMaxZ) > 0) lo = mid;
+          else hi = mid - 1;
+        }
+        const wetCMaxX = lo;
+
+        lo = cMinZ;
+        hi = cMaxZ;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (this._rectSum(wetCMinX, cMinZ, wetCMaxX, mid) > 0) hi = mid;
+          else lo = mid + 1;
+        }
+        const wetCMinZ = lo;
+        lo = wetCMinZ;
+        hi = cMaxZ;
+        while (lo < hi) {
+          const mid = (lo + hi + 1) >> 1;
+          if (this._rectSum(wetCMinX, mid, wetCMaxX, cMaxZ) > 0) lo = mid;
+          else hi = mid - 1;
+        }
+        const wetCMaxZ = lo;
+
+        hasWet = true;
+        wMinX = Math.max(ix0, this._atlasMinX + wetCMinX * this._coarseCellX);
+        wMaxX = Math.min(ix1, this._atlasMinX + (wetCMaxX + 1) * this._coarseCellX);
+        wMinZ = Math.max(iz0, this._atlasMinZ + wetCMinZ * this._coarseCellZ);
+        wMaxZ = Math.min(iz1, this._atlasMinZ + (wetCMaxZ + 1) * this._coarseCellZ);
+      }
+    }
+
+    // 2. Outside-atlas strips and corners (fail-closed: wet only if every crossed edge is DeepOcean).
+    for (let rx = -1; rx <= 1; rx++) {
+      if (rx === -1 && !this._negXDeep) continue;
+      if (rx === 1 && !this._posXDeep) continue;
+      const sx0 = rx === -1 ? minX : rx === 0 ? Math.max(minX, this._atlasMinX) : Math.max(minX, this._atlasMaxX);
+      const sx1 = rx === -1 ? Math.min(maxX, this._atlasMinX) : rx === 0 ? Math.min(maxX, this._atlasMaxX) : maxX;
+      if (sx0 >= sx1) continue;
+      for (let rz = -1; rz <= 1; rz++) {
+        if (rx === 0 && rz === 0) continue;
+        if (rz === -1 && !this._negZDeep) continue;
+        if (rz === 1 && !this._posZDeep) continue;
+        const sz0 = rz === -1 ? minZ : rz === 0 ? Math.max(minZ, this._atlasMinZ) : Math.max(minZ, this._atlasMaxZ);
+        const sz1 = rz === -1 ? Math.min(maxZ, this._atlasMinZ) : rz === 0 ? Math.min(maxZ, this._atlasMaxZ) : maxZ;
+        if (sz0 >= sz1) continue;
+        hasWet = true;
+        if (sx0 < wMinX) wMinX = sx0;
+        if (sx1 > wMaxX) wMaxX = sx1;
+        if (sz0 < wMinZ) wMinZ = sz0;
+        if (sz1 > wMaxZ) wMaxZ = sz1;
+      }
+    }
+
+    out.hasWet = hasWet;
+    out.minX = wMinX;
+    out.maxX = wMaxX;
+    out.minZ = wMinZ;
+    out.maxZ = wMaxZ;
+  }
+}
+
 function createGeometryChunk(
   engine: Engine,
   parent: Entity,
@@ -674,6 +896,10 @@ function createGeometryChunk(
     uvs: Vector2[];
     indices: Uint16Array;
     bounds: Readonly<FiniteOceanSurfaceBounds>;
+    localMinX?: number;
+    localMaxX?: number;
+    localMinZ?: number;
+    localMaxZ?: number;
     restoreTopology(): { positions: Vector3[]; uvs: Vector2[]; indices: Uint16Array };
   }>
 ): OceanGeometryChunk {
@@ -719,6 +945,10 @@ function createGeometryChunk(
   renderer.setMaterial(material);
   applyWaterSurfaceRendererContract(renderer);
   renderer.shaderData.setFloat("renderer_OceanLod", input.region === "near" ? 0 : 2);
+  const wetWorldBounds = new BoundingBox(
+    new Vector3(input.bounds.minimum[0], input.bounds.minimum[1], input.bounds.minimum[2]),
+    new Vector3(input.bounds.maximum[0], input.bounds.maximum[1], input.bounds.maximum[2])
+  );
   return {
     region: input.region,
     entity,
@@ -726,6 +956,12 @@ function createGeometryChunk(
     mesh,
     ownedBuffers: Object.freeze([...ownedBuffers]),
     terrainOcclusionKey: `ocean:${input.name}`,
+    localMinX: input.localMinX ?? input.bounds.minimum[0],
+    localMaxX: input.localMaxX ?? input.bounds.maximum[0],
+    localMinZ: input.localMinZ ?? input.bounds.minimum[2],
+    localMaxZ: input.localMaxZ ?? input.bounds.maximum[2],
+    wetWorldBounds,
+    hasWetArea: true,
     terrainOccluded: false,
     vertexCount: input.positions.length,
     triangleCount: input.indices.length / 3,
@@ -742,6 +978,18 @@ export class FiniteOceanSurfaceGeometry {
   private readonly _nearFieldLayout: Readonly<FiniteOceanNearFieldLayout>;
   private readonly _cameraRelativeRoot: Entity;
   private readonly _chunks: OceanGeometryChunk[] = [];
+  private readonly _waterLevel: number;
+  private readonly _wetnessGrid?: OceanWetnessGrid;
+  private readonly _wetQueryScratch: MutableWetRectQuery = {
+    hasWet: true,
+    minX: 0,
+    maxX: 0,
+    minZ: 0,
+    maxZ: 0
+  };
+  private _dispX: number;
+  private _dispY: number;
+  private _dispZ: number;
   private _nearFieldCenterX: number;
   private _nearFieldCenterZ: number;
   private _presentationPath: FiniteOceanPresentationPath;
@@ -772,6 +1020,13 @@ export class FiniteOceanSurfaceGeometry {
     this.root.layer = this.layer;
     this._envelope = envelope;
     this._nearFieldLayout = nearFieldLayout;
+    this._waterLevel = config.waterLevel;
+    this._dispX = config.maximumDisplacement.x;
+    this._dispY = config.maximumDisplacement.y;
+    this._dispZ = config.maximumDisplacement.z;
+    this._wetnessGrid = config.nearshoreAtlas
+      ? new OceanWetnessGrid(config.nearshore, config.nearshoreAtlas, config.connectionCoverageBounds)
+      : undefined;
     this._nearFieldCenterX = initialCenter[0];
     this._nearFieldCenterZ = initialCenter[1];
     this._presentationPath = config.initialPresentationPath;
@@ -796,6 +1051,10 @@ export class FiniteOceanSurfaceGeometry {
             positions: topology.positions,
             uvs: topology.uvs,
             indices: topology.indices,
+            localMinX: minimumX,
+            localMaxX: maximumX,
+            localMinZ: minimumZ,
+            localMaxZ: maximumZ,
             restoreTopology: () => createFiniteOceanNearFieldQuadrantTopology(nearFieldLayout, signX, signZ),
             bounds: {
               minimum: [
@@ -867,6 +1126,7 @@ export class FiniteOceanSurfaceGeometry {
     const farOnlyPathDrawCount = 2;
     const farOnlyPathVertexCount = farOnlyFillChunk.vertexCount + farChunk.vertexCount;
     const farOnlyPathTriangleCount = farOnlyFillChunk.triangleCount + farChunk.triangleCount;
+    this._refreshNearChunkWetBounds();
     this._applyPresentationPath();
     this.metrics = Object.freeze({
       finite: true,
@@ -929,31 +1189,63 @@ export class FiniteOceanSurfaceGeometry {
     return true;
   }
 
+  /** Updates active displacement envelope (e.g. after live wave tuning edits) and tightens wet bounds. */
+  setMaximumDisplacement(displacement: Readonly<{ readonly x: number; readonly y: number; readonly z: number }>): void {
+    if (this._destroyed) throw new Error("Finite Ocean geometry has been destroyed.");
+    if (
+      !Number.isFinite(displacement.x) ||
+      !Number.isFinite(displacement.y) ||
+      !Number.isFinite(displacement.z) ||
+      displacement.x < 0 ||
+      displacement.y < 0 ||
+      displacement.z < 0
+    ) {
+      throw new RangeError("Finite Ocean displacement bounds must be finite and non-negative.");
+    }
+    if (displacement.x === this._dispX && displacement.y === this._dispY && displacement.z === this._dispZ) return;
+    this._dispX = displacement.x;
+    this._dispY = displacement.y;
+    this._dispZ = displacement.z;
+    this._refreshNearChunkWetBounds();
+  }
+
   /** Updates per-chunk terrain-horizon occlusion without disabling the horizon ring. */
   refreshTerrainOcclusion(provider?: WaterTerrainOcclusionProvider): void {
     const chunks = this._chunks;
+    const worldMatrix = this._cameraRelativeRoot.transform.worldMatrix;
     for (let index = 0; index < chunks.length; index++) {
       const chunk = chunks[index]!;
       if (chunk.region !== "near") continue;
-      const occluded = provider !== undefined && provider.isOccluded(chunk.terrainOcclusionKey, chunk.renderer.bounds);
+      if (!chunk.hasWetArea) {
+        chunk.terrainOccluded = false;
+        if (chunk.renderer.enabled) chunk.renderer.enabled = false;
+        continue;
+      }
+      BoundingBox.transform(chunk.mesh.bounds, worldMatrix, chunk.wetWorldBounds);
+      const occluded = provider !== undefined && provider.isOccluded(chunk.terrainOcclusionKey, chunk.wetWorldBounds);
       chunk.terrainOccluded = occluded;
-      if (chunk.renderer.enabled === occluded) {
-        chunk.renderer.enabled = !occluded;
+      const shouldEnable = !occluded;
+      if (chunk.renderer.enabled !== shouldEnable) {
+        chunk.renderer.enabled = shouldEnable;
       }
     }
   }
 
-  /** True when at least one active, unoccluded detailed near-field quadrant intersects the camera frustum. */
+  /**
+   * True when at least one wet, unoccluded detailed near-field quadrant intersects the camera frustum.
+   * Checks `_cameraRelativeRoot.isActiveInHierarchy` rather than `chunk.entity.isActiveInHierarchy`
+   * so entering `far-only` never permanently prevents returning to `detailed` when looking back.
+   */
   hasCameraVisibleNearChunk(provider: WaterCameraVisibilityProvider): boolean {
+    if (!this._cameraRelativeRoot.isActiveInHierarchy) return false;
     const chunks = this._chunks;
+    const worldMatrix = this._cameraRelativeRoot.transform.worldMatrix;
     for (let index = 0; index < chunks.length; index++) {
       const chunk = chunks[index]!;
       if (chunk.region !== "near") continue;
-      if (
-        !chunk.terrainOccluded &&
-        chunk.renderer.entity.isActiveInHierarchy &&
-        provider.isVisible(chunk.renderer.bounds, chunk.renderer.entity.layer)
-      ) {
+      if (!chunk.hasWetArea || chunk.terrainOccluded) continue;
+      BoundingBox.transform(chunk.mesh.bounds, worldMatrix, chunk.wetWorldBounds);
+      if (provider.isVisible(chunk.wetWorldBounds, chunk.entity.layer)) {
         return true;
       }
     }
@@ -989,7 +1281,57 @@ export class FiniteOceanSurfaceGeometry {
     this._nearFieldCenterX = centerX;
     this._nearFieldCenterZ = centerZ;
     this._cameraRelativeRoot.transform.setPosition(centerX, 0, centerZ);
+    this._refreshNearChunkWetBounds();
     return true;
+  }
+
+  /** Tightens each near quadrant's local bounds to its conservative wet sub-rect and disables 100% dry quadrants. */
+  private _refreshNearChunkWetBounds(): void {
+    const chunks = this._chunks;
+    const centerX = this._nearFieldCenterX;
+    const centerZ = this._nearFieldCenterZ;
+    const dispX = this._dispX;
+    const dispY = this._dispY;
+    const dispZ = this._dispZ;
+    const waterLevel = this._waterLevel;
+    const grid = this._wetnessGrid;
+    const scratch = this._wetQueryScratch;
+    const worldMatrix = this._cameraRelativeRoot.transform.worldMatrix;
+
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index]!;
+      if (chunk.region !== "near") continue;
+      const expWorldMinX = centerX + chunk.localMinX - dispX;
+      const expWorldMaxX = centerX + chunk.localMaxX + dispX;
+      const expWorldMinZ = centerZ + chunk.localMinZ - dispZ;
+      const expWorldMaxZ = centerZ + chunk.localMaxZ + dispZ;
+
+      if (grid) {
+        grid.queryWetRect(expWorldMinX, expWorldMaxX, expWorldMinZ, expWorldMaxZ, scratch);
+        if (!scratch.hasWet) {
+          chunk.hasWetArea = false;
+          chunk.terrainOccluded = false;
+          if (chunk.renderer.enabled) chunk.renderer.enabled = false;
+          continue;
+        }
+        chunk.hasWetArea = true;
+        const wetMinX = Math.max(expWorldMinX, scratch.minX - dispX) - centerX;
+        const wetMaxX = Math.min(expWorldMaxX, scratch.maxX + dispX) - centerX;
+        const wetMinZ = Math.max(expWorldMinZ, scratch.minZ - dispZ) - centerZ;
+        const wetMaxZ = Math.min(expWorldMaxZ, scratch.maxZ + dispZ) - centerZ;
+        chunk.mesh.bounds.min.set(wetMinX, waterLevel - dispY, wetMinZ);
+        chunk.mesh.bounds.max.set(wetMaxX, waterLevel + dispY, wetMaxZ);
+      } else {
+        chunk.hasWetArea = true;
+        chunk.mesh.bounds.min.set(chunk.localMinX - dispX, waterLevel - dispY, chunk.localMinZ - dispZ);
+        chunk.mesh.bounds.max.set(chunk.localMaxX + dispX, waterLevel + dispY, chunk.localMaxZ + dispZ);
+      }
+      BoundingBox.transform(chunk.mesh.bounds, worldMatrix, chunk.wetWorldBounds);
+      const shouldEnable = !chunk.terrainOccluded;
+      if (chunk.renderer.enabled !== shouldEnable) {
+        chunk.renderer.enabled = shouldEnable;
+      }
+    }
   }
 
   setMaterials(materials: Readonly<FiniteOceanSurfaceMaterials>): void {

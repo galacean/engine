@@ -2335,6 +2335,7 @@ export async function mountSeedWorldDemo(
             const warmupRoots = [candidate!.root, ...candidateWater!.shaderWarmupRoots];
             const includeInactiveRoots: Entity[] = [
               ...(candidateVegetation?.shaderWarmupRoots ?? []),
+              ...candidateWater!.shaderWarmupRoots,
               ...(candidate?.population ? [candidate.population.trees, candidate.population.details] : []),
               ...(candidateTemplate?.root ? [candidateTemplate.root] : [])
             ];
@@ -3085,6 +3086,7 @@ export async function mountSeedWorldDemo(
       prepareAssistantPresentation: () => tools?.preparePresentation(),
       getIncludeInactiveRoots: () => [
         ...(publication!.current?.vegetation?.shaderWarmupRoots ?? []),
+        ...(water?.shaderWarmupRoots ?? []),
         ...(publication!.current?.world?.population
           ? [publication!.current.world.population.trees, publication!.current.world.population.details]
           : []),

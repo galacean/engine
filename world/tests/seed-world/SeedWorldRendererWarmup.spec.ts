@@ -1589,4 +1589,78 @@ describe("renderer warmup scope", () => {
     expect(masonryVariants[0]!.macros.some((m) => m.n === "RENDERER_MASONRY_DITHER")).toBe(false);
     expect(masonryVariants[0]!.macros.some((m) => m.n === "RENDERER_MASONRY_ENTRANCE")).toBe(true);
   });
+
+  it("defers inactive far-only Ocean near-field variants out of primary warmup and collects them via includeInactiveRoots", () => {
+    const oceanNearShader = {
+      name: "Water/Ocean.v1",
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+    };
+    const oceanFarShader = {
+      name: "WaterFar/test-ocean-far",
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+    };
+    const oceanNearRenderer = Object.create(MeshRenderer.prototype);
+    Object.defineProperties(oceanNearRenderer, {
+      entity: { value: { isActiveInHierarchy: false } },
+      shaderData: { value: { _macroCollection: new ShaderMacroCollection() } },
+      mesh: { value: { _primitive: { vertexElements: [{ attribute: "TEXCOORD_0" }] } } },
+      enabled: { value: false },
+      castShadows: { value: false },
+      getMaterials: {
+        value: () => [
+          { destroyed: false, shader: oceanNearShader, shaderData: { _macroCollection: new ShaderMacroCollection() } }
+        ]
+      }
+    });
+    const oceanFarRenderer = Object.create(MeshRenderer.prototype);
+    Object.defineProperties(oceanFarRenderer, {
+      entity: { value: { isActiveInHierarchy: true } },
+      shaderData: { value: { _macroCollection: new ShaderMacroCollection() } },
+      mesh: { value: { _primitive: { vertexElements: [{ attribute: "TEXCOORD_0" }] } } },
+      enabled: { value: true },
+      castShadows: { value: false },
+      getMaterials: {
+        value: () => [
+          { destroyed: false, shader: oceanFarShader, shaderData: { _macroCollection: new ShaderMacroCollection() } }
+        ]
+      }
+    });
+    const waterRoot = {
+      getComponentsIncludeChildren: (_type: unknown, out: unknown[]) => {
+        out.length = 0;
+        out.push(oceanNearRenderer, oceanFarRenderer);
+      }
+    } as any;
+
+    const primary = collectSeedWorldRendererVariants(
+      { _macroCollection: new ShaderMacroCollection() } as any,
+      { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+      { _updateShaderData() {}, shaderData: { _macroCollection: new ShaderMacroCollection() } } as any,
+      [waterRoot],
+      {
+        includeInactiveEntities: false,
+        includeInactiveRoots: undefined,
+        onlyEnabledRenderers: true,
+        includeGpuInstancing: false
+      }
+    );
+    expect(primary.some((v) => v.shader === "WaterFar/test-ocean-far")).toBe(true);
+    expect(primary.some((v) => v.shader === "Water/Ocean.v1")).toBe(false);
+
+    const deferredAll = collectSeedWorldRendererVariants(
+      { _macroCollection: new ShaderMacroCollection() } as any,
+      { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+      { _updateShaderData() {}, shaderData: { _macroCollection: new ShaderMacroCollection() } } as any,
+      [waterRoot],
+      {
+        includeInactiveEntities: false,
+        includeInactiveRoots: [waterRoot],
+        includeGpuInstancing: false
+      }
+    );
+    expect(deferredAll.some((v) => v.shader === "WaterFar/test-ocean-far")).toBe(true);
+    expect(deferredAll.some((v) => v.shader === "Water/Ocean.v1")).toBe(true);
+  });
 });

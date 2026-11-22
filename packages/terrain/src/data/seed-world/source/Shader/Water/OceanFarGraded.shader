@@ -677,20 +677,18 @@ vec4 waterSurfaceEvaluateFinalClosureV2(
   float litSceneColorClosure = step(1.5, closure.primaryColorClosureModel);
   color += boundaryContribution * litSceneColorClosure;
     color += closure.additionalTransmissionRadiance;
-    // Match the energy removed from a rough transmitted lobe to its integrated
-    // environment BRDF; smooth Schlick would blacken a rough grazing horizon.
-    float transmissionFresnel = clamp(waterSurfaceEnvironmentSpecularWeight(
-      closure.fresnelF0, closure.perceptualRoughness, closure.normalDotView
-    ).x, 0.0, 1.0);
-  color *= mix(
-    1.0,
-    1.0 - transmissionFresnel,
-    clamp(closure.transmissionFresnelWeight, 0.0, 1.0)
-  );
   vec3 reflectionBrdfWeight = waterSurfaceEnvironmentSpecularWeight(
     closure.fresnelF0,
     closure.perceptualRoughness,
     closure.normalDotView
+  );
+    // Match the energy removed from a rough transmitted lobe to its integrated
+    // environment BRDF; smooth Schlick would blacken a rough grazing horizon.
+    float transmissionFresnel = clamp(reflectionBrdfWeight.x, 0.0, 1.0);
+  color *= mix(
+    1.0,
+    1.0 - transmissionFresnel,
+    clamp(closure.transmissionFresnelWeight, 0.0, 1.0)
   );
   color += closure.reflectionRadiance
     * reflectionBrdfWeight
@@ -835,10 +833,10 @@ vec4 waterSurfaceOutputWithPick(vec4 color) {
           camera_Position - worldPosition,
           surfaceNormal
         );
-        float horizonFactor = pow(
-          1.0 - clamp(dot(viewDirection, surfaceNormal), 0.0, 1.0),
-          8.0
-        ) * material_OceanHorizonColor.a;
+        float horizonBase = 1.0 - clamp(dot(viewDirection, surfaceNormal), 0.0, 1.0);
+        float horizonPow2 = horizonBase * horizonBase;
+        float horizonPow4 = horizonPow2 * horizonPow2;
+        float horizonFactor = horizonPow4 * horizonPow4 * material_OceanHorizonColor.a;
         vec3 baseColor = mix(
           material_OceanDeepColor.rgb,
           material_OceanHorizonColor.rgb,
@@ -917,7 +915,8 @@ float waterSurface_waveCrest = 0.0;
         closureInput.refractionColor = contributions.refractionSceneColor;
         closureInput.refractionWeight = 0.0;
         closureInput.reflectionRadiance = contributions.reflectionRadiance;
-        closureInput.fresnelF0 = pow((material_IndexOfRefraction - 1.0) / (material_IndexOfRefraction + 1.0), 2.0);
+        float iorRatio = (material_IndexOfRefraction - 1.0) / (material_IndexOfRefraction + 1.0);
+        closureInput.fresnelF0 = iorRatio * iorRatio;
         // Far mip filtering suppresses unresolved detail; it does not change the material BRDF.
         closureInput.perceptualRoughness = material_Roughness;
         closureInput.normalDotView = oceanFarReflectionNormalDotView(viewDirection);

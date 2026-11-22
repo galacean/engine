@@ -21,46 +21,49 @@
         return vec4(uv1, uv2);
       }
 #else
-      vec3 sampleDetailNormal(vec2 worldXZ, vec3 worldPosition, float elapsedTime) {
+      vec3 sampleDetailNormal(vec2 worldXZ, float pixelDistance, float elapsedTime) {
         vec2 timeValue = vec2(-elapsedTime) * material_OceanWaveFadeAndTimeScale.z;
-        vec4 farUv = packedUv(
-          worldXZ,
-          vec2(material_OceanNormalMapping.z),
-          timeValue,
-          material_OceanNormalParameters.z * 0.5,
-          0.5,
-          0.15
-        );
-        vec3 farNormal = vec3(0.0, 0.0, 1.0);
-        if (material_OceanTextureEnabled.y > 0.5) {
-        vec3 farA = decodeNormalMap(texture2D(material_RoughWavesTexture, farUv.xy).rgb);
-        vec3 farB = decodeNormalMap(texture2D(material_RoughWavesTexture, farUv.zw).rgb);
-        farNormal = blendNormalRnm(farA, farB);
-        }
-        float pixelDistance = distance(camera_Position, worldPosition);
         float fadeFactor = clamp(
           (material_OceanNormalFadeEndDistance - pixelDistance)
             / max(material_OceanNormalFadeEndDistance - material_OceanNormalMapping.w, 0.0001),
           0.0,
           1.0
         );
-        if (fadeFactor <= 0.0) {
-          return safeNormalize3(farNormal, vec3(0.0, 0.0, 1.0));
-        }
-
-        vec4 nearUv = packedUv(
-          worldXZ,
-          material_OceanNormalMapping.xy,
-          timeValue,
-          material_OceanNormalParameters.z,
-          material_OceanNormalParameters.y,
-          material_OceanNormalParameters.w
-        );
         vec3 nearNormal = vec3(0.0, 0.0, 1.0);
-        if (material_OceanTextureEnabled.x > 0.5) {
-        vec3 nearA = decodeNormalMap(texture2D(material_SmoothWavesTexture, nearUv.xy).rgb);
-        vec3 nearB = decodeNormalMap(texture2D(material_SmoothWavesTexture, nearUv.zw).rgb);
-        nearNormal = blendNormalRnm(nearA, nearB);
+        if (fadeFactor > 0.001) {
+          if (material_OceanTextureEnabled.x > 0.5) {
+            vec4 nearUv = packedUv(
+              worldXZ,
+              material_OceanNormalMapping.xy,
+              timeValue,
+              material_OceanNormalParameters.z,
+              material_OceanNormalParameters.y,
+              material_OceanNormalParameters.w
+            );
+            vec3 nearA = decodeNormalMap(texture2D(material_SmoothWavesTexture, nearUv.xy).rgb);
+            vec3 nearB = decodeNormalMap(texture2D(material_SmoothWavesTexture, nearUv.zw).rgb);
+            nearNormal = blendNormalRnm(nearA, nearB);
+          }
+          if (fadeFactor >= 0.999) {
+            return nearNormal;
+          }
+        }
+        vec3 farNormal = vec3(0.0, 0.0, 1.0);
+        if (material_OceanTextureEnabled.y > 0.5) {
+          vec4 farUv = packedUv(
+            worldXZ,
+            vec2(material_OceanNormalMapping.z),
+            timeValue,
+            material_OceanNormalParameters.z * 0.5,
+            0.5,
+            0.15
+          );
+          vec3 farA = decodeNormalMap(texture2D(material_RoughWavesTexture, farUv.xy).rgb);
+          vec3 farB = decodeNormalMap(texture2D(material_RoughWavesTexture, farUv.zw).rgb);
+          farNormal = blendNormalRnm(farA, farB);
+        }
+        if (fadeFactor <= 0.001) {
+          return farNormal;
         }
         return safeNormalize3(mix(farNormal, nearNormal, fadeFactor), vec3(0.0, 0.0, 1.0));
       }
