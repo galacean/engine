@@ -239,7 +239,8 @@ const SSR_ALL_FORWARD_MACROS = new Set([
   "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
   "CAMERA_SSR_BILATERAL_SAMPLE",
   "SSR_PACKED_DEPTH_RG8",
-  "SSR_PACKED_NORMAL_OCT8"
+  "SSR_PACKED_NORMAL_OCT8",
+  "SSR_PACKED_HDR_REINHARD"
 ]);
 
 const PARTICLE_TRAJECTORY_FEEDBACK_MACRO = ShaderMacro.getByName("RENDERER_TRAJECTORY_FEEDBACK");
@@ -820,7 +821,7 @@ function collectSeedWorldRendererVariantsInternal(
     }
   )._hardwareRenderer;
   const supportsRendering = runtimeHardware?.supportsRendering !== false;
-  const depthPrepassEnabled = resolveDepthPrepassEnabled(engine, scene, camera);
+  const { depthPrepassEnabled, forwardDepthResolveEnabled } = resolveDepthMode(engine, scene, camera);
   const rawSsrSettings =
     (
       camera as unknown as {
@@ -855,11 +856,13 @@ function collectSeedWorldRendererVariantsInternal(
     ? hwFormatSupport.call(runtimeHardware, TextureFormat.R16G16B16A16_SFloat)
     : true;
   const ssrPackedDepthRG8 = ssrEnabled && !supportsR16Float;
+  const ssrIsHDR = Boolean((camera as unknown as { enableHDR?: boolean }).enableHDR);
+  // Matches ScreenSpaceReflectionPass._detectCapabilities: Low/Medium keep compact RGBA8 + Oct8 + Reinhard HDR;
+  // only High/XHigh request RGBA16F normal/color precision.
   const ssrHighPrecisionNormals =
-    Boolean((camera as unknown as { enableHDR?: boolean }).enableHDR) ||
-    ssrQuality === ScreenSpaceReflectionQuality.High ||
-    ssrQuality === ScreenSpaceReflectionQuality.XHigh;
+    ssrQuality === ScreenSpaceReflectionQuality.High || ssrQuality === ScreenSpaceReflectionQuality.XHigh;
   const ssrPackedNormalOct8 = ssrEnabled && !(ssrHighPrecisionNormals && supportsRGBA16);
+  const ssrPackedHDRReinhard = ssrEnabled && ssrIsHDR && !(ssrHighPrecisionNormals && supportsRGBA16);
   const ssrRoughnessProp = ShaderProperty.getByName("material_Roughness");
   const ssrHasRoughnessTexMacro = ShaderMacro.getByName("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
   const ssrEnableClearCoatMacro = ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT");
@@ -1421,7 +1424,18 @@ function collectSeedWorldRendererVariantsInternal(
   // Warm deferred SSR DepthOnly / Forward SSR variants + exact Lighting/ScreenSpaceReflection v2 passes when receivers exist.
   const hasAnySsrReceivers = ssrContext.hasTransparentSsr || ssrContext.hasOpaqueSsr;
   if (ssrEnabled && hasAnySsrReceivers) {
-    if (!depthPrepassEnabled && ssrContext.deferredSsrDepthOnly?.length) {
+    const useHighVirtual =
+      ssrQuality === ScreenSpaceReflectionQuality.High || ssrQuality === ScreenSpaceReflectionQuality.XHigh;
+    const isXHigh = ssrQuality === ScreenSpaceReflectionQuality.XHigh;
+    const deferSSRToPostOpaque =
+      !ssrContext.hasOpaqueSsr && ssrContext.hasTransparentSsr && forwardDepthResolveEnabled && !depthPrepassEnabled;
+    const hasFullDepthForSsr = depthPrepassEnabled || deferSSRToPostOpaque;
+    const cameraOpaqueTextureEnabled = Boolean(
+      (camera as unknown as { opaqueTextureEnabled?: boolean }).opaqueTextureEnabled
+    );
+    const canReuseCurrentFrameColor =
+      deferSSRToPostOpaque && cameraOpaqueTextureEnabled && !isXHigh && !ssrContext.hasContribDepth;
+    if (!hasFullDepthForSsr && ssrContext.deferredSsrDepthOnly?.length) {
       variants.push(...ssrContext.deferredSsrDepthOnly);
     }
     if (ssrContext.deferredSsrForward?.length) {
@@ -1439,6 +1453,9 @@ function collectSeedWorldRendererVariantsInternal(
         }
         if (ssrPackedNormalOct8 && useBilateral) {
           macros.push({ n: "SSR_PACKED_NORMAL_OCT8" });
+        }
+        if (ssrPackedHDRReinhard) {
+          macros.push({ n: "SSR_PACKED_HDR_REINHARD" });
         }
         return macros;
       };
@@ -1477,6 +1494,7 @@ function collectSeedWorldRendererVariantsInternal(
         ShaderMacroCollection.unionCollection(cameraMacros, (engine as RuntimeEngine)._macroCollection, baseSsrMacros);
         if (ssrPackedDepthRG8) baseSsrMacros.enable(ShaderMacro.getByName("SSR_PACKED_DEPTH_RG8"));
         if (ssrPackedNormalOct8) baseSsrMacros.enable(ShaderMacro.getByName("SSR_PACKED_NORMAL_OCT8"));
+        if (ssrPackedHDRReinhard) baseSsrMacros.enable(ShaderMacro.getByName("SSR_PACKED_HDR_REINHARD"));
         const baseElements: ShaderMacro[] = [];
         (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(baseSsrMacros, baseElements);
         const baseRecorded = baseElements
@@ -1491,15 +1509,21 @@ function collectSeedWorldRendererVariantsInternal(
             macros: extraMacros?.length ? [...baseRecorded, ...extraMacros] : baseRecorded
           });
         };
-        const useHighVirtual =
-          ssrQuality === ScreenSpaceReflectionQuality.High || ssrQuality === ScreenSpaceReflectionQuality.XHigh;
-        const isXHigh = ssrQuality === ScreenSpaceReflectionQuality.XHigh;
-        if (depthPrepassEnabled) appendSsrPass(0); // Pass 0: DownsampleDepth
         const baseHiZ0Macros: SeedWorldShaderVariantMacro[] =
-          depthPrepassEnabled && !isXHigh ? [{ n: "SSR_DOWNSAMPLE_FROM_FULL_DEPTH" }] : [];
-        appendSsrPass(1, baseHiZ0Macros); // Pass 1: BuildHiZMip0 (without contrib depth)
-        if (ssrContext.hasContribDepth) {
-          appendSsrPass(1, [...baseHiZ0Macros, { n: "SSR_HAS_CONTRIB_DEPTH" }]); // Pass 1: BuildHiZMip0 (with contrib depth)
+          hasFullDepthForSsr && !isXHigh ? [{ n: "SSR_DOWNSAMPLE_FROM_FULL_DEPTH" }] : [];
+        if (hasFullDepthForSsr && subShader.passes[8]) {
+          // Steady-state WebGL2 merged DownsampleDepth + BuildHiZMip0 (Pass 8).
+          appendSsrPass(8, baseHiZ0Macros);
+          if (ssrContext.hasContribDepth) {
+            appendSsrPass(8, [...baseHiZ0Macros, { n: "SSR_HAS_CONTRIB_DEPTH" }]);
+          }
+        }
+        if (!hasFullDepthForSsr || !canReuseCurrentFrameColor || !subShader.passes[8]) {
+          // WarmupColor frame 0 (when history color isn't reused) or fallback DepthOnly path uses Pass 1.
+          appendSsrPass(1, baseHiZ0Macros);
+          if (ssrContext.hasContribDepth) {
+            appendSsrPass(1, [...baseHiZ0Macros, { n: "SSR_HAS_CONTRIB_DEPTH" }]);
+          }
         }
         if (!ssrUseLinearTrace) {
           appendSsrPass(2); // Pass 2: BuildHiZMipN
@@ -1507,10 +1531,14 @@ function collectSeedWorldRendererVariantsInternal(
         appendSsrPass(3); // Pass 3: CopyTexture
         const traceMacros: SeedWorldShaderVariantMacro[] = [];
         if (useHighVirtual) traceMacros.push({ n: "SSR_OUTPUT_HIT_DIST" });
+        if (canReuseCurrentFrameColor) traceMacros.push({ n: "SSR_CURRENT_FRAME_COLOR" });
         if (ssrUseLinearTrace) traceMacros.push({ n: "SSR_LINEAR_TRACE" });
         appendSsrPass(4, traceMacros.length > 0 ? traceMacros : undefined); // Pass 4: HiZTrace
         if (ssrQuality !== ScreenSpaceReflectionQuality.Low) {
-          appendSsrPass(5, useHighVirtual ? [{ n: "SSR_HIGH_VIRTUAL_REPROJECTION" }] : undefined); // Pass 5: TemporalResolve
+          appendSsrPass(
+            5,
+            useHighVirtual ? [{ n: "SSR_HIGH_VIRTUAL_REPROJECTION" }] : [{ n: "SSR_TEMPORAL_5TAP_CLAMP" }]
+          ); // Pass 5: TemporalResolve
         }
         const supportsColorPyramidR11G11B10 = hwFormatSupport
           ? hwFormatSupport.call(runtimeHardware, TextureFormat.R11G11B10_UFloat)
@@ -1766,14 +1794,20 @@ interface AppendShaderVariantContext {
   hasContribDepth: boolean;
 }
 
-function resolveDepthPrepassEnabled(engine: Engine, scene: Scene, camera: Camera): boolean {
+function resolveDepthMode(
+  engine: Engine,
+  scene: Scene,
+  camera: Camera
+): { readonly depthPrepassEnabled: boolean; readonly forwardDepthResolveEnabled: boolean } {
   const runtimeCamera = camera as unknown as {
     depthTextureMode?: DepthTextureMode;
     _enableForwardDepthResolve?: boolean;
     _isIndependentCanvasEnabled?: () => boolean;
   };
   // Preserve backward compatibility for minimal unit-test camera mocks without depthTextureMode.
-  if (runtimeCamera.depthTextureMode === undefined) return true;
+  if (runtimeCamera.depthTextureMode === undefined) {
+    return { depthPrepassEnabled: true, forwardDepthResolveEnabled: false };
+  }
   const rhi = (
     engine as unknown as {
       _hardwareRenderer?: { supportsRendering?: boolean; canIUse?: (cap: GLCapabilityType) => boolean };
@@ -1790,7 +1824,8 @@ function resolveDepthPrepassEnabled(engine: Engine, scene: Scene, camera: Camera
     !ambientOcclusionEnabled &&
     rhi?.supportsRendering !== false &&
     baseIndependentCanvasEnabled;
-  return ambientOcclusionEnabled || (cameraDepthTextureRequested && !forwardDepthResolveEnabled);
+  const depthPrepassEnabled = ambientOcclusionEnabled || (cameraDepthTextureRequested && !forwardDepthResolveEnabled);
+  return { depthPrepassEnabled, forwardDepthResolveEnabled };
 }
 
 function shaderConsumesPointLights(shaderName: string): boolean {

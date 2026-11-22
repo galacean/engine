@@ -95,13 +95,11 @@ describe("renderer warmup scope", () => {
       destroyed: false,
       subShaders: [
         {
-          passes: ["Forward", "SSRContributionDepth"].map(
-            (stage) => ({
-              getTagValue: () => stage,
-              _renderState: { _getRenderQueueByShaderData: () => 2 },
-              _renderStateDataMap: {}
-            })
-          )
+          passes: ["Forward", "SSRContributionDepth"].map((stage) => ({
+            getTagValue: () => stage,
+            _renderState: { _getRenderQueueByShaderData: () => 2 },
+            _renderStateDataMap: {}
+          }))
         }
       ]
     };
@@ -116,7 +114,12 @@ describe("renderer warmup scope", () => {
       {
         shaderData: { _macroCollection: new ShaderMacroCollection() },
         background: { mode: 0 },
-        screenSpaceReflection: { enabled: true, quality: ScreenSpaceReflectionQuality.Medium, intensity: 1, maxRoughness: 0.6 }
+        screenSpaceReflection: {
+          enabled: true,
+          quality: ScreenSpaceReflectionQuality.Medium,
+          intensity: 1,
+          maxRoughness: 0.6
+        }
       } as any,
       {
         _updateShaderData() {},
@@ -209,9 +212,11 @@ describe("renderer warmup scope", () => {
       destroyed: false,
       subShaders: [{ passes: Array.from({ length: 8 }, () => ({ getTagValue: () => "Forward" })) }]
     };
-    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
-      name === "Lighting/ScreenSpaceReflection" ? (fakeSsrShader as any) : null
-    );
+    const findSpy = vi
+      .spyOn(Shader, "find")
+      .mockImplementation((name: string) =>
+        name === "Lighting/ScreenSpaceReflection" ? (fakeSsrShader as any) : null
+      );
     try {
       const onVariants = collectSeedWorldRendererVariants(
         {
@@ -246,10 +251,7 @@ describe("renderer warmup scope", () => {
       expect(contribVariant.macros.some((m) => m.n === "ENGINE_OUTPUT_SRGB_CORRECT")).toBe(false);
       // Forward verified-depth variant gets SSR_PACKED_DEPTH_RG8 when R16F is unsupported, never SSR_PACKED_NORMAL_OCT8.
       const forwardSsr = onVariants.find(
-        (v) =>
-          v.shader === "SsrWarmupRegression" &&
-          v.pi === 0 &&
-          v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR")
+        (v) => v.shader === "SsrWarmupRegression" && v.pi === 0 && v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR")
       )!;
       expect(forwardSsr.macros.some((m) => m.n === "SSR_PACKED_DEPTH_RG8")).toBe(true);
       expect(forwardSsr.macros.some((m) => m.n === "SSR_PACKED_NORMAL_OCT8")).toBe(false);
@@ -439,10 +441,7 @@ describe("renderer warmup scope", () => {
         v.macros.some((m) => m.n === "SCENE_POINT_LIGHT_COUNT" && m.v === "4")
     );
     const terrainShadowWithLights = variants.filter(
-      (v) =>
-        v.shader === "Terrain/Terrain" &&
-        v.pi === 1 &&
-        v.macros.some((m) => m.n === "SCENE_POINT_LIGHT_COUNT")
+      (v) => v.shader === "Terrain/Terrain" && v.pi === 1 && v.macros.some((m) => m.n === "SCENE_POINT_LIGHT_COUNT")
     );
     const waterWithLights = variants.filter(
       (v) => v.shader === "Water/Lake.v1" && v.macros.some((m) => m.n === "SCENE_POINT_LIGHT_COUNT")
@@ -546,9 +545,9 @@ describe("renderer warmup scope", () => {
         (v) => v.shader === "Terrain/Terrain" && v.pi === 1 && v.macros.every((m) => m.n !== "SCENE_POINT_LIGHT_COUNT")
       )
     ).toBe(false);
-    expect(
-      variantsToZero.some((v) => v.macros.some((m) => m.n === "SCENE_POINT_LIGHT_COUNT" && m.v === "8"))
-    ).toBe(false);
+    expect(variantsToZero.some((v) => v.macros.some((m) => m.n === "SCENE_POINT_LIGHT_COUNT" && m.v === "8"))).toBe(
+      false
+    );
 
     // Case 2: In-village with 2 scene lights + 4 decoration lights (baseline 6 + delta -4 -> 2).
     const activeSix = new ShaderMacroCollection();
@@ -612,9 +611,9 @@ describe("renderer warmup scope", () => {
         }
       ]
     };
-    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
-      name === "Masonry/GlobalProxy" ? (fakeGlobalProxyShader as any) : null
-    );
+    const findSpy = vi
+      .spyOn(Shader, "find")
+      .mockImplementation((name: string) => (name === "Masonry/GlobalProxy" ? (fakeGlobalProxyShader as any) : null));
     try {
       const variants = collectSeedWorldRendererVariants(
         { _macroCollection: new ShaderMacroCollection() } as any,
@@ -727,7 +726,7 @@ describe("renderer warmup scope", () => {
       destroyed: false,
       subShaders: [
         {
-          passes: Array.from({ length: 8 }, () => ({ getTagValue: () => "Forward" }))
+          passes: Array.from({ length: 9 }, () => ({ getTagValue: () => "Forward" }))
         }
       ]
     };
@@ -776,9 +775,11 @@ describe("renderer warmup scope", () => {
       enableScreenSpaceReflection: true,
       screenSpaceReflectionOverride: null as typeof sceneSsr | null
     } as any;
-    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
-      name === "Lighting/ScreenSpaceReflection" ? (fakeSsrShader as any) : null
-    );
+    const findSpy = vi
+      .spyOn(Shader, "find")
+      .mockImplementation((name: string) =>
+        name === "Lighting/ScreenSpaceReflection" ? (fakeSsrShader as any) : null
+      );
     try {
       const dryRoots = [
         {
@@ -822,7 +823,7 @@ describe("renderer warmup scope", () => {
         waterRoots,
         { includeGpuInstancing: false, includeOpaqueScreenSpaceReflection: false }
       );
-      // Water scene (Medium): Water SSRReceiver kept + passes 0..6 warmed (Pass 7 omitted when hardware generateMipmaps handles non-XHigh color pyramid).
+      // Water scene (Medium, full-depth prepass): Water SSRReceiver kept + passes 1..6 & 8 warmed (Pass 0 replaced by merged Pass 8; Pass 7 omitted when hardware generateMipmaps handles non-XHigh color pyramid).
       expect(waterVariants.some((v) => v.shader === "Water/Lake.v1" && v.pi === 1)).toBe(true);
       expect(
         waterVariants.some(
@@ -835,17 +836,65 @@ describe("renderer warmup scope", () => {
       ).toBe(true);
       expect(
         waterVariants.some(
-          (v) =>
-            v.shader === "Terrain/Terrain" &&
-            v.pi === 0 &&
-            v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR")
+          (v) => v.shader === "Terrain/Terrain" && v.pi === 0 && v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR")
         )
       ).toBe(false);
       const ssrPasses = waterVariants.filter((v) => v.shader === "Lighting/ScreenSpaceReflection");
-      expect(new Set(ssrPasses.map((v) => v.pi))).toEqual(new Set([0, 1, 2, 3, 4, 5, 6]));
+      expect(new Set(ssrPasses.map((v) => v.pi))).toEqual(new Set([1, 2, 3, 4, 5, 6, 8]));
       const pass1 = ssrPasses.find((v) => v.pi === 1)!;
       expect(pass1.macros.some((m) => m.n === "SSR_DOWNSAMPLE_FROM_FULL_DEPTH")).toBe(true);
       expect(pass1.macros.some((m) => m.n === "SSR_PACKED_NORMAL_OCT8")).toBe(true);
+      const pass8 = ssrPasses.find((v) => v.pi === 8)!;
+      expect(pass8.macros.some((m) => m.n === "SSR_DOWNSAMPLE_FROM_FULL_DEPTH")).toBe(true);
+      expect(pass8.macros.some((m) => m.n === "SSR_PACKED_NORMAL_OCT8")).toBe(true);
+      const pass5 = ssrPasses.find((v) => v.pi === 5)!;
+      expect(pass5.macros.some((m) => m.n === "SSR_TEMPORAL_5TAP_CLAMP")).toBe(true);
+
+      // Medium HDR + post-opaque transparent-only SSR (forwardDepthResolve + opaqueTextureEnabled):
+      // keeps SSR_PACKED_NORMAL_OCT8 + SSR_PACKED_HDR_REINHARD, reuses current-frame color (SSR_CURRENT_FRAME_COLOR),
+      // skips WarmupColor Pass 1, and warms merged Pass 8.
+      const postOpaqueCamera = {
+        _updateShaderData() {},
+        _isIndependentCanvasEnabled: () => true,
+        _enableForwardDepthResolve: true,
+        depthTextureMode: DepthTextureMode.PrePass,
+        enableHDR: true,
+        opaqueTextureEnabled: true,
+        shaderData: { _macroCollection: new ShaderMacroCollection() },
+        enableScreenSpaceReflection: true,
+        screenSpaceReflectionOverride: { ...sceneSsr, useLinearTrace: true }
+      } as any;
+      const postOpaqueVariants = collectSeedWorldRendererVariants(
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
+        {
+          shaderData: { _macroCollection: new ShaderMacroCollection() },
+          background: { mode: 0 },
+          screenSpaceReflection: sceneSsr
+        } as any,
+        postOpaqueCamera,
+        waterRoots,
+        { includeGpuInstancing: false, includeOpaqueScreenSpaceReflection: false }
+      );
+      const postOpaqueWaterRecv = postOpaqueVariants.find((v) => v.shader === "Water/Lake.v1" && v.pi === 1)!;
+      expect(postOpaqueWaterRecv.macros.some((m) => m.n === "SSR_PACKED_NORMAL_OCT8")).toBe(true);
+      const postOpaqueWaterFwd = postOpaqueVariants.find(
+        (v) => v.shader === "Water/Lake.v1" && v.pi === 0 && v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR")
+      )!;
+      expect(postOpaqueWaterFwd.macros.some((m) => m.n === "SSR_PACKED_HDR_REINHARD")).toBe(true);
+      const postOpaqueSsr = postOpaqueVariants.filter((v) => v.shader === "Lighting/ScreenSpaceReflection");
+      expect(new Set(postOpaqueSsr.map((v) => v.pi))).toEqual(new Set([3, 4, 5, 6, 8]));
+      const postOpaquePass4 = postOpaqueSsr.find((v) => v.pi === 4)!;
+      expect(postOpaquePass4.macros.some((m) => m.n === "SSR_CURRENT_FRAME_COLOR")).toBe(true);
+      expect(postOpaquePass4.macros.some((m) => m.n === "SSR_LINEAR_TRACE")).toBe(true);
+      expect(postOpaquePass4.macros.some((m) => m.n === "SSR_PACKED_HDR_REINHARD")).toBe(true);
+      expect(postOpaquePass4.macros.some((m) => m.n === "SSR_PACKED_NORMAL_OCT8")).toBe(true);
+      const postOpaquePass5 = postOpaqueSsr.find((v) => v.pi === 5)!;
+      expect(postOpaquePass5.macros.some((m) => m.n === "SSR_TEMPORAL_5TAP_CLAMP")).toBe(true);
+      expect(postOpaquePass5.macros.some((m) => m.n === "SSR_PACKED_HDR_REINHARD")).toBe(true);
+      const postOpaquePass8 = postOpaqueSsr.find((v) => v.pi === 8)!;
+      expect(postOpaquePass8.macros.some((m) => m.n === "SSR_DOWNSAMPLE_FROM_FULL_DEPTH")).toBe(true);
+      expect(postOpaquePass8.macros.some((m) => m.n === "SSR_PACKED_HDR_REINHARD")).toBe(true);
+      expect(postOpaquePass8.macros.some((m) => m.n === "SSR_PACKED_NORMAL_OCT8")).toBe(true);
 
       // Linear trace mode (useLinearTrace: true) skips BuildHiZMipN (pass 2) and warms SSR_LINEAR_TRACE on HiZTrace (pass 4).
       camera.screenSpaceReflectionOverride = {
@@ -864,7 +913,7 @@ describe("renderer warmup scope", () => {
         { includeGpuInstancing: false, includeOpaqueScreenSpaceReflection: false }
       );
       const linearSsrPasses = linearWaterVariants.filter((v) => v.shader === "Lighting/ScreenSpaceReflection");
-      expect(new Set(linearSsrPasses.map((v) => v.pi))).toEqual(new Set([0, 1, 3, 4, 5, 6]));
+      expect(new Set(linearSsrPasses.map((v) => v.pi))).toEqual(new Set([1, 3, 4, 5, 6, 8]));
       const linearTracePass = linearSsrPasses.find((v) => v.pi === 4)!;
       expect(linearTracePass.macros.some((m) => m.n === "SSR_LINEAR_TRACE")).toBe(true);
 
@@ -885,7 +934,7 @@ describe("renderer warmup scope", () => {
         { includeGpuInstancing: false, includeOpaqueScreenSpaceReflection: false }
       );
       const lowSsrPasses = lowWaterVariants.filter((v) => v.shader === "Lighting/ScreenSpaceReflection");
-      expect(new Set(lowSsrPasses.map((v) => v.pi))).toEqual(new Set([0, 1, 2, 3, 4, 6]));
+      expect(new Set(lowSsrPasses.map((v) => v.pi))).toEqual(new Set([1, 2, 3, 4, 6, 8]));
 
       // Software fallback device (supportsRenderTargetColorFormat = false) still warms Pass 7 on non-XHigh.
       const fallbackDeviceVariants = collectSeedWorldRendererVariants(
@@ -902,9 +951,9 @@ describe("renderer warmup scope", () => {
         waterRoots,
         { includeGpuInstancing: false, includeOpaqueScreenSpaceReflection: false }
       );
-      expect(
-        fallbackDeviceVariants.some((v) => v.shader === "Lighting/ScreenSpaceReflection" && v.pi === 7)
-      ).toBe(true);
+      expect(fallbackDeviceVariants.some((v) => v.shader === "Lighting/ScreenSpaceReflection" && v.pi === 7)).toBe(
+        true
+      );
 
       // XHigh quality warms Pass 7 (base + SSR_COLOR_PYRAMID_KARIS_DOWNSAMPLE).
       camera.screenSpaceReflectionOverride = {
@@ -1001,10 +1050,7 @@ describe("renderer warmup scope", () => {
       ).toBe(true);
       expect(
         highWaterVariants.some(
-          (v) =>
-            v.shader === "Terrain/Terrain" &&
-            v.pi === 0 &&
-            v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR")
+          (v) => v.shader === "Terrain/Terrain" && v.pi === 0 && v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR")
         )
       ).toBe(false);
 
@@ -1104,15 +1150,11 @@ describe("renderer warmup scope", () => {
     );
     // Single temporary representative still gets RENDERER_GPU_INSTANCE under onlySharedMeshGpuInstancing.
     expect(
-      variants.some(
-        (v) => v.shader === "Terrain/Vegetation" && v.macros.some((m) => m.n === "RENDERER_GPU_INSTANCE")
-      )
+      variants.some((v) => v.shader === "Terrain/Vegetation" && v.macros.some((m) => m.n === "RENDERER_GPU_INSTANCE"))
     ).toBe(true);
     // includeLodDither defaults to false: must not synthesize RENDERER_LOD_DITHER onto a renderer without it.
     expect(
-      variants.some(
-        (v) => v.shader === "Terrain/Vegetation" && v.macros.some((m) => m.n === "RENDERER_LOD_DITHER")
-      )
+      variants.some((v) => v.shader === "Terrain/Vegetation" && v.macros.some((m) => m.n === "RENDERER_LOD_DITHER"))
     ).toBe(false);
   });
 
@@ -1265,7 +1307,9 @@ describe("renderer warmup scope", () => {
       { shader: "Terrain/Vegetation", si: 0, pi: 0, macros: [{ n: "RENDERER_WORLD_PICK" }] }
     ]);
     expect(
-      expanded.some((v) => v.shader === "Terrain/Vegetation" && v.macros.some((m) => m.n === "RENDERER_GENERATION_REVEAL"))
+      expanded.some(
+        (v) => v.shader === "Terrain/Vegetation" && v.macros.some((m) => m.n === "RENDERER_GENERATION_REVEAL")
+      )
     ).toBe(true);
     expect(
       expanded.some((v) => v.shader === "Terrain/Surface" && v.macros.some((m) => m.n === "RENDERER_GENERATION_REVEAL"))
@@ -1362,9 +1406,9 @@ describe("renderer warmup scope", () => {
       ],
       false
     );
-    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
-      name === "Masonry/GlobalProxy" ? (globalProxyShader as any) : null
-    );
+    const findSpy = vi
+      .spyOn(Shader, "find")
+      .mockImplementation((name: string) => (name === "Masonry/GlobalProxy" ? (globalProxyShader as any) : null));
     try {
       const variants = collectSeedWorldRendererVariants(
         { _macroCollection: new ShaderMacroCollection() } as any,
@@ -1392,9 +1436,7 @@ describe("renderer warmup scope", () => {
       expect(
         variants.some(
           (v) =>
-            v.shader === "Masonry/GlobalProxy" &&
-            v.pi === 0 &&
-            v.macros.some((m) => m.n === "GLOBAL_PROXY_ENTRANCE")
+            v.shader === "Masonry/GlobalProxy" && v.pi === 0 && v.macros.some((m) => m.n === "GLOBAL_PROXY_ENTRANCE")
         )
       ).toBe(false);
     } finally {
@@ -1447,9 +1489,9 @@ describe("renderer warmup scope", () => {
       ],
       false
     );
-    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
-      name === "Masonry/GlobalProxy" ? (globalProxyShader as any) : null
-    );
+    const findSpy = vi
+      .spyOn(Shader, "find")
+      .mockImplementation((name: string) => (name === "Masonry/GlobalProxy" ? (globalProxyShader as any) : null));
     try {
       const collect = (order: MeshRenderer[]) =>
         collectSeedWorldRendererVariants(
