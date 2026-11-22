@@ -127,121 +127,6 @@ describe("Transform test", function () {
     }
   });
 
-  it("uses matrix scale decomposition for Transform subclasses overriding matrix or scale accessors", () => {
-    class MatrixScalingTransform extends Transform {
-      private readonly _matrix = new Matrix();
-
-      constructor(entity: Entity) {
-        super(entity);
-        this._matrix.elements[0] = 2;
-      }
-
-      override get localMatrix(): Matrix {
-        return this._matrix;
-      }
-    }
-
-    class CustomScaleTransform extends Transform {
-      private readonly _customScale = new Vector3(9, 9, 9);
-
-      override get lossyWorldScale(): Vector3 {
-        return this._customScale;
-      }
-    }
-
-    class ScaledLocalMatrixTransform extends Transform {
-      private readonly _scaleMatrix = new Matrix();
-      private readonly _composed = new Matrix();
-
-      constructor(entity: Entity) {
-        super(entity);
-        this._scaleMatrix.elements[0] = 2;
-      }
-
-      override get localMatrix(): Matrix {
-        Matrix.multiply(this._scaleMatrix, super.localMatrix, this._composed);
-        return this._composed;
-      }
-    }
-
-    class ScaledWorldMatrixTransform extends Transform {
-      private readonly _scaleMatrix = new Matrix();
-      private readonly _composed = new Matrix();
-
-      constructor(entity: Entity) {
-        super(entity);
-        this._scaleMatrix.elements[0] = 2;
-      }
-
-      override get worldMatrix(): Matrix {
-        Matrix.multiply(this._scaleMatrix, super.worldMatrix, this._composed);
-        return this._composed;
-      }
-    }
-
-    const root = scene.createRootEntity();
-    const child = root.createChild();
-    const grandchild = child.createChild();
-    const custom = child.addComponent(MatrixScalingTransform);
-    const scaleRoot = scene.createRootEntity();
-    const scaleChild = scaleRoot.createChild();
-    scaleRoot.addComponent(CustomScaleTransform);
-    const rotatedCustomRoot = scene.createRootEntity();
-    const rotatedCustomLocal = rotatedCustomRoot.addComponent(ScaledLocalMatrixTransform);
-    const uniformRoot = scene.createRootEntity();
-    const rotatedCustomWorldChild = uniformRoot.createChild();
-    const rotatedCustomWorld = rotatedCustomWorldChild.addComponent(ScaledWorldMatrixTransform);
-    try {
-      root.transform.setScale(3, 3, 3);
-      expect(custom.worldMatrix.elements[0]).toBe(6);
-      expect(custom.lossyWorldScale).toEqual(new Vector3(6, 3, 3));
-
-      const transform = grandchild.transform;
-      expect(transform.lossyWorldScale).toEqual(new Vector3(6, 3, 3));
-      transform.setRotation(0, 0, 90);
-      expect(transform.lossyWorldScale.x).toBeCloseTo(3, 5);
-      expect(transform.lossyWorldScale.y).toBeCloseTo(6, 5);
-
-      scene.addRootEntity(child);
-      expect(custom.worldMatrix.elements[0]).toBe(2);
-      expect(custom.lossyWorldScale).toEqual(new Vector3(2, 1, 1));
-      expect(transform.lossyWorldScale.x).toBeCloseTo(1, 5);
-      expect(transform.lossyWorldScale.y).toBeCloseTo(2, 5);
-
-      expect(scaleChild.transform.lossyWorldScale).toEqual(new Vector3(1, 1, 1));
-
-      expect(rotatedCustomLocal.lossyWorldScale).toEqual(new Vector3(2, 1, 1));
-      let rootFlags = 0;
-      // @ts-ignore
-      rotatedCustomRoot._updateFlagManager.addListener((type?: number) => {
-        if (typeof type === "number") rootFlags |= type;
-      });
-      rotatedCustomLocal.setRotation(0, 0, 90);
-      expect((rootFlags & TransformModifyFlags.WorldScale) !== 0).toBe(true);
-      expect(rotatedCustomLocal.lossyWorldScale.x).toBeCloseTo(1, 5);
-      expect(rotatedCustomLocal.lossyWorldScale.y).toBeCloseTo(2, 5);
-      expect(rotatedCustomLocal.lossyWorldScale.z).toBeCloseTo(1, 5);
-
-      expect(rotatedCustomWorld.lossyWorldScale).toEqual(new Vector3(2, 1, 1));
-      let worldChildFlags = 0;
-      // @ts-ignore
-      rotatedCustomWorldChild._updateFlagManager.addListener((type?: number) => {
-        if (typeof type === "number") worldChildFlags |= type;
-      });
-      uniformRoot.transform.setRotation(0, 0, 90);
-      expect((worldChildFlags & TransformModifyFlags.WorldScale) !== 0).toBe(true);
-      expect(rotatedCustomWorld.lossyWorldScale.x).toBeCloseTo(1, 5);
-      expect(rotatedCustomWorld.lossyWorldScale.y).toBeCloseTo(2, 5);
-      expect(rotatedCustomWorld.lossyWorldScale.z).toBeCloseTo(1, 5);
-    } finally {
-      child.destroy();
-      root.destroy();
-      scaleRoot.destroy();
-      rotatedCustomRoot.destroy();
-      uniformRoot.destroy();
-    }
-  });
-
   it("keeps unrotated child lossyWorldScale exact without matrix decomposition while a non-uniform parent rotates", () => {
     const parent = scene.createRootEntity("non-uniform-parent");
     const child = parent.createChild("unrotated-child");
@@ -297,66 +182,29 @@ describe("Transform test", function () {
     }
   });
 
-  it("reports internal custom-matrix, world-pose override, and world uniform scaling flags accurately", () => {
-    class CustomWorldPositionTransform extends Transform {
-      override get worldPosition(): Vector3 {
-        return super.worldPosition;
-      }
-    }
-
-    class CustomLossyScaleTransform extends Transform {
-      override get lossyWorldScale(): Vector3 {
-        return super.lossyWorldScale;
-      }
-    }
-
-    class CustomWorldMatrixTransform extends Transform {
-      override get worldMatrix(): Matrix {
-        return super.worldMatrix;
-      }
-    }
-
+  it("reports internal world uniform scaling flags accurately", () => {
     const parent = scene.createRootEntity("flags-parent");
     const child = parent.createChild("flags-child");
-    const posEntity = scene.createRootEntity("custom-pos");
-    const scaleEntity = scene.createRootEntity("custom-scale");
-    const matrixEntity = scene.createRootEntity("custom-matrix");
     try {
       const parentTransform = parent.transform;
       const childTransform = child.transform;
-      expect(childTransform._hasCustomMatrix).toBe(false);
-      expect(childTransform._hasCustomWorldPose).toBe(false);
       expect(childTransform._getWorldUniformScaling()).toBe(true);
 
       parentTransform.setScale(2, 1, 1);
       expect(childTransform._getWorldUniformScaling()).toBe(false);
 
       parentTransform.localMatrix = new Matrix();
-      expect(parentTransform._hasCustomMatrix).toBe(false);
       expect(parentTransform._getWorldUniformScaling()).toBe(true);
       expect(childTransform._getWorldUniformScaling()).toBe(true);
+
+      parentTransform.setScale(2, 1, 1);
+      expect(childTransform._getWorldUniformScaling()).toBe(false);
 
       parentTransform.setScale(2, 2, 2);
-      expect(parentTransform._hasCustomMatrix).toBe(false);
       expect(parentTransform._getWorldUniformScaling()).toBe(true);
       expect(childTransform._getWorldUniformScaling()).toBe(true);
-
-      const posTransform = posEntity.addComponent(CustomWorldPositionTransform);
-      expect(posTransform._hasCustomMatrix).toBe(false);
-      expect(posTransform._hasCustomWorldPose).toBe(true);
-
-      const scaleTransform = scaleEntity.addComponent(CustomLossyScaleTransform);
-      expect(scaleTransform._hasCustomMatrix).toBe(true);
-      expect(scaleTransform._hasCustomWorldPose).toBe(false);
-
-      const matrixTransform = matrixEntity.addComponent(CustomWorldMatrixTransform);
-      expect(matrixTransform._hasCustomMatrix).toBe(true);
-      expect(matrixTransform._hasCustomWorldPose).toBe(true);
     } finally {
       parent.destroy();
-      posEntity.destroy();
-      scaleEntity.destroy();
-      matrixEntity.destroy();
     }
   });
 

@@ -768,28 +768,18 @@ export class Collider extends Component implements ICloneHook<Collider> {
     // Accumulate the child origin and rotation in the body's local frame, where rigid body motion cancels out.
     const { position, rotation, bodyOffset: offset } = scratch;
     offset.set(0, 0, 0);
-    let current = entity;
-    for (; current !== body; current = current.parent!) {
+    for (let current = entity; current !== body; current = current.parent!) {
       const transform = current.transform;
-      if (transform._hasCustomWorldPose) break;
       Vector3.transformToVec3(offset, transform.localMatrix, offset);
       Quaternion.multiply(transform.rotationQuaternion, rotation, rotation);
     }
     const bodyTransform = body.transform;
     const parent = body.parent;
-    const customWorldPose = current !== body || bodyTransform._hasCustomWorldPose;
-    if (customWorldPose || bodyTransform._hasCustomMatrix || (parent && !parent.transform._getWorldUniformScaling())) {
+    if (parent && !parent.transform._getWorldUniformScaling()) {
+      // Inherited shear still affects the child origin even though the native shape ignores shear.
       const inverseRotation = scratch.inverseBodyRotation;
       Quaternion.invert(bodyTransform.worldRotationQuaternion, inverseRotation);
-      if (customWorldPose) {
-        // An overridden world pose may differ from the pose composed from the local matrices.
-        const transform = entity.transform;
-        Vector3.subtract(transform.worldPosition, bodyTransform.worldPosition, offset);
-        Quaternion.multiply(inverseRotation, transform.worldRotationQuaternion, rotation);
-      } else {
-        // Inherited shear still affects the child origin even though the native shape ignores shear.
-        Vector3.transformNormal(offset, bodyTransform.worldMatrix, offset);
-      }
+      Vector3.transformNormal(offset, bodyTransform.worldMatrix, offset);
       Vector3.transformByQuat(offset, inverseRotation, offset);
     } else {
       Vector3.multiply(offset, bodyTransform.lossyWorldScale, offset);

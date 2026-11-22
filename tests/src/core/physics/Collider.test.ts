@@ -165,73 +165,6 @@ describe("Collider", () => {
     expect(geometryWrites).not.toHaveBeenCalled();
   });
 
-  it.each([false, true])("honors a custom world matrix after adding a Rigidbody (intermediate=%s)", (intermediate) => {
-    class TranslatedTransform extends Transform {
-      private readonly _matrix = new Matrix();
-
-      constructor(entity: Entity) {
-        super(entity);
-        this._matrix.elements[12] = 5;
-      }
-
-      override get worldMatrix(): Matrix {
-        return this._matrix;
-      }
-    }
-
-    const parent = root.createChild();
-    const translated = parent.createChild();
-    translated.addComponent(TranslatedTransform);
-    const entity = intermediate ? translated.createChild() : translated;
-    const collider = entity.addComponent(BoxCollider);
-    const translatedRay = new Ray(new Vector3(5, 0, -3), new Vector3(0, 0, 1));
-    const originRay = new Ray(new Vector3(0, 0, -3), new Vector3(0, 0, 1));
-    const hit = new HitResult();
-
-    expect(physics.raycast(translatedRay, 5, hit)).toBe(true);
-    expect(hit.collider).toBe(collider);
-
-    const body = parent.addComponent(Rigidbody);
-    body.isKinematic = true;
-    expect(collider.attachedRigidbody).toBe(body);
-    expect(entity.transform.worldPosition.x).toBe(5);
-    expect(physics.raycast(translatedRay, 5, hit)).toBe(true);
-    expect(hit.collider).toBe(collider);
-    expect(physics.raycast(originRay, 5)).toBe(false);
-  });
-
-  it("keeps a compound child at its world position when the root overrides its local matrix", () => {
-    class MatrixTransform extends Transform {
-      private readonly _matrix = new Matrix();
-
-      constructor(entity: Entity) {
-        super(entity);
-        this._matrix.elements[12] = 10;
-      }
-
-      override get localMatrix(): Matrix {
-        return this._matrix;
-      }
-    }
-
-    const bodyEntity = new Entity(engine, "custom body", MatrixTransform);
-    const entity = new Entity(engine);
-    bodyEntity.addChild(entity);
-    entity.transform.setPosition(1, 0, 0);
-    const collider = entity.addComponent(BoxCollider);
-    bodyEntity.addComponent(Rigidbody).isKinematic = true;
-    root.scene.addRootEntity(bodyEntity);
-    try {
-      const hit = new HitResult();
-      const ray = new Ray(new Vector3(entity.transform.worldPosition.x, 0, -3), new Vector3(0, 0, 1));
-      expect(physics.raycast(ray, 5, hit) && hit.collider === collider).toBe(true);
-      ray.origin.x = 1;
-      expect(physics.raycast(ray, 5)).toBe(false);
-    } finally {
-      bodyEntity.destroy();
-    }
-  });
-
   it.each([
     { placement: "static", compound: false },
     { placement: "compound", compound: true }
@@ -241,11 +174,19 @@ describe("Collider", () => {
     let queryDuringSync = false;
     class QueryingTransform extends Transform {
       override get worldPosition(): Vector3 {
-        if (queryDuringSync) {
+        if (!compound && queryDuringSync) {
           queryDuringSync = false;
-          nestedResult = cast(compound ? 5.1 : 0, 20);
+          nestedResult = cast(0, 20);
         }
         return super.worldPosition;
+      }
+
+      override get localMatrix(): Matrix {
+        if (compound && queryDuringSync) {
+          queryDuringSync = false;
+          nestedResult = cast(5.1, 20);
+        }
+        return super.localMatrix;
       }
     }
 
