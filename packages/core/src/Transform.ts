@@ -760,8 +760,9 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   private _updateWorldRotationFlag() {
     const parent = this._getParentTransform();
-    const parentWorldUniformScaling = parent ? parent._getWorldUniformScaling() : true;
-    let flags = parentWorldUniformScaling ? TransformModifyFlags.WmWeWq : TransformModifyFlags.WmWeWqWs;
+    const preserveWorldScale =
+      !this._isContainDirtyFlag(Transform._customMatrixFlag) && (!parent || parent._getWorldUniformScaling());
+    let flags = preserveWorldScale ? TransformModifyFlags.WmWeWq : TransformModifyFlags.WmWeWqWs;
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
       flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
@@ -782,6 +783,9 @@ export class Transform extends Component implements ICloneHook<Transform> {
    * @param flags - Dirty flag
    */
   private _updateWorldPositionAndRotationFlag(flags: TransformModifyFlags): void {
+    if (this._isContainDirtyFlag(Transform._customMatrixFlag)) {
+      flags |= TransformModifyFlags.WorldScale;
+    }
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
       flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
