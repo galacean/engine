@@ -30,17 +30,15 @@ export class TransformFeedbackSimulator {
    * @param vertexCount - Number of vertices to allocate
    * @param shaderPass - Shader pass used for simulation
    * @param feedbackVaryings - Vertex shader outputs captured by Transform Feedback
-   * @param bufferMode - Use one stable output buffer for a generator that never reads its previous output
    */
   constructor(
     engine: Engine,
     byteStride: number,
     vertexCount: number,
     shaderPass: ShaderPass,
-    feedbackVaryings: string[],
-    bufferMode: "ping-pong" | "output-only" = "ping-pong"
+    feedbackVaryings: string[]
   ) {
-    this._primitive = new TransformFeedbackPrimitive(engine, byteStride, vertexCount, bufferMode);
+    this._primitive = new TransformFeedbackPrimitive(engine, byteStride, vertexCount);
     this._shaderPass = shaderPass;
     this._feedbackVaryings = feedbackVaryings;
   }
@@ -77,8 +75,10 @@ export class TransformFeedbackSimulator {
     }
 
     program.bind();
+    program.regroupUniformBlocks();
     program.uploadUniforms(program.rendererUniformBlock, shaderData);
     program.uploadUniforms(program.otherUniformBlock, shaderData);
+    program.uploadUniforms(program.multiGroupUniformBlock, shaderData);
 
     this._primitive.beginDraw(program, feedbackElements, inputBindings, inputElements);
     return true;
@@ -88,11 +88,10 @@ export class TransformFeedbackSimulator {
    * Issue a draw call for a vertex range.
    * @param mode - Primitive topology
    * @param first - First vertex index
-   * @param count - Number of vertices per instance
-   * @param instanceCount - Number of instances; defaults to one
+   * @param count - Number of vertices
    */
-  draw(mode: MeshTopology, first: number, count: number, instanceCount = 1): void {
-    this._primitive.draw(mode, first, count, instanceCount);
+  draw(mode: MeshTopology, first: number, count: number): void {
+    this._primitive.draw(mode, first, count);
   }
 
   /**

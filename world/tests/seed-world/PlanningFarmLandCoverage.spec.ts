@@ -283,9 +283,9 @@ describe("P2-3c PlanningFarmLandLayer active-cell culling and tight bounds", () 
       glTFLoader: { meshOpt: { workerCount: 0 } }
     });
     const device = (engine as unknown as {
-      _hardwareRenderer: { isWebGL2: boolean; capability: { maxTextureSize: number } };
+      _hardwareRenderer: { supportsRendering: boolean; capability: { maxTextureSize: number } };
     })._hardwareRenderer;
-    device.isWebGL2 = true;
+    device.supportsRendering = true;
     device.capability.maxTextureSize = 4096;
     (engine.canvas as unknown as { _webCanvas: unknown })._webCanvas = {
       getContext: () => ({ MAX_TEXTURE_SIZE: 3379, getParameter: () => 4096 })

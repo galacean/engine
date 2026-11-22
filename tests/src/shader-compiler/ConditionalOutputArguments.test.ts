@@ -50,7 +50,7 @@ describe("conditional output argument obligations", () => {
     expect(getBranchReachability(issues[0].branch!)).toBe("reachable");
   });
 
-  for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES300]) {
     for (const qualifier of ["out", "inout"]) {
       it.each(["", "#define WRITE 1"])(
         `rejects an invalid source configuration in handoff/offline (${target}, ${qualifier}, %s)`,
@@ -107,12 +107,10 @@ describe("conditional output argument obligations", () => {
 });
 
 describe.runIf(typeof document !== "undefined")("conditional output variants on WebGL", () => {
-  it.each([ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300])(
+  it.each([ShaderLanguage.GLSLES300])(
     "rejects only the active non-modifiable output variant for target %s",
     (target) => {
-      const gl = document
-        .createElement("canvas")
-        .getContext(target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl") as
+      const gl = document.createElement("canvas").getContext("webgl2") as
         | WebGLRenderingContext
         | WebGL2RenderingContext;
       expect(gl).not.toBeNull();
@@ -131,7 +129,7 @@ describe.runIf(typeof document !== "undefined")("conditional output variants on 
                 ] as const) {
                   const object = gl.createShader(kind)!;
                   objects.push(object);
-                  const version = target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+                  const version = "#version 300 es\n";
                   gl.shaderSource(
                     object,
                     `${version}precision highp float;\n${ShaderMacroProcessor.evaluate(instructions, macros)}`

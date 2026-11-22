@@ -1,7 +1,5 @@
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
-import { GLCapabilityType } from "../base/Constant";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
@@ -15,25 +13,18 @@ import { PipelineStage } from "./enums/PipelineStage";
  * Depth-only fallback and forward-depth resolve target.
  */
 export class DepthOnlyPass extends PipelinePass {
-  readonly supportDepthTexture: boolean;
   renderTarget: RenderTarget | null;
 
-  constructor(engine: Engine) {
-    super(engine);
-    this.supportDepthTexture = engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
-  }
-
   onConfig(camera: Camera, depthFormat?: TextureFormat): void {
-    const engine = this.engine;
     const { width, height } = camera.pixelViewport;
 
     this.renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-      engine,
+      this.engine,
       this.renderTarget,
       width,
       height,
       null,
-      depthFormat ?? (engine._hardwareRenderer.isWebGL2 ? TextureFormat.Depth24 : TextureFormat.Depth24Stencil8),
+      depthFormat ?? TextureFormat.Depth24,
       true,
       false,
       false,

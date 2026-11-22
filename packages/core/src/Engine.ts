@@ -16,7 +16,6 @@ import { SceneManager } from "./SceneManager";
 import { RenderingStatistics } from "./asset/RenderingStatistics";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EngineObject, EventDispatcher, Logger, Time } from "./base";
-import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { ColliderShape } from "./physics/shape/ColliderShape";
@@ -43,10 +42,6 @@ export class Engine extends EventDispatcher {
   /** @internal */
   static _builtinShaders: BuiltinShaders;
 
-  /** @internal */
-  static _noDepthTextureMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
-  /** @internal */
-  static _noSRGBSupportMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
   /** @internal */
   static _outputSRGBCorrectMacro = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
   /** @internal Conversion of space units to pixel units for 2D. */
@@ -264,17 +259,9 @@ export class Engine extends EventDispatcher {
       this.xrManager._initialize(this, xrDevice);
     }
 
-    if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
-      this._macroCollection.enable(Engine._noDepthTextureMacro);
-    } else {
-      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
-      depthTexture2D.isGCIgnored = true;
-      this._depthTexture2D = depthTexture2D;
-    }
-
-    if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
-      this._macroCollection.enable(Engine._noSRGBSupportMacro);
-    }
+    const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
+    depthTexture2D.isGCIgnored = true;
+    this._depthTexture2D = depthTexture2D;
 
     this._basicResources = new BasicResources(this, Engine._builtinShaders);
     this._particleBufferUtils = new ParticleBufferUtils(this);

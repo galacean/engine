@@ -38,7 +38,7 @@ export interface SeedWorldSurfaceReliefTuning extends Partial<SeedWorldSurfaceRe
 const bindingOwner = new WeakMap<ShaderData, SeedWorldSurfaceReliefRuntime>();
 
 function createPackedMaskTexture(engine: Engine, resolution: number, pixels: Uint8Array): Texture2D {
-  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8, false, false);
+  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8_UNorm, false, false);
   try {
     texture.filterMode = TextureFilterMode.Bilinear;
     texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;

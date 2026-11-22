@@ -13,7 +13,7 @@ import {
 import { Vector2, Vector3 } from "@galacean/engine-math";
 import type { PrimitiveMeshAsset, SerializedPrimitiveMeshData } from "./PrimitiveMeshAsset";
 
-@resourceLoader(AssetType.PrimitiveMesh, ["mesh"], false)
+@resourceLoader(AssetType.PrimitiveMesh, ["mesh"])
 class PrimitiveMeshLoader extends Loader<ModelMesh> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<ModelMesh> {
     return resourceManager

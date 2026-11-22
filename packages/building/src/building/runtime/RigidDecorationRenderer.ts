@@ -61,7 +61,7 @@ export class RigidDecorationRenderer extends MeshRenderer {
       };
     });
     this.words = new Float32Array(bindings.length * 32);
-    this.texture = new Texture2D(this.engine, 8, bindings.length, TextureFormat.R32G32B32A32, false, false);
+    this.texture = new Texture2D(this.engine, 8, bindings.length, TextureFormat.R32G32B32A32_SFloat, false, false);
     this.texture.filterMode = TextureFilterMode.Point;
     this.texture.wrapModeU = this.texture.wrapModeV = TextureWrapMode.Clamp;
     const texture = this.texture,

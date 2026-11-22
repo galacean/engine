@@ -19,8 +19,8 @@ import {
 import { RenderTargetPool } from "../../core/src/RenderPipeline/RenderTargetPool";
 import { ShaderMacroProcessor } from "../../core/src/shader/ShaderMacroProcessor";
 import { ShaderProgram } from "../../core/src/shader/ShaderProgram";
-import { TextureUtils } from "../src/native/core/src/texture/TextureUtils";
-import { GLCapability } from "../src/native/rhi-webgl/src/GLCapability";
+import { TextureUtils } from "../../core/src/texture/TextureUtils";
+import { GLCapability } from "../../rhi-webgl/src/GLCapability";
 
 const compiledDir = new URL("../.cache/compiled/", import.meta.url);
 const readCompiledShader = (name: string) =>
@@ -109,11 +109,11 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
   });
 
   it("preserves alpha.59 TextureFormat names while adding SSR float formats and byte sizes", () => {
-    expect(TextureFormat.R8G8B8A8).toBe(1);
-    expect(TextureFormat.R16G16B16A16).toBe(7);
+    expect(TextureFormat.R8G8B8A8_UNorm).toBe(1);
+    expect(TextureFormat.R16G16B16A16_SFloat).toBe(7);
     expect(TextureFormat.R11G11B10_UFloat).toBe(35);
-    expect(TextureFormat.R8).toBe(36);
-    expect(TextureFormat.R8G8).toBe(37);
+    expect(TextureFormat.R8_UNorm).toBe(36);
+    expect(TextureFormat.R8G8_UNorm).toBe(37);
     expect(TextureFormat.R16_SFloat).toBe(39);
     expect(TextureFormat.R16G16_SFloat).toBe(40);
     expect(TextureFormat.R32_SFloat).toBe(41);
@@ -205,8 +205,8 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
           expect(evaluated).not.toContain("#ifdef");
           expect(evaluated).not.toContain("#endif");
           expect(evaluated).toContain("material_SSRFullDepthTexture");
-          expect(evaluated).toContain("gl_FragDepthEXT = maxD");
-          expect(evaluated).toContain("gl_FragColor");
+          expect(evaluated).toContain("gl_FragDepth = maxD");
+          expect(evaluated).toContain("output_color");
 
           if (downsampleFull) {
             expect(evaluated).toContain("dy < 6");
@@ -214,7 +214,7 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
             expect(evaluated).toContain("minD = min");
           } else {
             expect(evaluated).not.toContain("dy < 6");
-            expect(evaluated).toContain("texture2D ( material_SSRFullDepthTexture , v.v_uv ).r");
+            expect(evaluated).toContain("texture ( material_SSRFullDepthTexture , v.v_uv ).r");
           }
 
           if (hasContrib) {
@@ -270,7 +270,7 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
       expect(evalTemp).toContain("vec4 m1 = currCenter ;");
       expect(evalTemp).toContain("if ( x == 0 && y == 0 )");
       expect(evalTemp).not.toContain("clamp ( uv + vec2 ( float ( x ) , float ( y ) ) * texel");
-      const earlyOutIdx = evalTemp.indexOf("gl_FragColor = currCenter ;");
+      const earlyOutIdx = evalTemp.indexOf("output_color = currCenter ;");
       const clampLoopIdx = evalTemp.indexOf("vec4 m1 = currCenter ;");
       expect(earlyOutIdx).toBeGreaterThan(-1);
       expect(clampLoopIdx).toBeGreaterThan(earlyOutIdx);
@@ -300,19 +300,18 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
     expect(evaluatedPBR).toContain("sampleScreenSpaceReflectionRawWithDepth");
   });
 
-  it("CR-001: requires WebGL2 colorBufferFloat (not colorBufferHalfFloat) for R16_SFloat / R16G16_SFloat render targets", () => {
-    const makeCap = (isWebGL2: boolean, caps: GLCapabilityType[]) => {
+  it("CR-001: requires colorBufferFloat (not colorBufferHalfFloat) for R16_SFloat / R16G16_SFloat render targets", () => {
+    const makeCap = (caps: GLCapabilityType[]) => {
       const set = new Set(caps);
       return {
-        rhi: { isWebGL2 },
         canIUse: (type: GLCapabilityType) => set.has(type),
         supportsTextureFormat: GLCapability.prototype.supportsTextureFormat
       };
     };
 
-    const halfFloatOnly = makeCap(true, [GLCapabilityType.colorBufferHalfFloat, GLCapabilityType.textureHalfFloat]);
+    const halfFloatOnly = makeCap([GLCapabilityType.colorBufferHalfFloat]);
     expect(
-      GLCapability.prototype.supportsRenderTargetColorFormat.call(halfFloatOnly, TextureFormat.R16G16B16A16)
+      GLCapability.prototype.supportsRenderTargetColorFormat.call(halfFloatOnly, TextureFormat.R16G16B16A16_SFloat)
     ).toBe(true);
     expect(GLCapability.prototype.supportsRenderTargetColorFormat.call(halfFloatOnly, TextureFormat.R16_SFloat)).toBe(
       false
@@ -321,18 +320,10 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
       GLCapability.prototype.supportsRenderTargetColorFormat.call(halfFloatOnly, TextureFormat.R16G16_SFloat)
     ).toBe(false);
 
-    const floatCap = makeCap(true, [GLCapabilityType.colorBufferFloat]);
+    const floatCap = makeCap([GLCapabilityType.colorBufferFloat]);
     expect(GLCapability.prototype.supportsRenderTargetColorFormat.call(floatCap, TextureFormat.R16_SFloat)).toBe(true);
     expect(GLCapability.prototype.supportsRenderTargetColorFormat.call(floatCap, TextureFormat.R16G16_SFloat)).toBe(
       true
-    );
-
-    const webgl1Float = makeCap(false, [GLCapabilityType.colorBufferFloat, GLCapabilityType.colorBufferHalfFloat]);
-    expect(GLCapability.prototype.supportsRenderTargetColorFormat.call(webgl1Float, TextureFormat.R16_SFloat)).toBe(
-      false
-    );
-    expect(GLCapability.prototype.supportsRenderTargetColorFormat.call(webgl1Float, TextureFormat.R16G16_SFloat)).toBe(
-      false
     );
   });
 

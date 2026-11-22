@@ -75,7 +75,7 @@ Varyings BlinnPhongVertex(Attributes attr) {
         mat4 skinMatrix = getSkinMatrix(attr);
         position = skinMatrix * position;
         #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
-            mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
+            mat3 skinNormalMatrix = inverse(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
             #ifdef NEED_VERTEX_TANGENT
                 tangent.xyz = tangent.xyz * skinNormalMatrix;

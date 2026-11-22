@@ -82,7 +82,7 @@ export class EngineRoofFeedback {
 
   constructor(engine: Engine, initial: ArrayBuffer | ArrayBufferView) {
     // This adapter shares the engine device with the recovered shader backend.
-    if (!(engine as Engine & { _hardwareRenderer: { isWebGL2: boolean } })._hardwareRenderer.isWebGL2)
+    if (!(engine as Engine & { _hardwareRenderer: { supportsRendering: boolean } })._hardwareRenderer.supportsRendering)
       throw new Error("Roof feedback requires WebGL2");
     const bytes =
       initial instanceof ArrayBuffer

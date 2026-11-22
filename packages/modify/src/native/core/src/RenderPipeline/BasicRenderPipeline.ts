@@ -68,7 +68,6 @@ export class BasicRenderPipeline {
   private readonly _submittedViewRenderers: Renderer[] = [];
   private readonly _renderViewCullingSources: RegisteredRenderViewCullingSource[] = [];
   private readonly _renderViewCullingContext = new RenderViewCullingContextImpl();
-  private _canUseBlitFrameBuffer = false;
   private _shouldCopyBackgroundColor = false;
   private _destroyed = false;
   /** @internal */
@@ -201,7 +200,6 @@ export class BasicRenderPipeline {
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
     const ambientOcclusionEnabled = scene.ambientOcclusion._isValid();
-    const supportDepthTexture = depthOnlyPass.supportDepthTexture;
 
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = Math.min(
@@ -209,7 +207,7 @@ export class BasicRenderPipeline {
       rhi.capability.maxAntiAliasing
     );
 
-    const cameraDepthTextureRequested = camera.depthTextureMode === DepthTextureMode.PrePass && supportDepthTexture;
+    const cameraDepthTextureRequested = camera.depthTextureMode === DepthTextureMode.PrePass;
     const sunLensFlareBlend = camera.enablePostProcess
       ? scene.postProcessManager.getBlendEffect(SunLensFlareEffect)
       : undefined;
@@ -217,8 +215,6 @@ export class BasicRenderPipeline {
       Boolean(sunLensFlareBlend?.isValid() && sunLensFlareBlend.depthOcclusion.value) &&
       !cameraDepthTextureRequested &&
       !ambientOcclusionEnabled &&
-      rhi.isWebGL2 &&
-      supportDepthTexture &&
       independentCanvasEnabled &&
       cubeFace === undefined &&
       (mipLevel ?? 0) === 0 &&
@@ -233,30 +229,21 @@ export class BasicRenderPipeline {
     const forwardDepthResolveEnabled =
       ((cameraDepthTextureRequested && camera._enableForwardDepthResolve) || sunLensFlareFullDepthResolveEnabled) &&
       !ambientOcclusionEnabled &&
-      rhi.isWebGL2 &&
       independentCanvasEnabled &&
       cubeFace === undefined &&
       (mipLevel ?? 0) === 0;
     // Ambient occlusion enable will force enable depth prepass.
-    const depthPassEnabled =
-      (ambientOcclusionEnabled || (cameraDepthTextureRequested && !forwardDepthResolveEnabled)) && supportDepthTexture;
+    const depthPassEnabled = ambientOcclusionEnabled || (cameraDepthTextureRequested && !forwardDepthResolveEnabled);
     camera._depthTextureSource = "none";
     this._sunLensFlareDepthTexture = null;
     this._sunLensFlareDepthRect.set(1, 1, 0, 0);
 
-    // Check whether can use `blitFramebuffer` to blit internal render target, source maybe screen canvas or camera's render target
-    // Our screen canvas's anti-aliasing is always disable, so blit source and dest is always same by below rules:
-    // 1. Only support blitFramebuffer in webgl2 context
-    // 2. Can't blit normal FBO to MSAA FBO
-    // 3. Can't blit screen MSAA FBO to normal FBO in mac safari platform and mobile, but mac chrome and firfox is OK
-    this._canUseBlitFrameBuffer = rhi.isWebGL2 && msaaSamples === 1;
-
-    // Because internal render target is linear color space, so we should convert srgb background color to linear color space
+    // Copy the background when MSAA prevents a direct blit or sRGB needs conversion to linear.
     const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0)!.isSRGBColorSpace;
     this._shouldCopyBackgroundColor =
       independentCanvasEnabled &&
       !(finalClearFlags & CameraClearFlags.Color) &&
-      (!this._canUseBlitFrameBuffer || isSRGBBackground);
+      (msaaSamples !== 1 || isSRGBBackground);
 
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None && sunlight.shadowStrength > 0) {
       this._cascadedShadowCasterPass.onRender(context);
@@ -276,7 +263,7 @@ export class BasicRenderPipeline {
     this._renderRegisteredPasses(PipelinePassStage.AfterCulling, context, cullingResults);
 
     const canReuseOpaqueColorOnPostOpaque =
-      forwardDepthResolveEnabled && !depthPassEnabled && supportDepthTexture && camera.opaqueTextureEnabled;
+      forwardDepthResolveEnabled && !depthPassEnabled && camera.opaqueTextureEnabled;
     this._ssrPass.prepare(
       context,
       cullingResults,
@@ -323,7 +310,7 @@ export class BasicRenderPipeline {
         this._copyBackgroundTexture = pool.allocateTexture(
           viewport.width,
           viewport.height,
-          colorTexture?.format ?? TextureFormat.R8G8B8A8,
+          colorTexture?.format ?? TextureFormat.R8G8B8A8_UNorm,
           false,
           colorTexture?.isSRGBColorSpace ?? false,
           TextureWrapMode.Clamp,
@@ -335,7 +322,7 @@ export class BasicRenderPipeline {
     // Scalable ambient obscurance pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
     const saoPass = this._saoPass;
-    if (ambientOcclusionEnabled && supportDepthTexture && saoPass.isSupported) {
+    if (ambientOcclusionEnabled) {
       saoPass.onConfig(camera, this._depthOnlyPass.renderTarget!);
       saoPass.onRender(context);
     } else {
@@ -351,8 +338,7 @@ export class BasicRenderPipeline {
     // Architectural note: Dual-path pre-forward vs. post-opaque scheduling in `BasicRenderPipeline` is
     // architecturally undesirable and strictly temporary until unified depth-producer / render-graph pass
     // scheduling eliminates pipeline dual-path branching.
-    const deferSSRToPostOpaque =
-      this._ssrPass.canDeferToPostOpaque && forwardDepthResolveEnabled && !depthPassEnabled && supportDepthTexture;
+    const deferSSRToPostOpaque = this._ssrPass.canDeferToPostOpaque && forwardDepthResolveEnabled && !depthPassEnabled;
 
     if (!deferSSRToPostOpaque) {
       this._ssrPass.renderPreForward(context, cullingResults, depthPassEnabled ? depthOnlyPass.renderTarget : null);
@@ -936,6 +922,7 @@ export class BasicRenderPipeline {
     program.bind();
     program.uploadAll(program.materialUniformBlock, material.shaderData);
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
+    program.uploadMultiGroupUniforms(undefined, camera.shaderData, undefined, material.shaderData, undefined);
     program.uploadUnGroupTextures();
 
     const renderState = pass._renderState;

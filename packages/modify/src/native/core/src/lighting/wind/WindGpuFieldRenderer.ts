@@ -488,7 +488,7 @@ function destroyOwnedMaterial(material: Material): void {
 }
 
 function createTarget(engine: Engine, resolution: number, name: string): RenderTarget {
-  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R16G16B16A16, false, false);
+  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R16G16B16A16_SFloat, false, false);
   texture.name = name;
   texture.isGCIgnored = true;
   texture.filterMode = TextureFilterMode.Bilinear;

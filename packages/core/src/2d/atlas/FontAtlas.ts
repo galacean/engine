@@ -20,8 +20,7 @@ export class FontAtlas extends ReferResource {
   constructor(engine: Engine) {
     super(engine);
     this.isGCIgnored = true;
-    const format = engine._hardwareRenderer.isWebGL2 ? TextureFormat.R8 : TextureFormat.Alpha8;
-    const texture = new Texture2D(engine, 512, 512, format, false, false);
+    const texture = new Texture2D(engine, 512, 512, TextureFormat.R8_UNorm, false, false);
     texture.filterMode = TextureFilterMode.Bilinear;
     texture.isGCIgnored = true;
     this.texture = texture;

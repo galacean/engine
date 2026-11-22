@@ -16,7 +16,6 @@ import { SceneManager } from "./SceneManager";
 import { RenderingStatistics } from "./asset/RenderingStatistics";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EngineObject, EventDispatcher, Logger, Time } from "./base";
-import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { AudioManager } from "./audio/AudioManager";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
@@ -44,10 +43,6 @@ export class Engine extends EventDispatcher {
   /** @internal */
   static _builtinShaders: BuiltinShaders;
 
-  /** @internal */
-  static _noDepthTextureMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
-  /** @internal */
-  static _noSRGBSupportMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
   /** @internal */
   static _outputSRGBCorrectMacro = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
   /** @internal Conversion of space units to pixel units for 2D. */
@@ -128,7 +123,7 @@ export class Engine extends EventDispatcher {
   private _time: Time = new Time();
   private _isPaused: boolean = true;
   private _requestId: number;
-  private _timeoutId: number;
+  private _timeoutId: ReturnType<typeof setTimeout>;
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
@@ -140,15 +135,15 @@ export class Engine extends EventDispatcher {
   private _onCanvasResize = (): void => this._renderTargetPool.gc();
 
   private _animate = () => {
-    if (this._vSyncCount) {
-      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
+    const raf = this._vSyncCount ? this._getRequestAnimationFrame() : undefined;
+    if (raf) {
       this._requestId = raf(this._animate);
       if (this._vSyncCounter++ % this._vSyncCount === 0) {
         this.update();
         this._vSyncCounter = 1;
       }
     } else {
-      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
+      this._timeoutId = setTimeout(this._animate, this._targetFrameInterval);
       this.update();
     }
   };
@@ -265,17 +260,9 @@ export class Engine extends EventDispatcher {
       this.xrManager._initialize(this, xrDevice);
     }
 
-    if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
-      this._macroCollection.enable(Engine._noDepthTextureMacro);
-    } else {
-      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
-      depthTexture2D.isGCIgnored = true;
-      this._depthTexture2D = depthTexture2D;
-    }
-
-    if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
-      this._macroCollection.enable(Engine._noSRGBSupportMacro);
-    }
+    const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
+    depthTexture2D.isGCIgnored = true;
+    this._depthTexture2D = depthTexture2D;
 
     this._basicResources = new BasicResources(this, Engine._builtinShaders);
     this._particleBufferUtils = new ParticleBufferUtils(this);
@@ -298,8 +285,10 @@ export class Engine extends EventDispatcher {
    */
   pause(): void {
     this._isPaused = true;
-    const caf = this.xrManager?._getCancelAnimationFrame() || cancelAnimationFrame;
-    caf(this._requestId);
+    const caf =
+      this.xrManager?._getCancelAnimationFrame() ||
+      (typeof cancelAnimationFrame === "undefined" ? undefined : cancelAnimationFrame);
+    caf?.(this._requestId);
     clearTimeout(this._timeoutId);
   }
 
@@ -310,11 +299,11 @@ export class Engine extends EventDispatcher {
     if (!this._isPaused) return;
     this._isPaused = false;
     this.time._reset();
-    if (this._vSyncCount) {
-      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
+    const raf = this._vSyncCount ? this._getRequestAnimationFrame() : undefined;
+    if (raf) {
       this._requestId = raf(this._animate);
     } else {
-      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
+      this._timeoutId = setTimeout(this._animate, this._targetFrameInterval);
     }
   }
 
@@ -575,6 +564,8 @@ export class Engine extends EventDispatcher {
       scene._updateRendering(deltaTime);
     }
 
+    if (!this._hardwareRenderer.supportsRendering) return;
+
     // Fire script `onBeginRender` and `onEndRender`
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
@@ -657,6 +648,13 @@ export class Engine extends EventDispatcher {
       this.sceneManager.addScene(new Scene(this, "DefaultScene"));
       return this;
     });
+  }
+
+  private _getRequestAnimationFrame(): ((callback: FrameRequestCallback) => number) | undefined {
+    return (
+      this.xrManager?._getRequestAnimationFrame() ||
+      (typeof requestAnimationFrame === "undefined" ? undefined : requestAnimationFrame)
+    );
   }
 
   private _onDeviceLost(): void {

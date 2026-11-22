@@ -187,8 +187,8 @@ export class PlanningFarmGrassOverlay {
     const { width: atlasWidth, height: atlasHeight, columns } = plan;
     let atlas: Texture2D | undefined, pages: Texture2D | undefined;
     try {
-      atlas = this.texture(this.atlas, atlasWidth, atlasHeight, TextureFormat.R8G8B8A8, TextureFilterMode.Bilinear);
-      pages = this.texture(this.pages, p.width, p.height, TextureFormat.R8G8B8A8, TextureFilterMode.Point);
+      atlas = this.texture(this.atlas, atlasWidth, atlasHeight, TextureFormat.R8G8B8A8_UNorm, TextureFilterMode.Bilinear);
+      pages = this.texture(this.pages, p.width, p.height, TextureFormat.R8G8B8A8_UNorm, TextureFilterMode.Point);
       // Vertex-centred masks contain their own shared boundary samples, so bilinear reads never cross tile slots.
       this.uploadTiles(atlas, atlas === this.atlas ? dirty : residents, columns, resolution);
       if (pageDirty || pages !== this.pages) pages.setPixelBuffer(p.pages);

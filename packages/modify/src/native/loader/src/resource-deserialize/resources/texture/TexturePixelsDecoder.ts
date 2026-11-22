@@ -19,7 +19,7 @@ interface EncodedTexturePixels {
   width: number;
   height: number;
   layers: number;
-  format: TextureFormat.R8G8B8A8 | TextureFormat.R32G32B32A32_UInt;
+  format: TextureFormat.R8G8B8A8_UNorm | TextureFormat.R32G32B32A32_UInt;
   srgb: boolean;
   filterMode: TextureFilterMode;
   wrapModeU: TextureWrapMode;
@@ -96,14 +96,14 @@ function readTexturePixels(reader: BufferReader) {
     ![width, height, layers].every((n) => Number.isSafeInteger(n) && n > 0 && n < 0x40000000) ||
     (dimension === "2d" && layers !== 1) ||
     (dimension === "cube" && (layers !== 6 || width !== height)) ||
-    ![TextureFormat.R8G8B8A8, TextureFormat.R32G32B32A32_UInt].includes(format)
+    ![TextureFormat.R8G8B8A8_UNorm, TextureFormat.R32G32B32A32_UInt].includes(format)
   )
     throw Error("Invalid native texture pixels header");
   const mipCount = 1 + Math.floor(Math.log2(Math.max(width, height)));
   if (!Array.isArray(levels) || (levels.length !== 1 && levels.length !== mipCount))
     throw Error("Native texture requires a complete mip chain");
   const offset = Math.ceil(reader.offset / 4) * 4;
-  const pixelSize = format === TextureFormat.R8G8B8A8 ? 4 : 16;
+  const pixelSize = format === TextureFormat.R8G8B8A8_UNorm ? 4 : 16;
   const payloads = levels.map(({ start, end }, mip) => {
     const length = Math.max(1, width >> mip) * Math.max(1, height >> mip) * layers * pixelSize;
     if (
@@ -116,7 +116,7 @@ function readTexturePixels(reader: BufferReader) {
     )
       throw Error("Native texture mip size/range differs");
     const bytes = reader.data.subarray(offset + start, offset + end);
-    return format === TextureFormat.R8G8B8A8
+    return format === TextureFormat.R8G8B8A8_UNorm
       ? bytes
       : new Uint32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4);
   });

@@ -24,7 +24,7 @@ export async function warmupPhotoPresentation(
     const options = { strict: true, activatedLightRoots: scene.rootEntities };
     await warmupSeedWorldRendererVariants(engine, scene, camera, scene.rootEntities, options);
     if (disposed()) throw new DOMException("Photo presentation disposed", "AbortError");
-    texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false);
+    texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8_UNorm, false);
     offscreen = new RenderTarget(engine, 64, 64, texture, TextureFormat.Depth24Stencil8, 1);
     camera.renderTarget = offscreen;
     camera.clearFlags = CameraClearFlags.All;

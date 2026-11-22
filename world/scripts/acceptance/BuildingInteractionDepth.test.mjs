@@ -109,7 +109,7 @@ test(
           renderer.enabled = true;
           renderer.entity.transform.setPosition(0, 0, -10);
           const material = renderer.getMaterial();
-          const alpha = new E.Texture2D(engine, 1, 1, E.TextureFormat.R8G8B8A8, false, false);
+          const alpha = new E.Texture2D(engine, 1, 1, E.TextureFormat.R8G8B8A8_UNorm, false, false);
           alpha.setPixelBuffer(new Uint8Array([255, 255, 255, 0]));
           material.baseTexture = alpha;
           material.alphaCutoff = 0.5;

@@ -331,7 +331,7 @@ export class PhotoGraphics {
       if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
       this.paper = paper;
       this.pin = pin;
-      const texture = new Texture2D(this.engine, 1, 1, TextureFormat.R8G8B8A8, false, true);
+      const texture = new Texture2D(this.engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, true);
       texture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
       let surface: PhotoSurface | undefined;
       try {
@@ -738,7 +738,7 @@ export async function exportPhotoImage(
     camera.aspectRatio = width / height;
     camera.enableHDR = camera.enablePostProcess = false;
     view.transform.setPosition(width / 2, -height / 2, 10);
-    pixelsTexture = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false);
+    pixelsTexture = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8_UNorm, false);
     target = new RenderTarget(engine, width, height, pixelsTexture, TextureFormat.Depth24Stencil8, 1);
     camera.renderTarget = target;
     const imageMesh = new ModelMesh(engine);

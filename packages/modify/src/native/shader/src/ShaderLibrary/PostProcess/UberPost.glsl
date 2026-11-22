@@ -7,10 +7,10 @@
 #include "ShaderLibrary/PostProcess/Tonemapping/ACESTonemapping.glsl"
 
 mediump sampler2D renderer_BlitTexture;
-vec4 renderer_texelSize;
 #ifdef ENABLE_EFFECT_BLOOM
 	mediump sampler2D material_BloomTexture;
 	mediump sampler2D material_BloomDirtTexture;
+	vec4 material_BloomTexelSize;
 	vec4 material_BloomTint;
 	vec4 material_BloomDirtTilingOffset;
 	vec4 material_BloomIntensityParams;
@@ -44,33 +44,33 @@ vec3 lmsToLinear(vec3 color) {
 }
 
 void frag(Varyings v) {
-	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v.v_uv);
+	mediump vec4 color = texture2D(renderer_BlitTexture, v.v_uv);
 
 	#ifdef ENABLE_EFFECT_COLOR_ADJUSTMENTS
 		color.rgb *= material_PostExposure;
 	#endif
 
 	#ifdef ENABLE_EFFECT_BLOOM
-		#ifdef BLOOM_HQ
-			mediump vec4 bloom = sampleTexture2DBicubic(material_BloomTexture, v.v_uv, renderer_texelSize);
-		#else
-			mediump vec4 bloom = texture2DSRGB(material_BloomTexture, v.v_uv);
-		#endif
+    	#ifdef BLOOM_HQ
+    	  mediump vec3 bloom = sampleTexture2DBicubic(material_BloomTexture, v.v_uv, material_BloomTexelSize).rgb;
+    	#else
+    	  mediump vec3 bloom = texture2D(material_BloomTexture, v.v_uv).rgb;
+    	#endif
 
-		bloom *= material_BloomIntensityParams.x;
-		color += bloom * material_BloomTint;
+    	bloom *= material_BloomIntensityParams.x;
+    	color.rgb += bloom * material_BloomTint.rgb;
 
-		#ifdef BLOOM_DIRT
-			mediump vec4 dirt = texture2DSRGB(material_BloomDirtTexture, v.v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw);
-			dirt *= material_BloomIntensityParams.y;
-			// Additive bloom (artist friendly)
-			color += dirt * bloom;
-		#endif
+    	#ifdef BLOOM_DIRT
+    	  mediump vec3 dirt = texture2D(material_BloomDirtTexture, v.v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw).rgb;
+    	  dirt *= material_BloomIntensityParams.y;
+    	  // Additive bloom (artist friendly)
+    	  color.rgb += dirt * bloom;
+    	#endif
 	#endif
 
 	#ifdef ENABLE_EFFECT_SUN_LENS_FLARE
 		if (material_SunLensFlareCompositeIntensity > 0.0) {
-			color.rgb += texture2DSRGB(material_SunLensFlareTexture, v.v_uv).rgb * material_SunLensFlareCompositeIntensity;
+			color.rgb += texture2D(material_SunLensFlareTexture, v.v_uv).rgb * material_SunLensFlareCompositeIntensity;
 		}
 	#endif
 

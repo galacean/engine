@@ -1,7 +1,7 @@
-import { Camera, GLCapabilityType, PrimitiveMesh } from "@galacean/engine-core";
+import { Camera, PrimitiveMesh } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector2, Vector3 } from "@galacean/engine-math";
-import { describe, beforeAll, expect, it, vi } from "vitest";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("PrimitiveMesh", () => {
   let engine: WebGLEngine;
@@ -178,41 +178,16 @@ describe("PrimitiveMesh", () => {
     const segments = 256;
     const count = segments + 1;
 
-    if (engine["_hardwareRenderer"].canIUse(GLCapabilityType.elementIndexUint)) {
-      const mesh = PrimitiveMesh.createPlane(engine, radius * 2, radius * 2, {
-        keepMeshData: true,
-        widthSegments: segments,
-        depthSegments: segments
-      });
-      expect(mesh.vertexCount).equal(count * count);
-      expect(mesh.vertexElements.length).equal(4);
-      expect(mesh.bounds.min).to.deep.include({ x: -radius, y: 0, z: -radius });
-      expect(mesh.bounds.max).to.deep.include({ x: radius, y: 0, z: radius });
-      expect(mesh.getIndices().length).equal(segments * segments * 6);
-      expect(mesh.vertexBufferBindings.length).equal(2);
-    } else {
-      expect(() =>
-        PrimitiveMesh.createPlane(engine, radius * 2, radius * 2, {
-          keepMeshData: true,
-          widthSegments: segments,
-          depthSegments: segments
-        })
-      ).throw("The vertex count is over limit.");
-    }
-  });
-
-  it("rejects large meshes without 32-bit index support", () => {
-    const renderer = engine._hardwareRenderer;
-    const canIUse = renderer.canIUse.bind(renderer);
-    const capability = vi.spyOn(renderer, "canIUse").mockImplementation((type) => {
-      return type === GLCapabilityType.elementIndexUint ? false : canIUse(type);
+    const mesh = PrimitiveMesh.createPlane(engine, radius * 2, radius * 2, {
+      keepMeshData: true,
+      widthSegments: segments,
+      depthSegments: segments
     });
-    try {
-      expect(() => PrimitiveMesh.createPlane(engine, 2, 2, { widthSegments: 256, depthSegments: 256 })).toThrow(
-        "The vertex count is over limit."
-      );
-    } finally {
-      capability.mockRestore();
-    }
+    expect(mesh.vertexCount).equal(count * count);
+    expect(mesh.vertexElements.length).equal(4);
+    expect(mesh.bounds.min).to.deep.include({ x: -radius, y: 0, z: -radius });
+    expect(mesh.bounds.max).to.deep.include({ x: radius, y: 0, z: radius });
+    expect(mesh.getIndices().length).equal(segments * segments * 6);
+    expect(mesh.vertexBufferBindings.length).equal(2);
   });
 });

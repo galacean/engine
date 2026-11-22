@@ -72,18 +72,21 @@ export class Animator extends Component implements ICloneHook<Animator> {
     return this._animatorController;
   }
 
-  set animatorController(animatorController: AnimatorController) {
+  set animatorController(animatorController: AnimatorController | null) {
     const lastController = this._animatorController;
     if (animatorController !== lastController) {
       lastController && this._addResourceReferCount(lastController, -1);
-      this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
+      if (this._controllerUpdateFlag) {
+        this._controllerUpdateFlag.destroy();
+        this._controllerUpdateFlag = null!;
+      }
       this._reset();
       if (animatorController) {
         this._addResourceReferCount(animatorController, 1);
         this._controllerUpdateFlag = animatorController._registerChangeFlag();
         animatorController._setEngine(this.engine);
       }
-      this._animatorController = animatorController;
+      this._animatorController = animatorController!;
     }
   }
 
@@ -360,7 +363,11 @@ export class Animator extends Component implements ICloneHook<Animator> {
     const controller = this._animatorController;
     if (controller) {
       this._addResourceReferCount(controller, -1);
-      this._controllerUpdateFlag?.destroy();
+      this._animatorController = null!;
+    }
+    if (this._controllerUpdateFlag) {
+      this._controllerUpdateFlag.destroy();
+      this._controllerUpdateFlag = null!;
     }
   }
 

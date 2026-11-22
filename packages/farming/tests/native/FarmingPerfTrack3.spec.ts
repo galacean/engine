@@ -71,9 +71,10 @@ async function createCompiledHeadlessEngine(maxTextureSize = 4096): Promise<Head
     shaderCompiler: new ShaderCompiler(),
     glTFLoader: { meshOpt: { workerCount: 0 } }
   });
-  const device = (engine as unknown as { _hardwareRenderer: { isWebGL2: boolean; capability: { maxTextureSize: number } } })
-    ._hardwareRenderer;
-  device.isWebGL2 = true;
+  const device = (
+    engine as unknown as { _hardwareRenderer: { supportsRendering: boolean; capability: { maxTextureSize: number } } }
+  )._hardwareRenderer;
+  device.supportsRendering = true;
   device.capability.maxTextureSize = maxTextureSize;
   return engine;
 }
@@ -361,7 +362,7 @@ describe("Track 3 Performance Optimizations (P1-4, P1-5, P1-6)", () => {
       const cam = camEntity.addComponent(Camera);
       cam.enabled = false;
 
-      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false);
+      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false);
       textures.push(tex);
       vi.spyOn(engine.resourceManager, "load").mockResolvedValue(tex as never);
 
@@ -459,7 +460,7 @@ describe("Track 3 Performance Optimizations (P1-4, P1-5, P1-6)", () => {
       const scene = engine.sceneManager.activeScene!;
       const root = scene.createRootEntity("soil-provider-root");
 
-      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false);
+      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false);
       textures.push(tex);
       vi.spyOn(engine.resourceManager, "load").mockResolvedValue(tex as never);
 
@@ -553,7 +554,7 @@ describe("Track 3 Performance Optimizations (P1-4, P1-5, P1-6)", () => {
       };
       const catalog = createPlantingCatalog([crop], [plantDef]);
 
-      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false);
+      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false);
       textures.push(tex);
       vi.spyOn(engine.resourceManager, "load").mockResolvedValue(tex as never);
 
@@ -681,7 +682,7 @@ describe("Track 3 Performance Optimizations (P1-4, P1-5, P1-6)", () => {
       };
       const catalog = createPlantingCatalog([crop], [plantDef]);
 
-      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false);
+      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false);
       textures.push(tex);
       vi.spyOn(engine.resourceManager, "load").mockResolvedValue(tex as never);
       const immediateSchedule: Parameters<typeof createPlantInstance>[4] = async (work) => work();
@@ -783,7 +784,7 @@ describe("Track 3 Performance Optimizations (P1-4, P1-5, P1-6)", () => {
       };
       const catalog = createPlantingCatalog([crop], [plantDef]);
 
-      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false);
+      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false);
       textures.push(tex);
       vi.spyOn(engine.resourceManager, "load").mockResolvedValue(tex as never);
       const immediateSchedule: Parameters<typeof createPlantInstance>[4] = async (work) => work();
@@ -891,7 +892,7 @@ describe("Track 3 Performance Optimizations (P1-4, P1-5, P1-6)", () => {
       };
       const catalog = createPlantingCatalog([crop], [plantDef]);
 
-      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false);
+      const tex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false);
       textures.push(tex);
       vi.spyOn(engine.resourceManager, "load").mockResolvedValue(tex as never);
 

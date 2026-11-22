@@ -23,7 +23,7 @@ import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import type { ShaderPass } from "../shader/ShaderPass";
-import { RenderTarget, Texture, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
+import { RenderTarget, Texture, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import {
   BloomDownScaleMode,
   BloomEffect,
@@ -132,6 +132,7 @@ export class PostProcessUberPass extends PostProcessPass {
     const uberShaderData = uberMaterial.shaderData;
     bloomShaderData.setVector4(BloomEffect._bloomParams, new Vector4());
     bloomShaderData.setFloat(ColorAdjustmentsEffect._postExposureProperty, 1);
+    uberShaderData.setVector4(BloomEffect._bloomTexelSizeProp, new Vector4());
     uberShaderData.setVector4(BloomEffect._bloomIntensityParams, new Vector4());
     uberShaderData.setVector4(BloomEffect._dirtTilingOffsetProp, new Vector4());
     uberShaderData.setColor(BloomEffect._tintProp, new Color());
@@ -196,7 +197,7 @@ export class PostProcessUberPass extends PostProcessPass {
     } else {
       uberShaderData.disableMacro(BloomEffect._enableMacro);
       uberShaderData.setTexture(BloomEffect._bloomTextureProp, null);
-      this._releaseBloomRenderTargets();
+      this._releaseBloomRenderTargets(0);
     }
 
     if (sunLensFlareBlend?.isValid()) {
@@ -228,7 +229,7 @@ export class PostProcessUberPass extends PostProcessPass {
    */
   override _onDestroy() {
     super._onDestroy();
-    this._releaseBloomRenderTargets();
+    this._releaseBloomRenderTargets(0);
     this._releaseSunLensFlareRenderTarget();
     this._destroySunLensFlareGpuResources();
     this._uberMaterial.destroy();
@@ -256,7 +257,7 @@ export class PostProcessUberPass extends PostProcessPass {
       this._sunLensFlareScreenState
     );
 
-    if (!flareMaterial || !screenState.visible || !rhi.canIUse(GLCapabilityType.instancedArrays)) {
+    if (!flareMaterial || !screenState.visible) {
       uberShaderData.setFloat(SunLensFlareEffect._compositeIntensityProperty, 0);
       uberShaderData.setTexture(SunLensFlareEffect._textureProperty, engine._basicResources.whiteTexture2D);
       this._releaseSunLensFlareRenderTarget();
@@ -272,7 +273,7 @@ export class PostProcessUberPass extends PostProcessPass {
     let depthTexture: Texture | null = null;
     let depthRect = SUN_LENS_FLARE_FULL_DEPTH_RECT;
     let depthMode: "none" | "shared" | "patch" = "none";
-    if (sunLensFlareBlend.depthOcclusion.value && rhi.isWebGL2) {
+    if (sunLensFlareBlend.depthOcclusion.value) {
       if (camera._depthTextureSource !== "none") {
         depthTexture = camera.shaderData.getTexture(Camera._cameraDepthTextureProperty);
         if (depthTexture) {
@@ -443,10 +444,17 @@ export class PostProcessUberPass extends PostProcessPass {
       return;
     }
     program.bind();
-    program.groupingOtherUniformBlock();
+    program.regroupUniformBlocks();
     program.uploadAll(program.sceneUniformBlock, camera.scene!.shaderData);
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadAll(program.materialUniformBlock, flareShaderData);
+    program.uploadMultiGroupUniforms(
+      camera.scene!.shaderData,
+      camera.shaderData,
+      undefined,
+      flareShaderData,
+      undefined
+    );
     program.uploadUnGroupTextures();
 
     const renderState = pass._renderState;
@@ -597,13 +605,12 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Update shaderData
     bloomShaderData.setFloat(ColorAdjustmentsEffect._postExposureProperty, exposureMultiplier);
+    const downRes = downScale.value === BloomDownScaleMode.Half ? 1 : 2;
     const thresholdLinear = threshold.value;
     const thresholdKnee = thresholdLinear * 0.5; // Hardcoded soft knee
     const bloomParams = bloomShaderData.getVector4(BloomEffect._bloomParams);
     const scatterLerp = MathUtil.lerp(0.05, 0.95, scatter.value);
-    bloomParams.x = thresholdLinear;
-    bloomParams.y = thresholdKnee;
-    bloomParams.z = scatterLerp;
+    bloomParams.set(thresholdLinear, thresholdKnee, scatterLerp, downRes);
     const bloomIntensityParams = uberShaderData.getVector4(BloomEffect._bloomIntensityParams);
     bloomIntensityParams.x = intensity.value;
     bloomIntensityParams.y = dirtIntensity.value;
@@ -624,19 +631,23 @@ export class PostProcessUberPass extends PostProcessPass {
     }
 
     // Determine the iteration count
-    const downRes = downScale.value === BloomDownScaleMode.Half ? 1 : 2;
     const pixelViewport = camera.pixelViewport;
     const tw = Math.max(1, pixelViewport.width >> downRes);
     const th = Math.max(1, pixelViewport.height >> downRes);
     const maxSize = Math.max(tw, th);
     const iterations = Math.floor(Math.log2(maxSize) - 1);
-    const maxMipCount = Math.max(1, Math.round(maxIterations.value));
+    const maxMipCount = Math.max(1, Math.round(maxIterations.value) || 6);
     const mipCount = Math.min(Math.max(iterations, 1), maxMipCount);
     this._bloomMipCount = mipCount;
 
     // Allocate mip pyramid (single RT per level; upsample blends in-place)
-    const internalColorTextureFormat = camera._getInternalColorTextureFormat();
-    const isSRGB = !camera._isInternalFormatHDR();
+    const isHDR = camera._isInternalFormatHDR();
+    // Bloom only composites RGB, so prefer R11G11B10_UFloat even when scene HDR needs alpha
+    const bloomColorFormat =
+      isHDR && engine._hardwareRenderer.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)
+        ? TextureFormat.R11G11B10_UFloat
+        : camera._getInternalColorTextureFormat();
+    const isSRGB = !isHDR;
     const mipRT = this._mipRT;
     let mipWidth = tw;
     let mipHeight = th;
@@ -646,7 +657,7 @@ export class PostProcessUberPass extends PostProcessPass {
         mipRT[i],
         mipWidth,
         mipHeight,
-        internalColorTextureFormat,
+        bloomColorFormat,
         null,
         false,
         false,
@@ -665,7 +676,7 @@ export class PostProcessUberPass extends PostProcessPass {
     // Prefilter
     Blitter.blitTexture(engine, srcTexture, mipRT[0], undefined, undefined, bloomMaterial, 0);
 
-    // Progressive single-pass 13-tap downsample pyramid (Jimenez, SIGGRAPH 2014)
+    // Progressive single-pass 5x5 9-tap downsample pyramid (Castaño 2013)
     for (let i = 1; i < mipCount; i++) {
       Blitter.blitTexture(
         engine,
@@ -704,7 +715,13 @@ export class PostProcessUberPass extends PostProcessPass {
         dirtTilingOffset.set(1, 1, 0, 0);
       }
     }
-    uberShaderData.setTexture(BloomEffect._bloomTextureProp, mipRT[0].getColorTexture(0));
+    const mip0 = mipRT[0];
+    uberShaderData.setTexture(BloomEffect._bloomTextureProp, mip0.getColorTexture(0));
+    if (highQualityFiltering.value) {
+      uberShaderData
+        .getVector4(BloomEffect._bloomTexelSizeProp)
+        .set(1 / mip0.width, 1 / mip0.height, mip0.width, mip0.height);
+    }
   }
 
   private _releaseBloomRenderTargets(fromIndex = 0): void {

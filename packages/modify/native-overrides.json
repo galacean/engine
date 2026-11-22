@@ -116,10 +116,6 @@
     "replacement": "packages/modify/src/native/core/src/audio/AudioManager.ts"
   },
   {
-    "original": "packages/core/src/texture/Texture2DArray.ts",
-    "replacement": "packages/modify/src/native/core/src/texture/Texture2DArray.ts"
-  },
-  {
     "original": "packages/core/src/texture/Texture2D.ts",
     "replacement": "packages/modify/src/native/core/src/texture/Texture2D.ts"
   },
@@ -154,10 +150,6 @@
   {
     "original": "packages/core/src/postProcess/PostProcessUberPass.ts",
     "replacement": "packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts"
-  },
-  {
-    "original": "packages/core/src/postProcess/effects/BloomEffect.ts",
-    "replacement": "packages/modify/src/native/core/src/postProcess/effects/BloomEffect.ts"
   },
   {
     "original": "packages/core/src/postProcess/effects/index.ts",
@@ -404,6 +396,10 @@
     "replacement": "packages/modify/src/native/loader/src/TextureLoader.ts"
   },
   {
+    "original": "packages/loader/src/ImageDecoder.ts",
+    "replacement": "packages/modify/src/native/loader/src/ImageDecoder.ts"
+  },
+  {
     "original": "packages/loader/src/resource-deserialize/index.ts",
     "replacement": "packages/modify/src/native/loader/src/resource-deserialize/index.ts"
   },
@@ -492,20 +488,8 @@
     "replacement": "packages/modify/src/native/shader/src/Shaders/PostProcess/SunLensFlareVisibility.shader"
   },
   {
-    "original": "packages/shader/src/Shaders/PostProcess/Bloom.shader",
-    "replacement": "packages/modify/src/native/shader/src/Shaders/PostProcess/Bloom.shader"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl"
-  },
-  {
     "original": "packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl",
     "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl"
-  },
-  {
-    "original": "packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl"
   },
   {
     "original": "packages/shader/src/ShaderLibrary/PBR/LightIndirectPBR.glsl",
@@ -612,10 +596,6 @@
     "replacement": "packages/modify/src/native/shader/src/Shaders/Effect/ParticleFeedback.shader"
   },
   {
-    "original": "packages/core/src/ComponentsManager.ts",
-    "replacement": "packages/modify/src/native/core/src/ComponentsManager.ts"
-  },
-  {
     "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts",
     "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts"
   },
@@ -680,14 +660,6 @@
     "replacement": "packages/modify/src/native/core/src/shader/BuiltinShaders.ts"
   },
   {
-    "original": "packages/core/src/texture/TextureUtils.ts",
-    "replacement": "packages/modify/src/native/core/src/texture/TextureUtils.ts"
-  },
-  {
-    "original": "packages/core/src/texture/enums/TextureFormat.ts",
-    "replacement": "packages/modify/src/native/core/src/texture/enums/TextureFormat.ts"
-  },
-  {
     "original": "packages/rhi-null/src/NullGraphicDevice.ts",
     "replacement": "packages/modify/src/native/rhi-null/src/NullGraphicDevice.ts"
   },
@@ -710,10 +682,6 @@
   {
     "original": "packages/rhi-webgl/src/WebGLGraphicDevice.ts",
     "replacement": "packages/modify/src/native/rhi-webgl/src/WebGLGraphicDevice.ts"
-  },
-  {
-    "original": "packages/rhi-webgl/src/type.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/type.ts"
   },
   {
     "original": "packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl",
@@ -774,5 +742,13 @@
   {
     "original": "packages/rhi-webgl/src/GLTexture2DArray.ts",
     "replacement": "packages/modify/src/native/rhi-webgl/src/GLTexture2DArray.ts"
+  },
+  {
+    "original": "packages/core/src/graphic/TransformFeedbackPrimitive.ts",
+    "replacement": "packages/modify/src/native/core/src/graphic/TransformFeedbackPrimitive.ts"
+  },
+  {
+    "original": "packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts",
+    "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts"
   }
 ]

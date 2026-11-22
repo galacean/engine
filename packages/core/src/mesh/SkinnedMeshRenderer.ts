@@ -3,7 +3,6 @@ import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RendererUpdateFlags } from "../Renderer";
-import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { ShaderProperty } from "../shader";
 import { Texture2D } from "../texture/Texture2D";
@@ -183,23 +182,22 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         );
 
         if (boneCount > remainUniformJointCount) {
-          const engine = this.engine;
-          if (engine._hardwareRenderer.canIUseMoreJoints) {
-            if (boneCountChange) {
-              this._jointTexture?.destroy();
-              this._jointTexture = new Texture2D(engine, 4, boneCount, TextureFormat.R32G32B32A32, false, false);
-              this._jointTexture.filterMode = TextureFilterMode.Point;
-              this._jointTexture.isGCIgnored = true;
-            }
-            shaderData.disableMacro("RENDERER_JOINTS_NUM");
-            shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
-            shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
-          } else {
-            Logger.error(
-              `component's joints count(${boneCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${this._maxVertexUniformVectors}, and don't support jointTexture in this device. suggest joint count less than ${remainUniformJointCount}.`,
-              this
+          if (boneCountChange) {
+            this._jointTexture?.destroy();
+            this._jointTexture = new Texture2D(
+              this.engine,
+              4,
+              boneCount,
+              TextureFormat.R32G32B32A32_SFloat,
+              false,
+              false
             );
+            this._jointTexture.filterMode = TextureFilterMode.Point;
+            this._jointTexture.isGCIgnored = true;
           }
+          shaderData.disableMacro("RENDERER_JOINTS_NUM");
+          shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
+          shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
         } else {
           this._jointTexture?.destroy();
           shaderData.disableMacro("RENDERER_USE_JOINT_TEXTURE");

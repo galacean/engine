@@ -119,7 +119,7 @@ function createSurfaceRainRippleNormalAtlas(engine: Engine): Texture2D {
     engine,
     RIPPLE_ATLAS_SIZE,
     RIPPLE_ATLAS_SIZE,
-    TextureFormat.R8G8B8A8,
+    TextureFormat.R8G8B8A8_UNorm,
     false,
     IS_SRGB_COLOR_SPACE
   );

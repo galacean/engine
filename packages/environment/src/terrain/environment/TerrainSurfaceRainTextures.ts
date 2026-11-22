@@ -49,7 +49,7 @@ function createWaterNormal(engine: Engine): Texture2D {
     engine,
     WATER_NORMAL_SIZE,
     WATER_NORMAL_SIZE,
-    TextureFormat.R8G8B8A8,
+    TextureFormat.R8G8B8A8_UNorm,
     true,
     IS_SRGB_COLOR_SPACE
   );

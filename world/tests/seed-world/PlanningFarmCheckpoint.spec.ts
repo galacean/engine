@@ -959,7 +959,7 @@ it("reconciles chunk meshes and the crop anchor when an external edit moves or r
   });
   // Use the real soil batching path with the null graphics device.
   const device = engine["_hardwareRenderer"];
-  Object.assign(device, { isWebGL2: true });
+  Object.assign(device, { supportsRendering: true });
   // One coverage slot is enough to move a single plot without temporarily doubling its allocation.
   Object.assign(device.capability, { maxTextureSize: 65 });
   let presentation: FarmingWorldPresentation | undefined;

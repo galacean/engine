@@ -42,27 +42,11 @@ import { GLTextureCube } from "./GLTextureCube";
 import { GLTransformFeedback } from "./GLTransformFeedback";
 import { GLTransformFeedbackPrimitive } from "./GLTransformFeedbackPrimitive";
 import { WebCanvas } from "./WebCanvas";
-import { WebGLExtension } from "./type";
-
-/**
- * WebGL mode.
- */
-export enum WebGLMode {
-  /** Auto, use WebGL2.0 if support, or will fallback to WebGL1.0. */
-  Auto = 0,
-  /** WebGL2.0. */
-  WebGL2 = 1,
-  /** WebGL1.0, */
-  WebGL1 = 2
-}
 
 /**
  * WebGL graphic device options.
  */
 export interface WebGLGraphicDeviceOptions {
-  /** WebGL mode.*/
-  webGLMode?: WebGLMode;
-
   /**
    * @internal
    * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for example iPhone13(iOS 15.4.1).
@@ -89,7 +73,7 @@ export interface WebGLGraphicDeviceOptions {
 }
 
 /**
- * WebGL graphic device, including WebGL1.0 and WebGL2.0.
+ * WebGL graphic device, using WebGL2.0.
  */
 export class WebGLGraphicDevice implements IHardwareRenderer {
   readonly supportsRendering = true;
@@ -115,11 +99,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   readonly _options: WebGLGraphicDeviceOptions;
   private _webGLOptions: WebGLContextAttributes;
-  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+  private _gl: WebGL2RenderingContext;
   private _renderStates: GLRenderStates;
   private _extensions: GLExtensions;
   private _capability: GLCapability;
-  private _isWebGL2: boolean;
   private _renderer: string;
   private _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
@@ -138,17 +121,13 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _onDeviceLost: () => void;
   private _onDeviceRestored: () => void;
 
-  get isWebGL2(): boolean {
-    return this._isWebGL2;
-  }
-
   get renderer(): string {
     return this._renderer;
   }
 
   /**
    * GL Context
-   * @member {WebGLRenderingContext}
+   * @member {WebGL2RenderingContext}
    */
   get gl() {
     return this._gl;
@@ -162,13 +141,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return this._capability;
   }
 
-  get canIUseMoreJoints() {
-    return this.capability.canIUseMoreJoints;
-  }
-
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
     const options = <WebGLGraphicDeviceOptions>{
-      webGLMode: WebGLMode.Auto,
       _forceFlush: false,
       _maxAllowSkinUniformVectorCount: 256,
       alpha: true,
@@ -215,47 +189,28 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
     const webCanvas = (canvas as WebCanvas)._webCanvas;
-    const webGLMode = this._options.webGLMode;
 
+    webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    try {
+      const webGLOptions = this._webGLOptions;
+      let gl = webCanvas.getContext("webgl2", webGLOptions);
+      if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
+      }
+      if (!gl || !gl.deleteQuery) {
+        throw new Error("WebGL2 is not supported.");
+      }
+      this._gl = gl;
+      this._initGLState(gl);
+    } finally {
+      webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    }
+
+    this._webCanvas = webCanvas;
     this._onDeviceLost = onDeviceLost;
     this._onDeviceRestored = onDeviceRestored;
     webCanvas.addEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
-    webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
-
-    this._webCanvas = webCanvas;
-
-    const webGLOptions = this._webGLOptions;
-    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext | undefined;
-    if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      gl = webCanvas.getContext("webgl2", webGLOptions);
-      if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
-        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
-      }
-      this._isWebGL2 = true;
-
-      // Prevent weird browsers to lie (such as safari!)ƒ
-      if (gl && !(<WebGL2RenderingContext>gl).deleteQuery) {
-        this._isWebGL2 = false;
-      }
-    }
-
-    if (!gl) {
-      if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", webGLOptions);
-        if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
-          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", webGLOptions);
-        }
-        this._isWebGL2 = false;
-      }
-    }
-
-    if (!gl) {
-      throw new Error("Get GL Context FAILED.");
-    }
-
-    this._gl = gl;
-    this._initGLState(gl);
   }
 
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
@@ -298,18 +253,18 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   _bindVertexArray(vao: WebGLVertexArrayObject | null): void {
     if (this._currentBindVAO !== vao) {
-      (<WebGL2RenderingContext>this._gl).bindVertexArray(vao);
+      this._gl.bindVertexArray(vao);
       this._currentBindVAO = vao;
     }
   }
 
   bindUniformBufferBase(bindingPoint: number, buffer: IPlatformBuffer): void {
-    const gl = <WebGL2RenderingContext>this._gl;
+    const gl = this._gl;
     gl.bindBufferBase(gl.UNIFORM_BUFFER, bindingPoint, (<GLBuffer>buffer)._glBuffer);
   }
 
   bindUniformBlock(program: WebGLProgram, blockName: string, bindingPoint: number): number {
-    const gl = <WebGL2RenderingContext>this._gl;
+    const gl = this._gl;
     const blockIndex = gl.getUniformBlockIndex(program, blockName);
     if (blockIndex !== gl.INVALID_INDEX) {
       gl.uniformBlockBinding(program, blockIndex, bindingPoint);
@@ -318,23 +273,19 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   /**
-   * Enable GL_RASTERIZER_DISCARD (WebGL2 only).
+   * Enable GL_RASTERIZER_DISCARD.
    */
   enableRasterizerDiscard(): void {
-    if (this._isWebGL2) {
-      const gl = <WebGL2RenderingContext>this._gl;
-      gl.enable(gl.RASTERIZER_DISCARD);
-    }
+    const gl = this._gl;
+    gl.enable(gl.RASTERIZER_DISCARD);
   }
 
   /**
-   * Disable GL_RASTERIZER_DISCARD (WebGL2 only).
+   * Disable GL_RASTERIZER_DISCARD.
    */
   disableRasterizerDiscard(): void {
-    if (this._isWebGL2) {
-      const gl = <WebGL2RenderingContext>this._gl;
-      gl.disable(gl.RASTERIZER_DISCARD);
-    }
+    const gl = this._gl;
+    gl.disable(gl.RASTERIZER_DISCARD);
   }
 
   /**
@@ -366,6 +317,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   supportsRenderTargetColorFormat(format: TextureFormat): boolean {
     return this.capability.supportsRenderTargetColorFormat(format);
+  }
+
+  supportsGenerateMipmaps(format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+    return this.capability.supportsGenerateMipmaps(format, isSRGBColorSpace);
   }
 
   viewport(x: number, y: number, width: number, height: number): void {
@@ -447,7 +402,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _bindFramebuffer(target: GLenum, framebuffer: WebGLFramebuffer | null): void {
     const gl = this._gl;
     gl.bindFramebuffer(target, framebuffer);
-    if (target === gl.FRAMEBUFFER || (this._isWebGL2 && target === (<WebGL2RenderingContext>gl).DRAW_FRAMEBUFFER)) {
+    if (target === gl.FRAMEBUFFER || target === gl.DRAW_FRAMEBUFFER) {
       this._currentDrawFrameBuffer = framebuffer;
     }
   }
@@ -458,7 +413,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     fullTargetOnly: boolean = false,
     mipLevel: number = 0
   ): void {
-    if (!this._isWebGL2 || clearFlags === CameraClearFlags.None) {
+    if (clearFlags === CameraClearFlags.None) {
       return;
     }
     let expectedFBO: WebGLFramebuffer | null;
@@ -501,7 +456,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const table = this._mainFrameBuffer ? this._mainFboInvalidateAttachments : this._defaultInvalidateAttachments;
     const attachments = table[clearFlags & CameraClearFlags.All];
     if (attachments) {
-      (<WebGL2RenderingContext>this._gl).invalidateFramebuffer(this._gl.FRAMEBUFFER, attachments);
+      this._gl.invalidateFramebuffer(this._gl.FRAMEBUFFER, attachments);
     }
   }
 
@@ -562,10 +517,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     clearFlags: CameraClearFlags,
     viewport: Vector4
   ) {
-    if (!this._isWebGL2) {
-      Logger.warn("WebGL1.0 not support blit frame buffer.");
-      return;
-    }
     const gl = this._gl;
     // @ts-ignore
     const srcFrameBuffer = srcRT ? srcRT._platformRenderTarget._frameBuffer : null;
@@ -722,7 +673,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._initGLState(this._gl);
   }
 
-  protected _initGLState(gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext): void {
+  protected _initGLState(gl: WebGL2RenderingContext): void {
     this._activeTextureID = gl.TEXTURE0;
     this._renderStates = new GLRenderStates(gl);
     this._extensions = new GLExtensions(this);
@@ -734,33 +685,29 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
-    if (this._isWebGL2) {
-      const gl2 = <WebGL2RenderingContext>gl;
-      this.maxUniformBlockSize = gl2.getParameter(gl2.MAX_UNIFORM_BLOCK_SIZE);
+    this.maxUniformBlockSize = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
 
-      const def = this._defaultInvalidateAttachments;
-      def[CameraClearFlags.Color] = [gl2.COLOR];
-      def[CameraClearFlags.Depth] = [gl2.DEPTH];
-      def[CameraClearFlags.ColorDepth] = [gl2.COLOR, gl2.DEPTH];
-      def[CameraClearFlags.Stencil] = [gl2.STENCIL];
-      def[CameraClearFlags.ColorStencil] = [gl2.COLOR, gl2.STENCIL];
-      def[CameraClearFlags.DepthStencil] = [gl2.DEPTH, gl2.STENCIL];
-      def[CameraClearFlags.All] = [gl2.COLOR, gl2.DEPTH, gl2.STENCIL];
+    const def = this._defaultInvalidateAttachments;
+    def[CameraClearFlags.Color] = [gl.COLOR];
+    def[CameraClearFlags.Depth] = [gl.DEPTH];
+    def[CameraClearFlags.ColorDepth] = [gl.COLOR, gl.DEPTH];
+    def[CameraClearFlags.Stencil] = [gl.STENCIL];
+    def[CameraClearFlags.ColorStencil] = [gl.COLOR, gl.STENCIL];
+    def[CameraClearFlags.DepthStencil] = [gl.DEPTH, gl.STENCIL];
+    def[CameraClearFlags.All] = [gl.COLOR, gl.DEPTH, gl.STENCIL];
 
-      const fbo = this._mainFboInvalidateAttachments;
-      fbo[CameraClearFlags.Color] = [gl2.COLOR_ATTACHMENT0];
-      fbo[CameraClearFlags.Depth] = [gl2.DEPTH_ATTACHMENT];
-      fbo[CameraClearFlags.ColorDepth] = [gl2.COLOR_ATTACHMENT0, gl2.DEPTH_ATTACHMENT];
-      fbo[CameraClearFlags.Stencil] = [gl2.STENCIL_ATTACHMENT];
-      fbo[CameraClearFlags.ColorStencil] = [gl2.COLOR_ATTACHMENT0, gl2.STENCIL_ATTACHMENT];
-      fbo[CameraClearFlags.DepthStencil] = [gl2.DEPTH_STENCIL_ATTACHMENT];
-      fbo[CameraClearFlags.All] = [gl2.COLOR_ATTACHMENT0, gl2.DEPTH_STENCIL_ATTACHMENT];
-    }
+    const fbo = this._mainFboInvalidateAttachments;
+    fbo[CameraClearFlags.Color] = [gl.COLOR_ATTACHMENT0];
+    fbo[CameraClearFlags.Depth] = [gl.DEPTH_ATTACHMENT];
+    fbo[CameraClearFlags.ColorDepth] = [gl.COLOR_ATTACHMENT0, gl.DEPTH_ATTACHMENT];
+    fbo[CameraClearFlags.Stencil] = [gl.STENCIL_ATTACHMENT];
+    fbo[CameraClearFlags.ColorStencil] = [gl.COLOR_ATTACHMENT0, gl.STENCIL_ATTACHMENT];
+    fbo[CameraClearFlags.DepthStencil] = [gl.DEPTH_STENCIL_ATTACHMENT];
+    fbo[CameraClearFlags.All] = [gl.COLOR_ATTACHMENT0, gl.DEPTH_STENCIL_ATTACHMENT];
   }
 
   destroy(): void {
     const webCanvas = this._webCanvas;
-    webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
     webCanvas.removeEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.removeEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
   }

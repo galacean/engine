@@ -143,7 +143,7 @@ export class SeedWorldFrameCapture extends Script {
     const temporary: { texture: Texture2D; target: RenderTarget }[] = [];
     const allocate = (w: number, h: number) => {
       // Raw sRGB bytes: do not enable hardware sRGB encoding on these attachments.
-      const texture = new Texture2D(engine, w, h, TextureFormat.R8G8B8A8, false, false);
+      const texture = new Texture2D(engine, w, h, TextureFormat.R8G8B8A8_UNorm, false, false);
       texture.filterMode = TextureFilterMode.Bilinear;
       texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
       try {
@@ -184,7 +184,7 @@ export class SeedWorldFrameCapture extends Script {
         this.photoCopy = new Material(engine, Shader.find("SeedWorld/PhotoCopy") ?? Shader.create(photoCopySource));
         this.photoCopy.isGCIgnored = true;
       }
-      const texture = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false, true);
+      const texture = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, true);
       let target: RenderTarget | undefined;
       try {
         target = new RenderTarget(engine, width, height, texture, null, 1);

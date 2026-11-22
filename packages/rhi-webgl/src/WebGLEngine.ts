@@ -3,7 +3,7 @@ import { WebGLGraphicDevice, WebGLGraphicDeviceOptions } from "./";
 import { WebCanvas } from "./WebCanvas";
 
 /**
- * WebGL platform engine, supports WebGL 1.0 and WebGL 2.0.
+ * WebGL platform engine, supports WebGL 2.0.
  */
 export class WebGLEngine extends Engine {
   /**

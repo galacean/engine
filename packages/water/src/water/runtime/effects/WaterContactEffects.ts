@@ -231,7 +231,7 @@ export class WaterContactEffects {
           this.engine,
           WATER_CONTACT_MASK_SIZE,
           WATER_CONTACT_MASK_SIZE,
-          TextureFormat.R8G8B8A8,
+          TextureFormat.R8G8B8A8_UNorm,
           false,
           false
         ));

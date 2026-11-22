@@ -1,5 +1,5 @@
 import { Shader, ShaderFactory, ShaderLanguage, ShaderPass, ShaderMacroCollection } from "@galacean/engine-core";
-import { WebGLEngine, WebGLMode } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
@@ -31,8 +31,7 @@ async function capture(
   vertexOutputNames?: Readonly<Record<string, string>>
 ): Promise<number[]> {
   const engine = await WebGLEngine.create({
-    canvas: document.createElement("canvas"),
-    graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
+    canvas: document.createElement("canvas")
   });
   const gl = engine._hardwareRenderer.gl as WebGL2RenderingContext;
   expect(gl).not.toBeNull();
@@ -90,7 +89,7 @@ describe("transform feedback captures interface members by source name", () => {
   ];
   for (const [label, source] of sources) {
     const outputName = label === "reserved member" ? "input" : "feedbackValue";
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       for (const precompiled of [false, true]) {
         it(`captures ${label} for target ${target}, precompiled=${precompiled}`, async () => {
           const compiler = new ShaderCompiler();
@@ -108,10 +107,7 @@ describe("transform feedback captures interface members by source name", () => {
           const macros = new Map<string, string>();
           let vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions, macros);
           let fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions, macros);
-          if (target === ShaderLanguage.GLSLES100) {
-            vertex = ShaderFactory.convertTo300(vertex);
-            fragment = ShaderFactory.convertTo300(fragment, true);
-          }
+
           expect(await capture(vertex, fragment, outputName, undefined, program.vertexOutputNames)).toEqual([
             0.25, 0.5, 0.75, 1
           ]);
@@ -119,7 +115,7 @@ describe("transform feedback captures interface members by source name", () => {
       }
     }
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       for (const precompiled of [false, true]) {
         it(`captures ${label} through Shader, target ${target}, precompiled=${precompiled}`, async () => {
           const previousCompiler = Shader._shaderCompiler;

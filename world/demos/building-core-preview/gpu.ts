@@ -1,6 +1,6 @@
 // Prototype check: the GPU lays a wall's bricks from its layout, and the records match
 // the CPU reference expansion. Also reports time and memory.
-import { WebGLEngine, WebGLMode } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine";
 import { designBuildingCore } from "@galacean/engine-building/building/core/index";
 import { createBuildingTypeRegistry } from "@galacean/engine-building/building/partTypes/index";
 import { buildCoreWall } from "@galacean/engine-building/building/application/CoreEuropean";
@@ -17,8 +17,7 @@ const log = (s: string) => {
   out.textContent = lines.join("\n");
 };
 const engine = await WebGLEngine.create({
-  canvas: document.querySelector("canvas")!,
-  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
+  canvas: document.querySelector("canvas")!
 });
 
 function halfToFloat(bits: number) {

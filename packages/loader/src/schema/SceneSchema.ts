@@ -9,11 +9,6 @@ import {
 import type { HierarchyFile } from "./HierarchySchema";
 import type { Vec3Tuple, Vec4Tuple } from "./CommonSchema";
 
-export enum SpecularMode {
-  Sky = 0,
-  Custom = 1
-}
-
 export interface SceneFile extends HierarchyFile {
   scene: {
     name?: string;
@@ -29,11 +24,9 @@ export interface SceneFile extends HierarchyFile {
     ambient?: {
       diffuseMode: DiffuseMode;
       ambientLight?: number;
-      customAmbientLight?: number;
       diffuseSolidColor?: Vec4Tuple;
       diffuseIntensity: number;
       specularIntensity: number;
-      specularMode: SpecularMode;
     };
     shadow?: {
       castShadows?: boolean;

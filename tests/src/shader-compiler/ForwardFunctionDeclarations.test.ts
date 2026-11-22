@@ -132,7 +132,7 @@ function programs(source: string) {
   const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
   const compiler = new ShaderCompiler();
   const results: { vertex: string; fragment: string; target: ShaderLanguage; enabled: boolean }[] = [];
-  for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+  for (const target of [ShaderLanguage.GLSLES300]) {
     const generated = [
       compiler.generate(analysis.passes[0], target),
       compiler._parseShaderPass(
@@ -229,7 +229,7 @@ describe("forward declarations for inherited function overrides", () => {
     const errors = vi.spyOn(Logger, "error").mockImplementation(() => undefined);
     const dispose = vi.spyOn(GLESVisitor.prototype, "dispose");
     try {
-      for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      for (const target of [ShaderLanguage.GLSLES300]) {
         expect(compiler.generate(analysis.passes[0], target)).toBeUndefined();
         expect(String(errors.mock.calls[errors.mock.calls.length - 1][0])).toMatch(
           /^(?:Root\.shader|types\/New\.glsl): UnsupportedForwardDeclaration:/
@@ -271,20 +271,20 @@ describe("forward declarations for inherited function overrides", () => {
 });
 
 describe.skipIf(typeof document === "undefined")("inherited function overrides on WebGL drivers", () => {
-  it.each(cases)("compiles and links $name for both targets and macro variants", (fixture) => {
+  it.each(cases)("compiles and links $name for GLSLES300 and macro variants", (fixture) => {
     const contexts = new Map<ShaderLanguage, WebGLRenderingContext | WebGL2RenderingContext>();
     try {
       for (const program of programs(fixture.source ?? shader(fixture.inherited, fixture.override))) {
         let gl = contexts.get(program.target);
         if (!gl) {
-          const contextType = program.target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl";
+          const contextType = "webgl2";
           gl = document.createElement("canvas").getContext(contextType) as
             | WebGLRenderingContext
             | WebGL2RenderingContext;
           expect(gl, contextType).not.toBeNull();
           contexts.set(program.target, gl);
         }
-        const version = program.target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+        const version = "#version 300 es\n";
         const compiled: WebGLShader[] = [];
         const linked = gl.createProgram()!;
         try {

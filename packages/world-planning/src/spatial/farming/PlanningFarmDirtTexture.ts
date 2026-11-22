@@ -14,7 +14,7 @@ export async function loadPlanningFarmDirtTexture(engine: Engine, forTextureArra
   const texture = await engine.resourceManager.load<Texture2D>({
     type: AssetType.KTX2,
     url: url.href,
-    ...(forTextureArray ? { params: { priorityFormats: [KTX2TargetFormat.R8G8B8A8] } } : {})
+    ...(forTextureArray ? { params: { priorityFormats: [KTX2TargetFormat.R8G8B8A8_UNorm] } } : {})
   });
   texture.filterMode = TextureFilterMode.Trilinear;
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;

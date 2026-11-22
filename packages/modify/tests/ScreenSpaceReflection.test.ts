@@ -190,13 +190,13 @@ function sampleRegionRGB(tex: Texture2D, x0Ratio: number, y0Ratio: number, x1Rat
 }
 
 function createReadbackRT(engine: WebGLEngine, width = 160, height = 120): { rt: RenderTarget; tex: Texture2D } {
-  const tex = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false, true);
+  const tex = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, true);
   const rt = new RenderTarget(engine, width, height, tex, TextureFormat.Depth24Stencil8, 1);
   return { rt, tex };
 }
 
 function createSolidRGBA8Tex(engine: WebGLEngine, r: number, g: number, b: number, a: number): Texture2D {
-  const tex = new Texture2D(engine, 2, 2, TextureFormat.R8G8B8A8, false, false);
+  const tex = new Texture2D(engine, 2, 2, TextureFormat.R8G8B8A8_UNorm, false, false);
   const data = new Uint8Array([r, g, b, a, r, g, b, a, r, g, b, a, r, g, b, a]);
   tex.setPixelBuffer(data);
   tex.wrapModeU = TextureWrapMode.Clamp;
@@ -251,7 +251,7 @@ function readSSRDepthBuffer(tex: Texture2D, packedRG8: boolean, farClip: number,
   const h = Math.max(1, tex.height >> mipLevel);
   const result = new Float32Array(w * h);
   if (packedRG8) {
-    const channels = tex.format === TextureFormat.R8G8 ? 2 : 4;
+    const channels = tex.format === TextureFormat.R8G8_UNorm ? 2 : 4;
     const raw = new Uint8Array(w * h * channels);
     tex.getPixelBuffer(0, 0, w, h, mipLevel, raw);
     for (let i = 0; i < w * h; i++) {
@@ -1461,7 +1461,7 @@ describe("ScreenSpaceReflection v2", () => {
       tex.wrapModeU = TextureWrapMode.Clamp;
       tex.wrapModeV = TextureWrapMode.Clamp;
       if (packed) {
-        const channels = format === TextureFormat.R8G8 ? 2 : 4;
+        const channels = format === TextureFormat.R8G8_UNorm ? 2 : 4;
         const bytes = new Uint8Array(values.length * channels);
         for (let i = 0; i < values.length; i++) {
           const u = Math.sqrt(Math.max(0, Math.min(1, values[i] / 100)));
@@ -1586,7 +1586,7 @@ describe("ScreenSpaceReflection v2", () => {
     const pyrTex = camRight._renderPipeline._ssrPass._history.prevColorPyramidTex!;
     const pyrW = pyrTex.width;
     const pyrH = pyrTex.height;
-    const isByte = pyrTex.format === TextureFormat.R8G8B8A8;
+    const isByte = pyrTex.format === TextureFormat.R8G8B8A8_UNorm;
     const buf = isByte ? new Uint8Array(pyrW * pyrH * 4) : new Float32Array(pyrW * pyrH * 4);
     pyrTex.getPixelBuffer(0, 0, pyrW, pyrH, 0, buf);
     const scale = isByte ? 1 / 255 : 1;
@@ -1968,7 +1968,7 @@ describe("ScreenSpaceReflection v2", () => {
     const cam = camEnt.addComponent(Camera);
 
     // Spatially varying roughnessMetallicTexture & clearCoatTexture straddling maxRoughness (0.5) & 0.1
-    const varyingRoughTex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false, false);
+    const varyingRoughTex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false, false);
     const data = new Uint8Array(4 * 4 * 4);
     for (let i = 0; i < 16; i++) {
       data[i * 4] = i % 2 === 0 ? 10 : 240; // R: clearCoat
@@ -2053,7 +2053,7 @@ describe("ScreenSpaceReflection v2", () => {
     // Confirm downsampled mips 0..3 inside prevColorPyramidTex actually contain non-zero linear scene color
     // @ts-ignore
     const pyrTex = ssrPass._history.prevColorPyramidTex!;
-    const isByte = pyrTex.format === TextureFormat.R8G8B8A8;
+    const isByte = pyrTex.format === TextureFormat.R8G8B8A8_UNorm;
     for (let mip = 0; mip <= 3; mip++) {
       const mw = Math.max(1, pyrTex.width >> mip);
       const mh = Math.max(1, pyrTex.height >> mip);
@@ -2561,7 +2561,7 @@ describe("ScreenSpaceReflection v2", () => {
     expect(passMacros.isEnable(ShaderMacro.getByName("SSR_COLOR_PYRAMID_KARIS_DOWNSAMPLE"))).toBe(false);
 
     // Verify crisp 1:1 mip 0 and populated Karis-weighted mip 1
-    const isByte = pyrTex.format === TextureFormat.R8G8B8A8;
+    const isByte = pyrTex.format === TextureFormat.R8G8B8A8_UNorm;
     const scale = isByte ? 1 / 255 : 1;
     const mip0Buf = isByte ? new Uint8Array(160 * 120 * 4) : new Float32Array(160 * 120 * 4);
     pyrTex.getPixelBuffer(0, 0, 160, 120, 0, mip0Buf);
@@ -2931,7 +2931,7 @@ describe("ScreenSpaceReflection v2", () => {
     const genSpy = vi.spyOn(pyrTex, "generateMipmaps");
 
     const assertMipsPopulated = (texture: Texture2D) => {
-      const isByte = texture.format === TextureFormat.R8G8B8A8;
+      const isByte = texture.format === TextureFormat.R8G8B8A8_UNorm;
       const scale = isByte ? 1 / 255 : 1;
       for (let mip = 0; mip <= 3; mip++) {
         const mw = Math.max(1, texture.width >> mip);
@@ -3044,7 +3044,7 @@ describe("ScreenSpaceReflection v2", () => {
     const highPyrTex = ssrPass._history.prevColorPyramidTex!;
     expect(highPyrTex.width).toBe(960);
     expect(highPyrTex.height).toBe(490);
-    const isByte = highPyrTex.format === TextureFormat.R8G8B8A8;
+    const isByte = highPyrTex.format === TextureFormat.R8G8B8A8_UNorm;
     const sampleBuf = isByte ? new Uint8Array(960 * 490 * 4) : new Float32Array(960 * 490 * 4);
     highPyrTex.getPixelBuffer(0, 0, 960, 490, 0, sampleBuf);
     const cornerBlue = sampleBuf[2] * (isByte ? 1 / 255 : 1);
@@ -3510,7 +3510,7 @@ describe("ScreenSpaceReflection v2", () => {
       stepFrames(engine, 3);
       // @ts-ignore
       const pyrTex = ssrPass._history.prevColorPyramidTex!;
-      const isByte = pyrTex.format === TextureFormat.R8G8B8A8;
+      const isByte = pyrTex.format === TextureFormat.R8G8B8A8_UNorm;
       const buf = isByte
         ? new Uint8Array(pyrTex.width * pyrTex.height * 4)
         : new Float32Array(pyrTex.width * pyrTex.height * 4);
@@ -3721,7 +3721,7 @@ describe("ScreenSpaceReflection v2", () => {
     const ssrPass = cam._renderPipeline._ssrPass;
     // @ts-ignore
     const origColorTex = ssrPass._history.prevColorPyramidTex;
-    const cubeRT = new RenderTarget(engine, 32, 32, new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8, false), null, 1);
+    const cubeRT = new RenderTarget(engine, 32, 32, new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8_UNorm, false), null, 1);
     const prevRT = cam.renderTarget;
     cam.renderTarget = cubeRT;
     cam.render(TextureCubeFace.PositiveX, 0);
@@ -4203,7 +4203,7 @@ describe("ScreenSpaceReflection v2", () => {
       expect(invSpy).not.toHaveBeenCalled();
 
       // Destroyed RenderTarget with null FBO must NOT match default framebuffer (null === null)
-      const tempTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8, false);
+      const tempTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false);
       const tempRT = new RenderTarget(engine, 16, 16, tempTex, TextureFormat.Depth24Stencil8);
       tempRT.destroy(true);
       tempTex.destroy(true);
@@ -4832,7 +4832,7 @@ describe("ScreenSpaceReflection v2", () => {
     const { engine, scene, gl } = await createTestEngine(64, 64);
     createdEngines.push(engine);
 
-    const mipTex = new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8, true, false);
+    const mipTex = new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8_UNorm, true, false);
     mipTex.filterMode = TextureFilterMode.Point;
     mipTex.wrapModeU = TextureWrapMode.Clamp;
     mipTex.wrapModeV = TextureWrapMode.Clamp;

@@ -112,7 +112,7 @@ describe("renderer warmup scope", () => {
       shaderData: { _macroCollection: new ShaderMacroCollection() }
     }));
     const variants = collectSeedWorldRendererVariants(
-      { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+      { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
       {
         shaderData: { _macroCollection: new ShaderMacroCollection() },
         background: { mode: 0 },
@@ -176,7 +176,7 @@ describe("renderer warmup scope", () => {
       }
     ] as any;
     const offVariants = collectSeedWorldRendererVariants(
-      { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+      { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
       {
         shaderData: { _macroCollection: new ShaderMacroCollection() },
         background: { mode: 0 },
@@ -216,7 +216,7 @@ describe("renderer warmup scope", () => {
       const onVariants = collectSeedWorldRendererVariants(
         {
           _macroCollection: new ShaderMacroCollection(),
-          _hardwareRenderer: { isWebGL2: true, supportsRenderTargetColorFormat: () => false }
+          _hardwareRenderer: { supportsRendering: true, supportsRenderTargetColorFormat: () => false }
         } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
@@ -694,7 +694,7 @@ describe("renderer warmup scope", () => {
     ] as any;
     const collectDepth = (forwardDepthResolve: boolean | undefined, aoValid: boolean) =>
       collectSeedWorldRendererVariants(
-        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
           background: { mode: 0 },
@@ -789,7 +789,7 @@ describe("renderer warmup scope", () => {
         }
       ] as any;
       const dryVariants = collectSeedWorldRendererVariants(
-        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
           background: { mode: 0 },
@@ -812,7 +812,7 @@ describe("renderer warmup scope", () => {
         }
       ] as any;
       const waterVariants = collectSeedWorldRendererVariants(
-        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
           background: { mode: 0 },
@@ -853,7 +853,7 @@ describe("renderer warmup scope", () => {
         useLinearTrace: true
       };
       const linearWaterVariants = collectSeedWorldRendererVariants(
-        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
           background: { mode: 0 },
@@ -874,7 +874,7 @@ describe("renderer warmup scope", () => {
         quality: ScreenSpaceReflectionQuality.Low
       };
       const lowWaterVariants = collectSeedWorldRendererVariants(
-        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
           background: { mode: 0 },
@@ -891,7 +891,7 @@ describe("renderer warmup scope", () => {
       const fallbackDeviceVariants = collectSeedWorldRendererVariants(
         {
           _macroCollection: new ShaderMacroCollection(),
-          _hardwareRenderer: { isWebGL2: true, supportsRenderTargetColorFormat: () => false }
+          _hardwareRenderer: { supportsRendering: true, supportsRenderTargetColorFormat: () => false }
         } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
@@ -912,7 +912,7 @@ describe("renderer warmup scope", () => {
         quality: ScreenSpaceReflectionQuality.XHigh
       };
       const xhighWaterVariants = collectSeedWorldRendererVariants(
-        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
           background: { mode: 0 },
@@ -953,7 +953,7 @@ describe("renderer warmup scope", () => {
         }
       ] as any;
       const highWaterVariants = collectSeedWorldRendererVariants(
-        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
           background: { mode: 0 },
@@ -1018,7 +1018,7 @@ describe("renderer warmup scope", () => {
         }
       ] as any;
       const wetHighVariants = collectSeedWorldRendererVariants(
-        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
           background: { mode: 0 },
@@ -1045,7 +1045,7 @@ describe("renderer warmup scope", () => {
         quality: ScreenSpaceReflectionQuality.Medium
       };
       const mixedMediumVariants = collectSeedWorldRendererVariants(
-        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { isWebGL2: true } } as any,
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
         {
           shaderData: { _macroCollection: new ShaderMacroCollection() },
           background: { mode: 0 },

@@ -23,7 +23,7 @@ export async function createSeedWorldSurfaceNormalTexture(engine: Engine, signal
     cachedPixels ??= pixels;
   }
   signal.throwIfAborted();
-  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8, false, false);
+  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8_UNorm, false, false);
   try {
     // Linear XYZ supports hardware filtering; repeat wraps the filter footprint at tile seams.
     texture.filterMode = TextureFilterMode.Bilinear;

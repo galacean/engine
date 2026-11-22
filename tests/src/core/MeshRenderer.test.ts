@@ -267,8 +267,6 @@ describe("MeshRenderer", async function () {
   });
 
   it("batches and splits opaque MeshRenderers by _isFrontFaceInvert on WebGL2", () => {
-    if (!(engine as any)._hardwareRenderer.isWebGL2) return;
-
     const scene = engine.sceneManager.activeScene;
     const testRoot = scene.createRootEntity("batch-ffi-root");
     const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);

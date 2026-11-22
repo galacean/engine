@@ -21,7 +21,7 @@ import type { ConstructionPreviewPart } from "../src/building/runtime/Constructi
 function createMockEngine(): Engine {
   const noop = () => {};
   const mockRhi = {
-    isWebGL2: true,
+    supportsRendering: true,
     canIUse: () => true,
     createPlatformBuffer: () => ({
       bind: noop,

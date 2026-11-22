@@ -14,8 +14,7 @@ function plantShaderPrecompile(options = {}) {
       this.addWatchFile(shaderPath);
       const compiler = new ShaderPrecompiler();
       compiler.setIncludeMap(Object.fromEntries(shaderLibrary.map(({ path, source }) => [path, source])));
-      // Keep the existing GLES100 target, including the engine's WebGL2 upgrade path.
-      const data = compiler.precompile(readFileSync(shaderPath, "utf8"), 0);
+      const data = compiler.precompile(readFileSync(shaderPath, "utf8"));
       return { code: `export default ${JSON.stringify(data)};`, map: null };
     }
   };

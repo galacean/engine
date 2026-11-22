@@ -119,8 +119,9 @@ export class SoilVisualProvider {
   /** Only live farming surfaces use chunks; direct editing/animation previews keep their original renderer path. */
   createPlot(parent: Entity, entity: Entity, grid: PlotGrid, cell: SoilCell, moisture: number): SoilVisualTarget {
     this.requestSoilTextures();
-    const webgl2 = (this.engine as unknown as { _hardwareRenderer: { isWebGL2: boolean } })._hardwareRenderer.isWebGL2;
-    if (!webgl2) {
+    const supportsRendering = (this.engine as unknown as { _hardwareRenderer: { supportsRendering: boolean } })
+      ._hardwareRenderer.supportsRendering;
+    if (!supportsRendering) {
       const renderer = entity.addComponent(MeshRenderer);
       renderer.castShadows = false;
       renderer.receiveShadows = true;

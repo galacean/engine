@@ -229,7 +229,7 @@ export class FarmUi {
     readonly canvasElement: HTMLCanvasElement
   ) {
     this.font = Font.createFromOS(engine, '"PingFang SC", "Microsoft YaHei", sans-serif')!;
-    this.texture = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8, false);
+    this.texture = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false);
     const pixels = new Uint8Array(16 * 16 * 4).fill(255);
     for (let y = 0; y < 16; y++)
       for (let x = 0; x < 16; x++) {

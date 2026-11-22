@@ -19,8 +19,7 @@ import type { IPlatformTransformFeedbackPrimitive } from "./IPlatformTransformFe
 /** Graphics resource and command boundary used by the engine. */
 export interface IHardwareRenderer {
   /** WebGL access requires a graphics-capable backend. */
-  readonly gl: WebGLRenderingContext | WebGL2RenderingContext;
-  readonly isWebGL2: boolean;
+  readonly gl: WebGL2RenderingContext;
   readonly maxUniformBlockSize: number;
   /** Whether this device can execute rendering commands. */
   readonly supportsRendering: boolean;
@@ -31,10 +30,7 @@ export interface IHardwareRenderer {
     readonly maxAntiAliasing: number;
     readonly maxVertexUniformVectors: number;
     readonly maxFragmentTextureUnits: number;
-    readonly canUseFloatTextureBlendShape: boolean;
-    readonly isFragmentHighPrecision: boolean;
   };
-  readonly canIUseMoreJoints: boolean;
   /** @internal */
   readonly _options: {
     readonly depth?: boolean;
@@ -52,6 +48,7 @@ export interface IHardwareRenderer {
   canIUseCompressedTextureInternalFormat(format: number): boolean;
   supportsTextureFormat(format: TextureFormat): boolean;
   supportsRenderTargetColorFormat(format: TextureFormat): boolean;
+  supportsGenerateMipmaps(format: TextureFormat, isSRGBColorSpace: boolean): boolean;
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive;
   createPlatformBuffer(
     type: BufferBindFlag,

@@ -173,8 +173,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
   // Format & capability state
   private _unsupportedReason: string | null = null;
   private _depthColorFormat: TextureFormat = TextureFormat.R16_SFloat;
-  private _normalRoughnessFormat: TextureFormat = TextureFormat.R16G16B16A16;
-  private _ssrColorFormat: TextureFormat = TextureFormat.R16G16B16A16;
+  private _normalRoughnessFormat: TextureFormat = TextureFormat.R16G16B16A16_SFloat;
+  private _ssrColorFormat: TextureFormat = TextureFormat.R16G16B16A16_SFloat;
   private _colorPyramidFormat: TextureFormat = TextureFormat.R11G11B10_UFloat;
   private _colorPyramidSRGB: boolean = false;
   private _usesPackedDepthRG8: boolean = false;
@@ -339,8 +339,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       this.canDeferToPostOpaque &&
       this._effectiveSettings.quality !== ScreenSpaceReflectionQuality.XHigh &&
       !this._forceSoftwareColorPyramidMipmaps &&
-      this._contribDepthCount === 0 &&
-      this.engine._hardwareRenderer.isWebGL2
+      this._contribDepthCount === 0
     );
   }
 
@@ -591,8 +590,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       transparentCount > 0 &&
       contribCount === 0 &&
       this._effectiveSettings.quality !== ScreenSpaceReflectionQuality.XHigh &&
-      !this._forceSoftwareColorPyramidMipmaps &&
-      engine._hardwareRenderer.isWebGL2;
+      !this._forceSoftwareColorPyramidMipmaps;
 
     try {
       this._ensurePersistentResources(
@@ -800,7 +798,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       // Step A: Build trace-resolution Depth24Stencil8 (either downsample full depth with conservative max, or DepthOnly).
       // On WebGL2 non-warmup frames with fullDepthTex, merge Step A max-downsample with Step D Hi-Z mip 0 build.
       const fullDepthTex = (fullDepthRT?.depthTexture as Texture2D | null) ?? null;
-      const useMergedFullDepthPass = Boolean(fullDepthTex) && state !== SSRRuntimeState.WarmupColor && rhi.isWebGL2;
+      const useMergedFullDepthPass = Boolean(fullDepthTex) && state !== SSRRuntimeState.WarmupColor;
       if (!useMergedFullDepthPass && (state !== SSRRuntimeState.WarmupColor || !fullDepthTex)) {
         const ssrDepthRT = this._ssrDepthRT!;
         context.setRenderTarget(ssrDepthRT, PipelineUtils.defaultViewport, 0);
@@ -1586,13 +1584,6 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     isHDR: boolean = false,
     highPrecisionNormals: boolean = false
   ): void {
-    if (!rhi.isWebGL2) {
-      this._unsupportedReason = "WebGL2 unsupported";
-      this._usesPackedDepthRG8 = true;
-      this._usesPackedNormalOct8 = true;
-      this._usesPackedHDRReinhard = false;
-      return;
-    }
     const cap = rhi.capability;
     if (cap.maxDrawBuffers < 2) {
       this._unsupportedReason = "MRT (< 2 draw buffers) unsupported";
@@ -1607,22 +1598,26 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     if (!this._forcePackedFormats && rhi.supportsRenderTargetColorFormat(TextureFormat.R16_SFloat)) {
       this._depthColorFormat = TextureFormat.R16_SFloat;
       this._usesPackedDepthRG8 = false;
-    } else if (rhi.supportsRenderTargetColorFormat(TextureFormat.R8G8)) {
-      this._depthColorFormat = TextureFormat.R8G8;
+    } else if (rhi.supportsRenderTargetColorFormat(TextureFormat.R8G8_UNorm)) {
+      this._depthColorFormat = TextureFormat.R8G8_UNorm;
       this._usesPackedDepthRG8 = true;
     } else {
-      this._depthColorFormat = TextureFormat.R8G8B8A8;
+      this._depthColorFormat = TextureFormat.R8G8B8A8_UNorm;
       this._usesPackedDepthRG8 = true;
     }
 
     // Low / Medium keep compact 4B/px RGBA8 + Oct8 + reversible Reinhard HDR (halving bandwidth while keeping aliasing),
     // while High / XHigh retain full RGBA16F precision unless forced to packed fallback.
     const wantHDRFormats = !this._forcePackedFormats && (isHDR || highPrecisionNormals);
-    if (highPrecisionNormals && wantHDRFormats && rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16)) {
-      this._normalRoughnessFormat = TextureFormat.R16G16B16A16;
+    if (
+      highPrecisionNormals &&
+      wantHDRFormats &&
+      rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)
+    ) {
+      this._normalRoughnessFormat = TextureFormat.R16G16B16A16_SFloat;
       this._usesPackedNormalOct8 = false;
     } else {
-      this._normalRoughnessFormat = TextureFormat.R8G8B8A8;
+      this._normalRoughnessFormat = TextureFormat.R8G8B8A8_UNorm;
       this._usesPackedNormalOct8 = true;
     }
 
@@ -1630,29 +1625,29 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       isHDR &&
       highPrecisionNormals &&
       !this._forcePackedFormats &&
-      rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16)
+      rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)
     ) {
-      this._ssrColorFormat = TextureFormat.R16G16B16A16;
+      this._ssrColorFormat = TextureFormat.R16G16B16A16_SFloat;
       this._usesPackedHDRReinhard = false;
     } else {
-      this._ssrColorFormat = TextureFormat.R8G8B8A8;
+      this._ssrColorFormat = TextureFormat.R8G8B8A8_UNorm;
       this._usesPackedHDRReinhard = isHDR;
     }
 
     if (rhi.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)) {
       this._colorPyramidFormat = TextureFormat.R11G11B10_UFloat;
       this._colorPyramidSRGB = false;
-    } else if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16)) {
-      this._colorPyramidFormat = TextureFormat.R16G16B16A16;
+    } else if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)) {
+      this._colorPyramidFormat = TextureFormat.R16G16B16A16_SFloat;
       this._colorPyramidSRGB = false;
     } else {
-      this._colorPyramidFormat = TextureFormat.R8G8B8A8;
+      this._colorPyramidFormat = TextureFormat.R8G8B8A8_UNorm;
       this._colorPyramidSRGB = true;
     }
   }
 
   private _canUseInPlaceHiZ(hiZTex: Texture2D): boolean {
-    if (this._forceHiZScratch || !this.engine._hardwareRenderer.isWebGL2) {
+    if (this._forceHiZScratch) {
       return false;
     }
     return hiZTex._supportsMipLevelRange();
@@ -1663,14 +1658,10 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       return false;
     }
     const rhi = this.engine._hardwareRenderer;
-    if (!rhi.isWebGL2 || !texture._mipmap || (texture.width === 1 && texture.height === 1)) {
+    if (!texture._mipmap || (texture.width === 1 && texture.height === 1)) {
       return false;
     }
-    return (
-      TextureUtils.supportGenerateMipmaps(texture.format, texture._mipmap, texture.isSRGBColorSpace, rhi.isWebGL2) &&
-      rhi.supportsRenderTargetColorFormat(texture.format) &&
-      (texture.format !== TextureFormat.R32G32B32A32 || rhi.canIUse(GLCapabilityType.textureFloatLinear))
-    );
+    return rhi.supportsGenerateMipmaps(texture.format, texture.isSRGBColorSpace);
   }
 
   private _ensurePersistentResources(

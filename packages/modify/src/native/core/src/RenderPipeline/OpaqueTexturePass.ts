@@ -1,10 +1,8 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import { GLCapabilityType } from "../base/Constant";
 import { Downsampling } from "../enums/Downsampling";
 import { Texture, Texture2D, TextureFilterMode, TextureFormat } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
-import { TextureUtils } from "../texture/TextureUtils";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
 import { Blitter } from "./Blitter";
 import { PipelinePass } from "./PipelinePass";
@@ -44,12 +42,7 @@ export class OpaqueTexturePass extends PipelinePass {
         ? TextureFormat.R11G11B10_UFloat
         : camera._getInternalColorTextureFormat();
     const canHardwareMip =
-      requireMipmaps &&
-      rhi.isWebGL2 &&
-      Math.max(targetW, targetH) > 1 &&
-      TextureUtils.supportGenerateMipmaps(colorFormat, true, isSRGB, true) &&
-      rhi.supportsRenderTargetColorFormat(colorFormat) &&
-      (colorFormat !== TextureFormat.R32G32B32A32 || rhi.canIUse(GLCapabilityType.textureFloatLinear));
+      requireMipmaps && Math.max(targetW, targetH) > 1 && rhi.supportsGenerateMipmaps(colorFormat, isSRGB);
 
     const opaqueRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       this.engine,

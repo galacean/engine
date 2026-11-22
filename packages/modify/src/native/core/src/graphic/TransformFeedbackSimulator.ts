@@ -76,8 +76,10 @@ export class TransformFeedbackSimulator {
     }
 
     program.bind();
+    program.regroupUniformBlocks();
     program.uploadAll(program.rendererUniformBlock, shaderData);
     program.uploadAll(program.otherUniformBlock, shaderData);
+    program.uploadAll(program.multiGroupUniformBlock, shaderData);
 
     this._primitive.beginDraw(program, feedbackElements, inputBindings, inputElements);
     return true;

@@ -129,7 +129,7 @@ describe("Bloom single-pass 13-tap downsample and in-place upsample", () => {
     bloomCamera.enablePostProcess = true;
     bloomCamera.enableHDR = true;
 
-    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8, false, false);
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8_UNorm, false, false);
     const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
     bloomCamera.renderTarget = destTarget;
 
@@ -205,7 +205,7 @@ describe("Bloom single-pass 13-tap downsample and in-place upsample", () => {
     bloomCamera.enablePostProcess = true;
     bloomCamera.enableHDR = false;
 
-    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8, false, false);
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8_UNorm, false, false);
     const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
     bloomCamera.renderTarget = destTarget;
 

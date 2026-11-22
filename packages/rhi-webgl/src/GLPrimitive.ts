@@ -1,19 +1,6 @@
-import {
-  GLCapabilityType,
-  IPlatformPrimitive,
-  IPlatformShaderProgram,
-  Logger,
-  Primitive,
-  SubPrimitive
-} from "@galacean/engine-core";
+import { IPlatformPrimitive, IPlatformShaderProgram, Logger, Primitive, SubPrimitive } from "@galacean/engine-core";
 import { GLBuffer } from "./GLBuffer";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
-import { WebGLExtension } from "./type";
-
-/**
- * Improvement of VAO:
- * 1) WebGL2.0 must support VAO, almost all devices support vao extensions in webgl1.0, we can use PollyFill,only keep VAO mode.
- */
 
 /**
  * @internal
@@ -22,18 +9,12 @@ import { WebGLExtension } from "./type";
 export class GLPrimitive implements IPlatformPrimitive {
   private _attribLocArray: number[] = [];
   private readonly _primitive: Primitive;
-  private readonly _canUseInstancedArrays: boolean;
 
-  private _rhi: WebGLGraphicDevice;
-  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+  private _gl: WebGL2RenderingContext;
   private _vaoMap: Map<number, WebGLVertexArrayObject | null> = new Map();
-  private readonly _isSupportVAO: boolean;
 
   constructor(rhi: WebGLGraphicDevice, primitive: Primitive) {
-    this._rhi = rhi;
     this._primitive = primitive;
-    this._canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
-    this._isSupportVAO = rhi.canIUse(GLCapabilityType.vertexArrayObject);
     this._gl = rhi.gl;
   }
 
@@ -42,9 +23,8 @@ export class GLPrimitive implements IPlatformPrimitive {
    */
   draw(shaderProgram: IPlatformShaderProgram, subMesh: SubPrimitive): void {
     const gl = this._gl;
-    const rhi = this._rhi;
     const primitive = this._primitive;
-    const useVao = this._isSupportVAO && primitive.enableVAO;
+    const useVao = primitive.enableVAO;
 
     if (useVao) {
       if (primitive._bufferStructChanged) {
@@ -54,9 +34,8 @@ export class GLPrimitive implements IPlatformPrimitive {
         this._registerVAO(shaderProgram);
       }
       const vao = this._vaoMap.get(shaderProgram.id)!;
-      rhi._bindVertexArray(vao);
+      gl.bindVertexArray(vao);
     } else {
-      rhi._bindVertexArray(null);
       this._bindBufferAndAttrib(shaderProgram);
     }
 
@@ -77,32 +56,30 @@ export class GLPrimitive implements IPlatformPrimitive {
         gl.drawArrays(topology, start, count);
       }
     } else {
-      if (this._canUseInstancedArrays) {
-        if (indexBufferBinding) {
-          if (useVao) {
-            gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
-          } else {
-            const { _glBuffer } = <GLBuffer>indexBufferBinding.buffer._platformBuffer;
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
-            gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-          }
+      if (indexBufferBinding) {
+        if (useVao) {
+          gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
         } else {
-          gl.drawArraysInstanced(topology, start, count, instanceCount);
+          const { _glBuffer } = <GLBuffer>indexBufferBinding.buffer._platformBuffer;
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
+          gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         }
       } else {
-        Logger.error("ANGLE_instanced_arrays extension is not supported");
+        gl.drawArraysInstanced(topology, start, count, instanceCount);
       }
     }
 
-    // Non-VAO path leaves attribute arrays enabled; VAO stays cached on rhi until changed or unbound.
-    if (!useVao) {
+    // Unbind
+    if (useVao) {
+      gl.bindVertexArray(null);
+    } else {
       this._disableAttrib();
     }
   }
 
   destroy(): void {
-    this._isSupportVAO && this._clearVAO();
+    this._clearVAO();
   }
 
   /**
@@ -137,9 +114,7 @@ export class GLPrimitive implements IPlatformPrimitive {
         gl.enableVertexAttribArray(loc);
         const elementInfo = element._formatMetaInfo;
         gl.vertexAttribPointer(loc, elementInfo.size, elementInfo.type, elementInfo.normalized, stride, element.offset);
-        if (this._canUseInstancedArrays) {
-          gl.vertexAttribDivisor(loc, element.instanceStepRate);
-        }
+        gl.vertexAttribDivisor(loc, element.instanceStepRate);
         this._attribLocArray.push(loc);
       } else {
         Logger.warn("vertex attribute not found: " + name);
@@ -158,11 +133,10 @@ export class GLPrimitive implements IPlatformPrimitive {
 
   private _registerVAO(shaderProgram: IPlatformShaderProgram): void {
     const gl = this._gl;
-    const rhi = this._rhi;
     const vao = gl.createVertexArray();
 
     /** register VAO */
-    rhi._bindVertexArray(vao);
+    gl.bindVertexArray(vao);
 
     const { indexBufferBinding } = this._primitive;
     if (indexBufferBinding) {
@@ -171,7 +145,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     this._bindBufferAndAttrib(shaderProgram);
 
     /** unbind */
-    rhi._bindVertexArray(null);
+    gl.bindVertexArray(null);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     this._disableAttrib();
 
@@ -180,11 +154,7 @@ export class GLPrimitive implements IPlatformPrimitive {
 
   private _clearVAO(): void {
     const gl = this._gl;
-    const rhi = this._rhi;
     this._vaoMap.forEach((vao) => {
-      if (rhi._currentBindVAO === vao) {
-        rhi._bindVertexArray(null);
-      }
       gl.deleteVertexArray(vao);
     });
     this._vaoMap.clear();

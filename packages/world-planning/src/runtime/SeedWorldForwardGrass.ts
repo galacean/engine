@@ -530,8 +530,8 @@ export class SeedWorldForwardGrass {
   private _destroyed = false;
 
   static isSupported(engine: Engine): boolean {
-    const hardware = (engine as Engine & { _hardwareRenderer?: { isWebGL2?: boolean } })._hardwareRenderer;
-    return Boolean(hardware?.isWebGL2);
+    const hardware = (engine as Engine & { _hardwareRenderer?: { supportsRendering?: boolean } })._hardwareRenderer;
+    return Boolean(hardware?.supportsRendering);
   }
 
   constructor(
@@ -544,13 +544,20 @@ export class SeedWorldForwardGrass {
     this._engine = engine;
     this._root = parent.createChild("Frustum Grass (TF)");
 
-    const terrainTex = new Texture2D(engine, WINDOW_TEXELS, WINDOW_TEXELS, TextureFormat.R32G32B32A32, false, false);
+    const terrainTex = new Texture2D(
+      engine,
+      WINDOW_TEXELS,
+      WINDOW_TEXELS,
+      TextureFormat.R32G32B32A32_SFloat,
+      false,
+      false
+    );
     terrainTex.filterMode = TextureFilterMode.Point;
     terrainTex.wrapModeU = terrainTex.wrapModeV = TextureWrapMode.Repeat;
     terrainTex.isGCIgnored = true;
     this._terrainTex = terrainTex;
 
-    const maskTex = new Texture2D(engine, WINDOW_TEXELS, WINDOW_TEXELS, TextureFormat.R8G8B8A8, false, false);
+    const maskTex = new Texture2D(engine, WINDOW_TEXELS, WINDOW_TEXELS, TextureFormat.R8G8B8A8_UNorm, false, false);
     maskTex.filterMode = TextureFilterMode.Bilinear;
     maskTex.wrapModeU = maskTex.wrapModeV = TextureWrapMode.Repeat;
     maskTex.isGCIgnored = true;

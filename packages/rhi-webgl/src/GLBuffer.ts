@@ -1,17 +1,13 @@
 import { BufferBindFlag, BufferUsage, IPlatformBuffer, SetDataOptions } from "@galacean/engine-core";
 import type { WebGLGraphicDevice } from "./WebGLGraphicDevice";
-import { WebGLExtension } from "./type";
 
 export class GLBuffer implements IPlatformBuffer {
   /** @internal */
   _glBuffer: WebGLBuffer | null;
 
-  private _rhi: WebGLGraphicDevice;
-  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+  private _gl: WebGL2RenderingContext;
   private _glBindTarget: number;
   private _glBufferUsage: number;
-  private _isWebGL2: boolean;
-  private _isIndexBuffer: boolean;
 
   constructor(
     rhi: WebGLGraphicDevice,
@@ -32,16 +28,13 @@ export class GLBuffer implements IPlatformBuffer {
         glBindTarget = gl.ELEMENT_ARRAY_BUFFER;
         break;
       case BufferBindFlag.ConstantBuffer:
-        glBindTarget = (<WebGL2RenderingContext>gl).UNIFORM_BUFFER;
+        glBindTarget = gl.UNIFORM_BUFFER;
         break;
     }
-    this._rhi = rhi;
     this._gl = gl;
     this._glBuffer = glBuffer;
     this._glBufferUsage = glBufferUsage;
     this._glBindTarget = glBindTarget;
-    this._isWebGL2 = rhi.isWebGL2;
-    this._isIndexBuffer = type === BufferBindFlag.IndexBuffer;
 
     this.bind();
 
@@ -54,10 +47,6 @@ export class GLBuffer implements IPlatformBuffer {
   }
 
   bind(): void {
-    // Binding an index buffer mutates the active VAO; unbind any cached VAO first.
-    if (this._isIndexBuffer) {
-      this._rhi._bindVertexArray(null);
-    }
     this._gl.bindBuffer(this._glBindTarget, this._glBuffer);
   }
 
@@ -84,7 +73,7 @@ export class GLBuffer implements IPlatformBuffer {
 
     if (dataOffset !== 0 || dataByteLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
-      if (this._isWebGL2 && isArrayBufferView) {
+      if (isArrayBufferView) {
         gl.bufferSubData(
           glBindTarget,
           bufferByteOffset!,
@@ -93,11 +82,7 @@ export class GLBuffer implements IPlatformBuffer {
           dataByteLength / byteSize
         );
       } else {
-        const subData = new Uint8Array(
-          isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,
-          dataOffset! * byteSize,
-          dataByteLength
-        );
+        const subData = new Uint8Array(<ArrayBuffer>data, dataOffset! * byteSize, dataByteLength);
         gl.bufferSubData(glBindTarget, bufferByteOffset!, subData);
       }
     } else {
@@ -107,17 +92,12 @@ export class GLBuffer implements IPlatformBuffer {
   }
 
   getData(data: ArrayBufferView, bufferByteOffset?: number, dataOffset?: number, dataLength?: number): void {
-    if (this._isWebGL2) {
-      const gl = <WebGL2RenderingContext>this._gl;
-      this.bind();
-      gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
-    } else {
-      throw "Buffer is write-only on WebGL1.0 platforms.";
-    }
+    this.bind();
+    this._gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
   }
 
   copyFromBuffer(srcBuffer: IPlatformBuffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
-    const gl = <WebGL2RenderingContext>this._gl;
+    const gl = this._gl;
     gl.bindBuffer(gl.COPY_READ_BUFFER, (<GLBuffer>srcBuffer)._glBuffer);
     gl.bindBuffer(gl.COPY_WRITE_BUFFER, this._glBuffer);
     gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, srcByteOffset, dstByteOffset, byteLength);
@@ -131,7 +111,7 @@ export class GLBuffer implements IPlatformBuffer {
     this._glBuffer = null!;
   }
 
-  private _getGLBufferUsage(gl: WebGLRenderingContext, bufferUsage: BufferUsage): number {
+  private _getGLBufferUsage(gl: WebGL2RenderingContext, bufferUsage: BufferUsage): number {
     switch (bufferUsage) {
       case BufferUsage.Static:
         return gl.STATIC_DRAW;

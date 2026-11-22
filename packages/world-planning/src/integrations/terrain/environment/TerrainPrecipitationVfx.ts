@@ -1126,7 +1126,7 @@ function createSplashRingTexture(engine: Engine): Texture2D {
       pixels[(y * resolution + x) * 4 + 3] = Math.round(255 * clamp01(1 - distance / halfWidth));
     }
   }
-  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8A8, true, false);
+  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8A8_UNorm, true, false);
   texture.name = "Rain splash ring";
   texture.filterMode = TextureFilterMode.Trilinear;
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;

@@ -33,7 +33,7 @@ describe("RenderTargetLoader", () => {
     const data = {
       width: 1,
       height: 1,
-      colorFormats: [TextureFormat.R8G8B8A8],
+      colorFormats: [TextureFormat.R8G8B8A8_UNorm],
       depthFormat: -1,
       antiAliasing: 1
     };
@@ -72,7 +72,7 @@ describe("RenderTargetLoader", () => {
     const url = createRenderTargetBlob({
       width: 256,
       height: 256,
-      colorFormats: [TextureFormat.R8G8B8A8],
+      colorFormats: [TextureFormat.R8G8B8A8_UNorm],
       depthFormat: TextureFormat.Depth,
       antiAliasing: 1,
       autoGenerateMipmaps: true
@@ -89,14 +89,14 @@ describe("RenderTargetLoader", () => {
     expect(colorTexture).to.be.instanceOf(Texture2D);
     expect(colorTexture.width).to.equal(256);
     expect(colorTexture.height).to.equal(256);
-    expect(colorTexture.format).to.equal(TextureFormat.R8G8B8A8);
+    expect(colorTexture.format).to.equal(TextureFormat.R8G8B8A8_UNorm);
   });
 
   it("load with no depth (depthFormat = -1)", async () => {
     const url = createRenderTargetBlob({
       width: 128,
       height: 128,
-      colorFormats: [TextureFormat.R8G8B8A8],
+      colorFormats: [TextureFormat.R8G8B8A8_UNorm],
       depthFormat: -1,
       antiAliasing: 1,
       autoGenerateMipmaps: false
@@ -112,7 +112,7 @@ describe("RenderTargetLoader", () => {
     const url = createRenderTargetBlob({
       width: 64,
       height: 64,
-      colorFormats: [TextureFormat.R8G8B8A8],
+      colorFormats: [TextureFormat.R8G8B8A8_UNorm],
       depthFormat: TextureFormat.Depth,
       antiAliasing: 1,
       autoGenerateMipmaps: false,
@@ -140,7 +140,7 @@ describe("RenderTargetLoader", () => {
     const url = createRenderTargetBlob({
       width: 32,
       height: 32,
-      colorFormats: [TextureFormat.R8G8B8A8],
+      colorFormats: [TextureFormat.R8G8B8A8_UNorm],
       depthFormat: TextureFormat.Depth,
       antiAliasing: 1,
       autoGenerateMipmaps: false

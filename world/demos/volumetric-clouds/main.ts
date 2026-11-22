@@ -1,4 +1,4 @@
-import { Camera, Script, WebGLEngine, WebGLMode } from "@galacean/engine";
+import { Camera, Script, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { Stats } from "@galacean/engine-toolkit-stats";
 import { AssetAssemblySkyRuntime } from "@galacean/engine-world-planning/integrations/vegetation/AssetAssemblySkyRuntime";
@@ -59,8 +59,7 @@ async function boot(): Promise<void> {
   const canvas = required("canvas", HTMLCanvasElement);
   const engine = await WebGLEngine.create({
     canvas,
-    shaderCompiler: new ShaderCompiler(),
-    graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
+    shaderCompiler: new ShaderCompiler()
   } as unknown as Parameters<typeof WebGLEngine.create>[0]);
   activeEngine = engine;
 

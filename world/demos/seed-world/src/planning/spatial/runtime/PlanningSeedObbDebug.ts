@@ -174,7 +174,7 @@ export class PlanningSeedObbDebug {
   private createSolids(plan: IslandPlan): V2ViewResources {
     const { engine } = this.options;
     const resources: V2ViewResources = { root: this.root.createChild("Published OBBs and water"), meshes: [], materials: [] };
-    this.texture ??= new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false);
+    this.texture ??= new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
     this.texture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
     const material = (color: readonly number[], water = false) => {
       const m = new PBRMaterial(engine);

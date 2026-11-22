@@ -7,7 +7,6 @@ import {
   DirectLight,
   Vector3,
   WebGLEngine,
-  WebGLMode,
   type PrefabResource,
   type Scene
 } from "@galacean/engine";
@@ -671,8 +670,7 @@ await session.initializeDependencies();
 const canvas = document.querySelector("canvas")!;
 const engine = await WebGLEngine.create({
   canvas,
-  shaderCompiler: new ShaderCompiler(),
-  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
+  shaderCompiler: new ShaderCompiler()
 });
 engine.canvas.setResolution(canvas.clientWidth * devicePixelRatio, canvas.clientHeight * devicePixelRatio);
 engine.resourceManager.registerVirtualResources(await session.resources());

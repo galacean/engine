@@ -15,17 +15,13 @@ import {
   PrimitiveMesh,
   Scene,
   TonemappingEffect,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({
-  canvas: "canvas",
-  graphicDeviceOptions: {
-    webGLMode: WebGLMode.WebGL2
-  }
+  canvas: "canvas"
 }).then((engine) => {
   const firstCamera = initFirstScene(engine);
   const secondCamera = initSecondScene(engine);

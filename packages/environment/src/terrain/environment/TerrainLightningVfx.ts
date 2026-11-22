@@ -523,7 +523,7 @@ function createLightningStripTexture(engine: Engine): Texture2D {
     engine,
     LIGHTNING_TEXTURE_WIDTH,
     LIGHTNING_TEXTURE_HEIGHT,
-    TextureFormat.R8G8B8A8,
+    TextureFormat.R8G8B8A8_UNorm,
     false,
     false
   );

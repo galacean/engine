@@ -156,7 +156,7 @@ export class SeedWorldInstantCamera {
     shade.baseColor = new Color(0.0052, 0.0086, 0.0097, 0);
     this.backdrop.setMaterial(shade);
     backdrop.isActive = false;
-    const placeholder = new Texture2D(this.engine, 1, 1, TextureFormat.R8G8B8A8, false, true);
+    const placeholder = new Texture2D(this.engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, true);
     placeholder.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
     ink.baseTexture = placeholder;
     this.engine.sceneManager.addScene(scene);

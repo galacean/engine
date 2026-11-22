@@ -13,18 +13,14 @@ import { NullTexture2D, NullTexture2DArray, NullTextureCube } from "./NullTextur
 /** Graphics resource adapter that never opens a GPU context. */
 export class NullGraphicDevice implements IHardwareRenderer {
   readonly supportsRendering = false;
-  readonly isWebGL2 = false;
   readonly maxUniformBlockSize = 0;
-  readonly canIUseMoreJoints = false;
   readonly _options = {};
   readonly capability = {
     maxTextureSize: 0,
     maxDrawBuffers: 0,
     maxAntiAliasing: 1,
     maxVertexUniformVectors: 0,
-    maxFragmentTextureUnits: 16,
-    canUseFloatTextureBlendShape: false,
-    isFragmentHighPrecision: false
+    maxFragmentTextureUnits: 16
   };
   _currentBindShaderProgram = null;
   _enableGlobalDepthBias = false;
@@ -35,9 +31,8 @@ export class NullGraphicDevice implements IHardwareRenderer {
 
   init(): void {}
 
-  canIUse(capability: GLCapabilityType): boolean {
-    // Vertex storage and CPU particle simulation use these features without GPU execution.
-    return capability === GLCapabilityType.elementIndexUint || capability === GLCapabilityType.instancedArrays;
+  canIUse(_capability: GLCapabilityType): boolean {
+    return false;
   }
 
   canIUseCompressedTextureInternalFormat(): boolean {
@@ -49,6 +44,10 @@ export class NullGraphicDevice implements IHardwareRenderer {
   }
 
   supportsRenderTargetColorFormat(): boolean {
+    return true;
+  }
+
+  supportsGenerateMipmaps(): boolean {
     return true;
   }
   createPlatformPrimitive() {

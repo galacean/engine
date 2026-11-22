@@ -349,7 +349,7 @@ function buildNextSsrFallbackEntry(
 }
 
 export function hasParallelShaderCompile(engine: Engine): boolean {
-  const gl = (engine as unknown as { _hardwareRenderer?: { gl?: WebGLRenderingContext } })._hardwareRenderer?.gl;
+  const gl = (engine as unknown as { _hardwareRenderer?: { gl?: WebGL2RenderingContext } })._hardwareRenderer?.gl;
   return Boolean(gl?.getExtension?.("KHR_parallel_shader_compile"));
 }
 
@@ -787,13 +787,13 @@ function collectSeedWorldRendererVariantsInternal(
   const runtimeHardware = (
     engine as unknown as {
       _hardwareRenderer?: {
-        isWebGL2?: boolean;
+        supportsRendering?: boolean;
         canIUse?: (cap: GLCapabilityType) => boolean;
-        capability?: { maxDrawBuffers?: number; isFragmentHighPrecision?: boolean };
+        capability?: { maxDrawBuffers?: number };
       };
     }
   )._hardwareRenderer;
-  const isWebGL2 = runtimeHardware?.isWebGL2 !== false;
+  const supportsRendering = runtimeHardware?.supportsRendering !== false;
   const depthPrepassEnabled = resolveDepthPrepassEnabled(engine, scene, camera);
   const rawSsrSettings =
     (
@@ -816,11 +816,7 @@ function collectSeedWorldRendererVariantsInternal(
           (rawSsrSettings.intensity ?? 1) > 0 &&
           (rawSsrSettings.maxRoughness ?? 0.6) > 0)
   );
-  const hardwareSupportsSsr =
-    isWebGL2 &&
-    (runtimeHardware?.canIUse ? runtimeHardware.canIUse(GLCapabilityType.drawBuffers) : true) &&
-    (runtimeHardware?.capability?.maxDrawBuffers ?? 2) >= 2 &&
-    runtimeHardware?.capability?.isFragmentHighPrecision !== false;
+  const hardwareSupportsSsr = supportsRendering && (runtimeHardware?.capability?.maxDrawBuffers ?? 2) >= 2;
   const ssrEnabled = ssrCameraEnabled && ssrSettingsValid && hardwareSupportsSsr;
   const ssrQuality = rawSsrSettings?.quality ?? ScreenSpaceReflectionQuality.Medium;
   const ssrUseLinearTrace = Boolean(rawSsrSettings?.useLinearTrace);
@@ -829,7 +825,9 @@ function collectSeedWorldRendererVariantsInternal(
     runtimeHardware as unknown as { supportsRenderTargetColorFormat?: (format: TextureFormat) => boolean } | undefined
   )?.supportsRenderTargetColorFormat;
   const supportsR16Float = hwFormatSupport ? hwFormatSupport.call(runtimeHardware, TextureFormat.R16_SFloat) : true;
-  const supportsRGBA16 = hwFormatSupport ? hwFormatSupport.call(runtimeHardware, TextureFormat.R16G16B16A16) : true;
+  const supportsRGBA16 = hwFormatSupport
+    ? hwFormatSupport.call(runtimeHardware, TextureFormat.R16G16B16A16_SFloat)
+    : true;
   const ssrPackedDepthRG8 = ssrEnabled && !supportsR16Float;
   const ssrHighPrecisionNormals =
     Boolean((camera as unknown as { enableHDR?: boolean }).enableHDR) ||
@@ -976,7 +974,7 @@ function collectSeedWorldRendererVariantsInternal(
         particleMacros.isEnable(ShaderMacro.getByName("RENDERER_TRANSFORM_FEEDBACK"));
       const isWindParticle = Boolean(options.particleWindRenderers?.includes(particleRenderer));
       const isSubEmitterTarget = subEmitterTargets.has(particleRenderer);
-      if (isWebGL2 && (useTransformFeedback || isWindParticle || isSubEmitterTarget)) {
+      if (supportsRendering && (useTransformFeedback || isWindParticle || isSubEmitterTarget)) {
         const feedback = Shader.find("Effect/ParticleFeedback");
         if (!feedback) throw new Error("Particle feedback shader is not registered");
         const pushFeedbackPass = (passIndex: number, macros: ShaderMacroCollection) => {
@@ -1121,7 +1119,7 @@ function collectSeedWorldRendererVariantsInternal(
                 false,
                 renderToTexture,
                 material,
-                isWebGL2,
+                supportsRendering,
                 true,
                 ssrContext
               );
@@ -1137,7 +1135,7 @@ function collectSeedWorldRendererVariantsInternal(
             passCastShadows,
             renderToTexture,
             material,
-            isWebGL2,
+            supportsRendering,
             false,
             ssrContext
           );
@@ -1165,7 +1163,7 @@ function collectSeedWorldRendererVariantsInternal(
               steadyCastShadows,
               renderToTexture,
               material,
-              isWebGL2,
+              supportsRendering,
               false,
               ssrContext
             );
@@ -1193,7 +1191,7 @@ function collectSeedWorldRendererVariantsInternal(
                 passCastShadows,
                 renderToTexture,
                 material,
-                isWebGL2,
+                supportsRendering,
                 false,
                 ssrContext
               );
@@ -1210,7 +1208,7 @@ function collectSeedWorldRendererVariantsInternal(
   if (scene.background?.mode === BackgroundMode.Sky) auxiliary.push([scene.background.sky.material!, renderToTexture]);
   for (const material of options.additionalBackgroundMaterials ?? []) auxiliary.push([material, renderToTexture]);
   const runtimeEngine = engine as unknown as {
-    _hardwareRenderer?: { isWebGL2?: boolean };
+    _hardwareRenderer?: { supportsRendering?: boolean };
     _basicResources?: { blitMaterial?: Material };
     _getActivePostProcessPasses?: () => readonly {
       isActive: boolean;
@@ -1240,7 +1238,7 @@ function collectSeedWorldRendererVariantsInternal(
         auxiliary.push([pass._bloomMaterial, true, "bloom"]);
       if (options.postProcessState?.sunLensFlare && pass._sunLensFlareMaterial) {
         auxiliary.push([pass._sunLensFlareMaterial, true]);
-        if (isWebGL2) {
+        if (supportsRendering) {
           const visibilityShader = Shader.find("PostProcess/SunLensFlareVisibility");
           if (visibilityShader && !visibilityShader.destroyed) {
             appendShaderVariants(
@@ -1250,7 +1248,7 @@ function collectSeedWorldRendererVariantsInternal(
               false,
               undefined,
               undefined,
-              isWebGL2
+              supportsRendering
             );
           }
         }
@@ -1296,7 +1294,7 @@ function collectSeedWorldRendererVariantsInternal(
         }
       }
     }
-    appendShaderVariants(material.shader, macros, variants, false, target, undefined, isWebGL2);
+    appendShaderVariants(material.shader, macros, variants, false, target, undefined, supportsRendering);
   }
   // Warm deferred SSR DepthOnly / Forward SSR variants + exact Lighting/ScreenSpaceReflection v2 passes when receivers exist.
   const hasAnySsrReceivers = ssrContext.hasTransparentSsr || ssrContext.hasOpaqueSsr;
@@ -1398,10 +1396,12 @@ function collectSeedWorldRendererVariantsInternal(
         const colorPyramidFormat = supportsColorPyramidR11G11B10
           ? TextureFormat.R11G11B10_UFloat
           : supportsRGBA16
-            ? TextureFormat.R16G16B16A16
-            : TextureFormat.R8G8B8A8;
+            ? TextureFormat.R16G16B16A16_SFloat
+            : TextureFormat.R8G8B8A8_UNorm;
         const supportsColorPyramidHardwareMipmaps =
-          !isXHigh && isWebGL2 && (!hwFormatSupport || hwFormatSupport.call(runtimeHardware, colorPyramidFormat));
+          !isXHigh &&
+          supportsRendering &&
+          (!hwFormatSupport || hwFormatSupport.call(runtimeHardware, colorPyramidFormat));
         appendSsrPass(6, isXHigh ? [{ n: "SSR_COLOR_PYRAMID_FULL_RES" }] : undefined); // Pass 6: ColorPyramidPrefilter
         if (isXHigh || !supportsColorPyramidHardwareMipmaps) {
           appendSsrPass(7); // Pass 7: ColorPyramidDownsample (XHigh mips 2..N, or software fallback)
@@ -1417,7 +1417,7 @@ function collectSeedWorldRendererVariantsInternal(
     if (photoCopyShader && !photoCopyShader.destroyed) {
       const photoMacros = new ShaderMacroCollection();
       ShaderMacroCollection.unionCollection(cameraMacros, (engine as RuntimeEngine)._macroCollection, photoMacros);
-      appendShaderVariants(photoCopyShader, photoMacros, variants, false, true, undefined, isWebGL2);
+      appendShaderVariants(photoCopyShader, photoMacros, variants, false, true, undefined, supportsRendering);
     }
   }
   // Overlay UI uses a separate, empty camera macro set. Scene lighting, mesh
@@ -1654,11 +1654,9 @@ function resolveDepthPrepassEnabled(engine: Engine, scene: Scene, camera: Camera
   if (runtimeCamera.depthTextureMode === undefined) return true;
   const rhi = (
     engine as unknown as {
-      _hardwareRenderer?: { isWebGL2?: boolean; canIUse?: (cap: GLCapabilityType) => boolean };
+      _hardwareRenderer?: { supportsRendering?: boolean; canIUse?: (cap: GLCapabilityType) => boolean };
     }
   )._hardwareRenderer;
-  const supportDepthTexture = rhi?.canIUse ? rhi.canIUse(GLCapabilityType.depthTexture) : true;
-  if (!supportDepthTexture) return false;
   const ambientOcclusionEnabled = Boolean(
     (scene as unknown as { ambientOcclusion?: { _isValid?: () => boolean } }).ambientOcclusion?._isValid?.()
   );
@@ -1668,7 +1666,7 @@ function resolveDepthPrepassEnabled(engine: Engine, scene: Scene, camera: Camera
     cameraDepthTextureRequested &&
     Boolean(runtimeCamera._enableForwardDepthResolve) &&
     !ambientOcclusionEnabled &&
-    rhi?.isWebGL2 !== false &&
+    rhi?.supportsRendering !== false &&
     baseIndependentCanvasEnabled;
   return ambientOcclusionEnabled || (cameraDepthTextureRequested && !forwardDepthResolveEnabled);
 }
@@ -1693,7 +1691,7 @@ function appendShaderVariants(
   castShadows = true,
   renderToTexture?: boolean,
   material?: Material,
-  isWebGL2 = true,
+  supportsRendering = true,
   forwardOnly = false,
   context?: AppendShaderVariantContext
 ): void {
@@ -1709,7 +1707,7 @@ function appendShaderVariants(
       if (forwardOnly && stage !== "Forward") continue;
       // Match shadow culling even while candidate roots are intentionally inactive.
       if (!castShadows && stage === "ShadowCaster") continue;
-      if (stage === "TransformFeedback" && !isWebGL2) continue;
+      if (stage === "TransformFeedback" && !supportsRendering) continue;
       if (stage === "DepthOnly" && context && !context.depthPrepassEnabled) {
         if (context.ssrEnabled && context.deferredSsrDepthOnly) {
           if (

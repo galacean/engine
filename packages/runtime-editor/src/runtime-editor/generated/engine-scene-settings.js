@@ -1,14 +1,15 @@
-// Generated from Engine SceneLoader.ts (SHA256 ab60d0e16c40381030f71f941f5951b1647364325a66223f5cbc4406844a67a0).
-// Rebuild with world/scripts/build-runtime-scene-settings.mjs. Do not edit.
+// Generated from Engine SceneLoader.ts (SHA256 4e4b45763cb6b983a4718a1d2acac484c58c6c3b6cf62c7a6a73c9b522d77c7d).
+// Rebuild from packages/modify/.cache/engine/packages/loader/src/SceneLoader.ts. Do not edit.
 
 // <stdin>
 import {
   BackgroundMode,
   DiffuseMode,
-  Logger
+  Logger,
+  ScreenSpaceReflectionSettings
 } from "@galacean/engine";
 
-// world/.materialized/engine/packages/loader/src/schema/refs.ts
+// packages/modify/.cache/engine/packages/loader/src/schema/refs.ts
 function resolveRefItem(refs, index, owner, label) {
   if (!Number.isInteger(index) || index < 0 || index >= refs.length) {
     throw new Error(`${owner}: invalid ref index ${index} for ${label}`);
@@ -21,12 +22,19 @@ function loadRef(refs, index, resourceManager, label) {
   const ref = resolveRefItem(refs, index, "SceneLoader", label);
   return resourceManager.getResourceByRef(ref);
 }
+function applySceneScreenSpaceReflection(scene, sceneData) {
+  if (sceneData.screenSpaceReflection) {
+    scene.screenSpaceReflection.apply(sceneData.screenSpaceReflection);
+  } else {
+    new ScreenSpaceReflectionSettings().cloneTo(scene.screenSpaceReflection);
+  }
+}
 function applySceneData(scene, sceneData, resourceManager, refs) {
   const promises = [];
   try {
+    applySceneScreenSpaceReflection(scene, sceneData);
     const ambient = sceneData.ambient;
     if (ambient) {
-      const useCustomAmbient = ambient.specularMode === 1 /* Custom */;
       const useSH = ambient.diffuseMode === DiffuseMode.SphericalHarmonics;
       scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
       scene.ambientLight.specularIntensity = ambient.specularIntensity;
@@ -35,22 +43,11 @@ function applySceneData(scene, sceneData, resourceManager, refs) {
       if (solidColor) {
         scene.ambientLight.diffuseSolidColor.set(solidColor[0], solidColor[1], solidColor[2], solidColor[3]);
       }
-      if (useCustomAmbient && ambient.customAmbientLight != null) {
-        promises.push(
-          loadRef(refs, ambient.customAmbientLight, resourceManager, "scene.ambient.customAmbientLight").then(
-            (ambientLight) => {
-              scene.ambientLight.specularTexture = ambientLight?.specularTexture;
-            }
-          )
-        );
-      }
-      if (ambient.ambientLight != null && (!useCustomAmbient || useSH)) {
+      if (ambient.ambientLight != null) {
         promises.push(
           loadRef(refs, ambient.ambientLight, resourceManager, "scene.ambient.ambientLight").then(
             (ambientLight) => {
-              if (!useCustomAmbient) {
-                scene.ambientLight.specularTexture = ambientLight?.specularTexture;
-              }
+              scene.ambientLight.specularTexture = ambientLight?.specularTexture;
               if (useSH) {
                 scene.ambientLight.diffuseSphericalHarmonics = ambientLight?.diffuseSphericalHarmonics;
               }

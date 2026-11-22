@@ -603,7 +603,7 @@ export class TerrainProjectWorldRuntime extends Script {
           // Keep PNG requests parameterless so ResourceManager applies the Project-declared
           // color-space and sampler metadata; only KTX2 needs the array target override.
           ...(type === AssetType.KTX2 && role && isTerrainLayerTextureRole(role)
-            ? { params: { priorityFormats: [KTX2TargetFormat.R8G8B8A8] } }
+            ? { params: { priorityFormats: [KTX2TargetFormat.R8G8B8A8_UNorm] } }
             : {})
         });
         active.add(task);

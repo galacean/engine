@@ -1,7 +1,6 @@
 import {
   Camera,
   DepthTextureMode,
-  GLCapabilityType,
   Engine,
   Entity,
   MeshRenderer,
@@ -49,7 +48,6 @@ export function getPlantShaderPreparationPasses(
     cameraDepthRequested &&
     Boolean(runtimeCamera._enableForwardDepthResolve) &&
     !ambientOcclusionEnabled &&
-    hardware.isWebGL2 &&
     Boolean(runtimeCamera._isIndependentCanvasEnabled?.());
   const ssrSettings = camera.screenSpaceReflectionOverride ?? scene?.screenSpaceReflection;
   const ssrEnabled =
@@ -57,11 +55,8 @@ export function getPlantShaderPreparationPasses(
     Boolean(ssrSettings?.enabled) &&
     (ssrSettings?.intensity ?? 0) > 0 &&
     (ssrSettings?.maxRoughness ?? 0) > 0;
-  const ssrSupported = ssrEnabled && hardware.isWebGL2 && (hardware.capability?.maxDrawBuffers ?? 0) >= 2;
-  const prepareDepth =
-    (hardware.canIUse(GLCapabilityType.depthTexture) &&
-      (ambientOcclusionEnabled || (cameraDepthRequested && !forwardDepthResolveEnabled))) ||
-    ssrSupported;
+  const ssrSupported = ssrEnabled && (hardware.capability?.maxDrawBuffers ?? 0) >= 2;
+  const prepareDepth = ambientOcclusionEnabled || (cameraDepthRequested && !forwardDepthResolveEnabled) || ssrSupported;
   const prepareSSRReceiver = ssrSupported && material.screenSpaceReflectionIntensity > 0;
   const prepareSSRContributionDepth = ssrSupported && Boolean(material.contributeScreenSpaceReflectionDepth);
   return (material.shader.subShaders[0]?.passes ?? []).filter((pass) => {
@@ -161,7 +156,7 @@ export async function preparePlantShaderPrograms(
           else stateMacros.disable(receive);
           for (const pass of getPlantShaderPreparationPasses(engine, camera, renderer, material, state.cast)) {
             submissions.push({ pass: pass as RuntimePass, macros: stateMacros });
-            if (prepareInstances && (engine as RuntimeEngine)._hardwareRenderer.isWebGL2) {
+            if (prepareInstances) {
               const instanced = new ShaderMacroCollection();
               instanced.unionCollection(stateMacros);
               instanced.enable(ShaderMacro.getByName("RENDERER_GPU_INSTANCE"));

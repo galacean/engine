@@ -51,7 +51,7 @@ export class SeedWorldCameraButton {
     ctx.fill();
     ctx.globalCompositeOperation = "destination-out";
     ctx.beginPath(); ctx.arc(32, 36, 14, 0, Math.PI * 2); ctx.fill();
-    const bodyTexture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8, false);
+    const bodyTexture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8_UNorm, false);
     bodyTexture.setImageSource(pixels);
     const bodySprite = new Sprite(engine, bodyTexture);
     this.textures.push(bodyTexture); this.sprites.push(bodySprite);
@@ -66,7 +66,7 @@ export class SeedWorldCameraButton {
     this.bodyGlass.setInteriorRefractionStrength(0);
     body.setMaterial(this.bodyGlass.material);
 
-    const white = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false);
+    const white = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
     white.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
     const whiteSprite = new Sprite(engine, white);
     this.textures.push(white); this.sprites.push(whiteSprite);

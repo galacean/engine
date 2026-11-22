@@ -20,8 +20,7 @@ import {
   TonemappingMode,
   UnlitMaterial,
   Vector3,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import {
   collectSeedWorldRendererVariants,
@@ -127,7 +126,7 @@ describe("SunLensFlareEffect GPU rendering", () => {
     const tonemapping = postProcess.addEffect(TonemappingEffect)!;
     tonemapping.mode.value = TonemappingMode.ACES;
 
-    const colorTex = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8, false, true);
+    const colorTex = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8_UNorm, false, true);
     const rt = new RenderTarget(engine, SIZE, SIZE, colorTex, TextureFormat.Depth24, 1);
     camera.renderTarget = rt;
 
@@ -334,7 +333,7 @@ describe("SunLensFlareEffect GPU rendering", () => {
     camA.enableHDR = true;
     camA.enablePostProcess = true;
     camA.entity.transform.lookAt(new Vector3(0, 0, -1));
-    const texA = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8, false, true);
+    const texA = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8_UNorm, false, true);
     const rtA = new RenderTarget(engine, SIZE, SIZE, texA, TextureFormat.Depth24, 1);
     camA.renderTarget = rtA;
 
@@ -342,7 +341,7 @@ describe("SunLensFlareEffect GPU rendering", () => {
     camB.enableHDR = true;
     camB.enablePostProcess = true;
     camB.entity.transform.lookAt(new Vector3(0, 0, 1)); // Facing away from sun
-    const texB = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8, false, true);
+    const texB = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8_UNorm, false, true);
     const rtB = new RenderTarget(engine, SIZE, SIZE, texB, TextureFormat.Depth24, 1);
     camB.renderTarget = rtB;
 
@@ -433,7 +432,7 @@ describe("SunLensFlareEffect GPU rendering", () => {
     flare.temporalSmoothing.value = 0;
     post.addEffect(TonemappingEffect)!.mode.value = TonemappingMode.ACES;
 
-    const colorTex = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8, false, true);
+    const colorTex = new Texture2D(engine, SIZE, SIZE, TextureFormat.R8G8B8A8_UNorm, false, true);
     const rt = new RenderTarget(engine, SIZE, SIZE, colorTex, TextureFormat.Depth24, 4);
     camera.renderTarget = rt;
 
@@ -460,42 +459,7 @@ describe("SunLensFlareEffect GPU rendering", () => {
     scene.destroy();
   });
 
-  it("skips WebGL2-only SunLensFlareVisibility TF shader when warming up on WebGL1", async () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 64;
-    const webgl1Engine = await WebGLEngine.create({
-      canvas,
-      graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 }
-    });
-    expect((webgl1Engine as any)._hardwareRenderer.isWebGL2).toBe(false);
-
-    const scene = new Scene(webgl1Engine);
-    webgl1Engine.sceneManager.activeScene = scene;
-    const cam = scene.createRootEntity("Cam").addComponent(Camera);
-    cam.enablePostProcess = true;
-
-    const variants = collectSeedWorldRendererVariants(webgl1Engine, scene, cam, [], {
-      postProcessState: {
-        enabled: true,
-        bloom: false,
-        bloomHighQuality: false,
-        bloomDirt: false,
-        colorAdjustments: false,
-        sunLensFlare: true,
-        tonemappingMode: 1
-      }
-    });
-    const flareVariants = variants.filter(
-      (v) => v.shader === "PostProcess/SunLensFlare" || v.shader === "PostProcess/SunLensFlareVisibility"
-    );
-    expect(flareVariants.some((v) => v.shader === "PostProcess/SunLensFlare")).toBe(true);
-    expect(flareVariants.some((v) => v.shader === "PostProcess/SunLensFlareVisibility")).toBe(false);
-
-    const report = await warmupSeedWorldShaderVariants(webgl1Engine, flareVariants);
-    expect(report.issues).toEqual([]);
-    expect(report.compiled).toBeGreaterThan(0);
-
-    // Control (WebGL2): both PostProcess/SunLensFlare and PostProcess/SunLensFlareVisibility (empty macros) are collected and warm up cleanly.
+  it("collects and warms up SunLensFlare and SunLensFlareVisibility variants cleanly", async () => {
     const webgl2Scene = new Scene(engine);
     engine.sceneManager.activeScene = webgl2Scene;
     const webgl2Cam = webgl2Scene.createRootEntity("WebGL2Cam").addComponent(Camera);
@@ -522,8 +486,5 @@ describe("SunLensFlareEffect GPU rendering", () => {
     );
     expect(webgl2Report.issues).toEqual([]);
     webgl2Scene.destroy();
-
-    scene.destroy();
-    webgl1Engine.destroy();
   });
 });

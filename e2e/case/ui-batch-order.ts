@@ -79,7 +79,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 });
 
 function createSolidTexture(engine: WebGLEngine, w: number, h: number, rgba: number[]): Texture2D {
-  const tex = new Texture2D(engine, w, h, TextureFormat.R8G8B8A8, false);
+  const tex = new Texture2D(engine, w, h, TextureFormat.R8G8B8A8_UNorm, false);
   const data = new Uint8Array(w * h * 4);
   for (let i = 0; i < w * h; i++) {
     data[i * 4] = rgba[0];

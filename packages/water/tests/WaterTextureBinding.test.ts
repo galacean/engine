@@ -115,9 +115,9 @@ it.each(["lake", "river", "ocean"] as const)(
     try {
       expect(f.renderMaterials().length).toBeGreaterThan(0);
       for (const [index, slot] of WATER_MATERIAL_TEXTURE_SLOTS[profile].entries()) {
-        const a = new Texture2D(f.engine, 4, 4, TextureFormat.R8G8B8A8, false, slot.isSRGBColorSpace);
+        const a = new Texture2D(f.engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false, slot.isSRGBColorSpace);
         a.setPixelBuffer(new Uint8Array(64).fill(128));
-        const b = new Texture2D(f.engine, 8, 4, TextureFormat.R8G8B8A8, false, slot.isSRGBColorSpace);
+        const b = new Texture2D(f.engine, 8, 4, TextureFormat.R8G8B8A8_UNorm, false, slot.isSRGBColorSpace);
         b.setPixelBuffer(new Uint8Array(128).fill(64));
         const property = boundSlot(profile, index);
         for (const texture of [a, b, null]) {
@@ -267,7 +267,7 @@ it.each(["lake", "river", "ocean"] as const)(
         return pixels;
       };
       for (const slot of WATER_MATERIAL_TEXTURE_SLOTS[profile]) {
-        const texture = new Texture2D(f.engine, 4, 4, TextureFormat.R8G8B8A8, false, slot.isSRGBColorSpace);
+        const texture = new Texture2D(f.engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false, slot.isSRGBColorSpace);
         const flat = slot.group === "normal" ? [128, 128, 255, 255] : [0, 0, 0, 255];
         const changed = slot.group === "normal" ? [245, 90, 160, 255] : [255, 255, 255, 255];
         texture.setPixelBuffer(new Uint8Array(Array.from({ length: 16 }, () => flat).flat()));

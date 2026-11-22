@@ -102,7 +102,7 @@ export function getOrCreateTerrainHeightTexture(engine: Engine, grid: Constructi
     cached.texture.destroy();
   }
   const n = grid.resolution;
-  const texture = new Texture2D(engine, n, n, TextureFormat.R8G8, false, false);
+  const texture = new Texture2D(engine, n, n, TextureFormat.R8G8_UNorm, false, false);
   texture.filterMode = TextureFilterMode.Point;
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
   let bytes: Uint8Array;

@@ -26,8 +26,6 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private static _powerProp = ShaderProperty.getByName("material_power");
   private static _invProjScaleXYProp = ShaderProperty.getByName("material_invProjScaleXY");
 
-  readonly isSupported: boolean;
-
   // Shader properties for bilateral blur
   private static _farPlaneOverEdgeDistanceProp = ShaderProperty.getByName("material_farPlaneOverEdgeDistance");
   private static _kernelProp = ShaderProperty.getByName("material_kernel");
@@ -52,7 +50,6 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const material = new Material(engine, shader);
     material._addReferCount(1);
     this._material = material;
-    this.isSupported = this.engine._hardwareRenderer.capability.isFragmentHighPrecision;
   }
 
   onConfig(camera: Camera, depthRenderTarget: RenderTarget): void {
@@ -61,7 +58,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
     this._depthRenderTarget = depthRenderTarget;
 
-    const format = TextureFormat.R8G8B8;
+    const format = TextureFormat.R8G8B8_UNorm;
 
     this._saoRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       engine,

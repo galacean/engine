@@ -11,8 +11,7 @@ import {
   PBRMaterial,
   RenderFace,
   Vector3,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import { createPlantGeometryExample, type PlantExampleKind } from "./ProceduralPlantExamples";
@@ -59,7 +58,7 @@ export async function bootProceduralPlantPreview(): Promise<void> {
     <output></output><p>拖动旋转，滚轮缩放。示例用于验证共用生成能力，尚未替换现有物种。</p>
     <a href="?">返回资产预览</a>`;
   document.body.append(panel);
-  const engine = await WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 } });
+  const engine = await WebGLEngine.create({ canvas: "canvas" });
   engine.canvas.setAutoResolution();
   const scene = engine.sceneManager.activeScene!;
   scene.background.solidColor.set(0.055, 0.07, 0.08, 1);

@@ -485,7 +485,7 @@ type MutableTerrainIBLBakePerformanceSnapshot = {
 interface WebGL2EngineInternals {
   readonly _hardwareRenderer: {
     readonly gl: WebGL2RenderingContext;
-    readonly isWebGL2: boolean;
+    readonly supportsRendering: boolean;
   };
 }
 
@@ -734,7 +734,7 @@ export class TerrainLightingRuntime {
     });
     this._moonLightIntensityCurve = createConstantDayNightCurve(this._moonLighting.options.fullMoonIntensity);
     const hardwareRenderer = (scene.engine as unknown as WebGL2EngineInternals)._hardwareRenderer;
-    if (!hardwareRenderer.isWebGL2) {
+    if (!hardwareRenderer.supportsRendering) {
       throw new Error("Terrain realtime IBL profiling requires WebGL2");
     }
     // GPU timer queries are a diagnostic cost, so production scenes opt in only while profiling.

@@ -504,10 +504,15 @@ export class SoilRenderBatches {
       coverage = this.texture(
         layout.columns * SOIL_COVERAGE_SIDE,
         layout.rows * SOIL_COVERAGE_SIDE,
-        TextureFormat.R8G8,
+        TextureFormat.R8G8_UNorm,
         TextureFilterMode.Bilinear
       );
-      states = this.texture(layout.columns * 3, layout.rows, TextureFormat.R32G32B32A32, TextureFilterMode.Point);
+      states = this.texture(
+        layout.columns * 3,
+        layout.rows,
+        TextureFormat.R32G32B32A32_SFloat,
+        TextureFilterMode.Point
+      );
       for (let i = 0; i < plotList.length; i++) {
         const plot = plotList[i];
         pixels.set(plot.state, plot.slot * stateSize);

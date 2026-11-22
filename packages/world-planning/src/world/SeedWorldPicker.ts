@@ -192,7 +192,7 @@ export class SeedWorldPicker {
           camera.engine,
           Shader.find("SeedWorld/InteractionDepthPack") ?? Shader.create(interactionDepthSource)
         );
-        this.interactionTexture = new Texture2D(camera.engine, 16, 1, TextureFormat.R8G8B8A8, false, false);
+        this.interactionTexture = new Texture2D(camera.engine, 16, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
         this.interactionTarget = new RenderTarget(camera.engine, 16, 1, this.interactionTexture);
         this.interactionCamera = camera.scene!.createRootEntity("Visual interaction depth").addComponent(Camera);
         this.interactionCamera.enabled = false;
@@ -510,7 +510,7 @@ export class SeedWorldPicker {
               2 ** (identityBits - 24)
             )
           );
-          packed = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false, false);
+          packed = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, false);
           packed.filterMode = TextureFilterMode.Point;
           packed.wrapModeU = packed.wrapModeV = TextureWrapMode.Clamp;
           packedTarget = new RenderTarget(engine, width, height, packed, null, 1);
@@ -693,7 +693,7 @@ export class SeedWorldPicker {
   private resize(width: number, height: number): void {
     if (this.target?.width === width && this.target.height === height) return;
     this.releaseTarget();
-    const texture = new Texture2D(this.camera.engine, width, height, TextureFormat.R8G8B8A8, false, false);
+    const texture = new Texture2D(this.camera.engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, false);
     let depth: Texture2D | undefined;
     try {
       depth = new Texture2D(this.camera.engine, width, height, TextureFormat.Depth24Stencil8, false);

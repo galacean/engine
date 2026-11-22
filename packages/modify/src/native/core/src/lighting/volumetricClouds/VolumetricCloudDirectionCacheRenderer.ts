@@ -46,7 +46,7 @@ export class VolumetricCloudDirectionCacheRenderer {
   private _displayTarget: RenderTarget | null = null;
   private _workingTarget: RenderTarget | null = null;
   private _cacheSize = 0;
-  private _cacheFormat = TextureFormat.R8G8B8A8;
+  private _cacheFormat = TextureFormat.R8G8B8A8_UNorm;
   private _updateFrame = 0;
   private _jitterCycle = 0;
   private _lastEngineFrame = -1;
@@ -119,7 +119,7 @@ export class VolumetricCloudDirectionCacheRenderer {
       displayMotion,
       texelSize,
       revision: this._displayRevision,
-      compression: this._cacheFormat === TextureFormat.R8G8B8A8 ? 1 : 0,
+      compression: this._cacheFormat === TextureFormat.R8G8B8A8_UNorm ? 1 : 0,
       release: () => {
         if (released) return;
         released = true;
@@ -255,7 +255,7 @@ export class VolumetricCloudDirectionCacheRenderer {
     data.setTexture("material_DirectionHistoryMetadata", this._displayTarget!.getColorTexture(1));
     data.setVector4("material_HistoryTexelSize", this._historyTexelSize);
     data.setVector3("material_DirectionDisplayMotion", this._displayMotion);
-    data.setFloat("material_CacheHDRCompression", this._cacheFormat === TextureFormat.R8G8B8A8 ? 1 : 0);
+    data.setFloat("material_CacheHDRCompression", this._cacheFormat === TextureFormat.R8G8B8A8_UNorm ? 1 : 0);
     data.setFloat("material_DirectionCacheReady", this.ready ? 1 : 0);
   }
 
@@ -280,7 +280,7 @@ export class VolumetricCloudDirectionCacheRenderer {
     texture.isGCIgnored = true;
     texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
     texture.filterMode = TextureFilterMode.Bilinear;
-    const metadata = new Texture2D(this._engine, width, height, TextureFormat.R8, false, false);
+    const metadata = new Texture2D(this._engine, width, height, TextureFormat.R8_UNorm, false, false);
     metadata.name = `${name}_weighted_center`;
     metadata.isGCIgnored = true;
     metadata.wrapModeU = metadata.wrapModeV = TextureWrapMode.Clamp;
@@ -320,13 +320,11 @@ export class VolumetricCloudDirectionCacheRenderer {
   }
 
   private _selectCacheFormat(requestHDR: boolean): TextureFormat {
-    if (!requestHDR) return TextureFormat.R8G8B8A8;
+    if (!requestHDR) return TextureFormat.R8G8B8A8_UNorm;
     const rhi = this._engine._hardwareRenderer;
-    return rhi.canIUse(GLCapabilityType.textureHalfFloat) &&
-      rhi.canIUse(GLCapabilityType.textureHalfFloatLinear) &&
-      rhi.canIUse(GLCapabilityType.colorBufferHalfFloat)
-      ? TextureFormat.R16G16B16A16
-      : TextureFormat.R8G8B8A8;
+    return rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)
+      ? TextureFormat.R16G16B16A16_SFloat
+      : TextureFormat.R8G8B8A8_UNorm;
   }
 
   private _renderDirectionUpdate(
@@ -366,7 +364,7 @@ export class VolumetricCloudDirectionCacheRenderer {
     data.setFloat("material_MaxSteps", preset.directionCacheSteps);
     data.setFloat("material_HorizonStepMultiplier", preset.directionHorizonStepMultiplier);
     data.setFloat("material_HorizonFadeStart", preset.directionHorizonFadeStart);
-    data.setFloat("material_CacheHDRCompression", this._cacheFormat === TextureFormat.R8G8B8A8 ? 1 : 0);
+    data.setFloat("material_CacheHDRCompression", this._cacheFormat === TextureFormat.R8G8B8A8_UNorm ? 1 : 0);
     data.setFloat("material_FrameJitter", radicalInverseBase3(this._jitterCycle + 1));
     data.setFloat("material_Time", this._sweepCloudTime);
     data.setVector3("material_WindOffsetWS", this._sweepCloudWindOffsetWS);

@@ -17,7 +17,6 @@ import {
   Vector2,
   Vector3,
   WebGLEngine,
-  WebGLMode,
   type Entity,
   type ModelMesh
 } from "@galacean/engine";
@@ -177,8 +176,7 @@ export class WorldPlanning3DView {
   private async initialize(): Promise<void> {
     this.engine = await WebGLEngine.create({
       canvas: this.canvas,
-      shaderCompiler: new ShaderCompiler(),
-      graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
+      shaderCompiler: new ShaderCompiler()
     });
     const scene = this.engine.sceneManager.activeScene!;
     scene.background.solidColor.set(...planningColor(PLANNING_OBJECT_CSS.ocean), 1);
@@ -354,7 +352,7 @@ export class WorldPlanning3DView {
         map = plan.poiDistribution ? untexturedSurface : planningAlphamap(plan, true);
       let texture = this.surfaceTexture;
       if (!texture || map !== this.surfaceMap) {
-        texture = new Texture2D(this.engine, map.resolution, map.resolution, TextureFormat.R8G8B8A8, true, false);
+        texture = new Texture2D(this.engine, map.resolution, map.resolution, TextureFormat.R8G8B8A8_UNorm, true, false);
         texture.filterMode = TextureFilterMode.Trilinear;
         texture.anisoLevel = 8;
         texture.setPixelBuffer(map.sdf);

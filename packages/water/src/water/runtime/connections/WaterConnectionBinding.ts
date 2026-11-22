@@ -52,7 +52,14 @@ export function createWaterConnectionBinding(
     bounds.set(p.coverageBounds, i * 4);
     fields.set([...p.shoreField.origin, 1 / p.shoreField.spacing, 0], i * 4);
   });
-  const texture = new Texture2D(engine, size, size * MAX_WATER_CONNECTION_PORTS, TextureFormat.R8G8B8A8, false, false);
+  const texture = new Texture2D(
+    engine,
+    size,
+    size * MAX_WATER_CONNECTION_PORTS,
+    TextureFormat.R8G8B8A8_UNorm,
+    false,
+    false
+  );
   try {
     texture.setPixelBuffer(createPixels());
     registerWaterContentRestorer(engine, texture, () => texture.setPixelBuffer(createPixels()));

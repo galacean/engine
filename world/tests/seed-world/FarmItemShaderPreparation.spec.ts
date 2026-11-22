@@ -8,7 +8,6 @@ function fixture(options: {
   ssrOverride?: { enabled?: boolean; intensity?: number; maxRoughness?: number } | null;
   ssrIntensity?: number;
   contributeSSRDepth?: boolean;
-  isWebGL2?: boolean;
   maxDrawBuffers?: number;
 } = {}) {
   const calls: { stage: string; macros: string[]; deferred: boolean }[] = [];
@@ -78,7 +77,7 @@ function fixture(options: {
     _macroCollection: { _length: 0 },
     _hardwareRenderer: {
       canIUse: () => false,
-      isWebGL2: options.isWebGL2 ?? false,
+      supportsRendering: true,
       capability: { maxDrawBuffers: options.maxDrawBuffers ?? 1 }
     },
     _renderContext: {}
@@ -112,7 +111,6 @@ describe("farm item program readiness", () => {
       cameraEnableSSR: true,
       ssrIntensity: 1,
       contributeSSRDepth: true,
-      isWebGL2: true,
       maxDrawBuffers: 2
     });
     await preparePlantShaderPrograms(enabled.engine as any, enabled.root as any, async (work) => work(), false, {
@@ -131,7 +129,6 @@ describe("farm item program readiness", () => {
       ssrOverride: { enabled: false, intensity: 1, maxRoughness: 0.6 },
       ssrIntensity: 1,
       contributeSSRDepth: true,
-      isWebGL2: true,
       maxDrawBuffers: 2
     });
     await preparePlantShaderPrograms(overrideOff.engine as any, overrideOff.root as any, async (work) => work(), false, {

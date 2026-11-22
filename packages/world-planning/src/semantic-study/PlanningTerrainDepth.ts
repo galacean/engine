@@ -70,7 +70,7 @@ export class PlanningTerrainDepth {
     if (!this.target || this.target.width !== width || this.target.height !== height) {
       this.target?.destroy();
       this.texture?.destroy();
-      this.texture = new Texture2D(this.engine, width, height, TextureFormat.R8G8B8A8, false, false);
+      this.texture = new Texture2D(this.engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, false);
       this.target = new RenderTarget(this.engine, width, height, this.texture, TextureFormat.Depth, 1);
       this.camera.renderTarget = this.target;
       this.pixels = new Uint8Array(width * height * 4);

@@ -3,7 +3,7 @@ import { restoreResource } from "@galacean/engine-modify/rendering/RestorableRes
 import type { ConstructionLodAppearance } from "./ConstructionLodAppearance";
 /** View-owned derived texture; retained bytes also restore a lost GL context. */
 export function createConstructionLodTexture(engine: Engine, appearance: ConstructionLodAppearance) {
-  const texture = new Texture2D(engine, appearance.width, appearance.height, TextureFormat.R8G8, true);
+  const texture = new Texture2D(engine, appearance.width, appearance.height, TextureFormat.R8G8_UNorm, true);
   try {
     const upload = () => {
       texture.setPixelBuffer(appearance.pixels);

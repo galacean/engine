@@ -19,14 +19,12 @@ import {
   ParticleRenderMode,
   ParticleSimulationSpace,
   Script,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({
-  canvas: "canvas",
-  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
+  canvas: "canvas"
 }).then((engine) => {
   const scene = engine.sceneManager.activeScene;
   scene.background.solidColor = new Color(0.01, 0.01, 0.015, 1);

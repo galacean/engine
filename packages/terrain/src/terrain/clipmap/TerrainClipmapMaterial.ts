@@ -251,7 +251,7 @@ export function createTerrainClipmapMaterialBinding(
       "Terrain height residency atlas",
       heightPacking.width,
       heightPacking.height,
-      TextureFormat.R8G8,
+      TextureFormat.R8G8_UNorm,
       heightPacking.pixels
     );
     normalAtlas = createAtlasTexture(
@@ -259,7 +259,7 @@ export function createTerrainClipmapMaterialBinding(
       "Terrain normal residency atlas",
       heightPacking.width,
       heightPacking.height,
-      TextureFormat.R8G8,
+      TextureFormat.R8G8_UNorm,
       normalPixels,
       TextureFilterMode.Bilinear
     );
@@ -268,7 +268,7 @@ export function createTerrainClipmapMaterialBinding(
       "Terrain puddle hydrology atlas",
       puddleHydrology.width,
       puddleHydrology.height,
-      TextureFormat.R8G8,
+      TextureFormat.R8G8_UNorm,
       puddleHydrology.pixels,
       TextureFilterMode.Bilinear
     );
@@ -647,7 +647,7 @@ export function createTerrainClipmapMaterialBinding(
         "Terrain puddle hydrology atlas",
         nextHydrology.width,
         nextHydrology.height,
-        TextureFormat.R8G8,
+        TextureFormat.R8G8_UNorm,
         nextHydrology.pixels,
         TextureFilterMode.Bilinear
       );
@@ -809,7 +809,7 @@ export function createTerrainClipmapMaterialBinding(
         "Prepared Terrain normals",
         nextPacking.width,
         nextPacking.height,
-        TextureFormat.R8G8,
+        TextureFormat.R8G8_UNorm,
         nextNormals,
         TextureFilterMode.Bilinear
       );
@@ -820,7 +820,7 @@ export function createTerrainClipmapMaterialBinding(
           "Prepared Terrain puddles",
           nextHydrology.width,
           nextHydrology.height,
-          TextureFormat.R8G8,
+          TextureFormat.R8G8_UNorm,
           nextHydrology.pixels,
           TextureFilterMode.Bilinear
         );
@@ -1060,7 +1060,7 @@ function createTerrainLayerResidencyBackend(
         "Terrain alphamap residency atlas",
         width,
         height,
-        TextureFormat.R8G8B8A8,
+        TextureFormat.R8G8B8A8_UNorm,
         pixels,
         linearFiltering ? TextureFilterMode.Bilinear : TextureFilterMode.Point
       );
@@ -1147,7 +1147,7 @@ function createMetadataTexture(
   height: number,
   pixels: Float32Array
 ): Texture2D {
-  return createAtlasTexture(engine, name, width, height, TextureFormat.R32G32B32A32, pixels);
+  return createAtlasTexture(engine, name, width, height, TextureFormat.R32G32B32A32_SFloat, pixels);
 }
 
 function createLayerTextureArray(
@@ -1176,7 +1176,7 @@ function createLayerTextureArray(
   for (let index = 0; index < sources.length; index++) {
     const source = sources[index];
     if (!source) continue;
-    if (source.format !== TextureFormat.R8G8B8A8 || source.isSRGBColorSpace !== isSRGBColorSpace) {
+    if (source.format !== TextureFormat.R8G8B8A8_UNorm || source.isSRGBColorSpace !== isSRGBColorSpace) {
       throw unsupportedLayerTexture(
         `Terrain ${kind} texture array requires RGBA8 textures in one color space; layer ${index} is ${source.width}x${source.height} ${TextureFormat[source.format]}`
       );
@@ -1216,7 +1216,7 @@ function createLayerTextureArray(
     width,
     height,
     physicalLayerCount,
-    TextureFormat.R8G8B8A8,
+    TextureFormat.R8G8B8A8_UNorm,
     true,
     isSRGBColorSpace
   );

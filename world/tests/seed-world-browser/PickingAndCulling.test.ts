@@ -9,8 +9,7 @@ import {
   TextureFormat,
   UnlitMaterial,
   Vector3,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { createBuildingDistanceView } from "../../../packages/building/src/building/runtime/BuildingDistanceView";
@@ -41,28 +40,19 @@ async function createEngine(size = 96) {
 
 it("reports the available color outputs through the public hardware contract", async () => {
   const nullDevice = new NullGraphicDevice();
-  expect(nullDevice.isWebGL2).toBe(false);
+  expect(nullDevice.supportsRendering).toBe(false);
   expect(nullDevice.capability.maxDrawBuffers).toBe(0);
-  for (const mode of [WebGLMode.WebGL1, WebGLMode.WebGL2]) {
-    const engine = await WebGLEngine.create({
-      canvas: document.createElement("canvas"),
-      graphicDeviceOptions: { webGLMode: mode }
-    });
-    try {
-      const hardware = engine._hardwareRenderer;
-      const webGL2 = mode === WebGLMode.WebGL2;
-      const gl = hardware.gl;
-      const extension = webGL2 ? null : gl.getExtension("WEBGL_draw_buffers");
-      const maxDrawBuffers = webGL2
-        ? gl.getParameter((gl as WebGL2RenderingContext).MAX_DRAW_BUFFERS)
-        : extension
-          ? gl.getParameter(extension.MAX_DRAW_BUFFERS_WEBGL)
-          : 1;
-      expect(hardware.isWebGL2).toBe(webGL2);
-      expect(hardware.capability.maxDrawBuffers).toBe(maxDrawBuffers);
-    } finally {
-      engine.destroy();
-    }
+  const engine = await WebGLEngine.create({
+    canvas: document.createElement("canvas")
+  });
+  try {
+    const hardware = engine._hardwareRenderer;
+    const gl = hardware.gl;
+    const maxDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS);
+    expect(hardware.supportsRendering).toBe(true);
+    expect(hardware.capability.maxDrawBuffers).toBe(maxDrawBuffers);
+  } finally {
+    engine.destroy();
   }
 });
 
@@ -197,7 +187,7 @@ it("keeps the second camera's ocean when the reflection camera excludes its laye
     };
     const source = cameraAt("Reflection camera", 0);
     const observer = cameraAt("Observer camera", 1);
-    const texture = new Texture2D(engine, 96, 96, TextureFormat.R8G8B8A8, false);
+    const texture = new Texture2D(engine, 96, 96, TextureFormat.R8G8B8A8_UNorm, false);
     const target = new RenderTarget(engine, 96, 96, texture);
     observer.renderTarget = target;
     const sync = source.entity.addComponent(WaterReflectionPreRenderSynchronizer);

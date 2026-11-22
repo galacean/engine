@@ -102,8 +102,6 @@ describe("ShaderMacroCollection", async () => {
   });
 
   it("keeps MeshRenderer WebGL2 instanced batching intact after enabling and disabling a high-word macro", () => {
-    if (!(engine as any)._hardwareRenderer.isWebGL2) return;
-
     const scene = engine.sceneManager.activeScene;
     const root = scene.createRootEntity("macro-batch-root");
     const camEntity = root.createChild("cam");

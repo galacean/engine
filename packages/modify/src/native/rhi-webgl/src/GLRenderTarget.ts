@@ -1,6 +1,5 @@
 import {
   CameraClearFlags,
-  GLCapabilityType,
   IPlatformRenderTarget,
   RenderTarget,
   Texture,
@@ -16,8 +15,7 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
   private _rhi: WebGLGraphicDevice;
-  private _gl: WebGLRenderingContext & WebGL2RenderingContext;
-  private _isWebGL2: boolean;
+  private _gl: WebGL2RenderingContext;
   private _target: RenderTarget;
   private _frameBuffer: WebGLFramebuffer | null;
   private _MSAAFrameBuffer: WebGLFramebuffer | null;
@@ -38,14 +36,12 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    */
   constructor(rhi: WebGLGraphicDevice, target: RenderTarget) {
     this._rhi = rhi;
-    this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
-    this._isWebGL2 = rhi.isWebGL2;
+    this._gl = rhi.gl;
     this._target = target;
     this._antiAliasing = Math.min(target.antiAliasing, rhi.capability.maxAntiAliasing);
 
     /** @ts-ignore */
     const { _colorTextures, _depth, width, height } = target;
-    const isDepthTexture = _depth instanceof Texture;
 
     /** todo
      * MRT + Cube + [,MSAA]
@@ -57,24 +53,16 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       if (!rhi.supportsRenderTargetColorFormat(format)) {
         throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
       }
-      if (isSRGBColorSpace && format === TextureFormat.R8G8B8) {
-        throw new Error(`If you want to use sRGB color space, only R8G8B8A8 format is supported in RenderTarget`);
+      if (isSRGBColorSpace && format === TextureFormat.R8G8B8_UNorm) {
+        throw new Error(`If you want to use sRGB color space, only R8G8B8A8_UNorm format is supported in RenderTarget`);
       }
-    }
-
-    if (!isDepthTexture && _depth !== null && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi)) {
-      throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
-    }
-
-    if (_colorTextures.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
-      throw new Error("MRT is not supported");
     }
 
     if (_colorTextures.some((v: Texture) => v.width !== width || v.height !== height)) {
       throw new Error("ColorTexture's size must as same as RenderTarget");
     }
 
-    if (isDepthTexture && (_depth.width !== width || _depth.height !== height)) {
+    if (_depth instanceof Texture && (_depth.width !== width || _depth.height !== height)) {
       throw new Error("DepthTexture's size must as same as RenderTarget");
     }
 
@@ -94,9 +82,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       this._bindMSAAFBO();
     }
 
-    if (this._isWebGL2) {
-      this._initInvalidateAttachments();
-    }
+    this._initInvalidateAttachments();
   }
 
   /**
@@ -178,7 +164,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     } else if (this._depthRenderBuffer) {
       if (mipChanged) {
         // @ts-ignore
-        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl, this._isWebGL2);
+        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
         gl.renderbufferStorage(
           gl.RENDERBUFFER,
@@ -224,7 +210,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       this._blitDrawBuffers![textureIndex] = gl.NONE;
     }
 
-    if (discardMSAA && this._isWebGL2) {
+    if (discardMSAA) {
       this.invalidateRenderTarget(CameraClearFlags.All, gl.READ_FRAMEBUFFER);
     }
 
@@ -248,7 +234,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    * Invalidate currently bound framebuffer attachments on WebGL2 to skip unnecessary TBDR tile LOAD/STORE.
    */
   invalidateRenderTarget(clearFlags: CameraClearFlags, target: GLenum = this._gl.FRAMEBUFFER): void {
-    if (!this._isWebGL2 || clearFlags === CameraClearFlags.None) {
+    if (clearFlags === CameraClearFlags.None) {
       return;
     }
     const attachments = this._invalidateAttachments[clearFlags & CameraClearFlags.All];
@@ -301,7 +287,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _bindMainFBO(): void {
     const gl = this._gl;
-    const isWebGL2: boolean = this._isWebGL2;
 
     const { _depth, colorTextureCount, width, height } = this._target;
     const drawBuffers = new Array(colorTextureCount);
@@ -345,7 +330,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           );
         }
       } else if (this._antiAliasing <= 1) {
-        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
+        const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl);
         this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
       }
     }
@@ -356,7 +341,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
   private _bindMSAAFBO(): void {
     const gl = this._gl;
-    const isWebGL2 = this._isWebGL2;
 
     const { _depth, colorTextureCount } = this._target;
 
@@ -380,7 +364,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       const { internalFormat, attachment } =
         _depth instanceof Texture
           ? (_depth._platformTexture as GLTexture)._formatDetail
-          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
+          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl);
 
       this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
     }
@@ -467,7 +451,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           );
         }
         break;
-      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
+      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
         throw new Error(
           "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
         );

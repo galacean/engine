@@ -36,7 +36,7 @@ vi.mock("@galacean/engine", async (original) => {
       }
       setPixelBuffer(pixels: ArrayBufferView, mip = 0, x = 0, y = 0, width = this.width, height = this.height) {
         const channels =
-          this.format === actual.TextureFormat.R8G8 ? 2 : this.format === actual.TextureFormat.R8 ? 1 : 4;
+          this.format === actual.TextureFormat.R8G8_UNorm ? 2 : this.format === actual.TextureFormat.R8_UNorm ? 1 : 4;
         if (!this.pixels.length) this.pixels = new Uint8Array(this.width * this.height * channels);
         const input = new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength);
         for (let row = 0; row < height; row++)

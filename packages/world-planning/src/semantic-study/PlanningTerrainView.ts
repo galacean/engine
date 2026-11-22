@@ -58,7 +58,7 @@ export class PlanningTerrainView {
     this.vegetation = new PlanningVegetationPreview(engine, material);
     this.root = parent.createChild("Planning Terrain (production Clipmap)");
     const size = presentation.gridPixelsPerCell * presentation.gridMajorEvery;
-    this.grid = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8, true, true);
+    this.grid = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8_UNorm, true, true);
     this.grid.wrapModeU = this.grid.wrapModeV = TextureWrapMode.Repeat;
     const pixels = new Uint8Array(size * size * 4);
     for (let z = 0; z < size; z++)

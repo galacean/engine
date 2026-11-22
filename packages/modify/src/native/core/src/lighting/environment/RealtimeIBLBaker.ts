@@ -264,9 +264,6 @@ export class RealtimeIBLBaker {
     validateOptions(resolution, sampleCount);
 
     const engine = (this._engine = scene.engine);
-    if (!engine._hardwareRenderer.isWebGL2) {
-      throw new Error("RealtimeIBLBaker requires WebGL2 cubemap mip rendering.");
-    }
     this._sourceScene = scene;
     this.resolution = resolution;
     this.sampleCount = sampleCount;
@@ -983,7 +980,7 @@ function createCubemap(
   mipmap: boolean,
   filterMode: TextureFilterMode
 ): TextureCube {
-  const texture = new TextureCube(engine, resolution, TextureFormat.R16G16B16A16, mipmap, false);
+  const texture = new TextureCube(engine, resolution, TextureFormat.R16G16B16A16_SFloat, mipmap, false);
   texture.filterMode = filterMode;
   return texture;
 }

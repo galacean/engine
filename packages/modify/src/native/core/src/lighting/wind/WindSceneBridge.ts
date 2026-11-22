@@ -327,7 +327,7 @@ export class WindSceneBridge {
       engine,
       spectrumSize,
       spectrumSize,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       false,
       false,
       TextureUsage.Static
@@ -361,7 +361,7 @@ export class WindSceneBridge {
       engine,
       localResolution,
       localResolution,
-      TextureFormat.R16G16B16A16,
+      TextureFormat.R16G16B16A16_SFloat,
       false,
       false,
       TextureUsage.Dynamic
@@ -378,7 +378,7 @@ export class WindSceneBridge {
       engine,
       localResolution,
       localResolution,
-      TextureFormat.R16G16B16A16,
+      TextureFormat.R16G16B16A16_SFloat,
       false,
       false,
       TextureUsage.Dynamic
@@ -393,7 +393,7 @@ export class WindSceneBridge {
       engine,
       localResolution,
       localResolution,
-      TextureFormat.R8,
+      TextureFormat.R8_UNorm,
       false,
       false,
       TextureUsage.Dynamic
@@ -408,7 +408,7 @@ export class WindSceneBridge {
       engine,
       localResolution,
       localResolution,
-      TextureFormat.R8,
+      TextureFormat.R8_UNorm,
       false,
       false,
       TextureUsage.Dynamic
@@ -423,7 +423,7 @@ export class WindSceneBridge {
       engine,
       localResolution,
       localResolution,
-      TextureFormat.R16G16B16A16,
+      TextureFormat.R16G16B16A16_SFloat,
       false,
       false,
       TextureUsage.Dynamic
@@ -437,7 +437,7 @@ export class WindSceneBridge {
       engine,
       localResolution,
       localResolution,
-      TextureFormat.R16G16B16A16,
+      TextureFormat.R16G16B16A16_SFloat,
       false,
       false,
       TextureUsage.Dynamic
@@ -465,7 +465,7 @@ export class WindSceneBridge {
       engine,
       1,
       1,
-      TextureFormat.R16G16B16A16,
+      TextureFormat.R16G16B16A16_SFloat,
       false,
       false,
       TextureUsage.Static

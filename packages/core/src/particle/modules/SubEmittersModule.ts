@@ -23,7 +23,7 @@ export type ParticleSubEmitterCommand = BirthSubEmitterCommand | DeathSubEmitter
  * @remarks
  * Birth uses the target's emission settings on each parent particle's simulated age.
  * The target's `simulationSpeed` affects only spawned particles.
- * Requires WebGL2. Birth does not support Rate over Distance.
+ * Birth does not support Rate over Distance.
  */
 export class SubEmittersModule extends ParticleGeneratorModule implements ICloneHook<SubEmittersModule> {
   private static readonly _cycleVisited = new Set<ParticleGenerator>();
@@ -54,7 +54,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   private _particleSequence = 0;
 
   override get enabled(): boolean {
-    return this._enabled && this._generator._renderer.engine._hardwareRenderer.isWebGL2;
+    return this._enabled;
   }
 
   override set enabled(value: boolean) {

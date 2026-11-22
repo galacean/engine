@@ -410,7 +410,7 @@ export class SeedWorldPanoramaVistaRuntime {
   }
 
   private _createPanoramaTexture(engine: Engine, width: number, height: number, pixels: Uint8Array): Texture2D {
-    const texture = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, true, false);
+    const texture = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8_UNorm, true, false);
     texture.wrapModeU = TextureWrapMode.Repeat;
     texture.wrapModeV = TextureWrapMode.Clamp;
     texture.filterMode = TextureFilterMode.Trilinear;

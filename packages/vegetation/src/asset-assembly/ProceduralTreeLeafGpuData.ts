@@ -63,7 +63,7 @@ export class ProceduralTreeLeafGpuData {
     }
     this._pixels = new Float32Array(width * height * 4);
     frames.forEach((frame, index) => writeFrame(this._pixels, index * LEAF_FRAME_FLOATS, frame));
-    const texture = new Texture2D(engine, width, height, TextureFormat.R32G32B32A32, false, false);
+    const texture = new Texture2D(engine, width, height, TextureFormat.R32G32B32A32_SFloat, false, false);
     texture.name = `${label} procedural leaf GPU frames`;
     texture.filterMode = TextureFilterMode.Point;
     texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;

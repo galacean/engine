@@ -756,7 +756,7 @@ describe("startup shader publication boundary", () => {
     const holoAddMat = fakeMaterial("SeedWorld/HologramRainbowAdditive");
     const engine = {
       _macroCollection: new ShaderMacroCollection(),
-      _hardwareRenderer: { isWebGL2: true },
+      _hardwareRenderer: { supportsRendering: true },
       _basicResources: {},
       _getActivePostProcessPasses: () => [{ isActive: true, _bloomMaterial: bloomMat, _uberMaterial: uberMat }]
     } as any;
@@ -1052,8 +1052,8 @@ describe("startup shader publication boundary", () => {
       const engine = {
         _macroCollection: new ShaderMacroCollection(),
         _hardwareRenderer: {
-          isWebGL2: true,
-          capability: { maxFragmentTextureUnits: 16, maxDrawBuffers: 4, isFragmentHighPrecision: true },
+          supportsRendering: true,
+          capability: { maxFragmentTextureUnits: 16, maxDrawBuffers: 4 },
           canIUse: () => true,
           gl: { getExtension: () => ({}) }
         }

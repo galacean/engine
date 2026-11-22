@@ -100,7 +100,7 @@ export class TerrainTreeMechanicalGpuData {
       engine,
       transformWidth,
       transformHeight,
-      TextureFormat.R16G16B16A16,
+      TextureFormat.R16G16B16A16_SFloat,
       transformValues
     );
     engine.resourceManager.addContentRestorer(
@@ -110,7 +110,7 @@ export class TerrainTreeMechanicalGpuData {
       engine,
       dynamicsWidth,
       dynamicsHeight,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       dynamicsValues
     );
     engine.resourceManager.addContentRestorer(

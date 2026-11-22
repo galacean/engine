@@ -1,5 +1,5 @@
 import { destroyWaterOwnedMaterial } from "../resources/destroyWaterOwnedMaterial";
-import { Shader, ShaderPass } from "@galacean/engine-core";
+import { Shader, ShaderLanguage, ShaderPass } from "@galacean/engine-core";
 import type { Vector3 } from "@galacean/engine-math";
 import { createWaterConnectionBinding, type WaterConnectionBinding } from "../connections/WaterConnectionBinding";
 import type { WaterSurfaceSample } from "../query/WaterSurfaceProvider";
@@ -251,7 +251,7 @@ export class OceanWaterRuntimeController {
             source.name,
             source._vertexShaderInstructions,
             source._fragmentShaderInstructions,
-            source._platformTarget,
+            ShaderLanguage.GLSLES300,
             {
               pipelineStage: source.getTagValue("pipelineStage") ?? "Forward"
             }

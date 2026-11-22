@@ -94,7 +94,7 @@ function createDetailTexture(engine: Engine, source: SerializedTexture3DData): T
     source.width,
     source.height,
     source.depth,
-    TextureFormat.R8G8B8A8,
+    TextureFormat.R8G8B8A8_UNorm,
     true,
     false
   );

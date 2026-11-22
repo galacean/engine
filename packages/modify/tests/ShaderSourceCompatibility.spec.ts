@@ -27,7 +27,7 @@ describe("World shader compiler compatibility", () => {
       ],
       ShaderLanguage.GLSLES300
     );
-    const engine = { _hardwareRenderer: { isWebGL2: true, canIUse: () => false } } as unknown as Engine;
+    const engine = { _hardwareRenderer: { supportsRendering: true, canIUse: () => false } } as unknown as Engine;
     const result = pass["_compileShaderSource"](engine, new ShaderMacroCollection(), false).fragmentSource;
     expect(result).toContain("texture(map,uv)+textureLod(env,direction,0.0)");
     expect(result).toContain("layout(location=0) out highp uvec4 pick;");
@@ -47,7 +47,7 @@ describe("World shader compiler compatibility", () => {
     const cachedProgram = {};
     const map = { getBySource: vi.fn((_key: string) => cachedProgram) };
     const engine = {
-      _hardwareRenderer: { isWebGL2: true, canIUse: () => false },
+      _hardwareRenderer: { supportsRendering: true, canIUse: () => false },
       _getShaderProgramMap: () => map
     } as unknown as Engine;
     expect(pass._compileShaderProgram(engine, new ShaderMacroCollection())).toBe(cachedProgram);

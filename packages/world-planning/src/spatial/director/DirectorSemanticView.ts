@@ -194,7 +194,7 @@ export class DirectorSemanticView {
     delete this.canvas.dataset.semanticReport;
   }
   private makeTarget(width: number, height: number, depth: boolean): RenderTarget {
-    const color = new Texture2D(this.engine, width, height, TextureFormat.R8G8B8A8, false, false);
+    const color = new Texture2D(this.engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, false);
     color.filterMode = TextureFilterMode.Point;
     if (!depth) return new RenderTarget(this.engine, width, height, color, null, 1);
     const z = new Texture2D(this.engine, width, height, TextureFormat.Depth24, false, false);

@@ -1,7 +1,7 @@
-import { AssetType, Material, Shader, ShaderFactory, WebGLEngine } from "@galacean/engine";
+import { AssetType, Material, Shader, ShaderData, ShaderFactory, ShaderLanguage, WebGLEngine } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 let engine: WebGLEngine;
 let materialShaderName: string;
@@ -14,7 +14,7 @@ function registerShaderResource(shaderName: string, shaderPath = `MaterialLoader
   engine.resourceManager.registerVirtualResources([
     {
       virtualPath: shaderPath,
-      path: createBlobURL({ name: shaderName, platformTarget: 0, subShaders: [] }, "shader"),
+      path: createBlobURL({ name: shaderName, platformTarget: ShaderLanguage.GLSLES300, subShaders: [] }, "shader"),
       type: AssetType.Shader
     }
   ]);
@@ -28,7 +28,7 @@ function loadMaterial(data: unknown) {
 beforeAll(async () => {
   engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   materialShaderName = `MaterialLoaderTestShader-${Math.random()}`;
-  Shader._createFromPrecompiled({ name: materialShaderName, platformTarget: 0, subShaders: [] });
+  Shader._createFromPrecompiled({ name: materialShaderName, platformTarget: ShaderLanguage.GLSLES300, subShaders: [] });
 });
 
 afterAll(() => {
@@ -75,7 +75,7 @@ VertexShader = vert; FragmentShader = frag;
 
   it("caches precompiled shaders by resource URL even when their names match", async () => {
     const name = `ShaderLoaderDuplicate-${Math.random()}`;
-    const source = { name, platformTarget: 0, subShaders: [] };
+    const source = { name, platformTarget: ShaderLanguage.GLSLES300, subShaders: [] };
 
     const urls = [createBlobURL(source, "shader"), createBlobURL(source, "shader")];
     const shaders = await Promise.all(
@@ -176,7 +176,11 @@ describe("MaterialLoader", () => {
 
   it("binds each material to its explicit shader resource when names collide", async () => {
     const name = `MaterialLoaderNamesakes-${Math.random()}`;
-    const registered = Shader._createFromPrecompiled({ name, platformTarget: 0, subShaders: [] });
+    const registered = Shader._createFromPrecompiled({
+      name,
+      platformTarget: ShaderLanguage.GLSLES300,
+      subShaders: []
+    });
     const paths = [registerShaderResource(name, `${name}/first`), registerShaderResource(name, `${name}/second`)];
     const materials = await Promise.all(
       paths.map((url) =>
@@ -274,28 +278,49 @@ describe("MaterialLoader", () => {
     expect(engine.resourceManager.findResourcesByType(Material)).toHaveLength(materialCount);
   });
 
-  it("releases a partially initialized material when a property type conflicts", async () => {
-    const propertyName = `MaterialLoaderPropertyConflict-${Math.random()}`;
+  it("loads materials that reuse the same property name with different types", async () => {
+    const propertyName = `MaterialLoaderSharedProperty-${Math.random()}`;
     const original = await loadMaterial({
       name: "original-property-type",
       shader: materialShaderName,
       shaderData: { [propertyName]: { type: "Float", value: 1 } },
       macros: []
     });
+    const other = await loadMaterial({
+      name: "different-property-type",
+      shader: materialShaderName,
+      shaderData: { [propertyName]: { type: "Vector3", value: { x: 1, y: 2, z: 3 } } },
+      macros: []
+    });
 
     try {
-      const materialCount = engine.resourceManager.findResourcesByType(Material).length;
-      await expect(
-        loadMaterial({
-          name: "conflicting-property-type",
-          shader: materialShaderName,
-          shaderData: { [propertyName]: { type: "Vector3", value: { x: 1, y: 2, z: 3 } } },
-          macros: []
-        })
-      ).rejects.toBe(`Shader property ${propertyName} has been used as Float type.`);
-      expect(engine.resourceManager.findResourcesByType(Material)).toHaveLength(materialCount);
+      expect(original.shaderData.getFloat(propertyName)).toBe(1);
+      const v3 = other.shaderData.getVector3(propertyName);
+      expect([v3.x, v3.y, v3.z]).toEqual([1, 2, 3]);
     } finally {
       original.destroy();
+      other.destroy();
+    }
+  });
+
+  it("releases a partially initialized material when applying shader data fails", async () => {
+    const materialCount = engine.resourceManager.findResourcesByType(Material).length;
+    const spy = vi.spyOn(ShaderData.prototype, "enableMacro").mockImplementationOnce(() => {
+      throw new Error("Simulated macro failure");
+    });
+
+    try {
+      await expect(
+        loadMaterial({
+          name: "partial-init-failure",
+          shader: materialShaderName,
+          shaderData: { value: { type: "Float", value: 1 } },
+          macros: [{ name: "TEST_FAIL_MACRO" }]
+        })
+      ).rejects.toThrow("Simulated macro failure");
+      expect(engine.resourceManager.findResourcesByType(Material)).toHaveLength(materialCount);
+    } finally {
+      spy.mockRestore();
     }
   });
 

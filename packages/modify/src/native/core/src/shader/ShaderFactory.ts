@@ -10,8 +10,7 @@ import { ShaderProperty } from "./ShaderProperty";
 
 /**
  * Shader registry and GLSL utilities. Holds the `#include` lookup table
- * the runtime preprocessor reads, the GLSL ES 100 → 300 syntax converter
- * the WebGL2 path uses, and the GPU-instancing UBO injector that
+ * the runtime preprocessor reads and the GPU-instancing UBO injector that
  * `ShaderPass` runs over compiled GLSL source.
  */
 export class ShaderFactory {
@@ -26,15 +25,6 @@ export class ShaderFactory {
   };
 
   static readonly includeMap: Record<string, string> = Object.create(null);
-
-  static readonly shaderExtension = [
-    "GL_EXT_shader_texture_lod",
-    "GL_OES_standard_derivatives",
-    "GL_EXT_draw_buffers",
-    "GL_EXT_frag_depth"
-  ]
-    .map((e) => `#extension ${e} : enable\n`)
-    .join("");
 
   private static readonly _std140TypeInfoMap: Record<string, { size: number; align: number }> = {
     float: { size: 4, align: 4 },
@@ -54,7 +44,6 @@ export class ShaderFactory {
     mat3x4: { size: 48, align: 16 }
   };
 
-  // [layout(location = 0)] out [highp] vec4 [color];
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?vec4\s+\w+\s*;/;
 
   // Derived built-ins re-exposed on top of `renderer_ModelMat`.
@@ -205,7 +194,7 @@ mat3 _normalMatFromModel(mat3 m) {
           shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
           const result = shader.match(/\bgl_FragData\[.+?\]/g);
           shader = ShaderFactory._replaceMRTShader(shader, result!);
-        } else {
+        } else if (/\bgl_FragColor\b/.test(shader)) {
           shader = "out vec4 glFragColor;\n" + shader;
           shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
         }
@@ -285,7 +274,7 @@ mat3 _normalMatFromModel(mat3 m) {
     return source.replace(ShaderFactory._uboUniformRegex, (match, type, name, arraySize) => {
       if (type.includes("sampler")) return match;
       const isDerived = builtinUniforms[name];
-      if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer)
+      if (isDerived === undefined && ShaderProperty._propertyNameMap[name]?._groups !== ShaderDataGroup.Renderer)
         return match;
       if (isDerived) return "";
       if (arraySize) {

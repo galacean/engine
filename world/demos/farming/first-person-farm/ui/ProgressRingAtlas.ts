@@ -24,7 +24,7 @@ export class ProgressRingAtlas {
           pixels[i + 3] = Math.round(alpha * 255);
         }
     }
-    this.texture = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false);
+    this.texture = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8_UNorm, false);
     this.texture.setPixelBuffer(pixels);
     this.sprites = Array.from(
       { length: 101 },

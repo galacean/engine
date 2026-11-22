@@ -64,7 +64,14 @@ export class PlanningVegetationPreview {
   setPlan(plan: IslandPlan, visibility: Readonly<Record<string, boolean>>): void {
     const data = vegetationCoverage(plan, visibility);
     if (data === this.current) return;
-    const texture = new Texture2D(this.engine, data.resolution, data.resolution, TextureFormat.R8G8B8A8, false, false);
+    const texture = new Texture2D(
+      this.engine,
+      data.resolution,
+      data.resolution,
+      TextureFormat.R8G8B8A8_UNorm,
+      false,
+      false
+    );
     texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
     const pixels = new Uint8Array(data.flowers.length * 4);
     for (let i = 0; i < data.flowers.length; i++) {

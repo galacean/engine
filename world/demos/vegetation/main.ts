@@ -13,7 +13,6 @@ import {
   TextureWrapMode,
   TonemappingMode,
   Vector3,
-  WebGLMode,
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -280,8 +279,7 @@ async function boot(): Promise<void> {
   registerGUI();
   const engine = await WebGLEngine.create({
     canvas: "canvas",
-    shaderCompiler: new ShaderCompiler(),
-    graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
+    shaderCompiler: new ShaderCompiler()
   });
   engine.canvas.setAutoResolution();
   const scene = engine.sceneManager.activeScene!;
@@ -323,7 +321,7 @@ async function boot(): Promise<void> {
     gridPixels.set(x < 2 || y < 2 ? [179, 166, 142, 255] : [213, 199, 175, 255],
       (y * gridResolution + x) * 4);
   }
-  const gridTexture = new Texture2D(engine, gridResolution, gridResolution, TextureFormat.R8G8B8A8, true, true);
+  const gridTexture = new Texture2D(engine, gridResolution, gridResolution, TextureFormat.R8G8B8A8_UNorm, true, true);
   gridTexture.setPixelBuffer(gridPixels);
   gridTexture.generateMipmaps();
   gridTexture.filterMode = TextureFilterMode.Trilinear;

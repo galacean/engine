@@ -97,7 +97,7 @@ let sharedPatternMean = 0.5;
 /** One mipmapped scalar texture shared by local colour, distant colour and surface relief. */
 export async function createSeedWorldSharedSurfaceTexture(engine: Engine): Promise<Texture2D> {
   const pattern = await loadSeedWorldSharedSurfacePattern();
-  return createSurfaceTexture(engine, 256, TextureFormat.R8, pattern);
+  return createSurfaceTexture(engine, 256, TextureFormat.R8_UNorm, pattern);
 }
 
 /** Reuses immutable CPU source bytes for optional surface-field preprocessing. */
@@ -141,7 +141,7 @@ export function createSeedWorldSurfaceColorFieldTexture(engine: Engine, samples:
   if (!Number.isInteger(resolution) || resolution < 2) {
     throw new RangeError("Seed World surface colour field requires a square RG8 payload");
   }
-  return createSurfaceTexture(engine, resolution, TextureFormat.R8G8, samples);
+  return createSurfaceTexture(engine, resolution, TextureFormat.R8G8_UNorm, samples);
 }
 
 export function bindSeedWorldGrassRendererColorField(

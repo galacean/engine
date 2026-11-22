@@ -207,7 +207,7 @@ export class SoilWorkPresenter {
       return;
     }
     if (!this.coverageTexture) {
-      this.coverageTexture = new Texture2D(this.renderer.engine, 65, 65, TextureFormat.R8G8, false, false);
+      this.coverageTexture = new Texture2D(this.renderer.engine, 65, 65, TextureFormat.R8G8_UNorm, false, false);
       this.coverageTexture.filterMode = TextureFilterMode.Bilinear;
       this.coverageTexture.wrapModeU = this.coverageTexture.wrapModeV = TextureWrapMode.Clamp;
       restoreResource(this.coverageTexture, () => this.coverageTexture!.setPixelBuffer(this.coveragePixels));

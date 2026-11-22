@@ -51,7 +51,7 @@ vec3 computeNoiseVelocity(Attributes attributes, vec3 currentPosition, float nor
     vec3 noiseValue = sampleCurlNoise3D(coord);
     float totalAmplitude = 1.0;
 
-    // Unrolled octave loop (GLSL ES 1.0 requires constant loop bounds)
+    // Unrolled octave loop (max 3 octaves)
     if (octaveCount >= 2) {
         float amplitude = octaveIntensityMultiplier;
         totalAmplitude += amplitude;

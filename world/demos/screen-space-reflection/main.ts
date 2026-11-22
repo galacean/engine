@@ -473,7 +473,7 @@ async function bootstrap(): Promise<void> {
 
   // Bake SkyProceduralMaterial once so IBL fallback, OptOutSphere, and SubmergedGlossyTile get genuine specular IBL.
   let iblBaker: RealtimeIBLBaker | null = null;
-  if ((engine as unknown as { _hardwareRenderer?: { isWebGL2?: boolean } })._hardwareRenderer?.isWebGL2) {
+  if ((engine as unknown as { _hardwareRenderer?: { supportsRendering?: boolean } })._hardwareRenderer?.supportsRendering) {
     iblBaker = new RealtimeIBLBaker(scene, { resolution: 128, sampleCount: 64 });
     iblBaker.requestBake();
     while (!iblBaker.isIdle) {

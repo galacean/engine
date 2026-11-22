@@ -105,7 +105,7 @@ it.each(["lake", "river", "ocean"] as const)(
       sun.entity.transform.setRotation(-60, 20, 0);
       sun.intensity = 1.5;
       scene.sun = sun;
-      const environment = new TextureCube(engine, 32, TextureFormat.R8G8B8A8, true, false);
+      const environment = new TextureCube(engine, 32, TextureFormat.R8G8B8A8_UNorm, true, false);
       for (let face = 0; face < 6; face++) {
         const pixels = new Uint8Array(32 * 32 * 4);
         for (let y = 0; y < 32; y++)

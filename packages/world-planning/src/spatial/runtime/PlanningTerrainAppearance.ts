@@ -59,7 +59,7 @@ export async function createPlanningGrassColorField(
 ): Promise<SeedWorldGrassColorFieldBinding> {
   const pixels = await preparePlanningSurfaceColorSamples(seed);
   const size = profile.world.alphamapResolution;
-  const texture = new Texture2D(engine, size, size, TextureFormat.R8G8, true, false);
+  const texture = new Texture2D(engine, size, size, TextureFormat.R8G8_UNorm, true, false);
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
   texture.filterMode = TextureFilterMode.Trilinear;
   texture.setPixelBuffer(pixels);

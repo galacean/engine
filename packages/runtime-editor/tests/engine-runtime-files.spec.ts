@@ -4,13 +4,15 @@ import { AgentProjectFiles } from "@galacean/engine-ai-chat/ai-chat/agent-projec
 import { engineRuntimeFiles } from "../src/runtime-editor-agent/engine-runtime-files";
 import declarations from "../src/runtime-editor/generated/engine-runtime-files.json";
 import declarationIndex from "../src/runtime-editor/generated/engine-runtime-index.json";
+import corePackage from "../../core/package.json";
 
 describe("engine runtime files", () => {
-  it("keeps the declaration index digest aligned with the mounted content", async () => {
+  it("keeps the declaration index version and digest aligned with the mounted content", async () => {
     const bytes = new TextEncoder().encode(JSON.stringify(declarations));
     const digest = await crypto.subtle.digest("SHA-256", bytes);
     const hex = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, "0")).join("");
     expect(hex).toBe(declarationIndex.digest);
+    expect(declarationIndex.packages.every((pkg) => pkg.version === corePackage.version)).toBe(true);
   });
   it("searches cold declarations and uses the same text as reads", async () => {
     const provider = engineRuntimeFiles(), files = new AgentProjectFiles([provider]);
@@ -38,9 +40,11 @@ describe("engine runtime files", () => {
   Scene,
   ScreenSpaceReflectionQuality,
   ScreenSpaceReflectionSettings,
-  Script
+  Script,
+  TextureFormat
 } from "@galacean/engine";
 export default class Rotate extends Script {
+  readonly colorFormat: TextureFormat = TextureFormat.R8G8B8A8_UNorm;
   configureSSR(scene: Scene, camera: Camera, material: PBRMaterial): void {
     const settings: ScreenSpaceReflectionSettings = scene.screenSpaceReflection;
     settings.enabled = true;

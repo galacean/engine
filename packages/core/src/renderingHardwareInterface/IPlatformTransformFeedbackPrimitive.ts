@@ -36,10 +36,9 @@ export interface IPlatformTransformFeedbackPrimitive {
    * Issue a draw call.
    * @param mode - Primitive topology
    * @param first - First vertex index
-   * @param count - Number of vertices per instance
-   * @param instanceCount - Number of instances; defaults to one
+   * @param count - Number of vertices
    */
-  draw(mode: number, first: number, count: number, instanceCount?: number): void;
+  draw(mode: number, first: number, count: number): void;
 
   /**
    * Invalidate cached state, forcing rebuild on next bind.

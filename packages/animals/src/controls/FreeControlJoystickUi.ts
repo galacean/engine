@@ -176,7 +176,7 @@ export class FreeControlJoystickUi {
       this._owner.engine,
       1,
       1,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       false,
       false
     ));

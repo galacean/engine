@@ -177,7 +177,7 @@ export class TerrainWindGpuExposureProvider implements WindGpuExposureProvider {
 }
 
 function createExposureTarget(engine: Engine, resolution: number, name: string): RenderTarget {
-  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8, false, false);
+  const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8_UNorm, false, false);
   texture.name = name;
   texture.isGCIgnored = true;
   texture.filterMode = TextureFilterMode.Bilinear;

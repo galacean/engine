@@ -1,19 +1,6 @@
-import {
-  GLCapabilityType,
-  type IPlatformPrimitive,
-  type IPlatformShaderProgram,
-  Logger,
-  Primitive,
-  type SubPrimitive
-} from "@galacean/engine-core";
+import { IPlatformPrimitive, IPlatformShaderProgram, Logger, Primitive, SubPrimitive } from "@galacean/engine-core";
 import { GLBuffer } from "./GLBuffer";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
-import { WebGLExtension } from "./type";
-
-/**
- * Improvement of VAO:
- * 1) WebGL2.0 must support VAO, almost all devices support vao extensions in webgl1.0, we can use PollyFill,only keep VAO mode.
- */
 
 /**
  * @internal
@@ -22,18 +9,14 @@ import { WebGLExtension } from "./type";
 export class GLPrimitive implements IPlatformPrimitive {
   private _attribLocArray: number[] = [];
   private readonly _primitive: Primitive;
-  private readonly _canUseInstancedArrays: boolean;
 
   private _rhi: WebGLGraphicDevice;
-  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+  private _gl: WebGL2RenderingContext;
   private _vaoMap: Map<number, WebGLVertexArrayObject | null> = new Map();
-  private readonly _isSupportVAO: boolean;
 
   constructor(rhi: WebGLGraphicDevice, primitive: Primitive) {
     this._rhi = rhi;
     this._primitive = primitive;
-    this._canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
-    this._isSupportVAO = rhi.canIUse(GLCapabilityType.vertexArrayObject);
     this._gl = rhi.gl;
   }
 
@@ -44,7 +27,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     const gl = this._gl;
     const rhi = this._rhi;
     const primitive = this._primitive;
-    const useVao = this._isSupportVAO && primitive.enableVAO;
+    const useVao = primitive.enableVAO;
 
     if (useVao) {
       if (primitive._bufferStructChanged) {
@@ -77,21 +60,17 @@ export class GLPrimitive implements IPlatformPrimitive {
         gl.drawArrays(topology, start, count);
       }
     } else {
-      if (this._canUseInstancedArrays) {
-        if (indexBufferBinding) {
-          if (useVao) {
-            gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
-          } else {
-            const { _glBuffer } = <GLBuffer>indexBufferBinding.buffer._platformBuffer;
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
-            gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-          }
+      if (indexBufferBinding) {
+        if (useVao) {
+          gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
         } else {
-          gl.drawArraysInstanced(topology, start, count, instanceCount);
+          const { _glBuffer } = <GLBuffer>indexBufferBinding.buffer._platformBuffer;
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
+          gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         }
       } else {
-        Logger.error("ANGLE_instanced_arrays extension is not supported");
+        gl.drawArraysInstanced(topology, start, count, instanceCount);
       }
     }
 
@@ -102,7 +81,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   }
 
   destroy(): void {
-    this._isSupportVAO && this._clearVAO();
+    this._clearVAO();
   }
 
   /**
@@ -137,7 +116,6 @@ export class GLPrimitive implements IPlatformPrimitive {
         gl.enableVertexAttribArray(loc);
         const elementInfo = element._formatMetaInfo;
         if (elementInfo.integer) {
-          if (!("vertexAttribIPointer" in gl)) throw new Error("Integer vertex attributes require WebGL2");
           gl.vertexAttribIPointer(loc, elementInfo.size, elementInfo.type, stride, element.offset);
         } else {
           gl.vertexAttribPointer(
@@ -149,9 +127,7 @@ export class GLPrimitive implements IPlatformPrimitive {
             element.offset
           );
         }
-        if (this._canUseInstancedArrays) {
-          gl.vertexAttribDivisor(loc, element.instanceStepRate);
-        }
+        gl.vertexAttribDivisor(loc, element.instanceStepRate);
         this._attribLocArray.push(loc);
       } else {
         Logger.warn("vertex attribute not found: " + name);

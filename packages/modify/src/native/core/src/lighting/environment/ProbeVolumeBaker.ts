@@ -264,11 +264,8 @@ export class ProbeVolumeBaker {
     }
 
     const engine = scene.engine;
-    if (!engine._hardwareRenderer.isWebGL2) {
-      throw new Error("ProbeVolumeBaker requires WebGL2 HDR cubemap rendering and readback.");
-    }
 
-    const cubeTexture = new TextureCube(engine, resolution, TextureFormat.R16G16B16A16, false, false);
+    const cubeTexture = new TextureCube(engine, resolution, TextureFormat.R16G16B16A16_SFloat, false, false);
     const depthTexture = new Texture2D(engine, resolution, resolution, TextureFormat.Depth32, false, false);
     const renderTarget = new RenderTarget(engine, resolution, resolution, cubeTexture, depthTexture, 1);
     renderTarget.autoGenerateMipmaps = false;

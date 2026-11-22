@@ -194,7 +194,7 @@ const DUMMY_HEIGHT_BYTES = new Uint8Array(2);
 function getDummyHeightTexture(engine: Engine): Texture2D {
   let tex = dummyHeightTextures.get(engine);
   if (!tex || tex.destroyed) {
-    tex = new Texture2D(engine, 1, 1, TextureFormat.R8G8, false, false);
+    tex = new Texture2D(engine, 1, 1, TextureFormat.R8G8_UNorm, false, false);
     tex.filterMode = TextureFilterMode.Point;
     tex.wrapModeU = tex.wrapModeV = TextureWrapMode.Clamp;
     tex.setPixelBuffer(DUMMY_HEIGHT_BYTES);

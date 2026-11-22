@@ -74,7 +74,7 @@
       sampleShadowComputeSamplesTent5x5(scene_ShadowMapSize, shadowCoord.xy, weights, sampleUvs);
       for (int i = 0; i < 9; i++) {
         vec3 sampleCoord = vec3(sampleUvs[i], terrainProjectGroundShadowDepth(shadowCoord, sampleUvs[i], gradient));
-        attenuation += weights[i] * SAMPLE_TEXTURE2D_SHADOW(scene_ShadowMap, sampleCoord);
+        attenuation += weights[i] * textureLod(scene_ShadowMap, sampleCoord, 0.0);
       }
     #else
       vec2 halfTexel = scene_ShadowMapSize.xy * 0.5;
@@ -82,7 +82,7 @@
         vec2 direction = vec2(mod(float(i), 2.0), floor(float(i) / 2.0)) * 2.0 - 1.0;
         vec2 sampleUv = shadowCoord.xy + direction * halfTexel;
         vec3 sampleCoord = vec3(sampleUv, terrainProjectGroundShadowDepth(shadowCoord, sampleUv, gradient));
-        attenuation += SAMPLE_TEXTURE2D_SHADOW(scene_ShadowMap, sampleCoord) * 0.25;
+        attenuation += textureLod(scene_ShadowMap, sampleCoord, 0.0) * 0.25;
       }
     #endif
     return attenuation;

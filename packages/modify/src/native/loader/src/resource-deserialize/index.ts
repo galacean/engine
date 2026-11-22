@@ -4,8 +4,6 @@ import { decoderMap } from "./utils/Decorator";
 import { FileHeader } from "./utils/FileHeader";
 
 export * from "./resources/animationClip/AnimationClipDecoder";
-export type { IModelMesh } from "./resources/mesh/IModelMesh";
-export { MeshDecoder } from "./resources/mesh/MeshDecoder";
 export { ReflectionParser } from "./resources/parser/ReflectionParser";
 import "./resources/texture2D/Texture2DDecoder";
 import "./resources/textureCube/TextureCubeDecoder";

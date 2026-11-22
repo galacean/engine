@@ -58,14 +58,13 @@ export function createVolumetricCloudMultipleScatteringTexture(
   lightingProfile: Readonly<VolumetricCloudLightingProfile> = VOLUMETRIC_CLOUD_DEFAULT_LIGHTING_PROFILE
 ): VolumetricCloudMultipleScatteringTexture {
   const rhi = engine._hardwareRenderer;
-  const supportsLinearHalf =
-    rhi.canIUse(GLCapabilityType.textureHalfFloat) && rhi.canIUse(GLCapabilityType.textureHalfFloatLinear);
+  const supportsLinearHalf = rhi.supportsTextureFormat(TextureFormat.R16G16B16A16_SFloat);
   const values = buildVolumetricCloudMultipleScatteringLUT(lightingProfile);
   const texture = new Texture2D(
     engine,
     VOLUMETRIC_CLOUD_MULTIPLE_SCATTERING_LUT_WIDTH,
     VOLUMETRIC_CLOUD_MULTIPLE_SCATTERING_LUT_HEIGHT,
-    supportsLinearHalf ? TextureFormat.R16G16B16A16 : TextureFormat.R8G8B8A8,
+    supportsLinearHalf ? TextureFormat.R16G16B16A16_SFloat : TextureFormat.R8G8B8A8_UNorm,
     false,
     false
   );

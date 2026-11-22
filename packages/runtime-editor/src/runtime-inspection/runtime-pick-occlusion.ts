@@ -5,6 +5,7 @@ import {
   Material,
   Renderer,
   Shader,
+  ShaderLanguage,
   ShaderPass,
   ShaderProperty,
   SubShader,
@@ -18,7 +19,6 @@ type Pass = {
   name: string;
   _vertexShaderInstructions: ConstructorParameters<typeof ShaderPass>[1];
   _fragmentShaderInstructions: ConstructorParameters<typeof ShaderPass>[2];
-  _platformTarget: ConstructorParameters<typeof ShaderPass>[3];
   _renderState: any;
   _renderStateDataMap: Record<number, ShaderProperty>;
   _tagsMap: Record<number, string | number | boolean>;
@@ -38,7 +38,7 @@ export function pickOcclusionPass(original: ShaderPass) {
     src.name,
     src._vertexShaderInstructions,
     src._fragmentShaderInstructions,
-    src._platformTarget
+    ShaderLanguage.GLSLES300
   );
   const dst = output as unknown as Pass;
   dst._tagsMap = { ...src._tagsMap };

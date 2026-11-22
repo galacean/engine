@@ -2203,13 +2203,13 @@ function createTaskIcon(engine: Engine, retry: boolean): { sprite: Sprite; textu
     context.fill(new Path2D("M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10s10-4.49 10-10S17.51 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8"));
     context.fill(new Path2D("M13 8h2v8h-2zM9 8h2v8H9z"));
   }
-  const texture = new Texture2D(engine, 96, 96, TextureFormat.R8G8B8A8, false, false);
+  const texture = new Texture2D(engine, 96, 96, TextureFormat.R8G8B8A8_UNorm, false, false);
   texture.setImageSource(canvas);
   return { sprite: new Sprite(engine, texture), texture };
 }
 
 function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResources {
-  const whiteTexture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false, false);
+  const whiteTexture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
   whiteTexture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
   const whiteSprite = new Sprite(engine, whiteTexture);
   const orbShader = Shader.find(SEED_WORLD_VOICE_ORB_SHADER_NAME) ?? Shader.create(seedWorldVoiceOrbShaderSource);

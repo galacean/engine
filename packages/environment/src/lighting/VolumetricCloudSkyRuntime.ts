@@ -623,7 +623,7 @@ function createWeatherMap(
     scene.engine,
     VOLUMETRIC_CLOUD_WEATHER_MAP_WIDTH,
     VOLUMETRIC_CLOUD_WEATHER_MAP_HEIGHT,
-    TextureFormat.R8G8B8A8,
+    TextureFormat.R8G8B8A8_UNorm,
     false,
     false
   );
@@ -641,7 +641,7 @@ function createShapeProfile(scene: Scene): Texture2D {
     scene.engine,
     VOLUMETRIC_CLOUD_SHAPE_PROFILE_WIDTH,
     VOLUMETRIC_CLOUD_SHAPE_PROFILE_HEIGHT,
-    TextureFormat.R8G8B8A8,
+    TextureFormat.R8G8B8A8_UNorm,
     false,
     false
   );
@@ -658,7 +658,7 @@ function createBaseNoise(scene: Scene, noiseProfile: Readonly<VolumetricCloudNoi
     scene.engine,
     VOLUMETRIC_CLOUD_NOISE_ATLAS_SIZE,
     VOLUMETRIC_CLOUD_NOISE_ATLAS_SIZE,
-    TextureFormat.R8G8B8A8,
+    TextureFormat.R8G8B8A8_UNorm,
     false,
     false
   );

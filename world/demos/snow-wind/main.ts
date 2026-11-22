@@ -23,7 +23,6 @@ import {
   Vector2,
   Vector3,
   WebGLEngine,
-  WebGLMode,
   type Engine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -111,8 +110,7 @@ void boot().catch((error: unknown) => {
 async function boot(): Promise<void> {
   const engine = await WebGLEngine.create({
     canvas: "canvas",
-    shaderCompiler: new ShaderCompiler(),
-    graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
+    shaderCompiler: new ShaderCompiler()
   });
   engine.canvas.setAutoResolution();
   engine.resourceManager.retryCount = 2;

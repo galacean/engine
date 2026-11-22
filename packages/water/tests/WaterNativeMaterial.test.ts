@@ -47,8 +47,8 @@ it.each(["lake", "river", "ocean"] as const)(
       expect(waterMaterialFactories(material)).toHaveLength(0);
       expect(() => resolveWaterMaterialLook(material)).not.toThrow();
       for (const slot of WATER_MATERIAL_TEXTURE_SLOTS[profile]) {
-        const a = new Texture2D(engine, 7, 5, TextureFormat.R8G8B8A8, false, slot.isSRGBColorSpace);
-        const b = new Texture2D(engine, 3, 9, TextureFormat.R8G8B8A8, false, slot.isSRGBColorSpace);
+        const a = new Texture2D(engine, 7, 5, TextureFormat.R8G8B8A8_UNorm, false, slot.isSRGBColorSpace);
+        const b = new Texture2D(engine, 3, 9, TextureFormat.R8G8B8A8_UNorm, false, slot.isSRGBColorSpace);
         material.shaderData.setTexture(slot.slot, a);
         await prepareWaterMaterial(material);
         expect(waterMaterialTextures(material)[0].texture).toBe(a);
@@ -219,8 +219,8 @@ it("reuses cached water material texture key until texture identity or sampler m
   try {
     const material = await materialFor(engine, "lake");
     const slot = WATER_MATERIAL_TEXTURE_SLOTS.lake[0].slot;
-    const texA = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false, false);
-    const texB = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8, false, false);
+    const texA = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const texB = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false, false);
     material.shaderData.setTexture(slot, texA);
 
     const first = resolveCachedWaterMaterialTextureKey(material);

@@ -876,7 +876,7 @@ export class WorldTemplateRuntime {
       engine,
       resolution,
       resolution,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       false,
       false
     ));
@@ -1006,7 +1006,7 @@ export class WorldTemplateRuntime {
       engine,
       resolution,
       resolution,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       false,
       false
     ));

@@ -10,7 +10,6 @@ import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
-import { Logger } from "./base";
 import { ignoreClone } from "./clone/CloneDecorators";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
@@ -623,7 +622,7 @@ export class Camera extends Component {
   /**
    * Manually call the rendering of the camera.
    * @param cubeFace - Cube rendering surface collection
-   * @param mipLevel - Set mip level the data want to write, only take effect in webgl2.0
+   * @param mipLevel - Set mip level the data want to write
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
     const engine = this._engine;
@@ -659,10 +658,6 @@ export class Camera extends Component {
       this._globalShaderMacro
     );
 
-    if (mipLevel > 0 && !engine._hardwareRenderer.isWebGL2) {
-      mipLevel = 0;
-      Logger.error("mipLevel only take effect in WebGL2.0");
-    }
     let ignoreClearFlags: CameraClearFlags | undefined;
     if (this._cameraType !== CameraType.Normal && !this._renderTarget) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
@@ -755,7 +750,7 @@ export class Camera extends Component {
     if (TextureUtils.isHDRFormat(internalColorFormat) || this.opaqueTextureEnabled) {
       if (renderTarget) {
         // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
-        // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
+        // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8_UNorm)
         return internalColorFormat !== renderTarget.getColorTexture(0)!.format;
       } else {
         return true;
@@ -774,11 +769,11 @@ export class Camera extends Component {
       if (!this.isAlphaOutputRequired && rhi.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)) {
         return TextureFormat.R11G11B10_UFloat;
       }
-      if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16)) {
-        return TextureFormat.R16G16B16A16;
+      if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)) {
+        return TextureFormat.R16G16B16A16_SFloat;
       }
     }
-    return TextureFormat.R8G8B8A8;
+    return TextureFormat.R8G8B8A8_UNorm;
   }
 
   /**
@@ -801,7 +796,7 @@ export class Camera extends Component {
    */
   _getTargetColorTextureFormat(): TextureFormat {
     const renderTarget = this._renderTarget;
-    return renderTarget ? renderTarget.getColorTexture(0)!.format : TextureFormat.R8G8B8A8;
+    return renderTarget ? renderTarget.getColorTexture(0)!.format : TextureFormat.R8G8B8A8_UNorm;
   }
 
   /**

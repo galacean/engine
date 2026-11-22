@@ -33,7 +33,7 @@ function evaluate(source: string, macros: Array<[string, string]>) {
   };
 }
 
-function compile(compiler: ShaderCompiler, source: string, platformTarget: ShaderLanguage = ShaderLanguage.GLSLES100) {
+function compile(compiler: ShaderCompiler, source: string, platformTarget: ShaderLanguage = ShaderLanguage.GLSLES300) {
   const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
   return compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, platformTarget, "");
 }
@@ -48,15 +48,15 @@ interface DriverResult {
 function compileInWebGL(
   vertex: string,
   fragment: string,
-  platformTarget: ShaderLanguage = ShaderLanguage.GLSLES100
+  platformTarget: ShaderLanguage = ShaderLanguage.GLSLES300
 ): DriverResult | "no-webgl" {
-  const contextType = platformTarget === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl";
+  const contextType = "webgl2";
   const gl = document.createElement("canvas").getContext(contextType) as
     | WebGLRenderingContext
     | WebGL2RenderingContext
     | null;
   if (!gl) return "no-webgl";
-  const version = platformTarget === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+  const version = "#version 300 es\n";
 
   const compile = (source: string, type: number): { shader: WebGLShader; ok: boolean; log: string } => {
     const shader = gl.createShader(type)!;
@@ -89,7 +89,7 @@ describe("macro branch runtime", () => {
   it("blocks an unconditional redefinition in analyzer and offline codegen", () => {
     const source = shader("float u_conflict;\nfloat u_conflict;", "gl_FragColor = vec4(u_conflict);");
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw("Redefinition");
   });
 
   it("allows a Pass declaration to override an inherited include declaration", () => {
@@ -109,7 +109,7 @@ FragmentShader = frag;
 
     const precompiler = new ShaderPrecompiler();
     precompiler.setIncludeMap(includeMap);
-    expect(() => precompiler.precompile(source, ShaderLanguage.GLSLES100)).not.to.throw();
+    expect(() => precompiler.precompile(source, ShaderLanguage.GLSLES300)).not.to.throw();
   });
 
   it("allows an unconditional Pass declaration to override an inherited conditional declaration", () => {
@@ -128,7 +128,7 @@ FragmentShader = frag;
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).not.to.include(
       "Redefinition"
     );
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).not.to.throw();
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).not.to.throw();
   });
 
   it("allows a Pass declaration to override an inherited declaration under the same condition", () => {
@@ -149,7 +149,7 @@ FragmentShader = frag;
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).not.to.include(
       "Redefinition"
     );
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).not.to.throw();
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).not.to.throw();
   });
 
   it("blocks a conditional Pass declaration that cannot fully replace an inherited declaration", () => {
@@ -166,7 +166,7 @@ FragmentShader = frag;
 } } }`;
 
     expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw("Redefinition");
   });
 
   it("blocks the same proven redefinition in analyzer and codegen", () => {
@@ -182,7 +182,7 @@ float u_conflict;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
 
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw("Redefinition");
   });
 
   it("blocks a proven compound-condition overlap in analyzer and codegen", () => {
@@ -197,7 +197,7 @@ float u_conflict;
     );
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw("Redefinition");
   });
 
   it("blocks a branch-divergent struct contract in analyzer and offline codegen", () => {
@@ -212,7 +212,7 @@ BranchData data;`,
     );
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw(
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw(
       "missing from at least one reachable declaration"
     );
   });
@@ -229,7 +229,7 @@ float u_value;
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).not.to.include("Redefinition");
 
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw(
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw(
       "Integer literal exceeds 32 bits in preprocessor expression"
     );
   });
@@ -542,7 +542,7 @@ gl_FragColor = vec4(1.0);
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics).to.be.empty;
 
-    const generated = new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES100);
+    const generated = new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES300);
     expect(generated).to.not.be.undefined;
     expect(generated!.fragment).to.match(/uniform\s+int\s+u_space\s*;/);
 
@@ -577,13 +577,13 @@ gl_FragColor = vec4(1.0);
     expect(analysis.diagnostics).to.be.empty;
 
     const compiler = new ShaderCompiler();
-    const generated = compiler.generate(analysis.passes[0], ShaderLanguage.GLSLES100);
+    const generated = compiler.generate(analysis.passes[0], ShaderLanguage.GLSLES300);
     expect(generated).to.not.be.undefined;
 
     const live = compile(compiler, source);
     expect(live).to.not.be.undefined;
 
-    const precompiledPass = new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100).subShaders[0]
+    const precompiledPass = new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300).subShaders[0]
       .passes[0];
     expect(precompiledPass.isUsePass).to.be.false;
     if (precompiledPass.isUsePass) throw new Error("Expected a compiled shader pass.");
@@ -654,7 +654,7 @@ FragmentShader = frag;
       const analysis = ShaderAnalyzer.analyze(source);
       expect(analysis.diagnostics, `case=${caseIndex}`).to.be.empty;
 
-      for (const platformTarget of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      for (const platformTarget of [ShaderLanguage.GLSLES300]) {
         const compiler = new ShaderCompiler();
         const generated = compiler.generate(analysis.passes[0], platformTarget)!;
         const live = compile(compiler, source, platformTarget)!;
@@ -675,9 +675,7 @@ FragmentShader = frag;
             const usesGlobal = caseIndex === Number(localShadow);
             const label = `${pipeline} case=${caseIndex} platform=${platformTarget} LOCAL_SHADOW=${localShadow}`;
 
-            expect(fragment, label).to.match(
-              platformTarget === ShaderLanguage.GLSLES100 ? /varying\s+vec2\s+uv\s*;/ : /in\s+vec2\s+uv\s*;/
-            );
+            expect(fragment, label).to.match(/in\s+vec2\s+uv\s*;/);
             if (usesGlobal) {
               expect(fragment, label).to.match(/vec4\s*\(\s*\(?\s*\w+\s*\)?\s*\.\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
               expect(fragment, label).to.match(/v\s*\.\s*uv/);
@@ -727,7 +725,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics).to.be.empty;
 
-    for (const platformTarget of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const platformTarget of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       const generated = compiler.generate(analysis.passes[0], platformTarget);
       const live = compile(compiler, source, platformTarget);
@@ -792,7 +790,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics, analysis.diagnostics.map((diagnostic) => diagnostic.code).join(", ")).to.be.empty;
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       const offline = new ShaderPrecompiler().precompile(source, target).subShaders[0].passes[0];
       if (offline.isUsePass) throw new Error("Expected a compiled pass");
@@ -850,7 +848,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics).to.be.empty;
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).not.to.equal(undefined);
       expect(compile(compiler, source, target)).to.equal(undefined);
@@ -886,7 +884,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
       expect(compile(compiler, source, target)).to.equal(undefined);
@@ -916,7 +914,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics).to.be.empty;
 
-    for (const platformTarget of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const platformTarget of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       const offline = new ShaderPrecompiler().precompile(source, platformTarget).subShaders[0].passes[0];
       expect(offline.isUsePass).to.be.false;
@@ -975,7 +973,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
       expect(compile(compiler, source, target)).to.equal(undefined);
@@ -1011,7 +1009,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
       expect(compile(compiler, source, target)).to.equal(undefined);
@@ -1041,7 +1039,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
       expect(compile(compiler, source, target)).to.equal(undefined);
@@ -1070,7 +1068,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics).to.be.empty;
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).not.to.equal(undefined);
       expect(compile(compiler, source, target)).not.to.equal(undefined);
@@ -1103,7 +1101,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
       expect(compile(compiler, source, target)).to.equal(undefined);
@@ -1129,7 +1127,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
       expect(compile(compiler, source, target)).to.equal(undefined);
@@ -1156,7 +1154,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
       expect(compile(compiler, source, target)).to.equal(undefined);
@@ -1183,7 +1181,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
       expect(compile(compiler, source, target)).to.equal(undefined);
@@ -1218,7 +1216,7 @@ FragmentShader = frag;
       const analysis = ShaderAnalyzer.analyze(source);
       expect(analysis.diagnostics, caseName).to.be.empty;
 
-      for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      for (const target of [ShaderLanguage.GLSLES300]) {
         const compiler = new ShaderCompiler();
         const generated = compiler.generate(analysis.passes[0], target);
         const live = compile(compiler, source, target);
@@ -1265,7 +1263,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics).to.be.empty;
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       const generated = compiler.generate(analysis.passes[0], target);
       const live = compile(compiler, source, target);
@@ -1321,7 +1319,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
       expect(compile(compiler, source, target)).to.equal(undefined);
@@ -1415,7 +1413,7 @@ FragmentShader = frag;
       const diagnosticCodes = analysis.diagnostics.map((diagnostic) => diagnostic.code);
       expect(diagnosticCodes).to.include("AmbiguousMacroBranchResolution");
 
-      for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      for (const target of [ShaderLanguage.GLSLES300]) {
         const compiler = new ShaderCompiler();
         expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
         expect(compile(compiler, source, target)).to.equal(undefined);
@@ -1479,7 +1477,7 @@ FragmentShader = frag;
       const analysis = ShaderAnalyzer.analyze(source);
       expect(analysis.diagnostics, `case=${caseIndex}`).to.be.empty;
 
-      for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      for (const target of [ShaderLanguage.GLSLES300]) {
         const compiler = new ShaderCompiler();
         expect(compiler.generate(analysis.passes[0], target), `handoff case=${caseIndex}`).to.equal(undefined);
         expect(compile(compiler, source, target), `live case=${caseIndex}`).to.equal(undefined);
@@ -1503,7 +1501,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics).to.be.empty;
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       const offline = new ShaderPrecompiler().precompile(source, target).subShaders[0].passes[0];
       expect(offline.isUsePass).to.be.false;
@@ -1554,7 +1552,7 @@ FragmentShader = frag;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics).to.be.empty;
 
-    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+    for (const target of [ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
       const offline = new ShaderPrecompiler().precompile(source, target).subShaders[0].passes[0];
       expect(offline.isUsePass).to.be.false;

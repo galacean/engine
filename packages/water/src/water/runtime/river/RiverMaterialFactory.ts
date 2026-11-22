@@ -227,7 +227,7 @@ export function createRiverMaterial(
   opticsBinding: Readonly<WaterSurfaceOpticsBinding>
 ): Material {
   // R8 support is the public SystemInfo capability that requires WebGL2.
-  if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R8))
+  if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R8_UNorm))
     throw new Error("River requires WebGL2 integer shader support.");
   return configureSurfaceMaterial(
     engine,
@@ -251,7 +251,7 @@ export function createRiverLocalMapMaterial(
   opticsBinding: Readonly<WaterSurfaceOpticsBinding>
 ): Material {
   // R8 support is the public SystemInfo capability that requires WebGL2.
-  if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R8))
+  if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R8_UNorm))
     throw new Error("River requires WebGL2 integer shader support.");
   const material = configureSurfaceMaterial(
     engine,

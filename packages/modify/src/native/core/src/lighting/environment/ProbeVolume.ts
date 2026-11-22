@@ -746,10 +746,7 @@ export class ProbeVolume {
 
   /** @internal */
   _updateShaderData(engine: Engine, shaderData: ShaderData): boolean {
-    if (
-      (!engine._hardwareRenderer.isWebGL2 && this.samplingMode !== ProbeVolumeSamplingMode.PerRenderer) ||
-      this.bricks.length === 0
-    ) {
+    if (this.bricks.length === 0) {
       this._unbindShaderData(shaderData);
       if (this.bricks.length === 0) {
         this._releaseResources();
@@ -1592,7 +1589,7 @@ function createSHTexture(engine: Engine, dimensions: Vector3, data: Uint16Array)
     dimensions.x,
     dimensions.y,
     dimensions.z,
-    TextureFormat.R16G16B16A16,
+    TextureFormat.R16G16B16A16_SFloat,
     false,
     false
   );
@@ -1608,7 +1605,7 @@ function createSkyTexture(engine: Engine, dimensions: Vector3, data: Uint16Array
     dimensions.x,
     dimensions.y,
     dimensions.z,
-    TextureFormat.R16G16B16A16,
+    TextureFormat.R16G16B16A16_SFloat,
     false,
     false
   );

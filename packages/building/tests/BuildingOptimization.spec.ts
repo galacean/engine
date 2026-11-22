@@ -45,10 +45,10 @@ import globalProxyShader from "../src/building/runtime/MasonryGlobalProxy.shader
 function createMockEngine(): Engine {
   const noop = () => {};
   const mockRhi = {
-    isWebGL2: true,
+    supportsRendering: true,
     canIUse: () => true,
     supportsTextureFormat: () => true,
-    capability: { canUseFloatTextureBlendShape: true },
+    capability: {},
     createPlatformBuffer: () => ({ bind: noop, setData: noop, getData: noop, destroy: noop }),
     createPlatformTexture: () => ({ destroy: noop, setImageSource: noop, setPixelBuffer: noop }),
     createPlatformTexture2D: () => ({
