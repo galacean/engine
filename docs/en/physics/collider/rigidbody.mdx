@@ -60,7 +60,7 @@ A Rigidbody ([Rigidbody](/apis/core/#Rigidbody)) puts its Entity under physics c
 | [**inertiaTensorRotation**](/apis/core/#Rigidbody-inertiaTensorRotation) | Rotation of the principal inertia axes relative to the body | Identity quaternion |
 | [**automaticInertiaTensor**](/apis/core/#Rigidbody-automaticInertiaTensor) | Whether the inertia tensor is calculated from the attached Colliders and mass | true |
 
-Assigning `centerOfMass` disables automatic center-of-mass calculation. Assigning `inertiaTensor` or `inertiaTensorRotation` disables automatic calculation of both inertia properties and preserves the other value. Set the corresponding automatic flag to `true` to resume calculation.
+Assigning or mutating `centerOfMass` disables automatic center-of-mass calculation. Assigning or mutating `inertiaTensor` or `inertiaTensorRotation` disables automatic calculation of both inertia properties and preserves the other value. Set the corresponding automatic flag to `true` to resume calculation.
 
 Call `setDensity(density)` after the Rigidbody enters an active physics scene to derive its mass from attached solid Colliders. The call returns `false` if there is no usable volume. Later geometry changes keep the resulting mass. Call `setDensity` again to recalculate it from volume.
 
@@ -105,13 +105,9 @@ PhysX uses a linear sweep for dynamic bodies and speculative contacts for kinema
 | --- | --- |
 | [**setDensity**](/apis/core/#Rigidbody-setDensity) | Derive mass from the attached solid Collider volumes |
 | [**applyForce**](/apis/core/#Rigidbody-applyForce) | Apply a world-space force at the center of mass using the selected mode |
-| [**applyForceAtPosition**](/apis/core/#Rigidbody-applyForceAtPosition) | Apply a force at a world-space position |
+| [**applyForceAtPosition**](/apis/core/#Rigidbody-applyForceAtPosition) | Apply a world-space force or impulse at a world-space position |
 | [**applyRelativeForce**](/apis/core/#Rigidbody-applyRelativeForce) | Apply a force along the body's local axes at the center of mass using the selected mode |
-| [**applyForceAtLocalPosition**](/apis/core/#Rigidbody-applyForceAtLocalPosition) | Apply a world-space force or impulse at a body-local point |
-| [**applyRelativeForceAtLocalPosition**](/apis/core/#Rigidbody-applyRelativeForceAtLocalPosition) | Apply a body-local force or impulse at a body-local point |
 | [**applyExplosionForce**](/apis/core/#Rigidbody-applyExplosionForce) | Apply a radial explosion force with linear falloff |
-| [**applyImpulse**](/apis/core/#Rigidbody-applyImpulse) | Apply a world-space impulse at the center of mass |
-| [**applyImpulseAtPosition**](/apis/core/#Rigidbody-applyImpulseAtPosition) | Apply a world-space impulse at a world-space position |
 | [**applyTorque**](/apis/core/#Rigidbody-applyTorque) | Apply a world-space torque using the selected mode |
 | [**applyRelativeTorque**](/apis/core/#Rigidbody-applyRelativeTorque) | Apply a torque around the body's local axes using the selected mode |
 | [**getWorldCenterOfMass**](/apis/core/#Rigidbody-getWorldCenterOfMass) | Write the center of mass in world space. |
@@ -126,7 +122,7 @@ Scripts on the Rigidbody's Entity can implement `onSleep(body)` and `onWake(body
 
 `applyForce` and `applyTorque` default to `ForceMode.Force`. Use `ForceMode.Impulse` for a one-shot linear or angular impulse, `ForceMode.VelocityChange` for a direct change in velocity, and `ForceMode.Acceleration` for acceleration independent of mass or inertia.
 
-`applyRelativeForce` and `applyRelativeTorque` use the body's local axes with the same modes. To apply a force or impulse at a body-local offset, use `applyForceAtLocalPosition` for a world-space vector or `applyRelativeForceAtLocalPosition` for a body-local vector. Offsets are measured in world units along the body's unscaled local axes.
+`applyRelativeForce` and `applyRelativeTorque` use the body's local axes with the same modes. `applyForceAtPosition` applies a force or impulse at a world-space position using `ForceMode.Force` (default) or `ForceMode.Impulse`.
 
 `applyExplosionForce` applies a radial force to a dynamic body with linear falloff. It uses the nearest collider surface to compute the force and torque, or the center of mass if the origin is inside the collider or no volume is available. A radius of zero uses full strength at any distance. The upward offset adjusts only the direction.
 
@@ -150,7 +146,7 @@ rigidbody.isKinematic = false;
 Apply sustained force and torque in `onPhysicsUpdate()` to use the fixed physics timestep. Read the jump key in `onUpdate()` and apply a one-shot impulse once per frame.
 
 ```typescript
-import { Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacean/engine";
+import { ForceMode, Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacean/engine";
 
 class PhysicsController extends Script {
   private static readonly _force = new Vector3(0, 0, 10);
@@ -179,7 +175,7 @@ class PhysicsController extends Script {
   onUpdate() {
     // Jump without changing horizontal velocity.
     if (this.engine.inputManager.isKeyDown(Keys.Space)) {
-      this._rigidbody.applyImpulse(PhysicsController._jumpImpulse);
+      this._rigidbody.applyForce(PhysicsController._jumpImpulse, ForceMode.Impulse);
     }
   }
 }

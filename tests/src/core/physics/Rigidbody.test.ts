@@ -639,7 +639,7 @@ describe("Rigidbody", function () {
       expect(() => (body.mass = invalid)).toThrow(RangeError);
       expect(body.mass).toBe(2);
     }
-    body.applyImpulse(new Vector3(4, 0, 0));
+    body.applyForce(new Vector3(4, 0, 0), ForceMode.Impulse);
     engine.sceneManager.activeScene.physics._update(engine.sceneManager.activeScene.physics.fixedTimeStep);
     expect(body.linearVelocity.x).toBeCloseTo(2);
   });
@@ -782,7 +782,7 @@ describe("Rigidbody", function () {
     expect(() => body.setDensity(0)).toThrow(RangeError);
     expect(body.setDensity(2 ** 127)).toBe(false);
     expect(body.mass).toBe(7);
-    body.applyImpulse(new Vector3(14, 0, 0));
+    body.applyForce(new Vector3(14, 0, 0), ForceMode.Impulse);
     const physics = engine.sceneManager.activeScene.physics;
     physics._update(physics.fixedTimeStep);
     expect(body.linearVelocity.x).toBeCloseTo(2);
@@ -1212,8 +1212,8 @@ describe("Rigidbody", function () {
     boxCollider.sleep();
     boxCollider.wakeUp();
     boxCollider.applyForce(new Vector3(1, 0, 0));
-    boxCollider.applyImpulse(new Vector3(1, 0, 0));
-    boxCollider.applyImpulseAtPosition(new Vector3(1, 0, 0), new Vector3(0, 1, 0));
+    boxCollider.applyForce(new Vector3(1, 0, 0), ForceMode.Impulse);
+    boxCollider.applyForceAtPosition(new Vector3(1, 0, 0), new Vector3(0, 1, 0), ForceMode.Impulse);
     boxCollider.applyTorque(new Vector3(0, 1, 0));
     boxCollider.isKinematic = true;
     boxCollider.move(new Vector3(1, 0, 0));
@@ -1332,7 +1332,7 @@ describe("Rigidbody", function () {
     body.applyForce(new Vector3(100, 0, 0));
 
     body.simulationEnabled = false;
-    body.applyImpulse(new Vector3(5, 0, 0));
+    body.applyForce(new Vector3(5, 0, 0), ForceMode.Impulse);
     physics._update(physics.fixedTimeStep);
     expect(box.transform.worldPosition.x).toBe(0);
     expect(body.linearVelocity.x).toBe(0);
@@ -1345,7 +1345,7 @@ describe("Rigidbody", function () {
     physics._update(physics.fixedTimeStep);
     expect(box.transform.worldPosition.x).toBe(0);
     expect(box.transform.worldPosition.y).toBeLessThan(3);
-    body.applyImpulse(new Vector3(1, 0, 0));
+    body.applyForce(new Vector3(1, 0, 0), ForceMode.Impulse);
     physics._update(physics.fixedTimeStep);
     expect(box.transform.worldPosition.x).toBeGreaterThan(0);
   });
@@ -1398,7 +1398,7 @@ describe("Rigidbody", function () {
 
     physics._update(physics.fixedTimeStep);
     expect(recorder.onSleep).toHaveBeenCalledOnce();
-    body.applyImpulse(new Vector3(1, 0, 0));
+    body.applyForce(new Vector3(1, 0, 0), ForceMode.Impulse);
     physics._update(physics.fixedTimeStep);
     expect(recorder.onWake).toHaveBeenCalledTimes(2);
 
@@ -1554,8 +1554,10 @@ describe("Rigidbody", function () {
     expect(dynamicBody.destroyed).toBe(true);
     expect(() => dynamicBody.applyForce(new Vector3(10, 0, 0))).not.toThrow();
     expect(() => dynamicBody.applyForceAtPosition(new Vector3(10, 0, 0), new Vector3(0, 1, 0))).not.toThrow();
-    expect(() => dynamicBody.applyImpulse(new Vector3(10, 0, 0))).not.toThrow();
-    expect(() => dynamicBody.applyImpulseAtPosition(new Vector3(10, 0, 0), new Vector3(0, 1, 0))).not.toThrow();
+    expect(() => dynamicBody.applyForce(new Vector3(10, 0, 0), ForceMode.Impulse)).not.toThrow();
+    expect(() =>
+      dynamicBody.applyForceAtPosition(new Vector3(10, 0, 0), new Vector3(0, 1, 0), ForceMode.Impulse)
+    ).not.toThrow();
     expect(() => dynamicBody.applyTorque(new Vector3(0, 10, 0))).not.toThrow();
 
     const kinematicBox = addBox(new Vector3(2, 2, 2), true, new Vector3(5, 0, 0));
@@ -1707,7 +1709,7 @@ describe("Rigidbody", function () {
     }
   );
 
-  it("applyImpulse changes linear velocity independently of fixedTimeStep with zero torque on manual and automatic offset centers of mass", () => {
+  it("applyForce with ForceMode.Impulse changes linear velocity independently of fixedTimeStep with zero torque on manual and automatic offset centers of mass", () => {
     const physics = engine.sceneManager.activeScene.physics;
     const impulse = new Vector3(6, 0, -4);
 
@@ -1722,7 +1724,7 @@ describe("Rigidbody", function () {
       body.centerOfMass = new Vector3(1, -0.5, 0.25);
       body.inertiaTensor = new Vector3(1, 1, 1);
 
-      body.applyImpulse(impulse);
+      body.applyForce(impulse, ForceMode.Impulse);
       physics._update(stepDuration);
       expect(body.linearVelocity.x).toBeCloseTo(3, 4);
       expect(body.linearVelocity.y).toBeCloseTo(0, 4);
@@ -1754,7 +1756,7 @@ describe("Rigidbody", function () {
     autoBody.angularDamping = 0;
 
     // Apply immediately before any physics step so pending collider mass/COM properties must sync first.
-    autoBody.applyImpulse(new Vector3(4, 0, 0));
+    autoBody.applyForce(new Vector3(4, 0, 0), ForceMode.Impulse);
     physics._update(physics.fixedTimeStep);
     expect(autoBody.linearVelocity.x).toBeCloseTo(2, 4);
     expect(autoBody.linearVelocity.y).toBeCloseTo(0, 4);
@@ -1763,11 +1765,11 @@ describe("Rigidbody", function () {
 
     autoBody.sleep();
     expect(autoBody.isSleeping()).toBe(true);
-    autoBody.applyImpulse(new Vector3(1, 0, 0));
+    autoBody.applyForce(new Vector3(1, 0, 0), ForceMode.Impulse);
     expect(autoBody.isSleeping()).toBe(false);
   });
 
-  it("applyImpulseAtPosition uses world space with an offset center of mass on a rotated body", () => {
+  it("applyForceAtPosition supports Force and Impulse in world space and rejects unsupported modes", () => {
     const physics = engine.sceneManager.activeScene.physics;
     const setupBox = () => {
       const box = addBox(new Vector3(2, 2, 2), true, new Vector3(5, 2, -3));
@@ -1796,7 +1798,7 @@ describe("Rigidbody", function () {
     while (rootEntity.children.length) rootEntity.children[0].destroy();
 
     const target = setupBox();
-    target.applyImpulseAtPosition(impulse, position);
+    target.applyForceAtPosition(impulse, position, ForceMode.Impulse);
     physics._update(physics.fixedTimeStep);
 
     expect(target.linearVelocity.x).toBeCloseTo(referenceLinearVelocity.x, 4);
@@ -1806,6 +1808,15 @@ describe("Rigidbody", function () {
     expect(target.angularVelocity.y).toBeCloseTo(referenceAngularVelocity.y, 4);
     expect(target.angularVelocity.z).toBeCloseTo(referenceAngularVelocity.z, 4);
     expect(target.angularVelocity.z).toBeLessThan(0);
+
+    expect(() => target.applyForceAtPosition(impulse, position, ForceMode.VelocityChange as never)).toThrow(RangeError);
+    expect(() => target.applyForceAtPosition(impulse, position, ForceMode.Acceleration as never)).toThrow(RangeError);
+    const detached = new Entity(engine).addComponent(Rigidbody);
+    detached.isKinematic = true;
+    expect(() => detached.applyForceAtPosition(impulse, position, ForceMode.VelocityChange as never)).toThrow(
+      RangeError
+    );
+    expect(() => detached.applyForceAtPosition(impulse, position, ForceMode.Acceleration as never)).toThrow(RangeError);
   });
 
   it.each([ForceMode.Acceleration, ForceMode.VelocityChange])("applies mass-independent force mode %s", (mode) => {
@@ -1863,35 +1874,6 @@ describe("Rigidbody", function () {
         expect(body.angularVelocity.z).toBeCloseTo(0, 5);
       }
     );
-
-    it.each([
-      [false, ForceMode.Force],
-      [false, ForceMode.Impulse],
-      [true, ForceMode.Force],
-      [true, ForceMode.Impulse]
-    ] as const)("applies a vector (relative=%s, mode=%s) at an unscaled body-local point", (relative, mode) => {
-      const physics = engine.sceneManager.activeScene.physics;
-      const dt = physics.fixedTimeStep;
-      const speed = mode === ForceMode.Impulse ? 1 : dt;
-      const body = createBody();
-      body.inertiaTensor.set(1, 1, 1);
-      const vector = new Vector3(2, 0, 0);
-      const offset = new Vector3(0, 1, 0);
-
-      if (relative) {
-        body.applyRelativeForceAtLocalPosition(vector, offset, mode);
-      } else {
-        body.applyForceAtLocalPosition(vector, offset, mode);
-      }
-      physics._update(dt);
-
-      expect(body.linearVelocity.x).toBeCloseTo(relative ? 0 : speed, 5);
-      expect(body.linearVelocity.y).toBeCloseTo(relative ? speed : 0, 5);
-      expect(body.linearVelocity.z).toBeCloseTo(0, 5);
-      expect(body.angularVelocity.x).toBeCloseTo(0, 5);
-      expect(body.angularVelocity.y).toBeCloseTo(0, 5);
-      expect(body.angularVelocity.z).toBeCloseTo((relative ? -2 : 2) * speed, 5);
-    });
   });
 
   describe("explosion force", () => {
@@ -1984,14 +1966,82 @@ describe("Rigidbody", function () {
     expect(body.angularVelocity.z).toBeCloseTo(0, 5);
   });
 
-  it("ignores impulse calls on kinematic bodies and with non-finite inputs", () => {
+  it("supports mutable Quaternion semantics and validation rollback on inertiaTensorRotation", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const entity = rootEntity.createChild("mutable-inertia-rotation");
+    const collider = entity.addComponent(BoxCollider);
+    collider.size.set(2, 4, 6);
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.angularDamping = 0;
+
+    // Reading while automatic does not turn off automaticInertiaTensor.
+    const autoRotation = body.inertiaTensorRotation;
+    expect(body.automaticInertiaTensor).toBe(true);
+    const product = new Quaternion();
+    Quaternion.multiply(autoRotation, new Quaternion(), product);
+    expect(product.w).toBeCloseTo(1, 5);
+
+    // Non-unit in-place mutation normalizes, disables auto, preserves computed tensor, and updates simulation.
+    const z30 = Math.sin(Math.PI / 12);
+    const w30 = Math.cos(Math.PI / 12);
+    autoRotation.set(0, 0, 2 * z30, 2 * w30);
+    expect(body.automaticInertiaTensor).toBe(false);
+    expect(body.inertiaTensorRotation.z).toBeCloseTo(z30, 5);
+    expect(body.inertiaTensorRotation.w).toBeCloseTo(w30, 5);
+    expect(body.inertiaTensor.x).toBeGreaterThan(0);
+
+    // Manual rotateZ / copyFrom updates simulated principal axes.
+    body.inertiaTensor = new Vector3(2, 3, 4);
+    body.inertiaTensorRotation.copyFrom(new Quaternion()).rotateZ(Math.PI / 2);
+    expect(body.inertiaTensorRotation.w).toBeCloseTo(Math.SQRT1_2, 5);
+    body.applyTorque(new Vector3(3, 0, 0), ForceMode.Impulse);
+    physics._update(physics.fixedTimeStep);
+    expect(body.angularVelocity.x).toBeCloseTo(1, 5);
+
+    // Invalid assignment throws without mutating stored quaternion or changing auto mode.
+    body.automaticInertiaTensor = true;
+    const shapeEntity = entity.createChild("rotated-shape");
+    shapeEntity.transform.rotation.z = 30;
+    shapeEntity.addComponent(BoxCollider).size.set(2, 4, 6);
+    const computedBeforeInvalid = body.inertiaTensorRotation.clone();
+    expect(() => (body.inertiaTensorRotation = new Quaternion(0, 0, 0, 0))).toThrow();
+    expect(() => (body.inertiaTensorRotation = new Quaternion(Number.NaN, 0, 0, 1))).toThrow();
+    expect(body.automaticInertiaTensor).toBe(true);
+    expect(Math.abs(Quaternion.dot(body.inertiaTensorRotation, computedBeforeInvalid))).toBeCloseTo(1, 5);
+
+    // Invalid in-place mutation while automatic restores the computed principal rotation.
+    expect(() => body.inertiaTensorRotation.set(0, 0, 0, 0)).toThrow();
+    expect(body.automaticInertiaTensor).toBe(true);
+    expect(Math.abs(Quaternion.dot(body.inertiaTensorRotation, computedBeforeInvalid))).toBeCloseTo(1, 5);
+
+    // Invalid in-place mutation right after disabling automatic restores the captured computed rotation.
+    body.automaticInertiaTensor = false;
+    expect(() => (body.inertiaTensorRotation.w = Number.NaN)).toThrow();
+    expect(Math.abs(Quaternion.dot(body.inertiaTensorRotation, computedBeforeInvalid))).toBeCloseTo(1, 5);
+
+    // Invalid in-place mutation in manual mode restores the last valid manual unit rotation.
+    const manual = new Quaternion().rotateZ(Math.PI / 2);
+    body.inertiaTensorRotation = manual;
+    expect(() => body.inertiaTensorRotation.set(0, 0, 0, 0)).toThrow();
+    expect(Math.abs(Quaternion.dot(body.inertiaTensorRotation, manual))).toBeCloseTo(1, 5);
+
+    // Retained reference after destroy does not throw when mutated.
+    const retained = body.inertiaTensorRotation;
+    body.destroy();
+    expect(() => retained.rotateX(0.5)).not.toThrow();
+  });
+
+  it("ignores non-finite force inputs and force calls on kinematic bodies", () => {
     const physics = engine.sceneManager.activeScene.physics;
 
     const kinematicBox = addBox(new Vector3(2, 2, 2), true, new Vector3(0, 0, 0));
     const kinematicBody = kinematicBox.getComponent(Rigidbody);
     kinematicBody.isKinematic = true;
-    expect(() => kinematicBody.applyImpulse(new Vector3(5, 0, 0))).not.toThrow();
-    expect(() => kinematicBody.applyImpulseAtPosition(new Vector3(5, 0, 0), new Vector3(0, 1, 0))).not.toThrow();
+    expect(() => kinematicBody.applyForce(new Vector3(5, 0, 0), ForceMode.Impulse)).not.toThrow();
+    expect(() =>
+      kinematicBody.applyForceAtPosition(new Vector3(5, 0, 0), new Vector3(0, 1, 0), ForceMode.Impulse)
+    ).not.toThrow();
     physics._update(physics.fixedTimeStep);
     expect(kinematicBody.linearVelocity.length()).toBe(0);
     expect(kinematicBody.angularVelocity.length()).toBe(0);
@@ -2003,17 +2053,23 @@ describe("Rigidbody", function () {
     dynamicBody.linearDamping = 0;
     dynamicBody.angularDamping = 0;
 
-    expect(() => dynamicBody.applyImpulse(new Vector3(Number.NaN, 0, 0))).not.toThrow();
-    expect(() => dynamicBody.applyImpulse(new Vector3(Number.POSITIVE_INFINITY, 0, 0))).not.toThrow();
-    expect(() => dynamicBody.applyImpulseAtPosition(new Vector3(Number.NaN, 1, 0), new Vector3(5, 1, 0))).not.toThrow();
+    expect(() => dynamicBody.applyForce(new Vector3(Number.NaN, 0, 0), ForceMode.Impulse)).not.toThrow();
+    expect(() => dynamicBody.applyForce(new Vector3(Number.POSITIVE_INFINITY, 0, 0), ForceMode.Impulse)).not.toThrow();
     expect(() =>
-      dynamicBody.applyImpulseAtPosition(new Vector3(1, 0, 0), new Vector3(5, Number.POSITIVE_INFINITY, 0))
+      dynamicBody.applyForceAtPosition(new Vector3(Number.NaN, 1, 0), new Vector3(5, 1, 0), ForceMode.Impulse)
+    ).not.toThrow();
+    expect(() =>
+      dynamicBody.applyForceAtPosition(
+        new Vector3(1, 0, 0),
+        new Vector3(5, Number.POSITIVE_INFINITY, 0),
+        ForceMode.Impulse
+      )
     ).not.toThrow();
     physics._update(physics.fixedTimeStep);
     expect(dynamicBody.linearVelocity.length()).toBe(0);
     expect(dynamicBody.angularVelocity.length()).toBe(0);
 
-    dynamicBody.applyImpulse(new Vector3(2, 0, 0));
+    dynamicBody.applyForce(new Vector3(2, 0, 0), ForceMode.Impulse);
     physics._update(physics.fixedTimeStep);
     expect(dynamicBody.linearVelocity.x).toBeCloseTo(1, 4);
   });

@@ -210,6 +210,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return this._isSceneQuery;
   }
 
+  /** @internal @beta */
   set isSceneQuery(value: boolean) {
     if (this._isSceneQuery !== value) {
       this._isSceneQuery = value;

@@ -167,18 +167,12 @@ export interface IDynamicCollider extends ICollider {
   addForce(force: Vector3, mode: number): void;
 
   /**
-   * Apply a force to the dynamic collider at a world-space position.
-   * @param force - The force make the collider move
+   * Applies a world-space force or impulse at a world-space position.
+   * @param force - World-space force or impulse vector
    * @param position - The world-space position where the force is applied
+   * @param impulse - Whether to apply an impulse instead of a force
    */
-  addForceAtPosition(force: Vector3, position: Vector3): void;
-
-  /**
-   * Apply a world-space impulse to the dynamic collider at a world-space position.
-   * @param impulse - The world-space impulse to apply
-   * @param position - The world-space position where the impulse is applied
-   */
-  addImpulseAtPosition(impulse: Vector3, position: Vector3): void;
+  addForceAtPosition(force: Vector3, position: Vector3, impulse: boolean): void;
 
   /**
    * Applies a world-space torque to the dynamic collider.
@@ -192,12 +186,6 @@ export interface IDynamicCollider extends ICollider {
 
   /** Applies a body-local torque using the selected mode. */
   addRelativeTorque(torque: Vector3, mode: number): void;
-
-  /** Applies a world-space force or impulse at an unscaled point relative to the body origin. */
-  addForceAtLocalPosition(force: Vector3, position: Vector3, impulse: boolean): void;
-
-  /** Applies a body-local force or impulse at an unscaled point relative to the body origin. */
-  addRelativeForceAtLocalPosition(force: Vector3, position: Vector3, impulse: boolean): void;
 
   /**
    * Applies a radial force with linear falloff at the nearest surface point, or at the center of mass.

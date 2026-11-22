@@ -105,13 +105,9 @@ PhysX 对动态刚体使用线性扫掠，对运动学刚体使用推测式接�
 | --- | --- |
 | [**setDensity**](/apis/core/#Rigidbody-setDensity) | 根据所挂载的实体碰撞体体积推导质量 |
 | [**applyForce**](/apis/core/#Rigidbody-applyForce) | 按指定模式在质心施加世界空间中的力 |
-| [**applyForceAtPosition**](/apis/core/#Rigidbody-applyForceAtPosition) | 在世界空间中的指定位置施加力 |
+| [**applyForceAtPosition**](/apis/core/#Rigidbody-applyForceAtPosition) | 在世界空间中的指定位置施加力或冲量 |
 | [**applyRelativeForce**](/apis/core/#Rigidbody-applyRelativeForce) | 按指定模式沿刚体局部轴在质心施加力 |
-| [**applyForceAtLocalPosition**](/apis/core/#Rigidbody-applyForceAtLocalPosition) | 在刚体局部坐标中的指定位置施加世界空间中的力或冲量 |
-| [**applyRelativeForceAtLocalPosition**](/apis/core/#Rigidbody-applyRelativeForceAtLocalPosition) | 在刚体局部坐标中的指定位置施加刚体局部的力或冲量 |
 | [**applyExplosionForce**](/apis/core/#Rigidbody-applyExplosionForce) | 施加按距离线性衰减的径向爆炸力 |
-| [**applyImpulse**](/apis/core/#Rigidbody-applyImpulse) | 在质心施加世界空间冲量 |
-| [**applyImpulseAtPosition**](/apis/core/#Rigidbody-applyImpulseAtPosition) | 在世界空间中的指定位置施加冲量 |
 | [**applyTorque**](/apis/core/#Rigidbody-applyTorque) | 按指定模式施加世界空间中的扭矩 |
 | [**applyRelativeTorque**](/apis/core/#Rigidbody-applyRelativeTorque) | 按指定模式绕刚体局部轴施加扭矩 |
 | [**getWorldCenterOfMass**](/apis/core/#Rigidbody-getWorldCenterOfMass) | 将世界坐标下的质心写入输出向量 |
@@ -126,7 +122,7 @@ PhysX 对动态刚体使用线性扫掠，对运动学刚体使用推测式接�
 
 `applyForce` 和 `applyTorque` 默认使用 `ForceMode.Force`。用 `ForceMode.Impulse` 施加一次线性冲量或角冲量，用 `ForceMode.VelocityChange` 直接改变速度，用 `ForceMode.Acceleration` 施加不受质量或惯性影响的加速度。
 
-`applyRelativeForce` 和 `applyRelativeTorque` 沿刚体的局部轴施力，支持相同的模式。指定刚体局部作用点时，世界空间向量用 `applyForceAtLocalPosition`，刚体局部向量用 `applyRelativeForceAtLocalPosition`。两者都支持力和冲量，作用点沿刚体未缩放的局部轴，以世界单位表示。
+`applyRelativeForce` 和 `applyRelativeTorque` 沿刚体的局部轴施力，支持相同的模式。`applyForceAtPosition` 在世界空间指定位置施加力或冲量，支持 `ForceMode.Force`（默认）和 `ForceMode.Impulse`。
 
 `applyExplosionForce` 对动态刚体施加按距离线性衰减的径向力。它用最近的碰撞体表面点计算力和力矩。爆心在碰撞体内或没有可用体积时，作用点取质心。半径为 0 时在任意距离施加完整强度，向上偏移只影响方向。
 
@@ -150,7 +146,7 @@ rigidbody.isKinematic = false;
 在 `onPhysicsUpdate()` 中施加持续力和扭矩，使它们随固定物理步更新。在 `onUpdate()` 中处理跳跃按键并施加一次性冲量，每帧读取一次。
 
 ```typescript
-import { Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacean/engine";
+import { ForceMode, Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacean/engine";
 
 class PhysicsController extends Script {
   private static readonly _force = new Vector3(0, 0, 10);
@@ -179,7 +175,7 @@ class PhysicsController extends Script {
   onUpdate() {
     // 跳跃时保留水平速度。
     if (this.engine.inputManager.isKeyDown(Keys.Space)) {
-      this._rigidbody.applyImpulse(PhysicsController._jumpImpulse);
+      this._rigidbody.applyForce(PhysicsController._jumpImpulse, ForceMode.Impulse);
     }
   }
 }
