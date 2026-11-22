@@ -1,0 +1,19 @@
+world/tests/seed-world-browser/BloomSinglePassPyramid.test.ts
+  s_3cd6502d102d7f::t_4411f202ec8bf9 8,10,20-24,288-385
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0159711d638f10768040ca601d8923207e216d9e",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

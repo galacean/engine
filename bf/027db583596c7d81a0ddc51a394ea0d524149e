@@ -1,0 +1,38 @@
+packages/terrain/src/data/seed-world/project.json
+  h_ddbf152d31b140 232,238,244,250
+packages/terrain/src/data/seed-world/public/Shader/Water/WaterAotManifest.48d7dabd450f1e2c5314663bc7cf1b5c94581ecf5fc51279467ad026dc29595e.json
+  h_ddbf152d31b140 5-6,9,13-14,17-18,23,32-33,35-36,71,73,76,85-86,88-89,119,122-124,132-133,135-136,161,164-166
+packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.a967b2f281e3c35a7da1a5c93ba62e13b2a27de24a7248f5377b60dd019940a2.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-far-graded.385b529df94d4cd836e1cc73a5436f0b69bdb7dffd31b7089844bf596896b6ec.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-near-detailed.a0946214fd906763e4e9e0163463833a6519d7b6dc0b60c6b3c141f1126d5ecb.shaderc
+  h_ddbf152d31b140 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  h_ddbf152d31b140 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/ocean.json
+  h_ddbf152d31b140 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  h_ddbf152d31b140 1
+packages/water/src/water/native/assets/Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc
+  h_ddbf152d31b140 1
+packages/water/src/water/native/assets/Water/Shaders/ocean-near-detailed.shaderc
+  h_ddbf152d31b140 1
+packages/water/src/water/native/assets/conversion.json
+  h_ddbf152d31b140 275,277-278,282,284-285
+world/scripts/tests/generate-water-assets.test.mjs
+  h_ddbf152d31b140 61
+world/scripts/water-shader-cleanup.mjs
+  h_ddbf152d31b140 77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "bf027db583596c7d81a0ddc51a394ea0d524149e",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

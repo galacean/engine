@@ -1,0 +1,226 @@
+packages/xr/src/XRManagerExtended.ts
+  s_3cd6502d102d7f::t_0893bace6d6f06 166
+tests/benchmarks/webgl2-submission/README.md
+  s_3cd6502d102d7f::t_78fbe2d680bf57 41-43
+  s_3cd6502d102d7f::t_0c9eb6c99d3777 23,44-45
+  s_3cd6502d102d7f::t_fdc8ae7ac42f4f 35-36
+  s_3cd6502d102d7f::t_1ee75096b04543 40
+  s_3cd6502d102d7f::t_d95125cc9651e9 46-67
+packages/core/src/shader/ShaderTextureLayout.ts
+  s_3cd6502d102d7f::t_adc9904cceed28 139
+packages/shader-compiler/src/ShaderPrecompiler.ts
+  s_3cd6502d102d7f::t_7ee1c606c2315d 48
+packages/core/src/renderingHardwareInterface/IPlatformBuffer.ts
+  s_3cd6502d102d7f::t_dc6244bec86b07 15-17
+packages/rhi-webgpu/src/WebGPUTextureArrayCache.ts
+  s_3cd6502d102d7f::t_47fdcbe74e8f6d 66,96,119-120
+  s_3cd6502d102d7f::t_8cb191b0b738fc 21-29,36-37,45,56,98-101,117-118
+tests/benchmarks/webgl2-submission/SystemWebKit.swift
+  s_3cd6502d102d7f::t_8ff5bc6b534199 1-77
+packages/shader-compiler/src/webgpu/SamplerBindings.ts
+  s_3cd6502d102d7f::t_16b9cf93c5704d 92-98
+packages/rhi-webgpu/src/WebGPUBuffer.ts
+  s_3cd6502d102d7f::t_810d3a2d1448fb 125,132
+  s_3cd6502d102d7f::t_7aae1bdc3177bf 122-124,129-131
+  s_3cd6502d102d7f::t_dc6244bec86b07 20-21,48-70
+  s_3cd6502d102d7f::t_535a16a9263448 101,110
+  s_3cd6502d102d7f::t_312962fe3c7fb4 71
+packages/shader-compiler/src/webgpu/StageInterface.ts
+  s_3cd6502d102d7f::t_b52261a578dedf 20,22-35,37-39,41-47
+  s_3cd6502d102d7f::t_b10da5ea8559e0 21,36,40
+packages/core/src/shader/SubShader.ts
+  s_3cd6502d102d7f::t_70ea1a2ff74cf7 3,12,51-52
+  s_3cd6502d102d7f::t_234a3f6c9ef2ed 4-6,16-48
+  s_3cd6502d102d7f::t_b7ca4d5046a05c 14-15,49-50,53-58,60-63
+  s_3cd6502d102d7f::t_a32213b0731d76 59
+packages/shader-compiler/src/webgpu/TextureBindings.ts
+  s_3cd6502d102d7f::t_8cb191b0b738fc 8-12,14-15,17-24,45,63,75-82,87-92,100-103,107-114,214,219-227,239-242
+packages/shader/src/ShaderLibrary/Common/Common.glsl
+  s_3cd6502d102d7f::t_fea67493280d7a 64-70,108
+packages/core/src/shader/GlobalUniformBlock.ts
+  s_3cd6502d102d7f::t_7ee1c606c2315d 103-104,131-134
+  s_3cd6502d102d7f::t_5cc3bf977bb63a 8,41,66,102,129-130,135-136
+packages/core/src/shader/RendererUniformKey.ts
+  s_3cd6502d102d7f::t_5cc3bf977bb63a 1-81
+packages/rhi-webgpu/src/WebGPUDrawBundles.ts
+  s_3cd6502d102d7f::t_2db6250922cc11 128-132,136-142,161,171-173
+  s_3cd6502d102d7f::t_2cf863f5104e8b 43,55
+  s_3cd6502d102d7f::t_9b1bd8dd14f0ea 60-61,74
+  s_3cd6502d102d7f::t_4ffe04ebbe5728 162-170
+tests/benchmarks/webgl2-submission/main.js
+  s_3cd6502d102d7f::t_4ffe04ebbe5728 53-54,77-80,156-160
+  s_3cd6502d102d7f::t_1d4c2e62113491 1-13,49-52,55-65
+  s_3cd6502d102d7f::t_0c9eb6c99d3777 22-24,35,39
+  s_3cd6502d102d7f::t_fdc8ae7ac42f4f 140-143,148-151,185,190,198-204,210,212-223,228-239,241,284-292
+  s_3cd6502d102d7f::t_7c8e8fbf536503 211
+  s_3cd6502d102d7f::t_78fbe2d680bf57 153-155,161-164
+packages/core/src/RenderPipeline/MaskManager.ts
+  s_3cd6502d102d7f::t_b5c567c38ec66f 42-46,105
+packages/shader-compiler/src/ShaderCompiler.ts
+  s_3cd6502d102d7f::t_7ee1c606c2315d 60,89
+  s_3cd6502d102d7f::t_be644498ad53e2 31,80
+packages/shader-compiler/src/webgpu/WGSLBackend.ts
+  s_3cd6502d102d7f::t_e4e856747f5491 172-175
+packages/shader/src/ShaderLibrary/PBR/BSDF.glsl
+  s_3cd6502d102d7f::t_fea67493280d7a 395,467
+packages/rhi-webgpu/src/WebGPUShaderProgram.ts
+  s_3cd6502d102d7f::t_8cb191b0b738fc 67-70,249-250,254-255,363-365,368-370,479-480
+  s_3cd6502d102d7f::t_adc9904cceed28 638-639
+  s_3cd6502d102d7f::t_2db6250922cc11 50,73,79,212-215,221,226,295-298,309,409,552
+tests/src/xr/Lifecycle.test.ts
+  s_3cd6502d102d7f::t_0893bace6d6f06 103
+packages/core/src/particle/modules/shape/MeshShape.ts
+  s_3cd6502d102d7f::t_b25df4363ab4fc 160-161
+  s_3cd6502d102d7f::t_82343f92ac5e81 37-41,131,135
+tests/benchmarks/backend-parity/run.mjs
+  s_3cd6502d102d7f::t_b2b9aa4a628539 22-39
+  s_3cd6502d102d7f::t_8df8f8ea4a9492 7
+  s_3cd6502d102d7f::t_a796d53a0c835c 3,6,45-61,144-152,157-159
+packages/rhi-webgpu/src/WebGPUMipmapGenerator.ts
+  s_3cd6502d102d7f::t_535a16a9263448 85,94
+  s_3cd6502d102d7f::t_38cf41fe6e2654 14-15,79-84,86-93,95-105,107-117
+packages/rhi-webgpu/src/WebGPUPrimitive.ts
+  s_3cd6502d102d7f::t_2db6250922cc11 20,153
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_3cd6502d102d7f::t_708def7fb656b0 469-474,479
+tests/src/core/Shader.test.ts
+  s_3cd6502d102d7f::t_70ea1a2ff74cf7 89-100
+packages/shader-compiler/src/ShaderCompilation.ts
+  s_3cd6502d102d7f::t_7ee1c606c2315d 39
+packages/core/src/RenderPipeline/CullingResults.ts
+  s_3cd6502d102d7f::t_708def7fb656b0 14,20
+packages/core/src/shader/ShaderTagKey.ts
+  s_3cd6502d102d7f::t_b7ca4d5046a05c 23-24
+tests/benchmarks/webgl2-submission/run.mjs
+  s_3cd6502d102d7f::t_1d4c2e62113491 32-37
+  s_3cd6502d102d7f::t_fdc8ae7ac42f4f 12
+tests/src/rhi-webgpu/NativeRendering.test.ts
+  s_3cd6502d102d7f::t_fa97a178da8037 660,662
+  s_3cd6502d102d7f::t_98ae71b0fdfa3e 245-273,286-289
+  s_3cd6502d102d7f::t_7ca4f899389307 344-348,352-371,373,389-392,458-464,466-468
+  s_3cd6502d102d7f::t_b8eaea6ec9716d 2,27,29,469,619-621,636,640-652,679,685-686
+  s_3cd6502d102d7f::t_bcf1b61d94437d 382-383,465
+  s_3cd6502d102d7f::t_1118a170b0c3fe 222,410-457,470,687
+  s_3cd6502d102d7f::t_ab6295e69829dc 20-21,161-221
+  s_3cd6502d102d7f::t_962d1404b891d5 291-292,308
+  s_3cd6502d102d7f::t_8cb191b0b738fc 597-618,622-635,637-639,653-659,661,663-678,680-684
+  s_3cd6502d102d7f::t_c187324888ed1c 223
+  s_3cd6502d102d7f::t_dac8c354bccc41 471
+  s_3cd6502d102d7f::t_5386fdfaca7f4b 688
+packages/rhi-webgpu/src/WebGPUTexture.ts
+  s_3cd6502d102d7f::t_8cb191b0b738fc 28,30-32,34-35,54,103,126-131,143-144,147-148,166-174
+  s_3cd6502d102d7f::t_edda7abb93ceaf 10-17,203,243-244,307,331,369-370,403-404,406-408
+  s_3cd6502d102d7f::t_38cf41fe6e2654 199,205
+  s_3cd6502d102d7f::t_47fdcbe74e8f6d 26-27,29,33,36
+tests/benchmarks/backend-parity/compare.mjs
+  s_3cd6502d102d7f::t_8df8f8ea4a9492 1-46,50-57
+  s_3cd6502d102d7f::t_4ffe04ebbe5728 47-49
+packages/rhi-webgpu/src/WebGPUDeferredPass.ts
+  s_3cd6502d102d7f::t_85459c008ce05e 1-101,103-134,136-150,152-157,159-162
+  s_3cd6502d102d7f::t_58b76021862af5 102,135,151,158
+tests/src/rhi-webgpu/CameraTextureUV.test.ts
+  s_3cd6502d102d7f::t_2d402b2d90fb30 1-11,13-15,38,92-93
+  s_3cd6502d102d7f::t_535a16a9263448 12,16,39,46,88,91
+  s_3cd6502d102d7f::t_deaef703f67d58 17-37,40-45,47-87,89-90,94
+packages/rhi-webgpu/src/WebGPURenderTarget.ts
+  s_3cd6502d102d7f::t_38cf41fe6e2654 126-127
+  s_3cd6502d102d7f::t_9c6baee2c791b3 88
+packages/rhi-webgpu/README.md
+  s_3cd6502d102d7f::t_1ee75096b04543 37-40
+packages/core/src/Camera.ts
+  s_3cd6502d102d7f::t_0893bace6d6f06 140-141
+packages/xr/src/feature/camera/XRCameraManager.ts
+  s_3cd6502d102d7f::t_0893bace6d6f06 1,11-15,55-58,86-89,110-119,147-161
+  s_3cd6502d102d7f::t_d4d0a6c209d34a 105
+tests/src/xr/WebGPUProjection.test.ts
+  s_3cd6502d102d7f::t_0893bace6d6f06 32,123-126,148-149,207-210
+packages/loader/src/gltf/parser/GLTFMeshParser.ts
+  s_3cd6502d102d7f::t_b25df4363ab4fc 102-105
+packages/rhi-webgpu/src/WebGPUGraphicDevice.ts
+  s_3cd6502d102d7f::t_47fdcbe74e8f6d 794,809
+  s_3cd6502d102d7f::t_44a4883c3c8642 832,836-837
+  s_3cd6502d102d7f::t_13298a74665aca 697,701
+  s_3cd6502d102d7f::t_8cb191b0b738fc 404-407,795-808
+  s_3cd6502d102d7f::t_e87c7d320aecf6 33,255-256,346,651,655-656,659-662,977,992-1003,1010-1011,1155,1162,1391-1405
+  s_3cd6502d102d7f::t_810d3a2d1448fb 1268-1269,1301-1302
+  s_3cd6502d102d7f::t_2db6250922cc11 233,447-457
+  s_3cd6502d102d7f::t_38cf41fe6e2654 1270,1303,1307-1308
+  s_3cd6502d102d7f::t_535a16a9263448 269-270,828,897,1271-1297
+packages/core/src/graphic/Buffer.ts
+  s_3cd6502d102d7f::t_810d3a2d1448fb 93-94
+  s_3cd6502d102d7f::t_b25df4363ab4fc 25-26,81-92,95-97,234,317,344
+tests/src/rhi-webgpu/ShaderPreparation.test.ts
+  s_3cd6502d102d7f::t_582d65b4305e73 2,4,8,17-64
+  s_3cd6502d102d7f::t_cad62a1aa16633 65,106-107,109,117
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_3cd6502d102d7f::t_b5c567c38ec66f 94-96,98-99
+  s_3cd6502d102d7f::t_4a9872bbffc562 110
+  s_3cd6502d102d7f::t_70ea1a2ff74cf7 103
+  s_3cd6502d102d7f::t_f79fc0581c2094 60,62,104-105,139
+packages/core/src/shader/RendererUniformCache.ts
+  s_3cd6502d102d7f::t_5cc3bf977bb63a 14,35-36,39-48,51,53-56,70,118,123,128
+  s_3cd6502d102d7f::t_b10da5ea8559e0 59,72-75
+  s_3cd6502d102d7f::t_7ee1c606c2315d 49-50,52,69
+packages/rhi-webgpu/src/WebGPUAttachmentOps.ts
+  s_3cd6502d102d7f::t_d43ead21306ff4 3,18,69-71
+tests/benchmarks/webgl2-submission/recovery.js
+  s_3cd6502d102d7f::t_78fbe2d680bf57 11-32,35-69
+  s_3cd6502d102d7f::t_810d3a2d1448fb 1-10,33-34
+tests/src/core/RenderPipeline/RendererUniformCache.test.ts
+  s_3cd6502d102d7f::t_b10da5ea8559e0 135,149,153,165
+  s_3cd6502d102d7f::t_1218a7fdb3bc89 3,133-134,136-148,150-152,154-164,166-171
+  s_3cd6502d102d7f::t_4cd50c0a6764e6 172-173
+packages/design/src/xr/IXRSession.ts
+  s_3cd6502d102d7f::t_0893bace6d6f06 48-50
+tests/src/rhi-webgpu/CubeProbe.test.ts
+  s_3cd6502d102d7f::t_aa6de2ce1509b6 8,10-11
+  s_3cd6502d102d7f::t_e92961f4af1e0d 14-66,70
+  s_3cd6502d102d7f::t_c133d1f25eb90d 1-7,9,12-13,67-69
+packages/core/src/RenderPipeline/MatrixSnapshot.ts
+  s_3cd6502d102d7f::t_3ac3379e9163d4 24-26,32,38-41,45-47,54-57
+  s_3cd6502d102d7f::t_7362152dd9bf2a 58
+packages/core/src/shader/ShaderPass.ts
+  s_3cd6502d102d7f::t_62009da0b3ac41 6,49-51,53-71,100,287,289-290,295-297,302-303,305,341-350,354-355,360,404-414
+  s_3cd6502d102d7f::t_0f305ca1aeba9a 52
+packages/core/src/shader/state/RenderState.ts
+  s_3cd6502d102d7f::t_708def7fb656b0 147,149
+  s_3cd6502d102d7f::t_61755743c75330 148
+tests/src/shader-compiler/WebGPUBackend.test.ts
+  s_3cd6502d102d7f::t_1218a7fdb3bc89 67-78
+  s_3cd6502d102d7f::t_8cb191b0b738fc 162-164,168,170,180,188,200
+  s_3cd6502d102d7f::t_adc9904cceed28 165-166,169,201
+packages/core/src/shader/ShaderPart.ts
+  s_3cd6502d102d7f::t_b7ca4d5046a05c 40,57-61
+packages/xr-webxr/src/WebXRSession.ts
+  s_3cd6502d102d7f::t_0893bace6d6f06 55-62
+packages/core/src/RenderPipeline/InstanceBuffer.ts
+  s_3cd6502d102d7f::t_dc6244bec86b07 122-132,135
+packages/core/src/mesh/ModelMesh.ts
+  s_3cd6502d102d7f::t_ae6b3f815e8ac9 723-728,731,733,735,737,739
+packages/core/src/shader/ShaderMacroProcessor.ts
+  s_3cd6502d102d7f::t_a8938de76c8c9e 37-46,80
+packages/core/src/shader/ShaderProgram.ts
+  s_3cd6502d102d7f::t_3ec1237aed3bd0 4-6,95-170
+packages/rhi-webgpu/src/WebGPUFeedbackKernel.ts
+  s_3cd6502d102d7f::t_a967d6c4808921 149
+packages/rhi-webgpu/src/WebGPUPixelConversion.ts
+  s_3cd6502d102d7f::t_82b2c5afcb4296 13-127
+packages/shader-compiler/src/webgpu.ts
+  s_3cd6502d102d7f::t_288dc12f163252 20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fd977b0150632ee4447e852f4db2b7bfc2f63759",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

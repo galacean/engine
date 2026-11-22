@@ -1,0 +1,37 @@
+tests/benchmarks/webgl2-submission/README.md
+  s_3cd6502d102d7f::t_8bb9b6809f02d3 13-18
+  s_3cd6502d102d7f::t_02e81c1df338c7 1-12,19-29
+tests/benchmarks/webgl2-submission/index.html
+  s_3cd6502d102d7f::t_4e4b6f5ef00fa8 2-3
+  s_3cd6502d102d7f::t_9473ec0148bae2 1,4-7
+tests/benchmarks/webgl2-submission/main.js
+  s_3cd6502d102d7f::t_4e4b6f5ef00fa8 1-10,59-70,119-124,130-131,148-152,162-170,172-174,182-190
+  s_3cd6502d102d7f::t_b6ce9eec6c7406 153,157
+  s_3cd6502d102d7f::t_11794e0cdce277 93-106,156,171
+  s_3cd6502d102d7f::t_982daa35837a59 144-147
+  s_3cd6502d102d7f::t_9473ec0148bae2 11-58,71-92,107-118,125-129,132-142,154-155,158-161,175-181
+  s_3cd6502d102d7f::t_877b01e5895283 143
+tests/benchmarks/webgl2-submission/run.mjs
+  s_3cd6502d102d7f::t_8bb9b6809f02d3 1-23,27-28,30-35
+  s_3cd6502d102d7f::t_4f7578bbec8522 24-26,29
+tests/benchmarks/webgl2-submission/scenes.js
+  s_3cd6502d102d7f::t_64f46efa2a20c8 1-103,107-147,176-229
+  s_3cd6502d102d7f::t_eb42295e026ed3 148-175
+  s_3cd6502d102d7f::t_877b01e5895283 104-106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d4d682098e75a256676d75f4c4645d822bca1ec9",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
