@@ -20,7 +20,12 @@ export function createSeedWorldAgentDefinition(
   const toolNames = createSeedWorldTools(application).map(tool => tool.name);
   const components = application.parameterAuthoring?.describe() as { type: string }[] | undefined;
   return {
-    scriptApi: nativeEditor ? seedWorldNativeKnowledge(createSeedWorldKnowledge(toolNames, components?.map(component => component.type)))
+    scriptApi: nativeEditor
+      ? seedWorldNativeKnowledge(
+          createSeedWorldKnowledge(toolNames, components?.map(component => component.type), {
+            defaultScenePath: nativeEditor.defaultScenePath
+          })
+        )
       : createSeedWorldKnowledge(toolNames, components?.map(component => component.type)),
     projectFiles: [engineRuntimeFiles(nativeEditor?.scriptEnvironment), ...(nativeEditor?.projectFiles ?? [])],
     runtimeDiagnostics: nativeEditor ? () => nativeEditor.runtimeDiagnostics() : undefined,

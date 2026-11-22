@@ -557,5 +557,45 @@ describe("instanced tree CRUD rainbow effects", () => {
     expect(forestMembers.every((p) => p.layerId === "乔木")).toBe(true);
     expect(shrubMembers).toHaveLength(3);
     expect(shrubMembers.every((p) => p.layerId === "小灌木")).toBe(true);
+
+    // Passing population uses its filtered treeInstances rather than falling back to unfiltered compileAuthoredVegetation.
+    const { compileAuthoredVegetation } = await import("../src/spatial/ecology/AuthoredVegetation");
+    const filteredPopTrees = compileAuthoredVegetation(
+      plan.authoredResources,
+      256,
+      42,
+      [],
+      (inst) => inst.normalizedPosition.x * 256 >= 120
+    );
+    const projectedWithPop = actual.planningEditablePlants(plan, { sample: () => 3 }, assets, {
+      treeInstances: filteredPopTrees
+    });
+    const forestWithPop = projectedWithPop.filter((p) => p.scopeId === "forest-brush-1");
+    expect(forestWithPop.length).toBe(filteredPopTrees.filter((t) => t.authoringBrushId === "forest-brush-1").length);
+    expect(forestWithPop.every((p) => p.position[0] >= 120)).toBe(true);
+  });
+
+  it("exposes animating enter/update instancedTreeEffects to visitPickBatches while excluding exit animations", () => {
+    const enterRecord: InstancedUnderstoryRecord = {
+      instance: makeInstance({ id: "t-enter", scopeId: "t-enter" }),
+      groundHeight: 2,
+      excluded: false
+    } as any;
+    const { runtime } = createRuntimeFixture([enterRecord]);
+    runtime.instancedTrees.visitPickBatches = vi.fn();
+    runtime.playInstancedTreeEffect(enterRecord.instance, 2, "enter", enterRecord);
+    runtime.playInstancedTreeEffect(makeInstance({ id: "t-exit", scopeId: "t-exit" }), 2, "exit", undefined);
+
+    const enterPlant = runtime.instancedTreeEffects.get("t-enter")!.plant;
+    const exitPlant = runtime.instancedTreeEffects.get("t-exit")!.plant;
+    const enterBatch = { renderer: { enabled: true, entity: { isActiveInHierarchy: true } }, id: "enter-batch" };
+    const exitBatch = { renderer: { enabled: true, entity: { isActiveInHierarchy: true } }, id: "exit-batch" };
+    enterPlant.pickBatches.push(enterBatch);
+    exitPlant.pickBatches.push(exitBatch);
+
+    const visited: unknown[] = [];
+    runtime.visitPickBatches((batch: unknown) => visited.push(batch));
+    expect(visited).toContain(enterBatch);
+    expect(visited).not.toContain(exitBatch);
   });
 });

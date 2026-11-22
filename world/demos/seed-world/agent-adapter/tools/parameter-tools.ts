@@ -317,12 +317,44 @@ function buildSystemConfigContracts(spec: SystemConfigSpec) {
       versionToken: text.optional().describe("可选乐观并发令牌；省略时自动读取最新版本")
     })
     .superRefine((value, context) => {
-      if (value.operations?.length && (value.values !== undefined || value.base !== undefined)) {
+      const hasOperations = Boolean(value.operations?.length);
+      const hasValues = Boolean(value.values && Object.keys(value.values).length > 0);
+      const hasBase = value.base !== undefined;
+      if (hasOperations && (value.values !== undefined || hasBase)) {
         context.addIssue({
           code: "custom",
           path: ["operations"],
           message: "operations 与顶层 values/base 互斥，请将全部写操作合并到 operations 中，或仅使用单组件 values/base。"
         });
+        return;
+      }
+      if (!hasOperations && !hasValues && !hasBase) {
+        context.addIssue({
+          code: "custom",
+          path: ["values"],
+          message: `请提供非空的 values、base 或 operations（用于更新 ${spec.system} 系统配置）。`
+        });
+      }
+      if (!spec.defaultComponent) {
+        if (!hasOperations) {
+          if (!value.component) {
+            context.addIssue({
+              code: "custom",
+              path: ["component"],
+              message: `${spec.system} 系统包含多个组件（${componentListText}），单组件更新时必须指定 component。`
+            });
+          }
+        } else {
+          value.operations!.forEach((op, index) => {
+            if (!(op.component ?? value.component)) {
+              context.addIssue({
+                code: "custom",
+                path: ["operations", index, "component"],
+                message: `${spec.system} 系统包含多个组件（${componentListText}），每条操作必须指定 component（或在顶层提供默认 component）。`
+              });
+            }
+          });
+        }
       }
     });
 

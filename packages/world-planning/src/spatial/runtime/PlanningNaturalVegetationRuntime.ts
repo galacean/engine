@@ -2924,6 +2924,11 @@ export class PlanningNaturalVegetationRuntime {
   visitPickBatches(visitor: SeedWorldPickVisitor): void {
     if (this.disposed) return;
     for (const tree of this.trees) visitPlantPickBatches(tree, visitor);
+    if (this.instancedTreeEffects) {
+      for (const active of this.instancedTreeEffects.values()) {
+        if (active.record) visitPlantPickBatches(active.plant, visitor);
+      }
+    }
     this.instancedTrees?.visitPickBatches(visitor);
     for (const cell of this.cells.values()) for (const plant of cell.plants) visitPlantPickBatches(plant, visitor);
     this.instancedUnderstory?.visitPickBatches(visitor);

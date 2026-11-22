@@ -503,3 +503,20 @@ it("does not auto-inline dependencies for declare/engine declarations and blocks
   expect(editorRes.content).not.toContain("HugeChild.d.ts");
   expect(editorRes.content).not.toContain("Noise.d.ts");
 });
+
+it("does not classify tail-slice reads (offset > 1) as complete active declaration reads", () => {
+  const claimed = collectActiveReadPaths([
+    {
+      role: "tool",
+      toolCallId: "tail",
+      content: "<path>declare/editor/custom/TailOnly.d.ts</path>\n<type>file</type>\n<content>\n30: export interface Tail {}\n</content>"
+    },
+    {
+      role: "tool",
+      toolCallId: "full",
+      content: "<path>declare/editor/custom/Full.d.ts</path>\n<type>file</type>\n<content>\n1: export interface Full {}\n</content>"
+    }
+  ]);
+  expect(claimed.has("declare/editor/custom/TailOnly.d.ts")).toBe(false);
+  expect(claimed.has("declare/editor/custom/Full.d.ts")).toBe(true);
+});

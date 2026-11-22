@@ -59,12 +59,20 @@ it("lets the public Agent discover and author one large element with ordinary me
   expect(guide).toContain("layout.memberMin/memberMax");
   expect(guide).not.toContain("layout.pattern to single");
 
-  // Multi-component *.config.reset requires component at schema level; single-component animals allows omitting it.
+  // Multi-component *.config.reset and *.config.update require component (and non-empty payload for update) at schema level; single-component animals allows omitting component.
   const spatialReset = tools.find(tool => tool.name === "spatial.config.reset")!;
+  const spatialUpdate = tools.find(tool => tool.name === "spatial.config.update")!;
   const animalsReset = tools.find(tool => tool.name === "animals.config.reset")!;
+  const animalsUpdate = tools.find(tool => tool.name === "animals.config.update")!;
   expect(() => spatialReset.parseInput({ fields: ["seed"] })).toThrow();
   expect(() => spatialReset.parseInput({ component: "world", fields: ["offshoreCoverage"] })).not.toThrow();
   expect(() => animalsReset.parseInput({ fields: ["enabled"] })).not.toThrow();
+  expect(() => spatialUpdate.parseInput({})).toThrow();
+  expect(() => spatialUpdate.parseInput({ component: "world", values: {} })).toThrow();
+  expect(() => spatialUpdate.parseInput({ values: { offshoreCoverage: 0.2 } })).toThrow();
+  expect(() => spatialUpdate.parseInput({ operations: [{ op: "set", values: { offshoreCoverage: 0.2 } }] })).toThrow();
+  expect(() => spatialUpdate.parseInput({ component: "world", values: { offshoreCoverage: 0.2 } })).not.toThrow();
+  expect(() => animalsUpdate.parseInput({ values: { enabled: true } })).not.toThrow();
 
   // *.config.get({ authoredOnly: true }) filters out entities that have no non-empty authored overrides in that system.
   const envGet = tools.find(tool => tool.name === "environment.config.get")!;

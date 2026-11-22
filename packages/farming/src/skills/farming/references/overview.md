@@ -1,6 +1,6 @@
 # 种植系统
 
-本系统管理种植区域、耕地、作物生命周期、土壤水分和收获库存。通过 `editor.component.query({ type: "FarmingAreaComponent" })` 获取区域代理，先读取 `farming/FarmingAPI.d.ts` 的 Editor 声明。
+本系统管理种植区域、耕地、作物生命周期、土壤水分和收获库存。通过 `editor.component.query({ type: "FarmingAreaComponent" })` 获取区域代理，先读取 `declare/editor/farming/FarmingAPI.d.ts` 的 Editor 声明。
 
 推荐流程：editor.component.query 找到区域 → read/capabilities 读取运行状态和能力 → getCatalog 取得真实种子 ID → 查询目标 → 执行 → verify/getPlot/getInventory 检查结果。
 

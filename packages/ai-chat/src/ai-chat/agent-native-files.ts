@@ -33,12 +33,14 @@ const declareRelativeImportCache = new WeakMap<VirtualProjectFiles, Map<string, 
 type OmittedDependencyReason = "size" | "budget" | "paginated";
 type OmittedDependency = { path: string; bytes: number; reason: OmittedDependencyReason };
 
+const FULL_FILE_READ_HEADER_RE = /^<path>([^<\n]+)<\/path>\n<type>file<\/type>\n<content>\n(?:1: |\n<\/content>)/;
+
 export function collectActiveReadPaths(messages: readonly AgentMessage[]): Set<string> {
   const paths = new Set<string>();
   for (const message of messages) {
     if (message.role !== "tool" || typeof message.content !== "string") continue;
     if (!message.content.includes("(Continue with read offset=")) {
-      const primary = message.content.match(/^<path>([^<\n]+)<\/path>/);
+      const primary = message.content.match(FULL_FILE_READ_HEADER_RE);
       if (primary) paths.add(primary[1]);
     }
     for (const match of message.content.matchAll(/<dependency path="([^"\n]+)">/g)) {

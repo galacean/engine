@@ -202,4 +202,69 @@ describe("compaction contract", () => {
       committed: [{ status: "interrupted", commands: ["water.digRiver", "world.delete:unknown"] }]
     });
   });
+
+  it("records native file mutation receipts, ignores tail-slice reads, and evicts oldest committed keys cleanly", () => {
+    const tail: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [
+          { id: "r1", type: "function", function: { name: "read", arguments: '{"file_path":"declare/editor/Foo.d.ts","offset":30}' } },
+          { id: "w1", type: "function", function: { name: "write", arguments: '{"file_path":"Scripts/A.ts"}' } }
+        ]
+      },
+      {
+        role: "tool",
+        toolCallId: "r1",
+        content: "<path>declare/editor/Foo.d.ts</path>\n<type>file</type>\n<content>\n30: export type TailOnly = number;\n</content>"
+      },
+      {
+        role: "tool",
+        toolCallId: "w1",
+        content: 'Created file: Scripts/A.ts\n{"receipt":{"executionId":"f1","status":"committed","transactionId":"tx-file-1","revision":2}}'
+      }
+    ];
+    const { context, request, sent } = prepare(tail);
+    context.applyResponse(request, sent, {
+      ...compacted,
+      replacement: { prefixLength: 2, cutIndex: 3, summary: "s1" }
+    });
+    expect(context.compactedAnchors).toEqual({
+      committed: [{ status: "committed", transactionId: "tx-file-1", revision: 2 }]
+    });
+
+    // Push 13 more commits with fallback keys (no executionId) to evict both tx-file-1 and tx-extra-1, then verify evicted key can be re-recorded.
+    const extra: AgentMessage[] = [];
+    for (let i = 1; i <= 13; i++) {
+      extra.push(
+        { role: "assistant", content: "", toolCalls: [{ id: `e${i}`, type: "function", function: { name: "write", arguments: "{}" } }] },
+        {
+          role: "tool",
+          toolCallId: `e${i}`,
+          content: `Updated file: Scripts/F${i}.ts\n{"receipt":{"status":"committed","transactionId":"tx-extra-${i}","revision":${i + 2}}}`
+        }
+      );
+    }
+    extra.push(
+      { role: "assistant", content: "", toolCalls: [{ id: "e-readd", type: "function", function: { name: "write", arguments: "{}" } }] },
+      {
+        role: "tool",
+        toolCallId: "e-readd",
+        content: 'Updated file: Scripts/F1.ts\n{"receipt":{"status":"committed","transactionId":"tx-extra-1","revision":3}}'
+      }
+    );
+    context.push(...extra);
+    const sent2 = [...structuredClone(prefix), ...context.active];
+    const req2 = context.captureRequest(sent2);
+    context.applyResponse(req2, sent2, {
+      ...compacted,
+      replacement: { prefixLength: 2, cutIndex: context.active.length, summary: "s2" }
+    });
+    expect(context.compactedAnchors?.committed).toHaveLength(12);
+    expect(context.compactedAnchors?.committed?.at(-1)).toEqual({
+      status: "committed",
+      transactionId: "tx-extra-1",
+      revision: 3
+    });
+  });
 });

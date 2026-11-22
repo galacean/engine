@@ -111,6 +111,8 @@ type ContextRequest = {
 
 const MAX_COMPACTED_READ_PATHS = 24;
 const MAX_COMPACTED_COMMITTED = 12;
+const FULL_FILE_READ_HEADER_RE = /^<path>([^<\n]+)<\/path>\n<type>file<\/type>\n<content>\n(?:1: |\n<\/content>)/;
+const FILE_MUTATION_RECEIPT_RE = /^(?:Created|Updated|Deleted) file: [^\n]+\n(\{[\s\S]*\})$/;
 const COMPACTION_UNREDUCIBLE_REASON_RE =
   /did not reduce the estimated token count|no replaceable messages are available/i;
 
@@ -127,8 +129,7 @@ export class AgentContextTranscript {
   readonly #canonical: AgentMessage[] = [];
   #active: AgentMessage[] = [];
   #compactedReadPaths = new Set<string>();
-  #compactedCommitted: CompactionCommittedAnchor[] = [];
-  #compactedCommittedKeys = new Set<string>();
+  #compactedCommitted = new Map<string, CompactionCommittedAnchor>();
   #revision = 0;
   readonly #requests = new WeakSet<ContextRequest>();
 
@@ -142,10 +143,10 @@ export class AgentContextTranscript {
     return this.#active.length;
   }
   get compactedAnchors(): CompactionAnchors | undefined {
-    if (!this.#compactedReadPaths.size && !this.#compactedCommitted.length) return undefined;
+    if (!this.#compactedReadPaths.size && !this.#compactedCommitted.size) return undefined;
     return {
       ...(this.#compactedReadPaths.size ? { readPaths: [...this.#compactedReadPaths] } : {}),
-      ...(this.#compactedCommitted.length ? { committed: structuredClone(this.#compactedCommitted) } : {})
+      ...(this.#compactedCommitted.size ? { committed: structuredClone([...this.#compactedCommitted.values()]) } : {})
     };
   }
 
@@ -213,8 +214,7 @@ export class AgentContextTranscript {
     this.#canonical.length = 0;
     this.#active.length = 0;
     this.#compactedReadPaths.clear();
-    this.#compactedCommitted.length = 0;
-    this.#compactedCommittedKeys.clear();
+    this.#compactedCommitted.clear();
     this.#revision++;
   }
 
@@ -377,15 +377,26 @@ export class AgentContextTranscript {
     for (const message of dropped) {
       if (message.role !== "tool" || typeof message.content !== "string") continue;
       if (!message.content.includes("(Continue with read offset=")) {
-        const primary = message.content.match(/^<path>([^<\n]+)<\/path>/);
+        const primary = message.content.match(FULL_FILE_READ_HEADER_RE);
         if (primary) pushReadPath(primary[1]);
       }
       for (const match of message.content.matchAll(/<dependency path="([^"\n]+)">/g)) {
         pushReadPath(match[1]);
       }
-      if (!message.content.startsWith("{")) continue;
+      let jsonPayload: string | undefined;
+      let isNativeFileMutation = false;
+      if (message.content.startsWith("{")) {
+        jsonPayload = message.content;
+      } else {
+        const fileMutationMatch = message.content.match(FILE_MUTATION_RECEIPT_RE);
+        if (fileMutationMatch) {
+          jsonPayload = fileMutationMatch[1];
+          isNativeFileMutation = true;
+        }
+      }
+      if (!jsonPayload) continue;
       try {
-        const parsed = JSON.parse(message.content) as Record<string, unknown>;
+        const parsed = JSON.parse(jsonPayload) as Record<string, unknown>;
         const receipt =
           parsed && typeof parsed === "object" && parsed.receipt && typeof parsed.receipt === "object"
             ? (parsed.receipt as Record<string, unknown>)
@@ -393,7 +404,7 @@ export class AgentContextTranscript {
         if (!receipt) continue;
         const status = receipt.status;
         if (status !== "committed" && status !== "completed" && status !== "interrupted") continue;
-        if (status === "committed" && parsed.ok !== true) continue;
+        if (status === "committed" && !isNativeFileMutation && parsed.ok !== true) continue;
         const commands = Array.isArray(receipt.commands)
           ? receipt.commands
               .filter(
@@ -418,16 +429,17 @@ export class AgentContextTranscript {
         const transactionId = typeof receipt.transactionId === "string" ? receipt.transactionId : undefined;
         const revision = typeof receipt.revision === "number" ? receipt.revision : undefined;
         const key = executionId ?? `${status}:${transactionId ?? ""}:${revision ?? ""}:${commands.join(",")}`;
-        if (this.#compactedCommittedKeys.has(key)) continue;
-        this.#compactedCommittedKeys.add(key);
-        this.#compactedCommitted.push({
+        if (this.#compactedCommitted.has(key)) continue;
+        this.#compactedCommitted.set(key, {
           status,
           ...(transactionId ? { transactionId } : {}),
           ...(revision !== undefined ? { revision } : {}),
           ...(commands.length ? { commands } : {})
         });
-        if (this.#compactedCommitted.length > MAX_COMPACTED_COMMITTED) {
-          this.#compactedCommitted.shift();
+        while (this.#compactedCommitted.size > MAX_COMPACTED_COMMITTED) {
+          const oldestKey = this.#compactedCommitted.keys().next().value;
+          if (oldestKey === undefined) break;
+          this.#compactedCommitted.delete(oldestKey);
         }
       } catch {
         // Ignore non-JSON or malformed tool messages.

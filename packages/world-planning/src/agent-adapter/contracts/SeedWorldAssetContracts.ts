@@ -242,6 +242,8 @@ export const treeAssetPropertiesSchema = z
 export const shrubAssetPropertiesSchema = z
   .strictObject({
     assetKind: z.literal("shrub").describe("单株可独立引用的灌木。"),
+    proceduralAssetId: z.string().optional().describe("实际渲染的程序化资源标识；材质槽按此物种发现。"),
+    planningEntityId: z.string().optional().describe("规划组件目标；通过 vegetation.config.get/update 修改。"),
     footprintMetres: z
       .tuple([z.number().positive(), z.number().positive()])
       .describe("灌木占地宽度与深度；实例物化后可用。")

@@ -1728,11 +1728,14 @@ export class SeedWorldAgentApplication {
       if (isAddressableObjectRef(ref) && !authoredResourceIds.has(ref.id)) {
         const object = objectsById.get(ref.id);
         if (!object) throw new Error(`World object '${ref.id}' does not exist in revision ${this._currentRevision()}`);
-        if (object.objectKind !== ref.kind) {
-          throw new Error(`WorldRef '${ref.id}' declared kind '${ref.kind}', but object is '${object.objectKind}'`);
-        }
         if (!isRemovableObjectKind(object.objectKind)) {
           throw new Error(`World object kind '${object.objectKind}' has no persistent removal atom`);
+        }
+        const actualRef = this._assets.refForObject(object);
+        if (actualRef.domain !== ref.domain || actualRef.kind !== ref.kind) {
+          throw new Error(
+            `WorldRef '${ref.id}' declared '${ref.domain}/${ref.kind}', but object is '${actualRef.domain}/${actualRef.kind}'`
+          );
         }
         if (object.source.kind === "authoring" && selectedFeatureIds.has(object.source.sourceId)) continue;
         const radiusMetres = Math.max(0.05, Math.hypot(...object.footprintMetres) * 0.5);

@@ -124,7 +124,7 @@ it("exposes live build status through the Agent's property-only runtime inspecti
   const manager = BuildingManager.forScene(s);
   const inspection = new RuntimeSceneInspection(s);
   const info = inspection.queryComponents(inspection.id(manager.entity));
-  const record = info.components.find((c) => c.id === manager.instanceId)!;
+  const record = info.items.find((c) => c.componentId === manager.instanceId)!;
   expect(record.properties).toContain("buildStatus");
   expect(record.properties).not.toContain("errors");
   expect(manager.buildStatus).toEqual({
@@ -134,7 +134,7 @@ it("exposes live build status through the Agent's property-only runtime inspecti
     errors: [],
     diagnostics: []
   });
-  const observed = inspection.readComponent(record.id, ["buildStatus"]);
+  const observed = inspection.readComponent(record.componentId, ["buildStatus"]);
   expect(observed.values.buildStatus).toEqual({
     type: "Object",
     bound: false,
@@ -144,10 +144,10 @@ it("exposes live build status through the Agent's property-only runtime inspecti
     diagnostics: { length: 0, items: [], truncated: false }
   });
   const generation = manager.generation;
-  inspection.readComponent(record.id, ["buildStatus"]);
+  inspection.readComponent(record.componentId, ["buildStatus"]);
   expect(manager.generation).toBe(generation);
   manager.entity.destroy();
-  expect(inspection.readComponent(record.id, ["buildStatus"]).status).toBe("unavailable");
+  expect(inspection.readComponent(record.componentId, ["buildStatus"]).status).toBe("unavailable");
 });
 
 import { PrefabResource } from "@galacean/engine";

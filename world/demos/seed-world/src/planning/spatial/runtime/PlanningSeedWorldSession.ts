@@ -197,11 +197,11 @@ export class PlanningSeedWorldSession {
       },
       this.parameterAuthoring(options.planning),
       {
-        nativeCatalog: (plan, revision) => {
+        nativeCatalog: (plan, revision, population) => {
           const runtime = options.readPublished()?.vegetation;
           if (!runtime) return undefined;
           const snapshot = {
-            trees: planningEditablePlants(plan, planningGroundSurface(plan), runtime.plantAssets),
+            trees: planningEditablePlants(plan, planningGroundSurface(plan), runtime.plantAssets, population),
             authoredPlantIds: (plan.authoredResources ?? [])
               .filter(
                 (resource) =>

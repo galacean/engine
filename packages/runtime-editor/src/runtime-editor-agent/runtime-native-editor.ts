@@ -48,6 +48,10 @@ export class RuntimeNativeEditor {
   get projection() {
     return this.editor.projection;
   }
+  /** Active project's entry scene virtual path (e.g. `Scene/SeedWorld.scene`). */
+  get defaultScenePath(): string {
+    return this.project.projectPackage.project.scene;
+  }
   runtimeDiagnostics() {
     return this.editor.runtimeDiagnostics();
   }

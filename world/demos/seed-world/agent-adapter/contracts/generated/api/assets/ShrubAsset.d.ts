@@ -6,6 +6,10 @@ import type { Asset } from "../common/Asset";
 export type ShrubAsset = Asset<"shrub"> & {
   /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
+    /** 实际渲染的程序化资源标识；材质槽按此物种发现。 */
+    proceduralAssetId?: string;
+    /** 规划组件目标；通过 vegetation.config.get/update 修改。 */
+    planningEntityId?: string;
     /** 灌木占地宽度与深度；实例物化后可用。 */
     footprintMetres?: [number, number];
     /** 灌木绕竖直轴的朝向角，单位为度；实例物化后可用。 */

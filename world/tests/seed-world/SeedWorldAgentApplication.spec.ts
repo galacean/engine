@@ -1809,7 +1809,7 @@ it("merges picked and published vegetation identities before counting and pagina
  expect(app.inspectWorld(ref).properties).toMatchObject({proceduralAssetId:"real",planningEntityId:"same-tree",headingDegrees:20});
 });
 
-it("enforces domain/kind isolation on terrain.delete and vegetation.delete refs at both schema and runtime layers", async () => {
+it("enforces domain/kind isolation on terrain.delete and vegetation.delete refs at both schema and runtime layers while supporting small-rock deletion and shrub inspection", async () => {
   const mushroom: SeedWorldObject = {
     worldId: "seed-world-1",
     worldRevision: 1,
@@ -1820,11 +1820,23 @@ it("enforces domain/kind isolation on terrain.delete and vegetation.delete refs 
     source: { kind: "population", sourceId: "pop-1" },
     properties: {}
   };
-  const { engine } = createHarness([mushroom]);
+  const smallRock: SeedWorldObject = {
+    worldId: "seed-world-1",
+    worldRevision: 1,
+    objectId: "small-rock-1",
+    objectKind: "small-rock",
+    position: [14, 0, 14],
+    footprintMetres: [1.2, 1.2],
+    source: { kind: "decoration", sourceId: "small-rock-1" },
+    properties: {}
+  };
+  const { engine } = createHarness([mushroom, smallRock]);
   const app = new SeedWorldAgentApplication(engine);
   const tools = createSeedWorldTools(app);
+  const terrainQuery = tools.find((tool) => tool.name === "terrain.query")!;
   const terrainDelete = tools.find((tool) => tool.name === "terrain.delete")!;
   const vegetationDelete = tools.find((tool) => tool.name === "vegetation.delete")!;
+  const vegetationInspect = tools.find((tool) => tool.name === "vegetation.inspect")!;
 
   const forest = await app.createVegetation(
     { plant: "tree", distribution: { kind: "area", count: 2, radiusMetres: 10 }, target: viewerOffset(8) },
@@ -1851,7 +1863,17 @@ it("enforces domain/kind isolation on terrain.delete and vegetation.delete refs 
       }),
       { signal }
     )
-  ).rejects.toThrow(/declared kind 'rock', but object is 'mushroom'/);
+  ).rejects.toThrow(/declared 'object\/rock', but object is 'object\/mushroom'/);
+
+  // Runtime deleteWorld allows deleting small-rock normalized to public kind "rock" (both ref and selector)
+  const rockQuery = (await terrainQuery.execute(terrainQuery.parseInput({ kinds: ["rock"] }), { signal })) as any;
+  const smallRockItem = rockQuery.items.find((item: any) => item.ref.id === "small-rock-1");
+  expect(smallRockItem?.ref).toMatchObject({ domain: "object", kind: "rock", source: "natural" });
+  const deletedSmallRock = (await terrainDelete.execute(
+    terrainDelete.parseInput({ refs: [smallRockItem.ref] }),
+    { signal }
+  )) as any;
+  expect(deletedSmallRock.status).toBe("applied");
 
   // Runtime deleteWorld rejects mismatched kind on authored resources
   await expect(
@@ -1860,4 +1882,33 @@ it("enforces domain/kind isolation on terrain.delete and vegetation.delete refs 
       signal
     )
   ).rejects.toThrow(/declared 'vegetation\/tree', but resource is 'vegetation\/forest'/);
+
+  // vegetation.inspect accepts planning shrub properties (proceduralAssetId + planningEntityId) in parseOutput
+  const shrubRef = { id: "shrub-1", domain: "vegetation" as const, kind: "shrub" as const, source: "authored" as const };
+  const shrubApp = new SeedWorldAgentApplication({
+    ...engine,
+    readVegetationAssets: () => [
+      {
+        ref: shrubRef,
+        position: [10, 0, 10],
+        bounds: { minimum: [9, 0, 9], maximum: [11, 2, 11] },
+        properties: {
+          assetKind: "shrub",
+          proceduralAssetId: "灌木01",
+          planningEntityId: "shrub-1",
+          headingDegrees: 30,
+          scale: [1, 1, 1]
+        }
+      }
+    ]
+  });
+  const shrubInspect = createSeedWorldTools(shrubApp).find((tool) => tool.name === "vegetation.inspect")!;
+  const inspectedShrub = shrubInspect.parseOutput(
+    await shrubInspect.execute(shrubInspect.parseInput({ ref: shrubRef }), { signal })
+  ) as any;
+  expect(inspectedShrub.properties).toMatchObject({
+    proceduralAssetId: "灌木01",
+    planningEntityId: "shrub-1"
+  });
+  expect(vegetationInspect.name).toBe("vegetation.inspect");
 });

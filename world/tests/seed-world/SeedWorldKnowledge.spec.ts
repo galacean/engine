@@ -185,3 +185,15 @@ it("exposes preset editing while excluding system package authoring in SeedWorld
     expect(checker.check(' await editor.package.install({source:"remote/example",path:"Packages/test"}); ',modules)?.code).toBe("SCRIPT_CHECK_FAILED");
   } finally {checker.dispose();}
 });
+
+it("injects the active project scene path into hostNotes instead of hardcoding a fixture scene path", () => {
+  const withoutScene = createSeedWorldKnowledge(["vegetation.query"]);
+  expect(withoutScene.hostNotes).not.toContain("Scenes/Main.scene");
+  expect(withoutScene.hostNotes).toContain("project.json");
+
+  const withProductionScene = createSeedWorldKnowledge(["vegetation.query"], undefined, {
+    defaultScenePath: "Scene/SeedWorld.scene"
+  });
+  expect(withProductionScene.hostNotes).toContain('当前默认主场景虚拟路径为 "Scene/SeedWorld.scene"');
+  expect(withProductionScene.hostNotes).not.toContain("Scenes/Main.scene");
+});

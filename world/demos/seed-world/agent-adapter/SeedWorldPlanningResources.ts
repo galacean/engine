@@ -13,7 +13,11 @@ import type { SeedWorldAssetCandidate } from "@galacean/engine-world-planning/ag
 
 /** Planning-owned projection keeps native assets coherent with unpublished author edits. */
 export interface PlanningResourcePortOptions {
-  nativeCatalog?(plan: IslandPlan, revision: number): { assets: readonly SeedWorldAssetCandidate[]; objects: readonly SeedWorldObject[] } | undefined;
+  nativeCatalog?(
+    plan: IslandPlan,
+    revision: number,
+    population?: Pick<import("@galacean/engine-world-planning/runtime/SeedWorldPopulationPlan").SeedWorldPopulationPreview, "treeInstances">
+  ): { assets: readonly SeedWorldAssetCandidate[]; objects: readonly SeedWorldObject[] } | undefined;
 }
 
 /** Adapter only: all accepted mutations belong to the supplied PlanningSession. */
@@ -21,16 +25,26 @@ export function createPlanningResourcePort(base: SeedWorldEnginePort, session: P
   options: PlanningResourcePortOptions = {}): SeedWorldEnginePort {
   let serial = 0;
   let nativeResult: PlanningSession["result"], nativeCatalog: ReturnType<NonNullable<PlanningResourcePortOptions["nativeCatalog"]>>;
+  const readSpatial = planningSpatialSnapshotReader(session);
   const readNative = () => {
     if (!session.result || !options.nativeCatalog) return undefined;
     if (nativeResult !== session.result || !nativeCatalog) {
-      nativeCatalog = options.nativeCatalog(session.result.plan, session.document.revision);
+      const hasAreaPlants = (session.result.plan.authoredResources ?? []).some(
+        (resource) =>
+          resource.resourceType === "vegetation-brush" &&
+          ["tree", "shrub"].includes(resource.properties.category) &&
+          resource.properties.distributionKind !== "single"
+      );
+      nativeCatalog = options.nativeCatalog(
+        session.result.plan,
+        session.document.revision,
+        hasAreaPlants ? readSpatial().population : undefined
+      );
       nativeResult = session.result;
     }
     return nativeCatalog;
   };
   let treeProjection: { document: PlanningSession["document"]; result: PlanningSession["result"]; objects: readonly SeedWorldObject[] } | undefined;
-  const readSpatial = planningSpatialSnapshotReader(session);
   const spatial = base.createSpatialQueryPort?.(readSpatial, () => session.document.revision);
   const snapshot = () => planningResourceSnapshot(session.document);
   const mutate = async (mutations: readonly Readonly<SeedWorldResourceMutation>[], signal: AbortSignal, edit?: WaterEditOptions) => {
