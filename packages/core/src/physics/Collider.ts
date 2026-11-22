@@ -778,7 +778,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const bodyTransform = body.transform;
     const parent = body.parent;
     const customWorldPose = current !== body || bodyTransform._hasCustomWorldPose;
-    if (customWorldPose || !bodyTransform._usesTRSMatrix || (parent && !parent.transform._getWorldUniformScaling())) {
+    if (customWorldPose || bodyTransform._hasCustomMatrix || (parent && !parent.transform._getWorldUniformScaling())) {
       const inverseRotation = scratch.inverseBodyRotation;
       Quaternion.invert(bodyTransform.worldRotationQuaternion, inverseRotation);
       if (customWorldPose) {

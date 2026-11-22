@@ -1303,29 +1303,20 @@ describe("Collider", () => {
     );
   });
 
-  it.each(["inherited", "authored"] as const)(
-    "keeps the compound collider at its Entity origin under %s shear",
-    (source) => {
-      const body = root.createChild("body");
-      if (source === "inherited") {
-        root.transform.setScale(4, 1, 1);
-        body.transform.setRotation(0, 0, 45);
-      } else {
-        const matrix = new Matrix();
-        matrix.elements[4] = matrix.elements[1] = 0.0625;
-        body.transform.localMatrix = matrix;
-      }
-      body.addComponent(Rigidbody).isKinematic = true;
-      const child = body.createChild("box");
-      child.transform.setPosition(0, 8, 0);
-      const box = child.addComponent(BoxCollider);
-      box.size.set(0.25, 0.25, 0.25);
-      const position = child.transform.worldPosition;
-      const hit = new HitResult();
-      const ray = new Ray(new Vector3(position.x, position.y, 8), new Vector3(0, 0, -1));
-      expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
-    }
-  );
+  it("keeps the compound collider at its Entity origin under inherited shear", () => {
+    const body = root.createChild("body");
+    root.transform.setScale(4, 1, 1);
+    body.transform.setRotation(0, 0, 45);
+    body.addComponent(Rigidbody).isKinematic = true;
+    const child = body.createChild("box");
+    child.transform.setPosition(0, 8, 0);
+    const box = child.addComponent(BoxCollider);
+    box.size.set(0.25, 0.25, 0.25);
+    const position = child.transform.worldPosition;
+    const hit = new HitResult();
+    const ray = new Ray(new Vector3(position.x, position.y, 8), new Vector3(0, 0, -1));
+    expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+  });
 
   it.each(["static actor", "rigidbody", "shape pose"] as const)(
     "applies a small authored rotation to the %s",
