@@ -55,7 +55,7 @@ export class GLTFTextureParser extends GLTFParser {
         })
         .onProgress(undefined, context._onTaskDetail)
         .then<Texture2D>((texture) => {
-          if (context._isAborted) {
+          if (context._aborted) {
             return texture;
           }
           texture.name = textureName || imageName || texture.name || `texture_${textureIndex}`;
@@ -70,7 +70,7 @@ export class GLTFTextureParser extends GLTFParser {
         const buffer = buffers![bufferView.buffer];
         const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
         return ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType).then((image) => {
-          if (context._isAborted) {
+          if (context._aborted) {
             return null as unknown as Texture2D;
           }
           const { width, height } = image;
@@ -119,7 +119,7 @@ export class GLTFTextureParser extends GLTFParser {
     }
 
     return AssetPromise.resolve(texture).then((texture) => {
-      if (!texture || context._isAborted) {
+      if (!texture || context._aborted) {
         return texture;
       }
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);

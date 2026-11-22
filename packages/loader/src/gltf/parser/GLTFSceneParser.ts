@@ -72,7 +72,7 @@ export class GLTFSceneParser extends GLTFParser {
     }
 
     return AssetPromise.resolve(promise).then(() => {
-      if (context._isAborted) {
+      if (context._aborted) {
         return [];
       }
       const promises: AssetPromise<unknown[]>[] = [];

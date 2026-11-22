@@ -757,7 +757,8 @@ export class ModelMesh extends Mesh {
       indexBuffer._disassociationSuperResource(this);
       indexBuffer.destroy();
     }
-    this._blendShapeManager._destroy();
+    this._blendShapeManager._clearBlendShapes();
+    this._blendShapeManager._destroyHost();
     this._releaseCache(true);
   }
 

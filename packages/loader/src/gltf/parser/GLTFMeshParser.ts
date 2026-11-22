@@ -47,7 +47,7 @@ export class GLTFMeshParser extends GLTFParser {
     for (const attribute in attributes) {
       const accessor = accessors![attributes[attribute]];
       const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, accessor).then((accessorBuffer) => {
-        if (context._isAborted || mesh.destroyed) {
+        if (context._aborted || mesh.destroyed) {
           return;
         }
         const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
@@ -131,7 +131,7 @@ export class GLTFMeshParser extends GLTFParser {
     }
 
     return AssetPromise.all(promises).then(() => {
-      if (context._isAborted || mesh.destroyed) {
+      if (context._aborted || mesh.destroyed) {
         return mesh;
       }
       mesh.setVertexElements(vertexElements);
@@ -157,7 +157,7 @@ export class GLTFMeshParser extends GLTFParser {
       }
 
       return Promise.all(promises).then(() => {
-        if (context._isAborted || mesh.destroyed) {
+        if (context._aborted || mesh.destroyed) {
           return mesh;
         }
         mesh.uploadData(!keepMeshData);
@@ -274,7 +274,7 @@ export class GLTFMeshParser extends GLTFParser {
             resolve(mesh);
           } else {
             mesh.then((mesh) => {
-              if (context._isAborted) {
+              if (context._aborted) {
                 return;
               }
               glTFResource._associateResource(mesh);

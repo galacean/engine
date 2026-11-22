@@ -38,9 +38,10 @@ export class GLTFParserContext {
 
   /** @internal */
   _getPromises: AssetPromise<unknown>[] = [];
+  /** @internal */
+  _aborted = false;
 
   private _resourceCache = new Map<string, any>();
-  private _aborted = false;
   private _ownedResources = new Set<ReferResource>();
   private readonly _remoteAssetBaseURL: string;
   private _progress = {
@@ -187,18 +188,9 @@ export class GLTFParserContext {
   /**
    * @internal
    */
-  get _isAborted(): boolean {
-    return this._aborted;
-  }
-
-  /**
-   * @internal
-   */
   _trackResource<T extends ReferResource>(resource: T): T {
     if (this._aborted) {
-      if (!resource.destroyed && !resource.isGCIgnored) {
-        resource.destroy(false);
-      }
+      resource.destroy();
       return resource;
     }
     this._ownedResources.add(resource);
@@ -224,14 +216,10 @@ export class GLTFParserContext {
     // Disassociate before destroying glTFResource so owned resources can be released even during deferred frame teardown
     this.glTFResource._disassociateAllResources();
     this.glTFResource.isGCIgnored = false;
-    if (!this.glTFResource.destroyed) {
-      this.glTFResource.destroy();
-    }
+    this.glTFResource.destroy();
 
     this._ownedResources.forEach((resource) => {
-      if (!resource.destroyed && !resource.isGCIgnored) {
-        resource.destroy(false);
-      }
+      resource.destroy();
     });
     this._ownedResources.clear();
   }

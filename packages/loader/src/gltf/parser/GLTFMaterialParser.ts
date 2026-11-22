@@ -188,7 +188,7 @@ export class GLTFMaterialParser extends GLTFParser {
     }
 
     return AssetPromise.resolve(material).then((material) => {
-      if (context._isAborted) {
+      if (context._aborted) {
         return material;
       }
       const isDefaultFallback = !material;

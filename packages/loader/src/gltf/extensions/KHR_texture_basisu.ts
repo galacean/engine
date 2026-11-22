@@ -34,7 +34,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
         })
         .onProgress(undefined, context._onTaskDetail)
         .then<Texture2D>((texture) => {
-          if (context._isAborted) {
+          if (context._aborted) {
             return texture;
           }
           if (!texture.name) {
@@ -58,7 +58,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
 
           return KTX2Loader._parseBuffer(imageBuffer, engine)
             .then(({ ktx2Container, engine, result, targetFormat, params }) => {
-              if (context._isAborted) {
+              if (context._aborted) {
                 return null as unknown as Texture2D;
               }
               return context._trackResource(
@@ -66,7 +66,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
               );
             })
             .then((texture: Texture2D) => {
-              if (!texture || context._isAborted) {
+              if (!texture || context._aborted) {
                 return texture;
               }
               texture.name = textureName || imageName || `texture_${bufferViewIndex}`;

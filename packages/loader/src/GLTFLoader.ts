@@ -55,16 +55,10 @@ export class GLTFLoader extends Loader<GLTFResource> {
       context
         .parse()
         .then((res) => {
-          if (context._isAborted) {
-            return;
+          if (!context._aborted) {
+            res.isGCIgnored = false;
+            resolve(res);
           }
-          if (res.destroyed) {
-            context._abort();
-            reject(new Error("GLTFResource was destroyed during load."));
-            return;
-          }
-          res.isGCIgnored = false;
-          resolve(res);
         })
         .catch((e) => {
           context._abort();
