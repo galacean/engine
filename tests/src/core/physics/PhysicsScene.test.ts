@@ -341,37 +341,6 @@ describe("Physics Test", () => {
       }
     });
 
-    it.each(["trigger", "contact"] as const)("releases script registration after a %s callback throws", (mode) => {
-      const scene = enginePhysX.sceneManager.activeScene;
-      const root = scene.createRootEntity();
-      root.createChild().addComponent(BoxCollider);
-      const body = root.createChild();
-      body.addComponent(Rigidbody).useGravity = false;
-      body.addComponent(BoxCollider).isTrigger = mode === "trigger";
-      const failure = new Error("physics callback");
-      let borrowed: Collision | undefined;
-      class ThrowOnTrigger extends Script {
-        override onTriggerEnter(): void {
-          throw failure;
-        }
-      }
-      class ThrowOnCollision extends Script {
-        override onCollisionEnter(event: Collision): void {
-          borrowed = event;
-          throw failure;
-        }
-      }
-      const script = body.addComponent(mode === "trigger" ? ThrowOnTrigger : ThrowOnCollision);
-      try {
-        expect(() => scene.physics._update(scene.physics.fixedTimeStep)).toThrow(failure);
-        script.enabled = false;
-        expect(body._scripts.length).toBe(0);
-        if (mode === "contact") expect(borrowed?.collider).toBeNull();
-      } finally {
-        root.destroy();
-      }
-    });
-
     it("raycast", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;

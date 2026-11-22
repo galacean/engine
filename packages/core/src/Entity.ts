@@ -613,13 +613,10 @@ export class Entity extends EngineObject {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
     this._isActivating = true;
-    try {
-      this._activeChangedComponents = this._scene!._componentsManager.getActiveChangedTempList();
-      this._setActiveInHierarchy(this._activeChangedComponents!, activeChangeFlag);
-      this._setActiveComponents(true, activeChangeFlag);
-    } finally {
-      this._isActivating = false;
-    }
+    this._activeChangedComponents = this._scene!._componentsManager.getActiveChangedTempList();
+    this._setActiveInHierarchy(this._activeChangedComponents!, activeChangeFlag);
+    this._setActiveComponents(true, activeChangeFlag);
+    this._isActivating = false;
   }
 
   /**

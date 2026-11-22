@@ -2206,7 +2206,7 @@ describe("Rigidbody", function () {
     expect(hit.point.y).toBeCloseTo(5.5, 2);
   });
 
-  it("supports prototype Script.onSleep/onWake, unwinds exceptions, and applies sleep() during entity deactivation", () => {
+  it("supports prototype Script.onSleep/onWake and applies sleep() during entity deactivation", () => {
     const events: string[] = [];
     const holder = rootEntity.createChild("proto-sleep-holder");
     holder.transform.setPosition(0, 40, 0);
@@ -2215,27 +2215,21 @@ describe("Rigidbody", function () {
     body.useGravity = false;
     const physics = engine.sceneManager.activeScene.physics;
 
-    let failNext = false;
     class ProtoSleepScript extends Script {
       override onWake(target: Rigidbody): void {
         if (target === body) events.push("wake");
       }
       override onSleep(target: Rigidbody): void {
         if (target === body) events.push("sleep");
-        if (failNext) {
-          failNext = false;
-          throw new Error("sleep boom");
-        }
       }
     }
     const script = holder.addComponent(ProtoSleepScript);
     physics._update(physics.fixedTimeStep);
     expect(events).toEqual(["wake"]);
 
-    failNext = true;
     body.sleep();
-    expect(() => physics._update(physics.fixedTimeStep)).toThrow("sleep boom");
-    expect((holder as any)._scripts.isLopping).toBe(false);
+    physics._update(physics.fixedTimeStep);
+    expect(events).toEqual(["wake", "sleep"]);
     script.enabled = false;
     expect((holder as any)._scripts.length).toBe(0);
 

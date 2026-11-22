@@ -242,17 +242,14 @@ export class PhysicsScene {
     if (normalizedDirection) {
       const prevHit = this._activeHitResult;
       this._activeHitResult = hitResult ?? null;
-      try {
-        result = this._nativePhysicsScene.raycast(
-          ray.origin,
-          normalizedDirection,
-          distance,
-          layerMask,
-          hitResult ? this._onSingleHit : undefined
-        );
-      } finally {
-        this._activeHitResult = prevHit;
-      }
+      result = this._nativePhysicsScene.raycast(
+        ray.origin,
+        normalizedDirection,
+        distance,
+        layerMask,
+        hitResult ? this._onSingleHit : undefined
+      );
+      this._activeHitResult = prevHit;
     }
 
     if (!result && hitResult) {
@@ -314,13 +311,10 @@ export class PhysicsScene {
       const prevCount = this._activeHitCount;
       this._activeHitResults = outHitResults;
       this._activeHitCount = 0;
-      try {
-        this._nativePhysicsScene.raycastAll(ray.origin, normalizedDirection, distance, layerMask, this._onMultiHit);
-        hitCount = this._activeHitCount;
-      } finally {
-        this._activeHitResults = prevResults;
-        this._activeHitCount = prevCount;
-      }
+      this._nativePhysicsScene.raycastAll(ray.origin, normalizedDirection, distance, layerMask, this._onMultiHit);
+      hitCount = this._activeHitCount;
+      this._activeHitResults = prevResults;
+      this._activeHitCount = prevCount;
     }
     const length = outHitResults.length;
     if (hitCount < length) {
@@ -423,19 +417,16 @@ export class PhysicsScene {
     if (normalizedDirection) {
       const prevHit = this._activeHitResult;
       this._activeHitResult = hitResult ?? null;
-      try {
-        result = this._nativePhysicsScene.boxCast(
-          center,
-          orientation,
-          halfExtents,
-          normalizedDirection,
-          distance,
-          layerMask,
-          hitResult ? this._onSingleHit : undefined
-        );
-      } finally {
-        this._activeHitResult = prevHit;
-      }
+      result = this._nativePhysicsScene.boxCast(
+        center,
+        orientation,
+        halfExtents,
+        normalizedDirection,
+        distance,
+        layerMask,
+        hitResult ? this._onSingleHit : undefined
+      );
+      this._activeHitResult = prevHit;
     }
 
     if (!result && hitResult) {
@@ -520,18 +511,15 @@ export class PhysicsScene {
     if (normalizedDirection) {
       const prevHit = this._activeHitResult;
       this._activeHitResult = hitResult ?? null;
-      try {
-        result = this._nativePhysicsScene.sphereCast(
-          center,
-          radius,
-          normalizedDirection,
-          distance,
-          layerMask,
-          hitResult ? this._onSingleHit : undefined
-        );
-      } finally {
-        this._activeHitResult = prevHit;
-      }
+      result = this._nativePhysicsScene.sphereCast(
+        center,
+        radius,
+        normalizedDirection,
+        distance,
+        layerMask,
+        hitResult ? this._onSingleHit : undefined
+      );
+      this._activeHitResult = prevHit;
     }
 
     if (!result && hitResult) {
@@ -627,20 +615,17 @@ export class PhysicsScene {
     if (normalizedDirection) {
       const prevHit = this._activeHitResult;
       this._activeHitResult = hitResult ?? null;
-      try {
-        result = this._nativePhysicsScene.capsuleCast(
-          center,
-          radius,
-          cylinderHeight,
-          orientation,
-          normalizedDirection,
-          distance,
-          layerMask,
-          hitResult ? this._onSingleHit : undefined
-        );
-      } finally {
-        this._activeHitResult = prevHit;
-      }
+      result = this._nativePhysicsScene.capsuleCast(
+        center,
+        radius,
+        cylinderHeight,
+        orientation,
+        normalizedDirection,
+        distance,
+        layerMask,
+        hitResult ? this._onSingleHit : undefined
+      );
+      this._activeHitResult = prevHit;
     }
 
     if (!result && hitResult) {
@@ -766,15 +751,12 @@ export class PhysicsScene {
         const pose: [Vector3, Quaternion] = poses.pop() ?? [new Vector3(), new Quaternion()];
         const elements = bodies._elements;
         bodies._startLoop();
-        try {
-          const [position, rotation] = pose;
-          for (let j = 0; j < count; j++) {
-            elements[j]?._writeBack(position, rotation);
-          }
-        } finally {
-          bodies._endLoop(PhysicsScene._bodyIndexSetter);
-          poses.push(pose);
+        const [position, rotation] = pose;
+        for (let j = 0; j < count; j++) {
+          elements[j]?._writeBack(position, rotation);
         }
+        bodies._endLoop(PhysicsScene._bodyIndexSetter);
+        poses.push(pose);
       }
       if (!scene.destroyed) this._dispatchEvents(nativePhysicsScene.updateEvents());
     }
@@ -992,6 +974,7 @@ export class PhysicsScene {
     const { contactEvents, contactEventCount, triggerEvents } = events;
 
     if (contactEventCount > 0) {
+      events.contactEventCount = 0;
       const collision = (this._collision ||= new Collision());
       const receivers = PhysicsScene._dispatchReceivers.pop() ?? [];
       for (let i = 0; i < contactEventCount; i++) {
@@ -1001,27 +984,23 @@ export class PhysicsScene {
         receivers[i * 2] = collider0 ? (collider0._attachedBody ?? collider0) : null;
         receivers[i * 2 + 1] = collider1 ? (collider1._attachedBody ?? collider1) : null;
       }
-      try {
-        for (let i = 0; i < contactEventCount; i++) {
-          const event = contactEvents[i];
-          const collider0 = physicalObjectsMap[event.shape0Id];
-          const collider1 = physicalObjectsMap[event.shape1Id];
-          const receiver0 = receivers[i * 2];
-          const receiver1 = receivers[i * 2 + 1];
-          if (!collider0 || !collider1 || !receiver0 || !receiver1) continue;
-          collision._nativeCollision = event;
-          const state = event.state;
-          PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1, collision);
-          PhysicsScene._dispatchScripts(state, receiver1, collider1, collider0, collision);
-        }
-      } finally {
-        events.contactEventCount = 0;
-        receivers.length = 0;
-        PhysicsScene._dispatchReceivers.push(receivers);
-        collision._nativeCollision = null!;
-        collision.collider = null!;
-        collision.selfCollider = null!;
+      for (let i = 0; i < contactEventCount; i++) {
+        const event = contactEvents[i];
+        const collider0 = physicalObjectsMap[event.shape0Id];
+        const collider1 = physicalObjectsMap[event.shape1Id];
+        const receiver0 = receivers[i * 2];
+        const receiver1 = receivers[i * 2 + 1];
+        if (!collider0 || !collider1 || !receiver0 || !receiver1) continue;
+        collision._nativeCollision = event;
+        const state = event.state;
+        PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1, collision);
+        PhysicsScene._dispatchScripts(state, receiver1, collider1, collider0, collision);
       }
+      receivers.length = 0;
+      PhysicsScene._dispatchReceivers.push(receivers);
+      collision._nativeCollision = null!;
+      collision.collider = null!;
+      collision.selfCollider = null!;
     }
 
     const triggerCount = triggerEvents.length;
@@ -1038,80 +1017,75 @@ export class PhysicsScene {
         receivers[i * 2] = collider0 ? (collider0._attachedBody ?? collider0) : null;
         receivers[i * 2 + 1] = collider1 ? (collider1._attachedBody ?? collider1) : null;
       }
-      try {
-        const triggerReceivers = this._triggerReceivers;
-        const stamp = ++this._triggerStepStamp;
-        let liveCount = 0;
-        for (let i = 0; i < triggerCount; i++) {
-          const event = triggerEvents[i];
-          const collider0 = physicalObjectsMap[event.index1];
-          const collider1 = physicalObjectsMap[event.index2];
-          const cur0 = receivers[i * 2];
-          const cur1 = receivers[i * 2 + 1];
-          if (!collider0 || !collider1 || !cur0 || !cur1) {
-            triggerReceivers.delete(event);
-            continue;
-          }
-          const state = event.dispatchState;
-          if (state === PhysicsEventState.Enter) {
-            let entry = triggerReceivers.get(event);
-            if (entry) {
-              entry.receiver0 = null;
-              entry.receiver1 = null;
-              entry.stamp = stamp;
-            } else {
-              entry = { receiver0: null, receiver1: null, stamp };
-              triggerReceivers.set(event, entry);
-            }
-            liveCount++;
-            if (!cur0.destroyed) {
-              entry.receiver0 = cur0;
-              PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
-            }
-            if (!cur1.destroyed) {
-              entry.receiver1 = cur1;
-              PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
-            }
-          } else if (state === PhysicsEventState.Stay) {
-            const entry = triggerReceivers.get(event);
-            if (entry) {
-              entry.stamp = stamp;
-              liveCount++;
-            }
-            this._dispatchTriggerStaySide(entry, true, cur0, collider0, collider1);
-            this._dispatchTriggerStaySide(entry, false, cur1, collider1, collider0);
+      const triggerReceivers = this._triggerReceivers;
+      const stamp = ++this._triggerStepStamp;
+      let liveCount = 0;
+      for (let i = 0; i < triggerCount; i++) {
+        const event = triggerEvents[i];
+        const collider0 = physicalObjectsMap[event.index1];
+        const collider1 = physicalObjectsMap[event.index2];
+        const cur0 = receivers[i * 2];
+        const cur1 = receivers[i * 2 + 1];
+        if (!collider0 || !collider1 || !cur0 || !cur1) {
+          triggerReceivers.delete(event);
+          continue;
+        }
+        const state = event.dispatchState;
+        if (state === PhysicsEventState.Enter) {
+          let entry = triggerReceivers.get(event);
+          if (entry) {
+            entry.receiver0 = null;
+            entry.receiver1 = null;
+            entry.stamp = stamp;
           } else {
-            const entry = triggerReceivers.get(event);
-            if (entry) triggerReceivers.delete(event);
-            const target0 = PhysicsScene._resolveTriggerExitTarget(entry?.receiver0, cur0, collider0);
-            if (target0) PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
-            const target1 = PhysicsScene._resolveTriggerExitTarget(entry?.receiver1, cur1, collider1);
-            if (target1) PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
+            entry = { receiver0: null, receiver1: null, stamp };
+            triggerReceivers.set(event, entry);
           }
-        }
-        // Only prune unvisited entries after a full pass so an exception mid-dispatch keeps remaining pairs intact.
-        if (triggerReceivers.size > liveCount) {
-          for (const [key, entry] of triggerReceivers) {
-            if (entry.stamp !== stamp) {
-              triggerReceivers.delete(key);
-            }
+          liveCount++;
+          if (!cur0.destroyed) {
+            entry.receiver0 = cur0;
+            PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
           }
+          if (!cur1.destroyed) {
+            entry.receiver1 = cur1;
+            PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
+          }
+        } else if (state === PhysicsEventState.Stay) {
+          const entry = triggerReceivers.get(event);
+          if (entry) {
+            entry.stamp = stamp;
+            liveCount++;
+          }
+          this._dispatchTriggerStaySide(entry, true, cur0, collider0, collider1);
+          this._dispatchTriggerStaySide(entry, false, cur1, collider1, collider0);
+        } else {
+          const entry = triggerReceivers.get(event);
+          if (entry) triggerReceivers.delete(event);
+          const target0 = PhysicsScene._resolveTriggerExitTarget(entry?.receiver0, cur0, collider0);
+          if (target0) PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
+          const target1 = PhysicsScene._resolveTriggerExitTarget(entry?.receiver1, cur1, collider1);
+          if (target1) PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
         }
-      } finally {
-        receivers.length = 0;
-        PhysicsScene._dispatchReceivers.push(receivers);
       }
+      if (triggerReceivers.size > liveCount) {
+        for (const [key, entry] of triggerReceivers) {
+          if (entry.stamp !== stamp) {
+            triggerReceivers.delete(key);
+          }
+        }
+      }
+      receivers.length = 0;
+      PhysicsScene._dispatchReceivers.push(receivers);
     }
 
     const { bodySleepEventIds, bodySleepEventCount } = events;
-    try {
+    if (bodySleepEventCount > 0) {
+      events.bodySleepEventCount = 0;
       for (let i = 0; i < bodySleepEventCount; i++) {
         const id = bodySleepEventIds[i];
         if (id < 0) this._dispatchSleepEvent(-id, "onSleep");
         else this._dispatchSleepEvent(id, "onWake");
       }
-    } finally {
-      events.bodySleepEventCount = 0;
     }
   }
 
@@ -1169,17 +1143,14 @@ export class PhysicsScene {
     const scripts = target.entity._scripts;
     const count = scripts.length;
     scripts._startLoop();
-    try {
-      const elements = scripts._elements;
-      for (let i = 0; i < count; i++) {
-        const script = elements[i];
-        if (!script) continue;
-        script[method]?.(target);
-        if (!targets.has(id)) break;
-      }
-    } finally {
-      scripts._endLoop(PhysicsScene._scriptIndexSetter);
+    const elements = scripts._elements;
+    for (let i = 0; i < count; i++) {
+      const script = elements[i];
+      if (!script) continue;
+      script[method]?.(target);
+      if (!targets.has(id)) break;
     }
+    scripts._endLoop(PhysicsScene._scriptIndexSetter);
   }
 
   private static _dispatchScripts(
@@ -1194,23 +1165,20 @@ export class PhysicsScene {
     const count = scripts.length;
     if (count === 0) return;
     scripts._startLoop();
-    try {
-      const elements = scripts._elements;
-      for (let i = 0; i < count; i++) {
-        const script = elements[i];
-        if (!script) continue;
-        if (collision) {
-          collision.collider = other;
-          collision.selfCollider = self;
-          script[PhysicsScene._collisionMethods[state]](collision);
-        } else {
-          script[PhysicsScene._triggerMethods[state]](other, self);
-        }
-        if (self.destroyed || other.destroyed || receiver.destroyed) break;
+    const elements = scripts._elements;
+    for (let i = 0; i < count; i++) {
+      const script = elements[i];
+      if (!script) continue;
+      if (collision) {
+        collision.collider = other;
+        collision.selfCollider = self;
+        script[PhysicsScene._collisionMethods[state]](collision);
+      } else {
+        script[PhysicsScene._triggerMethods[state]](other, self);
       }
-    } finally {
-      scripts._endLoop(PhysicsScene._scriptIndexSetter);
+      if (self.destroyed || other.destroyed || receiver.destroyed) break;
     }
+    scripts._endLoop(PhysicsScene._scriptIndexSetter);
   }
 
   private static _addDirty<T extends { _dirtyIndex: number }>(list: T[], item: T): void {

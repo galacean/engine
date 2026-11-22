@@ -986,23 +986,20 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const worldPosition = transform.worldPosition;
     const positionChanged = !Vector3.equals(position, worldPosition);
     this._writingBack = true;
-    try {
-      if (positionChanged) transform.worldPosition = position;
+    if (positionChanged) transform.worldPosition = position;
 
-      const worldRotation = transform.worldRotationQuaternion;
-      const rotationChanged = !Quaternion.equals(rotation, worldRotation);
-      if (rotationChanged) transform.worldRotationQuaternion = rotation;
+    const worldRotation = transform.worldRotationQuaternion;
+    const rotationChanged = !Quaternion.equals(rotation, worldRotation);
+    if (rotationChanged) transform.worldRotationQuaternion = rotation;
+    this._writingBack = false;
 
-      if (positionChanged || rotationChanged) {
-        // A constrained Transform can change position while resolving a rotation write.
-        this._nativePosition.copyFrom(transform.worldPosition);
-        this._nativeRotation.copyFrom(transform.worldRotationQuaternion);
-      } else {
-        this._nativePosition.copyFrom(worldPosition);
-        this._nativeRotation.copyFrom(worldRotation);
-      }
-    } finally {
-      this._writingBack = false;
+    if (positionChanged || rotationChanged) {
+      // A constrained Transform can change position while resolving a rotation write.
+      this._nativePosition.copyFrom(transform.worldPosition);
+      this._nativeRotation.copyFrom(transform.worldRotationQuaternion);
+    } else {
+      this._nativePosition.copyFrom(worldPosition);
+      this._nativeRotation.copyFrom(worldRotation);
     }
   }
 

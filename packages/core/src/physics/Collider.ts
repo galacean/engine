@@ -37,7 +37,6 @@ class ColliderSyncScratch {
 export class Collider extends Component implements ICloneHook<Collider> {
   private static _idGenerator = 0;
   private static readonly _syncScratch: ColliderSyncScratch[] = [new ColliderSyncScratch()];
-  private static _syncDepth = 0;
   private static readonly _shearToleranceSquared = 1e-8;
 
   /**
@@ -419,14 +418,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
       this._native &&
       this._registeredScene === scene
     ) {
-      const depth = Collider._syncDepth++;
-      try {
-        const scratch = (Collider._syncScratch[depth] ||= new ColliderSyncScratch());
-        scratch.scale.copyFrom(this._poseScale);
-        this._syncShapePose(this._native, this._attachedBody, scratch, false, scene);
-      } finally {
-        Collider._syncDepth = depth;
-      }
+      const scratch = Collider._syncScratch.pop() ?? new ColliderSyncScratch();
+      scratch.scale.copyFrom(this._poseScale);
+      this._syncShapePose(this._native, this._attachedBody, scratch, false, scene);
+      Collider._syncScratch.push(scratch);
       return;
     }
 
@@ -456,39 +451,40 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const scaleX = lossyScale.x;
     const scaleY = lossyScale.y;
     const scaleZ = lossyScale.z;
-    const depth = Collider._syncDepth++;
-    try {
-      const scratch = (Collider._syncScratch[depth] ||= new ColliderSyncScratch());
-      const scale = scratch.scale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
-      const previousShape = this._native;
-      const shape = this._syncNativeShape(scale);
-      if (!shape) {
-        this._detach();
-        return;
-      }
-      scale.set(scaleX, scaleY, scaleZ);
-
-      const attachedActor = this._nativeActor;
-      const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform, scene);
-      if (!actor || !this._syncShapePose(shape, body, scratch, shape !== previousShape, scene)) return;
-      if (!this._nativeActor) {
-        if (body && (body.destroyed || this._findRigidbody() !== body)) return;
-        if (!actor.addShape(shape)) {
-          console.error(`${this.constructor.name}: failed to attach to the native actor.`);
-          return;
-        }
-        if (body) {
-          body._attachCollider(this);
-        } else {
-          scene.physics._nativePhysicsScene.addCollider(actor);
-        }
-        this._nativeActor = actor;
-        this._attachedBody = body;
-      }
-      this._poseScale.copyFrom(scale);
-    } finally {
-      Collider._syncDepth = depth;
+    const scratch = Collider._syncScratch.pop() ?? new ColliderSyncScratch();
+    const scale = scratch.scale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
+    const previousShape = this._native;
+    const shape = this._syncNativeShape(scale);
+    if (!shape) {
+      Collider._syncScratch.push(scratch);
+      this._detach();
+      return;
     }
+    scale.set(scaleX, scaleY, scaleZ);
+
+    const attachedActor = this._nativeActor;
+    const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform, scene);
+    if (actor && this._syncShapePose(shape, body, scratch, shape !== previousShape, scene)) {
+      if (!this._nativeActor) {
+        if (!body || (!body.destroyed && this._findRigidbody() === body)) {
+          if (actor.addShape(shape)) {
+            if (body) {
+              body._attachCollider(this);
+            } else {
+              scene.physics._nativePhysicsScene.addCollider(actor);
+            }
+            this._nativeActor = actor;
+            this._attachedBody = body;
+            this._poseScale.copyFrom(scale);
+          } else {
+            console.error(`${this.constructor.name}: failed to attach to the native actor.`);
+          }
+        }
+      } else {
+        this._poseScale.copyFrom(scale);
+      }
+    }
+    Collider._syncScratch.push(scratch);
   }
 
   /**

@@ -108,29 +108,26 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     const verticesPtr = this._allocatePositions(positions);
     if (!verticesPtr) return null;
     let indicesPtr = 0;
-    let pxMesh: any;
+    let pxMesh: any = null;
 
-    try {
-      if (this._isConvex) {
-        pxMesh = cooking.createConvexMesh(verticesPtr, positions.length, physics);
-        if (!pxMesh) {
-          this._logConvexCookingError(physX);
-          return null;
-        }
-      } else {
-        const isU32 = indices instanceof Uint32Array;
-        indicesPtr = this._allocateIndices(indices!, isU32);
-        if (!indicesPtr) return null;
+    if (this._isConvex) {
+      pxMesh = cooking.createConvexMesh(verticesPtr, positions.length, physics);
+      if (!pxMesh) {
+        this._logConvexCookingError(physX);
+      }
+    } else {
+      const isU32 = indices instanceof Uint32Array;
+      indicesPtr = this._allocateIndices(indices!, isU32);
+      if (indicesPtr) {
         pxMesh = cooking.createTriMesh(verticesPtr, positions.length, indicesPtr, indices!.length / 3, !isU32, physics);
         if (!pxMesh) {
           this._logTriMeshCookingError(physX);
-          return null;
         }
       }
-    } finally {
-      physX._free(verticesPtr);
-      if (indicesPtr) physX._free(indicesPtr);
     }
+
+    physX._free(verticesPtr);
+    if (indicesPtr) physX._free(indicesPtr);
 
     return pxMesh;
   }

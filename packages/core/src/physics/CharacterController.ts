@@ -189,16 +189,13 @@ export class CharacterController extends Collider {
     const flags = controller.move(disp, minDist, elapsedTime);
     const positions = CharacterController._movePositions;
     const position = positions.pop() ?? new Vector3();
-    try {
-      controller.getWorldPosition(position);
-      const transform = this.entity.transform;
-      transform.worldPosition = position;
-      // Cache the published position so the next sync does not teleport over a rounding difference.
-      this._nativePosition.copyFrom(transform.worldPosition);
-    } finally {
-      // A custom Transform setter can move another controller before consuming this position.
-      positions.push(position);
-    }
+    controller.getWorldPosition(position);
+    const transform = this.entity.transform;
+    transform.worldPosition = position;
+    // Cache the published position so the next sync does not teleport over a rounding difference.
+    this._nativePosition.copyFrom(transform.worldPosition);
+    // A custom Transform setter can move another controller before consuming this position.
+    positions.push(position);
     return flags;
   }
 

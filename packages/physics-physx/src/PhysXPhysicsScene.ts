@@ -35,7 +35,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxSceneQueries: any;
   private _physXSimulationCallbackInstance: any;
   private _raycastBuffers?: Float64Array[];
-  private _raycastDepth = 0;
 
   /** @internal */
   _contactData = new Float32Array(2560);
@@ -280,21 +279,17 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     // Nested queries can overwrite the WASM view. Keep a separate snapshot for each active dispatch.
     const buffers = (this._raycastBuffers ||= []);
-    const depth = this._raycastDepth++;
-    try {
-      let buffer = buffers[depth];
-      if (!buffer || buffer.length < length) {
-        let nextLength = buffer ? buffer.length * 2 : 144;
-        while (nextLength < length) nextLength *= 2;
-        buffers[depth] = buffer = new Float64Array(nextLength);
-      }
-      buffer.set(hits);
-      for (let i = 0; i < length; i += 9) {
-        this._readHit(buffer, i, onHit);
-      }
-    } finally {
-      this._raycastDepth--;
+    let buffer = buffers.pop();
+    if (!buffer || buffer.length < length) {
+      let nextLength = buffer ? buffer.length * 2 : 144;
+      while (nextLength < length) nextLength *= 2;
+      buffer = new Float64Array(nextLength);
     }
+    buffer.set(hits);
+    for (let i = 0; i < length; i += 9) {
+      this._readHit(buffer, i, onHit);
+    }
+    buffers.push(buffer);
   }
 
   /**
