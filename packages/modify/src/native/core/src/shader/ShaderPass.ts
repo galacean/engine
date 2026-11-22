@@ -300,10 +300,6 @@ export class ShaderPass extends ShaderPart {
       instanceLayout = injected.instanceLayout;
     }
 
-    // Convert legacy ES100 syntax and shared sampling helpers to ES300 while preserving ES300 outputs.
-    vertexSource = ShaderFactory.convertTo300(vertexSource);
-    fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
-
     const versionStr = "#version 300 es";
 
     return {

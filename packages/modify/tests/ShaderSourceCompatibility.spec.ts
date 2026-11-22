@@ -1,34 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
-import { Engine, ShaderFactory, ShaderLanguage, ShaderPass } from "@galacean/engine";
+import { Engine, ShaderLanguage, ShaderPass } from "@galacean/engine";
 import { ShaderMacroCollection } from "../../core/src/shader/ShaderMacroCollection";
 
 describe("World shader compiler compatibility", () => {
-  it("declares MRT outputs before lowered fragment helper functions", () => {
-    const source = ShaderFactory.convertTo300(
-      "void fragmentBody(){gl_FragData[0]=vec4(1.0);gl_FragData[1]=vec4(0.0);}\nvoid main(){fragmentBody();}",
-      true
-    );
-    for (const index of [0, 1]) {
-      expect(source.indexOf(`out vec4 fragOutColor${index};`)).toBeGreaterThanOrEqual(0);
-      expect(source.indexOf(`out vec4 fragOutColor${index};`)).toBeLessThan(source.indexOf("void fragmentBody"));
-    }
-    expect(source).not.toContain("gl_FragData");
-  });
-
-  it("normalizes shared sampling helpers while preserving an ES300 integer output", () => {
+  it("emits native GLSL ES 300 sources directly without runtime ES100 rewriting", () => {
     const pass = new ShaderPass(
       "Pick",
       [[0, "void main(){gl_Position=vec4(0.0);}"]],
       [
         [
           0,
-          "layout(location=0) out highp uvec4 pick;\nvec4 sampleMap(){return texture2D(map,uv)+textureCubeLodEXT(env,direction,0.0);}"
+          "layout(location=0) out highp uvec4 pick;\nvec4 sampleMap(){return texture(map,uv)+textureLod(env,direction,0.0);}"
         ]
       ],
       ShaderLanguage.GLSLES300
     );
     const engine = { _hardwareRenderer: { supportsRendering: true, canIUse: () => false } } as unknown as Engine;
     const result = pass["_compileShaderSource"](engine, new ShaderMacroCollection(), false).fragmentSource;
+    expect(result).toContain("#version 300 es");
     expect(result).toContain("texture(map,uv)+textureLod(env,direction,0.0)");
     expect(result).toContain("layout(location=0) out highp uvec4 pick;");
     expect(result.match(/\bout\b/g)).toHaveLength(1);

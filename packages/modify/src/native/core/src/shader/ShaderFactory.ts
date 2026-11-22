@@ -44,8 +44,6 @@ export class ShaderFactory {
     mat3x4: { size: 48, align: 16 }
   };
 
-  private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?vec4\s+\w+\s*;/;
-
   // Derived built-ins re-exposed on top of `renderer_ModelMat`.
   // `renderer_NormalMat` uses the cofactor (cross-product) form, which algebraically equals
   // `det(M) · transpose(inverse(M))`. After `normalize()` it's directionally identical to the
@@ -174,47 +172,6 @@ mat3 _normalMatFromModel(mat3 m) {
    */
   static unRegisterInclude(includeName: string): void {
     ShaderFactory.unregisterInclude(includeName);
-  }
-
-  /**
-   * Convert lower GLSL version to GLSL 300 es.
-   * @param shader - code
-   * @param isFrag - Whether it is a fragment shader.
-   */
-  static convertTo300(shader: string, isFrag?: boolean): string {
-    shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
-    shader = ShaderFactory.convertTextureCallsTo300(shader);
-
-    if (isFrag) {
-      shader = shader.replace(/\bgl_FragDepthEXT\b/g, "gl_FragDepth");
-
-      if (!ShaderFactory._has300OutInFragReg.test(shader)) {
-        const isMRT = /\bgl_FragData\[.+?\]/g.test(shader);
-        if (isMRT) {
-          shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
-          const result = shader.match(/\bgl_FragData\[.+?\]/g);
-          shader = ShaderFactory._replaceMRTShader(shader, result!);
-        } else if (/\bgl_FragColor\b/.test(shader)) {
-          shader = "out vec4 glFragColor;\n" + shader;
-          shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
-        }
-      }
-    } else {
-      shader = shader.replace(/\battribute\b/g, "in");
-    }
-
-    return shader;
-  }
-
-  /** Normalize shared ES100 sampling helpers without changing ES300 interfaces. @internal */
-  static convertTextureCallsTo300(shader: string): string {
-    return shader
-      .replace(/\btexture(2D|Cube)\b/g, "texture")
-      .replace(/\btexture2DProj\b/g, "textureProj")
-      .replace(/\btexture(2D|Cube)LodEXT\b/g, "textureLod")
-      .replace(/\btexture(2D|Cube)GradEXT\b/g, "textureGrad")
-      .replace(/\btexture2DProjLodEXT\b/g, "textureProjLod")
-      .replace(/\btexture2DProjGradEXT\b/g, "textureProjGrad");
   }
 
   /** Replaces the realtime SH array uniform with a std140 block after ShaderLab preprocessing. @internal */
@@ -388,23 +345,6 @@ mat3 _normalMatFromModel(mat3 m) {
       }
     }
     return lines.join("\n");
-  }
-
-  private static _replaceMRTShader(shader: string, result: string[]): string {
-    let declaration = "";
-    const mrtIndexSet = new Set();
-
-    for (let i = 0; i < result.length; i++) {
-      const res = result[i].match(/\bgl_FragData\[(.+?)\]/);
-      mrtIndexSet.add(res![1]);
-    }
-
-    mrtIndexSet.forEach((index) => {
-      declaration += `layout(location=${index}) out vec4 fragOutColor${index};\n`;
-    });
-    shader = shader.replace(/\bgl_FragData\[(.+?)\]/g, "fragOutColor$1");
-    // Lowered fragment helpers can write outputs before main is declared.
-    return declaration + shader;
   }
 }
 
