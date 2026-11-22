@@ -1,0 +1,40 @@
+packages/building/tests/BuildingGlobalProxy.spec.ts
+  h_ddbf152d31b140 24
+packages/building/tests/BuildingOptimization.spec.ts
+  h_ddbf152d31b140 48,51
+packages/core/src/graphic/TransformFeedbackPrimitive.ts
+  h_ddbf152d31b140 16,22,30,38,45,59,74,93,107,109,113,115,118,131,154
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  h_ddbf152d31b140 39,41,91,93-94
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  h_ddbf152d31b140 39,41
+packages/modify/native-overrides.json
+  h_ddbf152d31b140 713-720
+packages/modify/src/native/core/src/graphic/TransformFeedbackPrimitive.ts
+  h_ddbf152d31b140 1-168
+packages/modify/src/native/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  h_ddbf152d31b140 1-53
+packages/modify/tests/ShaderSourceCompatibility.spec.ts
+  h_ddbf152d31b140 30,50
+packages/runtime-editor/src/runtime-inspection/runtime-pick-occlusion.ts
+  h_ddbf152d31b140 8,41
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 790,792,796,819,976,1121,1137,1165,1193,1210,1240,1250,1296,1396-1398,1414,1651,1663,1688,1704
+world/tests/seed-world/FarmItemShaderPreparation.spec.ts
+  h_ddbf152d31b140 80
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_ddbf152d31b140 115,179,219,697,792,815,856,873,894,935,1000,1027
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 759,1055-1056
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "aef8d42e9ffc31d24e5378126d4e9929ac2a61cd",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
