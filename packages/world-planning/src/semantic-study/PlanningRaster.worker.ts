@@ -49,6 +49,24 @@ self.onmessage = ({
     const supplied = data.heightFromBase ? rasters.get(data.baseId)?.height : data.height;
     if (data.heightFromBase && !supplied) throw new Error("Missing requested raster height baseline");
     const { sample, ...height } = supplied ? adoptPlanningHeightmap(data.plan, supplied) : planningHeightmap(data.plan);
+    if (!supplied) {
+      // Push encoded R16 height immediately (~350ms into raster) so building initialization/compilation
+      // can overlap with alphamap/ocean/nativeData compilation while keeping worker buffers intact.
+      const encoded = height.encoded.slice();
+      self.postMessage(
+        {
+          id: data.id,
+          kind: "height-ready",
+          height: {
+            resolution: height.resolution,
+            encoded,
+            decodeOffset: height.decodeOffset,
+            decodeScale: height.decodeScale
+          }
+        },
+        [encoded.buffer]
+      );
+    }
     const alpha = planningAlphamap(data.plan);
     const ocean =
       data.ocean && data.plan.parameters.landMode !== "continuous" ? compilePlanningOcean(data.plan) : undefined;

@@ -3,6 +3,7 @@ import type { RuntimeEditor, RuntimeEditorEdit, RuntimeEditPreparation } from "@
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
 import type { ConstructionTerrainSource } from "@galacean/engine-building/building/runtime/TerrainField";
+import type { BuildingCpuClient } from "@galacean/engine-building/building/parts/architecture/BuildingCpuClient";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
 import { buildingAssets } from "@galacean/engine-building/building/resources/BuildingAssetKit";
@@ -26,6 +27,8 @@ export interface BuildingScenePreparationOptions {
    * without running `inputs()`, restoring the one-time initialization invariant.
    */
   readonly bootEmptyInitializedGeneratorId?: () => string | undefined;
+  /** Optional shared BuildingCpuClient worker pool to offload initial building group design. */
+  readonly compiler?: BuildingCpuClient;
 }
 
 /** Initialize each layout once. The Scene keeps previous native buildings under inactive layout roots. */
@@ -129,7 +132,7 @@ export function buildingScenePreparation(scenePath: string,
         async (assets) => {
           const compilation = buildingAssets(assets.resource).compilation;
           return seedWorldBootTrace.span("building.initialBuildingSource", () =>
-            initialBuildingSource(plan, terrain.grid, compilation, BUILTIN_BUILDING_ASSETS, signal, key)
+            initialBuildingSource(plan, terrain.grid, compilation, BUILTIN_BUILDING_ASSETS, signal, key, options?.compiler)
           );
         }
       )
@@ -214,13 +217,18 @@ function inspectEmptyStartupBuildingScene(
  * Returns the `BuildingGeneratorComponent` id if a 0-building startup fast-path skipped boot-time mutation.
  */
 export async function initializeBuildingScene(project: RuntimeProjectSession, editor: RuntimeEditor,
-  plan: IslandPlan, terrain: ConstructionTerrainSource, signal: AbortSignal): Promise<string | undefined> {
+  plan: IslandPlan, terrain: ConstructionTerrainSource, signal: AbortSignal, compiler?: BuildingCpuClient): Promise<string | undefined> {
   const fastCheck = inspectEmptyStartupBuildingScene(project, plan);
   if (fastCheck.skip) return fastCheck.emptyGeneratorId;
   const edit = editor.beginEdit(crypto.randomUUID(), signal);
   try {
     await seedWorldBootTrace.span("building.preparation", () =>
-      buildingScenePreparation(project.projectPackage.project.scene, async () => ({ plan, terrain }), plan)(edit, signal)
+      buildingScenePreparation(
+        project.projectPackage.project.scene,
+        async () => ({ plan, terrain }),
+        plan,
+        compiler ? { compiler } : undefined
+      )(edit, signal)
     );
     if (!edit.hasChanges()) return undefined;
     await seedWorldBootTrace.span("building.edit.prepare", () => edit.prepare(signal));

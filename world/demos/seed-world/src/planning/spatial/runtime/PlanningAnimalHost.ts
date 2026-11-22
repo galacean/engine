@@ -100,11 +100,33 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
     this.advance = (seconds) => this.update(seconds);
   }
 
+  /** Pre-import the animal runtime chunk during startup raster/terrain work when animals are enabled. */
+  preloadModule(): void {
+    if (this.disposed || this.module || this.loading || this.attempted) return;
+    this.loading = true;
+    try {
+      this.loadingTask = this.load()
+        .then((module) => {
+          if (!this.disposed) this.module = module;
+        })
+        .catch(() => {
+          // Best-effort preload; synchronize/update surfaces any real load failure when enabled.
+        })
+        .finally(() => {
+          this.loading = false;
+        });
+    } catch {
+      this.loading = false;
+    }
+  }
+
   /** Startup may join current local presentation demand without loading distant catalog alternatives. */
   async preparePresentation(): Promise<void> {
     this.update(0);
-    await this.loadingTask;
-    this.update(0);
+    while (this.loading && this.loadingTask) {
+      await this.loadingTask;
+      this.update(0);
+    }
     if (this.enabled && !this.disposed) await this.runtime?.preparePresentation();
   }
 

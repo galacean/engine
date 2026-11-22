@@ -304,3 +304,61 @@ it("still rechecks a suspended animal's old footprint outside its birth range", 
   (PlanningAnimalRuntime.prototype as any).revalidateSupport({ actors: [actor], habitat }, [bounds]);
   expect(actor.supportValid).toBe(true);
 });
+
+it("PlanningAnimalHost.preloadModule caches module without constructing runtime and recovers cleanly on preload failure", async () => {
+  const constructed = vi.fn();
+  const prepared = vi.fn(async () => {});
+  const synced = vi.fn();
+  const updated = vi.fn();
+  class FakeRuntime {
+    constructor() {
+      constructed();
+    }
+    synchronize = synced;
+    update = updated;
+    preparePresentation = prepared;
+    dispose = vi.fn(async () => {});
+    spawn = vi.fn();
+    query = vi.fn();
+    describe = vi.fn();
+    command = vi.fn();
+    receipt = vi.fn();
+    commandFromPanel = vi.fn();
+    notify = vi.fn();
+    position = vi.fn();
+    observationPosition = vi.fn();
+    inspect = vi.fn();
+    shoo = vi.fn();
+  }
+
+  // 1) Happy path: preloadModule loads once without constructing runtime; preparePresentation reuses it.
+  const loader = vi.fn(async () => ({ PlanningAnimalRuntime: FakeRuntime as any }));
+  const state = fixture();
+  const host = new PlanningAnimalHost({} as any, () => ({ x: 50, z: 50 }), loader);
+  host.preloadModule();
+  host.preloadModule(); // idempotent
+  expect(loader).toHaveBeenCalledTimes(1);
+  expect(constructed).not.toHaveBeenCalled();
+  host.synchronize(state.result.plan, config, navigation(state.result.plan));
+  await host.preparePresentation();
+  expect(loader).toHaveBeenCalledTimes(1);
+  expect(constructed).toHaveBeenCalledTimes(1);
+  expect(prepared).toHaveBeenCalledTimes(1);
+  await host.dispose();
+
+  // 2) Failure recovery: preload fails silently while in flight; preparePresentation retries and awaits the retry.
+  let attempt = 0;
+  const retryLoader = vi.fn(async () => {
+    attempt++;
+    if (attempt === 1) throw new Error("transient preload network error");
+    return { PlanningAnimalRuntime: FakeRuntime as any };
+  });
+  const host2 = new PlanningAnimalHost({} as any, () => ({ x: 50, z: 50 }), retryLoader);
+  host2.preloadModule();
+  host2.synchronize(state.result.plan, config, navigation(state.result.plan));
+  await host2.preparePresentation();
+  expect(retryLoader).toHaveBeenCalledTimes(2);
+  expect(constructed).toHaveBeenCalledTimes(2);
+  expect(prepared).toHaveBeenCalledTimes(2);
+  await host2.dispose();
+});

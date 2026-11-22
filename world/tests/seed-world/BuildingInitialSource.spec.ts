@@ -191,3 +191,69 @@ it("skips boot-time editor mutation for 0-building templates and converges initi
   expect(edited2).toBe(false);
   expect(editInputs).not.toHaveBeenCalled();
 });
+
+it("matches sync initialBuildingSource byte-for-byte when fanned out across BuildingCpuClient workers out of order", async () => {
+  const { designInitialBuildingGroup } = await import(
+    "@galacean/engine-building/building/parts/architecture/BuildingInitialGroup.ts"
+  );
+  const { BuildingCpuClient } = await import(
+    "@galacean/engine-building/building/parts/architecture/BuildingCpuClient.ts"
+  );
+  const plan = structuredClone(buildingGenerationPlan);
+  const grid = {
+    samples: new Uint16Array(4),
+    resolution: 2,
+    origin: [-1000, -1000] as [number, number],
+    size: 2000,
+    decode: { offset: 0, scale: 1 }
+  };
+  const syncResult = await initialBuildingSource(
+    plan,
+    grid,
+    constructionGeometry,
+    "Building/Units/building-kit.prefab"
+  );
+
+  // Stub Worker to execute designInitialBuildingGroup asynchronously and reply in reverse order.
+  const pendingReplies: (() => void)[] = [];
+  class FakeBuildingWorker {
+    onmessage: ((event: any) => void) | null = null;
+    onerror: ((event: any) => void) | null = null;
+    onmessageerror: (() => void) | null = null;
+    private assets = new Map<number, any>();
+    private terrains = new Map<number, any>();
+    postMessage(msg: any) {
+      if (msg.mode === "release") return;
+      if (msg.units) this.assets.set(msg.assetId, msg.units);
+      if (msg.terrain) this.terrains.set(msg.terrainId, msg.terrain);
+      const units = this.assets.get(msg.assetId);
+      const terrain = this.terrains.get(msg.terrainId);
+      pendingReplies.push(() => {
+        const result = designInitialBuildingGroup(msg.group, terrain, units, msg.library, msg.layoutKey);
+        this.onmessage?.({ data: { id: msg.id, ok: true, result } });
+      });
+    }
+    terminate() {}
+  }
+  vi.stubGlobal("Worker", FakeBuildingWorker);
+  const compiler = new BuildingCpuClient(3);
+  try {
+    const workerPromise = initialBuildingSource(
+      plan,
+      grid,
+      constructionGeometry,
+      "Building/Units/building-kit.prefab",
+      undefined,
+      undefined,
+      compiler
+    );
+    expect(pendingReplies.length).toBeGreaterThan(1);
+    // Reply in reverse order to verify deterministic output ordering.
+    while (pendingReplies.length > 0) pendingReplies.pop()!();
+    const workerResult = await workerPromise;
+    expect(workerResult).toEqual(syncResult);
+  } finally {
+    compiler.dispose();
+    vi.unstubAllGlobals();
+  }
+});

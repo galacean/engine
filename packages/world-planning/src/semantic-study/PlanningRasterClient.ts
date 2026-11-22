@@ -5,14 +5,27 @@ import type { IslandPlan } from "./IslandPlanModel";
 import { adoptPlanningHeightmap, cachedPlanningHeightmap } from "./PlanningHeightmap";
 import { adoptPlanningAlphamap } from "./PlanningAlphamap";
 import { adoptPlanningOcean } from "./PlanningOceanSource";
+export interface PlanningRasterHeightSnapshot {
+  readonly resolution: number;
+  readonly encoded: Uint16Array;
+  readonly decodeOffset: number;
+  readonly decodeScale: number;
+}
+interface RasterHeightReadyMessage {
+  id: number;
+  kind: "height-ready";
+  height: PlanningRasterHeightSnapshot;
+}
 interface RasterResult {
   id: number;
+  kind?: "result";
   raster: PlanningRasterPacket;
   nativeData?: CompiledPlanningSeedWorldData;
   surfaceRelief?: PreparedSurfaceReliefMask;
   elapsedMs: number;
   error?: string;
 }
+type RasterWorkerMessage = RasterHeightReadyMessage | RasterResult;
 /** One coalesced raster job at a time; obsolete results never enter renderer caches. */
 export class PlanningRasterClient {
   private worker?: Worker;
@@ -20,11 +33,45 @@ export class PlanningRasterClient {
   private baseId?: number;
   private sequence = 0;
   private nativeData = new WeakMap<IslandPlan, CompiledPlanningSeedWorldData>();
+  private earlyHeights = new WeakMap<IslandPlan, PlanningRasterHeightSnapshot>();
+  private heightWaiters = new Map<IslandPlan, ((height: PlanningRasterHeightSnapshot | undefined) => void)[]>();
   /** Consume detached native data only after the matching request has completed. */
   takeNativeData(plan: IslandPlan) {
     const value = this.nativeData.get(plan);
     this.nativeData.delete(plan);
     return value;
+  }
+  /** Wait for the encoded R16 height grid of an active or cached plan without waiting for alphamap/nativeData. */
+  waitForHeight(plan: IslandPlan): Promise<PlanningRasterHeightSnapshot | undefined> {
+    const cached = cachedPlanningHeightmap(plan);
+    if (cached) {
+      return Promise.resolve({
+        resolution: cached.resolution,
+        encoded: cached.encoded,
+        decodeOffset: cached.decodeOffset,
+        decodeScale: cached.decodeScale
+      });
+    }
+    const early = this.earlyHeights.get(plan);
+    if (early) return Promise.resolve(early);
+    if (this.active?.plan !== plan) return Promise.resolve(undefined);
+    return new Promise((resolve) => {
+      const list = this.heightWaiters.get(plan);
+      if (list) list.push(resolve);
+      else this.heightWaiters.set(plan, [resolve]);
+    });
+  }
+  private resolveHeightWaiters(plan: IslandPlan, height: PlanningRasterHeightSnapshot | undefined): void {
+    const waiters = this.heightWaiters.get(plan);
+    if (!waiters) return;
+    this.heightWaiters.delete(plan);
+    for (const resolve of waiters) resolve(height);
+  }
+  private clearAllHeightWaiters(): void {
+    for (const waiters of this.heightWaiters.values()) {
+      for (const resolve of waiters) resolve(undefined);
+    }
+    this.heightWaiters.clear();
   }
   private surfaceRelief = new WeakMap<IslandPlan, PreparedSurfaceReliefMask>();
   takeSurfaceRelief(plan: IslandPlan) {
@@ -72,9 +119,15 @@ export class PlanningRasterClient {
       clearTimeout(this.idleReleaseTimer);
       this.idleReleaseTimer = undefined;
     }
-    this.active?.resolve(undefined);
+    if (this.active) {
+      const superseded = this.active;
+      this.active = undefined;
+      this.resolveHeightWaiters(superseded.plan, undefined);
+      superseded.resolve(undefined);
+    }
     this.nativeData.delete(plan);
     this.surfaceRelief.delete(plan);
+    this.earlyHeights.delete(plan);
     const id = ++this.sequence;
     return new Promise((resolve, reject) => {
       this.active = { id, plan, resolve, reject };
@@ -94,13 +147,22 @@ export class PlanningRasterClient {
   private ensureWorker(): Worker {
     if (this.worker) return this.worker;
     const worker = new Worker(new URL("./PlanningRaster.worker.ts", import.meta.url), { type: "module" });
-    worker.onmessage = ({ data }: MessageEvent<RasterResult>) => {
+    worker.onmessage = ({ data }: MessageEvent<RasterWorkerMessage>) => {
+      if (data.kind === "height-ready") {
+        if (data.id === this.active?.id) {
+          this.earlyHeights.set(this.active.plan, data.height);
+          this.resolveHeightWaiters(this.active.plan, data.height);
+        }
+        return;
+      }
       this.inFlight = false;
       if (data.id === this.active?.id) {
         const active = this.active;
         this.active = undefined;
-        if (data.error) active.reject(new Error(data.error));
-        else {
+        if (data.error) {
+          this.resolveHeightWaiters(active.plan, undefined);
+          active.reject(new Error(data.error));
+        } else {
           try {
             const raster = this.rasters.decode(data.id, data.raster);
             adoptPlanningHeightmap(active.plan, raster.height);
@@ -109,8 +171,17 @@ export class PlanningRasterClient {
             if (data.nativeData) this.nativeData.set(active.plan, data.nativeData);
             if (data.surfaceRelief) this.surfaceRelief.set(active.plan, data.surfaceRelief);
             this.baseId = data.id;
+            const heightSnapshot: PlanningRasterHeightSnapshot = {
+              resolution: raster.height.resolution,
+              encoded: raster.height.encoded,
+              decodeOffset: raster.height.decodeOffset,
+              decodeScale: raster.height.decodeScale
+            };
+            this.earlyHeights.set(active.plan, heightSnapshot);
+            this.resolveHeightWaiters(active.plan, heightSnapshot);
             active.resolve(data.elapsedMs);
           } catch (error) {
+            this.resolveHeightWaiters(active.plan, undefined);
             active.reject(error instanceof Error ? error : new Error(String(error)));
           }
         }
@@ -151,6 +222,7 @@ export class PlanningRasterClient {
     this.baseId = undefined;
     this.inFlight = false;
     this.queued = undefined;
+    this.clearAllHeightWaiters();
     this.active?.reject(error);
     this.active = undefined;
   }
@@ -162,6 +234,8 @@ export class PlanningRasterClient {
     }
     this.nativeData = new WeakMap();
     this.surfaceRelief = new WeakMap();
+    this.earlyHeights = new WeakMap();
+    this.clearAllHeightWaiters();
     this.active?.resolve(undefined);
     this.active = undefined;
     this.queued = undefined;

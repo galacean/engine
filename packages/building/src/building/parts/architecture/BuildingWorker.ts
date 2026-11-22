@@ -1,4 +1,5 @@
 import { prepareBuildingCpu, compileBuildingCpu, type BuildingCpuPreparation } from "./BuildingCpu";
+import { designInitialBuildingGroup } from "./BuildingInitialGroup";
 import type { BuildingWorkerRequest, BuildingWorkerReply } from "./BuildingWorkerProtocol";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
 import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
@@ -147,6 +148,15 @@ async function handle(input: BuildingWorkerRequest) {
       const transferSet = new Set<ArrayBuffer>();
       collectArrayBuffers(result.renderInput, transferSet, excluded);
       reply({ id, ok: true, result }, [...transferSet]);
+    } else if (input.mode === "initial-group") {
+      leases.set(id, { assetId: input.assetId, terrainId: input.terrainId });
+      if (input.units) assets.set(input.assetId, input.units);
+      if (input.terrain) terrains.set(input.terrainId, input.terrain);
+      const units = assets.get(input.assetId),
+        terrain = terrains.get(input.terrainId);
+      if (!units || !terrain) throw Error("Building Worker input snapshot is unavailable");
+      const result = designInitialBuildingGroup(input.group, terrain, units, input.library, input.layoutKey);
+      reply({ id, ok: true, result });
     } else {
       const prepared = preparations.get(input.token);
       if (!prepared) throw Error("Building compilation snapshot is unavailable");

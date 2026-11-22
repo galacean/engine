@@ -223,6 +223,10 @@ type Build = {
  * residency and picking for any part collection. */
 export class BuildingRuntime extends Script {
   private readonly compiler = new BuildingCpuClient();
+  /** Shared multi-worker Building CPU compiler pool owned by this runtime. */
+  get cpuCompiler(): BuildingCpuClient {
+    return this.compiler;
+  }
   protected readonly members = new Map<Component, ReturnType<Entity["transform"]["registerWorldChangeFlag"]>>();
   private readonly dirtyTransformMembers = new Set<Component>();
   protected readonly views = new Map<Entity, View>();

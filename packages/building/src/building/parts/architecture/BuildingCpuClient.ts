@@ -1,5 +1,6 @@
 import type { BuildingCoreDraft as BuildingDraft } from "../../core";
 import type { BuildingCpuOptions } from "./BuildingCpu";
+import type { InitialBuildingGroupInput, InitialBuildingGroupOutput } from "./BuildingInitialGroup";
 import type {
   BuildingWorkerRequest,
   BuildingWorkerReply,
@@ -180,6 +181,54 @@ export class BuildingCpuClient {
     }
 
     return { id, result };
+  }
+  async designInitialGroup(
+    group: InitialBuildingGroupInput,
+    terrain: ConstructionTerrainGrid,
+    units: BuildingUnitAssets,
+    library: string,
+    layoutKey: string | undefined,
+    signal: AbortSignal
+  ): Promise<InitialBuildingGroupOutput> {
+    signal.throwIfAborted();
+    if (this.closed) throw Error("Building compiler disposed");
+    const slot = this.pickSlot();
+    const generation = slot.generation;
+    const epoch = slot.epoch;
+    const asset = this.acquireResource(slot.assets, units),
+      ground = this.acquireResource(slot.terrains, terrain);
+    let id: number, result: Promise<InitialBuildingGroupOutput>;
+    try {
+      ({ id, result } = this.send<InitialBuildingGroupOutput>(
+        slot,
+        {
+          mode: "initial-group",
+          group,
+          library,
+          ...(layoutKey === undefined ? {} : { layoutKey }),
+          assetId: asset.lease.id,
+          terrainId: ground.lease.id,
+          ...(asset.first ? { units } : {}),
+          ...(ground.first ? { terrain } : {})
+        },
+        signal
+      ));
+    } catch (error) {
+      asset.lease.refs = Math.max(0, asset.lease.refs - 1);
+      ground.lease.refs = Math.max(0, ground.lease.refs - 1);
+      throw error;
+    }
+    try {
+      const output = await result;
+      signal.throwIfAborted();
+      return output;
+    } finally {
+      if (generation === slot.generation && epoch === slot.epoch) {
+        asset.lease.refs = Math.max(0, asset.lease.refs - 1);
+        ground.lease.refs = Math.max(0, ground.lease.refs - 1);
+        slot.worker?.postMessage({ mode: "release", token: id } satisfies BuildingWorkerRequest);
+      }
+    }
   }
   async prepare(
     draft: BuildingDraft,

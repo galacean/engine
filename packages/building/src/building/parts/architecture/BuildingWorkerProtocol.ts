@@ -1,5 +1,6 @@
 import type { BuildingCoreDraft as BuildingDraft } from "../../core";
 import type { BuildingCpuOptions, BuildingCpuPreparation, compileBuildingCpu } from "./BuildingCpu";
+import type { InitialBuildingGroupInput, InitialBuildingGroupOutput } from "./BuildingInitialGroup";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
 import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
 
@@ -16,6 +17,17 @@ export type BuildingWorkerRequest =
       terrain?: ConstructionTerrainGrid;
       options?: BuildingCpuOptions;
       workerSlim?: boolean;
+    }
+  | {
+      id: number;
+      mode: "initial-group";
+      group: InitialBuildingGroupInput;
+      library: string;
+      layoutKey?: string;
+      assetId: number;
+      terrainId: number;
+      units?: BuildingUnitAssets;
+      terrain?: ConstructionTerrainGrid;
     }
   | {
       id: number;
@@ -40,5 +52,5 @@ export type BuildingWorkerRequest =
     }
   | { mode: "release"; token: number };
 export type BuildingWorkerReply =
-  | { id: number; ok: true; result: BuildingCpuPreview | BuildingCpuDetail }
+  | { id: number; ok: true; result: BuildingCpuPreview | BuildingCpuDetail | InitialBuildingGroupOutput }
   | { id: number; ok: false; error: string };

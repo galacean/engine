@@ -337,3 +337,52 @@ it("keeps main-thread and worker resource leases symmetric when previewOnly runs
   b.cpu.dispose();
   client.dispose();
 });
+
+it("fans out designInitialGroup across worker slots, reuses cached assets/terrain, and releases leases on settle or abort", async () => {
+  vi.stubGlobal("Worker", WorkerPort);
+  const client = new BuildingCpuClient(3),
+    units = {} as any,
+    abort = new AbortController(),
+    signal = abort.signal;
+  const makeGroup = (id: string) =>
+    ({
+      id,
+      name: id,
+      draft: { kind: "building-core-draft", seed: 1, groups: [], parts: [] },
+      position: [0, 0, 0] as [number, number, number],
+      rotation: [0, 0, 0] as [number, number, number]
+    }) as any;
+
+  const p0 = client.designInitialGroup(makeGroup("g0"), terrain, units, "lib.prefab", undefined, signal);
+  const p1 = client.designInitialGroup(makeGroup("g1"), terrain, units, "lib.prefab", undefined, signal);
+  const p2 = client.designInitialGroup(makeGroup("g2"), terrain, units, "lib.prefab", undefined, signal);
+  const p3 = client.designInitialGroup(makeGroup("g3"), terrain, units, "lib.prefab", undefined, signal);
+
+  expect(WorkerPort.instances).toHaveLength(3);
+  const [w0, w1, w2] = WorkerPort.instances;
+  expect(w0.sent).toHaveLength(2);
+  expect(w0.sent[0]).toMatchObject({ mode: "initial-group", units, terrain, library: "lib.prefab" });
+  expect(w0.sent[1]).toMatchObject({
+    mode: "initial-group",
+    assetId: w0.sent[0].assetId,
+    terrainId: w0.sent[0].terrainId
+  });
+  expect(w0.sent[1]).not.toHaveProperty("units");
+  expect(w0.sent[1]).not.toHaveProperty("terrain");
+
+  // Reply to w0/w1/w2; abort g3 before it finishes.
+  w0.reply(w0.sent[0].id, { rootEntities: ["g0"], entities: [], components: [] });
+  w1.reply(w1.sent[0].id, { rootEntities: ["g1"], entities: [], components: [] });
+  w2.reply(w2.sent[0].id, { rootEntities: ["g2"], entities: [], components: [] });
+  expect(await p0).toMatchObject({ rootEntities: ["g0"] });
+  expect(await p1).toMatchObject({ rootEntities: ["g1"] });
+  expect(await p2).toMatchObject({ rootEntities: ["g2"] });
+
+  abort.abort();
+  await expect(p3).rejects.toThrow();
+  // Every settled/aborted initial-group request must have released its lease on its slot.
+  expect(w0.sent.filter((m) => m.mode === "release")).toHaveLength(2);
+  expect(w1.sent.filter((m) => m.mode === "release")).toHaveLength(1);
+  expect(w2.sent.filter((m) => m.mode === "release")).toHaveLength(1);
+  client.dispose();
+});
