@@ -74,10 +74,7 @@ export class GLTFResource extends ReferResource {
     }
     if (entities) {
       for (let i = 0, n = entities.length; i < n; i++) {
-        const entity = entities[i];
-        if (entity && !entity.parent) {
-          entity.destroy();
-        }
+        entities[i]?.destroy();
       }
     }
   }
