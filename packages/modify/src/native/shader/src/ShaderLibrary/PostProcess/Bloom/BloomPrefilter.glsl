@@ -46,8 +46,7 @@ void frag(Varyings v) {
       }
     #endif
 
-    // Reject NaN/Inf and clamp negatives before thresholding: min(NaN, HALF_MAX) evaluates to HALF_MAX under IEEE minNum / Metal fmin.
-    // color is now finite in [0, HALF_MAX] and multiplier >= 0, so post-threshold output stays non-negative without a second clamp.
+    // Reject NaN/Inf and negatives before thresholding (min(NaN, HALF_MAX) returns HALF_MAX on Metal/Vulkan)
     color = mix(vec3(0.0), color, lessThanEqual(abs(color), vec3(HALF_MAX)));
     color = clamp(vec3(color) * material_PostExposure, vec3(0.0), vec3(HALF_MAX));
 
