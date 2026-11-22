@@ -83,7 +83,7 @@ describe("Transform test", function () {
     const grandparent = scene.createRootEntity("grandparent");
     const parent = grandparent.createChild("parent");
     const child = parent.createChild("child");
-    const scaleMatMultiplySpy = vi.spyOn(Matrix3x3, "multiply");
+    const rotMatSpy = vi.spyOn(Matrix3x3, "rotationQuaternion");
     try {
       // Uniform ancestors with negative scale and arbitrary rotations take the exact scalar-multiply fast path
       grandparent.transform.setScale(2, 2, 2);
@@ -92,7 +92,7 @@ describe("Transform test", function () {
       child.transform.setScale(1, 3, 5);
       child.transform.setRotation(45, 0, 0);
       expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(-2, -6, -10));
-      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+      expect(rotMatSpy).toHaveBeenCalledTimes(0);
 
       // Non-uniform ancestor after a position edit must still notify and fall back to matrix scale decomposition
       grandparent.transform.setScale(1, 2, 3);
@@ -101,7 +101,36 @@ describe("Transform test", function () {
       child.transform.setScale(4, 5, 6);
       child.transform.setRotation(90, 0, 0);
       expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
-      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(2);
+      expect(rotMatSpy).toHaveBeenCalledTimes(2);
+
+      // Verify general 3D non-uniform rotation matches diag(R_world^-1 * M_world^(3x3))
+      grandparent.transform.setScale(1.5, -2.5, 3.5);
+      grandparent.transform.setRotation(25, -40, 15);
+      parent.transform.setScale(2, 0.5, 3);
+      parent.transform.setRotation(-35, 60, 20);
+      child.transform.setScale(4, 5, -6);
+      child.transform.setRotation(50, -25, 70);
+      const actual = child.transform.lossyWorldScale;
+      const invRot = new Quaternion();
+      const invRotMat = new Matrix3x3();
+      const worldMat3 = new Matrix3x3();
+      const expectedMat = new Matrix3x3();
+      Quaternion.invert(child.transform.worldRotationQuaternion, invRot);
+      Matrix3x3.rotationQuaternion(invRot, invRotMat);
+      worldMat3.copyFromMatrix(child.transform.worldMatrix);
+      Matrix3x3.multiply(invRotMat, worldMat3, expectedMat);
+      expect(actual.x).to.be.closeTo(expectedMat.elements[0], 1e-6);
+      expect(actual.y).to.be.closeTo(expectedMat.elements[4], 1e-6);
+      expect(actual.z).to.be.closeTo(expectedMat.elements[8], 1e-6);
+
+      // Restore axis-aligned non-uniform hierarchy for the position + scale notification regression check
+      grandparent.transform.setScale(1, 2, 3);
+      grandparent.transform.setRotation(0, 0, 0);
+      parent.transform.setScale(1, 1, 1);
+      parent.transform.setRotation(0, 0, 0);
+      child.transform.setScale(4, 5, 6);
+      child.transform.setRotation(90, 0, 0);
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
 
       parent.transform.setPosition(4, 0, 0);
       grandparent.transform.setScale(2, 2, 3);
@@ -121,7 +150,7 @@ describe("Transform test", function () {
       parent.transform.localMatrix = matrix;
       expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(40, 50, 60));
     } finally {
-      scaleMatMultiplySpy.mockRestore();
+      rotMatSpy.mockRestore();
       grandparent.destroy();
     }
   });
