@@ -1,0 +1,18 @@
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases.ts
+  h_ddbf152d31b140 1562-1583
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/seed-world-headless-fixture.ts
+  h_ddbf152d31b140 20,415,1926-1934,1969
+world/tests/seed-world/AgentKnowledgeAudit.spec.ts
+  h_ddbf152d31b140 6-7,17,46-51,253-296
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b63688e1613d15b0bded57e57c12e4754229811b",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
