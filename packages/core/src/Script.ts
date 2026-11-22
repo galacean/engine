@@ -85,21 +85,21 @@ export class Script extends Component {
   /**
    * Called when a trigger overlap begins.
    * @param other - The collider on the other side of the overlap
-   * @param self - The collider on this script's entity
+   * @param self - The receiving collider on this entity or owned by its Rigidbody
    */
   onTriggerEnter(other: Collider, self: Collider): void {}
 
   /**
    * Called when a trigger overlap ends.
    * @param other - The collider on the other side of the overlap
-   * @param self - The collider on this script's entity
+   * @param self - The receiving collider on this entity or owned by its Rigidbody
    */
   onTriggerExit(other: Collider, self: Collider): void {}
 
   /**
    * Called on subsequent physics steps while a trigger overlap continues.
    * @param other - The collider on the other side of the overlap
-   * @param self - The collider on this script's entity
+   * @param self - The receiving collider on this entity or owned by its Rigidbody
    */
   onTriggerStay(other: Collider, self: Collider): void {}
 

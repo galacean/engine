@@ -161,6 +161,16 @@ describe("Physics gameplay integration", () => {
     blockerCol.height = 2.8;
 
     let hitBlocker = false;
+    let cartHitBlocker = false;
+    cart.addComponent(
+      class extends Script {
+        override onCollisionEnter(collision: Collision): void {
+          if (collision.collider === blockerCol && collision.selfCollider.attachedRigidbody === cartRb) {
+            cartHitBlocker = true;
+          }
+        }
+      }
+    );
     blocker.addComponent(
       class extends Script {
         override onCollisionEnter(collision: Collision): void {
@@ -200,6 +210,7 @@ describe("Physics gameplay integration", () => {
     expect(cart.transform.worldPosition.x).toBeLessThan(1.5);
     expect(cart.transform.worldPosition.y).toBeGreaterThan(0.1);
     expect(hitBlocker).toBe(true);
+    expect(cartHitBlocker).toBe(true);
     expect(wheels.every((w) => w.attachedRigidbody === cartRb)).toBe(true);
     expect(wheels.every((w) => physics.overlapSphereAll(w.entity.transform.worldPosition, 0.05).includes(w))).toBe(
       true
@@ -504,7 +515,7 @@ describe("Physics gameplay integration", () => {
       const child = a.createChild("child");
       const box = child.addComponent(BoxCollider);
       const events: string[] = [];
-      child.addComponent(
+      a.addComponent(
         class extends Script {
           override onCollisionEnter(): void {
             events.push("enter");

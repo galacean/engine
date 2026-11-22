@@ -944,8 +944,10 @@ export class PhysicsScene {
           if (!collider0 || !collider1) continue;
           collision._nativeCollision = event;
           const state = event.state;
-          PhysicsScene._dispatchScripts(state, collider0, collider1, collision);
-          PhysicsScene._dispatchScripts(state, collider1, collider0, collision);
+          const receiver0 = collider0._attachedBody ?? collider0;
+          const receiver1 = collider1._attachedBody ?? collider1;
+          PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1, collision);
+          PhysicsScene._dispatchScripts(state, receiver1, collider1, collider0, collision);
         }
       } finally {
         collision._nativeCollision = null!;
@@ -960,8 +962,10 @@ export class PhysicsScene {
       const collider1 = physicalObjectsMap[event.index2];
       if (!collider0 || !collider1) continue;
       const state = event.dispatchState;
-      PhysicsScene._dispatchScripts(state, collider0, collider1);
-      PhysicsScene._dispatchScripts(state, collider1, collider0);
+      const receiver0 = collider0._attachedBody ?? collider0;
+      const receiver1 = collider1._attachedBody ?? collider1;
+      PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1);
+      PhysicsScene._dispatchScripts(state, receiver1, collider1, collider0);
     }
 
     const { bodySleepEventIds, bodySleepEventCount } = events;
@@ -995,12 +999,13 @@ export class PhysicsScene {
 
   private static _dispatchScripts(
     state: PhysicsEventState,
+    receiver: Rigidbody | Collider,
     self: Collider,
     other: Collider,
     collision?: Collision
   ): void {
-    if (self.destroyed || other.destroyed) return;
-    const scripts = self.entity._scripts;
+    if (self.destroyed || other.destroyed || receiver.destroyed) return;
+    const scripts = receiver.entity._scripts;
     const count = scripts.length;
     if (count === 0) return;
     scripts._startLoop();
@@ -1016,7 +1021,7 @@ export class PhysicsScene {
         } else {
           script[PhysicsScene._triggerMethods[state]](other, self);
         }
-        if (self.destroyed || other.destroyed) break;
+        if (self.destroyed || other.destroyed || receiver.destroyed) break;
       }
     } finally {
       scripts._endLoop(PhysicsScene._scriptIndexSetter);

@@ -22,7 +22,7 @@ This ordering means a pose or force chosen in `onPhysicsUpdate` affects the upco
 
 - A Collider participates in contacts and queries only while it is enabled in a scene and, if owned, its Rigidbody is enabled. A `MeshCollider` also needs a valid `mesh`.
 - 3D Script pointer targeting is physics-backed: the pointer ray is tested against eligible Colliders before callbacks are dispatched to the hit Collider's own Entity. A visible mesh alone is not a pointer target. The active Camera, culling mask, collision layer, and physics provider all participate in that selection.
-- Events go to Scripts on each Collider's own Entity. Trigger callbacks receive `(other, self)` Colliders. Collision callbacks receive a `Collision` whose `collider` is the other Collider and `selfCollider` is the receiver; contact normals and impulses point toward the receiver.
+- Events go to Scripts on each Collider's owning `Rigidbody` Entity, or on the Collider's own Entity when it has no `Rigidbody` (static Colliders and `CharacterController`). Trigger callbacks receive `(other, self)` Colliders. Collision callbacks receive a `Collision` whose `collider` is the other Collider and `selfCollider` is the receiving Collider (identifying the exact child Collider in a compound body); contact normals and impulses point toward the receiver.
 - `Collision` and its native contact data are temporary callback data. Copy positions, normals, impulses, or other values that must outlive the callback.
 - Collision layers, trigger mode, Rigidbody ownership, and provider capability all affect whether a pair produces contacts. Resolve the exact current API from the installed declarations instead of copying a provider-specific setup.
 

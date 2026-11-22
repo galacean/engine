@@ -34,10 +34,10 @@ Trigger mode is set per Collider component. An Entity, or a Rigidbody with sever
 
 ## Event Callbacks
 
-When two colliders collide or trigger overlaps occur, callback functions in [scripts](/en/docs/script/script) on each Collider's own Entity are called. A Collider on a child Entity reports to scripts on that child Entity, not to the Entity of its Rigidbody.
+When two colliders collide or trigger overlaps occur, callback functions in [scripts](/en/docs/script/script) on each Collider's owning [Rigidbody](/en/docs/physics/collider/rigidbody) Entity are called, or on the Collider's own Entity when it has no Rigidbody (static Colliders and `CharacterController`). A Collider on a child Entity under a Rigidbody reports to scripts on the Rigidbody's Entity, not on the child Entity.
 
-- Trigger callbacks receive `(other, self)`: the other Collider and the Collider on this script's Entity that received the event.
-- Collision callbacks receive a [Collision](/apis/core/#Collision): `collision.collider` is the other Collider and `collision.selfCollider` is the receiving one. `getContacts()` returns contact points whose normals and impulses point from the other Collider toward the receiver. The Collision data is only valid during the callback; copy what you need to keep.
+- Trigger callbacks receive `(other, self)`: the other Collider and the receiving Collider (`self`, which may live on a child Entity of this Rigidbody).
+- Collision callbacks receive a [Collision](/apis/core/#Collision): `collision.collider` is the other Collider and `collision.selfCollider` is the receiving Collider (identifying the exact child Collider in a compound body). `getContacts()` returns contact points whose normals and impulses point from the other Collider toward the receiver. The Collision data is only valid during the callback; copy what you need to keep.
 
 ### Collider Event Callbacks
 | Event Name | Trigger Timing |

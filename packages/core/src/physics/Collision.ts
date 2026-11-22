@@ -12,7 +12,7 @@ export class Collision {
 
   /** The Collider on the other side of this contact pair. */
   collider: Collider;
-  /** The receiving Collider. Contact normals and impulses are oriented from {@link collider} toward this Collider. */
+  /** The receiving Collider (on this Entity or owned by its Rigidbody). Contact normals and impulses are oriented from {@link collider} toward this Collider. */
   selfCollider: Collider;
 
   /** The number of contact points in this callback. */

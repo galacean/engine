@@ -34,10 +34,10 @@ label: Physics
 
 ## 事件回调
 
-当两个碰撞器发生碰撞或触发器重叠时，会调用每个碰撞器自身所在实体上挂载的[脚本](/docs/script/script)中的回调函数。子实体上的碰撞器只通知该子实体上的脚本，不会通知其刚体所在实体。
+当两个碰撞器发生碰撞或触发器重叠时，会调用每个碰撞器所属[刚体](/docs/physics/collider/rigidbody)所在实体上挂载的[脚本](/docs/script/script)中的回调函数；若碰撞器没有所属刚体（静态碰撞器与 `CharacterController`），则调用碰撞器自身所在实体上的脚本。挂载在刚体子实体上的碰撞器只向刚体所在实体报告事件，不会通知子实体上的脚本。
 
-- 触发器回调接收 `(other, self)`：另一个碰撞器，以及本脚本所在实体上接收事件的碰撞器。
-- 碰撞回调接收一个 [Collision](/apis/core/#Collision)：`collision.collider` 是另一个碰撞器，`collision.selfCollider` 是接收事件的碰撞器。`getContacts()` 返回的接触点法线和冲量从另一个碰撞器指向接收者。Collision 数据只在回调期间有效，需要保留的数据请自行复制。
+- 触发器回调接收 `(other, self)`：另一个碰撞器，以及接收事件的己方碰撞器（在复合体中，`self` 可用于区分是刚体下哪个子碰撞器触发了事件）。
+- 碰撞回调接收一个 [Collision](/apis/core/#Collision)：`collision.collider` 是另一个碰撞器，`collision.selfCollider` 是接收事件的己方碰撞器（在复合体中精确指向发生碰撞的子碰撞器）。`getContacts()` 返回的接触点法线和冲量从另一个碰撞器指向接收者。Collision 数据只在回调期间有效，需要保留的数据请自行复制。
 
 ### 碰撞器事件回调
 | 事件名 | 触发时机 |

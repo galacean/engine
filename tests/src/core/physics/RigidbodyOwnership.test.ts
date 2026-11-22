@@ -513,6 +513,127 @@ describe("Rigidbody ownership", () => {
       expect(ballRecorder.normal.y).toBeGreaterThan(0.9);
       expect(groundRecorder.normal.y).toBeLessThan(-0.9);
     });
+
+    it("routes compound child collision events to the owning Rigidbody Entity instead of the child Entity", () => {
+      const groundEntity = root.createChild("ground");
+      const ground = groundEntity.addComponent(BoxCollider);
+      const groundRecorder = groundEntity.addComponent(ContactRecorder);
+
+      const parent = root.createChild("compound-body");
+      parent.transform.setPosition(0, 0.75, 0);
+      addBody(parent, false, false);
+      const parentRecorder = parent.addComponent(ContactRecorder);
+
+      const child = parent.createChild("child-ball");
+      const childCollider = child.addComponent(SphereCollider);
+      childCollider.radius = 0.5;
+      const childRecorder = child.addComponent(ContactRecorder);
+
+      update();
+
+      expect(parentRecorder.enterCount).toBe(1);
+      expect(parentRecorder.other).toBe(ground);
+      expect(parentRecorder.self).toBe(childCollider);
+      expect(parentRecorder.normal.y).toBeGreaterThan(0.9);
+      expect(childRecorder.enterCount).toBe(0);
+      expect(groundRecorder.enterCount).toBe(1);
+      expect(groundRecorder.other).toBe(childCollider);
+      expect(groundRecorder.self).toBe(ground);
+    });
+
+    it.each([false, true])(
+      "routes compound child trigger events to the owning Rigidbody Entity (childIsTrigger=%s)",
+      (childIsTrigger) => {
+        const zoneEntity = root.createChild("zone");
+        const zone = zoneEntity.addComponent(BoxCollider);
+        zone.isTrigger = !childIsTrigger;
+        const zoneRecorder = zoneEntity.addComponent(TriggerRecorder);
+
+        const parent = root.createChild("compound-trigger-body");
+        addBody(parent, true);
+        const parentRecorder = parent.addComponent(TriggerRecorder);
+
+        const child = parent.createChild("child-probe");
+        const childCollider = child.addComponent(SphereCollider);
+        childCollider.isTrigger = childIsTrigger;
+        const childRecorder = child.addComponent(TriggerRecorder);
+
+        update(2);
+        expect(parentRecorder.enters).toEqual([[zone, childCollider]]);
+        expect(childRecorder.enters).toHaveLength(0);
+        expect(zoneRecorder.enters).toEqual([[childCollider, zone]]);
+
+        parent.transform.setPosition(10, 0, 0);
+        update(2);
+        expect(parentRecorder.exits).toEqual([[zone, childCollider]]);
+        expect(childRecorder.exits).toHaveLength(0);
+        expect(zoneRecorder.exits).toEqual([[childCollider, zone]]);
+      }
+    );
+
+    it("routes nested Rigidbody child trigger events only to the nearest owning Rigidbody Entity", () => {
+      const zone = root.createChild("zone").addComponent(BoxCollider);
+      zone.isTrigger = true;
+
+      const outer = root.createChild("outer");
+      addBody(outer, true);
+      const outerRecorder = outer.addComponent(TriggerRecorder);
+
+      const inner = outer.createChild("inner");
+      addBody(inner, true);
+      const innerRecorder = inner.addComponent(TriggerRecorder);
+
+      const leaf = inner.createChild("leaf");
+      const leafCollider = leaf.addComponent(SphereCollider);
+      const leafRecorder = leaf.addComponent(TriggerRecorder);
+
+      update(2);
+      expect(innerRecorder.enters).toEqual([[zone, leafCollider]]);
+      expect(outerRecorder.enters).toHaveLength(0);
+      expect(leafRecorder.enters).toHaveLength(0);
+    });
+
+    it("stops dispatching remaining scripts on the Rigidbody Entity when the first callback destroys the Rigidbody", () => {
+      const zone = root.createChild("zone").addComponent(BoxCollider);
+      zone.isTrigger = true;
+
+      const parent = root.createChild("parent");
+      const body = addBody(parent, true);
+      let firstCalls = 0;
+      let secondCalls = 0;
+      let childCalls = 0;
+
+      parent.addComponent(
+        class extends Script {
+          override onTriggerEnter(): void {
+            firstCalls++;
+            body.destroy();
+          }
+        }
+      );
+      parent.addComponent(
+        class extends Script {
+          override onTriggerEnter(): void {
+            secondCalls++;
+          }
+        }
+      );
+
+      const child = parent.createChild("child");
+      child.addComponent(SphereCollider);
+      child.addComponent(
+        class extends Script {
+          override onTriggerEnter(): void {
+            childCalls++;
+          }
+        }
+      );
+
+      update();
+      expect(firstCalls).toBe(1);
+      expect(secondCalls).toBe(0);
+      expect(childCalls).toBe(0);
+    });
   });
 
   describe("material", () => {
