@@ -9,7 +9,7 @@ declare global {
     interface VegetationApi {
       /**
        * 调用入口：await tools.vegetation.inspect(input)
-       * 读取一个稳定植被资产引用的详细状态、树形共享效果与属性。
+       * 读取一个稳定植被资产引用的详细状态、proceduralAssetId 与属性（含可选 treeRecipeId/treeShape）。
        * @param input - 来自 vegetation.query 或 vegetation.create/update 的 Ref；类型专属字段见 skills/vegetation/references/asset-types.md。
        * @returns 直接返回与 ref.kind 对应的具体植被资产，类型专属字段位于 result.properties；不存在 item 包装层。
        */

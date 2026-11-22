@@ -9,11 +9,11 @@ description: 创建、查询、移动、删除或调整树木、灌木、草地�
 
 从接口索引中选择：
 
-- 创建植物：用 `vegetation.create` 按植物类别（树、灌木、草、花、水草）与数量/范围创建；需要表现特定树种风格时，通过 `vegetation.update` 调整树形与叶色外观来模拟。
+- 创建植物：用 `vegetation.create` 按植物类别（树、灌木、草、花、水草）与数量/范围创建。
 - 查找、检查或删除植物：用 `vegetation.query`、`vegetation.inspect`、`vegetation.delete`。
 - 移动作者植物：用 `vegetation.update` 的 `patch.target`。目标位置见 [spatial](skills/spatial/SKILL.md)。
-- 修改树的外观：先用 `vegetation.inspect` 读取当前值和共享效果，再用 `vegetation.update` 的共享外观操作（可编辑共享槽位为 `1`–`7`，`0` 为基线只读）。这个操作会影响使用相同效果的其他树。
-- 修改植被材质配色：用 `vegetation.materials.inspect` / `vegetation.materials.apply` 按部位和生态层批量设置线性 RGB。
+- 修改树的外观与颜色：先用 `vegetation.inspect` 读取详情。只有返回了 `treeRecipeId` 时才支持用 `vegetation.update` 的 `treeShape` 修改共享树形外观（槽位 `1`–`7`，`0` 为基线只读）。无 `treeRecipeId` 的原生程序化树不支持 `treeShape`，也没有独立场景节点或材质组件（不要去查 `editor.entity` / `editor.component` / `runtime.*`），不支持单株改色。
+- 修改植被材质配色：用 `vegetation.materials.inspect` / `vegetation.materials.apply` 按部位、生态层或 `proceduralAssetId`（`filter.assetIds`）设置共享材质线性 RGB（同物种所有实例共用）。若用户要求只改单棵树颜色而当前只支持整物种共享材质，不要修改全局物种参数，也无需预先读取材质槽或遍历全图统计同种树，直接向用户如实说明不支持单株改色并询问是否同意按该物种整体改色。
 - 修改区域植被或生态配置：用 `vegetation.config.get` / `vegetation.config.update` / `vegetation.config.reset`（组件包括 `landscape`、`landscapePopulation`、`landscapeInfluence`、`flowers`、`flowerInfluence`、`grassAppearance`、`surfacePalette`、`plantMaterial`）。
 
 ## 选择引用

@@ -1552,9 +1552,17 @@ export class SeedWorldAgentApplication {
       const asset = this._assets.get(ref);
       if (!asset) throw new Error(`WorldRef '${ref.id}' does not exist`);
       const recipeId = asset.properties.treeRecipeId;
+      if (typeof recipeId !== "string") {
+        const assetIdHint =
+          typeof asset.properties.proceduralAssetId === "string"
+            ? ` (proceduralAssetId=${asset.properties.proceduralAssetId})`
+            : "";
+        throw new Error(
+          `NOT_SUPPORTED: This native procedural tree${assetIdHint} has no treeRecipeId and does not support vegetation.update treeShape; native trees have no per-instance color override and share species materials via vegetation.materials.inspect/apply`
+        );
+      }
       const effectIndex = patch.treeEffectIndex ?? asset.properties.treeEffectIndex;
       if (
-        typeof recipeId !== "string" ||
         typeof effectIndex !== "number" ||
         !Number.isInteger(effectIndex) ||
         effectIndex < 1 ||

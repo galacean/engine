@@ -294,6 +294,29 @@ describe("SeedWorldAgentApplication final architecture", () => {
     ).rejects.toThrow("not editable");
   });
 
+  it("rejects treeShape updates on native procedural trees without treeRecipeId with an explicit NOT_SUPPORTED boundary message", async () => {
+    const tree = naturalTree(0, "native");
+    const { engine } = createHarness([tree]);
+    engine.readVegetationAssets = () => [
+      {
+        ref: { id: "native-birch-1", domain: "vegetation", kind: "tree", source: "authored", revision: 1 },
+        position: [0, 0, -10],
+        bounds: { minimum: [-1, 0, -11], maximum: [1, 8, -9] },
+        properties: { assetKind: "tree", proceduralAssetId: "SM_BirchTree_07", planningEntityId: "native-birch-1" }
+      }
+    ];
+    const application = new SeedWorldAgentApplication(engine);
+    const ref = application.selectWorld({ domains: ["vegetation"], kinds: ["tree"], limit: 1 }).items[0]!.ref;
+    await expect(
+      application.updateVegetation(
+        ref,
+        { treeShapeScope: "shared-effect", treeEffectIndex: 1, treeShape: { leafColorRgb: [220, 40, 40] } },
+        {},
+        signal
+      )
+    ).rejects.toThrow(/NOT_SUPPORTED.*SM_BirchTree_07.*vegetation\.materials\.inspect\/apply/);
+  });
+
   it("queries natural and authored assets through one index with source and parent relations", () => {
     const { engine } = createHarness();
     const application = new SeedWorldAgentApplication(engine);
