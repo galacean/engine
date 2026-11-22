@@ -1,0 +1,50 @@
+packages/core/src/BasicResources.ts
+  h_bd4dd7d663e619 215-220
+packages/core/src/asset/ReferResource.ts
+  h_bd4dd7d663e619 49-50,73-76,78-80,115-127
+packages/core/src/graphic/Mesh.ts
+  h_bd4dd7d663e619 64,182
+packages/core/src/mesh/BlendShapeManager.ts
+  h_bd4dd7d663e619 289-305,313-315,336,356,367
+packages/core/src/mesh/ModelMesh.ts
+  h_bd4dd7d663e619 53,481-482,646,648,657,749-754,811-812,824-825
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_bd4dd7d663e619 27,32
+packages/loader/src/GLTFLoader.ts
+  h_bd4dd7d663e619 42-43,53,57-64,66
+packages/loader/src/gltf/GLTFResource.ts
+  h_bd4dd7d663e619 41-42,68-90,94-100,103-112,114-118
+packages/loader/src/gltf/extensions/KHR_materials_unlit.ts
+  h_bd4dd7d663e619 12
+packages/loader/src/gltf/extensions/KHR_texture_basisu.ts
+  h_bd4dd7d663e619 57-64,66-68
+packages/loader/src/gltf/parser/GLTFAnimatorControllerParser.ts
+  h_bd4dd7d663e619 22-24,39
+packages/loader/src/gltf/parser/GLTFEntityParser.ts
+  h_bd4dd7d663e619 13
+packages/loader/src/gltf/parser/GLTFMaterialParser.ts
+  h_bd4dd7d663e619 59-61,83-85,101-103,122-124,143-145,200-204,208-211,214-216
+packages/loader/src/gltf/parser/GLTFMeshParser.ts
+  h_bd4dd7d663e619 50-52,76-77,93-95,134-136,143-145,163-165,276,280-286,288,291
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  h_bd4dd7d663e619 11,14,44-45,133-136,146,155-245,286-288
+packages/loader/src/gltf/parser/GLTFSceneParser.ts
+  h_bd4dd7d663e619 37,54-56,78-80,153-155
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_bd4dd7d663e619 70-72,78-80,119-121,123
+tests/src/core/resource/ReferResource.test.ts
+  h_bd4dd7d663e619 1-2,5-10,64-129
+tests/src/loader/GLTFLoader.test.ts
+  h_bd4dd7d663e619 816-818,826-828,911,914,921-1062
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "55068118256100881a7fe10f4bd27ea324728671",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
