@@ -1,0 +1,25 @@
+tests/benchmarks/seed-templates/metrics.mjs
+  s_3cd6502d102d7f::t_eb9d311cce5a1a 942,945-950
+tests/benchmarks/seed-templates/README.md
+  s_3cd6502d102d7f::t_4148ca8cbfa2ea 5-6
+  s_3cd6502d102d7f::t_b249c163f45566 55-58
+tests/benchmarks/seed-templates/results.md
+  s_3cd6502d102d7f::t_538c362f3025a7 13,19-22
+  s_3cd6502d102d7f::t_fa76b44d9a48a1 1-12,14-18,23-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f803e10b0beb4de80538c21cece4cf5bddaab61e",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
