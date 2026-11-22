@@ -1,0 +1,40 @@
+packages/loader/src/GLTFLoader.ts
+  h_bd4dd7d663e619 58-61,63
+packages/loader/src/gltf/extensions/KHR_materials_anisotropy.ts
+  h_bd4dd7d663e619 1,4,18-21,23-26
+packages/loader/src/gltf/extensions/KHR_materials_clearcoat.ts
+  h_bd4dd7d663e619 1,4,24-27,29-32,36-39,41-44,48-51,53-56
+packages/loader/src/gltf/extensions/KHR_materials_iridescence.ts
+  h_bd4dd7d663e619 1,4,26-29,31-34,38-41,43-46
+packages/loader/src/gltf/extensions/KHR_materials_sheen.ts
+  h_bd4dd7d663e619 1-2,5,22-25,27-30,35-38,40-43
+packages/loader/src/gltf/extensions/KHR_materials_specular.ts
+  h_bd4dd7d663e619 1,4,26-29,31-34,39-42,44-47
+packages/loader/src/gltf/extensions/KHR_materials_transmission.ts
+  h_bd4dd7d663e619 1,4,15-18,20-23
+packages/loader/src/gltf/extensions/KHR_materials_variants.ts
+  h_bd4dd7d663e619 36
+packages/loader/src/gltf/extensions/KHR_materials_volume.ts
+  h_bd4dd7d663e619 1-2,5,27-30,32-35
+packages/loader/src/gltf/extensions/KHR_texture_basisu.ts
+  h_bd4dd7d663e619 82
+packages/loader/src/gltf/parser/GLTFAnimatorControllerParser.ts
+  h_bd4dd7d663e619 26
+packages/loader/src/gltf/parser/GLTFMaterialParser.ts
+  h_bd4dd7d663e619 56-58,66-69,77-79,81-84,92-94,96-99,109-112,114-117,127-130,132-135
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  h_bd4dd7d663e619 95,107,114,117-140,161,164-167,307
+packages/loader/src/gltf/parser/GLTFSceneParser.ts
+  h_bd4dd7d663e619 187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8d088fb1d763b7aaea06a969035b92d8d584c8f9",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
