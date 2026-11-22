@@ -7,7 +7,7 @@ description: 挖河、创建或编辑湖泊与河流，以及查询海洋、水�
 
 在 Seed World 中，挖河或溪流（例如「在我面前挖一条河」）时，读取[挖河接口](declare/editor/world/tools/water.digRiver.d.ts)，调用一次 `tools.water.digRiver`。没有指定尺寸或距离时传 `{}`。它在同一事务中生成河床和原生流水面。外层提交且激活无错误后即视为完成，可直接汇报结果；仅当用户明确要求核验水深或河道状态时，在下一次 `execute` 中用 `tools.water.sample` 抽样 1–2 个返回中心线的 `x/z` 点即可。
 
-编辑已有水体组件和手动配置水体使用公共 `editor.entity`、`editor.component` 和 `editor.asset`。先读[原生编辑 API](declare/editor/native/api.d.ts)，查询 `WaterBodyComponent` 并读取 `props.authoring`。world.query 的 Ref、运行时 waterId 都不是 Source 组件身份。
+编辑已有水体组件和手动配置水体使用公共 `editor.entity`、`editor.component` 和 `editor.asset`。先读[原生编辑 API](declare/editor/native/api.d.ts)，查询 `WaterBodyComponent` 并读取 `props.authoring`。资产 Ref 和运行时 `waterId` 都不是 Source 组件身份。读写湖泊/河流规划参数可用 `tools.water.config.get/update/reset`。
 
 ## 创建与修改
 

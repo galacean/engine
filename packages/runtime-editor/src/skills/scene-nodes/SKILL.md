@@ -1,6 +1,6 @@
 ---
 name: scene-nodes
-description: 创建、查询、移动、删除 Scene 节点，调整层级或搭建场景内容时使用。不用于世界系统管理的对象（见 world-objects）。
+description: 创建、查询、移动、删除 Scene 节点，调整层级或搭建场景内容时使用。不用于地形、植被、动物、水体、环境等专项世界系统。
 ---
 
 # Scene 节点

@@ -23,7 +23,7 @@ description: 解析相对位置、按地形条件搜索地点、检查落点或�
 
 截图位置可能落在草或其他可见表面上，它不能证明当前地面高度或放置条件。地形条件未知且必须满足时，用 `spatial.check`。它一次最多接受 32 个位置，逐个返回 `matches` 和 `failedConstraints`。
 
-选择位置和确定可编辑对象是两件事。选择位置用上面的流程。编辑对象时，按 [world-objects](skills/world-objects/SKILL.md) 确定身份和归属。
+选择位置和确定可编辑对象是两件事。选择位置用上面的流程；查询或编辑具体资产请使用对应系统的 Skill（如 [vegetation](skills/vegetation/SKILL.md)、[terrain](skills/terrain/SKILL.md)、[animals](skills/animals/SKILL.md)、[scene-nodes](skills/scene-nodes/SKILL.md)）；读取或修改世界生成、POI 分区、道路、布局与 `subjectView` 规划配置使用 `tools.spatial.config.get/update/reset`。
 
 ## 搜索与导航
 

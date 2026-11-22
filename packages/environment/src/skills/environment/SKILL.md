@@ -13,6 +13,8 @@ description: 查询或修改时间、季节、天气、风、云雾、光照等�
 
 需要时先读取天象状态。只修改用户要求的通道：天空颜色、风、雨、雪、雷电、云和雾。本系统仅控制视觉天象，不提供音频或环境音效；若用户同时要求开启雷雨音效，先完成可做的天象修改并如实说明当前不支持音效即可，不要去搜索或手写音频合成脚本。
 
+读写光照（`lighting`）、后处理（`postProcess`）与云降水规划参数（`weather`）使用 `tools.environment.config.get`、`tools.environment.config.update`、`tools.environment.config.reset`。
+
 ## 接口索引
 
 <!-- API_INDEX: generated from executable contracts at load time. -->

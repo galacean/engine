@@ -20,18 +20,48 @@ const files: Readonly<Record<string, string>> = {
   "./skills/water/SKILL.md": waterSkill
 };
 const SKILL_DOMAINS: Readonly<Record<string, readonly string[]>> = {
-  "world-objects": ["world"],
+  runtime: ["runtime"],
   spatial: ["spatial"],
-  environment: ["time", "atmosphere"],
+  environment: ["time", "atmosphere", "environment"],
   terrain: ["terrain"],
   water: ["water"],
   vegetation: ["vegetation"],
   animals: ["animals"]
 };
+const SKILL_ASSET_MODULES: Readonly<Record<string, { inspectTool: string; modules: ReadonlySet<string> }>> = {
+  vegetation: {
+    inspectTool: "vegetation.inspect",
+    modules: new Set([
+      "assets/TreeAsset.d.ts",
+      "assets/ForestAsset.d.ts",
+      "assets/ShrubAsset.d.ts",
+      "assets/ShrublandAsset.d.ts",
+      "assets/GrasslandAsset.d.ts",
+      "assets/FlowerFieldAsset.d.ts",
+      "assets/AquaticGrassBedAsset.d.ts",
+      "assets/MushroomAsset.d.ts"
+    ])
+  },
+  terrain: {
+    inspectTool: "terrain.inspect",
+    modules: new Set([
+      "assets/BaseTerrainAsset.d.ts",
+      "assets/MountainAsset.d.ts",
+      "assets/HillAsset.d.ts",
+      "assets/RidgeAsset.d.ts",
+      "assets/CanyonAsset.d.ts",
+      "assets/ValleyAsset.d.ts",
+      "assets/SlopeAsset.d.ts",
+      "assets/PlateauAsset.d.ts",
+      "assets/BasinAsset.d.ts",
+      "assets/RockAsset.d.ts"
+    ])
+  }
+};
 const HOST_NOTES = [
   "world_state.snapshot.viewer.atSubmission 是当前 inputId 提交时冻结的位姿和拍摄时间，不是对话开始的时间。没有生效的输入时，它为 null。viewer.current 在每次模型请求时采样。用户可能在执行期间移动或转向。相对指令按提交时的参照解析。验证已创建的对象时，核对身份和目标位置。截图使用自己的 metadata.viewer 和 capturedAt。对象不在当前画面中，不能证明创建失败。不要为了验证而重新创建对象，也不要为了验证而移动用户的相机。",
-  "execute 中的世界接口都在 `tools` 下，例如 `await tools.world.parameters.query(...)`。组件扩展使用 `await editor.component.query(...)` 和返回代理上声明的方法。按方法声明中打印的完整写法调用：`spatial.resolve` 的写法是 `tools.spatial.resolve`，不是 `tools.world.spatial.resolve`。Skill 目录只是主题，不是运行时命名空间。",
-  "区分三层身份，切勿混传：① tools.world.* 使用 Ref（直接复用查询返回的 item.ref，不要手工重新拼装）；② editor.* 使用 Source 身份 {scene, id: string}（当前默认主场景虚拟路径为 \"Scenes/Main.scene\"，无需先读 project.json）；③ tools.runtime.* 使用运行时数字 entityId/componentId。三层所有列表与查询接口统一返回 { items }。",
+  "execute 中的世界系统接口都在各自系统命名空间 `tools.<system>.*` 下，例如 `await tools.vegetation.query(...)`、`await tools.animals.config.get(...)`、`await tools.spatial.resolve(...)`。组件扩展使用 `await editor.component.query(...)` 和返回代理上声明的方法。按方法声明中打印的完整写法调用；Skill 目录只是主题，不是额外前缀。",
+  "区分三层身份，切勿混传：① `tools.vegetation.*` / `tools.terrain.*` 使用资产 Ref（直接复用查询返回的 `item.ref`，不要手工拼装），各系统规划配置通过 `tools.<system>.config.{get,update,reset}` 读写；② `editor.*` 使用 Source 身份 `{scene, id: string}`（当前默认主场景虚拟路径为 \"Scenes/Main.scene\"，无需先读 `project.json`）；③ `tools.runtime.*` 使用运行时数字 `entityId`/`componentId`。三层所有列表与查询接口统一返回 `{ items }`。",
   "execute 的代码是 JavaScript，不能写类型注解。代码运行前会做类型检查：字段名以声明为准，可能为 null 的字段要先判断。只有 declare/editor/ 中声明的接口可以在当前宿主调用。read 返回 `next` 表示内容还没读完。依赖返回结构前，先按该 offset 继续读取。"
 ].join("\n\n");
 export function createSeedWorldKnowledge(
@@ -49,8 +79,9 @@ export function createSeedWorldKnowledge(
   };
   for (const module of declared.values()) {
     if (module.toolNames.length && module.toolNames.every(name => available.has(name))) visit(module.id);
-    // world.inspect returns the open AssetDetailsByType map augmented by the asset modules.
-    if (available.has("world.inspect") && module.id.startsWith("assets/")) visit(module.id);
+    for (const spec of Object.values(SKILL_ASSET_MODULES)) {
+      if (available.has(spec.inspectTool) && spec.modules.has(module.id)) visit(module.id);
+    }
   }
   const modules = [...declared.values()].filter(module => reachable.has(module.id));
   const moduleIds = new Set(modules.map(module => module.id));
@@ -63,7 +94,8 @@ export function createSeedWorldKnowledge(
     documents: [],
     ...api
   };
-  const systems = available.has("world.parameters.describe")
+  const hasAnyConfig = [...available].some(name => name.endsWith(".config.get"));
+  const systems = hasAnyConfig
     ? collectPlanningSystemKnowledge(componentTypes ?? planningRegistry.describe().map(component => component.type))
     : [];
   const skills: AgentSkill[] = [];
@@ -74,8 +106,11 @@ export function createSeedWorldKnowledge(
     if (relative !== `${name}/SKILL.md`) continue;
     if (name === "water" && !available.has("water.capabilities")) continue;
     const domains = SKILL_DOMAINS[name];
+    if (!domains) continue;
     const apis = SEED_WORLD_API_CONTRACTS.filter(api => domains.includes(api.domain) && available.has(api.name));
-    const owned = systems.filter(system => system.skill === name);
+    const owned = available.has(`${name}.config.get`)
+      ? systems.filter(system => system.skill === name)
+      : [];
     if (!apis.length && !owned.length) continue;
     // The declaration holds the full contract; the index only helps choose which one to read.
     const index = apis.map(api => `- [tools.${api.name}](declare/editor/world/tools/${api.name}.d.ts): ${api.description.split(/[。；]/)[0]}`).join("\n");
@@ -86,40 +121,43 @@ export function createSeedWorldKnowledge(
       content: `# 组件知识\n\n` + owned.map(system =>
         `## ${system.title}\n\nComponents: ${system.components.map(type => `\`${type}\``).join(", ")}\n\n${system.knowledge.join("\n\n")}`).join("\n\n") + "\n"
     });
-    skills.push(parseAgentSkill(source
-      .replace("<!-- API_INDEX: generated from executable contracts at load time. -->", index)
-      .replace("<!-- COMPONENT_KNOWLEDGE: provided by registered systems at load time. -->", owned.length ? `系统组件的用法见[组件知识](${componentPath})。` : "")));
-    if (name === "world-objects") {
+    const assetSpec = SKILL_ASSET_MODULES[name];
+    const assetEntries = assetSpec && available.has(assetSpec.inspectTool)
+      ? SEED_WORLD_API_SEARCH_ENTRIES.filter(entry => moduleIds.has(entry.moduleId) && assetSpec.modules.has(entry.moduleId))
+      : [];
+    const assetTypesPath = `skills/${name}/references/asset-types.md`;
+    if (assetEntries.length) {
       documents.push({
-        path: "skills/world-objects/references/asset-types.md",
-        content: "# 资产类型\n\n用 inspect 读取资产后，按 type 读对应声明中的完整字段。\n\n" + SEED_WORLD_API_SEARCH_ENTRIES.filter(entry => moduleIds.has(entry.moduleId) && entry.moduleId.startsWith("assets/")).map(entry =>
-          `- [${entry.name}](declare/editor/world/${entry.moduleId})`).join("\n") + "\n"
-      });
-      if (available.has("world.parameters.describe")) documents.push({
-        path: "skills/world-objects/parameters/SKILL.md",
-        content: files["./skills/world-objects/parameters/SKILL.md"]
+        path: assetTypesPath,
+        content: "# 资产类型\n\n用 inspect 读取资产后，按 type 读对应声明中的完整字段。\n\n" +
+          assetEntries.map(entry => `- [${entry.name}](declare/editor/world/${entry.moduleId})`).join("\n") + "\n"
       });
     }
+    skills.push(parseAgentSkill(source
+      .replace("<!-- API_INDEX: generated from executable contracts at load time. -->", index)
+      .replace("<!-- COMPONENT_KNOWLEDGE: provided by registered systems at load time. -->", owned.length ? `系统组件的用法见[组件知识](${componentPath})。` : "")
+      .replace("<!-- ASSET_TYPES: generated from inspectable asset declarations at load time. -->", assetEntries.length ? `资产详细字段见[资产类型](${assetTypesPath})。` : "")));
   }
   return { hostNotes: HOST_NOTES, skills, documents, ...api };
 }
 
-/** Compose Water extension knowledge, keeping `tools.water.digRiver` visible in water SKILL.md without duplicating modules owned by the base World catalog. */
+/** Compose Water extension knowledge, keeping host-owned `water.digRiver` and `water.config.*` visible in water SKILL.md without duplicating modules owned by the base World catalog. */
 export function createSeedWorldWaterAgentKnowledge(
   queryToolNames: readonly string[],
-  options: { includeDigRiver?: boolean } = {}
+  options: { includeDigRiver?: boolean; includeConfig?: boolean } = {}
 ) {
   const includeDigRiver = Boolean(options.includeDigRiver);
-  const names = includeDigRiver ? ["water.digRiver", ...queryToolNames] : [...queryToolNames];
-  const knowledge = createSeedWorldKnowledge(names);
-  const skipModules = new Set<string>(["declare/world/common/AgentTools.d.ts"]);
-  if (includeDigRiver) skipModules.add("declare/world/tools/water.digRiver.d.ts");
+  const includeConfig = options.includeConfig ?? includeDigRiver;
+  const hostOwnedNames = [
+    ...(includeDigRiver ? ["water.digRiver"] : []),
+    ...(includeConfig ? ["water.config.get", "water.config.update", "water.config.reset"] : [])
+  ];
+  const withHostIndex = createSeedWorldKnowledge([...hostOwnedNames, ...queryToolNames]);
+  const queryOnly = createSeedWorldKnowledge(queryToolNames, undefined, { guides: false });
   return {
-    ...knowledge,
-    entries: includeDigRiver
-      ? knowledge.entries.filter((entry) => entry.name !== "water.digRiver")
-      : knowledge.entries,
-    modules: knowledge.modules.filter((module) => !skipModules.has(module.id))
+    ...withHostIndex,
+    entries: queryOnly.entries,
+    modules: queryOnly.modules.filter((module) => module.id !== "declare/world/common/AgentTools.d.ts")
   };
 }
 

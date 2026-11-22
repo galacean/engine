@@ -16,7 +16,7 @@ export const GRASS_APPEARANCE_COMPONENT: PlanningComponentDefinition = {
   tab: "ecology",
   presentation: true,
   description:
-    "Terrain/Grass 的两个线性 RGB 色场端点，仅地表草层与低草叶片共同使用。高草与杂草、匍匐地被、花茎叶、树冠及灌木使用独立 plantMaterial，不继承这两个颜色；完整植被集合可用 world.parameters.materials.inspect/apply 按真实生态层和部位编辑。",
+    "Terrain/Grass 的两个线性 RGB 色场端点，仅地表草层与低草叶片共同使用。高草与杂草、匍匐地被、花茎叶、树冠及灌木使用独立 plantMaterial，不继承这两个颜色；完整植被集合可用 vegetation.materials.inspect/apply 按真实生态层和部位编辑。",
   fields: [
     {
       key: "groundFusion",
