@@ -45,8 +45,8 @@ void frag(Varyings v) {
       }
     #endif
 
-    // User controlled clamp to limit crazy high broken spec
-    color = min(color, HALF_MAX);
+    // Reject NaN/Inf and negatives before thresholding (min(NaN, HALF_MAX) returns HALF_MAX on Metal/Vulkan)
+    color = max(mix(vec3(0.0), color, lessThanEqual(abs(color), vec3(HALF_MAX))), vec3(0.0));
 
     // Thresholding
     mediump float brightness = max3(color);
@@ -56,9 +56,6 @@ void frag(Varyings v) {
     softness = (softness * softness) / (4.0 * thresholdKnee + 1e-4);
     mediump float multiplier = max(brightness - threshold, softness) / max(brightness, 1e-4);
     color *= multiplier;
-
-    // Clamp colors to positive once in prefilter. Encode can have a sqrt, and sqrt(-x) == NaN. Up/Downsample passes would then spread the NaN.
-    color = max(color, 0.0);
 
     // Bloom is addtive blend mode, we should set alpha 0 to avoid browser background color dark when canvas alpha and premultiplyAlpha is true
     gl_FragColor = vec4(color, 0.0);
