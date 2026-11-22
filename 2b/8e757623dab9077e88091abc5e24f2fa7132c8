@@ -1,0 +1,92 @@
+packages/environment/src/terrain/lighting/TerrainScreenSpaceReflectionTuning.ts
+  h_a3c79ce84ffdc2 24-26,36-37
+packages/modify/native-overrides.json
+  h_a3c79ce84ffdc2 745-776
+packages/modify/src/native/core/src/Engine.ts
+  h_a3c79ce84ffdc2 520
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_a3c79ce84ffdc2 179-192,278-285,346-359,367,544,637,645,657,660-662,700-702,706-707,714,716-730,733-735,741-753,764,773-777
+packages/modify/src/native/core/src/RenderPipeline/Blitter.ts
+  h_a3c79ce84ffdc2 44,56-57,70-72
+packages/modify/src/native/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_a3c79ce84ffdc2 3,5,7,26-30,37-53,57-59,62-63,66-70,73-81,92-95
+packages/modify/src/native/core/src/RenderPipeline/RenderContext.ts
+  h_a3c79ce84ffdc2 1-125
+packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts
+  h_a3c79ce84ffdc2 4-5,118-119,172,199,201-204,206
+packages/modify/src/native/core/src/RenderPipeline/RenderTargetPool.ts
+  h_a3c79ce84ffdc2 4-10,20,170-188,194-203
+packages/modify/src/native/core/src/asset/ReferResource.ts
+  h_a3c79ce84ffdc2 1-136
+packages/modify/src/native/core/src/base/EngineObject.ts
+  h_a3c79ce84ffdc2 1-110
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/SSRDiagnostics.ts
+  h_a3c79ce84ffdc2 28
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/SSRHistoryState.ts
+  h_a3c79ce84ffdc2 5-15,23,33,42-45,52-72,76-82,92,94,108-111,120-136,139,145
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/SSRProgramResolver.ts
+  h_a3c79ce84ffdc2 1-137
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_a3c79ce84ffdc2 15,18,25,37,95-97,102-105,132-134,136-140,182,185,188,191,206,218,248-249,260,314-351,355-360,365,371,381,388,396,414,428,442,444,464,573-576,580,582-583,588-596,607-608,612,619,626,628,678-735,739-745,754-763,785-786,792-804,873-878,880,884-885,887,892-901,909,919,922,927-928,938,972,977,989,1004-1063,1068,1070-1079,1081-1100,1112,1114,1118-1121,1124-1126,1138,1140,1143-1144,1155-1164,1167-1168,1178-1180,1186,1189-1203,1214-1226,1228,1240-1244,1268-1270,1287-1291,1296-1299,1305,1316-1331,1335,1341-1385,1417-1421,1525,1527,1564-1567,1577-1580,1593,1601,1618-1619,1621,1629-1634,1636,1639,1658,1685-1686,1695-1699,1702-1704,1706-1712,1715-1722,1730-1731,1743,1762,1765-1769,1780,1789-1819,1821-1852,1869,1871,1875,1891,1902-1906,1934,1942,1953,1958,1976-1979,1981-1982,2008,2017,2020,2026,2038-2042,2044-2045,2051-2123,2126-2151,2165-2175,2177-2205,2207-2285,2287-2290,2293-2297,2300-2301,2303-2541,2549-2550,2563-2565,2618,2626,2633,2636-2637,2640-2643,2650,2653,2664-2671,2675-2678,2698-2701,2707,2710,2716,2718-2719,2732-2733,2740,2761
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts
+  h_a3c79ce84ffdc2 16,31,144-155,170,186,201-202
+packages/modify/src/native/core/src/material/BaseMaterial.ts
+  h_a3c79ce84ffdc2 1-281
+packages/modify/src/native/core/src/material/Material.ts
+  h_a3c79ce84ffdc2 15-16,123-139
+packages/modify/src/native/core/src/material/PBRMaterial.ts
+  h_a3c79ce84ffdc2 4,8,29-30,815-837,866-867
+packages/modify/src/native/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_a3c79ce84ffdc2 76-81
+packages/modify/src/native/core/src/renderingHardwareInterface/IPlatformRenderTarget.ts
+  h_a3c79ce84ffdc2 1-24
+packages/modify/src/native/core/src/shader/ShaderProgram.ts
+  h_a3c79ce84ffdc2 690-693,703-709
+packages/modify/src/native/core/src/texture/RenderTarget.ts
+  h_a3c79ce84ffdc2 1-283
+packages/modify/src/native/core/src/texture/Texture2D.ts
+  h_a3c79ce84ffdc2 186-193
+packages/modify/src/native/loader/src/MaterialLoader.ts
+  h_a3c79ce84ffdc2 4,140-144
+packages/modify/src/native/rhi-webgl/src/GLRenderTarget.ts
+  h_a3c79ce84ffdc2 18,30,33,40,109-110,112-147,149,160,175,186-187,192-193,197,213,231-244,266-285,309,353,365,389
+packages/modify/src/native/rhi-webgl/src/GLTexture.ts
+  h_a3c79ce84ffdc2 694,717
+packages/modify/src/native/rhi-webgl/src/GLTexture2DArray.ts
+  h_a3c79ce84ffdc2 1-137
+packages/modify/src/native/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_a3c79ce84ffdc2 112-113,446-460,464-496,543,586,644,708
+packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl
+  h_a3c79ce84ffdc2 22,31,80,94,100-108,113-139
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  h_a3c79ce84ffdc2 236-241,359-360,372-380,382-384,386-436,440-444,447-473,476,478-479,483-486,488-492,494-498,500-516,519-528,530-545,547,549-550,554-559,562,564,566-636,638,652-667,669-687,690,698,708,711-716,900-931,1048-1122
+packages/modify/tests/ScreenSpaceReflection.spec.ts
+  h_a3c79ce84ffdc2 4-6,9,11,14-15,19,21,40-41,86-87,93,176-302,372-588
+packages/modify/tests/ScreenSpaceReflection.test.ts
+  h_a3c79ce84ffdc2 22,25,393-394,562,568-570,1669,1675-1678,1811,1815-1816,1818-1832,1834,1838-1839,1852,1859,2041-2042,2044-2047,2261,2266-2268,2341-2358,2520-2544,2597-2613,2615,3453-3467,3470,3472,3675-3678,4055-5231
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/terrain/debug/TerrainScreenSpaceReflectionPanel.ts
+  h_a3c79ce84ffdc2 27,41-42,60,88-89,123-125,145-146,159-160,233-240,313,340-341
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_a3c79ce84ffdc2 826,1384-1386,1388-1391
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_a3c79ce84ffdc2 850-870
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  h_a3c79ce84ffdc2 45-46,96-97,103-104,109,111,122-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2b8e757623dab9077e88091abc5e24f2fa7132c8",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

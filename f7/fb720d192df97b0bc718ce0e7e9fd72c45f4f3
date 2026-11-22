@@ -1,0 +1,24 @@
+packages/core/src/Entity.ts
+  h_dd004f51a3e5ec 138-139,738-745
+packages/core/src/mesh/ModelMesh.ts
+  h_dd004f51a3e5ec 764
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 703-709,833-844
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 722,967,1110-1117
+tests/src/core/Entity.test.ts
+  h_dd004f51a3e5ec 3,576-584
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 690-709
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f7fb720d192df97b0bc718ce0e7e9fd72c45f4f3",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
