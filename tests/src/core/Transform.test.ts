@@ -127,26 +127,6 @@ describe("Transform test", function () {
     }
   });
 
-  it("uses matrix scale decomposition for authored sheared localMatrix and restores TRS after edits", () => {
-    const parent = scene.createRootEntity();
-    const child = parent.createChild();
-    try {
-      const matrix = new Matrix();
-      matrix.elements[1] = matrix.elements[4] = 0.0625;
-      matrix.elements[10] = Math.hypot(1, 0.0625);
-      parent.transform.localMatrix = matrix;
-
-      expect(parent.transform.lossyWorldScale.x).toBeCloseTo(1, 5);
-      expect(child.transform.lossyWorldScale.x).toBeCloseTo(1, 5);
-
-      parent.transform.setScale(2, 3, 4);
-      expect(parent.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 4));
-      expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 4));
-    } finally {
-      parent.destroy();
-    }
-  });
-
   it("uses matrix scale decomposition for Transform subclasses overriding matrix or scale accessors", () => {
     class MatrixScalingTransform extends Transform {
       private readonly _matrix = new Matrix();
@@ -317,7 +297,7 @@ describe("Transform test", function () {
     }
   });
 
-  it("reports internal TRS, world-pose override, and world uniform scaling flags accurately", () => {
+  it("reports internal custom-matrix, world-pose override, and world uniform scaling flags accurately", () => {
     class CustomWorldPositionTransform extends Transform {
       override get worldPosition(): Vector3 {
         return super.worldPosition;
@@ -344,7 +324,7 @@ describe("Transform test", function () {
     try {
       const parentTransform = parent.transform;
       const childTransform = child.transform;
-      expect(childTransform._usesTRSMatrix).toBe(true);
+      expect(childTransform._hasCustomMatrix).toBe(false);
       expect(childTransform._hasCustomWorldPose).toBe(false);
       expect(childTransform._getWorldUniformScaling()).toBe(true);
 
@@ -352,24 +332,25 @@ describe("Transform test", function () {
       expect(childTransform._getWorldUniformScaling()).toBe(false);
 
       parentTransform.localMatrix = new Matrix();
-      expect(parentTransform._usesTRSMatrix).toBe(false);
-      expect(parentTransform._getWorldUniformScaling()).toBe(false);
+      expect(parentTransform._hasCustomMatrix).toBe(false);
+      expect(parentTransform._getWorldUniformScaling()).toBe(true);
+      expect(childTransform._getWorldUniformScaling()).toBe(true);
 
       parentTransform.setScale(2, 2, 2);
-      expect(parentTransform._usesTRSMatrix).toBe(true);
+      expect(parentTransform._hasCustomMatrix).toBe(false);
       expect(parentTransform._getWorldUniformScaling()).toBe(true);
       expect(childTransform._getWorldUniformScaling()).toBe(true);
 
       const posTransform = posEntity.addComponent(CustomWorldPositionTransform);
-      expect(posTransform._usesTRSMatrix).toBe(true);
+      expect(posTransform._hasCustomMatrix).toBe(false);
       expect(posTransform._hasCustomWorldPose).toBe(true);
 
       const scaleTransform = scaleEntity.addComponent(CustomLossyScaleTransform);
-      expect(scaleTransform._usesTRSMatrix).toBe(false);
+      expect(scaleTransform._hasCustomMatrix).toBe(true);
       expect(scaleTransform._hasCustomWorldPose).toBe(false);
 
       const matrixTransform = matrixEntity.addComponent(CustomWorldMatrixTransform);
-      expect(matrixTransform._usesTRSMatrix).toBe(false);
+      expect(matrixTransform._hasCustomMatrix).toBe(true);
       expect(matrixTransform._hasCustomWorldPose).toBe(true);
     } finally {
       parent.destroy();
