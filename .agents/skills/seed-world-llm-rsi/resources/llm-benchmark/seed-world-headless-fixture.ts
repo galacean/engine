@@ -658,7 +658,7 @@ export async function createHeadlessSeedWorldFixture(options: {
       position: [6, 0, -9],
       footprintMetres: [2, 2],
       source: { kind: "population", sourceId: "natural-forest" },
-      properties: { treeSpeciesProfileKey: "pine", yawRadians: 0, scale: [1, 1, 1] }
+      properties: { treeSpeciesProfileKey: "pine", treeRecipeId: "pine", treeEffectIndex: 1, yawRadians: 0, scale: [1, 1, 1] }
     },
     {
       worldId: "seed-world-42",
@@ -668,7 +668,7 @@ export async function createHeadlessSeedWorldFixture(options: {
       position: [14, 0, -20],
       footprintMetres: [2, 2],
       source: { kind: "population", sourceId: "natural-forest" },
-      properties: { treeSpeciesProfileKey: "oak", yawRadians: 0.5, scale: [1, 1, 1] }
+      properties: { treeSpeciesProfileKey: "oak", treeRecipeId: "oak", treeEffectIndex: 2, yawRadians: 0.5, scale: [1, 1, 1] }
     },
     {
       worldId: "seed-world-42",
@@ -678,7 +678,7 @@ export async function createHeadlessSeedWorldFixture(options: {
       position: [-25, 0, 22],
       footprintMetres: [2, 2],
       source: { kind: "population", sourceId: "natural-forest" },
-      properties: { treeSpeciesProfileKey: "birch", yawRadians: 1.2, scale: [1, 1, 1] }
+      properties: { treeSpeciesProfileKey: "birch", treeRecipeId: "birch", treeEffectIndex: 3, yawRadians: 1.2, scale: [1, 1, 1] }
     },
     {
       worldId: "seed-world-42",
@@ -898,6 +898,17 @@ export async function createHeadlessSeedWorldFixture(options: {
     revision += 1;
     const results = mutations.map((mutation) => {
       if (mutation.resourceType === "tree-variation") {
+        const val = mutation.value as { recipeId?: string; variationIndex?: number; controls?: Record<string, unknown> };
+        for (const obj of objects) {
+          const props = obj.properties as Record<string, unknown>;
+          if (
+            obj.objectKind === "tree" &&
+            props.treeRecipeId === val.recipeId &&
+            props.treeEffectIndex === Number(val.variationIndex ?? 0) + 1
+          ) {
+            props.treeShape = { ...((props.treeShape as Record<string, unknown>) ?? {}), ...(val.controls ?? {}) };
+          }
+        }
         return {
           action: mutation.action,
           resourceType: mutation.resourceType,

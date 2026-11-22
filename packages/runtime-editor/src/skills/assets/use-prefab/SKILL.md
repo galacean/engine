@@ -5,7 +5,7 @@ description: 放置已有 Prefab，或修改 Prefab 实例及其共享模板时�
 
 # 使用 Prefab
 
-用 `entity.create({scene,name,prefab:virtualPath})` 创建关联的 Prefab 实例；新建 Prefab 资产通过 `editor.asset.create({ path, type: "Prefab", data })`（签名见[原生编辑 API](declare/editor/native/api.d.ts)，`data` 含 `rootEntities`、`entities`、`components`，结构见 [Scene/Prefab 数据](declare/editor/native/source.d.ts)）。
+用 `entity.create({scene,name,prefab:virtualPath})` 创建关联的 Prefab 实例；新建 Prefab 资产通过 `editor.asset.create({ path, type: "Prefab", data })`（签名见[原生编辑 API](declare/editor/native/api.d.ts)，`data` 含 `asset: { version: "2.0" }`、`root`、`entities`、`components`，结构见 [Scene/Prefab 数据](declare/editor/native/source.d.ts)）。
 
 | 操作 | 效果 |
 | --- | --- |

@@ -21,9 +21,9 @@ description: 给节点添加或移除组件、读取或修改组件属性、调�
 
 ## 修改
 
-组件属性使用 Editor 源数据结构：资产写 `{ $ref: virtualPath }`，层级引用写 `{ $entity: entityId }` 和 `{ $component: componentId }`。
+组件属性使用 Editor 源数据结构：普通数值与结构体直接写 JSON（如 `intensity: 1`、`color: { r: 1, g: 1, b: 1, a: 1 }`），资产写 `{ $ref: virtualPath }`，层级引用写 `{ $entity: entityId }` 和 `{ $component: componentId }`。
 
-MeshRenderer 的 mesh 引用网格资产，material 引用材质资产，并编译为 setMaterial。修改 Light 时，按它实际的 Engine 声明确定属性名，再用组件 ID 和变更的属性调用 `component.update`。
+MeshRenderer 的 mesh 引用网格资产，material 引用材质资产，并编译为 setMaterial。内置引擎组件声明位于 `declare/engine/node_modules/@galacean/engine-core/types/`（如 `lighting/PointLight.d.ts` 及其父类 `lighting/Light.d.ts`），修改 Light 时按其实际声明确定属性名（父类属性同样直接写在 `props` 顶层），再用组件 ID 和变更的属性调用 `component.update`。
 
 以下操作会重建组件以恢复加载器默认值：移动组件、移除已序列化的属性、编辑显式 setter 调用。构建组件时，所属 Entity 会暂时停用，属性和引用绑定后再恢复。投影部分失败后，下一次原生编辑或撤销会重新同步作者组件，并重置它们的瞬时状态。
 
