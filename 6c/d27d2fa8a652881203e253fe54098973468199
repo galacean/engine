@@ -1,0 +1,50 @@
+packages/rhi-webgpu/src/WebGPUFeedbackKernel.ts
+  s_3cd6502d102d7f::t_f565c340c2f668 234
+packages/shader-compiler/src/webgpu/WGSLBackend.ts
+  s_3cd6502d102d7f::t_672a7080db33c6 384-388,391
+  s_3cd6502d102d7f::t_e54e0b1d1b6e11 25-26,43-44,49-50
+  s_3cd6502d102d7f::t_c84aa0b70a1816 45-48
+  s_3cd6502d102d7f::t_b54c9475d113eb 293-303,312
+  s_3cd6502d102d7f::t_4f680ea40531aa 365,377-383,389-390
+  s_3cd6502d102d7f::t_622d06c5c947c3 392
+packages/design/src/shader-compiler/IWebGPUShaderProgram.ts
+  s_3cd6502d102d7f::t_c84aa0b70a1816 1,84-85
+packages/shader-compiler/src/webgpu.ts
+  s_3cd6502d102d7f::t_c84aa0b70a1816 11,25-38,75
+packages/core/src/shader/upgradeLegacyShaderStage.ts
+  s_3cd6502d102d7f::t_dc472b17944513 1-47
+packages/shader-compiler/src/webgpu/OutputArguments.ts
+  s_3cd6502d102d7f::t_4f680ea40531aa 7,18,29-31,39
+tests/src/rhi-webgpu/PrimitiveCompatibility.test.ts
+  s_3cd6502d102d7f::t_df2be4a5f914e8 125-128
+  s_3cd6502d102d7f::t_0d6aed26ece326 115-124,129-148
+packages/shader-compiler/src/ShaderInstructionEncoder.ts
+  s_3cd6502d102d7f::t_c84aa0b70a1816 19-39
+packages/core/src/shader/ShaderPass.ts
+  s_3cd6502d102d7f::t_dc472b17944513 1,445-448
+  s_3cd6502d102d7f::t_c84aa0b70a1816 390-394,398-399,402-403
+tests/src/shader-compiler/RawWebGPUStage.test.ts
+  s_3cd6502d102d7f::t_66bff8bf8f127e 4-8,10-11,13-24,36,45,47-48,50-51,53-58,60,82-83,87,92-95
+  s_3cd6502d102d7f::t_002349d7e82364 9,12,25-35,37-44,46,49,52,91
+  s_3cd6502d102d7f::t_70894724477163 1-3
+  s_3cd6502d102d7f::t_d2d544b0b2b873 59
+  s_3cd6502d102d7f::t_b130dacc14d380 61-63,79-81
+  s_3cd6502d102d7f::t_0d9b16df62c29e 84-86
+  s_3cd6502d102d7f::t_41c6eb5a655788 88-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6cd27d2fa8a652881203e253fe54098973468199",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+packages/core/src/shader/Std140FieldWriter.ts
+  s_3cd6502d102d7f::t_2de2844d35d2f5 70-72,76-82
+  s_3cd6502d102d7f::t_2700345cbb9d42 83-84
+tests/src/core/Std140FieldWriter.test.ts
+  s_3cd6502d102d7f::t_68b379da812bf6 1-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6357eec25a8397760bf295f9487a15a86226f5a3",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

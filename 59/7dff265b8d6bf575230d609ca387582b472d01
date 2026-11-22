@@ -1,0 +1,26 @@
+tests/benchmarks/seed-templates/run.mjs
+  s_3cd6502d102d7f::t_fecb143431ee7e 98,105,141
+tests/benchmarks/seed-templates/throughput.test.mjs
+  s_3cd6502d102d7f::t_c79be8dee7c80f 1-5,9-37,55,64-73,81-86
+  s_3cd6502d102d7f::t_9ab98bf1dfd1c7 6-8,38-54,56-63,74-80
+tests/benchmarks/seed-templates/metrics.mjs
+  s_3cd6502d102d7f::t_9ab98bf1dfd1c7 720-727,749-753,755-756,887-888,892-899,902-907,910-911,929-930,932-935,942-944
+  s_3cd6502d102d7f::t_9ace4c623ff15c 889-890,917-920,928
+  s_3cd6502d102d7f::t_16f3e92ca246b7 718-719,728-748,754,757-759,783-784,871,877-878,885-886,891,900-901,908-909,912-916,921-927,931,936-941,945-947,1036
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "597dff265b8d6bf575230d609ca387582b472d01",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
