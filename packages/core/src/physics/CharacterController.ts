@@ -182,10 +182,10 @@ export class CharacterController extends Collider {
       return 0;
     }
     scene.physics._syncColliders();
-    const controller = this._controller;
-    if (!this._inScene || !controller) {
+    if (!this._inScene) {
       return 0;
     }
+    const controller = this._controller!;
     const flags = controller.move(disp, minDist, elapsedTime);
     const positions = CharacterController._movePositions;
     const position = positions.pop() ?? new Vector3();

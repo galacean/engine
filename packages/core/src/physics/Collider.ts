@@ -409,18 +409,12 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const transform = this.entity.transform;
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
     const worldMatrix = transform.worldMatrix;
-    if (
-      poseOnly &&
-      this._nativeActor &&
-      this._attachedBody &&
-      !this._attachedBody.destroyed &&
-      !this._geometryDirty &&
-      this._native &&
-      this._registeredScene === scene
-    ) {
+    if (this._registeredScene !== scene) return;
+    const attachedBody = this._attachedBody;
+    if (poseOnly && attachedBody && !this._geometryDirty) {
       const scratch = Collider._syncScratch.pop() ?? new ColliderSyncScratch();
       scratch.scale.copyFrom(this._poseScale);
-      this._syncShapePose(this._native, this._attachedBody, scratch, false, scene);
+      this._syncShapePose(this._native!, attachedBody, scratch, false, scene);
       Collider._syncScratch.push(scratch);
       return;
     }
@@ -466,7 +460,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform, scene);
     if (actor && this._syncShapePose(shape, body, scratch, shape !== previousShape, scene)) {
       if (!this._nativeActor) {
-        if (!body || (!body.destroyed && this._findRigidbody() === body)) {
+        if (!body || this._findRigidbody() === body) {
           if (actor.addShape(shape)) {
             if (body) {
               body._attachCollider(this);
@@ -693,7 +687,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     if (
       !(type & TransformModifyFlags.WorldScale) &&
       this._dirtyIndex === -1 &&
-      this._nativeActor &&
       this._attachedBody &&
       !this._geometryDirty
     ) {

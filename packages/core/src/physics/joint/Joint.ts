@@ -128,8 +128,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     }
     if (value !== this._connectedBodyInfo.massScale) {
       this._connectedBodyInfo.massScale = value;
-      this._nativeJoint?.setConnectedMassScale(value);
       if (this._nativeJoint) {
+        this._nativeJoint.setConnectedMassScale(value);
         this._wakeBodies();
       }
     }
@@ -149,8 +149,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     }
     if (value !== this._bodyInfo.massScale) {
       this._bodyInfo.massScale = value;
-      this._nativeJoint?.setMassScale(value);
       if (this._nativeJoint) {
+        this._nativeJoint.setMassScale(value);
         this._wakeBodies();
       }
     }

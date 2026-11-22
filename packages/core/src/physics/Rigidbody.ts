@@ -649,7 +649,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   ): void {
     if (this._index === -1) return;
     const actor = this._getSyncedActor();
-    if (actor && this._index !== -1 && actor.addExplosionForce(strength, origin, radius, upwardOffset, mode)) {
+    if (this._index !== -1 && actor!.addExplosionForce(strength, origin, radius, upwardOffset, mode)) {
       this._cancelPendingSleep();
     }
   }
@@ -679,8 +679,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (!this._simulationEnabled || !this._registeredScene) return;
     // Teleport pending transform edits first so the move starts from the current pose
     const actor = this._getSyncedActor();
-    if (actor && this._index !== -1 && this._isKinematic && this._simulationEnabled) {
-      actor.move(positionOrRotation, rotation);
+    if (this._index !== -1 && this._isKinematic && this._simulationEnabled) {
+      actor!.move(positionOrRotation, rotation);
     }
   }
 
@@ -756,7 +756,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._registeredScene = scene;
     this._wasSleeping = false;
     const actor = this._getNativeActor();
-    if (!actor || this._registeredScene !== scene || this._index !== -1) return;
+    if (this._registeredScene !== scene || this._index !== -1) return;
     this._detachOrphanedColliders();
     scene.physics._addRigidbody(this, actor);
     if (this._sleepPending) scene.physics._scheduleSleep(this, true);
@@ -977,8 +977,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       } else {
         this._wasSleeping = false;
       }
-    } else {
-      this._wasSleeping = false;
     }
 
     actor.getWorldTransform(position, rotation);
@@ -1139,7 +1137,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (this._index === -1 || this._isKinematic || !this._simulationEnabled) return null;
     this._cancelPendingSleep();
     const actor = this._getSyncedActor();
-    return actor && this._index !== -1 && !this._isKinematic && this._simulationEnabled ? actor : null;
+    return this._index !== -1 && !this._isKinematic && this._simulationEnabled ? actor : null;
   }
 
   /** @internal */

@@ -33,10 +33,7 @@ export class SphereCollider extends Collider {
 
   protected override _scaleChanged(scale: Vector3): boolean {
     const nativeScale = this._nativeScale;
-    return (
-      super._scaleChanged(scale) &&
-      Math.max(scale.x, scale.y, scale.z) !== Math.max(nativeScale.x, nativeScale.y, nativeScale.z)
-    );
+    return Math.max(scale.x, scale.y, scale.z) !== Math.max(nativeScale.x, nativeScale.y, nativeScale.z);
   }
 
   protected override _syncGeometry(shape: ISphereColliderShape | null, scale: Vector3): ISphereColliderShape | null {

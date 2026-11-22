@@ -988,9 +988,9 @@ export class PhysicsScene {
         const event = contactEvents[i];
         const collider0 = physicalObjectsMap[event.shape0Id];
         const collider1 = physicalObjectsMap[event.shape1Id];
-        const receiver0 = receivers[i * 2];
-        const receiver1 = receivers[i * 2 + 1];
-        if (!collider0 || !collider1 || !receiver0 || !receiver1) continue;
+        if (!collider0 || !collider1) continue;
+        const receiver0 = receivers[i * 2]!;
+        const receiver1 = receivers[i * 2 + 1]!;
         collision._nativeCollision = event;
         const state = event.state;
         PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1, collision);
@@ -1024,12 +1024,12 @@ export class PhysicsScene {
         const event = triggerEvents[i];
         const collider0 = physicalObjectsMap[event.index1];
         const collider1 = physicalObjectsMap[event.index2];
-        const cur0 = receivers[i * 2];
-        const cur1 = receivers[i * 2 + 1];
-        if (!collider0 || !collider1 || !cur0 || !cur1) {
+        if (!collider0 || !collider1) {
           triggerReceivers.delete(event);
           continue;
         }
+        const cur0 = receivers[i * 2]!;
+        const cur1 = receivers[i * 2 + 1]!;
         const state = event.dispatchState;
         if (state === PhysicsEventState.Enter) {
           let entry = triggerReceivers.get(event);
