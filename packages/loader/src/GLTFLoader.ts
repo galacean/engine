@@ -39,40 +39,28 @@ export class GLTFLoader extends Loader<GLTFResource> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const params = <GLTFParams>item.params;
     const glTFResource = new GLTFResource(resourceManager.engine, item.url!);
+    // Hold an in-flight reference until parsing settles so concurrent gc() will not collect half-parsed resources
+    glTFResource._addReferCount(1);
     const context = new GLTFParserContext(glTFResource, resourceManager, {
       keepMeshData: false,
       ...params
     });
 
-    // Hold an in-flight reference until parsing settles so concurrent gc() will not collect half-parsed resources
-    glTFResource._addReferCount(1);
-    let holdingRef = true;
-    const releaseHold = () => {
-      if (holdingRef) {
-        holdingRef = false;
-        if (!glTFResource.destroyed) {
-          glTFResource._addReferCount(-1);
-        }
-      }
-    };
-
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onTaskCancel) => {
       context._setTaskCompleteProgress = setTaskCompleteProgress;
       context._setTaskDetailProgress = setTaskDetailProgress;
       onTaskCancel(() => {
-        releaseHold();
         context._abort();
       });
       context
         .parse()
         .then((res) => {
           if (!context._aborted) {
-            releaseHold();
+            res._addReferCount(-1);
             resolve(res);
           }
         })
         .catch((e) => {
-          releaseHold();
           context._abort();
           reject(e);
         });

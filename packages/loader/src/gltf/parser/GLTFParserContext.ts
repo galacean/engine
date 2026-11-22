@@ -215,7 +215,10 @@ export class GLTFParserContext {
 
     // Disassociate before destroying glTFResource so owned resources can be released even during deferred frame teardown
     this.glTFResource._disassociateAllResources();
-    this.glTFResource.destroy();
+    if (!this.glTFResource.destroyed) {
+      this.glTFResource._addReferCount(-1);
+      this.glTFResource.destroy();
+    }
 
     this._ownedResources.forEach((resource) => {
       resource.destroy();
