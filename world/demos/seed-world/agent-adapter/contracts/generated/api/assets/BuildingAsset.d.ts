@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 只读的规划建筑体量引用，source 固定为 natural。实际建筑由 Scene 的 Entity 和 Component 管理，通过原生编辑器修改。 */
 export type BuildingAsset = Asset<"building"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     planningElementId: string;
   };

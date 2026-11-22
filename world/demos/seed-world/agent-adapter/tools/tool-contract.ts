@@ -64,7 +64,7 @@ export const assetKindSchema = z.enum(
 export const worldRefSchema = z.strictObject({
   id: z.string().trim().min(1).max(240).describe("世界资产的稳定唯一标识；只能复用 API 返回值"),
   domain: assetDomainSchema.describe("资产所属语义领域"),
-  kind: assetKindSchema.describe("资产语义种类，详情见 skills/world-objects/references/asset-types.md"),
+  kind: assetKindSchema.describe("资产语义种类，详情见对应系统 Skill 的 asset-types 参考文档"),
   source: assetSourceSchema
 }).describe(
   "LLM 可复用的稳定世界资产引用；身份只由 id、domain、kind、source 组成，运行时版本不属于 Ref"
@@ -192,7 +192,7 @@ export const queriedWorldAssetSchema = z.strictObject({
   distanceMetres: z.number().optional().describe("资产到本次查询锚点的距离；它是查询上下文，不属于资产本身")
 })
   .superRefine(requireMatchingAssetIdentity)
-  .describe("world.query 返回的公共 Asset 投影，以及可选的查询距离");
+  .describe("系统查询接口返回的公共 Asset 投影，以及可选的查询距离");
 
 function concreteAssetRefSchema(
   domain: z.output<typeof assetDomainSchema>,
@@ -309,6 +309,61 @@ export const buildingAssetSchema = concreteAssetSchema("infrastructure", "buildi
   .describe("只读的规划建筑体量引用，source 固定为 natural。实际建筑由 Scene 的 Entity 和 Component 管理，通过原生编辑器修改。");
 export const infrastructureAssetSchema = z.union([roadAssetSchema, bridgeAssetSchema, buildingAssetSchema]);
 
+export const VEGETATION_INSPECT_KINDS = [
+  "tree",
+  "forest",
+  "shrub",
+  "shrubland",
+  "grassland",
+  "flower-field",
+  "aquatic-grass-bed",
+  "mushroom"
+] as const;
+export const TERRAIN_INSPECT_KINDS = [
+  "terrain",
+  "mountain",
+  "hill",
+  "ridge",
+  "canyon",
+  "valley",
+  "slope",
+  "plateau",
+  "basin",
+  "rock"
+] as const;
+export const vegetationInspectKindSchema = z
+  .enum(VEGETATION_INSPECT_KINDS)
+  .describe("植被与菌类资产种类");
+export const terrainInspectKindSchema = z
+  .enum(TERRAIN_INSPECT_KINDS)
+  .describe("地形地貌与岩石资产种类");
+export const vegetationInspectAssetSchema = z
+  .union([
+    treeAssetSchema,
+    forestAssetSchema,
+    shrubAssetSchema,
+    shrublandAssetSchema,
+    grasslandAssetSchema,
+    flowerFieldAssetSchema,
+    aquaticGrassBedAssetSchema,
+    mushroomAssetSchema
+  ])
+  .describe("vegetation.inspect 返回的具体植被资产可判别联合。");
+export const terrainInspectAssetSchema = z
+  .union([
+    baseTerrainAssetSchema,
+    mountainAssetSchema,
+    hillAssetSchema,
+    ridgeAssetSchema,
+    canyonAssetSchema,
+    valleyAssetSchema,
+    slopeAssetSchema,
+    plateauAssetSchema,
+    basinAssetSchema,
+    rockAssetSchema
+  ])
+  .describe("terrain.inspect 返回的具体地形或岩石资产可判别联合。");
+
 export const inspectedWorldAssetSchema = z.union([
   buildingAssetSchema,
   baseTerrainAssetSchema,
@@ -337,7 +392,7 @@ export const inspectedWorldAssetSchema = z.union([
   roadAssetSchema,
   bridgeAssetSchema,
   poiAssetSchema
-]).describe("world.inspect 返回的具体持久资产可判别联合。");
+]).describe("具体持久资产可判别联合。");
 
 export const worldAssetSchemaByKind = Object.freeze({
   building: buildingAssetSchema,
@@ -370,14 +425,14 @@ export const worldAssetSchemaByKind = Object.freeze({
 } satisfies Record<SeedWorldAssetKind, z.ZodType>);
 
 export const selectionResultSchema = z.strictObject({
-  selectionId: z.string().describe("可保存或作为空间锚点复用的选择标识"),
+  selectionId: z.string().describe("本次查询的选择标识"),
   matchedCount: z.number().int().nonnegative().describe("完整匹配数量，不受 limit 限制"),
   offset: z.number().int().nonnegative().describe("当前页在完整排序结果中的起始下标"),
-  nextOffset: z.number().int().positive().optional().describe("存在时表示仍有下一页；下一次 world.query 原样作为 offset 传入"),
+  nextOffset: z.number().int().positive().optional().describe("存在时表示仍有下一页；下一次查询原样作为 offset 传入"),
   pageLimitedByBytes: z.literal(true).optional().describe("为 true 时当前页因 Agent 传输字节预算而提前结束；继续使用 nextOffset 即可"),
-  items: z.array(queriedWorldAssetSchema).describe("按排序和 limit 返回的公共 Asset 查询投影；按 type 选择具体资产声明后再调用 world.inspect 读取详情"),
+  items: z.array(queriedWorldAssetSchema).describe("按排序和 limit 返回的公共 Asset 查询投影；按 type 选择具体资产声明后再调用对应 inspect 读取详情"),
   resolvedBounds: worldBoundsSchema.optional().describe("返回 assets 合并后的包围盒")
-}).describe("一次有界世界资产查询结果");
+}).describe("一次有界资产查询结果");
 
 export const seasonSchema = z.enum(["spring", "summer", "autumn", "winter"]);
 export const weatherPresetSchema = z.enum(["clear", "cloudy", "rain", "storm", "snow", "fog"]);

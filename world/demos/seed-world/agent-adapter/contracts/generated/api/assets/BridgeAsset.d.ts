@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 桥梁资产。 */
 export type BridgeAsset = Asset<"bridge"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     /** 桥梁所属道路的稳定标识。 */
     roadId: string;

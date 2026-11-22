@@ -27,10 +27,10 @@ const controller = new SceneVisualIntentController(async () => {
   debugMode: true,
   ...(local ? { localAsapOrigin: "http://127.0.0.1:8082", modelTimeoutMs: 60_000 } : {})
 }, event => {
-  if (event.type === "tool_started" && ["world.parameters.apply", "scene.generate"].includes(event.tool))
+  if (event.type === "tool_started" && (event.tool === "scene.generate" || event.tool.endsWith(".config.update")))
     console.info("[scene-visual-intent] request", event.tool, JSON.stringify(event.input));
   if (event.type === "tool_finished") console.info("[scene-visual-intent] tool", event.tool,
-    ["scene.generate", "world.parameters.apply"].includes(event.tool) ? JSON.stringify(event.result) : "finished");
+    (event.tool === "scene.generate" || event.tool.endsWith(".config.update")) ? JSON.stringify(event.result) : "finished");
   if (event.type === "generation_model_finished") console.info("[scene-visual-intent] model", JSON.stringify({
     traceId: event.traceId, model: event.model, durationMilliseconds: event.durationMilliseconds
   }));

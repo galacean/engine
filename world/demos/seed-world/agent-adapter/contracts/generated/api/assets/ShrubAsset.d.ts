@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 单株灌木资产。 */
 export type ShrubAsset = Asset<"shrub"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     /** 灌木占地宽度与深度；实例物化后可用。 */
     footprintMetres?: [number, number];

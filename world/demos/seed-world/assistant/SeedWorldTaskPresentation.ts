@@ -54,11 +54,10 @@ function describeTool(name: string): string {
   const parts = name.split(".");
   const method = parts.at(-1)!;
   const domain = name.startsWith("editorComponents.") ? parts[1]
-    : name.startsWith("world.parameters") ? "parameters"
-    : name.startsWith("world.animals") ? "animals" : parts[0];
+    : parts[1] === "config" ? parts[0] : parts[0];
   const subjects: Record<string, string> = {
-    time: "时间设置", celestial: "日照设置", atmosphere: "天气设置", terrain: "地形",
-    water: "水域", vegetation: "植被", world: "场景对象", parameters: "场景配置",
+    time: "时间设置", celestial: "日照设置", atmosphere: "天气设置", environment: "环境设置", terrain: "地形",
+    water: "水域", vegetation: "植被", spatial: "空间与布局", runtime: "运行时对象",
     animals: "动物", PlannedMasonrySystem: "建筑", MasonrySystem: "建筑构件",
     FarmingSystem: "农田", entity: "场景对象", component: "对象属性", asset: "素材", document: "项目文档"
   };

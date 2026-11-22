@@ -10,7 +10,7 @@ import {
   SEED_WORLD_TERRAIN_CONTRACTS,
   SEED_WORLD_VEGETATION_CONTRACTS
 } from "../tools/landscape-tools.ts";
-import { SEED_WORLD_SPATIAL_CONTRACTS, SEED_WORLD_WORLD_CONTRACTS } from "../tools/spatial-tools.ts";
+import { SEED_WORLD_SPATIAL_CONTRACTS } from "../tools/spatial-tools.ts";
 import { SEED_WORLD_TIME_CONTRACTS } from "../tools/time-tools.ts";
 import { SEED_WORLD_BUILDING_CONTRACTS } from "../tools/building-tools.ts";
 import { SEED_WORLD_WATER_EDIT_CONTRACTS } from "../tools/water-tools.ts";
@@ -19,7 +19,6 @@ import { SEED_WORLD_WATER_EDIT_CONTRACTS } from "../tools/water-tools.ts";
 import { WATER_QUERY_CONTRACTS } from "@galacean/engine-world-planning/spatial/runtime/WaterQueryContract";
 
 export const SEED_WORLD_API_CONTRACTS = Object.freeze([
-  ...SEED_WORLD_WORLD_CONTRACTS,
   ...SEED_WORLD_RUNTIME_CONTRACTS,
   ...SEED_WORLD_SPATIAL_CONTRACTS,
   ...SEED_WORLD_TIME_CONTRACTS,

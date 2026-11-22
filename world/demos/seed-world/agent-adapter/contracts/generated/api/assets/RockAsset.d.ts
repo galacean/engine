@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 岩石资产。 */
 export type RockAsset = Asset<"rock"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     /** 岩石的语义尺寸等级。 */
     sizeClass: "small" | "regular";

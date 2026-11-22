@@ -14,11 +14,11 @@ declare global {
       /**
        * 调用入口：await tools.vegetation.update(input)
        * 修改程序化树共享效果的大小、树干粗细、树枝形态、树叶密度/大小和颜色；也可修改玩家创建的植被分布。
-       * @param input - 引用：复用历史 create/update 的 assetRef 或查询返回的 ref。身份不明确时才用 world.query 查找。需要当前详情时用 world.inspect 读取该引用。按 ref.kind 和 ref.source 检查操作适用性，不用类型断言绕过来源检查。位置或 seed：仅支持 authored 植被，位置修改只提供 patch.target。单体允许重叠，不执行生成约束或自动移开邻居。区域还可修改范围或 seed，树林和灌木丛还可修改精确株数。树形：先用 world.inspect 读取当前值和效果，再用 treeShape 与 treeShapeScope: shared-effect 修改同配方同效果的共享参数。这会影响共享效果，不创建单树覆盖，也不与位置或 seed 混用。
+       * @param input - 引用：复用历史 create/update 的 assetRef 或 vegetation.query 返回的 ref。身份不明确时先用 vegetation.query 查找，需要当前详情时用 vegetation.inspect 读取该引用。按 ref.kind 和 ref.source 检查操作适用性，不用类型断言绕过来源检查。位置或 seed：仅支持 authored 植被，位置修改只提供 patch.target。单体允许重叠，不执行生成约束或自动移开邻居。区域还可修改范围或 seed，树林和灌木丛还可修改精确株数。树形：先用 vegetation.inspect 读取当前值和效果，再用 treeShape 与 treeShapeScope: shared-effect 修改同配方同效果的共享参数。这会影响共享效果，不创建单树覆盖，也不与位置或 seed 混用。
        * @returns assetRef 是可复用的稳定引用。共享树形编辑的 updated.realizedPlantCount 为受影响树数，其他植被分布更新时为更新后的实际株数。preview 或没有公共单株数量时为 null。resolvedEffect 提供实际采用的语义参数或效果摘要，没有时为 null。execute 应保留判断任务结果所需的这些字段。结合最终 execute 回执判断是否完成。结果缺少必要证据或出现冲突时，再按 assetRef 查询当前状态。
        */
       update(input: ({
-        /** world.query/get 返回的树引用，用它解析共享配方与效果，支持 natural 和 authored。 */
+        /** vegetation.query 或 create 返回的树引用，用它解析共享配方与效果，支持 natural 和 authored。 */
         ref: (Ref & {
           domain: "vegetation";
         }) & {

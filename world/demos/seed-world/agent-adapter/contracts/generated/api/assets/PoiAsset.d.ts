@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 规划兴趣点资产。 */
 export type PoiAsset = Asset<"poi"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     /** 兴趣点的语义角色。 */
     poiKind: "settlement" | "lookout" | "crossroads";

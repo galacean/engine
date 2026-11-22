@@ -4,9 +4,9 @@
 import type { Asset } from "../common/Asset";
 /** 灌木丛资产。 */
 export type ShrublandAsset = Asset<"shrubland"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
-    /** 规划区域组件目标；通过 world.parameters.inspect/apply 修改。 */
+    /** 规划区域组件目标；通过 vegetation.config.get/update 修改。 */
     planningEntityId?: string;
     /** 局部区域的代表半径；自然栖息地填充可能省略，单位为米。 */
     radiusMetres?: number;

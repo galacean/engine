@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 蘑菇资产。 */
 export type MushroomAsset = Asset<"mushroom"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: Record<string, never>;
 };
 declare global {

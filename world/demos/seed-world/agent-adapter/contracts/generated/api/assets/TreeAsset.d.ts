@@ -4,11 +4,11 @@
 import type { Asset } from "../common/Asset";
 /** 单棵树资产。 */
 export type TreeAsset = Asset<"tree"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     /** 实际渲染的程序化资源标识；材质槽按此物种发现。 */
     proceduralAssetId?: string;
-    /** 规划组件目标；通过 world.parameters.inspect/apply 修改。 */
+    /** 规划组件目标；通过 vegetation.config.get/update 修改。 */
     planningEntityId?: string;
     /** 当前实际生效的共享树形参数；vegetation.update 的 treeShape 修改对应共享效果。 */
     treeShape?: {

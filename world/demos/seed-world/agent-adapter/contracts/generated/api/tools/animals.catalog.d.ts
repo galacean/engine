@@ -4,10 +4,9 @@
 import type { AgentToolsDeclaration } from "../common/AgentTools";
 declare global {
   namespace AgentTools {
-    interface WorldApi { readonly animals: WorldAnimalsApi; }
-    interface WorldAnimalsApi {
+    interface AnimalsApi {
       /**
-       * 调用入口：await tools.world.animals.catalog(input)
+       * 调用入口：await tools.animals.catalog(input)
        * 分页搜索可召唤的动物素材目录，包括默认不展示的备选动物；按中文或英文名称/别名搜索。系统关闭时也可查询，不下载模型或启动模拟。需要新增动物时先选目录中的 typeId 和可选 appearanceId，再调用 spawn；URL 由运行时从配置解析，不允许传入任意 URL。
        * @param input - search 是名称/别名片段；pack 可限定 cute-zoo 或 low-poly-100。offset 默认 0，limit 默认 50，最大 100。
        * @returns summary 是全部匹配目录统计，明确模型条目总数、物种数、外观数及本页长度；items.length 只是本页。默认保留资源 URL；view=summary 省略资源 URL 用于轻量介绍和选择。目录存在不代表场景已经有该动物。

@@ -4,11 +4,10 @@
 import type { AgentToolsDeclaration } from "../common/AgentTools";
 declare global {
   namespace AgentTools {
-    interface WorldApi { readonly animals: WorldAnimalsApi; }
-    interface WorldAnimalsApi {
+    interface AnimalsApi {
       /**
-       * 调用入口：await tools.world.animals.query(input)
-       * 分页查询当前动物实例，包括尚未加载模型的规划身份；可按 typeId 和 visible 筛选。只读，不触发模型下载。enabled=false 表示动物系统关闭并返回空列表；loaded=false 表示模型资源尚未就绪，不能立即执行显式行为命令；不代表逻辑模拟停止。远处动物可在 coarse 模式移动和响应事件，visible 只说明渲染可见性。数量和分布配置仍通过 world.parameters 的 animals 组件修改。
+       * 调用入口：await tools.animals.query(input)
+       * 分页查询当前动物实例，包括尚未加载模型的规划身份；可按 typeId 和 visible 筛选。只读，不触发模型下载。enabled=false 表示动物系统关闭并返回空列表；loaded=false 表示模型资源尚未就绪，不能立即执行显式行为命令；不代表逻辑模拟停止。远处动物可在 coarse 模式移动和响应事件，visible 只说明渲染可见性。数量、激活距离和分布配置通过 animals.config.get/update 修改。
        * @param input - 使用返回的真实 id、typeId；省略筛选查询全部。offset 默认 0，limit 默认 50，最大 100。
        * @returns 当前启用状态、动物身份、米制世界位置、加载与显示状态。viewerRelation直接给出本次动物位置相对玩家的方向；动物自主移动后须重新查询。matchedCount 为全部匹配数，nextOffset 缺省表示读完。
        */

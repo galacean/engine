@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 山脊资产。 */
 export type RidgeAsset = Asset<"ridge"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     planningElementId?: string;
     /** 地貌主方向长度，单位为米。 */

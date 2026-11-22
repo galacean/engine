@@ -8,7 +8,6 @@ declare global {
   namespace AgentTools {
     /** Concrete asset declarations augment this map by public Asset.type. */
     interface AssetDetailsByType {}
-    interface WorldApi {}
     interface RuntimeApi {}
     interface SpatialApi {}
     interface TimeApi {}
@@ -17,8 +16,9 @@ declare global {
     interface AtmosphereApi {}
     interface TerrainApi {}
     interface VegetationApi {}
+    interface AnimalsApi {}
+    interface EnvironmentApi {}
     interface SeedWorldAgentScriptTools {
-      readonly world: WorldApi;
       readonly runtime: RuntimeApi;
       readonly spatial: SpatialApi;
       readonly time: TimeApi;
@@ -27,6 +27,8 @@ declare global {
       readonly atmosphere: AtmosphereApi;
       readonly terrain: TerrainApi;
       readonly vegetation: VegetationApi;
+      readonly animals: AnimalsApi;
+      readonly environment: EnvironmentApi;
     }
   }
   const tools: AgentTools.SeedWorldAgentScriptTools;

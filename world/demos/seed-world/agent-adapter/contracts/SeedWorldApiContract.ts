@@ -1,10 +1,11 @@
 import * as z from "zod";
 
 export const SEED_WORLD_CAPABILITY_DOMAIN_IDS = [
-  "world",
+  "runtime",
   "spatial",
   "time",
   "atmosphere",
+  "environment",
   "terrain",
   "water",
   "vegetation",

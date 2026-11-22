@@ -12,7 +12,7 @@ export type Ref = {
   id: string;
   /** 资产所属语义领域。 */
   domain: AssetDomain;
-  /** 资产语义种类，详情见 skills/world-objects/references/asset-types.md。 */
+  /** 资产语义种类，详情见对应系统 Skill 的 asset-types 参考文档。 */
   kind: AssetKind;
   source: AssetSource;
 };

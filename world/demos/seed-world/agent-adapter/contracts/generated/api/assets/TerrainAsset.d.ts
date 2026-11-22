@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 完整基础地形；不是一座山或坡地。 */
 export type TerrainAsset = Asset<"terrain"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     planningElementId?: string;
   };

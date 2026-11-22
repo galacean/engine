@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 单丘资产。 */
 export type HillAsset = Asset<"hill"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     /** 基座相对原地形的整体抬升，单位为米。 */
     pedestalLiftMetres: number;

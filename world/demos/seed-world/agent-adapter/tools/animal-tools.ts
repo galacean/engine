@@ -31,11 +31,11 @@ const receipt = z.object({
 /** The executable schemas are also the source of APISearch declarations and the knowledge index. */
 export const SEED_WORLD_ANIMAL_CONTRACTS = [
   defineSeedWorldApiContract({
-    name: "world.animals.query",
+    name: "animals.query",
     domain: "animals",
     effect: "read",
     description:
-      "分页查询当前动物实例，包括尚未加载模型的规划身份；可按 typeId 和 visible 筛选。只读，不触发模型下载。enabled=false 表示动物系统关闭并返回空列表；loaded=false 表示模型资源尚未就绪，不能立即执行显式行为命令；不代表逻辑模拟停止。远处动物可在 coarse 模式移动和响应事件，visible 只说明渲染可见性。数量和分布配置仍通过 world.parameters 的 animals 组件修改。",
+      "分页查询当前动物实例，包括尚未加载模型的规划身份；可按 typeId 和 visible 筛选。只读，不触发模型下载。enabled=false 表示动物系统关闭并返回空列表；loaded=false 表示模型资源尚未就绪，不能立即执行显式行为命令；不代表逻辑模拟停止。远处动物可在 coarse 模式移动和响应事件，visible 只说明渲染可见性。数量、激活距离和分布配置通过 animals.config.get/update 修改。",
     inputDescription: "使用返回的真实 id、typeId；省略筛选查询全部。offset 默认 0，limit 默认 50，最大 100。",
     outputDescription:
       "当前启用状态、动物身份、米制世界位置、加载与显示状态。viewerRelation直接给出本次动物位置相对玩家的方向；动物自主移动后须重新查询。matchedCount 为全部匹配数，nextOffset 缺省表示读完。",
@@ -67,12 +67,12 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
     })
   }),
   defineSeedWorldApiContract({
-    name: "world.animals.describe",
+    name: "animals.describe",
     domain: "animals",
     effect: "read",
     description:
       "读取一个真实动物当前可用的语义技能和目标查询参数，不加载资源。只选择返回的 skillId 与 target.query；动画列表、权重和状态切换由动物系统管理。available=false 时以 reason 判断 disabled、not_found 或 not_ready 等实际限制。",
-    inputDescription: "id 来自 world.animals.query。",
+    inputDescription: "id 来自 animals.query。",
     outputDescription:
       "技能名称、是否持续/自主背景、是否必须指定目标，以及宿主支持的目标查询与参数类型；不包含动画片段。",
     input: z.strictObject({ id: identity }),
@@ -109,7 +109,7 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
     })
   }),
   defineSeedWorldApiContract({
-    name: "world.animals.command",
+    name: "animals.command",
     domain: "animals",
     effect: "command",
     description:
@@ -122,7 +122,7 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
     output: receipt
   }),
   defineSeedWorldApiContract({
-    name: "world.animals.receipt",
+    name: "animals.receipt",
     domain: "animals",
     effect: "read",
     description:
@@ -134,7 +134,7 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
     output: receipt
   }),
   defineSeedWorldApiContract({
-    name: "world.animals.catalog",
+    name: "animals.catalog",
     domain: "animals",
     effect: "read",
     description:
@@ -168,7 +168,7 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
     })
   }),
   defineSeedWorldApiContract({
-    name: "world.animals.spawn",
+    name: "animals.spawn",
     domain: "animals",
     effect: "command",
     description:

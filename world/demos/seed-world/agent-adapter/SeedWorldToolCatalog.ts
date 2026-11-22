@@ -5,7 +5,7 @@ import type { AgentTool } from "@galacean/engine-ai-chat/ai-chat/index";
 import type { SeedWorldAgentApplication } from "./SeedWorldAgentApplication.ts";
 import { createSeedWorldCelestialTools } from "./tools/celestial-tools.ts";
 import { createSeedWorldLandscapeTools } from "./tools/landscape-tools.ts";
-import { createSeedWorldKernelTools, createSeedWorldSpatialTools } from "./tools/spatial-tools.ts";
+import { createSeedWorldSpatialTools } from "./tools/spatial-tools.ts";
 import { createSeedWorldTimeTools } from "./tools/time-tools.ts";
 import { createSeedWorldBuildingTools } from "./tools/building-tools.ts";
 import { createSeedWorldWaterTools } from "./tools/water-tools.ts";
@@ -13,7 +13,6 @@ import { createSeedWorldWaterTools } from "./tools/water-tools.ts";
 
 export function createSeedWorldTools(application: SeedWorldAgentApplication): readonly AgentTool[] {
   const tools = [
-    ...createSeedWorldKernelTools(application),
     ...createSeedWorldRuntimeTools(application),
     ...createSeedWorldSpatialTools(application),
     ...createSeedWorldTimeTools(application),

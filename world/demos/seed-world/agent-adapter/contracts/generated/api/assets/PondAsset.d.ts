@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 池塘资产。 */
 export type PondAsset = Asset<"pond"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     /** 水体本色，sRGB 三通道整数 0 到 255；黑色为 [0,0,0]。保留透明度、深度渐变、反射和泡沫，屏幕颜色仍受环境光影响。 */
     colorRgb?: [number, number, number];

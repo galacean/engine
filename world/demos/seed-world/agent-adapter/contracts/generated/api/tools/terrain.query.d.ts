@@ -9,22 +9,21 @@ import type { Bounds } from "../common/Bounds";
 import type { JsonValue } from "../common/JsonValue";
 import type { QueriedAsset } from "../common/QueriedAsset";
 import type { Ref } from "../common/Ref";
+import type { TerrainAssetKind } from "../common/TerrainAssetKind";
 declare global {
   namespace AgentTools {
-    interface WorldApi {
+    interface TerrainApi {
       /**
-       * 调用入口：await tools.world.query(input)
-       * 通过资产类型、语义属性、空间关系和资产关系查询当前世界资产。
-       * @param input - 至少提供一种查询条件。offset/limit 只规定当前页起点和最多条目数；若 nextOffset 存在，脚本必须继续分页并在内部完成聚合或筛选。
-       * @returns 传输安全的当前页选择，包含完整 matchedCount、offset、可选 nextOffset、公共 Asset 查询投影和 selectionId。根据 item.type 在 skills/world-objects/references/asset-types.md 中读取对应 declare/editor/world/assets/ 详情声明，再把 item.ref 传给 world.inspect 读取类型专属 properties。pageLimitedByBytes 表示当前页因字节预算少于 limit。
+       * 调用入口：await tools.terrain.query(input)
+       * 分页查询当前世界中的地形地貌（山丘、山脉、山谷、峡谷等）和岩石资产。
+       * @param input - 可按 kinds、sources、ids、spatial、filters、sort 筛选；省略条件时查询全部地形与岩石资产。若 nextOffset 存在，继续分页。
+       * @returns 返回完整 matchedCount、offset、可选 nextOffset 和公共 Asset 投影 items。把 item.ref 传给 terrain.inspect 读取类型专属 properties。
        */
-      query(input: {
+      query(input?: {
         /** 要精确匹配的稳定 WorldAsset id；创建后验证、检查是否删除等身份查询直接使用此字段。 元素数量：1 到 64。 */
         ids?: Array<string>;
-        /** 要匹配的持久资产领域。 元素数量：1 到 6。 */
-        domains?: Array<AssetDomain>;
-        /** 要匹配的世界资产语义种类。 元素数量：1 到 20。 */
-        kinds?: Array<AssetKind>;
+        /** 要匹配的地形与岩石资产语义种类；省略时匹配本系统全部种类。 元素数量：1 到 20。 */
+        kinds?: Array<TerrainAssetKind>;
         /** 按资产来源匹配：natural 为自然生成，authored 为玩家创建。 元素数量：1 到 2。 */
         sources?: Array<AssetSource>;
         /** 精确语义属性过滤。 最多 16 个元素。 */
@@ -36,22 +35,17 @@ declare global {
             /** 比较值；in 必须使用数组，gt/lt 必须使用数值，其余操作保持与字段类型一致。 */
             value: JsonValue;
           }>;
-        /** 相对玩家、资产、选择或坐标的空间过滤。 */
+        /** 相对玩家、资产或坐标的空间过滤。 */
         spatial?: {
-          /** 空间过滤所参照的玩家、资产、选择或明确坐标。 */
+          /** 空间过滤所参照的玩家、资产或明确坐标。 */
           anchor: {
             /** 以当前用户输入提交时的位置和朝向为锚点；任务期间不随玩家移动而改变。消费新的补充输入时更新。实时位置请调用 tools.spatial.viewer()；无活动输入时使用实时位姿。它不是图片拍摄位姿；图片选点使用 pick 返回的位置。只读取位姿，不移动玩家。 */
             kind: "viewer";
           } | {
             /** 使用一个世界资产作为查询锚点。 */
             kind: "world-ref";
-            /** world.query、world.inspect 或修改 API 返回的稳定资产引用。 */
+            /** vegetation.query、terrain.query 或修改 API 返回的稳定资产引用。 */
             ref: Ref;
-          } | {
-            /** 使用已保存选择中的第一个仍有效资产作为查询锚点。 */
-            kind: "selection";
-            /** world.query 返回或 world.selection.save 保存的选择标识。 字符长度：1 到 160。 */
-            selectionId: string;
           } | {
             /** 使用明确世界坐标作为查询锚点。 */
             kind: "position";
@@ -94,22 +88,17 @@ declare global {
                   /** 比较值；in 必须使用数组，gt/lt 必须使用数值，其余操作保持与字段类型一致。 */
                   value: JsonValue;
                 }>;
-              /** 相对玩家、资产、选择或坐标的空间过滤。 */
+              /** 相对玩家、资产或坐标的空间过滤。 */
               spatial?: {
-                /** 空间过滤所参照的玩家、资产、选择或明确坐标。 */
+                /** 空间过滤所参照的玩家、资产或明确坐标。 */
                 anchor: {
                   /** 以当前用户输入提交时的位置和朝向为锚点；任务期间不随玩家移动而改变。消费新的补充输入时更新。实时位置请调用 tools.spatial.viewer()；无活动输入时使用实时位姿。它不是图片拍摄位姿；图片选点使用 pick 返回的位置。只读取位姿，不移动玩家。 */
                   kind: "viewer";
                 } | {
                   /** 使用一个世界资产作为查询锚点。 */
                   kind: "world-ref";
-                  /** world.query、world.inspect 或修改 API 返回的稳定资产引用。 */
+                  /** vegetation.query、terrain.query 或修改 API 返回的稳定资产引用。 */
                   ref: Ref;
-                } | {
-                  /** 使用已保存选择中的第一个仍有效资产作为查询锚点。 */
-                  kind: "selection";
-                  /** world.query 返回或 world.selection.save 保存的选择标识。 字符长度：1 到 160。 */
-                  selectionId: string;
                 } | {
                   /** 使用明确世界坐标作为查询锚点。 */
                   kind: "position";
@@ -142,17 +131,17 @@ declare global {
         /** 本页 items 上限，不影响 matchedCount；省略时为 16；需要遍历全部结果时持续请求 nextOffset。 取值范围：1 到 256。 */
         limit?: number;
       }): Promise<{
-        /** 可保存或作为空间锚点复用的选择标识。 */
+        /** 本次查询的选择标识。 */
         selectionId: string;
         /** 完整匹配数量，不受 limit 限制。 */
         matchedCount: number;
         /** 当前页在完整排序结果中的起始下标。 */
         offset: number;
-        /** 存在时表示仍有下一页；下一次 world.query 原样作为 offset 传入。 */
+        /** 存在时表示仍有下一页；下一次查询原样作为 offset 传入。 */
         nextOffset?: number;
         /** 为 true 时当前页因 Agent 传输字节预算而提前结束；继续使用 nextOffset 即可。 */
         pageLimitedByBytes?: true;
-        /** 按排序和 limit 返回的公共 Asset 查询投影；按 type 选择具体资产声明后再调用 world.inspect 读取详情。 */
+        /** 按排序和 limit 返回的公共 Asset 查询投影；按 type 选择具体资产声明后再调用对应 inspect 读取详情。 */
         items: Array<QueriedAsset>;
         /** 返回 assets 合并后的包围盒。 */
         resolvedBounds?: Bounds;

@@ -2,6 +2,7 @@ import * as z from "zod";
 import { treeShapePatchSchema } from "@galacean/engine-world-planning/agent-adapter/contracts/SeedWorldTreeShapeContract";
 
 import type { AgentTool } from "@galacean/engine-ai-chat/ai-chat/index";
+import type { SeedWorldQueryInput, SeedWorldSelector } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
 import { SEED_WORLD_DEFAULT_HILL_ATOM_PARAMETERS, SEED_WORLD_HILL_ATOM_LIMITS } from "@galacean/engine-world-planning/world/SeedWorldHillAtom";
 import {
   SEED_WORLD_TERRAIN_TRANSITION_DEFAULT_DURATION_SECONDS,
@@ -10,16 +11,25 @@ import {
 import type { SeedWorldAgentApplication } from "../SeedWorldAgentApplication.ts";
 import { defineSeedWorldApiContract } from "../contracts/SeedWorldApiContract.ts";
 import { spatialTargetSchema } from "./spatial-tool-input.ts";
+import { createDomainDeleteInputSchema, createDomainSelectorSchema } from "./spatial-tools.ts";
 import { defineSeedWorldTool } from "./define-seed-world-tool.ts";
 import { SEED_WORLD_MAXIMUM_EXACT_VEGETATION_INSTANCES } from "@galacean/engine-world-planning/world/SeedWorldPlanner";
 import {
+  TERRAIN_INSPECT_KINDS,
+  VEGETATION_INSPECT_KINDS,
   authoringResultSchema,
   appliedAssetMutationResultSchema,
   assetMutationResultSchema,
   mutationControlShape,
   previewAssetMutationResultSchema,
+  selectionResultSchema,
+  terrainInspectAssetSchema,
+  terrainInspectKindSchema,
   terrainRefSchema,
-  vegetationRefSchema
+  vegetationInspectAssetSchema,
+  vegetationInspectKindSchema,
+  vegetationRefSchema,
+  worldRefSchema
 } from "./tool-contract.ts";
 
 export const terrainFeatureRefSchema = terrainRefSchema;
@@ -456,7 +466,7 @@ export const terrainFeatureUpdateInputSchema = z.union([
 export const vegetationUpdateInputSchema = z.union([
   z.strictObject({
     ref: z.intersection(vegetationRefSchema, z.object({ kind: z.literal("tree") }))
-      .describe("world.query/get 返回的树引用，用它解析共享配方与效果，支持 natural 和 authored。"),
+      .describe("vegetation.query 或 create 返回的树引用，用它解析共享配方与效果，支持 natural 和 authored。"),
     patch: z.strictObject({
       treeShape: treeShapePatchSchema,
       treeShapeScope: z.literal("shared-effect").describe("复用面板共享参数，所有使用该配方及效果的树一起变化；不提供单树覆盖。"),
@@ -527,22 +537,134 @@ export const vegetationUpdateContract = defineSeedWorldApiContract({
   domain: "vegetation",
   description: "修改程序化树共享效果的大小、树干粗细、树枝形态、树叶密度/大小和颜色；也可修改玩家创建的植被分布。",
   inputDescription:
-    "引用：复用历史 create/update 的 assetRef 或查询返回的 ref。身份不明确时才用 world.query 查找。需要当前详情时用 world.inspect 读取该引用。按 ref.kind 和 ref.source 检查操作适用性，不用类型断言绕过来源检查。位置或 seed：仅支持 authored 植被，位置修改只提供 patch.target。单体允许重叠，不执行生成约束或自动移开邻居。区域还可修改范围或 seed，树林和灌木丛还可修改精确株数。树形：先用 world.inspect 读取当前值和效果，再用 treeShape 与 treeShapeScope: shared-effect 修改同配方同效果的共享参数。这会影响共享效果，不创建单树覆盖，也不与位置或 seed 混用。",
+    "引用：复用历史 create/update 的 assetRef 或 vegetation.query 返回的 ref。身份不明确时先用 vegetation.query 查找，需要当前详情时用 vegetation.inspect 读取该引用。按 ref.kind 和 ref.source 检查操作适用性，不用类型断言绕过来源检查。位置或 seed：仅支持 authored 植被，位置修改只提供 patch.target。单体允许重叠，不执行生成约束或自动移开邻居。区域还可修改范围或 seed，树林和灌木丛还可修改精确株数。树形：先用 vegetation.inspect 读取当前值和效果，再用 treeShape 与 treeShapeScope: shared-effect 修改同配方同效果的共享参数。这会影响共享效果，不创建单树覆盖，也不与位置或 seed 混用。",
   outputDescription:
     "assetRef 是可复用的稳定引用。共享树形编辑的 updated.realizedPlantCount 为受影响树数，其他植被分布更新时为更新后的实际株数。preview 或没有公共单株数量时为 null。resolvedEffect 提供实际采用的语义参数或效果摘要，没有时为 null。execute 应保留判断任务结果所需的这些字段。结合最终 execute 回执判断是否完成。结果缺少必要证据或出现冲突时，再按 assetRef 查询当前状态。",
   input: vegetationUpdateInputSchema,
   output: vegetationUpdateResultSchema
 });
 
+const terrainSelectors = createDomainSelectorSchema(terrainInspectKindSchema, "地形与岩石");
+const vegetationSelectors = createDomainSelectorSchema(vegetationInspectKindSchema, "植被");
+
+export const terrainQueryInputSchema = terrainSelectors.queryInput;
+export const terrainInspectInputSchema = z.strictObject({
+  ref: z
+    .strictObject({ ...worldRefSchema.shape, kind: terrainInspectKindSchema })
+    .describe("terrain.query 或 terrain.create 返回的稳定地形/岩石资产引用")
+});
+export const terrainDeleteInputSchema = createDomainDeleteInputSchema(
+  terrainInspectKindSchema,
+  terrainSelectors.deleteSelector,
+  "地形与岩石"
+);
+
+export const vegetationQueryInputSchema = vegetationSelectors.queryInput;
+export const vegetationInspectInputSchema = z.strictObject({
+  ref: z
+    .strictObject({ ...worldRefSchema.shape, kind: vegetationInspectKindSchema })
+    .describe("vegetation.query 或 vegetation.create 返回的稳定植被资产引用")
+});
+export const vegetationDeleteInputSchema = createDomainDeleteInputSchema(
+  vegetationInspectKindSchema,
+  vegetationSelectors.deleteSelector,
+  "植被"
+);
+
+export const terrainQueryContract = defineSeedWorldApiContract({
+  name: "terrain.query",
+  domain: "terrain",
+  effect: "read",
+  inputMode: "optional",
+  description: "分页查询当前世界中的地形地貌（山丘、山脉、山谷、峡谷等）和岩石资产。",
+  inputDescription: "可按 kinds、sources、ids、spatial、filters、sort 筛选；省略条件时查询全部地形与岩石资产。若 nextOffset 存在，继续分页。",
+  outputDescription: "返回完整 matchedCount、offset、可选 nextOffset 和公共 Asset 投影 items。把 item.ref 传给 terrain.inspect 读取类型专属 properties。",
+  input: terrainQueryInputSchema,
+  output: selectionResultSchema
+});
+
+export const terrainInspectContract = defineSeedWorldApiContract({
+  name: "terrain.inspect",
+  domain: "terrain",
+  effect: "read",
+  description: "读取一个稳定地形或岩石资产引用的详细状态和属性。",
+  inputDescription: "来自 terrain.query 或 terrain.create/update 的 Ref；类型专属字段见 skills/terrain/references/asset-types.md。",
+  outputDescription: "直接返回与 ref.kind 对应的具体地形或岩石资产，类型专属字段位于 result.properties；不存在 item 包装层。",
+  input: terrainInspectInputSchema,
+  output: terrainInspectAssetSchema
+});
+
+export const terrainDeleteContract = defineSeedWorldApiContract({
+  name: "terrain.delete",
+  domain: "terrain",
+  description: "精确或批量删除可编辑地形地貌资产或岩石（自然岩石通过对象 tombstone 删除；无局部删除原子能力的自然地貌以 NOT_EDITABLE 失败）。",
+  inputDescription: "refs 与 selector 二选一；批量删除使用不带 limit 的 selector。",
+  outputDescription: "成功时返回 applied/unchanged 状态、真实删除计数、引用摘要和事务标识。",
+  input: terrainDeleteInputSchema,
+  output: authoringResultSchema
+});
+
+export const vegetationQueryContract = defineSeedWorldApiContract({
+  name: "vegetation.query",
+  domain: "vegetation",
+  effect: "read",
+  inputMode: "optional",
+  description: "分页查询当前世界中的树木、树林、灌木、草地、花地、水草区和蘑菇资产。",
+  inputDescription: "可按 kinds、sources、ids、spatial、filters、sort 筛选；省略条件时查询全部植被资产。若 nextOffset 存在，继续分页。",
+  outputDescription: "返回完整 matchedCount、offset、可选 nextOffset 和公共 Asset 投影 items。把 item.ref 传给 vegetation.inspect 读取类型专属 properties。",
+  input: vegetationQueryInputSchema,
+  output: selectionResultSchema
+});
+
+export const vegetationInspectContract = defineSeedWorldApiContract({
+  name: "vegetation.inspect",
+  domain: "vegetation",
+  effect: "read",
+  description: "读取一个稳定植被资产引用的详细状态、树形共享效果与属性。",
+  inputDescription: "来自 vegetation.query 或 vegetation.create/update 的 Ref；类型专属字段见 skills/vegetation/references/asset-types.md。",
+  outputDescription: "直接返回与 ref.kind 对应的具体植被资产，类型专属字段位于 result.properties；不存在 item 包装层。",
+  input: vegetationInspectInputSchema,
+  output: vegetationInspectAssetSchema
+});
+
+export const vegetationDeleteContract = defineSeedWorldApiContract({
+  name: "vegetation.delete",
+  domain: "vegetation",
+  description: "精确或批量删除玩家创建的植被资产，或通过对象 tombstone 删除自然树、灌木和蘑菇。",
+  inputDescription: "refs 与 selector 二选一；批量删除使用不带 limit 的 selector。",
+  outputDescription: "成功时返回 applied/unchanged 状态、真实删除计数、引用摘要和事务标识。",
+  input: vegetationDeleteInputSchema,
+  output: authoringResultSchema
+});
+
 export const SEED_WORLD_TERRAIN_CONTRACTS = Object.freeze([
+  terrainQueryContract,
+  terrainInspectContract,
   terrainPatchApplyContract,
   terrainFeatureCreateContract,
-  terrainFeatureUpdateContract
+  terrainFeatureUpdateContract,
+  terrainDeleteContract
 ]);
-export const SEED_WORLD_VEGETATION_CONTRACTS = Object.freeze([vegetationCreateContract, vegetationUpdateContract]);
+export const SEED_WORLD_VEGETATION_CONTRACTS = Object.freeze([
+  vegetationQueryContract,
+  vegetationInspectContract,
+  vegetationCreateContract,
+  vegetationUpdateContract,
+  vegetationDeleteContract
+]);
 
 export function createSeedWorldLandscapeTools(application: SeedWorldAgentApplication): readonly AgentTool[] {
   return [
+    defineSeedWorldTool(terrainQueryContract, {
+      execute: (input = {}) =>
+        application.selectWorld({
+          ...input,
+          kinds: input.kinds ?? [...TERRAIN_INSPECT_KINDS]
+        } as SeedWorldQueryInput)
+    }),
+    defineSeedWorldTool(terrainInspectContract, {
+      execute: ({ ref }) => application.inspectWorld(ref)
+    }),
     defineSeedWorldTool(terrainPatchApplyContract, {
       execute: (input, { signal }) => application.applyTerrainPatch(input, signal)
     }),
@@ -552,11 +674,55 @@ export function createSeedWorldLandscapeTools(application: SeedWorldAgentApplica
     defineSeedWorldTool(terrainFeatureUpdateContract, {
       execute: ({ ref, patch, ...control }, { signal }) => application.updateTerrainFeature(ref, patch, control, signal)
     }),
+    defineSeedWorldTool(terrainDeleteContract, {
+      execute: (input, { signal }) => {
+        if ("selector" in input) {
+          return application.deleteWorld(
+            {
+              ...input,
+              selector: {
+                ...input.selector,
+                kinds: input.selector.kinds ?? [...TERRAIN_INSPECT_KINDS]
+              } as SeedWorldSelector
+            },
+            signal
+          );
+        }
+        return application.deleteWorld(input, signal);
+      }
+    }),
+    defineSeedWorldTool(vegetationQueryContract, {
+      execute: (input = {}) =>
+        application.selectWorld({
+          ...input,
+          kinds: input.kinds ?? [...VEGETATION_INSPECT_KINDS]
+        } as SeedWorldQueryInput)
+    }),
+    defineSeedWorldTool(vegetationInspectContract, {
+      execute: ({ ref }) => application.inspectWorld(ref)
+    }),
     defineSeedWorldTool(vegetationCreateContract, {
       execute: (input, { signal }) => application.createVegetation(input, signal)
     }),
     defineSeedWorldTool(vegetationUpdateContract, {
       execute: ({ ref, patch, ...control }, { signal }) => application.updateVegetation(ref, patch, control, signal)
+    }),
+    defineSeedWorldTool(vegetationDeleteContract, {
+      execute: (input, { signal }) => {
+        if ("selector" in input) {
+          return application.deleteWorld(
+            {
+              ...input,
+              selector: {
+                ...input.selector,
+                kinds: input.selector.kinds ?? [...VEGETATION_INSPECT_KINDS]
+              } as SeedWorldSelector
+            },
+            signal
+          );
+        }
+        return application.deleteWorld(input, signal);
+      }
     })
   ];
 }

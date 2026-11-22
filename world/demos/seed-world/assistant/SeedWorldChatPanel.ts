@@ -116,7 +116,7 @@ const ASR_ERROR_VISIBLE_MILLISECONDS = 5_000;
 const MINIMUM_SPEECH_HOLD_MILLISECONDS = 1_000;
 const MAX_ASR_INTERACTION_TRACE_EVENTS = 48;
 /**
- * A Seed World script may traverse a transport-bounded world.query cursor and
+ * A Seed World script may traverse a transport-bounded query cursor and
  * inspect one representative asset per discovered kind. Keep this domain
  * budget above the complete current-world traversal cost while retaining the
  * generic AgentLoop budget as a finite safety boundary.

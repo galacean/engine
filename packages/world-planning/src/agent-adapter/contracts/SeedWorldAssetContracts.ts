@@ -213,7 +213,7 @@ export const treeAssetPropertiesSchema = z
   .strictObject({
     assetKind: z.literal("tree").describe("单棵可独立引用的树。"),
     proceduralAssetId: z.string().optional().describe("实际渲染的程序化资源标识；材质槽按此物种发现。"),
-    planningEntityId: z.string().optional().describe("规划组件目标；通过 world.parameters.inspect/apply 修改。"),
+    planningEntityId: z.string().optional().describe("规划组件目标；通过 vegetation.config.get/update 修改。"),
     treeShape: treeShapeSchema
       .optional()
       .describe("当前实际生效的共享树形参数；vegetation.update 的 treeShape 修改对应共享效果。"),
@@ -255,7 +255,7 @@ export const shrubAssetPropertiesSchema = z
   .describe("单株灌木的公共语义属性。");
 
 const vegetationAreaAssetPropertiesBaseSchema = z.strictObject({
-  planningEntityId: z.string().optional().describe("规划区域组件目标；通过 world.parameters.inspect/apply 修改。"),
+  planningEntityId: z.string().optional().describe("规划区域组件目标；通过 vegetation.config.get/update 修改。"),
   assetKind: z
     .enum(["forest", "shrubland", "grassland", "flower-field", "aquatic-grass-bed"])
     .describe("区域植被资产的语义类型。"),

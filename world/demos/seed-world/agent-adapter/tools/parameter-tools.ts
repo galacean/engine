@@ -1,8 +1,9 @@
 import * as z from "zod";
 import { AgentValueError, MAX_SCRIPT_OUTPUT_BYTES, toAgentValue } from "@galacean/engine-ai-chat/ai-chat/agent-values";
+import type { AgentTool } from "@galacean/engine-ai-chat/ai-chat/index";
 import type { PlanningParameterCommand, PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import type { SeedWorldAgentApplication } from "../SeedWorldAgentApplication.ts";
-import { defineSeedWorldApiContract } from "../contracts/SeedWorldApiContract.ts";
+import { defineSeedWorldApiContract, type SeedWorldCapabilityDomainId } from "../contracts/SeedWorldApiContract.ts";
 import { defineSeedWorldTool } from "./define-seed-world-tool.ts";
 import { jsonObjectSchema } from "./tool-contract.ts";
 import { createPlantMaterialTools } from "./plant-material-tools.ts";
@@ -15,222 +16,704 @@ export interface SeedWorldParameterAuthoring {
   inspect(id: string): unknown;
   apply(commands: PlanningParameterCommand[], versionToken: string, signal: AbortSignal): Promise<unknown>;
 }
+
+/** Retained for host constructor compatibility; config tools now return receipts directly. */
+export interface SeedWorldParameterReceipts {
+  current?: { id: string; value: unknown };
+}
+
+type SystemConfigSpec = Readonly<{
+  system: string;
+  domain: SeedWorldCapabilityDomainId;
+  label: string;
+  components: readonly [string, ...string[]];
+  defaultComponent?: string;
+}>;
+
+export const SEED_WORLD_SYSTEM_CONFIG_SPECS = Object.freeze([
+  {
+    system: "animals",
+    domain: "animals",
+    label: "动物种群与激活配置",
+    components: ["animals"],
+    defaultComponent: "animals"
+  },
+  {
+    system: "vegetation",
+    domain: "vegetation",
+    label: "植被分布、花区、草地外观与地表配色配置",
+    components: [
+      "landscape",
+      "landscapePopulation",
+      "landscapeInfluence",
+      "flowers",
+      "flowerInfluence",
+      "grassAppearance",
+      "surfacePalette",
+      "plantMaterial"
+    ]
+  },
+  {
+    system: "terrain",
+    domain: "terrain",
+    label: "地形骨架、缓坡、岩石配色与离岛配置",
+    components: ["terrain", "relief", "rockFormation", "rockObb", "island"]
+  },
+  {
+    system: "environment",
+    domain: "environment",
+    label: "环境光照、后处理与云降水配置",
+    components: ["lighting", "postProcess", "weather"]
+  },
+  {
+    system: "water",
+    domain: "water",
+    label: "湖泊与河流规划配置",
+    components: ["lakes", "rivers"]
+  },
+  {
+    system: "spatial",
+    domain: "spatial",
+    label: "世界生成、风格、布局、POI、道路与展示视角配置",
+    components: [
+      "world",
+      "worldTemplate",
+      "landscapeComposition",
+      "subjectView",
+      "population",
+      "distribution",
+      "poi",
+      "anchor",
+      "layout",
+      "regionalAppearance",
+      "network",
+      "wayfinding",
+      "roadWidth",
+      "roadPath",
+      "suspensionBridge",
+      "solid",
+      "farming"
+    ]
+  }
+] as const satisfies readonly SystemConfigSpec[]);
+
 const text = z.string().min(1);
-const target = { entity: text, component: text };
 const scalar = z.union([z.number(), z.boolean(), z.string()]);
-const parameterValue = z.union([scalar, z.array(z.record(z.string(), scalar))
-  .describe("每行须包含唯一非空字符串 id；其余键遵循字段 columns 声明，具体约束由宿主验证")]);
-const command = z.discriminatedUnion("op", [
-  z.strictObject({ op: z.literal("set"), ...target, values: z.record(z.string(), parameterValue) }),
-  z.strictObject({ op: z.literal("reset"), ...target, fields: z.array(text).optional() }),
-  z.strictObject({ op: z.literal("base"), ...target, base: z.strictObject(target).optional() })
+const parameterValue = z.union([
+  scalar,
+  z
+    .array(z.record(z.string(), scalar))
+    .describe("每行须包含唯一非空字符串 id；其余键遵循字段 columns 声明，具体约束由宿主验证")
 ]);
-const field = z.object({
-  key: text, label: text, type: z.enum(["number", "boolean", "string", "records"]),
-  columns: z.array(z.object({ key: text, label: text, type: z.enum(["number", "boolean", "string"]),
-    choices: z.array(z.string()).optional(), default: scalar.optional() })).optional(),
+
+const fieldSchema = z.object({
+  key: text,
+  label: text,
+  type: z.enum(["number", "boolean", "string", "records"]),
+  columns: z
+    .array(
+      z.object({
+        key: text,
+        label: text,
+        type: z.enum(["number", "boolean", "string"]),
+        choices: z.array(z.string()).optional(),
+        default: scalar.optional()
+      })
+    )
+    .optional(),
   description: z.string().optional(),
-  editEffect: z.enum(["reveal", "replan", "instance"]).optional().describe("执行语义：reveal 只筛选固定底图候选；replan 允许重建相关布局；instance 直接修改选中单体，不重建底图、求解生成约束或移动邻居。表现字段另按所属组件契约编辑。"),
-  tags: z.record(z.string(), z.string()).optional().describe("所属系统提供的真实字段分类；用于筛选部位/类别，不从显示名称或标识字符串推测分类"),
-  unit: z.string().optional(), min: z.number().optional(), max: z.number().optional(), step: z.number().optional(),
-  integer: z.boolean().optional(), readonly: z.boolean().optional(), options: z.array(z.string()).optional(),
-  worldWritable: z.boolean().optional().describe("本字段是否可在世界根对象写入，依据宿主原生作者绑定声明；false 表示世界作用域不可写，实例作用域仍需遵守组件及字段 kinds。未提供表示宿主未声明，不能视为 true；组件 scopes.world 不保证每个字段都支持世界写入。"),
-  optionLabels: z.record(z.string(), z.string()).optional(), default: parameterValue.optional(),
-  kinds: z.array(z.string()).optional(), combine: z.enum(["override", "multiply", "add"]).optional()
+  editEffect: z
+    .enum(["reveal", "replan", "instance"])
+    .optional()
+    .describe("执行语义：reveal 只筛选固定底图候选；replan 允许重建相关布局；instance 直接修改选中单体。"),
+  tags: z.record(z.string(), z.string()).optional().describe("所属系统提供的字段分类标签"),
+  unit: z.string().optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  step: z.number().optional(),
+  integer: z.boolean().optional(),
+  readonly: z.boolean().optional(),
+  options: z.array(z.string()).optional(),
+  worldWritable: z.boolean().optional().describe("本字段是否可在世界根对象写入"),
+  optionLabels: z.record(z.string(), z.string()).optional(),
+  default: parameterValue.optional(),
+  kinds: z.array(z.string()).optional(),
+  combine: z.enum(["override", "multiply", "add"]).optional()
 });
-const componentDescription = z.object({
-  type: text, label: text, description: z.string().optional(), version: z.number(), fields: z.array(field), ranges: z.array(z.tuple([text, text])).optional(),
+
+const componentDescriptionSchema = z.object({
+  type: text,
+  label: text,
+  description: z.string().optional(),
+  version: z.number(),
+  fields: z.array(fieldSchema),
+  ranges: z.array(z.tuple([text, text])).optional(),
   scopes: z.object({ world: z.boolean(), instances: z.array(z.string()) })
 });
-const pageInput = { offset: z.number().int().nonnegative().optional(), limit: z.number().int().positive().optional(),
-  maxBytes: z.number().int().positive().optional().describe("可选的本页完整 JSON UTF-8 字节预算；默认按内部 Tool 上限供脚本计算。直接返回完整页面时设为 main() 的返回预算，多查询汇总时分配总预算；最终投影仍遵守 main() 上限") };
-const pageOutput = {
-  offset: z.number().int().nonnegative(), matchedCount: z.number().int().nonnegative(),
+
+const pageInputShape = {
+  offset: z.number().int().nonnegative().optional(),
+  limit: z.number().int().positive().optional(),
+  maxBytes: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("可选的本页完整 JSON UTF-8 字节预算；省略时按内部 Tool 上限自动分页")
+};
+
+const pageOutputShape = {
+  offset: z.number().int().nonnegative(),
+  matchedCount: z.number().int().nonnegative(),
   nextOffset: z.number().int().positive().optional().describe("存在时保持筛选条件并用此 offset 读取下一页；缺省表示读完"),
   pageLimitedByBytes: z.literal(true).optional()
 };
-const componentIndex = componentDescription.pick({ type: true, label: true, description: true, scopes: true }).extend({
-  fieldCount: z.number().int().nonnegative()
-});
-const describeOutput = z.discriminatedUnion("view", [
-  z.object({ ...pageOutput, view: z.literal("components"), componentTypes: z.array(text), components: z.array(componentIndex) }),
-  z.object({ ...pageOutput, view: z.literal("fields"), componentTypes: z.array(text), components: z.array(componentDescription.extend({ fieldCount: z.number().int().nonnegative().describe("该组件全部声明字段数；fields 仅含本页筛选字段") })) })
-]);
-const queriedEntity = z.object({
-  id: text, name: z.string(), kind: text, parent: text.optional(),
-  authoredFields: z.record(z.string(), z.array(text)).optional().describe("本对象在作者文档中明确设置的字段索引，不包含生成的有效值；按 component 筛选时只列该组件"),
-  authoredBases: z.record(z.string(), z.object(target)).optional().describe("作者明确设置的参数来源；与对象父子归属分开，其他来源在 inspect.sources 中解析"),
-  components: z.array(text).describe("本对象适用的公开作者组件，只含 describe.componentTypes 中的类型；不包含内部求解输出")
-});
-const queryOutput = z.object({ ...pageOutput, entities: z.array(queriedEntity) });
-const inspectedEntity = z.object({
-  id: text, name: z.string(), kind: text.optional(), parent: text.optional(), versionToken: text,
-  components: z.array(z.object({ type: text, values: jsonObjectSchema, sources: z.record(z.string(), z.array(z.string())),
-    local: jsonObjectSchema, base: z.object(target).optional(), limits: jsonObjectSchema,
-    assetSources: z.record(z.string(), jsonObjectSchema).optional().describe("按字段记录有效值所采样的原生资产及采样条件；与 sources 中的作者实体继承链分开") }))
-});
-const inspectOutput = inspectedEntity.extend({ ...pageOutput, componentTypes: z.array(text) });
-const rawReceipt = z.object({ status: z.enum(["accepted", "rejected", "superseded"]), versionToken: text,
-  changedIds: z.array(z.string()), diagnostics: z.array(jsonObjectSchema), message: z.string().optional() });
-const applyOutput = z.object({ status: rawReceipt.shape.status, versionToken: text, receiptId: text,
-  changedCount: z.number().int().nonnegative(), hasMessage: z.boolean(),
-  diagnosticSummary: z.array(z.object({ status: text, required: z.boolean(), count: z.number().int().nonnegative() })) });
-const receiptSection = z.enum(["diagnostics", "changedIds", "message"]);
-const receiptOutput = z.object({ ...pageOutput, receiptId: text, section: receiptSection,
-  items: z.array(z.union([z.string(), jsonObjectSchema])) });
-const contract = <N extends string, I extends z.ZodType, O extends z.ZodType>(name: N, description: string, input: I, output: O) =>
-  defineSeedWorldApiContract({ name, domain: "world", description,
-    inputDescription: "使用发现的组件、实体和字段；所有编辑由系统统一验证。",
-    outputDescription: "组件元数据、作者参数或事务结果；versionToken 用于拒绝过期编辑。完整记录供脚本计算，按 nextOffset 继续；maxBytes 可明确限制本页字节，避免完整页面直接返回时超预算。最终汇总仍须筛选并遵守 main() 总预算，不需要为每个字段单独请求模型。",
-    input, output });
-export const SEED_WORLD_PARAMETER_CONTRACTS = [
-  contract("world.parameters.describe", "发现本宿主公开作者能力。无 component/search/fields/tags 时默认 view=components，返回组件名称、职责、作用域和字段数量的目录，不读取全部字段；此时 matchedCount/offset 按组件计数。选择 component、search、fields 或 tags 时默认 view=fields，返回匹配字段的单位、枚举和约束，此时 matchedCount/offset 按字段计数；可显式指定 view。componentTypes 在两种视图中始终是全部公开作者组件的完整索引，不受筛选或分页影响。已提供组件目录时直接复用，从中选择相关字段，用 fields 的确切键或 tags 的真实类别/部位定向查询，不需要取回所有字段。tags 按所属系统公开的分类逐项精确匹配，显示名称不是分类接口。search 仅匹配字段键、名称、描述及分类值的子串，不是题材或素材搜索；零匹配不代表世界没有对象。未公开的组件以及声明中没有的字段不具备作者编辑能力，遍历更多对象不会开放新能力。按 nextOffset 翻页，字段语义和执行条件以返回声明与原生事务诊断为准。", z.strictObject({ ...pageInput, view: z.enum(["components", "fields"]).optional(), component: text.optional(), search: text.optional(), fields: z.array(text).optional(), tags: z.record(z.string(), z.string()).optional() }), describeOutput),
-  contract("world.parameters.query", "分页查询真实规划对象的身份与适用的公开作者组件。检查全局参数是否有局部覆盖时，用 component + authoredOnly=true 查询作者文档中明确配置了字段或来源的对象，authoredFields/authoredBases 索引不含生成的有效值；只需 inspect 这些真实覆盖，不能逐个读取全部默认继承对象。components 只包含 describe.componentTypes 已公开的组件，kind 是规划对象类别，不是可切换的素材或造型；内部求解输出不会作为可编辑组件返回。name 是规划对象的显示名称，通常是类别和编号，不是题材或素材目录；查全名称不能判断是否支持某种视觉造型，造型能力以宿主表现及组件声明为准。仅当下一步操作需要真实对象 ID 时，用 component/kind/name/parent 定向定位目标；无需逐个读取所有候选，使用宿主可自动选取目标的 API 时不需要先列举对象。matchedCount 为完整匹配数量，entities 仅含本页；只使用存在的 nextOffset 继续，缺省表示该筛选已经读完，不要换 offset 重读重叠页或读取 matchedCount 之后的空页。生成的花草按区域参数控制。", z.strictObject({ ...pageInput, component: text.optional(), kind: text.optional(), name: text.optional(), parent: text.optional(), authoredOnly: z.boolean().optional().describe("仅返回筛选组件含作者字段或明确参数来源的对象，不含纯生成默认") }), queryOutput),
-  contract("world.parameters.inspect", "分页读取对象有效参数、继承来源和 versionToken。values 包含未被作者覆盖的原生资产采样值；local 仍只含作者明确覆盖，sources 是作者实体继承链，assetSources 按字段记录资产来源与采样条件。资源读取失败会报告错误，不将缺失值冒充有效值。时刻或资产引用变化后需重新读取，有效值会随原生曲线改变；读取不写入作者文档。componentTypes 是完整组件索引；components 只含当前页字段，matchedCount/offset 按字段计数。修改前用 component 及 fields（确切字段键）读取目标，或按 nextOffset 翻页，不能把本页未出现的值当成未配置。", z.strictObject({ ...pageInput, id: text, component: text.optional(), fields: z.array(text).optional() }), inspectOutput),
-  contract("world.parameters.apply", "原子执行 set/reset/base，等待宿主的参数提交完成；拒绝过期、未知字段及非法作用域。返回状态、诊断统计与 receiptId，详细诊断及变化 ID 用 receipt 分页读取。accepted 仅代表参数事务成功；是否已有 3D 由宿主的生成阶段决定，不代表视觉验收。",
-    z.strictObject({ commands: z.array(command).min(1), versionToken: text }), applyOutput),
-  contract("world.parameters.receipt", "分页读取最近一次 apply 的详细诊断、变化 ID 或消息，不重复执行修改。hasMessage 为 true 时用 section=message 读取原因，消息按 Unicode 字符分页，items.join('') 得到本页文本。receiptId 必须来自本会话最近一次 apply，可在后续 execute 中读取；新的 apply（包括 rejected）会替换旧回执。它记录参数 apply 的诊断，不表示外层 execute 已提交；最终提交状态以 execute 回执为准。",
-    z.strictObject({ ...pageInput, receiptId: text, section: receiptSection }), receiptOutput)
-] as const;
 
-/** Bounded diagnostic attempt state. Owned by the live application, shared by its drafts;
- * never persisted or rolled back with world data. An outer execute failure does not
- * erase the diagnostics the caller needs to inspect without repeating the edit. */
-export interface SeedWorldParameterReceipts {
-  current?: { id: string; value: z.output<typeof rawReceipt> };
+const rawEntityTarget = z.object({ entity: text, component: text });
+
+const queriedEntitySchema = z.object({
+  id: text,
+  name: z.string(),
+  kind: text,
+  parent: text.optional(),
+  authoredFields: z.record(z.string(), z.array(text)).optional(),
+  authoredBases: z.record(z.string(), rawEntityTarget).optional(),
+  components: z.array(text)
+});
+
+const inspectedRawEntitySchema = z.object({
+  id: text,
+  name: z.string(),
+  kind: text.optional(),
+  parent: text.optional(),
+  versionToken: text,
+  components: z.array(
+    z.object({
+      type: text,
+      values: jsonObjectSchema,
+      sources: z.record(z.string(), z.array(z.string())),
+      local: jsonObjectSchema,
+      base: rawEntityTarget.optional(),
+      limits: jsonObjectSchema,
+      assetSources: z.record(z.string(), jsonObjectSchema).optional()
+    })
+  )
+});
+
+const configComponentEntrySchema = z.object({
+  type: text,
+  label: text,
+  description: z.string().optional(),
+  scopes: z.object({ world: z.boolean(), instances: z.array(z.string()) }),
+  fieldCount: z.number().int().nonnegative(),
+  fields: z.array(fieldSchema).optional(),
+  ranges: z.array(z.tuple([text, text])).optional(),
+  values: jsonObjectSchema.optional(),
+  local: jsonObjectSchema.optional(),
+  sources: z.record(z.string(), z.array(z.string())).optional(),
+  limits: jsonObjectSchema.optional(),
+  base: rawEntityTarget.optional(),
+  assetSources: z.record(z.string(), jsonObjectSchema).optional()
+});
+
+const configGetOutputSchema = z.object({
+  ...pageOutputShape,
+  system: text,
+  mode: z.enum(["components", "inspect", "entities"]),
+  versionToken: text,
+  availableComponents: z.array(text),
+  entity: z
+    .object({
+      id: text,
+      name: z.string(),
+      kind: text.optional(),
+      parent: text.optional()
+    })
+    .optional(),
+  components: z.array(configComponentEntrySchema).optional(),
+  entities: z.array(queriedEntitySchema).optional()
+});
+
+const rawReceiptSchema = z.object({
+  status: z.enum(["accepted", "rejected", "superseded"]),
+  versionToken: text,
+  changedIds: z.array(z.string()),
+  diagnostics: z.array(jsonObjectSchema),
+  message: z.string().optional()
+});
+
+const configMutationOutputSchema = z.object({
+  status: rawReceiptSchema.shape.status,
+  versionToken: text,
+  entityId: text,
+  component: text.optional(),
+  changedIds: z.array(z.string()),
+  diagnostics: z.array(jsonObjectSchema),
+  message: z.string().optional()
+});
+
+function buildSystemConfigContracts(spec: SystemConfigSpec) {
+  const componentEnum = z.enum(spec.components);
+  const componentListText = spec.components.join(", ");
+  const defaultHint = spec.defaultComponent
+    ? `默认读取/修改 "${spec.defaultComponent}" 组件。`
+    : `本系统包含组件：${componentListText}；省略 component 且不传筛选条件时先返回组件目录。`;
+
+  const getInput = z.strictObject({
+    ...pageInputShape,
+    entityId: text.optional().describe('目标规划实体 ID；默认 "world"'),
+    component: componentEnum.optional().describe(`要读取的组件名（${componentListText}）`),
+    fields: z.array(text).optional().describe("按确切字段键筛选；同时筛选 schema 与当前有效值"),
+    search: z.string().min(1).optional().describe("按字段键、名称、描述或分类标签子串筛选"),
+    tags: z.record(z.string(), z.string()).optional().describe("按系统声明的字段分类标签精确筛选"),
+    includeSchema: z.boolean().optional().describe("inspect 模式下是否返回字段 schema 元数据；默认 true"),
+    queryEntities: z.boolean().optional().describe("设为 true 时查询拥有本系统组件的规划实体列表（如各 POI），不读取参数值"),
+    kind: text.optional().describe("按规划实体类别筛选（如 poi、route、volume）；设置后自动进入实体列表查询模式"),
+    name: text.optional().describe("按规划实体名称子串筛选；设置后自动进入实体列表查询模式"),
+    parent: text.optional().describe("按父规划实体 ID 筛选；设置后自动进入实体列表查询模式"),
+    authoredOnly: z.boolean().optional().describe("仅返回含作者覆盖或明确参数来源的实体；设置后自动进入实体列表查询模式")
+  });
+
+  const baseTargetSchema = z.strictObject({
+    entityId: text.describe("继承来源的规划实体 ID"),
+    component: componentEnum.describe("继承来源的组件名")
+  });
+
+  const batchOpSchema = z.discriminatedUnion("op", [
+    z.strictObject({
+      op: z.literal("set"),
+      entityId: text.optional(),
+      component: componentEnum.optional(),
+      values: z.record(z.string(), parameterValue)
+    }),
+    z.strictObject({
+      op: z.literal("reset"),
+      entityId: text.optional(),
+      component: componentEnum.optional(),
+      fields: z.array(text).optional()
+    }),
+    z.strictObject({
+      op: z.literal("base"),
+      entityId: text.optional(),
+      component: componentEnum.optional(),
+      base: baseTargetSchema.nullable().optional()
+    })
+  ]);
+
+  const updateInput = z.strictObject({
+    entityId: text.optional().describe('目标规划实体 ID；默认 "world"'),
+    component: componentEnum.optional().describe(
+      spec.defaultComponent
+        ? `目标组件名；默认 "${spec.defaultComponent}"`
+        : `目标组件名（${componentListText}）；单组件更新时必填`
+    ),
+    values: z.record(z.string(), parameterValue).optional().describe("要设置的字段键值对；使用 config.get 声明的真实字段键"),
+    base: baseTargetSchema.nullable().optional().describe("可选：设置或清除参数继承来源；null 表示清除继承"),
+    operations: z.array(batchOpSchema).min(1).optional().describe("可选：一次原子提交多个本系统组件的 set/reset/base 操作"),
+    versionToken: text.optional().describe("可选乐观并发令牌；省略时自动读取最新版本")
+  });
+
+  const resetInput = z.strictObject({
+    entityId: text.optional().describe('目标规划实体 ID；默认 "world"'),
+    component: componentEnum.optional().describe(
+      spec.defaultComponent
+        ? `目标组件名；默认 "${spec.defaultComponent}"`
+        : `目标组件名（${componentListText}）`
+    ),
+    fields: z.array(text).optional().describe("要恢复默认的字段键列表；省略时清除该组件全部作者覆盖"),
+    versionToken: text.optional().describe("可选乐观并发令牌；省略时自动读取最新版本")
+  });
+
+  return {
+    spec,
+    get: defineSeedWorldApiContract({
+      name: `${spec.system}.config.get`,
+      domain: spec.domain,
+      effect: "read",
+      inputMode: "optional",
+      description: `读取${spec.label}的字段声明、当前有效值、作者覆盖或规划实体列表。${defaultHint}`,
+      inputDescription: "可按 component、fields、search、tags 定向读取；传 queryEntities/kind/authoredOnly 查询规划实体；按 nextOffset 分页。",
+      outputDescription: "返回 mode（components/inspect/entities）、versionToken、availableComponents，以及对应组件目录、字段声明与有效值或实体列表。",
+      input: getInput,
+      output: configGetOutputSchema
+    }),
+    update: defineSeedWorldApiContract({
+      name: `${spec.system}.config.update`,
+      domain: spec.domain,
+      description: `原子更新${spec.label}的作者参数。${defaultHint}`,
+      inputDescription: "提供 values（或 operations）和真实字段键；entityId 默认 world，versionToken 省略时自动读取最新版本号。",
+      outputDescription: "返回提交状态（accepted/rejected/superseded）、最新 versionToken、changedIds、diagnostics 和可选 message。",
+      input: updateInput,
+      output: configMutationOutputSchema
+    }),
+    reset: defineSeedWorldApiContract({
+      name: `${spec.system}.config.reset`,
+      domain: spec.domain,
+      description: `重置${spec.label}的作者参数覆盖，恢复为系统默认或继承值。${defaultHint}`,
+      inputDescription: "指定 component（单组件系统可省略）及可选 fields；省略 fields 重置该组件全部作者覆盖。",
+      outputDescription: "返回提交状态、最新 versionToken、changedIds、diagnostics 和可选 message。",
+      input: resetInput,
+      output: configMutationOutputSchema
+    })
+  } as const;
 }
+
+const SYSTEM_CONFIG_CONTRACT_SETS = SEED_WORLD_SYSTEM_CONFIG_SPECS.map(buildSystemConfigContracts);
+
+export const SEED_WORLD_PARAMETER_CONTRACTS = Object.freeze(
+  SYSTEM_CONFIG_CONTRACT_SETS.flatMap((set) => [set.get, set.update, set.reset])
+);
+
+const json = (value: unknown) => JSON.parse(JSON.stringify(value));
 
 export function createSeedWorldParameterTools(
   application: Pick<SeedWorldAgentApplication, "parameterAuthoring">,
-  receipts: SeedWorldParameterReceipts = {}
-) {
+  _receipts: SeedWorldParameterReceipts = {}
+): readonly AgentTool[] {
   const authoring = application.parameterAuthoring;
   if (!authoring) return [];
-  const [describe, query, inspect, apply, receipt] = SEED_WORLD_PARAMETER_CONTRACTS;
-  const json = (value: unknown) => JSON.parse(JSON.stringify(value));
-  const tools = [
-    defineSeedWorldTool(describe, { execute: input => {
-      const declared = z.array(componentDescription).parse(json(authoring.describe()));
-      const components = declared.filter(component => !input.component || component.type === input.component);
-      const search = input.search?.toLocaleLowerCase();
-      const matches = (candidate: z.output<typeof field>) => (!input.fields || input.fields.includes(candidate.key)) &&
-        (!input.tags || Object.entries(input.tags).every(([key, value]) => candidate.tags?.[key] === value)) &&
-        (!search || [candidate.key, candidate.label, candidate.description, ...Object.values(candidate.tags ?? {})]
-          .some(value => value?.toLocaleLowerCase().includes(search)));
-      const view = input.view ?? (input.component || input.search || input.fields || input.tags ? "fields" : "components");
-      if (view === "components") {
-        const matching = components.filter(component => (!search && !input.fields && !input.tags) || component.fields.some(matches));
-        return boundedPage(matching, { ...input, maxBytes: input.maxBytes ?? MAX_SCRIPT_OUTPUT_BYTES }, (page, pagination) => ({ ...pagination, view,
-          componentTypes: declared.map(component => component.type),
-          components: page.map(({ type, label, description, scopes, fields }) => ({ type, label, description, scopes, fieldCount: fields.length }))
-        }));
+
+  const readDeclared = (allowed: ReadonlySet<string>) =>
+    z
+      .array(componentDescriptionSchema)
+      .parse(json(authoring.describe()))
+      .filter((component) => allowed.has(component.type));
+
+  const readVersionToken = (entityId: string) =>
+    z.object({ versionToken: text }).parse(json(authoring.inspect(entityId))).versionToken;
+
+  const tools: AgentTool[] = [];
+
+  for (const contractSet of SYSTEM_CONFIG_CONTRACT_SETS) {
+    const { spec, get, update, reset } = contractSet;
+    const allowed = new Set<string>(spec.components);
+
+    const resolveComponent = (component: string | undefined, available: ReadonlySet<string>): string => {
+      const target = component ?? spec.defaultComponent;
+      if (!target) {
+        throw new Error(`System '${spec.system}' owns multiple components (${[...available].join(", ")}); specify 'component'.`);
       }
-      const rows = components.flatMap((component, index) => component.fields
-        .filter(matches)
-        .map(field => ({ index, field })));
-      return boundedPage(rows, input, (page, pagination) => ({ ...pagination, view,
-        componentTypes: declared.map(component => component.type),
-        components: [...new Set(page.map(row => row.index))].map(index => {
-          const fields = page.filter(row => row.index === index).map(row => row.field);
-          const keys = new Set(fields.map(field => field.key));
-          return { ...components[index], fieldCount: components[index].fields.length, fields,
-            ...(components[index].ranges ? { ranges: components[index].ranges!.filter(pair => pair.some(key => keys.has(key))) } : {}) };
-        })
-      }));
-    } }),
-    defineSeedWorldTool(query, { execute: ({ offset, limit, maxBytes, ...filter }) => {
-      const definitions = z.array(componentDescription).parse(json(authoring.describe()));
-      const declared = new Map(definitions.map(component => [component.type, new Set(component.fields.map(field => field.key))]));
-      const entities = filter.component && !declared.has(filter.component) ? [] :
-        z.array(queriedEntity).parse(json(authoring.query(filter))).map(entity => ({
-          ...entity, components: entity.components.filter(component => declared.has(component)),
-          ...(entity.authoredFields ? { authoredFields: Object.fromEntries(Object.entries(entity.authoredFields)
-            .filter(([type]) => declared.has(type)).map(([type, fields]) => [type, fields.filter(field => declared.get(type)!.has(field))])) } : {}),
-          ...(entity.authoredBases ? { authoredBases: Object.fromEntries(Object.entries(entity.authoredBases).filter(([type]) => declared.has(type))) } : {})
-        }));
-      return boundedPage(entities, { offset, limit, maxBytes }, (entities, pagination) => ({ ...pagination, entities }));
-    } }),
-    defineSeedWorldTool(inspect, { execute: async (input, context) => {
-      const snapshot = inspectedEntity.parse(json(authoring.inspect(input.id)));
-      // Asset evaluators belong to execution; serialized contract generation must not load runtime resources.
-      const { readPlanningSystemInherited } = await import("../SeedWorldSystemDeclarations.ts");
-      for (const component of snapshot.components) {
-        if (input.component && component.type !== input.component) continue;
-        const keys = new Set([component.values, component.sources, component.local, component.limits].flatMap(value => Object.keys(value)));
-        const fields = [...keys].filter(key => !input.fields || input.fields.includes(key));
-        const inherited = await readPlanningSystemInherited(component.type, component.values, fields, context.signal);
-        if (!inherited) continue;
-        const source = jsonObjectSchema.parse(json(inherited.source));
-        for (const [key, value] of Object.entries(inherited.values)) {
-          if (!fields.includes(key) || component.values[key] !== undefined) continue;
-          Object.assign(component.values, json({ [key]: value }));
-          (component.assetSources ??= {})[key] = source;
+      if (!allowed.has(target)) {
+        throw new Error(`Component '${target}' does not belong to '${spec.system}.config'.`);
+      }
+      return target;
+    };
+
+    tools.push(
+      defineSeedWorldTool(get, {
+        execute: async (input = {}, context) => {
+          const declared = readDeclared(allowed);
+          const declaredByType = new Map(declared.map((component) => [component.type, component]));
+          const availableComponents = declared.map((component) => component.type);
+          const isEntityQuery =
+            input.queryEntities === true ||
+            input.kind !== undefined ||
+            input.name !== undefined ||
+            input.parent !== undefined ||
+            input.authoredOnly !== undefined;
+
+          if (isEntityQuery) {
+            const declaredFields = new Map(declared.map((c) => [c.type, new Set(c.fields.map((f) => f.key))]));
+            const versionToken = readVersionToken("world");
+            if (input.component && !declaredByType.has(input.component)) {
+              return boundedPage([], input, (entities, pagination) => ({
+                ...pagination,
+                system: spec.system,
+                mode: "entities" as const,
+                versionToken,
+                availableComponents,
+                entities
+              }));
+            }
+            const rawEntities = z
+              .array(queriedEntitySchema)
+              .parse(
+                json(
+                  authoring.query({
+                    component: input.component,
+                    kind: input.kind,
+                    name: input.name,
+                    parent: input.parent,
+                    authoredOnly: input.authoredOnly
+                  })
+                )
+              );
+            const entities = rawEntities
+              .map((entity) => ({
+                ...entity,
+                components: entity.components.filter((type) => declaredFields.has(type)),
+                ...(entity.authoredFields
+                  ? {
+                      authoredFields: Object.fromEntries(
+                        Object.entries(entity.authoredFields)
+                          .filter(([type]) => declaredFields.has(type))
+                          .map(([type, fields]) => [type, fields.filter((f) => declaredFields.get(type)!.has(f))])
+                      )
+                    }
+                  : {}),
+                ...(entity.authoredBases
+                  ? {
+                      authoredBases: Object.fromEntries(
+                        Object.entries(entity.authoredBases).filter(([type]) => declaredFields.has(type))
+                      )
+                    }
+                  : {})
+              }))
+              .filter((entity) => entity.components.length > 0);
+            return boundedPage(entities, input, (page, pagination) => ({
+              ...pagination,
+              system: spec.system,
+              mode: "entities" as const,
+              versionToken,
+              availableComponents,
+              entities: page
+            }));
+          }
+
+          const effectiveComponent =
+            input.component ?? (spec.defaultComponent && declaredByType.has(spec.defaultComponent) ? spec.defaultComponent : undefined);
+          const hasFilter = Boolean(effectiveComponent || input.fields || input.search || input.tags || input.entityId);
+
+          if (!hasFilter) {
+            const versionToken = readVersionToken("world");
+            return boundedPage(
+              declared,
+              { ...input, maxBytes: input.maxBytes ?? MAX_SCRIPT_OUTPUT_BYTES },
+              (page, pagination) => ({
+                ...pagination,
+                system: spec.system,
+                mode: "components" as const,
+                versionToken,
+                availableComponents,
+                components: page.map(({ type, label, description, scopes, fields }) => ({
+                  type,
+                  label,
+                  description,
+                  scopes,
+                  fieldCount: fields.length
+                }))
+              })
+            );
+          }
+
+          const entityId = input.entityId ?? "world";
+          const snapshot = inspectedRawEntitySchema.parse(json(authoring.inspect(entityId)));
+          const search = input.search?.toLocaleLowerCase();
+          const fieldMatches = (candidate: z.output<typeof fieldSchema>) =>
+            (!input.fields || input.fields.includes(candidate.key)) &&
+            (!input.tags || Object.entries(input.tags).every(([key, value]) => candidate.tags?.[key] === value)) &&
+            (!search ||
+              [candidate.key, candidate.label, candidate.description, ...Object.values(candidate.tags ?? {})].some((value) =>
+                value?.toLocaleLowerCase().includes(search)
+              ));
+
+          const targetComponents = snapshot.components.filter(
+            (component) => declaredByType.has(component.type) && (!effectiveComponent || component.type === effectiveComponent)
+          );
+
+          const { readPlanningSystemInherited } = await import("../SeedWorldSystemDeclarations.ts");
+          for (const component of targetComponents) {
+            const definition = declaredByType.get(component.type)!;
+            const matchingKeys = definition.fields.filter(fieldMatches).map((f) => f.key);
+            const allKeys = new Set([
+              ...matchingKeys,
+              ...[component.values, component.sources, component.local, component.limits]
+                .flatMap((record) => Object.keys(record))
+                .filter((key) => (!input.fields || input.fields.includes(key)) && (!search && !input.tags))
+            ]);
+            const fields = [...allKeys];
+            const inherited = await readPlanningSystemInherited(component.type, component.values, fields, context.signal);
+            if (!inherited) continue;
+            const source = jsonObjectSchema.parse(json(inherited.source));
+            for (const [key, value] of Object.entries(inherited.values)) {
+              if (!fields.includes(key) || component.values[key] !== undefined) continue;
+              Object.assign(component.values, json({ [key]: value }));
+              (component.assetSources ??= {})[key] = source;
+            }
+          }
+
+          type Row = { componentIndex: number; key: string };
+          const rows: Row[] = [];
+          targetComponents.forEach((component, componentIndex) => {
+            const definition = declaredByType.get(component.type)!;
+            const schemaKeys = new Set(definition.fields.map((f) => f.key));
+            const matchingSchemaFields = definition.fields.filter(fieldMatches);
+            const matchedKeys = new Set(matchingSchemaFields.map((f) => f.key));
+            if (!search && !input.tags) {
+              for (const record of [component.values, component.sources, component.local, component.limits]) {
+                for (const key of Object.keys(record)) {
+                  if ((!input.fields || input.fields.includes(key)) && (schemaKeys.has(key) || matchedKeys.size === 0)) {
+                    matchedKeys.add(key);
+                  }
+                }
+              }
+            }
+            for (const key of matchedKeys) rows.push({ componentIndex, key });
+          });
+
+          const includeSchema = input.includeSchema !== false;
+          return boundedPage(rows, input, (page, pagination) => ({
+            ...pagination,
+            system: spec.system,
+            mode: "inspect" as const,
+            versionToken: snapshot.versionToken,
+            availableComponents,
+            entity: {
+              id: snapshot.id,
+              name: snapshot.name,
+              ...(snapshot.kind ? { kind: snapshot.kind } : {}),
+              ...(snapshot.parent ? { parent: snapshot.parent } : {})
+            },
+            components: [...new Set(page.map((row) => row.componentIndex))].map((componentIndex) => {
+              const component = targetComponents[componentIndex]!;
+              const definition = declaredByType.get(component.type)!;
+              const keys = new Set(page.filter((row) => row.componentIndex === componentIndex).map((row) => row.key));
+              const select = <T>(record: Record<string, T>) =>
+                Object.fromEntries(Object.entries(record).filter(([key]) => keys.has(key)));
+              const fields = definition.fields.filter((f) => keys.has(f.key));
+              return {
+                type: component.type,
+                label: definition.label,
+                ...(definition.description ? { description: definition.description } : {}),
+                scopes: definition.scopes,
+                fieldCount: definition.fields.length,
+                ...(includeSchema ? { fields } : {}),
+                ...(includeSchema && definition.ranges
+                  ? { ranges: definition.ranges.filter((pair) => pair.some((key) => keys.has(key))) }
+                  : {}),
+                values: select(component.values),
+                local: select(component.local),
+                sources: select(component.sources),
+                limits: select(component.limits),
+                ...(component.base ? { base: component.base } : {}),
+                ...(component.assetSources ? { assetSources: select(component.assetSources) } : {})
+              };
+            })
+          }));
         }
-      }
-      const rows = snapshot.components.flatMap((component, index) => {
-        if (input.component && component.type !== input.component) return [];
-        const keys = new Set([component.values, component.sources, component.local, component.limits].flatMap(value => Object.keys(value)));
-        return [...keys].filter(key => !input.fields || input.fields.includes(key)).map(key => ({ index, key }));
-      });
-      return boundedPage(rows, input, (page, pagination) => ({ ...snapshot, ...pagination,
-        componentTypes: snapshot.components.map(component => component.type),
-        components: [...new Set(page.map(row => row.index))].map(index => {
-          const component = snapshot.components[index], keys = new Set(page.filter(row => row.index === index).map(row => row.key));
-          const select = <T>(values: Record<string, T>) => Object.fromEntries(Object.entries(values).filter(([key]) => keys.has(key)));
-          return { ...component, values: select(component.values), sources: select(component.sources),
-            local: select(component.local), limits: select(component.limits),
-            ...(component.assetSources ? { assetSources: select(component.assetSources) } : {}) };
-        })
-      }));
-    } }),
-    defineSeedWorldTool(apply, { execute: async (input, context) => {
-      const value = rawReceipt.parse(json(await authoring.apply(input.commands, input.versionToken, context.signal)));
-      const lastReceipt = receipts.current = { id: crypto.randomUUID(), value };
-      const counts = new Map<string, { status: string; required: boolean; count: number }>();
-      for (const diagnostic of value.diagnostics) {
-        const status = String(diagnostic.status), required = diagnostic.required === true, key = JSON.stringify([status, required]);
-        const summary = counts.get(key) ?? { status, required, count: 0 };
-        summary.count++;
-        counts.set(key, summary);
-      }
-      return json({ status: value.status, versionToken: value.versionToken, receiptId: lastReceipt.id,
-        changedCount: value.changedIds.length, diagnosticSummary: [...counts.values()], hasMessage: !!value.message });
-    } }),
-    defineSeedWorldTool(receipt, { execute: input => {
-      const lastReceipt = receipts.current;
-      if (!lastReceipt || input.receiptId !== lastReceipt.id) throw new Error("Receipt expired or unavailable; do not repeat an edit to retrieve its result.");
-      const items: (string | z.output<typeof jsonObjectSchema>)[] = input.section === "message"
-        ? Array.from(lastReceipt.value.message ?? "") : lastReceipt.value[input.section];
-      return boundedPage(items, input, (items, pagination) => ({ ...pagination, receiptId: input.receiptId, section: input.section, items }));
-    } })
-  ];
-  return [...tools, ...createPlantMaterialTools(authoring, tools.find(tool => tool.name === apply.name)!)];
+      }),
+      defineSeedWorldTool(update, {
+        execute: async (input, context) => {
+          const available = new Set(readDeclared(allowed).map((c) => c.type));
+          const entityId = input.entityId ?? "world";
+          const commands: PlanningParameterCommand[] = [];
+          let primaryComponent: string | undefined;
+
+          if (input.operations?.length) {
+            for (const op of input.operations) {
+              const opEntity = op.entityId ?? entityId;
+              const opComponent = resolveComponent(op.component ?? input.component, available);
+              primaryComponent ??= opComponent;
+              if (op.op === "set") {
+                commands.push({ op: "set", entity: opEntity, component: opComponent, values: op.values });
+              } else if (op.op === "reset") {
+                commands.push({ op: "reset", entity: opEntity, component: opComponent, ...(op.fields ? { fields: op.fields } : {}) });
+              } else {
+                commands.push({
+                  op: "base",
+                  entity: opEntity,
+                  component: opComponent,
+                  ...(op.base ? { base: { entity: op.base.entityId, component: op.base.component } } : {})
+                });
+              }
+            }
+          } else {
+            const targetComponent = resolveComponent(input.component, available);
+            primaryComponent = targetComponent;
+            if (input.values && Object.keys(input.values).length > 0) {
+              commands.push({ op: "set", entity: entityId, component: targetComponent, values: input.values });
+            }
+            if (input.base !== undefined) {
+              commands.push({
+                op: "base",
+                entity: entityId,
+                component: targetComponent,
+                ...(input.base ? { base: { entity: input.base.entityId, component: input.base.component } } : {})
+              });
+            }
+            if (!commands.length) {
+              throw new Error(`Provide non-empty 'values', 'base', or 'operations' for ${spec.system}.config.update.`);
+            }
+          }
+
+          const versionToken = input.versionToken ?? readVersionToken(entityId);
+          const value = rawReceiptSchema.parse(json(await authoring.apply(commands, versionToken, context.signal)));
+          return {
+            status: value.status,
+            versionToken: value.versionToken,
+            entityId,
+            ...(primaryComponent ? { component: primaryComponent } : {}),
+            changedIds: value.changedIds,
+            diagnostics: value.diagnostics.slice(0, 32),
+            ...(value.message ? { message: value.message } : {})
+          };
+        }
+      }),
+      defineSeedWorldTool(reset, {
+        execute: async (input, context) => {
+          const available = new Set(readDeclared(allowed).map((c) => c.type));
+          const entityId = input.entityId ?? "world";
+          const targetComponent = resolveComponent(input.component, available);
+          const versionToken = input.versionToken ?? readVersionToken(entityId);
+          const command: PlanningParameterCommand = {
+            op: "reset",
+            entity: entityId,
+            component: targetComponent,
+            ...(input.fields ? { fields: input.fields } : {})
+          };
+          const value = rawReceiptSchema.parse(json(await authoring.apply([command], versionToken, context.signal)));
+          return {
+            status: value.status,
+            versionToken: value.versionToken,
+            entityId,
+            component: targetComponent,
+            changedIds: value.changedIds,
+            diagnostics: value.diagnostics.slice(0, 32),
+            ...(value.message ? { message: value.message } : {})
+          };
+        }
+      })
+    );
+  }
+
+  return [...tools, ...createPlantMaterialTools(authoring)];
 }
 
 /** Complete-record pagination, with an optional byte budget for direct model-facing pages. */
-function boundedPage<T, R>(items: readonly T[], input: { offset?: number; limit?: number; maxBytes?: number }, render: (page: T[], pagination: z.output<z.ZodObject<typeof pageOutput>>) => R): R {
+function boundedPage<T, R>(
+  items: readonly T[],
+  input: { offset?: number; limit?: number; maxBytes?: number },
+  render: (page: T[], pagination: z.output<z.ZodObject<typeof pageOutputShape>>) => R
+): R {
   const offset = input.offset ?? 0;
   const requested = Math.min(input.limit ?? items.length, Math.max(0, items.length - offset));
-  const candidate = (count: number) => render(items.slice(offset, offset + count), {
-    offset, matchedCount: items.length,
-    ...(offset + count < items.length ? { nextOffset: offset + count } : {}),
-    ...(count < requested ? { pageLimitedByBytes: true as const } : {})
-  });
+  const candidate = (count: number) =>
+    render(items.slice(offset, offset + count), {
+      offset,
+      matchedCount: items.length,
+      ...(offset + count < items.length ? { nextOffset: offset + count } : {}),
+      ...(count < requested ? { pageLimitedByBytes: true as const } : {})
+    });
   const fits = (value: R) => {
     try {
       const normalized = toAgentValue(value);
       return input.maxBytes === undefined || new TextEncoder().encode(JSON.stringify(normalized)).byteLength <= input.maxBytes;
+    } catch (error) {
+      if (!(error instanceof AgentValueError)) throw error;
+      return false;
     }
-    catch (error) { if (!(error instanceof AgentValueError)) throw error; return false; }
   };
   const full = candidate(requested);
   if (fits(full)) return full;
-  let low = 0, high = requested - 1;
+  let low = 0,
+    high = requested - 1;
   while (low < high) {
     const middle = Math.ceil((low + high) / 2);
     if (fits(candidate(middle))) low = middle;
     else high = middle - 1;
   }
-  if (!low) throw new AgentValueError(`One parameter record at offset=${offset} exceeds the Agent result budget; narrow the component or field filter.`);
+  if (!low) {
+    throw new AgentValueError(`One parameter record at offset=${offset} exceeds the Agent result budget; narrow the component or field filter.`);
+  }
   return candidate(low);
 }

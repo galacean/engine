@@ -4,7 +4,7 @@
 import type { Asset } from "../common/Asset";
 /** 道路资产。 */
 export type RoadAsset = Asset<"road"> & {
-  /** 仅 world.inspect 返回的类型专属属性。 */
+  /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
     /** 道路起点 POI 的稳定标识。 */
     fromPoiId: string;

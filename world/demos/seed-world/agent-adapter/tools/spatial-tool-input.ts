@@ -9,11 +9,7 @@ export const kernelSpatialAnchorSchema = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("viewer").describe(VIEWER_ANCHOR_DESCRIPTION) }),
   z.strictObject({
     kind: z.literal("world-ref"),
-    ref: worldRefSchema.describe("world.query 或修改 API 返回的稳定世界引用")
-  }),
-  z.strictObject({
-    kind: z.literal("selection"),
-    selectionId: z.string().trim().min(1).max(160).describe("world.query 返回或命名保存的选择标识")
+    ref: worldRefSchema.describe("vegetation.query、terrain.query 或修改 API 返回的稳定世界资产引用")
   }),
   z.strictObject({
     kind: z.literal("position"),

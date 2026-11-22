@@ -22,6 +22,10 @@ import {
   liveWorldStateSchema,
   queriedWorldAssetSchema,
   seasonSchema,
+  terrainInspectAssetSchema,
+  terrainInspectKindSchema,
+  vegetationInspectAssetSchema,
+  vegetationInspectKindSchema,
   worldBoundsSchema,
   worldPositionTupleSchema,
   worldAssetSchema,
@@ -53,6 +57,8 @@ registerPublic("Vec3", worldPositionTupleSchema);
 registerPublic("Bounds", worldBoundsSchema);
 registerPublic("AssetDomain", assetDomainSchema);
 registerPublic("AssetKind", assetKindSchema);
+registerPublic("VegetationAssetKind", vegetationInspectKindSchema);
+registerPublic("TerrainAssetKind", terrainInspectKindSchema);
 registerPublic("AssetSource", assetSourceSchema);
 registerPublic("Ref", worldRefSchema);
 registerPublic("AssetRelations", assetRelationsSchema);
@@ -79,11 +85,18 @@ registerPublic("Target", spatialTargetSchema);
 registerPublic("Selector", worldSelectorSchema);
 register("EmptyInput", emptyToolInputSchema);
 
+function inspectKindTypeName(output: z.ZodType): string | undefined {
+  if (output === vegetationInspectAssetSchema) return "VegetationAssetKind";
+  if (output === terrainInspectAssetSchema) return "TerrainAssetKind";
+  if (output === inspectedWorldAssetSchema) return "AssetKind";
+  return undefined;
+}
+
 const contractTypes = new Map<string, { input: string; outputs: readonly string[] }>();
 for (const contract of SEED_WORLD_API_CONTRACTS) {
   const base = pascalCase(contract.name);
   const input = nameBySchema.get(contract.input) ?? register(`${base}Input`, contract.input);
-  const outputs = contract.output === inspectedWorldAssetSchema
+  const outputs = inspectKindTypeName(contract.output)
     ? []
     : [nameBySchema.get(contract.output) ?? register(`${base}Result`, contract.output)];
   contractTypes.set(contract.name, { input, outputs });
@@ -140,8 +153,9 @@ const typeModules: GeneratedModule[] = [
 
 const apiModules: GeneratedModule[] = SEED_WORLD_API_CONTRACTS.map((contract) => {
   const types = contractTypes.get(contract.name)!;
-  const dependencies = contract.output === inspectedWorldAssetSchema
-    ? ["AgentTools", "AssetKind", "Ref"]
+  const inspectKind = inspectKindTypeName(contract.output);
+  const dependencies = inspectKind
+    ? ["AgentTools", inspectKind, "Ref"]
     : [...new Set([
     "AgentTools",
     ...publicDeclarationDependencies([
@@ -249,7 +263,7 @@ function renderAssetModule(dependencies: readonly string[]): string {
 function renderQueriedAssetModule(dependencies: readonly string[]): string {
   return [
     renderTypeImports("common/QueriedAsset.d.ts", dependencies),
-    doc("world.query 返回的公共 Asset 投影。distanceMetres 只描述本次查询上下文，不属于资产本身。"),
+    doc("资产查询接口返回的公共 Asset 投影。distanceMetres 只描述本次查询上下文，不属于资产本身。"),
     [
       "export type QueriedAsset = Asset & {",
       "  /** 资产到本次查询锚点的距离，单位为米。 */",
@@ -272,7 +286,7 @@ function renderConcreteAssetModule(
     doc(schemaDescription(schema, `${name} 详细资产声明。`)),
     ...(properties ? [
       `export type ${name} = Asset<${JSON.stringify(kind)}> & {`,
-      "  /** 仅 world.inspect 返回的类型专属属性。 */",
+      "  /** 仅对应系统 inspect 返回的类型专属属性。 */",
       `  properties: ${renderSchema(properties, 1, false)};`,
       "};"
     ] : [`export type ${name} = ${renderSchema(schema, 0, false)};`]),
@@ -440,33 +454,14 @@ function renderApiFunctionModule(
   contract: (typeof SEED_WORLD_API_CONTRACTS)[number],
   dependencies: readonly string[]
 ): string {
-  if (contract.output === inspectedWorldAssetSchema) {
-    return renderInspectApiFunctionModule(contract, dependencies);
+  const inspectKind = inspectKindTypeName(contract.output);
+  if (inspectKind) {
+    return renderInspectApiFunctionModule(contract, inspectKind, dependencies);
   }
   const types = contractTypes.get(contract.name)!;
   const inputType = renderContractType(types.input, true);
   const input = contract.inputMode === "none" ? "" : `input${contract.inputMode === "optional" ? "?" : ""}: ${inputType}`;
   const output = types.outputs.map((name) => renderContractType(name, false)).join(" | ");
-  if (contract.name === "world.parameters.describe") {
-    return [
-      renderTypeImports(`tools/${contract.name}.d.ts`, dependencies),
-      `/** 调用入口：await tools.world.parameters.describe(input)\n * ${contract.description}\n * @param input ${contract.inputDescription}\n * @returns ${contract.outputDescription}\n */`,
-      `type DescribeInput = ${inputType};`,
-      `type DescribeOutput = ${output};`,
-      'type ComponentIndex = Extract<DescribeOutput, {view:"components"}>;',
-      'type FieldPage = Extract<DescribeOutput, {view:"fields"}>;',
-      'declare global { namespace AgentTools { interface WorldApi {readonly parameters:WorldParametersApi;} interface WorldParametersApi {',
-      `/** 调用入口：await tools.world.parameters.describe(input)
- * ${contract.description}
- */`,
-      'describe(input: DescribeInput & {view:"components"}): Promise<ComponentIndex>;',
-      'describe(input: DescribeInput & {view:"fields"}): Promise<FieldPage>;',
-      'describe(input: DescribeInput & {view?:undefined} & ({component:string}|{search:string}|{fields:string[]}|{tags:Record<string,string>})): Promise<FieldPage>;',
-      'describe(input: DescribeInput & {view?:undefined;component?:never;search?:never;fields?:never;tags?:never}): Promise<ComponentIndex>;',
-      'describe(input: DescribeInput): Promise<DescribeOutput>;',
-      '} } }', 'export {};'
-    ].join("\n");
-  }
   const path = contract.name.split(".");
   const functionName = path.pop()!;
   const method = [
@@ -502,20 +497,24 @@ function renderApiFunctionModule(
 
 function renderInspectApiFunctionModule(
   contract: (typeof SEED_WORLD_API_CONTRACTS)[number],
+  kindTypeName: string,
   dependencies: readonly string[]
 ): string {
+  const path = contract.name.split(".");
+  const functionName = path.pop()!;
+  const iface = apiInterfaceName(path);
   return [
     renderTypeImports(`tools/${contract.name}.d.ts`, dependencies),
     "declare global {",
     "  namespace AgentTools {",
-    "    interface WorldApi {",
+    `    interface ${iface} {`,
     "      /**",
     `       * 调用入口：await tools.${contract.name}(input)`,
     `       * ${contract.description}`,
     `       * @param input - ${contract.inputDescription}`,
     `       * @returns ${contract.outputDescription}`,
     "       */",
-    "      inspect<T extends AssetKind & keyof AssetDetailsByType>(",
+    `      ${functionName}<T extends ${kindTypeName} & keyof AssetDetailsByType>(`,
     "        input: { ref: Ref & { kind: T } }",
     "      ): Promise<AssetDetailsByType[T]>;",
     "    }",
@@ -588,7 +587,7 @@ function renderSearchCatalog(): string {
     "| Asset Type | Asset Domain | APISearch Symbol |",
     "| --- | --- | --- |",
     ...assetRows.map(([kind, { domain, typeSymbol }]) => `| ${kind} | ${domain} | ${typeSymbol} |`),
-    "world.query 只返回公共 Asset 字段；根据 item.type 检索对应资产符号，再把 item.ref 传给 world.inspect 读取类型专属 properties。",
+    "系统 query 只返回公共 Asset 字段；根据 item.type 查阅对应资产类型声明，再把 item.ref 传给对应系统 inspect 读取类型专属 properties。",
     "",
     "Agent Script API 路由（需要签名时用右列精确符号调用 APISearch）：",
     "| 能力 | APISearch Symbol |",
@@ -689,12 +688,20 @@ function assertDeclarationModulesTypeCheck(modules: readonly GeneratedModule[]):
   );
   sourceByFileName.set(posix.join(virtualRoot, "asset-inspect-contract.ts"), [
     'import type { QueriedAsset } from "./common/QueriedAsset";',
-    'import type { LakeAsset } from "./assets/LakeAsset";',
+    'import type { TreeAsset } from "./assets/TreeAsset";',
+    'import type { HillAsset } from "./assets/HillAsset";',
     "declare const queriedAsset: QueriedAsset;",
     "async function verifyQueryToInspectEvidenceChain(): Promise<void> {",
-    '  if (queriedAsset.type !== "lake") return;',
-    "  const detail: LakeAsset = await tools.world.inspect({ ref: queriedAsset.ref });",
-    "  void detail.properties.radiusMetres;",
+    '  if (queriedAsset.type === "tree") {',
+    "    const detail: TreeAsset = await tools.vegetation.inspect({ ref: queriedAsset.ref });",
+    "    void detail.properties.species;",
+    "  }",
+    '  if (queriedAsset.type === "hill") {',
+    "    const hill: HillAsset = await tools.terrain.inspect({ ref: queriedAsset.ref });",
+    "    void hill.properties.peakReliefMetres;",
+    "    // @ts-expect-error Terrain refs cannot be inspected by vegetation.inspect.",
+    "    await tools.vegetation.inspect({ ref: queriedAsset.ref });",
+    "  }",
     "}",
     "void verifyQueryToInspectEvidenceChain;",
     "function verifySharedQueryFields(asset: QueriedAsset) {",
@@ -702,7 +709,7 @@ function assertDeclarationModulesTypeCheck(modules: readonly GeneratedModule[]):
     ' void direction;',
     "}",
     "async function verifyQueryToUpdateEvidenceChain(): Promise<void> {",
-    '  const result = await tools.world.query({ domains: ["vegetation"], kinds: ["tree"], sources: ["authored"] });',
+    '  const result = await tools.vegetation.query({ kinds: ["tree"], sources: ["authored"] });',
     "  const item = result.items[0];",
     '  if (!item || item.type !== "tree") return;',
     "  const ref = item.ref;",
@@ -720,16 +727,15 @@ function assertDeclarationModulesTypeCheck(modules: readonly GeneratedModule[]):
     '  await tools.vegetation.update({ ref, patch: { seed: 42 } });',
     "}",
     "void rejectNaturalTreeMove;",
-    "async function verifyDescribeInputRefinement() {",
-    ' const index=await tools.world.parameters.describe({});',
-    ' const count:number=index.components[0].fieldCount;',
-    ' // @ts-expect-error A component directory contains no field records.',
-    ' void index.components[0].fields;',
-    ' const fields=await tools.world.parameters.describe({component:"animals"});',
-    ' const key:string=fields.components[0].fields[0].key;',
-    ' const explicit=await tools.world.parameters.describe({view:"fields"});',
-    ' void explicit.components[0].fields; void key; void count;',
+    "async function verifyPerSystemConfigApis() {",
+    '  const animalsCfg = await tools.animals.config.get({ fields: ["activationDistance"] });',
+    "  void animalsCfg.versionToken;",
+    '  await tools.animals.config.update({ values: { activationDistance: 300 } });',
+    '  const spatialCfg = await tools.spatial.config.get({ component: "poi", kind: "poi" });',
+    "  void spatialCfg.entities;",
+    '  await tools.environment.config.update({ component: "lighting", values: { sunIntensity: 1.5 } });',
     "}",
+    "void verifyPerSystemConfigApis;",
     "async function verifyRuntimeIdentityChain(hit: {ref:{entityId:number;componentId:number}}) {",
     ' const result = await tools.runtime.entity.inspect({entityId:hit.ref.entityId});',
     ' if (!result.entity) return;',

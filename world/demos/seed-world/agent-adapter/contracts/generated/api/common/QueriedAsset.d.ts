@@ -3,7 +3,7 @@
 
 import type { Asset } from "./Asset";
 
-/** world.query 返回的公共 Asset 投影。distanceMetres 只描述本次查询上下文，不属于资产本身。 */
+/** 资产查询接口返回的公共 Asset 投影。distanceMetres 只描述本次查询上下文，不属于资产本身。 */
 
 export type QueriedAsset = Asset & {
   /** 资产到本次查询锚点的距离，单位为米。 */

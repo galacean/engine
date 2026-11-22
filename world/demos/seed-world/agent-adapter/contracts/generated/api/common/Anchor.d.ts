@@ -10,12 +10,8 @@ export type Anchor = {
   kind: "viewer";
 } | {
   kind: "world-ref";
-  /** world.query 或修改 API 返回的稳定世界引用。 */
+  /** vegetation.query、terrain.query 或修改 API 返回的稳定世界资产引用。 */
   ref: Ref;
-} | {
-  kind: "selection";
-  /** world.query 返回或命名保存的选择标识。 字符长度：1 到 160。 */
-  selectionId: string;
 } | {
   kind: "position";
   /** 明确世界 x 坐标。 */

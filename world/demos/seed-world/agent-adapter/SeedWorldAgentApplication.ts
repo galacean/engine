@@ -1856,7 +1856,7 @@ export class SeedWorldAgentApplication {
     );
   }
 
-  /** Mutation selectors are always exhaustive; pagination belongs only to world.query. */
+  /** Mutation selectors are always exhaustive; pagination belongs only to query APIs. */
   private _selectMutationRefs(selector: Readonly<SeedWorldSelector>): readonly SeedWorldRef[] {
     const candidates = this._selectCandidates(selector, 0);
     const refs = Object.freeze(candidates.map(({ ref }) => ref));
