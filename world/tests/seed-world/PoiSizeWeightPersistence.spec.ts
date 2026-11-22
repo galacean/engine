@@ -43,37 +43,45 @@ describe("single POI size weight authoring persistence", () => {
     expect(spatialGuide).toBeDefined();
     expect(spatialGuide!.content).toContain("poi.sizeWeight");
     expect(spatialGuide!.content).toContain("actualAreaM2");
-    expect(spatialGuide!.content).toContain("op:'reset'");
+    expect(spatialGuide!.content).toContain("tools.spatial.config.reset");
     expect(spatialGuide!.content).toContain("fields:['sizeWeight']");
     expect(spatialGuide!.content).toContain("versionToken");
-    expect(knowledge.modules.some(module => module.id === "declare/world/tools/world.parameters.apply.d.ts")).toBe(true);
+    expect(knowledge.modules.some(module => module.id === "declare/world/tools/spatial.config.update.d.ts")).toBe(true);
     const unavailable = createSeedWorldKnowledge(tools.map(tool => tool.name), componentTypes.filter(type => type !== "poi"));
     expect(unavailable.documents.find(document => document.path === "skills/spatial/references/components.md")?.content ?? "")
       .not.toContain("poi.sizeWeight");
     const call = async (name: string, input: AgentValue) => {
-      const tool = tools.find(tool => tool.name === `world.parameters.${name}`)!;
+      const tool = tools.find(tool => tool.name === `spatial.config.${name}`)!;
       return tool.parseOutput(await tool.execute(tool.parseInput(input), { signal: new AbortController().signal })) as any;
     };
-    const described = await call("describe", { component: "poi", fields: ["sizeWeight", "actualAreaM2", "active"] });
-    expect(described.componentTypes).toContain("poi");
-    expect(described.components[0].fields).toEqual(expect.arrayContaining([
+    const described = await call("get", { component: "poi", fields: ["sizeWeight", "actualAreaM2", "active"] });
+    expect(described.availableComponents).toContain("poi");
+    const queried = await call("get", { component: "poi", kind: "poi", limit: 1 });
+    const id = queried.entities[0].id;
+    const inspected = await call("get", { entityId: id, component: "poi", fields: ["sizeWeight", "actualAreaM2", "active"] });
+    expect(inspected.components[0].fields).toEqual(expect.arrayContaining([
       expect.objectContaining({ key: "sizeWeight", default: 1, min: 0.001 }),
       expect.objectContaining({ key: "actualAreaM2", readonly: true })
     ]));
-    const queried = await call("query", { component: "poi", kind: "poi", limit: 1 });
-    const id = queried.entities[0].id;
-    const inspected = await call("inspect", { id, component: "poi", fields: ["sizeWeight", "actualAreaM2", "active"] });
     expect(inspected.components[0].values.sizeWeight).toBe(1);
     expect(inspected.components[0].values.active).toBe(true);
     expect(inspected.components[0].values.actualAreaM2).toBeGreaterThan(0);
     expect(inspected.components[0].local.sizeWeight).toBeUndefined();
-    const receipt = await call("apply", { versionToken: inspected.versionToken,
-      commands: [{ op: "set", entity: id, component: "poi", values: { sizeWeight: 1.01 } }] });
+    const receipt = await call("update", {
+      entityId: id,
+      component: "poi",
+      versionToken: inspected.versionToken,
+      values: { sizeWeight: 1.01 }
+    });
     expect(receipt.status).toBe("accepted");
     expect(session.document.entities[id].components.poi.values).toEqual({ sizeWeight: 1.01 });
     expect(exportPlanningRecipe(session.document).edits[id].poi).toEqual({ sizeWeight: 1.01 });
-    const stale = await call("apply", { versionToken: inspected.versionToken,
-      commands: [{ op: "set", entity: id, component: "poi", values: { sizeWeight: 2 } }] });
+    const stale = await call("update", {
+      entityId: id,
+      component: "poi",
+      versionToken: inspected.versionToken,
+      values: { sizeWeight: 2 }
+    });
     expect(stale.status).toBe("rejected");
     expect(session.document.entities[id].components.poi.values).toEqual({ sizeWeight: 1.01 });
   }, 30_000);

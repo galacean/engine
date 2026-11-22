@@ -106,19 +106,17 @@ report.limitations = [
   "Headless local development builds and instrumentation affect absolute timings; no cross-machine or production FPS claim is made."
 ];
 const diagnosis = (name) => {
-  if (name === "world.parameters.apply")
+  if (name.endsWith(".config.update") || name.endsWith(".config.reset"))
     return "Confirmed: cloud-only presentation edit takes full publication and pauses engine; compare atmosphere.update.";
-  if (name === "world.parameters.receipt")
-    return "Receipt itself is small. Slow scenario includes a preceding parameters.apply; do not attribute publication to receipt.";
   if (name === "terrain.create" || name === "terrain.update")
     return "Large hill edit takes full publication and engine pause. Geometry changes are real; reuse scope needs separate optimization.";
   if (name === "terrain.patch")
     return "Local patch avoids engine pause, but several-hundred-ms main-thread spikes remain during publication.";
   if (name === "spatial.search")
     return "Confirmed: repeated synchronous grid sampling and full sort; limit does not bound scan cost.";
-  if (name === "world.delete" || name.startsWith("vegetation."))
+  if (name === "terrain.delete" || name.startsWith("vegetation."))
     return "Edit publication has main-thread spikes; inspect spans/profile instead of attributing entire wall time to the command.";
-  if (name === "world.parameters.materials.apply")
+  if (name === "vegetation.materials.apply")
     return "Material publication can have several-hundred-ms main-thread spikes.";
   if (["write", "edit", "delete"].includes(name))
     return "Public file path owns its own transaction. Identical write still prepares/commits/activates; no >50ms task in measured no-op runs.";

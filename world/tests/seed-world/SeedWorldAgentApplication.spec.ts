@@ -70,7 +70,7 @@ describe("SeedWorldAgentApplication final architecture", () => {
       await edit.discard(); factory.mockRestore(); map.mockRestore();
     }
   });
-  it("retains the latest parameter attempt receipt across execute drafts without replay or cross-session sharing", async () => {
+  it("returns direct parameter attempt receipts on per-system config updates without persisting them in editor memory", async () => {
     const { engine } = createHarness();
     const session = { result: undefined } as unknown as PlanningSession;
     const planning = { beginEdit: () => ({ session, before: {}, document: () => ({}),
@@ -78,36 +78,28 @@ describe("SeedWorldAgentApplication final architecture", () => {
     }) } as unknown as SeedWorldPlanningService;
     const apply = vi.fn(async () => ({ status: "accepted", versionToken: "1", changedIds: ["world"], diagnostics: [] }));
     const authoring = (): import("../../demos/seed-world/agent-adapter/tools/parameter-tools").SeedWorldParameterAuthoring => ({
-      forSession: () => authoring(), describe: () => [], query: () => [], inspect: () => ({}), apply
+      forSession: () => authoring(),
+      describe: () => [{ type: "animals", label: "动物", version: 1, fields: [{ key: "enabled", label: "启用", type: "boolean" }], scopes: { world: true, instances: [] } }],
+      query: () => [],
+      inspect: () => ({ id: "world", name: "World", versionToken: "0", components: [] }),
+      apply
     });
     const application = new SeedWorldAgentApplication(engine, planning, undefined, authoring());
     const run = async (edit: ReturnType<SeedWorldAgentApplication["beginEdit"]>, name: string, input: unknown) => {
-      const tool = edit.tools.find(tool => tool.name === "world.parameters." + name)!;
+      const tool = edit.tools.find(tool => tool.name === name)!;
       return tool.execute(tool.parseInput(input), { signal }) as Promise<any>;
     };
     const edit = application.beginEdit("parameter-write", signal);
-    const input = { commands: [{ op: "set", entity: "world", component: "animals", values: { enabled: false } }], versionToken: "0" };
-    const first = await run(edit, "apply", input);
+    const first = await run(edit, "animals.config.update", { values: { enabled: false }, versionToken: "0" });
+    expect(first).toMatchObject({ status: "accepted", entityId: "world", component: "animals", changedIds: ["world"] });
     await edit.prepare(signal); edit.commit(); await edit.activate!(signal);
-    const next = application.beginEdit("parameter-read", signal);
-    expect(await run(next, "receipt", { receiptId: first.receiptId, section: "changedIds" })).toMatchObject({ items: ["world"] });
     expect(apply).toHaveBeenCalledOnce();
-    await next.discard();
-    const other = new SeedWorldAgentApplication(engine, planning, undefined, authoring()).beginEdit("other-session", signal);
-    await expect(run(other, "receipt", { receiptId: first.receiptId, section: "changedIds" })).rejects.toThrow("Receipt expired");
-    await other.discard();
-    // Receipts describe attempts, even when the outer editor transaction is discarded.
-    // This lets the next execute inspect a rejection without repeating the edit.
-    apply.mockResolvedValueOnce({ status: "rejected", versionToken: "1", changedIds: [], diagnostics: [] });
+    apply.mockResolvedValueOnce({ status: "rejected", versionToken: "1", changedIds: [], diagnostics: [], message: "stale" });
     const rejected = application.beginEdit("rejected-parameter", signal);
-    const latest = await run(rejected, "apply", input);
+    const latest = await run(rejected, "animals.config.update", { values: { enabled: true }, versionToken: "0" });
+    expect(latest).toMatchObject({ status: "rejected", changedIds: [], message: "stale" });
     await rejected.discard();
-    const readRejected = application.beginEdit("read-rejected", signal);
-    await expect(run(readRejected, "receipt", { receiptId: first.receiptId, section: "changedIds" })).rejects.toThrow("Receipt expired");
-    expect(await run(readRejected, "receipt", { receiptId: latest.receiptId, section: "changedIds" })).toMatchObject({ items: [] });
     expect(apply).toHaveBeenCalledTimes(2);
-    await readRejected.discard();
-    expect(JSON.stringify(application.getEditorDocument())).not.toContain(latest.receiptId);
   });
   it("does not advertise or persist the retired building backend", () => {
     const { engine } = createHarness();
@@ -143,10 +135,10 @@ describe("SeedWorldAgentApplication final architecture", () => {
         "animal-live-reads",
         nativeResources
       );
-      const query = edit.tools.find((tool) => tool.name === "world.animals.query")!;
+      const query = edit.tools.find((tool) => tool.name === "animals.query")!;
       expect(await query.execute(query.parseInput({}), { signal })).toMatchObject({ enabled: false, items: [] });
       expect(animals.query).toHaveBeenCalledExactlyOnceWith({});
-      expect(live.find((tool) => tool.name === "world.animals.command")!.effect).toBe("command");
+      expect(live.find((tool) => tool.name === "animals.command")!.effect).toBe("command");
       expect(animals.command).not.toHaveBeenCalled();
     } finally {
       await edit.discard();
@@ -179,7 +171,7 @@ describe("SeedWorldAgentApplication final architecture", () => {
     const application = new SeedWorldAgentApplication(engine, undefined, () => [asset]);
     const edit = application.beginEdit("picked-edit", signal);
     try {
-      const tool = edit.tools.find((tool) => tool.name === "world.query")!;
+      const tool = edit.tools.find((tool) => tool.name === "vegetation.query")!;
       const output = await tool.execute(tool.parseInput({ ids: [asset.ref.id], limit: 1 }), { signal });
       expect(output).toMatchObject({
         items: [expect.objectContaining({ ref: expect.objectContaining({ id: asset.ref.id }) })]
@@ -210,15 +202,16 @@ describe("SeedWorldAgentApplication final architecture", () => {
     const tools = createSeedWorldTools(application);
     const definition = createSeedWorldAgentDefinition(application);
 
-    expect(definition.scriptApi.skills?.map((skill) => skill.name)).toContain("world-objects");
+    expect(definition.scriptApi.skills?.map((skill) => skill.name)).toContain("vegetation");
+    expect(definition.scriptApi.skills?.map((skill) => skill.name)).not.toContain("world-objects");
     expect(definition.scriptApi.entries).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ name: "LakeAsset", moduleId: "declare/world/assets/LakeAsset.d.ts" }),
-        expect.objectContaining({ name: "water.create", moduleId: "declare/world/tools/water.create.d.ts" })
+        expect.objectContaining({ name: "TreeAsset", moduleId: "declare/world/assets/TreeAsset.d.ts" }),
+        expect.objectContaining({ name: "water.digRiver", moduleId: "declare/world/tools/water.digRiver.d.ts" })
       ])
     );
     expect(definition.scriptApi.modules).toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: "declare/world/tools/world.inspect.d.ts" })])
+      expect.arrayContaining([expect.objectContaining({ id: "declare/world/tools/vegetation.inspect.d.ts" })])
     );
     expect(definition.toolNames).toEqual(tools.map(({ name }) => name));
     const initialPrompt = buildAgentSystemPrompt(definition);
@@ -1144,28 +1137,23 @@ describe("SeedWorldAgentApplication final architecture", () => {
     expect(engine.mutateWorldResources).not.toHaveBeenCalled();
   });
 
-  it("retains a nonempty read-only selection across drafts without changing the authoring document",async()=>{
+  it("retains a nonempty read-only query without changing the authoring document",async()=>{
     const {engine}=createHarness();
     const application=new SeedWorldAgentApplication(engine),before=application.getEditorDocument();
-    const draft=application.beginEdit("query",signal),tool=draft.tools.find(t=>t.name==="world.query")!;
+    const draft=application.beginEdit("query",signal),tool=draft.tools.find(t=>t.name==="vegetation.query")!;
     const result=tool.parseOutput(await tool.execute(tool.parseInput({kinds:["tree"]}),{signal})) as any;
     expect(result.items.length).toBeGreaterThan(0);
     expect(draft.hasChanges()).toBe(false);
     draft.completeRead!();
     draft.discard();
-    const next = application.beginEdit("read-selection",signal);
-    const get = next.tools.find(t=>t.name==="world.selection.get")!;
-    const selected = get.parseOutput(await get.execute(get.parseInput({nameOrSelectionId:result.selectionId}),{signal})) as any;
-    expect(selected.items.map((i:any)=>i.ref)).toEqual(result.items.map((i:any)=>i.ref));
-    next.completeRead!();
-    next.discard();
+    expect(application.getSelection(result.selectionId).items.map((i:any)=>i.ref.id)).toEqual(result.items.map((i:any)=>i.ref.id));
     expect(application.getEditorDocument()).toEqual(before);
   });
 
   it("accepting query observations cannot overwrite authoring changed while the query was open",async()=>{
     const {engine}=createHarness();
     const application=new SeedWorldAgentApplication(engine),draft=application.beginEdit("query",signal);
-    const tool=draft.tools.find(t=>t.name==="world.query")!;
+    const tool=draft.tools.find(t=>t.name==="vegetation.query")!;
     const result=tool.parseOutput(await tool.execute(tool.parseInput({kinds:["tree"]}),{signal})) as any;
     application.updateWorldTags([result.items[0].ref],["UI edit"],[]);
     const edited=application.getEditorDocument();
@@ -1856,7 +1844,7 @@ it("queries the published native vegetation catalog and re-resolves it after sce
   expect(query.items[0].ref.id).toBe(ref.id);
   const detail = application.inspectWorld(ref);
   expect(detail.properties.proceduralAssetId).toBe("native-birch");
-  const inspect = createSeedWorldTools(application).find((tool) => tool.name === "world.inspect")!;
+  const inspect = createSeedWorldTools(application).find((tool) => tool.name === "vegetation.inspect")!;
   expect(inspect.parseOutput(detail)).toMatchObject({ properties: { planningEntityId: ref.id } });
   published = [];
   expect(application.selectWorld({ kinds: ["tree"] }).matchedCount).toBe(0);
@@ -1876,16 +1864,13 @@ it("forwards water edit policy and rejects simple basin edits before calling the
 });
 
 
-it("validates planned building inspection through the public tool without inventing authored-design properties", async () => {
+it("validates planned building inspection through the application boundary without inventing authored-design properties", async () => {
   const { engine } = createHarness();
   const ref = { id: "planned-house", domain: "infrastructure" as const, kind: "building", source: "natural" as const };
   const application = new SeedWorldAgentApplication(engine, undefined, () => [{ ref, properties: { assetKind: "building", planningElementId: ref.id } }]);
-  const inspect = createSeedWorldTools(application).find(tool => tool.name === "world.inspect")!;
-  const result = await inspect.execute(inspect.parseInput({ ref }), { signal });
-  expect(inspect.parseOutput(result)).toMatchObject({ ref, properties: { planningElementId: ref.id } });
+  const result = application.inspectWorld(ref);
+  expect(result).toMatchObject({ ref, properties: { planningElementId: ref.id } });
   expect(application.resolvePickedObject(ref.id)).toEqual({ ref, type: "building" });
-  expect(() => inspect.parseOutput({ ...result as object, properties: {} })).toThrow();
-  expect(() => inspect.parseOutput({ ...result as object, ref: { ...ref, source: "authored" } })).toThrow();
 });
 
 
@@ -1906,7 +1891,7 @@ it("returns animal direction through the public query using the same task viewer
   const application = new SeedWorldAgentApplication(engine, undefined, undefined, undefined, undefined, animals);
   const release = application.captureTaskViewerSnapshot({mode: "roam", position: [0, 0, 0], forward: [0, 0, 1], capturedAt: "2026-11-05T00:00:00.000Z"});
   setCamera({mode: "roam", position: [-10, 0, 0], forward: [1, 0, 0]});
-  const query = createSeedWorldTools(application).find(tool => tool.name === "world.animals.query")!;
+  const query = createSeedWorldTools(application).find(tool => tool.name === "animals.query")!;
   const read = async () => query.parseOutput(await query.execute(query.parseInput({}), {signal}));
   expect(await read()).toMatchObject({items: [{viewerRelation: {basis: "instruction-viewer", direction: "left", rightMetres: -3}}]});
   release();

@@ -19,12 +19,6 @@ import {
 import { SEED_WORLD_MAXIMUM_EXACT_VEGETATION_INSTANCES } from "@galacean/engine-world-planning/world/SeedWorldPlanner.ts";
 
 const API_NAMES = [
-  "world.query",
-  "world.inspect",
-  "world.delete",
-  "world.tag.update",
-  "world.selection.save",
-  "world.selection.get",
   "runtime.entity.inspect",
   "runtime.entity.children",
   "runtime.component.query",
@@ -37,29 +31,54 @@ const API_NAMES = [
   "time.get",
   "time.update",
   "building.generate",
+  "water.digRiver",
+  "water.capabilities",
+  "water.sample",
+  "water.sampleDrops",
+  "water.diagnostics",
+  "water.verify",
   "atmosphere.get",
   "atmosphere.update",
+  "terrain.query",
+  "terrain.inspect",
   "terrain.patch",
   "terrain.create",
   "terrain.update",
-  "water.create",
-  "water.update",
+  "terrain.delete",
+  "vegetation.query",
+  "vegetation.inspect",
   "vegetation.create",
   "vegetation.update",
-  "world.parameters.describe",
-  "world.parameters.query",
-  "world.parameters.inspect",
-  "world.parameters.apply",
-  "world.parameters.receipt",
-  "world.parameters.materials.inspect",
-  "world.parameters.materials.apply",
-  "world.animals.query",
-  "world.animals.describe",
-  "world.animals.command",
-  "world.animals.receipt",
-  "world.animals.catalog",
-  "world.animals.spawn"
+  "vegetation.delete",
+  "animals.config.get",
+  "animals.config.update",
+  "animals.config.reset",
+  "vegetation.config.get",
+  "vegetation.config.update",
+  "vegetation.config.reset",
+  "terrain.config.get",
+  "terrain.config.update",
+  "terrain.config.reset",
+  "environment.config.get",
+  "environment.config.update",
+  "environment.config.reset",
+  "water.config.get",
+  "water.config.update",
+  "water.config.reset",
+  "spatial.config.get",
+  "spatial.config.update",
+  "spatial.config.reset",
+  "vegetation.materials.inspect",
+  "vegetation.materials.apply",
+  "animals.query",
+  "animals.describe",
+  "animals.command",
+  "animals.receipt",
+  "animals.catalog",
+  "animals.spawn"
 ] as const;
+
+const WATER_QUERY_NAMES = new Set(["water.capabilities", "water.sample", "water.sampleDrops", "water.diagnostics", "water.verify"]);
 
 const application = new Proxy(
   {},
@@ -77,17 +96,21 @@ describe("Seed World final API contracts", () => {
     expect(SEED_WORLD_API_NAMES).toEqual(API_NAMES);
     expect(SEED_WORLD_API_CONTRACTS.map(({ name }) => name)).toEqual(API_NAMES);
     expect(tools.map(({ name }) => name)).toEqual(API_NAMES.filter(name =>
-      !name.startsWith("world.parameters.") && !name.startsWith("world.animals.")));
+      !name.includes(".config.") &&
+      !name.startsWith("vegetation.materials.") &&
+      !name.startsWith("animals.") &&
+      !WATER_QUERY_NAMES.has(name)));
     expect(tools.every(({ parseInput, parseOutput, execute }) =>
       typeof parseInput === "function" && typeof parseOutput === "function" && typeof execute === "function"
     )).toBe(true);
     expect(
       [...new Set(SEED_WORLD_API_DECLARATION_MODULES.flatMap(({ toolNames }) => toolNames ?? []))].sort()
     ).toEqual([...API_NAMES].sort());
-    const query = tools.find(({ name }) => name === "world.query")!;
+    const query = tools.find(({ name }) => name === "vegetation.query")!;
     expect(query.parseInput({ kinds: ["tree"] })).toMatchObject({ kinds: ["tree"] });
     expect(() => query.parseInput({ kinds: ["birch"] })).toThrow(/Invalid option/);
     expect(new Set(API_NAMES).size).toBe(API_NAMES.length);
+    expect(API_NAMES.some((name) => name.startsWith("world."))).toBe(false);
     expect(tools.some(({ name }) => name === "mount.command")).toBe(false);
     expect(SEED_WORLD_API_SEARCH_ENTRIES.some(({ name }) => name === "mount.command")).toBe(false);
     expect(API_NAMES.some((name) => name.includes("_"))).toBe(false);
@@ -233,12 +256,13 @@ describe("Seed World final API contracts", () => {
     expect(() => resolve.parseOutput({ resolvedTarget })).toThrow();
   });
 
-  it("returns common assets from query and validates exact inspected domain assets", () => {
+  it("returns common assets from domain query and validates exact inspected domain assets", () => {
     const tools = new Map(createSeedWorldTools(application).map((tool) => [tool.name, tool]));
-    const query = tools.get("world.query")!;
-    const inspect = tools.get("world.inspect")!;
+    const query = tools.get("vegetation.query")!;
+    const inspect = tools.get("vegetation.inspect")!;
+    const terrainQuery = tools.get("terrain.query")!;
+    const terrainInspect = tools.get("terrain.inspect")!;
     const input = query.parseInput({
-      domains: ["vegetation"],
       kinds: ["tree"],
       spatial: {
         anchor: { kind: "viewer" },
@@ -249,12 +273,9 @@ describe("Seed World final API contracts", () => {
       limit: 1
     });
 
-    expect(input).toMatchObject({ domains: ["vegetation"], kinds: ["tree"] });
+    expect(input).toMatchObject({ kinds: ["tree"] });
     expect(query.parseInput({ ids: ["tree-1"] })).toEqual({ ids: ["tree-1"] });
-    expect(query.parseInput({ domains: ["terrain"], sources: ["authored"] })).toEqual({
-      domains: ["terrain"],
-      sources: ["authored"]
-    });
+    expect(terrainQuery.parseInput({ sources: ["authored"] })).toEqual({ sources: ["authored"] });
     expect(() => query.parseInput({ kinds: ["tree"], sort: "newest" })).toThrow();
     expect(() =>
       inspect.parseInput({
@@ -262,8 +283,8 @@ describe("Seed World final API contracts", () => {
       })
     ).toThrow();
     expect(() =>
-      query.parseInput({
-        filters: [{ field: "ref.source", operator: "eq", value: "authored" }]
+      inspect.parseInput({
+        ref: { id: "hill-1", domain: "terrain", kind: "hill", source: "authored" }
       })
     ).toThrow();
     expect(() => query.parseInput({ types: ["object"], kinds: ["tree"] })).toThrow();
@@ -355,15 +376,16 @@ describe("Seed World final API contracts", () => {
       })
     ).toThrow();
     expect(() =>
-      inspect.parseOutput({
-        type: "pond",
-        ref: { id: "pond-1", domain: "water", kind: "pond", source: "authored" },
+      terrainInspect.parseOutput({
+        type: "hill",
+        ref: { id: "hill-1", domain: "terrain", kind: "hill", source: "authored" },
         position: [1, 2, 3],
         properties: {
-          radiusMetres: 20,
-          depthMetres: 3,
-          shorelineIrregularity: 0.4,
-          seed: 1234
+          pedestalLiftMetres: 4,
+          influenceMajorRadiusMetres: 80,
+          peakReliefMetres: 12,
+          bodyMajorRadiusMetres: 40,
+          headingDegrees: 0
         },
         relations: {}
       })
@@ -400,7 +422,7 @@ describe("Seed World final API contracts", () => {
   });
 
   it("keeps query reference domains consistent with every catalog kind and source", () => {
-    const query = createSeedWorldTools(application).find(({ name }) => name === "world.query")!;
+    const query = createSeedWorldTools(application).find(({ name }) => name === "vegetation.query")!;
     for (const [kind, { domain }] of Object.entries(SEED_WORLD_ASSET_TYPE_CATALOG)) {
       for (const source of ["natural", "authored"]) {
         const result = {
@@ -415,23 +437,10 @@ describe("Seed World final API contracts", () => {
     }
   });
 
-  it("advertises and validates natural-water sRGB color patches independently of geometry", () => {
-    const tool = createSeedWorldTools(application).find(({ name }) => name === "water.update")!;
-    const ref = { id: "natural:lake:1", domain: "water", kind: "lake", source: "natural" };
-    expect(tool.parseInput({ ref, patch: { colorRgb: [0, 0, 0] } })).toMatchObject({ ref, patch: { colorRgb: [0, 0, 0] } });
-    for (const colorRgb of [[-1, 0, 0], [256, 0, 0], [1.5, 0, 0], [0, 0], [0, 0, 0, 0], "black"]) {
-      expect(() => tool.parseInput({ ref, patch: { colorRgb } })).toThrow();
-    }
-    expect(() => tool.parseInput({ ref, patch: { colorRgb: [0, 0, 0], radiusMetres: 20 } })).toThrow();
-    expect(() => tool.parseInput({ ref, patch: { radiusMetres: 20 } })).toThrow();
-    expect(SEED_WORLD_API_SEARCH_CATALOG).toContain("颜色");
-  });
-
   it("makes update eligibility and kind-specific patches executable contract rules", () => {
     const tools = new Map(createSeedWorldTools(application).map((tool) => [tool.name, tool]));
     const terrainCreate = tools.get("terrain.create")!;
     const terrainUpdate = tools.get("terrain.update")!;
-    const waterUpdate = tools.get("water.update")!;
     const vegetationUpdate = tools.get("vegetation.update")!;
     const ref = (domain: string, kind: string, source = "authored") => ({
       id: `${domain}-${kind}-1`,
@@ -500,30 +509,6 @@ describe("Seed World final API contracts", () => {
       })
     ).toThrow();
     expect(() =>
-      waterUpdate.parseInput({
-        ref: ref("water", "lake"),
-        patch: { flowSpeed: 2 }
-      })
-    ).toThrow();
-    expect(() =>
-      waterUpdate.parseInput({
-        ref: ref("water", "river"),
-        patch: { radiusMetres: 20 }
-      })
-    ).toThrow();
-    expect(() =>
-      waterUpdate.parseInput({
-        ref: { id: "water-lake-1", domain: "water", kind: "lake", source: "authored" },
-        patch: { waterLevelMetres: 39.849 }
-      })
-    ).not.toThrow();
-    expect(() =>
-      waterUpdate.parseInput({
-        ref: ref("water", "river"),
-        patch: { widthMetres: 12, flowSpeed: 2 }
-      })
-    ).not.toThrow();
-    expect(() =>
       vegetationUpdate.parseInput({
         ref: ref("vegetation", "tree"),
         patch: { density: 2 }
@@ -567,22 +552,17 @@ describe("Seed World final API contracts", () => {
     expect(SEED_WORLD_API_SEARCH_CATALOG).toContain("| ocean | water | OceanAsset |");
     expect(SEED_WORLD_API_SEARCH_CATALOG).toContain("| lake | water | LakeAsset |");
     expect(SEED_WORLD_API_SEARCH_CATALOG).not.toContain("用户概念");
-    expect(SEED_WORLD_API_SEARCH_CATALOG).toContain("创建池塘、湖泊、溪流或河流资产");
-    expect(SEED_WORLD_API_SEARCH_CATALOG).toContain("抽干或排空池塘/湖泊也属于水位更新");
+    expect(SEED_WORLD_API_SEARCH_CATALOG).toContain("在玩家面前挖河或溪流");
     expect(entries).toHaveProperty("size", 27 + API_NAMES.length);
     expect([...modules.keys()].filter((id) => id.startsWith("assets/"))).toHaveLength(27);
-    expect(sourceForEntry("LakeAsset")).toContain("export type LakeAsset");
-    expect(sourceForEntry("LakeAsset")).toContain('Asset<"lake">');
-    expect(sourceForEntry("LakeAsset")).toContain("interface AssetDetailsByType");
-    expect(sourceForEntry("LakeAsset")).not.toContain("assetKind");
-    expect(sourceForEntry("LakeAsset")).toContain("import type { Asset }");
+    expect(sourceForEntry("TreeAsset")).toContain("export type TreeAsset");
+    expect(sourceForEntry("TreeAsset")).toContain('Asset<"tree">');
+    expect(sourceForEntry("TreeAsset")).toContain("interface AssetDetailsByType");
+    expect(sourceForEntry("TreeAsset")).not.toContain("assetKind");
+    expect(sourceForEntry("TreeAsset")).toContain("import type { Asset }");
     expect(sourceForType("Ref")).not.toContain("revision");
-    expect(sourceForEntry("water.create")).toContain("interface WaterApi");
-    expect(sourceForEntry("water.create")).toContain("create(input: (");
-    expect(modules.get(entries.get("water.create")!.moduleId)?.toolNames).toEqual(["water.create"]);
-    expect(sourceForEntry("water.update")).toContain(
-      "先读取资产的 minimumWaterLevelMetres，再将 waterLevelMetres 更新为该值"
-    );
+    expect(sourceForEntry("water.digRiver")).toContain("interface WaterApi");
+    expect(modules.get(entries.get("water.digRiver")!.moduleId)?.toolNames).toEqual(["water.digRiver"]);
     expect(sourceForEntry("terrain.create")).toContain("pedestalLiftMetres?: number");
     expect(sourceForEntry("terrain.create")).toContain("influenceMajorRadiusMetres?: number");
     expect(sourceForEntry("terrain.create")).toContain("peakReliefMetres?: number");
@@ -598,12 +578,14 @@ describe("Seed World final API contracts", () => {
     expect(sourceForEntry("vegetation.create")).not.toContain("desiredPlantCount");
     expect(sourceForEntry("vegetation.create")).not.toContain("density");
     expect(sourceForEntry("vegetation.create")).not.toContain('kind: "cluster"');
-    const inspectSource = sourceForEntry("world.inspect");
-    expect(inspectSource).toContain("inspect<T extends AssetKind & keyof AssetDetailsByType>");
-    expect(inspectSource).toContain("Promise<AssetDetailsByType[T]>");
-    expect(inspectSource).not.toContain("TreeAsset");
-    expect(inspectSource).not.toContain("LakeAsset");
-    expect(inspectSource).not.toContain("JsonObject");
+    const vegInspectSource = sourceForEntry("vegetation.inspect");
+    expect(vegInspectSource).toContain("inspect<T extends VegetationAssetKind & keyof AssetDetailsByType>");
+    expect(vegInspectSource).toContain("Promise<AssetDetailsByType[T]>");
+    expect(vegInspectSource).not.toContain("TreeAsset");
+    expect(vegInspectSource).not.toContain("LakeAsset");
+    expect(vegInspectSource).not.toContain("JsonObject");
+    const terrainInspectSource = sourceForEntry("terrain.inspect");
+    expect(terrainInspectSource).toContain("inspect<T extends TerrainAssetKind & keyof AssetDetailsByType>");
     expect(sourceForEntry("vegetation.update")).not.toContain("densityPerSquareMetre");
     expect(sourceForEntry("vegetation.update")).not.toContain("分布密度");
     expect(sourceForEntry("vegetation.create")).toContain(
@@ -614,9 +596,6 @@ describe("Seed World final API contracts", () => {
     expect(sourceForEntry("vegetation.update")).toContain("realizedPlantCount: number | null");
     expect(sourceForEntry("vegetation.update")).toContain(
       "update(input: ("
-    );
-    expect(sourceForEntry("water.create")).toContain(
-      "水面代表半径，单位为米；省略时 pond 为 14 米、lake 为 55 米。 取值范围：5 到 500。"
     );
     expect(entries.has("AssetMutationResult")).toBe(false);
     expect(sourceForEntry("atmosphere.get")).toContain("windSpeed: number");
@@ -633,9 +612,9 @@ describe("Seed World final API contracts", () => {
     expect(sourceForType("QueriedAsset")).toContain("export type QueriedAsset = Asset &");
     expect(sourceForType("QueriedAsset")).toContain("distanceMetres?: number");
 
-    const inspectClosure = declarationClosure(entries, modules, ["world.inspect"]);
+    const inspectClosure = declarationClosure(entries, modules, ["vegetation.inspect"]);
     expect(inspectClosure.filter((id) => id.startsWith("assets/"))).toHaveLength(0);
-    const queryClosure = declarationClosure(entries, modules, ["world.query"]);
+    const queryClosure = declarationClosure(entries, modules, ["vegetation.query"]);
     expect(queryClosure).toEqual(expect.arrayContaining([
       "common/AgentTools.d.ts",
       "common/Asset.d.ts",
@@ -647,19 +626,19 @@ describe("Seed World final API contracts", () => {
       "common/QueriedAsset.d.ts",
       "common/Ref.d.ts",
       "common/Vec3.d.ts",
-      "tools/world.query.d.ts"
+      "tools/vegetation.query.d.ts"
     ]));
     expect(queryClosure.filter((id) => id.startsWith("assets/"))).toHaveLength(0);
-    expect([...modules.keys()].filter((id) => id.startsWith("common/"))).toHaveLength(20);
+    expect([...modules.keys()].filter((id) => id.startsWith("common/"))).toHaveLength(24);
     for (const removed of [
       "WorldAssetSummary", "Selection", "WorldQueryInput", "WorldInspectInput",
       "TerrainRef", "WaterRef", "VegetationRef", "ObjectRef", "InfrastructureRef", "PoiRef"
     ]) {
       expect(modules.has(`common/${removed}.d.ts`)).toBe(false);
     }
-    const combined = declarationClosure(entries, modules, ["water.create", "world.inspect", "LakeAsset"]);
-    expect(combined.filter((id) => id === "assets/LakeAsset.d.ts")).toHaveLength(1);
-    expect(combined.filter((id) => id.startsWith("assets/") && id !== "assets/LakeAsset.d.ts")).toHaveLength(0);
+    const combined = declarationClosure(entries, modules, ["vegetation.create", "vegetation.inspect", "TreeAsset"]);
+    expect(combined.filter((id) => id === "assets/TreeAsset.d.ts")).toHaveLength(1);
+    expect(combined.filter((id) => id.startsWith("assets/") && id !== "assets/TreeAsset.d.ts")).toHaveLength(0);
   });
 
   it("keeps Zod parsing private to the runtime boundary", () => {
@@ -693,7 +672,7 @@ function declarationClosure(
 it("accepts base terrain identity consistently in query and inspection",()=>{
  const tools=createSeedWorldTools(application), ref={id:"planning:terrain",domain:"terrain",kind:"terrain",source:"natural"};
  const item={type:"terrain",ref};
- expect(()=>tools.find(t=>t.name==="world.query")!.parseOutput({selectionId:"s",matchedCount:1,offset:0,items:[item]})).not.toThrow();
- expect(()=>tools.find(t=>t.name==="world.inspect")!.parseOutput({...item,properties:{planningElementId:"world"}})).not.toThrow();
- expect(()=>tools.find(t=>t.name==="world.query")!.parseOutput({selectionId:"s",matchedCount:1,offset:0,items:[{...item,type:"invented"}]})).toThrow();
+ expect(()=>tools.find(t=>t.name==="terrain.query")!.parseOutput({selectionId:"s",matchedCount:1,offset:0,items:[item]})).not.toThrow();
+ expect(()=>tools.find(t=>t.name==="terrain.inspect")!.parseOutput({...item,properties:{planningElementId:"world"}})).not.toThrow();
+ expect(()=>tools.find(t=>t.name==="terrain.query")!.parseOutput({selectionId:"s",matchedCount:1,offset:0,items:[{...item,type:"invented"}]})).toThrow();
 });

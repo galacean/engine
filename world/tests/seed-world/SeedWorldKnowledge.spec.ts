@@ -16,7 +16,7 @@ import { createRuntimeScriptEnvironment } from "@galacean/engine-runtime-editor/
 describe("Seed World progressive knowledge", () => {
   it("describes frozen input anchors consistently in the declarations read by the model", () => {
     const files = createAgentProjectFiles(seedWorldNativeKnowledge(seedWorldKnowledge), []);
-    for (const name of ["common/Anchor.d.ts", "common/Selector.d.ts", "tools/world.query.d.ts"]) {
+    for (const name of ["common/Anchor.d.ts", "tools/vegetation.query.d.ts", "tools/terrain.query.d.ts"]) {
       const path = files.list().find(path => path.endsWith("/" + name))!;
       const declaration = files.read(path);
       expect(declaration).toContain("用户输入提交时的位置和朝向");
@@ -28,9 +28,11 @@ describe("Seed World progressive knowledge", () => {
     const search = files.read(files.list().find(path => path.endsWith("/tools/spatial.search.d.ts"))!);
     expect(search).toContain("活动输入提交时的位置");
   });
-  it("keeps object inspection discoverable through the native knowledge index", () => {
+  it("keeps object inspection discoverable through each owning system skill", () => {
     const files = createAgentProjectFiles(seedWorldNativeKnowledge(seedWorldKnowledge), []);
-    expect(files.read("skills/world-objects/SKILL.md")).toContain("world.inspect");
+    expect(files.read("skills/vegetation/SKILL.md")).toContain("vegetation.inspect");
+    expect(files.read("skills/terrain/SKILL.md")).toContain("terrain.inspect");
+    expect(files.list().some(path => path.includes("world-objects"))).toBe(false);
   });
   it("publishes directly readable links across world, native, runtime and building knowledge", async () => {
     const catalogs = [seedWorldNativeKnowledge(seedWorldKnowledge)];
@@ -64,7 +66,13 @@ describe("Seed World progressive knowledge", () => {
 });
 
 describe("system-owned component knowledge", () => {
-  const parameterTools = ["world.parameters.describe", "world.parameters.query", "world.parameters.inspect", "world.parameters.apply"];
+  const parameterTools = [
+    "animals.config.get", "animals.config.update", "animals.config.reset",
+    "vegetation.config.get", "vegetation.config.update", "vegetation.config.reset",
+    "terrain.config.get", "terrain.config.update", "terrain.config.reset",
+    "environment.config.get", "environment.config.update", "environment.config.reset",
+    "spatial.config.get", "spatial.config.update", "spatial.config.reset"
+  ];
 
   it("publishes fixed-candidate density and non-quota flower semantics through native discovery", () => {
     const guide = createSeedWorldKnowledge(parameterTools, ["landscape", "flowers"]).documents
@@ -107,7 +115,7 @@ describe("system-owned component knowledge", () => {
   });
 
   it("does not advertise planning systems in an app without parameter APIs", () => {
-    const knowledge = createSeedWorldKnowledge(["world.query", "world.inspect"], ["lighting"]);
+    const knowledge = createSeedWorldKnowledge(["vegetation.query", "vegetation.inspect"], ["lighting"]);
     expect(knowledge.documents.find(doc => doc.path === "skills/environment/references/components.md")).toBeUndefined();
     expect((knowledge.skills ?? []).map(skill => skill.name)).not.toContain("environment");
     expect(collectPlanningSystemKnowledge([])).toEqual([]);
@@ -122,7 +130,7 @@ describe("system-owned component knowledge", () => {
       expect(component).not.toHaveProperty("fields");
     }
     const systems = collectPlanningSystemKnowledge(declared.map(component => component.type));
-    const knowledge = createSeedWorldKnowledge(["world.parameters.describe"], declared.map(component => component.type));
+    const knowledge = createSeedWorldKnowledge(parameterTools, declared.map(component => component.type));
     for (const system of systems) {
       const guide = knowledge.documents.find(document => document.path === `skills/${system.skill}/references/components.md`);
       expect(guide, `${system.id} must reach an actual Agent guide`).toBeDefined();
@@ -145,20 +153,20 @@ describe("system-owned component knowledge", () => {
 });
 
 it("keeps planning discovery, declarations and runtime tool availability identical", () => {
-  const names = ["world.query", "world.inspect", "world.parameters.describe", "world.parameters.query", "world.parameters.inspect", "world.parameters.apply"];
+  const names = ["vegetation.query", "vegetation.inspect", "vegetation.config.get", "vegetation.config.update", "vegetation.config.reset"];
   const knowledge = createSeedWorldKnowledge(names);
   expect(knowledge.modules.flatMap(module => module.toolNames).sort()).toEqual([...names].sort());
   const ids = new Set(knowledge.modules.map(module => module.id));
   for (const entry of knowledge.entries) expect(ids.has(entry.moduleId)).toBe(true);
   for (const module of knowledge.modules) for (const dependency of module.imports) expect(ids.has(dependency)).toBe(true);
   expect(knowledge.entries.some(entry => entry.name === "vegetation.create")).toBe(false);
-  expect(JSON.stringify([...knowledge.documents, ...(knowledge.skills ?? [])])).not.toContain("[vegetation.create]");
+  expect(JSON.stringify([...knowledge.documents, ...(knowledge.skills ?? [])])).not.toContain("[tools.vegetation.create]");
   expect((knowledge.skills ?? []).map(skill => skill.name)).not.toContain("building");
   const hostFiles = new Set(createAgentProjectFiles(knowledge, [engineRuntimeFiles()]).list());
   for (const skill of knowledge.skills ?? []) expect(hostFiles.has(`skills/${skill.name}/SKILL.md`)).toBe(true);
-  const generation = createSeedWorldKnowledge(["world.parameters.describe", "world.parameters.query", "world.parameters.inspect", "world.parameters.apply"]);
+  const generation = createSeedWorldKnowledge(["vegetation.config.get", "vegetation.config.update", "vegetation.config.reset"]);
   expect(generation.modules.some(module => module.id.startsWith("declare/world/assets/"))).toBe(false);
-  expect(generation.documents.find(doc => doc.path === "skills/world-objects/references/asset-types.md")?.content ?? "").not.toContain("[BuildingAsset]");
+  expect(generation.documents.find(doc => doc.path === "skills/vegetation/references/asset-types.md")).toBeUndefined();
 });
 
 

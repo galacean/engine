@@ -27,25 +27,28 @@ it("lets the public Agent discover and author one large element with ordinary me
     }
   } });
   const call = async (name: string, input: AgentValue) => {
-    const tool = tools.find(tool => tool.name === `world.parameters.${name}`)!;
+    const tool = tools.find(tool => tool.name === `spatial.config.${name}`)!;
     return tool.parseOutput(await tool.execute(tool.parseInput(input), { signal: new AbortController().signal })) as any;
   };
-  const schema = await call("describe", { component: "layout", fields: ["pattern", "memberMin", "memberMax", "memberCount"] });
+  const schema = await call("get", { component: "layout", fields: ["pattern", "memberMin", "memberMax", "memberCount"] });
   const fields = schema.components[0].fields;
   expect(fields.find((field: any) => field.key === "pattern").options).not.toContain("single");
   expect(fields.find((field: any) => field.key === "memberCount").readonly).toBe(true);
-  const query = await call("query", { kind: "poi", component: "layout", limit: 100 });
+  const query = await call("get", { kind: "poi", component: "layout", limit: 100 });
   expect(query.entities.some((entity: any) => entity.id === "poi-4-4")).toBe(true);
-  const inspected = await call("inspect", { id: "poi-4-4", component: "layout" });
-  const receipt = await call("apply", { versionToken: inspected.versionToken, commands: [{
-    op: "set", entity: "poi-4-4", component: "layout", values: {
+  const inspected = await call("get", { entityId: "poi-4-4", component: "layout" });
+  const receipt = await call("update", {
+    entityId: "poi-4-4",
+    component: "layout",
+    versionToken: inspected.versionToken,
+    values: {
       memberMin: 1, memberMax: 1, widthMinM: 60, widthMaxM: 60,
       depthMinM: 40, depthMaxM: 40, heightMinM: 90, heightMaxM: 90,
       headingDegrees: 25, orientationVariation: 0, radialVariationM: 0
     }
-  }] });
+  });
   expect(receipt.status, receipt.message).toBe("accepted");
-  const result = await call("inspect", { id: "poi-4-4", component: "layout", fields: ["memberMin", "memberMax", "memberCount"] });
+  const result = await call("get", { entityId: "poi-4-4", component: "layout", fields: ["memberMin", "memberMax", "memberCount"] });
   expect(result.components[0].values).toMatchObject({ memberMin: 1, memberMax: 1, memberCount: 1 });
   const group = session.result!.plan.spatialLayout!.groups.find(group => group.id === "poi-4-4")!;
   expect(group.volumes[0].boxes[0]).toMatchObject({ width: 60, depth: 40, height: 90 });

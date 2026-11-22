@@ -246,16 +246,16 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
     ],
     expectedSkills: ["skills/vegetation/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.parameters.materials.inspect.d.ts",
-      "declare/editor/world/tools/world.parameters.materials.apply.d.ts"
+      "declare/editor/world/tools/vegetation.materials.inspect.d.ts",
+      "declare/editor/world/tools/vegetation.materials.apply.d.ts"
     ],
     optimalSteps: 7,
     verify(fixture, turns) {
       const called = allCalledTools(turns);
       const overrides = fixture.state.getParameterState().plantMaterialOverrides;
       return [
-        { name: "called_materials_inspect", pass: hasTool(called, "tools.world.parameters.materials.inspect"), detail: `called=${[...called].join(",")}` },
-        { name: "called_materials_apply", pass: hasTool(called, "tools.world.parameters.materials.apply"), detail: `called=${[...called].join(",")}` },
+        { name: "called_materials_inspect", pass: hasTool(called, "tools.vegetation.materials.inspect"), detail: `called=${[...called].join(",")}` },
+        { name: "called_materials_apply", pass: hasTool(called, "tools.vegetation.materials.apply"), detail: `called=${[...called].join(",")}` },
         { name: "reset_cleared_overrides", pass: Object.keys(overrides).length === 0, detail: `remainingOverrides=${Object.keys(overrides).length}` }
       ];
     }
@@ -268,10 +268,10 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
       "在 (22, 0, -12) 种一小片包含 5 棵树的白桦树丛。",
       "把刚才种的那片白桦树丛完整删掉，不要动场景原有的自然树。"
     ],
-    expectedSkills: ["skills/vegetation/SKILL.md", "skills/world-objects/SKILL.md"],
+    expectedSkills: ["skills/vegetation/SKILL.md"],
     expectedDeclares: [
       "declare/editor/world/tools/vegetation.create.d.ts",
-      "declare/editor/world/tools/world.delete.d.ts"
+      "declare/editor/world/tools/vegetation.delete.d.ts"
     ],
     optimalSteps: 7,
     verify(fixture, turns) {
@@ -279,50 +279,39 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
       const removed = fixture.state.getRemovedIds();
       const naturalIntact = !removed.includes("tree-pine-near") && !removed.includes("tree-oak-mid") && !removed.includes("tree-birch-far");
       return [
-        { name: "created_then_deleted_forest", pass: hasTool(called, "tools.vegetation.create") && hasTool(called, "tools.world.delete"), detail: `called=${[...called].join(",")}` },
+        { name: "created_then_deleted_forest", pass: hasTool(called, "tools.vegetation.create") && hasTool(called, "tools.vegetation.delete"), detail: `called=${[...called].join(",")}` },
         { name: "scope_natural_trees_intact", pass: naturalIntact, detail: `removed=${removed.join(",")}` }
       ];
     }
   },
   {
     id: "56_world_selection_save_get_and_tag_add_remove",
-    name: "世界对象选区与标签 U（增+删标签）：保存树木选区、取回选区、打标签后再移除标签",
-    category: "world-objects-crud",
-    turns: [
-      "查询世界里所有自然树，把结果保存为名为 'forest_batch' 的命名选区。",
-      "通过 selection.get 取回 'forest_batch'，先给这些树打上 'protected' 标签，再把 'protected' 标签移除。"
-    ],
-    expectedSkills: ["skills/world-objects/SKILL.md"],
+    name: "地形与岩石只读查询与详情：查询地形/岩石并读取北侧岩石属性（零修改）",
+    category: "terrain-read",
+    turns: ["查询世界里现有的地形地貌与岩石资产，读取北侧那块岩石的详细属性并告诉我它的位置和尺寸（严格只读不修改）。"],
+    expectedSkills: ["skills/terrain/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.query.d.ts",
-      "declare/editor/world/tools/world.selection.save.d.ts",
-      "declare/editor/world/tools/world.selection.get.d.ts",
-      "declare/editor/world/tools/world.tag.update.d.ts"
+      "declare/editor/world/tools/terrain.query.d.ts",
+      "declare/editor/world/tools/terrain.inspect.d.ts"
     ],
-    optimalSteps: 8,
+    optimalSteps: 4,
     verify(fixture, turns) {
       const called = allCalledTools(turns);
-      const tagCalls = turns
-        .flatMap((t) => t.scripts)
-        .flatMap((s) => (Array.isArray(s.toolTrace) ? s.toolTrace : []))
-        .filter((e: any) => typeof e?.tool === "string" && e.tool.includes("world.tag.update"));
-      const scriptCode = turns.flatMap((t) => t.scripts).map((s) => s.code).join("\n");
-      const didRemove = /remove/i.test(scriptCode) || tagCalls.length >= 2;
       return [
-        { name: "saved_and_loaded_selection", pass: hasTool(called, "tools.world.selection.save") && hasTool(called, "tools.world.selection.get"), detail: `called=${[...called].join(",")}` },
-        { name: "added_and_removed_tags", pass: hasTool(called, "tools.world.tag.update") && didRemove, detail: `tagCalls=${tagCalls.length}` }
+        { name: "called_terrain_query_and_inspect", pass: hasTool(called, "tools.terrain.query") && hasTool(called, "tools.terrain.inspect"), detail: `called=${[...called].join(",")}` },
+        { name: "scope_zero_mutations", pass: fixture.state.getRemovedIds().length === 0 && !hasTool(called, "tools.terrain.delete"), detail: `removed=${fixture.state.getRemovedIds().join(",")}` }
       ];
     }
   },
   {
     id: "57_world_delete_natural_rock_and_not_editable_boundary",
-    name: "世界对象 D（岩石删除 + 不可编辑边界）：精准删除北侧岩石，并如实说明自然地形/水系不能直接用 world.delete 删掉",
-    category: "world-objects-crud",
-    turns: ["把北侧那块自然岩石（rock）删掉（不要动任何树），另外告诉我能不能直接用世界删除工具把整条自然河道删掉？"],
-    expectedSkills: ["skills/world-objects/SKILL.md"],
+    name: "地形与岩石 D（岩石删除 + 不可编辑边界）：精准删除北侧岩石，并如实说明自然地貌不能直接删掉",
+    category: "terrain-crud",
+    turns: ["把北侧那块自然岩石（rock）删掉（不要动任何树），另外告诉我能不能直接用地形删除工具把整条自然河道或自然地貌删掉？"],
+    expectedSkills: ["skills/terrain/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.query.d.ts",
-      "declare/editor/world/tools/world.delete.d.ts"
+      "declare/editor/world/tools/terrain.query.d.ts",
+      "declare/editor/world/tools/terrain.delete.d.ts"
     ],
     optimalSteps: 5,
     verify(fixture, turns) {
@@ -333,7 +322,7 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
       const honestBoundary = /(自然|河|水系|地貌).{0,35}(不支持|不能|无法|不可编辑|不可以|受限)/.test(reply) ||
         /(不支持|不能|无法|不可编辑).{0,35}(自然|河|水系|地貌|删除)/.test(reply);
       return [
-        { name: "deleted_natural_rock", pass: hasTool(called, "tools.world.delete") && removed.includes("rock-north"), detail: `removed=${removed.join(",")}` },
+        { name: "deleted_natural_rock", pass: hasTool(called, "tools.terrain.delete") && removed.includes("rock-north"), detail: `removed=${removed.join(",")}` },
         { name: "scope_trees_intact", pass: treesIntact, detail: `removed=${removed.join(",")}` },
         { name: "explained_not_editable_boundary", pass: honestBoundary, detail: `reply=${reply.slice(0, 180)}` }
       ];
@@ -600,14 +589,14 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
     name: "空间中点定位：查出近处松树与橡树位置，在两者连线中点种一丛灌木",
     category: "spatial-hard",
     turns: ["查出场景里现有的那棵松树和那棵橡树分别在哪里，然后在它们两棵树正中间的位置种一丛灌木。"],
-    expectedSkills: ["skills/world-objects/SKILL.md", "skills/vegetation/SKILL.md"],
-    expectedDeclares: ["declare/editor/world/tools/world.query.d.ts", "declare/editor/world/tools/vegetation.create.d.ts"],
+    expectedSkills: ["skills/vegetation/SKILL.md"],
+    expectedDeclares: ["declare/editor/world/tools/vegetation.query.d.ts", "declare/editor/world/tools/vegetation.create.d.ts"],
     optimalSteps: 5,
     verify(fixture, turns) {
       const called = allCalledTools(turns);
       const vegs = fixture.state.getResources().filter((r) => r.resourceType === "vegetation-brush");
       return [
-        { name: "queried_existing_trees", pass: hasTool(called, "tools.world.query"), detail: `called=${[...called].join(",")}` },
+        { name: "queried_existing_trees", pass: hasTool(called, "tools.vegetation.query"), detail: `called=${[...called].join(",")}` },
         { name: "planted_shrub_between_trees", pass: hasTool(called, "tools.vegetation.create") && vegs.length >= 1, detail: `vegs=${vegs.length}` }
       ];
     }
@@ -766,9 +755,9 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
     category: "voice-hard",
     turns: ["把动物的鸡活距离调成一百二十米。"],
     turnInputSources: ["voice"],
-    expectedSkills: ["skills/world-objects/SKILL.md", "skills/world-objects/parameters/SKILL.md"],
-    expectedDeclares: ["declare/editor/world/tools/world.parameters.apply.d.ts"],
-    optimalSteps: 5,
+    expectedSkills: ["skills/animals/SKILL.md"],
+    expectedDeclares: ["declare/editor/world/tools/animals.config.update.d.ts"],
+    optimalSteps: 4,
     verify(fixture) {
       const dist = fixture.state.getParameterState().activationDistance;
       return [
@@ -811,7 +800,7 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
     expectedDeclares: [
       "declare/editor/world/tools/terrain.patch.d.ts",
       "declare/editor/world/tools/building.generate.d.ts",
-      "declare/editor/world/tools/world.animals.spawn.d.ts"
+      "declare/editor/world/tools/animals.spawn.d.ts"
     ],
     optimalSteps: 8,
     verify(fixture, turns) {
@@ -853,7 +842,7 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
     expectedSkills: ["skills/vegetation/SKILL.md", "skills/environment/SKILL.md"],
     expectedDeclares: [
       "declare/editor/world/tools/vegetation.create.d.ts",
-      "declare/editor/world/tools/world.parameters.materials.apply.d.ts",
+      "declare/editor/world/tools/vegetation.materials.apply.d.ts",
       "declare/editor/world/tools/atmosphere.update.d.ts"
     ],
     optimalSteps: 6,
@@ -921,8 +910,8 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
     name: "只读红线：盘点场景节点、材质资产与自然树数量（严格零修改）",
     category: "compliance-hard",
     turns: ["帮我盘点一下当前场景里有哪些根节点、项目里有多少个材质资产、以及世界里有几棵自然树。严格只读，不要做任何创建、修改或删除。"],
-    expectedSkills: ["skills/scene-nodes/SKILL.md", "skills/assets/SKILL.md", "skills/world-objects/SKILL.md"],
-    expectedDeclares: ["declare/editor/native/api.d.ts", "declare/editor/world/tools/world.query.d.ts"],
+    expectedSkills: ["skills/scene-nodes/SKILL.md", "skills/assets/SKILL.md", "skills/vegetation/SKILL.md"],
+    expectedDeclares: ["declare/editor/native/api.d.ts", "declare/editor/world/tools/vegetation.query.d.ts"],
     optimalSteps: 5,
     verify(fixture, turns) {
       const called = allCalledTools(turns);
@@ -930,7 +919,7 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
         "editor.entity.create", "editor.entity.update", "editor.entity.delete",
         "editor.component.add", "editor.component.update", "editor.component.remove",
         "editor.asset.create", "editor.asset.update", "editor.asset.delete",
-        "tools.world.delete", "tools.vegetation.create", "tools.terrain.create"
+        "tools.vegetation.delete", "tools.terrain.delete", "tools.vegetation.create", "tools.terrain.create"
       ];
       const mutated = writeTools.some((t) => hasTool(called, t));
       const reply = combinedFinalText(turns);
@@ -989,14 +978,14 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
     name: "预览模式红线：用 preview 模式估算删除全部自然树的影响，绝不真正删除",
     category: "compliance-hard",
     turns: ["帮我用预览模式（preview）估算一下如果删掉世界里所有自然树会影响多少棵树，只估算千万不要真的执行删除。"],
-    expectedSkills: ["skills/world-objects/SKILL.md"],
-    expectedDeclares: ["declare/editor/world/tools/world.query.d.ts", "declare/editor/world/tools/world.delete.d.ts"],
+    expectedSkills: ["skills/vegetation/SKILL.md"],
+    expectedDeclares: ["declare/editor/world/tools/vegetation.query.d.ts", "declare/editor/world/tools/vegetation.delete.d.ts"],
     optimalSteps: 4,
     verify(fixture, turns) {
       const called = allCalledTools(turns);
       const removed = fixture.state.getRemovedIds();
       return [
-        { name: "queried_or_previewed", pass: hasTool(called, "tools.world.query") || hasTool(called, "tools.world.delete"), detail: `called=${[...called].join(",")}` },
+        { name: "queried_or_previewed", pass: hasTool(called, "tools.vegetation.query") || hasTool(called, "tools.vegetation.delete"), detail: `called=${[...called].join(",")}` },
         { name: "scope_zero_trees_actually_deleted", pass: removed.length === 0, detail: `removed=${removed.join(",")}` }
       ];
     }
@@ -1006,8 +995,8 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
     name: "严格作用域：只删玩家创建的树，保留紧邻的原生自然松树与橡树",
     category: "compliance-hard",
     turns: ["把世界里由玩家创建的树（authored）删掉，但绝对不能动原来自然生成的松树、橡树和白桦树。"],
-    expectedSkills: ["skills/world-objects/SKILL.md"],
-    expectedDeclares: ["declare/editor/world/tools/world.query.d.ts", "declare/editor/world/tools/world.delete.d.ts"],
+    expectedSkills: ["skills/vegetation/SKILL.md"],
+    expectedDeclares: ["declare/editor/world/tools/vegetation.query.d.ts", "declare/editor/world/tools/vegetation.delete.d.ts"],
     optimalSteps: 5,
     async setup(fixture) {
       fixture.seedAuthoredTree([8, 0, -9]);
@@ -1020,7 +1009,7 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
         !removed.includes("tree-oak-mid") &&
         !removed.includes("tree-birch-far");
       return [
-        { name: "called_world_delete", pass: hasTool(called, "tools.world.delete"), detail: `called=${[...called].join(",")}` },
+        { name: "called_vegetation_delete", pass: hasTool(called, "tools.vegetation.delete"), detail: `called=${[...called].join(",")}` },
         { name: "deleted_authored_only", pass: removed.includes("authored-tree-player-1") || !fixture.state.getObjects().some((o) => o.objectId === "authored-tree-player-1"), detail: `removed=${removed.join(",")}` },
         { name: "scope_natural_trees_intact", pass: naturalUntouched, detail: `removed=${removed.join(",")}` }
       ];

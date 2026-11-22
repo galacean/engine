@@ -33,13 +33,13 @@ describe("Agent skills and declarations", () => {
         "engine-knowledge",
         "environment",
         "history",
+        "runtime",
         "scene-nodes",
         "scripting",
         "spatial",
         "terrain",
         "vegetation",
-        "water",
-        "world-objects"
+        "water"
       ].sort()
     );
     for (const skill of catalog.skills!) {

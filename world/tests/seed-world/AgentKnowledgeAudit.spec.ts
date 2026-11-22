@@ -281,6 +281,20 @@ describe("Seed World Agent Knowledge Static Audit (Offline CI Gate)", () => {
     expect(failures).toEqual([]);
   });
 
+  it("forbids legacy world.* tools and world-objects skill across registry, declarations, and skills", () => {
+    expect(SEED_WORLD_API_NAMES.filter((name) => name.startsWith("world."))).toEqual([]);
+    expect(allPaths.filter((p) => p.includes("world-objects") || p.includes("/tools/world."))).toEqual([]);
+    const staleRefs: string[] = [];
+    for (const p of allPaths.filter((x) => x.startsWith("skills/") || x.startsWith("declare/editor/world/"))) {
+      const content = files.read(p);
+      if (/\bworld\.(?:query|inspect|delete|tag|selection|parameters|animals)\b|world-objects/.test(content)) {
+        staleRefs.push(p);
+      }
+    }
+    expect(staleRefs).toEqual([]);
+    expect(catalog.hostNotes).not.toMatch(/\bworld\.(?:query|inspect|delete|tag|selection|parameters|animals)\b|world-objects/);
+  });
+
   it("keeps generic runtime-editor skills decoupled from host-specific scene path literals", () => {
     const genericEditorSkillPaths = skillMarkdowns.filter((p) =>
       /^skills\/(?:scene-nodes|components|assets|scripting|history)\//.test(p)

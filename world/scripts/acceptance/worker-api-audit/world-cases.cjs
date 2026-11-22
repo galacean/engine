@@ -17,34 +17,26 @@ add(
   'const r=await tools.atmosphere.get();if(Math.abs(r.environment.windSpeed-2.5)>0.01)throw Error("Wind not applied");return r;'
 );
 add(
-  "world.tag.update",
-  'const q=await tools.world.query({kinds:["tree"],limit:1});const r=await tools.world.tag.update({refs:[q.items[0].ref],add:["worker-api-audit"]});if(!r.results[0].tags.includes("worker-api-audit"))throw Error("Tag missing");return r;'
-);
-add(
-  "world.parameters.apply",
-  'const before=await tools.world.parameters.inspect({id:"world",component:"weather",fields:["cloudCoverage"]});const r=await tools.world.parameters.apply({versionToken:before.versionToken,commands:[{op:"set",entity:"world",component:"weather",values:{cloudCoverage:0.5}}]});if(r.status!=="accepted")throw Error("Parameter edit rejected");return r;',
-  'const r=await tools.world.parameters.inspect({id:"world",component:"weather",fields:["cloudCoverage"]});if(r.components[0].values.cloudCoverage!==0.5)throw Error("Parameter not applied");return r;',
+  "environment.config.update",
+  'const r=await tools.environment.config.update({component:"weather",values:{cloudCoverage:0.5}});if(r.status!=="accepted")throw Error("Parameter edit rejected");return r;',
+  'const r=await tools.environment.config.get({component:"weather",fields:["cloudCoverage"]});if(r.components[0].values.cloudCoverage!==0.5)throw Error("Parameter not applied");return r;',
   "parameters.set"
 );
 add(
-  "world.parameters.receipt",
-  'const before=await tools.world.parameters.inspect({id:"world",component:"weather",fields:["cloudCoverage"]});const applied=await tools.world.parameters.apply({versionToken:before.versionToken,commands:[{op:"set",entity:"world",component:"weather",values:{cloudCoverage:0.51}}]});if(applied.status!=="accepted")throw Error("No receipt");const r=await tools.world.parameters.receipt({receiptId:applied.receiptId,section:"changedIds"});return r;'
-);
-add(
-  "world.parameters.apply",
-  'const before=await tools.world.parameters.inspect({id:"world",component:"weather",fields:["cloudCoverage"]});const r=await tools.world.parameters.apply({versionToken:before.versionToken,commands:[{op:"reset",entity:"world",component:"weather",fields:["cloudCoverage"]}]});if(r.status!=="accepted")throw Error("Reset rejected");return r;',
+  "environment.config.reset",
+  'const r=await tools.environment.config.reset({component:"weather",fields:["cloudCoverage"]});if(r.status!=="accepted")throw Error("Reset rejected");return r;',
   undefined,
   "parameters.reset"
 );
 add(
-  "world.parameters.materials.apply",
-  'const before=await tools.world.parameters.materials.inspect({filter:{parts:["bark"],layers:["trees"]}});const r=await tools.world.parameters.materials.apply({versionToken:before.versionToken,changes:[{filter:{parts:["bark"],layers:["trees"]},baseColor:[130,100,70]}]});if(r.status!=="accepted"||!r.matchedSlotCount)throw Error("Color edit failed");return r;',
+  "vegetation.materials.apply",
+  'const r=await tools.vegetation.materials.apply({changes:[{filter:{parts:["bark"],layers:["trees"]},baseColor:[0.5,0.4,0.3]}]});if(r.status!=="accepted"||!r.matchedSlotCount)throw Error("Color edit failed");return r;',
   undefined,
   "materials.color"
 );
 add(
-  "world.parameters.materials.apply",
-  'const before=await tools.world.parameters.materials.inspect({filter:{parts:["bark"],layers:["trees"]}});const r=await tools.world.parameters.materials.apply({versionToken:before.versionToken,changes:[{filter:{parts:["bark"],layers:["trees"]},baseColor:null}]});if(r.status!=="accepted")throw Error("Color reset failed");return r;',
+  "vegetation.materials.apply",
+  'const r=await tools.vegetation.materials.apply({changes:[{filter:{parts:["bark"],layers:["trees"]},baseColor:null}]});if(r.status!=="accepted")throw Error("Color reset failed");return r;',
   undefined,
   "materials.reset"
 );
@@ -63,39 +55,39 @@ for (const [name, parameters] of [
   );
 }
 const animal =
-  'const q=await tools.world.animals.query({visible:true});const a=q.items.find(x=>x.loaded);if(!a)throw Error("No loaded animal");const d=await tools.world.animals.describe({id:a.id});const skill=d.skills.find(x=>!x.requiresTarget&&!x.background);if(!skill)throw Error("No direct skill");';
+  'const q=await tools.animals.query({visible:true});const a=q.items.find(x=>x.loaded);if(!a)throw Error("No loaded animal");const d=await tools.animals.describe({id:a.id});const skill=d.skills.find(x=>!x.requiresTarget&&!x.background);if(!skill)throw Error("No direct skill");';
 add(
-  "world.animals.command",
+  "animals.command",
   animal +
-    'const r=await tools.world.animals.command({id:a.id,requestId:"audit-animal-command",skillId:skill.skillId});if(!["accepted","running","completed"].includes(r.status))throw Error("Animal rejected: "+r.reason);return r;'
+    'const r=await tools.animals.command({id:a.id,requestId:"audit-animal-command",skillId:skill.skillId});if(!["accepted","running","completed"].includes(r.status))throw Error("Animal rejected: "+r.reason);return r;'
 );
 add(
-  "world.animals.receipt",
+  "animals.receipt",
   animal +
-    'await tools.world.animals.command({id:a.id,requestId:"audit-animal-receipt",skillId:skill.skillId});const r=await tools.world.animals.receipt({id:a.id,requestId:"audit-animal-receipt"});if(r.status==="not_found"||r.status==="rejected")throw Error("No command receipt");return r;'
+    'await tools.animals.command({id:a.id,requestId:"audit-animal-receipt",skillId:skill.skillId});const r=await tools.animals.receipt({id:a.id,requestId:"audit-animal-receipt"});if(r.status==="not_found"||r.status==="rejected")throw Error("No command receipt");return r;'
 );
 add(
-  "world.animals.spawn",
-  'const q=await tools.world.animals.query({visible:true});const a=q.items.find(x=>x.loaded);if(!a)throw Error("No animal fixture");const r=await tools.world.animals.spawn({requestId:"audit-spawn",typeId:a.typeId});if(r.status!=="accepted")throw Error("Spawn rejected: "+r.reason);return r;',
-  'const q=await tools.world.animals.query({limit:100});if(q.matchedCount!==40)throw Error("Spawn not retained");return {count:q.matchedCount};'
+  "animals.spawn",
+  'const q=await tools.animals.query({visible:true});const a=q.items.find(x=>x.loaded);if(!a)throw Error("No animal fixture");const r=await tools.animals.spawn({requestId:"audit-spawn",typeId:a.typeId});if(r.status!=="accepted")throw Error("Spawn rejected: "+r.reason);return r;',
+  'const q=await tools.animals.query({limit:100});if(q.matchedCount!==40)throw Error("Spawn not retained");return {count:q.matchedCount};'
 );
 add(
   "vegetation.create",
   `const r=await tools.vegetation.create({plant:"tree",distribution:{kind:"single"},target:${targetText},seed:120});if(r.status!=="applied"||r.createdCount!==1)throw Error("Tree not created");return r;`,
-  'const q=await tools.world.query({kinds:["tree"],sources:["authored"],limit:10});if(!q.items.length)throw Error("Authored tree missing");return q;'
+  'const q=await tools.vegetation.query({kinds:["tree"],sources:["authored"],limit:10});if(!q.items.length)throw Error("Authored tree missing");return q;'
 );
 const tree =
-  'const q=await tools.world.query({kinds:["tree"],sources:["authored"],limit:1});const a=q.items[0];if(a.type!=="tree"||a.ref.source!=="authored")throw Error("No authored tree");';
+  'const q=await tools.vegetation.query({kinds:["tree"],sources:["authored"],limit:1});const a=q.items[0];if(a.type!=="tree"||a.ref.source!=="authored")throw Error("No authored tree");';
 add(
   "vegetation.update",
   tree +
     'const r=await tools.vegetation.update({ref:a.ref,patch:{seed:121}});if(r.status!=="applied"||!r.updatedCount)throw Error("Tree not updated");return r;'
 );
 add(
-  "world.delete",
+  "vegetation.delete",
   tree +
-    'const r=await tools.world.delete({refs:[a.ref]});if(r.status!=="applied"||!r.deletedCount)throw Error("Delete failed");return r;',
-  'const q=await tools.world.query({kinds:["tree"],sources:["authored"],limit:10});if(q.items.length)throw Error("Authored tree survived");return q;'
+    'const r=await tools.vegetation.delete({refs:[a.ref]});if(r.status!=="applied"||!r.deletedCount)throw Error("Delete failed");return r;',
+  'const q=await tools.vegetation.query({kinds:["tree"],sources:["authored"],limit:10});if(q.items.length)throw Error("Authored tree survived");return q;'
 );
 for (const operation of ["raise", "lower"])
   add(
@@ -112,7 +104,7 @@ add(
 );
 add(
   "terrain.update",
-  'const q=await tools.world.query({kinds:["hill"],sources:["authored"],limit:1});const a=q.items[0];if(a.type!=="hill"||a.ref.source!=="authored")throw Error("No authored hill");const r=await tools.terrain.update({ref:a.ref,patch:{peakReliefMetres:31}});if(r.status!=="applied")throw Error("Terrain update rejected");return r;',
+  'const q=await tools.terrain.query({kinds:["hill"],sources:["authored"],limit:1});const a=q.items[0];if(a.type!=="hill"||a.ref.source!=="authored")throw Error("No authored hill");const r=await tools.terrain.update({ref:a.ref,patch:{peakReliefMetres:31}});if(r.status!=="applied")throw Error("Terrain update rejected");return r;',
   undefined,
   "terrain.update-hill"
 );

@@ -21,20 +21,20 @@ add(
   'const r=await tools.atmosphere.get();if(!Number.isFinite(r.environment.windSpeed))throw Error("Missing wind");return r;'
 );
 add(
-  "world.query",
-  'const r=await tools.world.query({kinds:["tree"],limit:5});if(!r.items.length)throw Error("Empty world");return r;'
+  "vegetation.query",
+  'const r=await tools.vegetation.query({kinds:["tree"],limit:5});if(!r.items.length)throw Error("Empty vegetation");return r;'
 );
 add(
-  "world.inspect",
-  'const q=await tools.world.query({kinds:["tree"],limit:1});const a=q.items[0];if(a.type!=="tree")throw Error("No tree");return await tools.world.inspect({ref:a.ref});'
+  "vegetation.inspect",
+  'const q=await tools.vegetation.query({kinds:["tree"],limit:1});const a=q.items[0];if(a.type!=="tree")throw Error("No tree");return await tools.vegetation.inspect({ref:a.ref});'
 );
 add(
-  "world.selection.save",
-  'const q=await tools.world.query({kinds:["tree"],limit:2});const s=await tools.world.selection.save({selectionId:q.selectionId,name:"audit-trees"});if(s.refs.length!==q.items.length)throw Error("Selection differs");return s;'
+  "terrain.query",
+  'const r=await tools.terrain.query({limit:5});if(!r.items.length)throw Error("Empty terrain");return r;'
 );
 add(
-  "world.selection.get",
-  'const q=await tools.world.query({kinds:["tree"],limit:2});const s=await tools.world.selection.get({nameOrSelectionId:q.selectionId});if(!s.items.length)throw Error("Empty selection");return s;'
+  "terrain.inspect",
+  'const q=await tools.terrain.query({limit:1});const a=q.items[0];return await tools.terrain.inspect({ref:a.ref});'
 );
 add(
   "runtime.entity.inspect",
@@ -60,32 +60,32 @@ add(
   'const r=await tools.spatial.search({sort:"flattest",limit:3});if(!r.items.length)throw Error("No terrain matches");return r;'
 );
 add(
-  "world.animals.query",
-  'const r=await tools.world.animals.query({limit:100});if(r.matchedCount<1)throw Error("No animals");return r;'
+  "animals.query",
+  'const r=await tools.animals.query({limit:100});if(r.matchedCount<1)throw Error("No animals");return r;'
 );
 add(
-  "world.animals.describe",
-  'const q=await tools.world.animals.query({visible:true});const animal=q.items.find(x=>x.loaded);if(!animal)throw Error("No loaded visible animal");const r=await tools.world.animals.describe({id:animal.id});if(!r.available||!r.skills.length)throw Error("Animal unavailable");return r;'
+  "animals.describe",
+  'const q=await tools.animals.query({visible:true});const animal=q.items.find(x=>x.loaded);if(!animal)throw Error("No loaded visible animal");const r=await tools.animals.describe({id:animal.id});if(!r.available||!r.skills.length)throw Error("Animal unavailable");return r;'
 );
 add(
-  "world.animals.catalog",
-  'const r=await tools.world.animals.catalog({view:"resources",limit:5});if(!r.items.length)throw Error("No animal resources");return r;'
+  "animals.catalog",
+  'const r=await tools.animals.catalog({view:"resources",limit:5});if(!r.items.length)throw Error("No animal resources");return r;'
 );
 add(
-  "world.parameters.describe",
-  'const r=await tools.world.parameters.describe({view:"components"});if(!r.components.length)throw Error("No metadata");return r;'
+  "animals.config.get",
+  'const r=await tools.animals.config.get({fields:["enabled","activationDistance"]});if(!r.versionToken)throw Error("No animal config");return r;'
 );
 add(
-  "world.parameters.query",
-  'const r=await tools.world.parameters.query({limit:5});if(!r.entities.length)throw Error("No parameter entities");return r;'
+  "spatial.config.get",
+  'const r=await tools.spatial.config.get({queryEntities:true,limit:5});if(!r.entities.length)throw Error("No parameter entities");return r;'
 );
 add(
-  "world.parameters.inspect",
-  'const q=await tools.world.parameters.query({limit:1});const r=await tools.world.parameters.inspect({id:q.entities[0].id,limit:5});if(!r.versionToken)throw Error("No parameter revision");return r;'
+  "environment.config.get",
+  'const r=await tools.environment.config.get({component:"weather",fields:["cloudCoverage"]});if(!r.versionToken)throw Error("No environment config");return r;'
 );
 add(
-  "world.parameters.materials.inspect",
-  'const r=await tools.world.parameters.materials.inspect({});if(!r.versionToken)throw Error("No material revision");return r;'
+  "vegetation.materials.inspect",
+  'const r=await tools.vegetation.materials.inspect({});if(!r.versionToken)throw Error("No material revision");return r;'
 );
 add(
   "asset.list",

@@ -713,22 +713,22 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
   },
   {
     id: "09_world_objects_query_delete",
-    name: "查询世界树木并给最近树木打标 target 后删除并确认",
-    category: "world-objects",
-    turns: ["先查出世界里现有的树木或地貌对象，把离玩家最近的一棵树打上 'target' 标签，然后再删除它并确认已删除。"],
-    expectedSkills: ["skills/world-objects/SKILL.md"],
+    name: "查询世界树木、读取最近树木详情后删除并确认",
+    category: "vegetation-crud",
+    turns: ["先查出世界里现有的树木，读取离玩家最近那棵树的详情，然后再删除它并确认已删除。"],
+    expectedSkills: ["skills/vegetation/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.query.d.ts",
-      "declare/editor/world/tools/world.tag.update.d.ts",
-      "declare/editor/world/tools/world.delete.d.ts"
+      "declare/editor/world/tools/vegetation.query.d.ts",
+      "declare/editor/world/tools/vegetation.inspect.d.ts",
+      "declare/editor/world/tools/vegetation.delete.d.ts"
     ],
     optimalSteps: 5,
     verify(fixture, turns) {
       const removed = fixture.state.getRemovedIds();
       const called = allCalledTools(turns);
       return [
-        { name: "called_query_and_tag", pass: hasTool(called, "tools.world.query") && hasTool(called, "tools.world.tag.update"), detail: `called=${[...called].join(",")}` },
-        { name: "called_delete", pass: hasTool(called, "tools.world.delete"), detail: `removed=${removed.join(",")}` },
+        { name: "called_query_and_inspect", pass: hasTool(called, "tools.vegetation.query") && hasTool(called, "tools.vegetation.inspect"), detail: `called=${[...called].join(",")}` },
+        { name: "called_delete", pass: hasTool(called, "tools.vegetation.delete"), detail: `removed=${removed.join(",")}` },
         { name: "deleted_nearest_tree", pass: removed.includes("tree-pine-near"), detail: `nearest=tree-pine-near, removed=${removed.join(",")}` }
       ];
     }
@@ -736,19 +736,19 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
   {
     id: "10_world_parameters_animals_distance",
     name: "将动物系统激活距离 activationDistance 调整为 320 米",
-    category: "world-parameters",
+    category: "animals-config",
     turns: ["把动物系统的激活距离（activationDistance）调整到 320 米。"],
-    expectedSkills: ["skills/world-objects/parameters/SKILL.md"],
+    expectedSkills: ["skills/animals/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.parameters.describe.d.ts",
-      "declare/editor/world/tools/world.parameters.apply.d.ts"
+      "declare/editor/world/tools/animals.config.get.d.ts",
+      "declare/editor/world/tools/animals.config.update.d.ts"
     ],
-    optimalSteps: 5,
+    optimalSteps: 4,
     verify(fixture, turns) {
       const paramState = fixture.state.getParameterState();
       const called = allCalledTools(turns);
       return [
-        { name: "called_parameters_apply", pass: hasTool(called, "tools.world.parameters.apply"), detail: `called=${[...called].join(",")}` },
+        { name: "called_animals_config_update", pass: hasTool(called, "tools.animals.config.update"), detail: `called=${[...called].join(",")}` },
         { name: "activation_distance_320", pass: paramState.activationDistance === 320, detail: `activationDistance=${paramState.activationDistance}` }
       ];
     }
@@ -783,9 +783,9 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
     turns: ["先查一下动物目录里有没有小狗，有的话在玩家前方 10 米处生成 2 只棕色小狗，并让它们在附近自由活动。"],
     expectedSkills: ["skills/animals/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.animals.catalog.d.ts",
-      "declare/editor/world/tools/world.animals.spawn.d.ts",
-      "declare/editor/world/tools/world.animals.command.d.ts"
+      "declare/editor/world/tools/animals.catalog.d.ts",
+      "declare/editor/world/tools/animals.spawn.d.ts",
+      "declare/editor/world/tools/animals.command.d.ts"
     ],
     optimalSteps: 5,
     verify(fixture, turns) {
@@ -793,7 +793,7 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
       const cmds = fixture.state.getAnimalCommands();
       const called = allCalledTools(turns);
       return [
-        { name: "called_animals_catalog", pass: hasTool(called, "tools.world.animals.catalog"), detail: `called=${[...called].join(",")}` },
+        { name: "called_animals_catalog", pass: hasTool(called, "tools.animals.catalog"), detail: `called=${[...called].join(",")}` },
         { name: "spawned_two_dogs", pass: spawns.length >= 2, detail: `spawns=${spawns.length}` },
         { name: "commanded_dogs_roam", pass: cmds.length >= 1, detail: `commands=${cmds.length}` }
       ];
@@ -973,7 +973,7 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
     expectedDeclares: [
       "declare/editor/world/tools/building.generate.d.ts",
       "declare/editor/world/tools/vegetation.create.d.ts",
-      "declare/editor/world/tools/world.animals.spawn.d.ts",
+      "declare/editor/world/tools/animals.spawn.d.ts",
       "declare/editor/world/tools/time.update.d.ts"
     ],
     optimalSteps: 7,
@@ -1100,17 +1100,17 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
     name: "范围红线遵守：仅删除指定松树，零误伤橡树、白桦树与岩石",
     category: "compliance-scope",
     turns: ["只把 (6, 0, -9) 附近那棵松树删掉；绝对不要碰其他任何树（尤其是橡树和白桦树）和远处的岩石。"],
-    expectedSkills: ["skills/world-objects/SKILL.md"],
+    expectedSkills: ["skills/vegetation/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.query.d.ts",
-      "declare/editor/world/tools/world.delete.d.ts"
+      "declare/editor/world/tools/vegetation.query.d.ts",
+      "declare/editor/world/tools/vegetation.delete.d.ts"
     ],
     optimalSteps: 5,
     verify(fixture, turns) {
       const removed = fixture.state.getRemovedIds();
       const called = allCalledTools(turns);
       return [
-        { name: "deleted_target_pine", pass: removed.includes("tree-pine-near") && hasTool(called, "tools.world.delete"), detail: `removed=${removed.join(",")}` },
+        { name: "deleted_target_pine", pass: removed.includes("tree-pine-near") && hasTool(called, "tools.vegetation.delete"), detail: `removed=${removed.join(",")}` },
         { name: "scope_oak_intact", pass: !removed.includes("tree-oak-mid"), detail: `removed=${removed.join(",")}` },
         { name: "scope_birch_intact", pass: !removed.includes("tree-birch-far"), detail: `removed=${removed.join(",")}` },
         { name: "scope_rock_intact", pass: !removed.includes("rock-north"), detail: `removed=${removed.join(",")}` }
@@ -1125,7 +1125,7 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
     expectedSkills: ["skills/environment/SKILL.md", "skills/animals/SKILL.md"],
     expectedDeclares: [
       "declare/editor/world/tools/time.update.d.ts",
-      "declare/editor/world/tools/world.animals.catalog.d.ts"
+      "declare/editor/world/tools/animals.catalog.d.ts"
     ],
     optimalSteps: 4,
     verify(fixture, turns) {
@@ -1228,11 +1228,11 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
       "在 (-15, 0, 25) 建一座半径 12 米、高 5 米的小山丘。",
       "把刚才建的那座小山丘再调高到 9 米，然后把它删掉并确认删除。"
     ],
-    expectedSkills: ["skills/terrain/SKILL.md", "skills/world-objects/SKILL.md"],
+    expectedSkills: ["skills/terrain/SKILL.md"],
     expectedDeclares: [
       "declare/editor/world/tools/terrain.create.d.ts",
       "declare/editor/world/tools/terrain.update.d.ts",
-      "declare/editor/world/tools/world.delete.d.ts"
+      "declare/editor/world/tools/terrain.delete.d.ts"
     ],
     optimalSteps: 8,
     verify(fixture, turns) {
@@ -1243,7 +1243,7 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
       return [
         { name: "created_terrain", pass: hasTool(called, "tools.terrain.create"), detail: `called=${[...called].join(",")}` },
         { name: "updated_terrain", pass: hasTool(called, "tools.terrain.update") || hasTool(called, "tools.terrain.patch"), detail: `called=${[...called].join(",")}` },
-        { name: "deleted_terrain", pass: hasTool(called, "tools.world.delete") && (removed.length > 0 || authoredRemoved), detail: `removed=${removed.join(",")}, authoredRemoved=${authoredRemoved}` }
+        { name: "deleted_terrain", pass: hasTool(called, "tools.terrain.delete") && (removed.length > 0 || authoredRemoved), detail: `removed=${removed.join(",")}, authoredRemoved=${authoredRemoved}` }
       ];
     }
   },
@@ -1252,62 +1252,59 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
     name: "植被 R+U：查询近处松树详情并调整共享树形外观（增高 1.4 倍、偏金秋叶色）",
     category: "vegetation-crud",
     turns: ["先查出 (6, 0, -9) 附近那棵松树的详情，再把这类松树的共享树形高度缩放调到 1.4 倍，树叶颜色调成金黄色。"],
-    expectedSkills: ["skills/vegetation/SKILL.md", "skills/world-objects/SKILL.md"],
+    expectedSkills: ["skills/vegetation/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.query.d.ts",
-      "declare/editor/world/tools/world.inspect.d.ts",
+      "declare/editor/world/tools/vegetation.query.d.ts",
+      "declare/editor/world/tools/vegetation.inspect.d.ts",
       "declare/editor/world/tools/vegetation.update.d.ts"
     ],
     optimalSteps: 5,
     verify(fixture, turns) {
       const called = allCalledTools(turns);
       return [
-        { name: "queried_and_inspected_tree", pass: hasTool(called, "tools.world.query") && hasTool(called, "tools.world.inspect"), detail: `called=${[...called].join(",")}` },
+        { name: "queried_and_inspected_tree", pass: hasTool(called, "tools.vegetation.query") && hasTool(called, "tools.vegetation.inspect"), detail: `called=${[...called].join(",")}` },
         { name: "updated_vegetation_shape", pass: hasTool(called, "tools.vegetation.update"), detail: `called=${[...called].join(",")}` }
       ];
     }
   },
   {
     id: "30_world_objects_selection_and_inspect",
-    name: "世界对象 R+选区：查询所有树木、读取最近树木详情并保存命名选区",
-    category: "world-objects-crud",
-    turns: ["查出世界里所有的树木并读取离玩家最近那棵树的详细属性，然后把查询到的树保存为一个命名选区 'near_trees'。"],
-    expectedSkills: ["skills/world-objects/SKILL.md"],
+    name: "植被只读查询与详情：查询所有树木并读取最近树木的详细属性（零修改）",
+    category: "vegetation-read",
+    turns: ["查出世界里所有的树木并读取离玩家最近那棵树的详细属性，告诉我一共有几棵树、最近那棵是什么品种（只读不要修改或删除）。"],
+    expectedSkills: ["skills/vegetation/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.query.d.ts",
-      "declare/editor/world/tools/world.inspect.d.ts",
-      "declare/editor/world/tools/world.selection.save.d.ts"
+      "declare/editor/world/tools/vegetation.query.d.ts",
+      "declare/editor/world/tools/vegetation.inspect.d.ts"
     ],
-    optimalSteps: 5,
+    optimalSteps: 4,
     verify(fixture, turns) {
       const called = allCalledTools(turns);
       return [
-        { name: "called_query_and_inspect", pass: hasTool(called, "tools.world.query") && hasTool(called, "tools.world.inspect"), detail: `called=${[...called].join(",")}` },
-        { name: "called_selection_save", pass: hasTool(called, "tools.world.selection.save"), detail: `called=${[...called].join(",")}` }
+        { name: "called_query_and_inspect", pass: hasTool(called, "tools.vegetation.query") && hasTool(called, "tools.vegetation.inspect"), detail: `called=${[...called].join(",")}` },
+        { name: "scope_zero_mutations", pass: fixture.state.getRemovedIds().length === 0 && !hasTool(called, "tools.vegetation.delete"), detail: `removed=${fixture.state.getRemovedIds().join(",")}` }
       ];
     }
   },
   {
     id: "31_world_parameters_reset",
-    name: "规划参数 R+Reset+Receipt：查询动物激活距离、重置默认值并查回执",
-    category: "world-parameters",
-    turns: ["先查一下动物系统当前的 activationDistance 参数，把它 reset 重置回默认值，并查一下这次参数应用的 receipt 回执确认生效。"],
-    expectedSkills: ["skills/world-objects/parameters/SKILL.md"],
+    name: "动物配置 R+Reset：查询动物激活距离并重置为默认值",
+    category: "animals-config",
+    turns: ["先查一下动物系统当前的 activationDistance 参数，再把它 reset 重置回默认值并确认生效。"],
+    expectedSkills: ["skills/animals/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.parameters.describe.d.ts",
-      "declare/editor/world/tools/world.parameters.inspect.d.ts",
-      "declare/editor/world/tools/world.parameters.apply.d.ts",
-      "declare/editor/world/tools/world.parameters.receipt.d.ts"
+      "declare/editor/world/tools/animals.config.get.d.ts",
+      "declare/editor/world/tools/animals.config.reset.d.ts"
     ],
-    optimalSteps: 6,
+    optimalSteps: 4,
     verify(fixture, turns) {
       const paramState = fixture.state.getParameterState();
       const called = allCalledTools(turns);
       const usedReset = JSON.stringify(paramState.applyCalls).includes('"reset"');
       return [
-        { name: "called_parameters_apply", pass: hasTool(called, "tools.world.parameters.apply"), detail: `called=${[...called].join(",")}` },
-        { name: "used_reset_op", pass: usedReset, detail: `applyCalls=${JSON.stringify(paramState.applyCalls).slice(0, 180)}` },
-        { name: "checked_parameters_receipt", pass: hasTool(called, "tools.world.parameters.receipt"), detail: `called=${[...called].join(",")}` }
+        { name: "called_animals_config_get", pass: hasTool(called, "tools.animals.config.get"), detail: `called=${[...called].join(",")}` },
+        { name: "called_animals_config_reset", pass: hasTool(called, "tools.animals.config.reset"), detail: `called=${[...called].join(",")}` },
+        { name: "used_reset_op", pass: usedReset, detail: `applyCalls=${JSON.stringify(paramState.applyCalls).slice(0, 180)}` }
       ];
     }
   },
@@ -1341,20 +1338,20 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
     turns: ["生成 1 只小狗，然后用动物查询接口找到它，查看它支持的技能，下发一个自由活动/漫步命令并查一次命令回执。"],
     expectedSkills: ["skills/animals/SKILL.md"],
     expectedDeclares: [
-      "declare/editor/world/tools/world.animals.catalog.d.ts",
-      "declare/editor/world/tools/world.animals.spawn.d.ts",
-      "declare/editor/world/tools/world.animals.query.d.ts",
-      "declare/editor/world/tools/world.animals.describe.d.ts",
-      "declare/editor/world/tools/world.animals.command.d.ts",
-      "declare/editor/world/tools/world.animals.receipt.d.ts"
+      "declare/editor/world/tools/animals.catalog.d.ts",
+      "declare/editor/world/tools/animals.spawn.d.ts",
+      "declare/editor/world/tools/animals.query.d.ts",
+      "declare/editor/world/tools/animals.describe.d.ts",
+      "declare/editor/world/tools/animals.command.d.ts",
+      "declare/editor/world/tools/animals.receipt.d.ts"
     ],
     optimalSteps: 6,
     verify(fixture, turns) {
       const called = allCalledTools(turns);
       return [
-        { name: "spawned_and_queried", pass: hasTool(called, "tools.world.animals.spawn") && hasTool(called, "tools.world.animals.query"), detail: `called=${[...called].join(",")}` },
-        { name: "described_and_commanded", pass: hasTool(called, "tools.world.animals.describe") && hasTool(called, "tools.world.animals.command"), detail: `called=${[...called].join(",")}` },
-        { name: "checked_receipt", pass: hasTool(called, "tools.world.animals.receipt"), detail: `receipts=${fixture.state.getAnimalReceipts().length}` }
+        { name: "spawned_and_queried", pass: hasTool(called, "tools.animals.spawn") && hasTool(called, "tools.animals.query"), detail: `called=${[...called].join(",")}` },
+        { name: "described_and_commanded", pass: hasTool(called, "tools.animals.describe") && hasTool(called, "tools.animals.command"), detail: `called=${[...called].join(",")}` },
+        { name: "checked_receipt", pass: hasTool(called, "tools.animals.receipt"), detail: `receipts=${fixture.state.getAnimalReceipts().length}` }
       ];
     }
   },

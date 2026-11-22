@@ -21,7 +21,7 @@ function harness() {
     receipt: vi.fn((input) => ({ ...input, status: "not_found", reason: "disabled" }))
   };
   const tools = createSeedWorldAnimalTools(service);
-  const tool = (name: string) => tools.find((tool) => tool.name === `world.animals.${name}`)!;
+  const tool = (name: string) => tools.find((tool) => tool.name === `animals.${name}`)!;
   const call = async (name: string, input: unknown) => {
     const selected = tool(name);
     return selected.parseOutput(await selected.execute(selected.parseInput(input), { signal }));
@@ -32,8 +32,8 @@ function harness() {
 describe("Seed World animal Agent boundary", () => {
   it("does not advertise tools or animal knowledge on a host without an animal service", () => {
     expect(createSeedWorldAnimalTools()).toEqual([]);
-    const knowledge = createSeedWorldKnowledge(["world.query"]);
-    expect(knowledge.entries.some((entry) => entry.name.startsWith("world.animals."))).toBe(false);
+    const knowledge = createSeedWorldKnowledge(["vegetation.query"]);
+    expect(knowledge.entries.some((entry) => entry.name.startsWith("animals."))).toBe(false);
     expect(knowledge.documents.some((document) => document.path.includes("/animals/"))).toBe(false);
   });
 
@@ -110,7 +110,7 @@ describe("Seed World animal Agent boundary", () => {
     expect(tools.map((item) => item.effect)).toEqual(["read", "read", "command", "read", "read", "command"]);
     const identity = tool("command").describeCommand!(request)!;
     expect(identity).toEqual({ scopeId: id, commandId: request.requestId });
-    expect(new AgentCommandLedger().start("world.animals.command", identity)).toMatchObject(identity);
+    expect(new AgentCommandLedger().start("animals.command", identity)).toMatchObject(identity);
   });
 
   it("checks cancellation before every live service call", async () => {
@@ -140,7 +140,7 @@ describe("Seed World animal Agent boundary", () => {
     expect(guide).toContain("没有冷却");
     for (const field of ["species.min", "species.max", "activationDistance", "noiseScale", "noiseStrength"]) expect(guide).toContain(field);
     expect(guide).toContain("距离单位是米");
-    const command = knowledge.modules.find((module) => module.toolNames.includes("world.animals.command"))!.source;
+    const command = knowledge.modules.find((module) => module.toolNames.includes("animals.command"))!.source;
     expect(command).toContain("requestId: string");
     expect(command).toContain("skillId: string");
     expect(command).not.toContain("clip:");
