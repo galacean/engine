@@ -1,0 +1,21 @@
+packages/core/src/shader/GlobalUniformBlock.ts
+  s_3cd6502d102d7f::t_3b98f16ee04b82 39,62-63,123
+tests/src/core/RenderPipeline/RendererUniformCache.test.ts
+  s_3cd6502d102d7f::t_f747cd40b6b922 13,101-131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4d97b5c2bdb09ff346e25d08c24ff3cbf66a73e0",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

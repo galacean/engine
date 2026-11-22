@@ -1,0 +1,80 @@
+packages/core/src/2d/sprite/SpriteMask.ts
+  h_dd004f51a3e5ec 1,222-224
+packages/core/src/Camera.ts
+  h_dd004f51a3e5ec 1,268-270,714-715
+packages/core/src/Component.ts
+  h_dd004f51a3e5ec 4-5,20,22,29-32,43,79-96,118,120,122-135,141,145,154,178-219
+packages/core/src/ComponentsDependencies.ts
+  h_dd004f51a3e5ec 36-185,199-206,208,210-212,214-219,222,224-225,229-230,232-245,248-251,255
+packages/core/src/Entity.ts
+  h_dd004f51a3e5ec 57,61,79,85,140,148-152,154-156,162,223-226,243,248-257,263-267,426,429,431,440-444,446-463,474-598,607-611,613-616,619-627,630,639,653,658-659,662,668-676,683-691,696-709,712-723,758,771,781,787,792-811,830-834,838-840,842,844-847,849-871,873-895,897-901,903-910,912-920,922-925,927-935,937-943,945-954,975-1006,1026
+packages/core/src/Renderer.ts
+  h_dd004f51a3e5ec 1,309-310
+packages/core/src/Scene.ts
+  h_dd004f51a3e5ec 74-80,97,105-106,108,314-315,320-322,327-330,340-341,344,348-349,352-353,411-424,429-449,453-464,506-517,519-536,538-541,544-553,555-557
+packages/core/src/SceneManager.ts
+  h_dd004f51a3e5ec 29-30,35-37,67-68,71,76-77,83-84,87,112-115,118-129,138-139,141-155
+packages/core/src/Script.ts
+  h_dd004f51a3e5ec 1,241-242,260
+packages/core/src/animation/Animator.ts
+  h_dd004f51a3e5ec 1,316-317
+packages/core/src/lighting/DirectLight.ts
+  h_dd004f51a3e5ec 1,81-82
+packages/core/src/lighting/PointLight.ts
+  h_dd004f51a3e5ec 1,70-71
+packages/core/src/lighting/SpotLight.ts
+  h_dd004f51a3e5ec 1,107-108
+packages/core/src/particle/ParticleRenderer.ts
+  h_dd004f51a3e5ec 1,181,183
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 5,159-160
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 9,142-143
+packages/core/src/postProcess/PostProcess.ts
+  h_dd004f51a3e5ec 1,128-129
+packages/loader/README.md
+  h_dd004f51a3e5ec 3
+packages/loader/src/PrefabLoader.ts
+  h_dd004f51a3e5ec 9-12
+packages/loader/src/SceneLoader.ts
+  h_dd004f51a3e5ec 2,11,15-16,27,33-41,43,45-52,102-148,162-169
+packages/loader/src/prefab/PrefabParser.ts
+  h_dd004f51a3e5ec 7,11,24-25
+packages/loader/src/prefab/PrefabResource.ts
+  h_dd004f51a3e5ec 2,11-12,26-28,31-34,38-39,42-60,66-73,75-82
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 1,21-22,25-27,31,41-45,52,61,64-74,76-77,112,121-130,132,135-137,139-140,142-149,152-163,165-170,172-188,191,194-196,198-201,204-207,209-212,216-234,236-237,240-244,246-259,261-264,267-272,276-283,285-295,297-301,308,317-330,348,351,357-419
+packages/loader/src/resource-deserialize/resources/parser/ParserContext.ts
+  h_dd004f51a3e5ec 1-10,21-33,36,38-41,51,56-88,95,97,100-101
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 1-2,7,9,19-27,29-41,43-45,47,51-52,54-59,62,64-69,71-73,75-83,85-97,100,106-110,112-133,151,153,171,194-196,198-200,222-240,248,270,278-281,292-294,299-300,302-303,305
+packages/loader/src/resource-deserialize/resources/scene/SceneParser.ts
+  h_dd004f51a3e5ec 6,10,13,24-25
+packages/ui/src/component/UICanvas.ts
+  h_dd004f51a3e5ec 1,396-397,623,627,675,679-680
+packages/ui/src/component/UIRenderer.ts
+  h_dd004f51a3e5ec 1,166-167
+packages/ui/src/component/interactive/UIInteractive.ts
+  h_dd004f51a3e5ec 1,193-194
+tests/src/core/CompomentDependencies.test.ts
+  h_dd004f51a3e5ec 1-10,12,31,39-340,348-350
+tests/src/core/Entity.test.ts
+  h_dd004f51a3e5ec 3-14,20-28,365-386,618,622,710-782,896-1207,1312-1336
+tests/src/core/Scene.test.ts
+  h_dd004f51a3e5ec 1,168,174,176,179,181-331,344-428
+tests/src/loader/PrefabResource.test.ts
+  h_dd004f51a3e5ec 2-16,60-375,377,386-408,410-448,550-579,582-583,592,594-599,923-967,1365-1907
+tests/src/loader/SceneFormatV2.test.ts
+  h_dd004f51a3e5ec 3-4,21-22,24,516,526-527,542-543,568-569,588-589,605-606,620-621,641-642,666-667,701-702,717-785,813,820
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "de329f21ac0b723fce2944c797cd0676fb6bc4b3",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

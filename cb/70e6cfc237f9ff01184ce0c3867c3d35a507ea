@@ -1,0 +1,53 @@
+packages/core/src/RenderPipeline/Blitter.ts
+  h_bd4dd7d663e619 9
+  s_3cd6502d102d7f::t_dc2076190a89f2 4,37,47-48,60-79
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_bd4dd7d663e619 184,187,756
+  s_3cd6502d102d7f::t_dc2076190a89f2 22-23,159-164,535-539,541-543,560-563,570-588,597,658,712,738,792,798-874
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_bd4dd7d663e619 1-4,5-6,8,11-21,23-45,47-54,56-60,62-63,65,67-68,101,111,113-115,130-131,132,147-148,172,193,211-212,213,223-226,228,238-239,251-254,256-259,260,270-276,299,312-314,316-323,325-343,382-397,399-409,411-418,420,422,424,426,427-431,470-472,473,475-477,478,480-482,483,485-486,488-489,490,492-493,495-496,497,499-500,502-503,504,506-507,509-511,513-520,526-536,538,606-613,617-620,645-646,649-653
+  s_3cd6502d102d7f::t_dc2076190a89f2 9-10,22,46,61,64,66,69,71-82,85,87-100,102-110,116-126,133-143,149-150,152-155,157-171,173-192,194-209,214-222,227,229-237,240-250,261-269,282-293,300-311,324,368-381,421,432-452,469,474,479,484,491,498,505,524-525,537,539,541,547-557,562,564,568-579,581-582,584-588,605,614-616,622-637,641-644
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 12,235-242,288-301,329-338,347-349
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 117
+packages/core/src/RenderPipeline/RenderContext.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 6,73-82,85-95
+packages/core/src/renderingHardwareInterface/RenderBufferLoadAction.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 1-10
+packages/core/src/renderingHardwareInterface/RenderBufferStoreAction.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 1-14
+packages/core/src/renderingHardwareInterface/IPlatformRenderTarget.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 17
+packages/rhi-webgl/src/GLTexture.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 582
+packages/rhi-webgl/src/GLRenderTarget.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 3,17-23,77-89,163,167-182,187-191,204-211,215,224-226
+packages/core/src/texture/RenderTarget.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 267-268
+packages/core/src/renderingHardwareInterface/index.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 12-13
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_3cd6502d102d7f::t_dc2076190a89f2 18-19,76-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cb70e6cfc237f9ff01184ce0c3867c3d35a507ea",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  },
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

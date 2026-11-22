@@ -1,0 +1,16 @@
+packages/core/src/Script.ts
+  h_dd004f51a3e5ec 130,253-255
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 1427-1435,1437-1439,1441-1449
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8081913a0e8919baaa65ac7a820a6b03a682b53e",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
