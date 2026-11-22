@@ -19,7 +19,7 @@ add(
 add(
   "environment.config.update",
   'const r=await tools.environment.config.update({component:"weather",values:{cloudCoverage:0.5}});if(r.status!=="accepted")throw Error("Parameter edit rejected");return r;',
-  'const r=await tools.environment.config.get({component:"weather",fields:["cloudCoverage"]});if(r.components[0].values.cloudCoverage!==0.5)throw Error("Parameter not applied");return r;',
+  'const r=await tools.environment.config.get({component:"weather",fields:["cloudCoverage"]});if(r.components?.[0]?.values?.cloudCoverage!==0.5)throw Error("Parameter not applied");return r;',
   "parameters.set"
 );
 add(

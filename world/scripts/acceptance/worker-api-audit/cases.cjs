@@ -77,7 +77,7 @@ add(
 );
 add(
   "spatial.config.get",
-  'const r=await tools.spatial.config.get({queryEntities:true,limit:5});if(!r.entities.length)throw Error("No parameter entities");return r;'
+  'const r=await tools.spatial.config.get({queryEntities:true,limit:5});if(!r.entities?.length)throw Error("No parameter entities");return r;'
 );
 add(
   "environment.config.get",

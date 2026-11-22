@@ -7,7 +7,7 @@ import { createAgentProjectFiles } from "@galacean/engine-ai-chat/ai-chat/agent-
 import { engineRuntimeFiles } from "@galacean/engine-runtime-editor/runtime-editor-agent/engine-runtime-files.ts";
 import { describe, expect, it, vi } from "vitest";
 vi.hoisted(() => { (globalThis as any).window ??= {}; });
-import { seedWorldKnowledge, createSeedWorldKnowledge } from "../../demos/seed-world/agent-adapter/SeedWorldKnowledge";
+import { seedWorldKnowledge, createSeedWorldKnowledge, createSeedWorldWaterAgentKnowledge } from "../../demos/seed-world/agent-adapter/SeedWorldKnowledge";
 import { collectPlanningSystemKnowledge, PLANNING_SYSTEM_DECLARATIONS, validatePlanningSystemExecution } from "../../demos/seed-world/agent-adapter/SeedWorldSystemDeclarations";
 import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents.ts";
 import { seedWorldScriptModules } from "../../demos/seed-world/systems/SeedWorldScriptModules";
@@ -196,4 +196,8 @@ it("injects the active project scene path into hostNotes instead of hardcoding a
   });
   expect(withProductionScene.hostNotes).toContain('当前默认主场景虚拟路径为 "Scene/SeedWorld.scene"');
   expect(withProductionScene.hostNotes).not.toContain("Scenes/Main.scene");
+
+  // Water extension knowledge must not re-emit fallback hostNotes that contradict base defaultScenePath.
+  const waterExtension = createSeedWorldWaterAgentKnowledge(["water.capabilities"], { includeDigRiver: true });
+  expect(waterExtension.hostNotes).toBe("");
 });

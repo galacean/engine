@@ -112,7 +112,7 @@ type ContextRequest = {
 const MAX_COMPACTED_READ_PATHS = 24;
 const MAX_COMPACTED_COMMITTED = 12;
 const FULL_FILE_READ_HEADER_RE = /^<path>([^<\n]+)<\/path>\n<type>file<\/type>\n<content>\n(?:1: |\n<\/content>)/;
-const FILE_MUTATION_RECEIPT_RE = /^(?:Created|Updated|Deleted) file: [^\n]+\n(\{[\s\S]*\})$/;
+const FILE_MUTATION_RECEIPT_RE = /^(?:Created|Updated|Deleted) file: [^\n]+(?:\nFull result[^\n]*)?\n(\{[\s\S]*\})$/;
 const COMPACTION_UNREDUCIBLE_REASON_RE =
   /did not reduce the estimated token count|no replaceable messages are available/i;
 

@@ -149,6 +149,7 @@ export function createSeedWorldWaterAgentKnowledge(
   const queryOnly = createSeedWorldKnowledge(queryToolNames, undefined, { guides: false });
   return {
     ...withHostIndex,
+    hostNotes: "",
     entries: queryOnly.entries,
     modules: queryOnly.modules.filter((module) => module.id !== "declare/world/common/AgentTools.d.ts")
   };

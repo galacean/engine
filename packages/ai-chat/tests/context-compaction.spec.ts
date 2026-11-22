@@ -210,7 +210,8 @@ describe("compaction contract", () => {
         content: "",
         toolCalls: [
           { id: "r1", type: "function", function: { name: "read", arguments: '{"file_path":"declare/editor/Foo.d.ts","offset":30}' } },
-          { id: "w1", type: "function", function: { name: "write", arguments: '{"file_path":"Scripts/A.ts"}' } }
+          { id: "w1", type: "function", function: { name: "write", arguments: '{"file_path":"Scripts/A.ts"}' } },
+          { id: "w2", type: "function", function: { name: "edit", arguments: '{"file_path":"Scripts/Large.ts"}' } }
         ]
       },
       {
@@ -222,15 +223,24 @@ describe("compaction contract", () => {
         role: "tool",
         toolCallId: "w1",
         content: 'Created file: Scripts/A.ts\n{"receipt":{"executionId":"f1","status":"committed","transactionId":"tx-file-1","revision":2}}'
+      },
+      {
+        role: "tool",
+        toolCallId: "w2",
+        content:
+          'Updated file: Scripts/Large.ts\nFull result: .ai/outputs/edit-1.json\n{"receipt":{"executionId":"f2","status":"committed","transactionId":"tx-file-spilled","revision":3}}'
       }
     ];
     const { context, request, sent } = prepare(tail);
     context.applyResponse(request, sent, {
       ...compacted,
-      replacement: { prefixLength: 2, cutIndex: 3, summary: "s1" }
+      replacement: { prefixLength: 2, cutIndex: 4, summary: "s1" }
     });
     expect(context.compactedAnchors).toEqual({
-      committed: [{ status: "committed", transactionId: "tx-file-1", revision: 2 }]
+      committed: [
+        { status: "committed", transactionId: "tx-file-1", revision: 2 },
+        { status: "committed", transactionId: "tx-file-spilled", revision: 3 }
+      ]
     });
 
     // Push 13 more commits with fallback keys (no executionId) to evict both tx-file-1 and tx-extra-1, then verify evicted key can be re-recorded.
