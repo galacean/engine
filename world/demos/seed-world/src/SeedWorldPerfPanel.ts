@@ -1,8 +1,4 @@
-import {
-  attachMobileFrameCapture,
-  type PerfCumulativeCounters,
-  type PerfFrameObserver
-} from "./MobileFrameCapture";
+import { attachMobileFrameCapture, type PerfCumulativeCounters, type PerfFrameObserver } from "./MobileFrameCapture";
 import { ShadowType, type Camera, type DirectLight, type Entity, type Scene, type WebGLEngine } from "@galacean/engine";
 import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import type { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
@@ -86,6 +82,7 @@ export interface SeedWorldPerfPanelOptions {
   readonly setHudVisible: (visible: boolean) => void;
   readonly setBuildingVisible: (visible: boolean) => void;
   readonly setDprOverride: (dpr: number | null) => void;
+  readonly onStartPerfTour?: () => void;
 }
 
 const MODULE_DEFS: readonly { readonly key: SeedWorldPerfModuleKey; readonly label: string }[] = [
@@ -652,7 +649,16 @@ export class SeedWorldPerfPanel {
       "position:fixed;top:48px;left:8px;z-index:100000;font:600 12px/1.3 -apple-system,BlinkMacSystemFont,sans-serif;touch-action:manipulation;user-select:none;";
 
     const stopEvt = (e: Event) => e.stopPropagation();
-    for (const ev of ["pointerdown", "pointermove", "pointerup", "touchstart", "touchmove", "touchend", "mousedown", "wheel"]) {
+    for (const ev of [
+      "pointerdown",
+      "pointermove",
+      "pointerup",
+      "touchstart",
+      "touchmove",
+      "touchend",
+      "mousedown",
+      "wheel"
+    ]) {
       wrap.addEventListener(ev, stopEvt, { passive: true });
     }
 
@@ -668,8 +674,7 @@ export class SeedWorldPerfPanel {
       "background:rgba(15,23,42,0.88);color:#f8fafc;border:1px solid rgba(148,163,184,0.5);border-radius:8px;padding:6px 10px;font:600 12px/1.2 sans-serif;cursor:pointer;";
 
     const drawer = document.createElement("div");
-    drawer.style.cssText =
-      `margin-top:6px;width:240px;max-height:70vh;overflow-y:auto;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.4);border-radius:10px;padding:8px;display:${compactStart ? "none" : "block"};`;
+    drawer.style.cssText = `margin-top:6px;width:240px;max-height:70vh;overflow-y:auto;background:rgba(15,23,42,0.9);border:1px solid rgba(148,163,184,0.4);border-radius:10px;padding:8px;display:${compactStart ? "none" : "block"};`;
 
     toggleBtn.onclick = () => {
       const open = drawer.style.display === "none";
@@ -684,6 +689,16 @@ export class SeedWorldPerfPanel {
       this.mobileCapture.exportButton.style.cssText =
         "background:rgba(15,23,42,0.88);color:#cbd5e1;border:1px solid rgba(148,163,184,0.5);border-radius:8px;padding:6px 8px;font:600 11px/1.2 sans-serif;cursor:pointer;";
       topRow.append(this.mobileCapture.button, this.mobileCapture.exportButton);
+    }
+    if (this.options.onStartPerfTour) {
+      const tourBtn = document.createElement("button");
+      tourBtn.type = "button";
+      tourBtn.textContent = "巡游跑分";
+      tourBtn.title = "沿固定路线自动巡游 20s，统计 Avg/1% Low FPS、P95/Max、Jank 与 Shader 编译并自动上报";
+      tourBtn.style.cssText =
+        "background:#1d4ed8;color:#eff6ff;border:1px solid #60a5fa;border-radius:8px;padding:6px 10px;font:600 11px/1.2 sans-serif;cursor:pointer;";
+      tourBtn.onclick = () => this.options.onStartPerfTour?.();
+      topRow.append(tourBtn);
     }
 
     const presetRow = document.createElement("div");
@@ -719,11 +734,7 @@ export class SeedWorldPerfPanel {
       const fmt = (v: number) => v.toFixed(1).replace(/\.0$/, "");
       const effective = fmt(Math.min(rawNative, cur ?? 2));
       const label =
-        cur === null
-          ? `≤2x(${effective}x)`
-          : cur === Infinity
-            ? `原生(${fmt(rawNative)}x)`
-            : `≤${cur}x(${effective}x)`;
+        cur === null ? `≤2x(${effective}x)` : cur === Infinity ? `原生(${fmt(rawNative)}x)` : `≤${cur}x(${effective}x)`;
       dprBtn.textContent = `渲染分辨率 DPR: ${label}`;
     };
     dprBtn.style.cssText =

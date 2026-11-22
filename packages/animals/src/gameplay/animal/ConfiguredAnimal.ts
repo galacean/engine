@@ -2200,6 +2200,26 @@ export class ConfiguredAnimal implements AnimalAgent {
   }
 
   /**
+   * Collects every active renderer and its alternate (outlined / plain) material variant so shader
+   * warmup precompiles both close-range outlined and distant plain passes before the camera approaches.
+   */
+  collectShaderWarmupMaterials(out: Map<MeshRenderer, Material[]>): void {
+    if (this.disposed || !this.hasPresentation) return;
+    const variants = this.materialVariants;
+    for (let i = 0, len = variants.length; i < len; i++) {
+      const slot = variants[i];
+      if (slot.renderer.destroyed) continue;
+      const alternate = this.outlineEnabled ? slot.plain : slot.outlined;
+      let list = out.get(slot.renderer);
+      if (!list) {
+        list = [];
+        out.set(slot.renderer, list);
+      }
+      if (!list.includes(alternate)) list.push(alternate);
+    }
+  }
+
+  /**
    * Select presentation and motion precision. Hidden autonomy keeps the same tasks and clock.
    * @param visible Whether to render; rendering requires full simulation.
    * @param simulate Whether to sample bones and solve dynamic avoidance continuously.

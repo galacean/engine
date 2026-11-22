@@ -12,26 +12,48 @@ setFlagsFromString("--expose_gc");
 const collect = runInNewContext("gc") as () => void;
 async function collectRetired() {
   for (let i = 0; i < 6; i++) {
-    await new Promise<void>(resolve => setImmediate(resolve));
+    await new Promise<void>((resolve) => setImmediate(resolve));
     collect();
   }
 }
-const terrain = (size = 2) => ({ revision: size, grid: {
-  samples: new Uint16Array(size * size), resolution: size, origin: [0, 0] as [number, number],
-  size: 1024, decode: { offset: 0, scale: 1 }
-} });
+const terrain = (size = 2) => ({
+  revision: size,
+  grid: {
+    samples: new Uint16Array(size * size),
+    resolution: size,
+    origin: [0, 0] as [number, number],
+    size: 1024,
+    decode: { offset: 0, scale: 1 }
+  }
+});
 
 async function prepareEmptyScene() {
-  const previous = terrain(1024), retiredSamples = new WeakRef(previous.grid.samples);
+  const previous = terrain(1024),
+    retiredSamples = new WeakRef(previous.grid.samples);
   const system = {
-    publishedTerrain: previous, host: {validate: validatePartCollection}, entries: [], members: new Map(), views: new Map(), revision: 0,
+    publishedTerrain: previous,
+    host: { validate: validatePartCollection },
+    entries: [],
+    members: new Map(),
+    views: new Map(),
+    revision: 0,
     residency: { desired: new Set(), invalidate() {} },
-    async flush() {}, readTransforms() {}, frames: () => new Map(), queriesFor: () => [],
-    updateResidency() {}, updateLights() {}, visible: true
+    async flush() {},
+    readTransforms() {},
+    frames: () => new Map(),
+    queriesFor: () => [],
+    updateResidency() {},
+    updateLights() {},
+    visible: true
   };
   // Only rendering collaborators are replaced; the transaction/terminal methods are real.
-  const candidate = await BuildingManager.prototype.prepareTerrain.call(system as any, terrain(), new AbortController().signal);
-  candidate.commit(); candidate.finalize();
+  const candidate = await BuildingManager.prototype.prepareTerrain.call(
+    system as any,
+    terrain(),
+    new AbortController().signal
+  );
+  candidate.commit();
+  candidate.finalize();
   return { candidate, system, retiredSamples };
 }
 
@@ -47,13 +69,20 @@ const acceptWorld = () => {};
 const isCurrentWorld = () => true;
 const liveQuery = () => "live-query";
 function publishWorld() {
-  const snapshot = { samples: new Uint16Array(1024 * 1024) }, retiredQuery = new WeakRef(snapshot);
+  const snapshot = { samples: new Uint16Array(1024 * 1024) },
+    retiredQuery = new WeakRef(snapshot);
   const system = { visible: true, bounds: [], captureOccupancyQuery: liveQuery };
   const candidate = {
-    assertCurrent() {}, commit() {}, finalize() {}, discard() {}, bounds: [], captureOccupancyQuery: () => snapshot
+    assertCurrent() {},
+    commit() {},
+    finalize() {},
+    discard() {},
+    bounds: [],
+    captureOccupancyQuery: () => snapshot
   };
   const world = new NativeBuildingWorld(system as any, candidate as any, acceptWorld, isCurrentWorld);
-  world.commitPublication(); world.activate();
+  world.commitPublication();
+  world.activate();
   return { world, retiredQuery };
 }
 
@@ -140,6 +169,17 @@ it("prepareTerrain candidate prepareShaderWarmup emits negative point-light delt
   expect(inactiveWarmup.decorationPointLightBudget).toBe(0);
   inactiveWarmup.dispose();
   candidate.discard();
+
+  // When decoration lights are already active and target views also own decoration lights,
+  // the pool stays active with zero-energy idle slots so delta is 0 (no 0-light/4-light doubling).
+  system.lights.root.isActiveInHierarchy = true;
+  const steadyWarmup = await (BuildingManager.prototype as any).prepareShaderWarmupForViews.call(
+    system,
+    [],
+    [{ lights: [{ descriptor: { ownerId: "house-1" } }] }]
+  );
+  expect(steadyWarmup.decorationPointLightBudget).toBe(0);
+  steadyWarmup.dispose();
 });
 
 it("releases retired terrain samples and avoids input thrash when preparing terrain with active buildings", async () => {

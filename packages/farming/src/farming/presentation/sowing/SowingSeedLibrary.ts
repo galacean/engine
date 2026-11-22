@@ -17,6 +17,7 @@ export class SowingSeedLibrary {
     this.material = new PBRMaterial(parent.engine);
     this.material.baseColor = new Color(1, 1, 1, 1);
     this.material.roughness = 0.86;
+    this.material.screenSpaceReflectionIntensity = 0;
   }
   parts(cropId: string) {
     return seeds[sowingSeedVariant(cropId)].parts;

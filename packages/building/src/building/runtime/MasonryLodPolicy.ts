@@ -42,6 +42,7 @@ export interface MasonryLodTuning {
   enterDetailUnitPx: number;
   leaveDetailUnitPx: number;
   colorizeLod: boolean;
+  lodCrossFade: boolean;
 }
 
 export const DEFAULT_MASONRY_LOD_TUNING: Readonly<MasonryLodTuning> = {
@@ -51,7 +52,8 @@ export const DEFAULT_MASONRY_LOD_TUNING: Readonly<MasonryLodTuning> = {
   leaveDetailSizePx: 216,
   enterDetailUnitPx: 7.2,
   leaveDetailUnitPx: 5.4,
-  colorizeLod: false
+  colorizeLod: false,
+  lodCrossFade: true
 };
 
 const masonryLodTuning: MasonryLodTuning = { ...DEFAULT_MASONRY_LOD_TUNING };

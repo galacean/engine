@@ -16,6 +16,7 @@ export class SeedSackMaterials {
       if (!(source instanceof PBRMaterial)) throw new Error("Seed sack label requires a PBR material");
       material = source.clone();
       material.name = `SeedSackLabel/${key}`;
+      material.screenSpaceReflectionIntensity = 0;
       material.tilingOffset.set(1 / atlas.grid, 1 / atlas.grid, cell.column / atlas.grid, cell.row / atlas.grid);
       this.variants.set(key, material);
     }

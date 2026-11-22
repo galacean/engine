@@ -116,6 +116,7 @@ export class FarmItemPresentation {
     registerFarmingPropResources(parent.engine);
     this.produceMaterial = new PBRMaterial(parent.engine);
     this.produceMaterial.roughness = 0.9;
+    this.produceMaterial.screenSpaceReflectionIntensity = 0;
     this.materials.push(this.produceMaterial);
     this.release = service.subscribe(() => this.sync());
     this.sync();
@@ -242,6 +243,11 @@ export class FarmItemPresentation {
         visual.model.addChild(model);
         for (const animator of model.getComponentsIncludeChildren(Animator, [])) animator.enabled = false;
         const renderers = model.getComponentsIncludeChildren(Renderer, []);
+        for (const renderer of renderers) {
+          for (const material of renderer.getMaterials()) {
+            if (material instanceof PBRMaterial) material.screenSpaceReflectionIntensity = 0;
+          }
+        }
         visual.shadows.push(
           ...renderers.map((renderer) => ({
             renderer,
@@ -329,6 +335,13 @@ export class FarmItemPresentation {
     }
   }
 
+  whenLoaded(): Promise<void> {
+    const tasks: Promise<unknown>[] = [];
+    for (const visual of this.visuals.values()) {
+      if (visual.loading) tasks.push(visual.loading);
+    }
+    return tasks.length ? Promise.allSettled(tasks).then(() => {}) : Promise.resolve();
+  }
   setActive(active: boolean): void {
     this.active = active;
     if (!active) {

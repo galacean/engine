@@ -353,6 +353,11 @@ export class FarmingWorldPresentation {
     return this.soils.whenTexturesSettled();
   }
 
+  /** Resolves once persistent farming item prefabs have instantiated so warmup sees their final shaders. */
+  whenPropsSettled(): Promise<void> {
+    return this.items.whenLoaded();
+  }
+
   /** Synchronously flush pending soil batch geometry so renderers have valid meshes before shader warmup. */
   flushPendingVisuals(): void {
     if (!this.disposed) this.soils.update(0);

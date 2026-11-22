@@ -29,6 +29,17 @@ import {
 } from "../../../world/SeedWorldExactInstanceCellRuntime.ts";
 import { rockLodMeshes } from "./RockLodMeshes";
 
+let rockLodCrossFadeEnabled = true;
+
+/** Enables or disables Bayer dither cross-fading between rock LOD levels (disable to avoid extra RENDERER_LOD_DITHER shader variants). */
+export function setRockLodCrossFadeEnabled(enabled: boolean): void {
+  rockLodCrossFadeEnabled = enabled;
+}
+
+export function getRockLodCrossFadeEnabled(): boolean {
+  return rockLodCrossFadeEnabled;
+}
+
 const lodFadeProperty = ShaderProperty.getByName("renderer_LodFade");
 const heights = [...ROCK_LOD_SCREEN_HEIGHTS, Number.MIN_VALUE];
 const lodGroup = new TerrainLodGroupRuntime(
@@ -257,7 +268,7 @@ export class RockLodView extends Script {
     this.visibleObservation.screenRelativeHeight = entry.screenHeight;
     const sets = entry.lod.updateInto(this.visibleObservation, this.scratch);
     const first = sets[0];
-    const second = sets.length > 1 ? sets[1] : undefined;
+    const second = rockLodCrossFadeEnabled && sets.length > 1 ? sets[1] : undefined;
     const sourceMesh = entry.meshes[first.lodIndex];
     const targetMesh = second ? entry.meshes[second.lodIndex] : sourceMesh;
     if (renderer.mesh !== sourceMesh) renderer.mesh = sourceMesh;

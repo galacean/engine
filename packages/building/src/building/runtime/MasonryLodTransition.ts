@@ -2,7 +2,7 @@ import {
   TerrainLodGroupRuntime,
   createTerrainLodRendererSetScratch
 } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
-import type { MasonryLod } from "./MasonryLodPolicy";
+import { getMasonryLodTuning, type MasonryLod } from "./MasonryLodPolicy";
 
 // The same per-instance state machine as procedural trees. Selection and readiness
 // are building-specific; transition/reversal/hidden-time semantics have one owner.
@@ -37,10 +37,9 @@ export class MasonryLodTransition {
     if (!ready || next < this.target || time - this.pendingSince >= 0.6) this.target = next;
     this.observation.timeSeconds = time;
     this.observation.screenRelativeHeight = 3 - this.target;
-    const states = this.instance.updateInto(
-      visible ? this.observation : { timeSeconds: time, visible: false },
-      this.scratch
-    );
+    const states = getMasonryLodTuning().lodCrossFade
+      ? this.instance.updateInto(visible ? this.observation : { timeSeconds: time, visible: false }, this.scratch)
+      : this.instance.snap(this.observation);
     this.animating = states.length > 1;
     return states;
   }

@@ -136,12 +136,60 @@ function quadPart(
 
 function makeUnitBoxPart(owner: string): ConstructionPreviewPart {
   const faces: readonly { n: [number, number, number]; corners: [number, number, number][] }[] = [
-    { n: [1, 0, 0], corners: [[1, 0, 0], [1, 2, 0], [1, 2, 1], [1, 0, 1]] },
-    { n: [-1, 0, 0], corners: [[0, 0, 1], [0, 2, 1], [0, 2, 0], [0, 0, 0]] },
-    { n: [0, 1, 0], corners: [[0, 2, 1], [1, 2, 1], [1, 2, 0], [0, 2, 0]] },
-    { n: [0, -1, 0], corners: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]] },
-    { n: [0, 0, 1], corners: [[0, 0, 1], [1, 0, 1], [1, 2, 1], [0, 2, 1]] },
-    { n: [0, 0, -1], corners: [[1, 0, 0], [0, 0, 0], [0, 2, 0], [1, 2, 0]] }
+    {
+      n: [1, 0, 0],
+      corners: [
+        [1, 0, 0],
+        [1, 2, 0],
+        [1, 2, 1],
+        [1, 0, 1]
+      ]
+    },
+    {
+      n: [-1, 0, 0],
+      corners: [
+        [0, 0, 1],
+        [0, 2, 1],
+        [0, 2, 0],
+        [0, 0, 0]
+      ]
+    },
+    {
+      n: [0, 1, 0],
+      corners: [
+        [0, 2, 1],
+        [1, 2, 1],
+        [1, 2, 0],
+        [0, 2, 0]
+      ]
+    },
+    {
+      n: [0, -1, 0],
+      corners: [
+        [0, 0, 0],
+        [1, 0, 0],
+        [1, 0, 1],
+        [0, 0, 1]
+      ]
+    },
+    {
+      n: [0, 0, 1],
+      corners: [
+        [0, 0, 1],
+        [1, 0, 1],
+        [1, 2, 1],
+        [0, 2, 1]
+      ]
+    },
+    {
+      n: [0, 0, -1],
+      corners: [
+        [1, 0, 0],
+        [0, 0, 0],
+        [0, 2, 0],
+        [1, 2, 0]
+      ]
+    }
   ];
   const positions: number[] = [];
   const normals: number[] = [];
@@ -200,7 +248,8 @@ describe("Building system optimization invariants", () => {
 
   function installCompiler(): void {
     registerConstructionSceneLighting();
-    if (!ShaderFactory.includeMap["Masonry/LodDither.glsl"]) ShaderFactory.registerInclude("Masonry/LodDither.glsl", lodDither);
+    if (!ShaderFactory.includeMap["Masonry/LodDither.glsl"])
+      ShaderFactory.registerInclude("Masonry/LodDither.glsl", lodDither);
     if (!ShaderFactory.includeMap["Masonry/Plaster.glsl"])
       ShaderFactory.registerInclude("Masonry/Plaster.glsl", constructionPlasterGLSL);
     const compiler = new ShaderCompiler();
@@ -308,12 +357,7 @@ describe("Building system optimization invariants", () => {
 
       // 6 standard frustum planes (nx, ny, nz, d) enclosing [-10, 10]^3 around origin -> Unit 0 only.
       const frustumPlanes = new Float32Array([
-        1, 0, 0, 10,
-        -1, 0, 0, 10,
-        0, 1, 0, 10,
-        0, -1, 0, 10,
-        0, 0, 1, 10,
-        0, 0, -1, 10
+        1, 0, 0, 10, -1, 0, 0, 10, 0, 1, 0, 10, 0, -1, 0, 10, 0, 0, 1, 10, 0, 0, -1, 10
       ]);
       expect(lod.update(viewA, 720, false, 1, -1, frustumPlanes)).toBe(true);
       expect(lod.highCount).toBe(1);
@@ -869,7 +913,9 @@ describe("Building system optimization invariants", () => {
         const proxyRenderersD: MeshRenderer[] = [];
         proxyD.root.getComponentsIncludeChildren(MeshRenderer, proxyRenderersD);
         const boxMatD = proxyRenderersD.find((r) => r.entity.name.startsWith("GlobalProxyBoxes_"))!.getMaterial()!;
-        expect(boxMatD.shaderData._macroCollection.isEnable(ShaderMacro.getByName("GLOBAL_PROXY_ENTRANCE"))).toBe(false);
+        expect(boxMatD.shaderData._macroCollection.isEnable(ShaderMacro.getByName("GLOBAL_PROXY_ENTRANCE"))).toBe(
+          false
+        );
         expect(viewD.root.findByName("Visual surfaces")!.isActive).toBe(true);
         viewD.destroy();
       } finally {
@@ -1008,8 +1054,12 @@ describe("Building system optimization invariants", () => {
       expect(brick).toContain("& 1024) != 0) ? 0.0 :");
 
       // DepthOnly CullMode parity on DistanceSurface and GlobalProxy.
-      expect(distanceSurfaceShader.match(/RasterState\s*=\s*\{\s*CullMode\s*=\s*rasterStateCullMode;\s*\}/g)).toHaveLength(2);
-      expect(globalProxyShader.match(/RasterState\s*=\s*\{\s*CullMode\s*=\s*rasterStateCullMode;\s*\}/g)).toHaveLength(2);
+      expect(
+        distanceSurfaceShader.match(/RasterState\s*=\s*\{\s*CullMode\s*=\s*rasterStateCullMode;\s*\}/g)
+      ).toHaveLength(2);
+      expect(globalProxyShader.match(/RasterState\s*=\s*\{\s*CullMode\s*=\s*rasterStateCullMode;\s*\}/g)).toHaveLength(
+        2
+      );
 
       // World-pick discards worn plaster before writing pick output; forward shading computes
       // plasterFinish() under uniform control flow (GLSL ES 3.00 §3.9.2 / §8.13.1) before discard
@@ -1041,7 +1091,9 @@ describe("Building system optimization invariants", () => {
         "vec3 masonrySdfHitLocal;void original_main(){}void main(){original_main();}",
         true
       );
-      expect(sdf.fragment).toContain("void main(){original_main();vec3 wallJointPoint=masonryWallJointRest+masonrySdfHitLocal");
+      expect(sdf.fragment).toContain(
+        "void main(){original_main();vec3 wallJointPoint=masonryWallJointRest+masonrySdfHitLocal"
+      );
     });
 
     it("initializes ProbeVolume SurfaceData and Varyings fields and matches PBR direct diffuse in masonryFarProxyLight", () => {
@@ -1346,6 +1398,30 @@ describe("Building system optimization invariants", () => {
       expect(slot0.transform.worldPosition.x).toBeCloseTo(2);
       expect(slot0.transform.worldPosition.y).toBeCloseTo(3);
       expect(slot0.transform.worldPosition.z).toBeCloseTo(4);
+
+      pool.dispose();
+    });
+
+    it("keeps ConstructionDecorationLights pool active with zero-energy slots when keepPoolActive is true", () => {
+      const engine = createMockEngine();
+      const scene = Object.assign(createMockScene(engine), {
+        _lightManager: { _attachPointLight() {}, _detachPointLight() {} },
+        _shaderData: { setFloatArray() {}, setInt() {}, getMacros() {} }
+      }) as unknown as Scene;
+      activeScenes.push(scene);
+      const camEntity = scene.createRootEntity("Cam");
+      const fakeCamera = { entity: camEntity } as unknown as Camera;
+      const host = scene.createRootEntity("Host");
+      const pool = new ConstructionDecorationLights(host, 4);
+
+      pool.update([], fakeCamera, 1 / 60, true);
+      expect(pool.root.isActive).toBe(true);
+      expect(pool.metrics.active).toBe(0);
+      expect(pool.metrics.allocated).toBe(4);
+
+      // Turning keepPoolActive off with no active descriptors deactivates the pool immediately.
+      pool.update([], fakeCamera, 1 / 60, false);
+      expect(pool.root.isActive).toBe(false);
 
       pool.dispose();
     });

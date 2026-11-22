@@ -188,7 +188,8 @@ describe("startup shader publication boundary", () => {
     expect(f.collectVariants).toHaveBeenCalledTimes(2);
     expect(f.collectVariants.mock.calls[0][4]).toMatchObject({
       onlyEnabledRenderers: true,
-      includeMasonryDither: true,
+      includeGenerationReveal: false,
+      includeMasonryDither: false,
       includeMasonryEntrance: true,
       includeInstanceEntrance: false,
       includeLodDither: false,
@@ -198,6 +199,7 @@ describe("startup shader publication boundary", () => {
     expect(f.collectVariants.mock.calls[0][4].additionalRenderers).toBeUndefined();
     expect(f.collectVariants.mock.calls[0][4].additionalPointLightCounts).toBeUndefined();
     expect(f.collectVariants.mock.calls[1][4]).toMatchObject({
+      includeGenerationReveal: false,
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
       additionalInstancedRenderers: [fakeVegRenderer],
       additionalPointLightCounts: [4],
@@ -381,9 +383,11 @@ describe("startup shader publication boundary", () => {
         }
       ]
     } as unknown as Shader;
-    const spy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
-      name === "Masonry/GlobalProxy" ? fakeGlobalProxyShader : (null as unknown as Shader)
-    );
+    const spy = vi
+      .spyOn(Shader, "find")
+      .mockImplementation((name: string) =>
+        name === "Masonry/GlobalProxy" ? fakeGlobalProxyShader : (null as unknown as Shader)
+      );
     try {
       const basePL = { n: "SCENE_POINT_LIGHT_COUNT", v: "1" };
       const globalProxyEntrance = {
@@ -478,7 +482,11 @@ describe("startup shader publication boundary", () => {
         shader: gpShadowOnlyShader,
         shaderData: { _macroCollection: new ShaderMacroCollection() }
       };
-      const vegMat = { destroyed: false, shader: vegShader, shaderData: { _macroCollection: new ShaderMacroCollection() } };
+      const vegMat = {
+        destroyed: false,
+        shader: vegShader,
+        shaderData: { _macroCollection: new ShaderMacroCollection() }
+      };
       const makeRenderer = (mat: object, castShadows: boolean) => {
         const r = Object.create(MeshRenderer.prototype);
         Object.defineProperties(r, {
@@ -872,7 +880,9 @@ describe("startup shader publication boundary", () => {
         "Terrain/Vegetation",
         {
           subShaders: [
-            { passes: [{ getTagValue: () => PipelineStage.ShadowCaster }, { getTagValue: () => PipelineStage.Forward }] }
+            {
+              passes: [{ getTagValue: () => PipelineStage.ShadowCaster }, { getTagValue: () => PipelineStage.Forward }]
+            }
           ]
         } as unknown as Shader
       ],
@@ -880,7 +890,9 @@ describe("startup shader publication boundary", () => {
         "Masonry/SupportSurface",
         {
           subShaders: [
-            { passes: [{ getTagValue: () => PipelineStage.ShadowCaster }, { getTagValue: () => PipelineStage.Forward }] }
+            {
+              passes: [{ getTagValue: () => PipelineStage.ShadowCaster }, { getTagValue: () => PipelineStage.Forward }]
+            }
           ]
         } as unknown as Shader
       ],
@@ -1167,6 +1179,11 @@ describe("animal presentation preparation", () => {
   it("joins module and admitted model preparation before startup collection", async () => {
     const model = deferred(),
       prepare = vi.fn(() => model.promise),
+      prepareWarmup = vi.fn(async () => ({
+        renderers: [],
+        extraMaterials: new Map(),
+        dispose: vi.fn()
+      })),
       synchronize = vi.fn(),
       update = vi.fn();
     const load = vi.fn(
@@ -1176,6 +1193,7 @@ describe("animal presentation preparation", () => {
             synchronize = synchronize;
             update = update;
             preparePresentation = prepare;
+            prepareShaderWarmup = prepareWarmup;
           }
         }) as any
     );
@@ -1193,5 +1211,86 @@ describe("animal presentation preparation", () => {
     await task;
     expect(completed).toBe(true);
     expect(load).toHaveBeenCalledOnce();
+    const warmup = await host.prepareShaderWarmup();
+    expect(prepareWarmup).toHaveBeenCalledOnce();
+    expect(warmup).toBeDefined();
+  });
+
+  it("includes animal, rock-grass, vegetation, and merged extraMaterials in primary startup when precompileCoreMasonry is enabled", async () => {
+    const disposeMasonry = vi.fn();
+    const disposeAnimal = vi.fn();
+    const disposeVeg = vi.fn();
+    const disposeRockGrass = vi.fn();
+    const masonryRenderer = { name: "masonry-lod0" } as any;
+    const animalRenderer = { name: "animal-distant-species" } as any;
+    const vegRenderer = { name: "veg-offscreen" } as any;
+    const rockGrassRenderer = { name: "rock-grass" } as any;
+    const masonryMat = { name: "masonry-extra" } as any;
+    const animalMat = { name: "animal-outlined" } as any;
+    const primaryInactiveRoot = { name: "farming-storage-root" } as any;
+    const collectVariants = vi.fn(() => []);
+    const warmupVariants = vi.fn(async () => ({
+      requested: 0,
+      compiled: 0,
+      skipped: false,
+      issues: [],
+      elapsedMilliseconds: 0,
+      longestVariantMilliseconds: 0,
+      parallelCompileSupported: false
+    }));
+    await runSeedWorldStartupShaderWarmup({
+      precompileShaders: true,
+      engine: {} as any,
+      scene: { rootEntities: [] } as any,
+      camera: { enabled: true } as any,
+      pageUrl: new URL("http://localhost/?view=3d"),
+      canvas: { dataset: {} } as any,
+      showAssistant: false,
+      isDisposed: () => false,
+      progress: () => {},
+      timed: (_name, work) => work(),
+      deferSecondaryCollection: true,
+      includeMasonryDither: false,
+      precompileCoreMasonry: true,
+      prepareMasonryShaderWarmup: async () => ({
+        renderers: [masonryRenderer],
+        extraMaterials: new Map([[masonryRenderer, [masonryMat]]]),
+        dispose: disposeMasonry
+      }),
+      prepareAnimalShaderWarmup: async () => ({
+        renderers: [animalRenderer],
+        extraMaterials: new Map([[animalRenderer, [animalMat]]]),
+        dispose: disposeAnimal
+      }),
+      prepareVegetationShaderWarmup: () => ({
+        renderers: [vegRenderer],
+        dispose: disposeVeg
+      }),
+      prepareRockGrassShaderWarmup: () => ({
+        renderers: [rockGrassRenderer],
+        dispose: disposeRockGrass
+      }),
+      prepareAssistantPresentation: () => undefined,
+      getPrimaryIncludeInactiveRoots: () => [primaryInactiveRoot],
+      getPostProcessWarmupState: () => ({ enabled: false }) as any,
+      additionalBackgroundMaterials: [],
+      warmupOperations: {
+        hasParallelShaderCompile: () => false,
+        collectSeedWorldRendererVariants: collectVariants as any,
+        findMissingSeedWorldShaderVariants: () => [],
+        warmupSeedWorldShaderVariants: warmupVariants as any
+      }
+    });
+    expect(collectVariants).toHaveBeenCalledOnce();
+    const opts = collectVariants.mock.calls[0][4] as any;
+    expect(opts.includeInactiveRoots).toEqual([primaryInactiveRoot]);
+    expect(opts.additionalRenderers).toEqual([masonryRenderer, animalRenderer, rockGrassRenderer]);
+    expect(opts.additionalInstancedRenderers).toEqual([vegRenderer]);
+    expect(opts.additionalRendererMaterials.get(masonryRenderer)).toEqual([masonryMat]);
+    expect(opts.additionalRendererMaterials.get(animalRenderer)).toEqual([animalMat]);
+    expect(disposeMasonry).toHaveBeenCalledOnce();
+    expect(disposeAnimal).toHaveBeenCalledOnce();
+    expect(disposeVeg).toHaveBeenCalledOnce();
+    expect(disposeRockGrass).toHaveBeenCalledOnce();
   });
 });

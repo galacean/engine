@@ -49,6 +49,7 @@ export class ConstructionDecorationLights {
   private publishedOwned = -1;
   private publishedLegacy = -1;
   private publishedFallback = -1;
+  private lastKeepPoolActive = false;
   private sameLights(lights: readonly ConstructionDecorationLight[]): boolean {
     if (lights.length !== this.inputLights.length) return false;
     for (let i = 0; i < lights.length; i++) {
@@ -77,7 +78,12 @@ export class ConstructionDecorationLights {
     }
     this.metrics.allocated = budget;
   }
-  update(lights: readonly ConstructionDecorationLight[], camera: Camera, deltaSeconds = 1 / 60): void {
+  update(
+    lights: readonly ConstructionDecorationLight[],
+    camera: Camera,
+    deltaSeconds = 1 / 60,
+    keepPoolActive = false
+  ): void {
     if (this.disposed) return;
     const cameraChanged = this.camera !== camera;
     if (cameraChanged) {
@@ -96,6 +102,7 @@ export class ConstructionDecorationLights {
       !rootMoved &&
       this.policy.settled &&
       sameLights &&
+      this.lastKeepPoolActive === keepPoolActive &&
       this.cameraPosition[0] === p.x &&
       this.cameraPosition[1] === p.y &&
       this.cameraPosition[2] === p.z &&
@@ -143,7 +150,10 @@ export class ConstructionDecorationLights {
       } else emitter.color.set(0, 0, 0, 1);
     }
     this.metrics.updates++;
-    this.root.isActive = this.metrics.active > 0;
+    this.lastKeepPoolActive = keepPoolActive;
+    // Keep the fixed-size pool active when the world owns decoration lights so idle zero-energy
+    // slots keep `SCENE_POINT_LIGHT_COUNT` constant and avoid compiling dual 0-light / 4-light shaders.
+    this.root.isActive = keepPoolActive || this.metrics.active > 0;
     const scene = this.root.scene!;
     if (ConstructionDecorationLights.publishers.get(scene) !== this) {
       // Another publisher owned or cleared this scene's masks; force publishIdentity() to rewrite them.

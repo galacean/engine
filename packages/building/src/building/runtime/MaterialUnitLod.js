@@ -58,8 +58,8 @@ export class MaterialUnitLod {
    * @param {number} [forced]
    * @param {Float32Array | null} [frustumPlanes]
    */
-  update(view, projectionScale, orthographic, modelScale = 1, forced = -1, frustumPlanes = null) {
-    if (forced >= 0 && forced === this.forcedCache && !this.changed) {
+  update(view, projectionScale, orthographic, modelScale = 1, forced = -1, frustumPlanes = null, crossFade = true) {
+    if (forced >= 0 && forced === this.forcedCache && crossFade === this.crossFadeCache && !this.changed) {
       this.highChanged = false;
       this.lowChanged = false;
       return false;
@@ -70,7 +70,8 @@ export class MaterialUnitLod {
       modelScale !== this.modelScaleCache ||
       orthographic !== this.orthographicCache ||
       forced !== this.forcedCache ||
-      useFrustum !== this.hadFrustumCache;
+      useFrustum !== this.hadFrustumCache ||
+      crossFade !== this.crossFadeCache;
     for (let i = 0; i < 4; i++) {
       const v = view[i * 4 + 2];
       if (this.viewCache[i] !== v) {
@@ -92,6 +93,7 @@ export class MaterialUnitLod {
     this.orthographicCache = orthographic;
     this.forcedCache = forced;
     this.hadFrustumCache = useFrustum;
+    this.crossFadeCache = crossFade;
     if (!cameraChanged && !this.changed) {
       this.highChanged = false;
       this.lowChanged = false;
@@ -154,14 +156,15 @@ export class MaterialUnitLod {
       if (force[id]) {
         weight = 1;
       } else if (forced >= 0) {
-        weight = Math.round(Math.max(0, Math.min(1, 1 - forced)) * 16) / 16;
+        const rawForced = Math.max(0, Math.min(1, 1 - forced));
+        weight = crossFade ? Math.round(rawForced * 16) / 16 : rawForced < 0.5 ? 0 : 1;
       } else {
         const depth = -(v2 * bx + v6 * by + v10 * bz + v14);
         const size =
           (bounds[p + 3] * scaleFactor) /
           (orthographic ? 1 : Math.max(depth - (depthPadding ? depthPadding[id] * modelScale : 0), minDepth));
         const raw = (size - lower) * invRange;
-        weight = raw <= 0 ? 0 : raw >= 1 ? 1 : Math.round(raw * 16) / 16;
+        weight = raw <= 0 ? 0 : raw >= 1 ? 1 : crossFade ? Math.round(raw * 16) / 16 : raw < 0.5 ? 0 : 1;
       }
       if (weight > 0) {
         if (weight < 1) highFading = true;

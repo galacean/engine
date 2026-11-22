@@ -25,6 +25,7 @@ import { restoreResource, restoreBuffer } from "@galacean/engine-modify/renderin
 import { buildBeveledBrickGeometry } from "./BeveledBrickGeometry";
 import { WoodUnitLod, GableWoodUnitLod } from "./WoodUnitLod.js";
 import { MaterialUnitLod } from "./MaterialUnitLod.js";
+import { getMasonryLodTuning } from "./MasonryLodPolicy";
 import { BrickUnitLod } from "./BrickUnitLod.js";
 import { buildBrickStorageFromFeedback, type BrickFeedbackSource } from "./BrickPackKernel";
 import type { ConstructionTerrainGrid } from "./TerrainField";
@@ -71,6 +72,7 @@ import { digestSha256 } from "./Sha256.js";
 
 const MACRO_MASONRY_DITHER = ShaderMacro.getByName("RENDERER_MASONRY_DITHER");
 const PROP_MASONRY_LOD_FADE = ShaderProperty.getByName("renderer_MasonryLodFade");
+const PROP_MASONRY_UNIT_INVERT = ShaderProperty.getByName("renderer_MasonryUnitInvert");
 const PROP_MASONRY_LOD_DEBUG_COLOR = ShaderProperty.getByName("renderer_MasonryLodDebugColor");
 
 /**
@@ -286,24 +288,23 @@ function unitVertex(source: string) {
   }
   return cached;
 }
-const unitFragmentHighCache = new Map<string, string>();
-const unitFragmentLowCache = new Map<string, string>();
-function unitFragment(source: string, low: boolean) {
-  const cache = low ? unitFragmentLowCache : unitFragmentHighCache;
-  let cached = cache.get(source);
+const unitFragmentCache = new Map<string, string>();
+function unitFragment(source: string) {
+  let cached = unitFragmentCache.get(source);
   if (cached !== undefined) return cached;
   const gate = `
+uniform float renderer_MasonryUnitInvert;
 flat in float masonryUnitWeight;
 void masonryUnitCoverage(){
 #ifdef RENDERER_MASONRY_DITHER
  vec2 p=mod(floor(gl_FragCoord.xy),4.0),a=mod(p,2.0),b=floor(p/2.0);
  float t=(4.0*(2.0*a.x+3.0*a.y-4.0*a.x*a.y)+(2.0*b.x+3.0*b.y-4.0*b.x*b.y)+0.5)/16.0;
- if(${low ? "t <= masonryUnitWeight" : "t > masonryUnitWeight"}) discard;
+ if(renderer_MasonryUnitInvert > 0.5 ? (t <= masonryUnitWeight) : (t > masonryUnitWeight)) discard;
 #endif
 }
 `;
   cached = gate + source.replace("masonryLodDither();", "masonryLodDither();masonryUnitCoverage();");
-  cache.set(source, cached);
+  unitFragmentCache.set(source, cached);
   return cached;
 }
 interface UnitDrawLod {
@@ -605,7 +606,8 @@ export class EngineResidentScene {
             camera.isOrthographic,
             scale,
             lod.forced,
-            lod.forced < 0 ? frustumPlanes : null
+            lod.forced < 0 ? frustumPlanes : null,
+            getMasonryLodTuning().lodCrossFade
           )
         ) {
           const counts = [lod.selector.highCount, lod.selector.lowCount];
@@ -1121,12 +1123,7 @@ export class EngineResidentScene {
     // Only closed outward-wound brick geometry can safely back-face cull; open shells
     // (roof, wood, plaster, stone-floor, decorations) and Brick SDF proxy boxes stay CullMode.Off.
     const highCullMode = d.family === "brick" ? CullMode.Back : CullMode.Off;
-    const shader = await residentShader(
-      this.engine,
-      vertex,
-      isUnit ? unitFragment(fragment, false) : fragment,
-      highCullMode
-    );
+    const shader = await residentShader(this.engine, vertex, isUnit ? unitFragment(fragment) : fragment, highCullMode);
     const material = this.own(
       (d.nativeMaterial ?? d.nativeUnit?.material)?.clone() ?? new Material(this.engine, shader)
     );
@@ -1182,6 +1179,7 @@ export class EngineResidentScene {
     renderer.priority = drawPriority;
     renderer.castShadows = false;
     renderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, 1);
+    if (isUnit) renderer.shaderData.setFloat(PROP_MASONRY_UNIT_INVERT, 0);
     renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, this.lodDebugColorOff);
     const needsLodRenderer = isUnit || meshes.length > 1;
     const lodRenderer = needsLodRenderer
@@ -1198,6 +1196,7 @@ export class EngineResidentScene {
       lodRenderer.priority = drawPriority;
       lodRenderer.castShadows = false;
       lodRenderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, 1);
+      if (isUnit) lodRenderer.shaderData.setFloat(PROP_MASONRY_UNIT_INVERT, 1);
       lodRenderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, this.lodDebugColorOff);
     }
     let unitLod: UnitDrawLod | undefined;
@@ -1206,9 +1205,9 @@ export class EngineResidentScene {
       // B3: Use a shared 44-triangle chamfered solid brick mesh with CullMode.Back,
       // no gl_FragDepth write (restoring full hardware Early-Z), and identical scene lighting
       // so LOD0 <-> LOD1 transitions have zero brightness or color shift.
-      const lowFragment = unitFragment(fragment, true);
+      // High and low renderers share the exact same Shader via `renderer_MasonryUnitInvert`.
       lowMaterial = this.own(material.clone());
-      lowMaterial.shader = await residentShader(this.engine, vertex, lowFragment, CullMode.Back);
+      lowMaterial.shader = shader;
       bindTint(lowMaterial);
       lowMaterial.shaderData.setVector4("renderer_DormerGrid", dormerGrid);
       for (const [name, r] of Object.entries(d.resources)) {
@@ -1310,9 +1309,7 @@ export class EngineResidentScene {
         ...medium.vertexElements,
         new VertexElement("masonryUnitFade", 0, VertexElementFormat.Float, binding, 1)
       ]);
-      lowMaterial = this.own(
-        new Material(this.engine, await residentShader(this.engine, vertex, unitFragment(fragment, true)))
-      );
+      lowMaterial = this.own(new Material(this.engine, shader));
       bindTint(lowMaterial);
       lowMaterial.shaderData.setVector4("renderer_DormerGrid", dormerGrid);
       for (const [name, r] of Object.entries(d.resources)) {

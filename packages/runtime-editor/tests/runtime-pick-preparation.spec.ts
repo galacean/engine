@@ -139,6 +139,44 @@ describe("RuntimePickPreparation non-scene shader filtering", () => {
     expect(queue).toHaveLength(2);
     expect(valuesSpy.mock.calls.length).toBe(scansAfterFirst);
   });
+
+  it("skips orthographic and transient animation variants and strips SSR macros from pick clones", () => {
+    const { queue, emit } = createHarness();
+    const pickable = Shader.create("TestScene/PickableSurface", [
+      new ShaderPass(
+        "Forward",
+        [[0, "void main(){gl_Position=vec4(0.0);}"]],
+        [
+          [1, "RENDERER_WORLD_PICK", 2],
+          [0, "void main(){gl_FragColor=vec4(1.0);}"]
+        ],
+        ShaderLanguage.GLSLES300,
+        { pipelineStage: "Forward" }
+      )
+    ])!;
+    createdShaders.push(pickable);
+    const pass = pickable.subShaders[0].passes[0];
+
+    emit(pass, [ShaderMacro.getByName("CAMERA_ORTHOGRAPHIC")]);
+    emit(pass, [ShaderMacro.getByName("RENDERER_GENERATION_REVEAL")]);
+    emit(pass, [ShaderMacro.getByName("RENDERER_MASONRY_ENTRANCE")]);
+    emit(pass, [ShaderMacro.getByName("GLOBAL_PROXY_DITHER")]);
+    expect(queue).toHaveLength(0);
+
+    emit(pass, [
+      ShaderMacro.getByName("CAMERA_ENABLE_SSR"),
+      ShaderMacro.getByName("SSR_PACKED_HDR_REINHARD"),
+      ShaderMacro.getByName("RENDERER_HAS_UV")
+    ]);
+    // Second variant differing only by stripped SSR macros deduplicates cleanly to the same pick key.
+    emit(pass, [ShaderMacro.getByName("RENDERER_HAS_UV")]);
+    expect(queue).toHaveLength(1);
+    const macroNames = queue[0]!.macros.map((m) => m.name);
+    expect(macroNames).toContain("RENDERER_HAS_UV");
+    expect(macroNames).toContain("RENDERER_WORLD_PICK");
+    expect(macroNames).not.toContain("CAMERA_ENABLE_SSR");
+    expect(macroNames).not.toContain("SSR_PACKED_HDR_REINHARD");
+  });
 });
 
 describe("pickOcclusionPass pipelineStage cache sync", () => {
@@ -201,6 +239,9 @@ describe("pickOcclusionPass pipelineStage cache sync", () => {
       expect(findSpy).toHaveBeenCalled();
       expect(queue).toHaveLength(1);
       expect(prep.ready).toBe(true);
+
+      prep.pause();
+      expect(prep.ready).toBe(false);
     } finally {
       prep.dispose();
       if (!sceneShader.destroyed) sceneShader.destroy(true);

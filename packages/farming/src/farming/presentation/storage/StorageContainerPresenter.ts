@@ -1,4 +1,4 @@
-import { AssetType, Entity, PrefabResource, Renderer, type Vector3 } from "@galacean/engine";
+import { AssetType, Entity, PBRMaterial, PrefabResource, Renderer, type Vector3 } from "@galacean/engine";
 import { FarmingGrowthVisibility } from "../FarmingGrowthVisibility";
 import type { FarmingService } from "../../application/FarmingService";
 import type { FarmingDefinitionSet } from "../../domain/FarmDefinitions";
@@ -184,11 +184,15 @@ export class StorageContainerPresenter {
         const root = this.root.createChild(state.id),
           prop = this.prefabs.get(type.appearance)!.instantiate();
         root.addChild(prop);
-        if (type.appearance === "cart")
-          for (const renderer of prop.getComponentsIncludeChildren(Renderer, [])) {
+        for (const renderer of prop.getComponentsIncludeChildren(Renderer, [])) {
+          for (const material of renderer.getMaterials()) {
+            if (material instanceof PBRMaterial) material.screenSpaceReflectionIntensity = 0;
+          }
+          if (type.appearance === "cart") {
             renderer.castShadows = false;
             renderer.receiveShadows = false;
           }
+        }
         view = {
           root,
           label: "",

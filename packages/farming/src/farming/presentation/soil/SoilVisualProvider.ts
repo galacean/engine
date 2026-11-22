@@ -664,6 +664,7 @@ function createPerimeterMaterial(engine: Engine): PBRMaterial {
   material.metallic = 0;
   material.roughness = DEFAULT_SOIL_VISUAL_CONFIG.perimeter.roughness;
   material.tilingOffset = new Vector4(...DEFAULT_SOIL_VISUAL_CONFIG.perimeter.tilingOffset);
+  material.screenSpaceReflectionIntensity = 0;
   material.isGCIgnored = true;
   return material;
 }

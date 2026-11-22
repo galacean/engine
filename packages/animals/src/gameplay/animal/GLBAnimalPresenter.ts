@@ -99,11 +99,16 @@ export class GLBAnimalPresenter implements AnimalPresenter {
         const materials = renderer.getMaterials();
         for (let i = 0; i < materials.length; i++) {
           const material = materials[i];
-          if (material instanceof PBRMaterial && material.name === profile.tintMaterial) {
-            const tinted = material.clone();
-            tinted.baseColor.copyFrom(color);
-            renderer.setMaterial(i, tinted);
-            this._materials.push(tinted);
+          if (material instanceof PBRMaterial) {
+            if (material.name === profile.tintMaterial) {
+              const tinted = material.clone();
+              tinted.baseColor.copyFrom(color);
+              tinted.screenSpaceReflectionIntensity = 0;
+              renderer.setMaterial(i, tinted);
+              this._materials.push(tinted);
+            } else {
+              material.screenSpaceReflectionIntensity = 0;
+            }
           }
         }
       }

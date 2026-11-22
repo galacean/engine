@@ -9,12 +9,26 @@ import type { RuntimeSceneInspection } from "./runtime-scene-inspection";
 export function meshPickShader(original: Shader): Shader {
   if (original.name.startsWith("RuntimeMeshPick_")) return original;
   const name = `RuntimeMeshPick_${original.name}`;
-  const vertexColor =
+  const vertexColorVarying =
+    original.name === "Unlit"
+      ? ""
+      : `
+            #if defined(MATERIAL_IS_ALPHA_CUTOFF) && defined(RENDERER_ENABLE_VERTEXCOLOR)
+              float vertexAlpha;
+            #endif`;
+  const vertexColorAssign =
+    original.name === "Unlit"
+      ? ""
+      : `
+            #if defined(MATERIAL_IS_ALPHA_CUTOFF) && defined(RENDERER_ENABLE_VERTEXCOLOR)
+              v.vertexAlpha = attr.COLOR_0.a;
+            #endif`;
+  const vertexColorMul =
     original.name === "Unlit"
       ? ""
       : `
               #ifdef RENDERER_ENABLE_VERTEXCOLOR
-                alpha *= v.vertexColor.a;
+                alpha *= v.vertexAlpha;
               #endif`;
   return (
     Shader.find(name) ??
@@ -28,18 +42,73 @@ export function meshPickShader(original: Shader): Shader {
           DepthState = { WriteEnabled = true; CompareFunction = material_WorldPickDepthCompare; }
           RasterState = { CullMode = rasterStateCullMode; }
           BlendState = { Enabled = false; }
-          VertexShader = PBRVertex;
+          VertexShader = MeshPickVertex;
           FragmentShader = MeshPickFragment;
-          #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
+          #include "ShaderLibrary/Common/Common.glsl"
+          #include "ShaderLibrary/Common/Transform.glsl"
+          #include "ShaderLibrary/Common/Attributes.glsl"
+          #include "ShaderLibrary/Skin/Skin.glsl"
+          #include "ShaderLibrary/Skin/BlendShape.glsl"
+          #ifdef MATERIAL_IS_ALPHA_CUTOFF
+            vec4 material_TilingOffset;
+            vec4 material_BaseColor;
+            float material_AlphaCutoff;
+            #ifdef MATERIAL_HAS_BASETEXTURE
+              sampler2D material_BaseTexture;
+            #endif
+          #endif
           float renderer_WorldPickBase;
-          void MeshPickFragment(Varyings v) {
-            // Same animated vertex path and alpha coverage as the visible PBR mesh.
+          struct MeshPickVaryings {
+            vec2 uv;
+            ${vertexColorVarying}
+          };
+          MeshPickVaryings MeshPickVertex(Attributes attr) {
+            MeshPickVaryings v;
+            vec4 position = vec4(attr.POSITION, 1.0);
+            #ifdef RENDERER_HAS_BLENDSHAPE
+              #ifdef RENDERER_HAS_NORMAL
+                vec3 normal = vec3(attr.NORMAL);
+                #ifdef RENDERER_HAS_TANGENT
+                  vec4 tangent = vec4(attr.TANGENT);
+                #endif
+              #endif
+              calculateBlendShape(attr, position
+                #ifdef RENDERER_HAS_NORMAL
+                  , normal
+                  #ifdef RENDERER_HAS_TANGENT
+                    , tangent
+                  #endif
+                #endif
+              );
+            #endif
+            #ifdef RENDERER_HAS_SKIN
+              mat4 skinMatrix = getSkinMatrix(attr);
+              position = skinMatrix * position;
+            #endif
+            #ifdef MATERIAL_IS_ALPHA_CUTOFF
+              vec2 uv = vec2(0.0);
+              #ifdef RENDERER_HAS_UV
+                uv = attr.TEXCOORD_0;
+              #endif
+              #ifdef MATERIAL_NEED_TILING_OFFSET
+                uv = uv * material_TilingOffset.xy + material_TilingOffset.zw;
+              #endif
+              v.uv = uv;
+              ${vertexColorAssign}
+            #else
+              v.uv = vec2(0.0);
+            #endif
+            gl_Position = renderer_MVPMat * position;
+            return v;
+          }
+          void MeshPickFragment(MeshPickVaryings v) {
+            // Same animated vertex path and alpha coverage as the visible mesh without PBR lighting/fog/shadow macros.
             #ifdef MATERIAL_IS_ALPHA_CUTOFF
               float alpha = material_BaseColor.a;
               #ifdef MATERIAL_HAS_BASETEXTURE
                 alpha *= texture2D(material_BaseTexture, v.uv).a;
               #endif
-              ${vertexColor}
+              ${vertexColorMul}
               if (alpha < material_AlphaCutoff) discard;
             #endif
             float id = floor(renderer_WorldPickBase + 0.5);

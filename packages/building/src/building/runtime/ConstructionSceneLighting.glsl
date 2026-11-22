@@ -60,11 +60,13 @@ void masonryDirectRadiance(Varyings v, SurfaceData s, BSDFData bsdf, vec3 legacy
         bool legacy=(uint(scene_MasonryLegacyMask)&(1u<<uint(i)))!=0u;
         if(pbr || legacy) {
           PointLight light=getPointLight(i);
-          if((uint(scene_MasonryPointMask)&(1u<<uint(i)))!=0u) {
-            masonryPointRadiance(v,s,bsdf,legacyNormal,light.color,light.position,light.distance,pbr,legacy,diffuse,specular);
-          } else if(pbr) {
-            // Other systems retain the engine's exact point-light implementation.
-            addPointDirectLightRadiance(v,s,bsdf,light,diffuse,specular);
+          if(dot(light.color, light.color) > 0.0) {
+            if((uint(scene_MasonryPointMask)&(1u<<uint(i)))!=0u) {
+              masonryPointRadiance(v,s,bsdf,legacyNormal,light.color,light.position,light.distance,pbr,legacy,diffuse,specular);
+            } else if(pbr) {
+              // Other systems retain the engine's exact point-light implementation.
+              addPointDirectLightRadiance(v,s,bsdf,light,diffuse,specular);
+            }
           }
         }
       }

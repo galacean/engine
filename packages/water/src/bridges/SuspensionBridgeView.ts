@@ -6,6 +6,7 @@ import {
   GLTFResource,
   MeshRenderer,
   ModelMesh,
+  PBRMaterial,
   Vector2,
   Vector3,
   type Camera,
@@ -114,6 +115,8 @@ async function acquireAssets(engine: Engine, signal?: AbortSignal) {
         const wood = resource.materials?.find((m) => m.name === "Bridge:Wood"),
           rope = resource.materials?.find((m) => m.name === "Bridge:Rope");
         if (!wood || !rope) throw new Error("Farmlands 吊桥材质不完整");
+        if (wood instanceof PBRMaterial) wood.screenSpaceReflectionIntensity = 0;
+        if (rope instanceof PBRMaterial) rope.screenSpaceReflectionIntensity = 0;
         return { template: readTemplate(resource), lod1Template: readTemplate(lod1Resource), wood, rope };
       } catch (error) {
         created.resources.splice(0).forEach(destroyAssets);

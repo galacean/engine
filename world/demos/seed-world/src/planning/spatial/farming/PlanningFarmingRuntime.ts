@@ -182,7 +182,8 @@ export class PlanningFarmingRuntime {
         FarmingInitializationError,
         this.statePath,
         () => this.stateResource,
-        (snapshot, farmId) => validatePlanningFarmSave(snapshot, farmId, this.definitions, undefined, rules.data.simulationConfig)
+        (snapshot, farmId) =>
+          validatePlanningFarmSave(snapshot, farmId, this.definitions, undefined, rules.data.simulationConfig)
       );
       this.root = root = this.system.entity.createChild("Farming Runtime");
       this.releaseDependencies = releaseDependencies = this.system.configureRuntime((area) => {
@@ -236,7 +237,11 @@ export class PlanningFarmingRuntime {
   async preparePresentation(): Promise<void> {
     await this.task;
     await this.land?.whenReady;
-    await this.presentation?.whenSoilTexturesSettled();
+    await Promise.allSettled([
+      this.presentation?.whenSoilTexturesSettled(),
+      this.presentation?.whenPropsSettled(),
+      this.activeArea?.storagePresenter?.prepare()
+    ]);
     this.presentation?.flushPendingVisuals();
   }
   sampleTarget(ray: import("@galacean/engine-farming/farming/api/index").GroundRay, maximumDistance: number) {
@@ -268,7 +273,10 @@ export class PlanningFarmingRuntime {
     this.land.refreshTerrain(fields);
   }
   /** Rebind an accepted local terrain/water view without recreating the farm or its save state. */
-  refreshTerrain(current: PublishedPlanningSeedScene, planningRevision = current.plan.farming?.planningRevision ?? 0): void {
+  refreshTerrain(
+    current: PublishedPlanningSeedScene,
+    planningRevision = current.plan.farming?.planningRevision ?? 0
+  ): void {
     const previous = this.waterCurrent ?? this.current;
     if (
       this.disposed ||
@@ -692,10 +700,8 @@ export class PlanningFarmingRuntime {
     if (!this.area.initialized) throw new Error(this.area.lastError ?? "Farm region is not initialized");
     this.unsubscribeWaterLayout?.();
     if (this.groundedView) this.requestWaterSupply(this.groundedView);
-    this.unsubscribeWaterLayout = subscribePlanningFarmWaterLayout(
-      this.area.service,
-      this.waterSupply,
-      () => this.disposed ? undefined : this.groundedView
+    this.unsubscribeWaterLayout = subscribePlanningFarmWaterLayout(this.area.service, this.waterSupply, () =>
+      this.disposed ? undefined : this.groundedView
     );
     this.land = new PlanningFarmLandLayer(this.area.entity, current.data.fields);
     this.vegetation = new PlanningFarmingVegetation({

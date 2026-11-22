@@ -89,6 +89,14 @@ export interface SeedWorldShaderWarmupOptions {
   readonly maximumPendingPrograms?: number;
   /** Optional wall-clock cap for startup warmup; remaining unsubmitted entries are returned in `report.deferred`. */
   readonly maxElapsedMilliseconds?: number;
+  /** Minimum clean animation frames to wait between newly submitted background shader compilations. */
+  readonly cooldownFrames?: number;
+  /** Wall-clock rAF interval threshold (ms) above which background warmup backs off to relieve GPU-process pressure. */
+  readonly maxFrameIntervalMs?: number;
+  /** Backoff pause duration (ms) applied when observed rAF interval exceeds `maxFrameIntervalMs`. */
+  readonly backoffMilliseconds?: number;
+  /** Optional predicate (e.g. active pointer/touch drag) that temporarily pauses new background submissions. */
+  readonly isPaused?: () => boolean;
   /** Preserve caller-supplied priority order instead of lexicographical sorting. */
   readonly preserveOrder?: boolean;
   readonly strict?: boolean;
@@ -412,7 +420,15 @@ export async function warmupSeedWorldShaderVariants(
   const pending = new Map<RuntimeShaderProgram, ProgramState>();
   // Slots belong to effective programs, not macro aliases. Refill as soon as any slot is freed.
   const maximumPendingPrograms = Math.max(1, Math.floor(options.maximumPendingPrograms ?? 16));
+  const cooldownFrames = Math.max(0, Math.floor(options.cooldownFrames ?? 0));
+  const maxFrameIntervalMs =
+    options.maxFrameIntervalMs !== undefined && Number.isFinite(options.maxFrameIntervalMs)
+      ? Math.max(0, options.maxFrameIntervalMs)
+      : 0;
+  const backoffMilliseconds = Math.max(0, options.backoffMilliseconds ?? 250);
   const parallelCompileSupported = hasParallelShaderCompile(engine);
+  let cooldownRemaining = 0;
+  let backoffUntil = 0;
   let reportedCompleted = -1;
   const reportProgress = () => {
     const completed = compiled + issues.length;
@@ -421,11 +437,24 @@ export async function warmupSeedWorldShaderVariants(
       options.onProgress?.(completed, entries.length);
     }
   };
+  const canSubmitNow = (): boolean => {
+    if (options.isPaused?.()) return false;
+    if (cooldownRemaining > 0) return false;
+    if (backoffUntil > 0 && performance.now() < backoffUntil) return false;
+    return true;
+  };
   const yieldFrame = async () => {
     reportProgress();
+    const beforeYield = performance.now();
     await nextAnimationFrame();
     options.signal?.throwIfAborted();
-    frameStartedAt = performance.now();
+    const now = performance.now();
+    const frameInterval = now - beforeYield;
+    frameStartedAt = now;
+    if (maxFrameIntervalMs > 0 && frameInterval > maxFrameIntervalMs) {
+      backoffUntil = Math.max(backoffUntil, now + backoffMilliseconds);
+    }
+    if (cooldownRemaining > 0) cooldownRemaining--;
   };
   const isProgramTextureUnitOverflow = (program: RuntimeSsrShaderProgram): boolean => {
     if (program.isValid) {
@@ -519,6 +548,7 @@ export async function warmupSeedWorldShaderVariants(
         const state: ProgramState = { aliases: [alias], settled: false };
         programs.set(program, state);
         pending.set(program, state);
+        if (cooldownFrames > 0) cooldownRemaining = Math.max(cooldownRemaining, cooldownFrames);
       }
     } catch (error) {
       const elapsed = performance.now() - variantStartedAt;
@@ -553,7 +583,7 @@ export async function warmupSeedWorldShaderVariants(
   let budgetExceeded = false;
   while ((nextEntry < entries.length && !budgetExceeded) || pending.size > 0) {
     options.signal?.throwIfAborted();
-    while (nextEntry < entries.length && !budgetExceeded && pending.size < maximumPendingPrograms) {
+    while (nextEntry < entries.length && !budgetExceeded && pending.size < maximumPendingPrograms && canSubmitNow()) {
       if (
         maxElapsedMilliseconds !== undefined &&
         nextEntry > 0 &&
@@ -631,10 +661,12 @@ export async function warmupSeedWorldShaderVariants(
       }
       if (performance.now() - frameStartedAt >= frameBudgetMilliseconds) await yieldFrame();
       // Do not wait for the slowest program in the old batch before submitting more work.
-      if (state.settled && !budgetExceeded && nextEntry < entries.length) break;
+      if (state.settled && !budgetExceeded && nextEntry < entries.length && canSubmitNow()) break;
     }
-    if (!budgetExceeded && nextEntry < entries.length && pending.size < maximumPendingPrograms) continue;
-    if (pending.size > 0) await yieldFrame();
+    if (!budgetExceeded && nextEntry < entries.length && pending.size < maximumPendingPrograms && canSubmitNow()) {
+      continue;
+    }
+    if (pending.size > 0 || (!budgetExceeded && nextEntry < entries.length)) await yieldFrame();
   }
   reportProgress();
   const deferred = nextEntry < entries.length ? Object.freeze(entries.slice(nextEntry)) : undefined;
@@ -930,6 +962,7 @@ function collectSeedWorldRendererVariantsInternal(
   const isGlobalWarmupShader = (shaderName: string): boolean =>
     shaderName.startsWith("Sky/") ||
     shaderName === "Terrain/Terrain" ||
+    shaderName.startsWith("Water/") ||
     shaderName.startsWith("WaterFar/") ||
     shaderName.startsWith("AIWorld/") ||
     shaderName.startsWith("World/") ||

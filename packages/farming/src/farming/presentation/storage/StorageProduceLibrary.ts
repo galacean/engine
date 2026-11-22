@@ -14,6 +14,7 @@ export class StorageProduceLibrary {
     this.material = new PBRMaterial(engine);
     this.material.baseColor = new Color(1, 1, 1, 1);
     this.material.roughness = 0.8;
+    this.material.screenSpaceReflectionIntensity = 0;
   }
   dimensions(cropId: string): readonly [number, number, number] {
     return this.product(cropId).size;

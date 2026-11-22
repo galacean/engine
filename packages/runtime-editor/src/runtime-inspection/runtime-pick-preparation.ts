@@ -6,6 +6,30 @@ const PICK = "RENDERER_WORLD_PICK";
 type Work = { pass: ShaderPass; macros: readonly ShaderMacro[] };
 
 const ENGINE_NON_SCENE_PICK_SHADER_PREFIXES = ["PostProcess/", "Blit/", "Sky/", "Lighting/", "2D/"] as const;
+/**
+ * Source Forward variants carrying these macros are either orthographic UI/overlay scenes
+ * or short-lived entrance/dither/authoring animation states that do not need eager pick clones.
+ */
+const PICK_SKIPPED_SOURCE_MACROS = new Set([
+  "CAMERA_ORTHOGRAPHIC",
+  "RENDERER_GENERATION_REVEAL",
+  "TERRAIN_PROJECT_ENTRANCE_WAVE",
+  "RENDERER_MASONRY_ENTRANCE",
+  "GLOBAL_PROXY_ENTRANCE",
+  "RENDERER_MASONRY_DITHER",
+  "GLOBAL_PROXY_DITHER",
+  "MASONRY_SURFACE_DITHER"
+]);
+/** Macros never active on the offscreen identity/pick camera (`enableScreenSpaceReflection = false`). */
+const PICK_STRIPPED_MACROS = new Set([
+  "ENGINE_OUTPUT_SRGB_CORRECT",
+  "CAMERA_ENABLE_SSR",
+  "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
+  "CAMERA_SSR_BILATERAL_SAMPLE",
+  "SSR_PACKED_DEPTH_RG8",
+  "SSR_PACKED_NORMAL_OCT8",
+  "SSR_PACKED_HDR_REINHARD"
+]);
 
 function isNonScenePickPass(
   pass: ShaderPass,
@@ -106,6 +130,12 @@ export class RuntimePickPreparation {
     }
   }
 
+  /** Pause draining newly observed variants into pick compilations until `resume()` or `flush()` is called. */
+  pause(): void {
+    if (this.disposed) return;
+    this.paused = true;
+  }
+
   /** Activate replacement shader compilation and drain all variants observed while paused. */
   resume(): void {
     if (!this.paused || this.disposed || this.failure) return;
@@ -140,7 +170,7 @@ export class RuntimePickPreparation {
       isPickOcclusionPass(source) ||
       isNonScenePickPass(source, this.ignoredPrefixes, this.nonScenePassCache, this.scannedShaders) ||
       source.getTagValue("pipelineStage") !== "Forward" ||
-      macros.some((m) => m.name === PICK)
+      macros.some((m) => m.name === PICK || PICK_SKIPPED_SOURCE_MACROS.has(m.name))
     )
       return;
     let target = this.targets.get(source);
@@ -153,7 +183,7 @@ export class RuntimePickPreparation {
       this.targets.set(source, target);
       if (target !== source) this.generated.add(target);
     }
-    const variant = macros.filter((m) => m.name !== "ENGINE_OUTPUT_SRGB_CORRECT");
+    const variant = macros.filter((m) => !PICK_STRIPPED_MACROS.has(m.name));
     if (target === source || this.meshReplacements.has(target)) variant.push(ShaderMacro.getByName(PICK));
     let keys = this.requested.get(target);
     if (!keys) this.requested.set(target, (keys = new Set()));
@@ -187,7 +217,7 @@ export class RuntimePickPreparation {
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
       const started = performance.now(),
         pending: Promise<boolean>[] = [];
-      while (this.queue.length && pending.length < 4 && performance.now() - started < 4 && !this.disposed) {
+      while (this.queue.length && pending.length < 2 && performance.now() - started < 4 && !this.disposed) {
         const work = this.queue.shift()!;
         pending.push(work.pass.compileVariantAsync(this.engine, work.macros, this.controller.signal));
       }

@@ -1,4 +1,8 @@
-import { mergeAnimalWorldChanges, planningAnimalSnapshotId, type PlanningAnimalWorldChange } from "@galacean/engine-world-planning/spatial/runtime/PlanningAnimalWorldChange";
+import {
+  mergeAnimalWorldChanges,
+  planningAnimalSnapshotId,
+  type PlanningAnimalWorldChange
+} from "@galacean/engine-world-planning/spatial/runtime/PlanningAnimalWorldChange";
 import { querySeedAnimalCatalog } from "./PlanningAnimalCatalog.ts";
 import type { PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
 import type { Entity } from "@galacean/engine";
@@ -33,7 +37,8 @@ type Runtime = Pick<
   | "observationPosition"
   | "inspect"
   | "shoo"
->;
+> &
+  Partial<Pick<PlanningAnimalRuntime, "prepareShaderWarmup">>;
 type RuntimeModule = {
   PlanningAnimalRuntime: new (
     parent: Entity,
@@ -77,7 +82,11 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
     plan: IslandPlan,
     config: AnimalPopulationConfig,
     navigation: PlanningAnimalNavigation,
-    options: { preservePopulation?: boolean; surface?: PlanningAnimalSurfaceData; change?: PlanningAnimalWorldChange } = {}
+    options: {
+      preservePopulation?: boolean;
+      surface?: PlanningAnimalSurfaceData;
+      change?: PlanningAnimalWorldChange;
+    } = {}
   ): void {
     if (this.disposed) return;
     this.enabled = config.enabled;
@@ -96,7 +105,14 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
         ? mergeAnimalWorldChanges(this.pending.change, options.change)
         : undefined
       : options.change;
-    this.pending = { change, plan, config: structuredClone(config), navigation, preservePopulation, surface: options.surface };
+    this.pending = {
+      change,
+      plan,
+      config: structuredClone(config),
+      navigation,
+      preservePopulation,
+      surface: options.surface
+    };
     this.advance = (seconds) => this.update(seconds);
   }
 
@@ -128,6 +144,14 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
       this.update(0);
     }
     if (this.enabled && !this.disposed) await this.runtime?.preparePresentation();
+  }
+
+  /** Prepare shader warmup renderers and alternate toon materials for every species in the population. */
+  async prepareShaderWarmup(
+    signal?: AbortSignal
+  ): Promise<Awaited<ReturnType<PlanningAnimalRuntime["prepareShaderWarmup"]>>> {
+    if (!this.enabled || this.disposed || signal?.aborted) return undefined;
+    return this.runtime?.prepareShaderWarmup?.(signal);
   }
 
   private update(seconds: number): void {
@@ -230,11 +254,11 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
   }
   /** Broadcast a real environmental event without importing or loading disabled animal content. */
   notify(event: AnimalWorldEvent): number {
-    return this.enabled && !this.disposed ? this.runtime?.notify(event) ?? 0 : 0;
+    return this.enabled && !this.disposed ? (this.runtime?.notify(event) ?? 0) : 0;
   }
   /** Dispatch a range-limited physical player click without loading disabled animal resources. */
   shoo(...args: Parameters<PlanningAnimalRuntime["shoo"]>): boolean {
-    return this.enabled && !this.disposed ? this.runtime?.shoo(...args) ?? false : false;
+    return this.enabled && !this.disposed ? (this.runtime?.shoo(...args) ?? false) : false;
   }
   position(id: string) {
     return this.runtime?.position(id);

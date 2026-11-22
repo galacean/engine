@@ -114,8 +114,10 @@ void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BSDFData
 
         for ( int i = 0; i < SCENE_POINT_LIGHT_COUNT; i ++ ) {
             if(!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])){
-                    PointLight pointLight = getPointLight(i);
-                addPointDirectLightRadiance(varyings, surfaceData, bsdfData, pointLight, totalDiffuseColor, totalSpecularColor);
+                PointLight pointLight = getPointLight(i);
+                if (dot(pointLight.color, pointLight.color) > 0.0) {
+                    addPointDirectLightRadiance(varyings, surfaceData, bsdfData, pointLight, totalDiffuseColor, totalSpecularColor);
+                }
             }
         }
 
