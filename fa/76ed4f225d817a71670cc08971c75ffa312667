@@ -1,0 +1,16 @@
+packages/core/src/Entity.ts
+  h_bd4dd7d663e619 526-527
+packages/loader/src/gltf/GLTFResource.ts
+  h_bd4dd7d663e619 72,78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fa76ed4f225d817a71670cc08971c75ffa312667",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
