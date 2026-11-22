@@ -1,0 +1,36 @@
+packages/rhi-webgpu/src/WebGPUPackedVertexStream.ts
+  s_3cd6502d102d7f::t_bd289254091009 67-69,72-76,78-79,86-93,105-106,110-117,125-126,135-137,140-142,144-147,153-164,166-178,181-196
+  s_3cd6502d102d7f::t_b8a509ec0bbcce 64-66,70-71
+  s_3cd6502d102d7f::t_08a855844b0c68 1-63,77,80-85,94-104,107-109,118-124,127-134,138-139,143,148-152,165,179-180,197-204
+packages/rhi-webgpu/src/WebGPUPrimitive.ts
+  s_3cd6502d102d7f::t_b8a509ec0bbcce 25,29,60-66,71-73,99-100,159,161,182,184-189,191-192,201,203-206,221,258,260
+  s_3cd6502d102d7f::t_6e2bd0744a9708 107,136,143-147,209
+  s_3cd6502d102d7f::t_bd289254091009 137-142,162-163,183,193-200,202,259
+  s_3cd6502d102d7f::t_de8b5b9892c8aa 160,164-167,170-171,174-181
+  s_3cd6502d102d7f::t_f2127ce5881980 168,172-173
+  s_3cd6502d102d7f::t_83d0c37858344e 207-208,311-312
+tests/src/rhi-webgpu/PackedVertexStreams.test.ts
+  s_3cd6502d102d7f::t_a06364b69b145b 19,39-41,43-45,126
+  s_3cd6502d102d7f::t_f2127ce5881980 76,98
+  s_3cd6502d102d7f::t_1c500dfa8cbcd0 38,42,55,57-58,62
+  s_3cd6502d102d7f::t_254da6761c4690 2-18,20-37,46-54,56,59-61,63-75,77-97,99-125,127-128
+  s_3cd6502d102d7f::t_b11f7017f5f119 1
+packages/rhi-webgpu/src/WebGPUGraphicDevice.ts
+  s_3cd6502d102d7f::t_a624c6085d10d6 414-415
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "311073fd65602a1f8595cd9bd9d3ecb882b4df77",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

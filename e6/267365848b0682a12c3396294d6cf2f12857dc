@@ -1,0 +1,37 @@
+packages/shader-compiler/src/webgpu.ts
+  s_3cd6502d102d7f::t_3121a9dc928dd1 11,79
+  s_3cd6502d102d7f::t_d52c9892ab5583 40-48
+packages/design/src/shader-compiler/IWebGPUShaderProgram.ts
+  s_3cd6502d102d7f::t_3121a9dc928dd1 5-6,86-92
+tests/src/rhi-webgpu/ShaderPreparation.test.ts
+  s_3cd6502d102d7f::t_d52c9892ab5583 4,69-165
+  s_3cd6502d102d7f::t_d8fbfca11bca50 166
+packages/core/src/shader/ShaderPass.ts
+  s_3cd6502d102d7f::t_c4823b625fd121 300,453,457
+  s_3cd6502d102d7f::t_9083e88699ebe0 432-436
+  s_3cd6502d102d7f::t_3121a9dc928dd1 437-449
+packages/core/src/shader/ShaderFactory.ts
+  s_3cd6502d102d7f::t_c4823b625fd121 239,249-250,258-261,359,405,410
+  s_3cd6502d102d7f::t_d52c9892ab5583 219-221
+  s_3cd6502d102d7f::t_3121a9dc928dd1 5,192-193,216-218
+packages/shader-compiler/src/webgpu/UniformDeclarations.ts
+  s_3cd6502d102d7f::t_d52c9892ab5583 65-70
+  s_3cd6502d102d7f::t_3121a9dc928dd1 14,47-50,63-64,71-89
+  s_3cd6502d102d7f::t_12a552f564d732 90-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e6267365848b0682a12c3396294d6cf2f12857dc",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

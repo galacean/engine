@@ -1,0 +1,16 @@
+packages/core/src/Transform.ts
+  h_dd004f51a3e5ec 242-243,250,283-284,292-298,654,720,761,783,897,916,938-939,947-948,959
+tests/src/core/Transform.test.ts
+  h_dd004f51a3e5ec 300,327,335-337,340,345,349,353
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "291b997ba5edfa683ec5a4534bb58fc1a36a0a6c",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

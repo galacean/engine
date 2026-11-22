@@ -1,0 +1,14 @@
+packages/animals/src/gameplay/animal/CuteZooToon.shader
+  h_171a11afaf879a 138-158,175-176,178-179,181,184-190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fe500261fb0bc23b26d4fe64cc191f3b881ba300",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
