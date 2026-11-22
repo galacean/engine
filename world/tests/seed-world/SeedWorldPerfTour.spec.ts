@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import {
+  buildPerfTourScorecardHtml,
   buildPerfTourSegments,
   computePerfTourStats,
   samplePerfTourPose,
-  type PerfTourFrameSample
+  type PerfTourFrameSample,
+  type SeedWorldPerfTourReport
 } from "../../demos/seed-world/src/SeedWorldPerfTour";
 
 describe("SeedWorldPerfTour", () => {
@@ -139,5 +141,90 @@ describe("SeedWorldPerfTour", () => {
     expect(topSpikes[0]!.intervalMs).toBe(200);
     expect(topSpikes[1]!.frameIndex).toBe(50);
     expect(topSpikes[1]!.intervalMs).toBe(60);
+  });
+
+  it("escapes HTML special characters in scorecard templateId, segment labels, spike segmentIds, and uploadState", () => {
+    const payload = `<img src=x onerror="window.__xss=1">`;
+    const report: SeedWorldPerfTourReport = {
+      kind: "seed-world-perf-tour",
+      schemaVersion: 1,
+      ts: 1,
+      url: "http://localhost/",
+      ua: "test",
+      dpr: 2,
+      canvas: [411, 801],
+      templateId: payload,
+      seed: "1",
+      durationSec: 20,
+      aborted: false,
+      hasVillage: true,
+      hasWater: true,
+      overall: {
+        frames: 10,
+        durationMs: 160,
+        avgFps: 60,
+        onePercentLowFps: 60,
+        p50Ms: 16,
+        p95Ms: 16,
+        p99Ms: 16,
+        maxMs: 16,
+        jank50Count: 0,
+        jank50Pct: 0,
+        bigJank100Count: 0,
+        bigJank100Pct: 0,
+        hitchTimeMs: 0,
+        hitchTimePct: 0,
+        avgCpuMs: 4,
+        maxCpuMs: 5,
+        avgDc: 100,
+        avgTrisK: 200,
+        avgFbo: 10
+      },
+      segments: [
+        {
+          id: "spawn-pan",
+          label: `<b>${payload}</b>`,
+          frames: 10,
+          durationMs: 160,
+          avgFps: 60,
+          onePercentLowFps: 60,
+          p50Ms: 16,
+          p95Ms: 16,
+          p99Ms: 16,
+          maxMs: 16,
+          jank50Count: 0,
+          jank50Pct: 0,
+          bigJank100Count: 0,
+          bigJank100Pct: 0,
+          hitchTimeMs: 0,
+          hitchTimePct: 0,
+          avgCpuMs: 4,
+          maxCpuMs: 5,
+          avgDc: 100,
+          avgTrisK: 200,
+          avgFbo: 10
+        }
+      ],
+      topSpikes: [
+        {
+          frameIndex: 1,
+          tMs: 100,
+          intervalMs: 20,
+          cpuMs: 5,
+          segmentId: payload as any,
+          dc: 100,
+          trisK: 200
+        }
+      ],
+      shaderCompilesDuringTour: 0,
+      shaderCompileMsDuringTour: 0,
+      compiledShadersDuringTour: []
+    };
+
+    const html = buildPerfTourScorecardHtml(report, `<script>alert('x')</script>`);
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;img src=x onerror=&quot;window.__xss=1&quot;&gt;");
+    expect(html).toContain("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;");
   });
 });

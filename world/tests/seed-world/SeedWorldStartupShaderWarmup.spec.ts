@@ -1293,4 +1293,61 @@ describe("animal presentation preparation", () => {
     expect(disposeVeg).toHaveBeenCalledOnce();
     expect(disposeRockGrass).toHaveBeenCalledOnce();
   });
+
+  it("disposes fulfilled deferred warmup handles when a sibling prepare promise rejects before or after sibling settlement", async () => {
+    const runScenario = async (resolveSiblingAfterReject: boolean) => {
+      const disposeAnimal = vi.fn();
+      let resolveAnimal!: (value: { renderers: any[]; dispose: () => void }) => void;
+      const animalPromise = resolveSiblingAfterReject
+        ? new Promise<{ renderers: any[]; dispose: () => void }>((resolve) => {
+            resolveAnimal = resolve;
+          })
+        : Promise.resolve({ renderers: [], dispose: disposeAnimal });
+
+      const result = await runSeedWorldStartupShaderWarmup({
+        precompileShaders: true,
+        engine: {} as any,
+        scene: { rootEntities: [] } as any,
+        camera: { enabled: true } as any,
+        pageUrl: new URL("http://localhost/?view=3d"),
+        canvas: { dataset: {} } as any,
+        showAssistant: false,
+        isDisposed: () => false,
+        progress: () => {},
+        timed: (_name, work) => work(),
+        deferSecondaryCollection: true,
+        precompileCoreMasonry: false,
+        prepareMasonryShaderWarmup: () => Promise.reject(new Error("masonry prep failed")),
+        prepareAnimalShaderWarmup: () => animalPromise,
+        prepareAssistantPresentation: () => undefined,
+        getPostProcessWarmupState: () => ({ enabled: false }) as any,
+        additionalBackgroundMaterials: [],
+        warmupOperations: {
+          hasParallelShaderCompile: () => false,
+          collectSeedWorldRendererVariants: () => [],
+          findMissingSeedWorldShaderVariants: () => [],
+          warmupSeedWorldShaderVariants: async () => ({
+            requested: 0,
+            compiled: 0,
+            skipped: false,
+            issues: [],
+            elapsedMilliseconds: 0,
+            longestVariantMilliseconds: 0,
+            parallelCompileSupported: false
+          })
+        }
+      });
+
+      await expect(result.collectDeferredVariants!()).rejects.toThrow("masonry prep failed");
+      if (resolveSiblingAfterReject) {
+        resolveAnimal({ renderers: [], dispose: disposeAnimal });
+        await Promise.resolve();
+        await Promise.resolve();
+      }
+      expect(disposeAnimal).toHaveBeenCalledOnce();
+    };
+
+    await runScenario(false);
+    await runScenario(true);
+  });
 });

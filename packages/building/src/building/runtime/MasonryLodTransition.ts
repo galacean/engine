@@ -37,9 +37,10 @@ export class MasonryLodTransition {
     if (!ready || next < this.target || time - this.pendingSince >= 0.6) this.target = next;
     this.observation.timeSeconds = time;
     this.observation.screenRelativeHeight = 3 - this.target;
-    const states = getMasonryLodTuning().lodCrossFade
-      ? this.instance.updateInto(visible ? this.observation : { timeSeconds: time, visible: false }, this.scratch)
-      : this.instance.snap(this.observation);
+    const states =
+      !visible || getMasonryLodTuning().lodCrossFade
+        ? this.instance.updateInto(visible ? this.observation : { timeSeconds: time, visible: false }, this.scratch)
+        : this.instance.snap(this.observation);
     this.animating = states.length > 1;
     return states;
   }

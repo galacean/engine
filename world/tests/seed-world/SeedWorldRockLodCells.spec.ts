@@ -9,7 +9,10 @@ vi.mock("@galacean/engine-world-planning/integrations/terrain/rock-formation/Roc
   rockLodMeshes: (asset: RockVariantAsset) => mockedMeshes.get(asset)
 }));
 
-import { RockLodView } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/RockLodView";
+import {
+  RockLodView,
+  setRockLodCrossFadeEnabled
+} from "@galacean/engine-world-planning/integrations/terrain/rock-formation/RockLodView";
 
 const lodFadeProperty = ShaderProperty.getByName("renderer_LodFade");
 
@@ -33,6 +36,9 @@ function makeShaderData() {
     floats,
     enableMacro(name: string) {
       macros.add(name);
+    },
+    disableMacro(name: string) {
+      macros.delete(name);
     },
     setFloat(prop: unknown, value: number) {
       floats.set(prop, value);
@@ -333,5 +339,51 @@ describe("RockLodView Cell-grid LOD scheduling", () => {
     expect(view.getSnapshot()!.terrainOccludedCellCount).toBe(1);
     expect(view.getSnapshot()!.candidateInstanceCount).toBe(0);
     expect(rock.enabled).toBe(true);
+  });
+
+  it("snaps immediately to target LOD without sticking on stale mesh when rockLodCrossFadeEnabled is false", () => {
+    const camera = makeCamera([0, 2, 0], [0, 2, -200]);
+    const { view, step } = createRockLodView(camera);
+    const rock = makeRockRenderer(0, 2, -150);
+    rock.mesh = lod0;
+    view.add(rock as unknown as MeshRenderer, lod0, asset);
+
+    setRockLodCrossFadeEnabled(false);
+    try {
+      // Far view settles at LOD2
+      step(0);
+      expect(rock.mesh).toBe(lod2);
+      expect(view.fadingRenderer(rock as unknown as MeshRenderer)).toBeUndefined();
+
+      // Move close and stop: must snap to LOD0 immediately rather than sticking on LOD2
+      camera.moveTo([0, 2, -140], [0, 2, -200]);
+      step(0.1);
+      expect(rock.mesh).toBe(lod0);
+      expect(view.fadingRenderer(rock as unknown as MeshRenderer)).toBeUndefined();
+      expect(rock.shaderData.macros.has("RENDERER_LOD_DITHER")).toBe(false);
+
+      // Stationary camera reuses settled state and remains on LOD0
+      step(2.0);
+      expect(view.getSnapshot()!.reusedStaticCamera).toBe(true);
+      expect(rock.mesh).toBe(lod0);
+
+      // Toggling cross-fade off mid-fade cleanly retires alternate renderer and dither macro
+      setRockLodCrossFadeEnabled(true);
+      camera.moveTo([0, 2, -125], [0, 2, -200]); // dist 25 -> LOD1 cross-fade
+      step(2.05);
+      const fadingAlt = view.fadingRenderer(rock as unknown as MeshRenderer);
+      expect(fadingAlt).toBeDefined();
+      expect(fadingAlt!.enabled).toBe(true);
+      expect(rock.shaderData.macros.has("RENDERER_LOD_DITHER")).toBe(true);
+
+      setRockLodCrossFadeEnabled(false);
+      step(2.1);
+      expect(rock.mesh).toBe(lod1);
+      expect(view.fadingRenderer(rock as unknown as MeshRenderer)).toBeUndefined();
+      expect(fadingAlt!.enabled).toBe(false);
+      expect(rock.shaderData.macros.has("RENDERER_LOD_DITHER")).toBe(false);
+    } finally {
+      setRockLodCrossFadeEnabled(true);
+    }
   });
 });

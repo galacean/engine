@@ -266,7 +266,9 @@ export class RockLodView extends Script {
   private apply(renderer: MeshRenderer, entry: RockLodEntry, timeSeconds: number): boolean {
     this.visibleObservation.timeSeconds = timeSeconds;
     this.visibleObservation.screenRelativeHeight = entry.screenHeight;
-    const sets = entry.lod.updateInto(this.visibleObservation, this.scratch);
+    const sets = rockLodCrossFadeEnabled
+      ? entry.lod.updateInto(this.visibleObservation, this.scratch)
+      : entry.lod.snap(this.visibleObservation);
     const first = sets[0];
     const second = rockLodCrossFadeEnabled && sets.length > 1 ? sets[1] : undefined;
     const sourceMesh = entry.meshes[first.lodIndex];

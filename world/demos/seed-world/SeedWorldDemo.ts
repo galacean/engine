@@ -75,8 +75,11 @@ import { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/Se
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { buildingScenePreparation, initializeBuildingScene } from "./masonry/BuildingSceneInitialization.ts";
 import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
-import { setMasonryLodTuning } from "@galacean/engine-building/building/runtime/MasonryLodPolicy";
-import { setRockLodCrossFadeEnabled } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/RockLodView";
+import { getMasonryLodTuning, setMasonryLodTuning } from "@galacean/engine-building/building/runtime/MasonryLodPolicy";
+import {
+  getRockLodCrossFadeEnabled,
+  setRockLodCrossFadeEnabled
+} from "@galacean/engine-world-planning/integrations/terrain/rock-formation/RockLodView";
 import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
@@ -478,6 +481,7 @@ export async function mountSeedWorldDemo(
     orb?.setProgress(value);
   };
   let disconnectEditorAssets: (() => void) | undefined;
+  let restoreLodCrossFade: (() => void) | undefined;
   // Consumers must release overlays and subscriptions while their world still exists.
   // Advance only after success, so a release retry cannot destroy an earlier owner twice.
   const runtimeReleaseSteps: readonly [string, () => unknown][] = [
@@ -496,6 +500,8 @@ export async function mountSeedWorldDemo(
         runtimeDebug?.destroy();
         unregisterFarmingActivation?.();
         nativeWaterHost?.dispose();
+        restoreLodCrossFade?.();
+        restoreLodCrossFade = undefined;
       }
     ],
     ["农场宿主", () => farmingHost?.dispose()],
@@ -962,8 +968,14 @@ export async function mountSeedWorldDemo(
     camera.enabled = false;
     // Disable Bayer LOD cross-fade dither in Seed World runtime to avoid compiling duplicate
     // RENDERER_MASONRY_DITHER / GLOBAL_PROXY_DITHER / RENDERER_LOD_DITHER variants on mobile.
+    const previousMasonryLodCrossFade = getMasonryLodTuning().lodCrossFade;
+    const previousRockLodCrossFade = getRockLodCrossFadeEnabled();
     setMasonryLodTuning({ lodCrossFade: false });
     setRockLodCrossFadeEnabled(false);
+    restoreLodCrossFade = () => {
+      setMasonryLodTuning({ lodCrossFade: previousMasonryLodCrossFade });
+      setRockLodCrossFadeEnabled(previousRockLodCrossFade);
+    };
     nativeBuildingHost = new NativeBuildingHost(runtimeProject, nativeEditor.editor, scene!, camera);
     sceneEntityEffectHost = new SeedWorldSceneEntityEffectHost(runtimeProject, nativeEditor.editor, scene!);
     if (pageUrl.searchParams.get("agentTrace") === "1") {
@@ -3164,6 +3176,7 @@ export async function mountSeedWorldDemo(
       prepareAssistantPresentation: () => tools?.preparePresentation(),
       getPrimaryIncludeInactiveRoots: () => [
         ...(publication!.current?.vegetation?.shaderWarmupRoots ?? []),
+        ...(water?.shaderWarmupRoots ?? []),
         ...(publication!.current?.solids?.bridgesView?.root ? [publication!.current.solids.bridgesView.root] : []),
         ...(farmingHost?.runtime?.worldPresentation?.root ? [farmingHost.runtime.worldPresentation.root] : []),
         ...(farmingHost?.runtime?.activeArea?.entity ? [farmingHost.runtime.activeArea.entity] : []),
@@ -3383,39 +3396,41 @@ export async function mountSeedWorldDemo(
       if (!perfTour) {
         const { createSeedWorldPerfTour } = await import("./src/SeedWorldPerfTour.ts");
         if (disposed) return;
-        let savedNavEnabled = false;
-        let savedOrbitEnabled = false;
-        const recipeParams = source?.session.recipe().parameters;
-        perfTour = createSeedWorldPerfTour({
-          engine,
-          camera,
-          canvas,
-          templateId: recipeParams?.worldTemplate?.id || pageUrl.searchParams.get("template") || "original",
-          seed: String(recipeParams?.seed ?? pageUrl.searchParams.get("seed") ?? ""),
-          durationSec: perfTourDurationSec,
-          eyeHeight: navigation.eyeHeight,
-          sampleHeight,
-          readPlan: () => publication?.current?.plan,
-          readCumulativeCounters: perfPanel ? (out) => perfPanel!.readCumulativeCounters(out) : undefined,
-          readShaderAudit: () => shaderAudit?.snapshot(),
-          setControlsSuspended: (suspended) => {
-            if (suspended) {
-              savedNavEnabled = navigation.enabled;
-              savedOrbitEnabled = orbit.enabled;
-              navigation.enabled = false;
-              navigation.setInputEnabled(false);
-              orbit.enabled = false;
-            } else {
-              navigation.enabled = savedNavEnabled;
-              navigation.setInputEnabled(savedNavEnabled);
-              if (savedNavEnabled) navigation.synchronizeView();
-              orbit.enabled = savedOrbitEnabled;
+        if (!perfTour) {
+          let savedNavEnabled = false;
+          let savedOrbitEnabled = false;
+          const recipeParams = source?.session.recipe().parameters;
+          perfTour = createSeedWorldPerfTour({
+            engine,
+            camera,
+            canvas,
+            templateId: recipeParams?.worldTemplate?.id || "original",
+            seed: String(recipeParams?.seed ?? pageUrl.searchParams.get("seed") ?? ""),
+            durationSec: perfTourDurationSec,
+            eyeHeight: navigation.eyeHeight,
+            sampleHeight,
+            readPlan: () => publication?.current?.plan,
+            readCumulativeCounters: perfPanel ? (out) => perfPanel!.readCumulativeCounters(out) : undefined,
+            readShaderAudit: () => shaderAudit?.snapshot(),
+            setControlsSuspended: (suspended) => {
+              if (suspended) {
+                savedNavEnabled = navigation.enabled;
+                savedOrbitEnabled = orbit.enabled;
+                navigation.enabled = false;
+                navigation.setInputEnabled(false);
+                orbit.enabled = false;
+              } else {
+                navigation.enabled = savedNavEnabled;
+                navigation.setInputEnabled(savedNavEnabled);
+                if (savedNavEnabled) navigation.synchronizeView();
+                orbit.enabled = savedOrbitEnabled;
+              }
+            },
+            onRunningChange: (running) => {
+              perfTourRunning = running;
             }
-          },
-          onRunningChange: (running) => {
-            perfTourRunning = running;
-          }
-        });
+          });
+        }
       }
       perfTour.start();
     };

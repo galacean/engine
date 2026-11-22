@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { MasonryLodProbe, getMasonryResidencyBudget } from "../src/building/runtime/MasonryLodPolicy";
+import { MasonryLodProbe, getMasonryResidencyBudget, setMasonryLodTuning } from "../src/building/runtime/MasonryLodPolicy";
 import { MasonryLodTransition } from "../src/building/runtime/MasonryLodTransition";
 import { EngineResidentScene } from "../src/building/runtime/EngineResidentScene";
 import {
@@ -530,5 +530,25 @@ describe("EngineResidentScene.setLodStates unit-LOD clamping (B2)", () => {
     scene.setLodStates([{ lodIndex: 1, signedFade: 1 }]);
     expect(scene.metrics.fullCoverage).toBe(false);
     expect(unitLod.forced).toBe(1);
+  });
+});
+
+describe("MasonryLodTransition", () => {
+  it("returns empty states when visible=false and snaps without cross-fade when lodCrossFade is disabled", () => {
+    const transition = new MasonryLodTransition();
+    setMasonryLodTuning({ lodCrossFade: false });
+    try {
+      expect(transition.update(0, 0, true, true)).toEqual([{ lodIndex: 0, signedFade: 1, crossFading: false }]);
+      expect(transition.update(1, 0, true, false)).toEqual([]);
+      expect(transition.nextUpdateTime).toBe(Infinity);
+      // Downgrade 0 -> 1 respects the 0.6s hold, then snaps straight to LOD1 with no cross-fade
+      expect(transition.update(2, 1, true, true)).toEqual([{ lodIndex: 0, signedFade: 1, crossFading: false }]);
+      expect(transition.nextUpdateTime).toBeCloseTo(2.6, 6);
+      expect(transition.update(2.6, 1, true, true)).toEqual([{ lodIndex: 1, signedFade: 1, crossFading: false }]);
+      // Upgrade 1 -> 0 snaps immediately
+      expect(transition.update(2.7, 0, true, true)).toEqual([{ lodIndex: 0, signedFade: 1, crossFading: false }]);
+    } finally {
+      setMasonryLodTuning({ lodCrossFade: true });
+    }
   });
 });

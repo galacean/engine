@@ -703,6 +703,71 @@ function installLightweightGlCounters(engine: WebGLEngine): {
   };
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => {
+    switch (ch) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return ch;
+    }
+  });
+}
+
+export function buildPerfTourScorecardHtml(report: SeedWorldPerfTourReport, uploadState: string): string {
+  const o = report.overall;
+  const gradeColor =
+    o.bigJank100Count === 0 && o.onePercentLowFps >= 25 ? "#4ade80" : o.bigJank100Count <= 1 ? "#facc15" : "#f87171";
+
+  const segRows = report.segments
+    .map(
+      (s) =>
+        `<tr><td style="padding:3px 4px;">${escapeHtml(s.label)}</td>` +
+        `<td style="padding:3px 4px;text-align:right;">${s.avgFps}</td>` +
+        `<td style="padding:3px 4px;text-align:right;">${s.onePercentLowFps}</td>` +
+        `<td style="padding:3px 4px;text-align:right;">${s.p95Ms}/${s.maxMs}</td>` +
+        `<td style="padding:3px 4px;text-align:right;">${s.jank50Count}/${s.bigJank100Count}</td>` +
+        `<td style="padding:3px 4px;text-align:right;">${s.avgTrisK}k</td></tr>`
+    )
+    .join("");
+
+  const spikeRows = report.topSpikes
+    .slice(0, 3)
+    .map(
+      (s) =>
+        `#${s.frameIndex} @${(s.tMs / 1000).toFixed(1)}s [${escapeHtml(s.segmentId)}] <b>${s.intervalMs}ms</b> (cpu ${s.cpuMs}ms, ${s.dc}dc/${s.trisK}k)`
+    )
+    .join("<br>");
+
+  return (
+    `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">` +
+    `<div style="font-weight:700;font-size:13px;color:${gradeColor};">固定路线巡游成绩单${report.aborted ? " (已中止)" : ""}</div>` +
+    `<div style="font-size:11px;color:#94a3b8;">${escapeHtml(report.templateId)} · ${report.canvas[0]}×${report.canvas[1]}</div></div>` +
+    `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">` +
+    `<div style="background:rgba(30,41,59,0.9);border-radius:8px;padding:6px 8px;"><div style="color:#94a3b8;font-size:10px;">Avg / 1% Low</div><div style="font-size:14px;font-weight:700;color:#4ade80;">${o.avgFps} / ${o.onePercentLowFps}</div></div>` +
+    `<div style="background:rgba(30,41,59,0.9);border-radius:8px;padding:6px 8px;"><div style="color:#94a3b8;font-size:10px;">P95 / Max (ms)</div><div style="font-size:14px;font-weight:700;color:#38bdf8;">${o.p95Ms} / ${o.maxMs}</div></div>` +
+    `<div style="background:rgba(30,41,59,0.9);border-radius:8px;padding:6px 8px;"><div style="color:#94a3b8;font-size:10px;">&gt;50 / &gt;100ms 冻帧</div><div style="font-size:14px;font-weight:700;color:${o.bigJank100Count > 0 ? "#f87171" : "#4ade80"};">${o.jank50Count} / ${o.bigJank100Count}</div></div>` +
+    `</div>` +
+    `<div style="font-size:11px;color:#cbd5e1;margin-bottom:8px;">` +
+    `Hitch(&gt;33ms): <b>${o.hitchTimePct}%</b> (${o.hitchTimeMs}ms) · CPU均值: <b>${o.avgCpuMs}ms</b> (max ${o.maxCpuMs})<br>` +
+    `均值负载: <b>${o.avgDc}dc / ${o.avgTrisK}k tris / ${o.avgFbo}fbo</b> · 巡游期新编译 Shader: <b>${report.shaderCompilesDuringTour}</b> (${report.shaderCompileMsDuringTour}ms)` +
+    `</div>` +
+    `<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;">` +
+    `<thead><tr style="color:#94a3b8;border-bottom:1px solid rgba(148,163,184,0.3);"><th style="text-align:left;padding:3px 4px;">路段</th><th style="text-align:right;padding:3px 4px;">FPS</th><th style="text-align:right;padding:3px 4px;">1%Low</th><th style="text-align:right;padding:3px 4px;">P95/Max</th><th style="text-align:right;padding:3px 4px;">50/100</th><th style="text-align:right;padding:3px 4px;">Tris</th></tr></thead>` +
+    `<tbody>${segRows}</tbody></table>` +
+    `<div style="font-size:10px;color:#94a3b8;margin-bottom:8px;background:rgba(15,23,42,0.7);padding:6px 8px;border-radius:6px;">Top 3 慢帧:<br>${spikeRows || "无"}</div>` +
+    `<div data-upload-status="1" style="font-size:11px;color:#93c5fd;margin-bottom:8px;">${escapeHtml(uploadState)}</div>`
+  );
+}
+
 export function createSeedWorldPerfTour(options: SeedWorldPerfTourOptions): SeedWorldPerfTourHandle {
   const {
     engine,
@@ -744,7 +809,6 @@ export function createSeedWorldPerfTour(options: SeedWorldPerfTourOptions): Seed
   const renderScorecard = (report: SeedWorldPerfTourReport, uploadState: string) => {
     clearModal();
     if (disposed) return;
-    const o = report.overall;
     const modal = document.createElement("div");
     modal.dataset.seedWorldPerfTourModal = "1";
     modal.style.cssText =
@@ -759,47 +823,7 @@ export function createSeedWorldPerfTour(options: SeedWorldPerfTourOptions): Seed
       card.addEventListener(ev, stopEvt, { passive: true });
     }
 
-    const gradeColor =
-      o.bigJank100Count === 0 && o.onePercentLowFps >= 25 ? "#4ade80" : o.bigJank100Count <= 1 ? "#facc15" : "#f87171";
-
-    const segRows = report.segments
-      .map(
-        (s) =>
-          `<tr><td style="padding:3px 4px;">${s.label}</td>` +
-          `<td style="padding:3px 4px;text-align:right;">${s.avgFps}</td>` +
-          `<td style="padding:3px 4px;text-align:right;">${s.onePercentLowFps}</td>` +
-          `<td style="padding:3px 4px;text-align:right;">${s.p95Ms}/${s.maxMs}</td>` +
-          `<td style="padding:3px 4px;text-align:right;">${s.jank50Count}/${s.bigJank100Count}</td>` +
-          `<td style="padding:3px 4px;text-align:right;">${s.avgTrisK}k</td></tr>`
-      )
-      .join("");
-
-    const spikeRows = report.topSpikes
-      .slice(0, 3)
-      .map(
-        (s) =>
-          `#${s.frameIndex} @${(s.tMs / 1000).toFixed(1)}s [${s.segmentId}] <b>${s.intervalMs}ms</b> (cpu ${s.cpuMs}ms, ${s.dc}dc/${s.trisK}k)`
-      )
-      .join("<br>");
-
-    card.innerHTML =
-      `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">` +
-      `<div style="font-weight:700;font-size:13px;color:${gradeColor};">固定路线巡游成绩单${report.aborted ? " (已中止)" : ""}</div>` +
-      `<div style="font-size:11px;color:#94a3b8;">${report.templateId} · ${report.canvas[0]}×${report.canvas[1]}</div></div>` +
-      `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">` +
-      `<div style="background:rgba(30,41,59,0.9);border-radius:8px;padding:6px 8px;"><div style="color:#94a3b8;font-size:10px;">Avg / 1% Low</div><div style="font-size:14px;font-weight:700;color:#4ade80;">${o.avgFps} / ${o.onePercentLowFps}</div></div>` +
-      `<div style="background:rgba(30,41,59,0.9);border-radius:8px;padding:6px 8px;"><div style="color:#94a3b8;font-size:10px;">P95 / Max (ms)</div><div style="font-size:14px;font-weight:700;color:#38bdf8;">${o.p95Ms} / ${o.maxMs}</div></div>` +
-      `<div style="background:rgba(30,41,59,0.9);border-radius:8px;padding:6px 8px;"><div style="color:#94a3b8;font-size:10px;">&gt;50 / &gt;100ms 冻帧</div><div style="font-size:14px;font-weight:700;color:${o.bigJank100Count > 0 ? "#f87171" : "#4ade80"};">${o.jank50Count} / ${o.bigJank100Count}</div></div>` +
-      `</div>` +
-      `<div style="font-size:11px;color:#cbd5e1;margin-bottom:8px;">` +
-      `Hitch(&gt;33ms): <b>${o.hitchTimePct}%</b> (${o.hitchTimeMs}ms) · CPU均值: <b>${o.avgCpuMs}ms</b> (max ${o.maxCpuMs})<br>` +
-      `均值负载: <b>${o.avgDc}dc / ${o.avgTrisK}k tris / ${o.avgFbo}fbo</b> · 巡游期新编译 Shader: <b>${report.shaderCompilesDuringTour}</b> (${report.shaderCompileMsDuringTour}ms)` +
-      `</div>` +
-      `<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;">` +
-      `<thead><tr style="color:#94a3b8;border-bottom:1px solid rgba(148,163,184,0.3);"><th style="text-align:left;padding:3px 4px;">路段</th><th style="text-align:right;padding:3px 4px;">FPS</th><th style="text-align:right;padding:3px 4px;">1%Low</th><th style="text-align:right;padding:3px 4px;">P95/Max</th><th style="text-align:right;padding:3px 4px;">50/100</th><th style="text-align:right;padding:3px 4px;">Tris</th></tr></thead>` +
-      `<tbody>${segRows}</tbody></table>` +
-      `<div style="font-size:10px;color:#94a3b8;margin-bottom:8px;background:rgba(15,23,42,0.7);padding:6px 8px;border-radius:6px;">Top 3 慢帧:<br>${spikeRows || "无"}</div>` +
-      `<div data-upload-status="1" style="font-size:11px;color:#93c5fd;margin-bottom:8px;">${uploadState}</div>`;
+    card.innerHTML = buildPerfTourScorecardHtml(report, uploadState);
 
     const btnRow = document.createElement("div");
     btnRow.style.cssText = "display:flex;gap:8px;justify-content:flex-end;";
@@ -942,7 +966,7 @@ export function createSeedWorldPerfTour(options: SeedWorldPerfTourOptions): Seed
     const banner = document.createElement("div");
     banner.dataset.seedWorldPerfTourBanner = "1";
     banner.style.cssText =
-      "position:fixed;top:8px;right:8px;z-index:100015;display:flex;align-items:center;gap:8px;background:rgba(15,23,42,0.92);color:#f8fafc;border:1px solid #38bdf8;border-radius:10px;padding:6px 10px;font:600 11px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;";
+      "position:fixed;top:52px;right:8px;max-width:calc(100vw - 16px);z-index:100015;display:flex;align-items:center;gap:8px;background:rgba(15,23,42,0.92);color:#f8fafc;border:1px solid #38bdf8;border-radius:10px;padding:6px 10px;font:600 11px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;";
     const statusText = document.createElement("span");
     statusText.textContent = `巡游准备中 (0.0/${durationSec}s)`;
     const stopBtn = document.createElement("button");

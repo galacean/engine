@@ -480,9 +480,17 @@ export async function runSeedWorldStartupShaderWarmup(
           let cleaned = false;
           try {
             if (!precompileCoreMasonry) {
-              [deferredMasonry, deferredAnimal] = await Promise.all([
-                deps.prepareMasonryShaderWarmup?.(deferredAbort.signal),
-                deps.prepareAnimalShaderWarmup?.(deferredAbort.signal)
+              await Promise.all([
+                deps.prepareMasonryShaderWarmup?.(deferredAbort.signal)?.then((prepared) => {
+                  if (!prepared) return;
+                  if (cleaned) prepared.dispose();
+                  else deferredMasonry = prepared;
+                }),
+                deps.prepareAnimalShaderWarmup?.(deferredAbort.signal)?.then((prepared) => {
+                  if (!prepared) return;
+                  if (cleaned) prepared.dispose();
+                  else deferredAnimal = prepared;
+                })
               ]);
             }
             if (cleaned || deps.isDisposed() || deps.lifetimeSignal?.aborted) return [];
