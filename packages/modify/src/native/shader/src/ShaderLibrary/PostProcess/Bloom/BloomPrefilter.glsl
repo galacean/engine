@@ -46,7 +46,8 @@ void frag(Varyings v) {
       }
     #endif
 
-    // Reject NaN/Inf before clamping: min(NaN, HALF_MAX) evaluates to HALF_MAX under IEEE minNum / Metal fmin
+    // Reject NaN/Inf and clamp negatives before thresholding: min(NaN, HALF_MAX) evaluates to HALF_MAX under IEEE minNum / Metal fmin.
+    // color is now finite in [0, HALF_MAX] and multiplier >= 0, so post-threshold output stays non-negative without a second clamp.
     color = mix(vec3(0.0), color, lessThanEqual(abs(color), vec3(HALF_MAX)));
     color = clamp(vec3(color) * material_PostExposure, vec3(0.0), vec3(HALF_MAX));
 
@@ -58,9 +59,6 @@ void frag(Varyings v) {
     softness = (softness * softness) / (4.0 * thresholdKnee + 1e-4);
     mediump float multiplier = max(brightness - threshold, softness) / max(brightness, 1e-4);
     color *= multiplier;
-
-    // Clamp colors to positive once in prefilter. Encode can have a sqrt, and sqrt(-x) == NaN. Up/Downsample passes would then spread the NaN.
-    color = max(color, 0.0);
 
     // Bloom is addtive blend mode, we should set alpha 0 to avoid browser background color dark when canvas alpha and premultiplyAlpha is true
     gl_FragColor = vec4(color, 0.0);
