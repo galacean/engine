@@ -74,7 +74,7 @@ export function cleanWaterShaderSource(source, compiler) {
   for (const sub of compiler._parseShaderSource(source).subShaders)
     for (const pass of sub.passes) {
       const used = new Set([pass.vertexEntry, pass.fragmentEntry]);
-      for (const backend of [0, 1]) {
+      for (const backend of [0]) {
         const program = compiler._parseShaderPass(
           pass.contents,
           pass.vertexEntry,

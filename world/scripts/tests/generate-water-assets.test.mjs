@@ -58,7 +58,7 @@ float testNormal(float value) { return value * 0.5; }
     assert.equal(cleanWaterShaderSource(cleaned, compiler), cleaned);
     const before = compiler._parseShaderSource(original).subShaders[0].passes[0];
     const after = compiler._parseShaderSource(cleaned).subShaders[0].passes[0];
-    for (const backend of [0, 1]) {
+    for (const backend of [0]) {
       const a = compiler._parseShaderPass(before.contents, "vert", "frag", backend, "shaders://root/");
       const b = compiler._parseShaderPass(after.contents, "vert", "frag", backend, "shaders://root/");
       assert.ok(a && b);
