@@ -1,0 +1,76 @@
+packages/farming/src/farming/presentation/FarmingWorldPresentation.ts
+  h_ddbf152d31b140 347-356
+packages/farming/src/farming/presentation/PlantPresenter.ts
+  h_ddbf152d31b140 297,307-316,319-338
+packages/farming/src/farming/presentation/soil/SoilVisualProvider.ts
+  h_ddbf152d31b140 477-481,483-487,546-562,565-571,573-579
+packages/farming/src/farming/procedural/runtime/preparePlantShaderPrograms.ts
+  h_ddbf152d31b140 110-113,118,159-164,167
+packages/runtime-editor/src/runtime-inspection/runtime-pick-preparation.ts
+  h_ddbf152d31b140 45-53,67-69,74-94,107-117,203,209,225-226
+packages/runtime-editor/tests/runtime-pick-preparation.spec.ts
+  h_ddbf152d31b140 178-209
+packages/terrain/src/terrain/audio/EnvironmentAudioRuntime.ts
+  h_ddbf152d31b140 105-106,162-170,176-179
+packages/world-planning/src/masonry/BuildingInitialSource.ts
+  h_ddbf152d31b140 21-25
+packages/world-planning/src/semantic-study/PlanningRasterClient.ts
+  h_ddbf152d31b140 85-87,89-114,116,118-128,142
+packages/world-planning/src/spatial/PlanningInitialization.ts
+  h_ddbf152d31b140 13
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  h_ddbf152d31b140 4,7-12,250-254,264,316-322,336-344,349,464-466,485-486
+packages/world-planning/src/spatial/runtime/NaturalUnderstoryInstancedPool.ts
+  h_ddbf152d31b140 883-972
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_ddbf152d31b140 1827-1853
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 4-5,13,30-31,122-125,147-152,235-236,775-776,778-779,796-801,912-960,994,1029,1107-1144,1188-1193,1199-1202,1261-1262,1264,1818-1819,1830
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 82,84,231,419,606-645,648,672,674-676,678-682,687,691-693,718-724,729-730,777-778,782-783,788-799,812-813,961-969,1093,1304-1306,1312-1313,2929,2943,2947,2972-2992,2994,2998-3007,3012,3014-3017,3019,3021-3039,3041-3049,3057-3069,3240-3262,3277-3278,3336-3338
+world/demos/seed-world/masonry/BuildingSceneInitialization.ts
+  h_ddbf152d31b140 9-10,61,66-70,100-111,147-149,151-153
+world/demos/seed-world/src/SeedWorldBootTrace.ts
+  h_ddbf152d31b140 1-6,42,51-107,109,119-120,127-128,130-136,181-238,241-249,253-270,273,275-281,283-306,309,311-312,314,319-326,328-330,332-337,342,351-353,366,379,388-441,473-487,615,621-623,642,660-671,673,683-684,696-704,708-719,745-746,749,751-758,762,792-801,833,853
+world/demos/seed-world/src/SeedWorldCommonBinaryBundle.ts
+  h_ddbf152d31b140 1-3,7-8,68-74,77-92,96-149,151,155-156,159-160
+world/demos/seed-world/src/SeedWorldShaderAudit.ts
+  h_ddbf152d31b140 13,17-69,74,228,275-421
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  h_ddbf152d31b140 26-32,48,62-69,83,184,188-189,191-209,214-218,220,250-271,288-292,294-297,302-330,361-420,428,433-437,483,489
+world/demos/seed-world/src/planning/semantic-study/PlanningWorkerClient.ts
+  h_ddbf152d31b140 9-22,105-111
+world/demos/seed-world/src/planning/semantic-study/PlanningWorkerRuntime.ts
+  h_ddbf152d31b140 1,85
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingRuntime.ts
+  h_ddbf152d31b140 239
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSpawnView.ts
+  h_ddbf152d31b140 4,31-32,65-91,107-119,195-199,210-321,326-338,342-344,356-357,359-361,363-368,409
+world/scripts/build-seed-world-flash-app.mjs
+  h_ddbf152d31b140 142,173-175
+world/scripts/mobile-diag-middleware.mjs
+  h_ddbf152d31b140 4
+world/tests/seed-world/FarmItemShaderPreparation.spec.ts
+  h_ddbf152d31b140 4,157-203
+world/tests/seed-world/NaturalUnderstoryInstancedPool.spec.ts
+  h_ddbf152d31b140 587-634
+world/tests/seed-world/SeedWorldBootTrace.spec.ts
+  h_ddbf152d31b140 4,6,33-91,144-150
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_ddbf152d31b140 1480-1549
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 191,257,289,291,295
+world/vite.config.mjs
+  h_ddbf152d31b140 155-162,165,167,169,172-174,178-186,190-195,198-206,208-215,217-260,265,268,270,279-284,286-287,290,298,303,308,313-314,317-319,321-325,373-475,495,503-504
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ab7341b089d63805c25d27b7e34d63d898668719",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
