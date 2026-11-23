@@ -265,7 +265,7 @@ export class BlendShapeManager {
       }
       this._lastHostCreatedInfo.set(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent, vertexCount);
     }
-    if (this._needUpdateData()) {
+    if (createHost || this._needUpdateData()) {
       if (useTexture) {
         this._updateTextureArray(vertexCount, createHost);
       } else {

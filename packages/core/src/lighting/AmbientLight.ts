@@ -108,11 +108,16 @@ export class AmbientLight extends ReferResource {
   }
 
   set specularTexture(value: TextureCube) {
-    this._specularTexture = value;
+    const lastTexture = this._specularTexture;
+    if (lastTexture !== value) {
+      lastTexture?._disassociationSuperResource(this);
+      value?._associationSuperResource(this);
+      this._specularTexture = value;
 
-    const scenes = this._scenes;
-    for (let i = 0, n = scenes.length; i < n; i++) {
-      this._setSpecularTexture(scenes[i].shaderData);
+      const scenes = this._scenes;
+      for (let i = 0, n = scenes.length; i < n; i++) {
+        this._setSpecularTexture(scenes[i].shaderData);
+      }
     }
   }
 
@@ -178,6 +183,7 @@ export class AmbientLight extends ReferResource {
       sceneShaderData.setFloat(AmbientLight._mipLevelProperty, this._specularTexture.mipmapCount - 1);
       sceneShaderData.enableMacro(AmbientLight._specularMacro);
     } else {
+      sceneShaderData.setTexture(AmbientLight._specularTextureProperty, null);
       sceneShaderData.disableMacro(AmbientLight._specularMacro);
     }
   }

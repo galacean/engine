@@ -35,7 +35,7 @@ export class Sprite extends ReferResource {
   private _dirtyUpdateFlag: SpriteUpdateFlags = SpriteUpdateFlags.all;
 
   /** @internal */
-  _atlas: SpriteAtlas;
+  _atlas: SpriteAtlas | null = null;
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
@@ -46,8 +46,11 @@ export class Sprite extends ReferResource {
     return this._texture;
   }
 
-  set texture(value: Texture2D) {
-    if (this._texture !== value) {
+  set texture(value: Texture2D | null) {
+    const lastTexture = this._texture;
+    if (lastTexture !== value) {
+      lastTexture?._disassociationSuperResource(this);
+      value?._associationSuperResource(this);
       this._texture = value;
       this._dispatchSpriteChange(SpriteModifyFlags.texture);
       if (this._customWidth === undefined || this._customHeight === undefined) {
@@ -205,7 +208,10 @@ export class Sprite extends ReferResource {
     name: string | null = null
   ) {
     super(engine);
-    this._texture = texture;
+    if (texture) {
+      this._texture = texture;
+      texture._associationSuperResource(this);
+    }
     this._onRegionChange = this._onRegionChange.bind(this);
     this._onPivotChange = this._onPivotChange.bind(this);
     this._onBorderChange = this._onBorderChange.bind(this);

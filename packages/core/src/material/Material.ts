@@ -15,7 +15,7 @@ export class Material extends ReferResource implements IClone {
   /** @internal */
   _shader: Shader;
 
-  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
+  private _shaderData: ShaderData;
 
   /**
    *  Shader data.
@@ -52,6 +52,7 @@ export class Material extends ReferResource implements IClone {
       throw new Error("Cannot create a material with a destroyed shader.");
     }
     super(engine);
+    this._shaderData = new ShaderData(ShaderDataGroup.Material, this);
     this.shader = shader;
     this.name = shader.name;
   }

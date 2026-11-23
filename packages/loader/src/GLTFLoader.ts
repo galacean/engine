@@ -52,18 +52,23 @@ export class GLTFLoader extends Loader<GLTFResource> {
       onTaskCancel(() => {
         context._abort();
       });
-      context
-        .parse()
-        .then((res) => {
-          if (!context._aborted) {
-            res._addReferCount(-1);
-            resolve(res);
-          }
-        })
-        .catch((e) => {
-          context._abort();
-          reject(e);
-        });
+      try {
+        context
+          .parse()
+          .then((res) => {
+            if (!context._aborted) {
+              res._addReferCount(-1);
+              resolve(res);
+            }
+          })
+          .catch((e) => {
+            context._abort();
+            reject(e);
+          });
+      } catch (e) {
+        context._abort();
+        reject(e);
+      }
     });
   }
 }
