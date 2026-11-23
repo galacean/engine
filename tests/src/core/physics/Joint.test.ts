@@ -620,7 +620,7 @@ describe("Joint", function () {
     const joint = box.addComponent(FixedJoint);
     joint.connectedBody = connectedBody;
 
-    for (const invalid of [0, -1, NaN, -Infinity, 1e-40]) {
+    for (const invalid of [0, -1, NaN, -Infinity, 1e-40, "2" as unknown as number, true as unknown as number]) {
       expect(() => (joint.massScale = invalid)).toThrow();
       expect(() => (joint.connectedMassScale = invalid)).toThrow();
     }
