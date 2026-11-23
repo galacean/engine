@@ -22,19 +22,19 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
     return new AssetPromise<SpriteAtlas>((resolve, reject, _, __, onCancel) => {
       let configPromise: AssetPromise<AtlasConfig> | null = null;
-      let spriteAtlas: SpriteAtlas | null = null;
+      const loadedTextures: Texture2D[] = [];
       let aborted = false;
+      const releaseLoadedTextures = () => {
+        for (let i = 0, n = loadedTextures.length; i < n; i++) {
+          loadedTextures[i]._addReferCount(-1);
+        }
+        loadedTextures.length = 0;
+      };
       const abort = () => {
         if (aborted) return;
         aborted = true;
         configPromise?.cancel();
-        if (spriteAtlas) {
-          if (!spriteAtlas.destroyed) {
-            spriteAtlas._addReferCount(-1);
-            spriteAtlas.destroy();
-          }
-          spriteAtlas = null;
-        }
+        releaseLoadedTextures();
       };
       onCancel(abort);
       configPromise = resourceManager._request<AtlasConfig>(item.url!, {
@@ -47,15 +47,11 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           const { atlasItems, mipmap, anisoLevel, filterMode, wrapModeU, wrapModeV, format } = atlasData;
           const atlasItemsLen = atlasItems ? atlasItems.length : 0;
           const { engine } = resourceManager;
-          const atlas = new SpriteAtlas(engine);
           if (atlasItemsLen <= 0) {
-            resolve(atlas);
+            resolve(new SpriteAtlas(engine));
             return;
           }
-          // Hold an in-flight reference until all pages load so concurrent gc() will not collect partial atlas state
-          atlas._addReferCount(1);
-          spriteAtlas = atlas;
-          const pagePromises: AssetPromise<void>[] = [];
+          const pagePromises: AssetPromise<Texture2D | undefined>[] = [];
           for (let i = 0; i < atlasItemsLen; i++) {
             const atlasItem = atlasItems[i];
             if (atlasItem.img) {
@@ -67,28 +63,36 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                     params: { format, mipmap }
                   })
                   .then((texture: Texture2D) => {
-                    if (aborted || atlas.destroyed) return;
-                    anisoLevel && (texture.anisoLevel = anisoLevel);
-                    filterMode !== undefined && (texture.filterMode = filterMode);
-                    wrapModeU !== undefined && (texture.wrapModeU = wrapModeU);
-                    wrapModeV !== undefined && (texture.wrapModeV = wrapModeV);
-                    texture._associationSuperResource(atlas);
-                    for (let j = 0; j < atlasItem.sprites.length; j++) {
-                      atlas._addSprite(this._makeSprite(engine, atlasItem.sprites[j], texture));
-                    }
+                    if (aborted) return undefined;
+                    // Hold an in-flight reference until all pages load so concurrent gc() will not collect finished pages
+                    texture._addReferCount(1);
+                    loadedTextures.push(texture);
+                    return texture;
                   })
               );
             } else {
-              for (let j = 0; j < atlasItem.sprites.length; j++) {
-                atlas._addSprite(this._makeSprite(engine, atlasItem.sprites[j]));
-              }
+              pagePromises.push(AssetPromise.resolve(undefined));
             }
           }
           AssetPromise.all(pagePromises)
-            .then(() => {
-              if (aborted || atlas.destroyed) return;
-              spriteAtlas = null;
-              atlas._addReferCount(-1);
+            .then((textures) => {
+              if (aborted) return;
+              const atlas = new SpriteAtlas(engine);
+              for (let i = 0; i < atlasItemsLen; i++) {
+                const atlasItem = atlasItems[i];
+                const texture = textures[i];
+                if (texture) {
+                  anisoLevel && (texture.anisoLevel = anisoLevel);
+                  filterMode !== undefined && (texture.filterMode = filterMode);
+                  wrapModeU !== undefined && (texture.wrapModeU = wrapModeU);
+                  wrapModeV !== undefined && (texture.wrapModeV = wrapModeV);
+                  texture._associationSuperResource(atlas);
+                }
+                for (let j = 0; j < atlasItem.sprites.length; j++) {
+                  atlas._addSprite(this._makeSprite(engine, atlasItem.sprites[j], texture));
+                }
+              }
+              releaseLoadedTextures();
               resolve(atlas);
             })
             .catch((e) => {

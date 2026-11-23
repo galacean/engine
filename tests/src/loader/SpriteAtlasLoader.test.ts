@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, ResourceManager, Texture2D, WebGLEngine } from "@galacean/engine";
+import { AssetPromise, AssetType, ResourceManager, SpriteAtlas, Texture2D, WebGLEngine } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -136,10 +136,14 @@ describe("SpriteAtlasLoader", () => {
       expect(sharedLoadCalls).to.equal(1);
 
       // Finish atlasA's first page, then run gc() while shared page is still in flight
+      const atlasCountBefore = resourceManager.findResourcesByType(SpriteAtlas).length;
       const page0Tex = new Texture2D(engine, 2, 2);
       resolveSecondPage(page0Tex);
       await Promise.resolve();
       await Promise.resolve();
+
+      // Half-loaded SpriteAtlas must not be constructed or exposed to findResourcesByType() before all pages resolve
+      expect(resourceManager.findResourcesByType(SpriteAtlas).length).to.equal(atlasCountBefore);
 
       resourceManager.gc();
       expect(page0Tex.destroyed).to.be.false;

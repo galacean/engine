@@ -159,13 +159,14 @@ export class AmbientLight extends ReferResource {
    * @internal
    */
   _removeFromScene(scene: Scene): void {
+    if (this._destroyed) return;
     this._addReferCount(-1);
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
-    scenes.splice(index, 1);
-    const shaderData = scene.shaderData;
-    shaderData.setTexture(AmbientLight._specularTextureProperty, null);
-    shaderData.disableMacro(AmbientLight._specularMacro);
+    if (index !== -1) {
+      scenes.splice(index, 1);
+    }
+    this._clearSpecularTexture(scene.shaderData);
   }
 
   /**
@@ -185,8 +186,12 @@ export class AmbientLight extends ReferResource {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
+    const scenes = this._scenes;
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      this._clearSpecularTexture(scenes[i].shaderData);
+    }
+    scenes.length = 0;
     this._specularTexture = null!;
-    this._scenes.length = 0;
   }
 
   private _setDiffuseMode(sceneShaderData: ShaderData): void {
@@ -203,9 +208,13 @@ export class AmbientLight extends ReferResource {
       sceneShaderData.setFloat(AmbientLight._mipLevelProperty, this._specularTexture.mipmapCount - 1);
       sceneShaderData.enableMacro(AmbientLight._specularMacro);
     } else {
-      sceneShaderData.setTexture(AmbientLight._specularTextureProperty, null);
-      sceneShaderData.disableMacro(AmbientLight._specularMacro);
+      this._clearSpecularTexture(sceneShaderData);
     }
+  }
+
+  private _clearSpecularTexture(sceneShaderData: ShaderData): void {
+    sceneShaderData.setTexture(AmbientLight._specularTextureProperty, null);
+    sceneShaderData.disableMacro(AmbientLight._specularMacro);
   }
 
   private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): void {

@@ -387,6 +387,28 @@ describe("ReferResource", () => {
     scene.ambientLight = prevAmbient;
     engine.resourceManager.gc();
     expect(ambient.destroyed).eq(true);
+
+    // Force-destroying a mounted AmbientLight clears scene.shaderData and releases specularTexture refCount
+    const cube2 = new TextureCube(engine, 4);
+    const mountedAmbient = new AmbientLight(engine);
+    mountedAmbient.specularTexture = cube2;
+    scene.ambientLight = mountedAmbient;
+    expect(scene.shaderData.getTexture("scene_EnvSpecularSampler")).eq(cube2);
+    expect(scene.shaderData.getMacros().some((m) => m.name === "SCENE_USE_SPECULAR_ENV")).eq(true);
+
+    mountedAmbient.destroy(true);
+    expect(mountedAmbient.destroyed).eq(true);
+    expect(mountedAmbient.refCount).eq(0);
+    expect(cube2.refCount).eq(0);
+    expect(scene.shaderData.getTexture("scene_EnvSpecularSampler")).eq(null);
+    expect(scene.shaderData.getMacros().some((m) => m.name === "SCENE_USE_SPECULAR_ENV")).eq(false);
+
+    engine.resourceManager.gc();
+    expect(cube2.destroyed).eq(true);
+
+    // Replacing scene.ambientLight after force destroy must not drive destroyed ambient refCount negative
+    scene.ambientLight = prevAmbient;
+    expect(mountedAmbient.refCount).eq(0);
   });
 
   it("collects unreferenced Font together with its internal isGCIgnored FontAtlas texture during gc()", () => {
