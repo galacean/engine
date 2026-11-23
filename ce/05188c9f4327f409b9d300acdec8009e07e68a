@@ -1,0 +1,61 @@
+packages/core/src/physics/joint/FixedJoint.ts
+  s_cfff4c42244368::t_0bfbe664ea02f0 1,4,8-9
+packages/core/src/physics/joint/SpringJoint.ts
+  s_cfff4c42244368::t_0bfbe664ea02f0 1
+packages/core/src/physics/CharacterController.ts
+  s_cfff4c42244368::t_bfdd28ef070a7f 1-6,180,182,185,189,236,244,269
+packages/core/src/physics/Collision.ts
+  s_cfff4c42244368::t_381d20dbbec246 30-31,34-38
+packages/core/src/physics/PhysicsScene.ts
+  s_cfff4c42244368::t_25336a949f1b71 1,71,599,692,970-971,980-990,992,998,1004,1012-1013,1039-1043
+packages/core/src/physics/joint/HingeJoint.ts
+  s_cfff4c42244368::t_e35da1e2496ed9 1-2,18-19,48,69,73-74,84,88-89,154,176-177,220,224,243,250-251,253,255
+packages/core/src/physics/joint/Joint.ts
+  s_cfff4c42244368::t_46de2f8cea7b6c 2,284,304
+packages/design/src/physics/ICollision.ts
+  s_c3115047f0864a::t_37d20d96846cf4 1-2,8,10,12-13,15-17,19,22-28
+packages/design/src/physics/IDynamicActor.ts
+  s_c3115047f0864a::t_211c2f9fe3b5c4 2,53-54,56-61,64-69,71-76,91,145-146,148,155,170,174-175,177
+packages/design/src/physics/IPhysicsEvents.ts
+  s_c3115047f0864a::t_4265c0af740066 14,21-23,31,33-34,36,38
+packages/design/src/physics/IPhysicsScene.ts
+  s_c3115047f0864a::t_b46b7157dec177 5,8-12,45-62,175,186,217,225
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_cfff4c42244368::t_580b277bc5250a 4-9,16-18,94,99-100,104,111,175-195,226,229,354,362,403,408,498,578-579,585,604-605,622,639-640,649,652-653,657-660,662,669,672-675
+packages/physics-physx/src/shape/PhysXCapsuleShape.ts
+  s_c3115047f0864a::t_4036b2af16e497 1,28,48
+tests/src/core/physics/PhysicsScene.test.ts
+  s_9a07c85a0912bc::t_6f262d9796f0d0 18,1917-2017
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ce05188c9f4327f409b9d300acdec8009e07e68a",
+  "prompts": {},
+  "sessions": {
+    "s_9a07c85a0912bc": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a2065f-d56d-7175-a080-e45884abae0d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_c3115047f0864a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20840-b7b2-7143-976d-81d506c9a199",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_cfff4c42244368": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2084e-0440-7f50-9e2e-e093ba8d840f",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
