@@ -1159,7 +1159,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     changes & MassChanges.Mass && actor.setMassProperties(mass);
   }
 
-  /** @internal */
   protected override _onDestroy(): void {
     //@ts-ignore
     this._linearVelocity._onValueChanged = this._angularVelocity._onValueChanged = null;

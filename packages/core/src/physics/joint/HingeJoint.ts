@@ -147,7 +147,6 @@ export class HingeJoint extends Joint {
     this._onLimitsChanged = this._onLimitsChanged.bind(this);
   }
 
-  /** @internal */
   protected override _destroyNativeJoint(): void {
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
@@ -166,7 +165,6 @@ export class HingeJoint extends Joint {
     target._limits?._updateFlagManager.addListener(target._onLimitsChanged);
   }
 
-  /** @internal */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._jointMotor?._updateFlagManager.removeListener(this._onMotorChanged);

@@ -235,7 +235,6 @@ export class MeshCollider extends Collider {
     return shape;
   }
 
-  /** @internal */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._setMesh(null);

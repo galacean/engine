@@ -615,9 +615,6 @@ export class Engine extends EventDispatcher {
     }
   }
 
-  /**
-   * @internal
-   */
   protected _initialize(configuration: EngineConfiguration): Promise<this> {
     const { shaderCompiler, physics } = configuration;
 

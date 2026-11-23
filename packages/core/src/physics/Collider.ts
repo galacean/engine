@@ -538,9 +538,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial;
   }
 
-  /**
-   * @internal
-   */
   protected override _onDestroy(): void {
     //@ts-ignore
     this._center._onValueChanged = null;

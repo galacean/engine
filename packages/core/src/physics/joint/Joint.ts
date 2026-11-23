@@ -288,7 +288,6 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     this._wakeBodies();
   }
 
-  /** @internal */
   protected override _onDestroy(): void {
     this._bodyInfo.anchor._onValueChanged = null;
     this._connectedBodyInfo.anchor._onValueChanged = null;
@@ -304,7 +303,6 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   protected abstract _createJoint(physicsScene: IPhysicsScene, actor: IDynamicActor): IJoint;
 
-  /** @internal */
   protected _destroyNativeJoint(): void {
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
