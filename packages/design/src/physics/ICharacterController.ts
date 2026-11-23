@@ -9,7 +9,7 @@ export interface ICharacterController {
   /**
    * Use a capsule along the up direction.
    * @param radius - The capsule radius
-   * @param height - The height of the cylindrical part, excluding both caps
+   * @param height - The height of the cylindrical part, excluding both caps (0 degenerates to a sphere)
    * @param stepOffset - The requested step height in world units
    */
   setCapsule(radius: number, height: number, stepOffset: number): void;

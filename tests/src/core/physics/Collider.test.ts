@@ -792,12 +792,13 @@ describe("Collider", () => {
       expect(hit.distance).toBeCloseTo(3, 4);
     });
 
-    it("clamps capsule dimensions, requires positive radius and height, and detaches when degenerate", () => {
+    it("clamps capsule dimensions and degenerates to a sphere when height is at or below twice the radius", () => {
       const entity = root.createChild("degenerate-capsule");
       entity.transform.setPosition(0, 5, 0);
       const capsule = entity.addComponent(CapsuleCollider);
       const body = entity.addComponent(Rigidbody);
-      const ray = new Ray(new Vector3(-5, 5, 0), new Vector3(1, 0, 0));
+      const horizontalRay = new Ray(new Vector3(-5, 5, 0), new Vector3(1, 0, 0));
+      const verticalRay = new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0));
       const hit = new HitResult();
 
       for (const invalid of [NaN, Infinity, -Infinity]) {
@@ -808,32 +809,88 @@ describe("Collider", () => {
       capsule.height = -3;
       expect(capsule.radius).toBe(0);
       expect(capsule.height).toBe(0);
-      expect(physics.raycast(ray, hit)).toBe(false);
+      expect(physics.raycast(horizontalRay, hit)).toBe(false);
 
+      // height === 2 * radius degenerates to a sphere of radius 1
       capsule.radius = 1;
       capsule.height = 2;
-      expect(physics.raycast(ray, hit)).toBe(false);
-      expect(capsule.getClosestPoint(new Vector3(-5, 5, 0), new Vector3())).toBe(-1);
-
-      capsule.height = 4;
-      expect(physics.raycast(ray, hit)).toBe(true);
+      expect(physics.raycast(horizontalRay, hit)).toBe(true);
+      expect(hit.collider).toBe(capsule);
       expect(hit.normal.x).toBeCloseTo(-1, 4);
+      expect(hit.distance).toBeCloseTo(4, 4);
+      expect(physics.raycast(verticalRay, hit)).toBe(true);
       expect(hit.distance).toBeCloseTo(4, 4);
       expect(capsule.getClosestPoint(new Vector3(-5, 5, 0), new Vector3())).toBeCloseTo(4, 4);
 
-      // Scale (0, 1, 1) makes X-direction worldHeight = 0 (detached), while Y-direction stays valid
+      // Decreasing height below 2 * radius reuses the sphere shape in-place without recreating it
+      const spherePxShape = (capsule._native as any)._pxShape;
+      capsule.height = 0.5;
+      expect(physics.raycast(verticalRay, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(4, 4);
+      expect((capsule._native as any)._pxShape).toBe(spherePxShape);
+
+      // Increasing height above 2 * radius restores a full capsule
+      capsule.height = 4;
+      expect(physics.raycast(verticalRay, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(3, 4);
+
+      // Scale (0, 1, 1) makes X-direction cylindrical height 0 -> sphere of radius 1
       entity.transform.setScale(0, 1, 1);
       capsule.direction = CapsuleColliderDirection.X;
-      expect(physics.raycast(ray, hit)).toBe(false);
+      expect(physics.raycast(horizontalRay, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(4, 4);
+
+      // Scale (1, 0, 0) zeroes X-direction radial scale -> detaches cleanly
+      entity.transform.setScale(1, 0, 0);
+      expect(physics.raycast(horizontalRay, hit)).toBe(false);
       physics.gravity.set(0, -9.81, 0);
       update(5);
       expect(Number.isFinite(entity.transform.worldPosition.y)).toBe(true);
       expect(Number.isFinite(body.inertiaTensor.x)).toBe(true);
 
       entity.transform.setPosition(0, 5, 0);
+      entity.transform.setScale(0, 1, 1);
       capsule.direction = CapsuleColliderDirection.Y;
-      expect(physics.raycast(ray, hit)).toBe(true);
+      expect(physics.raycast(horizontalRay, hit)).toBe(true);
       expect(hit.collider).toBe(capsule);
+    });
+
+    it("supports dynamic Rigidbodies crouching to a sphere and keeps active triggers across capsule-sphere transitions", () => {
+      physics.gravity.set(0, -9.81, 0);
+      const ground = root.createChild("ground");
+      ground.addComponent(PlaneCollider);
+
+      const zone = root.createChild("trigger-zone");
+      zone.transform.setPosition(0, 0.5, 0);
+      const triggerBox = zone.addComponent(BoxCollider);
+      triggerBox.isTrigger = true;
+      triggerBox.size.set(3, 3, 3);
+      const recorder = zone.addComponent(CollisionRecorder);
+
+      const entity = root.createChild("crouching-capsule");
+      entity.transform.setPosition(0, 0.5, 0);
+      const capsule = entity.addComponent(CapsuleCollider);
+      capsule.radius = 0.5;
+      capsule.height = 2;
+      entity.addComponent(Rigidbody);
+
+      update(2);
+      expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+      expect(recorder.onTriggerExit).not.toHaveBeenCalled();
+
+      // Transition capsule -> sphere while staying overlapped: remains supported and preserves trigger pair
+      capsule.height = 1;
+      update(20);
+      expect(entity.transform.worldPosition.y).toBeGreaterThan(0.45);
+      expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+      expect(recorder.onTriggerExit).not.toHaveBeenCalled();
+
+      // Transition sphere -> capsule: still preserves trigger pair
+      capsule.height = 2;
+      update(5);
+      expect(entity.transform.worldPosition.y).toBeGreaterThan(0.95);
+      expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+      expect(recorder.onTriggerExit).not.toHaveBeenCalled();
     });
 
     it("detaches non-finite box sizes and Float32 underflow or overflow extents cleanly", () => {
@@ -882,11 +939,18 @@ describe("Collider", () => {
       const capsuleEntity = root.createChild("f32-capsule");
       capsuleEntity.transform.setPosition(0, 5, 0);
       const capsule = capsuleEntity.addComponent(CapsuleCollider);
+      // Tiny height with valid radius degenerates to a sphere of radius 1
       capsule.height = 1e-40;
-      expect(physics.raycast(ray, hit)).toBe(false);
+      expect(physics.raycast(ray, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(4, 4);
       capsule.height = 1e40;
       expect(physics.raycast(ray, hit)).toBe(false);
       capsule.height = 4;
+      capsule.radius = 1e-40;
+      expect(physics.raycast(ray, hit)).toBe(false);
+      capsule.radius = 1e40;
+      expect(physics.raycast(ray, hit)).toBe(false);
+      capsule.radius = 1;
       expect(physics.raycast(ray, hit)).toBe(true);
     });
 

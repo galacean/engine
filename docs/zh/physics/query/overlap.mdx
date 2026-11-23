@@ -70,10 +70,10 @@ const buildingLayerMask = Layer.Layer0 | Layer.Layer1; // 使用实际存在的�
 
 const obstacleColliders: Collider[] = [];
 const obstacles = physicsScene.overlapBoxAll(
-  buildCenter, 
-  buildSize, 
+  buildCenter,
+  buildSize,
   new Quaternion(), // 使用新四元数实例代替不存在的 IDENTITY
-  buildingLayerMask, 
+  buildingLayerMask,
   obstacleColliders
 );
 
@@ -82,7 +82,7 @@ if (obstacles.length === 0) {
   placeBuildingAt(buildCenter);
 } else {
   console.log("区域被占用，无法建造");
-  obstacles.forEach(collider => {
+  obstacles.forEach((collider) => {
     console.log(`障碍物: ${collider.entity.name}`);
   });
 }
@@ -90,12 +90,7 @@ if (obstacles.length === 0) {
 // 示例3: 旋转盒子检测
 const rotatedOrientation = new Quaternion();
 Quaternion.rotationY(Math.PI / 4, rotatedOrientation); // 使用正确的 API
-const rotatedOverlap = physicsScene.overlapBoxAll(
-  center, 
-  halfExtents, 
-  rotatedOrientation, 
-  Layer.Everything
-);
+const rotatedOverlap = physicsScene.overlapBoxAll(center, halfExtents, rotatedOrientation, Layer.Everything);
 ```
 
 ## 球体重叠检测 (overlapSphereAll)
@@ -121,17 +116,13 @@ const explosionCenter = new Vector3(0, 1, 0);
 const explosionRadius = 5.0;
 const targetLayer = Layer.Layer0; // 使用实际存在的层
 
-const affectedTargets = physicsScene.overlapSphereAll(
-  explosionCenter, 
-  explosionRadius, 
-  targetLayer
-);
+const affectedTargets = physicsScene.overlapSphereAll(explosionCenter, explosionRadius, targetLayer);
 
-affectedTargets.forEach(collider => {
+affectedTargets.forEach((collider) => {
   const entity = collider.entity;
   const distance = Vector3.distance(explosionCenter, entity.transform.position);
   const damage = calculateExplosionDamage(distance, explosionRadius);
-  
+
   console.log(`${entity.name} 受到 ${damage} 点爆炸伤害`);
   applyDamage(entity, damage);
 });
@@ -141,13 +132,9 @@ const playerPosition = new Vector3(2, 0, 1);
 const collectRadius = 1.5;
 const itemLayer = Layer.Layer2; // 使用实际存在的层
 
-const collectibleItems = physicsScene.overlapSphereAll(
-  playerPosition, 
-  collectRadius, 
-  itemLayer
-);
+const collectibleItems = physicsScene.overlapSphereAll(playerPosition, collectRadius, itemLayer);
 
-collectibleItems.forEach(collider => {
+collectibleItems.forEach((collider) => {
   const item = collider.entity;
   console.log(`收集道具: ${item.name}`);
   collectItem(item);
@@ -156,18 +143,18 @@ collectibleItems.forEach(collider => {
 // 示例3: AI 感知系统
 class AIPerception {
   private readonly _detectedColliders: Collider[] = [];
-  
+
   checkVisionRange(aiPosition: Vector3, visionRadius: number): Entity[] {
     this._detectedColliders.length = 0;
-    
+
     const detectedColliders = physicsScene.overlapSphereAll(
       aiPosition,
       visionRadius,
       Layer.Layer0 | Layer.Layer1, // 使用实际层组合
       this._detectedColliders
     );
-    
-    return detectedColliders.map(collider => collider.entity);
+
+    return detectedColliders.map((collider) => collider.entity);
   }
 }
 ```
@@ -199,17 +186,11 @@ const attackHeight = 4.0;
 const upright = new Quaternion();
 const enemyLayer = Layer.Layer3; // 使用实际存在的层
 
-const attackTargets = physicsScene.overlapCapsuleAll(
-  characterCenter,
-  attackRadius,
-  attackHeight,
-  upright,
-  enemyLayer
-);
+const attackTargets = physicsScene.overlapCapsuleAll(characterCenter, attackRadius, attackHeight, upright, enemyLayer);
 
 if (attackTargets.length > 0) {
   console.log(`攻击命中 ${attackTargets.length} 个目标`);
-  attackTargets.forEach(collider => {
+  attackTargets.forEach((collider) => {
     const enemy = collider.entity;
     applyMeleeDamage(enemy, 50);
   });
@@ -229,7 +210,7 @@ const charactersInPortal = physicsScene.overlapCapsuleAll(
   characterLayer
 );
 
-charactersInPortal.forEach(collider => {
+charactersInPortal.forEach((collider) => {
   const character = collider.entity;
   console.log(`${character.name} 进入传送门`);
   teleportCharacter(character, destinationPosition);
@@ -238,20 +219,20 @@ charactersInPortal.forEach(collider => {
 // 示例3: 电梯检测系统
 class ElevatorDetector {
   private readonly _passengersBuffer: Collider[] = [];
-  
+
   detectPassengers(elevatorCenter: Vector3): Entity[] {
     this._passengersBuffer.length = 0;
-    
+
     const passengers = physicsScene.overlapCapsuleAll(
       elevatorCenter,
-      1.2,  // 胶囊半径
-      4.4,  // 胶囊总高
+      1.2, // 胶囊半径
+      4.4, // 胶囊总高
       upright,
       Layer.Layer0 | Layer.Layer4, // 使用实际层组合
       this._passengersBuffer
     );
-    
-    return passengers.map(collider => collider.entity);
+
+    return passengers.map((collider) => collider.entity);
   }
 }
 ```
@@ -268,7 +249,7 @@ class ElevatorDetector {
 
 - **halfExtents** (overlapBoxAll) - 盒子的半尺寸
 - **radius** (overlapSphereAll/overlapCapsuleAll) - 球体/胶囊的半径
-- **height** (overlapCapsuleAll) - 胶囊总高（世界单位），包含两端半球。高度小于或等于两倍半径时返回空结果。球形重叠查询请使用 `overlapSphereAll`。
+- **height** (overlapCapsuleAll) - 胶囊总高（世界单位），包含两端半球。高度小于或等于两倍半径时退化为半径为 `radius` 的球体。
 - **orientation** (overlapBoxAll/overlapCapsuleAll) - 形状的旋转（默认为无旋转；胶囊体默认局部长轴为 Y 轴）
 
 ## 返回值说明
@@ -287,21 +268,16 @@ class ElevatorDetector {
 class OverlapDetector {
   private static readonly _resultBuffer: Collider[] = [];
   private static readonly _targetLayer = Layer.Layer0 | Layer.Layer3;
-  
+
   static detectTargetsInRange(center: Vector3, radius: number): Entity[] {
     // 清空复用数组
     this._resultBuffer.length = 0;
-    
+
     // 使用预分配数组和层过滤
-    const colliders = physicsScene.overlapSphereAll(
-      center,
-      radius,
-      this._targetLayer,
-      this._resultBuffer
-    );
-    
+    const colliders = physicsScene.overlapSphereAll(center, radius, this._targetLayer, this._resultBuffer);
+
     // 转换为实体数组
-    return colliders.map(collider => collider.entity);
+    return colliders.map((collider) => collider.entity);
   }
 }
 
@@ -319,12 +295,12 @@ const nearbyTargets = OverlapDetector.detectTargetsInRange(playerPosition, 10.0)
 
 ## 与形状投射的区别
 
-| 特性 | 重叠检测 | 形状投射 |
-|------|----------|----------|
-| 检测方式 | 静态区域检测 | 动态方向投射 |
-| 返回结果 | 所有重叠物体 | 第一个碰撞物体 |
+| 特性     | 重叠检测           | 形状投射           |
+| -------- | ------------------ | ------------------ |
+| 检测方式 | 静态区域检测       | 动态方向投射       |
+| 返回结果 | 所有重叠物体       | 第一个碰撞物体     |
 | 适用场景 | 区域触发、范围攻击 | 移动预测、路径检测 |
-| 性能消耗 | 中等 | 中等 |
-| 结果数量 | 多个 | 单个 |
+| 性能消耗 | 中等               | 中等               |
+| 结果数量 | 多个               | 单个               |
 
 重叠检测为区域性的游戏逻辑提供了强大的支持，特别适合实现触发器、范围攻击、收集系统等功能。结合合适的性能优化策略，可以高效地处理复杂的空间查询需求。

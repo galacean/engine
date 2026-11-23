@@ -44,13 +44,16 @@ export class PhysXCharacterController implements ICharacterController {
     radius = Math.fround(radius);
     height = Math.fround(height);
     const maxStepOffset = Math.fround(height + 2 * radius);
+    // PhysX 4.1 rejects zero cylinder height and scales proxy halfHeight by 0.4; keep a tiny radius-relative floor.
+    const minHeight = Math.fround(Math.max(radius * 1e-4, 3e-38));
+    const nativeHeight = height > minHeight ? height : minHeight;
     const controller = this._syncStepOffset(stepOffset, maxStepOffset);
     if (controller) {
       radius !== this._radius && controller.setRadius(radius);
-      height !== this._height && controller.setHeight(height);
+      nativeHeight !== this._height && controller.setHeight(nativeHeight);
     }
     this._radius = radius;
-    this._height = height;
+    this._height = nativeHeight;
     !controller && this._rebuild();
   }
 

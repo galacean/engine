@@ -50,12 +50,12 @@ boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, distance: num
 
 // Full parameter version
 boxCast(
-  center: Vector3, 
-  halfExtents: Vector3, 
-  direction: Vector3, 
-  orientation: Quaternion, 
-  distance: number, 
-  layerMask: Layer, 
+  center: Vector3,
+  halfExtents: Vector3,
+  direction: Vector3,
+  orientation: Quaternion,
+  distance: number,
+  layerMask: Layer,
   outHitResult?: HitResult
 ): boolean
 ```
@@ -71,7 +71,7 @@ const physicsScene = scene.physics;
 // Example 1: Basic obstruction detection
 const center = new Vector3(0, 5, 0);
 const halfExtents = new Vector3(1, 1, 1); // Box half-size
-const direction = new Vector3(0, -1, 0);  // Cast downward
+const direction = new Vector3(0, -1, 0); // Cast downward
 
 if (physicsScene.boxCast(center, halfExtents, direction)) {
   console.log("Obstruction detected!");
@@ -102,15 +102,7 @@ const layerMask = Layer.Everything; // Check all layers
 const maxDistance = 10.0;
 
 const detailHit = new HitResult();
-if (physicsScene.boxCast(
-  center, 
-  halfExtents, 
-  direction, 
-  orientation, 
-  maxDistance, 
-  layerMask, 
-  detailHit
-)) {
+if (physicsScene.boxCast(center, halfExtents, direction, orientation, maxDistance, layerMask, detailHit)) {
   console.log("Precise detection successful");
 }
 ```
@@ -137,7 +129,7 @@ sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number
 // Full parameter version
 sphereCast(
   center: Vector3,
-  radius: number, 
+  radius: number,
   direction: Vector3,
   distance: number,
   layerMask: Layer,
@@ -185,7 +177,7 @@ capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3,
 capsuleCast(
   center: Vector3,
   radius: number,
-  height: number, 
+  height: number,
   direction: Vector3,
   orientation: Quaternion,
   distance: number,
@@ -224,16 +216,18 @@ const moveDirection = new Vector3(1, 0, 0);
 const stepDistance = 1.0;
 
 const moveHit = new HitResult();
-if (physicsScene.capsuleCast(
-  characterCenter, 
-  characterRadius, 
-  characterHeight, 
-  moveDirection, 
-  upright,
-  stepDistance, 
-  Layer.Everything,
-  moveHit
-)) {
+if (
+  physicsScene.capsuleCast(
+    characterCenter,
+    characterRadius,
+    characterHeight,
+    moveDirection,
+    upright,
+    stepDistance,
+    Layer.Everything,
+    moveHit
+  )
+) {
   console.log(`Character movement will hit obstacle at distance ${moveHit.distance}`);
   // Can implement sliding or other collision response
 }
@@ -253,7 +247,7 @@ if (physicsScene.capsuleCast(
 
 - **halfExtents** (boxCast) - Half-size of the box
 - **radius** (sphereCast/capsuleCast) - Radius of the sphere/capsule
-- **height** (capsuleCast) - Total height in world units, including both caps. If the height is at most twice the radius, the cast returns `false`. Use `sphereCast` for a sphere.
+- **height** (capsuleCast) - Total height in world units, including both caps. Values at or below twice the radius degenerate to a sphere of `radius`.
 - **orientation** (boxCast/capsuleCast) - Shape rotation (defaults to no rotation; a capsule's default local long axis is Y)
 
 ## Performance Optimization Tips
@@ -269,17 +263,17 @@ class PhysicsQuery {
   private static readonly _hitResult = new HitResult();
   private static readonly _upright = new Quaternion();
   private static readonly _playerLayerMask = Layer.Layer0 | Layer.Layer1;
-  
+
   static checkPlayerMovement(center: Vector3, direction: Vector3): boolean {
     return scene.physics.capsuleCast(
       center,
-      0.5,           // Fixed radius
-      1.8,           // Total height
+      0.5, // Fixed radius
+      1.8, // Total height
       direction,
       this._upright,
-      2.0,           // Limit detection distance
-      this._playerLayerMask,  // Only check relevant layers
-      this._hitResult         // Reuse result object
+      2.0, // Limit detection distance
+      this._playerLayerMask, // Only check relevant layers
+      this._hitResult // Reuse result object
     );
   }
 }
@@ -293,10 +287,10 @@ class PhysicsQuery {
 
 ## Differences from Raycasting
 
-| Feature | Raycasting | Shape Casting |
-|---------|------------|---------------|
-| Detection Precision | Point precision | Volume precision |
-| Performance Cost | Low | Medium |
-| Use Cases | Picking, aiming | Movement prediction, path validation |
+| Feature             | Raycasting      | Shape Casting                        |
+| ------------------- | --------------- | ------------------------------------ |
+| Detection Precision | Point precision | Volume precision                     |
+| Performance Cost    | Low             | Medium                               |
+| Use Cases           | Picking, aiming | Movement prediction, path validation |
 
 Shape casting provides more accurate obstruction information than raycasting, particularly suitable for scenarios that need to consider object volume. Combined with appropriate performance optimization strategies, it can maintain good runtime efficiency while ensuring precision.

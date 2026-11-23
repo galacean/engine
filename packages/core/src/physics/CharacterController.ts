@@ -56,7 +56,7 @@ export class CharacterController extends Collider {
   /**
    * The total capsule height in local units, including both caps. Finite negative values are clamped to 0.
    * @defaultValue 2
-   * @remarks A height at or below twice the radius excludes the capsule from simulation and queries.
+   * @remarks A height at or below twice the radius degenerates to a sphere of the scaled radius.
    * @throws When the value is not finite.
    */
   get height(): number {
@@ -92,7 +92,7 @@ export class CharacterController extends Collider {
    * The step height used when climbing obstacles, in world units. Negative values are clamped to 0.
    * @defaultValue 0.5
    * @remarks PhysX excludes the controller from simulation and queries when the step height rounds to a non-finite
-   * value or exceeds the world-Y scaled capsule height.
+   * value or exceeds the scaled capsule height.
    */
   get stepOffset(): number {
     return this._stepOffset;
@@ -232,11 +232,12 @@ export class CharacterController extends Collider {
     let height = 0;
     if (syncGeometry) {
       radius = this._radius * Math.max(scale.x, scale.z);
-      height = (this._height - 2 * this._radius) * scale.y;
-      if (!isValidPositiveFloat32(radius) || !isValidPositiveFloat32(height)) {
+      const rawHeight = (this._height - 2 * this._radius) * scale.y;
+      if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(rawHeight))) {
         this._detach();
         return;
       }
+      height = Math.max(0, rawHeight);
     }
 
     const controller = (this._controller ||= this._createNative());

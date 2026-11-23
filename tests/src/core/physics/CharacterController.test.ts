@@ -525,26 +525,53 @@ describe("CharacterController", () => {
     role.transform.setPosition(0, 2, 0);
     expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1).includes(controller)).toBe(true);
 
-    // Zero radial or vertical scale detaches cleanly (no stale hitbox, move returns 0 without throwing)
+    // Zero radial scale detaches cleanly; zero axial scale (1, 0, 1) degenerates to a sphere of radius 0.5
     role.transform.setScale(0, 1, 0);
     expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1).includes(controller)).toBe(false);
     expect(move(new Vector3(2, 0, 0))).toBe(0);
     expect(role.transform.position.x).toBe(0);
 
     role.transform.setScale(1, 0, 1);
-    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1).includes(controller)).toBe(false);
-    expect(move(new Vector3(2, 0, 0))).toBe(0);
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1).includes(controller)).toBe(true);
+    role.transform.setPosition(0, 5, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(0.52, 4);
 
     role.transform.setScale(1, 1, 1);
+    role.transform.setPosition(0, 2, 0);
     expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1).includes(controller)).toBe(true);
     move(new Vector3(2, 0, 0));
     expect(role.transform.position.x).toBeCloseTo(2, 4);
 
+    // height <= 2 * radius degenerates to a sphere of radius 0.5 (resting at y ≈ 0.52 with stepOffset <= 2 * radius)
     controller.height = 1;
-    expect(physics.overlapSphereAll(new Vector3(2, 2, 0), 0.1).includes(controller)).toBe(false);
-    expect(move(new Vector3(2, 0, 0))).toBe(0);
+    role.transform.setPosition(2, 5, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(0.52, 4);
+    update();
+    expect(physics.overlapSphereAll(new Vector3(2, 0.52, 0), 0.1).includes(controller)).toBe(true);
+    expect(physics.raycast(new Ray(new Vector3(2, 1.2, 5), new Vector3(0, 0, -1)), 10)).toBe(false);
+
+    const stepErrors = vi.spyOn(console, "error").mockImplementation(() => {});
+    controller.stepOffset = 1.01;
+    expect(physics.overlapSphereAll(new Vector3(2, 0.52, 0), 0.1).includes(controller)).toBe(false);
+    expect(stepErrors).toHaveBeenCalledWith(expect.stringContaining("within the controller's world height"));
+    controller.stepOffset = 1.0;
+    expect(physics.overlapSphereAll(new Vector3(2, 0.52, 0), 0.1).includes(controller)).toBe(true);
+    controller.stepOffset = 0.5;
+    stepErrors.mockRestore();
+
+    controller.height = 0.2;
+    role.transform.setPosition(2, 5, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(0.52, 4);
+
     controller.height = 2;
-    expect(physics.overlapSphereAll(new Vector3(2, 2, 0), 0.1).includes(controller)).toBe(true);
+    role.transform.setPosition(2, 5, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(1.02, 4);
+    update();
+    expect(physics.raycast(new Ray(new Vector3(2, 1.4, 5), new Vector3(0, 0, -1)), 10)).toBe(true);
     move(new Vector3(1, 0, 0));
     expect(role.transform.position.x).toBeCloseTo(3, 4);
   });
@@ -672,8 +699,16 @@ describe("CharacterController", () => {
       controller.upDirection = new Vector3(0, 0, 0);
       expect(controller.upDirection.y).toBeCloseTo(1, 5);
 
+      role.transform.setPosition(0, 5, 0);
       controller.height = 1e-40;
+      expect(move(new Vector3(0, -20, 0)) & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
+      expect(role.transform.position.y).toBeCloseTo(0.52, 4);
+
+      controller.radius = 1e-40;
       expect(move(new Vector3(1, 0, 0))).toBe(0);
+      controller.radius = 1e40;
+      expect(move(new Vector3(1, 0, 0))).toBe(0);
+      controller.radius = 0.5;
       controller.height = 1e40;
       expect(move(new Vector3(1, 0, 0))).toBe(0);
       controller.height = 2;

@@ -512,27 +512,27 @@ export class PhysicsScene {
 
   /**
    * Tests whether sweeping a capsule hits a collider.
-   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
+   * @param height - Total height in world units, including both caps. Values at or below twice the radius degenerate to a sphere.
    */
   capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3): boolean;
 
   /**
    * Tests whether sweeping a capsule hits a collider.
-   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
+   * @param height - Total height in world units, including both caps. Values at or below twice the radius degenerate to a sphere.
    * @param outHitResult - Receives the closest hit.
    */
   capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, outHitResult: HitResult): boolean;
 
   /**
    * Tests whether sweeping a capsule hits a collider.
-   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
+   * @param height - Total height in world units, including both caps. Values at or below twice the radius degenerate to a sphere.
    * @param distance - Maximum distance in world units.
    */
   capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, distance: number): boolean;
 
   /**
    * Tests whether sweeping a capsule hits a collider.
-   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
+   * @param height - Total height in world units, including both caps. Values at or below twice the radius degenerate to a sphere.
    * @param distance - Maximum distance in world units.
    * @param outHitResult - Receives the closest hit.
    */
@@ -549,7 +549,7 @@ export class PhysicsScene {
    * Tests whether sweeping a capsule hits a collider.
    * @param center - Initial center in world space.
    * @param radius - Radius in world units.
-   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
+   * @param height - Total height in world units, including both caps. Values at or below twice the radius degenerate to a sphere.
    * @param direction - Sweep direction in world space.
    * @param orientation - World-space rotation of the capsule, whose local long axis is Y.
    * @param distance - Maximum distance in world units.
@@ -588,24 +588,28 @@ export class PhysicsScene {
     parsed.orientation = PhysicsScene._identityQuaternion;
 
     const cylinderHeight = height - 2 * radius;
+    const halfCylinderHeight = cylinderHeight * 0.5;
     const normalizedDirection =
-      distance > 0 && isValidPositiveFloat32(radius) && isValidPositiveFloat32(cylinderHeight * 0.5)
+      distance > 0 && isValidPositiveFloat32(radius) && height >= 0 && Number.isFinite(Math.fround(halfCylinderHeight))
         ? this._syncCastDirection(direction)
         : null;
 
     let result = false;
     if (normalizedDirection) {
       this._activeHitResult = hitResult ?? null;
-      result = this._nativePhysicsScene.capsuleCast(
-        center,
-        radius,
-        cylinderHeight,
-        orientation,
-        normalizedDirection,
-        distance,
-        layerMask,
-        hitResult ? this._onSingleHit : undefined
-      );
+      const onHit = hitResult ? this._onSingleHit : undefined;
+      result = isValidPositiveFloat32(halfCylinderHeight)
+        ? this._nativePhysicsScene.capsuleCast(
+            center,
+            radius,
+            cylinderHeight,
+            orientation,
+            normalizedDirection,
+            distance,
+            layerMask,
+            onHit
+          )
+        : this._nativePhysicsScene.sphereCast(center, radius, normalizedDirection, distance, layerMask, onHit);
       this._activeHitResult = null;
     }
 
@@ -669,7 +673,7 @@ export class PhysicsScene {
    * Finds the colliders overlapping a capsule.
    * @param center - Center in world space.
    * @param radius - Radius in world units.
-   * @param height - Total height in world units, including both caps. Must exceed twice the radius.
+   * @param height - Total height in world units, including both caps. Values at or below twice the radius degenerate to a sphere.
    * @param orientation - World-space rotation of the capsule, whose local long axis is Y. Defaults to the identity rotation.
    * @param layerMask - Collision layers to include. Defaults to `Layer.Everything`.
    * @param colliders - Output array whose contents are replaced. Omit to allocate an array.
@@ -684,12 +688,15 @@ export class PhysicsScene {
     colliders: Collider[] = []
   ): Collider[] {
     const cylinderHeight = height - 2 * radius;
-    if (!(isValidPositiveFloat32(radius) && isValidPositiveFloat32(cylinderHeight * 0.5))) {
+    const halfCylinderHeight = cylinderHeight * 0.5;
+    if (!(isValidPositiveFloat32(radius) && height >= 0 && Number.isFinite(Math.fround(halfCylinderHeight)))) {
       colliders.length = 0;
       return colliders;
     }
     this._syncColliders();
-    const ids = this._nativePhysicsScene.overlapCapsuleAll(center, radius, cylinderHeight, orientation, layerMask);
+    const ids = isValidPositiveFloat32(halfCylinderHeight)
+      ? this._nativePhysicsScene.overlapCapsuleAll(center, radius, cylinderHeight, orientation, layerMask)
+      : this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
 
     return PhysicsScene._collectColliders(ids, colliders);
   }

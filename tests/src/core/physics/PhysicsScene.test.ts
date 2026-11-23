@@ -2521,11 +2521,17 @@ describe("Physics Test", () => {
       expect(physicsScene.capsuleCast(origin, 0, 1, dir, 20, hit)).toBe(false);
       expect(physicsScene.capsuleCast(origin, -0.5, 1, dir, 20, hit)).toBe(false);
       expect(physicsScene.capsuleCast(origin, 0.5, -1, dir, 20, hit)).toBe(false);
-      expect(physicsScene.capsuleCast(origin, 0.5, 0, dir, 20, hit)).toBe(false);
-      expect(physicsScene.capsuleCast(origin, 0.5, 0.5, dir, 20, hit)).toBe(false);
-      expect(physicsScene.capsuleCast(origin, 0.5, 1, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 0.5, NaN, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 0.5, 0, dir, 20, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(3.5, 4);
+      expect(hit.normal.x).toBeCloseTo(-1, 4);
+      expect(physicsScene.capsuleCast(origin, 0.5, 0.5, dir, 20, hit)).toBe(true);
+      expect(physicsScene.capsuleCast(origin, 0.5, 1, dir, 20, hit)).toBe(true);
       expect(physicsScene.capsuleCast(origin, 0.5, 2, dir, 20, hit)).toBe(true);
       expect(hit.normal.x).toBeCloseTo(-1, 4);
+      // Degenerate sphere extent does not extend past radius 0.5 regardless of capsule height <= 2 * radius
+      expect(physicsScene.capsuleCast(new Vector3(-5, 1.75, 0), 0.5, 1, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(new Vector3(-5, 1.75, 0), 0.5, 2, dir, 20, hit)).toBe(true);
 
       const existing = [target.getComponent(BoxCollider)!];
       expect(physicsScene.overlapBoxAll(new Vector3(), new Vector3(0, 1, 1), idQ, Layer.Everything, existing)).toEqual(
@@ -2536,10 +2542,14 @@ describe("Physics Test", () => {
       expect(physicsScene.overlapSphereAll(new Vector3(), -1)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0, 1)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, -1)).toEqual([]);
-      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 0)).toEqual([]);
-      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 0.5)).toEqual([]);
-      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 1)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, NaN)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 0)).toHaveLength(1);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 0.5)).toHaveLength(1);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 1)).toHaveLength(1);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 2)).toHaveLength(1);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(0, 1.75, 0), 0.5, 1)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(0, 1.25, 0), 0.5, 0.5)).toHaveLength(1);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(0, 1.75, 0), 0.5, 2)).toHaveLength(1);
 
       // Exercise values that are positive in JS but invalid after Float32 conversion.
       expect(physicsScene.boxCast(origin, new Vector3(1e-40, 1, 1), dir, 20, hit)).toBe(false);
@@ -2547,12 +2557,16 @@ describe("Physics Test", () => {
       expect(physicsScene.sphereCast(origin, 1e-40, dir, 20, hit)).toBe(false);
       expect(physicsScene.sphereCast(origin, 1e40, dir, 20, hit)).toBe(false);
       expect(physicsScene.capsuleCast(origin, 1e-40, 1, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 1e40, 1, dir, 20, hit)).toBe(false);
+      expect(physicsScene.capsuleCast(origin, 1, 1e-40, dir, 20, hit)).toBe(true);
       expect(physicsScene.capsuleCast(origin, 1, 1e40, dir, 20, hit)).toBe(false);
       expect(physicsScene.overlapBoxAll(new Vector3(), new Vector3(1e-40, 1, 1))).toEqual([]);
       expect(physicsScene.overlapBoxAll(new Vector3(), new Vector3(1e40, 1, 1))).toEqual([]);
       expect(physicsScene.overlapSphereAll(new Vector3(), 1e-40)).toEqual([]);
       expect(physicsScene.overlapSphereAll(new Vector3(), 1e40)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 1e-40, 1)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 1e40, 1)).toEqual([]);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 1, 1e-40)).toHaveLength(1);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 1, 1e40)).toEqual([]);
     });
 
