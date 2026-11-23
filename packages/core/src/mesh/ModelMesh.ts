@@ -758,14 +758,11 @@ export class ModelMesh extends Mesh {
       bindings[i]?.buffer._dataUpdateManager.removeListener(this._vertexBufferInfos[i].onBufferChanged);
     }
     super._onDestroy();
-    const internalVertexBufferIndex = this._internalVertexBufferCreatedInfo.z;
-    if (internalVertexBufferIndex !== -1) {
-      this._setVertexBufferBinding(internalVertexBufferIndex, null);
-    }
+    bindings[this._internalVertexBufferCreatedInfo.z]?.buffer.destroy();
     this._primitive.indexBufferBinding?._buffer.destroy();
+    this._releaseCache(true);
     this._blendShapeManager._clearBlendShapes();
     this._blendShapeManager._destroyGPUResources();
-    this._releaseCache(true);
   }
 
   private _getVertexElementData<T extends VertexType>(
