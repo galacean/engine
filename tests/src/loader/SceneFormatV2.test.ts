@@ -1027,12 +1027,7 @@ describe("applySceneData scene property parsing", () => {
   it("should resolve unified ambientLight for specular and spherical harmonics", async () => {
     const scene = new Scene(engine);
     const noop = () => {};
-    const ambientTexture = {
-      name: "ambient-specular-texture",
-      _addReferCount: noop,
-      _associationSuperResource: noop,
-      _disassociationSuperResource: noop
-    };
+    const ambientTexture = { name: "ambient-specular-texture", _addReferCount: noop };
     const diffuseSphericalHarmonics = { name: "ambient-sh", coefficients: new Float32Array(27) };
     const getResourceByRef = vi
       .spyOn(engine.resourceManager as any, "getResourceByRef")
@@ -1074,12 +1069,7 @@ describe("applySceneData scene property parsing", () => {
   it("should apply unified ambientLight specular without overwriting SH in SolidColor diffuse mode", async () => {
     const scene = new Scene(engine);
     const noop = () => {};
-    const ambientTexture = {
-      name: "ambient-specular-texture",
-      _addReferCount: noop,
-      _associationSuperResource: noop,
-      _disassociationSuperResource: noop
-    };
+    const ambientTexture = { name: "ambient-specular-texture", _addReferCount: noop };
     const diffuseSphericalHarmonics = { name: "ambient-sh", coefficients: new Float32Array(27) };
     const initialSH = scene.ambientLight.diffuseSphericalHarmonics;
     const getResourceByRef = vi
@@ -1154,13 +1144,7 @@ describe("applySceneData scene property parsing", () => {
 
   it("should apply texture background resources and fill mode", async () => {
     const scene = new Scene(engine);
-    const noop = () => {};
-    const backgroundTexture = {
-      name: "background-texture",
-      _addReferCount: noop,
-      _associationSuperResource: noop,
-      _disassociationSuperResource: noop
-    };
+    const backgroundTexture = { name: "background-texture", _addReferCount: () => {} };
     const getResourceByRef = vi
       .spyOn(engine.resourceManager as any, "getResourceByRef")
       .mockImplementation((ref: any) => {

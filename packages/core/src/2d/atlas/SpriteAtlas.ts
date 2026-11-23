@@ -64,7 +64,7 @@ export class SpriteAtlas extends ReferResource {
   _addSprite(sprite: Sprite): void {
     this._spriteNamesToIndex[String(sprite.name)] = this._sprites.push(sprite) - 1;
     sprite._atlas = this;
-    sprite._associationSuperResource(this);
+    sprite.isGCIgnored = true;
   }
 
   /**
@@ -74,13 +74,7 @@ export class SpriteAtlas extends ReferResource {
     super._onDestroy();
     const { _sprites: sprites } = this;
     for (let i = 0, n = sprites.length; i < n; i++) {
-      const sprite = sprites[i];
-      if (!sprite.destroyed) {
-        sprite._atlas = null;
-        if (!sprite.isGCIgnored) {
-          sprite.destroy();
-        }
-      }
+      sprites[i].destroy();
     }
     sprites.length = 0;
     this._sprites = null!;

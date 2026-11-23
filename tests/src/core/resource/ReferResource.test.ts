@@ -1,18 +1,12 @@
 import {
-  AmbientLight,
   BlendShape,
   Buffer,
   BufferBindFlag,
   BufferUsage,
   Material,
   ModelMesh,
-  PBRMaterial,
   ReferResource,
-  Sprite,
-  SpriteAtlas,
-  SpriteRenderer,
   Texture2D,
-  TextureCube,
   VertexBufferBinding,
   VertexElement,
   VertexElementFormat
@@ -107,19 +101,6 @@ describe("ReferResource", () => {
     deadOwner.destroy(true);
     engine.resourceManager.gc();
     expect(orphan.destroyed).eq(true);
-
-    // Self-association and cycles must be rejected so _hasActiveSuperResource() always terminates
-    const nodeA = new TestSuperResource(engine);
-    const nodeB = new TestSuperResource(engine);
-    const nodeC = new TestSuperResource(engine);
-    nodeA._associationSuperResource(nodeA);
-    nodeB._associationSuperResource(nodeA);
-    nodeC._associationSuperResource(nodeB);
-    nodeA._associationSuperResource(nodeC);
-    engine.resourceManager.gc();
-    expect(nodeA.destroyed).eq(true);
-    expect(nodeB.destroyed).eq(true);
-    expect(nodeC.destroyed).eq(true);
   });
 
   it("preserves built-in post-process and fallback BlinnPhong materials across gc()", () => {
@@ -300,191 +281,5 @@ describe("ReferResource", () => {
     mesh.isGCIgnored = false;
     mesh.destroy(true);
     positionBuffer.destroy(true);
-  });
-
-  it("retains Sprite texture across gc() and collects both in a single gc() pass when unpinned", () => {
-    const tex1 = new Texture2D(engine, 4, 4);
-    const sprite = new Sprite(engine, tex1);
-    sprite.isGCIgnored = true;
-
-    engine.resourceManager.gc();
-    expect(sprite.destroyed).eq(false);
-    expect(tex1.destroyed).eq(false);
-    expect(tex1.destroy()).eq(false);
-
-    // Replacing texture releases previous association immediately
-    const tex2 = new Texture2D(engine, 4, 4);
-    sprite.texture = tex2;
-    engine.resourceManager.gc();
-    expect(tex1.destroyed).eq(true);
-    expect(tex2.destroyed).eq(false);
-
-    // Unpinning collects both sprite and texture in one gc() pass regardless of creation order
-    sprite.isGCIgnored = false;
-    engine.resourceManager.gc();
-    expect(sprite.destroyed).eq(true);
-    expect(tex2.destroyed).eq(true);
-  });
-
-  it("retains multi-page SpriteAtlas sprites and textures transitively without hijacking isGCIgnored", () => {
-    const page0 = new Texture2D(engine, 4, 4);
-    const page1 = new Texture2D(engine, 4, 4);
-    const atlas = new SpriteAtlas(engine);
-    const sprite0 = new Sprite(engine, page0, null, null, null, "s0");
-    const sprite1 = new Sprite(engine, page1, null, null, null, "s1");
-    atlas._addSprite(sprite0);
-    atlas._addSprite(sprite1);
-
-    // Atlas ownership uses superResource graph, leaving isGCIgnored strictly consumer-owned
-    expect(sprite0.isGCIgnored).eq(false);
-    expect(sprite1.isGCIgnored).eq(false);
-
-    // Mounting only sprite0 keeps atlas, sibling sprite1, and second atlas page1 alive across gc()
-    const entity = engine.sceneManager.activeScene.createRootEntity("atlas-holder");
-    const renderer = entity.addComponent(SpriteRenderer);
-    renderer.sprite = sprite0;
-
-    engine.resourceManager.gc();
-    expect(atlas.destroyed).eq(false);
-    expect(sprite0.destroyed).eq(false);
-    expect(sprite1.destroyed).eq(false);
-    expect(page0.destroyed).eq(false);
-    expect(page1.destroyed).eq(false);
-
-    // Pinning atlas without active renderers retains all sprites and pages
-    renderer.sprite = null;
-    atlas.isGCIgnored = true;
-    engine.resourceManager.gc();
-    expect(atlas.destroyed).eq(false);
-    expect(sprite0.destroyed).eq(false);
-    expect(sprite1.destroyed).eq(false);
-    expect(page0.destroyed).eq(false);
-    expect(page1.destroyed).eq(false);
-
-    // Unpinning collects atlas, all sprites, and all pages in one gc() pass
-    atlas.isGCIgnored = false;
-    engine.resourceManager.gc();
-    expect(atlas.destroyed).eq(true);
-    expect(sprite0.destroyed).eq(true);
-    expect(sprite1.destroyed).eq(true);
-    expect(page0.destroyed).eq(true);
-    expect(page1.destroyed).eq(true);
-
-    // Pinned atlas sprite survives gc() even when atlas itself is collected, and clears _atlas
-    const pinnedPage = new Texture2D(engine, 4, 4);
-    const unpinnedPage = new Texture2D(engine, 4, 4);
-    const atlas2 = new SpriteAtlas(engine);
-    const pinnedSprite = new Sprite(engine, pinnedPage, null, null, null, "pinned");
-    const unpinnedSprite = new Sprite(engine, unpinnedPage, null, null, null, "unpinned");
-    atlas2._addSprite(pinnedSprite);
-    atlas2._addSprite(unpinnedSprite);
-    pinnedSprite.isGCIgnored = true;
-
-    engine.resourceManager.gc();
-    expect(atlas2.destroyed).eq(true);
-    expect(unpinnedSprite.destroyed).eq(true);
-    expect(unpinnedPage.destroyed).eq(true);
-    expect(pinnedSprite.destroyed).eq(false);
-    expect(pinnedSprite._atlas).eq(null);
-    expect(pinnedPage.destroyed).eq(false);
-
-    pinnedSprite.isGCIgnored = false;
-    engine.resourceManager.gc();
-    expect(pinnedSprite.destroyed).eq(true);
-    expect(pinnedPage.destroyed).eq(true);
-
-    // Force-destroying an atlas while a sprite is mounted detaches _atlas cleanly without corrupting refCounts
-    const mountedPage = new Texture2D(engine, 4, 4);
-    const atlas3 = new SpriteAtlas(engine);
-    const mountedSprite = new Sprite(engine, mountedPage, null, null, null, "mounted");
-    atlas3._addSprite(mountedSprite);
-    renderer.sprite = mountedSprite;
-    atlas3.destroy(true);
-    expect(atlas3.destroyed).eq(true);
-    expect(mountedSprite.destroyed).eq(false);
-    expect(mountedSprite._atlas).eq(null);
-    expect(mountedPage.destroyed).eq(false);
-
-    entity.destroy();
-    engine.resourceManager.gc();
-    expect(mountedSprite.destroyed).eq(true);
-    expect(mountedPage.destroyed).eq(true);
-  });
-
-  it("retains Material shaderData textures across gc() including multi-slot bindings and clones", () => {
-    const tex1 = new Texture2D(engine, 2, 2);
-    const tex2 = new Texture2D(engine, 2, 2);
-    const material = new PBRMaterial(engine);
-    material.isGCIgnored = true;
-    material.baseTexture = tex1;
-    material.shaderData.setTexture("custom_ExtraTexture", tex1);
-    material.shaderData.setTextureArray("custom_TextureArray", [tex2]);
-
-    engine.resourceManager.gc();
-    expect(material.destroyed).eq(false);
-    expect(tex1.destroyed).eq(false);
-    expect(tex2.destroyed).eq(false);
-
-    // Removing one slot keeps tex1 associated while the other slot still references it
-    material.shaderData.setTexture("custom_ExtraTexture", null);
-    engine.resourceManager.gc();
-    expect(tex1.destroyed).eq(false);
-
-    // Cloning transfers texture ownership independently to the cloned material
-    const tex3 = new Texture2D(engine, 2, 2);
-    const cloned = material.clone();
-    cloned.isGCIgnored = true;
-    material.baseTexture = null;
-    material.shaderData.setTextureArray("custom_TextureArray", [tex3]);
-
-    engine.resourceManager.gc();
-    expect(tex1.destroyed).eq(false);
-    expect(tex2.destroyed).eq(false);
-    expect(tex3.destroyed).eq(false);
-
-    // Destroying cloned releases tex1 and tex2; unpinning material releases material and tex3 in one pass
-    cloned.isGCIgnored = false;
-    cloned.destroy();
-    engine.resourceManager.gc();
-    expect(tex1.destroyed).eq(true);
-    expect(tex2.destroyed).eq(true);
-    expect(tex3.destroyed).eq(false);
-
-    material.isGCIgnored = false;
-    engine.resourceManager.gc();
-    expect(material.destroyed).eq(true);
-    expect(tex3.destroyed).eq(true);
-  });
-
-  it("retains AmbientLight specularTexture across gc() and releases scene shaderData reference when cleared", () => {
-    const cube1 = new TextureCube(engine, 2);
-    const ambient = new AmbientLight(engine);
-    ambient.isGCIgnored = true;
-    ambient.specularTexture = cube1;
-
-    engine.resourceManager.gc();
-    expect(ambient.destroyed).eq(false);
-    expect(cube1.destroyed).eq(false);
-
-    // Replacing specularTexture allows the old texture to be collected
-    const cube2 = new TextureCube(engine, 2);
-    ambient.specularTexture = cube2;
-    engine.resourceManager.gc();
-    expect(cube1.destroyed).eq(true);
-    expect(cube2.destroyed).eq(false);
-
-    // Clearing specularTexture while attached to a scene must release scene.shaderData refCount
-    const scene = engine.sceneManager.activeScene;
-    const previousAmbient = scene.ambientLight;
-    scene.ambientLight = ambient;
-    expect(cube2.refCount).eq(1);
-    ambient.specularTexture = null!;
-    expect(cube2.refCount).eq(0);
-    scene.ambientLight = previousAmbient;
-
-    ambient.isGCIgnored = false;
-    engine.resourceManager.gc();
-    expect(ambient.destroyed).eq(true);
-    expect(cube2.destroyed).eq(true);
   });
 });

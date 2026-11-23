@@ -57,9 +57,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
    * @internal
    */
   _associationSuperResource(superResource: ReferResource): void {
-    if (this._destroyed || superResource._destroyed || this === superResource || superResource._isSubResourceOf(this)) {
-      return;
-    }
+    if (this._destroyed || superResource._destroyed) return;
     (this._superResources ||= new Set()).add(superResource);
     (superResource._subResources ||= new Set()).add(this);
   }
@@ -113,17 +111,6 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     if (this._superResources) {
       for (const superResource of this._superResources) {
         if (superResource._refCount > 0 || superResource.isGCIgnored || superResource._hasActiveSuperResource()) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  private _isSubResourceOf(ancestor: ReferResource): boolean {
-    if (this._superResources) {
-      for (const superResource of this._superResources) {
-        if (superResource === ancestor || superResource._isSubResourceOf(ancestor)) {
           return true;
         }
       }

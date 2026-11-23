@@ -49,26 +49,25 @@ export class GLTFLoader extends Loader<GLTFResource> {
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onTaskCancel) => {
       context._setTaskCompleteProgress = setTaskCompleteProgress;
       context._setTaskDetailProgress = setTaskDetailProgress;
-      onTaskCancel(() => {
-        context._abort();
-      });
-      try {
-        context
-          .parse()
-          .then((res) => {
-            if (!context._aborted) {
-              res._addReferCount(-1);
-              resolve(res);
-            }
-          })
-          .catch((e) => {
-            context._abort();
-            reject(e);
-          });
-      } catch (e) {
-        context._abort();
-        reject(e);
-      }
+      const abort = () => {
+        if (!context._aborted) {
+          glTFResource._addReferCount(-1);
+          context._abort();
+        }
+      };
+      onTaskCancel(abort);
+      context
+        .parse()
+        .then((res) => {
+          if (!context._aborted) {
+            res._addReferCount(-1);
+            resolve(res);
+          }
+        })
+        .catch((e) => {
+          abort();
+          reject(e);
+        });
     });
   }
 }

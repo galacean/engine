@@ -146,10 +146,6 @@ export class GLTFParserContext {
         if (this._aborted) {
           return this.glTFResource;
         }
-        if (this.glTFResource.destroyed) {
-          this._abort();
-          throw new Error("GLTFResource was destroyed during load.");
-        }
         const glTFResource = this.glTFResource;
         const animatorController = glTFResource.animatorController;
 
@@ -197,10 +193,7 @@ export class GLTFParserContext {
     }
     getPromises.length = 0;
 
-    if (!this.glTFResource.destroyed) {
-      this.glTFResource._addReferCount(-1);
-      this.glTFResource.destroy();
-    }
+    this.glTFResource.destroy();
 
     this._createdResources.forEach((resource) => {
       resource._disassociationSuperResource(this.glTFResource);
