@@ -1,0 +1,16 @@
+packages/core/src/mesh/BlendShapeManager.ts
+  h_bd4dd7d663e619 302,304-305,307-308
+packages/core/src/mesh/ModelMesh.ts
+  h_bd4dd7d663e619 833
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a179c6343f32e4df43a7af59186b69a7782cc0b4",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
