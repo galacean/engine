@@ -97,7 +97,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   set automaticConnectedAnchor(value: boolean) {
     this._automaticConnectedAnchor = value;
-    if (value) this._updateAnchors(AnchorOwner.Connected, true);
+    value && this._updateAnchors(AnchorOwner.Connected, true);
   }
 
   /**
@@ -328,7 +328,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   private _syncFrames(nativeJoint: IJoint, owner: AnchorOwner): void {
-    if (this._automaticConnectedAnchor) this._calculateConnectedAnchor();
+    this._automaticConnectedAnchor && this._calculateConnectedAnchor();
     this._syncAnchors(nativeJoint, owner);
 
     let rotation = this.entity.transform.worldRotationQuaternion;
@@ -388,7 +388,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   private _updateAnchors(owner: AnchorOwner, recalculateConnected = false): void {
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
-      if (recalculateConnected) this._calculateConnectedAnchor();
+      recalculateConnected && this._calculateConnectedAnchor();
       this._syncAnchors(nativeJoint, owner);
       this._wakeBodies();
     }

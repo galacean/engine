@@ -46,12 +46,12 @@ export class PhysXCharacterController implements ICharacterController {
     const maxStepOffset = Math.fround(height + 2 * radius);
     const controller = this._syncStepOffset(stepOffset, maxStepOffset);
     if (controller) {
-      if (radius !== this._radius) controller.setRadius(radius);
-      if (height !== this._height) controller.setHeight(height);
+      radius !== this._radius && controller.setRadius(radius);
+      height !== this._height && controller.setHeight(height);
     }
     this._radius = radius;
     this._height = height;
-    if (!controller) this._rebuild();
+    !controller && this._rebuild();
   }
 
   /**
@@ -118,9 +118,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   getWorldPosition(position: Vector3): void {
     const pxController = this._pxController;
-    if (pxController) {
-      this._worldPosition.copyFrom(pxController.getPosition()).subtract(this._center);
-    }
+    pxController && this._worldPosition.copyFrom(pxController.getPosition()).subtract(this._center);
     position.copyFrom(this._worldPosition);
   }
 

@@ -321,7 +321,7 @@ export class PhysicsScene {
         if (hitResult && !seenHits.has(hitResult)) {
           seenHits.add(hitResult);
           this._clearHitResult(hitResult);
-          if (pool.length < 256) pool.push(hitResult);
+          pool.length < 256 && pool.push(hitResult);
         }
       }
       seenHits.clear();
@@ -730,9 +730,7 @@ export class PhysicsScene {
         }
       }
       nativePhysicsScene.update(fixedTimeStep);
-      if (this._bodyOrderDirty) {
-        this._sortBodies();
-      }
+      this._bodyOrderDirty && this._sortBodies();
       const count = bodies.length;
       if (count > 0) {
         const position = PhysicsScene._tempPosition;
@@ -883,23 +881,21 @@ export class PhysicsScene {
 
   /** @internal */
   _onScriptEnabled(script: Script, flags: number): void {
-    if (flags & 1) this._addContactEventConsumer(1);
-    if (flags & 2) script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
+    flags & 1 && this._addContactEventConsumer(1);
+    flags & 2 && script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
   }
 
   /** @internal */
   _onScriptDisabled(script: Script, flags: number): void {
-    if (flags & 1) this._addContactEventConsumer(-1);
-    if (flags & 2) script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
+    flags & 1 && this._addContactEventConsumer(-1);
+    flags & 2 && script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
   }
 
   private _addContactEventConsumer(delta: 1 | -1): void {
     const wasEnabled = this._contactEventConsumerCount > 0;
     this._contactEventConsumerCount += delta;
     const enabled = this._contactEventConsumerCount > 0;
-    if (wasEnabled !== enabled) {
-      this._nativePhysicsScene?.setContactEventEnabled(enabled);
-    }
+    wasEnabled !== enabled && this._nativePhysicsScene?.setContactEventEnabled(enabled);
   }
 
   /**
@@ -985,9 +981,7 @@ export class PhysicsScene {
 
     const triggerCount = triggerEvents.length;
     if (triggerCount === 0) {
-      if (this._triggerReceivers.size > 0) {
-        this._triggerReceivers.clear();
-      }
+      this._triggerReceivers.size > 0 && this._triggerReceivers.clear();
     } else {
       const receivers = PhysicsScene._dispatchReceivers.pop() ?? [];
       for (let i = 0; i < triggerCount; i++) {
@@ -1040,18 +1034,16 @@ export class PhysicsScene {
           this._dispatchTriggerStaySide(entry, false, cur1, collider1, collider0);
         } else {
           const entry = triggerReceivers.get(event);
-          if (entry) triggerReceivers.delete(event);
+          entry && triggerReceivers.delete(event);
           const target0 = PhysicsScene._resolveTriggerExitTarget(entry?.receiver0, cur0, collider0);
-          if (target0) PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
+          target0 && PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
           const target1 = PhysicsScene._resolveTriggerExitTarget(entry?.receiver1, cur1, collider1);
-          if (target1) PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
+          target1 && PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
         }
       }
       if (triggerReceivers.size > liveCount) {
         for (const [key, entry] of triggerReceivers) {
-          if (entry.stamp !== stamp) {
-            triggerReceivers.delete(key);
-          }
+          entry.stamp !== stamp && triggerReceivers.delete(key);
         }
       }
       receivers.length = 0;

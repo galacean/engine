@@ -439,9 +439,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   _addColliderShape(id: number): void {
     const changes = this._shapeChanges;
-    if (changes.has(id)) {
-      changes.set(id, true);
-    }
+    changes.has(id) && changes.set(id, true);
   }
 
   /**

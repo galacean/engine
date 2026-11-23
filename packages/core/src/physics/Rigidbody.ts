@@ -150,9 +150,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set linearVelocity(value: Vector3) {
-    if (this._linearVelocity !== value) {
-      this._linearVelocity.copyFrom(value);
-    }
+    this._linearVelocity !== value && this._linearVelocity.copyFrom(value);
   }
 
   /**
@@ -171,9 +169,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set angularVelocity(value: Vector3) {
-    if (this._angularVelocity !== value) {
-      this._angularVelocity.copyFrom(value);
-    }
+    this._angularVelocity !== value && this._angularVelocity.copyFrom(value);
   }
 
   /**
@@ -245,7 +241,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @remarks Writing disables {@link automaticCenterOfMass}.
    */
   get centerOfMass(): Vector3 {
-    if (this._automaticCenterOfMass) this._readComputedCenterOfMass();
+    this._automaticCenterOfMass && this._readComputedCenterOfMass();
     return this._centerOfMass;
   }
 
@@ -284,7 +280,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   get inertiaTensor(): Vector3 {
     if (this._automaticInertiaTensor) {
       const actor = this._getSyncedActor();
-      if (actor) this._readInertiaTensor(actor);
+      actor && this._readInertiaTensor(actor);
     }
     return this._inertiaTensor;
   }
@@ -301,7 +297,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   get inertiaTensorRotation(): Quaternion {
     if (this._automaticInertiaTensor) {
       const actor = this._getSyncedActor();
-      if (actor) this._readInertiaTensorRotation(actor);
+      actor && this._readInertiaTensorRotation(actor);
     }
     return this._inertiaTensorRotation;
   }
@@ -473,7 +469,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (this._simulationEnabled !== value) {
       this._simulationEnabled = value;
       this._wasSleeping = false;
-      if (!value) this._cancelPendingSleep();
+      !value && this._cancelPendingSleep();
       this._nativeActor?.setSimulationEnabled(value);
       this._syncSleepEventRegistration();
       const joints = this._joints;
@@ -688,7 +684,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const scene = this._registeredScene;
     if (!scene || this._index === -1 || this._isActivating()) {
       this._sleepPending = true;
-      if (this._index !== -1) scene?.physics._scheduleSleep(this, true);
+      this._index !== -1 && scene?.physics._scheduleSleep(this, true);
     } else {
       this._cancelPendingSleep();
       this._getSyncedActor()!.sleep();
@@ -752,7 +748,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const actor = this._getNativeActor();
     this._detachOrphanedColliders();
     scene.physics._addRigidbody(this, actor);
-    if (this._sleepPending) scene.physics._scheduleSleep(this, true);
+    this._sleepPending && scene.physics._scheduleSleep(this, true);
     this._syncSleepEventRegistration();
     this._syncJoints();
     this._markCollidersDirty();
@@ -766,7 +762,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (!scene) return;
     this._registeredScene = null;
     this._wasSleeping = false;
-    if (this._sleepPending) scene.physics._scheduleSleep(this, false);
+    this._sleepPending && scene.physics._scheduleSleep(this, false);
     this._setSleepEventRegistration(scene, false);
     this._syncJoints();
     this._detachOrphanedColliders();
@@ -839,7 +835,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
       // Non-convex triangle meshes require a kinematic native actor before attachment
       actor.setMotionState(this._isKinematic, this._useCCD);
-      if (!this._simulationEnabled) actor.setSimulationEnabled(false);
+      !this._simulationEnabled && actor.setSimulationEnabled(false);
       actor.setLinearDamping(this._linearDamping);
       actor.setAngularDamping(this._angularDamping);
       if (this._simulationEnabled && !this._isKinematic) {
@@ -1018,7 +1014,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
         return;
       }
     }
-    if (changes & MassChanges.Mass) actor.setMass(mass);
+    changes & MassChanges.Mass && actor.setMass(mass);
   }
 
   protected override _onDestroy(): void {
@@ -1056,7 +1052,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const { _components: components, children } = entity;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
-      if (component instanceof Collider) component._markDirty();
+      component instanceof Collider && component._markDirty();
     }
     for (let i = 0, n = children.length; i < n; i++) this._markCollidersDirty(children[i]);
   }
@@ -1185,8 +1181,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       const deferMass = this._massDirtyIndex !== -1 && (this._massChanges & ~MassChanges.Mass) === 0;
       if (deferMass) this._massChanges = MassChanges.None;
       this._registeredScene?.physics._syncColliders();
-      if (this._nativeActor) this._readInertiaTensorRotation(this._nativeActor, true);
-      if (deferMass) this._markMassDirty(MassChanges.Mass);
+      this._nativeActor && this._readInertiaTensorRotation(this._nativeActor, true);
+      deferMass && this._markMassDirty(MassChanges.Mass);
     }
     this._automaticInertiaTensor = false;
     this._nativeActor?.setInertiaTensor(this._inertiaTensor);
@@ -1223,7 +1219,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     let actor: IDynamicCollider | null;
     if (this._automaticInertiaTensor) {
       actor = this._getSyncedActor();
-      if (actor) this._readInertiaTensor(actor);
+      actor && this._readInertiaTensor(actor);
       this._automaticInertiaTensor = false;
     } else {
       actor = this._nativeActor;

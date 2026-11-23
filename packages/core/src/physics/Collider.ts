@@ -132,9 +132,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   set center(value: Vector3) {
-    if (this._center !== value) {
-      this._center.copyFrom(value);
-    }
+    this._center !== value && this._center.copyFrom(value);
   }
 
   /**
@@ -285,9 +283,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
     this._registeredScene?.physics._syncColliders();
     const distance = this._getVolumeDistance(point, outClosestPoint);
-    if (distance < 0) {
-      console.warn("The collider is not in simulation.");
-    }
+    distance < 0 && console.warn("The collider is not in simulation.");
     return distance;
   }
 
@@ -363,7 +359,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       return;
     }
 
-    if (Logger.isEnabled && !this._shearWarned) this._checkShear(worldMatrix);
+    Logger.isEnabled && !this._shearWarned && this._checkShear(worldMatrix);
 
     const lossyScale = transform.lossyWorldScale;
     const body = this._findRigidbody();
@@ -380,9 +376,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._rejectedBody = null;
 
     // Replace geometry only on the actor that owns this Collider in the current hierarchy.
-    if (this._nativeActor && this._attachedBody !== body) {
-      this._detach();
-    }
+    this._nativeActor && this._attachedBody !== body && this._detach();
 
     const scaleX = lossyScale.x;
     const scaleY = lossyScale.y;
@@ -525,8 +519,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   protected _initializeNativeShape<T extends IColliderShape>(shape: T): T {
     shape.setContactOffset(this._contactOffset);
-    if (this._isTrigger) shape.setIsTrigger(true);
-    if (!this._isSceneQuery) shape.setIsSceneQuery(false);
+    this._isTrigger && shape.setIsTrigger(true);
+    !this._isSceneQuery && shape.setIsSceneQuery(false);
     shape.setCollisionLayer(this._collisionLayerIndex);
     return shape;
   }
@@ -664,9 +658,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     if (body) {
       const entity = this.entity;
       const bodyEntity = body.entity;
-      if (entity !== bodyEntity) {
-        this._transformPoseToBodySpace(entity, bodyEntity, position, rotation);
-      }
+      entity !== bodyEntity && this._transformPoseToBodySpace(entity, bodyEntity, position, rotation);
     }
 
     const nativePosition = this._nativePosition;

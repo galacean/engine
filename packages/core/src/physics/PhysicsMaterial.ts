@@ -124,9 +124,7 @@ export class PhysicsMaterial extends ReferResource {
   override _addReferCount(value: number): void {
     // Allow _onDestroy() to clear the reference count while the native material still exists.
     // Colliders may release their references after the native material has been destroyed.
-    if (this._nativeMaterial) {
-      super._addReferCount(value);
-    }
+    this._nativeMaterial && super._addReferCount(value);
   }
 
   protected override _onDestroy(): void {

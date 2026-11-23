@@ -76,9 +76,7 @@ export class PostProcessManager {
         const entity = postProcess.entity;
         const count = entity.getComponents(Collider, currentColliders).length;
         if (count === 0) {
-          if (Logger.isEnabled) {
-            Logger.warn(`Local post-process volume "${entity.name}" requires a Collider.`);
-          }
+          Logger.isEnabled && Logger.warn(`Local post-process volume "${entity.name}" requires a Collider.`);
           continue;
         }
         const cameraPosition = camera.entity.transform.worldPosition;

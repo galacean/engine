@@ -170,9 +170,7 @@ export class MeshCollider extends Collider {
     const mesh = this._mesh;
     if (!mesh) {
       this._rejection = MeshSyncRejection.None;
-      if (this._native) {
-        this._replaceNativeShape(null);
-      }
+      this._native && this._replaceNativeShape(null);
       return null;
     }
 
@@ -220,23 +218,17 @@ export class MeshCollider extends Collider {
       this._nativeCookingFlags = this._cookingFlags;
     } else {
       shape = previous;
-      if (scaleChanged) {
-        shape.setScale(scale);
-      }
+      scaleChanged && shape.setScale(scale);
     }
     const geometryChanged = needsCook || scaleChanged;
-    if (geometryChanged) {
-      this._nativeScale.copyFrom(scale);
-    }
+    geometryChanged && this._nativeScale.copyFrom(scale);
 
     const triggerChanged = this._nativeConvex && this._nativeTrigger !== this._isTrigger;
     if (triggerChanged) {
       shape.setIsTrigger(this._isTrigger);
       this._nativeTrigger = this._isTrigger;
     }
-    if (geometryChanged || triggerChanged) {
-      this._attachedBody?._markMassDirty();
-    }
+    (geometryChanged || triggerChanged) && this._attachedBody?._markMassDirty();
 
     return shape;
   }
