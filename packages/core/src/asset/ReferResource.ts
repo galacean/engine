@@ -73,17 +73,6 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   /**
    * @internal
    */
-  _disassociationAllSubResources(): void {
-    const subResources = this._subResources;
-    if (subResources) {
-      this._subResources = null;
-      subResources.forEach((sub) => sub._superResources?.delete(this));
-    }
-  }
-
-  /**
-   * @internal
-   */
   _getReferCount(): number {
     return this._refCount;
   }
@@ -112,7 +101,8 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     if (refCount > 0) {
       this._addReferCount(-refCount);
     }
-    this._disassociationAllSubResources();
+    this._subResources?.forEach((sub) => sub._superResources?.delete(this));
+    this._subResources = null;
     this._superResources?.forEach((superResource) => superResource._subResources?.delete(this));
     this._superResources = null;
   }
