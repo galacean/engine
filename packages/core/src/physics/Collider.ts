@@ -56,14 +56,15 @@ export class Collider extends Component implements ICloneHook<Collider> {
   @ignoreClone
   protected _geometryDirty = false;
   @ignoreClone
-  private _poseOnlyDirty = false;
-  @ignoreClone
-  private _poseScale = new Vector3(1, 1, 1);
-  @ignoreClone
   protected _nativeScale = new Vector3(1, 1, 1);
   @ignoreClone
   protected readonly _nativePosition = new Vector3();
+  protected _isTrigger = false;
 
+  @ignoreClone
+  private _poseOnlyDirty = false;
+  @ignoreClone
+  private _poseScale = new Vector3(1, 1, 1);
   @ignoreClone
   private _nativeActor: IPhysicsActor | null = null;
   @ignoreClone
@@ -80,7 +81,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
   private _nativeWorldRotation: Quaternion;
 
   private _center = new Vector3();
-  protected _isTrigger = false;
   private _sceneQueryEnabled = true;
   private _contactOffset = 0.02;
   @ignoreClone

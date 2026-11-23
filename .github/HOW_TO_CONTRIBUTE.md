@@ -138,6 +138,7 @@ git pull --ff upstream master
 - All features or bug fixes **must be tested** by one or more specs (unit-tests).
 - All public API methods **must be documented**.
 - Reserve `@internal` for class members with public TypeScript visibility that are intended only for engine code. Use `protected` for subclass-only access and `private` for class-only access.
+- Place `protected` members before `private` members within each group. Order static fields, instance fields, accessors, static methods, and instance methods independently.
 - We use Prettier as an automatic code formatter. Run `pnpm format` to format your code, and `pnpm lint` to check code quality, after making any changes to the code.
 
 

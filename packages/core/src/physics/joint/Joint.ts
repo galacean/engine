@@ -20,11 +20,12 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   private static _tempQuat = new Quaternion();
   private static _tempMatrix = new Matrix();
 
+  @ignoreClone
+  protected _nativeJoint: IJoint | null;
+
   private _bodyInfo = new JointBodyInfo();
   private _connectedBodyInfo = new JointBodyInfo();
   private _connectedBody: Rigidbody | null = null;
-  @ignoreClone
-  protected _nativeJoint: IJoint | null;
   private _force = Infinity;
   private _torque = Infinity;
   private _automaticConnectedAnchor = true;
@@ -288,6 +289,14 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     this._wakeBodies();
   }
 
+  /** @internal Wake the other endpoint after the constraint enters or leaves simulation. */
+  _wakeOtherBody(body: Rigidbody): void {
+    if (this._nativeJoint) {
+      const connectedBody = this._connectedBody;
+      (body === connectedBody ? this.entity.getComponent(Rigidbody) : connectedBody)?._wakeNative();
+    }
+  }
+
   protected override _onDestroy(): void {
     this._bodyInfo.anchor._onValueChanged = null;
     this._connectedBodyInfo.anchor._onValueChanged = null;
@@ -321,6 +330,12 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     nativeJoint.setInertiaScale(this._bodyInfo.inertiaScale);
     nativeJoint.setBreakForce(this._force);
     nativeJoint.setBreakTorque(this._torque);
+  }
+
+  protected _wakeBodies(): void {
+    this.entity.getComponent(Rigidbody)?._wakeNative();
+    const body = this._connectedBody;
+    body && body.scene === this.scene && body._wakeNative();
   }
 
   private _syncFrames(nativeJoint: IJoint, owner: AnchorOwner): void {
@@ -407,20 +422,6 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
         connectedBodyInfo.actualAnchor.copyFrom(connectedBodyInfo.anchor);
       }
       nativeJoint.setConnectedAnchor(connectedBodyInfo.actualAnchor);
-    }
-  }
-
-  protected _wakeBodies(): void {
-    this.entity.getComponent(Rigidbody)?._wakeNative();
-    const body = this._connectedBody;
-    body && body.scene === this.scene && body._wakeNative();
-  }
-
-  /** @internal Wake the other endpoint after the constraint enters or leaves simulation. */
-  _wakeOtherBody(body: Rigidbody): void {
-    if (this._nativeJoint) {
-      const connectedBody = this._connectedBody;
-      (body === connectedBody ? this.entity.getComponent(Rigidbody) : connectedBody)?._wakeNative();
     }
   }
 }

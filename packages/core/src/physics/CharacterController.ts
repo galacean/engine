@@ -291,15 +291,9 @@ export class CharacterController extends Collider {
     }
   }
 
-  private _createNative(): ICharacterController {
-    const controller = Engine._nativePhysics.createCharacterController(this._id, this._getNativeMaterial());
-    controller.setContactOffset(this.contactOffset);
-    controller.setCollisionLayer(this._collisionLayerIndex);
-    controller.setIsSceneQuery(this._isSceneQuery);
-    controller.setNonWalkableMode(this._nonWalkableMode);
-    controller.setUpDirection(this._upDirection);
-    controller.setSlopeLimit(this._slopeLimit);
-    return controller;
+  /** @internal */
+  override _findRigidbody(): Rigidbody | null {
+    return null;
   }
 
   /**
@@ -334,9 +328,15 @@ export class CharacterController extends Collider {
     this._controller = null;
   }
 
-  /** @internal */
-  override _findRigidbody(): Rigidbody | null {
-    return null;
+  private _createNative(): ICharacterController {
+    const controller = Engine._nativePhysics.createCharacterController(this._id, this._getNativeMaterial());
+    controller.setContactOffset(this.contactOffset);
+    controller.setCollisionLayer(this._collisionLayerIndex);
+    controller.setIsSceneQuery(this._isSceneQuery);
+    controller.setNonWalkableMode(this._nonWalkableMode);
+    controller.setUpDirection(this._upDirection);
+    controller.setSlopeLimit(this._slopeLimit);
+    return controller;
   }
 
   private _setGeometryDirty(): void {

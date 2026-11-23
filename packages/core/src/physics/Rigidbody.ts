@@ -913,6 +913,36 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     scene.physics._removeRigidbody(this);
   }
 
+  protected override _onDestroy(): void {
+    //@ts-ignore
+    this._linearVelocity._onValueChanged = this._angularVelocity._onValueChanged = null;
+    //@ts-ignore
+    this._centerOfMass._onValueChanged = this._inertiaTensor._onValueChanged = null;
+    //@ts-ignore
+    this._inertiaTensorRotation._onValueChanged = null;
+    super._onDestroy();
+    this.entity._updateFlagManager.removeListener(this._onTransformChanged);
+    const joints = this._joints;
+    if (joints) {
+      this._joints = null;
+      for (let i = joints.length - 1; i >= 0; i--) {
+        joints[i]._onBodyDestroyed(this);
+      }
+    }
+    const actor = this._nativeActor;
+    if (actor) {
+      const colliders = this._attachedColliders;
+      for (let i = 0, n = colliders.length; i < n; i++) {
+        colliders[i]._onBodyDestroyed();
+      }
+      colliders.length = 0;
+      actor.destroy();
+      this._nativeActor = null;
+    }
+    // Owned and excluded Colliders find their new owner on the next sync
+    this._markCollidersDirty();
+  }
+
   private _detachOrphanedColliders(): void {
     const colliders = this._attachedColliders;
     for (let i = colliders.length - 1; i >= 0; i--) {
@@ -1157,36 +1187,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       }
     }
     changes & MassChanges.Mass && actor.setMassProperties(mass);
-  }
-
-  protected override _onDestroy(): void {
-    //@ts-ignore
-    this._linearVelocity._onValueChanged = this._angularVelocity._onValueChanged = null;
-    //@ts-ignore
-    this._centerOfMass._onValueChanged = this._inertiaTensor._onValueChanged = null;
-    //@ts-ignore
-    this._inertiaTensorRotation._onValueChanged = null;
-    super._onDestroy();
-    this.entity._updateFlagManager.removeListener(this._onTransformChanged);
-    const joints = this._joints;
-    if (joints) {
-      this._joints = null;
-      for (let i = joints.length - 1; i >= 0; i--) {
-        joints[i]._onBodyDestroyed(this);
-      }
-    }
-    const actor = this._nativeActor;
-    if (actor) {
-      const colliders = this._attachedColliders;
-      for (let i = 0, n = colliders.length; i < n; i++) {
-        colliders[i]._onBodyDestroyed();
-      }
-      colliders.length = 0;
-      actor.destroy();
-      this._nativeActor = null;
-    }
-    // Owned and excluded Colliders find their new owner on the next sync
-    this._markCollidersDirty();
   }
 
   private _markCollidersDirty(entity = this.entity): void {
