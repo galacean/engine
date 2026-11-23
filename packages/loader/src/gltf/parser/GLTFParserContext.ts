@@ -86,10 +86,7 @@ export class GLTFParserContext {
     }
 
     if (this._aborted) {
-      if (type === GLTFParserType.Entity) {
-        return index === undefined ? [] : (null as unknown as Entity);
-      }
-      return new AssetPromise<T | null>(() => {});
+      return type === GLTFParserType.Entity ? (index === undefined ? [] : null!) : new AssetPromise<T | null>(() => {});
     }
 
     const glTFSchemaKey = glTFSchemaMap[type];
@@ -116,11 +113,10 @@ export class GLTFParserContext {
     }
 
     if (resource instanceof AssetPromise || resource instanceof Promise) {
-      const rawPromise = resource as AssetPromise<T | null> | Promise<T | null>;
-      if (rawPromise instanceof AssetPromise) {
-        this._getPromises.push(rawPromise);
+      if (resource instanceof AssetPromise) {
+        this._getPromises.push(resource);
       }
-      resource = this._guardPromise(rawPromise);
+      resource = this._guardPromise(resource as PromiseLike<T | null>);
     }
 
     if (shouldHandleSubAsset) {
@@ -173,20 +169,14 @@ export class GLTFParserContext {
    * @internal
    */
   _guardPromise<T>(promise: PromiseLike<T>): AssetPromise<T> {
-    if (this._aborted) {
-      return new AssetPromise<T>(() => {});
-    }
     return new AssetPromise<T>((resolve, reject) => {
+      if (this._aborted) return;
       promise.then(
         (value) => {
-          if (!this._aborted) {
-            resolve(value);
-          }
+          if (!this._aborted) resolve(value);
         },
         (reason) => {
-          if (!this._aborted) {
-            reject(reason);
-          }
+          if (!this._aborted) reject(reason);
         }
       );
     });
