@@ -1,0 +1,60 @@
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_bee15fcd7fd50d::t_0b62fa73316c1b 457-459
+  s_bee15fcd7fd50d::t_b8e3f87cb7d0c0 25,63-68,86-90,93-94,98,218,222,229-234,509,519
+  s_bee15fcd7fd50d::t_706b7e04e16d24 506-508
+  s_bee15fcd7fd50d::t_be28e4e6a21400 510-512,516-518
+  s_bee15fcd7fd50d::t_2e0d4766beecfa 520-522
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_bee15fcd7fd50d::t_9b1f47e7982c05 49-51,55,59
+tests/src/core/physics/Collider.test.ts
+  s_331f9a6617a255::t_a95030449eab30 855-947
+  s_bee15fcd7fd50d::t_73aa25a69dabea 372,381,384-385
+packages/design/src/physics/ICharacterController.ts
+  s_bee15fcd7fd50d::t_9b1f47e7982c05 14
+tests/src/core/physics/CharacterController.test.ts
+  s_bee15fcd7fd50d::t_396a86c890f031 746,749-750,759,915,919,929
+  s_bee15fcd7fd50d::t_d2cf1f9c3b615b 213-214,242,248,252-268
+  s_bee15fcd7fd50d::t_b32ad3b9c2e284 446,448,452,455
+  s_bee15fcd7fd50d::t_d39a94184aba49 575,579-580
+  s_331f9a6617a255::t_5cb1804f19e1b3 191,193-197,205-206,208,210-212,215-224,226-229
+packages/core/src/physics/CapsuleCollider.ts
+  s_603183729b1668::t_259d2dd50ecf69 10-12,45,103-104,107
+packages/core/src/physics/CharacterController.ts
+  s_bee15fcd7fd50d::t_c5d0150688fb2e 63-64,97,99-101,108-110,242,245-246,250-251,276
+packages/physics-physx/src/PhysXActor.ts
+  s_bee15fcd7fd50d::t_82411c5cdba11c 55-56
+tests/src/core/physics/MeshCollider.test.ts
+  s_bee15fcd7fd50d::t_8d02cc99a0c9e5 28-29,945-972
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b0014135aeb01f894ec5053ef49bcfbc5b2db951",
+  "prompts": {},
+  "sessions": {
+    "s_331f9a6617a255": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2086d-1924-7a20-9748-d7198095ce99",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_603183729b1668": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a20863-e294-70b7-9002-cf5b39cb692f",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_bee15fcd7fd50d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20869-7e94-7730-9036-df08946c41cf",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

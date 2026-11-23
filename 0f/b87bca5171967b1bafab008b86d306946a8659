@@ -1,0 +1,14 @@
+packages/loader/src/gltf/parser/GLTFMeshParser.ts
+  h_bd4dd7d663e619 50,132,156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0fb87bca5171967b1bafab008b86d306946a8659",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

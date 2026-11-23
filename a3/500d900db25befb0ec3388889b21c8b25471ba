@@ -1,0 +1,19 @@
+packages/core/src/physics/joint/Joint.ts
+  s_e010b623afc18b::t_b12dcd6c29660a 261
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a3500d900db25befb0ec3388889b21c8b25471ba",
+  "prompts": {},
+  "sessions": {
+    "s_e010b623afc18b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a20650-a2c2-74cd-be93-f00bea07ba98",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
