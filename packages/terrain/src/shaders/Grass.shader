@@ -12,6 +12,7 @@ Shader "Terrain/Grass" {
       RasterState = {
         CullMode = CullMode.Off;
       }
+      RenderQueueType = AlphaTest;
 
       VertexShader = GrassVertex;
       FragmentShader = GrassFragment;
