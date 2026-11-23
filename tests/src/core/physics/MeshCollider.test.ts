@@ -25,6 +25,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 class CollisionRecorder extends Script {
   onCollisionEnter = vi.fn();
+  onCollisionStay = vi.fn();
+  onCollisionExit = vi.fn();
   onTriggerEnter = vi.fn();
   onTriggerStay = vi.fn();
   onTriggerExit = vi.fn();
@@ -940,4 +942,32 @@ describe("MeshCollider", () => {
       expect(massSpy).not.toHaveBeenCalled();
     }
   );
+
+  it("reconciles active solid contacts across MeshCollider convex replaceShape transitions", () => {
+    const collider = addMesh(true);
+    const recorder = collider.entity.addComponent(CollisionRecorder);
+    const probe = root.createChild("probe");
+    probe.transform.setPosition(0, 1.45, 0);
+    probe.addComponent(BoxCollider).size.set(1, 1, 1);
+    const body = probe.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.linearVelocity.set(0, -0.5, 0);
+
+    update(1);
+    expect(recorder.onCollisionEnter).toHaveBeenCalledOnce();
+    expect(recorder.onCollisionExit).not.toHaveBeenCalled();
+
+    // Switching convex <-> triangle replaces the native PxShape while still overlapping: Stay, no duplicate Enter.
+    collider.convex = false;
+    body.linearVelocity.set(0, -0.5, 0);
+    update(1);
+    expect(recorder.onCollisionEnter).toHaveBeenCalledOnce();
+    expect(recorder.onCollisionStay).toHaveBeenCalled();
+    expect(recorder.onCollisionExit).not.toHaveBeenCalled();
+
+    // Separating cleanly after replacement emits Exit once.
+    probe.transform.setPosition(0, 5, 0);
+    update(1);
+    expect(recorder.onCollisionExit).toHaveBeenCalledOnce();
+  });
 });

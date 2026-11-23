@@ -188,8 +188,13 @@ describe("CharacterController", () => {
     expect(controller.isTrigger).toBe(false);
   });
 
-  it("uses the same step height limit before creation, while active, and after reenabling", () => {
+  it("validates finite stepOffset and clamps effective step height to scaled capsule total height", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const invalid of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      expect(() => (controller.stepOffset = invalid)).toThrow();
+      expect(controller.stepOffset).toBe(0.5);
+    }
+
     role.transform.setPosition(0, 2, 0);
     controller.radius = 0.25;
     controller.height = 1.0;
@@ -197,31 +202,31 @@ describe("CharacterController", () => {
     const ray = new Ray(new Vector3(0, 2, 5), new Vector3(0, 0, -1));
     const canHitController = () => physics.raycast(ray, 10, hit) && hit.collider === controller;
 
-    controller.stepOffset = 1.01;
-    expect(canHitController()).toBe(false);
-    expect(error).toHaveBeenCalledWith(expect.stringContaining("within the controller's world height"));
-
-    controller.stepOffset = 1.0;
+    controller.stepOffset = 1.5;
+    expect(controller.stepOffset).toBe(1.5);
     expect(canHitController()).toBe(true);
-    controller.stepOffset = 1.01;
-    expect(canHitController()).toBe(false);
+    expect(error).not.toHaveBeenCalled();
 
-    controller.enabled = false;
-    controller.enabled = true;
-    expect(canHitController()).toBe(false);
-    expect(controller.stepOffset).toBe(1.01);
+    // Default radius=0.5, height=2, stepOffset=0.5 scaled by 0.2 has total height 0.4:
+    // stays active with effective step height clamped to 0.4, then restores 0.5 when scaled back to 1.
+    addBox(new Vector3(1, 0.46, 1), new Vector3(0, 0.23, 2));
+    controller.radius = 0.5;
+    controller.height = 2;
+    controller.stepOffset = 0.5;
+    role.transform.setScale(0.2, 0.2, 0.2);
+    role.transform.setPosition(0, 0.22, 0);
+    expect(canHitController() || physics.overlapSphereAll(new Vector3(0, 0.22, 0), 0.1).includes(controller)).toBe(
+      true
+    );
+    walkTo(new Vector3(0, 0.22, 3), 6);
+    expect(controller.stepOffset).toBe(0.5);
+    expect(role.transform.position.z).toBeLessThan(1.5);
+    expect(error).not.toHaveBeenCalled();
 
-    controller.height = 1.1;
-    expect(canHitController()).toBe(true);
-
-    for (const value of [NaN, Infinity]) {
-      controller.stepOffset = value;
-      expect(controller.stepOffset).toBe(value);
-      expect(canHitController()).toBe(false);
-
-      controller.stepOffset = 1;
-      expect(canHitController()).toBe(true);
-    }
+    role.transform.setScale(1, 1, 1);
+    role.transform.setPosition(0, 1.02, 0);
+    walkTo(new Vector3(0, 1.02, 3), 2);
+    expect(role.transform.position.z).toBeCloseTo(3, 4);
   });
 
   it("reports unsupported getClosestPoint without changing its output", () => {
@@ -234,17 +239,33 @@ describe("CharacterController", () => {
     expect(closest.z).toBe(3);
   });
 
-  it("scales inline geometry and center by world scale", () => {
+  it("scales inline total height, radius, and center by world scale", () => {
     controller.center = new Vector3(0, 1, 0);
     role.transform.setScale(2, 3, 4);
     role.transform.setPosition(0, 10, 0);
     const flags = move(new Vector3(0, -20, 0));
     expect(flags & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
-    expect(role.transform.position.y).toBeCloseTo(0.52, 4);
+    expect(role.transform.position.y).toBeCloseTo(0.02, 4);
     controller.center.y = 0;
     role.transform.setPosition(0, 10, 0);
     move(new Vector3(0, -20, 0));
-    expect(role.transform.position.y).toBeCloseTo(3.52, 4);
+    expect(role.transform.position.y).toBeCloseTo(3.02, 4);
+
+    // Non-uniform total-height rule: max(height * scaleY, 2 * scaledRadius)
+    controller.radius = 1;
+    controller.height = 4;
+    role.transform.setScale(1.5, 1, 1.5);
+    role.transform.setPosition(0, 10, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(2.02, 4);
+
+    role.transform.setScale(1, 3, 1);
+    role.transform.setPosition(0, 20, 0);
+    move(new Vector3(0, -40, 0));
+    expect(role.transform.position.y).toBeCloseTo(6.02, 4);
+
+    controller.radius = 0.5;
+    controller.height = 2;
     role.transform.setScale(1, 1, 1);
     role.transform.setPosition(0, 10, 0);
     move(new Vector3(0, -20, 0));
@@ -422,17 +443,16 @@ describe("CharacterController", () => {
     const cc = entity.addComponent(CharacterController);
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    cc.stepOffset = 10;
+    cc.radius = 0;
     physics._update(physics.fixedTimeStep);
-    const errorCountAfterInvalid = errors.mock.calls.length;
-    expect(errorCountAfterInvalid).toBeGreaterThan(0);
+    expect(errors).not.toHaveBeenCalled();
 
     cc.collisionLayer = Layer.Layer3;
     cc.isSceneQuery = true;
-    expect(errors.mock.calls.length).toBe(errorCountAfterInvalid);
+    expect(errors).not.toHaveBeenCalled();
 
     entity.transform.setPosition(8, 2, 0);
-    cc.stepOffset = 0.5;
+    cc.radius = 0.5;
 
     const hit = new HitResult();
     expect(physics.raycast(new Ray(new Vector3(8, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer3, hit)).toBe(true);
@@ -552,12 +572,12 @@ describe("CharacterController", () => {
     expect(physics.overlapSphereAll(new Vector3(2, 0.52, 0), 0.1).includes(controller)).toBe(true);
     expect(physics.raycast(new Ray(new Vector3(2, 1.2, 5), new Vector3(0, 0, -1)), 10)).toBe(false);
 
+    // stepOffset above sphere total height is clamped silently on sync instead of ejecting the controller.
     const stepErrors = vi.spyOn(console, "error").mockImplementation(() => {});
     controller.stepOffset = 1.01;
-    expect(physics.overlapSphereAll(new Vector3(2, 0.52, 0), 0.1).includes(controller)).toBe(false);
-    expect(stepErrors).toHaveBeenCalledWith(expect.stringContaining("within the controller's world height"));
-    controller.stepOffset = 1.0;
     expect(physics.overlapSphereAll(new Vector3(2, 0.52, 0), 0.1).includes(controller)).toBe(true);
+    expect(controller.stepOffset).toBe(1.01);
+    expect(stepErrors).not.toHaveBeenCalled();
     controller.stepOffset = 0.5;
     stepErrors.mockRestore();
 
@@ -723,13 +743,12 @@ describe("CharacterController", () => {
       const recoverEntity = root.createChild("recover-cct");
       recoverEntity.transform.setPosition(0, 5, 0);
       const recoverCC = recoverEntity.addComponent(CharacterController);
-      recoverCC.stepOffset = 10; // invalid (> total capsule height 2)
+      recoverCC.radius = 0; // invalid (zero radius detaches controller cleanly)
 
       const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-      recoverCC.move(new Vector3(0, -0.1, 0), 0.0001, physics.fixedTimeStep);
-      expect(errors).toHaveBeenCalledTimes(1);
+      expect(recoverCC.move(new Vector3(0, -0.1, 0), 0.0001, physics.fixedTimeStep)).toBe(0);
+      expect(errors).not.toHaveBeenCalled();
 
-      errors.mockClear();
       recoverEntity.transform.setPosition(7, 4, -2);
       recoverCC.collisionLayer = Layer.Layer3;
       recoverCC.isSceneQuery = true;
@@ -737,7 +756,7 @@ describe("CharacterController", () => {
       recoverCC.upDirection = new Vector3(0, 1, 0);
       expect(errors).not.toHaveBeenCalled();
 
-      recoverCC.stepOffset = 0.3;
+      recoverCC.radius = 0.5;
       recoverCC.move(new Vector3(0, 0, 0), 0.0001, physics.fixedTimeStep);
       expect(errors).not.toHaveBeenCalled();
       expect(recoverCC.nonWalkableMode).toBe(ControllerNonWalkableMode.PreventClimbingAndForceSliding);
@@ -893,10 +912,11 @@ describe("CharacterController", () => {
       }
     });
 
-    it("retries creation after a scale edit makes the native step offset valid", () => {
+    it("recovers controller queries after scaling radial axes back from zero", () => {
       const entity = engine.sceneManager.activeScene.createRootEntity("controller-rescale");
       try {
         entity.transform.setPosition(0, 10, 0);
+        entity.transform.setScale(0, 1, 0);
         const cc = entity.addComponent(CharacterController);
         cc.radius = 0.25;
         cc.height = 1.5;
@@ -906,7 +926,7 @@ describe("CharacterController", () => {
         const ray = new Ray(new Vector3(0, 10, 5), new Vector3(0, 0, -1));
         expect(physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(false);
 
-        entity.transform.scale.y = 1 + 2 ** -23;
+        entity.transform.setScale(1, 1 + 2 ** -23, 1);
         expect(physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(true);
         expect(hit.collider).toBe(cc);
       } finally {

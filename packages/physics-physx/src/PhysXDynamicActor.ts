@@ -164,7 +164,10 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
     if (!this._pxActor.setSimulationEnabled(value)) return;
     const scene = this._scene;
     if (scene) {
-      for (const shape of this._shapes) scene._refreshTriggerPairsForShape(shape._id);
+      for (const shape of this._shapes) {
+        scene._refreshTriggerPairsForShape(shape._id);
+        !value && scene._clearContactsForShape(shape._id);
+      }
     }
   }
 

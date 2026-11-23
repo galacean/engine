@@ -7,8 +7,9 @@ import { isValidPositiveFloat32 } from "./float32";
 
 /**
  * A capsule-shaped collider.
- * @remarks The absolute world scale along {@link direction} scales the cylindrical section. The larger scale across
- * the other two axes scales the radius. A cylindrical height at or below zero degenerates to a sphere of the scaled radius.
+ * @remarks The absolute world scale along {@link direction} scales the total height, and the larger scale across
+ * the other two axes scales the radius. If the scaled total height is at or below twice the scaled radius, the collider
+ * degenerates to a sphere of the scaled radius.
  */
 export class CapsuleCollider extends Collider {
   private _radius = 1;
@@ -41,7 +42,7 @@ export class CapsuleCollider extends Collider {
   /**
    * The total height in local units, including both caps. Finite negative values are clamped to 0.
    * @defaultValue 4
-   * @remarks Values at or below twice the radius degenerate to a sphere of the scaled radius.
+   * @remarks If the scaled total height is at or below twice the scaled radius, the collider degenerates to a sphere of the scaled radius.
    * @throws When the value is not finite.
    */
   get height(): number {
@@ -99,10 +100,11 @@ export class CapsuleCollider extends Collider {
       }
     }
     const radius = this._radius * radialScale;
-    const halfHeight = (this._height * 0.5 - this._radius) * heightScale;
-    if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(halfHeight))) {
+    const totalHeight = this._height * heightScale;
+    if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(totalHeight))) {
       return null;
     }
+    const halfHeight = totalHeight * 0.5 - radius;
     const isSphere = !isValidPositiveFloat32(halfHeight);
     if (isSphere) {
       if (shape && this._nativeIsSphere) {

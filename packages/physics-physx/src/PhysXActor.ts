@@ -52,12 +52,8 @@ export abstract class PhysXActor implements IPhysicsActor {
     this._pxActor.attachShape(newShape._pxShape);
     this._shapes[this._shapes.indexOf(previousShape)] = newShape;
     this._pxActor.detachShape(previousShape._pxShape, true);
-    // Re-register the same collider ID so a continuing overlap can stay active.
-    const scene = this._scene;
-    if (scene) {
-      scene._removeShape(previousShape._id);
-      scene._addShape(newShape._id);
-    }
+    // Keep trigger overlaps and active contacts tied to this collider ID across shape replacement.
+    this._scene?._replaceShape(newShape._id);
   }
 
   /**

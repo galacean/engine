@@ -369,7 +369,7 @@ describe("Collider", () => {
   });
 
   it.each([CapsuleColliderDirection.X, CapsuleColliderDirection.Y, CapsuleColliderDirection.Z])(
-    "scales capsule length along direction %s and radius across it",
+    "scales capsule total height along direction %s and radius across it",
     (direction) => {
       const capsule = root.addComponent(CapsuleCollider);
       capsule.direction = direction;
@@ -378,15 +378,11 @@ describe("Collider", () => {
       root.transform.setScale(2, 3, 4);
       const scales = [2, 3, 4];
       const radius = 0.5 * Math.max(scales[(direction + 1) % 3], scales[(direction + 2) % 3]);
+      const halfTotal = Math.max(3 * scales[direction] * 0.5, radius);
       const axis = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)][direction];
       const closest = new Vector3();
-      expect(capsule.getClosestPoint(axis.clone().scale(10), closest)).toBeCloseTo(10 - scales[direction] - radius);
-      expectPoint(
-        closest,
-        axis.x * (scales[direction] + radius),
-        axis.y * (scales[direction] + radius),
-        axis.z * (scales[direction] + radius)
-      );
+      expect(capsule.getClosestPoint(axis.clone().scale(10), closest)).toBeCloseTo(10 - halfTotal);
+      expectPoint(closest, axis.x * halfTotal, axis.y * halfTotal, axis.z * halfTotal);
       expect(capsule.getClosestPoint(new Vector3(), closest)).toBe(0);
       expectPoint(closest, 0, 0, 0);
     }
@@ -854,6 +850,99 @@ describe("Collider", () => {
       capsule.direction = CapsuleColliderDirection.Y;
       expect(physics.raycast(horizontalRay, hit)).toBe(true);
       expect(hit.collider).toBe(capsule);
+    });
+
+    it("preserves world total height (clamped to diameter) under non-uniform CapsuleCollider scaling", () => {
+      const entity = root.createChild("total-height-capsule");
+      const capsule = entity.addComponent(CapsuleCollider);
+      capsule.radius = 1;
+      capsule.height = 4;
+      const verticalRay = new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0));
+      const horizontalRay = new Ray(new Vector3(-10, 0, 0), new Vector3(1, 0, 0));
+      const hit = new HitResult();
+
+      entity.transform.setScale(1.5, 1, 1.5);
+      expect(physics.raycast(verticalRay, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(8, 4);
+      expect(physics.raycast(horizontalRay, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(8.5, 4);
+
+      entity.transform.setScale(1, 3, 1);
+      expect(physics.raycast(verticalRay, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(4, 4);
+
+      entity.transform.setScale(3, 1, 3);
+      expect(physics.raycast(verticalRay, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(7, 4);
+
+      capsule.height = 2;
+      entity.transform.setScale(1, 3, 1);
+      expect(physics.raycast(verticalRay, hit)).toBe(true);
+      expect(hit.distance).toBeCloseTo(7, 4);
+    });
+
+    it("reconciles solid contact Exit and Stay when CapsuleCollider transitions to a sphere", () => {
+      // Case 1: shrinking into a sphere separates the tip contact and must emit onCollisionExit once.
+      const capsuleEntity = root.createChild("capsule-shrink-separate");
+      const capsule = capsuleEntity.addComponent(CapsuleCollider);
+      capsule.radius = 0.5;
+      capsule.height = 4;
+      const recorder = capsuleEntity.addComponent(CollisionRecorder);
+
+      const probe = root.createChild("tip-probe");
+      probe.transform.setPosition(0, 2.4, 0);
+      probe.addComponent(BoxCollider).size.set(1, 1, 1);
+      const probeBody = probe.addComponent(Rigidbody);
+      probeBody.useGravity = false;
+      probeBody.linearVelocity.set(0, -0.5, 0);
+
+      update(2);
+      expect(recorder.onCollisionEnter).toHaveBeenCalledOnce();
+      expect(recorder.onCollisionExit).not.toHaveBeenCalled();
+
+      capsule.height = 1;
+      update(1);
+      expect(recorder.onCollisionEnter).toHaveBeenCalledOnce();
+      expect(recorder.onCollisionExit).toHaveBeenCalledOnce();
+
+      // Case 2: shrinking into a sphere while staying in side contact must emit Stay, not duplicate Enter.
+      recorder.onCollisionEnter.mockClear();
+      recorder.onCollisionStay.mockClear();
+      recorder.onCollisionExit.mockClear();
+      capsule.height = 4;
+      probe.destroy();
+
+      const sideProbe = root.createChild("side-probe");
+      sideProbe.transform.setPosition(0.95, 0, 0);
+      sideProbe.addComponent(BoxCollider).size.set(1, 1, 1);
+      const sideBody = sideProbe.addComponent(Rigidbody);
+      sideBody.useGravity = false;
+      sideBody.linearVelocity.set(-0.2, 0, 0);
+
+      update(1);
+      expect(recorder.onCollisionEnter).toHaveBeenCalledOnce();
+
+      capsule.height = 1;
+      sideBody.linearVelocity.set(-0.2, 0, 0);
+      update(1);
+      expect(recorder.onCollisionEnter).toHaveBeenCalledOnce();
+      expect(recorder.onCollisionStay).toHaveBeenCalled();
+      expect(recorder.onCollisionExit).not.toHaveBeenCalled();
+
+      sideProbe.transform.setPosition(5, 0, 0);
+      update(1);
+      expect(recorder.onCollisionExit).toHaveBeenCalledOnce();
+
+      // Case 3: destroying the contacting probe in the same frame as replaceShape must not throw or fire spurious Exit.
+      recorder.onCollisionExit.mockClear();
+      capsule.height = 4;
+      sideProbe.transform.setPosition(0.95, 0, 0);
+      sideBody.linearVelocity.set(-0.2, 0, 0);
+      update(1);
+      capsule.height = 1;
+      sideProbe.destroy();
+      expect(() => update(1)).not.toThrow();
+      expect(recorder.onCollisionExit).not.toHaveBeenCalled();
     });
 
     it("supports dynamic Rigidbodies crouching to a sphere and keeps active triggers across capsule-sphere transitions", () => {

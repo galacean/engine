@@ -22,6 +22,7 @@ import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
  */
 export class PhysXPhysicsScene implements IPhysicsScene {
   private static readonly _emptyExcluded: number[] = [];
+  private static readonly _emptyContacts = new Float32Array(0);
   private static readonly _capsuleYAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
@@ -59,6 +60,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   // Store each scene-local pair under its two collider IDs in ascending order.
   private _eventMap: Record<number, Record<number, TriggerEvent | undefined>> = Object.create(null);
   private _shapeChanges = new Map<number, boolean>();
+  private _contactEventEnabled = false;
+  // Active solid contact adjacency by collider ID while contact events are enabled.
+  private _activeContacts = new Map<number, Set<number>>();
+  private _replacedContactShapes = new Set<number>();
+  // Canonical (small -> Set<big>) pairs from replaced shapes awaiting re-contact or synthetic exit.
+  private _pendingReplacedContacts = new Map<number, Set<number>>();
 
   /**
    * Creates a PhysX scene with buffered collision and trigger events.
@@ -76,12 +83,19 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         events.bodySleepEventIds[events.bodySleepEventCount++] = sleeping ? -id : id;
       },
       onContactBegin: (shape0ID: number, shape1ID: number, count: number, data: Float32Array) => {
-        this._bufferContactEvent(shape0ID, shape1ID, count, data, PhysicsEventState.Enter);
+        const state = this._consumePendingReplacedContact(shape0ID, shape1ID)
+          ? PhysicsEventState.Stay
+          : PhysicsEventState.Enter;
+        state === PhysicsEventState.Enter && this._addActiveContact(shape0ID, shape1ID);
+        this._bufferContactEvent(shape0ID, shape1ID, count, data, state);
       },
       onContactEnd: (shape0ID: number, shape1ID: number, count: number, data: Float32Array) => {
+        this._removeActiveContact(shape0ID, shape1ID);
+        this._consumePendingReplacedContact(shape0ID, shape1ID);
         this._bufferContactEvent(shape0ID, shape1ID, count, data, PhysicsEventState.Exit);
       },
       onContactPersist: (shape0ID: number, shape1ID: number, count: number, data: Float32Array) => {
+        this._addActiveContact(shape0ID, shape1ID);
         this._bufferContactEvent(shape0ID, shape1ID, count, data, PhysicsEventState.Stay);
       },
       onTriggerBegin: (index1, index2) => {
@@ -201,15 +215,23 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._physicsEvents.bodySleepEventCount = 0;
     this._contactFloatOffset = 0;
     this._syncTriggerPairs();
+    this._prepareReplacedContacts();
     const scene = this._pxScene;
     scene.simulate(elapsedTime, true);
     scene.fetchResults(true);
+    this._flushReplacedContactExits();
   }
 
   /**
    * {@inheritDoc IPhysicsScene.setContactEventEnabled }
    */
   setContactEventEnabled(enabled: boolean): void {
+    this._contactEventEnabled = enabled;
+    if (!enabled) {
+      this._activeContacts.clear();
+      this._replacedContactShapes.clear();
+      this._pendingReplacedContacts.clear();
+    }
     this._pxScene.setContactEventEnabled(enabled);
   }
 
@@ -432,6 +454,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.destroy }
    */
   destroy(): void {
+    this._activeContacts.clear();
+    this._replacedContactShapes.clear();
+    this._pendingReplacedContacts.clear();
     this._boxGeometry?.delete();
     this._sphereGeometry?.delete();
     this._capsuleGeometry?.delete();
@@ -469,11 +494,35 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   _removeShape(id: number): void {
     this._shapeChanges.set(id, false);
+    this._clearContactsForShape(id);
   }
 
   /** @internal Reconcile active trigger pairs when a shape stays in the scene. */
   _refreshTriggerPairsForShape(id: number): void {
     this._shapeChanges.set(id, true);
+  }
+
+  /** @internal Reconcile active trigger and contact pairs across a same-actor shape replacement. */
+  _replaceShape(id: number): void {
+    this._shapeChanges.set(id, true);
+    if (this._contactEventEnabled && this._activeContacts.has(id)) {
+      this._replacedContactShapes.add(id);
+    }
+  }
+
+  /** @internal Drop tracked active contacts for a removed or disabled shape. */
+  _clearContactsForShape(id: number): void {
+    this._replacedContactShapes.delete(id);
+    const neighbors = this._activeContacts.get(id);
+    if (!neighbors) return;
+    this._activeContacts.delete(id);
+    for (const otherId of neighbors) {
+      const otherSet = this._activeContacts.get(otherId);
+      if (otherSet) {
+        otherSet.delete(id);
+        otherSet.size === 0 && this._activeContacts.delete(otherId);
+      }
+    }
   }
 
   private _getBoxGeometry(halfExtents: Vector3): any {
@@ -638,6 +687,81 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     event.floatOffset = offset;
     event.contactCount = count;
+  }
+
+  private _addActiveContact(a: number, b: number): void {
+    if (!this._contactEventEnabled) return;
+    let setA = this._activeContacts.get(a);
+    if (setA?.has(b)) return;
+    if (!setA) {
+      setA = new Set<number>();
+      this._activeContacts.set(a, setA);
+    }
+    setA.add(b);
+    let setB = this._activeContacts.get(b);
+    if (!setB) {
+      setB = new Set<number>();
+      this._activeContacts.set(b, setB);
+    }
+    setB.add(a);
+  }
+
+  private _removeActiveContact(a: number, b: number): void {
+    const setA = this._activeContacts.get(a);
+    if (setA) {
+      setA.delete(b);
+      setA.size === 0 && this._activeContacts.delete(a);
+    }
+    const setB = this._activeContacts.get(b);
+    if (setB) {
+      setB.delete(a);
+      setB.size === 0 && this._activeContacts.delete(b);
+    }
+  }
+
+  private _prepareReplacedContacts(): void {
+    const replaced = this._replacedContactShapes;
+    if (replaced.size === 0) return;
+    const pending = this._pendingReplacedContacts;
+    for (const id of replaced) {
+      const neighbors = this._activeContacts.get(id);
+      if (!neighbors) continue;
+      for (const otherId of neighbors) {
+        const small = id < otherId ? id : otherId;
+        const big = id < otherId ? otherId : id;
+        let set = pending.get(small);
+        if (!set) {
+          set = new Set<number>();
+          pending.set(small, set);
+        }
+        set.add(big);
+      }
+    }
+    replaced.clear();
+  }
+
+  private _consumePendingReplacedContact(a: number, b: number): boolean {
+    const pending = this._pendingReplacedContacts;
+    if (pending.size === 0) return false;
+    const small = a < b ? a : b;
+    const big = a < b ? b : a;
+    const set = pending.get(small);
+    if (!set?.delete(big)) return false;
+    set.size === 0 && pending.delete(small);
+    return true;
+  }
+
+  private _flushReplacedContactExits(): void {
+    const pending = this._pendingReplacedContacts;
+    if (pending.size === 0) return;
+    const emptyContacts = PhysXPhysicsScene._emptyContacts;
+    for (const [small, set] of pending) {
+      for (const big of set) {
+        this._removeActiveContact(small, big);
+        this._bufferContactEvent(small, big, 0, emptyContacts, PhysicsEventState.Exit);
+      }
+    }
+    pending.clear();
   }
 }
 

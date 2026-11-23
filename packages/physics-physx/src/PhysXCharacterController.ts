@@ -43,18 +43,20 @@ export class PhysXCharacterController implements ICharacterController {
   setCapsule(radius: number, halfHeight: number, stepOffset: number): void {
     radius = Math.fround(radius);
     const height = Math.fround(halfHeight * 2);
-    const maxStepOffset = Math.fround(height + 2 * radius);
     // PhysX 4.1 rejects zero cylinder height and scales proxy halfHeight by 0.4; keep a tiny radius-relative floor.
     const minHeight = Math.fround(Math.max(radius * 1e-4, 3e-38));
     const nativeHeight = height > minHeight ? height : minHeight;
-    const controller = this._syncStepOffset(stepOffset, maxStepOffset);
+    const maxStepOffset = Math.fround(nativeHeight + Math.fround(radius * 2));
+    const nativeStepOffset = Math.min(Math.fround(stepOffset), maxStepOffset, 3.4028234663852886e38);
+    const controller = this._pxController;
     if (controller) {
       radius !== this._radius && controller.setRadius(radius);
       nativeHeight !== this._height && controller.setHeight(nativeHeight);
+      nativeStepOffset !== this._stepOffset && controller.setStepOffset(nativeStepOffset);
     }
     this._radius = radius;
     this._height = nativeHeight;
-    !controller && this._rebuild();
+    this._stepOffset = nativeStepOffset;
   }
 
   /**
@@ -177,37 +179,7 @@ export class PhysXCharacterController implements ICharacterController {
     this._scene = null;
   }
 
-  private _syncStepOffset(offset: number, maximum: number) {
-    // PhysX validates the step against the rounded geometry only at creation.
-    offset = Math.fround(offset);
-    if (!(offset >= 0 && offset <= maximum && Number.isFinite(offset))) {
-      this._stepOffset = -1;
-      return null;
-    }
-    const controller = this._pxController;
-    if (offset !== this._stepOffset) {
-      this._stepOffset = offset;
-      controller?.setStepOffset(offset);
-    }
-    return controller;
-  }
-
-  private _rebuild(): void {
-    // Retry creation when the geometry changes after a rejected descriptor.
-    if (this._scene) {
-      this.getWorldPosition(this._worldPosition);
-      this._destroyPXController();
-      this._createPXController();
-    }
-  }
-
   private _createPXController(): void {
-    if (this._stepOffset < 0) {
-      console.error(
-        "CharacterController: stepOffset must be representable by PhysX and within the controller's world height."
-      );
-      return;
-    }
     const physX = this._physXPhysics._physX;
     const scene = this._scene!;
     const desc = new physX.PxCapsuleControllerDesc();
