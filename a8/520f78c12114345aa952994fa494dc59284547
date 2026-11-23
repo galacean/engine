@@ -1,0 +1,56 @@
+.agents/skills/seed-world-llm-rsi/references/harness-and-pitfalls.md
+  h_ddbf152d31b140 48,53,55
+.agents/skills/seed-world-llm-rsi/references/metrics-and-audit.md
+  h_ddbf152d31b140 61-63,67-68,70
+.agents/skills/seed-world-llm-rsi/references/rsi-loop.md
+  h_ddbf152d31b140 101
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases-v4.ts
+  h_ddbf152d31b140 412-417,422-423,431-436,441-442,448,450,458
+packages/runtime-editor/src/skills/assets/use-prefab/SKILL.md
+  h_ddbf152d31b140 8
+packages/runtime-editor/src/skills/scripting/SKILL.md
+  h_ddbf152d31b140 15
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  h_ddbf152d31b140 759-765,1731-1733,1755-1760
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  h_ddbf152d31b140 1132,1211,1284,1317,1350,1383,1416
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/environment.config.reset.d.ts
+  h_ddbf152d31b140 20
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.config.reset.d.ts
+  h_ddbf152d31b140 20
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.config.reset.d.ts
+  h_ddbf152d31b140 20
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.delete.d.ts
+  h_ddbf152d31b140 24,27-34
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.config.reset.d.ts
+  h_ddbf152d31b140 20
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.delete.d.ts
+  h_ddbf152d31b140 24,27-34
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.config.reset.d.ts
+  h_ddbf152d31b140 20
+world/demos/seed-world/agent-adapter/tools/landscape-tools.ts
+  h_ddbf152d31b140 565,575
+world/demos/seed-world/agent-adapter/tools/parameter-tools.ts
+  h_ddbf152d31b140 331,455-482
+world/demos/seed-world/agent-adapter/tools/spatial-tools.ts
+  h_ddbf152d31b140 131-132,139
+world/demos/seed-world/agent-adapter/tools/tool-contract.ts
+  h_ddbf152d31b140 334-353,361-367,370-376
+world/tests/seed-world/AgentKnowledgeAudit.spec.ts
+  h_ddbf152d31b140 311-334
+world/tests/seed-world/MemberRangeAgent.spec.ts
+  h_ddbf152d31b140 61-74
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  h_ddbf152d31b140 1811-1863
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a8520f78c12114345aa952994fa494dc59284547",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

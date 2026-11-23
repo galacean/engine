@@ -1,0 +1,27 @@
+packages/core/src/physics/CharacterController.ts
+  s_e010b623afc18b::t_ec5d259aa405b9 3,9,24-25,127,129,131,135-136,160-162,164-169
+tests/src/core/physics/HingeJoint.test.ts
+  s_e010b623afc18b::t_2351eb633b9780 91,467,637,641,649-653,655,662-663,675,683-684
+packages/core/src/physics/unitDirection.ts
+  s_e010b623afc18b::t_5350ec89584679 1-24
+tests/src/core/physics/CharacterController.test.ts
+  s_e010b623afc18b::t_8d66ec98d646e3 157,365,435-437,439,484,486-489,738-740,750-753,758-759,879
+packages/core/src/physics/joint/HingeJoint.ts
+  s_e010b623afc18b::t_eefa6ceeabb3da 2,4,6,15-16,27,29,31,35-36,159-175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3f5c4ed559593639d96d411b58869776f17f7e39",
+  "prompts": {},
+  "sessions": {
+    "s_e010b623afc18b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a20650-a2c2-74cd-be93-f00bea07ba98",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

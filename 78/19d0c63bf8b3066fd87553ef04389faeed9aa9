@@ -1,0 +1,20 @@
+.agents/skills/seed-world-llm-rsi/SKILL.md
+  h_ddbf152d31b140 18,32-33
+.agents/skills/seed-world-llm-rsi/references/metrics-and-audit.md
+  h_ddbf152d31b140 54,58,60-99
+.agents/skills/seed-world-llm-rsi/references/rsi-loop.md
+  h_ddbf152d31b140 61,63
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases.ts
+  h_ddbf152d31b140 1137-1549
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7819d0c63bf8b3066fd87553ef04389faeed9aa9",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

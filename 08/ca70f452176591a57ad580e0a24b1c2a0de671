@@ -1,0 +1,29 @@
+e2e/case/animator-customAnimationClip.ts
+  s_3cd6502d102d7f::t_c4f9e81753be84 93,96,99,102,111,114,117,120
+e2e/case/physx-collision-group.ts
+  s_3cd6502d102d7f::t_107fd1ab661430 93
+e2e/case/physx-collision.ts
+  s_3cd6502d102d7f::t_131e90206a310a 74-75
+e2e/case/physx-customUrl.ts
+  s_3cd6502d102d7f::t_49bec88fac7f6e 79-80
+e2e/case/physx-mesh-collider-data.ts
+  s_3cd6502d102d7f::t_0e71cc2b061d23 237-238
+e2e/case/physx-mesh-collider.ts
+  s_3cd6502d102d7f::t_d252e60bbe5486 76-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "08ca70f452176591a57ad580e0a24b1c2a0de671",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}
