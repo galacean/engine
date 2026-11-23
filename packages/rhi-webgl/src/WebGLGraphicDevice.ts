@@ -20,9 +20,9 @@ import {
   Platform,
   Primitive,
   RenderPassDescriptor,
+  RenderPassLoadAction,
+  RenderPassStoreAction,
   RenderTarget,
-  RenderTargetLoadAction,
-  RenderTargetStoreAction,
   SubPrimitive,
   SystemInfo,
   Texture2D,
@@ -95,15 +95,13 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   _currentBindShaderProgram: IPlatformShaderProgram | null;
   /** @internal */
-  _lastRenderState?: IHardwareRenderer["_lastRenderState"];
-  /** @internal */
   _supportsInvalidateFramebuffer: boolean = true;
   /** @internal */
   _activeRenderTarget: RenderTarget | null = null;
   private _inRenderPass: boolean = false;
-  private _activeColorStoreAction: RenderTargetStoreAction = RenderTargetStoreAction.Store;
-  private _activeDepthStoreAction: RenderTargetStoreAction = RenderTargetStoreAction.Store;
-  private _activeStencilStoreAction: RenderTargetStoreAction = RenderTargetStoreAction.Store;
+  private _activeColorStoreAction: RenderPassStoreAction = RenderPassStoreAction.Store;
+  private _activeDepthStoreAction: RenderPassStoreAction = RenderPassStoreAction.Store;
+  private _activeStencilStoreAction: RenderPassStoreAction = RenderPassStoreAction.Store;
 
   /** @internal */
   readonly _options: WebGLGraphicDeviceOptions;
@@ -450,9 +448,12 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._activeDepthStoreAction = descriptor.depthStoreAction;
     this._activeStencilStoreAction = descriptor.stencilStoreAction;
 
-    const clearColor = descriptor.colorLoadAction === RenderTargetLoadAction.Clear;
-    const clearDepth = descriptor.depthLoadAction === RenderTargetLoadAction.Clear;
-    const clearStencil = descriptor.stencilLoadAction === RenderTargetLoadAction.Clear;
+    // On WebGL2 (especially iOS WebKit / ANGLE-Metal), full-target gl.clear() maps directly to hardware
+    // MTLLoadActionClear (zero DRAM tile load) while keeping RobustResourceInit satisfied, avoiding CPU
+    // MTLTexture.replaceRegion stalls that gl.invalidateFramebuffer on load can trigger.
+    const clearColor = descriptor.colorLoadAction === RenderPassLoadAction.Clear;
+    const clearDepth = descriptor.depthLoadAction === RenderPassLoadAction.Clear;
+    const clearStencil = descriptor.stencilLoadAction === RenderPassLoadAction.Clear;
     if (clearColor || clearDepth || clearStencil) {
       this._clearFrameBufferAttachments(
         renderTarget,
@@ -477,24 +478,25 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const stencilStore = this._activeStencilStoreAction;
 
     this._inRenderPass = false;
-    this._activeColorStoreAction = RenderTargetStoreAction.Store;
-    this._activeDepthStoreAction = RenderTargetStoreAction.Store;
-    this._activeStencilStoreAction = RenderTargetStoreAction.Store;
+    this._activeColorStoreAction = RenderPassStoreAction.Store;
+    this._activeDepthStoreAction = RenderPassStoreAction.Store;
+    this._activeStencilStoreAction = RenderPassStoreAction.Store;
 
-    const discardDepth = depthStore === RenderTargetStoreAction.Discard;
-    const discardStencil = stencilStore === RenderTargetStoreAction.Discard;
+    const discardDepth = depthStore === RenderPassStoreAction.Discard;
+    const discardStencil = stencilStore === RenderPassStoreAction.Discard;
 
     if (
       target &&
       target.antiAliasing > 1 &&
-      (colorStore === RenderTargetStoreAction.Resolve || colorStore === RenderTargetStoreAction.StoreAndResolve)
+      (colorStore === RenderPassStoreAction.Resolve || colorStore === RenderPassStoreAction.StoreAndResolve)
     ) {
       const glRT = target._platformRenderTarget as GLRenderTarget;
-      glRT._resolveRenderTarget(colorStore === RenderTargetStoreAction.Resolve, discardDepth, discardStencil);
+      glRT._resolveRenderTarget(colorStore === RenderPassStoreAction.Resolve, discardDepth, discardStencil);
       return;
     }
 
-    const discardColor = colorStore === RenderTargetStoreAction.Discard;
+    // Issue gl.invalidateFramebuffer on pass end so TBDR GPUs skip flushing discarded attachments back to DRAM.
+    const discardColor = colorStore === RenderPassStoreAction.Discard;
     if (discardColor || discardDepth || discardStencil) {
       this._invalidateFrameBufferAttachments(this._gl.FRAMEBUFFER, target, discardColor, discardDepth, discardStencil);
     }
@@ -733,9 +735,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._inRenderPass = false;
     this._activeTargetWidth = 0;
     this._activeTargetHeight = 0;
-    this._activeColorStoreAction = RenderTargetStoreAction.Store;
-    this._activeDepthStoreAction = RenderTargetStoreAction.Store;
-    this._activeStencilStoreAction = RenderTargetStoreAction.Store;
+    this._activeColorStoreAction = RenderPassStoreAction.Store;
+    this._activeDepthStoreAction = RenderPassStoreAction.Store;
+    this._activeStencilStoreAction = RenderPassStoreAction.Store;
   }
 
   /** @internal */
@@ -757,7 +759,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
 
     let clearMask = 0;
-    const lastRenderState = this._lastRenderState;
     if (clearColor) {
       clearMask |= gl.COLOR_BUFFER_BIT;
       const r = colorValue ? colorValue.r : 0;
@@ -769,12 +770,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
         gl.clearColor(r, g, b, a);
         lc.set(r, g, b, a);
       }
-      if (!lastRenderState || lastRenderState.blendState.targetBlendState.colorWriteMask !== ColorWriteMask.All) {
-        gl.colorMask(true, true, true, true);
-        if (lastRenderState) {
-          lastRenderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.All;
-        }
-      }
     }
     if (clearDepth) {
       clearMask |= gl.DEPTH_BUFFER_BIT;
@@ -782,24 +777,12 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
         gl.clearDepth(depthValue);
         this._lastClearDepth = depthValue;
       }
-      if (!lastRenderState || lastRenderState.depthState.writeEnabled !== true) {
-        gl.depthMask(true);
-        if (lastRenderState) {
-          lastRenderState.depthState.writeEnabled = true;
-        }
-      }
     }
     if (clearStencil) {
       clearMask |= gl.STENCIL_BUFFER_BIT;
       if (stencilValue !== this._lastClearStencil) {
         gl.clearStencil(stencilValue);
         this._lastClearStencil = stencilValue;
-      }
-      if (!lastRenderState || lastRenderState.stencilState.writeMask !== 0xff) {
-        gl.stencilMask(0xff);
-        if (lastRenderState) {
-          lastRenderState.stencilState.writeMask = 0xff;
-        }
       }
     }
     if (clearMask !== 0) {

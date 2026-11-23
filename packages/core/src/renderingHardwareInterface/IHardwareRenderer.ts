@@ -15,7 +15,6 @@ import type { IPlatformTexture2DArray } from "./IPlatformTexture2DArray";
 import type { IPlatformTextureCube } from "./IPlatformTextureCube";
 import type { IPlatformTransformFeedback } from "./IPlatformTransformFeedback";
 import type { IPlatformTransformFeedbackPrimitive } from "./IPlatformTransformFeedbackPrimitive";
-import type { RenderState } from "../shader/state/RenderState";
 import type { RenderPassDescriptor } from "./RenderPassDescriptor";
 
 /** Graphics resource and command boundary used by the engine. */
@@ -41,8 +40,6 @@ export interface IHardwareRenderer {
   _currentBindShaderProgram: IPlatformShaderProgram | null;
   /** @internal */
   _enableGlobalDepthBias: boolean;
-  /** @internal */
-  _lastRenderState?: RenderState;
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void;
   canIUse(capability: GLCapabilityType): boolean;
@@ -70,7 +67,14 @@ export interface IHardwareRenderer {
     mipLevel?: number,
     faceIndex?: TextureCubeFace
   ): void;
+  /**
+   * Begin a render pass with the given target binding and attachment load/store actions.
+   * @param descriptor - Render pass descriptor
+   */
   beginRenderPass(descriptor: RenderPassDescriptor): void;
+  /**
+   * End the active render pass, applying declared MSAA resolve and attachment discard actions.
+   */
   endRenderPass(): void;
   clearRenderTarget(engine: Engine, flags: CameraClearFlags, color?: Color | null): void;
   drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, program: IPlatformShaderProgram): void;

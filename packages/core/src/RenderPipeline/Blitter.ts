@@ -1,7 +1,7 @@
 import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material";
-import { RenderPassDescriptor, RenderTargetLoadAction } from "../renderingHardwareInterface";
+import { RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
 import { ColorWriteMask, ShaderPass, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -27,10 +27,14 @@ export class Blitter {
 
   /**
    * Blit texture to destination render target using a standalone render pass and a full-screen triangle.
+   * @remarks
+   * When `colorLoadAction` is `RenderPassLoadAction.Clear`, the clear is automatically downgraded to `Load`
+   * if `destination` is the default backbuffer, uses MRT, renders to a sub-viewport, or the material enables
+   * blending or a partial `ColorWriteMask`.
    * @param engine - Engine
    * @param source - Source texture
    * @param destination - Destination render target
-   * @param mipLevel - Mip level to blit
+   * @param mipLevel - Source texture mip level to sample
    * @param viewport - Viewport
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
@@ -46,7 +50,7 @@ export class Blitter {
     material: Material | null = null,
     passIndex = 0,
     sourceScaleOffset?: Vector4,
-    colorLoadAction: RenderTargetLoadAction = RenderTargetLoadAction.Load
+    colorLoadAction: RenderPassLoadAction = RenderPassLoadAction.Load
   ): void {
     const blitMaterial = material || engine._basicResources.blitMaterial;
     const context = engine._renderContext;
@@ -56,10 +60,10 @@ export class Blitter {
       destination &&
       destination.colorTextureCount === 1 &&
       isFullViewport &&
-      colorLoadAction === RenderTargetLoadAction.Clear &&
+      colorLoadAction === RenderPassLoadAction.Clear &&
       Blitter._canClearColorTarget(pass, blitMaterial.shaderData)
-        ? RenderTargetLoadAction.Clear
-        : RenderTargetLoadAction.Load;
+        ? RenderPassLoadAction.Clear
+        : RenderPassLoadAction.Load;
 
     const passDescriptor = Blitter._passDescriptor.reset(destination, viewport, !!destination, 0);
     passDescriptor.colorLoadAction = resolvedLoadAction;
@@ -70,6 +74,9 @@ export class Blitter {
 
   /**
    * Draw a full-screen blit triangle within the currently active render pass.
+   * @remarks
+   * Callers must already be inside an active render pass (between `beginRenderPass` and `endRenderPass`).
+   * For standalone full-screen blits (such as custom `PostProcessPass`), prefer {@link Blitter.blitTexture}.
    * @param engine - Engine
    * @param source - Source texture
    * @param mipLevel - Source texture mip level to sample

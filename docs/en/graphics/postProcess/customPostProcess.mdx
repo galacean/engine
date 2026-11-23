@@ -120,6 +120,22 @@ const customPass = new CustomPass(engine);
 engine.addPostProcessPass(customPass);
 ```
 
+> Mobile performance tip: If your custom post-processing shader **overwrites the entire destination** without alpha blending or `discard`, you can pass `RenderPassLoadAction.Clear` as the last argument of `Blitter.blitTexture` (defaults to `RenderPassLoadAction.Load`). This lets mobile TBDR GPUs skip loading stale destination contents from DRAM into tile memory:
+>
+> ```ts
+> Blitter.blitTexture(
+>   this.engine,
+>   srcTexture,
+>   dst,
+>   undefined,
+>   undefined,
+>   this._blitMaterial,
+>   0,
+>   undefined,
+>   RenderPassLoadAction.Clear
+> );
+> ```
+
 The execution order of Pass is executed after Uber Pass by default, that is [`PostProcessPassEvent.AfterUber`](/apis/core/#PostProcessPassEvent-AfterUber), we can also manually modify the execution order of the pipeline:
 
 ```ts filename="CustomPostProcessPass.ts"

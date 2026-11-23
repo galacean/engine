@@ -10,5 +10,5 @@ export type { IPlatformTextureCube } from "./IPlatformTextureCube";
 export type { IPlatformTransformFeedback } from "./IPlatformTransformFeedback";
 export type { IPlatformTransformFeedbackPrimitive } from "./IPlatformTransformFeedbackPrimitive";
 export { RenderPassDescriptor } from "./RenderPassDescriptor";
-export { RenderTargetLoadAction } from "./RenderTargetLoadAction";
-export { RenderTargetStoreAction } from "./RenderTargetStoreAction";
+export { RenderPassLoadAction } from "./RenderPassLoadAction";
+export { RenderPassStoreAction } from "./RenderPassStoreAction";

@@ -6,7 +6,7 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { RenderTargetLoadAction } from "../../renderingHardwareInterface";
+import { RenderPassLoadAction } from "../../renderingHardwareInterface";
 import { Shader, ShaderData, ShaderProperty } from "../../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
@@ -140,7 +140,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     // Draw ambient occlusion texture
     const sourceTexture = <Texture2D>this._depthRenderTarget!.depthTexture;
     passDescriptor.reset(saoTarget);
-    passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+    passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
     context.beginRenderPass(passDescriptor);
     Blitter.draw(engine, sourceTexture, 0, material, 0);
     context.endRenderPass();
@@ -149,7 +149,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const saoTexture = <Texture2D>saoTarget.getColorTexture();
     const offsetX = this._offsetX.set(1, 1, this._blurStepPixels / saoTexture.width, 0);
     passDescriptor.reset(blurTarget);
-    passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+    passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
     context.beginRenderPass(passDescriptor);
     Blitter.draw(engine, saoTexture, 0, material, 1, offsetX);
     context.endRenderPass();
@@ -158,7 +158,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     const horizontalBlur = <Texture2D>blurTarget.getColorTexture();
     const offsetY = this._offsetY.set(1, 1, 0, this._blurStepPixels / saoTexture.height);
     passDescriptor.reset(saoTarget);
-    passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+    passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
     context.beginRenderPass(passDescriptor);
     Blitter.draw(engine, horizontalBlur, 0, material, 1, offsetY);
     context.endRenderPass();

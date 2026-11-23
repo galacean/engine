@@ -6,7 +6,7 @@ import { ContextRendererUpdateFlag, RenderContext } from "../RenderPipeline/Rend
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { DirectLight } from "../lighting";
-import { RenderTargetLoadAction, RenderTargetStoreAction } from "../renderingHardwareInterface";
+import { RenderPassLoadAction, RenderPassStoreAction } from "../renderingHardwareInterface";
 import { ShaderProperty } from "../shader";
 import { TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
@@ -123,8 +123,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._depthTexture = shadowTexture;
 
     const passDescriptor = this._passDescriptor.reset(renderTarget, CascadedShadowCasterPass._viewport);
-    passDescriptor.depthLoadAction = RenderTargetLoadAction.Clear;
-    passDescriptor.depthStoreAction = RenderTargetStoreAction.Store;
+    passDescriptor.depthLoadAction = RenderPassLoadAction.Clear;
+    passDescriptor.depthStoreAction = RenderPassStoreAction.Store;
     context.beginRenderPass(passDescriptor);
 
     // prepare light and camera direction

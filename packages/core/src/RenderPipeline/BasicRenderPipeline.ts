@@ -9,7 +9,7 @@ import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
 import { FinalPass } from "../postProcess";
-import { RenderPassDescriptor, RenderTargetLoadAction, RenderTargetStoreAction } from "../renderingHardwareInterface";
+import { RenderPassDescriptor, RenderPassLoadAction, RenderPassStoreAction } from "../renderingHardwareInterface";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { SubShader } from "../shader/SubShader";
@@ -237,21 +237,21 @@ export class BasicRenderPipeline {
     const hasInternalMSAA = !!internalColorTarget && internalColorTarget.antiAliasing > 1;
     const canDiscardInternalDepthStencil =
       !!internalColorTarget && !internalColorTarget.depthTexture && internalColorTarget._depthFormat !== null;
-    const finalColorStoreAction = hasInternalMSAA ? RenderTargetStoreAction.Resolve : RenderTargetStoreAction.Store;
+    const finalColorStoreAction = hasInternalMSAA ? RenderPassStoreAction.Resolve : RenderPassStoreAction.Store;
     const finalDepthStoreAction = canDiscardInternalDepthStencil
-      ? RenderTargetStoreAction.Discard
-      : RenderTargetStoreAction.Store;
+      ? RenderPassStoreAction.Discard
+      : RenderPassStoreAction.Store;
     const finalStencilStoreAction = canDiscardInternalDepthStencil
-      ? RenderTargetStoreAction.Discard
-      : RenderTargetStoreAction.Store;
+      ? RenderPassStoreAction.Discard
+      : RenderPassStoreAction.Store;
     const opaqueColorStoreAction = camera.opaqueTextureEnabled
       ? colorTarget && colorTarget.antiAliasing > 1
-        ? RenderTargetStoreAction.StoreAndResolve
-        : RenderTargetStoreAction.Store
+        ? RenderPassStoreAction.StoreAndResolve
+        : RenderPassStoreAction.Store
       : finalColorStoreAction;
-    const opaqueDepthStoreAction = camera.opaqueTextureEnabled ? RenderTargetStoreAction.Store : finalDepthStoreAction;
+    const opaqueDepthStoreAction = camera.opaqueTextureEnabled ? RenderPassStoreAction.Store : finalDepthStoreAction;
     const opaqueStencilStoreAction = camera.opaqueTextureEnabled
-      ? RenderTargetStoreAction.Store
+      ? RenderPassStoreAction.Store
       : finalStencilStoreAction;
 
     if (context.flipProjection !== needFlipProjection) {
@@ -267,7 +267,7 @@ export class BasicRenderPipeline {
         rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture!, camera.viewport);
         // Then blit grab texture to internal RT's color buffer
         const copyPassDescriptor = this._passDescriptor.reset(internalColorTarget);
-        copyPassDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+        copyPassDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
         context.beginRenderPass(copyPassDescriptor);
         Blitter.draw(
           engine,
@@ -294,15 +294,15 @@ export class BasicRenderPipeline {
     if (finalClearFlags & CameraClearFlags.Color) {
       const { solidColor } = background;
       const { a } = solidColor;
-      passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+      passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
       passDescriptor.clearColor.set(solidColor.r * a, solidColor.g * a, solidColor.b * a, a);
     }
     // Force clear internal color target depth and stencil buffer, because it already missed due to post process, HDR, sRGB convert, etc.
     if (internalColorTarget || (finalClearFlags & CameraClearFlags.Depth) !== 0) {
-      passDescriptor.depthLoadAction = RenderTargetLoadAction.Clear;
+      passDescriptor.depthLoadAction = RenderPassLoadAction.Clear;
     }
     if (internalColorTarget || (finalClearFlags & CameraClearFlags.Stencil) !== 0) {
-      passDescriptor.stencilLoadAction = RenderTargetLoadAction.Clear;
+      passDescriptor.stencilLoadAction = RenderPassLoadAction.Clear;
     }
     passDescriptor.colorStoreAction = opaqueColorStoreAction;
     passDescriptor.depthStoreAction = opaqueDepthStoreAction;
@@ -385,8 +385,8 @@ export class BasicRenderPipeline {
       passDescriptor.reset(cameraRenderTarget, viewport);
       passDescriptor.colorLoadAction =
         cameraRenderTarget && cameraRenderTarget.colorTextureCount === 1 && isFullViewport
-          ? RenderTargetLoadAction.Clear
-          : RenderTargetLoadAction.Load;
+          ? RenderPassLoadAction.Clear
+          : RenderPassLoadAction.Load;
       context.beginRenderPass(passDescriptor);
       Blitter.draw(engine, <Texture2D>outputTarget!.getColorTexture(0));
       context.endRenderPass();

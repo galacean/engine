@@ -156,7 +156,9 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   }
 
   /**
-   * Blit FBO.
+   * Resolve MSAA FBO to the color/depth textures while keeping MSAA samples and depth/stencil intact.
+   * @remarks
+   * Render passes with declared store actions use `_resolveRenderTarget` via `endRenderPass()`.
    */
   blitRenderTarget(): void {
     this._resolveRenderTarget(false, false, false);

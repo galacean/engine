@@ -3,15 +3,16 @@ import {
   BloomEffect,
   Camera,
   CameraClearFlags,
+  ColorWriteMask,
   Material,
   MeshRenderer,
   MSAASamples,
   PostProcess,
   PrimitiveMesh,
   RenderPassDescriptor,
+  RenderPassLoadAction,
+  RenderPassStoreAction,
   RenderTarget,
-  RenderTargetLoadAction,
-  RenderTargetStoreAction,
   Shader,
   Texture2D,
   TextureFormat,
@@ -133,13 +134,13 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       invSpy.mockClear();
       clearSpy.mockClear();
       desc.reset(null, fullViewport, false);
-      desc.colorLoadAction = RenderTargetLoadAction.Clear;
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
       desc.clearColor.set(0.1, 0.2, 0.3, 1);
-      desc.colorStoreAction = RenderTargetStoreAction.Discard;
-      desc.depthLoadAction = RenderTargetLoadAction.Clear;
-      desc.depthStoreAction = RenderTargetStoreAction.Discard;
-      desc.stencilLoadAction = RenderTargetLoadAction.Clear;
-      desc.stencilStoreAction = RenderTargetStoreAction.Discard;
+      desc.colorStoreAction = RenderPassStoreAction.Discard;
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
+      desc.depthStoreAction = RenderPassStoreAction.Discard;
+      desc.stencilLoadAction = RenderPassLoadAction.Clear;
+      desc.stencilStoreAction = RenderPassStoreAction.Discard;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
       expect(invSpy).not.toHaveBeenCalled();
@@ -150,7 +151,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       invSpy.mockClear();
       clearSpy.mockClear();
       desc.reset(singleRT, halfViewport, true);
-      desc.colorLoadAction = RenderTargetLoadAction.Clear;
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
       expect(invSpy).not.toHaveBeenCalled();
@@ -162,7 +163,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       invSpy.mockClear();
       clearSpy.mockClear();
       desc.reset(singleRT, fullViewport, true);
-      desc.colorLoadAction = RenderTargetLoadAction.Clear;
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
       expect(invSpy).not.toHaveBeenCalled();
@@ -175,7 +176,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       invSpy.mockClear();
       clearSpy.mockClear();
       desc.reset(singleRT, fullViewport, true);
-      desc.depthLoadAction = RenderTargetLoadAction.Clear;
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
       desc.clearDepth = 0.5;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
@@ -188,7 +189,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       invSpy.mockClear();
       clearSpy.mockClear();
       desc.reset(singleRT, fullViewport, true);
-      desc.stencilLoadAction = RenderTargetLoadAction.Clear;
+      desc.stencilLoadAction = RenderPassLoadAction.Clear;
       desc.clearStencil = 7;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
@@ -200,8 +201,8 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       // Independent depth Store + stencil Discard -> invalidates ONLY STENCIL_ATTACHMENT on endRenderPass
       invSpy.mockClear();
       desc.reset(singleRT, fullViewport, true);
-      desc.depthStoreAction = RenderTargetStoreAction.Store;
-      desc.stencilStoreAction = RenderTargetStoreAction.Discard;
+      desc.depthStoreAction = RenderPassStoreAction.Store;
+      desc.stencilStoreAction = RenderPassStoreAction.Discard;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
       expect(invSpy).toHaveBeenCalledTimes(1);
@@ -210,8 +211,8 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       // Independent depth Discard + stencil Store -> invalidates ONLY DEPTH_ATTACHMENT on endRenderPass
       invSpy.mockClear();
       desc.reset(singleRT, fullViewport, true);
-      desc.depthStoreAction = RenderTargetStoreAction.Discard;
-      desc.stencilStoreAction = RenderTargetStoreAction.Store;
+      desc.depthStoreAction = RenderPassStoreAction.Discard;
+      desc.stencilStoreAction = RenderPassStoreAction.Store;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
       expect(invSpy).toHaveBeenCalledTimes(1);
@@ -221,11 +222,11 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       invSpy.mockClear();
       clearSpy.mockClear();
       desc.reset(singleRT, fullViewport, true);
-      desc.colorLoadAction = RenderTargetLoadAction.Clear;
-      desc.depthLoadAction = RenderTargetLoadAction.Clear;
-      desc.stencilLoadAction = RenderTargetLoadAction.Clear;
-      desc.depthStoreAction = RenderTargetStoreAction.Discard;
-      desc.stencilStoreAction = RenderTargetStoreAction.Discard;
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
+      desc.stencilLoadAction = RenderPassLoadAction.Clear;
+      desc.depthStoreAction = RenderPassStoreAction.Discard;
+      desc.stencilStoreAction = RenderPassStoreAction.Discard;
       rhi.beginRenderPass(desc);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).toHaveBeenCalledTimes(1);
@@ -242,7 +243,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
 
       // Explicit flush() closes an open render pass and applies its StoreAction
       desc.reset(singleRT, fullViewport, true);
-      desc.colorStoreAction = RenderTargetStoreAction.Discard;
+      desc.colorStoreAction = RenderPassStoreAction.Discard;
       rhi.beginRenderPass(desc);
       invSpy.mockClear();
       rhi.flush();
@@ -253,10 +254,10 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       invSpy.mockClear();
       clearSpy.mockClear();
       desc.reset(colorOnlyRT, fullViewport, true);
-      desc.depthLoadAction = RenderTargetLoadAction.Clear;
-      desc.depthStoreAction = RenderTargetStoreAction.Discard;
-      desc.stencilLoadAction = RenderTargetLoadAction.Clear;
-      desc.stencilStoreAction = RenderTargetStoreAction.Discard;
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
+      desc.depthStoreAction = RenderPassStoreAction.Discard;
+      desc.stencilLoadAction = RenderPassLoadAction.Clear;
+      desc.stencilStoreAction = RenderPassStoreAction.Discard;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
       expect(invSpy).not.toHaveBeenCalled();
@@ -266,7 +267,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       invSpy.mockClear();
       clearSpy.mockClear();
       desc.reset(mrtRT, fullViewport, true);
-      desc.colorLoadAction = RenderTargetLoadAction.Clear;
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
       expect(invSpy).not.toHaveBeenCalled();
@@ -278,15 +279,15 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       invSpy.mockClear();
       clearSpy.mockClear();
       desc.reset(depthOnlyRT, fullViewport, true);
-      desc.colorLoadAction = RenderTargetLoadAction.Clear;
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).not.toHaveBeenCalled();
 
       desc.reset(depthOnlyRT, fullViewport, true);
-      desc.depthLoadAction = RenderTargetLoadAction.Clear;
-      desc.stencilLoadAction = RenderTargetLoadAction.Clear;
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
+      desc.stencilLoadAction = RenderPassLoadAction.Clear;
       rhi.beginRenderPass(desc);
       rhi.endRenderPass();
       expect(invSpy).not.toHaveBeenCalled();
@@ -302,8 +303,8 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
         invSpy.mockClear();
         clearSpy.mockClear();
         desc.reset(null, fullViewport, false);
-        desc.colorLoadAction = RenderTargetLoadAction.Clear;
-        desc.colorStoreAction = RenderTargetStoreAction.Discard;
+        desc.colorLoadAction = RenderPassLoadAction.Clear;
+        desc.colorStoreAction = RenderPassStoreAction.Discard;
         rhi.beginRenderPass(desc);
         rhi.endRenderPass();
         expect(clearSpy).toHaveBeenCalledTimes(1);
@@ -322,12 +323,12 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
         invSpy.mockClear();
         clearSpy.mockClear();
         desc.reset(singleRT, fullViewport, true);
-        desc.colorLoadAction = RenderTargetLoadAction.Clear;
-        desc.colorStoreAction = RenderTargetStoreAction.Discard;
-        desc.depthLoadAction = RenderTargetLoadAction.Clear;
-        desc.depthStoreAction = RenderTargetStoreAction.Discard;
-        desc.stencilLoadAction = RenderTargetLoadAction.Clear;
-        desc.stencilStoreAction = RenderTargetStoreAction.Discard;
+        desc.colorLoadAction = RenderPassLoadAction.Clear;
+        desc.colorStoreAction = RenderPassStoreAction.Discard;
+        desc.depthLoadAction = RenderPassLoadAction.Clear;
+        desc.depthStoreAction = RenderPassStoreAction.Discard;
+        desc.stencilLoadAction = RenderPassLoadAction.Clear;
+        desc.stencilStoreAction = RenderPassStoreAction.Discard;
         rhi.beginRenderPass(desc);
         rhi.endRenderPass();
         expect(invSpy).not.toHaveBeenCalled();
@@ -473,7 +474,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       // 2. Explicit Clear on full-viewport single-color offscreen RT calls gl.clear(COLOR_BUFFER_BIT) with SCISSOR_TEST off, never invalidateFramebuffer
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderPassLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(false);
       expect(clearSpy).toHaveBeenCalledTimes(1);
@@ -497,7 +498,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       expect(Array.from(outPixels.slice(rightIdx, rightIdx + 4))).toEqual([10, 220, 30, 255]);
 
       // 4. Explicit Clear on sub-viewport is safely skipped by RHI (preserves untouched left half)
-      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderPassLoadAction.Clear);
       const bluePixels = new Uint8Array(16 * 16 * 4);
       for (let i = 0; i < 16 * 16; i++) {
         bluePixels[i * 4] = 20;
@@ -517,7 +518,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
         null,
         0,
         undefined,
-        RenderTargetLoadAction.Clear
+        RenderPassLoadAction.Clear
       );
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).not.toHaveBeenCalled();
@@ -528,31 +529,31 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       // 5. Explicit Clear on default framebuffer (null) -> skipped by RHI
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter.blitTexture(engine, srcTex, null, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, null, 0, undefined, null, 0, undefined, RenderPassLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).not.toHaveBeenCalled();
 
       // 6. Explicit Clear on MRT RenderTarget -> guarded to Load so COLOR_ATTACHMENT1+ is preserved
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter.blitTexture(engine, srcTex, mrtRT, 0, undefined, mrtMat, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, mrtRT, 0, undefined, mrtMat, 0, undefined, RenderPassLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).not.toHaveBeenCalled();
 
       // 7. Explicit Clear on full-viewport single-color MSAA RenderTarget -> clears MSAA color without invalidateFramebuffer
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter.blitTexture(engine, srcTex, msaaRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, msaaRT, 0, undefined, null, 0, undefined, RenderPassLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).toHaveBeenCalledTimes(1);
       expect(clearSpy).toHaveBeenCalledWith(gl.COLOR_BUFFER_BIT);
 
       // 8. Blended shader passed with explicit Clear -> automatically downgraded to Load, preserving destination blend base
       srcTex.setPixelBuffer(srcPixels); // (200, 100, 50, 255)
-      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderPassLoadAction.Clear);
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, blendMat, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, blendMat, 0, undefined, RenderPassLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).not.toHaveBeenCalled();
       dstTex0.getPixelBuffer(outPixels);
@@ -565,10 +566,10 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       expect(outPixels[2]).toBeLessThanOrEqual(30);
 
       // 9. Partial ColorWriteMask shader passed with explicit Clear -> automatically downgraded to Load, preserving G/B/A
-      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderPassLoadAction.Clear);
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, redOnlyMat, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, redOnlyMat, 0, undefined, RenderPassLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).not.toHaveBeenCalled();
       dstTex0.getPixelBuffer(outPixels);
@@ -584,9 +585,9 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
         const context = engine._renderContext;
         const passDesc = new RenderPassDescriptor();
         passDesc.reset(dsRT);
-        passDesc.colorLoadAction = RenderTargetLoadAction.Clear;
-        passDesc.depthStoreAction = RenderTargetStoreAction.Discard;
-        passDesc.stencilStoreAction = RenderTargetStoreAction.Discard;
+        passDesc.colorLoadAction = RenderPassLoadAction.Clear;
+        passDesc.depthStoreAction = RenderPassStoreAction.Discard;
+        passDesc.stencilStoreAction = RenderPassStoreAction.Discard;
 
         srcTex.setPixelBuffer(srcPixels); // (200, 100, 50, 255)
         invSpy.mockClear();
@@ -654,11 +655,11 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       while (gl.getError() !== gl.NO_ERROR);
 
       desc.reset(msaaRT, fullViewport, true);
-      desc.colorLoadAction = RenderTargetLoadAction.Clear;
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
       desc.clearColor.set(0.25, 0.5, 0.75, 1.0);
-      desc.colorStoreAction = RenderTargetStoreAction.StoreAndResolve;
-      desc.depthStoreAction = RenderTargetStoreAction.Store;
-      desc.stencilStoreAction = RenderTargetStoreAction.Store;
+      desc.colorStoreAction = RenderPassStoreAction.StoreAndResolve;
+      desc.depthStoreAction = RenderPassStoreAction.Store;
+      desc.stencilStoreAction = RenderPassStoreAction.Store;
       rhi.beginRenderPass(desc);
       expect(gl.getError()).toBe(gl.NO_ERROR);
 
@@ -675,9 +676,9 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       // Final pass Resolve + depth/stencil Discard: depth/stencil MUST invalidate on FRAMEBUFFER BEFORE DRAW_FRAMEBUFFER switches,
       // and MSAA color MUST invalidate on READ_FRAMEBUFFER AFTER gl.blitFramebuffer (matches Unity TextureReadbackGLES.cpp)
       desc.reset(msaaRT, fullViewport, true);
-      desc.colorStoreAction = RenderTargetStoreAction.Resolve;
-      desc.depthStoreAction = RenderTargetStoreAction.Discard;
-      desc.stencilStoreAction = RenderTargetStoreAction.Discard;
+      desc.colorStoreAction = RenderPassStoreAction.Resolve;
+      desc.depthStoreAction = RenderPassStoreAction.Discard;
+      desc.stencilStoreAction = RenderPassStoreAction.Discard;
       rhi.beginRenderPass(desc);
       const events: string[] = [];
       const invOrderSpy = vi.spyOn(gl, "invalidateFramebuffer").mockImplementation(function (
@@ -881,6 +882,69 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       opaqueMat.destroy();
       transMat.destroy();
       invSpy.mockRestore();
+    }
+  });
+
+  it("RenderContext.beginRenderPass resets masked write masks without leaking _lastRenderState onto IHardwareRenderer", () => {
+    // @ts-ignore
+    const rhi = engine._hardwareRenderer;
+    // @ts-ignore
+    const context = engine._renderContext;
+    expect("_lastRenderState" in rhi).toBe(false);
+
+    const tex = new Texture2D(engine, 8, 8, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const rt = new RenderTarget(engine, 8, 8, tex, TextureFormat.Depth24Stencil8, 1);
+    const desc = new RenderPassDescriptor();
+    const pixels = new Uint8Array(8 * 8 * 4);
+
+    try {
+      // Simulate context restore replacing engine._lastRenderState with a brand-new instance,
+      // followed by a pass (e.g. SpriteMask) leaving color/depth/stencil write masks restricted.
+      // @ts-ignore
+      const RenderStateCtor = engine._lastRenderState.constructor;
+      // @ts-ignore
+      engine._lastRenderState = new RenderStateCtor();
+      // @ts-ignore
+      const state = engine._lastRenderState;
+      context.camera = camera;
+
+      // Seed RT with red first
+      desc.reset(rt);
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
+      desc.clearColor.set(1, 0, 0, 1);
+      context.beginRenderPass(desc);
+      context.endRenderPass();
+
+      // Restrict all write masks both on GL and cached RenderState
+      gl.colorMask(false, false, false, false);
+      gl.depthMask(false);
+      gl.stencilMask(0);
+      state.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
+      state.depthState.writeEnabled = false;
+      state.stencilState.writeMask = 0;
+
+      // Clear to green via RenderContext.beginRenderPass must unlock all write masks and sync state
+      desc.reset(rt);
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
+      desc.clearColor.set(0, 1, 0, 1);
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
+      desc.stencilLoadAction = RenderPassLoadAction.Clear;
+      context.beginRenderPass(desc);
+      context.endRenderPass();
+
+      expect(state.blendState.targetBlendState.colorWriteMask).toBe(ColorWriteMask.All);
+      expect(state.depthState.writeEnabled).toBe(true);
+      expect(state.stencilState.writeMask).toBe(0xff);
+      expect(gl.getParameter(gl.COLOR_WRITEMASK)).toEqual([true, true, true, true]);
+      expect(gl.getParameter(gl.DEPTH_WRITEMASK)).toBe(true);
+      expect(gl.getParameter(gl.STENCIL_WRITEMASK)).toBe(0xff);
+
+      tex.getPixelBuffer(pixels);
+      expect(Array.from(pixels.slice(0, 4))).toEqual([0, 255, 0, 255]);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+    } finally {
+      rt.destroy();
+      tex.destroy();
     }
   });
 });

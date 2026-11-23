@@ -4,7 +4,7 @@ import { Engine } from "../Engine";
 import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderPassDescriptor, RenderTargetLoadAction } from "../renderingHardwareInterface";
+import { RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
@@ -84,8 +84,8 @@ export class PostProcessUberPass extends PostProcessPass {
     const passDescriptor = this._passDescriptor.reset(destTarget, viewport);
     passDescriptor.colorLoadAction =
       destTarget && destTarget.colorTextureCount === 1 && isFullViewport
-        ? RenderTargetLoadAction.Clear
-        : RenderTargetLoadAction.Load;
+        ? RenderPassLoadAction.Clear
+        : RenderPassLoadAction.Load;
     context.beginRenderPass(passDescriptor);
     Blitter.draw(engine, srcTexture, 0, this._uberMaterial);
     context.endRenderPass();
@@ -193,7 +193,7 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Prefilter
     passDescriptor.reset(mipRT[0]);
-    passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+    passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
     context.beginRenderPass(passDescriptor);
     Blitter.draw(engine, srcTexture, 0, bloomMaterial, 0);
     context.endRenderPass();
@@ -201,7 +201,7 @@ export class PostProcessUberPass extends PostProcessPass {
     // Progressive single-pass 5x5 9-tap downsample pyramid (Castaño 2013)
     for (let i = 1; i < mipCount; i++) {
       passDescriptor.reset(mipRT[i]);
-      passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+      passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
       context.beginRenderPass(passDescriptor);
       Blitter.draw(engine, <Texture2D>mipRT[i - 1].getColorTexture(0), 0, bloomMaterial, 1);
       context.endRenderPass();
@@ -211,7 +211,7 @@ export class PostProcessUberPass extends PostProcessPass {
     // Pass 2 blends in-place onto mipRT[i], so it must Load existing destination pixels.
     for (let i = mipCount - 2; i >= 0; i--) {
       passDescriptor.reset(mipRT[i]);
-      passDescriptor.colorLoadAction = RenderTargetLoadAction.Load;
+      passDescriptor.colorLoadAction = RenderPassLoadAction.Load;
       context.beginRenderPass(passDescriptor);
       Blitter.draw(engine, <Texture2D>mipRT[i + 1].getColorTexture(0), 0, bloomMaterial, 2);
       context.endRenderPass();

@@ -6,7 +6,7 @@ import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { RenderTargetLoadAction } from "../renderingHardwareInterface";
+import { RenderPassLoadAction } from "../renderingHardwareInterface";
 import { Shader } from "../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 
@@ -64,15 +64,15 @@ export class FinalPass extends PipelinePass {
     const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
     const finalLoadAction =
       renderTarget && renderTarget.colorTextureCount === 1 && isFullViewport
-        ? RenderTargetLoadAction.Clear
-        : RenderTargetLoadAction.Load;
+        ? RenderPassLoadAction.Clear
+        : RenderPassLoadAction.Load;
 
     // Should convert to sRGB when FXAA is enabled or camera's render target is not set
     const sourceTexture = <Texture2D>this._inputRenderTarget!.getColorTexture();
     if (enableFXAA) {
       const srgbTarget = this._srgbRenderTarget!;
       passDescriptor.reset(srgbTarget);
-      passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+      passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
       context.beginRenderPass(passDescriptor);
       Blitter.draw(engine, sourceTexture, 0, this._sRGBmaterial, 0);
       context.endRenderPass();
