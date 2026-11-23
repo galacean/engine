@@ -71,8 +71,7 @@ export class HingeJoint extends Joint {
   set useLimits(value: boolean) {
     if (value !== this.useLimits) {
       value ? (this._hingeFlags |= HingeJointFlag.LimitEnabled) : (this._hingeFlags &= ~HingeJointFlag.LimitEnabled);
-      this._syncLimitsEnabled();
-      this._nativeJoint && this._wakeBodies();
+      this._syncAndWake(this._syncLimitsEnabled);
     }
   }
 
@@ -87,8 +86,7 @@ export class HingeJoint extends Joint {
   set useMotor(value: boolean) {
     if (value !== this.useMotor) {
       value ? (this._hingeFlags |= HingeJointFlag.DriveEnabled) : (this._hingeFlags &= ~HingeJointFlag.DriveEnabled);
-      this._syncMotorEnabled();
-      this._nativeJoint && this._wakeBodies();
+      this._syncAndWake(this._syncMotorEnabled);
     }
   }
 
@@ -120,8 +118,7 @@ export class HingeJoint extends Joint {
       this._jointMotor = value;
       value?._updateFlagManager.addListener(this._onMotorChanged);
 
-      this._syncMotorEnabled();
-      this._onMotorChanged();
+      this._syncAndWake(this._syncMotorConfig);
     }
   }
 
@@ -139,8 +136,7 @@ export class HingeJoint extends Joint {
       this._limits = value;
       value?._updateFlagManager.addListener(this._onLimitsChanged);
 
-      this._syncLimitsEnabled();
-      this._onLimitsChanged();
+      this._syncAndWake(this._syncLimitsConfig);
     }
   }
 
@@ -201,36 +197,44 @@ export class HingeJoint extends Joint {
     super._syncNative();
     const nativeJoint = this._nativeJoint!;
     nativeJoint.setAxis(this._axis);
-    this._syncLimitsEnabled();
-    this._syncMotorEnabled();
-    this._syncMotor(nativeJoint);
-    this._syncLimits(nativeJoint);
-  }
-
-  private _syncLimitsEnabled(): void {
-    this._nativeJoint?.setHingeJointFlag(HingeJointFlag.LimitEnabled, this.useLimits && this._limits !== null);
-  }
-
-  private _syncMotorEnabled(): void {
-    this._nativeJoint?.setHingeJointFlag(HingeJointFlag.DriveEnabled, this.useMotor && this._jointMotor !== null);
+    this._syncMotorConfig(nativeJoint);
+    this._syncLimitsConfig(nativeJoint);
   }
 
   @ignoreClone
   private _onMotorChanged(): void {
-    const nativeJoint = this._nativeJoint;
-    if (nativeJoint) {
-      this._syncMotor(nativeJoint);
-      this._wakeBodies();
-    }
+    this._syncAndWake(this._syncMotor);
   }
 
   @ignoreClone
   private _onLimitsChanged(): void {
+    this._syncAndWake(this._syncLimits);
+  }
+
+  private _syncAndWake(sync: (this: HingeJoint, nativeJoint: IHingeJoint) => void): void {
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
-      this._syncLimits(nativeJoint);
+      sync.call(this, nativeJoint);
       this._wakeBodies();
     }
+  }
+
+  private _syncLimitsEnabled(nativeJoint: IHingeJoint): void {
+    nativeJoint.setHingeJointFlag(HingeJointFlag.LimitEnabled, this.useLimits && this._limits !== null);
+  }
+
+  private _syncMotorEnabled(nativeJoint: IHingeJoint): void {
+    nativeJoint.setHingeJointFlag(HingeJointFlag.DriveEnabled, this.useMotor && this._jointMotor !== null);
+  }
+
+  private _syncMotorConfig(nativeJoint: IHingeJoint): void {
+    this._syncMotorEnabled(nativeJoint);
+    this._syncMotor(nativeJoint);
+  }
+
+  private _syncLimitsConfig(nativeJoint: IHingeJoint): void {
+    this._syncLimitsEnabled(nativeJoint);
+    this._syncLimits(nativeJoint);
   }
 
   private _syncMotor(nativeJoint: IHingeJoint): void {

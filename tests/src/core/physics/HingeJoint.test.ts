@@ -634,7 +634,9 @@ describe("HingeJoint", function () {
     engine.sceneManager.activeScene.physics._update(0.2);
     expect(joint.velocity).toBeCloseTo(3, 3);
 
+    body.sleep();
     joint.useMotor = false;
+    expect(body.isSleeping()).toBe(false);
     body.angularVelocity.set(0, 0, 0);
     body.sleep();
     expect(body.isSleeping()).toBe(true);
@@ -643,6 +645,9 @@ describe("HingeJoint", function () {
     limits.min = 20;
     limits.max = 40;
     joint.limits = limits;
+    expect(body.isSleeping()).toBe(false);
+
+    body.sleep();
     joint.useLimits = true;
     expect(body.isSleeping()).toBe(false);
 
