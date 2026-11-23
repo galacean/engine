@@ -258,7 +258,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    * @internal
    */
   _onBodyDestroyed(body: Rigidbody): void {
-    if (this._connectedBody === body) this.connectedBody = null;
+    this._connectedBody === body && (this.connectedBody = null);
   }
 
   /**
