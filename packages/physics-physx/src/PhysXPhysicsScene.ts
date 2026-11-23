@@ -7,11 +7,11 @@ import {
   PhysicsEventState
 } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
-import { PhysXCollider } from "./PhysXCollider";
+import { PhysXActor } from "./PhysXActor";
 import { PhysXPhysics } from "./PhysXPhysics";
 
 /**
- * Simulates colliders and runs scene queries through PhysX.
+ * Simulates actors and runs scene queries through PhysX.
  */
 export class PhysXPhysicsScene implements IPhysicsScene {
   private static readonly _emptyExcluded: number[] = [];
@@ -128,26 +128,26 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.addCollider }
+   * {@inheritDoc IPhysicsScene.addActor }
    */
-  addCollider(collider: PhysXCollider): void {
-    collider._scene = this;
-    this._pxScene.addActor(collider._pxActor, null);
-    const shapes = collider._shapes;
+  addActor(actor: PhysXActor): void {
+    actor._scene = this;
+    this._pxScene.addActor(actor._pxActor, null);
+    const shapes = actor._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this._addColliderShape(shapes[i]._id);
+      this._addShape(shapes[i]._id);
     }
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.removeCollider }
+   * {@inheritDoc IPhysicsScene.removeActor }
    */
-  removeCollider(collider: PhysXCollider): void {
-    collider._scene = null;
-    this._pxScene.removeActor(collider._pxActor, true);
-    const shapes = collider._shapes;
+  removeActor(actor: PhysXActor): void {
+    actor._scene = null;
+    this._pxScene.removeActor(actor._pxActor, true);
+    const shapes = actor._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this._removeColliderShape(shapes[i]._id);
+      this._removeShape(shapes[i]._id);
     }
   }
 
@@ -437,7 +437,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   /**
    * @internal
    */
-  _addColliderShape(id: number): void {
+  _addShape(id: number): void {
     const changes = this._shapeChanges;
     changes.has(id) && changes.set(id, true);
   }
@@ -447,7 +447,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * Queue removal for the next simulation step. Pairs for a collider that stays removed end silently.
    * If the same collider ID returns before the step, rediscovered pairs continue and the others emit exits.
    */
-  _removeColliderShape(id: number): void {
+  _removeShape(id: number): void {
     this._shapeChanges.set(id, false);
   }
 

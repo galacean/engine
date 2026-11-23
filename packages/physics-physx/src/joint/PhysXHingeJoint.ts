@@ -1,6 +1,6 @@
 import { IHingeJoint } from "@galacean/engine-design";
 import { MathUtil, Quaternion, Vector3 } from "@galacean/engine";
-import { PhysXCollider } from "../PhysXCollider";
+import { PhysXActor } from "../PhysXActor";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
 
@@ -11,11 +11,11 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   private _axisRotationQuaternion = new Quaternion();
   private _connectedAxisRotationQuaternion = new Quaternion();
 
-  constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
+  constructor(physXPhysics: PhysXPhysics, actor: PhysXActor) {
     super(physXPhysics);
-    this._collider = collider;
+    this._actor = actor;
     this._pxJoint = physXPhysics._pxPhysics.createRevoluteJoint(
-      collider._pxActor,
+      actor._pxActor,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat,
       null,

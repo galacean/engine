@@ -1,13 +1,13 @@
 import { MeshColliderCookingFlag, Vector3 } from "@galacean/engine";
-import { IMeshColliderShape } from "@galacean/engine-design";
+import { IMeshShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
-import { PhysXColliderShape } from "./PhysXColliderShape";
+import { PhysXShape } from "./PhysXShape";
 
 /**
- * Mesh collider shape in PhysX.
+ * Mesh shape in PhysX.
  */
-export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshColliderShape {
+export class PhysXMeshShape extends PhysXShape implements IMeshShape {
   private static readonly _tightBoundsFlag = 1; // eTIGHT_BOUNDS = 1 (1<<0)
 
   private _pxMesh: any = null;
@@ -48,7 +48,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   }
 
   /**
-   * {@inheritDoc IMeshColliderShape.setMeshData }
+   * {@inheritDoc IMeshShape.setMeshData }
    */
   setMeshData(
     positions: Vector3[],
@@ -68,14 +68,14 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   }
 
   /**
-   * {@inheritDoc IMeshColliderShape.setScale }
+   * {@inheritDoc IMeshShape.setScale }
    */
   setScale(scale: Vector3): void {
     this._updateGeometry(this._pxMesh, scale);
   }
 
   /**
-   * {@inheritDoc IColliderShape.destroy }
+   * {@inheritDoc IPhysicsShape.destroy }
    */
   override destroy(): void {
     this._pxMesh.release();
@@ -132,16 +132,16 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     switch (physX.getLastConvexCookingResult()) {
       case 1: // eZERO_AREA_TEST_FAILED
         console.error(
-          "PhysXMeshColliderShape: Failed to create convex mesh. Could not find 4 vertices that do not form a zero-area triangle."
+          "PhysXMeshShape: Failed to create convex mesh. Could not find 4 vertices that do not form a zero-area triangle."
         );
         break;
       case 2: // ePOLYGONS_LIMIT_REACHED
         console.error(
-          "PhysXMeshColliderShape: Failed to create convex mesh within the maximum polygons limit (256). Consider simplifying the mesh."
+          "PhysXMeshShape: Failed to create convex mesh within the maximum polygons limit (256). Consider simplifying the mesh."
         );
         break;
       default: // eFAILURE
-        console.error("PhysXMeshColliderShape: Failed to create convex mesh. The input geometry may be invalid.");
+        console.error("PhysXMeshShape: Failed to create convex mesh. The input geometry may be invalid.");
         break;
     }
   }
@@ -150,11 +150,11 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     switch (physX.getLastTriMeshCookingResult()) {
       case 1: // eLARGE_TRIANGLE
         console.error(
-          "PhysXMeshColliderShape: Failed to create triangle mesh. One of the triangles is too large. Consider tessellating large triangles."
+          "PhysXMeshShape: Failed to create triangle mesh. One of the triangles is too large. Consider tessellating large triangles."
         );
         break;
       default: // eFAILURE
-        console.error("PhysXMeshColliderShape: Failed to create triangle mesh. The input geometry may be invalid.");
+        console.error("PhysXMeshShape: Failed to create triangle mesh. The input geometry may be invalid.");
         break;
     }
   }
@@ -164,7 +164,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     const length = positions.length;
     const ptr = physX._malloc(length * 3 * 4);
     if (!ptr) {
-      console.error("PhysXMeshColliderShape: could not allocate vertex data.");
+      console.error("PhysXMeshShape: could not allocate vertex data.");
       return 0;
     }
     const view = new Float32Array(physX.HEAPF32.buffer, ptr, length * 3);
@@ -182,7 +182,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     }
     if (i === length) return ptr;
     physX._free(ptr);
-    console.error("PhysXMeshColliderShape: vertex positions must be finite in Float32.");
+    console.error("PhysXMeshShape: vertex positions must be finite in Float32.");
     return 0;
   }
 
@@ -192,7 +192,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     const TypedArrayCtor = isU32 ? Uint32Array : Uint16Array;
     const ptr = physX._malloc(indices.length * TypedArrayCtor.BYTES_PER_ELEMENT);
     if (!ptr) {
-      console.error("PhysXMeshColliderShape: could not allocate index data.");
+      console.error("PhysXMeshShape: could not allocate index data.");
       return 0;
     }
     const heap = isU32 ? physX.HEAPU32 : physX.HEAPU16;
@@ -203,7 +203,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   private _createGeometry(pxMesh: any, scale: Vector3): any {
     const physX = this._physXPhysics._physX;
     const { x: scaleX, y: scaleY, z: scaleZ } = scale;
-    const meshFlag = this._isConvex ? PhysXMeshColliderShape._tightBoundsFlag : 0;
+    const meshFlag = this._isConvex ? PhysXMeshShape._tightBoundsFlag : 0;
 
     return this._isConvex
       ? physX.createConvexMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag)

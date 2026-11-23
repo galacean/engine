@@ -1,12 +1,12 @@
-import { ISphereColliderShape } from "@galacean/engine-design";
+import { ISphereShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
-import { PhysXColliderShape } from "./PhysXColliderShape";
+import { PhysXShape } from "./PhysXShape";
 
 /**
- * Sphere collider shape in PhysX.
+ * Sphere shape in PhysX.
  */
-export class PhysXSphereColliderShape extends PhysXColliderShape implements ISphereColliderShape {
+export class PhysXSphereShape extends PhysXShape implements ISphereShape {
   constructor(physXPhysics: PhysXPhysics, uniqueID: number, radius: number, material: PhysXPhysicsMaterial) {
     super(physXPhysics);
 
@@ -15,7 +15,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
   }
 
   /**
-   * {@inheritDoc ISphereColliderShape.setRadius }
+   * {@inheritDoc ISphereShape.setRadius }
    */
   setRadius(radius: number): void {
     const geometry = this._pxGeometry;

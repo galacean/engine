@@ -1,4 +1,4 @@
-import { ICapsuleColliderShape } from "@galacean/engine-design";
+import { ICapsuleShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
@@ -73,7 +73,7 @@ export class CapsuleCollider extends Collider {
     }
   }
 
-  protected override _syncGeometry(shape: ICapsuleColliderShape | null, scale: Vector3): ICapsuleColliderShape | null {
+  protected override _syncGeometry(shape: ICapsuleShape | null, scale: Vector3): ICapsuleShape | null {
     const direction = this._direction;
     let radialScale: number;
     let heightScale: number;
@@ -101,7 +101,7 @@ export class CapsuleCollider extends Collider {
       return null;
     }
     if (!shape) {
-      return Engine._nativePhysics.createCapsuleColliderShape(
+      return Engine._nativePhysics.createCapsuleShape(
         this._id,
         radius,
         halfHeight,

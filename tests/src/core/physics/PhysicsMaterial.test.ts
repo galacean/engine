@@ -113,11 +113,11 @@ describe("PhysicsMaterial", () => {
   it("passes one shared default to the backend without allocating materials for new or cloned Colliders", () => {
     const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
     const factories = [
-      ["createBoxColliderShape", 2],
-      ["createSphereColliderShape", 2],
-      ["createCapsuleColliderShape", 3],
-      ["createPlaneColliderShape", 1],
-      ["createMeshColliderShape", 4]
+      ["createBoxShape", 2],
+      ["createSphereShape", 2],
+      ["createCapsuleShape", 3],
+      ["createPlaneShape", 1],
+      ["createMeshShape", 4]
     ] as const;
     const createColliders = factories.map(([method, materialIndex]) => ({
       spy: vi.spyOn(physics, method),
@@ -221,7 +221,7 @@ describe("PhysicsMaterial", () => {
     collider.mesh = mesh;
     sync();
     const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
-    const createMesh = vi.spyOn(physics, "createMeshColliderShape");
+    const createMesh = vi.spyOn(physics, "createMeshShape");
     collider.convex = true;
     sync();
     expect(createMaterial).not.toHaveBeenCalled();

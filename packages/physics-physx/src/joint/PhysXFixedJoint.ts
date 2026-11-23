@@ -1,17 +1,17 @@
 import { IFixedJoint } from "@galacean/engine-design";
-import { PhysXCollider } from "../PhysXCollider";
+import { PhysXActor } from "../PhysXActor";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
 
 /**
- * A fixed joint permits no relative movement between two colliders. ie the bodies are glued together.
+ * A fixed joint permits no relative movement between two actors. ie the bodies are glued together.
  */
 export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
-  constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
+  constructor(physXPhysics: PhysXPhysics, actor: PhysXActor) {
     super(physXPhysics);
-    this._collider = collider;
+    this._actor = actor;
     this._pxJoint = physXPhysics._pxPhysics.createFixedJoint(
-      collider._pxActor,
+      actor._pxActor,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat,
       null,

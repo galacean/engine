@@ -1,9 +1,9 @@
-import { IColliderShape } from "./IColliderShape";
+import { IPhysicsShape } from "./IPhysicsShape";
 
 /**
- * Interface of physics capsule collider shape.
+ * Interface of a physics capsule shape.
  */
-export interface ICapsuleColliderShape extends IColliderShape {
+export interface ICapsuleShape extends IPhysicsShape {
   /**
    * Set the dimensions and local orientation of the capsule.
    * @param radius - The radius with entity scale applied

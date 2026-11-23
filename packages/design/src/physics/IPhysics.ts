@@ -1,18 +1,12 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
-import { ICollider } from "./ICollider";
-import { IDynamicCollider } from "./IDynamicCollider";
+import { IPhysicsActor } from "./IPhysicsActor";
+import { IDynamicActor } from "./IDynamicActor";
 import { IPhysicsMaterial, IPhysicsMaterialProperties } from "./IPhysicsMaterial";
 import { IPhysicsScene } from "./IPhysicsScene";
-import { IStaticCollider } from "./IStaticCollider";
+import { IStaticActor } from "./IStaticActor";
 import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
-import {
-  IBoxColliderShape,
-  ICapsuleColliderShape,
-  IMeshColliderShape,
-  IPlaneColliderShape,
-  ISphereColliderShape
-} from "./shape";
+import { IBoxShape, ICapsuleShape, IMeshShape, IPlaneShape, ISphereShape } from "./shape";
 
 /**
  * Creates and configures objects for the physics backend.
@@ -30,18 +24,18 @@ export interface IPhysics {
   createPhysicsScene(): IPhysicsScene;
 
   /**
-   * Create dynamic collider.
+   * Create a dynamic rigid actor.
    * @param position - The global position
    * @param rotation - The global rotation
    */
-  createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider;
+  createDynamicActor(position: Vector3, rotation: Quaternion): IDynamicActor;
 
   /**
-   * Create static collider.
+   * Create a static rigid actor.
    * @param position - The global position
    * @param rotation - The global rotation
    */
-  createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider;
+  createStaticActor(position: Vector3, rotation: Quaternion): IStaticActor;
 
   /**
    * Create a character controller for later insertion into a scene.
@@ -57,46 +51,46 @@ export interface IPhysics {
   createPhysicsMaterial(properties: IPhysicsMaterialProperties): IPhysicsMaterial;
 
   /**
-   * Create a box collider shape.
+   * Create a box shape.
    * @param uniqueID - The collider ID reported by queries and events
    * @param halfExtents - Half the size along each box axis, with entity scale applied
    * @param material - The material of this shape
    */
-  createBoxColliderShape(uniqueID: number, halfExtents: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
+  createBoxShape(uniqueID: number, halfExtents: Vector3, material: IPhysicsMaterial): IBoxShape;
 
   /**
-   * Create a sphere collider shape.
+   * Create a sphere shape.
    * @param uniqueID - The collider ID reported by queries and events
    * @param radius - The radius with entity scale applied
    * @param material - The material of this shape
    */
-  createSphereColliderShape(uniqueID: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape;
+  createSphereShape(uniqueID: number, radius: number, material: IPhysicsMaterial): ISphereShape;
 
   /**
-   * Create a plane collider shape.
+   * Create a plane shape.
    * @param uniqueID - The collider ID reported by queries and events
    * @param material - The material of this shape
    */
-  createPlaneColliderShape(uniqueID: number, material: IPhysicsMaterial): IPlaneColliderShape;
+  createPlaneShape(uniqueID: number, material: IPhysicsMaterial): IPlaneShape;
 
   /**
-   * Create a capsule collider shape.
+   * Create a capsule shape.
    * @param uniqueID - The collider ID reported by queries and events
    * @param radius - The radius with entity scale applied
    * @param halfHeight - Half the cylindrical height, with entity scale applied
    * @param material - The material of this shape
    * @param upAxis - The local up axis
    */
-  createCapsuleColliderShape(
+  createCapsuleShape(
     uniqueID: number,
     radius: number,
     halfHeight: number,
     material: IPhysicsMaterial,
     upAxis: number
-  ): ICapsuleColliderShape;
+  ): ICapsuleShape;
 
   /**
-   * Create a collider shape from cooked mesh data.
+   * Create a shape from cooked mesh data.
    * @param uniqueID - The collider ID reported by queries and events
    * @param positions - Unscaled vertices in mesh-local space
    * @param indices - Triangle indices, or null for a convex mesh
@@ -106,7 +100,7 @@ export interface IPhysics {
    * @param scale - The absolute world scale applied to the cooked mesh
    * @returns The shape, or null if mesh cooking or shape creation fails
    */
-  createMeshColliderShape(
+  createMeshShape(
     uniqueID: number,
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
@@ -114,25 +108,25 @@ export interface IPhysics {
     material: IPhysicsMaterial,
     cookingFlags: number,
     scale: Vector3
-  ): IMeshColliderShape | null;
+  ): IMeshShape | null;
 
   /**
    * Create fixed joint.
-   * @param collider - collider of joint
+   * @param actor - Owning actor of the joint
    */
-  createFixedJoint(collider: ICollider): IFixedJoint;
+  createFixedJoint(actor: IPhysicsActor): IFixedJoint;
 
   /**
    * Create hinge joint.
-   * @param collider - collider of joint
+   * @param actor - Owning actor of the joint
    */
-  createHingeJoint(collider: ICollider): IHingeJoint;
+  createHingeJoint(actor: IPhysicsActor): IHingeJoint;
 
   /**
-   * Create spring joint
-   * @param collider - collider of joint
+   * Create spring joint.
+   * @param actor - Owning actor of the joint
    */
-  createSpringJoint(collider: ICollider): ISpringJoint;
+  createSpringJoint(actor: IPhysicsActor): ISpringJoint;
 
   /**
    * Release the physics backend.

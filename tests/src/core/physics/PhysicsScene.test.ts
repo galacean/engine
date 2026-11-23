@@ -974,21 +974,21 @@ describe("Physics Test", () => {
         bounceCombine: 0
       });
       const id = 0xffffffff;
-      const nativeShape = backend.createBoxColliderShape(id, new Vector3(0.5, 0.5, 0.5), material);
-      const nativeCollider = backend.createStaticCollider(new Vector3(0, 3, 0), new Quaternion());
-      nativeCollider.addShape(nativeShape);
+      const nativeShape = backend.createBoxShape(id, new Vector3(0.5, 0.5, 0.5), material);
+      const nativeActor = backend.createStaticActor(new Vector3(0, 3, 0), new Quaternion());
+      nativeActor.addShape(nativeShape);
       nativeShape.setCollisionLayer(0);
-      native.addCollider(nativeCollider);
+      native.addActor(nativeActor);
       const hits: number[] = [];
       native.raycastAll(new Vector3(-3, 3, 0), new Vector3(1, 0, 0), 100, Layer.Everything, (shapeID) =>
         hits.push(shapeID)
       );
       expect(hits).to.deep.equal([id]);
       expect(Array.from(native.overlapSphereAll(new Vector3(0, 3, 0), 1, Layer.Everything))).to.deep.equal([id]);
-      native.removeCollider(nativeCollider);
-      nativeCollider.removeShape(nativeShape);
+      native.removeActor(nativeActor);
+      nativeActor.removeShape(nativeShape);
       nativeShape.destroy();
-      nativeCollider.destroy();
+      nativeActor.destroy();
       material.destroy();
     });
 

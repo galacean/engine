@@ -1,5 +1,5 @@
 import { Quaternion, Vector3, Vector4 } from "@galacean/engine";
-import { IColliderShape } from "@galacean/engine-design";
+import { IPhysicsShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 
@@ -16,9 +16,9 @@ enum ShapeFlag {
 }
 
 /**
- * Abstract class for collider shapes.
+ * Abstract base class for PhysX shapes.
  */
-export abstract class PhysXColliderShape implements IColliderShape {
+export abstract class PhysXShape implements IPhysicsShape {
   protected static readonly _yAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
   private static readonly _pose = {
     translation: new Vector3(),
@@ -40,14 +40,14 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * {@inheritDoc IColliderShape.setLocalPose }
+   * {@inheritDoc IPhysicsShape.setLocalPose }
    */
   setLocalPose(position: Vector3, rotation: Quaternion): void {
     this._setLocalPose(position, rotation);
   }
 
   /**
-   * {@inheritDoc IColliderShape.setContactOffset }
+   * {@inheritDoc IPhysicsShape.setContactOffset }
    * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
@@ -55,46 +55,46 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * {@inheritDoc IColliderShape.setMaterial }
+   * {@inheritDoc IPhysicsShape.setMaterial }
    */
   setMaterial(value: PhysXPhysicsMaterial): void {
     this._pxShape.setMaterial(value._pxMaterial);
   }
 
   /**
-   * {@inheritDoc IColliderShape.setCollisionLayer }
+   * {@inheritDoc IPhysicsShape.setCollisionLayer }
    */
   setCollisionLayer(layer: number): void {
     this._pxShape.setGroup(layer);
   }
 
   /**
-   * {@inheritDoc IColliderShape.setIsTrigger }
+   * {@inheritDoc IPhysicsShape.setIsTrigger }
    */
   setIsTrigger(value: boolean): void {
     this._pxShape.setIsTrigger(value);
   }
 
   /**
-   * {@inheritDoc IColliderShape.setIsSceneQuery }
+   * {@inheritDoc IPhysicsShape.setIsSceneQuery }
    */
   setIsSceneQuery(value: boolean): void {
     this._pxShape.setSceneQueryEnabled(value);
   }
 
   /**
-   * {@inheritDoc IColliderShape.pointDistance }
+   * {@inheritDoc IPhysicsShape.pointDistance }
    */
   pointDistance(point: Vector3): Vector4 {
     const info = this._pxGeometry.pointDistance(this._pxShape.getGlobalPose(), point);
     const closestPoint = info.closestPoint;
-    const res = PhysXColliderShape._tempVector4;
+    const res = PhysXShape._tempVector4;
     res.set(closestPoint.x, closestPoint.y, closestPoint.z, info.distance);
     return res;
   }
 
   /**
-   * {@inheritDoc IColliderShape.destroy }
+   * {@inheritDoc IPhysicsShape.destroy }
    */
   destroy(): void {
     this._pxShape.release();
@@ -102,7 +102,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   protected _setLocalPose(position: Vector3, rotation: Quaternion, axis?: Quaternion | null): void {
-    const pose = PhysXColliderShape._pose;
+    const pose = PhysXShape._pose;
     const nativeRotation = pose.rotation;
     pose.translation.copyFrom(position);
     if (axis) {

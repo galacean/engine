@@ -1,4 +1,4 @@
-import { IDynamicCollider } from "@galacean/engine-design";
+import { IDynamicActor } from "@galacean/engine-design";
 import { MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
@@ -63,7 +63,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   @ignoreClone
   private _massChanges = MassChanges.None;
   @ignoreClone
-  private _nativeActor: IDynamicCollider | null = null;
+  private _nativeActor: IDynamicActor | null = null;
   @ignoreClone
   private _attachedColliders: Collider[] = [];
   @ignoreClone
@@ -815,7 +815,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /** @internal */
-  _getRegisteredActor(scene: Scene): IDynamicCollider | null {
+  _getRegisteredActor(scene: Scene): IDynamicActor | null {
     return this._registeredScene === scene && this._index !== -1 ? this._nativeActor : null;
   }
 
@@ -823,13 +823,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @internal
    * The native actor, created from the current fields and world pose on first use.
    */
-  _getNativeActor(): IDynamicCollider {
+  _getNativeActor(): IDynamicActor {
     let actor = this._nativeActor;
     if (!actor) {
       const transform = this.entity.transform;
       const position = transform.worldPosition;
       const rotation = transform.worldRotationQuaternion;
-      this._nativeActor = actor = Engine._nativePhysics.createDynamicCollider(position, rotation);
+      this._nativeActor = actor = Engine._nativePhysics.createDynamicActor(position, rotation);
       this._nativePosition = position.clone();
       this._nativeRotation = rotation.clone();
 
@@ -1072,7 +1072,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
   }
 
-  private _readInertiaTensor(actor: IDynamicCollider): void {
+  private _readInertiaTensor(actor: IDynamicActor): void {
     const inertiaTensor = this._inertiaTensor;
     // @ts-ignore
     inertiaTensor._onValueChanged = null;
@@ -1081,7 +1081,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
   }
 
-  private _readInertiaTensorRotation(actor: IDynamicCollider, saveLastValid = false): void {
+  private _readInertiaTensorRotation(actor: IDynamicActor, saveLastValid = false): void {
     const rotation = this._inertiaTensorRotation;
     // @ts-ignore
     const listener = rotation._onValueChanged;
@@ -1109,7 +1109,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /**
    * Synchronizes pending Collider and mass changes before returning the native actor.
    */
-  private _getSyncedActor(): IDynamicCollider | null {
+  private _getSyncedActor(): IDynamicActor | null {
     if (this._registeredScene) {
       this._registeredScene.physics._syncColliders();
     } else if (this._massChanges && this._nativeActor) {
@@ -1118,7 +1118,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     return this._nativeActor;
   }
 
-  private _getForceActor(): IDynamicCollider | null {
+  private _getForceActor(): IDynamicActor | null {
     if (this._index === -1 || this._isKinematic || !this._simulationEnabled) return null;
     this._cancelPendingSleep();
     return this._getSyncedActor();
@@ -1216,7 +1216,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const ny = y / length;
     const nz = z / length;
     const nw = w / length;
-    let actor: IDynamicCollider | null;
+    let actor: IDynamicActor | null;
     if (this._automaticInertiaTensor) {
       actor = this._getSyncedActor();
       actor && this._readInertiaTensor(actor);

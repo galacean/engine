@@ -1,4 +1,4 @@
-import { ICollider, IColliderShape, IPhysicsMaterial, IStaticCollider } from "@galacean/engine-design";
+import { IPhysicsActor, IPhysicsMaterial, IPhysicsShape, IStaticActor } from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Logger } from "../base";
 import { BasicResources } from "../BasicResources";
@@ -66,7 +66,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   _id: number;
   /** @internal The native shape, created from the current fields when first needed. */
   @ignoreClone
-  _native: IColliderShape | null = null;
+  _native: IPhysicsShape | null = null;
   /** @internal */
   @ignoreClone
   _dirtyIndex = -1;
@@ -90,9 +90,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
   protected readonly _nativePosition = new Vector3();
 
   @ignoreClone
-  private _nativeActor: ICollider | null = null;
+  private _nativeActor: IPhysicsActor | null = null;
   @ignoreClone
-  private _staticActor: IStaticCollider | null = null;
+  private _staticActor: IStaticActor | null = null;
   @ignoreClone
   private _rejectedBody: Rigidbody | null = null;
   @ignoreClone
@@ -398,7 +398,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
         if (body) {
           body._attachCollider(this);
         } else {
-          scene.physics._nativePhysicsScene.addCollider(actor);
+          scene.physics._nativePhysicsScene.addActor(actor);
         }
         this._nativeActor = actor;
         this._attachedBody = body;
@@ -423,7 +423,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       if (body) {
         body._detachCollider(this);
       } else {
-        (physicsScene ?? this._registeredScene!.physics)._nativePhysicsScene.removeCollider(actor);
+        (physicsScene ?? this._registeredScene!.physics)._nativePhysicsScene.removeActor(actor);
       }
       this._nativeActor = null;
       this._attachedBody = null;
@@ -484,7 +484,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * Apply the final scaled geometry, or create the shape when absent.
    * @returns The shape, or null when the geometry is invalid or unsupported.
    */
-  protected _syncGeometry(_shape: IColliderShape | null, _scale: Vector3): IColliderShape | null {
+  protected _syncGeometry(_shape: IPhysicsShape | null, _scale: Vector3): IPhysicsShape | null {
     return null;
   }
 
@@ -492,7 +492,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * Reconcile the native shape with current component fields before attachment and pose sync.
    * @returns The active native shape, or null when the current fields cannot produce one
    */
-  protected _syncNativeShape(scale: Vector3): IColliderShape | null {
+  protected _syncNativeShape(scale: Vector3): IPhysicsShape | null {
     const previous = this._native;
     if (previous && !this._geometryDirty && !this._scaleChanged(scale)) {
       return previous;
@@ -517,7 +517,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * Apply the fields shared by every Collider to a newly created native shape.
    */
-  protected _initializeNativeShape<T extends IColliderShape>(shape: T): T {
+  protected _initializeNativeShape<T extends IPhysicsShape>(shape: T): T {
     shape.setContactOffset(this._contactOffset);
     this._isTrigger && shape.setIsTrigger(true);
     !this._isSceneQuery && shape.setIsSceneQuery(false);
@@ -529,7 +529,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * Replace the native shape, keeping its actor registration and trigger state when attached.
    * @returns Whether the replacement was committed; on failure the new shape is released
    */
-  protected _replaceNativeShape(shape: IColliderShape | null): boolean {
+  protected _replaceNativeShape(shape: IPhysicsShape | null): boolean {
     const previous = this._native!;
     const actor = this._nativeActor;
     if (actor) {
@@ -630,12 +630,12 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._markDirty();
   }
 
-  private _syncStaticActor(transform: Transform): IStaticCollider {
+  private _syncStaticActor(transform: Transform): IStaticActor {
     const position = transform.worldPosition;
     const rotation = transform.worldRotationQuaternion;
     let actor = this._staticActor;
     if (!actor) {
-      this._staticActor = actor = Engine._nativePhysics.createStaticCollider(position, rotation);
+      this._staticActor = actor = Engine._nativePhysics.createStaticActor(position, rotation);
       this._nativeWorldPosition = position.clone();
       this._nativeWorldRotation = rotation.clone();
       return actor;
@@ -650,7 +650,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return actor;
   }
 
-  private _syncShapePose(shape: IColliderShape, body: Rigidbody | null, scale: Vector3, force: boolean): void {
+  private _syncShapePose(shape: IPhysicsShape, body: Rigidbody | null, scale: Vector3, force: boolean): void {
     const position = Collider._tempPosition;
     const rotation = Collider._tempRotation.set(0, 0, 0, 1);
     Vector3.multiply(this._center, scale, position);

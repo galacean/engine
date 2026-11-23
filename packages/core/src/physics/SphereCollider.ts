@@ -1,4 +1,4 @@
-import { ISphereColliderShape } from "@galacean/engine-design";
+import { ISphereShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
@@ -36,13 +36,13 @@ export class SphereCollider extends Collider {
     return Math.max(scale.x, scale.y, scale.z) !== Math.max(nativeScale.x, nativeScale.y, nativeScale.z);
   }
 
-  protected override _syncGeometry(shape: ISphereColliderShape | null, scale: Vector3): ISphereColliderShape | null {
+  protected override _syncGeometry(shape: ISphereShape | null, scale: Vector3): ISphereShape | null {
     const radius = this._radius * Math.max(scale.x, scale.y, scale.z);
     if (!Collider._isValidPositiveFloat32(radius)) {
       return null;
     }
     if (!shape) {
-      return Engine._nativePhysics.createSphereColliderShape(this._id, radius, this._getNativeMaterial());
+      return Engine._nativePhysics.createSphereShape(this._id, radius, this._getNativeMaterial());
     }
     shape.setRadius(radius);
     return shape;

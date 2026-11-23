@@ -5,7 +5,7 @@ import { IPhysicsMaterial } from "../IPhysicsMaterial";
  * A native shape that can be attached to a rigid actor.
  * @remarks Set the shape's local pose before attaching it. New shapes participate in simulation and scene queries by default.
  */
-export interface IColliderShape {
+export interface IPhysicsShape {
   /**
    * Set the pose of the shape relative to its actor.
    * @param position - The actor-relative position, with entity scale applied

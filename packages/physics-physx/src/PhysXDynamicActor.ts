@@ -1,12 +1,12 @@
-import { IDynamicCollider } from "@galacean/engine-design";
+import { IDynamicActor } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
-import { PhysXCollider } from "./PhysXCollider";
+import { PhysXActor } from "./PhysXActor";
 import { PhysXPhysics } from "./PhysXPhysics";
 
 /**
- * A dynamic collider can act with self-defined movement or physical force
+ * Dynamic PhysX rigid actor controlled by forces or kinematic motion.
  */
-export class PhysXDynamicCollider extends PhysXCollider implements IDynamicCollider {
+export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
   private static _tempRotation = new Quaternion();
 
   private _isKinematic = false;
@@ -18,21 +18,21 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setLinearDamping }
+   * {@inheritDoc IDynamicActor.setLinearDamping }
    */
   setLinearDamping(value: number): void {
     this._pxActor.setLinearDamping(value);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setAngularDamping }
+   * {@inheritDoc IDynamicActor.setAngularDamping }
    */
   setAngularDamping(value: number): void {
     this._pxActor.setAngularDamping(value);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.getLinearVelocity }
+   * {@inheritDoc IDynamicActor.getLinearVelocity }
    */
   getLinearVelocity(out: Vector3): Vector3 {
     const velocity = this._pxActor.getLinearVelocity();
@@ -40,14 +40,14 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setLinearVelocity }
+   * {@inheritDoc IDynamicActor.setLinearVelocity }
    */
   setLinearVelocity(value: Vector3): void {
     this._pxActor.setLinearVelocity(value, true);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.getAngularVelocity }
+   * {@inheritDoc IDynamicActor.getAngularVelocity }
    */
   getAngularVelocity(out: Vector3): Vector3 {
     const velocity = this._pxActor.getAngularVelocity();
@@ -55,33 +55,33 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setAngularVelocity }
+   * {@inheritDoc IDynamicActor.setAngularVelocity }
    */
   setAngularVelocity(value: Vector3): void {
     this._pxActor.setAngularVelocity(value, true);
   }
 
-  /** {@inheritDoc IDynamicCollider.getPointVelocity} */
+  /** {@inheritDoc IDynamicActor.getPointVelocity} */
   getPointVelocity(point: Vector3, out: Vector3): Vector3 {
     this._pxActor.getVelocityAtPos(point, out);
     return out;
   }
 
-  /** {@inheritDoc IDynamicCollider.getRelativePointVelocity} */
+  /** {@inheritDoc IDynamicActor.getRelativePointVelocity} */
   getRelativePointVelocity(point: Vector3, out: Vector3): Vector3 {
     this._pxActor.getLocalVelocityAtLocalPos(point, out);
     return out;
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setMass }
+   * {@inheritDoc IDynamicActor.setMass }
    */
   setMass(value: number): void {
     this._pxActor.setMass(value);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.getCenterOfMass }
+   * {@inheritDoc IDynamicActor.getCenterOfMass }
    */
   getCenterOfMass(out: Vector3): Vector3 {
     const { translation } = this._pxActor.getCMassLocalPose();
@@ -89,94 +89,94 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setCenterOfMass }
+   * {@inheritDoc IDynamicActor.setCenterOfMass }
    */
   setCenterOfMass(position: Vector3): void {
     this._pxActor.setCMassLocalPose(position);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setInertiaTensor }
+   * {@inheritDoc IDynamicActor.setInertiaTensor }
    */
   setInertiaTensor(value: Vector3): void {
     this._pxActor.setMassSpaceInertiaTensor(value);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.getInertiaTensor }
+   * {@inheritDoc IDynamicActor.getInertiaTensor }
    */
   getInertiaTensor(out: Vector3): Vector3 {
     const inertia = this._pxActor.getMassSpaceInertiaTensor();
     return out.set(inertia.x, inertia.y, inertia.z);
   }
 
-  /** {@inheritDoc IDynamicCollider.getInertiaTensorRotation} */
+  /** {@inheritDoc IDynamicActor.getInertiaTensorRotation} */
   getInertiaTensorRotation(out: Quaternion): void {
     out.copyFrom(this._pxActor.getCMassLocalPose().rotation);
   }
 
-  /** {@inheritDoc IDynamicCollider.setInertiaTensorRotation} */
+  /** {@inheritDoc IDynamicActor.setInertiaTensorRotation} */
   setInertiaTensorRotation(rotation: Quaternion): void {
     this._pxActor.setInertiaTensorRotation(rotation);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setMassAndUpdateInertia }
+   * {@inheritDoc IDynamicActor.setMassAndUpdateInertia }
    */
   setMassAndUpdateInertia(mass: number): void {
     this._pxActor.setMassAndUpdateInertia(mass);
   }
 
-  /** {@inheritDoc IDynamicCollider.setDensity } */
+  /** {@inheritDoc IDynamicActor.setDensity } */
   setDensity(density: number, automaticCenterOfMass: boolean, automaticInertiaTensor: boolean): number {
     return this._pxActor.setDensity(density, automaticCenterOfMass, automaticInertiaTensor);
   }
 
-  /** {@inheritDoc IDynamicCollider.setMaxLinearVelocity} */
+  /** {@inheritDoc IDynamicActor.setMaxLinearVelocity} */
   setMaxLinearVelocity(value: number): void {
     this._pxActor.setMaxLinearVelocity(value);
   }
 
-  /** {@inheritDoc IDynamicCollider.setMaxAngularVelocity} */
+  /** {@inheritDoc IDynamicActor.setMaxAngularVelocity} */
   setMaxAngularVelocity(value: number): void {
     this._pxActor.setMaxAngularVelocity(value);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setMaxDepenetrationVelocity }
+   * {@inheritDoc IDynamicActor.setMaxDepenetrationVelocity }
    */
   setMaxDepenetrationVelocity(value: number): void {
     this._pxActor.setMaxDepenetrationVelocity(value);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setSleepThreshold }
+   * {@inheritDoc IDynamicActor.setSleepThreshold }
    * @default 1e-5f * PxTolerancesScale::speed * PxTolerancesScale::speed
    */
   setSleepThreshold(value: number): void {
     this._pxActor.setSleepThreshold(value);
   }
 
-  /** {@inheritDoc IDynamicCollider.setSleepEventId} */
+  /** {@inheritDoc IDynamicActor.setSleepEventId} */
   setSleepEventId(id: number): void {
     this._pxActor.setSleepEventId(id);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setSolverIterations }
+   * {@inheritDoc IDynamicActor.setSolverIterations }
    */
   setSolverIterations(positionIterations: number, velocityIterations: number): void {
     this._pxActor.setSolverIterationCounts(positionIterations, velocityIterations);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setUseGravity }
+   * {@inheritDoc IDynamicActor.setUseGravity }
    */
   setUseGravity(value: boolean): void {
     this._pxActor.setActorFlag(this._physXPhysics._physX.PxActorFlag.eDISABLE_GRAVITY, !value);
   }
 
-  /** {@inheritDoc IDynamicCollider.setSimulationEnabled} */
+  /** {@inheritDoc IDynamicActor.setSimulationEnabled} */
   setSimulationEnabled(value: boolean): void {
     if (!this._pxActor.setSimulationEnabled(value)) return;
     const scene = this._scene;
@@ -186,7 +186,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setMotionState }
+   * {@inheritDoc IDynamicActor.setMotionState }
    */
   setMotionState(isKinematic: boolean, useCCD: boolean): void {
     this._isKinematic = isKinematic;
@@ -201,21 +201,21 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setConstraints }
+   * {@inheritDoc IDynamicActor.setConstraints }
    */
   setConstraints(flags: number): void {
     this._pxActor.setRigidDynamicLockFlags(flags);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.addForce }
+   * {@inheritDoc IDynamicActor.addForce }
    */
   addForce(force: Vector3, mode: number): void {
     this._pxActor.addForce(force, this._physXPhysics._physX.PxForceMode.values[mode]);
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.addForceAtPosition }
+   * {@inheritDoc IDynamicActor.addForceAtPosition }
    */
   addForceAtPosition(force: Vector3, position: Vector3, impulse: boolean): void {
     if (impulse) {
@@ -226,23 +226,23 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.addTorque }
+   * {@inheritDoc IDynamicActor.addTorque }
    */
   addTorque(torque: Vector3, mode: number): void {
     this._pxActor.addTorque(torque, this._physXPhysics._physX.PxForceMode.values[mode]);
   }
 
-  /** {@inheritDoc IDynamicCollider.addRelativeForce } */
+  /** {@inheritDoc IDynamicActor.addRelativeForce } */
   addRelativeForce(force: Vector3, mode: number): void {
     this._pxActor.addRelativeForce(force, this._physXPhysics._physX.PxForceMode.values[mode]);
   }
 
-  /** {@inheritDoc IDynamicCollider.addRelativeTorque } */
+  /** {@inheritDoc IDynamicActor.addRelativeTorque } */
   addRelativeTorque(torque: Vector3, mode: number): void {
     this._pxActor.addRelativeTorque(torque, this._physXPhysics._physX.PxForceMode.values[mode]);
   }
 
-  /** {@inheritDoc IDynamicCollider.addExplosionForce } */
+  /** {@inheritDoc IDynamicActor.addExplosionForce } */
   addExplosionForce(strength: number, origin: Vector3, radius: number, upwardOffset: number, mode: number): boolean {
     return this._pxActor.addExplosionForce(
       strength,
@@ -254,7 +254,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setWorldTransform }
+   * {@inheritDoc IDynamicActor.setWorldTransform }
    */
   override setWorldTransform(position: Vector3, rotation: Quaternion): void {
     const transform = this._transform(position, rotation);
@@ -266,11 +266,11 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.move }
+   * {@inheritDoc IDynamicActor.move }
    */
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
     const actor = this._pxActor;
-    const tempRotation = PhysXDynamicCollider._tempRotation;
+    const tempRotation = PhysXDynamicActor._tempRotation;
     if (rotation) {
       tempRotation.set(0, 0, 0, 1);
       Quaternion.normalize(rotation, tempRotation);
@@ -290,21 +290,21 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.sleep }
+   * {@inheritDoc IDynamicActor.sleep }
    */
   sleep(): void {
     return this._pxActor.putToSleep();
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.isSleeping }
+   * {@inheritDoc IDynamicActor.isSleeping }
    */
   isSleeping(): boolean {
     return this._pxActor.isSleeping();
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.wakeUp }
+   * {@inheritDoc IDynamicActor.wakeUp }
    */
   wakeUp(): void {
     return this._pxActor.wakeUp();

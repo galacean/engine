@@ -1,5 +1,5 @@
 import {
-  IDynamicCollider,
+  IDynamicActor,
   IPhysicsEvents,
   IPhysicsScene,
   ITriggerEvent,
@@ -787,8 +787,8 @@ export class PhysicsScene {
   /**
    * @internal
    */
-  _addRigidbody(body: Rigidbody, actor: IDynamicCollider): void {
-    this._nativePhysicsScene.addCollider(actor);
+  _addRigidbody(body: Rigidbody, actor: IDynamicActor): void {
+    this._nativePhysicsScene.addActor(actor);
     const bodies = this._bodies;
     body._index = bodies.length;
     bodies.push(body);
@@ -825,7 +825,7 @@ export class PhysicsScene {
       this._checkBodyOrder(last);
     }
     body._index = -1;
-    this._nativePhysicsScene.removeCollider(body._getNativeActor());
+    this._nativePhysicsScene.removeActor(body._getNativeActor());
   }
 
   /**

@@ -1,10 +1,10 @@
 import { Vector3 } from "@galacean/engine-math";
-import { IColliderShape } from "./IColliderShape";
+import { IPhysicsShape } from "./IPhysicsShape";
 
 /**
- * Interface for mesh collider shape.
+ * Interface of a physics mesh shape.
  */
-export interface IMeshColliderShape extends IColliderShape {
+export interface IMeshShape extends IPhysicsShape {
   /**
    * Update mesh data and scale without changing the geometry type.
    * @param positions - Unscaled vertices in mesh-local space

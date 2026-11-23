@@ -1,17 +1,17 @@
-import { ICapsuleColliderShape } from "@galacean/engine-design";
+import { ICapsuleShape } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
-import { PhysXColliderShape } from "./PhysXColliderShape";
+import { PhysXShape } from "./PhysXShape";
 
 /**
- * Capsule collider shape in PhysX.
+ * Capsule shape in PhysX.
  */
-export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
+export class PhysXCapsuleShape extends PhysXShape implements ICapsuleShape {
   // Rotate the native X axis onto the requested capsule axis.
   private static readonly _axes: readonly (Quaternion | null)[] = [
     null,
-    PhysXCapsuleColliderShape._yAxis,
+    PhysXCapsuleShape._yAxis,
     new Quaternion(0, Math.SQRT1_2, 0, Math.SQRT1_2)
   ];
 
@@ -28,13 +28,13 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     upAxis: number
   ) {
     super(physXPhysics);
-    this._axis = PhysXCapsuleColliderShape._axes[upAxis];
+    this._axis = PhysXCapsuleShape._axes[upAxis];
     this._pxGeometry = new physXPhysics._physX.PxCapsuleGeometry(radius, halfHeight);
     this._initialize(material, uniqueID);
   }
 
   /**
-   * {@inheritDoc IColliderShape.setLocalPose }
+   * {@inheritDoc IPhysicsShape.setLocalPose }
    */
   override setLocalPose(position: Vector3, rotation: Quaternion): void {
     this._localPosition.copyFrom(position);
@@ -43,14 +43,14 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   }
 
   /**
-   * {@inheritDoc ICapsuleColliderShape.setDimensions }
+   * {@inheritDoc ICapsuleShape.setDimensions }
    */
   setDimensions(radius: number, halfHeight: number, upAxis: number): void {
     const geometry = this._pxGeometry;
     geometry.radius = radius;
     geometry.halfHeight = halfHeight;
     this._pxShape.setGeometry(geometry);
-    const axis = PhysXCapsuleColliderShape._axes[upAxis];
+    const axis = PhysXCapsuleShape._axes[upAxis];
     if (axis !== this._axis) {
       this._axis = axis;
       this._setLocalPose(this._localPosition, this._localRotation, axis);

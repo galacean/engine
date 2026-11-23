@@ -12,13 +12,13 @@ self.onmessage = async ({ data: mode }: MessageEvent<PhysXRuntimeMode>) => {
 
     const position = new Vector3(0, 5, 0);
     const rotation = new Quaternion();
-    const body = physics.createDynamicCollider(position, rotation);
+    const body = physics.createDynamicActor(position, rotation);
     scene.setGravity(new Vector3(0, -9.81, 0));
-    scene.addCollider(body);
+    scene.addActor(body);
     scene.update(1 / 60);
     body.getWorldTransform(position, rotation);
 
-    scene.removeCollider(body);
+    scene.removeActor(body);
     body.destroy();
     scene.destroy();
     physics.destroy();

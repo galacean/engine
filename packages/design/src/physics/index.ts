@@ -1,10 +1,10 @@
 export type { ICharacterController } from "./ICharacterController";
-export type { ICollider } from "./ICollider";
-export type { IDynamicCollider } from "./IDynamicCollider";
+export type { IPhysicsActor } from "./IPhysicsActor";
+export type { IDynamicActor } from "./IDynamicActor";
 export type { IPhysics } from "./IPhysics";
 export type { IPhysicsMaterial, IPhysicsMaterialProperties } from "./IPhysicsMaterial";
 export type { IPhysicsScene } from "./IPhysicsScene";
-export type { IStaticCollider } from "./IStaticCollider";
+export type { IStaticActor } from "./IStaticActor";
 export type { ICollision } from "./ICollision";
 export type { IContactEvent, ITriggerEvent, IPhysicsEvents } from "./IPhysicsEvents";
 export { PhysicsEventState } from "./IPhysicsEvents";

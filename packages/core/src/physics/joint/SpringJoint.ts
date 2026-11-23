@@ -1,4 +1,4 @@
-import { IDynamicCollider, ISpringJoint } from "@galacean/engine-design";
+import { IDynamicActor, ISpringJoint } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { Joint } from "./Joint";
 
@@ -104,7 +104,7 @@ export class SpringJoint extends Joint {
     }
   }
 
-  protected override _createJoint(actor: IDynamicCollider): ISpringJoint {
+  protected override _createJoint(actor: IDynamicActor): ISpringJoint {
     return Engine._nativePhysics.createSpringJoint(actor);
   }
 

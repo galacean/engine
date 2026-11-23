@@ -1,35 +1,35 @@
 import { Quaternion, SystemInfo, Vector3 } from "@galacean/engine";
 import {
-  IBoxColliderShape,
-  ICapsuleColliderShape,
+  IBoxShape,
+  ICapsuleShape,
   ICharacterController,
-  IDynamicCollider,
+  IDynamicActor,
   IFixedJoint,
   IHingeJoint,
-  IMeshColliderShape,
+  IMeshShape,
   IPhysics,
   IPhysicsMaterialProperties,
   IPhysicsScene,
-  IPlaneColliderShape,
-  ISphereColliderShape,
+  IPlaneShape,
+  ISphereShape,
   ISpringJoint,
-  IStaticCollider
+  IStaticActor
 } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
-import { PhysXCollider } from "./PhysXCollider";
-import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
+import { PhysXActor } from "./PhysXActor";
+import { PhysXDynamicActor } from "./PhysXDynamicActor";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
-import { PhysXStaticCollider } from "./PhysXStaticCollider";
+import { PhysXStaticActor } from "./PhysXStaticActor";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
-import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
-import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
-import { PhysXMeshColliderShape } from "./shape/PhysXMeshColliderShape";
-import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
-import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
+import { PhysXBoxShape } from "./shape/PhysXBoxShape";
+import { PhysXCapsuleShape } from "./shape/PhysXCapsuleShape";
+import { PhysXMeshShape } from "./shape/PhysXMeshShape";
+import { PhysXPlaneShape } from "./shape/PhysXPlaneShape";
+import { PhysXSphereShape } from "./shape/PhysXSphereShape";
 
 /**
  * PhysX object creation.
@@ -94,17 +94,17 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.createStaticCollider }
+   * {@inheritDoc IPhysics.createStaticActor }
    */
-  createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider {
-    return new PhysXStaticCollider(this, position, rotation);
+  createStaticActor(position: Vector3, rotation: Quaternion): IStaticActor {
+    return new PhysXStaticActor(this, position, rotation);
   }
 
   /**
-   * {@inheritDoc IPhysics.createDynamicCollider }
+   * {@inheritDoc IPhysics.createDynamicActor }
    */
-  createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
-    return new PhysXDynamicCollider(this, position, rotation);
+  createDynamicActor(position: Vector3, rotation: Quaternion): IDynamicActor {
+    return new PhysXDynamicActor(this, position, rotation);
   }
 
   /**
@@ -122,43 +122,43 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.createBoxColliderShape }
+   * {@inheritDoc IPhysics.createBoxShape }
    */
-  createBoxColliderShape(uniqueID: number, halfExtents: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
-    return new PhysXBoxColliderShape(this, uniqueID, halfExtents, material);
+  createBoxShape(uniqueID: number, halfExtents: Vector3, material: PhysXPhysicsMaterial): IBoxShape {
+    return new PhysXBoxShape(this, uniqueID, halfExtents, material);
   }
 
   /**
-   * {@inheritDoc IPhysics.createSphereColliderShape }
+   * {@inheritDoc IPhysics.createSphereShape }
    */
-  createSphereColliderShape(uniqueID: number, radius: number, material: PhysXPhysicsMaterial): ISphereColliderShape {
-    return new PhysXSphereColliderShape(this, uniqueID, radius, material);
+  createSphereShape(uniqueID: number, radius: number, material: PhysXPhysicsMaterial): ISphereShape {
+    return new PhysXSphereShape(this, uniqueID, radius, material);
   }
 
   /**
-   * {@inheritDoc IPhysics.createPlaneColliderShape }
+   * {@inheritDoc IPhysics.createPlaneShape }
    */
-  createPlaneColliderShape(uniqueID: number, material: PhysXPhysicsMaterial): IPlaneColliderShape {
-    return new PhysXPlaneColliderShape(this, uniqueID, material);
+  createPlaneShape(uniqueID: number, material: PhysXPhysicsMaterial): IPlaneShape {
+    return new PhysXPlaneShape(this, uniqueID, material);
   }
 
   /**
-   * {@inheritDoc IPhysics.createCapsuleColliderShape }
+   * {@inheritDoc IPhysics.createCapsuleShape }
    */
-  createCapsuleColliderShape(
+  createCapsuleShape(
     uniqueID: number,
     radius: number,
     halfHeight: number,
     material: PhysXPhysicsMaterial,
     upAxis: number
-  ): ICapsuleColliderShape {
-    return new PhysXCapsuleColliderShape(this, uniqueID, radius, halfHeight, material, upAxis);
+  ): ICapsuleShape {
+    return new PhysXCapsuleShape(this, uniqueID, radius, halfHeight, material, upAxis);
   }
 
   /**
-   * {@inheritDoc IPhysics.createMeshColliderShape }
+   * {@inheritDoc IPhysics.createMeshShape }
    */
-  createMeshColliderShape(
+  createMeshShape(
     uniqueID: number,
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
@@ -166,39 +166,30 @@ export class PhysXPhysics implements IPhysics {
     material: PhysXPhysicsMaterial,
     cookingFlags: number,
     scale: Vector3
-  ): IMeshColliderShape | null {
-    const shape = new PhysXMeshColliderShape(
-      this,
-      uniqueID,
-      positions,
-      indices,
-      isConvex,
-      material,
-      cookingFlags,
-      scale
-    );
+  ): IMeshShape | null {
+    const shape = new PhysXMeshShape(this, uniqueID, positions, indices, isConvex, material, cookingFlags, scale);
     return shape._pxShape ? shape : null;
   }
 
   /**
    * {@inheritDoc IPhysics.createFixedJoint }
    */
-  createFixedJoint(collider: PhysXCollider): IFixedJoint {
-    return new PhysXFixedJoint(this, collider);
+  createFixedJoint(actor: PhysXActor): IFixedJoint {
+    return new PhysXFixedJoint(this, actor);
   }
 
   /**
    * {@inheritDoc IPhysics.createHingeJoint }
    */
-  createHingeJoint(collider: PhysXCollider): IHingeJoint {
-    return new PhysXHingeJoint(this, collider);
+  createHingeJoint(actor: PhysXActor): IHingeJoint {
+    return new PhysXHingeJoint(this, actor);
   }
 
   /**
    * {@inheritDoc IPhysics.createSpringJoint }
    */
-  createSpringJoint(collider: PhysXCollider): ISpringJoint {
-    return new PhysXSpringJoint(this, collider);
+  createSpringJoint(actor: PhysXActor): ISpringJoint {
+    return new PhysXSpringJoint(this, actor);
   }
 
   private async _initialize(): Promise<void> {

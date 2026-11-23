@@ -1,4 +1,4 @@
-import { IBoxColliderShape } from "@galacean/engine-design";
+import { IBoxShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
@@ -35,7 +35,7 @@ export class BoxCollider extends Collider {
     this._size._onValueChanged = this._onSizeChanged.bind(this);
   }
 
-  protected override _syncGeometry(shape: IBoxColliderShape | null, scale: Vector3): IBoxColliderShape | null {
+  protected override _syncGeometry(shape: IBoxShape | null, scale: Vector3): IBoxShape | null {
     const size = this._size;
     const x = size.x * scale.x * 0.5;
     const y = size.y * scale.y * 0.5;
@@ -49,7 +49,7 @@ export class BoxCollider extends Collider {
     }
     const extents = BoxCollider._tempHalfExtents.set(x, y, z);
     if (!shape) {
-      return Engine._nativePhysics.createBoxColliderShape(this._id, extents, this._getNativeMaterial());
+      return Engine._nativePhysics.createBoxShape(this._id, extents, this._getNativeMaterial());
     }
     shape.setHalfExtents(extents);
     return shape;

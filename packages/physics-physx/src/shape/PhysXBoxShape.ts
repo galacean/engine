@@ -1,13 +1,13 @@
 import { Vector3 } from "@galacean/engine";
-import { IBoxColliderShape } from "@galacean/engine-design";
+import { IBoxShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
-import { PhysXColliderShape } from "./PhysXColliderShape";
+import { PhysXShape } from "./PhysXShape";
 
 /**
- * Box collider shape in PhysX.
+ * Box shape in PhysX.
  */
-export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
+export class PhysXBoxShape extends PhysXShape implements IBoxShape {
   constructor(physXPhysics: PhysXPhysics, uniqueID: number, halfExtents: Vector3, material: PhysXPhysicsMaterial) {
     super(physXPhysics);
     this._pxGeometry = new physXPhysics._physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
@@ -15,7 +15,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   }
 
   /**
-   * {@inheritDoc IBoxColliderShape.setHalfExtents }
+   * {@inheritDoc IBoxShape.setHalfExtents }
    */
   setHalfExtents(halfExtents: Vector3): void {
     const geometry = this._pxGeometry;

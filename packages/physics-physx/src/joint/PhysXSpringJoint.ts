@@ -1,17 +1,17 @@
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
 import { ISpringJoint } from "@galacean/engine-design";
-import { PhysXCollider } from "../PhysXCollider";
+import { PhysXActor } from "../PhysXActor";
 
 /**
  * PhysX distance joint with a spring response.
  */
 export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
-  constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
+  constructor(physXPhysics: PhysXPhysics, actor: PhysXActor) {
     super(physXPhysics);
-    this._collider = collider;
+    this._actor = actor;
     this._pxJoint = physXPhysics._pxPhysics.createDistanceJoint(
-      collider._pxActor,
+      actor._pxActor,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat,
       null,

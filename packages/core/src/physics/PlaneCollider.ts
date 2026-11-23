@@ -1,4 +1,4 @@
-import { IPlaneColliderShape } from "@galacean/engine-design";
+import { IPlaneShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
@@ -31,10 +31,10 @@ export class PlaneCollider extends Collider {
     return false;
   }
 
-  protected override _syncNativeShape(): IPlaneColliderShape {
-    return <IPlaneColliderShape>(
+  protected override _syncNativeShape(): IPlaneShape {
+    return <IPlaneShape>(
       (this._native ||= this._initializeNativeShape(
-        Engine._nativePhysics.createPlaneColliderShape(this._id, this._getNativeMaterial())
+        Engine._nativePhysics.createPlaneShape(this._id, this._getNativeMaterial())
       ))
     );
   }

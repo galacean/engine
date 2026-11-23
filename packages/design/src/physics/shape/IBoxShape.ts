@@ -1,10 +1,10 @@
-import { IColliderShape } from "./IColliderShape";
+import { IPhysicsShape } from "./IPhysicsShape";
 import { Vector3 } from "@galacean/engine-math";
 
 /**
- * Interface of physics box collider shape.
+ * Interface of a physics box shape.
  */
-export interface IBoxColliderShape extends IColliderShape {
+export interface IBoxShape extends IPhysicsShape {
   /**
    * Set the half extents of the box with entity scale applied.
    */

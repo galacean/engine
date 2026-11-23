@@ -1,4 +1,4 @@
-import { IColliderShape, IMeshColliderShape } from "@galacean/engine-design";
+import { IMeshShape, IPhysicsShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
@@ -166,7 +166,7 @@ export class MeshCollider extends Collider {
     }
   }
 
-  protected override _syncNativeShape(scale: Vector3): IColliderShape | null {
+  protected override _syncNativeShape(scale: Vector3): IPhysicsShape | null {
     const mesh = this._mesh;
     if (!mesh) {
       this._rejection = MeshSyncRejection.None;
@@ -193,13 +193,13 @@ export class MeshCollider extends Collider {
       return null;
     }
 
-    const previous = <IMeshColliderShape | null>this._native;
+    const previous = <IMeshShape | null>this._native;
     const needsCook =
       !previous ||
       this._nativeMesh !== mesh ||
       this._nativeConvex !== this._convex ||
       this._nativeCookingFlags !== this._cookingFlags;
-    let shape: IMeshColliderShape;
+    let shape: IMeshShape;
     if (needsCook) {
       const meshData = MeshCollider._getMeshData(mesh, this._convex);
       const updated = meshData && this._cook(previous, meshData, scale);
@@ -239,17 +239,13 @@ export class MeshCollider extends Collider {
     this._nativeMesh = null;
   }
 
-  private _cook(
-    shape: IMeshColliderShape | null,
-    { positions, indices }: MeshData,
-    scale: Vector3
-  ): IMeshColliderShape | null {
+  private _cook(shape: IMeshShape | null, { positions, indices }: MeshData, scale: Vector3): IMeshShape | null {
     const convex = this._convex;
     const flags = this._cookingFlags;
     if (shape && this._nativeConvex === convex) {
       return shape.setMeshData(positions, indices, flags, scale) ? shape : null;
     }
-    const replacement = Engine._nativePhysics.createMeshColliderShape(
+    const replacement = Engine._nativePhysics.createMeshShape(
       this._id,
       positions,
       indices,

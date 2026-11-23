@@ -1,6 +1,6 @@
 import { IJoint } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
-import { PhysXCollider } from "../PhysXCollider";
+import { PhysXActor } from "../PhysXActor";
 import { PhysXPhysics } from "../PhysXPhysics";
 
 /**
@@ -14,7 +14,7 @@ export class PhysXJoint implements IJoint {
   protected _anchor: Vector3;
   protected _connectedAnchor: Vector3;
   protected _rotation: Quaternion = new Quaternion();
-  protected _collider: PhysXCollider;
+  protected _actor: PhysXActor;
   private _breakForce: number = Number.MAX_VALUE;
   private _breakTorque: number = Number.MAX_VALUE;
 
@@ -25,10 +25,10 @@ export class PhysXJoint implements IJoint {
   }
 
   /**
-   * {@inheritDoc IJoint.setConnectedCollider }
+   * {@inheritDoc IJoint.setConnectedActor }
    */
-  setConnectedCollider(value: PhysXCollider): void {
-    this._pxJoint.setActors(this._collider?._pxActor || null, value?._pxActor || null);
+  setConnectedActor(value: PhysXActor): void {
+    this._pxJoint.setActors(this._actor?._pxActor || null, value?._pxActor || null);
   }
 
   /**
@@ -108,7 +108,7 @@ export class PhysXJoint implements IJoint {
     if (!this._pxJoint) return;
     this._pxJoint.release();
     this._pxJoint = null;
-    this._collider = null!;
+    this._actor = null!;
   }
   /**
    * Set a joint frame. A frame for the world connection uses world coordinates.

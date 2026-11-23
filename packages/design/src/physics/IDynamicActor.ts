@@ -1,10 +1,10 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { ICollider } from "./ICollider";
+import { IPhysicsActor } from "./IPhysicsActor";
 
 /**
  * Native dynamic rigid actor.
  */
-export interface IDynamicCollider extends ICollider {
+export interface IDynamicActor extends IPhysicsActor {
   /**
    * Set the actor pose immediately and update any pending kinematic target to match.
    * @param position - The world-space position
@@ -137,7 +137,7 @@ export interface IDynamicCollider extends ICollider {
   setSolverIterations(positionIterations: number, velocityIterations: number): void;
 
   /**
-   * Whether the collider is affected by gravity.
+   * Whether the actor is affected by gravity.
    */
   setUseGravity(value: boolean): void;
 
@@ -148,7 +148,7 @@ export interface IDynamicCollider extends ICollider {
 
   /**
    * Applies the kinematic state and CCD together so the backend can select the supported detection method.
-   * @param isKinematic - Whether the dynamic collider is kinematic
+   * @param isKinematic - Whether the dynamic actor is kinematic
    * @param useCCD - Whether to use continuous collision detection
    */
   setMotionState(isKinematic: boolean, useCCD: boolean): void;
@@ -175,7 +175,7 @@ export interface IDynamicCollider extends ICollider {
   addForceAtPosition(force: Vector3, position: Vector3, impulse: boolean): void;
 
   /**
-   * Applies a world-space torque to the dynamic collider.
+   * Applies a world-space torque to the dynamic actor.
    * @param torque - Value in the units of the selected mode
    * @param mode - The force application mode
    */
@@ -202,17 +202,17 @@ export interface IDynamicCollider extends ICollider {
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void;
 
   /**
-   * Forces a collider to sleep at least one frame.
+   * Forces an actor to sleep at least one frame.
    */
   sleep(): void;
 
   /**
-   * Returns whether the collider is sleeping.
+   * Returns whether the actor is sleeping.
    */
   isSleeping(): boolean;
 
   /**
-   * Forces a collider to wake up.
+   * Forces an actor to wake up.
    */
   wakeUp(): void;
 }

@@ -1,6 +1,6 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
-import { ICollider } from "./ICollider";
+import { IPhysicsActor } from "./IPhysicsActor";
 import { IPhysicsEvents } from "./IPhysicsEvents";
 
 /**
@@ -16,15 +16,15 @@ export interface IPhysicsScene {
 
   /**
    * Add a native actor and its attached shapes to the scene.
-   * @param collider - The native static or dynamic actor
+   * @param actor - The native static or dynamic actor
    */
-  addCollider(collider: ICollider): void;
+  addActor(actor: IPhysicsActor): void;
 
   /**
    * Remove a native actor and its attached shapes from the scene.
-   * @param collider - The native static or dynamic actor
+   * @param actor - The native static or dynamic actor
    */
-  removeCollider(collider: ICollider): void;
+  removeActor(actor: IPhysicsActor): void;
 
   /**
    * Add a character controller to the scene.

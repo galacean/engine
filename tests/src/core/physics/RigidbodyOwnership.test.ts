@@ -220,7 +220,7 @@ describe("Rigidbody ownership", () => {
     });
 
     it("converts Colliders in one batch without creating temporary static actors", () => {
-      const createStatic = vi.spyOn(backend, "createStaticCollider");
+      const createStatic = vi.spyOn(backend, "createStaticActor");
 
       const bodyEntity = root.createChild("body");
       bodyEntity.addComponent(BoxCollider);

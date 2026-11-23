@@ -1,5 +1,5 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { ICollider } from "../ICollider";
+import { IPhysicsActor } from "../IPhysicsActor";
 
 /**
  * Common configuration for native joints.
@@ -8,7 +8,7 @@ export interface IJoint {
   /**
    * Connect the joint to a second actor, or to the world if the value is absent.
    */
-  setConnectedCollider(value: ICollider | null | undefined): void;
+  setConnectedActor(value: IPhysicsActor | null | undefined): void;
 
   /**
    * Set the anchor in the connected actor’s frame, or in world space for a world connection.
@@ -36,12 +36,12 @@ export interface IJoint {
   setMassScale(value: number): void;
 
   /**
-   * The scale to apply to the inverse inertia of collider1 for resolving this constraint.
+   * The scale to apply to the inverse inertia of the connected actor for resolving this constraint.
    */
   setConnectedInertiaScale(value: number): void;
 
   /**
-   * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
+   * The scale to apply to the inverse inertia of the owning actor for resolving this constraint.
    */
   setInertiaScale(value: number): void;
 

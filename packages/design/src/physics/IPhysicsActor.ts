@@ -1,11 +1,11 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { IColliderShape } from "./shape";
+import { IPhysicsShape } from "./shape";
 
 /**
- * Interface of a native rigid actor that holds collider shapes.
+ * Interface of a native rigid actor that holds physics shapes.
  * @remarks Collision layers belong to the shapes attached to the actor.
  */
-export interface ICollider {
+export interface IPhysicsActor {
   /**
    * Set the world-space pose of the actor.
    * @param position - The world-space position
@@ -26,13 +26,13 @@ export interface ICollider {
    * @returns Whether the shape was accepted
    * @remarks On failure, returns false and leaves the actor unchanged.
    */
-  addShape(shape: IColliderShape): boolean;
+  addShape(shape: IPhysicsShape): boolean;
 
   /**
    * Detach an attached shape.
    * @param shape - The attached shape
    */
-  removeShape(shape: IColliderShape): void;
+  removeShape(shape: IPhysicsShape): void;
 
   /**
    * Replace an attached shape with one that carries the same collider ID.
@@ -41,7 +41,7 @@ export interface ICollider {
    * @returns Whether the replacement succeeded
    * @remarks On failure, the previous shape and its event state stay intact.
    */
-  replaceShape(previousShape: IColliderShape, newShape: IColliderShape): boolean;
+  replaceShape(previousShape: IPhysicsShape, newShape: IPhysicsShape): boolean;
 
   /**
    * Release the native actor.

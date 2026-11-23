@@ -234,13 +234,13 @@ export class PhysXCharacterController implements ICharacterController {
     const actor = pxController.getActor();
     physX.setGroup(actor, this._collisionLayer);
     actor.delete();
-    scene._addColliderShape(this._id);
+    scene._addShape(this._id);
   }
 
   private _destroyPXController(): void {
     const pxController = this._pxController;
     if (pxController) {
-      this._scene!._removeColliderShape(this._id);
+      this._scene!._removeShape(this._id);
       pxController.release();
       this._pxController = null;
     }

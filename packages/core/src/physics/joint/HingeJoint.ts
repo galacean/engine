@@ -1,4 +1,4 @@
-import { IDynamicCollider, IHingeJoint } from "@galacean/engine-design";
+import { IDynamicActor, IHingeJoint } from "@galacean/engine-design";
 import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
@@ -189,7 +189,7 @@ export class HingeJoint extends Joint {
     this._jointMotor = this._limits = null;
   }
 
-  protected override _createJoint(actor: IDynamicCollider): IHingeJoint {
+  protected override _createJoint(actor: IDynamicActor): IHingeJoint {
     return Engine._nativePhysics.createHingeJoint(actor);
   }
 
