@@ -382,11 +382,11 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
    */
   override _onEnableInScene(): void {
     const entity = this.entity;
-    // @ts-ignore
-    entity._dispatchModify(EntityUIModifyFlags.CanvasEnableInScene, this);
     const rootCanvas = Utils.searchRootCanvasInParents(this);
     this._setIsRootCanvas(!rootCanvas);
     Utils.setRootCanvas(this, rootCanvas);
+    // @ts-ignore
+    entity._dispatchModify(EntityUIModifyFlags.CanvasEnableInScene);
   }
 
   /**
@@ -409,22 +409,11 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
    * @internal
    */
   @ignoreClone
-  _rootCanvasListener(flag: number, param: any): void {
-    if (this._isRootCanvas) {
-      if (flag === EntityModifyFlags.Parent) {
-        const rootCanvas = Utils.searchRootCanvasInParents(this);
-        this._setIsRootCanvas(!rootCanvas);
-        Utils.setRootCanvas(this, rootCanvas);
-      } else if (flag === EntityUIModifyFlags.CanvasEnableInScene) {
-        this._setIsRootCanvas(false);
-        Utils.setRootCanvas(this, <UICanvas>param);
-      }
-    } else {
-      if (flag === EntityModifyFlags.Parent) {
-        const rootCanvas = Utils.searchRootCanvasInParents(this);
-        this._setIsRootCanvas(!rootCanvas);
-        Utils.setRootCanvas(this, rootCanvas);
-      }
+  _rootCanvasListener(flag: number): void {
+    if (flag === EntityModifyFlags.Parent || (this._isRootCanvas && flag === EntityUIModifyFlags.CanvasEnableInScene)) {
+      const rootCanvas = Utils.searchRootCanvasInParents(this);
+      this._setIsRootCanvas(!rootCanvas);
+      Utils.setRootCanvas(this, rootCanvas);
     }
   }
 
@@ -645,7 +634,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
             element._setIsRootCanvas(!rootCanvas);
             Utils.setRootCanvas(element, rootCanvas);
           } else {
-            Utils.setRootCanvasDirty(this);
+            Utils.setRootCanvasDirty(element);
             Utils.setGroupDirty(<IGroupAble>element);
           }
         });

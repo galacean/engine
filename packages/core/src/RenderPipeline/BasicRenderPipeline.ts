@@ -499,6 +499,7 @@ export class BasicRenderPipeline {
     program.bind();
     program.uploadAll(program.materialUniformBlock, material.shaderData);
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
+    program.uploadMultiGroupUniforms(undefined, camera.shaderData, undefined, material.shaderData, undefined);
     program.uploadUnGroupTextures();
 
     const renderState = pass._renderState;
