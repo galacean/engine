@@ -830,11 +830,7 @@ export class ModelMesh extends Mesh {
     const internalVertexBuffer = this._internalVertexBuffer;
     if (internalVertexBuffer) {
       const createdIndex = this._internalVertexBufferCreatedInfo.z;
-      if (
-        !this.destroyed &&
-        createdIndex !== -1 &&
-        this._primitive.vertexBufferBindings[createdIndex]?.buffer === internalVertexBuffer
-      ) {
+      if (this._primitive.vertexBufferBindings[createdIndex]?.buffer === internalVertexBuffer) {
         this._setVertexBufferBinding(createdIndex, null);
       }
       internalVertexBuffer._disassociationSuperResource(this);

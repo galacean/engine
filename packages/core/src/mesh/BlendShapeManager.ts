@@ -299,16 +299,13 @@ export class BlendShapeManager {
     const vertexBuffers = this._vertexBuffers;
     const bindingOffset = this._bufferBindingOffset;
     const bindings = modelMesh._primitive.vertexBufferBindings;
-    for (let i = vertexBuffers.length - 1; i >= 0; i--) {
+    for (let i = 0, n = vertexBuffers.length; i < n; i++) {
       const buffer = vertexBuffers[i];
-      if (buffer) {
-        // Clear matching bindings before destroying to keep refCount balanced and avoid dangling slots
-        if (!modelMesh.destroyed && bindingOffset !== -1 && bindings[bindingOffset + i]?.buffer === buffer) {
-          modelMesh._setVertexBufferBinding(bindingOffset + i, null);
-        }
-        buffer._disassociationSuperResource(modelMesh);
-        buffer.destroy();
+      if (bindings[bindingOffset + i]?.buffer === buffer) {
+        modelMesh._setVertexBufferBinding(bindingOffset + i, null);
       }
+      buffer._disassociationSuperResource(modelMesh);
+      buffer.destroy();
     }
     vertexBuffers.length = 0;
     this._lastHostCreatedInfo.set(0, 0, 0, 0);
