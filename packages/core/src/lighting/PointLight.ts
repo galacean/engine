@@ -1,7 +1,7 @@
 import { Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { encodeLightDistance, Light, normalizeLightDistance } from "./Light";
+import { Light } from "./Light";
 
 /**
  * Point light.
@@ -25,8 +25,10 @@ export class PointLight extends Light {
   private _distance: number = 100;
 
   /**
-   * Defines a distance cutoff at which the light's intensity reaches zero.
-   * @remarks Set to `Infinity` for unlimited range (pure inverse-square falloff). Values `<= 0` use a cutoff of `1e-4`.
+   * Maximum range of the light in world units, where distance attenuation reaches zero.
+   * @remarks
+   * Set to `Infinity` (or a value exceeding 32-bit float range) for unlimited inverse-square falloff.
+   * Values `<= 0` fall back to `1e-4`, and `NaN` is ignored.
    * @defaultValue `100`
    */
   get distance(): number {
@@ -34,7 +36,7 @@ export class PointLight extends Light {
   }
 
   set distance(value: number) {
-    this._distance = normalizeLightDistance(value, this._distance);
+    this._distance = Light._normalizeDistance(value, this._distance);
   }
 
   /**
@@ -66,7 +68,7 @@ export class PointLight extends Light {
     data.position[positionStart + 1] = position.y;
     data.position[positionStart + 2] = position.z;
 
-    data.distance[distanceStart] = encodeLightDistance(this._distance);
+    data.distance[distanceStart] = Light._encodeDistance(this._distance);
   }
 
   /**
@@ -94,6 +96,6 @@ export interface IPointLightShaderData {
   color: Float32Array;
   // Light position.
   position: Float32Array;
-  // Defines a distance cutoff at which the light's intensity must be considered zero (0 represents unlimited range).
+  // Light cutoff distance in world units (0 encodes unlimited range)
   distance: Float32Array;
 }

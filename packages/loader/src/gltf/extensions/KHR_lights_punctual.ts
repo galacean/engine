@@ -31,6 +31,7 @@ class KHR_lights_punctual extends GLTFExtensionParser {
     }
 
     if (!(light instanceof DirectLight)) {
+      // KHR_lights_punctual defines omitted range as infinite rather than engine default
       light.distance = range ?? Infinity;
     }
 

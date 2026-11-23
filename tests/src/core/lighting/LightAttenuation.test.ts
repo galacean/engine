@@ -27,7 +27,7 @@ function expectedAttenuation(d: number, cutoff: number): number {
 }
 
 describe("PointLight and SpotLight physical distance attenuation", () => {
-  // Odd target size so center pixel (4, 4) samples exact NDC (0, 0) -> world (0, 0, 0).
+  // Odd target size so center pixel (4, 4) samples exact NDC (0, 0) -> world (0, 0, 0)
   const size = 9;
   const center = size >> 1;
   const origin = new Vector3(0, 0, 0);

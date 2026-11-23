@@ -31,15 +31,12 @@ bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
 #endif
 
 
-// Physically based windowed inverse-square distance attenuation (Frostbite / Filament / glTF):
-//   attenuation = (1 / max(d^2, 1e-4)) * (1 - min(d^2 / R^2, 1)^2)^2
-// where d^2 = distanceSq and R = cutoffDistance.
-// When cutoffDistance <= 0.0 (CPU passes 0.0 for unlimited distance), range cutoff is disabled.
+// Windowed inverse-square distance attenuation (Frostbite / Filament); cutoffDistance <= 0 disables range cutoff
 float getDistanceAttenuation(float distanceSq, float cutoffDistance) {
     float attenuation = 1.0 / max(distanceSq, 1e-4);
     if (cutoffDistance > 0.0) {
+        // Invert before squaring for large cutoffs, and scale distanceSq first for small cutoffs to avoid FP32 overflow
         float invDistance = 1.0 / cutoffDistance;
-        // Scale distanceSq first to avoid overflowing the reciprocal square for small cutoffs
         float factor = min((distanceSq * invDistance) * invDistance, 1.0);
         float smoothFactor = 1.0 - factor * factor;
         attenuation *= smoothFactor * smoothFactor;

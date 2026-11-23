@@ -1,7 +1,7 @@
 import { Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { encodeLightDistance, Light, normalizeLightDistance } from "./Light";
+import { Light } from "./Light";
 import { ignoreClone } from "../clone/CloneDecorators";
 
 /**
@@ -39,8 +39,10 @@ export class SpotLight extends Light {
   private _inverseDirection: Vector3 = new Vector3();
 
   /**
-   * Defines a distance cutoff at which the light's intensity reaches zero.
-   * @remarks Set to `Infinity` for unlimited range (pure inverse-square falloff). Values `<= 0` use a cutoff of `1e-4`.
+   * Maximum range of the light in world units, where distance attenuation reaches zero.
+   * @remarks
+   * Set to `Infinity` (or a value exceeding 32-bit float range) for unlimited inverse-square falloff.
+   * Values `<= 0` fall back to `1e-4`, and `NaN` is ignored.
    * @defaultValue `100`
    */
   get distance(): number {
@@ -48,7 +50,7 @@ export class SpotLight extends Light {
   }
 
   set distance(value: number) {
-    this._distance = normalizeLightDistance(value, this._distance);
+    this._distance = Light._normalizeDistance(value, this._distance);
   }
 
   /**
@@ -101,7 +103,7 @@ export class SpotLight extends Light {
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
 
-    data.distance[distanceStart] = encodeLightDistance(this._distance);
+    data.distance[distanceStart] = Light._encodeDistance(this._distance);
     data.angleCos[angleCosStart] = Math.cos(this.angle);
     data.penumbraCos[penumbraCosStart] = Math.cos(this.angle + this.penumbra);
   }
@@ -133,7 +135,7 @@ export interface ISpotLightShaderData {
   position: Float32Array;
   // Light direction
   direction: Float32Array;
-  // Defines a distance cutoff at which the light's intensity must be considered zero (0 represents unlimited range).
+  // Light cutoff distance in world units (0 encodes unlimited range)
   distance: Float32Array;
   // Angle, in radians, from centre of spotlight where falloff begins.
   angleCos: Float32Array;
