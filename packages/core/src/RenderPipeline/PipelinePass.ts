@@ -1,11 +1,14 @@
 import { Engine } from "../Engine";
 import { CullingResults } from "../RenderPipeline/CullingResults";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { RenderPassDescriptor } from "../renderingHardwareInterface";
 
 /**
  * PipelinePass is a base class for all pipeline passes.
  */
 export abstract class PipelinePass {
+  protected _passDescriptor = new RenderPassDescriptor();
+
   constructor(public readonly engine: Engine) {}
 
   /**

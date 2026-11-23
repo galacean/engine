@@ -4,7 +4,7 @@ import { Engine } from "../Engine";
 import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderTargetLoadAction } from "../renderingHardwareInterface";
+import { RenderPassDescriptor, RenderTargetLoadAction } from "../renderingHardwareInterface";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
@@ -18,6 +18,7 @@ export class PostProcessUberPass extends PostProcessPass {
   // Bloom
   private _bloomMaterial: Material;
   private _mipRT: RenderTarget[] = [];
+  private _passDescriptor = new RenderPassDescriptor();
 
   constructor(engine: Engine) {
     super(engine);
@@ -76,18 +77,18 @@ export class PostProcessUberPass extends PostProcessPass {
     } else {
       uberShaderData.disableMacro(TonemappingEffect._enableMacro);
     }
-    const viewport = destTarget === camera.renderTarget ? camera.viewport : undefined;
-    Blitter._blitTexture(
-      camera.engine,
-      srcTexture,
-      destTarget,
-      0,
-      viewport,
-      this._uberMaterial,
-      undefined,
-      undefined,
-      RenderTargetLoadAction.Clear
-    );
+    const engine = camera.engine;
+    const context = engine._renderContext;
+    const viewport = destTarget === camera.renderTarget ? camera.viewport : PipelineUtils.defaultViewport;
+    const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
+    const passDescriptor = this._passDescriptor.reset(destTarget, viewport);
+    passDescriptor.colorLoadAction =
+      destTarget && destTarget.colorTextureCount === 1 && isFullViewport
+        ? RenderTargetLoadAction.Clear
+        : RenderTargetLoadAction.Load;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, srcTexture, 0, this._uberMaterial);
+    context.endRenderPass();
   }
 
   /**
@@ -187,48 +188,33 @@ export class PostProcessUberPass extends PostProcessPass {
       this._releaseBloomRenderTargets(mipCount);
     }
 
+    const context = engine._renderContext;
+    const passDescriptor = this._passDescriptor;
+
     // Prefilter
-    Blitter._blitTexture(
-      engine,
-      srcTexture,
-      mipRT[0],
-      undefined,
-      undefined,
-      bloomMaterial,
-      0,
-      undefined,
-      RenderTargetLoadAction.Clear
-    );
+    passDescriptor.reset(mipRT[0]);
+    passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, srcTexture, 0, bloomMaterial, 0);
+    context.endRenderPass();
 
     // Progressive single-pass 5x5 9-tap downsample pyramid (Castaño 2013)
     for (let i = 1; i < mipCount; i++) {
-      Blitter._blitTexture(
-        engine,
-        <Texture2D>mipRT[i - 1].getColorTexture(0),
-        mipRT[i],
-        undefined,
-        undefined,
-        bloomMaterial,
-        1,
-        undefined,
-        RenderTargetLoadAction.Clear
-      );
+      passDescriptor.reset(mipRT[i]);
+      passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, <Texture2D>mipRT[i - 1].getColorTexture(0), 0, bloomMaterial, 1);
+      context.endRenderPass();
     }
 
     // Progressive in-place upsample (4-tap 3x3 tent by default, bicubic with HQ filtering)
     // Pass 2 blends in-place onto mipRT[i], so it must Load existing destination pixels.
     for (let i = mipCount - 2; i >= 0; i--) {
-      Blitter._blitTexture(
-        engine,
-        <Texture2D>mipRT[i + 1].getColorTexture(0),
-        mipRT[i],
-        undefined,
-        undefined,
-        bloomMaterial,
-        2,
-        undefined,
-        RenderTargetLoadAction.Load
-      );
+      passDescriptor.reset(mipRT[i]);
+      passDescriptor.colorLoadAction = RenderTargetLoadAction.Load;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, <Texture2D>mipRT[i + 1].getColorTexture(0), 0, bloomMaterial, 2);
+      context.endRenderPass();
     }
 
     // Setup bloom on uber

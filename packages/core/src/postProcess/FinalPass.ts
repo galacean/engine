@@ -57,49 +57,38 @@ export class FinalPass extends PipelinePass {
   }
 
   override onRender(context: RenderContext): void {
-    const { engine } = this;
+    const { engine, _passDescriptor: passDescriptor } = this;
     const { camera } = context;
     const { viewport, renderTarget } = camera;
     const enableFXAA = camera.antiAliasing === AntiAliasing.FXAA;
+    const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
+    const finalLoadAction =
+      renderTarget && renderTarget.colorTextureCount === 1 && isFullViewport
+        ? RenderTargetLoadAction.Clear
+        : RenderTargetLoadAction.Load;
 
     // Should convert to sRGB when FXAA is enabled or camera's render target is not set
     const sourceTexture = <Texture2D>this._inputRenderTarget!.getColorTexture();
     if (enableFXAA) {
-      Blitter._blitTexture(
-        engine,
-        sourceTexture,
-        this._srgbRenderTarget,
-        0,
-        undefined,
-        this._sRGBmaterial,
-        0,
-        undefined,
-        RenderTargetLoadAction.Clear
-      );
-      const sRGBTexture = <Texture2D>this._srgbRenderTarget!.getColorTexture();
-      Blitter._blitTexture(
-        engine,
-        sRGBTexture,
-        renderTarget,
-        0,
-        viewport,
-        this._antiAliasingMaterial,
-        0,
-        undefined,
-        RenderTargetLoadAction.Clear
-      );
+      const srgbTarget = this._srgbRenderTarget!;
+      passDescriptor.reset(srgbTarget);
+      passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, sourceTexture, 0, this._sRGBmaterial, 0);
+      context.endRenderPass();
+
+      const sRGBTexture = <Texture2D>srgbTarget.getColorTexture();
+      passDescriptor.reset(renderTarget, viewport);
+      passDescriptor.colorLoadAction = finalLoadAction;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, sRGBTexture, 0, this._antiAliasingMaterial, 0);
+      context.endRenderPass();
     } else {
-      Blitter._blitTexture(
-        engine,
-        sourceTexture,
-        renderTarget,
-        0,
-        viewport,
-        this._sRGBmaterial,
-        0,
-        undefined,
-        RenderTargetLoadAction.Clear
-      );
+      passDescriptor.reset(renderTarget, viewport);
+      passDescriptor.colorLoadAction = finalLoadAction;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, sourceTexture, 0, this._sRGBmaterial, 0);
+      context.endRenderPass();
     }
   }
 

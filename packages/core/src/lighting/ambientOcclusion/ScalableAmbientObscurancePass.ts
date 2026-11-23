@@ -133,52 +133,35 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, radius * projectionScale);
     shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
 
-    const { _material: material } = this;
+    const { _material: material, _passDescriptor: passDescriptor } = this;
     const saoTarget = this._saoRenderTarget!;
+    const blurTarget = this._blurRenderTarget!;
 
     // Draw ambient occlusion texture
     const sourceTexture = <Texture2D>this._depthRenderTarget!.depthTexture;
-    Blitter._blitTexture(
-      engine,
-      sourceTexture,
-      saoTarget,
-      0,
-      undefined,
-      material,
-      0,
-      undefined,
-      RenderTargetLoadAction.Clear
-    );
+    passDescriptor.reset(saoTarget);
+    passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, sourceTexture, 0, material, 0);
+    context.endRenderPass();
 
     // Horizontal blur, saoRenderTarget -> blurRenderTarget
     const saoTexture = <Texture2D>saoTarget.getColorTexture();
     const offsetX = this._offsetX.set(1, 1, this._blurStepPixels / saoTexture.width, 0);
-    Blitter._blitTexture(
-      engine,
-      saoTexture,
-      this._blurRenderTarget,
-      0,
-      undefined,
-      material,
-      1,
-      offsetX,
-      RenderTargetLoadAction.Clear
-    );
+    passDescriptor.reset(blurTarget);
+    passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, saoTexture, 0, material, 1, offsetX);
+    context.endRenderPass();
 
     // Vertical blur, blurRenderTarget -> saoRenderTarget
-    const horizontalBlur = <Texture2D>this._blurRenderTarget!.getColorTexture();
+    const horizontalBlur = <Texture2D>blurTarget.getColorTexture();
     const offsetY = this._offsetY.set(1, 1, 0, this._blurStepPixels / saoTexture.height);
-    Blitter._blitTexture(
-      engine,
-      horizontalBlur,
-      saoTarget,
-      0,
-      undefined,
-      material,
-      1,
-      offsetY,
-      RenderTargetLoadAction.Clear
-    );
+    passDescriptor.reset(saoTarget);
+    passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, horizontalBlur, 0, material, 1, offsetY);
+    context.endRenderPass();
 
     // Set the SAO texture
     camera.shaderData.setTexture(Camera._cameraAOTextureProperty, saoTexture);

@@ -266,17 +266,16 @@ export class BasicRenderPipeline {
         // Copy RT's color buffer to grab texture
         rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture!, camera.viewport);
         // Then blit grab texture to internal RT's color buffer
-        Blitter._blitTexture(
+        const copyPassDescriptor = this._passDescriptor.reset(internalColorTarget);
+        copyPassDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+        context.beginRenderPass(copyPassDescriptor);
+        Blitter.draw(
           engine,
           this._copyBackgroundTexture!,
-          internalColorTarget,
           0,
-          undefined,
-          camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial,
-          0,
-          undefined,
-          RenderTargetLoadAction.Clear
+          camera.renderTarget ? null : engine._basicResources.blitScreenMaterial
         );
+        context.endRenderPass();
       } else {
         // Only blit color buffer from back buffer
         const ignoreFlags = CameraClearFlags.DepthStencil;
@@ -381,17 +380,16 @@ export class BasicRenderPipeline {
 
     // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
     if (outputTarget !== cameraRenderTarget) {
-      Blitter._blitTexture(
-        engine,
-        <Texture2D>outputTarget!.getColorTexture(0),
-        cameraRenderTarget,
-        0,
-        camera.viewport,
-        null,
-        0,
-        undefined,
-        RenderTargetLoadAction.Clear
-      );
+      const viewport = camera.viewport;
+      const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
+      passDescriptor.reset(cameraRenderTarget, viewport);
+      passDescriptor.colorLoadAction =
+        cameraRenderTarget && cameraRenderTarget.colorTextureCount === 1 && isFullViewport
+          ? RenderTargetLoadAction.Clear
+          : RenderTargetLoadAction.Load;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, <Texture2D>outputTarget!.getColorTexture(0));
+      context.endRenderPass();
     }
 
     cameraRenderTarget?._blitRenderTarget();

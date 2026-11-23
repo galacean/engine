@@ -460,14 +460,14 @@ describe("PostProcess", () => {
     bloomEffect.maxIterations.value = 6;
 
     const activeUberPass = bloomEngine.postProcessPasses[0];
-    const blitSpy = vi.spyOn(Blitter, "_blitTexture");
+    const blitSpy = vi.spyOn(Blitter, "draw");
     try {
       // @ts-ignore
       const bloomMaterial = activeUberPass._bloomMaterial;
       // @ts-ignore
       const uberMaterial = activeUberPass._uberMaterial;
 
-      const countBloomBlits = () => blitSpy.mock.calls.filter((args) => args[5] === bloomMaterial).length;
+      const countBloomBlits = () => blitSpy.mock.calls.filter((args) => args[3] === bloomMaterial).length;
 
       // 512x512 -> Half (256x256) -> 6 iterations -> 2*6 - 1 = 11 bloom passes, 6 mip RTs
       blitSpy.mockClear();

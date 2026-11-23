@@ -2,7 +2,6 @@
  * Action to take on a render target attachment's contents when ending a render pass.
  * @remarks
  * Mirrors WebGPU's `GPUStoreOp` (`"store" | "discard"`) plus MSAA resolve intent (`resolveTarget`).
- * @internal
  */
 export enum RenderTargetStoreAction {
   /** Keep attachment contents in memory for subsequent passes. */

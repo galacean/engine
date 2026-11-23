@@ -8,7 +8,6 @@ import { RenderTargetStoreAction } from "./RenderTargetStoreAction";
  * @remarks
  * Holds target binding, viewport, and independent color / depth / stencil load & store actions
  * so callers can reuse a single instance per pass with zero per-frame allocations.
- * @internal
  */
 export class RenderPassDescriptor {
   renderTarget: RenderTarget | null = null;
@@ -35,7 +34,7 @@ export class RenderPassDescriptor {
   reset(
     renderTarget: RenderTarget | null = null,
     viewport?: Vector4,
-    isFlipProjection: boolean = false,
+    isFlipProjection: boolean = !!renderTarget,
     mipLevel: number = 0,
     faceIndex?: TextureCubeFace
   ): this {

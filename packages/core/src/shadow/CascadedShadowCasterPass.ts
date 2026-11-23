@@ -6,7 +6,7 @@ import { ContextRendererUpdateFlag, RenderContext } from "../RenderPipeline/Rend
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { DirectLight } from "../lighting";
-import { RenderPassDescriptor, RenderTargetLoadAction, RenderTargetStoreAction } from "../renderingHardwareInterface";
+import { RenderTargetLoadAction, RenderTargetStoreAction } from "../renderingHardwareInterface";
 import { ShaderProperty } from "../shader";
 import { TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
@@ -57,7 +57,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private _depthTexture: Texture2D;
   private _renderTarget: RenderTarget | null;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  private _passDescriptor = new RenderPassDescriptor();
 
   constructor(camera: Camera) {
     super(camera.engine);

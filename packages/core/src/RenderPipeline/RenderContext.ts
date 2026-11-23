@@ -81,7 +81,7 @@ export class RenderContext {
   beginRenderPass(descriptor: RenderPassDescriptor): void {
     const engine = this.camera.engine;
     const rhi = engine._hardwareRenderer;
-    descriptor.isFlipProjection = !!this.flipProjection;
+    this.flipProjection = descriptor.isFlipProjection;
     rhi.beginRenderPass(descriptor);
 
     if (descriptor.renderTarget) {

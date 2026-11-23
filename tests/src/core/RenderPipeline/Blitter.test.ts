@@ -356,7 +356,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
     }
   });
 
-  it("Blitter.blitTexture defaults safely to Load and Blitter._blitTexture applies explicit Clear with RHI/MRT guards", () => {
+  it("Blitter.blitTexture defaults safely to Load, applies explicit Clear with guards, and Blitter.draw composes inside an active RenderPass", () => {
     const invSpy = vi.spyOn(gl, "invalidateFramebuffer");
     const clearSpy = vi.spyOn(gl, "clear");
 
@@ -473,7 +473,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       // 2. Explicit Clear on full-viewport single-color offscreen RT calls gl.clear(COLOR_BUFFER_BIT) with SCISSOR_TEST off, never invalidateFramebuffer
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter._blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(false);
       expect(clearSpy).toHaveBeenCalledTimes(1);
@@ -497,7 +497,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       expect(Array.from(outPixels.slice(rightIdx, rightIdx + 4))).toEqual([10, 220, 30, 255]);
 
       // 4. Explicit Clear on sub-viewport is safely skipped by RHI (preserves untouched left half)
-      Blitter._blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
       const bluePixels = new Uint8Array(16 * 16 * 4);
       for (let i = 0; i < 16 * 16; i++) {
         bluePixels[i * 4] = 20;
@@ -508,7 +508,7 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       srcTex.setPixelBuffer(bluePixels);
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter._blitTexture(
+      Blitter.blitTexture(
         engine,
         srcTex,
         dstRT,
@@ -528,31 +528,31 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       // 5. Explicit Clear on default framebuffer (null) -> skipped by RHI
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter._blitTexture(engine, srcTex, null, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, null, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).not.toHaveBeenCalled();
 
       // 6. Explicit Clear on MRT RenderTarget -> guarded to Load so COLOR_ATTACHMENT1+ is preserved
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter._blitTexture(engine, srcTex, mrtRT, 0, undefined, mrtMat, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, mrtRT, 0, undefined, mrtMat, 0, undefined, RenderTargetLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).not.toHaveBeenCalled();
 
       // 7. Explicit Clear on full-viewport single-color MSAA RenderTarget -> clears MSAA color without invalidateFramebuffer
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter._blitTexture(engine, srcTex, msaaRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, msaaRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).toHaveBeenCalledTimes(1);
       expect(clearSpy).toHaveBeenCalledWith(gl.COLOR_BUFFER_BIT);
 
       // 8. Blended shader passed with explicit Clear -> automatically downgraded to Load, preserving destination blend base
       srcTex.setPixelBuffer(srcPixels); // (200, 100, 50, 255)
-      Blitter._blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter._blitTexture(engine, srcTex, dstRT, 0, undefined, blendMat, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, blendMat, 0, undefined, RenderTargetLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).not.toHaveBeenCalled();
       dstTex0.getPixelBuffer(outPixels);
@@ -565,10 +565,10 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       expect(outPixels[2]).toBeLessThanOrEqual(30);
 
       // 9. Partial ColorWriteMask shader passed with explicit Clear -> automatically downgraded to Load, preserving G/B/A
-      Blitter._blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderTargetLoadAction.Clear);
       invSpy.mockClear();
       clearSpy.mockClear();
-      Blitter._blitTexture(engine, srcTex, dstRT, 0, undefined, redOnlyMat, 0, undefined, RenderTargetLoadAction.Clear);
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, redOnlyMat, 0, undefined, RenderTargetLoadAction.Clear);
       expect(invSpy).not.toHaveBeenCalled();
       expect(clearSpy).not.toHaveBeenCalled();
       dstTex0.getPixelBuffer(outPixels);
@@ -576,6 +576,47 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
 
       // Restore full colorWriteMask for subsequent tests
       Blitter.blitTexture(engine, srcTex, dstRT);
+
+      // 10. Blitter.draw executes multiple fullscreen draws inside one explicit beginRenderPass/endRenderPass without splitting the pass
+      const dsRT = new RenderTarget(engine, 16, 16, dstTex0, TextureFormat.Depth24Stencil8, 1);
+      try {
+        // @ts-ignore
+        const context = engine._renderContext;
+        const passDesc = new RenderPassDescriptor();
+        passDesc.reset(dsRT);
+        passDesc.colorLoadAction = RenderTargetLoadAction.Clear;
+        passDesc.depthStoreAction = RenderTargetStoreAction.Discard;
+        passDesc.stencilStoreAction = RenderTargetStoreAction.Discard;
+
+        srcTex.setPixelBuffer(srcPixels); // (200, 100, 50, 255)
+        invSpy.mockClear();
+        clearSpy.mockClear();
+        context.beginRenderPass(passDesc);
+        Blitter.draw(engine, srcTex, 0, null, 0);
+        // Must NOT flush store actions or clear again between draws in the same render pass
+        expect(invSpy).not.toHaveBeenCalled();
+        expect(clearSpy).toHaveBeenCalledTimes(1);
+        Blitter.draw(engine, srcTex, 0, blendMat, 0);
+        expect(invSpy).not.toHaveBeenCalled();
+        expect(clearSpy).toHaveBeenCalledTimes(1);
+        context.endRenderPass();
+
+        // Store actions fire once at endRenderPass
+        expect(invSpy).toHaveBeenCalledTimes(2);
+        expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.DEPTH_ATTACHMENT]);
+        expect(Array.from(invSpy.mock.calls[1][1])).toEqual([gl.STENCIL_ATTACHMENT]);
+
+        dstTex0.getPixelBuffer(outPixels);
+        // 0.5 * (0,255,0) + 0.5 * (200,100,50) = (~100, ~177, ~25, 255)
+        expect(outPixels[0]).toBeGreaterThanOrEqual(95);
+        expect(outPixels[0]).toBeLessThanOrEqual(105);
+        expect(outPixels[1]).toBeGreaterThanOrEqual(170);
+        expect(outPixels[1]).toBeLessThanOrEqual(185);
+        expect(outPixels[2]).toBeGreaterThanOrEqual(20);
+        expect(outPixels[2]).toBeLessThanOrEqual(30);
+      } finally {
+        dsRT.destroy();
+      }
 
       expect(gl.getError()).toBe(gl.NO_ERROR);
     } finally {

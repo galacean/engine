@@ -49,17 +49,11 @@ export class OpaqueTexturePass extends PipelinePass {
   }
 
   override onRender(context: RenderContext): void {
-    Blitter._blitTexture(
-      this.engine,
-      <Texture2D>this._cameraColorTexture,
-      this._renderTarget,
-      0,
-      undefined,
-      null,
-      0,
-      undefined,
-      RenderTargetLoadAction.Clear
-    );
+    const passDescriptor = this._passDescriptor.reset(this._renderTarget);
+    passDescriptor.colorLoadAction = RenderTargetLoadAction.Clear;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(this.engine, <Texture2D>this._cameraColorTexture);
+    context.endRenderPass();
     context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget.getColorTexture(0));
   }
 }

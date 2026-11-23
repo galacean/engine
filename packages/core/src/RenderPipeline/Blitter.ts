@@ -26,7 +26,7 @@ export class Blitter {
   private static _passDescriptor = new RenderPassDescriptor();
 
   /**
-   * Blit texture to destination render target using a triangle.
+   * Blit texture to destination render target using a standalone render pass and a full-screen triangle.
    * @param engine - Engine
    * @param source - Source texture
    * @param destination - Destination render target
@@ -35,24 +35,9 @@ export class Blitter {
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
    * @param sourceScaleOffset - Source scale and offset
+   * @param colorLoadAction - Color attachment load action for the render pass (defaults to `Load`)
    */
   static blitTexture(
-    engine: Engine,
-    source: Texture2D,
-    destination: RenderTarget | null,
-    mipLevel: number = 0,
-    viewport: Vector4 = PipelineUtils.defaultViewport,
-    material: Material | null = null,
-    passIndex = 0,
-    sourceScaleOffset?: Vector4
-  ): void {
-    Blitter._blitTexture(engine, source, destination, mipLevel, viewport, material, passIndex, sourceScaleOffset);
-  }
-
-  /**
-   * @internal
-   */
-  static _blitTexture(
     engine: Engine,
     source: Texture2D,
     destination: RenderTarget | null,
@@ -63,16 +48,8 @@ export class Blitter {
     sourceScaleOffset?: Vector4,
     colorLoadAction: RenderTargetLoadAction = RenderTargetLoadAction.Load
   ): void {
-    const basicResources = engine._basicResources;
-    const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
-    const blitMaterial = material || basicResources.blitMaterial;
-    const rhi = engine._hardwareRenderer;
+    const blitMaterial = material || engine._basicResources.blitMaterial;
     const context = engine._renderContext;
-    const camera = context.camera;
-
-    // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
-    context.flipProjection = !!destination;
-
     const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
     const resolvedLoadAction =
@@ -87,6 +64,34 @@ export class Blitter {
     const passDescriptor = Blitter._passDescriptor.reset(destination, viewport, !!destination, 0);
     passDescriptor.colorLoadAction = resolvedLoadAction;
     context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, source, mipLevel, blitMaterial, passIndex, sourceScaleOffset);
+    context.endRenderPass();
+  }
+
+  /**
+   * Draw a full-screen blit triangle within the currently active render pass.
+   * @param engine - Engine
+   * @param source - Source texture
+   * @param mipLevel - Source texture mip level to sample
+   * @param material - The material to use when blit
+   * @param passIndex - Pass index to use of the provided material
+   * @param sourceScaleOffset - Source scale and offset
+   */
+  static draw(
+    engine: Engine,
+    source: Texture2D,
+    mipLevel: number = 0,
+    material: Material | null = null,
+    passIndex = 0,
+    sourceScaleOffset?: Vector4
+  ): void {
+    const basicResources = engine._basicResources;
+    const blitMaterial = material || basicResources.blitMaterial;
+    const rhi = engine._hardwareRenderer;
+    const context = engine._renderContext;
+    const camera = context.camera;
+    const blitMesh = context.flipProjection ? basicResources.flipYBlitMesh : basicResources.blitMesh;
+    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
 
     const rendererShaderData = Blitter._rendererShaderData;
 
@@ -127,7 +132,6 @@ export class Blitter {
     renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
-    context.endRenderPass();
     rendererShaderData.setTexture(Blitter._blitTextureProperty, null);
   }
 

@@ -4,7 +4,6 @@
  * Mirrors WebGPU's `GPULoadOp` (`"load" | "clear"`). On WebGL2 (especially iOS WebKit / ANGLE-Metal),
  * full-target `gl.clear()` maps to hardware `MTLLoadActionClear` (zero DRAM tile load) while keeping
  * `RobustResourceInit` satisfied, avoiding CPU `MTLTexture.replaceRegion` stalls.
- * @internal
  */
 export enum RenderTargetLoadAction {
   /** Preserve existing attachment contents when beginning the render pass. */
