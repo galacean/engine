@@ -71,7 +71,8 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   // init point light
   const light = rootEntity.createChild("light");
   light.transform.setPosition(0, 3, 0);
-  light.addComponent(PointLight);
+  const pointLight = light.addComponent(PointLight);
+  pointLight.color.set(20, 20, 20, 1);
 
   // create box test entity
   const boxEntity1 = addBox(rootEntity, 2, 0, 0, 0, 0);

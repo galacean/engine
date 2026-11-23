@@ -73,7 +73,8 @@ WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
   // Light
   const lightEntity = rootEntity.createChild("light");
   lightEntity.transform.setPosition(3, 5, 3);
-  lightEntity.addComponent(PointLight);
+  const pointLight = lightEntity.addComponent(PointLight);
+  pointLight.color.set(43, 43, 43, 1);
 
   // Load pot model and environment
   Promise.all([
