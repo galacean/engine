@@ -36,6 +36,7 @@ export class HingeJoint extends Joint {
   }
 
   set axis(value: Vector3) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     value !== this._axis && this._setAxis(value);
   }
 
