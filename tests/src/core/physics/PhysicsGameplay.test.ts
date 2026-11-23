@@ -117,6 +117,22 @@ describe("Physics gameplay integration", () => {
     return col;
   }
 
+  it("loads a complete hinge axis from a runtime Prefab call", async () => {
+    const prefab = await loadPrefab("hinge-axis.prefab", {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "hinge", components: [0, 1] }],
+      components: [
+        { type: "Rigidbody" },
+        { type: "HingeJoint", calls: [{ method: "setAxis", args: [{ x: 0, y: 2, z: 0 }] }] }
+      ],
+      root: 0
+    });
+    const entity = prefab.instantiate();
+    root.addChild(entity);
+    expect(entity.getComponent(HingeJoint)!.axis).toMatchObject({ x: 0, y: 1, z: 0 });
+  });
+
   it("simulates a compound cart rolling down a ramp into a capsule blocker and compares rotation constraints", () => {
     root.createChild("ground").addComponent(PlaneCollider);
 

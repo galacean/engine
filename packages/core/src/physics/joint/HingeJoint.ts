@@ -29,7 +29,8 @@ export class HingeJoint extends Joint {
   /**
    * A read-only snapshot of the unit hinge axis in this Entity's local space.
    * @defaultValue `(1, 0, 0)`
-   * @see {@link setAxis}
+   * @remarks Assign a complete direction to update the axis. A zero vector leaves it unchanged.
+   * @throws When the assigned direction has non-finite length.
    */
   get axis(): Readonly<Vector3Like> {
     return this._axis;
@@ -147,23 +148,6 @@ export class HingeJoint extends Joint {
     this._onLimitsChanged = this._onLimitsChanged.bind(this);
   }
 
-  /**
-   * Sets the hinge axis from a complete direction. A zero vector leaves the axis unchanged.
-   * @param value - The direction in this Entity's local space, normalized on assignment.
-   * @throws When the vector length is non-finite.
-   */
-  setAxis(value: Readonly<Vector3Like>): void {
-    const axis = normalizeDirection(this._axis, value, "HingeJoint axis");
-    if (axis !== this._axis) {
-      this._axis = axis;
-      const nativeJoint = this._nativeJoint;
-      if (nativeJoint) {
-        nativeJoint.setAxis(axis);
-        this._wakeBodies();
-      }
-    }
-  }
-
   /** @internal */
   protected override _destroyNativeJoint(): void {
     const nativeJoint = this._nativeJoint;
@@ -200,6 +184,19 @@ export class HingeJoint extends Joint {
     nativeJoint.setAxis(this._axis);
     this._syncMotorConfig(nativeJoint);
     this._syncLimitsConfig(nativeJoint);
+  }
+
+  // Runtime Prefab calls use this method name.
+  private setAxis(value: Readonly<Vector3Like>): void {
+    const axis = normalizeDirection(this._axis, value, "HingeJoint axis");
+    if (axis !== this._axis) {
+      this._axis = axis;
+      const nativeJoint = this._nativeJoint;
+      if (nativeJoint) {
+        nativeJoint.setAxis(axis);
+        this._wakeBodies();
+      }
+    }
   }
 
   @ignoreClone

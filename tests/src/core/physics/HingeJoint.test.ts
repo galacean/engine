@@ -102,7 +102,7 @@ describe("HingeJoint", function () {
     joint.automaticConnectedAnchor = true;
     joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
-    joint.setAxis({ x: 0, y: 1, z: 0 });
+    joint.axis = { x: 0, y: 1, z: 0 };
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
@@ -478,7 +478,7 @@ describe("HingeJoint", function () {
     expect(posVelX * negVelX).toBeLessThan(0);
     expect(Math.abs(negVelX)).toBeCloseTo(Math.abs(posVelX), 3);
 
-    negJoint.setAxis({ x: 0, y: 0, z: 1 });
+    negJoint.axis = { x: 0, y: 0, z: 1 };
     expect(negJoint.axis.z).toBeCloseTo(1, 5);
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(Number.isFinite(negBox.getComponent(Rigidbody).angularVelocity.z)).toBe(true);
@@ -660,7 +660,7 @@ describe("HingeJoint", function () {
     expect(body.isSleeping()).toBe(false);
 
     body.sleep();
-    joint.setAxis({ x: 0, y: 1, z: 0 });
+    joint.axis = { x: 0, y: 1, z: 0 };
     expect(body.isSleeping()).toBe(false);
   });
 
@@ -672,9 +672,9 @@ describe("HingeJoint", function () {
     for (const invalid of [new Vector3(NaN, 1, 0), new Vector3(Infinity, 0, 0), new Vector3(0, -Infinity, 0)]) {
       expect(() => (joint.axis = invalid)).toThrow();
     }
-    joint.setAxis({ x: 0, y: 2, z: 0 });
+    joint.axis = { x: 0, y: 2, z: 0 };
     const axis = joint.axis;
-    joint.setAxis({ x: 0, y: 0, z: 0 });
+    joint.axis = { x: 0, y: 0, z: 0 };
     expect(joint.axis).toBe(axis);
     expect(joint.axis).toMatchObject({ x: 0, y: 1, z: 0 });
 
@@ -685,7 +685,7 @@ describe("HingeJoint", function () {
     motor.forceLimit = 500;
     joint.motor = motor;
     joint.useMotor = true;
-    expect(() => joint.setAxis({ x: NaN, y: 0, z: 0 })).toThrow();
+    expect(() => (joint.axis = { x: NaN, y: 0, z: 0 })).toThrow();
     expect(joint.axis).toBe(axis);
     joint.enabled = false;
     joint.enabled = true;
@@ -706,8 +706,8 @@ describe("HingeJoint", function () {
     const child = addBox(new Vector3(1, 1, 1), new Vector3(5, 5, 0));
     child.isActive = false;
     const childJoint = child.addComponent(HingeJoint);
-    childJoint.setAxis({ x: 0, y: 0, z: 1 });
-    childJoint.setAxis({ x: 0, y: 0, z: 0 });
+    childJoint.axis = { x: 0, y: 0, z: 1 };
+    childJoint.axis = { x: 0, y: 0, z: 0 };
     expect(childJoint.axis.z).toBe(1);
     childJoint.connectedBody = anchor.getComponent(Rigidbody)!;
     child.isActive = true;
