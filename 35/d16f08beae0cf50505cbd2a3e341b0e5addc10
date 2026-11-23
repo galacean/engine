@@ -1,0 +1,39 @@
+packages/core/src/physics/Rigidbody.ts
+  s_f61216d1811261::t_9de559f83c400c 1,66,818,826,832,1075,1084,1112,1121,1219
+packages/design/src/physics/IPhysics.ts
+  s_f61216d1811261::t_11094446ad3f57 3-4,7,9,27,31,34,38,54,59,62,67,70,74,77,84,90,93,103,111,115,117,121,123,126-127,129
+packages/design/src/physics/IPhysicsScene.ts
+  s_f61216d1811261::t_1244ed16b95687 3,19,21,25,27
+packages/design/src/physics/joints/IJoint.ts
+  s_f61216d1811261::t_2c1248da9c4961 2,11,39,44
+packages/design/src/physics/shape/IMeshShape.ts
+  s_f61216d1811261::t_610d016e8f8283 2,5,7
+packages/physics-physx/src/PhysXStaticActor.ts
+  s_f61216d1811261::t_fdb426959cbe97 1,3,7,9
+packages/physics-physx/src/shape/PhysXBoxShape.ts
+  s_9a07c85a0912bc::t_6ade3f158f8903 2,5,8,10,18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "35d16f08beae0cf50505cbd2a3e341b0e5addc10",
+  "prompts": {},
+  "sessions": {
+    "s_9a07c85a0912bc": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a2065f-d56d-7175-a080-e45884abae0d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_f61216d1811261": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a2073e-0aa9-7656-a276-0d10d9757816",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
