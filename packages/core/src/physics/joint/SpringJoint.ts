@@ -6,6 +6,8 @@ import { Joint } from "./Joint";
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
  */
 export class SpringJoint extends Joint {
+  protected declare _nativeJoint: ISpringJoint | null;
+
   private _minDistance: number = 0;
   private _maxDistance: number = 0;
   private _tolerance: number = 0.25;
@@ -22,10 +24,7 @@ export class SpringJoint extends Joint {
   set minDistance(value: number) {
     if (this._minDistance !== value) {
       this._minDistance = value;
-      if (this._nativeJoint) {
-        (<ISpringJoint>this._nativeJoint).setMinDistance(value);
-        this._wakeBodies();
-      }
+      this._setNativeNumberAndWake(this._nativeJoint, "setMinDistance", value);
     }
   }
 
@@ -39,10 +38,7 @@ export class SpringJoint extends Joint {
   set maxDistance(value: number) {
     if (this._maxDistance !== value) {
       this._maxDistance = value;
-      if (this._nativeJoint) {
-        (<ISpringJoint>this._nativeJoint).setMaxDistance(value);
-        this._wakeBodies();
-      }
+      this._setNativeNumberAndWake(this._nativeJoint, "setMaxDistance", value);
     }
   }
 
@@ -56,10 +52,7 @@ export class SpringJoint extends Joint {
   set tolerance(value: number) {
     if (this._tolerance !== value) {
       this._tolerance = value;
-      if (this._nativeJoint) {
-        (<ISpringJoint>this._nativeJoint).setTolerance(value);
-        this._wakeBodies();
-      }
+      this._setNativeNumberAndWake(this._nativeJoint, "setTolerance", value);
     }
   }
 
@@ -73,10 +66,7 @@ export class SpringJoint extends Joint {
   set stiffness(value: number) {
     if (this._stiffness !== value) {
       this._stiffness = value;
-      if (this._nativeJoint) {
-        (<ISpringJoint>this._nativeJoint).setStiffness(value);
-        this._wakeBodies();
-      }
+      this._setNativeNumberAndWake(this._nativeJoint, "setStiffness", value);
     }
   }
 
@@ -90,10 +80,7 @@ export class SpringJoint extends Joint {
   set damping(value: number) {
     if (this._damping !== value) {
       this._damping = value;
-      if (this._nativeJoint) {
-        (<ISpringJoint>this._nativeJoint).setDamping(value);
-        this._wakeBodies();
-      }
+      this._setNativeNumberAndWake(this._nativeJoint, "setDamping", value);
     }
   }
 
@@ -103,10 +90,11 @@ export class SpringJoint extends Joint {
 
   protected override _syncNative(): void {
     super._syncNative();
-    (<ISpringJoint>this._nativeJoint).setMinDistance(this._minDistance);
-    (<ISpringJoint>this._nativeJoint).setMaxDistance(this._maxDistance);
-    (<ISpringJoint>this._nativeJoint).setTolerance(this._tolerance);
-    (<ISpringJoint>this._nativeJoint).setStiffness(this._stiffness);
-    (<ISpringJoint>this._nativeJoint).setDamping(this._damping);
+    const nativeJoint = this._nativeJoint!;
+    nativeJoint.setMinDistance(this._minDistance);
+    nativeJoint.setMaxDistance(this._maxDistance);
+    nativeJoint.setTolerance(this._tolerance);
+    nativeJoint.setStiffness(this._stiffness);
+    nativeJoint.setDamping(this._damping);
   }
 }

@@ -627,6 +627,13 @@ describe("HingeJoint", function () {
     engine.sceneManager.activeScene.physics._update(0.2);
     expect(joint.velocity).toBeGreaterThan(2);
 
+    body.sleep();
+    expect(body.isSleeping()).toBe(true);
+    motor.targetVelocity = 3;
+    expect(body.isSleeping()).toBe(false);
+    engine.sceneManager.activeScene.physics._update(0.2);
+    expect(joint.velocity).toBeCloseTo(3, 3);
+
     joint.useMotor = false;
     body.angularVelocity.set(0, 0, 0);
     body.sleep();

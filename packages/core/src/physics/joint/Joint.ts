@@ -97,7 +97,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   set automaticConnectedAnchor(value: boolean) {
     this._automaticConnectedAnchor = value;
-    value && this._calculateConnectedAnchor();
+    if (value) this._updateAnchors(AnchorOwner.Connected, true);
   }
 
   /**
@@ -115,10 +115,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     }
     if (value !== this._connectedBodyInfo.massScale) {
       this._connectedBodyInfo.massScale = value;
-      if (this._nativeJoint) {
-        this._nativeJoint.setConnectedMassScale(value);
-        this._wakeBodies();
-      }
+      this._setNativeNumberAndWake(this._nativeJoint, "setConnectedMassScale", value);
     }
   }
 
@@ -137,10 +134,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     }
     if (value !== this._bodyInfo.massScale) {
       this._bodyInfo.massScale = value;
-      if (this._nativeJoint) {
-        this._nativeJoint.setMassScale(value);
-        this._wakeBodies();
-      }
+      this._setNativeNumberAndWake(this._nativeJoint, "setMassScale", value);
     }
   }
 
@@ -276,12 +270,13 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
       nativeJoint.setConnectedCollider(connectedActor);
-      this._syncConnectedFrame();
+      this._syncFrames(nativeJoint, AnchorOwner.Connected);
     } else {
       const joint = (this._nativeJoint = this._createJoint(bodyActor));
       connectedActor && joint.setConnectedCollider(connectedActor);
       this._syncNative();
     }
+    this._wakeBodies();
   }
 
   protected override _onDestroy(): void {
@@ -311,8 +306,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   protected _syncNative(): void {
     const nativeJoint = this._nativeJoint!;
-    this._updateActualAnchor(AnchorOwner.Self);
-    this._syncConnectedFrame();
+    this._syncFrames(nativeJoint, AnchorOwner.Both);
     nativeJoint.setConnectedMassScale(this._connectedBodyInfo.massScale);
     nativeJoint.setConnectedInertiaScale(this._connectedBodyInfo.inertiaScale);
     nativeJoint.setMassScale(this._bodyInfo.massScale);
@@ -321,17 +315,34 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     nativeJoint.setBreakTorque(this._torque);
   }
 
-  private _syncConnectedFrame(): void {
-    if (this._automaticConnectedAnchor) {
-      this._calculateConnectedAnchor();
-    } else {
-      this._updateActualAnchor(AnchorOwner.Connected);
+  /** @internal Apply a single live parameter change and wake the joint's bodies. */
+  protected _setNativeNumberAndWake<K extends string>(
+    nativeJoint: Record<K, (value: number) => void> | null,
+    setter: K,
+    value: number
+  ): void {
+    if (nativeJoint) {
+      nativeJoint[setter](value);
+      this._wakeBodies();
     }
-    this._updateRotation();
+  }
+
+  private _syncFrames(nativeJoint: IJoint, owner: AnchorOwner): void {
+    if (this._automaticConnectedAnchor) this._calculateConnectedAnchor();
+    this._syncAnchors(nativeJoint, owner);
+
+    let rotation = this.entity.transform.worldRotationQuaternion;
+    const connectedBody = this._connectedBody;
+    if (connectedBody) {
+      const relativeRotation = Joint._tempQuat;
+      Quaternion.invert(connectedBody.entity.transform.worldRotationQuaternion, relativeRotation);
+      Quaternion.multiply(relativeRotation, rotation, relativeRotation);
+      rotation = relativeRotation;
+    }
+    nativeJoint.setRotation(rotation);
   }
 
   private _calculateConnectedAnchor(): void {
-    if (!this._nativeJoint) return;
     const bodyInfo = this._bodyInfo;
     const connectedAnchor = this._connectedBodyInfo.anchor;
     const connectedBody = this._connectedBody;
@@ -349,54 +360,48 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       Vector3.transformCoordinate(bodyInfo.anchor, selfMatrix, connectedAnchor);
     }
     connectedAnchor._onValueChanged = this._handleConnectedAnchorChanged;
-    this._updateActualAnchor(AnchorOwner.Connected);
   }
 
   @ignoreClone
   private _onAnchorChanged(): void {
-    this._updateActualAnchor(AnchorOwner.Self);
-    this._automaticConnectedAnchor && this._calculateConnectedAnchor();
+    const automatic = this._automaticConnectedAnchor;
+    this._updateAnchors(automatic ? AnchorOwner.Both : AnchorOwner.Self, automatic);
   }
 
   @ignoreClone
   private _handleConnectedAnchorChanged(): void {
     this._automaticConnectedAnchor = false;
-    this._updateActualAnchor(AnchorOwner.Connected);
+    this._updateAnchors(AnchorOwner.Connected);
   }
 
   @ignoreClone
   private _onSelfTransformChanged(type: TransformModifyFlags): void {
-    type & TransformModifyFlags.WorldScale && this._updateActualAnchor(AnchorOwner.Self);
+    type & TransformModifyFlags.WorldScale && this._updateAnchors(AnchorOwner.Self);
   }
 
   @ignoreClone
   private _onConnectedTransformChanged(type: TransformModifyFlags): void {
-    type & TransformModifyFlags.WorldScale && this._updateActualAnchor(AnchorOwner.Connected);
+    type & TransformModifyFlags.WorldScale && this._updateAnchors(AnchorOwner.Connected);
   }
 
-  private _updateRotation(): void {
-    let rotation = this.entity.transform.worldRotationQuaternion;
-    const connectedBody = this._connectedBody;
-    if (connectedBody) {
-      const relativeRotation = Joint._tempQuat;
-      Quaternion.invert(connectedBody.entity.transform.worldRotationQuaternion, relativeRotation);
-      Quaternion.multiply(relativeRotation, rotation, relativeRotation);
-      rotation = relativeRotation;
-    }
-    this._nativeJoint!.setRotation(rotation);
-  }
-
-  private _updateActualAnchor(flag: AnchorOwner): void {
+  /** Sync the edited anchors and wake both bodies once. Scale changes only rescale the existing anchors. */
+  private _updateAnchors(owner: AnchorOwner, recalculateConnected = false): void {
     const nativeJoint = this._nativeJoint;
-    if (!nativeJoint) return;
+    if (nativeJoint) {
+      if (recalculateConnected) this._calculateConnectedAnchor();
+      this._syncAnchors(nativeJoint, owner);
+      this._wakeBodies();
+    }
+  }
 
-    if (flag & AnchorOwner.Self) {
+  private _syncAnchors(nativeJoint: IJoint, owner: AnchorOwner): void {
+    if (owner & AnchorOwner.Self) {
       const worldScale = this.entity.transform.lossyWorldScale;
       const selfBodyInfo = this._bodyInfo;
       Vector3.multiply(selfBodyInfo.anchor, worldScale, selfBodyInfo.actualAnchor);
       nativeJoint.setAnchor(selfBodyInfo.actualAnchor);
     }
-    if (flag & AnchorOwner.Connected) {
+    if (owner & AnchorOwner.Connected) {
       const connectedBodyInfo = this._connectedBodyInfo;
       const connectedBody = this._connectedBody;
       if (connectedBody) {
@@ -407,7 +412,6 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       }
       nativeJoint.setConnectedAnchor(connectedBodyInfo.actualAnchor);
     }
-    this._wakeBodies();
   }
 
   protected _wakeBodies(): void {
@@ -430,7 +434,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
  */
 enum AnchorOwner {
   Self = 0x1,
-  Connected = 0x2
+  Connected = 0x2,
+  Both = Self | Connected
 }
 
 /**

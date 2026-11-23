@@ -132,7 +132,11 @@ describe("Joint", function () {
     expect(joint.connectedAnchor).deep.include({ x: 4, y: 4, z: 4 });
     expect(box.transform.position).deep.include({ x: 4, y: 4, z: 4 });
 
+    const body = box.getComponent(Rigidbody)!;
+    body.sleep();
+    expect(body.isSleeping()).toBe(true);
     joint.anchor = new Vector3(0, -1, 0);
+    expect(body.isSleeping()).toBe(false);
 
     engine.sceneManager.activeScene.physics._update(1 / 60);
 

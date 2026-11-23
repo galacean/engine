@@ -38,9 +38,11 @@ export interface IHingeJoint extends IJoint {
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void;
 
   /**
-   * Set the drive target angular velocity in radians per second.
+   * Set the drive target velocity.
+   * @param velocity - Target angular velocity in radians per second.
+   * @param autowake - Pass false when the caller wakes the bodies after applying the drive settings.
    */
-  setDriveVelocity(velocity: number): void;
+  setDriveVelocity(velocity: number, autowake?: boolean): void;
 
   /**
    * sets the maximum torque the drive can exert.
