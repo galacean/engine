@@ -240,7 +240,7 @@ export class HingeJoint extends Joint {
   private _syncMotor(nativeJoint: IHingeJoint): void {
     const motor = this._jointMotor;
     if (motor) {
-      nativeJoint.setDriveVelocity(motor.targetVelocity, false);
+      nativeJoint.setDriveVelocity(motor.targetVelocity);
       nativeJoint.setDriveForceLimit(motor.forceLimit);
       nativeJoint.setDriveGearRatio(motor.gearRatio);
       nativeJoint.setHingeJointFlag(HingeJointFlag.DriveFreeSpin, motor.freeSpin);

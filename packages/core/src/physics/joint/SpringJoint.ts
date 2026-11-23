@@ -24,7 +24,11 @@ export class SpringJoint extends Joint {
   set minDistance(value: number) {
     if (this._minDistance !== value) {
       this._minDistance = value;
-      this._setNativeNumberAndWake(this._nativeJoint, "setMinDistance", value);
+      const nativeJoint = this._nativeJoint;
+      if (nativeJoint) {
+        nativeJoint.setMinDistance(value);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -38,7 +42,11 @@ export class SpringJoint extends Joint {
   set maxDistance(value: number) {
     if (this._maxDistance !== value) {
       this._maxDistance = value;
-      this._setNativeNumberAndWake(this._nativeJoint, "setMaxDistance", value);
+      const nativeJoint = this._nativeJoint;
+      if (nativeJoint) {
+        nativeJoint.setMaxDistance(value);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -52,7 +60,11 @@ export class SpringJoint extends Joint {
   set tolerance(value: number) {
     if (this._tolerance !== value) {
       this._tolerance = value;
-      this._setNativeNumberAndWake(this._nativeJoint, "setTolerance", value);
+      const nativeJoint = this._nativeJoint;
+      if (nativeJoint) {
+        nativeJoint.setTolerance(value);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -66,7 +78,11 @@ export class SpringJoint extends Joint {
   set stiffness(value: number) {
     if (this._stiffness !== value) {
       this._stiffness = value;
-      this._setNativeNumberAndWake(this._nativeJoint, "setStiffness", value);
+      const nativeJoint = this._nativeJoint;
+      if (nativeJoint) {
+        nativeJoint.setStiffness(value);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -80,7 +96,11 @@ export class SpringJoint extends Joint {
   set damping(value: number) {
     if (this._damping !== value) {
       this._damping = value;
-      this._setNativeNumberAndWake(this._nativeJoint, "setDamping", value);
+      const nativeJoint = this._nativeJoint;
+      if (nativeJoint) {
+        nativeJoint.setDamping(value);
+        this._wakeBodies();
+      }
     }
   }
 

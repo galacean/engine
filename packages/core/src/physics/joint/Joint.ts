@@ -115,7 +115,11 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     }
     if (value !== this._connectedBodyInfo.massScale) {
       this._connectedBodyInfo.massScale = value;
-      this._setNativeNumberAndWake(this._nativeJoint, "setConnectedMassScale", value);
+      const nativeJoint = this._nativeJoint;
+      if (nativeJoint) {
+        nativeJoint.setConnectedMassScale(value);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -134,7 +138,11 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     }
     if (value !== this._bodyInfo.massScale) {
       this._bodyInfo.massScale = value;
-      this._setNativeNumberAndWake(this._nativeJoint, "setMassScale", value);
+      const nativeJoint = this._nativeJoint;
+      if (nativeJoint) {
+        nativeJoint.setMassScale(value);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -313,18 +321,6 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     nativeJoint.setInertiaScale(this._bodyInfo.inertiaScale);
     nativeJoint.setBreakForce(this._force);
     nativeJoint.setBreakTorque(this._torque);
-  }
-
-  /** @internal Apply a single live parameter change and wake the joint's bodies. */
-  protected _setNativeNumberAndWake<K extends string>(
-    nativeJoint: Record<K, (value: number) => void> | null,
-    setter: K,
-    value: number
-  ): void {
-    if (nativeJoint) {
-      nativeJoint[setter](value);
-      this._wakeBodies();
-    }
   }
 
   private _syncFrames(nativeJoint: IJoint, owner: AnchorOwner): void {

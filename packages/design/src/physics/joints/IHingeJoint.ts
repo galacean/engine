@@ -40,9 +40,8 @@ export interface IHingeJoint extends IJoint {
   /**
    * Set the drive target velocity.
    * @param velocity - Target angular velocity in radians per second.
-   * @param autowake - Pass false when the caller wakes the bodies after applying the drive settings.
    */
-  setDriveVelocity(velocity: number, autowake?: boolean): void;
+  setDriveVelocity(velocity: number): void;
 
   /**
    * sets the maximum torque the drive can exert.
