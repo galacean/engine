@@ -61,7 +61,7 @@ Radius and height follow the absolute Entity's world scale, while `center` uses 
 ### Specific Properties
 | Property | Description | Default |
 |----------|-------------|---------|
-| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | Requested step height in world units. Negative values are clamped to 0. PhysX excludes the controller from simulation and queries while the resulting height is non-finite after Float32 conversion or exceeds the capsule height scaled along the Entity's world Y axis. | 0.5 |
+| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | Requested step height in world units. Non-finite values throw, and finite negative values are clamped to 0. The assigned value is preserved, while the effective step height is clamped to the scaled capsule's effective total height during synchronization. | 0.5 |
 | [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | Maximum slope angle (in degrees) the character can walk on.<ul><li>Surfaces steeper than this angle will be treated as unwalkable walls</li><li>Affects the character's climbing ability</li></ul> | 45° |
 | [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | Defines how to handle unwalkable surfaces.<ul><li>PreventClimbing: Prevents the character from climbing unwalkable slopes but doesn't force other movements (default)</li><li>PreventClimbingAndForceSliding: Prevents the character from climbing unwalkable slopes and forces the character to slide down</li></ul> | PreventClimbing |
 | [**upDirection**](/apis/core/#CharacterController-upDirection) | Defines the character's up direction. Default is (0, 1, 0), which means Y-axis up in world space. Affects movement and collision detection direction | (0, 1, 0) |

@@ -236,22 +236,23 @@ export class CharacterController extends Collider {
     const scaleZ = lossyScale.z;
     const scale = CharacterController._tempWorldScale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
     const force = !this._inScene;
-    const syncGeometry = force || this._geometryDirty || this._scaleChanged(scale);
-    let radius = 0;
-    let halfHeight = 0;
-    let stepOffset = 0;
-    if (syncGeometry) {
-      radius = this._radius * Math.max(scale.x, scale.z);
+    if (force || this._geometryDirty || this._scaleChanged(scale)) {
+      const radius = this._radius * Math.max(scale.x, scale.z);
       const scaledHeight = this._height * scale.y;
       if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
         this._detach();
         return;
       }
-      halfHeight = Math.max(0, scaledHeight * 0.5 - radius);
-      stepOffset = Math.min(this._stepOffset, Math.max(scaledHeight, 2 * radius));
+      this._geometryDirty = false;
+      this._nativeScale.copyFrom(scale);
+      (this._controller ||= this._createNative()).setCapsule(
+        radius,
+        Math.max(0, scaledHeight * 0.5 - radius),
+        Math.min(this._stepOffset, Math.max(scaledHeight, 2 * radius))
+      );
     }
 
-    const controller = (this._controller ||= this._createNative());
+    const controller = this._controller!;
     const centerX = colliderCenter.x * scaleX;
     const centerY = colliderCenter.y * scaleY;
     const centerZ = colliderCenter.z * scaleZ;
@@ -269,11 +270,6 @@ export class CharacterController extends Collider {
       syncedCenter.set(centerX, centerY, centerZ);
       nativePosition.copyFrom(position);
       controller.setWorldPosition(position, syncedCenter);
-    }
-    if (syncGeometry) {
-      this._geometryDirty = false;
-      this._nativeScale.copyFrom(scale);
-      controller.setCapsule(radius, halfHeight, stepOffset);
     }
     if (force) {
       scene.physics._nativePhysicsScene.addCharacterController(controller);
