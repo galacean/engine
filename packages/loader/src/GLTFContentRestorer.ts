@@ -13,6 +13,8 @@ import { Vector2 } from "@galacean/engine-math";
 import { GLTFResource } from "./gltf/GLTFResource";
 import type { AccessorComponentType, IBufferView } from "./gltf/GLTFSchema";
 import { GLTFUtils } from "./gltf/GLTFUtils";
+import type { IEXTMeshoptCompressionSchema } from "./gltf/extensions/GLTFExtensionSchema";
+import { getMeshoptDecoder } from "./gltf/extensions/MeshoptDecoder";
 import { ImageDecoder } from "./ImageDecoder";
 import { KTX2Loader } from "./ktx2/KTX2Loader";
 
@@ -21,23 +23,29 @@ import { KTX2Loader } from "./ktx2/KTX2Loader";
  */
 export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
   isGLB: boolean;
-  bufferRequests: BufferRequestInfo[] = [];
+  bufferRequests: (BufferRequestInfo | undefined)[] = [];
   glbBufferSlices: Vector2[] = [];
   bufferTextures: BufferTextureRestoreInfo[] = [];
   meshes: ModelMeshRestoreInfo[] = [];
 
   override restoreContent(): AssetPromise<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
-      Promise.all(
-        this.bufferRequests.map((bufferRequestInfo) => {
-          return request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config);
-        })
-      )
-        .then((buffers: ArrayBuffer[]) => {
+      const bufferRequests = this.bufferRequests;
+      const bufferRequestCount = bufferRequests.length;
+      const bufferPromises = new Array<Promise<ArrayBuffer> | undefined>(bufferRequestCount);
+      for (let i = 0; i < bufferRequestCount; i++) {
+        const bufferRequestInfo = bufferRequests[i];
+        bufferPromises[i] = bufferRequestInfo
+          ? request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config)
+          : undefined;
+      }
+
+      Promise.all(bufferPromises)
+        .then((buffers: (ArrayBuffer | undefined)[]) => {
           // Buffer parse
           if (this.isGLB) {
             const glbBufferSlice = this.glbBufferSlices;
-            const bigBuffer = buffers[0];
+            const bigBuffer = buffers[0]!;
             const bufferCount = glbBufferSlice.length;
             buffers.length = bufferCount;
             for (let i = 0; i < bufferCount; i++) {
@@ -46,110 +54,162 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
             }
           }
 
+          const bufferViewCache = new Map<IBufferView, Promise<Uint8Array>>();
+
           // Restore texture
-          AssetPromise.all(
+          Promise.all(
             this.bufferTextures.map((textureRestoreInfo) => {
               const { bufferView } = textureRestoreInfo;
-              const buffer = buffers[bufferView.buffer];
-              const bufferData = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
               const texture = textureRestoreInfo.texture;
-              if (textureRestoreInfo.mimeType === "image/ktx2") {
-                return KTX2Loader._parseBuffer(bufferData, texture.engine).then(({ result }) => {
-                  const { faces } = result;
-                  const mipmaps = faces[0];
-                  for (let i = 0; i < mipmaps.length; i++) {
-                    texture.setPixelBuffer(mipmaps[i].data, i);
-                  }
-                });
-              } else {
-                return ImageDecoder._decode(bufferData, this.resource.url, textureRestoreInfo.mimeType).then(
-                  (image) => {
-                    texture.setImageSource(image);
-                    texture.generateMipmaps();
-                  }
-                );
-              }
+              return this._getBufferViewData(buffers, bufferView, bufferViewCache).then((bufferData) => {
+                if (textureRestoreInfo.mimeType === "image/ktx2") {
+                  return KTX2Loader._parseBuffer(bufferData, texture.engine).then(({ result }) => {
+                    const { faces } = result;
+                    const mipmaps = faces[0];
+                    for (let i = 0; i < mipmaps.length; i++) {
+                      texture.setPixelBuffer(mipmaps[i].data, i);
+                    }
+                  });
+                } else {
+                  return ImageDecoder._decode(bufferData, this.resource.url, textureRestoreInfo.mimeType).then(
+                    (image) => {
+                      texture.setImageSource(image);
+                      texture.generateMipmaps();
+                    }
+                  );
+                }
+              });
             })
           )
-            .then(() => {
+            .then(() =>
               // Restore mesh
-              for (const meshInfo of this.meshes) {
-                const mesh = meshInfo.mesh;
-                for (const bufferRestoreInfo of meshInfo.vertexBuffers) {
-                  const vertexData = this._getBufferData(buffers, bufferRestoreInfo.data);
-                  bufferRestoreInfo.buffer.setData(vertexData);
-                }
-
-                if (meshInfo.indexBuffer) {
-                  const indexData = this._getBufferData(buffers, meshInfo.indexBuffer);
-                  mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>indexData);
-                }
-
-                for (const restoreInfo of meshInfo.blendShapes) {
-                  const frame = restoreInfo.blendShape.frames[0];
-                  const position = restoreInfo.position;
-                  const positionData = this._getBufferData(buffers, position.buffer);
-                  frame.deltaPositions = GLTFUtils.bufferToVector3Array(
-                    positionData,
-                    position.byteOffset,
-                    position.count,
-                    position.normalized,
-                    position.componentType
-                  );
-
-                  if (restoreInfo.normal) {
-                    const normal = restoreInfo.normal;
-                    const normalData = this._getBufferData(buffers, normal.buffer);
-                    frame.deltaNormals = GLTFUtils.bufferToVector3Array(
-                      normalData,
-                      normal.byteOffset,
-                      normal.count,
-                      normal.normalized,
-                      normal.componentType
-                    );
+              Promise.all(
+                this.meshes.map(async (meshInfo) => {
+                  const mesh = meshInfo.mesh;
+                  for (const bufferRestoreInfo of meshInfo.vertexBuffers) {
+                    const vertexData = await this._getBufferData(buffers, bufferRestoreInfo.data, bufferViewCache);
+                    bufferRestoreInfo.buffer.setData(vertexData);
                   }
 
-                  if (restoreInfo.tangent) {
-                    const tangent = restoreInfo.tangent;
-                    const tangentData = this._getBufferData(buffers, tangent.buffer);
-                    frame.deltaTangents = GLTFUtils.bufferToVector3Array(
-                      tangentData,
-                      tangent.byteOffset,
-                      tangent.count,
-                      tangent.normalized,
-                      tangent.componentType
-                    );
+                  if (meshInfo.indexBuffer) {
+                    const indexData = await this._getBufferData(buffers, meshInfo.indexBuffer, bufferViewCache);
+                    mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>indexData);
                   }
-                }
-                mesh.uploadData(true);
-              }
+
+                  for (const restoreInfo of meshInfo.blendShapes) {
+                    const frame = restoreInfo.blendShape.frames[0];
+                    const position = restoreInfo.position;
+                    const positionData = await this._getBufferData(buffers, position.buffer, bufferViewCache);
+                    frame.deltaPositions = GLTFUtils.bufferToVector3Array(
+                      positionData,
+                      position.byteOffset,
+                      position.count,
+                      position.normalized,
+                      position.componentType
+                    );
+
+                    if (restoreInfo.normal) {
+                      const normal = restoreInfo.normal;
+                      const normalData = await this._getBufferData(buffers, normal.buffer, bufferViewCache);
+                      frame.deltaNormals = GLTFUtils.bufferToVector3Array(
+                        normalData,
+                        normal.byteOffset,
+                        normal.count,
+                        normal.normalized,
+                        normal.componentType
+                      );
+                    }
+
+                    if (restoreInfo.tangent) {
+                      const tangent = restoreInfo.tangent;
+                      const tangentData = await this._getBufferData(buffers, tangent.buffer, bufferViewCache);
+                      frame.deltaTangents = GLTFUtils.bufferToVector3Array(
+                        tangentData,
+                        tangent.byteOffset,
+                        tangent.count,
+                        tangent.normalized,
+                        tangent.componentType
+                      );
+                    }
+                  }
+                  mesh.uploadData(true);
+                })
+              )
+            )
+            .then(() => {
+              bufferViewCache.clear();
               resolve(this.resource);
             })
-            .catch(reject);
+            .catch((e) => {
+              bufferViewCache.clear();
+              reject(e);
+            });
         })
         .catch(reject);
     });
   }
 
-  private _getBufferData(buffers: ArrayBuffer[], restoreInfo: BufferDataRestoreInfo): TypedArray {
+  private _getBufferViewData(
+    buffers: (ArrayBuffer | undefined)[],
+    bufferView: IBufferView,
+    cache: Map<IBufferView, Promise<Uint8Array>>
+  ): Promise<Uint8Array> {
+    let promise = cache.get(bufferView);
+    if (!promise) {
+      const meshopt = bufferView.extensions?.EXT_meshopt_compression as IEXTMeshoptCompressionSchema | undefined;
+      if (meshopt) {
+        const sourceBuffer = buffers[meshopt.buffer]!;
+        const sourceBytes = new Uint8Array(sourceBuffer, meshopt.byteOffset ?? 0, meshopt.byteLength);
+        promise = getMeshoptDecoder().then((decoder) =>
+          decoder.decodeGltfBuffer(meshopt.count, meshopt.byteStride, sourceBytes, meshopt.mode, meshopt.filter)
+        );
+      } else {
+        const buffer = buffers[bufferView.buffer]!;
+        promise = Promise.resolve(new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength));
+      }
+      cache.set(bufferView, promise);
+    }
+    return promise;
+  }
+
+  private async _getBufferData(
+    buffers: (ArrayBuffer | undefined)[],
+    restoreInfo: BufferDataRestoreInfo,
+    bufferViewCache: Map<IBufferView, Promise<Uint8Array>> = new Map()
+  ): Promise<TypedArray> {
     const main = restoreInfo.main;
     let data: TypedArray;
-    if (main.bufferIndex !== undefined) {
-      const buffer = buffers[main.bufferIndex];
-      data = new main.TypedArray(buffer, main.byteOffset, main.length);
+    if (main.bufferView !== undefined) {
+      const bufferViewData = await this._getBufferViewData(buffers, main.bufferView, bufferViewCache);
+      data = new main.TypedArray(
+        bufferViewData.buffer,
+        bufferViewData.byteOffset + (main.byteOffset ?? 0),
+        main.length
+      );
     } else {
       data = new main.TypedArray(main.length);
     }
 
     const sparseCount = restoreInfo.sparseCount;
     if (sparseCount) {
+      if (main.bufferView !== undefined) {
+        data = data.slice();
+      }
       const sparseIndex = restoreInfo.sparseIndices!;
-      const sparseIndexBuffer = buffers[sparseIndex.bufferIndex!];
-      const sparseIndexData = new sparseIndex.TypedArray(sparseIndexBuffer, sparseIndex.byteOffset, sparseIndex.length);
+      const sparseIndexView = await this._getBufferViewData(buffers, sparseIndex.bufferView!, bufferViewCache);
+      const sparseIndexData = new sparseIndex.TypedArray(
+        sparseIndexView.buffer,
+        sparseIndexView.byteOffset + (sparseIndex.byteOffset ?? 0),
+        sparseIndex.length
+      );
 
       const sparseValue = restoreInfo.sparseValues!;
-      const sparseValueBuffer = buffers[sparseValue.bufferIndex!];
-      const sparseValueData = new sparseValue.TypedArray(sparseValueBuffer, sparseValue.byteOffset, sparseValue.length);
+      const sparseValueView = await this._getBufferViewData(buffers, sparseValue.bufferView!, bufferViewCache);
+      const sparseValueData = new sparseValue.TypedArray(
+        sparseValueView.buffer,
+        sparseValueView.byteOffset + (sparseValue.byteOffset ?? 0),
+        sparseValue.length
+      );
 
       const typeSize = restoreInfo.typeSize!;
       for (let i = 0; i < sparseCount; i++) {
@@ -223,7 +283,7 @@ export class BufferDataRestoreInfo {
  */
 export class RestoreDataAccessor {
   constructor(
-    public bufferIndex: number | undefined,
+    public bufferView: IBufferView | undefined,
     public TypedArray:
       | Uint8ArrayConstructor
       | Int8ArrayConstructor
