@@ -1031,9 +1031,12 @@ describe("glTF instance test", function () {
       const loadingOk = engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url: gltfUrl });
       await requested;
       await waitForPartialAllocations();
+      // Half-parsed GLTFResource must not be exposed to findResourcesByType() before load resolves
+      expect(engine.resourceManager.findResourcesByType(GLTFResource).some((r) => r.url === gltfUrl)).to.be.false;
       engine.resourceManager.gc();
       resolveDelayed(positions.buffer.slice(0));
       const loaded = await loadingOk;
+      expect(engine.resourceManager.findResourcesByType(GLTFResource)).to.include(loaded);
       expect(loaded.destroyed).to.be.false;
       expect(loaded.isGCIgnored).to.be.false;
       expect(loaded.meshes![0][0].destroyed).to.be.false;

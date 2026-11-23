@@ -39,7 +39,9 @@ export class GLTFLoader extends Loader<GLTFResource> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const params = <GLTFParams>item.params;
     const glTFResource = new GLTFResource(resourceManager.engine, item.url!);
-    // Hold an in-flight reference until parsing settles so concurrent gc() will not collect half-parsed resources
+    // Hide half-parsed GLTFResource from _referResourcePool until resolved while holding an in-flight refCount
+    // so concurrent gc() retains its sub-resources via _hasActiveSuperResource()
+    resourceManager._deleteReferResource(glTFResource);
     glTFResource._addReferCount(1);
     const context = new GLTFParserContext(glTFResource, resourceManager, {
       keepMeshData: false,
@@ -60,6 +62,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
         .parse()
         .then((res) => {
           if (!context._aborted) {
+            resourceManager._addReferResource(res);
             res._addReferCount(-1);
             resolve(res);
           }
