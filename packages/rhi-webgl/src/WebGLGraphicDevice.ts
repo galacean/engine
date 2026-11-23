@@ -119,6 +119,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _lastScissor: Vector4 = new Vector4(null!, null!, null!, null!);
   private _lastClearColor: Color = new Color(null!, null!, null!, null!);
   private _scissorEnable: boolean = false;
+  private _activeTargetWidth: number = 0;
+  private _activeTargetHeight: number = 0;
   private _fboColor0Attachment: GLenum[];
   private _fboDepthAttachment: GLenum[];
   private _fboStencilAttachment: GLenum[];
@@ -331,20 +333,26 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   scissor(x: number, y: number, width: number, height: number): void {
     const { _gl: gl, _lastScissor: lastScissor } = this;
-    if (x !== lastScissor.x || y !== lastScissor.y || width !== lastScissor.z || height !== lastScissor.w) {
-      const { _webCanvas: webCanvas } = this;
-      if (x === 0 && y === 0 && width === webCanvas.width && height === webCanvas.height) {
-        if (this._scissorEnable) {
-          gl.disable(gl.SCISSOR_TEST);
-          this._scissorEnable = false;
-        }
-      } else {
-        if (!this._scissorEnable) {
-          gl.enable(gl.SCISSOR_TEST);
-          this._scissorEnable = true;
-        }
-        gl.scissor(x, y, width, height);
+    const targetWidth = this._activeTargetWidth || this.getMainFrameBufferWidth();
+    const targetHeight = this._activeTargetHeight || this.getMainFrameBufferHeight();
+    if (x === 0 && y === 0 && width === targetWidth && height === targetHeight) {
+      if (this._scissorEnable) {
+        gl.disable(gl.SCISSOR_TEST);
+        this._scissorEnable = false;
       }
+      lastScissor.set(x, y, width, height);
+    } else if (
+      !this._scissorEnable ||
+      x !== lastScissor.x ||
+      y !== lastScissor.y ||
+      width !== lastScissor.z ||
+      height !== lastScissor.w
+    ) {
+      if (!this._scissorEnable) {
+        gl.enable(gl.SCISSOR_TEST);
+        this._scissorEnable = true;
+      }
+      gl.scissor(x, y, width, height);
       lastScissor.set(x, y, width, height);
     }
   }
@@ -442,6 +450,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
 
     this._activeRenderTarget = renderTarget;
+    this._activeTargetWidth = bufferWidth;
+    this._activeTargetHeight = bufferHeight;
     this._activeColorStoreAction = colorStoreAction;
     this._activeDepthStoreAction = depthStoreAction;
 
@@ -688,6 +698,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   _clearActiveRenderTargetState(): void {
     this._activeRenderTarget = null;
+    this._activeTargetWidth = 0;
+    this._activeTargetHeight = 0;
     this._activeColorStoreAction = RenderBufferStoreAction.Store;
     this._activeDepthStoreAction = RenderBufferStoreAction.Store;
   }

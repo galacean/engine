@@ -50,6 +50,55 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
     headless?.destroy();
   });
 
+  it("scissor compares against active render target bounds instead of canvas size", () => {
+    // @ts-ignore
+    const rhi = engine._hardwareRenderer;
+    const scissorSpy = vi.spyOn(gl, "scissor");
+
+    const smallTex = new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const largeTex = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const smallRT = new RenderTarget(engine, 32, 32, smallTex, null, 1);
+    const largeRT = new RenderTarget(engine, 128, 128, largeTex, null, 1);
+
+    try {
+      const fullViewport = new Vector4(0, 0, 1, 1);
+      const quarterViewport = new Vector4(0, 0, 0.5, 0.5);
+
+      // 1. Full-viewport activation on a 32x32 offscreen RT (canvas is 64x64) keeps SCISSOR_TEST disabled
+      scissorSpy.mockClear();
+      rhi.activeRenderTarget(smallRT, fullViewport, true, 0);
+      expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(false);
+      expect(scissorSpy).not.toHaveBeenCalled();
+
+      // 2. Sub-viewport on 128x128 RT whose pixel rect (0,0,64,64) equals canvas size still enables SCISSOR_TEST
+      scissorSpy.mockClear();
+      rhi.activeRenderTarget(largeRT, quarterViewport, true, 0);
+      expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(true);
+      expect(scissorSpy).toHaveBeenCalledWith(0, 0, 64, 64);
+
+      // 3. Switching to 64x64 default canvas with identical rect (0,0,64,64) disables SCISSOR_TEST (now full target)
+      rhi.activeRenderTarget(null, fullViewport, false, 0);
+      expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(false);
+
+      // 4. Switching back to 128x128 RT with identical rect (0,0,64,64) re-enables SCISSOR_TEST (now sub-target)
+      scissorSpy.mockClear();
+      rhi.activeRenderTarget(largeRT, quarterViewport, true, 0);
+      expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(true);
+      expect(scissorSpy).toHaveBeenCalledWith(0, 0, 64, 64);
+
+      // 5. Full-viewport on 128x128 RT disables SCISSOR_TEST
+      rhi.activeRenderTarget(largeRT, fullViewport, true, 0);
+      expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(false);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+    } finally {
+      scissorSpy.mockRestore();
+      smallRT.destroy();
+      largeRT.destroy();
+      smallTex.destroy();
+      largeTex.destroy();
+    }
+  });
+
   it("activeRenderTarget applies Load/Store actions with attachment filtering, Adreno split, and backbuffer/driver guards", () => {
     // @ts-ignore
     const rhi = engine._hardwareRenderer;
