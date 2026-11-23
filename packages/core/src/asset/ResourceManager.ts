@@ -325,9 +325,6 @@ export class ResourceManager {
     this._graphicResourcePool = null!;
     this._contentRestorerPool = null!;
     this._loadingPromises = null!;
-    this._subAssetPromiseCallbacks = null!;
-    this._objectPool = null!;
-    this._virtualPathResourceMap = null!;
   }
 
   private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: VirtualResource): void {
@@ -559,9 +556,7 @@ export class ResourceManager {
   }
 
   private _releaseSubAssetPromiseCallback(assetBaseURL: string): void {
-    if (this._subAssetPromiseCallbacks) {
-      delete this._subAssetPromiseCallbacks[assetBaseURL];
-    }
+    delete this._subAssetPromiseCallbacks[assetBaseURL];
   }
 
   // Virtual resource mapping
@@ -580,32 +575,6 @@ export class ResourceManager {
     resources.forEach((resource) => {
       this._virtualPathResourceMap[resource.virtualPath] = resource;
     });
-  }
-
-  /**
-   * Unregister virtual asset paths and their load descriptors.
-   * @remarks
-   * Passing virtual path strings removes matching entries unconditionally.
-   * Passing descriptors removes an entry only when its registered `path` still matches,
-   * preventing stale cleanups from removing a newer registration for the same virtual path.
-   * @param resources - Virtual paths or previously registered virtual resource descriptors
-   */
-  unregisterVirtualResources(resources: readonly (string | Pick<VirtualResource, "virtualPath" | "path">)[]): void {
-    const virtualPathMap = this._virtualPathResourceMap;
-    if (!virtualPathMap) {
-      return;
-    }
-    for (let i = 0, n = resources.length; i < n; i++) {
-      const resource = resources[i];
-      if (typeof resource === "string") {
-        delete virtualPathMap[resource];
-      } else {
-        const current = virtualPathMap[resource.virtualPath];
-        if (current && current.path === resource.path) {
-          delete virtualPathMap[resource.virtualPath];
-        }
-      }
-    }
   }
 
   /**

@@ -583,43 +583,5 @@ describe("ResourceManager", () => {
       expect(loaderSpy).toHaveBeenCalled();
       loaderSpy.mockRestore();
     });
-
-    it("unregisters virtual resources by path or matching descriptor without clobbering newer registrations", async () => {
-      const resourceManager = engine.resourceManager;
-      const virtualPathA = "Assets/Unregister/a.txt";
-      const virtualPathB = "Assets/Unregister/b.txt";
-      const pathA1 = "blob:https://local.alipay.net/unregister-a1";
-      const pathA2 = "blob:https://local.alipay.net/unregister-a2";
-      const pathB = "blob:https://local.alipay.net/unregister-b";
-      const descriptorA1 = { virtualPath: virtualPathA, path: pathA1, type: AssetType.Text };
-      const descriptorA2 = { virtualPath: virtualPathA, path: pathA2, type: AssetType.Text };
-      const descriptorB = { virtualPath: virtualPathB, path: pathB, type: AssetType.Text };
-
-      resourceManager.registerVirtualResources([descriptorA1, descriptorB]);
-      expect(resourceManager._getRemoteUrl(virtualPathA)).equal(pathA1);
-      expect(resourceManager._getRemoteUrl(virtualPathB)).equal(pathB);
-
-      // Overwrite virtualPathA with a newer descriptor; stale cleanup of A1 must not remove A2
-      resourceManager.registerVirtualResources([descriptorA2]);
-      resourceManager.unregisterVirtualResources([descriptorA1]);
-      expect(resourceManager._getRemoteUrl(virtualPathA)).equal(pathA2);
-
-      // Matching descriptor removes A2; bare string removes B unconditionally
-      resourceManager.unregisterVirtualResources([descriptorA2, virtualPathB]);
-      expect(resourceManager._getRemoteUrl(virtualPathA)).equal(virtualPathA);
-      expect(resourceManager._getRemoteUrl(virtualPathB)).equal(virtualPathB);
-      await expect(resourceManager.getResourceByRef({ url: virtualPathA })).resolves.toBeNull();
-      await expect(resourceManager.getResourceByRef({ url: virtualPathB })).resolves.toBeNull();
-    });
-
-    it("ignores unregisterVirtualResources cleanly after engine destruction", async () => {
-      const tempEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-      const resourceManager = tempEngine.resourceManager;
-      resourceManager.registerVirtualResources([
-        { virtualPath: "Assets/Temp/a.txt", path: "blob:https://local.alipay.net/temp-a", type: AssetType.Text }
-      ]);
-      tempEngine.destroy();
-      expect(() => resourceManager.unregisterVirtualResources(["Assets/Temp/a.txt"])).not.toThrow();
-    });
   });
 });
