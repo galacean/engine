@@ -1,0 +1,26 @@
+packages/vegetation/src/skills/vegetation/SKILL.md
+  h_ddbf152d31b140 12,15-16
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  h_ddbf152d31b140 1555-1563
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  h_ddbf152d31b140 4,279,289,1168,1195
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.inspect.d.ts
+  h_ddbf152d31b140 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.update.d.ts
+  h_ddbf152d31b140 16-17
+world/demos/seed-world/agent-adapter/tools/landscape-tools.ts
+  h_ddbf152d31b140 548,550,629
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  h_ddbf152d31b140 297-319
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "28f159c22eadf108f066cd6f9a02020f0e06ebb0",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

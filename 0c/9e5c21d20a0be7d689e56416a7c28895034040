@@ -1,0 +1,182 @@
+packages/world-planning/src/agent-adapter/contracts/SeedWorldAssetContracts.ts
+  h_ddbf152d31b140 216,258
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  h_ddbf152d31b140 1859
+world/demos/seed-world/agent-adapter/SeedWorldToolCatalog.ts
+  h_ddbf152d31b140 8
+world/demos/seed-world/agent-adapter/contracts/SeedWorldApiContract.ts
+  h_ddbf152d31b140 4,8
+world/demos/seed-world/agent-adapter/contracts/SeedWorldContractRegistry.ts
+  h_ddbf152d31b140 13
+world/demos/seed-world/agent-adapter/contracts/generate-agent-contracts.ts
+  h_ddbf152d31b140 25-28,60-61,88-94,99,156-158,266,289,457-459,500,503-505,510,517,590,691-692,695-704,712,730-736,738
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  h_ddbf152d31b140 4,242-251,267-281,293-335,338-340,343-345,348-350,353-355,358-388,390,393,395,398-400,403,405,408,410,413,415,418,420,423,425,438,476-487,496,526,534,542,550,558,566,574,582,590,598,606,614,622,630,638,646,654,662,670,678,686,694,702,710,718,726,734,742,796,819,1040-1069,1112-1159,1177,1192-1193,1195-1203,1206,1210-1211,1213-1214,1217,1221-1222,1228,1232-1233,1235-1236,1239,1243-1244,1250,1254-1255,1257-1291,1294,1298-1409,1414-1425,1429-1430,1435,1439-1440,1445,1449-1450,1455,1459-1460,1465,1469-1470,1475,1479-1480,1485
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/AquaticGrassBedAsset.d.ts
+  h_ddbf152d31b140 7,9
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/BasinAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/BridgeAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/BuildingAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/CanyonAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/FlowerFieldAsset.d.ts
+  h_ddbf152d31b140 7,9
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/ForestAsset.d.ts
+  h_ddbf152d31b140 7,9
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/GrasslandAsset.d.ts
+  h_ddbf152d31b140 7,9
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/HillAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/LakeAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/MountainAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/MushroomAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/OceanAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/PlateauAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/PoiAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/PondAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/RidgeAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/RiverAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/RoadAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/RockAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/ShrubAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/ShrublandAsset.d.ts
+  h_ddbf152d31b140 7,9
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/SlopeAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/StreamAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/TerrainAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/TreeAsset.d.ts
+  h_ddbf152d31b140 7,11
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/ValleyAsset.d.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/AgentTools.d.ts
+  h_ddbf152d31b140 19-20,30-31
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/Anchor.d.ts
+  h_ddbf152d31b140 13
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/QueriedAsset.d.ts
+  h_ddbf152d31b140 6
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/Ref.d.ts
+  h_ddbf152d31b140 15
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/Selector.d.ts
+  h_ddbf152d31b140 13,15,17,19,21,23,30,32,39,53,57,62,66,68,70,72,74,76,83,85,92,106,110
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/TerrainAssetKind.d.ts
+  h_ddbf152d31b140 1-6
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/VegetationAssetKind.d.ts
+  h_ddbf152d31b140 1-6
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.catalog.d.ts
+  h_ddbf152d31b140 7,9
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.command.d.ts
+  h_ddbf152d31b140 7,9
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.config.get.d.ts
+  h_ddbf152d31b140 5,8-9,11-14,16,20,22-38,40,42,44,52-122
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.config.reset.d.ts
+  h_ddbf152d31b140 5,8-9,11-14,16-24,26-32
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.config.update.d.ts
+  h_ddbf152d31b140 5,8-9,11-14,16-35,38-39,48-49,51,54-55,57-64,68-72
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.describe.d.ts
+  h_ddbf152d31b140 7,9,11
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.query.d.ts
+  h_ddbf152d31b140 7,9-10
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.receipt.d.ts
+  h_ddbf152d31b140 7,9
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.spawn.d.ts
+  h_ddbf152d31b140 7,9
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/environment.config.get.d.ts
+  h_ddbf152d31b140 1-143
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/environment.config.reset.d.ts
+  h_ddbf152d31b140 5,8-9,11-14,16-24,26-32
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/environment.config.update.d.ts
+  h_ddbf152d31b140 1-78
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.config.get.d.ts
+  h_ddbf152d31b140 1-143
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.config.reset.d.ts
+  h_ddbf152d31b140 1-38
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.config.update.d.ts
+  h_ddbf152d31b140 1-78
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.config.get.d.ts
+  h_ddbf152d31b140 1-143
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.config.reset.d.ts
+  h_ddbf152d31b140 1-38
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.config.update.d.ts
+  h_ddbf152d31b140 1-78
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.delete.d.ts
+  h_ddbf152d31b140 1-153
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.inspect.d.ts
+  h_ddbf152d31b140 5,9,11-14,16-18
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.query.d.ts
+  h_ddbf152d31b140 12,15,17-20,22,25-26,38,40,47,91,93,100,134,140,144
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.config.get.d.ts
+  h_ddbf152d31b140 1-143
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.config.reset.d.ts
+  h_ddbf152d31b140 8-9,11-14,16-24,26-32
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.config.update.d.ts
+  h_ddbf152d31b140 1-78
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.delete.d.ts
+  h_ddbf152d31b140 5-7,9,12,15,17-20,23-31,36-144
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.inspect.d.ts
+  h_ddbf152d31b140 5,9,11-14,16
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.materials.apply.d.ts
+  h_ddbf152d31b140 5,8-9,11,13-14,18,35-37
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.materials.inspect.d.ts
+  h_ddbf152d31b140 7-8,10,15
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.query.d.ts
+  h_ddbf152d31b140 1-153
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.update.d.ts
+  h_ddbf152d31b140 17,21
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.config.get.d.ts
+  h_ddbf152d31b140 8-9,11-14,16,20,22-26,28-38,40-42,44-53,55-62,64-110,113,122-137
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.config.reset.d.ts
+  h_ddbf152d31b140 1-38
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.config.update.d.ts
+  h_ddbf152d31b140 1-78
+world/demos/seed-world/agent-adapter/tools/animal-tools.ts
+  h_ddbf152d31b140 34,38,70,75,112,125,137,171
+world/demos/seed-world/agent-adapter/tools/landscape-tools.ts
+  h_ddbf152d31b140 5,14,18-19,25-27,29-32,469,540,547-639,641-642,645-653,658-667,677-703,709-725
+world/demos/seed-world/agent-adapter/tools/parameter-tools.ts
+  h_ddbf152d31b140 3,6,19-99,102-106,108-123,125-141,143-150,153-167,171-181,183-200,202-216,218-358,361-368,371-372,375-394,396-397,399-679,683-687,690-696,701-703,708-709,715-717
+world/demos/seed-world/agent-adapter/tools/plant-material-tools.ts
+  h_ddbf152d31b140 4,8,18-33,36,45,47-50,59,62,64,74,76,112-114,116-126
+world/demos/seed-world/agent-adapter/tools/runtime-tools.ts
+  h_ddbf152d31b140 6-9
+world/demos/seed-world/agent-adapter/tools/spatial-tool-input.ts
+  h_ddbf152d31b140 12
+world/demos/seed-world/agent-adapter/tools/spatial-tools.ts
+  h_ddbf152d31b140 7,15,24-25,30,38,45,54,58,75,85,90,94-152,194,196,202,218,251,268,276,299
+world/demos/seed-world/agent-adapter/tools/tool-contract.ts
+  h_ddbf152d31b140 67,195,312-366,395,428,431,433,435
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  h_ddbf152d31b140 119
+world/demos/seed-world/assistant/SeedWorldTaskPresentation.ts
+  h_ddbf152d31b140 57,59-60
+world/demos/seed-world/dev/scene-visual-intent/main.ts
+  h_ddbf152d31b140 30,33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0c9e5c21d20a0be7d689e56416a7c28895034040",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
