@@ -1,0 +1,16 @@
+packages/loader/src/GLTFLoader.ts
+  h_bd4dd7d663e619 42-44,65
+tests/src/loader/GLTFLoader.test.ts
+  h_bd4dd7d663e619 1034-1035,1039
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9d36b2c07f3c1c545be7112ae8a0a4aa98684366",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,612 @@
+docs/en/core/color.mdx
+  h_a3c79ce84ffdc2 76
+docs/en/core/engine.mdx
+  h_a3c79ce84ffdc2 17,34,37,76
+docs/en/graphics/texture/texture.mdx
+  h_a3c79ce84ffdc2 32
+docs/zh/core/color.mdx
+  h_a3c79ce84ffdc2 77
+docs/zh/core/engine.mdx
+  h_a3c79ce84ffdc2 17,34,37
+docs/zh/graphics/texture/texture.mdx
+  h_a3c79ce84ffdc2 33
+e2e/case/.primitiveMeshGallery.ts
+  h_a3c79ce84ffdc2 172
+e2e/case/camera-ssao.ts
+  h_a3c79ce84ffdc2 19,29
+e2e/case/canvas-transparency.ts
+  h_a3c79ce84ffdc2 104
+e2e/case/material-shaderReplacement.ts
+  h_a3c79ce84ffdc2 142
+e2e/case/material-white-furnace.ts
+  h_a3c79ce84ffdc2 55
+e2e/case/multi-camera-no-clear.ts
+  h_a3c79ce84ffdc2 19
+e2e/case/multi-scene-no-clear.ts
+  h_a3c79ce84ffdc2 18,24
+e2e/case/particleRenderer-emissive.ts
+  h_a3c79ce84ffdc2 21,27
+e2e/case/particleRenderer-force.ts
+  h_a3c79ce84ffdc2 24
+e2e/case/particleRenderer-inherit-velocity-stretched.ts
+  h_a3c79ce84ffdc2 22,27
+e2e/case/particleRenderer-shape-mesh.ts
+  h_a3c79ce84ffdc2 21,27
+e2e/case/particleRenderer-sub-emitter.ts
+  h_a3c79ce84ffdc2 30,35
+e2e/case/particleRenderer-velocity-orbital-constant.ts
+  h_a3c79ce84ffdc2 19,24
+e2e/case/primitive-all.ts
+  h_a3c79ce84ffdc2 225
+e2e/case/primitive-sphere-sections.ts
+  h_a3c79ce84ffdc2 51
+e2e/case/shadow-transparent.ts
+  h_a3c79ce84ffdc2 17,23
+e2e/case/spriteMask-customStencil.ts
+  h_a3c79ce84ffdc2 101
+e2e/case/texture-R8G8.ts
+  h_a3c79ce84ffdc2 40
+e2e/case/ui-batch-order.ts
+  h_a3c79ce84ffdc2 82
+e2e/fixtures/originImage/Advance_multi-camera-no-clear.jpg
+  h_a3c79ce84ffdc2 2-3
+e2e/fixtures/originImage/Advance_multi-scene-clear.jpg
+  h_a3c79ce84ffdc2 2-3
+e2e/fixtures/originImage/Advance_multi-scene-no-clear.jpg
+  h_a3c79ce84ffdc2 2-3
+e2e/fixtures/originImage/Camera_camera-fxaa.jpg
+  h_a3c79ce84ffdc2 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-limitVelocity.jpg
+  h_a3c79ce84ffdc2 2-3
+e2e/fixtures/originImage/Physics_physx-mesh-collider.jpg
+  h_a3c79ce84ffdc2 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-HDR-bloom-ACES.jpg
+  h_a3c79ce84ffdc2 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-HDR-bloom-neutral.jpg
+  h_a3c79ce84ffdc2 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-LDR-bloom-neutral.jpg
+  h_a3c79ce84ffdc2 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-customPass.jpg
+  h_a3c79ce84ffdc2 2-3
+e2e/package.json
+  h_a3c79ce84ffdc2 4
+examples/package.json
+  h_a3c79ce84ffdc2 3
+examples/src/CSS-DOM.ts
+  h_a3c79ce84ffdc2 7,14
+examples/src/gpu-instancing-auto-batch.ts
+  h_a3c79ce84ffdc2 23,124
+examples/src/gpu-instancing-custom-data.ts
+  h_a3c79ce84ffdc2 20,109
+examples/src/ui-batch-massive.ts
+  h_a3c79ce84ffdc2 95,139
+package.json
+  h_a3c79ce84ffdc2 3
+packages/core/package.json
+  h_a3c79ce84ffdc2 3
+packages/core/src/2d/atlas/FontAtlas.ts
+  h_a3c79ce84ffdc2 23
+packages/core/src/2d/text/TextUtils.ts
+  h_a3c79ce84ffdc2 46,434
+packages/core/src/BasicResources.ts
+  h_a3c79ce84ffdc2 174,181,186-201,222-225
+packages/core/src/Camera.ts
+  h_a3c79ce84ffdc2 26,145,373,380,418,425,610,614,733,735,738-739,752-768,784,791
+packages/core/src/Engine.ts
+  h_a3c79ce84ffdc2 1,32,125,137-138,145,201,214-215,262-264,287-290,301-302,305,561-562,623,663-673
+packages/core/src/Polyfill.ts
+  h_a3c79ce84ffdc2 9-13,20,34
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_a3c79ce84ffdc2 111,113-116,118,123,172,183,195,455
+packages/core/src/RenderPipeline/Blitter.ts
+  h_a3c79ce84ffdc2 80,85-91
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  h_a3c79ce84ffdc2 22,27
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_a3c79ce84ffdc2 41
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_a3c79ce84ffdc2 142,195
+packages/core/src/SystemInfo.ts
+  h_a3c79ce84ffdc2 2,4,24,99,120,125
+packages/core/src/Transform.ts
+  h_a3c79ce84ffdc2 234-244
+packages/core/src/animation/Animator.ts
+  h_a3c79ce84ffdc2 75,79-82,89,367-371
+packages/core/src/asset/request.ts
+  h_a3c79ce84ffdc2 18-21,42-56,58,62-87,91-92,94,96-97,152,164-201,208,237-238,250,252-256
+packages/core/src/audio/AudioManager.ts
+  h_a3c79ce84ffdc2 11-12,21,32,37,48,51-53,78-115,118,126-127,138,141,157-163,166-173
+packages/core/src/audio/AudioSource.ts
+  h_a3c79ce84ffdc2 17,26,28,85-91,93,95-97,127-129,139,142-143,155,158,161,166,168-170,173-185,187-188,191-192,198-201,212,220-221,228-234,275,284-289,292-293,298-317,330-337
+packages/core/src/base/Constant.ts
+  h_a3c79ce84ffdc2 87,90,111
+packages/core/src/env-probe/Probe.ts
+  h_a3c79ce84ffdc2 35
+packages/core/src/graphic/Primitive.ts
+  h_a3c79ce84ffdc2 3,149
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  h_a3c79ce84ffdc2 78,81
+packages/core/src/graphic/enums/BufferBindFlag.ts
+  h_a3c79ce84ffdc2 9
+packages/core/src/input/InputManager.ts
+  h_a3c79ce84ffdc2 158
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_a3c79ce84ffdc2 58
+packages/core/src/material/utils/PrefilteredDFG.ts
+  h_a3c79ce84ffdc2 17
+packages/core/src/mesh/BlendShapeManager.ts
+  h_a3c79ce84ffdc2 155-158,342
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  h_a3c79ce84ffdc2 101,106-109,185-193,195-196,198-200
+packages/core/src/particle/ParticleGenerator.ts
+  h_a3c79ce84ffdc2 644,646,650
+packages/core/src/particle/ParticleRenderer.ts
+  h_a3c79ce84ffdc2 174
+packages/core/src/particle/enums/ParticleInheritVelocityMode.ts
+  h_a3c79ce84ffdc2 11
+packages/core/src/particle/modules/InheritVelocityModule.ts
+  h_a3c79ce84ffdc2 105,110,233
+packages/core/src/particle/modules/SubEmittersModule.ts
+  h_a3c79ce84ffdc2 26,57
+packages/core/src/particle/modules/VelocityOverLifetimeModule.ts
+  h_a3c79ce84ffdc2 345-346,453,490
+packages/core/src/postProcess/FinalPass.ts
+  h_a3c79ce84ffdc2 46
+packages/core/src/postProcess/PostProcessManager.ts
+  h_a3c79ce84ffdc2 273
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_a3c79ce84ffdc2 7,19,37,68-69,88,99-109,112,117,139-140,143-156,158,160,163,167,172-173,175-180,182,186-187,193-196,199-200,221-227,230,232-236,239
+packages/core/src/postProcess/effects/BloomEffect.ts
+  h_a3c79ce84ffdc2 32,40-41,51,61-67
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_a3c79ce84ffdc2 1-19,21-22,24-41,43-92
+packages/core/src/renderingHardwareInterface/IPlatformPrimitive.ts
+  h_a3c79ce84ffdc2 1-2,5
+packages/core/src/renderingHardwareInterface/IPlatformShaderProgram.ts
+  h_a3c79ce84ffdc2 3
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  h_a3c79ce84ffdc2 3
+packages/core/src/renderingHardwareInterface/index.ts
+  h_a3c79ce84ffdc2 1,3,5
+packages/core/src/shader/Shader.ts
+  h_a3c79ce84ffdc2 48,83,109
+packages/core/src/shader/ShaderData.ts
+  h_a3c79ce84ffdc2 18-23,424,426,465,467,654,681,686,688-692,696-697,699-700,755-768,770
+packages/core/src/shader/ShaderFactory.ts
+  h_a3c79ce84ffdc2 13,221
+packages/core/src/shader/ShaderPass.ts
+  h_a3c79ce84ffdc2 17-18,52,60,144-146,154-158,170
+packages/core/src/shader/ShaderProgram.ts
+  h_a3c79ce84ffdc2 1,6,18,37-52,61,83,86,148,153-189,205,207-217,243-250,253-256,261-277,279,282,285,288,291,294,296,329,331,404-405,486,489,492,495,498,501,506-508,517,520,523,558,560,566-574
+packages/core/src/shader/ShaderProperty.ts
+  h_a3c79ce84ffdc2 10-13,37,39,45,47-48,58-68
+packages/core/src/shader/ShaderUniform.ts
+  h_a3c79ce84ffdc2 1,22,257,261,265,269,273,277,289-291
+packages/core/src/shader/enums/ShaderDataGroup.ts
+  h_a3c79ce84ffdc2 3,6-7,9,11,13,15,17
+packages/core/src/shader/enums/ShaderLanguage.ts
+  h_a3c79ce84ffdc2 6
+packages/core/src/shader/enums/ShaderPropertyType.ts
+  h_a3c79ce84ffdc2 3,6-7,9,11,13,15,17,19,21,23,25,27,29
+packages/core/src/shader/state/BlendState.ts
+  h_a3c79ce84ffdc2 2,63,65,69-78,111-116,120-125,130-135,140-145,184
+packages/core/src/shader/state/DepthState.ts
+  h_a3c79ce84ffdc2 2,81
+packages/core/src/shader/state/RasterState.ts
+  h_a3c79ce84ffdc2 2,62
+packages/core/src/shader/state/StencilState.ts
+  h_a3c79ce84ffdc2 2,157
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_a3c79ce84ffdc2 1,104-120,127,298
+packages/core/src/sky/Sky.ts
+  h_a3c79ce84ffdc2 121,125
+packages/core/src/texture/Texture.ts
+  h_a3c79ce84ffdc2 13,42,49,56,63,70,105,112-115,137-138,158-159,172-181,206,233-234,245,250
+packages/core/src/texture/Texture2D.ts
+  h_a3c79ce84ffdc2 19,28
+packages/core/src/texture/Texture2DArray.ts
+  h_a3c79ce84ffdc2 28,37,175,185,195,205
+packages/core/src/texture/TextureCube.ts
+  h_a3c79ce84ffdc2 18,22-28
+packages/core/src/texture/TextureUtils.ts
+  h_a3c79ce84ffdc2 7-12,17-18,56,58-60,62,64,66-67,69-71,73-74,76
+packages/core/src/texture/enums/TextureFormat.ts
+  h_a3c79ce84ffdc2 2,5-19,21,23-38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,75,77,79,81,83,85,87,89-90
+packages/design/package.json
+  h_a3c79ce84ffdc2 3
+packages/design/src/xr/IXRDevice.ts
+  h_a3c79ce84ffdc2 29,33
+packages/design/src/xr/IXRSession.ts
+  h_a3c79ce84ffdc2 39-43
+packages/galacean/package.json
+  h_a3c79ce84ffdc2 3
+packages/galacean/skills/engine-knowledge/references/spine.md
+  h_a3c79ce84ffdc2 33
+packages/loader/package.json
+  h_a3c79ce84ffdc2 3
+packages/loader/src/AmbientLightLoader.ts
+  h_a3c79ce84ffdc2 54
+packages/loader/src/GLTFContentRestorer.ts
+  h_a3c79ce84ffdc2 16,65-70
+packages/loader/src/HDRDecoder.ts
+  h_a3c79ce84ffdc2 5,55,69
+packages/loader/src/ImageDecoder.ts
+  h_a3c79ce84ffdc2 1,6-8,12,14-16,19-31,33,37,42-48,75
+packages/loader/src/PrimitiveMeshLoader.ts
+  h_a3c79ce84ffdc2 16
+packages/loader/src/RenderTargetLoader.ts
+  h_a3c79ce84ffdc2 32
+packages/loader/src/SceneLoader.ts
+  h_a3c79ce84ffdc2 17,56,60
+packages/loader/src/TextureLoader.ts
+  h_a3c79ce84ffdc2 5,32-37,43-52,54,58-67,70-74,76,81-96,100,115-116,118,126
+packages/loader/src/gltf/GLTFUtils.ts
+  h_a3c79ce84ffdc2 13,368
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_a3c79ce84ffdc2 11,66-77,79-80,82-83,85,87
+packages/loader/src/ktx2/KTX2Loader.ts
+  h_a3c79ce84ffdc2 43-47,51-52,55-56,59-60,63-64,67,70,72,157,162,174-176,179,181-185,212-213,218-219,225,291
+packages/loader/src/ktx2/KTX2TargetFormat.ts
+  h_a3c79ce84ffdc2 15-20,25-26
+packages/loader/src/ktx2/transcoder/BinomialLLCWorkerCode.ts
+  h_a3c79ce84ffdc2 98-100,103,114,124,201
+packages/loader/src/resource-deserialize/resources/texture2D/Texture2DDecoder.ts
+  h_a3c79ce84ffdc2 14-23,25-30,32-37,42-43,45-46,48,50,52-59
+packages/loader/src/resource-deserialize/resources/textureCube/TextureCubeDecoder.ts
+  h_a3c79ce84ffdc2 14-22,24-30,32-37,42-43,45-48,50,52,54-60,62-63
+packages/math/package.json
+  h_a3c79ce84ffdc2 3
+packages/physics-physx/package.json
+  h_a3c79ce84ffdc2 3
+packages/rhi-null/README.md
+  h_a3c79ce84ffdc2 1
+packages/rhi-null/package.json
+  h_a3c79ce84ffdc2 1-29
+packages/rhi-null/src/HeadlessCanvas.ts
+  h_a3c79ce84ffdc2 1-22
+packages/rhi-null/src/HeadlessEngine.ts
+  h_a3c79ce84ffdc2 1-32
+packages/rhi-null/src/NullBuffer.ts
+  h_a3c79ce84ffdc2 1,3-9,12-32,35-40,43-49,52-53
+packages/rhi-null/src/NullGraphicDevice.ts
+  h_a3c79ce84ffdc2 1-104
+packages/rhi-null/src/NullTexture.ts
+  h_a3c79ce84ffdc2 1-40
+packages/rhi-null/src/index.ts
+  h_a3c79ce84ffdc2 1-4
+packages/rhi-null/tsconfig.json
+  h_a3c79ce84ffdc2 1-18
+packages/rhi-webgl/package.json
+  h_a3c79ce84ffdc2 3
+packages/rhi-webgl/src/GLBuffer.ts
+  h_a3c79ce84ffdc2 8,31,76,85,95-96,100,114
+packages/rhi-webgl/src/GLCapability.ts
+  h_a3c79ce84ffdc2 1,16,20-21,26,48,92-93,100,112-113,120-234,257,261,263,265-266
+packages/rhi-webgl/src/GLPrimitive.ts
+  h_a3c79ce84ffdc2 1,13,27,59-61,63-66,69,82,117
+packages/rhi-webgl/src/GLRenderStates.ts
+  h_a3c79ce84ffdc2 5,8,10
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_a3c79ce84ffdc2 16,27,33,35,47,50-51,59,74,124,232-233,267,279-280,317
+packages/rhi-webgl/src/GLTexture.ts
+  h_a3c79ce84ffdc2 28,31,33-35,40,42-43,49,51,57,59,65,67,73,75-79,81,83,85-96,100-101,103-106,109,111-112,114-116,119,138,146,271,273,279,281,287,295,333,343-344,348,350,363,391-395,418-419,421-425,429,466,495,497-499,525,579-580,597,602-610,619-620
+packages/rhi-webgl/src/GLTexture2D.ts
+  h_a3c79ce84ffdc2 12,15-16,42
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  h_a3c79ce84ffdc2 1,10,12,16,115,119
+packages/rhi-webgl/src/GLTextureCube.ts
+  h_a3c79ce84ffdc2 12,15-16,33,42-51
+packages/rhi-webgl/src/GLTransformFeedback.ts
+  h_a3c79ce84ffdc2 14
+packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  h_a3c79ce84ffdc2 1-6
+packages/rhi-webgl/src/WebGLEngine.ts
+  h_a3c79ce84ffdc2 1,6,20
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_a3c79ce84ffdc2 9,11,13-14,23,76,79,93,95-96,98-100,122,186-188,192-193,195-198,201-205,242,246,251,260,263-264,268,271-272,298-309,383,385,528-529,589,601
+packages/rhi-webgl/src/index.ts
+  h_a3c79ce84ffdc2 5
+packages/rhi-webgl/src/type.ts
+  h_a3c79ce84ffdc2 8
+packages/shader-analyzer/package.json
+  h_a3c79ce84ffdc2 3
+packages/shader-compiler/package.json
+  h_a3c79ce84ffdc2 3
+packages/shader-compiler/src/GLESBackend.ts
+  h_a3c79ce84ffdc2 9,30-33,50
+packages/shader-compiler/src/ShaderPrecompiler.ts
+  h_a3c79ce84ffdc2 52
+packages/shader-compiler/src/bundler/precompile.ts
+  h_a3c79ce84ffdc2 70,75,108,148,194,283
+packages/shader-compiler/src/bundler/rollup.ts
+  h_a3c79ce84ffdc2 15
+packages/shader-compiler/src/codeGen/GLES300.ts
+  h_a3c79ce84ffdc2 2,57-71,77-83,86-102,105,107,110,113,115,117,151,164,167,223-231
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  h_a3c79ce84ffdc2 483
+packages/shader-compiler/src/codeGen/NameAllocator.ts
+  h_a3c79ce84ffdc2 2
+packages/shader-parser/package.json
+  h_a3c79ce84ffdc2 3
+packages/shader-parser/src/parser/AST.ts
+  h_a3c79ce84ffdc2 452
+packages/shader/package.json
+  h_a3c79ce84ffdc2 3
+packages/shader/src/ShaderLibrary/BlinnPhong/ForwardPassBlinnPhong.glsl
+  h_a3c79ce84ffdc2 78
+packages/shader/src/ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl
+  h_a3c79ce84ffdc2 41,45,49
+packages/shader/src/ShaderLibrary/Common/Common.glsl
+  h_a3c79ce84ffdc2 49,55,85
+packages/shader/src/ShaderLibrary/PBR/BSDF.glsl
+  h_a3c79ce84ffdc2 352,392
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  h_a3c79ce84ffdc2 139,160,190,333
+packages/shader/src/ShaderLibrary/PBR/LightIndirectFunctions.glsl
+  h_a3c79ce84ffdc2 22
+packages/shader/src/ShaderLibrary/PBR/VertexPBR.glsl
+  h_a3c79ce84ffdc2 68
+packages/shader/src/ShaderLibrary/Particle/Module/NoiseModule.glsl
+  h_a3c79ce84ffdc2 54
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl
+  h_a3c79ce84ffdc2 1-2,10-46
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  h_a3c79ce84ffdc2 11-33,35-45
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl
+  h_a3c79ce84ffdc2 9,13,15-20,23-24
+packages/shader/src/ShaderLibrary/PostProcess/FXAA/FXAA3_11.glsl
+  h_a3c79ce84ffdc2 508,609-613,635-638
+packages/shader/src/ShaderLibrary/PostProcess/Filtering.glsl
+  h_a3c79ce84ffdc2 41-44
+packages/shader/src/ShaderLibrary/PostProcess/FinalAntiAliasing.glsl
+  h_a3c79ce84ffdc2 7
+packages/shader/src/ShaderLibrary/PostProcess/FinalSRGB.glsl
+  h_a3c79ce84ffdc2 9
+packages/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  h_a3c79ce84ffdc2 13,20,24,26,30,33,36
+packages/shader/src/ShaderLibrary/Shadow/Shadow.glsl
+  h_a3c79ce84ffdc2 51,54,62-65,74,79-87,104
+packages/shader/src/ShaderLibrary/Skin/Skin.glsl
+  h_a3c79ce84ffdc2 11,13-16
+packages/shader/src/ShaderLibrary/index.ts
+  h_a3c79ce84ffdc2 44,106
+packages/shader/src/Shaders/2D/Spine.shader
+  h_a3c79ce84ffdc2 63
+packages/shader/src/Shaders/2D/Sprite.shader
+  h_a3c79ce84ffdc2 47
+packages/shader/src/Shaders/2D/UIDefault.shader
+  h_a3c79ce84ffdc2 53
+packages/shader/src/Shaders/Blit/Blit.shader
+  h_a3c79ce84ffdc2 37
+packages/shader/src/Shaders/Blit/BlitScreen.shader
+  h_a3c79ce84ffdc2 39
+packages/shader/src/Shaders/Effect/Particle.shader
+  h_a3c79ce84ffdc2 89,94
+packages/shader/src/Shaders/Effect/Trail.shader
+  h_a3c79ce84ffdc2 136,142
+packages/shader/src/Shaders/Pipeline/ShadowCaster.shader
+  h_a3c79ce84ffdc2 69
+packages/shader/src/Shaders/PostProcess/Bloom.shader
+  h_a3c79ce84ffdc2 16,26,29,35-42
+packages/shader/src/Shaders/Sky/BackgroundTexture.shader
+  h_a3c79ce84ffdc2 35
+packages/shader/src/Shaders/Unlit.shader
+  h_a3c79ce84ffdc2 135
+packages/spine-core-3.8/package.json
+  h_a3c79ce84ffdc2 3
+packages/spine-core-4.2/package.json
+  h_a3c79ce84ffdc2 3
+packages/spine/README.md
+  h_a3c79ce84ffdc2 134
+packages/spine/package.json
+  h_a3c79ce84ffdc2 3
+packages/ui/package.json
+  h_a3c79ce84ffdc2 3
+packages/ui/src/Utils.ts
+  h_a3c79ce84ffdc2 30,32-40,45,143-145
+packages/ui/src/component/UICanvas.ts
+  h_a3c79ce84ffdc2 388-389,412-416,637
+packages/xr-webxr/package.json
+  h_a3c79ce84ffdc2 3,38,40-42
+packages/xr-webxr/src/WebXRDevice.ts
+  h_a3c79ce84ffdc2 1-2,48-51,71,73,90
+packages/xr-webxr/src/WebXRFrame.ts
+  h_a3c79ce84ffdc2 2
+packages/xr-webxr/src/WebXRSession.ts
+  h_a3c79ce84ffdc2 1,78-83,111-117,122,127,163,170-175
+packages/xr-webxr/src/feature/WebXRPlaneTracking.ts
+  h_a3c79ce84ffdc2 2
+packages/xr/package.json
+  h_a3c79ce84ffdc2 3
+packages/xr/src/session/XRSessionManager.ts
+  h_a3c79ce84ffdc2 2,93,130,147,184
+pnpm-lock.yaml
+  h_a3c79ce84ffdc2 55,270-275,355-357,387-389,417-419,5190
+tests/package-consumer/HeadlessEngine.test.ts
+  h_a3c79ce84ffdc2 1-690
+tests/package-consumer/PublishedShaderPackages.test.ts
+  h_a3c79ce84ffdc2 121,273,278,285,294,304-305,307-308,313,327,355,519,682-683,702,706
+tests/package-consumer/fixtures/DeferredOwnershipRoundTrip.js
+  h_a3c79ce84ffdc2 59,68
+tests/package.json
+  h_a3c79ce84ffdc2 4,23
+tests/src/core/Animator.test.ts
+  h_a3c79ce84ffdc2 1943-1989
+tests/src/core/AssetPromise.test.ts
+  h_a3c79ce84ffdc2 1-2,192-289
+tests/src/core/BuiltinShaderIdentity.test.ts
+  h_a3c79ce84ffdc2 12,130-131
+tests/src/core/Camera.test.ts
+  h_a3c79ce84ffdc2 10-11,15,92,128-141
+tests/src/core/RenderPipeline/RenderTargetPool.test.ts
+  h_a3c79ce84ffdc2 25,43
+tests/src/core/RenderingStatistics.test.ts
+  h_a3c79ce84ffdc2 24,35,46,57,88,102,116,129,145,176,218,226,258
+tests/src/core/Scene.test.ts
+  h_a3c79ce84ffdc2 14
+tests/src/core/Shader.test.ts
+  h_a3c79ce84ffdc2 11,28,323-350,352-365
+tests/src/core/ShaderIdentity.test.ts
+  h_a3c79ce84ffdc2 51,54,91
+tests/src/core/SpriteRenderer.test.ts
+  h_a3c79ce84ffdc2 136,184,258,362
+tests/src/core/Transform.test.ts
+  h_a3c79ce84ffdc2 10-11,13,15,53-152
+tests/src/core/audio/AudioSourcePendingPlayback.test.ts
+  h_a3c79ce84ffdc2 5-28,102,107,111,114,124-126,131-132,171,181,203-215,290-304,307-767,784,798,807,817,822,838,842,849-1140,1155,1158,1181-1182,1185,1192,1196,1201,1228-1380,1390,1397,1530,1536,1541,1585,1599,1608-1609,1612-1615,1625,1628-1635,1641-1648,1650-1651,1654-1657,1705,1709,1715,1717,1730,1734,1748-1750
+tests/src/core/material/Material.test.ts
+  h_a3c79ce84ffdc2 57
+tests/src/core/material/PBRAnisotropy.test.ts
+  h_a3c79ce84ffdc2 88,94,194,369,391,416,442-443,1116,1176-1185,1187-1190,1192
+tests/src/core/mesh/BlendShapeManager.test.ts
+  h_a3c79ce84ffdc2 10
+tests/src/core/mesh/PrimitiveMesh.test.ts
+  h_a3c79ce84ffdc2 1,4,181-184,186-191
+tests/src/core/particle/InheritVelocity.test.ts
+  h_a3c79ce84ffdc2 17
+tests/src/core/particle/SubEmitter.test.ts
+  h_a3c79ce84ffdc2 3198,3285,3389
+tests/src/core/particle/SubEmitterRendering.test.ts
+  h_a3c79ce84ffdc2 19,34
+tests/src/core/particle/VelocityOverLifetime.test.ts
+  h_a3c79ce84ffdc2 111-112,117-118
+tests/src/core/postProcess/PostProcess.test.ts
+  h_a3c79ce84ffdc2 4,10,16,22-24,28,166,174-180,196,222,445-953
+tests/src/core/resource/ResourceManager.test.ts
+  h_a3c79ce84ffdc2 1,180-182
+tests/src/core/shader/ShaderPropertyIsolation.test.ts
+  h_a3c79ce84ffdc2 1-47,50-52,54-58,61-117,120-131,134-140,142-320
+tests/src/core/texture/FloatTexture.test.ts
+  h_a3c79ce84ffdc2 1-188
+tests/src/core/texture/RenderTarget.test.ts
+  h_a3c79ce84ffdc2 1,77-91,105-107
+tests/src/core/texture/Texture2D.test.ts
+  h_a3c79ce84ffdc2 3,20,45,49,52-53,58,61,63,74,90,107,127
+tests/src/core/texture/TextureCubeMap.test.ts
+  h_a3c79ce84ffdc2 3,21,48,52,56,65,70,73,75,86
+tests/src/loader/ImageDecoder.test.ts
+  h_a3c79ce84ffdc2 1-10,181-243
+tests/src/loader/KTX2Loader.test.ts
+  h_a3c79ce84ffdc2 86
+tests/src/loader/MaterialLoader.test.ts
+  h_a3c79ce84ffdc2 1,4,17,31,78,179-183,281-282,289-310,315,317-318,320,323
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  h_a3c79ce84ffdc2 708-723
+tests/src/loader/RenderTargetLoader.test.ts
+  h_a3c79ce84ffdc2 36,75,92,99,115,143
+tests/src/loader/SceneFormatV2.test.ts
+  h_a3c79ce84ffdc2 21,490,744,1027,1030,1035-1039,1041,1044,1055,1065,1068-1101
+tests/src/loader/TextureLoader.test.ts
+  h_a3c79ce84ffdc2 1,78-118
+tests/src/rhi-webgl/GLCapability.test.ts
+  h_a3c79ce84ffdc2 2,13,22
+tests/src/rhi-webgl/HeadlessEngine.test.ts
+  h_a3c79ce84ffdc2 1-96
+tests/src/rhi-webgl/WebGLEngine.test.ts
+  h_a3c79ce84ffdc2 13-31
+tests/src/shader-analyzer/LoopReturnCoverage.test.ts
+  h_a3c79ce84ffdc2 2,16-35,38-39,41
+tests/src/shader-analyzer/MacroBranchMatrix.test.ts
+  h_a3c79ce84ffdc2 28
+tests/src/shader-analyzer/ReviewRegression.test.ts
+  h_a3c79ce84ffdc2 78,573,587,601,691,721
+tests/src/shader-compiler/CollectiveInheritance.test.ts
+  h_a3c79ce84ffdc2 63,107,115,201,346
+tests/src/shader-compiler/ConditionCoverageFallback.test.ts
+  h_a3c79ce84ffdc2 62,116,124,134,230,423,517,519
+tests/src/shader-compiler/ConditionImplicationInheritance.test.ts
+  h_a3c79ce84ffdc2 85,124,132,202,353
+tests/src/shader-compiler/ConditionalIOCoverage.test.ts
+  h_a3c79ce84ffdc2 130,197
+tests/src/shader-compiler/ConditionalInheritance.test.ts
+  h_a3c79ce84ffdc2 19,306
+tests/src/shader-compiler/ConditionalOutputArguments.test.ts
+  h_a3c79ce84ffdc2 53,110,113,132
+tests/src/shader-compiler/DeclarationIdentity.test.ts
+  h_a3c79ce84ffdc2 1,51-52,57
+tests/src/shader-compiler/DeferredStructOwnership.test.ts
+  h_a3c79ce84ffdc2 12,134,151
+tests/src/shader-compiler/DiagnosticDriverConsistency.test.ts
+  h_a3c79ce84ffdc2 33,37,439,862
+tests/src/shader-compiler/DiscardStageDiagnostic.test.ts
+  h_a3c79ce84ffdc2 292,295,315
+tests/src/shader-compiler/ExternalConditionInheritance.test.ts
+  h_a3c79ce84ffdc2 132,181,186
+tests/src/shader-compiler/ExternalMacroPrecedence.test.ts
+  h_a3c79ce84ffdc2 30,37,85
+tests/src/shader-compiler/ForwardFunctionDeclarations.test.ts
+  h_a3c79ce84ffdc2 135,232,274,280,287
+tests/src/shader-compiler/FunctionPrototypeLifetime.test.ts
+  h_a3c79ce84ffdc2 9,170,174,180
+tests/src/shader-compiler/HeadlessRegression.test.ts
+  h_a3c79ce84ffdc2 26
+tests/src/shader-compiler/InterfaceMRTConversion.test.ts
+  h_a3c79ce84ffdc2 1,93,98,115
+tests/src/shader-compiler/InterfaceValueSemantics.test.ts
+  h_a3c79ce84ffdc2 184,191,413,423,442
+tests/src/shader-compiler/LayeredInheritanceCoverage.test.ts
+  h_a3c79ce84ffdc2 9,39,46
+tests/src/shader-compiler/MacroBodyWriteEffects.test.ts
+  h_a3c79ce84ffdc2 67,165,175,183,185-186,202
+tests/src/shader-compiler/MacroBranchRuntime.test.ts
+  h_a3c79ce84ffdc2 36,51,53,59,92,112,131,152,169,185,200,215,232,545,580,586,657,678,728,793,851,887,917,976,1012,1042,1071,1104,1130,1157,1184,1219,1266,1322,1416,1480,1504,1555
+tests/src/shader-compiler/MacroTextExpansion.test.ts
+  h_a3c79ce84ffdc2 129
+tests/src/shader-compiler/ParticleFeedbackReturn.test.ts
+  h_a3c79ce84ffdc2 6,16,23
+tests/src/shader-compiler/Precompile.test.ts
+  h_a3c79ce84ffdc2 47,85,113,139,185,804,806,809,815-820,895,918,939,943,948,969,980,987,1002,1018,1037,1052,1128,1172,1195,1204,1216,1247,1260,1278,1300,1312,1324,1340,1364,1377,1417,1423,1442
+tests/src/shader-compiler/PrecompileABTest.test.ts
+  h_a3c79ce84ffdc2 143,154,165-166,192,203,245,249,254,259,264,269,273,277,281,288,296,301,306,311,316,321,325,329,340,346,362,364,379,381,399,437,441,445,450,455,459,471,483,510,536,571,601,626,646,658,678
+tests/src/shader-compiler/PrecompileBenchmark.test.ts
+  h_a3c79ce84ffdc2 176,193,243,281,327
+tests/src/shader-compiler/PreprocessorCacheIdentity.test.ts
+  h_a3c79ce84ffdc2 22,29,80
+tests/src/shader-compiler/PreprocessorConditionConformance.test.ts
+  h_a3c79ce84ffdc2 178,183,219,243,359,390,428,432,444,463,487,491,506,510,541,635,650,681,689,713,720
+tests/src/shader-compiler/PreprocessorReachability.test.ts
+  h_a3c79ce84ffdc2 30,41,57,139
+tests/src/shader-compiler/ReturnStatementInvariant.test.ts
+  h_a3c79ce84ffdc2 1,44,55-56,60
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  h_a3c79ce84ffdc2 18,42-90,93,97-131,144-153,155-156,159,161,166,210,274,541,557,560-561,574,593,615,622,636,650,662,665,709,910,912-913,961-984,1022-1023,1042,1074,1113,1140,1158-1163,1180-1185,1199-1204,1212,1395,1400,1430-1436,1441
+tests/src/shader-compiler/ShaderNeutralIR.test.ts
+  h_a3c79ce84ffdc2 165,184,201,216,233,257,279,317,390,411,436,465,467-468
+tests/src/shader-compiler/ShaderValidate.ts
+  h_a3c79ce84ffdc2 46
+tests/src/shader-compiler/StateIsolation.test.ts
+  h_a3c79ce84ffdc2 173
+tests/src/shader-compiler/TransformFeedbackNames.test.ts
+  h_a3c79ce84ffdc2 2,34,92,110,118
+tests/src/shader-compiler/TypeDependencies.test.ts
+  h_a3c79ce84ffdc2 1,109-110,115
+tests/src/shader-compiler/expected/define-struct-access-global.frag.glsl
+  h_a3c79ce84ffdc2 1,5,19
+tests/src/shader-compiler/expected/define-struct-access-global.vert.glsl
+  h_a3c79ce84ffdc2 6-7,15
+tests/src/shader-compiler/expected/define-struct-access.frag.glsl
+  h_a3c79ce84ffdc2 1,6-7,21
+tests/src/shader-compiler/expected/define-struct-access.vert.glsl
+  h_a3c79ce84ffdc2 6-7,16-17
+tests/src/ui/UICanvas.test.ts
+  h_a3c79ce84ffdc2 4,119-124,383-443
+tests/src/ui/UICanvasEdge.test.ts
+  h_a3c79ce84ffdc2 1-241
+tests/src/xr/Lifecycle.test.ts
+  h_a3c79ce84ffdc2 37-38,55-59,61-69,97,115,141
+tests/src/xr/TrackingLoss.test.ts
+  h_a3c79ce84ffdc2 1-3,112-121,136-155
+tests/vitest.config.ts
+  h_a3c79ce84ffdc2 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5246ab3fa6d0e94b9c2b5f9c09df602d3358c866",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

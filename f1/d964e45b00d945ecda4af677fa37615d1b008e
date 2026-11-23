@@ -1,0 +1,19 @@
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  s_36995aaa7af5af::t_086013e820bbb6 39,41,43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f1d964e45b00d945ecda4af677fa37615d1b008e",
+  "prompts": {},
+  "sessions": {
+    "s_36995aaa7af5af": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a2073f-9214-744c-8652-30efc2dc4e67",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

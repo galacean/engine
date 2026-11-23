@@ -1,0 +1,32 @@
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_c385727b10f40c 89,195,213,224,248
+packages/core/src/postProcess/FinalPass.ts
+  h_c385727b10f40c 77,89,101
+packages/core/src/Engine.ts
+  h_c385727b10f40c 244
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_c385727b10f40c 296,401
+packages/core/src/renderingHardwareInterface/RenderBufferLoadAction.ts
+  h_c385727b10f40c 3-7,13-14
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_c385727b10f40c 97-98,123-124,469-472,474,480,641-642,708-781
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_c385727b10f40c 18,45-46
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_c385727b10f40c 150,165,180
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_c385727b10f40c 102,106,123,126,129,131,138,140,145,147,149,156,158,162,164,166,173,176-179,183,192,195-197,201,208,210,213-215,218,265,267,276,281,283,285,292,295-297,300,302,309,313,323,326-328,331,337,344,347-349,355,360,367,369,374,388,394,405,407,470,472,475,478,480-485,494,497,504-505,515,525,528,533,535-536,538,540,542-543,545,547,549-553,560,727-728,777
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_c385727b10f40c 61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "acd9b68831599203d370ae6b17d3eefccc5fa326",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

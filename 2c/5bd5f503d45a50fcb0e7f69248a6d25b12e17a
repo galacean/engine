@@ -1,0 +1,20 @@
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 250,290,307
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 87-88
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 864-866,868-869
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 1942-1950
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2c5bd5f503d45a50fcb0e7f69248a6d25b12e17a",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,50 @@
+docs/en/graphics/postProcess/customPostProcess.mdx
+  h_c385727b10f40c 123-138
+docs/zh/graphics/postProcess/customPostProcess.mdx
+  h_c385727b10f40c 123-138
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_c385727b10f40c 12,240,242-243,245-246,249-250,252,254,270,297,302,305,388-389
+packages/core/src/RenderPipeline/Blitter.ts
+  h_c385727b10f40c 4,30-33,37,53,63,65-66,77-79
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  h_c385727b10f40c 3,44-45
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_c385727b10f40c 4,53
+packages/core/src/RenderPipeline/RenderContext.ts
+  h_c385727b10f40c 6-7,85-110
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_c385727b10f40c 9,143,152,161
+packages/core/src/postProcess/FinalPass.ts
+  h_c385727b10f40c 9,67-68,75
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_c385727b10f40c 7,87-88,196,204,214
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_c385727b10f40c 70-73,75-77
+packages/core/src/renderingHardwareInterface/RenderPassDescriptor.ts
+  h_c385727b10f40c 3-4,7,10,13,15,17,19,21,24-28,31-35,38-42,47-52,71-72,75-76,79-80
+packages/core/src/renderingHardwareInterface/RenderPassLoadAction.ts
+  h_c385727b10f40c 2,4-6,8,11
+packages/core/src/renderingHardwareInterface/RenderPassStoreAction.ts
+  h_c385727b10f40c 2,4-6,8,13,15
+packages/core/src/renderingHardwareInterface/index.ts
+  h_c385727b10f40c 13-14
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_c385727b10f40c 9,126-127
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_c385727b10f40c 159-161
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_c385727b10f40c 23-24,102-104,451-456,481-483,485-486,491,494,498-499,738-740
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_c385727b10f40c 6,13-14,137,139-143,154,166,179,192,204-205,214-215,225-229,246,257-260,270,282,289-290,306-307,326-331,477,501,521,532,539,546,553,556,569,572,588-590,658,660-662,679-681,887-949
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7652e939b8dd743ec93897bdda4ceafacdb16f1c",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

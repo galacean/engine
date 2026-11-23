@@ -1,0 +1,21 @@
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_3cd6502d102d7f::t_ac80da63389aab 8,20,38,69-70,99,110-120,123,128,150-151,154-155,157-167,169,171,174,183-184,186-190,194,203,207-208,218-219,223-224,228,230,247-253,256,258-262,265
+tests/src/core/postProcess/PostProcess.test.ts
+  s_3cd6502d102d7f::t_3e337393c16822 4,10,16,22-24,28,166,174-180,196,222,445-953
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "007ff1131d9420a1da2cdefb8a37965698697b9e",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}
