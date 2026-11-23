@@ -86,7 +86,7 @@ export class PostProcessUberPass extends PostProcessPass {
       this._uberMaterial,
       undefined,
       undefined,
-      RenderBufferLoadAction.DontCare
+      RenderBufferLoadAction.Clear
     );
   }
 
@@ -192,7 +192,7 @@ export class PostProcessUberPass extends PostProcessPass {
       bloomMaterial,
       0,
       undefined,
-      RenderBufferLoadAction.DontCare
+      RenderBufferLoadAction.Clear
     );
 
     // Down sample - gaussian pyramid
@@ -210,7 +210,7 @@ export class PostProcessUberPass extends PostProcessPass {
         bloomMaterial,
         1,
         undefined,
-        RenderBufferLoadAction.DontCare
+        RenderBufferLoadAction.Clear
       );
       Blitter._blitTexture(
         engine,
@@ -221,7 +221,7 @@ export class PostProcessUberPass extends PostProcessPass {
         bloomMaterial,
         2,
         undefined,
-        RenderBufferLoadAction.DontCare
+        RenderBufferLoadAction.Clear
       );
       lastDown = this._mipDownRT[i];
     }
@@ -245,7 +245,7 @@ export class PostProcessUberPass extends PostProcessPass {
         bloomMaterial,
         3,
         undefined,
-        RenderBufferLoadAction.DontCare
+        RenderBufferLoadAction.Clear
       );
     }
 

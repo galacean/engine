@@ -74,7 +74,7 @@ export class FinalPass extends PipelinePass {
         this._sRGBmaterial,
         0,
         undefined,
-        RenderBufferLoadAction.DontCare
+        RenderBufferLoadAction.Clear
       );
       const sRGBTexture = <Texture2D>this._srgbRenderTarget!.getColorTexture();
       Blitter._blitTexture(
@@ -86,7 +86,7 @@ export class FinalPass extends PipelinePass {
         this._antiAliasingMaterial,
         0,
         undefined,
-        RenderBufferLoadAction.DontCare
+        RenderBufferLoadAction.Clear
       );
     } else {
       Blitter._blitTexture(
@@ -98,7 +98,7 @@ export class FinalPass extends PipelinePass {
         this._sRGBmaterial,
         0,
         undefined,
-        RenderBufferLoadAction.DontCare
+        RenderBufferLoadAction.Clear
       );
     }
   }

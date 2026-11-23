@@ -94,6 +94,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   _currentBindShaderProgram: IPlatformShaderProgram | null;
   /** @internal */
+  _lastRenderState?: IHardwareRenderer["_lastRenderState"];
+  /** @internal */
   _supportsInvalidateFramebuffer: boolean = true;
   /** @internal */
   _activeRenderTarget: RenderTarget | null = null;
@@ -118,6 +120,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _lastViewport: Vector4 = new Vector4(null!, null!, null!, null!);
   private _lastScissor: Vector4 = new Vector4(null!, null!, null!, null!);
   private _lastClearColor: Color = new Color(null!, null!, null!, null!);
+  private _lastClearDepth: number = 1;
+  private _lastClearStencil: number = 0;
   private _scissorEnable: boolean = false;
   private _activeTargetWidth: number = 0;
   private _activeTargetHeight: number = 0;
@@ -462,23 +466,18 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this.viewport(x, y, width, height);
     this.scissor(x, y, width, height);
 
-    // Hint TBDR GPUs to skip loading stale memory into tile cache on full-target DontCare activation (LoadAction::DontCare)
-    const discardColorLoad = colorLoadAction === RenderBufferLoadAction.DontCare;
-    const discardDepthLoad = depthLoadAction === RenderBufferLoadAction.DontCare;
+    // Clear full-target attachments on LoadAction.Clear so TBDR GPUs hit hardware MTLLoadActionClear
+    // (zero DRAM tile load) while keeping WebGL2 RobustResourceInit satisfied (avoids iOS ANGLE-Metal CPU replaceRegion)
+    const clearColorLoad = colorLoadAction === RenderBufferLoadAction.Clear;
+    const clearDepthLoad = depthLoadAction === RenderBufferLoadAction.Clear;
     if (
-      (discardColorLoad || discardDepthLoad) &&
+      (clearColorLoad || clearDepthLoad) &&
       viewport.x === 0 &&
       viewport.y === 0 &&
       viewport.z === 1 &&
       viewport.w === 1
     ) {
-      this._invalidateFrameBufferAttachments(
-        this._gl.FRAMEBUFFER,
-        renderTarget,
-        discardColorLoad,
-        discardDepthLoad,
-        discardDepthLoad
-      );
+      this._clearFrameBufferAttachments(renderTarget, clearColorLoad, clearDepthLoad, clearDepthLoad);
     }
   }
 
@@ -639,6 +638,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._lastViewport.set(null!, null!, null!, null!);
     this._lastScissor.set(null!, null!, null!, null!);
     this._lastClearColor.set(null!, null!, null!, null!);
+    this._lastClearDepth = 1;
+    this._lastClearStencil = 0;
     this._scissorEnable = false;
 
     this._initGLState(this._gl);
@@ -702,6 +703,80 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._activeTargetHeight = 0;
     this._activeColorStoreAction = RenderBufferStoreAction.Store;
     this._activeDepthStoreAction = RenderBufferStoreAction.Store;
+  }
+
+  /** @internal */
+  _clearFrameBufferAttachments(
+    renderTarget: RenderTarget | null,
+    clearColor: boolean,
+    clearDepth: boolean,
+    clearStencil: boolean,
+    colorValue?: Color | null,
+    depthValue: number = 1,
+    stencilValue: number = 0
+  ): void {
+    // Skip default WebGL backbuffer when no explicit clearColor is requested (browser compositor manages discard)
+    if (!renderTarget && !this._mainFrameBuffer && !colorValue) {
+      return;
+    }
+
+    const gl = this._gl;
+    if (renderTarget) {
+      const glRT = renderTarget._platformRenderTarget as GLRenderTarget;
+      clearColor = clearColor && glRT._oriDrawBuffers.length > 0;
+      clearDepth = clearDepth && glRT._hasDepth;
+      clearStencil = clearStencil && glRT._hasStencil;
+    }
+
+    let clearMask = 0;
+    const lastRenderState = this._lastRenderState;
+    if (clearColor) {
+      clearMask |= gl.COLOR_BUFFER_BIT;
+      const r = colorValue ? colorValue.r : 0;
+      const g = colorValue ? colorValue.g : 0;
+      const b = colorValue ? colorValue.b : 0;
+      const a = colorValue ? colorValue.a : 0;
+      const lc = this._lastClearColor;
+      if (r !== lc.r || g !== lc.g || b !== lc.b || a !== lc.a) {
+        gl.clearColor(r, g, b, a);
+        lc.set(r, g, b, a);
+      }
+      if (!lastRenderState || lastRenderState.blendState.targetBlendState.colorWriteMask !== ColorWriteMask.All) {
+        gl.colorMask(true, true, true, true);
+        if (lastRenderState) {
+          lastRenderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.All;
+        }
+      }
+    }
+    if (clearDepth) {
+      clearMask |= gl.DEPTH_BUFFER_BIT;
+      if (depthValue !== this._lastClearDepth) {
+        gl.clearDepth(depthValue);
+        this._lastClearDepth = depthValue;
+      }
+      if (!lastRenderState || lastRenderState.depthState.writeEnabled !== true) {
+        gl.depthMask(true);
+        if (lastRenderState) {
+          lastRenderState.depthState.writeEnabled = true;
+        }
+      }
+    }
+    if (clearStencil) {
+      clearMask |= gl.STENCIL_BUFFER_BIT;
+      if (stencilValue !== this._lastClearStencil) {
+        gl.clearStencil(stencilValue);
+        this._lastClearStencil = stencilValue;
+      }
+      if (!lastRenderState || lastRenderState.stencilState.writeMask !== 0xff) {
+        gl.stencilMask(0xff);
+        if (lastRenderState) {
+          lastRenderState.stencilState.writeMask = 0xff;
+        }
+      }
+    }
+    if (clearMask !== 0) {
+      gl.clear(clearMask);
+    }
   }
 
   /** @internal */

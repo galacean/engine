@@ -15,6 +15,7 @@ import type { IPlatformTexture2DArray } from "./IPlatformTexture2DArray";
 import type { IPlatformTextureCube } from "./IPlatformTextureCube";
 import type { IPlatformTransformFeedback } from "./IPlatformTransformFeedback";
 import type { IPlatformTransformFeedbackPrimitive } from "./IPlatformTransformFeedbackPrimitive";
+import type { RenderState } from "../shader/state/RenderState";
 import type { RenderBufferLoadAction } from "./RenderBufferLoadAction";
 import type { RenderBufferStoreAction } from "./RenderBufferStoreAction";
 
@@ -41,6 +42,8 @@ export interface IHardwareRenderer {
   _currentBindShaderProgram: IPlatformShaderProgram | null;
   /** @internal */
   _enableGlobalDepthBias: boolean;
+  /** @internal */
+  _lastRenderState?: RenderState;
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void;
   canIUse(capability: GLCapabilityType): boolean;

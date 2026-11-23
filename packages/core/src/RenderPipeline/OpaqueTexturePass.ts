@@ -58,7 +58,7 @@ export class OpaqueTexturePass extends PipelinePass {
       null,
       0,
       undefined,
-      RenderBufferLoadAction.DontCare
+      RenderBufferLoadAction.Clear
     );
     context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget.getColorTexture(0));
   }

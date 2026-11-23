@@ -293,7 +293,7 @@ export class BasicRenderPipeline {
             camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial,
             0,
             undefined,
-            RenderBufferLoadAction.DontCare
+            RenderBufferLoadAction.Clear
           );
         } else {
           // Only blit color buffer from back buffer
@@ -398,7 +398,7 @@ export class BasicRenderPipeline {
         null,
         0,
         undefined,
-        RenderBufferLoadAction.DontCare
+        RenderBufferLoadAction.Clear
       );
     }
 

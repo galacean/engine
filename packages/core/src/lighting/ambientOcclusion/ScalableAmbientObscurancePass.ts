@@ -147,7 +147,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       material,
       0,
       undefined,
-      RenderBufferLoadAction.DontCare
+      RenderBufferLoadAction.Clear
     );
 
     // Horizontal blur, saoRenderTarget -> blurRenderTarget
@@ -162,7 +162,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       material,
       1,
       offsetX,
-      RenderBufferLoadAction.DontCare
+      RenderBufferLoadAction.Clear
     );
 
     // Vertical blur, blurRenderTarget -> saoRenderTarget
@@ -177,7 +177,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       material,
       1,
       offsetY,
-      RenderBufferLoadAction.DontCare
+      RenderBufferLoadAction.Clear
     );
 
     // Set the SAO texture
