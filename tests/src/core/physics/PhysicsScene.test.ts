@@ -992,6 +992,65 @@ describe("Physics Test", () => {
       material.destroy();
     });
 
+    it("raycastAll preserves outer hits across nested queries and gc", () => {
+      const nativeScene = physicsBackend.createPhysicsScene();
+      const material = physicsBackend.createPhysicsMaterial({
+        staticFriction: 0.5,
+        dynamicFriction: 0.5,
+        bounciness: 0,
+        frictionCombine: 0,
+        bounceCombine: 0
+      });
+      const rotation = new Quaternion();
+      const halfExtents = new Vector3(0.5, 0.5, 0.5);
+      const bodies = [1, 2, 3, 4, 5, 6].map((id) => {
+        const y = id <= 3 ? 0 : 4;
+        const x = (id <= 3 ? id : id - 3) * 2;
+        const actor = physicsBackend.createStaticActor(new Vector3(x, y, 0), rotation);
+        const shape = physicsBackend.createBoxShape(id, halfExtents, material);
+        actor.addShape(shape);
+        nativeScene.addActor(actor);
+        return { actor, shape };
+      });
+
+      try {
+        const direction = new Vector3(1, 0, 0);
+        const outerOrigin = new Vector3(0, 0, 0);
+        const innerOrigin = new Vector3(0, 4, 0);
+
+        const runNested = (): void => {
+          const outerIds: number[] = [];
+          const innerIds: number[] = [];
+          const retainedPositions: Vector3[] = [];
+          nativeScene.raycastAll(outerOrigin, direction, 10, Layer.Everything, (id, _distance, position) => {
+            outerIds.push(id);
+            retainedPositions.push(position.clone());
+            if (outerIds.length === 1) {
+              nativeScene.raycastAll(innerOrigin, direction, 10, Layer.Everything, (innerId) => {
+                innerIds.push(innerId);
+              });
+            }
+          });
+          expect(outerIds.sort((a, b) => a - b)).to.deep.equal([1, 2, 3]);
+          expect(innerIds.sort((a, b) => a - b)).to.deep.equal([4, 5, 6]);
+          expect(retainedPositions).to.have.length(3);
+        };
+
+        runNested();
+        nativeScene.gc();
+        runNested();
+      } finally {
+        for (const { actor, shape } of bodies) {
+          nativeScene.removeActor(actor);
+          actor.removeShape(shape);
+          shape.destroy();
+          actor.destroy();
+        }
+        nativeScene.destroy();
+        material.destroy();
+      }
+    });
+
     it("raycastAll returns every hit beyond the native touch chunk", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
@@ -1651,6 +1710,35 @@ describe("Physics Test", () => {
       expect(shapesCustom).to.include.members([boxShape, boxShape2]);
 
       root.destroy();
+    });
+
+    it("overlapBoxAll does not reuse previous rotation for degenerate quaternions", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physics = scene.physics;
+      const root = scene.createRootEntity("overlap-box-zero-quaternion");
+      const target = root.createChild("target");
+      target.transform.setPosition(0, 1.5, 0);
+      const targetCollider = target.addComponent(BoxCollider);
+
+      try {
+        const center = new Vector3(0, 0, 0);
+        const halfExtents = new Vector3(2, 0.3, 0.3);
+        const identity = new Quaternion();
+        const vertical = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
+        const zero = new Quaternion(0, 0, 0, 0);
+        const nearZero = new Quaternion(0, 0, 0, 1e-8);
+
+        expect(physics.overlapBoxAll(center, halfExtents, identity)).to.have.length(0);
+        expect(physics.overlapBoxAll(center, halfExtents, zero)).to.have.length(0);
+        expect(physics.overlapBoxAll(center, halfExtents, nearZero)).to.have.length(0);
+
+        expect(physics.overlapBoxAll(center, halfExtents, vertical)).to.deep.equal([targetCollider]);
+
+        expect(physics.overlapBoxAll(center, halfExtents, zero)).to.have.length(0);
+        expect(physics.overlapBoxAll(center, halfExtents, nearZero)).to.have.length(0);
+      } finally {
+        root.destroy();
+      }
     });
 
     it("overlapAll preserves every shape beyond the native touch chunk", () => {

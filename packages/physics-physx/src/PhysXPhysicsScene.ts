@@ -63,6 +63,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   };
 
   private _triggerEventPool: TriggerEvent[] = [];
+  private _raycastBuffers?: Float64Array[];
   // Store each scene-local pair under its two collider IDs in ascending order.
   private _eventMap: Record<number, Record<number, TriggerEvent | undefined>> = Object.create(null);
   private _shapeChanges = new Map<number, ShapeChange>();
@@ -320,8 +321,24 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       PhysXPhysicsScene._emptyExcluded,
       false
     );
-    for (let i = 0, length = hits.length; i < length; i += 9) {
-      this._readHit(hits, i, onHit);
+    const length = hits.length;
+    if (!length) return;
+
+    // Nested queries can overwrite the WASM view. Keep a separate snapshot for each active dispatch.
+    const buffers = (this._raycastBuffers ||= []);
+    let buffer = buffers.pop();
+    if (!buffer || buffer.length < length) {
+      let nextLength = buffer ? buffer.length * 2 : 144;
+      while (nextLength < length) nextLength *= 2;
+      buffer = new Float64Array(nextLength);
+    }
+    buffer.set(hits);
+    try {
+      for (let i = 0; i < length; i += 9) {
+        this._readHit(buffer, i, onHit);
+      }
+    } finally {
+      buffers.push(buffer);
     }
   }
 
@@ -441,6 +458,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   gc(): void {
     this._triggerEventPool.length = 0;
+    if (this._raycastBuffers) {
+      this._raycastBuffers.length = 0;
+    }
     const events = this._physicsEvents;
     events.contactEvents.length = 0;
     events.triggerEvents.length = 0;
@@ -455,6 +475,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.destroy }
    */
   destroy(): void {
+    this._raycastBuffers = undefined;
     this._activeContacts.clear();
     this._pendingReplacedContacts.clear();
     this._boxGeometry?.delete();
@@ -559,10 +580,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     if (orientation) {
       if (axis) {
         Quaternion.multiply(orientation, axis, rotation);
-        rotation.normalize();
       } else {
-        Quaternion.normalize(orientation, rotation);
+        rotation.copyFrom(orientation);
       }
+      rotation.normalize();
     } else {
       rotation.set(0, 0, 0, 1);
     }
