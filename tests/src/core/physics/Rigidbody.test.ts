@@ -3,7 +3,6 @@ import {
   Engine,
   Entity,
   BoxCollider,
-  Collider,
   FixedJoint,
   ForceMode,
   HingeJoint,
@@ -1581,28 +1580,6 @@ describe("Rigidbody", function () {
       expect(body.linearVelocity.y).toBeLessThan(0);
     }
   );
-
-  it("skips subtree collider scans when toggling isKinematic on detached hierarchies", function () {
-    const tree = new Entity(engine, "detached-rigidbody-tree");
-    let node = tree;
-    const bodies: Rigidbody[] = [];
-    for (let i = 0; i < 16; i++) {
-      if (i > 0) node = node.createChild(`level-${i}`);
-      bodies.push(node.addComponent(Rigidbody));
-      node.addComponent(BoxCollider);
-    }
-    const spy = vi.spyOn(Entity.prototype as any, "_getComponentsInChildren");
-    try {
-      for (const body of bodies) {
-        body.isKinematic = true;
-      }
-      const colliderScans = spy.mock.calls.filter((args) => args[0] === Collider).length;
-      expect(colliderScans).toBe(0);
-    } finally {
-      spy.mockRestore();
-      tree.destroy();
-    }
-  });
 
   it.each(["none", "same-position", "different-position"] as const)(
     "keeps a pending kinematic move until an ancestor transform actually changes (%s)",

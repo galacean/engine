@@ -29,6 +29,9 @@ export class PhysicsMaterial extends ReferResource {
    * @param engine - Engine to which the physics material belongs
    */
   constructor(engine: Engine) {
+    if (!(engine instanceof Engine)) {
+      throw new Error("PhysicsMaterial requires an owning Engine.");
+    }
     const nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
     super(engine);
     this._nativeMaterial = nativeMaterial;

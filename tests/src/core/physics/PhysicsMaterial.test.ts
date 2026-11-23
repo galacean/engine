@@ -271,9 +271,11 @@ describe("PhysicsMaterial", () => {
     const context = new ParserContext(engine, ParserType.Scene, engine.sceneManager.activeScene);
     const parser = new ReflectionParser(context, []);
     const before = engine.resourceManager.findResourcesByType(PhysicsMaterial).length;
+    const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
     await expect(
       parser.parseProps(collider, { material: { $type: "PhysicsMaterial", bounciness: 0.7 } })
     ).rejects.toThrow();
+    expect(createMaterial).not.toHaveBeenCalled();
     expect(collider.material).toBeNull();
     expect(engine.resourceManager.findResourcesByType(PhysicsMaterial).length).toBe(before);
   });

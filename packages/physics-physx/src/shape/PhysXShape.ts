@@ -51,7 +51,8 @@ export abstract class PhysXShape implements IPhysicsShape {
    * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
-    this._pxShape.setContactOffsets(offset, 0);
+    // PhysX requires the contact offset to be greater than the zero rest offset.
+    this._pxShape.setContactOffsets(Math.max(offset, 2 ** -126), 0);
   }
 
   /**

@@ -55,5 +55,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: editor-preload-official
-          path: editor-preload-official/dist/browser.js
+          path: editor-preload-official/dist
           retention-days: 7

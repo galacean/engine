@@ -61,6 +61,15 @@ config.firstParty.forEach((pkg) => {
   if (fs.existsSync(browserFile)) {
     const content = fs.readFileSync(browserFile);
     fs.appendFileSync(outputOfficialFile, content);
+    const { umd } = require(path.join(rootDir, pkg.path, "package.json"));
+    const assetDirectory = umd?.assetDirectory;
+    if (assetDirectory) {
+      fs.cpSync(
+        path.join(path.dirname(browserFile), assetDirectory),
+        path.join(outputOfficialDistDir, assetDirectory),
+        { recursive: true }
+      );
+    }
     console.log(`Added ${pkg.name} to official package (${browserFile})`);
   } else {
     console.warn(`Warning: ${browserFile} not found for ${pkg.name}`);

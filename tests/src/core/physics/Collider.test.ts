@@ -258,6 +258,10 @@ describe("Collider", () => {
     box.contactOffset = 0.3;
     update();
     expect(recorder.onCollisionEnter).toHaveBeenCalledTimes(1);
+
+    box.contactOffset = 0;
+    update();
+    expect(recorder.onCollisionExit).toHaveBeenCalledTimes(1);
   });
 
   it("updates box size through assignment and vector mutation", () => {

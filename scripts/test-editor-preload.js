@@ -35,17 +35,25 @@ async function main() {
   const engineVersion = process.argv[2] || require("../package.json").version;
   const buildOfficial = process.argv.includes("--build-official");
   const cdn = "https://mdn.alipayobjects.com/oasis_be/uri/file/as";
+  const officialBase = `${cdn}/@galacean/editor-preload-official/${engineVersion}/`;
   assertPublishedVersions(engineVersion);
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();
+    if (buildOfficial) {
+      const dist = path.resolve(__dirname, "../editor-preload-official/dist");
+      await page.route(`${officialBase}**`, (route) =>
+        route.fulfill({
+          path: path.join(dist, route.request().url().slice(officialBase.length)),
+          headers: { "access-control-allow-origin": "*" }
+        })
+      );
+    }
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     for (const script of [
       { url: `${cdn}/@galacean/engine/${engineVersion}/browser.min.js` },
-      buildOfficial
-        ? { path: path.resolve(__dirname, "../editor-preload-official/dist/browser.js") }
-        : { url: `${cdn}/@galacean/editor-preload-official/${engineVersion}/browser.js` },
+      { url: `${officialBase}browser.js` },
       { path: ecosystemFile }
     ]) {
       await page.addScriptTag(script);
@@ -59,7 +67,15 @@ async function main() {
       ]),
       ["function", "function", "function"]
     );
-    console.log(`Ecosystem bundle initializes with Engine ${engineVersion}`);
+    await page.evaluate(async () => {
+      const { PhysXPhysics, PhysXRuntimeMode } = Galacean.PhysicsPhysX;
+      for (const mode of [PhysXRuntimeMode.WebAssembly, PhysXRuntimeMode.WebAssemblySIMD]) {
+        const physics = new PhysXPhysics(mode);
+        await physics.initialize();
+        physics.destroy();
+      }
+    });
+    console.log(`Ecosystem bundle and both PhysX modes initialize with Engine ${engineVersion}`);
   } finally {
     await browser.close();
   }

@@ -20,6 +20,7 @@
   },
   "umd": {
     "name": "Galacean.PhysicsPhysX",
+    "assetDirectory": "libs",
     "globals": {
       "@galacean/engine": "Galacean"
     }

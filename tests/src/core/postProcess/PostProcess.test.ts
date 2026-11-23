@@ -491,6 +491,9 @@ describe("PostProcess", () => {
       try {
         const body = postEntity.addComponent(Rigidbody);
         body.isKinematic = true;
+        cameraEntity.transform.position.set(radius / 2, 0, 0);
+        engine.update();
+        expect(bloomBlend.intensity.value).to.equal(intensity2);
         body.enabled = false;
         engine.update();
         expect(bloomBlend.intensity.value).to.equal(intensity1);
@@ -510,14 +513,6 @@ describe("PostProcess", () => {
         plane.destroy();
         controller.destroy();
         meshCollider.destroy();
-
-        collider.enabled = true;
-        const activeBody = postEntity.addComponent(Rigidbody);
-        activeBody.isKinematic = true;
-        cameraEntity.transform.position.set(radius / 2, 0, 0);
-        engine.update();
-        expect(bloomBlend.intensity.value).to.equal(intensity2);
-        activeBody.destroy();
       } finally {
         warnSpy.mockRestore();
         errorSpy.mockRestore();

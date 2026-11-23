@@ -86,6 +86,32 @@ function config({ location, pkgJson }) {
   return {
     umd: (compress) => {
       const umdConfig = pkgJson.umd;
+      const assetDirectory = umdConfig.assetDirectory;
+      if (assetDirectory) {
+        // CDN publication preserves the directory structure under dist.
+        curPlugins.push(
+          replace({
+            delimiters: ["", ""],
+            preventAssignment: true,
+            values: { [`../${assetDirectory}/`]: `./${assetDirectory}/` }
+          }),
+          {
+            name: "umd-assets",
+            buildStart() {
+              const sourceDirectory = path.join(location, assetDirectory);
+              for (const filename of fs.readdirSync(sourceDirectory)) {
+                const source = path.join(sourceDirectory, filename);
+                this.addWatchFile(source);
+                this.emitFile({
+                  type: "asset",
+                  fileName: `${assetDirectory}/${filename}`,
+                  source: fs.readFileSync(source)
+                });
+              }
+            }
+          }
+        );
+      }
 
       if (compress) {
         curPlugins.push(minify({ sourceMap: true }));
