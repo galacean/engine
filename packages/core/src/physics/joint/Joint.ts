@@ -24,7 +24,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   private _connectedBodyInfo = new JointBodyInfo();
   private _connectedBody: Rigidbody | null = null;
   @ignoreClone
-  protected _nativeJoint: IJoint | null = null;
+  protected _nativeJoint: IJoint | null;
   private _force = Infinity;
   private _torque = Infinity;
   private _automaticConnectedAnchor = true;
