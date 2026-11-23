@@ -17,6 +17,12 @@ import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 
+const enum ShapeChange {
+  Removed = 0,
+  Refreshed = 1,
+  Replaced = 2
+}
+
 /**
  * Simulates actors and runs scene queries through PhysX.
  */
@@ -59,11 +65,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _triggerEventPool: TriggerEvent[] = [];
   // Store each scene-local pair under its two collider IDs in ascending order.
   private _eventMap: Record<number, Record<number, TriggerEvent | undefined>> = Object.create(null);
-  private _shapeChanges = new Map<number, boolean>();
-  private _contactEventEnabled = false;
+  private _shapeChanges = new Map<number, ShapeChange>();
   // Active solid contact adjacency by collider ID while contact events are enabled.
   private _activeContacts = new Map<number, Set<number>>();
-  private _replacedContactShapes = new Set<number>();
   // Canonical (small -> Set<big>) pairs from replaced shapes awaiting re-contact or synthetic exit.
   private _pendingReplacedContacts = new Map<number, Set<number>>();
 
@@ -214,8 +218,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._physicsEvents.contactEventCount = 0;
     this._physicsEvents.bodySleepEventCount = 0;
     this._contactFloatOffset = 0;
-    this._syncTriggerPairs();
-    this._prepareReplacedContacts();
+    this._syncShapeChanges();
     const scene = this._pxScene;
     scene.simulate(elapsedTime, true);
     scene.fetchResults(true);
@@ -226,10 +229,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.setContactEventEnabled }
    */
   setContactEventEnabled(enabled: boolean): void {
-    this._contactEventEnabled = enabled;
     if (!enabled) {
       this._activeContacts.clear();
-      this._replacedContactShapes.clear();
       this._pendingReplacedContacts.clear();
     }
     this._pxScene.setContactEventEnabled(enabled);
@@ -455,7 +456,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   destroy(): void {
     this._activeContacts.clear();
-    this._replacedContactShapes.clear();
     this._pendingReplacedContacts.clear();
     this._boxGeometry?.delete();
     this._sphereGeometry?.delete();
@@ -484,7 +484,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   _addShape(id: number): void {
     const changes = this._shapeChanges;
-    changes.has(id) && changes.set(id, true);
+    changes.has(id) && changes.set(id, ShapeChange.Refreshed);
   }
 
   /**
@@ -493,35 +493,29 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * If the same collider ID returns before the step, rediscovered pairs continue and the others emit exits.
    */
   _removeShape(id: number): void {
-    this._shapeChanges.set(id, false);
+    this._shapeChanges.set(id, ShapeChange.Removed);
     this._clearContactsForShape(id);
   }
 
   /** @internal Reconcile active trigger pairs when a shape stays in the scene. */
   _refreshTriggerPairsForShape(id: number): void {
-    this._shapeChanges.set(id, true);
+    this._shapeChanges.set(id, ShapeChange.Refreshed);
   }
 
   /** @internal Reconcile active trigger and contact pairs across a same-actor shape replacement. */
   _replaceShape(id: number): void {
-    this._shapeChanges.set(id, true);
-    if (this._contactEventEnabled && this._activeContacts.has(id)) {
-      this._replacedContactShapes.add(id);
-    }
+    this._shapeChanges.set(id, ShapeChange.Replaced);
   }
 
   /** @internal Drop tracked active contacts for a removed or disabled shape. */
   _clearContactsForShape(id: number): void {
-    this._replacedContactShapes.delete(id);
     const neighbors = this._activeContacts.get(id);
     if (!neighbors) return;
     this._activeContacts.delete(id);
     for (const otherId of neighbors) {
-      const otherSet = this._activeContacts.get(otherId);
-      if (otherSet) {
-        otherSet.delete(id);
-        otherSet.size === 0 && this._activeContacts.delete(otherId);
-      }
+      const otherSet = this._activeContacts.get(otherId)!;
+      otherSet.delete(id);
+      otherSet.size === 0 && this._activeContacts.delete(otherId);
     }
   }
 
@@ -569,8 +563,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       } else {
         Quaternion.normalize(orientation, rotation);
       }
-    } else if (axis) {
-      rotation.copyFrom(axis);
     } else {
       rotation.set(0, 0, 0, 1);
     }
@@ -616,7 +608,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return true;
   }
 
-  private _syncTriggerPairs(): void {
+  private _syncShapeChanges(): void {
     const changes = this._shapeChanges;
     if (changes.size === 0) {
       return;
@@ -626,21 +618,37 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       const event = activeTriggers[i];
       const first = changes.get(event.shape0Id);
       const second = changes.get(event.shape1Id);
-      if (first === false || second === false) {
+      if (first === ShapeChange.Removed || second === ShapeChange.Removed) {
         this._retireTrigger(event, i);
         continue;
-      } else if (first || second) {
+      } else if (first !== undefined || second !== undefined) {
         // Start with an exit and let PhysX restore the stay if it reports the pair again.
         event._pendingState = PhysicsEventState.Exit;
       }
       i++;
     }
-    changes.forEach(this._forgetRemovedShape);
+    changes.forEach(this._applyShapeChange);
     changes.clear();
   }
 
-  private readonly _forgetRemovedShape = (present: boolean, id: number): void => {
-    if (!present) delete this._eventMap[id];
+  private readonly _applyShapeChange = (change: ShapeChange, id: number): void => {
+    if (change === ShapeChange.Removed) {
+      delete this._eventMap[id];
+    } else if (change === ShapeChange.Replaced) {
+      const neighbors = this._activeContacts.get(id);
+      if (!neighbors) return;
+      const pending = this._pendingReplacedContacts;
+      for (const otherId of neighbors) {
+        const small = id < otherId ? id : otherId;
+        const big = id < otherId ? otherId : id;
+        let set = pending.get(small);
+        if (!set) {
+          set = new Set<number>();
+          pending.set(small, set);
+        }
+        set.add(big);
+      }
+    }
   };
 
   private _retireTrigger(event: TriggerEvent, index: number): void {
@@ -651,7 +659,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     }
     this._triggerEventPool.push(event);
     const pairs = this._eventMap[event.shape0Id];
-    if (pairs && pairs[event.shape1Id] === event) delete pairs[event.shape1Id];
+    if (pairs[event.shape1Id] === event) delete pairs[event.shape1Id];
   }
 
   private _bufferContactEvent(
@@ -690,7 +698,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   private _addActiveContact(a: number, b: number): void {
-    if (!this._contactEventEnabled) return;
     let setA = this._activeContacts.get(a);
     if (setA?.has(b)) return;
     if (!setA) {
@@ -717,27 +724,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       setB.delete(a);
       setB.size === 0 && this._activeContacts.delete(b);
     }
-  }
-
-  private _prepareReplacedContacts(): void {
-    const replaced = this._replacedContactShapes;
-    if (replaced.size === 0) return;
-    const pending = this._pendingReplacedContacts;
-    for (const id of replaced) {
-      const neighbors = this._activeContacts.get(id);
-      if (!neighbors) continue;
-      for (const otherId of neighbors) {
-        const small = id < otherId ? id : otherId;
-        const big = id < otherId ? otherId : id;
-        let set = pending.get(small);
-        if (!set) {
-          set = new Set<number>();
-          pending.set(small, set);
-        }
-        set.add(big);
-      }
-    }
-    replaced.clear();
   }
 
   private _consumePendingReplacedContact(a: number, b: number): boolean {

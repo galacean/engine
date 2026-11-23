@@ -104,7 +104,7 @@ export class CapsuleCollider extends Collider {
         break;
       default: {
         const exhaustive: never = direction;
-        throw new Error(`Unsupported CapsuleCollider direction: ${exhaustive}`);
+        return exhaustive;
       }
     }
     const radius = this._radius * radialScale;

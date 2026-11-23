@@ -216,7 +216,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       throw new RangeError("Rigidbody density must be a positive, normal, finite Float32.");
     }
     const scene = this._registeredScene;
-    if (!scene || this._index === -1) return false;
+    if (!scene) return false;
     scene.physics._syncColliders();
     const mass = this._nativeActor!.setDensity(density, this._automaticCenterOfMass, this._automaticInertiaTensor);
     if (mass === 0) return false;
@@ -826,9 +826,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   sleep(): void {
     if (this._isKinematic || !this._simulationEnabled) return;
     const scene = this._registeredScene;
-    if (!scene || this._index === -1 || this._isActivating()) {
+    if (!scene || this._isActivating()) {
       this._sleepPending = true;
-      this._index !== -1 && scene?.physics._scheduleSleep(this, true);
+      scene?.physics._scheduleSleep(this, true);
     } else {
       this._cancelPendingSleep();
       this._getSyncedActor()!.sleep();
@@ -928,7 +928,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /** @internal Reconcile native sleep notifications with the active observers on this Entity. */
   _syncSleepEventRegistration(): void {
     const scene = this._registeredScene;
-    if (!scene || this._index === -1) return;
+    if (!scene) return;
 
     if (this._simulationEnabled) {
       const { prototype } = Script;
@@ -960,7 +960,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /** @internal */
   _getRegisteredActor(scene: Scene): IDynamicActor | null {
-    return this._registeredScene === scene && this._index !== -1 ? this._nativeActor : null;
+    return this._registeredScene === scene ? this._nativeActor : null;
   }
 
   /**

@@ -225,15 +225,18 @@ describe("MeshCollider", () => {
     collider.center.x = 1;
     const hit = new HitResult();
     expect(physics.raycast(rayAt(3), hit)).toBe(false);
+    const cookedMesh = (collider._native as any)._pxMesh;
     collider.entity.transform.setScale(2, 1, 1);
     expect(physics.raycast(rayAt(3), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
+    expect((collider._native as any)._pxMesh).toBe(cookedMesh);
     expect(physics.raycast(rayAt(8), hit)).toBe(false);
     const geometryWrites = vi.spyOn(collider._native["_pxShape"], "setGeometry");
     collider.entity.transform.setScale(3, 1, 1);
     collider.mesh = createCubeMesh(engine, 2);
     expect(physics.raycast(rayAt(8), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
+    expect((collider._native as any)._pxMesh).not.toBe(cookedMesh);
     expect(geometryWrites).toHaveBeenCalledTimes(1);
   });
 
@@ -594,6 +597,34 @@ describe("MeshCollider", () => {
     expect(physics.raycast(rayAt(1.5), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
   });
+
+  it.each(["disable-then-null", "null-then-disable"] as const)(
+    "releases native mesh immediately when disabled and cleared (%s)",
+    (order) => {
+      const collider = addMesh();
+      const original = collider.mesh!;
+      expect(physics.raycast(rayAt(0))).toBe(true);
+      const releaseSpy = vi.spyOn((collider._native as any)._pxMesh, "release");
+
+      if (order === "disable-then-null") {
+        collider.enabled = false;
+        collider.mesh = null;
+      } else {
+        collider.mesh = null;
+        collider.enabled = false;
+      }
+
+      expect(original.refCount).toBe(0);
+      expect(releaseSpy).toHaveBeenCalledOnce();
+      expect(collider._native).toBeNull();
+
+      collider.enabled = true;
+      collider.mesh = createCubeMesh(engine, 2);
+      const hit = new HitResult();
+      expect(physics.raycast(rayAt(1.5), hit)).toBe(true);
+      expect(hit.collider).toBe(collider);
+    }
+  );
 
   it("stores cooking flags before assigning geometry", () => {
     const collider = root.addComponent(MeshCollider);

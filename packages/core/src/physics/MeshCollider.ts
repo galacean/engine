@@ -53,6 +53,7 @@ export class MeshCollider extends Collider {
       this._setMesh(value);
       if (!value) {
         this._nativeMesh = null;
+        !this._registeredScene && this._destroyNative();
       }
       this._rejection = MeshSyncRejection.None;
       this._markDirty();
@@ -127,7 +128,7 @@ export class MeshCollider extends Collider {
    * @internal
    */
   override _nativeSupportsDynamicBody(): boolean {
-    return !this._native || this._nativeConvex;
+    return this._nativeConvex;
   }
 
   private static _isValidScale(scale: Vector3): boolean {
@@ -165,7 +166,6 @@ export class MeshCollider extends Collider {
   protected override _syncNativeShape(scale: Vector3): IPhysicsShape | null {
     const mesh = this._mesh;
     if (!mesh) {
-      this._rejection = MeshSyncRejection.None;
       if (this._native) {
         this._detach();
         this._destroyNative();
@@ -233,6 +233,14 @@ export class MeshCollider extends Collider {
     (geometryChanged || triggerChanged) && this._attachedBody?._markMassDirty();
 
     return shape;
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    super._onDisableInScene();
+    !this._mesh && this._destroyNative();
   }
 
   protected override _onDestroy(): void {
