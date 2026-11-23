@@ -118,5 +118,6 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this._glTexture, mipLevel, elementIndex);
     gl.readPixels(x, y, width, height, readFormat, formatDetail.readType ?? formatDetail.dataType!, out);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this._rhi._invalidateBoundRenderTarget();
   }
 }

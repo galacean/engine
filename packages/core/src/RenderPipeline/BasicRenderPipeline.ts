@@ -151,7 +151,7 @@ export class BasicRenderPipeline {
     cullingResults.sortBatch(batcherManager);
     batcherManager.uploadBuffer();
 
-    this._ssrPass.prepare(context, cullingResults, cubeFace !== undefined);
+    this._ssrPass.prepare(context, cullingResults, cubeFace !== undefined || (mipLevel ?? 0) > 0);
 
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);
@@ -287,7 +287,11 @@ export class BasicRenderPipeline {
             internalColorTarget,
             0,
             undefined,
-            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
+            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial,
+            0,
+            undefined,
+            0,
+            true
           );
         } else {
           // Only blit color buffer from back buffer
@@ -335,7 +339,17 @@ export class BasicRenderPipeline {
     // Resolve the scene color once and share it with SSR history + PostProcessManager
     const colorTargetResolved = !!colorTarget;
     if (colorTarget) {
-      colorTarget._blitRenderTarget();
+      if (colorTarget === internalColorTarget) {
+        if (colorTarget.antiAliasing > 1) {
+          // Final resolve for this camera: discard MSAA color+depth renderbuffers right after resolve to skip TBDR STORE.
+          colorTarget._blitRenderTarget(true);
+        } else if (!colorTarget.depthTexture && colorTarget._depthFormat !== null) {
+          // Non-MSAA internal color target is still bound; discard unused depth/stencil renderbuffer before switching FBO.
+          rhi.invalidateRenderTarget?.(colorTarget, CameraClearFlags.DepthStencil);
+        }
+      } else {
+        colorTarget._blitRenderTarget();
+      }
     }
     this._ssrPass.captureHistory(context, colorTarget, colorViewport);
 
@@ -368,7 +382,18 @@ export class BasicRenderPipeline {
 
     // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
     if (outputTarget !== cameraRenderTarget) {
-      Blitter.blitTexture(engine, <Texture2D>outputTarget!.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
+      Blitter.blitTexture(
+        engine,
+        <Texture2D>outputTarget!.getColorTexture(0),
+        cameraRenderTarget,
+        0,
+        camera.viewport,
+        null,
+        0,
+        undefined,
+        0,
+        true
+      );
     }
 
     const cameraTargetAlreadyResolved =

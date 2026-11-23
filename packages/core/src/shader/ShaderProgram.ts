@@ -71,7 +71,9 @@ export class ShaderProgram implements IPlatformShaderProgram {
   private _engine: Engine;
   private _gl: WebGL2RenderingContext;
   private _glProgram: WebGLProgram | null;
+  private _fragmentSource: string | null;
   private _activeTextureUint: number = 0;
+  private _activeFragmentTextureCount: number = 0;
 
   /**
    * Whether this shader program is valid.
@@ -85,12 +87,13 @@ export class ShaderProgram implements IPlatformShaderProgram {
    * @internal
    */
   get activeTextureCount(): number {
-    return this._activeTextureUint;
+    return this._activeFragmentTextureCount;
   }
 
   constructor(engine: Engine, vertexSource: string, fragmentSource: string, transformFeedbackVaryings?: string[]) {
     this._engine = engine;
     this._gl = engine._hardwareRenderer.gl;
+    this._fragmentSource = fragmentSource;
     this._glProgram = this._createProgram(vertexSource, fragmentSource, transformFeedbackVaryings);
 
     if (this._glProgram) {
@@ -98,6 +101,7 @@ export class ShaderProgram implements IPlatformShaderProgram {
       this._recordLocation();
     } else {
       this._isValid = false;
+      this._fragmentSource = null;
     }
 
     this.id = ShaderProgram._counter++;
@@ -195,6 +199,7 @@ export class ShaderProgram implements IPlatformShaderProgram {
   destroy(): void {
     const gl = this._gl;
     this._glProgram && gl.deleteProgram(this._glProgram);
+    this._fragmentSource = null;
   }
 
   private _groupingSubOtherUniforms(uniforms: ShaderUniform[], isTexture: boolean): void {
@@ -345,6 +350,22 @@ export class ShaderProgram implements IPlatformShaderProgram {
     const uniformInfos = this._getUniformInfos();
     const attributeInfos = this._getAttributeInfos();
     const basicResources = this._engine._basicResources;
+    this._activeFragmentTextureCount = 0;
+
+    let fsStripped: string | null = null;
+    const isSamplerUsedInFS = (samplerName: string): boolean => {
+      const source = this._fragmentSource;
+      if (source === null) {
+        return true;
+      }
+      if (source.indexOf(samplerName) === -1) {
+        return false;
+      }
+      if (fsStripped === null) {
+        fsStripped = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, " ").replace(/\buniform\b[^;]*;/g, " ");
+      }
+      return ShaderProgram._containsIdentifier(fsStripped, samplerName);
+    };
 
     uniformInfos.forEach(({ name, size, type }) => {
       const shaderUniform = new ShaderUniform(this._engine);
@@ -486,6 +507,9 @@ export class ShaderProgram implements IPlatformShaderProgram {
           }
 
           isTexture = true;
+          if (isSamplerUsedInFS(name)) {
+            this._activeFragmentTextureCount += isArray ? size : 1;
+          }
           if (isArray) {
             const defaultTextures = new Array<Texture>(size);
             const textureIndices = new Int32Array(size);
@@ -533,6 +557,8 @@ export class ShaderProgram implements IPlatformShaderProgram {
         gl.uniformBlockBinding(program, i, bindingPoint);
       }
     }
+
+    this._fragmentSource = null;
   }
 
   private _getUniformInfos(): WebGLActiveInfo[] {
@@ -563,5 +589,36 @@ export class ShaderProgram implements IPlatformShaderProgram {
     }
 
     return attributeInfos;
+  }
+
+  private static _isIdentChar(code: number): boolean {
+    return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 95;
+  }
+
+  private static _isWhitespace(code: number): boolean {
+    return code === 32 || code === 9 || code === 10 || code === 13 || code === 12;
+  }
+
+  private static _containsIdentifier(source: string, identifier: string): boolean {
+    const len = identifier.length;
+    const sourceLen = source.length;
+    let idx = source.indexOf(identifier);
+    while (idx !== -1) {
+      const prevCode = idx > 0 ? source.charCodeAt(idx - 1) : 0;
+      const beforeOk = idx === 0 || (prevCode !== 46 /* '.' */ && !ShaderProgram._isIdentChar(prevCode));
+      const afterIdx = idx + len;
+      const afterOk = afterIdx >= sourceLen || !ShaderProgram._isIdentChar(source.charCodeAt(afterIdx));
+      if (beforeOk && afterOk) {
+        let prev = idx - 1;
+        while (prev >= 0 && ShaderProgram._isWhitespace(source.charCodeAt(prev))) {
+          prev--;
+        }
+        if (prev < 0 || source.charCodeAt(prev) !== 46 /* '.' */) {
+          return true;
+        }
+      }
+      idx = source.indexOf(identifier, idx + 1);
+    }
+    return false;
   }
 }

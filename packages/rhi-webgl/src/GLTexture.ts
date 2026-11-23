@@ -557,6 +557,16 @@ export class GLTexture implements IPlatformTexture {
   }
 
   /**
+   * @internal
+   */
+  setMipLevelRange(baseLevel: number, maxLevel: number): void {
+    const gl = this._gl;
+    this._bind();
+    gl.texParameteri(this._target, gl.TEXTURE_BASE_LEVEL, baseLevel);
+    gl.texParameteri(this._target, gl.TEXTURE_MAX_LEVEL, maxLevel);
+  }
+
+  /**
    * Get the pixel color buffer according to the specified cube face and area.
    * @param face - You can choose which cube face to read
    * @param x - X coordinate of area start
@@ -597,6 +607,7 @@ export class GLTexture implements IPlatformTexture {
     gl.readPixels(x, y, width, height, readFormat, readType ?? dataType!, out);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this._rhi._invalidateBoundRenderTarget();
   }
 
   protected _getReadFormat(): GLenum {

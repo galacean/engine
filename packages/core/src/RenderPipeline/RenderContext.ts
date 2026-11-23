@@ -37,6 +37,24 @@ export class RenderContext {
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
 
+  ssrForwardEnabled: boolean = false;
+  ssrVerifyReceiverDepth: boolean = false;
+  ssrBilateralSample: boolean = false;
+  ssrPackedDepthRG8: boolean = false;
+  ssrPackedNormalOct8: boolean = false;
+  ssrPackedHDRReinhard: boolean = false;
+  ssrMaxRoughness: number = 0.6;
+
+  resetSSRState(): void {
+    this.ssrForwardEnabled = false;
+    this.ssrVerifyReceiverDepth = false;
+    this.ssrBilateralSample = false;
+    this.ssrPackedDepthRG8 = false;
+    this.ssrPackedNormalOct8 = false;
+    this.ssrPackedHDRReinhard = false;
+    this.ssrMaxRoughness = 0.6;
+  }
+
   applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection: boolean | null): void {
     this.virtualCamera = virtualCamera;
     this.flipProjection = flipProjection;
@@ -79,6 +97,7 @@ export class RenderContext {
 
   garbageCollection(): void {
     this.camera = null!;
+    this.resetSSRState();
   }
 }
 

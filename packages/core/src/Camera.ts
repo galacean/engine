@@ -661,6 +661,7 @@ export class Camera extends Component {
     context.replacementShader = this._replacementShader;
     context.replacementTag = this._replacementSubShaderTag;
     context.replacementFailureStrategy = this._replacementFailureStrategy;
+    context.resetSSRState();
 
     // compute cull frustum.
     if (this.enableFrustumCulling && this._frustumChangeFlag.flag) {

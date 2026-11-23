@@ -50,4 +50,9 @@ export interface IPlatformTexture2D extends IPlatformTexture {
    * @param out - Color buffer
    */
   getPixelBuffer(x: number, y: number, width: number, height: number, mipLevel: number, out: ArrayBufferView): void;
+
+  /**
+   * @internal
+   */
+  setMipLevelRange?(baseLevel: number, maxLevel: number): void;
 }

@@ -3,6 +3,7 @@ import { Camera } from "../Camera";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
 import { Logger } from "../base/Logger";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Material } from "../material";
 import { Collider } from "../physics";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
@@ -24,7 +25,8 @@ export class PostProcessManager {
   _postProcessPassNeedSorting = false;
 
   private _activePostProcesses: PostProcess[] = [];
-  private _swapRenderTarget: RenderTarget | null;
+  private _swapRenderTarget: RenderTarget | null = null;
+  private _swapRenderTarget2: RenderTarget | null = null;
   private _srcRenderTarget: RenderTarget;
   private _destRenderTarget: RenderTarget | null;
   private _currentSourceRenderTarget: RenderTarget;
@@ -190,7 +192,16 @@ export class PostProcessManager {
 
     for (let i = 0, n = activePasses.length; i < n; i++) {
       const pass = activePasses[i];
-      pass.onRender(camera, this._getCurrentSourceTexture(), this._currentDestRenderTarget);
+      const destRT = this._currentDestRenderTarget;
+      pass.onRender(camera, this._getCurrentSourceTexture(), destRT);
+      if (
+        (destRT === this._swapRenderTarget || destRT === this._swapRenderTarget2) &&
+        destRT &&
+        !destRT.depthTexture &&
+        destRT._depthFormat !== null
+      ) {
+        engine._hardwareRenderer.invalidateRenderTarget?.(destRT, CameraClearFlags.DepthStencil);
+      }
       this._remainActivePassCount--;
       this._swapRT();
     }
@@ -200,10 +211,16 @@ export class PostProcessManager {
    * @internal
    */
   _releaseSwapRenderTarget(): void {
+    const pool = this.scene.engine._renderTargetPool;
     const swapRenderTarget = this._swapRenderTarget;
     if (swapRenderTarget) {
-      this.scene.engine._renderTargetPool.freeRenderTarget(swapRenderTarget);
+      pool.freeRenderTarget(swapRenderTarget);
       this._swapRenderTarget = null;
+    }
+    const swapRenderTarget2 = this._swapRenderTarget2;
+    if (swapRenderTarget2) {
+      pool.freeRenderTarget(swapRenderTarget2);
+      this._swapRenderTarget2 = null;
     }
   }
 
@@ -216,6 +233,21 @@ export class PostProcessManager {
       this.scene.engine._renderTargetPool.freeRenderTarget(outputRenderTarget);
       this._outputRenderTarget = null;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._releaseSwapRenderTarget();
+    this._releaseOutputRenderTarget();
+    this._activePostProcesses.length = 0;
+    this._blendEffectMap.clear();
+    this._defaultEffectMap.clear();
+    this._srcRenderTarget = null!;
+    this._destRenderTarget = null;
+    this._currentSourceRenderTarget = null!;
+    this._currentDestRenderTarget = null;
   }
 
   /**
@@ -268,16 +300,19 @@ export class PostProcessManager {
   private _initSwapRenderTarget(camera: Camera): void {
     if (this._remainActivePassCount > 1) {
       const viewport = camera.pixelViewport;
+      const engine = this.scene.engine;
+      const colorFormat = camera._getInternalColorTextureFormat();
+      const isSRGB = !camera._isInternalFormatHDR();
       const swapRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-        this.scene.engine,
+        engine,
         this._swapRenderTarget,
         viewport.width,
         viewport.height,
-        camera._getInternalColorTextureFormat(),
+        colorFormat,
         TextureFormat.Depth24Stencil8,
         false,
         false,
-        !camera._isInternalFormatHDR(),
+        isSRGB,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
@@ -285,7 +320,30 @@ export class PostProcessManager {
 
       this._swapRenderTarget = swapRenderTarget;
       this._currentDestRenderTarget = this._swapRenderTarget;
+
+      // When srcRenderTarget is MSAA and 3+ passes run, keep ping-pong strictly on single-sample
+      // swap targets so intermediate passes never write into an unresolved MSAA source target.
+      if (this._remainActivePassCount > 2 && this._srcRenderTarget.antiAliasing > 1) {
+        this._swapRenderTarget2 = PipelineUtils.recreateRenderTargetIfNeeded(
+          engine,
+          this._swapRenderTarget2,
+          viewport.width,
+          viewport.height,
+          colorFormat,
+          TextureFormat.Depth24Stencil8,
+          false,
+          false,
+          isSRGB,
+          1,
+          TextureWrapMode.Clamp,
+          TextureFilterMode.Bilinear
+        );
+      } else if (this._swapRenderTarget2) {
+        engine._renderTargetPool.freeRenderTarget(this._swapRenderTarget2);
+        this._swapRenderTarget2 = null;
+      }
     } else {
+      this._releaseSwapRenderTarget();
       this._currentDestRenderTarget = this._destRenderTarget;
     }
 
@@ -299,7 +357,12 @@ export class PostProcessManager {
     this._currentSourceRenderTarget = currentDestRenderTarget!;
 
     if (this._remainActivePassCount > 1) {
-      this._currentDestRenderTarget = currentSourceRenderTarget;
+      if (this._swapRenderTarget2) {
+        this._currentDestRenderTarget =
+          currentDestRenderTarget === this._swapRenderTarget ? this._swapRenderTarget2 : this._swapRenderTarget;
+      } else {
+        this._currentDestRenderTarget = currentSourceRenderTarget;
+      }
     } else {
       this._currentDestRenderTarget = this._destRenderTarget;
     }

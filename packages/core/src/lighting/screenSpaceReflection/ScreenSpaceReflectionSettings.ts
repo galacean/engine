@@ -13,6 +13,7 @@ export interface ScreenSpaceReflectionSettingsData {
   thickness: number;
   edgeFade: number;
   temporalBlend: number;
+  useLinearTrace: boolean;
 }
 
 /**
@@ -27,6 +28,7 @@ export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSetti
   private _thickness: number = 0.15;
   private _edgeFade: number = 0.1;
   private _temporalBlend: number = 0.85;
+  private _useLinearTrace: boolean = false;
 
   /**
    * Whether screen-space reflection is enabled.
@@ -140,6 +142,18 @@ export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSetti
   }
 
   /**
+   * Whether to use mip-0 linear ray marching (0 Hi-Z pyramid build passes) instead of hierarchical Hi-Z tracing.
+   * @defaultValue `false`
+   */
+  get useLinearTrace(): boolean {
+    return this._useLinearTrace;
+  }
+
+  set useLinearTrace(value: boolean) {
+    this._useLinearTrace = !!value;
+  }
+
+  /**
    * Apply partial serialized settings in place without allocation.
    * @param data - Partial settings object
    */
@@ -153,6 +167,7 @@ export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSetti
     if (data.thickness !== undefined) this.thickness = data.thickness;
     if (data.edgeFade !== undefined) this.edgeFade = data.edgeFade;
     if (data.temporalBlend !== undefined) this.temporalBlend = data.temporalBlend;
+    if (data.useLinearTrace !== undefined) this.useLinearTrace = data.useLinearTrace;
   }
 
   /**
@@ -168,6 +183,7 @@ export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSetti
     target._thickness = this._thickness;
     target._edgeFade = this._edgeFade;
     target._temporalBlend = this._temporalBlend;
+    target._useLinearTrace = this._useLinearTrace;
   }
 
   /**
@@ -182,7 +198,8 @@ export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSetti
       maxDistance: this._maxDistance,
       thickness: this._thickness,
       edgeFade: this._edgeFade,
-      temporalBlend: this._temporalBlend
+      temporalBlend: this._temporalBlend,
+      useLinearTrace: this._useLinearTrace
     };
   }
 

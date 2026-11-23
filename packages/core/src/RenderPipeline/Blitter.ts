@@ -1,10 +1,12 @@
-import { Vector4 } from "@galacean/engine-math";
+import { Color, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Material } from "../material";
 import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { ColorWriteMask } from "../shader/enums/ColorWriteMask";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderTarget, Texture2D } from "../texture";
 import { PipelineUtils } from "./PipelineUtils";
@@ -18,9 +20,14 @@ export class Blitter {
   private static _blitTexelSizeProperty = ShaderProperty.getByName("renderer_texelSize"); // x: 1/width, y: 1/height, z: width, w: height
   private static _sourceScaleOffsetProperty = ShaderProperty.getByName("renderer_SourceScaleOffset");
 
-  private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
+  private static _rendererShaderData = (() => {
+    const data = new ShaderData(ShaderDataGroup.Renderer);
+    data._trackBatchSharedFields = false;
+    return data;
+  })();
   private static _texelSize = new Vector4();
   private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
+  private static _clearColor = new Color(0, 0, 0, 0);
 
   /**
    * Blit texture to destination render target using a triangle.
@@ -33,6 +40,8 @@ export class Blitter {
    * @param passIndex - Pass index to use of the provided material
    * @param sourceScaleOffset - Source scale and offset
    * @param destMipLevel - Destination mip level to render into
+   * @param clearColor - Whether to pre-clear destination color to transparent black before full-viewport overwrite (default false preserves existing pixels)
+   * @param scissorRect - Optional GL pixel scissor rectangle `(x, y, width, height)` applied after binding the target
    */
   static blitTexture(
     engine: Engine,
@@ -43,7 +52,9 @@ export class Blitter {
     material: Material | null = null,
     passIndex = 0,
     sourceScaleOffset?: Vector4,
-    destMipLevel: number = 0
+    destMipLevel: number = 0,
+    clearColor: boolean = false,
+    scissorRect?: Vector4
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -56,6 +67,9 @@ export class Blitter {
     context.flipProjection = !!destination;
 
     context.setRenderTarget(destination, viewport, destMipLevel);
+    if (scissorRect) {
+      rhi.scissor(scissorRect.x, scissorRect.y, scissorRect.z, scissorRect.w);
+    }
 
     const rendererShaderData = Blitter._rendererShaderData;
 
@@ -88,6 +102,32 @@ export class Blitter {
 
     const renderState = pass._renderState;
     renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
+
+    const appliedState = engine._lastRenderState;
+    const fullScissorClear =
+      !scissorRect ||
+      (destination !== null &&
+        scissorRect.x === 0 &&
+        scissorRect.y === 0 &&
+        scissorRect.z === Math.max(1, destination.width >> destMipLevel) &&
+        scissorRect.w === Math.max(1, destination.height >> destMipLevel));
+    if (
+      clearColor &&
+      destination !== null &&
+      viewport.x === 0 &&
+      viewport.y === 0 &&
+      viewport.z === 1 &&
+      viewport.w === 1 &&
+      fullScissorClear &&
+      !appliedState.blendState.targetBlendState.enabled &&
+      !appliedState.depthState.enabled &&
+      !appliedState.stencilState.enabled &&
+      appliedState.blendState.targetBlendState.colorWriteMask === ColorWriteMask.All
+    ) {
+      // Full-RT non-scissored clear maps to TBDR hardware MTLLoadActionClear (0 DRAM read)
+      // while marking the attachment Initialized to avoid ANGLE-Metal RobustResourceInit CPU replaceRegion.
+      rhi.clearRenderTarget(engine, CameraClearFlags.Color, Blitter._clearColor);
+    }
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
     rendererShaderData.setTexture(Blitter._blitTextureProperty, null);

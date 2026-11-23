@@ -5,6 +5,8 @@ interface MaterialData {
   name: string;
   screenSpaceReflectionIntensity?: number;
   contributeScreenSpaceReflectionDepth?: boolean;
+  screenSpaceReflectionBilateral?: boolean;
+  screenSpaceReflectionOccluder?: boolean;
   shaderData: Record<string, MaterialShaderProperty>;
   macros: Array<{ name: string; value?: string }>;
 }

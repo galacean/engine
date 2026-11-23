@@ -1,6 +1,7 @@
 import {
   AssetPromise,
   AssetType,
+  BaseMaterial,
   Engine,
   LoadItem,
   Loader,
@@ -87,7 +88,9 @@ class MaterialLoader extends Loader<Material> {
             materialShaderData.setColor(key, new Color(value.r, value.g, value.b, value.a));
             break;
           case MaterialLoaderType.Float:
-            materialShaderData.setFloat(key, value);
+            if (key !== "material_ScreenSpaceReflectionIntensity") {
+              materialShaderData.setFloat(key, value);
+            }
             break;
           case MaterialLoaderType.Texture:
             materialShaderData.setTexture(key, textures.get(key)!);
@@ -118,8 +121,20 @@ class MaterialLoader extends Loader<Material> {
       } else if (shader === Engine._builtinShaders.pbr) {
         material.screenSpaceReflectionIntensity = 1.0;
       }
+      // Sync default DepthOnly render queue for legacy built-in PBR/Unlit/BlinnPhong .mat assets that declare
+      // a Forward render queue (e.g. Transparent glass) without an explicit material_DepthOnlyRenderQueue.
+      const builtinShaders = Engine._builtinShaders;
+      if (shader === builtinShaders.pbr || shader === builtinShaders.unlit || shader === builtinShaders.blinnPhong) {
+        BaseMaterial._syncLegacyDepthOnlyRenderQueue(material);
+      }
       if (materialSchema.contributeScreenSpaceReflectionDepth !== undefined) {
         material.contributeScreenSpaceReflectionDepth = materialSchema.contributeScreenSpaceReflectionDepth;
+      }
+      if (materialSchema.screenSpaceReflectionBilateral !== undefined) {
+        material.screenSpaceReflectionBilateral = materialSchema.screenSpaceReflectionBilateral;
+      }
+      if (materialSchema.screenSpaceReflectionOccluder !== undefined) {
+        material.screenSpaceReflectionOccluder = materialSchema.screenSpaceReflectionOccluder;
       }
       return material;
     } catch (error) {

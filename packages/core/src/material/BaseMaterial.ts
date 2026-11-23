@@ -12,6 +12,29 @@ export class BaseMaterial extends Material {
   /** @internal */
   static _depthOnlyRenderQueueProp = ShaderProperty.getByName("material_DepthOnlyRenderQueue");
 
+  /**
+   * Sync default `material_DepthOnlyRenderQueue` for legacy built-in PBR/Unlit `.mat` assets
+   * that declare a Forward queue without an explicit DepthOnly queue property.
+   * @internal
+   */
+  static _syncLegacyDepthOnlyRenderQueue(material: Material): void {
+    const shaderData = material.shaderData;
+    if (shaderData.getFloat(BaseMaterial._depthOnlyRenderQueueProp) !== undefined) {
+      return;
+    }
+    let depthOnlyQueue: number | undefined = shaderData.getInt(BaseMaterial._renderQueueTypeProp);
+    if (depthOnlyQueue === undefined) {
+      if (shaderData.getInt(BaseMaterial._blendEnabledProp)) {
+        depthOnlyQueue = RenderQueueType.Transparent;
+      } else if (shaderData._macroCollection.isEnable(BaseMaterial._alphaCutoffMacro)) {
+        depthOnlyQueue = RenderQueueType.AlphaTest;
+      }
+    }
+    if (depthOnlyQueue !== undefined && Number.isFinite(depthOnlyQueue)) {
+      shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, depthOnlyQueue);
+    }
+  }
+
   protected static _baseTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_BASETEXTURE");
   protected static _normalTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_NORMALTEXTURE");
   protected static _emissiveTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_EMISSIVETEXTURE");

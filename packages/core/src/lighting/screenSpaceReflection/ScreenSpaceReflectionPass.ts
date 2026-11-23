@@ -1,4 +1,4 @@
-import { Color, Matrix, Vector4 } from "@galacean/engine-math";
+import { type BoundingBox, Color, Matrix, Vector4 } from "@galacean/engine-math";
 import { RenderStateElementMap } from "../../BasicResources";
 import { Camera } from "../../Camera";
 import { Logger } from "../../base/Logger";
@@ -8,9 +8,10 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { CullingResults } from "../../RenderPipeline/CullingResults";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
-import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { ContextRendererUpdateFlag, RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { PipelineStage } from "../../RenderPipeline/enums/PipelineStage";
+import { type IIdleResourceSweeper } from "../../RenderPipeline/RenderTargetPool";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { Material } from "../../material/Material";
 import { IHardwareRenderer } from "../../renderingHardwareInterface";
@@ -18,24 +19,26 @@ import { CompareFunction, Shader, ShaderData, ShaderMacro, ShaderProperty } from
 import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
 import { RenderStateElementKey } from "../../shader/enums/RenderStateElementKey";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
+import { SSRDepthOccluderCuller } from "./SSRDepthOccluderCuller";
 import { SSRDiagnostics, SSRRuntimeState } from "./SSRDiagnostics";
+import { SSRForwardProgramResolver } from "./SSRForwardProgramResolver";
 import { SSRHistoryState } from "./SSRHistoryState";
 import { ScreenSpaceReflectionQuality } from "./ScreenSpaceReflectionQuality";
 import { ScreenSpaceReflectionSettings } from "./ScreenSpaceReflectionSettings";
 
-const PASS_DOWNSAMPLE_DEPTH = 0;
-const PASS_BUILD_HIZ_MIP0 = 1;
-const PASS_BUILD_HIZ_MIPN = 2;
-const PASS_COPY_TEXTURE = 3;
-const PASS_HIZ_TRACE = 4;
-const PASS_TEMPORAL_RESOLVE = 5;
-const PASS_COLOR_PYRAMID_PREFILTER = 6;
-const PASS_COLOR_PYRAMID_DOWNSAMPLE = 7;
+const PASS_BUILD_HIZ_MIP0 = 0;
+const PASS_BUILD_HIZ_MIPN = 1;
+const PASS_COPY_TEXTURE = 2;
+const PASS_HIZ_TRACE = 3;
+const PASS_TEMPORAL_RESOLVE = 4;
+const PASS_COLOR_PYRAMID_PREFILTER = 5;
+const PASS_COLOR_PYRAMID_DOWNSAMPLE = 6;
+const PASS_DOWNSAMPLE_AND_BUILD_HIZ_MIP0 = 7;
 
-const MAX_HIZ_MIP = 4;
-const MAX_HIZ_MIP_FULL = 6;
+const MAX_HIZ_MIP = 6;
 const MAX_COLOR_PYRAMID_MIP = 5;
 const MAX_COLOR_PYRAMID_MIP_FULL = 6;
+const MAX_NON_XHIGH_TRACE_LONG_EDGE = 960;
 const SKIPPED_RELEASE_IDLE_FRAMES = 10;
 
 /**
@@ -43,7 +46,7 @@ const SKIPPED_RELEASE_IDLE_FRAMES = 10;
  * Mobile-first Screen-Space Reflection render pass orchestrating dual-stream depth/Hi-Z,
  * non-MSAA MRT receiver generation, Hi-Z tracing, temporal resolve, and linear color pyramid history.
  */
-export class ScreenSpaceReflectionPass extends PipelinePass {
+export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleResourceSweeper {
   // Camera shader properties
   private static readonly _cameraSSRTextureProp = ShaderProperty.getByName("camera_SSRTexture");
   private static readonly _cameraSSRParamsProp = ShaderProperty.getByName("camera_SSRParams");
@@ -53,14 +56,12 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
   private static readonly _cameraSSRInvProjMatProp = ShaderProperty.getByName("camera_SSRInvProjMat");
   private static readonly _cameraSSRInvViewMatProp = ShaderProperty.getByName("camera_SSRInvViewMat");
   private static readonly _cameraSSRPrevVPMatProp = ShaderProperty.getByName("camera_SSRPrevVPMat");
+  private static readonly _cameraSSRPrevInvProjMatProp = ShaderProperty.getByName("camera_SSRPrevInvProjMat");
+  private static readonly _cameraSSRPrevInvViewMatProp = ShaderProperty.getByName("camera_SSRPrevInvViewMat");
   private static readonly _cameraSSRPrevViewZRowProp = ShaderProperty.getByName("camera_SSRPrevViewZRow");
 
   // Material shader properties
-  private static readonly _matFullDepthProp = ShaderProperty.getByName("material_SSRFullDepthTexture");
-  private static readonly _matOpaqueDepthProp = ShaderProperty.getByName("material_SSROpaqueDepthTexture");
   private static readonly _matContribDepthProp = ShaderProperty.getByName("material_SSRContribDepthTexture");
-  private static readonly _matHiZInputProp = ShaderProperty.getByName("material_SSRHiZInputTexture");
-  private static readonly _matCopyTextureProp = ShaderProperty.getByName("material_SSRCopyTexture");
   private static readonly _matUseHWStencilProp = ShaderProperty.getByName("material_SSRUseHardwareStencil");
   private static readonly _matHiZTextureProp = ShaderProperty.getByName("material_SSRHiZTexture");
   private static readonly _matNormalRoughnessProp = ShaderProperty.getByName("material_SSRNormalRoughnessTexture");
@@ -83,17 +84,14 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
   private static readonly _matHiZMaxMipProp = ShaderProperty.getByName("material_SSRHiZMaxMip");
   private static readonly _matTemporalBlendProp = ShaderProperty.getByName("material_SSRTemporalBlend");
 
-  // Element filter properties / macros
-  private static readonly _roughnessProp = ShaderProperty.getByName("material_Roughness");
-  private static readonly _hasRoughnessTexMacro = ShaderMacro.getByName("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
-  private static readonly _enableClearCoatMacro = ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT");
+  private static readonly _AABB_EDGES = new Uint8Array([
+    0, 1, 2, 3, 4, 5, 6, 7, 0, 2, 1, 3, 4, 6, 5, 7, 0, 4, 1, 5, 2, 6, 3, 7
+  ]);
 
-  // Camera & pass macros
-  private static readonly _enableSSRMacro = ShaderMacro.getByName("CAMERA_ENABLE_SSR");
-  private static readonly _verifyDepthMacro = ShaderMacro.getByName("CAMERA_SSR_VERIFY_RECEIVER_DEPTH");
-  private static readonly _bilateralMacro = ShaderMacro.getByName("CAMERA_SSR_BILATERAL_SAMPLE");
+  // Pass macros
   private static readonly _packedDepthMacro = ShaderMacro.getByName("SSR_PACKED_DEPTH_RG8");
   private static readonly _packedNormalMacro = ShaderMacro.getByName("SSR_PACKED_NORMAL_OCT8");
+  private static readonly _packedHDRMacro = ShaderMacro.getByName("SSR_PACKED_HDR_REINHARD");
   private static readonly _downsampleFullDepthMacro = ShaderMacro.getByName("SSR_DOWNSAMPLE_FROM_FULL_DEPTH");
   private static readonly _hasContribDepthMacro = ShaderMacro.getByName("SSR_HAS_CONTRIB_DEPTH");
   private static readonly _outputHitDistMacro = ShaderMacro.getByName("SSR_OUTPUT_HIT_DIST");
@@ -102,9 +100,12 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
   private static readonly _colorPyramidKarisDownsampleMacro = ShaderMacro.getByName(
     "SSR_COLOR_PYRAMID_KARIS_DOWNSAMPLE"
   );
+  private static readonly _linearTraceMacro = ShaderMacro.getByName("SSR_LINEAR_TRACE");
+  private static readonly _temporal5TapMacro = ShaderMacro.getByName("SSR_TEMPORAL_5TAP_CLAMP");
 
   private readonly _material: Material;
   private readonly _history = new SSRHistoryState();
+  private readonly _occluderCuller = new SSRDepthOccluderCuller();
 
   // Pre-allocated scratch math & state objects (zero per-frame heap allocation)
   private readonly _invProjMat = new Matrix();
@@ -120,19 +121,22 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
   private readonly _sourceScaleOffset = new Vector4(1, 1, 0, 0);
   private readonly _subViewport = new Vector4(0, 0, 1, 1);
   private readonly _copyScaleOffset = new Vector4(1, 1, 0, 0);
+  private readonly _receiverScissor = new Vector4(0, 0, 0, 0);
+  private readonly _clipCorners = new Float32Array(32);
+  private readonly _traceDirtyRect = new Int32Array(4);
   private readonly _clearZero = new Color(0, 0, 0, 0);
+  private _scissorMinX: number = 0;
+  private _scissorMaxX: number = 0;
+  private _scissorMinY: number = 0;
+  private _scissorMaxY: number = 0;
+  private _scissorHasProjected: boolean = false;
 
-  private readonly _opaqueReceiverStates: RenderStateElementMap = <RenderStateElementMap>{
+  private readonly _receiverStates: RenderStateElementMap = <RenderStateElementMap>{
     [RenderStateElementKey.DepthStateEnabled]: true,
     [RenderStateElementKey.DepthStateWriteEnabled]: true,
     [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.LessEqual
   };
-
-  private readonly _transparentReceiverStates: RenderStateElementMap = <RenderStateElementMap>{
-    [RenderStateElementKey.DepthStateEnabled]: true,
-    [RenderStateElementKey.DepthStateWriteEnabled]: true,
-    [RenderStateElementKey.DepthStateCompareFunction]: CompareFunction.LessEqual
-  };
+  private readonly _receiverElements: RenderElement[] = [];
 
   private readonly _isReceiverElement: (element: RenderElement) => boolean;
   private readonly _isDepthContributorElement: (element: RenderElement) => boolean;
@@ -142,6 +146,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
   // Test/A-B switches (internal)
   _useHardwareStencil: boolean = true;
   _forcePackedFormats: boolean = false;
+  _forceHiZScratch: boolean = false;
+  _forceSoftwareColorPyramidMipmaps: boolean = false;
 
   // Format & capability state
   private _unsupportedReason: string | null = null;
@@ -152,10 +158,13 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
   private _colorPyramidSRGB: boolean = false;
   private _usesPackedDepthRG8: boolean = false;
   private _usesPackedNormalOct8: boolean = false;
+  private _usesPackedHDRReinhard: boolean = false;
   private _configUsesPackedDepth: boolean = false;
   private _configUsesPackedNormal: boolean = false;
+  private _configUsesPackedHDR: boolean = false;
   private _configUseHardwareStencil: boolean = true;
   private _configUseHighVirtual: boolean = false;
+  private _configUseLinearTrace: boolean = false;
   private _configIsHDR: boolean = false;
   private _configAliasRecvNR: boolean = false;
 
@@ -168,20 +177,23 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
   private _traceHeight: number = 0;
   private _colorWidth: number = 0;
   private _colorHeight: number = 0;
-  private _traceSteps: number = 18;
+  private _traceSteps: number = 28;
   private _useTemporal: boolean = true;
   private _useBilateral: boolean = false;
   private _useHighVirtual: boolean = false;
+  private _useLinearTrace: boolean = false;
   private _aliasRecvNRToPingPong: boolean = false;
-  private _maxHiZMipCap: number = MAX_HIZ_MIP;
   private _maxColorPyramidMipCap: number = MAX_COLOR_PYRAMID_MIP;
   private _isFullResColorPyramid: boolean = false;
   private _opaqueReceiverCount: number = 0;
   private _transparentReceiverCount: number = 0;
   private _contribDepthCount: number = 0;
   private _skippedFrames: number = 0;
+  private _lastActiveFrameCount: number = -1;
+  private _hasPersistentResources: boolean = false;
+  private _isDisabledClean: boolean = false;
+  private _destroyed: boolean = false;
   private _cutRequested: boolean = false;
-  private _lastHiZBytes: number = 0;
   private _lastHiZScratchBytes: number = 0;
   private _lastColorScratchBytes: number = 0;
   private _lastContribDepthBytes: number = 0;
@@ -210,7 +222,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     transparentReceiverCount: 0,
     useHardwareStencil: true,
     usesPackedDepthRG8: false,
-    usesPackedNormalOct8: false
+    usesPackedNormalOct8: false,
+    useLinearTrace: false
   };
 
   constructor(engine: Engine, shader: Shader) {
@@ -221,22 +234,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     this._material = material;
 
     this._isReceiverElement = (element: RenderElement): boolean => {
-      const material = element.material;
-      if (material.screenSpaceReflectionIntensity <= 0) {
-        return false;
-      }
-      const shaderData = material.shaderData;
-      const macros = shaderData._macroCollection;
-      if (
-        !macros.isEnable(ScreenSpaceReflectionPass._hasRoughnessTexMacro) &&
-        !macros.isEnable(ScreenSpaceReflectionPass._enableClearCoatMacro)
-      ) {
-        const roughness = shaderData.getFloat(ScreenSpaceReflectionPass._roughnessProp);
-        if (roughness !== undefined && roughness >= this._activeMaxRoughness) {
-          return false;
-        }
-      }
-      return true;
+      return SSRForwardProgramResolver.isReceiverEligible(element.material, this._activeMaxRoughness);
     };
 
     this._isDepthContributorElement = (element: RenderElement): boolean => {
@@ -245,16 +243,20 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
 
     this._onDeviceLostHandler = (): void => {
       this._state = SSRRuntimeState.ContextLost;
-      if (this._boundCamera && !this._boundCamera.destroyed) {
+      this.releaseFrameTargets();
+      if (this._boundCamera?.shaderData) {
         this._clearCameraSSREnable(this._boundCamera);
       }
+      this._resetTemporaryBindings();
+      this._releasePersistentResources();
       this._history.invalidateAll();
+      this._cutRequested = true;
       this._updateDiagnostics(false);
     };
 
     this._onDeviceRestoredHandler = (): void => {
       this.releaseFrameTargets();
-      if (this._boundCamera && !this._boundCamera.destroyed) {
+      if (this._boundCamera?.shaderData) {
         this._clearCameraSSREnable(this._boundCamera);
       }
       this._resetTemporaryBindings();
@@ -268,6 +270,11 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     this._detectCapabilities(engine._hardwareRenderer);
   }
 
+  /** @internal Last computed receiver scissor rect `(x, y, width, height)` in trace pixels. */
+  get _lastReceiverScissor(): Readonly<Vector4> {
+    return this._receiverScissor;
+  }
+
   /**
    * Prepare state machine and evaluate whether SSR runs this frame.
    */
@@ -276,42 +283,106 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     const { engine } = this;
     const scene = camera.scene!;
     const sourceSettings = camera.screenSpaceReflectionOverride ?? scene.screenSpaceReflection;
+    this._useLinearTrace = sourceSettings.useLinearTrace;
     this._boundCamera = camera;
 
     if (engine._isDeviceLost) {
       this._state = SSRRuntimeState.ContextLost;
-      this._clearCameraSSREnable(camera);
+      this._isDisabledClean = false;
+      this._clearCameraSSREnable(camera, context);
       this._history.invalidateAll();
       this._updateDiagnostics(false);
       return;
     }
 
-    // Re-evaluate hardware capability support cleanly.
-    const isHDR = camera.enableHDR;
-    this._detectCapabilities(engine._hardwareRenderer, isHDR, false);
+    if (isCubeFace) {
+      // Sub-views (CubeProbe faces / non-zero mipLevel) skip SSR without destroying
+      // or overwriting the camera's main-view history, persistent targets, or diagnostics.
+      this._state = SSRRuntimeState.Skipped;
+      this._clearCameraSSREnable(camera, context);
+      this._resetTemporaryBindings();
+      return;
+    }
 
-    if (!camera.enableScreenSpaceReflection || !sourceSettings._isValid() || isCubeFace || this._unsupportedReason) {
+    if (!camera.enableScreenSpaceReflection || !sourceSettings._isValid()) {
+      if (this._state === SSRRuntimeState.Disabled && this._isDisabledClean) {
+        context.resetSSRState();
+        return;
+      }
       this._state = SSRRuntimeState.Disabled;
       this._opaqueReceiverCount = 0;
       this._transparentReceiverCount = 0;
       this._contribDepthCount = 0;
       this._skippedFrames = 0;
-      this._clearCameraSSREnable(camera);
+      this._clearCameraSSREnable(camera, context);
       this._resetTemporaryBindings();
       this._releasePersistentResources();
+      this._updateDiagnostics(false);
+      this._isDisabledClean = true;
+      return;
+    }
+
+    // MRT (< 2 draw buffers) is required for Receiver normal+depth generation.
+    const rhi = engine._hardwareRenderer;
+    if (rhi.capability.maxDrawBuffers < 2) {
+      this._unsupportedReason = "MRT (< 2 draw buffers) unsupported";
+      this._usesPackedDepthRG8 = true;
+      this._usesPackedNormalOct8 = true;
+      this._usesPackedHDRReinhard = false;
+      this._state = SSRRuntimeState.Disabled;
+      this._opaqueReceiverCount = 0;
+      this._transparentReceiverCount = 0;
+      this._contribDepthCount = 0;
+      this._skippedFrames = 0;
+      this._clearCameraSSREnable(camera, context);
+      this._resetTemporaryBindings();
+      this._releasePersistentResources();
+      this._updateDiagnostics(false);
+      this._isDisabledClean = false;
+      return;
+    }
+    this._unsupportedReason = null;
+
+    if (context.replacementShader) {
+      this._state = SSRRuntimeState.Skipped;
+      this._isDisabledClean = false;
+      this._opaqueReceiverCount = 0;
+      this._transparentReceiverCount = 0;
+      this._contribDepthCount = 0;
+      this._clearCameraSSREnable(camera, context);
+      this._resetTemporaryBindings();
+      this._skippedFrames++;
+      if (this._skippedFrames >= SKIPPED_RELEASE_IDLE_FRAMES) {
+        this._history.invalidateAll();
+        this._releasePersistentResources();
+      }
       this._updateDiagnostics(false);
       return;
     }
 
-    sourceSettings.cloneTo(this._effectiveSettings);
-    this._activeMaxRoughness = this._effectiveSettings.maxRoughness;
+    this._isDisabledClean = false;
 
+    sourceSettings.cloneTo(this._effectiveSettings);
+    this._useLinearTrace = this._effectiveSettings.useLinearTrace;
+    this._activeMaxRoughness = this._effectiveSettings.maxRoughness;
+    context.ssrMaxRoughness = this._activeMaxRoughness;
+
+    this._receiverElements.length = 0;
     const opaqueCount =
-      cullingResults.opaqueQueue.countElementsForStage(PipelineStage.SSRReceiver, this._isReceiverElement) +
-      cullingResults.alphaTestQueue.countElementsForStage(PipelineStage.SSRReceiver, this._isReceiverElement);
+      cullingResults.opaqueQueue.countElementsForStage(
+        PipelineStage.SSRReceiver,
+        this._isReceiverElement,
+        this._receiverElements
+      ) +
+      cullingResults.alphaTestQueue.countElementsForStage(
+        PipelineStage.SSRReceiver,
+        this._isReceiverElement,
+        this._receiverElements
+      );
     const transparentCount = cullingResults.transparentQueue.countElementsForStage(
       PipelineStage.SSRReceiver,
-      this._isReceiverElement
+      this._isReceiverElement,
+      this._receiverElements
     );
     const contribCount = cullingResults.transparentQueue.countElementsForStage(
       PipelineStage.SSRContributionDepth,
@@ -324,14 +395,13 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
 
     if (opaqueCount + transparentCount === 0) {
       this._state = SSRRuntimeState.Skipped;
-      this._clearCameraSSREnable(camera);
+      this._clearCameraSSREnable(camera, context);
       this._history.invalidateAll();
       this._skippedFrames++;
       if (this._skippedFrames >= SKIPPED_RELEASE_IDLE_FRAMES) {
         this._resetTemporaryBindings();
         this._releasePersistentResources();
       }
-      this._lastHiZBytes = 0;
       this._lastHiZScratchBytes = 0;
       this._lastColorScratchBytes = 0;
       this._lastContribDepthBytes = 0;
@@ -344,11 +414,10 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     const { width: vpW, height: vpH } = camera.pixelViewport;
     let scale = 0.5;
     let colorScale = 0.5;
-    let maxSteps = 18;
+    let maxSteps = 28;
     let useTemporal = true;
     let useBilateral = false;
     let useHighVirtual = false;
-    let maxHiZMipCap = MAX_HIZ_MIP;
     let maxColorMipCap = MAX_COLOR_PYRAMID_MIP;
 
     switch (this._effectiveSettings.quality) {
@@ -359,7 +428,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         break;
       case ScreenSpaceReflectionQuality.Medium:
         scale = 0.5;
-        maxSteps = 18;
+        maxSteps = 28;
         useTemporal = true;
         break;
       case ScreenSpaceReflectionQuality.High:
@@ -376,13 +445,22 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         useTemporal = true;
         useBilateral = false;
         useHighVirtual = true;
-        maxHiZMipCap = MAX_HIZ_MIP_FULL;
         maxColorMipCap = MAX_COLOR_PYRAMID_MIP_FULL;
         break;
     }
 
-    // Re-detect precision formats with effective HDR + high-precision normal flag.
-    this._detectCapabilities(engine._hardwareRenderer, isHDR, useBilateral || useHighVirtual);
+    if (this._effectiveSettings.quality !== ScreenSpaceReflectionQuality.XHigh) {
+      const maxVpDim = Math.max(vpW, vpH);
+      if (maxVpDim > 0) {
+        const maxCappedScale = MAX_NON_XHIGH_TRACE_LONG_EDGE / maxVpDim;
+        scale = Math.max(0.25, Math.min(scale, maxCappedScale));
+        colorScale = Math.max(0.25, Math.min(colorScale, maxCappedScale));
+      }
+    }
+
+    const isHDR = camera.enableHDR;
+    // Detect precision formats once with effective HDR + high-precision normal flag.
+    this._detectCapabilities(rhi, isHDR, useBilateral || useHighVirtual);
 
     const traceW = Math.max(1, Math.floor(vpW * scale));
     const traceH = Math.max(1, Math.floor(vpH * scale));
@@ -400,20 +478,22 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     this._useBilateral = useBilateral;
     this._useHighVirtual = useHighVirtual;
     this._aliasRecvNRToPingPong = aliasRecvNR;
-    this._maxHiZMipCap = maxHiZMipCap;
     this._maxColorPyramidMipCap = maxColorMipCap;
     this._isFullResColorPyramid = colorScale >= 1.0;
 
     const history = this._history;
     const frameCount = engine.time.frameCount;
+    this._lastActiveFrameCount = frameCount;
     const isDiscontinuous =
       this._cutRequested ||
-      (history.lastFrameCount !== -1 && frameCount < history.lastFrameCount) ||
+      (history.lastFrameCount !== -1 &&
+        (frameCount < history.lastFrameCount || frameCount - history.lastFrameCount > 30)) ||
       history.lastTraceWidth !== traceW ||
       history.lastTraceHeight !== traceH ||
       history.lastColorWidth !== colorW ||
       history.lastColorHeight !== colorH ||
       history.lastIsOrthographic !== camera.isOrthographic ||
+      (this._usesPackedDepthRG8 && history.lastFarClip !== camera.farClipPlane) ||
       this._configIsHDR !== isHDR ||
       this._configUsesPackedDepth !== this._usesPackedDepthRG8 ||
       this._configUseHardwareStencil !== this._useHardwareStencil;
@@ -422,11 +502,17 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
 
     if (isDiscontinuous) {
       history.invalidateAll();
+      this._traceDirtyRect[0] = 0;
+      this._traceDirtyRect[1] = 0;
+      this._traceDirtyRect[2] = traceW;
+      this._traceDirtyRect[3] = traceH;
     } else if (
       history.lastQuality !== this._effectiveSettings.quality ||
       this._configUseHighVirtual !== useHighVirtual ||
+      this._configUseLinearTrace !== this._useLinearTrace ||
       this._configAliasRecvNR !== aliasRecvNR ||
-      this._configUsesPackedNormal !== this._usesPackedNormalOct8
+      this._configUsesPackedNormal !== this._usesPackedNormalOct8 ||
+      this._configUsesPackedHDR !== this._usesPackedHDRReinhard
     ) {
       history.invalidateTemporal();
     }
@@ -443,24 +529,27 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         this._useHardwareStencil,
         aliasRecvNR
       );
+      this._registerActiveResources();
     } catch (error) {
-      this._handleFailure(camera, "prepare", error);
+      this._handleFailure(camera, "prepare", error, context);
       this.releaseFrameTargets();
+      this._releasePersistentResources();
+      this._updateDiagnostics(false);
       return;
     }
 
     if (!useTemporal) {
       if (this._receiverRTs[1] && !this._receiverRTs[1].destroyed) {
-        this._clearCameraSSREnable(camera);
+        this._clearCameraSSREnable(camera, context);
       }
       this._destroyReceiverSlot(1);
       history.releaseTemporalBuffers();
       history.pingPongIndex = 0;
     }
 
-    if (!history.hasColorHistory) {
+    if (!history.hasColorHistory || !history.hasHiZHistory) {
       this._state = SSRRuntimeState.WarmupColor;
-      this._clearCameraSSREnable(camera);
+      this._clearCameraSSREnable(camera, context);
     } else if (!useTemporal || !history.hasTemporalHistory) {
       this._state = SSRRuntimeState.FirstTrace;
     } else {
@@ -492,7 +581,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     try {
       // Ensure offscreen projection convention matches DepthOnly/SSRReceiver/Forward-to-RT.
       if (!context.flipProjection) {
-        cullingResults.setRenderUpdateFlagTrue(2 /* ProjectionMatrix */);
+        cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.ProjectionMatrix);
         context.applyVirtualCamera(camera._virtualCamera, true);
       }
 
@@ -502,47 +591,39 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       Matrix.invert(context.projectionMatrix, this._invProjMat);
       Matrix.invert(context.viewMatrix, this._invViewMat);
 
-      // Sync encoding macros across material, camera shaderData, and Blitter's camera._globalShaderMacro.
-      this._syncEncodingMacros(camera, materialData);
+      // Sync encoding macros on internal SSR material and store flags on RenderContext for RenderQueue.
+      this._syncEncodingMacros(context, materialData);
 
       const traceW = this._traceWidth;
       const traceH = this._traceHeight;
       const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
 
-      // Step A: Build trace-resolution Depth24Stencil8 (either downsample full depth with conservative max, or DepthOnly)
-      const fullDepthTex = fullDepthRT?.depthTexture as Texture2D | null;
-      if (state !== SSRRuntimeState.WarmupColor || !fullDepthTex) {
+      const isWarmup = state === SSRRuntimeState.WarmupColor;
+      const hasVisibleReceiver = isWarmup ? false : this._computeReceiverScissorRect(context, traceW, traceH);
+
+      // Step A: Build trace-resolution Depth24Stencil8 via DepthOnly when no full-res depth target is available.
+      // When fullDepthTex exists with visible receivers, Step D merges full-depth max-downsample into Pass 7 (DownsampleAndBuildHiZMip0).
+      const fullDepthTex = (fullDepthRT?.depthTexture as Texture2D | null) ?? null;
+      const useMergedFullDepthPass = Boolean(fullDepthTex) && hasVisibleReceiver;
+      if (!fullDepthTex) {
         const ssrDepthRT = this._ssrDepthRT!;
         context.setRenderTarget(ssrDepthRT, PipelineUtils.defaultViewport, 0);
         rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil, null);
-
-        if (fullDepthTex) {
-          this._sourceTexelSize.set(
-            1 / fullDepthTex.width,
-            1 / fullDepthTex.height,
-            fullDepthTex.width,
-            fullDepthTex.height
-          );
-          this._destTexelSize.set(1 / traceW, 1 / traceH, traceW, traceH);
-          materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
-          materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
-          materialData.setTexture(ScreenSpaceReflectionPass._matFullDepthProp, fullDepthTex);
-          Blitter.blitTexture(
-            engine,
-            fullDepthTex,
-            ssrDepthRT,
-            0,
-            PipelineUtils.defaultViewport,
-            material,
-            PASS_DOWNSAMPLE_DEPTH,
-            undefined,
-            0
-          );
-          materialData.setTexture(ScreenSpaceReflectionPass._matFullDepthProp, null);
-        } else {
-          opaqueQueue.render(context, PipelineStage.DepthOnly);
-          alphaTestQueue.render(context, PipelineStage.DepthOnly);
-        }
+        this._occluderCuller.prepare(context.camera, ssrDepthRT.height, context.viewMatrix);
+        opaqueQueue.render(
+          context,
+          PipelineStage.DepthOnly,
+          undefined,
+          undefined,
+          this._occluderCuller.isOccluderElement
+        );
+        alphaTestQueue.render(
+          context,
+          PipelineStage.DepthOnly,
+          undefined,
+          undefined,
+          this._occluderCuller.isOccluderElement
+        );
       }
 
       // Step B: Optional nearest nonzero-alpha transparent depth contributors (pooled per frame)
@@ -579,40 +660,77 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         this._lastContribDepthBytes = 0;
       }
 
-      // Step C: WarmupColor fast path - capture Frame 0 min depth directly into prevTraceDepthRT
-      if (state === SSRRuntimeState.WarmupColor) {
-        this._runBuildHiZMip0(fullDepthTex, contribDepthTex, history.prevTraceDepthRT!);
+      // Step C: WarmupColor / offscreen-receiver fast path - capture min depth directly into ping-pong hiZTex mip 0 and skip Hi-Z mip 1..N.
+      const currHiZIdx = history.hiZPingPongIndex;
+      const prevHiZIdx: 0 | 1 = currHiZIdx === 0 ? 1 : 0;
+      const currHiZTex = history.hiZTex[currHiZIdx]!;
+      const currHiZColorRT = history.hiZColorRT[currHiZIdx]!;
+      const currIdx = this._useTemporal ? history.pingPongIndex : 0;
+      const aliasRecv = this._aliasRecvNRToPingPong;
+
+      if (isWarmup || !hasVisibleReceiver) {
+        this._runBuildHiZMip0(fullDepthTex, contribDepthTex, currHiZColorRT);
         if (contribRT) {
           this._popAndFreeScratch(this._hiZScratchRTs, contribRT);
         }
-        this._lastHiZBytes = 0;
+        if (!isWarmup) {
+          const receiverRT = this._receiverRTs[currIdx];
+          if (receiverRT) {
+            this._clearDirtyUnion(
+              context,
+              receiverRT,
+              history.recvSlotDirtyRect[currIdx],
+              aliasRecv ? history.ssrSlotDirtyRect[currIdx] : null,
+              0,
+              0,
+              0,
+              0,
+              0,
+              traceW,
+              traceH
+            );
+          }
+          if (this._traceOutRT) {
+            this._clearDirtyUnion(context, this._traceOutRT, this._traceDirtyRect, null, 0, 0, 0, 0, 0, traceW, traceH);
+          }
+          if (this._useTemporal) {
+            const dstSSRRT = history.ssrPingPongRT[currIdx];
+            if (dstSSRRT) {
+              this._clearDirtyUnion(
+                context,
+                dstSSRRT,
+                history.ssrSlotDirtyRect[currIdx],
+                null,
+                0,
+                0,
+                0,
+                0,
+                0,
+                traceW,
+                traceH
+              );
+            }
+            history.invalidateTemporal();
+          }
+        }
+        history.hasHiZHistory = true;
+        history.hiZPingPongIndex = prevHiZIdx;
         this._lastHiZScratchBytes = 0;
-        this._clearCameraSSREnable(camera);
+        this._clearCameraSSREnable(camera, context);
         this._updateDiagnostics(false);
         return;
       }
 
-      // Step D: Build Hi-Z Pyramid (Mip 0..maxHiZMip) into pooled hiZRT using a single mip-1 scratch
-      const maxHiZMip = Math.min(this._maxHiZMipCap, Math.floor(Math.log2(Math.max(1, Math.min(traceW, traceH)))));
-      const needHiZMipmap = Math.max(traceW, traceH) > 1;
-      const hiZRT = pool.allocateRenderTarget(
-        traceW,
-        traceH,
-        this._depthColorFormat,
-        null,
-        false,
-        needHiZMipmap,
-        false,
-        1,
-        TextureWrapMode.Clamp,
-        TextureFilterMode.Point
-      );
-      hiZRT.autoGenerateMipmaps = false;
-      this._hiZScratchRTs.push(hiZRT);
-      const hiZTex = hiZRT.getColorTexture(0) as Texture2D;
-      this._lastHiZBytes = hiZTex._memorySize;
-
-      this._runBuildHiZMip0(fullDepthTex, contribDepthTex, hiZRT);
+      // Step D: Build persistent Hi-Z Pyramid (Mip 0 only when Linear trace A/B mode is active)
+      const useLinearTrace = this._useLinearTrace;
+      const maxHiZMip = useLinearTrace
+        ? 0
+        : Math.min(MAX_HIZ_MIP, Math.floor(Math.log2(Math.max(1, Math.min(traceW, traceH)))));
+      if (useMergedFullDepthPass) {
+        this._runDownsampleAndBuildHiZMip0(context, fullDepthTex!, contribDepthTex, currHiZIdx, currHiZTex);
+      } else {
+        this._runBuildHiZMip0(fullDepthTex, contribDepthTex, currHiZColorRT);
+      }
       if (contribRT) {
         this._popAndFreeScratch(this._hiZScratchRTs, contribRT);
         contribRT = null;
@@ -620,163 +738,238 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       }
 
       if (maxHiZMip >= 1) {
-        const mip1W = Math.max(1, traceW >> 1);
-        const mip1H = Math.max(1, traceH >> 1);
-        const hiZScratchRT = pool.allocateRenderTarget(
-          mip1W,
-          mip1H,
-          this._depthColorFormat,
-          null,
-          false,
-          false,
-          false,
-          1,
-          TextureWrapMode.Clamp,
-          TextureFilterMode.Point
-        );
-        hiZScratchRT.autoGenerateMipmaps = false;
-        this._hiZScratchRTs.push(hiZScratchRT);
-        const hiZScratchTex = hiZScratchRT.getColorTexture(0) as Texture2D;
-        this._lastHiZScratchBytes = hiZScratchTex._memorySize;
-
-        for (let m = 1; m <= maxHiZMip; m++) {
-          const srcW = Math.max(1, traceW >> (m - 1));
-          const srcH = Math.max(1, traceH >> (m - 1));
-          const dstW = Math.max(1, traceW >> m);
-          const dstH = Math.max(1, traceH >> m);
-          const vpW = dstW === mip1W ? 1 : Math.min(1, (dstW + 0.001) / mip1W);
-          const vpH = dstH === mip1H ? 1 : Math.min(1, (dstH + 0.001) / mip1H);
-          this._subViewport.set(0, 0, vpW, vpH);
-
-          this._sourceTexelSize.set(1 / srcW, 1 / srcH, srcW, srcH);
-          this._destTexelSize.set(1 / dstW, 1 / dstH, dstW, dstH);
-          materialData.setTexture(ScreenSpaceReflectionPass._matHiZInputProp, hiZTex);
-          materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
-          materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
-          Blitter.blitTexture(
-            engine,
-            hiZTex,
-            hiZScratchRT,
-            m - 1,
-            this._subViewport,
-            material,
-            PASS_BUILD_HIZ_MIPN,
-            undefined,
-            0
+        if (this._canUseInPlaceHiZ(currHiZTex)) {
+          this._lastHiZScratchBytes = 0;
+          try {
+            for (let m = 1; m <= maxHiZMip; m++) {
+              const srcW = Math.max(1, traceW >> (m - 1));
+              const srcH = Math.max(1, traceH >> (m - 1));
+              const dstW = Math.max(1, traceW >> m);
+              const dstH = Math.max(1, traceH >> m);
+              // WebGL2 prohibits sampling a mip level attached to the active FBO;
+              // pin sampler range to [m - 1, m - 1] so destMipLevel = m sits outside it.
+              currHiZTex._setMipLevelRange(m - 1, m - 1);
+              this._sourceTexelSize.set(1 / srcW, 1 / srcH, srcW, srcH);
+              this._destTexelSize.set(1 / dstW, 1 / dstH, dstW, dstH);
+              materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
+              materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
+              Blitter.blitTexture(
+                engine,
+                currHiZTex,
+                currHiZColorRT,
+                0,
+                PipelineUtils.defaultViewport,
+                material,
+                PASS_BUILD_HIZ_MIPN,
+                undefined,
+                m,
+                true
+              );
+            }
+          } finally {
+            currHiZTex._setMipLevelRange(0, 1000);
+          }
+        } else {
+          const mip1W = Math.max(1, traceW >> 1);
+          const mip1H = Math.max(1, traceH >> 1);
+          const hiZScratchRT = pool.allocateRenderTarget(
+            mip1W,
+            mip1H,
+            this._depthColorFormat,
+            null,
+            false,
+            false,
+            false,
+            1,
+            TextureWrapMode.Clamp,
+            TextureFilterMode.Point
           );
-          materialData.setTexture(ScreenSpaceReflectionPass._matHiZInputProp, null);
+          hiZScratchRT.autoGenerateMipmaps = false;
+          this._hiZScratchRTs.push(hiZScratchRT);
+          const hiZScratchTex = hiZScratchRT.getColorTexture(0) as Texture2D;
+          this._lastHiZScratchBytes = hiZScratchTex._memorySize;
 
-          this._copyScaleOffset.set(dstW / mip1W, dstH / mip1H, 0, 0);
-          this._copyTextureToRT(hiZScratchTex, hiZRT, m, 0, this._copyScaleOffset);
+          for (let m = 1; m <= maxHiZMip; m++) {
+            const srcW = Math.max(1, traceW >> (m - 1));
+            const srcH = Math.max(1, traceH >> (m - 1));
+            const dstW = Math.max(1, traceW >> m);
+            const dstH = Math.max(1, traceH >> m);
+            const vpW = dstW === mip1W ? 1 : Math.min(1, (dstW + 0.001) / mip1W);
+            const vpH = dstH === mip1H ? 1 : Math.min(1, (dstH + 0.001) / mip1H);
+            this._subViewport.set(0, 0, vpW, vpH);
+
+            this._sourceTexelSize.set(1 / srcW, 1 / srcH, srcW, srcH);
+            this._destTexelSize.set(1 / dstW, 1 / dstH, dstW, dstH);
+            materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
+            materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
+            Blitter.blitTexture(
+              engine,
+              currHiZTex,
+              hiZScratchRT,
+              m - 1,
+              this._subViewport,
+              material,
+              PASS_BUILD_HIZ_MIPN,
+              undefined,
+              0,
+              true
+            );
+
+            this._copyScaleOffset.set(dstW / mip1W, dstH / mip1H, 0, 0);
+            this._copyTextureToRT(hiZScratchTex, currHiZColorRT, m, 0, this._copyScaleOffset, undefined, true);
+          }
+
+          this._popAndFreeScratch(this._hiZScratchRTs, hiZScratchRT);
         }
-
-        this._popAndFreeScratch(this._hiZScratchRTs, hiZScratchRT);
       } else {
         this._lastHiZScratchBytes = 0;
       }
 
       // Step E: Non-MSAA MRT Receiver Pass (closest layer wins: Opaque & Transparent DepthWrite=true)
-      const currIdx = this._useTemporal ? history.pingPongIndex : 0;
       const prevIdx: 0 | 1 = currIdx === 0 ? 1 : 0;
       const settings = this._effectiveSettings;
+      const traceScale = Math.min(1, traceW / Math.max(1, camera.pixelViewport.width));
 
-      this._ssrParams.set(settings.intensity, settings.maxRoughness, 0, camera.farClipPlane);
+      const sx0 = this._receiverScissor.x;
+      const sy0 = this._receiverScissor.y;
+      const sw = this._receiverScissor.z;
+      const sh = this._receiverScissor.w;
+      const sx1 = sx0 + sw;
+      const sy1 = sy0 + sh;
+      const isFullScreenScissor = sx0 === 0 && sy0 === 0 && sw === traceW && sh === traceH;
+      const scissorArg = isFullScreenScissor ? undefined : this._receiverScissor;
+
+      this._ssrParams.set(settings.intensity, settings.maxRoughness, traceScale, camera.farClipPlane);
       cameraData.setVector4(ScreenSpaceReflectionPass._cameraSSRParamsProp, this._ssrParams);
 
       const receiverRT = this._receiverRTs[currIdx]!;
-      context.setRenderTarget(receiverRT, PipelineUtils.defaultViewport, 0);
-      rhi.clearRenderTarget(engine, CameraClearFlags.Color, this._clearZero);
+      this._clearDirtyUnion(
+        context,
+        receiverRT,
+        history.recvSlotDirtyRect[currIdx],
+        aliasRecv ? history.ssrSlotDirtyRect[currIdx] : null,
+        sx0,
+        sy0,
+        sx1,
+        sy1,
+        0,
+        traceW,
+        traceH
+      );
+      if (!isFullScreenScissor) {
+        rhi.scissor(sx0, sy0, sw, sh);
+      }
 
-      opaqueQueue.render(
-        context,
-        PipelineStage.SSRReceiver,
-        undefined,
-        this._opaqueReceiverStates,
-        this._isReceiverElement
-      );
-      alphaTestQueue.render(
-        context,
-        PipelineStage.SSRReceiver,
-        undefined,
-        this._opaqueReceiverStates,
-        this._isReceiverElement
-      );
+      if (this._opaqueReceiverCount > 0) {
+        opaqueQueue.render(
+          context,
+          PipelineStage.SSRReceiver,
+          undefined,
+          this._receiverStates,
+          this._isReceiverElement
+        );
+        alphaTestQueue.render(
+          context,
+          PipelineStage.SSRReceiver,
+          undefined,
+          this._receiverStates,
+          this._isReceiverElement
+        );
+      }
       if (this._transparentReceiverCount > 0) {
         transparentQueue.render(
           context,
           PipelineStage.SSRReceiver,
           undefined,
-          this._transparentReceiverStates,
+          this._receiverStates,
           this._isReceiverElement
         );
       }
 
-      // Step F: Hi-Z Ray Trace Pass
-      const currRecvNR = this._aliasRecvNRToPingPong ? history.ssrPingPongTex[currIdx]! : history.recvNRTex[currIdx]!;
+      // Step F: Hi-Z / Linear Ray Trace Pass
+      const currRecvNR = aliasRecv ? history.ssrPingPongTex[currIdx]! : history.recvNRTex[currIdx]!;
       const currRecvDepth = history.recvDepthTex[currIdx]!;
-      if (this._aliasRecvNRToPingPong) {
+      if (aliasRecv) {
         currRecvNR.filterMode = TextureFilterMode.Point;
       }
-      this._traceTexelSize.set(1 / traceW, 1 / traceH, traceW, traceH);
-      this._colorPyramidInfo.set(
-        this._lastMaxColorMip,
-        this._colorWidth,
-        this._colorHeight,
-        engine.time.frameCount & 63
-      );
-      this._traceSettings.set(settings.maxDistance, settings.thickness, settings.maxRoughness, settings.edgeFade);
+      try {
+        this._traceTexelSize.set(1 / traceW, 1 / traceH, traceW, traceH);
+        this._colorPyramidInfo.set(
+          this._lastMaxColorMip,
+          this._colorWidth,
+          this._colorHeight,
+          engine.time.frameCount & 63
+        );
+        this._traceSettings.set(settings.maxDistance, settings.thickness, settings.maxRoughness, settings.edgeFade);
 
-      cameraData.setMatrix(ScreenSpaceReflectionPass._cameraSSRInvProjMatProp, this._invProjMat);
-      cameraData.setMatrix(ScreenSpaceReflectionPass._cameraSSRInvViewMatProp, this._invViewMat);
-      cameraData.setMatrix(ScreenSpaceReflectionPass._cameraSSRPrevVPMatProp, history.prevVPMat);
-      cameraData.setVector4(ScreenSpaceReflectionPass._cameraSSRPrevViewZRowProp, history.prevViewZRow);
+        cameraData.setMatrix(ScreenSpaceReflectionPass._cameraSSRInvProjMatProp, this._invProjMat);
+        cameraData.setMatrix(ScreenSpaceReflectionPass._cameraSSRInvViewMatProp, this._invViewMat);
+        cameraData.setMatrix(ScreenSpaceReflectionPass._cameraSSRPrevVPMatProp, history.prevVPMat);
+        if (this._useHighVirtual) {
+          cameraData.setMatrix(ScreenSpaceReflectionPass._cameraSSRPrevInvProjMatProp, history.prevInvProjMat);
+          cameraData.setMatrix(ScreenSpaceReflectionPass._cameraSSRPrevInvViewMatProp, history.prevInvViewMat);
+        }
+        cameraData.setVector4(ScreenSpaceReflectionPass._cameraSSRPrevViewZRowProp, history.prevViewZRow);
 
-      materialData.setInt(ScreenSpaceReflectionPass._matUseHWStencilProp, this._useHardwareStencil ? 1 : 0);
-      materialData.setTexture(ScreenSpaceReflectionPass._matHiZTextureProp, hiZTex);
-      materialData.setTexture(ScreenSpaceReflectionPass._matNormalRoughnessProp, currRecvNR);
-      materialData.setTexture(ScreenSpaceReflectionPass._matReceiverDepthProp, currRecvDepth);
-      materialData.setTexture(ScreenSpaceReflectionPass._matPrevColorPyramidProp, history.prevColorPyramidTex!);
-      materialData.setTexture(ScreenSpaceReflectionPass._matPrevTraceDepthProp, history.prevTraceDepthTex!);
-      materialData.setVector4(ScreenSpaceReflectionPass._matTraceTexelSizeProp, this._traceTexelSize);
-      materialData.setVector4(ScreenSpaceReflectionPass._matColorPyramidInfoProp, this._colorPyramidInfo);
-      materialData.setVector4(ScreenSpaceReflectionPass._matTraceSettingsProp, this._traceSettings);
-      materialData.setFloat(ScreenSpaceReflectionPass._matMaxStepsProp, this._traceSteps);
-      materialData.setFloat(ScreenSpaceReflectionPass._matHiZMaxMipProp, maxHiZMip);
-      ScreenSpaceReflectionPass._setMacro(
-        materialData._macroCollection,
-        ScreenSpaceReflectionPass._outputHitDistMacro,
-        this._useHighVirtual
-      );
+        const prevHiZTex = history.hasHiZHistory ? history.hiZTex[prevHiZIdx]! : currHiZTex;
+        materialData.setInt(ScreenSpaceReflectionPass._matUseHWStencilProp, this._useHardwareStencil ? 1 : 0);
+        materialData.setTexture(ScreenSpaceReflectionPass._matHiZTextureProp, currHiZTex);
+        materialData.setTexture(ScreenSpaceReflectionPass._matNormalRoughnessProp, currRecvNR);
+        materialData.setTexture(ScreenSpaceReflectionPass._matReceiverDepthProp, currRecvDepth);
+        materialData.setTexture(ScreenSpaceReflectionPass._matPrevColorPyramidProp, history.prevColorPyramidTex!);
+        materialData.setTexture(ScreenSpaceReflectionPass._matPrevTraceDepthProp, prevHiZTex);
+        materialData.setVector4(ScreenSpaceReflectionPass._matTraceTexelSizeProp, this._traceTexelSize);
+        materialData.setVector4(ScreenSpaceReflectionPass._matColorPyramidInfoProp, this._colorPyramidInfo);
+        materialData.setVector4(ScreenSpaceReflectionPass._matTraceSettingsProp, this._traceSettings);
+        materialData.setFloat(ScreenSpaceReflectionPass._matMaxStepsProp, this._traceSteps);
+        materialData.setFloat(ScreenSpaceReflectionPass._matHiZMaxMipProp, maxHiZMip);
+        ScreenSpaceReflectionPass._setMacro(
+          materialData._macroCollection,
+          ScreenSpaceReflectionPass._outputHitDistMacro,
+          this._useHighVirtual
+        );
+        ScreenSpaceReflectionPass._setMacro(
+          materialData._macroCollection,
+          ScreenSpaceReflectionPass._linearTraceMacro,
+          useLinearTrace
+        );
 
-      const traceOutRT = this._traceOutRT!;
-      context.setRenderTarget(traceOutRT, PipelineUtils.defaultViewport, 0);
-      rhi.clearRenderTarget(engine, CameraClearFlags.Color, this._clearZero);
-      Blitter.blitTexture(
-        engine,
-        currRecvNR,
-        traceOutRT,
-        0,
-        PipelineUtils.defaultViewport,
-        material,
-        PASS_HIZ_TRACE,
-        undefined,
-        0
-      );
-
-      if (this._aliasRecvNRToPingPong) {
-        currRecvNR.filterMode = TextureFilterMode.Bilinear;
+        const traceOutRT = this._traceOutRT!;
+        // Expand clear pad by 2px on traceOutRT so TemporalResolve neighbor taps outside scissor read zero.
+        this._clearDirtyUnion(context, traceOutRT, this._traceDirtyRect, null, sx0, sy0, sx1, sy1, 2, traceW, traceH);
+        Blitter.blitTexture(
+          engine,
+          currRecvNR,
+          traceOutRT,
+          0,
+          PipelineUtils.defaultViewport,
+          material,
+          PASS_HIZ_TRACE,
+          undefined,
+          0,
+          false,
+          scissorArg
+        );
+        if (!this._useTemporal && this._useHardwareStencil) {
+          rhi.invalidateRenderTarget?.(traceOutRT, CameraClearFlags.DepthStencil);
+        }
+      } finally {
+        if (aliasRecv) {
+          currRecvNR.filterMode = TextureFilterMode.Bilinear;
+        }
+        ScreenSpaceReflectionPass._setMacro(
+          materialData._macroCollection,
+          ScreenSpaceReflectionPass._outputHitDistMacro,
+          false
+        );
+        ScreenSpaceReflectionPass._setMacro(
+          materialData._macroCollection,
+          ScreenSpaceReflectionPass._linearTraceMacro,
+          false
+        );
       }
       materialData.setTexture(ScreenSpaceReflectionPass._matHiZTextureProp, null);
       materialData.setTexture(ScreenSpaceReflectionPass._matNormalRoughnessProp, null);
-      ScreenSpaceReflectionPass._setMacro(
-        materialData._macroCollection,
-        ScreenSpaceReflectionPass._outputHitDistMacro,
-        false
-      );
-
-      // Step G: Persist Frame N Hi-Z mip 0 for next frame's disocclusion check, then free pooled hiZRT
-      this._copyTextureToRT(hiZTex, history.prevTraceDepthRT!, 0, 0);
-      this._popAndFreeScratch(this._hiZScratchRTs, hiZRT);
 
       // Step H: Temporal Resolve (Medium / High, with hardware Stencil culling) or direct output (Low)
       const traceRawTex = this._traceRawTex!;
@@ -784,68 +977,101 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       if (this._useTemporal) {
         const dstSSRRT = history.ssrPingPongRT[currIdx]!;
         const dstSSRTex = history.ssrPingPongTex[currIdx]!;
+        this._clearDirtyUnion(
+          context,
+          dstSSRRT,
+          history.ssrSlotDirtyRect[currIdx],
+          null,
+          sx0,
+          sy0,
+          sx1,
+          sy1,
+          0,
+          traceW,
+          traceH
+        );
         if (state === SSRRuntimeState.FirstTrace) {
-          this._copyTextureToRT(traceRawTex, dstSSRRT, 0, 0);
+          this._copyTextureToRT(traceRawTex, dstSSRRT, 0, 0, undefined, scissorArg, false);
+          if (this._useHardwareStencil) {
+            rhi.invalidateRenderTarget?.(dstSSRRT, CameraClearFlags.DepthStencil);
+          }
           history.hasTemporalHistory = true;
         } else {
           const useHighVirtual = this._useHighVirtual;
-          ScreenSpaceReflectionPass._setMacro(
-            materialData._macroCollection,
-            ScreenSpaceReflectionPass._highVirtualReprojMacro,
-            useHighVirtual
-          );
-          materialData.setInt(ScreenSpaceReflectionPass._matUseHWStencilProp, this._useHardwareStencil ? 1 : 0);
-          materialData.setTexture(ScreenSpaceReflectionPass._matTraceRawProp, traceRawTex);
-          materialData.setTexture(ScreenSpaceReflectionPass._matPrevSSRProp, history.ssrPingPongTex[prevIdx]!);
-          materialData.setTexture(ScreenSpaceReflectionPass._matReceiverDepthProp, currRecvDepth);
-          materialData.setTexture(ScreenSpaceReflectionPass._matPrevRecvDepthProp, history.recvDepthTex[prevIdx]!);
-          materialData.setVector4(ScreenSpaceReflectionPass._matTraceTexelSizeProp, this._traceTexelSize);
-          materialData.setFloat(ScreenSpaceReflectionPass._matTemporalBlendProp, settings.temporalBlend);
+          try {
+            ScreenSpaceReflectionPass._setMacro(
+              materialData._macroCollection,
+              ScreenSpaceReflectionPass._highVirtualReprojMacro,
+              useHighVirtual
+            );
+            ScreenSpaceReflectionPass._setMacro(
+              materialData._macroCollection,
+              ScreenSpaceReflectionPass._temporal5TapMacro,
+              !useHighVirtual
+            );
+            materialData.setTexture(ScreenSpaceReflectionPass._matTraceRawProp, traceRawTex);
+            materialData.setTexture(ScreenSpaceReflectionPass._matPrevSSRProp, history.ssrPingPongTex[prevIdx]!);
+            materialData.setTexture(ScreenSpaceReflectionPass._matPrevRecvDepthProp, history.recvDepthTex[prevIdx]!);
+            materialData.setFloat(ScreenSpaceReflectionPass._matTemporalBlendProp, settings.temporalBlend);
 
-          if (useHighVirtual) {
-            materialData.setTexture(ScreenSpaceReflectionPass._matHitDistProp, this._hitDistTex!);
-            materialData.setTexture(ScreenSpaceReflectionPass._matNormalRoughnessProp, currRecvNR);
-            materialData.setTexture(ScreenSpaceReflectionPass._matPrevNormalRoughnessProp, history.recvNRTex[prevIdx]!);
+            if (useHighVirtual) {
+              materialData.setTexture(ScreenSpaceReflectionPass._matHitDistProp, this._hitDistTex!);
+              materialData.setTexture(ScreenSpaceReflectionPass._matNormalRoughnessProp, currRecvNR);
+              materialData.setTexture(
+                ScreenSpaceReflectionPass._matPrevNormalRoughnessProp,
+                history.recvNRTex[prevIdx]!
+              );
+            }
+
+            Blitter.blitTexture(
+              engine,
+              traceRawTex,
+              dstSSRRT,
+              0,
+              PipelineUtils.defaultViewport,
+              material,
+              PASS_TEMPORAL_RESOLVE,
+              undefined,
+              0,
+              false,
+              scissorArg
+            );
+            if (this._useHardwareStencil) {
+              rhi.invalidateRenderTarget?.(dstSSRRT, CameraClearFlags.DepthStencil);
+            }
+          } finally {
+            materialData.setTexture(ScreenSpaceReflectionPass._matTraceRawProp, null);
+            materialData.setTexture(ScreenSpaceReflectionPass._matPrevSSRProp, null);
+            materialData.setTexture(ScreenSpaceReflectionPass._matPrevRecvDepthProp, null);
+            materialData.setTexture(ScreenSpaceReflectionPass._matHitDistProp, null);
+            materialData.setTexture(ScreenSpaceReflectionPass._matNormalRoughnessProp, null);
+            materialData.setTexture(ScreenSpaceReflectionPass._matPrevNormalRoughnessProp, null);
+            ScreenSpaceReflectionPass._setMacro(
+              materialData._macroCollection,
+              ScreenSpaceReflectionPass._highVirtualReprojMacro,
+              false
+            );
+            ScreenSpaceReflectionPass._setMacro(
+              materialData._macroCollection,
+              ScreenSpaceReflectionPass._temporal5TapMacro,
+              false
+            );
           }
-
-          context.setRenderTarget(dstSSRRT, PipelineUtils.defaultViewport, 0);
-          rhi.clearRenderTarget(engine, CameraClearFlags.Color, this._clearZero);
-          Blitter.blitTexture(
-            engine,
-            traceRawTex,
-            dstSSRRT,
-            0,
-            PipelineUtils.defaultViewport,
-            material,
-            PASS_TEMPORAL_RESOLVE,
-            undefined,
-            0
-          );
-
-          materialData.setTexture(ScreenSpaceReflectionPass._matTraceRawProp, null);
-          materialData.setTexture(ScreenSpaceReflectionPass._matPrevSSRProp, null);
-          materialData.setTexture(ScreenSpaceReflectionPass._matPrevRecvDepthProp, null);
-          materialData.setTexture(ScreenSpaceReflectionPass._matHitDistProp, null);
-          materialData.setTexture(ScreenSpaceReflectionPass._matNormalRoughnessProp, null);
-          materialData.setTexture(ScreenSpaceReflectionPass._matPrevNormalRoughnessProp, null);
-          ScreenSpaceReflectionPass._setMacro(
-            materialData._macroCollection,
-            ScreenSpaceReflectionPass._highVirtualReprojMacro,
-            false
-          );
         }
         finalSSRTex = dstSSRTex;
       }
 
-      materialData.setTexture(ScreenSpaceReflectionPass._matNormalRoughnessProp, null);
+      if (!isFullScreenScissor) {
+        rhi.scissor(0, 0, traceW, traceH);
+      }
+
       materialData.setTexture(ScreenSpaceReflectionPass._matReceiverDepthProp, null);
       materialData.setTexture(ScreenSpaceReflectionPass._matPrevColorPyramidProp, null);
       materialData.setTexture(ScreenSpaceReflectionPass._matPrevTraceDepthProp, null);
 
-      // Step I: Bind Forward sampling inputs & macros on camera
+      // Step I: Bind Forward sampling inputs & SSR flags on RenderContext
       const needsRecvDepthInForward = this._useBilateral || this._transparentReceiverCount > 0;
       cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRTextureProp, finalSSRTex);
-      cameraData.setVector4(ScreenSpaceReflectionPass._cameraSSRParamsProp, this._ssrParams);
       cameraData.setVector4(ScreenSpaceReflectionPass._cameraSSRTraceTexelSizeProp, this._traceTexelSize);
       cameraData.setTexture(
         ScreenSpaceReflectionPass._cameraSSRRecvDepthProp,
@@ -853,13 +1079,20 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       );
       cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRRecvNRProp, this._useBilateral ? currRecvNR : null);
 
-      this._setCameraMacro(camera, ScreenSpaceReflectionPass._enableSSRMacro, true);
-      this._setCameraMacro(camera, ScreenSpaceReflectionPass._bilateralMacro, this._useBilateral);
-      this._setCameraMacro(camera, ScreenSpaceReflectionPass._verifyDepthMacro, this._transparentReceiverCount > 0);
+      context.ssrForwardEnabled = true;
+      context.ssrBilateralSample = this._useBilateral;
+      context.ssrVerifyReceiverDepth = this._transparentReceiverCount > 0;
+      context.ssrPackedDepthRG8 = this._usesPackedDepthRG8;
+      context.ssrPackedNormalOct8 = this._usesPackedNormalOct8;
+      context.ssrPackedHDRReinhard = this._usesPackedHDRReinhard;
+      context.ssrMaxRoughness = this._activeMaxRoughness;
+
+      history.hasHiZHistory = true;
+      history.hiZPingPongIndex = prevHiZIdx;
 
       this._updateDiagnostics(true);
     } catch (error) {
-      this._handleFailure(camera, "renderPreForward", error);
+      this._handleFailure(camera, "renderPreForward", error, context);
     } finally {
       this.releaseFrameTargets();
     }
@@ -913,6 +1146,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         ScreenSpaceReflectionPass._colorPyramidFullResMacro,
         this._isFullResColorPyramid
       );
+      this._destTexelSize.set(1 / colorW, 1 / colorH, colorW, colorH);
+      materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
       this._sourceScaleOffset.set(sourceViewport.z, sourceViewport.w, sourceViewport.x, sourceViewport.y);
       Blitter.blitTexture(
         engine,
@@ -923,7 +1158,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         this._material,
         PASS_COLOR_PYRAMID_PREFILTER,
         this._sourceScaleOffset,
-        0
+        0,
+        true
       );
       ScreenSpaceReflectionPass._setMacro(
         materialData._macroCollection,
@@ -932,68 +1168,76 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       );
 
       if (maxColorMip >= 1) {
-        const mip1W = Math.max(1, colorW >> 1);
-        const mip1H = Math.max(1, colorH >> 1);
-        const colorScratchRT = pool.allocateRenderTarget(
-          mip1W,
-          mip1H,
-          colorFormat,
-          null,
-          false,
-          false,
-          colorSRGB,
-          1,
-          TextureWrapMode.Clamp,
-          TextureFilterMode.Bilinear
-        );
-        colorScratchRT.autoGenerateMipmaps = false;
-        this._colorScratchRTs.push(colorScratchRT);
-        const colorScratchTex = colorScratchRT.getColorTexture(0) as Texture2D;
-        this._lastColorScratchBytes = colorScratchTex._memorySize;
+        if (this._canUseHardwareColorPyramidMipmaps(prevColorPyramidTex)) {
+          prevColorPyramidTex.generateMipmaps();
+          this._lastColorScratchBytes = 0;
+        } else {
+          const mip1W = Math.max(1, colorW >> 1);
+          const mip1H = Math.max(1, colorH >> 1);
+          const colorScratchRT = pool.allocateRenderTarget(
+            mip1W,
+            mip1H,
+            colorFormat,
+            null,
+            false,
+            false,
+            colorSRGB,
+            1,
+            TextureWrapMode.Clamp,
+            TextureFilterMode.Bilinear
+          );
+          colorScratchRT.autoGenerateMipmaps = false;
+          this._colorScratchRTs.push(colorScratchRT);
+          const colorScratchTex = colorScratchRT.getColorTexture(0) as Texture2D;
+          this._lastColorScratchBytes = colorScratchTex._memorySize;
 
-        for (let m = 1; m <= maxColorMip; m++) {
-          const srcW = Math.max(1, colorW >> (m - 1));
-          const srcH = Math.max(1, colorH >> (m - 1));
-          const dstW = Math.max(1, colorW >> m);
-          const dstH = Math.max(1, colorH >> m);
-          const vpW = dstW === mip1W ? 1 : Math.min(1, (dstW + 0.001) / mip1W);
-          const vpH = dstH === mip1H ? 1 : Math.min(1, (dstH + 0.001) / mip1H);
-          this._subViewport.set(0, 0, vpW, vpH);
+          for (let m = 1; m <= maxColorMip; m++) {
+            const srcW = Math.max(1, colorW >> (m - 1));
+            const srcH = Math.max(1, colorH >> (m - 1));
+            const dstW = Math.max(1, colorW >> m);
+            const dstH = Math.max(1, colorH >> m);
+            const vpW = dstW === mip1W ? 1 : Math.min(1, (dstW + 0.001) / mip1W);
+            const vpH = dstH === mip1H ? 1 : Math.min(1, (dstH + 0.001) / mip1H);
+            this._subViewport.set(0, 0, vpW, vpH);
 
-          this._sourceTexelSize.set(1 / srcW, 1 / srcH, srcW, srcH);
-          materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
+            this._sourceTexelSize.set(1 / srcW, 1 / srcH, srcW, srcH);
+            materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
+            ScreenSpaceReflectionPass._setMacro(
+              materialData._macroCollection,
+              ScreenSpaceReflectionPass._colorPyramidKarisDownsampleMacro,
+              this._isFullResColorPyramid && m === 1
+            );
+            Blitter.blitTexture(
+              engine,
+              prevColorPyramidTex,
+              colorScratchRT,
+              m - 1,
+              this._subViewport,
+              this._material,
+              PASS_COLOR_PYRAMID_DOWNSAMPLE,
+              undefined,
+              0,
+              true
+            );
+
+            this._copyScaleOffset.set(dstW / mip1W, dstH / mip1H, 0, 0);
+            this._copyTextureToRT(colorScratchTex, prevColorPyramidRT, m, 0, this._copyScaleOffset, undefined, true);
+          }
+
           ScreenSpaceReflectionPass._setMacro(
             materialData._macroCollection,
             ScreenSpaceReflectionPass._colorPyramidKarisDownsampleMacro,
-            this._isFullResColorPyramid && m === 1
+            false
           );
-          Blitter.blitTexture(
-            engine,
-            prevColorPyramidTex,
-            colorScratchRT,
-            m - 1,
-            this._subViewport,
-            this._material,
-            PASS_COLOR_PYRAMID_DOWNSAMPLE,
-            undefined,
-            0
-          );
-
-          this._copyScaleOffset.set(dstW / mip1W, dstH / mip1H, 0, 0);
-          this._copyTextureToRT(colorScratchTex, prevColorPyramidRT, m, 0, this._copyScaleOffset);
+          this._popAndFreeScratch(this._colorScratchRTs, colorScratchRT);
         }
-
-        ScreenSpaceReflectionPass._setMacro(
-          materialData._macroCollection,
-          ScreenSpaceReflectionPass._colorPyramidKarisDownsampleMacro,
-          false
-        );
-        this._popAndFreeScratch(this._colorScratchRTs, colorScratchRT);
       } else {
         this._lastColorScratchBytes = 0;
       }
 
       history.prevVPMat.copyFrom(this._currentVPMat);
+      history.prevInvProjMat.copyFrom(this._invProjMat);
+      history.prevInvViewMat.copyFrom(this._invViewMat);
       history.prevViewZRow.copyFrom(this._currentViewZRow);
       history.hasColorHistory = true;
       history.lastFrameCount = engine.time.frameCount;
@@ -1002,19 +1246,22 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       history.lastColorWidth = colorW;
       history.lastColorHeight = colorH;
       history.lastIsOrthographic = camera.isOrthographic;
+      history.lastFarClip = camera.farClipPlane;
       history.lastQuality = this._effectiveSettings.quality;
       this._configIsHDR = camera.enableHDR;
       this._configAliasRecvNR = this._aliasRecvNRToPingPong;
       this._configUsesPackedDepth = this._usesPackedDepthRG8;
       this._configUsesPackedNormal = this._usesPackedNormalOct8;
+      this._configUsesPackedHDR = this._usesPackedHDRReinhard;
       this._configUseHardwareStencil = this._useHardwareStencil;
       this._configUseHighVirtual = this._useHighVirtual;
+      this._configUseLinearTrace = this._useLinearTrace;
 
       if (this._useTemporal && (state === SSRRuntimeState.FirstTrace || state === SSRRuntimeState.ActiveSteady)) {
         history.pingPongIndex = history.pingPongIndex === 0 ? 1 : 0;
       }
     } catch (error) {
-      this._handleFailure(camera, "captureHistory", error);
+      this._handleFailure(camera, "captureHistory", error, context);
     } finally {
       this.releaseFrameTargets();
     }
@@ -1024,6 +1271,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
    * Release any per-frame transient RenderTargets back to `RenderTargetPool`.
    */
   releaseFrameTargets(): void {
+    this._receiverElements.length = 0;
     const pool = this.engine._renderTargetPool;
     for (let i = this._hiZScratchRTs.length - 1; i >= 0; i--) {
       pool.freeRenderTarget(this._hiZScratchRTs[i]);
@@ -1051,16 +1299,23 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
   override onRender(): void {}
 
   destroy(): void {
+    if (this._destroyed) {
+      return;
+    }
+    this._destroyed = true;
     this.engine.off(EngineEventType.DeviceLost, this._onDeviceLostHandler);
     this.engine.off(EngineEventType.DeviceRestored, this._onDeviceRestoredHandler);
     this.releaseFrameTargets();
-    if (this._boundCamera && !this._boundCamera.destroyed) {
+    if (this._boundCamera?.shaderData) {
       this._clearCameraSSREnable(this._boundCamera);
     }
     this._boundCamera = null;
     this._resetTemporaryBindings();
     this._releasePersistentResources();
-    this._material._addReferCount(-1);
+    if (!this._material.destroyed) {
+      this._material._addReferCount(-1);
+      this._material.destroy();
+    }
     this._history.destroy();
   }
 
@@ -1074,6 +1329,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       this._unsupportedReason = "MRT (< 2 draw buffers) unsupported";
       this._usesPackedDepthRG8 = true;
       this._usesPackedNormalOct8 = true;
+      this._usesPackedHDRReinhard = false;
       return;
     }
 
@@ -1090,8 +1346,13 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       this._usesPackedDepthRG8 = true;
     }
 
-    const wantHDRFormats = !this._forcePackedFormats && (isHDR || highPrecisionNormals);
-    if (wantHDRFormats && rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)) {
+    // Low / Medium keep compact 4B/px RGBA8 + Oct8 + reversible Reinhard HDR (halving bandwidth while keeping aliasing),
+    // while High / XHigh retain full RGBA16F precision unless forced to packed fallback.
+    if (
+      highPrecisionNormals &&
+      !this._forcePackedFormats &&
+      rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)
+    ) {
       this._normalRoughnessFormat = TextureFormat.R16G16B16A16_SFloat;
       this._usesPackedNormalOct8 = false;
     } else {
@@ -1099,10 +1360,17 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       this._usesPackedNormalOct8 = true;
     }
 
-    if (isHDR && !this._forcePackedFormats && rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)) {
+    if (
+      isHDR &&
+      highPrecisionNormals &&
+      !this._forcePackedFormats &&
+      rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)
+    ) {
       this._ssrColorFormat = TextureFormat.R16G16B16A16_SFloat;
+      this._usesPackedHDRReinhard = false;
     } else {
       this._ssrColorFormat = TextureFormat.R8G8B8A8_UNorm;
+      this._usesPackedHDRReinhard = isHDR;
     }
 
     if (rhi.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)) {
@@ -1115,6 +1383,23 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       this._colorPyramidFormat = TextureFormat.R8G8B8A8_UNorm;
       this._colorPyramidSRGB = true;
     }
+  }
+
+  private _canUseInPlaceHiZ(hiZTex: Texture2D): boolean {
+    if (this._forceHiZScratch) {
+      return false;
+    }
+    return hiZTex._supportsMipLevelRange();
+  }
+
+  private _canUseHardwareColorPyramidMipmaps(texture: Texture2D): boolean {
+    if (this._forceSoftwareColorPyramidMipmaps || this._isFullResColorPyramid) {
+      return false;
+    }
+    if (!texture._mipmap || (texture.width === 1 && texture.height === 1)) {
+      return false;
+    }
+    return this.engine._hardwareRenderer.supportsGenerateMipmaps(texture.format, texture.isSRGBColorSpace);
   }
 
   private _ensurePersistentResources(
@@ -1130,16 +1415,42 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
   ): void {
     const { engine, _history: history } = this;
 
+    // On resolution resize (e.g. mobile rotation), synchronously release all old trace-res resources
+    // before allocating new ones so peak VRAM stays at 1x instead of transiently doubling to 2x.
+    if (this._ssrDepthTex && (this._ssrDepthTex.width !== traceW || this._ssrDepthTex.height !== traceH)) {
+      this._clearCameraSSREnable(camera);
+      this._resetTemporaryBindings();
+      this._destroyHiZDepthMip0RTs();
+      history.hiZColorRT[0] = SSRHistoryState._destroyResource(history.hiZColorRT[0]);
+      history.hiZColorRT[1] = SSRHistoryState._destroyResource(history.hiZColorRT[1]);
+      history.hiZTex[0] = SSRHistoryState._destroyResource(history.hiZTex[0]);
+      history.hiZTex[1] = SSRHistoryState._destroyResource(history.hiZTex[1]);
+      this._destroyReceiverSlot(0);
+      this._destroyReceiverSlot(1);
+      this._traceOutRT = SSRHistoryState._destroyResource(this._traceOutRT);
+      this._traceRawTex = SSRHistoryState._destroyResource(this._traceRawTex);
+      this._hitDistTex = SSRHistoryState._destroyResource(this._hitDistTex);
+      history.releaseTemporalBuffers();
+      this._ssrDepthRT = SSRHistoryState._destroyResource(this._ssrDepthRT);
+      this._ssrDepthTex = SSRHistoryState._destroyResource(this._ssrDepthTex);
+      history.markAllDirty(traceW, traceH);
+      this._traceDirtyRect[0] = 0;
+      this._traceDirtyRect[1] = 0;
+      this._traceDirtyRect[2] = traceW;
+      this._traceDirtyRect[3] = traceH;
+    }
+
     // 1. Cross-frame prevColorPyramid (half-res)
     if (
+      !history.prevColorPyramidRT ||
       !history.prevColorPyramidTex ||
       history.prevColorPyramidTex.width !== colorW ||
       history.prevColorPyramidTex.height !== colorH ||
       history.prevColorPyramidTex.format !== this._colorPyramidFormat ||
       history.prevColorPyramidTex.isSRGBColorSpace !== this._colorPyramidSRGB
     ) {
-      history.prevColorPyramidRT = ScreenSpaceReflectionPass._destroyRT(history.prevColorPyramidRT);
-      history.prevColorPyramidTex = ScreenSpaceReflectionPass._destroyTex(history.prevColorPyramidTex);
+      history.prevColorPyramidRT = SSRHistoryState._destroyResource(history.prevColorPyramidRT);
+      history.prevColorPyramidTex = SSRHistoryState._destroyResource(history.prevColorPyramidTex);
 
       const needMipmap = Math.max(colorW, colorH) > 1;
       const tex = new Texture2D(engine, colorW, colorH, this._colorPyramidFormat, needMipmap, this._colorPyramidSRGB);
@@ -1147,7 +1458,13 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       tex.wrapModeU = TextureWrapMode.Clamp;
       tex.wrapModeV = TextureWrapMode.Clamp;
       tex.isGCIgnored = true;
-      const rt = new RenderTarget(engine, colorW, colorH, tex, null, 1);
+      let rt: RenderTarget;
+      try {
+        rt = new RenderTarget(engine, colorW, colorH, tex, null, 1);
+      } catch (error) {
+        SSRHistoryState._destroyResource(tex);
+        throw error;
+      }
       rt.autoGenerateMipmaps = false;
       rt.isGCIgnored = true;
       history.prevColorPyramidTex = tex;
@@ -1156,45 +1473,98 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     }
 
     // 2. Shared Depth24Stencil8 at trace resolution
-    if (!this._ssrDepthTex || this._ssrDepthTex.width !== traceW || this._ssrDepthTex.height !== traceH) {
+    if (
+      !this._ssrDepthRT ||
+      !this._ssrDepthTex ||
+      this._ssrDepthTex.width !== traceW ||
+      this._ssrDepthTex.height !== traceH
+    ) {
       // Unbind camera references and destroy FBO wrappers before destroying _ssrDepthTex.
       this._clearCameraSSREnable(camera);
+      this._destroyHiZDepthMip0RTs();
       this._destroyReceiverSlot(0);
       this._destroyReceiverSlot(1);
-      this._traceOutRT = ScreenSpaceReflectionPass._destroyRT(this._traceOutRT);
-      history.ssrPingPongRT[0] = ScreenSpaceReflectionPass._destroyRT(history.ssrPingPongRT[0]);
-      history.ssrPingPongRT[1] = ScreenSpaceReflectionPass._destroyRT(history.ssrPingPongRT[1]);
-      this._ssrDepthRT = ScreenSpaceReflectionPass._destroyRT(this._ssrDepthRT);
-      this._ssrDepthTex = ScreenSpaceReflectionPass._destroyTex(this._ssrDepthTex);
+      this._traceOutRT = SSRHistoryState._destroyResource(this._traceOutRT);
+      history.ssrPingPongRT[0] = SSRHistoryState._destroyResource(history.ssrPingPongRT[0]);
+      history.ssrPingPongRT[1] = SSRHistoryState._destroyResource(history.ssrPingPongRT[1]);
+      this._ssrDepthRT = SSRHistoryState._destroyResource(this._ssrDepthRT);
+      this._ssrDepthTex = SSRHistoryState._destroyResource(this._ssrDepthTex);
 
       const depthTex = new Texture2D(engine, traceW, traceH, TextureFormat.Depth24Stencil8, false, false);
       depthTex.filterMode = TextureFilterMode.Point;
       depthTex.wrapModeU = TextureWrapMode.Clamp;
       depthTex.wrapModeV = TextureWrapMode.Clamp;
       depthTex.isGCIgnored = true;
-      const depthRT = new RenderTarget(engine, traceW, traceH, null, depthTex, 1);
+      let depthRT: RenderTarget;
+      try {
+        depthRT = new RenderTarget(engine, traceW, traceH, null, depthTex, 1);
+      } catch (error) {
+        SSRHistoryState._destroyResource(depthTex);
+        throw error;
+      }
       depthRT.autoGenerateMipmaps = false;
       depthRT.isGCIgnored = true;
       this._ssrDepthTex = depthTex;
       this._ssrDepthRT = depthRT;
     }
 
-    // 3. Cross-frame prevTraceDepth (trace resolution)
-    if (
-      !history.prevTraceDepthTex ||
-      history.prevTraceDepthTex.width !== traceW ||
-      history.prevTraceDepthTex.height !== traceH ||
-      history.prevTraceDepthTex.format !== this._depthColorFormat
-    ) {
-      history.prevTraceDepthRT = ScreenSpaceReflectionPass._destroyRT(history.prevTraceDepthRT);
-      history.prevTraceDepthTex = ScreenSpaceReflectionPass._destroyTex(history.prevTraceDepthTex);
+    // 3. Persistent ping-pong Hi-Z pyramid textures & color-only FBO wrappers
+    const needHiZMipmap = !this._useLinearTrace && Math.max(traceW, traceH) > 1;
+    for (let i = 0; i < 2; i++) {
+      const curTex = history.hiZTex[i];
+      const curColorRT = history.hiZColorRT[i];
+      const curMip0RT = history.hiZDepthMip0RT[i];
+      const texMismatch =
+        !curTex ||
+        curTex.destroyed ||
+        curTex.width !== traceW ||
+        curTex.height !== traceH ||
+        curTex.format !== this._depthColorFormat ||
+        curTex.mipmapCount > 1 !== needHiZMipmap;
+      const colorRTMismatch = !curColorRT || curColorRT.destroyed || curColorRT.getColorTexture(0) !== curTex;
+      const mip0RTMismatch =
+        !!curMip0RT &&
+        (curMip0RT.destroyed ||
+          curMip0RT.getColorTexture(0) !== curTex ||
+          curMip0RT.depthTexture !== this._ssrDepthTex);
 
-      const tex = this._createPointClampTex(traceW, traceH, this._depthColorFormat);
-      const rt = new RenderTarget(engine, traceW, traceH, tex, null, 1);
-      rt.autoGenerateMipmaps = false;
-      rt.isGCIgnored = true;
-      history.prevTraceDepthTex = tex;
-      history.prevTraceDepthRT = rt;
+      if (mip0RTMismatch) {
+        history.hiZDepthMip0RT[i] = SSRHistoryState._destroyResource(history.hiZDepthMip0RT[i]);
+      }
+
+      if (texMismatch || colorRTMismatch) {
+        // Destroy paired FBO wrappers before destroying or replacing hiZTex[i].
+        history.hiZDepthMip0RT[i] = SSRHistoryState._destroyResource(history.hiZDepthMip0RT[i]);
+        history.hiZColorRT[i] = SSRHistoryState._destroyResource(history.hiZColorRT[i]);
+        let nextTex: Texture2D;
+        let allocatedTex = false;
+        if (texMismatch) {
+          history.hiZTex[i] = SSRHistoryState._destroyResource(history.hiZTex[i]);
+          nextTex = new Texture2D(engine, traceW, traceH, this._depthColorFormat, needHiZMipmap, false);
+          nextTex.filterMode = TextureFilterMode.Point;
+          nextTex.wrapModeU = TextureWrapMode.Clamp;
+          nextTex.wrapModeV = TextureWrapMode.Clamp;
+          nextTex.isGCIgnored = true;
+          allocatedTex = true;
+        } else {
+          nextTex = history.hiZTex[i]!;
+        }
+
+        let colorRT: RenderTarget;
+        try {
+          colorRT = new RenderTarget(engine, traceW, traceH, nextTex, null, 1);
+        } catch (error) {
+          if (allocatedTex) {
+            SSRHistoryState._destroyResource(nextTex);
+          }
+          throw error;
+        }
+        colorRT.autoGenerateMipmaps = false;
+        colorRT.isGCIgnored = true;
+        history.hiZTex[i] = nextTex;
+        history.hiZColorRT[i] = colorRT;
+        history.hasHiZHistory = false;
+      }
     }
 
     // 4. Temporal Ping-Pong RTs (Medium/High only; created before Receiver slots when aliasing recvNR)
@@ -1210,31 +1580,44 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         if (texMismatch || stencilMismatch) {
           this._clearCameraSSREnable(camera);
           if (this._receiverRTs[i]?.colorTextures.includes(curTex!)) {
-            this._receiverRTs[i] = ScreenSpaceReflectionPass._destroyRT(this._receiverRTs[i]);
+            this._receiverRTs[i] = SSRHistoryState._destroyResource(this._receiverRTs[i]);
           }
-          history.ssrPingPongRT[i] = ScreenSpaceReflectionPass._destroyRT(history.ssrPingPongRT[i]);
+          history.ssrPingPongRT[i] = SSRHistoryState._destroyResource(history.ssrPingPongRT[i]);
+          let nextTex: Texture2D;
+          let allocatedTex = false;
           if (texMismatch) {
-            history.ssrPingPongTex[i] = ScreenSpaceReflectionPass._destroyTex(history.ssrPingPongTex[i]);
-            const tex = new Texture2D(engine, traceW, traceH, this._ssrColorFormat, false, false);
-            tex.filterMode = TextureFilterMode.Bilinear;
-            tex.wrapModeU = TextureWrapMode.Clamp;
-            tex.wrapModeV = TextureWrapMode.Clamp;
-            tex.isGCIgnored = true;
-            history.ssrPingPongTex[i] = tex;
-            history.hasTemporalHistory = false;
+            history.ssrPingPongTex[i] = SSRHistoryState._destroyResource(history.ssrPingPongTex[i]);
+            nextTex = new Texture2D(engine, traceW, traceH, this._ssrColorFormat, false, false);
+            nextTex.filterMode = TextureFilterMode.Bilinear;
+            nextTex.wrapModeU = TextureWrapMode.Clamp;
+            nextTex.wrapModeV = TextureWrapMode.Clamp;
+            nextTex.isGCIgnored = true;
+            allocatedTex = true;
+          } else {
+            nextTex = history.ssrPingPongTex[i]!;
           }
 
-          const rt = new RenderTarget(
-            engine,
-            traceW,
-            traceH,
-            history.ssrPingPongTex[i]!,
-            useHardwareStencil ? this._ssrDepthTex : null,
-            1
-          );
+          let rt: RenderTarget;
+          try {
+            rt = new RenderTarget(engine, traceW, traceH, nextTex, useHardwareStencil ? this._ssrDepthTex : null, 1);
+          } catch (error) {
+            if (allocatedTex) {
+              SSRHistoryState._destroyResource(nextTex);
+            }
+            throw error;
+          }
           rt.autoGenerateMipmaps = false;
           rt.isGCIgnored = true;
+          history.ssrPingPongTex[i] = nextTex;
+          if (allocatedTex) {
+            history.hasTemporalHistory = false;
+          }
           history.ssrPingPongRT[i] = rt;
+          const sr = history.ssrSlotDirtyRect[i];
+          sr[0] = 0;
+          sr[1] = 0;
+          sr[2] = traceW;
+          sr[3] = traceH;
         }
       }
     }
@@ -1262,38 +1645,57 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
 
     if (traceSizeMismatch || hitDistNeededMismatch || stencilAttachMismatch || !this._traceOutRT) {
       this._clearCameraSSREnable(camera);
-      this._traceOutRT = ScreenSpaceReflectionPass._destroyRT(this._traceOutRT);
-      if (traceSizeMismatch) {
-        this._traceRawTex = ScreenSpaceReflectionPass._destroyTex(this._traceRawTex);
-        const traceTex = new Texture2D(engine, traceW, traceH, this._ssrColorFormat, false, false);
-        traceTex.filterMode = TextureFilterMode.Bilinear;
-        traceTex.wrapModeU = TextureWrapMode.Clamp;
-        traceTex.wrapModeV = TextureWrapMode.Clamp;
-        traceTex.isGCIgnored = true;
-        this._traceRawTex = traceTex;
-      }
+      this._traceOutRT = SSRHistoryState._destroyResource(this._traceOutRT);
+      let nextTraceTex = this._traceRawTex;
+      let allocatedTraceTex = false;
+      let nextHitDistTex = this._hitDistTex;
+      let allocatedHitDistTex = false;
 
-      if (useHighVirtual) {
-        if (hitDistNeededMismatch) {
-          this._hitDistTex = ScreenSpaceReflectionPass._destroyTex(this._hitDistTex);
-          this._hitDistTex = this._createPointClampTex(traceW, traceH, this._depthColorFormat);
+      try {
+        if (traceSizeMismatch) {
+          this._traceRawTex = SSRHistoryState._destroyResource(this._traceRawTex);
+          nextTraceTex = new Texture2D(engine, traceW, traceH, this._ssrColorFormat, false, false);
+          nextTraceTex.filterMode = TextureFilterMode.Bilinear;
+          nextTraceTex.wrapModeU = TextureWrapMode.Clamp;
+          nextTraceTex.wrapModeV = TextureWrapMode.Clamp;
+          nextTraceTex.isGCIgnored = true;
+          allocatedTraceTex = true;
         }
-      } else {
-        this._hitDistTex = ScreenSpaceReflectionPass._destroyTex(this._hitDistTex);
-      }
 
-      const colorAttachments = useHighVirtual ? [this._traceRawTex!, this._hitDistTex!] : [this._traceRawTex!];
-      const traceOutRT = new RenderTarget(
-        engine,
-        traceW,
-        traceH,
-        colorAttachments,
-        useHardwareStencil ? this._ssrDepthTex : null,
-        1
-      );
-      traceOutRT.autoGenerateMipmaps = false;
-      traceOutRT.isGCIgnored = true;
-      this._traceOutRT = traceOutRT;
+        if (useHighVirtual) {
+          if (hitDistNeededMismatch) {
+            this._hitDistTex = SSRHistoryState._destroyResource(this._hitDistTex);
+            nextHitDistTex = this._createPointClampTex(traceW, traceH, this._depthColorFormat);
+            allocatedHitDistTex = true;
+          }
+        } else {
+          this._hitDistTex = SSRHistoryState._destroyResource(this._hitDistTex);
+          nextHitDistTex = null;
+        }
+
+        const colorAttachments = useHighVirtual ? [nextTraceTex!, nextHitDistTex!] : [nextTraceTex!];
+        const traceOutRT = new RenderTarget(
+          engine,
+          traceW,
+          traceH,
+          colorAttachments,
+          useHardwareStencil ? this._ssrDepthTex : null,
+          1
+        );
+        traceOutRT.autoGenerateMipmaps = false;
+        traceOutRT.isGCIgnored = true;
+        this._traceRawTex = nextTraceTex;
+        this._hitDistTex = nextHitDistTex;
+        this._traceOutRT = traceOutRT;
+        this._traceDirtyRect[0] = 0;
+        this._traceDirtyRect[1] = 0;
+        this._traceDirtyRect[2] = traceW;
+        this._traceDirtyRect[3] = traceH;
+      } catch (error) {
+        if (allocatedTraceTex) SSRHistoryState._destroyResource(nextTraceTex);
+        if (allocatedHitDistTex) SSRHistoryState._destroyResource(nextHitDistTex);
+        throw error;
+      }
     }
   }
 
@@ -1317,38 +1719,150 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     }
 
     this._clearCameraSSREnable(camera);
-    this._receiverRTs[slot] = ScreenSpaceReflectionPass._destroyRT(this._receiverRTs[slot]);
+    this._receiverRTs[slot] = SSRHistoryState._destroyResource(this._receiverRTs[slot]);
 
-    if (aliasRecvNR) {
-      history.recvNRTex[slot] = ScreenSpaceReflectionPass._destroyTex(history.recvNRTex[slot]);
-    } else if (nrChanged) {
-      history.recvNRTex[slot] = ScreenSpaceReflectionPass._destroyTex(history.recvNRTex[slot]);
-      history.recvNRTex[slot] = this._createPointClampTex(traceW, traceH, this._normalRoughnessFormat);
+    let nextNRTex = history.recvNRTex[slot];
+    let allocatedNR = false;
+    let nextDepthTex = history.recvDepthTex[slot];
+    let allocatedDepth = false;
+
+    try {
+      if (aliasRecvNR) {
+        history.recvNRTex[slot] = SSRHistoryState._destroyResource(history.recvNRTex[slot]);
+        nextNRTex = null;
+      } else if (nrChanged) {
+        history.recvNRTex[slot] = SSRHistoryState._destroyResource(history.recvNRTex[slot]);
+        nextNRTex = this._createPointClampTex(traceW, traceH, this._normalRoughnessFormat);
+        allocatedNR = true;
+      }
+
+      if (dChanged) {
+        history.recvDepthTex[slot] = SSRHistoryState._destroyResource(history.recvDepthTex[slot]);
+        nextDepthTex = this._createPointClampTex(traceW, traceH, this._depthColorFormat);
+        allocatedDepth = true;
+      }
+
+      const nrAttachment = aliasRecvNR ? history.ssrPingPongTex[slot]! : nextNRTex!;
+      const newRT = new RenderTarget(this.engine, traceW, traceH, [nrAttachment, nextDepthTex!], this._ssrDepthTex, 1);
+      newRT.autoGenerateMipmaps = false;
+      newRT.isGCIgnored = true;
+      history.recvNRTex[slot] = nextNRTex;
+      history.recvDepthTex[slot] = nextDepthTex;
+      this._receiverRTs[slot] = newRT;
+      const rr = history.recvSlotDirtyRect[slot];
+      rr[0] = 0;
+      rr[1] = 0;
+      rr[2] = traceW;
+      rr[3] = traceH;
+    } catch (error) {
+      if (allocatedNR) SSRHistoryState._destroyResource(nextNRTex);
+      if (allocatedDepth) SSRHistoryState._destroyResource(nextDepthTex);
+      throw error;
     }
-
-    if (dChanged) {
-      history.recvDepthTex[slot] = ScreenSpaceReflectionPass._destroyTex(history.recvDepthTex[slot]);
-      history.recvDepthTex[slot] = this._createPointClampTex(traceW, traceH, this._depthColorFormat);
-    }
-
-    const nrAttachment = aliasRecvNR ? history.ssrPingPongTex[slot]! : history.recvNRTex[slot]!;
-    const newRT = new RenderTarget(
-      this.engine,
-      traceW,
-      traceH,
-      [nrAttachment, history.recvDepthTex[slot]!],
-      this._ssrDepthTex,
-      1
-    );
-    newRT.autoGenerateMipmaps = false;
-    newRT.isGCIgnored = true;
-    this._receiverRTs[slot] = newRT;
   }
 
   private _destroyReceiverSlot(slot: 0 | 1): void {
-    this._receiverRTs[slot] = ScreenSpaceReflectionPass._destroyRT(this._receiverRTs[slot]);
-    this._history.recvNRTex[slot] = ScreenSpaceReflectionPass._destroyTex(this._history.recvNRTex[slot]);
-    this._history.recvDepthTex[slot] = ScreenSpaceReflectionPass._destroyTex(this._history.recvDepthTex[slot]);
+    this._receiverRTs[slot] = SSRHistoryState._destroyResource(this._receiverRTs[slot]);
+    this._history.recvNRTex[slot] = SSRHistoryState._destroyResource(this._history.recvNRTex[slot]);
+    this._history.recvDepthTex[slot] = SSRHistoryState._destroyResource(this._history.recvDepthTex[slot]);
+    this._history.recvSlotDirtyRect[slot].fill(0);
+  }
+
+  private _destroyHiZDepthMip0RTs(): void {
+    this._history.hiZDepthMip0RT[0] = SSRHistoryState._destroyResource(this._history.hiZDepthMip0RT[0]);
+    this._history.hiZDepthMip0RT[1] = SSRHistoryState._destroyResource(this._history.hiZDepthMip0RT[1]);
+  }
+
+  private _ensureHiZDepthMip0RT(slot: 0 | 1, hiZTex: Texture2D, depthTex: Texture2D): RenderTarget {
+    const history = this._history;
+    const existing = history.hiZDepthMip0RT[slot];
+    if (
+      existing &&
+      !existing.destroyed &&
+      existing.getColorTexture(0) === hiZTex &&
+      existing.depthTexture === depthTex &&
+      !hiZTex.destroyed &&
+      !depthTex.destroyed
+    ) {
+      return existing;
+    }
+    history.hiZDepthMip0RT[slot] = SSRHistoryState._destroyResource(existing);
+    const rt = new RenderTarget(this.engine, hiZTex.width, hiZTex.height, hiZTex, depthTex, 1);
+    rt.autoGenerateMipmaps = false;
+    rt.isGCIgnored = true;
+    history.hiZDepthMip0RT[slot] = rt;
+    return rt;
+  }
+
+  private _runDownsampleAndBuildHiZMip0(
+    context: RenderContext,
+    fullDepthTex: Texture2D,
+    contribDepthTex: Texture2D | null,
+    hiZSlot: 0 | 1,
+    hiZTex: Texture2D
+  ): void {
+    const engine = this.engine;
+    const rhi = engine._hardwareRenderer;
+    const material = this._material;
+    const materialData = material.shaderData;
+    const hiZDepthMip0RT = this._ensureHiZDepthMip0RT(hiZSlot, hiZTex, this._ssrDepthTex!);
+    const downsampleFull = fullDepthTex.width !== hiZTex.width || fullDepthTex.height !== hiZTex.height;
+
+    try {
+      ScreenSpaceReflectionPass._setMacro(
+        materialData._macroCollection,
+        ScreenSpaceReflectionPass._downsampleFullDepthMacro,
+        downsampleFull
+      );
+      ScreenSpaceReflectionPass._setMacro(
+        materialData._macroCollection,
+        ScreenSpaceReflectionPass._hasContribDepthMacro,
+        !!contribDepthTex
+      );
+
+      if (downsampleFull) {
+        this._sourceTexelSize.set(
+          1 / fullDepthTex.width,
+          1 / fullDepthTex.height,
+          fullDepthTex.width,
+          fullDepthTex.height
+        );
+        this._destTexelSize.set(1 / hiZTex.width, 1 / hiZTex.height, hiZTex.width, hiZTex.height);
+        materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
+        materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
+      }
+      if (contribDepthTex) {
+        materialData.setTexture(ScreenSpaceReflectionPass._matContribDepthProp, contribDepthTex);
+      }
+
+      context.setRenderTarget(hiZDepthMip0RT, PipelineUtils.defaultViewport, 0);
+      // Full-RT non-scissored clear maps to TBDR MTLLoadActionClear (avoids ANGLE-Metal Color invalidate replaceRegion).
+      rhi.clearRenderTarget(engine, CameraClearFlags.All, this._clearZero);
+      Blitter.blitTexture(
+        engine,
+        fullDepthTex,
+        hiZDepthMip0RT,
+        0,
+        PipelineUtils.defaultViewport,
+        material,
+        PASS_DOWNSAMPLE_AND_BUILD_HIZ_MIP0,
+        undefined,
+        0,
+        false
+      );
+    } finally {
+      materialData.setTexture(ScreenSpaceReflectionPass._matContribDepthProp, null);
+      ScreenSpaceReflectionPass._setMacro(
+        materialData._macroCollection,
+        ScreenSpaceReflectionPass._downsampleFullDepthMacro,
+        false
+      );
+      ScreenSpaceReflectionPass._setMacro(
+        materialData._macroCollection,
+        ScreenSpaceReflectionPass._hasContribDepthMacro,
+        false
+      );
+    }
   }
 
   private _runBuildHiZMip0(
@@ -1362,60 +1876,331 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     const downsampleFull =
       !!fullDepthTex && (fullDepthTex.width !== destRT.width || fullDepthTex.height !== destRT.height);
 
-    ScreenSpaceReflectionPass._setMacro(
-      materialData._macroCollection,
-      ScreenSpaceReflectionPass._downsampleFullDepthMacro,
-      downsampleFull
-    );
-    ScreenSpaceReflectionPass._setMacro(
-      materialData._macroCollection,
-      ScreenSpaceReflectionPass._hasContribDepthMacro,
-      !!contribDepthTex
-    );
-
-    if (downsampleFull && fullDepthTex) {
-      this._sourceTexelSize.set(
-        1 / fullDepthTex.width,
-        1 / fullDepthTex.height,
-        fullDepthTex.width,
-        fullDepthTex.height
+    try {
+      ScreenSpaceReflectionPass._setMacro(
+        materialData._macroCollection,
+        ScreenSpaceReflectionPass._downsampleFullDepthMacro,
+        downsampleFull
       );
+      ScreenSpaceReflectionPass._setMacro(
+        materialData._macroCollection,
+        ScreenSpaceReflectionPass._hasContribDepthMacro,
+        !!contribDepthTex
+      );
+
+      if (downsampleFull && fullDepthTex) {
+        this._sourceTexelSize.set(
+          1 / fullDepthTex.width,
+          1 / fullDepthTex.height,
+          fullDepthTex.width,
+          fullDepthTex.height
+        );
+        this._destTexelSize.set(1 / destRT.width, 1 / destRT.height, destRT.width, destRT.height);
+        materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
+        materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
+      }
+      if (contribDepthTex) {
+        materialData.setTexture(ScreenSpaceReflectionPass._matContribDepthProp, contribDepthTex);
+      }
+
+      Blitter.blitTexture(
+        this.engine,
+        opaqueTex,
+        destRT,
+        0,
+        PipelineUtils.defaultViewport,
+        material,
+        PASS_BUILD_HIZ_MIP0,
+        undefined,
+        0,
+        true
+      );
+    } finally {
+      materialData.setTexture(ScreenSpaceReflectionPass._matContribDepthProp, null);
+      ScreenSpaceReflectionPass._setMacro(
+        materialData._macroCollection,
+        ScreenSpaceReflectionPass._downsampleFullDepthMacro,
+        false
+      );
+      ScreenSpaceReflectionPass._setMacro(
+        materialData._macroCollection,
+        ScreenSpaceReflectionPass._hasContribDepthMacro,
+        false
+      );
+    }
+  }
+
+  private _clearDirtyUnion(
+    context: RenderContext,
+    targetRT: RenderTarget,
+    prevDirty: Int32Array,
+    extraPrevDirty: Int32Array | null,
+    sx0: number,
+    sy0: number,
+    sx1: number,
+    sy1: number,
+    pad: number,
+    traceW: number,
+    traceH: number
+  ): boolean {
+    const hasNew = sx1 > sx0 && sy1 > sy0;
+    const nx0 = hasNew ? Math.max(0, sx0 - pad) : 0;
+    const ny0 = hasNew ? Math.max(0, sy0 - pad) : 0;
+    const nx1 = hasNew ? Math.min(traceW, sx1 + pad) : 0;
+    const ny1 = hasNew ? Math.min(traceH, sy1 + pad) : 0;
+
+    let ux0 = hasNew ? nx0 : traceW;
+    let uy0 = hasNew ? ny0 : traceH;
+    let ux1 = hasNew ? nx1 : 0;
+    let uy1 = hasNew ? ny1 : 0;
+
+    if (prevDirty[2] > prevDirty[0] && prevDirty[3] > prevDirty[1]) {
+      if (prevDirty[0] < ux0) ux0 = prevDirty[0];
+      if (prevDirty[1] < uy0) uy0 = prevDirty[1];
+      if (prevDirty[2] > ux1) ux1 = prevDirty[2];
+      if (prevDirty[3] > uy1) uy1 = prevDirty[3];
+    }
+
+    if (extraPrevDirty && extraPrevDirty[2] > extraPrevDirty[0] && extraPrevDirty[3] > extraPrevDirty[1]) {
+      if (extraPrevDirty[0] < ux0) ux0 = extraPrevDirty[0];
+      if (extraPrevDirty[1] < uy0) uy0 = extraPrevDirty[1];
+      if (extraPrevDirty[2] > ux1) ux1 = extraPrevDirty[2];
+      if (extraPrevDirty[3] > uy1) uy1 = extraPrevDirty[3];
+    }
+
+    if (ux0 < 0) ux0 = 0;
+    if (uy0 < 0) uy0 = 0;
+    if (ux1 > traceW) ux1 = traceW;
+    if (uy1 > traceH) uy1 = traceH;
+
+    const didClear = ux1 > ux0 && uy1 > uy0;
+    if (didClear) {
+      const rhi = this.engine._hardwareRenderer;
+      context.setRenderTarget(targetRT, PipelineUtils.defaultViewport, 0);
+      const isFull = ux0 === 0 && uy0 === 0 && ux1 === traceW && uy1 === traceH;
+      if (!isFull) {
+        rhi.scissor(ux0, uy0, ux1 - ux0, uy1 - uy0);
+      }
+      // Clear Color only: receiverRT, traceOutRT, and ssrPingPongRT share _ssrDepthTex (opaque depth + receiver stencil).
+      rhi.clearRenderTarget(this.engine, CameraClearFlags.Color, this._clearZero);
+      if (!isFull) {
+        rhi.scissor(0, 0, traceW, traceH);
+      }
+    }
+
+    if (hasNew) {
+      prevDirty[0] = Math.max(0, sx0);
+      prevDirty[1] = Math.max(0, sy0);
+      prevDirty[2] = Math.min(traceW, sx1);
+      prevDirty[3] = Math.min(traceH, sy1);
     } else {
-      this._sourceTexelSize.set(1 / opaqueTex.width, 1 / opaqueTex.height, opaqueTex.width, opaqueTex.height);
-    }
-    this._destTexelSize.set(1 / destRT.width, 1 / destRT.height, destRT.width, destRT.height);
-
-    materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
-    materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
-    materialData.setTexture(ScreenSpaceReflectionPass._matOpaqueDepthProp, opaqueTex);
-    if (contribDepthTex) {
-      materialData.setTexture(ScreenSpaceReflectionPass._matContribDepthProp, contribDepthTex);
+      prevDirty[0] = 0;
+      prevDirty[1] = 0;
+      prevDirty[2] = 0;
+      prevDirty[3] = 0;
     }
 
-    Blitter.blitTexture(
-      this.engine,
-      opaqueTex,
-      destRT,
-      0,
-      PipelineUtils.defaultViewport,
-      material,
-      PASS_BUILD_HIZ_MIP0,
-      undefined,
-      0
-    );
+    if (extraPrevDirty) {
+      extraPrevDirty[0] = 0;
+      extraPrevDirty[1] = 0;
+      extraPrevDirty[2] = 0;
+      extraPrevDirty[3] = 0;
+    }
 
-    materialData.setTexture(ScreenSpaceReflectionPass._matOpaqueDepthProp, null);
-    materialData.setTexture(ScreenSpaceReflectionPass._matContribDepthProp, null);
-    ScreenSpaceReflectionPass._setMacro(
-      materialData._macroCollection,
-      ScreenSpaceReflectionPass._downsampleFullDepthMacro,
-      false
-    );
-    ScreenSpaceReflectionPass._setMacro(
-      materialData._macroCollection,
-      ScreenSpaceReflectionPass._hasContribDepthMacro,
-      false
-    );
+    return didClear;
+  }
+
+  private _computeReceiverScissorRect(context: RenderContext, traceW: number, traceH: number): boolean {
+    this._scissorMinX = Infinity;
+    this._scissorMaxX = -Infinity;
+    this._scissorMinY = Infinity;
+    this._scissorMaxY = -Infinity;
+    this._scissorHasProjected = false;
+
+    const elements = this._receiverElements;
+    const length = elements.length;
+    if (length === 0) {
+      this._receiverScissor.set(0, 0, 0, 0);
+      return false;
+    }
+
+    const camPos = context.camera.entity.transform.worldPosition;
+    const camX = camPos.x;
+    const camY = camPos.y;
+    const camZ = camPos.z;
+    const nearPad = Math.max(0.25, context.camera.nearClipPlane * 2);
+    const vp = context.viewProjectionMatrix.elements;
+
+    for (let i = 0; i < length; i++) {
+      const element = elements[i];
+      const instancedRenderers = element.instancedRenderers;
+      const instanceCount = instancedRenderers.length;
+      if (instanceCount > 0) {
+        for (let k = 0; k < instanceCount; k++) {
+          if (this._accumulateBoundsToNdc(instancedRenderers[k].bounds, vp, camX, camY, camZ, nearPad)) {
+            this._receiverScissor.set(0, 0, traceW, traceH);
+            return true;
+          }
+        }
+      } else if (this._accumulateBoundsToNdc(element.component.bounds, vp, camX, camY, camZ, nearPad)) {
+        this._receiverScissor.set(0, 0, traceW, traceH);
+        return true;
+      }
+    }
+
+    const minNdcX = this._scissorMinX;
+    const maxNdcX = this._scissorMaxX;
+    const minNdcY = this._scissorMinY;
+    const maxNdcY = this._scissorMaxY;
+    if (!this._scissorHasProjected || maxNdcX < -1 || minNdcX > 1 || maxNdcY < -1 || minNdcY > 1) {
+      this._receiverScissor.set(0, 0, 0, 0);
+      return false;
+    }
+
+    const x0 = Math.max(0, Math.floor((minNdcX * 0.5 + 0.5) * traceW) - 2);
+    const y0 = Math.max(0, Math.floor((minNdcY * 0.5 + 0.5) * traceH) - 2);
+    const x1 = Math.min(traceW, Math.ceil((maxNdcX * 0.5 + 0.5) * traceW) + 2);
+    const y1 = Math.min(traceH, Math.ceil((maxNdcY * 0.5 + 0.5) * traceH) + 2);
+    if (x1 <= x0 || y1 <= y0) {
+      this._receiverScissor.set(0, 0, 0, 0);
+      return false;
+    }
+
+    this._receiverScissor.set(x0, y0, x1 - x0, y1 - y0);
+    return true;
+  }
+
+  private _accumulateBoundsToNdc(
+    bounds: BoundingBox,
+    vp: Float32Array,
+    camX: number,
+    camY: number,
+    camZ: number,
+    nearPad: number
+  ): boolean {
+    const min = bounds.min;
+    const max = bounds.max;
+    const minX = min.x;
+    const minY = min.y;
+    const minZ = min.z;
+    const maxX = max.x;
+    const maxY = max.y;
+    const maxZ = max.z;
+    if (
+      !Number.isFinite(minX) ||
+      !Number.isFinite(minY) ||
+      !Number.isFinite(minZ) ||
+      !Number.isFinite(maxX) ||
+      !Number.isFinite(maxY) ||
+      !Number.isFinite(maxZ) ||
+      minX > maxX ||
+      minY > maxY ||
+      minZ > maxZ ||
+      (minX === maxX && minY === maxY && minZ === maxZ)
+    ) {
+      return true;
+    }
+
+    if (
+      camX >= minX - nearPad &&
+      camX <= maxX + nearPad &&
+      camY >= minY - nearPad &&
+      camY <= maxY + nearPad &&
+      camZ >= minZ - nearPad &&
+      camZ <= maxZ + nearPad
+    ) {
+      return true;
+    }
+
+    const m0 = vp[0],
+      m1 = vp[1],
+      m2 = vp[2],
+      m3 = vp[3];
+    const m4 = vp[4],
+      m5 = vp[5],
+      m6 = vp[6],
+      m7 = vp[7];
+    const m8 = vp[8],
+      m9 = vp[9],
+      m10 = vp[10],
+      m11 = vp[11];
+    const m12 = vp[12],
+      m13 = vp[13],
+      m14 = vp[14],
+      m15 = vp[15];
+
+    const clip = this._clipCorners;
+    let insideCount = 0;
+
+    for (let c = 0; c < 8; c++) {
+      const x = (c & 1) !== 0 ? maxX : minX;
+      const y = (c & 2) !== 0 ? maxY : minY;
+      const z = (c & 4) !== 0 ? maxZ : minZ;
+
+      const cx = m0 * x + m4 * y + m8 * z + m12;
+      const cy = m1 * x + m5 * y + m9 * z + m13;
+      const cz = m2 * x + m6 * y + m10 * z + m14;
+      const cw = m3 * x + m7 * y + m11 * z + m15;
+
+      const base = c << 2;
+      clip[base] = cx;
+      clip[base + 1] = cy;
+      clip[base + 2] = cz;
+      clip[base + 3] = cw;
+
+      if (cz + cw >= 0) {
+        insideCount++;
+        if (cw <= 1e-6) {
+          return true;
+        }
+        const invW = 1 / cw;
+        const ndcX = cx * invW;
+        const ndcY = cy * invW;
+        if (ndcX < this._scissorMinX) this._scissorMinX = ndcX;
+        if (ndcX > this._scissorMaxX) this._scissorMaxX = ndcX;
+        if (ndcY < this._scissorMinY) this._scissorMinY = ndcY;
+        if (ndcY > this._scissorMaxY) this._scissorMaxY = ndcY;
+        this._scissorHasProjected = true;
+      }
+    }
+
+    if (insideCount === 0) {
+      return false;
+    }
+
+    if (insideCount < 8) {
+      const edges = ScreenSpaceReflectionPass._AABB_EDGES;
+      for (let e = 0; e < 24; e += 2) {
+        const aBase = edges[e] << 2;
+        const bBase = edges[e + 1] << 2;
+        const da = clip[aBase + 2] + clip[aBase + 3];
+        const db = clip[bBase + 2] + clip[bBase + 3];
+        if (da >= 0 === db >= 0) {
+          continue;
+        }
+        const denom = da - db;
+        if (Math.abs(denom) <= 1e-8) {
+          continue;
+        }
+        const t = da / denom;
+        const ix = clip[aBase] + (clip[bBase] - clip[aBase]) * t;
+        const iy = clip[aBase + 1] + (clip[bBase + 1] - clip[aBase + 1]) * t;
+        const iw = clip[aBase + 3] + (clip[bBase + 3] - clip[aBase + 3]) * t;
+        if (iw <= 1e-6) {
+          return true;
+        }
+        const invW = 1 / iw;
+        const ndcX = ix * invW;
+        const ndcY = iy * invW;
+        if (ndcX < this._scissorMinX) this._scissorMinX = ndcX;
+        if (ndcX > this._scissorMaxX) this._scissorMaxX = ndcX;
+        if (ndcY < this._scissorMinY) this._scissorMinY = ndcY;
+        if (ndcY > this._scissorMaxY) this._scissorMaxY = ndcY;
+        this._scissorHasProjected = true;
+      }
+    }
+
+    return false;
   }
 
   private _copyTextureToRT(
@@ -1423,10 +2208,10 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     destRT: RenderTarget,
     destMipLevel: number,
     srcMipLevel: number = 0,
-    scaleOffset?: Vector4
+    scaleOffset?: Vector4,
+    scissorRect?: Vector4,
+    clearColor: boolean = false
   ): void {
-    const materialData = this._material.shaderData;
-    materialData.setTexture(ScreenSpaceReflectionPass._matCopyTextureProp, source);
     Blitter.blitTexture(
       this.engine,
       source,
@@ -1436,9 +2221,10 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       this._material,
       PASS_COPY_TEXTURE,
       scaleOffset,
-      destMipLevel
+      destMipLevel,
+      clearColor && !scissorRect,
+      scissorRect
     );
-    materialData.setTexture(ScreenSpaceReflectionPass._matCopyTextureProp, null);
   }
 
   private _popAndFreeScratch(list: RenderTarget[], target: RenderTarget): void {
@@ -1462,27 +2248,69 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     return tex;
   }
 
+  /** @internal Called by RenderTargetPool at Engine end-of-frame to reclaim private SSR textures of idle/disabled cameras. */
+  _sweepIfIdle(frameCount: number): void {
+    if (!this._hasPersistentResources || this._lastActiveFrameCount === -1) {
+      return;
+    }
+    if (frameCount - this._lastActiveFrameCount < SKIPPED_RELEASE_IDLE_FRAMES) {
+      return;
+    }
+    this.releaseFrameTargets();
+    if (this._boundCamera?.shaderData) {
+      this._clearCameraSSREnable(this._boundCamera);
+    }
+    this._resetTemporaryBindings();
+    this._releasePersistentResources();
+    this._state = SSRRuntimeState.Skipped;
+    this._opaqueReceiverCount = 0;
+    this._transparentReceiverCount = 0;
+    this._contribDepthCount = 0;
+    this._skippedFrames = 0;
+    this._updateDiagnostics(false);
+  }
+
+  private _registerActiveResources(): void {
+    if (this._hasPersistentResources) {
+      return;
+    }
+    this._hasPersistentResources = true;
+    this.engine._renderTargetPool._registerIdleSweeper(this);
+  }
+
+  private _unregisterActiveResources(): void {
+    if (!this._hasPersistentResources) {
+      return;
+    }
+    this._hasPersistentResources = false;
+    this.engine._renderTargetPool._unregisterIdleSweeper(this);
+  }
+
   private _releasePersistentResources(): void {
+    this._unregisterActiveResources();
+    this._lastActiveFrameCount = -1;
     // Destroy FBO wrappers before owned textures to keep GL deletion cleanly ordered.
+    this._destroyHiZDepthMip0RTs();
     this._destroyReceiverSlot(0);
     this._destroyReceiverSlot(1);
-    this._traceOutRT = ScreenSpaceReflectionPass._destroyRT(this._traceOutRT);
-    this._ssrDepthRT = ScreenSpaceReflectionPass._destroyRT(this._ssrDepthRT);
+    this._traceOutRT = SSRHistoryState._destroyResource(this._traceOutRT);
+    this._ssrDepthRT = SSRHistoryState._destroyResource(this._ssrDepthRT);
 
     this._history.releaseResources();
-    this._traceRawTex = ScreenSpaceReflectionPass._destroyTex(this._traceRawTex);
-    this._hitDistTex = ScreenSpaceReflectionPass._destroyTex(this._hitDistTex);
-    this._ssrDepthTex = ScreenSpaceReflectionPass._destroyTex(this._ssrDepthTex);
+    this._traceDirtyRect.fill(0);
+    this._traceRawTex = SSRHistoryState._destroyResource(this._traceRawTex);
+    this._hitDistTex = SSRHistoryState._destroyResource(this._hitDistTex);
+    this._ssrDepthTex = SSRHistoryState._destroyResource(this._ssrDepthTex);
 
-    this._lastHiZBytes = 0;
     this._lastHiZScratchBytes = 0;
     this._lastColorScratchBytes = 0;
     this._lastContribDepthBytes = 0;
   }
 
-  private _syncEncodingMacros(camera: Camera, materialData: ShaderData): void {
+  private _syncEncodingMacros(context: RenderContext, materialData: ShaderData): void {
     const packedDepth = this._usesPackedDepthRG8;
     const packedNormal = this._usesPackedNormalOct8;
+    const packedHDR = this._usesPackedHDRReinhard;
     ScreenSpaceReflectionPass._setMacro(
       materialData._macroCollection,
       ScreenSpaceReflectionPass._packedDepthMacro,
@@ -1493,18 +2321,23 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       ScreenSpaceReflectionPass._packedNormalMacro,
       packedNormal
     );
-    this._setCameraMacro(camera, ScreenSpaceReflectionPass._packedDepthMacro, packedDepth);
-    this._setCameraMacro(camera, ScreenSpaceReflectionPass._packedNormalMacro, packedNormal);
+    ScreenSpaceReflectionPass._setMacro(
+      materialData._macroCollection,
+      ScreenSpaceReflectionPass._packedHDRMacro,
+      packedHDR
+    );
+    context.ssrPackedDepthRG8 = packedDepth;
+    context.ssrPackedNormalOct8 = packedNormal;
+    context.ssrPackedHDRReinhard = packedHDR;
   }
 
   private _resetTemporaryBindings(): void {
-    const materialData = this._material.shaderData;
+    const materialData = this._material?.shaderData;
+    if (!materialData) {
+      return;
+    }
     const macros = materialData._macroCollection;
-    materialData.setTexture(ScreenSpaceReflectionPass._matFullDepthProp, null);
-    materialData.setTexture(ScreenSpaceReflectionPass._matOpaqueDepthProp, null);
     materialData.setTexture(ScreenSpaceReflectionPass._matContribDepthProp, null);
-    materialData.setTexture(ScreenSpaceReflectionPass._matHiZInputProp, null);
-    materialData.setTexture(ScreenSpaceReflectionPass._matCopyTextureProp, null);
     materialData.setTexture(ScreenSpaceReflectionPass._matHiZTextureProp, null);
     materialData.setTexture(ScreenSpaceReflectionPass._matNormalRoughnessProp, null);
     materialData.setTexture(ScreenSpaceReflectionPass._matReceiverDepthProp, null);
@@ -1518,35 +2351,36 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     ScreenSpaceReflectionPass._setMacro(macros, ScreenSpaceReflectionPass._downsampleFullDepthMacro, false);
     ScreenSpaceReflectionPass._setMacro(macros, ScreenSpaceReflectionPass._hasContribDepthMacro, false);
     ScreenSpaceReflectionPass._setMacro(macros, ScreenSpaceReflectionPass._outputHitDistMacro, false);
+    ScreenSpaceReflectionPass._setMacro(macros, ScreenSpaceReflectionPass._linearTraceMacro, false);
+    ScreenSpaceReflectionPass._setMacro(macros, ScreenSpaceReflectionPass._temporal5TapMacro, false);
+    ScreenSpaceReflectionPass._setMacro(macros, ScreenSpaceReflectionPass._packedHDRMacro, false);
     ScreenSpaceReflectionPass._setMacro(macros, ScreenSpaceReflectionPass._highVirtualReprojMacro, false);
     ScreenSpaceReflectionPass._setMacro(macros, ScreenSpaceReflectionPass._colorPyramidFullResMacro, false);
     ScreenSpaceReflectionPass._setMacro(macros, ScreenSpaceReflectionPass._colorPyramidKarisDownsampleMacro, false);
   }
 
-  private _handleFailure(camera: Camera, stage: string, error: unknown): void {
+  private _handleFailure(camera: Camera, stage: string, error: unknown, context?: RenderContext): void {
     Logger.warn(`ScreenSpaceReflectionPass failed during ${stage}; falling back to IBL.`, error);
     this._resetTemporaryBindings();
-    this._clearCameraSSREnable(camera);
+    this._clearCameraSSREnable(camera, context);
     this._history.invalidateAll();
     this._state = SSRRuntimeState.Skipped;
     this._updateDiagnostics(false);
   }
 
-  private _clearCameraSSREnable(camera: Camera): void {
+  private _clearCameraSSREnable(camera: Camera, context?: RenderContext): void {
     const cameraData = camera.shaderData;
-    this._setCameraMacro(camera, ScreenSpaceReflectionPass._enableSSRMacro, false);
-    this._setCameraMacro(camera, ScreenSpaceReflectionPass._verifyDepthMacro, false);
-    this._setCameraMacro(camera, ScreenSpaceReflectionPass._bilateralMacro, false);
-    this._setCameraMacro(camera, ScreenSpaceReflectionPass._packedDepthMacro, false);
-    this._setCameraMacro(camera, ScreenSpaceReflectionPass._packedNormalMacro, false);
-    cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRTextureProp, null);
-    cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRRecvDepthProp, null);
-    cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRRecvNRProp, null);
-  }
-
-  private _setCameraMacro(camera: Camera, macro: ShaderMacro, enabled: boolean): void {
-    ScreenSpaceReflectionPass._setMacro(camera.shaderData._macroCollection, macro, enabled);
-    ScreenSpaceReflectionPass._setMacro(camera._globalShaderMacro, macro, enabled);
+    const renderContext =
+      context ??
+      (this.engine._renderContext.camera === camera || this.engine._renderContext.camera === null
+        ? this.engine._renderContext
+        : null);
+    renderContext?.resetSSRState();
+    if (cameraData) {
+      cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRTextureProp, null);
+      cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRRecvDepthProp, null);
+      cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRRecvNRProp, null);
+    }
   }
 
   private _computeEstimatedBytes(): number {
@@ -1556,14 +2390,15 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     if (this._traceRawTex) total += this._traceRawTex._memorySize;
     if (this._hitDistTex) total += this._hitDistTex._memorySize;
     if (history.prevColorPyramidTex) total += history.prevColorPyramidTex._memorySize;
-    if (history.prevTraceDepthTex) total += history.prevTraceDepthTex._memorySize;
+    if (history.hiZTex[0]) total += history.hiZTex[0]._memorySize;
+    if (history.hiZTex[1]) total += history.hiZTex[1]._memorySize;
     if (history.recvNRTex[0]) total += history.recvNRTex[0]._memorySize;
     if (history.recvNRTex[1]) total += history.recvNRTex[1]._memorySize;
     if (history.recvDepthTex[0]) total += history.recvDepthTex[0]._memorySize;
     if (history.recvDepthTex[1]) total += history.recvDepthTex[1]._memorySize;
     if (history.ssrPingPongTex[0]) total += history.ssrPingPongTex[0]._memorySize;
     if (history.ssrPingPongTex[1]) total += history.ssrPingPongTex[1]._memorySize;
-    total += this._lastHiZBytes + this._lastHiZScratchBytes + this._lastColorScratchBytes + this._lastContribDepthBytes;
+    total += this._lastHiZScratchBytes + this._lastColorScratchBytes + this._lastContribDepthBytes;
     return total;
   }
 
@@ -1584,6 +2419,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     d.useHardwareStencil = this._useHardwareStencil;
     d.usesPackedDepthRG8 = this._usesPackedDepthRG8;
     d.usesPackedNormalOct8 = this._usesPackedNormalOct8;
+    d.useLinearTrace = this._useLinearTrace;
   }
 
   private static _setMacro(collection: ShaderMacroCollection, macro: ShaderMacro, enabled: boolean): void {
@@ -1592,19 +2428,5 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     } else {
       collection.disable(macro);
     }
-  }
-
-  private static _destroyRT(rt: RenderTarget | null): null {
-    if (rt && !rt.destroyed) {
-      rt.destroy(true);
-    }
-    return null;
-  }
-
-  private static _destroyTex(tex: Texture2D | null): null {
-    if (tex && !tex.destroyed) {
-      tex.destroy(true);
-    }
-    return null;
   }
 }

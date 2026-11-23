@@ -24,7 +24,7 @@ import {
   UnlitMaterial
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine";
+import { MSAASamples, WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 class CustomPass extends PostProcessPass {
@@ -949,6 +949,136 @@ describe("PostProcess", () => {
       bloomCamera.renderTarget = null;
       destTarget.destroy(true);
       bloomEngine.destroy();
+    }
+  });
+
+  it("CR-002: Scene.destroy() frees PostProcessManager MSAA second swap RT back to pool without leaking textures", async () => {
+    const htmlCanvas = document.createElement("canvas");
+    htmlCanvas.width = 64;
+    htmlCanvas.height = 64;
+    const ppEngine = await WebGLEngine.create({ canvas: htmlCanvas });
+    const baseScene = ppEngine.sceneManager.scenes[0];
+    const tempScene = new Scene(ppEngine);
+    ppEngine.sceneManager.activeScene = tempScene;
+
+    class SimpleBlitPass extends PostProcessPass {
+      override isValid(): boolean {
+        return true;
+      }
+      override onRender(cam: Camera, srcTexture: Texture2D, destTarget: RenderTarget | null): void {
+        Blitter.blitTexture(cam.engine, srcTexture, destTarget, 0, undefined, null, 0, undefined, 0, true);
+      }
+    }
+    const p1 = new SimpleBlitPass(ppEngine);
+    const p2 = new SimpleBlitPass(ppEngine);
+    const p3 = new SimpleBlitPass(ppEngine);
+    ppEngine.addPostProcessPass(p1);
+    ppEngine.addPostProcessPass(p2);
+    ppEngine.addPostProcessPass(p3);
+
+    const camEnt = tempScene.createRootEntity("cam");
+    const cam = camEnt.addComponent(Camera);
+    cam.msaaSamples = MSAASamples.FourX;
+    cam.enablePostProcess = true;
+
+    try {
+      ppEngine.update();
+      const ppm = tempScene.postProcessManager as any;
+      const swapRT1: RenderTarget | null = ppm._swapRenderTarget;
+      const swapRT2: RenderTarget | null = ppm._swapRenderTarget2;
+      const outputRT: RenderTarget | null = ppm._outputRenderTarget;
+      expect(swapRT1).not.toBeNull();
+      expect(swapRT2).not.toBeNull();
+      const swapTex1 = swapRT1!.getColorTexture(0)!;
+      const swapTex2 = swapRT2!.getColorTexture(0)!;
+      const outputTex = outputRT?.getColorTexture(0) ?? null;
+
+      // Destroy tempScene while MSAA + 3-pass swap RTs are held by PostProcessManager
+      ppEngine.sceneManager.activeScene = baseScene;
+      ppEngine._removePostProcessPass(p1);
+      ppEngine._removePostProcessPass(p2);
+      ppEngine._removePostProcessPass(p3);
+      tempScene.destroy();
+
+      expect(ppm._swapRenderTarget).toBeNull();
+      expect(ppm._swapRenderTarget2).toBeNull();
+      expect(ppm._outputRenderTarget).toBeNull();
+
+      // Advance 20 frames and run GC: returned RTs and their color textures must be reclaimed and destroyed
+      for (let i = 0; i < 20; i++) {
+        ppEngine.update();
+      }
+      ppEngine.resourceManager.gc();
+
+      expect(swapRT1!.destroyed).toBe(true);
+      expect(swapRT2!.destroyed).toBe(true);
+      expect(swapTex1.destroyed).toBe(true);
+      expect(swapTex2.destroyed).toBe(true);
+      if (outputTex) {
+        expect(outputTex.destroyed).toBe(true);
+      }
+    } finally {
+      ppEngine.destroy();
+    }
+  });
+
+  it("CR-003: releases swap RTs when active post-process passes drop from >=3 to 1 while PostProcess remains enabled", async () => {
+    const htmlCanvas = document.createElement("canvas");
+    htmlCanvas.width = 64;
+    htmlCanvas.height = 64;
+    const ppEngine = await WebGLEngine.create({ canvas: htmlCanvas });
+    const ppScene = ppEngine.sceneManager.scenes[0];
+
+    class SimpleBlitPass extends PostProcessPass {
+      override isValid(): boolean {
+        return true;
+      }
+      override onRender(cam: Camera, srcTexture: Texture2D, destTarget: RenderTarget | null): void {
+        Blitter.blitTexture(cam.engine, srcTexture, destTarget, 0, undefined, null, 0, undefined, 0, true);
+      }
+    }
+    // Disable built-in PostProcessUberPass so active pass count starts at 3 and drops to 1
+    ppEngine.postProcessPasses[0].isActive = false;
+    const p1 = new SimpleBlitPass(ppEngine);
+    const p2 = new SimpleBlitPass(ppEngine);
+    const p3 = new SimpleBlitPass(ppEngine);
+    ppEngine.addPostProcessPass(p1);
+    ppEngine.addPostProcessPass(p2);
+    ppEngine.addPostProcessPass(p3);
+
+    const camEnt = ppScene.createRootEntity("cam");
+    const cam = camEnt.addComponent(Camera);
+    cam.msaaSamples = MSAASamples.FourX;
+    cam.enablePostProcess = true;
+
+    try {
+      ppEngine.update();
+      const ppm = ppScene.postProcessManager as any;
+      const swapRT1: RenderTarget | null = ppm._swapRenderTarget;
+      const swapRT2: RenderTarget | null = ppm._swapRenderTarget2;
+      expect(swapRT1).not.toBeNull();
+      expect(swapRT2).not.toBeNull();
+      const swapTex1 = swapRT1!.getColorTexture(0)!;
+      const swapTex2 = swapRT2!.getColorTexture(0)!;
+
+      // Disable 2 passes so only 1 pass remains active (hasPostProcess stays true)
+      p2.isActive = false;
+      p3.isActive = false;
+      ppEngine.update();
+      expect(ppm._swapRenderTarget).toBeNull();
+      expect(ppm._swapRenderTarget2).toBeNull();
+
+      // Advance 20 frames and run GC: returned swap RTs & their color textures must be destroyed
+      for (let i = 0; i < 20; i++) {
+        ppEngine.update();
+      }
+      ppEngine.resourceManager.gc();
+      expect(swapRT1!.destroyed).toBe(true);
+      expect(swapRT2!.destroyed).toBe(true);
+      expect(swapTex1.destroyed).toBe(true);
+      expect(swapTex2.destroyed).toBe(true);
+    } finally {
+      ppEngine.destroy();
     }
   });
 });

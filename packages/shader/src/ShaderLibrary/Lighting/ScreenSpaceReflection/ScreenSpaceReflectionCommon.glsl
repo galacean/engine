@@ -78,6 +78,14 @@ float decodeSSRDepth(vec4 texel, float farClip) {
   #endif
 }
 
+float getSSRFarSentinel(float farClip) {
+  #ifdef SSR_PACKED_DEPTH_RG8
+    return farClip * 0.999;
+  #else
+    return min(farClip, 65000.0) * 0.999;
+  #endif
+}
+
 vec3 reconstructSSRViewPosition(vec2 uv, float eyeDepth, mat4 invProjMat) {
   vec2 ndc = uv * 2.0 - 1.0;
   #ifdef CAMERA_ORTHOGRAPHIC

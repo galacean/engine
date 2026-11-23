@@ -63,6 +63,19 @@ export class EngineObject {
     }
   }
 
+  /**
+   * Immediately destroy this object even during frame execution.
+   * Intended only for engine-internal private GPU resources already unbound from the active pipeline.
+   * @internal
+   */
+  _destroyImmediate(): void {
+    if (this._destroyed) return;
+
+    this._pendingDestroy = false;
+    this._destroyed = true;
+    this._onDestroy();
+  }
+
   protected _onDestroy(): void {
     const engine = this._engine;
     if (engine) {

@@ -25,4 +25,5 @@ export interface SSRDiagnostics {
   readonly useHardwareStencil: boolean;
   readonly usesPackedDepthRG8: boolean;
   readonly usesPackedNormalOct8: boolean;
+  readonly useLinearTrace: boolean;
 }

@@ -109,6 +109,11 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _lastScissor: Vector4 = new Vector4(null!, null!, null!, null!);
   private _lastClearColor: Color = new Color(null!, null!, null!, null!);
   private _scissorEnable: boolean = false;
+  private _activeTargetWidth: number = 0;
+  private _activeTargetHeight: number = 0;
+  private _activeRenderTarget: RenderTarget | null | undefined = undefined;
+  private _defaultInvalidateAttachments: (GLenum[] | null)[] = [null, null, null, null, null, null, null, null];
+  private _mainFboInvalidateAttachments: (GLenum[] | null)[] = [null, null, null, null, null, null, null, null];
 
   private _onDeviceLost: () => void;
   private _onDeviceRestored: () => void;
@@ -317,21 +322,23 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   scissor(x: number, y: number, width: number, height: number): void {
     const { _gl: gl, _lastScissor: lastScissor } = this;
-    if (x !== lastScissor.x || y !== lastScissor.y || width !== lastScissor.z || height !== lastScissor.w) {
-      const { _webCanvas: webCanvas } = this;
-      if (x === 0 && y === 0 && width === webCanvas.width && height === webCanvas.height) {
-        if (this._scissorEnable) {
-          gl.disable(gl.SCISSOR_TEST);
-          this._scissorEnable = false;
-        }
-      } else {
-        if (!this._scissorEnable) {
-          gl.enable(gl.SCISSOR_TEST);
-          this._scissorEnable = true;
-        }
-        gl.scissor(x, y, width, height);
+    const targetWidth = this._activeTargetWidth || this.getMainFrameBufferWidth();
+    const targetHeight = this._activeTargetHeight || this.getMainFrameBufferHeight();
+    const needScissor = x !== 0 || y !== 0 || width !== targetWidth || height !== targetHeight;
+    if (!needScissor) {
+      if (this._scissorEnable) {
+        gl.disable(gl.SCISSOR_TEST);
+        this._scissorEnable = false;
       }
-      lastScissor.set(x, y, width, height);
+    } else {
+      if (!this._scissorEnable) {
+        gl.enable(gl.SCISSOR_TEST);
+        this._scissorEnable = true;
+      }
+      if (x !== lastScissor.x || y !== lastScissor.y || width !== lastScissor.z || height !== lastScissor.w) {
+        gl.scissor(x, y, width, height);
+        lastScissor.set(x, y, width, height);
+      }
     }
   }
 
@@ -380,6 +387,52 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
+  /** @internal */
+  _invalidateBoundRenderTarget(): void {
+    this._activeRenderTarget = undefined;
+    this._activeTargetWidth = 0;
+    this._activeTargetHeight = 0;
+  }
+
+  /** @internal */
+  _onRenderTargetDestroy(target: RenderTarget): void {
+    if (this._activeRenderTarget === target) {
+      this._invalidateBoundRenderTarget();
+    }
+  }
+
+  invalidateRenderTarget(
+    renderTarget: RenderTarget | null,
+    clearFlags: CameraClearFlags,
+    onlyIfFullScissor: boolean = false
+  ): void {
+    if (clearFlags === CameraClearFlags.None || this._activeRenderTarget !== renderTarget) {
+      return;
+    }
+    if (onlyIfFullScissor && this._scissorEnable) {
+      const targetWidth = this._activeTargetWidth || this.getMainFrameBufferWidth();
+      const targetHeight = this._activeTargetHeight || this.getMainFrameBufferHeight();
+      const scissorRect = this._lastScissor;
+      if (
+        scissorRect.x !== 0 ||
+        scissorRect.y !== 0 ||
+        scissorRect.z !== targetWidth ||
+        scissorRect.w !== targetHeight
+      ) {
+        return;
+      }
+    }
+    if (renderTarget) {
+      (renderTarget._platformRenderTarget as GLRenderTarget).invalidateRenderTarget(clearFlags);
+      return;
+    }
+    const table = this._mainFrameBuffer ? this._mainFboInvalidateAttachments : this._defaultInvalidateAttachments;
+    const attachments = table[clearFlags & CameraClearFlags.All];
+    if (attachments) {
+      this._gl.invalidateFramebuffer(this._gl.FRAMEBUFFER, attachments);
+    }
+  }
+
   drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, shaderProgram: IPlatformShaderProgram): void {
     // todo: VAO not support morph animation
     if (primitive && subPrimitive) {
@@ -419,6 +472,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       bufferWidth = this.getMainFrameBufferWidth();
       bufferHeight = this.getMainFrameBufferHeight();
     }
+    this._activeRenderTarget = renderTarget;
+    this._activeTargetWidth = bufferWidth;
+    this._activeTargetHeight = bufferHeight;
 
     const width = bufferWidth * viewport.z;
     const height = bufferHeight * viewport.w;
@@ -491,6 +547,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const yEnd = needFlipY ? yStart - blitHeight : yStart + blitHeight;
 
     gl.blitFramebuffer(xStart, yStart, xEnd, yEnd, 0, 0, blitWidth, blitHeight, blitMask, gl.NEAREST);
+    this._invalidateBoundRenderTarget();
   }
 
   copyRenderTargetToSubTexture(srcRT: RenderTarget | null, grabTexture: Texture2D, viewport: Vector4) {
@@ -510,6 +567,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const frameBuffer = srcRT?._platformRenderTarget._frameBuffer ?? this._mainFrameBuffer;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+    this._invalidateBoundRenderTarget();
 
     const glTexture = grabTexture._platformTexture as GLTexture;
 
@@ -570,6 +628,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   resetState(): void {
     this._readFrameBuffer = null;
+    this._invalidateBoundRenderTarget();
     this._enableGlobalDepthBias = false;
     this._currentBindShaderProgram = null;
 
@@ -599,6 +658,24 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
     this.maxUniformBlockSize = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
+
+    const def = this._defaultInvalidateAttachments;
+    def[CameraClearFlags.Color] = [gl.COLOR];
+    def[CameraClearFlags.Depth] = [gl.DEPTH];
+    def[CameraClearFlags.ColorDepth] = [gl.COLOR, gl.DEPTH];
+    def[CameraClearFlags.Stencil] = [gl.STENCIL];
+    def[CameraClearFlags.ColorStencil] = [gl.COLOR, gl.STENCIL];
+    def[CameraClearFlags.DepthStencil] = [gl.DEPTH, gl.STENCIL];
+    def[CameraClearFlags.All] = [gl.COLOR, gl.DEPTH, gl.STENCIL];
+
+    const fbo = this._mainFboInvalidateAttachments;
+    fbo[CameraClearFlags.Color] = [gl.COLOR_ATTACHMENT0];
+    fbo[CameraClearFlags.Depth] = [gl.DEPTH_ATTACHMENT];
+    fbo[CameraClearFlags.ColorDepth] = [gl.COLOR_ATTACHMENT0, gl.DEPTH_ATTACHMENT];
+    fbo[CameraClearFlags.Stencil] = [gl.STENCIL_ATTACHMENT];
+    fbo[CameraClearFlags.ColorStencil] = [gl.COLOR_ATTACHMENT0, gl.STENCIL_ATTACHMENT];
+    fbo[CameraClearFlags.DepthStencil] = [gl.DEPTH_STENCIL_ATTACHMENT];
+    fbo[CameraClearFlags.All] = [gl.COLOR_ATTACHMENT0, gl.DEPTH_STENCIL_ATTACHMENT];
   }
 
   destroy(): void {

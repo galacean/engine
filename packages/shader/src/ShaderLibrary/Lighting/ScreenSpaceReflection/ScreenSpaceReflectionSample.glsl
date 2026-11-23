@@ -5,7 +5,7 @@
   #include "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
 
   highp sampler2D camera_SSRTexture;
-  // x: global intensity, y: maxRoughness, z: unused, w: farClip
+  // x: global intensity, y: maxRoughness, z: traceScale, w: farClip
   vec4 camera_SSRParams;
   // x: 1/traceW, y: 1/traceH, z: traceW, w: traceH
   vec4 camera_SSRTraceTexelSize;
@@ -19,17 +19,16 @@
     highp sampler2D camera_SSRReceiverNormalRoughnessTexture;
   #endif
 
-  vec3 evaluateScreenSpaceReflectionWithDepth(
+  vec4 sampleScreenSpaceReflectionRawWithDepth(
     vec4 positionCS,
     vec3 worldNormal,
     float roughness,
-    vec3 envRadiance,
     float fragEyeDepth,
     float depthSlope
   ) {
-    float ssrScale = max(camera_SSRParams.x, 0.0) * saturate(material_ScreenSpaceReflectionIntensity);
+    float ssrScale = max(camera_SSRParams.x, 0.0) * max(material_ScreenSpaceReflectionIntensity, 0.0);
     if (ssrScale <= 0.0 || roughness >= camera_SSRParams.y || positionCS.w <= EPSILON) {
-      return envRadiance;
+      return vec4(0.0);
     }
 
     vec2 screenUV = clamp(positionCS.xy / positionCS.w * 0.5 + 0.5, vec2(0.0), vec2(1.0));
@@ -77,26 +76,63 @@
           }
         }
       }
-      if (weightSum < 0.05) {
-        return envRadiance;
+      if (weightSum <= 1e-4) {
+        return vec4(0.0);
       }
       vec4 ssr = ssrAccum / weightSum;
+      ssr *= smoothstep(0.01, 0.1, weightSum);
     #else
       #ifdef CAMERA_SSR_VERIFY_RECEIVER_DEPTH
         float receiverEyeDepth = decodeSSRDepth(texture2D(camera_SSRReceiverDepthTexture, screenUV), farClip);
-        float depthTolerance = max(0.02, receiverEyeDepth * 0.008) + depthSlope * 2.0;
+        #ifdef SSR_PACKED_DEPTH_RG8
+          float depthFloor = max(0.02, farClip * (2.5 / 65535.0));
+        #else
+          float depthFloor = 0.02;
+        #endif
+        float depthTolerance = max(depthFloor, receiverEyeDepth * 0.002) + depthSlope * 2.0;
         if (receiverEyeDepth <= 0.0 || abs(fragEyeDepth - receiverEyeDepth) > depthTolerance) {
-          return envRadiance;
+          return vec4(0.0);
         }
       #endif
       vec4 ssr = texture2D(camera_SSRTexture, screenUV);
     #endif
 
+    #ifdef SSR_PACKED_HDR_REINHARD
+      vec3 encRgb = min(ssr.rgb, vec3(253.0 / 255.0));
+      ssr.rgb = encRgb / max(vec3(1.0) - encRgb, vec3(2.0 / 255.0));
+    #endif
+
     // Roughness fade near maxRoughness threshold.
     float maxR = max(camera_SSRParams.y, 1e-4);
     float roughFade = 1.0 - smoothstep(maxR * 0.85, maxR, roughness);
-    float alpha = saturate(ssr.a * ssrScale * roughFade);
-    return envRadiance * (1.0 - alpha) + ssr.rgb * (ssrScale * roughFade);
+    float alpha = saturate(ssr.a * saturate(ssrScale) * roughFade);
+    return vec4(ssr.rgb * (ssrScale * roughFade), alpha);
+  }
+
+  vec4 sampleScreenSpaceReflectionRaw(
+    vec4 positionCS,
+    vec3 worldNormal,
+    float roughness
+  ) {
+    float fragEyeDepth = remapDepthBufferEyeDepth(gl_FragCoord.z);
+    #if defined(CAMERA_SSR_BILATERAL_SAMPLE) || defined(CAMERA_SSR_VERIFY_RECEIVER_DEPTH)
+      float depthSlope = fwidth(fragEyeDepth);
+    #else
+      float depthSlope = 0.0;
+    #endif
+    return sampleScreenSpaceReflectionRawWithDepth(positionCS, worldNormal, roughness, fragEyeDepth, depthSlope);
+  }
+
+  vec3 evaluateScreenSpaceReflectionWithDepth(
+    vec4 positionCS,
+    vec3 worldNormal,
+    float roughness,
+    vec3 envRadiance,
+    float fragEyeDepth,
+    float depthSlope
+  ) {
+    vec4 raw = sampleScreenSpaceReflectionRawWithDepth(positionCS, worldNormal, roughness, fragEyeDepth, depthSlope);
+    return envRadiance * (1.0 - raw.a) + raw.rgb;
   }
 
   vec3 evaluateScreenSpaceReflection(
