@@ -40,14 +40,17 @@ async function main() {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();
+    const officialAssets = new Set();
     if (buildOfficial) {
       const dist = path.resolve(__dirname, "../editor-preload-official/dist");
-      await page.route(`${officialBase}**`, (route) =>
-        route.fulfill({
-          path: path.join(dist, route.request().url().slice(officialBase.length)),
+      await page.route(`${officialBase}**`, (route) => {
+        const asset = route.request().url().slice(officialBase.length);
+        officialAssets.add(asset);
+        return route.fulfill({
+          path: path.join(dist, asset),
           headers: { "access-control-allow-origin": "*" }
-        })
-      );
+        });
+      });
     }
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
@@ -75,6 +78,15 @@ async function main() {
         physics.destroy();
       }
     });
+    if (buildOfficial) {
+      assert.deepEqual([...officialAssets].sort(), [
+        "browser.js",
+        "libs/physx.release.js",
+        "libs/physx.release.simd.js",
+        "libs/physx.release.simd.wasm",
+        "libs/physx.release.wasm"
+      ]);
+    }
     console.log(`Ecosystem bundle and both PhysX modes initialize with Engine ${engineVersion}`);
   } finally {
     await browser.close();

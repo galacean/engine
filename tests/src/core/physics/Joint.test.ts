@@ -1,5 +1,6 @@
 import { createPhysics } from "../../utils/physics";
 import {
+  AssetType,
   FixedJoint,
   HingeJoint,
   Entity,
@@ -158,6 +159,39 @@ describe("Joint", function () {
 
     expect(joint.connectedAnchor).deep.include({ x: 4, y: 0, z: 4 });
     expect(box.transform.position).deep.include({ x: 4, y: 4, z: 4 });
+  });
+
+  it.each([true, false])("keeps the automatic anchor current while disabled (managed scene=%s)", (managed) => {
+    const scene = managed ? engine.sceneManager.activeScene : new Scene(engine);
+    const owner = scene.createRootEntity("joint owner");
+    const target = scene.createRootEntity("joint target");
+    try {
+      owner.transform.setPosition(10, 0, 0);
+      owner.addComponent(BoxCollider);
+      const joint = owner.addComponent(FixedJoint);
+      owner.getComponent(Rigidbody).useGravity = false;
+      joint.enabled = false;
+
+      joint.anchor.set(2, 0, 0);
+      expect(joint.connectedAnchor.x).toBe(12);
+
+      target.transform.setPosition(5, 0, 0);
+      const targetBody = target.addComponent(Rigidbody);
+      targetBody.isKinematic = true;
+      targetBody.enabled = false;
+      joint.connectedBody = targetBody;
+      expect(joint.connectedAnchor.x).toBe(7);
+
+      joint.automaticConnectedAnchor = false;
+      targetBody.enabled = true;
+      joint.enabled = true;
+      scene.physics._update(1 / 60);
+      expect(owner.transform.worldPosition.x).toBeCloseTo(10, 5);
+    } finally {
+      owner.destroy();
+      target.destroy();
+      if (!managed) scene.destroy();
+    }
   });
 
   it("rotated", function () {
@@ -867,6 +901,47 @@ describe("Joint", function () {
     joint.connectedAnchor = joint.connectedAnchor;
     expect(joint.automaticConnectedAnchor).toBe(true);
     expect(body.isSleeping()).toBe(true);
+  });
+
+  it.each([
+    [true, true],
+    [true, false],
+    [false, true],
+    [false, false]
+  ])("loads an omitted manual anchor as zero (active=%s, flag first=%s)", async (isActive, flagFirst) => {
+    const anchor = { x: 2, y: 0, z: 0 };
+    const connectedBody = { $component: { entity: [0], type: "Rigidbody", index: 0 } };
+    const props = flagFirst
+      ? { automaticConnectedAnchor: false, anchor, connectedBody }
+      : { connectedBody, anchor, automaticConnectedAnchor: false };
+    const data: SceneFile = {
+      version: "2.0",
+      refs: [],
+      entities: [
+        { name: "target", position: [5, 0, 0], components: [0] },
+        { name: "follower", position: [10, 0, 0], isActive, components: [1] }
+      ],
+      components: [
+        { type: "Rigidbody", props: { isKinematic: true } },
+        { type: "FixedJoint", props }
+      ],
+      scene: { rootEntities: [0, 1], background: { mode: 0, color: [0, 0, 0, 1] } }
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+    const scene = await engine.resourceManager.load<Scene>({ url, type: AssetType.Scene }).finally(() => {
+      URL.revokeObjectURL(url);
+    });
+    try {
+      const follower = scene.rootEntities[1];
+      const joint = follower.getComponent(FixedJoint);
+      expect(joint.connectedBody).toBe(scene.rootEntities[0].getComponent(Rigidbody));
+      expect(joint.automaticConnectedAnchor).toBe(false);
+      expect(Vector3.equals(joint.connectedAnchor, new Vector3())).toBe(true);
+      follower.isActive = true;
+      expect(Vector3.equals(joint.connectedAnchor, new Vector3())).toBe(true);
+    } finally {
+      scene.destroy();
+    }
   });
 
   it.each([true, false])(

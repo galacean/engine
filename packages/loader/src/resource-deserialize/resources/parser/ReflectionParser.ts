@@ -75,7 +75,8 @@ export class ReflectionParser {
    */
   parseMutationBlock(target: any, block?: MutationBlock): Promise<any> {
     if (!block) return Promise.resolve(target);
-    return this.parseProps(target, block.props)
+    const props = block.props;
+    return this.parseProps(target, props && (target[Loader._preparePropsForLoad]?.(props) ?? props))
       .then(() => this.parseCalls(target, block.calls))
       .then(() => target);
   }

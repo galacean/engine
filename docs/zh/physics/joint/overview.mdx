@@ -38,6 +38,8 @@ label: Physics
    - `anchor`：在主体刚体上的连接点
    - `connectedAnchor`：在目标对象上的连接点
 
+   场景和 Prefab 声明 `automaticConnectedAnchor: false` 时，手动锚点取文件提供的值或继承值。两者均缺省时使用 `(0, 0, 0)`。连接到刚体时，这表示目标刚体的局部原点。连接到世界时，这表示世界原点。
+
 3. **断裂阈值**：
 
    - `breakForce`：关节能承受的最大力

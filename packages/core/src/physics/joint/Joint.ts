@@ -4,6 +4,7 @@ import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
+import { Loader } from "../../asset/Loader";
 import type { Scene } from "../../Scene";
 import { TransformModifyFlags } from "../../Transform";
 import { ignoreClone } from "../../clone/CloneDecorators";
@@ -61,6 +62,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       this._nativeJoint && preBody?._wakeNative();
       this._connectedBody = value;
       this._syncActiveJoint();
+      !this._nativeJoint && this._automaticConnectedAnchor && this._calculateConnectedAnchor();
     }
   }
 
@@ -236,6 +238,15 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     this._destroyNativeJoint();
   }
 
+  /** @internal Materialize the manual anchor default when authored props switch from automatic mode. */
+  [Loader._preparePropsForLoad](props: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+    return this._automaticConnectedAnchor &&
+      props.automaticConnectedAnchor === false &&
+      props.connectedAnchor === undefined
+      ? { ...props, connectedAnchor: { x: 0, y: 0, z: 0 } }
+      : props;
+  }
+
   /**
    * @internal
    */
@@ -354,6 +365,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   private _calculateConnectedAnchor(): void {
+    // Prefab templates and detached entities resolve automatic anchors when placed in a scene.
+    if (!this.scene) return;
     const bodyInfo = this._bodyInfo;
     const connectedAnchor = this._connectedBodyInfo.anchor;
     const connectedBody = this._connectedBody;
@@ -397,9 +410,9 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   /** Sync the edited anchors and wake both bodies once. Scale changes only rescale the existing anchors. */
   private _updateAnchors(owner: AnchorOwner, recalculateConnected = false): void {
+    recalculateConnected && this._calculateConnectedAnchor();
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
-      recalculateConnected && this._calculateConnectedAnchor();
       this._syncAnchors(nativeJoint, owner);
       this._wakeBodies();
     }
