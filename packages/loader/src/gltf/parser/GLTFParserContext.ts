@@ -42,7 +42,7 @@ export class GLTFParserContext {
   _aborted = false;
 
   private _resourceCache = new Map<string, any>();
-  private _ownedResources = new Set<ReferResource>();
+  private _createdResources = new Set<ReferResource>();
   private readonly _remoteAssetBaseURL: string;
   private _progress = {
     taskDetail: {},
@@ -167,7 +167,7 @@ export class GLTFParserContext {
         }
 
         this.resourceManager.addContentRestorer(this.contentRestorer);
-        this._ownedResources.clear();
+        this._createdResources.clear();
         this._getPromises.length = 0;
         return glTFResource;
       });
@@ -185,7 +185,7 @@ export class GLTFParserContext {
       resource.destroy();
       return resource;
     }
-    this._ownedResources.add(resource);
+    this._createdResources.add(resource);
     resource._associationSuperResource(this.glTFResource);
     return resource;
   }
@@ -210,11 +210,11 @@ export class GLTFParserContext {
       this.glTFResource.destroy();
     }
 
-    this._ownedResources.forEach((resource) => {
+    this._createdResources.forEach((resource) => {
       resource._disassociationSuperResource(this.glTFResource);
       resource.destroy();
     });
-    this._ownedResources.clear();
+    this._createdResources.clear();
   }
 
   /**
