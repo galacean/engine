@@ -861,8 +861,12 @@ describe("Joint", function () {
 
     joint.automaticConnectedAnchor = true;
     expect(joint.automaticConnectedAnchor).toBe(true);
+    const body = box.getComponent(Rigidbody)!;
+    body.sleep();
+    expect(body.isSleeping()).toBe(true);
     joint.connectedAnchor = joint.connectedAnchor;
-    expect(joint.automaticConnectedAnchor).toBe(false);
+    expect(joint.automaticConnectedAnchor).toBe(true);
+    expect(body.isSleeping()).toBe(true);
   });
 
   it.each([true, false])(

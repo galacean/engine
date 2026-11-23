@@ -247,7 +247,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set centerOfMass(value: Vector3) {
-    this._centerOfMass.copyFrom(value);
+    this._centerOfMass !== value && this._centerOfMass.copyFrom(value);
   }
 
   /**
@@ -287,7 +287,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set inertiaTensor(value: Vector3) {
-    this._inertiaTensor.copyFrom(value);
+    this._inertiaTensor !== value && this._inertiaTensor.copyFrom(value);
   }
 
   /**
@@ -304,7 +304,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set inertiaTensorRotation(value: Quaternion) {
-    this._applyInertiaTensorRotation(value);
+    this._inertiaTensorRotation !== value && this._applyInertiaTensorRotation(value);
   }
 
   /**

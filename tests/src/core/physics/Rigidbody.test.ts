@@ -1939,6 +1939,15 @@ describe("Rigidbody", function () {
     expect(() => body.inertiaTensorRotation.set(0, 0, 0, 0)).toThrow();
     expect(Math.abs(Quaternion.dot(body.inertiaTensorRotation, manual))).toBeCloseTo(1, 5);
 
+    // Same-reference assignments are no-ops and preserve automatic mass calculation modes.
+    body.automaticCenterOfMass = true;
+    body.centerOfMass = body.centerOfMass;
+    expect(body.automaticCenterOfMass).toBe(true);
+    body.automaticInertiaTensor = true;
+    body.inertiaTensor = body.inertiaTensor;
+    body.inertiaTensorRotation = body.inertiaTensorRotation;
+    expect(body.automaticInertiaTensor).toBe(true);
+
     // Retained reference after destroy does not throw when mutated.
     const retained = body.inertiaTensorRotation;
     body.destroy();

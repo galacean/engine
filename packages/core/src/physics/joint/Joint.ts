@@ -84,7 +84,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   set connectedAnchor(value: Vector3) {
-    this._connectedBodyInfo.anchor.copyFrom(value);
+    const anchor = this._connectedBodyInfo.anchor;
+    value !== anchor && anchor.copyFrom(value);
   }
 
   /**
