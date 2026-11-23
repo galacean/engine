@@ -68,11 +68,16 @@ export class Scene extends EngineObject {
   /** @internal */
   _maskManager: MaskManager = new MaskManager();
   /** @internal */
-  _isActiveInEngine: boolean = false;
-  /** @internal */
   _sceneManager: SceneManager | null;
   /** @internal */
   _rootEntities: Entity[] = [];
+  /**
+   * Number of component activation or deactivation batches running for this scene.
+   * @internal
+   */
+  _activeProcessCount: number = 0;
+
+  private _pendingPhysicsDestroy: boolean = false;
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
@@ -89,7 +94,7 @@ export class Scene extends EngineObject {
   private _enableTransparentShadow = false;
 
   /**
-   * Whether the scene is active.
+   * Whether the scene activates its entity hierarchy while registered with the engine.
    */
   get isActive(): boolean {
     return this._isActive;
@@ -97,12 +102,10 @@ export class Scene extends EngineObject {
 
   set isActive(value: boolean) {
     if (this._isActive !== value) {
+      const manager = this._sceneManager;
+      if (manager) this._assertActivationIdle(value);
       this._isActive = value;
-      if (value) {
-        this._sceneManager && this._processActive(true);
-      } else {
-        this._sceneManager && this._processActive(false);
-      }
+      if (manager) this._processActive(value);
     }
   }
 
@@ -308,19 +311,23 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Append an entity.
-   * @param entity - The root entity to add
+   * Appends an entity as a root. An entity already in this scene's root list keeps its position.
+   * @param entity - The entity to attach as a root
    */
   addRootEntity(entity: Entity): void;
 
   /**
-   * Append an entity.
-   * @param index - specified index
-   * @param entity - The root entity to add
+   * Inserts an entity as a root. An entity already in this scene's root list keeps its position.
+   * @param index - Zero-based insertion position
+   * @param entity - The entity to attach as a root
    */
   addRootEntity(index: number, entity: Entity): void;
 
   addRootEntity(indexOrChild: number | Entity, entity?: Entity): void {
+    if (this.destroyed || this.pendingDestroy) {
+      return;
+    }
+
     let index: number | undefined;
     if (typeof indexOrChild === "number") {
       index = indexOrChild;
@@ -330,63 +337,20 @@ export class Scene extends EngineObject {
     }
 
     const rootEntity = entity!;
-    const isRoot = rootEntity._isRoot;
-    // Let rootEntity become root
-    if (!isRoot) {
-      rootEntity._isRoot = true;
-      rootEntity._removeFromParent();
-      rootEntity._setParentChange();
+    if (rootEntity.destroyed || rootEntity.pendingDestroy) {
+      return;
     }
 
-    // Add or remove from scene's rootEntities
-    const oldScene = rootEntity._scene;
-    if (oldScene !== this) {
-      if (oldScene && isRoot) {
-        Entity._removeFromChildren(oldScene._rootEntities, rootEntity);
-      }
-      Entity._addToChildren(this._rootEntities, rootEntity, index);
-    } else if (!isRoot) {
-      Entity._addToChildren(this._rootEntities, rootEntity, index);
-    }
-
-    // Process rootEntity active/inActive
-    let inActiveChangeFlag = ActiveChangeFlag.None;
-    if (rootEntity._isActiveInHierarchy) {
-      this._isActiveInEngine || (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-    }
-
-    // Cross scene should inActive first and then active
-    rootEntity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-
-    inActiveChangeFlag && rootEntity._processInActive(inActiveChangeFlag);
-
-    if (oldScene !== this) {
-      Entity._traverseSetOwnerScene(rootEntity, this);
-    }
-
-    let activeChangeFlag = ActiveChangeFlag.None;
-    if (rootEntity._isActive) {
-      if (this._isActiveInEngine) {
-        !rootEntity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-      }
-      (!rootEntity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
-    }
-    activeChangeFlag && rootEntity._processActive(activeChangeFlag);
+    rootEntity._attachToHierarchy(this, index);
   }
 
   /**
-   * Remove an entity.
-   * @param entity - The root entity to remove
+   * Detaches one of this scene's roots without destroying it.
+   * @param entity - The root entity to detach
    */
   removeRootEntity(entity: Entity): void {
-    if (entity._isRoot && entity._scene == this) {
-      Entity._removeFromChildren(this._rootEntities, entity);
-      entity._isRoot = false;
-      let inActiveChangeFlag = ActiveChangeFlag.None;
-      this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-      inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
-      Entity._traverseSetOwnerScene(entity, null);
+    if (entity._isRoot && entity._scene === this) {
+      entity._detachFromHierarchy();
     }
   }
 
@@ -445,20 +409,58 @@ export class Scene extends EngineObject {
   }
 
   /**
+   * Rejects scene activation changes that would reenter a root's lifecycle callbacks.
+   * @internal
+   */
+  _assertActivationIdle(active: boolean): void {
+    if (this._activeProcessCount !== 0 && !this._destroyed) {
+      const roots = this._rootEntities;
+      for (let i = roots.length - 1; i >= 0; i--) {
+        const root = roots[i];
+        if (root._isActive && root._isActiveInHierarchy !== active) root._assertActivationIdle();
+      }
+    }
+  }
+
+  /**
    * @internal
    */
   _processActive(active: boolean): void {
-    this._isActiveInEngine = active;
-    const rootEntities = this._rootEntities;
-    for (let i = rootEntities.length - 1; i >= 0; i--) {
-      const entity = rootEntities[i];
-      if (entity._isActive) {
-        if (active) {
-          entity._processActive(ActiveChangeFlag.Hierarchy);
-        } else {
-          entity._processInActive(ActiveChangeFlag.Hierarchy);
+    if (active && this._destroyed) return;
+    // Lifecycle callbacks can remove or move roots during a transition.
+    const roots = this._rootEntities.slice();
+    let firstError: unknown;
+    let hasError = false;
+    for (let i = roots.length - 1; i >= 0; i--) {
+      // A callback can change the scene's activation before the remaining roots are visited.
+      if (active !== (this._isActive && !!this._sceneManager)) break;
+      const root = roots[i];
+      if (root._scene === this && root._isRoot && root._isActive && root._isActiveInHierarchy !== active) {
+        try {
+          if (active) {
+            root._processActive(ActiveChangeFlag.Hierarchy);
+          } else {
+            root._processInActive(ActiveChangeFlag.Hierarchy);
+          }
+        } catch (error) {
+          if (!hasError) {
+            firstError = error;
+            hasError = true;
+          }
         }
       }
+    }
+    if (hasError) throw firstError;
+  }
+
+  /**
+   * Releases deferred physics resources once no activation batches remain.
+   * @internal
+   */
+  _flushPendingPhysicsDestroy(): void {
+    if (this._pendingPhysicsDestroy) {
+      this._pendingPhysicsDestroy = false;
+      this.physics._destroy();
     }
   }
 
@@ -501,22 +503,58 @@ export class Scene extends EngineObject {
   protected override _onDestroy(): void {
     super._onDestroy();
 
-    // Remove from sceneManager
-    const sceneManager = this._engine.sceneManager;
-    sceneManager.removeScene(this);
+    let firstError: unknown;
+    let hasError = false;
+    const runStep = (step: () => void): void => {
+      try {
+        step();
+      } catch (error) {
+        if (!hasError) {
+          firstError = error;
+          hasError = true;
+        }
+      }
+    };
 
-    while (this.rootEntitiesCount > 0) {
-      this._rootEntities[0].destroy();
+    const sceneManager = this._engine.sceneManager;
+    runStep(() => sceneManager.removeScene(this));
+
+    const roots = this._rootEntities;
+    while (roots.length > 0) {
+      const root = roots[0];
+      try {
+        root.destroy();
+      } catch (error) {
+        if (!hasError) {
+          firstError = error;
+          hasError = true;
+        }
+      }
+      if (roots[0] === root) {
+        // An in-progress root teardown must unregister before native scene destruction.
+        runStep(() => root._detachFromHierarchy());
+      }
     }
-    this.background.destroy();
-    this._ambientLight && this._ambientLight._removeFromScene(this);
-    this.shaderData._addReferCount(-1);
-    this._maskManager.destroy();
+    runStep(() => this.background.destroy());
+    runStep(() => this._ambientLight && this._ambientLight._removeFromScene(this));
+    runStep(() => this.shaderData._addReferCount(-1));
+    runStep(() => this._maskManager.destroy());
 
     const allCreatedScenes = sceneManager._allCreatedScenes;
-    allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
+    const sceneIndex = allCreatedScenes.indexOf(this);
+    if (sceneIndex !== -1) {
+      allCreatedScenes.splice(sceneIndex, 1);
+    }
 
-    this.physics._destroy();
+    if (this._activeProcessCount > 0) {
+      this._pendingPhysicsDestroy = true;
+    } else {
+      runStep(() => this.physics._destroy());
+    }
+
+    if (hasError) {
+      throw firstError;
+    }
   }
 
   private _computeLinearFogParams(fogStart: number, fogEnd: number): void {

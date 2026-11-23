@@ -1,3 +1,4 @@
+import type { Scene } from "@galacean/engine";
 import {
   BoolUpdateFlag,
   Camera,
@@ -392,8 +393,8 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
-    this._setIsRootCanvas(false);
+  override _onDisableInScene(scene: Scene): void {
+    this._setIsRootCanvas(false, scene);
     Utils.cleanRootCanvas(this);
   }
 
@@ -619,11 +620,11 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     }
   }
 
-  private _setIsRootCanvas(isRootCanvas: boolean): void {
+  private _setIsRootCanvas(isRootCanvas: boolean, scene?: Scene): void {
     if (this._isRootCanvas !== isRootCanvas) {
       this._isRootCanvas = isRootCanvas;
       this._updateCameraObserver();
-      this._setRealRenderMode(this._getRealRenderMode());
+      this._setRealRenderMode(this._getRealRenderMode(), scene);
       if (isRootCanvas) {
         this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
       } else {
@@ -671,11 +672,12 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     }
   }
 
-  private _setRealRenderMode(curRealMode: number): void {
+  private _setRealRenderMode(curRealMode: number, scene?: Scene): void {
     const preRealMode = this._realRenderMode;
     if (preRealMode !== curRealMode) {
       this._realRenderMode = curRealMode;
-      const componentsManager = this.scene!._componentsManager;
+      // Teardown supplies the old registry owner after the component has cleared its registration.
+      const componentsManager = (scene ?? this._registeredScene!)._componentsManager;
       switch (preRealMode) {
         case CanvasRenderMode.ScreenSpaceOverlay:
           this._removeCanvasListener();

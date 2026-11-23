@@ -1,3 +1,4 @@
+import type { Scene } from "./Scene";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { ignoreClone } from "./clone/CloneDecorators";
@@ -237,8 +238,8 @@ export class Script extends Component {
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
-    const componentsManager = this.scene!._componentsManager;
+  override _onDisableInScene(scene: Scene): void {
+    const componentsManager = scene._componentsManager;
     const { prototype } = Script;
 
     if (!this._started) {
@@ -256,7 +257,7 @@ export class Script extends Component {
 
     this._entity._removeScript(this);
     if (this._hasCollisionEventCallbacks()) {
-      this.scene!.physics._addContactEventConsumer(-1);
+      scene.physics._addContactEventConsumer(-1);
     }
   }
 
