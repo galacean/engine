@@ -1,0 +1,86 @@
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_ddbf152d31b140 207-216,1525-1528,1541-1546,1548-1555,1567-1570,1578-1580,1612,1623,1639,1648,1650,1652,1659-1665,1684,1692-1694
+packages/animals/src/gameplay/animal/GroundAnimalSteering.ts
+  h_ddbf152d31b140 48
+packages/project/src/project-files/virtual-project-files.ts
+  h_ddbf152d31b140 35-37,47-49
+packages/project/src/runtime-editor/project/runtime-project-dependencies.ts
+  h_ddbf152d31b140 97-101,103-144,151,169,181-186,205,212-221,231,269,278,326,329,351-365,368-371
+packages/project/src/runtime-editor/project/runtime-project.ts
+  h_ddbf152d31b140 2,5,9-12,60-118,121-160,163-188,202,205-207,213,215,222,224-230,232-241,243-254,257-281,283,288-293,297-323,325-327,331-340,401-402,409-411,413-415,420-481,497,499,501-507,528-529,531-536,538-539,541-542,545,549-551,562,583-592,602-621,623-625,628,634-635,638-650,654-656,658,662,665-666,673-680,684-688,690-691,693-716,726-734,739,746,748,758
+packages/runtime-editor/src/project/project-save-control.ts
+  h_ddbf152d31b140 13-52,103
+packages/runtime-editor/src/project/runtime-project-history.ts
+  h_ddbf152d31b140 170-277,287,297
+packages/runtime-editor/src/project/runtime-project-session.ts
+  h_ddbf152d31b140 2,18,21,36,45-51,101-119,128,130-135,137,142,149-156,158,260-282,297-300,471,554,562,567,599,837,841,843,854-857,878-879,888,891,894,921,998-1035,1037-1039,1052-1079,1109-1110,1114-1122,1132-1137,1153-1154,1157-1158,1161,1163-1164,1182,1195,1198,1241
+packages/runtime-editor/tests/runtime-project.spec.ts
+  h_ddbf152d31b140 2-12,73-126,132-142,145-153,160,181-188,191,194-201,203,205-206,208,210-217,221-222,224,227-229,938-1550
+packages/terrain/src/terrain/loading/WorldBubbleLoadingScene.ts
+  h_ddbf152d31b140 10,246
+packages/ui/src/component/UIBatchSorter.ts
+  h_ddbf152d31b140 27,31-34,53-98,108-110,112,156-157,184-188,192,195-199
+packages/water/src/water/runtime/ocean/OceanWaterCompiledResource.ts
+  h_ddbf152d31b140 191-203,206
+packages/water/tests/OceanExclusions.test.ts
+  h_ddbf152d31b140 113-123
+packages/world-planning/src/runtime/SeedWorldGrassTerrainSurface.ts
+  h_ddbf152d31b140 31-54,57-61,82-93,98-120
+packages/world-planning/src/runtime/SeedWorldPopulationPlan.ts
+  h_ddbf152d31b140 116-125,141,145-147,191-194
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  h_ddbf152d31b140 6930,6933,6937-6944,6952-6984,6986
+packages/world-planning/src/runtime/SeedWorldPopulationWaterImpact.ts
+  h_ddbf152d31b140 66,69-82
+packages/world-planning/src/spatial/PlanningComponents.ts
+  h_ddbf152d31b140 1390-1392,1394-1400
+packages/world-planning/src/spatial/SpatialDocument.ts
+  h_ddbf152d31b140 103-110,115,119-122,251-272,322
+packages/world-planning/src/spatial/ecology/AuthoredVegetation.ts
+  h_ddbf152d31b140 14,162,175-179
+packages/world-planning/src/spatial/ecology/CoverageRaster.ts
+  h_ddbf152d31b140 3-10,25
+packages/world-planning/src/spatial/ecology/VegetationCoverage.ts
+  h_ddbf152d31b140 2,9,31-34
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_ddbf152d31b140 799-815,819-828,896-903,919-926,954-966,970-972,977-981,986-989
+packages/world-planning/src/spatial/runtime/PlanningPopulationData.ts
+  h_ddbf152d31b140 12,102-105
+packages/world-planning/src/spatial/runtime/PlanningPopulationVisibility.ts
+  h_ddbf152d31b140 4,56
+packages/world-planning/src/world/SeedWorldDetailCandidateLattice.ts
+  h_ddbf152d31b140 232,289-309,349-358
+tests/src/ui/UIBatchSorter.test.ts
+  h_ddbf152d31b140 180-200
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 672-675,677,679,687,690,802-803,852-853,865,872,3488-3490
+world/demos/seed-world/main.ts
+  h_ddbf152d31b140 5-9,113,120
+world/demos/seed-world/src/planning/spatial/PlanningDocumentCodec.ts
+  h_ddbf152d31b140 5,30,37
+world/demos/seed-world/src/planning/spatial/PlanningPageUrl.ts
+  h_ddbf152d31b140 3-28
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  h_ddbf152d31b140 384-385,396-402
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  h_ddbf152d31b140 21,89-90,95,159-161,167-170
+world/tests/seed-world/Float32GridRaster.spec.ts
+  h_ddbf152d31b140 83-168
+world/tests/seed-world/PlanningProjectInputs.spec.ts
+  h_ddbf152d31b140 9,126-203
+world/tests/seed-world/PlanningStorage.spec.ts
+  h_ddbf152d31b140 149,153-158
+world/tests/seed-world/dependency-maintenance.spec.ts
+  h_ddbf152d31b140 94-96,98-106,114,116-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c2f9b67877ca65233370c6760f256fa2f2c1e355",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
