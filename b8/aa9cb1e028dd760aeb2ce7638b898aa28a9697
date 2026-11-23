@@ -1,0 +1,19 @@
+.github/HOW_TO_CONTRIBUTE.md
+  s_71b60d26703905::t_41098b91fd0746 140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b8aa9cb1e028dd760aeb2ce7638b898aa28a9697",
+  "prompts": {},
+  "sessions": {
+    "s_71b60d26703905": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2086b-2423-7963-bec2-7a56a2f3c1cb",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
