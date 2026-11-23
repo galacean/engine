@@ -1,11 +1,16 @@
+export { RHIMode } from "./RHIMode";
+export type { EngineGraphicsCapabilities } from "./EngineGraphicsCapabilities";
 export type { IHardwareRenderer } from "./IHardwareRenderer";
 export type { IPlatformBuffer } from "./IPlatformBuffer";
+export type { IPlatformFeedbackCompute } from "./IPlatformFeedbackCompute";
 export type { IPlatformPrimitive } from "./IPlatformPrimitive";
 export type { IPlatformRenderTarget } from "./IPlatformRenderTarget";
-export type { IPlatformShaderProgram } from "./IPlatformShaderProgram";
+export type { IPlatformShaderProgram, IPlatformShaderSource, IPlatformUniform } from "./IPlatformShaderProgram";
 export type { IPlatformTexture } from "./IPlatformTexture";
 export type { IPlatformTexture2D } from "./IPlatformTexture2D";
 export type { IPlatformTexture2DArray } from "./IPlatformTexture2DArray";
 export type { IPlatformTextureCube } from "./IPlatformTextureCube";
 export type { IPlatformTransformFeedback } from "./IPlatformTransformFeedback";
 export type { IPlatformTransformFeedbackPrimitive } from "./IPlatformTransformFeedbackPrimitive";
+export { RenderBufferLoadAction } from "./RenderBufferLoadAction";
+export { RenderBufferStoreAction } from "./RenderBufferStoreAction";

@@ -86,6 +86,18 @@ describe("Shader", () => {
       // Compile variant
     });
 
+    it("updates the cached stage pass list after an application changes or removes a pass tag", () => {
+      const first = makePass("A");
+      const second = makePass("B");
+      const sub = new SubShader("Main", [first, second]);
+      expect(sub._getPassesForStage("Forward")).toEqual([first, second]);
+      second.setTag("pipelineStage", "DepthOnly");
+      expect(sub._getPassesForStage("Forward")).toEqual([first]);
+      expect(sub._getPassesForStage("DepthOnly")).toEqual([second]);
+      second.deleteTag("pipelineStage");
+      expect(sub._getPassesForStage("DepthOnly")).toHaveLength(0);
+    });
+
     it("SubShader", () => {
       const customShader = Shader.find("custom");
       const subShader = customShader.subShaders[0];

@@ -1,4 +1,4 @@
-import type { Camera, Scene, WebGLEngine } from "@galacean/engine";
+import type { Camera, Engine, Scene } from "@galacean/engine";
 
 /** Global tick timing hook populated only during an active capture window. */
 export interface MobileSeedTickHost {
@@ -7,6 +7,9 @@ export interface MobileSeedTickHost {
 }
 
 export interface PerfCumulativeCounters {
+  /** Native direct RHI submissions. GL-only counters are unavailable (NaN) in this scope. */
+  drawScope?: "webgpu-direct";
+  indexedStrips?: number;
   frames: number;
   cpuMs: number;
   dc: number;
@@ -29,15 +32,18 @@ export interface PerfFrameObserver {
 }
 
 export interface MobileFrameRenderStats {
+  readonly drawScope?: "webgpu-direct";
+  /** Direct indexed triangle-strip draws omitted from the triangle count because indices are GPU-resident. */
+  readonly unmeasuredIndexedStrips?: number;
   readonly fps: number;
   readonly dc: number;
   readonly tris: number;
-  readonly fbo: number;
-  readonly fboAll: number;
-  readonly bufUploads: number;
-  readonly bufUploadKB: number;
-  readonly bufOrphans: number;
-  readonly bufOrphanKB: number;
+  readonly fbo: number | null;
+  readonly fboAll: number | null;
+  readonly bufUploads: number | null;
+  readonly bufUploadKB: number | null;
+  readonly bufOrphans: number | null;
+  readonly bufOrphanKB: number | null;
 }
 
 export interface MobileFrameCaptureRecord {
@@ -102,7 +108,7 @@ export interface MobileFrameCaptureController {
 }
 
 export interface MobileFrameCaptureOptions {
-  readonly engine: WebGLEngine;
+  readonly engine: Engine;
   readonly scene: Scene;
   readonly camera: Camera;
   readonly canvas: HTMLCanvasElement;
@@ -219,13 +225,15 @@ function formatWindowPerfText(
   capturedFrames: number
 ): string {
   const trisK = stats.tris / 1000;
-  const orphanPart = stats.bufOrphans > 0 ? ` orphan=${Math.round(stats.bufOrphans)}(${Math.round(stats.bufOrphanKB)}KB)` : "";
-  return (
-    `PERF | ${capturedFrames}f | ${width}x${height}\n` +
-    `${stats.fps.toFixed(1)}fps | cpu=${avgCpuMs.toFixed(1)}ms(max ${maxCpuMs.toFixed(1)}) | ` +
-    `dc=${Math.round(stats.dc)} fbo=${Math.round(stats.fbo)}(all ${Math.round(stats.fboAll)}) ` +
-    `tris=${trisK.toFixed(0)}k buf=${Math.round(stats.bufUploads)}(${Math.round(stats.bufUploadKB)}KB)${orphanPart}`
-  );
+  const header = `PERF | ${capturedFrames}f | ${width}x${height}\n` +
+    `${stats.fps.toFixed(1)}fps | cpu=${avgCpuMs.toFixed(1)}ms(max ${maxCpuMs.toFixed(1)}) | `;
+  if (stats.drawScope === "webgpu-direct") {
+    return header + `RHI dc=${Math.round(stats.dc)} tris=${stats.unmeasuredIndexedStrips ? "≥" : ""}${trisK.toFixed(0)}k`;
+  }
+  const orphanPart = stats.bufOrphans ? ` orphan=${Math.round(stats.bufOrphans)}(${Math.round(stats.bufOrphanKB!)}KB)` : "";
+  return header + `dc=${Math.round(stats.dc)} fbo=${Math.round(stats.fbo!)}(all ${Math.round(stats.fboAll!)}) ` +
+    `tris=${trisK.toFixed(0)}k buf=${Math.round(stats.bufUploads!)}(${Math.round(stats.bufUploadKB!)}KB)${orphanPart}`;
+
 }
 
 /**
@@ -683,6 +691,11 @@ export function attachMobileFrameCapture(options: MobileFrameCaptureOptions): Mo
               fps: round1(fps),
               dc: round1(Math.max(0, endCounters.dc - startCounters.dc) / capturedFrames),
               tris: Math.round(Math.max(0, endCounters.tris - startCounters.tris) / capturedFrames),
+              ...(endCounters.drawScope === "webgpu-direct" ? {
+                drawScope: endCounters.drawScope,
+                unmeasuredIndexedStrips: (endCounters.indexedStrips ?? 0) - (startCounters.indexedStrips ?? 0),
+                fbo: null, fboAll: null, bufUploads: null, bufUploadKB: null, bufOrphans: null, bufOrphanKB: null
+              } : {
               fbo: round1(Math.max(0, endCounters.fbo - startCounters.fbo) / capturedFrames),
               fboAll: round1(Math.max(0, endCounters.fboAll - startCounters.fboAll) / capturedFrames),
               bufUploads: round1(Math.max(0, endCounters.bufUploads - startCounters.bufUploads) / capturedFrames),
@@ -693,6 +706,8 @@ export function attachMobileFrameCapture(options: MobileFrameCaptureOptions): Mo
               bufOrphanKB: round1(
                 Math.max(0, endCounters.bufOrphanBytes - startCounters.bufOrphanBytes) / capturedFrames / 1024
               )
+              })
+
             }
           : {
               fps: round1(fps),

@@ -1,0 +1,171 @@
+{
+  "schema": "seed-world-water-shader-aot-v1",
+  "profileCount": 3,
+  "platformTarget": 0,
+  "shaderLanguage": "GLSLES300",
+  "runtimeCapability": "webgl2-gles300",
+  "engine": {
+    "package": "@galacean/engine-core",
+    "version": "2.0.0-alpha.64"
+  },
+  "compiler": {
+    "package": "@galacean/engine-shader-compiler",
+    "version": "2.0.0-alpha.64",
+    "precompilerSha256": "88bc1a6d47af897e6a86d94cd9f33575e6263548dd2d87d9d3b591303742586a"
+  },
+  "shaderLibrary": {
+    "resolvedSource": "packages/shader/src/ShaderLibrary + packages/modify",
+    "sourceSha256": "e006a185db00724e9c420487d307efc537f5fec612d411e6c9161187dde0e7d6"
+  },
+  "budgets": {
+    "maximumProfileArtifactBytes": 600000,
+    "maximumTotalArtifactBytes": 1200000,
+    "actualTotalArtifactBytes": 733559
+  },
+  "profiles": [
+    {
+      "profileId": "lake-heightfield-high-hybrid-v2",
+      "shaderName": "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0",
+      "variantKey": "heightfield:appearanceVariantKey=surface-appearance-v2%3Aed93d4a81a01602d;depthSource=hybrid-optional-scene-depth;quality=high;surfaceAppearance=1;surfaceAppearanceVersion=2;waveSlotCount=0",
+      "sourcePath": "source/Shader/Water/LakeHeightfieldHighHybrid.shader",
+      "virtualPath": "Shader/Water/lake-heightfield-high-hybrid-v2.shaderc",
+      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.8e7f39fa431eec5db91e09a7097efb59f345fadc2e4764f940671f188a24b267.shaderc",
+      "cacheKey": "8e7f39fa431eec5db91e09a7097efb59f345fadc2e4764f940671f188a24b267",
+      "materializedSourceSha256": "07c2fcea4491b57d1d8ab7d6b9df4bec3071eaa852e006be2729f73345b39bec",
+      "artifactSha256": "8e7f39fa431eec5db91e09a7097efb59f345fadc2e4764f940671f188a24b267",
+      "artifactBytes": 330315,
+      "passTopology": [
+        [
+          {
+            "name": "Forward",
+            "isUsePass": false
+          },
+          {
+            "name": "SSRReceiver",
+            "isUsePass": false
+          }
+        ]
+      ],
+      "capability": {
+        "profileId": "lake-heightfield-high-hybrid-v2",
+        "shaderName": "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0",
+        "variant": {
+          "backendId": "heightfield",
+          "key": "heightfield:appearanceVariantKey=surface-appearance-v2%3Aed93d4a81a01602d;depthSource=hybrid-optional-scene-depth;quality=high;surfaceAppearance=1;surfaceAppearanceVersion=2;waveSlotCount=0",
+          "features": {
+            "appearanceVariantKey": "surface-appearance-v2:ed93d4a81a01602d",
+            "depthSource": "hybrid-optional-scene-depth",
+            "quality": "high",
+            "surfaceAppearance": true,
+            "surfaceAppearanceVersion": 2,
+            "waveSlotCount": 0
+          }
+        },
+        "requiredBindings": [
+          "material_AppearanceV2Detail0Texture",
+          "material_AppearanceV2Detail1Texture",
+          "material_LocalMapTexture"
+        ]
+      },
+      "compilerSha256": "88bc1a6d47af897e6a86d94cd9f33575e6263548dd2d87d9d3b591303742586a",
+      "postprocess": {
+        "operation": "water-aot-gles300-v1",
+        "source": "packages/water/src/world/SeedWorldWaterShaderAotProfiles.ts",
+        "compilerPackage": "@galacean/engine-shader-compiler/src/ShaderPrecompiler.ts",
+        "inputArtifactSha256": "76e0640adff3087b8db2dc0ed6833695564e1ed8c55dd95e72f49e3773292a36"
+      }
+    },
+    {
+      "profileId": "ocean-near-detailed",
+      "shaderName": "AIWorld/Ocean",
+      "variantKey": "ocean:sharedClosure=water-surface-material-v1%3A429f59f95557570c;surface=detailed",
+      "sourcePath": "source/Shader/Water/OceanNearDetailed.shader",
+      "virtualPath": "Shader/Water/ocean-near-detailed.shaderc",
+      "path": "public/Shader/Water/ocean-near-detailed.61ada3c479c43a2506451efcfcd3887a32b6caccf62487406e44bc809accc5b2.shaderc",
+      "cacheKey": "61ada3c479c43a2506451efcfcd3887a32b6caccf62487406e44bc809accc5b2",
+      "materializedSourceSha256": "3a9917941f5b34f2c368aa45e7013e2f7f1d982173aa8055c6acef80b419b6e5",
+      "artifactSha256": "61ada3c479c43a2506451efcfcd3887a32b6caccf62487406e44bc809accc5b2",
+      "artifactBytes": 299051,
+      "passTopology": [
+        [
+          {
+            "name": "Forward",
+            "isUsePass": false
+          }
+        ]
+      ],
+      "capability": {
+        "profileId": "ocean-near-detailed",
+        "shaderName": "AIWorld/Ocean",
+        "variant": {
+          "backendId": "ocean",
+          "key": "ocean:sharedClosure=water-surface-material-v1%3A429f59f95557570c;surface=detailed",
+          "features": {
+            "sharedClosure": "water-surface-material-v1:429f59f95557570c",
+            "surface": "detailed"
+          }
+        },
+        "requiredBindings": [
+          "material_CausticsTexture",
+          "material_FoamTexture",
+          "material_IntersectionNoiseTexture",
+          "material_NearshoreTexture",
+          "material_RoughWavesTexture",
+          "material_SmoothWavesTexture"
+        ]
+      },
+      "compilerSha256": "88bc1a6d47af897e6a86d94cd9f33575e6263548dd2d87d9d3b591303742586a",
+      "postprocess": {
+        "operation": "water-aot-gles300-v1",
+        "source": "packages/water/src/world/SeedWorldWaterShaderAotProfiles.ts",
+        "compilerPackage": "@galacean/engine-shader-compiler/src/ShaderPrecompiler.ts",
+        "inputArtifactSha256": "c2383d3d4037ea92cd4fa0aaee296d7d53c5441b9b7fb0cabb6476af4a322914"
+      }
+    },
+    {
+      "profileId": "ocean-far-graded",
+      "shaderName": "AIWorld/OceanFar",
+      "variantKey": "ocean-far:sharedClosure=water-surface-material-v1%3A7da1b19196761c07;surface=graded",
+      "sourcePath": "source/Shader/Water/OceanFarGraded.shader",
+      "virtualPath": "Shader/Water/ocean-far-graded.shaderc",
+      "path": "public/Shader/Water/ocean-far-graded.cb5289ab3610401fb590d3990f3a5ca8b682ce4790782775f91112ac829ddd4e.shaderc",
+      "cacheKey": "cb5289ab3610401fb590d3990f3a5ca8b682ce4790782775f91112ac829ddd4e",
+      "materializedSourceSha256": "d4375015d637ac361d8b0f6f35f3c799f7b3491d40f18652057170b44181f2b3",
+      "artifactSha256": "cb5289ab3610401fb590d3990f3a5ca8b682ce4790782775f91112ac829ddd4e",
+      "artifactBytes": 104193,
+      "passTopology": [
+        [
+          {
+            "name": "Forward",
+            "isUsePass": false
+          }
+        ]
+      ],
+      "capability": {
+        "profileId": "ocean-far-graded",
+        "shaderName": "AIWorld/OceanFar",
+        "variant": {
+          "backendId": "ocean-far",
+          "key": "ocean-far:sharedClosure=water-surface-material-v1%3A7da1b19196761c07;surface=graded",
+          "features": {
+            "sharedClosure": "water-surface-material-v1:7da1b19196761c07",
+            "surface": "graded"
+          }
+        },
+        "requiredBindings": [
+          "material_NearshoreTexture"
+        ]
+      },
+      "compilerSha256": "88bc1a6d47af897e6a86d94cd9f33575e6263548dd2d87d9d3b591303742586a",
+      "postprocess": {
+        "operation": "water-aot-gles300-v1",
+        "source": "packages/water/src/world/SeedWorldWaterShaderAotProfiles.ts",
+        "compilerPackage": "@galacean/engine-shader-compiler/src/ShaderPrecompiler.ts",
+        "inputArtifactSha256": "42c74f68026ff3b73cd8fc3fef979d2199219dce4c9223e806abee6eddd0da9f"
+      }
+    }
+  ],
+  "additionalCompiledTargets": [
+    "wgsl"
+  ]
+}

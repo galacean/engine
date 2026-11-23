@@ -1,6 +1,7 @@
 import {
   CameraClearFlags,
   IPlatformRenderTarget,
+  RenderBufferStoreAction,
   RenderTarget,
   Texture,
   TextureCube,
@@ -14,6 +15,13 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  * The render target in WebGL platform is used for off-screen rendering.
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
+  /** @internal */
+  _oriDrawBuffers: GLenum[];
+  /** @internal */
+  _hasDepth: boolean = false;
+  /** @internal */
+  _hasStencil: boolean = false;
+
   private _rhi: WebGLGraphicDevice;
   private _gl: WebGL2RenderingContext;
   private _target: RenderTarget;
@@ -22,7 +30,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _depthRenderBuffer: WebGLRenderbuffer | null;
   private _MSAAColorRenderBuffers: (WebGLRenderbuffer | null)[] = [];
   private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
-  private _oriDrawBuffers: GLenum[];
   private _blitDrawBuffers: GLenum[] | null;
   private _curMipLevel: number = 0;
   private _mainFBOMipLevel: number = 0;
@@ -71,6 +78,19 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       throw new Error("MRT+Cube+[,MSAA] is not supported");
     }
 
+    if (_depth !== null) {
+      const gl = this._gl;
+      const depthAttachment =
+        _depth instanceof Texture
+          ? (_depth._platformTexture as GLTexture)._formatDetail.attachment!
+          : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl).attachment!;
+      this._hasDepth = depthAttachment === gl.DEPTH_ATTACHMENT || depthAttachment === gl.DEPTH_STENCIL_ATTACHMENT;
+      this._hasStencil = depthAttachment === gl.STENCIL_ATTACHMENT || depthAttachment === gl.DEPTH_STENCIL_ATTACHMENT;
+    }
+
+    // Flush any active render target's pending store actions before binding the new FBOs
+    rhi._flushAndResetActiveRenderTarget();
+
     this._frameBuffer = this._gl.createFramebuffer();
 
     // bind main FBO
@@ -90,6 +110,26 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    * @param mipLevel - Set mip level the data want to write
    * @param faceIndex - Cube texture face
    */
+  invalidateRenderTarget(clearFlags: CameraClearFlags, target: GLenum = this._gl.FRAMEBUFFER): void {
+    if (clearFlags === CameraClearFlags.None) {
+      return;
+    }
+    const attachments = this._invalidateAttachments[clearFlags & CameraClearFlags.All];
+    if (attachments) {
+      this._gl.invalidateFramebuffer(target, attachments);
+    }
+  }
+
+  _getActiveDrawFrameBuffer(): WebGLFramebuffer | null {
+    if (this._MSAAFrameBuffer) {
+      return this._MSAAFrameBuffer;
+    }
+    if (this._mipFrameBuffers && this._curMipLevel > 0) {
+      return this._mipFrameBuffers[this._curMipLevel] ?? this._frameBuffer;
+    }
+    return this._frameBuffer;
+  }
+
   activeRenderTarget(mipLevel: number, faceIndex?: TextureCubeFace): void {
     // @todo: support MRT
     const { _rhi: rhi, _gl: gl, _target: target } = this;
@@ -130,54 +170,51 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       return;
     }
 
-    rhi._bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
-
-    const mipChanged = level !== this._mainFBOMipLevel;
+    const mipChanged = mipLevel !== this._curMipLevel;
     const faceChanged = faceIndex !== this._curFaceIndex;
 
-    if (colorTexture) {
-      const isCube = colorTexture instanceof TextureCube;
-      if (mipChanged || (isCube && faceChanged)) {
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          gl.COLOR_ATTACHMENT0,
-          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
-          (colorTexture._platformTexture as GLTexture)._glTexture,
-          level
-        );
-      }
-    }
+    if (!this._MSAAFrameBuffer || mipChanged || faceChanged || target.depthTexture instanceof TextureCube) {
+      this._rhi._bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
-    const { depthTexture } = target;
-    if (depthTexture) {
-      const isCube = depthTexture instanceof TextureCube;
-      if (mipChanged || isCube) {
-        const platformTexture = <GLTexture>depthTexture._platformTexture;
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          platformTexture._formatDetail.attachment!,
-          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
-          platformTexture._glTexture,
-          level
-        );
+      const colorTexture = target.getColorTexture(0);
+      if (colorTexture) {
+        const isCube = colorTexture instanceof TextureCube;
+        if (mipChanged || (isCube && faceChanged)) {
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
+            (colorTexture._platformTexture as GLTexture)._glTexture,
+            mipLevel
+          );
+        }
       }
-    } else if (this._depthRenderBuffer) {
-      if (mipChanged) {
-        // @ts-ignore
-        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
-        gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
-        gl.renderbufferStorage(
-          gl.RENDERBUFFER,
-          internalFormat,
-          Math.max(1, target.width >> level),
-          Math.max(1, target.height >> level)
-        );
-      }
-    }
 
-    this._mainFBOMipLevel = level;
-    this._curMipLevel = level;
-    this._curFaceIndex = faceIndex;
+      const { depthTexture } = target;
+      if (depthTexture) {
+        const isCube = depthTexture instanceof TextureCube;
+        if (mipChanged || isCube) {
+          const platformTexture = <GLTexture>depthTexture._platformTexture;
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            platformTexture._formatDetail.attachment!,
+            isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
+            platformTexture._glTexture,
+            mipLevel
+          );
+        }
+      } else {
+        if (mipChanged && this._depthRenderBuffer) {
+          // @ts-ignore
+          const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
+          gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
+          gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
+        }
+      }
+
+      this._curMipLevel = mipLevel;
+      this._curFaceIndex = faceIndex;
+    }
 
     if (this._MSAAFrameBuffer) {
       rhi._bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
@@ -188,12 +225,33 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    * Blit FBO.
    * @param discardMSAA - When true on WebGL2, invalidates the MSAA read framebuffer attachments immediately after resolve.
    */
-  blitRenderTarget(discardMSAA: boolean = false): void {
+  blitRenderTarget(forceDiscardMSAA: boolean = false): void {
     if (!this._MSAAFrameBuffer) return;
 
     const gl = this._gl;
-    const mask = gl.COLOR_BUFFER_BIT | (this._target.depthTexture ? gl.DEPTH_BUFFER_BIT : 0);
-    const { colorTextureCount, width, height } = this._target;
+    const rhi = this._rhi;
+    const target = this._target;
+    const isActive = rhi._activeRenderTarget === target;
+    const discardMSAA =
+      forceDiscardMSAA ||
+      (isActive &&
+        (rhi._activeColorStoreAction === RenderBufferStoreAction.Resolve ||
+          rhi._activeColorStoreAction === RenderBufferStoreAction.DontCare));
+    const discardDepth = isActive && rhi._activeDepthStoreAction === RenderBufferStoreAction.DontCare;
+
+    if (!isActive) {
+      rhi._flushAndResetActiveRenderTarget();
+    }
+
+    const resolveDepth = !!target.depthTexture;
+    const mask = gl.COLOR_BUFFER_BIT | (resolveDepth ? gl.DEPTH_BUFFER_BIT : 0);
+    const { colorTextureCount, width, height } = target;
+
+    // Discard transient MSAA depth/stencil while _MSAAFrameBuffer is still the bound DRAW_FRAMEBUFFER
+    // so TBDR GPUs skip flushing depth before DRAW_FRAMEBUFFER switches to the resolve target (matches Unity TextureReadbackGLES.cpp)
+    if (discardDepth && !resolveDepth) {
+      rhi._invalidateFrameBufferAttachments(gl.FRAMEBUFFER, target, false, true, true);
+    }
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
     this._rhi._bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
@@ -210,37 +268,18 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       this._blitDrawBuffers![textureIndex] = gl.NONE;
     }
 
-    if (discardMSAA) {
-      this.invalidateRenderTarget(CameraClearFlags.All, gl.READ_FRAMEBUFFER);
+    if (discardMSAA || (discardDepth && resolveDepth)) {
+      rhi._invalidateFrameBufferAttachments(
+        gl.READ_FRAMEBUFFER,
+        target,
+        discardMSAA,
+        discardDepth && resolveDepth,
+        discardDepth && resolveDepth
+      );
     }
 
     this._rhi._bindFramebuffer(gl.FRAMEBUFFER, null);
-  }
-
-  /**
-   * @internal
-   */
-  _getActiveDrawFrameBuffer(): WebGLFramebuffer | null {
-    if (this._MSAAFrameBuffer) {
-      return this._MSAAFrameBuffer;
-    }
-    if (this._mipFrameBuffers && this._curMipLevel > 0) {
-      return this._mipFrameBuffers[this._curMipLevel] ?? this._frameBuffer;
-    }
-    return this._frameBuffer;
-  }
-
-  /**
-   * Invalidate currently bound framebuffer attachments on WebGL2 to skip unnecessary TBDR tile LOAD/STORE.
-   */
-  invalidateRenderTarget(clearFlags: CameraClearFlags, target: GLenum = this._gl.FRAMEBUFFER): void {
-    if (clearFlags === CameraClearFlags.None) {
-      return;
-    }
-    const attachments = this._invalidateAttachments[clearFlags & CameraClearFlags.All];
-    if (attachments) {
-      this._gl.invalidateFramebuffer(target, attachments);
-    }
+    rhi._clearActiveRenderTargetState();
   }
 
   /**
@@ -249,26 +288,15 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   destroy(): void {
     const gl = this._gl;
 
+    if (this._rhi._activeRenderTarget === this._target) {
+      this._rhi._clearActiveRenderTargetState();
+    }
+
     if (
-      (this._frameBuffer && this._rhi._currentDrawFrameBuffer === this._frameBuffer) ||
-      (this._MSAAFrameBuffer && this._rhi._currentDrawFrameBuffer === this._MSAAFrameBuffer)
-    ) {
+      this._rhi._currentDrawFrameBuffer === this._frameBuffer ||
+      this._rhi._currentDrawFrameBuffer === this._MSAAFrameBuffer
+    )
       this._rhi._currentDrawFrameBuffer = null;
-    }
-
-    if (this._mipFrameBuffers) {
-      for (let i = 0, n = this._mipFrameBuffers.length; i < n; i++) {
-        const mipFBO = this._mipFrameBuffers[i];
-        if (mipFBO) {
-          if (this._rhi._currentDrawFrameBuffer === mipFBO) {
-            this._rhi._currentDrawFrameBuffer = null;
-          }
-          gl.deleteFramebuffer(mipFBO);
-        }
-      }
-      this._mipFrameBuffers = null;
-    }
-
     this._frameBuffer && gl.deleteFramebuffer(this._frameBuffer);
     this._depthRenderBuffer && gl.deleteRenderbuffer(this._depthRenderBuffer);
     this._MSAAFrameBuffer && gl.deleteFramebuffer(this._MSAAFrameBuffer);

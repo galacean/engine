@@ -26,6 +26,7 @@ const GLOBALS: readonly { key: GlobalKey; label: string; group: string; min?: nu
 ];
 /** Actions owned by the application outside the planning preview. */
 export interface WorldPlanningOptions {
+  onEngineReady?: (engine: import("@galacean/engine").Engine) => void;
   /** Generate from the published layout. Read the session before disposing its editor/executor. */
   onGenerate3D?: (plan: IslandPlan, session: PlanningSession, waterResetRequest?: string) => void | Promise<void>;
 }

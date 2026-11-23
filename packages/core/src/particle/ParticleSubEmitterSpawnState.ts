@@ -1,3 +1,4 @@
+import type { IPlatformFeedbackCompute } from "../renderingHardwareInterface";
 import type { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
 import { Primitive } from "../graphic/Primitive";
@@ -28,7 +29,8 @@ export class ParticleSubEmitterSpawnState {
   private readonly _gatherPass: ShaderPass;
   private readonly _primitive: Primitive;
   private readonly _subPrimitive = new SubPrimitive(0, 0, MeshTopology.Points);
-  private readonly _transformFeedback: TransformFeedback;
+  private readonly _transformFeedback?: TransformFeedback;
+  private _compute?: IPlatformFeedbackCompute;
   private _simulationBinding: VertexBufferBinding;
   private _renderBinding: VertexBufferBinding | null = null;
   private _pendingParentTrajectoryBinding: VertexBufferBinding | null = null;
@@ -64,8 +66,12 @@ export class ParticleSubEmitterSpawnState {
     // Source offsets vary per batch, so a cached VAO would retain stale attribute pointers
     primitive.enableVAO = false;
     primitive.isGCIgnored = true;
-    this._transformFeedback = new TransformFeedback(engine);
-    this._transformFeedback.isGCIgnored = true;
+    if (engine._hardwareRenderer.supportsCompute) {
+      this._compute = engine._hardwareRenderer.createFeedbackCompute!();
+    } else {
+      this._transformFeedback = new TransformFeedback(engine);
+      this._transformFeedback.isGCIgnored = true;
+    }
     this._simulationBinding = this._createSpawnStateBinding(particleCapacity);
     this._renderBinding = needsRenderBinding ? this._createSpawnStateBinding(particleCapacity) : null;
   }
@@ -159,9 +165,9 @@ export class ParticleSubEmitterSpawnState {
       return;
     }
 
-    this._transformFeedback.end();
-    this._transformFeedback.unbindBuffer(0);
-    this._transformFeedback.unbind();
+    this._transformFeedback!.end();
+    this._transformFeedback!.unbindBuffer(0);
+    this._transformFeedback!.unbind();
     this._primitive.engine._hardwareRenderer.disableRasterizerDiscard();
     this._activeGatherProgram = null;
     this._primitive.vertexBufferBindings.length = 0;
@@ -171,7 +177,8 @@ export class ParticleSubEmitterSpawnState {
     this._simulationBinding.buffer.destroy();
     this._renderBinding?.buffer.destroy();
     this._primitive.destroy();
-    this._transformFeedback.destroy();
+    this._transformFeedback?.destroy();
+    this._compute?.destroy();
   }
 
   private _createSpawnStateBinding(particleCapacity: number): VertexBufferBinding {
@@ -209,6 +216,17 @@ export class ParticleSubEmitterSpawnState {
     childrenPerParent: number,
     parentCount: number
   ): void {
+    if (this._compute) {
+      this._compute.gather(
+        parentTrajectoryBinding,
+        this._simulationBinding,
+        parentStart,
+        childStart,
+        childrenPerParent,
+        parentCount
+      );
+      return;
+    }
     const activeGatherProgram = this._activeGatherProgram;
     const program = activeGatherProgram ?? this._beginGatherScope();
     if (!program) {
@@ -226,7 +244,7 @@ export class ParticleSubEmitterSpawnState {
     boundElements[1].offset = parentByteOffset + inputLayout[1].offset;
     primitive.instanceCount = parentCount;
 
-    const transformFeedback = this._transformFeedback;
+    const transformFeedback = this._transformFeedback!;
     // Target slots are enqueued in ring order, so only index 0 starts a new output range
     if (!activeGatherProgram || childStart === 0) {
       if (activeGatherProgram) {
@@ -245,7 +263,7 @@ export class ParticleSubEmitterSpawnState {
     }
     const subPrimitive = this._subPrimitive;
     subPrimitive.count = childrenPerParent;
-    primitive.draw(program, subPrimitive);
+    primitive.draw(program._platformProgram, subPrimitive);
   }
 
   private _beginGatherScope(): ShaderProgram | null {
@@ -261,7 +279,7 @@ export class ParticleSubEmitterSpawnState {
 
     program.bind();
     engine._hardwareRenderer.enableRasterizerDiscard();
-    this._transformFeedback.bind();
+    this._transformFeedback!.bind();
     this._activeGatherProgram = program;
     return program;
   }

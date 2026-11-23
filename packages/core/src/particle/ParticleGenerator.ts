@@ -1,5 +1,4 @@
 import { DataObject } from "../base/DataObject";
-import { Engine } from "../Engine";
 import { Color, MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
@@ -39,6 +38,7 @@ import { MainModule } from "./modules/MainModule";
 import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
+import { MeshShape } from "./modules/shape/MeshShape";
 import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 import { SubEmittersModule, type ParticleSubEmitterCommand } from "./modules/SubEmittersModule";
@@ -157,6 +157,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private _instanceVertexBufferBinding: VertexBufferBinding;
   @ignoreClone
   private _instanceVertices: Float32Array;
+  @ignoreClone
+  private _pendingEmissionCount = 0;
   private _randomSeed = 0;
   @ignoreClone
   private _playStartDelay = 0;
@@ -165,7 +167,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    * Whether the particle generator is contain alive or is still creating particles.
    */
   get isAlive(): boolean {
-    if (this._isPlaying) {
+    if (this._isPlaying || this._pendingEmissionCount > 0) {
       return true;
     }
 
@@ -256,6 +258,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     } else {
       this._isPlaying = false;
       if (stopMode === ParticleStopMode.StopEmittingAndClear) {
+        this._pendingEmissionCount = 0;
         this._clearActiveParticles();
         this._releaseSubEmitterSpawnStateIfUnused();
         this._playTime = 0;
@@ -269,6 +272,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    */
   emit(count: number): void {
     this._discardLostGPUParticleState();
+    const shape = this.emission.shape;
+    if (shape instanceof MeshShape && shape.enabled && !shape._ready) {
+      this._pendingEmissionCount += count;
+      return;
+    }
     this._emit(this._playTime, count);
   }
 
@@ -293,6 +301,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    */
   _update(elapsedTime: number): void {
     this._discardLostGPUParticleState();
+    const shape = this.emission.shape;
+    if (shape instanceof MeshShape && shape.enabled && !shape._ready) return;
+    if (this._pendingEmissionCount) {
+      this._emit(this._playTime, this._pendingEmissionCount);
+      this._pendingEmissionCount = 0;
+    }
     const shaderData = this._renderer.shaderData;
     const instanceBufferContentLost = this._instanceVertexBufferBinding.buffer.isContentLost;
 
@@ -641,13 +655,14 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    */
   _setTransformFeedback(): void {
     const { engine } = this._renderer;
-    const supportsRendering = engine._hardwareRenderer.supportsRendering;
+    const supportsFeedback =
+      engine._hardwareRenderer.supportsTransformFeedback || engine._hardwareRenderer.supportsCompute;
     const useTrajectory =
-      supportsRendering &&
+      supportsFeedback &&
       (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death, false) ||
         this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth, false));
     const useFeedback =
-      supportsRendering &&
+      supportsFeedback &&
       (useTrajectory ||
         this.limitVelocityOverLifetime.enabled ||
         this.noise.enabled ||
@@ -664,7 +679,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._feedbackSimulator = useFeedback
       ? new ParticleTransformFeedbackSimulator(
           engine,
-          Engine._builtinShaders.particleFeedback,
+          engine._builtinShaders.particleFeedback,
           useTrajectory,
           this._currentParticleCount
         )
@@ -1478,7 +1493,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const { engine } = this._renderer;
     this._subEmitterSpawnState = new ParticleSubEmitterSpawnState(
       engine,
-      Engine._builtinShaders.particleFeedback,
+      engine._builtinShaders.particleFeedback,
       this._currentParticleCount,
       !this._feedbackSimulator
     );

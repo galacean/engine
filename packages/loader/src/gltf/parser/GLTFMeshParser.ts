@@ -99,6 +99,10 @@ export class GLTFMeshParser extends GLTFParser {
         }
         vertexElements.push(vertexElement);
 
+        if (attribute === "POSITION" || attribute === "NORMAL") {
+          mesh.vertexBufferBindings[vertexElement.bindingIndex]!.buffer._rememberVertexSource(vertices);
+        }
+
         if (attribute === "POSITION") {
           vertexCount = accessorCount;
 

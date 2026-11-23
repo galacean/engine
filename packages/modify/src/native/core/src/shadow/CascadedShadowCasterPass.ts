@@ -8,7 +8,9 @@ import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DirectLight } from "../lighting";
+import { RenderBufferLoadAction } from "../renderingHardwareInterface";
 import { ShaderProperty } from "../shader";
+import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { Texture2D } from "../texture/Texture2D";
@@ -23,8 +25,11 @@ import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
  * Cascade shadow caster pass.
  */
 export class CascadedShadowCasterPass extends PipelinePass {
-  private static _lightShadowBiasProperty = ShaderProperty.getByName("scene_ShadowBias");
-  private static _lightDirectionProperty = ShaderProperty.getByName("scene_LightDirection");
+  private static _lightShadowBiasProperty = ShaderProperty._getBuiltinGlobal("scene_ShadowBias", ShaderDataGroup.Scene);
+  private static _lightDirectionProperty = ShaderProperty._getBuiltinGlobal(
+    "scene_LightDirection",
+    ShaderDataGroup.Scene
+  );
 
   private static _shadowMatricesProperty = ShaderProperty.getByName("scene_ShadowMatrices");
   private static _shadowMapSize = ShaderProperty.getByName("scene_ShadowMapSize");
@@ -134,7 +139,17 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._depthTexture = shadowTexture;
 
     // @todo: shouldn't set viewport and scissor in activeRenderTarget
-    context.setRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
+    context.setRenderTarget(
+      renderTarget,
+      CascadedShadowCasterPass._viewport,
+      0,
+      undefined,
+      undefined,
+      undefined,
+      RenderBufferLoadAction.DontCare,
+      undefined,
+      "Directional Shadows"
+    );
     rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
 
     // prepare light and camera direction
@@ -348,15 +363,18 @@ export class CascadedShadowCasterPass extends PipelinePass {
 
         const { x, y } = viewports[j];
 
-        rhi.setGlobalDepthBias(1.0, 1.0);
-
         rhi.viewport(x, y, shadowTileResolution, shadowTileResolution);
         // for no cascade is for the edge,for cascade is for the beyond maxCascade pixel can use (0,0,0) trick sample the shadowMap
         rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
 
-        opaqueQueue.render(context, PipelineStage.ShadowCaster);
-        alphaTestQueue.render(context, PipelineStage.ShadowCaster);
-        rhi.setGlobalDepthBias(0, 0);
+        const previousBias = context.shadowDepthBias;
+        context.shadowDepthBias = true;
+        try {
+          opaqueQueue.render(context, PipelineStage.ShadowCaster);
+          alphaTestQueue.render(context, PipelineStage.ShadowCaster);
+        } finally {
+          context.shadowDepthBias = previousBias;
+        }
       }
     }
   }
@@ -499,6 +517,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     opaqueQueue.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
     alphaTestQueue.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
 
-    context.applyVirtualCamera(virtualCamera, true);
+    context.applyVirtualCamera(virtualCamera, this.engine._hardwareRenderer.backend === "webgl2");
   }
 }

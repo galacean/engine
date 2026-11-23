@@ -711,6 +711,9 @@ button.primary {
   left: 18px;
   width: min(304px, calc(100vw - 36px));
 }
+body[data-page-mode="debug"] .world-sidebar {
+  top: max(calc(var(--seed-world-safe-area-top) + 48px), calc(18px + var(--seed-world-landscape-host-actions-clearance)));
+}
 .world-sidebar-toggle {
   display: flex;
   align-items: center;
@@ -1173,11 +1176,29 @@ body[data-world-input-ready="false"] .debug-inspector {
   background: #a5a89c;
 }
 @media (max-width: 760px) {
-  /* Keep the inspector launcher below World Controls and Agent Trace on narrow debug views. */
+  /* The RHI/FPS row and the two narrow-screen debug launchers each need their own hit targets. */
+  body[data-page-mode="debug"] .world-sidebar {
+    left: calc(10px + var(--seed-world-safe-area-left));
+    right: auto;
+  }
+  body[data-page-mode="debug"] .world-sidebar-toggle {
+    width: min(42vw, 160px);
+  }
+  body[data-page-mode="debug"] #native-water-editor {
+    margin-top: calc(var(--seed-world-safe-area-top) + 24px);
+  }
+  body[data-page-mode="debug"] #native-water-editor:not([open]) {
+    max-width: min(42vw, 150px);
+  }
   body[data-page-mode="debug"] .debug-inspector.dg.main {
-    top: calc(56px + var(--seed-world-safe-area-top));
+    top: calc(96px + var(--seed-world-safe-area-top));
     width: min(352px, calc(100vw - 20px)) !important;
-    max-height: calc(100dvh - 56px - var(--seed-world-safe-area-top));
+    max-height: calc(100dvh - 96px - var(--seed-world-safe-area-top));
+  }
+  body[data-page-mode="debug"] .lod-debug-panel {
+    top: calc(126px + var(--seed-world-safe-area-top));
+    max-height: calc(100dvh - 140px - var(--seed-world-safe-area-top));
+    overflow-y: auto;
   }
   .control-bar {
     flex-wrap: wrap;

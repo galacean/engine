@@ -35,10 +35,11 @@ export interface IPlatformTexture {
    */
   destroy(): void;
 
+  /** Keep a CPU-readable snapshot when this device requires asynchronous readback. */
+  makePixelBufferReadable?(mipLevel: number, layer: number): Promise<void>;
+
   /**
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void;
-
-  setUseDepthCompareMode(value: boolean);
 }

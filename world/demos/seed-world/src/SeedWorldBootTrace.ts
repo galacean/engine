@@ -65,6 +65,7 @@ export interface BootTraceDeviceInfo {
   readonly hardwareConcurrency?: number;
   readonly deviceMemory?: number;
   readonly viewport?: readonly [number, number];
+  readonly backend?: string;
   readonly webglVersion?: string;
   readonly gpuVendor?: string;
   readonly gpuRenderer?: string;

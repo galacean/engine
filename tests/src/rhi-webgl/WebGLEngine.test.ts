@@ -1,4 +1,4 @@
-import { Camera, Entity, Script } from "@galacean/engine-core";
+import { Camera, Entity, Logger, Script } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, expect, it } from "vitest";
@@ -8,6 +8,23 @@ describe("webgl engine test", () => {
     const canvas = document.createElement("canvas");
     const engine = await WebGLEngine.create({ canvas });
     expect(engine).not.be.null;
+  });
+
+  it("rejects a failed shader link while logging is disabled", async () => {
+    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const enabled = Logger.isEnabled;
+    Logger.disable();
+    try {
+      const program = engine._hardwareRenderer.createPlatformShaderProgram(engine, {
+        vertexSource: "#version 300 es\nvoid main(){gl_Position=vec4(0.0);}",
+        fragmentSource: "#version 300 es\nthis is invalid GLSL"
+      });
+      expect(program.isValid).toBe(false);
+      program.destroy();
+    } finally {
+      if (enabled) Logger.enable();
+      engine.destroy();
+    }
   });
 
   it("fails without a WebGL2 context and requests no other context version", async () => {

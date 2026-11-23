@@ -5,6 +5,7 @@ import BlinnPhong_ForwardPassBlinnPhong from "./BlinnPhong/ForwardPassBlinnPhong
 import BlinnPhong_MobileBlinnPhong from "./BlinnPhong/MobileBlinnPhong.glsl";
 import Blit_BlitVertex from "./Blit/BlitVertex.glsl";
 import Common_Attributes from "./Common/Attributes.glsl";
+import Common_Camera from "./Common/Camera.glsl";
 import Common_Common from "./Common/Common.glsl";
 import Common_Fog from "./Common/Fog.glsl";
 import Common_Normal from "./Common/Normal.glsl";
@@ -66,6 +67,7 @@ export const shaderLibrary: IShaderSource[] = [
   { source: BlinnPhong_MobileBlinnPhong, path: "ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl" },
   { source: Blit_BlitVertex, path: "ShaderLibrary/Blit/BlitVertex.glsl" },
   { source: Common_Attributes, path: "ShaderLibrary/Common/Attributes.glsl" },
+  { source: Common_Camera, path: "ShaderLibrary/Common/Camera.glsl" },
   { source: Common_Common, path: "ShaderLibrary/Common/Common.glsl" },
   { source: Common_Fog, path: "ShaderLibrary/Common/Fog.glsl" },
   { source: Common_Normal, path: "ShaderLibrary/Common/Normal.glsl" },

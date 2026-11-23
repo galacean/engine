@@ -3,7 +3,11 @@ import type { PlanningWorldHandoff } from "./src/planning/spatial/runtime/Planni
 import { planningStartupSeed, selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupSeed.ts";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { planningPageUrl } from "./src/planning/spatial/PlanningPageUrl.ts";
+import { mountSeedRenderHud } from "./src/SeedWorldRenderHud.ts";
+import { replaceSeedWorldDocumentUrl } from "./src/SeedWorldDocumentUrl.ts";
 import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
+
+const renderHud = mountSeedRenderHud(planningPageUrl().url);
 
 /** The planning preview and native Seed page have independent renderer lifetimes. */
 async function enterSeedWorld(handoff?: PlanningWorldHandoff): Promise<void> {
@@ -47,11 +51,11 @@ async function enterSeedWorld(handoff?: PlanningWorldHandoff): Promise<void> {
   entryTiming.stylesReadyMs = performance.now();
   entryTiming.mountStartMs = performance.now();
   reportEntry();
-  await mountSeedWorldDemo(handoff);
+  await mountSeedWorldDemo(handoff, { renderHud });
 }
 
 async function start(): Promise<void> {
-  const page = planningPageUrl();
+  let page = planningPageUrl();
   const template = page.url.searchParams.get("template");
   const seed = planningStartupSeed(page.url.searchParams);
   let entrySeed = seed;
@@ -68,7 +72,10 @@ async function start(): Promise<void> {
       }, undefined, true);
       picker.update(undefined, seed, false);
       picker.open();
+      if (renderHud) picker.dialog.append(renderHud.element);
     });
+    if (renderHud) document.body.append(renderHud.element);
+    page = planningPageUrl();
     selectPlanningStartupTemplate(choice.id, choice.seed);
     entrySeed = choice.seed;
     page.url.searchParams.set("template", choice.id || "original");
@@ -76,11 +83,7 @@ async function start(): Promise<void> {
   }
   if (updateUrl) {
     page.url.searchParams.set("seed", String(entrySeed));
-    if (page.canReplaceHistory) history.replaceState(null, "", page.url);
-    else {
-      const source = document.querySelector<HTMLMetaElement>('meta[name="flash-app-html-url"]');
-      if (source) source.content = page.url.href;
-    }
+    replaceSeedWorldDocumentUrl(page);
   }
   if (planningPageUrl().url.searchParams.get("debug") !== "1" || planningPageUrl().url.searchParams.get("view") === "3d") {
     await enterSeedWorld();
@@ -97,6 +100,7 @@ async function start(): Promise<void> {
   document.body.append(host);
   const { mountWorldLayout } = await import("./src/planning/semantic-study/WorldLayoutEditor.ts");
   const editor = await mountWorldLayout(host, {
+    onEngineReady: renderHud?.track,
     onGenerate3D: async (plan, session, waterResetRequest) => {
       if (!session.result || session.pending) throw new Error("规划快照尚未就绪");
       const handoff = { document: session.export(), result: session.result, waterResetRequest };
@@ -105,18 +109,13 @@ async function start(): Promise<void> {
         styles.remove();
         const page = planningPageUrl();
         const url = page.url;
-        const panel = url.searchParams.get("panel") === "1";
-        url.search = "";
+        url.searchParams.delete("document");
+        url.searchParams.delete("version");
         url.searchParams.set("seed", String(plan.parameters.seed));
         url.searchParams.set("debug", "1");
         url.searchParams.set("view", "3d");
-        if (panel) url.searchParams.set("panel", "1");
-        url.searchParams.set("template", plan.parameters.worldTemplate?.id ?? "original");
-        if (page.canReplaceHistory) history.replaceState(null, "", url);
-        else {
-          const source = document.querySelector<HTMLMetaElement>('meta[name="flash-app-html-url"]');
-          if (source) source.content = url.href;
-        }
+        url.searchParams.set("template", plan.parameters.worldTemplate?.id || "original");
+        replaceSeedWorldDocumentUrl(page);
         await enterSeedWorld(handoff);
       } catch (error) { showStartupError(error); }
     }

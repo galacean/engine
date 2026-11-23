@@ -1,3 +1,4 @@
+import { RHIMode, type Engine } from "@galacean/engine-core";
 import { onlyLandscapeDrawingChanged } from "./PlanningDerivedPatch";
 import { poiMemberIds } from "./PoiContents";
 import { planningFocusBox } from "./PlanningFocus";
@@ -117,7 +118,9 @@ export class IslandPlanView {
   constructor(
     private readonly host: HTMLElement,
     private readonly onSelect: (id: string | null) => void,
-    private readonly selectable = true
+    private readonly selectable = true,
+    private readonly rhi: RHIMode = RHIMode.Auto,
+    private readonly onEngineReady?: (engine: Engine) => void
   ) {
     this.svg.classList.add("ip-svg");
     this.svg.setAttribute("role", "graphics-document");
@@ -304,7 +307,7 @@ export class IslandPlanView {
     }
     if (!this.loadingWorld)
       this.loadingWorld = import("./WorldPlanning3DView").then((m) =>
-        m.WorldPlanning3DView.create(this.host, this.onSelect)
+        m.WorldPlanning3DView.create(this.host, this.onSelect, this.rhi, this.onEngineReady)
       );
     try {
       const view = await this.loadingWorld;

@@ -18,6 +18,7 @@ import { Material } from "../material";
 import type { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
+import { RenderBufferLoadAction } from "../renderingHardwareInterface";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -98,11 +99,11 @@ export class PostProcessUberPass extends PostProcessPass {
     this.event = PostProcessPassEvent.AfterUber - 1;
 
     // Uber Material
-    const uberMaterial = new Material(engine, Engine._builtinShaders.uber);
+    const uberMaterial = new Material(engine, engine._builtinShaders.uber);
     this._uberMaterial = uberMaterial;
 
     // Bloom Material
-    const bloomMaterial = new Material(engine, Engine._builtinShaders.bloom);
+    const bloomMaterial = new Material(engine, engine._builtinShaders.bloom);
     this._bloomMaterial = bloomMaterial;
 
     // Sun Lens Flare Material (optional builtin shader registered by World ShaderPool)
@@ -220,7 +221,17 @@ export class PostProcessUberPass extends PostProcessPass {
       uberShaderData.disableMacro(TonemappingEffect._enableMacro);
     }
     const viewport = destTarget === camera.renderTarget ? camera.viewport : undefined;
-    Blitter.blitTexture(camera.engine, srcTexture, destTarget, 0, viewport, this._uberMaterial, undefined);
+    Blitter._blitTexture(
+      camera.engine,
+      srcTexture,
+      destTarget,
+      0,
+      viewport,
+      this._uberMaterial,
+      undefined,
+      undefined,
+      RenderBufferLoadAction.DontCare
+    );
   }
 
   /**
@@ -439,7 +450,7 @@ export class PostProcessUberPass extends PostProcessPass {
     ShaderMacroCollection.unionCollection(camera._globalShaderMacro, flareShaderData._macroCollection, compileMacros);
     ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
 
-    const program = pass._getShaderProgram(engine, compileMacros);
+    const program = pass._getShaderProgram(engine, compileMacros, undefined, primitive, undefined, flareShaderData);
     if (!program.isValid) {
       return;
     }
@@ -448,19 +459,13 @@ export class PostProcessUberPass extends PostProcessPass {
     program.uploadAll(program.sceneUniformBlock, camera.scene!.shaderData);
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadAll(program.materialUniformBlock, flareShaderData);
-    program.uploadMultiGroupUniforms(
-      camera.scene!.shaderData,
-      camera.shaderData,
-      undefined,
-      flareShaderData,
-      undefined
-    );
+    program.uploadSharedUniforms(camera.scene!.shaderData, camera.shaderData, undefined, flareShaderData, undefined);
     program.uploadUnGroupTextures();
 
     const renderState = pass._renderState;
     renderState._applyStates(engine, false, pass._renderStateDataMap, flareShaderData);
 
-    rhi.drawPrimitive(primitive, this._sunLensFlareSubPrimitive!, program);
+    rhi.drawPrimitive(primitive, this._sunLensFlareSubPrimitive!, program._platformProgram);
   }
 
   private _ensureSunLensFlareGeometry(engine: Engine): void {
@@ -674,24 +679,36 @@ export class PostProcessUberPass extends PostProcessPass {
     }
 
     // Prefilter
-    Blitter.blitTexture(engine, srcTexture, mipRT[0], undefined, undefined, bloomMaterial, 0);
+    Blitter._blitTexture(
+      engine,
+      srcTexture,
+      mipRT[0],
+      undefined,
+      undefined,
+      bloomMaterial,
+      0,
+      undefined,
+      RenderBufferLoadAction.DontCare
+    );
 
     // Progressive single-pass 5x5 9-tap downsample pyramid (Castaño 2013)
     for (let i = 1; i < mipCount; i++) {
-      Blitter.blitTexture(
+      Blitter._blitTexture(
         engine,
         <Texture2D>mipRT[i - 1].getColorTexture(0),
         mipRT[i],
         undefined,
         undefined,
         bloomMaterial,
-        1
+        1,
+        undefined,
+        RenderBufferLoadAction.DontCare
       );
     }
 
     // Progressive in-place upsample (4-tap 3x3 tent by default, bicubic with HQ filtering)
     for (let i = mipCount - 2; i >= 0; i--) {
-      Blitter.blitTexture(
+      Blitter._blitTexture(
         engine,
         <Texture2D>mipRT[i + 1].getColorTexture(0),
         mipRT[i],

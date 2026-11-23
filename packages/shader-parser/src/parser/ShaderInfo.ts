@@ -45,6 +45,7 @@ export class ShaderData {
   declarationOwnership: ShaderDeclarationOwnershipInfo;
 
   globalPrecisions: ASTNode.PrecisionSpecifier[] = [];
+  uniformBlocks?: ASTNode.UniformBlock[];
 
   globalMacroDeclarations: ASTNode.GlobalDeclaration[] = [];
 

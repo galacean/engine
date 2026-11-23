@@ -1,4 +1,4 @@
-import { Color } from "@galacean/engine";
+import { Color } from "@galacean/engine-math";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveState } from "../UIInteractive";
 import { Transition } from "./Transition";

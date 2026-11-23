@@ -1,4 +1,4 @@
-import { Engine, Texture2D } from "@galacean/engine";
+import { Engine, Texture2D } from "@galacean/engine-core";
 
 export abstract class Texture {
   protected _texture: Texture2D;

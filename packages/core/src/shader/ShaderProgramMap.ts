@@ -17,12 +17,28 @@ export class ShaderProgramMap {
   private _cacheMap: Tree = Object.create(null);
   private _lastQueryMap: Record<number, ShaderProgram>;
   private _lastQueryKey: number;
+  private _specializations?: Map<string | number, ShaderProgramMap>;
+  private _lastSpecializationKey?: string | number;
+  private _lastSpecialization?: ShaderProgramMap;
+  private _lastHit?: { macros: ShaderMacroCollection; program: ShaderProgram };
 
   constructor(engine: Engine) {
     this.engine = engine;
   }
 
+  /** Distinguish native feedback outputs and integer vertex inputs sharing the same macro mask. */
+  specialize(key: string | number): ShaderProgramMap {
+    if (this._lastSpecializationKey === key) return this._lastSpecialization!;
+    const maps = (this._specializations ??= new Map());
+    let map = maps.get(key);
+    if (!map) maps.set(key, (map = new ShaderProgramMap(this.engine)));
+    this._lastSpecializationKey = key;
+    return (this._lastSpecialization = map);
+  }
+
   get(macros: ShaderMacroCollection): ShaderProgram | null {
+    const hit = this._lastHit;
+    if (hit?.macros.isEqual(macros)) return hit.program;
     let cacheMap = this._cacheMap;
     const maskLength = macros._length;
     const cacheHierarchyDepth = this._cacheHierarchyDepth;
@@ -43,7 +59,11 @@ export class ShaderProgramMap {
 
     const cacheKey = endIndex < maxEndIndex ? 0 : mask[maxEndIndex];
     const value = (<Record<number, ShaderProgram>>cacheMap)[cacheKey];
-    if (!value) {
+    if (value) {
+      const recent = hit ?? (this._lastHit = { macros: new ShaderMacroCollection(), program: value });
+      recent.program = value;
+      ShaderMacroCollection.unionCollection(macros, macros, recent.macros);
+    } else {
       this._lastQueryKey = cacheKey;
       this._lastQueryMap = <Record<number, ShaderProgram>>cacheMap;
     }
@@ -52,9 +72,15 @@ export class ShaderProgramMap {
 
   cache(value: ShaderProgram): void {
     this._lastQueryMap[this._lastQueryKey] = value;
+    this._lastHit = undefined;
   }
 
   destroy(): void {
+    this._lastSpecializationKey = undefined;
+    this._lastSpecialization = undefined;
+    this._lastHit = undefined;
+    this._specializations?.forEach((map) => map.destroy());
+    this._specializations = undefined;
     this._recursiveForEach(0, this._cacheMap);
     this._cacheMap = Object.create(null);
     this._cacheHierarchyDepth = 1;

@@ -137,31 +137,14 @@ function packKernelPass(): ShaderPass {
   return shader.subShaders[0].passes[0];
 }
 
-function uploadGlBufferToTexture(engine: Engine, glBuffer: WebGLBuffer, texture: Texture2D, count: number): void {
-  const gl = (engine as unknown as { _hardwareRenderer: { gl: WebGL2RenderingContext } })._hardwareRenderer.gl;
-  const glTexture = (texture as unknown as { _platformTexture: { _glTexture: WebGLTexture } })._platformTexture
-    ._glTexture;
-  const texels = Math.max(1, count * 4);
-  const rows = Math.floor(texels / texture.width);
-  const rest = texels % texture.width;
-  const prevPbo = gl.getParameter(gl.PIXEL_UNPACK_BUFFER_BINDING);
-  const prevTex = gl.getParameter(gl.TEXTURE_BINDING_2D);
-  gl.bindTexture(gl.TEXTURE_2D, glTexture);
-  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, glBuffer);
-  if (rows > 0) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, texture.width, rows, gl.RGBA_INTEGER, gl.UNSIGNED_INT, 0);
-  if (rest > 0) {
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, rows, rest, 1, gl.RGBA_INTEGER, gl.UNSIGNED_INT, rows * texture.width * 16);
-  }
-  gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, prevPbo);
-  gl.bindTexture(gl.TEXTURE_2D, prevTex);
-}
-
-/** Generate `storage_0_1` brick Texture2D via GPU TransformFeedback + PBO upload (zero CPU 64B copy, zero readback). */
+/** Generate `storage_0_1` brick Texture2D from the feedback compute buffer (zero CPU 64B copy, zero readback). */
 export function buildBrickStorageFromFeedback(
   engine: Engine,
   source: BrickFeedbackSource,
   terrainGrid?: ConstructionTerrainGrid
 ): Texture2D {
+  const device = engine._hardwareRenderer;
+  if (!device.copyBufferToTexture) throw new Error("Brick storage requires buffer-to-texture copies");
   const count = Math.max(1, source.count);
   const texels = count * 4;
   const width = Math.min(1024, texels);
@@ -177,9 +160,7 @@ export function buildBrickStorageFromFeedback(
     const kernel = new GridUnitKernel(engine, source.grid, heightMap);
     try {
       const binding = kernel.run();
-      const glBuffer = (binding.buffer as unknown as { _platformBuffer: { _glBuffer: WebGLBuffer } })._platformBuffer
-        ._glBuffer;
-      uploadGlBufferToTexture(engine, glBuffer, texture, source.count);
+      device.copyBufferToTexture(binding.buffer, texture, texels);
     } finally {
       kernel.destroy();
     }
@@ -206,9 +187,7 @@ export function buildBrickStorageFromFeedback(
     } finally {
       simulator.endUpdate();
     }
-    const glBuffer = (simulator.readBinding.buffer as unknown as { _platformBuffer: { _glBuffer: WebGLBuffer } })
-      ._platformBuffer._glBuffer;
-    uploadGlBufferToTexture(engine, glBuffer, texture, source.count);
+    device.copyBufferToTexture(simulator.readBinding.buffer, texture, texels);
   } finally {
     simulator.destroy();
     inputBuf.destroy(true);

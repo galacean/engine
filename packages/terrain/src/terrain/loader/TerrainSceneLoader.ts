@@ -1,4 +1,4 @@
-import { AssetType, Engine, JSONAsset, Scene, Shader, WebGLEngine } from "@galacean/engine";
+import { AssetType, Engine, JSONAsset, Scene, Shader } from "@galacean/engine";
 import type { TerrainProjectFile } from "../project/TerrainProjectContract";
 
 /** Progress emitted while a Terrain project manifest or Scene is loading. */
@@ -80,7 +80,7 @@ export async function preloadTerrainProjectShaders(
  * @returns The selected Scene after all Scene-owned startup parsing has completed.
  * @throws If the manifest is malformed or the selected Scene is not declared.
  */
-export async function loadTerrainScene(engine: WebGLEngine, options: TerrainSceneLoadOptions): Promise<Scene> {
+export async function loadTerrainScene(engine: Engine, options: TerrainSceneLoadOptions): Promise<Scene> {
   const projectUrl = resolveProjectUrl(options.projectUrl);
   const projectAsset = engine.resourceManager.load<JSONAsset>({
     type: AssetType.JSON,

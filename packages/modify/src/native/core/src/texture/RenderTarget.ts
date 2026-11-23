@@ -166,6 +166,14 @@ export class RenderTarget extends GraphicsResource {
     depth: Texture | null | TextureFormat | RenderBufferDepthFormat = TextureFormat.Depth,
     antiAliasing: number = 1
   ) {
+    const colorTextures = Array.isArray(renderTexture) ? renderTexture.slice() : renderTexture ? [renderTexture] : [];
+    if (colorTextures.some((texture) => texture._isDepthTexture)) {
+      throw new Error("Render texture can't use depth format.");
+    }
+    if (depth instanceof Texture && !depth._isDepthTexture) {
+      throw new Error("Depth texture must use depth format.");
+    }
+
     super(engine);
 
     this._width = width;
@@ -175,27 +183,15 @@ export class RenderTarget extends GraphicsResource {
     this._antiAliasing = antiAliasing;
 
     let memorySize = 0;
-    if (renderTexture) {
-      const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
-      for (let i = 0, n = colorTextures.length; i < n; i++) {
-        const colorTexture = colorTextures[i];
-        if (colorTexture._isDepthTexture) {
-          throw "Render texture can't use depth format.";
-        }
-        colorTexture._addReferCount(1);
-        if (antiAliasing > 1) {
-          memorySize += TextureUtils.getMipLevelByteCount(colorTexture.format, width, height);
-        }
+    this._colorTextures = colorTextures;
+    for (const colorTexture of colorTextures) {
+      colorTexture._addReferCount(1);
+      if (antiAliasing > 1) {
+        memorySize += TextureUtils.getMipLevelByteCount(colorTexture.format, width, height);
       }
-      this._colorTextures = colorTextures;
-    } else {
-      this._colorTextures = [];
     }
 
     if (depth instanceof Texture) {
-      if (!depth._isDepthTexture) {
-        throw "Depth texture must use depth format.";
-      }
       this._depthTexture = depth;
       this._depthTexture._addReferCount(1);
       this._depthFormat = depth.format;
@@ -213,6 +209,12 @@ export class RenderTarget extends GraphicsResource {
       memorySize *= antiAliasing;
     }
 
+    try {
+      this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
+    } catch (error) {
+      this.destroy();
+      throw error;
+    }
     this._memorySize = memorySize;
     try {
       this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);

@@ -134,12 +134,12 @@ class MaterialLoader extends Loader<Material> {
         material.screenSpaceReflectionIntensity = materialSchema.screenSpaceReflectionIntensity;
       } else if (shaderData["material_ScreenSpaceReflectionIntensity"] !== undefined) {
         material.screenSpaceReflectionIntensity = Number(shaderData["material_ScreenSpaceReflectionIntensity"].value);
-      } else if (shader === Engine._builtinShaders.pbr) {
+      } else if (shader === engine._builtinShaders.pbr) {
         material.screenSpaceReflectionIntensity = 1.0;
       }
       // Sync default DepthOnly render queue for legacy built-in PBR/Unlit/BlinnPhong .mat assets
       // that declare a Forward render queue (e.g. Transparent glass) without an explicit material_DepthOnlyRenderQueue.
-      const builtinShaders = Engine._builtinShaders;
+      const builtinShaders = engine._builtinShaders;
       if (shader === builtinShaders.pbr || shader === builtinShaders.unlit || shader === builtinShaders.blinnPhong) {
         BaseMaterial._syncDefaultDepthOnlyRenderQueue(materialShaderData);
       }

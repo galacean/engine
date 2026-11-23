@@ -11,9 +11,10 @@ export interface FrozenViewIdentityRange {
   keys?: (string | undefined)[];
 }
 
-/** One immutable identity/depth RGBA8 texture, frozen camera and compact draw table. */
+/** Packed identity/depth pixels, frozen camera and compact draw table for one captured frame. */
 export class FrozenViewIdentityTexture implements ViewIdentityBuffer {
   readonly byteLength: number;
+  private pixels?: Uint8Array;
   private disposed = false;
   private lost = false;
   private readonly onLost = () => {
@@ -30,6 +31,12 @@ export class FrozenViewIdentityTexture implements ViewIdentityBuffer {
     texture.isGCIgnored = true;
     texture.engine.on(EngineEventType.DeviceLost, this.onLost);
   }
+  async prepareReadback(signal?: AbortSignal): Promise<void> {
+    const pixels = new Uint8Array(this.byteLength);
+    await this.texture.getPixelBufferAsync(pixels, signal);
+    this.pixels = pixels;
+    this.texture.destroy(true);
+  }
   get identityBits(): number {
     return this.projection.identityBits;
   }
@@ -37,13 +44,21 @@ export class FrozenViewIdentityTexture implements ViewIdentityBuffer {
     return snapshotEstimatedPosition(pixels, offset, x, y, this.texture.width, this.texture.height, this.projection);
   }
   read(x: number, y: number, width: number, height: number): Uint8Array {
-    if (this.disposed || this.lost || this.texture.destroyed)
+    if (this.disposed || this.lost || (!this.pixels && this.texture.destroyed))
       throw snapshotError(
         "SNAPSHOT_EXPIRED",
         "SNAPSHOT_EXPIRED: Frozen GPU contents are unavailable; capture a new screenshot"
       );
     const pixels = new Uint8Array(width * height * 4);
-    this.texture.getPixelBuffer(x, y, width, height, 0, pixels);
+    if (!this.pixels) {
+      this.texture.getPixelBuffer(x, y, width, height, 0, pixels);
+      return pixels;
+    }
+    const rowBytes = width * 4;
+    for (let row = 0; row < height; row++) {
+      const offset = ((y + row) * this.texture.width + x) * 4;
+      pixels.set(this.pixels.subarray(offset, offset + rowBytes), row * rowBytes);
+    }
     return pixels;
   }
   resolve(id: number): ViewRef | undefined {
@@ -68,7 +83,8 @@ export class FrozenViewIdentityTexture implements ViewIdentityBuffer {
     if (this.disposed) return;
     this.disposed = true;
     this.texture.engine.off(EngineEventType.DeviceLost, this.onLost);
-    this.texture.destroy(true);
+    if (!this.texture.destroyed) this.texture.destroy(true);
+    this.pixels = undefined;
     this.ranges.length = 0;
   }
 }

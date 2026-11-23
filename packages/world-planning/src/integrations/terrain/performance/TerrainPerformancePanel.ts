@@ -5,6 +5,10 @@ import {
   type TerrainRenderSubmissionSnapshot
 } from "@galacean/engine-terrain/terrain/performance/TerrainRenderSubmissionMonitor";
 
+import { WebGPURenderSubmissionMonitor } from "@galacean/engine-terrain/terrain/performance/WebGPUDrawCounters";
+
+type SubmissionSnapshot = TerrainRenderSubmissionSnapshot | ReturnType<WebGPURenderSubmissionMonitor["takeSnapshot"]>;
+
 const PANEL_ID = "terrain-performance-panel";
 const STYLE_ID = "terrain-performance-panel-style";
 const BYTES_PER_MEGABYTE = 1024 * 1024;
@@ -91,7 +95,7 @@ const METRICS: readonly MetricDefinition[] = [
     "当前水体可见性、运行时区块数，以及有限水体的整块与实际水面区域 Terrain Horizon 剔除。"
   ),
   ...FARM_METRICS,
-  metric("webgl", "WebGL / 图形接口", "当前 WebGL 上下文版本。")
+  metric("webgl", "RHI / 图形接口", "当前实际使用的图形接口。WebGPU 统计直接提交给 RHI 的图元。")
 ];
 
 export type TerrainFarmingPerformanceMetrics = ReturnType<FarmingWorldPresentation["getPerformanceDiagnostics"]>;
@@ -280,7 +284,7 @@ export interface TerrainPerformanceSamplingSnapshot {
   readonly frameSampleCount: number;
   readonly frameP95Milliseconds: number;
   readonly gpuMemoryBytes: number;
-  readonly submissions: TerrainRenderSubmissionSnapshot;
+  readonly submissions: SubmissionSnapshot;
 }
 
 function metric(key: string, label: string, title: string): MetricDefinition {
@@ -312,7 +316,7 @@ export class TerrainHorizonPublicationTracker {
 }
 
 /**
- * Displays engine, WebGL, clipmap, and surface statistics in a shared foldable
+ * Displays engine, graphics device, clipmap, and surface statistics in a shared foldable
  * overlay.
  */
 export class TerrainPerformancePanel {
@@ -320,16 +324,16 @@ export class TerrainPerformancePanel {
   onExpandedChanged?: (expanded: boolean) => void;
 
   private readonly _engine: Engine;
-  private readonly _gl: WebGLRenderingContext | WebGL2RenderingContext;
-  private readonly _submissionMonitor: TerrainRenderSubmissionMonitor;
+  private readonly _gl?: WebGLRenderingContext | WebGL2RenderingContext;
+  private readonly _submissionMonitor: TerrainRenderSubmissionMonitor | WebGPURenderSubmissionMonitor;
   private readonly _root: HTMLElement;
   private readonly _metrics: HTMLDListElement;
   private readonly _launcher: HTMLButtonElement;
   private readonly _toggle: HTMLButtonElement;
-  private readonly _webglVersion: string;
+  private readonly _apiName: string;
   private readonly _values = new Map<string, HTMLElement>();
   private readonly _frameTimes: number[] = [];
-  private _lastSubmissions = emptySubmissionSnapshot();
+  private _lastSubmissions: SubmissionSnapshot;
   private _sceneMetrics: TerrainPerformanceSceneMetricsProvider = () => null;
   private _animationFrame = 0;
   private _lastFrameTime = performance.now();
@@ -347,7 +351,7 @@ export class TerrainPerformancePanel {
   /**
    * Creates the panel and starts sampling.
    *
-   * @param engine Engine whose WebGL and graphics-memory statistics are observed.
+   * @param engine Engine whose draw and graphics-memory statistics are observed.
    */
   constructor(engine: Engine) {
     this._engine = engine;
@@ -363,11 +367,15 @@ export class TerrainPerformancePanel {
     this._root.querySelector<HTMLButtonElement>("[data-action='hide']")!.addEventListener("click", this._hide);
     this._launcher.addEventListener("click", this._show);
 
-    const gl = (engine as unknown as WebGLEngineInternals)._hardwareRenderer.gl;
-    this._gl = gl;
-    this._webglVersion =
-      typeof WebGL2RenderingContext !== "undefined" && gl instanceof WebGL2RenderingContext ? "2.0" : "1.0";
-    this._submissionMonitor = new TerrainRenderSubmissionMonitor(gl, SUBMISSION_SAMPLE_FRAME_COUNT);
+    if (engine.graphicsBackend === "webgpu") {
+      this._apiName = "WebGPU · direct RHI draws";
+      this._submissionMonitor = new WebGPURenderSubmissionMonitor(engine, SUBMISSION_SAMPLE_FRAME_COUNT);
+    } else {
+      this._gl = (engine as unknown as WebGLEngineInternals)._hardwareRenderer.gl;
+      this._apiName = "WebGL 2.0";
+      this._submissionMonitor = new TerrainRenderSubmissionMonitor(this._gl, SUBMISSION_SAMPLE_FRAME_COUNT);
+    }
+    this._lastSubmissions = this._submissionMonitor.takeSnapshot(0);
     this._setState("expanded");
     document.body.appendChild(this._root);
     this._animationFrame = requestAnimationFrame(this._update);
@@ -391,8 +399,8 @@ export class TerrainPerformancePanel {
     this._frameCount = 0;
     this._lastFrameTime = now;
     this._lastPanelUpdate = now;
-    this._lastSubmissions = emptySubmissionSnapshot();
     this._submissionMonitor.stop();
+    this._lastSubmissions = this._submissionMonitor.takeSnapshot(0);
     if (this._state !== "hidden") this._submissionMonitor.start();
   }
 
@@ -415,7 +423,7 @@ export class TerrainPerformancePanel {
   }
 
   /**
-   * Releases WebGL hooks and removes the overlay.
+   * Releases draw hooks and removes the overlay.
    */
   destroy = (): void => {
     if (!this._animationFrame) return;
@@ -448,7 +456,7 @@ export class TerrainPerformancePanel {
         this._setValue("jsMemory", memory ? `${Math.round(memory.usedJSHeapSize / BYTES_PER_MEGABYTE)} MB` : "—");
         this._setValue("gpuMemory", `${formatMegabytes(this._engine.renderingStatistics.totalMemory)} MB`);
         this._updateRenderTarget();
-        this._setValue("webgl", this._webglVersion);
+        this._setValue("webgl", this._apiName);
         const scene = this._sceneMetrics();
         if (scene) {
           this._updateSceneMetrics(scene);
@@ -590,36 +598,22 @@ export class TerrainPerformancePanel {
     this._setValue("farmScheduling", `${cpuMs === null ? "采样中" : `${cpuMs.toFixed(2)} ms/f`} · 待 ${crops.queued}`);
   }
 
-  private _updateSubmissionMetrics(
-    scene: TerrainPerformanceSceneMetrics,
-    submissions: TerrainRenderSubmissionSnapshot
-  ): void {
+  private _updateSubmissionMetrics(scene: TerrainPerformanceSceneMetrics, submissions: SubmissionSnapshot): void {
     this._setValue("drawCalls", submissions.drawCalls.toLocaleString("en-US"));
     this._setValue("instancedDrawCalls", submissions.instancedDrawCalls.toLocaleString("en-US"));
     this._setValue("submittedInstances", submissions.instances.toLocaleString("en-US"));
-    this._setValue("submittedTriangles", submissions.triangles.toLocaleString("en-US"));
+    const prefix = "trianglesLowerBound" in submissions && submissions.trianglesLowerBound ? "≥" : "";
+    this._setValue("submittedTriangles", prefix + submissions.triangles.toLocaleString("en-US"));
   }
 
   private _updateRenderTarget(): void {
     const nativeCanvas = (this._engine.canvas as unknown as WebCanvasInternals)._webCanvas;
     const cssWidth = nativeCanvas instanceof HTMLCanvasElement ? nativeCanvas.getBoundingClientRect().width : 0;
-    const renderWidth = this._gl.drawingBufferWidth;
-    const renderHeight = this._gl.drawingBufferHeight;
+    const renderWidth = this._gl?.drawingBufferWidth ?? nativeCanvas.width;
+    const renderHeight = this._gl?.drawingBufferHeight ?? nativeCanvas.height;
     const effectiveDpr = cssWidth > 0 ? renderWidth / cssWidth : 1;
     this._setValue("renderTarget", `${renderWidth}×${renderHeight} · DPR ${effectiveDpr.toFixed(2)}`);
   }
-}
-
-function emptySubmissionSnapshot(): TerrainRenderSubmissionSnapshot {
-  return Object.freeze({
-    sampledFrames: 0,
-    drawCalls: 0,
-    instancedDrawCalls: 0,
-    instances: 0,
-    triangles: 0,
-    shadowTileSize: 0,
-    shadowCascades: Object.freeze([])
-  });
 }
 
 function createPanelRoot(): HTMLElement {

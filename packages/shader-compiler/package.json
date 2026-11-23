@@ -16,6 +16,11 @@
   "debug": "src/index.ts",
   "types": "types/index.d.ts",
   "exports": {
+    "./webgpu": {
+      "types": "./types/webgpu.d.ts",
+      "import": "./dist/webgpu.module.js",
+      "require": "./dist/webgpu.main.js"
+    },
     ".": {
       "import": "./dist/module.js",
       "require": "./dist/main.js",
@@ -59,14 +64,18 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@rollup/pluginutils": "^5.0.0",
-    "@galacean/engine-math": "workspace:*",
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-design": "workspace:*",
-    "@galacean/engine-shader-parser": "workspace:*"
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-shader-parser": "workspace:*",
+    "@rollup/pluginutils": "^5.0.0",
+    "web-naga": "1.0.1"
   },
   "typesVersions": {
     "*": {
+      "webgpu": [
+        "types/webgpu.d.ts"
+      ],
       "precompile": [
         "types/precompile.d.ts"
       ],

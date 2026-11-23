@@ -69,19 +69,22 @@ export class TransformFeedbackSimulator {
     const program = this._shaderPass._getShaderProgram(
       this._primitive.engine,
       shaderData._macroCollection,
-      this._feedbackVaryings
+      this._feedbackVaryings,
+      undefined,
+      shaderData
     );
     if (!program.isValid) {
       return false;
     }
 
     program.bind();
+    program.bindUniformBlocks(undefined, undefined, shaderData);
     program.regroupUniformBlocks();
     program.uploadAll(program.rendererUniformBlock, shaderData);
     program.uploadAll(program.otherUniformBlock, shaderData);
     program.uploadAll(program.multiGroupUniformBlock, shaderData);
 
-    this._primitive.beginDraw(program, feedbackElements, inputBindings, inputElements);
+    this._primitive.beginDraw(program._platformProgram, feedbackElements, inputBindings, inputElements);
     return true;
   }
 

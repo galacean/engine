@@ -1,4 +1,4 @@
-import { type Camera, type Entity, type WebGLEngine } from "@galacean/engine";
+import { type Camera, type Entity, type Engine } from "@galacean/engine";
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import { planningAlphamap } from "../../semantic-study/PlanningAlphamap";
 import { planningHeightmap } from "../../semantic-study/PlanningHeightmap";
@@ -18,7 +18,7 @@ export class PlanningProductionRuntime {
     private readonly water: PlanningWaterRuntime
   ) {}
   /** Fetch reusable Seed assets while the raster worker prepares the same plan. */
-  static prepareResources(engine: WebGLEngine): Promise<void> {
+  static prepareResources(engine: Engine): Promise<void> {
     return PlanningPopulationRuntime.prepareResources(engine);
   }
   /** Prepare a hidden candidate, then let the view publish it together with its terrain.
@@ -26,7 +26,7 @@ export class PlanningProductionRuntime {
    * @returns Fully initialized, caller-owned renderer set.
    */
   static async create(
-    engine: WebGLEngine,
+    engine: Engine,
     parent: Entity,
     camera: Camera,
     plan: IslandPlan,

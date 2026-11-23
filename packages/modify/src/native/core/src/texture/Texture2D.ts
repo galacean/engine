@@ -4,7 +4,7 @@ import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
-import { Texture } from "./Texture";
+import { Texture, type TextureReadArguments } from "./Texture";
 import { TextureUtils } from "./TextureUtils";
 
 /**
@@ -33,7 +33,6 @@ export class Texture2D extends Texture {
     super(engine, width, height, format, mipmap, isSRGBColorSpace);
 
     this._usage = usage;
-    this._isDepthTexture = format >= TextureFormat.Depth && format <= TextureFormat.Depth32Stencil8;
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
     this.filterMode = this._isIntFormat() ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
@@ -120,70 +119,35 @@ export class Texture2D extends Texture {
    */
   getPixelBuffer(x: number, y: number, width: number, height: number, mipLevel: number, out: ArrayBufferView): void;
 
-  getPixelBuffer(
-    xOrMipLevelOrOut: number | ArrayBufferView,
-    yOrMipLevel?: number | ArrayBufferView,
-    width?: number,
-    height?: number,
-    mipLevelOrOut?: number | ArrayBufferView,
-    out?: ArrayBufferView
-  ): void {
-    const argsLength = arguments.length;
-    if (argsLength === 1) {
-      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
-        0,
-        0,
-        this._width,
-        this._height,
-        0,
-        <ArrayBufferView>xOrMipLevelOrOut
-      );
-    } else if (argsLength === 2) {
-      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
-        0,
-        0,
-        this._width >> (<number>xOrMipLevelOrOut),
-        this._height >> (<number>xOrMipLevelOrOut),
-        <number>xOrMipLevelOrOut,
-        <ArrayBufferView>yOrMipLevel
-      );
-    } else if (argsLength === 5) {
-      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
-        <number>xOrMipLevelOrOut,
-        <number>yOrMipLevel,
-        width!,
-        height!,
-        0,
-        <ArrayBufferView>mipLevelOrOut
-      );
-    } else if (argsLength === 6) {
-      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
-        <number>xOrMipLevelOrOut,
-        <number>yOrMipLevel,
-        width!,
-        height!,
-        <number>mipLevelOrOut,
-        out!
-      );
-    }
+  getPixelBuffer(...args: TextureReadArguments): void {
+    const region = this._readRegion(args);
+    (this._platformTexture as IPlatformTexture2D).getPixelBuffer(...region);
   }
 
-  /**
-   * Read the complete RGBA8 mip-zero image without synchronously waiting for the GPU.
-   * Requires WebGL2. The caller must retain the texture until completion; abort or
-   * texture/device destruction rejects the request and releases temporary GPU resources.
-   * @param out - Destination with at least width * height * 4 bytes
-   * @param signal - Optional cancellation signal
-   */
-  getPixelBufferAsync(out: Uint8Array, signal?: AbortSignal): Promise<void> {
-    if (
-      this.destroyed ||
-      this.format !== TextureFormat.R8G8B8A8_UNorm ||
-      out.byteLength < this.width * this.height * 4
-    ) {
-      return Promise.reject(new Error("Async readback requires a live RGBA8 texture and a sufficient Uint8Array"));
+  /** Read mip zero, optionally cancelling the caller's read while GPU work completes. */
+  getPixelBufferAsync(out: ArrayBufferView, signal?: AbortSignal): Promise<void>;
+  /** Read a region after all previously encoded draws and copies are available. */
+  getPixelBufferAsync(...args: TextureReadArguments): Promise<void>;
+  async getPixelBufferAsync(...args: TextureReadArguments | [ArrayBufferView, AbortSignal?]): Promise<void> {
+    const first = args[0];
+    const wholeImage = ArrayBuffer.isView(first);
+    const signal = wholeImage ? (args[1] as AbortSignal | undefined) : undefined;
+    signal?.throwIfAborted();
+    const platform = this._platformTexture as IPlatformTexture2D;
+    if (wholeImage && platform.getPixelBufferAsyncRGBA8 && first instanceof Uint8Array) {
+      if (
+        this.destroyed ||
+        this.format !== TextureFormat.R8G8B8A8_UNorm ||
+        first.byteLength < this.width * this.height * 4
+      ) {
+        throw new Error("Async readback requires a live RGBA8 texture and a sufficient Uint8Array");
+      }
+      return platform.getPixelBufferAsyncRGBA8(first, signal);
     }
-    return (this._platformTexture as IPlatformTexture2D).getPixelBufferAsync(out, signal);
+    const region = this._readRegion(wholeImage ? [first] : (args as TextureReadArguments));
+    if (platform.getPixelBufferAsync) await platform.getPixelBufferAsync(...region);
+    else platform.getPixelBuffer(...region);
+    signal?.throwIfAborted();
   }
 
   /**

@@ -56,6 +56,7 @@ export enum Keyword {
   U_SAMPLER_CUBE,
   U_SAMPLER2D_ARRAY,
   STRUCT,
+  UNIFORM,
   LAYOUT,
   LOCATION,
   VOID,

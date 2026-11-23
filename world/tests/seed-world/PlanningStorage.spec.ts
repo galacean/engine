@@ -150,6 +150,9 @@ it("keeps the explicit debug page mode while removing encoded parameters", async
   expect(planningSeedURL("http://localhost/editor?debug=1&document=old&seed=1&version=2", 8)).toBe(
     "http://localhost/editor?seed=8&debug=1"
   );
+  expect(planningSeedURL("http://localhost/editor?debug=1&template=original&rhi=webgpu", 8)).toBe(
+    "http://localhost/editor?seed=8&debug=1&template=original&rhi=webgpu"
+  );
 });
 
 it("stores planning data only in the project without browser-storage fallback", async () => {

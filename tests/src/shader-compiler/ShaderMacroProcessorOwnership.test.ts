@@ -1,6 +1,11 @@
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { ShaderPreprocessorDirective as Op } from "@galacean/engine-core/src/shader/enums/ShaderPreprocessorDirective";
-import type { Condition, ShaderInstruction } from "@galacean/engine-design";
+import type {
+  Condition,
+  IShaderUniformSelection,
+  IShaderUniformSite,
+  ShaderInstruction
+} from "@galacean/engine-design";
 import { describe, expect, it } from "vitest";
 
 function evaluate(instructions: ShaderInstruction[], macros: Record<string, string> = {}): string {
@@ -14,6 +19,35 @@ const excessiveMacros = Array.from(
 );
 
 describe("runtime declaration ownership", () => {
+  it("maps only selected declarations to their bytecode-expanded GLSL ranges", () => {
+    const code: ShaderInstruction[] = [
+      [Op.Text, "precision highp float;\n\n"],
+      [Op.Declaration, 1, 0, 0],
+      [Op.OwnedText, "uniform float gain;\n", 1],
+      [Op.IfDef, "OVERRIDE", 8],
+      [Op.DefineVal, "COUNT", "3"],
+      [Op.Declaration, 2, 0, 1],
+      [Op.OwnedText, "\n\n uniform vec4 gain[COUNT];\n", 2],
+      [Op.Endif],
+      [Op.Text, "void main() {}"]
+    ];
+    const sites: IShaderUniformSite[] = [
+      { kind: "uniform", instruction: 2, name: "gain", type: "float" },
+      { kind: "uniform", instruction: 6, name: "gain", type: "vec4" }
+    ];
+    const selected: IShaderUniformSelection[] = [];
+    for (const enabled of [true, false]) {
+      const macros = enabled ? new Map([["OVERRIDE", ""]]) : new Map<string, string>();
+      const glsl = ShaderMacroProcessor.evaluate(code, macros, sites, selected);
+      expect(glsl).toBe(ShaderMacroProcessor.evaluate(code, macros));
+      expect(selected).toHaveLength(1);
+      const { site, start, end, text } = selected[0];
+      expect(site).toBe(sites[enabled ? 1 : 0]);
+      expect(glsl.slice(start, end)).toBe(text);
+      expect(text.trim()).toBe(enabled ? "uniform vec4 gain[3];" : "uniform float gain;");
+    }
+  });
+
   it("preserves serialized legacy opcodes alongside the appended ownership instructions", () => {
     const instructions: ShaderInstruction[] = [
       [0, "before VALUE\n"],

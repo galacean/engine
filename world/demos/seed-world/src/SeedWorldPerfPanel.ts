@@ -1,5 +1,6 @@
 import { attachMobileFrameCapture, type PerfCumulativeCounters, type PerfFrameObserver } from "./MobileFrameCapture";
-import { ShadowType, type Camera, type DirectLight, type Entity, type Scene, type WebGLEngine } from "@galacean/engine";
+import { ShadowType, type Camera, type Engine, type DirectLight, type Entity, type Scene } from "@galacean/engine";
+import { observeWebGPUDraws } from "@galacean/engine-terrain/terrain/performance/WebGPUDrawCounters";
 import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import type { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import type { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
@@ -66,7 +67,7 @@ export type SeedWorldPerfModuleKey =
   | "hud";
 
 export interface SeedWorldPerfPanelOptions {
-  readonly engine: WebGLEngine;
+  readonly engine: Engine;
   readonly scene: Scene;
   readonly canvas: HTMLCanvasElement;
   readonly root: Entity;
@@ -127,6 +128,8 @@ export class SeedWorldPerfPanel {
   private totalCpuMs = 0;
   private totalDc = 0;
   private totalTris = 0;
+  private gpuDraws?: ReturnType<typeof observeWebGPUDraws>;
+  private winStartIndexedStrips = 0;
   private totalDrawFboSwitches = 0;
   private totalAllFboBinds = 0;
   private totalBufUploads = 0;
@@ -216,6 +219,12 @@ export class SeedWorldPerfPanel {
     out.cpuMs = this.totalCpuMs;
     out.dc = this.totalDc;
     out.tris = this.totalTris;
+    if (this.gpuDraws) {
+      out.drawScope = "webgpu-direct";
+      out.indexedStrips = this.gpuDraws.indexedStrips;
+      out.fbo = out.fboAll = out.bufUploads = out.bufUploadBytes = out.bufOrphans = out.bufOrphanBytes = NaN;
+      return out;
+    }
     out.fbo = this.totalDrawFboSwitches;
     out.fboAll = this.totalAllFboBinds;
     out.bufUploads = this.totalBufUploads;
@@ -244,10 +253,14 @@ export class SeedWorldPerfPanel {
     const elapsedS = Math.round((now - this.startedAt) / 1000);
     const { width, height } = this.options.engine.canvas;
 
+    const draws = this.gpuDraws
+      ? `RHI dc=${dcAvg.toFixed(0)} tris=${this.gpuDraws.indexedStrips > this.winStartIndexedStrips ? "≥" : ""}${trisK.toFixed(0)}k`
+      : `dc=${dcAvg.toFixed(0)} fbo=${fboAvg.toFixed(0)} tris=${trisK.toFixed(0)}k buf=${bufAvg.toFixed(0)}(${bufKB.toFixed(0)}KB)${orphanPart}`;
+    if (this.gpuDraws) this.winStartIndexedStrips = this.gpuDraws.indexedStrips;
     const summary =
       `PERF | t=${elapsedS}s | ${width}x${height}\n` +
       `${fps.toFixed(1)}fps | cpu=${cpuAvg.toFixed(1)}ms(max ${this.winCpuMax.toFixed(1)}) | ` +
-      `dc=${dcAvg.toFixed(0)} fbo=${fboAvg.toFixed(0)} tris=${trisK.toFixed(0)}k buf=${bufAvg.toFixed(0)}(${bufKB.toFixed(0)}KB)${orphanPart}`;
+      draws;
     this.badge.textContent = summary;
     this.options.canvas.dataset.perfHud = summary;
 
@@ -282,6 +295,8 @@ export class SeedWorldPerfPanel {
     const engine = this.options.engine;
     const rhi = (engine as unknown as { _hardwareRenderer?: { gl?: WebGL2RenderingContext | WebGLRenderingContext } })
       ._hardwareRenderer;
+    this.gpuDraws = observeWebGPUDraws(engine);
+    if (this.gpuDraws) this.restoreHooks.push(this.gpuDraws.dispose);
     const gl = rhi?.gl;
     if (gl) {
       const proto = Object.getPrototypeOf(gl) as WebGL2RenderingContext | null;
@@ -499,6 +514,11 @@ export class SeedWorldPerfPanel {
         origUpdate.call(engine);
         return;
       }
+      if (this.gpuDraws) {
+        this.totalDc = this.gpuDraws.draws;
+        this.totalTris = this.gpuDraws.triangles;
+        if (!this.totalFrames) this.winStartIndexedStrips = this.gpuDraws.indexedStrips;
+      }
       const t0 = performance.now();
       if (this.winFrames === 0 && this.totalFrames === 0) {
         // Anchor Window 1 to frame 1 start so pre-frame async GL work never contaminates frame 1 averages.
@@ -514,6 +534,10 @@ export class SeedWorldPerfPanel {
       try {
         origUpdate.call(engine);
       } finally {
+        if (this.gpuDraws) {
+          this.totalDc = this.gpuDraws.draws;
+          this.totalTris = this.gpuDraws.triangles;
+        }
         const t1 = performance.now();
         const dtMs = t1 - t0;
         this.totalFrames++;

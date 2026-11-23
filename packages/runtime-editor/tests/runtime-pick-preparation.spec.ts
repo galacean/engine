@@ -57,6 +57,21 @@ describe("RuntimePickPreparation non-scene shader filtering", () => {
     vi.restoreAllMocks();
   });
 
+  it("retains the compiled layout when deriving an occlusion pass", () => {
+    const blocks = [{ name: "Camera" as const, bindingName: "gs_Camera", byteLength: 16, members: [] }];
+    const base = new ShaderPass(
+      "Forward",
+      [[0, "void main(){gl_Position=vec4(0.0);}"]],
+      [[0, "void main(){gl_FragColor=vec4(1.0);}"]],
+      ShaderLanguage.GLSLES300,
+      undefined,
+      undefined,
+      blocks
+    );
+    const { pass } = pickOcclusionPass(base);
+    expect((pass as unknown as { _uniformBlocks: typeof blocks })._uniformBlocks).toBe(blocks);
+  });
+
   it("skips built-in and host-registered non-scene prefixes while queuing scene shaders", () => {
     const { prep, queue, emit } = createHarness();
     prep.ignoreShaderPrefixes(["HostNonScene/"]);

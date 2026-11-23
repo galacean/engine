@@ -14,6 +14,7 @@ import {
   PostProcessEffectFloatParameter,
   PostProcessPass,
   PrimitiveMesh,
+  RenderBufferLoadAction,
   RenderTarget,
   Scene,
   SphereColliderShape,
@@ -460,7 +461,7 @@ describe("PostProcess", () => {
     bloomEffect.maxIterations.value = 6;
 
     const activeUberPass = bloomEngine.postProcessPasses[0];
-    const blitSpy = vi.spyOn(Blitter, "blitTexture");
+    const blitSpy = vi.spyOn(Blitter, "_blitTexture");
     try {
       // @ts-ignore
       const bloomMaterial = activeUberPass._bloomMaterial;
@@ -473,6 +474,10 @@ describe("PostProcess", () => {
       blitSpy.mockClear();
       bloomEngine.update();
       expect(countBloomBlits()).to.equal(11);
+      for (const call of blitSpy.mock.calls.filter((args) => args[5] === bloomMaterial)) {
+        const load = call[8] ?? RenderBufferLoadAction.Load;
+        expect(load).toBe(call[6] === 2 ? RenderBufferLoadAction.Load : RenderBufferLoadAction.DontCare);
+      }
       // @ts-ignore
       expect(activeUberPass._mipRT.length).to.equal(6);
       expect(uberMaterial.shaderData.getTexture(BloomEffect._bloomTextureProp)).to.equal(

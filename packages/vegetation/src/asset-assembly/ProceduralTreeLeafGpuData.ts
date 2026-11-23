@@ -49,8 +49,7 @@ export class ProceduralTreeLeafGpuData {
   ) {
     const origin = normalField?.origin ?? [0, 0, 0];
     this._normalField = new Vector4(origin[0], origin[1], origin[2], normalField?.radialBlend ?? 0);
-    const context = webGl2Context(engine);
-    const maximumTextureSize = Number(context.getParameter(context.MAX_TEXTURE_SIZE));
+    const maximumTextureSize = engine._hardwareRenderer.capability.maxTextureSize;
     const maximumCardsPerRow = Math.floor(maximumTextureSize / LEAF_FRAME_TEXELS);
     if (maximumCardsPerRow < 1) throw new Error("Procedural leaf GPU frames require room for eight RGBA texels");
     this.cardsPerRow = Math.min(Math.max(frames.length, 1), maximumCardsPerRow);
@@ -134,13 +133,6 @@ class ProceduralTreeLeafGpuTextureRestorer extends ContentRestorer<Texture2D> {
   restoreContent(): void {
     this.resource.setPixelBuffer(this._pixels);
   }
-}
-
-function webGl2Context(engine: Engine): WebGL2RenderingContext {
-  const nativeCanvas = (engine.canvas as unknown as { _webCanvas: HTMLCanvasElement | OffscreenCanvas })._webCanvas;
-  const context = nativeCanvas.getContext("webgl2") as WebGL2RenderingContext | null;
-  if (!context) throw new Error("Procedural leaf GPU frames require WebGL2 vertex texture fetch");
-  return context;
 }
 
 function writeFrame(target: Float32Array, offset: number, frame: ProceduralTreeLeafGpuFrame): void {

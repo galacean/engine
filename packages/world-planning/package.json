@@ -472,6 +472,7 @@
     "./world/SeedWorldViewSnapshot": "./src/world/SeedWorldViewSnapshot.ts",
     "./world/SeedWorldWetland": "./src/world/SeedWorldWetland.ts",
     "./world/SeedWorldWorldEdit": "./src/world/SeedWorldWorldEdit.ts",
+    "./rendering/createWorldEngine": "./src/rendering/createWorldEngine.ts",
     "./masonry/BuildingInitialSource": "./src/masonry/BuildingInitialSource.ts",
     "./runtime/SeedWorldPanoramaVistaRuntime": "./src/runtime/SeedWorldPanoramaVistaRuntime.ts",
     "./runtime/SeedWorldRockMaterial": "./src/runtime/SeedWorldRockMaterial.ts",
@@ -483,6 +484,7 @@
   "scripts": {},
   "dependencies": {
     "@galacean/engine": "workspace:*",
+    "@galacean/engine-webgpu": "workspace:*",
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-math": "workspace:*",

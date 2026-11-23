@@ -12,6 +12,7 @@ import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy"
 import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
 import { ScreenSpaceReflectionPass, SSRDiagnostics } from "../lighting/screenSpaceReflection";
 import { FinalPass } from "../postProcess";
+import { RenderBufferLoadAction, RenderBufferStoreAction } from "../renderingHardwareInterface";
 import {
   SunLensFlareCameraState,
   SunLensFlareEffect,
@@ -94,7 +95,7 @@ export class BasicRenderPipeline {
   constructor(camera: Camera) {
     this._camera = camera;
     const { engine } = camera;
-    const shaders = Engine._builtinShaders;
+    const shaders = engine._builtinShaders;
     this._cullingResults = new CullingResults();
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
@@ -150,6 +151,38 @@ export class BasicRenderPipeline {
     this._sunLensFlareCameraState = null;
 
     this._camera = null!;
+  }
+
+  /** @internal Acquire the same forward attachments for a draw or pipeline preparation. */
+  _allocateInternalColorTarget(msaaSamples: number): RenderTarget {
+    const camera = this._camera;
+    const engine = camera.engine;
+    const rhi = engine._hardwareRenderer;
+    let depthFormat: TextureFormat | null;
+    if (camera.renderTarget) {
+      depthFormat = camera.renderTarget._depthFormat;
+    } else if (rhi._options.depth && rhi._options.stencil) {
+      depthFormat = TextureFormat.Depth24Stencil8;
+    } else if (rhi._options.depth) {
+      depthFormat = TextureFormat.Depth24;
+    } else if (rhi._options.stencil) {
+      depthFormat = TextureFormat.Stencil;
+    } else {
+      depthFormat = null;
+    }
+    const viewport = camera.pixelViewport;
+    return engine._renderTargetPool.allocateRenderTarget(
+      viewport.width,
+      viewport.height,
+      camera._getInternalColorTextureFormat(),
+      depthFormat,
+      false,
+      false,
+      !camera._isInternalFormatHDR(),
+      msaaSamples,
+      TextureWrapMode.Clamp,
+      TextureFilterMode.Bilinear
+    );
   }
 
   /** @internal */
@@ -253,7 +286,7 @@ export class BasicRenderPipeline {
 
     // Depth use camera's view and projection matrix
     this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.viewProjectionMatrix);
-    context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
+    context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled && rhi.backend === "webgl2");
     this._prepareRender(context);
     this._prepareCameraRenderViewCulling(context);
 
@@ -298,7 +331,7 @@ export class BasicRenderPipeline {
       }
       const viewport = camera.pixelViewport;
 
-      this._internalColorTarget = this._allocateInternalColorTarget(
+      this._internalColorTarget = this._allocateSeedInternalTarget(
         baseDepthFormat,
         forwardDepthResolveEnabled,
         sunLensFlareDepthPatchEnabled,
@@ -480,7 +513,7 @@ export class BasicRenderPipeline {
     }
   }
 
-  private _allocateInternalColorTarget(
+  private _allocateSeedInternalTarget(
     baseDepthFormat: TextureFormat | null,
     forwardDepthResolveEnabled: boolean,
     sunLensFlareDepthPatchEnabled: boolean,
@@ -542,7 +575,31 @@ export class BasicRenderPipeline {
     const internalColorTarget = this._internalColorTarget;
     const colorTarget = internalColorTarget || camera.renderTarget;
     const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
-    const needFlipProjection = !!internalColorTarget || (camera.renderTarget && cubeFace == undefined);
+    // WebGL textures start at the bottom left. Cube capture uses the opposite winding
+    // to match the face orientation used when sampling a cube on both backends.
+    const needFlipProjection =
+      !!colorTarget && (rhi.backend === "webgl2") === (!!internalColorTarget || cubeFace == undefined);
+    const keepColorFlag = !!internalColorTarget && (~finalClearFlags & CameraClearFlags.Color) !== 0;
+    const hasInternalMSAA = !!internalColorTarget && internalColorTarget.antiAliasing > 1;
+    const finalColorStoreAction = hasInternalMSAA ? RenderBufferStoreAction.Resolve : RenderBufferStoreAction.Store;
+    const finalDepthStoreAction =
+      internalColorTarget &&
+      !internalColorTarget.depthTexture &&
+      internalColorTarget._depthFormat !== null &&
+      !rhi.hasExternalProjectionDepth
+        ? RenderBufferStoreAction.DontCare
+        : RenderBufferStoreAction.Store;
+    const opaqueColorStoreAction = camera.opaqueTextureEnabled
+      ? hasInternalMSAA
+        ? RenderBufferStoreAction.StoreAndResolve
+        : RenderBufferStoreAction.Store
+      : finalColorStoreAction;
+    // Color and depth consumers may copy directly from the opaque pass's renderbuffer.
+    // Its depth remains live until the patch or forward resolve has been submitted.
+    const opaqueDepthStoreAction =
+      camera.opaqueTextureEnabled || forwardDepthResolveEnabled || sunLensFlareDepthPatchEnabled
+        ? RenderBufferStoreAction.Store
+        : finalDepthStoreAction;
 
     // Sky materials may schedule material-owned prepasses, such as a shared
     // volumetric direction-cache update, before the main color target is bound.
@@ -563,7 +620,17 @@ export class BasicRenderPipeline {
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
     }
 
-    context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    context.setRenderTarget(
+      colorTarget,
+      colorViewport,
+      mipLevel,
+      cubeFace,
+      RenderBufferLoadAction.Load,
+      keepColorFlag ? RenderBufferStoreAction.Store : opaqueColorStoreAction,
+      RenderBufferLoadAction.Load,
+      keepColorFlag ? RenderBufferStoreAction.Store : opaqueDepthStoreAction,
+      "Camera Forward"
+    );
 
     // Clear color
     if (finalClearFlags !== CameraClearFlags.None) {
@@ -581,27 +648,39 @@ export class BasicRenderPipeline {
         rhi.clearRenderTarget(engine, keepDSFlags);
       }
 
-      const keepColorFlag = ~finalClearFlags & CameraClearFlags.Color;
       if (keepColorFlag) {
         if (this._shouldCopyBackgroundColor) {
           // Copy RT's color buffer to grab texture
           rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture!, camera.viewport);
           // Then blit grab texture to internal RT's color buffer
-          Blitter.blitTexture(
+          Blitter._blitTexture(
             engine,
             this._copyBackgroundTexture!,
             internalColorTarget,
             0,
             undefined,
-            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
+            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial,
+            0,
+            undefined,
+            RenderBufferLoadAction.DontCare
           );
         } else {
           // Only blit color buffer from back buffer
           const ignoreFlags = CameraClearFlags.DepthStencil;
           rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, ignoreFlags, camera.viewport);
         }
+        context.setRenderTarget(
+          colorTarget,
+          colorViewport,
+          mipLevel,
+          cubeFace,
+          RenderBufferLoadAction.Load,
+          opaqueColorStoreAction,
+          RenderBufferLoadAction.Load,
+          opaqueDepthStoreAction,
+          "Camera Opaque"
+        );
       }
-      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     }
 
     const maskManager = scene._maskManager;
@@ -717,7 +796,17 @@ export class BasicRenderPipeline {
 
       // Should revert to original render target
       if (!deferSSRToPostOpaque) {
-        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+        context.setRenderTarget(
+          colorTarget,
+          colorViewport,
+          mipLevel,
+          cubeFace,
+          RenderBufferLoadAction.Load,
+          finalColorStoreAction,
+          RenderBufferLoadAction.Load,
+          finalDepthStoreAction,
+          "Camera Transparent"
+        );
       }
     } else {
       this._opaqueTexturePass.release();
@@ -734,6 +823,8 @@ export class BasicRenderPipeline {
           reusedOpaqueColorTex._setMipLevelRange(0, 0);
         }
       }
+      cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.ProjectionMatrix);
+      context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
       context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
     }
 
@@ -796,9 +887,21 @@ export class BasicRenderPipeline {
 
     // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
     if (outputTarget !== cameraRenderTarget) {
-      Blitter.blitTexture(engine, <Texture2D>outputTarget!.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
+      Blitter._blitTexture(
+        engine,
+        <Texture2D>outputTarget!.getColorTexture(0),
+        cameraRenderTarget,
+        0,
+        camera.viewport,
+        null,
+        0,
+        undefined,
+        RenderBufferLoadAction.DontCare
+      );
     }
 
+    if (internalColorTarget && !cameraRenderTarget && rhi.hasExternalProjectionDepth)
+      rhi.storeExternalProjectionDepth!(internalColorTarget, camera.viewport);
     const cameraTargetAlreadyResolved =
       colorTargetResolved &&
       colorTarget === cameraRenderTarget &&
@@ -853,6 +956,12 @@ export class BasicRenderPipeline {
     const onlyShadowCaster = context._onlyShadowCaster;
     const shaderData = renderElement.material.shaderData;
     renderElement.subShader = subShader;
+    const data = renderElement.material.shaderData;
+    const singleQueue = subShader._getSharedMaterialQueue(data);
+    if (!onlyShadowCaster && singleQueue !== undefined) {
+      cullingResults.queues[singleQueue].pushRenderElement(renderElement);
+      return;
+    }
     let pushedQueueFlags = RenderQueueFlags.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       const shaderPass = shaderPasses[i];
@@ -918,16 +1027,23 @@ export class BasicRenderPipeline {
     const pass = material.shader.subShaders[0].passes[0];
     const compileMacros = Shader._compileMacros;
     ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
-    const program = pass._getShaderProgram(engine, compileMacros);
+    const program = pass._getShaderProgram(
+      engine,
+      compileMacros,
+      undefined,
+      mesh._primitive,
+      undefined,
+      material.shaderData
+    );
     program.bind();
     program.uploadAll(program.materialUniformBlock, material.shaderData);
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
-    program.uploadMultiGroupUniforms(undefined, camera.shaderData, undefined, material.shaderData, undefined);
+    program.uploadSharedUniforms(camera.scene!.shaderData, camera.shaderData, undefined, material.shaderData);
     program.uploadUnGroupTextures();
 
     const renderState = pass._renderState;
     renderState._applyStates(engine, false, pass._renderStateDataMap, material.shaderData);
-    rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
+    rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program._platformProgram);
   }
 
   private _prepareRender(context: RenderContext): void {
@@ -936,6 +1052,8 @@ export class BasicRenderPipeline {
     const { _renderers: renderers, _canvases: canvases } = camera.scene!._componentsManager;
 
     const rendererElements = renderers._elements;
+    const frustumRevision = camera._frustumSnapshot.revision;
+    const frameCount = engine.time.frameCount;
     for (let i = renderers.length - 1; i >= 0; --i) {
       const renderer = rendererElements[i];
       // Filter by camera culling mask
@@ -944,14 +1062,10 @@ export class BasicRenderPipeline {
       }
 
       // Filter by camera frustum
-      if (enableFrustumCulling) {
-        if (!frustum.intersectsBox(renderer.bounds)) {
-          continue;
-        }
-      }
+      if (enableFrustumCulling && !renderer._intersectsFrustum(frustum, frustumRevision)) continue;
       if (camera.renderFilter && !camera.renderFilter(renderer)) continue;
       renderer._prepareRender(context);
-      if (camera.updateRendererVisibility) renderer._renderFrameCount = engine.time.frameCount;
+      if (camera.updateRendererVisibility) renderer._renderFrameCount = frameCount;
     }
 
     const canvasesElements = canvases._elements;

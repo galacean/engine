@@ -1,4 +1,4 @@
-import { GLCapabilityType } from "@galacean/engine";
+import { GLCapabilityType, SetDataOptions } from "@galacean/engine";
 import type {
   IHardwareRenderer,
   IPlatformRenderTarget,
@@ -12,8 +12,23 @@ import { NullTexture2D, NullTexture2DArray, NullTextureCube } from "./NullTextur
 
 /** Graphics resource adapter that never opens a GPU context. */
 export class NullGraphicDevice implements IHardwareRenderer {
+  readonly backend = "null";
+  beginFrame(): void {}
+  endRenderPass(): void {}
+  endFrame(): void {}
+  applyRenderState(): void {}
+  createPlatformShaderProgram(): never {
+    throw new Error("Shader programs require a graphics device.");
+  }
+  readonly supportsCompute = false;
+  readonly supportsTransformFeedback = false;
   readonly supportsRendering = false;
   readonly maxUniformBlockSize = 0;
+  readonly maxUniformBufferBindings = 0;
+  readonly maxVertexUniformBlocks = 0;
+  readonly maxFragmentUniformBlocks = 0;
+  readonly resolveShaderConstant = (): undefined => undefined;
+  readonly uniformBufferOffsetAlignment = 1;
   readonly _options = {};
   readonly capability = {
     maxTextureSize: 0,
@@ -22,7 +37,6 @@ export class NullGraphicDevice implements IHardwareRenderer {
     maxVertexUniformVectors: 0
   };
   _currentBindShaderProgram = null;
-  _enableGlobalDepthBias = false;
 
   get gl(): never {
     throw new Error("A WebGL context is unavailable on a null graphics device.");
@@ -90,7 +104,22 @@ export class NullGraphicDevice implements IHardwareRenderer {
   activeTexture(): void {}
   bindTexture(): void {}
   bindUniformBufferBase(): void {}
-  setGlobalDepthBias(): void {}
+  bindUniformBufferRange(
+    _binding: number,
+    buffer: NullBuffer,
+    byteOffset: number,
+    _byteSize: number,
+    data?: ArrayBufferView,
+    discard?: boolean
+  ): void {
+    if (data) {
+      const options = discard ? SetDataOptions.Discard : SetDataOptions.None;
+      buffer.setData(buffer.byteLength, data, byteOffset, 0, undefined, options);
+    }
+  }
+  tryBindUniformBlock(): boolean {
+    return false;
+  }
   enableRasterizerDiscard(): void {}
   disableRasterizerDiscard(): void {}
   invalidateShaderProgramState(): void {}

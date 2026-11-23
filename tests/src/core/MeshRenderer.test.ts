@@ -16,9 +16,9 @@ import {
   ShadowCascadesMode,
   ShadowType
 } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { Matrix, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { describe, beforeAll, expect, it } from "vitest";
+import { describe, beforeAll, expect, it, vi } from "vitest";
 
 describe("MeshRenderer", async function () {
   let engine: WebGLEngine;
@@ -61,6 +61,92 @@ describe("MeshRenderer", async function () {
     expect(cubeMesh2.refCount).to.be.equal(0);
 
     mr.mesh = null;
+  });
+
+  it("reuses stable transforms and refreshes world, camera and edited shader matrices", () => {
+    const entity = rootEntity.createChild();
+    const renderer = entity.addComponent(MeshRenderer);
+    const camera = entity.addComponent(Camera);
+    const context = engine._renderContext;
+    const originalCamera = context.camera;
+    context.camera = camera;
+    const virtual = camera._virtualCamera;
+    const world = entity.transform.worldMatrix;
+    const data = renderer.shaderData;
+    context.applyVirtualCamera(virtual, false);
+    const invert = vi.spyOn(Matrix, "invert");
+    const multiply = vi.spyOn(Matrix, "multiply");
+    try {
+      renderer._updateTransformShaderData(context, false);
+      expect(invert).toHaveBeenCalledTimes(1);
+      expect(multiply).toHaveBeenCalledTimes(2);
+      const normal = data.getMatrix("renderer_NormalMat");
+      normal.elements[0] = 42;
+      data.setMatrix("renderer_MVMat", new Matrix());
+      renderer._updateTransformShaderData(context, false);
+      expect(normal.elements[0]).toBe(1);
+      expect(invert).toHaveBeenCalledTimes(1);
+      expect(multiply).toHaveBeenCalledTimes(2);
+
+      const copy = data.clone();
+      copy.getMatrix("renderer_MVPMat").elements[0] = 11;
+      copy.cloneTo(data);
+      renderer._updateTransformShaderData(context, false);
+      expect(data.getMatrix("renderer_MVPMat").elements[0]).toBe(1);
+
+      world.elements[0] = 2;
+      renderer._updateTransformShaderData(context, true);
+      expect(data.getMatrix("renderer_MVPMat").elements[0]).toBe(2);
+      renderer._updateTransformShaderData(context, false);
+      expect(normal.elements[0]).toBe(0.5);
+      expect(invert).toHaveBeenCalledTimes(2);
+
+      virtual.viewMatrix.elements[12] = 3;
+      virtual.viewProjectionMatrix.elements[12] = 4;
+      context.applyVirtualCamera(virtual, false);
+      renderer._updateTransformShaderData(context, false);
+      expect(data.getMatrix("renderer_MVMat").elements[12]).toBe(3);
+      expect(data.getMatrix("renderer_MVPMat").elements[12]).toBe(4);
+      context.applyVirtualCamera(virtual, true);
+      renderer._updateTransformShaderData(context, true);
+      expect(data.getMatrix("renderer_MVPMat").elements[5]).toBe(-1);
+      context.applyVirtualCamera(virtual, false);
+      renderer._updateTransformShaderData(context, true);
+      expect(data.getMatrix("renderer_MVPMat").elements[5]).toBe(1);
+      expect(invert).toHaveBeenCalledTimes(2);
+    } finally {
+      invert.mockRestore();
+      multiply.mockRestore();
+      context.camera = originalCamera;
+      entity.destroy();
+    }
+  });
+
+  it("reuses camera frustum tests until the camera matrix or any world bounds component changes", () => {
+    const owner = rootEntity.createChild();
+    const camera = owner.addComponent(Camera);
+    const renderer = owner.createChild().addComponent(MeshRenderer);
+    renderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+    camera.projectionMatrix = new Matrix();
+    camera.render();
+    const frustum = camera._frustum;
+    const planes = vi.spyOn(frustum, "intersectsBox");
+    try {
+      const bounds = renderer.bounds;
+      bounds.min.x = -0.4;
+      expect(renderer._intersectsFrustum(frustum, camera._frustumSnapshot.revision)).toBe(true);
+      expect(renderer._intersectsFrustum(frustum, camera._frustumSnapshot.revision)).toBe(true);
+      expect(planes).toHaveBeenCalledTimes(1);
+      bounds.min.x = 3;
+      bounds.max.x = 4;
+      expect(renderer._intersectsFrustum(frustum, camera._frustumSnapshot.revision)).toBe(false);
+      camera.projectionMatrix.elements[12] = -3;
+      camera.render();
+      expect(renderer._intersectsFrustum(frustum, camera._frustumSnapshot.revision)).toBe(true);
+    } finally {
+      planes.mockRestore();
+      owner.destroy();
+    }
   });
 
   it("enableVertexColor", () => {

@@ -133,18 +133,20 @@ import {
   ShaderPass,
   Vector2,
   Vector3,
-  WebGLEngine,
   registerVolumetricCloudShader,
   registerWindGpuFieldShaders,
+  type Engine,
   type Component,
   type Entity
 } from "@galacean/engine";
+import { createWorldEngine, seedWorldRhi } from "@galacean/engine-world-planning/rendering/createWorldEngine";
+import { mountSeedRenderHud } from "./src/SeedWorldRenderHud";
+import type { WebGPUGraphicDevice } from "@galacean/engine-webgpu";
 import {
   SEED_WORLD_DEFAULT_FOG_VALUES,
   SEED_WORLD_DEFAULT_SHADOW_STRENGTH
 } from "@galacean/engine-environment/terrain/lighting/SeedWorldLightingPreset";
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
-import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import {
   TERRAIN_SCREEN_SPACE_REFLECTION_CONFIGURATION,
   applyScreenSpaceReflectionConfiguration
@@ -248,10 +250,11 @@ import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
 
 /** Explicit opt-in host interface for acceptance & benchmark harnesses (registered via globalThis.__seedWorldOnDiagnosticHost). */
 export interface SeedWorldDiagnosticHost {
-  readonly engine: WebGLEngine;
+  readonly engine: Engine;
   readonly tools: PlanningSeedWorldSession | undefined;
   readonly ready: boolean;
   readonly animals: PlanningAnimalHost | undefined;
+  readonly environment: ReturnType<WorldEnvironmentRuntime["getSnapshot"]> | undefined;
   readonly current: PlanningSeedScenePublication["current"];
 }
 
@@ -273,7 +276,7 @@ function bindGrassAppearanceRegistrar(world: SeedWorldTerrainRuntime) {
 }
 
 function createTerrainWindExposure(
-  engine: WebGLEngine,
+  engine: Engine,
   first: SeedWorldTerrainRuntime,
   readWorld: () => SeedWorldTerrainRuntime | undefined,
   readRevision: () => number
@@ -289,6 +292,7 @@ function createTerrainWindExposure(
 export async function mountSeedWorldDemo(
   handoff?: PlanningWorldHandoff,
   options: {
+    renderHud?: ReturnType<typeof mountSeedRenderHud>;
     showAssistant?: boolean;
     persistPlayerState?: boolean;
     assetSources?: readonly ProjectFileProvider[];
@@ -313,7 +317,7 @@ export async function mountSeedWorldDemo(
   canvas.dataset.status = "loading";
   canvas.dataset.shaderPrecompile = String(precompileShaders);
   canvas.dataset.shaderWarmupBenchmark = String(shaderWarmupBenchmark);
-  let engine: WebGLEngine | undefined;
+  let engine: Engine | undefined;
   let orb: WorldBubbleLoadingScene | undefined;
   let scene: Scene | undefined;
   const planningWorker = new PlanningWorkerClient();
@@ -380,6 +384,8 @@ export async function mountSeedWorldDemo(
   let assistantInputEnabled = true;
   let unbindWorldClick: (() => void) | undefined;
   const editorLifetime = new AbortController();
+  const renderHud = options.renderHud ?? mountSeedRenderHud(pageUrl);
+  if (renderHud && !options.renderHud) editorLifetime.signal.addEventListener("abort", renderHud.dispose, { once: true });
   let pickPreparation: RuntimePickPreparation | undefined;
   let shaderAudit: import("./src/SeedWorldShaderAudit").SeedWorldShaderAuditHandle | undefined;
   let perfTour: import("./src/SeedWorldPerfTour").SeedWorldPerfTourHandle | undefined;
@@ -653,7 +659,7 @@ export async function mountSeedWorldDemo(
     { once: true }
   );
   try {
-    // Overlap Planning Worker boot and startup asset bundle fetches with WebGLEngine + Loading Orb initialization.
+    // Overlap Planning Worker boot and startup asset bundle fetches with Engine + Loading Orb initialization.
     planningWorker.prewarm();
     const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
     let prefetchedCommonBinaryAssets: ReadonlyMap<string, Uint8Array> | undefined;
@@ -697,8 +703,9 @@ export async function mountSeedWorldDemo(
       shaderAudit = installSeedWorldShaderAudit();
       seedWorldBootTrace.setShaderAuditProvider(() => shaderAudit?.snapshot());
     }
-    engine = await timed("WebGLEngine.create", () =>
-      WebGLEngine.create({
+    engine = await timed("createWorldEngine", () =>
+      createWorldEngine({
+        rhi: seedWorldRhi(pageUrl),
         canvas,
         physics: new PhysXPhysics(
           PhysXRuntimeMode.Auto,
@@ -710,10 +717,17 @@ export async function mountSeedWorldDemo(
               }
             : undefined
         ),
-        shaderCompiler: new ShaderCompiler()
       })
     );
-    {
+    canvas.dataset.rhi = engine.graphicsBackend;
+    renderHud?.track(engine);
+    if (engine._hardwareRenderer.backend === "webgpu") {
+      const gpu = engine._hardwareRenderer as WebGPUGraphicDevice;
+      seedWorldBootTrace.setMeta({
+        device: { backend: "webgpu", gpuVendor: gpu.adapter.info?.vendor, gpuRenderer: gpu.renderer }
+      });
+      seedWorldBootTrace.event("info", "webgpu", gpu.renderer, `maxTextureDimension2D=${gpu.device.limits.maxTextureDimension2D}`);
+    } else {
       const rhi = (engine as unknown as { _hardwareRenderer?: { gl?: WebGL2RenderingContext } })._hardwareRenderer;
       const gl = rhi?.gl;
       if (gl) {
@@ -727,6 +741,7 @@ export async function mountSeedWorldDemo(
         const parallelCompile = Boolean(gl.getExtension("KHR_parallel_shader_compile"));
         seedWorldBootTrace.setMeta({
           device: {
+            backend: "webgl2",
             webglVersion: "WebGL2",
             gpuVendor: vendor || "unknown",
             gpuRenderer: renderer || "unknown",
@@ -751,6 +766,9 @@ export async function mountSeedWorldDemo(
       },
       get animals() {
         return animals;
+      },
+      get environment() {
+        return environment?.getSnapshot();
       },
       get current() {
         return publication?.current;

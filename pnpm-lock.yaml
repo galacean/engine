@@ -355,18 +355,43 @@ importers:
       '@galacean/engine-shader':
         specifier: workspace:*
         version: link:../shader
+    devDependencies:
+      '@webgpu/types':
+        specifier: ^0.1.71
+        version: 0.1.74
+
+  packages/galacean-webgpu:
+    dependencies:
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../core
+      '@galacean/engine-loader':
+        specifier: workspace:*
+        version: link:../loader
+      '@galacean/engine-math':
+        specifier: workspace:*
+        version: link:../math
+      '@galacean/engine-rhi-webgpu':
+        specifier: workspace:*
+        version: link:../rhi-webgpu
+      '@galacean/engine-shader':
+        specifier: workspace:*
+        version: link:../shader
+      '@galacean/engine-shader-compiler':
+        specifier: workspace:*
+        version: link:../shader-compiler
 
   packages/loader:
     dependencies:
       '@galacean/engine-core':
         specifier: workspace:*
         version: link:../core
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
-      '@galacean/engine-rhi-webgl':
-        specifier: workspace:*
-        version: link:../rhi-webgl
 
   packages/math: {}
 
@@ -385,6 +410,9 @@ importers:
       '@galacean/engine-toolkit-controls':
         specifier: 1.6.0
         version: 1.6.0(@galacean/engine@packages+galacean)
+      '@galacean/engine-webgpu':
+        specifier: workspace:*
+        version: link:../galacean-webgpu
       '@swc/core':
         specifier: ^1.3.49
         version: 1.9.2(@swc/helpers@0.5.15)
@@ -440,9 +468,27 @@ importers:
       '@galacean/engine-core':
         specifier: workspace:*
         version: link:../core
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
+
+  packages/rhi-webgpu:
+    dependencies:
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../core
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
+      '@galacean/engine-math':
+        specifier: workspace:*
+        version: link:../math
+      '@webgpu/types':
+        specifier: ^0.1.71
+        version: 0.1.74
 
   packages/runtime-editor:
     dependencies:
@@ -470,9 +516,18 @@ importers:
       '@galacean/engine-retrieval':
         specifier: workspace:*
         version: link:../retrieval
+      '@galacean/engine-rhi-webgl':
+        specifier: workspace:*
+        version: link:../rhi-webgl
+      '@galacean/engine-rhi-webgpu':
+        specifier: workspace:*
+        version: link:../rhi-webgpu
       '@galacean/engine-ui':
         specifier: workspace:*
         version: link:../ui
+      '@galacean/engine-webgpu':
+        specifier: workspace:*
+        version: link:../galacean-webgpu
       esbuild-wasm:
         specifier: 0.25.8
         version: 0.25.8
@@ -515,6 +570,9 @@ importers:
       '@rollup/pluginutils':
         specifier: ^5.0.0
         version: 5.2.0(rollup@4.27.2)
+      web-naga:
+        specifier: 1.0.1
+        version: 1.0.1
 
   packages/shader-parser:
     dependencies:
@@ -530,36 +588,36 @@ importers:
 
   packages/spine:
     dependencies:
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../core
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
-    devDependencies:
-      '@galacean/engine':
+      '@galacean/engine-math':
         specifier: workspace:*
-        version: link:../galacean
+        version: link:../math
 
   packages/spine-core-3.8:
     dependencies:
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../core
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
-    devDependencies:
-      '@galacean/engine':
-        specifier: workspace:*
-        version: link:../galacean
 
   packages/spine-core-4.2:
     dependencies:
       '@esotericsoftware/spine-core':
         specifier: ~4.2.66
         version: 4.2.119
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../core
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
-    devDependencies:
-      '@galacean/engine':
-        specifier: workspace:*
-        version: link:../galacean
 
   packages/terrain:
     dependencies:
@@ -581,15 +639,21 @@ importers:
       '@galacean/engine-shader-compiler':
         specifier: workspace:*
         version: link:../shader-compiler
+      '@galacean/engine-webgpu':
+        specifier: workspace:*
+        version: link:../galacean-webgpu
       dat.gui:
         specifier: ^0.7.9
         version: 0.7.9
 
   packages/ui:
-    devDependencies:
-      '@galacean/engine':
+    dependencies:
+      '@galacean/engine-core':
         specifier: workspace:*
-        version: link:../galacean
+        version: link:../core
+      '@galacean/engine-math':
+        specifier: workspace:*
+        version: link:../math
 
   packages/vegetation:
     dependencies:
@@ -692,6 +756,9 @@ importers:
       '@galacean/engine-water':
         specifier: workspace:*
         version: link:../water
+      '@galacean/engine-webgpu':
+        specifier: workspace:*
+        version: link:../galacean-webgpu
       dat.gui:
         specifier: ^0.7.9
         version: 0.7.9
@@ -774,6 +841,9 @@ importers:
       '@galacean/engine-ui':
         specifier: workspace:*
         version: link:../packages/ui
+      '@galacean/engine-webgpu':
+        specifier: workspace:*
+        version: link:../packages/galacean-webgpu
       '@galacean/engine-xr':
         specifier: workspace:*
         version: link:../packages/xr
@@ -850,6 +920,9 @@ importers:
       '@galacean/engine-water':
         specifier: workspace:*
         version: link:../packages/water
+      '@galacean/engine-webgpu':
+        specifier: workspace:*
+        version: link:../packages/galacean-webgpu
       '@galacean/engine-world-planning':
         specifier: workspace:*
         version: link:../packages/world-planning
@@ -2582,6 +2655,9 @@ packages:
 
   '@vitest/utils@3.2.6':
     resolution: {integrity: sha512-lI23nIs4bnT3T8NIoh+vFaz5s2/DdP0Jgt2jxwgWljvwn82cLJtyi/If+fjFyoLMGIOz0U/fKvWE0d4jsNQEfg==}
+
+  '@webgpu/types@0.1.74':
+    resolution: {integrity: sha512-lgiI4hbuLcI9unnm2cL/tvCaQU45dp0xcLWJh5uB/9MBGvIA4F8XIk7nSiBeg+K4xWGYwgZKn80LmERI5CxoTA==}
 
   JSONStream@1.3.5:
     resolution: {integrity: sha512-E+iruNOY8VV9s4JEbe1aNEm6MiszPRr/UfcHMz0TQh1BXSxHK+ASV1R6W4HpjBhSeS+54PIsAMCBmwD06LLsqQ==}
@@ -5259,6 +5335,9 @@ packages:
       jsdom:
         optional: true
 
+  web-naga@1.0.1:
+    resolution: {integrity: sha512-1LyQpM+TaseiPhudn0zrpsZBiDZd5AsEsc6kWqp9zA65yl+Yp+F5kACV1y3oenClRTOWqjr48UqAU6c+0d0WnQ==}
+
   which-module@2.0.1:
     resolution: {integrity: sha512-iBdZ57RDvnOR9AGBhML2vFZf7h8vmBjhoaZqODJBFWHVtKkDmKuHai3cx5PgVMrX5YDNp27AofYbAwctSS+vhQ==}
 
@@ -6830,6 +6909,8 @@ snapshots:
       '@vitest/pretty-format': 3.2.6
       loupe: 3.2.1
       tinyrainbow: 2.0.0
+
+  '@webgpu/types@0.1.74': {}
 
   JSONStream@1.3.5:
     dependencies:
@@ -9782,6 +9863,8 @@ snapshots:
       - sugarss
       - supports-color
       - terser
+
+  web-naga@1.0.1: {}
 
   which-module@2.0.1: {}
 

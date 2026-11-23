@@ -4,8 +4,7 @@ import { injectWallRoofJoint } from "./ConstructionWallRoofJointShader";
 import type { ConstructionWallRoofJoint } from "./ConstructionWallRoofJoint";
 import { entranceBinding, injectConstructionEntrance } from "./ConstructionEntranceShader";
 import type { ConstructionEntranceState } from "./ConstructionEntrance";
-import { constructionLightingInstructions } from "./ConstructionSceneLighting";
-import { rawGlslInstructions } from "./RawGlslInstructions";
+import { createConstructionForwardPass } from "./ConstructionSceneLighting";
 import { leaseBuildingTexture, textureSourceColors } from "../resources/BuildingTextures";
 import type { BuildingAssets, NativeBuildingUnit } from "../resources/BuildingAssetKit";
 import { scaledNativeAttribute } from "../resources/BuildingGeometry";
@@ -44,8 +43,6 @@ import {
   MeshRenderer,
   Material,
   Shader,
-  ShaderPass,
-  ShaderLanguage,
   VertexElement,
   VertexElementFormat,
   IndexFormat,
@@ -209,16 +206,9 @@ function residentShader(engine: Engine, vertex: string, fragment: string, cullMo
     result = (async () => {
       const digest = await digestSha256(new TextEncoder().encode(source));
       const name = "Masonry/" + Array.from(new Uint8Array(digest), (v) => v.toString(16).padStart(2, "0")).join("");
-      const existing = Shader.find(name);
-      if (existing) return existing;
       // Link engine-compiled scene lighting into recovered ES, preserving scene
       // feature macros and the existing raw picking/deformation ABI.
-      const pass = new ShaderPass(
-        "Forward",
-        rawGlslInstructions(["RENDERER_MASONRY_ENTRANCE"], vertex),
-        constructionLightingInstructions(fragment),
-        ShaderLanguage.GLSLES300
-      );
+      const pass = createConstructionForwardPass(engine._shaderCompiler, vertex, fragment);
       const state = (
         pass as unknown as {
           _renderState: {
@@ -911,12 +901,14 @@ export class EngineResidentScene {
       v = engineShaderSource(
         lit.vertex
           .replace(/gl_Position = (.+) \* current_view\.world_to_sample;/g, "gl_Position = renderer_MVPMat * $1;")
-          .replace("gl_Position.z=gl_Position.z*2.0-gl_Position.w;", "")
+          .replace("gl_Position.z=gl_Position.z*2.0-gl_Position.w;", ""),
+        this.engine.graphicsBackend
       ),
       f = engineShaderSource(
         tintRole
           ? injectMasonryTint(lit.fragment, baseBindings)
-          : restoreMasonryTextureSamples(lit.fragment, baseBindings)
+          : restoreMasonryTextureSamples(lit.fragment, baseBindings),
+        this.engine.graphicsBackend
       ),
       entrance = injectConstructionEntrance(v.source, f.source, d.family);
     let vertex = "uniform mat4 renderer_MVPMat;\n" + entrance.vertex;

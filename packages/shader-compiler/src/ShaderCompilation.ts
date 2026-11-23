@@ -1,5 +1,5 @@
 import { Logger, ShaderLanguage } from "@galacean/engine-core";
-import type { IRenderStates, IShaderSource } from "@galacean/engine-design";
+import type { IRenderStates, IShaderSource, IWebGPUShaderCompiler } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { Color } from "@galacean/engine-math";
 import {
@@ -36,7 +36,7 @@ export function requireValidShaderSource(result: ShaderSourceParseResult): IShad
  * @param parsed - Neutral parser output.
  * @param vertexEntry - Vertex entry name.
  * @param fragmentEntry - Fragment entry name.
- * @param backend - Target GLES language.
+ * @param backend - Target shader language.
  * @param coreInfo - Optional stage facts already derived from this exact parser result.
  * @returns Generated program, or `undefined` when parser or entry admission fails.
  * @internal
@@ -46,7 +46,8 @@ export function generateParsedShaderPassData(
   vertexEntry: string,
   fragmentEntry: string,
   backend: ShaderLanguage,
-  coreInfo?: ShaderCoreInfo
+  coreInfo?: ShaderCoreInfo,
+  webgpu?: IWebGPUShaderCompiler
 ): IShaderProgramSource | undefined {
   if (parsed.blockingErrors.length) {
     for (const error of parsed.blockingErrors) Logger.error(error.toString());
@@ -54,7 +55,22 @@ export function generateParsedShaderPassData(
   }
   if (!parsed.ir) return undefined;
   const resolvedCoreInfo = coreInfo ?? ShaderCoreInfo.create(parsed.ir, vertexEntry, fragmentEntry);
-  return generateShaderProgram(parsed.ir, resolvedCoreInfo, backend, parsed.preprocessorExpressions);
+  if (backend === ShaderLanguage.WGSL && !webgpu) {
+    throw new Error("WGSL compilation requires a backend from createWebGPUShaderCompiler().");
+  }
+  const result = generateShaderProgram(
+    parsed.ir,
+    resolvedCoreInfo,
+    backend === ShaderLanguage.WGSL ? ShaderLanguage.GLSLES300 : backend,
+    parsed.preprocessorExpressions
+  );
+  if (result && backend === ShaderLanguage.WGSL) {
+    const wgsl = webgpu!.compileDefaultVariant(result);
+    result.wgsl = wgsl;
+    result.vertex = wgsl.vertex;
+    result.fragment = wgsl.fragment;
+  }
+  return result;
 }
 
 function generateShaderProgram(
@@ -85,8 +101,23 @@ function generateShaderProgram(
   }
   const result = GLESBackend.generate(ir, coreInfo, backend);
   if (result) {
-    result.vertexShaderInstructions = ShaderInstructionEncoder.parse(result.vertex, preprocessorExpressions);
-    result.fragmentShaderInstructions = ShaderInstructionEncoder.parse(result.fragment, preprocessorExpressions);
+    result.vertexShaderInstructions = ShaderInstructionEncoder.parse(
+      result.vertex,
+      preprocessorExpressions,
+      result.uniformPlan?.vertex
+    );
+    result.fragmentShaderInstructions = ShaderInstructionEncoder.parse(
+      result.fragment,
+      preprocessorExpressions,
+      result.uniformPlan?.fragment
+    );
+    if (
+      result.uniformPlan &&
+      (!ShaderInstructionEncoder.supportsUniformPlan(result.vertexShaderInstructions, result.uniformPlan.vertex) ||
+        !ShaderInstructionEncoder.supportsUniformPlan(result.fragmentShaderInstructions, result.uniformPlan.fragment))
+    ) {
+      delete result.uniformPlan;
+    }
     result.vertex = ShaderInstructionEncoder.source(result.vertex);
     result.fragment = ShaderInstructionEncoder.source(result.fragment);
   }

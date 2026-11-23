@@ -36,7 +36,7 @@ Shader "Sky/Skybox" {
         vec3 v_cubeUV;
       };
 
-      mat4 camera_VPMat;
+      #include "ShaderLibrary/Common/Camera.glsl"
       float material_Rotation;
       samplerCube material_CubeTexture;
       float material_Exposure;

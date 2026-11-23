@@ -766,7 +766,7 @@ export class PBRMaterial extends BaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Engine._builtinShaders.pbr);
+    super(engine, engine._builtinShaders.pbr);
 
     const shaderData = this.shaderData;
 

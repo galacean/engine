@@ -118,7 +118,7 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
     emitSources(inputDir);
   }
 
-  const shaderCompiler = await loadShaderCompiler();
+  const shaderCompiler = await loadShaderCompiler(platformTarget);
   shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir));
 
   let failed = 0;
@@ -150,7 +150,7 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
     throw new Error(`Input directory does not exist: ${inputDir}`);
   }
   fs.mkdirSync(outputDir, { recursive: true });
-  const shaderCompiler = await loadShaderCompiler();
+  const shaderCompiler = await loadShaderCompiler(platformTarget);
   shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir));
 
   // .glsl change → full recompile (can't cheaply track include graphs).
@@ -208,11 +208,20 @@ function compileAll(
   return failed;
 }
 
-async function loadShaderCompiler(): Promise<ShaderPrecompilerInstance> {
+async function loadShaderCompiler(platformTarget?: number): Promise<ShaderPrecompilerInstance> {
   const mod = (await (process.env.GALACEAN_SHADER_COMPILER_BOOTSTRAP === "true"
     ? importBootstrapPrecompiler()
-    : importReleasePrecompiler())) as { ShaderPrecompiler: new () => ShaderPrecompilerInstance };
-  const instance = new mod.ShaderPrecompiler();
+    : importReleasePrecompiler())) as { ShaderPrecompiler: new (webgpu?: unknown) => ShaderPrecompilerInstance };
+  let webgpu: unknown;
+  if (platformTarget === 1) {
+    const localRequire = createRequire(import.meta.url);
+    const module = localRequire(
+      process.env.GALACEAN_SHADER_COMPILER_BOOTSTRAP === "true" ? "../.bootstrap/webgpu.js" : "../dist/webgpu.main.js"
+    );
+    const wasm = fs.readFileSync(localRequire.resolve("web-naga/web_naga_bg.wasm"));
+    webgpu = await module.createWebGPUShaderCompiler(wasm);
+  }
+  const instance = new mod.ShaderPrecompiler(webgpu);
   if (typeof instance.precompile !== "function") {
     throw new Error("ShaderPrecompiler is unavailable; rebuild @galacean/engine-shader-compiler first.");
   }

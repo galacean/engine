@@ -86,13 +86,15 @@ Shader "Sky/SkyProcedural" {
         #endif
       };
 
-      mat4 camera_VPMat;
+      #include "ShaderLibrary/Common/Camera.glsl"
+      uniform Scene {
+        vec4 scene_SunlightColor;
+        vec3 scene_SunlightDirection;
+      };
       vec3 material_SkyTint;
       vec3 material_GroundTint;
       float material_Exposure;
       float material_AtmosphereThickness;
-      vec4 scene_SunlightColor;
-      vec3 scene_SunlightDirection;
       float material_SunSize;
       float material_SunSizeConvergence;
 

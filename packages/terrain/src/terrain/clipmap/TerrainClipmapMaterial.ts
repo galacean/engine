@@ -1,3 +1,5 @@
+import type { WebGLGraphicDevice } from "@galacean/engine";
+import type { WebGPUGraphicDevice } from "@galacean/engine-webgpu";
 import {
   terrainChangedRectangle,
   terrainRectangleSamples,
@@ -174,6 +176,12 @@ export interface TerrainAlphamapAtlasPatch {
   readonly pixels: Uint8Array;
 }
 
+function maxArrayTextureLayers(device: Engine["_hardwareRenderer"]): number {
+  if (device.backend === "webgpu") return (device as WebGPUGraphicDevice).device.limits.maxTextureArrayLayers;
+  const gl = (device as WebGLGraphicDevice).gl;
+  return gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS);
+}
+
 /**
  * Clones one standard Project Material and binds derived height residency state.
  * @param engine Engine owning the runtime-only atlas.
@@ -195,12 +203,10 @@ export function createTerrainClipmapMaterialBinding(
   puddleHydrologyOptions: Readonly<TerrainPuddleHydrologyOptions> = {},
   farMaterialOptions?: Readonly<TerrainFarMaterialOptions>
 ): TerrainClipmapMaterialBinding {
-  const nativeCanvas = (engine.canvas as unknown as { _webCanvas: HTMLCanvasElement | OffscreenCanvas })._webCanvas;
-  const context = nativeCanvas.getContext("webgl2") as WebGL2RenderingContext | null;
-  if (!context) throw new Error("Geometry Clipmap height rendering requires WebGL2");
+  const device = engine._hardwareRenderer;
   validateFarMaterialOptions(farMaterialOptions);
   const vertexSpacing = inferUniformVertexSpacing(sources);
-  const maxTextureSize = Number(context.getParameter(context.MAX_TEXTURE_SIZE));
+  const maxTextureSize = device.capability.maxTextureSize;
   let heightPacking = packTerrainHeightAtlas(sources, maxTextureSize);
   let normalPixels = packTerrainNormalAtlas(sources, heightPacking);
   let puddleCompiler = new TerrainPuddleHydrologyCompiler(sources, maxTextureSize, puddleHydrologyOptions);
@@ -209,11 +215,7 @@ export function createTerrainClipmapMaterialBinding(
     ? ([...retainedGridOrigin] as const)
     : selectTerrainGridOrigin(heightPacking.regions);
   const layerPacking = layerSources
-    ? packTerrainLayerResidency(
-        layerSources,
-        maxTextureSize,
-        Number(context.getParameter(context.MAX_ARRAY_TEXTURE_LAYERS))
-      )
+    ? packTerrainLayerResidency(layerSources, maxTextureSize, maxArrayTextureLayers(device))
     : undefined;
   if (layerPacking) {
     const activeRegionIds = new Set(heightPacking.regions.map((region) => region.id));

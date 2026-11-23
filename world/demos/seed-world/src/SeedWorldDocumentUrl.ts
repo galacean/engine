@@ -32,6 +32,15 @@ export function resolveSeedWorldDocumentUrl(
   return Object.freeze({ url: currentUrl, canReplaceHistory: false });
 }
 
+/** Update the current entry or its Flash App srcdoc URL hint. */
+export function replaceSeedWorldDocumentUrl(page: SeedWorldDocumentUrl): void {
+  if (page.canReplaceHistory) history.replaceState(history.state, "", page.url);
+  else {
+    const source = document.querySelector<HTMLMetaElement>('meta[name="flash-app-html-url"]');
+    if (source) source.content = page.url.href;
+  }
+}
+
 function isHttpUrl(url: URL): boolean {
   return url.protocol === "http:" || url.protocol === "https:";
 }

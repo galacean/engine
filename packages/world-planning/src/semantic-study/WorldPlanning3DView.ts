@@ -7,6 +7,7 @@ import {
   PBRMaterial,
   PrimitiveMesh,
   Ray,
+  RHIMode,
   RenderFace,
   Script,
   Shader,
@@ -16,7 +17,7 @@ import {
   UnlitMaterial,
   Vector2,
   Vector3,
-  WebGLEngine,
+  type Engine,
   type Entity,
   type ModelMesh
 } from "@galacean/engine";
@@ -26,7 +27,7 @@ import {
   destroyV2ViewResources,
   type V2ViewResources
 } from "@galacean/engine-modify/rendering/V2ViewGeometry";
-import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { createWorldEngine } from "../rendering/createWorldEngine";
 import { OrbitControl } from "@galacean/engine-toolkit-controls/dist/es/OrbitControl.js";
 import { PLANNING_CAMERA_METRICS } from "../landforms/PlanningLandform";
 import { DirectorSemanticView } from "../spatial/director/DirectorSemanticView";
@@ -56,12 +57,13 @@ class PlanningLabelsUpdate extends Script {
   }
 }
 
-/** Real WebGL depth-buffer renderer adapting the planning snapshot to existing V2 meshes.
+/** Depth-buffer renderer adapting the planning snapshot to existing V2 meshes.
  * Camera state is independent of layout generation and preserved across local edits.
  */
 export class WorldPlanning3DView {
   readonly canvas = document.createElement("canvas");
-  private engine!: WebGLEngine;
+  private engine!: Engine;
+  private whitebox?: Shader;
   private presentation?: PlanningPresentation;
   private terrain?: PlanningTerrainView;
   private productionRuntime?: PlanningProductionRuntime;
@@ -143,7 +145,7 @@ export class WorldPlanning3DView {
     this.canvas.className = "wp-world-canvas";
     this.canvas.tabIndex = 0;
     this.canvas.setAttribute("aria-label", "三维空间规划：拖动旋转，右键平移，滚轮缩放，点击选择模块");
-    this.canvas.dataset.renderer = "galacean-webgl-depth";
+
     Object.assign(this.canvas.style, {
       position: "absolute",
       inset: "0",
@@ -162,22 +164,28 @@ export class WorldPlanning3DView {
     this.setupWalkUI();
     this.syncVisibility();
   }
-  /** Initialize lazily so the ordinary 2D editor does not pay the WebGL startup cost. */
-  static async create(host: HTMLElement, onSelect: (id: string | null) => void): Promise<WorldPlanning3DView> {
+  /** Initialize lazily so the ordinary 2D editor does not pay the renderer startup cost. */
+  static async create(
+    host: HTMLElement,
+    onSelect: (id: string | null) => void,
+    rhi: RHIMode = RHIMode.Auto,
+    onEngineReady?: (engine: Engine) => void
+  ): Promise<WorldPlanning3DView> {
     const view = new WorldPlanning3DView(host, onSelect);
     try {
-      await view.initialize();
+      await view.initialize(rhi);
+      onEngineReady?.(view.engine);
       return view;
     } catch (error) {
       await view.dispose();
       throw error;
     }
   }
-  private async initialize(): Promise<void> {
-    this.engine = await WebGLEngine.create({
-      canvas: this.canvas,
-      shaderCompiler: new ShaderCompiler()
-    });
+  private async initialize(rhi: RHIMode): Promise<void> {
+    this.engine = await createWorldEngine({ canvas: this.canvas, rhi });
+    this.canvas.dataset.rhi = this.engine.graphicsBackend;
+    this.canvas.dataset.renderer =
+      this.engine.graphicsBackend === "webgpu" ? "galacean-webgpu-depth" : "galacean-webgl-depth";
     const scene = this.engine.sceneManager.activeScene!;
     scene.background.solidColor.set(...planningColor(PLANNING_OBJECT_CSS.ocean), 1);
 
@@ -397,7 +405,7 @@ export class WorldPlanning3DView {
           material.baseColor = whiteboxColor(part.color);
           material.renderFace = RenderFace.Double;
           if (!part.lines) {
-            material.shader = Shader.find("Planning/MetreWhitebox") ?? Shader.create(whiteboxShader);
+            material.shader = this.whitebox ??= Shader.create(whiteboxShader, this.engine);
             material.shaderData.setFloat("planning_SurfaceGrid", part.boxes ? 0 : 1);
             material.shaderData.setFloat(
               "planning_Unlit",
@@ -490,7 +498,7 @@ export class WorldPlanning3DView {
       this.setLayers(this.layers);
       this.rebuildLabels(plan);
       this.setSelection(this.selectedId, true);
-      if (this.productionRuntime) this.canvas.dataset.terrainStatus = "ready";
+      this.canvas.dataset.terrainStatus = "ready";
       this.canvas.dataset.prepareMs = String(performance.now() - prepareStarted);
       this.canvas.dataset.worldWidth = String(plan.parameters.width);
       this.canvas.dataset.worldDepth = String(plan.parameters.depth);
@@ -733,7 +741,18 @@ export class WorldPlanning3DView {
     height: number
   ): Uint8Array {
     if (!this.terrain) throw new Error("Terrain 尚未就绪");
-    const pixels = this.terrain.captureDepth(observer, width, height);
+    return this.recordTerrainDepth(this.terrain.captureDepth(observer, width, height), width, height);
+  }
+  async captureTerrainDepthAsync(
+    observer: import("../spatial/guidance/VisibilityQuery").Observer,
+    width: number,
+    height: number
+  ): Promise<Uint8Array> {
+    if (!this.terrain) throw new Error("Terrain 尚未就绪");
+    const pixels = await this.terrain.captureDepthAsync(observer, width, height);
+    return this.recordTerrainDepth(pixels, width, height);
+  }
+  private recordTerrainDepth(pixels: Uint8Array, width: number, height: number): Uint8Array {
     let valid = 0;
     for (let i = 0; i < pixels.length; i += 4) if (pixels[i] || pixels[i + 1] || pixels[i + 2]) valid++;
     this.canvas.dataset.terrainDiagnostic = JSON.stringify({
@@ -1125,6 +1144,7 @@ export class WorldPlanning3DView {
         this.resources = null;
         this.surfaceTexture?.destroy();
         this.engine?.destroy();
+        this.whitebox?.destroy();
       }
     })();
     return this.disposePromise;

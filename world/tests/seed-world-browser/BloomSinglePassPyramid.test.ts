@@ -76,7 +76,7 @@ describe("Bloom single-pass 13-tap downsample and in-place upsample", () => {
     bloomEffect.maxIterations.value = 6;
 
     const activeUberPass = bloomEngine.postProcessPasses[0] as any;
-    const blitSpy = vi.spyOn(Blitter, "blitTexture");
+    const blitSpy = vi.spyOn(Blitter, "_blitTexture");
     try {
       const bloomMaterial = activeUberPass._bloomMaterial;
       const uberMaterial = activeUberPass._uberMaterial;

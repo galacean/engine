@@ -10,7 +10,6 @@ import type { ISpineRuntime } from "../runtime/ISpineRuntime";
 import {
   assignmentClone,
   BlendFactor,
-  BoundingBox,
   Buffer,
   BufferBindFlag,
   BufferUsage,
@@ -29,11 +28,11 @@ import {
   ShaderProperty,
   Signal,
   SubPrimitive,
-  Vector3,
   VertexBufferBinding,
   VertexElement,
   VertexElementFormat
-} from "@galacean/engine";
+} from "@galacean/engine-core";
+import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { SpineResource } from "../loader/SpineResource";
 import { SpineMaterial } from "./SpineMaterial";
 import { SpineBlendMode } from "../enums/SpineBlendMode";

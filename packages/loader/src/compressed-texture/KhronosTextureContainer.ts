@@ -4,7 +4,7 @@
  */
 
 import { TextureFormat } from "@galacean/engine-core";
-import { GLCompressedTextureInternalFormat } from "@galacean/engine-rhi-webgl";
+import { KTX1InternalFormat } from "@galacean/engine-design";
 import { KTXContainer, Mipmap } from "./type";
 
 const HEADER_LEN = 12 + 13 * 4; // identifier + header elements (not including key value meta-data pairs)
@@ -75,45 +75,45 @@ function isValid(data: ArrayBuffer): boolean {
 
 function getEngineFormat(internalFormat: GLint): TextureFormat {
   switch (internalFormat) {
-    // case GLCompressedTextureInternalFormat.RGBA_S3TC_DXT3_EXT:
-    // case GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT:
+    // case KTX1InternalFormat.RGBA_S3TC_DXT3_EXT:
+    // case KTX1InternalFormat.RGBA_S3TC_DXT5_EXT:
     // break;
-    case GLCompressedTextureInternalFormat.RGB_S3TC_DXT1_EXT:
+    case KTX1InternalFormat.RGB_S3TC_DXT1_EXT:
       return TextureFormat.BC1;
-    case GLCompressedTextureInternalFormat.RGBA_S3TC_DXT5_EXT:
+    case KTX1InternalFormat.RGBA_S3TC_DXT5_EXT:
       return TextureFormat.BC3;
-    case GLCompressedTextureInternalFormat.RGBA_BPTC_UNORM_EXT:
+    case KTX1InternalFormat.RGBA_BPTC_UNORM_EXT:
       return TextureFormat.BC7;
-    case GLCompressedTextureInternalFormat.RGB_ETC1_WEBGL:
+    case KTX1InternalFormat.RGB_ETC1_WEBGL:
       return TextureFormat.ETC1_RGB;
-    case GLCompressedTextureInternalFormat.RGB8_ETC2:
+    case KTX1InternalFormat.RGB8_ETC2:
       return TextureFormat.ETC2_RGB;
-    case GLCompressedTextureInternalFormat.RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+    case KTX1InternalFormat.RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
       return TextureFormat.ETC2_RGBA5;
-    case GLCompressedTextureInternalFormat.RGBA8_ETC2_EAC:
+    case KTX1InternalFormat.RGBA8_ETC2_EAC:
       return TextureFormat.ETC2_RGBA8;
-    case GLCompressedTextureInternalFormat.RGB_PVRTC_2BPPV1_IMG:
+    case KTX1InternalFormat.RGB_PVRTC_2BPPV1_IMG:
       return TextureFormat.PVRTC_RGB2;
-    case GLCompressedTextureInternalFormat.RGBA_PVRTC_2BPPV1_IMG:
+    case KTX1InternalFormat.RGBA_PVRTC_2BPPV1_IMG:
       return TextureFormat.PVRTC_RGBA2;
-    case GLCompressedTextureInternalFormat.RGB_PVRTC_4BPPV1_IMG:
+    case KTX1InternalFormat.RGB_PVRTC_4BPPV1_IMG:
       return TextureFormat.PVRTC_RGB4;
-    case GLCompressedTextureInternalFormat.RGBA_PVRTC_4BPPV1_IMG:
+    case KTX1InternalFormat.RGBA_PVRTC_4BPPV1_IMG:
       return TextureFormat.PVRTC_RGBA4;
-    case GLCompressedTextureInternalFormat.RGBA_ASTC_4X4_KHR:
+    case KTX1InternalFormat.RGBA_ASTC_4X4_KHR:
       return TextureFormat.ASTC_4x4;
-    case GLCompressedTextureInternalFormat.RGBA_ASTC_5X5_KHR:
+    case KTX1InternalFormat.RGBA_ASTC_5X5_KHR:
       return TextureFormat.ASTC_5x5;
-    case GLCompressedTextureInternalFormat.RGBA_ASTC_6X6_KHR:
+    case KTX1InternalFormat.RGBA_ASTC_6X6_KHR:
       return TextureFormat.ASTC_6x6;
-    case GLCompressedTextureInternalFormat.RGBA_ASTC_8X8_KHR:
+    case KTX1InternalFormat.RGBA_ASTC_8X8_KHR:
       return TextureFormat.ASTC_8x8;
-    case GLCompressedTextureInternalFormat.RGBA_ASTC_10X10_KHR:
+    case KTX1InternalFormat.RGBA_ASTC_10X10_KHR:
       return TextureFormat.ASTC_10x10;
-    case GLCompressedTextureInternalFormat.RGBA_ASTC_12X12_KHR:
+    case KTX1InternalFormat.RGBA_ASTC_12X12_KHR:
       return TextureFormat.ASTC_12x12;
     default:
-      const formatName: any = GLCompressedTextureInternalFormat[internalFormat];
+      const formatName: any = KTX1InternalFormat[internalFormat];
       throw new Error(`this format is not supported in Galacean Engine: ${formatName}`);
   }
 }

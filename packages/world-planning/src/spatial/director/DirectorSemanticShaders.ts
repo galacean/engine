@@ -17,15 +17,15 @@ export const semanticGeometryShader = `Shader "Planning/DirectorSemanticGeometry
  #endif
  vec4 material_DirectorIdentity;
  float camera_DirectorTargetOnly;
- struct SemanticVaryings { vec2 sourceXZ; float valid; };
+ struct SemanticVaryings { float valid; };
  VertexShader = semanticVertex;
  FragmentShader = semanticFragment;
  SemanticVaryings semanticVertex(Attributes a) {
   SemanticVaryings v;
-  v.sourceXZ = vec2(0.); v.valid = 1.;
+  v.valid = 1.;
   #ifdef PLANNING_DIAGNOSTIC_TERRAIN
    TerrainProjectClipmapVertex vertex = terrainProjectClipmapVertexAt(a.POSITION);
-   v.sourceXZ = vertex.sourceXZ; v.valid = vertex.valid;
+   v.valid = vertex.valid;
    gl_Position = camera_VPMat * vec4(vertex.positionWS, 1.);
   #else
    gl_Position = camera_VPMat * renderer_ModelMat * vec4(a.POSITION, 1.);
@@ -36,7 +36,7 @@ export const semanticGeometryShader = `Shader "Planning/DirectorSemanticGeometry
   if(material_DirectorIdentity.b < .5/255.) discard;
   if(camera_DirectorTargetOnly > .5 && material_DirectorIdentity.a < 1.5/255.) discard;
   #ifdef PLANNING_DIAGNOSTIC_TERRAIN
-   if(v.valid < .999 || terrainProjectSolidAt(v.sourceXZ) < .5) discard;
+   if(v.valid < .999) discard;
   #endif
   gl_FragColor = material_DirectorIdentity;
  }

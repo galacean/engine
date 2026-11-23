@@ -1,8 +1,9 @@
-import { Shader, ShaderFactory, ShaderLanguage, type ShaderPass } from "@galacean/engine";
+import { type Engine, ShaderFactory, ShaderLanguage, ShaderPass } from "@galacean/engine";
 import sceneLighting from "./ConstructionSceneLighting.glsl?raw";
 import { RAW_GLSL_MACROS, rawGlslInstructions } from "./RawGlslInstructions";
 
 type Instructions = ConstructorParameters<typeof ShaderPass>[2];
+type UniformBlocks = ConstructorParameters<typeof ShaderPass>[6];
 export function registerConstructionSceneLighting() {
   if (!ShaderFactory.includeMap["Masonry/SceneLighting.glsl"])
     ShaderFactory.registerInclude("Masonry/SceneLighting.glsl", sceneLighting);
@@ -31,7 +32,22 @@ export const constructionLightingBridgeSource = `Shader "Masonry/SceneLightingBr
 /** Text-only transformation preserves every instruction index/jump target. */
 export function constructionLightingHelpers(instructions: Instructions): Instructions {
   let entries = 0;
-  const result = instructions.map((instruction) => {
+  // An explicit UBO bridge can put the main wrapper's opening and call in
+  // consecutive instructions. Keep both positions for absolute macro jumps.
+  const splitMain = instructions.findIndex((instruction, index) => {
+    const next = instructions[index + 1];
+    return (
+      instruction[0] === 0 &&
+      String(instruction[1]).trim() === "void main() {" &&
+      next?.[0] === 0 &&
+      String(next[1]).trim() === "BridgeFragment(); }"
+    );
+  });
+  const result = instructions.map((instruction, index) => {
+    if (splitMain >= 0 && (index === splitMain || index === splitMain + 1)) {
+      if (index === splitMain) entries++;
+      return [0, ""] as Instructions[number];
+    }
     if (instruction[0] !== 0) return instruction;
     const source = (instruction[1] as string)
       .replace(/uniform (?:vec3|float) masonryBridge\w+;\s*/g, "")
@@ -48,29 +64,62 @@ export function constructionLightingHelpers(instructions: Instructions): Instruc
   if (entries !== 1) throw Error("Unexpected scene lighting compiler entry ABI");
   return result;
 }
-let helpers: Instructions | undefined;
-let helpersDeclareProjectionParams = false;
+type LightingCompiler = NonNullable<Engine["_shaderCompiler"]>;
+interface LightingBridge {
+  helpers: Instructions;
+  uniformBlocks: UniformBlocks;
+  helpersDeclareProjectionParams: boolean;
+}
+const lightingByCompiler = new WeakMap<LightingCompiler, LightingBridge>();
 const CAMERA_PROJECTION_PARAMS_DECL_PATTERN =
   /(?:^|\n)[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?vec4\s+camera_ProjectionParams\s*;\s*/g;
 const HAS_CAMERA_PROJECTION_PARAMS_DECL_PATTERN = /\buniform\b[^;\n]*\bcamera_ProjectionParams\b\s*;/;
 
-export function constructionLightingInstructions(fragment: string): Instructions {
-  if (!helpers) {
+export function createConstructionForwardPass(
+  compiler: Engine["_shaderCompiler"],
+  vertex: string,
+  fragment: string
+): ShaderPass {
+  if (!compiler) throw new Error("Construction lighting requires the engine's shader compiler");
+  let bridge = lightingByCompiler.get(compiler);
+  if (!bridge) {
     registerConstructionSceneLighting();
-    const shader =
-      Shader.find("Masonry/SceneLightingBridge") ??
-      Shader.create(constructionLightingBridgeSource, ShaderLanguage.GLSLES300);
-    helpers = constructionLightingHelpers(
-      (shader.subShaders[0].passes[0] as unknown as { _fragmentShaderInstructions: Instructions })
-        ._fragmentShaderInstructions
+    const pass = compiler._parseShaderSource(constructionLightingBridgeSource).subShaders[0].passes[0];
+    const compiled = compiler._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300,
+      undefined,
+      pass.contentScopeStarts
     );
-    helpersDeclareProjectionParams = helpers.some(
-      (instruction) => instruction[0] === 0 && HAS_CAMERA_PROJECTION_PARAMS_DECL_PATTERN.test(instruction[1] as string)
-    );
+    if (!compiled?.fragmentShaderInstructions) throw new Error("Construction lighting bridge failed to compile");
+    const helpers = constructionLightingHelpers(compiled.fragmentShaderInstructions);
+    bridge = {
+      helpers,
+      uniformBlocks: compiled.uniformBlocks,
+      helpersDeclareProjectionParams: helpers.some(
+        (instruction) =>
+          instruction[0] === 0 && HAS_CAMERA_PROJECTION_PARAMS_DECL_PATTERN.test(instruction[1] as string)
+      )
+    };
+    lightingByCompiler.set(compiler, bridge);
   }
+  const { helpers, uniformBlocks, helpersDeclareProjectionParams } = bridge;
   const normalizedFragment = helpersDeclareProjectionParams
     ? fragment.replace(CAMERA_PROJECTION_PARAMS_DECL_PATTERN, "\n")
     : fragment;
   // Append gates AFTER the helper instructions so their absolute jumps stay valid.
-  return [...helpers, ...rawGlslInstructions(RAW_GLSL_MACROS, normalizedFragment, helpers.length)];
+  // The explicit Scene and Camera blocks retain their compiled byte layout.
+  // The bridge's uniform plan and WGSL refer to its original entry points and
+  // instruction streams; the linked vertex and fragment must specialize anew.
+  return new ShaderPass(
+    "Forward",
+    rawGlslInstructions(["RENDERER_MASONRY_ENTRANCE"], vertex),
+    [...helpers, ...rawGlslInstructions(RAW_GLSL_MACROS, normalizedFragment, helpers.length)],
+    ShaderLanguage.GLSLES300,
+    undefined,
+    undefined,
+    uniformBlocks
+  );
 }

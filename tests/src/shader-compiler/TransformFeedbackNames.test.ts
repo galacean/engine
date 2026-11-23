@@ -46,7 +46,8 @@ async function capture(
       vertexOutputNames
     );
   const shaderProgram = pass._compileShaderProgram(engine, new ShaderMacroCollection(), [varying]);
-  const program = shaderProgram["_glProgram"]!;
+  shaderProgram.bind();
+  const program = gl.getParameter(gl.CURRENT_PROGRAM) as WebGLProgram;
   const buffer = gl.createBuffer()!;
   const feedback = gl.createTransformFeedback()!;
   try {

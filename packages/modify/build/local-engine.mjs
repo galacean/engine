@@ -9,11 +9,13 @@ const names = [
   "core",
   "design",
   "galacean",
+  "galacean-webgpu",
   "loader",
   "math",
   "physics-physx",
   "rhi-null",
   "rhi-webgl",
+  "rhi-webgpu",
   "shader",
   "shader-compiler",
   "shader-parser",
@@ -35,14 +37,30 @@ for (const name of names) {
       )
   });
 }
-for (const { original, replacement } of JSON.parse(
-  fs.readFileSync(path.join(root, "packages/modify/native-overrides.json"))
-)) {
+const overrides = JSON.parse(fs.readFileSync(path.join(root, "packages/modify/native-overrides.json")));
+for (const { original, replacement } of overrides) {
   if (!names.includes(original.split("/")[1])) continue;
   const target = path.join(output, original);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.copyFileSync(path.join(root, replacement), target);
 }
+// This package snapshot distributes both backends. Give the WebGPU subpath
+// the same selected sources that the product Vite entry and compiler receive.
+const shaderPackage = path.join(output, "packages/shader");
+const webgpuShaders = path.join(shaderPackage, "src-webgpu");
+fs.cpSync(path.join(shaderPackage, "src"), webgpuShaders, { recursive: true });
+for (const { original, webgpuReplacement } of overrides) {
+  if (!webgpuReplacement || !original.startsWith("packages/shader/src/")) continue;
+  const target = path.join(webgpuShaders, original.slice("packages/shader/src/".length));
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.copyFileSync(path.join(root, webgpuReplacement), target);
+}
+const shaderManifest = path.join(shaderPackage, "package.json");
+const manifest = JSON.parse(fs.readFileSync(shaderManifest));
+manifest.scripts.precompile = manifest.scripts.precompile.replace("src/Shaders compiledWebGPUShaders", "src-webgpu/Shaders compiledWebGPUShaders");
+fs.writeFileSync(shaderManifest, JSON.stringify(manifest, null, 2));
+const webgpuEntry = path.join(shaderPackage, "src/webgpu.ts");
+fs.writeFileSync(webgpuEntry, fs.readFileSync(webgpuEntry, "utf8").replace('"./ShaderLibrary"', '"../src-webgpu/ShaderLibrary"'));
 // Replacement particle exports intentionally omit newer native-only modules. Emit declarations
 // from the same public entry graph as Rollup, rather than orphaned implementation files.
 const coreConfigPath = path.join(output, "packages/core/tsconfig.json");

@@ -1,4 +1,11 @@
-import type { Condition, PreprocessorExpressionParseResult, ShaderInstruction } from "@galacean/engine-design";
+import type {
+  Condition,
+  IShaderUniformSelection,
+  IShaderUniformSite,
+  PreprocessorExpressionParseResult,
+  ShaderInstruction
+} from "@galacean/engine-design";
+import { needsUniformArrayProof, supportsUniformArrayPlan } from "@galacean/engine-design";
 import { ShaderPreprocessorDirective } from "@galacean/engine-core";
 import { parsePreprocessorExpression, toPreprocessorCondition } from "@galacean/engine-shader-parser/internal";
 import type { DeferredDeclarationOwnership } from "@galacean/engine-shader-parser/internal";
@@ -9,8 +16,84 @@ export type { ShaderInstruction } from "@galacean/engine-design";
  * @internal
  */
 export class ShaderInstructionEncoder {
+  private static readonly _rawStages = new WeakMap<ShaderInstruction[], ShaderInstruction[]>();
+
+  /** Historical hand-authored stages can put preprocessor directives inside one Text instruction. */
+  static normalizeRawStage(instructions: ShaderInstruction[]): ShaderInstruction[] {
+    if (instructions.length !== 1 || instructions[0][0] !== ShaderPreprocessorDirective.Text) return instructions;
+    let stage = ShaderInstructionEncoder._rawStages.get(instructions);
+    if (!stage) {
+      stage = ShaderInstructionEncoder.parseRawStage(String(instructions[0][1])) ?? instructions;
+      ShaderInstructionEncoder._rawStages.set(instructions, stage);
+    }
+    return stage;
+  }
+
+  static parseRawStage(source: string): ShaderInstruction[] | undefined {
+    if (!/^[ \t]*#[ \t]*(?:if|ifdef|ifndef|define|undef)\b/m.test(source)) return;
+    const logicalSource = source
+      .replace(/\\(?:\r\n?|\n)/g, "")
+      .replace(/\/\*[\s\S]*?\*\//g, (s) => s.replace(/[^\r\n]/g, " "));
+    return ShaderInstructionEncoder.parse(logicalSource);
+  }
+
   private static _DIRECTIVE_RE = /^[ \t]*#[ \t]*(if|ifdef|ifndef|elif|else|endif|define|undef)\b(.*)/;
   private static _FUNC_MACRO_RE = /^(\w+)\(([^)]*)\)\s*(.*)/;
+
+  /** Select a pass format before publication, independent of the requesting device or macro set. */
+  static supportsUniformPlan(instructions: ShaderInstruction[], sites: IShaderUniformSite[]): boolean {
+    const needsProof = sites.some(
+      (site) =>
+        (site.kind === "uniform" || site.kind === "structMember") &&
+        needsUniformArrayProof(site.type, String(instructions[site.instruction][1]))
+    );
+    if (!needsProof) return true;
+    const macroNames = new Set<string>();
+    const immutable = new Map<string, string>();
+    const selected: IShaderUniformSelection[] = [];
+    let depth = 0,
+      siteIndex = 0;
+    for (let i = 0; i < instructions.length; i++) {
+      const instruction = instructions[i];
+      const op = instruction[0];
+      if (op >= ShaderPreprocessorDirective.IfDef && op <= ShaderPreprocessorDirective.IfExpr) depth++;
+      else if (op === ShaderPreprocessorDirective.Endif) depth--;
+      else if (op >= ShaderPreprocessorDirective.Define && op <= ShaderPreprocessorDirective.Undef) {
+        const name = String(instruction[1]);
+        macroNames.add(name);
+        if (
+          op === ShaderPreprocessorDirective.DefineVal &&
+          depth === 0 &&
+          /^\s*(?:0[xX][\da-fA-F]+|\d+)[uU]?\s*$/.test(String(instruction[2]))
+        )
+          immutable.set(name, String(instruction[2]));
+        else immutable.delete(name);
+      }
+      const site = sites[siteIndex];
+      if (!site || site.instruction !== i) continue;
+      siteIndex++;
+      if (site.kind === "entry" || site.kind === "precision" || site.kind === "explicitMatrix") continue;
+      // A const under a guard or inherited owner cannot establish an unconditional
+      // extent. Repeated const declarations likewise retain driver specialization.
+      if (site.kind === "constant" && (depth || op === ShaderPreprocessorDirective.OwnedText)) continue;
+      const text = String(instruction[1]).replace(/\b[A-Za-z_]\w*\b/g, (word) =>
+        macroNames.has(word) ? (immutable.get(word) ?? "gs_unproved_array_macro") : word
+      );
+      selected.push({ site, text, start: 0, end: text.length });
+    }
+    return supportsUniformArrayPlan(selected);
+  }
+
+  /** Split a declaration into its own VM text instruction without putting reflection markers in GLSL. */
+  static uniformSite(
+    text: string,
+    kind: IShaderUniformSite["kind"],
+    name: string,
+    type: string,
+    structName = ""
+  ): string {
+    return `\x01${kind},${name},${type},${structName}\x01${text}\x01/\x01`;
+  }
 
   /**
    * Marks compiler-owned text without placing parser objects in the instruction stream.
@@ -55,7 +138,8 @@ export class ShaderInstructionEncoder {
    * @internal
    */
   static source(source: string): string {
-    return source.indexOf("\0") < 0 ? source : source.replace(/\0[^\0]*\0\n?/g, "");
+    // eslint-disable-next-line no-control-regex -- Both control delimiters belong to the encoder's private annotations.
+    return source.replace(/\0[^\0]*\0\n?|\x01[^\x01]*\x01/g, "");
   }
 
   /**
@@ -68,7 +152,8 @@ export class ShaderInstructionEncoder {
    */
   static parse(
     glsl: string,
-    preprocessorExpressions?: ReadonlyMap<string, PreprocessorExpressionParseResult>
+    preprocessorExpressions?: ReadonlyMap<string, PreprocessorExpressionParseResult>,
+    sites: IShaderUniformSite[] = []
   ): ShaderInstruction[] {
     const instructions: ShaderInstruction[] = [];
     const length = glsl.length;
@@ -80,12 +165,12 @@ export class ShaderInstructionEncoder {
       const directiveStart = ShaderInstructionEncoder._findDirectiveStart(glsl, pos, length);
 
       if (directiveStart === -1) {
-        ShaderInstructionEncoder._pushText(instructions, glsl, pos, length, owners);
+        ShaderInstructionEncoder._pushText(instructions, glsl, pos, length, owners, sites);
         break;
       }
 
       if (directiveStart > pos) {
-        ShaderInstructionEncoder._pushText(instructions, glsl, pos, directiveStart, owners);
+        ShaderInstructionEncoder._pushText(instructions, glsl, pos, directiveStart, owners, sites);
       }
 
       const lineEnd = ShaderInstructionEncoder._findLogicalLineEnd(glsl, directiveStart, length);
@@ -110,7 +195,7 @@ export class ShaderInstructionEncoder {
       const match = ShaderInstructionEncoder._DIRECTIVE_RE.exec(line);
       if (!match) {
         const text = lineEnd < length ? line + "\n" : line;
-        ShaderInstructionEncoder._pushText(instructions, text, 0, text.length, owners);
+        ShaderInstructionEncoder._pushText(instructions, text, 0, text.length, owners, sites);
         continue;
       }
 
@@ -287,13 +372,58 @@ export class ShaderInstructionEncoder {
     source: string,
     from: number,
     to: number,
-    owners?: readonly number[]
+    owners: readonly number[] | undefined,
+    sites: IShaderUniformSite[]
+  ): void {
+    source = source.slice(from, to);
+    from = 0;
+    to = source.length;
+    let marker = source.indexOf("\x01", from);
+    while (marker >= from && marker < to) {
+      ShaderInstructionEncoder._appendText(instructions, source, from, marker, owners, sites);
+      const head = source.indexOf("\x01", marker + 1);
+      const close = source.indexOf("\x01/\x01", head + 1);
+      if (close < 0 || close > to) throw new Error("Shader reflection marker crosses a preprocessor directive.");
+      const [kind, name, type, structName] = source.slice(marker + 1, head).split(",");
+      const site: IShaderUniformSite = {
+        instruction: instructions.length,
+        kind: kind as IShaderUniformSite["kind"],
+        name,
+        type
+      };
+      if (structName) site.structName = structName;
+      sites.push(site);
+      let text = source.slice(head + 1, close);
+      from = close + 3;
+      // Global declaration emitters append their own semicolon outside the AST node.
+      if (from < to && source[from] === ";") {
+        text += ";";
+        from++;
+      }
+      instructions.push(
+        owners === undefined
+          ? [ShaderPreprocessorDirective.Text, text]
+          : [ShaderPreprocessorDirective.OwnedText, text, ...owners]
+      );
+      marker = source.indexOf("\x01", from);
+    }
+    ShaderInstructionEncoder._appendText(instructions, source, from, to, owners, sites);
+  }
+
+  private static _appendText(
+    instructions: ShaderInstruction[],
+    source: string,
+    from: number,
+    to: number,
+    owners: readonly number[] | undefined,
+    sites: IShaderUniformSite[]
   ): void {
     if (from >= to) return;
     const last = instructions.length > 0 ? instructions[instructions.length - 1] : null;
     const directive = owners === undefined ? ShaderPreprocessorDirective.Text : ShaderPreprocessorDirective.OwnedText;
     if (
       last &&
+      sites[sites.length - 1]?.instruction !== instructions.length - 1 &&
       last[0] === directive &&
       (owners === undefined ||
         (last.length === owners.length + 2 && owners.every((owner, index) => last[index + 2] === owner)))

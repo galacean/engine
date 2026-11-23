@@ -97,7 +97,11 @@ function fixture(sources = [source()], withAlpha = false) {
   };
   const material = { name: "test", clone: () => ({ shaderData, destroy() {} }) } as unknown as Material;
   const engine = {
-    canvas: { _webCanvas: { getContext: () => ({ MAX_TEXTURE_SIZE: 1, getParameter: () => 1024 }) } },
+    _hardwareRenderer: {
+      backend: "webgl2",
+      capability: { maxTextureSize: 1024 },
+      gl: { MAX_ARRAY_TEXTURE_LAYERS: 0x88ff, getParameter: () => 1024 }
+    },
     resourceManager: { addContentRestorer() {} }
   } as unknown as Engine;
   const layers = withAlpha

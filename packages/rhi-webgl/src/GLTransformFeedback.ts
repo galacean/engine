@@ -1,4 +1,4 @@
-import { IPlatformTransformFeedback, IPlatformBuffer } from "@galacean/engine-core";
+import { IPlatformTransformFeedback, IPlatformBuffer, MeshTopology } from "@galacean/engine-core";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLBuffer } from "./GLBuffer";
 
@@ -10,8 +10,8 @@ export class GLTransformFeedback implements IPlatformTransformFeedback {
   private _gl: WebGL2RenderingContext;
   private _glTransformFeedback: WebGLTransformFeedback | null;
 
-  constructor(rhi: WebGLGraphicDevice) {
-    const gl = rhi.gl;
+  constructor(private readonly _rhi: WebGLGraphicDevice) {
+    const gl = _rhi.gl;
     this._gl = gl;
     this._glTransformFeedback = gl.createTransformFeedback();
   }
@@ -26,8 +26,8 @@ export class GLTransformFeedback implements IPlatformTransformFeedback {
     gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, index, null);
   }
 
-  begin(primitiveMode: number): void {
-    this._gl.beginTransformFeedback(primitiveMode);
+  begin(primitiveMode: MeshTopology): void {
+    this._gl.beginTransformFeedback(this._rhi._primitiveFormats.topology[primitiveMode]);
   }
 
   end(): void {

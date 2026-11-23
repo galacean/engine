@@ -50,4 +50,13 @@ export interface IPlatformTexture2D extends IPlatformTexture {
    * @param out - Color buffer
    */
   getPixelBuffer(x: number, y: number, width: number, height: number, mipLevel: number, out: ArrayBufferView): void;
+
+  getPixelBufferAsync?(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    mipLevel: number,
+    out: ArrayBufferView
+  ): Promise<void>;
 }

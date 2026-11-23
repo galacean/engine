@@ -20,6 +20,10 @@ export class Buffer extends GraphicsResource {
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
   private _readable: boolean;
+  private _cpuDataValid = true;
+  private _cpuShaderWriteRevision = 0;
+  private _vertexSource?: WeakRef<ArrayBufferView>;
+  private _vertexSourceRevision?: number;
   private _data: Uint8Array | null;
 
   /**
@@ -63,6 +67,32 @@ export class Buffer extends GraphicsResource {
     } else {
       throw "Buffer is not readable.";
     }
+  }
+
+  /** @internal Current CPU-side contents, if available without a GPU readback. */
+  get _readableData(): Uint8Array | null {
+    return this._readable &&
+      this._cpuDataValid &&
+      this._cpuShaderWriteRevision === (this._platformBuffer.shaderWriteRevision ?? 0)
+      ? this._data
+      : null;
+  }
+
+  /** @internal Remember immutable loader-owned vertex data while its original allocation is still alive. */
+  _rememberVertexSource(data: ArrayBufferView): void {
+    if (!this._readable && typeof WeakRef !== "undefined") {
+      this._vertexSource = new WeakRef(data);
+      this._vertexSourceRevision = this._platformBuffer.shaderWriteRevision;
+    }
+  }
+
+  /** @internal Synchronous emission data when the mesh or its loader still has the uploaded bytes. */
+  _getVertexSource(): Uint8Array | null {
+    const readable = this._readableData;
+    if (readable) return readable;
+    const source =
+      this._vertexSourceRevision === this._platformBuffer.shaderWriteRevision && this._vertexSource?.deref();
+    return source ? new Uint8Array(source.buffer, source.byteOffset, source.byteLength) : null;
   }
 
   /**
@@ -185,17 +215,55 @@ export class Buffer extends GraphicsResource {
     options: SetDataOptions = SetDataOptions.None
   ): void {
     this._platformBuffer.setData(this._byteLength, data, bufferByteOffset, dataOffset, dataLength, options);
+    this._onDataUploaded(data, bufferByteOffset, dataOffset, dataLength, options === SetDataOptions.Discard);
+  }
 
+  /** @internal Bind a uniform range and optionally upload the complete contents of that slice. */
+  _bindUniformRange(
+    binding: number,
+    offset: number,
+    size: number,
+    data?: ArrayBufferView,
+    discard?: boolean,
+    zeroStart = 0,
+    zeroEnd = 0
+  ): void {
+    const rhi = this._engine._hardwareRenderer;
+    const platform = this._platformBuffer;
+    if (zeroEnd && platform.writeUniformArrayRange && data instanceof Uint32Array && !discard) {
+      platform.writeUniformArrayRange(offset, data, zeroStart, zeroEnd);
+      rhi.bindUniformBufferRange(binding, platform, offset, size);
+    } else {
+      rhi.bindUniformBufferRange(binding, platform, offset, size, data, discard);
+    }
+    if (data) this._onDataUploaded(data, offset, 0, undefined, discard);
+  }
+
+  private _onDataUploaded(
+    data: ArrayBuffer | ArrayBufferView,
+    bufferByteOffset: number,
+    dataOffset: number,
+    dataLength?: number,
+    discard = false
+  ): void {
+    this._vertexSource = undefined;
     if (this._readable) {
-      const arrayBuffer = data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer;
-
-      if (this._data!.buffer !== arrayBuffer) {
-        const byteSize = (<TypedArray>data).BYTES_PER_ELEMENT || 1; // TypeArray is BYTES_PER_ELEMENT, unTypeArray is 1
-        const dataByteLength = dataLength ? byteSize * dataLength : data.byteLength;
-        const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
-        const byteOffset = isArrayBufferView ? (<ArrayBufferView>data).byteOffset + dataOffset * byteSize : dataOffset;
-        const srcData = new Uint8Array(arrayBuffer, byteOffset, dataByteLength);
-        this._data!.set(srcData, bufferByteOffset);
+      const view = ArrayBuffer.isView(data) ? data : undefined;
+      const buffer = view ? view.buffer : (data as ArrayBuffer);
+      const bytes = (data as TypedArray).BYTES_PER_ELEMENT || 1;
+      const start = dataOffset * bytes;
+      const length = dataLength === undefined ? data.byteLength - start : dataLength * bytes;
+      const src = new Uint8Array(buffer, (view?.byteOffset ?? 0) + start, length);
+      const snapshot = this._data!;
+      snapshot.set(src, bufferByteOffset);
+      if (discard) {
+        // The source may alias the CPU snapshot. Copy its range before clearing the rest of the orphaned store.
+        snapshot.fill(0, 0, bufferByteOffset);
+        snapshot.fill(0, bufferByteOffset + length);
+      }
+      if (discard || (bufferByteOffset === 0 && length === this._byteLength)) {
+        this._cpuDataValid = true;
+        this._cpuShaderWriteRevision = this._platformBuffer.shaderWriteRevision ?? 0;
       }
     }
     this._isContentLost = false;
@@ -225,7 +293,31 @@ export class Buffer extends GraphicsResource {
   getData(data: ArrayBufferView, bufferByteOffset: number, dataOffset: number, dataLength: number): void;
 
   getData(data: ArrayBufferView, bufferByteOffset: number = 0, dataOffset: number = 0, dataLength?: number): void {
+    if (this._platformBuffer.supportsSynchronousReadback === false && this._readableData) {
+      const bytes = (data as TypedArray).BYTES_PER_ELEMENT || 1;
+      const size = dataLength === undefined ? data.byteLength - dataOffset * bytes : dataLength * bytes;
+      if (
+        bufferByteOffset < 0 ||
+        dataOffset < 0 ||
+        size < 0 ||
+        bufferByteOffset + size > this._byteLength ||
+        dataOffset * bytes + size > data.byteLength
+      ) {
+        throw new RangeError("Buffer read exceeds the source or destination range.");
+      }
+      new Uint8Array(data.buffer, data.byteOffset + dataOffset * bytes, size).set(
+        this._data!.subarray(bufferByteOffset, bufferByteOffset + size)
+      );
+      return;
+    }
     this._platformBuffer.getData(data, bufferByteOffset, dataOffset, dataLength);
+  }
+
+  /** Read the GPU contents, including earlier writes in the current frame. */
+  async getDataAsync(data: ArrayBufferView, bufferByteOffset = 0, dataOffset = 0, dataLength?: number): Promise<void> {
+    const platform = this._platformBuffer;
+    if (platform.getDataAsync) return platform.getDataAsync(data, bufferByteOffset, dataOffset, dataLength);
+    platform.getData(data, bufferByteOffset, dataOffset, dataLength);
   }
 
   /**
@@ -237,6 +329,18 @@ export class Buffer extends GraphicsResource {
    */
   copyFromBuffer(srcBuffer: Buffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
     this._platformBuffer.copyFromBuffer(srcBuffer._platformBuffer, srcByteOffset, dstByteOffset, byteLength);
+    this._vertexSource = undefined;
+    if (this._readable) {
+      if (srcBuffer._readableData) {
+        this._data!.set(srcBuffer._data!.subarray(srcByteOffset, srcByteOffset + byteLength), dstByteOffset);
+        if (dstByteOffset === 0 && byteLength === this._byteLength) {
+          this._cpuDataValid = true;
+          this._cpuShaderWriteRevision = this._platformBuffer.shaderWriteRevision ?? 0;
+        }
+      } else {
+        this._cpuDataValid = false;
+      }
+    }
   }
 
   /**
@@ -251,12 +355,18 @@ export class Buffer extends GraphicsResource {
    * @internal
    */
   override _rebuild(): void {
+    const snapshot = this._readableData;
+    this._vertexSource = undefined;
     const platformBuffer = this._engine._hardwareRenderer.createPlatformBuffer(
       this._type,
       this._byteLength,
-      this._bufferUsage
+      this._bufferUsage,
+      snapshot ?? undefined
     );
     this._platformBuffer = platformBuffer;
+    this._cpuShaderWriteRevision = platformBuffer.shaderWriteRevision ?? 0;
+    this._cpuDataValid = !!snapshot;
+    if (snapshot) this._isContentLost = false;
     this._engine._renderingStatistics._bufferMemory += this._byteLength;
   }
 

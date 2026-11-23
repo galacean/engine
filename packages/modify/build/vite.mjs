@@ -12,13 +12,19 @@ const replacements = new Map(
 );
 const nativePackages = new Map([
   ["@galacean/engine", "galacean"],
-  ...["core", "math", "loader", "rhi-webgl", "rhi-null", "ui", "physics-physx", "design", "shader-compiler"].map((name) => [
+  ["@galacean/engine-webgpu", "galacean-webgpu"],
+  ...["core", "math", "loader", "rhi-webgl", "rhi-webgpu", "rhi-null", "ui", "physics-physx", "design", "shader-compiler"].map((name) => [
     `@galacean/engine-${name}`,
     name
   ])
 ]);
 const buildVersion = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "package.json"))).version;
-const shaderEntry = path.join(packageRoot, ".cache/shaders.ts");
+const shaderModules = new Map([
+  ["@galacean/engine-shader", "shaders.ts"],
+  ["@galacean/engine-shader/sources", "sources.ts"],
+  ["@galacean/engine-shader/webgpu", "webgpu/shaders.ts"],
+  ["@galacean/engine-shader/webgpu/sources", "webgpu/sources.ts"]
+]);
 
 /** Opt-in source substitution. Module identities remain the native paths, so
  * relative imports and instanceof checks use one Engine graph. No native file
@@ -38,7 +44,7 @@ export function engineModify() {
         optimizeDeps: {
           exclude: [
             ...nativePackages.keys(),
-            "@galacean/engine-shader",
+            ...shaderModules.keys(),
             "@galacean/engine-toolkit-controls",
             "@galacean/engine-toolkit-stats"
           ]
@@ -46,11 +52,15 @@ export function engineModify() {
       };
     },
     resolveId(source, importer) {
-      if (source === "@galacean/engine-shader") {
+      if (source.startsWith("/packages/")) {
+        const candidate = path.join(repositoryRoot, source);
+        if (replacements.has(candidate)) return candidate;
+      }
+      if (shaderModules.has(source)) {
+        const shaderEntry = path.join(packageRoot, ".cache", shaderModules.get(source));
         if (!fs.existsSync(shaderEntry)) throw new Error("Run pnpm --dir world prepare:engine before starting World.");
         return shaderEntry;
       }
-      if (source === "@galacean/engine-shader/sources") return path.join(packageRoot, ".cache/sources.ts");
       // Match the original Gallery's release compiler. Loading its TS sources
       // directly executes _VERBOSE blocks that the native Rollup build removes.
       if (source === "@galacean/engine-shader-compiler")

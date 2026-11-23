@@ -12,7 +12,10 @@ const server = await createServer({ root, cacheDir: path.join(root, "node_module
   plugins: [{ name: "contract-source-paths", enforce: "pre", resolveId(source) {
     if (source.startsWith("/packages/")) return path.join(root, source);
   } }, engineModify()],
-  server: { middlewareMode: true }, appType: "custom" });
+  // The generator loads one SSR entry. Watching a materialized Engine recursively visits its workspace links.
+  optimizeDeps: { disabled: true },
+  server: { middlewareMode: true, hmr: false, watch: { ignored: () => true } },
+  appType: "custom" });
 try {
   await server.ssrLoadModule("/world/demos/seed-world/agent-adapter/contracts/generate-agent-contracts.ts");
 } finally {

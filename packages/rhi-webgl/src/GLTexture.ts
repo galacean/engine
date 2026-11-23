@@ -271,6 +271,7 @@ export class GLTexture implements IPlatformTexture {
           internalFormat: gl.DEPTH_COMPONENT32F,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: gl.FLOAT,
+          alignment: 4,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
@@ -279,6 +280,7 @@ export class GLTexture implements IPlatformTexture {
           internalFormat: gl.DEPTH32F_STENCIL8,
           baseFormat: gl.DEPTH_STENCIL,
           dataType: gl.FLOAT_32_UNSIGNED_INT_24_8_REV,
+          alignment: 8,
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
@@ -287,6 +289,7 @@ export class GLTexture implements IPlatformTexture {
           internalFormat: gl.DEPTH_COMPONENT16,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: gl.UNSIGNED_SHORT,
+          alignment: 2,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
@@ -295,6 +298,7 @@ export class GLTexture implements IPlatformTexture {
           internalFormat: gl.DEPTH24_STENCIL8,
           baseFormat: gl.DEPTH_STENCIL,
           dataType: gl.UNSIGNED_INT_24_8,
+          alignment: 4,
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
@@ -303,6 +307,7 @@ export class GLTexture implements IPlatformTexture {
           internalFormat: gl.DEPTH_COMPONENT24,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: gl.UNSIGNED_INT,
+          alignment: 4,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
@@ -311,6 +316,7 @@ export class GLTexture implements IPlatformTexture {
           internalFormat: gl.DEPTH_COMPONENT32F,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: gl.FLOAT,
+          alignment: 4,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
@@ -319,6 +325,7 @@ export class GLTexture implements IPlatformTexture {
           internalFormat: gl.DEPTH32F_STENCIL8,
           baseFormat: gl.DEPTH_STENCIL,
           dataType: gl.FLOAT_32_UNSIGNED_INT_24_8_REV,
+          alignment: 8,
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
@@ -479,14 +486,6 @@ export class GLTexture implements IPlatformTexture {
   }
 
   /**
-   * @internal
-   */
-  setUseDepthCompareMode(value: boolean): void {
-    const gl = this._gl;
-    gl.texParameteri(this._target, gl.TEXTURE_COMPARE_MODE, value ? gl.COMPARE_REF_TO_TEXTURE : gl.NONE);
-  }
-
-  /**
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void {
@@ -579,6 +578,7 @@ export class GLTexture implements IPlatformTexture {
     const { dataType, readType, alignment } = this._formatDetail;
     const readFormat = this._getReadFormat();
 
+    this._rhi._flushAndResetActiveRenderTarget();
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
     if (face != null) {

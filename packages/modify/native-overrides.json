@@ -424,22 +424,6 @@
     "replacement": "packages/modify/src/native/loader/src/resource-deserialize/resources/texture/TexturePixelsDecoder.ts"
   },
   {
-    "original": "packages/rhi-webgl/src/GLTexture2D.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTexture2D.ts"
-  },
-  {
-    "original": "packages/rhi-webgl/src/GLPrimitive.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/GLPrimitive.ts"
-  },
-  {
-    "original": "packages/rhi-webgl/src/GLBuffer.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/GLBuffer.ts"
-  },
-  {
-    "original": "packages/rhi-webgl/src/GLTextureReadback.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTextureReadback.ts"
-  },
-  {
     "original": "packages/shader/src/Shaders/PBR.shader",
     "replacement": "packages/modify/src/native/shader/src/Shaders/PBR.shader"
   },
@@ -449,11 +433,13 @@
   },
   {
     "original": "packages/shader/src/Shaders/Sky/SkyProcedural.shader",
-    "replacement": "packages/modify/src/native/shader/src/Shaders/Sky/SkyProcedural.shader"
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Sky/SkyProcedural.shader",
+    "webgpuReplacement": "packages/modify/src/webgpu/shader/src/Shaders/Sky/SkyProcedural.shader"
   },
   {
     "original": "packages/shader/src/Shaders/Sky/Skybox.shader",
-    "replacement": "packages/modify/src/native/shader/src/Shaders/Sky/Skybox.shader"
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Sky/Skybox.shader",
+    "webgpuReplacement": "packages/modify/src/webgpu/shader/src/Shaders/Sky/Skybox.shader"
   },
   {
     "original": "packages/shader/src/ShaderLibrary/index.ts",
@@ -461,7 +447,8 @@
   },
   {
     "original": "packages/shader/src/ShaderLibrary/Common/Fog.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Common/Fog.glsl"
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Common/Fog.glsl",
+    "webgpuReplacement": "packages/modify/src/webgpu/shader/src/ShaderLibrary/Common/Fog.glsl"
   },
   {
     "original": "packages/shader/src/ShaderLibrary/Lighting/Light.glsl",
@@ -477,7 +464,8 @@
   },
   {
     "original": "packages/shader/src/ShaderLibrary/PostProcess/SunLensFlare.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/SunLensFlare.glsl"
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/SunLensFlare.glsl",
+    "webgpuReplacement": "packages/modify/src/webgpu/shader/src/ShaderLibrary/PostProcess/SunLensFlare.glsl"
   },
   {
     "original": "packages/shader/src/Shaders/PostProcess/SunLensFlare.shader",
@@ -533,15 +521,18 @@
   },
   {
     "original": "packages/shader/src/Shaders/Lighting/RealtimeIBLAccumulate.shader",
-    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/RealtimeIBLAccumulate.shader"
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/RealtimeIBLAccumulate.shader",
+    "webgpuReplacement": "packages/modify/src/webgpu/shader/src/Shaders/Lighting/RealtimeIBLAccumulate.shader"
   },
   {
     "original": "packages/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader",
-    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader"
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader",
+    "webgpuReplacement": "packages/modify/src/webgpu/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader"
   },
   {
     "original": "packages/shader/src/Shaders/Lighting/RealtimeIBLResolve.shader",
-    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/RealtimeIBLResolve.shader"
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/RealtimeIBLResolve.shader",
+    "webgpuReplacement": "packages/modify/src/webgpu/shader/src/Shaders/Lighting/RealtimeIBLResolve.shader"
   },
   {
     "original": "packages/shader/src/Shaders/Lighting/ProbeDepthCapture.shader",
@@ -584,14 +575,6 @@
     "replacement": "packages/modify/src/native/core/src/shader/ShaderProgramMap.ts"
   },
   {
-    "original": "packages/galacean/src/ShaderPool.ts",
-    "replacement": "packages/modify/src/native/galacean/src/ShaderPool.ts"
-  },
-  {
-    "original": "packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTransformFeedbackPrimitive.ts"
-  },
-  {
     "original": "packages/shader/src/Shaders/Effect/ParticleFeedback.shader",
     "replacement": "packages/modify/src/native/shader/src/Shaders/Effect/ParticleFeedback.shader"
   },
@@ -614,14 +597,6 @@
   {
     "original": "packages/loader/src/ktx2/KTX2Loader.ts",
     "replacement": "packages/modify/src/native/loader/src/ktx2/KTX2Loader.ts"
-  },
-  {
-    "original": "packages/core/src/shader/state/DepthState.ts",
-    "replacement": "packages/modify/src/native/core/src/shader/state/DepthState.ts"
-  },
-  {
-    "original": "packages/core/src/shader/state/RasterState.ts",
-    "replacement": "packages/modify/src/native/core/src/shader/state/RasterState.ts"
   },
   {
     "original": "packages/core/src/particle/ParticleBounds.ts",
@@ -668,28 +643,14 @@
     "replacement": "packages/modify/src/native/rhi-null/src/NullTexture.ts"
   },
   {
-    "original": "packages/rhi-webgl/src/GLCapability.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/GLCapability.ts"
-  },
-  {
-    "original": "packages/rhi-webgl/src/GLRenderTarget.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/GLRenderTarget.ts"
-  },
-  {
-    "original": "packages/rhi-webgl/src/GLTexture.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTexture.ts"
-  },
-  {
-    "original": "packages/rhi-webgl/src/WebGLGraphicDevice.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/WebGLGraphicDevice.ts"
-  },
-  {
     "original": "packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl",
+    "webgpuReplacement": "packages/modify/src/webgpu/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl"
   },
   {
     "original": "packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl",
-    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl"
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl",
+    "webgpuReplacement": "packages/modify/src/webgpu/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl"
   },
   {
     "original": "packages/shader/src/ShaderLibrary/Pipeline/DepthOnlyPass.glsl",
@@ -740,15 +701,63 @@
     "replacement": "packages/modify/src/native/core/src/material/BaseMaterial.ts"
   },
   {
-    "original": "packages/rhi-webgl/src/GLTexture2DArray.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTexture2DArray.ts"
-  },
-  {
     "original": "packages/core/src/graphic/TransformFeedbackPrimitive.ts",
     "replacement": "packages/modify/src/native/core/src/graphic/TransformFeedbackPrimitive.ts"
   },
   {
     "original": "packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts",
     "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts"
+  },
+  {
+    "original": "packages/core/src/graphic/Primitive.ts",
+    "replacement": "packages/modify/src/native/core/src/graphic/Primitive.ts"
+  },
+  {
+    "original": "packages/core/src/shader/Shader.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/Shader.ts"
+  },
+  {
+    "original": "packages/core/src/shader/WorldShaderInstructions.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/WorldShaderInstructions.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLBuffer.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLBuffer.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLCapability.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLCapability.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLPrimitive.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLPrimitive.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLRenderTarget.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLRenderTarget.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLTexture.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTexture.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLTexture2D.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTexture2D.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLTexture2DArray.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTexture2DArray.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLTextureReadback.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTextureReadback.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTransformFeedbackPrimitive.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/WebGLGraphicDevice.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/WebGLGraphicDevice.ts"
   }
 ]

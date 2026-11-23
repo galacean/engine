@@ -25,6 +25,7 @@ import { readSemanticParameters, ownerOf, type WorldPlanningHandle, type WorldPl
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { PlanningSession, type EditReceipt } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { planningSeedURL } from "./PlanningDocumentCodec.ts";
+import { seedWorldRhi } from "@galacean/engine-world-planning/rendering/createWorldEngine";
 import { planningPageUrl } from "./PlanningPageUrl.ts";
 import { resolveSceneSelection } from "@galacean/engine-world-planning/spatial/PlanningScene";
 import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
@@ -194,7 +195,10 @@ export async function mountSpatialEditor(
           ? resolveSceneSelection(session.scene, id)
           : ownerOf(session.result.plan, id)
       );
-    }
+    },
+    true,
+    seedWorldRhi(pageUrl.url),
+    options.onEngineReady
   );
   const director = mountDirectorPanel(ui("viewport"), button("director"), async () => {
     await changeProjection(true);

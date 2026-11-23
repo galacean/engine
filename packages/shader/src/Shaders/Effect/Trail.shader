@@ -73,9 +73,7 @@ Shader "Effect/Trail" {
 
       vec4 renderer_TrailParams;
       vec2 renderer_DistanceParams;
-      vec3 camera_Position;
-      mat4 camera_ViewMat;
-      mat4 camera_ProjMat;
+      #include "ShaderLibrary/Common/Camera.glsl"
       vec2 renderer_WidthCurve[4];
       vec4 renderer_ColorKeys[4];
       vec2 renderer_AlphaKeys[4];

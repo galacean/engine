@@ -21,17 +21,18 @@
 | `/world/demos/seed-world/index.html` | 在选择页选定主题与 Seed 后进入全屏 3D |
 | 同地址加 `?debug=1` | 选择主题后进入空间规划器，点击「生成 3D」进入场景 |
 | 普通入口加 `buildingApiDebug=1` | 正式 V2 建筑 list/query/apply 调试；真实修改并保存当前 Seed，仅用于测试工程，不调用 LLM |
-| [空间框架](spatial/README.md)、[协作规则](AGENTS.md) | 数据契约、参数作用域、规则与素材接入 |
-| [配置目录](planning-data/README.md)、[框架审计](spatial/FRAMEWORK_AUDIT.md) | 配置入口、范围与未完成项 |
-| [场景视觉意图](../scene-visual-intent/README.md)、[心理地图](spatial/WAYFINDING_DESIGN.md) | 自然语言首次生成与导演测量；不代表完整美感/找路验收 |
+| [空间框架](../../../packages/world-planning/src/spatial/README.md)、[规划约束](../../../packages/world-planning/src/spatial/CONSTRAINT_POLICY.md) | 数据契约、参数作用域、规则与素材接入 |
+| [配置目录](../../../packages/world-planning/src/planning-data/README.md)、[框架审计](../../../packages/world-planning/src/spatial/FRAMEWORK_AUDIT.md) | 配置入口、范围与未完成项 |
+| [场景视觉意图](dev/scene-visual-intent/README.md)、[心理地图](../../../packages/world-planning/src/spatial/WAYFINDING_DESIGN.md) | 自然语言首次生成与导演测量；不代表完整美感/找路验收 |
 | [灵光闪应用发布指南](FLASH_APP_PUBLISH.md) | 闪应用产物与源码快照构建、PUGC 上传注册、正式上架与验收 |
 
-源码只修改 `world/gallery`；物化、构建见 [World 开发指南](../../../../README.md)。已有 Engine 构建时，从仓库根串行执行：
+从仓库根目录启动 Seed。开发服务默认打开模板选择页。普通入口使用 `auto`，支持 WebGPU 的设备优先使用 WebGPU，设备申请失败时会使用 WebGL2。也可以在同一地址追加 `?rhi=webgpu` 或 `?rhi=webgl2` 验证指定后端。生产构建、桌面验收和跨分支同步命令见 [World 开发指南](../../README.md#使用)。
 
 ```sh
-pnpm --dir world gallery:sync
-pnpm --dir world/.materialized/engine/world-gallery typecheck:terrain
-pnpm --dir world dev --host 127.0.0.1 --port 4321 --strictPort
+pnpm install --frozen-lockfile
+pnpm b:module
+pnpm --dir world prepare:engine
+pnpm --dir world dev
 ```
 
 复用已有服务。`RuntimeOptions.ts` 的公共预编译默认开启：候选资源发布前准备真实 Shader 组合；显式关闭仅用于首用编译对照，任何模式都不跳过 Shader 注册。普通入口不再使用 `version=2`；真实 3D debug 可对照 OBB。WORLD CONTROLS 的 WASD/ORBIT 使用同一控制器，角色身高与漫游离地高度为 1.8 米，Q/E 不修改离地高度。
@@ -40,18 +41,11 @@ WASD 模式下，W/A/S/D 平移，←/→ 转向，↑/↓ 抬头/低头，鼠�
 
 岩石默认表面、Perlin 上升遮罩和独立 OBB 表面/高度模式/坡率/尺寸控件统一位于真实 3D debug 面板的 **05 Rocks / 岩石 → Rock formation**。使用 `debug=1` 入口并点击“生成 3D”进入；点选岩石会展开对应 OBB 控件。Individual OBB 的 Rock surface 可独立选择 Slabs / Cellular curvature；Inherit surface 恢复来源或全局默认。Height mode 可选 Random ascent 或 Perlin noise · ascent mask，独立坡率默认由 `2×高/min(宽,深)` 派生、变化量默认 20%，可关闭 Automatic slope from OBB size 后编辑手动基础坡率。点击 Apply OBB settings 提交模式、坡率与尺寸；规划岩石未保存高度模式时继承生成配置；景观伴生石块也复用同一生成配置。普通 3D 不再挂载独立悬浮岩石面板。参数仍需 Apply 后生效，保留 Reset 与原作者事务。
 
-Rock formation → **Generation profile / 生成配置** 默认平台比例为 1，全部采用保留原始高度的圆钝顶部，去掉默认的 Perlin 尖峰，保留岩石棱面与绘制材质；通用默认表面采用顶点定义岩层，减轻原高小石块的竖向深沟。平台默认高度倍率 1、手动基础坡率 12 m/m；高度与坡率相对早期 0.25 倍／3 m/m 同时放大四倍，在恢复原始高度时保留顶部宽度。调低平台比例仍可按世界 Seed 与稳定对象 ID 混入使用自动坡率的山峰。比例、倍率及变化量可编辑；显式单体覆盖优先，重置继承当前配置，局部编辑只失效受影响岩石及依赖资源。详细字段和保存契约见 [岩石配置](rock-formation/README.md)。景观散布岩石在作者投影时应用同一配置，首次生成、局部编辑、景观显露和水体生态重建均从原始高度重算，显式 solid.height 优先。树脚伴生石按稳定实例 ID 选择平台／山峰，每个素材家族共享两份网格；比例编辑只切换这些实例的网格绑定，单 OBB 编辑不重建树脚伴生石。已有工程显式保存的生成参数继续优先；重置生成配置可恢复当前默认值。
+Rock formation → **Generation profile / 生成配置** 默认平台比例为 1，全部采用保留原始高度的圆钝顶部，去掉默认的 Perlin 尖峰，保留岩石棱面与绘制材质；通用默认表面采用顶点定义岩层，减轻原高小石块的竖向深沟。平台默认高度倍率 1、手动基础坡率 12 m/m；高度与坡率相对早期 0.25 倍／3 m/m 同时放大四倍，在恢复原始高度时保留顶部宽度。调低平台比例仍可按世界 Seed 与稳定对象 ID 混入使用自动坡率的山峰。比例、倍率及变化量可编辑；显式单体覆盖优先，重置继承当前配置，局部编辑只失效受影响岩石及依赖资源。详细字段和保存契约见 [岩石配置](../../../packages/world-planning/src/integrations/terrain/rock-formation/Settings.ts)。景观散布岩石在作者投影时应用同一配置，首次生成、局部编辑、景观显露和水体生态重建均从原始高度重算，显式 solid.height 优先。树脚伴生石按稳定实例 ID 选择平台／山峰，每个素材家族共享两份网格；比例编辑只切换这些实例的网格绑定，单 OBB 编辑不重建树脚伴生石。已有工程显式保存的生成参数继续优先；重置生成配置可恢复当前默认值。
 
 ## 固定草地起伏法线资源
 
-`data/seed-world/public/textures/grass-surface-normal.rgb8` 是 256² 线性 XYZ 离线贴图，无 mip、重复采样。只依赖 `grass-color-detail.r8` 和 `src/SeedWorldSurfaceNormalBake.ts` 的固定参数，不包含真实地形、道路遮罩或光照。修改这些输入后，从仓库根同步 Gallery，再执行：
-
-```sh
-node world/.materialized/engine/world-gallery/demos/terrain/scripts/generate-surface-normal-tile.mjs
-cp world/.materialized/engine/world-gallery/demos/terrain/data/seed-world/public/textures/grass-surface-normal.rgb8 world/gallery/demos/terrain/data/seed-world/public/textures/grass-surface-normal.rgb8
-```
-
-同脚本加 `--check` 会重算并逐字节校验，不写文件。运行时缓存已加载的 CPU 数据，每个世界仍独立拥有 GPU 纹理；世界遮罩、真实地形法线和光照继续动态合成。
+[草地法线纹理](../../../packages/terrain/src/data/seed-world/public/textures/grass-surface-normal.rgb8) 是 256² 线性 XYZ 离线贴图，无 mip、重复采样。生成时使用 `grass-color-detail.r8` 和 [法线烘焙函数](../../../packages/terrain/src/world/SeedWorldSurfaceNormalBake.ts) 的固定参数。运行时缓存已加载的 CPU 数据，每个世界仍独立拥有 GPU 纹理；世界遮罩、真实地形法线和光照继续动态合成。
 
 ## 地表渲染权重与草根颜色
 
@@ -65,7 +59,7 @@ Seed 地形从 LOD 2 起使用远景材质；仅有两圈时从 LOD 1 起。远�
 
 Shader 编译使用仓库已有的 `shader-compiler-precompile` CLI，需使用 World 修改版 ShaderLibrary，并同步更新引用共享代码的 `.shaderc` 资源。
 
-运行 `pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.config.mjs SeedWorldTerrainRuntimeIntegration TerrainFarShader` 检查接入及远景编译后的采样器裁减。
+运行 `pnpm exec vitest run --config world/tests/seed-world/vitest.config.mjs SeedWorldTerrainRuntimeIntegration TerrainFarShader` 检查接入及远景编译后的采样器裁减。
 
 ## 作者、存档与发布
 

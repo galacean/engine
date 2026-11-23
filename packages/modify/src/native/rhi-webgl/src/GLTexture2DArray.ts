@@ -114,7 +114,8 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
 
     const readFormat = this._getReadFormat();
     gl.pixelStorei(gl.PACK_ALIGNMENT, formatDetail.alignment!);
-    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
+    this._rhi._flushAndResetActiveRenderTarget();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
     gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this._glTexture, mipLevel, elementIndex);
     gl.readPixels(x, y, width, height, readFormat, formatDetail.readType ?? formatDetail.dataType!, out);
     this._rhi._bindFramebuffer(gl.FRAMEBUFFER, null);

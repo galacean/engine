@@ -85,7 +85,18 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     super._getPixelBuffer(null, x, y, width, height, mipLevel, out);
   }
   /** @inheritdoc */
-  getPixelBufferAsync(out: Uint8Array, signal?: AbortSignal): Promise<void> {
+  async getPixelBufferAsync(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    mipLevel: number,
+    out: ArrayBufferView
+  ): Promise<void> {
+    this.getPixelBuffer(x, y, width, height, mipLevel, out);
+  }
+
+  getPixelBufferAsyncRGBA8(out: Uint8Array, signal?: AbortSignal): Promise<void> {
     if (!this._glTexture) return Promise.reject(new Error("Texture or device is unavailable"));
     return readTexturePixelsAsync(
       this._gl,

@@ -1,17 +1,21 @@
 import { Engine } from "../Engine";
 import { GraphicsResource } from "../asset/GraphicsResource";
 import type { IPlatformPrimitive, IPlatformShaderProgram } from "../renderingHardwareInterface";
-import { BufferUtil } from "./BufferUtil";
 import { IndexBufferBinding } from "./IndexBufferBinding";
 import { SubPrimitive } from "./SubPrimitive";
 import { VertexBufferBinding } from "./VertexBufferBinding";
 import { VertexElement } from "./VertexElement";
+import { VertexElementFormat } from "./enums/VertexElementFormat";
+import type { WebGPUShaderInputType } from "@galacean/engine-design";
 
 /**
  * @internal
  * Primitive.
  */
 export class Primitive extends GraphicsResource {
+  // Independently uploaded meshes frequently use the same vertex input types.
+  // Keep one descriptor for those meshes without retaining an unbounded set of user layouts.
+  private static _lastShaderInputs?: { key: string; types: Record<string, WebGPUShaderInputType> };
   enableVAO: boolean = true;
   instanceCount: number = 0;
   vertexBufferBindings: (VertexBufferBinding | null)[] = [];
@@ -19,15 +23,36 @@ export class Primitive extends GraphicsResource {
   /** @internal */
   _vertexElementMap: Record<string, VertexElement> = {};
   /** @internal */
-  _glIndexType: number | undefined;
-  /** @internal */
-  _glIndexByteCount: number;
-  /** @internal */
   _bufferStructChanged: boolean = false;
 
   private _vertexElements: VertexElement[] = [];
   private _indexBufferBinding: IndexBufferBinding | null;
   private _platformPrimitive: IPlatformPrimitive;
+  private _shaderInputs?: { key: string; types: Record<string, WebGPUShaderInputType> };
+
+  /** @internal WebGPU stage input types depend on integer versus normalized vertex fetch. */
+  _getShaderInputs(): { key: string; types: Record<string, WebGPUShaderInputType> } {
+    if (this._shaderInputs) return this._shaderInputs;
+    const types: Record<string, WebGPUShaderInputType> = Object.create(null);
+    const fields: string[] = [];
+    for (const element of this._vertexElements) {
+      const f = element.format;
+      const type =
+        f === VertexElementFormat.Byte4 || f === VertexElementFormat.Short2 || f === VertexElementFormat.Short4
+          ? "sint"
+          : f === VertexElementFormat.UByte4 ||
+              f === VertexElementFormat.UShort2 ||
+              f === VertexElementFormat.UShort4 ||
+              f === VertexElementFormat.UInt4
+            ? "uint"
+            : "float";
+      types[element.attribute] = type;
+      fields.push(element.attribute.length + ":" + element.attribute + ":" + type);
+    }
+    const key = fields.sort().join(",");
+    const previous = Primitive._lastShaderInputs;
+    return (this._shaderInputs = previous?.key === key ? previous : (Primitive._lastShaderInputs = { key, types }));
+  }
 
   get vertexElements(): VertexElement[] {
     return this._vertexElements;
@@ -43,6 +68,7 @@ export class Primitive extends GraphicsResource {
   }
 
   addVertexElement(element: VertexElement): void {
+    this._shaderInputs = undefined;
     const vertexElementMap = this._vertexElementMap;
     const vertexElements = this._vertexElements;
 
@@ -58,6 +84,7 @@ export class Primitive extends GraphicsResource {
   }
 
   removeVertexElement(index: number): void {
+    this._shaderInputs = undefined;
     const vertexElements = this._vertexElements;
     // Delete the old vertex element
     const vertexElement = vertexElements[index];
@@ -67,6 +94,7 @@ export class Primitive extends GraphicsResource {
   }
 
   clearVertexElements(): void {
+    this._shaderInputs = undefined;
     this._vertexElements.length = 0;
     const vertexElementMap = this._vertexElementMap;
     for (const k in vertexElementMap) {
@@ -79,6 +107,7 @@ export class Primitive extends GraphicsResource {
    * @remarks should use together with `setVertexElementsLength`
    */
   setVertexElement(index: number, element: VertexElement): void {
+    this._shaderInputs = undefined;
     const vertexElementMap = this._vertexElementMap;
     const vertexElements = this._vertexElements;
 
@@ -92,6 +121,7 @@ export class Primitive extends GraphicsResource {
   }
 
   setVertexElementsLength(length: number): void {
+    this._shaderInputs = undefined;
     const vertexElementMap = this._vertexElementMap;
     const vertexElements = this._vertexElements;
 
@@ -135,14 +165,8 @@ export class Primitive extends GraphicsResource {
     if (lastBinding !== binding) {
       this._indexBufferBinding = binding;
       referCount > 0 && lastBinding?.buffer._addReferCount(-referCount);
-      if (binding) {
-        referCount > 0 && binding.buffer._addReferCount(referCount);
-        this._glIndexType = BufferUtil._getGLIndexType(binding.format);
-        this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
-      } else {
-        this._glIndexType = undefined;
-      }
-      this._bufferStructChanged = lastBinding?.buffer !== binding?.buffer;
+      if (referCount > 0) binding?.buffer._addReferCount(referCount);
+      this._bufferStructChanged ||= lastBinding?.buffer !== binding?.buffer;
     }
   }
 

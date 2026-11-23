@@ -62,12 +62,7 @@ export class WebXRFrame implements IXRFrame {
 
   private _updateCamera(inputs: IXRInput[]) {
     const frame = this._platformFrame!;
-    const {
-      _platformReferenceSpace: referenceSpace,
-      _platformLayer: layer,
-      framebufferWidth,
-      framebufferHeight
-    } = this._session;
+    const { _platformReferenceSpace: referenceSpace, gpuBinding, framebufferWidth, framebufferHeight } = this._session;
     const viewerPose = frame.getViewerPose(referenceSpace);
     if (viewerPose) {
       let hadUpdateCenterViewer = false;
@@ -85,12 +80,17 @@ export class WebXRFrame implements IXRFrame {
         pose.position.copyFrom(transform.position);
         pose.rotation.copyFrom(transform.orientation);
         xrCamera.projectionMatrix.copyFromArray(view.projectionMatrix);
+        if (gpuBinding) {
+          // Core culling uses [-w,w]. WGSL converts that representation back to [0,w] for rasterization.
+          const e = xrCamera.projectionMatrix.elements;
+          for (let j = 2; j < 16; j += 4) e[j] = 2 * e[j] - e[j + 1];
+        }
         xrCamera.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
-        const xrViewport = layer.getViewport(view)!;
+        const xrViewport = this._session.getViewport(view);
         const width = xrViewport.width / framebufferWidth;
         const height = xrViewport.height / framebufferHeight;
         const x = xrViewport.x / framebufferWidth;
-        const y = 1 - xrViewport.y / framebufferHeight - height;
+        const y = gpuBinding ? xrViewport.y / framebufferHeight : 1 - xrViewport.y / framebufferHeight - height;
         xrCamera.viewport.set(x, y, width, height);
       }
 

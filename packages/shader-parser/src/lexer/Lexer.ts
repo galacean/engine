@@ -79,6 +79,7 @@ export class Lexer extends BaseLexer {
     usamplerCube: Keyword.U_SAMPLER_CUBE,
     usampler2DArray: Keyword.U_SAMPLER2D_ARRAY,
     struct: Keyword.STRUCT,
+    uniform: Keyword.UNIFORM,
     void: Keyword.VOID,
     true: Keyword.True,
     false: Keyword.False,

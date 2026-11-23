@@ -1,5 +1,6 @@
-import { Color, DataObject, ReferResource, Sprite, ignoreClone } from "@galacean/engine";
-import type { ICloneHook } from "@galacean/engine";
+import { DataObject, ReferResource, Sprite, ignoreClone } from "@galacean/engine-core";
+import { Color } from "@galacean/engine-math";
+import type { ICloneHook } from "@galacean/engine-core";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveState, UIInteractive } from "../UIInteractive";
 

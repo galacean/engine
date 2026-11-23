@@ -1,18 +1,37 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { BuiltinShaders } from "@galacean/engine-core";
 import type { IPhysics } from "@galacean/engine-design";
 import { BoxColliderShape, Engine, PhysicsMaterial, ResourceManager, Shader } from "@galacean/engine";
+import { WebGPUEngine } from "@galacean/engine-webgpu";
+import { HeadlessEngine } from "@galacean/engine-rhi-null";
 import { BasicResources } from "../../core/src/BasicResources";
 
 describe("World engine bootstrap", () => {
-  it("initializes the native built-in shader references and World extensions", () => {
-    expect(Engine._builtinShaders.pbr).toBe(Shader.find("PBR"));
-    expect(Engine._builtinShaders.blit).toBe(Shader.find("Blit/Blit"));
-    expect(Engine._builtinShaders.skyProcedural).toBe(Shader.find("Sky/SkyProcedural"));
-    expect(Engine._builtinShaders.particleFeedback).toBe(Shader.find("Effect/ParticleFeedback"));
-    expect(Engine._builtinShaders.screenSpaceReflection).toBe(Shader.find("Lighting/ScreenSpaceReflection"));
+  let builtinShaders: BuiltinShaders;
+  beforeAll(async () => {
+    const config = await WebGPUEngine["_prepareConfiguration"]({
+      canvas: {} as HTMLCanvasElement,
+      webGPUShaderCompiler: { compileWebGPUVariant: vi.fn(), compileDefaultVariant: vi.fn() }
+    });
+    builtinShaders = config.builtinShaders!;
+  });
+
+  it("loads separate native built-in catalogs and the World extensions for both devices", () => {
+    const webgl = Engine._builtinShaders;
+    expect(webgl.pbr).toBeInstanceOf(Shader);
+    expect(webgl.pbr).not.toBe(builtinShaders.pbr);
+    expect(webgl.pbr.subShaders[0].passes[0]["_wgsl"]).toBeUndefined();
+    expect(builtinShaders.pbr.subShaders[0].passes[0]["_wgsl"]!.vertex).toContain("@vertex");
+
+    expect(builtinShaders.pbr).toBe(Shader.find("PBR"));
+    expect(builtinShaders.blit).toBe(Shader.find("Blit/Blit"));
+    expect(builtinShaders.skyProcedural).toBe(Shader.find("Sky/SkyProcedural"));
+    expect(builtinShaders.particleFeedback).toBe(Shader.find("Effect/ParticleFeedback"));
+    expect(builtinShaders.screenSpaceReflection).toBe(Shader.find("Lighting/ScreenSpaceReflection"));
     expect(Shader.find("Pipeline/SSRReceiver")).toBeInstanceOf(Shader);
     expect(Shader.find("Pipeline/SSRContributionDepth")).toBeInstanceOf(Shader);
-    expect(Engine._builtinShaders.particleFeedback.subShaders[0].passes[0]._feedbackVaryings).toEqual([
+    const feedback = builtinShaders.particleFeedback.subShaders[0].passes[0]["_wgsl"]!;
+    expect(feedback.reflection.vertexOutputs.map((output) => output.name)).toEqual([
       "v_FeedbackPosition",
       "v_FeedbackVelocity"
     ]);
@@ -27,20 +46,18 @@ describe("World engine bootstrap", () => {
     const physics = {
       initialize: vi.fn(async () => undefined),
       createPhysicsMaterial: vi.fn(() => nativeMaterial),
+      createPhysicsScene: vi.fn(() => ({ setContactEventEnabled() {}, destroy() {} })),
       createPhysicsManager: vi.fn(() => ({})),
       createBoxColliderShape: vi.fn(() => nativeShape)
     };
-    const createEngineShell = () =>
-      Object.assign(Object.create(Engine.prototype), {
-        _basicResources: { _initialize: async () => undefined }
-      }) as Engine;
+    const createEngine = () => HeadlessEngine.create({ builtinShaders, physics: physics as unknown as IPhysics });
+    const engines: HeadlessEngine[] = [];
     let shape: BoxColliderShape | undefined;
     try {
       Engine._nativePhysics = undefined!;
       BasicResources.physicsDefaultMaterial = undefined!;
       ResourceManager._loaders = {};
-      const engine = createEngineShell();
-      await engine["_initialize"]({ physics: physics as unknown as IPhysics });
+      engines.push(await createEngine());
       expect(BasicResources.physicsDefaultMaterial).toBeInstanceOf(PhysicsMaterial);
       expect(physics.createPhysicsMaterial).toHaveBeenCalledExactlyOnceWith(PhysicsMaterial._defaultProperties);
 
@@ -49,12 +66,13 @@ describe("World engine bootstrap", () => {
       expect(physics.createBoxColliderShape).toHaveBeenCalledWith(shape.id, shape.size, nativeMaterial);
 
       const sharedMaterial = BasicResources.physicsDefaultMaterial;
-      await createEngineShell()["_initialize"]({ physics: physics as unknown as IPhysics });
+      engines.push(await createEngine());
       expect(BasicResources.physicsDefaultMaterial).toBe(sharedMaterial);
       expect(physics.createPhysicsMaterial).toHaveBeenCalledTimes(1);
       expect(physics.createPhysicsManager).toHaveBeenCalledTimes(2);
     } finally {
       shape?._destroy();
+      for (const engine of engines) engine.destroy();
       Engine._nativePhysics = previousPhysics;
       BasicResources.physicsDefaultMaterial = previousMaterial;
       ResourceManager._loaders = previousLoaders;

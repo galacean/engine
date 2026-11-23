@@ -4,7 +4,7 @@ import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
-import { Texture } from "./Texture";
+import { Texture, type TextureReadArguments } from "./Texture";
 import { TextureUtils } from "./TextureUtils";
 
 /**
@@ -33,7 +33,6 @@ export class Texture2D extends Texture {
     super(engine, width, height, format, mipmap, isSRGBColorSpace);
 
     this._usage = usage;
-    this._isDepthTexture = format >= TextureFormat.Depth && format <= TextureFormat.Depth32Stencil8;
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
     this.filterMode = this._isIntFormat() ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
@@ -120,52 +119,17 @@ export class Texture2D extends Texture {
    */
   getPixelBuffer(x: number, y: number, width: number, height: number, mipLevel: number, out: ArrayBufferView): void;
 
-  getPixelBuffer(
-    xOrMipLevelOrOut: number | ArrayBufferView,
-    yOrMipLevel?: number | ArrayBufferView,
-    width?: number,
-    height?: number,
-    mipLevelOrOut?: number | ArrayBufferView,
-    out?: ArrayBufferView
-  ): void {
-    const argsLength = arguments.length;
-    if (argsLength === 1) {
-      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
-        0,
-        0,
-        this._width,
-        this._height,
-        0,
-        <ArrayBufferView>xOrMipLevelOrOut
-      );
-    } else if (argsLength === 2) {
-      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
-        0,
-        0,
-        this._width >> (<number>xOrMipLevelOrOut),
-        this._height >> (<number>xOrMipLevelOrOut),
-        <number>xOrMipLevelOrOut,
-        <ArrayBufferView>yOrMipLevel
-      );
-    } else if (argsLength === 5) {
-      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
-        <number>xOrMipLevelOrOut,
-        <number>yOrMipLevel,
-        width!,
-        height!,
-        0,
-        <ArrayBufferView>mipLevelOrOut
-      );
-    } else if (argsLength === 6) {
-      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
-        <number>xOrMipLevelOrOut,
-        <number>yOrMipLevel,
-        width!,
-        height!,
-        <number>mipLevelOrOut,
-        out!
-      );
-    }
+  getPixelBuffer(...args: TextureReadArguments): void {
+    const region = this._readRegion(args);
+    (this._platformTexture as IPlatformTexture2D).getPixelBuffer(...region);
+  }
+
+  /** Read a region after all previously encoded draws and copies are available. */
+  async getPixelBufferAsync(...args: TextureReadArguments): Promise<void> {
+    const region = this._readRegion(args);
+    const platform = this._platformTexture as IPlatformTexture2D;
+    if (platform.getPixelBufferAsync) return platform.getPixelBufferAsync(...region);
+    platform.getPixelBuffer(...region);
   }
 
   /**

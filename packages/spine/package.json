@@ -20,20 +20,17 @@
   "umd": {
     "name": "Galacean.Spine",
     "globals": {
-      "@galacean/engine": "Galacean"
+      "@galacean/engine-core": "Galacean",
+      "@galacean/engine-math": "Galacean"
     }
   },
   "files": [
     "dist/**/*",
     "types/**/*"
   ],
-  "devDependencies": {
-    "@galacean/engine": "workspace:*"
-  },
-  "peerDependencies": {
-    "@galacean/engine": "workspace:*"
-  },
   "dependencies": {
-    "@galacean/engine-design": "workspace:*"
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-math": "workspace:*"
   }
 }

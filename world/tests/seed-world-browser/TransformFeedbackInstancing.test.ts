@@ -8,6 +8,8 @@ import {
   ShaderDataGroup,
   ShaderLanguage,
   ShaderPass,
+  Texture2D,
+  TextureFormat,
   TransformFeedbackSimulator,
   VertexBufferBinding,
   VertexElement,
@@ -83,6 +85,33 @@ it("captures every instance at the requested output offset and preserves ordinar
     generator.destroy();
     simulator.destroy();
     input.destroy();
+    engine.destroy();
+  }
+});
+
+it("copies a tightly packed GL buffer prefix across texture rows and restores pixel unpack state", async () => {
+  const canvas = document.createElement("canvas");
+  const engine = await WebGLEngine.create({ canvas });
+  const gl = canvas.getContext("webgl2")!;
+  const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, new Uint8Array([1, 2, 3, 4, 5]), BufferUsage.Static, false);
+  const texture = new Texture2D(engine, 3, 2, TextureFormat.R8_UNorm, false);
+  const previous = gl.createBuffer();
+  try {
+    texture.setPixelBuffer(new Uint8Array(6));
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, previous);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 8);
+    engine._hardwareRenderer.copyBufferToTexture(buffer, texture, 5);
+    expect(gl.getParameter(gl.PIXEL_UNPACK_BUFFER_BINDING)).toBe(previous);
+    expect(gl.getParameter(gl.UNPACK_ALIGNMENT)).toBe(8);
+    expect(() => engine._hardwareRenderer.copyBufferToTexture(buffer, texture, 6)).toThrow(RangeError);
+    const out = new Uint8Array(6);
+    texture.getPixelBuffer(out);
+    expect(Array.from(out)).toEqual([1, 2, 3, 4, 5, 0]);
+    expect(gl.getError()).toBe(gl.NO_ERROR);
+  } finally {
+    gl.deleteBuffer(previous);
+    texture.destroy(true);
+    buffer.destroy(true);
     engine.destroy();
   }
 });

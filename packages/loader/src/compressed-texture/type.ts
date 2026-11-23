@@ -1,8 +1,8 @@
 import { TextureFormat } from "@galacean/engine-core";
-import { GLCompressedTextureInternalFormat } from "@galacean/engine-rhi-webgl";
+import { KTX1InternalFormat } from "@galacean/engine-design";
 
 export type CompressedTextureData = {
-  internalFormat: GLCompressedTextureInternalFormat;
+  internalFormat: KTX1InternalFormat;
   width: number;
   height: number;
   mipmaps: Mipmap[];
@@ -47,7 +47,7 @@ export type KTXContainer = {
   /**
    * Gets the base internal format
    */
-  glBaseInternalFormat: GLCompressedTextureInternalFormat;
+  glBaseInternalFormat: KTX1InternalFormat;
   /**
    * Gets image width in pixel
    */

@@ -214,7 +214,14 @@ describe("ResourceManager", () => {
         await resourceManager.load("Shaders/source.shader");
 
         expect(requestSpy).toHaveBeenCalledWith(physicalPath, expect.objectContaining({ type: "text" }));
-        expect(createSpy).toHaveBeenCalledWith(source, undefined, "Shaders/source.shader");
+        expect(createSpy).toHaveBeenCalledWith(
+          source,
+          ShaderLanguage.GLSLES300,
+          "Shaders/source.shader",
+          engine._shaderCompiler,
+          engine._builtinShaders.byName,
+          ShaderLanguage.GLSLES300
+        );
       } finally {
         requestSpy.mockRestore();
         createSpy.mockRestore();
@@ -386,7 +393,14 @@ describe("ResourceManager", () => {
           "https://cdn.ali.com/project/Shaders/base-relative-source.shader",
           expect.objectContaining({ type: "text" })
         );
-        expect(createSpy).toHaveBeenCalledWith(source, undefined, "Shaders/base-relative-source.shader");
+        expect(createSpy).toHaveBeenCalledWith(
+          source,
+          ShaderLanguage.GLSLES300,
+          "Shaders/base-relative-source.shader",
+          engine._shaderCompiler,
+          engine._builtinShaders.byName,
+          ShaderLanguage.GLSLES300
+        );
       } finally {
         resourceManager.baseUrl = previousBaseUrl;
         requestSpy.mockRestore();

@@ -29,18 +29,18 @@ const source = `Shader "Planning/TerrainDepth" {
   #include "ShaderLibrary/Common/Transform.glsl"
   #include "ShaderLibrary/Common/Attributes.glsl"
   ${heightSource}
-  struct DepthVaryings { vec2 sourceXZ; float valid; };
+  struct DepthVaryings { float valid; };
   VertexShader = PlanningDepthVertex;
   FragmentShader = PlanningDepthFragment;
   DepthVaryings PlanningDepthVertex(Attributes attributes) {
    DepthVaryings v;
    TerrainProjectClipmapVertex vertex = terrainProjectClipmapVertexAt(attributes.POSITION);
-   v.sourceXZ = vertex.sourceXZ; v.valid = vertex.valid;
+   v.valid = vertex.valid;
    gl_Position = camera_VPMat * vec4(vertex.positionWS, 1.);
    return v;
   }
   void PlanningDepthFragment(DepthVaryings v) {
-   if (v.valid < .999 || terrainProjectSolidAt(v.sourceXZ) < .5) discard;
+   if (v.valid < .999) discard;
    float value = floor(clamp(1. / gl_FragCoord.w / ${PLANNING_DEPTH_FAR_M}.0, 0., 1.) * 16777215.);
    vec3 bytes = vec3(mod(value, 256.), mod(floor(value / 256.), 256.), floor(value / 65536.));
    gl_FragColor = vec4(bytes / 255., 1.);
@@ -52,6 +52,7 @@ export class PlanningTerrainDepth {
   private camera: Camera;
   private texture?: Texture2D;
   private target?: RenderTarget;
+  private readonly shader: Shader;
   private pixels = new Uint8Array();
   constructor(
     private engine: Engine,
@@ -64,16 +65,32 @@ export class PlanningTerrainDepth {
     this.camera.cullingMask = layer;
     this.camera.enableHDR = this.camera.enablePostProcess = false;
     this.camera.clearFlags = CameraClearFlags.All;
-    this.camera.setReplacementShader(Shader.find("Planning/TerrainDepth") ?? Shader.create(source));
+    this.shader = Shader.create(source, this.engine);
+    this.camera.setReplacementShader(this.shader);
   }
   capture(observer: Observer, width: number, height: number): Uint8Array {
+    if (this.engine.graphicsBackend === "webgpu") {
+      throw new Error("WebGPU terrain depth readback is asynchronous. Use captureAsync or captureTerrainDepthAsync.");
+    }
+    const texture = this.render(observer, width, height);
+    const length = width * height * 4;
+    if (this.pixels.length !== length) this.pixels = new Uint8Array(length);
+    texture.getPixelBuffer(this.pixels);
+    return this.pixels;
+  }
+  async captureAsync(observer: Observer, width: number, height: number): Promise<Uint8Array> {
+    const texture = this.render(observer, width, height);
+    const pixels = new Uint8Array(width * height * 4);
+    await texture.getPixelBufferAsync(pixels);
+    return pixels;
+  }
+  private render(observer: Observer, width: number, height: number): Texture2D {
     if (!this.target || this.target.width !== width || this.target.height !== height) {
       this.target?.destroy();
       this.texture?.destroy();
       this.texture = new Texture2D(this.engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, false);
       this.target = new RenderTarget(this.engine, width, height, this.texture, TextureFormat.Depth, 1);
       this.camera.renderTarget = this.target;
-      this.pixels = new Uint8Array(width * height * 4);
     }
     const camera = this.camera,
       p = observer.position,
@@ -94,16 +111,16 @@ export class PlanningTerrainDepth {
       scene.background.solidColor = new Color(0, 0, 0, 0);
       scene.castShadows = false;
       camera.render();
-      this.texture!.getPixelBuffer(this.pixels);
     } finally {
       scene.background.mode = mode;
       scene.background.solidColor = color;
       scene.castShadows = shadows;
     }
-    return this.pixels;
+    return this.texture!;
   }
   dispose(): void {
     this.camera.entity.destroy();
+    this.shader.destroy();
     this.target?.destroy();
     this.texture?.destroy();
   }

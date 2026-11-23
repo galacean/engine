@@ -1,4 +1,4 @@
-import { Entity, EntityModifyFlags, Script, ignoreClone } from "@galacean/engine";
+import { Entity, EntityModifyFlags, Script, ignoreClone } from "@galacean/engine-core";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";

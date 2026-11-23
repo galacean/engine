@@ -13,18 +13,33 @@ type Tree = {
 export class ShaderProgramMap {
   engine: Engine;
 
+  private _programsBySource = new Map<string, ShaderProgram>();
   private _cacheHierarchyDepth: number = 1;
   private _cacheMap: Tree = Object.create(null);
   private _lastQueryMap: Record<number, ShaderProgram>;
   private _lastQueryKey: number;
-  private _programsBySource = new Map<string, ShaderProgram>();
-  private _ownedPrograms = new Set<ShaderProgram>();
+  private _specializations?: Map<string | number, ShaderProgramMap>;
+  private _lastSpecializationKey?: string | number;
+  private _lastSpecialization?: ShaderProgramMap;
+  private _lastHit?: { macros: ShaderMacroCollection; program: ShaderProgram };
 
   constructor(engine: Engine) {
     this.engine = engine;
   }
 
+  /** Distinguish native feedback outputs and integer vertex inputs sharing the same macro mask. */
+  specialize(key: string | number): ShaderProgramMap {
+    if (this._lastSpecializationKey === key) return this._lastSpecialization!;
+    const maps = (this._specializations ??= new Map());
+    let map = maps.get(key);
+    if (!map) maps.set(key, (map = new ShaderProgramMap(this.engine)));
+    this._lastSpecializationKey = key;
+    return (this._lastSpecialization = map);
+  }
+
   get(macros: ShaderMacroCollection): ShaderProgram | null {
+    const hit = this._lastHit;
+    if (hit?.macros.isEqual(macros)) return hit.program;
     let cacheMap = this._cacheMap;
     const maskLength = macros._length;
     const cacheHierarchyDepth = this._cacheHierarchyDepth;
@@ -45,7 +60,11 @@ export class ShaderProgramMap {
 
     const cacheKey = endIndex < maxEndIndex ? 0 : mask[maxEndIndex];
     const value = (<Record<number, ShaderProgram>>cacheMap)[cacheKey];
-    if (!value) {
+    if (value) {
+      const recent = hit ?? (this._lastHit = { macros: new ShaderMacroCollection(), program: value });
+      recent.program = value;
+      ShaderMacroCollection.unionCollection(macros, macros, recent.macros);
+    } else {
       this._lastQueryKey = cacheKey;
       this._lastQueryMap = <Record<number, ShaderProgram>>cacheMap;
     }
@@ -54,7 +73,7 @@ export class ShaderProgramMap {
 
   cache(value: ShaderProgram): void {
     this._lastQueryMap[this._lastQueryKey] = value;
-    this._ownedPrograms.add(value);
+    this._lastHit = undefined;
   }
 
   /** Source aliases do not change the pending macro-cache insertion point. */
@@ -64,7 +83,6 @@ export class ShaderProgramMap {
 
   cacheBySource(key: string, program: ShaderProgram): void {
     this._programsBySource.set(ShaderProgramMap._hashSourceKey(key), program);
-    this._ownedPrograms.add(program);
   }
 
   private static _hashSourceKey(key: string): string {
@@ -84,13 +102,28 @@ export class ShaderProgramMap {
   }
 
   destroy(): void {
-    // Several macro keys can reference one program. Destroy each owned GL resource once.
-    for (const program of this._ownedPrograms) program.destroy();
-    this._ownedPrograms.clear();
     this._programsBySource.clear();
+    this._lastSpecializationKey = undefined;
+    this._lastSpecialization = undefined;
+    this._lastHit = undefined;
+    this._specializations?.forEach((map) => map.destroy());
+    this._specializations = undefined;
+    this._recursiveForEach(0, this._cacheMap);
     this._cacheMap = Object.create(null);
     this._cacheHierarchyDepth = 1;
-    this._lastQueryMap = null!;
+  }
+
+  private _recursiveForEach(hierarchy: number, cacheMap: Tree): void {
+    if (hierarchy === this._cacheHierarchyDepth - 1) {
+      for (const k in cacheMap) {
+        (<ShaderProgram>cacheMap[k]).destroy();
+      }
+      return;
+    }
+    ++hierarchy;
+    for (const k in cacheMap) {
+      this._recursiveForEach(hierarchy, <Tree>cacheMap[k]);
+    }
   }
 
   private _resizeCacheMapHierarchy(

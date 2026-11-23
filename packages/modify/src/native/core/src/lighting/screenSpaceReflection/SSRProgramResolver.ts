@@ -1,3 +1,5 @@
+import type { Primitive } from "../../graphic/Primitive";
+import type { ShaderData } from "../../shader/ShaderData";
 import type { Engine } from "../../Engine";
 import type { Material } from "../../material/Material";
 import type { RenderContextSSRState } from "../../RenderPipeline/RenderContext";
@@ -35,7 +37,10 @@ export class SSRProgramResolver {
     shaderPass: ShaderPass,
     material: Material,
     ssrState: RenderContextSSRState,
-    compileMacros: ShaderMacroCollection
+    compileMacros: ShaderMacroCollection,
+    primitive: Primitive,
+    rendererData: ShaderData,
+    renderElementData?: ShaderData
   ): ShaderProgram {
     const camSSRVerifyDepth = ssrState.verifyReceiverDepth;
     const camSSRBilateral = ssrState.bilateralSample;
@@ -62,7 +67,15 @@ export class SSRProgramResolver {
     );
     SSRProgramResolver._syncMacro(compileMacros, SSRProgramResolver._ssrPackedHDRMacro, camSSRPackedHDR);
 
-    let program = shaderPass._getShaderProgram(engine, compileMacros);
+    let program = shaderPass._getShaderProgram(
+      engine,
+      compileMacros,
+      undefined,
+      primitive,
+      rendererData,
+      material.shaderData,
+      renderElementData
+    );
     const maxUnits = engine._hardwareRenderer.capability.maxFragmentTextureUnits;
     const cachedFallback =
       program._ssrFallbackMaxUnits === maxUnits
@@ -93,11 +106,27 @@ export class SSRProgramResolver {
           SSRProgramResolver._ssrPackedDepthMacro,
           camSSRPackedDepth && camSSRVerifyDepth
         );
-        program = shaderPass._getShaderProgram(engine, compileMacros);
+        program = shaderPass._getShaderProgram(
+          engine,
+          compileMacros,
+          undefined,
+          primitive,
+          rendererData,
+          material.shaderData,
+          renderElementData
+        );
       } else if (canTryDropVerify) {
         compileMacros.disable(SSRProgramResolver._ssrVerifyDepthMacro);
         compileMacros.disable(SSRProgramResolver._ssrPackedDepthMacro);
-        program = shaderPass._getShaderProgram(engine, compileMacros);
+        program = shaderPass._getShaderProgram(
+          engine,
+          compileMacros,
+          undefined,
+          primitive,
+          rendererData,
+          material.shaderData,
+          renderElementData
+        );
       }
 
       if (!program.isValid || program.activeTextureCount > maxUnits) {
@@ -107,7 +136,15 @@ export class SSRProgramResolver {
         compileMacros.disable(SSRProgramResolver._ssrPackedDepthMacro);
         compileMacros.disable(SSRProgramResolver._ssrPackedNormalMacro);
         compileMacros.disable(SSRProgramResolver._ssrPackedHDRMacro);
-        program = shaderPass._getShaderProgram(engine, compileMacros);
+        program = shaderPass._getShaderProgram(
+          engine,
+          compileMacros,
+          undefined,
+          primitive,
+          rendererData,
+          material.shaderData,
+          renderElementData
+        );
       }
 
       if (program.isValid && program !== rejectedProgram) {

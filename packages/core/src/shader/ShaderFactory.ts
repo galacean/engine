@@ -1,5 +1,10 @@
 import { Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { normalizeShaderIncludeKey } from "@galacean/engine-design";
+import {
+  normalizeShaderIncludeKey,
+  type IShaderInstanceLayout,
+  type IShaderUniformBlock,
+  type IShaderUniformSelection
+} from "@galacean/engine-design";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
@@ -7,11 +12,12 @@ import { ConstantBufferBindingPoint } from "./enums/ConstantBufferBindingPoint";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { ShaderBlockProperty } from "./ShaderBlockProperty";
 import { ShaderProperty } from "./ShaderProperty";
+import { Std140FieldWriter } from "./Std140FieldWriter";
 
 /**
  * Shader registry and GLSL utilities. Holds the `#include` lookup table
- * the runtime preprocessor reads and the GPU-instancing UBO injector that
- * `ShaderPass` runs over compiled GLSL source.
+ * the runtime preprocessor reads and the instancing compatibility path for
+ * compiled shaders that predate uniform declaration metadata.
  */
 export class ShaderFactory {
   static readonly RENDERER_INSTANCE_BLOCK_NAME = "RendererInstanceData";
@@ -47,20 +53,16 @@ export class ShaderFactory {
   // classic `transpose(inverse(M))`, but stays NaN-free when `M` is singular (e.g. any scale
   // axis is 0 — common in animations that pop / hide via scale). `sign(det)` (`s` below)
   // keeps mirrored matrices facing the right way
-  private static readonly _derivedDefines = `\
+  private static readonly _normalMatrixFunction = `\
 mat3 _normalMatFromModel(mat3 m) {
     vec3 c0 = cross(m[1], m[2]);
     vec3 c1 = cross(m[2], m[0]);
     vec3 c2 = cross(m[0], m[1]);
     float s = (dot(m[0], c0) < 0.0) ? -1.0 : 1.0;
     return mat3(c0 * s, c1 * s, c2 * s);
-}
-#define renderer_MVMat (camera_ViewMat * renderer_ModelMat)
-#define renderer_MVPMat (camera_VPMat * renderer_ModelMat)
-#define renderer_NormalMat mat4(_normalMatFromModel(mat3(renderer_ModelMat)))`;
+}`;
 
   // Built-in renderer uniforms. value=true means derived (remove but not added to UBO)
-  // NOTE: keep this in sync with _derivedDefines / _cameraMatrixCandidates above.
   private static readonly _builtinRendererUniforms: Record<string, boolean> = {
     renderer_ModelMat: false,
     renderer_Layer: false,
@@ -71,8 +73,11 @@ mat3 _normalMatFromModel(mat3 m) {
 
   // Camera matrices the derived defines reference; declared on demand because
   // shader-compiler DCE may have stripped them from Transform.glsl.
-  // NOTE: keep this in sync with _derivedDefines above.
-  private static readonly _cameraMatrixCandidates: ReadonlyArray<string> = ["camera_ViewMat", "camera_VPMat"];
+  private static readonly _instanceCameraInputs = [
+    { derived: "renderer_MVMat", matrix: "camera_ViewMat" },
+    { derived: "renderer_MVPMat", matrix: "camera_VPMat" }
+  ];
+  private static readonly _uniformBlock = /layout\s*\(\s*std140\s*\)\s*uniform\s+\w+\s*\{[^{}]*\}\s*;/g;
 
   private static readonly _uboUniformRegex =
     /^[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*(\[.+?\])?\s*;/gm;
@@ -133,6 +138,23 @@ mat3 _normalMatFromModel(mat3 m) {
     };
   })();
 
+  /** @internal Resolve application includes and this distribution's built-in shader library. */
+  static _getRuntimeIncludes(library?: readonly { path: string; source: string }[]): Record<string, string> {
+    if (!library) return ShaderFactory.includeMap;
+    const includes = Object.create(ShaderFactory.includeMap);
+    for (const { path, source } of library) includes[normalizeShaderIncludeKey(path)] = source;
+    return includes;
+  }
+
+  /** @internal Both engine flavors may bootstrap the same shared include library. */
+  static _registerBuiltinIncludes(library: readonly { path: string; source: string }[]): void {
+    for (const { path, source } of library) {
+      if (ShaderFactory.includeMap[normalizeShaderIncludeKey(path)] !== source) {
+        ShaderFactory.registerInclude(path, source);
+      }
+    }
+  }
+
   /**
    * Register a chunk source so `#include` resolves it.
    * @param includeName - The path key referenced in `#include "..."`.
@@ -171,10 +193,58 @@ mat3 _normalMatFromModel(mat3 m) {
     ShaderFactory.unregisterInclude(includeName);
   }
 
+  /** Resolve compiler-generated field layouts to CPU upload operations once at program link. */
+  static createInstanceLayout(
+    layout: IShaderInstanceLayout,
+    vertexSites: readonly IShaderUniformSelection[],
+    fragmentSites: readonly IShaderUniformSelection[],
+    explicitBlocks?: readonly IShaderUniformBlock[]
+  ): InstanceBufferLayout {
+    const instanceFields = layout.fields.map(({ name, type, offset, worldTransform }) => {
+      const writer = worldTransform ? null : new Std140FieldWriter(type);
+      return {
+        property: ShaderProperty.getByName(name),
+        type,
+        offset,
+        offsetInElements: offset / 4,
+        useIntView: writer?.useIntView ?? false,
+        worldTransform: worldTransform ?? false,
+        pack: writer ? writer.write.bind(writer) : ShaderFactory._packFuncMap.mat3x4
+      };
+    });
+    const headerFields: NonNullable<InstanceBufferLayout["headerFields"]> = [];
+    function addCameraMatrix(name: string, offset: number): void {
+      if (offset < 0) return;
+      // The same public name can be authored in a strict Scene block, possibly in the opposite stage.
+      const inScene = ({ site }: IShaderUniformSelection): boolean =>
+        site.kind === "explicitMatrix" && site.structName === "Scene" && site.name === name;
+      headerFields.push({
+        property: ShaderProperty.getByName(name),
+        offsetInElements: offset / 4,
+        sceneOnly:
+          vertexSites.some(inScene) ||
+          fragmentSites.some(inScene) ||
+          !!explicitBlocks?.some(
+            (block) => block.name === "Scene" && block.members.some((member) => member.name === name)
+          )
+      });
+    }
+    addCameraMatrix("camera_ViewMat", layout.viewOffset);
+    addCameraMatrix("camera_VPMat", layout.viewProjectionOffset);
+    return {
+      bindingName: layout.bindingName,
+      instanceFields,
+      structSize: layout.structSize,
+      instanceMaxCount: layout.instanceMaxCount,
+      headerBytes: layout.headerBytes,
+      headerFields
+    };
+  }
+
   /**
    * Scan VS/FS for renderer-group `uniform` declarations, replace them with a shared
    * std140 UBO (instanced array), and emit `#define` remapping so original uniform
-   * names resolve to `rendererData[instanceID].field`.
+   * names resolve to `rendererData.items[instanceID].field`.
    *
    * Inputs are expected to be already preprocessor-evaluated (no `#ifdef` left).
    */
@@ -184,6 +254,8 @@ mat3 _normalMatFromModel(mat3 m) {
     fragmentSource: string
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     const fieldMap: Record<number, string> = Object.create(null);
+    const originalVertex = vertexSource;
+    const originalFragment = fragmentSource;
     vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
     fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
 
@@ -191,23 +263,34 @@ mat3 _normalMatFromModel(mat3 m) {
     // had their declarations stripped by scan and still need a `#define` to compile
     const instanceLayout = ShaderFactory._buildLayout(engine, fieldMap);
 
+    if (!instanceLayout.instanceMaxCount) {
+      return { vertexSource: originalVertex, fragmentSource: originalFragment, instanceLayout: null };
+    }
+
     const { instanceFields } = instanceLayout;
     const uboDecl = ShaderFactory._buildUBODeclaration(instanceLayout);
-    const fieldDefinesVS = ShaderFactory._buildFieldDefines(instanceFields, "gl_InstanceID");
-    const fieldDefinesFS = ShaderFactory._buildFieldDefines(instanceFields, "v_instanceID");
-    const derivedDefines = ShaderFactory._derivedDefines;
-    const vsCameraDecls = ShaderFactory._buildMissingCameraDecls(vertexSource);
-    const fsCameraDecls = ShaderFactory._buildMissingCameraDecls(fragmentSource);
+    const blocks = [
+      ...(vertexSource.match(ShaderFactory._uniformBlock) ?? []),
+      ...(fragmentSource.match(ShaderFactory._uniformBlock) ?? [])
+    ];
+    const members = new Set<string>();
+    for (const block of blocks) {
+      for (const match of block.matchAll(/\b(\w+)\s*(?:\[[^\]]*\])?\s*;/g)) members.add(match[1]);
+    }
+    const fieldDefinesVS = ShaderFactory._buildFieldDefines(instanceFields, "gl_InstanceID", members);
+    const fieldDefinesFS = ShaderFactory._buildFieldDefines(instanceFields, "v_instanceID", members);
+    const vertex = ShaderFactory._prepareInstanceCameraInputs(vertexSource, fragmentSource, blocks, members);
+    const fragment = ShaderFactory._prepareInstanceCameraInputs(fragmentSource, vertexSource, blocks, members);
 
-    const vsBlock = `${uboDecl}flat out int v_instanceID;\n${vsCameraDecls}${fieldDefinesVS}\n${derivedDefines}\n`;
-    const fsBlock = `${uboDecl}flat in int v_instanceID;\n${fsCameraDecls}${fieldDefinesFS}\n${derivedDefines}\n`;
+    const vsBlock = `${uboDecl}flat out int v_instanceID;\n${vertex.declarations}${fieldDefinesVS}\n`;
+    const fsBlock = `${uboDecl}flat in int v_instanceID;\n${fragment.declarations}${fieldDefinesFS}\n`;
 
-    vertexSource = vsBlock + vertexSource;
+    vertexSource = vsBlock + vertex.source;
     vertexSource = vertexSource.replace(
       /void\s+main\s*\(\s*\)\s*\{/,
       "void main() {\n    v_instanceID = gl_InstanceID;"
     );
-    fragmentSource = fsBlock + fragmentSource;
+    fragmentSource = fsBlock + fragment.source;
 
     return { vertexSource, fragmentSource, instanceLayout };
   }
@@ -281,20 +364,39 @@ mat3 _normalMatFromModel(mat3 m) {
     const structSize = Math.ceil(currentOffset / 16) * 16;
     const instanceMaxCount = Math.floor(maxUBOSize / structSize);
 
-    return { instanceFields, instanceMaxCount, structSize };
+    return { bindingName: ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME, instanceFields, instanceMaxCount, structSize };
   }
 
-  private static _buildMissingCameraDecls(source: string): string {
-    let out = "";
-    const candidates = ShaderFactory._cameraMatrixCandidates;
-    for (let i = 0; i < candidates.length; i++) {
-      const name = candidates[i];
-      const decl = new RegExp(`^\\s*uniform\\s+(?:(?:lowp|mediump|highp)\\s+)?mat4\\s+${name}\\s*;`, "m");
-      if (!decl.test(source)) {
-        out += `uniform mat4 ${name};\n`;
+  private static _prepareInstanceCameraInputs(
+    source: string,
+    otherStage: string,
+    blocks: string[],
+    members: Set<string>
+  ): { source: string; declarations: string } {
+    const declarations: string[] = [];
+    for (const { derived, matrix } of ShaderFactory._instanceCameraInputs) {
+      if (members.has(derived)) continue;
+      const firstUse = source.search(new RegExp(`\\b${derived}\\b`));
+      if (firstUse < 0) continue;
+      // A derived renderer matrix introduces a dependency at its first use, which may
+      // precede the original camera declaration or occur in the opposite stage.
+      const field = new RegExp(`\\bmat4\\s+${matrix}\\s*;`);
+      const loose = new RegExp(`^[ \\t]*uniform\\s+(?:(?:lowp|mediump|highp)\\s+)?mat4\\s+${matrix}\\s*;`, "m");
+      const block = blocks.find((block) => field.test(block));
+      const declaration = block ?? loose.exec(source)?.[0] ?? loose.exec(otherStage)?.[0] ?? `uniform mat4 ${matrix};`;
+      const index = source.indexOf(declaration);
+      if (index >= 0 && index < firstUse) continue;
+      let hoisted = declaration;
+      if (!block && /uniform\s+mat4\b/.test(declaration)) {
+        const owner = index >= 0 ? source : otherStage;
+        const prefix = owner.slice(0, Math.max(0, owner.indexOf(declaration)));
+        const precision = Array.from(prefix.matchAll(/\bprecision\s+(lowp|mediump|highp)\s+float\s*;/g)).pop()?.[1];
+        if (precision) hoisted = declaration.replace(/uniform\s+mat4/, `uniform ${precision} mat4`);
       }
+      if (!declarations.includes(hoisted)) declarations.push(hoisted);
+      if (index >= 0) source = source.replace(declaration, "");
     }
-    return out;
+    return { source, declarations: declarations.length ? declarations.join("\n") + "\n" : "" };
   }
 
   private static _buildUBODeclaration(layout: InstanceBufferLayout): string {
@@ -308,28 +410,41 @@ mat3 _normalMatFromModel(mat3 m) {
       `#define INSTANCE_MAX_COUNT ${instanceMaxCount}\n` +
       `struct RendererInstanceStruct {\n${structLines.join("\n")}\n};\n` +
       `layout(std140) uniform ${ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME} {\n` +
-      `    RendererInstanceStruct rendererData[INSTANCE_MAX_COUNT];\n};\n`
+      `    RendererInstanceStruct items[INSTANCE_MAX_COUNT];\n} rendererData;\n`
     );
   }
 
-  private static _buildFieldDefines(fields: InstanceFieldInfo[], idExpr: string): string {
-    const accessor = `rendererData[${idExpr}]`;
+  private static _buildFieldDefines(fields: InstanceFieldInfo[], idExpr: string, members: Set<string>): string {
+    const accessor = `rendererData.items[${idExpr}]`;
     const lines: string[] = [];
+    let model = "renderer_ModelMat";
     for (let i = 0; i < fields.length; i++) {
       const { type, property } = fields[i];
       const n = property.name;
       if (type === "mat3x4") {
         const m = `${accessor}.${n}`;
-        lines.push(
-          `#define ${n} mat4(` +
-            `vec4(${m}[0].x,${m}[1].x,${m}[2].x,0.0),` +
-            `vec4(${m}[0].y,${m}[1].y,${m}[2].y,0.0),` +
-            `vec4(${m}[0].z,${m}[1].z,${m}[2].z,0.0),` +
-            `vec4(${m}[0].w,${m}[1].w,${m}[2].w,1.0))`
-        );
-      } else {
+        const expression =
+          `mat4(` +
+          `vec4(${m}[0].x,${m}[1].x,${m}[2].x,0.0),` +
+          `vec4(${m}[0].y,${m}[1].y,${m}[2].y,0.0),` +
+          `vec4(${m}[0].z,${m}[1].z,${m}[2].z,0.0),` +
+          `vec4(${m}[0].w,${m}[1].w,${m}[2].w,1.0))`;
+        if (!members.has(n)) lines.push(`#define ${n} ${expression}`);
+        // The public spelling can belong to a Scene/Camera member. Derived transforms
+        // still read the current instance's affine matrix directly in that case.
+        else if (n === model) model = expression;
+      } else if (!members.has(n)) {
         lines.push(`#define ${n} ${accessor}.${n}`);
       }
+    }
+    for (const { derived, matrix } of ShaderFactory._instanceCameraInputs) {
+      if (!members.has(derived)) lines.push(`#define ${derived} (${matrix} * ${model})`);
+    }
+    if (!members.has("renderer_NormalMat")) {
+      lines.push(
+        ShaderFactory._normalMatrixFunction,
+        `#define renderer_NormalMat mat4(_normalMatFromModel(mat3(${model})))`
+      );
     }
     return lines.join("\n");
   }
@@ -345,6 +460,7 @@ export interface InstanceFieldInfo {
   /** offset / 4, precomputed to avoid repeated division in upload loop */
   offsetInElements: number;
   useIntView: boolean;
+  worldTransform?: boolean;
   pack: InstancePackFunc;
 }
 
@@ -352,9 +468,12 @@ export interface InstanceFieldInfo {
  * @internal
  */
 export interface InstanceBufferLayout {
+  bindingName?: string;
   instanceFields: InstanceFieldInfo[];
   instanceMaxCount: number;
   structSize: number;
+  headerBytes?: number;
+  headerFields?: { property: ShaderProperty; offsetInElements: number; sceneOnly: boolean }[];
 }
 
 type InstancePackFunc = (view: Float32Array | Int32Array, offset: number, value: any) => void;

@@ -1,8 +1,8 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import {
   BaseMaterial,
-  Engine,
   EngineObject,
   GLCapabilityType,
   Material,
@@ -18,7 +18,7 @@ import {
 } from "@galacean/engine";
 import { RenderTargetPool } from "../../core/src/RenderPipeline/RenderTargetPool";
 import { ShaderMacroProcessor } from "../../core/src/shader/ShaderMacroProcessor";
-import { ShaderProgram } from "../../core/src/shader/ShaderProgram";
+import { createWebGPUShaderCompiler } from "@galacean/engine-shader-compiler/webgpu";
 import { TextureUtils } from "../../core/src/texture/TextureUtils";
 import { GLCapability } from "../../rhi-webgl/src/GLCapability";
 
@@ -440,40 +440,34 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
   });
 
   it("P1-3c: applies PBR roughness pre-culling to PBRMaterial and base-Material PBR assets without silently culling custom shaders", () => {
-    const mockEngine = { resourceManager: { _addReferResource() {} } } as any;
     const fakePbrShader = { name: "PBR", destroyed: false, _addReferCount() {} } as any;
     const customShader = { name: "Custom/WaterOrGlass", destroyed: false, _addReferCount() {} } as any;
-    const prevBuiltins = Engine._builtinShaders;
-    Engine._builtinShaders = { ...(prevBuiltins as any), pbr: fakePbrShader } as any;
+    const mockEngine = { resourceManager: { _addReferResource() {} }, _builtinShaders: { pbr: fakePbrShader } } as any;
 
-    try {
-      // Custom shader that declares material_Roughness = 1.0 with its own roughness pipeline must NOT be silently culled.
-      const customMat = new Material(mockEngine, customShader);
-      customMat.screenSpaceReflectionIntensity = 1.0;
-      customMat.shaderData.setFloat("material_Roughness", 1.0);
-      expect(customMat._canReceiveScreenSpaceReflection(0.6)).toBe(true);
+    // Custom shader that declares material_Roughness = 1.0 with its own roughness pipeline must NOT be silently culled.
+    const customMat = new Material(mockEngine, customShader);
+    customMat.screenSpaceReflectionIntensity = 1.0;
+    customMat.shaderData.setFloat("material_Roughness", 1.0);
+    expect(customMat._canReceiveScreenSpaceReflection(0.6)).toBe(true);
 
-      // MaterialLoader-style base Material using the built-in PBR shader MUST still honor PBR roughness culling.
-      const loadedPbrMat = new Material(mockEngine, fakePbrShader);
-      loadedPbrMat.screenSpaceReflectionIntensity = 1.0;
-      loadedPbrMat.shaderData.setFloat("material_Roughness", 0.9);
-      expect(loadedPbrMat._canReceiveScreenSpaceReflection(0.6)).toBe(false);
+    // MaterialLoader-style base Material using the built-in PBR shader MUST still honor PBR roughness culling.
+    const loadedPbrMat = new Material(mockEngine, fakePbrShader);
+    loadedPbrMat.screenSpaceReflectionIntensity = 1.0;
+    loadedPbrMat.shaderData.setFloat("material_Roughness", 0.9);
+    expect(loadedPbrMat._canReceiveScreenSpaceReflection(0.6)).toBe(false);
 
-      loadedPbrMat.shaderData.enableMacro("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
-      expect(loadedPbrMat._canReceiveScreenSpaceReflection(0.6)).toBe(true);
+    loadedPbrMat.shaderData.enableMacro("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
+    expect(loadedPbrMat._canReceiveScreenSpaceReflection(0.6)).toBe(true);
 
-      loadedPbrMat.shaderData.disableMacro("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
-      loadedPbrMat.shaderData.enableMacro("MATERIAL_ENABLE_CLEAR_COAT");
-      expect(loadedPbrMat._canReceiveScreenSpaceReflection(0.6)).toBe(true);
+    loadedPbrMat.shaderData.disableMacro("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
+    loadedPbrMat.shaderData.enableMacro("MATERIAL_ENABLE_CLEAR_COAT");
+    expect(loadedPbrMat._canReceiveScreenSpaceReflection(0.6)).toBe(true);
 
-      // PBRMaterial subclass checks work identically.
-      const pbrMat = new PBRMaterial(mockEngine);
-      expect(pbrMat._canReceiveScreenSpaceReflection(0.6)).toBe(false);
-      pbrMat.roughness = 0.2;
-      expect(pbrMat._canReceiveScreenSpaceReflection(0.6)).toBe(true);
-    } finally {
-      Engine._builtinShaders = prevBuiltins;
-    }
+    // PBRMaterial subclass checks work identically.
+    const pbrMat = new PBRMaterial(mockEngine);
+    expect(pbrMat._canReceiveScreenSpaceReflection(0.6)).toBe(false);
+    pbrMat.roughness = 0.2;
+    expect(pbrMat._canReceiveScreenSpaceReflection(0.6)).toBe(true);
   });
 
   it("P3-1: BaseMaterial._syncDefaultDepthOnlyRenderQueue derives queue from Forward state and preserves explicit values", () => {
@@ -494,11 +488,17 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
     expect(explicitQueueData.getFloat("material_DepthOnlyRenderQueue")).toBe(RenderQueueType.Opaque);
   });
 
-  it("P3-2: ShaderProgram._containsIdentifier ignores struct member access while matching real sampler references", () => {
-    const contains = (ShaderProgram as any)._containsIdentifier as (source: string, ident: string) => boolean;
-    expect(contains("vec4 c = data.u_vertexTex + other . u_vertexTex;", "u_vertexTex")).toBe(false);
-    expect(contains("vec4 c = texture2D(u_vertexTex, uv);", "u_vertexTex")).toBe(true);
-    expect(contains("vec4 c = data.u_vertexTex + texture2D(u_vertexTex, uv);", "u_vertexTex")).toBe(true);
+  it("derives sampler stage visibility from texture references independently of struct member names", async () => {
+    const require = createRequire(new URL("../../shader-compiler/package.json", import.meta.url));
+    const compiler = await createWebGPUShaderCompiler(fs.readFileSync(require.resolve("web-naga/web_naga_bg.wasm")));
+    const vertex = `struct Data { float pixels; };
+      void main() { Data d = Data(1.0); gl_Position = vec4(d.pixels); }`;
+    const fragment = `uniform sampler2D pixels;
+      out vec4 color;
+      void main() { color = texture(pixels, vec2(0.0)); }`;
+    const { reflection } = compiler.compileWebGPUVariant(vertex, fragment);
+    expect(reflection.textures).toHaveLength(1);
+    expect(reflection.textures[0]).toMatchObject({ name: "pixels", visibility: 2, samplerVisibility: 2 });
   });
 
   it("SSR Linear Trace A/B: evaluates SSR_LINEAR_TRACE macro cleanly alone and combined with current-frame color and packed HDR", () => {

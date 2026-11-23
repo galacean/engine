@@ -35,7 +35,11 @@ Shader "Planning/MetreWhitebox" {
       #endif
       gl_FragColor = vec4(mod(id, 256.0), mod(floor(id / 256.0), 256.0), floor(id / 65536.0), 255.0) / 255.0;
     #else
-    vec3 n=normalize(v.normalWS);
+    #ifdef RENDERER_HAS_NORMAL
+      vec3 n=normalize(v.normalWS);
+    #else
+      vec3 n=normalize(cross(dFdx(v.positionWS),dFdy(v.positionWS)));
+    #endif
     vec3 tangent=abs(n.y)>.95?normalize(cross(vec3(0.,0.,1.),n)):normalize(cross(vec3(0.,1.,0.),n));
     vec3 bitangent=normalize(cross(n,tangent));
     vec2 q=vec2(dot(v.positionWS,tangent),dot(v.positionWS,bitangent));

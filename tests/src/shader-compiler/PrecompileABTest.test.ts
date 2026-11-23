@@ -621,7 +621,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   // A/B 7: Instruction-based optimization correctness
   // ═══════════════════════════════════════════════════════════
   describe("A/B: instruction optimization", () => {
-    it("noFragArgs (one text instruction): still compiles with full macro set", async () => {
+    it("noFragArgs keeps a single fragment text and compiles with the full macro set", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
@@ -629,9 +629,9 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
         for (const pass of sub.passes) {
           if (pass.isUsePass) continue;
           for (const instructions of [pass.vertexShaderInstructions!, pass.fragmentShaderInstructions!]) {
-            expect(instructions).toHaveLength(1);
-            expect(instructions[0][0]).toBe(ShaderPreprocessorDirective.Text);
+            expect(instructions.every(([directive]) => directive === ShaderPreprocessorDirective.Text)).toBe(true);
           }
+          expect(pass.fragmentShaderInstructions).toHaveLength(1);
         }
       }
 
@@ -653,7 +653,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       }
     });
 
-    it("mrt-struct (one text instruction): compiles correctly", async () => {
+    it("mrt-struct compiles from plain text instructions with selected uniform sites", async () => {
       const source = await readFile("src/shader-compiler/shaders/mrt-struct.shader");
       const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
@@ -661,9 +661,10 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
         for (const pass of sub.passes) {
           if (pass.isUsePass) continue;
           for (const instructions of [pass.vertexShaderInstructions!, pass.fragmentShaderInstructions!]) {
-            expect(instructions).toHaveLength(1);
-            expect(instructions[0][0]).toBe(ShaderPreprocessorDirective.Text);
+            expect(instructions.every(([directive]) => directive === ShaderPreprocessorDirective.Text)).toBe(true);
           }
+          expect(pass.uniformPlan!.vertex.some((site) => site.name === "renderer_MVPMat")).toBe(true);
+          expect(pass.uniformPlan!.fragment.some((site) => site.name === "material_BaseColor")).toBe(true);
         }
       }
 

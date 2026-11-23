@@ -1,4 +1,5 @@
-import { BoundingBox, Matrix, RenderElement, Utils } from "@galacean/engine";
+import { RenderElement, Utils } from "@galacean/engine-core";
+import { BoundingBox, Matrix } from "@galacean/engine-math";
 
 /**
  * @internal

@@ -24,8 +24,8 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
-  private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
-  private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
+  private static _fogColorProperty = ShaderProperty._getBuiltinGlobal("scene_FogColor", ShaderDataGroup.Scene);
+  private static _fogParamsProperty = ShaderProperty._getBuiltinGlobal("scene_FogParams", ShaderDataGroup.Scene);
   private static _prefilterdDFGProperty = ShaderProperty.getByName("scene_PrefilteredDFG");
 
   /** Scene name. */

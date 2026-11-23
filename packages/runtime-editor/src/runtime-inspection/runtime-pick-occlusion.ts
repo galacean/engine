@@ -15,10 +15,16 @@ import {
 
 // Keep this Engine pass bridge here: the original instructions preserve arbitrary
 // deformation, discard and gl_FragDepth. A generic replacement vertex shader cannot.
+type PassArguments = ConstructorParameters<typeof ShaderPass>;
 type Pass = {
   name: string;
-  _vertexShaderInstructions: ConstructorParameters<typeof ShaderPass>[1];
-  _fragmentShaderInstructions: ConstructorParameters<typeof ShaderPass>[2];
+  _vertexShaderInstructions: PassArguments[1];
+  _fragmentShaderInstructions: PassArguments[2];
+  _vertexOutputNames?: PassArguments[5];
+  _uniformBlocks?: PassArguments[6];
+  _uniformPlan?: PassArguments[7];
+  _wgsl?: PassArguments[8];
+  _webGPUFragmentInstructions?: PassArguments[9];
   _renderState: any;
   _renderStateDataMap: Record<number, ShaderProperty>;
   _tagsMap: Record<number, string | number | boolean>;
@@ -38,7 +44,13 @@ export function pickOcclusionPass(original: ShaderPass) {
     src.name,
     src._vertexShaderInstructions,
     src._fragmentShaderInstructions,
-    ShaderLanguage.GLSLES300
+    ShaderLanguage.GLSLES300,
+    undefined,
+    src._vertexOutputNames,
+    src._uniformBlocks,
+    src._uniformPlan,
+    src._wgsl,
+    src._webGPUFragmentInstructions
   );
   const dst = output as unknown as Pass;
   dst._tagsMap = { ...src._tagsMap };

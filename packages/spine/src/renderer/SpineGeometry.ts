@@ -1,5 +1,6 @@
 import type { ISpineGeometry } from "@galacean/engine-design";
-import { BoundingBox, Material, Texture2D } from "@galacean/engine";
+import { Material, Texture2D } from "@galacean/engine-core";
+import { BoundingBox } from "@galacean/engine-math";
 import { SpineBlendMode } from "../enums/SpineBlendMode";
 import { SpineVertexStride } from "../SpineConstant";
 

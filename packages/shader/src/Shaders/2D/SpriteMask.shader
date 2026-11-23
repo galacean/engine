@@ -15,7 +15,7 @@ Shader "2D/SpriteMask" {
         vec2 v_uv;
       };
 
-      mat4 camera_VPMat;
+      #include "ShaderLibrary/Common/Camera.glsl"
       sampler2D renderer_MaskTexture;
       float renderer_MaskAlphaCutoff;
 

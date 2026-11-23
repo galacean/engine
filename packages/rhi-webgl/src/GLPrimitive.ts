@@ -1,4 +1,12 @@
-import { IPlatformPrimitive, IPlatformShaderProgram, Logger, Primitive, SubPrimitive } from "@galacean/engine-core";
+import {
+  IPlatformPrimitive,
+  IPlatformShaderProgram,
+  Logger,
+  Primitive,
+  SubPrimitive,
+  VertexElementFormat
+} from "@galacean/engine-core";
+import type { GLPrimitiveFormats } from "./GLPrimitiveFormats";
 import { GLBuffer } from "./GLBuffer";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -10,12 +18,14 @@ export class GLPrimitive implements IPlatformPrimitive {
   private _attribLocArray: number[] = [];
   private readonly _primitive: Primitive;
 
-  private _gl: WebGL2RenderingContext;
+  private readonly _gl: WebGL2RenderingContext;
+  private readonly _formats: GLPrimitiveFormats;
   private _vaoMap: Map<number, WebGLVertexArrayObject | null> = new Map();
 
   constructor(rhi: WebGLGraphicDevice, primitive: Primitive) {
     this._primitive = primitive;
     this._gl = rhi.gl;
+    this._formats = rhi._primitiveFormats;
   }
 
   /**
@@ -39,35 +49,22 @@ export class GLPrimitive implements IPlatformPrimitive {
       this._bindBufferAndAttrib(shaderProgram);
     }
 
-    const { indexBufferBinding, instanceCount, _glIndexType, _glIndexByteCount } = primitive;
-    const { topology, start, count } = subMesh;
-
-    if (!instanceCount) {
-      if (indexBufferBinding) {
-        if (useVao) {
-          gl.drawElements(topology, count, _glIndexType!, start * _glIndexByteCount);
-        } else {
-          const { _glBuffer } = <GLBuffer>indexBufferBinding.buffer._platformBuffer;
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
-          gl.drawElements(topology, count, _glIndexType!, start * _glIndexByteCount);
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-        }
-      } else {
-        gl.drawArrays(topology, start, count);
+    const { indexBufferBinding, instanceCount } = primitive;
+    const { start, count } = subMesh;
+    const topology = this._formats.topology[subMesh.topology];
+    if (indexBufferBinding) {
+      const { type, bytes } = this._formats.index[indexBufferBinding.format];
+      if (!useVao) {
+        const buffer = indexBufferBinding.buffer._platformBuffer as GLBuffer;
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer._glBuffer);
       }
+      if (instanceCount) gl.drawElementsInstanced(topology, count, type, start * bytes, instanceCount);
+      else gl.drawElements(topology, count, type, start * bytes);
+      if (!useVao) gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    } else if (instanceCount) {
+      gl.drawArraysInstanced(topology, start, count, instanceCount);
     } else {
-      if (indexBufferBinding) {
-        if (useVao) {
-          gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
-        } else {
-          const { _glBuffer } = <GLBuffer>indexBufferBinding.buffer._platformBuffer;
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
-          gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-        }
-      } else {
-        gl.drawArraysInstanced(topology, start, count, instanceCount);
-      }
+      gl.drawArrays(topology, start, count);
     }
 
     // Unbind
@@ -113,7 +110,12 @@ export class GLPrimitive implements IPlatformPrimitive {
 
         gl.enableVertexAttribArray(loc);
         const elementInfo = element._formatMetaInfo;
-        gl.vertexAttribPointer(loc, elementInfo.size, elementInfo.type, elementInfo.normalized, stride, element.offset);
+        const type = this._formats.vertexType[elementInfo.type];
+        if (element.format === VertexElementFormat.UInt4) {
+          gl.vertexAttribIPointer(loc, elementInfo.size, type, stride, element.offset);
+        } else {
+          gl.vertexAttribPointer(loc, elementInfo.size, type, elementInfo.normalized, stride, element.offset);
+        }
         gl.vertexAttribDivisor(loc, element.instanceStepRate);
         this._attribLocArray.push(loc);
       } else {

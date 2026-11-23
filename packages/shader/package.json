@@ -16,6 +16,11 @@
   "debug": "src/index.ts",
   "types": "types/src/index.d.ts",
   "exports": {
+    "./webgpu": {
+      "types": "./types/src/webgpu.d.ts",
+      "module": "./dist/webgpu.module.js",
+      "default": "./dist/webgpu.main.js"
+    },
     ".": {
       "module": "./dist/module.js",
       "default": "./dist/main.js",
@@ -28,7 +33,7 @@
     }
   },
   "scripts": {
-    "precompile": "node ../shader-compiler/bundler/cli.js src/Shaders compiledShaders --clean --emit-index --emit-sources",
+    "precompile": "node ../shader-compiler/bundler/cli.js src/Shaders compiledShaders --clean --emit-index --emit-sources && node ../shader-compiler/bundler/cli.js src/Shaders compiledWebGPUShaders --clean --emit-index --target wgsl",
     "b:types": "tsc"
   },
   "umd": {
@@ -43,6 +48,9 @@
   ],
   "typesVersions": {
     "*": {
+      "webgpu": [
+        "types/src/webgpu.d.ts"
+      ],
       "sources": [
         "types/src/sources.d.ts"
       ]

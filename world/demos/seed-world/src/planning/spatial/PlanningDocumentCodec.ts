@@ -26,11 +26,13 @@ export function planningSeedURL(href: string, seed: number): string {
   const debug = url.searchParams.get("debug") === "1";
   const panel = url.searchParams.get("panel") === "1";
   const template = url.searchParams.get("template");
+  const rhi = url.searchParams.get("rhi");
   url.search = "";
   url.hash = "";
   url.searchParams.set("seed", String(seed));
   if (debug) url.searchParams.set("debug", "1");
   if (debug && panel) url.searchParams.set("panel", "1");
   if (template !== null) url.searchParams.set("template", template);
+  if (rhi !== null) url.searchParams.set("rhi", rhi);
   return url.href;
 }

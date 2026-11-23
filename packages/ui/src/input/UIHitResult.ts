@@ -1,4 +1,5 @@
-import { Entity, Vector3 } from "@galacean/engine";
+import { Entity } from "@galacean/engine-core";
+import { Vector3 } from "@galacean/engine-math";
 import { UIRenderer } from "../component/UIRenderer";
 
 /**

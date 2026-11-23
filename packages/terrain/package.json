@@ -46,6 +46,7 @@
     "./terrain/lod/TerrainLodGroupRuntime": "./src/terrain/lod/TerrainLodGroupRuntime.ts",
     "./terrain/lod/TerrainScreenRelativeHeightRuntime": "./src/terrain/lod/TerrainScreenRelativeHeightRuntime.ts",
     "./terrain/performance/TerrainRenderSubmissionMonitor": "./src/terrain/performance/TerrainRenderSubmissionMonitor.ts",
+    "./terrain/performance/WebGPUDrawCounters": "./src/terrain/performance/WebGPUDrawCounters.ts",
     "./terrain/project/IntegratedWorldPostProcessPreset": "./src/terrain/project/IntegratedWorldPostProcessPreset.ts",
     "./terrain/project/TerrainArtifactPath": "./src/terrain/project/TerrainArtifactPath.ts",
     "./terrain/project/TerrainDetailInstancedMesh": "./src/terrain/project/TerrainDetailInstancedMesh.ts",
@@ -83,6 +84,7 @@
   },
   "scripts": {},
   "dependencies": {
+    "@galacean/engine-webgpu": "workspace:*",
     "@galacean/engine": "workspace:*",
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-math": "workspace:*",

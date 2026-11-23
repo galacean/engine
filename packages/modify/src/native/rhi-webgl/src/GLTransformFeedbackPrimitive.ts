@@ -1,4 +1,5 @@
 import type {
+  MeshTopology,
   IPlatformShaderProgram,
   IPlatformTransformFeedbackPrimitive,
   VertexBufferBinding,
@@ -13,16 +14,14 @@ import type { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  * Maintains two VAOs (one per read direction), rebuilding when the program or input bindings change.
  */
 export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackPrimitive {
-  private readonly _rhi: WebGLGraphicDevice;
   private readonly _gl: WebGL2RenderingContext;
   private _vaoA: WebGLVertexArrayObject | null;
   private _vaoB: WebGLVertexArrayObject | null;
   private _lastProgramId = -1;
   private readonly _lastInputBindings: VertexBufferBinding[] = [];
 
-  constructor(rhi: WebGLGraphicDevice) {
-    this._rhi = rhi;
-    this._gl = rhi.gl as WebGL2RenderingContext;
+  constructor(private readonly _rhi: WebGLGraphicDevice) {
+    this._gl = _rhi.gl;
   }
 
   bind(
@@ -74,9 +73,10 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     this._rhi._bindVertexArray(null);
   }
 
-  draw(mode: number, first: number, count: number, instanceCount = 1): void {
-    if (instanceCount === 1) this._gl.drawArrays(mode, first, count);
-    else this._gl.drawArraysInstanced(mode, first, count, instanceCount);
+  draw(mode: MeshTopology, first: number, count: number, instanceCount = 1): void {
+    const topology = this._rhi._primitiveFormats.topology[mode];
+    if (instanceCount === 1) this._gl.drawArrays(topology, first, count);
+    else this._gl.drawArraysInstanced(topology, first, count, instanceCount);
   }
 
   invalidate(): void {
@@ -140,8 +140,23 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     if (loc !== undefined && loc !== -1) {
       const info = element._formatMetaInfo;
       gl.enableVertexAttribArray(loc);
-      if (info.integer) gl.vertexAttribIPointer(loc, info.size, info.type, stride, element.offset);
-      else gl.vertexAttribPointer(loc, info.size, info.type, info.normalized, stride, element.offset);
+      if (info.integer)
+        gl.vertexAttribIPointer(
+          loc,
+          info.size,
+          this._rhi._primitiveFormats.vertexType[info.type],
+          stride,
+          element.offset
+        );
+      else
+        gl.vertexAttribPointer(
+          loc,
+          info.size,
+          this._rhi._primitiveFormats.vertexType[info.type],
+          info.normalized,
+          stride,
+          element.offset
+        );
       gl.vertexAttribDivisor(loc, element.instanceStepRate);
     }
   }

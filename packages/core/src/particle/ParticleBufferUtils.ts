@@ -128,17 +128,17 @@ export class ParticleBufferUtils {
     const indexBuffer = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
-      ParticleBufferUtils.billboardIndexCount,
+      ParticleBufferUtils.billboardIndexCount * Uint16Array.BYTES_PER_ELEMENT,
       BufferUsage.Static,
       false
     );
     indexBuffer.isGCIgnored = true;
-    this.billboardIndexBufferBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt8);
+    this.billboardIndexBufferBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt16);
 
     const billboardGeometryData = new Float32Array([
       -0.5, -0.5, 0, 1, 0.5, -0.5, 1, 1, 0.5, 0.5, 1, 0, -0.5, 0.5, 0, 0
     ]);
-    const indexData = new Uint8Array([0, 2, 3, 0, 1, 2]);
+    const indexData = new Uint16Array([0, 2, 3, 0, 1, 2]);
 
     billboardGeometryBuffer.setData(billboardGeometryData);
     indexBuffer.setData(indexData);

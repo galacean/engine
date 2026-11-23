@@ -212,7 +212,7 @@ describe("Seed World SSR v2 configuration, diagnostics, and terrain wetness gati
     expect(riverMat.screenSpaceReflectionBilateral).toBe(false);
 
     const mockShader = { name: "MockSurface", destroyed: false, _addReferCount() {} } as any;
-    const mockEngine = { resourceManager: { _addReferResource() {} } } as any;
+    const mockEngine = { _builtinShaders: { pbr: mockShader }, resourceManager: { _addReferResource() {} } } as any;
     const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) =>
       name === "PBR" || name === "Terrain/Surface" ? mockShader : null!
     );

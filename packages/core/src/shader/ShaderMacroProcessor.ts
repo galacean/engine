@@ -5,6 +5,8 @@ import {
   parsePreprocessorExpression,
   resolvePreprocessorDefinedOperators,
   type Condition,
+  type IShaderUniformSelection,
+  type IShaderUniformSite,
   type ShaderInstruction
 } from "@galacean/engine-design";
 import { ShaderPreprocessorDirective } from "./enums/ShaderPreprocessorDirective";
@@ -32,6 +34,16 @@ interface OwnedChunk {
  * @internal
  */
 export class ShaderMacroProcessor {
+  /** @internal The feature-free environment shared by offline WGSL baking and runtime variant selection. */
+  static readonly _defaultWebGPUMacros: ReadonlyMap<string, string> = new Map([
+    ["GRAPHICS_API_WEBGPU", ""],
+    ["HAS_TEX_LOD", ""],
+    ["HAS_DERIVATIVES", ""],
+    ["GL_ES", "1"],
+    ["GL_FRAGMENT_PRECISION_HIGH", "1"],
+    ["__VERSION__", "300"]
+  ]);
+
   private static _valueMacros = new Map<string, string>();
   private static _funcMacros = new Map<string, FuncMacro>();
   private static _shaderChunks: string[] = [];
@@ -63,7 +75,12 @@ export class ShaderMacroProcessor {
    * @param macros - Active runtime macros
    * @returns Pure GLSL string with all conditionals resolved and macros expanded
    */
-  static evaluate(instructions: ShaderInstruction[], macros: Map<string, string>): string {
+  static evaluate(
+    instructions: ShaderInstruction[],
+    macros: ReadonlyMap<string, string>,
+    sites?: readonly IShaderUniformSite[],
+    selections?: IShaderUniformSelection[]
+  ): string {
     const valueMacros = ShaderMacroProcessor._valueMacros;
     const funcMacros = ShaderMacroProcessor._funcMacros;
     const shaderChunks = ShaderMacroProcessor._shaderChunks;
@@ -73,6 +90,16 @@ export class ShaderMacroProcessor {
     const references = ShaderMacroProcessor._references;
     const reachableDeclarations = ShaderMacroProcessor._reachableDeclarations;
     const pendingDeclarations = ShaderMacroProcessor._pendingDeclarations;
+    let sitesByInstruction: IShaderUniformSite[] | undefined;
+    let chunkSites: (IShaderUniformSite | undefined)[] | undefined;
+    if (selections) {
+      selections.length = 0;
+      if (sites?.length) {
+        sitesByInstruction = [];
+        chunkSites = [];
+        for (const site of sites) sitesByInstruction[site.instruction] = site;
+      }
+    }
 
     valueMacros.clear();
     funcMacros.clear();
@@ -94,6 +121,8 @@ export class ShaderMacroProcessor {
 
     while (index < length) {
       const instruction = instructions[index];
+      const site = sitesByInstruction?.[index];
+      if (site) chunkSites![shaderChunks.length] = site;
       switch (instruction[0]) {
         case ShaderPreprocessorDirective.Text:
           // Immediately expand macros using current macro state (GLSL/C99 conformant)
@@ -232,11 +261,12 @@ export class ShaderMacroProcessor {
           if (!selected) continue;
           if ("error" in owned) throw owned.error;
         }
+        if (chunkSites) chunkSites[count] = chunkSites[i];
         shaderChunks[count++] = shaderChunks[i];
       }
       shaderChunks.length = count;
     }
-    return ShaderMacroProcessor._concatChunks(shaderChunks);
+    return ShaderMacroProcessor._concatChunks(shaderChunks, chunkSites, selections);
   }
 
   /**
@@ -340,13 +370,19 @@ export class ShaderMacroProcessor {
   /**
    * Concatenate shader chunks with consecutive blank lines collapsed to a single newline.
    */
-  private static _concatChunks(shaderChunks: string[]): string {
+  private static _concatChunks(
+    shaderChunks: string[],
+    sites?: (IShaderUniformSite | undefined)[],
+    selections?: IShaderUniformSelection[]
+  ): string {
     const out = ShaderMacroProcessor._out;
     out.length = 0;
     let lastNewline = false;
+    let length = 0;
 
     for (let p = 0; p < shaderChunks.length; p++) {
       const text = shaderChunks[p];
+      const start = length;
       const len = text.length;
       let i = 0;
 
@@ -354,6 +390,7 @@ export class ShaderMacroProcessor {
         if (text.charCodeAt(i) === 10 /* \n */) {
           if (!lastNewline) {
             out.push("\n");
+            length++;
             lastNewline = true;
           }
           i++;
@@ -366,12 +403,19 @@ export class ShaderMacroProcessor {
           const batchStart = i;
           while (i < len && text.charCodeAt(i) !== 10 /* \n */) i++;
           out.push(text.substring(batchStart, i));
+          length += i - batchStart;
           lastNewline = false;
         }
       }
+      const site = sites?.[p];
+      if (site) selections!.push({ site, start, end: length, text: "" });
     }
 
-    return out.join("");
+    const source = out.join("");
+    if (selections) {
+      for (const selection of selections) selection.text = source.slice(selection.start, selection.end);
+    }
+    return source;
   }
 
   /**

@@ -1,15 +1,15 @@
 # World monorepo
 
-本分支以 `galacean/engine` 的 `dev/2.0` 提交 `aa195af6d5e07b4006b76ff7d6716ce58fac2580` 为基线，迁入 `engine-next` 的 Seed World 与系统 Demo。来源是本地 `dev/engine-next-experimental` 的有效工作树（含已有合并结果和 `world/engine/overlay`），并非仅复制其 HEAD；源仓库没有被本次迁移修改。逐文件来源见 [migration/files.json](migration/files.json)。
+本分支从主仓 `experimental/engine-next` 的 `a09ec3533` 创建，已同步至 `70d0a1526`，沿用它的 World、Seed 和 LLM 编辑产品。Seed 共用一套模板、业务源码和 LLM 编辑链，在启动时选择 WebGPU 或 WebGL2。WebGL2 产品差异沿用 engine-next 的 `packages/modify`；通用 WebGPU 设备和渲染实现直接位于主包。原 engine-next 的历史迁入记录见 [migration/files.json](migration/files.json)。
 
 ## 目录与所有权
 
 ```text
 packages/
-  core/、loader/、rhi-webgl/、shader/…   原生 dev/2.0 源码保持不变
+  core/、loader/、shader/、rhi-webgpu/、galacean-webgpu/   可独立构建的引擎与 WebGPU 后端
   terrain/ water/ animals/ building/ farming/ vegetation/ environment/
   ai-chat/ project/ retrieval/ runtime-editor/ world-planning/
-  modify/                             集中所有引擎魔改
+  modify/                             engine-next 的 WebGL2 差异、共享产品扩展及渲染扩展
 world/
   demos/<demo>/                       页面、私有业务、私有资产与配置
   demos.json                          入口、归属及运行模式
@@ -60,9 +60,10 @@ examples/                             原生 Engine 示例保持不变
 
 ```sh
 pnpm install --frozen-lockfile
+pnpm b:module
 pnpm --dir world prepare:engine
 pnpm --dir world dev
-# http://127.0.0.1:5193/world/demos/seed-world/index.html
+# http://127.0.0.1:5193/world/demos/seed-world/index.html?template=sakura-pearl&rhi=auto&fps=1
 WORLD_DEMO=water pnpm --dir world dev
 WORLD_DEMO=animals/cute-zoo pnpm --dir world build
 pnpm --dir world build
@@ -73,21 +74,48 @@ pnpm --dir world check:boundaries
 pnpm --dir world typecheck
 ```
 
+从 `@galacean/engine` 导入 `Engine` 后，`Engine.isWebGL2Supported()` 同步检查临时 WebGL2 context，`await Engine.isWebGPUSupported()` 异步检查 WebGPU adapter。独立应用可直接调用 `WebGLEngine.create({ canvas })` 或从 `@galacean/engine-webgpu` 导入 `WebGPUEngine` 并调用 `create({ canvas })`。Seed 的主世界和规划视图共用 `createWorldEngine({ canvas, rhi: RHIMode.Auto })`。从 `@galacean/engine` 导入 `RHIMode` 即可使用 `Auto`、`WebGL2` 和 `WebGPU`。URL 省略 `rhi` 或指定 `auto` 时优先实际创建 WebGPU，设备不可用会降级到 WebGL2。指定 `rhi=webgpu` 或 `rhi=webgl2` 会强制使用该后端。
+
+添加 `debug=1` 可在左上角查看 FPS、切换后端并读取实际结果。切换会重新加载当前世界，保留 URL 中的模板、种子和视图等参数。普通入口可用 `fps=1` 单独查看帧率。团队通过局域网验收 WebGPU 时请使用 HTTPS。
+
+构建后可在一台支持 WebGPU 的桌面 Chrome 上复跑验收。仓库根目录用 `pnpm --dir world exec vite preview --config vite.config.mjs --port 5194 --strictPort` 启动产物，另一个终端运行 `SEED_BASE_URL=http://127.0.0.1:5194 node world/scripts/acceptance/seed-rhi.mjs`。脚本在隔离浏览器上下文检查 10 个模板与后端组合，比较出生点与相机的位置、旋转和 FOV。它还验证自动选择、WebGPU API 缺失、适配器为空、设备或 canvas context 不可用时的回退，以及设备配置失败或显式要求 WebGPU 时的报错。沙漠用例覆盖昼夜、季节、天气、截图拾取、拍照进入编辑、场景参数提交与撤销重做。规划页另有两组用例，检查两种后端的导演视图能实际产出像素统计，并验证进入正式世界后保留后端偏好及通过调试控件切换。设置 `SEED_EVIDENCE_DIR` 可将截图写到工作树以外。真实模型联调用 [本地 LLM 调试流程](../.agents/skills/seed-world-local-debug/SKILL.md)，让 wrapper 的两个子页面 URL 指向同一模板与后端。
+
 `build` 默认构建 Seed World，输出 `world/dist/seed-world/`；`build:all` 输出 `world/dist/all/`。部署时保留整个输出目录，HTML 位于其 `world/demos/…` 子目录；项目清单与动态资源按原相对结构输出，不能只上传 HTML 或 JS。各 Demo 的辅助 HTML 入口也包含在统一构建中。
 
 发布 Seed World 为灵光闪应用时，使用 `build:seed-world-flash-app`（输出根部直接含 `index.html` 的 `world/dist/seed-world-flash-app/`）与 `build:seed-world-flash-source`（输出可重建源码快照 `world/dist/seed-world-flash-source/`）；完整发布、上架与验收步骤见 [Seed World 灵光闪应用构建与发布指南](demos/seed-world/FLASH_APP_PUBLISH.md)。
 
-首次启动必须执行 `prepare:engine`；修改 shader 替换文件后需要重跑。缓存仅含 shader 编译输入/输出，不生成 Engine 或 Gallery 的副本。所有新包目前是 `private` workspace 源码包，使用显式子路径导出；尚未建设 npm 分发产物。
+首次启动必须执行 `prepare:engine`；修改 shader 替换文件后需要重跑。缓存仅含 shader 编译输入/输出，不生成 Engine 或 Gallery 的副本。World 的业务包是 `private` workspace 源码包，使用显式子路径导出。通用浏览器入口、WebGPU 引擎入口和 RHI 有独立的模块与类型产物。
 
 AI Chat 的真实模型请求沿用业务配置，需要配置可用的 provider/网关。迁移不附带凭证。树木还原页面可静态构建，但上传 FBX 还原依赖开发服务器的本机 API 和 Blender（通过原工具支持的环境配置指定）；静态部署不提供该 API。
 
 ## 引擎替换边界
 
-`packages/modify/native-overrides.json` 是原生模块路径到替换文件的唯一映射。Vite 插件沿用原生模块 ID 装载替换源码，使跨包共享同一组 Engine 类；主线程与 Worker 都显式启用。普通 Engine/examples 构建不启用它，也不修改原生源文件。
+`packages/modify/native-overrides.json` 是原生模块路径到替换文件的唯一映射。Vite 插件沿用原生模块 ID 装载替换源码，使跨包共享同一组 Engine 类；主线程与 Worker 都显式启用。World 将主线程、Worker 和产品的 Agent 类型声明解析到同一套有效源码。普通引擎构建直接消费主包；可移植到 dev/2.0 的 GPU 能力须在这个入口独立验证。
 
 实验分支的粒子/风场 ABI 与最新 dev/2.0 的粒子轨迹管理存在结构差异。这里将实验粒子实现及其 Engine/Scene/ComponentsManager 生命周期配套收在 `modify` 中，作为完整兼容实现。**启用 modify 的 World 并不继承最新原生粒子轨迹管理行为**；不能把静态编译成功当成两个实现已经行为等价。将来升级 dev/2.0 时，应复核这些替换及渲染管线、shader、loader 的兼容性。
 
-类型检查使用与构建相同的替换映射。World/依赖源码进行检查，原生内部诊断与未替换的 dev/2.0 基线比较；该基线已有 1 条类型诊断，本迁移不修改它。生产构建与静态检查不能证明运行时视觉、资源生命周期或交互正确。
+类型检查使用与构建相同的替换映射。在此前的产品基线 `5b74617c2` 上，`pnpm --dir world typecheck` 在两个工作树均报告相同的 32 项诊断。后续同步应重跑来源分支并逐项比较。
+
+## 在两个分支间协作
+
+共享 Seed 功能和 WebGL2 产品修复在主仓 `experimental/engine-next` 开发。将一批产品提交同步到已发布的实验分支时，在干净的 `experimental/webgpu` 工作树运行以下命令。显式指定主仓 URL，适用于 remote 名称不同的克隆。
+
+```sh
+git switch experimental/webgpu
+repo=https://github.com/galacean/engine.git
+git pull --ff-only "$repo" experimental/webgpu
+git fetch "$repo" refs/heads/experimental/engine-next
+product_sha=$(git rev-parse FETCH_HEAD)
+git log --oneline HEAD.."$product_sha"
+git diff --name-only HEAD..."$product_sha"
+git merge "$product_sha"
+git merge-base --is-ancestor "$product_sha" HEAD
+git diff --stat "$product_sha" HEAD
+```
+
+普通 merge 保留产品提交的父子关系，下次 Git 能识别已合入的改动。发生冲突时，先用 `git diff --name-only --diff-filter=U` 找到文件。共享产品代码和 WebGL2 产品覆盖以 engine-next 的行为为基线。对 `packages/modify/native-overrides.json` 命中的模块，同时核对主包实现、实际 replacement 和已有的 WebGPU 适配。合并完成后按上文构建并运行双端验收，在跟踪 PR 中记录 `product_sha`、验证时的实验 SHA 和结果。准备独立引擎 PR 时，从当时的 `dev/2.0` 新开分支，仅迁入该能力的主包、测试与文档。
+
+本轮同步的产品提交 `70d0a1526` 将草地移动到 AlphaTest 队列。Git 自动合入了 `Grass.shader`，并在两边都更新过的 `Grass.shaderc` 处报告冲突。该资产在实验分支的增量只有 WGSL，因此先取该产品提交的 `Grass.shaderc` 作为输入，再从仓库根目录运行 `pnpm --dir world export:seed-shaders /path/to/translation-tools`。工具目录的版本、下载地址和准备步骤见[离线着色器导出说明](scripts/webgpu/README.md)。检查结果应同时包含产品更新后的渲染状态、原 WebGL2 指令和 WGSL 的两个阶段，再暂存并继续合并。
 
 ## Demo 归属
 
@@ -129,4 +157,4 @@ AI Chat 的真实模型请求沿用业务配置，需要配置可用的 provider
 - 无消费者的本机 Unity/Editor 路径生成脚本；当前资源生成必需的工具与其依赖才保留。
 - 外部原生建筑 provider、原游戏二进制、私人服务凭证；历史实验需自行提供其输入。
 
-根级改动限于 workspace/锁文件及新源码包的构建隔离。原生 Engine 源码和现有 examples 不变。复核时可执行 `git diff aa195af6 -- packages/core packages/loader packages/rhi-webgl packages/shader examples`，结果应为空。
+最初的 World 迁移将根级改动限制在 workspace、锁文件和新源码包的构建隔离。本实验分支还在引擎主包实现双后端，复核这些改动时请使用 `git diff 70d0a1526 -- packages/core packages/loader packages/rhi-webgl packages/rhi-webgpu packages/shader`。本地尚未提交的新文件可用 `git status -uall` 检查。

@@ -12,6 +12,7 @@
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "farming:native-api:generate": "node ../packages/farming/src/farming/scripts/generate-native-api.mjs",
     "farming:native-api:check": "node ../packages/farming/src/farming/scripts/generate-native-api.mjs --check",
+    "export:seed-shaders": "node scripts/export-webgpu-shaders.mjs",
     "prepare:engine": "pnpm --filter @galacean/engine-shader-compiler build && node ../packages/modify/build/prepare.mjs",
     "build:all": "WORLD_DEMO=all vite build --config vite.config.mjs",
     "build:seed-world-flash-app": "node scripts/build-seed-world-flash-app.mjs",
@@ -19,6 +20,7 @@
   },
   "dependencies": {
     "@galacean/engine": "workspace:*",
+    "@galacean/engine-webgpu": "workspace:*",
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-math": "workspace:*",

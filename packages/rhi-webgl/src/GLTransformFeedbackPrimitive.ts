@@ -1,9 +1,11 @@
 import type {
+  MeshTopology,
   IPlatformShaderProgram,
   IPlatformTransformFeedbackPrimitive,
   VertexBufferBinding,
   VertexElement
 } from "@galacean/engine-core";
+import type { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import type { GLBuffer } from "./GLBuffer";
 
 /**
@@ -18,8 +20,8 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
   private _lastProgramId = -1;
   private readonly _lastInputBindings: VertexBufferBinding[] = [];
 
-  constructor(gl: WebGL2RenderingContext) {
-    this._gl = gl;
+  constructor(private readonly _rhi: WebGLGraphicDevice) {
+    this._gl = _rhi.gl;
   }
 
   bind(
@@ -66,8 +68,8 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     this._gl.bindVertexArray(null);
   }
 
-  draw(mode: number, first: number, count: number): void {
-    this._gl.drawArrays(mode, first, count);
+  draw(mode: MeshTopology, first: number, count: number): void {
+    this._gl.drawArrays(this._rhi._primitiveFormats.topology[mode], first, count);
   }
 
   invalidate(): void {
@@ -129,7 +131,14 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     if (loc !== undefined && loc !== -1) {
       const info = element._formatMetaInfo;
       gl.enableVertexAttribArray(loc);
-      gl.vertexAttribPointer(loc, info.size, info.type, info.normalized, stride, element.offset);
+      gl.vertexAttribPointer(
+        loc,
+        info.size,
+        this._rhi._primitiveFormats.vertexType[info.type],
+        info.normalized,
+        stride,
+        element.offset
+      );
     }
   }
 }

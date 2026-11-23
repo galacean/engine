@@ -4,3 +4,5 @@ export * from "./physics/index";
 export * from "./shader-compiler/index";
 export * from "./xr/index";
 export * from "./spine/index";
+
+export { KTX1InternalFormat } from "./KTX1InternalFormat";

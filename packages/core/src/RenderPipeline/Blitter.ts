@@ -1,6 +1,7 @@
 import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material";
+import { RenderBufferLoadAction } from "../renderingHardwareInterface";
 import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -21,6 +22,7 @@ export class Blitter {
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
   private static _texelSize = new Vector4();
   private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
+  private static _flippedScreenScaleOffset = new Vector4(1, -1, 0, 1);
 
   /**
    * Blit texture to destination render target using a triangle.
@@ -43,17 +45,48 @@ export class Blitter {
     passIndex = 0,
     sourceScaleOffset?: Vector4
   ): void {
+    Blitter._blitTexture(engine, source, destination, mipLevel, viewport, material, passIndex, sourceScaleOffset);
+  }
+
+  /**
+   * @internal
+   */
+  static _blitTexture(
+    engine: Engine,
+    source: Texture2D,
+    destination: RenderTarget | null,
+    mipLevel: number = 0,
+    viewport: Vector4 = PipelineUtils.defaultViewport,
+    material: Material | null = null,
+    passIndex = 0,
+    sourceScaleOffset?: Vector4,
+    colorLoadAction: RenderBufferLoadAction = RenderBufferLoadAction.Load
+  ): void {
     const basicResources = engine._basicResources;
-    const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
+    const flipProjection = !!destination && engine._hardwareRenderer.backend === "webgl2";
+    const blitMesh = flipProjection ? basicResources.flipYBlitMesh : basicResources.blitMesh;
     const blitMaterial = material || basicResources.blitMaterial;
+    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const rhi = engine._hardwareRenderer;
     const context = engine._renderContext;
     const camera = context.camera;
 
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
-    context.flipProjection = !!destination;
+    context.flipProjection = flipProjection;
 
-    context.setRenderTarget(destination, viewport, 0);
+    const resolvedLoadAction =
+      destination && destination.colorTextureCount === 1 ? colorLoadAction : RenderBufferLoadAction.Load;
+    context.setRenderTarget(
+      destination,
+      viewport,
+      0,
+      undefined,
+      resolvedLoadAction,
+      undefined,
+      undefined,
+      undefined,
+      pass.name
+    );
 
     const rendererShaderData = Blitter._rendererShaderData;
 
@@ -61,9 +94,14 @@ export class Blitter {
     rendererShaderData.setFloat(Blitter._blitMipLevelProperty, mipLevel);
     Blitter._texelSize.set(1 / source.width, 1 / source.height, source.width, source.height);
     rendererShaderData.setVector4(Blitter._blitTexelSizeProperty, Blitter._texelSize);
-    rendererShaderData.setVector4(Blitter._sourceScaleOffsetProperty, sourceScaleOffset ?? Blitter._defaultScaleOffset);
+    rendererShaderData.setVector4(
+      Blitter._sourceScaleOffsetProperty,
+      sourceScaleOffset ??
+        (blitMaterial === basicResources.blitScreenMaterial && rhi.backend === "webgl2"
+          ? Blitter._flippedScreenScaleOffset
+          : Blitter._defaultScaleOffset)
+    );
 
-    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const compileMacros = Shader._compileMacros;
 
     ShaderMacroCollection.unionCollection(
@@ -74,7 +112,14 @@ export class Blitter {
 
     ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
 
-    const program = pass._getShaderProgram(engine, compileMacros);
+    const program = pass._getShaderProgram(
+      engine,
+      compileMacros,
+      undefined,
+      blitMesh._primitive,
+      rendererShaderData,
+      blitMaterial.shaderData
+    );
 
     program.bind();
     program.regroupUniformBlocks();
@@ -82,7 +127,7 @@ export class Blitter {
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadAll(program.rendererUniformBlock, rendererShaderData);
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
-    program.uploadMultiGroupUniforms(
+    program.uploadSharedUniforms(
       camera.scene!.shaderData,
       camera.shaderData,
       rendererShaderData,
@@ -94,7 +139,7 @@ export class Blitter {
     const renderState = pass._renderState;
     renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
 
-    rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
+    rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program._platformProgram);
     rendererShaderData.setTexture(Blitter._blitTextureProperty, null);
   }
 }

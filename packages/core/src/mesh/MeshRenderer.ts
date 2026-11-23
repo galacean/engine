@@ -119,9 +119,36 @@ export class MeshRenderer extends Renderer {
    */
   protected override _render(context: RenderContext): void {
     const mesh = this._mesh;
+    this._updateVertexElementMacros();
+
+    const { _materials: materials, _engine: engine } = this;
+    const subMeshes = mesh.subMeshes;
+    const priority = this.priority;
+    const distanceForSort = this._distanceForSort;
+    const renderElementPool = engine._renderElementPool;
+    const renderPipeline = context.camera._renderPipeline;
+    for (let i = 0, n = subMeshes.length; i < n; i++) {
+      let material = materials[i];
+      if (!material) {
+        continue;
+      }
+      if (material.destroyed || material.shader.destroyed) {
+        material = this.engine._basicResources.meshMagentaMaterial;
+      }
+
+      const renderElement = renderElementPool.get();
+      renderElement.set(this, material, mesh._primitive, subMeshes[i]);
+      renderElement.priority = priority;
+      renderElement.distanceForSort = distanceForSort;
+      renderPipeline.pushRenderElement(context, renderElement);
+    }
+  }
+
+  /** @internal Set the same vertex-layout macros for pipeline preparation and rendering. */
+  _updateVertexElementMacros(): void {
     if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
       const shaderData = this.shaderData;
-      const vertexElements = mesh._primitive.vertexElements;
+      const vertexElements = this._mesh._primitive.vertexElements;
 
       shaderData.disableMacro(MeshRenderer._uvMacro);
       shaderData.disableMacro(MeshRenderer._uv1Macro);
@@ -150,28 +177,6 @@ export class MeshRenderer extends Renderer {
       }
       this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
     }
-
-    const { _materials: materials, _engine: engine } = this;
-    const subMeshes = mesh.subMeshes;
-    const priority = this.priority;
-    const distanceForSort = this._distanceForSort;
-    const renderElementPool = engine._renderElementPool;
-    const renderPipeline = context.camera._renderPipeline;
-    for (let i = 0, n = subMeshes.length; i < n; i++) {
-      let material = materials[i];
-      if (!material) {
-        continue;
-      }
-      if (material.destroyed || material.shader.destroyed) {
-        material = this.engine._basicResources.meshMagentaMaterial;
-      }
-
-      const renderElement = renderElementPool.get();
-      renderElement.set(this, material, mesh._primitive, subMeshes[i]);
-      renderElement.priority = priority;
-      renderElement.distanceForSort = distanceForSort;
-      renderPipeline.pushRenderElement(context, renderElement);
-    }
   }
 
   /**
@@ -183,9 +188,10 @@ export class MeshRenderer extends Renderer {
       preElement.primitive === curElement.primitive &&
       preElement.subPrimitive === curElement.subPrimitive &&
       preElement.material === curElement.material &&
+      preElement.shaderData === curElement.shaderData &&
       this._isFrontFaceInvert() === (<MeshRenderer>curElement.component)._isFrontFaceInvert() &&
       this.shaderData._macroCollection.isEqual(curShaderData._macroCollection) &&
-      // Renderer-group samplers/arrays are shared across the whole instanced draw call
+      // Samplers, arrays, struct leaves and global block overrides remain shared by the draw.
       this.shaderData._matchesRendererBatchShared(curShaderData)
     );
   }

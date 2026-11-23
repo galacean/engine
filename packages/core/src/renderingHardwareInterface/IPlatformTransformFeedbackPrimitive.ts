@@ -1,3 +1,4 @@
+import type { MeshTopology } from "../graphic/enums/MeshTopology";
 import type { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import type { VertexElement } from "../graphic/VertexElement";
 import type { IPlatformShaderProgram } from "./IPlatformShaderProgram";
@@ -38,7 +39,7 @@ export interface IPlatformTransformFeedbackPrimitive {
    * @param first - First vertex index
    * @param count - Number of vertices
    */
-  draw(mode: number, first: number, count: number): void;
+  draw(mode: MeshTopology, first: number, count: number): void;
 
   /**
    * Invalidate cached state, forcing rebuild on next bind.

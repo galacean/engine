@@ -61,6 +61,13 @@ vec4 outputSRGBCorrection(vec4 linearIn){
 vec4 camera_DepthBufferParams;
 vec4 camera_ProjectionParams;
 
+// Camera textures use top-left image coordinates. The projection may already
+// invert clip Y when the current pass renders into a WebGL texture or a cube face.
+vec2 cameraTextureUV(vec4 clipPosition) {
+    vec2 ndc = clipPosition.xy / clipPosition.w;
+    return ndc * vec2(0.5, -0.5 * camera_ProjectionParams.x) + 0.5;
+}
+
 float remapDepthBufferLinear01(float depth){
 	return 1.0 / (camera_DepthBufferParams.x * depth + camera_DepthBufferParams.y);
 }

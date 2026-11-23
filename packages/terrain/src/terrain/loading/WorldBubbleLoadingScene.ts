@@ -13,6 +13,7 @@ import {
   Script,
   Shader,
   Vector2,
+  type Engine,
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -167,7 +168,7 @@ export class WorldBubbleLoadingScene {
 
   private constructor(
     private readonly _canvas: HTMLCanvasElement | undefined,
-    private readonly _engine: WebGLEngine,
+    private readonly _engine: Engine,
     private readonly _scene: Scene,
     private readonly _camera: Camera,
     private readonly _material: Material,
@@ -215,7 +216,7 @@ export class WorldBubbleLoadingScene {
 
   /** Creates a real Loading Scene inside an existing production World Engine. */
   static async createInEngine(
-    engine: WebGLEngine,
+    engine: Engine,
     options: WorldBubbleLoadingSceneOptions = {}
   ): Promise<WorldBubbleLoadingScene> {
     const scene = new Scene(engine, "World LoadingOrb Scene");
@@ -232,7 +233,7 @@ export class WorldBubbleLoadingScene {
 
   private static _createInScene(
     canvas: HTMLCanvasElement | undefined,
-    engine: WebGLEngine,
+    engine: Engine,
     scene: Scene,
     ownsEngine: boolean,
     options: WorldBubbleLoadingSceneOptions

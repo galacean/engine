@@ -182,7 +182,7 @@ export class TerrainIBLProfiler implements RealtimeIBLBakerProfiler {
   private _destroyed = false;
 
   constructor(
-    private readonly _gl: WebGL2RenderingContext,
+    private readonly _gl: WebGL2RenderingContext | undefined,
     options: TerrainIBLProfilerOptions = {}
   ) {
     this._now = options.now ?? (() => performance.now());
@@ -202,6 +202,9 @@ export class TerrainIBLProfiler implements RealtimeIBLBakerProfiler {
   get capability(): TerrainIBLGpuTimerCapability {
     if (this._destroyed) {
       return { status: "unavailable", reason: "timer-destroyed" };
+    }
+    if (!this._gl) {
+      return { status: "unavailable", reason: "extension-unavailable" };
     }
     if (this._gl.isContextLost()) {
       return { status: "unavailable", reason: "context-lost" };
@@ -314,11 +317,11 @@ export class TerrainIBLProfiler implements RealtimeIBLBakerProfiler {
     if (!this._extension || this._destroyed || this._pendingGpuQueries.length === 0) {
       return;
     }
-    if (this._gl.isContextLost()) {
+    if (!this._gl || this._gl.isContextLost()) {
       this._markContextLost();
       return;
     }
-    if (Boolean(this._gl.getParameter(this._extension.GPU_DISJOINT_EXT))) {
+    if (this._gl.getParameter(this._extension.GPU_DISJOINT_EXT)) {
       this._markDisjoint();
       return;
     }
@@ -354,7 +357,7 @@ export class TerrainIBLProfiler implements RealtimeIBLBakerProfiler {
 
   reset(): void {
     this._endActiveGpuQueryForCleanup();
-    if (this._gl.isContextLost()) {
+    if (!this._gl || this._gl.isContextLost()) {
       this._pendingGpuQueries.length = 0;
       this._availableGpuQueries.length = 0;
     } else {
@@ -391,7 +394,7 @@ export class TerrainIBLProfiler implements RealtimeIBLBakerProfiler {
       return;
     }
     this.reset();
-    if (!this._gl.isContextLost()) {
+    if (this._gl && !this._gl.isContextLost()) {
       for (const query of this._availableGpuQueries) {
         this._deleteQuery(query);
       }
@@ -412,18 +415,19 @@ export class TerrainIBLProfiler implements RealtimeIBLBakerProfiler {
       return undefined;
     }
     const extension = this._extension!;
+    const gl = this._gl!;
     try {
-      if (this._gl.getQuery(extension.TIME_ELAPSED_EXT, this._gl.CURRENT_QUERY) !== null) {
+      if (gl.getQuery(extension.TIME_ELAPSED_EXT, gl.CURRENT_QUERY) !== null) {
         this._dropGpuSample(profile, "timer-query-busy");
         return undefined;
       }
-      const query = this._availableGpuQueries.pop() ?? this._gl.createQuery();
+      const query = this._availableGpuQueries.pop() ?? gl.createQuery();
       if (!query) {
         profile.gpuStatus = "unavailable";
         profile.gpuReason = "query-create-failed";
         return undefined;
       }
-      this._gl.beginQuery(extension.TIME_ELAPSED_EXT, query);
+      gl.beginQuery(extension.TIME_ELAPSED_EXT, query);
       return query;
     } catch {
       profile.gpuStatus = "unavailable";
@@ -434,7 +438,7 @@ export class TerrainIBLProfiler implements RealtimeIBLBakerProfiler {
 
   private _endGpuSample(query: WebGLQuery, profile: MutableTerrainIBLStageProfile): void {
     const extension = this._extension;
-    if (!extension || this._gl.isContextLost()) {
+    if (!this._gl || !extension || this._gl.isContextLost()) {
       profile.gpuStatus = "unavailable";
       profile.gpuReason = "context-lost";
       return;
@@ -484,7 +488,7 @@ export class TerrainIBLProfiler implements RealtimeIBLBakerProfiler {
     if (!activeStage?.gpuQuery) {
       return;
     }
-    if (this._extension && !this._gl.isContextLost()) {
+    if (this._gl && this._extension && !this._gl.isContextLost()) {
       try {
         this._gl.endQuery(this._extension.TIME_ELAPSED_EXT);
       } catch {
@@ -496,14 +500,14 @@ export class TerrainIBLProfiler implements RealtimeIBLBakerProfiler {
 
   private _deleteQuery(query: WebGLQuery): void {
     try {
-      this._gl.deleteQuery(query);
+      this._gl?.deleteQuery(query);
     } catch {
       // Query cleanup is best effort during context transitions
     }
   }
 
   private _refreshExtension(): void {
-    if (this._destroyed || this._gl.isContextLost()) {
+    if (this._destroyed || !this._gl || this._gl.isContextLost()) {
       return;
     }
     const extension = this._gl.getExtension(TERRAIN_IBL_GPU_TIMER_SOURCE) as DisjointTimerQueryExtension | null;

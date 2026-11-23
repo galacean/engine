@@ -769,10 +769,9 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
 
     try {
       // Ensure offscreen projection convention matches DepthOnly/SSRReceiver/Forward-to-RT.
-      if (!context.flipProjection) {
-        cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.ProjectionMatrix);
-        context.applyVirtualCamera(camera._virtualCamera, true);
-      }
+      const flipOffscreen = rhi.backend === "webgl2";
+      cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.ProjectionMatrix);
+      context.applyVirtualCamera(camera._virtualCamera, flipOffscreen);
 
       this._currentVPMat.copyFrom(context.viewProjectionMatrix);
       const viewE = context.viewMatrix.elements;
@@ -2345,7 +2344,9 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       return false;
     }
 
-    this._receiverScissor.set(x0, y0, x1 - x0, y1 - y0);
+    // WebGPU scissors index rows from the top of the render target.
+    const scissorY = this.engine._hardwareRenderer.backend === "webgpu" ? traceH - y1 : y0;
+    this._receiverScissor.set(x0, scissorY, x1 - x0, y1 - y0);
     return true;
   }
 

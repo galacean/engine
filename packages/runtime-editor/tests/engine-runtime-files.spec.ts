@@ -5,6 +5,7 @@ import { engineRuntimeFiles } from "../src/runtime-editor-agent/engine-runtime-f
 import declarations from "../src/runtime-editor/generated/engine-runtime-files.json";
 import declarationIndex from "../src/runtime-editor/generated/engine-runtime-index.json";
 import corePackage from "../../core/package.json";
+import { runtimeScriptExternals } from "../src/runtime-editor/scripts/runtime-script-host";
 
 describe("engine runtime files", () => {
   it("keeps the declaration index version and digest aligned with the mounted content", async () => {
@@ -14,6 +15,20 @@ describe("engine runtime files", () => {
     expect(hex).toBe(declarationIndex.digest);
     expect(declarationIndex.packages.every((pkg) => pkg.version === corePackage.version)).toBe(true);
   });
+  it("mounts both browser backends with the product Engine class identities", () => {
+    const legacy = runtimeScriptExternals["@galacean/engine"];
+    const gpu = runtimeScriptExternals["@galacean/engine-webgpu"];
+    expect(gpu.Script).toBe(legacy.Script);
+    expect(gpu.Shader).toBe(legacy.Shader);
+    expect(legacy.WebGLEngine).toBe(runtimeScriptExternals["@galacean/engine-rhi-webgl"].WebGLEngine);
+    expect(gpu.WebGPUGraphicDevice).toBe(runtimeScriptExternals["@galacean/engine-rhi-webgpu"].WebGPUGraphicDevice);
+    expect(legacy.Engine).toBe(gpu.Engine);
+    expect(legacy.RHIMode).toBe(gpu.RHIMode);
+    expect(legacy.RHIMode).toMatchObject({ Auto: "auto", WebGL2: "webgl2", WebGPU: "webgpu" });
+    expect(legacy.Engine).toHaveProperty("isWebGL2Supported", expect.any(Function));
+    expect(legacy.Engine).toHaveProperty("isWebGPUSupported", expect.any(Function));
+  });
+
   it("searches cold declarations and uses the same text as reads", async () => {
     const provider = engineRuntimeFiles(), files = new AgentProjectFiles([provider]);
     const path = "declare/engine/node_modules/@galacean/engine-core/types/Script.d.ts";
@@ -36,13 +51,28 @@ describe("engine runtime files", () => {
     const virtual = new Map(Object.entries(declarations).map(([path, text]) => ["/project/" + path.slice("declare/engine/".length), text]));
     virtual.set("/project/main.ts", `import {
   Camera,
+  Engine,
   PBRMaterial,
+  RHIMode,
   Scene,
   ScreenSpaceReflectionQuality,
   ScreenSpaceReflectionSettings,
   Script,
-  TextureFormat
+  TextureFormat,
+  WebGLEngine
 } from "@galacean/engine";
+import { WebGPUGraphicDevice } from "@galacean/engine-rhi-webgpu";
+import { WebGPUEngine } from "@galacean/engine-webgpu";
+export async function supportsWebRendering(): Promise<boolean> {
+  return Engine.isWebGL2Supported() || await Engine.isWebGPUSupported();
+}
+export async function start(canvas: HTMLCanvasElement, rhi: RHIMode.WebGPU | RHIMode.WebGL2): Promise<string> {
+  const engine = rhi === RHIMode.WebGPU ? await WebGPUEngine.create({ canvas }) : await WebGLEngine.create({ canvas });
+  return engine.graphicsBackend;
+}
+export function getDevice(engine: WebGPUEngine, rhi: WebGPUGraphicDevice): GPUDevice {
+  return rhi.device;
+}
 export default class Rotate extends Script {
   readonly colorFormat: TextureFormat = TextureFormat.R8G8B8A8_UNorm;
   configureSSR(scene: Scene, camera: Camera, material: PBRMaterial): void {

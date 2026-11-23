@@ -1,4 +1,5 @@
 import { ShaderData, ShaderProperty } from "../shader";
+import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { ShadowType } from "../shadow";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { DirectLight, IDirectLightShaderData } from "./DirectLight";
@@ -10,9 +11,12 @@ import { ISpotLightShaderData, SpotLight } from "./SpotLight";
  */
 export class LightManager {
   /** @internal */
-  static _sunlightColorProperty = ShaderProperty.getByName("scene_SunlightColor");
+  static _sunlightColorProperty = ShaderProperty._getBuiltinGlobal("scene_SunlightColor", ShaderDataGroup.Scene);
   /** @internal */
-  static _sunlightDirectionProperty = ShaderProperty.getByName("scene_SunlightDirection");
+  static _sunlightDirectionProperty = ShaderProperty._getBuiltinGlobal(
+    "scene_SunlightDirection",
+    ShaderDataGroup.Scene
+  );
   /**
    * Each type of light source is at most 10, beyond which it will not take effect.
    * */

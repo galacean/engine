@@ -376,7 +376,16 @@ export class SeedWorldPicker {
   ): Promise<ViewFrame> {
     this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
     return this.frameCapture.request(
-      (photo) => this.captureIdentity(visit, resolveRef, photo, budget),
+      async (photo) => {
+        const frame = this.captureIdentity(visit, resolveRef, photo, budget);
+        try {
+          if (this.camera.engine._hardwareRenderer.backend === "webgpu") await frame.identities.prepareReadback(signal);
+          return frame;
+        } catch (error) {
+          frame.identities.dispose();
+          throw error;
+        }
+      },
       signal,
       budget,
       ready
@@ -436,13 +445,13 @@ export class SeedWorldPicker {
     resolveRef: (batch: SeedWorldPickBatch) => ViewRef,
     image: GpuPhoto,
     budget?: ImageResourceBudget
-  ): ViewFrame {
+  ): ViewFrame & { identities: FrozenViewIdentityTexture } {
     const { width, height } = image;
     const metadata = this.captureViewMetadata();
     const captureCamera = this.ensureIdentityCamera();
     // Scratch ID + depth + packed output. Only the packed RGBA8 survives capture.
     const release = budget?.reserve("temporary", width * height * 12);
-    let result: ViewFrame | undefined;
+    let result: (ViewFrame & { identities: FrozenViewIdentityTexture }) | undefined;
     let packed: Texture2D | undefined, packedTarget: RenderTarget | undefined;
     try {
       // No simulation step can separate color, identity and depth.

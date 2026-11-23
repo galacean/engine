@@ -2,7 +2,6 @@ import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { BasicResources, RenderStateElementMap } from "../BasicResources";
 import { Utils } from "../Utils";
 import { RenderQueueType, Shader } from "../shader";
-import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
 import { InstanceBuffer } from "./InstanceBuffer";
@@ -59,10 +58,9 @@ export class RenderQueue {
       return;
     }
 
-    const { engine, instanceId: cameraId, shaderData: cameraData } = context.camera;
+    const { engine, shaderData: cameraData } = context.camera;
     const scene = context.camera.scene!;
-    const { instanceId: sceneId, shaderData: sceneData, _maskManager: maskManager } = scene;
-    const renderCount = engine._renderCount;
+    const { shaderData: sceneData, _maskManager: maskManager } = scene;
     const rhi = engine._hardwareRenderer;
     const renderQueueType = this.renderQueueType;
     const needMaskType = maskType !== RenderQueueMaskType.No;
@@ -101,23 +99,23 @@ export class RenderQueue {
           maskManager.drawMask(context, pipelineStageTagValue, component._maskLayer);
           customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
         } else {
-          maskManager.isReadStencil(material) && maskManager.clearMask(context, pipelineStageTagValue);
+          if (maskManager.hasActiveMaskLayer && maskManager.isReadStencil(material)) {
+            maskManager.clearMask(context, pipelineStageTagValue);
+          }
         }
-        maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true);
+        if (!maskManager.hasStencilWritten && maskManager.isStencilWritten(material))
+          maskManager.hasStencilWritten = true;
       }
 
       const { shaderData: renderElementShaderData } = curElement;
-      const shaderPasses = curElement.subShader.passes;
-      const { shaderData: rendererData, instanceId: rendererId } = component;
-      const { shaderData: materialData, instanceId: materialId } = material;
+      const shaderPasses = curElement.subShader._getPassesForStage(pipelineStageTagValue);
+      const { shaderData: rendererData } = component;
+      const { shaderData: materialData } = material;
 
       let macrosBuilt = false;
       let frontFaceInvert: boolean | undefined;
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
-        if (shaderPass._pipelineStage !== pipelineStageTagValue) {
-          continue;
-        }
 
         const renderState = shaderPass._renderState;
         if (!needMaskType) {
@@ -136,72 +134,24 @@ export class RenderQueue {
           macrosBuilt = true;
         }
 
-        const program = shaderPass._getShaderProgram(engine, compileMacros);
+        const program = shaderPass._getShaderProgram(
+          engine,
+          compileMacros,
+          undefined,
+          curElement.primitive,
+          rendererData,
+          materialData,
+          renderElementShaderData
+        );
         if (!program.isValid) {
           continue;
         }
 
-        const switchProgram = program.bind();
-        const switchRenderCount = renderCount !== program._uploadRenderCount;
-
-        // Upload uniforms (cache-aware per block). Renderer block carries plain samplers/arrays
-        // even on the instanced path (GLSL forbids them in UBOs); `_canBatch` ensures the whole
-        // batch agrees on those, so the leader's values are correct for the draw call
-        if (switchRenderCount) {
-          program.regroupUniformBlocks();
-          program.uploadAll(program.sceneUniformBlock, sceneData);
-          program.uploadAll(program.cameraUniformBlock, cameraData);
-          program.uploadAll(program.rendererUniformBlock, rendererData);
-          program._uploadRendererId = isInstanced ? -1 : rendererId;
-          program.uploadAll(program.materialUniformBlock, materialData);
-          renderElementShaderData && program.uploadAll(program.renderElementUniformBlock, renderElementShaderData);
-          // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind
-          program.uploadUnGroupTextures();
-          program._uploadSceneId = sceneId;
-          program._uploadCameraId = cameraId;
-          program._uploadMaterialId = materialId;
-          program._uploadRenderCount = renderCount;
-        } else {
-          if (program._uploadSceneId !== sceneId) {
-            program.uploadAll(program.sceneUniformBlock, sceneData);
-            program._uploadSceneId = sceneId;
-          } else if (switchProgram) {
-            program.uploadTextures(program.sceneUniformBlock, sceneData);
-          }
-
-          if (program._uploadCameraId !== cameraId) {
-            program.uploadAll(program.cameraUniformBlock, cameraData);
-            program._uploadCameraId = cameraId;
-          } else if (switchProgram) {
-            program.uploadTextures(program.cameraUniformBlock, cameraData);
-          }
-
-          if (isInstanced) {
-            // Different batches may have different leaders, re-upload every time
-            program.uploadAll(program.rendererUniformBlock, rendererData);
-            program._uploadRendererId = -1;
-          } else if (program._uploadRendererId !== rendererId) {
-            program.uploadAll(program.rendererUniformBlock, rendererData);
-            program._uploadRendererId = rendererId;
-          } else if (switchProgram) {
-            program.uploadTextures(program.rendererUniformBlock, rendererData);
-          }
-
-          if (program._uploadMaterialId !== materialId) {
-            program.uploadAll(program.materialUniformBlock, materialData);
-            program._uploadMaterialId = materialId;
-          } else if (switchProgram) {
-            program.uploadTextures(program.materialUniformBlock, materialData);
-          }
-
-          renderElementShaderData && program.uploadAll(program.renderElementUniformBlock, renderElementShaderData);
-
-          // We only consider switchProgram case, because UnGroup texture's value is always default
-          if (switchProgram) {
-            program.uploadUnGroupTextures();
-          }
+        program.bindForDraw(context.camera, component, material, renderElementShaderData, isInstanced);
+        const layout = program._instanceLayout;
+        if (!isInstanced || layout) {
+          program.uploadSharedUniforms(sceneData, cameraData, rendererData, materialData, renderElementShaderData);
         }
-        program.uploadMultiGroupUniforms(sceneData, cameraData, rendererData, materialData, renderElementShaderData);
 
         // Apply render state
         if (frontFaceInvert === undefined) {
@@ -217,7 +167,6 @@ export class RenderQueue {
         );
 
         // Draw
-        const layout = program._instanceLayout;
         if (isInstanced && layout) {
           const { primitive, subPrimitive, instancedRenderers } = curElement;
           const totalCount = instancedRenderers.length;
@@ -225,16 +174,28 @@ export class RenderQueue {
           const instanceBuffer = engine._batcherManager.instanceBuffer;
 
           instanceBuffer.setLayout(layout);
-          rhi.bindUniformBufferBase(ConstantBufferBindingPoint.RendererInstance, instanceBuffer.buffer._platformBuffer);
           for (let start = 0; start < totalCount; start += maxCount) {
             const count = Math.min(maxCount, totalCount - start);
-            instanceBuffer.upload(instancedRenderers, start, count);
+            instanceBuffer.upload(instancedRenderers, start, count, context, materialData, renderElementShaderData);
             primitive.instanceCount = count;
-            rhi.drawPrimitive(primitive, subPrimitive, program);
+            rhi.drawPrimitive(primitive, subPrimitive, program._platformProgram);
           }
           primitive.instanceCount = 0;
+        } else if (isInstanced) {
+          // A single instance record may exceed the device's block size. The pass
+          // selected its ordinary variant; each renderer now needs its own uniforms.
+          const renderers = curElement.instancedRenderers;
+          for (let k = 0; k < renderers.length; ++k) {
+            const renderer = renderers[k];
+            renderer._updateTransformShaderData(context, false);
+            const data = renderer.shaderData;
+            program.uploadAll(program.rendererUniformBlock, data);
+            program.uploadSharedUniforms(sceneData, cameraData, data, materialData, renderElementShaderData);
+            rhi.drawPrimitive(curElement.primitive, curElement.subPrimitive, program._platformProgram);
+            program._uploadRendererId = renderer.instanceId;
+          }
         } else {
-          rhi.drawPrimitive(curElement.primitive, curElement.subPrimitive, program);
+          rhi.drawPrimitive(curElement.primitive, curElement.subPrimitive, program._platformProgram);
         }
       }
     }

@@ -4,6 +4,10 @@ import { SetDataOptions, type IPlatformBuffer } from "@galacean/engine";
 export class NullBuffer implements IPlatformBuffer {
   private _data: Uint8Array;
 
+  get byteLength(): number {
+    return this._data.byteLength;
+  }
+
   constructor(byteLength: number, data?: ArrayBuffer | ArrayBufferView) {
     this._data = new Uint8Array(byteLength);
     if (data) this.setData(byteLength, data);

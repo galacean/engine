@@ -1,0 +1,50 @@
+{
+  "name": "Legacy/ExplicitScene",
+  "platformTarget": 0,
+  "subShaders": [
+    {
+      "name": "Default",
+      "tags": {},
+      "passes": [
+        {
+          "name": "Forward",
+          "isUsePass": false,
+          "tags": {},
+          "renderStates": {
+            "constantMap": {},
+            "variableMap": {}
+          },
+          "uniformBlocks": [
+            {
+              "name": "Scene",
+              "byteLength": 16,
+              "members": [
+                {
+                  "name": "historicalTint",
+                  "type": "vec4",
+                  "offset": 0,
+                  "arrayLength": 0,
+                  "arrayStride": 0,
+                  "matrixStride": 0
+                }
+              ],
+              "bindingName": "gs_Scene"
+            }
+          ],
+          "vertexShaderInstructions": [
+            [
+              0,
+              "uniform mat4 renderer_MVPMat;\nstruct Vertex {\nvec3 POSITION;\n};\nin vec3 POSITION;\nVertex read_Vertex() { Vertex interface_value;\ninterface_value.POSITION = POSITION;\nreturn interface_value; }\nvoid vert ( Vertex a ) { gl_Position = renderer_MVPMat * vec4 ( a.POSITION , 1.0 ) ; }\nvoid main() {\n\nVertex input_a = read_Vertex();\nvert(input_a); }"
+            ]
+          ],
+          "fragmentShaderInstructions": [
+            [
+              0,
+              "layout(location = 0) out vec4 output_color;\nlayout(std140) uniform gs_Scene {\n  highp vec4 historicalTint;\n};\nvoid frag ( ) { output_color = historicalTint ; }\nvoid main() {\n\n\nfrag(); }"
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

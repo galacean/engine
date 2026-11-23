@@ -733,12 +733,11 @@ export class TerrainLightingRuntime {
       createDirectLight: false
     });
     this._moonLightIntensityCurve = createConstantDayNightCurve(this._moonLighting.options.fullMoonIntensity);
-    const hardwareRenderer = (scene.engine as unknown as WebGL2EngineInternals)._hardwareRenderer;
-    if (!hardwareRenderer.supportsRendering) {
-      throw new Error("Terrain realtime IBL profiling requires WebGL2");
-    }
-    // GPU timer queries are a diagnostic cost, so production scenes opt in only while profiling.
-    this._iblProfiler = new TerrainIBLProfiler(hardwareRenderer.gl, { enabled: false });
+    const gl =
+      scene.engine._hardwareRenderer.backend === "webgl2"
+        ? (scene.engine as unknown as WebGL2EngineInternals)._hardwareRenderer.gl
+        : undefined;
+    this._iblProfiler = new TerrainIBLProfiler(gl, { enabled: false });
     this._iblBaker = new RealtimeIBLBaker(scene, {
       resolution: PROCEDURAL_SKY_REALTIME_IBL_OPTIONS.resolution,
       sampleCount: PROCEDURAL_SKY_REALTIME_IBL_OPTIONS.sampleCount,

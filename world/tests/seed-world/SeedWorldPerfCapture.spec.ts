@@ -1,3 +1,4 @@
+import { observeWebGPUDraws, WebGPURenderSubmissionMonitor } from "@galacean/engine-terrain/terrain/performance/WebGPUDrawCounters";
 import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
@@ -188,6 +189,31 @@ describe("Seed World perf capture accuracy & first-principles invariants", () =>
     expect(bufferSourceByteLength(full.subarray(10, 20))).toBe(40);
     expect(bufferSourceByteLength(new DataView(full.buffer, 16, 32))).toBe(32);
     expect(bufferSourceByteLength(null)).toBe(0);
+  });
+
+  it("counts successful instanced WebGPU primitives and reports indexed strips separately", () => {
+    const original = vi.fn();
+    const rhi = { backend: "webgpu", drawPrimitive: original };
+    const engine = { _hardwareRenderer: rhi } as any;
+    const counts = observeWebGPUDraws(engine)!;
+    const panel = new WebGPURenderSubmissionMonitor(engine, 2);
+    panel.start();
+    rhi.drawPrimitive({ instanceCount: 3 }, { topology: 4, count: 12 }, {});
+    rhi.drawPrimitive({ instanceCount: 0 }, { topology: 5, count: 6 }, {});
+    rhi.drawPrimitive({ indexBufferBinding: {} }, { topology: 5, count: 12 }, {});
+    original.mockImplementationOnce(() => { throw new Error("pipeline error"); });
+    expect(() => rhi.drawPrimitive({}, { topology: 4, count: 3 }, {})).toThrow("pipeline error");
+    expect(counts).toMatchObject({ draws: 3, instancedDraws: 1, instances: 3, triangles: 16, indexedStrips: 1 });
+    panel.endFrame();
+    counts.dispose();
+    rhi.drawPrimitive({ instanceCount: 5 }, { topology: 4, count: 12 }, {});
+    panel.endFrame();
+    expect(panel.takeSnapshot()).toEqual({
+      scope: "webgpu-direct", sampledFrames: 2, drawCalls: 2, instancedDrawCalls: 1,
+      instances: 4, triangles: 18, trianglesLowerBound: true, shadowTileSize: null, shadowCascades: null
+    });
+    expect(counts.draws).toBe(3);
+    expect(rhi.drawPrimitive).toBe(original);
   });
 
   it("tracks gl.bufferSubData uploads separately from Discard orphans, deduplicates FBO draw switches, and aligns HUD window 1 strictly to engine frames", () => {

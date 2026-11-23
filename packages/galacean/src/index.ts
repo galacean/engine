@@ -1,5 +1,12 @@
 import * as CoreObjects from "@galacean/engine-core";
-import { Engine, Loader, Polyfill, SystemInfo } from "@galacean/engine-core";
+import {
+  Engine as CoreEngine,
+  type EngineGraphicsCapabilities,
+  Loader,
+  Polyfill,
+  SystemInfo
+} from "@galacean/engine-core";
+import { graphicsCapabilities } from "./graphicsCapabilities.js";
 import { ShaderPool } from "./ShaderPool";
 //@ts-ignore
 export const version = `__buildVersion`;
@@ -7,6 +14,8 @@ export const version = `__buildVersion`;
 console.log(`Galacean Engine Version: ${version}`);
 
 export * from "@galacean/engine-core";
+export type Engine = CoreEngine;
+export const Engine: typeof CoreEngine & EngineGraphicsCapabilities = Object.assign(CoreEngine, graphicsCapabilities);
 export * from "@galacean/engine-loader";
 export * from "@galacean/engine-math";
 export * from "@galacean/engine-rhi-webgl";

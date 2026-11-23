@@ -5,6 +5,7 @@ import {
   Loader,
   ResourceManager,
   Shader,
+  ShaderLanguage,
   resourceLoader
 } from "@galacean/engine-core";
 
@@ -34,9 +35,18 @@ class ShaderLoader extends Loader<Shader> {
     const url = item.url!;
     return resourceManager._request<string>(url, { ...item, type: "text" }).then((code) => {
       const source = code.trimStart();
-      return source.startsWith("{")
-        ? Shader._createFromPrecompiled(JSON.parse(source))
-        : Shader._createFromSource(code, undefined, sourceFileForShader(url, resourceManager.baseUrl));
+      const engine = resourceManager.engine;
+      const builtinShaders = engine?._builtinShaders?.byName;
+      if (source.startsWith("{")) return Shader._createFromPrecompiled(JSON.parse(source), builtinShaders);
+      const language = engine?._hardwareRenderer.backend === "webgpu" ? ShaderLanguage.WGSL : ShaderLanguage.GLSLES300;
+      return Shader._createFromSource(
+        code,
+        language,
+        sourceFileForShader(url, resourceManager.baseUrl),
+        engine?._shaderCompiler,
+        builtinShaders,
+        ShaderLanguage.GLSLES300
+      );
     });
   }
 }

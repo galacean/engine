@@ -1,4 +1,4 @@
-import { PointerEventData, Signal } from "@galacean/engine";
+import { PointerEventData, Signal } from "@galacean/engine-core";
 import { UIInteractive } from "../interactive/UIInteractive";
 
 export class Button extends UIInteractive {

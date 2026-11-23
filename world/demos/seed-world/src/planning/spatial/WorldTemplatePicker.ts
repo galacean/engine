@@ -132,6 +132,7 @@ export function mountWorldTemplatePicker(
   host.prepend(entry);
   document.body.append(dialog);
   return {
+    dialog,
     open() { entry.click(); },
     update(id: unknown, nextSeed: number, disabled: boolean) {
       seed = nextSeed;

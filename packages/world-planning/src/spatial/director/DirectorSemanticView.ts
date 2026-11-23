@@ -18,7 +18,7 @@ import {
   Vector2,
   Vector4,
   type Entity,
-  type WebGLEngine
+  type Engine
 } from "@galacean/engine";
 import { directorCategory, summarizeDirectorPixels, type DirectorSemanticReport } from "./DirectorSemantic";
 import { semanticGeometryShader, semanticCompositeShader } from "./DirectorSemanticShaders";
@@ -26,17 +26,6 @@ import type { ColorAssignments } from "./DirectorMask";
 import type { PlanningScenePart } from "../../semantic-study/WorldPlanningScene";
 
 type Binding = { part: PlanningScenePart; material: Material; entity: Entity };
-type Pending = {
-  fence: WebGLSync;
-  buffer: WebGLBuffer;
-  width: number;
-  height: number;
-  epoch: number;
-  frame: number;
-  sampledAt: number;
-  position: number[];
-  rotation: number[];
-};
 class DirectorRenderHook extends Script {
   before: (camera: Camera) => void = () => {};
   after: (camera: Camera) => void = () => {};
@@ -59,11 +48,11 @@ export class DirectorSemanticView {
   private readonly hook: DirectorRenderHook;
   private readonly pass: DirectorCompositePass;
   private readonly composite: Material;
-  private readonly gl: WebGL2RenderingContext;
+  private readonly geometryShader: Shader;
   private visible?: RenderTarget;
   private target?: RenderTarget;
   private statistics?: RenderTarget;
-  private pending?: Pending;
+  private pending?: AbortController;
   private bindings: Binding[] = [];
   private roles: ColorAssignments = {};
   private active = false;
@@ -78,25 +67,20 @@ export class DirectorSemanticView {
   error?: string;
 
   constructor(
-    private engine: WebGLEngine,
+    private engine: Engine,
     private camera: Camera,
     parent: Entity,
     private canvas: HTMLCanvasElement
   ) {
-    this.gl = canvas.getContext("webgl2")!;
     this.auxiliary = parent.createChild("Director semantic camera").addComponent(Camera);
     this.auxiliary.enabled = false;
     this.auxiliary.enableScreenSpaceReflection = false;
     this.auxiliary.enableHDR = this.auxiliary.enablePostProcess = false;
     this.auxiliary.antiAliasing = AntiAliasing.None;
     this.auxiliary.clearFlags = CameraClearFlags.All;
-    this.auxiliary.setReplacementShader(
-      Shader.find("Planning/DirectorSemanticGeometry") ?? Shader.create(semanticGeometryShader)
-    );
-    this.composite = new Material(
-      engine,
-      Shader.find("Planning/DirectorSemanticComposite") ?? Shader.create(semanticCompositeShader)
-    );
+    this.geometryShader = Shader.create(semanticGeometryShader, engine);
+    this.auxiliary.setReplacementShader(this.geometryShader);
+    this.composite = new Material(engine, Shader.create(semanticCompositeShader, engine));
     this.pass = new DirectorCompositePass(engine);
     this.pass.isActive = false;
     this.pass.event = PostProcessPassEvent.AfterUber + 100;
@@ -148,6 +132,10 @@ export class DirectorSemanticView {
   setEnabled(value: boolean): void {
     if (value === this.active) return;
     this.active = value;
+    if (value) {
+      this.error = undefined;
+      delete this.canvas.dataset.semanticError;
+    }
     this.invalidate();
     if (value) {
       this.priorPost = this.camera.enablePostProcess;
@@ -190,6 +178,8 @@ export class DirectorSemanticView {
   }
   private invalidate(): void {
     this.epoch++;
+    this.pending?.abort();
+    this.pending = undefined;
     this.report = undefined;
     delete this.canvas.dataset.semanticReport;
   }
@@ -203,7 +193,6 @@ export class DirectorSemanticView {
   }
   private before(): void {
     try {
-      this.poll();
       const width = this.canvas.width,
         height = this.canvas.height;
       if (!this.visible || this.visible.width !== width || this.visible.height !== height) {
@@ -275,75 +264,44 @@ export class DirectorSemanticView {
     if (!this.pending && performance.now() - this.lastRead >= 250) {
       data.setFloat("material_DirectorStatistics", 1);
       Blitter.blitTexture(this.engine, ids, this.statistics!, 0, undefined, this.composite);
-      this.enqueueRead();
+      void this.enqueueRead();
       this.lastRead = performance.now();
     }
     data.setFloat("material_DirectorStatistics", 0);
     Blitter.blitTexture(this.engine, ids, destination, 0, undefined, this.composite);
   }
-  private enqueueRead(): void {
-    const gl = this.gl,
-      target = this.statistics!,
-      previousRead = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING),
-      previousPack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
-    const buffer = gl.createBuffer()!;
+  private async enqueueRead(): Promise<void> {
+    const controller = (this.pending = new AbortController());
+    const { width, height } = this.statistics!;
+    const readFrame = this.frame;
+    const epoch = this.epoch;
+    const sampledAt = performance.now();
+    const p = this.camera.entity.transform.worldPosition;
+    const q = this.camera.entity.transform.worldRotationQuaternion;
+    const position = [p.x, p.y, p.z],
+      rotation = [q.x, q.y, q.z, q.w];
+    const pixels = new Uint8Array(width * height * 4);
     try {
-      // The engine just bound the statistics draw target. Restore raw GL bindings to avoid invalidating its state cache.
-      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING));
-      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
-      gl.bufferData(gl.PIXEL_PACK_BUFFER, target.width * target.height * 4, gl.STREAM_READ);
-      gl.readPixels(0, 0, target.width, target.height, gl.RGBA, gl.UNSIGNED_BYTE, 0);
-      const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)!;
-      gl.flush();
-      const p = this.camera.entity.transform.worldPosition,
-        q = this.camera.entity.transform.worldRotationQuaternion;
-      this.pending = {
-        fence,
-        buffer,
-        width: target.width,
-        height: target.height,
-        epoch: this.epoch,
-        frame: this.frame,
-        sampledAt: performance.now(),
-        position: [p.x, p.y, p.z],
-        rotation: [q.x, q.y, q.z, q.w]
-      };
-    } finally {
-      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, previousRead);
-      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, previousPack);
-    }
-  }
-  private poll(): void {
-    const pending = this.pending;
-    if (!pending) return;
-    const gl = this.gl,
-      status = gl.clientWaitSync(pending.fence, 0, 0);
-    if (status === gl.TIMEOUT_EXPIRED) return;
-    try {
-      if (status === gl.WAIT_FAILED) throw Error("诊断异步像素读取失败");
-      if (pending.epoch !== this.epoch) return;
-      const pixels = new Uint8Array(pending.width * pending.height * 4),
-        previous = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
-      try {
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pending.buffer);
-        gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, pixels);
-      } finally {
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, previous);
-      }
+      const texture = this.statistics!.getColorTexture(0) as Texture2D;
+      await texture.getPixelBufferAsync(pixels, controller.signal);
+      if (this.epoch !== epoch || controller.signal.aborted) return;
       this.report = {
-        ...summarizeDirectorPixels(pixels, pending.width, pending.height),
-        frame: pending.frame,
-        sampledAt: pending.sampledAt,
+        ...summarizeDirectorPixels(pixels, width, height),
+        frame: readFrame,
+        sampledAt,
         receivedAt: performance.now(),
-        position: pending.position,
-        rotation: pending.rotation
+        position,
+        rotation
       };
       if (!this.hasTarget) this.report.targetOcclusion = null;
       this.canvas.dataset.semanticReport = JSON.stringify(this.report);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        this.error = String(error);
+        this.canvas.dataset.semanticError = this.error;
+      }
     } finally {
-      gl.deleteSync(pending.fence);
-      gl.deleteBuffer(pending.buffer);
-      this.pending = undefined;
+      if (this.pending === controller) this.pending = undefined;
     }
   }
   /** Release GPU resources and remove the post pass. */
@@ -355,10 +313,9 @@ export class DirectorSemanticView {
     this.visible?.destroy(true);
     this.target?.destroy(true);
     this.statistics?.destroy(true);
+    const shader = this.composite.shader;
     this.composite.destroy();
-    if (this.pending) {
-      this.gl.deleteSync(this.pending.fence);
-      this.gl.deleteBuffer(this.pending.buffer);
-    }
+    this.geometryShader.destroy();
+    shader.destroy();
   }
 }

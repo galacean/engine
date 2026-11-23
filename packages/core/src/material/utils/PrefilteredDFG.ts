@@ -14,7 +14,7 @@ export class PrefilteredDFG {
         engine,
         PrefilteredDFG._size,
         PrefilteredDFG._size,
-        TextureFormat.R8G8B8_UNorm,
+        TextureFormat.R8G8B8A8_UNorm,
         false,
         false
       );

@@ -13,7 +13,15 @@ export interface IPrecompiledSubShader {
 }
 
 export interface IPrecompiledPass
-  extends Pick<IShaderProgramSource, "vertexShaderInstructions" | "fragmentShaderInstructions" | "vertexOutputNames"> {
+  extends Pick<
+    IShaderProgramSource,
+    | "vertexShaderInstructions"
+    | "fragmentShaderInstructions"
+    | "vertexOutputNames"
+    | "uniformBlocks"
+    | "uniformPlan"
+    | "wgsl"
+  > {
   name: string;
   isUsePass: boolean;
   tags?: Record<string, number | string | boolean>;

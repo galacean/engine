@@ -1,4 +1,5 @@
 import type { ICodeGenVisitor } from "./ICodeGenVisitor";
+import type { IShaderUniformBlock } from "@galacean/engine-design";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken, BranchSignature, EMPTY_BRANCH, sameBranch } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
@@ -1817,16 +1818,39 @@ namespace ASTNodes {
     }
   }
 
+  @ASTNodeDecorator(NoneTerminal.uniform_block)
+  export class UniformBlock extends TreeNode {
+    name: string;
+    members: VariableDeclaration[] = [];
+    layout: IShaderUniformBlock;
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      this.name = (this.children[1] as BaseToken).lexeme;
+      this.members.length = 0;
+      let list = this.children[3] as TreeNode;
+      while (list.children.length === 3) {
+        this.members.push(list.children[1] as VariableDeclaration);
+        list = list.children[0] as TreeNode;
+      }
+      this.members.push(list.children[0] as VariableDeclaration);
+      this.members.reverse();
+      for (const member of this.members) member.uniformBlock = this;
+      (sa.shaderData.uniformBlocks ??= []).push(this);
+    }
+  }
+
   @ASTNodeDecorator(NoneTerminal.variable_declaration)
   export class VariableDeclaration extends TreeNode {
     type: FullySpecifiedType;
     isStatic: boolean;
     /** Canonical information for this shader-global declarator. */
     declarator: VariableDeclaratorInfo;
+    uniformBlock?: UniformBlock;
 
     override init(): void {
       this.isStatic = false;
       this.declarator = undefined;
+      this.uniformBlock = undefined;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {

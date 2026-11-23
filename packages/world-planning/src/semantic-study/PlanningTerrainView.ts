@@ -233,13 +233,19 @@ export class PlanningTerrainView {
   }
   /** Capture actual submitted Terrain geometry with the production height/morph vertex path. */
   captureDepth(observer: Observer, width: number, height: number): Uint8Array {
+    return this.withDiagnostic((diagnostic) => diagnostic.capture(observer, width, height));
+  }
+  captureDepthAsync(observer: Observer, width: number, height: number): Promise<Uint8Array> {
+    return this.withDiagnostic((diagnostic) => diagnostic.captureAsync(observer, width, height));
+  }
+  private withDiagnostic<T>(capture: (diagnostic: PlanningTerrainDepth) => T): T {
     if (!this.clipmap) throw new Error("Terrain 尚未就绪");
     this.diagnostic ??= new PlanningTerrainDepth(this.engine, this.root.parent!);
     this.clipmap.snap(this.camera.entity.transform.worldPosition);
     const visible = this.root.isActive;
     try {
       this.root.isActive = true;
-      return this.diagnostic.capture(observer, width, height);
+      return capture(this.diagnostic);
     } finally {
       this.root.isActive = visible;
     }

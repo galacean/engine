@@ -651,8 +651,10 @@ it("installs and resolves @galacean/engine-rhi-null and @galacean/engine indepen
       const loadNull =
         mode === "require" ? 'require("@galacean/engine-rhi-null")' : 'await import("@galacean/engine-rhi-null")';
       const script = `const { HeadlessEngine } = ${loadNull};
-        const { PrimitiveMesh, PBRMaterial } = ${loadEngine};
-        Promise.resolve(HeadlessEngine.create()).then(engine => {
+        const { Engine, PrimitiveMesh, PBRMaterial } = ${loadEngine};
+        Promise.resolve(HeadlessEngine.create()).then(async engine => {
+          if (Engine.isWebGL2Supported() || await Engine.isWebGPUSupported()) throw Error("Unexpected graphics support");
+          if (!(engine instanceof Engine)) throw Error("Engine constructor identity");
           if (PrimitiveMesh.createCuboid(engine, 2, 4, 6).bounds.max.y !== 2) throw Error("bounds");
           if (new PBRMaterial(engine).shader.name !== "PBR") throw Error("shader");
           engine.destroy();

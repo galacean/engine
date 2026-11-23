@@ -1,10 +1,13 @@
 import { Matrix, Vector4 } from "@galacean/engine-math";
+import { MatrixSnapshot } from "./MatrixSnapshot";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
+import { RenderBufferLoadAction, RenderBufferStoreAction } from "../renderingHardwareInterface";
 import { Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
+import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderTarget, TextureCubeFace } from "../texture";
 
 /**
@@ -35,17 +38,28 @@ export class RenderContextSSRState {
  * @internal
  */
 export class RenderContext {
-  static vpMatrixProperty = ShaderProperty.getByName("camera_VPMat");
+  /** Fixed raster depth bias required while drawing directional shadow maps. */
+  shadowDepthBias = false;
+  static vpMatrixProperty = ShaderProperty._getBuiltinGlobal("camera_VPMat", ShaderDataGroup.Camera);
   static pipelineStageKey: ShaderTagKey = ShaderTagKey.getByName("pipelineStage");
 
   /** @internal */
   static _flipYMatrix = new Matrix(1, 0, 0, 0, 0, -1);
 
-  private static _cameraProjectionProperty = ShaderProperty.getByName("camera_ProjectionParams");
-  private static _viewMatrixProperty = ShaderProperty.getByName("camera_ViewMat");
-  private static _projectionMatrixProperty = ShaderProperty.getByName("camera_ProjMat");
+  private static _cameraProjectionProperty = ShaderProperty._getBuiltinGlobal(
+    "camera_ProjectionParams",
+    ShaderDataGroup.Camera
+  );
+  private static _viewMatrixProperty = ShaderProperty._getBuiltinGlobal("camera_ViewMat", ShaderDataGroup.Camera);
+  private static _projectionMatrixProperty = ShaderProperty._getBuiltinGlobal("camera_ProjMat", ShaderDataGroup.Camera);
   private static _flipYProjectionMatrix = new Matrix();
   private static _flipYViewProjectionMatrix = new Matrix();
+
+  private readonly _viewSnapshot = new MatrixSnapshot();
+  private readonly _viewProjectionSnapshot = new MatrixSnapshot();
+  private readonly _flippedViewProjectionSnapshot = new MatrixSnapshot();
+  viewRevision = -1;
+  viewProjectionRevision = -1;
 
   private _projectionParams: Vector4 = new Vector4();
 
@@ -80,6 +94,12 @@ export class RenderContext {
       viewProjectionMatrix = RenderContext._flipYViewProjectionMatrix;
     }
 
+    // GL can visit both projection orientations in one camera render. Keep independent revisions for each.
+    const viewProjectionSnapshot = flipProjection ? this._flippedViewProjectionSnapshot : this._viewProjectionSnapshot;
+    this._viewSnapshot.update(viewMatrix);
+    viewProjectionSnapshot.update(viewProjectionMatrix);
+    this.viewRevision = this._viewSnapshot.revision;
+    this.viewProjectionRevision = viewProjectionSnapshot.revision;
     this.viewMatrix = viewMatrix;
     this.projectionMatrix = projectionMatrix;
     this.viewProjectionMatrix = viewProjectionMatrix;
@@ -93,10 +113,31 @@ export class RenderContext {
     shaderData.setVector4(RenderContext._cameraProjectionProperty, projectionParams);
   }
 
-  setRenderTarget(destination: RenderTarget | null, viewport: Vector4, mipLevel?: number, faceIndex?: TextureCubeFace) {
+  setRenderTarget(
+    destination: RenderTarget | null,
+    viewport: Vector4,
+    mipLevel?: number,
+    faceIndex?: TextureCubeFace,
+    colorLoadAction = RenderBufferLoadAction.Load,
+    colorStoreAction = RenderBufferStoreAction.Store,
+    depthLoadAction = RenderBufferLoadAction.Load,
+    depthStoreAction = RenderBufferStoreAction.Store,
+    label?: string
+  ) {
     const engine = this.camera.engine;
     const rhi = engine._hardwareRenderer;
-    rhi.activeRenderTarget(destination, viewport, this.flipProjection, mipLevel, faceIndex);
+    rhi.activeRenderTarget(
+      destination,
+      viewport,
+      this.flipProjection,
+      mipLevel,
+      faceIndex,
+      colorLoadAction,
+      colorStoreAction,
+      depthLoadAction,
+      depthStoreAction,
+      label
+    );
 
     if (destination) {
       engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);

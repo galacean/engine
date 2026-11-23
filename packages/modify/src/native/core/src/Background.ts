@@ -111,7 +111,7 @@ export class Background {
    */
   constructor(private _engine: Engine) {
     this._initMesh(_engine);
-    this._initMaterial(_engine, Engine._builtinShaders.backgroundTexture);
+    this._initMaterial(_engine, _engine._builtinShaders.backgroundTexture);
   }
 
   /**
@@ -176,7 +176,7 @@ export class Background {
 
   private _createPlane(engine: Engine): ModelMesh {
     const mesh = new ModelMesh(engine);
-    const indices = new Uint8Array([1, 2, 0, 1, 3, 2]);
+    const indices = new Uint16Array([1, 2, 0, 1, 3, 2]);
 
     const positions: Vector3[] = new Array(4);
     const uvs: Vector2[] = new Array(4);

@@ -1,5 +1,5 @@
-import { DataType } from "../base/Constant";
 import { IndexFormat } from "./enums/IndexFormat";
+import { DataType } from "../base/Constant";
 import { VertexElementFormat } from "./enums/VertexElementFormat";
 
 /**

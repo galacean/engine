@@ -130,7 +130,7 @@ export class Material extends ReferResource implements IClone {
     if (this._ssrIntensity <= 0) {
       return false;
     }
-    const pbrShader = Engine._builtinShaders?.pbr;
+    const pbrShader = this.engine._builtinShaders.pbr;
     if (pbrShader && this._shader === pbrShader && Material._pbrSSREligibilityChecker) {
       return Material._pbrSSREligibilityChecker(this._shaderData, maxRoughness);
     }

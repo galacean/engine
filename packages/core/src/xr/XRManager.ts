@@ -38,6 +38,14 @@ export class XRManager {
   /**
    * @internal
    */
+  _beginCamera(type: CameraType): boolean {
+    return true;
+  }
+
+  /** @internal */
+  _endCamera(): void {}
+
+  /** @internal */
   _getCameraIgnoreClearFlags(type: CameraType): CameraClearFlags {
     return CameraClearFlags.None;
   }

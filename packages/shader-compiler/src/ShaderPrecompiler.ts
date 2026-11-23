@@ -1,5 +1,5 @@
 import { ShaderLanguage } from "@galacean/engine-core";
-import type { IPrecompiledShader } from "@galacean/engine-design";
+import type { IPrecompiledShader, IWebGPUShaderCompiler } from "@galacean/engine-design";
 import {
   branchAnalysis,
   createValidatedShaderTargetParser,
@@ -25,6 +25,7 @@ import {
  * it from `@galacean/engine-shader-compiler/precompile`.
  */
 export class ShaderPrecompiler {
+  constructor(private readonly webgpu?: IWebGPUShaderCompiler) {}
   private _includeMap: IncludeMap = Object.create(null);
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
   private readonly _sourceParserObjectPool = new ParserObjectPool();
@@ -44,7 +45,7 @@ export class ShaderPrecompiler {
   /**
    * Compiles complete ShaderLab source into a serializable `.shaderc` structure.
    * @param sourceCode - Complete ShaderLab source.
-   * @param platformTarget - Target GLES language.
+   * @param platformTarget - Target shader language.
    * @param sourceFile - Optional logical root location used for relative includes and attribution.
    * @returns Serializable precompiled shader.
    * @throws Error when structural parsing, pass validation, or backend generation fails.
@@ -102,7 +103,8 @@ export class ShaderPrecompiler {
             pass.vertexEntry,
             pass.fragmentEntry,
             platformTarget,
-            coreInfo
+            coreInfo,
+            this.webgpu
           );
           if (!program) {
             throw new Error(
@@ -115,6 +117,9 @@ export class ShaderPrecompiler {
             tags: pass.tags,
             renderStates: serializeRenderStates(pass.renderStates),
             vertexOutputNames: program.vertexOutputNames,
+            uniformBlocks: program.uniformBlocks,
+            uniformPlan: program.uniformPlan,
+            wgsl: program.wgsl,
             vertexShaderInstructions: program.vertexShaderInstructions,
             fragmentShaderInstructions: program.fragmentShaderInstructions
           };

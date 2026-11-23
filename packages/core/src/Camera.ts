@@ -1,5 +1,6 @@
 import type { Renderer } from "./Renderer";
 import type { IUICanvas } from "./ui/IUICanvas";
+import { MatrixSnapshot } from "./RenderPipeline/MatrixSnapshot";
 import { BoundingFrustum, MathUtil, Matrix, Ray, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
@@ -49,9 +50,9 @@ export class Camera extends Component {
   static _cameraAOTextureProperty = ShaderProperty.getByName("camera_AOTexture");
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
-  private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
-  private static _cameraForwardProperty = ShaderProperty.getByName("camera_Forward");
-  private static _cameraUpProperty = ShaderProperty.getByName("camera_Up");
+  private static _cameraPositionProperty = ShaderProperty._getBuiltinGlobal("camera_Position", ShaderDataGroup.Camera);
+  private static _cameraForwardProperty = ShaderProperty._getBuiltinGlobal("camera_Forward", ShaderDataGroup.Camera);
+  private static _cameraUpProperty = ShaderProperty._getBuiltinGlobal("camera_Up", ShaderDataGroup.Camera);
   private static _cameraDepthBufferParamsProperty = ShaderProperty.getByName("camera_DepthBufferParams");
 
   /** Whether to enable frustum culling, it is enabled by default. */
@@ -125,6 +126,9 @@ export class Camera extends Component {
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _frustum: BoundingFrustum = new BoundingFrustum();
+  /** @internal Revision of the exact matrix used by the culling planes. */
+  @ignoreClone
+  readonly _frustumSnapshot = new MatrixSnapshot();
   /** @internal */
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
@@ -142,7 +146,8 @@ export class Camera extends Component {
 
   private _priority: number = 0;
   private _isCustomViewMatrix = false;
-  private _isCustomProjectionMatrix = false;
+  /** @internal Whether to restore an authored projection when an XR session releases the camera. */
+  _isCustomProjectionMatrix = false;
   private _fieldOfView: number = 45;
   private _orthographicSize: number = 10;
   private _isProjectionDirty = true;
@@ -644,9 +649,12 @@ export class Camera extends Component {
     context.replacementFailureStrategy = this._replacementFailureStrategy;
 
     // compute cull frustum.
-    if (this.enableFrustumCulling && this._frustumChangeFlag.flag) {
-      this._frustum.calculateFromMatrix(virtualCamera.viewProjectionMatrix);
-      this._frustumChangeFlag.flag = false;
+    if (this.enableFrustumCulling) {
+      const changed = this._frustumSnapshot.update(virtualCamera.viewProjectionMatrix);
+      if (changed || this._frustumChangeFlag.flag) {
+        this._frustum.calculateFromMatrix(virtualCamera.viewProjectionMatrix);
+        this._frustumChangeFlag.flag = false;
+      }
     }
 
     this._updateShaderData();
@@ -659,12 +667,24 @@ export class Camera extends Component {
     );
 
     let ignoreClearFlags: CameraClearFlags | undefined;
-    if (this._cameraType !== CameraType.Normal && !this._renderTarget) {
+    const xrCamera = this._cameraType !== CameraType.Normal && !this._renderTarget;
+    if (xrCamera) {
+      if (!engine.xrManager._beginCamera(this._cameraType)) {
+        context.camera = null!;
+        return;
+      }
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
-    this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
-    engine._renderCount++;
-    context.camera = null!;
+    engine._beginFrame();
+    try {
+      this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
+      engine._renderCount++;
+    } finally {
+      context.camera = null!;
+      engine._hardwareRenderer.endRenderPass();
+      if (xrCamera) engine.xrManager._endCamera();
+      engine._endFrame();
+    }
   }
 
   /**

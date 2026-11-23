@@ -65,6 +65,27 @@ afterAll(() => {
 });
 
 describe("published shader packages", () => {
+  it.each(["require", "import"])("publishes the optional WGSL compiler and shader assets through %s", (mode) => {
+    const load = mode === "require" ? "require" : "await import";
+    const source = `
+      const compilerModule=${load}("@galacean/engine-shader-compiler/webgpu");
+      const assetModule=${load}("@galacean/engine-shader/webgpu");
+      const {createRequire}=await import("node:module");
+      const {readFileSync}=await import("node:fs");
+      const fromConsumer=createRequire(process.cwd()+"/package.json");
+      const fromCompiler=createRequire(fromConsumer.resolve("@galacean/engine-shader-compiler/webgpu"));
+      const wasm=readFileSync(fromCompiler.resolve("web-naga/web_naga_bg.wasm"));
+      const backend=await compilerModule.createWebGPUShaderCompiler(wasm);
+      const pass=assetModule.UnlitSource.subShaders[0].passes.find(p=>!p.isUsePass);
+      const program=compilerModule.compileWebGPUShaderPass(backend,pass,new Map([["MATERIAL_HAS_BASETEXTURE",""]]));
+      if(!pass.wgsl || !program.fragment.includes("@fragment") || !program.reflection.textures.length)throw Error("Invalid native shader package");
+    `;
+    const probe = runNode(
+      mode === "require" ? "(async()=>{" + source + "})().catch(e=>{console.error(e);process.exitCode=1;})" : source,
+      mode === "import"
+    );
+    expect(probe.status, probe.stderr).toBe(0);
+  });
   it("rejects the parser root while loading both internal entries in ESM and CommonJS", () => {
     for (const mode of ["require", "import"] as const) {
       const rootProbe = runNode(

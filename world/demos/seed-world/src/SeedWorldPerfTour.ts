@@ -1,4 +1,5 @@
-import { Vector3, type Camera, type WebGLEngine } from "@galacean/engine";
+import { observeWebGPUDraws } from "@galacean/engine-terrain/terrain/performance/WebGPUDrawCounters";
+import { Vector3, type Camera, type Engine } from "@galacean/engine";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import type { PerfCumulativeCounters } from "./MobileFrameCapture";
 import type { AuditedShaderCompile, SeedWorldShaderAuditSnapshot } from "./SeedWorldShaderAudit";
@@ -60,6 +61,7 @@ export interface PerfTourFrameSample {
   readonly dc: number;
   readonly tris: number;
   readonly fbo: number;
+  readonly unmeasuredIndexedStrips?: number;
 }
 
 export interface PerfTourMetricsBlock {
@@ -84,7 +86,7 @@ export interface PerfTourMetricsBlock {
   readonly maxDc: number;
   readonly avgTrisK: number;
   readonly maxTrisK: number;
-  readonly avgFbo: number;
+  readonly avgFbo: number | null;
 }
 
 export interface PerfTourSegmentSummary extends PerfTourMetricsBlock {
@@ -113,6 +115,8 @@ export interface PerfTourShaderSummary {
 
 export interface SeedWorldPerfTourReport {
   readonly kind: "seed-world-perf-tour";
+  readonly drawScope?: "webgpu-direct";
+  readonly unmeasuredIndexedStrips?: number;
   readonly schemaVersion: 1;
   readonly ts: number;
   readonly url: string;
@@ -134,7 +138,7 @@ export interface SeedWorldPerfTourReport {
 }
 
 export interface SeedWorldPerfTourOptions {
-  readonly engine: WebGLEngine;
+  readonly engine: Engine;
   readonly camera: Camera;
   readonly canvas: HTMLCanvasElement;
   readonly templateId: string;
@@ -545,7 +549,7 @@ function summarizeFrames(frames: readonly PerfTourFrameSample[]): PerfTourMetric
     maxDc,
     avgTrisK: round1(totalTris / n / 1000),
     maxTrisK: round1(maxTris / 1000),
-    avgFbo: round1(totalFbo / n)
+    avgFbo: Number.isFinite(totalFbo) ? round1(totalFbo / n) : null
   };
 }
 
@@ -609,10 +613,24 @@ function restoreProp<T extends object, K extends keyof T>(
 }
 
 /** Lightweight GL draw/triangle/FBO counter fallback used only when SeedWorldPerfPanel is not mounted. */
-function installLightweightGlCounters(engine: WebGLEngine): {
+function installLightweightCounters(engine: Engine): {
   read(out: PerfCumulativeCounters): PerfCumulativeCounters;
   dispose(): void;
 } {
+  const gpu = observeWebGPUDraws(engine);
+  if (gpu) {
+    return {
+      read(out) {
+        out.drawScope = "webgpu-direct";
+        out.indexedStrips = gpu.indexedStrips;
+        out.dc = gpu.draws;
+        out.tris = gpu.triangles;
+        out.fbo = NaN;
+        return out;
+      },
+      dispose: gpu.dispose
+    };
+  }
   const rhi = (engine as unknown as { _hardwareRenderer?: { gl?: WebGLRenderingContext | WebGL2RenderingContext } })
     ._hardwareRenderer;
   const gl = rhi?.gl;
@@ -758,7 +776,7 @@ export function buildPerfTourScorecardHtml(report: SeedWorldPerfTourReport, uplo
     `</div>` +
     `<div style="font-size:11px;color:#cbd5e1;margin-bottom:8px;">` +
     `Hitch(&gt;33ms): <b>${o.hitchTimePct}%</b> (${o.hitchTimeMs}ms) · CPU均值: <b>${o.avgCpuMs}ms</b> (max ${o.maxCpuMs})<br>` +
-    `均值负载: <b>${o.avgDc}dc / ${o.avgTrisK}k tris / ${o.avgFbo}fbo</b> · 巡游期新编译 Shader: <b>${report.shaderCompilesDuringTour}</b> (${report.shaderCompileMsDuringTour}ms)` +
+    `均值负载: <b>${report.drawScope ? "RHI " : ""}${o.avgDc}dc / ${report.unmeasuredIndexedStrips ? "≥" : ""}${o.avgTrisK}k tris${o.avgFbo === null ? "" : ` / ${o.avgFbo}fbo`}</b> · 巡游期新编译 Shader: <b>${report.shaderCompilesDuringTour}</b> (${report.shaderCompileMsDuringTour}ms)` +
     `</div>` +
     `<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;">` +
     `<thead><tr style="color:#94a3b8;border-bottom:1px solid rgba(148,163,184,0.3);"><th style="text-align:left;padding:3px 4px;">路段</th><th style="text-align:right;padding:3px 4px;">FPS</th><th style="text-align:right;padding:3px 4px;">1%Low</th><th style="text-align:right;padding:3px 4px;">P95/Max</th><th style="text-align:right;padding:3px 4px;">50/100</th><th style="text-align:right;padding:3px 4px;">Tris</th></tr></thead>` +
@@ -882,6 +900,10 @@ export function createSeedWorldPerfTour(options: SeedWorldPerfTourOptions): Seed
     const rect = canvas.getBoundingClientRect();
     const report: SeedWorldPerfTourReport = {
       kind: "seed-world-perf-tour",
+      ...(engine.graphicsBackend === "webgpu" && {
+        drawScope: "webgpu-direct" as const,
+        unmeasuredIndexedStrips: frames.reduce((sum, frame) => sum + (frame.unmeasuredIndexedStrips ?? 0), 0)
+      }),
       schemaVersion: 1,
       ts: Date.now(),
       url: typeof location !== "undefined" ? location.href : "",
@@ -954,7 +976,7 @@ export function createSeedWorldPerfTour(options: SeedWorldPerfTourOptions): Seed
     });
 
     const shaderStartCount = readShaderAudit?.()?.compiled.length ?? 0;
-    const fallbackCounters = readCumulativeCounters ? null : installLightweightGlCounters(engine);
+    const fallbackCounters = readCumulativeCounters ? null : installLightweightCounters(engine);
     const readCounters = readCumulativeCounters ?? ((out: PerfCumulativeCounters) => fallbackCounters!.read(out));
 
     running = true;
@@ -1040,7 +1062,8 @@ export function createSeedWorldPerfTour(options: SeedWorldPerfTourOptions): Seed
             segmentId: pose.segmentId,
             dc: Math.max(0, curCounter.dc - prevCounter.dc),
             tris: Math.max(0, curCounter.tris - prevCounter.tris),
-            fbo: Math.max(0, curCounter.fbo - prevCounter.fbo)
+            fbo: Math.max(0, curCounter.fbo - prevCounter.fbo),
+            unmeasuredIndexedStrips: (curCounter.indexedStrips ?? 0) - (prevCounter.indexedStrips ?? 0)
           });
         }
         prevFrameStartMs = frameStartMs;

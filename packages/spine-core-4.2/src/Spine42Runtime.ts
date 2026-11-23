@@ -12,7 +12,7 @@ import {
   Skin,
   TextureAtlas
 } from "@esotericsoftware/spine-core";
-import { Texture2D } from "@galacean/engine";
+import { Texture2D } from "@galacean/engine-core";
 import type { ISpineRuntime, ISpineGeometry, SpineCapability, ISpinePhysics } from "@galacean/engine-design";
 import { SpineGenerator } from "./SpineGenerator";
 import { SpineTexture } from "./SpineTexture";

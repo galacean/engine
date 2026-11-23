@@ -1,3 +1,4 @@
+import type { MeshTopology } from "../graphic/enums/MeshTopology";
 import { IPlatformBuffer } from "./IPlatformBuffer";
 
 /**
@@ -19,7 +20,7 @@ export interface IPlatformTransformFeedback {
    * Begin a Transform Feedback pass.
    * @param primitiveMode - The primitive mode (e.g., POINTS)
    */
-  begin(primitiveMode: number): void;
+  begin(primitiveMode: MeshTopology): void;
 
   /**
    * End the current Transform Feedback pass.

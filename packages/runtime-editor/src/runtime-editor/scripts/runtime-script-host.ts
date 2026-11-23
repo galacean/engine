@@ -1,4 +1,7 @@
 import * as Engine from "@galacean/engine";
+import * as WebGPU from "@galacean/engine-webgpu";
+import * as WebGPURHI from "@galacean/engine-rhi-webgpu";
+import * as WebGLRHI from "@galacean/engine-rhi-webgl";
 import * as zod from "zod";
 import * as ProjectAssets from "./project-assets";
 
@@ -10,5 +13,7 @@ export const runtimeScriptExternals: Readonly<Record<string, Record<string, unkn
   "@galacean/engine-core": Engine,
   "@galacean/engine-math": Engine,
   "@galacean/engine-loader": Engine,
-  "@galacean/engine-rhi-webgl": Engine
+  "@galacean/engine-rhi-webgl": WebGLRHI,
+  "@galacean/engine-webgpu": WebGPU,
+  "@galacean/engine-rhi-webgpu": WebGPURHI
 };

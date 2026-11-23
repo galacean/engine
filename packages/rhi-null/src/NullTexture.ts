@@ -18,7 +18,6 @@ class NullTexture implements IPlatformTexture {
 
   destroy(): void {}
   generateMipmaps(): void {}
-  setUseDepthCompareMode(): void {}
   getPixelBuffer(): never {
     throw new Error("Pixel readback requires a graphics device.");
   }

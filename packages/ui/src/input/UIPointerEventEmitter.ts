@@ -8,7 +8,7 @@ import {
   PointerEventEmitter,
   Scene,
   registerPointerEventEmitter
-} from "@galacean/engine";
+} from "@galacean/engine-core";
 import { UICanvas } from "..";
 import { UIRenderer } from "../component/UIRenderer";
 import { UIHitResult } from "./UIHitResult";

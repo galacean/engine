@@ -6,6 +6,7 @@ import { WebCanvas } from "./WebCanvas";
  * WebGL platform engine, supports WebGL 2.0.
  */
 export class WebGLEngine extends Engine {
+  declare _hardwareRenderer: WebGLGraphicDevice;
   /**
    * Create a WebGL engine.
    * @param configuration - WebGL engine configuration

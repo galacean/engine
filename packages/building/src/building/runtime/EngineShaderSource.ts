@@ -1,3 +1,4 @@
+import type { Engine } from "@galacean/engine";
 import { simplifySpirvNoise } from "./SimplifySpirvNoise";
 
 /** Adapt the recovered ES shader's read-only std140 blocks to engine-managed
@@ -19,7 +20,7 @@ interface Layout {
   size: number;
   fields?: Array<Field & { offset: number }>;
 }
-export function engineShaderSource(source: string) {
+export function engineShaderSource(source: string, backend: Engine["graphicsBackend"] = "webgl2") {
   source = simplifySpirvNoise(source);
   // EngineResidentScene publishes the ordinary column-vector camera transform
   // (encoded as std140 row-major bytes). Storage order does not change the
@@ -156,5 +157,31 @@ export function engineShaderSource(source: string) {
   }
   source = source.slice(0, start) + readers.join("\n") + "\n" + source.slice(start);
   source = source.replace("void main(){", `void main(){${initializers.join("")}`);
+  if (backend === "webgpu") source = normalizeRecoveredAggregates(source);
   return { source: dormerUniform + source.replace(/^#version 300 es\s*/, ""), blocks };
+}
+
+/** Preserve SPIRV-Cross' packed building data when translating recovered GLSL to WGSL. */
+function normalizeRecoveredAggregates(source: string): string {
+  // Naga's GLSL frontend rejects scalar swizzle assignments on indexed matrix columns.
+  // The equivalent double subscript preserves column-major coordinates on reads and writes.
+  const matrices = new Set(Array.from(source.matchAll(/\bmat[234](?:x[234])?\s+(\w+)/g), (match) => match[1]));
+  source = source.replace(/\b(\w+)\s*\[\s*(\d+)\s*\]\s*\.\s*([xyzw])\b/g, (match, name, col, component) =>
+    matrices.has(name) ? `${name}[${col}][${"xyzw".indexOf(component)}]` : match
+  );
+
+  // The recovered readers construct packed records from fixed arrays. Naga cannot
+  // emit a struct constructor that initializes an array member by value. Copy its
+  // lanes into the member while keeping every reader argument evaluated once.
+  const wrappers = source.matchAll(/\bstruct\s+(\w+)\s*\{\s*(\w+)\s+(\w+)\s*\[\s*(\d+)\s*\]\s*;\s*\}\s*;/g);
+  for (const [declaration, name, type, field, count] of wrappers) {
+    const constructor = new RegExp(`\\b${name}\\s*(?=\\()`, "g");
+    if (!constructor.test(source)) continue;
+    const make = "masonryMake" + name;
+    const copy = Array.from({ length: Number(count) }, (_, index) => `r.${field}[${index}]=v[${index}];`).join("");
+    source = source
+      .replace(constructor, make)
+      .replace(declaration, `${declaration}\n${name} ${make}(${type} v[${count}]){${name} r;${copy}return r;}\n`);
+  }
+  return source;
 }

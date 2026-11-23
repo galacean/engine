@@ -1,5 +1,4 @@
 import { DataType } from "../base/Constant";
-import { IndexFormat } from "./enums/IndexFormat";
 import { VertexElementFormat } from "./enums/VertexElementFormat";
 
 /**
@@ -16,28 +15,6 @@ export interface ElementInfo {
  * @internal
  */
 export class BufferUtil {
-  static _getGLIndexType(indexFormat: IndexFormat): DataType {
-    switch (indexFormat) {
-      case IndexFormat.UInt8:
-        return DataType.UNSIGNED_BYTE;
-      case IndexFormat.UInt16:
-        return DataType.UNSIGNED_SHORT;
-      case IndexFormat.UInt32:
-        return DataType.UNSIGNED_INT;
-    }
-  }
-
-  static _getGLIndexByteCount(indexFormat: IndexFormat): number {
-    switch (indexFormat) {
-      case IndexFormat.UInt8:
-        return 1;
-      case IndexFormat.UInt16:
-        return 2;
-      case IndexFormat.UInt32:
-        return 4;
-    }
-  }
-
   static _getElementInfo(format: VertexElementFormat): ElementInfo {
     let size!: number;
     let type!: DataType;
@@ -45,6 +22,10 @@ export class BufferUtil {
     let normalizedScaleFactor!: number;
 
     switch (format) {
+      case VertexElementFormat.UInt4:
+        size = 4;
+        type = DataType.UNSIGNED_INT;
+        break;
       case VertexElementFormat.Float:
         size = 1;
         type = DataType.FLOAT;

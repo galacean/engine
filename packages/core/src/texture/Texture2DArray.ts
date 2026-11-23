@@ -3,7 +3,7 @@ import { IPlatformTexture2DArray } from "../renderingHardwareInterface";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
-import { Texture } from "./Texture";
+import { Texture, type TextureReadArguments } from "./Texture";
 import { TextureUtils } from "./TextureUtils";
 
 /**
@@ -42,7 +42,7 @@ export class Texture2DArray extends Texture {
 
     this._length = length;
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2DArray(this);
-    this.filterMode = TextureFilterMode.Bilinear;
+    this.filterMode = this._isIntFormat() ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
 
     this._memorySize = TextureUtils.getTextureByteCount(format, width, height, this._mipmapCount, length);
@@ -162,57 +162,17 @@ export class Texture2DArray extends Texture {
     out: ArrayBufferView
   ): void;
 
-  getPixelBuffer(
-    elementIndex: number,
-    xOrMipLevelOrOut: number | ArrayBufferView,
-    yOrMipLevel?: number | ArrayBufferView,
-    width?: number,
-    height?: number,
-    mipLevelOrOut?: number | ArrayBufferView,
-    out?: ArrayBufferView
-  ): void {
-    const argsLength = arguments.length;
-    if (argsLength === 2) {
-      (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
-        elementIndex,
-        0,
-        0,
-        this._width,
-        this._height,
-        0,
-        <ArrayBufferView>xOrMipLevelOrOut
-      );
-    } else if (argsLength === 3) {
-      (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
-        elementIndex,
-        0,
-        0,
-        this._width >> (<number>xOrMipLevelOrOut),
-        this._height >> (<number>xOrMipLevelOrOut),
-        <number>xOrMipLevelOrOut,
-        <ArrayBufferView>yOrMipLevel
-      );
-    } else if (argsLength === 6) {
-      (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
-        elementIndex,
-        <number>xOrMipLevelOrOut,
-        <number>yOrMipLevel,
-        width!,
-        height!,
-        0,
-        <ArrayBufferView>mipLevelOrOut
-      );
-    } else if (argsLength === 7) {
-      (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
-        elementIndex,
-        <number>xOrMipLevelOrOut,
-        <number>yOrMipLevel,
-        width!,
-        height!,
-        <number>mipLevelOrOut,
-        out!
-      );
-    }
+  getPixelBuffer(elementIndex: number, ...args: TextureReadArguments): void {
+    const region = this._readRegion(args);
+    (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(elementIndex, ...region);
+  }
+
+  /** Read a region after all previously encoded draws and copies are available. */
+  async getPixelBufferAsync(elementIndex: number, ...args: TextureReadArguments): Promise<void> {
+    const region = this._readRegion(args);
+    const platform = this._platformTexture as IPlatformTexture2DArray;
+    if (platform.getPixelBufferAsync) return platform.getPixelBufferAsync(elementIndex, ...region);
+    platform.getPixelBuffer(elementIndex, ...region);
   }
 
   /**

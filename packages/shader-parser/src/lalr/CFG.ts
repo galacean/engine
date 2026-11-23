@@ -19,6 +19,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     [
       [NoneTerminal.precision_specifier],
       [NoneTerminal.variable_declaration_statement],
+      [NoneTerminal.uniform_block],
       [NoneTerminal.struct_specifier],
       [NoneTerminal.function_definition],
       [NoneTerminal.global_macro_if_statement],
@@ -28,6 +29,24 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     ],
     ASTNode.GlobalDeclaration
   ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.uniform_block,
+    // The group is a ShaderLab label, even when a user macro has the same spelling.
+    [ETokenType.ID, Keyword.MACRO_CALL].map((label) => [
+      Keyword.UNIFORM,
+      label,
+      ETokenType.LEFT_BRACE,
+      NoneTerminal.uniform_block_members,
+      ETokenType.RIGHT_BRACE,
+      ETokenType.SEMICOLON
+    ]),
+    ASTNode.UniformBlock
+  ),
+  ...GrammarUtils.createProductionWithOptions(NoneTerminal.uniform_block_members, [
+    [NoneTerminal.variable_declaration, ETokenType.SEMICOLON],
+    [NoneTerminal.uniform_block_members, NoneTerminal.variable_declaration, ETokenType.SEMICOLON]
+  ]),
 
   // Expression-style `#define` — lexer emits either:
   //   `MACRO_DEFINE ID <value tokens> MACRO_DEFINE_END`                 (object macro)

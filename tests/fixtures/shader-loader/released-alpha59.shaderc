@@ -1,0 +1,57 @@
+{
+  "name": "Legacy/ReleasedAlpha59",
+  "platformTarget": 1,
+  "subShaders": [
+    {
+      "name": "Default",
+      "tags": {},
+      "passes": [
+        {
+          "name": "Forward",
+          "isUsePass": false,
+          "tags": {},
+          "renderStates": {
+            "constantMap": {},
+            "variableMap": {}
+          },
+          "vertexShaderInstructions": [
+            [
+              0,
+              "struct Vertex {\nvec3 POSITION;\n};\nin vec3 POSITION;\nVertex read_Vertex() { Vertex interface_value;\ninterface_value.POSITION = POSITION;\nreturn interface_value; }\nuniform mat4 renderer_MVPMat;\nvoid vert ( Vertex a ) { gl_Position = renderer_MVPMat * vec4 ( a.POSITION , 1.0 ) ; }\nvoid main() {\n\nVertex input_a = read_Vertex();\nvert(input_a); }"
+            ]
+          ],
+          "fragmentShaderInstructions": [
+            [
+              0,
+              "out vec4 output_color;\nuniform vec4 camera_LegacyTint;\nvoid frag ( ) { \n"
+            ],
+            [
+              1,
+              "LEGACY_SHOW_TINT",
+              4
+            ],
+            [
+              0,
+              " output_color = camera_LegacyTint ; \n"
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              0,
+              " output_color = vec4 ( 0.0 , 0.0 , 1.0 , 1.0 ) ; \n"
+            ],
+            [
+              6
+            ],
+            [
+              0,
+              " }\nvoid main() {\n\n\nfrag(); }"
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

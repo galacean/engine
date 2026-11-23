@@ -64,4 +64,14 @@ export interface IPlatformTextureCube extends IPlatformTexture {
     mipLevel: number,
     out: ArrayBufferView
   ): void;
+
+  getPixelBufferAsync?(
+    face: TextureCubeFace,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    mipLevel: number,
+    out: ArrayBufferView
+  ): Promise<void>;
 }

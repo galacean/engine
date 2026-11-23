@@ -23,7 +23,7 @@ describe("InstanceBuffer", () => {
     expect(buffer.destroyed).toBe(true);
   });
 
-  it("orphans single-block UBO via SetDataOptions.Discard on each batch upload", async () => {
+  it("uses distinct aligned UBO ranges and discards the storage when wrapping", async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const instanceBuffer = engine._batcherManager.instanceBuffer;
     instanceBuffer.setLayout({ instanceFields: [], instanceMaxCount: 4, structSize: 64 });
@@ -35,13 +35,17 @@ describe("InstanceBuffer", () => {
 
     instanceBuffer.upload(renderers, 0, 1);
     instanceBuffer.upload(renderers, 0, 2);
-    expect(setDataSpy.mock.calls[0][1]).toBe(0);
-    expect(setDataSpy.mock.calls[0][4]).toBe(SetDataOptions.Discard);
-    expect(setDataSpy.mock.calls[1][1]).toBe(0);
-    expect(setDataSpy.mock.calls[1][4]).toBe(SetDataOptions.Discard);
+    instanceBuffer.upload(renderers, 0, 2);
+    const alignment = engine._hardwareRenderer.uniformBufferOffsetAlignment;
+    const stride = Math.ceil((4 * 64) / alignment) * alignment;
+    expect(setDataSpy.mock.calls.map((call) => [call[1], call[4]])).toEqual([
+      [0, SetDataOptions.None],
+      [stride, SetDataOptions.None],
+      [0, SetDataOptions.Discard]
+    ]);
   });
 
-  it("caches active VAO bindings and orphans instance UBO via gl.bufferData in rendered frames", async () => {
+  it("caches active VAO bindings and orphans instance UBO once when the two ranges wrap", async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const scene = engine.sceneManager.activeScene;
     const root = scene.createRootEntity();
@@ -89,8 +93,8 @@ describe("InstanceBuffer", () => {
     // Single-mesh shader VAO + instanced shader VAO + background/sky VAO = at most 3 binds for 6+ draws (no per-draw null unbind).
     expect(bindVaoSpy.mock.calls.length).toBeLessThanOrEqual(3);
 
-    // Expect Discard orphaning on UNIFORM_BUFFER for both instanced batches.
+    // The two instanced batches share a backing allocation; only wrapping to the first range orphans it.
     const uboBufferDataCalls = bufferDataSpy.mock.calls.filter(([target]) => target === gl.UNIFORM_BUFFER);
-    expect(uboBufferDataCalls.length).toBe(2);
+    expect(uboBufferDataCalls.length).toBe(1);
   });
 });

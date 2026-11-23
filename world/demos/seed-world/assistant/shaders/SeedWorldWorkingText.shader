@@ -53,12 +53,7 @@ Shader "SeedWorld/WorkingTextV1" {
       void frag(Varyings v) {
         if (v.v_clipPosition.x < material_SeedWorldTextClipBounds.x || v.v_clipPosition.y < material_SeedWorldTextClipBounds.y ||
             v.v_clipPosition.x > material_SeedWorldTextClipBounds.z || v.v_clipPosition.y > material_SeedWorldTextClipBounds.w) discard;
-        vec4 texColor = texture2D(renderElement_TextTexture, v.v_uv);
-        #ifdef GRAPHICS_API_WEBGL2
-          float coverage = texColor.r;
-        #else
-          float coverage = texColor.a;
-        #endif
+        float coverage = texture2D(renderElement_TextTexture, v.v_uv).r;
 
         float sweepOpacity = 1.0;
         if (material_SeedWorldWorking > 0.5) {

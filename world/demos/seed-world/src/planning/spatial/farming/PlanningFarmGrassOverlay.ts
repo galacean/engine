@@ -100,10 +100,7 @@ export class PlanningFarmGrassOverlay {
   private revealProgress = 1;
 
   constructor(private readonly scene: Scene) {
-    const canvas = (scene.engine.canvas as unknown as { _webCanvas: HTMLCanvasElement | OffscreenCanvas })._webCanvas;
-    const context = canvas.getContext("webgl2") as WebGL2RenderingContext | null;
-    if (!context) throw new Error("Farm ground appearance requires WebGL2");
-    this.maximumTextureSize = Number(context.getParameter(context.MAX_TEXTURE_SIZE));
+    this.maximumTextureSize = scene.engine._hardwareRenderer.capability.maxTextureSize;
   }
 
   /** Let the land owner reject an unsupported footprint before changing its meshes or masks. */

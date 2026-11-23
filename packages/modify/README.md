@@ -4,7 +4,7 @@
 
 源码位于 `src/`，通过包入口或 `package.json` 声明的子路径导入。该包目前是私有 workspace 源码包，由 World 的 Vite 配置编译，不参与原生 Engine 的 Rollup 发布，也不单独发布到 npm。
 
-直接 Galacean 依赖：`@galacean/engine`, `@galacean/engine-core`, `@galacean/engine-math`。
+World 通过同一原生模块身份加载双后端和共享产品扩展。WebGL2 特殊修复沿用 `src/native/rhi-webgl`；新 WebGPU RHI 的设备和渲染实现位于引擎主包 `packages/rhi-webgpu`。
 
 Demo 的页面、UI 编排和私有配置位于仓库 `world/demos/`；公共包不得反向导入 Demo。资源 URL 使用模块相对路径或公开资源子路径，不依赖旧 Gallery 根目录。
 

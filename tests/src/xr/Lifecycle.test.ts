@@ -100,6 +100,7 @@ function createXR() {
 function createCamera() {
   return {
     _cameraType: CameraType.Normal,
+    resetProjectionMatrix: vi.fn(),
     entity: { transform: { position: new Vector3(), rotationQuaternion: new Quaternion() } },
     viewport: new Vector4(0, 0, 1, 1),
     projectionMatrix: new Matrix(),

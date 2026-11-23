@@ -50,18 +50,18 @@ export class PrimitiveChunk {
       engine,
       BufferBindFlag.VertexBuffer,
       maxVertexCount * vertexStride,
-      BufferUsage.Dynamic,
-      true
+      BufferUsage.Dynamic
     );
     primitive.setVertexBufferBinding(0, new VertexBufferBinding(vertexBuffer, vertexStride));
 
     // Indices
-    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxVertexCount * 8, BufferUsage.Dynamic, true);
+    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxVertexCount * 8, BufferUsage.Dynamic);
     primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
 
     this.primitive = primitive;
-    this.vertices = new Float32Array(vertexBuffer.data!.buffer);
-    this.indices = new Uint16Array(indexBuffer.data!.buffer);
+    // Different sprite batches upload slices with Discard. Keep their source geometry across those uploads.
+    this.vertices = new Float32Array(vertexBuffer.byteLength / Float32Array.BYTES_PER_ELEMENT);
+    this.indices = new Uint16Array(indexBuffer.byteLength / Uint16Array.BYTES_PER_ELEMENT);
     this.vertexFreeAreas = [new VertexArea(0, maxVertexCount * 9)];
   }
 
@@ -104,6 +104,7 @@ export class PrimitiveChunk {
       this.updateVertexEnd = Number.MIN_SAFE_INTEGER;
     }
 
+    // A nested mask pass flushes all chunk managers while the outer sprite queue still uses its indices.
     if (this.updateIndexLength > 0) {
       primitive.indexBufferBinding!.buffer.setData(this.indices, 0, 0, this.updateIndexLength, SetDataOptions.Discard);
       this.updateIndexLength = 0;

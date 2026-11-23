@@ -1,4 +1,4 @@
-import { AssetType, ResourceManager, Texture2D } from "@galacean/engine";
+import { AssetType, ResourceManager, Texture2D } from "@galacean/engine-core";
 
 /** @internal */
 type SpineAtlasData = {

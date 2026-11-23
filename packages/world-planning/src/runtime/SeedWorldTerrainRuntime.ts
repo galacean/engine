@@ -568,6 +568,20 @@ export class SeedWorldTerrainRuntime {
             }
           : undefined;
       const layers = buildLayerSources(fields, surfaceIntent, soilTexture, surface);
+      if (engine._hardwareRenderer.backend === "webgpu") {
+        // Layer packing resamples these pixels on the CPU. Populate the readback cache at the async load boundary.
+        const inputs = new Set<Texture2D>();
+        for (const region of layers) {
+          for (const layer of region.layers) {
+            for (const texture of [layer.diffuse, layer.normal, layer.mask]) {
+              if (texture) inputs.add(texture);
+            }
+          }
+        }
+        await Promise.all(Array.from(inputs, (texture) => texture.makePixelBufferReadable()));
+        signal?.throwIfAborted();
+      }
+
       const farLod = resolveSeedWorldTerrainFarLod(terrainSettings.clipmapLodCount);
       const terrainMaterialState: SeedWorldTerrainMaterialState = {
         grassTexture: grassColorFieldTexture,

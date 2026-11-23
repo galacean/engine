@@ -6,7 +6,9 @@
 //   constructors remain compatible.
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
+import replace from "@rollup/plugin-replace";
 import swc from "rollup-plugin-swc3";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const bundlerExternal = [
@@ -30,6 +32,7 @@ const bundlerExternal = [
 ];
 
 const swcPluginBundler = swc({ jsc: { target: "es2020" } });
+const compilerVersion = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version;
 
 // Match the root rollup's runtime transpile target so reusing this dist as-is
 // mid-`b:all` (between this build and the root rollup's rebuild) behaves
@@ -57,6 +60,26 @@ const workspaceShaderParserSource = {
 };
 
 export default [
+  {
+    input: "src/webgpu.ts",
+    output: { file: ".bootstrap/webgpu.js", format: "cjs", sourcemap: true },
+    external: ["web-naga"],
+    plugins: [
+      workspaceShaderParserSource,
+      resolve({ extensions: [".js", ".ts"], mainFields: ["debug", "module", "main"] }),
+      swcPluginRuntime,
+      commonjs()
+    ]
+  },
+  {
+    input: "src/webgpu.ts",
+    output: [
+      { file: "dist/webgpu.main.js", format: "cjs", sourcemap: true },
+      { file: "dist/webgpu.module.js", format: "es", sourcemap: true }
+    ],
+    external: [...releaseRuntimeExternal, "web-naga"],
+    plugins: [resolve({ extensions: [".js", ".ts"] }), swcPluginRuntime, commonjs()]
+  },
   // Repo-local bootstrap. Dependencies resolve from workspace source so the
   // first shader precompile does not depend on pre-existing package dist files.
   {
@@ -80,6 +103,7 @@ export default [
     ],
     external: releaseRuntimeExternal,
     plugins: [
+      replace({ preventAssignment: true, __buildVersion: compilerVersion }),
       resolve({ extensions: [".js", ".ts"], mainFields: ["debug", "module", "main"] }),
       swcPluginRuntime,
       commonjs()
