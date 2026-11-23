@@ -1,0 +1,19 @@
+packages/core/src/lighting/SpotLight.ts
+  s_7bd9d7d02a56ca::t_77b439699e8abb 4,42-45,53,106,138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b7b044bcb9a4f4d1a102501878b5bc0690d4bbbc",
+  "prompts": {},
+  "sessions": {
+    "s_7bd9d7d02a56ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20822-347f-74c3-8fea-1bcdd39d7148",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

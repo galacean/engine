@@ -1,0 +1,19 @@
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  s_7bd9d7d02a56ca::t_64ee01287dd04a 89,116-117,119,173,176,179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "03a9aac832648771d0c43e6df5a6ddc126a3d322",
+  "prompts": {},
+  "sessions": {
+    "s_7bd9d7d02a56ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20822-347f-74c3-8fea-1bcdd39d7148",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

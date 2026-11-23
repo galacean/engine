@@ -1,0 +1,26 @@
+packages/animals/src/gameplay/animal/AnimalRegistration.ts
+  h_171a11afaf879a 442-467,554
+packages/animals/src/gameplay/animal/AnimalTaskController.ts
+  h_171a11afaf879a 667,707,800-802,1048-1061,1064
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 246,456,1090-1095,1125-1128,1164-1167,1339-1357,1394-1397,1428-1429,1457,1461-1471,2096-2103,2107-2108,2110-2111,2124-2150,2219
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 1225-1229,1235-1238
+world/tests/seed-world/AnimalPlanningTasks.spec.ts
+  h_171a11afaf879a 592-646
+world/tests/seed-world/AnimalRoutePreview.spec.ts
+  h_171a11afaf879a 52-53,58,151-156,194-298
+world/tests/seed-world/SeedWorldAnimalClickRouting.spec.ts
+  h_171a11afaf879a 107-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "84db28f2f9f235423cbd217104cace530aeb512e",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

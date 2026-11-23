@@ -1,0 +1,21 @@
+packages/core/src/physics/Collider.ts
+  s_e010b623afc18b::t_d7df1a656ba6df 2,18,328-330
+packages/core/src/physics/shearWarning.ts
+  s_e010b623afc18b::t_93823dbc4c95f4 1-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ccb8042511451c75fb2d93906821a72cbad66ef7",
+  "prompts": {},
+  "sessions": {
+    "s_e010b623afc18b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a20650-a2c2-74cd-be93-f00bea07ba98",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

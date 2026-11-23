@@ -1,0 +1,21 @@
+packages/core/src/Transform.ts
+  s_bee15fcd7fd50d::t_e5d37d60c2ead3 313-319,322-324,704-707
+tests/src/core/Transform.test.ts
+  s_bee15fcd7fd50d::t_a75f53db01dac8 616-640
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0cb43a0244bba0e62b2cf25ba6516d96997e5684",
+  "prompts": {},
+  "sessions": {
+    "s_bee15fcd7fd50d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20869-7e94-7730-9036-df08946c41cf",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
