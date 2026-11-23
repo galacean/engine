@@ -168,12 +168,12 @@ export class GLTFParserContext {
   /**
    * @internal
    */
-  _guardPromise<T>(promise: PromiseLike<T>): AssetPromise<T> {
+  _guardPromise<T>(value: T | PromiseLike<T>): AssetPromise<T> {
     return new AssetPromise<T>((resolve, reject) => {
       if (this._aborted) return;
-      promise.then(
-        (value) => {
-          if (!this._aborted) resolve(value);
+      Promise.resolve(value).then(
+        (resolved) => {
+          if (!this._aborted) resolve(resolved);
         },
         (reason) => {
           if (!this._aborted) reject(reason);
