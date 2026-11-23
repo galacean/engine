@@ -123,7 +123,7 @@ describe("PointLight and SpotLight physical distance attenuation", () => {
     engine.destroy();
   });
 
-  it("PointLight and SpotLight distance APIs default to 100, support Infinity, and guard <= 0 / NaN", () => {
+  it("PointLight and SpotLight distance APIs default to 100, support Infinity, and guard <= 0", () => {
     for (const LightType of [PointLight, SpotLight]) {
       const entity = engine.sceneManager.activeScene!.createRootEntity("GuardCheck");
       const light = entity.addComponent(LightType);
@@ -142,10 +142,6 @@ describe("PointLight and SpotLight physical distance attenuation", () => {
         expect(light.distance).to.be.greaterThan(0);
         expect(light.distance).to.be.lessThan(0.001);
       }
-
-      const prev = light.distance;
-      light.distance = Number.NaN;
-      expect(light.distance).to.equal(prev);
 
       entity.destroy();
     }

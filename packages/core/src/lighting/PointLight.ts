@@ -28,7 +28,7 @@ export class PointLight extends Light {
    * Maximum range of the light in world units, where distance attenuation reaches zero.
    * @remarks
    * Set to `Infinity` (or a value exceeding 32-bit float range) for unlimited inverse-square falloff.
-   * Values `<= 0` fall back to `1e-4`, and `NaN` is ignored.
+   * Values `<= 0` fall back to `1e-4`.
    * @defaultValue `100`
    */
   get distance(): number {
@@ -36,7 +36,7 @@ export class PointLight extends Light {
   }
 
   set distance(value: number) {
-    this._distance = Light._normalizeDistance(value, this._distance);
+    this._distance = Light._normalizeDistance(value);
   }
 
   /**

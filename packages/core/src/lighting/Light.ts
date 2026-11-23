@@ -10,18 +10,11 @@ import { ShadowType } from "../shadow";
 export abstract class Light extends Component {
   private static readonly _minNormalFloat32 = 2 ** -126;
 
-  /**
-   * @internal
-   */
-  protected static _normalizeDistance(value: number, previous: number): number {
-    if (Number.isNaN(value)) return previous;
-    if (value <= 0) return 1e-4;
+  protected static _normalizeDistance(value: number): number {
+    if (!(value > 0)) return 1e-4;
     return Number.isFinite(Math.fround(value)) ? value : Infinity;
   }
 
-  /**
-   * @internal
-   */
   protected static _encodeDistance(distance: number): number {
     // Zero disables the cutoff, so keep finite radii above the GPU's subnormal range
     return distance === Infinity ? 0 : Math.max(distance, Light._minNormalFloat32);
