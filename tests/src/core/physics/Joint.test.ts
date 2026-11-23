@@ -1,7 +1,23 @@
 import { createPhysics } from "../../utils/physics";
-import { FixedJoint, HingeJoint, Entity, Rigidbody, BoxCollider, Engine, Scene, Script } from "@galacean/engine-core";
+import {
+  FixedJoint,
+  HingeJoint,
+  Entity,
+  Rigidbody,
+  BoxCollider,
+  Engine,
+  Loader,
+  Scene,
+  Script
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Ray, Vector3 } from "@galacean/engine-math";
+import {
+  ParserContext,
+  ParserType
+} from "../../../../packages/loader/src/resource-deserialize/resources/parser/ParserContext";
+import { SceneParser } from "../../../../packages/loader/src/resource-deserialize/resources/scene/SceneParser";
+import type { SceneFile } from "../../../../packages/loader/src/schema/SceneSchema";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
 
 describe("Joint", function () {
@@ -819,4 +835,114 @@ describe("Joint", function () {
     expect(deferredBody.destroyed).toBe(true);
     expect(deferredBox.getComponent(Rigidbody)).toBeNull();
   });
+
+  it("disables automaticConnectedAnchor on connectedAnchor assignment and keeps the calculated anchor when disabled", function () {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = box.addComponent(FixedJoint);
+    expect(joint.automaticConnectedAnchor).toBe(true);
+    expect(joint.connectedAnchor).deep.include({ x: 0, y: 5, z: 0 });
+
+    joint.connectedAnchor = new Vector3(0, 7, 0);
+    expect(joint.automaticConnectedAnchor).toBe(false);
+    engine.sceneManager.activeScene.physics._update(0.2);
+    expect(box.transform.position.y).toBeGreaterThan(5.5);
+
+    joint.automaticConnectedAnchor = true;
+    const recalculatedY = joint.connectedAnchor.y;
+    expect(recalculatedY).toBeCloseTo(box.transform.position.y, 4);
+
+    joint.automaticConnectedAnchor = false;
+    joint.anchor = new Vector3(0, 1, 0);
+    expect(joint.connectedAnchor.y).toBeCloseTo(recalculatedY, 4);
+
+    joint.automaticConnectedAnchor = true;
+    expect(joint.automaticConnectedAnchor).toBe(true);
+    joint.connectedAnchor = joint.connectedAnchor;
+    expect(joint.automaticConnectedAnchor).toBe(false);
+  });
+
+  it.each([true, false])(
+    "loads manual connectedAnchor from an active Scene regardless of prop order (connectedAnchorFirst=%s)",
+    async function (connectedAnchorFirst) {
+      Loader.registerClass("BoxCollider", BoxCollider);
+      Loader.registerClass("Rigidbody", Rigidbody);
+      Loader.registerClass("FixedJoint", FixedJoint);
+
+      const connectedJointProps = connectedAnchorFirst
+        ? {
+            connectedAnchor: { x: 2, y: -2, z: 0 },
+            anchor: { x: 0, y: 0, z: 0 },
+            connectedBody: { $component: { entity: [0], type: "Rigidbody", index: 0 } },
+            automaticConnectedAnchor: false
+          }
+        : {
+            automaticConnectedAnchor: false,
+            connectedBody: { $component: { entity: [0], type: "Rigidbody", index: 0 } },
+            anchor: { x: 0, y: 0, z: 0 },
+            connectedAnchor: { x: 2, y: -2, z: 0 }
+          };
+      const worldJointProps = connectedAnchorFirst
+        ? {
+            connectedAnchor: { x: 0, y: 0, z: 0 },
+            anchor: { x: 0, y: 1, z: 0 },
+            automaticConnectedAnchor: false
+          }
+        : {
+            automaticConnectedAnchor: false,
+            anchor: { x: 0, y: 1, z: 0 },
+            connectedAnchor: { x: 0, y: 0, z: 0 }
+          };
+
+      const data: SceneFile = {
+        version: "2.0",
+        refs: [],
+        entities: [
+          { name: "target", position: [0, 10, 0], components: [0] },
+          { name: "follower", position: [0, 5, 0], components: [1, 2, 3] },
+          { name: "worldFollower", position: [10, 5, 0], components: [4, 5, 6] }
+        ],
+        components: [
+          { type: "Rigidbody", props: { isKinematic: true } },
+          { type: "BoxCollider" },
+          { type: "Rigidbody", props: { useGravity: false } },
+          { type: "FixedJoint", props: connectedJointProps },
+          { type: "BoxCollider" },
+          { type: "Rigidbody", props: { useGravity: false } },
+          { type: "FixedJoint", props: worldJointProps }
+        ],
+        scene: {
+          rootEntities: [0, 1, 2],
+          background: { mode: 0, color: [0, 0, 0, 1] }
+        }
+      };
+
+      const scene = new Scene(engine);
+      engine.sceneManager.addScene(scene);
+      try {
+        const parser = new SceneParser(data, new ParserContext(engine, ParserType.Scene, scene), scene);
+        parser.start();
+        await parser.promise;
+
+        const follower = scene.rootEntities[1];
+        const connectedJoint = follower.getComponent(FixedJoint)!;
+        const targetBody = scene.rootEntities[0].getComponent(Rigidbody)!;
+        expect(connectedJoint.connectedBody).toBe(targetBody);
+        expect(connectedJoint.automaticConnectedAnchor).toBe(false);
+        expect(Vector3.equals(connectedJoint.connectedAnchor, new Vector3(2, -2, 0))).toBe(true);
+
+        const worldFollower = scene.rootEntities[2];
+        const worldJoint = worldFollower.getComponent(FixedJoint)!;
+        expect(worldJoint.automaticConnectedAnchor).toBe(false);
+        expect(Vector3.equals(worldJoint.connectedAnchor, new Vector3(0, 0, 0))).toBe(true);
+
+        scene.physics._update(0.2);
+        expect(follower.transform.position.x).toBeGreaterThan(0.5);
+        expect(follower.transform.position.y).toBeGreaterThan(6);
+        expect(worldFollower.transform.position.x).toBeLessThan(9);
+        expect(worldFollower.transform.position.y).toBeLessThan(4);
+      } finally {
+        scene.destroy();
+      }
+    }
+  );
 });

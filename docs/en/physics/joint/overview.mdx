@@ -78,7 +78,7 @@ joint.automaticConnectedAnchor = false;
 joint.connectedAnchor.set(0, 0, 0);
 ```
 
-Once written, `connectedAnchor` reads back the manual value. The joint uses a calculated anchor while `automaticConnectedAnchor` is enabled and applies the manual value when it is disabled.
+Assigning or mutating `connectedAnchor` disables `automaticConnectedAnchor`. Setting `automaticConnectedAnchor` to `true` recalculates the connected anchor from the current transforms; disabling it preserves the current value.
 
 ### Common Property Configuration
 

@@ -78,7 +78,7 @@ joint.automaticConnectedAnchor = false;
 joint.connectedAnchor.set(0, 0, 0);
 ```
 
-写入 `connectedAnchor` 后，读取该属性会得到手动锚点。`automaticConnectedAnchor` 开启时，关节使用计算出的锚点，关闭后应用手动锚点。
+设置或修改 `connectedAnchor` 会自动关闭 `automaticConnectedAnchor`。将 `automaticConnectedAnchor` 重新设为 `true` 会按当前位姿重新计算连接点；设为 `false` 时保留当前值。
 
 ### 通用属性配置
 
