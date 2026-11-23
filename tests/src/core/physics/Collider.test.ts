@@ -3,6 +3,7 @@ import {
   BoxCollider,
   CapsuleCollider,
   CapsuleColliderDirection,
+  Engine,
   Entity,
   HitResult,
   Layer,
@@ -174,7 +175,7 @@ describe("Collider", () => {
     const ray = new Ray(new Vector3(0, 0, -3), new Vector3(0, 0, 1));
     expect(physics.raycast(ray, 5)).toBe(true);
     const geometryWrites = vi.spyOn(box._native["_pxShape"], "setGeometry");
-    const massRebuilds = vi.spyOn(body["_nativeActor"]!, "setMassAndUpdateInertia");
+    const massRebuilds = vi.spyOn(body["_nativeActor"]!, "updateMassAndInertia");
 
     for (let degrees = 1; degrees <= 20; degrees++) {
       transform.setRotation(0, 0, degrees);
@@ -1095,7 +1096,7 @@ describe("Collider", () => {
       const box = child.addComponent(BoxCollider);
       expect(physics.raycast(downwardRay(0), hit) && hit.collider === box).toBe(true);
       const geometryWrites = vi.spyOn(box._native["_pxShape"], "setGeometry");
-      const massSpy = vi.spyOn((body as any)._nativeActor, "setMassAndUpdateInertia");
+      const massSpy = vi.spyOn((body as any)._nativeActor, "updateMassAndInertia");
       for (let i = 1; i <= 90; i++) {
         bodyEntity.transform.setRotation(0, i * 3.7, 0);
         expect(physics.raycast(downwardRay(0), hit) && hit.collider === box).toBe(true);
@@ -1346,7 +1347,7 @@ describe("Collider", () => {
         const shape = collider["_native"]!;
         const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
         const poseWrites = vi.spyOn(shape, "setLocalPose");
-        const massRebuilds = vi.spyOn(body["_nativeActor"]!, "setMassAndUpdateInertia");
+        const massRebuilds = vi.spyOn(body["_nativeActor"]!, "updateMassAndInertia");
         for (let step = 1; step <= 90; step++) {
           bodyEntity.transform.setRotation(0, step * 3.7, 0);
           expectHit();
@@ -1378,7 +1379,7 @@ describe("Collider", () => {
         const shape = box["_native"]!;
         const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
         const poseWrites = vi.spyOn(shape, "setLocalPose");
-        const massRebuilds = vi.spyOn(body["_nativeActor"]!, "setMassAndUpdateInertia");
+        const massRebuilds = vi.spyOn(body["_nativeActor"]!, "updateMassAndInertia");
         for (let step = 1; step <= 90; step++) {
           bodyEntity.transform.setPosition(step % 2 === 0 ? 0 : 128, 0, 0);
           expectHit();
@@ -1417,6 +1418,42 @@ describe("Collider", () => {
       expect(physics.raycast(new Ray(new Vector3(-2, 5, 3), new Vector3(0, -1, 0)), 10, hit)).toBe(true);
       expect(hit.collider).toBe(childBox);
       expect(physics.raycast(new Ray(new Vector3(2, 5, 3), new Vector3(0, -1, 0)), 10)).toBe(false);
+    });
+
+    it("applies localPose to replacement shape before replaceShape when CapsuleCollider degenerates", () => {
+      const entity = root.createChild("capsule-replace-order");
+      const capsule = entity.addComponent(CapsuleCollider);
+      capsule.center.set(1, 2, 3);
+      capsule.radius = 1;
+      capsule.height = 4;
+      const ray = new Ray(new Vector3(1, 10, 3), new Vector3(0, -1, 0));
+      expect(physics.raycast(ray, 20)).toBe(true);
+
+      const events: string[] = [];
+      const actor = capsule["_nativeActor"]!;
+      const origCreateSphere = Engine._nativePhysics.createSphereShape.bind(Engine._nativePhysics);
+      const createSpy = vi.spyOn(Engine._nativePhysics, "createSphereShape").mockImplementation((...args) => {
+        const shape = origCreateSphere(...args);
+        const origSetPose = shape.setLocalPose.bind(shape);
+        vi.spyOn(shape, "setLocalPose").mockImplementation((pos, rot) => {
+          events.push("setLocalPose");
+          origSetPose(pos, rot);
+        });
+        return shape;
+      });
+      const replaceSpy = vi.spyOn(actor, "replaceShape").mockImplementation(function (this: any, prev, next) {
+        events.push("replaceShape");
+        return Object.getPrototypeOf(this).replaceShape.call(this, prev, next);
+      });
+
+      try {
+        capsule.height = 2;
+        expect(physics.raycast(ray, 20)).toBe(true);
+        expect(events).toEqual(["setLocalPose", "replaceShape"]);
+      } finally {
+        createSpy.mockRestore();
+        replaceSpy.mockRestore();
+      }
     });
   });
 });

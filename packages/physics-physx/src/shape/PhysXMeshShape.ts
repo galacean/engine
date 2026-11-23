@@ -1,5 +1,5 @@
-import { MeshColliderCookingFlag, Vector3 } from "@galacean/engine";
-import { IMeshShape } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine";
+import { IMeshShape, MeshColliderCookingFlag } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXShape } from "./PhysXShape";
@@ -20,7 +20,7 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
-    cookingFlags: number,
+    cookingFlags: MeshColliderCookingFlag,
     scale: Vector3
   ) {
     super(physXPhysics);
@@ -47,7 +47,7 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
   setMeshData(
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
-    cookingFlags: number,
+    cookingFlags: MeshColliderCookingFlag,
     scale: Vector3
   ): boolean {
     const pxMesh = this._cookMesh(positions, indices, cookingFlags);
@@ -79,7 +79,7 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
   private _cookMesh(
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
-    cookingFlags: number
+    cookingFlags: MeshColliderCookingFlag
   ): any | null {
     const {
       _physX: physX,

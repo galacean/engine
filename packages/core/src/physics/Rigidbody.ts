@@ -1,4 +1,4 @@
-import { IDynamicActor } from "@galacean/engine-design";
+import { ForceMode, IDynamicActor, RigidbodyConstraints } from "@galacean/engine-design";
 import { MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
@@ -14,6 +14,8 @@ import { Collider } from "./Collider";
 import { differsF32, isValidPositiveFloat32, rotationDiffersF32 } from "./float32";
 import type { Joint } from "./joint/Joint";
 
+export { ForceMode, RigidbodyConstraints } from "@galacean/engine-design";
+
 /**
  * Simulates the motion of an Entity and its compound collision shape.
  * @remarks Each Entity can have one Rigidbody. It owns colliders on its Entity and descendants up to the next
@@ -23,6 +25,12 @@ import type { Joint } from "./joint/Joint";
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
+  private static readonly _tempPosition = new Vector3();
+  private static readonly _tempRotation = new Quaternion();
+  private static readonly _tempCenter = new Vector3();
+  private static readonly _tempVec0 = new Vector3();
+  private static readonly _tempVec1 = new Vector3();
+  private static readonly _tempVec2 = new Vector3();
   private static _validateDamping(value: number): void {
     if (typeof value !== "number" || !(value >= 0 && Number.isFinite(Math.fround(value)))) {
       throw new RangeError("Rigidbody damping must be finite and nonnegative.");
@@ -324,7 +332,26 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @returns The output vector.
    */
   getPointVelocity(point: Vector3, out: Vector3): Vector3 {
-    return this._getSyncedActor()?.getPointVelocity(point, out) ?? out.set(0, 0, 0);
+    const actor = this._getSyncedActor();
+    if (!actor) return out.set(0, 0, 0);
+    const pointX = point.x;
+    const pointY = point.y;
+    const pointZ = point.z;
+    const position = Rigidbody._tempPosition;
+    const rotation = Rigidbody._tempRotation;
+    const center = Rigidbody._tempCenter;
+    const linearVelocity = Rigidbody._tempVec0;
+    const angularVelocity = Rigidbody._tempVec1;
+    const offset = Rigidbody._tempVec2;
+    actor.getWorldTransform(position, rotation);
+    actor.getCenterOfMass(center);
+    Vector3.transformByQuat(center, rotation, center);
+    center.add(position);
+    offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
+    actor.getLinearVelocity(linearVelocity);
+    actor.getAngularVelocity(angularVelocity);
+    Vector3.cross(angularVelocity, offset, out);
+    return out.add(linearVelocity);
   }
 
   /**
@@ -334,7 +361,24 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @returns The output vector.
    */
   getRelativePointVelocity(point: Vector3, out: Vector3): Vector3 {
-    return this._getSyncedActor()?.getRelativePointVelocity(point, out) ?? out.set(0, 0, 0);
+    const actor = this._getSyncedActor();
+    if (!actor) return out.set(0, 0, 0);
+    const pointX = point.x;
+    const pointY = point.y;
+    const pointZ = point.z;
+    const rotation = Rigidbody._tempRotation;
+    const center = Rigidbody._tempCenter;
+    const linearVelocity = Rigidbody._tempVec0;
+    const angularVelocity = Rigidbody._tempVec1;
+    const offset = Rigidbody._tempVec2;
+    actor.getWorldTransform(Rigidbody._tempPosition, rotation);
+    actor.getCenterOfMass(center);
+    offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
+    Vector3.transformByQuat(offset, rotation, offset);
+    actor.getLinearVelocity(linearVelocity);
+    actor.getAngularVelocity(angularVelocity);
+    Vector3.cross(angularVelocity, offset, out);
+    return out.add(linearVelocity);
   }
 
   /**
@@ -613,7 +657,16 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @param mode - How the value changes velocity. Defaults to `ForceMode.Force`.
    */
   applyRelativeForce(force: Vector3, mode: ForceMode = ForceMode.Force): void {
-    this._getForceActor()?.addRelativeForce(force, mode);
+    const actor = this._getForceActor();
+    if (actor) {
+      const rotation = Rigidbody._tempRotation;
+      const worldForce = Rigidbody._tempVec0;
+      actor.getWorldTransform(Rigidbody._tempPosition, rotation);
+      Vector3.transformByQuat(force, rotation, worldForce);
+      if (Number.isFinite(worldForce.x) && Number.isFinite(worldForce.y) && Number.isFinite(worldForce.z)) {
+        actor.addForce(worldForce, mode);
+      }
+    }
   }
 
   /**
@@ -622,7 +675,16 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @param mode - How the value changes angular velocity. Defaults to `ForceMode.Force`.
    */
   applyRelativeTorque(torque: Vector3, mode: ForceMode = ForceMode.Force): void {
-    this._getForceActor()?.addRelativeTorque(torque, mode);
+    const actor = this._getForceActor();
+    if (actor) {
+      const rotation = Rigidbody._tempRotation;
+      const worldTorque = Rigidbody._tempVec0;
+      actor.getWorldTransform(Rigidbody._tempPosition, rotation);
+      Vector3.transformByQuat(torque, rotation, worldTorque);
+      if (Number.isFinite(worldTorque.x) && Number.isFinite(worldTorque.y) && Number.isFinite(worldTorque.z)) {
+        actor.addTorque(worldTorque, mode);
+      }
+    }
   }
 
   /**
@@ -643,10 +705,84 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     upwardOffset = 0,
     mode: ForceMode = ForceMode.Force
   ): void {
-    if (this._index === -1) return;
-    if (this._getSyncedActor()!.addExplosionForce(strength, origin, radius, upwardOffset, mode)) {
-      this._cancelPendingSleep();
+    if (
+      this._index === -1 ||
+      this._isKinematic ||
+      !this._simulationEnabled ||
+      !Number.isFinite(strength) ||
+      !Number.isFinite(radius) ||
+      radius < 0 ||
+      !Number.isFinite(upwardOffset) ||
+      !Number.isFinite(origin.x) ||
+      !Number.isFinite(origin.y) ||
+      !Number.isFinite(origin.z)
+    ) {
+      return;
     }
+    const actor = this._getSyncedActor();
+    if (!actor || this._isKinematic || !this._simulationEnabled || this._index === -1) return;
+
+    const position = Rigidbody._tempPosition;
+    const rotation = Rigidbody._tempRotation;
+    const center = Rigidbody._tempCenter;
+    const surface = Rigidbody._tempVec0;
+    const force = Rigidbody._tempVec1;
+    const torque = Rigidbody._tempVec2;
+    actor.getWorldTransform(position, rotation);
+    actor.getCenterOfMass(center);
+    Vector3.transformByQuat(center, rotation, center);
+    center.add(position);
+
+    let pointX = center.x;
+    let pointY = center.y;
+    let pointZ = center.z;
+    let closest = Number.MAX_VALUE;
+    const colliders = this._attachedColliders;
+    for (let i = 0, n = colliders.length; i < n; i++) {
+      const distance = colliders[i]._getVolumeDistance(origin, surface);
+      if (distance === 0) {
+        pointX = center.x;
+        pointY = center.y;
+        pointZ = center.z;
+        break;
+      }
+      if (distance > 0 && distance < closest) {
+        closest = distance;
+        pointX = surface.x;
+        pointY = surface.y;
+        pointZ = surface.z;
+      }
+    }
+
+    const x = pointX - origin.x;
+    const y = pointY - origin.y;
+    const z = pointZ - origin.z;
+    const xzSquared = x * x + z * z;
+    const falloff = radius === 0 ? 1 : 1 - Math.sqrt(xzSquared + y * y) / radius;
+    if (falloff <= 0) return;
+
+    const raisedY = y + upwardOffset;
+    const length = Math.sqrt(xzSquared + raisedY * raisedY);
+    if (length === 0) return;
+
+    const scale = (strength * falloff) / length;
+    force.set(x * scale, raisedY * scale, z * scale);
+    surface.set(pointX - center.x, pointY - center.y, pointZ - center.z);
+    Vector3.cross(surface, force, torque);
+    if (
+      !Number.isFinite(Math.fround(force.x)) ||
+      !Number.isFinite(Math.fround(force.y)) ||
+      !Number.isFinite(Math.fround(force.z)) ||
+      !Number.isFinite(Math.fround(torque.x)) ||
+      !Number.isFinite(Math.fround(torque.y)) ||
+      !Number.isFinite(Math.fround(torque.z))
+    ) {
+      return;
+    }
+
+    this._cancelPendingSleep();
+    actor.addForce(force, mode);
+    actor.addTorque(torque, mode);
   }
 
   /**
@@ -673,7 +809,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (!this._isKinematic) throw new Error("Rigidbody.move requires a kinematic body.");
     if (!this._simulationEnabled || this._index === -1) return;
     // Teleport pending transform edits first so the move starts from the current pose
-    this._getSyncedActor()!.move(positionOrRotation, rotation);
+    const actor = this._getSyncedActor()!;
+    if (rotation) {
+      actor.move(<Vector3>positionOrRotation, rotation);
+    } else if (positionOrRotation instanceof Vector3) {
+      actor.move(positionOrRotation, null);
+    } else {
+      actor.move(null, positionOrRotation);
+    }
   }
 
   /**
@@ -843,12 +986,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
         actor.setLinearVelocity(this._linearVelocity);
         actor.setAngularVelocity(this._angularVelocity);
       }
-      actor.setMass(this._mass);
-      this._automaticCenterOfMass || actor.setCenterOfMass(this._centerOfMass);
-      if (!this._automaticInertiaTensor) {
-        actor.setInertiaTensor(this._inertiaTensor);
-        actor.setInertiaTensorRotation(this._inertiaTensorRotation);
-      }
+      actor.setMassProperties(
+        this._mass,
+        this._automaticCenterOfMass ? undefined : this._centerOfMass,
+        this._automaticInertiaTensor ? undefined : this._inertiaTensor,
+        this._automaticInertiaTensor ? undefined : this._inertiaTensorRotation
+      );
       actor.setMaxLinearVelocity(this._maxLinearVelocity);
       actor.setMaxAngularVelocity(this._maxAngularVelocity);
       actor.setMaxDepenetrationVelocity(this._maxDepenetrationVelocity);
@@ -995,24 +1138,25 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (changes === MassChanges.None) return;
     const actor = this._nativeActor!;
     const mass = this._mass;
+    const autoCom = this._automaticCenterOfMass;
+    const autoInertia = this._automaticInertiaTensor;
     // PhysX uses zero as infinite mass, but automatic mass properties require a positive mass.
-    if ((this._automaticCenterOfMass || this._automaticInertiaTensor) && isValidPositiveFloat32(mass)) {
+    if ((autoCom || autoInertia) && isValidPositiveFloat32(mass)) {
       const colliders = this._attachedColliders;
       const count = colliders.length;
       let i = 0;
       while (i < count && colliders[i]._nativeSupportsDynamicBody()) i++;
       if (i === count) {
-        // PhysX overwrites both properties, restore the manual ones
-        actor.setMassAndUpdateInertia(mass);
-        this._automaticCenterOfMass || actor.setCenterOfMass(this._centerOfMass);
-        if (!this._automaticInertiaTensor) {
-          actor.setInertiaTensor(this._inertiaTensor);
-          actor.setInertiaTensorRotation(this._inertiaTensorRotation);
-        }
+        actor.updateMassAndInertia(
+          mass,
+          autoCom ? null : this._centerOfMass,
+          autoInertia ? null : this._inertiaTensor,
+          autoInertia ? null : this._inertiaTensorRotation
+        );
         return;
       }
     }
-    changes & MassChanges.Mass && actor.setMass(mass);
+    changes & MassChanges.Mass && actor.setMassProperties(mass);
   }
 
   protected override _onDestroy(): void {
@@ -1166,7 +1310,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   @ignoreClone
   private _handleCenterOfMassChanged(): void {
     this._automaticCenterOfMass = false;
-    this._nativeActor?.setCenterOfMass(this._centerOfMass);
+    this._nativeActor?.setMassProperties(undefined, this._centerOfMass);
   }
 
   @ignoreClone
@@ -1180,7 +1324,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       deferMass && this._markMassDirty(MassChanges.Mass);
     }
     this._automaticInertiaTensor = false;
-    this._nativeActor?.setInertiaTensor(this._inertiaTensor);
+    this._nativeActor?.setMassProperties(undefined, undefined, this._inertiaTensor);
   }
 
   @ignoreClone
@@ -1221,7 +1365,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
     this._writeInertiaTensorRotationUnchecked(nx, ny, nz, nw);
     if (!actor) (this._lastValidInertiaTensorRotation ||= new Quaternion()).set(nx, ny, nz, nw);
-    actor?.setInertiaTensorRotation(this._inertiaTensorRotation);
+    actor?.setMassProperties(undefined, undefined, undefined, this._inertiaTensorRotation);
   }
 }
 
@@ -1229,42 +1373,4 @@ const enum MassChanges {
   None = 0,
   Mass = 1,
   Geometry = 2
-}
-
-/** How a force or torque changes a body's velocity. */
-export enum ForceMode {
-  /** Force or torque multiplied by the timestep and divided by the mass or inertia. */
-  Force = 0,
-  /** Impulse divided by the mass or inertia. */
-  Impulse = 1,
-  /** One-time change to velocity or angular velocity. */
-  VelocityChange = 2,
-  /** Acceleration multiplied by the timestep. */
-  Acceleration = 3
-}
-
-/**
- * Use these flags to constrain motion of a Rigidbody.
- */
-export enum RigidbodyConstraints {
-  /** Not Freeze. */
-  None = 0,
-  /** Freeze motion along the world X-axis. */
-  FreezePositionX = 1,
-  /** Freeze motion along the world Y-axis. */
-  FreezePositionY = 2,
-  /** Freeze motion along the world Z-axis. */
-  FreezePositionZ = 4,
-  /** Freeze rotation about the world X-axis. */
-  FreezeRotationX = 8,
-  /** Freeze rotation about the world Y-axis. */
-  FreezeRotationY = 16,
-  /** Freeze rotation about the world Z-axis. */
-  FreezeRotationZ = 32,
-  /** Freeze translation along all axes. */
-  FreezePosition = FreezePositionX | FreezePositionY | FreezePositionZ,
-  /** Freeze rotation about all axes. */
-  FreezeRotation = FreezeRotationX | FreezeRotationY | FreezeRotationZ,
-  /** Freeze all translation and rotation. */
-  FreezeAll = FreezePosition | FreezeRotation
 }

@@ -1,4 +1,4 @@
-import { ICapsuleShape } from "@galacean/engine-design";
+import { CapsuleColliderDirection, ICapsuleShape } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
@@ -25,7 +25,7 @@ export class PhysXCapsuleShape extends PhysXShape implements ICapsuleShape {
     radius: number,
     halfHeight: number,
     material: PhysXPhysicsMaterial,
-    upAxis: number
+    upAxis: CapsuleColliderDirection
   ) {
     super(physXPhysics);
     this._axis = PhysXCapsuleShape._axes[upAxis];
@@ -45,7 +45,7 @@ export class PhysXCapsuleShape extends PhysXShape implements ICapsuleShape {
   /**
    * {@inheritDoc ICapsuleShape.setDimensions }
    */
-  setDimensions(radius: number, halfHeight: number, upAxis: number): void {
+  setDimensions(radius: number, halfHeight: number, upAxis: CapsuleColliderDirection): void {
     const geometry = this._pxGeometry;
     geometry.radius = radius;
     geometry.halfHeight = halfHeight;

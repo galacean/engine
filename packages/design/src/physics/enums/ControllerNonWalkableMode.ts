@@ -1,5 +1,5 @@
 /**
- * The up axis of the collider shape.
+ * How a character controller behaves on slopes steeper than the slope limit.
  */
 export enum ControllerNonWalkableMode {
   /** Stops character from climbing up non-walkable slopes, but doesn't move it otherwise. */

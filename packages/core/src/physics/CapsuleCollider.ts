@@ -1,10 +1,9 @@
-import { ICapsuleShape, IPhysicsShape, ISphereShape } from "@galacean/engine-design";
+import { CapsuleColliderDirection, ICapsuleShape, IPhysicsShape, ISphereShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 import { isValidPositiveFloat32 } from "./float32";
-import { CapsuleColliderDirection } from "./enums/CapsuleColliderDirection";
 
 /**
  * A capsule-shaped collider.
@@ -110,28 +109,14 @@ export class CapsuleCollider extends Collider {
         (<ISphereShape>shape).setRadius(radius);
         return shape;
       }
-      const sphere = Engine._nativePhysics.createSphereShape(this._id, radius, this._getNativeMaterial());
       this._nativeIsSphere = true;
-      if (shape) {
-        this._replaceNativeShape(this._initializeNativeShape(sphere));
-      }
-      return sphere;
+      return Engine._nativePhysics.createSphereShape(this._id, radius, this._getNativeMaterial());
     }
     if (shape && !this._nativeIsSphere) {
       (<ICapsuleShape>shape).setDimensions(radius, halfHeight, direction);
       return shape;
     }
-    const capsule = Engine._nativePhysics.createCapsuleShape(
-      this._id,
-      radius,
-      halfHeight,
-      this._getNativeMaterial(),
-      direction
-    );
     this._nativeIsSphere = false;
-    if (shape) {
-      this._replaceNativeShape(this._initializeNativeShape(capsule));
-    }
-    return capsule;
+    return Engine._nativePhysics.createCapsuleShape(this._id, radius, halfHeight, this._getNativeMaterial(), direction);
   }
 }

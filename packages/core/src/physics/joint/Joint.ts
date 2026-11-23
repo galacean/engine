@@ -1,5 +1,5 @@
 import { DataObject } from "../../base/DataObject";
-import { IDynamicActor, IJoint } from "@galacean/engine-design";
+import { IDynamicActor, IJoint, IPhysicsScene } from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
@@ -281,7 +281,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       nativeJoint.setConnectedActor(connectedActor);
       this._syncFrames(nativeJoint, AnchorOwner.Connected);
     } else {
-      const joint = (this._nativeJoint = this._createJoint(bodyActor));
+      const joint = (this._nativeJoint = this._createJoint(scene.physics._nativePhysicsScene, bodyActor));
       connectedActor && joint.setConnectedActor(connectedActor);
       this._syncNative();
     }
@@ -301,7 +301,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     }
   }
 
-  protected abstract _createJoint(actor: IDynamicActor): IJoint;
+  protected abstract _createJoint(physicsScene: IPhysicsScene, actor: IDynamicActor): IJoint;
 
   /** @internal */
   protected _destroyNativeJoint(): void {

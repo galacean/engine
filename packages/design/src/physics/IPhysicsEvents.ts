@@ -11,17 +11,16 @@ export enum PhysicsEventState {
  * A buffered contact event from the physics backend.
  */
 export interface IContactEvent extends ICollision {
-  state: PhysicsEventState;
+  readonly state: PhysicsEventState;
 }
 
 /**
  * A buffered trigger event from the physics backend.
  */
 export interface ITriggerEvent {
-  index1: number;
-  index2: number;
-  /** The event phase captured when the scene collects events for dispatch. */
-  dispatchState: PhysicsEventState;
+  readonly shape0Id: number;
+  readonly shape1Id: number;
+  readonly state: PhysicsEventState;
 }
 
 /**
@@ -29,12 +28,12 @@ export interface ITriggerEvent {
  * @remarks Consume event records and contact points before the next scene update or event collection.
  */
 export interface IPhysicsEvents {
-  contactEvents: ReadonlyArray<IContactEvent>;
+  readonly contactEvents: ReadonlyArray<IContactEvent>;
   /** The number of valid records at the start of the contact event buffer. */
-  contactEventCount: number;
-  triggerEvents: ReadonlyArray<ITriggerEvent>;
+  readonly contactEventCount: number;
+  readonly triggerEvents: ReadonlyArray<ITriggerEvent>;
   /** Sleep and wake registration IDs. Negative values represent sleep and positive values represent wake. */
-  bodySleepEventIds: ReadonlyArray<number>;
+  readonly bodySleepEventIds: ReadonlyArray<number>;
   /** The number of valid entries at the start of the sleep and wake buffer. */
-  bodySleepEventCount: number;
+  readonly bodySleepEventCount: number;
 }

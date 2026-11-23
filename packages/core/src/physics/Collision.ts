@@ -27,17 +27,15 @@ export class Collision {
    */
   getContacts(outContacts: ContactPoint[]): number {
     const nativeCollision = this._nativeCollision;
-    const factor = this.selfCollider._id === nativeCollision.shape0Id ? 1 : -1;
-    const nativeContactPoints = nativeCollision.getContacts();
-    const length = nativeContactPoints.size();
+    const length = nativeCollision.contactCount;
+    const invert = this.selfCollider._id !== nativeCollision.shape0Id;
     for (let i = 0; i < length; i++) {
-      const nativeContactPoint = nativeContactPoints.get(i);
-
       const contact = (outContacts[i] ||= new ContactPoint());
-      contact.position.copyFrom(nativeContactPoint.position);
-      contact.normal.copyFrom(nativeContactPoint.normal).scale(factor);
-      contact.impulse.copyFrom(nativeContactPoint.impulse).scale(factor);
-      contact.separation = nativeContactPoint.separation;
+      nativeCollision.getContact(i, contact);
+      if (invert) {
+        contact.normal.scale(-1);
+        contact.impulse.scale(-1);
+      }
     }
     return length;
   }

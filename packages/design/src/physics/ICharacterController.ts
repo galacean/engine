@@ -1,4 +1,5 @@
 import { Vector3 } from "@galacean/engine-math";
+import { ControllerCollisionFlag, ControllerNonWalkableMode } from "./enums/index";
 import { IPhysicsMaterial } from "./IPhysicsMaterial";
 
 /**
@@ -9,10 +10,10 @@ export interface ICharacterController {
   /**
    * Use a capsule along the up direction.
    * @param radius - The capsule radius
-   * @param height - The height of the cylindrical part, excluding both caps (0 degenerates to a sphere)
+   * @param halfHeight - Half the cylindrical height, excluding both caps (0 degenerates to a sphere)
    * @param stepOffset - The requested step height in world units
    */
-  setCapsule(radius: number, height: number, stepOffset: number): void;
+  setCapsule(radius: number, halfHeight: number, stepOffset: number): void;
 
   /**
    * Set the contact offset.
@@ -43,9 +44,9 @@ export interface ICharacterController {
    * @param disp - World-space displacement
    * @param minDist - The remaining distance threshold for stopping the move
    * @param elapsedTime - Time in seconds since the last call
-   * @returns The collision flags, or zero if the native controller is unavailable
+   * @returns A bit mask of {@link ControllerCollisionFlag} values, or {@link ControllerCollisionFlag.None} if unavailable or clear
    */
-  move(disp: Vector3, minDist: number, elapsedTime: number): number;
+  move(disp: Vector3, minDist: number, elapsedTime: number): ControllerCollisionFlag;
 
   /**
    * Place the controller's geometry at the sum of the world position and the center offset.
@@ -64,7 +65,7 @@ export interface ICharacterController {
    * Set the non-walkable mode.
    * @param flag - The non-walkable mode
    */
-  setNonWalkableMode(flag: number): void;
+  setNonWalkableMode(flag: ControllerNonWalkableMode): void;
 
   /**
    * Set the up direction.

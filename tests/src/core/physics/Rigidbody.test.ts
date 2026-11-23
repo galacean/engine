@@ -203,8 +203,8 @@ describe("Rigidbody", function () {
       physics._update(physics.fixedTimeStep);
 
       const actor = body._getNativeActor();
-      const setMass = vi.spyOn(actor, "setMass");
-      const calculateMass = vi.spyOn(actor, "setMassAndUpdateInertia");
+      const setMassProperties = vi.spyOn(actor, "setMassProperties");
+      const updateMassAndInertia = vi.spyOn(actor, "updateMassAndInertia");
       const manual = mode !== "automatic";
       if (mode === "disabled while editing") body.enabled = false;
       body.mass = 10;
@@ -220,8 +220,13 @@ describe("Rigidbody", function () {
       physics._update(physics.fixedTimeStep);
 
       expect(body.linearVelocity.x).toBeCloseTo(physics.fixedTimeStep, 5);
-      expect(manual ? setMass : calculateMass).toHaveBeenCalledExactlyOnceWith(10);
-      expect(manual ? calculateMass : setMass).not.toHaveBeenCalled();
+      if (manual) {
+        expect(setMassProperties.mock.calls.filter(([mass]) => mass !== undefined)).toEqual([[10]]);
+        expect(updateMassAndInertia).not.toHaveBeenCalled();
+      } else {
+        expect(updateMassAndInertia).toHaveBeenCalledExactlyOnceWith(10, null, null, null);
+        expect(setMassProperties).not.toHaveBeenCalled();
+      }
     }
   );
 
@@ -1191,6 +1196,18 @@ describe("Rigidbody", function () {
     expect(body.getRelativePointVelocity(new Vector3(2, 0, 0), out)).toBe(out);
     expect(out.x).toBeCloseTo(1, 5);
     expect(out.y).toBeCloseTo(0, 5);
+
+    const pointAlias = new Vector3(2, 2, 0);
+    expect(body.getPointVelocity(pointAlias, pointAlias)).toBe(pointAlias);
+    expect(pointAlias.x).toBeCloseTo(1, 5);
+    expect(pointAlias.y).toBeCloseTo(0, 5);
+    expect(pointAlias.z).toBeCloseTo(0, 5);
+
+    const localAlias = new Vector3(2, 0, 0);
+    expect(body.getRelativePointVelocity(localAlias, localAlias)).toBe(localAlias);
+    expect(localAlias.x).toBeCloseTo(1, 5);
+    expect(localAlias.y).toBeCloseTo(0, 5);
+    expect(localAlias.z).toBeCloseTo(0, 5);
   });
 
   it("uses a pending kinematic target for physics queries before simulation", () => {

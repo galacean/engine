@@ -15,7 +15,7 @@ import {
   SphereCollider
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
-import type { IPhysicsScene } from "@galacean/engine-design";
+import { PhysicsEventState, type IPhysicsEvents, type IPhysicsScene } from "@galacean/engine-design";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, beforeEach, afterAll, expect, it, afterEach } from "vitest";
 
@@ -1909,6 +1909,107 @@ describe("Physics Test", () => {
           expect(stay).toHaveBeenCalledTimes(Number(emits));
           expect(exit).toHaveBeenCalledTimes(Number(emits));
           expect(collision).not.toHaveBeenCalled();
+        } finally {
+          root.destroy();
+        }
+      });
+
+      it("tracks trigger receivers by canonical pair ID rather than event object identity and leaves counts readonly", () => {
+        const root = enginePhysX.sceneManager.activeScene.createRootEntity("trigger-pair-key");
+        const entityA = root.createChild("a");
+        const entityB = root.createChild("b");
+        const entityC = root.createChild("c");
+        const colliderA = entityA.addComponent(BoxCollider);
+        colliderA.isTrigger = true;
+        const colliderB = entityB.addComponent(BoxCollider);
+        const colliderC = entityC.addComponent(BoxCollider);
+        const enterA = vi.fn();
+        const stayA = vi.fn();
+        const exitA = vi.fn();
+        const exitB = vi.fn();
+        const enterC = vi.fn();
+        const exitC = vi.fn();
+        entityA.addComponent(
+          class extends Script {
+            onTriggerEnter = enterA;
+            onTriggerStay = stayA;
+            onTriggerExit = exitA;
+          }
+        );
+        entityB.addComponent(
+          class extends Script {
+            onTriggerExit = exitB;
+          }
+        );
+        entityC.addComponent(
+          class extends Script {
+            onTriggerEnter = enterC;
+            onTriggerExit = exitC;
+          }
+        );
+
+        const pooledSlot = { shape0Id: colliderA._id, shape1Id: colliderB._id, state: PhysicsEventState.Enter };
+        try {
+          // Enter (A, B) in pooledSlot.
+          (physicsScene as any)._dispatchEvents(
+            Object.freeze({
+              contactEvents: [],
+              contactEventCount: 0,
+              triggerEvents: [pooledSlot],
+              bodySleepEventIds: [],
+              bodySleepEventCount: 0
+            } satisfies IPhysicsEvents)
+          );
+          expect(enterA).toHaveBeenCalledOnce();
+
+          // Reuse the same pooledSlot object for (A, C) while (A, B) stays active under swapped order,
+          // and pass non-zero frozen contactEventCount / bodySleepEventCount to verify they are never mutated.
+          pooledSlot.shape0Id = colliderA._id;
+          pooledSlot.shape1Id = colliderC._id;
+          pooledSlot.state = PhysicsEventState.Enter;
+          const frozenStep2 = Object.freeze({
+            contactEvents: [
+              {
+                shape0Id: colliderA._id,
+                shape1Id: colliderB._id,
+                contactCount: 0,
+                state: PhysicsEventState.Enter,
+                getContact() {}
+              }
+            ],
+            contactEventCount: 1,
+            triggerEvents: [
+              { shape0Id: colliderB._id, shape1Id: colliderA._id, state: PhysicsEventState.Stay },
+              pooledSlot
+            ],
+            bodySleepEventIds: [999999],
+            bodySleepEventCount: 1
+          } satisfies IPhysicsEvents);
+          (physicsScene as any)._dispatchEvents(frozenStep2);
+          expect(frozenStep2.contactEventCount).toBe(1);
+          expect(frozenStep2.bodySleepEventCount).toBe(1);
+          expect(stayA).toHaveBeenCalledOnce();
+          expect(enterC).toHaveBeenCalledExactlyOnceWith(colliderA, colliderC);
+
+          // Exit both using pooledSlot and swapped IDs.
+          pooledSlot.shape0Id = colliderA._id;
+          pooledSlot.shape1Id = colliderB._id;
+          pooledSlot.state = PhysicsEventState.Exit;
+          (physicsScene as any)._dispatchEvents(
+            Object.freeze({
+              contactEvents: [],
+              contactEventCount: 0,
+              triggerEvents: [
+                pooledSlot,
+                { shape0Id: colliderC._id, shape1Id: colliderA._id, state: PhysicsEventState.Exit }
+              ],
+              bodySleepEventIds: [],
+              bodySleepEventCount: 0
+            } satisfies IPhysicsEvents)
+          );
+          expect(exitA).toHaveBeenCalledTimes(2);
+          expect(exitB).toHaveBeenCalledExactlyOnceWith(colliderA, colliderB);
+          expect(exitC).toHaveBeenCalledExactlyOnceWith(colliderA, colliderC);
         } finally {
           root.destroy();
         }

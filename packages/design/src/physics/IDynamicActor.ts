@@ -1,4 +1,5 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { ForceMode, RigidbodyConstraints } from "./enums/index";
 import { IPhysicsActor } from "./IPhysicsActor";
 
 /**
@@ -49,26 +50,30 @@ export interface IDynamicActor extends IPhysicsActor {
   setAngularVelocity(value: Vector3): void;
 
   /**
-   * Writes the world-space velocity at a world-space point.
+   * Sets any supplied explicit mass, center of mass, diagonal inertia tensor, and inertia rotation without
+   * recomputing automatic properties from attached shapes. Omitted properties remain unchanged.
    */
-  getPointVelocity(point: Vector3, out: Vector3): Vector3;
+  setMassProperties(
+    mass?: number,
+    centerOfMass?: Vector3,
+    inertiaTensor?: Vector3,
+    inertiaTensorRotation?: Quaternion
+  ): void;
 
   /**
-   * Writes the world-space velocity at a point in actor-local space.
+   * Updates the mass and recomputes automatic center of mass and/or inertia properties from attached solid shapes,
+   * preserving any non-null manual overrides.
+   * @param mass - Positive mass to apply during recomputation
+   * @param centerOfMass - Manual center of mass to preserve, or null to compute automatically
+   * @param inertiaTensor - Manual diagonal inertia tensor to preserve, or null to compute automatically
+   * @param inertiaTensorRotation - Manual principal-axis rotation matching `inertiaTensor`, or null when automatic
    */
-  getRelativePointVelocity(point: Vector3, out: Vector3): Vector3;
-
-  /**
-   *  Sets the mass of a dynamic actor.
-   * @param value - New mass value for the actor
-   */
-  setMass(value: number): void;
-
-  /**
-   * Sets the center of mass relative to the actor.
-   * @param value - Mass frame offset transform relative to the actor frame
-   */
-  setCenterOfMass(value: Vector3): void;
+  updateMassAndInertia(
+    mass: number,
+    centerOfMass: Vector3 | null,
+    inertiaTensor: Vector3 | null,
+    inertiaTensorRotation: Quaternion | null
+  ): void;
 
   /**
    * Gets the center of mass relative to the actor.
@@ -77,30 +82,13 @@ export interface IDynamicActor extends IPhysicsActor {
   getCenterOfMass(out: Vector3): Vector3;
 
   /**
-   * Sets the inertia tensor, using a parameter specified in mass space coordinates.
-   * @param value - New mass space inertia tensor for the actor
-   */
-  setInertiaTensor(value: Vector3): void;
-
-  /**
    * Gets the inertia tensor of the actor.
    * @param out - The mass space inertia tensor of the actor
    */
   getInertiaTensor(out: Vector3): Vector3;
 
   /** Writes the rotation of the inertia frame relative to the actor. */
-  getInertiaTensorRotation(out: Quaternion): void;
-
-  /** Sets the rotation of the inertia frame relative to the actor. */
-  setInertiaTensorRotation(rotation: Quaternion): void;
-
-  /**
-   * Sets the mass of a dynamic actor and automatically updates its inertia tensor.
-   * @param mass - New mass value for the actor
-   * @remarks This differs from setMass() by automatically updating
-   * the inertia tensor and center of mass based on the new mass value.
-   */
-  setMassAndUpdateInertia(mass: number): void;
+  getInertiaTensorRotation(out: Quaternion): Quaternion;
 
   /** Applies mass derived from solid volume. Returns the new mass or zero when no properties were changed. */
   setDensity(density: number, automaticCenterOfMass: boolean, automaticInertiaTensor: boolean): number;
@@ -154,17 +142,17 @@ export interface IDynamicActor extends IPhysicsActor {
   setMotionState(isKinematic: boolean, useCCD: boolean): void;
 
   /**
-   * Raises or clears a particular rigid dynamic lock flag.
-   * @param flags - the flag to raise(set) or clear
+   * Sets rigid dynamic lock flags.
+   * @param flags - The constraint flags to apply
    */
-  setConstraints(flags: number): void;
+  setConstraints(flags: RigidbodyConstraints): void;
 
   /**
    * Applies a world-space force at the center of mass.
    * @param force - Value in the units of the selected mode
    * @param mode - The force application mode
    */
-  addForce(force: Vector3, mode: number): void;
+  addForce(force: Vector3, mode: ForceMode): void;
 
   /**
    * Applies a world-space force or impulse at a world-space position.
@@ -179,27 +167,14 @@ export interface IDynamicActor extends IPhysicsActor {
    * @param torque - Value in the units of the selected mode
    * @param mode - The force application mode
    */
-  addTorque(torque: Vector3, mode: number): void;
-
-  /** Applies a body-local force at the center of mass using the selected mode. */
-  addRelativeForce(force: Vector3, mode: number): void;
-
-  /** Applies a body-local torque using the selected mode. */
-  addRelativeTorque(torque: Vector3, mode: number): void;
-
-  /**
-   * Applies a radial force with linear falloff at the nearest surface point, or at the center of mass.
-   * @returns Whether the force was applied.
-   */
-  addExplosionForce(strength: number, origin: Vector3, radius: number, upwardOffset: number, mode: number): boolean;
+  addTorque(torque: Vector3, mode: ForceMode): void;
 
   /**
    * Set a world-space target pose for the next simulation step.
-   * @param positionOrRotation - The target position or rotation
-   * @param rotation - The target rotation when passing both position and rotation
-   * @remarks A partial update preserves the other component of the pending target, or of the current pose if there is no target.
+   * @param position - The target position, or null to preserve the pending or current position
+   * @param rotation - The target rotation, or null to preserve the pending or current rotation
    */
-  move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void;
+  move(position: Vector3 | null, rotation: Quaternion | null): void;
 
   /**
    * Forces an actor to sleep at least one frame.

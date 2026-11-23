@@ -1,4 +1,4 @@
-import { IDynamicActor } from "@galacean/engine-design";
+import { ForceMode, IDynamicActor, RigidbodyConstraints } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXActor } from "./PhysXActor";
 import { PhysXPhysics } from "./PhysXPhysics";
@@ -61,23 +61,32 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
     this._pxActor.setAngularVelocity(value, true);
   }
 
-  /** {@inheritDoc IDynamicActor.getPointVelocity} */
-  getPointVelocity(point: Vector3, out: Vector3): Vector3 {
-    this._pxActor.getVelocityAtPos(point, out);
-    return out;
+  /** {@inheritDoc IDynamicActor.setMassProperties } */
+  setMassProperties(
+    mass?: number,
+    centerOfMass?: Vector3,
+    inertiaTensor?: Vector3,
+    inertiaTensorRotation?: Quaternion
+  ): void {
+    const actor = this._pxActor;
+    mass !== undefined && actor.setMass(mass);
+    centerOfMass && actor.setCMassLocalPose(centerOfMass);
+    inertiaTensor && actor.setMassSpaceInertiaTensor(inertiaTensor);
+    inertiaTensorRotation && actor.setInertiaTensorRotation(inertiaTensorRotation);
   }
 
-  /** {@inheritDoc IDynamicActor.getRelativePointVelocity} */
-  getRelativePointVelocity(point: Vector3, out: Vector3): Vector3 {
-    this._pxActor.getLocalVelocityAtLocalPos(point, out);
-    return out;
-  }
-
-  /**
-   * {@inheritDoc IDynamicActor.setMass }
-   */
-  setMass(value: number): void {
-    this._pxActor.setMass(value);
+  /** {@inheritDoc IDynamicActor.updateMassAndInertia } */
+  updateMassAndInertia(
+    mass: number,
+    centerOfMass: Vector3 | null,
+    inertiaTensor: Vector3 | null,
+    inertiaTensorRotation: Quaternion | null
+  ): void {
+    const actor = this._pxActor;
+    actor.setMassAndUpdateInertia(mass);
+    centerOfMass && actor.setCMassLocalPose(centerOfMass);
+    inertiaTensor && actor.setMassSpaceInertiaTensor(inertiaTensor);
+    inertiaTensorRotation && actor.setInertiaTensorRotation(inertiaTensorRotation);
   }
 
   /**
@@ -89,20 +98,6 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
   }
 
   /**
-   * {@inheritDoc IDynamicActor.setCenterOfMass }
-   */
-  setCenterOfMass(position: Vector3): void {
-    this._pxActor.setCMassLocalPose(position);
-  }
-
-  /**
-   * {@inheritDoc IDynamicActor.setInertiaTensor }
-   */
-  setInertiaTensor(value: Vector3): void {
-    this._pxActor.setMassSpaceInertiaTensor(value);
-  }
-
-  /**
    * {@inheritDoc IDynamicActor.getInertiaTensor }
    */
   getInertiaTensor(out: Vector3): Vector3 {
@@ -111,20 +106,8 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
   }
 
   /** {@inheritDoc IDynamicActor.getInertiaTensorRotation} */
-  getInertiaTensorRotation(out: Quaternion): void {
-    out.copyFrom(this._pxActor.getCMassLocalPose().rotation);
-  }
-
-  /** {@inheritDoc IDynamicActor.setInertiaTensorRotation} */
-  setInertiaTensorRotation(rotation: Quaternion): void {
-    this._pxActor.setInertiaTensorRotation(rotation);
-  }
-
-  /**
-   * {@inheritDoc IDynamicActor.setMassAndUpdateInertia }
-   */
-  setMassAndUpdateInertia(mass: number): void {
-    this._pxActor.setMassAndUpdateInertia(mass);
+  getInertiaTensorRotation(out: Quaternion): Quaternion {
+    return out.copyFrom(this._pxActor.getCMassLocalPose().rotation);
   }
 
   /** {@inheritDoc IDynamicActor.setDensity } */
@@ -203,14 +186,14 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
   /**
    * {@inheritDoc IDynamicActor.setConstraints }
    */
-  setConstraints(flags: number): void {
+  setConstraints(flags: RigidbodyConstraints): void {
     this._pxActor.setRigidDynamicLockFlags(flags);
   }
 
   /**
    * {@inheritDoc IDynamicActor.addForce }
    */
-  addForce(force: Vector3, mode: number): void {
+  addForce(force: Vector3, mode: ForceMode): void {
     this._pxActor.addForce(force, this._physXPhysics._physX.PxForceMode.values[mode]);
   }
 
@@ -228,29 +211,8 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
   /**
    * {@inheritDoc IDynamicActor.addTorque }
    */
-  addTorque(torque: Vector3, mode: number): void {
+  addTorque(torque: Vector3, mode: ForceMode): void {
     this._pxActor.addTorque(torque, this._physXPhysics._physX.PxForceMode.values[mode]);
-  }
-
-  /** {@inheritDoc IDynamicActor.addRelativeForce } */
-  addRelativeForce(force: Vector3, mode: number): void {
-    this._pxActor.addRelativeForce(force, this._physXPhysics._physX.PxForceMode.values[mode]);
-  }
-
-  /** {@inheritDoc IDynamicActor.addRelativeTorque } */
-  addRelativeTorque(torque: Vector3, mode: number): void {
-    this._pxActor.addRelativeTorque(torque, this._physXPhysics._physX.PxForceMode.values[mode]);
-  }
-
-  /** {@inheritDoc IDynamicActor.addExplosionForce } */
-  addExplosionForce(strength: number, origin: Vector3, radius: number, upwardOffset: number, mode: number): boolean {
-    return this._pxActor.addExplosionForce(
-      strength,
-      origin,
-      radius,
-      upwardOffset,
-      this._physXPhysics._physX.PxForceMode.values[mode]
-    );
   }
 
   /**
@@ -268,23 +230,21 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
   /**
    * {@inheritDoc IDynamicActor.move }
    */
-  move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
+  move(position: Vector3 | null, rotation: Quaternion | null): void {
     const actor = this._pxActor;
     const tempRotation = PhysXDynamicActor._tempRotation;
-    if (rotation) {
+    if (position && rotation) {
       tempRotation.set(0, 0, 0, 1);
       Quaternion.normalize(rotation, tempRotation);
-      actor.setKinematicTarget(positionOrRotation, tempRotation);
-      return;
-    }
-
-    const pose = actor.getKinematicTarget() ?? actor.getGlobalPose();
-    if (positionOrRotation instanceof Vector3) {
-      actor.setKinematicTarget(positionOrRotation, pose.rotation);
-    } else {
+      actor.setKinematicTarget(position, tempRotation);
+    } else if (position) {
+      const pose = actor.getKinematicTarget() ?? actor.getGlobalPose();
+      actor.setKinematicTarget(position, pose.rotation);
+    } else if (rotation) {
+      const pose = actor.getKinematicTarget() ?? actor.getGlobalPose();
       const priorRotation = pose.rotation;
       tempRotation.set(priorRotation.x, priorRotation.y, priorRotation.z, priorRotation.w);
-      Quaternion.normalize(positionOrRotation, tempRotation);
+      Quaternion.normalize(rotation, tempRotation);
       actor.setKinematicTarget(pose.translation, tempRotation);
     }
   }

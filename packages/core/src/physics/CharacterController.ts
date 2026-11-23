@@ -1,9 +1,13 @@
-import { ICharacterController, IPhysicsMaterial } from "@galacean/engine-design";
+import {
+  ControllerCollisionFlag,
+  ControllerNonWalkableMode,
+  ICharacterController,
+  IPhysicsMaterial
+} from "@galacean/engine-design";
 import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
 import { assignmentClone, ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
-import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
 import { isValidPositiveFloat32 } from "./float32";
@@ -173,16 +177,16 @@ export class CharacterController extends Collider {
    * @param disp - Requested displacement in world space.
    * @param minDist - Stop sweeping when the remaining displacement reaches this distance or less, in world units.
    * @param elapsedTime - Time since the previous move, in seconds.
-   * @returns A bit mask of {@link ControllerCollisionFlag} values, or 0 if inactive or no collision is reported.
+   * @returns A bit mask of {@link ControllerCollisionFlag} values, or {@link ControllerCollisionFlag.None} if inactive or no collision is reported.
    */
-  move(disp: Vector3, minDist: number, elapsedTime: number): number {
+  move(disp: Vector3, minDist: number, elapsedTime: number): ControllerCollisionFlag {
     const scene = this._registeredScene;
     if (!scene) {
-      return 0;
+      return ControllerCollisionFlag.None;
     }
     scene.physics._syncColliders();
     if (!this._inScene) {
-      return 0;
+      return ControllerCollisionFlag.None;
     }
     const controller = this._controller!;
     const flags = controller.move(disp, minDist, elapsedTime);
@@ -229,7 +233,7 @@ export class CharacterController extends Collider {
     const force = !this._inScene;
     const syncGeometry = force || this._geometryDirty || this._scaleChanged(scale);
     let radius = 0;
-    let height = 0;
+    let halfHeight = 0;
     if (syncGeometry) {
       radius = this._radius * Math.max(scale.x, scale.z);
       const rawHeight = (this._height - 2 * this._radius) * scale.y;
@@ -237,7 +241,7 @@ export class CharacterController extends Collider {
         this._detach();
         return;
       }
-      height = Math.max(0, rawHeight);
+      halfHeight = Math.max(0, rawHeight * 0.5);
     }
 
     const controller = (this._controller ||= this._createNative());
@@ -262,7 +266,7 @@ export class CharacterController extends Collider {
     if (syncGeometry) {
       this._geometryDirty = false;
       this._nativeScale.copyFrom(scale);
-      controller.setCapsule(radius, height, this._stepOffset);
+      controller.setCapsule(radius, halfHeight, this._stepOffset);
     }
     if (force) {
       scene.physics._nativePhysicsScene.addCharacterController(controller);

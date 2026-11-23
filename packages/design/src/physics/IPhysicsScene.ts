@@ -2,10 +2,14 @@ import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
 import { IPhysicsActor } from "./IPhysicsActor";
 import { IPhysicsEvents } from "./IPhysicsEvents";
+import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
 
 /**
- * A native simulation scene with scene queries and buffered events.
- * @remarks Hit callbacks receive scratch vectors. Copy them before retaining the values or starting another query.
+ * A native simulation scene with joints, scene queries, and buffered events.
+ * @remarks
+ * - Hit callbacks receive scratch vectors. Copy them before retaining the values or starting another query.
+ * - Scene queries include shapes enabled for queries (including trigger shapes) matching the `layerMask`.
+ * - Casts ignore initial overlaps (hits at distance <= 0) and backfaces.
  */
 export interface IPhysicsScene {
   /**
@@ -37,6 +41,24 @@ export interface IPhysicsScene {
    * @param characterController - The controller to remove
    */
   removeCharacterController(characterController: ICharacterController): void;
+
+  /**
+   * Create a fixed joint bound to this scene.
+   * @param actor - Owning actor of the joint
+   */
+  createFixedJoint(actor: IPhysicsActor): IFixedJoint;
+
+  /**
+   * Create a hinge joint bound to this scene.
+   * @param actor - Owning actor of the joint
+   */
+  createHingeJoint(actor: IPhysicsActor): IHingeJoint;
+
+  /**
+   * Create a spring joint bound to this scene.
+   * @param actor - Owning actor of the joint
+   */
+  createSpringJoint(actor: IPhysicsActor): ISpringJoint;
 
   /**
    * Advance the simulation by one step.
@@ -150,7 +172,7 @@ export interface IPhysicsScene {
    * Sweeps a capsule and reports the nearest hit with a positive distance.
    * @param center - The world-space capsule center
    * @param radius - The capsule radius
-   * @param height - The height between the capsule's hemisphere centers
+   * @param halfHeight - Half the cylindrical height between the capsule's hemisphere centers
    * @param orientation - World-space rotation of the capsule, whose local long axis is Y
    * @param direction - The normalized world-space sweep direction
    * @param distance - The maximum sweep distance
@@ -161,7 +183,7 @@ export interface IPhysicsScene {
   capsuleCast(
     center: Vector3,
     radius: number,
-    height: number,
+    halfHeight: number,
     orientation: Quaternion,
     direction: Vector3,
     distance: number,
@@ -192,7 +214,7 @@ export interface IPhysicsScene {
    * Finds query shapes overlapping a capsule, in unspecified order.
    * @param center - The world-space capsule center
    * @param radius - The capsule radius
-   * @param height - The height between the capsule's hemisphere centers
+   * @param halfHeight - Half the cylindrical height between the capsule's hemisphere centers
    * @param orientation - World-space rotation of the capsule, whose local long axis is Y
    * @param layerMask - The collision layers to include
    * @returns Borrowed shape IDs; consume them before the next physics operation
@@ -200,7 +222,7 @@ export interface IPhysicsScene {
   overlapCapsuleAll(
     center: Vector3,
     radius: number,
-    height: number,
+    halfHeight: number,
     orientation: Quaternion,
     layerMask: number
   ): ArrayLike<number>;

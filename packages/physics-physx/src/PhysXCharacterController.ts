@@ -1,4 +1,4 @@
-import { ICharacterController } from "@galacean/engine-design";
+import { ControllerCollisionFlag, ControllerNonWalkableMode, ICharacterController } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
@@ -27,7 +27,7 @@ export class PhysXCharacterController implements ICharacterController {
   private _collisionLayer = 0;
   private _isSceneQuery = true;
   private _stepOffset = 0.5;
-  private _nonWalkableMode = 0;
+  private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit = 45;
 
@@ -40,9 +40,9 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.setCapsule }
    */
-  setCapsule(radius: number, height: number, stepOffset: number): void {
+  setCapsule(radius: number, halfHeight: number, stepOffset: number): void {
     radius = Math.fround(radius);
-    height = Math.fround(height);
+    const height = Math.fround(halfHeight * 2);
     const maxStepOffset = Math.fround(height + 2 * radius);
     // PhysX 4.1 rejects zero cylinder height and scales proxy halfHeight by 0.4; keep a tiny radius-relative floor.
     const minHeight = Math.fround(Math.max(radius * 1e-4, 3e-38));
@@ -98,8 +98,8 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.move }
    */
-  move(disp: Vector3, minDist: number, elapsedTime: number): number {
-    return this._pxController?.move(disp, minDist, elapsedTime, false) ?? 0;
+  move(disp: Vector3, minDist: number, elapsedTime: number): ControllerCollisionFlag {
+    return this._pxController?.move(disp, minDist, elapsedTime, false) ?? ControllerCollisionFlag.None;
   }
 
   /**
@@ -128,7 +128,7 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.setNonWalkableMode }
    */
-  setNonWalkableMode(flag: number): void {
+  setNonWalkableMode(flag: ControllerNonWalkableMode): void {
     this._nonWalkableMode = flag;
     this._pxController?.setNonWalkableMode(flag);
   }

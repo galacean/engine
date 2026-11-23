@@ -9,7 +9,15 @@ export { MeshCollider } from "./MeshCollider";
 export { PhysicsMaterial } from "./PhysicsMaterial";
 export { PhysicsScene } from "./PhysicsScene";
 export { PlaneCollider } from "./PlaneCollider";
-export { ForceMode, Rigidbody, RigidbodyConstraints } from "./Rigidbody";
+export { Rigidbody } from "./Rigidbody";
 export { SphereCollider } from "./SphereCollider";
-export * from "./enums";
+export {
+  CapsuleColliderDirection,
+  ControllerCollisionFlag,
+  ControllerNonWalkableMode,
+  ForceMode,
+  MeshColliderCookingFlag,
+  PhysicsMaterialCombineMode,
+  RigidbodyConstraints
+} from "@galacean/engine-design";
 export * from "./joint";

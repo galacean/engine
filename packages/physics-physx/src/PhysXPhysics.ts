@@ -1,30 +1,25 @@
 import { Quaternion, SystemInfo, Vector3 } from "@galacean/engine";
 import {
+  CapsuleColliderDirection,
   IBoxShape,
   ICapsuleShape,
   ICharacterController,
   IDynamicActor,
-  IFixedJoint,
-  IHingeJoint,
   IMeshShape,
   IPhysics,
   IPhysicsMaterialProperties,
   IPhysicsScene,
   IPlaneShape,
   ISphereShape,
-  ISpringJoint,
-  IStaticActor
+  IStaticActor,
+  MeshColliderCookingFlag
 } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
-import { PhysXActor } from "./PhysXActor";
 import { PhysXDynamicActor } from "./PhysXDynamicActor";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 import { PhysXStaticActor } from "./PhysXStaticActor";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
-import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
-import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
-import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 import { PhysXBoxShape } from "./shape/PhysXBoxShape";
 import { PhysXCapsuleShape } from "./shape/PhysXCapsuleShape";
 import { PhysXMeshShape } from "./shape/PhysXMeshShape";
@@ -150,7 +145,7 @@ export class PhysXPhysics implements IPhysics {
     radius: number,
     halfHeight: number,
     material: PhysXPhysicsMaterial,
-    upAxis: number
+    upAxis: CapsuleColliderDirection
   ): ICapsuleShape {
     return new PhysXCapsuleShape(this, uniqueID, radius, halfHeight, material, upAxis);
   }
@@ -164,32 +159,11 @@ export class PhysXPhysics implements IPhysics {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
-    cookingFlags: number,
+    cookingFlags: MeshColliderCookingFlag,
     scale: Vector3
   ): IMeshShape | null {
     const shape = new PhysXMeshShape(this, uniqueID, positions, indices, isConvex, material, cookingFlags, scale);
     return shape._pxShape ? shape : null;
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createFixedJoint }
-   */
-  createFixedJoint(actor: PhysXActor): IFixedJoint {
-    return new PhysXFixedJoint(this, actor);
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createHingeJoint }
-   */
-  createHingeJoint(actor: PhysXActor): IHingeJoint {
-    return new PhysXHingeJoint(this, actor);
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createSpringJoint }
-   */
-  createSpringJoint(actor: PhysXActor): ISpringJoint {
-    return new PhysXSpringJoint(this, actor);
   }
 
   private async _initialize(): Promise<void> {

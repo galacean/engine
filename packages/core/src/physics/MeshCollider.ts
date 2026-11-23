@@ -1,10 +1,9 @@
-import { IMeshShape, IPhysicsShape } from "@galacean/engine-design";
+import { IMeshShape, IPhysicsShape, MeshColliderCookingFlag } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { Collider } from "./Collider";
-import { MeshColliderCookingFlag } from "./enums/MeshColliderCookingFlag";
 
 type MeshData = {
   positions: Vector3[];
@@ -167,7 +166,10 @@ export class MeshCollider extends Collider {
     const mesh = this._mesh;
     if (!mesh) {
       this._rejection = MeshSyncRejection.None;
-      this._native && this._replaceNativeShape(null);
+      if (this._native) {
+        this._detach();
+        this._destroyNative();
+      }
       return null;
     }
 
@@ -202,7 +204,10 @@ export class MeshCollider extends Collider {
       const updated = meshData && this._cook(previous, meshData, scale);
       if (!updated) {
         this._rejection = MeshSyncRejection.CookFailed;
-        this._replaceNativeShape(null);
+        if (this._native) {
+          this._detach();
+          this._destroyNative();
+        }
         this._nativeMesh = null;
         return null;
       }
@@ -252,8 +257,7 @@ export class MeshCollider extends Collider {
       scale
     );
     if (!replacement) return null;
-    this._replaceNativeShape(this._initializeNativeShape(replacement));
-    return replacement;
+    return this._initializeNativeShape(replacement);
   }
 
   private _setMesh(value: ModelMesh | null): void {

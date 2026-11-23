@@ -33,9 +33,8 @@ export class PlaneCollider extends Collider {
 
   protected override _syncNativeShape(): IPlaneShape {
     return <IPlaneShape>(
-      (this._native ||= this._initializeNativeShape(
-        Engine._nativePhysics.createPlaneShape(this._id, this._getNativeMaterial())
-      ))
+      (this._native ??
+        this._initializeNativeShape(Engine._nativePhysics.createPlaneShape(this._id, this._getNativeMaterial())))
     );
   }
 }

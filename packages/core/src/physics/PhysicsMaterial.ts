@@ -1,7 +1,6 @@
-import { IPhysicsMaterial, IPhysicsMaterialProperties } from "@galacean/engine-design";
+import { IPhysicsMaterial, IPhysicsMaterialProperties, PhysicsMaterialCombineMode } from "@galacean/engine-design";
 import { ReferResource } from "../asset/ReferResource";
 import { Engine } from "../Engine";
-import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
 /**
  * Surface friction, bounciness, and combine modes for colliders.

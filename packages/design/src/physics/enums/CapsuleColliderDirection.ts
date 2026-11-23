@@ -1,5 +1,5 @@
 /**
- * The local axis along which a {@link CapsuleCollider} is oriented.
+ * The local axis along which a capsule collider is oriented.
  */
 export enum CapsuleColliderDirection {
   /** Aligned along the X axis. */

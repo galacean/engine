@@ -1,5 +1,4 @@
-import { IDynamicActor, ISpringJoint } from "@galacean/engine-design";
-import { Engine } from "../../Engine";
+import { IDynamicActor, IPhysicsScene, ISpringJoint } from "@galacean/engine-design";
 import { Joint } from "./Joint";
 
 /**
@@ -104,8 +103,8 @@ export class SpringJoint extends Joint {
     }
   }
 
-  protected override _createJoint(actor: IDynamicActor): ISpringJoint {
-    return Engine._nativePhysics.createSpringJoint(actor);
+  protected override _createJoint(physicsScene: IPhysicsScene, actor: IDynamicActor): ISpringJoint {
+    return physicsScene.createSpringJoint(actor);
   }
 
   protected override _syncNative(): void {

@@ -51,7 +51,7 @@ export interface IPhysicsShape {
    */
   pointDistance(point: Vector3): Vector4;
   /**
-   * Decrements the reference count of a shape and releases it if the new reference count is zero.
+   * Release the native physics shape.
    */
   destroy(): void;
 }

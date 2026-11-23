@@ -1,5 +1,5 @@
 import { IHingeJoint } from "@galacean/engine-design";
-import { MathUtil, Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXActor } from "../PhysXActor";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
@@ -74,7 +74,7 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    * {@inheritDoc IHingeJoint.getAngle }
    */
   getAngle(): number {
-    return MathUtil.radianToDegree(this._pxJoint.getAngle());
+    return this._pxJoint.getAngle();
   }
 
   /**
@@ -88,24 +88,14 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    * {@inheritDoc IHingeJoint.setHardLimit }
    */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number): void {
-    this._pxJoint.setHardLimit(
-      MathUtil.degreeToRadian(lowerLimit),
-      MathUtil.degreeToRadian(upperLimit),
-      contactDist,
-      0
-    );
+    this._pxJoint.setHardLimit(lowerLimit, upperLimit, contactDist, 0);
   }
 
   /**
    * {@inheritDoc IHingeJoint.setSoftLimit }
    */
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void {
-    this._pxJoint.setSoftLimit(
-      MathUtil.degreeToRadian(lowerLimit),
-      MathUtil.degreeToRadian(upperLimit),
-      stiffness,
-      damping
-    );
+    this._pxJoint.setSoftLimit(lowerLimit, upperLimit, stiffness, damping);
   }
 
   /**
@@ -130,9 +120,23 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   }
 
   /**
-   * {@inheritDoc IHingeJoint.setHingeJointFlag }
+   * {@inheritDoc IHingeJoint.setLimitEnabled }
    */
-  setHingeJointFlag(flag: number, value: boolean): void {
-    this._pxJoint.setRevoluteJointFlag(flag, value);
+  setLimitEnabled(enabled: boolean): void {
+    this._pxJoint.setRevoluteJointFlag(1, enabled); // eLIMIT_ENABLED
+  }
+
+  /**
+   * {@inheritDoc IHingeJoint.setDriveEnabled }
+   */
+  setDriveEnabled(enabled: boolean): void {
+    this._pxJoint.setRevoluteJointFlag(2, enabled); // eDRIVE_ENABLED
+  }
+
+  /**
+   * {@inheritDoc IHingeJoint.setDriveFreeSpin }
+   */
+  setDriveFreeSpin(enabled: boolean): void {
+    this._pxJoint.setRevoluteJointFlag(4, enabled); // eDRIVE_FREESPIN
   }
 }

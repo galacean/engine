@@ -1,14 +1,21 @@
 import { Vector3, Quaternion } from "@galacean/engine";
 import {
-  IPhysicsScene,
-  IPhysicsEvents,
   IContactEvent,
+  IContactPoint,
+  IFixedJoint,
+  IHingeJoint,
+  IPhysicsEvents,
+  IPhysicsScene,
+  ISpringJoint,
   ITriggerEvent,
   PhysicsEventState
 } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXActor } from "./PhysXActor";
 import { PhysXPhysics } from "./PhysXPhysics";
+import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
+import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
+import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 
 /**
  * Simulates actors and runs scene queries through PhysX.
@@ -84,24 +91,24 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         const existing = pairs[big];
         if (existing) {
           // Treat a rediscovered pair as a continuous overlap.
-          existing.state = PhysicsEventState.Stay;
+          existing._pendingState = PhysicsEventState.Stay;
           return;
         }
         let event = this._triggerEventPool.pop();
         if (event) {
-          event.index1 = small;
-          event.index2 = big;
+          event.shape0Id = small;
+          event.shape1Id = big;
         } else {
           event = new TriggerEvent(small, big);
         }
-        event.state = PhysicsEventState.Enter;
+        event._pendingState = PhysicsEventState.Enter;
         pairs[big] = event;
         this._activeTriggers.push(event);
       },
       onTriggerEnd: (index1, index2) => {
         const pairs = this._eventMap[Math.min(index1, index2)];
         const big = Math.max(index1, index2);
-        pairs[big]!.state = PhysicsEventState.Exit;
+        pairs[big]!._pendingState = PhysicsEventState.Exit;
         delete pairs[big];
       }
     };
@@ -166,6 +173,27 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsScene.createFixedJoint }
+   */
+  createFixedJoint(actor: PhysXActor): IFixedJoint {
+    return new PhysXFixedJoint(this._physXPhysics, actor);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.createHingeJoint }
+   */
+  createHingeJoint(actor: PhysXActor): IHingeJoint {
+    return new PhysXHingeJoint(this._physXPhysics, actor);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.createSpringJoint }
+   */
+  createSpringJoint(actor: PhysXActor): ISpringJoint {
+    return new PhysXSpringJoint(this._physXPhysics, actor);
+  }
+
+  /**
    * {@inheritDoc IPhysicsScene.update }
    */
   update(elapsedTime: number): void {
@@ -195,10 +223,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     triggerEvents.length = 0;
     for (let i = 0; i < activeTriggers.length; ) {
       const event = activeTriggers[i];
-      const state = (event.dispatchState = event.state);
+      const state = (event.state = event._pendingState);
       triggerEvents.push(event);
       if (state === PhysicsEventState.Enter) {
-        event.state = PhysicsEventState.Stay;
+        event._pendingState = PhysicsEventState.Stay;
       } else if (state === PhysicsEventState.Exit) {
         this._retireTrigger(event, i);
         continue;
@@ -323,7 +351,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   capsuleCast(
     center: Vector3,
     radius: number,
-    height: number,
+    halfHeight: number,
     orientation: Quaternion,
     direction: Vector3,
     distance: number,
@@ -331,7 +359,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     return this._sweepSingle(
-      this._getCapsuleGeometry(radius, height),
+      this._getCapsuleGeometry(radius, halfHeight),
       PhysXPhysicsScene._queryPose(center, orientation, PhysXPhysicsScene._capsuleYAxis),
       direction,
       distance,
@@ -372,12 +400,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   overlapCapsuleAll(
     center: Vector3,
     radius: number,
-    height: number,
+    halfHeight: number,
     orientation: Quaternion,
     layerMask: number
   ): Uint32Array {
     return this._pxSceneQueries.overlap(
-      this._getCapsuleGeometry(radius, height),
+      this._getCapsuleGeometry(radius, halfHeight),
       PhysXPhysicsScene._queryPose(center, orientation, PhysXPhysicsScene._capsuleYAxis),
       layerMask,
       true,
@@ -467,9 +495,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return (this._sphereGeometry = new this._physXPhysics._physX.PxSphereGeometry(radius));
   }
 
-  private _getCapsuleGeometry(radius: number, height: number): any {
+  private _getCapsuleGeometry(radius: number, halfHeight: number): any {
     const geometry = this._capsuleGeometry;
-    const halfHeight = height * 0.5;
     if (geometry) {
       geometry.radius = radius;
       geometry.halfHeight = halfHeight;
@@ -548,14 +575,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const activeTriggers = this._activeTriggers;
     for (let i = 0; i < activeTriggers.length; ) {
       const event = activeTriggers[i];
-      const first = changes.get(event.index1);
-      const second = changes.get(event.index2);
+      const first = changes.get(event.shape0Id);
+      const second = changes.get(event.shape1Id);
       if (first === false || second === false) {
         this._retireTrigger(event, i);
         continue;
       } else if (first || second) {
         // Start with an exit and let PhysX restore the stay if it reports the pair again.
-        event.state = PhysicsEventState.Exit;
+        event._pendingState = PhysicsEventState.Exit;
       }
       i++;
     }
@@ -574,8 +601,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       activeTriggers[index] = last;
     }
     this._triggerEventPool.push(event);
-    const pairs = this._eventMap[event.index1];
-    if (pairs && pairs[event.index2] === event) delete pairs[event.index2];
+    const pairs = this._eventMap[event.shape0Id];
+    if (pairs && pairs[event.shape1Id] === event) delete pairs[event.shape1Id];
   }
 
   private _bufferContactEvent(
@@ -592,7 +619,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     event.shape1Id = shape1ID;
     event.state = state;
 
-    // Copy the raw contact floats into a flat arena and materialize Vector3 views only when read.
+    // Copy the raw contact floats into a flat arena and populate Vector3 fields only when read.
     const floatCount = count * 10;
     const offset = this._contactFloatOffset;
     const needed = offset + floatCount;
@@ -609,9 +636,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     }
     this._contactFloatOffset = needed;
 
-    const bufferedContacts = event._bufferedContacts;
-    bufferedContacts.floatOffset = offset;
-    bufferedContacts.contactCount = count;
+    event.floatOffset = offset;
+    event.contactCount = count;
   }
 }
 
@@ -620,70 +646,32 @@ export class PhysXPhysicsScene implements IPhysicsScene {
  */
 class TriggerEvent implements ITriggerEvent {
   state: PhysicsEventState;
-  dispatchState: PhysicsEventState;
+  _pendingState: PhysicsEventState;
 
   constructor(
-    public index1: number,
-    public index2: number
+    public shape0Id: number,
+    public shape1Id: number
   ) {}
-}
-
-/**
- * Reusable contact point view materialized lazily on read.
- */
-class BufferedContactPoint {
-  position = new Vector3();
-  normal = new Vector3();
-  impulse = new Vector3();
-  separation = 0;
-}
-
-/**
- * Lazy view into a pair's slice of the scene's flat contact float arena.
- */
-class BufferedContacts {
-  floatOffset = 0;
-  contactCount = 0;
-  private readonly _scene: PhysXPhysicsScene;
-  private readonly _scratchPoint = new BufferedContactPoint();
-
-  constructor(scene: PhysXPhysicsScene) {
-    this._scene = scene;
-  }
-
-  size(): number {
-    return this.contactCount;
-  }
-
-  get(index: number): BufferedContactPoint {
-    const data = this._scene._contactData;
-    const offset = this.floatOffset + index * 10;
-    const point = this._scratchPoint;
-    point.position.set(data[offset], data[offset + 1], data[offset + 2]);
-    point.normal.set(data[offset + 3], data[offset + 4], data[offset + 5]);
-    point.impulse.set(data[offset + 6], data[offset + 7], data[offset + 8]);
-    point.separation = data[offset + 9];
-    return point;
-  }
 }
 
 class ContactEvent implements IContactEvent {
   state: PhysicsEventState;
   shape0Id: number;
   shape1Id: number;
-
-  /** @internal */
-  _bufferedContacts: BufferedContacts;
+  contactCount = 0;
+  floatOffset = 0;
+  private readonly _scene: PhysXPhysicsScene;
 
   constructor(scene: PhysXPhysicsScene) {
-    this._bufferedContacts = new BufferedContacts(scene);
+    this._scene = scene;
   }
 
-  get contactCount(): number {
-    return this._bufferedContacts.contactCount;
-  }
-
-  getContacts(): BufferedContacts {
-    return this._bufferedContacts;
+  getContact(index: number, out: IContactPoint): void {
+    const data = this._scene._contactData;
+    const offset = this.floatOffset + index * 10;
+    out.position.set(data[offset], data[offset + 1], data[offset + 2]);
+    out.normal.set(data[offset + 3], data[offset + 4], data[offset + 5]);
+    out.impulse.set(data[offset + 6], data[offset + 7], data[offset + 8]);
+    out.separation = data[offset + 9];
   }
 }

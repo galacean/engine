@@ -1,10 +1,4 @@
-import {
-  IDynamicActor,
-  IPhysicsEvents,
-  IPhysicsScene,
-  ITriggerEvent,
-  PhysicsEventState
-} from "@galacean/engine-design";
+import { IDynamicActor, IPhysicsEvents, IPhysicsScene, PhysicsEventState } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -74,7 +68,7 @@ export class PhysicsScene {
   private _pendingSleeps?: Set<Rigidbody>;
   private _collision: Collision;
   private readonly _eventTargets = new Map<number, Rigidbody>();
-  private readonly _triggerReceivers = new Map<ITriggerEvent, TriggerReceivers>();
+  private readonly _triggerReceivers = new Map<number, TriggerReceivers>();
   private _triggerStepStamp = 0;
   private _nextEventId = 0;
 
@@ -602,7 +596,7 @@ export class PhysicsScene {
         ? this._nativePhysicsScene.capsuleCast(
             center,
             radius,
-            cylinderHeight,
+            halfCylinderHeight,
             orientation,
             normalizedDirection,
             distance,
@@ -695,7 +689,7 @@ export class PhysicsScene {
     }
     this._syncColliders();
     const ids = isValidPositiveFloat32(halfCylinderHeight)
-      ? this._nativePhysicsScene.overlapCapsuleAll(center, radius, cylinderHeight, orientation, layerMask)
+      ? this._nativePhysicsScene.overlapCapsuleAll(center, radius, halfCylinderHeight, orientation, layerMask)
       : this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
 
     return PhysicsScene._collectColliders(ids, colliders);
@@ -939,7 +933,6 @@ export class PhysicsScene {
     const { contactEvents, contactEventCount, triggerEvents } = events;
 
     if (contactEventCount > 0) {
-      events.contactEventCount = 0;
       const collision = (this._collision ||= new Collision());
       const receivers = PhysicsScene._dispatchReceivers.pop() ?? [];
       for (let i = 0; i < contactEventCount; i++) {
@@ -974,8 +967,8 @@ export class PhysicsScene {
       const receivers = PhysicsScene._dispatchReceivers.pop() ?? [];
       for (let i = 0; i < triggerCount; i++) {
         const event = triggerEvents[i];
-        const collider0 = physicalObjectsMap[event.index1];
-        const collider1 = physicalObjectsMap[event.index2];
+        const collider0 = physicalObjectsMap[event.shape0Id];
+        const collider1 = physicalObjectsMap[event.shape1Id];
         receivers[i * 2] = collider0._attachedBody ?? collider0;
         receivers[i * 2 + 1] = collider1._attachedBody ?? collider1;
       }
@@ -984,25 +977,31 @@ export class PhysicsScene {
       let liveCount = 0;
       for (let i = 0; i < triggerCount; i++) {
         const event = triggerEvents[i];
-        const collider0 = physicalObjectsMap[event.index1];
-        const collider1 = physicalObjectsMap[event.index2];
-        const cur0 = receivers[i * 2];
-        const cur1 = receivers[i * 2 + 1];
-        const state = event.dispatchState;
+        const a = event.shape0Id;
+        const b = event.shape1Id;
+        const small = a < b ? a : b;
+        const big = a < b ? b : a;
+        const key = PhysicsScene._triggerPairKey(small, big);
+        const swapped = a > b;
+        const collider0 = physicalObjectsMap[small];
+        const collider1 = physicalObjectsMap[big];
+        const cur0 = receivers[i * 2 + (swapped ? 1 : 0)];
+        const cur1 = receivers[i * 2 + (swapped ? 0 : 1)];
+        const state = event.state;
         if (state === PhysicsEventState.Enter) {
-          const entry = triggerReceivers.get(event);
+          const entry = triggerReceivers.get(key);
           if (entry) {
             entry.receiver0 = cur0;
             entry.receiver1 = cur1;
             entry.stamp = stamp;
           } else {
-            triggerReceivers.set(event, { receiver0: cur0, receiver1: cur1, stamp });
+            triggerReceivers.set(key, { receiver0: cur0, receiver1: cur1, stamp });
           }
           liveCount++;
           PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
           PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
         } else if (state === PhysicsEventState.Stay) {
-          const entry = triggerReceivers.get(event);
+          const entry = triggerReceivers.get(key);
           if (entry) {
             entry.stamp = stamp;
             liveCount++;
@@ -1010,8 +1009,8 @@ export class PhysicsScene {
           PhysicsScene._dispatchTriggerStaySide(entry, true, cur0, collider0, collider1);
           PhysicsScene._dispatchTriggerStaySide(entry, false, cur1, collider1, collider0);
         } else {
-          const entry = triggerReceivers.get(event);
-          entry && triggerReceivers.delete(event);
+          const entry = triggerReceivers.get(key);
+          entry && triggerReceivers.delete(key);
           const target0 = !entry || entry.receiver0.entity === cur0.entity ? cur0 : entry.receiver0;
           const target1 = !entry || entry.receiver1.entity === cur1.entity ? cur1 : entry.receiver1;
           PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
@@ -1029,13 +1028,17 @@ export class PhysicsScene {
 
     const { bodySleepEventIds, bodySleepEventCount } = events;
     if (bodySleepEventCount > 0) {
-      events.bodySleepEventCount = 0;
       for (let i = 0; i < bodySleepEventCount; i++) {
         const id = bodySleepEventIds[i];
         if (id < 0) this._dispatchSleepEvent(-id, "onSleep");
         else this._dispatchSleepEvent(id, "onWake");
       }
     }
+  }
+
+  private static _triggerPairKey(small: number, big: number): number {
+    const sum = small + big;
+    return sum * (sum + 1) * 0.5 + big;
   }
 
   private static _dispatchTriggerStaySide(

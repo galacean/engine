@@ -1,3 +1,4 @@
+import { CapsuleColliderDirection } from "../enums/CapsuleColliderDirection";
 import { IPhysicsShape } from "./IPhysicsShape";
 
 /**
@@ -10,5 +11,5 @@ export interface ICapsuleShape extends IPhysicsShape {
    * @param halfHeight - Half the cylindrical height, with entity scale applied
    * @param upAxis - The local up axis
    */
-  setDimensions(radius: number, halfHeight: number, upAxis: number): void;
+  setDimensions(radius: number, halfHeight: number, upAxis: CapsuleColliderDirection): void;
 }

@@ -1,9 +1,7 @@
-import { IDynamicActor, IHingeJoint } from "@galacean/engine-design";
-import type { Vector3Like } from "@galacean/engine-math";
+import { IDynamicActor, IHingeJoint, IPhysicsScene } from "@galacean/engine-design";
+import { MathUtil, type Vector3Like } from "@galacean/engine-math";
 import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
-import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { directionSnapshot, normalizeDirection } from "../unitDirection";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
@@ -17,7 +15,8 @@ export class HingeJoint extends Joint {
 
   @assignmentClone
   private _axis = directionSnapshot(1, 0, 0);
-  private _hingeFlags = HingeJointFlag.None;
+  private _useLimits = false;
+  private _useMotor = false;
   private _useSpring = false;
   private _jointMotor: JointMotor | null = null;
   private _limits: JointLimits | null = null;
@@ -46,7 +45,7 @@ export class HingeJoint extends Joint {
   get angle(): number {
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
-      this._angle = nativeJoint.getAngle();
+      this._angle = MathUtil.radianToDegree(nativeJoint.getAngle());
     }
     return this._angle;
   }
@@ -67,12 +66,12 @@ export class HingeJoint extends Joint {
    * @defaultValue false
    */
   get useLimits(): boolean {
-    return (this._hingeFlags & HingeJointFlag.LimitEnabled) == HingeJointFlag.LimitEnabled;
+    return this._useLimits;
   }
 
   set useLimits(value: boolean) {
-    if (value !== this.useLimits) {
-      value ? (this._hingeFlags |= HingeJointFlag.LimitEnabled) : (this._hingeFlags &= ~HingeJointFlag.LimitEnabled);
+    if (value !== this._useLimits) {
+      this._useLimits = value;
       this._syncAndWake(this._syncLimitsEnabled);
     }
   }
@@ -82,12 +81,12 @@ export class HingeJoint extends Joint {
    * @defaultValue false
    */
   get useMotor(): boolean {
-    return (this._hingeFlags & HingeJointFlag.DriveEnabled) == HingeJointFlag.DriveEnabled;
+    return this._useMotor;
   }
 
   set useMotor(value: boolean) {
-    if (value !== this.useMotor) {
-      value ? (this._hingeFlags |= HingeJointFlag.DriveEnabled) : (this._hingeFlags &= ~HingeJointFlag.DriveEnabled);
+    if (value !== this._useMotor) {
+      this._useMotor = value;
       this._syncAndWake(this._syncMotorEnabled);
     }
   }
@@ -152,7 +151,7 @@ export class HingeJoint extends Joint {
   protected override _destroyNativeJoint(): void {
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
-      this._angle = nativeJoint.getAngle();
+      this._angle = MathUtil.radianToDegree(nativeJoint.getAngle());
       this._velocity = nativeJoint.getVelocity();
     }
     super._destroyNativeJoint();
@@ -174,8 +173,8 @@ export class HingeJoint extends Joint {
     this._jointMotor = this._limits = null;
   }
 
-  protected override _createJoint(actor: IDynamicActor): IHingeJoint {
-    return Engine._nativePhysics.createHingeJoint(actor);
+  protected override _createJoint(physicsScene: IPhysicsScene, actor: IDynamicActor): IHingeJoint {
+    return physicsScene.createHingeJoint(actor);
   }
 
   protected override _syncNative(): void {
@@ -218,11 +217,11 @@ export class HingeJoint extends Joint {
   }
 
   private _syncLimitsEnabled(nativeJoint: IHingeJoint): void {
-    nativeJoint.setHingeJointFlag(HingeJointFlag.LimitEnabled, this.useLimits && this._limits !== null);
+    nativeJoint.setLimitEnabled(this._useLimits && this._limits !== null);
   }
 
   private _syncMotorEnabled(nativeJoint: IHingeJoint): void {
-    nativeJoint.setHingeJointFlag(HingeJointFlag.DriveEnabled, this.useMotor && this._jointMotor !== null);
+    nativeJoint.setDriveEnabled(this._useMotor && this._jointMotor !== null);
   }
 
   private _syncMotorConfig(nativeJoint: IHingeJoint): void {
@@ -241,17 +240,19 @@ export class HingeJoint extends Joint {
       nativeJoint.setDriveVelocity(motor.targetVelocity);
       nativeJoint.setDriveForceLimit(motor.forceLimit);
       nativeJoint.setDriveGearRatio(motor.gearRatio);
-      nativeJoint.setHingeJointFlag(HingeJointFlag.DriveFreeSpin, motor.freeSpin);
+      nativeJoint.setDriveFreeSpin(motor.freeSpin);
     }
   }
 
   private _syncLimits(nativeJoint: IHingeJoint): void {
     const limits = this._limits;
     if (limits) {
+      const min = MathUtil.degreeToRadian(limits.min);
+      const max = MathUtil.degreeToRadian(limits.max);
       if (this.useSpring) {
-        nativeJoint.setSoftLimit(limits.min, limits.max, limits.stiffness, limits.damping);
+        nativeJoint.setSoftLimit(min, max, limits.stiffness, limits.damping);
       } else {
-        nativeJoint.setHardLimit(limits.min, limits.max, limits.contactDistance);
+        nativeJoint.setHardLimit(min, max, limits.contactDistance);
       }
     }
   }

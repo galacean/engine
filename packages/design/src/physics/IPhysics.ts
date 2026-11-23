@@ -1,11 +1,10 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { CapsuleColliderDirection, MeshColliderCookingFlag } from "./enums/index";
 import { ICharacterController } from "./ICharacterController";
-import { IPhysicsActor } from "./IPhysicsActor";
 import { IDynamicActor } from "./IDynamicActor";
 import { IPhysicsMaterial, IPhysicsMaterialProperties } from "./IPhysicsMaterial";
 import { IPhysicsScene } from "./IPhysicsScene";
 import { IStaticActor } from "./IStaticActor";
-import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
 import { IBoxShape, ICapsuleShape, IMeshShape, IPlaneShape, ISphereShape } from "./shape";
 
 /**
@@ -86,7 +85,7 @@ export interface IPhysics {
     radius: number,
     halfHeight: number,
     material: IPhysicsMaterial,
-    upAxis: number
+    upAxis: CapsuleColliderDirection
   ): ICapsuleShape;
 
   /**
@@ -106,27 +105,9 @@ export interface IPhysics {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: IPhysicsMaterial,
-    cookingFlags: number,
+    cookingFlags: MeshColliderCookingFlag,
     scale: Vector3
   ): IMeshShape | null;
-
-  /**
-   * Create fixed joint.
-   * @param actor - Owning actor of the joint
-   */
-  createFixedJoint(actor: IPhysicsActor): IFixedJoint;
-
-  /**
-   * Create hinge joint.
-   * @param actor - Owning actor of the joint
-   */
-  createHingeJoint(actor: IPhysicsActor): IHingeJoint;
-
-  /**
-   * Create spring joint.
-   * @param actor - Owning actor of the joint
-   */
-  createSpringJoint(actor: IPhysicsActor): ISpringJoint;
 
   /**
    * Release the physics backend.

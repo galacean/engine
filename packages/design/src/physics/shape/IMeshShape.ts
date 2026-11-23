@@ -1,4 +1,5 @@
 import { Vector3 } from "@galacean/engine-math";
+import { MeshColliderCookingFlag } from "../enums/MeshColliderCookingFlag";
 import { IPhysicsShape } from "./IPhysicsShape";
 
 /**
@@ -16,7 +17,7 @@ export interface IMeshShape extends IPhysicsShape {
   setMeshData(
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
-    cookingFlags: number,
+    cookingFlags: MeshColliderCookingFlag,
     scale: Vector3
   ): boolean;
 

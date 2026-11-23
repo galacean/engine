@@ -1,40 +1,30 @@
+import { Vector3 } from "@galacean/engine-math";
+
 /**
  * Interface of collision.
  */
 export interface ICollision {
   /** The unique ID of the first shape in the contact pair. */
-  shape0Id: number;
+  readonly shape0Id: number;
   /** The unique ID of the second shape in the contact pair. */
-  shape1Id: number;
+  readonly shape1Id: number;
   /** Count of contact points. */
-  contactCount: number;
+  readonly contactCount: number;
+
   /**
-   * Get contact points.
-   * @remarks Contact normals and impulses must point from the second shape in the pair to the first.
+   * Write the contact point at `index` into `out`.
+   * @param index - Zero-based contact index below {@link contactCount}
+   * @param out - Receives contact point data; normals and impulses must point from the second shape toward the first
    */
-  getContacts(): VectorContactPairPoint;
+  getContact(index: number, out: IContactPoint): void;
 }
 
-interface VectorContactPairPoint {
-  size(): number;
-  get(index: number): IContactPoint;
-}
-
-interface IContactPoint {
-  position: {
-    x: number;
-    y: number;
-    z: number;
-  };
-  normal: {
-    x: number;
-    y: number;
-    z: number;
-  };
-  impulse: {
-    x: number;
-    y: number;
-    z: number;
-  };
+/**
+ * Contact point data populated by {@link ICollision.getContact}.
+ */
+export interface IContactPoint {
+  readonly position: Vector3;
+  readonly normal: Vector3;
+  readonly impulse: Vector3;
   separation: number;
 }

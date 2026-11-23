@@ -1,5 +1,5 @@
-import { IJoint } from "./IJoint";
 import { Vector3 } from "@galacean/engine-math";
+import { IJoint } from "./IJoint";
 
 /**
  * A joint that allows rotation around one axis.
@@ -11,7 +11,7 @@ export interface IHingeJoint extends IJoint {
   setAxis(value: Vector3): void;
 
   /**
-   * The current angle in degrees of the joint relative to its rest position.
+   * The current angle in radians of the joint relative to its rest position.
    */
   getAngle(): number;
 
@@ -22,16 +22,16 @@ export interface IHingeJoint extends IJoint {
 
   /**
    * Set an angular hard limit.
-   * @param lowerLimit - The lower angle in degrees
-   * @param upperLimit - The upper angle in degrees
+   * @param lowerLimit - The lower angle in radians
+   * @param upperLimit - The upper angle in radians
    * @param contactDist - How far inside the limit it becomes active, in radians
    */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number): void;
 
   /**
    * Set an angular limit with spring response.
-   * @param lowerLimit - The lower angle in degrees
-   * @param upperLimit - The upper angle in degrees
+   * @param lowerLimit - The lower angle in radians
+   * @param upperLimit - The upper angle in radians
    * @param stiffness - The limit spring stiffness
    * @param damping - The limit spring damping
    */
@@ -44,21 +44,32 @@ export interface IHingeJoint extends IJoint {
   setDriveVelocity(velocity: number): void;
 
   /**
-   * sets the maximum torque the drive can exert.
-   * @param limit the maximum torque
+   * Set the maximum torque the drive can exert.
+   * @param limit - The maximum torque
    */
   setDriveForceLimit(limit: number): void;
 
   /**
-   * sets the gear ratio for the drive.
-   * @param ratio the gear ratio
+   * Set the gear ratio for the drive.
+   * @param ratio - The gear ratio
    */
   setDriveGearRatio(ratio: number): void;
 
   /**
-   * sets a single flag specific to a Hinge Joint.
-   * @param flag The flag to set or clear.
-   * @param value the value to which to set the flag
+   * Enable or disable angular limits.
+   * @param enabled - Whether angular limits are enforced
    */
-  setHingeJointFlag(flag: number, value: boolean): void;
+  setLimitEnabled(enabled: boolean): void;
+
+  /**
+   * Enable or disable the angular drive motor.
+   * @param enabled - Whether the drive motor is active
+   */
+  setDriveEnabled(enabled: boolean): void;
+
+  /**
+   * Enable or disable free spin when exceeding target drive velocity.
+   * @param enabled - Whether free spin is allowed
+   */
+  setDriveFreeSpin(enabled: boolean): void;
 }

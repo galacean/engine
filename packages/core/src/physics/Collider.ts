@@ -360,7 +360,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
     const attachedActor = this._nativeActor;
     const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform);
-    this._syncShapePose(shape, body, scale, shape !== previousShape);
+    const replaced = shape !== previousShape;
+    this._syncShapePose(shape, body, scale, replaced);
     if (!attachedActor) {
       actor.addShape(shape);
       if (body) {
@@ -370,6 +371,12 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
       this._nativeActor = actor;
       this._attachedBody = body;
+    } else if (replaced) {
+      actor.replaceShape(previousShape!, shape);
+    }
+    if (replaced) {
+      this._native = shape;
+      previousShape?.destroy();
     }
     this._poseScale.copyFrom(scale);
   }
@@ -462,9 +469,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     const shape = this._syncGeometry(previous, scale);
     if (shape) {
-      if (!previous) {
-        this._native = this._initializeNativeShape(shape);
-      }
+      shape !== previous && this._initializeNativeShape(shape);
       this._nativeScale.copyFrom(scale);
       this._geometryDirty = false;
       this._attachedBody?._markMassDirty();
@@ -486,23 +491,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     !this._isSceneQuery && shape.setIsSceneQuery(false);
     shape.setCollisionLayer(this._collisionLayerIndex);
     return shape;
-  }
-
-  /**
-   * Replace the native shape, keeping its actor registration and trigger state when attached.
-   */
-  protected _replaceNativeShape(shape: IPhysicsShape | null): void {
-    const previous = this._native!;
-    const actor = this._nativeActor;
-    if (actor) {
-      if (!shape) {
-        this._detach();
-      } else {
-        actor.replaceShape(previous, shape);
-      }
-    }
-    this._native = shape;
-    previous?.destroy();
   }
 
   /**
