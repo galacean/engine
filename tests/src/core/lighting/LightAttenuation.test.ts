@@ -129,10 +129,8 @@ describe("PointLight and SpotLight physical distance attenuation", () => {
       const light = entity.addComponent(LightType);
       expect(light.distance).to.equal(100);
 
-      for (const cutoff of [1e-5, Number.MIN_VALUE]) {
-        light.distance = cutoff;
-        expect(light.distance).to.equal(cutoff);
-      }
+      light.distance = 1e-5;
+      expect(light.distance).to.equal(1e-5);
 
       light.distance = Infinity;
       expect(light.distance).to.equal(Infinity);

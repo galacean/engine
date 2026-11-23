@@ -32,11 +32,11 @@ export class PointLight extends Light {
    * @defaultValue `100`
    */
   get distance(): number {
-    return this._distance;
+    return this._distance || Infinity;
   }
 
   set distance(value: number) {
-    this._distance = Light._normalizeDistance(value);
+    this._distance = Light._encodeDistance(value);
   }
 
   /**
@@ -68,7 +68,7 @@ export class PointLight extends Light {
     data.position[positionStart + 1] = position.y;
     data.position[positionStart + 2] = position.z;
 
-    data.distance[distanceStart] = Light._encodeDistance(this._distance);
+    data.distance[distanceStart] = this._distance;
   }
 
   /**

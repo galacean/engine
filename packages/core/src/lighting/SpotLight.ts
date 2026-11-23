@@ -46,11 +46,11 @@ export class SpotLight extends Light {
    * @defaultValue `100`
    */
   get distance(): number {
-    return this._distance;
+    return this._distance || Infinity;
   }
 
   set distance(value: number) {
-    this._distance = Light._normalizeDistance(value);
+    this._distance = Light._encodeDistance(value);
   }
 
   /**
@@ -103,7 +103,7 @@ export class SpotLight extends Light {
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
 
-    data.distance[distanceStart] = Light._encodeDistance(this._distance);
+    data.distance[distanceStart] = this._distance;
     data.angleCos[angleCosStart] = Math.cos(this.angle);
     data.penumbraCos[penumbraCosStart] = Math.cos(this.angle + this.penumbra);
   }
