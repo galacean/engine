@@ -60,7 +60,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       preBody?._detachJoint(this);
       value?.entity._updateFlagManager.addListener(this._onConnectedTransformChanged);
       value?._attachJoint(this);
-      if (this._nativeJoint) preBody?._wakeNative();
+      this._nativeJoint && preBody?._wakeNative();
       this._connectedBody = value;
       this._syncActiveJoint();
     }
@@ -75,9 +75,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   set anchor(value: Vector3) {
     const anchor = this._bodyInfo.anchor;
-    if (value !== anchor) {
-      anchor.copyFrom(value);
-    }
+    value !== anchor && anchor.copyFrom(value);
   }
 
   /**
@@ -91,9 +89,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   set connectedAnchor(value: Vector3) {
     const anchor = this.connectedAnchor;
-    if (value !== anchor) {
-      anchor.copyFrom(value);
-    }
+    value !== anchor && anchor.copyFrom(value);
   }
 
   /**
@@ -290,7 +286,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       this._syncConnectedFrame();
     } else {
       const joint = (this._nativeJoint = this._createJoint(bodyActor));
-      if (connectedActor) joint.setConnectedCollider(connectedActor);
+      connectedActor && joint.setConnectedCollider(connectedActor);
       this._syncNative();
     }
   }
@@ -376,21 +372,17 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   @ignoreClone
   private _handleConnectedAnchorChanged(): void {
     this._connectedAnchorAuthored = true;
-    if (!this._automaticConnectedAnchor) this._updateActualAnchor(AnchorOwner.Connected);
+    !this._automaticConnectedAnchor && this._updateActualAnchor(AnchorOwner.Connected);
   }
 
   @ignoreClone
   private _onSelfTransformChanged(type: TransformModifyFlags): void {
-    if (type & TransformModifyFlags.WorldScale) {
-      this._updateActualAnchor(AnchorOwner.Self);
-    }
+    type & TransformModifyFlags.WorldScale && this._updateActualAnchor(AnchorOwner.Self);
   }
 
   @ignoreClone
   private _onConnectedTransformChanged(type: TransformModifyFlags): void {
-    if (type & TransformModifyFlags.WorldScale) {
-      this._updateActualAnchor(AnchorOwner.Connected);
-    }
+    type & TransformModifyFlags.WorldScale && this._updateActualAnchor(AnchorOwner.Connected);
   }
 
   private _updateRotation(): void {
@@ -433,7 +425,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   protected _wakeBodies(): void {
     this.entity.getComponent(Rigidbody)?._wakeNative();
     const body = this._connectedBody;
-    if (body && body.scene === this.scene) body._wakeNative();
+    body && body.scene === this.scene && body._wakeNative();
   }
 
   /** @internal Wake the other endpoint after the constraint enters or leaves simulation. */

@@ -70,9 +70,7 @@ export class HingeJoint extends Joint {
     if (value !== this.useLimits) {
       value ? (this._hingeFlags |= HingeJointFlag.LimitEnabled) : (this._hingeFlags &= ~HingeJointFlag.LimitEnabled);
       this._syncLimitsEnabled();
-      if (this._nativeJoint) {
-        this._wakeBodies();
-      }
+      this._nativeJoint && this._wakeBodies();
     }
   }
 
@@ -88,9 +86,7 @@ export class HingeJoint extends Joint {
     if (value !== this.useMotor) {
       value ? (this._hingeFlags |= HingeJointFlag.DriveEnabled) : (this._hingeFlags &= ~HingeJointFlag.DriveEnabled);
       this._syncMotorEnabled();
-      if (this._nativeJoint) {
-        this._wakeBodies();
-      }
+      this._nativeJoint && this._wakeBodies();
     }
   }
 
@@ -124,9 +120,7 @@ export class HingeJoint extends Joint {
 
       this._syncMotorEnabled();
       this._onMotorChanged();
-      if (!value && this._nativeJoint) {
-        this._wakeBodies();
-      }
+      !value && this._nativeJoint && this._wakeBodies();
     }
   }
 
@@ -146,9 +140,7 @@ export class HingeJoint extends Joint {
 
       this._syncLimitsEnabled();
       this._onLimitsChanged();
-      if (!value && this._nativeJoint) {
-        this._wakeBodies();
-      }
+      !value && this._nativeJoint && this._wakeBodies();
     }
   }
 
