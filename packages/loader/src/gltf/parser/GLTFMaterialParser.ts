@@ -189,12 +189,11 @@ export class GLTFMaterialParser extends GLTFParser {
 
     return AssetPromise.resolve(material).then((material) => {
       if (context._aborted) throw "canceled";
-      const isDefaultFallback = !material;
-      material ||= engine._basicResources._getBlinnPhongDefaultMaterial();
-      GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, material, materialInfo);
-      if (!isDefaultFallback) {
-        material._associationSuperResource(glTFResource);
+      if (!material) {
+        return engine._basicResources._getBlinnPhongDefaultMaterial();
       }
+      GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, material, materialInfo);
+      material._associationSuperResource(glTFResource);
       return material;
     });
   }
