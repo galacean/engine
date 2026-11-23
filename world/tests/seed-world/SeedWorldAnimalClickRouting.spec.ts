@@ -104,6 +104,35 @@ describe("world animal click routing", () => {
     expect(Math.hypot(...result)).toBeLessThanOrEqual(3);
   });
 
+  it("skips near-foot flight flee candidates so a shooed bird does not immediately land where it stood", () => {
+    const runtime = Object.assign(Object.create(PlanningAnimalRuntime.prototype), { interactions: {} });
+    const animal = { position: { x: 0, z: 0 }, direction: 0, medium: "ground", canOccupy: () => true };
+    const proposals = [{ x: 0, z: 0.1 }, { x: 0, z: 4 }, { x: 0, z: 20 }];
+    let index = 0;
+    const result = runtime.resolveTarget({ flightCandidate: () => proposals[index++], canTraverse: () => true }, animal, {
+      query: "flee", params: { medium: "air", arrivalMedium: "ground", scope: "world" }
+    }, { type: "shoo", source: [0, -10] }, () => 0.5, 0.5, 1, {});
+    expect(result).toEqual([0, 20]);
+  });
+
+  it("falls back to ground run when a startled bird without flyFirstOnShoo cannot take off", () => {
+    const library = new AnimalAssetLibrary({} as any, seedAnimalCatalog, seedAnimalRegistrations, "https://example.test/");
+    const profile = library.resolve({ typeId: "pigeon-01" }).profile;
+    const play = vi.fn((_clip: string) => 1);
+    const controller = new AnimalTaskController(profile, {
+      time: 0, wake() {}, schedule: () => () => {}, play,
+      resolveTarget: () => [8, 10],
+      canMoveTo: (_target, _speed, landing) => !landing,
+      moveTo: () => () => {}
+    }, () => 0);
+    expect(controller.notify({ type: "shoo", id: "click", source: [1, 0] })).toBe(true);
+    controller.tick();
+    expect(controller.inspect().branch).toBe("reaction:startle");
+    expect(controller.inspect().slot).toBe("run");
+    expect(play).toHaveBeenCalledOnce();
+    controller.dispose();
+  });
+
   it("shoos the first visible surface in reach from a free camera and respects occlusion and custom reach", () => {
     const actor = (z: number, visible = true) => ({
       animal: { visible, bounds: [[-1, 0, z], [1, 2, z + 2]], behavior: { notify: vi.fn(() => true) } }

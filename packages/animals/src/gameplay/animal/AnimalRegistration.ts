@@ -439,6 +439,32 @@ export function compileAnimalRegistration(
   const fleeFlight = (speedMultiplier: number) =>
     act("move", AnimalGait.Fly, { ...fleeParams(AnimalGait.Fly), speedMultiplier, arrivalMedium: landingMedium });
   const fleeSpeed = species.fleeSpeedMultiplier ?? 1;
+  const fleeNode = (gait: AnimalGait): BehaviorNode => {
+    if (gait !== AnimalGait.Fly || (!slots.run && !slots.swim)) return travel(gait, fleeParams(gait));
+    return {
+      type: "selector",
+      children: [
+        fleeFlight(fleeSpeed),
+        ...(fleeSpeed > 1 ? [fleeFlight(1)] : []),
+        ...(slots.run
+          ? [
+              sequence(
+                { type: "condition", name: AnimalCondition.InMedium, params: { medium: AnimalMedium.Ground } },
+                act("move", AnimalGait.Run, fleeParams(AnimalGait.Run))
+              )
+            ]
+          : []),
+        ...(slots.swim
+          ? [
+              sequence(
+                { type: "condition", name: AnimalCondition.InMedium, params: { medium: AnimalMedium.Water } },
+                act("move", AnimalGait.Swim, fleeParams(AnimalGait.Swim))
+              )
+            ]
+          : [])
+      ]
+    };
+  };
   const profile: AnimalTaskProfile = {
     defaultSkill: "idle",
     preferredMedium: preferredMedium === AnimalMedium.Air ? AnimalMedium.Ground : preferredMedium,
@@ -525,7 +551,7 @@ export function compileAnimalRegistration(
                       }
                     }
                   }),
-              node: travel(rule.gait, fleeParams(rule.gait))
+              node: fleeNode(rule.gait)
             }))
         }
       }

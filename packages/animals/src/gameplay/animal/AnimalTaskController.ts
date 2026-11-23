@@ -664,6 +664,7 @@ export class AnimalTaskController {
     const flying = params.medium === "air";
     const targetQuery = this.query(params, owner)?.query;
     const groundEscape = !flying && targetQuery === "flee" && params.urgent === true;
+    const flightEscape = flying && targetQuery === "flee" && params.urgent === true;
     const threat = groundEscape && owner && "source" in owner ? owner.source : undefined;
     const position = this.host.position;
     const distanceFromThreat =
@@ -703,7 +704,7 @@ export class AnimalTaskController {
         const retained = landing ? ([landing[0], landing[1]] as const) : undefined;
         if (retained && (yield* canReach(retained))) return [retained[0], retained[1]];
         let fallback: readonly [number, number] | null = null;
-        for (let attempt = 0; attempt < (arrivalMedium ? 12 : 8); attempt++) {
+        for (let attempt = 0; attempt < (flightEscape ? 4 : arrivalMedium ? 12 : 8); attempt++) {
           yield;
           const query = controller.query(params, owner);
           const freeWander = query?.query === "wander" && params.medium !== "air";
@@ -796,7 +797,9 @@ export class AnimalTaskController {
         if (this.host.plan) wake();
       };
       const highPriority =
-        (groundEscape && !movementStarted && escapeRetryDelay <= 0.25) || (flying && params.resumeLanding === true);
+        (groundEscape && !movementStarted && escapeRetryDelay <= 0.25) ||
+        (flightEscape && !movementStarted) ||
+        (flying && params.resumeLanding === true);
       if (this.host.plan) cancelSearch = this.host.plan(task, done, highPriority);
       else done(finishAnimalPlanningTask(task));
     };
@@ -1042,8 +1045,23 @@ export class AnimalTaskController {
           finish(true);
           return status;
         }
+        // An airborne bird interrupted by a new flight task (e.g. shoo) keeps flying
+        // while the replacement route plans asynchronously. Chain its active flight clip
+        // if it reaches the end before planning finishes so playback never stalls mid-air.
+        if (flying && this.medium === "air" && this.host.onAnimationEnd) {
+          const keepAirborneCycle = () => {
+            if (!active || !initializing) return;
+            const gait = this.choose(requestedSlot);
+            if (!gait) return;
+            const poseSpeed = gait.speed ?? this.profile.movementSpeeds[this.slot];
+            const duration = this.play(gait, poseSpeed * paceMultiplier, paceMultiplier, params.urgent === true);
+            if (active && initializing) cancelCycle = this.animationEnd(duration, keepAirborneCycle);
+          };
+          cancelCycle = this.host.onAnimationEnd(keepAirborneCycle);
+        }
         resolveMovementTarget((resolved) => {
           initializing = false;
+          cancelCycle();
           if (!resolved && !groundEscape && !(flying && params.resumeLanding && this.medium === "air")) {
             active = false;
             status = "failure";

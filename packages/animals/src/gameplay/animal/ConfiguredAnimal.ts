@@ -243,6 +243,7 @@ export class ConfiguredAnimal implements AnimalAgent {
   private readonly groundRecovery = new GroundAnimalRecovery();
   private readonly groundPrediction: GroundAnimalMotion = { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 };
   private readonly groundCheckpoint = { ...this.groundPrediction };
+  private blockedFlightProbe?: GroundAnimalMotion;
   private readonly airSteering = { maxAngularSpeed: 0.8, turnSpeedRatio: 0.65, arrivalRadius: 0.3, continuous: false };
   private readonly groundSteering = {
     maxAngularSpeed: 0.3,
@@ -452,7 +453,7 @@ export class ConfiguredAnimal implements AnimalAgent {
             if (
               query.params?.medium === "air" &&
               (landing === "ground" || landing === "water") &&
-              (query.query === "wander" || query.query === "flee") &&
+              query.query === "wander" &&
               this.canLandBelow(landing)
             )
               return [this.motion.x, this.motion.z];
@@ -1086,9 +1087,12 @@ export class ConfiguredAnimal implements AnimalAgent {
       intent.finish = finish;
       // A clip handoff transfers the callback, not the ownership of pending CPU work.
       if (intent.started) {
-        // Recovery may select the same destination after a failed world check.
-        // Admit that new preview; retaining the goal alone cannot clear invalidation.
-        if (this.route?.invalidated && !intent.cancelPlan) this.planMovement(intent);
+        // Recovery may select the same destination after a failed world check or a
+        // cleared flight route (e.g. continueFlight). Revalidate instead of flying
+        // blind straight through static obstacles without an admitted route.
+        const needsRoute =
+          Boolean(this.route?.invalidated) || (Boolean(this.options.ground?.staticRouteQuery) && !this.route);
+        if (needsRoute && !intent.cancelPlan) this.planMovement(intent, intent.medium === "air");
         else this.startMovement(intent);
       }
     }
@@ -1118,8 +1122,10 @@ export class ConfiguredAnimal implements AnimalAgent {
       if (this.movementIntent !== intent) return;
       intent.cancelPlan = undefined;
       if (valid) {
-        if (intent.started) this.acceptPreparedRoute();
-        else this.startMovement(intent, true);
+        if (intent.started) {
+          this.acceptPreparedRoute();
+          this.updateCrowdIntent();
+        } else this.startMovement(intent, true);
       } else if (revalidate && intent.medium === "air") {
         this.flightNeedsReplan = true;
         this.nextFlightReplanRequest = 0;
@@ -1155,7 +1161,10 @@ export class ConfiguredAnimal implements AnimalAgent {
     if (changedTarget) this.groundRecovery.reset();
     if (this.flightNeedsReplan && changedTarget) this.flightReplans++;
     // A pending world check may retain steering, but cannot acknowledge a safe approach.
-    if (!this.route?.invalidated) {
+    // When static routing is active, only an admitted obstacle-free route may clear
+    // continuation steering; checkFlightPath alone does not check intermediate solids.
+    const routeReady = !this.options.ground?.staticRouteQuery || Boolean(this.route && !this.route.invalidated);
+    if (routeReady) {
       if (this.continuationTarget && arrivalMedium && this.checkFlightPath(target, speed, arrivalMedium)) {
         this.continuationTarget = undefined;
         this.airSteering.continuous = false;
@@ -1327,6 +1336,25 @@ export class ConfiguredAnimal implements AnimalAgent {
     intent?: AnimalMovementIntent
   ): AnimalPlanningTask<boolean | NonNullable<ConfiguredAnimal["route"]>> {
     if (!this.canOccupy(target[0], target[1], arrivalMedium ?? medium)) return false;
+    if (
+      medium === "air" &&
+      arrivalMedium &&
+      Math.hypot(target[0] - this.motion.x, target[1] - this.motion.z) <= this.airSteering.arrivalRadius &&
+      this.canLandBelow(arrivalMedium)
+    ) {
+      return {
+        points: [[target[0], target[1]]],
+        cursor: 0,
+        passRadius: this.airSteering.arrivalRadius,
+        speed: nominalSpeed,
+        medium,
+        scale: this.scale,
+        multiplier: this.speedMultiplier,
+        arrivalMedium,
+        preparedAt: this.system.time,
+        from: { ...this.motion, y: this.position.y }
+      };
+    }
     const ground = this.options.ground;
     if (!ground?.staticRouteQuery) return true;
     const matches = (route: ConfiguredAnimal["route"]) =>
@@ -1363,7 +1391,10 @@ export class ConfiguredAnimal implements AnimalAgent {
     const omega = Math.min(steering.maxAngularSpeed, speed / (length * 1.25));
     const passRadius = Math.max(0.2, speed / Math.max(0.05, omega));
     const radius = this.baseRadius * this.scale;
-    const physicalQuery = ground.staticRouteQuery(radius + 0.05, medium);
+    let physicalQuery = ground.staticRouteQuery(radius + 0.05, medium);
+    let relaxedRadius = false;
+    let startInflatedRejected = false;
+    let searchedFrom: AnimalRoutePoint = [this.motion.x, this.motion.z];
     const flightBounds = medium === "air" ? ground.flightBounds : undefined;
     let traffic: ReturnType<GroundAnimalCrowd["acquireRouteQuery"]> | undefined;
     const refreshTraffic = () => {
@@ -1394,6 +1425,8 @@ export class ConfiguredAnimal implements AnimalAgent {
             ? physicalQuery.canTraverse(fromPt, toPt)
             : physicalQuery.canTraverse(fromPt, toPt, clearance);
       }
+      if (!supported && !relaxedRadius && ax === bx && az === bz && ax === searchedFrom[0] && az === searchedFrom[1])
+        startInflatedRejected = true;
       return (
         supported &&
         (!traffic ||
@@ -1415,16 +1448,27 @@ export class ConfiguredAnimal implements AnimalAgent {
       }
     };
     let points: AnimalRoutePoint[] | undefined;
-    let searchedFrom: AnimalRoutePoint = [this.motion.x, this.motion.z];
     try {
       refreshTraffic();
       let queryTime = this.system.time;
       while (!this.disposed) {
         if (!points) {
           searchedFrom = [this.motion.x, this.motion.z];
+          startInflatedRejected = false;
           points = yield* createAnimalStaticRouteTask(searchedFrom, target, query, passRadius * 2 + speed);
           this.system.synchronizeMotion?.(this);
           if (!points) {
+            if (!relaxedRadius && startInflatedRejected) {
+              // Keep the 5cm route buffer whenever the start cell satisfies it. If an animal
+              // sits within 5cm of a bank, slope or solid, retry once with its true body radius
+              // so escape and wander planning are not permanently trapped at the start cell.
+              physicalQuery = ground.staticRouteQuery(radius, medium);
+              relaxedRadius = true;
+              startInflatedRejected = false;
+              refreshTraffic();
+              queryTime = this.system.time;
+              continue;
+            }
             // A failed search depends on position, not heading or residual velocity.
             if (searchedFrom[0] === this.motion.x && searchedFrom[1] === this.motion.z) return false;
             refreshTraffic();
@@ -2049,12 +2093,22 @@ export class ConfiguredAnimal implements AnimalAgent {
         ));
     const previous = this.continuationTarget;
     const target = (this.continuationTarget ??= [...this.destination]);
+    const alignedWithTarget =
+      previous !== undefined &&
+      Math.abs(
+        Math.atan2(
+          Math.sin(Math.atan2(target[0] - this.motion.x, target[1] - this.motion.z) - this.motion.heading),
+          Math.cos(Math.atan2(target[0] - this.motion.x, target[1] - this.motion.z) - this.motion.heading)
+        )
+      ) < 0.2;
     if (
       boundaryHeading !== undefined ||
       !previous ||
-      Math.hypot(target[0] - this.motion.x, target[1] - this.motion.z) < cruise
+      Math.hypot(target[0] - this.motion.x, target[1] - this.motion.z) < cruise ||
+      (this.surfaceBlocked && alignedWithTarget)
     ) {
-      const angle = boundaryHeading ?? this.motion.heading + (this.surfaceBlocked ? Math.PI / 2 : 0);
+      const angle =
+        boundaryHeading ?? (this.surfaceBlocked ? this.pickBlockedFlightHeading(cruise) : this.motion.heading);
       target[0] = this.motion.x + Math.sin(angle) * distance;
       target[1] = this.motion.z + Math.cos(angle) * distance;
     }
@@ -2065,6 +2119,33 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.nextFlightProbe = this.system.time + 0.25;
       this.system.requestWake(this);
     }
+  }
+
+  /** Pick a clear escape heading when airborne translation hits an interior obstacle. */
+  private pickBlockedFlightHeading(cruise: number): number {
+    const probeStep = Math.max(0.5, Math.min(2, cruise * 0.35));
+    const probe = (this.blockedFlightProbe ??= { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 });
+    const offsets = [
+      Math.PI / 3,
+      -Math.PI / 3,
+      Math.PI / 2,
+      -Math.PI / 2,
+      (Math.PI * 2) / 3,
+      -(Math.PI * 2) / 3,
+      (Math.PI * 5) / 6,
+      -(Math.PI * 5) / 6,
+      Math.PI
+    ];
+    for (let i = 0; i < offsets.length; i++) {
+      const candidate = this.motion.heading + offsets[i];
+      probe.x = this.motion.x + Math.sin(candidate) * probeStep;
+      probe.z = this.motion.z + Math.cos(candidate) * probeStep;
+      probe.heading = candidate;
+      probe.speed = cruise;
+      probe.angularSpeed = 0;
+      if (this.canTranslate(probe, this.motion)) return candidate;
+    }
+    return this.motion.heading + Math.PI / 2;
   }
 
   /** At a hard edge horizontal travel may be zero. A flapping bird can still
@@ -2135,6 +2216,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     )
       return false;
     const y = surface - (medium === "water" ? (this.config.waterline ?? 0) * this.scale : 0);
+    if (this.position.y <= y + 0.25) return false;
     return ground.canTraverseAir(
       this.position,
       { x, z, y },

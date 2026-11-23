@@ -1222,13 +1222,20 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       // Bounded landing proposals, not a full-map/path scan. ConfiguredAnimal validates
       // the executable departure arc and keeps probing ahead while the flight advances.
       const source = query.query === AnimalQuery.Flee ? event?.source : undefined;
+      const minDistance = Math.max(
+        2,
+        Math.min(home ? home.radius * 0.75 : Infinity, query.query === AnimalQuery.Flee ? 12 : 4)
+      );
+      const minDistanceSq = minDistance * minDistance;
       for (let attempt = 0; attempt < 32; attempt++) {
         const candidate = home
           ? sampleAnimalSpawnDisk(home, home.radius, random)
           : habitat.flightCandidate(arrivalMedium, random);
         if (!candidate || !canArrive(candidate.x, candidate.z)) continue;
-        if (source && (candidate.x - from.x) * (from.x - source[0]) + (candidate.z - from.z) * (from.z - source[1]) < 0)
-          continue;
+        const dx = candidate.x - from.x,
+          dz = candidate.z - from.z;
+        if (dx * dx + dz * dz < minDistanceSq) continue;
+        if (source && dx * (from.x - source[0]) + dz * (from.z - source[1]) < 0) continue;
         return [candidate.x, candidate.z];
       }
       return null;
