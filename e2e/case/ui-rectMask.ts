@@ -3,7 +3,7 @@
  * @category UI
  */
 import { Camera, Color, Sprite, Texture2D, TextureFormat, WebGLEngine } from "@galacean/engine";
-import { CanvasRenderMode, Image, RectMask2D, Text, UICanvas, UITransform } from "../../packages/ui/dist/module.js";
+import { CanvasRenderMode, Image, RectMask2D, Text, UICanvas, UITransform } from "@galacean/engine-ui";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -21,7 +21,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const uiCanvas = canvasEntity.addComponent(UICanvas);
   uiCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
   uiCanvas.camera = camera;
-  uiCanvas.referenceResolutionPerUnit = 1;
   uiCanvas.referenceResolution.set(1200, 800);
 
   const solidSprite = createSolidSprite(engine);

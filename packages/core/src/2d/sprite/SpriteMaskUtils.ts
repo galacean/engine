@@ -1,18 +1,58 @@
-import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
-import { Texture2D, TextureFormat } from "../../texture";
+import { Matrix, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { Sprite } from "./Sprite";
 
 /**
- * Internal helpers for sprite mask hit testing.
+ * Internal helpers for sprite mask rectangular hit testing.
  * @internal
  */
 export class SpriteMaskUtils {
-  private static _tempMat: Matrix = new Matrix();
   private static _tempVec3: Vector3 = new Vector3();
-  private static _u8Buffer4 = new Uint8Array(4);
-  private static _u16Buffer1 = new Uint16Array(1);
-  private static _f32Buffer4 = new Float32Array(4);
-  private static _u32Buffer4 = new Uint32Array(4);
+
+  static containsRay(
+    ray: Ray,
+    sprite: Sprite | null,
+    worldMatrix: Matrix,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean,
+    flipY: boolean
+  ): boolean {
+    if (!sprite || !width || !height) {
+      return false;
+    }
+
+    const e = worldMatrix.elements;
+    const ux = e[0],
+      uy = e[1],
+      uz = e[2];
+    const vx = e[4],
+      vy = e[5],
+      vz = e[6];
+    const nx = uy * vz - uz * vy;
+    const ny = uz * vx - ux * vz;
+    const nz = ux * vy - uy * vx;
+    const det = nx * nx + ny * ny + nz * nz;
+    if (!(det > 0)) {
+      return false;
+    }
+
+    const dir = ray.direction;
+    const denom = dir.x * nx + dir.y * ny + dir.z * nz;
+    if (denom === 0) {
+      return false;
+    }
+
+    const origin = ray.origin;
+    const t = ((e[12] - origin.x) * nx + (e[13] - origin.y) * ny + (e[14] - origin.z) * nz) / denom;
+    if (t < 0) {
+      return false;
+    }
+
+    const hitPoint = SpriteMaskUtils._tempVec3;
+    hitPoint.set(origin.x + dir.x * t, origin.y + dir.y * t, origin.z + dir.z * t);
+    return SpriteMaskUtils._containsProjectedPoint(hitPoint, e, det, sprite, width, height, pivot, flipX, flipY);
+  }
 
   static containsWorldPoint(
     worldPoint: Vector3,
@@ -22,17 +62,57 @@ export class SpriteMaskUtils {
     height: number,
     pivot: Vector2,
     flipX: boolean,
-    flipY: boolean,
-    alphaCutoff: number = 0
+    flipY: boolean
   ): boolean {
     if (!sprite || !width || !height) {
       return false;
     }
 
-    const worldMatrixInv = SpriteMaskUtils._tempMat;
-    Matrix.invert(worldMatrix, worldMatrixInv);
-    const localPosition = SpriteMaskUtils._tempVec3;
-    Vector3.transformCoordinate(worldPoint, worldMatrixInv, localPosition);
+    const e = worldMatrix.elements;
+    const ux = e[0],
+      uy = e[1],
+      uz = e[2];
+    const vx = e[4],
+      vy = e[5],
+      vz = e[6];
+    const nx = uy * vz - uz * vy;
+    const ny = uz * vx - ux * vz;
+    const nz = ux * vy - uy * vx;
+    const det = nx * nx + ny * ny + nz * nz;
+    if (!(det > 0)) {
+      return false;
+    }
+
+    return SpriteMaskUtils._containsProjectedPoint(worldPoint, e, det, sprite, width, height, pivot, flipX, flipY);
+  }
+
+  private static _containsProjectedPoint(
+    worldPoint: Vector3,
+    e: Float32Array,
+    det: number,
+    sprite: Sprite,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean,
+    flipY: boolean
+  ): boolean {
+    const ux = e[0],
+      uy = e[1],
+      uz = e[2];
+    const vx = e[4],
+      vy = e[5],
+      vz = e[6];
+    const dx = worldPoint.x - e[12];
+    const dy = worldPoint.y - e[13];
+    const dz = worldPoint.z - e[14];
+    const a = ux * ux + uy * uy + uz * uz;
+    const b = ux * vx + uy * vy + uz * vz;
+    const c = vx * vx + vy * vy + vz * vz;
+    const du = dx * ux + dy * uy + dz * uz;
+    const dv = dx * vx + dy * vy + dz * vz;
+    const localX = (c * du - b * dv) / det;
+    const localY = (a * dv - b * du) / det;
 
     const sx = flipX ? -width : width;
     const sy = flipY ? -height : height;
@@ -40,78 +120,11 @@ export class SpriteMaskUtils {
       return false;
     }
 
-    const spriteX = localPosition.x / sx + pivot.x;
-    const spriteY = localPosition.y / sy + pivot.y;
+    const spriteX = localX / sx + pivot.x;
+    const spriteY = localY / sy + pivot.y;
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
-    if (!(spriteX >= left && spriteX <= right && spriteY >= bottom && spriteY <= top)) {
-      return false;
-    }
-
-    if (alphaCutoff <= 0) {
-      return true;
-    }
-
-    const texture = sprite.texture;
-    if (!texture) {
-      return false;
-    }
-
-    const spriteUVs = sprite._getUVs();
-    const leftU = spriteUVs[0].x;
-    const bottomV = spriteUVs[0].y;
-    const rightU = spriteUVs[3].x;
-    const topV = spriteUVs[3].y;
-    const positionWidth = right - left;
-    const positionHeight = top - bottom;
-    if (!positionWidth || !positionHeight) {
-      return false;
-    }
-
-    const tx = (spriteX - left) / positionWidth;
-    const ty = (spriteY - bottom) / positionHeight;
-    const u = leftU + (rightU - leftU) * tx;
-    const v = bottomV + (topV - bottomV) * ty;
-    const x = Math.min(Math.max(Math.floor(u * texture.width), 0), texture.width - 1);
-    const y = Math.min(Math.max(Math.floor(v * texture.height), 0), texture.height - 1);
-    return SpriteMaskUtils._sampleTextureAlpha(texture, x, y) >= alphaCutoff;
-  }
-
-  private static _sampleTextureAlpha(texture: Texture2D, x: number, y: number): number {
-    try {
-      switch (texture.format) {
-        case TextureFormat.R8G8B8A8_UNorm: {
-          const buffer = SpriteMaskUtils._u8Buffer4;
-          texture.getPixelBuffer(x, y, 1, 1, buffer);
-          return buffer[3] / 255;
-        }
-        case TextureFormat.R4G4B4A4_UNorm: {
-          const buffer = SpriteMaskUtils._u16Buffer1;
-          texture.getPixelBuffer(x, y, 1, 1, buffer);
-          return (buffer[0] & 0xf) / 15;
-        }
-        case TextureFormat.R5G5B5A1_UNorm: {
-          const buffer = SpriteMaskUtils._u16Buffer1;
-          texture.getPixelBuffer(x, y, 1, 1, buffer);
-          return buffer[0] & 0x1;
-        }
-        case TextureFormat.R16G16B16A16_SFloat:
-        case TextureFormat.R32G32B32A32_SFloat: {
-          const buffer = SpriteMaskUtils._f32Buffer4;
-          texture.getPixelBuffer(x, y, 1, 1, buffer);
-          return buffer[3];
-        }
-        case TextureFormat.R32G32B32A32_UInt: {
-          const buffer = SpriteMaskUtils._u32Buffer4;
-          texture.getPixelBuffer(x, y, 1, 1, buffer);
-          return buffer[3] / 4294967295;
-        }
-        default:
-          return 1;
-      }
-    } catch {
-      return 1;
-    }
+    return spriteX >= left && spriteX <= right && spriteY >= bottom && spriteY <= top;
   }
 }

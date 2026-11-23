@@ -4,11 +4,13 @@ import {
   DependentMode,
   Entity,
   EntityModifyFlags,
+  Logger,
   Matrix,
   Plane,
   Ray,
   Renderer,
   RendererUpdateFlags,
+  ShaderMacro,
   ShaderMacroCollection,
   ShaderProperty,
   SpriteMaskInteraction,
@@ -42,7 +44,11 @@ export class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   static _rectClipRectProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipRect");
   /** @internal */
-  static _rectClipEnabledProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipEnabled");
+  static _rectClipAxisXProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipAxisX");
+  /** @internal */
+  static _rectClipAxisYProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipAxisY");
+  /** @internal */
+  static _rectClipMacro: ShaderMacro = ShaderMacro.getByName("RENDERER_ENABLE_UI_RECT_CLIP");
   /** @internal */
   static _tempRect: Vector4 = new Vector4();
 
@@ -88,10 +94,18 @@ export class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   @ignoreClone
   _rectMaskEnabled: boolean = false;
-  /** @internal World-space rectangles excluded through stencil. */
+  /** @internal Root canvas local XY rectangles excluded through stencil. */
   @ignoreClone
   override _uiMaskOutsideRects: Vector4[] = [];
+  /** @internal */
+  @ignoreClone
+  override _uiMaskAxisX: Vector4 = new Vector4(1, 0, 0, 0);
+  /** @internal */
+  @ignoreClone
+  override _uiMaskAxisY: Vector4 = new Vector4(0, 1, 0, 0);
 
+  @ignoreClone
+  private _isMaskOverflow: boolean = false;
   private _raycastEnabled: boolean = true;
   protected _color: Color = new Color(1, 1, 1, 1);
 
@@ -145,7 +159,6 @@ export class UIRenderer extends Renderer implements IGraphics {
     this._color._onValueChanged = this._onColorChanged;
     this._groupListener = this._groupListener.bind(this);
     this._rootCanvasListener = this._rootCanvasListener.bind(this);
-    this.shaderData.setFloat(UIRenderer._rectClipEnabledProperty, 0);
   }
 
   /**
@@ -180,6 +193,9 @@ export class UIRenderer extends Renderer implements IGraphics {
     }
 
     this._updateRectMaskClipState();
+    if (this._isMaskOverflow) {
+      return;
+    }
     this._render(context);
 
     // union camera global macro and renderer macro.
@@ -310,21 +326,43 @@ export class UIRenderer extends Renderer implements IGraphics {
    */
   _raycast(ray: Ray, out: UIHitResult, distance: number): boolean {
     this._updateRectMaskClipState();
-    const plane = UIRenderer._tempPlane;
+    if (this._isMaskOverflow) {
+      return false;
+    }
     const transform = <UITransform>this._transformEntity!.transform;
+    const e = transform.worldMatrix.elements;
+    const ux = e[0],
+      uy = e[1],
+      uz = e[2];
+    const vx = e[4],
+      vy = e[5],
+      vz = e[6];
+    const nx = uy * vz - uz * vy;
+    const ny = uz * vx - ux * vz;
+    const nz = ux * vy - uy * vx;
+    const det = nx * nx + ny * ny + nz * nz;
+    if (!(det > 0)) {
+      return false;
+    }
+    const plane = UIRenderer._tempPlane;
     const normal = plane.normal.copyFrom(transform.worldForward);
     plane.distance = -Vector3.dot(normal, transform.worldPosition);
     const curDistance = ray.intersectPlane(plane);
     if (curDistance >= 0 && curDistance < distance) {
       const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
-      const worldMatrixInv = UIRenderer._tempMat;
-      Matrix.invert(transform.worldMatrix, worldMatrixInv);
-      const localPosition = UIRenderer._tempVec31;
-      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, localPosition);
+      const dx = hitPointWorld.x - e[12];
+      const dy = hitPointWorld.y - e[13];
+      const dz = hitPointWorld.z - e[14];
+      const a = ux * ux + uy * uy + uz * uz;
+      const b = ux * vx + uy * vy + uz * vz;
+      const c = vx * vx + vy * vy + vz * vz;
+      const du = dx * ux + dy * uy + dz * uz;
+      const dv = dx * vx + dy * vy + dz * vz;
+      const localPosition = UIRenderer._tempVec31.set((c * du - b * dv) / det, (a * dv - b * du) / det, 0);
       if (
         this._hitTest(localPosition) &&
         this._isRaycastVisibleByRectMask(hitPointWorld) &&
-        this._isRaycastVisibleByMask(hitPointWorld)
+        this._isRaycastVisibleByMask(ray)
       ) {
         out.component = this;
         out.distance = curDistance;
@@ -351,7 +389,7 @@ export class UIRenderer extends Renderer implements IGraphics {
     );
   }
 
-  private _isRaycastVisibleByMask(hitPointWorld: Vector3): boolean {
+  private _isRaycastVisibleByMask(ray: Ray): boolean {
     const maskInteraction = this._maskInteraction;
     if (maskInteraction === SpriteMaskInteraction.None) {
       return true;
@@ -360,7 +398,7 @@ export class UIRenderer extends Renderer implements IGraphics {
     if (masks.length === 0) return true;
     let inside = true;
     for (let i = 0; i < masks.length; i++) {
-      if (!masks[i]._containsWorldPoint(hitPointWorld)) {
+      if (!masks[i]._containsRay(ray)) {
         inside = false;
         break;
       }
@@ -371,7 +409,13 @@ export class UIRenderer extends Renderer implements IGraphics {
   private _isRaycastVisibleByRectMask(hitPointWorld: Vector3): boolean {
     // _raycast rebuilds these constraints before testing, so picking and rendering consume
     // the same merged Inside rectangle and Outside rectangles, including mode/size changes.
-    const { x, y } = hitPointWorld;
+    if (!this._rectMaskEnabled && this._uiMaskOutsideRects.length === 0) {
+      return true;
+    }
+    const axisX = this._uiMaskAxisX;
+    const axisY = this._uiMaskAxisY;
+    const x = hitPointWorld.x * axisX.x + hitPointWorld.y * axisX.y + hitPointWorld.z * axisX.z + axisX.w;
+    const y = hitPointWorld.x * axisY.x + hitPointWorld.y * axisY.y + hitPointWorld.z * axisY.z + axisY.w;
     const inside = this._rectMaskRect;
     if (this._rectMaskEnabled && (x < inside.x || y < inside.y || x > inside.z || y > inside.w)) return false;
     for (const rect of this._uiMaskOutsideRects) {
@@ -380,7 +424,7 @@ export class UIRenderer extends Renderer implements IGraphics {
     return true;
   }
 
-  private _updateRectMaskClipState(): void {
+  protected _updateRectMaskClipState(): void {
     let minX = Number.NEGATIVE_INFINITY;
     let minY = Number.NEGATIVE_INFINITY;
     let maxX = Number.POSITIVE_INFINITY;
@@ -389,39 +433,65 @@ export class UIRenderer extends Renderer implements IGraphics {
     let outsideCount = 0;
     const rect = UIRenderer._tempRect;
     const outsideRects = this._uiMaskOutsideRects;
-    for (const mask of this._rectMasks) {
-      if (!mask.enabled || !mask.entity.isActiveInHierarchy) continue;
-      const valid = mask._getWorldRect(rect) && rect.x < rect.z && rect.y < rect.w;
-      if (mask.mode === RectMaskMode.Outside) {
-        // Empty holes impose no constraint and require no stencil draw.
-        if (valid) {
-          (outsideRects[outsideCount] ||= new Vector4()).copyFrom(rect);
-          outsideCount++;
-        }
+    const axisX = this._uiMaskAxisX;
+    const axisY = this._uiMaskAxisY;
+    const rectMasks = this._rectMasks;
+    if (rectMasks.length > 0) {
+      const rootCanvas = this._getRootCanvas();
+      let hasCanvasSpace: boolean;
+      if (rootCanvas) {
+        hasCanvasSpace = rootCanvas._getWorldToLocalXY(axisX, axisY);
       } else {
-        insideEnabled = true;
-        if (!valid) rect.set(1, 1, 0, 0);
-        minX = Math.max(minX, rect.x);
-        minY = Math.max(minY, rect.y);
-        maxX = Math.min(maxX, rect.z);
-        maxY = Math.min(maxY, rect.w);
+        axisX.set(1, 0, 0, 0);
+        axisY.set(0, 1, 0, 0);
+        hasCanvasSpace = true;
+      }
+      for (const mask of rectMasks) {
+        if (!mask.enabled || !mask.entity.isActiveInHierarchy) continue;
+        const valid = hasCanvasSpace && mask._getCanvasRect(axisX, axisY, rect) && rect.x < rect.z && rect.y < rect.w;
+        if (mask.mode === RectMaskMode.Outside) {
+          // Empty holes impose no constraint and require no stencil draw.
+          if (valid) {
+            (outsideRects[outsideCount] ||= new Vector4()).copyFrom(rect);
+            outsideCount++;
+          }
+        } else {
+          insideEnabled = true;
+          if (!valid) rect.set(1, 1, 0, 0);
+          minX = Math.max(minX, rect.x);
+          minY = Math.max(minY, rect.y);
+          maxX = Math.min(maxX, rect.z);
+          maxY = Math.min(maxY, rect.w);
+        }
       }
     }
     outsideRects.length = outsideCount;
     const spriteCount = this._maskInteraction === SpriteMaskInteraction.None ? 0 : this._uiMasks.length;
     if (spriteCount + outsideCount > 8) {
-      throw new Error(
+      Logger.warn(
         "UI masks support at most 8 stencil ancestors (Mask and nonempty RectMask2D Outside). RectMask2D Inside does not use stencil."
       );
+      outsideRects.length = 0;
+      this._rectMaskEnabled = false;
+      this._isMaskOverflow = true;
+      this.shaderData.disableMacro(UIRenderer._rectClipMacro);
+      return;
     }
+    this._isMaskOverflow = false;
     if (!insideEnabled || minX >= maxX || minY >= maxY) {
       minX = minY = 1;
       maxX = maxY = 0;
     }
     this._rectMaskRect.set(minX, minY, maxX, maxY);
     this._rectMaskEnabled = insideEnabled;
-    this.shaderData.setVector4(UIRenderer._rectClipRectProperty, this._rectMaskRect);
-    this.shaderData.setFloat(UIRenderer._rectClipEnabledProperty, insideEnabled ? 1 : 0);
+    if (insideEnabled) {
+      this.shaderData.enableMacro(UIRenderer._rectClipMacro);
+      this.shaderData.setVector4(UIRenderer._rectClipRectProperty, this._rectMaskRect);
+      this.shaderData.setVector4(UIRenderer._rectClipAxisXProperty, axisX);
+      this.shaderData.setVector4(UIRenderer._rectClipAxisYProperty, axisY);
+    } else {
+      this.shaderData.disableMacro(UIRenderer._rectClipMacro);
+    }
   }
 
   protected override _onDestroy(): void {

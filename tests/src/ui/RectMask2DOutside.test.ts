@@ -1,10 +1,12 @@
 import {
   Camera,
   DepthTextureMode,
+  Logger,
   Material,
   MeshRenderer,
   PrimitiveMesh,
   Shader,
+  ShaderMacro,
   UnlitMaterial,
   Entity,
   Script,
@@ -29,7 +31,7 @@ import {
   UITransform
 } from "@galacean/engine-ui";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 class ClickCounter extends Script {
   count = 0;
@@ -276,17 +278,47 @@ describe("RectMask2D Outside", () => {
     expectVisible(f, b, 108, 64, true);
   });
 
-  it("rejects the ninth stencil ancestor and recovers when it is disabled", async () => {
+  it("warns and skips the ninth stencil ancestor without corrupting overlay state, then recovers when disabled", async () => {
+    const f = await createFixture();
+    const warnSpy = vi.spyOn(Logger, "warn").mockImplementation(() => {});
+    try {
+      let parent = f.ui;
+      for (let i = 0; i < 8; i++) parent = addRect(parent, outside, 40).entity;
+      const ninth = parent.createChild("ninth").addComponent(Mask);
+      ninth.sprite = f.sprite;
+      (ninth.entity.transform as UITransform).size.set(100, 100);
+      const image = addImage(f, ninth.entity);
+
+      expect(() => render(f)).not.toThrow();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("at most 8 stencil ancestors"));
+      expectVisible(f, image, 32, 64, false);
+      expectVisible(f, image, 64, 64, false);
+      // Overlay pass must finish cleanly without leaking macro or camera state.
+      expect(f.engine._macroCollection.isEnable(ShaderMacro.getByName("ENGINE_SHOULD_SRGB_CORRECT"))).toBe(false);
+      // @ts-ignore
+      expect(f.engine._renderContext.camera).toBeNull();
+
+      ninth.enabled = false;
+      expectVisible(f, image, 32, 64, true);
+      expectVisible(f, image, 64, 64, false);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it("does not enforce receiver stencil limits on Mask writers when descendants ignore image masks", async () => {
     const f = await createFixture();
     let parent = f.ui;
-    for (let i = 0; i < 8; i++) parent = addRect(parent, outside, 40).entity;
-    const ninth = parent.createChild("ninth").addComponent(Mask);
-    ninth.sprite = f.sprite;
-    (ninth.entity.transform as UITransform).size.set(100, 100);
-    const image = addImage(f, ninth.entity);
-    expect(() => render(f)).toThrow("at most 8 stencil ancestors");
-    ninth.enabled = false;
-    expectVisible(f, image, 32, 64, true);
+    for (let i = 0; i < 8; i++) parent = addRect(parent, outside, 20).entity;
+    const maskA = parent.createChild("maskA").addComponent(Mask);
+    maskA.sprite = f.sprite;
+    (maskA.entity.transform as UITransform).size.set(100, 100);
+    const maskB = maskA.entity.createChild("maskB").addComponent(Mask);
+    maskB.sprite = f.sprite;
+    (maskB.entity.transform as UITransform).size.set(100, 100);
+    const image = addImage(f, maskB.entity);
+    image.maskInteraction = SpriteMaskInteraction.None;
+    expectVisible(f, image, 20, 64, true);
     expectVisible(f, image, 64, 64, false);
   });
 
@@ -300,30 +332,41 @@ describe("RectMask2D Outside", () => {
   });
 
   for (const spriteShape of [false, true]) {
-    it(`requires stencil on camera targets (sprite=${spriteShape})`, async () => {
+    it(`warns and skips when camera target lacks stencil, then recovers (sprite=${spriteShape})`, async () => {
       const f = await createFixture(CanvasRenderMode.ScreenSpaceCamera);
-      const camera = f.ui.parent!.findByName("camera")!.getComponent(Camera)!;
-      const color = new Texture2D(f.engine, 128, 128, TextureFormat.R8G8B8A8_UNorm, false);
-      camera.renderTarget = new RenderTarget(f.engine, 128, 128, color);
-      let parent: Entity;
-      if (spriteShape) {
-        const mask = f.ui.createChild("shape").addComponent(Mask);
-        mask.sprite = f.sprite;
-        (mask.entity.transform as UITransform).size.set(40, 100);
-        parent = mask.entity;
-      } else {
-        parent = addRect(f.ui, outside, 40).entity;
+      const warnSpy = vi.spyOn(Logger, "warn").mockImplementation(() => {});
+      try {
+        const camera = f.ui.parent!.findByName("camera")!.getComponent(Camera)!;
+        const color = new Texture2D(f.engine, 128, 128, TextureFormat.R8G8B8A8_UNorm, false);
+        camera.renderTarget = new RenderTarget(f.engine, 128, 128, color);
+        let parent: Entity;
+        if (spriteShape) {
+          const mask = f.ui.createChild("shape").addComponent(Mask);
+          mask.sprite = f.sprite;
+          (mask.entity.transform as UITransform).size.set(40, 100);
+          parent = mask.entity;
+        } else {
+          parent = addRect(f.ui, outside, 40).entity;
+        }
+        addImage(f, parent);
+        expect(() => render(f)).not.toThrow();
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("stencil attachment"));
+        const center = new Uint8Array(4),
+          exterior = new Uint8Array(4);
+        color.getPixelBuffer(64, 64, 1, 1, 0, center);
+        color.getPixelBuffer(24, 64, 1, 1, 0, exterior);
+        expect(center[0]).toBe(0);
+        expect(exterior[0]).toBe(0);
+
+        camera.renderTarget = new RenderTarget(f.engine, 128, 128, color, TextureFormat.DepthStencil);
+        render(f);
+        color.getPixelBuffer(64, 64, 1, 1, 0, center);
+        color.getPixelBuffer(24, 64, 1, 1, 0, exterior);
+        expect(center[0] > 220).toBe(spriteShape);
+        expect(exterior[0] > 220).toBe(!spriteShape);
+      } finally {
+        warnSpy.mockRestore();
       }
-      addImage(f, parent);
-      expect(() => render(f)).toThrow("stencil attachment");
-      camera.renderTarget = new RenderTarget(f.engine, 128, 128, color, TextureFormat.DepthStencil);
-      render(f);
-      const center = new Uint8Array(4),
-        exterior = new Uint8Array(4);
-      color.getPixelBuffer(64, 64, 1, 1, 0, center);
-      color.getPixelBuffer(24, 64, 1, 1, 0, exterior);
-      expect(center[0] > 220).toBe(spriteShape);
-      expect(exterior[0] > 220).toBe(!spriteShape);
     });
   }
 
@@ -343,15 +386,23 @@ describe("RectMask2D Outside", () => {
     expect(exterior[0]).toBe(0);
   });
 
-  it("reports a missing screen stencil attachment while Inside remains usable", async () => {
+  it("warns and skips when screen stencil attachment is missing while Inside remains usable", async () => {
     const f = await createFixture(CanvasRenderMode.ScreenSpaceCamera, false);
-    const mask = addRect(f.ui, inside, 40);
-    const image = addImage(f, mask.entity);
-    expectVisible(f, image, 64, 64, true);
-    mask.mode = outside;
-    for (let i = 0; i < 3; i++) expect(() => render(f)).toThrow("stencil attachment");
-    mask.mode = inside;
-    expectVisible(f, image, 64, 64, true);
+    const warnSpy = vi.spyOn(Logger, "warn").mockImplementation(() => {});
+    try {
+      const mask = addRect(f.ui, inside, 40);
+      const image = addImage(f, mask.entity);
+      expectVisible(f, image, 64, 64, true);
+      mask.mode = outside;
+      for (let i = 0; i < 3; i++) expect(() => render(f)).not.toThrow();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("stencil attachment"));
+      expect(pixel(f, 64, 64)[0]).toBe(0);
+      expect(pixel(f, 24, 64)[0]).toBe(0);
+      mask.mode = inside;
+      expectVisible(f, image, 64, 64, true);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it("draws the complement of image-mask intersections only once per pixel", async () => {
@@ -408,6 +459,84 @@ describe("RectMask2D Outside", () => {
     expectVisible(f, image, 20, 64, true);
     expectVisible(f, image, 108, 64, true);
     expectVisible(f, image, 4, 64, false);
+  });
+
+  for (const [label, rx, ry, rz] of [
+    ["yaw=-90", 0, -90, 0],
+    ["pitch=-30,yaw=-90", -30, -90, 0],
+    ["roll=45", 0, 0, 45]
+  ] as const) {
+    it(`clips Inside and Outside in root canvas local XY for rotated ScreenSpaceCamera (${label})`, async () => {
+      const f = await createFixture(CanvasRenderMode.ScreenSpaceCamera);
+      const camera = f.ui.parent!.findByName("camera")!.getComponent(Camera)!;
+      camera.entity.transform.setPosition(12, -8, 25);
+      camera.entity.transform.setRotation(rx, ry, rz);
+
+      // Outer Inside covers canvas local x=-50..50 (screen x=14..114);
+      // Inner Outside covers canvas local x=-20..20 (screen x=44..84).
+      const outer = addRect(f.ui, inside, 100);
+      const hole = addRect(outer.entity, outside, 40);
+      const image = addImage(f, hole.entity);
+
+      expectVisible(f, image, 64, 64, false);
+      expectVisible(f, image, 28, 64, true);
+      expectVisible(f, image, 100, 64, true);
+      expectVisible(f, image, 6, 64, false);
+      expectVisible(f, image, 122, 64, false);
+    });
+  }
+
+  it("clips Inside and Outside in root canvas local XY for 3D-rotated WorldSpace canvas", async () => {
+    const f = await createFixture(CanvasRenderMode.WorldSpace);
+    const camera = f.ui.parent!.findByName("camera")!.getComponent(Camera)!;
+    camera.entity.transform.setPosition(10, 5, -3);
+    camera.entity.transform.setRotation(0, -90, 0);
+    f.ui.transform.setPosition(20, 5, -3);
+    f.ui.transform.setRotation(0, -90, 0);
+
+    const outer = addRect(f.ui, inside, 100);
+    const hole = addRect(outer.entity, outside, 40);
+    const image = addImage(f, hole.entity);
+
+    expectVisible(f, image, 64, 64, false);
+    expectVisible(f, image, 28, 64, true);
+    expectVisible(f, image, 100, 64, true);
+    expectVisible(f, image, 6, 64, false);
+    expectVisible(f, image, 122, 64, false);
+  });
+
+  it("clips UI Text with RectMask2D Inside under rotated ScreenSpaceCamera", async () => {
+    const f = await createFixture(CanvasRenderMode.ScreenSpaceCamera);
+    f.ui.getComponent(UICanvas)!.referenceResolutionPerUnit = 100;
+    const camera = f.ui.parent!.findByName("camera")!.getComponent(Camera)!;
+    camera.entity.transform.setRotation(0, -90, 0);
+
+    // Mask covers the right half (canvas local x=0..64, screen x=64..128).
+    const mask = addRect(f.ui, inside, 64, 32);
+    const textEntity = mask.entity.createChild("text");
+    (textEntity.transform as UITransform).size.set(120, 100);
+    textEntity.transform.setPosition(-32, 0, 0);
+    const text = textEntity.addComponent(Text);
+    text.text = "MMMM";
+    text.fontSize = 40;
+    text.color.set(1, 0, 0, 1);
+
+    render(f);
+    const pixels = new Uint8Array(128 * 128 * 4);
+    const gl = getGL(f);
+    gl.readPixels(0, 0, 128, 128, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    let leftLit = 0;
+    let rightLit = 0;
+    for (let y = 0; y < 128; y++) {
+      for (let x = 0; x < 62; x++) {
+        if (pixels[(y * 128 + x) * 4] > 0) leftLit++;
+      }
+      for (let x = 66; x < 128; x++) {
+        if (pixels[(y * 128 + x) * 4] > 100) rightLit++;
+      }
+    }
+    expect(leftLit).toBe(0);
+    expect(rightLit).toBeGreaterThan(10);
   });
 
   it("keeps coplanar graphics with the same holes batchable", async () => {

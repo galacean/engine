@@ -45,16 +45,13 @@ export class DepthOnlyPass extends PipelinePass {
     rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
 
     engine._renderCount++;
-    try {
-      cullingResults.opaqueQueue.render(context, PipelineStage.DepthOnly);
-      cullingResults.alphaTestQueue.render(context, PipelineStage.DepthOnly);
-    } finally {
-      // The following Forward pass uses a different stencil attachment.
-      if (cullingResults.depthNeedsUIStencil) {
-        camera.scene!._maskManager.clearUIMasks(context);
-        // Mask writer programs are shared with Forward, whose projection can have a different Y flip.
-        engine._renderCount++;
-      }
+    cullingResults.opaqueQueue.render(context, PipelineStage.DepthOnly);
+    cullingResults.alphaTestQueue.render(context, PipelineStage.DepthOnly);
+    // The following Forward pass uses a different stencil attachment.
+    if (cullingResults.depthNeedsUIStencil) {
+      camera.scene!._maskManager.clearUIMasks(context);
+      // Mask writer programs are shared with Forward, whose projection can have a different Y flip.
+      engine._renderCount++;
     }
 
     camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this.renderTarget!.depthTexture);

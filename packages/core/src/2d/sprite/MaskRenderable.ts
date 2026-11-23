@@ -1,4 +1,4 @@
-import { BoundingBox, Vector2, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Ray, Vector2, Vector3 } from "@galacean/engine-math";
 import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
@@ -19,6 +19,7 @@ export interface IMaskRenderable {
   sprite: Sprite | null;
   alphaCutoff: number;
   _renderElement: RenderElement;
+  _containsRay(ray: Ray): boolean;
   _containsWorldPoint(worldPoint: Vector3): boolean;
   _initMask(): void;
   _cloneMaskData(target: IMaskRenderable): void;
@@ -136,6 +137,25 @@ export function MaskRenderable<T extends RendererConstructor>(
     /**
      * @internal
      */
+    _containsRay(ray: Ray): boolean {
+      if (!this._sprite?.texture || !this.getMaterial()) {
+        return false;
+      }
+      return SpriteMaskUtils.containsRay(
+        ray,
+        this._sprite,
+        this._transformEntity!.transform.worldMatrix,
+        this._getSpriteWidth(),
+        this._getSpriteHeight(),
+        this._getSpritePivot(),
+        this._flipX,
+        this._flipY
+      );
+    }
+
+    /**
+     * @internal
+     */
     _containsWorldPoint(worldPoint: Vector3): boolean {
       if (!this._sprite?.texture || !this.getMaterial()) {
         return false;
@@ -148,8 +168,7 @@ export function MaskRenderable<T extends RendererConstructor>(
         this._getSpriteHeight(),
         this._getSpritePivot(),
         this._flipX,
-        this._flipY,
-        this._alphaCutoff
+        this._flipY
       );
     }
 

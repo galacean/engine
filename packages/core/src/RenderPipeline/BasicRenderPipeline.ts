@@ -199,18 +199,15 @@ export class BasicRenderPipeline {
       this._saoPass.release();
     }
 
-    try {
-      this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
-    } finally {
-      // Release per-frame leases even when a draw rejects an unsupported target configuration.
-      if (this._internalColorTarget) {
-        pool.freeRenderTarget(this._internalColorTarget);
-        this._internalColorTarget = null;
-      }
-      if (this._copyBackgroundTexture) {
-        pool.freeTexture(this._copyBackgroundTexture);
-        this._copyBackgroundTexture = null;
-      }
+    this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
+
+    if (this._internalColorTarget) {
+      pool.freeRenderTarget(this._internalColorTarget);
+      this._internalColorTarget = null;
+    }
+    if (this._copyBackgroundTexture) {
+      pool.freeTexture(this._copyBackgroundTexture);
+      this._copyBackgroundTexture = null;
     }
   }
 

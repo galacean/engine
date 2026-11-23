@@ -119,6 +119,9 @@ export class RenderQueue {
             const uiMasks = component._uiMasks;
             if (component._usesUIStencil) {
               uiReadStates = maskManager.drawUIMasks(context, pipelineStageTagValue, curElement);
+              if (!uiReadStates) {
+                break;
+              }
             } else if (uiMasks === null && needMaskInteraction) {
               maskManager.drawMask(context, pipelineStageTagValue, component._maskLayer);
               customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);

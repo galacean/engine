@@ -1,5 +1,6 @@
 import { Vector4 } from "@galacean/engine-math";
 import { BasicResources, RenderStateElementMap } from "../BasicResources";
+import { Logger } from "../base/Logger";
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { RenderElement } from "./RenderElement";
 import { IMaskRenderable } from "../2d/sprite/MaskRenderable";
@@ -32,6 +33,11 @@ export class MaskManager {
   private static _stencilFailOperationBackProp = ShaderProperty.getByName("stencilFailOperationBack");
   private static _stencilZFailOperationFrontProp = ShaderProperty.getByName("stencilZFailOperationFront");
   private static _stencilZFailOperationBackProp = ShaderProperty.getByName("stencilZFailOperationBack");
+  private static _maskRectProp = ShaderProperty.getByName("renderElement_MaskRect");
+  private static _maskAxisXProp = ShaderProperty.getByName("renderElement_MaskAxisX");
+  private static _maskAxisYProp = ShaderProperty.getByName("renderElement_MaskAxisY");
+  private static _defaultMaskAxisX = new Vector4(1, 0, 0, 0);
+  private static _defaultMaskAxisY = new Vector4(0, 1, 0, 0);
 
   private static _maskIncrementRenderQueue: RenderQueue;
   private static _maskDecrementRenderQueue: RenderQueue;
@@ -55,7 +61,9 @@ export class MaskManager {
   private _rectMaskData = new ShaderData(ShaderDataGroup.RenderElement);
 
   constructor() {
-    this._rectMaskData.setVector4("renderElement_MaskRect", new Vector4());
+    this._rectMaskData.setVector4(MaskManager._maskRectProp, new Vector4());
+    this._rectMaskData.setVector4(MaskManager._maskAxisXProp, MaskManager._defaultMaskAxisX);
+    this._rectMaskData.setVector4(MaskManager._maskAxisYProp, MaskManager._defaultMaskAxisY);
   }
 
   addSpriteMask(mask: SpriteMask): void {
@@ -74,18 +82,22 @@ export class MaskManager {
    * ancestor allows the pixel. Inside rectangles remain a separate shader discard fast path.
    * UI owns these bits; arbitrary custom stencil materials must not share them during UI draws.
    */
-  drawUIMasks(context: RenderContext, stage: string, receiver: RenderElement): readonly RenderStateElementMap[] {
+  drawUIMasks(context: RenderContext, stage: string, receiver: RenderElement): readonly RenderStateElementMap[] | null {
     const { component } = receiver;
     const interaction = component._maskInteraction;
     const masks = interaction === SpriteMaskInteraction.None ? null : component._uiMasks;
     const spriteCount = masks?.length ?? 0;
     const rects = component._uiMaskOutsideRects;
     const rectCount = rects?.length ?? 0;
-    if (spriteCount + rectCount > 8) throw new Error("UI masks support at most 8 stencil ancestors.");
+    if (spriteCount + rectCount > 8) {
+      Logger.warn("UI masks support at most 8 stencil ancestors.");
+      return null;
+    }
     if (!context.hasStencil) {
-      throw new Error(
+      Logger.warn(
         "UI stencil masks require a render target with a stencil attachment (for example TextureFormat.DepthStencil)."
       );
+      return null;
     }
     if (this._preMaskLayer !== SpriteMaskLayer.Nothing) this.clearMask(context, stage);
 
@@ -110,7 +122,7 @@ export class MaskManager {
       if (mask._renderMask(0)) {
         queue.pushRenderElement(mask._renderElement);
         queue.batch(batcher);
-        batcher.uploadBuffer();
+        batcher.primitiveChunkManagerMask.uploadBuffer();
         queue.render(
           context,
           PipelineStage.Forward,
@@ -135,9 +147,17 @@ export class MaskManager {
         this._rectMaskData
       );
       element.subShader = material.shader.subShaders[0];
+      this._rectMaskData.setVector4(
+        MaskManager._maskAxisXProp,
+        component._uiMaskAxisX ?? MaskManager._defaultMaskAxisX
+      );
+      this._rectMaskData.setVector4(
+        MaskManager._maskAxisYProp,
+        component._uiMaskAxisY ?? MaskManager._defaultMaskAxisY
+      );
       queue.batchedElements.push(element);
       for (let i = 0; i < rectCount; i++) {
-        this._rectMaskData.setVector4("renderElement_MaskRect", rects![i]);
+        this._rectMaskData.setVector4(MaskManager._maskRectProp, rects![i]);
         queue.render(
           context,
           PipelineStage.Forward,
@@ -193,11 +213,11 @@ export class MaskManager {
 
     const batcherManager = context.camera.engine._batcherManager;
     incrementMaskQueue.batch(batcherManager);
-    batcherManager.uploadBuffer();
+    batcherManager.primitiveChunkManagerMask.uploadBuffer();
     incrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Increment);
     incrementMaskQueue.clear();
     decrementMaskQueue.batch(batcherManager);
-    batcherManager.uploadBuffer();
+    batcherManager.primitiveChunkManagerMask.uploadBuffer();
     decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
     decrementMaskQueue.clear();
   }
@@ -218,7 +238,7 @@ export class MaskManager {
 
         const batcherManager = context.camera.engine._batcherManager;
         decrementMaskQueue.batch(batcherManager);
-        batcherManager.uploadBuffer();
+        batcherManager.primitiveChunkManagerMask.uploadBuffer();
         decrementMaskQueue.render(context, pipelineStageTagValue, RenderQueueMaskType.Decrement);
         decrementMaskQueue.clear();
       } else {

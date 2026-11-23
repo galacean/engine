@@ -39,6 +39,18 @@ export class VertexMergeBatcher {
       const b = rendererBAny._rectMaskRect;
       if (a.x !== b.x || a.y !== b.y || a.z !== b.z || a.w !== b.w) return false;
     }
+    if (holesA?.length || rendererAAny._rectMaskEnabled) {
+      const axA = preRenderer._uiMaskAxisX;
+      const axB = renderer._uiMaskAxisX;
+      if (axA !== axB) {
+        if (!axA || !axB || axA.x !== axB.x || axA.y !== axB.y || axA.z !== axB.z || axA.w !== axB.w) return false;
+      }
+      const ayA = preRenderer._uiMaskAxisY;
+      const ayB = renderer._uiMaskAxisY;
+      if (ayA !== ayB) {
+        if (!ayA || !ayB || ayA.x !== ayB.x || ayA.y !== ayB.y || ayA.z !== ayB.z || ayA.w !== ayB.w) return false;
+      }
+    }
 
     // Order: cheap reference checks → mask state → tag lookup (rare opt-out)
     return (

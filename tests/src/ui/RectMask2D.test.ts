@@ -5,6 +5,7 @@ import {
   RenderTarget,
   Script,
   Sprite,
+  TextRenderer,
   Texture2D,
   TextureFormat
 } from "@galacean/engine-core";
@@ -194,7 +195,8 @@ describe("RectMask2D", () => {
 
     renderFramesToTarget(fixture);
 
-    const expectedRect = intersectWorldRects(parentMask, childMask);
+    const canvas = fixture.canvasEntity.getComponent(UICanvas)!;
+    const expectedRect = intersectCanvasRects(canvas, parentMask, childMask);
     assertRectMaskState(image, expectedRect);
     assertRectMaskState(text, expectedRect);
   });
@@ -213,14 +215,14 @@ describe("RectMask2D", () => {
     image.sprite = createSolidSprite(fixture.engine);
 
     renderFrames(fixture.engine);
-    const worldRect = new Vector4();
-    rectMask._getWorldRect(worldRect);
-    assertRectMaskState(image, [worldRect.x, worldRect.y, worldRect.z, worldRect.w]);
+    const canvas = fixture.canvasEntity.getComponent(UICanvas)!;
+    const canvasRect = getCanvasRect(canvas, rectMask);
+    assertRectMaskState(image, [canvasRect.x, canvasRect.y, canvasRect.z, canvasRect.w]);
 
     rectMask.enabled = false;
     renderFrames(fixture.engine);
 
-    expect(image.shaderData.getFloat(getRectClipEnabledProperty())).toBe(0);
+    expect(image.shaderData.getMacros()).not.toContain(getRectClipMacro());
   });
 
   it("should keep translated child image visible after rect mask clipping", async () => {
@@ -274,6 +276,85 @@ describe("RectMask2D", () => {
     expect(outsideViewport[0]).toBeLessThan(20);
     expect(outsideViewport[1]).toBeLessThan(20);
     expect(outsideViewport[2]).toBeLessThan(20);
+  });
+
+  it("should not leak UI Text rect clipping to 2D TextRenderer", async () => {
+    const fixture = await createUIFixture({ width: 128, height: 128 });
+    fixture.camera.entity.transform.setPosition(0, 0, 10);
+    fixture.camera.isOrthographic = true;
+    fixture.camera.orthographicSize = 5;
+
+    const rootCanvas = fixture.canvasEntity.getComponent(UICanvas)!;
+    rootCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    rootCanvas.camera = fixture.camera;
+    rootCanvas.referenceResolutionPerUnit = 100;
+    rootCanvas.sortOrder = -1;
+
+    const text2DEntity = fixture.root.createChild("text2d");
+    const text2D = text2DEntity.addComponent(TextRenderer);
+    text2D.text = "MMMM";
+    text2D.fontSize = 120;
+    text2D.color.set(1, 0, 0, 1);
+    text2D.priority = 1;
+
+    const rectMaskEntity = fixture.canvasEntity.createChild("rectMask");
+    (rectMaskEntity.transform as UITransform).size.set(20, 20);
+    rectMaskEntity.transform.setPosition(46, 46, 0);
+    rectMaskEntity.addComponent(RectMask2D);
+
+    const uiTextEntity = rectMaskEntity.createChild("uiText");
+    (uiTextEntity.transform as UITransform).size.set(40, 40);
+    const uiText = uiTextEntity.addComponent(Text);
+    uiText.text = "HI";
+    uiText.fontSize = 20;
+    uiText.color.set(0, 0, 1, 1);
+
+    const countRed = (): number => {
+      const pixels = new Uint8Array(128 * 128 * 4);
+      // @ts-ignore
+      const gl = fixture.engine._hardwareRenderer._gl;
+      gl.readPixels(0, 0, 128, 128, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      let count = 0;
+      for (let y = 16; y < 112; y++) {
+        for (let x = 16; x < 112; x++) {
+          const idx = (y * 128 + x) * 4;
+          if (pixels[idx] > 100 && pixels[idx + 2] < 50) count++;
+        }
+      }
+      return count;
+    };
+
+    renderFrames(fixture.engine, 2);
+    expect(countRed()).toBeGreaterThan(100);
+
+    text2D.priority = -1;
+    rootCanvas.sortOrder = 1;
+    renderFrames(fixture.engine, 2);
+    expect(countRed()).toBeGreaterThan(100);
+  });
+
+  it("should apply multiple RectMask2D on the same entity and clear static temp list after walk", async () => {
+    const fixture = await createUIFixture({ width: 128, height: 128 });
+    const maskEntity = fixture.canvasEntity.createChild("multiMask");
+    (maskEntity.transform as UITransform).size.set(60, 60);
+    const insideMask = maskEntity.addComponent(RectMask2D);
+    insideMask.mode = RectMaskMode.Inside;
+    const outsideMask = maskEntity.addComponent(RectMask2D);
+    outsideMask.mode = RectMaskMode.Outside;
+
+    const imageEntity = maskEntity.createChild("image");
+    (imageEntity.transform as UITransform).size.set(128, 128);
+    const image = imageEntity.addComponent(Image);
+    image.sprite = createSolidSprite(fixture.engine);
+    image.color.set(1, 0, 0, 1);
+
+    renderFrames(fixture.engine, 2);
+    expect(sampleWorldPixel(fixture, 64, 64)[0]).toBeLessThan(20);
+    expect(sampleWorldPixel(fixture, 20, 64)[0]).toBeLessThan(20);
+
+    fixture.canvasEntity.destroy();
+    // @ts-ignore
+    expect(UICanvas._tempRectMaskList.length).toBe(0);
   });
 });
 
@@ -418,7 +499,7 @@ function sampleTexturePixel(
 }
 
 function assertRectMaskState(renderer: UIRenderer, expectedRect: [number, number, number, number]): void {
-  expect(renderer.shaderData.getFloat(getRectClipEnabledProperty())).toBe(1);
+  expect(renderer.shaderData.getMacros()).toContain(getRectClipMacro());
   expectVector4Close(renderer.shaderData.getVector4(getRectClipRectProperty()), expectedRect);
 }
 
@@ -455,12 +536,21 @@ function getUIWorldRect(transform: UITransform): Vector4 {
   );
 }
 
-function intersectWorldRects(maskA: RectMask2D, maskB: RectMask2D): [number, number, number, number] {
-  const rectA = new Vector4();
-  const rectB = new Vector4();
-  maskA._getWorldRect(rectA);
-  maskB._getWorldRect(rectB);
-  const rect = intersectRects(rectA, rectB);
+function getCanvasRect(canvas: UICanvas, mask: RectMask2D): Vector4 {
+  const axisX = new Vector4();
+  const axisY = new Vector4();
+  const rect = new Vector4();
+  canvas._getWorldToLocalXY(axisX, axisY);
+  mask._getCanvasRect(axisX, axisY, rect);
+  return rect;
+}
+
+function intersectCanvasRects(
+  canvas: UICanvas,
+  maskA: RectMask2D,
+  maskB: RectMask2D
+): [number, number, number, number] {
+  const rect = intersectRects(getCanvasRect(canvas, maskA), getCanvasRect(canvas, maskB));
   return [rect.x, rect.y, rect.z, rect.w];
 }
 
@@ -473,9 +563,9 @@ function intersectRects(rectA: Vector4, rectB: Vector4): Vector4 {
   );
 }
 
-function getRectClipEnabledProperty() {
+function getRectClipMacro() {
   // @ts-ignore
-  return UIRenderer._rectClipEnabledProperty;
+  return UIRenderer._rectClipMacro;
 }
 
 function getRectClipRectProperty() {

@@ -15,6 +15,7 @@ import {
   RenderElement,
   Vector2,
   Vector3,
+  Vector4,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
@@ -288,6 +289,43 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
 
   /**
    * @internal
+   * Compute affine rows mapping world XYZ into this canvas's local XY plane.
+   */
+  _getWorldToLocalXY(outAxisX: Vector4, outAxisY: Vector4): boolean {
+    const e = this.entity.transform.worldMatrix.elements;
+    const ux = e[0],
+      uy = e[1],
+      uz = e[2];
+    const vx = e[4],
+      vy = e[5],
+      vz = e[6];
+    const nx = uy * vz - uz * vy;
+    const ny = uz * vx - ux * vz;
+    const nz = ux * vy - uy * vx;
+    const det = nx * nx + ny * ny + nz * nz;
+    if (!(det > 0)) {
+      return false;
+    }
+    const invDet = 1 / det;
+    const a = ux * ux + uy * uy + uz * uz;
+    const b = ux * vx + uy * vy + uz * vz;
+    const c = vx * vx + vy * vy + vz * vz;
+    const ox = e[12],
+      oy = e[13],
+      oz = e[14];
+    const rxx = (c * ux - b * vx) * invDet;
+    const rxy = (c * uy - b * vy) * invDet;
+    const rxz = (c * uz - b * vz) * invDet;
+    const ryx = (a * vx - b * ux) * invDet;
+    const ryy = (a * vy - b * uy) * invDet;
+    const ryz = (a * vz - b * uz) * invDet;
+    outAxisX.set(rxx, rxy, rxz, -(ox * rxx + oy * rxy + oz * rxz));
+    outAxisY.set(ryx, ryy, ryz, -(ox * ryx + oy * ryy + oz * ryz));
+    return true;
+  }
+
+  /**
+   * @internal
    */
   _canRender(camera: Camera): boolean {
     return this._realRenderMode !== CanvasRenderMode.ScreenSpaceCamera || this._camera === camera;
@@ -437,6 +475,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
       UICanvas._tempRectMaskList.length = 0;
       renderers.length = this._walk(this.entity, renderers, 0, null, 0);
       UICanvas._tempMaskList.length = 0;
+      UICanvas._tempRectMaskList.length = 0;
       UICanvas._tempGroupAbleList.length = 0;
       this._hierarchyVersion = uiHierarchyVersion;
       ++UICanvas._hierarchyCounter;
@@ -530,7 +569,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const components: Component[] = entity._components;
     const tempGroupAbleList = UICanvas._tempGroupAbleList;
     const tempRectMaskList = UICanvas._tempRectMaskList;
-    let rectMask: RectMask2D | null = null;
+    let localRectMaskCount = 0;
     const masks = UICanvas._tempMaskList;
     let localMaskCount = 0;
     let groupAbleCount = 0;
@@ -556,7 +595,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
           tempGroupAbleList[groupAbleCount++] = component;
         }
       } else if (component instanceof RectMask2D) {
-        rectMask = component;
+        tempRectMaskList[rectMaskCount + localRectMaskCount++] = component;
       } else if (component instanceof UIGroup) {
         component._isRootCanvasDirty && Utils.setRootCanvas(component, this);
         component._isGroupDirty && Utils.setGroup(component, group);
@@ -566,13 +605,18 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     for (let i = 0; i < groupAbleCount; i++) {
       Utils.setGroup(tempGroupAbleList[i], group);
     }
-    if (rectMask) {
-      tempRectMaskList[rectMaskCount++] = rectMask;
-    }
     const children = entity.children;
     for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
-      child.isActive && (depth = this._walk(child, renderers, depth, group, rectMaskCount, maskCount + localMaskCount));
+      child.isActive &&
+        (depth = this._walk(
+          child,
+          renderers,
+          depth,
+          group,
+          rectMaskCount + localRectMaskCount,
+          maskCount + localMaskCount
+        ));
     }
     return depth;
   }

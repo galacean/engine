@@ -5,17 +5,20 @@ Shader "2D/UIRectMask" {
       VertexShader = vert;
       FragmentShader = frag;
       struct Attributes { vec3 POSITION; };
-      struct Varyings { vec2 worldPosition; };
+      struct Varyings { vec2 clipPosition; };
       mat4 renderer_MVPMat;
       vec4 renderElement_MaskRect;
+      vec4 renderElement_MaskAxisX;
+      vec4 renderElement_MaskAxisY;
       Varyings vert(Attributes attr) {
         Varyings v;
-        gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0);
-        v.worldPosition = attr.POSITION.xy;
+        vec4 p = vec4(attr.POSITION, 1.0);
+        gl_Position = renderer_MVPMat * p;
+        v.clipPosition = vec2(dot(p, renderElement_MaskAxisX), dot(p, renderElement_MaskAxisY));
         return v;
       }
       void frag(Varyings v) {
-        vec4 distance = vec4(v.worldPosition - renderElement_MaskRect.xy, renderElement_MaskRect.zw - v.worldPosition);
+        vec4 distance = vec4(v.clipPosition - renderElement_MaskRect.xy, renderElement_MaskRect.zw - v.clipPosition);
         if (min(min(distance.x, distance.y), min(distance.z, distance.w)) < 0.0) discard;
         gl_FragColor = vec4(0.0);
       }

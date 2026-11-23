@@ -200,7 +200,7 @@ describe("UI Mask hierarchy", () => {
     expectVisible(f, image, 32, 64, true);
   });
 
-  it("matches alpha cutoff and flipping in rendering and picking", async () => {
+  it("applies alpha cutoff and flipping in rendering while picking uses mask rect without readPixels", async () => {
     const f = await createFixture();
     const mask = addMask(f, f.ui, 80, 80);
     const texture = new Texture2D(f.engine, 2, 1);
@@ -208,14 +208,38 @@ describe("UI Mask hierarchy", () => {
     texture.setPixelBuffer(new Uint8Array([255, 255, 255, 0, 255, 255, 255, 128]));
     mask.sprite = new Sprite(f.engine, texture);
     const image = addImage(f, mask.entity, 120, 100);
+
     mask.alphaCutoff = 0.25;
-    expectVisible(f, image, 40, 64, false);
-    expectVisible(f, image, 88, 64, true);
+    render(f);
+    expect(pixel(f, 40, 64)[0]).toBeLessThan(20);
+    expect(pixel(f, 88, 64)[0]).toBeGreaterThan(220);
+
     mask.flipX = true;
-    expectVisible(f, image, 40, 64, true);
-    expectVisible(f, image, 88, 64, false);
+    render(f);
+    expect(pixel(f, 40, 64)[0]).toBeGreaterThan(220);
+    expect(pixel(f, 88, 64)[0]).toBeLessThan(20);
+
     mask.alphaCutoff = 0.75;
-    expectVisible(f, image, 40, 64, false);
+    render(f);
+    expect(pixel(f, 40, 64)[0]).toBeLessThan(20);
+
+    // Raycast filtering uses the mask's rectangular plane bounds without calling gl.readPixels.
+    // @ts-ignore
+    const gl = f.engine._hardwareRenderer._gl as WebGL2RenderingContext;
+    const origReadPixels = gl.readPixels.bind(gl);
+    let readPixelsCalls = 0;
+    gl.readPixels = ((...args: any[]) => {
+      readPixelsCalls++;
+      return (origReadPixels as any)(...args);
+    }) as any;
+    try {
+      expectClick(f, image, 40, 64, true);
+      expectClick(f, image, 88, 64, true);
+      expectClick(f, image, 10, 64, false);
+    } finally {
+      gl.readPixels = origReadPixels;
+    }
+    expect(readPixelsCalls).toBe(0);
   });
 
   it("handles empty, missing and offscreen ancestor shapes without stale stencil", async () => {
@@ -349,6 +373,119 @@ describe("UI Mask hierarchy", () => {
     expectVisible(f, image, 116, 64, false);
     cloneEntity.destroy();
     expect(f.sprite.refCount).toBe(references);
+  });
+
+  it("handles singular mask transforms (scale.z=0 and scale.x=0) without reusing stale raycast state", async () => {
+    const f = await createFixture();
+    const leftMask = addMask(f, f.ui, 30, 80, -32);
+    const leftImage = addImage(f, leftMask.entity, 128, 100, 32);
+
+    const rightMask = addMask(f, f.ui, 30, 80, 32);
+    rightMask.entity.transform.setScale(1, 1, 0);
+    const rightImage = addImage(f, rightMask.entity, 128, 100, -32);
+
+    rightImage.enabled = false;
+    expectVisible(f, leftImage, 32, 64, true);
+
+    leftImage.enabled = false;
+    rightImage.enabled = true;
+    expectVisible(f, rightImage, 96, 64, true);
+    expectVisible(f, rightImage, 32, 64, false);
+
+    rightMask.entity.transform.setScale(0, 1, 1);
+    expectVisible(f, rightImage, 96, 64, false);
+    expectVisible(f, rightImage, 32, 64, false);
+  });
+
+  it("matches perspective rendering and raycast picking for non-coplanar masks", async () => {
+    const f = await createFixture(CanvasRenderMode.WorldSpace);
+    const camera = f.root.findByName("camera")!.getComponent(Camera)!;
+    camera.isOrthographic = false;
+    camera.fieldOfView = 90;
+    camera.farClipPlane = 512;
+    camera.entity.transform.setPosition(64, 64, 128);
+
+    const mask = addMask(f, f.ui, 40, 100);
+    const image = addImage(f, mask.entity, 128, 120);
+    image.entity.transform.setPosition(0, 0, 64);
+
+    // At x=48 the camera ray hits mask plane z=0 at world x=32 (outside 44..84),
+    // even though it hits image plane z=64 at world x=48.
+    expectVisible(f, image, 48, 64, false);
+    expectVisible(f, image, 64, 64, true);
+  });
+
+  it("uploads only the mask chunk index buffer when drawing nested UI Masks", async () => {
+    const f = await createFixture(CanvasRenderMode.ScreenSpaceCamera);
+    const spriteEntity = f.root.createChild("sprite2d");
+    const spriteRenderer = spriteEntity.addComponent(SpriteRenderer);
+    spriteRenderer.sprite = f.sprite;
+
+    let parent = f.ui;
+    for (let i = 0; i < 4; i++) {
+      parent = addMask(f, parent, 100, 100).entity;
+    }
+    addImage(f, parent, 100, 100);
+    render(f);
+
+    // @ts-ignore
+    const gl = f.engine._hardwareRenderer._gl as WebGL2RenderingContext;
+    // @ts-ignore
+    const bm = f.engine._batcherManager;
+    // @ts-ignore
+    const uiIB =
+      bm._primitiveChunkManagerUI.primitiveChunks[0].primitive.indexBufferBinding.buffer._platformBuffer._glBuffer;
+    // @ts-ignore
+    const d2IB =
+      bm._primitiveChunkManager2D.primitiveChunks[0].primitive.indexBufferBinding.buffer._platformBuffer._glBuffer;
+    // @ts-ignore
+    const maskIB =
+      bm._primitiveChunkManagerMask.primitiveChunks[0].primitive.indexBufferBinding.buffer._platformBuffer._glBuffer;
+
+    const origBufferData = gl.bufferData.bind(gl);
+    const origBufferSubData = gl.bufferSubData.bind(gl);
+    const counts = { uiDiscard: 0, uiBytes: 0, d2Discard: 0, d2Bytes: 0, maskDiscard: 0, maskBytes: 0 };
+
+    gl.bufferData = ((target: number, ...args: any[]) => {
+      if (target === gl.ELEMENT_ARRAY_BUFFER) {
+        const bound = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+        if (bound === uiIB) counts.uiDiscard++;
+        else if (bound === d2IB) counts.d2Discard++;
+        else if (bound === maskIB) counts.maskDiscard++;
+      }
+      return (origBufferData as any)(target, ...args);
+    }) as any;
+
+    gl.bufferSubData = ((
+      target: number,
+      offset: number,
+      data: ArrayBufferView,
+      srcOffset?: number,
+      length?: number
+    ) => {
+      if (target === gl.ELEMENT_ARRAY_BUFFER) {
+        const bound = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+        const bytes = length !== undefined ? length * (data as Uint16Array).BYTES_PER_ELEMENT : data.byteLength;
+        if (bound === uiIB) counts.uiBytes += bytes;
+        else if (bound === d2IB) counts.d2Bytes += bytes;
+        else if (bound === maskIB) counts.maskBytes += bytes;
+      }
+      return (origBufferSubData as any)(target, offset, data, srcOffset, length);
+    }) as any;
+
+    try {
+      render(f);
+    } finally {
+      gl.bufferData = origBufferData;
+      gl.bufferSubData = origBufferSubData;
+    }
+
+    expect(counts.uiDiscard).toBe(1);
+    expect(counts.uiBytes).toBe(12);
+    expect(counts.d2Discard).toBe(1);
+    expect(counts.d2Bytes).toBe(12);
+    expect(counts.maskDiscard).toBe(4);
+    expect(counts.maskBytes).toBe(48);
   });
 });
 

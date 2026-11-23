@@ -12,6 +12,8 @@ import { UITransform } from "../UITransform";
  */
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class RectMask2D extends Component {
+  private static _identityAxisX: Vector4 = new Vector4(1, 0, 0, 0);
+  private static _identityAxisY: Vector4 = new Vector4(0, 1, 0, 0);
   private static _tempRect: Vector4 = new Vector4();
   private static _tempCorner0: Vector3 = new Vector3();
   private static _tempCorner1: Vector3 = new Vector3();
@@ -24,7 +26,7 @@ export class RectMask2D extends Component {
   /**
    * @internal
    */
-  _getWorldRect(out: Vector4): boolean {
+  _getCanvasRect(axisX: Vector4, axisY: Vector4, out: Vector4): boolean {
     const transform = <UITransform>this.entity.transform;
     const { x: width, y: height } = transform.size;
     if (!width || !height) {
@@ -47,12 +49,25 @@ export class RectMask2D extends Component {
     Vector3.transformCoordinate(corner2.set(right, bottom, 0), worldMatrix, corner2);
     Vector3.transformCoordinate(corner3.set(right, top, 0), worldMatrix, corner3);
 
-    const minX = Math.min(corner0.x, corner1.x, corner2.x, corner3.x);
-    const minY = Math.min(corner0.y, corner1.y, corner2.y, corner3.y);
-    const maxX = Math.max(corner0.x, corner1.x, corner2.x, corner3.x);
-    const maxY = Math.max(corner0.y, corner1.y, corner2.y, corner3.y);
-    out.set(minX, minY, maxX, maxY);
+    const x0 = corner0.x * axisX.x + corner0.y * axisX.y + corner0.z * axisX.z + axisX.w;
+    const x1 = corner1.x * axisX.x + corner1.y * axisX.y + corner1.z * axisX.z + axisX.w;
+    const x2 = corner2.x * axisX.x + corner2.y * axisX.y + corner2.z * axisX.z + axisX.w;
+    const x3 = corner3.x * axisX.x + corner3.y * axisX.y + corner3.z * axisX.z + axisX.w;
+
+    const y0 = corner0.x * axisY.x + corner0.y * axisY.y + corner0.z * axisY.z + axisY.w;
+    const y1 = corner1.x * axisY.x + corner1.y * axisY.y + corner1.z * axisY.z + axisY.w;
+    const y2 = corner2.x * axisY.x + corner2.y * axisY.y + corner2.z * axisY.z + axisY.w;
+    const y3 = corner3.x * axisY.x + corner3.y * axisY.y + corner3.z * axisY.z + axisY.w;
+
+    out.set(Math.min(x0, x1, x2, x3), Math.min(y0, y1, y2, y3), Math.max(x0, x1, x2, x3), Math.max(y0, y1, y2, y3));
     return true;
+  }
+
+  /**
+   * @internal
+   */
+  _getWorldRect(out: Vector4): boolean {
+    return this._getCanvasRect(RectMask2D._identityAxisX, RectMask2D._identityAxisY, out);
   }
 
   /**

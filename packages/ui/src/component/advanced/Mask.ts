@@ -1,4 +1,4 @@
-import { BoundingBox, Entity, MaskRenderable, Vector2 } from "@galacean/engine";
+import { BoundingBox, Entity, MaskRenderable, SpriteMaskInteraction, Vector2 } from "@galacean/engine";
 import type { IMaskRenderable } from "@galacean/engine";
 import { UIRenderer } from "../UIRenderer";
 import { UITransform } from "../UITransform";
@@ -6,9 +6,10 @@ import { UITransform } from "../UITransform";
 /**
  * Clips descendant UI graphics to this sprite's alpha shape.
  * Nested Masks intersect; siblings and other canvases are unaffected.
+ * Raycast filtering tests the mask sprite's rectangular bounds without GPU pixel readback.
  * Image Masks and nonempty Outside RectMask2D ancestors share an eight-level stencil limit.
- * The render target must have a stencil attachment. UI manages these bits; custom stencil
- * materials must not depend on preserving their values across UI mask draws.
+ * The render target must have a stencil attachment. UI manages these bits while masks are active;
+ * custom stencil materials must not depend on preserving their values across UI mask draws.
  */
 export class Mask extends MaskRenderable(UIRenderer) {
   /** @internal */
@@ -29,6 +30,7 @@ export class Mask extends MaskRenderable(UIRenderer) {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._maskInteraction = SpriteMaskInteraction.None;
     this._initMask();
     this.raycastEnabled = false;
   }
@@ -53,6 +55,8 @@ export class Mask extends MaskRenderable(UIRenderer) {
     }
   }
 
+  protected override _updateRectMaskClipState(): void {}
+
   /**
    * @inheritdoc
    */
@@ -67,11 +71,6 @@ export class Mask extends MaskRenderable(UIRenderer) {
     this._destroyMaskResources();
 
     super._onDestroy();
-
-    if (this._subChunk) {
-      this._getChunkManager().freeSubChunk(this._subChunk);
-      this._subChunk = null;
-    }
   }
 
   override _getSpriteWidth(): number {

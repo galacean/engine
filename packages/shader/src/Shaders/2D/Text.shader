@@ -30,7 +30,9 @@ Shader "2D/Text" {
       struct v2f {
         vec2 v_uv;
         vec4 v_color;
-        vec2 v_worldPosition;
+        #ifdef RENDERER_ENABLE_UI_RECT_CLIP
+        vec2 v_clipPosition;
+        #endif
       };
 
       #include "ShaderLibrary/UI/RectClip.glsl"
@@ -43,7 +45,9 @@ Shader "2D/Text" {
         gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0);
         v.v_uv = attr.TEXCOORD_0;
         v.v_color = attr.COLOR_0;
-        v.v_worldPosition = attr.POSITION.xy;
+        #ifdef RENDERER_ENABLE_UI_RECT_CLIP
+        v.v_clipPosition = getUIRectClipPosition(attr.POSITION);
+        #endif
         return v;
       }
 
@@ -51,7 +55,9 @@ Shader "2D/Text" {
         vec4 texColor = texture2D(renderElement_TextTexture, v.v_uv);
         float coverage = texColor.r;
         vec4 finalColor = vec4(v.v_color.rgb, v.v_color.a * coverage);
-        clipUIRect(v.v_worldPosition);
+        #ifdef RENDERER_ENABLE_UI_RECT_CLIP
+        clipUIRect(v.v_clipPosition);
+        #endif
 
         gl_FragColor = finalColor;
       }
