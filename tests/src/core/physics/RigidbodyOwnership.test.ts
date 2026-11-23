@@ -748,6 +748,95 @@ describe("Rigidbody ownership", () => {
       expect(childRecorder.exits).toHaveLength(0);
     });
 
+    it("delivers buffered TriggerEnter to step-start body when onCollisionEnter disables overlapping child collider", () => {
+      const zone = root.createChild("zone").addComponent(BoxCollider);
+      zone.size.set(2, 2, 2);
+      zone.isTrigger = true;
+
+      const obstacle = root.createChild("obstacle");
+      obstacle.transform.setPosition(10, 0, 0);
+      obstacle.addComponent(BoxCollider);
+      addBody(obstacle, false, false);
+
+      const entityA = root.createChild("bodyA");
+      addBody(entityA, true, false);
+      const bodyBox = entityA.addComponent(BoxCollider);
+      bodyBox.center.set(10, 0, 0);
+      const recorderA = entityA.addComponent(TriggerRecorder);
+
+      const child = entityA.createChild("probe");
+      const probeCollider = child.addComponent(SphereCollider);
+      const probeRecorder = child.addComponent(TriggerRecorder);
+      let collisions = 0;
+      entityA.addComponent(
+        class extends Script {
+          override onCollisionEnter(): void {
+            collisions++;
+            probeCollider.enabled = false;
+          }
+        }
+      );
+
+      update(1);
+      expect(collisions).toBe(1);
+      expect(recorderA.enters).toEqual([[zone, probeCollider]]);
+      expect(probeRecorder.enters).toHaveLength(0);
+      expect(probeRecorder.exits).toHaveLength(0);
+    });
+
+    it.each([false, true])(
+      "keeps step-start trigger ownership when onCollisionEnter reparents child to distant body (query=%s)",
+      (runQuery) => {
+        const zone = root.createChild("zone").addComponent(BoxCollider);
+        zone.size.set(2, 2, 2);
+        zone.isTrigger = true;
+
+        const obstacle = root.createChild("obstacle");
+        obstacle.transform.setPosition(10, 0, 0);
+        obstacle.addComponent(BoxCollider);
+        addBody(obstacle, false, false);
+
+        const entityA = root.createChild("bodyA");
+        addBody(entityA, true, false);
+        entityA.addComponent(BoxCollider).center.set(10, 0, 0);
+        const recorderA = entityA.addComponent(TriggerRecorder);
+
+        const entityB = root.createChild("bodyB");
+        entityB.transform.setPosition(50, 0, 0);
+        addBody(entityB, true, false);
+        const recorderB = entityB.addComponent(TriggerRecorder);
+
+        const child = entityA.createChild("probe");
+        const probeCollider = child.addComponent(SphereCollider);
+        const probeRecorder = child.addComponent(TriggerRecorder);
+        let collisions = 0;
+        entityA.addComponent(
+          class extends Script {
+            override onCollisionEnter(): void {
+              collisions++;
+              entityB.addChild(child);
+              if (runQuery) {
+                physics.overlapSphereAll(new Vector3(50, 1000, 0), 0.5);
+              }
+            }
+          }
+        );
+
+        update(1);
+        expect(collisions).toBe(1);
+        expect(recorderA.enters).toEqual([[zone, probeCollider]]);
+        expect(recorderB.enters).toHaveLength(0);
+        expect(probeRecorder.enters).toHaveLength(0);
+
+        update(1);
+        expect(recorderA.exits).toEqual([[zone, probeCollider]]);
+        expect(recorderB.enters).toHaveLength(0);
+        expect(recorderB.stays).toHaveLength(0);
+        expect(recorderB.exits).toHaveLength(0);
+        expect(probeRecorder.exits).toHaveLength(0);
+      }
+    );
+
     it("prevents orphaned Exit on child when owning Rigidbody is destroyed after separating", () => {
       const zone = root.createChild("zone").addComponent(BoxCollider);
       zone.isTrigger = true;

@@ -748,6 +748,67 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it.each([0, 1, 2])("raycastAll retires duplicate entries safely with %i hits", (hitCount) => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("retired-raycast-aliases");
+      const shapes: Collider[] = [];
+      for (let i = 0; i < 3; i++) {
+        const entity = root.createChild();
+        entity.transform.setPosition(i * 5, 1400, 0);
+        const shape = entity.addComponent(BoxCollider);
+        shapes.push(shape);
+      }
+      const ray = new Ray(new Vector3(-3, 1400, 0), new Vector3(1, 0, 0));
+      const shared = new HitResult();
+      const spare = new HitResult();
+      const results = [shared, shared, spare, spare];
+      enginePhysX.resourceManager.gc();
+
+      try {
+        expect(scene.physics.raycastAll(ray, hitCount * 5, results)).to.eq(hitCount > 0);
+        expect(results).to.have.length(hitCount);
+        if (hitCount > 0) {
+          expect(results[0]).to.eq(shared);
+          if (hitCount === 2) {
+            expect(results[1]).to.eq(shared);
+          }
+          expect(shapes.slice(0, hitCount)).to.include(shared.collider);
+          expect(shared.entity).to.eq(shared.collider!.entity);
+          expect(shared.distance).to.be.greaterThan(0);
+          expect(shared.point.y).to.eq(1400);
+          expect(shared.normal.length()).to.be.closeTo(1, 1e-4);
+        } else {
+          expect(shared.collider).to.eq(null);
+          expect(shared.entity).to.eq(null);
+        }
+        expect(spare.collider).to.eq(null);
+        expect(spare.entity).to.eq(null);
+        const activeShape = shared.collider;
+        const activeDistance = shared.distance;
+        const activePoint = shared.point.clone();
+        const activeNormal = shared.normal.clone();
+
+        const nextResults: HitResult[] = [];
+        expect(scene.physics.raycastAll(ray, nextResults)).to.eq(true);
+        expect(nextResults).to.have.length(3);
+        expect(new Set(nextResults).size).to.eq(3);
+        expect(nextResults.map((hit) => hit.collider)).to.have.members(shapes);
+        expect(nextResults).to.include(spare);
+        if (hitCount > 0) {
+          expect(nextResults).to.not.include(shared);
+          expect(shared.collider).to.eq(activeShape);
+          expect(shared.distance).to.eq(activeDistance);
+          expect(shared.point).to.deep.equal(activePoint);
+          expect(shared.normal).to.deep.equal(activeNormal);
+        } else {
+          expect(nextResults).to.include(shared);
+        }
+      } finally {
+        root.destroy();
+        enginePhysX.resourceManager.gc();
+      }
+    });
+
     it.each(["gc", "destroy"])("raycastAll releases only idle storage on %s", (release) => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("released-raycast-output");
@@ -1919,9 +1980,14 @@ describe("Physics Test", () => {
 
       it("tracks trigger receivers by canonical pair ID rather than event object identity and leaves counts readonly", () => {
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("trigger-pair-key");
+        root.transform.setPosition(0, 1600, 0);
         const entityA = root.createChild("a");
-        const entityB = root.createChild("b");
+        const ownerB = root.createChild("ownerB");
+        ownerB.transform.setPosition(50, 0, 0);
+        ownerB.addComponent(Rigidbody).isKinematic = true;
+        const entityB = ownerB.createChild("b");
         const entityC = root.createChild("c");
+        entityC.transform.setPosition(-50, 0, 0);
         const colliderA = entityA.addComponent(BoxCollider);
         colliderA.isTrigger = true;
         const colliderB = entityB.addComponent(BoxCollider);
@@ -1929,6 +1995,7 @@ describe("Physics Test", () => {
         const enterA = vi.fn();
         const stayA = vi.fn();
         const exitA = vi.fn();
+        const exitOwnerB = vi.fn();
         const exitB = vi.fn();
         const enterC = vi.fn();
         const exitC = vi.fn();
@@ -1937,6 +2004,11 @@ describe("Physics Test", () => {
             onTriggerEnter = enterA;
             onTriggerStay = stayA;
             onTriggerExit = exitA;
+          }
+        );
+        ownerB.addComponent(
+          class extends Script {
+            onTriggerExit = exitOwnerB;
           }
         );
         entityB.addComponent(
@@ -1953,7 +2025,8 @@ describe("Physics Test", () => {
 
         const pooledSlot = { shape0Id: colliderA._id, shape1Id: colliderB._id, state: PhysicsEventState.Enter };
         try {
-          // Enter (A, B) in pooledSlot.
+          physicsScene._syncColliders();
+          // Enter (A, B) in pooledSlot while colliderB is owned by ownerB.
           (physicsScene as any)._dispatchEvents(
             Object.freeze({
               contactEvents: [],
@@ -1994,6 +2067,10 @@ describe("Physics Test", () => {
           expect(stayA).toHaveBeenCalledOnce();
           expect(enterC).toHaveBeenCalledExactlyOnceWith(colliderA, colliderC);
 
+          // Reparent entityB away from ownerB before Exit so delivery depends on historical lookup.
+          root.addChild(entityB);
+          physicsScene._syncColliders();
+
           // Exit both using pooledSlot and swapped IDs.
           pooledSlot.shape0Id = colliderA._id;
           pooledSlot.shape1Id = colliderB._id;
@@ -2011,7 +2088,8 @@ describe("Physics Test", () => {
             } satisfies IPhysicsEvents)
           );
           expect(exitA).toHaveBeenCalledTimes(2);
-          expect(exitB).toHaveBeenCalledExactlyOnceWith(colliderA, colliderB);
+          expect(exitOwnerB).toHaveBeenCalledExactlyOnceWith(colliderA, colliderB);
+          expect(exitB).not.toHaveBeenCalled();
           expect(exitC).toHaveBeenCalledExactlyOnceWith(colliderA, colliderC);
         } finally {
           root.destroy();
