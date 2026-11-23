@@ -613,6 +613,31 @@ describe("Transform test", function () {
     expect(world.elements[12]).to.equal(1010);
     expect(world.elements[13]).to.equal(2020);
   });
+
+  it("ignores worldPosition and worldMatrix writes when parent worldMatrix is singular without reading stale scratch", () => {
+    const validParent = scene.createRootEntity("invertible-parent");
+    validParent.transform.setPosition(5, 6, 7);
+    validParent.transform.setScale(2, 4, 2);
+    const validChild = validParent.createChild("invertible-child");
+    validChild.transform.worldPosition = new Vector3(1, 2, 3);
+    validChild.transform.worldMatrix = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1);
+
+    const singularParent = scene.createRootEntity("singular-parent");
+    singularParent.transform.setScale(1, 0, 1);
+    const child = singularParent.createChild("singular-child");
+    child.transform.setPosition(1, 2, 3);
+
+    child.transform.worldPosition = new Vector3(10, 20, 30);
+    expect(child.transform.position).to.deep.include({ x: 1, y: 2, z: 3 });
+    expect(child.transform.worldPosition).to.deep.include({ x: 1, y: 0, z: 3 });
+
+    const targetWorld = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 20, 30, 1);
+    child.transform.worldMatrix = targetWorld;
+    expect(child.transform.position).to.deep.include({ x: 1, y: 2, z: 3 });
+    const actualTranslation = new Vector3();
+    child.transform.worldMatrix.getTranslation(actualTranslation);
+    expect(actualTranslation).to.deep.include({ x: 1, y: 0, z: 3 });
+  });
 });
 
 class SubClassOfTransform extends Transform {
