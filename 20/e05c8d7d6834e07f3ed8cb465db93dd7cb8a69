@@ -1,0 +1,29 @@
+packages/core/src/2d/sprite/MaskRenderable.ts
+  s_a61a893a3e253a::t_8742b1cde44402 1,22,137-155,171
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_a61a893a3e253a::t_288eb9e125c475 122-124
+packages/ui/src/component/advanced/Mask.ts
+  s_a61a893a3e253a::t_054b70ed79c067 1,9,11-12,33,58-59
+tests/src/ui/Mask.test.ts
+  s_a61a893a3e253a::t_98940bc018a682 203,211,213-216,218-221,223-242,377-489
+tests/src/ui/RectMask2D.test.ts
+  s_a61a893a3e253a::t_4630699ea96b5f 8,198-199,218-220,225,280-358,502,539-553,566,568
+tests/src/ui/RectMask2DOutside.test.ts
+  s_a61a893a3e253a::t_aca2e2bef49a08 4,9,34,281-309,312-321,335,337-368,389,391-405,464-541
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "20e05c8d7d6834e07f3ed8cb465db93dd7cb8a69",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
