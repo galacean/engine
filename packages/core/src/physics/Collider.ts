@@ -14,6 +14,7 @@ import { Transform, TransformModifyFlags } from "../Transform";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
+import { differsF32, rotationDiffersF32 } from "./float32";
 
 /**
  * A collision shape attached to an Entity.
@@ -34,32 +35,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
   private static readonly _tempRotation = new Quaternion();
   private static readonly _tempInverseBodyRotation = new Quaternion();
   private static readonly _tempScale = new Vector3();
-
-  /**
-   * @internal
-   * Compare positions submitted directly as native Float32 vectors.
-   */
-  static _differsF32(a: Vector3, b: Vector3): boolean {
-    return (
-      Collider._componentDiffersF32(a.x, b.x) ||
-      Collider._componentDiffersF32(a.y, b.y) ||
-      Collider._componentDiffersF32(a.z, b.z)
-    );
-  }
-
-  /** @internal */
-  static _rotationDiffersF32(a: Quaternion, b: Quaternion): boolean {
-    return (
-      Collider._componentDiffersF32(a.x, b.x) ||
-      Collider._componentDiffersF32(a.y, b.y) ||
-      Collider._componentDiffersF32(a.z, b.z) ||
-      Collider._componentDiffersF32(a.w, b.w)
-    );
-  }
-
-  private static _componentDiffersF32(a: number, b: number): boolean {
-    return a !== b && Math.fround(a) !== Math.fround(b);
-  }
 
   /** @internal */
   @ignoreClone
@@ -235,15 +210,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
     return index;
-  }
-
-  /**
-   * @internal
-   * @returns Whether the value is a positive, normal, finite float32 extent safe for native physics geometry.
-   */
-  static _isValidPositiveFloat32(value: number): boolean {
-    const f = Math.fround(value);
-    return f >= 1.17549435e-38 && Number.isFinite(f);
   }
 
   /**
@@ -634,7 +600,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     const nativePosition = this._nativeWorldPosition;
     const nativeRotation = this._nativeWorldRotation;
-    if (Collider._differsF32(position, nativePosition) || Collider._rotationDiffersF32(rotation, nativeRotation)) {
+    if (differsF32(position, nativePosition) || rotationDiffersF32(rotation, nativeRotation)) {
       actor.setWorldTransform(position, rotation);
       nativePosition.copyFrom(position);
       nativeRotation.copyFrom(rotation);
@@ -655,11 +621,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
     const nativePosition = this._nativePosition;
     const nativeRotation = this._nativeRotation;
-    if (
-      force ||
-      Collider._differsF32(position, nativePosition) ||
-      Collider._rotationDiffersF32(rotation, nativeRotation)
-    ) {
+    if (force || differsF32(position, nativePosition) || rotationDiffersF32(rotation, nativeRotation)) {
       nativePosition.copyFrom(position);
       (this._nativeRotation ||= new Quaternion()).copyFrom(rotation);
       shape.setLocalPose(position, rotation);

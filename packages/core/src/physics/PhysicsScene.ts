@@ -14,6 +14,7 @@ import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { Rigidbody } from "./Rigidbody";
+import { isValidPositiveFloat32 } from "./float32";
 
 interface TriggerReceivers {
   receiver0: Rigidbody | Collider;
@@ -487,7 +488,7 @@ export class PhysicsScene {
     }
 
     const normalizedDirection =
-      distance > 0 && Collider._isValidPositiveFloat32(radius) ? this._syncCastDirection(direction) : null;
+      distance > 0 && isValidPositiveFloat32(radius) ? this._syncCastDirection(direction) : null;
 
     let result = false;
     if (normalizedDirection) {
@@ -588,7 +589,7 @@ export class PhysicsScene {
 
     const cylinderHeight = height - 2 * radius;
     const normalizedDirection =
-      distance > 0 && Collider._isValidPositiveFloat32(radius) && Collider._isValidPositiveFloat32(cylinderHeight * 0.5)
+      distance > 0 && isValidPositiveFloat32(radius) && isValidPositiveFloat32(cylinderHeight * 0.5)
         ? this._syncCastDirection(direction)
         : null;
 
@@ -654,7 +655,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     colliders: Collider[] = []
   ): Collider[] {
-    if (!Collider._isValidPositiveFloat32(radius)) {
+    if (!isValidPositiveFloat32(radius)) {
       colliders.length = 0;
       return colliders;
     }
@@ -683,7 +684,7 @@ export class PhysicsScene {
     colliders: Collider[] = []
   ): Collider[] {
     const cylinderHeight = height - 2 * radius;
-    if (!(Collider._isValidPositiveFloat32(radius) && Collider._isValidPositiveFloat32(cylinderHeight * 0.5))) {
+    if (!(isValidPositiveFloat32(radius) && isValidPositiveFloat32(cylinderHeight * 0.5))) {
       colliders.length = 0;
       return colliders;
     }
@@ -1125,9 +1126,9 @@ export class PhysicsScene {
 
   private static _isValidBoxExtents(halfExtents: Vector3): boolean {
     return (
-      Collider._isValidPositiveFloat32(halfExtents.x) &&
-      Collider._isValidPositiveFloat32(halfExtents.y) &&
-      Collider._isValidPositiveFloat32(halfExtents.z)
+      isValidPositiveFloat32(halfExtents.x) &&
+      isValidPositiveFloat32(halfExtents.y) &&
+      isValidPositiveFloat32(halfExtents.z)
     );
   }
 

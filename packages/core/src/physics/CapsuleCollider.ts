@@ -2,6 +2,7 @@ import { ICapsuleShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
+import { isValidPositiveFloat32 } from "./float32";
 import { CapsuleColliderDirection } from "./enums/CapsuleColliderDirection";
 
 /**
@@ -97,7 +98,7 @@ export class CapsuleCollider extends Collider {
     }
     const radius = this._radius * radialScale;
     const halfHeight = (this._height * 0.5 - this._radius) * heightScale;
-    if (!Collider._isValidPositiveFloat32(radius) || !Collider._isValidPositiveFloat32(halfHeight)) {
+    if (!isValidPositiveFloat32(radius) || !isValidPositiveFloat32(halfHeight)) {
       return null;
     }
     if (!shape) {

@@ -6,6 +6,7 @@ import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
+import { isValidPositiveFloat32 } from "./float32";
 import { directionSnapshot, normalizeDirection } from "./unitDirection";
 
 /**
@@ -232,7 +233,7 @@ export class CharacterController extends Collider {
     if (syncGeometry) {
       radius = this._radius * Math.max(scale.x, scale.z);
       height = (this._height - 2 * this._radius) * scale.y;
-      if (!Collider._isValidPositiveFloat32(radius) || !Collider._isValidPositiveFloat32(height)) {
+      if (!isValidPositiveFloat32(radius) || !isValidPositiveFloat32(height)) {
         this._detach();
         return;
       }
@@ -294,7 +295,7 @@ export class CharacterController extends Collider {
    * @throws When the value is not a positive, normal, finite Float32.
    */
   protected override _validateContactOffset(value: number): number {
-    if (!Collider._isValidPositiveFloat32(value)) {
+    if (!isValidPositiveFloat32(value)) {
       throw new Error("CharacterController contactOffset must be a positive, normal, finite Float32.");
     }
     return value;

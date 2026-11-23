@@ -11,6 +11,7 @@ import type { Scene } from "../Scene";
 import { Script } from "../Script";
 import { Transform } from "../Transform";
 import { Collider } from "./Collider";
+import { differsF32, isValidPositiveFloat32, rotationDiffersF32 } from "./float32";
 import type { Joint } from "./joint/Joint";
 
 /**
@@ -181,7 +182,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set mass(value: number) {
-    if (typeof value !== "number" || (value !== 0 && !Collider._isValidPositiveFloat32(value))) {
+    if (typeof value !== "number" || (value !== 0 && !isValidPositiveFloat32(value))) {
       throw new RangeError("Rigidbody mass must be zero or a positive, normal, finite Float32.");
     }
     if (this._mass !== value) {
@@ -203,7 +204,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @throws When density is not a positive normal Float32.
    */
   setDensity(density: number): boolean {
-    if (typeof density !== "number" || !Collider._isValidPositiveFloat32(density)) {
+    if (typeof density !== "number" || !isValidPositiveFloat32(density)) {
       throw new RangeError("Rigidbody density must be a positive, normal, finite Float32.");
     }
     const scene = this._registeredScene;
@@ -938,7 +939,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const rotation = transform.worldRotationQuaternion;
     const nativePosition = this._nativePosition;
     const nativeRotation = this._nativeRotation;
-    if (Collider._differsF32(position, nativePosition) || Collider._rotationDiffersF32(rotation, nativeRotation)) {
+    if (differsF32(position, nativePosition) || rotationDiffersF32(rotation, nativeRotation)) {
       this._wasSleeping = false;
       nativePosition.copyFrom(position);
       nativeRotation.copyFrom(rotation);
@@ -995,7 +996,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const actor = this._nativeActor!;
     const mass = this._mass;
     // PhysX uses zero as infinite mass, but automatic mass properties require a positive mass.
-    if ((this._automaticCenterOfMass || this._automaticInertiaTensor) && Collider._isValidPositiveFloat32(mass)) {
+    if ((this._automaticCenterOfMass || this._automaticInertiaTensor) && isValidPositiveFloat32(mass)) {
       const colliders = this._attachedColliders;
       const count = colliders.length;
       let i = 0;

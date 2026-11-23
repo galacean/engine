@@ -2,6 +2,7 @@ import { ISphereShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
+import { isValidPositiveFloat32 } from "./float32";
 
 /**
  * A sphere-shaped collider.
@@ -38,7 +39,7 @@ export class SphereCollider extends Collider {
 
   protected override _syncGeometry(shape: ISphereShape | null, scale: Vector3): ISphereShape | null {
     const radius = this._radius * Math.max(scale.x, scale.y, scale.z);
-    if (!Collider._isValidPositiveFloat32(radius)) {
+    if (!isValidPositiveFloat32(radius)) {
       return null;
     }
     if (!shape) {

@@ -3,6 +3,7 @@ import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
+import { isValidPositiveFloat32 } from "./float32";
 
 /**
  * A box-shaped collider.
@@ -40,11 +41,7 @@ export class BoxCollider extends Collider {
     const x = size.x * scale.x * 0.5;
     const y = size.y * scale.y * 0.5;
     const z = size.z * scale.z * 0.5;
-    if (
-      !Collider._isValidPositiveFloat32(x) ||
-      !Collider._isValidPositiveFloat32(y) ||
-      !Collider._isValidPositiveFloat32(z)
-    ) {
+    if (!isValidPositiveFloat32(x) || !isValidPositiveFloat32(y) || !isValidPositiveFloat32(z)) {
       return null;
     }
     const extents = BoxCollider._tempHalfExtents.set(x, y, z);
