@@ -309,6 +309,24 @@ describe("Collider", () => {
     }
   );
 
+  it("rejects invalid CapsuleCollider directions before queueing geometry sync", () => {
+    const capsule = root.createChild("invalid-dir-capsule").addComponent(CapsuleCollider);
+    const box = root.createChild("healthy-box").addComponent(BoxCollider);
+    box.entity.transform.setPosition(10, 0, 0);
+    capsule.direction = CapsuleColliderDirection.Z;
+
+    for (const invalid of ["Y", 99, NaN]) {
+      expect(() => {
+        (capsule as any).direction = invalid;
+      }).toThrow();
+    }
+
+    expect(capsule.direction).toBe(CapsuleColliderDirection.Z);
+    const closest = new Vector3();
+    expect(box.getClosestPoint(new Vector3(12, 0, 0), closest)).toBeCloseTo(1.5);
+    expectPoint(closest, 10.5, 0, 0);
+  });
+
   it("applies plane center and entity rotation to raycasts", () => {
     const plane = root.addComponent(PlaneCollider);
     const hit = new HitResult();
@@ -1042,6 +1060,18 @@ describe("Collider", () => {
       expect(physics.raycast(ray, hit)).toBe(false);
       capsule.radius = 1;
       expect(physics.raycast(ray, hit)).toBe(true);
+
+      // Float32 sphere degeneration remains valid even when 2 * radius exceeds FLT_MAX.
+      capsule.radius = 2e38;
+      capsule.height = 4e38;
+      expect(capsule.getClosestPoint(new Vector3(0, 5, 0), new Vector3())).toBe(0);
+      const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+      capsule.radius = 1;
+      capsule.height = 1e39;
+      expect(capsule.getClosestPoint(new Vector3(0, 5, 0), new Vector3())).toBe(-1);
+      expect(warnings).toHaveBeenCalledOnce();
+      capsule.height = 4;
+      expect(capsule.getClosestPoint(new Vector3(0, 5, 0), new Vector3())).toBe(0);
     });
 
     it("handles simultaneous CapsuleCollider scale and direction changes without degenerate intermediate geometry", () => {

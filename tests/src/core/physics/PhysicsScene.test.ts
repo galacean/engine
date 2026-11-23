@@ -1855,11 +1855,14 @@ describe("Physics Test", () => {
           expect(stay).toHaveBeenCalledTimes(1);
 
           body.simulationEnabled = false;
-          if (collider instanceof CapsuleCollider) collider.height = 2;
+          if (collider instanceof CapsuleCollider) collider.height = 1;
           physicsScene._update(physicsScene.fixedTimeStep);
           physicsScene._update(physicsScene.fixedTimeStep);
           expect(stay).toHaveBeenCalledTimes(1);
           expect(exit).toHaveBeenCalledTimes(1);
+          if (collider instanceof CapsuleCollider) {
+            expect(collider.getClosestPoint(new Vector3(0, 1001, 0), new Vector3())).toBeCloseTo(0.5);
+          }
           const overlaps: Collider[] = [];
           physicsScene.overlapSphereAll(visitor.transform.worldPosition, 0.25, Layer.Everything, overlaps);
           expect(overlaps).toContain(collider);

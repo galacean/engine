@@ -64,12 +64,20 @@ export class CapsuleCollider extends Collider {
   /**
    * The local axis the capsule is aligned with.
    * @defaultValue `CapsuleColliderDirection.Y`
+   * @throws When the value is not a valid {@link CapsuleColliderDirection}.
    */
   get direction(): CapsuleColliderDirection {
     return this._direction;
   }
 
   set direction(value: CapsuleColliderDirection) {
+    if (
+      value !== CapsuleColliderDirection.X &&
+      value !== CapsuleColliderDirection.Y &&
+      value !== CapsuleColliderDirection.Z
+    ) {
+      throw new Error(`Unsupported CapsuleCollider direction: ${value}`);
+    }
     if (this._direction !== value) {
       this._direction = value;
       this._geometryDirty = true;
@@ -100,11 +108,10 @@ export class CapsuleCollider extends Collider {
       }
     }
     const radius = this._radius * radialScale;
-    const totalHeight = this._height * heightScale;
-    if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(totalHeight))) {
+    const halfHeight = this._height * heightScale * 0.5 - radius;
+    if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(halfHeight))) {
       return null;
     }
-    const halfHeight = totalHeight * 0.5 - radius;
     const isSphere = !isValidPositiveFloat32(halfHeight);
     if (isSphere) {
       if (shape && this._nativeIsSphere) {
