@@ -1,32 +1,28 @@
 # Script Lifecycle and Frame Order
 
-Use this reference when callback timing or activation ownership changes the implementation.
+Use this reference when callback timing, activation ownership, or deferred destruction affects behavior.
 
-## Activation
+## Activation and destruction
 
-- `onAwake` runs once, the first time the owning entity becomes active in its hierarchy. The Script's `enabled` flag does not gate this first awakening.
-- `onEnable` and `onDisable` follow the combined state of entity hierarchy activation and component enablement.
-- `onStart` runs once after the Script becomes active and before its first frame-level update. Disabling and re-enabling a started Script does not run it again.
-- `onDestroy` belongs to irreversible destruction, not temporary disablement. Release subscriptions or owned external resources at the lifecycle boundary that actually created them.
+- `onAwake` runs once the first time the owning Entity becomes active in its hierarchy; the Script's `enabled` flag does not gate this first awakening.
+- `onEnable` and `onDisable` follow the combined state of Entity hierarchy activation and Script enablement. Pair enable-scoped setup and teardown here.
+- `onStart` runs once after the Script becomes active and before its first frame update; disabling and re-enabling a started Script does not run `onStart` again.
+- `onDestroy` runs on irreversible destruction, not temporary disablement. Release resources at the lifecycle boundary that created them.
+- Calling `destroy()` during a frame defers actual destruction (`destroyed === true`, `onDisable`, `onDestroy`) until the end of that frame after rendering.
 
 ## Frame phases
 
-The relevant order within a rendered frame is:
+Within a rendered frame, work runs in this order:
 
 1. Run pending `onStart` callbacks.
-2. Run zero or more fixed physics steps. Each step invokes active `onPhysicsUpdate` callbacks before simulation.
-3. Dispatch pointer Script callbacks after the frame's raw input sampling and physics work.
+2. Run zero or more fixed physics steps; each step invokes active `onPhysicsUpdate` callbacks before simulation.
+3. Dispatch pointer Script callbacks (`onPointer*`) after raw input sampling and physics work.
 4. Run active `onUpdate` callbacks.
-5. Advance animation.
+5. Advance `Animator` components.
 6. Run active `onLateUpdate` callbacks.
-7. Render cameras.
+7. Run Renderer updates (such as Spine and particles), then render each active Camera with per-camera `onBeginRender` and `onEndRender`.
+8. Flush deferred `destroy()` calls (`onDisable` and `onDestroy`).
 
-Fixed physics frequency is independent of rendered-frame frequency. A rendered frame can therefore contain no physics step, one step, or several steps.
+Fixed physics frequency is independent of rendered-frame frequency, so one rendered frame can contain zero, one, or multiple physics steps. Keep physics decisions in `onPhysicsUpdate` and visual follow-up in rendered-frame callbacks when their frequencies must stay independent.
 
-`onBeginRender` and `onEndRender` are per-camera callbacks sent to Scripts on that Camera's Entity. A Script on an Entity with multiple active Cameras can therefore receive them multiple times during one rendered frame.
-
-## Ownership guidance
-
-- Initialize state that exists for the Script's whole lifetime in `onAwake` or `onStart`, based on whether hierarchy activation must already have happened.
-- Pair work repeated by enablement with `onEnable` and `onDisable`.
-- Keep physics decisions in the fixed-step phase and visual follow-up in the rendered-frame phase when their frequencies must remain independent.
+`onBeginRender` and `onEndRender` are per-camera callbacks sent to Scripts on that Camera's Entity; an Entity hosting multiple active Cameras receives them once per active Camera each frame.

@@ -1,51 +1,49 @@
 # Rendering and Color Ownership
 
-Use this reference when material sharing, camera composition, masking, or color-space intent affects the rendered result. For custom mesh draw requirements, see [mesh-geometry.md](mesh-geometry.md).
+Use this reference when material sharing, draw ordering, camera composition, masking, color-space intent, shadows, skybox, or local post-processing affects rendered output. For custom mesh draw requirements, see [mesh-geometry.md](mesh-geometry.md).
 
 ## Material state
 
-- A renderer's assigned material is a shared resource. Mutating it affects every renderer that refers to that same material instance.
-- Requesting an instance material clones the assigned material for that renderer. Use this only when per-renderer mutation is intentional; otherwise retain the shared material and avoid the extra resource.
-- A missing material slot has no instance to clone. Treat material lookup as nullable rather than assuming slot zero exists.
-- Shader property names and macros are shader contracts, not universal Engine names. Resolve them from the selected shader or material implementation.
+- A Renderer's assigned material is a shared resource; mutating it affects every Renderer referencing that material instance.
+- `renderer.getInstanceMaterial(index)` clones the assigned material for that Renderer. Use it only when per-renderer mutation is intentional; otherwise share the material to avoid extra resources.
+- Treat material slot lookup as nullable rather than assuming slot `0` exists; an empty slot has no material to clone.
+- Shader property names and macros are per-shader contracts; resolve them from the target shader or material declarations.
 
 ## Draw ordering
 
-- Entity hierarchy and sibling order do not own 3D draw order. Material render queue and `Renderer.priority` establish the primary order; equal-priority opaque draws may be regrouped for batching, while transparent draws are distance-sorted back to front.
-- `Camera.priority` orders Cameras independently. A higher-priority Camera renders later than a lower-priority Camera.
+- Entity hierarchy and sibling order do not determine 3D draw order. Material render queue and `Renderer.priority` define primary order: equal-priority opaque draws may regroup for batching, while transparent draws distance-sort back to front.
+- `Camera.priority` orders Cameras independently; higher-priority Cameras render later.
 
-## Camera composition and masking
+## Camera composition and SpriteMask
 
-- A later Camera preserves an earlier Camera's color only when its clear flags do not clear color. Use disjoint culling masks when world and overlay Cameras own different content; priority alone does not prevent duplicate rendering.
-- Sprite masking closes three boundaries: `SpriteMask.influenceLayers`, each target renderer's mask layer and interaction, and a stencil-capable render target. The default depth-only format of a custom RenderTarget has no stencil, so the mask has no effect there.
+- A later Camera preserves an earlier Camera's color only when its `clearFlags` do not clear color. Use disjoint `cullingMask` values when world and overlay Cameras own separate content; priority alone does not prevent duplicate rendering.
+- `SpriteMask` requires three matching boundaries: `SpriteMask.influenceLayers`, each target SpriteRenderer's `maskInteraction` and `maskLayer`, and a stencil-capable render target (the default depth-only format of a custom `RenderTarget` lacks stencil, so masks have no effect there).
 
 ## Color-space intent
 
-- Lighting and material computation use linear values.
-- Choose conversion by data meaning, not filename. Color textures normally represent sRGB content and should be decoded for linear computation. Data textures such as normals, masks, and packed material channels remain linear.
-- Render-target color-space flags describe the stored data and conversion behavior. They must match the pass that writes and later samples the target.
-- Screen output performs the final conversion required for display. Avoid manually applying another conversion unless a custom pass explicitly owns that transform.
+- Lighting and material shaders compute in linear space.
+- Choose texture color space by data meaning, not filename: color textures represent sRGB content (`isSRGBColorSpace: true`) decoded to linear on sample; data textures (normals, masks, packed channels) stay linear (`isSRGBColorSpace: false`).
+- `RenderTarget` color-space flags describe the stored buffer and must match the pass writing and sampling it.
+- Screen output applies final display encoding; avoid manual gamma/sRGB conversion unless a custom pass explicitly owns that transform.
 
-## Shadow participation
+## Shadow and skybox requirements
 
-Shadow rendering requires the Scene shadow switch, its selected sun light's
-non-`None` shadow mode, and the participating Renderers' cast/receive settings.
+- **Shadows**: require the Scene shadow switch, the selected sun light's non-`None` shadow mode, and participating Renderers' cast/receive shadow flags.
+- **Skybox**: sky background mode needs both a sky material and a mesh; `SkyBoxMaterial` samples a `TextureCube` (not a single `Texture2D` panorama) and follows the material-sharing rules above.
 
-## Sky background requirements
+## Local post-processing volumes
 
-Sky background mode needs both a sky material and a mesh. `SkyBoxMaterial`
-samples a `TextureCube`, not a single `Texture2D` panorama. Switching the sky's
-material follows the material-sharing rules above.
+A local `PostProcess` (`isGlobal = false`) applies only when all of these hold:
+
+- The Camera and volume share a physics-enabled Scene, `camera.enablePostProcess` is enabled, and `(camera.postProcessMask & postProcess.layer)` overlaps.
+- The `PostProcess` contains at least one enabled `PostProcessEffect`.
+- The same Entity has at least one enabled `Collider` with collider shapes (a visual mesh alone does not define a volume); `blendDistance` fades influence from `1` inside the collider to `0` at `blendDistance` world units outside.
+
+See [physics-setup.md](physics-setup.md) for collider setup.
 
 ## Linear normal map on one renderer
 
-For a normal map selected at runtime, load linear data and request an instance
-material when only one Renderer should change. Mutate the returned clone in
-place; it is already assigned to the Renderer.
-
-Attach this Script to an Entity with an authored `MeshRenderer` and PBR material.
-Call `setNormalMap(url)` when gameplay selects a texture. After loading, confirm
-that the Script, Renderer and assigned material are still valid before writing.
+Load normal maps as linear data (`isSRGBColorSpace: false`), verify async completion against destruction and slot replacement, then clone via `getInstanceMaterial(0)` so only this Renderer changes:
 
 ```ts
 import { AssetType, MeshRenderer, PBRMaterial, Script, Texture2D } from "@galacean/engine";
@@ -78,13 +76,3 @@ export class NormalMapController extends Script {
   }
 }
 ```
-
-## Local post-processing requirements
-
-A local PostProcess takes its influence volume from enabled collider shapes on
-the same Entity. The Camera and volume must share a physics-enabled Scene, the
-Camera's post-process path must be enabled, and the volume must contain an actual
-effect. A visual box alone does not establish a volume.
-
-Post-processing consumes the Collider's shapes; preserve their intended physical
-behavior. See [physics-setup.md](physics-setup.md).

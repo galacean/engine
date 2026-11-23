@@ -5,9 +5,9 @@ Use this reference when handedness, direction, or coordinate conversion changes 
 ## Runtime spaces
 
 - Galacean local and world spaces are right-handed.
-- Local `+X` is right, local `+Y` is up, and an unrotated Transform faces local `-Z`. A Camera also views along its local `-Z` direction.
-- Local space is relative to an Entity's parent. World space is the shared comparison space; convert values before comparing or combining positions and directions from different parents.
-- Positive rotation follows the Engine's right-handed convention. Do not copy signs from a left-handed `+Z`-forward engine without converting them.
+- Local `+X` is right, local `+Y` is up, and an unrotated Transform faces local `-Z`. A Camera views along its local `-Z` direction.
+- Local space is relative to an Entity's parent. Convert positions and directions to world space before comparing or combining values from different parents.
+- Positive rotation follows the Engine's right-handed convention; convert signs when porting from a left-handed `+Z`-forward engine.
 
 ## Transform composition conventions
 
@@ -18,10 +18,10 @@ Use this reference when handedness, direction, or coordinate conversion changes 
 
 ## Screen and viewport spaces
 
-- Screen space uses canvas pixels with `(0, 0)` at the top-left. X increases rightward and Y increases downward.
-- Camera viewport space is normalized over the camera viewport: `(0, 0)` is its top-left and `(1, 1)` is its bottom-right.
-- The Z returned by world-to-screen or world-to-viewport conversion is a forward distance from the camera in world units, not normalized depth-buffer space.
+- Screen space uses canvas pixels with `(0, 0)` at the top-left; X increases rightward and Y increases downward.
+- Camera viewport space is normalized over the camera viewport: `(0, 0)` is top-left and `(1, 1)` is bottom-right.
+- The Z returned by `worldToScreenPoint` or `worldToViewportPoint` is forward distance from the camera in world units, not normalized depth-buffer space.
 
-## Transform-owned motion pattern
+## Transform-owned motion
 
-For non-physics motion updated once per rendered frame, scale displacement by the callback's `deltaTime` and move toward local `-Z` when the intent is “forward.” This makes the distance time-based instead of frame-count-based. Do not apply this Transform pattern to a simulation-owned dynamic body; choose its physics motion owner instead.
+For non-physics movement updated once per rendered frame, scale displacement by `deltaTime` and move toward local `-Z` for forward motion. For bodies owned by physics simulation, see [physics-setup.md](physics-setup.md).
