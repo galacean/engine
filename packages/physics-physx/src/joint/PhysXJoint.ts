@@ -60,7 +60,7 @@ export class PhysXJoint implements IJoint {
    */
   setMassScale(value: number): void {
     const inv = Math.fround(1 / value);
-    if (inv > 0 && Number.isFinite(inv)) {
+    if (inv >= 0 && Number.isFinite(inv)) {
       this._pxJoint.setInvMassScale0(inv);
     }
   }
@@ -70,7 +70,7 @@ export class PhysXJoint implements IJoint {
    */
   setConnectedMassScale(value: number): void {
     const inv = Math.fround(1 / value);
-    if (inv > 0 && Number.isFinite(inv)) {
+    if (inv >= 0 && Number.isFinite(inv)) {
       this._pxJoint.setInvMassScale1(inv);
     }
   }

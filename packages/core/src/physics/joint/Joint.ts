@@ -116,15 +116,16 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   /**
    * The scale to apply to the mass of the connected body for resolving this constraint.
-   * @throws When the value is not positive and finite.
+   * @remarks `Infinity` treats the connected body as having infinite mass during constraint solving.
+   * @throws When the value is not positive or its Float32 inverse is not finite.
    */
   get connectedMassScale(): number {
     return this._connectedBodyInfo.massScale;
   }
 
   set connectedMassScale(value: number) {
-    if (!(value > 0 && Number.isFinite(value))) {
-      throw new Error("Joint connectedMassScale must be positive and finite.");
+    if (!(value > 0 && Number.isFinite(Math.fround(1 / value)))) {
+      throw new Error("Joint connectedMassScale must be positive with a finite Float32 inverse.");
     }
     if (value !== this._connectedBodyInfo.massScale) {
       this._connectedBodyInfo.massScale = value;
@@ -137,15 +138,16 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   /**
    * The scale to apply to the mass of this body for resolving this constraint.
-   * @throws When the value is not positive and finite.
+   * @remarks `Infinity` treats this body as having infinite mass during constraint solving.
+   * @throws When the value is not positive or its Float32 inverse is not finite.
    */
   get massScale(): number {
     return this._bodyInfo.massScale;
   }
 
   set massScale(value: number) {
-    if (!(value > 0 && Number.isFinite(value))) {
-      throw new Error("Joint massScale must be positive and finite.");
+    if (!(value > 0 && Number.isFinite(Math.fround(1 / value)))) {
+      throw new Error("Joint massScale must be positive with a finite Float32 inverse.");
     }
     if (value !== this._bodyInfo.massScale) {
       this._bodyInfo.massScale = value;

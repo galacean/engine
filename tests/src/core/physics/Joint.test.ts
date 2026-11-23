@@ -610,15 +610,40 @@ describe("Joint", function () {
     expect(box.transform.position.y).toBeLessThan(4.8);
   });
 
-  it("validates massScale and connectedMassScale and wakes sleeping bodies", function () {
+  it("validates massScale and connectedMassScale, supports Infinity, and wakes sleeping bodies", function () {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity = new Vector3(0, 0, 0);
     const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const connected = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
     const body = box.getComponent(Rigidbody)!;
+    const connectedBody = connected.getComponent(Rigidbody)!;
     const joint = box.addComponent(FixedJoint);
+    joint.connectedBody = connectedBody;
 
-    for (const invalid of [0, -1, NaN, Infinity, -Infinity]) {
+    for (const invalid of [0, -1, NaN, -Infinity, 1e-40]) {
       expect(() => (joint.massScale = invalid)).toThrow();
       expect(() => (joint.connectedMassScale = invalid)).toThrow();
     }
+
+    joint.massScale = 1e40;
+    expect(joint.massScale).toBe(1e40);
+    joint.massScale = Infinity;
+    expect(joint.massScale).toBe(Infinity);
+    body.linearVelocity = new Vector3(1, 0, 0);
+    physics._update(physics.fixedTimeStep);
+    expect(body.linearVelocity.x).toBeCloseTo(1, 4);
+    expect(connectedBody.linearVelocity.x).toBeCloseTo(1, 4);
+
+    joint.massScale = 1;
+    joint.connectedMassScale = 1e40;
+    expect(joint.connectedMassScale).toBe(1e40);
+    joint.connectedMassScale = Infinity;
+    expect(joint.connectedMassScale).toBe(Infinity);
+    body.linearVelocity = new Vector3(0, 0, 0);
+    connectedBody.linearVelocity = new Vector3(1, 0, 0);
+    physics._update(physics.fixedTimeStep);
+    expect(connectedBody.linearVelocity.x).toBeCloseTo(1, 4);
+    expect(body.linearVelocity.x).toBeCloseTo(1, 4);
 
     body.sleep();
     expect(body.isSleeping()).toBe(true);
