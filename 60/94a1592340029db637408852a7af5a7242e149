@@ -1,0 +1,36 @@
+packages/core/src/2d/atlas/SpriteAtlas.ts
+  h_bd4dd7d663e619 67,77
+packages/core/src/2d/sprite/Sprite.ts
+  h_bd4dd7d663e619 38,49-50,208
+packages/core/src/asset/ReferResource.ts
+  h_bd4dd7d663e619 60
+packages/core/src/lighting/AmbientLight.ts
+  h_bd4dd7d663e619 111,113-115
+packages/core/src/material/Material.ts
+  h_bd4dd7d663e619 18
+packages/core/src/shader/ShaderData.ts
+  h_bd4dd7d663e619 44,425-428,466-470,473-476,635,647,651,759,763
+packages/loader/src/GLTFLoader.ts
+  h_bd4dd7d663e619 52-70
+packages/loader/src/SpriteAtlasLoader.ts
+  h_bd4dd7d663e619 25,29,40,42,49-65,68-69,73,75,77,79
+packages/loader/src/gltf/extensions/KHR_texture_basisu.ts
+  h_bd4dd7d663e619 57-58,60,62-64,72
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  h_bd4dd7d663e619 196
+tests/src/loader/SceneFormatV2.test.ts
+  h_bd4dd7d663e619 1030,1072,1147
+tests/src/loader/SpriteAtlasLoader.test.ts
+  h_bd4dd7d663e619 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6094a1592340029db637408852a7af5a7242e149",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
