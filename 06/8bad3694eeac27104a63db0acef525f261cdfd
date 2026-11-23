@@ -1,0 +1,19 @@
+packages/modify/src/rendering/LiquidGlassPostProcessPass.ts
+  s_db9caa93d2dc26::t_40e3d4b9e639f1 2-13,18,28,30-31,38-47,52,54-57,62-69,72-144,155-160,169-170,187-193,231-233,260-298
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "068bad3694eeac27104a63db0acef525f261cdfd",
+  "prompts": {},
+  "sessions": {
+    "s_db9caa93d2dc26": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20784-8643-7f40-ac89-2c82c24c5369",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

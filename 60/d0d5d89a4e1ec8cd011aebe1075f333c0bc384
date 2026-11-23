@@ -1,0 +1,20 @@
+packages/core/src/lighting/Light.ts
+  h_bd4dd7d663e619 13,15-16
+packages/core/src/lighting/PointLight.ts
+  h_bd4dd7d663e619 35,39,71
+packages/core/src/lighting/SpotLight.ts
+  h_bd4dd7d663e619 49,53,106
+tests/src/core/lighting/LightAttenuation.test.ts
+  h_bd4dd7d663e619 132-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "60d0d5d89a4e1ec8cd011aebe1075f333c0bc384",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
