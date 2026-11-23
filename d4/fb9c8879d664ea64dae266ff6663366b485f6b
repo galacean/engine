@@ -1,0 +1,23 @@
+packages/core/src/physics/joint/Joint.ts
+  s_9a07c85a0912bc::t_fbde2a954d4ded 63,78,92,289,375,380,385,428
+packages/physics-physx/src/joint/PhysXJoint.ts
+  s_9a07c85a0912bc::t_3bdd9853b4c4f3 63,71
+packages/core/src/physics/joint/HingeJoint.ts
+  s_9a07c85a0912bc::t_ad38b5fff622a7 73,89,123,143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d4fb9c8879d664ea64dae266ff6663366b485f6b",
+  "prompts": {},
+  "sessions": {
+    "s_9a07c85a0912bc": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a2065f-d56d-7175-a080-e45884abae0d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
