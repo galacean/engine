@@ -105,7 +105,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         const existing = pairs[big];
         if (existing) {
           // Treat a rediscovered pair as a continuous overlap.
-          existing.pendingState = PhysicsEventState.Stay;
+          existing._pendingState = PhysicsEventState.Stay;
           return;
         }
         let event = this._triggerEventPool.pop();
@@ -115,14 +115,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         } else {
           event = new TriggerEvent(small, big);
         }
-        event.pendingState = PhysicsEventState.Enter;
+        event._pendingState = PhysicsEventState.Enter;
         pairs[big] = event;
         this._activeTriggers.push(event);
       },
       onTriggerEnd: (index1, index2) => {
         const pairs = this._eventMap[Math.min(index1, index2)];
         const big = Math.max(index1, index2);
-        pairs[big]!.pendingState = PhysicsEventState.Exit;
+        pairs[big]!._pendingState = PhysicsEventState.Exit;
         delete pairs[big];
       }
     };
@@ -245,10 +245,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     triggerEvents.length = 0;
     for (let i = 0; i < activeTriggers.length; ) {
       const event = activeTriggers[i];
-      const state = (event.state = event.pendingState);
+      const state = (event.state = event._pendingState);
       triggerEvents.push(event);
       if (state === PhysicsEventState.Enter) {
-        event.pendingState = PhysicsEventState.Stay;
+        event._pendingState = PhysicsEventState.Stay;
       } else if (state === PhysicsEventState.Exit) {
         this._retireTrigger(event, i);
         continue;
@@ -631,7 +631,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         continue;
       } else if (first || second) {
         // Start with an exit and let PhysX restore the stay if it reports the pair again.
-        event.pendingState = PhysicsEventState.Exit;
+        event._pendingState = PhysicsEventState.Exit;
       }
       i++;
     }
@@ -685,7 +685,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     }
     this._contactFloatOffset = needed;
 
-    event.floatOffset = offset;
+    event._floatOffset = offset;
     event.contactCount = count;
   }
 
@@ -770,7 +770,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
  */
 class TriggerEvent implements ITriggerEvent {
   state: PhysicsEventState;
-  pendingState: PhysicsEventState;
+  /** @internal */
+  _pendingState: PhysicsEventState;
 
   constructor(
     public shape0Id: number,
@@ -783,7 +784,8 @@ class ContactEvent implements IContactEvent {
   shape0Id: number;
   shape1Id: number;
   contactCount = 0;
-  floatOffset = 0;
+  /** @internal */
+  _floatOffset = 0;
   private readonly _scene: PhysXPhysicsScene;
 
   constructor(scene: PhysXPhysicsScene) {
@@ -792,7 +794,7 @@ class ContactEvent implements IContactEvent {
 
   getContact(index: number, out: IContactPoint): void {
     const data = this._scene._contactData;
-    const offset = this.floatOffset + index * 10;
+    const offset = this._floatOffset + index * 10;
     out.position.set(data[offset], data[offset + 1], data[offset + 2]);
     out.normal.set(data[offset + 3], data[offset + 4], data[offset + 5]);
     out.impulse.set(data[offset + 6], data[offset + 7], data[offset + 8]);

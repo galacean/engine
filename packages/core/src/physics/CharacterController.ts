@@ -295,7 +295,7 @@ export class CharacterController extends Collider {
     const controller = Engine._nativePhysics.createCharacterController(this._id, this._getNativeMaterial());
     controller.setContactOffset(this.contactOffset);
     controller.setCollisionLayer(this._collisionLayerIndex);
-    controller.setIsSceneQuery(this.isSceneQuery);
+    controller.setIsSceneQuery(this._isSceneQuery);
     controller.setNonWalkableMode(this._nonWalkableMode);
     controller.setUpDirection(this._upDirection);
     controller.setSlopeLimit(this._slopeLimit);

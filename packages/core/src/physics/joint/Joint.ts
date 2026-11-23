@@ -288,6 +288,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     this._wakeBodies();
   }
 
+  /** @internal */
   protected override _onDestroy(): void {
     this._bodyInfo.anchor._onValueChanged = null;
     this._connectedBodyInfo.anchor._onValueChanged = null;

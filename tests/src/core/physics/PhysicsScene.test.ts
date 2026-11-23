@@ -607,7 +607,7 @@ describe("Physics Test", () => {
       expect(physicsScene.raycastAll(ray, 100, Layer.Nothing)).to.eq(false);
       expect(physicsScene.raycastAll(ray, 0)).to.eq(false);
 
-      farShape.isSceneQuery = false;
+      farShape._isSceneQuery = false;
       const queryFilteredResults: HitResult[] = [];
       expect(physicsScene.raycastAll(ray, queryFilteredResults)).to.eq(true);
       expect(queryFilteredResults).to.have.length(1);
@@ -824,7 +824,7 @@ describe("Physics Test", () => {
       expect(physics.raycast(ray, 100, Layer.Layer31, hit)).to.eq(true);
       expect(hit.collider).to.eq(farShape);
 
-      nearShape.isSceneQuery = false;
+      nearShape._isSceneQuery = false;
       nearShape.isTrigger = true;
       expect(physics.raycastAll(ray, 100, mask, hits)).to.eq(true);
       expect(hits).to.have.length(1);
@@ -853,7 +853,7 @@ describe("Physics Test", () => {
         expect(overlap).to.have.length(1);
         expect(overlap[0]).to.be.eq(farShape);
       }
-      nearShape.isSceneQuery = true;
+      nearShape._isSceneQuery = true;
       nearShape.collisionLayer = Layer.Layer31;
       expect(physics.raycastAll(ray, 100, Layer.Layer1, hits)).to.eq(false);
       expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
@@ -862,11 +862,11 @@ describe("Physics Test", () => {
       addedShape.collisionLayer = Layer.Layer31;
       expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
       expect(hits).to.have.length(3);
-      nearShape.isSceneQuery = false;
+      nearShape._isSceneQuery = false;
       const cloneEntity = near.clone();
       root.addChild(cloneEntity);
       const clone = cloneEntity.getComponent(BoxCollider);
-      expect(clone.isSceneQuery).to.eq(false);
+      expect(clone._isSceneQuery).to.eq(false);
       expect(physics.raycastAll(ray, hits)).to.eq(true);
       expect(hits.map((hit) => hit.collider)).to.not.include(clone);
       root.destroy();
@@ -878,21 +878,21 @@ describe("Physics Test", () => {
       const entity = root.createChild("controller");
       const controller = entity.addComponent(CharacterController);
       controller.collisionLayer = Layer.Layer31;
-      controller.isSceneQuery = false;
+      controller._isSceneQuery = false;
       const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0));
       const hits: HitResult[] = [];
       expect(scene.physics.raycastAll(ray, hits)).to.eq(false);
       expect(hits).to.have.length(0);
-      controller.isSceneQuery = true;
+      controller._isSceneQuery = true;
       expect(scene.physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
       expect(hits).to.have.length(1);
       expect(hits[0].collider).to.be.eq(controller);
-      controller.isSceneQuery = false;
+      controller._isSceneQuery = false;
       controller.enabled = false;
       controller.enabled = true;
       expect(scene.physics.raycastAll(ray, hits)).to.eq(false);
       expect(hits).to.have.length(0);
-      controller.isSceneQuery = true;
+      controller._isSceneQuery = true;
       expect(scene.physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
       expect(hits).to.have.length(1);
       expect(hits[0].collider).to.be.eq(controller);

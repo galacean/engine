@@ -102,12 +102,12 @@ describe("Collider layer initialization", () => {
     const collider = source.addComponent(MeshCollider);
     collider.collisionLayer = Layer.Layer4;
     collider.center.x = 3;
-    collider.isSceneQuery = false;
+    collider._isSceneQuery = false;
     const center = new Vector3(3, 1000.5, 0);
     const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
     collider.mesh = mesh;
     expect(physics.overlapSphereAll(center, 0.1)).toHaveLength(0);
-    collider.isSceneQuery = true;
+    collider._isSceneQuery = true;
 
     function expectMesh(): void {
       const hits = physics.overlapSphereAll(center, 0.1, Layer.Layer4);
@@ -152,7 +152,7 @@ describe("Collider layer initialization", () => {
       const controller = source.addComponent(CharacterController);
       controller.enabled = enabled;
       controller.collisionLayer = Layer.Layer7;
-      controller.isSceneQuery = false;
+      controller._isSceneQuery = false;
 
       const clone = source.clone();
       root.addChild(clone);
@@ -162,7 +162,7 @@ describe("Collider layer initialization", () => {
       physics._update(1 / 60);
       const center = new Vector3(3, 1000, 0);
       expect(cloneController.collisionLayer).toBe(Layer.Layer7);
-      expect(cloneController.isSceneQuery).toBe(false);
+      expect(cloneController._isSceneQuery).toBe(false);
       expect(physics.overlapSphereAll(center, 0.1)).toHaveLength(0);
 
       function expectController(layer: Layer): void {
@@ -174,7 +174,7 @@ describe("Collider layer initialization", () => {
         expect(hits[0]).toBe(cloneController);
       }
 
-      cloneController.isSceneQuery = true;
+      cloneController._isSceneQuery = true;
       expectController(Layer.Layer7);
       expect(physics.overlapSphereAll(center, 0.1, Layer.Layer0)).toHaveLength(0);
       cloneController.enabled = false;

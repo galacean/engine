@@ -126,6 +126,7 @@ export class PhysicsMaterial extends ReferResource {
     this._nativeMaterial && super._addReferCount(value);
   }
 
+  /** @internal */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._nativeMaterial.destroy();

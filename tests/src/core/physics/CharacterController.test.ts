@@ -144,7 +144,7 @@ describe("CharacterController", () => {
   it.each([true, false])("scene-query participation %s preserves controller collisions", (enabled) => {
     role.transform.setPosition(0, 2, 0);
     const wall = addBox(new Vector3(10, 10, 1), new Vector3(0, 2, 2));
-    wall.isSceneQuery = enabled;
+    wall._isSceneQuery = enabled;
     expect(physics.raycastAll(new Ray(new Vector3(0, 5, 0), new Vector3(0, 0, 1)))).toBe(enabled);
     expect(move(new Vector3(0, 0, 4)) & ControllerCollisionFlag.Sides).toBe(ControllerCollisionFlag.Sides);
     expect(role.transform.position.z).toBeCloseTo(0.98, 4);
@@ -448,7 +448,7 @@ describe("CharacterController", () => {
     expect(errors).not.toHaveBeenCalled();
 
     cc.collisionLayer = Layer.Layer3;
-    cc.isSceneQuery = true;
+    cc._isSceneQuery = true;
     expect(errors).not.toHaveBeenCalled();
 
     entity.transform.setPosition(8, 2, 0);
@@ -663,7 +663,7 @@ describe("CharacterController", () => {
       const secondCol = secondChild.addComponent(BoxCollider);
       secondCol.size = new Vector3(1, 4, 4);
       secondCol.collisionLayer = Layer.Layer3;
-      secondCol.isSceneQuery = false; // non-query solid must still block CCT
+      secondCol._isSceneQuery = false; // non-query solid must still block CCT
 
       physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
       const flags = move(new Vector3(10, 0, 0));
@@ -751,7 +751,7 @@ describe("CharacterController", () => {
 
       recoverEntity.transform.setPosition(7, 4, -2);
       recoverCC.collisionLayer = Layer.Layer3;
-      recoverCC.isSceneQuery = true;
+      recoverCC._isSceneQuery = true;
       recoverCC.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding;
       recoverCC.upDirection = new Vector3(0, 1, 0);
       expect(errors).not.toHaveBeenCalled();

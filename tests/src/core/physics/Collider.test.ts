@@ -235,13 +235,13 @@ describe("Collider", () => {
     const hit = new HitResult();
     expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
 
-    box.isSceneQuery = false;
+    box._isSceneQuery = false;
     box.isTrigger = true;
     expect(physics.raycast(ray, hit)).toBe(false);
     box.isTrigger = false;
     expect(physics.raycast(ray, hit)).toBe(false);
 
-    box.isSceneQuery = true;
+    box._isSceneQuery = true;
     expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
   });
 

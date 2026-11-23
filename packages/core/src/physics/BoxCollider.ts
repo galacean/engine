@@ -52,6 +52,7 @@ export class BoxCollider extends Collider {
     return shape;
   }
 
+  /** @internal */
   protected override _onDestroy(): void {
     //@ts-ignore
     this._size._onValueChanged = null;

@@ -166,6 +166,7 @@ export class HingeJoint extends Joint {
     target._limits?._updateFlagManager.addListener(target._onLimitsChanged);
   }
 
+  /** @internal */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._jointMotor?._updateFlagManager.removeListener(this._onMotorChanged);

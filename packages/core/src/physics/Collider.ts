@@ -81,7 +81,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   private _center = new Vector3();
   protected _isTrigger = false;
-  private _isSceneQuery = true;
+  private _sceneQueryEnabled = true;
   private _contactOffset = 0.02;
   @ignoreClone
   private _material: PhysicsMaterial | null = null;
@@ -127,14 +127,14 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * Whether raycasts, shape casts, and overlap queries can find this Collider. Simulation uses its collision flags
    * independently.
    */
-  get isSceneQuery(): boolean {
-    return this._isSceneQuery;
+  get _isSceneQuery(): boolean {
+    return this._sceneQueryEnabled;
   }
 
   /** @internal @beta */
-  set isSceneQuery(value: boolean) {
-    if (this._isSceneQuery !== value) {
-      this._isSceneQuery = value;
+  set _isSceneQuery(value: boolean) {
+    if (this._sceneQueryEnabled !== value) {
+      this._sceneQueryEnabled = value;
       this._onIsSceneQueryChanged(value);
     }
   }
@@ -488,7 +488,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   protected _initializeNativeShape<T extends IPhysicsShape>(shape: T): T {
     shape.setContactOffset(this._contactOffset);
     this._isTrigger && shape.setIsTrigger(true);
-    !this._isSceneQuery && shape.setIsSceneQuery(false);
+    !this._sceneQueryEnabled && shape.setIsSceneQuery(false);
     shape.setCollisionLayer(this._collisionLayerIndex);
     return shape;
   }

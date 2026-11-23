@@ -456,7 +456,7 @@ describe("MeshCollider", () => {
       const collider = addMesh(convex);
       const previous = collider.mesh;
       const recorder = addTriggerProbe();
-      recorder.entity.getComponent(SphereCollider).isSceneQuery = false;
+      recorder.entity.getComponent(SphereCollider)._isSceneQuery = false;
       update();
       expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
       const invalid = createModelMesh(engine, [0, 0, 0], [0, 0, 0]);
