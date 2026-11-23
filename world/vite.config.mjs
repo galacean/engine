@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { engineModify } from "@galacean/engine-modify/vite";
 import { PUGC_UNSUPPORTED_ASSET_EXTENSIONS, projectAssets } from "./scripts/project-assets.mjs";
 import { createMobileDiagMiddleware } from "./scripts/mobile-diag-middleware.mjs";
+import { meshBrotliPlugin } from "./scripts/mesh-brotli.mjs";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const plantBuild = require("../packages/farming/src/farming/tools/plant-shader-precompile.cjs");
@@ -502,7 +503,8 @@ export default {
     }),
     waterBuild.createWaterShaderProductionAssetPlugin(path.join(root, "packages/water/src/water/shaders")),
     ...(flashApp ? [flashAppClassicWorkers()] : []),
-    ...(demo === "seed-world" ? [seedWorldAssetBundles({ offloadCdn: flashApp })] : [])
+    ...(demo === "seed-world" ? [seedWorldAssetBundles({ offloadCdn: flashApp })] : []),
+    ...(!flashApp && (demo === "seed-world" || demo === "all") ? [meshBrotliPlugin()] : [])
   ],
   server: { host: "127.0.0.1", port: 5193, open: `/world/demos/${demo}/index.html`, fs: { allow: [root] } },
   resolve: {

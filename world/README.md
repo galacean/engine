@@ -75,6 +75,8 @@ pnpm --dir world typecheck
 
 `build` 默认构建 Seed World，输出 `world/dist/seed-world/`；`build:all` 输出 `world/dist/all/`。部署时保留整个输出目录，HTML 位于其 `world/demos/…` 子目录；项目清单与动态资源按原相对结构输出，不能只上传 HTML 或 JS。各 Demo 的辅助 HTML 入口也包含在统一构建中。
 
+普通 Seed World 构建和 `build:all` 会为压缩后同时节省至少 5% 和 512 字节的 GLB 生成同名 `.glb.br` 文件。`vite preview` 会根据浏览器的 `Accept-Encoding` 在原 `.glb` 地址返回相应版本。部署到其他静态服务器时，需为这些 GLB 配置相同的内容协商，压缩响应使用 `Content-Type: model/gltf-binary` 和 `Content-Encoding: br`，两个版本都使用 `Vary: Accept-Encoding`。由应用直接读取的其他 `.br` 资源应按原始字节提供。
+
 发布 Seed World 为灵光闪应用时，使用 `build:seed-world-flash-app`（输出根部直接含 `index.html` 的 `world/dist/seed-world-flash-app/`）与 `build:seed-world-flash-source`（输出可重建源码快照 `world/dist/seed-world-flash-source/`）；完整发布、上架与验收步骤见 [Seed World 灵光闪应用构建与发布指南](demos/seed-world/FLASH_APP_PUBLISH.md)。
 
 首次启动必须执行 `prepare:engine`；修改 shader 替换文件后需要重跑。缓存仅含 shader 编译输入/输出，不生成 Engine 或 Gallery 的副本。所有新包目前是 `private` workspace 源码包，使用显式子路径导出；尚未建设 npm 分发产物。
