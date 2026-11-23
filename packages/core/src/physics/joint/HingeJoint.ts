@@ -1,21 +1,19 @@
 import { IDynamicCollider, IHingeJoint } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine-math";
+import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
 import { Engine } from "../../Engine";
-import { Collider } from "../Collider";
+import { Entity } from "../../Entity";
 import { HingeJointFlag } from "../enums/HingeJointFlag";
+import { directionSnapshot, normalizeDirection, type ReadonlyDirection } from "../unitDirection";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
 import { JointMotor } from "./JointMotor";
-import { ignoreClone } from "../../clone/CloneDecorators";
-import { Entity } from "../../Entity";
 
 /**
  * A joint that allows rotation around one axis.
  */
 export class HingeJoint extends Joint {
-  private _axis = new Vector3(1, 0, 0);
-  @ignoreClone
-  private _lastValidAxis?: Vector3;
+  @assignmentClone
+  private _axis = directionSnapshot(1, 0, 0);
   private _hingeFlags = HingeJointFlag.None;
   private _useSpring = false;
   private _jointMotor: JointMotor | null = null;
@@ -26,17 +24,16 @@ export class HingeJoint extends Joint {
   private _velocity = 0;
 
   /**
-   * The mutable hinge axis in this Entity's local space.
-   * @remarks Edits normalize the vector. A zero value leaves the previous direction unchanged.
+   * A read-only snapshot of the unit hinge axis in this Entity's local space.
    * @defaultValue `(1, 0, 0)`
-   * @throws When the vector length is non-finite.
+   * @see {@link setAxis}
    */
-  get axis(): Vector3 {
+  get axis(): ReadonlyDirection {
     return this._axis;
   }
 
-  set axis(value: Vector3) {
-    value !== this._axis && this._setAxis(value);
+  set axis(value: ReadonlyDirection) {
+    this.setAxis(value);
   }
 
   /**
@@ -159,8 +156,23 @@ export class HingeJoint extends Joint {
     super(entity);
     this._onMotorChanged = this._onMotorChanged.bind(this);
     this._onLimitsChanged = this._onLimitsChanged.bind(this);
-    this._onAxisChanged = this._onAxisChanged.bind(this);
-    this._axis._onValueChanged = this._onAxisChanged;
+  }
+
+  /**
+   * Sets the hinge axis from a complete direction. A zero vector leaves the axis unchanged.
+   * @param value - The direction in this Entity's local space, normalized on assignment.
+   * @throws When the vector length is non-finite.
+   */
+  setAxis(value: ReadonlyDirection): void {
+    const axis = normalizeDirection(this._axis, value, "HingeJoint axis");
+    if (axis !== this._axis) {
+      this._axis = axis;
+      const nativeJoint = <IHingeJoint | null>this._nativeJoint;
+      if (nativeJoint) {
+        nativeJoint.setAxis(axis);
+        this._wakeBodies();
+      }
+    }
   }
 
   /** @internal */
@@ -183,7 +195,6 @@ export class HingeJoint extends Joint {
   }
 
   protected override _onDestroy(): void {
-    this._axis._onValueChanged = null;
     super._onDestroy();
     this._jointMotor?._updateFlagManager.removeListener(this._onMotorChanged);
     this._limits?._updateFlagManager.removeListener(this._onLimitsChanged);
@@ -240,23 +251,6 @@ export class HingeJoint extends Joint {
         (<IHingeJoint>this._nativeJoint).setHardLimit(limits.min, limits.max, limits.contactDistance);
       }
       this._wakeBodies();
-    }
-  }
-
-  @ignoreClone
-  private _onAxisChanged(): void {
-    this._setAxis(this._axis);
-  }
-
-  private _setAxis(value: Vector3): void {
-    const axis = this._axis;
-    if (Collider._syncUnitVector(axis, value, this._lastValidAxis, 1, 0, 0, "HingeJoint axis must be finite.")) {
-      (this._lastValidAxis ||= new Vector3()).copyFrom(axis);
-      const nativeJoint = <IHingeJoint | null>this._nativeJoint;
-      if (nativeJoint) {
-        nativeJoint.setAxis(axis);
-        this._wakeBodies();
-      }
     }
   }
 }

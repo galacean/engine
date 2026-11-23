@@ -1,12 +1,12 @@
 import { ICharacterController, IPhysicsMaterial } from "@galacean/engine-design";
 import { MathUtil, Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../clone/CloneDecorators";
+import { assignmentClone, ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
-import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
+import { directionSnapshot, normalizeDirection, type ReadonlyDirection } from "./unitDirection";
 
 /**
  * A capsule that moves and slides along obstacles through {@link move}.
@@ -21,9 +21,8 @@ export class CharacterController extends Collider {
   private _height = 2;
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
-  private _upDirection = new Vector3(0, 1, 0);
-  @ignoreClone
-  private _lastValidUpDirection?: Vector3;
+  @assignmentClone
+  private _upDirection = directionSnapshot(0, 1, 0);
   private _slopeLimit = 45;
 
   @ignoreClone
@@ -125,17 +124,16 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The mutable up direction in world space.
+   * A read-only snapshot of the unit up direction in world space.
    * @defaultValue `(0, 1, 0)`
-   * @remarks Assigning or mutating the vector normalizes nonzero values. A zero value retains the previous direction.
-   * @throws When the vector length is non-finite.
+   * @see {@link setUpDirection}
    */
-  get upDirection(): Vector3 {
+  get upDirection(): ReadonlyDirection {
     return this._upDirection;
   }
 
-  set upDirection(value: Vector3) {
-    if (value !== this._upDirection) this._applyUpDirection(value);
+  set upDirection(value: ReadonlyDirection) {
+    this.setUpDirection(value);
   }
 
   /**
@@ -159,12 +157,16 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * @internal
+   * Sets the controller's up direction from a complete vector. A zero vector leaves the direction unchanged.
+   * @param value - The direction in world space, normalized on assignment.
+   * @throws When the vector length is non-finite.
    */
-  constructor(entity: Entity) {
-    super(entity);
-    this._onUpDirectionChanged = this._onUpDirectionChanged.bind(this);
-    this._upDirection._onValueChanged = this._onUpDirectionChanged;
+  setUpDirection(value: ReadonlyDirection): void {
+    const up = normalizeDirection(this._upDirection, value, "CharacterController upDirection");
+    if (up !== this._upDirection) {
+      this._upDirection = up;
+      this._controller?.setUpDirection(up);
+    }
   }
 
   /**
@@ -329,37 +331,8 @@ export class CharacterController extends Collider {
     return null;
   }
 
-  /** @internal */
-  protected override _onDestroy(): void {
-    this._upDirection._onValueChanged = null;
-    super._onDestroy();
-  }
-
   private _setGeometryDirty(): void {
     this._geometryDirty = true;
     this._markDirty();
-  }
-
-  @ignoreClone
-  private _onUpDirectionChanged(): void {
-    this._applyUpDirection(this._upDirection);
-  }
-
-  private _applyUpDirection(value: Vector3): void {
-    const up = this._upDirection;
-    if (
-      Collider._syncUnitVector(
-        up,
-        value,
-        this._lastValidUpDirection,
-        0,
-        1,
-        0,
-        "CharacterController upDirection must be finite."
-      )
-    ) {
-      (this._lastValidUpDirection ||= new Vector3()).copyFrom(up);
-      this._controller?.setUpDirection(up);
-    }
   }
 }

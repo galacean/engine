@@ -154,7 +154,7 @@ describe("CharacterController", () => {
     expect(move(new Vector3(0, 0, 1)) & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
     controller.upDirection = new Vector3(0, -1, 0);
     expect(move(new Vector3(0, 0, 1)) & ControllerCollisionFlag.Up).toBe(ControllerCollisionFlag.Up);
-    controller.upDirection.set(0, 1, 0);
+    controller.setUpDirection({ x: 0, y: 1, z: 0 });
     // Move down first so the controller has a ground contact for the sideways probe.
     expect(move(new Vector3(0, -0.1, 0)) & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
   });
@@ -362,7 +362,7 @@ describe("CharacterController", () => {
     const copy = clone.getComponent(CharacterController);
     expect(copy).not.toBe(controller);
     expect(copy.center).not.toBe(controller.center);
-    expect(copy.upDirection).not.toBe(controller.upDirection);
+    expect(copy.upDirection).toEqual(controller.upDirection);
     expect(copy.contactOffset).toBe(0.1);
     expect(copy.radius).toBe(0.2);
     expect(copy.height).toBe(1.4);
@@ -432,13 +432,11 @@ describe("CharacterController", () => {
     expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer3)).toBe(false);
   });
 
-  it("normalizes upDirection and retains the default direction when cleared in place", () => {
-    controller.upDirection.set(0, 2, 0);
-    expect(controller.upDirection.x).toBeCloseTo(0, 5);
-    expect(controller.upDirection.y).toBeCloseTo(1, 5);
-    expect(controller.upDirection.z).toBeCloseTo(0, 5);
+  it("normalizes upDirection and retains it on a zero vector assignment", () => {
+    controller.setUpDirection({ x: 0, y: 2, z: 0 });
+    expect(controller.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
 
-    controller.upDirection.set(0, 0, 0);
+    controller.setUpDirection({ x: 0, y: 0, z: 0 });
     expect(controller.upDirection.y).toBe(1);
 
     role.transform.setPosition(0, 3, 0);
@@ -483,12 +481,12 @@ describe("CharacterController", () => {
     expect(move(new Vector3(1, 0, 0))).toBe(0);
   });
 
-  it("detaches the live direction vector when the controller is destroyed", () => {
+  it("returns a read-only up direction snapshot", () => {
     const { upDirection } = controller;
-    controller.destroy();
-
-    upDirection.y = 2;
-    expect(upDirection.y).toBe(2);
+    expect(() => Reflect.set(upDirection, "y", 2)).toThrow(TypeError);
+    controller.upDirection = new Vector3(1, 0, 0);
+    expect(upDirection.y).toBe(1);
+    expect(controller.upDirection.x).toBe(1);
   });
 
   it("updates scene queries immediately when teleported via entity transform or center", () => {
@@ -664,7 +662,6 @@ describe("CharacterController", () => {
       for (const invalid of [new Vector3(NaN, 1, 1), new Vector3(1, Infinity, 1), new Vector3(1, 1, -Infinity)]) {
         expect(() => (controller.upDirection = invalid)).toThrow();
       }
-      expect(() => (controller.upDirection.y = NaN)).toThrow();
       expect(controller.upDirection.y).toBeCloseTo(1, 5);
 
       // A zero assignment keeps the last valid up direction in both the component and PhysX.
@@ -738,10 +735,9 @@ describe("CharacterController", () => {
       expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
 
       const up = cc.upDirection;
-      up.set(2, 0, 0);
-      expect([up.x, up.y, up.z]).toEqual([1, 0, 0]);
-      up.set(0, 0, 0);
-      expect([up.x, up.y, up.z]).toEqual([1, 0, 0]);
+      cc.setUpDirection({ x: 2, y: 0, z: 0 });
+      cc.setUpDirection({ x: 0, y: 0, z: 0 });
+      expect(cc.upDirection).toBe(up);
 
       // Stepping checks that the queued kinematic target matches the immediate pose.
       physics._update(physics.fixedTimeStep);
@@ -751,16 +747,16 @@ describe("CharacterController", () => {
 
       const clone = entity.clone();
       try {
-        const cloneUp = clone.getComponent(CharacterController).upDirection;
-        cloneUp.set(0, 0, 0);
-        expect([cloneUp.x, cloneUp.y, cloneUp.z]).toEqual([1, 0, 0]);
+        const clonedController = clone.getComponent(CharacterController);
+        expect(clonedController.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
+        clonedController.setUpDirection({ x: 0, y: 1, z: 0 });
+        expect(cc.upDirection.x).toBe(1);
       } finally {
         clone.destroy();
       }
 
-      // In-place NaN throws and restores prior valid upDirection (1, 0, 0) in JS and native
-      expect(() => (cc.upDirection.x = NaN)).toThrow();
-      expect([cc.upDirection.x, cc.upDirection.y, cc.upDirection.z]).toEqual([1, 0, 0]);
+      expect(() => cc.setUpDirection({ x: NaN, y: 0, z: 0 })).toThrow();
+      expect(cc.upDirection).toBe(up);
       expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
       expect(hit.collider).toBe(cc);
       expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
@@ -880,7 +876,7 @@ describe("CharacterController", () => {
       }
     });
 
-    it("throws on non-finite upDirection assignment or in-place mutation while preserving the prior native orientation", () => {
+    it("rejects invalid whole-vector assignments while preserving the prior native orientation", () => {
       const entity = root.createChild("nan-up-cct");
       entity.transform.setPosition(0, 0, 0);
       const cc = entity.addComponent(CharacterController);
@@ -890,8 +886,6 @@ describe("CharacterController", () => {
       cc.upDirection = new Vector3(1, 0, 0);
 
       expect(() => (cc.upDirection = new Vector3(Number.NaN, 0, 0))).toThrow();
-      expect([cc.upDirection.x, cc.upDirection.y, cc.upDirection.z]).toEqual([1, 0, 0]);
-      expect(() => (cc.upDirection.x = Number.NaN)).toThrow();
       expect([cc.upDirection.x, cc.upDirection.y, cc.upDirection.z]).toEqual([1, 0, 0]);
 
       const hit = new HitResult();

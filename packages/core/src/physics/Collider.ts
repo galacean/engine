@@ -61,53 +61,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return a !== b && Math.fround(a) !== Math.fround(b);
   }
 
-  /**
-   * @internal
-   * Normalize a unit direction vector in place, restoring its prior valid direction on invalid input.
-   * @returns Whether the resulting direction changed relative to the previous valid value.
-   */
-  static _syncUnitVector(
-    target: Vector3,
-    source: Vector3,
-    lastValid: Vector3 | undefined,
-    defaultX: number,
-    defaultY: number,
-    defaultZ: number,
-    errorMessage: string
-  ): boolean {
-    const prevX = lastValid?.x ?? defaultX;
-    const prevY = lastValid?.y ?? defaultY;
-    const prevZ = lastValid?.z ?? defaultZ;
-    let { x, y, z } = source;
-    const length = Math.hypot(x, y, z);
-    const finite = Number.isFinite(length);
-    if (!finite || length === 0) {
-      if (source === target) {
-        Collider._writeVectorUnchecked(target, prevX, prevY, prevZ);
-      }
-      if (!finite) {
-        throw new Error(errorMessage);
-      }
-      return false;
-    }
-    x /= length;
-    y /= length;
-    z /= length;
-    Collider._writeVectorUnchecked(target, x, y, z);
-    return x !== prevX || y !== prevY || z !== prevZ;
-  }
-
-  private static _writeVectorUnchecked(target: Vector3, x: number, y: number, z: number): void {
-    if (target.x === x && target.y === y && target.z === z) return;
-    //@ts-ignore
-    const listener = target._onValueChanged;
-    //@ts-ignore
-    target._onValueChanged = null;
-    target.set(x, y, z);
-    //@ts-ignore
-    target._onValueChanged = listener;
-  }
-
   /** @internal */
   @ignoreClone
   _id: number;

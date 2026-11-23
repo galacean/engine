@@ -88,7 +88,7 @@ describe("HingeJoint", function () {
     joint.automaticConnectedAnchor = true;
     joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
-    joint.axis.set(0, 1, 0);
+    joint.setAxis({ x: 0, y: 1, z: 0 });
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
@@ -464,9 +464,7 @@ describe("HingeJoint", function () {
     expect(posVelX * negVelX).toBeLessThan(0);
     expect(Math.abs(negVelX)).toBeCloseTo(Math.abs(posVelX), 3);
 
-    negJoint.axis.x = 0;
-    expect(negJoint.axis.x).toBe(-1);
-    negJoint.axis.set(0, 0, 1);
+    negJoint.setAxis({ x: 0, y: 0, z: 1 });
     expect(negJoint.axis.z).toBeCloseTo(1, 5);
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(Number.isFinite(negBox.getComponent(Rigidbody).angularVelocity.z)).toBe(true);
@@ -636,11 +634,11 @@ describe("HingeJoint", function () {
     expect(body.isSleeping()).toBe(false);
 
     body.sleep();
-    joint.axis.set(0, 1, 0);
+    joint.setAxis({ x: 0, y: 1, z: 0 });
     expect(body.isSleeping()).toBe(false);
   });
 
-  it("validates HingeJoint.axis and keeps rotation sync working after pre-enable zero axis", function () {
+  it("commits complete hinge directions and preserves the axis across reactivation", function () {
     engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
     const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const joint = box.addComponent(HingeJoint);
@@ -648,21 +646,21 @@ describe("HingeJoint", function () {
     for (const invalid of [new Vector3(NaN, 1, 0), new Vector3(Infinity, 0, 0), new Vector3(0, -Infinity, 0)]) {
       expect(() => (joint.axis = invalid)).toThrow();
     }
-    // Zero edits retain the last valid direction.
-    joint.axis = new Vector3(0, 1, 0);
-    joint.axis = new Vector3(0, 0, 0);
-    joint.axis.set(0, 0, 0);
-    expect(joint.axis.y).toBeCloseTo(1, 5);
+    joint.setAxis({ x: 0, y: 2, z: 0 });
+    const axis = joint.axis;
+    joint.setAxis({ x: 0, y: 0, z: 0 });
+    expect(joint.axis).toBe(axis);
+    expect(joint.axis).toMatchObject({ x: 0, y: 1, z: 0 });
 
-    // Invalid in-place edits leave the component and PhysX in sync even after re-creation.
+    // Recreating the native joint uses the last committed direction.
     const body = box.getComponent(Rigidbody)!;
     const motor = new JointMotor();
     motor.targetVelocity = 5;
     motor.forceLimit = 500;
     joint.motor = motor;
     joint.useMotor = true;
-    expect(() => (joint.axis.x = NaN)).toThrow();
-    expect(joint.axis).deep.include({ x: 0, y: 1, z: 0 });
+    expect(() => joint.setAxis({ x: NaN, y: 0, z: 0 })).toThrow();
+    expect(joint.axis).toBe(axis);
     joint.enabled = false;
     joint.enabled = true;
     engine.sceneManager.activeScene.physics._update(0.2);
@@ -674,7 +672,7 @@ describe("HingeJoint", function () {
     expect(() => (joint.axis = new Vector3(1.5e308, 1.5e308, 0))).toThrow();
     expect(joint.axis.y).toBeCloseTo(1, 5);
 
-    // Set the connected pose before enabling to exercise axis recovery during joint creation.
+    // Set the connected pose and direction before the native joint is created.
     const anchor = addBox(new Vector3(1, 1, 1), new Vector3(5, 8, 0));
     anchor.transform.setRotation(0, 90, 0);
     anchor.getComponent(Rigidbody)!.isKinematic = true;
@@ -682,8 +680,8 @@ describe("HingeJoint", function () {
     const child = addBox(new Vector3(1, 1, 1), new Vector3(5, 5, 0));
     child.isActive = false;
     const childJoint = child.addComponent(HingeJoint);
-    childJoint.axis.set(0, 0, 1);
-    childJoint.axis.set(0, 0, 0);
+    childJoint.setAxis({ x: 0, y: 0, z: 1 });
+    childJoint.setAxis({ x: 0, y: 0, z: 0 });
     expect(childJoint.axis.z).toBe(1);
     childJoint.connectedBody = anchor.getComponent(Rigidbody)!;
     child.isActive = true;
