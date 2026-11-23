@@ -1,12 +1,20 @@
 import {
+  AmbientLight,
   BlendShape,
   Buffer,
   BufferBindFlag,
   BufferUsage,
+  Font,
+  FontStyle,
   Material,
   ModelMesh,
+  PBRMaterial,
   ReferResource,
+  Sprite,
+  SpriteAtlas,
+  SpriteRenderer,
   Texture2D,
+  TextureCube,
   VertexBufferBinding,
   VertexElement,
   VertexElementFormat
@@ -281,5 +289,160 @@ describe("ReferResource", () => {
     mesh.isGCIgnored = false;
     mesh.destroy(true);
     positionBuffer.destroy(true);
+  });
+
+  it("roots Material isGCIgnored textures (including in-place texture arrays) during gc() without blocking manual destroy", () => {
+    const texBase = new Texture2D(engine, 4, 4);
+    const texA = new Texture2D(engine, 4, 4);
+    const mat = new PBRMaterial(engine);
+    const texArray = [texA];
+    mat.baseTexture = texBase;
+    mat.shaderData.setTextureArray("u_TestTextures", texArray);
+    mat.isGCIgnored = true;
+
+    engine.resourceManager.gc();
+    expect(mat.destroyed).eq(false);
+    expect(texBase.destroyed).eq(false);
+    expect(texA.destroyed).eq(false);
+    expect(mat.refCount).eq(0);
+    expect(texBase.refCount).eq(0);
+
+    // Mutating the same array in place and re-setting must follow the current array contents on gc()
+    const texB = new Texture2D(engine, 4, 4);
+    texArray[0] = texB;
+    mat.shaderData.setTextureArray("u_TestTextures", texArray);
+    engine.resourceManager.gc();
+    expect(texA.destroyed).eq(true);
+    expect(texB.destroyed).eq(false);
+
+    // Unpinned unused material does not block direct manual texture.destroy()
+    mat.isGCIgnored = false;
+    expect(texBase.destroy()).eq(true);
+    expect(texBase.destroyed).eq(true);
+
+    engine.resourceManager.gc();
+    expect(mat.destroyed).eq(true);
+    expect(texB.destroyed).eq(true);
+  });
+
+  it("retains Sprite and AmbientLight textures when referenced or pinned and releases cleanly", () => {
+    const scene = engine.sceneManager.activeScene!;
+    const entity = scene.createRootEntity("sprite-gc-test");
+    const renderer = entity.addComponent(SpriteRenderer);
+    const activeTex = new Texture2D(engine, 4, 4);
+    const activeSprite = new Sprite(engine, activeTex);
+    renderer.sprite = activeSprite;
+
+    // Active SpriteRenderer must keep Sprite.texture alive across gc()
+    expect(activeTex.refCount).to.be.greaterThan(0);
+    engine.resourceManager.gc();
+    expect(activeSprite.destroyed).eq(false);
+    expect(activeTex.destroyed).eq(false);
+
+    entity.destroy();
+    expect(activeTex.refCount).eq(0);
+    engine.resourceManager.gc();
+    expect(activeSprite.destroyed).eq(true);
+    expect(activeTex.destroyed).eq(true);
+
+    // Pinned off-scene Sprite retains texture and follows texture swaps
+    const tex1 = new Texture2D(engine, 4, 4);
+    const sprite = new Sprite(engine, tex1);
+    sprite.isGCIgnored = true;
+
+    engine.resourceManager.gc();
+    expect(sprite.destroyed).eq(false);
+    expect(tex1.destroyed).eq(false);
+
+    const tex2 = new Texture2D(engine, 4, 4);
+    sprite.texture = tex2;
+    engine.resourceManager.gc();
+    expect(tex1.destroyed).eq(true);
+    expect(tex2.destroyed).eq(false);
+
+    sprite.isGCIgnored = false;
+    engine.resourceManager.gc();
+    expect(sprite.destroyed).eq(true);
+    expect(tex2.destroyed).eq(true);
+
+    // AmbientLight pinned off-scene retains specularTexture; clearing on active scene releases refCount
+    const cube1 = new TextureCube(engine, 4);
+    const ambient = new AmbientLight(engine);
+    ambient.specularTexture = cube1;
+    ambient.isGCIgnored = true;
+    engine.resourceManager.gc();
+    expect(ambient.destroyed).eq(false);
+    expect(cube1.destroyed).eq(false);
+
+    ambient.isGCIgnored = false;
+    const prevAmbient = scene.ambientLight;
+    scene.ambientLight = ambient;
+    expect(cube1.refCount).to.be.greaterThan(0);
+
+    ambient.specularTexture = null;
+    expect(cube1.refCount).eq(0);
+    engine.resourceManager.gc();
+    expect(cube1.destroyed).eq(true);
+
+    scene.ambientLight = prevAmbient;
+    engine.resourceManager.gc();
+    expect(ambient.destroyed).eq(true);
+  });
+
+  it("collects unreferenced Font together with its internal isGCIgnored FontAtlas texture during gc()", () => {
+    const font = Font.createFromOS(engine, "GCFontAtlasTest")!;
+    const subFont = font._getSubFont(16, FontStyle.None);
+    (subFont as any)._createFontAtlas();
+    const fontAtlas = (subFont as any)._fontAtlases[0];
+    const atlasTexture = fontAtlas.texture as Texture2D;
+
+    expect(fontAtlas.isGCIgnored).eq(true);
+    expect(atlasTexture.isGCIgnored).eq(true);
+
+    engine.resourceManager.gc();
+    expect(font.destroyed).eq(true);
+    expect(fontAtlas.destroyed).eq(true);
+    expect(atlasTexture.destroyed).eq(true);
+  });
+
+  it("retains multi-page SpriteAtlas sprites and textures without hijacking isGCIgnored", () => {
+    const page0 = new Texture2D(engine, 4, 4);
+    const page1 = new Texture2D(engine, 4, 4);
+    const atlas = new SpriteAtlas(engine);
+    const sprite0 = new Sprite(engine, page0, null, null, null, "s0");
+    const sprite1 = new Sprite(engine, page1, null, null, null, "s1");
+    page0._associationSuperResource(atlas);
+    page1._associationSuperResource(atlas);
+    atlas._addSprite(sprite0);
+    atlas._addSprite(sprite1);
+
+    expect(sprite0.isGCIgnored).eq(false);
+    expect(sprite1.isGCIgnored).eq(false);
+
+    // Pinning one sprite keeps the atlas, sibling sprites, and all page textures alive across gc()
+    sprite0.isGCIgnored = true;
+    engine.resourceManager.gc();
+    expect(atlas.destroyed).eq(false);
+    expect(sprite0.destroyed).eq(false);
+    expect(sprite1.destroyed).eq(false);
+    expect(page0.destroyed).eq(false);
+    expect(page1.destroyed).eq(false);
+
+    // Destroying atlas detaches pinned sprite0 (kept with page0) and destroys unpinned sprite1
+    atlas.destroy();
+    expect(atlas.destroyed).eq(true);
+    expect(sprite0.destroyed).eq(false);
+    expect(sprite0._atlas).eq(null);
+    expect(sprite1.destroyed).eq(true);
+
+    engine.resourceManager.gc();
+    expect(sprite0.destroyed).eq(false);
+    expect(page0.destroyed).eq(false);
+    expect(page1.destroyed).eq(true);
+
+    sprite0.isGCIgnored = false;
+    engine.resourceManager.gc();
+    expect(sprite0.destroyed).eq(true);
+    expect(page0.destroyed).eq(true);
   });
 });

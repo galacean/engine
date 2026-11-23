@@ -94,6 +94,20 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   /**
    * @internal
    */
+  _hasActiveSuperResource(): boolean {
+    if (this._superResources) {
+      for (const superResource of this._superResources) {
+        if (superResource._refCount > 0 || superResource.isGCIgnored || superResource._hasActiveSuperResource()) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._engine.resourceManager._deleteReferResource(this);
@@ -105,17 +119,6 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     this._subResources = null;
     this._superResources?.forEach((superResource) => superResource._subResources?.delete(this));
     this._superResources = null;
-  }
-
-  private _hasActiveSuperResource(): boolean {
-    if (this._superResources) {
-      for (const superResource of this._superResources) {
-        if (superResource._refCount > 0 || superResource.isGCIgnored || superResource._hasActiveSuperResource()) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 }
 

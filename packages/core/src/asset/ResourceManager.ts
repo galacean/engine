@@ -478,11 +478,43 @@ export class ResourceManager {
 
   private _gc(forceDestroy: boolean): void {
     const objects = <ReferResource[]>Utils.objectValues(this._referResourcePool);
+    if (forceDestroy) {
+      for (let i = 0, n = objects.length; i < n; i++) {
+        objects[i].destroy(true, true);
+      }
+      return;
+    }
+
+    // Temporarily root GC-ignored and super-retained zero-ref resources through existing _addReferCount chains
+    const pinned: ReferResource[] = [];
+    let added: boolean;
+    do {
+      added = false;
+      for (let i = 0, n = objects.length; i < n; i++) {
+        const object = objects[i];
+        if (object._getReferCount() === 0 && (object.isGCIgnored || object._hasActiveSuperResource())) {
+          pinned.push(object);
+          object._addReferCount(1);
+          added = true;
+        }
+      }
+    } while (added);
+
+    const garbage: ReferResource[] = [];
     for (let i = 0, n = objects.length; i < n; i++) {
       const object = objects[i];
-      if (!object.isGCIgnored || forceDestroy) {
-        object.destroy(forceDestroy, true);
+      if (object._getReferCount() === 0) {
+        garbage.push(object);
       }
+    }
+
+    // Restore exact refCounts before running _onDestroy() hooks
+    for (let i = 0, n = pinned.length; i < n; i++) {
+      pinned[i]._addReferCount(-1);
+    }
+
+    for (let i = 0, n = garbage.length; i < n; i++) {
+      garbage[i].destroy(false, true);
     }
   }
 

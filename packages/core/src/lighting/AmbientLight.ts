@@ -107,12 +107,20 @@ export class AmbientLight extends ReferResource {
     return this._specularTexture;
   }
 
-  set specularTexture(value: TextureCube) {
-    this._specularTexture = value;
+  set specularTexture(value: TextureCube | null) {
+    const lastTexture = this._specularTexture;
+    if (lastTexture !== value) {
+      const refCount = this._getReferCount();
+      if (refCount > 0) {
+        lastTexture?._addReferCount(-refCount);
+        value?._addReferCount(refCount);
+      }
+      this._specularTexture = value!;
 
-    const scenes = this._scenes;
-    for (let i = 0, n = scenes.length; i < n; i++) {
-      this._setSpecularTexture(scenes[i].shaderData);
+      const scenes = this._scenes;
+      for (let i = 0, n = scenes.length; i < n; i++) {
+        this._setSpecularTexture(scenes[i].shaderData);
+      }
     }
   }
 
@@ -160,8 +168,25 @@ export class AmbientLight extends ReferResource {
     shaderData.disableMacro(AmbientLight._specularMacro);
   }
 
+  /**
+   * @internal
+   */
+  override _addReferCount(value: number): void {
+    super._addReferCount(value);
+    this._specularTexture?._addReferCount(value);
+  }
+
   constructor(engine: Engine) {
     super(engine);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this._specularTexture = null!;
+    this._scenes.length = 0;
   }
 
   private _setDiffuseMode(sceneShaderData: ShaderData): void {
@@ -178,6 +203,7 @@ export class AmbientLight extends ReferResource {
       sceneShaderData.setFloat(AmbientLight._mipLevelProperty, this._specularTexture.mipmapCount - 1);
       sceneShaderData.enableMacro(AmbientLight._specularMacro);
     } else {
+      sceneShaderData.setTexture(AmbientLight._specularTextureProperty, null);
       sceneShaderData.disableMacro(AmbientLight._specularMacro);
     }
   }
