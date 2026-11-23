@@ -105,13 +105,10 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   set automaticConnectedAnchor(value: boolean) {
-    if (value) {
-      this._automaticConnectedAnchor = true;
-      this._calculateConnectedAnchor();
-    } else if (this._automaticConnectedAnchor) {
-      this._automaticConnectedAnchor = false;
-      if (this._connectedAnchorAuthored) this._updateActualAnchor(AnchorOwner.Connected);
-    }
+    if (!value && !this._automaticConnectedAnchor) return;
+    this._automaticConnectedAnchor = value;
+    if (value) this._calculateConnectedAnchor();
+    else if (this._connectedAnchorAuthored) this._updateActualAnchor(AnchorOwner.Connected);
   }
 
   /**
