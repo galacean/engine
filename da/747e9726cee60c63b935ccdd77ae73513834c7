@@ -1,0 +1,19 @@
+packages/core/src/physics/MeshCollider.ts
+  s_31a37b5e302225::t_c8207b6749c9a4 56,131,238-245
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "da747e9726cee60c63b935ccdd77ae73513834c7",
+  "prompts": {},
+  "sessions": {
+    "s_31a37b5e302225": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a208a0-deef-7270-91bc-db24e62911c6",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
