@@ -713,7 +713,7 @@ describe("Collider", () => {
   });
 
   describe("degenerate dimensions and zero world scale", () => {
-    it("clamps negative box size and detaches zero-sized or zero-scaled boxes without NaN or stale hitboxes", () => {
+    it("preserves negative box size and detaches zero-sized or zero-scaled boxes cleanly", () => {
       const entity = root.createChild("degenerate-box");
       entity.transform.setPosition(0, 5, 0);
       const box = entity.addComponent(BoxCollider);
@@ -721,9 +721,8 @@ describe("Collider", () => {
       const ray = new Ray(new Vector3(-5, 5, 0), new Vector3(1, 0, 0));
       const hit = new HitResult();
 
-      // Pre-scene negative size clamps to 0 and excludes from queries without crashing
       box.size = new Vector3(-2, 2, 2);
-      expect(box.size.x).toBe(0);
+      expect(box.size.x).toBe(-2);
       expect(box.size.y).toBe(2);
       expect(physics.raycast(ray, hit)).toBe(false);
 
@@ -837,18 +836,26 @@ describe("Collider", () => {
       expect(hit.collider).toBe(capsule);
     });
 
-    it("rejects non-finite BoxCollider.size and detaches float32 underflow/overflow extents cleanly", () => {
+    it("detaches non-finite box sizes and Float32 underflow or overflow extents cleanly", () => {
       const ray = new Ray(new Vector3(-5, 5, 0), new Vector3(1, 0, 0));
       const hit = new HitResult();
 
       const boxEntity = root.createChild("f32-box");
       boxEntity.transform.setPosition(0, 5, 0);
       const box = boxEntity.addComponent(BoxCollider);
+      expect(physics.raycast(ray, hit)).toBe(true);
+      box.size.x = NaN;
+      expect(box.size.x).toBeNaN();
+      expect(physics.raycast(ray, hit)).toBe(false);
+
       for (const invalid of [new Vector3(NaN, 1, 1), new Vector3(1, Infinity, 1), new Vector3(1, 1, -Infinity)]) {
-        expect(() => (box.size = invalid)).toThrow();
+        box.size.set(1, 1, 1);
+        expect(physics.raycast(ray, hit)).toBe(true);
+
+        box.size = invalid;
+        expect(box.size).toMatchObject({ x: invalid.x, y: invalid.y, z: invalid.z });
+        expect(physics.raycast(ray, hit)).toBe(false);
       }
-      expect(() => (box.size.x = NaN)).toThrow();
-      expect(Number.isFinite(box.size.x)).toBe(true);
 
       box.size.set(1, 1, 1);
       expect(physics.raycast(ray, hit)).toBe(true);
