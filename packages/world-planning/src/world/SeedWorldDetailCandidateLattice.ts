@@ -229,7 +229,7 @@ export function sampleSeedWorldDetailOwner(
  */
 export function sampleDensityOwner(
   density: Uint8Array | SeedWorldDetailDensityField,
-  owners: Uint32Array,
+  owners: Uint8Array | Uint16Array | Uint32Array,
   resolution: number,
   x: number,
   z: number
@@ -286,6 +286,27 @@ export function createSeedWorldDetailHeightSamplerInto(
   if (!heights) return;
   const n = field.resolution,
     data = heights.samples;
+  if (data instanceof Uint16Array) {
+    const encodeScale = heights.encodeScale!;
+    const lowerMult = heights.lowerMultiplier ?? 1;
+    return (sample) => {
+      const x = clamp(sample[0]! / worldSizeMetres, 0, 1) * (n - 1),
+        z = clamp(sample[1]! / worldSizeMetres, 0, 1) * (n - 1);
+      const x0 = Math.floor(x),
+        z0 = Math.floor(z),
+        x1 = Math.min(n - 1, x0 + 1),
+        z1 = Math.min(n - 1, z0 + 1),
+        fx = x - x0,
+        fz = z - z0;
+      const a = (data[z0 * n + x0]! / 65535) * encodeScale,
+        b = (data[z0 * n + x1]! / 65535) * encodeScale,
+        c = (data[z1 * n + x0]! / 65535) * encodeScale,
+        d = (data[z1 * n + x1]! / 65535) * encodeScale;
+      const hi = (a * (1 - fx) + b * fx) * (1 - fz) + (c * (1 - fx) + d * fx) * fz;
+      sample[2] = hi * lowerMult;
+      sample[3] = hi;
+    };
+  }
   return (sample) => {
     const x = clamp(sample[0]! / worldSizeMetres, 0, 1) * (n - 1),
       z = clamp(sample[1]! / worldSizeMetres, 0, 1) * (n - 1);
@@ -325,6 +346,16 @@ export function sampleSeedWorldDetailHeight(
     z1 = Math.min(n - 1, z0 + 1),
     fx = x - x0,
     fz = z - z0;
+  if (heights.samples instanceof Uint16Array) {
+    const data = heights.samples;
+    const encodeScale = heights.encodeScale!;
+    const lowerMult = heights.lowerMultiplier ?? 1;
+    const atHi = (ix: number, iz: number) => (data[iz * n + ix]! / 65535) * encodeScale;
+    const hi =
+      (atHi(x0, z0) * (1 - fx) + atHi(x1, z0) * fx) * (1 - fz) + (atHi(x0, z1) * (1 - fx) + atHi(x1, z1) * fx) * fz;
+    const lo = hi * lowerMult;
+    return lo * (1 - variation) + hi * variation;
+  }
   const at = (ix: number, iz: number) => {
     const offset = (iz * n + ix) * 2;
     return heights.samples[offset] * (1 - variation) + heights.samples[offset + 1] * variation;

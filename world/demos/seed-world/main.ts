@@ -2,7 +2,11 @@ import "./src/installInsecureContextCryptoFallback.ts";
 import type { PlanningWorldHandoff } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
 import { planningStartupSeed, selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupSeed.ts";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
-import { planningPageUrl } from "./src/planning/spatial/PlanningPageUrl.ts";
+import {
+  appendPreservedDiagParams,
+  capturePreservedDiagParams,
+  planningPageUrl
+} from "./src/planning/spatial/PlanningPageUrl.ts";
 import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
 
 /** The planning preview and native Seed page have independent renderer lifetimes. */
@@ -106,12 +110,14 @@ async function start(): Promise<void> {
         const page = planningPageUrl();
         const url = page.url;
         const panel = url.searchParams.get("panel") === "1";
+        const preserved = capturePreservedDiagParams(url.searchParams);
         url.search = "";
         url.searchParams.set("seed", String(plan.parameters.seed));
         url.searchParams.set("debug", "1");
         url.searchParams.set("view", "3d");
         if (panel) url.searchParams.set("panel", "1");
         url.searchParams.set("template", plan.parameters.worldTemplate?.id ?? "original");
+        appendPreservedDiagParams(url.searchParams, preserved);
         if (page.canReplaceHistory) history.replaceState(null, "", url);
         else {
           const source = document.querySelector<HTMLMetaElement>('meta[name="flash-app-html-url"]');

@@ -188,13 +188,22 @@ function freezeSnapshot<T>(value: T): T {
 
 const EFFECTIVE_CACHE = new WeakMap<object, OceanWaterBodyDescriptorV1>();
 
+function clonePreservingTypedArrays(value: unknown): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return value;
+  if (Array.isArray(value)) return value.map((item) => clonePreservingTypedArrays(item));
+  const proto = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) return structuredClone(value);
+  const copy: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    copy[k] = clonePreservingTypedArrays(v);
+  }
+  return copy;
+}
+
 function cloneNearshoreDescriptorPreservingTypedArrays<T extends Record<string, any> | undefined>(descriptor: T): T {
   if (!descriptor) return descriptor;
-  const copy: Record<string, any> = {};
-  for (const [k, v] of Object.entries(descriptor)) {
-    copy[k] = ArrayBuffer.isView(v) || v instanceof ArrayBuffer ? v : structuredClone(v);
-  }
-  return copy as T;
+  return clonePreservingTypedArrays(descriptor) as T;
 }
 
 export function createEffectiveOceanWaterBodyDescriptor(value: unknown): OceanWaterBodyDescriptorV1 {

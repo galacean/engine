@@ -6927,13 +6927,21 @@ function validateDetailCompactionInputs(
     prototypeFamilies.add(field.prototypeFamily);
     const heights = field.heightRangeMetres;
     if (heights) {
+      const compact = heights.samples instanceof Uint16Array;
       if (
         field.category !== "grass" ||
-        heights.samples.length !== field.resolution ** 2 * 2 ||
+        heights.samples.length !== field.resolution ** 2 * (compact ? 1 : 2) ||
         !Number.isFinite(heights.minimum) ||
         !Number.isFinite(heights.maximum) ||
         heights.minimum <= 0 ||
-        heights.maximum < heights.minimum
+        heights.maximum < heights.minimum ||
+        (compact &&
+          (!Number.isFinite(heights.encodeScale) ||
+            heights.encodeScale! <= 0 ||
+            heights.lowerMultiplier === undefined ||
+            !Number.isFinite(heights.lowerMultiplier) ||
+            heights.lowerMultiplier <= 0 ||
+            heights.lowerMultiplier > 1))
       )
         throw new RangeError("Invalid grass ecology height field");
       // Occupancy derives only density from an accepted immutable source. Authoring and water inputs
@@ -6941,21 +6949,41 @@ function validateDetailCompactionInputs(
       const validated = validatedGroundCoverSource?.detailDensityFields.find(
         (source) => source.prototypeFamily === field.prototypeFamily
       );
-      if (validated?.heightRangeMetres !== heights)
-        for (let i = 0; i < heights.samples.length; i += 2) {
-          const low = heights.samples[i],
-            high = heights.samples[i + 1];
-          if (
-            !Number.isFinite(low) ||
-            !Number.isFinite(high) ||
-            low < heights.minimum ||
-            high < low ||
-            high > heights.maximum
-          )
-            throw new RangeError(
-              "Grass ecology height samples must be positive, ordered and inside the declared bounds"
-            );
+      if (validated?.heightRangeMetres !== heights) {
+        if (heights.samples instanceof Uint16Array) {
+          const encodeScale = heights.encodeScale!;
+          const lowerMult = heights.lowerMultiplier!;
+          for (let i = 0; i < heights.samples.length; i++) {
+            const high = (heights.samples[i]! / 65535) * encodeScale;
+            const low = high * lowerMult;
+            if (
+              !Number.isFinite(low) ||
+              !Number.isFinite(high) ||
+              low < heights.minimum ||
+              high < low ||
+              high > heights.maximum
+            )
+              throw new RangeError(
+                "Grass ecology height samples must be positive, ordered and inside the declared bounds"
+              );
+          }
+        } else {
+          for (let i = 0; i < heights.samples.length; i += 2) {
+            const low = heights.samples[i],
+              high = heights.samples[i + 1];
+            if (
+              !Number.isFinite(low) ||
+              !Number.isFinite(high) ||
+              low < heights.minimum ||
+              high < low ||
+              high > heights.maximum
+            )
+              throw new RangeError(
+                "Grass ecology height samples must be positive, ordered and inside the declared bounds"
+              );
+          }
         }
+      }
     }
     const profile = populationLayout.detailSpeciesProfiles.find((candidate) => candidate.key === field.prototypeFamily);
     if (!profile) throw new RangeError(`Seed World Detail profile '${field.prototypeFamily}' is unavailable`);

@@ -146,10 +146,16 @@ it("removes retired world-river settings from active and archived Seeds without 
   expect(loaded.passthrough.edits).toEqual({ "poi-small-0": { flowers: { coverage: 0.2 } } });
 });
 
-it("keeps the explicit debug page mode while removing encoded parameters", async () => {
+it("keeps the explicit debug page mode and diagnostic trace params while removing encoded parameters", async () => {
   expect(planningSeedURL("http://localhost/editor?debug=1&document=old&seed=1&version=2", 8)).toBe(
     "http://localhost/editor?seed=8&debug=1"
   );
+  expect(
+    planningSeedURL(
+      "http://localhost/editor?bootTrace=1&perfTour=1&debug=1&panel=1&template=original&document=old&seed=1&version=2",
+      8
+    )
+  ).toBe("http://localhost/editor?seed=8&debug=1&panel=1&template=original&bootTrace=1&perfTour=1");
 });
 
 it("stores planning data only in the project without browser-storage fallback", async () => {

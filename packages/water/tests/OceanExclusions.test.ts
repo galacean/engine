@@ -110,3 +110,14 @@ it("accepts positive sub-metre resolved native river widths", () => {
   };
   expect(() => compileWaterShape(river, bed, "narrow")).not.toThrow();
 });
+
+it("preserves nested wetSource.mask typed array without duplicating it across effective descriptor cache", async () => {
+  const { createEffectiveOceanWaterBodyDescriptor } = await import("../src/water/runtime/ocean/OceanWaterCompiledResource");
+  const compiled = compileWaterShape({ ...shape, boundaryConnected: true }, terrain, "ocean");
+  const raw = (compiled.source as any).descriptor;
+  const effective = createEffectiveOceanWaterBodyDescriptor(raw);
+  expect(effective.config.nearshoreDescriptor).not.toBe(raw.config.nearshoreDescriptor);
+  expect(effective.config.nearshoreDescriptor.bedHeights).toBe(raw.config.nearshoreDescriptor.bedHeights);
+  expect(effective.config.nearshoreDescriptor.wetSource).not.toBe(raw.config.nearshoreDescriptor.wetSource);
+  expect(effective.config.nearshoreDescriptor.wetSource.mask).toBe(raw.config.nearshoreDescriptor.wetSource.mask);
+});

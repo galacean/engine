@@ -24,11 +24,14 @@ export class UIBatchSorter {
   // Spatial-hash is fastest when cell size ≈ typical element size (one element per cell).
   // UI elements typically span ~10% of the canvas → 10×10 grid.
   private static readonly _gridDim = 10;
+  private static readonly _smallElementThreshold = 8;
 
   private static readonly _entries = new Array<SortEntry>();
   private static readonly _grid: GridCell[][] = [];
-  // Interleaved (x, y) cell coords touched in the previous frame
-  private static readonly _dirtyCells = new Array<number>();
+  private static readonly _cellCounts = new Int32Array(UIBatchSorter._gridDim * UIBatchSorter._gridDim);
+  // Flat (x * _gridDim + y) cell indices touched in the previous frame
+  private static readonly _dirtyCells = new Int32Array(UIBatchSorter._gridDim * UIBatchSorter._gridDim);
+  private static _dirtyCellCount = 0;
   private static readonly _localBoundsPool = new Array<BoundingBox>();
   private static readonly _worldToLocal = new Matrix();
 
@@ -41,14 +44,57 @@ export class UIBatchSorter {
     const count = elements.length;
     if (count <= 1) return;
 
-    const gridDim = this._gridDim;
     const entries = this._entries;
-    const grid = this._grid;
-    const dirtyCells = this._dirtyCells;
     const localBoundsPool = this._localBoundsPool;
     const worldToLocal = this._worldToLocal;
     Matrix.invert(canvasWorldMatrix, worldToLocal);
     while (entries.length < count) entries.push(new SortEntry());
+
+    if (count <= this._smallElementThreshold) {
+      for (let i = 0; i < count; i++) {
+        const element = elements[i];
+        const localBounds = (localBoundsPool[i] ||= new BoundingBox());
+        BoundingBox.transform(element.component.bounds, worldToLocal, localBounds);
+        const materialId = element.material.instanceId;
+        const textureId = element.texture ? element.texture.instanceId : 0;
+
+        let maxDepth = -1;
+        let maxDepthIncompatible = false;
+        for (let j = 0; j < i; j++) {
+          const other = entries[j];
+          if (!UIBatchSorter._rectOverlap(localBounds, other.bounds)) continue;
+          const otherDepth = other.depth;
+          const otherIncompatible = other.materialId !== materialId || other.textureId !== textureId;
+          if (otherDepth > maxDepth) {
+            maxDepth = otherDepth;
+            maxDepthIncompatible = otherIncompatible;
+          } else if (otherDepth === maxDepth && otherIncompatible) {
+            maxDepthIncompatible = true;
+          }
+        }
+
+        const entry = entries[i];
+        entry.element = element;
+        entry.hierarchyIndex = i;
+        entry.depth = maxDepth < 0 ? 0 : maxDepth + (maxDepthIncompatible ? 1 : 0);
+        entry.materialId = materialId;
+        entry.textureId = textureId;
+        entry.bounds = localBounds;
+      }
+
+      Utils._quickSort(entries, 0, count, UIBatchSorter._compareEntries);
+      for (let i = 0; i < count; i++) {
+        const entry = entries[i];
+        elements[i] = entry.element;
+        entry.element = null!;
+      }
+      return;
+    }
+
+    const gridDim = this._gridDim;
+    const grid = this._grid;
+    const cellCounts = this._cellCounts;
+    const dirtyCells = this._dirtyCells;
 
     // Allocate grid once, reuse forever (each cell must be a real [], not a sparse hole)
     if (grid.length < gridDim) {
@@ -59,11 +105,11 @@ export class UIBatchSorter {
       }
     }
 
-    // Clear only previously-used cells (no full sweep)
-    for (let k = 0, n = dirtyCells.length; k < n; k += 2) {
-      grid[dirtyCells[k]][dirtyCells[k + 1]].length = 0;
+    // Reset only counts for previously-used cells so backing arrays stay warm without V8 EmptyFixedArray resets
+    for (let k = 0, n = this._dirtyCellCount; k < n; k++) {
+      cellCounts[dirtyCells[k]] = 0;
     }
-    dirtyCells.length = 0;
+    let dirtyCount = 0;
 
     // Pass 1: transform world bounds to canvas-local + accumulate the union AABB.
     // Transform is already required to do precise overlap, so the union accumulation
@@ -107,7 +153,8 @@ export class UIBatchSorter {
       for (let cellY = minCellY; cellY <= maxCellY; cellY++) {
         for (let cellX = minCellX; cellX <= maxCellX; cellX++) {
           const cell = grid[cellX][cellY];
-          for (let j = 0, m = cell.length; j < m; j++) {
+          const m = cellCounts[cellX * gridDim + cellY];
+          for (let j = 0; j < m; j++) {
             const other = cell[j];
             if (!UIBatchSorter._rectOverlap(localBounds, other.bounds)) continue;
             const otherDepth = other.depth;
@@ -134,14 +181,22 @@ export class UIBatchSorter {
       for (let cellY = minCellY; cellY <= maxCellY; cellY++) {
         for (let cellX = minCellX; cellX <= maxCellX; cellX++) {
           const cell = grid[cellX][cellY];
-          if (cell.length === 0) dirtyCells.push(cellX, cellY);
-          cell.push(entry);
+          const cellIdx = cellX * gridDim + cellY;
+          const len = cellCounts[cellIdx];
+          if (len === 0) dirtyCells[dirtyCount++] = cellIdx;
+          cell[len] = entry;
+          cellCounts[cellIdx] = len + 1;
         }
       }
     }
+    this._dirtyCellCount = dirtyCount;
 
     Utils._quickSort(entries, 0, count, UIBatchSorter._compareEntries);
-    for (let i = 0; i < count; i++) elements[i] = entries[i].element;
+    for (let i = 0; i < count; i++) {
+      const entry = entries[i];
+      elements[i] = entry.element;
+      entry.element = null!;
+    }
   }
 
   private static _rectOverlap(a: BoundingBox, b: BoundingBox): boolean {

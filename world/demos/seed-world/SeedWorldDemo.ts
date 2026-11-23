@@ -669,24 +669,27 @@ export async function mountSeedWorldDemo(
         mergeSeedWorldBinaryAssetMaps(prefetchedCommonBinaryAssets, prefetchedBuildingBinaryAssets)
       );
     };
-    const prefetchedTextAssetsTask = timed("loadProjectTextBundle (parallel)", () => loadSeedWorldProjectTextBundle());
+    let prefetchedTextAssetsTask: Promise<ReadonlyMap<string, string> | undefined> | undefined = timed(
+      "loadProjectTextBundle (parallel)",
+      () => loadSeedWorldProjectTextBundle()
+    );
     void prefetchedTextAssetsTask.catch(() => {});
-    const commonBinaryBundleTask = timed("loadCommonBinaryBundle (parallel)", () =>
+    let commonBinaryBundleTask: Promise<void> | undefined = timed("loadCommonBinaryBundle (parallel)", () =>
       loadSeedWorldCommonBinaryBundle().then((assets) => {
+        if (disposed || prefetchedBinaryReleased) return;
         prefetchedCommonBinaryAssets = assets;
         syncPrefetchedBinaryAssets();
-        return assets;
       })
     );
     void commonBinaryBundleTask.catch(() => {});
     const requestedTemplateId = pageUrl.searchParams.get("template") ?? "original";
     const eagerBuildingBundle = requestedTemplateId !== "titan-wasteland" && requestedTemplateId !== "low-poly";
-    let buildingBinaryBundleTask: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined = eagerBuildingBundle
+    let buildingBinaryBundleTask: Promise<void> | undefined = eagerBuildingBundle
       ? timed("loadBuildingBinaryBundle (parallel)", () =>
           loadSeedWorldBuildingBinaryBundle().then((assets) => {
+            if (disposed || prefetchedBinaryReleased) return;
             prefetchedBuildingBinaryAssets = assets;
             syncPrefetchedBinaryAssets();
-            return assets;
           })
         )
       : undefined;
@@ -796,7 +799,8 @@ export async function mountSeedWorldDemo(
     loading.dataset.state = "loading";
     progress(0.04, "准备 Seed 场景");
     syncPrefetchedBinaryAssets();
-    const prefetchedTextAssets = await timed("await project text bundle", () => prefetchedTextAssetsTask);
+    const prefetchedTextAssets = await timed("await project text bundle", () => prefetchedTextAssetsTask!);
+    prefetchedTextAssetsTask = undefined;
     (
       engine!.resourceManager as {
         setPrefetchedTextAssets?: (assets: ReadonlyMap<string, string> | undefined) => void;
@@ -845,7 +849,8 @@ export async function mountSeedWorldDemo(
     // Pre-spawn idle raster worker while planning worker runs so module fetch/parse is off the critical path.
     raster.prewarm();
     source = await timed("await planning source", () => sourceTask!);
-    await timed("await common binary bundle", () => commonBinaryBundleTask);
+    await timed("await common binary bundle", () => commonBinaryBundleTask!);
+    commonBinaryBundleTask = undefined;
     // Kick off background raster, rocks, population resources, and (only when planned) building leaf preload
     // after planningSource.worker finishes so KTX2 WASM workers never starve big-core planning or trigger
     // early mobile thermal throttling.
@@ -857,13 +862,14 @@ export async function mountSeedWorldDemo(
       if (!buildingBinaryBundleTask) {
         buildingBinaryBundleTask = timed("loadBuildingBinaryBundle", () =>
           loadSeedWorldBuildingBinaryBundle().then((assets) => {
+            if (disposed || prefetchedBinaryReleased) return;
             prefetchedBuildingBinaryAssets = assets;
             syncPrefetchedBinaryAssets();
-            return assets;
           })
         );
       }
       await timed("await building binary bundle", () => buildingBinaryBundleTask!);
+      buildingBinaryBundleTask = undefined;
     }
     if (hasPlannedBuildings && !disposed && runtimeProject) {
       const leafTypes = new Set(["Mesh", "KTX2", "Texture", "Shader"]);
@@ -3479,6 +3485,9 @@ export async function mountSeedWorldDemo(
     prefetchedBinaryReleased = true;
     prefetchedCommonBinaryAssets = undefined;
     prefetchedBuildingBinaryAssets = undefined;
+    commonBinaryBundleTask = undefined;
+    buildingBinaryBundleTask = undefined;
+    prefetchedTextAssetsTask = undefined;
     engine?.resourceManager?.setPrefetchedBinaryAssets?.(undefined);
     releaseSeedWorldCommonBinaryBundle();
     // The world is already visible and navigable. Keep post-ready GPU compilation non-blocking:
