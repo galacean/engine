@@ -1,0 +1,64 @@
+packages/modify/tests/ShaderSourceCompatibility.spec.ts
+  h_ddbf152d31b140 2,6,13,20
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-files.json
+  h_ddbf152d31b140 1
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-index.json
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/public/Shader/Billboard.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/public/Shader/Grass.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/public/Shader/Surface.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/public/Shader/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/public/Shader/Vegetation.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/public/Shader/debug/Core/Billboard.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/public/Shader/debug/Core/Surface.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/public/Shader/debug/Core/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/public/Shader/debug/Core/Vegetation.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/Billboard.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/Grass.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/Surface.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/Vegetation.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/debug/Core/Billboard.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/debug/Core/Surface.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/debug/Core/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/debug/Core/Vegetation.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/debug/Extension/Detiling.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/debug/Extension/DualScaling.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/debug/Extension/MacroVariation.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/grasslands/source/public/Shader/debug/Extension/Projection.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Billboard.shaderc
+  h_ddbf152d31b140 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "88b14e17d2799162ea74053b6949c51a0630dea3",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  h_a3c79ce84ffdc2 461-468,470
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  h_a3c79ce84ffdc2 6,15,17-22,99-112,114,116-157
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  h_a3c79ce84ffdc2 26,137-160,174-228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "87bb32599df66d2c0d2543e7ade0d8073330521c",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

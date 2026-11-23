@@ -1,0 +1,20 @@
+packages/loader/src/ImageDecoder.ts
+  s_1b9de24fde0be4::t_5e22d3daedfcab 41,45,51-55
+  s_1b9de24fde0be4::t_59e9e8b699d8fd 56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a11a5302103c2d42d9988897de9c05087266481b",
+  "prompts": {},
+  "sessions": {
+    "s_1b9de24fde0be4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cefc-1a15-7ba1-a131-76cae365da15",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

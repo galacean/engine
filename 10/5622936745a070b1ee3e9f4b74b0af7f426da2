@@ -1,0 +1,16 @@
+packages/core/src/RenderPipeline/Blitter.ts
+  h_c385727b10f40c 5,9,75,77-82,119-136
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_c385727b10f40c 465-505,596-625,636-639
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "105622936745a070b1ee3e9f4b74b0af7f426da2",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,62 @@
+packages/core/src/asset/ResourceManager.ts
+  h_dd004f51a3e5ec 18-19,45,58,216,346-353,364-369,461,506-514,561,573-575,577
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  h_dd004f51a3e5ec 6-9,58-60,67-124,126
+packages/core/src/asset/Loader.ts
+  h_dd004f51a3e5ec 25,37
+packages/loader/src/ktx2/KTX2Container.ts
+  h_dd004f51a3e5ec 22-41,70,87-96,99,121-129,131-132,134,138-141,143-144,147,149-152,183-185,208,213-215,217-219,228-230,236-239,265-269
+packages/core/src/animation/AnimationClip.ts
+  h_dd004f51a3e5ec 11-14,96-128
+packages/loader/src/HDRDecoder.ts
+  h_dd004f51a3e5ec 1-8,33,37-39,50-52,55,59-60,62-70,73-83,104-113,142-153,155-172,179-180,186-188,191-192,200,204,259-260
+packages/loader/src/compressed-texture/KhronosTextureContainer.ts
+  h_dd004f51a3e5ec 18-20,22-25,29,32-41,43-47,49-51,53-58,62-67,172-174,180-182,211,223-233,235
+packages/loader/src/MaterialLoader.ts
+  h_dd004f51a3e5ec 16,19-24,30-41,68-82,91-94,96-123,127-134
+packages/core/src/asset/request.ts
+  h_dd004f51a3e5ec 3-5,15,20-23,49-51,60-66,106-110,112,165,167-175,178,184-185,198-205
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 1-19,24-26,31-68,73-75,95-96,99-100,104-112,123-125,129-137,152-154,160-162,168-172,176-179,186-188,238,243,260,268,283,288,293,298,307-309,312-320,329
+  h_dd004f51a3e5ec 69-72,76-94,97-98,101-103,173-175,191,194,196,361-363
+packages/loader/src/resource-deserialize/utils/Decorator.ts
+  h_dd004f51a3e5ec 9
+packages/loader/src/resource-deserialize/resources/animationClip/AnimationClipDecoder.ts
+  h_dd004f51a3e5ec 41-68,77-89,93-98,110-122,127-128,131,135,142-143,146,148-150,154,161-162,165,167-169,173,180-181,184,188,195-196,199,215,222-246,252-253,256,275,282-283,286,305,312-313,316,323,330-331,334,336,343-344,347,349,354
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  h_dd004f51a3e5ec 171-173,176,186,188,194-196,199,209,211,217-219,222,236,238
+packages/core/src/animation/animationCurve/AnimationFloatArrayCurve.ts
+  h_dd004f51a3e5ec 132-147
+tests/src/loader/LoaderSecurity.test.ts
+  h_dd004f51a3e5ec 1-3,5-6,8-447,567-570,587-589,666-780
+  s_77e92b24a7cbc1::t_a1a31cc47a05ac 4,7,448-566,571-586,590-665
+packages/loader/src/resource-deserialize/utils/BufferReader.ts
+  h_dd004f51a3e5ec 35-42,68,81,88,95,111,160-165
+packages/loader/src/resource-deserialize/index.ts
+  h_dd004f51a3e5ec 26-30
+packages/loader/src/AnimatorControllerLoader.ts
+  h_dd004f51a3e5ec 15,18,60
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 1,20-21,302,313,319,324
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "87da28febae6cdfdd455a1dedea014600100b666",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  },
+  "sessions": {
+    "s_77e92b24a7cbc1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f48a-1c65-7001-86da-dc6574dd1668",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

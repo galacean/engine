@@ -1,0 +1,20 @@
+packages/animals/src/skills/animals/SKILL.md
+  h_ddbf152d31b140 78-83
+packages/terrain/src/skills/terrain/SKILL.md
+  h_ddbf152d31b140 3,13
+packages/vegetation/src/skills/vegetation/SKILL.md
+  h_ddbf152d31b140 14-16
+packages/water/src/skills/water/SKILL.md
+  h_ddbf152d31b140 8,10,14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0c43338f2703e6791ae8d6e471bd94d3ff3885ce",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

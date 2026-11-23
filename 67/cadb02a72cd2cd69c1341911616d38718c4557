@@ -1,0 +1,44 @@
+tests/src/core/physics/PhysicsScene.test.ts
+  s_87cc7a3b1b4ffa::t_779b74dd888beb 358,2237-2238
+tests/src/core/physics/ColliderLayer.test.ts
+  s_87cc7a3b1b4ffa::t_5dd492fd186a1d 156
+  s_87cc7a3b1b4ffa::t_4a6dbbe44d6856 183
+  s_87cc7a3b1b4ffa::t_23b24fa76f7ac6 87
+  s_87cc7a3b1b4ffa::t_3a77d0d10712c7 116-140
+  s_87cc7a3b1b4ffa::t_a0bfbd32ec7e90 177
+  s_87cc7a3b1b4ffa::t_02da15bf7cf455 3,5-6,10,12,15,24,35,40,42-48,51,53,55-58,62-63,68,70-78,88-94,96-113,146,159,162-167,171-173,175,184-185
+  s_cb9368fa13fa88::t_80885e3fa4127d 79,81-84,149,160-161,168-170,178
+tests/src/core/input/InputManager.test.ts
+  s_87cc7a3b1b4ffa::t_39ed257566f325 84-85
+  s_87cc7a3b1b4ffa::t_a2d4c90c6ed891 3
+  s_87cc7a3b1b4ffa::t_2c35d965828982 9
+  s_87cc7a3b1b4ffa::t_bc4b148d58700e 50
+tests/src/core/physics/MeshColliderLayer.test.ts
+  s_87cc7a3b1b4ffa::t_21c9257fe3e0bd 3-4,8,12,23,28,33,35,40,44-45,47,49-58,63,66-68,72,79,90,102-123,131-132
+tests/src/core/physics/Collision.test.ts
+  s_87cc7a3b1b4ffa::t_b308503495f500 2,11,15-18,20-22,46,48-49,57,59-61,73,78,80-81,89,91-93,105,110,112-113,121,123-125,137,142,144-145,153,155-157,169,174,176-177,183-186,195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "67cadb02a72cd2cd69c1341911616d38718c4557",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_cb9368fa13fa88": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9b904bec-eb62-4ae1-86a8-cf1139c33593",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

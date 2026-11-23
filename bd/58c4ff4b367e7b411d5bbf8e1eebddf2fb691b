@@ -1,0 +1,130 @@
+packages/animals/src/controls/FreeControl.ts
+  h_a3c79ce84ffdc2 187-189,349-361,739-750,754-761,776
+packages/animals/src/gameplay/animal/AnimalAnimationBasis.ts
+  h_a3c79ce84ffdc2 5,17,21,23-249,251-254
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_a3c79ce84ffdc2 164-165,220-222,601-603,605-623,625,640-645,2127-2148,2757
+packages/animals/src/gameplay/animal/CuteZooOutline.shader
+  h_a3c79ce84ffdc2 14-17,51-56
+packages/animals/src/gameplay/animal/CuteZooToonMaterial.ts
+  h_a3c79ce84ffdc2 22-25,44-46,49-57,62,95-105
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  h_a3c79ce84ffdc2 607,611-617,631-633,642-645,647
+packages/building/src/building/parts/architecture/BuildingCpuClient.ts
+  h_a3c79ce84ffdc2 23-39,41-42,44-45,50-77,80-81,83-84,86-87,93-97,100-101,105,108-110,114,118,120-123,138-139,149-150,154,173,179-180,196,220,222-226,231-233,237
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_a3c79ce84ffdc2 1349,1351-1376,1383-1384,1391-1392,1394
+packages/building/src/building/render/CoreBuilding.ts
+  h_a3c79ce84ffdc2 36
+packages/building/src/building/render/GridUnitKernel.ts
+  h_a3c79ce84ffdc2 24-25,27
+packages/building/src/building/render/GridUnitKernelInput.ts
+  h_a3c79ce84ffdc2 1-131
+packages/building/tests/BuildingCpuClient.spec.ts
+  h_a3c79ce84ffdc2 200-244
+packages/modify/src/native/core/src/lighting/environment/RealtimeIBLBaker.ts
+  h_a3c79ce84ffdc2 992-995
+packages/modify/src/native/core/src/lighting/environment/RealtimeSphericalHarmonicsGPU.ts
+  h_a3c79ce84ffdc2 1,25,27,46,107-110
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_a3c79ce84ffdc2 133-136
+packages/terrain/src/data/grasslands/public/Shader/Surface.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/source/public/Shader/Surface.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/grasslands/source/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/shaders/Vegetation.shader
+  h_a3c79ce84ffdc2 108-110,354-363
+packages/terrain/src/shaders/shared/Shadow.glsl
+  h_a3c79ce84ffdc2 134-138,151-155
+packages/terrain/src/shaders/shared/SurfaceClimate.glsl
+  h_a3c79ce84ffdc2 122,124-127,130,132-135,138,140-182,208
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  h_a3c79ce84ffdc2 4,32-48,186,190,240,245-247,260-261,353,401-421,433-437,444-452,472-474,509-510,512,539-550,553-557,559,567-583,621
+packages/terrain/src/shaders/shared/VegetationWind.glsl
+  h_a3c79ce84ffdc2 7,1091-1116,1923
+packages/terrain/src/shaders/surface/SurfaceEvaluation.glsl
+  h_a3c79ce84ffdc2 9-11,21,155-163,216-220
+packages/terrain/src/shaders/terrain/TerrainEvaluation.glsl
+  h_a3c79ce84ffdc2 4,50-69,85,115
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  h_a3c79ce84ffdc2 8-13,22,43-48,91-96,113-120,158-160,174,179,181,183-190,192,194-203,207,209-218,220-221,223-224,227-230,232-300,335-339
+packages/terrain/src/shaders/vegetation/VegetationEvaluation.glsl
+  h_a3c79ce84ffdc2 132,292-294,314,324
+packages/terrain/src/shaders/vegetation/VegetationSecondColor.glsl
+  h_a3c79ce84ffdc2 4-6,23-32
+packages/terrain/src/shaders/vegetation/VegetationTranslucency.glsl
+  h_a3c79ce84ffdc2 28,31,41,108,112,132
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  h_a3c79ce84ffdc2 336-366,369,371,380,384-388,393-396,399-426,606
+packages/terrain/src/terrain/clipmap/TerrainGroundBinding.ts
+  h_a3c79ce84ffdc2 41-44
+packages/water/src/bridges/BridgeApproach.ts
+  h_a3c79ce84ffdc2 464,466-471,488-498,507-512,514-517
+packages/water/src/water/authoring/identity/WaterImmutableSnapshot.ts
+  h_a3c79ce84ffdc2 20-23
+packages/water/src/water/authoring/river/RiverPhysicalSourceIdentity.ts
+  h_a3c79ce84ffdc2 2,18
+packages/water/src/water/authoring/river/RiverWaterBodyAuthoring.ts
+  h_a3c79ce84ffdc2 43,376-386,392,402
+packages/water/src/water/authoring/terrain/WaterTerrainIdentity.ts
+  h_a3c79ce84ffdc2 2-12,18-22,25-62,64,71,77-88
+packages/water/src/water/authoring/terrain/WaterTerrainSnapshot.ts
+  h_a3c79ce84ffdc2 1,29-32,455,457-460
+packages/water/src/water/compiler/river/RiverResourceMetadata.ts
+  h_a3c79ce84ffdc2 1-6,8,17-147,154-155
+packages/water/src/water/compiler/shared/numericIdentity.ts
+  h_a3c79ce84ffdc2 1-7,12-16,19-22,24-55,57-59
+packages/water/src/water/runtime/ocean/OceanWaterCompiledResource.ts
+  h_a3c79ce84ffdc2 20-21,145,147,154
+packages/water/src/water/runtime/river/RiverMaterialFactory.ts
+  h_a3c79ce84ffdc2 105-107
+packages/water/src/water/runtime/river/RiverWaterBackend.ts
+  h_a3c79ce84ffdc2 26,693,707
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  h_a3c79ce84ffdc2 7,79,335-336,492,649,664,671,678,685,693,866,950-962,966-970,1102,1106-1119,1137
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  h_a3c79ce84ffdc2 1404
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  h_a3c79ce84ffdc2 248,273,285
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  h_a3c79ce84ffdc2 51,112-126,351-353
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_a3c79ce84ffdc2 4-5,368,372-385,390-393,395-413,424,428-429,431-432,444-446,450,452-455,466,491-495,511-761,770,773,779-786,788,790-791,796-801,807-850,852-855,857,859-863,867-869,873,875-877,879,890-907,910-921,923-951,954-955,964,973-978,994,997,1001,1003-1004,1009,1012-1016,1340-1341,1396,1416-1436,1456,1461-1475,1477,1493,1497-1498,1510-1511,1522,1530-1533
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_a3c79ce84ffdc2 222-245,453-459
+world/demos/seed-world/SeedWorldDemo.ts
+  h_a3c79ce84ffdc2 975-979,2495-2501
+world/demos/seed-world/src/SeedWorldBootTrace.ts
+  h_a3c79ce84ffdc2 505
+world/demos/seed-world/src/SeedWorldLodDebugPanel.ts
+  h_a3c79ce84ffdc2 50
+world/demos/seed-world/src/SeedWorldPerfPanel.ts
+  h_a3c79ce84ffdc2 514
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_a3c79ce84ffdc2 11-14,62-64,131-142,145-149,560-568,735-738,777,1292-1310,1324-1327
+world/tests/seed-world/ForestTemplateLods.spec.mjs
+  h_a3c79ce84ffdc2 7-9,13-16,173-220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "bd58c4ff4b367e7b411d5bbf8e1eebddf2fb691b",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

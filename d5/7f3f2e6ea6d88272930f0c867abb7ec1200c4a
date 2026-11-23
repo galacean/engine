@@ -1,0 +1,23 @@
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_0ad7efa77c17be::t_d65f80bcfec9f2 107-111,171-176,217-218,487,723-724,979,985-1018,1020-1075,1107,1112,1114,1218-1219,1359,1575-1576
+packages/world-planning/src/world/SeedWorldExactInstanceCellRuntime.ts
+  s_0ad7efa77c17be::t_d2a38df464bff8 90,98-99,115,134-135,159-161,165-167,169,190,214,223-226,231-244,298,320-321,373,376-377,384
+world/tests/seed-world/ExactInstanceStaticReuse.spec.ts
+  s_0ad7efa77c17be::t_1f81891bc76637 1-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d57f3f2e6ea6d88272930f0c867abb7ec1200c4a",
+  "prompts": {},
+  "sessions": {
+    "s_0ad7efa77c17be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c9b0-c1c7-7c20-94e2-5d4a2cc750f7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

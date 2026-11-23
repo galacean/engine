@@ -1,0 +1,40 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_bd4dd7d663e619 12,235-242,288-301,329-338,347-349
+packages/core/src/RenderPipeline/Blitter.ts
+  h_bd4dd7d663e619 4,37,47-48,60-79
+packages/core/src/RenderPipeline/RenderContext.ts
+  h_bd4dd7d663e619 6,69-78,81-91
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_bd4dd7d663e619 18-19,69-73
+packages/core/src/renderingHardwareInterface/IPlatformRenderTarget.ts
+  h_bd4dd7d663e619 17
+packages/core/src/renderingHardwareInterface/RenderBufferLoadAction.ts
+  h_bd4dd7d663e619 1-10
+packages/core/src/renderingHardwareInterface/RenderBufferStoreAction.ts
+  h_bd4dd7d663e619 1-14
+packages/core/src/renderingHardwareInterface/index.ts
+  h_bd4dd7d663e619 12-13
+packages/core/src/texture/RenderTarget.ts
+  h_bd4dd7d663e619 267-268
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_bd4dd7d663e619 3,17-23,77-89,163,167-182,187-191,204-211,215,224-227
+packages/rhi-webgl/src/GLTexture.ts
+  h_bd4dd7d663e619 582
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  h_bd4dd7d663e619 117
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_bd4dd7d663e619 22-23,98-103,419-423,425-427,444-447,454-472,481,542,596,622,661,667-744
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_bd4dd7d663e619 9-10,22,46,61,64,66,69,71-82,85,87-110,116-126,133-143,149-150,152-155,157-209,214-222,227,229-237,240-250,261-269,282-293,300-311,324,368-381,421,432-452,469,474,479,484,491,498,505,524-525,537,539,541,547-557,562,564,568-579,581-582,584-588,605,614-616,622-637,641-644
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "49829684a1a2136225af10def23e38fce83f392d",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

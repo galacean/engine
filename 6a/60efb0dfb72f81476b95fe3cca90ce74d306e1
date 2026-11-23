@@ -1,0 +1,38 @@
+packages/core/src/BasicResources.ts
+  h_dd004f51a3e5ec 215-220
+packages/loader/src/GLTFLoader.ts
+  h_dd004f51a3e5ec 51,55-60,62
+packages/loader/src/gltf/GLTFResource.ts
+  h_dd004f51a3e5ec 137,154,160,163-165,169,177,182
+packages/loader/src/gltf/extensions/KHR_materials_unlit.ts
+  h_dd004f51a3e5ec 13
+packages/loader/src/gltf/extensions/KHR_texture_basisu.ts
+  h_dd004f51a3e5ec 57-70,72-74
+packages/loader/src/gltf/parser/GLTFAnimatorControllerParser.ts
+  h_dd004f51a3e5ec 22-24,40
+packages/loader/src/gltf/parser/GLTFEntityParser.ts
+  h_dd004f51a3e5ec 13
+packages/loader/src/gltf/parser/GLTFMaterialParser.ts
+  h_dd004f51a3e5ec 59-61,83-85,101-103,122-124,143-145,201,207-209
+packages/loader/src/gltf/parser/GLTFMeshParser.ts
+  h_dd004f51a3e5ec 50-52,83,99,138-140,147-149,167-169,280,285-291,294,298
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  h_dd004f51a3e5ec 11,14,45-47,134-136,146-147,156-275,316-318
+packages/loader/src/gltf/parser/GLTFSceneParser.ts
+  h_dd004f51a3e5ec 37,54-56,150-152
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_dd004f51a3e5ec 70-75,82,122-124
+tests/src/loader/GLTFLoader.test.ts
+  h_dd004f51a3e5ec 1087-1317
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6a60efb0dfb72f81476b95fe3cca90ce74d306e1",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

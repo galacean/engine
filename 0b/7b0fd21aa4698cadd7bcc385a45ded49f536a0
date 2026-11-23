@@ -1,0 +1,38 @@
+.agents/skills/seed-world-llm-rsi/SKILL.md
+  h_ddbf152d31b140 1-60
+.agents/skills/seed-world-llm-rsi/agents/openai.yaml
+  h_ddbf152d31b140 1-4
+.agents/skills/seed-world-llm-rsi/references/harness-and-pitfalls.md
+  h_ddbf152d31b140 1-55
+.agents/skills/seed-world-llm-rsi/references/metrics-and-audit.md
+  h_ddbf152d31b140 1-84
+.agents/skills/seed-world-llm-rsi/references/rsi-loop.md
+  h_ddbf152d31b140 1-133
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/asap-8082-transport.ts
+  h_ddbf152d31b140 1-337
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases.ts
+  h_ddbf152d31b140 1-1138
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/run-benchmark.spec.ts
+  h_ddbf152d31b140 1-228
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/seed-world-headless-fixture.ts
+  h_ddbf152d31b140 1-1983
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/static-audit.spec.ts
+  h_ddbf152d31b140 1-363
+.agents/skills/seed-world-llm-rsi/scripts/compare_bench.py
+  h_ddbf152d31b140 1-181
+.agents/skills/seed-world-llm-rsi/scripts/preflight.py
+  h_ddbf152d31b140 1-99
+world/tests/seed-world/AgentKnowledgeAudit.spec.ts
+  h_ddbf152d31b140 1-205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0b7b0fd21aa4698cadd7bcc385a45ded49f536a0",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

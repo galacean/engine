@@ -1,0 +1,18 @@
+packages/animals/src/gameplay/animal/AnimalSystem.ts
+  h_171a11afaf879a 159
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  h_171a11afaf879a 594,596
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 62,167,586-602,604-610,1362
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "da2c3e2aff8168ccc7f8e0979d8d5ad9211839ae",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

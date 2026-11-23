@@ -1,0 +1,21 @@
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_71496fc0a6b37a::t_9ae6d71a276d53 257-258,270
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_71496fc0a6b37a::t_e9dbb7db5e8cd6 550,637
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2504a8e2baf9727146863cb05e82e4e53a7405e1",
+  "prompts": {},
+  "sessions": {
+    "s_71496fc0a6b37a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1eda8-f97e-71c2-ba7b-88c49b29108e",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

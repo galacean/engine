@@ -1,0 +1,49 @@
+world/demos/seed-world/agent-adapter/tools/water-tools.ts
+  s_b4932ee6673859::t_ccf1c015a12357 1-31
+world/demos/seed-world/agent-adapter/tools/building-tools.ts
+  s_b4932ee6673859::t_b8cfc1773dc999 17
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.digRiver.d.ts
+  s_b4932ee6673859::t_e7e5271a27abab 1-10,12-34
+  s_b4932ee6673859::t_e34ff2bb07e6ec 11
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  s_b4932ee6673859::t_1bc55889df20f0 1186,1196
+  s_b4932ee6673859::t_ccf1c015a12357 1159-1185,1187-1195,1197-1223
+world/demos/seed-world/agent-adapter/SeedWorldPlanningService.ts
+  s_b4932ee6673859::t_1bc55889df20f0 2-5,21-40
+  s_b4932ee6673859::t_de7100ff9c1961 41
+world/demos/seed-world/agent-adapter/SeedWorldKnowledge.ts
+  s_b4932ee6673859::t_b8cfc1773dc999 12,33-34,77
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  s_b4932ee6673859::t_e7e5271a27abab 4,232-236,936,945-946,948-952,954
+  s_b4932ee6673859::t_f93877e97c3e79 947,953
+world/demos/seed-world/agent-adapter/SeedWorldToolCatalog.ts
+  s_da48a1c3cefcb7::t_6431d74650fb48 11,21
+world/demos/seed-world/agent-adapter/contracts/SeedWorldContractRegistry.ts
+  s_da48a1c3cefcb7::t_16a3825442653d 16,27
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/building.generate.d.ts
+  s_b4932ee6673859::t_265de0f2c29e75 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b8b3c32673de4782242c629b65e3d0fcf7b2f523",
+  "prompts": {},
+  "sessions": {
+    "s_b4932ee6673859": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed5a-1ad6-72d1-bbb3-b76240cdaf12",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

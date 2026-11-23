@@ -1,0 +1,28 @@
+packages/shader/src/ShaderLibrary/PBR/BSDF.glsl
+  h_a3c79ce84ffdc2 4
+packages/shader/src/ShaderLibrary/PBR/CommonPBR.glsl
+  h_a3c79ce84ffdc2 1-14
+packages/shader/src/ShaderLibrary/PBR/ForwardPassPBR.glsl
+  h_a3c79ce84ffdc2 4,6
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  h_a3c79ce84ffdc2 4,219-222
+packages/shader/src/ShaderLibrary/PBR/VaryingsPBR.glsl
+  h_a3c79ce84ffdc2 4-5
+packages/shader/src/ShaderLibrary/PBR/VertexPBR.glsl
+  h_a3c79ce84ffdc2 4-5
+packages/shader/src/ShaderLibrary/index.ts
+  h_a3c79ce84ffdc2 18,81
+tests/src/core/material/PBRAnisotropy.test.ts
+  h_a3c79ce84ffdc2 14-15,29-30,443,447-453,456-458,463-466,468,470-475,481-483,487,858-921,1115-1218
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dc633a8ebc9b4fb04bb0aa227380a3e965534777",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

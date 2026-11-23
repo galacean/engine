@@ -1,0 +1,25 @@
+packages/core/src/physics/joint/HingeJoint.ts
+  s_9a07c85a0912bc::t_63e8a261031222 2,7,34,38,155
+packages/math/src/index.ts
+  s_9a07c85a0912bc::t_e8de05ca82ef55 14
+packages/core/src/physics/CharacterController.ts
+  s_9a07c85a0912bc::t_e3a44f50f05ef5 2,9,127,131,160
+packages/core/src/physics/unitDirection.ts
+  s_9a07c85a0912bc::t_446b4f93740ce5 1,10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b212ddbf175e69195b7a9c2ca4585d20f1de89b8",
+  "prompts": {},
+  "sessions": {
+    "s_9a07c85a0912bc": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a2065f-d56d-7175-a080-e45884abae0d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

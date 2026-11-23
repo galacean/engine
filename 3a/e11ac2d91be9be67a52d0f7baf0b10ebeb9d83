@@ -1,0 +1,28 @@
+packages/design/src/xr/IXRDevice.ts
+  h_bd4dd7d663e619 29,33
+packages/design/src/xr/IXRSession.ts
+  h_bd4dd7d663e619 39-43
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_bd4dd7d663e619 29,93
+packages/xr-webxr/src/WebXRDevice.ts
+  h_bd4dd7d663e619 1,4,7-10,51-54,93
+packages/xr-webxr/src/WebXRSession.ts
+  h_bd4dd7d663e619 6-13,85-90,118-124,129,134,170,177-182
+packages/xr/src/session/XRSessionManager.ts
+  h_bd4dd7d663e619 2,93,130,147,184
+tests/src/xr/Lifecycle.test.ts
+  h_bd4dd7d663e619 37-38,55-59,61-69,97,115,141
+tests/src/xr/TrackingLoss.test.ts
+  h_bd4dd7d663e619 1,110-115,130-155
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3ae11ac2d91be9be67a52d0f7baf0b10ebeb9d83",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,103 @@
+packages/design/src/physics/ICollider.ts
+  s_87cc7a3b1b4ffa::t_c613a4173aae64 4-5,9,12,14,17-18,23-27,29,32
+packages/core/src/physics/Rigidbody.ts
+  s_87cc7a3b1b4ffa::t_b6ba2220f5f159 1-733
+packages/design/src/physics/ICharacterController.ts
+  s_87cc7a3b1b4ffa::t_0676c0dabfd2d7 2,5-6,8-51,54-57,62-63,68-69,74-75,80-81,86-87,92-93,96-100
+tests/src/core/physics/RigidbodyOwnership.test.ts
+  s_87cc7a3b1b4ffa::t_2cfdd5046cf141 1-458
+  s_87cc7a3b1b4ffa::t_3d9b4002c5b9b1 459-464,466
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_87cc7a3b1b4ffa::t_50d712e4058091 4,8-10,18,21-35,37,39-115,129,137-139,141,148,156,164,172,177,179-180,184,186-188,192,194-196,199-204,207-209,211-216,218-221,223-228,231-236,240-244,250-254
+packages/core/src/physics/Collider.ts
+  s_87cc7a3b1b4ffa::t_c0d1a50e1778d9 1-9,14,18-19,22-26,31-38,41-44,47-87,90,92-99,103-191,193,204-207,215-223,227-230,232-235,237,241-244,246-258,260,264,266-267,273-275,277-307,309-310,312-322,327,329-342,346,348-350,355,357-358,363-364,366-369,373-374,376-378,381,383-405,408-412,415-431,433-437,445-489,491,494-534,537-542,556-557
+  s_87cc7a3b1b4ffa::t_3563ca26aaeb5a 543-552,555,558-573
+packages/core/src/physics/CharacterController.ts
+  s_87cc7a3b1b4ffa::t_9d67cac7463a75 3,7,9,12-15,18-25,31-130,133,143,157,175-176,185,195-197,201,203,205,208-219,224-225,227-229,235-256,258-272,279-283,286-295,298-299,303,305
+  s_87cc7a3b1b4ffa::t_bda3542920f568 302,304,310
+packages/core/src/physics/MeshCollider.ts
+  s_87cc7a3b1b4ffa::t_4f87e806362fb5 1-148,150-206
+  s_87cc7a3b1b4ffa::t_248570f80d4c7e 149
+packages/core/src/BasicResources.ts
+  s_d8ee274aaca994::t_ee7f1869dcbd71 33
+packages/core/src/Engine.ts
+  s_87cc7a3b1b4ffa::t_db72b96f1fabd6 22,55
+packages/core/src/Script.ts
+  s_d8ee274aaca994::t_743d87c82de472 5,83-84,86,90-91,93,98-99,101,125,131,143,149
+packages/core/src/physics/BoxCollider.ts
+  s_87cc7a3b1b4ffa::t_0b84e508bb382d 3-6,9,11-12,15-16,28-32,37-40,45-49
+packages/core/src/physics/CapsuleCollider.ts
+  s_87cc7a3b1b4ffa::t_1dba095f2de476 2-4,7,9-12,15-16,25-29,34-35,44-48,53-54,56-57,60-67,71-72,78-80
+packages/core/src/physics/Collision.ts
+  s_87cc7a3b1b4ffa::t_038589d5e7faf4 2,6,12-15,34
+packages/core/src/physics/HitResult.ts
+  s_87cc7a3b1b4ffa::t_e3eb0fc38aded8 3,17-18
+packages/core/src/physics/PhysicsScene.ts
+  s_87cc7a3b1b4ffa::t_175ee3f4a3a806 1,11,15-16,32-35,38-39,195,276,282,284,416,525,656,681-682,689-691,694,702-703,709-711,714,724-725,733-735,738,746,754-757,763-764,766-783,790-791,798-799,805-806,812-835,841-844,851-856,866,886-889,891-905,907-917,919,922,925,928-929,931-933,935,938,941,944-974,976,990-992,998,1003-1005,1013
+packages/core/src/physics/PlaneCollider.ts
+  s_87cc7a3b1b4ffa::t_37c8078f50280b 1-2,7-8,10-19,23-30
+packages/core/src/physics/SphereCollider.ts
+  s_87cc7a3b1b4ffa::t_cb905786dd4210 2-3,6,8-9,12-13,22-26,30-33
+packages/core/src/physics/enums/CharacterControllerGeometry.ts
+  s_d8ee274aaca994::t_0e8e6b3bbe9535 2,4-8
+packages/core/src/physics/enums/index.ts
+  s_87cc7a3b1b4ffa::t_9f7b6bb7c71401 6
+packages/core/src/physics/index.ts
+  s_87cc7a3b1b4ffa::t_72e45e4c64df2c 1-2,5-6,8,11-13
+packages/core/src/physics/joint/FixedJoint.ts
+  s_87cc7a3b1b4ffa::t_6fa0f089f05eec 2,6,10-12
+packages/core/src/physics/joint/HingeJoint.ts
+  s_d8ee274aaca994::t_b3bb0eca901bb1 4,158-160
+packages/core/src/physics/joint/Joint.ts
+  s_87cc7a3b1b4ffa::t_c7dffec8b6b195 9,13,15,21-22,30,32-33,36-39,41-42,56,60,70,74,78,97,100,104-105,111,114,118-119,125,128,132-133,139,142,146-147,183,186,215,222-225,232-236,240,243-244,247,280-283,292-294,297-301,303,305,322-323
+packages/core/src/physics/joint/SpringJoint.ts
+  s_d8ee274aaca994::t_979628b377cbcf 3,87-89
+packages/core/src/postProcess/PostProcessManager.ts
+  s_87cc7a3b1b4ffa::t_bc1c8df30fee76 80,90-93,97,99-101
+packages/design/src/physics/IPhysics.ts
+  s_87cc7a3b1b4ffa::t_59d2dc28509478 55-56,58,68,76,84,91,105
+packages/design/src/physics/IPhysicsScene.ts
+  s_87cc7a3b1b4ffa::t_484af9bcf18a92 17-18,23-24
+packages/design/src/physics/IStaticCollider.ts
+  s_87cc7a3b1b4ffa::t_78f873ce339b61 5
+packages/design/src/physics/joints/IJoint.ts
+  s_87cc7a3b1b4ffa::t_79ec3f3c9afea9 15
+packages/design/src/physics/shape/IColliderShape.ts
+  s_87cc7a3b1b4ffa::t_76e4891e078e04 9-11,13,16,33-38
+packages/physics-physx/src/PhysXCollider.ts
+  s_87cc7a3b1b4ffa::t_4c7cccf62df771 8,32-33,52,54-55,66,73
+packages/physics-physx/src/PhysXPhysics.ts
+  s_87cc7a3b1b4ffa::t_f76e555255b837 173-174
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_87cc7a3b1b4ffa::t_763a32522a9eeb 129,136
+packages/physics-physx/src/shape/PhysXBoxColliderShape.ts
+  s_87cc7a3b1b4ffa::t_1ff20213d69008 12,27-28,36,39-43
+packages/physics-physx/src/shape/PhysXCapsuleColliderShape.ts
+  s_87cc7a3b1b4ffa::t_7b3c50c28b4ab9 6,11-13,38,46,54-55,67,75-79,83-84,87-88,91-92
+packages/physics-physx/src/shape/PhysXColliderShape.ts
+  s_87cc7a3b1b4ffa::t_4affaca376aa99 1,29,42,44-45,54,56-58,83-89,139-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7d3b4cb927e83777eee2dc5dede48e718ff78931",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_d8ee274aaca994": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cf59e742-f257-4c31-b534-b6b028898e35",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+tests/src/core/physics/PhysicsMaterialOwnership.test.ts
+  s_89f62b485e437b::t_d4fcec773aa21e 161,166,184
+packages/loader/src/PhysicsMaterialLoader.ts
+  s_89f62b485e437b::t_41ab3f4af6f25b 21-25
+  s_89f62b485e437b::t_3f6a0fb8bd4af7 15,26-27
+packages/loader/README.md
+  s_89f62b485e437b::t_a379144a45b14c 7
+packages/core/README.md
+  s_89f62b485e437b::t_c57664abb5ef05 11
+  s_89f62b485e437b::t_181d5fb6fbaa30 5,7
+packages/core/src/physics/PhysicsMaterial.ts
+  s_89f62b485e437b::t_790f549118ba06 120-122
+  s_89f62b485e437b::t_5708746f90d598 11,17,24,30,34,52,66,108,131
+packages/core/src/physics/shape/ColliderShape.ts
+  s_89f62b485e437b::t_d2ada51cbb62de 96-97,100,229-230
+packages/core/src/asset/ReferResource.ts
+  s_89f62b485e437b::t_d12fd6c04c0636 94-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6baae4772cf40bc5a27fa617c9685b2f1bd9961a",
+  "prompts": {},
+  "sessions": {
+    "s_89f62b485e437b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1e26a-2627-7685-ab49-571422f416d8",
+        "model": "gemini-4-hydrogen"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

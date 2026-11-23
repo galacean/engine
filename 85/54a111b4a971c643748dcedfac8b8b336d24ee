@@ -1,0 +1,30 @@
+packages/rhi-webgl/src/WebGLEngine.ts
+  s_da48a1c3cefcb7::t_2472bde432f4e8 129
+packages/webgl1-polyfill/tests/integration/index.test.ts
+  s_da48a1c3cefcb7::t_70f5f5dcdf11b8 12,32,57-58
+packages/webgl1-polyfill/tests/integration/override.test.ts
+  s_da48a1c3cefcb7::t_70f5f5dcdf11b8 9,84-93
+tests/src/rhi-webgl/GLCapability.test.ts
+  s_da48a1c3cefcb7::t_70f5f5dcdf11b8 3,103-121
+  s_da48a1c3cefcb7::t_68030834e0a6e3 122-123
+packages/rhi-webgl/src/GLTexture.ts
+  s_da48a1c3cefcb7::t_8f4974f59529d2 14,22-23,47-65
+packages/webgl1-polyfill/src/override.ts
+  s_da48a1c3cefcb7::t_17ec7c9039c188 71,105,107,112-117,170-174,194,197-198,211-214,216-229
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8554a111b4a971c643748dcedfac8b8b336d24ee",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+packages/galacean/skills/engine-knowledge/SKILL.md
+  s_9a07c85a0912bc::t_1be21dae488aff 3,8,10,12,16,18-25
+packages/galacean/skills/engine-knowledge/references/coordinates-and-space.md
+  s_9a07c85a0912bc::t_6db6d134a5cabc 8-10,21-23,25,27
+packages/galacean/skills/engine-knowledge/references/lifecycle-and-frame-order.md
+  s_9a07c85a0912bc::t_fd3ec413408fb0 3,5,7-11,15,18-19,21,23-24,26,28
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_9a07c85a0912bc::t_759f2c50fcc7b3 3,7,9,11,13,27,33,35,37,41,43,47
+packages/galacean/skills/engine-knowledge/references/physics-setup.md
+  s_9a07c85a0912bc::t_3cac75a5963a0b 3,7-11,16,18,22-26,30
+packages/galacean/skills/engine-knowledge/references/rendering-and-color.md
+  s_9a07c85a0912bc::t_e90b8be9efa8a9 3,7-10,14-15,17,19-20,24-27,29,31-32,34,36,38-42,44,46
+packages/galacean/skills/engine-knowledge/references/spine.md
+  s_9a07c85a0912bc::t_a8cd2f040093d8 3,5,7-10,12,14-19,21,23-25,27,29-34,36,38-39
+packages/galacean/skills/engine-knowledge/references/xr.md
+  s_9a07c85a0912bc::t_2da29402768e93 7-10,14,16-19,23-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6adea2dc03ce3a51037fdeb4e84703fdec482641",
+  "prompts": {},
+  "sessions": {
+    "s_9a07c85a0912bc": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a2065f-d56d-7175-a080-e45884abae0d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

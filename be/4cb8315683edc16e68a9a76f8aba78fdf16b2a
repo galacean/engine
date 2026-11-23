@@ -1,0 +1,36 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_bd4dd7d663e619 455
+packages/core/src/RenderPipeline/Blitter.ts
+  h_bd4dd7d663e619 80,85-91
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_bd4dd7d663e619 142,195
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  h_bd4dd7d663e619 80
+packages/core/src/shader/ShaderData.ts
+  h_bd4dd7d663e619 28,626-631,644-645,677,681-691,694-702,734-743,768-769,772,775,778-810
+packages/core/src/shader/ShaderFactory.ts
+  h_bd4dd7d663e619 7,221-222
+packages/core/src/shader/ShaderProgram.ts
+  h_bd4dd7d663e619 6,37-53,62-63,88,150,155-191,207,209-214,216-217,243-244,247-250,252-253,255-283,285-286,291-300,451-452,605,607
+packages/core/src/shader/ShaderProperty.ts
+  h_bd4dd7d663e619 1,10-11,33-39,42-44,46-47,66-98
+packages/core/src/shader/ShaderUniform.ts
+  h_bd4dd7d663e619 289-292,295-296
+packages/core/src/shader/state/BlendState.ts
+  h_bd4dd7d663e619 10,69-86,119-124,128-133,138-143,148-153
+packages/core/src/sky/Sky.ts
+  h_bd4dd7d663e619 121,125
+tests/src/core/shader/ShaderPropertyIsolation.test.ts
+  h_bd4dd7d663e619 20,52-58,64-65,73-75,81-82,86-95,97-116,118-130,132-157,159-178,181-196,198-202,204-211,213-233,236,246-289,292-298,300,304-306,310-314
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "be4cb8315683edc16e68a9a76f8aba78fdf16b2a",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

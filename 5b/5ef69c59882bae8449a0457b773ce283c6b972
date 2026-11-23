@@ -1,0 +1,18 @@
+packages/modify/src/native/core/src/RenderPipeline/Blitter.ts
+  h_171a11afaf879a 1,30,128,139-141
+packages/modify/src/native/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_171a11afaf879a 131-132,379-392,394,499-501,669-670
+packages/modify/tests/ScreenSpaceReflection.test.ts
+  h_171a11afaf879a 3015,3044,3053-3063,3066-3068,3075-3077,3120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5b5ef69c59882bae8449a0457b773ce283c6b972",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

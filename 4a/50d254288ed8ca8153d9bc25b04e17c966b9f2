@@ -1,0 +1,20 @@
+packages/core/src/BasicResources.ts
+  h_bd4dd7d663e619 133,214-215,218,220
+packages/loader/src/gltf/parser/GLTFMaterialParser.ts
+  h_bd4dd7d663e619 195
+packages/loader/src/gltf/parser/GLTFSceneParser.ts
+  h_bd4dd7d663e619 152
+tests/src/core/resource/ReferResource.test.ts
+  h_bd4dd7d663e619 95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4a50d254288ed8ca8153d9bc25b04e17c966b9f2",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

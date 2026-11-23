@@ -1,0 +1,21 @@
+packages/core/src/mesh/ModelMesh.ts
+  s_f1a7b8285f1df2::t_671f548dd0790a 671,673-674
+packages/core/src/mesh/MeshTangentUtils.ts
+  s_f1a7b8285f1df2::t_671f548dd0790a 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "eaa71d286ca135987776d4f00ecef0e04b7affca",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

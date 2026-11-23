@@ -1,0 +1,41 @@
+packages/physics-havok/src/HavokCharacterController.ts
+  s_eb7ebf3c3ff8b9::t_936a895f63ed66 15-16,303,311,313,315,332,338,341,343-344,346,348-354,437,445-446,486,525-526,528,535,568-583,756
+packages/physics-havok/src/HavokCollider.ts
+  s_eb7ebf3c3ff8b9::t_8ef7c4665092e4 31-35,85,111,120,144
+packages/physics-havok/src/HavokDynamicCollider.ts
+  s_eb7ebf3c3ff8b9::t_9d65efb1641a17 13-14,16,22-24,35-36,38-39,96,122,300,315,324,336,355,455,470-471,526,618,625,628-629
+packages/physics-havok/src/HavokPhysics.ts
+  s_eb7ebf3c3ff8b9::t_1807f04f8203db 221-222,224,238
+packages/physics-havok/src/HavokPhysicsScene.ts
+  s_eb7ebf3c3ff8b9::t_0f8378bf1537d0 10,19-20,22,46-51,106-121,138,150,163-167,220-221,252,254-257,259,261-266,289,317,327-330,335-347,407-408,412,420,434,437,469,485,522,661,664-666,670-671,694,699,703-705,719,822,833,847,874,890,899-900,919,936,938,979,1024,1098-1103,1116,1176,1200-1201,1203-1204,1206-1207,1218,1221,1225-1231,1243-1289,1291,1302,1318,1328,1332,1348,1368,1381,1384-1385,1399,1417,1428,1431-1432,1443-1447,1449-1454,1459-1460,1462-1467,1470-1487,1489-1490,1502-1519,1544,1560-1562,1565-1566,1580,1584,1600,1635,1655,1688-1692,1700-1701,1703-1704,1707-1709,1712,1735,1745-1750,1832-1833,1840-1841,1914-1915,1927-1928,1932,2005,2019,2025
+packages/physics-havok/src/HavokTypes.ts
+  s_eb7ebf3c3ff8b9::t_14143ede08b97e 21,99-103,163-167,171,176-181,188,195-198,202,206-210,224-236
+packages/physics-havok/src/joint/HavokFixedJoint.ts
+  s_eb7ebf3c3ff8b9::t_1b9f3ae8b23651 5,39-40,128,135,139
+packages/physics-havok/src/joint/HavokJoint.ts
+  s_eb7ebf3c3ff8b9::t_c64195411cb5f9 6-14,54,179,211-216,220-225,240,242,281
+packages/physics-havok/src/shape/HavokBoxColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_7072767eb18c25 5,69
+packages/physics-havok/src/shape/HavokCapsuleColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_f49c133269fae6 5,150-151
+packages/physics-havok/src/shape/HavokColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_f78a69a93342b1 128-129,137-138
+packages/physics-havok/src/shape/HavokSphereColliderShape.ts
+  s_eb7ebf3c3ff8b9::t_d49683f72433c0 29,33,62-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "17f5506181b11b4fadb7ac67b83da374954c2478",
+  "prompts": {},
+  "sessions": {
+    "s_eb7ebf3c3ff8b9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ef5d-ae7e-7512-9057-6ffe80a3b716",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

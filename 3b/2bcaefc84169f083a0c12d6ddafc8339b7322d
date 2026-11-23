@@ -1,0 +1,65 @@
+tests/src/core/physics/PhysicsOrigin.test.ts
+  s_d2c65ec75a2f3e::t_a8717134de0970 3,7,183-201
+  s_d2c65ec75a2f3e::t_0dbeafad1f00cf 122
+  s_d2c65ec75a2f3e::t_384bfaae57f547 1-2,4-6,8-16,18-93,95-121,123-145,162-182,202-203
+  s_d2c65ec75a2f3e::t_0766b2e1a768fe 94
+  s_d2c65ec75a2f3e::t_d318555789f92e 17
+  s_d2c65ec75a2f3e::t_a7e60185534b3f 146-161
+docs/en/physics/manager.mdx
+  s_d2c65ec75a2f3e::t_a7e60185534b3f 71-73
+  s_d2c65ec75a2f3e::t_98ef9d7c19c9e5 74
+tests/src/core/physics/PhysicsInterpolation.test.ts
+  s_d2c65ec75a2f3e::t_a7e60185534b3f 340-356
+  s_d2c65ec75a2f3e::t_a8717134de0970 282-320,357
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_91542a21646c4a 979,983-984,991-992,994-995
+  s_d2c65ec75a2f3e::t_7c60dc8dc443de 980-982,985-990,993
+packages/ui/src/component/UICanvas.ts
+  s_d2c65ec75a2f3e::t_a7e60185534b3f 347-350,353-356,368
+  s_d2c65ec75a2f3e::t_7c60dc8dc443de 311-317,351-352,357
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_91542a21646c4a 270-276
+packages/ui/src/input/UIPointerEventEmitter.ts
+  s_d2c65ec75a2f3e::t_7c60dc8dc443de 56,59-62
+packages/core/src/Transform.ts
+  s_d2c65ec75a2f3e::t_91542a21646c4a 616-639
+packages/core/src/physics/joint/Joint.ts
+  s_d2c65ec75a2f3e::t_91542a21646c4a 488-505
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_7c60dc8dc443de 215
+  s_d2c65ec75a2f3e::t_4271ad3488c773 11,25,166-169,173-214,216-239
+  s_d2c65ec75a2f3e::t_a7e60185534b3f 170-172
+  s_d2c65ec75a2f3e::t_8bfa8dada11776 240-241
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_91542a21646c4a 499-505
+packages/core/src/Camera.ts
+  s_d2c65ec75a2f3e::t_91542a21646c4a 786-807
+tests/src/ui/UIInterpolation.test.ts
+  s_d2c65ec75a2f3e::t_a7e60185534b3f 136-150
+packages/core/src/physics/CharacterController.ts
+  s_d2c65ec75a2f3e::t_91542a21646c4a 586-587
+  s_d2c65ec75a2f3e::t_7c60dc8dc443de 41-46,85,465-469,515,568,576,580,588-593,617
+docs/zh/physics/manager.mdx
+  s_d2c65ec75a2f3e::t_b3f54d86d9e0dc 71,73
+  s_d2c65ec75a2f3e::t_a7e60185534b3f 70,72
+packages/core/src/ui/UIUtils.ts
+  s_d2c65ec75a2f3e::t_7c60dc8dc443de 41
+packages/design/src/physics/IPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_91542a21646c4a 105-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3b2bcaefc84169f083a0c12d6ddafc8339b7322d",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

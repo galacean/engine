@@ -1,0 +1,14 @@
+world/demos/seed-world/src/SeedWorldPerfPanel.ts
+  h_171a11afaf879a 76,98-99,110,392-398,401-404
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c311d71268b62153b457c28b920923ce03c42d91",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

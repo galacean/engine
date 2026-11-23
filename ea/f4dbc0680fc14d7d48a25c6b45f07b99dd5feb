@@ -1,0 +1,32 @@
+packages/core/src/asset/ResourceManager.ts
+  h_dd004f51a3e5ec 2,15-16,42,55,217,232,362-367,378-383,499,527,531-535,541-556,576,588-596,598
+packages/loader/src/MaterialLoader.ts
+  h_dd004f51a3e5ec 24-25,27-38,114,137-144,146-152
+packages/loader/src/SceneLoader.ts
+  h_dd004f51a3e5ec 59,69,94,100,113,182-183,185
+packages/loader/src/prefab/PrefabResource.ts
+  h_dd004f51a3e5ec 49,56
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 97-99,102,247-248,324,333
+packages/loader/src/resource-deserialize/resources/parser/ParserContext.ts
+  h_dd004f51a3e5ec 59-61,63-64,66,74-75
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 1-21,38-40,44-84,89-112,117,136-146,152-156,164,166-170,184-185,187-188,193-195,217-221,242-243,247-248,263-267,269-270,272-275,286-290,322-330,335-356,364
+packages/loader/src/resource-deserialize/resources/scene/SceneParser.ts
+  h_dd004f51a3e5ec 101-104
+packages/ui/src/index.ts
+  h_dd004f51a3e5ec 94-95,97
+tests/src/loader/HierarchyDeserialization.test.ts
+  h_dd004f51a3e5ec 4-5,7,9,25,29-30,39-40,48-49,52-77,79-156,160,165-173,177-187,191-193,195,234-277,280-285,287-289,292-297,302-321
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "eaf4dbc0680fc14d7d48a25c6b45f07b99dd5feb",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

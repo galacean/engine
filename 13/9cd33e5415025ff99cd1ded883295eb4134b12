@@ -1,0 +1,16 @@
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 242-243,824,859-861,863,865,1427-1438,1457-1459,1497,1513-1526,1534,1538-1541,1797-1801,1808-1810,1827-1828
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_ddbf152d31b140 98-102,117-122,215-219,254,444,548-550,614-616,729,778-782,826,839,843,847-897,916,937,954-956,1053,1153,1157,1310-1312,1409-1411,1439,1492-1494
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "139cd33e5415025ff99cd1ded883295eb4134b12",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

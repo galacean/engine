@@ -1,0 +1,28 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_bd4dd7d663e619 316-320,334
+packages/core/src/RenderPipeline/Blitter.ts
+  h_bd4dd7d663e619 101,114-126
+packages/core/src/postProcess/PostProcessManager.ts
+  h_bd4dd7d663e619 177-178
+packages/core/src/renderingHardwareInterface/IPlatformRenderTarget.ts
+  h_bd4dd7d663e619 16,18
+packages/core/src/texture/RenderTarget.ts
+  h_bd4dd7d663e619 267-268
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_bd4dd7d663e619 16,34,142,144,166-169
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_bd4dd7d663e619 94-95,115-116,390-395,400-404,406-420,422-431,435-437,440-446,659-660,671-675
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_bd4dd7d663e619 8,21,45,54,67,71,73,81-87,90-92,95-100,109,115,120,135-146,153,162,182-205,222,234,243,245,247,249,256-273,278,283,288,291,295,298,302,305,309,312,316,325-327,339,341-381,388-389,396-407,410-411
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e64a31e28ff6c4c6c100935ef4eb9d2e8aaedb8e",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

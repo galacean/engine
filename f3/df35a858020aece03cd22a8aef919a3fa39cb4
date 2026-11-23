@@ -1,0 +1,47 @@
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_45bb612ddb9392::t_469c2dac3e7c69 1
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  s_da48a1c3cefcb7::t_9953822ac6b313 99
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  s_da48a1c3cefcb7::t_58c8b544677367 164
+packages/terrain/src/terrain/clipmap/TerrainGroundBinding.ts
+  s_45bb612ddb9392::t_8db52179d1f483 18,23,31
+packages/terrain/src/terrain/clipmap/TerrainNormalAtlas.ts
+  s_45bb612ddb9392::t_e85e96a6e1e71c 3
+packages/terrain/src/terrain/clipmap/TerrainPreparedUpdate.ts
+  s_45bb612ddb9392::t_2679be281fb78d 1
+packages/terrain/src/terrain/project/TerrainProjectExportCatalog.ts
+  s_30889def3c02cc::t_06e6d3b3a3164f 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f3df35a858020aece03cd22a8aef919a3fa39cb4",
+  "prompts": {},
+  "sessions": {
+    "s_30889def3c02cc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e8d3-cd57-70b0-8843-ecc65484b8c6",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_45bb612ddb9392": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e31e-2061-71e0-a047-8c2fc391eaae",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

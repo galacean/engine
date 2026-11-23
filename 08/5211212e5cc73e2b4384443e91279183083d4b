@@ -1,0 +1,39 @@
+packages/core/src/mesh/primitive/PrimitiveMeshRestorer.ts
+  s_f1a7b8285f1df2::t_515457478a29c8 28-29,35-36,38,41-43
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_f6d502216d22fb 277-278
+  s_f1a7b8285f1df2::t_1ed78b1911cb85 238
+  s_f1a7b8285f1df2::t_b6d8f3211c5d0b 239
+packages/core/src/mesh/primitive/PolygonUtils.ts
+  s_f1a7b8285f1df2::t_f6d502216d22fb 44-46
+tests/src/core/mesh/PrimitiveMesh.test.ts
+  s_f1a7b8285f1df2::t_f6d502216d22fb 200
+  s_f1a7b8285f1df2::t_0978e510c32f8b 4,201-215
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_1ed78b1911cb85 232
+  s_f1a7b8285f1df2::t_b6d8f3211c5d0b 233
+  s_f1a7b8285f1df2::t_f6d502216d22fb 271-272
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_f6d502216d22fb 1919-1954
+  s_f1a7b8285f1df2::t_e8e2ae906c64cd 1752-1762,1764-1773,1775-1783,1785-1798,1800
+  s_f1a7b8285f1df2::t_1ed78b1911cb85 1774,1784
+  s_f1a7b8285f1df2::t_943b338cd950ec 1955
+packages/core/src/mesh/MeshTangentUtils.ts
+  s_f1a7b8285f1df2::t_f6d502216d22fb 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "085211212e5cc73e2b4384443e91279183083d4b",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

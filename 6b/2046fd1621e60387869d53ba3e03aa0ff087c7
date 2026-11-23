@@ -1,0 +1,187 @@
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  s_d2c65ec75a2f3e::t_466b082bf4f941 29,36-37,41-42,44,46,48-53,60-63,65
+  s_d2c65ec75a2f3e::t_0f486f9ed062b6 45,47,54,57
+packages/loader/src/prefab/PrefabResource.ts
+  s_d2c65ec75a2f3e::t_ff6741e849a097 11,34,54-57,68-70
+  s_d2c65ec75a2f3e::t_7d943202f799a9 2,12,33,35-38,41-42,44-45
+  s_d2c65ec75a2f3e::t_eb63d038b1b4ce 39-40
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_968539207f14ed 188,191,270-271,407-408,411,516-517,520,647-650,653,1034-1039
+  s_d2c65ec75a2f3e::t_a148369de8c26b 10,37,795,797,837-838,840-845,874-876,935-951
+  s_d2c65ec75a2f3e::t_cdecd0120c25ee 796,1032-1033
+packages/core/src/postProcess/PostProcessManager.ts
+  s_d2c65ec75a2f3e::t_226bb16e18a680 94
+tests/src/core/CompomentDependencies.test.ts
+  s_d2c65ec75a2f3e::t_14246bbb2e5016 138-154,169-170
+  s_d2c65ec75a2f3e::t_4007c9511ccdb2 7,10,155-168
+  s_d2c65ec75a2f3e::t_fc9dce32d9ffec 110-137
+  s_d2c65ec75a2f3e::t_b991e013b3e6d2 226-228,230-248,250-251,253-257
+  s_d2c65ec75a2f3e::t_59942125a11c5e 59-68,70-76,78-80,82-106,108
+  s_d2c65ec75a2f3e::t_507105f3f5bc9f 229,249,252
+  s_d2c65ec75a2f3e::t_ca205f3de319a6 69,77,81,107,109,171-205
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_d2c65ec75a2f3e::t_ff6741e849a097 219,224,230,281,284-285,289,291,294-295,302,305,350,360,365,368-372,384-385,394,421
+  s_d2c65ec75a2f3e::t_8379df871ffd93 386-387,389-393,396,398-400,403-407,409-410,417-419,422
+  s_d2c65ec75a2f3e::t_37d426f3938de1 1,395,401-402,408,411-415
+  s_d2c65ec75a2f3e::t_ca3e02f75e2557 329-330
+  s_d2c65ec75a2f3e::t_7d943202f799a9 22-23,121,125,182,199,213,221-222,323,325-326
+  s_d2c65ec75a2f3e::t_db2e38c837a679 324,327
+  s_d2c65ec75a2f3e::t_1080467f1f147c 131-132,152,154,156-160,191,217,228
+  s_d2c65ec75a2f3e::t_7f3fc1182e81d1 153,155,161
+tests/src/core/physics/HingeJoint.test.ts
+  s_d2c65ec75a2f3e::t_4e073673c634b0 15
+  s_d2c65ec75a2f3e::t_c0ef2679df8823 486-504
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_50401b75b52235 684-694
+  s_d2c65ec75a2f3e::t_a148369de8c26b 9,34,39-40,48,50,157,161,524-532,575-576,649,666,669,702-703,721
+  s_d2c65ec75a2f3e::t_13212520bcac8f 32
+  s_d2c65ec75a2f3e::t_a2bffdd2aa73e3 645-648,667
+packages/loader/README.md
+  s_d2c65ec75a2f3e::t_6f6e47c91fdc7e 3
+packages/physics-physx/src/PhysXCollider.ts
+  s_d2c65ec75a2f3e::t_2bba817cf8baef 14,97-98
+  s_d2c65ec75a2f3e::t_a196cbff00ac6d 80-82
+packages/core/src/physics/Collision.ts
+  s_d2c65ec75a2f3e::t_a196cbff00ac6d 26-29,37,40-43
+  s_d2c65ec75a2f3e::t_2bba817cf8baef 7
+  s_d2c65ec75a2f3e::t_13212520bcac8f 6
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_d2c65ec75a2f3e::t_83c2efe30e76ac 6-7,18-22,28,34-35,51,53-57,61,65,74,86,88,91,95,105-109,111,113-115,120-123,126-132,150,152,170,193-195,197-199,221,229,251,259-262
+  s_d2c65ec75a2f3e::t_e0e7af0b1993e1 116-119
+  s_d2c65ec75a2f3e::t_eb63d038b1b4ce 110,112
+  s_d2c65ec75a2f3e::t_7ffbdf7fe59c3a 70-72,78
+  s_d2c65ec75a2f3e::t_b2d4890a9ec360 77
+  s_d2c65ec75a2f3e::t_ac35b3dd03992d 85,87
+  s_d2c65ec75a2f3e::t_db2e38c837a679 50,58,63-64,66-68,75-76,79-82,84,90,92-94,96,99,124-125
+  s_d2c65ec75a2f3e::t_3d2bec2dce829d 89
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_0cb98e92ceea6d 21,143-161,179,256,259,262-263
+  s_d2c65ec75a2f3e::t_a9f6aefc63e4cf 16-17,162-178,180-192,244-255,257-258,260-261,264-267
+packages/core/src/physics/MeshCollider.ts
+  s_d2c65ec75a2f3e::t_226bb16e18a680 107,109
+packages/core/src/utils/DisorderedArray.ts
+  s_d2c65ec75a2f3e::t_978fe04f5a4b21 208
+tests/src/core/Transform.test.ts
+  s_d2c65ec75a2f3e::t_0ae50d3de86b81 65-97
+tests/src/core/Script.test.ts
+  s_d2c65ec75a2f3e::t_ca205f3de319a6 254-255
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_50401b75b52235 23-31,52-53,422-430,433-448,450-451,663-669,683,701,703-705,717
+  s_d2c65ec75a2f3e::t_a196cbff00ac6d 62-64,71-74,78-79
+  s_d2c65ec75a2f3e::t_226bb16e18a680 344-347,349,361-366
+  s_d2c65ec75a2f3e::t_68520d4a817707 706-707,709,715-716,719-727
+  s_d2c65ec75a2f3e::t_3f85f455e348c4 80-81
+tests/src/core/physics/RigidbodyOwnership.test.ts
+  s_d2c65ec75a2f3e::t_bb5a5476200583 226-245
+tests/src/core/physics/Collider.test.ts
+  s_d2c65ec75a2f3e::t_be7480c9e3c8d6 216,218,221,223,225,243
+  s_d2c65ec75a2f3e::t_8f870b70718cb6 17-18,22,168-215,217,219-220,222,224,226-242,244-280
+  s_d2c65ec75a2f3e::t_6e7d61c158edcb 281
+packages/core/src/Component.ts
+  s_d2c65ec75a2f3e::t_9b23dc859c83d9 88
+  s_d2c65ec75a2f3e::t_15e5f84e79dad7 81
+  s_d2c65ec75a2f3e::t_99967b3ce182e6 80
+packages/loader/src/resource-deserialize/resources/parser/ParserContext.ts
+  s_d2c65ec75a2f3e::t_ff6741e849a097 38
+tests/src/loader/PrefabResource.test.ts
+  s_d2c65ec75a2f3e::t_a58f87ba4d4b2d 260
+  s_d2c65ec75a2f3e::t_27450d6356bf3b 186-187
+  s_d2c65ec75a2f3e::t_4906de025756cd 1718,1720,1722,1761-1766,1768,1771-1772,1782-1785,1796-1798
+  s_d2c65ec75a2f3e::t_c0ed18c1c9c692 3-8,10-12,86,88,116-117,120,131,133-134,136,1640,1705,1709,1712,1715
+  s_d2c65ec75a2f3e::t_55c832b94860cb 9,14,189-197,199-259
+  s_d2c65ec75a2f3e::t_1080467f1f147c 817-864
+  s_d2c65ec75a2f3e::t_ac35b3dd03992d 69-85,87,89-115,118-119,121-130,132,135
+  s_d2c65ec75a2f3e::t_eb63d038b1b4ce 466-467
+  s_d2c65ec75a2f3e::t_8d93392c10a8e7 198
+  s_d2c65ec75a2f3e::t_6f6e47c91fdc7e 476-477,486,488-493
+  s_d2c65ec75a2f3e::t_116fec1c8d76b6 137-185,188,261-269,1661,1670
+  s_d2c65ec75a2f3e::t_cc0023392e9435 15,444-465,468-473,1717,1731,1738-1739,1746,1751,1755,1759-1760,1799
+  s_d2c65ec75a2f3e::t_02732407281059 1635,1637,1655,1657,1659-1660,1664-1669,1675-1691,1708
+  s_d2c65ec75a2f3e::t_ca3e02f75e2557 1721,1723-1730,1732-1737,1740-1745,1747-1750,1752-1754,1756-1758,1767,1769-1770,1773-1781,1786-1795,1800
+  s_d2c65ec75a2f3e::t_5f93893c742f21 1636,1639,1645-1648,1650,1654,1656,1662-1663,1671-1674,1693-1704,1706-1707,1710-1711,1713-1714
+  s_d2c65ec75a2f3e::t_e6410c4a5eeb69 1719
+  s_d2c65ec75a2f3e::t_ef33b5fb8adf37 1692
+packages/core/src/Scene.ts
+  s_d2c65ec75a2f3e::t_7a56091eef8e46 515-517,526-528
+  s_d2c65ec75a2f3e::t_b4252662f9e809 525
+tests/src/core/physics/Collision.test.ts
+  s_d2c65ec75a2f3e::t_bb5a5476200583 2,49-50,61,67-70,83-86,88-91
+  s_d2c65ec75a2f3e::t_7ab88f96f29bf9 46-48,51-57,62,64-66,72,80-82,87
+  s_d2c65ec75a2f3e::t_6ca627361e7483 58-60,63,71,73-79,92-93
+packages/core/src/physics/CharacterController.ts
+  s_d2c65ec75a2f3e::t_352294cdf431da 291
+  s_d2c65ec75a2f3e::t_2bba817cf8baef 26-27,96,99-105,112-114,216-220
+  s_d2c65ec75a2f3e::t_08a4722651d23c 19,244,306-308,313-315,320,322
+  s_d2c65ec75a2f3e::t_445ee7d96787ee 277-278
+  s_5a35d60243d181::t_b337672a8f3c77 221-222
+tests/src/core/physics/CharacterController.test.ts
+  s_d2c65ec75a2f3e::t_bb5a5476200583 105-119,151-152
+  s_d2c65ec75a2f3e::t_08a4722651d23c 153-180
+  s_d2c65ec75a2f3e::t_445ee7d96787ee 14-15,120-150
+tests/src/core/Entity.test.ts
+  s_d2c65ec75a2f3e::t_32b5f736886741 701-772
+  s_d2c65ec75a2f3e::t_bc1dd354a8cf9c 356-377
+tests/src/core/physics/PhysicsScene.test.ts
+  s_d2c65ec75a2f3e::t_e64272eaf17c24 15,527-562
+  s_5a35d60243d181::t_76c43b43ca21b8 563-564
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_d2c65ec75a2f3e::t_2bba817cf8baef 26,65
+packages/design/src/physics/shape/IColliderShape.ts
+  s_d2c65ec75a2f3e::t_a196cbff00ac6d 29,47-50
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_d491b2446d5561 92,495,499-502,507
+  s_d2c65ec75a2f3e::t_2c3bd6c6562bf6 180-182,184-194,196-198,477-490,492-494
+packages/physics-physx/src/PhysXDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_2bba817cf8baef 234,239,243,245,250
+  s_d2c65ec75a2f3e::t_d491b2446d5561 247-248
+packages/core/src/Entity.ts
+  s_d2c65ec75a2f3e::t_bc1dd354a8cf9c 439,442-444
+  s_d2c65ec75a2f3e::t_1f5370bd4d8519 499-502,510-523,527,533
+  s_d2c65ec75a2f3e::t_b991e013b3e6d2 459,683
+  s_d2c65ec75a2f3e::t_7a56091eef8e46 700-706
+  s_d2c65ec75a2f3e::t_99967b3ce182e6 658
+  s_d2c65ec75a2f3e::t_9b23dc859c83d9 262-265,460,607-611,621,639,682,684,686,690
+packages/core/src/Transform.ts
+  s_d2c65ec75a2f3e::t_445ee7d96787ee 334,950-953
+  s_d2c65ec75a2f3e::t_a8a9e8f4d2ab6e 231-232
+  s_d2c65ec75a2f3e::t_be7480c9e3c8d6 354
+  s_d2c65ec75a2f3e::t_50401b75b52235 14,335,337-341,346-352,355-356,857-860,955
+  s_d2c65ec75a2f3e::t_68520d4a817707 15,336,342-345,353,956-961
+  s_d2c65ec75a2f3e::t_ba991fef36b6f3 242-243,946,954,966
+  s_d2c65ec75a2f3e::t_57a99c3690a0cb 962
+packages/core/src/ComponentsDependencies.ts
+  s_d2c65ec75a2f3e::t_8424480113577e 56,59-60,62-68,79-84,89,92,99,108,126-128,130-135
+  s_d2c65ec75a2f3e::t_6e66f4a64de41a 102-103,105
+  s_d2c65ec75a2f3e::t_61c41349607bd6 57,70,73
+  s_d2c65ec75a2f3e::t_36f183c83bf734 54-55,61,74,76-77,85,87-88,107,112-117,125
+  s_d2c65ec75a2f3e::t_7c1ee87e7e7744 118
+  s_d2c65ec75a2f3e::t_ac35b3dd03992d 86
+  s_d2c65ec75a2f3e::t_2f44ef4b3575b8 90,100
+  s_d2c65ec75a2f3e::t_5e67cd471c6c5a 53,93,98,106,122,129
+  s_d2c65ec75a2f3e::t_9b23dc859c83d9 141-143,158-161,165,199-206,228
+  s_d2c65ec75a2f3e::t_68d0d5c9c7c9f2 38-39,69,71-72,75,78,91,94-97,101,104,123-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6b2046fd1621e60387869d53ba3e03aa0ff087c7",
+  "prompts": {},
+  "sessions": {
+    "s_5a35d60243d181": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1ed48-97e3-712a-aa7d-1aaa63db1f0b",
+        "model": "swe-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

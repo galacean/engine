@@ -1,0 +1,582 @@
+packages/building/src/building/core/expansion.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-110
+packages/building/src/building/application/European.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-326
+packages/building/tests/BuildingSource.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 8-9,11,22,24,28-29,32-34,36-39,43-50,62-63,71-73,76,84-125,127,133,139-142,145-148,153-157,159,170-171,175,188
+packages/modify/src/native/shader/src/Shaders/Sky/SkyProcedural.shader
+  s_f3959dcbf2bda2::t_510dabaad76906 6-11,22,54,82-84,118-120,162-192,308,575,617,636,650-652,658,686,736-737,745-748
+packages/building/src/building/runtime/RecoveredWoodArchCutouts.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 3-5
+packages/building/src/building/MIGRATION.md
+  s_f3959dcbf2bda2::t_510dabaad76906 1-299
+world/tests/seed-world/BuildingSourcePersistence.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 17-21,77,102-114,120-122,144-147,181-184,203
+packages/building/src/building/runtime/ConstructionPlasterShader.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 10-11,47
+packages/building/src/building/core/README.md
+  s_f3959dcbf2bda2::t_510dabaad76906 1-139
+world/tests/seed-world/PlanningStartupTemplate.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-27
+packages/building/src/building/runtime/ConstructionPlasterRender.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 4
+packages/building/src/building/assets/native/Shaders/brick_roof.shaderc
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-arrow-slit-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/core/CoreBuilding.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-798
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  s_f3959dcbf2bda2::t_510dabaad76906 181
+packages/world-planning/src/integrations/terrain/debug/TerrainRuntimeDebugInspector.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 336-337,467,585-591,596,602,606,610,614,618,623,628,635-637,642,655,661,667,671-675,692-698
+packages/world-planning/src/semantic-study/PlanningRaster.worker.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 28-29
+world/demos/seed-world/src/planning/semantic-study/WorldPlanning.css
+  s_f3959dcbf2bda2::t_510dabaad76906 92
+packages/building/tests/core/baselines/CoreBuilding-houses.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/core/baselines/CoreBuildingVillage.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-15
+packages/building/src/building/assets/native/Prefabs/building-prefab--hatch-gothic-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-cottage-3.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/core/CoreGeometry.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-317
+packages/building/src/building/resources/BuildingOccupancy.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-102
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-44
+packages/building/src/building/parts/architecture/BuildingCpu.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-16,18,20-21,23-38,40-45,49-50,52-75,77-86,88,90-96,99-100,105,108-110,113-122,124-128
+world/demos/building-core-preview/frame.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-238
+packages/building/src/building/assets/native/Prefabs/building-prefab--wall-lantern.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/parts/architecture/BuildingPartCollection.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 6-8,95,106-115,124-126,136,142-143,145,147,149-170,172-174,176-177,181,194-195
+packages/building/src/building/render/CoreBuilding.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-2141
+packages/building/src/skills/building/references/connections.md
+  s_f3959dcbf2bda2::t_510dabaad76906 3,5-8,10,12,14,20,22
+packages/building/tests/core/CoreRoof.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-236
+packages/building/src/building/parts/architecture/BuildingGroupComponent.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 5,8-9,12,15,18
+packages/building/tests/core/CoreFoundation.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-250
+packages/building/tests/core/CoreStoneFrames.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-120
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingHost.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 18,38,40
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 2-3,27,30-41,71
+packages/building/tests/core/CoreOccupancy.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-254
+world/tests/seed-world/PlantProjectAssets.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 24-26,47-67,143-149,155
+packages/building/tests/core/baselines/CoreBuilding-roofPrefabs.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/appearance.test.mjs
+  s_f3959dcbf2bda2::t_510dabaad76906 90-92,153-160,170-176,178
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-gothic-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/assets/prefabs/round-gothic.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 5,8,11-12,16-26,36-40,42-49,53-54,56,60-81,91-102,104-146,152-153,156-172,176-182,184-289,293,295-296,300,302-329,331-338,344,348-449,451-482,495-499,501-602,606,608-609,613,615,619,623-627,629-630,634,637-658,661-666,669,671,675,679-680,682-683,685-686,690,692-721,725,727,729-736,742,746-747,749-750,752-753,757,759-760,764,766-777,781-782,785-800,803,805-816,820-821,824-839,842,844-855
+packages/building/tests/fixtures/constructionAssets.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 6,41,44
+world/demos/seed-world/systems/generate-runtime-declarations.cjs
+  s_f3959dcbf2bda2::t_510dabaad76906 1-74
+packages/building/src/building/runtime/ConstructionFoundation.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1,5
+packages/world-planning/tests/BuildingPanelIdentity.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 46,87,96,98-100,166,228
+packages/building/tests/core/meshPrint.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-28
+world/tests/seed-world/BuildingAgentGeneration.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 8,116-128,136-139
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-cottage-corner-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/skills/building/references/foundation.md
+  s_f3959dcbf2bda2::t_510dabaad76906 7,9,11,18,22,35,48,57,59,69-70
+packages/terrain/src/shaders/terrain/TerrainHeight.glsl
+  s_f3959dcbf2bda2::t_510dabaad76906 102-111
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 9
+packages/building/src/building/core/builtins.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-171
+packages/building/src/skills/building/references/planning.md
+  s_f3959dcbf2bda2::t_510dabaad76906 5,15,21,24-25,27
+packages/runtime-editor/tests/runtime-prefab-edit.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 2,43-57
+  s_f3959dcbf2bda2::t_f81201aec37cb4 58
+packages/building/src/building/core/random.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-50
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-cottage-half-3.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/components/BuildingPrefab.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 2-3,70-73,88,91,93-94
+packages/building/tests/core/CoreEaveDormer.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-535
+packages/building/src/building/runtime/ConstructionStoneFloorRender.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/project/src/runtime-editor/project/runtime-project.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 38-48
+world/demos/building-core-preview/draw.html
+  s_f3959dcbf2bda2::t_510dabaad76906 1-38
+packages/world-planning/src/spatial/PlanningGrassAppearance.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 21-27,102-108
+packages/building/tests/core/CoreTimber.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-250
+world/demos/seed-world/agent-adapter/tools/building-tools.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 5,49,55
+world/demos/seed-world/src/planning/spatial/WorldTemplatePicker.css
+  s_f3959dcbf2bda2::t_510dabaad76906 1-39
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-arrow-slit-half-3.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-cottage-half-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/world-planning/src/semantic-study/PlanningWaterView.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 99,135-151
+packages/world-planning/src/generation/noise/PromptNoiseFbm.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-76
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 63-133,582,673-676
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-cottage-corner-3.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/components/README.md
+  s_f3959dcbf2bda2::t_510dabaad76906 7
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  s_f3959dcbf2bda2::t_510dabaad76906 4-9,206,352,390-406,592-594
+world/tests/seed-world/MigrationAssets.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-13
+packages/building/tests/core/CoreLayering.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-28
+packages/building/src/building/assets/native/Prefabs/building-prefab--hatch-cottage-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/parts/BuildingParts.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1,3
+packages/building/tests/core/baselines/CoreDecorationSizes.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-212
+packages/building/src/skills/building/references/wall.md
+  s_f3959dcbf2bda2::t_510dabaad76906 3,5,7,9-11,13,15,17-18,20,22-24,26,28-29,31,33
+packages/world-planning/src/masonry/NativeBuildingPanel.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 240,243
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 2,4-6,336-339,342,756-759,999,1171-1185,1202-1254,1256-1269
+packages/building/src/building/assets/native/Prefabs/building-prefab--roof-lantern-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/partTypes/index.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-110
+packages/building/src/building/resources/PREFAB_AUTHORING.md
+  s_f3959dcbf2bda2::t_510dabaad76906 45-56
+packages/building/src/building/runtime/ConstructionPreview.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-137
+packages/building/src/building/assets/native/Prefabs/building-prefab--door-gothic-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/core/connection.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-118
+packages/building/src/building/runtime/MasonryDistanceVertexData.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 2
+packages/building/src/building/runtime/PlacementSupport.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 17-18,23-26
+packages/building/package.json
+  s_f3959dcbf2bda2::t_510dabaad76906 139-148
+packages/world-planning/src/planning-data/poi-layout.json
+  s_f3959dcbf2bda2::t_510dabaad76906 32
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 143,147-150
+world/tests/seed-world/BuildingPartScript.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 36,40,51
+world/demos/seed-world/src/planning/semantic-study/PlanningWorkerClient.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 40,44,52
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-gothic-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/runtime/ConstructionSupportRender.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/core/CoreThreshold.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-82
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 11-13,28-30,92-101,180-252,267-290,310-328,330
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 25,80,182-184,201,213-216,219-222,267-272
+packages/building/src/building/assets/native/Prefabs/building-prefab--door-cottage-3.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/parts/README.md
+  s_f3959dcbf2bda2::t_510dabaad76906 5,25,27-29,31,33,35
+packages/building/src/building/runtime/ConstructionDecorationGeometry.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1,7-21,36
+packages/building/tests/core/baselines/CoreBuilding-prefabs.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/runtime/RecoveredWallConnectionHoles.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 4-5
+packages/building/tests/core/CoreStrip.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-60
+packages/building/src/building/resources/BuildingGeometry.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 7-12,14,50,105-106,134-176,233
+world/demos/seed-world/src/planning/semantic-study/PlanningLayerTree.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 120
+world/demos/seed-world/src/planning/spatial/PlanningDocumentCodec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 27,32
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 17,21,72-78,80-103,141,166,170,172,175,178-181,185,364,368,562,692,699-710,745,1009-1011,1114,1149,1158
+packages/runtime-editor/src/runtime-editor/scene/runtime-instance-source.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 7-10,40-49,65-67,72-73,137
+packages/world-planning/src/spatial/layout/SpatialTerrain.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 18-22
+world/tests/seed-world/PlanningInitializationWorker.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1,53-63
+  s_f3959dcbf2bda2::t_7a198a97b1baee 64-65
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 74-75,80,86
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-gothic-3.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/core/math.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-147
+packages/world-planning/src/semantic-study/WorldPlanningContract.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 108-111,119,138
+packages/building/src/building/parts/architecture/BuildingCpuClient.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1,46-47
+packages/building/tests/core/CoreLaying.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-180
+packages/building/tests/core/CoreMasonry.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-211
+packages/building/tests/DormerBins.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-40
+packages/building/tests/core/CoreSeam.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-231
+packages/building/src/building/assets/prefabs/gable-junction.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 5,8,11-12,16-26,36-40,42-56,60-61,63,67-79,89-93,95-130,136-137,140-156,160-166,168-273,277,279-280,284,286,290,294-295,297-298,300,304,306-307,311,313-324,328,332-339,341-343,348-349,352,354,356-363,369,373-377,379-384,388-396,398-400,402-418,422,424,426-439,445-446,449-466,479-515,517-586,590,592-593,597,599,603-604,607-622,625,627,631-632,635-650,653,655-761
+packages/building/tests/core/baselines/CoreWallDepth.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-174
+packages/building/src/building/parts/architecture/BuildingPartComponent.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 4,7-8,31-34,36-37,40-43,45-46
+packages/building/src/building/partTypes/Openings.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-759
+packages/building/src/building/assets/native/Prefabs/building-prefab--door-gothic-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 133-138
+world/tests/seed-world/BuildingInitialRecipe.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 3,10,12,17-21
+packages/world-planning/src/spatial/PlanningComponents.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 227-235,427,432-440,447-452,473,768-777,789-795,798-803,805-808,928-930
+  s_f3959dcbf2bda2::t_e27b4567e1bbda 226
+packages/building/tests/BuildingWorkerCpu.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 3,5-10,14,22-49,51-53,55,68,70-71,75,90-94,101,103-111
+packages/building/tests/core/CoreDormer.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-290
+packages/world-planning/src/semantic-study/BaseMapDrawing.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 513-515
+packages/building/src/building/core/registry.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-23
+packages/building/src/building/runtime/BuildingRenderPackage.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 23-24,49,148
+packages/building/src/building/resources/BuildingAssetKit.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 12-18,90-146,174,206-213,269,284,310-311,451-541,562
+packages/building/src/building/components/BuildingPlacement.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 3-4,23-24,27-31,35-44
+packages/building/src/building/runtime/UnitPlacement.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-3,8,10
+packages/building/tests/core/CoreArch.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-175
+packages/world-planning/src/semantic-study/WorldPlanningTerrain.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1,900-925,992-993
+world/demos/building-core-preview/frame.html
+  s_f3959dcbf2bda2::t_510dabaad76906 1-38
+packages/building/src/building/application/CoreEuropean.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-792
+packages/building/src/building/partTypes/Timber.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-409
+packages/world-planning/src/masonry/BuildingInitialDraft.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 3-7,9-12,25,42,80,89-92,99,168,170,185,188,191,198-202
+packages/building/src/building/runtime/UnitPacking.js
+  s_f3959dcbf2bda2::t_510dabaad76906 169-170,197-204,214
+packages/building/src/building/partTypes/ShedDormers.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-463
+packages/building/src/building/parts/architecture/index.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-3,5-7,11
+packages/building/tests/core/baselines/CoreCornerWindow.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-154
+packages/world-planning/src/masonry/BuildingInitialSource.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 5-12,19-23,32,35-47,49,52-54,56,59-76,78-85,87
+world/tests/seed-world/PlanningPublishedFarmingGround.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 177-185
+packages/building/src/building/core/geometry.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-702
+packages/building/src/building/partTypes/Foundation.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-544
+packages/building/tests/core/CoreDeterminism.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-116
+world/demos/seed-world/main.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 2-3,36-61,65,87-88
+world/demos/seed-world/SeedWorldDemo.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 43,534,889,933-938
+  s_f3959dcbf2bda2::t_1db21fa344bd62 892,1178,1180,1287-1292,1375-1376,1379-1381,1427,1493-1494,1704-1708,1744
+  s_f3959dcbf2bda2::t_38c3e31878f39d 1745,1748-1750,1898-1901,1955-1961,2000-2004
+world/demos/building-core-preview/gpu.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-108
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 65,78
+packages/building/tests/core/baselines/CoreHouse.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-30
+packages/building/src/building/partTypes/EaveDormers.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-381
+packages/building/tests/core/baselines/CoreTimber.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-17
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 129-130,584-597
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 449-452
+packages/building/src/building/assets/native/Prefabs/building-prefab--door-gothic-3.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 287-290,437-438
+world/tests/seed-world/BuildingInitialSource.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 11-17,19,21-32,34,50-52,56-57
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  s_f3959dcbf2bda2::t_510dabaad76906 119
+packages/building/src/building/parts/index.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 2
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-gothic-half-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/core/baselines/CoreBuilding-finish.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-56
+packages/building/src/skills/building/SKILL.md
+  s_f3959dcbf2bda2::t_510dabaad76906 26,29-32,41-42
+packages/project/src/runtime-editor/project/runtime-project-edit.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 8,96-99
+  s_f3959dcbf2bda2::t_3484ac12b2b251 100-101
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-gothic-half-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/BuildingSceneLifecycle.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 154,157-160,178-179,186-187,206,256-265,269,293-296,308-313,324,362,380,391,424,429-438,440,468,473-493
+  s_f3959dcbf2bda2::t_bbc30ae4dfd142 494
+packages/building/tests/core/CoreConnections.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-243
+packages/world-planning/src/spatial/farming/PlanningFarmingComponent.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 4,11,27-34,75
+world/demos/building-core-preview/gpu.html
+  s_f3959dcbf2bda2::t_510dabaad76906 1-37
+world/demos/building-core-preview/house.html
+  s_f3959dcbf2bda2::t_510dabaad76906 1-128
+packages/building/src/building/resources/BuiltinBuildingAssets.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/core/CoreLayout.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-102
+packages/building/src/building/partTypes/House.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-1709
+packages/world-planning/src/semantic-study/IslandPlanView.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 250-253,270,555-572
+world/migration/files.json
+  s_f3959dcbf2bda2::t_510dabaad76906 4066
+packages/building/tests/core/baselines/CoreStrip.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-72
+packages/world-planning/src/planning-data/natural-vegetation.json
+  s_f3959dcbf2bda2::t_510dabaad76906 11
+packages/building/src/building/assets/prefabs/circle-circle.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 5,8,11-12,16-26,36-40,42-49,53-54,56,60-76,86-104,106,112-113,116-132,136-162,164-249,253,255-256,260,262,266,270-271,273-274,276,280,282-283,287,289-300,304,308-315,317-319,324-325,328,330,332-339,345,349-353,355-360,364-372,374-376,378-394,398,400,402-415,421-422,425-439,452-531,533-558,562,564-565,569,571,575-576,579-593,596,598-609,613-614,617-634,637,639-650
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAuthoringComponents.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 142
+packages/building/tests/core/baseline.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-31
+packages/building/tests/core/CoreFlatRoof.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-420
+packages/building/src/building/parts/architecture/BuildingManager.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 4,10-12,22-23,96-103,207,227,257,261-263,267-273,275,277-287
+packages/building/tests/core/baselines/CoreStoneFrames.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-234
+packages/building/tests/core/baselines/CoreFoundation.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-99
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-cottage-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/partTypes/Strip.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-158
+packages/building/src/building/partTypes/DeckMounts.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-143
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-cottage-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/BuildingPartCollection.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 11,19,22-32,50-55,72-82,98,104-107,109,114-115,118-124,126-127,129-131,134
+packages/world-planning/src/spatial/runtime/PlanningWaterQueries.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 31-36,56
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-cottage-half-shutters-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/render/GridUnitKernel.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-297
+world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 371-380
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-cottage-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/parts/architecture/BuildingSource.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 2-3,19-20,56,110,121
+packages/building/tests/core/CoreHouse.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-81
+packages/building/tests/core/CoreHouseConnections.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-119
+packages/runtime-editor/src/runtime-editor/scene/runtime-scene-edit.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 157-158,167,186,316,336,360,380,564-565,567,582,588,590
+packages/building/tests/core/fixtures.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-221
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-arrow-slit-3.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/core/algorithms.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-456
+packages/building/src/skills/building/references/roof.md
+  s_f3959dcbf2bda2::t_510dabaad76906 5,7,11,13,15-23
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 253
+packages/building/src/building/core/index.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-11
+packages/building/src/building/partTypes/Arches.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-295
+world/demos/seed-world/src/planning/spatial/WorldTemplatePicker.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1,9,15-16,24,30-36,82,94-95,134
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-cottage-half-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/assets/native/Shaders/sdf-brick.shaderc
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1,103-107,132-134,143-146
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-gothic-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+world/demos/building-core-preview/house.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-933
+packages/building/src/building/assets/native/Shaders/sdf-brick_roof.shaderc
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+world/demos/seed-world/SeedWorldProject.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 29
+packages/terrain/src/shaders/terrain/TerrainEvaluation.glsl
+  s_f3959dcbf2bda2::t_510dabaad76906 72-89,100-116
+packages/building/src/building/resources/BuildingAssembly.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 2,18-57
+packages/building/src/building/parts/BuildingLayout.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/runtime/DormerBins.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 16-17,20-21
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 60,74,144,293-314,317-333,379
+packages/building/tests/core/CoreWallDepth.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-150
+packages/world-planning/src/spatial/farming/PlanningFarmDirtTexture.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-8,10-13,16-17
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 6-7,13-22,38,49-59,66-72,74-79,81-88,106,108-122,138,148-149,168
+packages/building/src/building/partTypes/Roof.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-1083
+packages/world-planning/src/semantic-study/GlobalRoadNetwork.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 18-19,75-78
+packages/building/tests/core/decorationSizes.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-12
+packages/building/src/building/assets/native/Shaders/sdf-brick_roof_clip.shaderc
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/assets/native/building-kit.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/world-planning/src/semantic-study/WorldLandDomain.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 34-39,42-43,47,92-120,131,174-176,182,184-194,228-359
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-arrow-slit-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/assets/native/Prefabs/building-prefab--door-cottage-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+world/demos/seed-world/src/planning/semantic-study/PlanningWorkerRuntime.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1,35-36,84-88
+packages/building/src/building/core/unit.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-136
+packages/building/src/building/parts/architecture/BuildingWorkerProtocol.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+world/demos/seed-world/src/planning/spatial/PlanningVisualAuthoring.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 60
+packages/building/src/building/partTypes/Dormers.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-622
+packages/building/src/building/assets/native/manifest.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/runtime/BuildingUnitAssets.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 6-7,12
+packages/building/src/building/assets/native/Shaders/sdf-brick_clip.shaderc
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-cottage-corner-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/BuildingPlacement.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 9-12,14-21,28,31,84-85,87-89,117
+packages/terrain/src/terrain/project/TerrainPostProcessRuntime.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 109,351-372
+  s_f3959dcbf2bda2::t_b7441ef26f3727 373-374
+packages/building/src/building/README.md
+  s_f3959dcbf2bda2::t_510dabaad76906 4-8
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-gothic-3.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/core/identity.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-28
+world/tests/seed-world/GentleTerrainDefaults.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 51
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/runtime/ConstructionSurfaceQuery.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 9
+packages/building/src/skills/building/references/structure.md
+  s_f3959dcbf2bda2::t_510dabaad76906 1,3,5,7-15
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-arrow-slit-half-2.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/src/building/core/design.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-704
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 779-786,865
+packages/building/src/building/assets/native/Prefabs/building-prefab--door-cottage-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/core/baselines/CoreArch.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-18
+packages/building/tests/core/CoreCornerWindow.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-237
+packages/building/src/building/parts/architecture/BuildingRemoval.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 4-7,11-12,14,18,44,51-53,60,63
+packages/building/src/building/runtime/UnitPacking.d.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-20
+packages/building/src/building/resources/BuildingAssetContract.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 19
+packages/building/src/building/assets/native/Shaders/brick.shaderc
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/core/CoreBuildingVillage.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-114
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 4-23,28,30-43,46-49,100,778-790,792,794-803,805-806,808-819
+world/demos/building-components/parts-example.txt
+  s_f3959dcbf2bda2::t_510dabaad76906 1-2,27-28,32-38
+packages/building/src/building/assets/native/Prefabs/building-prefab--window-gothic-1.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 145-147,156
+world/demos/building-core-preview/draw.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-244
+world/README.md
+  s_f3959dcbf2bda2::t_510dabaad76906 90,96
+packages/building/src/building/assets/native/Prefabs/building-prefab--dormer-gothic-half-3.prefab
+  s_f3959dcbf2bda2::t_510dabaad76906 1
+packages/building/tests/core/CoreEuropeanInput.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 1-95
+packages/building/tests/ConstructionLodAppearance.spec.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 3
+packages/building/tests/core/baselines/CoreEaveDormer.json
+  s_f3959dcbf2bda2::t_510dabaad76906 1-182
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_f3959dcbf2bda2::t_510dabaad76906 41,102,142-143,147-172,174-177,185,304-312,320,334-337,339-354,358-361,364-365,374-408,441,460-461,488-504,506-515,520-533,900-905,923-928,1101-1102,1112,1126-1135,1209,1226-1236,1240-1253
+  s_f3959dcbf2bda2::t_1572f87d3c010a 1254
+world/demos/seed-world/systems/runtime-declarations.json
+  s_f3959dcbf2bda2::t_3188b1301ad391 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "15e85d79129e72bd09b99048a5e585fd8b71543f",
+  "prompts": {},
+  "sessions": {
+    "s_f3959dcbf2bda2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c563-3adc-7622-a83b-663cb50c2ea6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

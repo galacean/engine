@@ -1,0 +1,88 @@
+docs/en/physics/debug.mdx
+  h_dd004f51a3e5ec 15-31
+docs/en/physics/manager.mdx
+  h_dd004f51a3e5ec 10-13,24-26,36,54-55,71-74,83-86
+docs/en/physics/query/overlap.mdx
+  h_dd004f51a3e5ec 12,20-27,275,280
+docs/en/physics/query/sweep.mdx
+  h_dd004f51a3e5ec 10-15,57-66,74,159,200-209,218,270,272,279
+docs/zh/physics/debug.mdx
+  h_dd004f51a3e5ec 16-31
+docs/zh/physics/manager.mdx
+  h_dd004f51a3e5ec 10-13,24-26,36,53-54,70-73,82-85
+docs/zh/physics/query/overlap.mdx
+  h_dd004f51a3e5ec 12,20-27,275,280
+docs/zh/physics/query/sweep.mdx
+  h_dd004f51a3e5ec 10-15,57-66,74,159,198-207,216,268,270,277
+packages/core/src/Camera.ts
+  h_dd004f51a3e5ec 719-726
+packages/core/src/ComponentsManager.ts
+  h_dd004f51a3e5ec 222,225
+packages/core/src/Engine.ts
+  h_dd004f51a3e5ec 1,346-347,710,781-782
+packages/core/src/Scene.ts
+  h_dd004f51a3e5ec 1,36,283,285,287
+packages/core/src/Script.ts
+  h_dd004f51a3e5ec 82-83,85
+packages/core/src/Transform.ts
+  h_dd004f51a3e5ec 611-634
+packages/core/src/input/pointer/emitter/PhysicsPointerEventEmitter.ts
+  h_dd004f51a3e5ec 4,15-16,22,33,42-61,63-64,120
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 363-369
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 207,308-309,313,367,378-394,626-630
+packages/core/src/physics/HitResult.ts
+  h_dd004f51a3e5ec 17-18
+packages/core/src/physics/PhysicsDebugLines.ts
+  h_dd004f51a3e5ec 1-44
+packages/core/src/physics/PhysicsMaterial.ts
+  h_dd004f51a3e5ec 19-24,45-46,53-55,64,71,80,87
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 1-9,11,21-22,25-36,47-52,68-81,93,100-193,208-245,248,255-266,269-276,285,317-329,357,359,364,367,372,384-385,387-388,395-396,398-410,438,443,446,465-474,478,531-543,552-553,559,563,565-567,569,571,575,596,645,654,659,663,665,668,686,738,740,750-763,773-774,780,784,786-788,790,792,796,808,821,832-1003,1017,1025-1030,1039,1046,1054,1064-1065,1074,1078,1083-1089,1095-1097,1099-1107,1109-1115,1117-1128,1130-1133,1135,1143,1165-1166,1206,1335-1336,1475-1501,1519-1548,1559-1585,1590-1592,1601-1602,1608,1617
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 996-1000
+packages/core/src/physics/index.ts
+  h_dd004f51a3e5ec 1,10,12
+packages/design/src/physics/IPhysics.ts
+  h_dd004f51a3e5ec 6,30
+packages/design/src/physics/IPhysicsScene.ts
+  h_dd004f51a3e5ec 6-32,80-88,98-99,106-107,112-117,123,131-132,140,147-148,158-160,169-171,180-182,190-192,200,203-205,215-236,244,247-252,258,261,268-269,277
+packages/design/src/physics/index.ts
+  h_dd004f51a3e5ec 6
+packages/loader/src/SceneLoader.ts
+  h_dd004f51a3e5ec 18,25,117-122
+packages/loader/src/schema/SceneSchema.ts
+  h_dd004f51a3e5ec 48-51
+packages/physics-physx/src/PhysXPhysics.ts
+  h_dd004f51a3e5ec 13,92-93
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 3-4,9-10,20,39-40,60-64,120-125,199-215,257-266,274-275,281-284,302-303,309-312,314,326-328,330,335-337,349-351,353,358-360,374-376,378,380,383-424,431-436,440-442,449,453-455,467,471-474,482,492,569-578,587,591-612,615,620-622,629-633,639-640
+tests/src/core/input/InputManager.test.ts
+  h_dd004f51a3e5ec 6,82,86,89-99,181-182
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 40-44
+tests/src/core/physics/PhysicsDebugLines.test.ts
+  h_dd004f51a3e5ec 1-133
+tests/src/core/physics/PhysicsMaterial.test.ts
+  h_dd004f51a3e5ec 172-185
+tests/src/core/physics/PhysicsMaterialOwnership.test.ts
+  h_dd004f51a3e5ec 5-6,9,11-12,35-136
+tests/src/core/physics/PhysicsOrigin.test.ts
+  h_dd004f51a3e5ec 1-154
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 13-14,21,23,27-33,181-343,786,793,1114-1189,1313-1325,1373,1376,1817,1852,1874,1883,1885,1889,1891-1892,1894-1903,2268,2270-2271,2277-2278,2281,2284,2287,2319,2321-2322,2324,2331,3050-3057
+tests/src/loader/PhysicsMaterialLoader.test.ts
+  h_dd004f51a3e5ec 2-11,73-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4c405b57c4ab61469012ec757a4aed8abe587373",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

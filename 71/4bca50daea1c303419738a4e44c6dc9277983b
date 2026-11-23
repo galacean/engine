@@ -1,0 +1,28 @@
+packages/core/src/particle/modules/MainModule.ts
+  s_d2c65ec75a2f3e::t_24e7acb4532f00 358-362
+  s_d2c65ec75a2f3e::t_359e61c586a6a8 314
+  s_d2c65ec75a2f3e::t_04b8e2ea2ceb73 6,22-23,84-85,347-348,351,365-375
+tests/src/core/particle/ParticleInterpolation.test.ts
+  s_d2c65ec75a2f3e::t_359e61c586a6a8 7,131-161
+  s_d2c65ec75a2f3e::t_7361156c1bf38d 162
+packages/core/src/particle/ParticleRenderer.ts
+  s_d2c65ec75a2f3e::t_4c173e37512485 232-235
+packages/shader/src/ShaderLibrary/Particle/ParticleVert.glsl
+  s_d2c65ec75a2f3e::t_0be2cdca808cf8 24-26,186-196,232,279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "714bca50daea1c303419738a4e44c6dc9277983b",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+packages/core/src/lighting/PointLight.ts
+  h_c385727b10f40c 34,39-41,74
+packages/core/src/lighting/SpotLight.ts
+  h_c385727b10f40c 48,53-55,109
+packages/shader/src/ShaderLibrary/Lighting/Light.glsl
+  h_c385727b10f40c 34-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c6f87e5ae45b017355b2f4bd16a60540863bd408",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

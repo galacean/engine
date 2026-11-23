@@ -1,0 +1,74 @@
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_37f36ddb216819::t_880bbe165bdb25 2,296-313,320-334,336-338,340,346-348,366,438-440,444-447,449,587,596,629,638,647,655,664,673,682,691,699,707,875-884,892-897,928-930,932-933,944-948,994,1000,1104-1105,1167-1175,1177-1178
+  s_37f36ddb216819::t_214fcecd4622d6 295,314-315,318-319,335,349,364-365,367-368,418,615,974,1106,1138-1140,1143,1158,1189,1199-1203,1212-1214,1249,1281,1287-1290
+  s_37f36ddb216819::t_d40af99a6aea7d 1,3-5,316-317,350-363,920-927,1206-1207,1209-1211,1248,1261-1264,1268-1271
+  s_37f36ddb216819::t_c2fc4eaf6bfee7 339,341-345,437,441-443,448,915-919,963
+packages/modify/build/local-engine.mjs
+  s_37f36ddb216819::t_d40af99a6aea7d 8-69
+  s_37f36ddb216819::t_43c02472218e9d 1-7,70-73
+packages/modify/tests/ScreenSpaceReflectionAuthoring.test.ts
+  s_37f36ddb216819::t_d40af99a6aea7d 1-294
+packages/modify/src/native/core/src/material/Material.ts
+  s_37f36ddb216819::t_d40af99a6aea7d 29-47,127-129
+  s_37f36ddb216819::t_0a5e416face8ae 1-5,26-28
+packages/modify/SSR_AUTHORING.md
+  s_37f36ddb216819::t_77e77895e803dc 14,16,20,22,73,75-89
+  s_37f36ddb216819::t_ab1b7ee5b21bb3 1-13,15,17-19,21,23-72,74
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/index.ts
+  s_37f36ddb216819::t_214fcecd4622d6 21-22
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts
+  s_37f36ddb216819::t_214fcecd4622d6 1-6,11-27,30,32-33,38,69,76,150-151
+  s_37f36ddb216819::t_d40af99a6aea7d 7-10,34,72-75,78-149
+  s_37f36ddb216819::t_880bbe165bdb25 28-29,31,35-37,39-40,45-68,70-71,77
+  s_37f36ddb216819::t_301ed71a34f546 41-44
+packages/modify/src/native/core/src/Camera.ts
+  s_37f36ddb216819::t_d40af99a6aea7d 22-26,71-73,75-77,81-86
+  s_37f36ddb216819::t_880bbe165bdb25 74,78-80,87
+  s_37f36ddb216819::t_8be4568bbd3e5f 88-89
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_37f36ddb216819::t_880bbe165bdb25 124
+packages/modify/src/native/loader/src/schema/MaterialSchema.ts
+  s_37f36ddb216819::t_214fcecd4622d6 2-28
+  s_37f36ddb216819::t_0801613cf75e1a 1
+packages/modify/src/native/core/src/Scene.ts
+  s_37f36ddb216819::t_214fcecd4622d6 1,29
+packages/modify/src/native/loader/src/MaterialLoader.ts
+  s_37f36ddb216819::t_880bbe165bdb25 125-127
+packages/modify/src/native/loader/src/SceneLoader.ts
+  s_37f36ddb216819::t_214fcecd4622d6 1-31,44-56,58-198,200-214
+  s_37f36ddb216819::t_880bbe165bdb25 32-43,57,199
+packages/modify/src/native/loader/src/schema/SceneSchema.ts
+  s_37f36ddb216819::t_214fcecd4622d6 1-70
+packages/modify/tests/vitest.config.mjs
+  s_37f36ddb216819::t_d40af99a6aea7d 13
+  s_37f36ddb216819::t_fe5a88f15cb8ed 1-12,14-18
+packages/modify/native-overrides.json
+  s_37f36ddb216819::t_214fcecd4622d6 729-746
+  s_37f36ddb216819::t_10432cb5120786 747-748
+packages/modify/README.md
+  s_37f36ddb216819::t_9c0981e4618700 18-19
+packages/modify/src/native/core/src/material/index.ts
+  s_37f36ddb216819::t_00e83a5611e69c 1-11
+packages/modify/tests/ScreenSpaceReflectionReview.test.ts
+  s_37f36ddb216819::t_b5174f7cffcf8f 1-195
+packages/water/src/water/shaders/HeightfieldWater.shader
+  s_37f36ddb216819::t_0f444a55201e3f 5
+packages/water/src/water/shaders/RiverWater.shader
+  s_37f36ddb216819::t_37c90686c743fb 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a98c24f03f6f777e6e1a05542de0f6ee2cc089da",
+  "prompts": {},
+  "sessions": {
+    "s_37f36ddb216819": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a5b4-0e3b-7012-9d7a-e5ae58790463",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

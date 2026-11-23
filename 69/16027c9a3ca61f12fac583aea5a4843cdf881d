@@ -1,0 +1,21 @@
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  s_821bd5c95307d1::t_171aef5d02095a 186,193-194,199,204,208-239,265,358
+tests/src/core/material/PBRAnisotropy.test.ts
+  s_821bd5c95307d1::t_39f9a16ef4b9db 5,9,12-13,18,22,30-32,45-46,52-63,68,73-82,91-92,94-109,117-143,145-311,315-323,327-384,386-522
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6916027c9a3ca61f12fac583aea5a4843cdf881d",
+  "prompts": {},
+  "sessions": {
+    "s_821bd5c95307d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e4bd-1ddc-7323-99f3-afa41a65394a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

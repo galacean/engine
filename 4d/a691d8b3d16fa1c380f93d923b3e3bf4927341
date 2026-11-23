@@ -1,0 +1,43 @@
+packages/core/src/ComponentDispatch.ts
+  s_2b4485b4d6f647::t_e2dad6db8b75ad 1-72
+packages/modify/tests/RegisteredPipelinePass.test.ts
+  s_2b4485b4d6f647::t_23b74a2771f357 1-46
+packages/world-planning/src/runtime/SeedWorldGrassSampling.ts
+  s_2b4485b4d6f647::t_f91ec436d19de3 1-101
+tests/src/core/ComponentDispatch.test.ts
+  s_2b4485b4d6f647::t_ae1b79924da00f 1-137
+tests/src/core/input/PointerCanvasMapping.test.ts
+  s_2b4485b4d6f647::t_a9d2864c6bbde2 1-44
+world/tests/seed-world-browser/DecorationBounds.test.ts
+  s_2b4485b4d6f647::t_9a9e1827909c39 1-36
+world/tests/seed-world-browser/ForwardGrass.test.ts
+  s_2b4485b4d6f647::t_12c9d4b26719fd 1-264
+world/tests/seed-world-browser/ForwardGrassCulling.test.ts
+  s_2b4485b4d6f647::t_4b2698724d8e8c 1-254
+world/tests/seed-world-browser/TransformFeedbackInstancing.test.ts
+  s_2b4485b4d6f647::t_a0834c8c6aa934 1-88
+world/tests/seed-world-browser/vitest.config.mjs
+  s_2b4485b4d6f647::t_7f7014ece1dd0a 1-28
+world/tests/seed-world/GrassSampling.spec.ts
+  s_2b4485b4d6f647::t_58193145285542 1-31
+world/tests/seed-world/GroundAnimalSnapshot.spec.ts
+  s_2b4485b4d6f647::t_3de28d857eb79a 1-172
+world/tests/seed-world/SeedWorldWaterOcclusion.spec.ts
+  s_2b4485b4d6f647::t_f294e3165fd4d3 1-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4da691d8b3d16fa1c380f93d923b3e3bf4927341",
+  "prompts": {},
+  "sessions": {
+    "s_2b4485b4d6f647": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e99f-d424-7301-8359-1c8d4fee0fa7",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

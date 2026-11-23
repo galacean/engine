@@ -1,0 +1,155 @@
+packages/farming/src/farming/domain/FarmingGround.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+world/demos/seed-world/SeedWorldDemo.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 837-839,855-858,1564
+packages/farming/tests/fixtures/fixtures.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/farming/src/farming/presentation/sowing/SowingSeedLibrary.ts
+  s_97a2bd932aa3f2::t_fa26e492ff9361 2
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  s_97a2bd932aa3f2::t_8dc85502721cb8 99
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/water/src/water/runtime/resources/destroyWaterOwnedMesh.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 4
+packages/water/package.json
+  s_97a2bd932aa3f2::t_8dc85502721cb8 385-387
+packages/terrain/src/terrain/project/TerrainProjectRegionDependencies.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/farming/src/farming/presentation/soil/SoilRenderBatches.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 21
+packages/water/src/water/compiler/lake/LakeTerrainBoundary.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingAcceptedGround.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/farming/src/farming/presentation/harvest/HarvestProduceMesh.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 2
+packages/terrain/src/shaders/Terrain.shader
+  s_97a2bd932aa3f2::t_8dc85502721cb8 97
+packages/farming/src/farming/geometry/GridInterpolation.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1-47
+packages/world-planning/src/runtime/SeedWorldFields.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 107,610
+packages/world-planning/tests/NativeWaterPrefab.test.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 5
+packages/world-planning/src/semantic-study/PlanningTerrainSource.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 3
+packages/world-planning/tests/NativeWaterImmediateLifecycle.test.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 7
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 10
+packages/terrain/src/terrain/clipmap/TerrainHeightAtlas.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 12-13,16-18,62
+packages/farming/src/farming/presentation/harvest/BasketContentsMesh.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 5
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 42-43,61,283-296
+packages/farming/src/farming/presentation/soil/SoilWorkPresenter.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/terrain/src/shaders/terrain/TerrainScreenSpaceReflectionPass.glsl
+  s_97a2bd932aa3f2::t_8dc85502721cb8 164
+packages/water/src/water/authoring/terrain/WaterTerrainSnapshot.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 2
+packages/farming/src/farming/geometry/SurfaceTriangles.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1-100
+packages/farming/src/farming/presentation/FarmingPlotSelection.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 16-17
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/terrain/src/terrain/project/TerrainProjectCodec.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/water/src/water/runtime/spatial/WaterWetNearShoreSearch.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/terrain/src/terrain/clipmap/TerrainClipmap.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 28,31,263-266,305,333,800,811,823,833-838,840-845,857
+packages/farming/src/farming/procedural/runtime/ProceduralPlant.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 2
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/modify/package.json
+  s_97a2bd932aa3f2::t_8dc85502721cb8 22-23
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1-121
+world/tests/seed-world/TerrainPreparedUpdate.spec.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 4-7
+packages/terrain/src/terrain/clipmap/TerrainGroundBinding.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 18,23,31
+packages/farming/src/farming/presentation/soil/FarmingPlotSurface.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/modify/src/geometry/destroyOwnedMesh.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1-29
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 27
+packages/farming/src/farming/presentation/harvest/HarvestProduce.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 2
+packages/farming/src/farming/presentation/storage/StorageProduceLibrary.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 3
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingTerrain.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1,5
+packages/water/src/water/authoring/terrain/GridInterpolation.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1-47
+packages/world-planning/src/geometry/surfaceTransitionWeight.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1-5
+packages/world-planning/src/semantic-study/PlanningAlphamap.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 6
+packages/farming/src/farming/presentation/FarmItemPresentation.ts
+  s_97a2bd932aa3f2::t_fa26e492ff9361 30
+packages/terrain/src/terrain/project/TerrainProjectAdapter.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 13-16
+world/demos/farming/native-preview/NativePreviewHost.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+world/demos/seed-world/src/SeedWorldInstantCamera.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/terrain/src/terrain/clipmap/TerrainPreparedUpdate.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+world/demos/farming/first-person-farm/scene/FarmGround.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmLandCoverage.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 3
+packages/world-planning/package.json
+  s_97a2bd932aa3f2::t_8dc85502721cb8 13-18,478-479
+packages/world-planning/src/spatial/farming/PlanningFarmingGround.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 320-321,359-360,385-386,561-565,1035,1043-1045
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  s_97a2bd932aa3f2::t_8dc85502721cb8 234-236
+packages/terrain/src/terrain/clipmap/TerrainPuddleHydrology.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1-5
+packages/water/src/bridges/SuspensionBridgeView.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1-2
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 2
+packages/world-planning/tests/WaterEditor.test.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 12
+packages/world-planning/tests/WaterEditorFixture.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 7
+packages/farming/src/farming/presentation/soil/disposeSoilMesh.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 2
+packages/farming/package.json
+  s_97a2bd932aa3f2::t_8dc85502721cb8 184-186
+packages/terrain/src/terrain/clipmap/TerrainNormalAtlas.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 3
+packages/water/src/bridges/MeshInteractionSurface.ts
+  s_97a2bd932aa3f2::t_8dc85502721cb8 1-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1885ff6751cef76ca266899631d748061a40014b",
+  "prompts": {},
+  "sessions": {
+    "s_97a2bd932aa3f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1af8d-d94c-7263-b9b5-ffc911b9f798",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

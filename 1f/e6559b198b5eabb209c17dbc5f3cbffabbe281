@@ -1,0 +1,113 @@
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_b6bd2e5ac526fa 709
+  s_d2c65ec75a2f3e::t_cfbccfeb4bea7e 17,682,684,688,692
+  s_d2c65ec75a2f3e::t_7c652693392382 349-350
+  s_d2c65ec75a2f3e::t_a4344411c97825 403-406,693-694
+  s_d2c65ec75a2f3e::t_42809adea7abed 685-687
+  s_d2c65ec75a2f3e::t_56bc43dfa333a3 47,63-72,673
+  s_d2c65ec75a2f3e::t_65963e89499066 20,319,425,433,446
+  s_d2c65ec75a2f3e::t_75bfa2646575f9 396,560,562-564
+  s_d2c65ec75a2f3e::t_8e15fb31788a5f 128,391-394,407-408,411-417,702,708,710-714,716
+  s_d2c65ec75a2f3e::t_03fa373bcd8439 395
+packages/core/src/Script.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,248-249,268
+packages/core/src/Component.ts
+  s_d2c65ec75a2f3e::t_23816578b94440 22,29-32,43,119,131-135,146,186,188,209-218,220-226
+  s_d2c65ec75a2f3e::t_d7a91456642773 20,117,142,219
+packages/ui/src/component/UIRenderer.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,166-167
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_8e15fb31788a5f 546-548
+  s_d2c65ec75a2f3e::t_7c652693392382 531
+  s_d2c65ec75a2f3e::t_65963e89499066 636,652-655,778,784
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_d2c65ec75a2f3e::t_65963e89499066 101,135-150
+  s_d2c65ec75a2f3e::t_9bf37bd953286f 92,99-100,109-110,114,122,169,177,192-193,200,208
+packages/core/src/Engine.ts
+  s_d2c65ec75a2f3e::t_56bc43dfa333a3 381
+  s_d2c65ec75a2f3e::t_3b0921a4884511 42-43,320-321,387,396,404,410
+packages/core/src/postProcess/PostProcess.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,128-129
+packages/core/src/lighting/PointLight.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,70-71
+packages/core/src/physics/MeshCollider.ts
+  s_d2c65ec75a2f3e::t_54a7fe02b06be3 279
+  s_d2c65ec75a2f3e::t_3b0921a4884511 52,181
+  s_d2c65ec75a2f3e::t_cfbccfeb4bea7e 203,253
+packages/core/src/particle/ParticleRenderer.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,181,183
+packages/core/src/Entity.ts
+  s_d2c65ec75a2f3e::t_23816578b94440 939
+packages/ui/src/component/interactive/UIInteractive.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,193-194
+packages/ui/src/component/UICanvas.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,396-397,634,638,686,690
+tests/src/core/physics/MeshCollider.test.ts
+  s_d2c65ec75a2f3e::t_15a386f21853ec 267-289
+tests/src/core/Transform.test.ts
+  s_d2c65ec75a2f3e::t_cfbccfeb4bea7e 63,65-77
+  s_d2c65ec75a2f3e::t_3d419b3dff3ae4 12,52-62
+  s_377380b9d9a256::t_69490774edaccc 64
+tests/src/core/physics/Collider.test.ts
+  s_d2c65ec75a2f3e::t_5f36903914fabc 1157-1201,1223,1226
+  s_d2c65ec75a2f3e::t_aa134efd781ce9 144-165
+packages/physics-physx/src/shape/PhysXMeshColliderShape.ts
+  s_d2c65ec75a2f3e::t_54a7fe02b06be3 114,176-179,183,189-191
+  s_d2c65ec75a2f3e::t_15a386f21853ec 181-182,184-188,193-196
+packages/core/src/lighting/SpotLight.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,107-108
+packages/core/src/animation/Animator.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,313-314
+packages/core/src/2d/sprite/SpriteMask.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,222-224
+packages/core/src/Transform.ts
+  s_d2c65ec75a2f3e::t_35fd98b25a6e62 235-237,248,250
+  s_d2c65ec75a2f3e::t_cfbccfeb4bea7e 279-283
+  s_d2c65ec75a2f3e::t_3d419b3dff3ae4 240-243
+  s_d2c65ec75a2f3e::t_a3d84f18494a77 245-247,816-817,826-827,923,925-926
+  s_d2c65ec75a2f3e::t_b6bd2e5ac526fa 13,291-292,626-628,694,818-825,869,888,910-913,920-922,928,930
+  s_d2c65ec75a2f3e::t_01a62c791f1ab9 238-239,244
+  s_377380b9d9a256::t_d17bedfa4893d6 924
+packages/core/src/physics/CharacterController.ts
+  s_d2c65ec75a2f3e::t_65963e89499066 9,228-229,232,288,292-294,299,301,322,330,332-334
+packages/core/src/Camera.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,268-270,714-715
+packages/core/src/Renderer.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,309-310
+packages/design/src/physics/ICharacterController.ts
+  s_d2c65ec75a2f3e::t_65963e89499066 56-58,60
+packages/core/src/lighting/DirectLight.ts
+  s_d2c65ec75a2f3e::t_7c652693392382 1,81-82
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_d99a94bc1a5f81 822
+tests/src/core/Entity.test.ts
+  s_d2c65ec75a2f3e::t_4cb2a07cf5c07f 3-14,792-875
+tests/src/core/physics/CharacterController.test.ts
+  s_d2c65ec75a2f3e::t_1b40851cd28d7e 835-848
+tests/src/core/physics/PhysicsGameplay.test.ts
+  s_d2c65ec75a2f3e::t_9aabdd5c38472d 1610,1662-1663,1665,1668,1677,1682-1686,1690-1695,1697,1728-1739,1741-1750,1807
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1fe6559b198b5eabb209c17dbc5f3cbffabbe281",
+  "prompts": {},
+  "sessions": {
+    "s_377380b9d9a256": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f7dd-8702-7241-99bf-b5e87945a0bd",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

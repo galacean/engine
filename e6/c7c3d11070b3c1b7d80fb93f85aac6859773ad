@@ -1,0 +1,33 @@
+docs/en/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_8a728116c65473 92,94,96
+packages/physics-physx/src/PhysXDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_8a728116c65473 2,145-151
+packages/core/src/physics/index.ts
+  s_d2c65ec75a2f3e::t_8a728116c65473 12
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_689c8c53ddc443 820,824-825,828-829,831,834,836-838,840-846,848-855,858-885,988
+docs/zh/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_8a728116c65473 92,94,96
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_8a728116c65473 66,335,356-358,360-361,364-366,546
+packages/design/src/physics/IDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_8a728116c65473 126,128,130
+e2e/case/physx-mesh-collider.ts
+  s_d2c65ec75a2f3e::t_8a728116c65473 48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e6c7c3d11070b3c1b7d80fb93f85aac6859773ad",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

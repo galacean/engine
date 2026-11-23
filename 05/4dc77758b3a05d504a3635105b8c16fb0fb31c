@@ -1,0 +1,19 @@
+tests/src/core/physics/PhysicsMaterial.test.ts
+  s_89f62b485e437b::t_cfa9de71a9bb20 799-802,811-814,820,823
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "054dc77758b3a05d504a3635105b8c16fb0fb31c",
+  "prompts": {},
+  "sessions": {
+    "s_89f62b485e437b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1e26a-2627-7685-ab49-571422f416d8",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

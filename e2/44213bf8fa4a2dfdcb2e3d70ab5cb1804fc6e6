@@ -1,0 +1,16 @@
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  h_171a11afaf879a 6-9,14-24,31-34,36-37,39-41,43-44,46-48,54-57,59,72-73
+tests/src/core/postProcess/PostProcess.test.ts
+  h_171a11afaf879a 954-1046
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e244213bf8fa4a2dfdcb2e3d70ab5cb1804fc6e6",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
