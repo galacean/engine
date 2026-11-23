@@ -1,0 +1,30 @@
+packages/ai-chat/src/ai-chat/agent-knowledge-paths.ts
+  h_ddbf152d31b140 13-15,22
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  h_ddbf152d31b140 916,924,926,937,939,1135-1136
+packages/ai-chat/src/ai-chat/agent-native-files.ts
+  h_ddbf152d31b140 6,28,30,176,179,201,393,406,464,469,471,478,481,494,496,560-569,573-576,590,599-605
+packages/ai-chat/src/ai-chat/agent-protocol.ts
+  h_ddbf152d31b140 18,146-149,227,279-280
+packages/ai-chat/src/ai-chat/context-compaction.ts
+  h_ddbf152d31b140 7-16,112-114,119-121,131-137,170-172,311,320-390
+packages/ai-chat/tests/AIChatAgentProtocol.spec.ts
+  h_ddbf152d31b140 167-174,177-181,186-214
+packages/ai-chat/tests/agent-native-files.spec.ts
+  h_ddbf152d31b140 420-455
+packages/ai-chat/tests/context-compaction.spec.ts
+  h_ddbf152d31b140 124-170
+world/tests/seed-world/AgentKnowledgeAudit.spec.ts
+  h_ddbf152d31b140 101-119,214-220,241-242
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5e9cab7a4338a09bcd859607e732edeac5a33222",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  h_ddbf152d31b140 38,237,459,1112,1186,1192-1194,1251-1262
+packages/ai-chat/src/ai-chat/context-compaction.ts
+  h_ddbf152d31b140 114-123,141-143,180-209
+packages/ai-chat/tests/context-compaction-loop.spec.ts
+  h_ddbf152d31b140 141-241
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8fa32a543ed048fa11c76590de175a628395b7d9",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

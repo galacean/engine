@@ -1,0 +1,16 @@
+packages/core/src/asset/ReferResource.ts
+  h_bd4dd7d663e619 14,47-48,60-62,69,80,116-117,121-123
+tests/src/loader/GLTFLoader.test.ts
+  h_bd4dd7d663e619 1216-1217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "03bd0e51c26ed4a780c6c88a8524dcf024091bf8",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

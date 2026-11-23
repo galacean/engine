@@ -1,0 +1,34 @@
+packages/farming/src/skills/farming/references/operations.md
+  h_ddbf152d31b140 49
+packages/runtime-editor/src/runtime-editor/README.md
+  h_ddbf152d31b140 175
+packages/runtime-editor/src/skills/assets/use-model/SKILL.md
+  h_ddbf152d31b140 14
+packages/runtime-editor/src/skills/scene-nodes/SKILL.md
+  h_ddbf152d31b140 8
+packages/water/src/skills/water/SKILL.md
+  h_ddbf152d31b140 8
+world/scripts/acceptance/worker-api-audit/cases.cjs
+  h_ddbf152d31b140 8,41,46,50,68,72,92,113,118,123
+world/scripts/acceptance/worker-api-audit/native-cases.cjs
+  h_ddbf152d31b140 46,48,53,55,62,68,73,75,85,91,101
+world/scripts/acceptance/worker-api-audit/water-cases.cjs
+  h_ddbf152d31b140 6,52
+world/scripts/acceptance/worker-api-audit/world-cases.cjs
+  h_ddbf152d31b140 60,66,79
+world/tests/seed-world/native/FarmingComponentEditor.spec.ts
+  h_ddbf152d31b140 37,130,141,148,229,238
+world/tests/seed-world/runtime-editor/native-tools.integration.spec.ts
+  h_ddbf152d31b140 86-88,93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "058a0bea5eb18d406757d0659397710adc6f3e23",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
