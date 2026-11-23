@@ -108,12 +108,8 @@ float getAARoughnessFactor(vec3 normal) {
     // Kaplanyan 2016, "Stable specular highlights"
     // Tokuyoshi 2017, "Error Reduction and Simplification for Shading Anti-Aliasing"
     // Tokuyoshi and Kaplanyan 2019, "Improved Geometric Specular Antialiasing"
-    #ifdef HAS_DERIVATIVES
         vec3 dxy = max( abs(dFdx(normal)), abs(dFdy(normal)) );
         return max( max(dxy.x, dxy.y), dxy.z );
-    #else
-        return 0.0;
-    #endif
 }
 
 
@@ -353,11 +349,7 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
     }
 
     float prefilteredSheenDFG(float dotNV, float sheenRoughness) {
-        #ifdef HAS_TEX_LOD
-            return texture2DLodEXT(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness), 0.0).b;
-        #else
-            return texture2D(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness),0.0).b;
-        #endif  
+        return textureLod(scene_PrefilteredDFG, vec2(dotNV, sheenRoughness), 0.0).b;
     }
 #endif
 
@@ -397,7 +389,7 @@ vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
         vec2 refractionCoords = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
 
         // Sample the opaque texture to get the transmitted light
-        vec3 refractionTransmitted = texture2DSRGB(camera_OpaqueTexture, refractionCoords).rgb;
+        vec3 refractionTransmitted = texture2D(camera_OpaqueTexture, refractionCoords).rgb;
         
         refractionTransmitted *= bsdfData.diffuseColor;
          

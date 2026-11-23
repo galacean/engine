@@ -85,13 +85,13 @@ describe("PBR anisotropy", () => {
     camera = root.createChild().addComponent(Camera);
     camera.entity.transform.setPosition(0, 0, 3);
     // A linear render target avoids the canvas's final sRGB conversion.
-    output = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8, false, false);
+    output = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
     camera.renderTarget = new RenderTarget(engine, 16, 16, output);
     renderer = root.createChild().addComponent(MeshRenderer);
     material = new PBRMaterial(engine);
     material.shader = shader;
     renderer.setMaterial(material);
-    texture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false, false);
+    texture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
   });
 
   beforeEach(() => {
@@ -191,7 +191,7 @@ describe("PBR anisotropy", () => {
     "keeps the final shading frame orthonormal (rotation $rotation; sign $sign; back $backFace; parallel $parallel; tangents $withTangents)",
     ({ rotation, sign, backFace, parallel, withTangents }) => {
       if (withTangents) mesh.setTangents(Array.from({ length: 3 }, () => new Vector4(1, 0, 0, sign)));
-      const normalMap = new Texture2D(engine, 2, 1, TextureFormat.R8G8B8A8, false, false);
+      const normalMap = new Texture2D(engine, 2, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
       try {
         normalMap.filterMode = TextureFilterMode.Bilinear;
         // At UV (0.5,0.5), filtering gives exactly (1,0.5,0.5), hence N=+X.
@@ -366,7 +366,7 @@ describe("PBR anisotropy", () => {
   });
 
   it.each([false, true])("matches isotropic PBR when texture strength is zero (tilted normal %s)", (tilted) => {
-    const directionMap = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false, false);
+    const directionMap = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
     try {
       directionMap.setPixelBuffer(new Uint8Array([255, 128, 0, 255]));
       texture.setPixelBuffer(new Uint8Array(tilted ? [218, 128, 218, 255] : [128, 128, 255, 255]));
@@ -388,7 +388,7 @@ describe("PBR anisotropy", () => {
   });
 
   it.each([0, 255])("keeps production PBR finite when filtering cancels directions (blue %i)", (blue) => {
-    const directionMap = new Texture2D(engine, 2, 1, TextureFormat.R8G8B8A8, false, false);
+    const directionMap = new Texture2D(engine, 2, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
     try {
       directionMap.filterMode = TextureFilterMode.Bilinear;
       directionMap.setPixelBuffer(new Uint8Array([255, 255, blue, 255, 0, 0, blue, 255]));
@@ -413,7 +413,7 @@ describe("PBR anisotropy", () => {
   });
 
   it.each([0, 255])("keeps the clearcoat lobe independent of base anisotropy (blue %i)", (blue) => {
-    const directionMap = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false, false);
+    const directionMap = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
     try {
       directionMap.setPixelBuffer(new Uint8Array([255, 128, blue, 255]));
       texture.setPixelBuffer(new Uint8Array([218, 128, 218, 255]));
@@ -439,8 +439,8 @@ describe("PBR anisotropy", () => {
   });
 
   it("uses the clearcoat normal for environment reflection with base anisotropy", () => {
-    const environment = new TextureCube(engine, 1, TextureFormat.R8G8B8A8, false, false);
-    const coatNormalMap = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false, false);
+    const environment = new TextureCube(engine, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const coatNormalMap = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
     const ambient = engine.sceneManager.activeScene!.ambientLight;
     const previous = ambient.specularTexture;
     try {
@@ -1113,7 +1113,7 @@ describe("PBR anisotropy", () => {
     }
   });
 
-  it("compiles and renders standalone PBR submodules without ForwardPassPBR across GLSL ES 100/300", () => {
+  it("compiles and renders standalone PBR submodules without ForwardPassPBR in GLSL ES 300", () => {
     const customPassSource = `Shader "StandalonePBRSubmodules" {
       SubShader "Default" {
         Pass "Forward" {
@@ -1173,28 +1173,23 @@ describe("PBR anisotropy", () => {
 
     const precompiler = new ShaderPrecompiler();
     precompiler.setIncludeMap(ShaderFactory.includeMap);
-    const es100 = precompiler.precompile(customPassSource, ShaderLanguage.GLSLES100);
-    const es300 = precompiler.precompile(customPassSource, ShaderLanguage.GLSLES300);
+    const precompiled = precompiler.precompile(customPassSource, ShaderLanguage.GLSLES300);
+    const pass = precompiled.subShaders[0].passes[0];
+    const withNormal = new Map<string, string>([
+      ["RENDERER_HAS_NORMAL", ""],
+      ["RENDERER_HAS_TANGENT", ""],
+      ["RENDERER_HAS_UV", ""],
+      ["MATERIAL_ENABLE_ANISOTROPY", ""]
+    ]);
+    expect(ShaderMacroProcessor.evaluate(pass.vertexShaderInstructions!, withNormal)).toContain("normalWS");
+    expect(ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions!, withNormal)).toContain("v.tangentSign");
 
-    for (const precompiled of [es100, es300]) {
-      const pass = precompiled.subShaders[0].passes[0];
-      const withNormal = new Map<string, string>([
-        ["RENDERER_HAS_NORMAL", ""],
-        ["RENDERER_HAS_TANGENT", ""],
-        ["RENDERER_HAS_UV", ""],
-        ["MATERIAL_ENABLE_ANISOTROPY", ""]
-      ]);
-      expect(ShaderMacroProcessor.evaluate(pass.vertexShaderInstructions!, withNormal)).toContain("normalWS");
-      expect(ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions!, withNormal)).toContain("v.tangentSign");
+    const omitted = new Map(withNormal);
+    omitted.set("MATERIAL_OMIT_NORMAL", "");
+    expect(ShaderMacroProcessor.evaluate(pass.vertexShaderInstructions!, omitted)).not.toContain("normalWS");
+    expect(ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions!, omitted)).toContain("getTBNByDerivatives");
 
-      const omitted = new Map(withNormal);
-      omitted.set("MATERIAL_OMIT_NORMAL", "");
-      omitted.set("HAS_DERIVATIVES", "");
-      expect(ShaderMacroProcessor.evaluate(pass.vertexShaderInstructions!, omitted)).not.toContain("normalWS");
-      expect(ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions!, omitted)).toContain("getTBNByDerivatives");
-    }
-
-    const standaloneShader = Shader._createFromPrecompiled(es100);
+    const standaloneShader = Shader._createFromPrecompiled(precompiled);
     try {
       material.shader = standaloneShader;
       material.anisotropyRotation = 45;

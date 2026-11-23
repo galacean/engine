@@ -48,10 +48,10 @@ describe("Shader object identity", () => {
 
   it("keeps manual, source and precompiled namesakes independent", () => {
     const name = "ShaderIdentity/Creation";
-    const manual = Shader.create(name, [new ShaderPass("Forward", [], [], ShaderLanguage.GLSLES100)]);
+    const manual = Shader.create(name, [new ShaderPass("Forward", [], [], ShaderLanguage.GLSLES300)]);
     const live = Shader.create(source(name, "1.0, 0.0, 0.0"));
     const precompiled = Shader._createFromPrecompiled(
-      new ShaderPrecompiler().precompile(source(name, "0.0, 0.0, 1.0"), ShaderLanguage.GLSLES100)
+      new ShaderPrecompiler().precompile(source(name, "0.0, 0.0, 1.0"), ShaderLanguage.GLSLES300)
     );
     shaders.push(manual, live, precompiled);
 
@@ -88,7 +88,7 @@ describe("Shader object identity", () => {
     const name = "ShaderIdentity/Render";
     const red = Shader.create(source(name, "1.0, 0.0, 0.0"));
     const blue = Shader._createFromPrecompiled(
-      new ShaderPrecompiler().precompile(source(name, "0.0, 0.0, 1.0"), ShaderLanguage.GLSLES100)
+      new ShaderPrecompiler().precompile(source(name, "0.0, 0.0, 1.0"), ShaderLanguage.GLSLES300)
     );
     shaders.push(red, blue);
     const secondEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });

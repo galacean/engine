@@ -1,5 +1,5 @@
 import { DataObject } from "../../base/DataObject";
-import { IHardwareRenderer } from "@galacean/engine-design";
+import type { IHardwareRenderer } from "../../renderingHardwareInterface";
 import { RenderStateElementMap } from "../../BasicResources";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
@@ -154,7 +154,7 @@ export class StencilState extends DataObject {
     lastState: StencilState,
     customStates?: RenderStateElementMap | null
   ): void {
-    const gl = <WebGLRenderingContext>rhi.gl;
+    const gl = rhi.gl;
     let {
       enabled,
       referenceValue,

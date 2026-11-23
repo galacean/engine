@@ -14,7 +14,7 @@ import {
 } from "@galacean/engine-core";
 import { resolveRefItem } from "./schema/refs";
 import type { RefItem } from "./schema/CommonSchema";
-import { SpecularMode, type SceneFile } from "./schema/SceneSchema";
+import type { SceneFile } from "./schema/SceneSchema";
 import { ParserContext, ParserType, SceneParser } from "./resource-deserialize";
 
 function loadRef<T extends EngineObject>(
@@ -43,7 +43,6 @@ export function applySceneData(
     // parse ambient light
     const ambient = sceneData.ambient;
     if (ambient) {
-      const useCustomAmbient = ambient.specularMode === SpecularMode.Custom;
       const useSH = ambient.diffuseMode === DiffuseMode.SphericalHarmonics;
 
       scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
@@ -54,24 +53,11 @@ export function applySceneData(
         scene.ambientLight.diffuseSolidColor.set(solidColor[0], solidColor[1], solidColor[2], solidColor[3]);
       }
 
-      if (useCustomAmbient && ambient.customAmbientLight != null) {
-        promises.push(
-          loadRef<any>(refs, ambient.customAmbientLight, resourceManager, "scene.ambient.customAmbientLight").then(
-            (ambientLight) => {
-              scene.ambientLight.specularTexture = ambientLight?.specularTexture;
-            }
-          )
-        );
-      }
-
-      if (ambient.ambientLight != null && (!useCustomAmbient || useSH)) {
+      if (ambient.ambientLight != null) {
         promises.push(
           loadRef<any>(refs, ambient.ambientLight, resourceManager, "scene.ambient.ambientLight").then(
             (ambientLight) => {
-              if (!useCustomAmbient) {
-                scene.ambientLight.specularTexture = ambientLight?.specularTexture;
-              }
-
+              scene.ambientLight.specularTexture = ambientLight?.specularTexture;
               if (useSH) {
                 scene.ambientLight.diffuseSphericalHarmonics = ambientLight?.diffuseSphericalHarmonics;
               }

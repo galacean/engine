@@ -6,8 +6,12 @@ import {
   ColorWriteMask,
   Engine,
   GLCapabilityType,
+  IHardwareRenderer,
   IPlatformBuffer,
+  IPlatformPrimitive,
   IPlatformRenderTarget,
+  IPlatformShaderProgram,
+  IPlatformTexture,
   IPlatformTexture2D,
   IPlatformTextureCube,
   IPlatformTransformFeedback,
@@ -16,7 +20,7 @@ import {
   Platform,
   Primitive,
   RenderTarget,
-  SubMesh,
+  SubPrimitive,
   SystemInfo,
   Texture2D,
   Texture2DArray,
@@ -24,7 +28,6 @@ import {
   TextureCubeFace,
   TextureFormat
 } from "@galacean/engine-core";
-import { IHardwareRenderer, IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
@@ -39,27 +42,11 @@ import { GLTextureCube } from "./GLTextureCube";
 import { GLTransformFeedback } from "./GLTransformFeedback";
 import { GLTransformFeedbackPrimitive } from "./GLTransformFeedbackPrimitive";
 import { WebCanvas } from "./WebCanvas";
-import { WebGLExtension } from "./type";
-
-/**
- * WebGL mode.
- */
-export enum WebGLMode {
-  /** Auto, use WebGL2.0 if support, or will fallback to WebGL1.0. */
-  Auto = 0,
-  /** WebGL2.0. */
-  WebGL2 = 1,
-  /** WebGL1.0, */
-  WebGL1 = 2
-}
 
 /**
  * WebGL graphic device options.
  */
 export interface WebGLGraphicDeviceOptions {
-  /** WebGL mode.*/
-  webGLMode?: WebGLMode;
-
   /**
    * @internal
    * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for example iPhone13(iOS 15.4.1).
@@ -86,9 +73,10 @@ export interface WebGLGraphicDeviceOptions {
 }
 
 /**
- * WebGL graphic device, including WebGL1.0 and WebGL2.0.
+ * WebGL graphic device, using WebGL2.0.
  */
 export class WebGLGraphicDevice implements IHardwareRenderer {
+  readonly supportsRendering = true;
   maxUniformBlockSize: number;
 
   /** @internal */
@@ -102,15 +90,15 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   _enableGlobalDepthBias: boolean = false;
   /** @internal */
-  _currentBindShaderProgram: any;
+  _currentBindShaderProgram: IPlatformShaderProgram | null;
 
-  private _options: WebGLGraphicDeviceOptions;
+  /** @internal */
+  readonly _options: WebGLGraphicDeviceOptions;
   private _webGLOptions: WebGLContextAttributes;
-  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
-  private _renderStates;
-  private _extensions;
+  private _gl: WebGL2RenderingContext;
+  private _renderStates: GLRenderStates;
+  private _extensions: GLExtensions;
   private _capability: GLCapability;
-  private _isWebGL2: boolean;
   private _renderer: string;
   private _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
@@ -125,17 +113,13 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _onDeviceLost: () => void;
   private _onDeviceRestored: () => void;
 
-  get isWebGL2(): boolean {
-    return this._isWebGL2;
-  }
-
   get renderer(): string {
     return this._renderer;
   }
 
   /**
    * GL Context
-   * @member {WebGLRenderingContext}
+   * @member {WebGL2RenderingContext}
    */
   get gl() {
     return this._gl;
@@ -149,13 +133,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return this._capability;
   }
 
-  get canIUseMoreJoints() {
-    return this.capability.canIUseMoreJoints;
-  }
-
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
     const options = <WebGLGraphicDeviceOptions>{
-      webGLMode: WebGLMode.Auto,
       _forceFlush: false,
       _maxAllowSkinUniformVectorCount: 256,
       alpha: true,
@@ -202,47 +181,28 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
     const webCanvas = (canvas as WebCanvas)._webCanvas;
-    const webGLMode = this._options.webGLMode;
 
+    webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    try {
+      const webGLOptions = this._webGLOptions;
+      let gl = webCanvas.getContext("webgl2", webGLOptions);
+      if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
+      }
+      if (!gl || !gl.deleteQuery) {
+        throw new Error("WebGL2 is not supported.");
+      }
+      this._gl = gl;
+      this._initGLState(gl);
+    } finally {
+      webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    }
+
+    this._webCanvas = webCanvas;
     this._onDeviceLost = onDeviceLost;
     this._onDeviceRestored = onDeviceRestored;
     webCanvas.addEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
-    webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
-
-    this._webCanvas = webCanvas;
-
-    const webGLOptions = this._webGLOptions;
-    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext | undefined;
-    if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      gl = webCanvas.getContext("webgl2", webGLOptions);
-      if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
-        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
-      }
-      this._isWebGL2 = true;
-
-      // Prevent weird browsers to lie (such as safari!)ƒ
-      if (gl && !(<WebGL2RenderingContext>gl).deleteQuery) {
-        this._isWebGL2 = false;
-      }
-    }
-
-    if (!gl) {
-      if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", webGLOptions);
-        if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
-          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", webGLOptions);
-        }
-        this._isWebGL2 = false;
-      }
-    }
-
-    if (!gl) {
-      throw new Error("Get GL Context FAILED.");
-    }
-
-    this._gl = gl;
-    this._initGLState(gl);
   }
 
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
@@ -279,16 +239,16 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   createPlatformTransformFeedbackPrimitive(): IPlatformTransformFeedbackPrimitive {
-    return new GLTransformFeedbackPrimitive(<WebGL2RenderingContext>this._gl);
+    return new GLTransformFeedbackPrimitive(this._gl);
   }
 
   bindUniformBufferBase(bindingPoint: number, buffer: IPlatformBuffer): void {
-    const gl = <WebGL2RenderingContext>this._gl;
+    const gl = this._gl;
     gl.bindBufferBase(gl.UNIFORM_BUFFER, bindingPoint, (<GLBuffer>buffer)._glBuffer);
   }
 
   bindUniformBlock(program: WebGLProgram, blockName: string, bindingPoint: number): number {
-    const gl = <WebGL2RenderingContext>this._gl;
+    const gl = this._gl;
     const blockIndex = gl.getUniformBlockIndex(program, blockName);
     if (blockIndex !== gl.INVALID_INDEX) {
       gl.uniformBlockBinding(program, blockIndex, bindingPoint);
@@ -297,23 +257,19 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   /**
-   * Enable GL_RASTERIZER_DISCARD (WebGL2 only).
+   * Enable GL_RASTERIZER_DISCARD.
    */
   enableRasterizerDiscard(): void {
-    if (this._isWebGL2) {
-      const gl = <WebGL2RenderingContext>this._gl;
-      gl.enable(gl.RASTERIZER_DISCARD);
-    }
+    const gl = this._gl;
+    gl.enable(gl.RASTERIZER_DISCARD);
   }
 
   /**
-   * Disable GL_RASTERIZER_DISCARD (WebGL2 only).
+   * Disable GL_RASTERIZER_DISCARD.
    */
   disableRasterizerDiscard(): void {
-    if (this._isWebGL2) {
-      const gl = <WebGL2RenderingContext>this._gl;
-      gl.disable(gl.RASTERIZER_DISCARD);
-    }
+    const gl = this._gl;
+    gl.disable(gl.RASTERIZER_DISCARD);
   }
 
   /**
@@ -337,6 +293,18 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
   canIUseCompressedTextureInternalFormat(type: number) {
     return this.capability.canIUseCompressedTextureInternalFormat(type);
+  }
+
+  supportsTextureFormat(format: TextureFormat): boolean {
+    return this.capability.supportsTextureFormat(format);
+  }
+
+  supportsRenderTargetColorFormat(format: TextureFormat): boolean {
+    return this.capability.supportsRenderTargetColorFormat(format);
+  }
+
+  supportsGenerateMipmaps(format: TextureFormat, isSRGBColorSpace: boolean): boolean {
+    return this.capability.supportsGenerateMipmaps(format, isSRGBColorSpace);
   }
 
   viewport(x: number, y: number, width: number, height: number): void {
@@ -412,9 +380,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
-  drawPrimitive(primitive: GLPrimitive, subPrimitive: SubMesh, shaderProgram: IPlatformShaderProgram) {
+  drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, shaderProgram: IPlatformShaderProgram): void {
     // todo: VAO not support morph animation
-    if (primitive) {
+    if (primitive && subPrimitive) {
       primitive.draw(shaderProgram, subPrimitive);
     } else {
       Logger.error("draw primitive failed.");
@@ -466,10 +434,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     clearFlags: CameraClearFlags,
     viewport: Vector4
   ) {
-    if (!this._isWebGL2) {
-      Logger.warn("WebGL1.0 not support blit frame buffer.");
-      return;
-    }
     const gl = this._gl;
     // @ts-ignore
     const srcFrameBuffer = srcRT ? srcRT._platformRenderTarget._frameBuffer : null;
@@ -561,7 +525,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
   }
 
-  bindTexture(texture: GLTexture): void {
+  bindTexture(platformTexture: IPlatformTexture): void {
+    const texture = platformTexture as GLTexture;
     const index = this._activeTextureID - this._gl.TEXTURE0;
     if (this._activeTextures[index] !== texture) {
       this._gl.bindTexture(texture._target, texture._glTexture);
@@ -621,7 +586,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._initGLState(this._gl);
   }
 
-  protected _initGLState(gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext): void {
+  protected _initGLState(gl: WebGL2RenderingContext): void {
     this._activeTextureID = gl.TEXTURE0;
     this._renderStates = new GLRenderStates(gl);
     this._extensions = new GLExtensions(this);
@@ -633,16 +598,11 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
-    if (this._isWebGL2) {
-      this.maxUniformBlockSize = (<WebGL2RenderingContext>gl).getParameter(
-        (<WebGL2RenderingContext>gl).MAX_UNIFORM_BLOCK_SIZE
-      );
-    }
+    this.maxUniformBlockSize = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
   }
 
   destroy(): void {
     const webCanvas = this._webCanvas;
-    webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
     webCanvas.removeEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.removeEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
   }

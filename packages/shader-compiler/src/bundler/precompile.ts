@@ -67,12 +67,12 @@ export interface PrecompileOptions {
   emitIndex?: boolean;
   /** Generate raw-source indexes: `<input>/index.ts` (.shader) + sibling `ShaderLibrary/index.ts` (.glsl). */
   emitSources?: boolean;
-  /** Optional shader platform target passed through to `precompile`. Defaults to `0`. */
+  /** Optional shader platform target passed through to `precompile`. Defaults to GLSL ES 3.00. */
   platformTarget?: number;
 }
 
 interface ShaderPrecompilerInstance {
-  precompile: (source: string, target: number, sourceFile?: string) => unknown;
+  precompile: (source: string, target?: number, sourceFile?: string) => unknown;
   setIncludeMap: (includeMap: Record<string, string>) => void;
 }
 
@@ -105,7 +105,7 @@ export async function precompile(options: PrecompileOptions): Promise<void> {
 export async function runFull(options: Omit<PrecompileOptions, "watch">): Promise<{ failed: number }> {
   const inputDir = path.resolve(options.input);
   const outputDir = path.resolve(options.output);
-  const platformTarget = options.platformTarget ?? 0;
+  const platformTarget = options.platformTarget;
 
   if (!fs.existsSync(inputDir)) {
     throw new Error(`Input directory does not exist: ${inputDir}`);
@@ -145,7 +145,7 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
 export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "only">): Promise<void> {
   const inputDir = path.resolve(options.input);
   const outputDir = path.resolve(options.output);
-  const platformTarget = options.platformTarget ?? 0;
+  const platformTarget = options.platformTarget;
   if (!fs.existsSync(inputDir)) {
     throw new Error(`Input directory does not exist: ${inputDir}`);
   }
@@ -191,7 +191,7 @@ function compileAll(
   shaderCompiler: ShaderPrecompilerInstance,
   inputDir: string,
   outputDir: string,
-  platformTarget: number,
+  platformTarget: number | undefined,
   clean: boolean | undefined
 ): number {
   const shaderFiles = findFiles(inputDir, ".shader");
@@ -280,7 +280,7 @@ function compileSingle(
   shaderPath: string,
   inputDir: string,
   outputDir: string,
-  platformTarget: number
+  platformTarget: number | undefined
 ): boolean {
   const relativePath = shaderSourceRelativePath(shaderPath, inputDir);
   const source = fs.readFileSync(shaderPath, "utf-8");

@@ -54,7 +54,7 @@ describe("Material", () => {
     const shaderProperties = shaderData.getProperties();
     for (let i = 0, n = shaderProperties.length; i < n; i++) {
       const shaderProperty = shaderProperties[i];
-      switch (shaderProperty.type) {
+      switch (shaderProperty.types) {
         case ShaderPropertyType.Float:
           expect(shaderData.getFloat(shaderProperty)).to.equal(0.2);
           break;

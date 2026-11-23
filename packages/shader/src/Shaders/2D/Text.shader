@@ -45,11 +45,7 @@ Shader "2D/Text" {
 
       void TextFragment(v2f v) {
         vec4 texColor = texture2D(renderElement_TextTexture, v.v_uv);
-        #ifdef GRAPHICS_API_WEBGL2
           float coverage = texColor.r;
-        #else
-          float coverage = texColor.a;
-        #endif
         gl_FragColor = vec4(v.v_color.rgb, v.v_color.a * coverage);
       }
     }

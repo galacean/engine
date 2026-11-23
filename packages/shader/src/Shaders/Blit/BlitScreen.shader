@@ -14,9 +14,7 @@ Shader "Blit/BlitScreen" {
       #include "ShaderLibrary/Common/Common.glsl"
 
       mediump sampler2D renderer_BlitTexture;
-      #ifdef HAS_TEX_LOD
         float renderer_BlitMipLevel;
-      #endif
 
       struct Attributes {
         vec4 POSITION_UV;
@@ -33,26 +31,12 @@ Shader "Blit/BlitScreen" {
         return v;
       }
 
-      #ifdef HAS_TEX_LOD
-        vec4 texture2DLodSRGB(sampler2D tex, vec2 uv, float lod) {
-          vec4 color = texture2DLodEXT(tex, uv, lod);
-          #ifdef ENGINE_NO_SRGB
-            color = sRGBToLinear(color);
-          #endif
-          return color;
-        }
-      #endif
-
       void frag(Varyings v) {
         vec2 uv = v.v_uv;
         // Screen uv is flipped
         uv.y = 1.0 - uv.y;
 
-        #ifdef HAS_TEX_LOD
-          gl_FragColor = texture2DLodSRGB(renderer_BlitTexture, uv, renderer_BlitMipLevel);
-        #else
-          gl_FragColor = texture2D(renderer_BlitTexture, uv);
-        #endif
+        gl_FragColor = textureLod(renderer_BlitTexture, uv, renderer_BlitMipLevel);
 
         // Color space in screen is in gamma space but without sRGB texture, so convert to linear space
         gl_FragColor = sRGBToLinear(gl_FragColor);

@@ -1,4 +1,4 @@
-import { ShaderFactory, ShaderLanguage } from "@galacean/engine-core";
+import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
@@ -90,12 +90,12 @@ describe("MRT interface backend conversion", () => {
         const compiler = new ShaderCompiler();
         const pass = compiler._parseShaderSource(shader).subShaders[0].passes[0];
         const compiled = precompiled
-          ? new ShaderPrecompiler().precompile(shader, ShaderLanguage.GLSLES100).subShaders[0].passes[0]
+          ? new ShaderPrecompiler().precompile(shader, ShaderLanguage.GLSLES300).subShaders[0].passes[0]
           : compiler._parseShaderPass(
               pass.contents,
               pass.vertexEntry,
               pass.fragmentEntry,
-              ShaderLanguage.GLSLES100,
+              ShaderLanguage.GLSLES300,
               undefined,
               pass.contentScopeStarts
             )!;
@@ -112,8 +112,7 @@ describe("MRT interface backend conversion", () => {
             const shader = gl.createShader(kind)!;
             shaders.push(shader);
             const generated = ShaderMacroProcessor.evaluate(instructions!, new Map());
-            const converted = ShaderFactory.convertTo300(generated, kind === gl.FRAGMENT_SHADER);
-            gl.shaderSource(shader, `#version 300 es\nprecision highp float;\n${converted}`);
+            gl.shaderSource(shader, `#version 300 es\nprecision highp float;\n${generated}`);
             gl.compileShader(shader);
             expect(gl.getShaderParameter(shader, gl.COMPILE_STATUS), gl.getShaderInfoLog(shader) ?? "").toBe(true);
             gl.attachShader(program, shader);

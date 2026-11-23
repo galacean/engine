@@ -3144,37 +3144,6 @@ describe("SubEmitter", () => {
     c.entity.destroy();
   });
 
-  it("Sub-emitter stays inert on WebGL1 instead of crashing on Death", () => {
-    const parent = createParticleRenderer(engine, "WebGL1_Parent");
-    const child = createParticleRenderer(engine, "WebGL1_Child");
-    parent.generator.main.startLifetime.constant = 0.5;
-
-    // Pretend WebGL1 from the start: the whole module must be inert (enabled → false),
-    // and no transform-feedback buffer is built, so a parent death never reads a null buffer.
-    const hardwareRenderer = (engine as any)._hardwareRenderer;
-    const realIsWebGL2 = hardwareRenderer._isWebGL2;
-    hardwareRenderer._isWebGL2 = false;
-    try {
-      parent.generator.subEmitters.enabled = true;
-      parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death, undefined, undefined, 3);
-
-      expect(parent.generator.subEmitters.enabled).to.equal(false);
-      expect((parent.generator as any)._feedbackSimulator).to.not.exist;
-
-      parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(4), 1, 0.01));
-      parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-      child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-      parent.generator.play();
-      expect(() => updateEngine(engine, 10)).to.not.throw(); // parent death must not crash
-      expect(child.generator._getAliveParticleCount()).to.equal(0); // Death inert on WebGL1
-    } finally {
-      hardwareRenderer._isWebGL2 = realIsWebGL2;
-    }
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
   it("Cloned sub-emitter slots re-link to the cloned module", () => {
     const parent = createParticleRenderer(engine, "CloneParent");
     const child = createParticleRenderer(engine, "CloneChild");
@@ -3226,7 +3195,7 @@ describe("SubEmitter rendering regressions", () => {
     camera = cameraEntity.addComponent(Camera);
     camera.isOrthographic = true;
     camera.orthographicSize = 4;
-    texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8A8, false);
+    texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8A8_UNorm, false);
     camera.renderTarget = new RenderTarget(engine, resolution, resolution, texture);
   });
 
@@ -3313,7 +3282,7 @@ describe("SubEmitter rendering regressions", () => {
         mesh.setColors(Array.from({ length: mesh.vertexCount }, () => new Color(1, 1, 1, 1)));
         mesh.uploadData(false);
       }
-      const white = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false);
+      const white = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
       white.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
       (child.getMaterial() as ParticleMaterial).baseTexture = white;
       generator.velocityOverLifetime.enabled = true;
@@ -3417,7 +3386,7 @@ describe("SubEmitter rendering regressions", () => {
   it.each([2, 7])("preserves birth-time atlas rows when the grid changes (columns=%s)", (columns) => {
     const { parent, child } = systems();
     child.generator.main.startSize.constant = 0.8;
-    const atlas = new Texture2D(engine, columns, 2, TextureFormat.R8G8B8A8, false);
+    const atlas = new Texture2D(engine, columns, 2, TextureFormat.R8G8B8A8_UNorm, false);
     atlas.filterMode = TextureFilterMode.Point;
     const pixels = new Uint8Array(columns * 2 * 4);
     // Select the first tile of the second row. All other tiles are black.

@@ -136,7 +136,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     vec3 emissiveRadiance = material_EmissiveColor;
 
     #ifdef MATERIAL_HAS_BASETEXTURE
-        baseColor *= texture2DSRGB(material_BaseTexture, uv);
+        baseColor *= texture2D(material_BaseTexture, uv);
     #endif
 
     #ifdef RENDERER_ENABLE_VERTEXCOLOR
@@ -157,7 +157,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #endif
 
     #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-        emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, uv).rgb;
+        emissiveRadiance *= texture2D(material_EmissiveTexture, uv).rgb;
     #endif
 
     surfaceData.albedoColor = baseColor.rgb;
@@ -187,14 +187,12 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     float faceDirection = float( isFrontFacing ) * 2.0 - 1.0;
     #ifdef NEED_VERTEX_NORMAL
         vec3 normal = normalize(v.normalWS);
-    #elif defined(HAS_DERIVATIVES)
+    #else
         vec3 pos_dx = dFdx(v.positionWS);
         vec3 pos_dy = dFdy(v.positionWS);
         vec3 normal = normalize( cross(pos_dx, pos_dy) );
         // Screen derivatives face the viewer. Recover the unflipped geometric normal.
         normal *= camera_ProjectionParams.x * faceDirection;
-    #else
-        vec3 normal = vec3(0, 0, 1);
     #endif
     
     surfaceData.normal = normal * faceDirection;
@@ -332,7 +330,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     #ifdef MATERIAL_ENABLE_SHEEN
         vec3 sheenColor = material_SheenColor;
         #ifdef MATERIAL_HAS_SHEEN_TEXTURE
-            sheenColor *= texture2DSRGB(material_SheenTexture, uv).rgb;
+            sheenColor *= texture2D(material_SheenTexture, uv).rgb;
         #endif
         surfaceData.sheenColor = sheenColor;
 

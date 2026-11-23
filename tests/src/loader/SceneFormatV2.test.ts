@@ -18,7 +18,7 @@ import {
   ShadowResolution,
   Transform
 } from "@galacean/engine-core";
-import { SpecularMode, type SceneFile } from "../../../packages/loader/src/schema/SceneSchema";
+import type { SceneFile } from "../../../packages/loader/src/schema/SceneSchema";
 import { applySceneData } from "../../../packages/loader/src/SceneLoader";
 import {
   ParserContext,
@@ -94,13 +94,6 @@ class CallOrderComponent extends Script {
 Loader.registerClass("CallOrderComponent", CallOrderComponent);
 
 let engine: WebGLEngine;
-
-describe("SceneFile v2 schema enums", () => {
-  it("uses numeric enum values for ambient specularMode", () => {
-    expect(SpecularMode.Sky).to.equal(0);
-    expect(SpecularMode.Custom).to.equal(1);
-  });
-});
 
 beforeAll(async function () {
   const canvasDOM = document.createElement("canvas");
@@ -494,8 +487,7 @@ describe("SceneParser v2 entity tree", () => {
         ambient: {
           diffuseMode: 0,
           diffuseIntensity: 1,
-          specularIntensity: 1,
-          specularMode: SpecularMode.Sky
+          specularIntensity: 1
         }
       }
     };
@@ -749,8 +741,7 @@ describe("SceneParser v2 entity tree", () => {
         ambient: {
           diffuseMode: DiffuseMode.SolidColor,
           diffuseIntensity: 1,
-          specularIntensity: 1,
-          specularMode: SpecularMode.Sky
+          specularIntensity: 1
         }
       }
     };
@@ -1033,29 +1024,24 @@ describe("ReflectionParser $class resolution", () => {
 // so any change to the parsing logic is automatically covered.
 
 describe("applySceneData scene property parsing", () => {
-  it("should resolve ambient resources for custom specular and spherical harmonics", async () => {
+  it("should resolve unified ambientLight for specular and spherical harmonics", async () => {
     const scene = new Scene(engine);
     const noop = () => {};
-    const customAmbientTexture = { name: "custom-specular-texture", _addReferCount: noop };
-    const ambientTexture = { name: "sh-specular-texture", _addReferCount: noop };
+    const ambientTexture = { name: "ambient-specular-texture", _addReferCount: noop };
     const diffuseSphericalHarmonics = { name: "ambient-sh", coefficients: new Float32Array(27) };
     const getResourceByRef = vi
       .spyOn(engine.resourceManager as any, "getResourceByRef")
       .mockImplementation((ref: any) => {
-        switch (ref.url) {
-          case "custom-ambient":
-            return Promise.resolve({ specularTexture: customAmbientTexture }) as any;
-          case "ambient-light":
-            return Promise.resolve({
-              specularTexture: ambientTexture,
-              diffuseSphericalHarmonics
-            }) as any;
-          default:
-            return Promise.resolve(null) as any;
+        if (ref.url === "ambient-light") {
+          return Promise.resolve({
+            specularTexture: ambientTexture,
+            diffuseSphericalHarmonics
+          }) as any;
         }
+        return Promise.resolve(null) as any;
       });
 
-    const refs = [{ url: "custom-ambient" }, { url: "ambient-light" }];
+    const refs = [{ url: "ambient-light" }];
     try {
       await applySceneData(
         scene,
@@ -1066,9 +1052,7 @@ describe("applySceneData scene property parsing", () => {
             diffuseMode: DiffuseMode.SphericalHarmonics,
             diffuseIntensity: 1,
             specularIntensity: 1,
-            specularMode: SpecularMode.Custom,
-            customAmbientLight: 0,
-            ambientLight: 1
+            ambientLight: 0
           }
         },
         engine.resourceManager,
@@ -1078,8 +1062,42 @@ describe("applySceneData scene property parsing", () => {
       getResourceByRef.mockRestore();
     }
 
-    expect(scene.ambientLight.specularTexture).to.equal(customAmbientTexture);
+    expect(scene.ambientLight.specularTexture).to.equal(ambientTexture);
     expect(scene.ambientLight.diffuseSphericalHarmonics).to.equal(diffuseSphericalHarmonics);
+  });
+
+  it("should apply unified ambientLight specular without overwriting SH in SolidColor diffuse mode", async () => {
+    const scene = new Scene(engine);
+    const noop = () => {};
+    const ambientTexture = { name: "ambient-specular-texture", _addReferCount: noop };
+    const diffuseSphericalHarmonics = { name: "ambient-sh", coefficients: new Float32Array(27) };
+    const initialSH = scene.ambientLight.diffuseSphericalHarmonics;
+    const getResourceByRef = vi
+      .spyOn(engine.resourceManager as any, "getResourceByRef")
+      .mockResolvedValue({ specularTexture: ambientTexture, diffuseSphericalHarmonics } as any);
+
+    try {
+      await applySceneData(
+        scene,
+        {
+          rootEntities: [0],
+          background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
+          ambient: {
+            diffuseMode: DiffuseMode.SolidColor,
+            diffuseIntensity: 1,
+            specularIntensity: 1,
+            ambientLight: 0
+          }
+        },
+        engine.resourceManager,
+        [{ url: "ambient-light" }]
+      );
+    } finally {
+      getResourceByRef.mockRestore();
+    }
+
+    expect(scene.ambientLight.specularTexture).to.equal(ambientTexture);
+    expect(scene.ambientLight.diffuseSphericalHarmonics).to.equal(initialSH);
   });
 
   it("should apply sky background resources", async () => {

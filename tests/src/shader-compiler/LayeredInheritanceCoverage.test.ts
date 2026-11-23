@@ -6,7 +6,7 @@ import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { afterAll, describe, expect, it } from "vitest";
 
 type Coverage = "layered" | "same-scope" | "incomplete";
-const targets = [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300];
+const targets = [ShaderLanguage.GLSLES300];
 const contexts = new Map<ShaderLanguage, WebGLRenderingContext | WebGL2RenderingContext>();
 
 afterAll(() => {
@@ -36,14 +36,14 @@ function expectPixel(target: ShaderLanguage, vertex: string, fragment: string, v
   if (!gl) {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 1;
-    gl = canvas.getContext(target === ShaderLanguage.GLSLES100 ? "webgl" : "webgl2", {
+    gl = canvas.getContext("webgl2", {
       antialias: false,
       preserveDrawingBuffer: true
     }) as WebGLRenderingContext | WebGL2RenderingContext;
     expect(gl).not.toBeNull();
     contexts.set(target, gl);
   }
-  const prefix = `${target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : ""}precision mediump float;\n`;
+  const prefix = `${"#version 300 es\n"}precision mediump float;\n`;
   const program = gl.createProgram()!;
   const shaders: WebGLShader[] = [];
   try {

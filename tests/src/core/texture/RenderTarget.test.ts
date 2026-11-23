@@ -1,4 +1,4 @@
-import { RenderBufferDepthFormat, RenderTarget, Texture2D } from "@galacean/engine-core";
+import { TextureFormat, RenderTarget, Texture2D } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
@@ -10,7 +10,6 @@ describe("RenderTarget", async () => {
 
   let engine: WebGLEngine;
   let rhi: any;
-  let isWebGL2: boolean;
   let maxAntiAliasing: number;
   let renderColorTexture: Texture2D;
   let renderColorTexture2: Texture2D;
@@ -19,7 +18,6 @@ describe("RenderTarget", async () => {
     engine = await WebGLEngine.create({ canvas: canvas });
     // @ts-ignore
     rhi = engine._hardwareRenderer;
-    isWebGL2 = rhi.isWebGL2;
     maxAntiAliasing = rhi.capability._maxAntiAliasing;
     renderColorTexture = new Texture2D(engine, width, height);
     renderColorTexture2 = new Texture2D(engine, width, height);
@@ -27,7 +25,6 @@ describe("RenderTarget", async () => {
   });
 
   beforeEach(() => {
-    rhi._isWebGL2 = isWebGL2;
     rhi.capability._maxAntiAliasing = maxAntiAliasing;
   });
 
@@ -77,26 +74,21 @@ describe("RenderTarget", async () => {
       // expect(renderTarget.depthTexture).toBe(renderDepthTexture);
     });
 
-    it("创建失败-不支持高精度深度缓冲", () => {
-      expect(() => {
-        rhi.canIUse.mockReturnValueOnce(false);
-        new RenderTarget(engine, width, height, renderColorTexture, RenderBufferDepthFormat.Depth32);
-      }).to.throw;
-    });
-
-    it("创建失败-不支持高精度深度模版缓冲", () => {
-      expect(() => {
-        rhi.canIUse.mockReturnValueOnce(false);
-        new RenderTarget(engine, width, height, renderColorTexture, RenderBufferDepthFormat.Depth32Stencil8);
-      }).to.throw;
-    });
-
-    it("创建失败-不支持MRT", () => {
-      expect(() => {
-        rhi.canIUse.mockReturnValueOnce(false);
-        new RenderTarget(engine, width, height, [renderColorTexture, renderColorTexture2]);
-      }).to.throw;
-    });
+    it.each([TextureFormat.Depth32, TextureFormat.Depth32Stencil8])(
+      "creates a complete WebGL2 framebuffer with two color attachments and depth format %i",
+      (format) => {
+        const target = new RenderTarget(engine, width, height, [renderColorTexture, renderColorTexture2], format);
+        const gl = canvas.getContext("webgl2")!;
+        try {
+          target._platformRenderTarget.activeRenderTarget(0);
+          expect(gl.checkFramebufferStatus(gl.FRAMEBUFFER)).toBe(gl.FRAMEBUFFER_COMPLETE);
+          expect(gl.getParameter(gl.DRAW_BUFFER1)).toBe(gl.COLOR_ATTACHMENT1);
+        } finally {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          target.destroy();
+        }
+      }
+    );
 
     // it("创建失败-不支持MRT+Cube+[,MSAA]", () => {
     //   expect(() => {
@@ -110,7 +102,9 @@ describe("RenderTarget", async () => {
 
       const renderTarget = new RenderTarget(engine, width, height, renderColorTexture, undefined, 2);
 
-      expect(renderTarget.antiAliasing).to.eq(1);
+      // The requested level is kept while the device creates a single-sample target
+      expect(renderTarget.antiAliasing).to.eq(2);
+      expect(renderTarget._platformRenderTarget["_MSAAFrameBuffer"]).to.be.undefined;
     });
 
     it("销毁", () => {

@@ -65,7 +65,7 @@ VertexInputs getVertexInputs(Attributes attributes){
         position = skinMatrix * position;
 
         #ifdef NEED_VERTEX_NORMAL
-            mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
+            mat3 skinNormalMatrix = inverse(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
             #ifdef NEED_VERTEX_TANGENT
                 tangent.xyz = mat3(skinMatrix) * tangent.xyz;

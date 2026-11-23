@@ -32,7 +32,7 @@ export abstract class Probe extends Script {
   height: number = 1024;
 
   /**
-   * When using WebGL2, you can turn on MSAA at the hardware layer.
+   * Anti-aliasing level (MSAA) for the probe render target.
    */
   antiAliasing: number = 1;
 

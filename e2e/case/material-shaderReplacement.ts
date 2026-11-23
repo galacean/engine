@@ -139,7 +139,7 @@ function initShader() {
               mat4 skinMatrix = getSkinMatrix(attr);
               position = skinMatrix * position;
               #ifdef RENDERER_HAS_NORMAL
-                normal = normal * INVERSE_MAT(mat3(skinMatrix));
+                normal = normal * inverse(mat3(skinMatrix));
               #endif
             #endif
 

@@ -131,7 +131,7 @@ A custom shader consumes the Spine vertex layout (`POSITION`, `LIGHT_COLOR`, `TE
 | Batch texture | `renderElement_SpineTexture` |
 | Batch blend factors | `renderElement_SpineSourceColorBlendFactor`, `renderElement_SpineDestinationColorBlendFactor`, `renderElement_SpineSourceAlphaBlendFactor`, `renderElement_SpineDestinationAlphaBlendFactor` |
 
-Textures and vertex colors use straight alpha. Vertex colors are sRGB values; decode them to linear space before tinting. Sample the atlas with `texture2DSRGB`. Premultiply the final linear RGB by the final alpha before output when using the supplied batch blend factors. The built-in shader follows this contract for normal, additive, multiply and screen blending.
+Textures and vertex colors use straight alpha. Vertex colors are sRGB values; decode them to linear space before tinting. Sample the atlas with `texture2D`. Premultiply the final linear RGB by the final alpha before output when using the supplied batch blend factors. The built-in shader follows this contract for normal, additive, multiply and screen blending.
 
 The built-in `2D/Spine` pass binds its blend state to the batch factors. Custom passes can bind these same variables to preserve Spine's blend modes, or declare their own fixed state. Spine does not overwrite a pass's state. User parameters remain on the original material; no hidden material copies need synchronizing. Renderer macros and batch textures do not mutate shared materials.
 

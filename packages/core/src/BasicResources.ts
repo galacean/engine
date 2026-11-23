@@ -171,37 +171,34 @@ export class BasicResources {
     this.whiteTexture2D = this._create1x1Texture(
       engine,
       TextureType.Texture2D,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       whitePixel,
       true
     );
     this.whiteTextureCube = this._create1x1Texture(
       engine,
       TextureType.TextureCube,
-      TextureFormat.R8G8B8A8,
+      TextureFormat.R8G8B8A8_UNorm,
       whitePixel,
       true
     );
 
-    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
-    if (isWebGL2) {
-      this.whiteTexture2DArray = this._create1x1Texture(
-        engine,
-        TextureType.Texture2DArray,
-        TextureFormat.R8G8B8A8,
-        whitePixel,
-        true
-      );
+    this.whiteTexture2DArray = this._create1x1Texture(
+      engine,
+      TextureType.Texture2DArray,
+      TextureFormat.R8G8B8A8_UNorm,
+      whitePixel,
+      true
+    );
 
-      const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
-      this.uintWhiteTexture2D = this._create1x1Texture(
-        engine,
-        TextureType.Texture2D,
-        TextureFormat.R32G32B32A32_UInt,
-        whitePixel32,
-        false
-      );
-    }
+    const whitePixel32 = new Uint32Array([255, 255, 255, 255]);
+    this.uintWhiteTexture2D = this._create1x1Texture(
+      engine,
+      TextureType.Texture2D,
+      TextureFormat.R32G32B32A32_UInt,
+      whitePixel32,
+      false
+    );
 
     this.spriteDefaultMaterial = this._create2DMaterial(engine, shaders.sprite);
     this.textDefaultMaterial = this._create2DMaterial(engine, shaders.text);
@@ -222,13 +219,10 @@ export class BasicResources {
    * @internal
    */
   _initialize(): Promise<BasicResources> {
-    return new Promise((resolve, reject) => {
-      PrefilteredDFG.create(this.engine)
-        .then((texture) => {
-          this._prefilteredDFGTexture = texture;
-          resolve(this);
-        })
-        .catch(reject);
+    if (!this.engine._hardwareRenderer.supportsRendering) return Promise.resolve(this);
+    return PrefilteredDFG.create(this.engine).then((texture) => {
+      this._prefilteredDFGTexture = texture;
+      return this;
     });
   }
 

@@ -8,35 +8,42 @@ vec4 material_BloomParams;
 vec4 renderer_texelSize;
 
 void frag(Varyings v) {
-	#ifdef BLOOM_HQ
-      vec2 texelSize = renderer_texelSize.xy;
-      mediump vec4 A = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(-1.0, -1.0));
-      mediump vec4 B = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.0, -1.0));
-      mediump vec4 C = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(1.0, -1.0));
-      mediump vec4 D = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(-0.5, -0.5));
-      mediump vec4 E = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.5, -0.5));
-      mediump vec4 F = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(-1.0, 0.0));
-      mediump vec4 G = texture2DSRGB(renderer_BlitTexture, v.v_uv);
-      mediump vec4 H = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(1.0, 0.0));
-      mediump vec4 I = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(-0.5, 0.5));
-      mediump vec4 J = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.5, 0.5));
-      mediump vec4 K = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(-1.0, 1.0));
-      mediump vec4 L = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(0.0, 1.0));
-      mediump vec4 M = texture2DSRGB(renderer_BlitTexture, v.v_uv + texelSize * vec2(1.0, 1.0));
+    #ifdef BLOOM_HQ
+      // material_BloomParams.w scales step to match Half (1.0) or Quarter (2.0) prefilter footprint
+      vec2 t = renderer_texelSize.xy * material_BloomParams.w;
+      vec2 h = t * 0.5;
 
-      mediump vec2 scale = vec2(0.5, 0.125);
-      mediump vec2 div = (1.0 / 4.0) * scale;
+      // Pre-weight samples to avoid mediump (fp16) overflow
+      mediump vec3 color = texture2D(renderer_BlitTexture, v.v_uv + vec2(-t.x, -t.y)).rgb * 0.03125;
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2( 0.0, -t.y)).rgb * 0.0625;
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2( t.x, -t.y)).rgb * 0.03125;
 
-      mediump vec4 samplerColor = (D + E + I + J) * div.x;
-      samplerColor += (A + B + G + F) * div.y;
-      samplerColor += (B + C + H + G) * div.y;
-      samplerColor += (F + G + L + K) * div.y;
-      samplerColor += (G + H + M + L) * div.y;
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2(-h.x, -h.y)).rgb * 0.125;
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2( h.x, -h.y)).rgb * 0.125;
+
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2(-t.x,  0.0)).rgb * 0.0625;
+      color += texture2D(renderer_BlitTexture, v.v_uv                   ).rgb * 0.125;
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2( t.x,  0.0)).rgb * 0.0625;
+
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2(-h.x,  h.y)).rgb * 0.125;
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2( h.x,  h.y)).rgb * 0.125;
+
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2(-t.x,  t.y)).rgb * 0.03125;
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2( 0.0,  t.y)).rgb * 0.0625;
+      color += texture2D(renderer_BlitTexture, v.v_uv + vec2( t.x,  t.y)).rgb * 0.03125;
     #else
-      mediump vec4 samplerColor = texture2DSRGB(renderer_BlitTexture, v.v_uv);
+      mediump vec3 color;
+      if (material_BloomParams.w > 1.5) {
+        // 4-tap box covers all 16 source pixels of a Quarter (4x) cell without blind spots
+        vec2 t = renderer_texelSize.xy;
+        color = texture2D(renderer_BlitTexture, v.v_uv + vec2(-t.x, -t.y)).rgb * 0.25;
+        color += texture2D(renderer_BlitTexture, v.v_uv + vec2( t.x, -t.y)).rgb * 0.25;
+        color += texture2D(renderer_BlitTexture, v.v_uv + vec2(-t.x,  t.y)).rgb * 0.25;
+        color += texture2D(renderer_BlitTexture, v.v_uv + vec2( t.x,  t.y)).rgb * 0.25;
+      } else {
+        color = texture2D(renderer_BlitTexture, v.v_uv).rgb;
+      }
     #endif
-
-    mediump vec3 color = samplerColor.rgb;
 
     // User controlled clamp to limit crazy high broken spec
     color = min(color, HALF_MAX);

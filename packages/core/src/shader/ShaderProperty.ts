@@ -7,9 +7,12 @@ import { ShaderPropertyType } from "./enums/ShaderPropertyType";
 export class ShaderProperty {
   /** @internal */
   static _propertyIdMap: Record<number, ShaderProperty> = Object.create(null);
+  /** @internal */
+  static _propertyNameMap: Record<string, ShaderProperty> = Object.create(null);
+  /** @internal */
+  static _groupConflictVersion: number = 0;
 
   private static _propertyNameCounter: number = 0;
-  private static _propertyNameMap: Record<string, ShaderProperty> = Object.create(null);
 
   /**
    * Get shader property by name.
@@ -28,29 +31,21 @@ export class ShaderProperty {
     }
   }
 
-  /**
-   * @internal
-   */
-  static _getShaderPropertyGroup(propertyName: string): ShaderDataGroup | null {
-    const shaderProperty = ShaderProperty._propertyNameMap[propertyName];
-    return shaderProperty?._group;
-  }
-
   /** @internal */
   _uniqueId: number;
   /** @internal */
-  _group: ShaderDataGroup;
+  _groups: ShaderDataGroup = ShaderDataGroup.None;
   /** @internal */
-  _type: ShaderPropertyType;
+  _types: ShaderPropertyType = ShaderPropertyType.None;
 
   /** Shader property name. */
   readonly name: string;
 
   /**
-   * Shader property type.
+   * Shader property types.
    */
-  get type(): ShaderPropertyType {
-    return this._type;
+  get types(): ShaderPropertyType {
+    return this._types;
   }
 
   /**
@@ -59,5 +54,16 @@ export class ShaderProperty {
   constructor(name: string) {
     this.name = name;
     this._uniqueId = ShaderProperty._propertyNameCounter++;
+  }
+
+  /**
+   * @internal
+   */
+  _addGroup(group: ShaderDataGroup): void {
+    const groups = this._groups;
+    if ((groups & group) === 0) {
+      this._groups = groups | group;
+      groups !== ShaderDataGroup.None && ShaderProperty._groupConflictVersion++;
+    }
   }
 }

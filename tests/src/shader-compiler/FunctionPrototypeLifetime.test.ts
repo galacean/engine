@@ -6,7 +6,7 @@ import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { getParsedShaderPassPayload, ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import { describe, expect, it, vi } from "vitest";
 
-const targets = [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300];
+const targets = [ShaderLanguage.GLSLES300];
 const prototype = "float helper(float value);";
 const definition = "float helper(float value) { return value + 0.5; }";
 const vertex = "void vert() { gl_Position = vec4(helper(0.0)); }";
@@ -167,22 +167,17 @@ void frag() { gl_FragColor = vec4(1.0); }`)
 describe.skipIf(typeof document === "undefined")("function prototype artifact driver controls", () => {
   it("links the supported programs and the native GLSL forward-prototype reference", () => {
     for (const target of targets) {
-      const gl = document
-        .createElement("canvas")
-        .getContext(target === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl") as
+      const gl = document.createElement("canvas").getContext("webgl2") as
         | WebGLRenderingContext
         | WebGL2RenderingContext;
       expect(gl).not.toBeNull();
-      const version = target === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
+      const version = "#version 300 es\n";
       const cases = programs(supported).filter((program) => program.target === target);
       // This language-valid reference documents why ShaderLab must reject before emitting a partial artifact.
       cases.push({
         target,
         vertex: `${prototype}\nvoid main() { gl_Position = vec4(helper(0.0)); }\n${definition}`,
-        fragment:
-          target === ShaderLanguage.GLSLES300
-            ? "out vec4 color; void main() { color = vec4(1.0); }"
-            : "void main() { gl_FragColor = vec4(1.0); }"
+        fragment: "out vec4 color; void main() { color = vec4(1.0); }"
       });
       try {
         for (const source of cases) {

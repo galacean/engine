@@ -10,7 +10,6 @@ Shader "Pipeline/DepthOnly" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/Common.glsl"
       #include "ShaderLibrary/Common/Transform.glsl"
       #include "ShaderLibrary/Common/Attributes.glsl"
       #include "ShaderLibrary/Skin/Skin.glsl"

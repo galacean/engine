@@ -11,7 +11,6 @@ vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalInt
 }
 
 mat3 getTBNByDerivatives(vec2 uv, vec3 normal, vec3 position, bool isFrontFacing){
-    #ifdef HAS_DERIVATIVES
         uv = isFrontFacing? uv: -uv;
         // ref: http://www.thetenthplanet.de/archives/1180
         // get edge vectors of the pixel triangle
@@ -28,9 +27,6 @@ mat3 getTBNByDerivatives(vec2 uv, vec3 normal, vec3 position, bool isFrontFacing
         float denom = max( dot(tangent, tangent), dot(bitangent, bitangent) );
         float invmax = (denom == 0.0) ? 0.0 : camera_ProjectionParams.x / sqrt( denom );
 	    return mat3(tangent * invmax, bitangent * invmax, normal);
-    #else
-        return mat3(vec3(0.0), vec3(0.0), normal);
-    #endif
 }
 
 
