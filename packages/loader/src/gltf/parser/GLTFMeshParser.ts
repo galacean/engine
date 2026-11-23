@@ -47,9 +47,7 @@ export class GLTFMeshParser extends GLTFParser {
     for (const attribute in attributes) {
       const accessor = accessors![attributes[attribute]];
       const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, accessor).then((accessorBuffer) => {
-        if (context._aborted || mesh.destroyed) {
-          return;
-        }
+        if (context._aborted) throw "canceled";
         const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
         const accessorCount = accessor.count;
         const vertices = accessorBuffer.data;
@@ -131,9 +129,7 @@ export class GLTFMeshParser extends GLTFParser {
     }
 
     return AssetPromise.all(promises).then(() => {
-      if (context._aborted || mesh.destroyed) {
-        return mesh;
-      }
+      if (context._aborted) throw "canceled";
       mesh.setVertexElements(vertexElements);
 
       // Indices
@@ -157,9 +153,7 @@ export class GLTFMeshParser extends GLTFParser {
       }
 
       return Promise.all(promises).then(() => {
-        if (context._aborted || mesh.destroyed) {
-          return mesh;
-        }
+        if (context._aborted) throw "canceled";
         mesh.uploadData(!keepMeshData);
         return mesh;
       });
