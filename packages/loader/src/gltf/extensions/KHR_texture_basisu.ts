@@ -27,21 +27,22 @@ class KHR_texture_basisu extends GLTFExtensionParser {
     const samplerInfo = sampler !== undefined ? GLTFUtils.getSamplerInfo(glTF.samplers![sampler]) : undefined;
     if (uri) {
       const index = uri.lastIndexOf(".");
-      const loadPromise = engine.resourceManager
+      const promise = engine.resourceManager
         .load<Texture2D>({
           url: Utils.resolveAbsoluteUrl(url, uri),
           type: AssetType.KTX2
         })
-        .onProgress(undefined, context._onTaskDetail);
-      const promise = context._guardPromise(loadPromise).then<Texture2D>((texture) => {
-        if (!texture.name) {
-          texture.name = textureName || imageName || `texture_${index}`;
-        }
-        if (samplerInfo) {
-          GLTFUtils.parseSampler(texture, samplerInfo);
-        }
-        return texture;
-      });
+        .onProgress(undefined, context._onTaskDetail)
+        .then<Texture2D>((texture) => {
+          if (context._aborted) throw "canceled";
+          if (!texture.name) {
+            texture.name = textureName || imageName || `texture_${index}`;
+          }
+          if (samplerInfo) {
+            GLTFUtils.parseSampler(texture, samplerInfo);
+          }
+          return texture;
+        });
 
       context._addTaskCompletePromise(promise);
       return promise;
@@ -53,13 +54,13 @@ class KHR_texture_basisu extends GLTFExtensionParser {
         .then((buffer) => {
           const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 
-          return context
-            ._guardPromise(KTX2Loader._parseBuffer(imageBuffer, engine))
-            .then(({ ktx2Container, engine, result, targetFormat, params }) =>
-              context._trackResource(
+          return KTX2Loader._parseBuffer(imageBuffer, engine)
+            .then(({ ktx2Container, engine, result, targetFormat, params }) => {
+              if (context._aborted) throw "canceled";
+              return context._trackResource(
                 KTX2Loader._createTextureByBuffer(engine, ktx2Container.isSRGB, result, targetFormat, params)
-              )
-            )
+              );
+            })
             .then((texture: Texture2D) => {
               texture.name = textureName || imageName || `texture_${bufferViewIndex}`;
               if (samplerInfo) {
@@ -71,6 +72,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
             });
         })
         .catch((e) => {
+          if (context._aborted) throw e;
           Logger.error("KHR_texture_basisu: buffer error", e);
         });
     }

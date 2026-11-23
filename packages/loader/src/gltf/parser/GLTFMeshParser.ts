@@ -273,7 +273,8 @@ export class GLTFMeshParser extends GLTFParser {
             mesh._associationSuperResource(glTFResource);
             resolve(mesh);
           } else {
-            context._guardPromise(mesh).then((mesh) => {
+            mesh.then((mesh) => {
+              if (context._aborted) return;
               mesh._associationSuperResource(glTFResource);
               resolve(mesh);
             }, reject);

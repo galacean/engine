@@ -33,7 +33,7 @@ export class GLTFTextureParser extends GLTFParser {
     isSRGBColorSpace?: boolean
   ): AssetPromise<Texture2D> {
     if (context._aborted) {
-      return new AssetPromise<Texture2D>(() => {});
+      throw "canceled";
     }
     const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
@@ -47,7 +47,7 @@ export class GLTFTextureParser extends GLTFParser {
       const extIndex = uri.lastIndexOf(".");
       const ext = uri.substring(extIndex + 1);
       const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture;
-      const loadPromise = engine.resourceManager
+      texture = engine.resourceManager
         .load<Texture2D>({
           url: Utils.resolveAbsoluteUrl(url, uri),
           type,
@@ -56,12 +56,13 @@ export class GLTFTextureParser extends GLTFParser {
             isSRGBColorSpace
           }
         })
-        .onProgress(undefined, context._onTaskDetail);
-      texture = context._guardPromise(loadPromise).then<Texture2D>((texture) => {
-        texture.name = textureName || imageName || texture.name || `texture_${textureIndex}`;
-        samplerInfo && GLTFUtils.parseSampler(texture, samplerInfo);
-        return texture;
-      });
+        .onProgress(undefined, context._onTaskDetail)
+        .then<Texture2D>((texture) => {
+          if (context._aborted) throw "canceled";
+          texture.name = textureName || imageName || texture.name || `texture_${textureIndex}`;
+          samplerInfo && GLTFUtils.parseSampler(texture, samplerInfo);
+          return texture;
+        });
 
       context._addTaskCompletePromise(texture);
     } else {
@@ -69,8 +70,8 @@ export class GLTFTextureParser extends GLTFParser {
       texture = context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
         const buffer = buffers![bufferView.buffer];
         const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
-        const decodePromise = ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType);
-        return context._guardPromise(decodePromise).then((image) => {
+        return ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType).then((image) => {
+          if (context._aborted) throw "canceled";
           const { width, height } = image;
           const format = TextureFormat.R8G8B8A8_UNorm;
           const generateMipmap =
@@ -117,7 +118,8 @@ export class GLTFTextureParser extends GLTFParser {
       );
     }
 
-    return context._guardPromise(texture).then((texture) => {
+    return AssetPromise.resolve(texture).then((texture) => {
+      if (context._aborted) throw "canceled";
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
       texture._associationSuperResource(glTFResource);
       return texture;

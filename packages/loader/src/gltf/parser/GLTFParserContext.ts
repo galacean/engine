@@ -113,10 +113,20 @@ export class GLTFParserContext {
     }
 
     if (resource instanceof AssetPromise || resource instanceof Promise) {
-      if (resource instanceof AssetPromise) {
-        this._getPromises.push(resource);
+      const rawPromise = resource as AssetPromise<T | null> | Promise<T | null>;
+      if (rawPromise instanceof AssetPromise) {
+        this._getPromises.push(rawPromise);
       }
-      resource = this._guardPromise(resource as PromiseLike<T | null>);
+      resource = new AssetPromise<T | null>((resolve, reject) => {
+        rawPromise.then(
+          (value) => {
+            if (!this._aborted) resolve(value);
+          },
+          (reason) => {
+            if (!this._aborted) reject(reason);
+          }
+        );
+      });
     }
 
     if (shouldHandleSubAsset) {
@@ -131,7 +141,7 @@ export class GLTFParserContext {
       this.glTF = json;
       this.needAnimatorController = !!(json.skins || json.animations);
 
-      const tasks = AssetPromise.all([
+      return AssetPromise.all([
         this.get<void>(GLTFParserType.Validator),
         this.get<Entity>(GLTFParserType.Scene),
         this.get<Texture2D>(GLTFParserType.Texture),
@@ -140,8 +150,10 @@ export class GLTFParserContext {
         this.get<Skin>(GLTFParserType.Skin),
         this.get<AnimationClip>(GLTFParserType.Animation),
         this.get<AnimatorController>(GLTFParserType.AnimatorController)
-      ]);
-      return this._guardPromise(tasks).then(() => {
+      ]).then(() => {
+        if (this._aborted) {
+          return this.glTFResource;
+        }
         if (this.glTFResource.destroyed) {
           this._abort();
           throw new Error("GLTFResource was destroyed during load.");
@@ -163,23 +175,6 @@ export class GLTFParserContext {
 
     this._addTaskCompletePromise(promise);
     return promise;
-  }
-
-  /**
-   * @internal
-   */
-  _guardPromise<T>(value: T | PromiseLike<T>): AssetPromise<T> {
-    return new AssetPromise<T>((resolve, reject) => {
-      if (this._aborted) return;
-      Promise.resolve(value).then(
-        (resolved) => {
-          if (!this._aborted) resolve(resolved);
-        },
-        (reason) => {
-          if (!this._aborted) reject(reason);
-        }
-      );
-    });
   }
 
   /**
@@ -241,7 +236,9 @@ export class GLTFParserContext {
     task.total += 1;
     taskPromise
       .finally(() => {
-        this._setTaskCompleteProgress(++task.loaded, task.total);
+        if (!this._aborted) {
+          this._setTaskCompleteProgress(++task.loaded, task.total);
+        }
       })
       .catch((e) => {
         // Need catch to avoid unhandled rejection

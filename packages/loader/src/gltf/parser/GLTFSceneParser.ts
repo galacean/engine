@@ -71,7 +71,8 @@ export class GLTFSceneParser extends GLTFParser {
       promise = this._createRenderer(context, entityInfo, entity);
     }
 
-    return context._guardPromise(promise).then(() => {
+    return AssetPromise.resolve(promise).then(() => {
+      if (context._aborted) throw "canceled";
       const promises: AssetPromise<unknown[]>[] = [];
       const children = entityInfo.children;
 

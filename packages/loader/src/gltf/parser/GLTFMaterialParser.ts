@@ -187,7 +187,8 @@ export class GLTFMaterialParser extends GLTFParser {
       GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
     }
 
-    return context._guardPromise(material).then((material) => {
+    return AssetPromise.resolve(material).then((material) => {
+      if (context._aborted) throw "canceled";
       const isDefaultFallback = !material;
       material ||= engine._basicResources._getBlinnPhongDefaultMaterial();
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, material, materialInfo);
