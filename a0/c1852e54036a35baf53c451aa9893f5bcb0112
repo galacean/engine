@@ -1,0 +1,19 @@
+packages/core/src/asset/ResourceManager.ts
+  s_ac6cdffb5a346f::t_002d4063dd0655 559
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a0c1852e54036a35baf53c451aa9893f5bcb0112",
+  "prompts": {},
+  "sessions": {
+    "s_ac6cdffb5a346f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20899-6b12-76e3-b491-3ce5ef960b7b",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
