@@ -1,0 +1,25 @@
+tests/src/core/physics/CharacterController.test.ts
+  s_9a07c85a0912bc::t_e1bb22df1c0427 216-224,457
+packages/core/src/physics/CharacterController.ts
+  s_9a07c85a0912bc::t_712927b65b4864 91
+docs/en/physics/collider/characterController.mdx
+  s_9a07c85a0912bc::t_e26d02dbd2709b 64
+docs/zh/physics/collider/characterController.mdx
+  s_9a07c85a0912bc::t_60fc0f2f478b51 64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "037846dee12e6652137aab2e156134554ff4c4f9",
+  "prompts": {},
+  "sessions": {
+    "s_9a07c85a0912bc": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a2065f-d56d-7175-a080-e45884abae0d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

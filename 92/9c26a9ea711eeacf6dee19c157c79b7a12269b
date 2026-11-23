@@ -1,0 +1,16 @@
+packages/world-planning/tests/PlanningWorldPicking.spec.ts
+  h_ddbf152d31b140 111-120
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  h_ddbf152d31b140 329,366-367,369-374,377,383,390,393,398,474,476-478,487,513-521,536-538
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "929c26a9ea711eeacf6dee19c157c79b7a12269b",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+world/demos/seed-world/agent-adapter/contracts/generate-agent-contracts.ts
+  h_ddbf152d31b140 23-24,69-70,147-153,236-241,290-307,746-749,758-773
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  h_ddbf152d31b140 532-549,1060,1068,1103,1106-1107,1112-1113,1121,1124-1125,1129-1130,1156,1164,1186,1189-1190,1195-1196,1204,1207-1208,1214-1215
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/QueriedTerrainAsset.d.ts
+  h_ddbf152d31b140 1-12
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/QueriedVegetationAsset.d.ts
+  h_ddbf152d31b140 1-12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.create.d.ts
+  h_ddbf152d31b140 5-6,12,119-127
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.query.d.ts
+  h_ddbf152d31b140 10,144-145
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.update.d.ts
+  h_ddbf152d31b140 5-6,11,112-120
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.create.d.ts
+  h_ddbf152d31b140 5-6,12,92-100
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.query.d.ts
+  h_ddbf152d31b140 10,144-145
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.update.d.ts
+  h_ddbf152d31b140 5-6,13,34,131-139
+world/demos/seed-world/agent-adapter/tools/landscape-tools.ts
+  h_ddbf152d31b140 21,24,28-29,33-34,314-317,366-369,481,519,530,560,570,587,620
+world/demos/seed-world/agent-adapter/tools/tool-contract.ts
+  h_ddbf152d31b140 340-393
+world/tests/seed-world/SeedWorldToolCatalog.spec.ts
+  h_ddbf152d31b140 19-23,430-434,437-447,449-458,637-638,651,654,658
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a10880e85080be3d81495b762811f4e95c8726ef",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

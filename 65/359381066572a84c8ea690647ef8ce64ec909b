@@ -1,0 +1,36 @@
+tests/src/core/physics/Joint.test.ts
+  s_e010b623afc18b::t_b6b6113a3f046f 135-137,139
+tests/src/core/physics/HingeJoint.test.ts
+  s_e010b623afc18b::t_7825f269fe6563 630-636
+packages/core/src/physics/joint/SpringJoint.ts
+  s_e010b623afc18b::t_94da7f37592959 9-10,93-98
+  s_e010b623afc18b::t_76a6287ac9f138 27,41,55,69,83
+packages/core/src/physics/joint/HingeJoint.ts
+  s_e010b623afc18b::t_6c0f72eb710968 45,56
+  s_e010b623afc18b::t_f2c01bd97a961f 16,105,172,202,206-207,211,215,219-222,228-238,240-246,248,250,252
+  s_e010b623afc18b::t_77468ab480f013 239
+  s_e010b623afc18b::t_b440ae4cc7826b 162
+  s_e010b623afc18b::t_66a91446967539 15
+packages/design/src/physics/joints/IHingeJoint.ts
+  s_e010b623afc18b::t_12c7d4077d875d 41
+  s_e010b623afc18b::t_9bd643195da817 42-43,45
+packages/core/src/physics/joint/Joint.ts
+  s_e010b623afc18b::t_1ac164718fd5d1 118,137,319-320,322,333-340,342,387
+  s_e010b623afc18b::t_d1c97a484d35f7 100,273,279,309,318,321,323-332,367-368,374,379,384,388-393,397-398,404,437-438
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "65359381066572a84c8ea690647ef8ce64ec909b",
+  "prompts": {},
+  "sessions": {
+    "s_e010b623afc18b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a20650-a2c2-74cd-be93-f00bea07ba98",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

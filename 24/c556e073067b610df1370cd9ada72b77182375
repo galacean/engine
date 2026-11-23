@@ -1,0 +1,18 @@
+e2e/fixtures/originImage/Physics_physx-collision.jpg
+  h_c385727b10f40c 2-3
+e2e/fixtures/originImage/Physics_physx-customUrl.jpg
+  h_c385727b10f40c 2-3
+e2e/fixtures/originImage/Physics_physx-mesh-collider.jpg
+  h_c385727b10f40c 2-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "24c556e073067b610df1370cd9ada72b77182375",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}
