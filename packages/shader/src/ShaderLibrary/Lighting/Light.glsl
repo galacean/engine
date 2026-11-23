@@ -39,7 +39,8 @@ float getDistanceAttenuation(float distanceSq, float cutoffDistance) {
     float attenuation = 1.0 / max(distanceSq, 1e-4);
     if (cutoffDistance > 0.0) {
         float invDistance = 1.0 / cutoffDistance;
-        float factor = min(distanceSq * (invDistance * invDistance), 1.0);
+        // Scale distanceSq first to avoid overflowing the reciprocal square for small cutoffs
+        float factor = min((distanceSq * invDistance) * invDistance, 1.0);
         float smoothFactor = 1.0 - factor * factor;
         attenuation *= smoothFactor * smoothFactor;
     }

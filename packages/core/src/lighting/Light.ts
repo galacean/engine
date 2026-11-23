@@ -4,6 +4,8 @@ import { Layer } from "../Layer";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { ShadowType } from "../shadow";
 
+const minNormalFloat32 = 2 ** -126;
+
 /**
  * Light base class.
  */
@@ -77,4 +79,17 @@ export abstract class Light extends Component {
     Matrix.invert(this.viewMatrix, this._inverseViewMat);
     return this._inverseViewMat;
   }
+}
+
+/** @internal */
+export function normalizeLightDistance(value: number, previous: number): number {
+  if (Number.isNaN(value)) return previous;
+  if (value <= 0) return 1e-4;
+  return Number.isFinite(Math.fround(value)) ? value : Infinity;
+}
+
+/** @internal */
+export function encodeLightDistance(distance: number): number {
+  // Zero disables the cutoff, so keep finite radii above the GPU's subnormal range
+  return distance === Infinity ? 0 : Math.max(distance, minNormalFloat32);
 }

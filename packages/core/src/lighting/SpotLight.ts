@@ -1,7 +1,7 @@
 import { Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { Light } from "./Light";
+import { encodeLightDistance, Light, normalizeLightDistance } from "./Light";
 import { ignoreClone } from "../clone/CloneDecorators";
 
 /**
@@ -15,7 +15,6 @@ export class SpotLight extends Light {
   private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightDistance");
   private static _angleCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightAngleCos");
   private static _penumbraCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightPenumbraCos");
-  private static readonly _minDistance = 1e-4;
 
   /**
    * @internal
@@ -41,19 +40,15 @@ export class SpotLight extends Light {
 
   /**
    * Defines a distance cutoff at which the light's intensity reaches zero.
-   * @remarks Set to `Infinity` for unlimited range (pure inverse-square falloff). Values `<= 0` are clamped to a minimal positive cutoff.
+   * @remarks Set to `Infinity` for unlimited range (pure inverse-square falloff). Values `<= 0` use a cutoff of `1e-4`.
    * @defaultValue `100`
    */
   get distance(): number {
-    return this._distance > 0 ? this._distance : Infinity;
+    return this._distance;
   }
 
   set distance(value: number) {
-    if (!Number.isNaN(value)) {
-      const clamped = Math.max(value, SpotLight._minDistance);
-      // Store 0.0 for unlimited range (Infinity or values overflowing FP32 to Infinity) for GPU upload.
-      this._distance = Number.isFinite(Math.fround(clamped)) ? clamped : 0.0;
-    }
+    this._distance = normalizeLightDistance(value, this._distance);
   }
 
   /**
@@ -106,7 +101,7 @@ export class SpotLight extends Light {
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
 
-    data.distance[distanceStart] = this._distance;
+    data.distance[distanceStart] = encodeLightDistance(this._distance);
     data.angleCos[angleCosStart] = Math.cos(this.angle);
     data.penumbraCos[penumbraCosStart] = Math.cos(this.angle + this.penumbra);
   }

@@ -1,7 +1,7 @@
 import { Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { Light } from "./Light";
+import { encodeLightDistance, Light, normalizeLightDistance } from "./Light";
 
 /**
  * Point light.
@@ -11,7 +11,6 @@ export class PointLight extends Light {
   private static _colorProperty: ShaderProperty = ShaderProperty.getByName("scene_PointLightColor");
   private static _positionProperty: ShaderProperty = ShaderProperty.getByName("scene_PointLightPosition");
   private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("scene_PointLightDistance");
-  private static readonly _minDistance = 1e-4;
 
   /**
    * @internal
@@ -27,19 +26,15 @@ export class PointLight extends Light {
 
   /**
    * Defines a distance cutoff at which the light's intensity reaches zero.
-   * @remarks Set to `Infinity` for unlimited range (pure inverse-square falloff). Values `<= 0` are clamped to a minimal positive cutoff.
+   * @remarks Set to `Infinity` for unlimited range (pure inverse-square falloff). Values `<= 0` use a cutoff of `1e-4`.
    * @defaultValue `100`
    */
   get distance(): number {
-    return this._distance > 0 ? this._distance : Infinity;
+    return this._distance;
   }
 
   set distance(value: number) {
-    if (!Number.isNaN(value)) {
-      const clamped = Math.max(value, PointLight._minDistance);
-      // Store 0.0 for unlimited range (Infinity or values overflowing FP32 to Infinity) for GPU upload.
-      this._distance = Number.isFinite(Math.fround(clamped)) ? clamped : 0.0;
-    }
+    this._distance = normalizeLightDistance(value, this._distance);
   }
 
   /**
@@ -71,7 +66,7 @@ export class PointLight extends Light {
     data.position[positionStart + 1] = position.y;
     data.position[positionStart + 2] = position.z;
 
-    data.distance[distanceStart] = this._distance;
+    data.distance[distanceStart] = encodeLightDistance(this._distance);
   }
 
   /**

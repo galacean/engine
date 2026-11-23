@@ -129,6 +129,11 @@ describe("PointLight and SpotLight physical distance attenuation", () => {
       const light = entity.addComponent(LightType);
       expect(light.distance).to.equal(100);
 
+      for (const cutoff of [1e-5, Number.MIN_VALUE]) {
+        light.distance = cutoff;
+        expect(light.distance).to.equal(cutoff);
+      }
+
       light.distance = Infinity;
       expect(light.distance).to.equal(Infinity);
 
@@ -198,6 +203,23 @@ describe("PointLight and SpotLight physical distance attenuation", () => {
 
     activateSpot(5, Infinity, 25);
     expect(readCenterPixel()[0]).to.be.closeTo(infVal, 1e-4);
+  });
+
+  it("preserves small positive cutoffs on PBR and BlinnPhong", () => {
+    const cutoff = 1e-5;
+    for (const material of [pbrMaterial, blinnMaterial]) {
+      planeRenderer.setMaterial(material);
+      for (const activate of [activatePoint, activateSpot]) {
+        activate(cutoff / 2, cutoff, 1);
+        expect(readCenterPixel()[0]).to.be.greaterThan(0);
+
+        activate(5 * cutoff, cutoff, 1);
+        expect(readCenterPixel()[0]).to.equal(0);
+
+        activate(5 * cutoff, Number.MIN_VALUE, 1);
+        expect(readCenterPixel()[0]).to.equal(0);
+      }
+    }
   });
 
   it("Exact d = 0 singularity and near-zero clamp produce finite float output on PBR and BlinnPhong", () => {
