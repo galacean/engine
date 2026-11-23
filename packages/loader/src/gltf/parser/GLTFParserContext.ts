@@ -37,10 +37,9 @@ export class GLTFParserContext {
   needAnimatorController = false;
 
   /** @internal */
-  _getPromises: AssetPromise<unknown>[] = [];
-  /** @internal */
   _aborted = false;
 
+  private _getPromises: AssetPromise<unknown>[] = [];
   private _resourceCache = new Map<string, any>();
   private _createdResources = new Set<ReferResource>();
   private readonly _remoteAssetBaseURL: string;
@@ -90,28 +89,23 @@ export class GLTFParserContext {
     }
 
     const glTFSchemaKey = glTFSchemaMap[type];
-    let shouldHandleSubAsset = false;
-
     if (glTFSchemaKey) {
       const glTFItems = this.glTF[glTFSchemaKey];
-      if (glTFItems && (index === undefined || glTFItems[index])) {
-        if (index === undefined) {
-          resource =
-            type === GLTFParserType.Entity
-              ? <Entity[]>glTFItems.map((_, index) => this.get<Entity>(type, index))
-              : AssetPromise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index)));
-        } else {
-          resource = parser.parse(this, index);
-          shouldHandleSubAsset = !!glTFResourceMap[type];
-        }
-      } else {
+      if (!glTFItems || (index !== undefined && !glTFItems[index])) {
         resource = AssetPromise.resolve(null);
+      } else if (index === undefined) {
+        resource =
+          type === GLTFParserType.Entity
+            ? <Entity[]>glTFItems.map((_, i) => this.get<Entity>(type, i))
+            : AssetPromise.all<T>(glTFItems.map((_, i) => this.get<T>(type, i)));
       }
-    } else {
-      resource = parser.parse(this, index);
-      shouldHandleSubAsset = !!glTFResourceMap[type];
+      if (resource) {
+        cache.set(cacheKey, resource);
+        return resource;
+      }
     }
 
+    resource = parser.parse(this, index);
     if (resource instanceof AssetPromise) {
       const rawPromise = resource;
       this._getPromises.push(rawPromise);
@@ -127,7 +121,7 @@ export class GLTFParserContext {
       });
     }
 
-    if (shouldHandleSubAsset) {
+    if (glTFResourceMap[type]) {
       this._handleSubAsset(resource, type, index);
     }
     cache.set(cacheKey, resource);
@@ -234,9 +228,7 @@ export class GLTFParserContext {
     task.total += 1;
     taskPromise
       .finally(() => {
-        if (!this._aborted) {
-          this._setTaskCompleteProgress(++task.loaded, task.total);
-        }
+        this._setTaskCompleteProgress(++task.loaded, task.total);
       })
       .catch((e) => {
         // Need catch to avoid unhandled rejection
