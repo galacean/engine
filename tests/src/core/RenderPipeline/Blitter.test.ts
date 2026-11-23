@@ -462,6 +462,47 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
     }`);
     const mrtMat = new Material(engine, mrtShader);
 
+    const blendShader = Shader.create(`Shader "Test/BlitBlend" {
+      SubShader "Default" {
+        Pass "0" {
+          DepthState = { Enabled = false; WriteEnabled = false; }
+          BlendState = {
+            Enabled = true;
+            SourceColorBlendFactor = BlendFactor.SourceAlpha;
+            DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+            ColorBlendOperation = BlendOperation.Add;
+            SourceAlphaBlendFactor = BlendFactor.Zero;
+            DestinationAlphaBlendFactor = BlendFactor.One;
+            AlphaBlendOperation = BlendOperation.Add;
+          }
+          VertexShader = vert;
+          FragmentShader = frag;
+          struct Attributes { vec4 POSITION_UV; };
+          void vert(Attributes attr) { gl_Position = vec4(attr.POSITION_UV.xy, 0.0, 1.0); }
+          void frag() { gl_FragColor = vec4(0.0, 1.0, 0.0, 0.5); }
+        }
+      }
+    }`);
+    const blendMat = new Material(engine, blendShader);
+
+    const redOnlyShader = Shader.create(`Shader "Test/BlitRedOnly" {
+      SubShader "Default" {
+        Pass "0" {
+          DepthState = { Enabled = false; WriteEnabled = false; }
+          BlendState = {
+            Enabled = false;
+            ColorWriteMask = ColorWriteMask.Red;
+          }
+          VertexShader = vert;
+          FragmentShader = frag;
+          struct Attributes { vec4 POSITION_UV; };
+          void vert(Attributes attr) { gl_Position = vec4(attr.POSITION_UV.xy, 0.0, 1.0); }
+          void frag() { gl_FragColor = vec4(40.0 / 255.0, 0.0, 0.0, 1.0); }
+        }
+      }
+    }`);
+    const redOnlyMat = new Material(engine, redOnlyShader);
+
     try {
       // @ts-ignore
       engine._renderContext.camera = camera;
@@ -552,6 +593,36 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       expect(clearSpy).toHaveBeenCalledTimes(1);
       expect(clearSpy).toHaveBeenCalledWith(gl.COLOR_BUFFER_BIT);
 
+      // 8. Blended shader passed with explicit Clear -> automatically downgraded to Load, preserving destination blend base
+      srcTex.setPixelBuffer(srcPixels); // (200, 100, 50, 255)
+      Blitter._blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderBufferLoadAction.Clear);
+      invSpy.mockClear();
+      clearSpy.mockClear();
+      Blitter._blitTexture(engine, srcTex, dstRT, 0, undefined, blendMat, 0, undefined, RenderBufferLoadAction.Clear);
+      expect(invSpy).not.toHaveBeenCalled();
+      expect(clearSpy).not.toHaveBeenCalled();
+      dstTex0.getPixelBuffer(outPixels);
+      // 0.5 * (0,255,0) + 0.5 * (200,100,50) = (~100, ~177, ~25, 255)
+      expect(outPixels[0]).toBeGreaterThanOrEqual(95);
+      expect(outPixels[0]).toBeLessThanOrEqual(105);
+      expect(outPixels[1]).toBeGreaterThanOrEqual(170);
+      expect(outPixels[1]).toBeLessThanOrEqual(185);
+      expect(outPixels[2]).toBeGreaterThanOrEqual(20);
+      expect(outPixels[2]).toBeLessThanOrEqual(30);
+
+      // 9. Partial ColorWriteMask shader passed with explicit Clear -> automatically downgraded to Load, preserving G/B/A
+      Blitter._blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderBufferLoadAction.Clear);
+      invSpy.mockClear();
+      clearSpy.mockClear();
+      Blitter._blitTexture(engine, srcTex, dstRT, 0, undefined, redOnlyMat, 0, undefined, RenderBufferLoadAction.Clear);
+      expect(invSpy).not.toHaveBeenCalled();
+      expect(clearSpy).not.toHaveBeenCalled();
+      dstTex0.getPixelBuffer(outPixels);
+      expect(Array.from(outPixels.slice(0, 4))).toEqual([40, 100, 50, 255]);
+
+      // Restore full colorWriteMask for subsequent tests
+      Blitter.blitTexture(engine, srcTex, dstRT);
+
       expect(gl.getError()).toBe(gl.NO_ERROR);
     } finally {
       // @ts-ignore
@@ -562,6 +633,10 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       discardShader.destroy();
       mrtMat.destroy();
       mrtShader.destroy();
+      blendMat.destroy();
+      blendShader.destroy();
+      redOnlyMat.destroy();
+      redOnlyShader.destroy();
       dstRT.destroy();
       msaaRT.destroy();
       mrtRT.destroy();

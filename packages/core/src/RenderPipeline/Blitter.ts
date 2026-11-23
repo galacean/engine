@@ -2,10 +2,11 @@ import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material";
 import { RenderBufferLoadAction } from "../renderingHardwareInterface";
-import { ShaderProperty } from "../shader";
+import { ColorWriteMask, ShaderPass, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { RenderStateElementKey } from "../shader/enums/RenderStateElementKey";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderTarget, Texture2D } from "../texture";
 import { PipelineUtils } from "./PipelineUtils";
@@ -71,8 +72,14 @@ export class Blitter {
     // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
     context.flipProjection = !!destination;
 
+    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const resolvedLoadAction =
-      destination && destination.colorTextureCount === 1 ? colorLoadAction : RenderBufferLoadAction.Load;
+      destination &&
+      destination.colorTextureCount === 1 &&
+      colorLoadAction === RenderBufferLoadAction.Clear &&
+      Blitter._canClearColorTarget(pass, blitMaterial.shaderData)
+        ? RenderBufferLoadAction.Clear
+        : RenderBufferLoadAction.Load;
     context.setRenderTarget(destination, viewport, 0, undefined, resolvedLoadAction);
 
     const rendererShaderData = Blitter._rendererShaderData;
@@ -83,7 +90,6 @@ export class Blitter {
     rendererShaderData.setVector4(Blitter._blitTexelSizeProperty, Blitter._texelSize);
     rendererShaderData.setVector4(Blitter._sourceScaleOffsetProperty, sourceScaleOffset ?? Blitter._defaultScaleOffset);
 
-    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const compileMacros = Shader._compileMacros;
 
     ShaderMacroCollection.unionCollection(
@@ -109,5 +115,23 @@ export class Blitter {
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
     rendererShaderData.setTexture(Blitter._blitTextureProperty, null);
+  }
+
+  private static _canClearColorTarget(pass: ShaderPass, shaderData: ShaderData): boolean {
+    const renderStateDataMap = pass._renderStateDataMap;
+    const targetBlendState = pass._renderState.blendState.targetBlendState;
+
+    const enabledProp = renderStateDataMap[RenderStateElementKey.BlendStateEnabled0];
+    const blendEnabled = enabledProp !== undefined ? !!shaderData.getFloat(enabledProp) : targetBlendState.enabled;
+    if (blendEnabled) {
+      return false;
+    }
+
+    const colorWriteMaskProp = renderStateDataMap[RenderStateElementKey.BlendStateColorWriteMask0];
+    const colorWriteMask =
+      colorWriteMaskProp !== undefined
+        ? (shaderData.getFloat(colorWriteMaskProp) ?? ColorWriteMask.All)
+        : targetBlendState.colorWriteMask;
+    return colorWriteMask === ColorWriteMask.All;
   }
 }
