@@ -21,34 +21,23 @@ export class VertexMergeBatcher {
       }
     }
 
+    const holesA = preRenderer._uiMaskOutsideRects;
+    const holesB = renderer._uiMaskOutsideRects;
+    if (holesA !== holesB) {
+      if (!holesA || !holesB || holesA.length !== holesB.length) return false;
+      for (let i = 0; i < holesA.length; i++) {
+        const a = holesA[i],
+          b = holesB[i];
+        if (a.x !== b.x || a.y !== b.y || a.z !== b.z || a.w !== b.w) return false;
+      }
+    }
     const rendererAAny = preRenderer as any;
     const rendererBAny = renderer as any;
-    const rectMaskEnabledA = rendererAAny._rectMaskEnabled;
-    if (rectMaskEnabledA !== rendererBAny._rectMaskEnabled) {
-      return false;
-    }
-    if (rectMaskEnabledA) {
-      const rectMaskRectA = rendererAAny._rectMaskRect;
-      const rectMaskRectB = rendererBAny._rectMaskRect;
-      const rectMaskSoftnessA = rendererAAny._rectMaskSoftness;
-      const rectMaskSoftnessB = rendererBAny._rectMaskSoftness;
-      if (
-        !rectMaskRectA ||
-        !rectMaskRectB ||
-        !rectMaskSoftnessA ||
-        !rectMaskSoftnessB ||
-        rectMaskRectA.x !== rectMaskRectB.x ||
-        rectMaskRectA.y !== rectMaskRectB.y ||
-        rectMaskRectA.z !== rectMaskRectB.z ||
-        rectMaskRectA.w !== rectMaskRectB.w ||
-        rectMaskSoftnessA.x !== rectMaskSoftnessB.x ||
-        rectMaskSoftnessA.y !== rectMaskSoftnessB.y ||
-        rectMaskSoftnessA.z !== rectMaskSoftnessB.z ||
-        rectMaskSoftnessA.w !== rectMaskSoftnessB.w ||
-        rendererAAny._rectMaskHardClip !== rendererBAny._rectMaskHardClip
-      ) {
-        return false;
-      }
+    if (rendererAAny._rectMaskEnabled !== rendererBAny._rectMaskEnabled) return false;
+    if (rendererAAny._rectMaskEnabled) {
+      const a = rendererAAny._rectMaskRect;
+      const b = rendererBAny._rectMaskRect;
+      if (a.x !== b.x || a.y !== b.y || a.z !== b.z || a.w !== b.w) return false;
     }
 
     // Order: cheap reference checks → mask state → tag lookup (rare opt-out)
@@ -57,10 +46,34 @@ export class VertexMergeBatcher {
       preElement.texture === curElement.texture &&
       preElement.material === curElement.material &&
       maskInteraction === renderer.maskInteraction &&
+      (!holesA?.length || VertexMergeBatcher._areCoplanar(preRenderer, renderer)) &&
       (preMasks !== null ||
         maskInteraction === SpriteMaskInteraction.None ||
         preRenderer.maskLayer === renderer.maskLayer) &&
       curElement.subShader.passes[0].getTagValue(VertexMergeBatcher._disableBatchTag) !== true
+    );
+  }
+
+  private static _areCoplanar(a: SpriteRenderer, b: SpriteRenderer): boolean {
+    if (a === b) return true;
+    const ae = a.entity.transform.worldMatrix.elements;
+    const be = b.entity.transform.worldMatrix.elements;
+    // Use transformed XY basis vectors, not forward directions: parent transforms can shear.
+    const ax = ae[1] * ae[6] - ae[2] * ae[5];
+    const ay = ae[2] * ae[4] - ae[0] * ae[6];
+    const az = ae[0] * ae[5] - ae[1] * ae[4];
+    const bx = be[1] * be[6] - be[2] * be[5];
+    const by = be[2] * be[4] - be[0] * be[6];
+    const bz = be[0] * be[5] - be[1] * be[4];
+    // A shared stencil test is valid only when the screen sample maps to the same world point.
+    // Exact comparison may split nearly coplanar graphics, but must never merge distinct planes.
+    return (
+      (ax !== 0 || ay !== 0 || az !== 0) &&
+      (bx !== 0 || by !== 0 || bz !== 0) &&
+      ay * bz === az * by &&
+      az * bx === ax * bz &&
+      ax * by === ay * bx &&
+      ax * (be[12] - ae[12]) + ay * (be[13] - ae[13]) + az * (be[14] - ae[14]) === 0
     );
   }
 

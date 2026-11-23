@@ -8,9 +8,18 @@ import {
   Texture2D,
   TextureFormat
 } from "@galacean/engine-core";
-import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { CanvasRenderMode, Image, RectMask2D, Text, UICanvas, UIRenderer, UITransform } from "@galacean/engine-ui";
+import {
+  CanvasRenderMode,
+  Image,
+  RectMask2D,
+  RectMaskMode,
+  Text,
+  UICanvas,
+  UIRenderer,
+  UITransform
+} from "@galacean/engine-ui";
 import { afterEach, describe, expect, it } from "vitest";
 
 interface UIFixture {
@@ -48,37 +57,16 @@ describe("RectMask2D", () => {
     expect(rectMask._getWorldRect(worldRect)).toBe(false);
   });
 
-  it("should clamp negative softness values", async () => {
-    const fixture = await createUIFixture();
-    const rectMask = fixture.root.createChild("mask").addComponent(RectMask2D);
-
-    rectMask.softness.set(-4, 6);
-    expect(rectMask.softness.x).toBe(0);
-    expect(rectMask.softness.y).toBe(6);
-
-    rectMask.softness = new Vector2(5, -3);
-    expect(rectMask.softness.x).toBe(5);
-    expect(rectMask.softness.y).toBe(0);
-  });
-
-  it("should clone softness with an independent change callback", async () => {
+  it("should clone the mode independently", async () => {
     const fixture = await createUIFixture();
     const sourceEntity = fixture.canvasEntity.createChild("mask");
     const source = sourceEntity.addComponent(RectMask2D);
-    source.softness.set(4, 6);
-    source.alphaClip = true;
+    source.mode = RectMaskMode.Outside;
     const cloneEntity = sourceEntity.clone();
     const clone = cloneEntity.getComponent(RectMask2D)!;
-
-    expect(clone.alphaClip).toBe(true);
-    expect(clone.softness).not.toBe(source.softness);
-    expect(clone.softness.x).toBe(4);
-    expect(clone.softness.y).toBe(6);
-    clone.softness.set(-2, 8);
-    expect(clone.softness.x).toBe(0);
-    expect(clone.softness.y).toBe(8);
-    expect(source.softness.x).toBe(4);
-    expect(source.softness.y).toBe(6);
+    expect(clone.mode).toBe(RectMaskMode.Outside);
+    clone.mode = RectMaskMode.Inside;
+    expect(source.mode).toBe(RectMaskMode.Outside);
     cloneEntity.destroy();
   });
 
@@ -178,21 +166,18 @@ describe("RectMask2D", () => {
     expect(clickScript.clickCount).toBe(0);
   });
 
-  it("should upload nested rect mask intersection and hard clip state to image and text renderers", async () => {
+  it("should upload nested rect mask intersection to image and text renderers", async () => {
     const fixture = await createUIFixture();
     const parentEntity = fixture.canvasEntity.createChild("parentMask");
     const parentTransform = parentEntity.transform as UITransform;
     parentTransform.size.set(180, 100);
     const parentMask = parentEntity.addComponent(RectMask2D);
-    parentMask.softness.set(2, 3);
 
     const childEntity = parentEntity.createChild("childMask");
     const childTransform = childEntity.transform as UITransform;
     childTransform.size.set(130, 150);
     childTransform.setPosition(15, 15, 0);
     const childMask = childEntity.addComponent(RectMask2D);
-    childMask.softness.set(7, 11);
-    childMask.alphaClip = true;
 
     const imageEntity = childEntity.createChild("image");
     const imageTransform = imageEntity.transform as UITransform;
@@ -210,19 +195,16 @@ describe("RectMask2D", () => {
     renderFramesToTarget(fixture);
 
     const expectedRect = intersectWorldRects(parentMask, childMask);
-    const expectedSoftness: [number, number, number, number] = [7, 3, 7, 3];
-    assertRectMaskState(image, expectedRect, expectedSoftness, true);
-    assertRectMaskState(text, expectedRect, expectedSoftness, true);
+    assertRectMaskState(image, expectedRect);
+    assertRectMaskState(text, expectedRect);
   });
 
-  it("should clear clip softness and hard clip state when every mask becomes inactive", async () => {
+  it("should clear clipping when every mask becomes inactive", async () => {
     const fixture = await createUIFixture();
     const maskEntity = fixture.canvasEntity.createChild("mask");
     const maskTransform = maskEntity.transform as UITransform;
     maskTransform.size.set(160, 160);
     const rectMask = maskEntity.addComponent(RectMask2D);
-    rectMask.softness.set(6, 4);
-    rectMask.alphaClip = true;
 
     const imageEntity = maskEntity.createChild("image");
     const imageTransform = imageEntity.transform as UITransform;
@@ -233,14 +215,12 @@ describe("RectMask2D", () => {
     renderFrames(fixture.engine);
     const worldRect = new Vector4();
     rectMask._getWorldRect(worldRect);
-    assertRectMaskState(image, [worldRect.x, worldRect.y, worldRect.z, worldRect.w], [6, 4, 6, 4], true);
+    assertRectMaskState(image, [worldRect.x, worldRect.y, worldRect.z, worldRect.w]);
 
     rectMask.enabled = false;
     renderFrames(fixture.engine);
 
     expect(image.shaderData.getFloat(getRectClipEnabledProperty())).toBe(0);
-    expect(image.shaderData.getFloat(getRectClipHardClipProperty())).toBe(0);
-    expectVector4Close(image.shaderData.getVector4(getRectClipSoftnessProperty()), [0, 0, 0, 0]);
   });
 
   it("should keep translated child image visible after rect mask clipping", async () => {
@@ -257,7 +237,6 @@ describe("RectMask2D", () => {
     viewportBackground.color.set(0.25, 0.25, 0.25, 1);
 
     const rectMask = viewportEntity.addComponent(RectMask2D);
-    rectMask.alphaClip = true;
 
     const imageEntity = viewportEntity.createChild("image");
     const imageTransform = imageEntity.transform as UITransform;
@@ -438,16 +417,9 @@ function sampleTexturePixel(
   return buffer;
 }
 
-function assertRectMaskState(
-  renderer: UIRenderer,
-  expectedRect: [number, number, number, number],
-  expectedSoftness: [number, number, number, number],
-  expectedHardClip: boolean
-): void {
+function assertRectMaskState(renderer: UIRenderer, expectedRect: [number, number, number, number]): void {
   expect(renderer.shaderData.getFloat(getRectClipEnabledProperty())).toBe(1);
-  expect(renderer.shaderData.getFloat(getRectClipHardClipProperty())).toBe(expectedHardClip ? 1 : 0);
   expectVector4Close(renderer.shaderData.getVector4(getRectClipRectProperty()), expectedRect);
-  expectVector4Close(renderer.shaderData.getVector4(getRectClipSoftnessProperty()), expectedSoftness);
 }
 
 function expectVector4Close(vector: Vector4, expected: [number, number, number, number]): void {
@@ -506,19 +478,9 @@ function getRectClipEnabledProperty() {
   return UIRenderer._rectClipEnabledProperty;
 }
 
-function getRectClipHardClipProperty() {
-  // @ts-ignore
-  return UIRenderer._rectClipHardClipProperty;
-}
-
 function getRectClipRectProperty() {
   // @ts-ignore
   return UIRenderer._rectClipRectProperty;
-}
-
-function getRectClipSoftnessProperty() {
-  // @ts-ignore
-  return UIRenderer._rectClipSoftnessProperty;
 }
 
 function generatePointerEvent(

@@ -1,6 +1,7 @@
 import { Engine, Entity, Loader, Material } from "@galacean/engine";
 import * as GUIComponent from "./component";
 export * from "./component";
+export { RectMaskMode } from "./enums/RectMaskMode";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { HorizontalAlignmentMode } from "./enums/HorizontalAlignmentMode";
 export { ResolutionAdaptationMode } from "./enums/ResolutionAdaptationMode";

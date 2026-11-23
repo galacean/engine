@@ -167,6 +167,27 @@ describe("RenderState per-property priority", () => {
   });
 
   describe("StencilState", () => {
+    it("applies a temporary stencil read mask and restores the material mask", () => {
+      const state = new StencilState();
+      state.enabled = true;
+      state.mask = 0xff;
+      state.referenceValue = 0xa5;
+      // @ts-ignore
+      const rhi = engine._hardwareRenderer;
+      // @ts-ignore
+      const lastState = engine._lastRenderState;
+      const gl = rhi.gl as WebGLRenderingContext;
+      state._apply(rhi, lastState, { [RenderStateElementKey.StencilStateMask]: 0x0f });
+      expect(gl.getParameter(gl.STENCIL_VALUE_MASK)).to.equal(0x0f);
+      expect(gl.getParameter(gl.STENCIL_BACK_VALUE_MASK)).to.equal(0x0f);
+      expect(gl.getParameter(gl.STENCIL_REF)).to.equal(0xa5);
+      state._apply(rhi, lastState);
+      expect(gl.getParameter(gl.STENCIL_VALUE_MASK)).to.equal(0xff);
+      expect(gl.getParameter(gl.STENCIL_BACK_VALUE_MASK)).to.equal(0xff);
+      state.enabled = false;
+      state._apply(rhi, lastState);
+    });
+
     it("shaderData provides multiple stencil values", () => {
       const state = new StencilState();
 

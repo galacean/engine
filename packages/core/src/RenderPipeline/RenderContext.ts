@@ -5,7 +5,7 @@ import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
-import { RenderTarget, TextureCubeFace } from "../texture";
+import { RenderTarget, TextureCubeFace, TextureFormat } from "../texture";
 
 /**
  * @internal
@@ -31,6 +31,9 @@ export class RenderContext {
   replacementShader: Shader | null;
   replacementTag: ShaderTagKey | null | undefined;
   replacementFailureStrategy: ReplacementFailureStrategy | null;
+
+  /** Whether the currently bound target has a stencil attachment. */
+  hasStencil = false;
 
   flipProjection: boolean | null = false;
   viewMatrix: Matrix;
@@ -69,6 +72,13 @@ export class RenderContext {
     const engine = this.camera.engine;
     const rhi = engine._hardwareRenderer;
     rhi.activeRenderTarget(destination, viewport, this.flipProjection, mipLevel, faceIndex);
+    const format = destination?._depthFormat;
+    // The WebGL screen framebuffer has no depth/stencil; camera and overlay passes use internal targets.
+    this.hasStencil =
+      format === TextureFormat.Stencil ||
+      format === TextureFormat.DepthStencil ||
+      format === TextureFormat.Depth24Stencil8 ||
+      format === TextureFormat.Depth32Stencil8;
 
     if (destination) {
       engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);

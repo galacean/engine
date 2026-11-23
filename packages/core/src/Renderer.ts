@@ -57,6 +57,18 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   /** @internal Null selects SpriteMask layers; an array selects the UI ancestor chain. */
   @ignoreClone
   _uiMasks: readonly IMaskRenderable[] | null = null;
+  /** @internal World XY exclusion rectangles. Null for renderers outside the UI pipeline. */
+  @ignoreClone
+  _uiMaskOutsideRects: readonly Vector4[] | null = null;
+
+  /** @internal Whether drawing this renderer requires the UI stencil attachment. */
+  get _usesUIStencil(): boolean {
+    return (
+      this._uiMasks !== null &&
+      ((this._maskInteraction !== SpriteMaskInteraction.None && this._uiMasks.length > 0) ||
+        (this._uiMaskOutsideRects?.length ?? 0) > 0)
+    );
+  }
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;

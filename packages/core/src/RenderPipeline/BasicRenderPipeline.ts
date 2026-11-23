@@ -138,7 +138,7 @@ export class BasicRenderPipeline {
     batcherManager.uploadBuffer();
 
     if (depthPassEnabled) {
-      depthOnlyPass.onConfig(camera);
+      depthOnlyPass.onConfig(camera, cullingResults.depthNeedsUIStencil);
       depthOnlyPass.onRender(context, cullingResults);
     } else {
       depthOnlyPass.release();
@@ -199,16 +199,18 @@ export class BasicRenderPipeline {
       this._saoPass.release();
     }
 
-    this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
-
-    // Return the per-frame leases so the next camera with matching shape can reuse them
-    if (this._internalColorTarget) {
-      pool.freeRenderTarget(this._internalColorTarget);
-      this._internalColorTarget = null;
-    }
-    if (this._copyBackgroundTexture) {
-      pool.freeTexture(this._copyBackgroundTexture);
-      this._copyBackgroundTexture = null;
+    try {
+      this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
+    } finally {
+      // Release per-frame leases even when a draw rejects an unsupported target configuration.
+      if (this._internalColorTarget) {
+        pool.freeRenderTarget(this._internalColorTarget);
+        this._internalColorTarget = null;
+      }
+      if (this._copyBackgroundTexture) {
+        pool.freeTexture(this._copyBackgroundTexture);
+        this._copyBackgroundTexture = null;
+      }
     }
   }
 
@@ -399,6 +401,15 @@ export class BasicRenderPipeline {
         shaderPass._renderStateDataMap,
         renderElement.material.shaderData
       );
+
+      // Inspect every pass before deduplicating queues (Forward and DepthOnly can share a queue).
+      if (
+        renderElement.component._usesUIStencil &&
+        renderQueueType !== RenderQueueType.Transparent &&
+        shaderPass.getTagValue(RenderContext.pipelineStageKey) === PipelineStage.DepthOnly
+      ) {
+        cullingResults.depthNeedsUIStencil = true;
+      }
 
       const flag = 1 << renderQueueType;
       if (pushedQueueFlags & flag) {

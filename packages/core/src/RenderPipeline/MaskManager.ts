@@ -1,14 +1,20 @@
+import { Vector4 } from "@galacean/engine-math";
+import { BasicResources, RenderStateElementMap } from "../BasicResources";
+import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
+import { RenderElement } from "./RenderElement";
 import { IMaskRenderable } from "../2d/sprite/MaskRenderable";
 import { SpriteMask } from "../2d/sprite/SpriteMask";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Material } from "../material";
-import { CompareFunction, ShaderProperty } from "../shader";
+import { CompareFunction, Shader, ShaderProperty, ShaderData, ShaderDataGroup } from "../shader";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { StencilOperation } from "../shader/enums/StencilOperation";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { RenderContext } from "./RenderContext";
 import { RenderQueue } from "./RenderQueue";
+import { PipelineStage } from "./enums/PipelineStage";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 
 /**
@@ -43,6 +49,14 @@ export class MaskManager {
   private _preMaskLayer = SpriteMaskLayer.Nothing;
   private _allSpriteMasks = new DisorderedArray<SpriteMask>();
   private _uiMasks: IMaskRenderable[] = [];
+  private _uiRectBits = 0;
+  private _rectMaskQueue = new RenderQueue(RenderQueueType.Transparent);
+  private _rectMaskElement = new RenderElement();
+  private _rectMaskData = new ShaderData(ShaderDataGroup.RenderElement);
+
+  constructor() {
+    this._rectMaskData.setVector4("renderElement_MaskRect", new Vector4());
+  }
 
   addSpriteMask(mask: SpriteMask): void {
     mask._maskIndex = this._allSpriteMasks.length;
@@ -55,57 +69,123 @@ export class MaskManager {
     mask._maskIndex = -1;
   }
 
-  /** Update only the changed suffix of the ancestor chain. Each shape contributes one stencil count. */
-  drawUIMasks(context: RenderContext, stage: string, masks: readonly IMaskRenderable[]): void {
-    if (this._preMaskLayer !== SpriteMaskLayer.Nothing) {
-      this.clearMask(context, stage);
+  /**
+   * Allocate one bit per image Mask or nonempty Outside rectangle. A set bit means the
+   * ancestor allows the pixel. Inside rectangles remain a separate shader discard fast path.
+   * UI owns these bits; arbitrary custom stencil materials must not share them during UI draws.
+   */
+  drawUIMasks(context: RenderContext, stage: string, receiver: RenderElement): readonly RenderStateElementMap[] {
+    const { component } = receiver;
+    const interaction = component._maskInteraction;
+    const masks = interaction === SpriteMaskInteraction.None ? null : component._uiMasks;
+    const spriteCount = masks?.length ?? 0;
+    const rects = component._uiMaskOutsideRects;
+    const rectCount = rects?.length ?? 0;
+    if (spriteCount + rectCount > 8) throw new Error("UI masks support at most 8 stencil ancestors.");
+    if (!context.hasStencil) {
+      throw new Error(
+        "UI stencil masks require a render target with a stencil attachment (for example TextureFormat.DepthStencil)."
+      );
     }
+    if (this._preMaskLayer !== SpriteMaskLayer.Nothing) this.clearMask(context, stage);
+
     const previous = this._uiMasks;
     let common = 0;
-    while (common < previous.length && common < masks.length && previous[common] === masks[common]) {
-      common++;
-    }
-    this._drawUIMaskRange(context, stage, previous, common, RenderQueueMaskType.Decrement);
+    while (common < previous.length && common < spriteCount && previous[common] === masks![common]) common++;
+    const oldSuffix = ((1 << previous.length) - 1) & ~((1 << common) - 1);
+    const newSuffix = ((1 << spriteCount) - 1) & ~((1 << common) - 1);
+    const rectBits = ((1 << rectCount) - 1) << spriteCount;
+    // Keep the common image prefix. In one draw, release old bits, clear new image bits,
+    // and initialize Outside bits to one. Rectangles depend on the receiver's plane.
+    this._writeUIBits(context, oldSuffix | newSuffix | this._uiRectBits | rectBits, rectBits);
+    this._uiRectBits = rectBits;
     previous.length = common;
-    this._drawUIMaskRange(context, stage, masks, common, RenderQueueMaskType.Increment);
-    for (let i = common; i < masks.length; i++) {
-      previous.push(masks[i]);
-    }
-  }
-
-  clearUIMasks(context: RenderContext, stage: string): void {
-    this._drawUIMaskRange(context, stage, this._uiMasks, 0, RenderQueueMaskType.Decrement);
-    this._uiMasks.length = 0;
-  }
-
-  private _drawUIMaskRange(
-    context: RenderContext,
-    stage: string,
-    masks: readonly IMaskRenderable[],
-    start: number,
-    type: RenderQueueMaskType
-  ): void {
-    if (start === masks.length) return;
-    const queue =
-      type === RenderQueueMaskType.Increment
-        ? MaskManager.getMaskIncrementRenderQueue()
-        : MaskManager.getMaskDecrementRenderQueue();
-    for (let i = start; i < masks.length; i++) {
-      const mask = masks[i];
-      // Prepare even offscreen masks: an invalid/empty ancestor must still constrain its children.
+    // Shape writers use their Forward pass on the currently bound target, including the depth prepass.
+    const queue = this._rectMaskQueue;
+    const batcher = context.camera.engine._batcherManager;
+    for (let i = common; i < spriteCount; i++) {
+      const mask = masks![i];
+      const bit = 1 << i;
+      // Invalid shapes leave their bit zero: Inside fails, the complement succeeds.
       if (mask._renderMask(0)) {
         queue.pushRenderElement(mask._renderElement);
+        queue.batch(batcher);
+        batcher.uploadBuffer();
+        queue.render(
+          context,
+          PipelineStage.Forward,
+          RenderQueueMaskType.Increment,
+          BasicResources.getUIMaskWriteStates(bit, bit)
+        );
+        queue.clear();
       }
+      previous.push(mask);
     }
-    const batcher = context.camera.engine._batcherManager;
-    queue.batch(batcher);
-    batcher.uploadBuffer();
-    queue.render(context, stage, type);
-    queue.clear();
+
+    if (rectCount) {
+      const material = context.camera.engine._basicResources.uiRectMaskMaterial;
+      const element = this._rectMaskElement;
+      element.set(
+        component,
+        material,
+        receiver.primitive,
+        receiver.subPrimitive,
+        undefined,
+        undefined,
+        this._rectMaskData
+      );
+      element.subShader = material.shader.subShaders[0];
+      queue.batchedElements.push(element);
+      for (let i = 0; i < rectCount; i++) {
+        this._rectMaskData.setVector4("renderElement_MaskRect", rects![i]);
+        queue.render(
+          context,
+          PipelineStage.Forward,
+          RenderQueueMaskType.Increment,
+          BasicResources.getUIMaskWriteStates(1 << (spriteCount + i), 0)
+        );
+      }
+      queue.clear();
+      // This reusable draw element must not retain a receiver or its resources.
+      element.set(null!, null!, null!, null!);
+      element.subShader = null!;
+    }
+    return BasicResources.getUIMaskReadStates(spriteCount, rectCount, interaction);
+  }
+
+  clearUIMasks(context: RenderContext): void {
+    this._writeUIBits(context, ((1 << this._uiMasks.length) - 1) | this._uiRectBits, 0);
+    this._uiMasks.length = 0;
+    this._uiRectBits = 0;
+  }
+
+  /** Initialize or release only allocated bits, without gl.clear or touching color/depth. */
+  private _writeUIBits(context: RenderContext, bits: number, reference: number): void {
+    if (!bits) return;
+    const { camera } = context;
+    const { engine } = camera;
+    const resources = engine._basicResources;
+    const material = resources.uiRectMaskMaterial;
+    const pass = material.shader.subShaders[0].passes[1];
+    const macros = Shader._compileMacros;
+    ShaderMacroCollection.unionCollection(camera._globalShaderMacro, material.shaderData._macroCollection, macros);
+    ShaderMacroCollection.unionCollection(macros, engine._macroCollection, macros);
+    const program = pass._getShaderProgram(engine, macros);
+    if (!program.isValid) return;
+    program.bind();
+    pass._renderState._applyStates(
+      engine,
+      false,
+      pass._renderStateDataMap,
+      material.shaderData,
+      BasicResources.getUIMaskWriteStates(bits, reference),
+      this._rectMaskData
+    );
+    engine._hardwareRenderer.drawPrimitive(resources.blitMesh._primitive, resources.blitMesh.subMesh, program);
   }
 
   drawMask(context: RenderContext, pipelineStageTagValue: string, maskLayer: SpriteMaskLayer): void {
-    this.clearUIMasks(context, pipelineStageTagValue);
+    this.clearUIMasks(context);
     const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
     const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
 
@@ -123,7 +203,7 @@ export class MaskManager {
   }
 
   clearMask(context: RenderContext, pipelineStageTagValue: string): void {
-    this.clearUIMasks(context, pipelineStageTagValue);
+    this.clearUIMasks(context);
     const preMaskLayer = this._preMaskLayer;
     if (preMaskLayer !== SpriteMaskLayer.Nothing) {
       if (this.hasStencilWritten) {
@@ -190,6 +270,8 @@ export class MaskManager {
     allSpriteMasks.length = 0;
     allSpriteMasks.garbageCollection();
     this._uiMasks.length = 0;
+    this._rectMaskQueue.clear();
+    this._rectMaskElement.dispose();
   }
 
   private _buildMaskRenderElement(

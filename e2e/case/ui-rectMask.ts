@@ -26,7 +26,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const solidSprite = createSolidSprite(engine);
 
-  // --- Left: RectMask2D with alphaClip clipping a grid of tiles ---
+  // --- Left: RectMask2D clipping a grid of tiles ---
   const frameEntity = canvasEntity.createChild("Frame");
   const frameTransform = frameEntity.transform as UITransform;
   frameTransform.size.set(520, 420);
@@ -44,7 +44,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   viewportBackground.color.set(0.17, 0.18, 0.2, 1);
 
   const rectMask = viewportEntity.addComponent(RectMask2D);
-  rectMask.alphaClip = true;
 
   const contentEntity = viewportEntity.createChild("Content");
   const contentTransform = contentEntity.transform as UITransform;

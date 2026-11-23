@@ -59,6 +59,7 @@ import Shadow_Shadow from "./Shadow/Shadow.glsl";
 import Shadow_ShadowSampleTent from "./Shadow/ShadowSampleTent.glsl";
 import Skin_BlendShape from "./Skin/BlendShape.glsl";
 import Skin_Skin from "./Skin/Skin.glsl";
+import UI_RectClip from "./UI/RectClip.glsl";
 
 // prettier-ignore
 export const shaderLibrary: IShaderSource[] = [
@@ -120,4 +121,5 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Shadow_ShadowSampleTent, path: "ShaderLibrary/Shadow/ShadowSampleTent.glsl" },
   { source: Skin_BlendShape, path: "ShaderLibrary/Skin/BlendShape.glsl" },
   { source: Skin_Skin, path: "ShaderLibrary/Skin/Skin.glsl" },
+  { source: UI_RectClip, path: "ShaderLibrary/UI/RectClip.glsl" },
 ];

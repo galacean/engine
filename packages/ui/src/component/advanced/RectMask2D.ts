@@ -1,59 +1,25 @@
-import {
-  Component,
-  DependentMode,
-  Entity,
-  Vector2,
-  Vector3,
-  Vector4,
-  dependentComponents,
-  ICloneHook,
-  ignoreClone
-} from "@galacean/engine";
+import { Component, DependentMode, Vector3, Vector4, dependentComponents } from "@galacean/engine";
+import { RectMaskMode } from "../../enums/RectMaskMode";
 import { UICanvas } from "../UICanvas";
 import { UITransform } from "../UITransform";
 
 /**
- * UI component that clips descendant graphics by an axis-aligned rectangle.
+ * Clips descendant graphics to an axis-aligned rectangle or its complement.
+ * Each ancestor contributes its own constraint; nested masks intersect their retained areas.
+ * Inside masks merge into one shader clipping rectangle and do not use stencil.
+ * Nonempty Outside masks share an eight-level stencil limit with image Masks and require
+ * a stencil attachment. UI manages these bits while masks are active.
  */
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class RectMask2D extends Component implements ICloneHook<RectMask2D> {
+export class RectMask2D extends Component {
   private static _tempRect: Vector4 = new Vector4();
   private static _tempCorner0: Vector3 = new Vector3();
   private static _tempCorner1: Vector3 = new Vector3();
   private static _tempCorner2: Vector3 = new Vector3();
   private static _tempCorner3: Vector3 = new Vector3();
 
-  private _softness: Vector2 = new Vector2(0, 0);
-  private _alphaClip: boolean = false;
-
-  /**
-   * Soft clipping width on X/Y axis in world space.
-   */
-  get softness(): Vector2 {
-    return this._softness;
-  }
-
-  set softness(value: Vector2) {
-    const softness = this._softness;
-    if (softness === value) {
-      return;
-    }
-    if (softness.x !== value.x || softness.y !== value.y) {
-      softness.copyFrom(value);
-      this._clampSoftness();
-    }
-  }
-
-  /**
-   * Whether to enable hard clip (discard) when outside the rect.
-   */
-  get alphaClip(): boolean {
-    return this._alphaClip;
-  }
-
-  set alphaClip(value: boolean) {
-    this._alphaClip = value;
-  }
+  /** Area retained for descendants. Defaults to Inside. An empty Outside mask excludes nothing. */
+  mode: RectMaskMode = RectMaskMode.Inside;
 
   /**
    * @internal
@@ -94,18 +60,11 @@ export class RectMask2D extends Component implements ICloneHook<RectMask2D> {
    */
   _containsWorldPoint(worldPoint: Vector3): boolean {
     const worldRect = RectMask2D._tempRect;
-    if (!this._getWorldRect(worldRect)) {
+    if (!this._getWorldRect(worldRect) || worldRect.x >= worldRect.z || worldRect.y >= worldRect.w) {
       return false;
     }
     const { x, y } = worldPoint;
     return x >= worldRect.x && x <= worldRect.z && y >= worldRect.y && y <= worldRect.w;
-  }
-
-  constructor(entity: Entity) {
-    super(entity);
-    this._onSoftnessChanged = this._onSoftnessChanged.bind(this);
-    // @ts-ignore
-    this._softness._onValueChanged = this._onSoftnessChanged;
   }
 
   // @ts-ignore
@@ -116,38 +75,5 @@ export class RectMask2D extends Component implements ICloneHook<RectMask2D> {
   // @ts-ignore
   override _onDisableInScene(): void {
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
-  }
-
-  // @ts-ignore
-  _onClone(target: RectMask2D): void {
-    const targetSoftness = target._softness;
-    // @ts-ignore
-    targetSoftness._onValueChanged = null;
-    targetSoftness.copyFrom(this._softness);
-    target._clampSoftness();
-    // @ts-ignore
-    targetSoftness._onValueChanged = target._onSoftnessChanged;
-  }
-
-  protected override _onDestroy(): void {
-    // @ts-ignore
-    this._softness._onValueChanged = null;
-    this._softness = null!;
-    super._onDestroy();
-  }
-
-  @ignoreClone
-  private _onSoftnessChanged(): void {
-    this._clampSoftness();
-  }
-
-  private _clampSoftness(): void {
-    const softness = this._softness;
-    if (softness.x < 0) {
-      softness.x = 0;
-    }
-    if (softness.y < 0) {
-      softness.y = 0;
-    }
   }
 }

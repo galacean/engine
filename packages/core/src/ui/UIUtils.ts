@@ -1,5 +1,4 @@
 import { Matrix, Vector4 } from "@galacean/engine-math";
-import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -54,11 +53,7 @@ export class UIUtils {
         // The screen framebuffer has no stencil attachment. Lease a target only for masked canvases.
         let maskTarget: RenderTarget | null = null;
         const pool = engine._renderTargetPool;
-        if (
-          curElements.some(
-            ({ component }) => component._uiMasks?.length && component._maskInteraction !== SpriteMaskInteraction.None
-          )
-        ) {
+        if (curElements.some(({ component }) => component._usesUIStencil)) {
           maskTarget = pool.allocateRenderTarget(
             canvas.width,
             canvas.height,

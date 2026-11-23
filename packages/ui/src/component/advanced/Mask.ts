@@ -6,6 +6,9 @@ import { UITransform } from "../UITransform";
 /**
  * Clips descendant UI graphics to this sprite's alpha shape.
  * Nested Masks intersect; siblings and other canvases are unaffected.
+ * Image Masks and nonempty Outside RectMask2D ancestors share an eight-level stencil limit.
+ * The render target must have a stencil attachment. UI manages these bits; custom stencil
+ * materials must not depend on preserving their values across UI mask draws.
  */
 export class Mask extends MaskRenderable(UIRenderer) {
   /** @internal */

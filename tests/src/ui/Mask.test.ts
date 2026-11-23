@@ -50,6 +50,19 @@ describe("UI Mask hierarchy", () => {
     });
   }
 
+  it("uses the eighth image-mask bit and complements the full intersection", async () => {
+    const f = await createFixture();
+    let parent = f.ui;
+    for (let i = 0; i < 8; i++) parent = addMask(f, parent, i === 7 ? 40 : 100, 100).entity;
+    const image = addImage(f, parent, 128, 120);
+    expectVisible(f, image, 64, 64, true);
+    expectVisible(f, image, 32, 64, false);
+    image.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+    expectVisible(f, image, 64, 64, false);
+    expectVisible(f, image, 32, 64, true);
+    expectVisible(f, image, 4, 64, true);
+  });
+
   it("renders Overlay masks without a camera and after resizing", async () => {
     const f = await createFixture();
     f.root.findByName("camera")!.getComponent(Camera)!.enabled = false;
