@@ -11,7 +11,7 @@ export { Matrix3x3 } from "./Matrix3x3";
 export { Quaternion } from "./Quaternion";
 export { Ray } from "./Ray";
 export { Vector2 } from "./Vector2";
-export { Vector3 } from "./Vector3";
+export { Vector3, type Vector3Like } from "./Vector3";
 export { Vector4 } from "./Vector4";
 export { Plane } from "./Plane";
 export { Color } from "./Color";

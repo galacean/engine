@@ -1,12 +1,12 @@
 import { ICharacterController, IPhysicsMaterial } from "@galacean/engine-design";
-import { MathUtil, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
 import { assignmentClone, ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
-import { directionSnapshot, normalizeDirection, type ReadonlyDirection } from "./unitDirection";
+import { directionSnapshot, normalizeDirection } from "./unitDirection";
 
 /**
  * A capsule that moves and slides along obstacles through {@link move}.
@@ -124,11 +124,11 @@ export class CharacterController extends Collider {
    * @defaultValue `(0, 1, 0)`
    * @see {@link setUpDirection}
    */
-  get upDirection(): ReadonlyDirection {
+  get upDirection(): Readonly<Vector3Like> {
     return this._upDirection;
   }
 
-  set upDirection(value: ReadonlyDirection) {
+  set upDirection(value: Readonly<Vector3Like>) {
     this.setUpDirection(value);
   }
 
@@ -157,7 +157,7 @@ export class CharacterController extends Collider {
    * @param value - The direction in world space, normalized on assignment.
    * @throws When the vector length is non-finite.
    */
-  setUpDirection(value: ReadonlyDirection): void {
+  setUpDirection(value: Readonly<Vector3Like>): void {
     const up = normalizeDirection(this._upDirection, value, "CharacterController upDirection");
     if (up !== this._upDirection) {
       this._upDirection = up;

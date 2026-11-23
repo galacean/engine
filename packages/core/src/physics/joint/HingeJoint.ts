@@ -1,9 +1,10 @@
 import { IDynamicActor, IHingeJoint } from "@galacean/engine-design";
+import type { Vector3Like } from "@galacean/engine-math";
 import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { HingeJointFlag } from "../enums/HingeJointFlag";
-import { directionSnapshot, normalizeDirection, type ReadonlyDirection } from "../unitDirection";
+import { directionSnapshot, normalizeDirection } from "../unitDirection";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
 import { JointMotor } from "./JointMotor";
@@ -30,11 +31,11 @@ export class HingeJoint extends Joint {
    * @defaultValue `(1, 0, 0)`
    * @see {@link setAxis}
    */
-  get axis(): ReadonlyDirection {
+  get axis(): Readonly<Vector3Like> {
     return this._axis;
   }
 
-  set axis(value: ReadonlyDirection) {
+  set axis(value: Readonly<Vector3Like>) {
     this.setAxis(value);
   }
 
@@ -151,7 +152,7 @@ export class HingeJoint extends Joint {
    * @param value - The direction in this Entity's local space, normalized on assignment.
    * @throws When the vector length is non-finite.
    */
-  setAxis(value: ReadonlyDirection): void {
+  setAxis(value: Readonly<Vector3Like>): void {
     const axis = normalizeDirection(this._axis, value, "HingeJoint axis");
     if (axis !== this._axis) {
       this._axis = axis;

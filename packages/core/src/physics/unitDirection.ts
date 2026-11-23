@@ -1,6 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
-
-export type ReadonlyDirection = Readonly<Pick<Vector3, "x" | "y" | "z">>;
+import { Vector3, type Vector3Like } from "@galacean/engine-math";
 
 export function directionSnapshot(x: number, y: number, z: number): Vector3 {
   const direction = new Vector3(x, y, z);
@@ -9,7 +7,7 @@ export function directionSnapshot(x: number, y: number, z: number): Vector3 {
 }
 
 /** Validate the whole input before replacing the immutable direction. */
-export function normalizeDirection(current: Vector3, value: ReadonlyDirection, property: string): Vector3 {
+export function normalizeDirection(current: Vector3, value: Readonly<Vector3Like>, property: string): Vector3 {
   let { x, y, z } = value;
   const length = Math.hypot(x, y, z);
   if (!Number.isFinite(length)) {
