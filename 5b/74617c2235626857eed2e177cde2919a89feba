@@ -1,0 +1,24 @@
+packages/ai-chat/src/ai-chat/context-compaction.ts
+  h_ddbf152d31b140 115
+packages/ai-chat/tests/context-compaction.spec.ts
+  h_ddbf152d31b140 213-214,226-231,237,240-243
+world/demos/seed-world/agent-adapter/SeedWorldKnowledge.ts
+  h_ddbf152d31b140 152
+world/scripts/acceptance/worker-api-audit/cases.cjs
+  h_ddbf152d31b140 80
+world/scripts/acceptance/worker-api-audit/world-cases.cjs
+  h_ddbf152d31b140 22
+world/tests/seed-world/SeedWorldKnowledge.spec.ts
+  h_ddbf152d31b140 10,199-202
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5b74617c2235626857eed2e177cde2919a89feba",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

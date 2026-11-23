@@ -1,0 +1,18 @@
+packages/world-planning/src/spatial/runtime/NaturalUnderstoryInstancedPool.ts
+  h_ddbf152d31b140 692-697
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_ddbf152d31b140 215,435-438,489,518-524,528-538,1026,1030,1044,1062,1080,1168-1190,1193,1202-1205,1208-1218,1222,1260-1269,1871-1881,2588,2787-2796,3127-3132,3136,3151,3160-3222,3226
+packages/world-planning/tests/PlanningInstancedTreeCrudEffects.spec.ts
+  h_ddbf152d31b140 1-367
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f665c1cfb2c12cad5c1cbdfe26e0688a31db94b8",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
