@@ -1,0 +1,28 @@
+world/README.md
+  s_147482a53e9f64::t_c09d4bb83e09ac 78-79
+world/scripts/mesh-brotli.mjs
+  s_147482a53e9f64::t_7ebf5dc36de5f2 1-52,55-56,58-65
+  s_147482a53e9f64::t_ef68ea01363b52 54,57
+  s_147482a53e9f64::t_c09d4bb83e09ac 53
+world/vite.config.mjs
+  s_147482a53e9f64::t_7ebf5dc36de5f2 9,506-507
+world/scripts/tests/mesh-brotli.test.mjs
+  s_147482a53e9f64::t_82790f6f79a25b 1-29,31-97
+  s_147482a53e9f64::t_bc246c73429fd6 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "af48415f6d8aed81d17ba6c9396f17863bdfe420",
+  "prompts": {},
+  "sessions": {
+    "s_147482a53e9f64": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2068a-0f66-7261-874f-d518cb87d5f4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "鸿岳 <owen.wjh@alipay.com>"
+    }
+  }
+}
