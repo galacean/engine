@@ -21,9 +21,6 @@ class EXT_texture_webp extends GLTFExtensionParser {
     const webPIndex = schema.source;
     const { sampler, source: fallbackIndex = 0, name: textureName } = textureInfo;
     return SystemInfo._checkWebpSupported().then((supportWebP) => {
-      if (context._aborted) {
-        return null as unknown as Texture2D;
-      }
       return GLTFTextureParser._parseTexture(
         context,
         supportWebP ? webPIndex : fallbackIndex,

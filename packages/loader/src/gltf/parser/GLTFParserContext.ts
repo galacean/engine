@@ -120,21 +120,7 @@ export class GLTFParserContext {
       if (rawPromise instanceof AssetPromise) {
         this._getPromises.push(rawPromise);
       }
-      // Single abort gate: suppress downstream continuations and cancel errors once aborted
-      resource = new AssetPromise<T | null>((resolve, reject) => {
-        rawPromise.then(
-          (value) => {
-            if (!this._aborted) {
-              resolve(value);
-            }
-          },
-          (reason) => {
-            if (!this._aborted) {
-              reject(reason);
-            }
-          }
-        );
-      });
+      resource = this._guardPromise(rawPromise);
     }
 
     if (shouldHandleSubAsset) {
@@ -149,7 +135,7 @@ export class GLTFParserContext {
       this.glTF = json;
       this.needAnimatorController = !!(json.skins || json.animations);
 
-      return AssetPromise.all([
+      const tasks = AssetPromise.all([
         this.get<void>(GLTFParserType.Validator),
         this.get<Entity>(GLTFParserType.Scene),
         this.get<Texture2D>(GLTFParserType.Texture),
@@ -158,10 +144,8 @@ export class GLTFParserContext {
         this.get<Skin>(GLTFParserType.Skin),
         this.get<AnimationClip>(GLTFParserType.Animation),
         this.get<AnimatorController>(GLTFParserType.AnimatorController)
-      ]).then(() => {
-        if (this._aborted) {
-          return this.glTFResource;
-        }
+      ]);
+      return this._guardPromise(tasks).then(() => {
         if (this.glTFResource.destroyed) {
           this._abort();
           throw new Error("GLTFResource was destroyed during load.");
@@ -183,6 +167,29 @@ export class GLTFParserContext {
 
     this._addTaskCompletePromise(promise);
     return promise;
+  }
+
+  /**
+   * @internal
+   */
+  _guardPromise<T>(promise: PromiseLike<T>): AssetPromise<T> {
+    if (this._aborted) {
+      return new AssetPromise<T>(() => {});
+    }
+    return new AssetPromise<T>((resolve, reject) => {
+      promise.then(
+        (value) => {
+          if (!this._aborted) {
+            resolve(value);
+          }
+        },
+        (reason) => {
+          if (!this._aborted) {
+            reject(reason);
+          }
+        }
+      );
+    });
   }
 
   /**
