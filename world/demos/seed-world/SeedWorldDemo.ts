@@ -3717,6 +3717,12 @@ export async function mountSeedWorldDemo(
         await timed("lassoPanel.prepare", () => preparingLasso.prepare());
         await timed("farmingInteraction.prepare", () => farmingHost?.runtime?.prepareInteraction());
         await timed("pickPreparation.flush #2", () => preparingPicks.flush(editorLifetime.signal));
+      } else {
+        // Preload photo paper GLB + shaders in the background after initial scene warmup
+        // so the first camera click opens immediately without stalling.
+        void bgWarmupDone.then(() => {
+          if (!disposed) void preparingLasso.prewarm();
+        });
       }
       if (disposed) return;
       if (options.showAssistant !== false)

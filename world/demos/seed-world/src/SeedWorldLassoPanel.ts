@@ -13,6 +13,11 @@ export class SeedWorldLassoPanel {
   private disposed = false;
   private confirming = false;
   private photoSerial = 0;
+  private readonly onVoiceEngaged = () => {
+    if (!this.disposed && !this.confirming && this.workspace.phase === "editing") {
+      void this.confirm();
+    }
+  };
   get active(): boolean {
     return !!this.captureAbort || this.workspace.active;
   }
@@ -48,14 +53,22 @@ export class SeedWorldLassoPanel {
         void this.open();
       }
     };
+    if (typeof document !== "undefined") {
+      document.addEventListener("seed-world-voice-engaged", this.onVoiceEngaged);
+    }
   }
   /** Startup preparation finishes before the screenshot command becomes available. */
   async prepare(): Promise<void> {
     this.button.disabled = true;
     try {
-      await Promise.all([this.instantCamera.prepare(), this.workspace.graphics.prepare()]);
+      await this.workspace.graphics.prepare();
       if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
     } finally { if (!this.disposed) this.button.disabled = false; }
+  }
+  /** Silent background preload so the first camera click opens immediately without stalling. */
+  prewarm(): Promise<void> {
+    if (this.disposed) return Promise.resolve();
+    return this.workspace.graphics.prepare().catch(() => undefined);
   }
   setAttachmentAnchor(x: number, top: number, visible: boolean): void {
     this.workspace.setAnchor(x, top, visible);
@@ -75,13 +88,11 @@ export class SeedWorldLassoPanel {
         this.releaseView = this.views.pin(existing.snapshotId);
         await this.workspace.open(existing, signal);
       } else {
-        await Promise.all([this.instantCamera.enter(signal), this.workspace.graphics.prepare()]);
+        await this.workspace.graphics.prepare();
         signal.throwIfAborted();
         const observation = await this.views.capture(signal);
         signal.throwIfAborted();
         this.releaseView = this.views.pin(observation.snapshotId);
-        this.workspace.setPhase("shutter");
-        await this.instantCamera.shutter(signal);
         const photo: PhotoDocument = {
           snapshotId: observation.snapshotId,
           image: observation.image,
@@ -89,10 +100,7 @@ export class SeedWorldLassoPanel {
           capturedAt: new Date(),
           angle: SEED_WORLD_PHOTO_CONFIG.tiltDegrees[this.photoSerial++ % SEED_WORLD_PHOTO_CONFIG.tiltDegrees.length]
         };
-        await this.workspace.open(photo, signal, (target) =>
-          this.instantCamera.print(photo.image, target, signal,
-            phase => this.workspace.setPhase(phase), () => {})
-        );
+        await this.workspace.open(photo, signal);
       }
     } catch (error) {
       if (!signal.aborted) {
@@ -127,6 +135,9 @@ export class SeedWorldLassoPanel {
     this.button.hidden = false;
   }
   dispose(): void {
+    if (typeof document !== "undefined") {
+      document.removeEventListener("seed-world-voice-engaged", this.onVoiceEngaged);
+    }
     this.close();
     this.disposed = true;
     this.workspace.dispose();

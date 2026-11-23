@@ -23,6 +23,7 @@ Shader "SeedWorld/LiquidGlassUiV6" {
 
       mat4 renderer_MVPMat;
       mediump sampler2D material_SeedWorldSceneTexture;
+      mediump sampler2D material_SeedWorldFrostTexture;
       vec2 material_SeedWorldSourceTexelSize;
       vec2 material_SeedWorldScreenSize;
       vec2 material_SeedWorldPanelPixelSize;
@@ -32,6 +33,13 @@ Shader "SeedWorld/LiquidGlassUiV6" {
       float material_SeedWorldRimHighlight;
       float material_SeedWorldInteriorRefractionStrength;
       float material_SeedWorldWhiteTint;
+      float material_SeedWorldFullLensRefraction;
+      float material_SeedWorldChromaticAberration;
+      float material_SeedWorldFrostMaxMip;
+      float material_SeedWorldLensIor;
+      float material_SeedWorldLensThickness;
+      float material_SeedWorldFrostScale;
+      float material_SeedWorldLensFresnel;
       #ifdef SEED_WORLD_GLASS_MASK
         sampler2D material_SeedWorldGlassMask;
       #endif
@@ -159,6 +167,88 @@ Shader "SeedWorld/LiquidGlassUiV6" {
 
         vec2 screenUv = v.v_sceneUv;
         vec2 texelSize = material_SeedWorldSourceTexelSize;
+        float roughness = clamp(material_SeedWorldGlassRoughness, 0.0, 1.0);
+        float fullLens = clamp(material_SeedWorldFullLensRefraction, 0.0, 1.0);
+
+        // Dedicated fast path for full-sphere PBR refraction + hardware mipmap frosted glass (3 texture taps total).
+        if (fullLens >= 0.999) {
+          vec2 localCentered = (v.v_localUv - vec2(0.5)) * 2.0;
+          float r2 = min(dot(localCentered, localCentered), 0.999);
+          float sphereZ = sqrt(max(0.001, 1.0 - r2));
+          vec3 N = normalize(vec3(localCentered, sphereZ));
+          vec3 V = vec3(0.0, 0.0, -1.0);
+          vec2 orbUvRadius = (panelPixelSize * 0.5) / screenSize;
+
+          // Physical sphere refraction (adapted from Galacean PBR Refraction.glsl refractionModelSphere)
+          // with Cauchy RGB dispersion across the entire convex glass sphere.
+          float caStrength = max(material_SeedWorldChromaticAberration, 0.0);
+          float iorSpread = 0.18 * caStrength;
+          float iorG = max(material_SeedWorldLensIor, 1.0);
+          float iorR = max(1.01, iorG - iorSpread);
+          float iorB = iorG + iorSpread;
+          float thickness = max(material_SeedWorldLensThickness, 0.0);
+
+          vec3 rayR = refract(V, N, 1.0 / iorR);
+          vec3 rayG = refract(V, N, 1.0 / iorG);
+          vec3 rayB = refract(V, N, 1.0 / iorB);
+          float distR = dot(-N, rayR) * thickness;
+          float distG = dot(-N, rayG) * thickness;
+          float distB = dot(-N, rayB) * thickness;
+
+          // Map exit ray offset to screen UV (matching existing -normal refraction axis convention)
+          vec2 uvR = clamp(screenUv + rayR.xy * distR * orbUvRadius, vec2(0.002), vec2(0.998));
+          vec2 uvG = clamp(screenUv + rayG.xy * distG * orbUvRadius, vec2(0.002), vec2(0.998));
+          vec2 uvB = clamp(screenUv + rayB.xy * distB * orbUvRadius, vec2(0.002), vec2(0.998));
+
+          // Hardware mipmap frosted blur from the 1/4-res linear mip pyramid (3 trilinear LOD fetches total).
+          float frostMaxMip = max(material_SeedWorldFrostMaxMip, 0.0);
+          float blurPx = min(panelPixelSize.x, panelPixelSize.y) * roughness * max(material_SeedWorldFrostScale, 0.0);
+          vec3 lensColor;
+          if (roughness <= 0.001 || blurPx <= 0.01 || frostMaxMip <= 0.001) {
+            lensColor = vec3(
+              seedWorldSampleScene(uvR).r,
+              seedWorldSampleScene(uvG).g,
+              seedWorldSampleScene(uvB).b
+            );
+          } else {
+            // Frost pyramid mip 0 is already 1/4 resolution (~4px footprint); higher mips double it per level.
+            float frostLod = clamp(log2(max(blurPx * 0.25, 1.0)), 0.0, frostMaxMip);
+            vec3 frostedColor = vec3(
+              texture2DLodEXT(material_SeedWorldFrostTexture, uvR, frostLod).r,
+              texture2DLodEXT(material_SeedWorldFrostTexture, uvG, frostLod).g,
+              texture2DLodEXT(material_SeedWorldFrostTexture, uvB, frostLod).b
+            );
+            if (blurPx < 4.0) {
+              vec3 sharpColor = vec3(
+                seedWorldSampleScene(uvR).r,
+                seedWorldSampleScene(uvG).g,
+                seedWorldSampleScene(uvB).b
+              );
+              lensColor = mix(sharpColor, frostedColor, smoothstep(0.0, 4.0, blurPx));
+            } else {
+              lensColor = frostedColor;
+            }
+          }
+
+          // Physically balanced linear-space Schlick Fresnel (no milky white fog lift).
+          float oneMinusCos = clamp(1.0 - sphereZ, 0.0, 1.0);
+          float fresnel = 0.04 + 0.96 * pow(oneMinusCos, 4.2);
+          vec3 color = lensColor * (1.0 - fresnel * 0.18);
+          color += vec3(0.05, 0.075, 0.12) * fresnel * material_SeedWorldLensFresnel;
+          // Crisp rim boost only during interactive press/listening highlight
+          float highlight = clamp(material_SeedWorldRimHighlight, 0.0, 1.0);
+          color += vec3(0.28, 0.52, 0.72) * fresnel * highlight;
+          if (material_SeedWorldWhiteTint > 0.001) {
+            color = mix(color, vec3(1.0), clamp(material_SeedWorldWhiteTint, 0.0, 1.0));
+          }
+          vec4 finalColor = vec4(color * v.v_color.rgb, glassAlpha);
+          #ifdef ENGINE_SHOULD_SRGB_CORRECT
+            finalColor = outputSRGBCorrection(finalColor);
+          #endif
+          gl_FragColor = finalColor;
+          return;
+        }
+
         float boundary = seedWorldRemap01(-SEED_WORLD_REFR_DIM, epsilon, distanceToGlass);
         boundary = mix(boundary, 0.0, smoothstep(0.0, epsilon, distanceToGlass));
         float cosineBoundary = 1.0 - cos(boundary * SEED_WORLD_PI * 0.5);
@@ -170,7 +260,6 @@ Shader "SeedWorld/LiquidGlassUiV6" {
         vec2 offsetB = refractionOffset * refractionRatio.b;
 
         vec3 baseColor = seedWorldSampleScene(screenUv);
-        float roughness = clamp(material_SeedWorldGlassRoughness, 0.0, 1.0);
         vec3 transmittedColor = roughness > 0.001
           ? seedWorldSampleRoughScene(screenUv, texelSize, panelPixelSize, roughness)
           : baseColor;

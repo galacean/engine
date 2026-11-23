@@ -12,10 +12,10 @@ import {
   Camera,
   CameraClearFlags,
   Color,
-  DirectLight,
   Entity,
   Font,
   GLTFResource,
+  Layer,
   Matrix,
   MeshRenderer,
   ModelMesh,
@@ -43,9 +43,24 @@ import type { AgentViewImage } from "@galacean/engine-ai-chat/ai-chat/agent-type
 import type { ViewAnnotation, ViewPoint } from "./SeedWorldViewSnapshot";
 
 export const PAPER_HEIGHT = 1.22337079;
+export const PHOTO_WORKSPACE_LAYER = Layer.Layer25;
+const WORKSPACE_UNIT_SCALE = 0.001;
 export const PHOTO_MODEL_URL = new URL("../assets/instant-camera/polaroid-photo.glb", import.meta.url).href;
 const PIN_URL = new URL("../assets/instant-camera/thumbtack.glb", import.meta.url).href;
 import { UnlitMaterial } from "@galacean/engine";
+
+function tagWorkspaceHierarchy(entity: Entity, layer: Layer): void {
+  const stack: Entity[] = [entity];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    current.layer = layer;
+    for (let i = 0; i < current.children.length; i++) stack.push(current.children[i]);
+  }
+  for (const renderer of entity.getComponentsIncludeChildren(MeshRenderer, [])) {
+    renderer.castShadows = false;
+    renderer.receiveShadows = false;
+  }
+}
 
 /** Use the source model's UV basis, retaining its geometry, front/back and white border. */
 export function alignPhotoModel(model: Entity): MeshRenderer {
@@ -164,6 +179,7 @@ class PhotoFrame extends Script {
 
 export class PhotoGraphics {
   readonly scene: Scene;
+  readonly workspaceRoot: Entity;
   readonly camera: Camera;
   readonly font: Font;
   readonly backdrop: MeshRenderer;
@@ -177,6 +193,7 @@ export class PhotoGraphics {
   private pin!: GLTFResource;
   private loading?: Promise<void>;
   private disposed = false;
+  warmingUp = false;
   private readonly resources: Array<ModelMesh | BaseMaterial> = [];
   private readonly glassPanels: {
     glass: SeedWorldLiquidGlassUiMaterial;
@@ -191,26 +208,37 @@ export class PhotoGraphics {
     tick: (dt: number) => void,
     readonly budget?: ImageResourceBudget
   ) {
-    this.scene = new Scene(engine, "Photo workspace (excluded from world capture)");
-    this.scene.ambientLight.diffuseSolidColor = new Color(0.65, 0.65, 0.65, 1);
+    this.scene = worldCamera.scene!;
+    this.worldCamera.cullingMask = (this.worldCamera.cullingMask & ~PHOTO_WORKSPACE_LAYER) as Layer;
+    this.workspaceRoot = this.scene.createRootEntity("Photo workspace");
+    this.workspaceRoot.layer = PHOTO_WORKSPACE_LAYER;
+    this.workspaceRoot.transform.setScale(WORKSPACE_UNIT_SCALE, WORKSPACE_UNIT_SCALE, WORKSPACE_UNIT_SCALE);
     const view = this.scene.createRootEntity("Photo workspace view");
+    view.layer = PHOTO_WORKSPACE_LAYER;
     this.camera = view.addComponent(Camera);
     this.camera.isOrthographic = true;
-    this.camera.nearClipPlane = 0.1;
-    this.camera.farClipPlane = 4000;
+    this.camera.nearClipPlane = 0.01;
+    this.camera.farClipPlane = 4;
+    this.camera.priority = 20;
+    this.camera.cullingMask = PHOTO_WORKSPACE_LAYER;
     this.camera.clearFlags = CameraClearFlags.Depth;
     this.camera.enableHDR = this.camera.enablePostProcess = false;
     view.addComponent(PhotoFrame).tick = tick;
     this.font = Font.createFromOS(engine, '"PingFang SC", "Microsoft YaHei", sans-serif')!;
-    const light = this.scene.createRootEntity("Photo key light");
-    light.transform.setPosition(-300, 400, 1000);
-    light.transform.lookAt(new Vector3());
-    light.addComponent(DirectLight).color = new Color(0.8, 0.8, 0.8, 1);
     this.backdrop = this.quad("Editing backdrop", new Color(0.0052, 0.0086, 0.0097, 0));
     (this.backdrop.getMaterial() as UnlitMaterial).isTransparent = true;
     this.backdrop.entity.isActive = false;
-    this.toolbar = this.scene.createRootEntity("Photo toolbar");
-    this.glassPanel("Toolbar glass", PHOTO_TOOLBAR.width, PHOTO_TOOLBAR.height, 26, this.toolbar, 26, -126, 0);
+    this.toolbar = this.workspaceRoot.createChild("Photo toolbar");
+    this.glassPanel(
+      "Toolbar glass",
+      PHOTO_TOOLBAR.width,
+      PHOTO_TOOLBAR.height,
+      26,
+      this.toolbar,
+      26,
+      -PHOTO_TOOLBAR.height / 2,
+      0
+    );
     // Icons use the same engine triangle stroke renderer as freehand marks; no SVG/DOM drawing.
     // Sample a cubic curve densely so the 24px return arrow has no visible elbow segments.
     // Mirror the same path for redo to keep both icons geometrically identical.
@@ -259,17 +287,10 @@ export class PhotoGraphics {
       ],
       undoPaths,
       undoPaths.map((path) => path.map(([x, y]) => [24 - x, y])),
-      [],
-      [
-        [
-          [4, 12],
-          [9, 17],
-          [20, 6]
-        ]
-      ]
+      []
     ];
     icons.forEach((paths, index) => {
-      const entity = this.toolbar.createChild(["Discard", "Undo", "Redo", "Palette", "Confirm"][index]);
+      const entity = this.toolbar.createChild(["Discard", "Undo", "Redo", "Palette"][index]);
       entity.transform.setPosition(14, -(index * PHOTO_TOOLBAR.step + 18), 3);
       const renderer = entity.addComponent(MeshRenderer);
       const mesh = strokeMesh(
@@ -316,8 +337,11 @@ export class PhotoGraphics {
     this.palette.isActive = false;
     this.toolbar.isActive = false;
     this.status = this.text("Photo status", "", 13);
-    this.engine.sceneManager.addScene(this.scene);
+    tagWorkspaceHierarchy(this.workspaceRoot, PHOTO_WORKSPACE_LAYER);
     this.resize();
+  }
+  tagWorkspaceEntity(entity: Entity): void {
+    tagWorkspaceHierarchy(entity, PHOTO_WORKSPACE_LAYER);
   }
   prepare(): Promise<void> {
     return (this.loading ??= Promise.all([
@@ -345,18 +369,25 @@ export class PhotoGraphics {
           dispose() {}
         });
         surface.caption.text = "SEED WORLD · 0123456789/";
+        this.warmingUp = true;
         await warmupPhotoPresentation(
           this.camera,
           () => {
             this.toolbar.isActive = this.palette.isActive = true;
-            this.camera.render();
-            surface!.setOpacity(0.5);
-            this.camera.render();
+            try {
+              this.camera.render();
+              surface!.setOpacity(0.5);
+              this.camera.render();
+            } finally {
+              this.toolbar.isActive = this.palette.isActive = false;
+            }
           },
           () => this.disposed,
-          this.budget
+          this.budget,
+          [this.workspaceRoot]
         );
       } finally {
+        this.warmingUp = false;
         surface?.dispose();
         texture.destroy(true);
         if (!this.disposed) this.toolbar.isActive = this.palette.isActive = false;
@@ -365,8 +396,12 @@ export class PhotoGraphics {
   }
   resize(): void {
     const rect = this.canvas.getBoundingClientRect();
-    this.camera.orthographicSize = rect.height / 2;
-    this.camera.entity.transform.setPosition(rect.width / 2, -rect.height / 2, 2000);
+    this.camera.orthographicSize = (rect.height / 2) * WORKSPACE_UNIT_SCALE;
+    this.camera.entity.transform.setPosition(
+      (rect.width / 2) * WORKSPACE_UNIT_SCALE,
+      (-rect.height / 2) * WORKSPACE_UNIT_SCALE,
+      2000 * WORKSPACE_UNIT_SCALE
+    );
     this.backdrop.entity.transform.setPosition(rect.width / 2, -rect.height / 2, 100);
     this.backdrop.entity.transform.setScale(rect.width, rect.height, 1);
     const { toolbar, palette, scale } = photoDetailLayout(rect.width, rect.height);
@@ -417,7 +452,8 @@ export class PhotoGraphics {
     this.glassPanels.push({ glass, width, height, radius });
   }
   text(name: string, value: string, size: number, parent?: Entity): TextRenderer {
-    const entity = parent ? parent.createChild(name) : this.scene.createRootEntity(name);
+    const entity = (parent ?? this.workspaceRoot).createChild(name);
+    entity.layer = PHOTO_WORKSPACE_LAYER;
     const text = entity.addComponent(TextRenderer);
     text.font = this.font;
     text.fontSize = size;
@@ -426,12 +462,15 @@ export class PhotoGraphics {
     return text;
   }
   quad(name: string, color: Color, parent?: Entity): MeshRenderer {
-    const entity = parent ? parent.createChild(name) : this.scene.createRootEntity(name);
+    const entity = (parent ?? this.workspaceRoot).createChild(name);
+    entity.layer = PHOTO_WORKSPACE_LAYER;
     const renderer = entity.addComponent(MeshRenderer),
       mesh = PrimitiveMesh.createCuboid(this.engine, 1, 1, 0.001);
     const material = flatMaterial(this.engine, color);
     renderer.mesh = mesh;
     renderer.setMaterial(material);
+    renderer.castShadows = false;
+    renderer.receiveShadows = false;
     this.resources.push(mesh, material);
     return renderer;
   }
@@ -508,10 +547,11 @@ export class PhotoGraphics {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.engine.sceneManager.removeScene(this.scene);
-    const ambient = this.scene.ambientLight;
-    this.scene.destroy();
-    ambient.destroy(true);
+    if (!this.worldCamera.destroyed) {
+      this.worldCamera.cullingMask = (this.worldCamera.cullingMask | PHOTO_WORKSPACE_LAYER) as Layer;
+    }
+    this.workspaceRoot.destroy();
+    this.camera.entity.destroy();
     for (const { glass } of this.glassPanels) glass.destroy();
     this.resources.forEach((resource) =>
       resource instanceof ModelMesh ? destroyOwnedMesh(resource) : resource.destroy(true)
@@ -546,10 +586,10 @@ export class PhotoSurface {
     pinResource: GLTFResource,
     readonly image: PhotoImage
   ) {
-    const { engine, scene } = graphics;
+    const { engine } = graphics;
     const cleanup: (() => void)[] = [];
     try {
-      this.root = scene.createRootEntity("Photograph");
+      this.root = new Entity(engine, "Photograph");
       cleanup.push(() => this.root.destroy());
       const model = paper.instantiateSceneRoot();
       this.root.addChild(model);
@@ -603,7 +643,7 @@ export class PhotoSurface {
       }
       this.caption.entity.transform.setPosition(0, -0.52, 0.03);
       this.caption.entity.transform.setScale(0.1, 0.1, 0.1);
-      this.pin = scene.createRootEntity("Thumbtack: needle into paper");
+      this.pin = new Entity(engine, "Thumbtack: needle into paper");
       cleanup.push(() => this.pin.destroy());
       const pivot = this.pin.createChild("Needle tip pivot"),
         pinModel = pinResource.instantiateSceneRoot();
@@ -622,6 +662,10 @@ export class PhotoSurface {
       pinModel.transform.setScale(scale, scale, scale);
       pinModel.transform.setPosition(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
       pivot.transform.setRotation(78, 12, -8);
+      graphics.workspaceRoot.addChild(this.root);
+      graphics.workspaceRoot.addChild(this.pin);
+      graphics.tagWorkspaceEntity(this.root);
+      graphics.tagWorkspaceEntity(this.pin);
       this.root.isActive = this.pin.isActive = false;
     } catch (error) {
       for (const dispose of cleanup.reverse()) dispose();

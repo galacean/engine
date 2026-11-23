@@ -76,7 +76,7 @@ export class SeedWorldPhotoWorkspace {
   private statusUntil = 0;
   private disposed = false;
   private restoreLayer?: () => void;
-  private focused = 4;
+  private focused = 3;
   private readonly originalLabel: string | null;
   private readonly originalTabIndex: number;
   get size(): number {
@@ -252,13 +252,25 @@ export class SeedWorldPhotoWorkspace {
       this.render(entry);
       this.camera.hide();
     } else {
-      const from = { ...entry.pose };
+      const targetPose = this.editPose(photo);
+      const from = existing
+        ? { ...entry.pose }
+        : {
+            x: targetPose.x + 28,
+            y: targetPose.y - 24,
+            width: targetPose.width * 0.72,
+            height: targetPose.height * 0.72,
+            angle: -5,
+            z: targetPose.z,
+            depth: targetPose.depth * 0.72
+          };
+      entry.pose = { ...from };
       entry.visible = true;
       entry.liftTarget = 1;
-      this.setPhase("reopen");
-      await this.animate(320, signal, (t) => {
+      this.setPhase(existing ? "reopen" : "fly");
+      await this.animate(existing ? 320 : 280, signal, (t) => {
         const e = 1 - (1 - t) ** 3;
-        entry!.pose = interpolate(from, this.editPose(photo), e);
+        entry!.pose = interpolate(from, targetPose, e);
         this.shade = config.backdropOpacity * e;
       });
     }
@@ -266,7 +278,7 @@ export class SeedWorldPhotoWorkspace {
     this.mode = "editing";
     entry.opacity = entry.opacityTarget = 1;
     this.render(entry);
-    this.focused = 4;
+    this.focused = 3;
     this.setPhase("editing");
     this.graphics.toolbar.isActive = true;
     this.graphics.status.text = "";
@@ -450,7 +462,8 @@ export class SeedWorldPhotoWorkspace {
       this.statusUntil = 0;
       this.graphics.status.text = "";
     }
-    this.graphics.camera.enabled = this.size > 0 || this.mode !== "idle" || !!this.graphics.status.text;
+    this.graphics.camera.enabled =
+      !this.graphics.warmingUp && (this.size > 0 || this.mode !== "idle" || !!this.graphics.status.text);
     if (this.editing && this.trace.enabled)
       this.trace.sample("frame", {
         dt,
@@ -624,7 +637,7 @@ export class SeedWorldPhotoWorkspace {
         const rect = this.camera.canvas.getBoundingClientRect();
         const { toolbar: t, palette, scale: uiScale } = photoDetailLayout(rect.width, rect.height);
         if (p.y >= t.y && p.y <= t.y + t.height && p.x >= t.x && p.x <= t.x + t.width) {
-          const index = Math.max(0, Math.min(4, Math.floor(((p.y - t.y) / uiScale - PHOTO_TOOLBAR.padding) / PHOTO_TOOLBAR.step)));
+          const index = Math.max(0, Math.min(3, Math.floor(((p.y - t.y) / uiScale - PHOTO_TOOLBAR.padding) / PHOTO_TOOLBAR.step)));
           this.trace.record("toolbar-hit", { index, pointerId: event.id });
           this.tool(index);
           return;
@@ -825,7 +838,7 @@ export class SeedWorldPhotoWorkspace {
     });
     this.camera.canvas.setAttribute(
       "aria-label",
-      `照片标记：丢弃照片、撤销、重做、画笔颜色、确认。${history?.annotations.length ?? 0} 笔。Enter 操作当前按钮，Escape 关闭调色板或收起照片，Ctrl Z 撤销笔迹。`
+      `照片标记：丢弃照片、撤销、重做、画笔颜色。${history?.annotations.length ?? 0} 笔。Enter 操作当前按钮，Escape 关闭调色板或收起照片，Ctrl Z 撤销笔迹。`
     );
   }
   private async discard(entry: Entry, dx = 1, dy = 1): Promise<void> {
@@ -884,8 +897,7 @@ export class SeedWorldPhotoWorkspace {
       const editing = this.editing;
       if (!editing) return;
       void this.discard(editing.entry);
-    } else if (index === 4) this.actions.apply();
-    else if (index === 3) this.graphics.palette.isActive = !this.graphics.palette.isActive;
+    } else if (index === 3) this.graphics.palette.isActive = !this.graphics.palette.isActive;
     else {
       try {
         this.updateHistory(history => index === 1 ? history.undo() : history.redo());
@@ -915,8 +927,8 @@ export class SeedWorldPhotoWorkspace {
     if (command && input.isKeyDown(Keys.KeyZ)) this.tool(shift ? 2 : 1);
     else if (input.isKeyDown(Keys.Enter)) this.tool(this.focused);
     else if (input.isKeyDown(Keys.Tab)) {
-      this.focused = (this.focused + (shift ? 4 : 1)) % 5;
-      this.notify(["丢弃当前照片及附件", "撤销上一笔", "重做上一笔", "选择画笔颜色", "收起照片，保留附件"][this.focused]);
+      this.focused = (this.focused + (shift ? 3 : 1)) % 4;
+      this.notify(["丢弃当前照片及附件", "撤销上一笔", "重做上一笔", "选择画笔颜色"][this.focused]);
     }
   }
   dispose(): void {

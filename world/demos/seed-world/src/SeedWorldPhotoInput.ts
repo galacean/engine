@@ -34,7 +34,7 @@ export class SeedWorldPhotoInput {
     this.canvas = this.root.addComponent(UICanvas);
     this.canvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
     this.canvas.resolutionAdaptationMode = ResolutionAdaptationMode.BothAdaptation;
-    this.canvas.sortOrder = 32_000;
+    this.canvas.sortOrder = 32_500;
     this.modal = this.surface("Photo modal input");
     this.modal.isActive = false;
   }
