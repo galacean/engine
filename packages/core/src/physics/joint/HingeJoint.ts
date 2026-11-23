@@ -36,7 +36,7 @@ export class HingeJoint extends Joint {
   }
 
   set axis(value: Vector3) {
-    if (value !== this._axis) this._setAxis(value);
+    value !== this._axis && this._setAxis(value);
   }
 
   /**
