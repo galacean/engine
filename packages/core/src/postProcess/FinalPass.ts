@@ -6,7 +6,7 @@ import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { RenderBufferLoadAction } from "../renderingHardwareInterface";
+import { RenderTargetLoadAction } from "../renderingHardwareInterface";
 import { Shader } from "../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 
@@ -74,7 +74,7 @@ export class FinalPass extends PipelinePass {
         this._sRGBmaterial,
         0,
         undefined,
-        RenderBufferLoadAction.Clear
+        RenderTargetLoadAction.Clear
       );
       const sRGBTexture = <Texture2D>this._srgbRenderTarget!.getColorTexture();
       Blitter._blitTexture(
@@ -86,7 +86,7 @@ export class FinalPass extends PipelinePass {
         this._antiAliasingMaterial,
         0,
         undefined,
-        RenderBufferLoadAction.Clear
+        RenderTargetLoadAction.Clear
       );
     } else {
       Blitter._blitTexture(
@@ -98,7 +98,7 @@ export class FinalPass extends PipelinePass {
         this._sRGBmaterial,
         0,
         undefined,
-        RenderBufferLoadAction.Clear
+        RenderTargetLoadAction.Clear
       );
     }
   }

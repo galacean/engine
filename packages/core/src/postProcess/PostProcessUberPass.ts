@@ -4,7 +4,7 @@ import { Engine } from "../Engine";
 import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderBufferLoadAction } from "../renderingHardwareInterface";
+import { RenderTargetLoadAction } from "../renderingHardwareInterface";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
@@ -86,7 +86,7 @@ export class PostProcessUberPass extends PostProcessPass {
       this._uberMaterial,
       undefined,
       undefined,
-      RenderBufferLoadAction.Clear
+      RenderTargetLoadAction.Clear
     );
   }
 
@@ -192,7 +192,7 @@ export class PostProcessUberPass extends PostProcessPass {
       bloomMaterial,
       0,
       undefined,
-      RenderBufferLoadAction.Clear
+      RenderTargetLoadAction.Clear
     );
 
     // Down sample - gaussian pyramid
@@ -210,7 +210,7 @@ export class PostProcessUberPass extends PostProcessPass {
         bloomMaterial,
         1,
         undefined,
-        RenderBufferLoadAction.Clear
+        RenderTargetLoadAction.Clear
       );
       Blitter._blitTexture(
         engine,
@@ -221,7 +221,7 @@ export class PostProcessUberPass extends PostProcessPass {
         bloomMaterial,
         2,
         undefined,
-        RenderBufferLoadAction.Clear
+        RenderTargetLoadAction.Clear
       );
       lastDown = this._mipDownRT[i];
     }
@@ -245,7 +245,7 @@ export class PostProcessUberPass extends PostProcessPass {
         bloomMaterial,
         3,
         undefined,
-        RenderBufferLoadAction.Clear
+        RenderTargetLoadAction.Clear
       );
     }
 

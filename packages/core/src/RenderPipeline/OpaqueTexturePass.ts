@@ -1,7 +1,7 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Downsampling } from "../enums/Downsampling";
-import { RenderBufferLoadAction } from "../renderingHardwareInterface";
+import { RenderTargetLoadAction } from "../renderingHardwareInterface";
 import { Texture, Texture2D, TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
@@ -58,7 +58,7 @@ export class OpaqueTexturePass extends PipelinePass {
       null,
       0,
       undefined,
-      RenderBufferLoadAction.Clear
+      RenderTargetLoadAction.Clear
     );
     context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget.getColorTexture(0));
   }

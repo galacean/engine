@@ -19,9 +19,10 @@ import {
   Logger,
   Platform,
   Primitive,
-  RenderBufferLoadAction,
-  RenderBufferStoreAction,
+  RenderPassDescriptor,
   RenderTarget,
+  RenderTargetLoadAction,
+  RenderTargetStoreAction,
   SubPrimitive,
   SystemInfo,
   Texture2D,
@@ -99,10 +100,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _supportsInvalidateFramebuffer: boolean = true;
   /** @internal */
   _activeRenderTarget: RenderTarget | null = null;
-  /** @internal */
-  _activeColorStoreAction: RenderBufferStoreAction = RenderBufferStoreAction.Store;
-  /** @internal */
-  _activeDepthStoreAction: RenderBufferStoreAction = RenderBufferStoreAction.Store;
+  private _inRenderPass: boolean = false;
+  private _activeColorStoreAction: RenderTargetStoreAction = RenderTargetStoreAction.Store;
+  private _activeDepthStoreAction: RenderTargetStoreAction = RenderTargetStoreAction.Store;
+  private _activeStencilStoreAction: RenderTargetStoreAction = RenderTargetStoreAction.Store;
 
   /** @internal */
   readonly _options: WebGLGraphicDeviceOptions;
@@ -428,15 +429,84 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     viewport: Vector4,
     isFlipProjection: boolean,
     mipLevel: number = 0,
-    faceIndex?: TextureCubeFace,
-    colorLoadAction: RenderBufferLoadAction = RenderBufferLoadAction.Load,
-    colorStoreAction: RenderBufferStoreAction = RenderBufferStoreAction.Store,
-    depthLoadAction: RenderBufferLoadAction = RenderBufferLoadAction.Load,
-    depthStoreAction: RenderBufferStoreAction = RenderBufferStoreAction.Store
+    faceIndex?: TextureCubeFace
   ) {
-    // Flush outgoing render target's pending DontCare store actions before switching FBOs (TBDR StoreAction::DontCare)
-    this._flushPendingStoreActions();
+    if (this._inRenderPass) {
+      this.endRenderPass();
+    }
+    this._bindRenderTarget(renderTarget, viewport, isFlipProjection, mipLevel, faceIndex);
+  }
 
+  beginRenderPass(descriptor: RenderPassDescriptor): void {
+    if (this._inRenderPass) {
+      this.endRenderPass();
+    }
+
+    const { renderTarget, viewport, isFlipProjection, mipLevel, faceIndex } = descriptor;
+    this._bindRenderTarget(renderTarget, viewport, isFlipProjection, mipLevel, faceIndex);
+
+    this._inRenderPass = true;
+    this._activeColorStoreAction = descriptor.colorStoreAction;
+    this._activeDepthStoreAction = descriptor.depthStoreAction;
+    this._activeStencilStoreAction = descriptor.stencilStoreAction;
+
+    const clearColor = descriptor.colorLoadAction === RenderTargetLoadAction.Clear;
+    const clearDepth = descriptor.depthLoadAction === RenderTargetLoadAction.Clear;
+    const clearStencil = descriptor.stencilLoadAction === RenderTargetLoadAction.Clear;
+    if (clearColor || clearDepth || clearStencil) {
+      this._clearFrameBufferAttachments(
+        renderTarget,
+        clearColor,
+        clearDepth,
+        clearStencil,
+        descriptor.clearColor,
+        descriptor.clearDepth,
+        descriptor.clearStencil
+      );
+    }
+  }
+
+  endRenderPass(): void {
+    if (!this._inRenderPass) {
+      return;
+    }
+
+    const target = this._activeRenderTarget;
+    const colorStore = this._activeColorStoreAction;
+    const depthStore = this._activeDepthStoreAction;
+    const stencilStore = this._activeStencilStoreAction;
+
+    this._inRenderPass = false;
+    this._activeColorStoreAction = RenderTargetStoreAction.Store;
+    this._activeDepthStoreAction = RenderTargetStoreAction.Store;
+    this._activeStencilStoreAction = RenderTargetStoreAction.Store;
+
+    const discardDepth = depthStore === RenderTargetStoreAction.Discard;
+    const discardStencil = stencilStore === RenderTargetStoreAction.Discard;
+
+    if (
+      target &&
+      target.antiAliasing > 1 &&
+      (colorStore === RenderTargetStoreAction.Resolve || colorStore === RenderTargetStoreAction.StoreAndResolve)
+    ) {
+      const glRT = target._platformRenderTarget as GLRenderTarget;
+      glRT._resolveRenderTarget(colorStore === RenderTargetStoreAction.Resolve, discardDepth, discardStencil);
+      return;
+    }
+
+    const discardColor = colorStore === RenderTargetStoreAction.Discard;
+    if (discardColor || discardDepth || discardStencil) {
+      this._invalidateFrameBufferAttachments(this._gl.FRAMEBUFFER, target, discardColor, discardDepth, discardStencil);
+    }
+  }
+
+  private _bindRenderTarget(
+    renderTarget: RenderTarget | null,
+    viewport: Vector4,
+    isFlipProjection: boolean,
+    mipLevel: number,
+    faceIndex?: TextureCubeFace
+  ): void {
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
       renderTarget._isContentLost = false;
@@ -456,8 +526,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._activeRenderTarget = renderTarget;
     this._activeTargetWidth = bufferWidth;
     this._activeTargetHeight = bufferHeight;
-    this._activeColorStoreAction = colorStoreAction;
-    this._activeDepthStoreAction = depthStoreAction;
 
     const width = bufferWidth * viewport.z;
     const height = bufferHeight * viewport.w;
@@ -465,20 +533,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const y = isFlipProjection ? viewport.y * bufferHeight : bufferHeight - viewport.y * bufferHeight - height;
     this.viewport(x, y, width, height);
     this.scissor(x, y, width, height);
-
-    // Clear full-target attachments on LoadAction.Clear so TBDR GPUs hit hardware MTLLoadActionClear
-    // (zero DRAM tile load) while keeping WebGL2 RobustResourceInit satisfied (avoids iOS ANGLE-Metal CPU replaceRegion)
-    const clearColorLoad = colorLoadAction === RenderBufferLoadAction.Clear;
-    const clearDepthLoad = depthLoadAction === RenderBufferLoadAction.Clear;
-    if (
-      (clearColorLoad || clearDepthLoad) &&
-      viewport.x === 0 &&
-      viewport.y === 0 &&
-      viewport.z === 1 &&
-      viewport.w === 1
-    ) {
-      this._clearFrameBufferAttachments(renderTarget, clearColorLoad, clearDepthLoad, clearDepthLoad);
-    }
   }
 
   blitInternalRTByBlitFrameBuffer(
@@ -487,7 +541,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     clearFlags: CameraClearFlags,
     viewport: Vector4
   ) {
-    this._flushAndResetActiveRenderTarget();
     const gl = this._gl;
     // @ts-ignore
     const srcFrameBuffer = srcRT ? srcRT._platformRenderTarget._frameBuffer : null;
@@ -548,7 +601,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   copyRenderTargetToSubTexture(srcRT: RenderTarget | null, grabTexture: Texture2D, viewport: Vector4) {
-    this._flushAndResetActiveRenderTarget();
     const gl = this._gl;
     const bufferWidth = this.getMainFrameBufferWidth();
     const bufferHeight = this.getMainFrameBufferHeight();
@@ -602,7 +654,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   flush(): void {
-    this._flushPendingStoreActions();
+    if (this._inRenderPass) {
+      this.endRenderPass();
+    }
     this._gl.flush();
   }
 
@@ -674,35 +728,14 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   /** @internal */
-  _flushPendingStoreActions(): void {
-    const discardColor = this._activeColorStoreAction === RenderBufferStoreAction.DontCare;
-    const discardDepth = this._activeDepthStoreAction === RenderBufferStoreAction.DontCare;
-    if (discardColor || discardDepth) {
-      this._invalidateFrameBufferAttachments(
-        this._gl.FRAMEBUFFER,
-        this._activeRenderTarget,
-        discardColor,
-        discardDepth,
-        discardDepth
-      );
-      this._activeColorStoreAction = RenderBufferStoreAction.Store;
-      this._activeDepthStoreAction = RenderBufferStoreAction.Store;
-    }
-  }
-
-  /** @internal */
-  _flushAndResetActiveRenderTarget(): void {
-    this._flushPendingStoreActions();
-    this._clearActiveRenderTargetState();
-  }
-
-  /** @internal */
   _clearActiveRenderTargetState(): void {
     this._activeRenderTarget = null;
+    this._inRenderPass = false;
     this._activeTargetWidth = 0;
     this._activeTargetHeight = 0;
-    this._activeColorStoreAction = RenderBufferStoreAction.Store;
-    this._activeDepthStoreAction = RenderBufferStoreAction.Store;
+    this._activeColorStoreAction = RenderTargetStoreAction.Store;
+    this._activeDepthStoreAction = RenderTargetStoreAction.Store;
+    this._activeStencilStoreAction = RenderTargetStoreAction.Store;
   }
 
   /** @internal */
@@ -715,11 +748,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     depthValue: number = 1,
     stencilValue: number = 0
   ): void {
-    // Skip default WebGL backbuffer when no explicit clearColor is requested (browser compositor manages discard)
-    if (!renderTarget && !this._mainFrameBuffer && !colorValue) {
-      return;
-    }
-
     const gl = this._gl;
     if (renderTarget) {
       const glRT = renderTarget._platformRenderTarget as GLRenderTarget;

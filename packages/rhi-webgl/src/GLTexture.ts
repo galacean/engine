@@ -579,7 +579,6 @@ export class GLTexture implements IPlatformTexture {
     const { dataType, readType, alignment } = this._formatDetail;
     const readFormat = this._getReadFormat();
 
-    this._rhi._flushAndResetActiveRenderTarget();
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
     if (face != null) {

@@ -1,7 +1,7 @@
 import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material";
-import { RenderBufferLoadAction } from "../renderingHardwareInterface";
+import { RenderPassDescriptor, RenderTargetLoadAction } from "../renderingHardwareInterface";
 import { ColorWriteMask, ShaderPass, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -23,6 +23,7 @@ export class Blitter {
   private static _rendererShaderData = new ShaderData(ShaderDataGroup.Renderer);
   private static _texelSize = new Vector4();
   private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
+  private static _passDescriptor = new RenderPassDescriptor();
 
   /**
    * Blit texture to destination render target using a triangle.
@@ -60,7 +61,7 @@ export class Blitter {
     material: Material | null = null,
     passIndex = 0,
     sourceScaleOffset?: Vector4,
-    colorLoadAction: RenderBufferLoadAction = RenderBufferLoadAction.Load
+    colorLoadAction: RenderTargetLoadAction = RenderTargetLoadAction.Load
   ): void {
     const basicResources = engine._basicResources;
     const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
@@ -73,14 +74,19 @@ export class Blitter {
     context.flipProjection = !!destination;
 
     const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
+    const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
     const resolvedLoadAction =
       destination &&
       destination.colorTextureCount === 1 &&
-      colorLoadAction === RenderBufferLoadAction.Clear &&
+      isFullViewport &&
+      colorLoadAction === RenderTargetLoadAction.Clear &&
       Blitter._canClearColorTarget(pass, blitMaterial.shaderData)
-        ? RenderBufferLoadAction.Clear
-        : RenderBufferLoadAction.Load;
-    context.setRenderTarget(destination, viewport, 0, undefined, resolvedLoadAction);
+        ? RenderTargetLoadAction.Clear
+        : RenderTargetLoadAction.Load;
+
+    const passDescriptor = Blitter._passDescriptor.reset(destination, viewport, !!destination, 0);
+    passDescriptor.colorLoadAction = resolvedLoadAction;
+    context.beginRenderPass(passDescriptor);
 
     const rendererShaderData = Blitter._rendererShaderData;
 
@@ -114,6 +120,7 @@ export class Blitter {
     renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
+    context.endRenderPass();
     rendererShaderData.setTexture(Blitter._blitTextureProperty, null);
   }
 

@@ -16,8 +16,7 @@ import type { IPlatformTextureCube } from "./IPlatformTextureCube";
 import type { IPlatformTransformFeedback } from "./IPlatformTransformFeedback";
 import type { IPlatformTransformFeedbackPrimitive } from "./IPlatformTransformFeedbackPrimitive";
 import type { RenderState } from "../shader/state/RenderState";
-import type { RenderBufferLoadAction } from "./RenderBufferLoadAction";
-import type { RenderBufferStoreAction } from "./RenderBufferStoreAction";
+import type { RenderPassDescriptor } from "./RenderPassDescriptor";
 
 /** Graphics resource and command boundary used by the engine. */
 export interface IHardwareRenderer {
@@ -69,12 +68,10 @@ export interface IHardwareRenderer {
     viewport: Vector4,
     isFlipProjection: boolean | null,
     mipLevel?: number,
-    faceIndex?: TextureCubeFace,
-    colorLoadAction?: RenderBufferLoadAction,
-    colorStoreAction?: RenderBufferStoreAction,
-    depthLoadAction?: RenderBufferLoadAction,
-    depthStoreAction?: RenderBufferStoreAction
+    faceIndex?: TextureCubeFace
   ): void;
+  beginRenderPass(descriptor: RenderPassDescriptor): void;
+  endRenderPass(): void;
   clearRenderTarget(engine: Engine, flags: CameraClearFlags, color?: Color | null): void;
   drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, program: IPlatformShaderProgram): void;
   blitInternalRTByBlitFrameBuffer(

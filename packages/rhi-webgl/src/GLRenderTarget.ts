@@ -1,6 +1,5 @@
 import {
   IPlatformRenderTarget,
-  RenderBufferStoreAction,
   RenderTarget,
   Texture,
   TextureCube,
@@ -84,9 +83,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       this._hasStencil = depthAttachment === gl.STENCIL_ATTACHMENT || depthAttachment === gl.DEPTH_STENCIL_ATTACHMENT;
     }
 
-    // Flush any active render target's pending store actions before binding the new FBOs
-    rhi._flushAndResetActiveRenderTarget();
-
     this._frameBuffer = this._gl.createFramebuffer();
 
     // bind main FBO
@@ -163,30 +159,25 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    * Blit FBO.
    */
   blitRenderTarget(): void {
+    this._resolveRenderTarget(false, false, false);
+  }
+
+  /** @internal */
+  _resolveRenderTarget(discardMSAA: boolean, discardDepth: boolean, discardStencil: boolean): void {
     if (!this._MSAAFrameBuffer) return;
 
     const gl = this._gl;
     const rhi = this._rhi;
     const target = this._target;
-    const isActive = rhi._activeRenderTarget === target;
-    const discardMSAA =
-      isActive &&
-      (rhi._activeColorStoreAction === RenderBufferStoreAction.Resolve ||
-        rhi._activeColorStoreAction === RenderBufferStoreAction.DontCare);
-    const discardDepth = isActive && rhi._activeDepthStoreAction === RenderBufferStoreAction.DontCare;
-
-    if (!isActive) {
-      rhi._flushAndResetActiveRenderTarget();
-    }
-
     const resolveDepth = !!target.depthTexture;
     const mask = gl.COLOR_BUFFER_BIT | (resolveDepth ? gl.DEPTH_BUFFER_BIT : 0);
     const { colorTextureCount, width, height } = target;
 
     // Discard transient MSAA depth/stencil while _MSAAFrameBuffer is still the bound DRAW_FRAMEBUFFER
-    // so TBDR GPUs skip flushing depth before DRAW_FRAMEBUFFER switches to the resolve target (matches Unity TextureReadbackGLES.cpp)
-    if (discardDepth && !resolveDepth) {
-      rhi._invalidateFrameBufferAttachments(gl.FRAMEBUFFER, target, false, true, true);
+    // so TBDR GPUs skip flushing them before DRAW_FRAMEBUFFER switches to the resolve target (matches Unity TextureReadbackGLES.cpp)
+    const preDiscardDepth = discardDepth && !resolveDepth;
+    if (preDiscardDepth || discardStencil) {
+      rhi._invalidateFrameBufferAttachments(gl.FRAMEBUFFER, target, false, preDiscardDepth, discardStencil);
     }
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
@@ -204,14 +195,9 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       this._blitDrawBuffers![textureIndex] = gl.NONE;
     }
 
-    if (discardMSAA || (discardDepth && resolveDepth)) {
-      rhi._invalidateFrameBufferAttachments(
-        gl.READ_FRAMEBUFFER,
-        target,
-        discardMSAA,
-        discardDepth && resolveDepth,
-        discardDepth && resolveDepth
-      );
+    const postDiscardDepth = discardDepth && resolveDepth;
+    if (discardMSAA || postDiscardDepth) {
+      rhi._invalidateFrameBufferAttachments(gl.READ_FRAMEBUFFER, target, discardMSAA, postDiscardDepth, false);
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);

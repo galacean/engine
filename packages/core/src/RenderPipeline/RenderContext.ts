@@ -3,7 +3,7 @@ import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
-import { RenderBufferLoadAction, RenderBufferStoreAction } from "../renderingHardwareInterface";
+import { RenderPassDescriptor } from "../renderingHardwareInterface";
 import { Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
 import { RenderTarget, TextureCubeFace } from "../texture";
@@ -66,35 +66,33 @@ export class RenderContext {
     shaderData.setVector4(RenderContext._cameraProjectionProperty, projectionParams);
   }
 
-  setRenderTarget(
-    destination: RenderTarget | null,
-    viewport: Vector4,
-    mipLevel?: number,
-    faceIndex?: TextureCubeFace,
-    colorLoadAction?: RenderBufferLoadAction,
-    colorStoreAction?: RenderBufferStoreAction,
-    depthLoadAction?: RenderBufferLoadAction,
-    depthStoreAction?: RenderBufferStoreAction
-  ) {
+  setRenderTarget(destination: RenderTarget | null, viewport: Vector4, mipLevel?: number, faceIndex?: TextureCubeFace) {
     const engine = this.camera.engine;
     const rhi = engine._hardwareRenderer;
-    rhi.activeRenderTarget(
-      destination,
-      viewport,
-      this.flipProjection,
-      mipLevel,
-      faceIndex,
-      colorLoadAction,
-      colorStoreAction,
-      depthLoadAction,
-      depthStoreAction
-    );
+    rhi.activeRenderTarget(destination, viewport, this.flipProjection, mipLevel, faceIndex);
 
     if (destination) {
       engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);
     } else {
       engine._macroCollection.enable(Engine._outputSRGBCorrectMacro);
     }
+  }
+
+  beginRenderPass(descriptor: RenderPassDescriptor): void {
+    const engine = this.camera.engine;
+    const rhi = engine._hardwareRenderer;
+    descriptor.isFlipProjection = !!this.flipProjection;
+    rhi.beginRenderPass(descriptor);
+
+    if (descriptor.renderTarget) {
+      engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);
+    } else {
+      engine._macroCollection.enable(Engine._outputSRGBCorrectMacro);
+    }
+  }
+
+  endRenderPass(): void {
+    this.camera.engine._hardwareRenderer.endRenderPass();
   }
 
   garbageCollection(): void {

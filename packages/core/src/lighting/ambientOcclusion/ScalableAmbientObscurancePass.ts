@@ -6,7 +6,7 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { RenderBufferLoadAction } from "../../renderingHardwareInterface";
+import { RenderTargetLoadAction } from "../../renderingHardwareInterface";
 import { Shader, ShaderData, ShaderProperty } from "../../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
@@ -147,7 +147,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       material,
       0,
       undefined,
-      RenderBufferLoadAction.Clear
+      RenderTargetLoadAction.Clear
     );
 
     // Horizontal blur, saoRenderTarget -> blurRenderTarget
@@ -162,7 +162,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       material,
       1,
       offsetX,
-      RenderBufferLoadAction.Clear
+      RenderTargetLoadAction.Clear
     );
 
     // Vertical blur, blurRenderTarget -> saoRenderTarget
@@ -177,7 +177,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       material,
       1,
       offsetY,
-      RenderBufferLoadAction.Clear
+      RenderTargetLoadAction.Clear
     );
 
     // Set the SAO texture

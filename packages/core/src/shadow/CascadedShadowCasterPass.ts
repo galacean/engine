@@ -5,8 +5,8 @@ import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DirectLight } from "../lighting";
+import { RenderPassDescriptor, RenderTargetLoadAction, RenderTargetStoreAction } from "../renderingHardwareInterface";
 import { ShaderProperty } from "../shader";
 import { TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
@@ -57,6 +57,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   private _depthTexture: Texture2D;
   private _renderTarget: RenderTarget | null;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  private _passDescriptor = new RenderPassDescriptor();
 
   constructor(camera: Camera) {
     super(camera.engine);
@@ -122,9 +123,10 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._renderTarget = renderTarget;
     this._depthTexture = shadowTexture;
 
-    // @todo: shouldn't set viewport and scissor in activeRenderTarget
-    context.setRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
-    rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
+    const passDescriptor = this._passDescriptor.reset(renderTarget, CascadedShadowCasterPass._viewport);
+    passDescriptor.depthLoadAction = RenderTargetLoadAction.Clear;
+    passDescriptor.depthStoreAction = RenderTargetStoreAction.Store;
+    context.beginRenderPass(passDescriptor);
 
     // prepare light and camera direction
     Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
@@ -211,6 +213,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
         rhi.setGlobalDepthBias(0, 0);
       }
     }
+
+    context.endRenderPass();
   }
 
   private _updateReceiversShaderData(light: DirectLight): void {
