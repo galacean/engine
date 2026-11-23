@@ -18,14 +18,28 @@ import {
 @resourceLoader(AssetType.AnimatorController, ["animCtrl"])
 class AnimatorControllerLoader extends Loader<AnimatorController> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimatorController> {
-    return new AssetPromise((resolve, reject) => {
-      resourceManager
-        ._request<any>(item.url!, {
-          ...item,
-          type: "json"
-        })
+    return new AssetPromise((resolve, reject, _, __, onCancel) => {
+      let configPromise: AssetPromise<any> | null = null;
+      let animatorController: AnimatorController | null = null;
+      let aborted = false;
+      const abort = () => {
+        if (aborted) return;
+        aborted = true;
+        configPromise?.cancel();
+        animatorController?.destroy();
+        animatorController = null;
+      };
+      onCancel(abort);
+      configPromise = resourceManager._request<any>(item.url!, {
+        ...item,
+        type: "json"
+      });
+      configPromise
         .then((data) => {
-          const animatorController = new AnimatorController(resourceManager.engine);
+          if (aborted) return;
+          const controller = new AnimatorController(resourceManager.engine);
+          resourceManager._addLoadingResource(controller);
+          animatorController = controller;
           const { layers, parameters } = data;
           const promises: Promise<{ layerIndex: number; stateIndex: number; clip: AnimationClip | null }>[] = [];
           layers.forEach((layerData, layerIndex: number) => {
@@ -97,24 +111,29 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                 );
               });
             }
-            animatorController.addLayer(layer);
+            controller.addLayer(layer);
           });
           parameters.forEach((parameterData) => {
             if (parameterData.isTrigger) {
-              animatorController.addTriggerParameter(parameterData.name);
+              controller.addTriggerParameter(parameterData.name);
             } else {
-              animatorController.addParameter(parameterData.name, parameterData.defaultValue);
+              controller.addParameter(parameterData.name, parameterData.defaultValue);
             }
           });
           Promise.all(promises).then((clipData) => {
+            if (aborted) return;
             clipData.forEach((data) => {
               const { layerIndex, stateIndex, clip } = data;
-              animatorController.layers[layerIndex].stateMachine.states[stateIndex].clip = clip;
+              controller.layers[layerIndex].stateMachine.states[stateIndex].clip = clip;
             });
-            resolve(animatorController);
+            animatorController = null;
+            resolve(controller);
           });
         })
-        .catch(reject);
+        .catch((e) => {
+          abort();
+          reject(e);
+        });
     });
   }
 

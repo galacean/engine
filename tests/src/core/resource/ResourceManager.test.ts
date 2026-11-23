@@ -1,4 +1,12 @@
-import { AssetPromise, AssetType, ResourceManager, Shader, ShaderLanguage, Texture2D } from "@galacean/engine";
+import {
+  AssetPromise,
+  AssetType,
+  PBRMaterial,
+  ResourceManager,
+  Shader,
+  ShaderLanguage,
+  Texture2D
+} from "@galacean/engine";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -582,6 +590,50 @@ describe("ResourceManager", () => {
 
       expect(loaderSpy).toHaveBeenCalled();
       loaderSpy.mockRestore();
+    });
+
+    it("hides loading resources from findResourcesByType() and retains their sub-resources across gc()", async () => {
+      const resourceManager = engine.resourceManager;
+      const mat = new PBRMaterial(engine);
+      const tex = new Texture2D(engine, 4, 4);
+      mat.baseTexture = tex;
+      let resolveLoad!: (res: PBRMaterial) => void;
+
+      // @ts-ignore -- simulate an in-flight composite loader registering its pending ReferResource
+      const loaderSpy = vi.spyOn(ResourceManager._loaders[AssetType.Material], "load").mockImplementation(() => {
+        resourceManager._addLoadingResource(mat);
+        return new AssetPromise<PBRMaterial>((resolve) => {
+          resolveLoad = resolve;
+        });
+      });
+
+      try {
+        const pending = resourceManager.load<PBRMaterial>({
+          url: "mock/loading-contract.mat",
+          type: AssetType.Material
+        });
+        expect(resourceManager.findResourcesByType(PBRMaterial)).not.toContain(mat);
+
+        // Concurrent gc() must keep both the loading resource and its downstream texture alive with clean refCount
+        resourceManager.gc();
+        expect(mat.destroyed).toBe(false);
+        expect(tex.destroyed).toBe(false);
+        expect(mat.refCount).toBe(0);
+        expect(tex.refCount).toBe(0);
+
+        // Resolving publishes the resource before caller's await continuation runs
+        resolveLoad(mat);
+        const loaded = await pending;
+        expect(loaded).toBe(mat);
+        expect(resourceManager.findResourcesByType(PBRMaterial)).toContain(mat);
+
+        // Once resolved and unreferenced, gc() collects both normally
+        resourceManager.gc();
+        expect(mat.destroyed).toBe(true);
+        expect(tex.destroyed).toBe(true);
+      } finally {
+        loaderSpy.mockRestore();
+      }
     });
   });
 });
