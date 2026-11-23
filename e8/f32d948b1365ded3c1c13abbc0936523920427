@@ -1,11 +1,15 @@
 packages/core/src/physics/joint/Joint.ts
   s_e010b623afc18b::t_99afefd79abd0f 82-83,96-97,360
   s_71b60d26703905::t_68ed125222b948 64,404
+  s_e010b623afc18b::t_37c5dc8522df21 64,404
 tests/src/core/physics/Joint.test.ts
   s_e010b623afc18b::t_8bda3af0ab031e 163-212
   s_71b60d26703905::t_4136e769b95403 213-214
+  s_e010b623afc18b::t_931c11504dc128 213-214
 packages/physics-physx/README.md
   s_e010b623afc18b::t_194fda44bd13fb 24-25,27-30,32-34
+  s_e010b623afc18b::t_29840a7fd48bf4 24-25,27-30,32-33
+  s_e010b623afc18b::t_de654da275ad00 34
 ---
 {
   "schema_version": "authorship/3.0.0",
