@@ -171,8 +171,8 @@ export interface IPhysicsScene {
   /**
    * Sweeps a capsule and reports the nearest hit with a positive distance.
    * @param center - The world-space capsule center
-   * @param radius - The capsule radius
-   * @param halfHeight - Half the cylindrical height between the capsule's hemisphere centers
+   * @param radius - Strictly positive capsule radius
+   * @param halfHeight - Strictly positive half cylindrical height between the capsule's hemisphere centers; degenerate spheres use {@link sphereCast}
    * @param orientation - World-space rotation of the capsule, whose local long axis is Y
    * @param direction - The normalized world-space sweep direction
    * @param distance - The maximum sweep distance
@@ -213,8 +213,8 @@ export interface IPhysicsScene {
   /**
    * Finds query shapes overlapping a capsule, in unspecified order.
    * @param center - The world-space capsule center
-   * @param radius - The capsule radius
-   * @param halfHeight - Half the cylindrical height between the capsule's hemisphere centers
+   * @param radius - Strictly positive capsule radius
+   * @param halfHeight - Strictly positive half cylindrical height between the capsule's hemisphere centers; degenerate spheres use {@link overlapSphereAll}
    * @param orientation - World-space rotation of the capsule, whose local long axis is Y
    * @param layerMask - The collision layers to include
    * @returns Borrowed shape IDs; consume them before the next physics operation

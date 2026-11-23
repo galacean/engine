@@ -9,8 +9,8 @@ import { IPhysicsMaterial } from "./IPhysicsMaterial";
 export interface ICharacterController {
   /**
    * Use a capsule along the up direction.
-   * @param radius - The capsule radius
-   * @param halfHeight - Half the cylindrical height, excluding both caps (0 degenerates to a sphere)
+   * @param radius - Strictly positive capsule radius
+   * @param halfHeight - Non-negative half cylindrical height, excluding both caps (0 degenerates to a sphere)
    * @param stepOffset - The requested step height in world units
    */
   setCapsule(radius: number, halfHeight: number, stepOffset: number): void;

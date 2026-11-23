@@ -75,8 +75,8 @@ export interface IPhysics {
   /**
    * Create a capsule shape.
    * @param uniqueID - The collider ID reported by queries and events
-   * @param radius - The radius with entity scale applied
-   * @param halfHeight - Half the cylindrical height, with entity scale applied
+   * @param radius - Strictly positive radius with entity scale applied
+   * @param halfHeight - Strictly positive half cylindrical height with entity scale applied; degenerate spheres use {@link createSphereShape}
    * @param material - The material of this shape
    * @param upAxis - The local up axis
    */
