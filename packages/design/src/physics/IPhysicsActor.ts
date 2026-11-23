@@ -23,10 +23,8 @@ export interface IPhysicsActor {
   /**
    * Attach a shape.
    * @param shape - Shape to attach
-   * @returns Whether the shape was accepted
-   * @remarks On failure, returns false and leaves the actor unchanged.
    */
-  addShape(shape: IPhysicsShape): boolean;
+  addShape(shape: IPhysicsShape): void;
 
   /**
    * Detach an attached shape.
@@ -38,10 +36,8 @@ export interface IPhysicsActor {
    * Replace an attached shape with one that carries the same collider ID.
    * @param previousShape - The currently attached shape
    * @param newShape - The replacement shape
-   * @returns Whether the replacement succeeded
-   * @remarks On failure, the previous shape and its event state stay intact.
    */
-  replaceShape(previousShape: IPhysicsShape, newShape: IPhysicsShape): boolean;
+  replaceShape(previousShape: IPhysicsShape, newShape: IPhysicsShape): void;
 
   /**
    * Release the native actor.

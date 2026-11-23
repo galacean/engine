@@ -266,7 +266,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
         const actor = this._getSyncedActor();
         if (actor) {
           this._readInertiaTensor(actor);
-          this._readInertiaTensorRotation(actor, true);
+          this._readInertiaTensorRotation(actor);
         }
         this._automaticInertiaTensor = false;
       }
@@ -709,7 +709,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /** @internal Wakes the native actor while preserving an explicit sleep request for activation. */
   _wakeNative(): void {
     this._wasSleeping = false;
-    if (this._index !== -1 && !this.destroyed && !this._isKinematic && this._simulationEnabled) {
+    if (this._index !== -1 && !this._isKinematic && this._simulationEnabled) {
       this._nativeActor!.wakeUp();
     }
   }
@@ -741,13 +741,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /** @internal */
   override _onEnableInScene(): void {
-    const scene = this.scene;
-    if (!scene) return;
-    this._registeredScene = scene;
-    this._wasSleeping = false;
+    const scene = this.scene!;
     const actor = this._getNativeActor();
     this._detachOrphanedColliders();
     scene.physics._addRigidbody(this, actor);
+    this._registeredScene = scene;
+    this._wasSleeping = false;
+    this._markMassDirty();
     this._sleepPending && scene.physics._scheduleSleep(this, true);
     this._syncSleepEventRegistration();
     this._syncJoints();
@@ -929,22 +929,20 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * Teleport the native actor to the Entity's world pose when it changed.
    */
   _syncPose(): void {
-    const actor = this._nativeActor;
-    if (actor) {
-      this._registeredScene?.physics._checkBodyOrder(this);
-      const transform = this.entity.transform;
-      // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
-      transform.worldMatrix;
-      const position = transform.worldPosition;
-      const rotation = transform.worldRotationQuaternion;
-      const nativePosition = this._nativePosition;
-      const nativeRotation = this._nativeRotation;
-      if (Collider._differsF32(position, nativePosition) || Collider._rotationDiffersF32(rotation, nativeRotation)) {
-        this._wasSleeping = false;
-        nativePosition.copyFrom(position);
-        nativeRotation.copyFrom(rotation);
-        actor.setWorldTransform(position, rotation);
-      }
+    const actor = this._nativeActor!;
+    this._registeredScene!.physics._checkBodyOrder(this);
+    const transform = this.entity.transform;
+    // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
+    transform.worldMatrix;
+    const position = transform.worldPosition;
+    const rotation = transform.worldRotationQuaternion;
+    const nativePosition = this._nativePosition;
+    const nativeRotation = this._nativeRotation;
+    if (Collider._differsF32(position, nativePosition) || Collider._rotationDiffersF32(rotation, nativeRotation)) {
+      this._wasSleeping = false;
+      nativePosition.copyFrom(position);
+      nativeRotation.copyFrom(rotation);
+      actor.setWorldTransform(position, rotation);
     }
   }
 
@@ -994,8 +992,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const changes = this._massChanges;
     this._massChanges = MassChanges.None;
     if (changes === MassChanges.None) return;
-    const actor = this._nativeActor;
-    if (!actor) return;
+    const actor = this._nativeActor!;
     const mass = this._mass;
     // PhysX uses zero as infinite mass, but automatic mass properties require a positive mass.
     if ((this._automaticCenterOfMass || this._automaticInertiaTensor) && Collider._isValidPositiveFloat32(mass)) {
@@ -1081,7 +1078,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
   }
 
-  private _readInertiaTensorRotation(actor: IDynamicActor, saveLastValid = false): void {
+  private _readInertiaTensorRotation(actor: IDynamicActor): void {
     const rotation = this._inertiaTensorRotation;
     // @ts-ignore
     const listener = rotation._onValueChanged;
@@ -1090,9 +1087,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     actor.getInertiaTensorRotation(rotation);
     // @ts-ignore
     rotation._onValueChanged = listener;
-    if (saveLastValid) {
-      (this._lastValidInertiaTensorRotation ||= new Quaternion()).copyFrom(rotation);
-    }
   }
 
   private _writeInertiaTensorRotationUnchecked(x: number, y: number, z: number, w: number): void {
@@ -1181,7 +1175,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       const deferMass = this._massDirtyIndex !== -1 && (this._massChanges & ~MassChanges.Mass) === 0;
       if (deferMass) this._massChanges = MassChanges.None;
       this._registeredScene?.physics._syncColliders();
-      this._nativeActor && this._readInertiaTensorRotation(this._nativeActor, true);
+      this._nativeActor && this._readInertiaTensorRotation(this._nativeActor);
       deferMass && this._markMassDirty(MassChanges.Mass);
     }
     this._automaticInertiaTensor = false;
@@ -1198,7 +1192,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const length = Math.hypot(x, y, z, w);
     if (!Number.isFinite(length) || length === 0) {
       if (value === this._inertiaTensorRotation) {
-        if (this._automaticInertiaTensor && this._nativeActor) {
+        if (this._nativeActor) {
           this._readInertiaTensorRotation(this._nativeActor);
         } else {
           const last = this._lastValidInertiaTensorRotation;
@@ -1225,7 +1219,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       actor = this._nativeActor;
     }
     this._writeInertiaTensorRotationUnchecked(nx, ny, nz, nw);
-    (this._lastValidInertiaTensorRotation ||= new Quaternion()).set(nx, ny, nz, nw);
+    if (!actor) (this._lastValidInertiaTensorRotation ||= new Quaternion()).set(nx, ny, nz, nw);
     actor?.setInertiaTensorRotation(this._inertiaTensorRotation);
   }
 }

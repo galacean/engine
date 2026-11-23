@@ -98,7 +98,7 @@ export abstract class PhysXShape implements IPhysicsShape {
    */
   destroy(): void {
     this._pxShape.release();
-    this._pxGeometry?.delete();
+    this._pxGeometry.delete();
   }
 
   protected _setLocalPose(position: Vector3, rotation: Quaternion, axis?: Quaternion | null): void {

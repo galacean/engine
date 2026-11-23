@@ -34,24 +34,13 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    */
   setAxis(value: Vector3): void {
     const { x, y, z } = value;
-    const len = Math.hypot(x, y, z);
-    if (!(len > 0 && Number.isFinite(len))) {
-      return;
-    }
-    const normalizedY = y / len;
-    const normalizedZ = z / len;
     const axisRotationQuaternion = this._axisRotationQuaternion;
     // Rotate PhysX’s local X axis onto the requested hinge axis.
-    const lateral = Math.hypot(normalizedY, normalizedZ);
+    const lateral = Math.hypot(y, z);
     if (lateral > 0) {
-      const halfAngle = Math.atan2(lateral, x / len) * 0.5;
+      const halfAngle = Math.atan2(lateral, x) * 0.5;
       const sine = Math.sin(halfAngle);
-      axisRotationQuaternion.set(
-        0,
-        (-normalizedZ / lateral) * sine,
-        (normalizedY / lateral) * sine,
-        Math.cos(halfAngle)
-      );
+      axisRotationQuaternion.set(0, (-z / lateral) * sine, (y / lateral) * sine, Math.cos(halfAngle));
     } else if (x < 0) {
       // Use a stable rotation axis for the antiparallel case.
       axisRotationQuaternion.set(0, 1, 0, 0);

@@ -69,7 +69,7 @@ export class MeshCollider extends Collider {
   }
 
   set convex(value: boolean) {
-    if (this._convex !== value || this._rejection === MeshSyncRejection.CookFailed) {
+    if (this._convex !== value) {
       this._convex = value;
       this._rejection = MeshSyncRejection.None;
       this._markDirty();
@@ -85,7 +85,7 @@ export class MeshCollider extends Collider {
   }
 
   set cookingFlags(value: MeshColliderCookingFlag) {
-    if (this._cookingFlags !== value || this._rejection === MeshSyncRejection.CookFailed) {
+    if (this._cookingFlags !== value) {
       this._cookingFlags = value;
       this._rejection = MeshSyncRejection.None;
       this._markDirty();
@@ -153,9 +153,6 @@ export class MeshCollider extends Collider {
   protected override _setIsTrigger(value: boolean): void {
     if (this._isTrigger !== value) {
       this._isTrigger = value;
-      if (!value && this._rejection === MeshSyncRejection.TriggerOnNonConvex) {
-        this._rejection = MeshSyncRejection.None;
-      }
       if (this._native && this._convex && this._nativeConvex) {
         this._native.setIsTrigger(value);
         this._nativeTrigger = value;
@@ -254,7 +251,9 @@ export class MeshCollider extends Collider {
       flags,
       scale
     );
-    return replacement && this._replaceNativeShape(this._initializeNativeShape(replacement)) ? replacement : null;
+    if (!replacement) return null;
+    this._replaceNativeShape(this._initializeNativeShape(replacement));
+    return replacement;
   }
 
   private _setMesh(value: ModelMesh | null): void {

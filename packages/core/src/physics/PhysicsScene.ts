@@ -16,8 +16,8 @@ import { HitResult } from "./HitResult";
 import { Rigidbody } from "./Rigidbody";
 
 interface TriggerReceivers {
-  receiver0: Rigidbody | Collider | null;
-  receiver1: Rigidbody | Collider | null;
+  receiver0: Rigidbody | Collider;
+  receiver1: Rigidbody | Collider;
   stamp: number;
 }
 
@@ -32,10 +32,9 @@ export class PhysicsScene {
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static _tempDirection = new Vector3();
   private static _raycastHitPool: HitResult[] = [];
-  private static _raycastSeenHits = new Set<HitResult>();
   private static readonly _tempPosition = new Vector3();
   private static readonly _tempRotation = new Quaternion();
-  private static readonly _dispatchReceivers: (Rigidbody | Collider | null)[][] = [];
+  private static readonly _dispatchReceivers: (Rigidbody | Collider)[][] = [];
   private static readonly _parsedCastArgs = {
     orientation: new Quaternion(),
     distance: Number.MAX_VALUE,
@@ -276,7 +275,7 @@ export class PhysicsScene {
    * @returns Whether any hit was found.
    * @remarks Reuse the array as-is. This call overwrites existing entries and may recycle entries it trims,
    * including caller-supplied objects. Copy hit values to retain them and discard references to recycled entries.
-   * Keep result objects in a single output array. Duplicate entries show the last hit written to the shared object.
+   * Keep result objects in a single output array without duplicate entries.
    * Only positive-distance hits are reported. Invalid directions and non-positive distances empty the output.
    */
   raycastAll(ray: Ray, distance?: number, layerMask?: Layer, outHitResults?: HitResult[]): boolean;
@@ -310,21 +309,12 @@ export class PhysicsScene {
       this._activeHitResults = null;
     }
     const length = outHitResults.length;
-    if (hitCount < length) {
-      // Caller entries can alias retained hits or each other. Recycle only unreferenced objects once.
-      const seenHits = PhysicsScene._raycastSeenHits;
-      for (let i = 0; i < hitCount; i++) {
-        seenHits.add(outHitResults[i]);
+    for (let i = hitCount; i < length; i++) {
+      const hitResult = outHitResults[i];
+      if (hitResult) {
+        this._clearHitResult(hitResult);
+        pool.length < 256 && pool.push(hitResult);
       }
-      for (let i = hitCount; i < length; i++) {
-        const hitResult = outHitResults[i];
-        if (hitResult && !seenHits.has(hitResult)) {
-          seenHits.add(hitResult);
-          this._clearHitResult(hitResult);
-          pool.length < 256 && pool.push(hitResult);
-        }
-      }
-      seenHits.clear();
     }
     outHitResults.length = hitCount;
     return hitCount > 0;
@@ -716,18 +706,16 @@ export class PhysicsScene {
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
       const scene = this._scene;
-      if (scene.destroyed || !scene.isActive) return;
+      if (!scene.isActive) return;
       componentsManager.callScriptOnPhysicsUpdate();
-      if (scene.destroyed || !scene.isActive) return;
+      if (!scene.isActive) return;
       this._syncColliders();
       const pendingSleeps = this._pendingSleeps;
       if (pendingSleeps?.size) {
         for (const body of pendingSleeps) {
-          if (!body._isActivating()) {
-            pendingSleeps.delete(body);
-            body._applyScheduledSleep();
-          }
+          body._applyScheduledSleep();
         }
+        pendingSleeps.clear();
       }
       nativePhysicsScene.update(fixedTimeStep);
       this._bodyOrderDirty && this._sortBodies();
@@ -796,16 +784,12 @@ export class PhysicsScene {
       this._bodyOrderDirty = true;
     }
     PhysicsScene._addDirty(this._dirtyBodies, body);
-    body._markMassDirty();
   }
 
   /**
    * @internal
    */
   _removeRigidbody(body: Rigidbody): void {
-    if (body._index === -1) {
-      return;
-    }
     PhysicsScene._removeDirty(this._dirtyBodies, body);
     const massIndex = body._massDirtyIndex;
     if (massIndex !== -1) {
@@ -842,7 +826,6 @@ export class PhysicsScene {
   _checkBodyOrder(body: Rigidbody): void {
     if (this._bodyOrderDirty || this._bodies.length <= 1) return;
     const bodyIndex = body._index;
-    if (bodyIndex === -1) return;
     for (let parent = body.entity.parent; parent; parent = parent.parent) {
       const ancestor = parent.getComponent(Rigidbody);
       if (ancestor && ancestor._index > bodyIndex) {
@@ -903,7 +886,6 @@ export class PhysicsScene {
    */
   _gc(): void {
     PhysicsScene._raycastHitPool.length = 0;
-    PhysicsScene._raycastSeenHits.clear();
     this._nativePhysicsScene?.gc();
   }
 
@@ -914,7 +896,6 @@ export class PhysicsScene {
     //@ts-ignore
     this._gravity._onValueChanged = null;
     PhysicsScene._raycastHitPool.length = 0;
-    PhysicsScene._raycastSeenHits.clear();
     this._eventTargets.clear();
     this._triggerReceivers.clear();
     this._pendingSleeps?.clear();
@@ -957,16 +938,15 @@ export class PhysicsScene {
         const event = contactEvents[i];
         const collider0 = physicalObjectsMap[event.shape0Id];
         const collider1 = physicalObjectsMap[event.shape1Id];
-        receivers[i * 2] = collider0 ? (collider0._attachedBody ?? collider0) : null;
-        receivers[i * 2 + 1] = collider1 ? (collider1._attachedBody ?? collider1) : null;
+        receivers[i * 2] = collider0._attachedBody ?? collider0;
+        receivers[i * 2 + 1] = collider1._attachedBody ?? collider1;
       }
       for (let i = 0; i < contactEventCount; i++) {
         const event = contactEvents[i];
         const collider0 = physicalObjectsMap[event.shape0Id];
         const collider1 = physicalObjectsMap[event.shape1Id];
-        if (!collider0 || !collider1) continue;
-        const receiver0 = receivers[i * 2]!;
-        const receiver1 = receivers[i * 2 + 1]!;
+        const receiver0 = receivers[i * 2];
+        const receiver1 = receivers[i * 2 + 1];
         collision._nativeCollision = event;
         const state = event.state;
         PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1, collision);
@@ -988,8 +968,8 @@ export class PhysicsScene {
         const event = triggerEvents[i];
         const collider0 = physicalObjectsMap[event.index1];
         const collider1 = physicalObjectsMap[event.index2];
-        receivers[i * 2] = collider0 ? (collider0._attachedBody ?? collider0) : null;
-        receivers[i * 2 + 1] = collider1 ? (collider1._attachedBody ?? collider1) : null;
+        receivers[i * 2] = collider0._attachedBody ?? collider0;
+        receivers[i * 2 + 1] = collider1._attachedBody ?? collider1;
       }
       const triggerReceivers = this._triggerReceivers;
       const stamp = ++this._triggerStepStamp;
@@ -998,47 +978,36 @@ export class PhysicsScene {
         const event = triggerEvents[i];
         const collider0 = physicalObjectsMap[event.index1];
         const collider1 = physicalObjectsMap[event.index2];
-        if (!collider0 || !collider1) {
-          triggerReceivers.delete(event);
-          continue;
-        }
-        const cur0 = receivers[i * 2]!;
-        const cur1 = receivers[i * 2 + 1]!;
+        const cur0 = receivers[i * 2];
+        const cur1 = receivers[i * 2 + 1];
         const state = event.dispatchState;
         if (state === PhysicsEventState.Enter) {
-          let entry = triggerReceivers.get(event);
+          const entry = triggerReceivers.get(event);
           if (entry) {
-            entry.receiver0 = null;
-            entry.receiver1 = null;
+            entry.receiver0 = cur0;
+            entry.receiver1 = cur1;
             entry.stamp = stamp;
           } else {
-            entry = { receiver0: null, receiver1: null, stamp };
-            triggerReceivers.set(event, entry);
+            triggerReceivers.set(event, { receiver0: cur0, receiver1: cur1, stamp });
           }
           liveCount++;
-          if (!cur0.destroyed) {
-            entry.receiver0 = cur0;
-            PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
-          }
-          if (!cur1.destroyed) {
-            entry.receiver1 = cur1;
-            PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
-          }
+          PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
+          PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
         } else if (state === PhysicsEventState.Stay) {
           const entry = triggerReceivers.get(event);
           if (entry) {
             entry.stamp = stamp;
             liveCount++;
           }
-          this._dispatchTriggerStaySide(entry, true, cur0, collider0, collider1);
-          this._dispatchTriggerStaySide(entry, false, cur1, collider1, collider0);
+          PhysicsScene._dispatchTriggerStaySide(entry, true, cur0, collider0, collider1);
+          PhysicsScene._dispatchTriggerStaySide(entry, false, cur1, collider1, collider0);
         } else {
           const entry = triggerReceivers.get(event);
           entry && triggerReceivers.delete(event);
-          const target0 = PhysicsScene._resolveTriggerExitTarget(entry?.receiver0, cur0, collider0);
-          target0 && PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
-          const target1 = PhysicsScene._resolveTriggerExitTarget(entry?.receiver1, cur1, collider1);
-          target1 && PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
+          const target0 = !entry || entry.receiver0.entity === cur0.entity ? cur0 : entry.receiver0;
+          const target1 = !entry || entry.receiver1.entity === cur1.entity ? cur1 : entry.receiver1;
+          PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
+          PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
         }
       }
       if (triggerReceivers.size > liveCount) {
@@ -1061,50 +1030,24 @@ export class PhysicsScene {
     }
   }
 
-  private _dispatchTriggerStaySide(
+  private static _dispatchTriggerStaySide(
     entry: TriggerReceivers | undefined,
     isFirst: boolean,
     current: Rigidbody | Collider,
     self: Collider,
     other: Collider
   ): void {
-    const previous = entry ? (isFirst ? entry.receiver0 : entry.receiver1) : undefined;
-    if (previous && previous.entity !== current.entity) {
-      PhysicsScene._dispatchScripts(PhysicsEventState.Exit, previous, self, other);
-      if (self.destroyed || other.destroyed || current.destroyed) {
-        if (isFirst) entry!.receiver0 = null;
-        else entry!.receiver1 = null;
-        return;
-      }
-      if (isFirst) entry!.receiver0 = current;
-      else entry!.receiver1 = current;
-      PhysicsScene._dispatchScripts(PhysicsEventState.Enter, current, self, other);
-      return;
-    }
     if (entry) {
-      if (current.destroyed) return;
+      const previous = isFirst ? entry.receiver0 : entry.receiver1;
       if (isFirst) entry.receiver0 = current;
       else entry.receiver1 = current;
-      if (previous === null) {
+      if (previous.entity !== current.entity) {
+        PhysicsScene._dispatchScripts(PhysicsEventState.Exit, previous, self, other);
         PhysicsScene._dispatchScripts(PhysicsEventState.Enter, current, self, other);
         return;
       }
     }
     PhysicsScene._dispatchScripts(PhysicsEventState.Stay, current, self, other);
-  }
-
-  private static _resolveTriggerExitTarget(
-    previous: Rigidbody | Collider | null | undefined,
-    current: Rigidbody | Collider,
-    collider: Collider
-  ): Rigidbody | Collider | null {
-    if (previous === undefined) return current;
-    if (previous === null) return null;
-    if (previous.entity === current.entity) {
-      if (!current.destroyed) return current;
-      if (!collider.destroyed && previous.entity === collider.entity) return collider;
-    }
-    return previous;
   }
 
   private _dispatchSleepEvent(id: number, method: "onSleep" | "onWake"): void {
@@ -1119,7 +1062,7 @@ export class PhysicsScene {
     for (let i = 0; i < count; i++) {
       const script = elements[i];
       if (!script) continue;
-      script[method]?.(target);
+      script[method](target);
       if (!targets.has(id)) break;
     }
     scripts._endLoop(PhysicsScene._scriptIndexSetter);
@@ -1132,7 +1075,7 @@ export class PhysicsScene {
     other: Collider,
     collision?: Collision
   ): void {
-    if (self.destroyed || other.destroyed || receiver.destroyed) return;
+    if (receiver.destroyed) return;
     const scripts = receiver.entity._scripts;
     const count = scripts.length;
     if (count === 0) return;
@@ -1148,7 +1091,6 @@ export class PhysicsScene {
       } else {
         script[PhysicsScene._triggerMethods[state]](other, self);
       }
-      if (self.destroyed || other.destroyed || receiver.destroyed) break;
     }
     scripts._endLoop(PhysicsScene._scriptIndexSetter);
   }

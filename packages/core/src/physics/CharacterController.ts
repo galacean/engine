@@ -290,19 +290,18 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * PhysX requires a positive contact offset for character controllers.
-   * @throws When the value is not positive and finite.
+   * PhysX requires a positive normal Float32 contact offset for character controllers.
+   * @throws When the value is not a positive, normal, finite Float32.
    */
   protected override _validateContactOffset(value: number): number {
-    if (!(value > 0 && Number.isFinite(value))) {
-      throw new Error("CharacterController contactOffset must be positive and finite.");
+    if (!Collider._isValidPositiveFloat32(value)) {
+      throw new Error("CharacterController contactOffset must be a positive, normal, finite Float32.");
     }
     return value;
   }
 
   protected override _onContactOffsetChanged(value: number): void {
     this._controller?.setContactOffset(value);
-    this._setGeometryDirty();
   }
 
   protected override _onIsSceneQueryChanged(value: boolean): void {

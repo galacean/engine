@@ -34,12 +34,6 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
     const pxGeometry = this._createGeometry(pxMesh, scale);
     const pxShape = this._createShape(pxGeometry, material);
 
-    if (!pxShape) {
-      pxGeometry.delete();
-      pxMesh.release();
-      return;
-    }
-
     this._id = uniqueID;
     this._pxMesh = pxMesh;
     this._pxGeometry = pxGeometry;

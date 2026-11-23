@@ -320,7 +320,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @internal
    */
   override _onEnableInScene(): void {
-    this._registeredScene = this.scene ?? null;
+    this._registeredScene = this.scene!;
     this._markDirty();
   }
 
@@ -394,21 +394,16 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform);
     this._syncShapePose(shape, body, scale, shape !== previousShape);
     if (!attachedActor) {
-      if (actor.addShape(shape)) {
-        if (body) {
-          body._attachCollider(this);
-        } else {
-          scene.physics._nativePhysicsScene.addActor(actor);
-        }
-        this._nativeActor = actor;
-        this._attachedBody = body;
-        this._poseScale.copyFrom(scale);
+      actor.addShape(shape);
+      if (body) {
+        body._attachCollider(this);
       } else {
-        console.error(`${this.constructor.name}: failed to attach to the native actor.`);
+        scene.physics._nativePhysicsScene.addActor(actor);
       }
-    } else {
-      this._poseScale.copyFrom(scale);
+      this._nativeActor = actor;
+      this._attachedBody = body;
     }
+    this._poseScale.copyFrom(scale);
   }
 
   /**
@@ -527,22 +522,19 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * Replace the native shape, keeping its actor registration and trigger state when attached.
-   * @returns Whether the replacement was committed; on failure the new shape is released
    */
-  protected _replaceNativeShape(shape: IPhysicsShape | null): boolean {
+  protected _replaceNativeShape(shape: IPhysicsShape | null): void {
     const previous = this._native!;
     const actor = this._nativeActor;
     if (actor) {
       if (!shape) {
         this._detach();
-      } else if (!actor.replaceShape(previous, shape)) {
-        shape.destroy();
-        return false;
+      } else {
+        actor.replaceShape(previous, shape);
       }
     }
     this._native = shape;
     previous?.destroy();
-    return true;
   }
 
   /**
@@ -665,7 +657,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const nativeRotation = this._nativeRotation;
     if (
       force ||
-      !nativeRotation ||
       Collider._differsF32(position, nativePosition) ||
       Collider._rotationDiffersF32(rotation, nativeRotation)
     ) {

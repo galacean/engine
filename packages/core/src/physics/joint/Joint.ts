@@ -219,7 +219,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    * @internal
    */
   override _onEnableInScene(): void {
-    this._registeredScene = this.scene ?? null;
+    this._registeredScene = this.scene!;
     this.entity.getComponent(Rigidbody)!._attachJoint(this);
     this._syncActiveJoint();
   }

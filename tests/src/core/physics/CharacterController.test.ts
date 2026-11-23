@@ -172,7 +172,7 @@ describe("CharacterController", () => {
   it.each([false, true])("rejects invalid contactOffset without changing its value (live=%s)", (live) => {
     controller.contactOffset = 0.3;
     if (live) move(new Vector3(0, 0, 0.1));
-    for (const value of [-1, 0, NaN, Infinity, -Infinity]) {
+    for (const value of [-1, 0, 1e-40, 1e39, NaN, Infinity, -Infinity]) {
       expect(() => (controller.contactOffset = value)).toThrow();
       expect(controller.contactOffset).toBe(0.3);
     }

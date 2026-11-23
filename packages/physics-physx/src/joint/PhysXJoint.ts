@@ -28,7 +28,7 @@ export class PhysXJoint implements IJoint {
    * {@inheritDoc IJoint.setConnectedActor }
    */
   setConnectedActor(value: PhysXActor): void {
-    this._pxJoint.setActors(this._actor?._pxActor || null, value?._pxActor || null);
+    this._pxJoint.setActors(this._actor._pxActor, value?._pxActor || null);
   }
 
   /**
@@ -59,16 +59,14 @@ export class PhysXJoint implements IJoint {
    * {@inheritDoc IJoint.setMassScale }
    */
   setMassScale(value: number): void {
-    const inv = Math.fround(1 / value);
-    inv >= 0 && Number.isFinite(inv) && this._pxJoint.setInvMassScale0(inv);
+    this._pxJoint.setInvMassScale0(1 / value);
   }
 
   /**
    * {@inheritDoc IJoint.setConnectedMassScale }
    */
   setConnectedMassScale(value: number): void {
-    const inv = Math.fround(1 / value);
-    inv >= 0 && Number.isFinite(inv) && this._pxJoint.setInvMassScale1(inv);
+    this._pxJoint.setInvMassScale1(1 / value);
   }
 
   /**
@@ -105,7 +103,6 @@ export class PhysXJoint implements IJoint {
    * {@inheritDoc IJoint.destroy }
    */
   destroy(): void {
-    if (!this._pxJoint) return;
     this._pxJoint.release();
     this._pxJoint = null;
     this._actor = null!;

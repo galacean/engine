@@ -449,44 +449,35 @@ describe("Physics gameplay integration", () => {
       if (!inactiveDst.destroyed) inactiveDst.destroy();
     }
 
-    // A backend refusal must not leave the shape active at its previous registration.
-    for (const rejected of [false, true]) {
-      errors.mockClear();
-      const moving = root.createChild("collider");
-      moving.transform.position.x = 4;
-      const collider = moving.addComponent(BoxCollider);
-      const bodyEntity = root.createChild("owner");
-      bodyEntity.transform.position.x = 4;
-      const body = bodyEntity.addComponent(Rigidbody);
-      body.isKinematic = true;
+    // 2. Reparenting into an owning Rigidbody removes static registration and routes enable/disable through the body.
+    errors.mockClear();
+    const moving = root.createChild("collider");
+    moving.transform.position.x = 4;
+    const collider = moving.addComponent(BoxCollider);
+    const bodyEntity = root.createChild("owner");
+    bodyEntity.transform.position.x = 4;
+    const body = bodyEntity.addComponent(Rigidbody);
+    body.isKinematic = true;
 
-      const oldRay = new Ray(new Vector3(4, 3, 0), new Vector3(0, -1, 0));
-      const newRay = new Ray(new Vector3(8, 3, 0), new Vector3(0, -1, 0));
-      expect(scene.physics.raycast(oldRay, 10)).toBe(true);
+    const oldRay = new Ray(new Vector3(4, 3, 0), new Vector3(0, -1, 0));
+    const newRay = new Ray(new Vector3(8, 3, 0), new Vector3(0, -1, 0));
+    expect(scene.physics.raycast(oldRay, 10)).toBe(true);
 
-      const addShape = rejected ? vi.spyOn(body._getNativeActor(), "addShape").mockReturnValueOnce(false) : null;
-      try {
-        bodyEntity.addChild(moving);
-        expect(collider.attachedRigidbody).toBe(body);
-        expect(scene.physics.raycast(oldRay, 10)).toBe(false);
-        expect(scene.physics.raycast(newRay, 10)).toBe(!rejected);
-        expect(collider.attachedRigidbody).toBe(body);
+    try {
+      bodyEntity.addChild(moving);
+      expect(collider.attachedRigidbody).toBe(body);
+      expect(scene.physics.raycast(oldRay, 10)).toBe(false);
+      expect(scene.physics.raycast(newRay, 10)).toBe(true);
+      expect(collider.attachedRigidbody).toBe(body);
+      expect(errors).not.toHaveBeenCalled();
 
-        if (rejected) {
-          expect(errors).toHaveBeenCalledOnce();
-        } else {
-          expect(errors).not.toHaveBeenCalled();
-        }
-
-        collider.enabled = false;
-        expect(collider.attachedRigidbody).toBe(body);
-        expect(scene.physics.raycast(newRay, 10)).toBe(false);
-        collider.enabled = true;
-        expect(scene.physics.raycast(newRay, 10)).toBe(true);
-      } finally {
-        addShape?.mockRestore();
-        bodyEntity.destroy();
-      }
+      collider.enabled = false;
+      expect(collider.attachedRigidbody).toBe(body);
+      expect(scene.physics.raycast(newRay, 10)).toBe(false);
+      collider.enabled = true;
+      expect(scene.physics.raycast(newRay, 10)).toBe(true);
+    } finally {
+      bodyEntity.destroy();
     }
 
     // The old native actor can move to another scene before the Collider has synchronized its new owner.

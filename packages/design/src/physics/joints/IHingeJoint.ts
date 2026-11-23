@@ -6,7 +6,7 @@ import { Vector3 } from "@galacean/engine-math";
  */
 export interface IHingeJoint extends IJoint {
   /**
-   * Set the hinge axis in the owning actor’s frame.
+   * Set the normalized hinge axis in the owning actor’s frame.
    */
   setAxis(value: Vector3): void;
 

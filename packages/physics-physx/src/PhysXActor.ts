@@ -29,13 +29,10 @@ export abstract class PhysXActor implements IPhysicsActor {
   /**
    * {@inheritDoc IPhysicsActor.addShape }
    */
-  addShape(shape: PhysXShape): boolean {
-    if (!this._pxActor.attachShape(shape._pxShape)) {
-      return false;
-    }
+  addShape(shape: PhysXShape): void {
+    this._pxActor.attachShape(shape._pxShape);
     this._shapes.push(shape);
     this._scene?._addShape(shape._id);
-    return true;
   }
 
   /**
@@ -51,10 +48,8 @@ export abstract class PhysXActor implements IPhysicsActor {
   /**
    * {@inheritDoc IPhysicsActor.replaceShape }
    */
-  replaceShape(previousShape: PhysXShape, newShape: PhysXShape): boolean {
-    if (!this._pxActor.attachShape(newShape._pxShape)) {
-      return false;
-    }
+  replaceShape(previousShape: PhysXShape, newShape: PhysXShape): void {
+    this._pxActor.attachShape(newShape._pxShape);
     this._shapes[this._shapes.indexOf(previousShape)] = newShape;
     this._pxActor.detachShape(previousShape._pxShape, true);
     // Re-register the same collider ID so a continuing overlap can stay active.
@@ -63,7 +58,6 @@ export abstract class PhysXActor implements IPhysicsActor {
       scene._removeShape(previousShape._id);
       scene._addShape(newShape._id);
     }
-    return true;
   }
 
   /**

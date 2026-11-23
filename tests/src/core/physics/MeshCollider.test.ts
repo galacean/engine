@@ -499,7 +499,7 @@ describe("MeshCollider", () => {
       expect(errors).toHaveBeenCalled();
       mesh.setPositions(positions);
       mesh.setIndices(indices);
-      collider.cookingFlags = MeshColliderCookingFlag.Cleaning;
+      collider.mesh = mesh;
       expect(collider.cookingFlags).toBe(MeshColliderCookingFlag.Cleaning);
       expect(physics.raycast(rayAt(0))).toBe(true);
     }

@@ -183,10 +183,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   setContactEventEnabled(enabled: boolean): void {
     this._pxScene.setContactEventEnabled(enabled);
-    if (!enabled) {
-      this._physicsEvents.contactEventCount = 0;
-      this._contactFloatOffset = 0;
-    }
   }
 
   /**
@@ -395,17 +391,13 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   gc(): void {
     this._triggerEventPool.length = 0;
     const events = this._physicsEvents;
-    if (events.contactEventCount === 0) {
-      events.contactEvents.length = 0;
-      events.triggerEvents.length = 0;
-      this._contactFloatOffset = 0;
-      if (this._contactData.length > 2560) {
-        this._contactData = new Float32Array(2560);
-      }
-    } else {
-      events.contactEvents.length = events.contactEventCount;
+    events.contactEvents.length = 0;
+    events.triggerEvents.length = 0;
+    events.bodySleepEventIds.length = 0;
+    this._contactFloatOffset = 0;
+    if (this._contactData.length > 2560) {
+      this._contactData = new Float32Array(2560);
     }
-    events.bodySleepEventIds.length = events.bodySleepEventCount;
   }
 
   /**
