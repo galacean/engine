@@ -596,7 +596,12 @@ void GrassFragment(Varyings input) {
     #else
       vec3 groundPositionWS = input.rootPositionWS;
       TerrainProjectLayerBlend ground = terrainProjectGroundSurface(groundPositionWS);
-      vec3 groundColor = terrainProjectGroundColor(ground, groundPositionWS);
+      vec3 groundColor = terrainProjectGroundColorGrad(
+        ground,
+        groundPositionWS,
+        dFdx(groundPositionWS.xz),
+        dFdy(groundPositionWS.xz)
+      );
       #if defined(RENDERER_GRASS_MATCH_GROUND) && RENDERER_GRASS_MATCH_GROUND == 1
         surfaceColor = mix(groundColor, surfaceColor, bladeAppearanceWeight);
       #else

@@ -132,7 +132,12 @@ void terrainProjectApplyTerrainClimate(
       , out TerrainProjectWaterFilm waterFilm
     #endif
   ) {
-    vec3 terrainAlbedo = terrainProjectGroundColor(layerBlend, varyings.positionWS);
+    vec3 terrainAlbedo = terrainProjectGroundColorGrad(
+      layerBlend,
+      varyings.positionWS,
+      dFdx(varyings.positionWS.xz),
+      dFdy(varyings.positionWS.xz)
+    );
     float grassCoverage = clamp(layerBlend.grassWeight, 0.0, 1.0);
     vec3 tangentNormal = layerBlend.tangentNormal;
     #ifndef MATERIAL_TERRAIN_FAR
