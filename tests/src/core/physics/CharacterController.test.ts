@@ -213,6 +213,15 @@ describe("CharacterController", () => {
 
     controller.height = 1.1;
     expect(canHitController()).toBe(true);
+
+    for (const value of [NaN, Infinity]) {
+      controller.stepOffset = value;
+      expect(controller.stepOffset).toBe(value);
+      expect(canHitController()).toBe(false);
+
+      controller.stepOffset = 1;
+      expect(canHitController()).toBe(true);
+    }
   });
 
   it("reports unsupported getClosestPoint without changing its output", () => {
@@ -445,7 +454,7 @@ describe("CharacterController", () => {
     expect(role.transform.position.y).toBeCloseTo(1.02, 2);
   });
 
-  it("clamps slopeLimit to [0, 90] and rejects non-finite slopeLimit or stepOffset", () => {
+  it("clamps slopeLimit to [0, 90] and rejects non-finite values", () => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     controller.slopeLimit = 120;
     expect(controller.slopeLimit).toBe(90);
@@ -466,12 +475,6 @@ describe("CharacterController", () => {
     }).toThrow();
     expect(() => {
       controller.slopeLimit = Infinity;
-    }).toThrow();
-    expect(() => {
-      controller.stepOffset = NaN;
-    }).toThrow();
-    expect(() => {
-      controller.stepOffset = Infinity;
     }).toThrow();
   });
 

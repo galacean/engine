@@ -61,7 +61,7 @@ label: Physics
 ### 特有属性
 | 属性 | 描述 | 默认值 |
 | ---- | ---- | ------ |
-| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | 请求的台阶高度，使用世界单位。若超过控制器经实体世界 Y 轴缩放后的高度，PhysX 将暂停该控制器的模拟和查询。有限负值会限制为 0。 | 0.5 |
+| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | 请求的台阶高度，使用世界单位。负值会限制为 0。若所得高度转为 Float32 后不是有限值，或超过胶囊沿实体世界 Y 轴缩放后的高度，PhysX 会暂停该控制器的模拟和查询。 | 0.5 |
 | [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | 角色可以行走的最大斜坡角度（度）。<ul><li>超过此角度的斜面将被视为不可行走的墙壁</li><li>影响角色的爬坡能力</li></ul> | 45° |
 | [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | 定义如何处理不可行走的表面。<ul><li>PreventClimbing：阻止角色攀爬不可行走的斜坡，但不会强制其他移动（默认）</li><li>PreventClimbingAndForceSliding：阻止角色攀爬不可行走的斜坡，并强制角色沿斜坡滑下</li></ul> | PreventClimbing |
 | [**upDirection**](/apis/core/#CharacterController-upDirection) | 定义角色的向上方向。默认为 (0, 1, 0)，即世界空间的 Y 轴向上。影响移动和碰撞检测的方向判定 | (0, 1, 0) |

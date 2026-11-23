@@ -88,20 +88,16 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The step height used when climbing obstacles, in world units. Finite negative values are clamped to 0.
+   * The step height used when climbing obstacles, in world units. Negative values are clamped to 0.
    * @defaultValue 0.5
    * @remarks PhysX excludes the controller from simulation and queries when the step height rounds to a non-finite
    * value or exceeds the world-Y scaled capsule height.
-   * @throws When the value is non-finite.
    */
   get stepOffset(): number {
     return this._stepOffset;
   }
 
   set stepOffset(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CharacterController stepOffset must be finite.");
-    }
     value = Math.max(0, value);
     if (this._stepOffset !== value) {
       this._stepOffset = value;
