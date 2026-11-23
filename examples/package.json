@@ -25,7 +25,6 @@
     "@galacean/engine-spine-core-3.8": "workspace:*",
     "@galacean/engine-spine-core-4.2": "workspace:*",
     "@galacean/engine-toolkit": "latest",
-    "@galacean/engine-toolkit-controls": "1.6.0",
     "@galacean/engine-toolkit-stats": "latest",
     "@galacean/engine-ui": "workspace:*"
   },
