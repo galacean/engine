@@ -1,7 +1,6 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { BasicResources, RenderStateElementMap } from "../BasicResources";
 import { Utils } from "../Utils";
-import { SSRForwardProgramResolver } from "../lighting/screenSpaceReflection/SSRForwardProgramResolver";
 import { RenderQueueType, Shader } from "../shader";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -9,7 +8,6 @@ import { BatcherManager } from "./BatcherManager";
 import { InstanceBuffer } from "./InstanceBuffer";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
-import { PipelineStage } from "./enums/PipelineStage";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 
 /**
@@ -116,9 +114,7 @@ export class RenderQueue {
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this.renderQueueType;
     const needMaskType = maskType !== RenderQueueMaskType.No;
-    const isForwardStage = pipelineStageTagValue === PipelineStage.Forward;
-    const isSSRReceiverStage = pipelineStageTagValue === PipelineStage.SSRReceiver;
-    const useSSRResolver = (isForwardStage && context.ssrForwardEnabled) || isSSRReceiverStage;
+    const programResolver = context.programResolver;
 
     for (let i = 0; i < length; i++) {
       const curElement = batchedElements[i];
@@ -186,16 +182,8 @@ export class RenderQueue {
           }
         }
 
-        const program = useSSRResolver
-          ? SSRForwardProgramResolver.resolveProgram(
-              engine,
-              context,
-              shaderPass,
-              material,
-              compileMacros,
-              isForwardStage,
-              isSSRReceiverStage
-            )
+        const program = programResolver
+          ? programResolver.resolveProgram(engine, shaderPass, material, compileMacros, pipelineStageTagValue)
           : shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;

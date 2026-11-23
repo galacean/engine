@@ -1,13 +1,13 @@
 /**
- * Quality preset for screen-space reflection.
+ * Quality presets for screen-space reflection controlling the balance between visual fidelity and performance.
  */
 export enum ScreenSpaceReflectionQuality {
-  /** Quarter-resolution chain, 12 Hi-Z steps, no temporal accumulation. */
+  /** Quarter-resolution trace with no temporal accumulation, prioritizing performance on low-end devices. */
   Low = 0,
-  /** Half-resolution chain, 28 Hi-Z steps, surface temporal accumulation (mobile default). */
+  /** Half-resolution trace with temporal accumulation for balanced mobile quality and performance (default). */
   Medium = 1,
-  /** Half-resolution chain, 28 Hi-Z steps, optional virtual-image temporal accumulation, 4-tap bilateral sampling. */
+  /** Half-resolution trace with high-precision virtual-image temporal accumulation and bilateral reconstruction. */
   High = 2,
-  /** Full-resolution trace and color pyramid, 64 Hi-Z steps, virtual-image temporal accumulation, direct 1:1 Forward sampling (desktop / flagship). */
-  XHigh = 3
+  /** Full-resolution trace and color pyramid with virtual-image temporal accumulation for desktop and flagship devices. */
+  VeryHigh = 3
 }

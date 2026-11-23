@@ -27,3 +27,22 @@ export interface SSRDiagnostics {
   readonly usesPackedNormalOct8: boolean;
   readonly useLinearTrace: boolean;
 }
+
+/**
+ * Shared read-only diagnostics snapshot for cameras without an active SSR pass.
+ * @internal
+ */
+export const DISABLED_SSR_DIAGNOSTICS: Readonly<SSRDiagnostics> = Object.freeze({
+  active: false,
+  state: SSRRuntimeState.Disabled,
+  traceWidth: 0,
+  traceHeight: 0,
+  estimatedBytes: 0,
+  unsupportedReason: null,
+  opaqueReceiverCount: 0,
+  transparentReceiverCount: 0,
+  useHardwareStencil: true,
+  usesPackedDepthRG8: false,
+  usesPackedNormalOct8: false,
+  useLinearTrace: false
+});

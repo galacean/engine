@@ -1,6 +1,7 @@
 import { type BoundingBox, Color, Matrix, Vector4 } from "@galacean/engine-math";
 import { RenderStateElementMap } from "../../BasicResources";
 import { Camera } from "../../Camera";
+import type { EngineObject } from "../../base/EngineObject";
 import { Logger } from "../../base/Logger";
 import { Engine } from "../../Engine";
 import { EngineEventType } from "../../EngineEventType";
@@ -20,7 +21,7 @@ import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
 import { RenderStateElementKey } from "../../shader/enums/RenderStateElementKey";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { SSRDepthOccluderCuller } from "./SSRDepthOccluderCuller";
-import { SSRDiagnostics, SSRRuntimeState } from "./SSRDiagnostics";
+import { DISABLED_SSR_DIAGNOSTICS, SSRDiagnostics, SSRRuntimeState } from "./SSRDiagnostics";
 import { SSRForwardProgramResolver } from "./SSRForwardProgramResolver";
 import { SSRHistoryState } from "./SSRHistoryState";
 import { ScreenSpaceReflectionQuality } from "./ScreenSpaceReflectionQuality";
@@ -38,7 +39,7 @@ const PASS_DOWNSAMPLE_AND_BUILD_HIZ_MIP0 = 7;
 const MAX_HIZ_MIP = 6;
 const MAX_COLOR_PYRAMID_MIP = 5;
 const MAX_COLOR_PYRAMID_MIP_FULL = 6;
-const MAX_NON_XHIGH_TRACE_LONG_EDGE = 960;
+const MAX_NON_VERY_HIGH_TRACE_LONG_EDGE = 960;
 const SKIPPED_RELEASE_IDLE_FRAMES = 10;
 
 /**
@@ -47,6 +48,25 @@ const SKIPPED_RELEASE_IDLE_FRAMES = 10;
  * non-MSAA MRT receiver generation, Hi-Z tracing, temporal resolve, and linear color pyramid history.
  */
 export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleResourceSweeper {
+  /** @internal Shared disabled diagnostics snapshot for cameras without an instantiated SSR pass. */
+  static readonly _disabledDiagnostics: Readonly<SSRDiagnostics> = DISABLED_SSR_DIAGNOSTICS;
+
+  /** @internal Whether SSR is currently enabled and valid for `camera`. */
+  static _isEnabled(camera: Camera): boolean {
+    if (!camera.enableScreenSpaceReflection) {
+      return false;
+    }
+    const settings = camera.screenSpaceReflectionOverride ?? camera.scene!.screenSpaceReflection;
+    return settings._isValid();
+  }
+
+  private static _destroyResource<T extends EngineObject>(resource: T | null): null {
+    if (resource && !resource.destroyed) {
+      resource._destroyImmediate();
+    }
+    return null;
+  }
+
   // Camera shader properties
   private static readonly _cameraSSRTextureProp = ShaderProperty.getByName("camera_SSRTexture");
   private static readonly _cameraSSRParamsProp = ShaderProperty.getByName("camera_SSRParams");
@@ -106,6 +126,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
   private readonly _material: Material;
   private readonly _history = new SSRHistoryState();
   private readonly _occluderCuller = new SSRDepthOccluderCuller();
+  private readonly _programResolver = new SSRForwardProgramResolver();
 
   // Pre-allocated scratch math & state objects (zero per-frame heap allocation)
   private readonly _invProjMat = new Matrix();
@@ -159,14 +180,6 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
   private _usesPackedDepthRG8: boolean = false;
   private _usesPackedNormalOct8: boolean = false;
   private _usesPackedHDRReinhard: boolean = false;
-  private _configUsesPackedDepth: boolean = false;
-  private _configUsesPackedNormal: boolean = false;
-  private _configUsesPackedHDR: boolean = false;
-  private _configUseHardwareStencil: boolean = true;
-  private _configUseHighVirtual: boolean = false;
-  private _configUseLinearTrace: boolean = false;
-  private _configIsHDR: boolean = false;
-  private _configAliasRecvNR: boolean = false;
 
   // Active per-frame settings
   private _boundCamera: Camera | null = null;
@@ -212,18 +225,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
   private readonly _colorScratchRTs: RenderTarget[] = [];
 
   private readonly _diagnostics: { -readonly [K in keyof SSRDiagnostics]: SSRDiagnostics[K] } = {
-    active: false,
-    state: SSRRuntimeState.Disabled,
-    traceWidth: 0,
-    traceHeight: 0,
-    estimatedBytes: 0,
-    unsupportedReason: null,
-    opaqueReceiverCount: 0,
-    transparentReceiverCount: 0,
-    useHardwareStencil: true,
-    usesPackedDepthRG8: false,
-    usesPackedNormalOct8: false,
-    useLinearTrace: false
+    ...DISABLED_SSR_DIAGNOSTICS
   };
 
   constructor(engine: Engine, shader: Shader) {
@@ -277,8 +279,11 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
 
   /**
    * Prepare state machine and evaluate whether SSR runs this frame.
+   * @param context - Active render context
+   * @param cullingResults - Sorted render queues for this camera
+   * @param isSubView - Whether rendering into a cube-map face or non-zero mip level (skips SSR without wiping main history)
    */
-  prepare(context: RenderContext, cullingResults: CullingResults, isCubeFace: boolean): void {
+  prepare(context: RenderContext, cullingResults: CullingResults, isSubView: boolean): void {
     const { camera } = context;
     const { engine } = this;
     const scene = camera.scene!;
@@ -295,7 +300,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       return;
     }
 
-    if (isCubeFace) {
+    if (isSubView) {
       // Sub-views (CubeProbe faces / non-zero mipLevel) skip SSR without destroying
       // or overwriting the camera's main-view history, persistent targets, or diagnostics.
       this._state = SSRRuntimeState.Skipped;
@@ -304,9 +309,12 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       return;
     }
 
-    if (!camera.enableScreenSpaceReflection || !sourceSettings._isValid()) {
+    if (!ScreenSpaceReflectionPass._isEnabled(camera)) {
       if (this._state === SSRRuntimeState.Disabled && this._isDisabledClean) {
-        context.resetSSRState();
+        this._programResolver.reset();
+        if (context.programResolver === this._programResolver) {
+          context.programResolver = null;
+        }
         return;
       }
       this._state = SSRRuntimeState.Disabled;
@@ -365,7 +373,6 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
     sourceSettings.cloneTo(this._effectiveSettings);
     this._useLinearTrace = this._effectiveSettings.useLinearTrace;
     this._activeMaxRoughness = this._effectiveSettings.maxRoughness;
-    context.ssrMaxRoughness = this._activeMaxRoughness;
 
     this._receiverElements.length = 0;
     const opaqueCount =
@@ -438,7 +445,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
         useBilateral = true;
         useHighVirtual = true;
         break;
-      case ScreenSpaceReflectionQuality.XHigh:
+      case ScreenSpaceReflectionQuality.VeryHigh:
         scale = 1.0;
         colorScale = 1.0;
         maxSteps = 64;
@@ -449,10 +456,10 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
         break;
     }
 
-    if (this._effectiveSettings.quality !== ScreenSpaceReflectionQuality.XHigh) {
+    if (this._effectiveSettings.quality !== ScreenSpaceReflectionQuality.VeryHigh) {
       const maxVpDim = Math.max(vpW, vpH);
       if (maxVpDim > 0) {
-        const maxCappedScale = MAX_NON_XHIGH_TRACE_LONG_EDGE / maxVpDim;
+        const maxCappedScale = MAX_NON_VERY_HIGH_TRACE_LONG_EDGE / maxVpDim;
         scale = Math.max(0.25, Math.min(scale, maxCappedScale));
         colorScale = Math.max(0.25, Math.min(colorScale, maxCappedScale));
       }
@@ -494,9 +501,9 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       history.lastColorHeight !== colorH ||
       history.lastIsOrthographic !== camera.isOrthographic ||
       (this._usesPackedDepthRG8 && history.lastFarClip !== camera.farClipPlane) ||
-      this._configIsHDR !== isHDR ||
-      this._configUsesPackedDepth !== this._usesPackedDepthRG8 ||
-      this._configUseHardwareStencil !== this._useHardwareStencil;
+      history.lastIsHDR !== isHDR ||
+      history.lastUsesPackedDepth !== this._usesPackedDepthRG8 ||
+      history.lastUseHardwareStencil !== this._useHardwareStencil;
 
     this._cutRequested = false;
 
@@ -508,13 +515,13 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       this._traceDirtyRect[3] = traceH;
     } else if (
       history.lastQuality !== this._effectiveSettings.quality ||
-      this._configUseHighVirtual !== useHighVirtual ||
-      this._configUseLinearTrace !== this._useLinearTrace ||
-      this._configAliasRecvNR !== aliasRecvNR ||
-      this._configUsesPackedNormal !== this._usesPackedNormalOct8 ||
-      this._configUsesPackedHDR !== this._usesPackedHDRReinhard
+      history.lastUseHighVirtual !== useHighVirtual ||
+      history.lastUseLinearTrace !== this._useLinearTrace ||
+      history.lastAliasRecvNR !== aliasRecvNR ||
+      history.lastUsesPackedNormal !== this._usesPackedNormalOct8 ||
+      history.lastUsesPackedHDR !== this._usesPackedHDRReinhard
     ) {
-      history.invalidateTemporal();
+      history.hasTemporalHistory = false;
     }
 
     try {
@@ -543,8 +550,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
         this._clearCameraSSREnable(camera, context);
       }
       this._destroyReceiverSlot(1);
-      history.releaseTemporalBuffers();
-      history.pingPongIndex = 0;
+      this._releaseTemporalBuffers();
     }
 
     if (!history.hasColorHistory || !history.hasHiZHistory) {
@@ -591,8 +597,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       Matrix.invert(context.projectionMatrix, this._invProjMat);
       Matrix.invert(context.viewMatrix, this._invViewMat);
 
-      // Sync encoding macros on internal SSR material and store flags on RenderContext for RenderQueue.
-      this._syncEncodingMacros(context, materialData);
+      // Sync encoding macros on internal SSR material.
+      this._syncEncodingMacros(materialData);
 
       const traceW = this._traceWidth;
       const traceH = this._traceHeight;
@@ -609,7 +615,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
         const ssrDepthRT = this._ssrDepthRT!;
         context.setRenderTarget(ssrDepthRT, PipelineUtils.defaultViewport, 0);
         rhi.clearRenderTarget(engine, CameraClearFlags.DepthStencil, null);
-        this._occluderCuller.prepare(context.camera, ssrDepthRT.height, context.viewMatrix);
+        this._occluderCuller.prepare(context.camera, ssrDepthRT.height, context.viewMatrix, context.projectionMatrix);
         opaqueQueue.render(
           context,
           PipelineStage.DepthOnly,
@@ -665,7 +671,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       const prevHiZIdx: 0 | 1 = currHiZIdx === 0 ? 1 : 0;
       const currHiZTex = history.hiZTex[currHiZIdx]!;
       const currHiZColorRT = history.hiZColorRT[currHiZIdx]!;
-      const currIdx = this._useTemporal ? history.pingPongIndex : 0;
+      const currIdx = this._useTemporal ? history.temporalPingPongIndex : 0;
       const aliasRecv = this._aliasRecvNRToPingPong;
 
       if (isWarmup || !hasVisibleReceiver) {
@@ -710,7 +716,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
                 traceH
               );
             }
-            history.invalidateTemporal();
+            history.hasTemporalHistory = false;
           }
         }
         history.hasHiZHistory = true;
@@ -859,6 +865,13 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       if (!isFullScreenScissor) {
         rhi.scissor(sx0, sy0, sw, sh);
       }
+
+      this._programResolver.configureReceiverEncoding(
+        this._usesPackedDepthRG8,
+        this._usesPackedNormalOct8,
+        this._usesPackedHDRReinhard
+      );
+      context.programResolver = this._programResolver;
 
       if (this._opaqueReceiverCount > 0) {
         opaqueQueue.render(
@@ -1069,7 +1082,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       materialData.setTexture(ScreenSpaceReflectionPass._matPrevColorPyramidProp, null);
       materialData.setTexture(ScreenSpaceReflectionPass._matPrevTraceDepthProp, null);
 
-      // Step I: Bind Forward sampling inputs & SSR flags on RenderContext
+      // Step I: Bind Forward sampling inputs & activate SSR shader program resolver
       const needsRecvDepthInForward = this._useBilateral || this._transparentReceiverCount > 0;
       cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRTextureProp, finalSSRTex);
       cameraData.setVector4(ScreenSpaceReflectionPass._cameraSSRTraceTexelSizeProp, this._traceTexelSize);
@@ -1079,13 +1092,15 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       );
       cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRRecvNRProp, this._useBilateral ? currRecvNR : null);
 
-      context.ssrForwardEnabled = true;
-      context.ssrBilateralSample = this._useBilateral;
-      context.ssrVerifyReceiverDepth = this._transparentReceiverCount > 0;
-      context.ssrPackedDepthRG8 = this._usesPackedDepthRG8;
-      context.ssrPackedNormalOct8 = this._usesPackedNormalOct8;
-      context.ssrPackedHDRReinhard = this._usesPackedHDRReinhard;
-      context.ssrMaxRoughness = this._activeMaxRoughness;
+      this._programResolver.configureForward(
+        this._activeMaxRoughness,
+        this._useBilateral,
+        this._transparentReceiverCount > 0,
+        this._usesPackedDepthRG8,
+        this._usesPackedNormalOct8,
+        this._usesPackedHDRReinhard
+      );
+      context.programResolver = this._programResolver;
 
       history.hasHiZHistory = true;
       history.hiZPingPongIndex = prevHiZIdx;
@@ -1248,17 +1263,17 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       history.lastIsOrthographic = camera.isOrthographic;
       history.lastFarClip = camera.farClipPlane;
       history.lastQuality = this._effectiveSettings.quality;
-      this._configIsHDR = camera.enableHDR;
-      this._configAliasRecvNR = this._aliasRecvNRToPingPong;
-      this._configUsesPackedDepth = this._usesPackedDepthRG8;
-      this._configUsesPackedNormal = this._usesPackedNormalOct8;
-      this._configUsesPackedHDR = this._usesPackedHDRReinhard;
-      this._configUseHardwareStencil = this._useHardwareStencil;
-      this._configUseHighVirtual = this._useHighVirtual;
-      this._configUseLinearTrace = this._useLinearTrace;
+      history.lastIsHDR = camera.enableHDR;
+      history.lastAliasRecvNR = this._aliasRecvNRToPingPong;
+      history.lastUsesPackedDepth = this._usesPackedDepthRG8;
+      history.lastUsesPackedNormal = this._usesPackedNormalOct8;
+      history.lastUsesPackedHDR = this._usesPackedHDRReinhard;
+      history.lastUseHardwareStencil = this._useHardwareStencil;
+      history.lastUseHighVirtual = this._useHighVirtual;
+      history.lastUseLinearTrace = this._useLinearTrace;
 
       if (this._useTemporal && (state === SSRRuntimeState.FirstTrace || state === SSRRuntimeState.ActiveSteady)) {
-        history.pingPongIndex = history.pingPongIndex === 0 ? 1 : 0;
+        history.temporalPingPongIndex = history.temporalPingPongIndex === 0 ? 1 : 0;
       }
     } catch (error) {
       this._handleFailure(camera, "captureHistory", error, context);
@@ -1312,11 +1327,15 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
     this._boundCamera = null;
     this._resetTemporaryBindings();
     this._releasePersistentResources();
+    this._state = SSRRuntimeState.Disabled;
+    this._opaqueReceiverCount = 0;
+    this._transparentReceiverCount = 0;
+    this._contribDepthCount = 0;
+    this._updateDiagnostics(false);
     if (!this._material.destroyed) {
       this._material._addReferCount(-1);
       this._material.destroy();
     }
-    this._history.destroy();
   }
 
   private _detectCapabilities(
@@ -1347,7 +1366,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
     }
 
     // Low / Medium keep compact 4B/px RGBA8 + Oct8 + reversible Reinhard HDR (halving bandwidth while keeping aliasing),
-    // while High / XHigh retain full RGBA16F precision unless forced to packed fallback.
+    // while High / VeryHigh retain full RGBA16F precision unless forced to packed fallback.
     if (
       highPrecisionNormals &&
       !this._forcePackedFormats &&
@@ -1421,18 +1440,18 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       this._clearCameraSSREnable(camera);
       this._resetTemporaryBindings();
       this._destroyHiZDepthMip0RTs();
-      history.hiZColorRT[0] = SSRHistoryState._destroyResource(history.hiZColorRT[0]);
-      history.hiZColorRT[1] = SSRHistoryState._destroyResource(history.hiZColorRT[1]);
-      history.hiZTex[0] = SSRHistoryState._destroyResource(history.hiZTex[0]);
-      history.hiZTex[1] = SSRHistoryState._destroyResource(history.hiZTex[1]);
+      history.hiZColorRT[0] = ScreenSpaceReflectionPass._destroyResource(history.hiZColorRT[0]);
+      history.hiZColorRT[1] = ScreenSpaceReflectionPass._destroyResource(history.hiZColorRT[1]);
+      history.hiZTex[0] = ScreenSpaceReflectionPass._destroyResource(history.hiZTex[0]);
+      history.hiZTex[1] = ScreenSpaceReflectionPass._destroyResource(history.hiZTex[1]);
       this._destroyReceiverSlot(0);
       this._destroyReceiverSlot(1);
-      this._traceOutRT = SSRHistoryState._destroyResource(this._traceOutRT);
-      this._traceRawTex = SSRHistoryState._destroyResource(this._traceRawTex);
-      this._hitDistTex = SSRHistoryState._destroyResource(this._hitDistTex);
-      history.releaseTemporalBuffers();
-      this._ssrDepthRT = SSRHistoryState._destroyResource(this._ssrDepthRT);
-      this._ssrDepthTex = SSRHistoryState._destroyResource(this._ssrDepthTex);
+      this._traceOutRT = ScreenSpaceReflectionPass._destroyResource(this._traceOutRT);
+      this._traceRawTex = ScreenSpaceReflectionPass._destroyResource(this._traceRawTex);
+      this._hitDistTex = ScreenSpaceReflectionPass._destroyResource(this._hitDistTex);
+      this._releaseTemporalBuffers();
+      this._ssrDepthRT = ScreenSpaceReflectionPass._destroyResource(this._ssrDepthRT);
+      this._ssrDepthTex = ScreenSpaceReflectionPass._destroyResource(this._ssrDepthTex);
       history.markAllDirty(traceW, traceH);
       this._traceDirtyRect[0] = 0;
       this._traceDirtyRect[1] = 0;
@@ -1449,8 +1468,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       history.prevColorPyramidTex.format !== this._colorPyramidFormat ||
       history.prevColorPyramidTex.isSRGBColorSpace !== this._colorPyramidSRGB
     ) {
-      history.prevColorPyramidRT = SSRHistoryState._destroyResource(history.prevColorPyramidRT);
-      history.prevColorPyramidTex = SSRHistoryState._destroyResource(history.prevColorPyramidTex);
+      history.prevColorPyramidRT = ScreenSpaceReflectionPass._destroyResource(history.prevColorPyramidRT);
+      history.prevColorPyramidTex = ScreenSpaceReflectionPass._destroyResource(history.prevColorPyramidTex);
 
       const needMipmap = Math.max(colorW, colorH) > 1;
       const tex = new Texture2D(engine, colorW, colorH, this._colorPyramidFormat, needMipmap, this._colorPyramidSRGB);
@@ -1462,7 +1481,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       try {
         rt = new RenderTarget(engine, colorW, colorH, tex, null, 1);
       } catch (error) {
-        SSRHistoryState._destroyResource(tex);
+        ScreenSpaceReflectionPass._destroyResource(tex);
         throw error;
       }
       rt.autoGenerateMipmaps = false;
@@ -1484,11 +1503,11 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       this._destroyHiZDepthMip0RTs();
       this._destroyReceiverSlot(0);
       this._destroyReceiverSlot(1);
-      this._traceOutRT = SSRHistoryState._destroyResource(this._traceOutRT);
-      history.ssrPingPongRT[0] = SSRHistoryState._destroyResource(history.ssrPingPongRT[0]);
-      history.ssrPingPongRT[1] = SSRHistoryState._destroyResource(history.ssrPingPongRT[1]);
-      this._ssrDepthRT = SSRHistoryState._destroyResource(this._ssrDepthRT);
-      this._ssrDepthTex = SSRHistoryState._destroyResource(this._ssrDepthTex);
+      this._traceOutRT = ScreenSpaceReflectionPass._destroyResource(this._traceOutRT);
+      history.ssrPingPongRT[0] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongRT[0]);
+      history.ssrPingPongRT[1] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongRT[1]);
+      this._ssrDepthRT = ScreenSpaceReflectionPass._destroyResource(this._ssrDepthRT);
+      this._ssrDepthTex = ScreenSpaceReflectionPass._destroyResource(this._ssrDepthTex);
 
       const depthTex = new Texture2D(engine, traceW, traceH, TextureFormat.Depth24Stencil8, false, false);
       depthTex.filterMode = TextureFilterMode.Point;
@@ -1499,7 +1518,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       try {
         depthRT = new RenderTarget(engine, traceW, traceH, null, depthTex, 1);
       } catch (error) {
-        SSRHistoryState._destroyResource(depthTex);
+        ScreenSpaceReflectionPass._destroyResource(depthTex);
         throw error;
       }
       depthRT.autoGenerateMipmaps = false;
@@ -1529,17 +1548,17 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
           curMip0RT.depthTexture !== this._ssrDepthTex);
 
       if (mip0RTMismatch) {
-        history.hiZDepthMip0RT[i] = SSRHistoryState._destroyResource(history.hiZDepthMip0RT[i]);
+        history.hiZDepthMip0RT[i] = ScreenSpaceReflectionPass._destroyResource(history.hiZDepthMip0RT[i]);
       }
 
       if (texMismatch || colorRTMismatch) {
         // Destroy paired FBO wrappers before destroying or replacing hiZTex[i].
-        history.hiZDepthMip0RT[i] = SSRHistoryState._destroyResource(history.hiZDepthMip0RT[i]);
-        history.hiZColorRT[i] = SSRHistoryState._destroyResource(history.hiZColorRT[i]);
+        history.hiZDepthMip0RT[i] = ScreenSpaceReflectionPass._destroyResource(history.hiZDepthMip0RT[i]);
+        history.hiZColorRT[i] = ScreenSpaceReflectionPass._destroyResource(history.hiZColorRT[i]);
         let nextTex: Texture2D;
         let allocatedTex = false;
         if (texMismatch) {
-          history.hiZTex[i] = SSRHistoryState._destroyResource(history.hiZTex[i]);
+          history.hiZTex[i] = ScreenSpaceReflectionPass._destroyResource(history.hiZTex[i]);
           nextTex = new Texture2D(engine, traceW, traceH, this._depthColorFormat, needHiZMipmap, false);
           nextTex.filterMode = TextureFilterMode.Point;
           nextTex.wrapModeU = TextureWrapMode.Clamp;
@@ -1555,7 +1574,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
           colorRT = new RenderTarget(engine, traceW, traceH, nextTex, null, 1);
         } catch (error) {
           if (allocatedTex) {
-            SSRHistoryState._destroyResource(nextTex);
+            ScreenSpaceReflectionPass._destroyResource(nextTex);
           }
           throw error;
         }
@@ -1580,13 +1599,13 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
         if (texMismatch || stencilMismatch) {
           this._clearCameraSSREnable(camera);
           if (this._receiverRTs[i]?.colorTextures.includes(curTex!)) {
-            this._receiverRTs[i] = SSRHistoryState._destroyResource(this._receiverRTs[i]);
+            this._receiverRTs[i] = ScreenSpaceReflectionPass._destroyResource(this._receiverRTs[i]);
           }
-          history.ssrPingPongRT[i] = SSRHistoryState._destroyResource(history.ssrPingPongRT[i]);
+          history.ssrPingPongRT[i] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongRT[i]);
           let nextTex: Texture2D;
           let allocatedTex = false;
           if (texMismatch) {
-            history.ssrPingPongTex[i] = SSRHistoryState._destroyResource(history.ssrPingPongTex[i]);
+            history.ssrPingPongTex[i] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongTex[i]);
             nextTex = new Texture2D(engine, traceW, traceH, this._ssrColorFormat, false, false);
             nextTex.filterMode = TextureFilterMode.Bilinear;
             nextTex.wrapModeU = TextureWrapMode.Clamp;
@@ -1602,7 +1621,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
             rt = new RenderTarget(engine, traceW, traceH, nextTex, useHardwareStencil ? this._ssrDepthTex : null, 1);
           } catch (error) {
             if (allocatedTex) {
-              SSRHistoryState._destroyResource(nextTex);
+              ScreenSpaceReflectionPass._destroyResource(nextTex);
             }
             throw error;
           }
@@ -1645,7 +1664,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
 
     if (traceSizeMismatch || hitDistNeededMismatch || stencilAttachMismatch || !this._traceOutRT) {
       this._clearCameraSSREnable(camera);
-      this._traceOutRT = SSRHistoryState._destroyResource(this._traceOutRT);
+      this._traceOutRT = ScreenSpaceReflectionPass._destroyResource(this._traceOutRT);
       let nextTraceTex = this._traceRawTex;
       let allocatedTraceTex = false;
       let nextHitDistTex = this._hitDistTex;
@@ -1653,7 +1672,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
 
       try {
         if (traceSizeMismatch) {
-          this._traceRawTex = SSRHistoryState._destroyResource(this._traceRawTex);
+          this._traceRawTex = ScreenSpaceReflectionPass._destroyResource(this._traceRawTex);
           nextTraceTex = new Texture2D(engine, traceW, traceH, this._ssrColorFormat, false, false);
           nextTraceTex.filterMode = TextureFilterMode.Bilinear;
           nextTraceTex.wrapModeU = TextureWrapMode.Clamp;
@@ -1664,12 +1683,12 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
 
         if (useHighVirtual) {
           if (hitDistNeededMismatch) {
-            this._hitDistTex = SSRHistoryState._destroyResource(this._hitDistTex);
+            this._hitDistTex = ScreenSpaceReflectionPass._destroyResource(this._hitDistTex);
             nextHitDistTex = this._createPointClampTex(traceW, traceH, this._depthColorFormat);
             allocatedHitDistTex = true;
           }
         } else {
-          this._hitDistTex = SSRHistoryState._destroyResource(this._hitDistTex);
+          this._hitDistTex = ScreenSpaceReflectionPass._destroyResource(this._hitDistTex);
           nextHitDistTex = null;
         }
 
@@ -1692,8 +1711,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
         this._traceDirtyRect[2] = traceW;
         this._traceDirtyRect[3] = traceH;
       } catch (error) {
-        if (allocatedTraceTex) SSRHistoryState._destroyResource(nextTraceTex);
-        if (allocatedHitDistTex) SSRHistoryState._destroyResource(nextHitDistTex);
+        if (allocatedTraceTex) ScreenSpaceReflectionPass._destroyResource(nextTraceTex);
+        if (allocatedHitDistTex) ScreenSpaceReflectionPass._destroyResource(nextHitDistTex);
         throw error;
       }
     }
@@ -1719,7 +1738,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
     }
 
     this._clearCameraSSREnable(camera);
-    this._receiverRTs[slot] = SSRHistoryState._destroyResource(this._receiverRTs[slot]);
+    this._receiverRTs[slot] = ScreenSpaceReflectionPass._destroyResource(this._receiverRTs[slot]);
 
     let nextNRTex = history.recvNRTex[slot];
     let allocatedNR = false;
@@ -1728,16 +1747,16 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
 
     try {
       if (aliasRecvNR) {
-        history.recvNRTex[slot] = SSRHistoryState._destroyResource(history.recvNRTex[slot]);
+        history.recvNRTex[slot] = ScreenSpaceReflectionPass._destroyResource(history.recvNRTex[slot]);
         nextNRTex = null;
       } else if (nrChanged) {
-        history.recvNRTex[slot] = SSRHistoryState._destroyResource(history.recvNRTex[slot]);
+        history.recvNRTex[slot] = ScreenSpaceReflectionPass._destroyResource(history.recvNRTex[slot]);
         nextNRTex = this._createPointClampTex(traceW, traceH, this._normalRoughnessFormat);
         allocatedNR = true;
       }
 
       if (dChanged) {
-        history.recvDepthTex[slot] = SSRHistoryState._destroyResource(history.recvDepthTex[slot]);
+        history.recvDepthTex[slot] = ScreenSpaceReflectionPass._destroyResource(history.recvDepthTex[slot]);
         nextDepthTex = this._createPointClampTex(traceW, traceH, this._depthColorFormat);
         allocatedDepth = true;
       }
@@ -1755,22 +1774,22 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       rr[2] = traceW;
       rr[3] = traceH;
     } catch (error) {
-      if (allocatedNR) SSRHistoryState._destroyResource(nextNRTex);
-      if (allocatedDepth) SSRHistoryState._destroyResource(nextDepthTex);
+      if (allocatedNR) ScreenSpaceReflectionPass._destroyResource(nextNRTex);
+      if (allocatedDepth) ScreenSpaceReflectionPass._destroyResource(nextDepthTex);
       throw error;
     }
   }
 
   private _destroyReceiverSlot(slot: 0 | 1): void {
-    this._receiverRTs[slot] = SSRHistoryState._destroyResource(this._receiverRTs[slot]);
-    this._history.recvNRTex[slot] = SSRHistoryState._destroyResource(this._history.recvNRTex[slot]);
-    this._history.recvDepthTex[slot] = SSRHistoryState._destroyResource(this._history.recvDepthTex[slot]);
+    this._receiverRTs[slot] = ScreenSpaceReflectionPass._destroyResource(this._receiverRTs[slot]);
+    this._history.recvNRTex[slot] = ScreenSpaceReflectionPass._destroyResource(this._history.recvNRTex[slot]);
+    this._history.recvDepthTex[slot] = ScreenSpaceReflectionPass._destroyResource(this._history.recvDepthTex[slot]);
     this._history.recvSlotDirtyRect[slot].fill(0);
   }
 
   private _destroyHiZDepthMip0RTs(): void {
-    this._history.hiZDepthMip0RT[0] = SSRHistoryState._destroyResource(this._history.hiZDepthMip0RT[0]);
-    this._history.hiZDepthMip0RT[1] = SSRHistoryState._destroyResource(this._history.hiZDepthMip0RT[1]);
+    this._history.hiZDepthMip0RT[0] = ScreenSpaceReflectionPass._destroyResource(this._history.hiZDepthMip0RT[0]);
+    this._history.hiZDepthMip0RT[1] = ScreenSpaceReflectionPass._destroyResource(this._history.hiZDepthMip0RT[1]);
   }
 
   private _ensureHiZDepthMip0RT(slot: 0 | 1, hiZTex: Texture2D, depthTex: Texture2D): RenderTarget {
@@ -1786,7 +1805,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
     ) {
       return existing;
     }
-    history.hiZDepthMip0RT[slot] = SSRHistoryState._destroyResource(existing);
+    history.hiZDepthMip0RT[slot] = ScreenSpaceReflectionPass._destroyResource(existing);
     const rt = new RenderTarget(this.engine, hiZTex.width, hiZTex.height, hiZTex, depthTex, 1);
     rt.autoGenerateMipmaps = false;
     rt.isGCIgnored = true;
@@ -2286,28 +2305,63 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
     this.engine._renderTargetPool._unregisterIdleSweeper(this);
   }
 
+  private _releaseTemporalBuffers(): void {
+    const history = this._history;
+    // Detach any receiver FBOs aliasing ssrPingPongTex before destroying the underlying textures.
+    for (let i = 0; i < 2; i++) {
+      const tex = history.ssrPingPongTex[i];
+      if (tex && this._receiverRTs[i]?.colorTextures.includes(tex)) {
+        this._receiverRTs[i] = ScreenSpaceReflectionPass._destroyResource(this._receiverRTs[i]);
+      }
+    }
+    history.ssrPingPongRT[0] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongRT[0]);
+    history.ssrPingPongRT[1] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongRT[1]);
+    history.ssrPingPongTex[0] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongTex[0]);
+    history.ssrPingPongTex[1] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongTex[1]);
+    history.hasTemporalHistory = false;
+    history.temporalPingPongIndex = 0;
+    history.ssrSlotDirtyRect[0].fill(0);
+    history.ssrSlotDirtyRect[1].fill(0);
+  }
+
   private _releasePersistentResources(): void {
     this._unregisterActiveResources();
     this._lastActiveFrameCount = -1;
-    // Destroy FBO wrappers before owned textures to keep GL deletion cleanly ordered.
+    const history = this._history;
+
+    // Destroy all FBO wrappers first, then all underlying textures, to keep refcount/GL deletion cleanly ordered.
     this._destroyHiZDepthMip0RTs();
-    this._destroyReceiverSlot(0);
-    this._destroyReceiverSlot(1);
-    this._traceOutRT = SSRHistoryState._destroyResource(this._traceOutRT);
-    this._ssrDepthRT = SSRHistoryState._destroyResource(this._ssrDepthRT);
+    history.hiZColorRT[0] = ScreenSpaceReflectionPass._destroyResource(history.hiZColorRT[0]);
+    history.hiZColorRT[1] = ScreenSpaceReflectionPass._destroyResource(history.hiZColorRT[1]);
+    this._receiverRTs[0] = ScreenSpaceReflectionPass._destroyResource(this._receiverRTs[0]);
+    this._receiverRTs[1] = ScreenSpaceReflectionPass._destroyResource(this._receiverRTs[1]);
+    history.ssrPingPongRT[0] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongRT[0]);
+    history.ssrPingPongRT[1] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongRT[1]);
+    history.prevColorPyramidRT = ScreenSpaceReflectionPass._destroyResource(history.prevColorPyramidRT);
+    this._traceOutRT = ScreenSpaceReflectionPass._destroyResource(this._traceOutRT);
+    this._ssrDepthRT = ScreenSpaceReflectionPass._destroyResource(this._ssrDepthRT);
 
-    this._history.releaseResources();
+    history.prevColorPyramidTex = ScreenSpaceReflectionPass._destroyResource(history.prevColorPyramidTex);
+    history.hiZTex[0] = ScreenSpaceReflectionPass._destroyResource(history.hiZTex[0]);
+    history.hiZTex[1] = ScreenSpaceReflectionPass._destroyResource(history.hiZTex[1]);
+    history.ssrPingPongTex[0] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongTex[0]);
+    history.ssrPingPongTex[1] = ScreenSpaceReflectionPass._destroyResource(history.ssrPingPongTex[1]);
+    history.recvDepthTex[0] = ScreenSpaceReflectionPass._destroyResource(history.recvDepthTex[0]);
+    history.recvDepthTex[1] = ScreenSpaceReflectionPass._destroyResource(history.recvDepthTex[1]);
+    history.recvNRTex[0] = ScreenSpaceReflectionPass._destroyResource(history.recvNRTex[0]);
+    history.recvNRTex[1] = ScreenSpaceReflectionPass._destroyResource(history.recvNRTex[1]);
+    this._traceRawTex = ScreenSpaceReflectionPass._destroyResource(this._traceRawTex);
+    this._hitDistTex = ScreenSpaceReflectionPass._destroyResource(this._hitDistTex);
+    this._ssrDepthTex = ScreenSpaceReflectionPass._destroyResource(this._ssrDepthTex);
+
+    history.resetMetadata();
     this._traceDirtyRect.fill(0);
-    this._traceRawTex = SSRHistoryState._destroyResource(this._traceRawTex);
-    this._hitDistTex = SSRHistoryState._destroyResource(this._hitDistTex);
-    this._ssrDepthTex = SSRHistoryState._destroyResource(this._ssrDepthTex);
-
     this._lastHiZScratchBytes = 0;
     this._lastColorScratchBytes = 0;
     this._lastContribDepthBytes = 0;
   }
 
-  private _syncEncodingMacros(context: RenderContext, materialData: ShaderData): void {
+  private _syncEncodingMacros(materialData: ShaderData): void {
     const packedDepth = this._usesPackedDepthRG8;
     const packedNormal = this._usesPackedNormalOct8;
     const packedHDR = this._usesPackedHDRReinhard;
@@ -2326,9 +2380,6 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
       ScreenSpaceReflectionPass._packedHDRMacro,
       packedHDR
     );
-    context.ssrPackedDepthRG8 = packedDepth;
-    context.ssrPackedNormalOct8 = packedNormal;
-    context.ssrPackedHDRReinhard = packedHDR;
   }
 
   private _resetTemporaryBindings(): void {
@@ -2369,13 +2420,16 @@ export class ScreenSpaceReflectionPass extends PipelinePass implements IIdleReso
   }
 
   private _clearCameraSSREnable(camera: Camera, context?: RenderContext): void {
+    this._programResolver.reset();
     const cameraData = camera.shaderData;
     const renderContext =
       context ??
       (this.engine._renderContext.camera === camera || this.engine._renderContext.camera === null
         ? this.engine._renderContext
         : null);
-    renderContext?.resetSSRState();
+    if (renderContext && renderContext.programResolver === this._programResolver) {
+      renderContext.programResolver = null;
+    }
     if (cameraData) {
       cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRTextureProp, null);
       cameraData.setTexture(ScreenSpaceReflectionPass._cameraSSRRecvDepthProp, null);

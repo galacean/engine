@@ -8,8 +8,9 @@ import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
-import { ScreenSpaceReflectionPass, SSRDiagnostics } from "../lighting/screenSpaceReflection";
+import { ScreenSpaceReflectionPass, type SSRDiagnostics } from "../lighting/screenSpaceReflection";
 import { FinalPass } from "../postProcess";
+import { IHardwareRenderer } from "../renderingHardwareInterface";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { SubShader } from "../shader/SubShader";
@@ -46,7 +47,7 @@ export class BasicRenderPipeline {
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _saoPass: ScalableAmbientObscurancePass;
-  private _ssrPass: ScreenSpaceReflectionPass;
+  private _ssrPass: ScreenSpaceReflectionPass | null = null;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D | null;
@@ -64,7 +65,6 @@ export class BasicRenderPipeline {
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
     this._saoPass = new ScalableAmbientObscurancePass(engine, shaders.scalableAmbientOcclusion);
-    this._ssrPass = new ScreenSpaceReflectionPass(engine, shaders.screenSpaceReflection);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine, shaders.finalSRGB, shaders.finalAntiAliasing);
   }
@@ -74,7 +74,7 @@ export class BasicRenderPipeline {
    */
   destroy(): void {
     this._cullingResults.destroy();
-    this._ssrPass.destroy();
+    this._ssrPass?.destroy();
 
     const pool = this._camera.engine._renderTargetPool;
 
@@ -93,12 +93,19 @@ export class BasicRenderPipeline {
 
   /** @internal */
   _getScreenSpaceReflectionDiagnostics(): Readonly<SSRDiagnostics> {
-    return this._ssrPass.getDiagnostics();
+    return this._ssrPass ? this._ssrPass.getDiagnostics() : ScreenSpaceReflectionPass._disabledDiagnostics;
   }
 
   /** @internal */
   _notifyScreenSpaceReflectionCut(): void {
-    this._ssrPass.notifyCut();
+    this._ssrPass?.notifyCut();
+  }
+
+  private _getOrCreateSSRPass(): ScreenSpaceReflectionPass {
+    return (this._ssrPass ??= new ScreenSpaceReflectionPass(
+      this._camera.engine,
+      Engine._builtinShaders.screenSpaceReflection
+    ));
   }
 
   /**
@@ -151,83 +158,87 @@ export class BasicRenderPipeline {
     cullingResults.sortBatch(batcherManager);
     batcherManager.uploadBuffer();
 
-    this._ssrPass.prepare(context, cullingResults, cubeFace !== undefined || (mipLevel ?? 0) > 0);
-
-    if (depthPassEnabled) {
-      depthOnlyPass.onConfig(camera);
-      depthOnlyPass.onRender(context, cullingResults);
-    } else {
-      depthOnlyPass.release();
-      camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
-    }
-
     const pool = engine._renderTargetPool;
+    const ssrPass = ScreenSpaceReflectionPass._isEnabled(camera) ? this._getOrCreateSSRPass() : this._ssrPass;
 
-    // Check if need to create internal color texture or grab texture
-    if (independentCanvasEnabled) {
-      let depthFormat: TextureFormat | null;
-      if (camera.renderTarget) {
-        depthFormat = camera.renderTarget._depthFormat;
-      } else if (rhi._options.depth && rhi._options.stencil) {
-        depthFormat = TextureFormat.Depth24Stencil8;
-      } else if (rhi._options.depth) {
-        depthFormat = TextureFormat.Depth24;
-      } else if (rhi._options.stencil) {
-        depthFormat = TextureFormat.Stencil;
+    try {
+      ssrPass?.prepare(context, cullingResults, cubeFace !== undefined || (mipLevel ?? 0) > 0);
+
+      if (depthPassEnabled) {
+        depthOnlyPass.onConfig(camera);
+        depthOnlyPass.onRender(context, cullingResults);
       } else {
-        depthFormat = null;
+        depthOnlyPass.release();
+        camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
       }
-      const viewport = camera.pixelViewport;
-      this._internalColorTarget = pool.allocateRenderTarget(
-        viewport.width,
-        viewport.height,
-        camera._getInternalColorTextureFormat(),
-        depthFormat,
-        false,
-        false,
-        !camera._isInternalFormatHDR(),
-        msaaSamples,
-        TextureWrapMode.Clamp,
-        TextureFilterMode.Bilinear
-      );
 
-      if (this._shouldCopyBackgroundColor) {
-        const colorTexture = camera.renderTarget?.getColorTexture(0);
-        this._copyBackgroundTexture = pool.allocateTexture(
+      // Check if need to create internal color texture or grab texture
+      if (independentCanvasEnabled) {
+        let depthFormat: TextureFormat | null;
+        if (camera.renderTarget) {
+          depthFormat = camera.renderTarget._depthFormat;
+        } else if (rhi._options.depth && rhi._options.stencil) {
+          depthFormat = TextureFormat.Depth24Stencil8;
+        } else if (rhi._options.depth) {
+          depthFormat = TextureFormat.Depth24;
+        } else if (rhi._options.stencil) {
+          depthFormat = TextureFormat.Stencil;
+        } else {
+          depthFormat = null;
+        }
+        const viewport = camera.pixelViewport;
+        this._internalColorTarget = pool.allocateRenderTarget(
           viewport.width,
           viewport.height,
-          colorTexture?.format ?? TextureFormat.R8G8B8A8_UNorm,
+          camera._getInternalColorTextureFormat(),
+          depthFormat,
           false,
-          colorTexture?.isSRGBColorSpace ?? false,
+          false,
+          !camera._isInternalFormatHDR(),
+          msaaSamples,
           TextureWrapMode.Clamp,
           TextureFilterMode.Bilinear
         );
+
+        if (this._shouldCopyBackgroundColor) {
+          const colorTexture = camera.renderTarget?.getColorTexture(0);
+          this._copyBackgroundTexture = pool.allocateTexture(
+            viewport.width,
+            viewport.height,
+            colorTexture?.format ?? TextureFormat.R8G8B8A8_UNorm,
+            false,
+            colorTexture?.isSRGBColorSpace ?? false,
+            TextureWrapMode.Clamp,
+            TextureFilterMode.Bilinear
+          );
+        }
       }
-    }
 
-    // Scalable ambient obscurance pass
-    // Before opaque pass so materials can sample ambient occlusion in BRDF
-    const saoPass = this._saoPass;
-    if (ambientOcclusionEnabled) {
-      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget!);
-      saoPass.onRender(context);
-    } else {
-      this._saoPass.release();
-    }
+      // Scalable ambient obscurance pass
+      // Before opaque pass so materials can sample ambient occlusion in BRDF
+      const saoPass = this._saoPass;
+      if (ambientOcclusionEnabled) {
+        saoPass.onConfig(camera, this._depthOnlyPass.renderTarget!);
+        saoPass.onRender(context);
+      } else {
+        this._saoPass.release();
+      }
 
-    this._ssrPass.renderPreForward(context, cullingResults, depthPassEnabled ? depthOnlyPass.renderTarget : null);
+      ssrPass?.renderPreForward(context, cullingResults, depthPassEnabled ? depthOnlyPass.renderTarget : null);
 
-    this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
-    this._ssrPass.releaseFrameTargets();
+      this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
+    } finally {
+      ssrPass?.releaseFrameTargets();
 
-    // Return the per-frame leases so the next camera with matching shape can reuse them
-    if (this._internalColorTarget) {
-      pool.freeRenderTarget(this._internalColorTarget);
-      this._internalColorTarget = null;
-    }
-    if (this._copyBackgroundTexture) {
-      pool.freeTexture(this._copyBackgroundTexture);
-      this._copyBackgroundTexture = null;
+      // Return the per-frame leases so the next camera with matching shape can reuse them
+      if (this._internalColorTarget) {
+        pool.freeRenderTarget(this._internalColorTarget);
+        this._internalColorTarget = null;
+      }
+      if (this._copyBackgroundTexture) {
+        pool.freeTexture(this._copyBackgroundTexture);
+        this._copyBackgroundTexture = null;
+      }
     }
   }
 
@@ -337,21 +348,8 @@ export class BasicRenderPipeline {
     maskManager.clearMask(context, PipelineStage.Forward);
 
     // Resolve the scene color once and share it with SSR history + PostProcessManager
-    const colorTargetResolved = !!colorTarget;
-    if (colorTarget) {
-      if (colorTarget === internalColorTarget) {
-        if (colorTarget.antiAliasing > 1) {
-          // Final resolve for this camera: discard MSAA color+depth renderbuffers right after resolve to skip TBDR STORE.
-          colorTarget._blitRenderTarget(true);
-        } else if (!colorTarget.depthTexture && colorTarget._depthFormat !== null) {
-          // Non-MSAA internal color target is still bound; discard unused depth/stencil renderbuffer before switching FBO.
-          rhi.invalidateRenderTarget?.(colorTarget, CameraClearFlags.DepthStencil);
-        }
-      } else {
-        colorTarget._blitRenderTarget();
-      }
-    }
-    this._ssrPass.captureHistory(context, colorTarget, colorViewport);
+    const colorTargetResolved = this._resolveSceneColorTarget(rhi, colorTarget, internalColorTarget);
+    this._ssrPass?.captureHistory(context, colorTarget, colorViewport);
 
     // Output render target of each stage
     let outputTarget: RenderTarget | null = null;
@@ -406,6 +404,28 @@ export class BasicRenderPipeline {
       cameraRenderTarget?._blitRenderTarget();
     }
     cameraRenderTarget?.generateMipmaps();
+  }
+
+  private _resolveSceneColorTarget(
+    rhi: IHardwareRenderer,
+    colorTarget: RenderTarget | null,
+    internalColorTarget: RenderTarget | null
+  ): boolean {
+    if (!colorTarget) {
+      return false;
+    }
+    if (colorTarget === internalColorTarget) {
+      if (colorTarget.antiAliasing > 1) {
+        // Final resolve for this camera: discard MSAA color+depth renderbuffers right after resolve to skip TBDR STORE.
+        colorTarget._blitRenderTarget(true);
+      } else if (!colorTarget.depthTexture && colorTarget._depthFormat !== null) {
+        // Non-MSAA internal color target is still bound; discard unused depth/stencil renderbuffer before switching FBO.
+        rhi.invalidateRenderTarget?.(colorTarget, CameraClearFlags.DepthStencil);
+      }
+    } else {
+      colorTarget._blitRenderTarget();
+    }
+    return true;
   }
 
   /**

@@ -10,8 +10,7 @@ import {
   Mesh,
   resourceLoader,
   ResourceManager,
-  Scene,
-  ScreenSpaceReflectionSettings
+  Scene
 } from "@galacean/engine-core";
 import { resolveRefItem } from "./schema/refs";
 import type { RefItem } from "./schema/CommonSchema";
@@ -161,8 +160,7 @@ export function applySceneData(
   if (ssrData) {
     scene.screenSpaceReflection.apply(ssrData);
   } else {
-    const defaults = new ScreenSpaceReflectionSettings();
-    defaults.cloneTo(scene.screenSpaceReflection);
+    scene.screenSpaceReflection.reset();
   }
 
   return Promise.all(promises).then(() => {});

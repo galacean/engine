@@ -3,9 +3,27 @@ import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
+import type { Material } from "../material/Material";
 import { Shader, ShaderProperty } from "../shader";
+import type { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import type { ShaderPass } from "../shader/ShaderPass";
+import type { ShaderProgram } from "../shader/ShaderProgram";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
 import { RenderTarget, TextureCubeFace } from "../texture";
+
+/**
+ * Optional per-camera hook that overrides `ShaderProgram` resolution inside `RenderQueue.render`.
+ * @internal
+ */
+export interface IShaderProgramResolver {
+  resolveProgram(
+    engine: Engine,
+    shaderPass: ShaderPass,
+    material: Material,
+    compileMacros: ShaderMacroCollection,
+    pipelineStageTagValue: string
+  ): ShaderProgram;
+}
 
 /**
  * @internal
@@ -37,23 +55,11 @@ export class RenderContext {
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
 
-  ssrForwardEnabled: boolean = false;
-  ssrVerifyReceiverDepth: boolean = false;
-  ssrBilateralSample: boolean = false;
-  ssrPackedDepthRG8: boolean = false;
-  ssrPackedNormalOct8: boolean = false;
-  ssrPackedHDRReinhard: boolean = false;
-  ssrMaxRoughness: number = 0.6;
-
-  resetSSRState(): void {
-    this.ssrForwardEnabled = false;
-    this.ssrVerifyReceiverDepth = false;
-    this.ssrBilateralSample = false;
-    this.ssrPackedDepthRG8 = false;
-    this.ssrPackedNormalOct8 = false;
-    this.ssrPackedHDRReinhard = false;
-    this.ssrMaxRoughness = 0.6;
-  }
+  /**
+   * Optional per-camera shader program resolver applied during `RenderQueue.render`.
+   * Reset at the start of each `Camera.render()` and during `garbageCollection()`.
+   */
+  programResolver: IShaderProgramResolver | null = null;
 
   applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection: boolean | null): void {
     this.virtualCamera = virtualCamera;
@@ -97,7 +103,7 @@ export class RenderContext {
 
   garbageCollection(): void {
     this.camera = null!;
-    this.resetSSRState();
+    this.programResolver = null;
   }
 }
 

@@ -74,19 +74,7 @@ export class Camera extends Component {
   set screenSpaceReflectionOverride(
     value: ScreenSpaceReflectionSettings | Partial<ScreenSpaceReflectionSettingsData> | null
   ) {
-    if (value == null) {
-      this._screenSpaceReflectionOverride = null;
-    } else if (value instanceof ScreenSpaceReflectionSettings) {
-      this._screenSpaceReflectionOverride = value;
-    } else if (typeof value === "object") {
-      const normalized = new ScreenSpaceReflectionSettings();
-      normalized.apply(value);
-      this._screenSpaceReflectionOverride = normalized;
-    } else {
-      throw new Error(
-        "Invalid Camera.screenSpaceReflectionOverride: expected ScreenSpaceReflectionSettings, settings object, or null."
-      );
-    }
+    this._screenSpaceReflectionOverride = ScreenSpaceReflectionSettings._normalizeOverride(value);
   }
 
   /**
@@ -661,7 +649,7 @@ export class Camera extends Component {
     context.replacementShader = this._replacementShader;
     context.replacementTag = this._replacementSubShaderTag;
     context.replacementFailureStrategy = this._replacementFailureStrategy;
-    context.resetSSRState();
+    context.programResolver = null;
 
     // compute cull frustum.
     if (this.enableFrustumCulling && this._frustumChangeFlag.flag) {
@@ -858,13 +846,9 @@ export class Camera extends Component {
    * @internal
    */
   _onClone(target: Camera): void {
-    if (this.screenSpaceReflectionOverride) {
-      const override = new ScreenSpaceReflectionSettings();
-      this.screenSpaceReflectionOverride.cloneTo(override);
-      target.screenSpaceReflectionOverride = override;
-    } else {
-      target.screenSpaceReflectionOverride = null;
-    }
+    target.screenSpaceReflectionOverride = this.screenSpaceReflectionOverride
+      ? this.screenSpaceReflectionOverride.clone()
+      : null;
   }
 
   /**

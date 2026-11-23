@@ -1,16 +1,19 @@
 import { Matrix, Vector4 } from "@galacean/engine-math";
-import type { EngineObject } from "../../base/EngineObject";
 import type { RenderTarget, Texture2D } from "../../texture";
 import { ScreenSpaceReflectionQuality } from "./ScreenSpaceReflectionQuality";
 
 /**
+ * Cross-frame history metadata, ping-pong GPU handles, and dirty-rect tracking owned by `ScreenSpaceReflectionPass`.
+ * GPU resource allocation and destruction are owned exclusively by `ScreenSpaceReflectionPass`.
  * @internal
- * Cross-frame history and ping-pong handles owned by `ScreenSpaceReflectionPass`.
  */
 export class SSRHistoryState {
+  // History readiness flags
   hasColorHistory: boolean = false;
   hasTemporalHistory: boolean = false;
   hasHiZHistory: boolean = false;
+
+  // Last-frame camera / resolution / encoding configuration snapshot for discontinuity checks
   lastFrameCount: number = -1;
   lastTraceWidth: number = 0;
   lastTraceHeight: number = 0;
@@ -19,37 +22,48 @@ export class SSRHistoryState {
   lastQuality: ScreenSpaceReflectionQuality = ScreenSpaceReflectionQuality.Medium;
   lastIsOrthographic: boolean = false;
   lastFarClip: number = 0;
-  pingPongIndex: 0 | 1 = 0;
+  lastIsHDR: boolean = false;
+  lastAliasRecvNR: boolean = false;
+  lastUsesPackedDepth: boolean = false;
+  lastUsesPackedNormal: boolean = false;
+  lastUsesPackedHDR: boolean = false;
+  lastUseHardwareStencil: boolean = true;
+  lastUseHighVirtual: boolean = false;
+  lastUseLinearTrace: boolean = false;
+
+  /** Active write slot index (`0 | 1`) for temporal reflection and receiver ping-pong buffers. */
+  temporalPingPongIndex: 0 | 1 = 0;
+  /** Active write slot index (`0 | 1`) for cross-frame Hi-Z depth ping-pong buffers. */
   hiZPingPongIndex: 0 | 1 = 0;
 
+  // Previous-frame reprojection transforms
   readonly prevVPMat = new Matrix();
   readonly prevInvProjMat = new Matrix();
   readonly prevInvViewMat = new Matrix();
+  /** Previous-frame view matrix Z row `(m2, m6, m10, m14)` used for fast view-space depth reprojection. */
   readonly prevViewZRow = new Vector4();
 
+  // Previous-frame color pyramid history
   prevColorPyramidRT: RenderTarget | null = null;
   prevColorPyramidTex: Texture2D | null = null;
 
+  // Cross-frame Hi-Z depth ping-pong textures and FBO wrappers
   readonly hiZTex: [Texture2D | null, Texture2D | null] = [null, null];
+  /** FBO wrappers pairing `hiZTex` with shared pass depth (`_ssrDepthTex`) for merged downsample + Hi-Z mip 0. */
   readonly hiZDepthMip0RT: [RenderTarget | null, RenderTarget | null] = [null, null];
+  /** Color-only FBO wrappers around `hiZTex` for mip-chain generation and standalone mip-0 writes. */
   readonly hiZColorRT: [RenderTarget | null, RenderTarget | null] = [null, null];
 
+  // Cross-frame temporal reflection and receiver ping-pong handles
   readonly ssrPingPongRT: [RenderTarget | null, RenderTarget | null] = [null, null];
   readonly ssrPingPongTex: [Texture2D | null, Texture2D | null] = [null, null];
   readonly recvDepthTex: [Texture2D | null, Texture2D | null] = [null, null];
+  /** Receiver normal+roughness textures; `null` when aliased to `ssrPingPongTex` under Medium quality. */
   readonly recvNRTex: [Texture2D | null, Texture2D | null] = [null, null];
 
-  // Track last written pixel bounds [x0, y0, x1, y1] per slot so scissored clears wipe any prior stale region.
+  /** Last written pixel bounds `[x0, y0, x1, y1]` per slot so scissored clears wipe any prior stale region. */
   readonly recvSlotDirtyRect: [Int32Array, Int32Array] = [new Int32Array(4), new Int32Array(4)];
   readonly ssrSlotDirtyRect: [Int32Array, Int32Array] = [new Int32Array(4), new Int32Array(4)];
-
-  /** @internal */
-  static _destroyResource<T extends EngineObject>(resource: T | null): null {
-    if (resource && !resource.destroyed) {
-      resource._destroyImmediate();
-    }
-    return null;
-  }
 
   /**
    * Mark every slot dirty across the full trace resolution so the next scissored clear sweeps stale borders.
@@ -72,17 +86,7 @@ export class SSRHistoryState {
   }
 
   /**
-   * Reset all per-slot dirty rectangles to empty `[0, 0, 0, 0]`.
-   */
-  resetDirtyRects(): void {
-    for (let i = 0; i < 2; i++) {
-      this.recvSlotDirtyRect[i].fill(0);
-      this.ssrSlotDirtyRect[i].fill(0);
-    }
-  }
-
-  /**
-   * Invalidate both color history and temporal reflection history.
+   * Invalidate color, temporal reflection, and Hi-Z history flags, reset `lastFrameCount`, and mark all slots dirty.
    */
   invalidateAll(): void {
     this.hasColorHistory = false;
@@ -93,57 +97,33 @@ export class SSRHistoryState {
   }
 
   /**
-   * Invalidate only temporal reflection history while retaining color history if valid.
+   * Reset all history flags, last-frame metadata snapshots, ping-pong indices, and dirty rects.
    */
-  invalidateTemporal(): void {
+  resetMetadata(): void {
+    this.hasColorHistory = false;
     this.hasTemporalHistory = false;
-  }
-
-  /**
-   * Release all temporal ping-pong buffers (used when switching to Low quality or invalidating temporal state).
-   */
-  releaseTemporalBuffers(): void {
-    this.ssrPingPongRT[0] = SSRHistoryState._destroyResource(this.ssrPingPongRT[0]);
-    this.ssrPingPongRT[1] = SSRHistoryState._destroyResource(this.ssrPingPongRT[1]);
-    this.ssrPingPongTex[0] = SSRHistoryState._destroyResource(this.ssrPingPongTex[0]);
-    this.ssrPingPongTex[1] = SSRHistoryState._destroyResource(this.ssrPingPongTex[1]);
-    this.hasTemporalHistory = false;
-  }
-
-  /**
-   * Destroy all cross-frame RenderTarget shells first, then all underlying Texture2Ds.
-   */
-  releaseResources(): void {
-    // Destroy FBO wrappers before owned textures to keep refcount/GL deletion clean.
-    this.prevColorPyramidRT = SSRHistoryState._destroyResource(this.prevColorPyramidRT);
-    this.hiZDepthMip0RT[0] = SSRHistoryState._destroyResource(this.hiZDepthMip0RT[0]);
-    this.hiZDepthMip0RT[1] = SSRHistoryState._destroyResource(this.hiZDepthMip0RT[1]);
-    this.hiZColorRT[0] = SSRHistoryState._destroyResource(this.hiZColorRT[0]);
-    this.hiZColorRT[1] = SSRHistoryState._destroyResource(this.hiZColorRT[1]);
-    this.ssrPingPongRT[0] = SSRHistoryState._destroyResource(this.ssrPingPongRT[0]);
-    this.ssrPingPongRT[1] = SSRHistoryState._destroyResource(this.ssrPingPongRT[1]);
-
-    this.prevColorPyramidTex = SSRHistoryState._destroyResource(this.prevColorPyramidTex);
-    this.hiZTex[0] = SSRHistoryState._destroyResource(this.hiZTex[0]);
-    this.hiZTex[1] = SSRHistoryState._destroyResource(this.hiZTex[1]);
-    this.ssrPingPongTex[0] = SSRHistoryState._destroyResource(this.ssrPingPongTex[0]);
-    this.ssrPingPongTex[1] = SSRHistoryState._destroyResource(this.ssrPingPongTex[1]);
-    this.recvDepthTex[0] = SSRHistoryState._destroyResource(this.recvDepthTex[0]);
-    this.recvDepthTex[1] = SSRHistoryState._destroyResource(this.recvDepthTex[1]);
-    this.recvNRTex[0] = SSRHistoryState._destroyResource(this.recvNRTex[0]);
-    this.recvNRTex[1] = SSRHistoryState._destroyResource(this.recvNRTex[1]);
-
-    this.pingPongIndex = 0;
-    this.hiZPingPongIndex = 0;
+    this.hasHiZHistory = false;
+    this.lastFrameCount = -1;
     this.lastTraceWidth = 0;
     this.lastTraceHeight = 0;
     this.lastColorWidth = 0;
     this.lastColorHeight = 0;
-    this.invalidateAll();
-    this.resetDirtyRects();
-  }
-
-  destroy(): void {
-    this.releaseResources();
+    this.lastQuality = ScreenSpaceReflectionQuality.Medium;
+    this.lastIsOrthographic = false;
+    this.lastFarClip = 0;
+    this.lastIsHDR = false;
+    this.lastAliasRecvNR = false;
+    this.lastUsesPackedDepth = false;
+    this.lastUsesPackedNormal = false;
+    this.lastUsesPackedHDR = false;
+    this.lastUseHardwareStencil = true;
+    this.lastUseHighVirtual = false;
+    this.lastUseLinearTrace = false;
+    this.temporalPingPongIndex = 0;
+    this.hiZPingPongIndex = 0;
+    for (let i = 0; i < 2; i++) {
+      this.recvSlotDirtyRect[i].fill(0);
+      this.ssrSlotDirtyRect[i].fill(0);
+    }
   }
 }
