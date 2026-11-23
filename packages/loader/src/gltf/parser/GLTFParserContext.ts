@@ -112,15 +112,13 @@ export class GLTFParserContext {
       shouldHandleSubAsset = !!glTFResourceMap[type];
     }
 
-    if (resource instanceof AssetPromise || resource instanceof Promise) {
-      const rawPromise = resource as AssetPromise<T | null> | Promise<T | null>;
-      if (rawPromise instanceof AssetPromise) {
-        this._getPromises.push(rawPromise);
-      }
+    if (resource instanceof AssetPromise) {
+      const rawPromise = resource;
+      this._getPromises.push(rawPromise);
       resource = new AssetPromise<T | null>((resolve, reject) => {
         rawPromise.then(
           (value) => {
-            if (!this._aborted) resolve(value);
+            if (!this._aborted) resolve(value as T | null);
           },
           (reason) => {
             if (!this._aborted) reject(reason);
