@@ -22,7 +22,8 @@ export default tseslint.config(
     files: ["packages/*/src/**/*.ts"],
     extends: asWarnings([eslint.configs.recommended, ...tseslint.configs.recommended]),
     languageOptions: { parser: tseslint.parser, sourceType: "module" },
-    plugins: { "@typescript-eslint": tseslint.plugin }
+    plugins: { "@typescript-eslint": tseslint.plugin },
+    rules: { "@typescript-eslint/no-unused-expressions": "off" }
   },
   // Turn off ESLint rules that conflict with Prettier; formatting is owned by the Prettier CLI
   prettier
