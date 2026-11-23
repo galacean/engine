@@ -147,11 +147,16 @@ export class TextureCube extends Texture {
   }
 
   /** Read a region after all previously encoded draws and copies are available. */
-  async getPixelBufferAsync(face: TextureCubeFace, ...args: TextureReadArguments): Promise<void> {
-    const region = this._readRegion(args);
-    const platform = this._platformTexture as IPlatformTextureCube;
-    if (platform.getPixelBufferAsync) return platform.getPixelBufferAsync(face, ...region);
-    platform.getPixelBuffer(face, ...region);
+  getPixelBufferAsync(face: TextureCubeFace, ...args: TextureReadArguments): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const region = this._readRegion(args);
+      const platform = this._platformTexture as IPlatformTextureCube;
+      resolve(
+        platform.getPixelBufferAsync
+          ? platform.getPixelBufferAsync(face, ...region)
+          : platform.getPixelBuffer(face, ...region)
+      );
+    });
   }
 
   /**

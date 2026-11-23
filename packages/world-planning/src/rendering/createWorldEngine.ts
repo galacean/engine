@@ -8,22 +8,22 @@ export function seedWorldRhi(url: URL): RHIMode {
 }
 
 /** Create the requested renderer for a Seed world or its planning viewport. */
-export async function createWorldEngine(
+export function createWorldEngine(
   options: EngineConfiguration & { canvas: HTMLCanvasElement | OffscreenCanvas | string; rhi?: RHIMode }
 ): Promise<Engine> {
   const { rhi = RHIMode.Auto, ...configuration } = options;
+  const createWebGL2 = (): Promise<Engine> =>
+    Promise.all([import("@galacean/engine"), import("@galacean/engine-shader-compiler")]).then(
+      ([{ WebGLEngine }, { ShaderCompiler }]) =>
+        WebGLEngine.create({ ...configuration, shaderCompiler: configuration.shaderCompiler ?? new ShaderCompiler() })
+    );
   if (rhi === RHIMode.WebGPU || (rhi === RHIMode.Auto && globalThis.navigator?.gpu)) {
-    const { WebGPUEngine, WebGPUDeviceUnavailableError } = await import("@galacean/engine-webgpu");
-    try {
-      return await WebGPUEngine.create(configuration);
-    } catch (error) {
-      if (rhi !== RHIMode.Auto || !(error instanceof WebGPUDeviceUnavailableError)) throw error;
-    }
+    return import("@galacean/engine-webgpu").then(({ WebGPUEngine, WebGPUDeviceUnavailableError }) =>
+      WebGPUEngine.create(configuration).catch((error) => {
+        if (rhi === RHIMode.Auto && error instanceof WebGPUDeviceUnavailableError) return createWebGL2();
+        throw error;
+      })
+    );
   }
-
-  const [{ WebGLEngine }, { ShaderCompiler }] = await Promise.all([
-    import("@galacean/engine"),
-    import("@galacean/engine-shader-compiler")
-  ]);
-  return WebGLEngine.create({ ...configuration, shaderCompiler: configuration.shaderCompiler ?? new ShaderCompiler() });
+  return createWebGL2();
 }

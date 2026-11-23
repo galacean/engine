@@ -22,8 +22,7 @@ const buildVersion = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "packa
 const shaderModules = new Map([
   ["@galacean/engine-shader", "shaders.ts"],
   ["@galacean/engine-shader/sources", "sources.ts"],
-  ["@galacean/engine-shader/webgpu", "webgpu/shaders.ts"],
-  ["@galacean/engine-shader/webgpu/sources", "webgpu/sources.ts"]
+  ["@galacean/engine-shader/webgpu", "webgpu/shaders.ts"]
 ]);
 
 /** Opt-in source substitution. Module identities remain the native paths, so

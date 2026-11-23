@@ -29,12 +29,9 @@ export const graphicsCapabilities = {
   },
 
   /** Query for a WebGPU adapter without allocating a device or binding a canvas. */
-  async isWebGPUSupported() {
-    try {
-      const adapter = await globalThis.navigator?.gpu?.requestAdapter({ xrCompatible: "XRGPUBinding" in globalThis });
-      return !!adapter;
-    } catch {
-      return false;
-    }
+  isWebGPUSupported() {
+    return new Promise((resolve) => {
+      resolve(globalThis.navigator?.gpu?.requestAdapter({ xrCompatible: "XRGPUBinding" in globalThis }));
+    }).then(Boolean, () => false);
   }
 };

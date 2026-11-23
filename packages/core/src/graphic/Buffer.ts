@@ -314,10 +314,15 @@ export class Buffer extends GraphicsResource {
   }
 
   /** Read the GPU contents, including earlier writes in the current frame. */
-  async getDataAsync(data: ArrayBufferView, bufferByteOffset = 0, dataOffset = 0, dataLength?: number): Promise<void> {
-    const platform = this._platformBuffer;
-    if (platform.getDataAsync) return platform.getDataAsync(data, bufferByteOffset, dataOffset, dataLength);
-    platform.getData(data, bufferByteOffset, dataOffset, dataLength);
+  getDataAsync(data: ArrayBufferView, bufferByteOffset = 0, dataOffset = 0, dataLength?: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const platform = this._platformBuffer;
+      resolve(
+        platform.getDataAsync
+          ? platform.getDataAsync(data, bufferByteOffset, dataOffset, dataLength)
+          : platform.getData(data, bufferByteOffset, dataOffset, dataLength)
+      );
+    });
   }
 
   /**

@@ -209,18 +209,11 @@ export class RenderTarget extends GraphicsResource {
       memorySize *= antiAliasing;
     }
 
-    try {
-      this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
-    } catch (error) {
-      this.destroy();
-      throw error;
-    }
     this._memorySize = memorySize;
     try {
       this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
-    } catch (error) {
-      this._destroyImmediate(true);
-      throw error;
+    } finally {
+      if (!this._platformRenderTarget) this._destroyImmediate(true);
     }
     if (!engine._isDeviceLost) {
       engine._renderingStatistics._textureMemory += memorySize;

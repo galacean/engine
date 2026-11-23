@@ -37,25 +37,28 @@ describe("Engine graphics capabilities", () => {
     }
   });
 
-  it("reports whether WebGPU can acquire an adapter without requesting a device", async () => {
+  it("reports whether WebGPU can acquire an adapter without requesting a device", () => {
     const requestDevice = vi.fn();
     const requestAdapter = vi
       .fn()
       .mockResolvedValueOnce({ requestDevice })
       .mockResolvedValueOnce(null)
-      .mockRejectedValueOnce(new Error("Adapter unavailable"));
+      .mockRejectedValueOnce(new Error("Adapter unavailable"))
+      .mockImplementationOnce(() => {
+        throw new Error("Adapter access denied");
+      });
     const original = Object.getOwnPropertyDescriptor(navigator, "gpu");
-    try {
-      Object.defineProperty(navigator, "gpu", { configurable: true, value: { requestAdapter } });
-      expect(await Engine.isWebGPUSupported()).toBe(true);
-      expect(await Engine.isWebGPUSupported()).toBe(false);
-      expect(await Engine.isWebGPUSupported()).toBe(false);
-      expect(requestDevice).not.toHaveBeenCalled();
-      Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined });
-      expect(await Engine.isWebGPUSupported()).toBe(false);
-    } finally {
-      if (original) Object.defineProperty(navigator, "gpu", original);
-      else Reflect.deleteProperty(navigator, "gpu");
-    }
+    Object.defineProperty(navigator, "gpu", { configurable: true, value: { requestAdapter } });
+    return Promise.all(Array.from({ length: 4 }, () => Engine.isWebGPUSupported()))
+      .then((supported) => {
+        expect(supported).toEqual([true, false, false, false]);
+        expect(requestDevice).not.toHaveBeenCalled();
+        Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined });
+        return expect(Engine.isWebGPUSupported()).resolves.toBe(false);
+      })
+      .finally(() => {
+        if (original) Object.defineProperty(navigator, "gpu", original);
+        else Reflect.deleteProperty(navigator, "gpu");
+      });
   });
 });

@@ -117,24 +117,25 @@ export class GLBuffer implements IPlatformBuffer {
     this._gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
   }
 
-  async getDataAsync(data: ArrayBufferView, offset = 0, dataOffset = 0, dataLength?: number): Promise<void> {
+  getDataAsync(data: ArrayBufferView, offset = 0, dataOffset = 0, dataLength?: number): Promise<void> {
     const gl = this._gl;
-    const unit = (data as Uint8Array).BYTES_PER_ELEMENT || 1;
-    const length = dataLength === undefined ? data.byteLength - dataOffset * unit : dataLength * unit;
-    if (
-      offset < 0 ||
-      dataOffset < 0 ||
-      length < 0 ||
-      offset + length > this._byteLength ||
-      dataOffset * unit + length > data.byteLength
-    ) {
-      throw new RangeError("Buffer read exceeds the source or destination range.");
-    }
-    if (!length) return;
-    const staging = gl.createBuffer();
-    if (!staging) throw new Error("Unable to allocate a WebGL readback buffer.");
+    let staging: WebGLBuffer | null = null;
     let fence: WebGLSync | null = null;
-    try {
+    return new Promise<void>((resolve) => {
+      const unit = (data as Uint8Array).BYTES_PER_ELEMENT || 1;
+      const length = dataLength === undefined ? data.byteLength - dataOffset * unit : dataLength * unit;
+      if (
+        offset < 0 ||
+        dataOffset < 0 ||
+        length < 0 ||
+        offset + length > this._byteLength ||
+        dataOffset * unit + length > data.byteLength
+      ) {
+        throw new RangeError("Buffer read exceeds the source or destination range.");
+      }
+      if (!length) return resolve();
+      staging = gl.createBuffer();
+      if (!staging) throw new Error("Unable to allocate a WebGL readback buffer.");
       if (this._glBindTarget === gl.ELEMENT_ARRAY_BUFFER) {
         const previous = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, staging);
@@ -149,23 +150,25 @@ export class GLBuffer implements IPlatformBuffer {
       fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
       if (!fence) throw new Error("Unable to fence a WebGL buffer readback.");
       gl.flush();
-      for (;;) {
-        const status = gl.clientWaitSync(fence, 0, 0);
+      const readWhenReady = (): void | Promise<void> => {
+        const status = gl.clientWaitSync(fence!, 0, 0);
         if (status === gl.WAIT_FAILED) throw new Error("WebGL buffer readback failed.");
-        if (status !== gl.TIMEOUT_EXPIRED) break;
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      }
-      gl.bindBuffer(gl.COPY_READ_BUFFER, staging);
-      gl.getBufferSubData(
-        gl.COPY_READ_BUFFER,
-        0,
-        new Uint8Array(data.buffer, data.byteOffset + dataOffset * unit, length)
-      );
-      gl.bindBuffer(gl.COPY_READ_BUFFER, null);
-    } finally {
-      gl.deleteSync(fence);
-      gl.deleteBuffer(staging);
-    }
+        if (status === gl.TIMEOUT_EXPIRED) {
+          return new Promise<void>((ready) => setTimeout(ready, 0)).then(readWhenReady);
+        }
+        gl.bindBuffer(gl.COPY_READ_BUFFER, staging);
+        gl.getBufferSubData(
+          gl.COPY_READ_BUFFER,
+          0,
+          new Uint8Array(data.buffer, data.byteOffset + dataOffset * unit, length)
+        );
+        gl.bindBuffer(gl.COPY_READ_BUFFER, null);
+      };
+      resolve(readWhenReady());
+    }).finally(() => {
+      if (fence) gl.deleteSync(fence);
+      if (staging) gl.deleteBuffer(staging);
+    });
   }
 
   copyFromBuffer(srcBuffer: IPlatformBuffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {

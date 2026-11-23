@@ -181,8 +181,7 @@ function rewriteViews(source: string, views: Map<string, View>): string {
   const functions = new Map<string, FunctionBody>(),
     compiled = new Map<string, string>();
   const pattern = /\bfn (\w+)\(/g;
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(source))) {
+  for (let match = pattern.exec(source); match; match = pattern.exec(source)) {
     const close = closing(source, pattern.lastIndex - 1, ")"),
       open = source.indexOf("{", close),
       end = closing(source, open, "}");
@@ -197,13 +196,12 @@ function rewriteViews(source: string, views: Map<string, View>): string {
     pattern.lastIndex = end + 1;
   }
   let prefix = "gs_layer_";
-  while (source.includes(prefix)) prefix += "x";
+  for (; source.includes(prefix); ) prefix += "x";
   function transform(body: string, visible: Map<string, Layer>): string {
     const calls = /\b(\w+)\(/g;
     let start = 0,
       out = "";
-    let call: RegExpExecArray | null;
-    while ((call = calls.exec(body))) {
+    for (let call = calls.exec(body); call; call = calls.exec(body)) {
       const name = call[1];
       if (!functions.has(name) && !name.startsWith("texture")) continue;
       const end = closing(body, calls.lastIndex - 1, ")");

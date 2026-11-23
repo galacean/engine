@@ -165,24 +165,29 @@ export class WorldPlanning3DView {
     this.syncVisibility();
   }
   /** Initialize lazily so the ordinary 2D editor does not pay the renderer startup cost. */
-  static async create(
+  static create(
     host: HTMLElement,
     onSelect: (id: string | null) => void,
     rhi: RHIMode = RHIMode.Auto,
     onEngineReady?: (engine: Engine) => void
   ): Promise<WorldPlanning3DView> {
-    const view = new WorldPlanning3DView(host, onSelect);
-    try {
-      await view.initialize(rhi);
-      onEngineReady?.(view.engine);
-      return view;
-    } catch (error) {
-      await view.dispose();
-      throw error;
-    }
+    return Promise.resolve().then(() => {
+      const view = new WorldPlanning3DView(host, onSelect);
+      return createWorldEngine({ canvas: view.canvas, rhi })
+        .then((engine) => view.initialize(engine))
+        .then(() => {
+          onEngineReady?.(view.engine);
+          return view;
+        })
+        .catch((error) =>
+          view.dispose().then(() => {
+            throw error;
+          })
+        );
+    });
   }
-  private async initialize(rhi: RHIMode): Promise<void> {
-    this.engine = await createWorldEngine({ canvas: this.canvas, rhi });
+  private initialize(engine: Engine): Promise<void> {
+    this.engine = engine;
     this.canvas.dataset.rhi = this.engine.graphicsBackend;
     this.canvas.dataset.renderer =
       this.engine.graphicsBackend === "webgpu" ? "galacean-webgpu-depth" : "galacean-webgl-depth";
@@ -249,9 +254,11 @@ export class WorldPlanning3DView {
       events
     );
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault(), events);
-    this.terrain = await PlanningTerrainView.create(this.engine, this.root, this.camera);
-    this.semantic = new DirectorSemanticView(this.engine, this.camera, this.root, this.canvas);
-    this.engine.run();
+    return PlanningTerrainView.create(this.engine, this.root, this.camera).then((terrain) => {
+      this.terrain = terrain;
+      this.semantic = new DirectorSemanticView(this.engine, this.camera, this.root, this.canvas);
+      this.engine.run();
+    });
   }
   /** Measurements may only consume the geometry snapshot currently published by all render adapters. */
   isPlanReady(plan: IslandPlan): boolean {
@@ -743,14 +750,15 @@ export class WorldPlanning3DView {
     if (!this.terrain) throw new Error("Terrain 尚未就绪");
     return this.recordTerrainDepth(this.terrain.captureDepth(observer, width, height), width, height);
   }
-  async captureTerrainDepthAsync(
+  captureTerrainDepthAsync(
     observer: import("../spatial/guidance/VisibilityQuery").Observer,
     width: number,
     height: number
   ): Promise<Uint8Array> {
-    if (!this.terrain) throw new Error("Terrain 尚未就绪");
-    const pixels = await this.terrain.captureDepthAsync(observer, width, height);
-    return this.recordTerrainDepth(pixels, width, height);
+    if (!this.terrain) return Promise.reject(new Error("Terrain 尚未就绪"));
+    return this.terrain
+      .captureDepthAsync(observer, width, height)
+      .then((pixels) => this.recordTerrainDepth(pixels, width, height));
   }
   private recordTerrainDepth(pixels: Uint8Array, width: number, height: number): Uint8Array {
     let valid = 0;
@@ -1126,12 +1134,11 @@ export class WorldPlanning3DView {
     this.canvas.remove();
     this.labelRoot.remove();
     // Water reflection services release asynchronous GPU resources before their engine is destroyed.
-    this.disposePromise = (async () => {
-      await this.publishQueue.catch(() => {});
-      try {
-        await this.productionRuntime?.dispose();
-        await this.productionWater?.destroy();
-      } finally {
+    this.disposePromise = this.publishQueue
+      .catch(() => {})
+      .then(() => this.productionRuntime?.dispose())
+      .then(() => this.productionWater?.destroy())
+      .finally(() => {
         this.productionWind?.dispose();
         this.semantic?.dispose();
         this.terrain?.dispose();
@@ -1145,8 +1152,7 @@ export class WorldPlanning3DView {
         this.surfaceTexture?.destroy();
         this.engine?.destroy();
         this.whitebox?.destroy();
-      }
-    })();
+      });
     return this.disposePromise;
   }
 }

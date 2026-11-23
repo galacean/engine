@@ -72,7 +72,7 @@ export function recoverLegacyInstancing(
   const fs = recoverStage(fragment, true);
   const names = new Set((vs.source + " " + fs.source).match(/[A-Za-z_]\w*/g));
   function available(name: string): string {
-    while (names.has(name)) name += "_";
+    for (; names.has(name); ) name += "_";
     return name;
   }
   return finalizeShaderUniforms(vs.source, fs.source, vs.sites, fs.sites, {
@@ -159,7 +159,7 @@ export function flattenUniformResources(stages: string[][], fields: readonly ISh
         end = i + 1;
       let field = group.fields.get(path);
       let index: number | undefined;
-      while (!field || (/sampler/.test(field.type) && field.arrayLength && index === undefined)) {
+      for (; !field || (/sampler/.test(field.type) && field.arrayLength && index === undefined); ) {
         if (stage[end] === ".") {
           path += "." + stage[end + 1];
           end += 2;
@@ -187,9 +187,8 @@ export function flattenUniformResources(stages: string[][], fields: readonly ISh
       if (!name) {
         name = fieldNames.get(path);
         if (!name) {
-          do {
-            name = "gs_resource_" + serial++;
-          } while (identifiers.has(name));
+          name = "gs_resource_" + serial++;
+          for (; identifiers.has(name); ) name = "gs_resource_" + serial++;
           identifiers.add(name);
           fieldNames.set(path, name);
           aliases.set(name, index === undefined ? { name: field.name } : { name: field.name, arrayIndex: index });

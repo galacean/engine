@@ -46,7 +46,7 @@ export class WebXRDevice implements IXRDevice {
     return platformFeatureConstructor ? new platformFeatureConstructor(...args) : null;
   }
 
-  async requestSession(
+  requestSession(
     graphicsDevice: unknown,
     mode: XRSessionMode,
     platformFeatures: WebXRFeature[]
@@ -54,33 +54,59 @@ export class WebXRDevice implements IXRDevice {
     const rhi = graphicsDevice as WebGLGraphicDevice | XRProjectionDevice | null;
     const gpu = rhi?.backend === "webgpu";
     const Binding = getXRGPUBinding();
-    if (gpu && !Binding) throw new Error("WebXR with WebGPU requires browser support for XRGPUBinding.");
+    if (gpu && !Binding)
+      return Promise.reject(new Error("WebXR with WebGPU requires browser support for XRGPUBinding."));
     if (!rhi || (!gpu && rhi.backend !== "webgl2"))
-      throw new Error("WebXR requires a WebGL2 or WebGPU graphics device.");
+      return Promise.reject(new Error("WebXR requires a WebGL2 or WebGPU graphics device."));
     const options: XRSessionInit = { requiredFeatures: gpu ? ["local", "webgpu"] : ["local"], optionalFeatures: [] };
-    await Promise.all(platformFeatures.map((feature) => feature._assembleOptions(options)));
-    const session = await navigator.xr!.requestSession(parseXRMode(mode)!, options).catch((error) => {
-      if (gpu && error?.name === "NotSupportedError")
-        throw new Error("The XR runtime does not support the required WebGPU session feature.");
-      throw error;
+    const featuresReady = new Promise<void[]>((resolve) => {
+      resolve(Promise.all(platformFeatures.map((feature) => feature._assembleOptions(options))));
     });
-    try {
-      if (rhi.backend === "webgpu") {
-        const binding = new Binding!(session, rhi.device);
-        const { depth, stencil } = rhi._options;
-        const layer = binding.createProjectionLayer({
-          colorFormat: binding.getPreferredColorFormat(),
-          depthStencilFormat: stencil ? "depth24plus-stencil8" : depth ? "depth24plus" : undefined,
-          // RENDER_ATTACHMENT | TEXTURE_BINDING | COPY_SRC allows overlay and opaque-copy passes to read the eye.
-          textureUsage: 0x10 | 0x04 | 0x01
-        });
-        session.updateRenderState({ layers: [layer] });
-        return new WebXRSession(rhi, session, layer, await session.requestReferenceSpace("local"), binding);
-      }
-      const { gl } = rhi;
-      const attributes = gl.getContextAttributes();
-      if (!attributes) throw new Error("WebXR could not access the WebGL2 context attributes.");
-      await gl.makeXRCompatible();
+    return featuresReady
+      .then(() =>
+        navigator.xr!.requestSession(parseXRMode(mode)!, options).catch((error) => {
+          if (gpu && error?.name === "NotSupportedError")
+            throw new Error("The XR runtime does not support the required WebGPU session feature.");
+          throw error;
+        })
+      )
+      .then((session) =>
+        Promise.resolve()
+          .then(() => this._createSession(rhi, session, Binding))
+          .catch((error) =>
+            session
+              .end()
+              .catch(() => {})
+              .then(() => {
+                throw error;
+              })
+          )
+      );
+  }
+
+  private _createSession(
+    rhi: WebGLGraphicDevice | XRProjectionDevice,
+    session: XRSession,
+    Binding: ReturnType<typeof getXRGPUBinding>
+  ): Promise<WebXRSession> {
+    if (rhi.backend === "webgpu") {
+      const binding = new Binding!(session, rhi.device);
+      const { depth, stencil } = rhi._options;
+      const layer = binding.createProjectionLayer({
+        colorFormat: binding.getPreferredColorFormat(),
+        depthStencilFormat: stencil ? "depth24plus-stencil8" : depth ? "depth24plus" : undefined,
+        // RENDER_ATTACHMENT | TEXTURE_BINDING | COPY_SRC allows overlay and opaque-copy passes to read the eye.
+        textureUsage: 0x10 | 0x04 | 0x01
+      });
+      session.updateRenderState({ layers: [layer] });
+      return session
+        .requestReferenceSpace("local")
+        .then((space) => new WebXRSession(rhi, session, layer, space, binding));
+    }
+    const { gl } = rhi;
+    const attributes = gl.getContextAttributes();
+    if (!attributes) throw new Error("WebXR could not access the WebGL2 context attributes.");
+    return gl.makeXRCompatible().then(() => {
       let layer: XRWebGLLayer;
       if (session.renderState.layers === undefined) {
         layer = new XRWebGLLayer(session, gl, {
@@ -95,11 +121,8 @@ export class WebXRDevice implements IXRDevice {
         layer = new XRWebGLLayer(session, gl);
         session.updateRenderState({ layers: [layer] });
       }
-      return new WebXRSession(rhi, session, layer, await session.requestReferenceSpace("local"));
-    } catch (error) {
-      await session.end().catch(() => {});
-      throw error;
-    }
+      return session.requestReferenceSpace("local").then((space) => new WebXRSession(rhi, session, layer, space));
+    });
   }
 }
 

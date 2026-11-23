@@ -11,7 +11,9 @@ export class MatrixSnapshot {
     const previous = this._values;
     if (this.revision >= 0) {
       let i = 0;
-      while (i < 16 && current[i] === previous[i]) ++i;
+      for (; i < 16; i++) {
+        if (current[i] !== previous[i]) break;
+      }
       if (i === 16) return false;
     }
     previous.set(current);

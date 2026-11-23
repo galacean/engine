@@ -372,52 +372,56 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
    * @param options - Adapter, device, and canvas options.
    * @returns Initialized WebGPU graphic device.
    */
-  static async create(canvas: WebCanvas, options: WebGPUGraphicDeviceOptions = {}): Promise<WebGPUGraphicDevice> {
-    let adapter: GPUAdapter;
-    let device: GPUDevice;
-    try {
-      adapter = await this._requestAdapter(options);
-      device = await this._requestDevice(adapter, options);
-    } catch (cause) {
-      throw new WebGPUDeviceUnavailableError(cause instanceof Error ? cause.message : String(cause), cause);
-    }
-    const nativeCanvas = canvas._webCanvas;
-    try {
-      const context = nativeCanvas.getContext("webgpu") as GPUCanvasContext | null;
-      if (!context) throw new WebGPUDeviceUnavailableError("Unable to create a WebGPU canvas context.");
-      return new WebGPUGraphicDevice(
-        nativeCanvas,
-        adapter,
-        device,
-        context,
-        navigator.gpu.getPreferredCanvasFormat(),
-        options
-      );
-    } catch (error) {
-      device.destroy();
-      throw error;
-    }
+  static create(canvas: WebCanvas, options: WebGPUGraphicDeviceOptions = {}): Promise<WebGPUGraphicDevice> {
+    let ownedDevice: GPUDevice | undefined;
+    return this._requestAdapter(options)
+      .then((adapter) =>
+        this._requestDevice(adapter, options).then((device) => {
+          ownedDevice = device;
+          const nativeCanvas = canvas._webCanvas;
+          const context = nativeCanvas.getContext("webgpu") as GPUCanvasContext | null;
+          if (!context) throw new WebGPUDeviceUnavailableError("Unable to create a WebGPU canvas context.");
+          return new WebGPUGraphicDevice(
+            nativeCanvas,
+            adapter,
+            device,
+            context,
+            navigator.gpu.getPreferredCanvasFormat(),
+            options
+          );
+        })
+      )
+      .catch((cause) => {
+        if (ownedDevice) {
+          ownedDevice.destroy();
+          throw cause;
+        }
+        throw new WebGPUDeviceUnavailableError(cause instanceof Error ? cause.message : String(cause), cause);
+      });
   }
 
   /** Query the browser for a usable adapter without creating a device or binding any canvas. */
-  static async isSupported(options: GPURequestAdapterOptions = {}): Promise<boolean> {
-    try {
-      await this._requestAdapter(options);
-      return true;
-    } catch {
-      return false;
-    }
+  static isSupported(options: GPURequestAdapterOptions = {}): Promise<boolean> {
+    return this._requestAdapter(options).then(
+      () => true,
+      () => false
+    );
   }
 
-  private static async _requestAdapter(options: GPURequestAdapterOptions): Promise<GPUAdapter> {
-    if (!globalThis.navigator?.gpu) throw new Error("WebGPU is not available in this browser.");
-    const adapter = await navigator.gpu.requestAdapter({
-      powerPreference: options.powerPreference,
-      forceFallbackAdapter: options.forceFallbackAdapter,
-      xrCompatible: options.xrCompatible ?? "XRGPUBinding" in globalThis
+  private static _requestAdapter(options: GPURequestAdapterOptions): Promise<GPUAdapter> {
+    return new Promise<GPUAdapter | null>((resolve) => {
+      if (!globalThis.navigator?.gpu) throw new Error("WebGPU is not available in this browser.");
+      resolve(
+        navigator.gpu.requestAdapter({
+          powerPreference: options.powerPreference,
+          forceFallbackAdapter: options.forceFallbackAdapter,
+          xrCompatible: options.xrCompatible ?? "XRGPUBinding" in globalThis
+        })
+      );
+    }).then((adapter) => {
+      if (!adapter) throw new Error("No WebGPU adapter is available.");
+      return adapter;
     });
-    if (!adapter) throw new Error("No WebGPU adapter is available.");
-    return adapter;
   }
 
   private static _requestDevice(adapter: GPUAdapter, options: WebGPUGraphicDeviceOptions): Promise<GPUDevice> {
@@ -693,12 +697,8 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
     else this._endCurrentPass();
   }
   supportsTextureFormat(format: TextureFormat): boolean {
-    let f: GPUTextureFormat;
-    try {
-      f = WebGPUTexture._getFormat(format, false);
-    } catch {
-      return false;
-    }
+    const f = WebGPUTexture._findFormat(format, false);
+    if (!f) return false;
     const feature: GPUFeatureName | undefined = f.startsWith("bc")
       ? "texture-compression-bc"
       : f.startsWith("etc")

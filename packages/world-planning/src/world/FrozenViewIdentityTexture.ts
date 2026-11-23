@@ -31,11 +31,14 @@ export class FrozenViewIdentityTexture implements ViewIdentityBuffer {
     texture.isGCIgnored = true;
     texture.engine.on(EngineEventType.DeviceLost, this.onLost);
   }
-  async prepareReadback(signal?: AbortSignal): Promise<void> {
-    const pixels = new Uint8Array(this.byteLength);
-    await this.texture.getPixelBufferAsync(pixels, signal);
-    this.pixels = pixels;
-    this.texture.destroy(true);
+  prepareReadback(signal?: AbortSignal): Promise<void> {
+    return new Promise<Uint8Array>((resolve) => {
+      const pixels = new Uint8Array(this.byteLength);
+      resolve(this.texture.getPixelBufferAsync(pixels, signal).then(() => pixels));
+    }).then((pixels) => {
+      this.pixels = pixels;
+      this.texture.destroy(true);
+    });
   }
   get identityBits(): number {
     return this.projection.identityBits;
@@ -62,9 +65,8 @@ export class FrozenViewIdentityTexture implements ViewIdentityBuffer {
     return pixels;
   }
   resolve(id: number): ViewRef | undefined {
-    let lo = 0,
-      hi = this.ranges.length;
-    while (lo < hi) {
+    let lo = 0;
+    for (let hi = this.ranges.length; lo < hi; ) {
       const mid = (lo + hi) >>> 1;
       if (this.ranges[mid]!.base <= id) lo = mid + 1;
       else hi = mid;

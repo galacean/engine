@@ -168,11 +168,16 @@ export class Texture2DArray extends Texture {
   }
 
   /** Read a region after all previously encoded draws and copies are available. */
-  async getPixelBufferAsync(elementIndex: number, ...args: TextureReadArguments): Promise<void> {
-    const region = this._readRegion(args);
-    const platform = this._platformTexture as IPlatformTexture2DArray;
-    if (platform.getPixelBufferAsync) return platform.getPixelBufferAsync(elementIndex, ...region);
-    platform.getPixelBuffer(elementIndex, ...region);
+  getPixelBufferAsync(elementIndex: number, ...args: TextureReadArguments): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const region = this._readRegion(args);
+      const platform = this._platformTexture as IPlatformTexture2DArray;
+      resolve(
+        platform.getPixelBufferAsync
+          ? platform.getPixelBufferAsync(elementIndex, ...region)
+          : platform.getPixelBuffer(elementIndex, ...region)
+      );
+    });
   }
 
   /**

@@ -8,7 +8,7 @@ export function lowerOutputArguments(source: string): string {
   const functions = new Set<string>();
   for (const signature of source.matchAll(/\bfn (\w+)\([^\n]*\bptr<function,/g)) functions.add(signature[1]);
   let prefix = "gs_output_arg";
-  while (source.includes(prefix)) prefix += "_";
+  for (; source.includes(prefix); ) prefix += "_";
   let next = 0;
   return source.replace(/^([ \t]*)(?:let \w+[^\n]*? = )?(\w+)\([^\n]*\(&[^\n]*;$/gm, (line, indent, name) => {
     if (!functions.has(name)) return line;

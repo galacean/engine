@@ -33,13 +33,12 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
   private _readError?: Error;
 
   /** Resolve once the shape can sample this mesh, including GPU-only vertex buffers. */
-  async prepare(): Promise<void> {
-    let pending: Promise<void> | undefined;
-    do {
-      pending = this._pending;
-      await pending;
-    } while (pending !== this._pending);
-    if (this._readError) throw this._readError;
+  prepare(): Promise<void> {
+    const pending = this._pending;
+    return Promise.resolve(pending).then(() => {
+      if (pending !== this._pending) return this.prepare();
+      if (this._readError) throw this._readError;
+    });
   }
 
   /** @internal */

@@ -217,7 +217,7 @@ export function shaderConstant(
     } else if (tokens[pos] === "(") {
       pos++;
       const args: ShaderConstant[] = [];
-      while (true) {
+      for (;;) {
         const arg = parse();
         if (!arg) return;
         args.push(arg);
@@ -236,7 +236,7 @@ export function shaderConstant(
       value = { type: "bool", values: [Number(token === "true")] };
     } else value = resolveIdentifier(token);
     if (!value) return;
-    while (tokens[pos] === "." || tokens[pos] === "[") {
+    for (; tokens[pos] === "." || tokens[pos] === "["; ) {
       if (tokens[pos++] === ".") {
         const swizzle = tokens[pos++] ?? "";
         const letters = ["xyzw", "rgba", "stpq"].find((set) => Array.from(swizzle).every((ch) => set.includes(ch)));
@@ -250,7 +250,7 @@ export function shaderConstant(
         value = { type: value.type, values: value.values.slice(start, start + (value.rows ?? 1)) };
       }
     }
-    while (Object.prototype.hasOwnProperty.call(precedence, tokens[pos]) && precedence[tokens[pos]] >= min) {
+    for (; Object.prototype.hasOwnProperty.call(precedence, tokens[pos]) && precedence[tokens[pos]] >= min; ) {
       const op = tokens[pos++];
       const rhs = parse(precedence[op] + 1);
       if (!rhs) return;

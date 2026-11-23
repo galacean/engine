@@ -378,8 +378,11 @@ export class ShaderInstructionEncoder {
     source = source.slice(from, to);
     from = 0;
     to = source.length;
-    let marker = source.indexOf("\x01", from);
-    while (marker >= from && marker < to) {
+    for (
+      let marker = source.indexOf("\x01", from);
+      marker >= from && marker < to;
+      marker = source.indexOf("\x01", from)
+    ) {
       ShaderInstructionEncoder._appendText(instructions, source, from, marker, owners, sites);
       const head = source.indexOf("\x01", marker + 1);
       const close = source.indexOf("\x01/\x01", head + 1);
@@ -405,7 +408,6 @@ export class ShaderInstructionEncoder {
           ? [ShaderPreprocessorDirective.Text, text]
           : [ShaderPreprocessorDirective.OwnedText, text, ...owners]
       );
-      marker = source.indexOf("\x01", from);
     }
     ShaderInstructionEncoder._appendText(instructions, source, from, to, owners, sites);
   }

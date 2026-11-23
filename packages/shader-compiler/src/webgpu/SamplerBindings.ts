@@ -27,7 +27,7 @@ export function removeUnusedSamplers(source: string): {
   function replaceCalls(text: string): string {
     for (const [name, skip] of removed) {
       const call = new RegExp("\\b" + name + "\\(", "g");
-      while (call.exec(text)) {
+      for (; call.exec(text); ) {
         const start = call.lastIndex;
         let end = start,
           depth = 1;

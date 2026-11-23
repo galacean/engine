@@ -709,10 +709,6 @@
     "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts"
   },
   {
-    "original": "packages/core/src/graphic/Primitive.ts",
-    "replacement": "packages/modify/src/native/core/src/graphic/Primitive.ts"
-  },
-  {
     "original": "packages/core/src/shader/Shader.ts",
     "replacement": "packages/modify/src/native/core/src/shader/Shader.ts"
   },

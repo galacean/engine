@@ -83,41 +83,37 @@ export function supportsUniformArrayPlan(sites: readonly IShaderUniformSelection
   // Bound the descriptor allocation even for a nested array product. Larger
   // shaders can still be published and linked using the historical format.
   const maxExpandedLeaves = 16384;
-  try {
-    for (const bound of deviceDependent ? [1, 0x7fffffff] : [1]) {
-      const stage = readStage("", sites, (name) =>
-        limits.test(name) ? (name === "gl_MinProgramTexelOffset" ? -bound : bound) : undefined
-      );
-      const counts = new Map<string, number>();
-      function leafCount(field: Field): number {
-        const members = stage.structs.get(field.type);
-        if (!members) return numeric.test(field.type) || /^[iu]?sampler/.test(field.type) ? 1 : Infinity;
-        let count = counts.get(field.type);
-        if (count === undefined) {
-          counts.set(field.type, Infinity);
-          count = members.reduce((total, child) => total + leafCount(child), 0);
-          counts.set(field.type, count);
-        }
-        return count * Math.max(1, field.arrayLength);
+  for (const bound of deviceDependent ? [1, 0x7fffffff] : [1]) {
+    const stage = readStage("", sites, (name) =>
+      limits.test(name) ? (name === "gl_MinProgramTexelOffset" ? -bound : bound) : undefined
+    );
+    if (stage instanceof Error) return false;
+    const { structs } = stage;
+    const counts = new Map<string, number>();
+    function leafCount(field: Field): number {
+      const members = structs.get(field.type);
+      if (!members) return numeric.test(field.type) || /^[iu]?sampler/.test(field.type) ? 1 : Infinity;
+      let count = counts.get(field.type);
+      if (count === undefined) {
+        counts.set(field.type, Infinity);
+        count = members.reduce((total, child) => total + leafCount(child), 0);
+        counts.set(field.type, count);
       }
-      if (stage.uniforms.reduce((total, field) => total + leafCount(field), 0) > maxExpandedLeaves) return false;
+      return count * Math.max(1, field.arrayLength);
     }
-  } catch (error) {
-    // Unexpanded precision/type macros may not be a declaration until a variant is selected.
-    if (error instanceof UnresolvedUniformArrayLength || error instanceof InvalidUniformDeclaration) return false;
-    throw error;
+    if (stage.uniforms.reduce((total, field) => total + leafCount(field), 0) > maxExpandedLeaves) return false;
   }
   return true;
 }
 
-function optionalLength(source: string): [expression: string | undefined, tail: string] {
+function optionalLength(source: string): [expression: string | undefined, tail: string] | InvalidUniformDeclaration {
   if (!source.startsWith("[")) return [undefined, source];
   let depth = 1;
   for (let i = 1; i < source.length; i++) {
     if (source[i] === "[") depth++;
     if (source[i] === "]" && --depth === 0) return [source.slice(1, i), source.slice(i + 1).trimStart()];
   }
-  throw new InvalidUniformDeclaration(`Unterminated uniform array declarator '${source}'.`);
+  return new InvalidUniformDeclaration(`Unterminated uniform array declarator '${source}'.`);
 }
 
 /** Decode only a single compiler-marked declaration, after its lexical macro environment has been applied. */
@@ -125,7 +121,7 @@ function readStage(
   source: string,
   selections: readonly IShaderUniformSelection[],
   deviceConstant?: (name: string) => number | undefined
-): Stage {
+): Stage | Error {
   const stage: Stage = {
     source,
     uniforms: [],
@@ -178,16 +174,19 @@ function readStage(
     const declaration = /^\s*(?:uniform\s+)?(?:(highp|mediump|lowp)\s+)?([A-Za-z_]\w*)\b\s*([\s\S]*?)\s*;\s*$/.exec(
       text
     );
-    if (!declaration) throw new InvalidUniformDeclaration(`Cannot reflect selected uniform declaration '${text}'.`);
+    if (!declaration) return new InvalidUniformDeclaration(`Cannot reflect selected uniform declaration '${text}'.`);
     const [, qualifier, type, tail] = declaration;
-    const [typeLength, declarators] = optionalLength(tail);
-    let remaining = declarators;
-    while (remaining) {
+    const typeSpec = optionalLength(tail);
+    if (typeSpec instanceof Error) return typeSpec;
+    const [typeLength, declarators] = typeSpec;
+    for (let remaining = declarators; remaining; ) {
       const match = /^([A-Za-z_]\w*)\s*/.exec(remaining);
-      if (!match) throw new InvalidUniformDeclaration(`Cannot reflect selected uniform declaration '${text}'.`);
-      const [variableLength, rest] = optionalLength(remaining.slice(match[0].length));
+      if (!match) return new InvalidUniformDeclaration(`Cannot reflect selected uniform declaration '${text}'.`);
+      const variableSpec = optionalLength(remaining.slice(match[0].length));
+      if (variableSpec instanceof Error) return variableSpec;
+      const [variableLength, rest] = variableSpec;
       if ((typeLength && variableLength) || (rest && !rest.startsWith(",")))
-        throw new InvalidUniformDeclaration(`Invalid uniform declarator '${text}'.`);
+        return new InvalidUniformDeclaration(`Invalid uniform declarator '${text}'.`);
       remaining = rest.slice(1).trimStart();
       const expression = typeLength ?? variableLength;
       const result = expression !== undefined ? shaderConstant(expression, resolveIdentifier)?.values[0] : 0;
@@ -197,7 +196,7 @@ function readStage(
       const arrayLength =
         expression === undefined ? 0 : result !== undefined && Number.isSafeInteger(result) && result > 0 ? result : -1;
       if (expression !== undefined && arrayLength <= 0 && !numeric.test(type))
-        throw new UnresolvedUniformArrayLength(match[1], type, expression);
+        return new UnresolvedUniformArrayLength(match[1], type, expression);
       let precision = qualifier ?? "";
       if (!precision && numeric.test(type) && type !== "bool" && !type.startsWith("bvec")) {
         const category = /^(?:int|uint|ivec|uvec)/.test(type) ? "int" : "float";
@@ -319,7 +318,9 @@ export function finalizeShaderUniforms(
   }
 ): IShaderUniformVariant {
   const vertex = readStage(vertexSource, vertexSites, options.resolveConstant);
+  if (vertex instanceof Error) throw vertex;
   const fragment = readStage(fragmentSource, fragmentSites, options.resolveConstant);
+  if (fragment instanceof Error) throw fragment;
   const stages = [vertex, fragment];
   const { maxBlockBytes, maxBindings } = options;
   const blocks: IShaderUniformBlock[] = [];
@@ -360,9 +361,8 @@ export function finalizeShaderUniforms(
   let vertexBlocks = reserved;
   let fragmentBlocks = reserved;
   function newBlock(mask: number): IShaderUniformBlock {
-    let bindingName: string;
-    do bindingName = `gs_Auto_${nextName++}`;
-    while (vertexNames.has(bindingName) || fragmentNames.has(bindingName));
+    let bindingName = `gs_Auto_${nextName++}`;
+    for (; vertexNames.has(bindingName) || fragmentNames.has(bindingName); ) bindingName = `gs_Auto_${nextName++}`;
     const block: IShaderUniformBlock = { name: "Auto", bindingName, byteLength: 0, members: [] };
     blocks.push(block);
     if (mask & 1) vertexBlocks++;

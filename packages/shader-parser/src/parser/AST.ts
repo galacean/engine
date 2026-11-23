@@ -1828,9 +1828,8 @@ namespace ASTNodes {
       this.name = (this.children[1] as BaseToken).lexeme;
       this.members.length = 0;
       let list = this.children[3] as TreeNode;
-      while (list.children.length === 3) {
+      for (; list.children.length === 3; list = list.children[0] as TreeNode) {
         this.members.push(list.children[1] as VariableDeclaration);
-        list = list.children[0] as TreeNode;
       }
       this.members.push(list.children[0] as VariableDeclaration);
       this.members.reverse();

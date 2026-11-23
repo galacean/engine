@@ -128,26 +128,33 @@ export class Texture2D extends Texture {
   getPixelBufferAsync(out: ArrayBufferView, signal?: AbortSignal): Promise<void>;
   /** Read a region after all previously encoded draws and copies are available. */
   getPixelBufferAsync(...args: TextureReadArguments): Promise<void>;
-  async getPixelBufferAsync(...args: TextureReadArguments | [ArrayBufferView, AbortSignal?]): Promise<void> {
-    const first = args[0];
-    const wholeImage = ArrayBuffer.isView(first);
-    const signal = wholeImage ? (args[1] as AbortSignal | undefined) : undefined;
-    signal?.throwIfAborted();
-    const platform = this._platformTexture as IPlatformTexture2D;
-    if (wholeImage && platform.getPixelBufferAsyncRGBA8 && first instanceof Uint8Array) {
-      if (
-        this.destroyed ||
-        this.format !== TextureFormat.R8G8B8A8_UNorm ||
-        first.byteLength < this.width * this.height * 4
-      ) {
-        throw new Error("Async readback requires a live RGBA8 texture and a sufficient Uint8Array");
+  getPixelBufferAsync(...args: TextureReadArguments | [ArrayBufferView, AbortSignal?]): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const first = args[0];
+      const wholeImage = ArrayBuffer.isView(first);
+      const signal = wholeImage ? (args[1] as AbortSignal | undefined) : undefined;
+      signal?.throwIfAborted();
+      const platform = this._platformTexture as IPlatformTexture2D;
+      if (wholeImage && platform.getPixelBufferAsyncRGBA8 && first instanceof Uint8Array) {
+        if (
+          this.destroyed ||
+          this.format !== TextureFormat.R8G8B8A8_UNorm ||
+          first.byteLength < this.width * this.height * 4
+        ) {
+          throw new Error("Async readback requires a live RGBA8 texture and a sufficient Uint8Array");
+        }
+        resolve(platform.getPixelBufferAsyncRGBA8(first, signal));
+        return;
       }
-      return platform.getPixelBufferAsyncRGBA8(first, signal);
-    }
-    const region = this._readRegion(wholeImage ? [first] : (args as TextureReadArguments));
-    if (platform.getPixelBufferAsync) await platform.getPixelBufferAsync(...region);
-    else platform.getPixelBuffer(...region);
-    signal?.throwIfAborted();
+      const region = this._readRegion(wholeImage ? [first] : (args as TextureReadArguments));
+      if (platform.getPixelBufferAsync) {
+        resolve(platform.getPixelBufferAsync(...region).then(() => signal?.throwIfAborted()));
+      } else {
+        platform.getPixelBuffer(...region);
+        signal?.throwIfAborted();
+        resolve();
+      }
+    });
   }
 
   /**

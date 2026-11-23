@@ -376,15 +376,16 @@ export class SeedWorldPicker {
   ): Promise<ViewFrame> {
     this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
     return this.frameCapture.request(
-      async (photo) => {
+      (photo) => {
         const frame = this.captureIdentity(visit, resolveRef, photo, budget);
-        try {
-          if (this.camera.engine._hardwareRenderer.backend === "webgpu") await frame.identities.prepareReadback(signal);
-          return frame;
-        } catch (error) {
-          frame.identities.dispose();
-          throw error;
-        }
+        if (this.camera.engine._hardwareRenderer.backend !== "webgpu") return frame;
+        return frame.identities.prepareReadback(signal).then(
+          () => frame,
+          (error) => {
+            frame.identities.dispose();
+            throw error;
+          }
+        );
       },
       signal,
       budget,

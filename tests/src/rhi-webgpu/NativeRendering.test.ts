@@ -828,4 +828,53 @@ describe.skipIf(!navigator.gpu)("Native WebGPU rendering", () => {
     await depth.getPixelBufferAsync(TextureCubeFace.PositiveX, 1, z);
     expect(z.every((value) => value === 1)).toBe(true);
   });
+
+  it.each([
+    ["buffer", "encoding"],
+    ["texture", "encoding"],
+    ["buffer", "mapping"],
+    ["texture", "mapping"]
+  ] as const)("releases the %s staging buffer when %s fails", (kind, operation) => {
+    const source =
+      kind === "buffer"
+        ? new Buffer(engine, BufferBindFlag.VertexBuffer, 4, BufferUsage.Dynamic)
+        : new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const staging = rhi.device.createBuffer({ size: 256, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+    const allocate = vi.spyOn(rhi.device, "createBuffer").mockReturnValueOnce(staging);
+    const destroy = vi.spyOn(staging, "destroy");
+    const cause = new Error(`forced ${operation} failure`);
+    const copy = kind === "buffer" ? "copyBufferToBuffer" : "copyTextureToBuffer";
+    const fault =
+      operation === "mapping"
+        ? vi.spyOn(staging, "mapAsync").mockRejectedValueOnce(cause)
+        : vi.spyOn(GPUCommandEncoder.prototype, copy).mockImplementationOnce(() => {
+            throw cause;
+          });
+    const out = new Uint8Array(4);
+    return Promise.resolve()
+      .then(() => {
+        const read = source instanceof Buffer ? source.getDataAsync(out) : source.getPixelBufferAsync(out);
+        const immediateCalls = fault.mock.calls.length;
+        return expect(read)
+          .rejects.toBe(cause)
+          .then(() => {
+            expect(immediateCalls).toBe(1);
+            expect(destroy).toHaveBeenCalledOnce();
+          });
+      })
+      .finally(() => {
+        fault.mockRestore();
+        destroy.mockRestore();
+        allocate.mockRestore();
+        source.destroy();
+      });
+  });
+
+  it("reports unsupported texture formats without throwing during capability queries", () => {
+    for (const format of [TextureFormat.PVRTC_RGBA4, -1 as TextureFormat]) {
+      expect(rhi.supportsTextureFormat(format)).toBe(false);
+      expect(rhi.supportsRenderTargetColorFormat(format)).toBe(false);
+      expect(rhi.supportsGenerateMipmaps(format, false)).toBe(false);
+    }
+  });
 });

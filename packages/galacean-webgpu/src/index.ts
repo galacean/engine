@@ -25,21 +25,21 @@ let builtinShaders: Core.BuiltinShaders;
 export class WebGPUEngine extends PlatformEngine {
   private static _compiler?: ReturnType<typeof createWebGPUShaderCompiler>;
 
-  protected static override async _prepareConfiguration(
+  protected static override _prepareConfiguration(
     configuration: WebGPUEngineConfiguration
   ): Promise<WebGPUEngineConfiguration> {
-    const webGPUShaderCompiler =
-      configuration.webGPUShaderCompiler ??
-      (await (this._compiler ??= createWebGPUShaderCompiler().catch((error) => {
-        this._compiler = undefined;
-        throw error;
-      })));
-    return {
+    const compiler = configuration.webGPUShaderCompiler
+      ? Promise.resolve(configuration.webGPUShaderCompiler)
+      : (this._compiler ??= createWebGPUShaderCompiler().catch((error) => {
+          this._compiler = undefined;
+          throw error;
+        }));
+    return compiler.then((webGPUShaderCompiler) => ({
       ...configuration,
       builtinShaderIncludes: sources.shaderLibrary,
       webGPUShaderCompiler,
       shaderCompiler: configuration.shaderCompiler ?? new ShaderCompiler(webGPUShaderCompiler),
       builtinShaders: configuration.builtinShaders ?? (builtinShaders ??= Core.createBuiltinShaders(sources))
-    };
+    }));
   }
 }

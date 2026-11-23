@@ -531,45 +531,44 @@ export class SeedWorldTerrainRuntime {
           : undefined;
       const activeDecorations = inspectionTile ? filterDecorationsToTile(decorations, inspectionTile) : decorations;
       const needsRockDither = activeDecorations.some(({ category }) => category === "rock" || category === "stone");
-      const [terrainMaterial, surfacePair, soilTexture, diffuse, normal, microNormal, paletteTextures] =
-        await Promise.all([
-          engine.resourceManager.load<Material>({
-            type: AssetType.Material,
-            url: SEED_WORLD_TERRAIN_MATERIAL_URL
-          }),
-          createSeedWorldSharedSurfaceTexture(engine).then(async (tex) => {
-            grassColorFieldTexture = tex;
-            signal?.throwIfAborted();
-            const relief = await SeedWorldSurfaceReliefRuntime.create(engine, fields, surfaceIntent, tex, signal);
+      const { terrainMaterial, surfacePair, soilTexture, microNormal, surface, layers } = await Promise.all([
+        engine.resourceManager.load<Material>({
+          type: AssetType.Material,
+          url: SEED_WORLD_TERRAIN_MATERIAL_URL
+        }),
+        createSeedWorldSharedSurfaceTexture(engine).then((tex) => {
+          grassColorFieldTexture = tex;
+          signal?.throwIfAborted();
+          return SeedWorldSurfaceReliefRuntime.create(engine, fields, surfaceIntent, tex, signal).then((relief) => {
             surfaceRelief = relief;
             return { tex, relief };
-          }),
-          surfaceIntent.soilCoverage
-            ? loadPlanningFarmDirtTexture(engine, !!surfaceOptions.baseTextureUrl?.trim() || !!surfaceOptions.palette)
-            : undefined,
-          loadSurfaceTexture(surfaceOptions.baseTextureUrl, true),
-          loadSurfaceTexture(surfaceOptions.normalTextureUrl, false),
-          loadSurfaceTexture(surfaceOptions.microNormalTextureUrl, false),
-          Promise.all((surfaceOptions.palette?.layers ?? []).map((l) => loadSurfaceTexture(l.textureUrl, true)!)),
-          needsRockDither ? prepareRockLodDither(engine) : undefined
-        ]);
-      grassColorFieldTexture = surfacePair.tex;
-      surfaceRelief = surfacePair.relief;
-      signal?.throwIfAborted();
-      const surface =
-        diffuse || normal || paletteTextures.length
-          ? {
-              diffuse,
-              normal,
-              palette: surfaceOptions.palette,
-              paletteTextures,
-              tileMetres: surfaceOptions.tileMetres ?? 8,
-              normalScale: surfaceOptions.normalScale ?? 1
-            }
-          : undefined;
-      const layers = buildLayerSources(fields, surfaceIntent, soilTexture, surface);
-      if (engine._hardwareRenderer.backend === "webgpu") {
-        // Layer packing resamples these pixels on the CPU. Populate the readback cache at the async load boundary.
+          });
+        }),
+        surfaceIntent.soilCoverage
+          ? loadPlanningFarmDirtTexture(engine, !!surfaceOptions.baseTextureUrl?.trim() || !!surfaceOptions.palette)
+          : undefined,
+        loadSurfaceTexture(surfaceOptions.baseTextureUrl, true),
+        loadSurfaceTexture(surfaceOptions.normalTextureUrl, false),
+        loadSurfaceTexture(surfaceOptions.microNormalTextureUrl, false),
+        Promise.all((surfaceOptions.palette?.layers ?? []).map((l) => loadSurfaceTexture(l.textureUrl, true)!)),
+        needsRockDither ? prepareRockLodDither(engine) : undefined
+      ]).then(([terrainMaterial, surfacePair, soilTexture, diffuse, normal, microNormal, paletteTextures]) => {
+        signal?.throwIfAborted();
+        const surface =
+          diffuse || normal || paletteTextures.length
+            ? {
+                diffuse,
+                normal,
+                palette: surfaceOptions.palette,
+                paletteTextures,
+                tileMetres: surfaceOptions.tileMetres ?? 8,
+                normalScale: surfaceOptions.normalScale ?? 1
+              }
+            : undefined;
+        const layers = buildLayerSources(fields, surfaceIntent, soilTexture, surface);
+        const resources = { terrainMaterial, surfacePair, soilTexture, microNormal, surface, layers };
+        if (engine._hardwareRenderer.backend !== "webgpu") return resources;
+        // Layer packing resamples on the CPU; read each source texture once before constructing the clipmap.
         const inputs = new Set<Texture2D>();
         for (const region of layers) {
           for (const layer of region.layers) {
@@ -578,9 +577,11 @@ export class SeedWorldTerrainRuntime {
             }
           }
         }
-        await Promise.all(Array.from(inputs, (texture) => texture.makePixelBufferReadable()));
-        signal?.throwIfAborted();
-      }
+        return Promise.all(Array.from(inputs, (texture) => texture.makePixelBufferReadable())).then(() => resources);
+      });
+      grassColorFieldTexture = surfacePair.tex;
+      surfaceRelief = surfacePair.relief;
+      signal?.throwIfAborted();
 
       const farLod = resolveSeedWorldTerrainFarLod(terrainSettings.clipmapLodCount);
       const terrainMaterialState: SeedWorldTerrainMaterialState = {

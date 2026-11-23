@@ -57,30 +57,33 @@ export function compileWebGPUShaderPass(
 }
 
 /** Load the WGSL translator only for applications or offline builds that request WebGPU. */
-export async function createWebGPUShaderCompiler(moduleOrPath?: InitInput): Promise<IWebGPUShaderCompiler> {
-  const naga = await import("web-naga");
-  await naga.default(moduleOrPath ? { module_or_path: moduleOrPath } : undefined);
-  const backend = new WGSLBackend((source, stage) => {
-    const frontend = naga.GlslFrontend.new();
-    try {
-      const module = frontend.parse(source, stage === "vertex" ? naga.ShaderStage.Vertex : naga.ShaderStage.Fragment);
-      try {
-        return module.to_wgsl();
-      } finally {
-        module.free();
-      }
-    } catch (error) {
-      throw new Error(`WGSL ${stage} compilation failed: ${error}`, { cause: error });
-    } finally {
-      frontend.free();
-    }
-  });
-  return {
-    recoverLegacyInstancing,
-    normalizeRawStage: ShaderInstructionEncoder.normalizeRawStage,
-    compileWebGPUVariant: backend.compileWebGPUVariant.bind(backend),
-    compileDefaultVariant(program: IShaderInfo) {
-      return compileWebGPUShaderPass(backend, program);
-    }
-  };
+export function createWebGPUShaderCompiler(moduleOrPath?: InitInput): Promise<IWebGPUShaderCompiler> {
+  return import("web-naga").then((naga) =>
+    naga.default(moduleOrPath ? { module_or_path: moduleOrPath } : undefined).then(() => {
+      const backend = new WGSLBackend((source, stage) => {
+        const frontend = naga.GlslFrontend.new();
+        try {
+          const module = frontend.parse(
+            source,
+            stage === "vertex" ? naga.ShaderStage.Vertex : naga.ShaderStage.Fragment
+          );
+          try {
+            return module.to_wgsl();
+          } finally {
+            module.free();
+          }
+        } finally {
+          frontend.free();
+        }
+      });
+      return {
+        recoverLegacyInstancing,
+        normalizeRawStage: ShaderInstructionEncoder.normalizeRawStage,
+        compileWebGPUVariant: backend.compileWebGPUVariant.bind(backend),
+        compileDefaultVariant(program: IShaderInfo) {
+          return compileWebGPUShaderPass(backend, program);
+        }
+      };
+    })
+  );
 }

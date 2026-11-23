@@ -138,7 +138,7 @@ export class WGSLBackend implements Pick<IWebGPUShaderCompiler, "compileWebGPUVa
           let loc = map.get(d.name);
           if (loc === undefined) {
             loc = 0;
-            while (occupied[idx].has(loc)) loc++;
+            for (; occupied[idx].has(loc); ) loc++;
             occupied[idx].add(loc);
             map.set(d.name, loc);
           }
@@ -213,7 +213,7 @@ export class WGSLBackend implements Pick<IWebGPUShaderCompiler, "compileWebGPUVa
     const init: string[] = [];
     const padded: { block: IWebGPUShaderUniformBlock; count: number }[] = [];
     let generated = "gs_wgpu_";
-    while (t.some((name) => name.startsWith(generated))) generated += "x";
+    for (; t.some((name) => name.startsWith(generated)); ) generated += "x";
     const samplerTypes = new Map<string, string>();
     const set = (i: number, end: number, text: string) => patches.set(i, { end, text });
     for (const d of globals) {
@@ -334,8 +334,8 @@ export class WGSLBackend implements Pick<IWebGPUShaderCompiler, "compileWebGPUVa
       }
       let v = t[i];
       if (v === "precision") {
-        while (i < t.length && t[i] !== ";") i++;
-        i++;
+        const end = t.indexOf(";", i);
+        i = end < 0 ? t.length : end + 1;
         continue;
       }
       if (v === "dFdy" && t[i + 1] === "(") {
@@ -391,6 +391,6 @@ function unshadowTextureBuiltins(source: string): string {
   }
   if (!conflicts.size) return source;
   let prefix = "gs_wgpu_value_";
-  while (source.includes(prefix)) prefix += "_";
+  for (; source.includes(prefix); ) prefix += "_";
   return source.replace(/\btexture[A-Z]\w*\b(?!\s*\()/g, (word) => (conflicts.has(word) ? prefix + word : word));
 }

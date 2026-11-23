@@ -78,11 +78,12 @@ export class PlanningTerrainDepth {
     texture.getPixelBuffer(this.pixels);
     return this.pixels;
   }
-  async captureAsync(observer: Observer, width: number, height: number): Promise<Uint8Array> {
-    const texture = this.render(observer, width, height);
-    const pixels = new Uint8Array(width * height * 4);
-    await texture.getPixelBufferAsync(pixels);
-    return pixels;
+  captureAsync(observer: Observer, width: number, height: number): Promise<Uint8Array> {
+    return new Promise<Uint8Array>((resolve) => {
+      const texture = this.render(observer, width, height);
+      const pixels = new Uint8Array(width * height * 4);
+      resolve(texture.getPixelBufferAsync(pixels).then(() => pixels));
+    });
   }
   private render(observer: Observer, width: number, height: number): Texture2D {
     if (!this.target || this.target.width !== width || this.target.height !== height) {

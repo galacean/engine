@@ -33,9 +33,8 @@ export function tokens(source: string): string[] {
       const endReturn = words.indexOf(";", i + 1);
       if (endReturn < 0) throw new Error("Unterminated GLSL return statement.");
       let next = endReturn + 1;
-      while (next < words.length && !["}", "case", "default"].includes(words[next])) {
+      for (; next < words.length && !["}", "case", "default"].includes(words[next]); next++) {
         if (words[next] === "{") next = matching(words, next);
-        next++;
       }
       if (next > endReturn + 1) words.splice(endReturn + 1, next - endReturn - 1);
       i = endReturn;

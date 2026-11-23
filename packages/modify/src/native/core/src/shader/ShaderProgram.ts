@@ -90,6 +90,7 @@ export class ShaderProgram {
           .size
       : platform.uniforms.filter((u) => u.isTexture).length;
     if (!platform.isValid) return;
+    let initialized = false;
     try {
       // WGSL reflection also describes blocks recovered from historical .shaderc assets.
       if (source.reflection) {
@@ -104,9 +105,9 @@ export class ShaderProgram {
         this._groupingUniform(uniform, ShaderProperty._propertyIdMap[uniform.propertyId], uniform.isTexture);
       }
       this._groupConflictVersion = ShaderProperty._groupConflictVersion;
-    } catch (error) {
-      this.destroy();
-      throw error;
+      initialized = true;
+    } finally {
+      if (!initialized) this.destroy();
     }
   }
 

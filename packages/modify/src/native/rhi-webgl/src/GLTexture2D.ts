@@ -85,7 +85,7 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     super._getPixelBuffer(null, x, y, width, height, mipLevel, out);
   }
   /** @inheritdoc */
-  async getPixelBufferAsync(
+  getPixelBufferAsync(
     x: number,
     y: number,
     width: number,
@@ -93,7 +93,7 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     mipLevel: number,
     out: ArrayBufferView
   ): Promise<void> {
-    this.getPixelBuffer(x, y, width, height, mipLevel, out);
+    return new Promise<void>((resolve) => resolve(this.getPixelBuffer(x, y, width, height, mipLevel, out)));
   }
 
   getPixelBufferAsyncRGBA8(out: Uint8Array, signal?: AbortSignal): Promise<void> {

@@ -28,8 +28,8 @@ export abstract class Texture extends GraphicsResource {
    * @param mipLevel - Mip level to read.
    * @param layer - Array layer or cube face.
    */
-  async makePixelBufferReadable(mipLevel = 0, layer = 0): Promise<void> {
-    await this._platformTexture.makePixelBufferReadable?.(mipLevel, layer);
+  makePixelBufferReadable(mipLevel = 0, layer = 0): Promise<void> {
+    return new Promise<void>((resolve) => resolve(this._platformTexture.makePixelBufferReadable?.(mipLevel, layer)));
   }
 
   protected _readRegion(args: TextureReadArguments): TextureReadRegion {

@@ -194,14 +194,12 @@ export abstract class WebGPUTexture implements IPlatformTexture {
     this._viewDimension = viewDimension;
     this._format = WebGPUTexture._getFormat(texture.format, texture.isSRGBColorSpace);
     if (viewDimension === "2d" && !/^(depth|stencil)/.test(this._format)) {
-      let width = texture.width,
-        height = texture.height;
-      while (width > 1 && height > 1 && !(width & 1) && !(height & 1)) {
-        width /= 2;
-        height /= 2;
-      }
+      const { width, height } = texture;
+      // The lowest set bit of the combined extents is their largest shared power-of-two divisor.
+      const extents = width | height;
+      const sharedScale = width && height ? extents & -extents : 1;
       const family = WebGPUTexture.arrayFormat(this._format);
-      this._scaledArrayKey = [family, width, height].join("/");
+      this._scaledArrayKey = [family, width / sharedScale, height / sharedScale].join("/");
       this._exactArrayKey = [family, "exact", texture.width, texture.height, texture.mipmapCount].join("/");
     }
     this._gpuTexture = device.device.createTexture({
@@ -324,26 +322,31 @@ export abstract class WebGPUTexture implements IPlatformTexture {
     this._readablePixels?.clear();
   }
 
-  async makePixelBufferReadable(mipLevel: number, layer: number): Promise<void> {
-    if (
-      !Number.isInteger(mipLevel) ||
-      mipLevel < 0 ||
-      mipLevel >= this._texture.mipmapCount ||
-      !Number.isInteger(layer) ||
-      layer < 0 ||
-      layer >= this._layerCount
-    )
-      throw new RangeError("Invalid texture subresource.");
-    const width = Math.max(1, this._texture.width >> mipLevel);
-    const height = Math.max(1, this._texture.height >> mipLevel);
-    const { blockWidth, blockHeight, bytesPerBlock } = WebGPUTexture._getTexelLayout(this._format);
-    const bytes = readPixelBytes(this._texture.format, bytesPerBlock);
-    const pixels = new Uint8Array(Math.ceil(width / blockWidth) * Math.ceil(height / blockHeight) * bytes);
-    const revision = this._contentRevision;
-    const cache = (this._readablePixels ??= new Map());
-    await this._readPixels(layer, 0, 0, width, height, mipLevel, pixels);
-    if (this._contentRevision !== revision) throw new Error("The texture changed while preparing a synchronous read.");
-    cache.set(layer * this._texture.mipmapCount + mipLevel, pixels);
+  makePixelBufferReadable(mipLevel: number, layer: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      if (
+        !Number.isInteger(mipLevel) ||
+        mipLevel < 0 ||
+        mipLevel >= this._texture.mipmapCount ||
+        !Number.isInteger(layer) ||
+        layer < 0 ||
+        layer >= this._layerCount
+      )
+        throw new RangeError("Invalid texture subresource.");
+      const width = Math.max(1, this._texture.width >> mipLevel);
+      const height = Math.max(1, this._texture.height >> mipLevel);
+      const { blockWidth, blockHeight, bytesPerBlock } = WebGPUTexture._getTexelLayout(this._format);
+      const bytes = readPixelBytes(this._texture.format, bytesPerBlock);
+      const pixels = new Uint8Array(Math.ceil(width / blockWidth) * Math.ceil(height / blockHeight) * bytes);
+      const revision = this._contentRevision;
+      const cache = (this._readablePixels ??= new Map());
+      resolve(
+        this._readPixels(layer, 0, 0, width, height, mipLevel, pixels).then(() => {
+          if (this._contentRevision !== revision) throw new Error("The texture changed during readback.");
+          cache.set(layer * this._texture.mipmapCount + mipLevel, pixels);
+        })
+      );
+    });
   }
 
   protected _readCachedPixels(
@@ -358,7 +361,7 @@ export abstract class WebGPUTexture implements IPlatformTexture {
     const cache = this._readablePixels?.get(layer * this._texture.mipmapCount + mipLevel);
     if (!cache)
       throw new Error(
-        "Use getPixelBufferAsync() or await makePixelBufferReadable() before synchronous texture readback."
+        "Use getPixelBufferAsync() or complete makePixelBufferReadable() before synchronous texture readback."
       );
     const { blockWidth, blockHeight, bytesPerBlock } = WebGPUTexture._getTexelLayout(this._format);
     const bytes = readPixelBytes(this._texture.format, bytesPerBlock);
@@ -385,7 +388,7 @@ export abstract class WebGPUTexture implements IPlatformTexture {
       destination.set(cache.subarray(start, start + pitch), row * pitch);
   }
 
-  protected async _readPixels(
+  protected _readPixels(
     layer: number,
     x: number,
     y: number,
@@ -394,34 +397,42 @@ export abstract class WebGPUTexture implements IPlatformTexture {
     mipLevel: number,
     out: ArrayBufferView
   ): Promise<void> {
-    const layout = WebGPUTexture._getTexelLayout(this._format);
-    const bytes = Math.ceil(width / layout.blockWidth) * layout.bytesPerBlock;
-    const rows = Math.ceil(height / layout.blockHeight);
-    const pitch = Math.ceil(bytes / 256) * 256;
-    const packing = pixelPacking(this._texture.format);
-    const dstPitch = Math.ceil(width / layout.blockWidth) * readPixelBytes(this._texture.format, layout.bytesPerBlock);
-    if (out.byteLength < dstPitch * rows) throw new RangeError("Readback destination is too small.");
-    this._validateRegion(mipLevel, x, y, layer, width, height, 1, layout);
-    if (!rows || !bytes) return;
-    if (this._format.startsWith("depth") || this._format === "stencil8") {
-      return WebGPUDepthTransfer.forDevice(this._device).read(
-        this._device,
-        this._gpuTexture,
-        this._texture.format,
-        mipLevel,
-        layer,
-        x,
-        y,
-        width,
-        height,
-        out
-      );
-    }
-    const staging = this._device.device.createBuffer({
-      size: rows * pitch,
-      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
-    });
-    try {
+    let staging: GPUBuffer;
+    return new Promise<void>((resolve) => {
+      const layout = WebGPUTexture._getTexelLayout(this._format);
+      const bytes = Math.ceil(width / layout.blockWidth) * layout.bytesPerBlock;
+      const rows = Math.ceil(height / layout.blockHeight);
+      const pitch = Math.ceil(bytes / 256) * 256;
+      const packing = pixelPacking(this._texture.format);
+      const dstPitch =
+        Math.ceil(width / layout.blockWidth) * readPixelBytes(this._texture.format, layout.bytesPerBlock);
+      if (out.byteLength < dstPitch * rows) throw new RangeError("Readback destination is too small.");
+      this._validateRegion(mipLevel, x, y, layer, width, height, 1, layout);
+      if (!rows || !bytes) {
+        resolve();
+        return;
+      }
+      if (this._format.startsWith("depth") || this._format === "stencil8") {
+        resolve(
+          WebGPUDepthTransfer.forDevice(this._device).read(
+            this._device,
+            this._gpuTexture,
+            this._texture.format,
+            mipLevel,
+            layer,
+            x,
+            y,
+            width,
+            height,
+            out
+          )
+        );
+        return;
+      }
+      staging = this._device.device.createBuffer({
+        size: rows * pitch,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+      });
       this._device
         ._getCommandEncoder()
         .copyTextureToBuffer(
@@ -430,19 +441,20 @@ export abstract class WebGPUTexture implements IPlatformTexture {
           { width: Math.ceil(width / layout.blockWidth) * layout.blockWidth, height: rows * layout.blockHeight }
         );
       this._device.flush();
-      await staging.mapAsync(GPUMapMode.READ);
-      const mapped = new Uint8Array(staging.getMappedRange());
-      const dst = new Uint8Array(out.buffer, out.byteOffset, out.byteLength);
-      const srcView = new DataView(mapped.buffer),
-        dstView = new DataView(out.buffer, out.byteOffset, out.byteLength);
-      for (let i = 0; i < rows; i++) {
-        if (expandReadRow(this._texture.format, srcView, i * pitch, dstView, i * dstPitch, width)) continue;
-        if (packing?.bits) packRGBA8Row(mapped, i * pitch, dst, i * dstPitch, width, packing);
-        else dst.set(mapped.subarray(i * pitch, i * pitch + bytes), i * dstPitch);
-      }
-    } finally {
-      staging.destroy();
-    }
+      resolve(
+        staging.mapAsync(GPUMapMode.READ).then(() => {
+          const mapped = new Uint8Array(staging.getMappedRange());
+          const dst = new Uint8Array(out.buffer, out.byteOffset, out.byteLength);
+          const srcView = new DataView(mapped.buffer),
+            dstView = new DataView(out.buffer, out.byteOffset, out.byteLength);
+          for (let i = 0; i < rows; i++) {
+            if (expandReadRow(this._texture.format, srcView, i * pitch, dstView, i * dstPitch, width)) continue;
+            if (packing?.bits) packRGBA8Row(mapped, i * pitch, dst, i * dstPitch, width, packing);
+            else dst.set(mapped.subarray(i * pitch, i * pitch + bytes), i * dstPitch);
+          }
+        })
+      );
+    }).finally(() => staging?.destroy());
   }
 
   private _validateRegion(
@@ -486,6 +498,13 @@ export abstract class WebGPUTexture implements IPlatformTexture {
 
   /** @internal */
   static _getFormat(format: TextureFormat, srgb: boolean): GPUTextureFormat {
+    const mapped = WebGPUTexture._findFormat(format, srgb);
+    if (!mapped) throw new Error(`Texture format ${TextureFormat[format]} is not supported by the WebGPU backend.`);
+    return mapped;
+  }
+
+  /** @internal */
+  static _findFormat(format: TextureFormat, srgb: boolean): GPUTextureFormat | undefined {
     switch (format) {
       case TextureFormat.R16_UNorm:
         return "r16unorm";
@@ -556,8 +575,6 @@ export abstract class WebGPUTexture implements IPlatformTexture {
         return "depth24plus";
       case TextureFormat.Depth32Stencil8:
         return "depth32float-stencil8";
-      default:
-        throw new Error(`Texture format ${TextureFormat[format]} is not supported by the WebGPU backend.`);
     }
   }
 

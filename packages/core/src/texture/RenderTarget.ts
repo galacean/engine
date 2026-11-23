@@ -211,9 +211,8 @@ export class RenderTarget extends GraphicsResource {
 
     try {
       this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
-    } catch (error) {
-      this.destroy();
-      throw error;
+    } finally {
+      if (!this._platformRenderTarget) this.destroy();
     }
     this._memorySize = memorySize;
     if (!engine._isDeviceLost) {

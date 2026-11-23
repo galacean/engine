@@ -26,7 +26,7 @@ export class WebGPUDepthTransfer {
     return transfer;
   }
 
-  async read(
+  read(
     hardware: WebGPUGraphicDevice,
     texture: GPUTexture,
     format: TextureFormat,
@@ -38,50 +38,52 @@ export class WebGPUDepthTransfer {
     height: number,
     out: ArrayBufferView
   ): Promise<void> {
-    const { device } = hardware;
-    const hasDepth = texture.format.startsWith("depth"),
-      hasStencil = texture.format.includes("stencil");
-    let pipeline = this._reads.get(texture.format);
-    if (!pipeline) {
-      const code = `
-        @group(0) @binding(0) var<storage, read_write> pixels: array<vec2u>;
-        @group(0) @binding(1) var<uniform> rect: vec4u;
-        ${hasDepth ? "@group(0) @binding(2) var depthImage: texture_depth_2d;" : ""}
-        ${hasStencil ? "@group(0) @binding(3) var stencilImage: texture_2d<u32>;" : ""}
-        @compute @workgroup_size(8,8) fn main(@builtin(global_invocation_id) id: vec3u) {
-          if (id.x >= rect.z || id.y >= rect.w) { return; }
-          let xy = vec2i(id.xy + rect.xy);
-          pixels[id.y * rect.z + id.x] = vec2u(
-            ${hasDepth ? "bitcast<u32>(textureLoad(depthImage,xy,0))" : "0u"},
-            ${hasStencil ? "textureLoad(stencilImage,xy,0).r" : "0u"});
-        }`;
-      pipeline = device.createComputePipeline({
-        layout: "auto",
-        compute: { module: device.createShaderModule({ code }), entryPoint: "main" }
-      });
-      this._reads.set(texture.format, pipeline);
-    }
-    const entries: GPUBindGroupEntry[] = [];
-    const view: GPUTextureViewDescriptor = {
-      dimension: "2d",
-      baseArrayLayer: layer,
-      arrayLayerCount: 1,
-      baseMipLevel: mip,
-      mipLevelCount: 1
-    };
-    if (hasDepth) entries.push({ binding: 2, resource: texture.createView({ ...view, aspect: "depth-only" }) });
-    if (hasStencil) entries.push({ binding: 3, resource: texture.createView({ ...view, aspect: "stencil-only" }) });
-    const rowCount = Math.min(height, Math.floor(device.limits.maxStorageBufferBindingSize / (width * 8)));
-    const size = rowCount * width * 8;
-    const output = device.createBuffer({ size, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
-    const staging = device.createBuffer({ size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
-    entries.push({ binding: 0, resource: { buffer: output } });
-    const params = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    entries.push({ binding: 1, resource: { buffer: params } });
-    const group = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries });
-    const dst = new DataView(out.buffer, out.byteOffset, out.byteLength);
-    try {
-      for (let row = 0; row < height; row += rowCount) {
+    let staging: GPUBuffer, output: GPUBuffer, params: GPUBuffer;
+    return new Promise<void>((resolve) => {
+      const { device } = hardware;
+      const hasDepth = texture.format.startsWith("depth"),
+        hasStencil = texture.format.includes("stencil");
+      let pipeline = this._reads.get(texture.format);
+      if (!pipeline) {
+        const code = `
+          @group(0) @binding(0) var<storage, read_write> pixels: array<vec2u>;
+          @group(0) @binding(1) var<uniform> rect: vec4u;
+          ${hasDepth ? "@group(0) @binding(2) var depthImage: texture_depth_2d;" : ""}
+          ${hasStencil ? "@group(0) @binding(3) var stencilImage: texture_2d<u32>;" : ""}
+          @compute @workgroup_size(8,8) fn main(@builtin(global_invocation_id) id: vec3u) {
+            if (id.x >= rect.z || id.y >= rect.w) { return; }
+            let xy = vec2i(id.xy + rect.xy);
+            pixels[id.y * rect.z + id.x] = vec2u(
+              ${hasDepth ? "bitcast<u32>(textureLoad(depthImage,xy,0))" : "0u"},
+              ${hasStencil ? "textureLoad(stencilImage,xy,0).r" : "0u"});
+          }`;
+        pipeline = device.createComputePipeline({
+          layout: "auto",
+          compute: { module: device.createShaderModule({ code }), entryPoint: "main" }
+        });
+        this._reads.set(texture.format, pipeline);
+      }
+      const entries: GPUBindGroupEntry[] = [];
+      const view: GPUTextureViewDescriptor = {
+        dimension: "2d",
+        baseArrayLayer: layer,
+        arrayLayerCount: 1,
+        baseMipLevel: mip,
+        mipLevelCount: 1
+      };
+      if (hasDepth) entries.push({ binding: 2, resource: texture.createView({ ...view, aspect: "depth-only" }) });
+      if (hasStencil) entries.push({ binding: 3, resource: texture.createView({ ...view, aspect: "stencil-only" }) });
+      const rowCount = Math.min(height, Math.floor(device.limits.maxStorageBufferBindingSize / (width * 8)));
+      if (rowCount <= 0) throw new RangeError("Depth readback row exceeds the storage binding limit.");
+      const size = rowCount * width * 8;
+      output = device.createBuffer({ size, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
+      staging = device.createBuffer({ size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+      entries.push({ binding: 0, resource: { buffer: output } });
+      params = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+      entries.push({ binding: 1, resource: { buffer: params } });
+      const group = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries });
+      const dst = new DataView(out.buffer, out.byteOffset, out.byteLength);
+      const readRows = (row: number): Promise<void> => {
         const rows = Math.min(rowCount, height - row);
         device.queue.writeBuffer(params, 0, new Uint32Array([x, y + row, width, rows]));
         const pass = hardware._beginComputePass();
@@ -90,24 +92,28 @@ export class WebGPUDepthTransfer {
         pass.dispatchWorkgroups(Math.ceil(width / 8), Math.ceil(rows / 8));
         hardware._getCommandEncoder().copyBufferToBuffer(output, 0, staging, 0, rows * width * 8);
         hardware.flush();
-        await staging.mapAsync(GPUMapMode.READ);
-        const values = new DataView(staging.getMappedRange());
-        for (let i = 0; i < rows * width; i++) {
-          WebGPUDepthTransfer._pack(
-            format,
-            dst,
-            row * width + i,
-            values.getFloat32(i * 8, true),
-            values.getUint32(i * 8 + 4, true)
-          );
-        }
-        staging.unmap();
-      }
-    } finally {
-      staging.destroy();
-      output.destroy();
-      params.destroy();
-    }
+        return staging.mapAsync(GPUMapMode.READ).then(() => {
+          const values = new DataView(staging.getMappedRange());
+          for (let i = 0; i < rows * width; i++) {
+            WebGPUDepthTransfer._pack(
+              format,
+              dst,
+              row * width + i,
+              values.getFloat32(i * 8, true),
+              values.getUint32(i * 8 + 4, true)
+            );
+          }
+          staging.unmap();
+          const next = row + rows;
+          if (next < height) return readRows(next);
+        });
+      };
+      resolve(readRows(0));
+    }).finally(() => {
+      staging?.destroy();
+      output?.destroy();
+      params?.destroy();
+    });
   }
 
   write(

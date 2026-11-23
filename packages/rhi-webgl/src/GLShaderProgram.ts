@@ -51,11 +51,12 @@ export class GLShaderProgram implements IPlatformShaderProgram {
     this._glProgram = this._createProgram(source.vertexSource, source.fragmentSource, source.feedbackVaryings);
     this.isValid = !!this._glProgram;
     if (this.isValid) {
+      let initialized = false;
       try {
         this._recordLocation(source.looseUniforms);
-      } catch (error) {
-        this.destroy();
-        throw error;
+        initialized = true;
+      } finally {
+        if (!initialized) this.destroy();
       }
     }
   }

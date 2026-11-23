@@ -229,25 +229,30 @@ export class WebGPUBuffer implements IPlatformBuffer {
     throw new Error("Use getDataAsync() for WebGPU buffer readback.");
   }
 
-  async getDataAsync(data: ArrayBufferView, offset = 0, dataOffset = 0, dataLength?: number): Promise<void> {
-    const destination = WebGPUBuffer._getSourceRange(data, dataOffset, dataLength);
-    if (offset < 0 || offset + destination.length > this.byteLength)
-      throw new RangeError("WebGPU buffer read exceeds allocation.");
-    if (!destination.length) return;
-    const start = Math.floor(offset / 4) * 4;
-    const size = Math.ceil((offset + destination.length - start) / 4) * 4;
-    const staging = this._device.device.createBuffer({
-      size,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-    });
-    try {
+  getDataAsync(data: ArrayBufferView, offset = 0, dataOffset = 0, dataLength?: number): Promise<void> {
+    let staging: GPUBuffer;
+    return new Promise<void>((resolve) => {
+      const destination = WebGPUBuffer._getSourceRange(data, dataOffset, dataLength);
+      if (offset < 0 || offset + destination.length > this.byteLength)
+        throw new RangeError("WebGPU buffer read exceeds allocation.");
+      if (!destination.length) {
+        resolve();
+        return;
+      }
+      const start = Math.floor(offset / 4) * 4;
+      const size = Math.ceil((offset + destination.length - start) / 4) * 4;
+      staging = this._device.device.createBuffer({
+        size,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+      });
       this._device._getCommandEncoder().copyBufferToBuffer(this._gpuBuffer, start, staging, 0, size);
       this._device.flush();
-      await staging.mapAsync(GPUMapMode.READ);
-      destination.set(new Uint8Array(staging.getMappedRange(), offset - start, destination.length));
-    } finally {
-      staging.destroy();
-    }
+      resolve(
+        staging.mapAsync(GPUMapMode.READ).then(() => {
+          destination.set(new Uint8Array(staging.getMappedRange(), offset - start, destination.length));
+        })
+      );
+    }).finally(() => staging?.destroy());
   }
 
   copyFromBuffer(source: IPlatformBuffer, sourceOffset: number, offset: number, size: number): void {

@@ -1,7 +1,16 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { BuiltinShaders } from "@galacean/engine-core";
 import type { IPhysics } from "@galacean/engine-design";
-import { BoxColliderShape, Engine, PhysicsMaterial, ResourceManager, Shader } from "@galacean/engine";
+import {
+  BoxColliderShape,
+  Engine,
+  PhysicsMaterial,
+  RenderTarget,
+  ResourceManager,
+  Shader,
+  Texture2D,
+  TextureFormat
+} from "@galacean/engine";
 import { WebGPUEngine } from "@galacean/engine-webgpu";
 import { HeadlessEngine } from "@galacean/engine-rhi-null";
 import { BasicResources } from "../../core/src/BasicResources";
@@ -35,6 +44,33 @@ describe("World engine bootstrap", () => {
       "v_FeedbackPosition",
       "v_FeedbackVelocity"
     ]);
+  });
+
+  it("owns one platform render target and releases its attachments after a failed allocation", ({ onTestFinished }) => {
+    return HeadlessEngine.create({ builtinShaders }).then((engine) => {
+      onTestFinished(() => engine.destroy());
+      const color = new Texture2D(engine, 2, 2, TextureFormat.R8G8B8A8_UNorm, false);
+      const depth = new Texture2D(engine, 2, 2, TextureFormat.Depth16, false);
+      const bytes = engine.renderingStatistics.textureMemory;
+      const allocate = vi.spyOn(engine._hardwareRenderer, "createPlatformRenderTarget");
+      const create = () => new RenderTarget(engine, 2, 2, color, depth, 2);
+      const cause = new Error("render target allocation failed");
+      allocate.mockImplementationOnce(() => {
+        throw cause;
+      });
+      expect(create).toThrow(cause);
+      expect(allocate).toHaveBeenCalledTimes(1);
+      expect([color.refCount, depth.refCount, engine.renderingStatistics.textureMemory]).toEqual([0, 0, bytes]);
+
+      const target = create();
+      expect(allocate).toHaveBeenCalledTimes(2);
+      expect([color.refCount, depth.refCount]).toEqual([1, 1]);
+      expect(engine.renderingStatistics.textureMemory).toBeGreaterThan(bytes);
+      const release = vi.spyOn(target._platformRenderTarget, "destroy");
+      target.destroy();
+      expect(release).toHaveBeenCalledOnce();
+      expect([color.refCount, depth.refCount, engine.renderingStatistics.textureMemory]).toEqual([0, 0, bytes]);
+    });
   });
 
   it("creates the shared physics material before colliders and reuses it for the same backend", async () => {

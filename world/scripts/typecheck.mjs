@@ -15,7 +15,6 @@ parsed.options.typeRoots = [path.join(root, "world/node_modules/@types"), path.j
 parsed.options.paths = {
   "@galacean/engine": ["packages/galacean/src/index.ts"],
   "@galacean/engine-shader/webgpu": ["packages/modify/.cache/webgpu/shaders.ts"],
-  "@galacean/engine-shader/webgpu/sources": ["packages/modify/.cache/webgpu/sources.ts"],
   "@galacean/engine-shader/sources": ["packages/modify/.cache/sources.ts"],
   "@galacean/engine-shader-parser/internal": ["packages/shader-parser/src/runtime.ts"],
   "dat.gui": ["world/node_modules/@types/dat.gui/index.d.ts"],

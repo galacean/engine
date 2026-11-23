@@ -9,7 +9,7 @@ export function lowerReturningSwitches(words: string[]): boolean {
   if (!words.includes("switch") || !words.includes("return")) return false;
   let changed = false;
   let unused = "gs_switch_unreachable";
-  while (words.includes(unused)) unused += "_";
+  for (; words.includes(unused); ) unused += "_";
   for (let i = 0; i < words.length; i++) {
     if (words[i] !== "{") continue;
     let close = matching(words, i);
@@ -34,15 +34,13 @@ export function lowerReturningSwitches(words: string[]): boolean {
         if (!endsWithTransfer(words.slice(i + 1, close))) {
           let params = i - 2,
             depth = 1;
-          while (depth) {
+          for (; depth && params >= 0; params--) {
             if (words[params] === ")") depth++;
             if (words[params] === "(") depth--;
-            params--;
           }
           let start = params - 1;
-          while (words[start] === "]") {
-            while (words[start] !== "[") start--;
-            start--;
+          for (; words[start] === "]"; start--) {
+            start = words.lastIndexOf("[", start);
           }
           if (words[start] !== "void") {
             const fallback = [...words.slice(start, params), unused, ";", "return", unused, ";"];
@@ -88,7 +86,7 @@ function lowerCases(words: string[]): string[] | undefined {
       if (i === words.length) break;
       const begin = i;
       let ternary = 0;
-      while (++i < words.length) {
+      for (i++; i < words.length; i++) {
         if (words[i] === "?") ternary++;
         else if (words[i] === ":") {
           if (!ternary) break;
@@ -127,13 +125,13 @@ function lowerCases(words: string[]): string[] | undefined {
         } else if (/^(?:break|continue|discard|return)$/.test(body[k])) {
           // As a compound statement this also preserves dangling else associations.
           result.push("{", "if", "(", "true", ")");
-          while (k < body.length && body[k] !== ";") result.push(body[k++]);
+          for (; k < body.length && body[k] !== ";"; k++) result.push(body[k]);
           result.push(";", "}");
         } else result.push(body[k]);
       }
       if (exits) break;
     }
-    while (scopes-- > 0) result.push("}");
+    for (let scope = 0; scope < scopes; scope++) result.push("}");
     result.push("break", ";");
   }
   return result;

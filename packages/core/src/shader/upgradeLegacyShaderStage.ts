@@ -15,7 +15,7 @@ const legacyTextures: Readonly<Record<string, string>> = {
 export function upgradeLegacyShaderStage(source: string, fragment: boolean): string {
   if (!/\b(?:attribute|varying|gl_Frag(?:Color|Data|DepthEXT)|texture(?:2D|Cube)\w*)\b/.test(source)) return source;
   let outputName = "legacyFragmentOutput";
-  while (source.includes(outputName)) outputName += "_";
+  for (; source.includes(outputName); ) outputName += "_";
   let color = false;
   let multiple = false;
   const text = source.replace(

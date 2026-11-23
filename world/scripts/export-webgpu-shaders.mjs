@@ -16,17 +16,7 @@ if (!tools) throw Error("Supply the glslang 16.6.0 and TWGSL directory as an arg
 const load = createRequire(path.join(root, "packages/shader-compiler/package.json"));
 const { createWebGPUShaderCompiler, compileWebGPUShaderPass } = load("./dist/webgpu.main.js");
 const { ShaderPrecompiler } = load("./dist/precompile.main.js");
-const compiler = await createWebGPUShaderCompiler(fs.readFileSync(load.resolve("web-naga/web_naga_bg.wasm")));
 const { ShaderMacroProcessor } = load("@galacean/engine-core");
-const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "world-webgpu-shaders-"));
-const server = await createServer({
-  root,
-  cacheDir: path.join(scratch, "vite"),
-  configFile: false,
-  plugins: [engineModify()],
-  server: { middlewareMode: true, hmr: false },
-  optimizeDeps: { noDiscovery: true, entries: [] }
-});
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const json = (value) => Buffer.from(JSON.stringify(value, null, 2) + "\n");
 
@@ -37,104 +27,137 @@ function shaderFiles(directory) {
   });
 }
 
-try {
+function exportShaders(compiler, server, scratch) {
   const modu = (file) => server.ssrLoadModule("/packages/" + file);
-  const { engineShaderSource } = await modu("building/src/building/runtime/EngineShaderSource.ts");
-  const { constructionLightingBridgeSource, constructionLightingHelpers } = await modu(
-    "building/src/building/runtime/ConstructionSceneLighting.ts"
-  );
-  const { shaderLibrary } = await modu("modify/.cache/webgpu/sources.ts");
-  const { productFragmentInstructions } = await modu("core/src/shader/WorldShaderInstructions.ts");
-  const { WGSLBackend } = await modu("shader-compiler/src/webgpu/WGSLBackend.ts");
-  const buildingBackend = new WGSLBackend(await buildingTranslator(path.resolve(tools), scratch));
-  const includes = Object.fromEntries(shaderLibrary.map(({ path, source }) => [path, source]));
-  includes["Masonry/SceneLighting.glsl"] = fs.readFileSync(
-    path.join(root, "packages/building/src/building/runtime/ConstructionSceneLighting.glsl"),
-    "utf8"
-  );
-  const precompiler = new ShaderPrecompiler();
-  precompiler.setIncludeMap(includes);
-  const lighting = precompiler.precompile(constructionLightingBridgeSource, 0).subShaders[0].passes[0];
-  const helpers = ShaderMacroProcessor.evaluate(
-    constructionLightingHelpers(lighting.fragmentShaderInstructions),
-    new Map(ShaderMacroProcessor._defaultWebGPUMacros)
-  );
-  const es2Backend = {
-    compileWebGPUVariant(vertex, fragment, options) {
-      return compiler.compileWebGPUVariant(textureES3(vertexES3(vertex)), textureES3(fragmentES3(fragment)), options);
-    }
-  };
+  return Promise.all([
+    modu("building/src/building/runtime/EngineShaderSource.ts"),
+    modu("building/src/building/runtime/ConstructionSceneLighting.ts"),
+    modu("modify/.cache/webgpu/sources.ts"),
+    modu("core/src/shader/WorldShaderInstructions.ts"),
+    modu("shader-compiler/src/webgpu/WGSLBackend.ts"),
+    buildingTranslator(path.resolve(tools), scratch)
+  ]).then(
+    ([
+      { engineShaderSource },
+      { constructionLightingBridgeSource, constructionLightingHelpers },
+      { shaderLibrary },
+      { productFragmentInstructions },
+      { WGSLBackend },
+      translator
+    ]) => {
+      const buildingBackend = new WGSLBackend(translator);
+      const includes = Object.fromEntries(shaderLibrary.map(({ path, source }) => [path, source]));
+      includes["Masonry/SceneLighting.glsl"] = fs.readFileSync(
+        path.join(root, "packages/building/src/building/runtime/ConstructionSceneLighting.glsl"),
+        "utf8"
+      );
+      const precompiler = new ShaderPrecompiler();
+      precompiler.setIncludeMap(includes);
+      const lighting = precompiler.precompile(constructionLightingBridgeSource, 0).subShaders[0].passes[0];
+      const helpers = ShaderMacroProcessor.evaluate(
+        constructionLightingHelpers(lighting.fragmentShaderInstructions),
+        new Map(ShaderMacroProcessor._defaultWebGPUMacros)
+      );
+      const es2Backend = {
+        compileWebGPUVariant(vertex, fragment, options) {
+          return compiler.compileWebGPUVariant(
+            textureES3(vertexES3(vertex)),
+            textureES3(fragmentES3(fragment)),
+            options
+          );
+        }
+      };
 
-  const records = new Map();
-  const writes = new Map();
-  const renamed = [];
-  let passes = 0;
-  const cached = new Map();
-  for (const directory of [
-    "terrain/src/data/seed-world/public/Shader",
-    "water/src/water/native/assets/Water/Shaders",
-    "building/src/building/assets/native/Shaders"
-  ]) {
-    for (const file of shaderFiles(path.join(root, "packages", directory))) {
-      const bytes = fs.readFileSync(file);
-      const sha = hash(bytes);
-      const data = JSON.parse(bytes);
-      if (!cached.has(sha)) {
-        for (const group of data.subShaders)
-          for (const pass of group.passes) {
-            if (pass.isUsePass) continue;
-            const source = {
-              ...pass,
-              fragmentShaderInstructions: productFragmentInstructions(data.name, pass.fragmentShaderInstructions)
-            };
-            try {
-              if (data.name.startsWith("BuildingUnit/")) {
-                if (
-                  source.fragmentShaderInstructions.some(
-                    ([op, text]) => op === 0 && text.includes("masonryResidentSceneLight")
-                  )
-                ) {
-                  source.uniformBlocks = lighting.uniformBlocks;
-                }
-                for (const [key, vertex] of [
-                  ["vertexShaderInstructions", true],
-                  ["fragmentShaderInstructions", false]
-                ]) {
-                  const instructions = source[key];
-                  assert.equal(instructions.length, 1);
-                  assert.equal(instructions[0][0], 0);
-                  source[key] = [[0, nativeBuilding(instructions[0][1], vertex, engineShaderSource, helpers)]];
-                }
-                pass.wgsl = compileWebGPUShaderPass(buildingBackend, source);
-              } else {
-                pass.wgsl = compileWebGPUShaderPass(data.platformTarget === 0 ? es2Backend : compiler, source);
-              }
-              for (const stage of ["vertex", "fragment"]) {
-                let wgsl = pass.wgsl[stage].replaceAll("340282350000000000000000000000000000000f", "0x1.fffffep+127f");
-                if (wgsl.includes("0x1.fffffep+128f")) {
-                  assert.match(pass.vertexShaderInstructions[0][1], /uintBitsToFloat\s*\(\s*0x7fbfffffu\b/);
-                  wgsl =
-                    wgsl.replaceAll("0x1.fffffep+128f", "seedBitsToFloat(0x7fbfffffu)") +
-                    "\nfn seedBitsToFloat(bits: u32) -> f32 { return bitcast<f32>(bits); }\n";
-                }
-                assert.ok(wgsl.includes("@" + stage) && wgsl.includes("fn " + pass.wgsl[stage + "EntryPoint"] + "("));
-                pass.wgsl[stage] = wgsl;
-              }
-              passes++;
-            } catch (error) {
-              throw Error(`Cannot export ${path.relative(root, file)} (${data.name}, ${pass.name})`, { cause: error });
-            }
+      const records = new Map();
+      const writes = new Map();
+      const renamed = [];
+      let passes = 0;
+      const cached = new Map();
+      const files = [
+        "terrain/src/data/seed-world/public/Shader",
+        "water/src/water/native/assets/Water/Shaders",
+        "building/src/building/assets/native/Shaders"
+      ].flatMap((directory) => shaderFiles(path.join(root, "packages", directory)));
+
+      function compilePass(pass, data) {
+        const source = {
+          ...pass,
+          fragmentShaderInstructions: productFragmentInstructions(data.name, pass.fragmentShaderInstructions)
+        };
+        if (data.name.startsWith("BuildingUnit/")) {
+          if (
+            source.fragmentShaderInstructions.some(
+              ([op, text]) => op === 0 && text.includes("masonryResidentSceneLight")
+            )
+          ) {
+            source.uniformBlocks = lighting.uniformBlocks;
           }
-        cached.set(sha, Buffer.from(JSON.stringify(data)));
+          for (const [key, vertex] of [
+            ["vertexShaderInstructions", true],
+            ["fragmentShaderInstructions", false]
+          ]) {
+            const instructions = source[key];
+            assert.equal(instructions.length, 1);
+            assert.equal(instructions[0][0], 0);
+            source[key] = [[0, nativeBuilding(instructions[0][1], vertex, engineShaderSource, helpers)]];
+          }
+          pass.wgsl = compileWebGPUShaderPass(buildingBackend, source);
+        } else {
+          pass.wgsl = compileWebGPUShaderPass(data.platformTarget === 0 ? es2Backend : compiler, source);
+        }
+        for (const stage of ["vertex", "fragment"]) {
+          let wgsl = pass.wgsl[stage].replaceAll("340282350000000000000000000000000000000f", "0x1.fffffep+127f");
+          if (wgsl.includes("0x1.fffffep+128f")) {
+            assert.match(pass.vertexShaderInstructions[0][1], /uintBitsToFloat\s*\(\s*0x7fbfffffu\b/);
+            wgsl =
+              wgsl.replaceAll("0x1.fffffep+128f", "seedBitsToFloat(0x7fbfffffu)") +
+              "\nfn seedBitsToFloat(bits: u32) -> f32 { return bitcast<f32>(bits); }\n";
+          }
+          assert.ok(wgsl.includes("@" + stage) && wgsl.includes("fn " + pass.wgsl[stage + "EntryPoint"] + "("));
+          pass.wgsl[stage] = wgsl;
+        }
+        passes++;
       }
-      const result = cached.get(sha);
-      const newSha = hash(result);
-      const target = file.replace(sha + ".shaderc", newSha + ".shaderc");
-      records.set(sha, { sha: newSha, size: result.length });
-      writes.set(target, result);
-      if (target !== file) renamed.push(file);
+
+      function exportFile(file) {
+        const bytes = fs.readFileSync(file);
+        const sha = hash(bytes);
+        const data = JSON.parse(bytes);
+        const record = (result) => {
+          const newSha = hash(result);
+          const target = file.replace(sha + ".shaderc", newSha + ".shaderc");
+          records.set(sha, { sha: newSha, size: result.length });
+          writes.set(target, result);
+          if (target !== file) renamed.push(file);
+        };
+        if (cached.has(sha)) return record(cached.get(sha));
+
+        const shaders = data.subShaders.flatMap((group) => group.passes).filter((pass) => !pass.isUsePass);
+        const compile = (pass) =>
+          Promise.resolve()
+            .then(() => compilePass(pass, data))
+            .catch((error) => {
+              throw Error(`Cannot export ${path.relative(root, file)} (${data.name}, ${pass.name})`, { cause: error });
+            });
+        return shaders
+          .reduce((pending, pass) => pending.then(() => compile(pass)), Promise.resolve())
+          .then(() => {
+            const result = Buffer.from(JSON.stringify(data));
+            cached.set(sha, result);
+            record(result);
+          });
+      }
+      return files
+        .reduce((pending, file) => pending.then(() => exportFile(file)), Promise.resolve())
+        .then(() => {
+          writeProductAssets(records, writes, renamed);
+          console.log(`Exported ${passes} distinct WGSL passes across ${writes.size - 3} product shader assets.`);
+        });
     }
-  }
+  );
+}
+
+function writeProductAssets(records, writes, renamed) {
   const terrain = path.join(root, "packages/terrain/src/data/seed-world");
   const water = path.join(terrain, "public/Shader/Water");
   const manifests = fs.readdirSync(water).filter((name) => /^WaterAotManifest\..+\.json$/.test(name));
@@ -180,8 +203,30 @@ try {
     if (!fs.existsSync(file) || !fs.readFileSync(file).equals(Buffer.from(content))) fs.writeFileSync(file, content);
   }
   for (const file of renamed) if (!writes.has(file)) fs.unlinkSync(file);
-  console.log(`Exported ${passes} distinct WGSL passes across ${writes.size - 3} product shader assets.`);
-} finally {
-  await server.close();
-  fs.rmSync(scratch, { recursive: true, force: true });
 }
+
+createWebGPUShaderCompiler(fs.readFileSync(load.resolve("web-naga/web_naga_bg.wasm")))
+  .then((compiler) => {
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "world-webgpu-shaders-"));
+    return Promise.resolve()
+      .then(() =>
+        createServer({
+          root,
+          cacheDir: path.join(scratch, "vite"),
+          configFile: false,
+          plugins: [engineModify()],
+          server: { middlewareMode: true, hmr: false },
+          optimizeDeps: { noDiscovery: true, entries: [] }
+        })
+      )
+      .then((server) =>
+        Promise.resolve()
+          .then(() => exportShaders(compiler, server, scratch))
+          .finally(() => server.close())
+      )
+      .finally(() => fs.rmSync(scratch, { recursive: true, force: true }));
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

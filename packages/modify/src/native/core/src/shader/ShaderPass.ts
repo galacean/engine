@@ -289,66 +289,73 @@ export class ShaderPass extends ShaderPart {
   }
 
   /** Prepare the selected shader and pipeline for a mesh, material and render target before its first draw. */
-  async preparePipeline(
+  preparePipeline(
     mesh: Mesh,
     material: Material,
     target: RenderTarget | null,
     options: ShaderPipelinePreparation = {}
   ): Promise<void> {
-    const engine = mesh.engine;
-    if (material.engine !== engine || (target && target.engine !== engine))
-      throw new Error("Pipeline resources must belong to the same engine.");
-    const { camera, renderer, renderElementData, macros, subMeshIndex = 0 } = options;
-    if ((renderer && renderer.mesh !== mesh) || (camera && camera.engine !== engine))
-      throw new Error("The preparation context must match the mesh and engine.");
-    const subMesh = mesh.subMeshes[subMeshIndex];
-    if (!subMesh) throw new RangeError("Cannot prepare a pipeline without the selected sub-mesh.");
-    const collection = new ShaderMacroCollection();
-    ShaderMacroCollection.unionCollection(engine._macroCollection, material.shaderData._macroCollection, collection);
-    if (camera) {
-      collection.unionCollection(camera.scene!.shaderData._macroCollection);
-      collection.unionCollection(camera.shaderData._macroCollection);
-    }
-    if (renderer) {
-      renderer._updateVertexElementMacros();
-      collection.unionCollection(renderer.shaderData._macroCollection);
-    }
-    const internalForwardTarget =
-      camera &&
-      camera.renderTarget === target &&
-      this.getTagValue("pipelineStage") === "Forward" &&
-      camera._isIndependentCanvasEnabled();
-    if (target || internalForwardTarget) collection.disable(Engine._outputSRGBCorrectMacro);
-    else collection.enable(Engine._outputSRGBCorrectMacro);
-    if (macros) for (const macro of macros) collection.enable(macro);
-    const program = this._getShaderProgram(
-      engine,
-      collection,
-      undefined,
-      mesh._primitive,
-      renderer?.shaderData,
-      material.shaderData,
-      renderElementData,
-      camera
-    );
-    if (!program.isValid) throw new Error(`Could not compile shader pass '${this.name}'.`);
-    const state = this._renderState._resolve(engine, this._renderStateDataMap, material.shaderData, renderElementData);
-    const frontFaceInvert = options.frontFaceInvert ?? renderer?._isFrontFaceInvert() ?? false;
-    const platform = program._platformProgram;
-    if (!platform.prewarm) return;
-    const temporary = internalForwardTarget
-      ? camera._renderPipeline._allocateInternalColorTarget(
-          Math.min(target?.antiAliasing ?? camera.msaaSamples, engine._hardwareRenderer.capability.maxAntiAliasing)
-        )
-      : null;
-    let prepared: Promise<void>;
-    try {
-      // The platform consumes attachment formats synchronously when creating the native pipeline descriptor.
-      prepared = platform.prewarm(mesh._primitive, subMesh, temporary ?? target, state, frontFaceInvert);
-    } finally {
-      if (temporary) engine._renderTargetPool.freeRenderTarget(temporary);
-    }
-    await prepared;
+    return new Promise<void>((resolve) => {
+      const engine = mesh.engine;
+      if (material.engine !== engine || (target && target.engine !== engine))
+        throw new Error("Pipeline resources must belong to the same engine.");
+      const { camera, renderer, renderElementData, macros, subMeshIndex = 0 } = options;
+      if ((renderer && renderer.mesh !== mesh) || (camera && camera.engine !== engine))
+        throw new Error("The preparation context must match the mesh and engine.");
+      const subMesh = mesh.subMeshes[subMeshIndex];
+      if (!subMesh) throw new RangeError("Cannot prepare a pipeline without the selected sub-mesh.");
+      const collection = new ShaderMacroCollection();
+      ShaderMacroCollection.unionCollection(engine._macroCollection, material.shaderData._macroCollection, collection);
+      if (camera) {
+        collection.unionCollection(camera.scene!.shaderData._macroCollection);
+        collection.unionCollection(camera.shaderData._macroCollection);
+      }
+      if (renderer) {
+        renderer._updateVertexElementMacros();
+        collection.unionCollection(renderer.shaderData._macroCollection);
+      }
+      const internalForwardTarget =
+        camera &&
+        camera.renderTarget === target &&
+        this.getTagValue("pipelineStage") === "Forward" &&
+        camera._isIndependentCanvasEnabled();
+      if (target || internalForwardTarget) collection.disable(Engine._outputSRGBCorrectMacro);
+      else collection.enable(Engine._outputSRGBCorrectMacro);
+      if (macros) for (const macro of macros) collection.enable(macro);
+      const program = this._getShaderProgram(
+        engine,
+        collection,
+        undefined,
+        mesh._primitive,
+        renderer?.shaderData,
+        material.shaderData,
+        renderElementData,
+        camera
+      );
+      if (!program.isValid) throw new Error(`Could not compile shader pass '${this.name}'.`);
+      const state = this._renderState._resolve(
+        engine,
+        this._renderStateDataMap,
+        material.shaderData,
+        renderElementData
+      );
+      const frontFaceInvert = options.frontFaceInvert ?? renderer?._isFrontFaceInvert() ?? false;
+      const platform = program._platformProgram;
+      if (!platform.prewarm) return resolve();
+      const temporary = internalForwardTarget
+        ? camera._renderPipeline._allocateInternalColorTarget(
+            Math.min(target?.antiAliasing ?? camera.msaaSamples, engine._hardwareRenderer.capability.maxAntiAliasing)
+          )
+        : null;
+      let prepared: Promise<void>;
+      try {
+        // The platform consumes attachment formats synchronously when creating the native pipeline descriptor.
+        prepared = platform.prewarm(mesh._primitive, subMesh, temporary ?? target, state, frontFaceInvert);
+      } finally {
+        if (temporary) engine._renderTargetPool.freeRenderTarget(temporary);
+      }
+      resolve(prepared);
+    });
   }
 
   /**

@@ -22,6 +22,28 @@ it("reports missing XRGPUBinding before requesting a WebGPU session", async () =
   }
 });
 
+it("ends an acquired session and preserves the projection error if cleanup also fails", () => {
+  const failure = new Error("Projection layer unavailable");
+  const end = vi.fn().mockRejectedValue(new Error("Session already ended"));
+  vi.stubGlobal("navigator", { xr: { requestSession: () => Promise.resolve({ end }) } });
+  vi.stubGlobal(
+    "XRGPUBinding",
+    class {
+      getPreferredColorFormat() {
+        return "rgba8unorm";
+      }
+      createProjectionLayer() {
+        throw failure;
+      }
+    }
+  );
+  const device = { backend: "webgpu", device: {}, _options: {} };
+  return expect(new WebXRDevice().requestSession(device, XRSessionMode.VR, []))
+    .rejects.toBe(failure)
+    .then(() => expect(end).toHaveBeenCalledOnce())
+    .finally(() => vi.unstubAllGlobals());
+});
+
 it.skipIf(!navigator.gpu)(
   "renders tracked eyes into distinct compositor layers with their native viewport and depth",
   async () => {

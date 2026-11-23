@@ -161,20 +161,23 @@ export class DirectorSemanticView {
     }
   }
   /** Request statistics from a subsequently rendered frame, without blocking the GPU. */
-  async sample(signal?: AbortSignal): Promise<DirectorSemanticReport> {
+  sample(signal?: AbortSignal): Promise<DirectorSemanticReport> {
     let epoch = this.visible ? this.epoch : undefined;
     const frame = this.frame,
       start = performance.now();
     this.lastRead = -Infinity;
-    while (this.active && (epoch === undefined || epoch === this.epoch)) {
-      if (epoch === undefined && this.visible) epoch = this.epoch;
-      if (signal?.aborted) throw Error("沿途测量已取消");
-      if (this.error) throw Error(this.error);
-      if (this.report && this.report.frame > frame) return this.report;
-      if (performance.now() - start > 5000) throw Error("语义帧采样超时");
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    }
-    throw Error("诊断状态已改变");
+    return new Promise<DirectorSemanticReport>((resolve, reject) => {
+      const poll = () => {
+        if (!this.active || (epoch !== undefined && epoch !== this.epoch)) return reject(Error("诊断状态已改变"));
+        if (epoch === undefined && this.visible) epoch = this.epoch;
+        if (signal?.aborted) return reject(Error("沿途测量已取消"));
+        if (this.error) return reject(Error(this.error));
+        if (this.report && this.report.frame > frame) return resolve(this.report);
+        if (performance.now() - start > 5000) return reject(Error("语义帧采样超时"));
+        requestAnimationFrame(poll);
+      };
+      poll();
+    });
   }
   private invalidate(): void {
     this.epoch++;
@@ -270,7 +273,7 @@ export class DirectorSemanticView {
     data.setFloat("material_DirectorStatistics", 0);
     Blitter.blitTexture(this.engine, ids, destination, 0, undefined, this.composite);
   }
-  private async enqueueRead(): Promise<void> {
+  private enqueueRead(): Promise<void> {
     const controller = (this.pending = new AbortController());
     const { width, height } = this.statistics!;
     const readFrame = this.frame;
@@ -281,28 +284,32 @@ export class DirectorSemanticView {
     const position = [p.x, p.y, p.z],
       rotation = [q.x, q.y, q.z, q.w];
     const pixels = new Uint8Array(width * height * 4);
-    try {
+    return new Promise<void>((resolve) => {
       const texture = this.statistics!.getColorTexture(0) as Texture2D;
-      await texture.getPixelBufferAsync(pixels, controller.signal);
-      if (this.epoch !== epoch || controller.signal.aborted) return;
-      this.report = {
-        ...summarizeDirectorPixels(pixels, width, height),
-        frame: readFrame,
-        sampledAt,
-        receivedAt: performance.now(),
-        position,
-        rotation
-      };
-      if (!this.hasTarget) this.report.targetOcclusion = null;
-      this.canvas.dataset.semanticReport = JSON.stringify(this.report);
-    } catch (error) {
-      if (!controller.signal.aborted) {
-        this.error = String(error);
-        this.canvas.dataset.semanticError = this.error;
-      }
-    } finally {
-      if (this.pending === controller) this.pending = undefined;
-    }
+      resolve(texture.getPixelBufferAsync(pixels, controller.signal));
+    })
+      .then(() => {
+        if (this.epoch !== epoch || controller.signal.aborted) return;
+        this.report = {
+          ...summarizeDirectorPixels(pixels, width, height),
+          frame: readFrame,
+          sampledAt,
+          receivedAt: performance.now(),
+          position,
+          rotation
+        };
+        if (!this.hasTarget) this.report.targetOcclusion = null;
+        this.canvas.dataset.semanticReport = JSON.stringify(this.report);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          this.error = String(error);
+          this.canvas.dataset.semanticError = this.error;
+        }
+      })
+      .finally(() => {
+        if (this.pending === controller) this.pending = undefined;
+      });
   }
   /** Release GPU resources and remove the post pass. */
   dispose(): void {
