@@ -289,7 +289,7 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _destroyHost(): void {
+  _destroyGPUResources(): void {
     const modelMesh = this._modelMesh;
     if (this._vertexTexture) {
       this._vertexTexture._disassociationSuperResource(modelMesh);
@@ -319,7 +319,7 @@ export class BlendShapeManager {
       _blendShapeCount: blendShapeCount,
       _vertexBuffers: vertexBuffers
     } = this;
-    this._destroyHost();
+    this._destroyGPUResources();
     const vertexFloatCount = this._vertexElementCount * 3;
     const vertexByteCount = vertexFloatCount * 4;
     const maxCountSingleBuffer = Math.floor(255 / vertexByteCount); // 255: Attribute MaxStride
@@ -357,7 +357,7 @@ export class BlendShapeManager {
       textureWidth = maxTextureSize;
     }
 
-    this._destroyHost();
+    this._destroyGPUResources();
 
     const blendShapeCount = this._blendShapes.length;
     const blendShapeDataTexture = new Texture2DArray(

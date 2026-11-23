@@ -483,7 +483,7 @@ export class ModelMesh extends Mesh {
     this._internalVertexElementsOffset = count;
     this._advancedElementUpdateFlag = VertexElementFlags.None;
     this._vertexCountDirty = true;
-    this._blendShapeManager._destroyHost();
+    this._blendShapeManager._destroyGPUResources();
     this._blendShapeManager._bufferBindingOffset = -1;
     this._blendShapeManager._vertexElementOffset = count;
   }
@@ -665,7 +665,7 @@ export class ModelMesh extends Mesh {
     if (blendShapeManager._blendShapeCount > 0) {
       blendShapeManager._update(releaseData);
     } else {
-      blendShapeManager._destroyHost();
+      blendShapeManager._destroyGPUResources();
     }
 
     if (releaseData) {
@@ -754,7 +754,7 @@ export class ModelMesh extends Mesh {
     this._destroyInternalVertexBuffer();
     this._primitive.indexBufferBinding?._buffer.destroy();
     this._blendShapeManager._clearBlendShapes();
-    this._blendShapeManager._destroyHost();
+    this._blendShapeManager._destroyGPUResources();
     this._releaseCache(true);
   }
 
