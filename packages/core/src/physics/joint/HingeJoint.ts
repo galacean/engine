@@ -36,7 +36,7 @@ export class HingeJoint extends Joint {
   }
 
   set axis(value: Readonly<Vector3Like>) {
-    this.setAxis(value);
+    this._setAxis(value);
   }
 
   /**
@@ -186,7 +186,7 @@ export class HingeJoint extends Joint {
   }
 
   // Runtime Prefab calls use this method name.
-  private setAxis(value: Readonly<Vector3Like>): void {
+  private _setAxis(value: Readonly<Vector3Like>): void {
     const axis = normalizeDirection(this._axis, value, "HingeJoint axis");
     if (axis !== this._axis) {
       this._axis = axis;

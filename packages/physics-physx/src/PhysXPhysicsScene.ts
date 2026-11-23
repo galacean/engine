@@ -91,7 +91,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         const existing = pairs[big];
         if (existing) {
           // Treat a rediscovered pair as a continuous overlap.
-          existing._pendingState = PhysicsEventState.Stay;
+          existing.pendingState = PhysicsEventState.Stay;
           return;
         }
         let event = this._triggerEventPool.pop();
@@ -101,14 +101,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         } else {
           event = new TriggerEvent(small, big);
         }
-        event._pendingState = PhysicsEventState.Enter;
+        event.pendingState = PhysicsEventState.Enter;
         pairs[big] = event;
         this._activeTriggers.push(event);
       },
       onTriggerEnd: (index1, index2) => {
         const pairs = this._eventMap[Math.min(index1, index2)];
         const big = Math.max(index1, index2);
-        pairs[big]!._pendingState = PhysicsEventState.Exit;
+        pairs[big]!.pendingState = PhysicsEventState.Exit;
         delete pairs[big];
       }
     };
@@ -223,10 +223,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     triggerEvents.length = 0;
     for (let i = 0; i < activeTriggers.length; ) {
       const event = activeTriggers[i];
-      const state = (event.state = event._pendingState);
+      const state = (event.state = event.pendingState);
       triggerEvents.push(event);
       if (state === PhysicsEventState.Enter) {
-        event._pendingState = PhysicsEventState.Stay;
+        event.pendingState = PhysicsEventState.Stay;
       } else if (state === PhysicsEventState.Exit) {
         this._retireTrigger(event, i);
         continue;
@@ -582,7 +582,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         continue;
       } else if (first || second) {
         // Start with an exit and let PhysX restore the stay if it reports the pair again.
-        event._pendingState = PhysicsEventState.Exit;
+        event.pendingState = PhysicsEventState.Exit;
       }
       i++;
     }
@@ -646,7 +646,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
  */
 class TriggerEvent implements ITriggerEvent {
   state: PhysicsEventState;
-  _pendingState: PhysicsEventState;
+  pendingState: PhysicsEventState;
 
   constructor(
     public shape0Id: number,

@@ -124,7 +124,7 @@ describe("Physics gameplay integration", () => {
       entities: [{ name: "hinge", components: [0, 1] }],
       components: [
         { type: "Rigidbody" },
-        { type: "HingeJoint", calls: [{ method: "setAxis", args: [{ x: 0, y: 2, z: 0 }] }] }
+        { type: "HingeJoint", calls: [{ method: "_setAxis", args: [{ x: 0, y: 2, z: 0 }] }] }
       ],
       root: 0
     });
