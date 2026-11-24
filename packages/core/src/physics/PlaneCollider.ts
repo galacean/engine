@@ -6,6 +6,7 @@ import { Collider } from "./Collider";
 /**
  * An infinite plane collider with a +Y normal in local space.
  * @remarks Simulation and queries use the plane when static or owned by a kinematic {@link Rigidbody}.
+ * An infinite plane has no finite world bounds, so {@link getBounds} returns false and leaves the output unchanged.
  */
 export class PlaneCollider extends Collider {
   /**

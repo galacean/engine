@@ -55,6 +55,9 @@ Shape sizes follow the absolute values of the Entity's world scale, while `cente
 | Method | Description |
 | :-- | :-- |
 | [**getClosestPoint**](/apis/core/#Collider-getClosestPoint) | Returns the distance from a world-space point to the Collider and writes the closest point. Returns -1 when the Collider is not in simulation. Not supported by PlaneCollider, CharacterController, and non-convex MeshCollider |
+| [**getBounds**](/apis/core/#Collider-getBounds) | Writes the world-space axis-aligned bounding box to a reusable `BoundingBox` and returns `true`. If the Collider has no finite bounds, returns `false` and leaves the output unchanged |
+
+`getBounds(out)` uses the current transform and shape properties, including when the Collider is disabled or outside a scene. The result excludes contact offsets. A CharacterController aligns its bounds to its world-space `upDirection`.
 
 ## Shape Properties
 
@@ -80,7 +83,7 @@ Shape sizes follow the absolute values of the Entity's world scale, while `cente
 
 ### PlaneCollider
 
-PlaneCollider has no shape properties. It is an infinite plane facing the Entity's local +Y axis; use the Entity's rotation to orient it. It can only be static or belong to a kinematic Rigidbody, and does not support `getClosestPoint()` (returns `-1`) or volume-distance queries.
+PlaneCollider has no shape properties. It is an infinite plane facing the Entity's local +Y axis; use the Entity's rotation to orient it. It can only be static or belong to a kinematic Rigidbody, and does not support `getClosestPoint()` (returns `-1`) or volume-distance queries. `getBounds(out)` returns `false` because the plane has no finite bounds.
 
 ### MeshCollider
 
@@ -89,6 +92,8 @@ PlaneCollider has no shape properties. It is an infinite plane facing the Entity
 | [**mesh**](/apis/core/#MeshCollider-mesh) | The [ModelMesh](/apis/core/#ModelMesh) used for collision. Its data must stay accessible after upload, and a triangle mesh also needs indices; invalid meshes are excluded from simulation and queries until replaced with a valid mesh | null |
 | [**convex**](/apis/core/#MeshCollider-convex) | Whether to use a convex hull generated from the mesh vertices. A non-convex mesh cannot be a trigger or belong to a non-kinematic Rigidbody; invalid combinations are excluded until resolved | false |
 | [**cookingFlags**](/apis/core/#MeshCollider-cookingFlags) | Mesh cooking flags (`MeshColliderCookingFlag`) | Cleaning \| VertexWelding |
+
+`getBounds(out)` transforms `mesh.bounds` using the collider pose and absolute world scale. It can read these bounds before physics cooking or after the mesh drops its CPU data.
 
 ## Physics Material
 

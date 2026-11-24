@@ -1,9 +1,10 @@
 import { IMeshShape, IPhysicsShape, MeshColliderCookingFlag } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine-math";
+import { type BoundingBox, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { Collider } from "./Collider";
+import { setRotatedBounds } from "./colliderBounds";
 
 /**
  * A collider based on a triangle mesh or a convex hull.
@@ -128,6 +129,49 @@ export class MeshCollider extends Collider {
       return -1;
     }
     return super.getClosestPoint(point, outClosestPoint);
+  }
+
+  /**
+   * Transforms {@link ModelMesh.bounds} using the collider pose and absolute world scale.
+   * @remarks Uses the mesh bounds before cooking, including when disabled or when the mesh data is inaccessible.
+   * @param out - Receives the world-space bounds. Left unchanged if no finite bounds are available.
+   * @returns Whether a finite bounding box was written.
+   */
+  override getBounds(out: BoundingBox): boolean {
+    const mesh = this._mesh;
+    if (!mesh) {
+      return false;
+    }
+    const transform = this.entity.transform;
+    const scale = transform.lossyWorldScale;
+    const absScale = Collider._getAbsoluteScale(scale);
+    if (!MeshCollider._isValidScale(absScale)) {
+      return false;
+    }
+    const { min, max } = mesh.bounds;
+    const { x: minX, y: minY, z: minZ } = min;
+    const { x: maxX, y: maxY, z: maxZ } = max;
+    if (minX > maxX || minY > maxY || minZ > maxZ) {
+      return false;
+    }
+
+    const rotation = transform.worldRotationQuaternion;
+    const center = this._getScaledCenter(scale);
+    center.set(
+      center.x + (minX + maxX) * 0.5 * absScale.x,
+      center.y + (minY + maxY) * 0.5 * absScale.y,
+      center.z + (minZ + maxZ) * 0.5 * absScale.z
+    );
+    Vector3.transformByQuat(center, rotation, center);
+    center.add(transform.worldPosition);
+    return setRotatedBounds(
+      out,
+      center,
+      rotation,
+      (maxX - minX) * 0.5 * absScale.x,
+      (maxY - minY) * 0.5 * absScale.y,
+      (maxZ - minZ) * 0.5 * absScale.z
+    );
   }
 
   /**

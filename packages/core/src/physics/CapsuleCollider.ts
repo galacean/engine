@@ -1,8 +1,9 @@
 import { CapsuleColliderDirection, ICapsuleShape, IPhysicsShape, ISphereShape } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine-math";
+import { type BoundingBox, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
+import { setCapsuleBounds } from "./colliderBounds";
 import { isValidPositiveFloat32 } from "./float32";
 
 /**
@@ -12,6 +13,9 @@ import { isValidPositiveFloat32 } from "./float32";
  * degenerates to a sphere of the scaled radius.
  */
 export class CapsuleCollider extends Collider {
+  private static readonly _tempDimensions = { radius: 0, halfHeight: 0 };
+  private static readonly _tempAxis = new Vector3();
+
   private _radius = 1;
   private _height = 4;
   private _direction = CapsuleColliderDirection.Y;
@@ -85,7 +89,49 @@ export class CapsuleCollider extends Collider {
     }
   }
 
+  override getBounds(out: BoundingBox): boolean {
+    const transform = this.entity.transform;
+    const scale = transform.lossyWorldScale;
+    const dimensions = this._getDimensions(Collider._getAbsoluteScale(scale));
+    if (!dimensions) {
+      return false;
+    }
+    const direction = this._direction;
+    const axis = CapsuleCollider._tempAxis.set(
+      direction === CapsuleColliderDirection.X ? 1 : 0,
+      direction === CapsuleColliderDirection.Y ? 1 : 0,
+      direction === CapsuleColliderDirection.Z ? 1 : 0
+    );
+    const rotation = transform.worldRotationQuaternion;
+    Vector3.transformByQuat(axis, rotation, axis);
+    const center = this._getBoundsCenter(transform, scale, rotation);
+    return setCapsuleBounds(out, center, axis, dimensions.radius, dimensions.halfHeight);
+  }
+
   protected override _syncGeometry(shape: IPhysicsShape | null, scale: Vector3): IPhysicsShape | null {
+    const dimensions = this._getDimensions(scale);
+    if (!dimensions) {
+      return null;
+    }
+    const { radius, halfHeight } = dimensions;
+    const direction = this._direction;
+    if (halfHeight === 0) {
+      if (shape && this._nativeIsSphere) {
+        (<ISphereShape>shape).setRadius(radius);
+        return shape;
+      }
+      this._nativeIsSphere = true;
+      return Engine._nativePhysics.createSphereShape(this._id, radius, this._getNativeMaterial());
+    }
+    if (shape && !this._nativeIsSphere) {
+      (<ICapsuleShape>shape).setDimensions(radius, halfHeight, direction);
+      return shape;
+    }
+    this._nativeIsSphere = false;
+    return Engine._nativePhysics.createCapsuleShape(this._id, radius, halfHeight, this._getNativeMaterial(), direction);
+  }
+
+  private _getDimensions(scale: Vector3): typeof CapsuleCollider._tempDimensions | null {
     const direction = this._direction;
     let radialScale: number;
     let heightScale: number;
@@ -112,20 +158,9 @@ export class CapsuleCollider extends Collider {
     if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(halfHeight))) {
       return null;
     }
-    const isSphere = !isValidPositiveFloat32(halfHeight);
-    if (isSphere) {
-      if (shape && this._nativeIsSphere) {
-        (<ISphereShape>shape).setRadius(radius);
-        return shape;
-      }
-      this._nativeIsSphere = true;
-      return Engine._nativePhysics.createSphereShape(this._id, radius, this._getNativeMaterial());
-    }
-    if (shape && !this._nativeIsSphere) {
-      (<ICapsuleShape>shape).setDimensions(radius, halfHeight, direction);
-      return shape;
-    }
-    this._nativeIsSphere = false;
-    return Engine._nativePhysics.createCapsuleShape(this._id, radius, halfHeight, this._getNativeMaterial(), direction);
+    const dimensions = CapsuleCollider._tempDimensions;
+    dimensions.radius = radius;
+    dimensions.halfHeight = isValidPositiveFloat32(halfHeight) ? halfHeight : 0;
+    return dimensions;
   }
 }

@@ -1,5 +1,5 @@
 import { IPhysicsActor, IPhysicsMaterial, IPhysicsShape, IStaticActor } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { type BoundingBox, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Logger } from "../base";
 import { BasicResources } from "../BasicResources";
 import { ignoreClone } from "../clone/CloneDecorators";
@@ -47,6 +47,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
     return index;
+  }
+
+  protected static _getAbsoluteScale(scale: Vector3): Vector3 {
+    return Collider._tempScale.set(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
   }
 
   /** @internal */
@@ -220,6 +224,17 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   /**
+   * Computes the world-space axis-aligned bounding box of the current collider geometry.
+   * @remarks Uses the current Transform and geometry properties, including when disabled or outside a scene.
+   * Contact offsets are excluded.
+   * @param out - Receives the bounds. Left unchanged if no finite bounds are available.
+   * @returns Whether a finite bounding box was written.
+   */
+  getBounds(out: BoundingBox): boolean {
+    return false;
+  }
+
+  /**
    * @internal
    * Measures the distance to this Collider's synchronized native shape.
    * @param point - The point in world space
@@ -312,7 +327,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     // Replace geometry only on the actor that owns this Collider in the current hierarchy.
     this._nativeActor && this._attachedBody !== body && this._detach();
 
-    const scale = Collider._tempScale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+    const scale = Collider._getAbsoluteScale(lossyScale);
     const previousShape = this._native;
     const shape = this._syncNativeShape(scale);
     if (!shape) {
@@ -401,6 +416,18 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
     }
     return null;
+  }
+
+  protected _getScaledCenter(scale: Vector3, localCenter: Vector3 = this._center): Vector3 {
+    const center = Collider._tempPosition;
+    Vector3.multiply(localCenter, scale, center);
+    return center;
+  }
+
+  protected _getBoundsCenter(transform: Transform, scale: Vector3, rotation: Quaternion): Vector3 {
+    const center = this._getScaledCenter(scale);
+    Vector3.transformByQuat(center, rotation, center);
+    return center.add(transform.worldPosition);
   }
 
   /**
@@ -548,9 +575,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   private _syncShapePose(shape: IPhysicsShape, body: Rigidbody | null, scale: Vector3, force: boolean): void {
-    const position = Collider._tempPosition;
+    const position = this._getScaledCenter(scale);
     const rotation = Collider._tempRotation.set(0, 0, 0, 1);
-    Vector3.multiply(this._center, scale, position);
 
     if (body) {
       const entity = this.entity;

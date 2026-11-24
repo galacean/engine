@@ -4,12 +4,13 @@ import {
   ICharacterController,
   IPhysicsMaterial
 } from "@galacean/engine-design";
-import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
+import { type BoundingBox, MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
+import { setCapsuleBounds } from "./colliderBounds";
 import { isValidPositiveFloat32 } from "./float32";
 import { normalizeDirection } from "./unitDirection";
 
@@ -17,10 +18,11 @@ import { normalizeDirection } from "./unitDirection";
  * A capsule that moves and slides along obstacles through {@link move}.
  * @remarks The Entity's world scale sizes the shape, and {@link upDirection} orients it. The controller moves
  * independently of Rigidbody ownership and Entity rotation.
+ * {@link getBounds} uses this capsule's world orientation and a scaled center offset in world axes.
  */
 export class CharacterController extends Collider {
   private static readonly _tempMovePosition = new Vector3();
-  private static readonly _tempWorldScale = new Vector3();
+  private static readonly _tempDimensions = { radius: 0, halfHeight: 0, scaledHeight: 0 };
 
   private _radius = 0.5;
   private _height = 2;
@@ -203,6 +205,17 @@ export class CharacterController extends Collider {
     return -1;
   }
 
+  override getBounds(out: BoundingBox): boolean {
+    const transform = this.entity.transform;
+    const scale = transform.lossyWorldScale;
+    const dimensions = this._getDimensions(Collider._getAbsoluteScale(scale));
+    if (!dimensions) {
+      return false;
+    }
+    const center = this._getScaledCenter(scale, this.center).add(transform.worldPosition);
+    return setCapsuleBounds(out, center, this._upDirection, dimensions.radius, dimensions.halfHeight);
+  }
+
   /**
    * @internal
    */
@@ -218,23 +231,19 @@ export class CharacterController extends Collider {
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state.
     transform.worldMatrix;
     const lossyScale = transform.lossyWorldScale;
-    const scaleX = lossyScale.x;
-    const scaleY = lossyScale.y;
-    const scaleZ = lossyScale.z;
     const needsAttach = !this._inScene;
 
     // Sync capsule dimensions and lazily create the native controller.
-    const absScale = CharacterController._tempWorldScale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
+    const absScale = Collider._getAbsoluteScale(lossyScale);
     if (needsAttach || this._geometryDirty || this._scaleChanged(absScale)) {
-      const radius = this._radius * Math.max(absScale.x, absScale.z);
-      const scaledHeight = this._height * absScale.y;
-      if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
+      const dimensions = this._getDimensions(absScale);
+      if (!dimensions) {
         this._detach();
         return;
       }
+      const { radius, scaledHeight, halfHeight } = dimensions;
       this._geometryDirty = false;
       this._nativeScale.copyFrom(absScale);
-      const halfHeight = Math.max(0, scaledHeight * 0.5 - radius);
       const stepOffset = Math.min(this._stepOffset, Math.max(scaledHeight, 2 * radius));
       (this._controller ||= this._createNative()).setCapsule(radius, halfHeight, stepOffset);
     }
@@ -242,10 +251,7 @@ export class CharacterController extends Collider {
     // Sync world position and signed center offset.
     const controller = this._controller!;
     const position = transform.worldPosition;
-    const colliderCenter = this.center;
-    const centerX = colliderCenter.x * scaleX;
-    const centerY = colliderCenter.y * scaleY;
-    const centerZ = colliderCenter.z * scaleZ;
+    const { x: centerX, y: centerY, z: centerZ } = this._getScaledCenter(lossyScale, this.center);
     const syncedCenter = this._syncedCenter;
     const nativePosition = this._nativePosition;
     if (
@@ -318,6 +324,19 @@ export class CharacterController extends Collider {
   protected override _destroyNative(): void {
     this._controller?.destroy();
     this._controller = null;
+  }
+
+  private _getDimensions(scale: Vector3): typeof CharacterController._tempDimensions | null {
+    const radius = this._radius * Math.max(scale.x, scale.z);
+    const scaledHeight = this._height * scale.y;
+    if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
+      return null;
+    }
+    const dimensions = CharacterController._tempDimensions;
+    dimensions.radius = radius;
+    dimensions.halfHeight = Math.max(0, scaledHeight * 0.5 - radius);
+    dimensions.scaledHeight = scaledHeight;
+    return dimensions;
   }
 
   // Runtime Prefab calls use this method name.

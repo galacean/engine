@@ -1,7 +1,8 @@
 import { ISphereShape } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine-math";
+import type { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
+import { setBounds } from "./colliderBounds";
 import { isValidPositiveFloat32 } from "./float32";
 
 /**
@@ -32,14 +33,25 @@ export class SphereCollider extends Collider {
     }
   }
 
+  override getBounds(out: BoundingBox): boolean {
+    const transform = this.entity.transform;
+    const scale = transform.lossyWorldScale;
+    const radius = this._getRadius(Collider._getAbsoluteScale(scale));
+    if (!radius) {
+      return false;
+    }
+    const center = this._getBoundsCenter(transform, scale, transform.worldRotationQuaternion);
+    return setBounds(out, center, radius, radius, radius);
+  }
+
   protected override _scaleChanged(scale: Vector3): boolean {
     const nativeScale = this._nativeScale;
     return Math.max(scale.x, scale.y, scale.z) !== Math.max(nativeScale.x, nativeScale.y, nativeScale.z);
   }
 
   protected override _syncGeometry(shape: ISphereShape | null, scale: Vector3): ISphereShape | null {
-    const radius = this._radius * Math.max(scale.x, scale.y, scale.z);
-    if (!isValidPositiveFloat32(radius)) {
+    const radius = this._getRadius(scale);
+    if (!radius) {
       return null;
     }
     if (!shape) {
@@ -47,5 +59,10 @@ export class SphereCollider extends Collider {
     }
     shape.setRadius(radius);
     return shape;
+  }
+
+  private _getRadius(scale: Vector3): number {
+    const radius = this._radius * Math.max(scale.x, scale.y, scale.z);
+    return isValidPositiveFloat32(radius) ? radius : 0;
   }
 }

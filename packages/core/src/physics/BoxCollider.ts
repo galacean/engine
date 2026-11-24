@@ -1,8 +1,9 @@
 import { IBoxShape } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine-math";
+import { type BoundingBox, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
+import { setRotatedBounds } from "./colliderBounds";
 import { isValidPositiveFloat32 } from "./float32";
 
 /**
@@ -36,15 +37,23 @@ export class BoxCollider extends Collider {
     this._size._onValueChanged = this._onSizeChanged.bind(this);
   }
 
+  override getBounds(out: BoundingBox): boolean {
+    const transform = this.entity.transform;
+    const scale = transform.lossyWorldScale;
+    const extents = this._getHalfExtents(Collider._getAbsoluteScale(scale));
+    if (!extents) {
+      return false;
+    }
+    const rotation = transform.worldRotationQuaternion;
+    const center = this._getBoundsCenter(transform, scale, rotation);
+    return setRotatedBounds(out, center, rotation, extents.x, extents.y, extents.z);
+  }
+
   protected override _syncGeometry(shape: IBoxShape | null, scale: Vector3): IBoxShape | null {
-    const size = this._size;
-    const x = size.x * scale.x * 0.5;
-    const y = size.y * scale.y * 0.5;
-    const z = size.z * scale.z * 0.5;
-    if (!isValidPositiveFloat32(x) || !isValidPositiveFloat32(y) || !isValidPositiveFloat32(z)) {
+    const extents = this._getHalfExtents(scale);
+    if (!extents) {
       return null;
     }
-    const extents = BoxCollider._tempHalfExtents.set(x, y, z);
     if (!shape) {
       return Engine._nativePhysics.createBoxShape(this._id, extents, this._getNativeMaterial());
     }
@@ -56,6 +65,16 @@ export class BoxCollider extends Collider {
     //@ts-ignore
     this._size._onValueChanged = null;
     super._onDestroy();
+  }
+
+  private _getHalfExtents(scale: Vector3): Vector3 | null {
+    const size = this._size;
+    const x = size.x * scale.x * 0.5;
+    const y = size.y * scale.y * 0.5;
+    const z = size.z * scale.z * 0.5;
+    return isValidPositiveFloat32(x) && isValidPositiveFloat32(y) && isValidPositiveFloat32(z)
+      ? BoxCollider._tempHalfExtents.set(x, y, z)
+      : null;
   }
 
   private _onSizeChanged(): void {
