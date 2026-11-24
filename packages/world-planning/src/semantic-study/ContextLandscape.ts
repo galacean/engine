@@ -43,6 +43,8 @@ export interface LandscapeConfig
   multiplier?: number;
   /** Candidate points per 1000 square metres before footprint and habitat rejection. */
   samplingDensityPer1000M2?: number;
+  /** Multiplier on canopy/rock exclusion radius during candidate thinning (default 1). Lower values allow dense overlapping crowns. */
+  exclusionRadiusScale?: number;
   maxAltitudeM: number;
   maxSlopeDegrees: number;
   contexts: Record<Exclude<LandscapeContext, "openland">, number> & { openland?: number };
@@ -253,7 +255,8 @@ export function prepareLandscapeBasemap(
     q.treeHeightMinM,
     q.treeHeightMaxM,
     q.maxAltitudeM,
-    q.maxSlopeDegrees
+    q.maxSlopeDegrees,
+    q.exclusionRadiusScale ?? 1
   ];
   const routesKey = JSON.stringify(plan.routes.map((r) => [r.id, r.outline]));
   const digest = hashSignatureValue([
@@ -291,12 +294,22 @@ export function prepareLandscapeBasemap(
   const key = digest;
   const cached = slotCache.get(key);
   if (cached) return cached;
+  const maxExclusionScale = Math.max(
+    1,
+    config.exclusionRadiusScale ?? 1,
+    ...[...locals.values()].map((q) => q.exclusionRadiusScale ?? 1),
+    ...Object.values(edits).map((edit) => edit.landscape?.exclusionRadiusScale ?? 1)
+  );
   const slots = createSlots(
     plan,
     step,
     (center, source) => {
       const poiId = territory(center)[0]?.site.id;
       return landscapeInfluenceHeightRange((poiId && locals.get(poiId)) || regionAt(center), influenceAt(source));
+    },
+    (center) => {
+      const poiId = territory(center)[0]?.site.id;
+      return ((poiId && locals.get(poiId)) || regionAt(center)).exclusionRadiusScale ?? 1;
     },
     Math.max(
       config.treeHeightMaxM,
@@ -309,6 +322,7 @@ export function prepareLandscapeBasemap(
         ].filter((value): value is number => value !== undefined)
       )
     ),
+    maxExclusionScale,
     scope ?? reuse?.area
   ).filter((slot) => {
     slot.poiId = territory(slot.center)[0]?.site.id;
@@ -564,7 +578,9 @@ function createSlots(
   plan: IslandPlan,
   step: number,
   heightAt: (p: PlanPoint, source: Pick<PlanLandscape, "context" | "sourceId">) => { min: number; max: number },
+  exclusionScaleAt: (p: PlanPoint) => number,
   maxTreeHeight: number,
+  maxExclusionScale: number,
   scope?: Bounds
 ): LandscapeCandidate[] {
   const queries = new Map<PlanPoint[], ReturnType<typeof createPlanningRingQuery>>();
@@ -581,6 +597,9 @@ function createSlots(
     habitatAt = prepareHabitatSampler(plan, step),
     staticPlacement = prepareStaticPlacement(plan, step),
     sourceAt = prepareSourceLookup(plan, query);
+  const spawnPoiCenter = plan.poiDistribution?.sites.find(
+    (site) => site.id === "poi-template-spawn" && site.active
+  )?.center;
   const lands = (plan.poiDistribution?.domains ?? [{ outline: plan.land }]).map((domain) => query(domain.outline));
   const roadQueries = plan.routes.map((r) => ({ outline: r.outline!, ring: query(r.outline!) }));
   const roadsAt = footprintLookup(roadQueries, (r) => r.outline);
@@ -591,7 +610,8 @@ function createSlots(
   const treeSpanRatio = Math.max(
     ...PLANT_TREE_SPECIES.map(({ sourceDimensionsM: [width, height, depth] }) => Math.max(width, depth) / height)
   );
-  const binSize = Math.max(maxTreeHeight * treeSpanRatio, q.rockWidthMax) + q.instanceGap;
+  const binSize =
+    Math.max(maxTreeHeight * treeSpanRatio * maxExclusionScale, q.rockWidthMax * maxExclusionScale) + q.instanceGap;
   // Include every proposal in the queried candidates' 3x3 thinning bins, even
   // outside the edited scope. Those rejected/unowned neighbours still participate.
   const halo = 2 * binSize + (step * rules.jitter) / 2;
@@ -654,11 +674,20 @@ function createSlots(
       depth = kind === "tree" ? tree.depth : width * 0.8,
       radius = Math.max(width, depth) / 2,
       yaw = sample("yaw") * Math.PI * 2;
+    // Keep a small clear standing pad right around the template spawn camera eye so no trunk blocks the lens.
+    if (spawnPoiCenter && Math.hypot(center.x - spawnPoiCenter.x, center.z - spawnPoiCenter.z) < 4.2) continue;
     // Thinning depends on all proposals, never their acceptance. Eliminate the
     // same losers before constructing footprints and running exact occupancy tests.
+    const exclusionScale = exclusionScaleAt(center);
+    const thinningRadius =
+      exclusionScale === 1
+        ? radius + q.instanceGap
+        : kind === "tree"
+          ? Math.max(q.trunkRadius * 2 + 0.6, radius * exclusionScale + q.instanceGap * Math.min(1, exclusionScale))
+          : Math.max(width * 0.5, radius * exclusionScale + q.instanceGap * Math.min(1, exclusionScale));
     if (
       nearSlots(center).some(
-        (s) => s.order < order && Math.hypot(s.center.x - center.x, s.center.z - center.z) < radius + q.instanceGap
+        (s) => s.order < order && Math.hypot(s.center.x - center.x, s.center.z - center.z) < thinningRadius
       )
     )
       continue;
@@ -791,6 +820,9 @@ function resolveLandscapeConfigs(plan: IslandPlan, config: LandscapeConfig, edit
       (q.edgeDensity ?? rules.distribution.edgeDensity) > 1 ||
       !Number.isFinite(q.falloffRatio ?? 1) ||
       (q.falloffRatio ?? 1) < 0 ||
+      !Number.isFinite(q.exclusionRadiusScale ?? 1) ||
+      (q.exclusionRadiusScale ?? 1) <= 0 ||
+      (q.exclusionRadiusScale ?? 1) > 4 ||
       ![q.maxAltitudeM, q.maxSlopeDegrees].every((v) => Number.isFinite(v) && v >= 0) ||
       q.maxSlopeDegrees > 90
     )

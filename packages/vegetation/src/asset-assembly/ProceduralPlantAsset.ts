@@ -31,6 +31,10 @@ export interface ProceduralPlantLibraryEntry {
   /** Deliberate authoring reduction; the original source-fit acceptance no longer applies. */
   readonly geometryEdited?: boolean;
   readonly lodCount?: number;
+  /** Optional LOD index shift applied when compiling population geometry (0 = default LOD0). */
+  readonly geometryLodOffset?: number;
+  /** Optional CPU-side leaf card retention fraction in (0, 1] that physically prunes leaf triangles from the mesh. */
+  readonly geometryLeafRetention?: number;
   readonly materialSlots?: Readonly<Record<string, string>>;
   readonly error?: string;
 }

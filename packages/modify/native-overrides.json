@@ -372,6 +372,10 @@
     "replacement": "packages/modify/src/native/core/src/postProcess/effects/SunLensFlareEffect.ts"
   },
   {
+    "original": "packages/core/src/postProcess/effects/VolumetricLightEffect.ts",
+    "replacement": "packages/modify/src/native/core/src/postProcess/effects/VolumetricLightEffect.ts"
+  },
+  {
     "original": "packages/core/src/particle/modules/WindOverLifetimeModule.ts",
     "replacement": "packages/modify/src/native/core/src/particle/modules/WindOverLifetimeModule.ts"
   },
@@ -486,6 +490,14 @@
   {
     "original": "packages/shader/src/Shaders/PostProcess/SunLensFlareVisibility.shader",
     "replacement": "packages/modify/src/native/shader/src/Shaders/PostProcess/SunLensFlareVisibility.shader"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PostProcess/VolumetricLight.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/VolumetricLight.glsl"
+  },
+  {
+    "original": "packages/shader/src/Shaders/PostProcess/VolumetricLight.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/PostProcess/VolumetricLight.shader"
   },
   {
     "original": "packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl",

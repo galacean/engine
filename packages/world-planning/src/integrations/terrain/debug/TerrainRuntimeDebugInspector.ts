@@ -230,6 +230,40 @@ export interface TerrainRuntimeDebugInspectorOptions {
   readonly exactInstanceSpatial?: TerrainExactInstanceSpatialDebugControl;
   /** Optional page-owned vista presentation controls. */
   readonly vista?: TerrainVistaDebugControl;
+  /** Optional page-owned oil-paint stylization pass & shader controls. */
+  readonly oilPaint?: TerrainOilPaintDebugControl;
+}
+
+export interface TerrainOilPaintDebugSnapshot {
+  readonly passActive: boolean;
+  readonly shaderMacro: boolean;
+  readonly painterlyStrength: number;
+  readonly brushRadius: number;
+  readonly strokeAnisotropy: number;
+  readonly colorStylize: number;
+  readonly screenImpasto: number;
+  readonly impasto: number;
+  readonly brushScale: number;
+  readonly compareSplit: number;
+}
+
+export interface TerrainOilPaintDebugControl {
+  getSnapshot(): TerrainOilPaintDebugSnapshot;
+  setPassActive(active: boolean): void | Promise<void>;
+  setShaderMacro(enabled: boolean): void | Promise<void>;
+  setParam(
+    key:
+      | "painterlyStrength"
+      | "brushRadius"
+      | "strokeAnisotropy"
+      | "colorStylize"
+      | "screenImpasto"
+      | "impasto"
+      | "brushScale"
+      | "compareSplit",
+    value: number
+  ): void;
+  reset(): void;
 }
 
 export interface TerrainVistaDebugControl {
@@ -738,6 +772,100 @@ export class TerrainRuntimeDebugInspector {
       .onChange(
         editPostProcess((chromaticity: number) => options.postProcess.setSunLensFlareGhostChromaticity(chromaticity))
       );
+    const volumetricLight = inspector.subfolder(postProcess, "Volumetric Light / 体积光", true);
+    volumetricLight
+      .add(postProcessState.volumetricLight, "enabled")
+      .name("Enabled / 启用")
+      .onChange(editPostProcess((enabled: boolean) => options.postProcess.setVolumetricLightEnabled(enabled)));
+    bindNumericInput(
+      volumetricLight
+        .add(postProcessState.volumetricLight, "intensity", 0, 2.5, 0.02)
+        .name("Intensity / 光束强度")
+        .onChange(editPostProcess((intensity: number) => options.postProcess.setVolumetricLightIntensity(intensity)))
+    );
+    volumetricLight
+      .add(postProcessState.volumetricLight, "density", 0.2, 1.5, 0.02)
+      .name("Density / 延伸密度")
+      .onChange(editPostProcess((density: number) => options.postProcess.setVolumetricLightDensity(density)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "decay", 0.75, 0.99, 0.005)
+      .name("Decay / 衰减系数")
+      .onChange(editPostProcess((decay: number) => options.postProcess.setVolumetricLightDecay(decay)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "softKnee", 0, 1, 0.02)
+      .name("Soft knee / 高光柔化")
+      .onChange(editPostProcess((softKnee: number) => options.postProcess.setVolumetricLightSoftKnee(softKnee)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "skyDepthThreshold", 0.9, 0.99998, 0.0001)
+      .name("Sky depth / 天空深度阈值")
+      .onChange(
+        editPostProcess((threshold: number) => options.postProcess.setVolumetricLightSkyDepthThreshold(threshold))
+      );
+
+    let oilPaintFolder: dat.GUI | undefined;
+    let oilPaintState: Record<string, boolean | number> | undefined;
+    if (options.oilPaint) {
+      const oilControl = options.oilPaint;
+      const state = { ...oilControl.getSnapshot() };
+      oilPaintState = state;
+      oilPaintFolder = inspector.subfolder(postProcess, "Oil Paint / 油画风格", false);
+      oilPaintFolder
+        .add(state, "passActive")
+        .name("OilPaintPass / 油画后处理")
+        .onChange((active: boolean) => {
+          void Promise.resolve(oilControl.setPassActive(active)).then(() => {
+            Object.assign(state, oilControl.getSnapshot());
+            oilPaintFolder?.updateDisplay();
+          });
+        });
+      oilPaintFolder
+        .add(state, "shaderMacro")
+        .name("Shader macro / 场景材质宏")
+        .onChange((enabled: boolean) => {
+          void Promise.resolve(oilControl.setShaderMacro(enabled)).then(() => {
+            Object.assign(state, oilControl.getSnapshot());
+            oilPaintFolder?.updateDisplay();
+          });
+        });
+      oilPaintFolder
+        .add(state, "painterlyStrength", 0, 1, 0.01)
+        .name("Painterly / 笔触油画强度")
+        .onChange((v: number) => oilControl.setParam("painterlyStrength", v));
+      oilPaintFolder
+        .add(state, "brushRadius", 1, 5, 0.1)
+        .name("Brush radius / 笔触半径")
+        .onChange((v: number) => oilControl.setParam("brushRadius", v));
+      oilPaintFolder
+        .add(state, "strokeAnisotropy", 0, 3, 0.05)
+        .name("Anisotropy / 笔触拉长")
+        .onChange((v: number) => oilControl.setParam("strokeAnisotropy", v));
+      oilPaintFolder
+        .add(state, "colorStylize", 0, 1, 0.01)
+        .name("Color stylize / 油画色阶")
+        .onChange((v: number) => oilControl.setParam("colorStylize", v));
+      oilPaintFolder
+        .add(state, "screenImpasto", 0, 1, 0.01)
+        .name("Screen impasto / 浮雕高光")
+        .onChange((v: number) => oilControl.setParam("screenImpasto", v));
+      oilPaintFolder
+        .add(state, "impasto", 0, 2, 0.05)
+        .name("3D impasto / 3D 厚涂")
+        .onChange((v: number) => oilControl.setParam("impasto", v));
+      oilPaintFolder
+        .add(state, "brushScale", 0.4, 2.5, 0.05)
+        .name("3D brush scale / 3D 笔触密度")
+        .onChange((v: number) => oilControl.setParam("brushScale", v));
+      oilPaintFolder
+        .add(state, "compareSplit", 0, 1, 0.01)
+        .name("Compare split / A/B 分屏")
+        .onChange((v: number) => oilControl.setParam("compareSplit", v));
+      inspector.addAction(oilPaintFolder, "重置油画参数", () => {
+        oilControl.reset();
+        Object.assign(state, oilControl.getSnapshot());
+        oilPaintFolder?.updateDisplay();
+      });
+    }
+
     const synchronizePostProcessControls = (): void => {
       const current = options.postProcess.getDebugSnapshot();
       Object.assign(postProcessState, {
@@ -748,10 +876,16 @@ export class TerrainRuntimeDebugInspector {
       Object.assign(postProcessState.colorAdjustments, current.colorAdjustments);
       Object.assign(postProcessState.bloom, current.bloom);
       Object.assign(postProcessState.sunLensFlare, current.sunLensFlare);
+      Object.assign(postProcessState.volumetricLight, current.volumetricLight);
       const activeElement = document.activeElement;
       if (!colorAdjustments.domElement.contains(activeElement)) colorAdjustments.updateDisplay();
       if (!bloom.domElement.contains(activeElement)) bloom.updateDisplay();
       if (!sunLensFlare.domElement.contains(activeElement)) sunLensFlare.updateDisplay();
+      if (!volumetricLight.domElement.contains(activeElement)) volumetricLight.updateDisplay();
+      if (options.oilPaint && oilPaintState && oilPaintFolder && !oilPaintFolder.domElement.contains(activeElement)) {
+        Object.assign(oilPaintState, options.oilPaint.getSnapshot());
+        oilPaintFolder.updateDisplay();
+      }
     };
     this._lightingAuthoringControls = mountLightingAuthoringControls(
       inspector,

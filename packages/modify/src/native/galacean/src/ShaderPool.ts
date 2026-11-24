@@ -25,6 +25,7 @@ import {
   BloomSource,
   SunLensFlareSource,
   SunLensFlareVisibilitySource,
+  VolumetricLightSource,
   ProbeDepthCaptureSource,
   RealtimeIBLAccumulateSource,
   RealtimeIBLProjectSHSource,
@@ -93,6 +94,7 @@ export class ShaderPool {
       BloomSource,
       SunLensFlareSource,
       SunLensFlareVisibilitySource,
+      VolumetricLightSource,
       // Probe baking shader
       ProbeDepthCaptureSource,
       // Environment IBL baking shaders

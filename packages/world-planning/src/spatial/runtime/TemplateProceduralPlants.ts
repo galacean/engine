@@ -1131,11 +1131,11 @@ const PROCEDURAL_WIND_PARAMS: Record<
   Exclude<TemplateProceduralPlantKind, "dead-wood">,
   readonly [wholeLimit: number, wholeFreqHz: number, leafLimit: number, leafFreqHz: number]
 > = {
-  "dry-grass": [0.32, 0.65, 0, 1.15],
-  "plume-grass": [0.38, 0.68, 0, 1.2],
-  "desert-shrub": [0.16, 0.52, 0.14, 1.15],
-  "pastel-flower": [0.28, 0.68, 0, 1.25],
-  "meadow-flower": [0.24, 0.68, 0, 1.22]
+  "dry-grass": [0.18, 0.6, 0, 1.1],
+  "plume-grass": [0.22, 0.62, 0, 1.15],
+  "desert-shrub": [0.14, 0.5, 0.12, 1.15],
+  "pastel-flower": [0.2, 0.65, 0, 1.2],
+  "meadow-flower": [0.18, 0.65, 0, 1.2]
 };
 
 interface ProceduralShrubShadingOptions {

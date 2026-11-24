@@ -2008,11 +2008,9 @@
       ],
       "groundGaits": [
         "walk",
-        "run",
         "hop"
       ],
       "fleeGaits": [
-        "run",
         "walk",
         "hop"
       ],

@@ -1,6 +1,11 @@
 import type { Scene } from "../../Scene";
 import { FogMode } from "../../enums/FogMode";
-import type { BloomEffect, ColorAdjustmentsEffect, SunLensFlareEffect } from "../../postProcess/effects";
+import type {
+  BloomEffect,
+  ColorAdjustmentsEffect,
+  SunLensFlareEffect,
+  VolumetricLightEffect
+} from "../../postProcess/effects";
 import type { RealtimeIBLBaker } from "../environment/RealtimeIBLBaker";
 import type { DirectLight } from "../DirectLight";
 import { DayNightLightingAdapter } from "./DayNightAdapters";
@@ -8,6 +13,17 @@ import type { DayNightState } from "./DayNightProfile";
 import type { DayNightStateConsumer } from "./DayNightSystem";
 import type { DayNightMoonLighting } from "./DayNightMoonLighting";
 import type { DayNightProceduralSky } from "./DayNightProceduralSky";
+
+/**
+ * Computes normalized daytime solar visibility in `[0, 1]` from a generic {@link DayNightState}.
+ * Returns `0` at night so solar post-process effects (such as `VolumetricLightEffect` and
+ * `SunLensFlareEffect`) skip GPU work automatically without chasing the Moon light.
+ */
+export function resolveDayNightSolarVisibility(state: Readonly<DayNightState>): number {
+  const sunIntensityFactor = Math.max(0, Math.min(1, state.sunIntensity / 0.25));
+  const daylightFactor = Math.max(0, Math.min(1, 1 - state.nightFactor));
+  return daylightFactor * sunIntensityFactor;
+}
 
 /** Scene targets controlled by the engine-level day/night environment adapter. */
 export interface DayNightEnvironmentAdapterOptions {
@@ -18,6 +34,7 @@ export interface DayNightEnvironmentAdapterOptions {
   colorAdjustments?: ColorAdjustmentsEffect;
   bloom?: BloomEffect;
   sunLensFlare?: SunLensFlareEffect;
+  volumetricLight?: VolumetricLightEffect;
   realtimeIBL?: RealtimeIBLBaker;
   /** Fog mode retained across the cycle. Defaults to the current Scene mode. */
   fogMode?: FogMode;
@@ -42,6 +59,7 @@ export class DayNightEnvironmentAdapter implements DayNightStateConsumer {
   readonly colorAdjustments?: ColorAdjustmentsEffect;
   readonly bloom?: BloomEffect;
   readonly sunLensFlare?: SunLensFlareEffect;
+  readonly volumetricLight?: VolumetricLightEffect;
 
   fogMode: FogMode;
   applyAmbientLighting: boolean;
@@ -59,6 +77,7 @@ export class DayNightEnvironmentAdapter implements DayNightStateConsumer {
     this.colorAdjustments = options.colorAdjustments;
     this.bloom = options.bloom;
     this.sunLensFlare = options.sunLensFlare;
+    this.volumetricLight = options.volumetricLight;
     this.realtimeIBL = options.realtimeIBL;
     this.fogMode = options.fogMode ?? scene.fogMode;
     this.applyAmbientLighting = options.applyAmbientLighting ?? true;
@@ -88,6 +107,10 @@ export class DayNightEnvironmentAdapter implements DayNightStateConsumer {
     }
     if (this.sunLensFlare) {
       this.sunLensFlare.sunDirectionOverride.value.copyFrom(state.sunDirection);
+    }
+    if (this.volumetricLight) {
+      this.volumetricLight.sunDirectionOverride.value.copyFrom(state.sunDirection);
+      this.volumetricLight.solarVisibility.value = resolveDayNightSolarVisibility(state);
     }
 
     if (this.applyFog) {

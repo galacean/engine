@@ -63,6 +63,7 @@ import PostProcess_Tonemapping_ACES_Tonescale from "./PostProcess/Tonemapping/AC
 import PostProcess_Tonemapping_ACESTonemapping from "./PostProcess/Tonemapping/ACESTonemapping.glsl";
 import PostProcess_Tonemapping_NeutralTonemapping from "./PostProcess/Tonemapping/NeutralTonemapping.glsl";
 import PostProcess_UberPost from "./PostProcess/UberPost.glsl";
+import PostProcess_VolumetricLight from "./PostProcess/VolumetricLight.glsl";
 import Shadow_Shadow from "./Shadow/Shadow.glsl";
 import Shadow_ShadowSampleTent from "./Shadow/ShadowSampleTent.glsl";
 import Skin_BlendShape from "./Skin/BlendShape.glsl";
@@ -132,6 +133,7 @@ export const shaderLibrary: IShaderSource[] = [
   { source: PostProcess_Tonemapping_ACESTonemapping, path: "ShaderLibrary/PostProcess/Tonemapping/ACESTonemapping.glsl" },
   { source: PostProcess_Tonemapping_NeutralTonemapping, path: "ShaderLibrary/PostProcess/Tonemapping/NeutralTonemapping.glsl" },
   { source: PostProcess_UberPost, path: "ShaderLibrary/PostProcess/UberPost.glsl" },
+  { source: PostProcess_VolumetricLight, path: "ShaderLibrary/PostProcess/VolumetricLight.glsl" },
   { source: Shadow_Shadow, path: "ShaderLibrary/Shadow/Shadow.glsl" },
   { source: Shadow_ShadowSampleTent, path: "ShaderLibrary/Shadow/ShadowSampleTent.glsl" },
   { source: Skin_BlendShape, path: "ShaderLibrary/Skin/BlendShape.glsl" },

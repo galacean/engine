@@ -1,4 +1,5 @@
 #define TERRAIN_PROJECT_FORWARD_PASS
+#define TERRAIN_PROJECT_OIL_PAINT_GRASS
 #include "ShaderLibrary/Common/Common.glsl"
 #include "ShaderLibrary/Common/Fog.glsl"
 #include "ShaderLibrary/Common/Transform.glsl"
@@ -274,7 +275,12 @@ Varyings GrassVertex(Attributes attributes) {
     if (bladeScale <= 0.0001) {
       return grassCulledVaryings();
     }
-    positionOS = mix(rootOS, positionOS, bladeScale);
+    #ifdef SCENE_OIL_PAINT_STYLE
+      // Broader, bolder painterly grass blades allow drastically fewer cards while matching oil-paint brushwork.
+      positionOS = rootOS + (positionOS - rootOS) * vec3(1.85, 1.42, 1.85) * bladeScale;
+    #else
+      positionOS = mix(rootOS, positionOS, bladeScale);
+    #endif
 
     float authoredHeight = 0.16685753;
     float tipWeight = clamp(attributes.POSITION.y / authoredHeight, 0.0, 1.0);
@@ -379,7 +385,11 @@ Varyings GrassVertex(Attributes attributes) {
   if (bladeScale <= 0.0001) {
     return grassCulledVaryings();
   }
-  positionOS = mix(rootOS, positionOS, bladeScale);
+  #ifdef SCENE_OIL_PAINT_STYLE
+    positionOS = rootOS + (positionOS - rootOS) * vec3(1.85, 1.42, 1.85) * bladeScale;
+  #else
+    positionOS = mix(rootOS, positionOS, bladeScale);
+  #endif
 
   #ifdef RENDERER_ROCK_GRASS_GROUND
     output.grassColor = terrainProjectGrassSurfaceColor(output.rootPositionWS);

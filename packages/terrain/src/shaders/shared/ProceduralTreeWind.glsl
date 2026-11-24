@@ -7,6 +7,8 @@
 vec4 material_ProceduralTreeWindParams;
 /** Generated tree height in source-mesh metres; shared by every LOD and instance of one recipe. */
 float material_ProceduralTreeHeight;
+/** Shared ground-wind shape uniform; .w carries normalized wind-start height threshold (e.g. 0.5). */
+vec4 scene_GroundWindShape;
 
 float terrainProjectProceduralTreeWindHash(vec3 value) {
   return fract(sin(dot(value, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
@@ -31,11 +33,11 @@ vec3 terrainProjectProceduralTreeWindOuterPointWS(vec3 sourcePositionOS, Attribu
   return homogeneousPositionWS.xyz / homogeneousPositionWS.w;
 }
 
-float terrainProjectProceduralTreeWindRootWeight(Attributes attributes) {
+float terrainProjectProceduralTreeWindProgress(Attributes attributes) {
   #ifdef MATERIAL_WIND_PROCEDURAL_PLANT
     // Compiled plant parts share a continuous beam field. Leaf vertices all sample
     // their attachment, so the entire leaf follows its supporting branch rigidly.
-    float progress = attributes.PLANT_WIND.w;
+    return clamp(attributes.PLANT_WIND.w, 0.0, 1.0);
   #else
   // Wind topology is an invariant of generated trees and must not activate the independent GPU
   // appearance-variation path merely to read it.
@@ -49,9 +51,23 @@ float terrainProjectProceduralTreeWindRootWeight(Attributes attributes) {
   // The trunk follows one inexpensive Euler-Bernoulli beam mode. Every vertex in one attached
   // subtree uses its common attachment progress, so branches inherit the trunk pose rigidly
   // instead of running an independent metronome-like oscillator.
-  float progress = clamp(mix(trunkProgress, branchAttachmentHeight, branchInfluence), 0.0, 1.0);
+  return clamp(mix(trunkProgress, branchAttachmentHeight, branchInfluence), 0.0, 1.0);
   #endif
-  return 0.5 * progress * progress * (3.0 - progress);
+}
+
+float terrainProjectProceduralTreeWindStartRatio() {
+  // Ground grass uses scene_GroundWindShape.w (~0.5) to pin its lower stem. Woody trees and
+  // shrubs carry eye-level branches and low crowns down to ~15-35% height, so scale the shared
+  // threshold gently for trunk root-locking without freezing lower foliage or shorter shrubs.
+  return clamp(scene_GroundWindShape.w, 0.0, 0.92) * 0.35;
+}
+
+float terrainProjectProceduralTreeWindRootWeight(float progress) {
+  float startRatio = terrainProjectProceduralTreeWindStartRatio();
+  float activeProgress = startRatio > 0.001
+    ? clamp((progress - startRatio) / max(1.0 - startRatio, 0.05), 0.0, 1.0)
+    : progress;
+  return 0.5 * activeProgress * activeProgress * (3.0 - activeProgress);
 }
 
 vec3 terrainProjectProceduralTreeWindRotatePoint(
@@ -113,12 +129,17 @@ vec3 terrainProjectApplyProceduralTreeWind(
   // The bounded envelope prevents the tree from crossing the wind or snapping at an end stop.
   float wholeTreeEnvelope = clamp(0.72 + wholeTreeSway * 0.18, 0.45, 0.95);
   float wholeTreeAngle = max(material_ProceduralTreeWindParams.x, 0.0) * load * wholeTreeEnvelope;
-  float rootWeight = terrainProjectProceduralTreeWindRootWeight(attributes);
+  float windProgress = terrainProjectProceduralTreeWindProgress(attributes);
+  float rootWeight = terrainProjectProceduralTreeWindRootWeight(windProgress);
   float weightedWholeTreeAngle = wholeTreeAngle * rootWeight;
+  float startRatio = terrainProjectProceduralTreeWindStartRatio();
+  vec3 bendPivotWS = startRatio > 0.001
+    ? terrainProjectProceduralTreeWindOuterPointWS(vec3(0.0, startRatio * max(material_ProceduralTreeHeight, 0.0), 0.0), attributes)
+    : treeOriginWS;
 
   positionWS = terrainProjectProceduralTreeWindRotatePoint(
     positionWS,
-    treeOriginWS,
+    bendPivotWS,
     bendAxisWS,
     weightedWholeTreeAngle
   );
@@ -140,12 +161,13 @@ vec3 terrainProjectApplyProceduralTreeWind(
     float leafTime = timeSeconds * max(material_ProceduralTreeWindParams.w, 0.01) * 6.2831853;
     float leafFlutter = sin(leafTime + leafPhase * 6.2831853);
     float leafLoad = clamp(horizontalSpeed / 6.0, 0.0, 1.0);
-    float leafAngle = max(material_ProceduralTreeWindParams.z, 0.0) * leafLoad * leafFlutter;
+    // Leaves on lower branches and shrubs still flutter in wind even where the lower trunk is stiff.
+    float leafAngle = max(material_ProceduralTreeWindParams.z, 0.0) * leafLoad * leafFlutter * smoothstep(0.02, 0.14, windProgress);
 
     vec3 leafPivotWS = originWS;
     leafPivotWS = terrainProjectProceduralTreeWindRotatePoint(
       leafPivotWS,
-      treeOriginWS,
+      bendPivotWS,
       bendAxisWS,
       weightedWholeTreeAngle
     );

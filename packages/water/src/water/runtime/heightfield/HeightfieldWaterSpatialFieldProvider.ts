@@ -293,9 +293,9 @@ export class HeightfieldWaterSpatialFieldProvider implements WaterSpatialFieldPr
     const x1 = Math.min(g.width - 1, Math.floor((localMaxX - g.originXZ[0]) / g.cellSizeXZ[0] + 0.5));
     const z0 = Math.max(0, Math.floor((localMinZ - g.originXZ[1]) / g.cellSizeXZ[1] + 0.5));
     const z1 = Math.min(g.height - 1, Math.floor((localMaxZ - g.originXZ[1]) / g.cellSizeXZ[1] + 0.5));
-    const wetMask = q.wetMask;
-    const componentIndices = q.componentIndices;
-    const surfaceHeights = q.surfaceHeights;
+    const wetMask = q.wetMask.borrowTypedArray();
+    const componentIndices = q.componentIndices.borrowTypedArray();
+    const surfaceHeights = q.surfaceHeights.borrowTypedArray();
     let maximum = -Infinity;
     for (let z = z0; z <= z1; z++)
       for (let x = x0; x <= x1; x++) {

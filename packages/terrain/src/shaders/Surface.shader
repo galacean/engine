@@ -19,6 +19,7 @@ Shader "Terrain/Surface" {
       FragmentShader = SurfaceFragment;
 
       #define TERRAIN_PROJECT_FORWARD_PASS
+      #define TERRAIN_PROJECT_OIL_PAINT_SURFACE
       #ifndef RENDERER_WORLD_PICK
         #define TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
       #endif

@@ -22,6 +22,13 @@
       };
       OutlineVaryings outlineVertex(Attributes attributes) {
         OutlineVaryings v;
+        #ifdef SCENE_OIL_PAINT_STYLE
+          gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+          #if SCENE_FOG_MODE != 0
+            v.positionVS = vec3(0.0);
+          #endif
+          return v;
+        #endif
         vec4 position = vec4(attributes.POSITION, 1.0);
         #ifdef RENDERER_HAS_NORMAL
           vec3 normal = attributes.NORMAL;
@@ -64,6 +71,9 @@
         return v;
       }
       void outlineFragment(OutlineVaryings v) {
+        #ifdef SCENE_OIL_PAINT_STYLE
+          discard;
+        #endif
         vec4 color = vec4(animal_OutlineColor, 1.0);
         #if SCENE_FOG_MODE != 0
           color = fog(color, v.positionVS);

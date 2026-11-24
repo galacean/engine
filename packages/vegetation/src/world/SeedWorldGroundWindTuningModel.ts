@@ -6,6 +6,8 @@ export interface SeedWorldGroundWindTuning {
   waveScaleMeters: number;
   meanBend: number;
   rootStiffness: number;
+  /** Normalized height [0, 0.9] below which stems/trunks stay rigidly rooted and unaffected by wind. */
+  windHeightStartRatio: number;
   noiseSpeedMps: number;
   noiseStrength: number;
   colorStrength: number;
@@ -20,6 +22,7 @@ export const SEED_WORLD_DEFAULT_GROUND_WIND_TUNING: Readonly<SeedWorldGroundWind
   waveScaleMeters: 10,
   meanBend: 0.5,
   rootStiffness: 1,
+  windHeightStartRatio: 0.5,
   noiseSpeedMps: 1.25,
   noiseStrength: 0.25,
   colorStrength: 0,
@@ -34,6 +37,7 @@ export function validateGroundWindTuning(tuning: Readonly<SeedWorldGroundWindTun
   validateRange("waveScaleMeters", tuning.waveScaleMeters, 3, 24);
   validateRange("meanBend", tuning.meanBend, 0, 1.2);
   validateRange("rootStiffness", tuning.rootStiffness, 0.6, 3);
+  validateRange("windHeightStartRatio", tuning.windHeightStartRatio ?? 0.5, 0, 0.9);
   validateRange("noiseSpeedMps", tuning.noiseSpeedMps, 0, 4);
   validateRange("noiseStrength", tuning.noiseStrength, 0, 0.8);
   validateRange("colorStrength", tuning.colorStrength, 0, 1);

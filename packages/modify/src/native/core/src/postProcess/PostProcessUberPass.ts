@@ -29,9 +29,11 @@ import {
   BloomEffect,
   ColorAdjustmentsEffect,
   SunLensFlareEffect,
-  TonemappingEffect
+  TonemappingEffect,
+  VolumetricLightEffect
 } from "./effects";
 import type { SunLensFlareScreenState } from "./effects/SunLensFlareEffect";
+import type { VolumetricLightScreenState } from "./effects/VolumetricLightEffect";
 import { PostProcessManager } from "./PostProcessManager";
 import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
 
@@ -93,6 +95,18 @@ export class PostProcessUberPass extends PostProcessPass {
     aspectRatio: 1
   };
 
+  // Volumetric light shafts (2-pass low-res <=320p cascaded radial scatter, composited in UberPost)
+  private _volumetricLightMaterial: Material | null = null;
+  private _volumetricLightRTA: RenderTarget | null = null;
+  private _volumetricLightRTB: RenderTarget | null = null;
+  private readonly _volumetricLightScreenState: VolumetricLightScreenState = {
+    visible: false,
+    sunU: 0.5,
+    sunV: 0.25,
+    effectiveStrength: 0,
+    aspectRatio: 1
+  };
+
   constructor(engine: Engine) {
     super(engine);
     this.event = PostProcessPassEvent.AfterUber - 1;
@@ -127,6 +141,18 @@ export class PostProcessUberPass extends PostProcessPass {
       }
     }
 
+    // Volumetric Light Material (optional builtin shader registered by World ShaderPool)
+    const volumetricLightShader = Shader.find(VolumetricLightEffect._shaderName);
+    if (volumetricLightShader) {
+      const vlMaterial = new Material(engine, volumetricLightShader);
+      this._volumetricLightMaterial = vlMaterial;
+      const vlShaderData = vlMaterial.shaderData;
+      vlShaderData.setTexture(VolumetricLightEffect._depthTextureProperty, engine._basicResources.whiteTexture2D);
+      vlShaderData.setVector4(VolumetricLightEffect._params0Property, new Vector4(0.5, 0.25, 0.72, 0.93));
+      vlShaderData.setVector4(VolumetricLightEffect._params1Property, new Vector4(0.9997, 0, 1, 1));
+      vlShaderData.setVector4(VolumetricLightEffect._tintProperty, new Vector4(1, 0.9, 0.68, 0));
+    }
+
     // ShaderData initialization
     const bloomShaderData = bloomMaterial.shaderData;
     const uberShaderData = uberMaterial.shaderData;
@@ -140,6 +166,8 @@ export class PostProcessUberPass extends PostProcessPass {
     uberShaderData.setVector3(ColorAdjustmentsEffect._whiteBalanceProperty, new Vector3(1, 1, 1));
     uberShaderData.setVector4(ColorAdjustmentsEffect._adjustmentsProperty, new Vector4(1, 1, 0, 0));
     uberShaderData.setFloat(SunLensFlareEffect._compositeIntensityProperty, 0);
+    uberShaderData.setVector4(VolumetricLightEffect._compositeParamsProperty, new Vector4(0.5, 0.25, 0.6, 1));
+    uberShaderData.setVector4(VolumetricLightEffect._tintProperty, new Vector4(1, 0.9, 0.68, 0));
   }
 
   /** @inheritdoc */
@@ -152,11 +180,13 @@ export class PostProcessUberPass extends PostProcessPass {
     const tonemappingBlend = postProcessManager.getBlendEffect(TonemappingEffect);
     const colorAdjustmentsBlend = postProcessManager.getBlendEffect(ColorAdjustmentsEffect);
     const sunLensFlareBlend = postProcessManager.getBlendEffect(SunLensFlareEffect);
+    const volumetricLightBlend = postProcessManager.getBlendEffect(VolumetricLightEffect);
     return (
       bloomBlend?.isValid() ||
       tonemappingBlend?.isValid() ||
       colorAdjustmentsBlend?.isValid() ||
-      sunLensFlareBlend?.isValid()
+      sunLensFlareBlend?.isValid() ||
+      volumetricLightBlend?.isValid()
     );
   }
 
@@ -170,6 +200,7 @@ export class PostProcessUberPass extends PostProcessPass {
     const tonemappingBlend = postProcessManager.getBlendEffect(TonemappingEffect);
     const colorAdjustmentsBlend = postProcessManager.getBlendEffect(ColorAdjustmentsEffect);
     const sunLensFlareBlend = postProcessManager.getBlendEffect(SunLensFlareEffect);
+    const volumetricLightBlend = postProcessManager.getBlendEffect(VolumetricLightEffect);
     let exposureMultiplier = 1;
 
     if (colorAdjustmentsBlend?.isValid()) {
@@ -213,6 +244,18 @@ export class PostProcessUberPass extends PostProcessPass {
       this._sunLensFlareLastDepthMode = "none";
     }
 
+    if (volumetricLightBlend?.isValid()) {
+      if (this._setupVolumetricLight(volumetricLightBlend, camera, srcTexture, exposureMultiplier)) {
+        uberShaderData.enableMacro(VolumetricLightEffect._enableMacro);
+      } else {
+        uberShaderData.disableMacro(VolumetricLightEffect._enableMacro);
+      }
+    } else {
+      uberShaderData.getVector4(VolumetricLightEffect._tintProperty).w = 0;
+      uberShaderData.disableMacro(VolumetricLightEffect._enableMacro);
+      this._releaseVolumetricLightRenderTargets();
+    }
+
     if (tonemappingBlend?.isValid()) {
       uberShaderData.enableMacro("TONEMAPPING_MODE", tonemappingBlend.mode.value.toString());
       uberShaderData.enableMacro(TonemappingEffect._enableMacro);
@@ -232,12 +275,127 @@ export class PostProcessUberPass extends PostProcessPass {
     this._releaseBloomRenderTargets(0);
     this._releaseSunLensFlareRenderTarget();
     this._destroySunLensFlareGpuResources();
+    this._releaseVolumetricLightRenderTargets();
     this._uberMaterial.destroy();
     this._bloomMaterial.destroy();
     this._sunLensFlareMaterial?.destroy();
     this._sunLensFlareMaterial = null;
     this._sunLensFlareVisibilityPass = null;
     this._sunLensFlareTFShaderData = null;
+    this._volumetricLightMaterial?.destroy();
+    this._volumetricLightMaterial = null;
+  }
+
+  private _setupVolumetricLight(
+    volumetricLightBlend: VolumetricLightEffect,
+    camera: Camera,
+    srcTexture: Texture2D,
+    exposureMultiplier: number
+  ): boolean {
+    const engine = camera.engine;
+    const uberShaderData = this._uberMaterial.shaderData;
+    const vlMaterial = this._volumetricLightMaterial;
+    const screenState = VolumetricLightEffect._resolveScreenState(
+      camera,
+      camera.scene!,
+      volumetricLightBlend,
+      this._volumetricLightScreenState
+    );
+
+    if (!vlMaterial || !screenState.visible) {
+      uberShaderData.getVector4(VolumetricLightEffect._tintProperty).w = 0;
+      uberShaderData.setTexture(VolumetricLightEffect._textureProperty, engine._basicResources.whiteTexture2D);
+      this._releaseVolumetricLightRenderTargets();
+      return false;
+    }
+
+    const shortEdge = Math.min(srcTexture.width, srcTexture.height);
+    const scale = Math.min(0.35, 320 / Math.max(1, shortEdge));
+    const lowW = Math.max(1, Math.round(srcTexture.width * scale));
+    const lowH = Math.max(1, Math.round(srcTexture.height * scale));
+
+    this._volumetricLightRTA = PipelineUtils.recreateRenderTargetIfNeeded(
+      engine,
+      this._volumetricLightRTA,
+      lowW,
+      lowH,
+      TextureFormat.R8G8B8A8_UNorm,
+      null,
+      false,
+      false,
+      false,
+      1,
+      TextureWrapMode.Clamp,
+      TextureFilterMode.Bilinear
+    );
+    this._volumetricLightRTB = PipelineUtils.recreateRenderTargetIfNeeded(
+      engine,
+      this._volumetricLightRTB,
+      lowW,
+      lowH,
+      TextureFormat.R8G8B8A8_UNorm,
+      null,
+      false,
+      false,
+      false,
+      1,
+      TextureWrapMode.Clamp,
+      TextureFilterMode.Bilinear
+    );
+
+    const depthTexture =
+      camera._depthTextureSource !== "none" ? camera.shaderData.getTexture(Camera._cameraDepthTextureProperty) : null;
+    const hasDepth = depthTexture ? 1 : 0;
+    const tint = volumetricLightBlend.tint.value;
+    const vlShaderData = vlMaterial.shaderData;
+
+    vlShaderData.setTexture(
+      VolumetricLightEffect._depthTextureProperty,
+      depthTexture ?? engine._basicResources.whiteTexture2D
+    );
+    vlShaderData
+      .getVector4(VolumetricLightEffect._params0Property)
+      .set(screenState.sunU, screenState.sunV, volumetricLightBlend.density.value, volumetricLightBlend.decay.value);
+    vlShaderData
+      .getVector4(VolumetricLightEffect._params1Property)
+      .set(volumetricLightBlend.skyDepthThreshold.value, hasDepth, screenState.aspectRatio, exposureMultiplier);
+    vlShaderData
+      .getVector4(VolumetricLightEffect._tintProperty)
+      .set(tint.r, tint.g, tint.b, screenState.effectiveStrength);
+
+    // Pass 0 (<=320px short edge -> RT A): 8-tap IGN-jittered depth-occluded coarse radial scatter.
+    Blitter.blitTexture(engine, srcTexture, this._volumetricLightRTA, undefined, undefined, vlMaterial, 0);
+    // Pass 1 (<=320px short edge -> RT B): 8-tap cascaded fine scatter (64-step equivalent smooth rays).
+    Blitter.blitTexture(
+      engine,
+      this._volumetricLightRTA.getColorTexture(0) as Texture2D,
+      this._volumetricLightRTB,
+      undefined,
+      undefined,
+      vlMaterial,
+      1
+    );
+
+    uberShaderData.setTexture(VolumetricLightEffect._textureProperty, this._volumetricLightRTB.getColorTexture(0));
+    uberShaderData
+      .getVector4(VolumetricLightEffect._compositeParamsProperty)
+      .set(screenState.sunU, screenState.sunV, volumetricLightBlend.softKnee.value, screenState.aspectRatio);
+    uberShaderData
+      .getVector4(VolumetricLightEffect._tintProperty)
+      .set(tint.r, tint.g, tint.b, screenState.effectiveStrength);
+    return true;
+  }
+
+  private _releaseVolumetricLightRenderTargets(): void {
+    const pool = this.engine._renderTargetPool;
+    if (this._volumetricLightRTA) {
+      pool.freeRenderTarget(this._volumetricLightRTA);
+      this._volumetricLightRTA = null;
+    }
+    if (this._volumetricLightRTB) {
+      pool.freeRenderTarget(this._volumetricLightRTB);
+      this._volumetricLightRTB = null;
+    }
   }
 
   private _setupSunLensFlare(

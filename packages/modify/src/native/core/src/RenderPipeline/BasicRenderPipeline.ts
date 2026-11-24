@@ -17,6 +17,7 @@ import {
   SunLensFlareEffect,
   type SunLensFlareScreenState
 } from "../postProcess/effects/SunLensFlareEffect";
+import { VolumetricLightEffect, type VolumetricLightScreenState } from "../postProcess/effects/VolumetricLightEffect";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { SubShader } from "../shader/SubShader";
@@ -84,6 +85,13 @@ export class BasicRenderPipeline {
     sunU: 0.5,
     sunV: 0.5,
     effectiveIntensity: 0,
+    aspectRatio: 1
+  };
+  private readonly _volumetricLightScreenState: VolumetricLightScreenState = {
+    visible: false,
+    sunU: 0.5,
+    sunV: 0.25,
+    effectiveStrength: 0,
     aspectRatio: 1
   };
 
@@ -211,10 +219,23 @@ export class BasicRenderPipeline {
     const sunLensFlareBlend = camera.enablePostProcess
       ? scene.postProcessManager.getBlendEffect(SunLensFlareEffect)
       : undefined;
+    const volumetricLightBlend = camera.enablePostProcess
+      ? scene.postProcessManager.getBlendEffect(VolumetricLightEffect)
+      : undefined;
+    const volumetricLightNeedsOwnDepth =
+      Boolean(volumetricLightBlend?.isValid()) &&
+      !cameraDepthTextureRequested &&
+      !ambientOcclusionEnabled &&
+      independentCanvasEnabled &&
+      cubeFace === undefined &&
+      (mipLevel ?? 0) === 0 &&
+      VolumetricLightEffect._resolveScreenState(camera, scene, volumetricLightBlend!, this._volumetricLightScreenState)
+        .visible;
     const sunLensFlareNeedsOwnDepth =
       Boolean(sunLensFlareBlend?.isValid() && sunLensFlareBlend.depthOcclusion.value) &&
       !cameraDepthTextureRequested &&
       !ambientOcclusionEnabled &&
+      !volumetricLightNeedsOwnDepth &&
       independentCanvasEnabled &&
       cubeFace === undefined &&
       (mipLevel ?? 0) === 0 &&
@@ -227,7 +248,9 @@ export class BasicRenderPipeline {
     // WebGL2 can publish the opaque Forward depth already produced for an existing internal color target.
     // AO still requires depth before Forward, and off-screen/cube subresources retain the established prepass.
     const forwardDepthResolveEnabled =
-      ((cameraDepthTextureRequested && camera._enableForwardDepthResolve) || sunLensFlareFullDepthResolveEnabled) &&
+      ((cameraDepthTextureRequested && camera._enableForwardDepthResolve) ||
+        sunLensFlareFullDepthResolveEnabled ||
+        volumetricLightNeedsOwnDepth) &&
       !ambientOcclusionEnabled &&
       independentCanvasEnabled &&
       cubeFace === undefined &&

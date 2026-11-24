@@ -46,7 +46,7 @@ export const PLANNING_VISUAL_AUTHORING: readonly VisualAuthoringDescriptor[] = [
   } },
   { component: "postProcess", type: "PlanningPostProcess", fields: {
     ...directFields("colorAdjustments", "tonemapping", "postExposure", "temperature", "contrast", "saturation", "bloom",
-      "bloomThreshold", "bloomIntensity", "bloomScatter"),
+      "bloomThreshold", "bloomIntensity", "bloomScatter", "volumetricLight"),
     // Script.enabled controls the authoring component lifecycle, not the scene post processing.
     enabled: "postProcessingEnabled"
   } },

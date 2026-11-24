@@ -453,6 +453,7 @@ export class WorldTemplateRuntime {
           this.models.push({ id: node.id, url: node.assetUrl, entity });
           continue;
         }
+        if (node.invisible) continue;
         this.mesh ??= PrimitiveMesh.createCuboid(parent.engine, 1, 1, 1);
         if (!this.material) {
           this.material = new UnlitMaterial(parent.engine);

@@ -18,7 +18,7 @@ import {
   type PreparedTerrainUpdate
 } from "@galacean/engine-terrain/terrain/clipmap/TerrainPreparedUpdate";
 import type { SeedWorldAuthoringRuntimeBoundsV1 } from "../../world/SeedWorldAuthoringRuntimeDelta";
-import { rockFormationPlacements } from "../../integrations/terrain/rock-formation/Placement";
+import { rockGrassPlacements } from "../../integrations/terrain/rock-formation/Placement";
 import { rockGrassExclusions } from "../../integrations/terrain/rock-formation/GrassExclusions";
 import type { PlanningSeedWorldData } from "./PlanningSeedWorldData";
 
@@ -415,7 +415,7 @@ export async function preparePlanningWaterImpact(
     if (dependencies)
       updates.push(
         previous.world.population.prepareRockGrass(
-          rockFormationPlacements(plan, solids.formations),
+          rockGrassPlacements(plan, solids.formations),
           rockGrassExclusions(plan, data.fields, dependencies.submerged),
           true
         )

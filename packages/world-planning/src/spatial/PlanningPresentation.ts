@@ -64,6 +64,7 @@ export class PlanningPresentation {
           this.post.setBloomThreshold(Number(post.bloomThreshold));
           this.post.setBloomIntensity(Number(post.bloomIntensity));
           this.post.setBloomScatter(Number(post.bloomScatter));
+          this.post.setVolumetricLightEnabled(Boolean(post.volumetricLight));
         });
       this.canvas.dataset.presentation = signature;
       this.recordRuntimeState();

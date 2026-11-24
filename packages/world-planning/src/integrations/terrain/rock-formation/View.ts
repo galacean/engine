@@ -54,6 +54,7 @@ export class RockFormationView {
   private readonly grassTop: boolean;
   private readonly shoreStoneColor?: readonly [number, number, number];
   private readonly cliffBaseColor?: readonly [number, number, number];
+  private readonly stoneBoost: number;
   private readonly lod?: RockLodView;
   private readonly fadingPickBatches = new WeakMap<MeshRenderer, SeedWorldArrayPickBatch>();
 
@@ -72,6 +73,7 @@ export class RockFormationView {
     this.grassTop = (template?.rockTopCover ?? (template?.vegetation ? "ground" : "grass")) === "grass";
     this.shoreStoneColor = art?.shoreStone ? templateLinearColor(art.shoreStone) : undefined;
     this.cliffBaseColor = art?.stone ? templateLinearColor(art.stone) : undefined;
+    this.stoneBoost = art?.stoneBoost ?? 1;
     this.root = parent.createChild("Rock formations");
     if (camera) {
       this.lod = this.root.addComponent(RockLodView);
@@ -101,8 +103,16 @@ export class RockFormationView {
   }
 
   private effectiveColorBlend(grass: boolean, settings: RockColorBlend): RockColorBlend {
+    const applyStoneBoost = (blend: RockColorBlend): RockColorBlend =>
+      this.stoneBoost === 1
+        ? blend
+        : {
+            color: blend.color.map((channel) =>
+              Math.max(0, Math.min(5.2, channel * this.stoneBoost))
+            ) as RockColorBlend["color"]
+          };
     if (grass) {
-      if (this.grassTop || !this.cliffBaseColor) return settings;
+      if (this.stoneBoost !== 1 || this.grassTop || !this.cliffBaseColor) return applyStoneBoost(settings);
       // Sandstone cliff formations on ground-covered templates brighten the dark shared rock albedo into sunlit terracotta.
       const cliffBoost = 3.65;
       return {
@@ -111,7 +121,7 @@ export class RockFormationView {
         ) as RockColorBlend["color"]
       };
     }
-    if (!this.shoreStoneColor) return settings;
+    if (!this.shoreStoneColor) return applyStoneBoost(settings);
     const base = this.cliffBaseColor;
     // Scale pale travertine/limestone shore boulders evenly by user brightness ratio without cliff red-orange channel bias.
     const luma = (rgb: readonly [number, number, number]) => 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];

@@ -16,7 +16,7 @@ import {
   rockGrassExclusions,
   rockGrassWaterTest
 } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/GrassExclusions";
-import { rockFormationPlacements } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Placement";
+import { rockGrassPlacements } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Placement";
 import {
   canPublishRockFormationEdit,
   prepareRockFormationPublication,
@@ -105,6 +105,10 @@ import { PlanningAnimalProjectAuthoring } from "./src/planning/spatial/runtime/P
 import { PlanningAnimalFood } from "./src/planning/spatial/runtime/PlanningAnimalFood.ts";
 import { PlanningAnimalHost } from "./src/planning/spatial/runtime/PlanningAnimalHost.ts";
 import "./src/planning/spatial/runtime/PlanningAuthoringComponents.ts";
+import {
+  acquireCameraDepthTexturePrePass,
+  type CameraDepthTexturePrePassLease
+} from "@galacean/engine-modify/rendering/CameraDepthTexturePrePass";
 import { PlanningEntityAuthoring } from "./src/planning/spatial/runtime/PlanningAuthoringComponents.ts";
 import {
   planningVegetationReferences,
@@ -120,8 +124,10 @@ import type { SeedWorldLassoPanel } from "./src/SeedWorldLassoPanel.ts";
 import {
   AssetType,
   Camera,
+  DepthTextureMode,
   DirectLight,
   FogMode,
+  PostProcess,
   ShadowType,
   Matrix,
   Quaternion,
@@ -156,7 +162,10 @@ import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/proj
 import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import { OrbitControl } from "@galacean/engine-toolkit-controls/dist/es/OrbitControl.js";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
-import type { TerrainVistaDebugControl } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
+import type {
+  TerrainOilPaintDebugControl,
+  TerrainVistaDebugControl
+} from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
 import { sampleTerrainSurfacePuddleMask } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainRainImpactSurface";
 import {
   TerrainWindGpuExposureProvider,
@@ -322,6 +331,12 @@ export async function mountSeedWorldDemo(
   let sourceTask: ReturnType<typeof createPlanningWorldSource> | undefined;
   let publication: PlanningSeedScenePublication | undefined;
   let sandstorm: Entity | undefined;
+  let oilPaintPostEntity: Entity | undefined;
+  let oilPaintPostEffect: import("./src/oil-paint/OilPaintPostEffect").OilPaintPostEffect | undefined;
+  let oilPaintPostPass: import("./src/oil-paint/OilPaintPostPass").OilPaintPostPass | undefined;
+  let oilPaintMacroEnabled = false;
+  let oilPaintDepthGuard: { active: boolean } | undefined;
+  let oilPaintDepthLease: CameraDepthTexturePrePassLease | undefined;
   let mojaveLayout: Entity | undefined;
   const readWorld = () => publication?.current?.world;
   const readRevision = () => publication?.current?.revision ?? 0;
@@ -570,6 +585,12 @@ export async function mountSeedWorldDemo(
     ["水运行", () => water?.destroy()],
     ["远景环山", () => vista?.destroy()],
     ["沙雾", () => sandstorm?.destroy()],
+    ["油画后处理效果", () => {
+      oilPaintDepthLease?.destroy();
+      oilPaintDepthLease = undefined;
+      oilPaintPostEntity?.destroy();
+    }],
+    ["油画后处理 Pass", () => oilPaintPostPass?.destroy()],
     ["Mojave 景观", () => mojaveLayout?.destroy()],
     ["环境", () => environment?.destroy()],
     ["光照", () => lighting?.destroy()],
@@ -772,7 +793,9 @@ export async function mountSeedWorldDemo(
       "SeedWorld/SnapshotSurfacePack",
       "SeedWorld/InteractionDepthPack",
       "SeedWorld/PanoramaFarHorizon",
-      "SeedWorld/HologramRainbow"
+      "SeedWorld/HologramRainbow",
+      "OilPaint/",
+      "PostProcess/OilPaint"
     ]);
     const resize = () => {
       if (!canvas.clientWidth || !canvas.clientHeight) return;
@@ -1036,6 +1059,125 @@ export async function mountSeedWorldDemo(
       const restore = restoreMasonryView;
       restoreMasonryView = undefined;
       restore?.();
+    };
+
+    const OIL_PAINT_DEFAULTS = {
+      painterlyStrength: 0.5,
+      brushRadius: 2.9,
+      strokeAnisotropy: 1.45,
+      colorStylize: 0.42,
+      screenImpasto: 0.3,
+      impasto: 1.0,
+      brushScale: 1.0,
+      compareSplit: 0
+    } as const;
+    const ensureOilPaintPassMounted = async () => {
+      if (oilPaintPostEntity && oilPaintPostEffect && oilPaintPostPass) return;
+      const [{ OilPaintPostEffect }, { OilPaintPostPass }] = await Promise.all([
+        import("./src/oil-paint/OilPaintPostEffect"),
+        import("./src/oil-paint/OilPaintPostPass")
+      ]);
+      if (disposed) return;
+      const mainCam = camera as Camera & { _enableForwardDepthResolve?: boolean };
+      if (!oilPaintPostEntity) {
+        oilPaintPostEntity = root.createChild("OilPaintPostProcess");
+        const postProcess = oilPaintPostEntity.addComponent(PostProcess);
+        postProcess.isGlobal = true;
+        oilPaintPostEffect = postProcess.addEffect(OilPaintPostEffect);
+        class OilPaintForwardDepthGuard extends Script {
+          active = false;
+          override onBeginRender(renderCam: Camera): void {
+            if (!this.active || renderCam !== mainCam) return;
+            mainCam._enableForwardDepthResolve = true;
+          }
+        }
+        oilPaintDepthGuard = oilPaintPostEntity.addComponent(OilPaintForwardDepthGuard);
+      }
+      if (!oilPaintPostPass) {
+        oilPaintPostPass = new OilPaintPostPass(engine!);
+        oilPaintPostPass.isActive = false;
+        engine!.addPostProcessPass(oilPaintPostPass);
+      }
+    };
+    const setOilPaintPassActive = async (active: boolean) => {
+      const mainCam = camera as Camera & { _enableForwardDepthResolve?: boolean };
+      if (active) {
+        await ensureOilPaintPassMounted();
+        if (disposed || !oilPaintPostPass) return;
+        oilPaintDepthLease ??= acquireCameraDepthTexturePrePass(
+          mainCam,
+          DepthTextureMode.PrePass,
+          "oil-paint-sky-mask"
+        );
+        mainCam._enableForwardDepthResolve = true;
+        if (oilPaintDepthGuard) oilPaintDepthGuard.active = true;
+        oilPaintPostPass.isActive = true;
+      } else {
+        if (oilPaintPostPass) oilPaintPostPass.isActive = false;
+        if (oilPaintDepthGuard?.active) {
+          oilPaintDepthGuard.active = false;
+          oilPaintDepthLease?.destroy();
+          oilPaintDepthLease = undefined;
+          if (mainCam.depthTextureMode === DepthTextureMode.None) {
+            mainCam._enableForwardDepthResolve = false;
+          }
+        }
+      }
+    };
+    const setOilPaintMacroEnabled = async (enabled: boolean) => {
+      const activeScene = scene;
+      if (!activeScene) return;
+      if (enabled) {
+        const { getOilPaintTextures } = await import("@galacean/engine-world-planning/spatial/oil-paint/OilPaintTextures");
+        if (disposed) return;
+        const { brush } = getOilPaintTextures(engine!);
+        oilPaintMacroEnabled = true;
+        activeScene.shaderData.enableMacro("SCENE_OIL_PAINT_STYLE");
+        activeScene.shaderData.setTexture("scene_OilPaintBrushTexture", brush);
+        activeScene.shaderData.setFloat("scene_OilPaintImpasto", oilPaintPostEffect?.impasto.value ?? OIL_PAINT_DEFAULTS.impasto);
+        activeScene.shaderData.setFloat("scene_OilPaintBrushScale", oilPaintPostEffect?.brushScale.value ?? OIL_PAINT_DEFAULTS.brushScale);
+      } else if (oilPaintMacroEnabled) {
+        activeScene.shaderData.disableMacro("SCENE_OIL_PAINT_STYLE");
+        oilPaintMacroEnabled = false;
+      }
+      canvas.dataset.oilPaint = oilPaintMacroEnabled ? "active" : "off";
+    };
+    const oilPaintDebugControl: TerrainOilPaintDebugControl = {
+      getSnapshot: () => ({
+        passActive: oilPaintPostPass?.isActive ?? false,
+        shaderMacro: oilPaintMacroEnabled,
+        painterlyStrength: oilPaintPostEffect?.painterlyStrength.value ?? OIL_PAINT_DEFAULTS.painterlyStrength,
+        brushRadius: oilPaintPostEffect?.brushRadius.value ?? OIL_PAINT_DEFAULTS.brushRadius,
+        strokeAnisotropy: oilPaintPostEffect?.strokeAnisotropy.value ?? OIL_PAINT_DEFAULTS.strokeAnisotropy,
+        colorStylize: oilPaintPostEffect?.colorStylize.value ?? OIL_PAINT_DEFAULTS.colorStylize,
+        screenImpasto: oilPaintPostEffect?.screenImpasto.value ?? OIL_PAINT_DEFAULTS.screenImpasto,
+        impasto: oilPaintPostEffect?.impasto.value ?? OIL_PAINT_DEFAULTS.impasto,
+        brushScale: oilPaintPostEffect?.brushScale.value ?? OIL_PAINT_DEFAULTS.brushScale,
+        compareSplit: oilPaintPostEffect?.compareSplit.value ?? OIL_PAINT_DEFAULTS.compareSplit
+      }),
+      setPassActive: (active) => setOilPaintPassActive(active),
+      setShaderMacro: (enabled) => setOilPaintMacroEnabled(enabled),
+      setParam: (key, value) => {
+        if (oilPaintPostEffect) {
+          oilPaintPostEffect[key].value = value;
+        }
+        if (key === "impasto") scene?.shaderData.setFloat("scene_OilPaintImpasto", value);
+        if (key === "brushScale") scene?.shaderData.setFloat("scene_OilPaintBrushScale", value);
+      },
+      reset: () => {
+        if (oilPaintPostEffect) {
+          oilPaintPostEffect.painterlyStrength.value = OIL_PAINT_DEFAULTS.painterlyStrength;
+          oilPaintPostEffect.brushRadius.value = OIL_PAINT_DEFAULTS.brushRadius;
+          oilPaintPostEffect.strokeAnisotropy.value = OIL_PAINT_DEFAULTS.strokeAnisotropy;
+          oilPaintPostEffect.colorStylize.value = OIL_PAINT_DEFAULTS.colorStylize;
+          oilPaintPostEffect.screenImpasto.value = OIL_PAINT_DEFAULTS.screenImpasto;
+          oilPaintPostEffect.impasto.value = OIL_PAINT_DEFAULTS.impasto;
+          oilPaintPostEffect.brushScale.value = OIL_PAINT_DEFAULTS.brushScale;
+          oilPaintPostEffect.compareSplit.value = OIL_PAINT_DEFAULTS.compareSplit;
+        }
+        scene?.shaderData.setFloat("scene_OilPaintImpasto", OIL_PAINT_DEFAULTS.impasto);
+        scene?.shaderData.setFloat("scene_OilPaintBrushScale", OIL_PAINT_DEFAULTS.brushScale);
+      }
     };
 
     const startupTemplateId = source.session.recipe().parameters.worldTemplate?.id ?? "";
@@ -1788,7 +1930,7 @@ export async function mountSeedWorldDemo(
                   meshes
                 );
                 grass = current.world.population.prepareRockGrass(
-                  rockFormationPlacements(presented, meshes),
+                  rockGrassPlacements(presented, meshes),
                   rockGrassExclusions(plan, current.data.fields, rockGrassWaterTest(water!))
                 );
               }
@@ -2145,7 +2287,7 @@ export async function mountSeedWorldDemo(
                     );
                     const solidFrame = await candidateSolids!.prepare(presented);
                     const grassFrame = candidate!.population.prepareRockGrass(
-                      rockFormationPlacements(presented, candidateSolids!.formations),
+                      rockGrassPlacements(presented, candidateSolids!.formations),
                       rockGrassExclusions(candidateSolids!.sourcePlan, fields, rockGrassWaterTest(water!))
                     );
                     try {
@@ -2379,7 +2521,7 @@ export async function mountSeedWorldDemo(
             candidate!.population.setRockGrassGround(readRockFormationSettings(document));
             candidate!.population
               .prepareRockGrass(
-                rockFormationPlacements(presented, formationMeshes),
+                rockGrassPlacements(presented, formationMeshes),
                 rockGrassExclusions(plan, candidateData.fields, rockGrassWaterTest(water!))
               )
               .commit();
@@ -2687,6 +2829,19 @@ export async function mountSeedWorldDemo(
         sandstorm = undefined;
       }
       canvas.dataset.sandstorm = sandstorm ? "active" : "off";
+      if (templateId === "oil-paint") {
+        try {
+          await setOilPaintPassActive(true);
+          if (publication!.current !== accepted || disposed) return;
+          await setOilPaintMacroEnabled(true);
+        } catch (error) {
+          if (!disposed) console.warn("[seed-world] oil-paint style setup failed", error);
+        }
+      } else {
+        await setOilPaintPassActive(false);
+        await setOilPaintMacroEnabled(false);
+      }
+      canvas.dataset.oilPaint = oilPaintMacroEnabled ? "active" : "off";
       if (publication!.current !== accepted || disposed) return;
       animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         surface: accepted.data.surfaceIntent
@@ -3010,6 +3165,7 @@ export async function mountSeedWorldDemo(
         water,
         audio: audio.audio,
         vista: vistaControls,
+        oilPaint: oilPaintDebugControl,
         setGrassGroundFusion: (enabled) =>
           tools!.dispatchParameters([
             {
@@ -3805,6 +3961,14 @@ async function applyPresentation(
     if (sources.bloomThreshold?.length) post.setBloomThreshold(Number(p.bloomThreshold));
     if (sources.bloomIntensity?.length) post.setBloomIntensity(Number(p.bloomIntensity));
     if (sources.bloomScatter?.length) post.setBloomScatter(Number(p.bloomScatter));
+    const templateId = session.document.entities.world.components.worldTemplate?.values.id;
+    const templateVolumetricDefault =
+      typeof templateId === "string"
+        ? Boolean(WORLD_TEMPLATE_ART[templateId]?.postProcess?.volumetricLight)
+        : false;
+    post.setVolumetricLightEnabled(
+      sources.volumetricLight?.length ? Boolean(p.volumetricLight) : templateVolumetricDefault
+    );
   }
 }
 

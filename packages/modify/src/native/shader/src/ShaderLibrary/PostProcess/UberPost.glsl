@@ -27,6 +27,14 @@ mediump sampler2D renderer_BlitTexture;
 	float material_SunLensFlareCompositeIntensity;
 #endif
 
+#ifdef ENABLE_EFFECT_VOLUMETRIC_LIGHT
+	mediump sampler2D material_VolumetricLightTexture;
+	// x: sunU, y: sunV, z: softKnee, w: aspectRatio
+	vec4 material_VolumetricLightCompositeParams;
+	// rgb: linear tint, a: effectiveStrength
+	vec4 material_VolumetricLightTint;
+#endif
+
 vec3 linearToLMS(vec3 color) {
 	return vec3(
 		dot(color, vec3(0.390405, 0.549941, 0.00892632)),
@@ -71,6 +79,15 @@ void frag(Varyings v) {
 	#ifdef ENABLE_EFFECT_SUN_LENS_FLARE
 		if (material_SunLensFlareCompositeIntensity > 0.0) {
 			color.rgb += texture2D(material_SunLensFlareTexture, v.v_uv).rgb * material_SunLensFlareCompositeIntensity;
+		}
+	#endif
+
+	#ifdef ENABLE_EFFECT_VOLUMETRIC_LIGHT
+		if (material_VolumetricLightTint.a > 0.0) {
+			vec2 vlDSun = (material_VolumetricLightCompositeParams.xy - v.v_uv) * vec2(max(material_VolumetricLightCompositeParams.w, 0.25), 1.0);
+			float vlEnvelope = 0.42 + 0.72 * exp(-length(vlDSun) * 1.15);
+			vec3 vlShaft = texture2D(material_VolumetricLightTexture, v.v_uv).rgb * material_VolumetricLightTint.a * vlEnvelope;
+			color.rgb += vlShaft * (vec3(1.0) - clamp(color.rgb, 0.0, 1.0) * material_VolumetricLightCompositeParams.z);
 		}
 	#endif
 
