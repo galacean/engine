@@ -15,11 +15,10 @@ import {
 } from "@galacean/engine-core";
 import { Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
 import {
-  AccessorType,
   AnimationChannelTargetPath,
   AnimationSamplerInterpolation,
   IAnimation,
-  IAnimationChannel
+  IAnimationSampler
 } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
@@ -36,27 +35,20 @@ export class GLTFAnimationParser extends GLTFParser {
     animationInfo: IAnimation
   ): AssetPromise<AnimationClip> {
     const { glTF } = context;
-    const { accessors, bufferViews } = glTF;
+    const { accessors } = glTF;
     const { channels, samplers } = animationInfo;
-    const len = samplers.length;
-    const sampleDataCollection = new Array<SampleData>(len);
     const entities = context.get<Entity>(GLTFParserType.Entity);
 
-    let duration = -1;
-    const promises = new Array<AssetPromise<void | Entity[] | null>>();
-
-    // parse samplers
-    for (let j = 0, m = len; j < m; j++) {
-      const glTFSampler = samplers[j];
-      const inputAccessor = accessors![glTFSampler.input];
-      const outputAccessor = accessors![glTFSampler.output];
-
-      const promise = AssetPromise.all([
-        GLTFUtils.getAccessorBuffer(context, bufferViews, inputAccessor),
-        GLTFUtils.getAccessorBuffer(context, bufferViews, outputAccessor)
-      ]).then((bufferInfos) => {
-        const input = bufferInfos[0].data;
-        let output = bufferInfos[1].data;
+    return AssetPromise.all([
+      this._loadSamplerAccessors(context, samplers),
+      context.get<Entity>(GLTFParserType.Scene)
+    ]).then(([data]) => {
+      const sampleDataCollection = new Array<SampleData>(samplers.length);
+      for (let j = 0, m = samplers.length; j < m; j++) {
+        const sampler = samplers[j];
+        const input = data.get(sampler.input)!;
+        let output = data.get(sampler.output)!;
+        const outputAccessor = accessors![sampler.output];
         if (outputAccessor.normalized) {
           const scale = GLTFUtils.getNormalizedComponentScale(outputAccessor.componentType);
           const scaled = new Float32Array(output.length);
@@ -66,9 +58,7 @@ export class GLTFAnimationParser extends GLTFParser {
           output = scaled;
         }
 
-        const outputStride = output.length / input.length;
-
-        const interpolation = glTFSampler.interpolation ?? AnimationSamplerInterpolation.Linear;
+        const interpolation = sampler.interpolation ?? AnimationSamplerInterpolation.Linear;
         let samplerInterpolation: InterpolationType;
         switch (interpolation) {
           case AnimationSamplerInterpolation.CubicSpine:
@@ -81,26 +71,14 @@ export class GLTFAnimationParser extends GLTFParser {
             samplerInterpolation = InterpolationType.Linear;
             break;
         }
-
-        const maxTime = input[input.length - 1];
-        if (maxTime > duration) {
-          duration = maxTime;
-        }
-
         sampleDataCollection[j] = {
-          type: outputAccessor.type,
           interpolation: samplerInterpolation,
           input,
           output,
-          outputSize: outputStride
+          outputSize: output.length / input.length
         };
-      });
-      promises.push(promise);
-    }
+      }
 
-    promises.push(context.get<Entity>(GLTFParserType.Scene));
-
-    return AssetPromise.all(promises).then(() => {
       for (let j = 0, m = channels.length; j < m; j++) {
         const glTFChannel = channels[j];
         const { target } = glTFChannel;
@@ -140,7 +118,7 @@ export class GLTFAnimationParser extends GLTFParser {
           default:
         }
 
-        const curve = this._addCurve(target.path, glTFChannel, sampleDataCollection);
+        const curve = this._addCurve(target.path, sampleDataCollection[glTFChannel.sampler]);
 
         if (target.path === AnimationChannelTargetPath.WEIGHTS) {
           const mesh = glTF.nodes![target.node].mesh;
@@ -155,12 +133,60 @@ export class GLTFAnimationParser extends GLTFParser {
     });
   }
 
-  private static _addCurve(
-    animationChannelTargetPath: AnimationChannelTargetPath,
-    glTFChannel: IAnimationChannel,
-    sampleDataCollection: SampleData[]
-  ) {
-    const sampleData = sampleDataCollection[glTFChannel.sampler];
+  private static _loadSamplerAccessors(
+    context: GLTFParserContext,
+    samplers: IAnimationSampler[]
+  ): AssetPromise<Map<number, TypedArray>> {
+    const { accessors, bufferViews } = context.glTF;
+    const data = new Map<number, TypedArray>();
+    const byView = new Map<number, number[]>();
+    const pending: AssetPromise<void>[] = [];
+
+    function request(index: number): void {
+      if (data.has(index)) return;
+      data.set(index, null!);
+      const accessor = accessors![index];
+      const viewIndex = accessor.bufferView;
+      if (viewIndex === undefined || accessor.sparse || bufferViews![viewIndex].byteStride) {
+        pending.push(
+          GLTFUtils.getAccessorBuffer(context, bufferViews, accessor).then((info) => {
+            data.set(index, info.data);
+          })
+        );
+        return;
+      }
+
+      let indices = byView.get(viewIndex);
+      if (!indices) {
+        byView.set(viewIndex, (indices = []));
+        // Animation accessors are tightly packed CPU data. Resolve their shared,
+        // possibly compressed buffer view once, then slice each accessor synchronously.
+        pending.push(
+          context.get<Uint8Array>(GLTFParserType.BufferView, viewIndex).then((view) => {
+            for (let i = 0, n = indices!.length; i < n; i++) {
+              const index = indices![i];
+              const { byteOffset = 0, componentType, count, type } = accessors![index];
+              const ArrayType = GLTFUtils.getComponentType(componentType);
+              data.set(
+                index,
+                new ArrayType(view.buffer, view.byteOffset + byteOffset, count * GLTFUtils.getAccessorTypeSize(type))
+              );
+            }
+          })
+        );
+      }
+      indices.push(index);
+    }
+
+    for (let i = 0, n = samplers.length; i < n; i++) {
+      const { input, output } = samplers[i];
+      request(input);
+      request(output);
+    }
+    return AssetPromise.all(pending).then(() => data);
+  }
+
+  private static _addCurve(animationChannelTargetPath: AnimationChannelTargetPath, sampleData: SampleData) {
     const { input, output, outputSize } = sampleData;
 
     switch (animationChannelTargetPath) {
@@ -246,7 +272,6 @@ export class GLTFAnimationParser extends GLTFParser {
 }
 
 interface SampleData {
-  type: AccessorType;
   input: TypedArray;
   output: TypedArray;
   interpolation: InterpolationType;

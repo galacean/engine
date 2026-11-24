@@ -693,6 +693,69 @@ describe("glTF Loader test", function () {
     }
   });
 
+  it("samples animation channels sharing a buffer view alongside sparse normalized rotations", async () => {
+    const bytes = new ArrayBuffer(52);
+    new Float32Array(bytes, 4, 8).set([0, 1, 1, 2, 3, 5, 6, 7]);
+    new Int8Array(bytes, 36, 8).set([0, 0, 0, 127, 0, 0, 0, 127]);
+    new Uint8Array(bytes)[44] = 1;
+    new Int8Array(bytes, 48, 4).set([0, 0, 127, 0]);
+    const bufferUrl = URL.createObjectURL(new Blob([bytes]));
+    const glTF = {
+      asset: { version: "2.0" },
+      scene: 0,
+      scenes: [{ nodes: [0] }],
+      nodes: [{ name: "Actor" }],
+      buffers: [{ uri: bufferUrl, byteLength: bytes.byteLength }],
+      bufferViews: [
+        { buffer: 0, byteOffset: 4, byteLength: 32 },
+        { buffer: 0, byteOffset: 36, byteLength: 8 },
+        { buffer: 0, byteOffset: 44, byteLength: 1 },
+        { buffer: 0, byteOffset: 48, byteLength: 4 }
+      ],
+      accessors: [
+        { bufferView: 0, type: "SCALAR", componentType: 5126, count: 2, min: [0], max: [1] },
+        { bufferView: 0, byteOffset: 8, type: "VEC3", componentType: 5126, count: 2 },
+        {
+          bufferView: 1,
+          type: "VEC4",
+          componentType: 5120,
+          normalized: true,
+          count: 2,
+          sparse: { count: 1, indices: { bufferView: 2, componentType: 5121 }, values: { bufferView: 3 } }
+        }
+      ],
+      animations: [
+        {
+          samplers: [
+            { input: 0, output: 1 },
+            { input: 0, output: 2, interpolation: "STEP" }
+          ],
+          channels: [
+            { sampler: 0, target: { node: 0, path: "translation" } },
+            { sampler: 0, target: { node: 0, path: "scale" } },
+            { sampler: 1, target: { node: 0, path: "rotation" } }
+          ]
+        }
+      ]
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(glTF)], { type: "model/gltf+json" }));
+    let resource: GLTFResource;
+    try {
+      resource = await engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url });
+      const clip = resource.animations![0];
+      const [position, scale, rotation] = clip.curveBindings.map((binding) => binding.curve!);
+      expect(clip.length).toBe(1);
+      expect(position.evaluate(0.5)).toMatchObject({ x: 3, y: 4, z: 5 });
+      expect(scale.evaluate(1)).toMatchObject({ x: 5, y: 6, z: 7 });
+      expect(rotation.evaluate(0.5)).toMatchObject({ x: 0, y: 0, z: 0, w: 1 });
+      expect(rotation.evaluate(1)).toMatchObject({ x: 0, y: 0, z: 1, w: 0 });
+    } finally {
+      resource?.destroy();
+      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(bufferUrl);
+    }
+  });
+
   it("Pipeline Parser", async () => {
     const glTFResource: GLTFResource = await engine.resourceManager.load({
       type: AssetType.GLTF,
