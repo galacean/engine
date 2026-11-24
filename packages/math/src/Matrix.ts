@@ -445,34 +445,31 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
       }
       det = 1.0 / det;
 
-      const r11 = (a22 * a33 - a23 * a32) * det;
-      const r12 = (a13 * a32 - a12 * a33) * det;
-      const r13 = b03 * det;
-      const r21 = (a23 * a31 - a21 * a33) * det;
-      const r22 = (a11 * a33 - a13 * a31) * det;
-      const r23 = -b01 * det + 0;
-      const r31 = (a21 * a32 - a22 * a31) * det;
-      const r32 = (a12 * a31 - a11 * a32) * det;
-      const r33 = b00 * det;
+      const c11 = a22 * a33 - a23 * a32;
+      const c12 = a13 * a32 - a12 * a33;
+      const c21 = a23 * a31 - a21 * a33;
+      const c22 = a11 * a33 - a13 * a31;
+      const c31 = a21 * a32 - a22 * a31;
+      const c32 = a12 * a31 - a11 * a32;
 
-      oe[0] = r11;
-      oe[1] = r12;
-      oe[2] = r13;
+      oe[0] = c11 * det;
+      oe[1] = c12 * det;
+      oe[2] = b03 * det;
       oe[3] = 0;
 
-      oe[4] = r21;
-      oe[5] = r22;
-      oe[6] = r23;
+      oe[4] = c21 * det;
+      oe[5] = c22 * det;
+      oe[6] = -b01 * det + 0;
       oe[7] = 0;
 
-      oe[8] = r31;
-      oe[9] = r32;
-      oe[10] = r33;
+      oe[8] = c31 * det;
+      oe[9] = c32 * det;
+      oe[10] = b00 * det;
       oe[11] = 0;
 
-      oe[12] = -(r11 * a41 + r21 * a42 + r31 * a43) + 0;
-      oe[13] = -(r12 * a41 + r22 * a42 + r32 * a43) + 0;
-      oe[14] = -(r13 * a41 + r23 * a42 + r33 * a43) + 0;
+      oe[12] = -(c11 * a41 + c21 * a42 + c31 * a43) * det + 0;
+      oe[13] = -(c12 * a41 + c22 * a42 + c32 * a43) * det + 0;
+      oe[14] = -(b03 * a41 - b01 * a42 + b00 * a43) * det + 0;
       oe[15] = 1;
       return;
     }

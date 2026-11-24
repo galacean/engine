@@ -463,6 +463,16 @@ describe("Matrix test", () => {
     expect(Matrix.invert(duplicateColSingular, out)).to.eq(null);
     expect(Matrix.equals(out, sentinel)).to.eq(true);
 
+    // Extreme-scale affine cancellation sums unscaled cofactors before dividing by det
+    const s = 2 ** -100;
+    const h = 2 ** 100;
+    const extremeAffine = new Matrix(2 * s, s, 0, 0, 3 * h, 7 * h, 0, 0, 0, 0, 1, 0, 3 * h, 7 * h, 0, 1);
+    const invExtreme = new Matrix();
+    expect(Matrix.invert(extremeAffine, invExtreme)).to.eq(undefined);
+    expect(invExtreme.elements[12]).to.eq(0);
+    expect(invExtreme.elements[13]).to.eq(-1);
+    expect(invExtreme.elements[14]).to.eq(0);
+
     // Non-affine perspective projection matrix still inverts accurately
     const proj = new Matrix();
     Matrix.perspective(Math.PI / 3, 16 / 9, 0.1, 1000, proj);

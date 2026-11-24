@@ -296,31 +296,6 @@ export class Matrix3x3 implements IClone<Matrix3x3>, ICopy<Matrix3x3, Matrix3x3>
       a43 = ae[14],
       a44 = ae[15];
 
-    if (a14 === 0 && a24 === 0 && a34 === 0 && a44 === 1) {
-      const b00 = a11 * a22 - a12 * a21;
-      const b01 = a11 * a23 - a13 * a21;
-      const b03 = a12 * a23 - a13 * a22;
-
-      let det = b00 * a33 - b01 * a32 + b03 * a31;
-      if (!det) {
-        return null;
-      }
-      det = 1.0 / det;
-
-      oe[0] = (a22 * a33 - a23 * a32) * det;
-      oe[1] = (a23 * a31 - a21 * a33) * det;
-      oe[2] = (a21 * a32 - a22 * a31) * det;
-
-      oe[3] = (a13 * a32 - a12 * a33) * det;
-      oe[4] = (a11 * a33 - a13 * a31) * det;
-      oe[5] = (a12 * a31 - a11 * a32) * det;
-
-      oe[6] = b03 * det;
-      oe[7] = -b01 * det + 0;
-      oe[8] = b00 * det;
-      return;
-    }
-
     const b00 = a11 * a22 - a12 * a21;
     const b01 = a11 * a23 - a13 * a21;
     const b02 = a11 * a24 - a14 * a21;
