@@ -34,6 +34,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   private _connectedBody: Rigidbody | null = null;
   private _force = Infinity;
   private _torque = Infinity;
+  @ignoreClone
   private _automaticConnectedAnchor = true;
   @ignoreClone
   private _registeredScene: Scene | null = null;
@@ -261,15 +262,9 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    * @internal
    */
   _onClone(target: Joint): void {
-    const targetAnchor = target._bodyInfo.anchor;
-    targetAnchor._onValueChanged = null;
-    targetAnchor.copyFrom(this._bodyInfo.anchor);
-    targetAnchor._onValueChanged = target._onAnchorChanged;
-
-    const targetConnectedAnchor = target._connectedBodyInfo.anchor;
-    targetConnectedAnchor._onValueChanged = null;
-    targetConnectedAnchor.copyFrom(this._connectedBodyInfo.anchor);
-    targetConnectedAnchor._onValueChanged = target._handleConnectedAnchorChanged;
+    target._bodyInfo.anchor.copyFrom(this._bodyInfo.anchor);
+    target._connectedBodyInfo.anchor.copyFrom(this._connectedBodyInfo.anchor);
+    target._automaticConnectedAnchor = this._automaticConnectedAnchor;
 
     const connectedBody = target._connectedBody;
     connectedBody?.entity._updateFlagManager.addListener(target._onConnectedTransformChanged);
