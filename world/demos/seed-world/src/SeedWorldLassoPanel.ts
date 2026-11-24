@@ -10,12 +10,18 @@ export class SeedWorldLassoPanel {
   private readonly workspace: SeedWorldPhotoWorkspace;
   private captureAbort?: AbortController;
   private releaseView?: () => void;
+  private activeSnapshotId?: string;
   private disposed = false;
   private confirming = false;
   private photoSerial = 0;
-  private readonly onVoiceEngaged = () => {
-    if (!this.disposed && !this.confirming && this.workspace.phase === "editing") {
-      void this.confirm();
+  private readonly onVoiceSubmitted = () => {
+    if (!this.disposed && !this.confirming && this.workspace.active) {
+      void this.dismissSubmitted();
+    }
+  };
+  private readonly onVoiceTurnEnded = () => {
+    if (!this.disposed) {
+      this.workspace.clearSubmittedCard(false);
     }
   };
   get active(): boolean {
@@ -41,7 +47,10 @@ export class SeedWorldLassoPanel {
         document.dispatchEvent(new CustomEvent("seed-world-screenshot-attached", { detail: attachment }));
       },
       apply: () => {
-        void this.confirm();
+        this.close();
+      },
+      minimize: () => {
+        void this.dismissSubmitted();
       },
       cancel: () => this.close(),
       retain: id => views.pin(id),
@@ -54,7 +63,8 @@ export class SeedWorldLassoPanel {
       }
     };
     if (typeof document !== "undefined") {
-      document.addEventListener("seed-world-voice-engaged", this.onVoiceEngaged);
+      document.addEventListener("seed-world-voice-submitted", this.onVoiceSubmitted);
+      document.addEventListener("seed-world-voice-turn-ended", this.onVoiceTurnEnded);
     }
   }
   /** Startup preparation finishes before the screenshot command becomes available. */
@@ -85,6 +95,7 @@ export class SeedWorldLassoPanel {
     this.button.hidden = true;
     try {
       if (existing) {
+        this.activeSnapshotId = existing.snapshotId;
         this.releaseView = this.views.pin(existing.snapshotId);
         await this.workspace.open(existing, signal);
       } else {
@@ -92,6 +103,7 @@ export class SeedWorldLassoPanel {
         signal.throwIfAborted();
         const observation = await this.views.capture(signal);
         signal.throwIfAborted();
+        this.activeSnapshotId = observation.snapshotId;
         this.releaseView = this.views.pin(observation.snapshotId);
         const photo: PhotoDocument = {
           snapshotId: observation.snapshotId,
@@ -109,18 +121,26 @@ export class SeedWorldLassoPanel {
       }
     }
   }
-  private async confirm(): Promise<void> {
+  private async dismissSubmitted(): Promise<void> {
     if (this.confirming || !this.captureAbort) return;
     this.confirming = true;
     const signal = this.captureAbort.signal;
+    const snapshotId = this.activeSnapshotId;
     try {
-      const photo = await this.workspace.confirm(signal);
-      signal.throwIfAborted();
-      this.workspace.commit(photo);
-      this.close();
-    } catch (error) {
-      if (!signal.aborted)
-        this.workspace.recover(`无法收起照片：${error instanceof Error ? error.message : String(error)}`);
+      await Promise.all([
+        this.workspace.dismissSubmitted(signal),
+        snapshotId ? this.views.ensureIdentities(snapshotId) : Promise.resolve()
+      ]);
+      if (!signal.aborted) {
+        // dismissSubmitted already shrank the screenshot into a docked mini card and unfroze the world.
+        this.captureAbort = undefined;
+        this.activeSnapshotId = undefined;
+        this.releaseView?.();
+        this.releaseView = undefined;
+        this.button.hidden = false;
+      }
+    } catch {
+      if (!signal.aborted) this.close();
     } finally {
       this.confirming = false;
     }
@@ -128,6 +148,7 @@ export class SeedWorldLassoPanel {
   close(): void {
     this.captureAbort?.abort();
     this.captureAbort = undefined;
+    this.activeSnapshotId = undefined;
     this.instantCamera.hide();
     this.workspace.cancel();
     this.releaseView?.();
@@ -136,7 +157,8 @@ export class SeedWorldLassoPanel {
   }
   dispose(): void {
     if (typeof document !== "undefined") {
-      document.removeEventListener("seed-world-voice-engaged", this.onVoiceEngaged);
+      document.removeEventListener("seed-world-voice-submitted", this.onVoiceSubmitted);
+      document.removeEventListener("seed-world-voice-turn-ended", this.onVoiceTurnEnded);
     }
     this.close();
     this.disposed = true;

@@ -95,12 +95,11 @@ const hudUnits = (designPixels: number): number => designPixels * HUD_RASTER_SCA
 // foreground HUD interaction and must win both overlay rendering and UI raycast.
 const VOICE_HUD_SORT_ORDER = 64_000;
 const ORB_SIZE = hudUnits(148);
-// Place the voice orb in the landscape right-thumb zone, cleanly to the left of the
-// bottom-right camera button (alignRight=18, alignBottom=18, size=60x60) with full room
-// to expand to ~1.72x Apple Siri long-press scale without clipping the viewport or camera icon.
-const ORB_RIGHT = hudUnits(196);
-const ORB_BOTTOM = hudUnits(62);
-const ORB_RIGHT_NARROW = hudUnits(32);
+// Positioned comfortably inward from the right edge so the orb has room to expand (1.72x Siri scale)
+// and pairs cleanly with the animated Screen-Markup pen icon docked directly to its left.
+const ORB_RIGHT = hudUnits(116);
+const ORB_BOTTOM = hudUnits(64);
+const ORB_RIGHT_NARROW = hudUnits(64);
 const ORB_BOTTOM_NARROW = hudUnits(108);
 const ORB_RESERVED_RIGHT = ORB_RIGHT + ORB_SIZE + hudUnits(24);
 const PANEL_BOTTOM_WIDE = hudUnits(36);
@@ -729,6 +728,9 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
     if (!task || this._destroyed) return;
     const viewer = this.application.getViewerSnapshot();
     const attachment = this.application.viewSnapshots?.acquireAttachments();
+    if (typeof document !== "undefined") {
+      document.dispatchEvent(new CustomEvent("seed-world-voice-submitted"));
+    }
 
     try {
       this._clearResultTimer();
@@ -752,6 +754,10 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
       catch (error) {
         if (!(error instanceof AgentCancelledError) && !this._destroyed) {
           console.error("[seed-world-planner] AI task failed", error);
+        }
+      } finally {
+        if (typeof document !== "undefined") {
+          document.dispatchEvent(new CustomEvent("seed-world-voice-turn-ended"));
         }
       }
     } catch (error) {
@@ -866,9 +872,6 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
       return;
     }
     triggerVoiceHaptic("press");
-    if (typeof document !== "undefined") {
-      document.dispatchEvent(new CustomEvent("seed-world-voice-engaged"));
-    }
     this._view.layout.cancelReading();
     this._pressPointerId = pointerId;
     this._clearResultTimer();
@@ -919,6 +922,9 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
     if (this._pressPointerId !== pointerId) return;
     this._pressPointerId = undefined;
     triggerVoiceHaptic("release");
+    if (typeof document !== "undefined") {
+      document.dispatchEvent(new CustomEvent("seed-world-voice-submitted"));
+    }
     void this.stopListening();
   }
 
@@ -1034,7 +1040,6 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
     if (!this._isCurrentVoiceAttempt(attempt)) return;
     triggerVoiceHaptic("error");
     this._recordVoiceInteractionEvent(attempt.interaction, "asr.failed", {}, attempt);
-    if (error.error !== "no-speech" && error.error !== "aborted") this._debugController.enable();
     const category: FeedbackCategory =
       error.error === "no-speech" ? "invalid-speech" : error.error === "unsupported" ? "asr-unavailable" : "asr-error";
     this._showFeedback(category, getAsrDisplayMessage(error));
@@ -1079,7 +1084,6 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
     }
     finishTrace();
     if (outcome.status === "failed" && !this._destroyed) {
-      this._debugController.enable();
       this._showFeedback("asr-error", "麦克风清理失败，请刷新页面后重试。");
     }
   }
@@ -1692,8 +1696,16 @@ class VoiceOrbPointer extends Script {
     const triggered = this._longPressTriggered;
     this._clearPendingState();
     if (!triggered) return;
-    if (kind === "cancel") this.controller?.handlePointerCancel(pointerId);
-    else if (kind === "end_drag") this.controller?.handlePointerEndDrag(pointerId);
+    if (kind === "cancel") {
+      this.controller?.handlePointerCancel(pointerId);
+      return;
+    }
+    // Releasing the Voice Orb ends voice input immediately — shrink any open markup canvas
+    // into its docked mini card right away without waiting for or depending on ASR backend availability.
+    if (typeof document !== "undefined") {
+      document.dispatchEvent(new CustomEvent("seed-world-voice-submitted"));
+    }
+    if (kind === "end_drag") this.controller?.handlePointerEndDrag(pointerId);
     else this.controller?.handlePointerUp(pointerId);
   }
 
@@ -2155,6 +2167,14 @@ class VoiceHudLayout extends Script {
     // When the photo workspace overlay is active, fade out the orb's world-camera refraction layer
     // so stale pre-photo terrain/grass never bleeds through the Polaroid paper or backdrop.
     const webCanvas = (this.engine.canvas as { _webCanvas?: HTMLCanvasElement })._webCanvas;
+    // Publish the orb's live expansion (0..1) so adjacent HUD controls (such as the Screen-Markup pen icon)
+    // smoothly glide out of the way when the orb blooms to 1.72x Siri listening scale.
+    if (webCanvas) {
+      const nextExpand = this._orbListeningBlend > 0.0005 ? this._orbListeningBlend.toFixed(4) : "0";
+      if (webCanvas.dataset.voiceOrbExpand !== nextExpand) {
+        webCanvas.dataset.voiceOrbExpand = nextExpand;
+      }
+    }
     const photoPhase = webCanvas?.dataset.photoPhase;
     const photoActive = Boolean(photoPhase && photoPhase !== "idle");
     const targetGlassOpacity = photoActive ? 0 : 1;

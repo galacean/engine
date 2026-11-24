@@ -66,6 +66,7 @@ export function attachProjectSaveLifecycle(
 class ProjectSaveIndicator extends Script {
   private project?: RuntimeProjectSession;
   private label!: Text;
+  private showIndicator = true;
   private hovered = false;
   private targetAlpha = 0.42;
   private startAlpha = 0.42;
@@ -76,14 +77,16 @@ class ProjectSaveIndicator extends Script {
   private safeArea?: HTMLDivElement;
   private abort?: AbortController;
 
-  initialize(project: RuntimeProjectSession, canvasElement: HTMLCanvasElement): void {
+  initialize(project: RuntimeProjectSession, canvasElement: HTMLCanvasElement, showIndicator = true): void {
     this.project = project;
+    this.showIndicator = showIndicator;
     const canvas = this.entity.addComponent(UICanvas);
     canvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
     canvas.resolutionAdaptationMode = ResolutionAdaptationMode.BothAdaptation;
     // Below photo/voice modal input, above the world's fallback drag surface.
     canvas.sortOrder = 100;
     const labelEntity = this.entity.createChild("Project save status");
+    labelEntity.isActive = showIndicator;
     this.label = labelEntity.addComponent(Text);
     this.label.fontSize = 11;
     this.label.horizontalAlignment = TextHorizontalAlignment.Left;
@@ -133,7 +136,7 @@ class ProjectSaveIndicator extends Script {
   }
 
   private updateStatus(): void {
-    if (!this.project) return;
+    if (!this.project || !this.showIndicator) return;
     const state = this.project.persistenceStatus.state;
     this.label.text =
       state === "disposed"
@@ -197,11 +200,12 @@ class ProjectSavePointer extends Script {
 export function mountProjectSaveControl(
   project: RuntimeProjectSession,
   scene: Scene,
-  canvas: HTMLCanvasElement
+  canvas: HTMLCanvasElement,
+  options?: { showIndicator?: boolean }
 ): () => void {
   const root = scene.createRootEntity("Project persistence HUD");
   try {
-    root.addComponent(ProjectSaveIndicator).initialize(project, canvas);
+    root.addComponent(ProjectSaveIndicator).initialize(project, canvas, options?.showIndicator ?? true);
   } catch (error) {
     root.destroy();
     throw error;
