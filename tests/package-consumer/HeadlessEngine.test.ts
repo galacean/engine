@@ -78,6 +78,14 @@ describe("@galacean/engine-rhi-null in Node without browser globals", () => {
     expect(renderer.bounds.max.toJSON()).toEqual({ x: 1, y: 2, z: 3 });
   });
 
+  it.each(["WebAssembly", "WebAssemblySIMD"])("loads the packaged %s physics runtime from CommonJS", async (mode) => {
+    const { PhysXPhysics, PhysXRuntimeMode } = require("@galacean/engine-physics-physx");
+    const engine = await createEngine({ physics: new PhysXPhysics(PhysXRuntimeMode[mode]) });
+    const scene = engine.sceneManager.activeScene!;
+    scene.createRootEntity().addComponent(enginePackage.BoxCollider);
+    expect(scene.physics.raycast(new enginePackage.Ray(new Vector3(0, 0, 2), new Vector3(0, 0, -1)))).toBe(true);
+  });
+
   it.each([
     ["sphere", (e) => PrimitiveMesh.createSphere(e, 2)],
     ["cuboid", (e) => PrimitiveMesh.createCuboid(e, 2, 4, 6)],
