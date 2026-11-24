@@ -32,14 +32,9 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
       return;
     }
 
-    const pxGeometry = this._createGeometry(cookedMesh.pxMesh, scale);
-    const pxShape = this._createShape(pxGeometry, material);
-
-    this._id = uniqueID;
     this._cookedMesh = cookedMesh;
-    this._pxGeometry = pxGeometry;
-    this._pxShape = pxShape;
-    this._pxShape.setUUID(uniqueID);
+    this._pxGeometry = this._createGeometry(cookedMesh.pxMesh, scale);
+    this._initialize(material, uniqueID);
   }
 
   /**

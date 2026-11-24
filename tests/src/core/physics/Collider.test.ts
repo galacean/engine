@@ -208,9 +208,11 @@ describe("Collider", () => {
 
       collider.contactOffset = -2;
       expect(collider.contactOffset).toBe(0);
+      collider.contactOffset = -1e39;
+      expect(collider.contactOffset).toBe(0);
       collider.contactOffset = 2.7;
       expect(collider.contactOffset).toBe(2.7);
-      for (const value of [NaN, Infinity, -Infinity]) {
+      for (const value of [NaN, Infinity, -Infinity, 1e39]) {
         expect(() => (collider.contactOffset = value)).toThrow();
         expect(collider.contactOffset).toBe(2.7);
       }
@@ -258,6 +260,9 @@ describe("Collider", () => {
     box.contactOffset = 0.3;
     update();
     expect(recorder.onCollisionEnter).toHaveBeenCalledTimes(1);
+
+    expect(() => (box.contactOffset = 1e39)).toThrow();
+    expect(box.contactOffset).toBe(0.3);
 
     box.contactOffset = 0;
     update();

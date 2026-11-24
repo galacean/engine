@@ -142,7 +142,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * The contact offset in world units. Ordinary colliders clamp finite negative values to 0.
    * @defaultValue 0.02
-   * @throws When the value is non-finite, or when a CharacterController receives a non-positive value.
+   * @throws When the value is non-finite or overflows Float32, or when a CharacterController receives a non-positive value.
    */
   get contactOffset(): number {
     return this._contactOffset;
@@ -496,13 +496,14 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * Validate a contact offset assigned to {@link contactOffset}.
    * @returns The value to store, negative values are clamped to 0
-   * @throws When the value is not finite.
+   * @throws When the value is not finite or overflows Float32.
    */
   protected _validateContactOffset(value: number): number {
-    if (!Number.isFinite(value)) {
-      throw new Error("Collider contactOffset must be finite.");
+    const clamped = Math.max(0, value);
+    if (!Number.isFinite(value) || !Number.isFinite(Math.fround(clamped))) {
+      throw new Error("Collider contactOffset must be finite within Float32 range.");
     }
-    return Math.max(0, value);
+    return clamped;
   }
 
   protected _onContactOffsetChanged(value: number): void {
