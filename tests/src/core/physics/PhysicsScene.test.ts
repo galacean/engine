@@ -714,6 +714,79 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("preserves ray hits when publishing an output starts another query", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("nested-ray-output");
+      for (let i = 0; i < 3; i++) {
+        const box = root.createChild();
+        box.transform.setPosition(i * 3, 1800, 0);
+        box.addComponent(BoxCollider);
+      }
+      const outerRay = new Ray(new Vector3(-2, 1800, 0), new Vector3(1, 0, 0));
+      const innerRay = new Ray(new Vector3(0, 1802, 0), new Vector3(0, -1, 0));
+      const inner: HitResult[] = [];
+      const outer = new Proxy<HitResult[]>([], {
+        set(target, key, value) {
+          const written = Reflect.set(target, key, value);
+          if (key === "0") scene.physics.raycastAll(innerRay, inner);
+          return written;
+        }
+      });
+      try {
+        expect(scene.physics.raycastAll(outerRay, outer)).toBe(true);
+        expect(inner).to.have.length(1);
+        expect(inner[0].normal.y).toBe(1);
+        expect(outer.map((hit) => hit.distance)).to.have.members([1.5, 4.5, 7.5]);
+        for (const hit of outer) {
+          expect(hit.point.x).toBe(hit.distance - 2);
+          expect(hit.point.y).toBe(1800);
+          expect(hit.normal.x).toBe(-1);
+        }
+      } finally {
+        root.destroy();
+      }
+    });
+
+    it.each([false, true])("keeps ray hit ownership across a nested trim (observer throws: %s)", (throws) => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("nested-ray-trim");
+      root.transform.setPosition(0, 1800, 0);
+      const box = root.addComponent(BoxCollider);
+      const ray = new Ray(new Vector3(-2, 1800, 0), new Vector3(1, 0, 0));
+      const inner = [new HitResult()];
+      const previous = new HitResult();
+      expect(scene.physics.raycast(ray, previous)).toBe(true);
+      const retired = new Proxy(previous, {
+        set(target, key, value) {
+          const cleared = key === "distance" && value === 0 && target.distance !== 0;
+          const written = Reflect.set(target, key, value);
+          if (cleared) {
+            scene.physics.raycastAll(ray, 0, inner);
+            if (throws) throw new Error("observer stopped");
+          }
+          return written;
+        }
+      });
+      const live = new HitResult();
+      const outer = [live, new HitResult(), retired, live];
+      try {
+        if (throws) expect(() => scene.physics.raycastAll(ray, outer)).toThrow("observer stopped");
+        expect(scene.physics.raycastAll(ray, outer)).toBe(true);
+        expect(inner).to.have.length(0);
+        expect(outer).to.have.length(1);
+        expect(outer[0]).toBe(live);
+        expect(live.collider).toBe(box);
+        const outputs: HitResult[][] = [inner, [], []];
+        for (const hits of outputs) expect(scene.physics.raycastAll(ray, hits)).toBe(true);
+        const borrowed = outputs.map((hits) => hits[0]);
+        expect(borrowed).not.to.include(live);
+        expect(new Set(borrowed).size).toBe(3);
+      } finally {
+        root.destroy();
+        enginePhysX.resourceManager.gc();
+      }
+    });
+
     it("raycastAll writes into caller-supplied entries without replacing aliases", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("duplicate-raycast-output");
