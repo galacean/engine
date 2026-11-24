@@ -193,10 +193,12 @@ export class GLTFParserContext {
     }
     getPromises.length = 0;
 
+    // Keep _isLoading true while pendingDestroy so findResourcesByType() still hides it this frame
     if (!this.glTFResource.destroy()) {
       this.glTFResource._isLoading = false;
     }
 
+    // Disassociate explicitly because glTFResource._onDestroy() may be deferred until end of frame
     this._createdResources.forEach((resource) => {
       resource._disassociationSuperResource(this.glTFResource);
       resource.destroy();

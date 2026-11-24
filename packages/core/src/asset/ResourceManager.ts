@@ -486,7 +486,7 @@ export class ResourceManager {
       return;
     }
 
-    // Temporarily root GC-ignored, loading, and super-retained zero-ref resources through existing _addReferCount chains
+    // Temporarily pin zero-ref roots via _addReferCount so downstream references survive gc()
     const pinned: ReferResource[] = [];
     let added: boolean;
     do {
@@ -512,7 +512,7 @@ export class ResourceManager {
       }
     }
 
-    // Restore exact refCounts before running _onDestroy() hooks
+    // Unpin before destroying so _onDestroy() cascades (e.g. FontAtlas.texture) see actual refCounts
     for (let i = 0, n = pinned.length; i < n; i++) {
       pinned[i]._addReferCount(-1);
     }
@@ -614,28 +614,17 @@ export class ResourceManager {
   }
 
   /**
-   * Unregister virtual asset paths and their load descriptors.
-   * @remarks
-   * Passing virtual path strings removes matching entries unconditionally.
-   * Passing descriptors removes an entry only when its registered `path` still matches,
-   * preventing stale cleanups from removing a newer registration for the same virtual path.
-   * @param resources - Virtual paths or previously registered virtual resource descriptors
+   * Unregister virtual asset paths from the virtual resource map.
+   * @param virtualPaths - Virtual asset paths to remove
+   * @remarks Removing a mapping does not destroy loaded resources or clear cached assets; missing entries and post-destroy calls are no-ops.
    */
-  unregisterVirtualResources(resources: readonly (string | Pick<VirtualResource, "virtualPath" | "path">)[]): void {
+  unregisterVirtualResources(virtualPaths: readonly string[]): void {
     const virtualPathMap = this._virtualPathResourceMap;
     if (!virtualPathMap) {
       return;
     }
-    for (let i = 0, n = resources.length; i < n; i++) {
-      const resource = resources[i];
-      if (typeof resource === "string") {
-        delete virtualPathMap[resource];
-      } else {
-        const current = virtualPathMap[resource.virtualPath];
-        if (current && current.path === resource.path) {
-          delete virtualPathMap[resource.virtualPath];
-        }
-      }
+    for (let i = 0, n = virtualPaths.length; i < n; i++) {
+      delete virtualPathMap[virtualPaths[i]];
     }
   }
 

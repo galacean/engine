@@ -36,6 +36,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
       const abort = () => {
         if (aborted) return;
         aborted = true;
+        // Cancel only the atlas JSON request; page texture loads may be shared with other requests
         configPromise.cancel();
         releaseLoadedTextures();
       };
