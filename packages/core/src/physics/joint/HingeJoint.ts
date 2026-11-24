@@ -1,6 +1,6 @@
 import { IDynamicActor, IHingeJoint, IPhysicsScene } from "@galacean/engine-design";
 import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
-import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { Entity } from "../../Entity";
 import { normalizeDirection } from "../unitDirection";
 import { Joint } from "./Joint";
@@ -13,7 +13,6 @@ import { JointMotor } from "./JointMotor";
 export class HingeJoint extends Joint {
   protected declare _nativeJoint: IHingeJoint | null;
 
-  @assignmentClone
   private _axis = new Vector3(1, 0, 0);
   private _useLimits = false;
   private _useMotor = false;

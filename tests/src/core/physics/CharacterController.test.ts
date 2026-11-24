@@ -154,7 +154,7 @@ describe("CharacterController", () => {
     expect(move(new Vector3(0, 0, 1)) & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
     controller.upDirection = new Vector3(0, -1, 0);
     expect(move(new Vector3(0, 0, 1)) & ControllerCollisionFlag.Up).toBe(ControllerCollisionFlag.Up);
-    controller.setUpDirection({ x: 0, y: 1, z: 0 });
+    controller.upDirection = { x: 0, y: 1, z: 0 };
     // Move down first so the controller has a ground contact for the sideways probe.
     expect(move(new Vector3(0, -0.1, 0)) & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
   });
@@ -460,10 +460,10 @@ describe("CharacterController", () => {
   });
 
   it("normalizes upDirection and retains it on a zero vector assignment", () => {
-    controller.setUpDirection({ x: 0, y: 2, z: 0 });
+    controller.upDirection = { x: 0, y: 2, z: 0 };
     expect(controller.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
 
-    controller.setUpDirection({ x: 0, y: 0, z: 0 });
+    controller.upDirection = { x: 0, y: 0, z: 0 };
     expect(controller.upDirection.y).toBe(1);
 
     role.transform.setPosition(0, 3, 0);
@@ -790,8 +790,8 @@ describe("CharacterController", () => {
     expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
 
     const up = cc.upDirection;
-    cc.setUpDirection({ x: 2, y: 0, z: 0 });
-    cc.setUpDirection({ x: 0, y: 0, z: 0 });
+    cc.upDirection = { x: 2, y: 0, z: 0 };
+    cc.upDirection = { x: 0, y: 0, z: 0 };
     expect(cc.upDirection).toBe(up);
 
     // Stepping checks that the queued kinematic target matches the immediate pose.
@@ -803,14 +803,15 @@ describe("CharacterController", () => {
     const clone = entity.clone();
     try {
       const clonedController = clone.getComponent(CharacterController);
+      expect(clonedController.upDirection).not.toBe(cc.upDirection);
       expect(clonedController.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
-      clonedController.setUpDirection({ x: 0, y: 1, z: 0 });
+      clonedController.upDirection = { x: 0, y: 1, z: 0 };
       expect(cc.upDirection.x).toBe(1);
     } finally {
       clone.destroy();
     }
 
-    expect(() => cc.setUpDirection({ x: NaN, y: 0, z: 0 })).toThrow();
+    expect(() => (cc.upDirection = { x: NaN, y: 0, z: 0 })).toThrow();
     expect(cc.upDirection).toBe(up);
     expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
     expect(hit.collider).toBe(cc);

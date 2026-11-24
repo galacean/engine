@@ -5,7 +5,7 @@ import {
   IPhysicsMaterial
 } from "@galacean/engine-design";
 import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
-import { assignmentClone, ignoreClone } from "../clone/CloneDecorators";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 import type { PhysicsScene } from "./PhysicsScene";
@@ -26,7 +26,6 @@ export class CharacterController extends Collider {
   private _height = 2;
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
-  @assignmentClone
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit = 45;
 
@@ -132,14 +131,15 @@ export class CharacterController extends Collider {
   /**
    * A read-only snapshot of the unit up direction in world space.
    * @defaultValue `(0, 1, 0)`
-   * @see {@link setUpDirection}
+   * @remarks Assign a complete direction to update the up direction. A zero vector leaves it unchanged.
+   * @throws When the assigned direction has non-finite length.
    */
   get upDirection(): Readonly<Vector3Like> {
     return this._upDirection;
   }
 
   set upDirection(value: Readonly<Vector3Like>) {
-    this.setUpDirection(value);
+    this._setUpDirection(value);
   }
 
   /**
@@ -159,19 +159,6 @@ export class CharacterController extends Collider {
     if (this._slopeLimit !== value) {
       this._slopeLimit = value;
       this._controller?.setSlopeLimit(value);
-    }
-  }
-
-  /**
-   * Sets the controller's up direction from a complete vector. A zero vector leaves the direction unchanged.
-   * @param value - The direction in world space, normalized on assignment.
-   * @throws When the vector length is non-finite.
-   */
-  setUpDirection(value: Readonly<Vector3Like>): void {
-    const up = normalizeDirection(this._upDirection, value, "CharacterController upDirection");
-    if (up !== this._upDirection) {
-      this._upDirection = up;
-      this._controller?.setUpDirection(up);
     }
   }
 
@@ -332,6 +319,15 @@ export class CharacterController extends Collider {
   protected override _destroyNative(): void {
     this._controller?.destroy();
     this._controller = null;
+  }
+
+  // Runtime Prefab calls use this method name.
+  private _setUpDirection(value: Readonly<Vector3Like>): void {
+    const up = normalizeDirection(this._upDirection, value, "CharacterController upDirection");
+    if (up !== this._upDirection) {
+      this._upDirection = up;
+      this._controller?.setUpDirection(up);
+    }
   }
 
   private _createNative(): ICharacterController {
