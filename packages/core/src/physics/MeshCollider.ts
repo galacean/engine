@@ -98,7 +98,8 @@ export class MeshCollider extends Collider {
    * @returns Distance in world units, 0 for a point inside or on the hull, or -1 if the hull is unavailable.
    */
   override getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
-    if (this._mesh && !this._convex) {
+    this._registeredScene?.physics._syncForQuery();
+    if (this._isInSimulation() && !this._nativeConvex) {
       console.error("MeshCollider: getClosestPoint is only supported when convex is true.");
       return -1;
     }
@@ -110,7 +111,7 @@ export class MeshCollider extends Collider {
    * @inheritDoc
    */
   override _getVolumeDistance(point: Vector3, outClosestPoint?: Vector3): number {
-    if (!this._convex) {
+    if (!this._nativeConvex) {
       return -1;
     }
     return super._getVolumeDistance(point, outClosestPoint);

@@ -254,11 +254,12 @@ export class PhysicsScene {
    * Whether pending Transform and Collider changes are synchronized automatically before spatial queries and
    * `CharacterController.move`.
    * @defaultValue true
-   * @remarks Simulation steps always synchronize automatically regardless of this setting. When `false`, spatial
-   * queries (`raycast`, `raycastAll`, shape casts, overlaps, `Collider.getClosestPoint`, pointer picking, and local
-   * post-process volume queries) read the last synchronized physics state until {@link syncTransforms} or a
-   * simulation step runs, while `CharacterController.move` still synchronizes only that controller's own pending
-   * state.
+   * @remarks When `false`, spatial queries (`raycast`, `raycastAll`, shape casts, overlaps, `Collider.getClosestPoint`,
+   * pointer picking, and local post-process volume queries) do not flush pending scene changes themselves and read the
+   * last synchronized physics state. Fixed simulation steps still synchronize automatically, `Rigidbody` APIs that
+   * depend on up-to-date actor/collider state (such as mass/inertia reads, `setDensity`, forces, point velocities, or
+   * kinematic `move`) may still flush pending scene changes, and `CharacterController.move` still synchronizes only
+   * that controller's own pending state.
    */
   autoSyncTransforms: boolean = true;
   /** @internal */

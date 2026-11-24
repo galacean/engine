@@ -66,9 +66,9 @@ scene.physics.raycast(ray, hitResult);
 ```
 
 When `autoSyncTransforms` is `false`:
-- Fixed simulation steps still synchronize pending changes automatically.
-- `CharacterController.move()` still synchronizes that controller's own pending state without flushing unrelated scene changes.
-- Call [syncTransforms](/apis/core/#PhysicsScene-syncTransforms) whenever a spatial query or `CharacterController.move()` needs to see recent Transform or Collider edits before the next simulation step.
+- Spatial queries themselves do not flush pending scene changes; call [syncTransforms](/apis/core/#PhysicsScene-syncTransforms) whenever a spatial query or `CharacterController.move()` needs to see recent Transform or Collider edits before the next simulation step.
+- Fixed simulation steps still synchronize pending changes automatically, and `Rigidbody` APIs that depend on up-to-date actor/collider state (such as mass/inertia reads, `setDensity`, forces, point velocities, or kinematic `move`) may also flush pending scene changes.
+- `CharacterController.move()` still synchronizes only that controller's own pending state without flushing unrelated scene changes.
 
 ## Setting Scene Gravity
 

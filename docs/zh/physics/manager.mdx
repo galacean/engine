@@ -65,9 +65,9 @@ scene.physics.raycast(ray, hitResult);
 ```
 
 当 `autoSyncTransforms` 为 `false` 时：
-- 物理模拟步进前仍会自动同步所有待处理改动。
+- 空间查询自身不会刷新待处理的场景改动；若希望空间查询或 `CharacterController.move()` 在下一次模拟步进前立即看到其他刚修改的 Transform 或 Collider，请显式调用 [syncTransforms](/apis/core/#PhysicsScene-syncTransforms)。
+- 物理模拟步进前仍会自动同步所有待处理改动；`Rigidbody` 中依赖最新刚体/碰撞体状态的接口（如质量/惯性读取、`setDensity`、施力、点速度查询或运动学 `move`）也可能会刷新待处理改动。
 - `CharacterController.move()` 仍会同步该控制器自身的待处理状态，但不会顺带刷新场景中其他不相关对象。
-- 若希望空间查询或 `CharacterController.move()` 在下一次模拟步进前立即看到其他刚修改的 Transform 或 Collider，请显式调用 [syncTransforms](/apis/core/#PhysicsScene-syncTransforms)。
 
 ## 设置场景重力
 

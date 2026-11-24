@@ -233,8 +233,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @returns The distance, or -1 when the shape is unavailable
    */
   _getVolumeDistance(point: Vector3, outClosestPoint?: Vector3): number {
-    // A disabled Rigidbody is unregistered from the scene's enabled bodies but keeps its Colliders attached
-    if (!this._nativeActor || this._attachedBody?._index === -1) {
+    if (!this._isInSimulation()) {
       return -1;
     }
 
@@ -406,6 +405,14 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
     }
     return null;
+  }
+
+  /**
+   * Whether this Collider currently has an active native shape in simulation.
+   */
+  protected _isInSimulation(): boolean {
+    // A disabled Rigidbody is unregistered from the scene's enabled bodies but keeps its Colliders attached
+    return this._nativeActor !== null && this._attachedBody?._index !== -1;
   }
 
   /**

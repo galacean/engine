@@ -1334,4 +1334,48 @@ describe("MeshCollider", () => {
     update(1);
     expect(recorder.onCollisionExit).toHaveBeenCalledOnce();
   });
+
+  it("evaluates getClosestPoint against the installed convex state while autoSyncTransforms is false", () => {
+    const collider = addMesh(true);
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const out = new Vector3();
+
+    // Cube half-extent is 1 (edge length 2); point (3, 0, 0) has distance 2 to face x = 1.
+    expect(collider.getClosestPoint(new Vector3(3, 0, 0), out)).toBeCloseTo(2, 4);
+    expect(out.x).toBeCloseTo(1, 4);
+
+    physics.autoSyncTransforms = false;
+    try {
+      // Pending convex = false must not take effect until syncTransforms() runs.
+      collider.convex = false;
+      out.set(9, 9, 9);
+      expect(collider.getClosestPoint(new Vector3(3, 0, 0), out)).toBeCloseTo(2, 4);
+      expect(out.x).toBeCloseTo(1, 4);
+      expect(errors).not.toHaveBeenCalled();
+      expect(warnings).not.toHaveBeenCalled();
+
+      // After syncTransforms(), the installed triangle mesh rejects getClosestPoint without mutating out.
+      physics.syncTransforms();
+      out.set(9, 9, 9);
+      expect(collider.getClosestPoint(new Vector3(3, 0, 0), out)).toBe(-1);
+      expect(errors).toHaveBeenCalledTimes(1);
+      expect(warnings).not.toHaveBeenCalled();
+      expect(out.x).toBe(9);
+
+      // Pending convex = true also stays rejected until syncTransforms() runs.
+      collider.convex = true;
+      expect(collider.getClosestPoint(new Vector3(3, 0, 0), out)).toBe(-1);
+      expect(errors).toHaveBeenCalledTimes(2);
+      expect(out.x).toBe(9);
+
+      physics.syncTransforms();
+      expect(collider.getClosestPoint(new Vector3(3, 0, 0), out)).toBeCloseTo(2, 4);
+      expect(out.x).toBeCloseTo(1, 4);
+      expect(errors).toHaveBeenCalledTimes(2);
+      expect(warnings).not.toHaveBeenCalled();
+    } finally {
+      physics.autoSyncTransforms = true;
+    }
+  });
 });

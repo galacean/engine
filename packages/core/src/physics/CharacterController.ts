@@ -162,7 +162,7 @@ export class CharacterController extends Collider {
    * @remarks When `PhysicsScene.autoSyncTransforms` is `false`, `move` synchronizes only this controller's own
    * pending state without flushing unrelated scene changes. With PhysX, scene queries see the moved shape after the
    * next simulation step. Trigger callbacks are dispatched by simulation steps. For immediate query updates, set the
-   * Entity's world position directly.
+   * Entity's world position directly (and call `PhysicsScene.syncTransforms()` when `autoSyncTransforms` is `false`).
    * @param disp - Requested displacement in world space.
    * @param minDist - Stop sweeping when the remaining displacement reaches this distance or less, in world units.
    * @param elapsedTime - Time since the previous move, in seconds.
