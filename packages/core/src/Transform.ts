@@ -15,8 +15,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
   private static _tempVec31: Vector3 = new Vector3();
   private static _tempVec32: Vector3 = new Vector3();
   private static _tempMat30: Matrix3x3 = new Matrix3x3();
-  private static _tempMat31: Matrix3x3 = new Matrix3x3();
-  private static _tempMat32: Matrix3x3 = new Matrix3x3();
   private static _tempMat41: Matrix = new Matrix();
   private static _tempMat42: Matrix = new Matrix();
 
@@ -233,14 +231,21 @@ export class Transform extends Component implements ICloneHook<Transform> {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldScale)) {
       const parent = this._getParentTransform();
       if (parent) {
-        // Clear ancestor WorldScale dirty flags on both paths.
+        // Clear ancestor WorldScale dirty flags on both paths
         const parentLossyWorldScale = parent.lossyWorldScale;
         if (parent._getWorldUniformScaling()) {
           Vector3.multiply(parentLossyWorldScale, this._scale, this._lossyWorldScale);
         } else {
-          const scaleMat = this._getScaleMatrix();
-          const e = scaleMat.elements;
-          this._lossyWorldScale.set(e[0], e[4], e[8]);
+          const me = this.worldMatrix.elements;
+          const rotMat = Transform._tempMat30;
+          Matrix3x3.rotationQuaternion(this.worldRotationQuaternion, rotMat);
+          const re = rotMat.elements;
+          // Diagonal of R^T * M^(3x3): dot each column of R with the corresponding column of M
+          this._lossyWorldScale.set(
+            re[0] * me[0] + re[1] * me[1] + re[2] * me[2],
+            re[3] * me[4] + re[4] * me[5] + re[5] * me[6],
+            re[6] * me[8] + re[7] * me[9] + re[8] * me[10]
+          );
         }
       } else {
         this._lossyWorldScale.copyFrom(this._scale);
@@ -807,18 +812,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
         children[i].transform?._updateAllWorldFlag(flags);
       }
     }
-  }
-
-  private _getScaleMatrix(): Matrix3x3 {
-    const invRotation = Transform._tempQuat0;
-    const invRotationMat = Transform._tempMat30;
-    const worldRotScaMat = Transform._tempMat31;
-    const scaMat = Transform._tempMat32;
-    worldRotScaMat.copyFromMatrix(this.worldMatrix);
-    Quaternion.invert(this.worldRotationQuaternion, invRotation);
-    Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
-    Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
-    return scaMat;
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {
