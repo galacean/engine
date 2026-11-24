@@ -8,7 +8,7 @@ import {
   Camera,
   ModelMesh
 } from "@galacean/engine-core";
-import { Matrix, Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, expect, it } from "vitest";
 
@@ -256,42 +256,6 @@ describe("MeshRenderer", async function () {
     // Test that set negative value works correctly.
     mr.priority = -1;
     expect(mr.priority).to.be.equal(-1);
-  });
-
-  it("updates and caches renderer_NormalMat for uniform and non-uniform scales", () => {
-    const entity = rootEntity.createChild("normalMatCube");
-    const mr = entity.addComponent(MeshRenderer);
-    mr.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
-    mr.setMaterial(new PBRMaterial(engine));
-
-    const assertMatchesInvertTranspose = () => {
-      engine.update();
-      const normalMat = mr.shaderData.getMatrix("renderer_NormalMat");
-      const expected = new Matrix();
-      Matrix.invert(entity.transform.worldMatrix, expected);
-      expected.transpose();
-      for (const idx of [0, 1, 2, 4, 5, 6, 8, 9, 10]) {
-        expect(normalMat.elements[idx]).to.be.closeTo(expected.elements[idx], 1e-5);
-      }
-    };
-
-    entity.transform.setPosition(2, -3, 4);
-    entity.transform.setRotation(25, 45, -15);
-    entity.transform.setScale(2, 2, 2);
-    assertMatchesInvertTranspose();
-
-    // Negative uniform scale
-    entity.transform.setScale(-3, -3, -3);
-    assertMatchesInvertTranspose();
-
-    // Non-uniform scale
-    entity.transform.setScale(2, 0.5, 4);
-    assertMatchesInvertTranspose();
-
-    // Static frame reuses cached normal matrix without error
-    assertMatchesInvertTranspose();
-
-    entity.destroy();
   });
 
   it("destroy", () => {

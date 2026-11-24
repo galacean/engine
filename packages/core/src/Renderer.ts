@@ -75,8 +75,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   @ignoreClone
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _normalMatrixVersion: number = -1;
-  @ignoreClone
   private _materialsInstanced: boolean[] = [];
   private _priority: number = 0;
   private _receiveShadows: boolean = true;
@@ -392,8 +390,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
    * @internal
    */
   _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
-    const transformEntity = this._transformEntity!;
-    const worldMatrix = transformEntity.transform.worldMatrix;
+    const worldMatrix = this._transformEntity!.transform.worldMatrix;
     const { shaderData } = this;
     if (onlyMVP) {
       const mvpMatrix = this._mvpMatrix;
@@ -404,13 +401,8 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       const normalMatrix = this._normalMatrix;
 
       Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
-
-      const version = transformEntity._updateFlagManager.version;
-      if (this._normalMatrixVersion !== version) {
-        this._normalMatrixVersion = version;
-        Matrix.invert(worldMatrix, normalMatrix);
-        normalMatrix.transpose();
-      }
+      Matrix.invert(worldMatrix, normalMatrix);
+      normalMatrix.transpose();
 
       shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
@@ -469,7 +461,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       preEntity?._updateFlagManager.removeListener(this._onTransformChanged);
       entity?._updateFlagManager.addListener(this._onTransformChanged);
       this._transformEntity = entity;
-      this._normalMatrixVersion = -1;
     }
   }
 
