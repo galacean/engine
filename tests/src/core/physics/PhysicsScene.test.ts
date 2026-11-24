@@ -747,6 +747,28 @@ describe("Physics Test", () => {
       }
     });
 
+    it("skips subsequent ray hits destroyed while earlier results are being written", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("retired-ray-hit");
+      const boxes = [0, 3, 6].map((x) => {
+        const entity = root.createChild();
+        entity.transform.setPosition(x, 1800, 0);
+        return entity.addComponent(BoxCollider);
+      });
+      const ray = new Ray(new Vector3(-2, 1800, 0), new Vector3(1, 0, 0));
+      const hits = [
+        new Proxy(new HitResult(), {
+          set(target, key, value) {
+            const written = Reflect.set(target, key, value);
+            if (key === "distance") boxes.find((box) => box !== target.collider)!.entity.destroy();
+            return written;
+          }
+        })
+      ];
+      expect(physicsScene.raycastAll(ray, hits)).toBe(true);
+      expect(hits.map((hit) => hit.collider)).to.have.members(boxes.filter((box) => !box.destroyed));
+      expect(hits).toHaveLength(2);
+    });
+
     it.each([false, true])("keeps ray hit ownership across a nested trim (observer throws: %s)", (throws) => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("nested-ray-trim");
@@ -1720,6 +1742,27 @@ describe("Physics Test", () => {
       expect(physicsScene.capsuleCast(center, radius, height, direction, 0.1, outHitResult)).to.eq(false);
 
       root.destroy();
+    });
+
+    it("keeps the outer overlap set when publishing it starts another query", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity();
+      const boxes = [0, 2, 100, 102].map((x) => {
+        const entity = root.createChild();
+        entity.transform.setPosition(x, 1800, 0);
+        return entity.addComponent(BoxCollider);
+      });
+      const inner: Collider[] = [];
+      const outer = new Proxy<Collider[]>([], {
+        set(target, key, value) {
+          const written = Reflect.set(target, key, value);
+          if (key === "0") scene.physics.overlapSphereAll(new Vector3(101, 1800, 0), 3, Layer.Everything, inner);
+          return written;
+        }
+      });
+      expect(scene.physics.overlapSphereAll(new Vector3(1, 1800, 0), 3, Layer.Everything, outer)).toBe(outer);
+      expect(outer).to.have.members(boxes.slice(0, 2));
+      expect(inner).to.have.members(boxes.slice(2));
     });
 
     it("overlapBoxAll", () => {
@@ -3009,7 +3052,7 @@ describe("Physics Test", () => {
       const triggerReceivers = (physicsScene as any)._triggerReceivers as Map<number, unknown>;
       expect(triggerReceivers.size).toBe(2);
 
-      const dispatchPool = (PhysicsScene as any)._dispatchReceivers as (Rigidbody | Collider | null)[][];
+      const dispatchPool = (PhysicsScene as any)._snapshotBuffers as (Rigidbody | Collider | null)[][];
       expect(dispatchPool).toHaveLength(1);
       expect(dispatchPool[0].length).toBeGreaterThanOrEqual(8);
       expect(dispatchPool[0].every((slot) => slot === null)).toBe(true);

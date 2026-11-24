@@ -23,7 +23,7 @@ export class PhysicsScene {
   private static readonly _tempDirection = new Vector3();
   private static readonly _tempPosition = new Vector3();
   private static readonly _tempRotation = new Quaternion();
-  private static readonly _dispatchReceivers: (Rigidbody | Collider)[][] = [];
+  private static readonly _snapshotBuffers: (Rigidbody | Collider)[][] = [];
   private static readonly _parsedCastArgs = {
     orientation: PhysicsScene._identityQuaternion,
     distance: Number.MAX_VALUE,
@@ -130,14 +130,24 @@ export class PhysicsScene {
     }
   }
 
-  private static _collectColliders(ids: ArrayLike<number>, out: Collider[]): Collider[] {
+  private static _collectColliders(ids: ArrayLike<number> | undefined, out?: Collider[]): Collider[] {
     const physicalObjectsMap = Engine._physicalObjectsMap;
-    const n = ids.length;
-    for (let i = 0; i < n; i++) {
-      out[i] = physicalObjectsMap[ids[i]];
+    const count = ids?.length ?? 0;
+    const result = out ?? [];
+    // Writing to caller storage may run another query and overwrite the borrowed IDs.
+    const snapshot = out && count > 1 ? (PhysicsScene._snapshotBuffers.pop() ?? []) : result;
+    for (let i = 0; i < count; i++) {
+      snapshot[i] = physicalObjectsMap[ids![i]];
     }
-    out.length = n;
-    return out;
+    if (snapshot !== result) {
+      for (let i = 0; i < count; i++) {
+        result[i] = snapshot[i] as Collider;
+        snapshot[i] = null!;
+      }
+      PhysicsScene._snapshotBuffers.push(snapshot);
+    }
+    result.length = count;
+    return result;
   }
 
   private static _isValidBoxExtents(halfExtents: Vector3): boolean {
@@ -695,15 +705,13 @@ export class PhysicsScene {
     halfExtents: Vector3,
     orientation: Quaternion = PhysicsScene._identityQuaternion,
     layerMask: Layer = Layer.Everything,
-    colliders: Collider[] = []
+    colliders?: Collider[]
   ): Collider[] {
-    if (!PhysicsScene._isValidBoxExtents(halfExtents)) {
-      colliders.length = 0;
-      return colliders;
+    let ids: ArrayLike<number> | undefined;
+    if (PhysicsScene._isValidBoxExtents(halfExtents)) {
+      this._syncColliders(false);
+      ids = this._nativePhysicsScene.overlapBoxAll(center, orientation, halfExtents, layerMask);
     }
-    this._syncColliders(false);
-    const ids = this._nativePhysicsScene.overlapBoxAll(center, orientation, halfExtents, layerMask);
-
     return PhysicsScene._collectColliders(ids, colliders);
   }
 
@@ -719,15 +727,13 @@ export class PhysicsScene {
     center: Vector3,
     radius: number,
     layerMask: Layer = Layer.Everything,
-    colliders: Collider[] = []
+    colliders?: Collider[]
   ): Collider[] {
-    if (!isValidPositiveFloat32(radius)) {
-      colliders.length = 0;
-      return colliders;
+    let ids: ArrayLike<number> | undefined;
+    if (isValidPositiveFloat32(radius)) {
+      this._syncColliders(false);
+      ids = this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
     }
-    this._syncColliders(false);
-    const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
-
     return PhysicsScene._collectColliders(ids, colliders);
   }
 
@@ -747,19 +753,17 @@ export class PhysicsScene {
     height: number,
     orientation: Quaternion = PhysicsScene._identityQuaternion,
     layerMask: Layer = Layer.Everything,
-    colliders: Collider[] = []
+    colliders?: Collider[]
   ): Collider[] {
     const cylinderHeight = height - 2 * radius;
     const halfCylinderHeight = cylinderHeight * 0.5;
-    if (!(isValidPositiveFloat32(radius) && height >= 0 && Number.isFinite(Math.fround(halfCylinderHeight)))) {
-      colliders.length = 0;
-      return colliders;
+    let ids: ArrayLike<number> | undefined;
+    if (isValidPositiveFloat32(radius) && height >= 0 && Number.isFinite(Math.fround(halfCylinderHeight))) {
+      this._syncColliders(false);
+      ids = isValidPositiveFloat32(halfCylinderHeight)
+        ? this._nativePhysicsScene.overlapCapsuleAll(center, radius, halfCylinderHeight, orientation, layerMask)
+        : this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
     }
-    this._syncColliders(false);
-    const ids = isValidPositiveFloat32(halfCylinderHeight)
-      ? this._nativePhysicsScene.overlapCapsuleAll(center, radius, halfCylinderHeight, orientation, layerMask)
-      : this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
-
     return PhysicsScene._collectColliders(ids, colliders);
   }
 
@@ -941,7 +945,7 @@ export class PhysicsScene {
    */
   _gc(): void {
     HitResultWriter._gc();
-    PhysicsScene._dispatchReceivers.length = 0;
+    PhysicsScene._snapshotBuffers.length = 0;
     this._nativePhysicsScene?.gc();
   }
 
@@ -951,7 +955,7 @@ export class PhysicsScene {
   _destroy(): void {
     this._gravity._onValueChanged = null;
     HitResultWriter._gc();
-    PhysicsScene._dispatchReceivers.length = 0;
+    PhysicsScene._snapshotBuffers.length = 0;
     this._triggerReceivers.clear();
     this._pendingSleeps = undefined;
     this._nativePhysicsScene?.destroy();
@@ -987,7 +991,7 @@ export class PhysicsScene {
     const triggerOffset = contactEventCount * 4;
     if (contactEventCount > 0 || triggerCount > 0) {
       // Snapshot both colliders and receivers before any script mutates Collider ownership or re-syncs the scene.
-      const receivers = PhysicsScene._dispatchReceivers.pop() ?? [];
+      const receivers = PhysicsScene._snapshotBuffers.pop() ?? [];
       PhysicsScene._snapshotReceivers(contactEvents, contactEventCount, receivers, 0);
       PhysicsScene._snapshotReceivers(triggerEvents, triggerCount, receivers, triggerOffset);
 
@@ -1084,7 +1088,7 @@ export class PhysicsScene {
       for (let i = 0; i < totalSlots; i++) {
         receivers[i] = null!;
       }
-      PhysicsScene._dispatchReceivers.push(receivers);
+      PhysicsScene._snapshotBuffers.push(receivers);
     }
     if (triggerCount === 0) {
       this._triggerReceivers.size > 0 && this._triggerReceivers.clear();
@@ -1138,6 +1142,8 @@ class HitResultWriter {
   // Output observers can start another query and overwrite the borrowed vectors.
   readonly _onHit = (id: number, distance: number, { x, y, z }: Vector3, { x: nx, y: ny, z: nz }: Vector3): void => {
     const collider = Engine._physicalObjectsMap[id];
+    // Publishing an earlier hit may have destroyed this collider.
+    if (!collider) return;
     const output = this._output!;
     const index = this._count++;
     const hit = Array.isArray(output) ? (output[index] ||= HitResultWriter._hitPool.pop() ?? new HitResult()) : output;
