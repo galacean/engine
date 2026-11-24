@@ -88,8 +88,8 @@ export class PostProcessManager {
             continue;
           }
           if (!physicsSynced) {
-            // Volume queries need current collider poses even when the frame has no physics step.
-            this.scene.physics._syncColliders(false);
+            // Volume queries follow PhysicsScene.autoSyncTransforms so disabling auto-sync avoids implicit flushes.
+            this.scene.physics._syncForQuery();
             physicsSynced = true;
           }
           const distance = collider._getVolumeDistance(cameraPosition);

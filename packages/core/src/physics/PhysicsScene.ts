@@ -13,10 +13,10 @@ import { isValidPositiveFloat32 } from "./float32";
 
 /**
  * Simulates colliders, rigidbodies, and constraints in a scene.
- * @remarks Pending Rigidbody poses and Collider changes are synchronized before simulation and scene queries.
- * Casts normalize world-space directions internally and only report hits at positive distances.
- * An invalid direction or a non-positive distance is a miss. Single-hit casts clear a supplied {@link HitResult}
- * on a miss.
+ * @remarks Pending Rigidbody poses and Collider changes are synchronized before simulation, and before scene queries
+ * while {@link autoSyncTransforms} is `true`. Casts normalize world-space directions internally and only report hits
+ * at positive distances. An invalid direction or a non-positive distance is a miss. Single-hit casts clear a supplied
+ * {@link HitResult} on a miss.
  */
 export class PhysicsScene {
   private static readonly _identityQuaternion = new Quaternion(0, 0, 0, 1);
@@ -250,6 +250,17 @@ export class PhysicsScene {
     outHitResult.normal.copyFrom(normal);
   }
 
+  /**
+   * Whether pending Transform and Collider changes are synchronized automatically before spatial queries and
+   * `CharacterController.move`.
+   * @defaultValue true
+   * @remarks Simulation steps always synchronize automatically regardless of this setting. When `false`, spatial
+   * queries (`raycast`, `raycastAll`, shape casts, overlaps, `Collider.getClosestPoint`, pointer picking, and local
+   * post-process volume queries) read the last synchronized physics state until {@link syncTransforms} or a
+   * simulation step runs, while `CharacterController.move` still synchronizes only that controller's own pending
+   * state.
+   */
+  autoSyncTransforms: boolean = true;
   /** @internal */
   _nativePhysicsScene: IPhysicsScene;
 
@@ -333,6 +344,16 @@ export class PhysicsScene {
       Collider._getLayerIndex(layer2),
       isCollide
     );
+  }
+
+  /**
+   * Synchronizes pending Transform and Collider changes to the physics scene immediately.
+   * @remarks Useful when {@link autoSyncTransforms} is `false` and spatial queries or `CharacterController.move`
+   * need to observe recent Transform or Collider edits before the next simulation step. Mass and inertia
+   * recomputation remains deferred until the next simulation step or mass-dependent `Rigidbody` access.
+   */
+  syncTransforms(): void {
+    this._syncColliders(false);
   }
 
   /**
@@ -790,7 +811,7 @@ export class PhysicsScene {
       colliders.length = 0;
       return colliders;
     }
-    this._syncColliders(false);
+    this._syncForQuery();
     const ids = this._nativePhysicsScene.overlapBoxAll(center, orientation, halfExtents, layerMask);
 
     return PhysicsScene._collectColliders(ids, colliders);
@@ -814,7 +835,7 @@ export class PhysicsScene {
       colliders.length = 0;
       return colliders;
     }
-    this._syncColliders(false);
+    this._syncForQuery();
     const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
 
     return PhysicsScene._collectColliders(ids, colliders);
@@ -844,7 +865,7 @@ export class PhysicsScene {
       colliders.length = 0;
       return colliders;
     }
-    this._syncColliders(false);
+    this._syncForQuery();
     const ids = isValidPositiveFloat32(halfCylinderHeight)
       ? this._nativePhysicsScene.overlapCapsuleAll(center, radius, halfCylinderHeight, orientation, layerMask)
       : this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
@@ -918,6 +939,24 @@ export class PhysicsScene {
         body._massDirtyIndex = -1;
         body._updateMass();
       }
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _syncForQuery(): void {
+    this.autoSyncTransforms && this._syncColliders(false);
+  }
+
+  /**
+   * @internal
+   * Synchronizes a single standalone Collider without flushing other pending scene changes.
+   */
+  _syncCollider(collider: Collider): void {
+    if (collider._dirtyIndex !== -1) {
+      PhysicsScene._removeDirty(this._dirtyColliders, collider);
+      collider._sync();
     }
   }
 
@@ -1183,7 +1222,7 @@ export class PhysicsScene {
   private _syncCastDirection(direction: Vector3): Vector3 | null {
     const out = PhysicsScene._tempDirection;
     if (!Vector3.normalize(direction, out)) return null;
-    this._syncColliders(false);
+    this._syncForQuery();
     return out;
   }
 

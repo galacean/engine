@@ -219,7 +219,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @returns Distance in world units, 0 for a point inside or on the Collider, or -1 if the shape is unavailable.
    */
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
-    this._registeredScene?.physics._syncColliders(false);
+    this._registeredScene?.physics._syncForQuery();
     const distance = this._getVolumeDistance(point, outClosestPoint);
     distance < 0 && console.warn("The collider is not in simulation.");
     return distance;

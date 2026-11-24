@@ -159,8 +159,10 @@ export class CharacterController extends Collider {
 
   /**
    * Moves the controller and immediately updates the Entity's world position.
-   * @remarks With PhysX, scene queries see the moved shape after the next simulation step. Trigger callbacks are
-   * dispatched by simulation steps. For immediate query updates, set the Entity's world position directly.
+   * @remarks When `PhysicsScene.autoSyncTransforms` is `false`, `move` synchronizes only this controller's own
+   * pending state without flushing unrelated scene changes. With PhysX, scene queries see the moved shape after the
+   * next simulation step. Trigger callbacks are dispatched by simulation steps. For immediate query updates, set the
+   * Entity's world position directly.
    * @param disp - Requested displacement in world space.
    * @param minDist - Stop sweeping when the remaining displacement reaches this distance or less, in world units.
    * @param elapsedTime - Time since the previous move, in seconds.
@@ -171,7 +173,12 @@ export class CharacterController extends Collider {
     if (!scene) {
       return ControllerCollisionFlag.None;
     }
-    scene.physics._syncColliders(false);
+    const physics = scene.physics;
+    if (physics.autoSyncTransforms) {
+      physics._syncColliders(false);
+    } else {
+      physics._syncCollider(this);
+    }
     if (!this._inScene) {
       return ControllerCollisionFlag.None;
     }

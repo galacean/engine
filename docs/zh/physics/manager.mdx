@@ -48,6 +48,27 @@ export class Script extends Component {
 4. 将所有已启用的[刚体](/docs/physics/collider/rigidbody)模拟后的位姿写回对应的 `实体`
 5. 派发碰撞和触发器事件
 
+## 变换同步
+
+默认情况下，[autoSyncTransforms](/apis/core/#PhysicsScene-autoSyncTransforms) 为 `true`：待处理的 `Transform` 与 `Collider` 改动除了在每次模拟步进前同步，也会在每次空间查询（`raycast`、`raycastAll`、形状投射、重叠检测、`Collider.getClosestPoint`、指针拾取与局部后处理体积）以及 `CharacterController.move` 前自动同步。
+
+在包含高频交替「移动 + 查询」循环（如大量角色或 AI 同帧移动并执行射线/重叠检测）或运行时加载 `MeshCollider` 的复杂场景中，可以关闭查询前隐式同步，改为在批处理修改后显式同步：
+
+```typescript
+// 关闭查询前的自动 Transform/Collider 同步
+scene.physics.autoSyncTransforms = false;
+
+// 批量更新 Transform 或 Collider 后，在查询前手动同步一次
+targetEntity.transform.setPosition(10, 0, 0);
+scene.physics.syncTransforms();
+scene.physics.raycast(ray, hitResult);
+```
+
+当 `autoSyncTransforms` 为 `false` 时：
+- 物理模拟步进前仍会自动同步所有待处理改动。
+- `CharacterController.move()` 仍会同步该控制器自身的待处理状态，但不会顺带刷新场景中其他不相关对象。
+- 若希望空间查询或 `CharacterController.move()` 在下一次模拟步进前立即看到其他刚修改的 Transform 或 Collider，请显式调用 [syncTransforms](/apis/core/#PhysicsScene-syncTransforms)。
+
 ## 设置场景重力
 
 物理场景允许自定义重力方向和大小。重力会影响场景中所有启用重力的[刚体](/docs/physics/collider/rigidbody)。

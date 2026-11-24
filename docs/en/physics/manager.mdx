@@ -49,6 +49,27 @@ The execution order when the PhysicsScene is updated:
 4. Write the simulated poses of all enabled [Rigidbodies](/en/docs/physics/collider/rigidbody) back to their `Entity`
 5. Dispatch collision and trigger events
 
+## Transform Synchronization
+
+By default, [autoSyncTransforms](/apis/core/#PhysicsScene-autoSyncTransforms) is `true`: pending `Transform` and `Collider` edits are synchronized before each spatial query (`raycast`, `raycastAll`, shape casts, overlaps, `Collider.getClosestPoint`, pointer picking, and local post-process volumes) as well as before `CharacterController.move` and each simulation step.
+
+In complex scenes with dense interleaved transform-and-query loops (such as many characters or AI agents moving and casting queries in the same frame) or runtime `MeshCollider` loading, you can disable implicit query flushes and synchronize at explicit points instead:
+
+```typescript
+// Disable automatic Transform/Collider flushes before queries
+scene.physics.autoSyncTransforms = false;
+
+// Batch Transform or Collider updates, then flush once before querying
+targetEntity.transform.setPosition(10, 0, 0);
+scene.physics.syncTransforms();
+scene.physics.raycast(ray, hitResult);
+```
+
+When `autoSyncTransforms` is `false`:
+- Fixed simulation steps still synchronize pending changes automatically.
+- `CharacterController.move()` still synchronizes that controller's own pending state without flushing unrelated scene changes.
+- Call [syncTransforms](/apis/core/#PhysicsScene-syncTransforms) whenever a spatial query or `CharacterController.move()` needs to see recent Transform or Collider edits before the next simulation step.
+
 ## Setting Scene Gravity
 
 The PhysicsScene allows customization of gravity direction and magnitude. Gravity affects all [Rigidbodies](/en/docs/physics/collider/rigidbody) with gravity enabled in the scene.

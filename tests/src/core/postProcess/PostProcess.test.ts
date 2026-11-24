@@ -481,6 +481,32 @@ describe("PostProcess", () => {
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity2);
       moveBeforeRender.destroy();
+
+      // With autoSyncTransforms disabled, local post-process volume queries do not implicitly flush pending edits.
+      scene.physics.autoSyncTransforms = false;
+      try {
+        secondCollider.center.set(0, 0, 0);
+        scene.physics.syncTransforms();
+        const moveWithoutAutoSync = cameraEntity.addComponent(
+          class extends Script {
+            override onBeginRender(): void {
+              secondCollider.center.set(radius * 2, 0, 0);
+            }
+          }
+        );
+        try {
+          engine.update();
+          expect(bloomBlend.intensity.value).to.equal(intensity1);
+          scene.physics.syncTransforms();
+          engine.update();
+          expect(bloomBlend.intensity.value).to.equal(intensity2);
+        } finally {
+          moveWithoutAutoSync.destroy();
+        }
+      } finally {
+        scene.physics.autoSyncTransforms = true;
+      }
+
       secondCollider.enabled = false;
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity1);
