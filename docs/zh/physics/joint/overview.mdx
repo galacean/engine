@@ -106,3 +106,7 @@ joint.automaticConnectedAnchor = true;
 - [固定关节](/docs/physics/joint/fixedJoint)
 - [弹性关节](/docs/physics/joint/springJoint)
 - [铰链关节](/docs/physics/joint/hingeJoint)
+
+## 关节断裂通知
+
+当求解器因超过 `breakForce` 或 `breakTorque` 使关节断裂时，同实体的已启用脚本会在物理步结束后收到 `onJointBreak(joint: Joint)`。关节组件仍可访问，`joint.isBroken` 表示当前原生关节的断裂状态。停用再启用组件会创建新的原生关节。停用或销毁关节不会触发断裂通知。

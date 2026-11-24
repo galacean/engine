@@ -7,6 +7,7 @@ import { Script } from "../Script";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
+import type { Joint } from "./joint/Joint";
 import { Rigidbody } from "./Rigidbody";
 import { isValidPositiveFloat32 } from "./float32";
 
@@ -70,6 +71,8 @@ export class PhysicsScene {
   private _collision: Collision;
   private readonly _triggerReceivers = new Map<number, TriggerReceivers>();
   private _triggerStepStamp = 0;
+  private _jointBreakTargets?: Map<number, Joint>;
+  private _nextJointBreakId = 0;
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   /** @internal */
@@ -870,6 +873,18 @@ export class PhysicsScene {
     wasEnabled !== enabled && this._nativePhysicsScene?.setContactEventEnabled(enabled);
   }
 
+  /** @internal */
+  _registerJointBreak(joint: Joint): number {
+    const id = ++this._nextJointBreakId;
+    (this._jointBreakTargets ||= new Map()).set(id, joint);
+    return id;
+  }
+
+  /** @internal */
+  _unregisterJointBreak(id: number): void {
+    this._jointBreakTargets!.delete(id);
+  }
+
   /**
    * @internal
    */
@@ -916,7 +931,7 @@ export class PhysicsScene {
 
   private _dispatchEvents(events: IPhysicsEvents): void {
     const physicalObjectsMap = Engine._physicalObjectsMap;
-    const { contactEvents, contactEventCount, triggerEvents } = events;
+    const { contactEvents, contactEventCount, triggerEvents, brokenJointIds } = events;
     const triggerCount = triggerEvents.length;
     const triggerOffset = contactEventCount * 2;
     if (contactEventCount > 0 || triggerCount > 0) {
@@ -1000,6 +1015,30 @@ export class PhysicsScene {
     }
     if (triggerCount === 0) {
       this._triggerReceivers.size > 0 && this._triggerReceivers.clear();
+    }
+    if (brokenJointIds) {
+      for (let i = 0; i < brokenJointIds.length; i++) {
+        this._dispatchJointBreak(brokenJointIds[i]);
+      }
+    }
+  }
+
+  private _dispatchJointBreak(id: number): void {
+    const targets = this._jointBreakTargets!;
+    const joint = targets.get(id);
+    if (!joint) return;
+
+    const scripts = joint.entity._scripts;
+    const count = scripts.length;
+    scripts._startLoop();
+    try {
+      const elements = scripts._elements;
+      for (let i = 0; i < count; i++) {
+        elements[i]?.onJointBreak(joint);
+        if (!targets.has(id)) break;
+      }
+    } finally {
+      scripts._endLoop(PhysicsScene._scriptIndexSetter);
     }
   }
 

@@ -55,6 +55,12 @@ export interface IJoint {
    */
   setBreakTorque(value: number): void;
 
+  /** Set the scene-local ID reported when this native joint breaks. */
+  setBreakEventId(id: number): void;
+
+  /** Whether this native constraint has broken. */
+  isBroken(): boolean;
+
   /**
    * Destroy the joint.
    */

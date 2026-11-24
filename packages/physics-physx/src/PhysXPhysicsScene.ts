@@ -72,7 +72,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private readonly _physicsEvents = {
     contactEvents: [] as ContactEvent[],
     contactEventCount: 0,
-    triggerEvents: [] as TriggerEvent[]
+    triggerEvents: [] as TriggerEvent[],
+    brokenJointIds: undefined as number[] | undefined
   };
 
   private _triggerEventPool: TriggerEvent[] = [];
@@ -115,6 +116,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const physX = physXPhysics._physX;
 
     const simulationCallback = {
+      onJointBreak: (id: number) => {
+        (this._physicsEvents.brokenJointIds ||= []).push(id);
+      },
       onContactBegin: (shape0ID: number, shape1ID: number, count: number, data: Float32Array) => {
         const state = this._consumePendingReplacedContact(shape0ID, shape1ID)
           ? PhysicsEventState.Stay
@@ -245,6 +249,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   update(elapsedTime: number): void {
     this._physicsEvents.contactEventCount = 0;
+    // A script can update the engine again while a previous break batch is being dispatched.
+    this._physicsEvents.brokenJointIds = undefined;
     this._contactFloatOffset = 0;
     this._syncShapeChanges();
     const scene = this._pxScene;

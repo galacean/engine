@@ -24,12 +24,14 @@ export interface ITriggerEvent {
 }
 
 /**
- * Borrowed event buffers for dispatch after a simulation step.
- * @remarks Consume event records and contact points before the next scene update or event collection.
+ * Event buffers for dispatch after a simulation step.
+ * @remarks Consume borrowed contact and trigger records before the next scene update or event collection.
  */
 export interface IPhysicsEvents {
   readonly contactEvents: ReadonlyArray<IContactEvent>;
   /** The number of valid records at the start of the contact event buffer. */
   readonly contactEventCount: number;
   readonly triggerEvents: ReadonlyArray<ITriggerEvent>;
+  /** Joint IDs reported for this step, or undefined if no joints broke. */
+  readonly brokenJointIds: readonly number[] | undefined;
 }

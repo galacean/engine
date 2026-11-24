@@ -4,6 +4,7 @@ import { ignoreClone } from "./clone/CloneDecorators";
 import { PointerEventData } from "./input/pointer/PointerEventData";
 import { Collider } from "./physics";
 import { Collision } from "./physics/Collision";
+import type { Joint } from "./physics/joint/Joint";
 
 /**
  * Script class, used for logic writing.
@@ -122,6 +123,13 @@ export class Script extends Component {
    * @remarks The Collision data will be invalid after this call, you should copy the data if needed.
    */
   onCollisionStay(other: Collision): void {}
+
+  /**
+   * Called after the physics step when a Joint on this entity breaks under force or torque.
+   * @remarks Removing or replacing the broken constraint cancels its remaining notifications.
+   * @param joint - The joint that broke
+   */
+  onJointBreak(joint: Joint): void {}
 
   /**
    * Called when a pointer press is dispatched to this entity.

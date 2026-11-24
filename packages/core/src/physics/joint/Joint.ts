@@ -37,6 +37,8 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   private _automaticConnectedAnchor = true;
   @ignoreClone
   private _registeredScene: Scene | null = null;
+  @ignoreClone
+  private _breakEventId = 0;
 
   /**
    * The connected Rigidbody, or null to constrain against the world.
@@ -203,6 +205,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       const nativeJoint = this._nativeJoint;
       if (nativeJoint) {
         nativeJoint.setBreakForce(value);
+        this._registerBreakEvent(nativeJoint);
         this._wakeBodies();
       }
     }
@@ -221,9 +224,19 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       const nativeJoint = this._nativeJoint;
       if (nativeJoint) {
         nativeJoint.setBreakTorque(value);
+        this._registerBreakEvent(nativeJoint);
         this._wakeBodies();
       }
     }
+  }
+
+  /**
+   * Whether the current native constraint has broken.
+   * @remarks The component is retained after a break. Recreating the native constraint,
+   * for example by disabling and re-enabling the component, starts it unbroken.
+   */
+  get isBroken(): boolean {
+    return this._nativeJoint?.isBroken() ?? false;
   }
 
   constructor(entity: Entity) {
@@ -252,9 +265,9 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    */
   override _onDisableInScene(): void {
     if (!this._registeredScene) return;
-    this._registeredScene = null;
     this.entity.getComponent(Rigidbody)?._detachJoint(this);
     this._destroyNativeJoint();
+    this._registeredScene = null;
   }
 
   /**
@@ -338,6 +351,10 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   protected _destroyNativeJoint(): void {
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
+      if (this._breakEventId) {
+        this._registeredScene!.physics._unregisterJointBreak(this._breakEventId);
+        this._breakEventId = 0;
+      }
       nativeJoint.destroy();
       this._nativeJoint = null;
       this._wakeBodies();
@@ -353,6 +370,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     nativeJoint.setInertiaScale(this._bodyInfo.inertiaScale);
     nativeJoint.setBreakForce(this._force);
     nativeJoint.setBreakTorque(this._torque);
+    this._registerBreakEvent(nativeJoint);
   }
 
   protected _wakeBodies(onlyIfSleeping = false): void {
@@ -360,6 +378,13 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     selfBody && (!onlyIfSleeping || selfBody.isSleeping()) && selfBody._wakeNative();
     const body = this._connectedBody;
     body && body.scene === this.scene && (!onlyIfSleeping || body.isSleeping()) && body._wakeNative();
+  }
+
+  private _registerBreakEvent(nativeJoint: IJoint): void {
+    if (!this._breakEventId && (this._force !== Infinity || this._torque !== Infinity)) {
+      this._breakEventId = this._registeredScene!.physics._registerJointBreak(this);
+      nativeJoint.setBreakEventId(this._breakEventId);
+    }
   }
 
   private _syncFrames(nativeJoint: IJoint, owner: AnchorOwner): void {
