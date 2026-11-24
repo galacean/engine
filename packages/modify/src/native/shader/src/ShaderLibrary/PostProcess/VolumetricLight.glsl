@@ -50,6 +50,9 @@ vec3 sampleVolumetricSkyEmitter(vec2 uv, float skyThreshold, float hasDepth, flo
   vec3 rawCol = max(texture2D(renderer_BlitTexture, clamped).rgb * postExposure, vec3(0.0));
   vec3 col = rawCol / (vec3(1.0) + rawCol * 0.45);
   float luma = vlLuma(col);
+  // Evaluate sky-gap emission threshold in perceptual (gamma-like) brightness because renderer_BlitTexture
+  // is linear HDR inside PostProcessUberPass (clear daytime blue sky is ~0.22-0.30 linear, ~0.50 perceptual).
+  float percepLuma = sqrt(max(luma, 0.0));
 
   float mask = 0.0;
   if (hasDepth > 0.5) {
@@ -60,14 +63,14 @@ vec3 sampleVolumetricSkyEmitter(vec2 uv, float skyThreshold, float hasDepth, flo
     float maxC = max(col.r, max(col.g, col.b));
     float minC = min(col.r, min(col.g, col.b));
     float sat = (maxC - minC) / max(maxC, 1e-4);
-    float cloudCoreAtten = mix(0.24, 1.0, max(smoothstep(0.10, 0.30, sat), smoothstep(0.92, 1.38, luma)));
+    float cloudCoreAtten = mix(0.28, 1.0, max(smoothstep(0.10, 0.30, sat), smoothstep(0.88, 1.25, percepLuma)));
     float skyEmit = isSky * cloudCoreAtten;
-    float thinCanopy = smoothstep(0.76, 1.20, luma) * 0.14;
-    mask = max(skyEmit, thinCanopy) * smoothstep(0.10, 0.58, luma);
+    float thinCanopy = smoothstep(0.76, 1.15, percepLuma) * 0.16;
+    mask = max(skyEmit, thinCanopy) * smoothstep(0.14, 0.52, percepLuma);
   } else {
-    mask = smoothstep(0.55, 1.0, luma);
+    mask = smoothstep(0.55, 0.95, percepLuma);
   }
-  return mix(material_VolumetricLightTint.rgb, col * material_VolumetricLightTint.rgb * 1.12, 0.32) * mask * valid;
+  return mix(material_VolumetricLightTint.rgb, col * material_VolumetricLightTint.rgb * 1.18, 0.28) * mask * valid;
 }
 
 void fragVolumetricCoarse(Varyings v) {

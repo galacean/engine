@@ -86,7 +86,7 @@ void frag(Varyings v) {
 		if (material_VolumetricLightTint.a > 0.0) {
 			vec2 vlDSun = (material_VolumetricLightCompositeParams.xy - v.v_uv) * vec2(max(material_VolumetricLightCompositeParams.w, 0.25), 1.0);
 			float vlEnvelope = 0.42 + 0.72 * exp(-length(vlDSun) * 1.15);
-			vec3 vlShaft = texture2D(material_VolumetricLightTexture, v.v_uv).rgb * material_VolumetricLightTint.a * vlEnvelope;
+			vec3 vlShaft = texture2D(material_VolumetricLightTexture, v.v_uv).rgb * (material_VolumetricLightTint.a * 1.35 * vlEnvelope);
 			color.rgb += vlShaft * (vec3(1.0) - clamp(color.rgb, 0.0, 1.0) * material_VolumetricLightCompositeParams.z);
 		}
 	#endif
