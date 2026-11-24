@@ -1,0 +1,16 @@
+packages/physics-physx/src/PhysXDynamicActor.ts
+  h_dd004f51a3e5ec 220-227,238,252
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 1382-1417
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ffa4f58c6112974ef9bbd06239aca37a06e8537a",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
