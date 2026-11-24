@@ -12,6 +12,8 @@ import { boxOutline, type Volume } from "./Volumes";
 import { spatialRevealInputSignature } from "./SpatialEditInputs";
 import { updateSpatialInstanceConnections } from "./SpatialInstanceConnections";
 import { guidanceRockBox } from "../guidance/GuidanceRock";
+import { resolveRockCollision } from "../RockCollisionPolicy";
+import { templateRockCollisionPolicy } from "../WorldTemplateArtDirection";
 import { applyRockObbSizes } from "../../integrations/terrain/rock-formation/Authoring.ts";
 
 function canonical(value: unknown): unknown {
@@ -214,7 +216,20 @@ function projectInstances(
         }
         const outline = envelope(shape.center, shape.width, shape.depth, 0);
         const { rockObbSource, ...rock } = plan.rocks[rockAt];
-        plan.rocks[rockAt] = { ...rock, ...shape, yaw: primary.yaw, baseHeight, outline, obb: outline, boxes };
+        const collisionPolicy = templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id);
+        const rockBoxes = boxes.map((box) => ({
+          ...box,
+          collision: resolveRockCollision({ sizeX: box.sizeX, sizeY: box.sizeY, sizeZ: box.sizeZ }, collisionPolicy)
+        }));
+        plan.rocks[rockAt] = {
+          ...rock,
+          ...shape,
+          yaw: primary.yaw,
+          baseHeight,
+          outline,
+          obb: outline,
+          boxes: rockBoxes
+        };
         editedRocks.add(rockAt);
       }
       if (regionAt !== undefined) {
@@ -234,7 +249,13 @@ function projectInstances(
         landscapesCopied = true;
       }
       const one = { ...plan, landscapes: [landscapeBase[landscapeAt]] };
-      if (Object.keys(edit).length) applyLandscapeEdits(one, { [id]: edit }, ground);
+      if (Object.keys(edit).length)
+        applyLandscapeEdits(
+          one,
+          { [id]: edit },
+          ground,
+          templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id)
+        );
       plan.landscapes![landscapeAt] = one.landscapes[0];
     }
     const guidanceBase = guidance.get(id),
@@ -264,7 +285,7 @@ function projectInstances(
         yaw: edit.yawDegrees === undefined ? guidanceBase.yaw : (edit.yawDegrees * Math.PI) / 180
       };
       rock.outline = rock.obb = envelope(rock.center, rock.width, rock.depth, rock.yaw);
-      rock.boxes = [guidanceRockBox(rock, ground)];
+      rock.boxes = [guidanceRockBox(rock, ground, templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id))];
       rock.baseHeight = rock.boxes[0].elevation;
       plan.rocks[rockAt] = rock;
     }
@@ -290,7 +311,12 @@ export function applyLandscapeInstanceEdits(
   ground: (p: PlanPoint) => number
 ): void {
   if (plan.spatialLayout) plan.spatialLayout = { ...plan.spatialLayout, baselineLandscapes: plan.landscapes ?? [] };
-  applyLandscapeEdits(plan, instanceEdits(document), ground);
+  applyLandscapeEdits(
+    plan,
+    instanceEdits(document),
+    ground,
+    templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id)
+  );
 }
 
 /** Apply authored POI solids and roads before their dependent environment is generated.

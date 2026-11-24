@@ -197,16 +197,14 @@ export function rockVariantFit(job: RockFormationJob, asset: RockVariantAsset): 
     spanY = max[1] - min[1],
     spanZ = max[2] - min[2];
   const scales = [guide.size[0] / spanX, guide.size[1] / spanY, guide.size[2] / spanZ] as const;
-  const uniform = Math.min(...scales);
+  // Strictly uniform 3D scale driven by horizontal footprint (XZ) so rocks never distort
+  // and low planned heights do not collapse footprints inside large OBBs.
+  const xzUniform = Math.min(scales[0], scales[2]);
   // Tall narrow rock guides represent standing monolith/pillar stones using the same shared meshes.
   const isPillar = isPillarGuide(job);
-  const xScale = isPillar ? scales[0] : uniform;
-  const zScale = isPillar ? scales[2] : uniform;
-  const yScale = isPillar
-    ? scales[1]
-    : job.surfaceGrass
-      ? Math.max(uniform, Math.min(scales[1], uniform * 1.65))
-      : uniform;
+  const xScale = isPillar ? scales[0] : xzUniform;
+  const zScale = isPillar ? scales[2] : xzUniform;
+  const yScale = isPillar ? scales[1] : xzUniform;
   const c = Math.cos(yaw) * flip,
     s = Math.sin(yaw) * flip;
   const x = (-(min[0] + max[0]) * xScale) / 2,

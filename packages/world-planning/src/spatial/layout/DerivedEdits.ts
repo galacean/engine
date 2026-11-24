@@ -1,6 +1,7 @@
 import { boxGroundBottom } from "./VolumeTerrain";
 import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
 import { envelope } from "../../semantic-study/IslandPlanAtoms";
+import { DEFAULT_ROCK_COLLISION_POLICY, resolveRockCollision, type RockCollisionPolicy } from "../RockCollisionPolicy";
 import type { VolumeEdit } from "./LayoutKernel";
 import type { LandscapeCandidate } from "../../semantic-study/ContextLandscape";
 
@@ -8,7 +9,8 @@ import type { LandscapeCandidate } from "../../semantic-study/ContextLandscape";
 export function applyLandscapeEdits(
   plan: { landscapes?: LandscapeCandidate[] },
   edits: Record<string, VolumeEdit>,
-  ground: (p: PlanPoint) => number
+  ground: (p: PlanPoint) => number,
+  rockCollisionPolicy: RockCollisionPolicy = DEFAULT_ROCK_COLLISION_POLICY
 ): void {
   for (let i = 0; i < (plan.landscapes?.length ?? 0); i++) {
     const prior = plan.landscapes![i];
@@ -29,6 +31,12 @@ export function applyLandscapeEdits(
     const scale = Math.max(element.width / priorWidth, element.depth / priorDepth);
     element.collisionRadius *= scale;
     if (element.canopyRadius !== undefined) element.canopyRadius *= scale;
+    if (
+      element.kind === "rock" &&
+      (edit.width !== undefined || edit.depth !== undefined || edit.height !== undefined)
+    ) {
+      element.collision = resolveRockCollision(element, rockCollisionPolicy);
+    }
     element.baseHeight = boxGroundBottom(
       element.kind === "tree"
         ? { ...element, width: element.collisionRadius * 2, depth: element.collisionRadius * 2 }

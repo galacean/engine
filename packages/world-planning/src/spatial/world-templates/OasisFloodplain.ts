@@ -109,8 +109,7 @@ for (const fan of leftCoveFans) {
       height,
       depth: width * (0.68 + sample("depth") * 0.28),
       y: -height * 0.3,
-      yawDegrees: 360 * sample("strike"),
-      collision: false
+      yawDegrees: 360 * sample("strike")
     });
   }
 }

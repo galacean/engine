@@ -2,12 +2,15 @@ import type { IslandPlan, PlanRockBox } from "../../../semantic-study/IslandPlan
 import type { PlanningDocument } from "../../../spatial/PlanningDocument.ts";
 import { resolveComponent } from "../../../spatial/SpatialDocument.ts";
 import { envelope } from "../../../semantic-study/IslandPlanAtoms.ts";
+import { resolveRockCollision } from "../../../spatial/RockCollisionPolicy.ts";
+import { templateRockCollisionPolicy } from "../../../spatial/WorldTemplateArtDirection.ts";
 import { rockFormationRegistry } from "./Settings.ts";
 
 export const rockObbId = (owner: string, box: string) => `${owner}:obb:${box}`;
 
 /** Sparse per-box dimension edits retain siblings and the immutable generated baseline. */
 export function applyRockObbSizes(plan: IslandPlan, document: PlanningDocument): void {
+  const collisionPolicy = templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id);
   plan.rocks = plan.rocks.map((rock) => {
     if (rock.assetId) return rock;
     const boxes: PlanRockBox[] = rock.rockObbSource?.boxes ??
@@ -21,7 +24,7 @@ export function applyRockObbSizes(plan: IslandPlan, document: PlanningDocument):
           sizeZ: rock.depth,
           yaw: rock.yaw,
           elevation: rock.baseHeight,
-          collision: true,
+          collision: resolveRockCollision(rock, collisionPolicy),
           occlusion: true
         }
       ];
@@ -41,7 +44,9 @@ export function applyRockObbSizes(plan: IslandPlan, document: PlanningDocument):
       const resized = sizeX !== box.sizeX || sizeY !== box.sizeY || sizeZ !== box.sizeZ;
       dimensionsChanged ||= resized;
       footprintChanged ||= sizeX !== box.sizeX || sizeZ !== box.sizeZ;
-      return resized ? { ...box, sizeX, sizeY, sizeZ } : box;
+      return resized
+        ? { ...box, sizeX, sizeY, sizeZ, collision: resolveRockCollision({ sizeX, sizeY, sizeZ }, collisionPolicy) }
+        : box;
     });
     if (!dimensionsChanged) {
       if (!rock.rockObbSource) return rock;

@@ -12,6 +12,8 @@ export interface TemplateNode {
   /** Geometry-only glTF scenes for LOD1 and LOD2, with LOD0's material slot names and coordinate system. */
   assetLod?: { url: string; screenRelativeHeights: readonly [number, number] };
   castShadows?: boolean;
+  /** Optional explicit collision switch; omitted defers to template rock collision policy using mounted GLB bounds. */
+  collision?: boolean;
   /** Stretch the asset along each axis to match the authored envelope. */
   stretchToEnvelope?: boolean;
   /** Planting plane in the imported model's metre coordinates; defaults to its lowest point. */
