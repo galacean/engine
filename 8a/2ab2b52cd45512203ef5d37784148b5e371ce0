@@ -1,0 +1,88 @@
+packages/core/src/physics/CharacterController.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 8,14,23,29,134-135,142,215,221-227,233-236,239,241-242,249,257-264,269-272,320-326
+  s_a20fbf413cca3c::t_be6b4a4569381a 327-328
+packages/core/src/physics/PlaneCollider.ts
+  s_a20fbf413cca3c::t_8498bd96a9a27f 27
+packages/core/src/physics/joint/Joint.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 3,8,11,22-27,99-100,167-171,185-189,203-207,221-225,284-294,358-360,362,383-384,388-397,399,418,423,426,430,436-453
+  s_a20fbf413cca3c::t_efef075f5aaa73 454
+packages/core/src/physics/PhysicsMaterial.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 30,36-37
+  s_a20fbf413cca3c::t_32f97a451336f9 38
+packages/physics-physx/src/shape/PhysXShape.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 112,114-116
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 34-54,57-58,75,88-107,544-549,554-555,725-735,797-801
+  s_a20fbf413cca3c::t_f3e019889bb7e9 802
+packages/core/src/physics/PhysicsScene.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 859,866
+packages/core/src/Entity.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 13
+docs/zh/physics/manager.mdx
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 48-49
+docs/en/physics/manager.mdx
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 49-50
+packages/core/src/physics/unitDirection.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 3,15
+packages/physics-physx/src/shape/PhysXMeshShape.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 36-37,141,149
+tests/src/core/physics/Rigidbody.test.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 15,451-454,474-477,621,1232,1239-1240,1838-1840,1846,1850,1924,1989-2130
+tests/src/core/physics/MeshCollider.test.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 763,776,783,931-950,952-955
+  s_a20fbf413cca3c::t_8498bd96a9a27f 535,921,951,1299
+  s_a20fbf413cca3c::t_4427161dc80321 956-961
+tests/src/core/physics/Collision.test.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 3,55,66,76-84,89-103,272-295
+  s_a20fbf413cca3c::t_11d3e4c8812102 296
+tests/src/core/physics/PhysicsGameplay.test.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 51,138-202,209,212
+tests/src/core/physics/PhysicsScene.test.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 883,887-895,898,900-902,906,911,916,931-933,937,948-949,953,2071,2077,2095,2117
+packages/core/src/physics/joint/HingeJoint.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 2-3,5,16
+docs/en/physics/joint/overview.mdx
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 83
+packages/core/src/physics/MeshCollider.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 14-47,78,161-169,299,301-309
+  s_a20fbf413cca3c::t_8498bd96a9a27f 170-174
+  s_a20fbf413cca3c::t_f37b11aaf3e1fc 175
+packages/core/src/Script.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 38,237-238,241-243,251,268-270
+packages/core/src/physics/Collider.ts
+  s_a20fbf413cca3c::t_8498bd96a9a27f 39-51,61-64,307,332,343,423-428
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 137,196,199-201,475,478-480,482
+  s_a20fbf413cca3c::t_762a22d6d89966 429
+tests/src/core/physics/CharacterController.test.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 148,209,453,456,696,698-702,704-707,709-712,714-723,725-727,729-733,735-737,739-743,745-751,753-756,758-766,768-789,791-800,802-807,809-817,819-849,851-871,873-877,879-900,902-911,913-917,919-934,936-951,953-970,972-973,975-978,980-983,985-992,994-1042
+packages/core/src/physics/Rigidbody.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 33,35,64,119,135,330,337,346,353,425,477,480-482,508-597,700,767,774-775,781-782,788,791,802-803,806,808,824,833-834,871,885,945,1037,1050-1054,1110-1136,1206,1221,1227,1235,1251,1253-1254
+tests/src/core/physics/Collider.test.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 211-212,215,248-249
+  s_a20fbf413cca3c::t_8498bd96a9a27f 154,177,262,275,834,838,1079,1210,1528
+  s_a20fbf413cca3c::t_a8b87da01675d9 250
+tests/src/core/physics/ColliderLayer.test.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 98,145-166,168-183
+tests/src/core/physics/Joint.test.ts
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 5,164-198,200,995-1256
+packages/galacean/skills/engine-knowledge/references/physics-setup.md
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 13,17
+docs/zh/physics/joint/overview.mdx
+  s_a20fbf413cca3c::t_a5dd9d06be8dca 83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8a2ab2b52cd45512203ef5d37784148b5e371ce0",
+  "prompts": {},
+  "sessions": {
+    "s_a20fbf413cca3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2088c-3f7f-7131-8505-b699d01f3e8d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
