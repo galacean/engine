@@ -43,10 +43,7 @@ export class HingeJoint extends Joint {
    */
   get angle(): number {
     const nativeJoint = this._nativeJoint;
-    if (nativeJoint) {
-      this._angle = MathUtil.radianToDegree(nativeJoint.getAngle());
-    }
-    return this._angle;
+    return nativeJoint ? MathUtil.radianToDegree(nativeJoint.getAngle()) : this._angle;
   }
 
   /**
@@ -54,10 +51,7 @@ export class HingeJoint extends Joint {
    */
   get velocity(): number {
     const nativeJoint = this._nativeJoint;
-    if (nativeJoint) {
-      this._velocity = nativeJoint.getVelocity();
-    }
-    return this._velocity;
+    return nativeJoint ? nativeJoint.getVelocity() : this._velocity;
   }
 
   /**
