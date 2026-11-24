@@ -1611,6 +1611,7 @@ export async function createHeadlessSeedWorldFixture(options: {
   const manualBedJsonText = fs.readFileSync(path.join(WATER_ASSETS_DIR, "Water/Terrain/manual-bed.json"), "utf8");
   const manualBedBinBytes = new Uint8Array(fs.readFileSync(path.join(WATER_ASSETS_DIR, "Water/Terrain/manual-bed.bin")));
 
+  const initialLakeComponentId = "lake-body";
   const mainSceneContent = {
     asset: { version: "2.0" },
     scene: {
@@ -1620,12 +1621,12 @@ export async function createHeadlessSeedWorldFixture(options: {
     entities: [
       { id: "building-host", name: "BuildingHost", position: [0, 0, 0], components: [] },
       { id: "farm-owner", name: "FarmRoot", position: [0, 0, 0], components: ["farm-system"] },
-      { id: "lake-root", name: "LakeWater", position: [0, 0, 0], components: ["lake-body"] },
+      { id: "lake-root", name: "LakeWater", position: [0, 0, 0], components: [initialLakeComponentId] },
       { id: "lantern-root", name: "Lantern", position: [3, 1, -4], components: [] }
     ],
     components: [
       { id: "farm-system", type: "FarmingSystem", props: {} },
-      { id: "lake-body", type: "WaterBodyComponent", props: lakeComponentProps }
+      { id: initialLakeComponentId, type: "WaterBodyComponent", props: lakeComponentProps }
     ]
   };
 
@@ -1847,7 +1848,6 @@ export async function createHeadlessSeedWorldFixture(options: {
   if (initialLakeBody && !initialLakeBody.configuration) {
     initialLakeBody._configuration = { kind: "lake" };
   }
-  const initialLakeWaterId = initialLakeBody?.waterId ?? "lake-body";
   const isPointInRiver = (river: PlanningWaterCreation, x: number, z: number): boolean => {
     if (river.kind !== "river") return false;
     const pts = (river.parameters as { points?: readonly { x: number; z: number; width?: number }[] })?.points;
@@ -1879,19 +1879,17 @@ export async function createHeadlessSeedWorldFixture(options: {
     },
     getBodyState: (waterId: string) => ({ active: true, ready: true, published: true, revision: 1, waterId }),
     sample: (x: number, z: number, waterId?: string) => {
-      let resolvedId: string | undefined;
-      if (waterId) {
-        if (waterId === initialLakeWaterId || waterId === "lake-body") {
-          if (isInsideInitialLake(x, z)) resolvedId = waterId;
-        } else {
-          const targetRiver = riversCreated.find((river) => river.id === waterId);
-          if (targetRiver && isPointInRiver(targetRiver, x, z)) resolvedId = targetRiver.id;
-        }
-      } else {
-        const matchedRiver = riversCreated.find((river) => isPointInRiver(river, x, z));
-        if (matchedRiver) resolvedId = matchedRiver.id;
-        else if (isInsideInitialLake(x, z)) resolvedId = initialLakeWaterId;
-      }
+      // Undo can restore the Source component as a new runtime water body.
+      const projection = nativeEditor.projection;
+      const [lakeIdentity] = projection.queryComponents({ id: initialLakeComponentId, type: "WaterBodyComponent" });
+      const lakeBody = lakeIdentity && projection.resolveComponent(lakeIdentity);
+      const lakeWaterId = lakeBody instanceof WaterBodyComponent ? lakeBody.waterId : undefined;
+      const lakeMatches =
+        lakeWaterId !== undefined && (waterId === undefined || waterId === lakeWaterId) && isInsideInitialLake(x, z);
+      const matchedRiver = riversCreated.find(
+        (river) => (waterId === undefined || river.id === waterId) && isPointInRiver(river, x, z)
+      );
+      const resolvedId = matchedRiver?.id ?? (lakeMatches ? lakeWaterId : undefined);
       if (!resolvedId) {
         return {
           water: false,
