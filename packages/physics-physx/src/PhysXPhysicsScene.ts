@@ -17,12 +17,6 @@ import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 
-const enum ShapeChange {
-  Removed = 0,
-  Refreshed = 1,
-  Replaced = 2
-}
-
 /**
  * Simulates actors and runs scene queries through PhysX.
  */
@@ -37,8 +31,31 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     rotation: new Quaternion()
   };
 
+  private static _queryPose(
+    center: Vector3,
+    orientation?: Quaternion,
+    axis?: Quaternion
+  ): { translation: Vector3; rotation: Quaternion } {
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    const rotation = pose.rotation;
+    if (orientation) {
+      if (axis) {
+        Quaternion.multiply(orientation, axis, rotation);
+      } else {
+        rotation.copyFrom(orientation);
+      }
+      rotation.normalize();
+    } else {
+      rotation.set(0, 0, 0, 1);
+    }
+    return pose;
+  }
+
   /** @internal */
   _pxControllerManager: any = null;
+  /** @internal */
+  _contactData = new Float32Array(2560);
 
   private _boxGeometry: any = null;
   private _sphereGeometry: any = null;
@@ -49,8 +66,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxSceneQueries: any;
   private _physXSimulationCallbackInstance: any;
 
-  /** @internal */
-  _contactData = new Float32Array(2560);
   private _contactFloatOffset = 0;
 
   private _activeTriggers: TriggerEvent[] = [];
@@ -71,6 +86,26 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _activeContacts = new Map<number, Set<number>>();
   // Canonical (small -> Set<big>) pairs from replaced shapes awaiting re-contact or synthetic exit.
   private _pendingReplacedContacts = new Map<number, Set<number>>();
+
+  private readonly _applyShapeChange = (change: ShapeChange, id: number): void => {
+    if (change === ShapeChange.Removed) {
+      delete this._eventMap[id];
+    } else if (change === ShapeChange.Replaced) {
+      const neighbors = this._activeContacts.get(id);
+      if (!neighbors) return;
+      const pending = this._pendingReplacedContacts;
+      for (const otherId of neighbors) {
+        const small = id < otherId ? id : otherId;
+        const big = id < otherId ? otherId : id;
+        let set = pending.get(small);
+        if (!set) {
+          set = new Set<number>();
+          pending.set(small, set);
+        }
+        set.add(big);
+      }
+    }
+  };
 
   /**
    * Creates a PhysX scene with buffered collision and trigger events.
@@ -514,18 +549,25 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * If the same collider ID returns before the step, rediscovered pairs continue and the others emit exits.
    */
   _removeShape(id: number): void {
-    this._shapeChanges.set(id, ShapeChange.Removed);
     this._clearContactsForShape(id);
+    if (this._activeTriggers.length > 0) {
+      this._shapeChanges.set(id, ShapeChange.Removed);
+    } else {
+      this._shapeChanges.delete(id);
+      delete this._eventMap[id];
+    }
   }
 
   /** @internal Reconcile active trigger pairs when a shape stays in the scene. */
   _refreshTriggerPairsForShape(id: number): void {
-    this._shapeChanges.set(id, ShapeChange.Refreshed);
+    this._activeTriggers.length > 0 && this._shapeChanges.set(id, ShapeChange.Refreshed);
   }
 
   /** @internal Reconcile active trigger and contact pairs across a same-actor shape replacement. */
   _replaceShape(id: number): void {
-    this._shapeChanges.set(id, ShapeChange.Replaced);
+    if (this._activeTriggers.length > 0 || this._activeContacts.has(id)) {
+      this._shapeChanges.set(id, ShapeChange.Replaced);
+    }
   }
 
   /** @internal Drop tracked active contacts for a removed or disabled shape. */
@@ -567,27 +609,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       return geometry;
     }
     return (this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, halfHeight));
-  }
-
-  private static _queryPose(
-    center: Vector3,
-    orientation?: Quaternion,
-    axis?: Quaternion
-  ): { translation: Vector3; rotation: Quaternion } {
-    const pose = PhysXPhysicsScene._tempPose;
-    pose.translation.copyFrom(center);
-    const rotation = pose.rotation;
-    if (orientation) {
-      if (axis) {
-        Quaternion.multiply(orientation, axis, rotation);
-      } else {
-        rotation.copyFrom(orientation);
-      }
-      rotation.normalize();
-    } else {
-      rotation.set(0, 0, 0, 1);
-    }
-    return pose;
   }
 
   private _readHit(
@@ -651,26 +672,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     changes.forEach(this._applyShapeChange);
     changes.clear();
   }
-
-  private readonly _applyShapeChange = (change: ShapeChange, id: number): void => {
-    if (change === ShapeChange.Removed) {
-      delete this._eventMap[id];
-    } else if (change === ShapeChange.Replaced) {
-      const neighbors = this._activeContacts.get(id);
-      if (!neighbors) return;
-      const pending = this._pendingReplacedContacts;
-      for (const otherId of neighbors) {
-        const small = id < otherId ? id : otherId;
-        const big = id < otherId ? otherId : id;
-        let set = pending.get(small);
-        if (!set) {
-          set = new Set<number>();
-          pending.set(small, set);
-        }
-        set.add(big);
-      }
-    }
-  };
 
   private _retireTrigger(event: TriggerEvent, index: number): void {
     const activeTriggers = this._activeTriggers;
@@ -807,4 +808,10 @@ class ContactEvent implements IContactEvent {
     out.impulse.set(data[offset + 6], data[offset + 7], data[offset + 8]);
     out.separation = data[offset + 9];
   }
+}
+
+const enum ShapeChange {
+  Removed = 0,
+  Refreshed = 1,
+  Replaced = 2
 }

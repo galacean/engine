@@ -928,6 +928,37 @@ describe("MeshCollider", () => {
     }
   );
 
+  it.each(["disable-then-replace", "replace-then-disable"] as const)(
+    "releases native mesh immediately when disabled and replaced (%s)",
+    (order) => {
+      const cook = watchCooking(false);
+      const collider = addMesh();
+      const original = collider.mesh!;
+      const replacement = createCubeMesh(engine, 2);
+      expect(physics.raycast(rayAt(0))).toBe(true);
+      const releaseSpy = vi.spyOn(cook.mock.results[0].value, "release");
+
+      if (order === "disable-then-replace") {
+        collider.enabled = false;
+        collider.mesh = replacement;
+      } else {
+        collider.mesh = replacement;
+        collider.enabled = false;
+      }
+
+      expect(original.refCount).toBe(0);
+      expect(releaseSpy).toHaveBeenCalledOnce();
+      expect(collider._native).toBeNull();
+      engine.resourceManager.gc();
+      expect(original.destroyed).toBe(true);
+
+      collider.enabled = true;
+      const hit = new HitResult();
+      expect(physics.raycast(rayAt(1.5), hit)).toBe(true);
+      expect(hit.collider).toBe(collider);
+    }
+  );
+
   it("stores cooking flags before assigning geometry", () => {
     const collider = root.addComponent(MeshCollider);
     collider.cookingFlags = MeshColliderCookingFlag.Cleaning;
