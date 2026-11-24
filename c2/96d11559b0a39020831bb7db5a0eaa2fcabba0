@@ -1,0 +1,44 @@
+docs/en/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 18,49,66-68,70-71,75-80,85-99,137-166
+docs/zh/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 18,49,66-68,70-71,75-80,85-99,137-166
+packages/core/src/Script.ts
+  h_dd004f51a3e5ec 7,108-113
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 1,6-8,11-12,17-46,54-58,62-67,73,75,81-82,85,88-91,131-132,189-205,209,227-245,300-349,366-420,423-424,426-429,431-437,439-446,448,450-479,515,524-525,538-540,568,576,580-582,591-592,596-598,602-695,771-783
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 95-146
+packages/core/src/physics/enums/ControllerClimbingMode.ts
+  h_dd004f51a3e5ec 1-9
+packages/core/src/physics/enums/ControllerCollisionFlag.ts
+  h_dd004f51a3e5ec 2,5-6
+packages/core/src/physics/enums/ControllerNonWalkableMode.ts
+  h_dd004f51a3e5ec 2
+packages/core/src/physics/enums/index.ts
+  h_dd004f51a3e5ec 5
+packages/core/src/physics/index.ts
+  h_dd004f51a3e5ec 4
+packages/design/src/physics/ICharacterController.ts
+  h_dd004f51a3e5ec 4-18,63-65,71-73,76-105,126-131,144-150
+packages/design/src/physics/IPhysicsScene.ts
+  h_dd004f51a3e5ec 11-25
+packages/design/src/physics/index.ts
+  h_dd004f51a3e5ec 1
+packages/physics-physx/src/PhysXCharacterController.ts
+  h_dd004f51a3e5ec 1-2,31,33,36-38,121-126,130-205,241-248,266-274,302,333-334,344-346,358,360,377-381
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 28-30,123-152,191-195,477-481
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 6-7,13-14,18,102,104,110-607,763,773-774,778-780,806,810,885-923,1007-1008,1024-1025,1070,1072,1076,1079,1167-1188,1236-1288,1323-1341,1445,1449,1454,1458,1575-1576,1614,1625,1635-1768
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c296d11559b0a39020831bb7db5a0eaa2fcabba0",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

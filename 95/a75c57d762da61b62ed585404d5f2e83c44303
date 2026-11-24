@@ -1,0 +1,16 @@
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 389-393,399-401,419,722-733,763-774,778-783
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 989-1062
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "95a75c57d762da61b62ed585404d5f2e83c44303",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

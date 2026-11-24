@@ -1,0 +1,23 @@
+packages/vegetation/src/skills/vegetation/SKILL.md
+  s_ab59b8e40dc4d1::t_d1b6eadd906d43 12
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/seed-world-headless-fixture.ts
+  s_ab59b8e40dc4d1::t_82a4e88005fb00 1614,1624,1629,1882-1892
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/water-sampling.spec.ts
+  s_ab59b8e40dc4d1::t_328e3f9fbabad3 1-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5fccb921a97ff09447134f5aad8c490c26aeac57",
+  "prompts": {},
+  "sessions": {
+    "s_ab59b8e40dc4d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ce4-cb2b-71d3-86f0-6aa015964ede",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

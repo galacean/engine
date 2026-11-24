@@ -1,0 +1,24 @@
+packages/core/src/asset/ReferResource.ts
+  h_bd4dd7d663e619 15,67-74,81,92-104,136-143
+packages/core/src/mesh/ModelMesh.ts
+  h_bd4dd7d663e619 755
+packages/loader/src/gltf/parser/GLTFMaterialParser.ts
+  h_bd4dd7d663e619 198
+packages/loader/src/gltf/parser/GLTFMeshParser.ts
+  h_bd4dd7d663e619 273,280
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  h_bd4dd7d663e619 197,217
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_bd4dd7d663e619 103,127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6a6524d8d4a1a2b2b70ae801eb5f3edd8e037e7f",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

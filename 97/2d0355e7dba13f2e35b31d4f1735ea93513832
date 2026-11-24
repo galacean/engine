@@ -1,0 +1,52 @@
+packages/modify/native-overrides.json
+  h_ddbf152d31b140 406-409,506-517
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_ddbf152d31b140 3,24-28,41,132-147,229-236,241-245,270-272,274-291,295,305-306,410,427,479-487,499-504,617,624,661,863-901
+packages/modify/src/native/core/src/lighting/dayNight/DayNightEnvironmentAdapter.ts
+  h_ddbf152d31b140 3,20,44,61,89-91
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  h_ddbf152d31b140 2,5-16,18,21-34,38-59,69-95,109-130,143,155-161,173,203-215,233-234,237-578,626,738
+packages/modify/src/native/core/src/postProcess/effects/SunLensFlareEffect.ts
+  h_ddbf152d31b140 1-264
+packages/modify/src/native/core/src/postProcess/effects/index.ts
+  h_ddbf152d31b140 3
+packages/modify/src/native/galacean/src/ShaderPool.ts
+  h_ddbf152d31b140 26-27,92-93,133-135
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/SunLensFlare.glsl
+  h_ddbf152d31b140 1-220
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  h_ddbf152d31b140 25-29,71-76
+packages/modify/src/native/shader/src/ShaderLibrary/index.ts
+  h_ddbf152d31b140 56,123
+packages/modify/src/native/shader/src/Shaders/PostProcess/SunLensFlare.shader
+  h_ddbf152d31b140 1-27
+packages/modify/src/native/shader/src/Shaders/PostProcess/SunLensFlareVisibility.shader
+  h_ddbf152d31b140 1-12
+packages/modify/src/native/shader/src/Shaders/index.ts
+  h_ddbf152d31b140 27-28,70-71
+packages/modify/tests/SunLensFlare.spec.ts
+  h_ddbf152d31b140 1-118
+packages/terrain/src/terrain/project/TerrainPostProcessRuntime.ts
+  h_ddbf152d31b140 9,11-12,86-99,109,120,127-138,221-230,235,301-397,476-478,487,497,512-520,547-559,581,588,659-678
+packages/world-planning/src/integrations/terrain/debug/TerrainRuntimeDebugInspector.ts
+  h_ddbf152d31b140 700-740,750,754
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  h_ddbf152d31b140 1820-1832
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 80,485,491,494,514-530,552,565,572,762-763,776
+world/tests/seed-world-browser/SunLensFlare.test.ts
+  h_ddbf152d31b140 1-529
+world/tests/seed-world/SunLensFlareRuntime.spec.ts
+  h_ddbf152d31b140 1-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "972d0355e7dba13f2e35b31d4f1735ea93513832",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

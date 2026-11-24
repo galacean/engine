@@ -1,0 +1,86 @@
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_ddbf152d31b140 2202-2221
+packages/animals/src/gameplay/animal/GLBAnimalPresenter.ts
+  h_ddbf152d31b140 102-111
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_ddbf152d31b140 288,1149,1155-1157,1165,1167-1169,1412-1418,1420,1422-1428
+packages/building/src/building/runtime/ConstructionDecorationLights.ts
+  h_ddbf152d31b140 52,81-86,105,153-156
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  h_ddbf152d31b140 63-69
+packages/building/src/building/runtime/EngineResidentScene.ts
+  h_ddbf152d31b140 28,75,291-293,296,302,307,609-610,1126,1182,1199,1208,1210,1312
+packages/building/src/building/runtime/EngineShaderSource.ts
+  h_ddbf152d31b140 1-2,23
+packages/building/src/building/runtime/MasonryLodPolicy.ts
+  h_ddbf152d31b140 45,55-56
+packages/building/src/building/runtime/MasonryLodTransition.ts
+  h_ddbf152d31b140 5,40-42
+packages/building/src/building/runtime/MaterialUnitLod.js
+  h_ddbf152d31b140 61-62,73-74,96,159-160,167
+packages/building/src/building/runtime/SimplifySpirvNoise.ts
+  h_ddbf152d31b140 1-133
+packages/building/tests/BuildingOptimization.spec.ts
+  h_ddbf152d31b140 139-192,251-252,360,916-918,1057-1062,1094-1096,1405-1428
+packages/building/tests/SimplifySpirvNoise.spec.ts
+  h_ddbf152d31b140 1-123
+packages/farming/src/farming/presentation/FarmItemPresentation.ts
+  h_ddbf152d31b140 119,246-250,338-344
+packages/farming/src/farming/presentation/FarmingWorldPresentation.ts
+  h_ddbf152d31b140 356-360
+packages/farming/src/farming/presentation/SeedSackMaterials.ts
+  h_ddbf152d31b140 19
+packages/farming/src/farming/presentation/soil/SoilVisualProvider.ts
+  h_ddbf152d31b140 667
+packages/farming/src/farming/presentation/sowing/SowingSeedLibrary.ts
+  h_ddbf152d31b140 20
+packages/farming/src/farming/presentation/storage/StorageContainerPresenter.ts
+  h_ddbf152d31b140 1,187-191,195
+packages/farming/src/farming/presentation/storage/StorageProduceLibrary.ts
+  h_ddbf152d31b140 17
+packages/modify/src/native/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl
+  h_ddbf152d31b140 117-120
+packages/runtime-editor/src/runtime-inspection/runtime-mesh-picking.ts
+  h_ddbf152d31b140 12-26,31,45,47-59,61-105,111
+packages/runtime-editor/src/runtime-inspection/runtime-pick-preparation.ts
+  h_ddbf152d31b140 9-32,133-138,173,186,220
+packages/runtime-editor/tests/runtime-pick-preparation.spec.ts
+  h_ddbf152d31b140 142-179,242-244
+packages/water/src/bridges/SuspensionBridgeView.ts
+  h_ddbf152d31b140 9,118-119
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  h_ddbf152d31b140 32-42,271
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 92-99,423-428,430-431,440-445,448,451-457,551,586,664-667,669,965
+packages/world-planning/tests/NativeBuildingLifetime.spec.ts
+  h_ddbf152d31b140 15,19-28,31-32,34-39,41-47,50-56,72-73,76-81,84-85,172-182
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 78-79,181-192,260-263,382-384,420-422,523-528,677,689,711,715-720,753-755,800-801,921-925,933-935,963-966,1058-1060,1124-1130,1192-1194,1359,1617,2129-2133,2401,2415,2422-2424,2593-2599,2827-2838,2841-2842,2844-2846,2869-2878,2925-2934,2969-2974,2976-2982,3154-3155,3158,3165-3176,3183-3192,3381-3421,3451-3453,3469-3475,3482-3496,3510-3512,3514-3574,3577,3584,3588,3592,3596-3599,3610-3614,3638,3641-3642,3646-3657,3701-3705
+world/demos/seed-world/src/SeedWorldPerfPanel.ts
+  h_ddbf152d31b140 1,85,652-661,677,693-702,737
+world/demos/seed-world/src/SeedWorldPerfTour.ts
+  h_ddbf152d31b140 1-1075
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  h_ddbf152d31b140 21-26,53-55,65-66,68-80,176-196,211,218,233-237,240-242,246-252,254,268,287-289,304,311,314-317,321-322,325,354-368,378,381-383,385,393,450-456,465,477,482-487,489-492,497,509,528,573-574
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingRuntime.ts
+  h_ddbf152d31b140 185-186,240-244,276-279,703-704
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHost.ts
+  h_ddbf152d31b140 1-5,40-41,85-89,108-115,149-156,257,261
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_ddbf152d31b140 1-5,14-23,28-31,37-40,207-211,226-236,248-249,265-269,272-275,305,310-316,325-329,349-356,420-423,490-497,503-504,542,553-555,557-565,573-574,593-599,601-605,607-610,636-639,665-779,822-825,837-840,845-855,859-862,866-874,876-877,882-883,885-894,897-900,904-908,930-932,949-950,963-967,972-973,976-987,989-993,1000-1003,1013-1017,1069,1087-1092,1094,1109-1110,1112,1114-1122,1125-1131,1137-1138,1140-1141,1145-1146,1150-1157,1188-1192,1213,1226-1228,1230-1231,1239-1242,1253,1256-1261,1267,1290-1295,1297-1303,1308-1319,1323-1331,1341-1348,1351-1383,1385,1391,1398-1399,1402-1407,1452-1457,1561-1569,1592-1596,1599,1601,1603,1610-1612,1616-1619,1680-1681,1684-1686,1689-1694,1701-1706,1784-1787
+world/tests/seed-world/SeedWorldPerfTour.spec.ts
+  h_ddbf152d31b140 1-143
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 191-192,202,386-390,485-489,883-885,893-895,1182-1186,1196,1214-1294
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "75e1b11398218de14a78129e69c82cbb830c0320",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

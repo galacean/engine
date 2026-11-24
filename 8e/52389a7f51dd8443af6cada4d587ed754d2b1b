@@ -1,0 +1,30 @@
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  h_171a11afaf879a 6,107-117,1128-1135
+packages/shader-parser/src/ParserUtils.ts
+  h_171a11afaf879a 381-396
+packages/shader-parser/src/lalr/CFG.ts
+  h_171a11afaf879a 21,147-152,158-165,175-190
+packages/shader-parser/src/parser/AST.ts
+  h_171a11afaf879a 1266-1274,1849-1854,1877,1918,1921-1926
+packages/shader-parser/src/parser/GrammarSymbol.ts
+  h_171a11afaf879a 12
+packages/shader-parser/src/parser/ParserSemanticValidation.ts
+  h_171a11afaf879a 67-75,430,432-453
+packages/shader-parser/src/parser/ShaderInfo.ts
+  h_171a11afaf879a 49-51
+packages/shader-parser/src/parser/TargetParser.y
+  h_171a11afaf879a 176,205-208,213,220-221
+tests/src/shader-compiler/GlobalDeclarations.test.ts
+  h_171a11afaf879a 1-293
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8e52389a7f51dd8443af6cada4d587ed754d2b1b",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

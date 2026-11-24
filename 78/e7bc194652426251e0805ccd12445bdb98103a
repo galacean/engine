@@ -1,0 +1,26 @@
+packages/building/src/building/runtime/BeveledBrickGeometry.ts
+  h_ddbf152d31b140 1-188
+packages/building/src/building/runtime/EngineResidentScene.ts
+  h_ddbf152d31b140 25,521,870-873,875,885-911,913-919,921-941,943-955,957-960,962-963,1093-1094
+packages/building/src/building/runtime/MasonryLodPolicy.ts
+  h_ddbf152d31b140 28-31,48-51
+packages/building/src/building/runtime/MasonryResidency.ts
+  h_ddbf152d31b140 164-165,175-200,204,206,209-210,225-234,303,309-310,321,335-337,349-351,354-358,361-362,367,369,419-421
+packages/building/tests/BeveledBrickGeometry.spec.ts
+  h_ddbf152d31b140 1-71
+packages/building/tests/MasonryResidency.spec.ts
+  h_ddbf152d31b140 1-298
+world/demos/seed-world/src/SeedWorldLodDebugPanel.ts
+  h_ddbf152d31b140 293,298
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "78e7bc194652426251e0805ccd12445bdb98103a",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

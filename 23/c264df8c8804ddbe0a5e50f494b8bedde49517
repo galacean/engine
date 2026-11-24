@@ -1,0 +1,14 @@
+tests/benchmarks/seed-templates/fixture-capabilities.mjs
+  h_171a11afaf879a 3-7,39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "23c264df8c8804ddbe0a5e50f494b8bedde49517",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

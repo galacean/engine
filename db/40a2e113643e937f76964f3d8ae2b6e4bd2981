@@ -1,0 +1,38 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_c385727b10f40c 269-272,276,278,383-392
+packages/core/src/RenderPipeline/Blitter.ts
+  h_c385727b10f40c 29,38,51,67-94
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  h_c385727b10f40c 3
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_c385727b10f40c 52-56
+packages/core/src/RenderPipeline/PipelinePass.ts
+  h_c385727b10f40c 4,10-11
+packages/core/src/RenderPipeline/RenderContext.ts
+  h_c385727b10f40c 84
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_c385727b10f40c 136,138,142-146,151-155,158,160-164
+packages/core/src/postProcess/FinalPass.ts
+  h_c385727b10f40c 60,64-68,73-85,87-91
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_c385727b10f40c 7,21,80-91,191-193,195-199,203-207,213-217
+packages/core/src/renderingHardwareInterface/RenderPassDescriptor.ts
+  h_c385727b10f40c 37
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_c385727b10f40c 9
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_c385727b10f40c 359,476,500,511,531,538,545,552,555,568,571,580-620
+tests/src/core/postProcess/PostProcess.test.ts
+  h_c385727b10f40c 463,470
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "db40a2e113643e937f76964f3d8ae2b6e4bd2981",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

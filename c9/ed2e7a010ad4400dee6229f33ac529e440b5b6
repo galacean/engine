@@ -1,0 +1,24 @@
+packages/world-planning/src/spatial/runtime/PlanningPlayerState.ts
+  h_a3c79ce84ffdc2 107-116
+packages/world-planning/src/world/SeedWorldCameraBookmark.ts
+  h_a3c79ce84ffdc2 109-118,126-134,169-182
+packages/world-planning/src/world/SeedWorldPlayerState.ts
+  h_a3c79ce84ffdc2 2,4,17-24,28-57,68,96-158,162-187
+packages/world-planning/src/world/SeedWorldSaveScheduler.ts
+  h_a3c79ce84ffdc2 14,19-21,39-40,44-45,47,89,102,109,112,116-123,125-132,134-141,147
+world/demos/seed-world/SeedWorldDemo.ts
+  h_a3c79ce84ffdc2 201-203,988-1001,1008-1017
+world/tests/seed-world/SeedWorldPlayerState.spec.ts
+  h_a3c79ce84ffdc2 1-328
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c9ed2e7a010ad4400dee6229f33ac529e440b5b6",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

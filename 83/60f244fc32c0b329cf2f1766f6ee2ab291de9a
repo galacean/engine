@@ -1,0 +1,50 @@
+packages/design/src/physics/IPhysics.ts
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 8,92,100,110-111
+packages/physics-physx/src/shape/PhysXMeshShape.ts
+  s_a20fbf413cca3c::t_cebd037a986eb0 84
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 2,24-25,30,57-58,60,87-88,92,94-100,109,131-134
+  s_a20fbf413cca3c::t_0835cd1ee443d2 13,31,35,37-41,44,61,65-67,75,83,93,101-108,110-129,201,259-267
+  s_a20fbf413cca3c::t_f8dd4904081e57 130
+  s_a20fbf413cca3c::t_f6e091f576b38c 268
+packages/core/src/mesh/ModelMesh.ts
+  s_a20fbf413cca3c::t_acd389513ea7a2 463
+  s_a20fbf413cca3c::t_0835cd1ee443d2 31,115-116,439,480-482,511
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 112-114,444,461-462,464-467,477-479
+tests/src/core/ModelMesh.test.ts
+  s_a20fbf413cca3c::t_27582d4772eb36 348-370
+packages/core/src/physics/MeshCollider.ts
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 205,262,271-272
+  s_a20fbf413cca3c::t_0835cd1ee443d2 46
+  s_a20fbf413cca3c::t_acd389513ea7a2 253-258
+packages/design/src/physics/shape/index.ts
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 6
+packages/design/src/physics/shape/IMeshShape.ts
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 5-7,20,27-28
+  s_a20fbf413cca3c::t_0835cd1ee443d2 8-9
+packages/physics-physx/src/PhysXPhysics.ts
+  s_a20fbf413cca3c::t_0835cd1ee443d2 26,45-46
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 11,166-167
+  s_a20fbf413cca3c::t_acd389513ea7a2 169-179
+tests/src/core/physics/MeshCollider.test.ts
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 113-134,136-164,167-194,256-257,370-371,375-376
+  s_a20fbf413cca3c::t_33253640cef8b6 297
+  s_a20fbf413cca3c::t_a34cd7ec8a4719 19,24,64,67,109-112,135,165-166,195-240,244-255,258-296,298-311,339-369,372-374,377-388,390,498,503,507,514,879,883
+  s_a20fbf413cca3c::t_27582d4772eb36 241-243,312-317,320,323-338
+  s_a20fbf413cca3c::t_acd389513ea7a2 318-319,321-322
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8360f244fc32c0b329cf2f1766f6ee2ab291de9a",
+  "prompts": {},
+  "sessions": {
+    "s_a20fbf413cca3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2088c-3f7f-7131-8505-b699d01f3e8d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

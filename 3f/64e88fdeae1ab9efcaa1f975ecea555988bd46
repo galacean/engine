@@ -1,0 +1,56 @@
+packages/farming/src/farming/domain/FarmItems.ts
+  h_a3c79ce84ffdc2 40-45
+packages/farming/src/farming/presentation/FarmItemPresentation.ts
+  h_a3c79ce84ffdc2 17,75-77,126-127,165,427-429,448-451,497-504,546-550,555-568,614-616
+packages/farming/src/farming/presentation/FarmingWorldPresentation.ts
+  h_a3c79ce84ffdc2 26-27,65-110,118-126,157-173,180-183,186-190,452,455-464,489,550,581,618,623-626,628-636,638-643,645,767,777,853-900,912,918,926-935,945-957,960-967,982-986,1011-1019,1024,1026-1027,1030-1032,1034,1037-1044,1049-1059,1063-1109,1111-1119,1122-1123,1126-1184,1197-1199,1241-1242,1245-1247,1256-1290,1359,1391-1393,1424,1426-1428,1452-1455,1504,1506-1517
+packages/farming/src/farming/presentation/PlantPresenter.ts
+  h_a3c79ce84ffdc2 53-56,74-85,87-104,106-122,125-128,297,299-304,325-332,335,337,365-367,415-418,428-429,433
+packages/farming/src/farming/presentation/PlantRenderState.ts
+  h_a3c79ce84ffdc2 19-22,41,55-57
+packages/farming/src/farming/presentation/soil/SoilBoundaryPreview.ts
+  h_a3c79ce84ffdc2 9-16,20-26,37-89,92-96,100,102,104,110-113,119,123-124,128-129
+packages/farming/src/farming/presentation/soil/SoilMoistureSamples.ts
+  h_a3c79ce84ffdc2 71,74,76-86,89,95-107
+packages/farming/src/farming/presentation/soil/SoilMoistureShader.ts
+  h_a3c79ce84ffdc2 44-51,54-55,57-80,83,90-95,100-104,107
+packages/farming/src/farming/presentation/soil/SoilRenderBatches.ts
+  h_a3c79ce84ffdc2 3-6,8,11,19-20,27,33-36,42-135,158-163,183,189,195-196,208-225,227-228,237,241-264,268-269,271,291-294,297,299,307-309,317-330,347-370,392-402,408,410-411,416-420,422-423,425-431,441-449,451-475,477-490,492-494,502,511-512,530-535,538-543,545-549,566-581,583-605,607-610,612-622,625-804,810-814,837-838,843,846-849
+packages/farming/src/farming/presentation/soil/SoilVisualProvider.ts
+  h_a3c79ce84ffdc2 2,39,41,44-60,87-93,95-100,102,107-111,149,151,162-164,233,235,279-285,288,290-362,365-370,372-378,380-386,388-393,395-396,405-408,427-428,433-437,439-444,446-450,497-502,506,533-536,631
+packages/farming/src/farming/procedural/core/curves.ts
+  h_a3c79ce84ffdc2 46-86
+packages/farming/src/farming/procedural/runtime/PlantOrganMaterials.ts
+  h_a3c79ce84ffdc2 1-11,13,25-33,43-45,47-48,70-72,75,82-92,94-95,109-117,122,133-204
+packages/farming/src/farming/procedural/runtime/PlantResourcePool.ts
+  h_a3c79ce84ffdc2 1-632
+packages/farming/src/farming/procedural/runtime/ProceduralPlant.ts
+  h_a3c79ce84ffdc2 2,6,11,16-19,24-46,48,52-56,60,62,64-65,70,75-80,119-120,122-124,137-211,221-247,249-250,253-254,256,281-351,353-354,365,374,376-379,382,384,390-392,395,405,410-415,447-453,458-459,462-464,467-476,482-484,486-491,494-495,500-504,510-511,515-554,556,559-563,567-579,582-585,588,593,596-601,605-606,609,618,622-625,627,630,633-635
+packages/farming/src/farming/procedural/runtime/createPlantInstance.ts
+  h_a3c79ce84ffdc2 3-7,14,16-17,44-45,68-72,74-75,79,118,120-122,141-142,156,172,182-184,202,204-206,226,294-338,345-350,352-355,358-368,370,373-374
+packages/farming/src/farming/procedural/runtime/createProceduralPlant.ts
+  h_a3c79ce84ffdc2 1,6,9-17,57-58,67-71,92-94,96,99,101-144,146-148,151,153-163,183,191-193
+packages/farming/src/farming/procedural/runtime/preparePlantShaderPrograms.ts
+  h_a3c79ce84ffdc2 9,141
+packages/farming/tests/native/FarmingPerfTrack3.spec.ts
+  h_a3c79ce84ffdc2 1-992
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmLandGeometry.ts
+  h_a3c79ce84ffdc2 2,4,53-99,105-107,113-114,118-232,237,251-258
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmLandLayer.ts
+  h_a3c79ce84ffdc2 35,56-64,137-140,202-204,214,219,225-234,305-309,313-315,326-328,330
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingVegetation.ts
+  h_a3c79ce84ffdc2 12-24,30-37,72-149,152,158
+world/tests/seed-world/PlanningFarmLandCoverage.spec.ts
+  h_a3c79ce84ffdc2 1-4,9,15-22,177-337
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3f64e88fdeae1ab9efcaa1f975ecea555988bd46",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

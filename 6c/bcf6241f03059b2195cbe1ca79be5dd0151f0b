@@ -1,0 +1,22 @@
+packages/world-planning/src/agent-adapter/SeedWorldAssetManager.ts
+  h_ddbf152d31b140 77-84
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_ddbf152d31b140 166,171-172,175-177,182-205,230,235-236
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_ddbf152d31b140 899,910,979,992,2429,2442,2539-2540,2559,2592-2595,2615,2627-2696,2954
+packages/world-planning/tests/PlanningInstancedTreeCrudEffects.spec.ts
+  h_ddbf152d31b140 64-69,120-138,391-560
+world/demos/seed-world/src/planning/spatial/runtime/PlanningVegetationCatalog.ts
+  h_ddbf152d31b140 19-26,28,31,49-53,57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6cbcf6241f03059b2195cbe1ca79be5dd0151f0b",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

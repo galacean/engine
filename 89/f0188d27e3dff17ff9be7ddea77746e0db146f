@@ -1,0 +1,24 @@
+packages/animals/src/gameplay/animal/AnimalRegistration.ts
+  h_171a11afaf879a 2-7,96,446
+packages/animals/src/gameplay/animal/AnimalTaskController.ts
+  h_171a11afaf879a 47-49,56-57
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 15,23,304-319,380,638-639,694,728,2059,2273,2282-2285,2288-2292,2294-2296,2300-2411,2532-2533
+world/demos/seed-world/src/planning/planning-data/animal-behaviors.json
+  h_171a11afaf879a 178,280,443,849,1038,1064,1086,1272
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalContent.ts
+  h_171a11afaf879a 31-36
+world/tests/seed-world/AnimalSlopeAlignment.spec.ts
+  h_171a11afaf879a 1-155
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "89f0188d27e3dff17ff9be7ddea77746e0db146f",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

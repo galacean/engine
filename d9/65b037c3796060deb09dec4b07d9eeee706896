@@ -1,0 +1,24 @@
+packages/world-planning/src/integrations/terrain/rock-formation/RockVariantCatalog.json
+  s_ae6fab0fbe1884::t_8dee642e53007c 7,12,17,22,27,34,39,44,49,54,59,64
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  s_ae6fab0fbe1884::t_8dee642e53007c 9-10,41-43,66-80,108-110,119-120,123-124,128-133,135-139,244
+  s_ae6fab0fbe1884::t_a7488e4697f201 245-248
+packages/world-planning/src/integrations/terrain/rock-formation/RockMaterial.ts
+  s_ae6fab0fbe1884::t_8ab1e033398e0a 6,14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d965b037c3796060deb09dec4b07d9eeee706896",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 8,23,134-135,142,324-332
+packages/core/src/physics/joint/HingeJoint.ts
+  h_dd004f51a3e5ec 3
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 157,463,466
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 51,138-201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "caf783d12b28ad7b01b4609518b39ffc1e878ccd",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

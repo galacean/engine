@@ -1,0 +1,14 @@
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  h_171a11afaf879a 49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "92ea60eaee49b2f1188b373c178c34ca511c9f87",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

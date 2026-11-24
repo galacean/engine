@@ -1,0 +1,19 @@
+tests/src/shader-compiler/InterfaceValueSemantics.test.ts
+  s_94724eedbeb654::t_5d14abda57530a 59-60,64-77,328,340,357-361
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fec6ba922fcdb2c3248da67f1e4b333e17bd661a",
+  "prompts": {},
+  "sessions": {
+    "s_94724eedbeb654": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a079fa-a13e-79b1-bf89-79e33fe3774e",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

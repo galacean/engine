@@ -1,0 +1,24 @@
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  s_b4932ee6673859::t_9987d3c6f1c38c 59,73,1184-1185,1187,1189-1195
+world/demos/seed-world/agent-adapter/SeedWorldRiverShape.ts
+  s_b4932ee6673859::t_9987d3c6f1c38c 1-16,18-29,32-39
+  s_b4932ee6673859::t_4725563b2ea810 17,30-31
+world/demos/seed-world/agent-adapter/SeedWorldPlanningService.ts
+  s_b4932ee6673859::t_9987d3c6f1c38c 27,35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1cc732a2b221ce3215786ce5c4097b64da4acf00",
+  "prompts": {},
+  "sessions": {
+    "s_b4932ee6673859": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed5a-1ad6-72d1-bbb3-b76240cdaf12",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": null
+    }
+  }
+}

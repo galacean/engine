@@ -1,0 +1,21 @@
+packages/building/src/skills/building/SKILL.md
+  s_b4932ee6673859::t_8c5d7694abc6b3 16
+packages/building/src/skills/building/references/planning.md
+  s_b4932ee6673859::t_8c5d7694abc6b3 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b4d68bf453e8d4c5e52dd739c7db9a8044a4deb3",
+  "prompts": {},
+  "sessions": {
+    "s_b4932ee6673859": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed5a-1ad6-72d1-bbb3-b76240cdaf12",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

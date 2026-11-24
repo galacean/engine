@@ -1,0 +1,16 @@
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  h_bd4dd7d663e619 78
+packages/core/src/shader/ShaderProgram.ts
+  h_bd4dd7d663e619 248,254,263-264,268,270-271,273-274,280-283,286,290-313,315,577
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "72c06283ec864fdd2cf5bd7bd640e6a2756159a2",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

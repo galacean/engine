@@ -1,0 +1,36 @@
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 231,234-246,301-302,468,523,624,628,630,709-723,785,2210,2697-2711,3222,3227-3232,3256-3341
+world/demos/seed-world/masonry/BuildingSceneInitialization.ts
+  h_ddbf152d31b140 21-30,34-35,45,67-80,91,166-211,213-215,217-219,225,229
+world/demos/seed-world/src/SeedWorldBootTrace.ts
+  h_ddbf152d31b140 193
+world/demos/seed-world/src/planning/semantic-study/PlanningWorkerClient.ts
+  h_ddbf152d31b140 88-90,92-153,155-163,165-175,180,192
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  h_ddbf152d31b140 29,41
+world/scripts/acceptance/incremental-scene/run.cjs
+  h_ddbf152d31b140 28-30
+world/scripts/acceptance/incremental-scene/server.mjs
+  h_ddbf152d31b140 102-103
+world/scripts/acceptance/worker-api-audit/run.cjs
+  h_ddbf152d31b140 52-54,77-85
+world/scripts/build-seed-world-flash-app.mjs
+  h_ddbf152d31b140 81,140,157,160-178,201,225
+world/tests/seed-world/BuildingInitialSource.spec.ts
+  h_ddbf152d31b140 22,24-27,115-193
+world/tests/seed-world/SeedWorldBootTrace.spec.ts
+  h_ddbf152d31b140 5,155-262
+world/vite.config.mjs
+  h_ddbf152d31b140 238-240,243,504-505
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0e0b5a75c2be63a3a436e716819a62025a9ec1a6",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

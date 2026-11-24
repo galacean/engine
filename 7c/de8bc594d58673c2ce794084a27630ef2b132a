@@ -1,0 +1,21 @@
+tests/src/loader/ShaderLoader.test.ts
+  s_3cd6502d102d7f::t_630fd638c0e3a9 33-34,36,48,54-55,57-63
+tests/fixtures/shader-loader/released-alpha59.shaderc
+  s_3cd6502d102d7f::t_7726045e98a33f 1-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7cde8bc594d58673c2ce794084a27630ef2b132a",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,47 @@
+packages/world-planning/src/spatial/world-templates/OasisFloodplain.ts
+  s_a975bf164e8b11::t_7c2b129e0faabd 136-137
+  s_a975bf164e8b11::t_88c4230502f09c 80,105-109,112-113
+  s_a975bf164e8b11::t_9e89f6bc0a680c 142
+  s_a975bf164e8b11::t_962069f09b04c6 71
+  s_a975bf164e8b11::t_b2f86bb1242979 72-74,77-79
+  s_a975bf164e8b11::t_264a027def689f 110-111
+  s_a975bf164e8b11::t_3b34af60ac06d3 138-141
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_fa8f4df2e429fc::t_140e8afb86933f 7-12,593-601,693-696,725-787,800-803,805-807,913-923,936-951,953-962,974,976-1010,1021,1023-1056,1069-1071,1082-1089,1092-1094,1099,1157-1158,1160-1163
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  s_fa8f4df2e429fc::t_5b4208626497cd 5,10-11,22-31,35-36,40,63,80-87,92-93,95-96,99-100,103-105,109-110,112-132,134-146,148,151-166,168-207,209-212,214-225,227-228,231-237,239,242-276,278-320,322-342,344-385,387-408,410-414,512,523-526,534-539,564-568,573-580,583,588,596-597,644-651,653-655,658-660,662-665,667-680,706-707,721,724-732,738-743,754-758,761,764,769,778
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  s_d0855e4575d176::t_855b72a437fc6b 57-61,96,118-119,131-133,147,150,173-174,186-187,193,297-298,344-345
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5a3f62fa7112402ba73eca21a96b69b3b47649b2",
+  "prompts": {},
+  "sessions": {
+    "s_a975bf164e8b11": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e843-35ba-7e21-997a-bae227cd9412",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    },
+    "s_d0855e4575d176": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed64-1b78-7210-8d93-3cc4ed5d350e",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    },
+    "s_fa8f4df2e429fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e78f-73aa-7760-87eb-6d622300105c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

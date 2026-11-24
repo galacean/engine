@@ -1,0 +1,38 @@
+packages/modify/src/native/core/src/Background.ts
+  h_a3c79ce84ffdc2 114,172-173
+packages/modify/src/native/core/src/Engine.ts
+  h_a3c79ce84ffdc2 34,50-52,286
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_a3c79ce84ffdc2 7,127,130
+packages/modify/src/native/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_a3c79ce84ffdc2 49,52
+packages/modify/src/native/core/src/material/Material.ts
+  h_a3c79ce84ffdc2 118,121-123
+packages/modify/src/native/core/src/particle/ParticleGenerator.ts
+  h_a3c79ce84ffdc2 2,721-724
+packages/modify/src/native/core/src/particle/ParticleTransformFeedbackSimulator.ts
+  h_a3c79ce84ffdc2 32-35,41
+packages/modify/src/native/core/src/postProcess/FinalPass.ts
+  h_a3c79ce84ffdc2 23,27,32
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  h_a3c79ce84ffdc2 27,31
+packages/modify/src/native/core/src/sky/SkyBoxMaterial.ts
+  h_a3c79ce84ffdc2 92
+packages/modify/src/native/core/src/sky/SkyProceduralMaterial.ts
+  h_a3c79ce84ffdc2 5,511
+packages/modify/src/native/galacean/src/ShaderPool.ts
+  h_a3c79ce84ffdc2 1,59,108,110-111,114,126,128-151
+packages/modify/tests/BuiltinShaderIdentity.test.ts
+  h_a3c79ce84ffdc2 1-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d4dc3cd100516a571dfab9542d2ac44ad5c128a8",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

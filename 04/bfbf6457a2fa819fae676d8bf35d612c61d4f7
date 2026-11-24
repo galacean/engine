@@ -1,0 +1,18 @@
+packages/core/src/ComponentsManager.ts
+  h_171a11afaf879a 72-76
+packages/core/src/Renderer.ts
+  h_171a11afaf879a 51,93-95
+tests/src/core/RendererCullingState.test.ts
+  h_171a11afaf879a 1-194
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "04bfbf6457a2fa819fae676d8bf35d612c61d4f7",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

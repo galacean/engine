@@ -1,0 +1,19 @@
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl
+  s_f787007485b468::t_78f0258540e61e 10,12-31,34-36,38-40,42-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "44ecb9a0ca35e7a4f6a88b210c5eef52e173044f",
+  "prompts": {},
+  "sessions": {
+    "s_f787007485b468": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f9c9-f845-7df2-be0b-675b396be107",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

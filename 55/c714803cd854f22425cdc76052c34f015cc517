@@ -1,0 +1,21 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_85f1b041de96f1::t_0b6b591f1ef942 175,179,183
+tests/src/core/Camera.test.ts
+  s_85f1b041de96f1::t_89fb768719b8c7 10-11,15,128-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "55c714803cd854f22425cdc76052c34f015cc517",
+  "prompts": {},
+  "sessions": {
+    "s_85f1b041de96f1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6f-9eef-74e1-865e-df5606e75c6c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

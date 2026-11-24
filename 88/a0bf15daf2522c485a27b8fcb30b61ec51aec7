@@ -1,0 +1,16 @@
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_c385727b10f40c 122-123,336-353,355,453-454,701-702
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_c385727b10f40c 53-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "88a0bf15daf2522c485a27b8fcb30b61ec51aec7",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

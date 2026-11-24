@@ -1,0 +1,34 @@
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_171a11afaf879a 599-604
+packages/terrain/src/shaders/shared/GrassColorField.glsl
+  h_171a11afaf879a 121,123,125,127-129,133,174-189,193-194,196-224
+packages/terrain/src/shaders/shared/GrassSurfaceField.glsl
+  h_171a11afaf879a 7-8,10-20
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  h_171a11afaf879a 604,611,624,628,634-637
+packages/terrain/src/shaders/surface/SurfaceEvaluation.glsl
+  h_171a11afaf879a 156-157,163
+packages/terrain/src/shaders/terrain/TerrainEvaluation.glsl
+  h_171a11afaf879a 135-140
+packages/terrain/src/shaders/vegetation/VegetationEvaluation.glsl
+  h_171a11afaf879a 45-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7564911e87dc01b62ce7380ea3e77c86a6317ceb",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

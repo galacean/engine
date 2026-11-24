@@ -1,0 +1,16 @@
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  h_79b10db07e6052 546-549,900-901,2788-2792,2799-2803,2807,2909-2912,2917,3241,3394,4096,7169-7170
+world/demos/seed-world/src/SeedWorldLodDebugPanel.ts
+  h_79b10db07e6052 10-11,199-200,269-270,274-275,416-417
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5ea14a06301f4eb61da6ad5f4b92a5404e41ef9f",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

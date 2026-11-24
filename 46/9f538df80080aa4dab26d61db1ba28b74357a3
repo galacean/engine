@@ -1,0 +1,25 @@
+packages/core/src/asset/ResourceManager.ts
+  s_7bd9d7d02a56ca::t_bfe3295b44fef1 481-503,506-507,510-518
+packages/core/src/lighting/AmbientLight.ts
+  s_7bd9d7d02a56ca::t_99fe36c5a6c24d 110-118,120-123,171-178,183-191,206
+packages/loader/src/SpriteAtlasLoader.ts
+  s_7bd9d7d02a56ca::t_96b8f3860d6465 24-36,38-40,46,50,52,55-58,62,70,75-77,82-83,87,89-92,94-97,99-102
+tests/src/loader/SpriteAtlasLoader.test.ts
+  s_7bd9d7d02a56ca::t_43985c6dd3244b 65-241
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "469f538df80080aa4dab26d61db1ba28b74357a3",
+  "prompts": {},
+  "sessions": {
+    "s_7bd9d7d02a56ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20822-347f-74c3-8fea-1bcdd39d7148",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

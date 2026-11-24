@@ -1,0 +1,138 @@
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAuthoringComponents.ts
+  s_946a6ca5c23c75::t_c084a1d6829cea 193,207
+  s_946a6ca5c23c75::t_98b946bfc325e6 299,303-304
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalContent.ts
+  s_946a6ca5c23c75::t_1ac8e5c3c6e446 31
+world/tests/seed-world/AnimalMovementLifecycle.spec.ts
+  s_946a6ca5c23c75::t_2ff45ad9d0d609 145-146,287-299
+  s_946a6ca5c23c75::t_c100dc7c49c1c6 300-301
+packages/animals/src/gameplay/animal/AnimalRegistration.ts
+  s_946a6ca5c23c75::t_1ac8e5c3c6e446 91-92,144,416-435,484-490,494-502,521,534
+  s_946a6ca5c23c75::t_3a21add50b60e2 491-493
+world/demos/seed-world/src/planning/planning-data/animal-behaviors.json
+  s_946a6ca5c23c75::t_1ac8e5c3c6e446 432
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  s_946a6ca5c23c75::t_e9572942aedbf9 885,902,910,922
+  s_946a6ca5c23c75::t_4ce28af502ed0b 883,892,895,904,907-908,914
+  s_946a6ca5c23c75::t_6cb48e5f690767 750,890,915-919
+  s_946a6ca5c23c75::t_b19bae1b438eb7 886
+  s_946a6ca5c23c75::t_aed5017783df36 911,913
+  s_946a6ca5c23c75::t_6cdd47041d425c 42-43,81,745,786,788-789,791,822-823,830-831,849,866,943,949
+  s_946a6ca5c23c75::t_3966711f13ab24 288,294,296-297
+  s_946a6ca5c23c75::t_d60bbc041cff95 199,673-680
+  s_946a6ca5c23c75::t_6b4a800c933871 293,295
+  s_946a6ca5c23c75::t_ee6560589e5243 276-277
+  s_946a6ca5c23c75::t_1ac8e5c3c6e446 184,493,1178
+  s_946a6ca5c23c75::t_8268a354397990 581-582,586,588,600-601
+  s_946a6ca5c23c75::t_9f94a79ec71d88 884,894,912,923
+  s_946a6ca5c23c75::t_68a021f00d0773 887-889,896-901,909
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  s_946a6ca5c23c75::t_c084a1d6829cea 23,612
+  s_946a6ca5c23c75::t_6cb48e5f690767 618
+  s_946a6ca5c23c75::t_dd5c083d3aebf3 619-620
+  s_946a6ca5c23c75::t_2e9caa7ec5bd97 853-857
+packages/animals/src/gameplay/animal/AnimalInteraction.ts
+  s_946a6ca5c23c75::t_8268a354397990 18
+world/tests/seed-world/SeedWorldAnimalClickRouting.spec.ts
+  s_946a6ca5c23c75::t_0a1b218e7fef3b 5-10,48-127
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalPanel.ts
+  s_946a6ca5c23c75::t_d60bbc041cff95 37,171-172
+  s_946a6ca5c23c75::t_ac5aa104bba133 170
+  s_946a6ca5c23c75::t_1ac8e5c3c6e446 110
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_946a6ca5c23c75::t_262e2f16bb30c6 37,515,603,621-622
+  s_946a6ca5c23c75::t_98b946bfc325e6 540,604
+world/tests/seed-world/AnimalPlanningTasks.spec.ts
+  s_946a6ca5c23c75::t_db56972791a97e 192
+  s_946a6ca5c23c75::t_bc4abfb3eea7da 193,205,469,472-474,479-484,486,491-493,495-497,499-500,502-515,517-522,524-531,541-544
+  s_946a6ca5c23c75::t_ab5f2d8d580fd8 498,516,532-540
+  s_946a6ca5c23c75::t_63c72db8724cbe 501,523
+  s_946a6ca5c23c75::t_56f59aa4cebd56 187-191,194-204,206,468,470-471,475-478,485,487-490,494
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  s_946a6ca5c23c75::t_6cdd47041d425c 10-16,38,46-47
+world/demos/seed-world/src/planning/spatial/PlanningSceneAsset.ts
+  s_946a6ca5c23c75::t_98b946bfc325e6 31,41-43,46-47,96
+packages/animals/src/gameplay/animal/GroundAnimalRecovery.ts
+  s_946a6ca5c23c75::t_c084a1d6829cea 6,27,39,63,75,142-144
+packages/world-planning/src/planning-data/template-wildlife.json
+  s_946a6ca5c23c75::t_6cdd47041d425c 3
+  s_946a6ca5c23c75::t_d7fe70aeb74d2e 8
+world/tests/seed-world/AnimalRoutePreview.spec.ts
+  s_946a6ca5c23c75::t_7ae8218094a7d1 158-178
+  s_946a6ca5c23c75::t_91ab7b514aa609 135-157,179-180
+  s_946a6ca5c23c75::t_37a3c6ef7d347e 44-59
+  s_946a6ca5c23c75::t_98b946bfc325e6 118
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_946a6ca5c23c75::t_be8e4c66c7a96a 106-108,111-112,114-115
+  s_946a6ca5c23c75::t_0870985ca1705e 103-105,109-110,113,116-118,122
+  s_946a6ca5c23c75::t_5727343c98ad12 90-102,119-121,123-124
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  s_946a6ca5c23c75::t_98b946bfc325e6 1466-1467
+  s_946a6ca5c23c75::t_910bffba4d4d46 390
+  s_946a6ca5c23c75::t_7cff41e324af59 455,757-761,771
+  s_946a6ca5c23c75::t_ef467768613ab5 411,1871-1878,1899-1900
+  s_946a6ca5c23c75::t_6cb48e5f690767 145,236
+  s_946a6ca5c23c75::t_f195c5d03d73cb 716,1426,1830-1832,1837-1848,1915,1925,1930,1945,1951,2108,2114
+  s_946a6ca5c23c75::t_73f406c888ea2f 1281
+  s_946a6ca5c23c75::t_857df95f7f5c83 412-414
+  s_946a6ca5c23c75::t_13c0499ec3e16c 1423-1425
+  s_946a6ca5c23c75::t_e900c25d8b7c0b 1468-1470
+  s_946a6ca5c23c75::t_cae87c3917c196 1868-1870
+  s_946a6ca5c23c75::t_bb2f8acdd32726 1922-1924
+  s_946a6ca5c23c75::t_246a8902171943 1926-1929
+  s_946a6ca5c23c75::t_3c9d1eee1d8ce2 1931-1933,1942-1944
+  s_946a6ca5c23c75::t_17d71df4912bfa 1946-1950
+  s_946a6ca5c23c75::t_78c3a75e07e635 1952-1954
+  s_946a6ca5c23c75::t_227e059e367383 2105-2107
+  s_946a6ca5c23c75::t_8964ed3e42c8c2 2109-2113
+  s_946a6ca5c23c75::t_2e9caa7ec5bd97 415-428,1295-1296,1421-1422,1475-1478,1614-1619,1850-1858,1921,1934-1941,1955,2103-2104,2124,2483
+packages/animals/src/gameplay/animal/GroundAnimalSteering.ts
+  s_946a6ca5c23c75::t_6cb48e5f690767 21-22,59
+  s_946a6ca5c23c75::t_58b9f611e92009 57-58,60-62
+  s_946a6ca5c23c75::t_6c2c0cc08498a5 63-64
+  s_946a6ca5c23c75::t_2e9caa7ec5bd97 66,73
+world/tests/seed-world/AnimalLocalWorldChange.spec.ts
+  s_946a6ca5c23c75::t_d60bbc041cff95 185-193
+world/demos/seed-world/src/planning/spatial/PlanningWaterSource.ts
+  s_946a6ca5c23c75::t_262e2f16bb30c6 13-19
+packages/animals/src/gameplay/animal/AnimalPopulation.ts
+  s_946a6ca5c23c75::t_1ac8e5c3c6e446 53-54,168-169
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts
+  s_946a6ca5c23c75::t_262e2f16bb30c6 14,62,64
+packages/world-planning/src/spatial/AnimalPopulationComponent.ts
+  s_946a6ca5c23c75::t_1ac8e5c3c6e446 168,407
+packages/animals/src/gameplay/animal/AnimalTaskController.ts
+  s_946a6ca5c23c75::t_e9097dde3ef1ed 67,718-723,725-727
+  s_946a6ca5c23c75::t_910bffba4d4d46 661-663
+  s_946a6ca5c23c75::t_4e21f9bd1676e2 645,868-870
+  s_946a6ca5c23c75::t_da6693a4da49aa 68,660,891-892
+  s_946a6ca5c23c75::t_7cff41e324af59 103-104,659,831,894-895,909,911
+  s_946a6ca5c23c75::t_db56972791a97e 724
+  s_946a6ca5c23c75::t_e9572942aedbf9 734-738
+  s_946a6ca5c23c75::t_afad35626662aa 664
+  s_946a6ca5c23c75::t_e17b9184149098 728
+  s_946a6ca5c23c75::t_be62709fdb6440 739
+  s_946a6ca5c23c75::t_6f14e7f2cdf210 832
+  s_946a6ca5c23c75::t_4340a4064f377c 871
+  s_946a6ca5c23c75::t_40f4914ed9b2d2 893
+  s_946a6ca5c23c75::t_440afa71308d2d 912
+  s_946a6ca5c23c75::t_2e9caa7ec5bd97 706,713,744,765,917-939,959-960,1016,1034,1049
+world/tests/seed-world/AnimalAuthoring.spec.ts
+  s_946a6ca5c23c75::t_ab76bd2d98da9c 62-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "62d5cfabdb2572842faf1cdcc3f504eee7ad7816",
+  "prompts": {},
+  "sessions": {
+    "s_946a6ca5c23c75": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ef07-308c-7bf2-9891-49ee85b9f678",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

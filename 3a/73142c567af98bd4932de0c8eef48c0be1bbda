@@ -1,0 +1,18 @@
+tests/src/core/physics/ColliderLayer.test.ts
+  h_dd004f51a3e5ec 98,145-166,168-183
+tests/src/core/physics/MeshCollider.test.ts
+  h_dd004f51a3e5ec 763,776,783
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 883,887-895,898,900-902,906,911,916,931-933,937,948-949,953
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3a73142c567af98bd4932de0c8eef48c0be1bbda",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+packages/core/src/physics/joint/Joint.ts
+  s_603183729b1668::t_931a31d78c0a3f 291
+packages/core/src/physics/MeshCollider.ts
+  s_603183729b1668::t_59bd4539314076 238
+packages/core/src/physics/Rigidbody.ts
+  s_603183729b1668::t_8bf28f5aebb481 1162
+tests/src/core/physics/CharacterController.test.ts
+  s_603183729b1668::t_318d2e46817e75 147,451,666,754
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_603183729b1668::t_e97429f805432e 108,118,125,248,251,634,688,773-774,787-788,797
+packages/core/src/physics/PhysicsMaterial.ts
+  s_603183729b1668::t_944371f3211abd 129
+tests/src/core/physics/ColliderLayer.test.ts
+  s_603183729b1668::t_b85f4bcbeb5ca3 105,110,155,165,177
+packages/core/src/physics/BoxCollider.ts
+  s_603183729b1668::t_0f523b118e98b5 55
+tests/src/core/physics/Collider.test.ts
+  s_603183729b1668::t_c3e36f1cb97635 238,244
+tests/src/core/physics/PhysicsScene.test.ts
+  s_603183729b1668::t_e50c6338802a08 610,827,856,865,869,881,886,890,895
+packages/core/src/physics/CharacterController.ts
+  s_603183729b1668::t_fa2e5974b79edc 298
+packages/core/src/physics/Collider.ts
+  s_603183729b1668::t_d4adc60730c84b 84,130-131,135-137,491
+tests/src/core/physics/MeshCollider.test.ts
+  s_603183729b1668::t_2d786f7bd363fe 459
+packages/core/src/physics/joint/HingeJoint.ts
+  s_603183729b1668::t_7e680f6519a2fe 169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e9e8528abc93889c6ec9d6cc3784bf9ebcfe33f6",
+  "prompts": {},
+  "sessions": {
+    "s_603183729b1668": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a20863-e294-70b7-9002-cf5b39cb692f",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,240 @@
+packages/building/src/building/assets/native/Shaders/wood.shaderc
+  h_ddbf152d31b140 1
+packages/building/src/building/assets/native/Shaders/wood_roof.shaderc
+  h_ddbf152d31b140 1
+packages/building/src/building/core/algorithms.ts
+  h_ddbf152d31b140 431-433,435-457,461-464,466
+packages/building/src/building/core/expansion.ts
+  h_ddbf152d31b140 53-70,126-135
+packages/building/src/building/core/geometry.ts
+  h_ddbf152d31b140 455-458,471-472,549-565,568-593,598-601,603,610-618
+packages/building/src/building/core/unit.ts
+  h_ddbf152d31b140 72-74,77-79,91,93-101,140-150,154-165
+packages/building/src/building/partTypes/House.ts
+  h_ddbf152d31b140 87-102,107-109,111,114,141-148,150-151,153,301-313,1262
+packages/building/src/building/partTypes/Roof.ts
+  h_ddbf152d31b140 315-328,343
+packages/building/src/building/parts/architecture/BuildingCpu.ts
+  h_ddbf152d31b140 14-15,93-95,97,125-130,133-140
+packages/building/src/building/parts/architecture/BuildingCpuClient.ts
+  h_ddbf152d31b140 15-17,20,195,204-205
+packages/building/src/building/parts/architecture/BuildingDetail.ts
+  h_ddbf152d31b140 38-39
+packages/building/src/building/parts/architecture/BuildingGroupComponent.ts
+  h_ddbf152d31b140 20-24
+packages/building/src/building/parts/architecture/BuildingManager.ts
+  h_ddbf152d31b140 94,123,157,179,202,207,210,293,297-298
+packages/building/src/building/parts/architecture/BuildingPartCollection.ts
+  h_ddbf152d31b140 112-118,132-146,157-163,165-166,171,173,179,184,190-194,213,234
+packages/building/src/building/parts/architecture/BuildingPartComponent.ts
+  h_ddbf152d31b140 38,42-50
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_ddbf152d31b140 160,218,265-267,274,289,323,325,328,330,340-341,359-369,373,376,392-393,412-417,420,429-442,543,560,576,684-693,696-698,718,804-805,815,881,921-922,1007,1024-1041,1166,1190,1217,1391,1403-1407,1409-1414,1416,1446-1449,1458-1461,1485-1486
+packages/building/src/building/parts/architecture/BuildingWorker.ts
+  h_ddbf152d31b140 5-31,67-89,100,104-106,112-114,119-126,128-140,142-143
+packages/building/src/building/parts/architecture/BuildingWorkerProtocol.ts
+  h_ddbf152d31b140 20
+packages/building/src/building/render/CoreBuilding.ts
+  h_ddbf152d31b140 78-81,156-157,184-214,234-243,273-280,364,366-367,371,396-403,407-421,432-433,437,439,544-545,550-553,558-559,738-751,923-926,928-937,942,944-945,956-969,973-982,985-989,1175-1180,1182,1205,1589,1860,1928-1934,2007,2009,2015-2016,2038-2044,2050-2051,2053,2058-2059,2068-2070,2077-2079,2098,2270,2341
+packages/building/src/building/resources/BuildingAssetKit.ts
+  h_ddbf152d31b140 394-397,400
+packages/building/src/building/resources/BuildingGeometry.ts
+  h_ddbf152d31b140 3,69-71,79-90,102-106,130,133-163,165
+packages/building/src/building/runtime/BrickPackKernel.ts
+  h_ddbf152d31b140 11,90,152
+packages/building/src/building/runtime/BrickUnitLod.js
+  h_ddbf152d31b140 2-9,18,22-51,54,60,67-87,134-151,154,163-164
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  h_ddbf152d31b140 15,21,52-53,99-105,113,160,207-208,214,336,363,365-370,373,385-392,396-399,421-422,456-457,474,487-495,498,512,528,593-595,628,635-664,669,671,679-725,775,808,821,824,956-957,967-1038,1042,1044-1048,1051-1061,1063-1072,1074-1102,1104-1109,1111-1118,1121-1127,1129-1154,1156-1182,1213,1219-1220,1222-1228,1234-1249,1253-1263,1266,1277-1302,1305-1327,1359,1372-1381,1389
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  h_ddbf152d31b140 18-19,88-94,316-325,329,424-428,556,666,670-673,859,862-863,865-866,877-883,887
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  h_ddbf152d31b140 8,19-20,24,61-68,221,224,287,306-332,343-345,347-348,353,362,371,374,386-390,399-401,406-426,446,454-466,475,478,481-485,490-491,500-501,511,520,530-534,542,544-549,555,562,566,574,578,581-592,594-603,607-608,610,616-619,630-632,638-639,660-667,670-678,695,713-716,725-726,742-745,751-752,755-760,763-782,808-811,820,834-873,875,879,882-884,892,894-895,902-905,911-913,933-934,951-952,998-999,1001-1007,1009-1013,1023-1029,1071,1076-1077,1093,1096-1097,1134-1135,1151,1154-1155,1218-1222,1236,1258-1263,1383,1400,1405,1411,1416-1428,1482,1487-1492,1495-1499,1508-1514,1518-1523
+packages/building/src/building/runtime/BuildingGlobals.ts
+  h_ddbf152d31b140 15
+packages/building/src/building/runtime/BuildingOccupancyQuery.ts
+  h_ddbf152d31b140 38-55,151-167,169-189,199-200,202-203,205-206
+packages/building/src/building/runtime/BuildingRenderPackage.ts
+  h_ddbf152d31b140 35,207,209,216,221,227,232
+packages/building/src/building/runtime/ConstructionDecorationLightPolicy.ts
+  h_ddbf152d31b140 120-124,128-135
+packages/building/src/building/runtime/ConstructionDecorationLights.ts
+  h_ddbf152d31b140 7,38,48-51,66-68,91-92,96,128-131,147-152,165-168,194-207,217-222,226-228
+packages/building/src/building/runtime/ConstructionDecorationMeshes.ts
+  h_ddbf152d31b140 7,65
+packages/building/src/building/runtime/ConstructionPackage.ts
+  h_ddbf152d31b140 63-70,81-87
+packages/building/src/building/runtime/ConstructionPreview.ts
+  h_ddbf152d31b140 208-219,243
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  h_ddbf152d31b140 28-29,31-33,39,61-68,102,120,127-130,132-139,142,144-145,147,160
+packages/building/src/building/runtime/ConstructionStoneFloorRender.ts
+  h_ddbf152d31b140 75
+packages/building/src/building/runtime/ConstructionStoneFloorShader.ts
+  h_ddbf152d31b140 28,30-32,36-45
+packages/building/src/building/runtime/ConstructionUnitRender.ts
+  h_ddbf152d31b140 33-34,37-43,48,64,67-71
+packages/building/src/building/runtime/ConstructionWallRoofJointShader.ts
+  h_ddbf152d31b140 38-40
+packages/building/src/building/runtime/ConstructionWoodArchRender.ts
+  h_ddbf152d31b140 148-149,161-162,172-177
+packages/building/src/building/runtime/DecorationNativeView.ts
+  h_ddbf152d31b140 45,182,189-192,213-216,227-239,256
+packages/building/src/building/runtime/DormerBins.ts
+  h_ddbf152d31b140 39-60,89-113,129-141
+packages/building/src/building/runtime/EngineResidentScene.ts
+  h_ddbf152d31b140 60-63,68-106,108-164,166-173,176-181,183-189,219,264,266-273,275-276,278-280,291-293,392,408-411,415-416,479-527,534-540,542-551,553-558,573-584,589-598,601-602,604-618,622,626-627,631-632,634-635,639-661,664-668,725,727-749,751-796,799-808,814,1112-1117,1143-1151,1159-1166,1170,1172-1190,1199,1291-1292,1301-1303,1313,1339-1343,1346,1348,1368,1388-1389,1394-1395,1399-1400,1405-1406,1417,1433-1440,1447,1455-1456,1470,1486-1487
+packages/building/src/building/runtime/EngineRoofFeedback.ts
+  h_ddbf152d31b140 9,35-40,125-130
+packages/building/src/building/runtime/MasonryDistanceSurface.shader
+  h_ddbf152d31b140 6-7,43-49,140-142,144-148,150-152,172-179
+packages/building/src/building/runtime/MasonryDistanceVertexData.ts
+  h_ddbf152d31b140 5-13,16,24,32-33,35-52,54,58-59,64-65,67-70,73-93,96-132
+packages/building/src/building/runtime/MasonryFarProxy.shader
+  h_ddbf152d31b140 33-40,125-127,130-132,140-151,163
+packages/building/src/building/runtime/MasonryGlobalProxy.shader
+  h_ddbf152d31b140 28-29,46-48,53-56,73-74,76-84,93-119,125-126,149-151,163-165,219-220,223-230,239-260,263-265,273-284,296
+packages/building/src/building/runtime/MasonryLodPolicy.ts
+  h_ddbf152d31b140 23-32,34
+packages/building/src/building/runtime/MasonryResidency.ts
+  h_ddbf152d31b140 96-100,106-110,112,119-121,175-178,212-213,219-226,304-318,330-334,361-362,427,443,451-455
+packages/building/src/building/runtime/MaterialUnitLod.js
+  h_ddbf152d31b140 5,9,22-23,30-31,37-67,72-73,76-88,94-126,131-134,136-164,167,173,178-179,184-185,187
+packages/building/src/building/runtime/ResidentResourcePool.ts
+  h_ddbf152d31b140 5-7,10-12,17-22,28,31-38,40-52,60,62-67,73-79
+packages/building/src/building/runtime/UnitPacking.d.ts
+  h_ddbf152d31b140 18,20
+packages/building/src/building/runtime/UnitPacking.js
+  h_ddbf152d31b140 5-12,20-173,249-264,287,290-292,334-335,338-342,350-359,361-363,365-448,450-455,457-504
+packages/building/src/building/runtime/WoodUnitLod.js
+  h_ddbf152d31b140 22-23,25-76,78,85-86,93-94
+packages/building/tests/BuildingGlobalProxy.spec.ts
+  h_ddbf152d31b140 2,4,352-443
+packages/building/tests/BuildingOptimization.spec.ts
+  h_ddbf152d31b140 1-1410
+packages/building/tests/BuildingPartCollection.spec.ts
+  h_ddbf152d31b140 135-136
+packages/building/tests/MasonryResidency.spec.ts
+  h_ddbf152d31b140 18-20,30-32,37-39,69-71,75-78,253-461
+packages/building/tests/MaterialUnitLod.spec.ts
+  h_ddbf152d31b140 2,73-131
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_ddbf152d31b140 381,390,393,396,400,403-404,409-413,415-418,444-446
+packages/core/src/RenderPipeline/RenderContext.ts
+  h_ddbf152d31b140 36-37
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_ddbf152d31b140 34,69-75,114-115,118,130-138,206-208,211
+packages/core/src/Renderer.ts
+  h_ddbf152d31b140 320,322,324-342
+packages/core/src/Transform.ts
+  h_ddbf152d31b140 32,42-43,61,282-283,286-290,292,584,591-598,627,632,805,809,901-902,905,907-911,957-959
+packages/core/src/shader/ShaderMacroCollection.ts
+  h_ddbf152d31b140 79-84,124,126,132,142-143,145-146,151
+packages/core/src/shader/ShaderPass.ts
+  h_ddbf152d31b140 13,54-55,91-114
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_ddbf152d31b140 4,65,166-230,264,280-287
+packages/environment/package.json
+  h_ddbf152d31b140 28
+packages/environment/src/terrain/environment/TerrainVolumetricCloudPreset.ts
+  h_ddbf152d31b140 7-13
+packages/environment/src/terrain/environment/TerrainVolumetricCloudScalePreset.ts
+  h_ddbf152d31b140 1-72
+packages/math/src/CollisionUtil.ts
+  h_ddbf152d31b140 353-380,382-391,393-423
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_ddbf152d31b140 1033,1042,1045,1048,1067,1170,1173-1174,1179-1183,1185-1188,1214-1216
+packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts
+  h_ddbf152d31b140 49,89,134-140,182-183,186,198-206,274-276,279
+packages/modify/src/native/core/src/Renderer.ts
+  h_ddbf152d31b140 321,323,325-343
+packages/modify/src/native/core/src/asset/ResourceManager.ts
+  h_ddbf152d31b140 217,228-236,241-247,261-276,405
+packages/modify/src/native/core/src/shader/ShaderPass.ts
+  h_ddbf152d31b140 13,54-55,137-160
+packages/modify/src/native/core/src/shadow/CascadedShadowCasterPass.ts
+  h_ddbf152d31b140 4,65,180-266,300,316-325,327-337,339-343,345-348,350-361,363-366,371
+packages/modify/src/rendering/V2ViewGeometry.ts
+  h_ddbf152d31b140 67
+packages/project/src/runtime-editor/project/runtime-project-dependencies.ts
+  h_ddbf152d31b140 276
+packages/runtime-editor/src/project/runtime-project-session.ts
+  h_ddbf152d31b140 212,531-540,547-554,598,858-885,966-967,987-995,1103
+packages/runtime-editor/src/runtime-inspection/runtime-pick-occlusion.ts
+  h_ddbf152d31b140 45-49
+packages/runtime-editor/tests/runtime-pick-preparation.spec.ts
+  h_ddbf152d31b140 2-3,143-178
+packages/runtime-editor/tests/runtime-project.spec.ts
+  h_ddbf152d31b140 624-735
+packages/ui/src/component/UITransform.ts
+  h_ddbf152d31b140 245-247,393-399,426-432,441
+packages/world-planning/src/integrations/vegetation/PlantProjectFormats.ts
+  h_ddbf152d31b140 62-63,73-87
+packages/world-planning/src/masonry/BuildingInitialSource.ts
+  h_ddbf152d31b140 33,99-102
+packages/world-planning/src/semantic-study/PlanningOceanSource.ts
+  h_ddbf152d31b140 3-5,11,16
+packages/world-planning/src/spatial/PlanningWeather.ts
+  h_ddbf152d31b140 4
+packages/world-planning/src/spatial/terrain/AuthoredTerrain.ts
+  h_ddbf152d31b140 1-11,22
+packages/world-planning/src/world/SeedWorldShaderVariantCoverage.ts
+  h_ddbf152d31b140 177-189,195-197,199,201-202,208-209,216-217
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 212,752,796-799,803-808,815
+packages/world-planning/tests/NativeBuildingLifetime.spec.ts
+  h_ddbf152d31b140 144-264
+tests/src/core/MeshRenderer.test.ts
+  h_ddbf152d31b140 9-17,269-456
+tests/src/core/ShaderMacroCollection.test.ts
+  h_ddbf152d31b140 1-152
+tests/src/core/Transform.test.ts
+  h_ddbf152d31b140 10-11,13,516-730
+tests/src/math/CollisionUtil.test.ts
+  h_ddbf152d31b140 134-153
+tests/src/ui/UITransform.test.ts
+  h_ddbf152d31b140 1,529-647
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 80-83,215,537,653-667,716,2752,2783,2785-2789,2800,2804-2829,2986-2988,3000-3003
+world/demos/seed-world/SeedWorldProject.ts
+  h_ddbf152d31b140 15,106,131-139,143-144,147,151-161,167-168,170-171,174-202,204-205,207,209-211
+world/demos/seed-world/flash-app-cdn-manifest.json
+  h_ddbf152d31b140 75-80,165-170,189-194,339-344,531-536,597-602,999-1004,1191-1196,1263-1268,1629-1634,1713-1718,1797-1802,2109-2120,2421-2426,2499-2504,2589-2594,2601-2612
+world/demos/seed-world/masonry/BuildingSceneInitialization.ts
+  h_ddbf152d31b140 104-106,108-117
+world/demos/seed-world/src/SeedWorldCommonBinaryBundle.ts
+  h_ddbf152d31b140 1-114
+world/demos/seed-world/src/SeedWorldPerfPanel.ts
+  h_ddbf152d31b140 42,431-432
+world/demos/seed-world/src/SeedWorldProjectTextBundle.ts
+  h_ddbf152d31b140 7
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  h_ddbf152d31b140 1,3-4,7,53-54,56,65-124,133-136,138-140,154,183-292,305,311
+world/scripts/build-seed-world-flash-app.mjs
+  h_ddbf152d31b140 141,169-171
+world/scripts/sync-flash-app-cdn-assets.py
+  h_ddbf152d31b140 48
+world/tests/seed-world/ResourceManagerPrefetch.spec.ts
+  h_ddbf152d31b140 1-57
+world/tests/seed-world/SeedWorldBootTrace.spec.ts
+  h_ddbf152d31b140 1,4-7,40-85
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_ddbf152d31b140 17,26,722-839
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 3-8,27-28,48-67,74,106-109,116-117,134,137-139,141,149,168-227,231-232,245-632,667-700
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  h_ddbf152d31b140 300-451
+world/vite.config.mjs
+  h_ddbf152d31b140 4,95,118-119,157,184,260,262-306,310-315,319,322-324,332
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "75c95aa3c6ce5721ad4069df1a7f302b8535f042",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

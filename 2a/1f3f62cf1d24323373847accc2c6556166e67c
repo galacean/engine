@@ -1,0 +1,22 @@
+packages/core/src/RenderPipeline/Blitter.ts
+  h_bd4dd7d663e619 80
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_bd4dd7d663e619 142
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  h_bd4dd7d663e619 78
+packages/core/src/shader/ShaderProgram.ts
+  h_bd4dd7d663e619 205,207
+packages/core/src/sky/Sky.ts
+  h_bd4dd7d663e619 121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2a1f3f62cf1d24323373847accc2c6556166e67c",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

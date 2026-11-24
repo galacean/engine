@@ -1,0 +1,19 @@
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_d0855e4575d176::t_0f1d735a79e252 748-805,882-896,1071-1093,1116-1158,1169-1203,1217-1233,1279-1292
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ce4288a0e23138f9ea1c629efc8f1498102a6519",
+  "prompts": {},
+  "sessions": {
+    "s_d0855e4575d176": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed64-1b78-7210-8d93-3cc4ed5d350e",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

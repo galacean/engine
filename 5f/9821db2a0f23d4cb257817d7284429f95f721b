@@ -1,0 +1,31 @@
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  s_85f1b041de96f1::t_d520dd7f317be2 4,37,41
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_d5a8b8f9cef6f5::t_099fb8749934cc 7,140
+packages/core/src/texture/TextureUtils.ts
+  s_d5a8b8f9cef6f5::t_c235323b53e329 36-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5f9821db2a0f23d4cb257817d7284429f95f721b",
+  "prompts": {},
+  "sessions": {
+    "s_85f1b041de96f1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6f-9eef-74e1-865e-df5606e75c6c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    },
+    "s_d5a8b8f9cef6f5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c131-ec64-72d1-aae2-b9035e3ba176",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

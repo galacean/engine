@@ -1,0 +1,19 @@
+tests/benchmarks/seed-templates/prepare-shaders.py
+  s_3cd6502d102d7f::t_fbe3fbd5b65f9a 1-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "479d23a44f7b624479aece12c0819eb0cedf7f4b",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 216-222
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 270-281
+packages/core/src/physics/PhysicsMaterial.ts
+  h_dd004f51a3e5ec 125
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 815-817
+packages/core/src/physics/PlaneCollider.ts
+  h_dd004f51a3e5ec 20-26
+packages/core/src/physics/joint/HingeJoint.ts
+  h_dd004f51a3e5ec 151-155
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 207,211-217
+packages/core/src/postProcess/PostProcessManager.ts
+  h_dd004f51a3e5ec 85-86,91,97
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 2,403-430
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 729-736
+tests/src/core/postProcess/PostProcess.test.ts
+  h_dd004f51a3e5ec 7,10,25,42,447-449,455-466,472-473
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4023b476aa4cf197281ccdac2fb97a5f0826b6e7",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

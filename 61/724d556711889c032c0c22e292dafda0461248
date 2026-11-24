@@ -1,0 +1,14 @@
+world/tests/seed-world/WorldTemplates.spec.ts
+  h_a3c79ce84ffdc2 45,520
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "61724d556711889c032c0c22e292dafda0461248",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+tests/src/core/resource/ResourceManager.test.ts
+  s_7bd9d7d02a56ca::t_4ec4df4e11c1ed 620,628-631,635-636,648,651,653,659,666-672,674
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "21be1cc12c575ccf5197cce7bbd9e344befdff8d",
+  "prompts": {},
+  "sessions": {
+    "s_7bd9d7d02a56ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20822-347f-74c3-8fea-1bcdd39d7148",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

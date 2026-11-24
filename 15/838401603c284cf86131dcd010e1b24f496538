@@ -1,0 +1,41 @@
+packages/core/src/asset/ResourceManager.ts
+  s_89f62b485e437b::t_5277c3c998043a 11,53,118,230,238,250,257,278,480
+  s_89f62b485e437b::t_3ecd8c2ef124f4 371,419
+  s_89f62b485e437b::t_c1880f686029de 372
+tests/src/core/physics/PhysicsMaterialOwnership.test.ts
+  s_89f62b485e437b::t_6db0ee4a8a6dc6 102,114,118-122,128,133-137,139,144-148,155-157,162
+packages/core/README.md
+  s_89f62b485e437b::t_dc2eb1d8dbe4cf 7
+packages/loader/src/prefab/PrefabResource.ts
+  s_89f62b485e437b::t_7f61e5446ef672 10
+packages/core/src/base/EngineObject.ts
+  s_89f62b485e437b::t_02c049084570af 6
+  s_89f62b485e437b::t_4c4dbef262f30e 8,15,24,44
+packages/core/src/physics/PhysicsMaterial.ts
+  s_89f62b485e437b::t_85c4891a1fa7ff 10,22
+tests/package-consumer/PhysicsMaterialApi.test.ts
+  s_89f62b485e437b::t_0e1baff4115aeb 1-24
+  s_89f62b485e437b::t_920f2c6199a348 25
+tests/package-consumer/fixtures/PhysicsMaterialApi.ts
+  s_89f62b485e437b::t_d414ebc76ada53 1-28
+packages/core/src/asset/ReferResource.ts
+  s_89f62b485e437b::t_b7362de359e34f 10-13,27-28
+packages/core/src/Engine.ts
+  s_89f62b485e437b::t_f29540f7616aa0 82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "15838401603c284cf86131dcd010e1b24f496538",
+  "prompts": {},
+  "sessions": {
+    "s_89f62b485e437b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1e26a-2627-7685-ab49-571422f416d8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

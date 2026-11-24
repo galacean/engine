@@ -1,0 +1,28 @@
+tests/src/core/input/PhysicsPointerMask.test.ts
+  s_a20fbf413cca3c::t_fb4e6bc397eeb7 1-54
+packages/core/src/input/pointer/emitter/PhysicsPointerEventEmitter.ts
+  s_a20fbf413cca3c::t_1e6f7aae740860 2,41-47
+docs/zh/physics/collider/collisionLayer.mdx
+  s_a20fbf413cca3c::t_1e6f7aae740860 39
+packages/core/src/Camera.ts
+  s_a20fbf413cca3c::t_1e6f7aae740860 72-77
+  s_a20fbf413cca3c::t_89a41bfa73d517 71
+docs/en/physics/collider/collisionLayer.mdx
+  s_a20fbf413cca3c::t_1e6f7aae740860 39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "84dd8fdb4674bb1fa57090fb545bd78a5ec560d7",
+  "prompts": {},
+  "sessions": {
+    "s_a20fbf413cca3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2088c-3f7f-7131-8505-b699d01f3e8d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+packages/core/src/Transform.ts
+  h_ddbf152d31b140 288,290,583,627,647-649,666-667,738,741,761,902,904
+packages/ui/src/component/UITransform.ts
+  h_ddbf152d31b140 245,427
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5ebef580bd8944de4fb1fbcf94821b3f901a587e",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

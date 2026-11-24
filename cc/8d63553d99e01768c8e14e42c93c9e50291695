@@ -1,0 +1,42 @@
+docs/en/core/engine.mdx
+  s_85f1b041de96f1::t_a8aa50bd688465 93
+packages/core/src/Engine.ts
+  s_85f1b041de96f1::t_ef02e1c42a1e44 640,642-648,650,652-659,661-669,671-675,677-683
+  s_85f1b041de96f1::t_fa2e90eda18b39 660
+packages/rhi-null/README.md
+  s_85f1b041de96f1::t_a8aa50bd688465 22
+packages/galacean/skills/engine-knowledge/references/lifecycle-and-frame-order.md
+  s_85f1b041de96f1::t_a8aa50bd688465 36
+packages/core/src/asset/request.ts
+  s_85f1b041de96f1::t_ef02e1c42a1e44 169,172-173,176-177
+tests/src/rhi-webgl/HeadlessEngine.test.ts
+  s_85f1b041de96f1::t_fa2e90eda18b39 12-14,17,49-65
+tests/package-consumer/HeadlessEngine.test.ts
+  s_85f1b041de96f1::t_fa2e90eda18b39 361-368,422-436
+  s_85f1b041de96f1::t_84645a7601fccd 2,37,39,312-320,354-360,369-421,437-464
+  s_85f1b041de96f1::t_7f87c2627aecb8 465
+packages/rhi-null/src/HeadlessEngine.ts
+  s_85f1b041de96f1::t_ef02e1c42a1e44 1,15
+packages/core/src/particle/ParticleSystemManager.ts
+  s_85f1b041de96f1::t_ef02e1c42a1e44 52-54,60,62-64
+docs/zh/core/engine.mdx
+  s_85f1b041de96f1::t_a8aa50bd688465 96
+packages/rhi-webgl/src/WebGLEngine.ts
+  s_85f1b041de96f1::t_ef02e1c42a1e44 1,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cc8d63553d99e01768c8e14e42c93c9e50291695",
+  "prompts": {},
+  "sessions": {
+    "s_85f1b041de96f1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6f-9eef-74e1-865e-df5606e75c6c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_bd4dd7d663e619 453
+packages/core/src/RenderPipeline/Blitter.ts
+  h_bd4dd7d663e619 80-85
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_bd4dd7d663e619 142,156
+packages/core/src/shader/ShaderData.ts
+  h_bd4dd7d663e619 28-29,611,613,616-619,625,638,670,672-684,688-690,745-752,755-756,777-785
+packages/core/src/shader/ShaderFactory.ts
+  h_bd4dd7d663e619 220
+packages/core/src/shader/ShaderProgram.ts
+  h_bd4dd7d663e619 130-136,138,140,160,162-168,170-189,215-229,232-245,247,557-561
+packages/core/src/shader/ShaderUniform.ts
+  h_bd4dd7d663e619 291-295
+packages/core/src/shader/state/BlendState.ts
+  h_bd4dd7d663e619 100-103,107-110,115-118,123-126
+packages/core/src/sky/Sky.ts
+  h_bd4dd7d663e619 121
+tests/src/core/shader/ShaderPropertyIsolation.test.ts
+  h_bd4dd7d663e619 1-322
+tests/src/loader/MaterialLoader.test.ts
+  h_bd4dd7d663e619 1,4,281-282,289-310,315,317-318,320,323
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b43eb457314333e426ca9f8d4ba34bea396e9199",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

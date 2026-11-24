@@ -1,0 +1,29 @@
+packages/rhi-webgl/src/GLTexture.ts
+  h_c385727b10f40c 444,547,551-560
+packages/loader/src/resource-deserialize/resources/textureCube/TextureCubeDecoder.ts
+  h_c385727b10f40c 1,30-38,49,57
+packages/loader/src/resource-deserialize/resources/texture2D/Texture2DDecoder.ts
+  h_c385727b10f40c 1,30-36,38,47,52
+packages/loader/src/TextureLoader.ts
+  h_c385727b10f40c 66-71,73,75,91-96
+packages/core/src/texture/TextureUtils.ts
+  h_c385727b10f40c 1-2,13,26-34,67-70,73-94
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_c385727b10f40c 74
+tests/src/core/texture/FloatTexture.test.ts
+  h_c385727b10f40c 165-166,169-173,175-180
+  h_c385727b10f40c 10,120,154,167-168,174
+tests/src/loader/TextureLoader.test.ts
+  h_c385727b10f40c 1,78-120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5bc5e4acca08d98d5e214c6f8d341180145cb80d",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,55 @@
+packages/core/src/Component.ts
+  s_eb7ebf3c3ff8b9::t_c4d013f33488b3 127-144
+packages/core/src/ComponentsDependencies.ts
+  s_eb7ebf3c3ff8b9::t_82ba32919669b2 148-150,152-157,160,162-167,171,175,177-194,196,201
+packages/core/src/Engine.ts
+  s_eb7ebf3c3ff8b9::t_dcc8da60124cef 318-320,322-324,326-328,330,334-336,339-346,348-349,351-356,358-363,365-370,372-375,377-380,382-384,386-389,483-484,486-494,500-502
+packages/core/src/Entity.ts
+  s_eb7ebf3c3ff8b9::t_64057cf24a7a25 58-67,71-85,511-546,548-559,561-580,593-594,596-604,630,643-651,659-665,671-679,682-689,693-696
+packages/core/src/Scene.ts
+  s_eb7ebf3c3ff8b9::t_b3e02073bb92a3 504-516,519,522-534,536-539,542-545,547-551
+packages/core/src/SceneManager.ts
+  s_eb7ebf3c3ff8b9::t_7aefde823c1557 2,6,117-167
+packages/core/src/physics/CharacterController.ts
+  s_eb7ebf3c3ff8b9::t_d78b1585ef37fc 172-174,412-413,421
+packages/core/src/physics/MeshCollider.ts
+  s_eb7ebf3c3ff8b9::t_0a5f8818e76ecc 145-146,150
+packages/core/src/physics/Rigidbody.ts
+  s_eb7ebf3c3ff8b9::t_0bf004dd124619 9,512,522-527
+packages/core/src/physics/joint/HingeJoint.ts
+  s_eb7ebf3c3ff8b9::t_1e5b40bbb226de 38-40,259-260,266-269
+packages/core/src/physics/joint/Joint.ts
+  s_eb7ebf3c3ff8b9::t_8a17b7a7f4fac5 7,50,234-243,260,346,357
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_eb7ebf3c3ff8b9::t_6fc234c6d80494 28-30,135,144-146,158-171,176-178,184,203,207-208,210,214-222,226,239,241-242,244-246,249-252,254,257-290,312-322,325-326,328,331-332,334-338,341,343-356,446-447,450-462,473-474,476-477,494-495
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_eb7ebf3c3ff8b9::t_6b96d7635c7250 185-192,290-303
+tests/src/core/Scene.test.ts
+  s_eb7ebf3c3ff8b9::t_7ef6051ba2df62 1,194-279
+tests/src/core/physics/CharacterController.test.ts
+  s_eb7ebf3c3ff8b9::t_a6bdd4c8fa7bd2 757-791
+tests/src/core/physics/HingeJoint.test.ts
+  s_eb7ebf3c3ff8b9::t_f2a1d1618ea9cb 645-651,653-663
+tests/src/core/physics/Joint.test.ts
+  s_eb7ebf3c3ff8b9::t_bad2d6750f852c 750-837
+tests/src/core/physics/MeshCollider.test.ts
+  s_eb7ebf3c3ff8b9::t_1860a413759a44 653-680
+tests/src/core/physics/PhysicsGameplay.test.ts
+  s_eb7ebf3c3ff8b9::t_2b04a92a17d260 860-1076
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8c79fa8e631a784db8f8acb68c4d013911803401",
+  "prompts": {},
+  "sessions": {
+    "s_eb7ebf3c3ff8b9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ef5d-ae7e-7512-9057-6ffe80a3b716",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

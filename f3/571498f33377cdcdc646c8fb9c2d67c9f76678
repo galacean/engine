@@ -1,0 +1,96 @@
+packages/building/src/building/parts/architecture/BuildingCpu.ts
+  h_ddbf152d31b140 19,82-94,100,148-151
+packages/building/src/building/parts/architecture/BuildingCpuClient.ts
+  h_ddbf152d31b140 21,30-31,33,39-40,51-53,56,62,64,70,80-116,131,143,166,178,195-197,224-226,228,243-340,343,359
+packages/building/src/building/parts/architecture/BuildingRender.ts
+  h_ddbf152d31b140 6,17,37
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_ddbf152d31b140 102-106,894,906-909,1092,1119,1538,1566-1568
+packages/building/src/building/parts/architecture/BuildingWorker.ts
+  h_ddbf152d31b140 53-54,63,65-74,124-149
+packages/building/src/building/parts/architecture/BuildingWorkerProtocol.ts
+  h_ddbf152d31b140 11,28-40
+packages/building/src/building/render/CoreBuilding.ts
+  h_ddbf152d31b140 36,1936-1941,1949-1986,2036-2041,2099
+packages/building/src/building/render/GridUnitKernel.ts
+  h_ddbf152d31b140 1-4,12-15,17,23-37,58-64,98-126,128,142-158,161-166,172-175,190-206,226-227,230-231,233-242,261-289
+packages/building/src/building/render/GridUnitKernelInput.ts
+  h_ddbf152d31b140 15,24-32,52-56,72-77,81-82,84,86,88-104,107,129-132
+packages/building/src/building/runtime/BrickPackKernel.ts
+  h_ddbf152d31b140 23-24,92-124,160-164,175-177,190-197,201
+packages/building/src/building/runtime/BrickUnitLod.js
+  h_ddbf152d31b140 57-77,118-124,143-186,189-197,216-219,242-243
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  h_ddbf152d31b140 278-281,330,379-380,408-409,985-986,991,1058-1062,1116-1117,1178,1180,1196-1229,1266,1293,1304,1311-1312,1316-1324,1438,1440
+packages/building/src/building/runtime/EngineResidentScene.ts
+  h_ddbf152d31b140 30,441-442,1099,1145
+packages/building/src/building/runtime/MaterialUnitLod.js
+  h_ddbf152d31b140 136
+packages/building/src/building/runtime/TerrainField.ts
+  h_ddbf152d31b140 76-80
+packages/building/tests/BuildingCpuClient.spec.ts
+  h_ddbf152d31b140 245-339
+packages/building/tests/BuildingWorkerCpu.spec.ts
+  h_ddbf152d31b140 12,132-170
+packages/building/tests/MaterialUnitLod.spec.ts
+  h_ddbf152d31b140 131-179
+packages/loader/src/ktx2/WorkerPool.ts
+  h_ddbf152d31b140 8-12,18,22-23,25-27,31-32,34,36,38-43,52-53,61-64,69-75,86-87,91,95,98,103-128,130-148,160-161,164,166,174,180-182
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudWeatherMap.ts
+  h_ddbf152d31b140 93,105,108-110,134
+packages/shader-parser/src/lalr/LALR1.ts
+  h_ddbf152d31b140 36-44
+packages/world-planning/src/integrations/terrain/rock-formation/Placement.ts
+  h_ddbf152d31b140 6,23,26,30-31,35
+packages/world-planning/src/runtime/SeedWorldFields.ts
+  h_ddbf152d31b140 222-229,234-235,264-267,272-274,531-534,536,722-724,883-886,888
+packages/world-planning/src/runtime/SeedWorldHydrologyBake.ts
+  h_ddbf152d31b140 183-190,192-194
+packages/world-planning/src/runtime/SeedWorldNavigationSurface.ts
+  h_ddbf152d31b140 206,209
+packages/world-planning/src/runtime/SeedWorldPopulationPlan.ts
+  h_ddbf152d31b140 1519
+packages/world-planning/src/semantic-study/PlanningAlphamap.ts
+  h_ddbf152d31b140 30,32,39,173,176-182,186-187,233-234
+packages/world-planning/src/semantic-study/PlanningRasterClient.ts
+  h_ddbf152d31b140 3,11,22
+packages/world-planning/src/semantic-study/WorldPlanning3DView.ts
+  h_ddbf152d31b140 354
+packages/world-planning/src/spatial/PlanningSession.ts
+  h_ddbf152d31b140 401
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_ddbf152d31b140 594-595
+packages/world-planning/src/spatial/runtime/PlanningPopulationData.ts
+  h_ddbf152d31b140 377
+packages/world-planning/src/spatial/runtime/PlanningSeedWorldData.ts
+  h_ddbf152d31b140 17-18,24-35,38-45,48-51,55,61,65-66,69,78-101,241
+packages/world-planning/src/spatial/runtime/PlanningWaterPublication.ts
+  h_ddbf152d31b140 9,257-260,262,264,301-303,340,344
+packages/world-planning/src/world/SeedWorldDecorations.ts
+  h_ddbf152d31b140 2277-2278,2288-2289,2293-2294,2324
+packages/world-planning/src/world/SeedWorldRenderWeights.ts
+  h_ddbf152d31b140 4-5
+packages/world-planning/tests/PlanningWaterPublication.spec.ts
+  h_ddbf152d31b140 1-156
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 193,236-254,292,743,1781-1793,1795-1806,1821,1894,1897,1905-1906,2013,2206,2211
+world/demos/seed-world/src/SeedWorldFieldWorker.ts
+  h_ddbf152d31b140 281-284,286
+world/demos/seed-world/src/SeedWorldSpawnSelection.ts
+  h_ddbf152d31b140 150,161
+world/demos/seed-world/src/SeedWorldWindVisualTargets.ts
+  h_ddbf152d31b140 96
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  h_ddbf152d31b140 74,91,95-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f3571498f33377cdcdc646c8fb9c2d67c9f76678",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

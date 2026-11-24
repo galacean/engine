@@ -1,0 +1,38 @@
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_a71f0ec6cb2ba3::t_268f8021145a82 308-309,355,363,1215
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_a71f0ec6cb2ba3::t_72fbf2e87e25c3 312-313,331,400,466-467,469,489-491,496-498,508-511,647-650,661-662,676-677,691
+  s_a71f0ec6cb2ba3::t_dc61d452f53636 492-495,499-507
+packages/modify/tests/ScreenSpaceReflectionAuthoring.test.ts
+  s_a71f0ec6cb2ba3::t_0e5f4822aa3778 291,298
+  s_a71f0ec6cb2ba3::t_2502f4dbea000c 305-306
+  s_a71f0ec6cb2ba3::t_fdde082fae6635 319-321,329,332
+packages/modify/src/native/core/src/Camera.ts
+  s_a71f0ec6cb2ba3::t_268f8021145a82 77,82,90
+world/demos/seed-world/SeedWorldDemo.ts
+  s_a71f0ec6cb2ba3::t_b71d903f0bf0c8 115,709-710
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  s_a71f0ec6cb2ba3::t_72fbf2e87e25c3 141-145,650-662
+  s_a71f0ec6cb2ba3::t_55cdd8abd2a967 663-664
+packages/modify/tests/ScreenSpaceReflectionContribution.test.ts
+  s_a71f0ec6cb2ba3::t_4a2788aef1b3e0 474-477,481-484
+  s_a71f0ec6cb2ba3::t_f7f1843bc58a72 15,308,319,341-342,387-407,409,420-473,478-480,485-502,558-560,570-571,662-665,697-698
+packages/modify/tests/ScreenSpaceReflectionContactOutline.test.ts
+  s_a71f0ec6cb2ba3::t_8f802a27a7e0d4 41-43,56,121-123,130,167-184
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "865628c406e3e4b01a9b0d979a66e8bbfda1ff79",
+  "prompts": {},
+  "sessions": {
+    "s_a71f0ec6cb2ba3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed14-9176-7b50-92c9-d23705d25bb5",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
