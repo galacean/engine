@@ -34,11 +34,6 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
 
     const pxGeometry = this._createGeometry(cookedMesh.pxMesh, scale);
     const pxShape = this._createShape(pxGeometry, material);
-    if (!pxShape) {
-      pxGeometry.delete();
-      this._releaseCookedMesh(cookedMesh);
-      return;
-    }
 
     this._id = uniqueID;
     this._cookedMesh = cookedMesh;
@@ -81,7 +76,6 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
   override destroy(): void {
     super.destroy();
     this._releaseCookedMesh(this._cookedMesh);
-    this._cookedMesh = null!;
   }
 
   private _acquireCookedMesh(
@@ -90,15 +84,16 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     cookingFlags: MeshColliderCookingFlag
   ): CookedMesh | null {
-    // Welding has no effect with mesh cleaning disabled.
-    let preprocessFlags = 0;
-    if (!(cookingFlags & MeshColliderCookingFlag.Cleaning)) {
-      preprocessFlags = 2; // eDISABLE_CLEAN_MESH
+    const isConvex = this._isConvex;
+    let variant = 0;
+    if (isConvex) {
+      variant = 3; // Convex uses the fourth slot after the triangle preprocessing variants.
+    } else if (!(cookingFlags & MeshColliderCookingFlag.Cleaning)) {
+      variant = 2; // eDISABLE_CLEAN_MESH also disables welding.
     } else if (cookingFlags & MeshColliderCookingFlag.VertexWelding) {
-      preprocessFlags = 1; // eWELD_VERTICES
+      variant = 1; // eWELD_VERTICES
     }
-    // Preprocessing flags only affect triangle cooking.
-    const key = `${source._geometryVersion}:${this._isConvex ? "convex" : preprocessFlags}`;
+    const key = source._getGeometryVersion(!isConvex) * 4 + variant;
     const cache = this._physXPhysics._meshCookCache;
     let variants = cache.get(source);
     const existing = variants?.get(key);
@@ -107,7 +102,7 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
       return existing;
     }
 
-    const pxMesh = this._cookMesh(positions, indices, preprocessFlags);
+    const pxMesh = this._cookMesh(positions, indices, variant);
     if (!pxMesh) return null;
 
     if (!variants) cache.set(source, (variants = new Map()));
@@ -132,7 +127,7 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
   private _cookMesh(
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
-    preprocessFlags: number
+    variant: number
   ): any | null {
     const {
       _physX: physX,
@@ -140,10 +135,6 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
       _pxCooking: cooking,
       _pxCookingParams: cookingParams
     } = this._physXPhysics;
-
-    // The cooking instance is shared, so set its preprocessing flags for each cook.
-    physX.setCookingMeshPreprocessParams(cookingParams, preprocessFlags);
-    cooking.setParams(cookingParams);
 
     const verticesPtr = this._allocatePositions(positions);
     if (!verticesPtr) return null;
@@ -157,6 +148,8 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
       const isU32 = indices instanceof Uint32Array;
       indicesPtr = this._allocateIndices(indices!, isU32);
       if (indicesPtr) {
+        physX.setCookingMeshPreprocessParams(cookingParams, variant);
+        cooking.setParams(cookingParams);
         pxMesh = cooking.createTriMesh(verticesPtr, positions.length, indicesPtr, indices!.length / 3, !isU32, physics);
         !pxMesh && this._logTriMeshCookingError(physX);
       }
@@ -259,11 +252,11 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
 }
 
 /** @internal Shared cooks per source and input revision. */
-export type PhysXMeshCookCache = WeakMap<object, Map<string, CookedMesh>>;
+export type PhysXMeshCookCache = WeakMap<object, Map<number, CookedMesh>>;
 
 interface CookedMesh {
   readonly source: object;
-  readonly key: string;
+  readonly key: number;
   readonly pxMesh: { release(): void };
   users: number;
 }

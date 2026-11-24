@@ -314,6 +314,29 @@ describe("MeshCollider", () => {
     expect(convex).toHaveBeenCalledOnce();
   });
 
+  it("shares a convex cook across index edits until positions change", () => {
+    const cook = watchCooking(true);
+    const first = addMesh(true);
+    const mesh = first.mesh!;
+    const hit = new HitResult();
+    expect(physics.raycast(rayAt(0), hit) && hit.collider === first).toBe(true);
+
+    mesh.setIndices(new Uint16Array([0, 3, 2]));
+    const second = addMesh(true, mesh);
+    second.entity.transform.setPosition(4, 0, 0);
+    expect(physics.raycast(rayAt(4), hit) && hit.collider === second).toBe(true);
+    expect(cook).toHaveBeenCalledOnce();
+
+    const positions = mesh.getPositions()!;
+    for (const position of positions) position.x *= 2;
+    mesh.setPositions(positions);
+    const wider = addMesh(true, mesh);
+    wider.entity.transform.setPosition(8, 0, 0);
+    expect(physics.raycast(rayAt(9.5), hit) && hit.collider === wider).toBe(true);
+    expect(physics.raycast(rayAt(1.5))).toBe(false);
+    expect(cook).toHaveBeenCalledTimes(2);
+  });
+
   it("uses the selected position buffer even when the indices were committed later", () => {
     const makeBinding = (x: number) =>
       new VertexBufferBinding(

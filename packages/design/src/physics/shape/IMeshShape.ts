@@ -4,7 +4,7 @@ import { IPhysicsShape } from "./IPhysicsShape";
 
 /** @internal The identity and geometry revision of the source of the mesh data. */
 export interface IPhysicsMeshSource {
-  readonly _geometryVersion: string;
+  _getGeometryVersion(includeIndices: boolean): number;
 }
 
 /**
