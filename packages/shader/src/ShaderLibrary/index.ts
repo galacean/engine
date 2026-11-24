@@ -15,6 +15,7 @@ import Lighting_Light from "./Lighting/Light.glsl";
 import Noise_NoiseCommon from "./Noise/NoiseCommon.glsl";
 import Noise_NoiseSimplexGrad from "./Noise/NoiseSimplexGrad.glsl";
 import PBR_BSDF from "./PBR/BSDF.glsl";
+import PBR_CommonPBR from "./PBR/CommonPBR.glsl";
 import PBR_ForwardPassPBR from "./PBR/ForwardPassPBR.glsl";
 import PBR_FragmentPBR from "./PBR/FragmentPBR.glsl";
 import PBR_LightDirectPBR from "./PBR/LightDirectPBR.glsl";
@@ -76,6 +77,7 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Noise_NoiseCommon, path: "ShaderLibrary/Noise/NoiseCommon.glsl" },
   { source: Noise_NoiseSimplexGrad, path: "ShaderLibrary/Noise/NoiseSimplexGrad.glsl" },
   { source: PBR_BSDF, path: "ShaderLibrary/PBR/BSDF.glsl" },
+  { source: PBR_CommonPBR, path: "ShaderLibrary/PBR/CommonPBR.glsl" },
   { source: PBR_ForwardPassPBR, path: "ShaderLibrary/PBR/ForwardPassPBR.glsl" },
   { source: PBR_FragmentPBR, path: "ShaderLibrary/PBR/FragmentPBR.glsl" },
   { source: PBR_LightDirectPBR, path: "ShaderLibrary/PBR/LightDirectPBR.glsl" },

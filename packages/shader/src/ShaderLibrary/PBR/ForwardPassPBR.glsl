@@ -1,19 +1,10 @@
 #ifndef FORWARD_PASS_PBR_INCLUDED
 #define FORWARD_PASS_PBR_INCLUDED
 
-// Vertex stage carries mesh tangent through to fragment only when the surface
-// samples a normal-style map AND the mesh actually provides a tangent
-// attribute. Anisotropy alone falls back to dFdx/dFdy in fragment, so it does
-// not pull tangent through the vertex pipeline.
-#if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && (defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE))
-    #define NEED_VERTEX_TANGENT
-#endif
+#include "ShaderLibrary/PBR/CommonPBR.glsl"
 
-// Fragment needs a tangent space whenever any tangent-space material feature
-// is enabled. With NEED_VERTEX_TANGENT the basis comes from the interpolated
-// tangent varying; otherwise fragment derives it from dFdx/dFdy.
-#if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY)
-    #define NEED_TANGENT_SPACE
+#if defined(NEED_VERTEX_NORMAL) && defined(RENDERER_HAS_TANGENT) && defined(NEED_TANGENT_SPACE)
+    #define NEED_VERTEX_TANGENT
 #endif
 
 #include "ShaderLibrary/Common/Common.glsl"
@@ -54,11 +45,14 @@ Varyings PBRVertex(Attributes attributes) {
 	#endif
 
   // normalWS、tangentWS、bitangentWS
-  #ifdef RENDERER_HAS_NORMAL
+  #ifdef NEED_VERTEX_NORMAL
     varyings.normalWS = vertexInputs.normalWS;
     #ifdef NEED_VERTEX_TANGENT
       varyings.tangentWS = vertexInputs.tangentWS;
       varyings.bitangentWS = vertexInputs.bitangentWS;
+      #ifdef MATERIAL_ENABLE_ANISOTROPY
+        varyings.tangentSign = vertexInputs.tangentSign;
+      #endif
     #endif
   #endif
 

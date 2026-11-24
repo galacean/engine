@@ -1,4 +1,5 @@
 import { Logger, PBRMaterial, Texture2D } from "@galacean/engine-core";
+import { MathUtil } from "@galacean/engine-math";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext, GLTFParserType } from "../parser/GLTFParserContext";
@@ -11,7 +12,7 @@ class KHR_materials_anisotropy extends GLTFExtensionParser {
     const { anisotropyStrength = 0, anisotropyRotation = 0, anisotropyTexture } = schema;
 
     material.anisotropy = anisotropyStrength;
-    material.anisotropyRotation = anisotropyRotation;
+    material.anisotropyRotation = MathUtil.radianToDegree(anisotropyRotation);
 
     if (anisotropyTexture) {
       GLTFMaterialParser._checkOtherTextureTransform(anisotropyTexture, "Anisotropy texture");
