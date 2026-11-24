@@ -1,0 +1,21 @@
+tests/src/loader/GLTFLoader.test.ts
+  s_52a76afad156b5::t_5207c128c29a8d 696-758
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  s_52a76afad156b5::t_6587c81a0fdcd4 21,38,42-51,61,78,80,121,136-189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6f93ab9c19773e152663b6a933358d35652bb7b6",
+  "prompts": {},
+  "sessions": {
+    "s_52a76afad156b5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20e2d-b8b8-78c1-b7f8-ec4810df21a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
