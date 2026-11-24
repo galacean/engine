@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { AssetType, BoxCollider, PhysicsMaterial, WebGLEngine } from "@galacean/engine";
 import { PrefabResource } from "@galacean/engine-loader";
 import { createPhysics } from "../utils/physics";
@@ -27,7 +27,6 @@ describe("PhysicsMaterialLoader", () => {
     engine.sceneManager.activeScene.rootEntities.slice().forEach((entity) => entity.destroy());
     engine.resourceManager.gc();
     urls.splice(0).forEach((url) => URL.revokeObjectURL(url));
-    vi.restoreAllMocks();
   });
   afterAll(() => engine.destroy());
 
@@ -61,35 +60,39 @@ describe("PhysicsMaterialLoader", () => {
     expect(replacement.bounciness).toBe(0.3);
   });
 
-  it("keeps a prefab material alive for prefab instances until destroyed", async () => {
+  it("releases a shared material after its prefab and instance are destroyed", async () => {
     const materialUrl = assetUrl(completeData);
     const materialPath = "materials/shared-physics.physMat";
     engine.resourceManager.registerVirtualResources([
       { virtualPath: materialPath, path: materialUrl, type: AssetType.PhysicsMaterial }
     ]);
+    const box = { type: "BoxCollider", props: { material: { $ref: 0 } } };
     const prefabUrl = assetUrl(
       {
         version: "2.0",
         refs: [{ url: materialPath }],
         root: 0,
-        entities: [{ name: "PhysicsPrefab", components: [0] }],
-        components: [{ type: "BoxCollider", props: { material: { $ref: 0 } } }]
+        entities: [{ name: "PhysicsPrefab", components: [0, 1] }],
+        components: [box, box]
       },
       "prefab"
     );
     const prefab = await engine.resourceManager.load<PrefabResource>(prefabUrl);
     const instance = prefab.instantiate();
     engine.sceneManager.activeScene.addRootEntity(instance);
-    const material = instance.getComponent(BoxCollider)!.material!;
-    expect(material.refCount).toBe(1);
+    const [first, second] = instance.getComponents(BoxCollider, []);
+    const material = first.material!;
+    expect(second.material).toBe(material);
+    expect(material.refCount).toBe(2);
     expect(prefab.destroy()).toBe(false);
     engine.resourceManager.gc();
     expect(material.destroyed).toBe(false);
     expect(material.destroy()).toBe(false);
     instance.destroy();
     expect(material.refCount).toBe(0);
+    expect(material.destroy()).toBe(false);
     expect(prefab.destroy()).toBe(true);
-    expect(material.refCount).toBe(0);
+    expect(engine.resourceManager.getFromCache(materialUrl)).toBe(material);
     expect(material.destroy()).toBe(true);
     expect(material.destroyed).toBe(true);
     expect(engine.resourceManager.getFromCache(materialUrl)).toBeNull();
