@@ -137,7 +137,7 @@ describe("Physics gameplay integration", () => {
     expect(entity.getComponent(HingeJoint)!.axis).toMatchObject({ x: 0, y: 1, z: 0 });
   });
 
-  it("loads CharacterController upDirection from a runtime Prefab call and isolates nested Prefab overrides", async () => {
+  it("loads direction and inertia rotation snapshots from runtime Prefab calls and isolates nested Prefab overrides", async () => {
     const basePath = "direction-base.prefab";
     const basePrefab = await loadPrefab(basePath, {
       version: "2.0",
@@ -145,7 +145,7 @@ describe("Physics gameplay integration", () => {
       entities: [{ name: "base", components: [0, 1, 2] }],
       components: [
         { type: "CharacterController", calls: [{ method: "_setUpDirection", args: [{ x: 0, y: 2, z: 0 }] }] },
-        { type: "Rigidbody" },
+        { type: "Rigidbody", calls: [{ method: "_setInertiaTensorRotation", args: [{ x: 0, y: 0, z: 2, w: 2 }] }] },
         { type: "HingeJoint", calls: [{ method: "_setAxis", args: [{ x: 2, y: 0, z: 0 }] }] }
       ],
       root: 0
@@ -166,6 +166,11 @@ describe("Physics gameplay integration", () => {
                   path: [],
                   selector: { type: "CharacterController", index: 0 },
                   props: { upDirection: { x: 1, y: 0, z: 0 } }
+                },
+                {
+                  path: [],
+                  selector: { type: "Rigidbody", index: 0 },
+                  props: { inertiaTensorRotation: { x: 0, y: 0, z: 0, w: 1 } }
                 },
                 {
                   path: [],
@@ -192,6 +197,18 @@ describe("Physics gameplay integration", () => {
     expect(overriddenCC.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
     expect(siblingCC.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
     expect(freshCC.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
+
+    const siblingBody = wrapper.children[0].getComponent(Rigidbody)!;
+    const overriddenBody = wrapper.children[1].getComponent(Rigidbody)!;
+    const freshBody = freshBase.getComponent(Rigidbody)!;
+    expect(overriddenBody.automaticInertiaTensor).toBe(false);
+    expect(overriddenBody.inertiaTensorRotation).toMatchObject({ x: 0, y: 0, z: 0, w: 1 });
+    expect(siblingBody.automaticInertiaTensor).toBe(false);
+    expect(siblingBody.inertiaTensorRotation.z).toBeCloseTo(Math.SQRT1_2, 5);
+    expect(siblingBody.inertiaTensorRotation.w).toBeCloseTo(Math.SQRT1_2, 5);
+    expect(freshBody.automaticInertiaTensor).toBe(false);
+    expect(freshBody.inertiaTensorRotation.z).toBeCloseTo(Math.SQRT1_2, 5);
+    expect(freshBody.inertiaTensorRotation.w).toBeCloseTo(Math.SQRT1_2, 5);
 
     const siblingJoint = wrapper.children[0].getComponent(HingeJoint)!;
     const overriddenJoint = wrapper.children[1].getComponent(HingeJoint)!;
