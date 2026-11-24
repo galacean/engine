@@ -1,0 +1,14 @@
+packages/math/src/Matrix.ts
+  h_ddbf152d31b140 443-445
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "95f4ab24f5cea46b45b4a036fde0b8c808c3f9d7",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

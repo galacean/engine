@@ -1,0 +1,16 @@
+packages/core/src/Renderer.ts
+  h_ddbf152d31b140 396,411-412
+packages/core/src/Transform.ts
+  h_ddbf152d31b140 902
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "275a1d2a430049468be0ad8f9e8de5805015916c",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+packages/loader/src/prefab/PrefabParser.ts
+  h_bd4dd7d663e619 10,13-16,19,45
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_bd4dd7d663e619 22-29,41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dc3351dc13302d8e1b3a1f008bb0643972862746",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

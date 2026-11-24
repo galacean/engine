@@ -1,0 +1,14 @@
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  h_9efd4870dd8f9d 34,186,257,259,265,272,290,308-309,335-341,344-346,348-350,352
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0f7af752a904d42629a49f8d51b8eda9f74446b3",
+  "prompts": {},
+  "humans": {
+    "h_9efd4870dd8f9d": {
+      "author": "鸿岳 <owen.wjh@alipay.com>"
+    }
+  }
+}

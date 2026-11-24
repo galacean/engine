@@ -1,0 +1,25 @@
+packages/core/src/lighting/Light.ts
+  s_7bd9d7d02a56ca::t_440bfdbae88ef8 13-14
+packages/core/src/lighting/PointLight.ts
+  s_7bd9d7d02a56ca::t_2deaeaa629e2c0 31,39
+packages/core/src/lighting/SpotLight.ts
+  s_7bd9d7d02a56ca::t_e16252035821b0 45,53
+tests/src/core/lighting/LightAttenuation.test.ts
+  s_7bd9d7d02a56ca::t_69a82d62c799e3 126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "29dd5148ce384158348e30bdcb5f20d63596355e",
+  "prompts": {},
+  "sessions": {
+    "s_7bd9d7d02a56ca": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20822-347f-74c3-8fea-1bcdd39d7148",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
