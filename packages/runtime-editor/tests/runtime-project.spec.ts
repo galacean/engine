@@ -982,6 +982,45 @@ it("runs validators and persists runtime-owned content updates", async () => {
   }
 });
 
+it("checks dependencies again when the format changes during a fast-path validator", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const initial = project();
+  const path = "farm.json";
+  const file = { type: "Farming", dependencies: [], virtualPath: path, path };
+  initial.project.files.push(file);
+  initial.contents[path] = "{}";
+  const storage = { load: async () => initial, close() {}, save: vi.fn(async () => {}) };
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage as unknown as RuntimeProjectStorage);
+  const session = await RuntimeProjectSession.open("fast-validation-format-change", initial.project, "https://example.com/");
+  const unregister = session.registerAssetFormats(new Map([[file.type, { references: () => [], referenceTypes: [] }]]));
+  await session.initializeDependencies();
+  const entered = deferred();
+  const gate = deferred();
+  session.registerProjectValidator(async () => {
+    entered.resolve();
+    await gate.promise;
+  });
+  const owner = session.ownRuntimeAsset(file, "owner");
+  try {
+    const pending = owner.update(() => ({ content: '{"revision":1}', value: undefined }));
+    await entered.promise;
+    unregister();
+    session.registerAssetFormats(new Map([[file.type, { references: () => ["mesh.bin"], referenceTypes: ["Mesh"] }]]));
+    expect(session.projectPackage.contents[path]).toBe("{}");
+    gate.resolve();
+    await pending;
+    expect(session.projectPackage.contents[path]).toBe('{"revision":1}');
+    expect(session.projectPackage.project.files.find((entry) => entry.virtualPath === path)?.dependencies).toEqual([
+      "mesh.bin"
+    ]);
+  } finally {
+    gate.resolve();
+    owner.dispose();
+    session.dispose();
+    opening.mockRestore();
+  }
+});
+
 it("keeps manifest validation intact on identical format re-registration and fast-commits unchanged-deps JSON assets", async () => {
   const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
   const { projectHistoryPatch, projectHistoryPatches } = await import("../src/project/runtime-project-history");
@@ -1375,7 +1414,7 @@ function createInMemoryProjectStorage() {
   };
 }
 
-it("publishes and persists the same detached candidate after validating a runtime-owned update", async () => {
+it.each(["runtime", "authored"])("keeps validator mutations out of %s publications and storage", async (kind) => {
   const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
   const { storage } = createInMemoryProjectStorage();
   const initial = project();
@@ -1404,7 +1443,10 @@ it("publishes and persists the same detached candidate after validating a runtim
   });
   const unregister = session.registerProjectValidator(validate);
   try {
-    const update = () => owner.update(() => ({ content: '{"revision":1}', value: undefined }));
+    const update = () =>
+      kind === "runtime"
+        ? owner.update(() => ({ content: '{"revision":1}', value: undefined }))
+        : session.publish({ ...session.projectPackage, documents: { "notes.md": "authored" } });
     const before = structuredClone(session.projectPackage);
     const commitSeq = session.persistenceStatus.commitSeq;
 
@@ -1416,17 +1458,17 @@ it("publishes and persists the same detached candidate after validating a runtim
     reject = false;
     await update();
     expect(validate).toHaveBeenCalledTimes(2);
-    expect(session.projectPackage.project.files[0].path).toBe("updated.scene");
-    expect(session.projectPackage.documents!["notes.md"]).toBe("after");
-    expect(session.projectPackage.contents["mesh.bin"]).toEqual(new Uint8Array([9, 2]));
-    expect(session.projectPackage.contents[farmPath]).toBe('{"revision":2}');
+    expect(session.projectPackage.project.files[0].path).toBe("main.scene");
+    expect(session.projectPackage.documents!["notes.md"]).toBe(kind === "authored" ? "authored" : "before");
+    expect(session.projectPackage.contents["mesh.bin"]).toEqual(new Uint8Array([1, 2]));
+    expect(session.projectPackage.contents[farmPath]).toBe(kind === "runtime" ? '{"revision":1}' : '{"revision":0}');
     expect(session.persistenceStatus.commitSeq).toBe(commitSeq + 1);
 
     // A validator retaining the candidate cannot mutate the accepted project later.
     checked!.project.files[0].path = "retained.scene";
     (checked!.contents["mesh.bin"] as Uint8Array)[0] = 7;
-    expect(session.projectPackage.project.files[0].path).toBe("updated.scene");
-    expect(session.projectPackage.contents["mesh.bin"]).toEqual(new Uint8Array([9, 2]));
+    expect(session.projectPackage.project.files[0].path).toBe("main.scene");
+    expect(session.projectPackage.contents["mesh.bin"]).toEqual(new Uint8Array([1, 2]));
     await session.flush();
     expect(await storage.load(id)).toEqual(session.projectPackage);
   } finally {
@@ -1452,6 +1494,10 @@ it("Option 1B: persists via private saveSnapshot without exposing fastPath to in
   session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
   await session.initializeDependencies();
   const owner = session.ownRuntimeAsset({ virtualPath: "farm.json", path: "farm.json", type: "Farming" }, "owner");
+  const validate = vi.fn((candidate: Readonly<RuntimeProjectPackage>) => {
+    expect(candidate.contents["farm.json"]).toMatch(/^\{"revision":\d+\}$/);
+  });
+  const unregister = session.registerProjectValidator(validate);
   try {
     // 1. First steady-state save writes header + revision + initial baseline files via saveSnapshot.
     await owner.update(() => ({ content: '{"revision":1}', value: 1 }));
@@ -1467,22 +1513,29 @@ it("Option 1B: persists via private saveSnapshot without exposing fastPath to in
     expect(firstRev).toBeTruthy();
     expect(projectFiles.get("option-1b-idb\0asset\0farm.json")).toBe('{"revision":1}');
 
+    const manifest = session.projectPackage.project;
+    await owner.update(() => ({ content: '{"revision":2}', value: 2 }));
+    await session.flush();
+    expect(session.projectPackage.project).toBe(manifest);
+    expect(stats.projectsPutCount).toBe(1);
+
     // 2. External in-place corruption of public projectPackage must NOT poison saveSnapshot or slip into IDB.
     // Steady-state content update also skips rewriting the projects header and only puts the changed asset.
     session.projectPackage.project.scene = "Scene/missing.scene";
     session.projectPackage.contents["farm.json"] = '{"revision":999,"tampered":true}';
 
-    await owner.update(() => ({ content: '{"revision":2}', value: 2 }));
+    await owner.update(() => ({ content: '{"revision":3}', value: 3 }));
     await session.flush();
-    expect(saveSnapshotSpy).toHaveBeenCalledTimes(2);
+    expect(validate).toHaveBeenCalledTimes(3);
+    expect(saveSnapshotSpy).toHaveBeenCalledTimes(3);
     expect(saveSpy).not.toHaveBeenCalled();
     expect(stats.projectsPutCount).toBe(1);
-    expect(stats.revisionsPutCount).toBe(2);
+    expect(stats.revisionsPutCount).toBe(3);
     expect(stats.filesRangeDeleteCount).toBe(1);
-    expect(stats.filesPutCount).toBe(initialFilesPutCount + 1);
+    expect(stats.filesPutCount).toBe(initialFilesPutCount + 2);
     expect(projectRevisions.get("option-1b-idb")?.storageRevision).not.toBe(firstRev);
     expect((projects.get("option-1b-idb")?.project as { scene: string }).scene).toBe("Scene/main.scene");
-    expect(projectFiles.get("option-1b-idb\0asset\0farm.json")).toBe('{"revision":2}');
+    expect(projectFiles.get("option-1b-idb\0asset\0farm.json")).toBe('{"revision":3}');
 
     // 3. Both session.save() and public storage.save() read/validate the mutated projectPackage and reject it.
     await expect(session.save()).rejects.toThrow("Unregistered runtime Scene 'Scene/missing.scene'");
@@ -1491,6 +1544,7 @@ it("Option 1B: persists via private saveSnapshot without exposing fastPath to in
     );
     expect(saveSpy).toHaveBeenCalledTimes(1);
   } finally {
+    unregister();
     saveSpy.mockRestore();
     saveSnapshotSpy.mockRestore();
     owner.dispose();

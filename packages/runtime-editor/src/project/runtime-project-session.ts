@@ -80,6 +80,11 @@ type PrepareRuntimeAssetEdit = (
   finish?: () => void;
 };
 
+type RuntimeProjectValidator = (
+  candidate: Readonly<RuntimeProjectPackage>,
+  signal: AbortSignal
+) => void | Promise<void>;
+
 /** Owns project restoration and the lifetime of resource URLs in one game session. */
 export class RuntimeProjectSession {
   readonly history = new RuntimeProjectHistory();
@@ -92,9 +97,7 @@ export class RuntimeProjectSession {
   private readonly textAssetTypes = new Map<string, number>();
   private readonly runtimeAssetOwners = new Set<string>();
   private readonly runtimeAssetEditors = new Map<string, PrepareRuntimeAssetEdit>();
-  private readonly projectValidators = new Set<
-    (candidate: RuntimeProjectPackage, signal: AbortSignal) => void | Promise<void>
-  >();
+  private readonly projectValidators = new Set<RuntimeProjectValidator>();
   private readonly nativeFormats = nativeAssetFormats(() => ({}));
   private readonly referenceFormats = new Map(this.nativeFormats);
   readonly dependencyMaintenance: RuntimeDependencyMaintenance;
@@ -114,6 +117,15 @@ export class RuntimeProjectSession {
     this.validatedManifest = undefined;
     this.validatedFilesLength = -1;
     this.validatedDocuments = undefined;
+  }
+
+  private isManifestValidated(pack: RuntimeProjectPackage): boolean {
+    return (
+      !this.needsInitialization &&
+      this.validatedManifest === pack.project &&
+      this.validatedFilesLength === pack.project.files.length &&
+      this.validatedDocuments === pack.documents
+    );
   }
 
   /** Same reference extractors serve editor drafts and direct domain publications. */
@@ -158,20 +170,21 @@ export class RuntimeProjectSession {
     };
   }
 
-  /** Domain constraints run on detached candidates before publication, never by inspecting live instances. */
-  registerProjectValidator(
-    validate: (candidate: RuntimeProjectPackage, signal: AbortSignal) => void | Promise<void>
-  ): () => void {
+  /** Inspect a detached, read-only candidate before publication. Throw to reject it.
+   * Use edit preparation to amend the proposed project. Validator mutations are discarded. */
+  registerProjectValidator(validate: RuntimeProjectValidator): () => void {
     this.lifetime.signal.throwIfAborted();
     this.projectValidators.add(validate);
     return () => this.projectValidators.delete(validate);
   }
   validateCandidate(candidate: RuntimeProjectPackage, signal = this.lifetime.signal): void | Promise<void> {
+    if (this.projectValidators.size === 0) return;
+    const detached = cloneRuntimeProjectPackage(candidate);
     let pending: Promise<void> | undefined;
     for (const validate of this.projectValidators) {
       const run = () => {
         signal.throwIfAborted();
-        return validate(candidate, signal);
+        return validate(detached, signal);
       };
       if (pending) pending = pending.then(run);
       else {
@@ -999,14 +1012,11 @@ export class RuntimeProjectSession {
           let canFastCommit = false;
           let extractedDeps: string[] | undefined;
           const baseFastReady =
-            !this.needsInitialization &&
             existing !== undefined &&
             existing.type !== "script" &&
-            this.validatedManifest === pack.project &&
-            this.validatedFilesLength === pack.project.files.length &&
-            this.validatedDocuments === pack.documents &&
+            this.isManifestValidated(pack) &&
             Array.isArray(existing.dependencies);
-          if (this.projectValidators.size === 0 && baseFastReady && format) {
+          if (baseFastReady && format) {
             if (format.referenceTypes?.length === 0 && existing.dependencies!.length === 0) {
               canFastCommit = true;
             } else {
@@ -1021,22 +1031,20 @@ export class RuntimeProjectSession {
               }
             }
           }
-          // Validators may amend the candidate. All such writes share the full publication path.
-          if (canFastCommit && this.projectValidators.size === 0) {
-            this.commitRuntimeContentUpdate(path, content, existing, extractedDeps);
-          } else {
-            await this.commitPackage(
-              {
-                ...pack,
-                project: {
-                  ...pack.project,
-                  files: existing ? [...pack.project.files] : [...pack.project.files, { ...file }]
-                },
-                contents: { ...pack.contents, [path]: content }
+          if (canFastCommit && (await this.tryCommitRuntimeContentUpdate(path, content, existing, extractedDeps)))
+            return result.value;
+          const files = pack.project.files;
+          await this.commitPackage(
+            {
+              ...pack,
+              project: {
+                ...pack.project,
+                files: files.some((entry) => entry.virtualPath === path) ? files : [...files, file]
               },
-              path
-            );
-          }
+              contents: { ...pack.contents, [path]: content }
+            },
+            path
+          );
           return result.value;
         }, [path]),
       dispose: () => {
@@ -1049,17 +1057,30 @@ export class RuntimeProjectSession {
     };
   }
 
-  private commitRuntimeContentUpdate(
+  private async tryCommitRuntimeContentUpdate(
     path: string,
     content: string | Uint8Array,
     existing?: RuntimeProjectManifest["files"][number],
     extractedDeps?: readonly string[]
-  ): void {
+  ): Promise<boolean> {
     this.lifetime.signal.throwIfAborted();
     const pack = this.projectPackage;
-    const nextContents = { ...pack.contents, [path]: content };
+    if (!this.isManifestValidated(pack)) return false;
+    const { project, documents, contents } = pack;
+    const nextContents = { ...contents, [path]: content };
+    const validation = this.validateCandidate({ ...pack, contents: nextContents });
+    if (validation) await validation;
+    this.lifetime.signal.throwIfAborted();
+    // Asset format registration can invalidate the fast path while a validator is pending.
+    if (
+      !this.isManifestValidated(pack) ||
+      pack.project !== project ||
+      pack.documents !== documents ||
+      pack.contents !== contents
+    )
+      return false;
     for (const pending of this.pendingReads) {
-      if (pending.path === path && !sameOptionalResourceContent(content, pack.contents[path])) {
+      if (pending.path === path && !sameOptionalResourceContent(content, contents[path])) {
         pending.invalidated = true;
       }
     }
@@ -1069,6 +1090,7 @@ export class RuntimeProjectSession {
       this.dependencyMaintenance.rememberAcceptedAsset(this.projectPackage, existing, extractedDeps);
     }
     this.persistence.committed();
+    return true;
   }
 
   private enqueuePublication<T>(operation: () => Promise<T>, affectedAssets?: readonly string[]): Promise<T> {
@@ -1139,14 +1161,7 @@ export class RuntimeProjectSession {
         file.dependencies = [...preserved];
       }
     }
-    if (this.projectValidators.size > 0) {
-      const validationCandidate = cloneRuntimeProjectPackage(candidate);
-      await this.validateCandidate(validationCandidate);
-      // Publish the validated result without exposing live state to retained validator references.
-      const validated = cloneRuntimeProjectPackage(validationCandidate);
-      invalidateChangedDependencies(candidate, validated, this.referenceFormats);
-      candidate = validated;
-    }
+    await this.validateCandidate(candidate);
     const authoredContentPaths = new Set(
       Object.keys(candidate.contents).filter((path) => this.projectPackage.contents[path] === undefined)
     );

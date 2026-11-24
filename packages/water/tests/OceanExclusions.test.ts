@@ -1,14 +1,19 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { compileWaterShape, validateWaterShape, type WaterShapeAuthoring } from "../src/water/native/WaterAuthoring";
 import { createWaterRepresentationInstanceStateV1 } from "../src/water/authoring/body/WaterBodyInstance";
 import { createWaterQualitySettings } from "../src/water/native/WaterQualitySettings";
 import { createImmutableWaterSnapshot } from "../src/water/authoring/identity/WaterImmutableSnapshot";
+import { WATER_CONNECTION_SHORE_SIZE } from "../src/water/authoring/connections/WaterConnection";
+import { numericContentIdentity } from "../src/water/compiler/shared/numericIdentity";
 import {
   computeOceanWaterSourceHash,
   createEffectiveOceanWaterBodyDescriptor,
   OceanWaterCompiledResource,
   type OceanWaterBodyDescriptorV1
 } from "../src/water/runtime/ocean/OceanWaterCompiledResource";
+
+vi.mock(import("../src/water/compiler/shared/numericIdentity"), { spy: true });
+
 const shape: Extract<WaterShapeAuthoring, { kind: "ocean" }> = {
   kind: "ocean",
   waterLevel: 0,
@@ -169,4 +174,50 @@ it("reuses owned Ocean snapshot buffers and isolates transfer payloads", () => {
   expect(wetMask({ ...input, config: transferred.data.config })[0]).toBe(1);
   expect(wetMask(input)[0]).toBe(1);
   expect(wetMask(effective)[0]).toBe(1);
+});
+
+it.each([false, true])("hashes normalized transfer data with immutable inputs only (immutable: %s)", (immutable) => {
+  const raw = oceanDescriptor();
+  const inputDescriptor: OceanWaterBodyDescriptorV1 = {
+    ...raw,
+    config: {
+      ...raw.config,
+      nearshoreDescriptor: {
+        ...raw.config.nearshoreDescriptor,
+        signedShoreDistances: Float32Array.from(wetMask(raw), (wet) => (wet ? 1 : -1))
+      },
+      connections: [
+        {
+          id: "port",
+          center: [0, 0],
+          normal: [1, 0],
+          halfWidth: 1,
+          length: 1,
+          coverageBounds: [0, 0, 8, 8],
+          shoreField: { origin: [0, 0], spacing: 1, distances: Array(WATER_CONNECTION_SHORE_SIZE ** 2).fill(0) },
+          side: 1,
+          environmentTransition: true,
+          ...{ callerMetadata: "removed by connection decoding" }
+        }
+      ]
+    }
+  };
+  const input = immutable ? createImmutableWaterSnapshot(inputDescriptor) : inputDescriptor;
+  const rawHash = computeOceanWaterSourceHash(input);
+  const identity = vi.mocked(numericContentIdentity).mockClear();
+  const transfer = OceanWaterCompiledResource.compileForTransfer(input);
+  const payload = { ...input, config: transfer.data.config };
+  const hashedDescriptor = immutable ? input : payload;
+  const hashedBuffers = identity.mock.calls.map(([buffer]) => buffer);
+  expect(hashedBuffers[0]).toBe(hashedDescriptor.config.nearshoreDescriptor.bedHeights);
+  expect(hashedBuffers[1]).toBe(hashedDescriptor.config.nearshoreDescriptor.signedShoreDistances);
+  expect(hashedBuffers[2]).toBe(wetMask(hashedDescriptor));
+  expect(payload.config.nearshoreDescriptor.bedHeights).not.toBe(input.config.nearshoreDescriptor.bedHeights);
+  expect(payload.config.nearshoreDescriptor.signedShoreDistances).not.toBe(
+    input.config.nearshoreDescriptor.signedShoreDistances
+  );
+  expect(wetMask(payload)).not.toBe(wetMask(input));
+  expect(payload.config.connections![0]).not.toHaveProperty("callerMetadata");
+  expect(transfer.sourceHash).toBe(computeOceanWaterSourceHash(payload));
+  expect(transfer.sourceHash).not.toBe(rawHash);
 });

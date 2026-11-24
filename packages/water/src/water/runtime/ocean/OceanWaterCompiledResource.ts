@@ -134,8 +134,14 @@ export function assertOceanWaterBodyDescriptor(value: unknown): asserts value is
   assertEngineObjectFree(value.config, "$.config", new WeakSet());
 }
 
-function hashableDescriptor(descriptor: Readonly<OceanWaterBodyDescriptorV1>): object {
+function hashableDescriptor(
+  descriptor: Readonly<OceanWaterBodyDescriptorV1>,
+  originalNearshore?: OceanWaterSourceConfig["nearshoreDescriptor"]
+): object {
   const nearshore = descriptor.config.nearshoreDescriptor;
+  const numericIdentity = (owned: ArrayLike<number>, original?: ArrayLike<number>) =>
+    numericContentIdentity(isImmutableWaterSnapshot(original) ? original : owned);
+  const originalWetSource = originalNearshore?.wetSource;
   return {
     schemaVersion: descriptor.schemaVersion,
     id: descriptor.id,
@@ -147,16 +153,19 @@ function hashableDescriptor(descriptor: Readonly<OceanWaterBodyDescriptorV1>): o
         id: nearshore.id,
         waterLevel: nearshore.waterLevel,
         grid: nearshore.grid,
-        bedHeights: numericContentIdentity(nearshore.bedHeights),
+        bedHeights: numericIdentity(nearshore.bedHeights, originalNearshore?.bedHeights),
         signedShoreDistances: nearshore.signedShoreDistances
-          ? numericContentIdentity(nearshore.signedShoreDistances)
+          ? numericIdentity(nearshore.signedShoreDistances, originalNearshore?.signedShoreDistances)
           : undefined,
         wetSource:
           nearshore.wetSource.kind === "mask"
             ? {
                 kind: nearshore.wetSource.kind,
                 minimumDepth: nearshore.wetSource.minimumDepth,
-                mask: numericContentIdentity(nearshore.wetSource.mask)
+                mask: numericIdentity(
+                  nearshore.wetSource.mask,
+                  originalWetSource?.kind === "mask" ? originalWetSource.mask : undefined
+                )
               }
             : nearshore.wetSource,
         outsidePolicy: nearshore.outsidePolicy,
@@ -287,12 +296,10 @@ export class OceanWaterCompiledResource extends WaterReferenceCountedCompiledRes
   ): Readonly<OceanWaterCompiledTransferV1> {
     assertOceanWaterBodyDescriptor(descriptor);
     // Transfer can detach buffers. Give the payload its own copy, including when the input is a cached snapshot.
-    const source = effectiveOceanDescriptor(
-      descriptor,
-      createWaterCompiledDataSnapshot(descriptor.config.nearshoreDescriptor)
-    );
-    // Both identities keep their existing hash formats, sharing the owned numeric view.
-    const body = hashableDescriptor(source);
+    const originalNearshore = descriptor.config.nearshoreDescriptor;
+    const source = effectiveOceanDescriptor(descriptor, createWaterCompiledDataSnapshot(originalNearshore));
+    // Hash the normalized configuration and reuse identities only for unchanged immutable buffers.
+    const body = hashableDescriptor(source, originalNearshore);
     const sourceHash = hashStableValue({ compilerVersion: OCEAN_WATER_COMPILER_VERSION, descriptor: body });
     const compileKey = sourceHash;
     const physicalSourceHash = hashStableValue({ physicalSchemaVersion: 3, body, responseModel: OCEAN_LOOK });
