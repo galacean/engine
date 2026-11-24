@@ -212,7 +212,7 @@ export class CharacterController extends Collider {
     if (!dimensions) {
       return false;
     }
-    const center = this._getScaledCenter(scale, this.center).add(transform.worldPosition);
+    const center = this._getScaledCenter(scale).add(transform.worldPosition);
     return setCapsuleBounds(out, center, this._upDirection, dimensions.radius, dimensions.halfHeight);
   }
 
@@ -251,7 +251,7 @@ export class CharacterController extends Collider {
     // Sync world position and signed center offset.
     const controller = this._controller!;
     const position = transform.worldPosition;
-    const { x: centerX, y: centerY, z: centerZ } = this._getScaledCenter(lossyScale, this.center);
+    const { x: centerX, y: centerY, z: centerZ } = this._getScaledCenter(lossyScale);
     const syncedCenter = this._syncedCenter;
     const nativePosition = this._nativePosition;
     if (

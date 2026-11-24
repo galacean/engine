@@ -418,9 +418,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return null;
   }
 
-  protected _getScaledCenter(scale: Vector3, localCenter: Vector3 = this._center): Vector3 {
+  protected _getScaledCenter(scale: Vector3): Vector3 {
     const center = Collider._tempPosition;
-    Vector3.multiply(localCenter, scale, center);
+    Vector3.multiply(this._center, scale, center);
     return center;
   }
 
