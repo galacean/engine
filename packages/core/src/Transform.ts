@@ -657,7 +657,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const sx = Math.abs(scale.x);
     const sy = Math.abs(scale.y);
     const sz = Math.abs(scale.z);
-    const eps = 1e-4;
+    const eps = MathUtil.zeroTolerance;
     return (
       Math.abs(e[0] * e[4] + e[1] * e[5] + e[2] * e[6]) > eps * sx * sy ||
       Math.abs(e[0] * e[8] + e[1] * e[9] + e[2] * e[10]) > eps * sx * sz ||
