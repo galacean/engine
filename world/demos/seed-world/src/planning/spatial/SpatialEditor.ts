@@ -89,6 +89,7 @@ export async function mountSpatialEditor(
     show();
   }
   let storageWarning = "";
+  let hasUserEdits = false;
   let clearingStorage = false;
   let resettingPlanning = false;
   let saved: PlanningDocument | undefined;
@@ -469,6 +470,7 @@ export async function mountSpatialEditor(
         await transaction.prepare(abort.signal);
         await storage.save(transaction.session.export(), crypto.randomUUID(), settings.resetWater);
         transaction.commit();
+        hasUserEdits = true;
         await view.publishPlan(session.result!.plan, abort.signal, () => {});
       }
       render();
@@ -539,8 +541,8 @@ export async function mountSpatialEditor(
 
 
   button("generate").onclick = async () => {
-    if (!options.onGenerate3D || button("generate").disabled) return;
-    const plan = currentPlan();
+    const result = session.result;
+    if (!options.onGenerate3D || button("generate").disabled || !result) return;
     director.close();
     generating = true;
     root.inert = true;
@@ -548,7 +550,12 @@ export async function mountSpatialEditor(
     button("generate").textContent = "正在生成…";
     try {
       await project.save();
-      await options.onGenerate3D(plan, session, storage.pendingWaterReset);
+      await options.onGenerate3D({
+        document: session.export(),
+        result,
+        waterResetRequest: storage.pendingWaterReset,
+        userEdit: !project.isPersistent && hasUserEdits
+      });
     } catch (error) {
       if (!disposed) status("生成 3D 未能完成：" + String(error));
     } finally {

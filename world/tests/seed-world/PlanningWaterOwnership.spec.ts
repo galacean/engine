@@ -220,6 +220,61 @@ it("rebuilds handed-off water over a target template's old shapes and deletion r
   } finally { fetch.mockRestore(); }
 }, 60000);
 
+it("preserves explicit user edit provenance when planning enters a temporary world", async () => {
+  const { RuntimeProjectSession } = await import("@galacean/engine-runtime-editor/project/runtime-project-session");
+  const { attachProjectSaveLifecycle } = await import("@galacean/engine-runtime-editor/project/project-save-control");
+  const { RuntimeProjectStorage } = await import("@galacean/engine-project/runtime-editor/project/runtime-project");
+  const { draft, document } = fixture(1);
+  const initial = draft.finish();
+  const planner = new PlanningSession(
+    exportPlanningRecipe(document),
+    async (next) => generatePlanningDocument(next, undefined, [], undefined, { environment: false }),
+    document
+  );
+  await planner.initialize();
+  const edit = await planner.dispatchParameters([
+    { op: "set", entity: "world", component: "lighting", values: { timeHours: 19.5 } }
+  ]);
+  expect(edit.status).toBe("accepted");
+  const edited = planner.export();
+  expect(edited.revision).toBeGreaterThan(0);
+  const open = vi.spyOn(RuntimeProjectStorage, "open").mockRejectedValue(new DOMException("Storage disabled", "SecurityError"));
+  try {
+    // The same document can arrive from a durable save or from an unsaved editor.
+    for (const userEdit of [false, true]) {
+      const target = await RuntimeProjectSession.open("planning-handoff", initial.project, "https://example.test/project.json");
+      let source: Awaited<ReturnType<typeof createPlanningWorldSource>> | undefined;
+      let dispose: (() => void) | undefined;
+      try {
+        expect(target.isPersistent).toBe(false);
+        await target.publish(initial, undefined, [], undefined, { userEdit: false });
+        const storage = new PlanningProjectStorage(target);
+        source = await createPlanningWorldSource(
+          "?seed=1",
+          { document: structuredClone(edited), result: planner.result!, userEdit },
+          storage
+        );
+        await storage.migrateToSource(source.session.document, source.replaceSavedTemplate);
+        expect(source.session.document.entities.world.components.lighting.values.timeHours).toBe(19.5);
+
+        const win = new EventTarget();
+        const doc = Object.assign(new EventTarget(), { visibilityState: "visible" as const });
+        dispose = attachProjectSaveLifecycle(target, win, doc);
+        const event = new Event("beforeunload", { cancelable: true });
+        win.dispatchEvent(event);
+        expect(target.userEditSeq).toBe(userEdit ? 1 : 0);
+        expect(event.defaultPrevented).toBe(userEdit);
+      } finally {
+        dispose?.();
+        source?.dispose();
+        target.dispose();
+      }
+    }
+  } finally {
+    open.mockRestore();
+  }
+}, 30000);
+
 it("consumes cross-project template resets once and preserves edits when an older planning page is reopened", async () => {
   const makeProject = (pack: RuntimeProjectPackage) => ({
     projectPackage: pack,

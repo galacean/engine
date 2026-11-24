@@ -238,6 +238,7 @@ export function createSceneGenerationSession(
   viewportAspect: () => number = () => 1
 ): SceneGenerationSession {
   const preparedTargets = new Set<string>();
+  const initialRevision = planning.document.revision;
   let rendered = false;
   let renderTask: Promise<void> | undefined;
   let generatedSubject: { id: string; representation: "obb"; visibleFraction: number } |
@@ -321,7 +322,11 @@ export function createSceneGenerationSession(
             groundAreaM2: selected.groundAreaM2, forwardReachM: selected.forwardReachM };
         }
         signal.throwIfAborted();
-        const handoff = { document: structuredClone(planning.document), result: planning.result };
+        const handoff: PlanningWorldHandoff = {
+          document: structuredClone(planning.document),
+          result: planning.result,
+          userEdit: planning.document.revision !== initialRevision
+        };
         renderTask ??= Promise.resolve().then(() => render(handoff));
         try {
           await renderTask;

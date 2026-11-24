@@ -523,6 +523,66 @@ it("reopens and retries once when database.transaction() throws InvalidStateErro
   }
 });
 
+it("retries in-flight loads and saves when abort precedes the shared connection close", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("IDBKeyRange", { bound: (lower: unknown, upper: unknown) => ({ lower, upper }) });
+  const env = memoryDatabaseFactory();
+  const storage = await RuntimeProjectStorage.open(env.factory);
+  try {
+    const initial = project();
+    await storage.save("world-a", initial);
+    const old = env.handles[0];
+    const begin = old.database.transaction.bind(old.database);
+    const starts = vi.spyOn(old.database, "transaction").mockImplementation((stores, mode) => {
+      const transaction = begin(stores, mode);
+      Object.defineProperty(transaction, "error", { value: new DOMException("Forced close", "UnknownError") });
+      transaction.abort();
+      return transaction;
+    });
+
+    const updated = project();
+    updated.contents["Scene/main.scene"] = '{"recovered":true}';
+    const pending = Promise.all([storage.load("world-a"), storage.save("world-b", updated)]);
+    const recovered = expect(pending).resolves.toEqual([initial, undefined]);
+    // The fake transaction delivers abort in a microtask. Close arrives in a later task.
+    setTimeout(() => old.triggerClose(), 0);
+    await vi.advanceTimersByTimeAsync(0);
+    await recovered;
+    expect(starts).toHaveBeenCalledTimes(2);
+    expect(env.openCount()).toBe(2);
+    expect(await storage.load("world-b")).toEqual(updated);
+  } finally {
+    storage.close();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  }
+});
+
+it("keeps an ordinary transaction abort failed when the connection stays open", async () => {
+  vi.useFakeTimers();
+  const env = memoryDatabaseFactory();
+  const storage = await RuntimeProjectStorage.open(env.factory);
+  try {
+    const database = env.handles[0].database;
+    const begin = database.transaction.bind(database);
+    vi.spyOn(database, "transaction").mockImplementationOnce((stores, mode) => {
+      const transaction = begin(stores, mode);
+      Object.defineProperty(transaction, "error", { value: new DOMException("Aborted", "AbortError") });
+      transaction.abort();
+      return transaction;
+    });
+
+    const failure = expect(storage.load("aborted")).rejects.toThrow("Project load transaction aborted");
+    await vi.runAllTimersAsync();
+    await failure;
+    expect(env.openCount()).toBe(1);
+    await expect(storage.load("missing")).resolves.toBeUndefined();
+  } finally {
+    storage.close();
+    vi.useRealTimers();
+  }
+});
+
 it("keeps explicit storage.close() permanently closed and rejects subsequent operations without reopening", async () => {
   vi.stubGlobal("IDBKeyRange", { bound: (lower: unknown, upper: unknown) => ({ lower, upper }) });
   const env = memoryDatabaseFactory();

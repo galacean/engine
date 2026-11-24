@@ -480,6 +480,7 @@ export class RuntimeProjectSnapshot {
 }
 
 export const DEFAULT_RUNTIME_PROJECT_STORAGE_TIMEOUT_MS = 4000;
+const RUNTIME_PROJECT_STORAGE_CLOSE_GRACE_MS = 50;
 
 export interface RuntimeProjectStorageOpenOptions {
   /** Timeout in ms before aborting a wedged IndexedDB open or read. Set <= 0 or Infinity to disable. */
@@ -532,6 +533,7 @@ export class RuntimeProjectStorage {
   // Private snapshots are exact comparison baselines, never exposed as mutable author data.
   private readonly snapshots = new Map<string, StorageSnapshot>();
   private readonly operations = new Map<string, Promise<unknown>>();
+  private readonly databaseClosures = new WeakMap<IDBDatabase, AbortController>();
   private readonly memoryStore?: Map<string, RuntimeProjectPackage>;
   private readonly timeoutMs: number;
   private database?: IDBDatabase;
@@ -657,6 +659,8 @@ export class RuntimeProjectStorage {
   }
 
   private attachDatabaseHandlers(database: IDBDatabase): void {
+    const closure = new AbortController();
+    this.databaseClosures.set(database, closure);
     database.onversionchange = () => {
       if (this.database === database) this.close();
     };
@@ -665,12 +669,31 @@ export class RuntimeProjectStorage {
         this.connectionLost = true;
         this.snapshots.clear();
       }
+      closure.abort();
     };
+  }
+
+  private waitForDatabaseClose(database: IDBDatabase): Promise<boolean> {
+    const signal = this.databaseClosures.get(database)?.signal;
+    if (!signal || signal.aborted) return Promise.resolve(signal?.aborted ?? false);
+    // Forced closures can abort transactions before the browser delivers close.
+    return new Promise((resolve) => {
+      const onClose = () => {
+        clearTimeout(timer);
+        resolve(true);
+      };
+      const timer = setTimeout(() => {
+        signal.removeEventListener("abort", onClose);
+        resolve(false);
+      }, RUNTIME_PROJECT_STORAGE_CLOSE_GRACE_MS);
+      signal.addEventListener("abort", onClose, { once: true });
+    });
   }
 
   private detachAndClose(database: IDBDatabase): void {
     database.onversionchange = null;
     database.onclose = null;
+    this.databaseClosures.get(database)?.abort();
     try {
       database.close();
     } catch {
@@ -734,16 +757,21 @@ export class RuntimeProjectStorage {
         return await run(transaction);
       } catch (error) {
         if (
-          attempt === 0 &&
-          !this.closed &&
-          this.factory &&
-          this.connectionLost &&
-          !(error instanceof RuntimeProjectStorageUnavailableError && error.timedOut)
+          attempt !== 0 ||
+          this.closed ||
+          !this.factory ||
+          (error instanceof RuntimeProjectStorageUnavailableError && error.timedOut)
         ) {
-          await this.reopenDatabase(database);
-          continue;
+          throw error;
         }
-        throw error;
+        const transactionError = transaction.error?.name;
+        const disconnected =
+          this.connectionLost ||
+          this.database !== database ||
+          ((transactionError === "AbortError" || transactionError === "UnknownError") &&
+            (await this.waitForDatabaseClose(database)));
+        if (!disconnected || this.closed) throw error;
+        await this.reopenDatabase(database);
       }
     }
     throw new Error("Project storage transaction failed");

@@ -38,7 +38,12 @@ export class PlanningProjectStorage {
   }
 
   /** New Source authoring baseline is ready before the first Engine Scene load. */
-  async initialize(document: PlanningDocument, result: SemanticResult, waterResetRequest?: string): Promise<PlanningDocument> {
+  async initialize(
+    document: PlanningDocument,
+    result: SemanticResult,
+    waterResetRequest?: string,
+    { userEdit = false }: { userEdit?: boolean } = {}
+  ): Promise<PlanningDocument> {
     const defaults = this.hasCoreWaterDefaults ? undefined : await loadPlanningWaterDefaults();
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       const draft = new RuntimeProjectEdit(pack, new Map([...nativeAssetFormats(() => ({})), ...this.formats]));
@@ -56,8 +61,8 @@ export class PlanningProjectStorage {
       draft.writeDocument(`${pack.project.scene}.planning-source.json`, JSON.stringify({ version: 1 }));
       return draft.finish();
     };
-    if (this.project.update) await this.project.update(build, { userEdit: false });
-    else await this.project.publish(build(this.project.projectPackage), undefined, undefined, undefined, { userEdit: false });
+    if (this.project.update) await this.project.update(build, { userEdit });
+    else await this.project.publish(build(this.project.projectPackage), undefined, undefined, undefined, { userEdit });
     return planningSourceDocument(this.project.projectPackage)!;
   }
 

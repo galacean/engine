@@ -15,6 +15,8 @@ export interface PlanningWorldHandoff {
   document: PlanningDocument;
   result: SemanticResult;
   waterResetRequest?: string;
+  /** The handoff contains user edits without a durable source copy. */
+  userEdit?: boolean;
 }
 
 /** Acquire authoring/storage/worker ownership without publishing. The native page
@@ -25,7 +27,7 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   readonly hasCoreWaterDefaults?: boolean;
   load(seed: number): Promise<PlanningDocument | undefined>; save(document: PlanningDocument): Promise<void>;
   retainWater?(document: PlanningDocument): PlanningDocument;
-  initialize?(document: PlanningDocument, result: SemanticResult, waterResetRequest?: string): Promise<PlanningDocument>;
+  initialize?(document: PlanningDocument, result: SemanticResult, waterResetRequest?: string, options?: { userEdit?: boolean }): Promise<PlanningDocument>;
 }, workerClient?: PlanningWorkerClient) {
   const query = new URLSearchParams(search);
   const raw = query.get("seed");
@@ -67,7 +69,9 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
       );
       if (!accepted?.accepted) throw new Error("Water authoring initialization requires an accepted planning result");
       document = await seedWorldBootTrace.span("planningSource.storage.initialize", () =>
-        storage.initialize!(document!, accepted!, handoff?.waterResetRequest ?? lowPolyWaterRefreshRequest)
+        storage.initialize!(document!, accepted!, handoff?.waterResetRequest ?? lowPolyWaterRefreshRequest, {
+          userEdit: handoff?.userEdit ?? false
+        })
       );
     } catch (error) { client.dispose(); throw error; }
   }

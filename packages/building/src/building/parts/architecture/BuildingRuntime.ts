@@ -702,6 +702,8 @@ export class BuildingRuntime extends Script {
     this.readTransforms();
     const revision = this.revision,
       beforeApplied = this.applied,
+      beforeError = this.error,
+      beforeRetryAt = this.retryAt,
       host = this.host!;
     let previous = this.publishedTerrain;
     const before = [...this.views.values()],
@@ -772,6 +774,8 @@ export class BuildingRuntime extends Script {
     };
     const rollback = () => {
       if (finished || !committed) return;
+      this.error = beforeError;
+      this.retryAt = beforeRetryAt;
       install(before, previous, beforeSignatures, beforeApplied);
       committed = false;
     };
@@ -853,6 +857,8 @@ export class BuildingRuntime extends Script {
           // Set first so even an unexpected mutate-then-throw setter can roll back.
           committed = true;
           try {
+            this.error = undefined;
+            this.retryAt = Infinity;
             install(prepared, next, preparedSignatures, revision);
           } catch (error) {
             rollback();
