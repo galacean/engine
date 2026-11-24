@@ -1,0 +1,19 @@
+packages/physics-physx/src/shape/PhysXShape.ts
+  s_5da2bd558c3d51::t_14e76759080279 9,13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dc63e5a90b3e97d80c3dbefa57dd0e90c6efcb82",
+  "prompts": {},
+  "sessions": {
+    "s_5da2bd558c3d51": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2089b-63ac-7c81-84af-252168a4d063",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
