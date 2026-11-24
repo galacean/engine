@@ -25,7 +25,6 @@ export class PhysXCharacterController implements ICharacterController {
   private _worldPosition = new Vector3();
   private _contactOffset = 0.02;
   private _collisionLayer = 0;
-  private _isSceneQuery = true;
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
@@ -87,14 +86,6 @@ export class PhysXCharacterController implements ICharacterController {
       this._physXPhysics._physX.setGroup(actor, layer);
       actor.delete();
     }
-  }
-
-  /**
-   * {@inheritDoc ICharacterController.setIsSceneQuery }
-   */
-  setIsSceneQuery(value: boolean): void {
-    this._isSceneQuery = value;
-    this._pxController?.setSceneQueryEnabled(value);
   }
 
   /**
@@ -205,7 +196,6 @@ export class PhysXCharacterController implements ICharacterController {
     }
     this._pxController = pxController;
     pxController.setUUID(this._id);
-    pxController.setSceneQueryEnabled(this._isSceneQuery);
     const actor = pxController.getActor();
     physX.setGroup(actor, this._collisionLayer);
     actor.delete();

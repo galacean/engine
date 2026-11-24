@@ -27,10 +27,14 @@ export class PhysicsMaterial extends ReferResource {
   /**
    * Create a physics material.
    * @param engine - Engine to which the physics material belongs
+   * @throws When `engine` is invalid or physics is not initialized on it.
    */
   constructor(engine: Engine) {
     if (!(engine instanceof Engine)) {
       throw new Error("PhysicsMaterial requires an owning Engine.");
+    }
+    if (!engine._physicsInitialized) {
+      throw new Error("Physics is not initialized on this Engine.");
     }
     const nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
     super(engine);

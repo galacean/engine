@@ -5,23 +5,46 @@ import { Engine } from "../Engine";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { Collider } from "./Collider";
 
-type MeshData = {
-  positions: Vector3[];
-  indices: Uint8Array | Uint16Array | Uint32Array | null;
-};
-
-const enum MeshSyncRejection {
-  None = 0,
-  TriggerOnNonConvex = 1,
-  CookFailed = 2
-}
-
 /**
  * A collider based on a triangle mesh or a convex hull.
  * @remarks Simulation and queries exclude a triangle mesh used as a trigger or owned by a non-kinematic
  * {@link Rigidbody}. The mesh is validated and cooked during physics synchronization.
  */
 export class MeshCollider extends Collider {
+  private static _isValidScale(scale: Vector3): boolean {
+    const minScale = Math.fround(1e-6);
+    const maxScale = 1e6;
+    const x = Math.fround(scale.x);
+    const y = Math.fround(scale.y);
+    const z = Math.fround(scale.z);
+    return x >= minScale && y >= minScale && z >= minScale && x <= maxScale && y <= maxScale && z <= maxScale;
+  }
+
+  private static _getMeshData(mesh: ModelMesh, convex: boolean): MeshData | null {
+    if (!mesh.accessible) {
+      console.warn("MeshCollider: mesh data is not accessible. Set 'keepMeshData' before uploading.");
+      return null;
+    }
+    let positions: Vector3[] | null;
+    let indices: Uint8Array | Uint16Array | Uint32Array | null;
+    try {
+      positions = mesh.getPositions();
+      indices = convex ? null : mesh.getIndices();
+    } catch (error) {
+      console.error(`MeshCollider: mesh data is not readable (${error}).`);
+      return null;
+    }
+    if (!positions || positions.length === 0) {
+      console.warn("MeshCollider: mesh has no position data.");
+      return null;
+    }
+    if (!convex && !indices) {
+      console.warn("MeshCollider: a non-convex mesh requires indices.");
+      return null;
+    }
+    return { positions, indices };
+  }
+
   @ignoreClone
   private _mesh: ModelMesh | null = null;
   private _convex = false;
@@ -52,7 +75,7 @@ export class MeshCollider extends Collider {
   set mesh(value: ModelMesh | null) {
     if (this._mesh !== value || this._rejection === MeshSyncRejection.CookFailed) {
       this._setMesh(value);
-      if (!value) {
+      if (!value || (!this._registeredScene && this._nativeMesh !== value)) {
         this._nativeMesh = null;
         !this._registeredScene && this._destroyNative();
       }
@@ -121,24 +144,8 @@ export class MeshCollider extends Collider {
   /**
    * @internal
    */
-  override _supportsDynamicBody(): boolean {
-    return this._convex || !this._mesh;
-  }
-
-  /**
-   * @internal
-   */
   override _nativeSupportsDynamicBody(): boolean {
     return this._nativeConvex;
-  }
-
-  private static _isValidScale(scale: Vector3): boolean {
-    const minScale = Math.fround(1e-6);
-    const maxScale = 1e6;
-    const x = Math.fround(scale.x);
-    const y = Math.fround(scale.y);
-    const z = Math.fround(scale.z);
-    return x >= minScale && y >= minScale && z >= minScale && x <= maxScale && y <= maxScale && z <= maxScale;
   }
 
   /**
@@ -149,6 +156,21 @@ export class MeshCollider extends Collider {
     super._onClone(target);
     // _mesh is @ignoreClone: assign it through the setter so the clone retains its own reference.
     target.mesh = this._mesh;
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    super._onDisableInScene();
+    if (this._native && (!this._mesh || this._nativeMesh !== this._mesh)) {
+      this._nativeMesh = null;
+      this._destroyNative();
+    }
+  }
+
+  protected override _supportsDynamicBody(): boolean {
+    return this._convex || !this._mesh;
   }
 
   protected override _setIsTrigger(value: boolean): void {
@@ -236,14 +258,6 @@ export class MeshCollider extends Collider {
     return shape;
   }
 
-  /**
-   * @internal
-   */
-  override _onDisableInScene(): void {
-    super._onDisableInScene();
-    !this._mesh && this._destroyNative();
-  }
-
   protected override _onDestroy(): void {
     super._onDestroy();
     this._setMesh(null);
@@ -282,29 +296,15 @@ export class MeshCollider extends Collider {
       this._mesh = value;
     }
   }
+}
 
-  private static _getMeshData(mesh: ModelMesh, convex: boolean): MeshData | null {
-    if (!mesh.accessible) {
-      console.warn("MeshCollider: mesh data is not accessible. Set 'keepMeshData' before uploading.");
-      return null;
-    }
-    let positions: Vector3[] | null;
-    let indices: Uint8Array | Uint16Array | Uint32Array | null;
-    try {
-      positions = mesh.getPositions();
-      indices = convex ? null : mesh.getIndices();
-    } catch (error) {
-      console.error(`MeshCollider: mesh data is not readable (${error}).`);
-      return null;
-    }
-    if (!positions || positions.length === 0) {
-      console.warn("MeshCollider: mesh has no position data.");
-      return null;
-    }
-    if (!convex && !indices) {
-      console.warn("MeshCollider: a non-convex mesh requires indices.");
-      return null;
-    }
-    return { positions, indices };
-  }
+type MeshData = {
+  positions: Vector3[];
+  indices: Uint8Array | Uint16Array | Uint32Array | null;
+};
+
+const enum MeshSyncRejection {
+  None = 0,
+  TriggerOnNonConvex = 1,
+  CookFailed = 2
 }

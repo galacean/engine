@@ -8,7 +8,6 @@ import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { ActiveChangeFlag } from "../enums/ActiveChangeFlag";
 import type { Scene } from "../Scene";
-import { Script } from "../Script";
 import { Transform } from "../Transform";
 import { Collider } from "./Collider";
 import { differsF32, isValidPositiveFloat32, rotationDiffersF32 } from "./float32";
@@ -31,9 +30,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private static readonly _tempVec0 = new Vector3();
   private static readonly _tempVec1 = new Vector3();
   private static readonly _tempVec2 = new Vector3();
-  private static _validateDamping(value: number): void {
+  private static _validateNonNegativeFloat32(value: number, name: string): void {
     if (typeof value !== "number" || !(value >= 0 && Number.isFinite(Math.fround(value)))) {
-      throw new RangeError("Rigidbody damping must be finite and nonnegative.");
+      throw new RangeError(`Rigidbody ${name} must be finite and nonnegative.`);
     }
   }
 
@@ -62,11 +61,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _writingBack = false;
 
   @ignoreClone
-  private _wasSleeping = false;
+  private _poseSynced = false;
   @ignoreClone
   private _registeredScene: Scene | null = null;
-  @ignoreClone
-  private _sleepEventId = 0;
   @ignoreClone
   private _sleepPending = false;
   @ignoreClone
@@ -103,7 +100,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _solverIterations = 4;
   private _solverVelocityIterations = 1;
   private _useGravity = true;
-  private _simulationEnabled = true;
   private _isKinematic = false;
   private _constraints: RigidbodyConstraints = 0;
   private _useCCD = false;
@@ -120,7 +116,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set linearDamping(value: number) {
-    Rigidbody._validateDamping(value);
+    Rigidbody._validateNonNegativeFloat32(value, "linearDamping");
     if (this._linearDamping !== value) {
       this._linearDamping = value;
       this._nativeActor?.setLinearDamping(value);
@@ -136,7 +132,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set angularDamping(value: number) {
-    Rigidbody._validateDamping(value);
+    Rigidbody._validateNonNegativeFloat32(value, "angularDamping");
     if (this._angularDamping !== value) {
       this._angularDamping = value;
       this._nativeActor?.setAngularDamping(value);
@@ -201,28 +197,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
         this._massChanges |= MassChanges.Mass;
       }
     }
-  }
-
-  /**
-   * Sets mass from the volume of the currently attached solid Colliders.
-   * @param density - Mass per cubic world unit. Must be a positive normal Float32.
-   * @returns Whether the registered body produced valid mass properties and accepted the mass.
-   * @remarks Recomputes automatic mass properties and preserves manual center of mass and inertia.
-   * Missing or unsupported volume leaves mass unchanged. Later geometry edits keep the resulting mass.
-   * @throws When density is not a positive normal Float32.
-   */
-  setDensity(density: number): boolean {
-    if (typeof density !== "number" || !isValidPositiveFloat32(density)) {
-      throw new RangeError("Rigidbody density must be a positive, normal, finite Float32.");
-    }
-    const scene = this._registeredScene;
-    if (!scene) return false;
-    scene.physics._syncColliders();
-    const mass = this._nativeActor!.setDensity(density, this._automaticCenterOfMass, this._automaticInertiaTensor);
-    if (mass === 0) return false;
-    this._mass = mass;
-    this._massChanges = MassChanges.None;
-    return true;
   }
 
   /**
@@ -316,72 +290,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * Writes the world-space position of the center of mass to `out`.
-   * @returns The output vector.
-   */
-  getWorldCenterOfMass(out: Vector3): Vector3 {
-    const transform = this.entity.transform;
-    Vector3.transformByQuat(this.centerOfMass, transform.worldRotationQuaternion, out);
-    return out.add(transform.worldPosition);
-  }
-
-  /**
-   * Writes the simulated world-space velocity at a world-space point.
-   * @param point - Point in world space.
-   * @param out - Receives the velocity, or zero before the body has a physics actor.
-   * @returns The output vector.
-   */
-  getPointVelocity(point: Vector3, out: Vector3): Vector3 {
-    const actor = this._getSyncedActor();
-    if (!actor) return out.set(0, 0, 0);
-    const pointX = point.x;
-    const pointY = point.y;
-    const pointZ = point.z;
-    const position = Rigidbody._tempPosition;
-    const rotation = Rigidbody._tempRotation;
-    const center = Rigidbody._tempCenter;
-    const linearVelocity = Rigidbody._tempVec0;
-    const angularVelocity = Rigidbody._tempVec1;
-    const offset = Rigidbody._tempVec2;
-    actor.getWorldTransform(position, rotation);
-    actor.getCenterOfMass(center);
-    Vector3.transformByQuat(center, rotation, center);
-    center.add(position);
-    offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
-    actor.getLinearVelocity(linearVelocity);
-    actor.getAngularVelocity(angularVelocity);
-    Vector3.cross(angularVelocity, offset, out);
-    return out.add(linearVelocity);
-  }
-
-  /**
-   * Writes the simulated world-space velocity at a point in the unscaled local frame of the body.
-   * @param point - Point in the body's local frame.
-   * @param out - Receives the velocity, or zero before the body has a physics actor.
-   * @returns The output vector.
-   */
-  getRelativePointVelocity(point: Vector3, out: Vector3): Vector3 {
-    const actor = this._getSyncedActor();
-    if (!actor) return out.set(0, 0, 0);
-    const pointX = point.x;
-    const pointY = point.y;
-    const pointZ = point.z;
-    const rotation = Rigidbody._tempRotation;
-    const center = Rigidbody._tempCenter;
-    const linearVelocity = Rigidbody._tempVec0;
-    const angularVelocity = Rigidbody._tempVec1;
-    const offset = Rigidbody._tempVec2;
-    actor.getWorldTransform(Rigidbody._tempPosition, rotation);
-    actor.getCenterOfMass(center);
-    offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
-    Vector3.transformByQuat(offset, rotation, offset);
-    actor.getLinearVelocity(linearVelocity);
-    actor.getAngularVelocity(angularVelocity);
-    Vector3.cross(angularVelocity, offset, out);
-    return out.add(linearVelocity);
-  }
-
-  /**
    * Maximum linear speed in world units per second before solving.
    * @defaultValue 1e16
    * @remarks The speed can temporarily exceed the limit as a result of contact or joint solving.
@@ -419,12 +327,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /**
    * Maximum speed at which the solver separates overlapping bodies, in world units per second.
    * @defaultValue 10
+   * @throws When assigned a negative or non-finite Float32 value.
    */
   get maxDepenetrationVelocity(): number {
     return this._maxDepenetrationVelocity;
   }
 
   set maxDepenetrationVelocity(value: number) {
+    Rigidbody._validateNonNegativeFloat32(value, "maxDepenetrationVelocity");
     if (this._maxDepenetrationVelocity !== value) {
       this._maxDepenetrationVelocity = value;
       this._nativeActor?.setMaxDepenetrationVelocity(value);
@@ -433,12 +343,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * The mass-normalized energy threshold, below which objects start going to sleep.
+   * @throws When assigned a negative or non-finite Float32 value.
    */
   get sleepThreshold(): number {
     return this._sleepThreshold;
   }
 
   set sleepThreshold(value: number) {
+    Rigidbody._validateNonNegativeFloat32(value, "sleepThreshold");
     if (value !== this._sleepThreshold) {
       this._sleepThreshold = value;
       this._nativeActor?.setSleepThreshold(value);
@@ -499,32 +411,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * Whether the body participates in physics simulation.
-   * @remarks A query-only body follows the Entity's Transform and retains its Collider query settings.
-   * Switching a registered body out of simulation clears its forces, velocities and kinematic target.
-   * Active trigger overlaps end on the first step while the body is query-only.
-   * Unbroken joints resume when both connected bodies participate in simulation.
-   * @defaultValue true
-   */
-  get simulationEnabled(): boolean {
-    return this._simulationEnabled;
-  }
-
-  set simulationEnabled(value: boolean) {
-    if (this._simulationEnabled !== value) {
-      this._simulationEnabled = value;
-      this._wasSleeping = false;
-      !value && this._cancelPendingSleep();
-      this._nativeActor?.setSimulationEnabled(value);
-      this._syncSleepEventRegistration();
-      const joints = this._joints;
-      if (this._index !== -1 && joints) {
-        for (const joint of joints) joint._wakeOtherBody(this);
-      }
-    }
-  }
-
-  /**
    * Whether the body follows a target pose instead of responding to forces.
    * @remarks Use {@link move} to set a kinematic target. When changing to dynamic motion, kinematic-only shapes
    * leave simulation and queries until the body becomes kinematic again.
@@ -536,7 +422,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
       this._isKinematic = value;
-      this._wasSleeping = false;
+      this._poseSynced = false;
       if (value) {
         this._cancelPendingSleep();
       } else {
@@ -588,9 +474,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * @internal
-   * @throws When the Entity already has a Rigidbody.
+   * @throws When physics is not initialized on the Engine or the Entity already has a Rigidbody.
    */
   constructor(entity: Entity) {
+    if (!entity.engine._physicsInitialized) {
+      throw new Error("Physics is not initialized on this Engine.");
+    }
     if (entity.getComponent(Rigidbody)) {
       throw new Error(`Entity "${entity.name}" already has a Rigidbody.`);
     }
@@ -614,6 +503,96 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     //@ts-ignore
     this._inertiaTensorRotation._onValueChanged = this._handleInertiaTensorRotationChanged;
     entity._updateFlagManager.addListener(this._onTransformChanged);
+  }
+
+  /**
+   * Sets mass from the volume of the currently attached solid Colliders.
+   * @param density - Mass per cubic world unit. Must be a positive normal Float32.
+   * @returns Whether the registered body produced valid mass properties and accepted the mass.
+   * @remarks Recomputes automatic mass properties and preserves manual center of mass and inertia.
+   * Missing or unsupported volume leaves mass unchanged. Later geometry edits keep the resulting mass.
+   * @throws When density is not a positive normal Float32.
+   */
+  setDensity(density: number): boolean {
+    if (typeof density !== "number" || !isValidPositiveFloat32(density)) {
+      throw new RangeError("Rigidbody density must be a positive, normal, finite Float32.");
+    }
+    const scene = this._registeredScene;
+    if (!scene) return false;
+    scene.physics._syncColliders();
+    const mass = this._nativeActor!.setDensity(density, this._automaticCenterOfMass, this._automaticInertiaTensor);
+    if (mass === 0) return false;
+    this._mass = mass;
+    this._massChanges = MassChanges.None;
+    return true;
+  }
+
+  /**
+   * Writes the world-space position of the center of mass to `out`.
+   * @returns The output vector.
+   */
+  getWorldCenterOfMass(out: Vector3): Vector3 {
+    const transform = this.entity.transform;
+    const center = Rigidbody._tempCenter;
+    Vector3.transformByQuat(this.centerOfMass, transform.worldRotationQuaternion, center);
+    Vector3.add(center, transform.worldPosition, out);
+    return out;
+  }
+
+  /**
+   * Writes the simulated world-space velocity at a world-space point.
+   * @param point - Point in world space.
+   * @param out - Receives the velocity, or zero before the body has a physics actor.
+   * @returns The output vector.
+   */
+  getPointVelocity(point: Vector3, out: Vector3): Vector3 {
+    const actor = this._getSyncedActor();
+    if (!actor) return out.set(0, 0, 0);
+    const pointX = point.x;
+    const pointY = point.y;
+    const pointZ = point.z;
+    const position = Rigidbody._tempPosition;
+    const rotation = Rigidbody._tempRotation;
+    const center = Rigidbody._tempCenter;
+    const linearVelocity = Rigidbody._tempVec0;
+    const angularVelocity = Rigidbody._tempVec1;
+    const offset = Rigidbody._tempVec2;
+    actor.getWorldTransform(position, rotation);
+    actor.getCenterOfMass(center);
+    Vector3.transformByQuat(center, rotation, center);
+    center.add(position);
+    offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
+    actor.getLinearVelocity(linearVelocity);
+    actor.getAngularVelocity(angularVelocity);
+    Vector3.cross(angularVelocity, offset, out);
+    return out.add(linearVelocity);
+  }
+
+  /**
+   * Writes the simulated world-space velocity at a point in the unscaled local frame of the body.
+   * @param point - Point in the body's local frame.
+   * @param out - Receives the velocity, or zero before the body has a physics actor.
+   * @returns The output vector.
+   */
+  getRelativePointVelocity(point: Vector3, out: Vector3): Vector3 {
+    const actor = this._getSyncedActor();
+    if (!actor) return out.set(0, 0, 0);
+    const pointX = point.x;
+    const pointY = point.y;
+    const pointZ = point.z;
+    const rotation = Rigidbody._tempRotation;
+    const center = Rigidbody._tempCenter;
+    const linearVelocity = Rigidbody._tempVec0;
+    const angularVelocity = Rigidbody._tempVec1;
+    const offset = Rigidbody._tempVec2;
+    actor.getWorldTransform(Rigidbody._tempPosition, rotation);
+    actor.getCenterOfMass(center);
+    offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
+    Vector3.transformByQuat(offset, rotation, offset);
+    actor.getLinearVelocity(linearVelocity);
+    actor.getAngularVelocity(angularVelocity);
+    Vector3.cross(angularVelocity, offset, out);
+    return out.add(linearVelocity);
   }
 
   /**
@@ -708,7 +687,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (
       this._index === -1 ||
       this._isKinematic ||
-      !this._simulationEnabled ||
       !Number.isFinite(strength) ||
       !Number.isFinite(radius) ||
       radius < 0 ||
@@ -719,8 +697,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     ) {
       return;
     }
-    const actor = this._getSyncedActor();
-    if (!actor || this._isKinematic || !this._simulationEnabled || this._index === -1) return;
+    const actor = this._getSyncedActor()!;
 
     const position = Rigidbody._tempPosition;
     const rotation = Rigidbody._tempRotation;
@@ -787,29 +764,31 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * Sets the world-space target position for the next kinematic simulation step, preserving the target rotation.
-   * @remarks A body participating in simulation uses the target for scene queries immediately.
-   * The Entity's transform advances during simulation.
+   * @remarks The target is used for scene queries immediately. The Entity's transform advances during simulation.
    * @throws When the body is dynamic.
    */
   move(position: Vector3): void;
 
   /**
    * Sets the world-space target rotation for the next kinematic simulation step, preserving the target position.
-   * @remarks Requires an active kinematic Rigidbody with simulation enabled.
+   * @remarks Requires an active kinematic Rigidbody.
+   * @throws When the body is dynamic.
    */
   move(rotation: Quaternion): void;
 
   /**
    * Sets the world-space target position and rotation for the next kinematic simulation step.
-   * @remarks Requires an active kinematic Rigidbody with simulation enabled.
+   * @remarks Requires an active kinematic Rigidbody.
+   * @throws When the body is dynamic.
    */
   move(position: Vector3, rotation: Quaternion): void;
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
     if (!this._isKinematic) throw new Error("Rigidbody.move requires a kinematic body.");
-    if (!this._simulationEnabled || this._index === -1) return;
+    if (this._index === -1) return;
     // Teleport pending transform edits first so the move starts from the current pose
     const actor = this._getSyncedActor()!;
+    this._poseSynced = false;
     if (rotation) {
       actor.move(<Vector3>positionOrRotation, rotation);
     } else if (positionOrRotation instanceof Vector3) {
@@ -820,15 +799,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * Puts a simulated dynamic body to sleep.
-   * @remarks A request before or during activation applies before the first step after activation.
+   * Puts an active dynamic body to sleep.
+   * @remarks A request before registration in a scene applies before the first simulation step after registration.
    */
   sleep(): void {
-    if (this._isKinematic || !this._simulationEnabled) return;
+    if (this._isKinematic) return;
     const scene = this._registeredScene;
-    if (!scene || this._isActivating()) {
+    if (!scene) {
       this._sleepPending = true;
-      scene?.physics._scheduleSleep(this, true);
     } else {
       this._cancelPendingSleep();
       this._getSyncedActor()!.sleep();
@@ -843,7 +821,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * Wakes a simulated dynamic body and cancels a pending sleep request.
+   * Wakes a dynamic body and cancels a pending sleep request.
    */
   wakeUp(): void {
     this._cancelPendingSleep();
@@ -852,8 +830,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /** @internal Wakes the native actor while preserving an explicit sleep request for activation. */
   _wakeNative(): void {
-    this._wasSleeping = false;
-    if (this._index !== -1 && !this._isKinematic && this._simulationEnabled) {
+    this._poseSynced = false;
+    if (this._index !== -1 && !this._isKinematic) {
       this._nativeActor!.wakeUp();
     }
   }
@@ -890,10 +868,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._detachOrphanedColliders();
     scene.physics._addRigidbody(this, actor);
     this._registeredScene = scene;
-    this._wasSleeping = false;
+    this._poseSynced = false;
     this._markMassDirty();
     this._sleepPending && scene.physics._scheduleSleep(this, true);
-    this._syncSleepEventRegistration();
     this._syncJoints();
     this._markCollidersDirty();
   }
@@ -905,9 +882,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const scene = this._registeredScene;
     if (!scene) return;
     this._registeredScene = null;
-    this._wasSleeping = false;
+    this._poseSynced = false;
     this._sleepPending && scene.physics._scheduleSleep(this, false);
-    this._setSleepEventRegistration(scene, false);
     this._syncJoints();
     this._detachOrphanedColliders();
     scene.physics._removeRigidbody(this);
@@ -943,51 +919,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._markCollidersDirty();
   }
 
-  private _detachOrphanedColliders(): void {
-    const colliders = this._attachedColliders;
-    for (let i = colliders.length - 1; i >= 0; i--) {
-      const collider = colliders[i];
-      if (collider._findRigidbody() !== this) {
-        // A hierarchy change while disabled or before re-entry may belong to another scene.
-        collider._detach();
-        collider._markDirty();
-      }
-    }
-  }
-
-  /** @internal Reconcile native sleep notifications with the active observers on this Entity. */
-  _syncSleepEventRegistration(): void {
-    const scene = this._registeredScene;
-    if (!scene) return;
-
-    if (this._simulationEnabled) {
-      const { prototype } = Script;
-      const scripts = this.entity._scripts;
-      for (let i = 0, count = scripts.length; i < count; i++) {
-        const script = scripts.get(i);
-        if (script && (script.onSleep !== prototype.onSleep || script.onWake !== prototype.onWake)) {
-          this._setSleepEventRegistration(scene, true);
-          return;
-        }
-      }
-    }
-    this._setSleepEventRegistration(scene, false);
-  }
-
-  private _setSleepEventRegistration(scene: Scene, enabled: boolean): void {
-    const id = this._sleepEventId;
-    if (enabled === (id !== 0)) return;
-
-    const physics = scene.physics;
-    if (enabled) {
-      this._sleepEventId = physics._registerEventTarget(this);
-    } else {
-      physics._unregisterEventTarget(id);
-      this._sleepEventId = 0;
-    }
-    this._nativeActor!.setSleepEventId(this._sleepEventId);
-  }
-
   /** @internal */
   _getRegisteredActor(scene: Scene): IDynamicActor | null {
     return this._registeredScene === scene ? this._nativeActor : null;
@@ -1009,10 +940,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
       // Non-convex triangle meshes require a kinematic native actor before attachment
       actor.setMotionState(this._isKinematic, this._useCCD);
-      !this._simulationEnabled && actor.setSimulationEnabled(false);
       actor.setLinearDamping(this._linearDamping);
       actor.setAngularDamping(this._angularDamping);
-      if (this._simulationEnabled && !this._isKinematic) {
+      if (!this._isKinematic) {
         actor.setLinearVelocity(this._linearVelocity);
         actor.setAngularVelocity(this._angularVelocity);
       }
@@ -1075,15 +1005,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
   }
 
-  private _syncJoints(): void {
-    const joints = this._joints;
-    if (joints) {
-      for (let i = joints.length - 1; i >= 0; i--) {
-        joints[i]._syncActiveJoint();
-      }
-    }
-  }
-
   /**
    * @internal
    * Recompute automatic mass properties before the next simulation step or mass-dependent access.
@@ -1113,7 +1034,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const nativePosition = this._nativePosition;
     const nativeRotation = this._nativeRotation;
     if (differsF32(position, nativePosition) || rotationDiffersF32(rotation, nativeRotation)) {
-      this._wasSleeping = false;
+      this._poseSynced = false;
       nativePosition.copyFrom(position);
       nativeRotation.copyFrom(rotation);
       actor.setWorldTransform(position, rotation);
@@ -1125,15 +1046,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * Write the simulated pose back to the Entity.
    */
   _writeBack(position: Vector3, rotation: Quaternion): void {
-    if (!this._simulationEnabled) return;
     const actor = this._nativeActor!;
-    if (!this._isKinematic) {
-      if (actor.isSleeping()) {
-        if (this._wasSleeping) return;
-        this._wasSleeping = true;
-      } else {
-        this._wasSleeping = false;
-      }
+    if (this._isKinematic || actor.isSleeping()) {
+      if (this._poseSynced) return;
+      this._poseSynced = true;
+    } else {
+      this._poseSynced = false;
     }
 
     actor.getWorldTransform(position, rotation);
@@ -1187,6 +1105,33 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       }
     }
     changes & MassChanges.Mass && actor.setMassProperties(mass);
+  }
+
+  /** @internal Consumes a sleep request after the scene has synchronized all Collider edits. */
+  _applyScheduledSleep(): void {
+    this._sleepPending = false;
+    this._nativeActor!.sleep();
+  }
+
+  private _detachOrphanedColliders(): void {
+    const colliders = this._attachedColliders;
+    for (let i = colliders.length - 1; i >= 0; i--) {
+      const collider = colliders[i];
+      if (collider._findRigidbody() !== this) {
+        // A hierarchy change while disabled or before re-entry may belong to another scene.
+        collider._detach();
+        collider._markDirty();
+      }
+    }
+  }
+
+  private _syncJoints(): void {
+    const joints = this._joints;
+    if (joints) {
+      for (let i = joints.length - 1; i >= 0; i--) {
+        joints[i]._syncActiveJoint();
+      }
+    }
   }
 
   private _markCollidersDirty(entity = this.entity): void {
@@ -1258,23 +1203,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   private _getForceActor(): IDynamicActor | null {
-    if (this._index === -1 || this._isKinematic || !this._simulationEnabled) return null;
+    if (this._index === -1 || this._isKinematic) return null;
     this._cancelPendingSleep();
     return this._getSyncedActor();
-  }
-
-  /** @internal */
-  _isActivating(): boolean {
-    for (let entity: Entity | null = this.entity; entity; entity = entity.parent) {
-      if (entity._isActivating) return true;
-    }
-    return false;
-  }
-
-  /** @internal Consumes a sleep request after the scene has synchronized all Collider edits. */
-  _applyScheduledSleep(): void {
-    this._sleepPending = false;
-    this._nativeActor!.sleep();
   }
 
   private _cancelPendingSleep(): void {
@@ -1287,13 +1218,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   @ignoreClone
   private _onTransformChanged(): void {
     if (this._writingBack) return;
-    this._wasSleeping = false;
+    this._poseSynced = false;
     this._registeredScene?.physics._markBodyDirty(this);
   }
 
   @ignoreClone
   private _setLinearVelocity(): void {
-    if (!this._isKinematic && this._simulationEnabled) {
+    if (!this._isKinematic) {
       this._cancelPendingSleep();
       this._nativeActor?.setLinearVelocity(this._linearVelocity);
     }
@@ -1301,7 +1232,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   @ignoreClone
   private _setAngularVelocity(): void {
-    if (!this._isKinematic && this._simulationEnabled) {
+    if (!this._isKinematic) {
       this._cancelPendingSleep();
       this._nativeActor?.setAngularVelocity(this._angularVelocity);
     }
@@ -1317,10 +1248,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _handleInertiaTensorChanged(): void {
     if (this._automaticInertiaTensor) {
       // Changing mass alone does not move the principal axes; defer scalar mass until manual flags commit.
-      const deferMass = this._massDirtyIndex !== -1 && (this._massChanges & ~MassChanges.Mass) === 0;
+      const deferMass = this._massChanges === MassChanges.Mass;
       if (deferMass) this._massChanges = MassChanges.None;
-      this._registeredScene?.physics._syncColliders();
-      this._nativeActor && this._readInertiaTensorRotation(this._nativeActor);
+      const actor = this._getSyncedActor();
+      actor && this._readInertiaTensorRotation(actor);
       deferMass && this._markMassDirty(MassChanges.Mass);
     }
     this._automaticInertiaTensor = false;

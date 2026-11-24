@@ -32,14 +32,9 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
       return;
     }
 
-    const pxGeometry = this._createGeometry(cookedMesh.pxMesh, scale);
-    const pxShape = this._createShape(pxGeometry, material);
-
-    this._id = uniqueID;
     this._cookedMesh = cookedMesh;
-    this._pxGeometry = pxGeometry;
-    this._pxShape = pxShape;
-    this._pxShape.setUUID(uniqueID);
+    this._pxGeometry = this._createGeometry(cookedMesh.pxMesh, scale);
+    this._initialize(material, uniqueID);
   }
 
   /**
@@ -143,7 +138,7 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
 
     if (this._isConvex) {
       pxMesh = cooking.createConvexMesh(verticesPtr, positions.length, physics);
-      !pxMesh && this._logConvexCookingError(physX);
+      !pxMesh && console.error("PhysXMeshShape: Failed to create convex mesh. The input geometry may be invalid.");
     } else {
       const isU32 = indices instanceof Uint32Array;
       indicesPtr = this._allocateIndices(indices!, isU32);
@@ -151,7 +146,7 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
         physX.setCookingMeshPreprocessParams(cookingParams, variant);
         cooking.setParams(cookingParams);
         pxMesh = cooking.createTriMesh(verticesPtr, positions.length, indicesPtr, indices!.length / 3, !isU32, physics);
-        !pxMesh && this._logTriMeshCookingError(physX);
+        !pxMesh && console.error("PhysXMeshShape: Failed to create triangle mesh. The input geometry may be invalid.");
       }
     }
 
@@ -159,37 +154,6 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
     indicesPtr && physX._free(indicesPtr);
 
     return pxMesh;
-  }
-
-  private _logConvexCookingError(physX: any): void {
-    switch (physX.getLastConvexCookingResult()) {
-      case 1: // eZERO_AREA_TEST_FAILED
-        console.error(
-          "PhysXMeshShape: Failed to create convex mesh. Could not find 4 vertices that do not form a zero-area triangle."
-        );
-        break;
-      case 2: // ePOLYGONS_LIMIT_REACHED
-        console.error(
-          "PhysXMeshShape: Failed to create convex mesh within the maximum polygons limit (256). Consider simplifying the mesh."
-        );
-        break;
-      default: // eFAILURE
-        console.error("PhysXMeshShape: Failed to create convex mesh. The input geometry may be invalid.");
-        break;
-    }
-  }
-
-  private _logTriMeshCookingError(physX: any): void {
-    switch (physX.getLastTriMeshCookingResult()) {
-      case 1: // eLARGE_TRIANGLE
-        console.error(
-          "PhysXMeshShape: Failed to create triangle mesh. One of the triangles is too large. Consider tessellating large triangles."
-        );
-        break;
-      default: // eFAILURE
-        console.error("PhysXMeshShape: Failed to create triangle mesh. The input geometry may be invalid.");
-        break;
-    }
   }
 
   private _allocatePositions(positions: readonly Vector3[]): number {

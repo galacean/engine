@@ -5,13 +5,13 @@ import {
   IPhysicsMaterial
 } from "@galacean/engine-design";
 import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
-import { assignmentClone, ignoreClone } from "../clone/CloneDecorators";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
 import { isValidPositiveFloat32 } from "./float32";
-import { directionSnapshot, normalizeDirection } from "./unitDirection";
+import { normalizeDirection } from "./unitDirection";
 
 /**
  * A capsule that moves and slides along obstacles through {@link move}.
@@ -20,14 +20,13 @@ import { directionSnapshot, normalizeDirection } from "./unitDirection";
  */
 export class CharacterController extends Collider {
   private static readonly _tempMovePosition = new Vector3();
-  private static _tempWorldScale = new Vector3();
+  private static readonly _tempWorldScale = new Vector3();
 
   private _radius = 0.5;
   private _height = 2;
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
-  @assignmentClone
-  private _upDirection = directionSnapshot(0, 1, 0);
+  private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit = 45;
 
   @ignoreClone
@@ -132,14 +131,15 @@ export class CharacterController extends Collider {
   /**
    * A read-only snapshot of the unit up direction in world space.
    * @defaultValue `(0, 1, 0)`
-   * @see {@link setUpDirection}
+   * @remarks Assign a complete direction to update the up direction. A zero vector leaves it unchanged.
+   * @throws When the assigned direction has non-finite length.
    */
   get upDirection(): Readonly<Vector3Like> {
     return this._upDirection;
   }
 
   set upDirection(value: Readonly<Vector3Like>) {
-    this.setUpDirection(value);
+    this._setUpDirection(value);
   }
 
   /**
@@ -159,19 +159,6 @@ export class CharacterController extends Collider {
     if (this._slopeLimit !== value) {
       this._slopeLimit = value;
       this._controller?.setSlopeLimit(value);
-    }
-  }
-
-  /**
-   * Sets the controller's up direction from a complete vector. A zero vector leaves the direction unchanged.
-   * @param value - The direction in world space, normalized on assignment.
-   * @throws When the vector length is non-finite.
-   */
-  setUpDirection(value: Readonly<Vector3Like>): void {
-    const up = normalizeDirection(this._upDirection, value, "CharacterController upDirection");
-    if (up !== this._upDirection) {
-      this._upDirection = up;
-      this._controller?.setUpDirection(up);
     }
   }
 
@@ -224,42 +211,42 @@ export class CharacterController extends Collider {
    * @internal
    */
   override _sync(): void {
-    const scene = this._registeredScene!;
     const transform = this.entity.transform;
-    // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
+    // Reading the world matrix re-arms transform change notifications that are only sent from a clean state.
     transform.worldMatrix;
     const lossyScale = transform.lossyWorldScale;
-    const position = transform.worldPosition;
-    const colliderCenter = this.center;
     const scaleX = lossyScale.x;
     const scaleY = lossyScale.y;
     const scaleZ = lossyScale.z;
-    const scale = CharacterController._tempWorldScale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
-    const force = !this._inScene;
-    if (force || this._geometryDirty || this._scaleChanged(scale)) {
-      const radius = this._radius * Math.max(scale.x, scale.z);
-      const scaledHeight = this._height * scale.y;
+    const needsAttach = !this._inScene;
+
+    // Sync capsule dimensions and lazily create the native controller.
+    const absScale = CharacterController._tempWorldScale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
+    if (needsAttach || this._geometryDirty || this._scaleChanged(absScale)) {
+      const radius = this._radius * Math.max(absScale.x, absScale.z);
+      const scaledHeight = this._height * absScale.y;
       if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
         this._detach();
         return;
       }
       this._geometryDirty = false;
-      this._nativeScale.copyFrom(scale);
-      (this._controller ||= this._createNative()).setCapsule(
-        radius,
-        Math.max(0, scaledHeight * 0.5 - radius),
-        Math.min(this._stepOffset, Math.max(scaledHeight, 2 * radius))
-      );
+      this._nativeScale.copyFrom(absScale);
+      const halfHeight = Math.max(0, scaledHeight * 0.5 - radius);
+      const stepOffset = Math.min(this._stepOffset, Math.max(scaledHeight, 2 * radius));
+      (this._controller ||= this._createNative()).setCapsule(radius, halfHeight, stepOffset);
     }
 
+    // Sync world position and signed center offset.
     const controller = this._controller!;
+    const position = transform.worldPosition;
+    const colliderCenter = this.center;
     const centerX = colliderCenter.x * scaleX;
     const centerY = colliderCenter.y * scaleY;
     const centerZ = colliderCenter.z * scaleZ;
     const syncedCenter = this._syncedCenter;
     const nativePosition = this._nativePosition;
     if (
-      force ||
+      needsAttach ||
       centerX !== syncedCenter.x ||
       centerY !== syncedCenter.y ||
       centerZ !== syncedCenter.z ||
@@ -267,12 +254,22 @@ export class CharacterController extends Collider {
       position.y !== nativePosition.y ||
       position.z !== nativePosition.z
     ) {
+      if (
+        !Number.isFinite(Math.fround(position.x + centerX)) ||
+        !Number.isFinite(Math.fround(position.y + centerY)) ||
+        !Number.isFinite(Math.fround(position.z + centerZ))
+      ) {
+        this._detach();
+        return;
+      }
       syncedCenter.set(centerX, centerY, centerZ);
       nativePosition.copyFrom(position);
       controller.setWorldPosition(position, syncedCenter);
     }
-    if (force) {
-      scene.physics._nativePhysicsScene.addCharacterController(controller);
+
+    // Register in the native scene on first sync or after detaching.
+    if (needsAttach) {
+      this._registeredScene!.physics._nativePhysicsScene.addCharacterController(controller);
       this._inScene = true;
     }
   }
@@ -307,10 +304,6 @@ export class CharacterController extends Collider {
     this._controller?.setContactOffset(value);
   }
 
-  protected override _onIsSceneQueryChanged(value: boolean): void {
-    this._controller?.setIsSceneQuery(value);
-  }
-
   protected override _onMaterialChanged(material: IPhysicsMaterial): void {
     this._controller?.setMaterial(material);
   }
@@ -324,11 +317,19 @@ export class CharacterController extends Collider {
     this._controller = null;
   }
 
+  // Runtime Prefab calls use this method name.
+  private _setUpDirection(value: Readonly<Vector3Like>): void {
+    const up = normalizeDirection(this._upDirection, value, "CharacterController upDirection");
+    if (up !== this._upDirection) {
+      this._upDirection = up;
+      this._controller?.setUpDirection(up);
+    }
+  }
+
   private _createNative(): ICharacterController {
     const controller = Engine._nativePhysics.createCharacterController(this._id, this._getNativeMaterial());
     controller.setContactOffset(this.contactOffset);
     controller.setCollisionLayer(this._collisionLayerIndex);
-    controller.setIsSceneQuery(this._isSceneQuery);
     controller.setNonWalkableMode(this._nonWalkableMode);
     controller.setUpDirection(this._upDirection);
     controller.setSlopeLimit(this._slopeLimit);

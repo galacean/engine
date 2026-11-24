@@ -12,6 +12,7 @@ import {
   SphereCollider,
   Loader,
   MeshCollider,
+  PhysicsMaterial,
   PlaneCollider,
   PrimitiveMesh,
   Scene,
@@ -22,11 +23,6 @@ import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { HorizontalAlignmentMode, UITransform } from "@galacean/engine-ui";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
 import { PrefabParser } from "../../../../packages/loader/src/prefab/PrefabParser";
-
-class SleepRecorder extends Script {
-  onSleep = vi.fn();
-  onWake = vi.fn();
-}
 
 describe("Rigidbody", function () {
   let engine: Engine;
@@ -452,6 +448,10 @@ describe("Rigidbody", function () {
     expect(boxCollider.linearVelocity.x).eq(0);
     boxCollider2.maxDepenetrationVelocity = boxCollider.maxDepenetrationVelocity = 10;
     expect(boxCollider2.maxDepenetrationVelocity).eq(10);
+    for (const invalid of [-1, NaN, Infinity, -Infinity, 1e39]) {
+      expect(() => (boxCollider.maxDepenetrationVelocity = invalid)).toThrow(RangeError);
+    }
+    expect(boxCollider.maxDepenetrationVelocity).eq(10);
     boxCollider.wakeUp();
     boxCollider2.wakeUp();
     engine.sceneManager.activeScene.physics._update(1);
@@ -470,6 +470,10 @@ describe("Rigidbody", function () {
     expect(boxCollider.isSleeping()).false;
 
     boxCollider.sleepThreshold = 100;
+    expect(boxCollider.sleepThreshold).eq(100);
+    for (const invalid of [-1, NaN, Infinity, -Infinity, 1e39]) {
+      expect(() => (boxCollider.sleepThreshold = invalid)).toThrow(RangeError);
+    }
     expect(boxCollider.sleepThreshold).eq(100);
     engine.sceneManager.activeScene.physics._update(1);
     expect(boxCollider.isSleeping()).true;
@@ -614,6 +618,7 @@ describe("Rigidbody", function () {
       class extends Script {
         onAwake(): void {
           body.sleep();
+          expect(body.isSleeping()).toBe(true);
         }
       }
     );
@@ -1224,186 +1229,15 @@ describe("Rigidbody", function () {
     expect(box.transform.worldPosition.x).toBe(-2);
   });
 
-  it("keeps a query-only kinematic body at its authored pose after cancelling a target", () => {
-    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(-2, 0, 0));
-    const body = box.getComponent(Rigidbody);
-    const physics = engine.sceneManager.activeScene.physics;
-    const ray = new Ray(new Vector3(2, 0, 3), new Vector3(0, 0, -1));
-    const hitsAt = (x: number) => {
-      ray.origin.x = x;
-      return physics.raycast(ray);
-    };
-    body.isKinematic = true;
-    body.move(new Vector3(2, 0, 0));
-    expect(hitsAt(2)).toBe(true);
-
-    body.simulationEnabled = false;
-    expect(hitsAt(2)).toBe(false);
-    expect(hitsAt(-2)).toBe(true);
-    expect(() => body.move(new Vector3(5, 0, 0))).not.toThrow();
-    expect(hitsAt(5)).toBe(false);
-    box.transform.position.x = 0;
-    expect(hitsAt(0)).toBe(true);
-
-    body.simulationEnabled = true;
-    body.move(new Vector3(2, 0, 0));
-    expect(hitsAt(2)).toBe(true);
-    expect(hitsAt(0)).toBe(false);
-  });
-
-  it.each([false, true])("clears dynamic motion and resumes it after re-enabling (detached=%s)", (detached) => {
-    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 3, 0));
-    const body = box.getComponent(Rigidbody);
-    const physics = engine.sceneManager.activeScene.physics;
-    body.useGravity = false;
-    body.linearVelocity.x = 2;
-    body.angularVelocity.y = 1;
-    body.applyForce(new Vector3(100, 0, 0));
-
-    body.simulationEnabled = false;
-    body.applyForce(new Vector3(5, 0, 0), ForceMode.Impulse);
-    physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.x).toBe(0);
-    expect(body.linearVelocity.x).toBe(0);
-    expect(body.angularVelocity.y).toBe(0);
-
-    body.useGravity = true;
-    if (detached) box.isActive = false;
-    body.simulationEnabled = true;
-    if (detached) box.isActive = true;
-    physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.x).toBe(0);
-    expect(box.transform.worldPosition.y).toBeLessThan(3);
-    body.applyForce(new Vector3(1, 0, 0), ForceMode.Impulse);
-    physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.x).toBeGreaterThan(0);
-  });
-
-  it("suspends a joint's constraint and wakes the sleeping endpoint on suspension and return", () => {
-    const anchor = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 10, 0));
-    const anchorBody = anchor.getComponent(Rigidbody);
-    anchorBody.isKinematic = true;
-    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 5, 0));
-    const body = box.getComponent(Rigidbody);
-    const joint = box.addComponent(FixedJoint);
-    joint.connectedBody = anchorBody;
-    const physics = engine.sceneManager.activeScene.physics;
-
-    physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.y).toBeCloseTo(5, 2);
-
-    body.sleep();
-    anchorBody.simulationEnabled = false;
-    physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.y).toBeLessThan(5);
-
-    body.sleep();
-    anchor.transform.position.y = 11;
-    anchorBody.simulationEnabled = true;
-    for (let i = 0; i < 6; i++) physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.y).toBeCloseTo(6, 2);
-  });
-
-  it("reports a rigidbody's initial sleep state and the latest transition after each step", () => {
-    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 3, 0));
-    const body = box.getComponent(Rigidbody);
-    const recorder = box.addComponent(SleepRecorder);
-    const childRecorder = box.createChild().addComponent(SleepRecorder);
-    const physics = engine.sceneManager.activeScene.physics;
-    body.useGravity = false;
-
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onWake.mock.calls).toEqual([[body]]);
-    expect(recorder.onSleep).not.toHaveBeenCalled();
-
-    body.sleep();
-    body.wakeUp();
-    body.sleep();
-    expect(body.isSleeping()).toBe(true);
-    expect(recorder.onSleep).not.toHaveBeenCalled();
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onSleep.mock.calls).toEqual([[body]]);
-    expect(recorder.onWake).toHaveBeenCalledOnce();
-
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onSleep).toHaveBeenCalledOnce();
-    body.applyForce(new Vector3(1, 0, 0), ForceMode.Impulse);
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onWake).toHaveBeenCalledTimes(2);
-
-    recorder.enabled = false;
-    body.sleep();
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onSleep).toHaveBeenCalledOnce();
-
-    body.wakeUp();
-    recorder.enabled = true;
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onWake).toHaveBeenCalledTimes(3);
-    expect(childRecorder.onSleep).not.toHaveBeenCalled();
-    expect(childRecorder.onWake).not.toHaveBeenCalled();
-  });
-
-  it("reports solver-induced sleep after the resting pose has been written back", () => {
+  it("lets a dynamic body fall asleep naturally after resting on a surface", () => {
     addPlane(0, 0, 0);
     const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 2, 0));
     const body = box.getComponent(Rigidbody);
-    const recorder = box.addComponent(SleepRecorder);
     const physics = engine.sceneManager.activeScene.physics;
-    let height = 0;
-    recorder.onSleep.mockImplementation(() => {
-      height = box.transform.worldPosition.y;
-    });
 
     for (let i = 0; i < 240 && !body.isSleeping(); i++) physics._update(physics.fixedTimeStep);
-    expect(recorder.onSleep.mock.calls).toEqual([[body]]);
-    expect(height).toBeCloseTo(0.5, 2);
-  });
-
-  it("drops the rest of a sleep dispatch when a callback replaces the body's registration", () => {
-    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 3, 0));
-    const body = box.getComponent(Rigidbody);
-    const first = box.addComponent(SleepRecorder);
-    const second = box.addComponent(SleepRecorder);
-    const physics = engine.sceneManager.activeScene.physics;
-    body.useGravity = false;
-    first.onSleep.mockImplementation(() => {
-      body.simulationEnabled = false;
-      body.simulationEnabled = true;
-    });
-
-    physics._update(physics.fixedTimeStep);
-    expect(second.onWake).toHaveBeenCalledOnce();
-    body.sleep();
-    physics._update(physics.fixedTimeStep);
-    expect(first.onSleep).toHaveBeenCalledOnce();
-    expect(second.onSleep).not.toHaveBeenCalled();
-    physics._update(physics.fixedTimeStep);
-    expect(second.onWake).toHaveBeenCalledTimes(2);
-  });
-
-  it("registers Script sleep callbacks assigned before entering the scene", () => {
-    const wakeCalls: Rigidbody[] = [];
-    const sleepCalls: Rigidbody[] = [];
-    const holder = rootEntity.createChild("holder");
-    holder.isActive = false;
-    const box = holder.createChild("sleep-script");
-    box.addComponent(BoxCollider);
-    const body = box.addComponent(Rigidbody);
-    body.useGravity = false;
-
-    const script = box.addComponent(Script);
-    script.onWake = (target) => wakeCalls.push(target);
-    script.onSleep = (target) => sleepCalls.push(target);
-
-    holder.isActive = true;
-    const physics = engine.sceneManager.activeScene.physics;
-    physics._update(physics.fixedTimeStep);
-    expect(wakeCalls).toEqual([body]);
-
-    body.sleep();
-    physics._update(physics.fixedTimeStep);
-    expect(sleepCalls).toEqual([body]);
+    expect(body.isSleeping()).toBe(true);
+    expect(box.transform.worldPosition.y).toBeCloseTo(0.5, 2);
   });
 
   it.each([true, false])("merges partial inherited prefab input with manual input first: %s", async (inputFirst) => {
@@ -2001,16 +1835,19 @@ describe("Rigidbody", function () {
       const child = parent.createChild("reparented-child");
       const box = child.addComponent(BoxCollider);
 
+      const ray = new Ray(new Vector3(0, 55, 0), new Vector3(0, -1, 0));
+      expect(sourceScene.physics.raycast(ray, 10)).toBe(true);
+
       body.enabled = false;
       const newParent = sourceScene.createRootEntity("new-parent");
       newParent.transform.setPosition(0, 50, 0);
       newParent.addChild(child);
       otherScene.addRootEntity(parent);
+      body.enabled = true;
 
       expect(box.attachedRigidbody).toBeNull();
-      const ray = new Ray(new Vector3(0, 55, 0), new Vector3(0, -1, 0));
-      expect(sourceScene.physics.raycast(ray, 10)).toBe(true);
       expect(otherScene.physics.raycast(ray, 10)).toBe(false);
+      expect(sourceScene.physics.raycast(ray, 10)).toBe(true);
       parent.transform.setPosition(0, 80, 0);
       expect(otherScene.physics.raycast(new Ray(new Vector3(0, 85, 0), new Vector3(0, -1, 0)), 10)).toBe(false);
     } finally {
@@ -2084,34 +1921,7 @@ describe("Rigidbody", function () {
     expect(hit.point.y).toBeCloseTo(5.5, 2);
   });
 
-  it("supports prototype Script.onSleep/onWake and applies sleep() during entity deactivation", () => {
-    const events: string[] = [];
-    const holder = rootEntity.createChild("proto-sleep-holder");
-    holder.transform.setPosition(0, 40, 0);
-    holder.addComponent(BoxCollider);
-    const body = holder.addComponent(Rigidbody);
-    body.useGravity = false;
-    const physics = engine.sceneManager.activeScene.physics;
-
-    class ProtoSleepScript extends Script {
-      override onWake(target: Rigidbody): void {
-        if (target === body) events.push("wake");
-      }
-      override onSleep(target: Rigidbody): void {
-        if (target === body) events.push("sleep");
-      }
-    }
-    const script = holder.addComponent(ProtoSleepScript);
-    physics._update(physics.fixedTimeStep);
-    expect(events).toEqual(["wake"]);
-
-    body.sleep();
-    physics._update(physics.fixedTimeStep);
-    expect(events).toEqual(["wake", "sleep"]);
-    script.enabled = false;
-    expect((holder as any)._scripts.length).toBe(0);
-
-    // Calling sleep() during deactivation executes immediately without deferring onto _pendingSleeps.
+  it("applies sleep() during entity deactivation without deferring onto _pendingSleeps", () => {
     const deactEntity = rootEntity.createChild("deact-sleep");
     deactEntity.addComponent(BoxCollider);
     deactEntity.addComponent(
@@ -2175,5 +1985,147 @@ describe("Rigidbody", function () {
     } finally {
       setChildWorldTransform.mockRestore();
     }
+  });
+
+  it("skips native write-back on stationary kinematic bodies while still syncing move() and parent pose changes", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const entity = rootEntity.createChild("stationary-kinematic");
+    entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    body.isKinematic = true;
+
+    physics._update(physics.fixedTimeStep);
+    const getWorldTransform = vi.spyOn(body._getNativeActor(), "getWorldTransform");
+    try {
+      physics._update(physics.fixedTimeStep);
+      physics._update(physics.fixedTimeStep);
+      physics._update(physics.fixedTimeStep);
+      expect(getWorldTransform).not.toHaveBeenCalled();
+
+      body.move(new Vector3(2, 0, 0));
+      physics._update(physics.fixedTimeStep);
+      expect(getWorldTransform).toHaveBeenCalledTimes(1);
+      expect(entity.transform.position.x).toBeCloseTo(2, 4);
+
+      physics._update(physics.fixedTimeStep);
+      physics._update(physics.fixedTimeStep);
+      expect(getWorldTransform).toHaveBeenCalledTimes(1);
+
+      entity.transform.setPosition(5, 0, 0);
+      physics._update(physics.fixedTimeStep);
+      expect(entity.transform.position.x).toBeCloseTo(5, 4);
+      expect(getWorldTransform).toHaveBeenCalledTimes(2);
+
+      physics._update(physics.fixedTimeStep);
+      expect(getWorldTransform).toHaveBeenCalledTimes(2);
+    } finally {
+      getWorldTransform.mockRestore();
+    }
+
+    const parent = rootEntity.createChild("kinematic-parent");
+    parent.addComponent(BoxCollider);
+    const parentBody = parent.addComponent(Rigidbody);
+    parentBody.useGravity = false;
+    parentBody.linearVelocity = new Vector3(1, 0, 0);
+
+    const child = parent.createChild("kinematic-child");
+    child.addComponent(BoxCollider);
+    const childBody = child.addComponent(Rigidbody);
+    childBody.isKinematic = true;
+
+    physics._update(physics.fixedTimeStep);
+    const getChildTransform = vi.spyOn(childBody._getNativeActor(), "getWorldTransform");
+    try {
+      physics._update(physics.fixedTimeStep);
+      expect(getChildTransform).toHaveBeenCalledTimes(1);
+      expect(child.transform.worldPosition.x).toBeCloseTo(0, 4);
+    } finally {
+      getChildTransform.mockRestore();
+    }
+  });
+
+  it("rejects physics components and materials before insertion when physics is not initialized on the Engine", async () => {
+    const noPhysicsEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    try {
+      const scene = noPhysicsEngine.sceneManager.activeScene;
+      const detached = noPhysicsEngine.createEntity("detached-no-physics");
+      expect(() => detached.addComponent(Rigidbody)).toThrow();
+      expect(() => detached.addComponent(BoxCollider)).toThrow();
+      expect(() => new PhysicsMaterial(noPhysicsEngine)).toThrow();
+      expect(detached.getComponent(Rigidbody)).toBeNull();
+      expect(detached.getComponent(BoxCollider)).toBeNull();
+      expect(() => scene.addRootEntity(detached)).not.toThrow();
+      expect(() => scene.removeRootEntity(detached)).not.toThrow();
+      expect(detached.scene).toBeNull();
+      detached.destroy();
+    } finally {
+      expect(() => noPhysicsEngine.destroy()).not.toThrow();
+    }
+  });
+
+  it("settles pending geometry principal axes before switching a disabled Rigidbody to manual inertiaTensor", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+
+    const runScenario = (readRotationFirst: boolean) => {
+      const entity = rootEntity.createChild(readRotationFirst ? "read-first" : "direct-write");
+      const body = entity.addComponent(Rigidbody);
+      const child = entity.createChild("rotated-box");
+      child.addComponent(BoxCollider).size.set(2, 4, 6);
+
+      // Initial sync attaches the child shape at 0 deg.
+      expect(physics.raycast(new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0)), 10)).toBe(true);
+
+      body.enabled = false;
+      child.transform.rotation.z = 30;
+      // Query sync submits the rotated shape pose and marks mass dirty on the disabled body.
+      physics.raycast(new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0)), 10);
+
+      if (readRotationFirst) {
+        void body.inertiaTensorRotation;
+      }
+      body.inertiaTensor = new Vector3(2, 3, 4);
+      const lockedRotation = body.inertiaTensorRotation.clone();
+
+      body.enabled = true;
+      body.applyTorque(new Vector3(3, 0, 0), ForceMode.Impulse);
+      physics._update(physics.fixedTimeStep);
+      const angularVelocity = body.angularVelocity.clone();
+      entity.destroy();
+      return { lockedRotation, angularVelocity };
+    };
+
+    const reference = runScenario(true);
+    const direct = runScenario(false);
+    expect(Math.abs(Quaternion.dot(direct.lockedRotation, reference.lockedRotation))).toBeCloseTo(1, 5);
+    expect(direct.angularVelocity.x).toBeCloseTo(reference.angularVelocity.x, 4);
+    expect(direct.angularVelocity.y).toBeCloseTo(reference.angularVelocity.y, 4);
+    expect(direct.angularVelocity.z).toBeCloseTo(reference.angularVelocity.z, 4);
+
+    // Scalar-only mass edits while disabled remain deferred until manual flags commit.
+    const deferred = rootEntity.createChild("disabled-mass-defer");
+    const deferredBody = deferred.addComponent(Rigidbody);
+    deferred.addComponent(BoxCollider).size.set(2, 2, 2);
+    physics._update(physics.fixedTimeStep);
+    deferredBody.enabled = false;
+    deferredBody.mass = 5;
+    deferredBody.inertiaTensor = new Vector3(2, 3, 4);
+    deferredBody.enabled = true;
+    deferredBody.applyForce(new Vector3(5, 0, 0), ForceMode.Impulse);
+    physics._update(physics.fixedTimeStep);
+    expect(deferredBody.linearVelocity.x).toBeCloseTo(1, 4);
+  });
+
+  it("computes getWorldCenterOfMass safely when out aliases entity.transform.worldPosition", () => {
+    const entity = rootEntity.createChild("com-alias");
+    entity.transform.setPosition(10, 0, 0);
+    const body = entity.addComponent(Rigidbody);
+    body.centerOfMass = new Vector3(1, 0, 0);
+
+    const out = body.getWorldCenterOfMass(entity.transform.worldPosition);
+    expect(out).toBe(entity.transform.worldPosition);
+    expect(out.x).toBeCloseTo(11, 5);
+    expect(out.y).toBeCloseTo(0, 5);
+    expect(out.z).toBeCloseTo(0, 5);
   });
 });

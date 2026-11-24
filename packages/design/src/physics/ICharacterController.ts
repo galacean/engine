@@ -34,12 +34,6 @@ export interface ICharacterController {
   setCollisionLayer(layer: number): void;
 
   /**
-   * Control whether scene queries can hit the controller.
-   * @param value - Whether the controller participates in scene queries
-   */
-  setIsSceneQuery(value: boolean): void;
-
-  /**
    * Moves the character using a "collide-and-slide" algorithm.
    * @param disp - World-space displacement
    * @param minDist - The remaining distance threshold for stopping the move

@@ -30,7 +30,6 @@ label: Physics
 | --- | --- | --- |
 | [**mass**](/apis/core/#Rigidbody-mass) | 刚体的质量，0 表示无限质量 | 1.0 |
 | [**useGravity**](/apis/core/#Rigidbody-useGravity) | 是否受重力影响 | true |
-| [**simulationEnabled**](/apis/core/#Rigidbody-simulationEnabled) | 是否参与模拟。关闭后保留碰撞器的查询设置，位置和旋转跟随实体 Transform | true |
 | [**isKinematic**](/apis/core/#Rigidbody-isKinematic) | 是否为运动学刚体。物理不会移动运动学刚体，但它可以推动其他物体 | false |
 
 ### 速度设置
@@ -117,8 +116,6 @@ PhysX 对动态刚体使用线性扫掠，对运动学刚体使用推测式接�
 | [**sleep**](/apis/core/#Rigidbody-sleep) | 强制休眠 |
 | [**wakeUp**](/apis/core/#Rigidbody-wakeUp) | 唤醒刚体 |
 | [**isSleeping**](/apis/core/#Rigidbody-isSleeping) | 是否处于休眠状态 |
-
-刚体所在实体的脚本可以实现 `onSleep(body)` 和 `onWake(body)`。回调在物理步完成后执行，可以读取更新后的 Transform。PhysX 只报告该步内最后一次状态变化，并可能在刚体加入模拟时报告初始状态。
 
 `applyForce` 和 `applyTorque` 默认使用 `ForceMode.Force`。用 `ForceMode.Impulse` 施加一次线性冲量或角冲量，用 `ForceMode.VelocityChange` 直接改变速度，用 `ForceMode.Acceleration` 施加不受质量或惯性影响的加速度。
 

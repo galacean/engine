@@ -30,7 +30,6 @@ A Rigidbody ([Rigidbody](/apis/core/#Rigidbody)) puts its Entity under physics c
 | --- | --- | --- |
 | [**mass**](/apis/core/#Rigidbody-mass) | Mass of the Rigidbody. Zero represents infinite mass. | 1.0 |
 | [**useGravity**](/apis/core/#Rigidbody-useGravity) | Whether gravity affects the Rigidbody | true |
-| [**simulationEnabled**](/apis/core/#Rigidbody-simulationEnabled) | Whether the Rigidbody participates in simulation. Query-only bodies retain their Collider query settings and follow the Entity Transform. | true |
 | [**isKinematic**](/apis/core/#Rigidbody-isKinematic) | Whether the Rigidbody is kinematic. Physics does not move a kinematic body, but it can push other objects | false |
 
 ### Velocity
@@ -117,8 +116,6 @@ PhysX uses a linear sweep for dynamic bodies and speculative contacts for kinema
 | [**sleep**](/apis/core/#Rigidbody-sleep) | Force the Rigidbody to sleep |
 | [**wakeUp**](/apis/core/#Rigidbody-wakeUp) | Wake the Rigidbody up |
 | [**isSleeping**](/apis/core/#Rigidbody-isSleeping) | Whether the Rigidbody is sleeping |
-
-Scripts on the Rigidbody's Entity can implement `onSleep(body)` and `onWake(body)`. The callbacks run after the physics step and see the updated Transform. PhysX reports the latest transition in the step and can report the body's initial state when it enters simulation.
 
 `applyForce` and `applyTorque` default to `ForceMode.Force`. Use `ForceMode.Impulse` for a one-shot linear or angular impulse, `ForceMode.VelocityChange` for a direct change in velocity, and `ForceMode.Acceleration` for acceleration independent of mass or inertia.
 

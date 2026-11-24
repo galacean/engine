@@ -114,9 +114,6 @@ export interface IDynamicActor extends IPhysicsActor {
    */
   setSleepThreshold(value: number): void;
 
-  /** Sets the scene registration ID for sleep and wake notifications. Use zero to unsubscribe. */
-  setSleepEventId(id: number): void;
-
   /**
    * Sets the solver iteration counts for the body.
    * @param positionIterations - Number of position iterations
@@ -128,11 +125,6 @@ export interface IDynamicActor extends IPhysicsActor {
    * Whether the actor is affected by gravity.
    */
   setUseGravity(value: boolean): void;
-
-  /**
-   * Toggle simulation while retaining the actor and its query shapes in the scene.
-   */
-  setSimulationEnabled(value: boolean): void;
 
   /**
    * Applies the kinematic state and CCD together so the backend can select the supported detection method.

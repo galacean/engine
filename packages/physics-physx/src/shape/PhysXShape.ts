@@ -75,13 +75,6 @@ export abstract class PhysXShape implements IPhysicsShape {
   }
 
   /**
-   * {@inheritDoc IPhysicsShape.setIsSceneQuery }
-   */
-  setIsSceneQuery(value: boolean): void {
-    this._pxShape.setSceneQueryEnabled(value);
-  }
-
-  /**
    * {@inheritDoc IPhysicsShape.pointDistance }
    */
   pointDistance(point: Vector3): Vector4 {
@@ -114,16 +107,12 @@ export abstract class PhysXShape implements IPhysicsShape {
   }
 
   protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
-    this._id = id;
-    this._pxShape = this._createShape(this._pxGeometry, material);
-    this._pxShape.setUUID(id);
-  }
-
-  protected _createShape(geometry: any, material: PhysXPhysicsMaterial): any {
     const { _physX: physX, _pxPhysics: physics } = this._physXPhysics;
     const shapeFlags = new physX.PxShapeFlags(ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE);
-    const shape = physics.createShape(geometry, material._pxMaterial, true, shapeFlags);
+    const shape = physics.createShape(this._pxGeometry, material._pxMaterial, true, shapeFlags);
     shapeFlags.delete();
-    return shape;
+    this._id = id;
+    this._pxShape = shape;
+    shape.setUUID(id);
   }
 }

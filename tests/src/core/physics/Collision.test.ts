@@ -1,6 +1,6 @@
 import { createPhysics } from "../../utils/physics";
 import { BoxCollider, Collision, ContactPoint, Rigidbody, Entity, Engine, Scene, Script } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
 
@@ -52,6 +52,7 @@ describe("Collision", function () {
       if (hasContacts) {
         engine.sceneManager.addScene(innerScene);
         const innerBody = innerScene.createRootEntity();
+        innerBody.transform.setPosition(100, 100, 100);
         innerBody.addComponent(BoxCollider);
         innerBody.addComponent(Rigidbody);
         innerBody.addComponent(
@@ -62,7 +63,7 @@ describe("Collision", function () {
           }
         );
         const innerBox = innerScene.createRootEntity();
-        innerBox.transform.setPosition(0.3, 0, 0);
+        innerBox.transform.setPosition(100.3, 100, 100);
         innerBox.addComponent(BoxCollider);
       }
       const staticBox = addBox(new Vector3(1, 1, 1), null, new Vector3(0.3, 0, 0)).getComponent(BoxCollider);
@@ -72,10 +73,34 @@ describe("Collision", function () {
         class extends Script {
           override onCollisionEnter(collision: Collision): void {
             const count = collision.contactCount;
+            const before: ContactPoint[] = [];
+            expect(collision.getContacts(before)).toBe(count);
+            const expected = before.map((contact) => ({
+              position: contact.position.clone(),
+              normal: contact.normal.clone(),
+              impulse: contact.impulse.clone(),
+              separation: contact.separation
+            }));
+
             innerScene.physics._update(innerScene.physics.fixedTimeStep);
             expect(count).toBeGreaterThan(0);
             expect(collision.contactCount).toBe(count);
             expect(collision.collider).toBe(staticBox);
+
+            const after: ContactPoint[] = [];
+            expect(collision.getContacts(after)).toBe(count);
+            for (let i = 0; i < count; i++) {
+              expect(after[i].position.x).toBeCloseTo(expected[i].position.x, 5);
+              expect(after[i].position.y).toBeCloseTo(expected[i].position.y, 5);
+              expect(after[i].position.z).toBeCloseTo(expected[i].position.z, 5);
+              expect(after[i].normal.x).toBeCloseTo(expected[i].normal.x, 5);
+              expect(after[i].normal.y).toBeCloseTo(expected[i].normal.y, 5);
+              expect(after[i].normal.z).toBeCloseTo(expected[i].normal.z, 5);
+              expect(after[i].impulse.x).toBeCloseTo(expected[i].impulse.x, 5);
+              expect(after[i].impulse.y).toBeCloseTo(expected[i].impulse.y, 5);
+              expect(after[i].impulse.z).toBeCloseTo(expected[i].impulse.z, 5);
+              expect(after[i].separation).toBeCloseTo(expected[i].separation, 5);
+            }
             ran = true;
           }
         }
@@ -243,5 +268,30 @@ describe("Collision", function () {
       dynamicBox.getComponent(Rigidbody).applyForce(new Vector3(1000, 0, 0));
       engine.sceneManager.activeScene.physics._update(1);
     });
+  });
+
+  it("does not accumulate shape removal entries in paused scenes with no active triggers", function () {
+    const scene = engine.sceneManager.activeScene;
+    const nativeScene = scene.physics._nativePhysicsScene as unknown as {
+      _shapeChanges: Map<number, number>;
+    };
+    const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
+    scene.physics._update(scene.physics.fixedTimeStep);
+    expect(nativeScene._shapeChanges.size).toBe(0);
+
+    engine.pause();
+    try {
+      for (let i = 0; i < 64; i++) {
+        const entity = rootEntity.createChild(`paused-box-${i}`);
+        entity.addComponent(BoxCollider);
+        expect(scene.physics.raycast(ray, 10)).toBe(true);
+        entity.destroy();
+        expect(scene.physics.raycast(ray, 10)).toBe(false);
+      }
+      engine.resourceManager.gc();
+      expect(nativeScene._shapeChanges.size).toBe(0);
+    } finally {
+      engine.resume();
+    }
   });
 });

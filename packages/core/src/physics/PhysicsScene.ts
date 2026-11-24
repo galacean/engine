@@ -68,10 +68,8 @@ export class PhysicsScene {
   private _massDirtyBodies: Rigidbody[] = [];
   private _pendingSleeps?: Set<Rigidbody>;
   private _collision: Collision;
-  private readonly _eventTargets = new Map<number, Rigidbody>();
   private readonly _triggerReceivers = new Map<number, TriggerReceivers>();
   private _triggerStepStamp = 0;
-  private _nextEventId = 0;
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   /** @internal */
@@ -858,37 +856,14 @@ export class PhysicsScene {
     massDirtyBodies.push(body);
   }
 
-  /** @internal Schedules or cancels sleep after activation and Collider synchronization. */
+  /** @internal Schedules or cancels sleep after registration and Collider synchronization. */
   _scheduleSleep(body: Rigidbody, scheduled: boolean): void {
     if (scheduled) (this._pendingSleeps ||= new Set()).add(body);
     else this._pendingSleeps?.delete(body);
   }
 
   /** @internal */
-  _registerEventTarget(target: Rigidbody): number {
-    const id = ++this._nextEventId;
-    this._eventTargets.set(id, target);
-    return id;
-  }
-
-  /** @internal */
-  _unregisterEventTarget(id: number): void {
-    this._eventTargets.delete(id);
-  }
-
-  /** @internal */
-  _onScriptEnabled(script: Script, flags: number): void {
-    flags & 1 && this._addContactEventConsumer(1);
-    flags & 2 && script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
-  }
-
-  /** @internal */
-  _onScriptDisabled(script: Script, flags: number): void {
-    flags & 1 && this._addContactEventConsumer(-1);
-    flags & 2 && script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
-  }
-
-  private _addContactEventConsumer(delta: 1 | -1): void {
+  _addContactEventConsumer(delta: 1 | -1): void {
     const wasEnabled = this._contactEventConsumerCount > 0;
     this._contactEventConsumerCount += delta;
     const enabled = this._contactEventConsumerCount > 0;
@@ -910,7 +885,6 @@ export class PhysicsScene {
     //@ts-ignore
     this._gravity._onValueChanged = null;
     PhysicsScene._raycastHitPool.length = 0;
-    this._eventTargets.clear();
     this._triggerReceivers.clear();
     this._pendingSleeps?.clear();
     this._nativePhysicsScene?.destroy();
@@ -1027,15 +1001,6 @@ export class PhysicsScene {
     if (triggerCount === 0) {
       this._triggerReceivers.size > 0 && this._triggerReceivers.clear();
     }
-
-    const { bodySleepEventIds, bodySleepEventCount } = events;
-    if (bodySleepEventCount > 0) {
-      for (let i = 0; i < bodySleepEventCount; i++) {
-        const id = bodySleepEventIds[i];
-        if (id < 0) this._dispatchSleepEvent(-id, "onSleep");
-        else this._dispatchSleepEvent(id, "onWake");
-      }
-    }
   }
 
   private static _snapshotReceivers(
@@ -1077,24 +1042,6 @@ export class PhysicsScene {
       }
     }
     PhysicsScene._dispatchScripts(PhysicsEventState.Stay, current, self, other);
-  }
-
-  private _dispatchSleepEvent(id: number, method: "onSleep" | "onWake"): void {
-    const targets = this._eventTargets;
-    const target = targets.get(id);
-    if (!target) return;
-
-    const scripts = target.entity._scripts;
-    const count = scripts.length;
-    scripts._startLoop();
-    const elements = scripts._elements;
-    for (let i = 0; i < count; i++) {
-      const script = elements[i];
-      if (!script) continue;
-      script[method](target);
-      if (!targets.has(id)) break;
-    }
-    scripts._endLoop(PhysicsScene._scriptIndexSetter);
   }
 
   private static _dispatchScripts(

@@ -45,8 +45,8 @@ export class Script extends Component {
 1. 执行 `onPhysicsUpdate` 中的用户逻辑
 2. 应用待处理的组件改动：将被修改的 [实体](/apis/core/#Entity) `Transform` 数据、[碰撞器](/docs/physics/collider/overview)的归属和属性同步给物理后端
 3. 模拟一个固定步长
-4. 将所有已启用且开启 `simulationEnabled` 的[刚体](/docs/physics/collider/rigidbody)模拟后的位姿写回对应的 `实体`
-5. 派发碰撞、触发器及休眠/唤醒事件
+4. 将所有已启用的[刚体](/docs/physics/collider/rigidbody)模拟后的位姿写回对应的 `实体`
+5. 派发碰撞和触发器事件
 
 ## 设置场景重力
 

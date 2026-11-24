@@ -95,19 +95,16 @@ describe("Collider layer initialization", () => {
     expect(collider.collisionLayer).toBe(Layer.Layer31);
   });
 
-  it("preserves independent Collider layers and query flags through mesh cooking and replacement", () => {
+  it("preserves independent Collider layers through mesh cooking and replacement", () => {
     const source = root.createChild("source");
     const box = source.addComponent(BoxCollider);
     box.collisionLayer = Layer.Layer3;
     const collider = source.addComponent(MeshCollider);
     collider.collisionLayer = Layer.Layer4;
     collider.center.x = 3;
-    collider._isSceneQuery = false;
     const center = new Vector3(3, 1000.5, 0);
     const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1, { keepMeshData: true });
     collider.mesh = mesh;
-    expect(physics.overlapSphereAll(center, 0.1)).toHaveLength(0);
-    collider._isSceneQuery = true;
 
     function expectMesh(): void {
       const hits = physics.overlapSphereAll(center, 0.1, Layer.Layer4);
@@ -145,52 +142,45 @@ describe("Collider layer initialization", () => {
     expect(overlaps[0]).toBe(controller);
   });
 
-  it.each([true, false])(
-    "preserves the layer and query flag of an initially enabled=%s controller clone",
-    (enabled) => {
-      const source = root.createChild("source");
-      const controller = source.addComponent(CharacterController);
-      controller.enabled = enabled;
-      controller.collisionLayer = Layer.Layer7;
-      controller._isSceneQuery = false;
+  it.each([true, false])("preserves the layer of an initially enabled=%s controller clone", (enabled) => {
+    const source = root.createChild("source");
+    const controller = source.addComponent(CharacterController);
+    controller.enabled = enabled;
+    controller.collisionLayer = Layer.Layer7;
 
-      const clone = source.clone();
-      root.addChild(clone);
-      clone.transform.setPosition(3, 0, 0);
-      const cloneController = clone.getComponent(CharacterController);
-      cloneController.enabled = true;
-      physics._update(1 / 60);
-      const center = new Vector3(3, 1000, 0);
-      expect(cloneController.collisionLayer).toBe(Layer.Layer7);
-      expect(cloneController._isSceneQuery).toBe(false);
-      expect(physics.overlapSphereAll(center, 0.1)).toHaveLength(0);
+    const clone = source.clone();
+    root.addChild(clone);
+    clone.transform.setPosition(3, 0, 0);
+    const cloneController = clone.getComponent(CharacterController);
+    cloneController.enabled = true;
+    physics._update(1 / 60);
+    const center = new Vector3(3, 1000, 0);
+    expect(cloneController.collisionLayer).toBe(Layer.Layer7);
 
-      function expectController(layer: Layer): void {
-        const unfilteredHits = physics.overlapSphereAll(center, 0.1);
-        expect(unfilteredHits).toHaveLength(1);
-        expect(unfilteredHits[0]).toBe(cloneController);
-        const hits = physics.overlapSphereAll(center, 0.1, layer);
-        expect(hits).toHaveLength(1);
-        expect(hits[0]).toBe(cloneController);
-      }
-
-      cloneController._isSceneQuery = true;
-      expectController(Layer.Layer7);
-      expect(physics.overlapSphereAll(center, 0.1, Layer.Layer0)).toHaveLength(0);
-      cloneController.enabled = false;
-      expect(physics.overlapSphereAll(center, 0.1)).toHaveLength(0);
-      cloneController.enabled = true;
-      physics._update(1 / 60);
-      expectController(Layer.Layer7);
-
-      cloneController.collisionLayer = Layer.Layer9;
-      cloneController.enabled = false;
-      cloneController.enabled = true;
-      physics._update(1 / 60);
-      expect(physics.overlapSphereAll(center, 0.1, Layer.Layer7)).toHaveLength(0);
-      expectController(Layer.Layer9);
+    function expectController(layer: Layer): void {
+      const unfilteredHits = physics.overlapSphereAll(center, 0.1);
+      expect(unfilteredHits).toHaveLength(1);
+      expect(unfilteredHits[0]).toBe(cloneController);
+      const hits = physics.overlapSphereAll(center, 0.1, layer);
+      expect(hits).toHaveLength(1);
+      expect(hits[0]).toBe(cloneController);
     }
-  );
+
+    expectController(Layer.Layer7);
+    expect(physics.overlapSphereAll(center, 0.1, Layer.Layer0)).toHaveLength(0);
+    cloneController.enabled = false;
+    expect(physics.overlapSphereAll(center, 0.1)).toHaveLength(0);
+    cloneController.enabled = true;
+    physics._update(1 / 60);
+    expectController(Layer.Layer7);
+
+    cloneController.collisionLayer = Layer.Layer9;
+    cloneController.enabled = false;
+    cloneController.enabled = true;
+    physics._update(1 / 60);
+    expect(physics.overlapSphereAll(center, 0.1, Layer.Layer7)).toHaveLength(0);
+    expectController(Layer.Layer9);
+  });
 });
 
 describe("Collider layer validation", () => {

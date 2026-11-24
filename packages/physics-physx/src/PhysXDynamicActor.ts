@@ -140,11 +140,6 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
     this._pxActor.setSleepThreshold(value);
   }
 
-  /** {@inheritDoc IDynamicActor.setSleepEventId} */
-  setSleepEventId(id: number): void {
-    this._pxActor.setSleepEventId(id);
-  }
-
   /**
    * {@inheritDoc IDynamicActor.setSolverIterations }
    */
@@ -157,18 +152,6 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
    */
   setUseGravity(value: boolean): void {
     this._pxActor.setActorFlag(this._physXPhysics._physX.PxActorFlag.eDISABLE_GRAVITY, !value);
-  }
-
-  /** {@inheritDoc IDynamicActor.setSimulationEnabled} */
-  setSimulationEnabled(value: boolean): void {
-    if (!this._pxActor.setSimulationEnabled(value)) return;
-    const scene = this._scene;
-    if (scene) {
-      for (const shape of this._shapes) {
-        scene._refreshTriggerPairsForShape(shape._id);
-        !value && scene._clearContactsForShape(shape._id);
-      }
-    }
   }
 
   /**

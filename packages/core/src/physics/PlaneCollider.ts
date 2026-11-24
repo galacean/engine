@@ -24,10 +24,7 @@ export class PlaneCollider extends Collider {
     return -1;
   }
 
-  /**
-   * @internal
-   */
-  override _supportsDynamicBody(): boolean {
+  protected override _supportsDynamicBody(): boolean {
     return false;
   }
 

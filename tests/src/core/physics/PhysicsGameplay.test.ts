@@ -48,6 +48,7 @@ class PhysicsGameplayMeshLoader extends Loader<ModelMesh> {
 
 Loader.registerClass("Rigidbody", Rigidbody);
 Loader.registerClass("BoxCollider", BoxCollider);
+Loader.registerClass("CharacterController", CharacterController);
 Loader.registerClass("MeshCollider", MeshCollider);
 Loader.registerClass("FixedJoint", FixedJoint);
 Loader.registerClass("HingeJoint", HingeJoint);
@@ -134,19 +135,82 @@ describe("Physics gameplay integration", () => {
     expect(entity.getComponent(HingeJoint)!.axis).toMatchObject({ x: 0, y: 1, z: 0 });
   });
 
-  it("preserves a script-built joint's calculated anchor when switched to manual before entering a scene", () => {
+  it("loads CharacterController upDirection from a runtime Prefab call and isolates nested Prefab overrides", async () => {
+    const basePath = "direction-base.prefab";
+    const basePrefab = await loadPrefab(basePath, {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "base", components: [0, 1, 2] }],
+      components: [
+        { type: "CharacterController", calls: [{ method: "_setUpDirection", args: [{ x: 0, y: 2, z: 0 }] }] },
+        { type: "Rigidbody" },
+        { type: "HingeJoint", calls: [{ method: "_setAxis", args: [{ x: 2, y: 0, z: 0 }] }] }
+      ],
+      root: 0
+    });
+
+    const wrapperPrefab = await loadPrefab("direction-wrapper.prefab", {
+      version: "2.0",
+      refs: [{ url: basePath, type: AssetType.Prefab }],
+      entities: [
+        { name: "wrapper", children: [1, 2] },
+        { instance: { asset: 0 } },
+        {
+          instance: {
+            asset: 0,
+            overrides: {
+              componentProps: [
+                {
+                  path: [],
+                  selector: { type: "CharacterController", index: 0 },
+                  props: { upDirection: { x: 1, y: 0, z: 0 } }
+                },
+                {
+                  path: [],
+                  selector: { type: "HingeJoint", index: 0 },
+                  props: { axis: { x: 0, y: 2, z: 0 } }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      components: [],
+      root: 0
+    });
+
+    const wrapper = wrapperPrefab.instantiate();
+    const freshBase = basePrefab.instantiate();
+    root.addChild(wrapper);
+    root.addChild(freshBase);
+
+    const siblingCC = wrapper.children[0].getComponent(CharacterController)!;
+    const overriddenCC = wrapper.children[1].getComponent(CharacterController)!;
+    const freshCC = freshBase.getComponent(CharacterController)!;
+    expect(overriddenCC.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
+    expect(siblingCC.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
+    expect(freshCC.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
+
+    const siblingJoint = wrapper.children[0].getComponent(HingeJoint)!;
+    const overriddenJoint = wrapper.children[1].getComponent(HingeJoint)!;
+    const freshJoint = freshBase.getComponent(HingeJoint)!;
+    expect(overriddenJoint.axis).toMatchObject({ x: 0, y: 1, z: 0 });
+    expect(siblingJoint.axis).toMatchObject({ x: 1, y: 0, z: 0 });
+    expect(freshJoint.axis).toMatchObject({ x: 1, y: 0, z: 0 });
+  });
+
+  it("defers automatic connectedAnchor calculation on a detached joint until it enters a scene", () => {
     const entity = engine.createEntity("detached joint");
     entity.transform.setPosition(10, 0, 0);
     entity.addComponent(BoxCollider);
     const joint = entity.addComponent(FixedJoint);
     entity.getComponent(Rigidbody)!.useGravity = false;
     joint.anchor.set(2, 0, 0);
-    joint.automaticConnectedAnchor = false;
+    expect(joint.connectedAnchor.x).toBe(0);
 
-    const connectedX = joint.connectedAnchor.x;
     root.addChild(entity);
+    expect(joint.connectedAnchor.x).toBe(12);
     step();
-    expect(connectedX).toBe(12);
     expect(entity.transform.worldPosition.x).toBeCloseTo(10, 5);
   });
 

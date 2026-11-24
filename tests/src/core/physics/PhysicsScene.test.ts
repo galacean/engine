@@ -607,12 +607,6 @@ describe("Physics Test", () => {
       expect(physicsScene.raycastAll(ray, 100, Layer.Nothing)).to.eq(false);
       expect(physicsScene.raycastAll(ray, 0)).to.eq(false);
 
-      farShape._isSceneQuery = false;
-      const queryFilteredResults: HitResult[] = [];
-      expect(physicsScene.raycastAll(ray, queryFilteredResults)).to.eq(true);
-      expect(queryFilteredResults).to.have.length(1);
-      expect(queryFilteredResults[0].collider).to.eq(nearShape);
-
       root.destroy();
     });
 
@@ -885,36 +879,44 @@ describe("Physics Test", () => {
       expect(physics.raycast(ray, 100, Layer.Layer31, hit)).to.eq(true);
       expect(hit.collider).to.eq(farShape);
 
-      nearShape._isSceneQuery = false;
       nearShape.isTrigger = true;
-      expect(physics.raycastAll(ray, 100, mask, hits)).to.eq(true);
+      expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
       expect(hits).to.have.length(1);
       expect(hits[0].collider).to.be.eq(farShape);
       expect(
-        physics.boxCast(ray.origin, new Vector3(0.1, 0.1, 0.1), ray.direction, new Quaternion(), 100, mask, hit)
+        physics.boxCast(
+          ray.origin,
+          new Vector3(0.1, 0.1, 0.1),
+          ray.direction,
+          new Quaternion(),
+          100,
+          Layer.Layer31,
+          hit
+        )
       ).to.eq(true);
       expect(hit.collider).to.eq(farShape);
-      expect(physics.sphereCast(ray.origin, 0.1, ray.direction, 100, mask, hit)).to.eq(true);
+      expect(physics.sphereCast(ray.origin, 0.1, ray.direction, 100, Layer.Layer31, hit)).to.eq(true);
       expect(hit.collider).to.eq(farShape);
-      expect(physics.capsuleCast(ray.origin, 0.1, 0.4, ray.direction, new Quaternion(), 100, mask, hit)).to.eq(true);
+      expect(physics.capsuleCast(ray.origin, 0.1, 0.4, ray.direction, new Quaternion(), 100, Layer.Layer31, hit)).to.eq(
+        true
+      );
       expect(hit.collider).to.eq(farShape);
       const center = new Vector3(2, 0, 0);
       {
-        const overlap = physics.overlapBoxAll(center, new Vector3(5, 5, 5), new Quaternion(), mask);
+        const overlap = physics.overlapBoxAll(center, new Vector3(5, 5, 5), new Quaternion(), Layer.Layer31);
         expect(overlap).to.have.length(1);
         expect(overlap[0]).to.be.eq(farShape);
       }
       {
-        const overlap = physics.overlapSphereAll(center, 5, mask);
+        const overlap = physics.overlapSphereAll(center, 5, Layer.Layer31);
         expect(overlap).to.have.length(1);
         expect(overlap[0]).to.be.eq(farShape);
       }
       {
-        const overlap = physics.overlapCapsuleAll(center, 5, 11, new Quaternion(), mask);
+        const overlap = physics.overlapCapsuleAll(center, 5, 11, new Quaternion(), Layer.Layer31);
         expect(overlap).to.have.length(1);
         expect(overlap[0]).to.be.eq(farShape);
       }
-      nearShape._isSceneQuery = true;
       nearShape.collisionLayer = Layer.Layer31;
       expect(physics.raycastAll(ray, 100, Layer.Layer1, hits)).to.eq(false);
       expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
@@ -923,37 +925,32 @@ describe("Physics Test", () => {
       addedShape.collisionLayer = Layer.Layer31;
       expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
       expect(hits).to.have.length(3);
-      nearShape._isSceneQuery = false;
       const cloneEntity = near.clone();
       root.addChild(cloneEntity);
       const clone = cloneEntity.getComponent(BoxCollider);
-      expect(clone._isSceneQuery).to.eq(false);
-      expect(physics.raycastAll(ray, hits)).to.eq(true);
-      expect(hits.map((hit) => hit.collider)).to.not.include(clone);
+      expect(clone.collisionLayer).to.eq(Layer.Layer31);
+      expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
+      expect(hits.map((hit) => hit.collider)).to.include(clone);
       root.destroy();
     });
 
-    it("character-controller query settings survive native recreation", () => {
+    it("character-controller collisionLayer survives native recreation", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("controller-query-settings");
       const entity = root.createChild("controller");
       const controller = entity.addComponent(CharacterController);
       controller.collisionLayer = Layer.Layer31;
-      controller._isSceneQuery = false;
       const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0));
       const hits: HitResult[] = [];
-      expect(scene.physics.raycastAll(ray, hits)).to.eq(false);
-      expect(hits).to.have.length(0);
-      controller._isSceneQuery = true;
       expect(scene.physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
       expect(hits).to.have.length(1);
       expect(hits[0].collider).to.be.eq(controller);
-      controller._isSceneQuery = false;
+      expect(scene.physics.raycastAll(ray, 100, Layer.Layer0, hits)).to.eq(false);
+      expect(hits).to.have.length(0);
       controller.enabled = false;
-      controller.enabled = true;
       expect(scene.physics.raycastAll(ray, hits)).to.eq(false);
       expect(hits).to.have.length(0);
-      controller._isSceneQuery = true;
+      controller.enabled = true;
       expect(scene.physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
       expect(hits).to.have.length(1);
       expect(hits[0].collider).to.be.eq(controller);
@@ -1976,54 +1973,6 @@ describe("Physics Test", () => {
     });
 
     describe("Collision Test", () => {
-      it.each([false, true])("ends trigger overlaps on suspension (replace shape=%s)", (replaceShape) => {
-        const root = enginePhysX.sceneManager.activeScene.createRootEntity("query-only trigger pair");
-        root.transform.setPosition(0, 1000, 0);
-        const trigger = root.createChild();
-        trigger.addComponent(BoxCollider).isTrigger = true;
-        const enter = vi.fn();
-        const stay = vi.fn();
-        const exit = vi.fn();
-        trigger.addComponent(
-          class extends Script {
-            onTriggerEnter = enter;
-            onTriggerStay = stay;
-            onTriggerExit = exit;
-          }
-        );
-        const visitor = root.createChild();
-        const collider = replaceShape ? visitor.addComponent(CapsuleCollider) : visitor.addComponent(BoxCollider);
-        if (collider instanceof CapsuleCollider) collider.radius = 0.5;
-        const body = visitor.addComponent(Rigidbody);
-        body.isKinematic = true;
-
-        try {
-          physicsScene._update(physicsScene.fixedTimeStep);
-          physicsScene._update(physicsScene.fixedTimeStep);
-          expect(enter).toHaveBeenCalledTimes(1);
-          expect(stay).toHaveBeenCalledTimes(1);
-
-          body.simulationEnabled = false;
-          if (collider instanceof CapsuleCollider) collider.height = 1;
-          physicsScene._update(physicsScene.fixedTimeStep);
-          physicsScene._update(physicsScene.fixedTimeStep);
-          expect(stay).toHaveBeenCalledTimes(1);
-          expect(exit).toHaveBeenCalledTimes(1);
-          if (collider instanceof CapsuleCollider) {
-            expect(collider.getClosestPoint(new Vector3(0, 1001, 0), new Vector3())).toBeCloseTo(0.5);
-          }
-          const overlaps: Collider[] = [];
-          physicsScene.overlapSphereAll(visitor.transform.worldPosition, 0.25, Layer.Everything, overlaps);
-          expect(overlaps).toContain(collider);
-
-          body.simulationEnabled = true;
-          physicsScene._update(physicsScene.fixedTimeStep);
-          expect(enter).toHaveBeenCalledTimes(2);
-        } finally {
-          root.destroy();
-        }
-      });
-
       it.each([
         ["static", "static", false],
         ["dynamic", "dynamic", true],
@@ -2119,15 +2068,13 @@ describe("Physics Test", () => {
             Object.freeze({
               contactEvents: [],
               contactEventCount: 0,
-              triggerEvents: [pooledSlot],
-              bodySleepEventIds: [],
-              bodySleepEventCount: 0
+              triggerEvents: [pooledSlot]
             } satisfies IPhysicsEvents)
           );
           expect(enterA).toHaveBeenCalledOnce();
 
           // Reuse the same pooledSlot object for (A, C) while (A, B) stays active under swapped order,
-          // and pass non-zero frozen contactEventCount / bodySleepEventCount to verify they are never mutated.
+          // and pass non-zero frozen contactEventCount to verify it is never mutated.
           pooledSlot.shape0Id = colliderA._id;
           pooledSlot.shape1Id = colliderC._id;
           pooledSlot.state = PhysicsEventState.Enter;
@@ -2145,13 +2092,10 @@ describe("Physics Test", () => {
             triggerEvents: [
               { shape0Id: colliderB._id, shape1Id: colliderA._id, state: PhysicsEventState.Stay },
               pooledSlot
-            ],
-            bodySleepEventIds: [999999],
-            bodySleepEventCount: 1
+            ]
           } satisfies IPhysicsEvents);
           (physicsScene as any)._dispatchEvents(frozenStep2);
           expect(frozenStep2.contactEventCount).toBe(1);
-          expect(frozenStep2.bodySleepEventCount).toBe(1);
           expect(stayA).toHaveBeenCalledOnce();
           expect(enterC).toHaveBeenCalledExactlyOnceWith(colliderA, colliderC);
 
@@ -2170,9 +2114,7 @@ describe("Physics Test", () => {
               triggerEvents: [
                 pooledSlot,
                 { shape0Id: colliderC._id, shape1Id: colliderA._id, state: PhysicsEventState.Exit }
-              ],
-              bodySleepEventIds: [],
-              bodySleepEventCount: 0
+              ]
             } satisfies IPhysicsEvents)
           );
           expect(exitA).toHaveBeenCalledTimes(2);

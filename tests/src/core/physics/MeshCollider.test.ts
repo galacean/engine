@@ -532,7 +532,7 @@ describe("MeshCollider", () => {
     expect(hit.collider).toBe(collider);
     expect(cook).toHaveBeenCalledOnce();
     expect(physics.raycast(rayAt(8), hit)).toBe(false);
-    const geometryWrites = vi.spyOn(collider._native["_pxShape"], "setGeometry");
+    const geometryWrites = vi.spyOn(collider["_native"]["_pxShape"], "setGeometry");
     collider.entity.transform.setScale(3, 1, 1);
     collider.mesh = createCubeMesh(engine, 2);
     expect(physics.raycast(rayAt(8), hit)).toBe(true);
@@ -760,7 +760,7 @@ describe("MeshCollider", () => {
       const collider = addMesh(convex);
       const previous = collider.mesh;
       const recorder = addTriggerProbe();
-      recorder.entity.getComponent(SphereCollider)._isSceneQuery = false;
+      recorder.entity.getComponent(SphereCollider).collisionLayer = Layer.Layer1;
       update();
       expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
       const invalid = createModelMesh(engine, [0, 0, 0], [0, 0, 0]);
@@ -773,14 +773,14 @@ describe("MeshCollider", () => {
       expect(errors).toHaveBeenCalled();
       expect(recorder.onTriggerStay).not.toHaveBeenCalled();
       expect(recorder.onTriggerExit).not.toHaveBeenCalled();
-      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(physics.raycast(rayAt(0), Number.MAX_VALUE, Layer.Layer0)).toBe(false);
       const replacement = createCubeMesh(engine, 1.1);
       collider.mesh = replacement;
       expect(collider.mesh).toBe(replacement);
       expect(invalid.refCount).toBe(0);
       expect(replacement.refCount).toBe(1);
       const recoveredHit = new HitResult();
-      expect(physics.raycast(rayAt(0), recoveredHit)).toBe(true);
+      expect(physics.raycast(rayAt(0), Number.MAX_VALUE, Layer.Layer0, recoveredHit)).toBe(true);
       expect(recoveredHit.collider).toBe(collider);
       update();
       expect(recorder.onTriggerEnter).toHaveBeenCalledTimes(2);
@@ -918,10 +918,41 @@ describe("MeshCollider", () => {
 
       expect(original.refCount).toBe(0);
       expect(releaseSpy).toHaveBeenCalledOnce();
-      expect(collider._native).toBeNull();
+      expect(collider["_native"]).toBeNull();
 
       collider.enabled = true;
       collider.mesh = createCubeMesh(engine, 2);
+      const hit = new HitResult();
+      expect(physics.raycast(rayAt(1.5), hit)).toBe(true);
+      expect(hit.collider).toBe(collider);
+    }
+  );
+
+  it.each(["disable-then-replace", "replace-then-disable"] as const)(
+    "releases native mesh immediately when disabled and replaced (%s)",
+    (order) => {
+      const cook = watchCooking(false);
+      const collider = addMesh();
+      const original = collider.mesh!;
+      const replacement = createCubeMesh(engine, 2);
+      expect(physics.raycast(rayAt(0))).toBe(true);
+      const releaseSpy = vi.spyOn(cook.mock.results[0].value, "release");
+
+      if (order === "disable-then-replace") {
+        collider.enabled = false;
+        collider.mesh = replacement;
+      } else {
+        collider.mesh = replacement;
+        collider.enabled = false;
+      }
+
+      expect(original.refCount).toBe(0);
+      expect(releaseSpy).toHaveBeenCalledOnce();
+      expect(collider["_native"]).toBeNull();
+      engine.resourceManager.gc();
+      expect(original.destroyed).toBe(true);
+
+      collider.enabled = true;
       const hit = new HitResult();
       expect(physics.raycast(rayAt(1.5), hit)).toBe(true);
       expect(hit.collider).toBe(collider);
@@ -1265,7 +1296,7 @@ describe("MeshCollider", () => {
       const hit = new HitResult();
       expect(physics.raycast(rayAt(0, 8), hit) && hit.collider === collider).toBe(true);
 
-      const geometryWrites = vi.spyOn(collider._native["_pxShape"], "setGeometry");
+      const geometryWrites = vi.spyOn(collider["_native"]["_pxShape"], "setGeometry");
       const massSpy = vi.spyOn((body as any)._nativeActor, "updateMassAndInertia");
       for (let i = 1; i <= 90; i++) {
         bodyEntity.transform.setRotation(0, i * 3.7, 0);
