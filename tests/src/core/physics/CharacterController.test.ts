@@ -1041,4 +1041,37 @@ describe("CharacterController", () => {
     expect(entity.transform.position.x).toBeCloseTo(3, 3);
     expect(errors).not.toHaveBeenCalled();
   });
+
+  it("skips transform writeback and resync churn when move leaves worldPosition unchanged", () => {
+    const child = role.createChild("mesh");
+    role.transform.setPosition(0, 1.5, 0);
+    // Land on the ground plane and settle once so the entity and child transforms are clean.
+    expect(move(new Vector3(0, -2, 0)) & ControllerCollisionFlag.Down).toBeTruthy();
+    expect(move(new Vector3(0, -0.1, 0)) & ControllerCollisionFlag.Down).toBeTruthy();
+    update();
+    role.transform.worldMatrix;
+    child.transform.worldMatrix;
+
+    const settledY = role.transform.worldPosition.y;
+    const roleDispatch = vi.spyOn(role._updateFlagManager, "dispatch");
+    const childDispatch = vi.spyOn(child._updateFlagManager, "dispatch");
+    const syncSpy = vi.spyOn(controller, "_sync");
+
+    expect(move(new Vector3(0, -0.1, 0)) & ControllerCollisionFlag.Down).toBeTruthy();
+    expect(move(new Vector3(0, 0, 0))).toBe(ControllerCollisionFlag.None);
+    update();
+
+    expect(role.transform.worldPosition.y).toBe(settledY);
+    expect(roleDispatch).not.toHaveBeenCalled();
+    expect(childDispatch).not.toHaveBeenCalled();
+    expect(syncSpy).not.toHaveBeenCalled();
+
+    // Subsequent actual motion and direct transform teleport still publish and sync normally.
+    move(new Vector3(1, 0, 0));
+    expect(role.transform.worldPosition.x).toBeCloseTo(1, 4);
+    expect(roleDispatch).toHaveBeenCalled();
+
+    role.transform.setPosition(5, 2, 0);
+    expect(physics.overlapSphereAll(new Vector3(5, 2, 0), 0.2)).toContain(controller);
+  });
 });
