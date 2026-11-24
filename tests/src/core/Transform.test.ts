@@ -7,7 +7,8 @@ import {
   MeshRenderer,
   Scene,
   Script,
-  Transform
+  Transform,
+  TransformModifyFlags
 } from "@galacean/engine-core";
 import { Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
@@ -869,6 +870,53 @@ describe("Transform test", function () {
 
       parentA.destroy();
       zeroParent.destroy();
+    });
+
+    it("does not dispatch WorldMatrix dirty flag twice across same-frame reparenting and local edits", () => {
+      const parentA = scene.createRootEntity("dirtyParentA");
+      parentA.transform.setPosition(1, 0, 0);
+      const parentB = scene.createRootEntity("dirtyParentB");
+      parentB.transform.setPosition(10, 0, 0);
+
+      const child1 = parentA.createChild("dirtyChild1");
+      // Flush initial dirty flags
+      child1.transform.worldMatrix;
+
+      let child1WorldMatrixDispatches = 0;
+      child1._updateFlagManager.addListener((type?: number) => {
+        if (type && (type & TransformModifyFlags.WorldMatrix) !== 0) {
+          child1WorldMatrixDispatches++;
+        }
+      });
+
+      child1.transform.position.x = 5;
+      expect(child1WorldMatrixDispatches).to.equal(1);
+
+      // Reparenting while WorldMatrix is already dirty must not dispatch WorldMatrix again
+      child1.parent = parentB;
+      expect(child1WorldMatrixDispatches).to.equal(1);
+
+      // Subsequent local mutation in the same frame also coalesces because WorldMatrix stays dirty
+      child1.transform.position.x = 2;
+      expect(child1WorldMatrixDispatches).to.equal(1);
+
+      const child2 = parentA.createChild("dirtyChild2");
+      child2.transform.worldMatrix;
+
+      let child2WorldMatrixDispatches = 0;
+      child2._updateFlagManager.addListener((type?: number) => {
+        if (type && (type & TransformModifyFlags.WorldMatrix) !== 0) {
+          child2WorldMatrixDispatches++;
+        }
+      });
+
+      child2.parent = parentB;
+      expect(child2WorldMatrixDispatches).to.equal(1);
+      child2.transform.position.x = 2;
+      expect(child2WorldMatrixDispatches).to.equal(1);
+
+      parentA.destroy();
+      parentB.destroy();
     });
   });
 });

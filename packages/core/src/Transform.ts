@@ -585,14 +585,23 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   _parentChange(oldParent?: Transform | null, keepWorldTransform: boolean = false): void {
     if (keepWorldTransform) {
-      const worldMatrix = Transform._tempMat41;
+      const tempMat0 = Transform._tempMat41;
       if (oldParent) {
-        Matrix.multiply(oldParent.worldMatrix, this.localMatrix, worldMatrix);
+        Matrix.multiply(oldParent.worldMatrix, this.localMatrix, tempMat0);
       } else {
-        worldMatrix.copyFrom(this.localMatrix);
+        tempMat0.copyFrom(this.localMatrix);
       }
       this._isParentDirty = true;
-      this.worldMatrix = worldMatrix;
+      const parent = this._getParentTransform();
+      if (parent) {
+        const tempMat1 = Transform._tempMat42;
+        if (Matrix.invert(parent.worldMatrix, tempMat1) === null) {
+          this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+          return;
+        }
+        Matrix.multiply(tempMat1, tempMat0, tempMat0);
+      }
+      this.localMatrix = tempMat0;
       this._updateAllWorldFlag(TransformModifyFlags.IsWorldUniformScaling);
     } else {
       this._isParentDirty = true;
