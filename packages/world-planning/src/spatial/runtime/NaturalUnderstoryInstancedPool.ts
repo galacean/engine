@@ -28,6 +28,7 @@ import {
   type TreeAssemblyInstanceStorage
 } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh";
 import type { LandscapePlantInstance } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
+import { LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
@@ -42,8 +43,10 @@ import {
 
 const SUBCELL_SIZE_M = 16;
 const CAMERA_MATRIX_EPSILON = 1e-5;
-const LOD_HYSTERESIS_RATIO = 0.06;
 const MAX_SHADOW_CASCADES = POPULATION_RENDER_VIEW_COUNT - 1;
+
+/** Extra distance for retaining a ground-detail instance already inside the draw radius. */
+export const UNDERSTORY_DISTANCE_HYSTERESIS_METRES = 2;
 
 /** Shadow LOD selection policy for instanced vegetation shadow cascades. */
 export type InstancedShadowLodPolicy = "lowest" | "camera";
@@ -226,15 +229,15 @@ function resolveLodTier(screenHeight: number, prevTier: number, lods: readonly I
   const count = lods.length;
   if (count === 0) return -1;
   const terminal = lods[count - 1]!.screenRelativeTransitionHeight;
-  const cullThreshold = prevTier >= 0 ? terminal * (1 - LOD_HYSTERESIS_RATIO) : terminal;
+  const cullThreshold = prevTier >= 0 ? terminal * (1 - LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO) : terminal;
   if (screenHeight < cullThreshold) return -1;
   for (let tier = 0; tier < count - 1; tier++) {
     const threshold = lods[tier]!.screenRelativeTransitionHeight;
     const effective =
       prevTier === tier
-        ? threshold * (1 - LOD_HYSTERESIS_RATIO)
+        ? threshold * (1 - LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO)
         : prevTier > tier
-          ? threshold * (1 + LOD_HYSTERESIS_RATIO)
+          ? threshold * (1 + LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO)
           : threshold;
     if (screenHeight >= effective) return tier;
   }
@@ -1114,7 +1117,7 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     const invTwoTanHalfFov = 1 / Math.max(1e-6, 2 * tanHalfFov);
     const invTwoOrthoSize = 1 / Math.max(1e-6, 2 * orthoSize);
     const maxDist = maxDetailDistanceMetres;
-    const maxDistHysteresis = maxDist + 2;
+    const maxDistHysteresis = maxDist + UNDERSTORY_DISTANCE_HYSTERESIS_METRES;
     const maxDistSq = maxDist * maxDist;
     const maxDistHystSq = maxDistHysteresis * maxDistHysteresis;
     const maxCellDistSq = (maxDistHysteresis + 4) * (maxDistHysteresis + 4);

@@ -1,9 +1,38 @@
 import { expect, it, vi } from "vitest";
-import { BoundingBox, Matrix, type Camera } from "@galacean/engine";
+import { BoundingBox, Matrix, Vector3, type Camera, type Entity } from "@galacean/engine";
+import type { TerrainLodGroupRendererRuntime } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRendererRuntime";
 import {
+  createSeedWorldExactInstanceLodEntry,
   SeedWorldExactInstanceCellRuntime,
   type SeedWorldExactInstanceSpatialEntry
 } from "@galacean/engine-world-planning/world/SeedWorldExactInstanceCellRuntime";
+
+it("applies the optional ground-detail range margin on exit and readmits at the entry radius", () => {
+  const position = new Vector3();
+  const camera = { entity: { transform: { worldPosition: position } } } as Camera;
+  const entity = { getComponentsIncludeChildren: () => [{ bounds: new BoundingBox() }] } as unknown as Entity;
+  const updateRenderers = vi.fn(() => false);
+  const lod = { updateRenderers } as unknown as TerrainLodGroupRendererRuntime;
+  const { controller } = createSeedWorldExactInstanceLodEntry("stone", "stone", entity, lod, {
+    camera,
+    x: 0,
+    z: 0,
+    maxDistance: 60,
+    hysteresisMetres: 2
+  });
+  for (const [i, distance] of [61, 60, 61, 62.1, 61, 59].entries()) {
+    position.z = distance;
+    controller.update(i, true);
+  }
+  expect(updateRenderers.mock.calls).toEqual([
+    [0, false],
+    [1, true],
+    [2, true],
+    [3, false],
+    [4, false],
+    [5, true]
+  ]);
+});
 
 it("updates published instances and completes LOD fades with a stationary camera", () => {
   const camera = { projectionMatrix: new Matrix(), viewMatrix: new Matrix() } as Camera;

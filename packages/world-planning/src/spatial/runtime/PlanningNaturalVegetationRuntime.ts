@@ -1,4 +1,5 @@
 import { rockLodScreenHeights } from "@galacean/engine-terrain/rock-formation/RockLodPolicy";
+import { LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
 import { prepareRockLodMeshes, rockLodMeshes } from "../../integrations/terrain/rock-formation/RockLodMeshes";
 import type { PreparedTerrainUpdate } from "@galacean/engine-terrain/terrain/clipmap/TerrainPreparedUpdate";
 import type { SeedWorldAuthoringRuntimeBoundsV1 } from "../../world/SeedWorldAuthoringRuntimeDelta";
@@ -121,6 +122,7 @@ import {
   buildUnderstoryBucketSpec,
   canInstanceUnderstoryLevels,
   NaturalUnderstoryInstancedPool,
+  UNDERSTORY_DISTANCE_HYSTERESIS_METRES,
   type CollapsedUnderstoryLevel,
   type InstancedUnderstoryRecord
 } from "./NaturalUnderstoryInstancedPool";
@@ -1502,7 +1504,8 @@ export class PlanningNaturalVegetationRuntime {
         size,
         lods
       },
-      SEED_WORLD_POPULATION_RUNTIME_PROFILE.tree.crossFadeSeconds
+      SEED_WORLD_POPULATION_RUNTIME_PROFILE.tree.crossFadeSeconds,
+      source.kind === "stone" ? LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO : 0
     );
     lod.setAuthoringVisible(!this.groundExcluded(instance));
     return {
@@ -2164,7 +2167,11 @@ export class PlanningNaturalVegetationRuntime {
               camera: this.camera,
               x: plant.instance.position[0],
               z: plant.instance.position[2],
-              maxDistance: distance
+              maxDistance: distance,
+              hysteresisMetres:
+                this.sources[0].get(plant.instance.assetId)?.kind === "stone"
+                  ? UNDERSTORY_DISTANCE_HYSTERESIS_METRES
+                  : 0
             }
           : undefined
       );
