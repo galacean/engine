@@ -24,7 +24,6 @@ export class UIBatchSorter {
   // Spatial-hash is fastest when cell size ≈ typical element size (one element per cell).
   // UI elements typically span ~10% of the canvas → 10×10 grid.
   private static readonly _gridDim = 10;
-  private static readonly _smallElementThreshold = 8;
 
   private static readonly _entries = new Array<SortEntry>();
   private static readonly _grid: GridCell[][] = [];
@@ -44,57 +43,15 @@ export class UIBatchSorter {
     const count = elements.length;
     if (count <= 1) return;
 
+    const gridDim = this._gridDim;
     const entries = this._entries;
+    const grid = this._grid;
+    const cellCounts = this._cellCounts;
+    const dirtyCells = this._dirtyCells;
     const localBoundsPool = this._localBoundsPool;
     const worldToLocal = this._worldToLocal;
     Matrix.invert(canvasWorldMatrix, worldToLocal);
     while (entries.length < count) entries.push(new SortEntry());
-
-    if (count <= this._smallElementThreshold) {
-      for (let i = 0; i < count; i++) {
-        const element = elements[i];
-        const localBounds = (localBoundsPool[i] ||= new BoundingBox());
-        BoundingBox.transform(element.component.bounds, worldToLocal, localBounds);
-        const materialId = element.material.instanceId;
-        const textureId = element.texture ? element.texture.instanceId : 0;
-
-        let maxDepth = -1;
-        let maxDepthIncompatible = false;
-        for (let j = 0; j < i; j++) {
-          const other = entries[j];
-          if (!UIBatchSorter._rectOverlap(localBounds, other.bounds)) continue;
-          const otherDepth = other.depth;
-          const otherIncompatible = other.materialId !== materialId || other.textureId !== textureId;
-          if (otherDepth > maxDepth) {
-            maxDepth = otherDepth;
-            maxDepthIncompatible = otherIncompatible;
-          } else if (otherDepth === maxDepth && otherIncompatible) {
-            maxDepthIncompatible = true;
-          }
-        }
-
-        const entry = entries[i];
-        entry.element = element;
-        entry.hierarchyIndex = i;
-        entry.depth = maxDepth < 0 ? 0 : maxDepth + (maxDepthIncompatible ? 1 : 0);
-        entry.materialId = materialId;
-        entry.textureId = textureId;
-        entry.bounds = localBounds;
-      }
-
-      Utils._quickSort(entries, 0, count, UIBatchSorter._compareEntries);
-      for (let i = 0; i < count; i++) {
-        const entry = entries[i];
-        elements[i] = entry.element;
-        entry.element = null!;
-      }
-      return;
-    }
-
-    const gridDim = this._gridDim;
-    const grid = this._grid;
-    const cellCounts = this._cellCounts;
-    const dirtyCells = this._dirtyCells;
 
     // Allocate grid once, reuse forever (each cell must be a real [], not a sparse hole)
     if (grid.length < gridDim) {
