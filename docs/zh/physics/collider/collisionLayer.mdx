@@ -31,6 +31,10 @@ scene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
 console.log(scene.physics.getColliderLayerCollision(Layer.Layer1, Layer.Layer2));
 ```
 
+使用 `setColliderLayerCollisionMask(layer, mask)` 可以替换整个碰撞层的允许掩码，`getColliderLayerCollisionMask(layer)` 可以读取。规则是对称的，改变一行也会修改其他行对应的位。
+
+场景资产可在 `scene.physics.disabledCollisionMasks` 保存禁用规则。数组第 i 项是无符号 32 位掩码，位 j 表示禁用层 i 和层 j 的碰撞，包含自碰撞。每对只写一次（j ≥ i），末尾的零可省略。例如 `[0, 4]` 禁用第 1 层和第 2 层的碰撞。场景通过项目入口或直接加载时都会使用自己的配置。
+
 ## 注意事项
 
 1. 每个碰撞器只能属于一个碰撞层
