@@ -386,22 +386,56 @@ describe("RectMask2D Outside", () => {
     expect(exterior[0]).toBe(0);
   });
 
-  it("warns and skips when screen stencil attachment is missing while Inside remains usable", async () => {
-    const f = await createFixture(CanvasRenderMode.ScreenSpaceCamera, false);
-    const warnSpy = vi.spyOn(Logger, "warn").mockImplementation(() => {});
-    try {
+  for (const depth of [true, false]) {
+    it(`requests screen stencil only while visible Forward draws need it (depth=${depth})`, async () => {
+      const f = await createFixture(CanvasRenderMode.ScreenSpaceCamera, false, undefined, depth);
       const mask = addRect(f.ui, inside, 40);
       const image = addImage(f, mask.entity);
-      expectVisible(f, image, 64, 64, true);
-      mask.mode = outside;
-      for (let i = 0; i < 3; i++) expect(() => render(f)).not.toThrow();
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("stencil attachment"));
-      expect(pixel(f, 64, 64)[0]).toBe(0);
-      expect(pixel(f, 24, 64)[0]).toBe(0);
-      mask.mode = inside;
-      expectVisible(f, image, 64, 64, true);
+      const allocate = vi.spyOn(f.engine._renderTargetPool, "allocateRenderTarget");
+      function expectAttachment(format: TextureFormat | null): void {
+        const colorTargets = allocate.mock.calls.filter(([, , color]) => color !== null);
+        expect(colorTargets.map(([, , , attachment]) => attachment)).toEqual([format]);
+        allocate.mockClear();
+      }
+      try {
+        render(f);
+        expectAttachment(depth ? TextureFormat.Depth24 : null);
+        mask.mode = outside;
+        render(f);
+        expectAttachment(depth ? TextureFormat.Depth24Stencil8 : TextureFormat.Stencil);
+        expectVisible(f, image, 24, 64, true);
+        expectVisible(f, image, 64, 64, false);
+        allocate.mockClear();
+        image.enabled = false;
+        render(f);
+        expectAttachment(depth ? TextureFormat.Depth24 : null);
+      } finally {
+        allocate.mockRestore();
+      }
+    });
+  }
+
+  it("keeps a depth-only UI pass from requesting Forward stencil", async () => {
+    const f = await createFixture(CanvasRenderMode.WorldSpace, false, new ShaderCompiler());
+    const camera = f.ui.parent!.findByName("camera")!.getComponent(Camera)!;
+    camera.depthTextureMode = DepthTextureMode.PrePass;
+    const shader =
+      Shader.find("Test/UIDepthOnly") ??
+      Shader.create(`Shader "Test/UIDepthOnly" {
+      SubShader "Default" { UsePass "Pipeline/DepthOnly/Default/DepthOnly" }
+    }`)!;
+    const mask = addRect(f.ui, outside, 20);
+    addImage(f, mask.entity).setMaterial(new Material(f.engine, shader));
+    const allocate = vi.spyOn(f.engine._renderTargetPool, "allocateRenderTarget");
+    try {
+      render(f);
+      expect((camera.shaderData.getTexture("camera_DepthTexture") as Texture2D).format).toBe(
+        TextureFormat.Depth24Stencil8
+      );
+      const colorTargets = allocate.mock.calls.filter(([, , color]) => color !== null);
+      expect(colorTargets.map(([, , , attachment]) => attachment)).toEqual([TextureFormat.Depth24]);
     } finally {
-      warnSpy.mockRestore();
+      allocate.mockRestore();
     }
   });
 
@@ -690,13 +724,17 @@ function showDepth(f: Fixture, texture: Texture2D): void {
   }`)!;
   const material = new Material(f.engine, shader);
   material.shaderData.setTexture("material_DepthPreview", texture);
-  addImage(f, overlay.entity).setMaterial(material);
+  // Display depth on the lower half; the upper half keeps the Forward color of the same frame.
+  const preview = addImage(f, overlay.entity);
+  (preview.entity.transform as UITransform).size.set(128, 64);
+  preview.entity.transform.setPosition(0, -32, 0);
+  preview.setMaterial(material);
 }
 
 describe("UI masks in the depth prepass", () => {
   for (const kind of ["opaque", "alpha test", "forward only", "transparent", "3D only"] as const) {
     it(`preserves color and camera depth for ${kind}`, async () => {
-      const f = await createFixture(CanvasRenderMode.WorldSpace, true, new ShaderCompiler());
+      const f = await createFixture(CanvasRenderMode.WorldSpace, false, new ShaderCompiler());
       const writesUIDepth = kind === "opaque" || kind === "alpha test";
       const root = f.ui.parent!;
       const camera = root.findByName("camera")!.getComponent(Camera)!;
@@ -709,11 +747,12 @@ describe("UI masks in the depth prepass", () => {
       const blue = new UnlitMaterial(f.engine);
       blue.baseColor.set(0, 0, 1, 1);
       mesh.setMaterial(blue);
+      let hole: RectMask2D | undefined;
       if (kind !== "3D only") {
         const shape = f.ui.createChild("image mask").addComponent(Mask);
         shape.sprite = f.sprite;
         (shape.entity.transform as UITransform).size.set(80, 100);
-        const hole = addRect(shape.entity, outside, 20);
+        hole = addRect(shape.entity, outside, 20, -24);
         const image = addImage(f, hole.entity);
         if (writesUIDepth) {
           const red = new UnlitMaterial(f.engine);
@@ -738,20 +777,18 @@ describe("UI masks in the depth prepass", () => {
         }
       }
       render(f);
-      // x=12 is outside the image mask, 40 is retained, 64 is in the hole.
-      const samples = [12, 40, 64];
-      for (const x of samples) {
-        const rgba = pixel(f, x, 64);
-        const uiVisible = kind !== "3D only" && x === 40;
-        expect([rgba[0], rgba[2]]).toEqual(uiVisible ? [255, 0] : [0, 255]);
-      }
       const depth = camera.shaderData.getTexture("camera_DepthTexture") as Texture2D;
       expect(depth.format).toBe(writesUIDepth ? TextureFormat.Depth24Stencil8 : TextureFormat.Depth24);
       showDepth(f, depth);
+      // Moving the hole swaps the foreground and background samples from the preceding frame.
+      hole?.entity.transform.setPosition(0, 0, 0);
       render(f);
-      // Orthographic normalized depth: UI at distance 10 (~0.2), mesh front at 29 (~0.58).
-      for (const x of samples) {
-        const actual = pixel(f, x, 64)[0] / 255;
+      // Both strips sample the same columns: outside the image mask, retained UI, and inside the hole.
+      for (const x of [12, 40, 64]) {
+        const rgba = pixel(f, x, 80);
+        const uiVisible = kind !== "3D only" && x === 40;
+        expect([rgba[0], rgba[2]]).toEqual(uiVisible ? [255, 0] : [0, 255]);
+        const actual = pixel(f, x, 40)[0] / 255;
         const distance = writesUIDepth && x === 40 ? 10 : 29;
         expect(actual).toBeCloseTo((distance - camera.nearClipPlane) / (50 - camera.nearClipPlane), 2);
       }
@@ -762,13 +799,14 @@ describe("UI masks in the depth prepass", () => {
 async function createFixture(
   mode = CanvasRenderMode.ScreenSpaceOverlay,
   stencil = true,
-  shaderCompiler?: ShaderCompiler
+  shaderCompiler?: ShaderCompiler,
+  depth = true
 ): Promise<Fixture> {
   const canvas = document.createElement("canvas");
   canvas.style.width = "128px";
   canvas.style.height = "128px";
   document.body.appendChild(canvas);
-  const engine = await WebGLEngine.create({ canvas, shaderCompiler, graphicDeviceOptions: { stencil } });
+  const engine = await WebGLEngine.create({ canvas, shaderCompiler, graphicDeviceOptions: { stencil, depth } });
   engine.canvas.setResolution(128, 128);
   const scene = engine.sceneManager.activeScene;
   scene.background.solidColor.set(0, 0, 0, 1);

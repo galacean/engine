@@ -519,20 +519,23 @@ export class Camera extends Component {
    * @returns Ray
    */
   viewportPointToRay(point: Vector2, out: Ray): Ray {
-    const invViewProjMat = this._getInvViewProjMat();
-    // Use the intersection of the near clipping plane as the origin point.
-    const origin = this._innerViewportToWorldPoint(point.x, point.y, 0.0, invViewProjMat, out.origin);
-    // Use the intersection of the far clipping plane as the origin point.
-    const direction = this._innerViewportToWorldPoint(
-      point.x,
-      point.y,
-      1 - MathUtil.zeroTolerance,
-      invViewProjMat,
-      out.direction
-    );
-    Vector3.subtract(direction, origin, direction);
-    direction.normalize();
+    this._viewportPointToRaySegment(point, out);
     return out;
+  }
+
+  /** @internal Sets the ray origin on the near plane and returns its distance to the far plane. */
+  _viewportPointToRaySegment(point: Vector2, out: Ray): number {
+    const inverse = this._getInvViewProjMat();
+    const origin = this._innerViewportToWorldPoint(point.x, point.y, 0, inverse, out.origin);
+    const far = MathTemp.tempVec4.set(2 * point.x - 1, 1 - 2 * point.y, 1, 1);
+    Vector4.transform(far, inverse, far);
+    // Keep the far point homogeneous so an infinite far plane still yields a finite direction.
+    const { w } = far;
+    const direction = out.direction.set(far.x - w * origin.x, far.y - w * origin.y, far.z - w * origin.z);
+    const length = direction.length();
+    if (length === 0) return 0;
+    direction.scale(1 / length);
+    return w > 0 ? length / w : Infinity;
   }
 
   /**

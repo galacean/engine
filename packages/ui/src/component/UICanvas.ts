@@ -261,13 +261,14 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
    * @internal
    */
   _raycast(ray: Ray, out: UIHitResult, distance: number, cullingMask: Layer): boolean {
+    const minDistance = this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay ? -Infinity : 0;
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
       if (
         (cullingMask & element.entity.layer) !== 0 &&
         element.raycastEnabled &&
-        element._raycast(ray, out, distance)
+        element._raycast(ray, out, distance, minDistance)
       ) {
         return true;
       }

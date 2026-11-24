@@ -19,7 +19,7 @@ export interface IMaskRenderable {
   sprite: Sprite | null;
   alphaCutoff: number;
   _renderElement: RenderElement;
-  _containsRay(ray: Ray): boolean;
+  _containsRay(ray: Ray, maxDistance?: number, minDistance?: number): boolean;
   _containsWorldPoint(worldPoint: Vector3): boolean;
   _initMask(): void;
   _cloneMaskData(target: IMaskRenderable): void;
@@ -137,7 +137,7 @@ export function MaskRenderable<T extends RendererConstructor>(
     /**
      * @internal
      */
-    _containsRay(ray: Ray): boolean {
+    _containsRay(ray: Ray, maxDistance?: number, minDistance?: number): boolean {
       if (!this._sprite?.texture || !this.getMaterial()) {
         return false;
       }
@@ -149,7 +149,9 @@ export function MaskRenderable<T extends RendererConstructor>(
         this._getSpriteHeight(),
         this._getSpritePivot(),
         this._flipX,
-        this._flipY
+        this._flipY,
+        maxDistance,
+        minDistance
       );
     }
 

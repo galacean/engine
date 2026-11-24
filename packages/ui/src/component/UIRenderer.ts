@@ -5,8 +5,7 @@ import {
   Entity,
   EntityModifyFlags,
   Logger,
-  Matrix,
-  Plane,
+  SpriteMaskUtils,
   Ray,
   Renderer,
   RendererUpdateFlags,
@@ -36,9 +35,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   static _tempVec31: Vector3 = new Vector3();
   /** @internal */
-  static _tempMat: Matrix = new Matrix();
-  /** @internal */
-  static _tempPlane: Plane = new Plane();
+  static _tempNormal: Vector3 = new Vector3();
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
   /** @internal */
@@ -324,48 +321,31 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: UIHitResult, distance: number): boolean {
+  _raycast(ray: Ray, out: UIHitResult, maxDistance: number, minDistance: number = 0): boolean {
     this._updateRectMaskClipState();
     if (this._isMaskOverflow) {
       return false;
     }
     const transform = <UITransform>this._transformEntity!.transform;
-    const e = transform.worldMatrix.elements;
-    const ux = e[0],
-      uy = e[1],
-      uz = e[2];
-    const vx = e[4],
-      vy = e[5],
-      vz = e[6];
-    const nx = uy * vz - uz * vy;
-    const ny = uz * vx - ux * vz;
-    const nz = ux * vy - uy * vx;
-    const det = nx * nx + ny * ny + nz * nz;
-    if (!(det > 0)) {
-      return false;
-    }
-    const plane = UIRenderer._tempPlane;
-    const normal = plane.normal.copyFrom(transform.worldForward);
-    plane.distance = -Vector3.dot(normal, transform.worldPosition);
-    const curDistance = ray.intersectPlane(plane);
-    if (curDistance >= 0 && curDistance < distance) {
+    const normal = UIRenderer._tempNormal;
+    const localPosition = UIRenderer._tempVec31;
+    const curDistance = SpriteMaskUtils.intersectRayXYPlane(
+      ray,
+      transform.worldMatrix,
+      minDistance,
+      maxDistance,
+      localPosition,
+      normal
+    );
+    if (curDistance !== null) {
       const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
-      const dx = hitPointWorld.x - e[12];
-      const dy = hitPointWorld.y - e[13];
-      const dz = hitPointWorld.z - e[14];
-      const a = ux * ux + uy * uy + uz * uz;
-      const b = ux * vx + uy * vy + uz * vz;
-      const c = vx * vx + vy * vy + vz * vz;
-      const du = dx * ux + dy * uy + dz * uz;
-      const dv = dx * vx + dy * vy + dz * vz;
-      const localPosition = UIRenderer._tempVec31.set((c * du - b * dv) / det, (a * dv - b * du) / det, 0);
       if (
         this._hitTest(localPosition) &&
         this._isRaycastVisibleByRectMask(hitPointWorld) &&
-        this._isRaycastVisibleByMask(ray)
+        this._isRaycastVisibleByMask(ray, maxDistance, minDistance)
       ) {
         out.component = this;
-        out.distance = curDistance;
+        out.distance = Math.abs(curDistance);
         out.entity = this.entity;
         out.normal.copyFrom(normal);
         out.point.copyFrom(hitPointWorld);
@@ -389,7 +369,7 @@ export class UIRenderer extends Renderer implements IGraphics {
     );
   }
 
-  private _isRaycastVisibleByMask(ray: Ray): boolean {
+  private _isRaycastVisibleByMask(ray: Ray, maxDistance: number, minDistance: number): boolean {
     const maskInteraction = this._maskInteraction;
     if (maskInteraction === SpriteMaskInteraction.None) {
       return true;
@@ -398,7 +378,7 @@ export class UIRenderer extends Renderer implements IGraphics {
     if (masks.length === 0) return true;
     let inside = true;
     for (let i = 0; i < masks.length; i++) {
-      if (!masks[i]._containsRay(ray)) {
+      if (!masks[i]._containsRay(ray, maxDistance, minDistance)) {
         inside = false;
         break;
       }

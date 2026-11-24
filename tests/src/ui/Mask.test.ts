@@ -397,6 +397,88 @@ describe("UI Mask hierarchy", () => {
     expectVisible(f, rightImage, 32, 64, false);
   });
 
+  it("picks Overlay descendants by screen XY when the mask or receiver moves in Z", async () => {
+    const f = await createFixture(CanvasRenderMode.ScreenSpaceOverlay);
+    const mask = addMask(f, f.ui, 60, 80);
+    const image = addImage(f, mask.entity, 100, 80);
+    for (const [maskZ, imageZ] of [
+      [0, 0],
+      [10, -10],
+      [10, 0],
+      [1, 0],
+      [-10, 0]
+    ]) {
+      mask.entity.transform.setPosition(0, 0, maskZ);
+      image.entity.transform.setPosition(0, 0, imageZ);
+      expectVisible(f, image, 64, 64, true);
+      expectVisible(f, image, 24, 64, false);
+    }
+  });
+
+  it("picks a flat UI plane away from the center of a perspective camera", async () => {
+    const f = await createFixture(CanvasRenderMode.WorldSpace);
+    const camera = f.root.findByName("camera")!.getComponent(Camera)!;
+    camera.isOrthographic = false;
+    camera.fieldOfView = 90;
+    camera.farClipPlane = 512;
+    camera.entity.transform.setPosition(64, 64, 128);
+    const mask = addMask(f, f.ui, 120, 100);
+    const image = addImage(f, mask.entity, 40, 60, 32);
+    for (const zScale of [1, 0]) {
+      mask.entity.transform.setScale(1, 1, zScale);
+      expectVisible(f, image, 80, 64, true);
+      expectVisible(f, image, 55, 64, false);
+    }
+  });
+
+  it("clips each mask to the camera ray segment before intersecting or complementing the masks", async () => {
+    const f = await createFixture(CanvasRenderMode.WorldSpace);
+    const camera = f.root.findByName("camera")!.getComponent(Camera)!;
+    camera.nearClipPlane = 1;
+    camera.farClipPlane = 20;
+    const outer = addMask(f, f.ui, 100, 100);
+    const inner = addMask(f, outer.entity, 80, 80);
+    const image = addImage(f, inner.entity, 80, 80);
+    for (const z of [-30, 9.5, 0]) {
+      // The receiver stays ten units from the camera as the inner mask crosses either clip plane.
+      inner.entity.transform.setPosition(0, 0, z);
+      image.entity.transform.setPosition(0, 0, -z);
+      image.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+      expectVisible(f, image, 64, 64, z === 0);
+      image.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+      expectVisible(f, image, 64, 64, z !== 0);
+    }
+  });
+
+  it("clips a tilted mask per pixel where it crosses the far plane", async () => {
+    const f = await createFixture(CanvasRenderMode.WorldSpace);
+    const camera = f.root.findByName("camera")!.getComponent(Camera)!;
+    camera.farClipPlane = 20;
+    const mask = addMask(f, f.ui, 80, 80);
+    mask.entity.transform.setPosition(0, 0, -10);
+    mask.entity.transform.setRotation(0, 45, 0);
+    const image = addImage(f, mask.entity, 100, 100);
+    // Undo the ancestor rotation and translation so the receiver remains in view on both sides.
+    image.entity.transform.setRotation(0, -45, 0);
+    image.entity.transform.setPosition(-Math.SQRT1_2 * 10, 0, Math.SQRT1_2 * 10);
+    expectVisible(f, image, 56, 64, true);
+    expectVisible(f, image, 72, 64, false);
+  });
+
+  it("retains mask hits near the perspective far plane at an oblique screen angle", async () => {
+    const f = await createFixture(CanvasRenderMode.WorldSpace);
+    const camera = f.root.findByName("camera")!.getComponent(Camera)!;
+    camera.isOrthographic = false;
+    camera.fieldOfView = 90;
+    camera.nearClipPlane = 1;
+    camera.farClipPlane = 20;
+    const mask = addMask(f, f.ui, 100, 100);
+    mask.entity.transform.setPosition(0, 0, -9);
+    const image = addImage(f, mask.entity, 80, 80);
+    // Axis depth is 19, but the hit is farther than 20 units along this pixel's oblique ray.
+    expectVisible(f, image, 112, 64, true);
+  });
+
   it("matches perspective rendering and raycast picking for non-coplanar masks", async () => {
     const f = await createFixture(CanvasRenderMode.WorldSpace);
     const camera = f.root.findByName("camera")!.getComponent(Camera)!;

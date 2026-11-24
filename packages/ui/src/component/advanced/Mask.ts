@@ -8,7 +8,8 @@ import { UITransform } from "../UITransform";
  * Nested Masks intersect; siblings and other canvases are unaffected.
  * Raycast filtering tests the mask sprite's rectangular bounds without GPU pixel readback.
  * Image Masks and nonempty Outside RectMask2D ancestors share an eight-level stencil limit.
- * The render target must have a stencil attachment. UI manages these bits while masks are active;
+ * Screen targets acquire stencil on demand; custom targets must supply a stencil attachment.
+ * UI manages these bits while masks are active;
  * custom stencil materials must not depend on preserving their values across UI mask draws.
  */
 export class Mask extends MaskRenderable(UIRenderer) {

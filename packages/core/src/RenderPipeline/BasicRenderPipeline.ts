@@ -152,14 +152,13 @@ export class BasicRenderPipeline {
       let depthFormat: TextureFormat | null;
       if (camera.renderTarget) {
         depthFormat = camera.renderTarget._depthFormat;
-      } else if (rhi._options.depth && rhi._options.stencil) {
-        depthFormat = TextureFormat.Depth24Stencil8;
-      } else if (rhi._options.depth) {
-        depthFormat = TextureFormat.Depth24;
-      } else if (rhi._options.stencil) {
-        depthFormat = TextureFormat.Stencil;
       } else {
-        depthFormat = null;
+        const needsStencil = rhi._options.stencil || cullingResults.forwardNeedsUIStencil;
+        if (rhi._options.depth) {
+          depthFormat = needsStencil ? TextureFormat.Depth24Stencil8 : TextureFormat.Depth24;
+        } else {
+          depthFormat = needsStencil ? TextureFormat.Stencil : null;
+        }
       }
       const viewport = camera.pixelViewport;
       this._internalColorTarget = pool.allocateRenderTarget(
@@ -400,12 +399,13 @@ export class BasicRenderPipeline {
       );
 
       // Inspect every pass before deduplicating queues (Forward and DepthOnly can share a queue).
-      if (
-        renderElement.component._usesUIStencil &&
-        renderQueueType !== RenderQueueType.Transparent &&
-        shaderPass.getTagValue(RenderContext.pipelineStageKey) === PipelineStage.DepthOnly
-      ) {
-        cullingResults.depthNeedsUIStencil = true;
+      if (renderElement.component._usesUIStencil) {
+        const stage = shaderPass.getTagValue(RenderContext.pipelineStageKey);
+        if (stage === PipelineStage.Forward) {
+          cullingResults.forwardNeedsUIStencil = true;
+        } else if (stage === PipelineStage.DepthOnly && renderQueueType !== RenderQueueType.Transparent) {
+          cullingResults.depthNeedsUIStencil = true;
+        }
       }
 
       const flag = 1 << renderQueueType;

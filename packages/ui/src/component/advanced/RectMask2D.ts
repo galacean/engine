@@ -8,7 +8,7 @@ import { UITransform } from "../UITransform";
  * Each ancestor contributes its own constraint; nested masks intersect their retained areas.
  * Inside masks merge into one shader clipping rectangle and do not use stencil.
  * Nonempty Outside masks share an eight-level stencil limit with image Masks and require
- * a stencil attachment. UI manages these bits while masks are active.
+ * a stencil attachment. Screen targets acquire stencil on demand; custom targets must supply it.
  */
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class RectMask2D extends Component {

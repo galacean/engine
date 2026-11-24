@@ -12,6 +12,7 @@ export class CullingResults {
   readonly transparentQueue: RenderQueue;
   readonly alphaTestQueue: RenderQueue;
 
+  forwardNeedsUIStencil = false;
   depthNeedsUIStencil = false;
 
   constructor() {
@@ -21,6 +22,7 @@ export class CullingResults {
   }
 
   reset(): void {
+    this.forwardNeedsUIStencil = false;
     this.depthNeedsUIStencil = false;
     this.opaqueQueue.clear();
     this.transparentQueue.clear();
