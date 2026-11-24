@@ -760,7 +760,7 @@ describe("MeshCollider", () => {
       const collider = addMesh(convex);
       const previous = collider.mesh;
       const recorder = addTriggerProbe();
-      recorder.entity.getComponent(SphereCollider)._isSceneQuery = false;
+      recorder.entity.getComponent(SphereCollider).collisionLayer = Layer.Layer1;
       update();
       expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
       const invalid = createModelMesh(engine, [0, 0, 0], [0, 0, 0]);
@@ -773,14 +773,14 @@ describe("MeshCollider", () => {
       expect(errors).toHaveBeenCalled();
       expect(recorder.onTriggerStay).not.toHaveBeenCalled();
       expect(recorder.onTriggerExit).not.toHaveBeenCalled();
-      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(physics.raycast(rayAt(0), Number.MAX_VALUE, Layer.Layer0)).toBe(false);
       const replacement = createCubeMesh(engine, 1.1);
       collider.mesh = replacement;
       expect(collider.mesh).toBe(replacement);
       expect(invalid.refCount).toBe(0);
       expect(replacement.refCount).toBe(1);
       const recoveredHit = new HitResult();
-      expect(physics.raycast(rayAt(0), recoveredHit)).toBe(true);
+      expect(physics.raycast(rayAt(0), Number.MAX_VALUE, Layer.Layer0, recoveredHit)).toBe(true);
       expect(recoveredHit.collider).toBe(collider);
       update();
       expect(recorder.onTriggerEnter).toHaveBeenCalledTimes(2);

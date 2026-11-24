@@ -304,10 +304,6 @@ export class CharacterController extends Collider {
     this._controller?.setContactOffset(value);
   }
 
-  protected override _onIsSceneQueryChanged(value: boolean): void {
-    this._controller?.setIsSceneQuery(value);
-  }
-
   protected override _onMaterialChanged(material: IPhysicsMaterial): void {
     this._controller?.setMaterial(material);
   }
@@ -334,7 +330,6 @@ export class CharacterController extends Collider {
     const controller = Engine._nativePhysics.createCharacterController(this._id, this._getNativeMaterial());
     controller.setContactOffset(this.contactOffset);
     controller.setCollisionLayer(this._collisionLayerIndex);
-    controller.setIsSceneQuery(this._isSceneQuery);
     controller.setNonWalkableMode(this._nonWalkableMode);
     controller.setUpDirection(this._upDirection);
     controller.setSlopeLimit(this._slopeLimit);

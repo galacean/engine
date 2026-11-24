@@ -75,13 +75,6 @@ export abstract class PhysXShape implements IPhysicsShape {
   }
 
   /**
-   * {@inheritDoc IPhysicsShape.setIsSceneQuery }
-   */
-  setIsSceneQuery(value: boolean): void {
-    this._pxShape.setSceneQueryEnabled(value);
-  }
-
-  /**
    * {@inheritDoc IPhysicsShape.pointDistance }
    */
   pointDistance(point: Vector3): Vector4 {

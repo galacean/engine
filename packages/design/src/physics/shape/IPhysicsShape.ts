@@ -38,12 +38,6 @@ export interface IPhysicsShape {
   setIsTrigger(value: boolean): void;
 
   /**
-   * Enables this shape for raycasts, shape casts, and overlap queries without changing collision response.
-   * @param value - Whether the shape participates in scene queries
-   */
-  setIsSceneQuery(value: boolean): void;
-
-  /**
    * Query the closest point on the shape.
    * @param point - The point in world space
    * @returns A borrowed vector whose `w` is the squared distance, zero for an interior or surface point, or -1 when unavailable.

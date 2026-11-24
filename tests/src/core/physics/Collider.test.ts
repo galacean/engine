@@ -231,22 +231,6 @@ describe("Collider", () => {
     expect(physics.overlapSphereAll(new Vector3(), 0.1, Layer.Layer0)).toHaveLength(0);
   });
 
-  it("keeps scene-query participation independent of trigger mode", () => {
-    const box = root.addComponent(BoxCollider);
-    const ray = new Ray(new Vector3(0, 3, 0), new Vector3(0, -1, 0));
-    const hit = new HitResult();
-    expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
-
-    box._isSceneQuery = false;
-    box.isTrigger = true;
-    expect(physics.raycast(ray, hit)).toBe(false);
-    box.isTrigger = false;
-    expect(physics.raycast(ray, hit)).toBe(false);
-
-    box._isSceneQuery = true;
-    expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
-  });
-
   it("applies contactOffset changes to collision detection", () => {
     const box = root.createChild("box").addComponent(BoxCollider);
     const probe = root.createChild("probe");
