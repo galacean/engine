@@ -1,0 +1,16 @@
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  h_171a11afaf879a 89
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/VolumetricLight.glsl
+  h_171a11afaf879a 53-55,66,68-69,71,73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c4140b8da28d16e91b7e932ef69283f4a62005f6",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
