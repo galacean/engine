@@ -808,7 +808,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   }
 }
 
-interface QuaternionLike {
+export interface QuaternionLike {
   /** {@inheritDoc Quaternion.x} */
   x: number;
   /** {@inheritDoc Quaternion.y} */

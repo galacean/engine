@@ -8,7 +8,7 @@ export { MathUtil } from "./MathUtil";
 export { CollisionUtil } from "./CollisionUtil";
 export { Matrix } from "./Matrix";
 export { Matrix3x3 } from "./Matrix3x3";
-export { Quaternion } from "./Quaternion";
+export { Quaternion, type QuaternionLike } from "./Quaternion";
 export { Ray } from "./Ray";
 export { Vector2 } from "./Vector2";
 export { Vector3, type Vector3Like } from "./Vector3";

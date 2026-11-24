@@ -1748,9 +1748,9 @@ describe("Rigidbody", function () {
     expect(body.angularVelocity.z).toBeCloseTo(0, 5);
   });
 
-  it("supports mutable Quaternion semantics and validation rollback on inertiaTensorRotation", () => {
+  it("uses read-only snapshot whole-value semantics and atomic validation on inertiaTensorRotation", () => {
     const physics = engine.sceneManager.activeScene.physics;
-    const entity = rootEntity.createChild("mutable-inertia-rotation");
+    const entity = rootEntity.createChild("snapshot-inertia-rotation");
     const collider = entity.addComponent(BoxCollider);
     collider.size.set(2, 4, 6);
     const body = entity.addComponent(Rigidbody);
@@ -1760,67 +1760,82 @@ describe("Rigidbody", function () {
     // Reading while automatic does not turn off automaticInertiaTensor.
     const autoRotation = body.inertiaTensorRotation;
     expect(body.automaticInertiaTensor).toBe(true);
-    const product = new Quaternion();
-    Quaternion.multiply(autoRotation, new Quaternion(), product);
-    expect(product.w).toBeCloseTo(1, 5);
+    expect(autoRotation).toMatchObject({ x: 0, y: 0, z: 0, w: 1 });
 
-    // Non-unit in-place mutation normalizes, disables auto, preserves computed tensor, and updates simulation.
+    // Non-unit whole-value assignment normalizes, disables auto, preserves computed tensor, and leaves old snapshot intact.
     const z30 = Math.sin(Math.PI / 12);
     const w30 = Math.cos(Math.PI / 12);
-    autoRotation.set(0, 0, 2 * z30, 2 * w30);
+    body.inertiaTensorRotation = { x: 0, y: 0, z: 2 * z30, w: 2 * w30 };
     expect(body.automaticInertiaTensor).toBe(false);
     expect(body.inertiaTensorRotation.z).toBeCloseTo(z30, 5);
     expect(body.inertiaTensorRotation.w).toBeCloseTo(w30, 5);
+    expect(autoRotation).toMatchObject({ x: 0, y: 0, z: 0, w: 1 });
     expect(body.inertiaTensor.x).toBeGreaterThan(0);
 
-    // Manual rotateZ / copyFrom updates simulated principal axes.
+    // Manual assignment updates simulated principal axes.
     body.inertiaTensor = new Vector3(2, 3, 4);
-    body.inertiaTensorRotation.copyFrom(new Quaternion()).rotateZ(Math.PI / 2);
+    body.inertiaTensorRotation = new Quaternion().rotateZ(Math.PI / 2);
     expect(body.inertiaTensorRotation.w).toBeCloseTo(Math.SQRT1_2, 5);
     body.applyTorque(new Vector3(3, 0, 0), ForceMode.Impulse);
     physics._update(physics.fixedTimeStep);
     expect(body.angularVelocity.x).toBeCloseTo(1, 5);
 
-    // Invalid assignment throws without mutating stored quaternion or changing auto mode.
+    // Invalid assignment throws without mutating stored snapshot or changing auto mode.
     body.automaticInertiaTensor = true;
     const shapeEntity = entity.createChild("rotated-shape");
     shapeEntity.transform.rotation.z = 30;
     shapeEntity.addComponent(BoxCollider).size.set(2, 4, 6);
-    const computedBeforeInvalid = body.inertiaTensorRotation.clone();
-    expect(() => (body.inertiaTensorRotation = new Quaternion(0, 0, 0, 0))).toThrow();
-    expect(() => (body.inertiaTensorRotation = new Quaternion(Number.NaN, 0, 0, 1))).toThrow();
+    const computedBeforeInvalid = body.inertiaTensorRotation;
+    expect(() => (body.inertiaTensorRotation = { x: 0, y: 0, z: 0, w: 0 })).toThrow();
+    expect(() => (body.inertiaTensorRotation = { x: Number.NaN, y: 0, z: 0, w: 1 })).toThrow();
     expect(body.automaticInertiaTensor).toBe(true);
-    expect(Math.abs(Quaternion.dot(body.inertiaTensorRotation, computedBeforeInvalid))).toBeCloseTo(1, 5);
+    const afterInvalid = body.inertiaTensorRotation;
+    const dotAuto =
+      afterInvalid.x * computedBeforeInvalid.x +
+      afterInvalid.y * computedBeforeInvalid.y +
+      afterInvalid.z * computedBeforeInvalid.z +
+      afterInvalid.w * computedBeforeInvalid.w;
+    expect(Math.abs(dotAuto)).toBeCloseTo(1, 5);
 
-    // Invalid in-place mutation while automatic restores the computed principal rotation.
-    expect(() => body.inertiaTensorRotation.set(0, 0, 0, 0)).toThrow();
-    expect(body.automaticInertiaTensor).toBe(true);
-    expect(Math.abs(Quaternion.dot(body.inertiaTensorRotation, computedBeforeInvalid))).toBeCloseTo(1, 5);
+    // Assigning the read-only snapshot back switches to manual mode while preserving its value.
+    body.inertiaTensorRotation = computedBeforeInvalid;
+    expect(body.automaticInertiaTensor).toBe(false);
+    const locked = body.inertiaTensorRotation;
+    const dotLocked =
+      locked.x * computedBeforeInvalid.x +
+      locked.y * computedBeforeInvalid.y +
+      locked.z * computedBeforeInvalid.z +
+      locked.w * computedBeforeInvalid.w;
+    expect(Math.abs(dotLocked)).toBeCloseTo(1, 5);
 
-    // Invalid in-place mutation right after disabling automatic restores the captured computed rotation.
-    body.automaticInertiaTensor = false;
-    expect(() => (body.inertiaTensorRotation.w = Number.NaN)).toThrow();
-    expect(Math.abs(Quaternion.dot(body.inertiaTensorRotation, computedBeforeInvalid))).toBeCloseTo(1, 5);
-
-    // Invalid in-place mutation in manual mode restores the last valid manual unit rotation.
+    // Invalid assignment in manual mode leaves the previous valid rotation untouched.
     const manual = new Quaternion().rotateZ(Math.PI / 2);
     body.inertiaTensorRotation = manual;
-    expect(() => body.inertiaTensorRotation.set(0, 0, 0, 0)).toThrow();
-    expect(Math.abs(Quaternion.dot(body.inertiaTensorRotation, manual))).toBeCloseTo(1, 5);
+    expect(() => (body.inertiaTensorRotation = { x: 0, y: 0, z: 0, w: 0 })).toThrow();
+    const afterManualInvalid = body.inertiaTensorRotation;
+    const dotManual =
+      afterManualInvalid.x * manual.x +
+      afterManualInvalid.y * manual.y +
+      afterManualInvalid.z * manual.z +
+      afterManualInvalid.w * manual.w;
+    expect(Math.abs(dotManual)).toBeCloseTo(1, 5);
 
-    // Same-reference assignments are no-ops and preserve automatic mass calculation modes.
+    // Cloned body isolates inertiaTensorRotation snapshots.
+    const clonedEntity = entity.clone();
+    const clonedBody = clonedEntity.getComponent(Rigidbody)!;
+    expect(clonedBody.automaticInertiaTensor).toBe(false);
+    expect(clonedBody.inertiaTensorRotation).not.toBe(body.inertiaTensorRotation);
+    body.inertiaTensorRotation = new Quaternion();
+    expect(clonedBody.inertiaTensorRotation.w).toBeCloseTo(Math.SQRT1_2, 5);
+    clonedEntity.destroy();
+
+    // Same-reference assignments on mutable vector properties preserve automatic modes.
     body.automaticCenterOfMass = true;
     body.centerOfMass = body.centerOfMass;
     expect(body.automaticCenterOfMass).toBe(true);
     body.automaticInertiaTensor = true;
     body.inertiaTensor = body.inertiaTensor;
-    body.inertiaTensorRotation = body.inertiaTensorRotation;
     expect(body.automaticInertiaTensor).toBe(true);
-
-    // Retained reference after destroy does not throw when mutated.
-    const retained = body.inertiaTensorRotation;
-    body.destroy();
-    expect(() => retained.rotateX(0.5)).not.toThrow();
   });
 
   it("ignores non-finite force inputs and force calls on kinematic bodies", () => {
@@ -2126,7 +2141,7 @@ describe("Rigidbody", function () {
         void body.inertiaTensorRotation;
       }
       body.inertiaTensor = new Vector3(2, 3, 4);
-      const lockedRotation = body.inertiaTensorRotation.clone();
+      const lockedRotation = body.inertiaTensorRotation;
 
       body.enabled = true;
       body.applyTorque(new Vector3(3, 0, 0), ForceMode.Impulse);
@@ -2138,7 +2153,12 @@ describe("Rigidbody", function () {
 
     const reference = runScenario(true);
     const direct = runScenario(false);
-    expect(Math.abs(Quaternion.dot(direct.lockedRotation, reference.lockedRotation))).toBeCloseTo(1, 5);
+    const dot =
+      direct.lockedRotation.x * reference.lockedRotation.x +
+      direct.lockedRotation.y * reference.lockedRotation.y +
+      direct.lockedRotation.z * reference.lockedRotation.z +
+      direct.lockedRotation.w * reference.lockedRotation.w;
+    expect(Math.abs(dot)).toBeCloseTo(1, 5);
     expect(direct.angularVelocity.x).toBeCloseTo(reference.angularVelocity.x, 4);
     expect(direct.angularVelocity.y).toBeCloseTo(reference.angularVelocity.y, 4);
     expect(direct.angularVelocity.z).toBeCloseTo(reference.angularVelocity.z, 4);
@@ -2168,5 +2188,65 @@ describe("Rigidbody", function () {
     expect(out.x).toBeCloseTo(11, 5);
     expect(out.y).toBeCloseTo(0, 5);
     expect(out.z).toBeCloseTo(0, 5);
+  });
+
+  it("flushes mass only for the accessed Rigidbody without triggering cross-body inertia recomputation", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const makeBody = (name: string, x: number) => {
+      const entity = rootEntity.createChild(name);
+      entity.transform.setPosition(x, 0, 0);
+      const collider = entity.addComponent(BoxCollider);
+      const body = entity.addComponent(Rigidbody);
+      body.useGravity = false;
+      return { body, collider };
+    };
+
+    const a = makeBody("body-a", 0);
+    const b = makeBody("body-b", 10);
+    const c = makeBody("body-c", 20);
+    const d = makeBody("body-d", 30);
+    physics._update(physics.fixedTimeStep);
+
+    const spies = [b, c, d].map(({ body }) => vi.spyOn(body._getNativeActor(), "updateMassAndInertia"));
+
+    // First shape edit batch on B/C/D, then access A via getPointVelocity and setDensity.
+    b.collider.size.set(2, 2, 2);
+    c.collider.size.set(2, 3, 2);
+    d.collider.size.set(3, 2, 2);
+
+    const out = new Vector3();
+    a.body.getPointVelocity(new Vector3(0, 1, 0), out);
+    expect(a.body.setDensity(2)).toBe(true);
+    for (const spy of spies) expect(spy).not.toHaveBeenCalled();
+
+    // Second shape edit batch on B/C/D before the fixed step; each body should recompute only once at step.
+    b.collider.size.set(4, 2, 2);
+    c.collider.size.set(2, 4, 2);
+    d.collider.size.set(2, 2, 4);
+    physics._update(physics.fixedTimeStep);
+
+    for (const spy of spies) expect(spy).toHaveBeenCalledTimes(1);
+    expect(b.body.inertiaTensor.x).toBeCloseTo((1 * (4 + 4)) / 12, 4);
+    expect(c.body.inertiaTensor.x).toBeCloseTo((1 * (16 + 4)) / 12, 4);
+    expect(d.body.inertiaTensor.x).toBeCloseTo((1 * (4 + 16)) / 12, 4);
+  });
+
+  it("preserves large-coordinate precision in getPointVelocity and alias safety in getRelativePointVelocity", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const entity = rootEntity.createChild("large-coord-velocity");
+    entity.transform.setPosition(1_000_000, 0, 0);
+    entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.angularVelocity = new Vector3(0, 0, 1);
+    physics._update(physics.fixedTimeStep);
+
+    const worldOut = new Vector3();
+    body.getPointVelocity(new Vector3(1_000_000.02, 0, 0), worldOut);
+    expect(worldOut.y).toBeCloseTo(0.02, 4);
+
+    const localAlias = new Vector3(0.02, 0, 0);
+    expect(body.getRelativePointVelocity(localAlias, localAlias)).toBe(localAlias);
+    expect(localAlias.y).toBeCloseTo(0.02, 4);
   });
 });

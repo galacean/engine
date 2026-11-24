@@ -56,10 +56,10 @@ label: Physics
 | [**centerOfMass**](/apis/core/#Rigidbody-centerOfMass) | 质心相对于变换原点的位置 | (0,0,0) |
 | [**automaticCenterOfMass**](/apis/core/#Rigidbody-automaticCenterOfMass) | 是否根据所拥有的碰撞器自动计算质心 | true |
 | [**inertiaTensor**](/apis/core/#Rigidbody-inertiaTensor) | 相对于质心的对角惯性张量 | (1,1,1) |
-| [**inertiaTensorRotation**](/apis/core/#Rigidbody-inertiaTensorRotation) | 惯性主轴相对于刚体的旋转 | 单位四元数 |
+| [**inertiaTensorRotation**](/apis/core/#Rigidbody-inertiaTensorRotation) | 惯性主轴相对于刚体旋转的只读快照。赋值时需传入完整四元数并自动归一化；零长度或非有限值会抛出异常。 | 单位四元数 |
 | [**automaticInertiaTensor**](/apis/core/#Rigidbody-automaticInertiaTensor) | 是否根据所拥有的碰撞器和质量自动计算惯性张量 | true |
 
-设置 `centerOfMass` 会关闭质心的自动计算。设置 `inertiaTensor` 或 `inertiaTensorRotation` 会关闭两项惯性属性的自动计算，同时保留另一项的当前值。将对应开关设为 `true` 即可恢复自动计算。
+设置 `centerOfMass` 会关闭质心的自动计算。设置 `inertiaTensor` 或整值赋值 `inertiaTensorRotation` 会关闭两项惯性属性的自动计算，同时保留另一项的当前值。将对应开关设为 `true` 即可恢复自动计算。
 
 刚体进入活动物理场景后，可调用 `setDensity(density)`，根据所挂载的实体碰撞体体积计算质量。没有可用体积时返回 `false`。后续修改几何会保留算出的质量。如需按新体积重算，请再次调用此方法。
 

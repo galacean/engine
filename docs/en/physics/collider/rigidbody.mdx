@@ -56,10 +56,10 @@ A Rigidbody ([Rigidbody](/apis/core/#Rigidbody)) puts its Entity under physics c
 | [**centerOfMass**](/apis/core/#Rigidbody-centerOfMass) | Center of mass relative to the transform's origin | (0,0,0) |
 | [**automaticCenterOfMass**](/apis/core/#Rigidbody-automaticCenterOfMass) | Whether the center of mass is calculated from the attached Colliders | true |
 | [**inertiaTensor**](/apis/core/#Rigidbody-inertiaTensor) | Diagonal inertia tensor relative to the center of mass | (1,1,1) |
-| [**inertiaTensorRotation**](/apis/core/#Rigidbody-inertiaTensorRotation) | Rotation of the principal inertia axes relative to the body | Identity quaternion |
+| [**inertiaTensorRotation**](/apis/core/#Rigidbody-inertiaTensorRotation) | Read-only snapshot of the principal inertia axes rotation relative to the body. Assign a complete rotation to update (normalized automatically); a zero-length or non-finite rotation throws. | Identity quaternion |
 | [**automaticInertiaTensor**](/apis/core/#Rigidbody-automaticInertiaTensor) | Whether the inertia tensor is calculated from the attached Colliders and mass | true |
 
-Assigning or mutating `centerOfMass` disables automatic center-of-mass calculation. Assigning or mutating `inertiaTensor` or `inertiaTensorRotation` disables automatic calculation of both inertia properties and preserves the other value. Set the corresponding automatic flag to `true` to resume calculation.
+Assigning or mutating `centerOfMass` disables automatic center-of-mass calculation. Assigning or mutating `inertiaTensor`, or assigning `inertiaTensorRotation`, disables automatic calculation of both inertia properties and preserves the other value. Set the corresponding automatic flag to `true` to resume calculation.
 
 Call `setDensity(density)` after the Rigidbody enters an active physics scene to derive its mass from attached solid Colliders. The call returns `false` if there is no usable volume. Later geometry changes keep the resulting mass. Call `setDensity` again to recalculate it from volume.
 
