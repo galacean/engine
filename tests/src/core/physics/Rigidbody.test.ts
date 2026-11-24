@@ -614,6 +614,7 @@ describe("Rigidbody", function () {
       class extends Script {
         onAwake(): void {
           body.sleep();
+          expect(body.isSleeping()).toBe(true);
         }
       }
     );

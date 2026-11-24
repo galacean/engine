@@ -858,7 +858,7 @@ export class PhysicsScene {
     massDirtyBodies.push(body);
   }
 
-  /** @internal Schedules or cancels sleep after activation and Collider synchronization. */
+  /** @internal Schedules or cancels sleep after registration and Collider synchronization. */
   _scheduleSleep(body: Rigidbody, scheduled: boolean): void {
     if (scheduled) (this._pendingSleeps ||= new Set()).add(body);
     else this._pendingSleeps?.delete(body);

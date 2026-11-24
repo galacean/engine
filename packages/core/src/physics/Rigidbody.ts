@@ -821,14 +821,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * Puts a simulated dynamic body to sleep.
-   * @remarks A request before or during activation applies before the first step after activation.
+   * @remarks A request before registration in a scene applies before the first simulation step after registration.
    */
   sleep(): void {
     if (this._isKinematic || !this._simulationEnabled) return;
     const scene = this._registeredScene;
-    if (!scene || this._isActivating()) {
+    if (!scene) {
       this._sleepPending = true;
-      scene?.physics._scheduleSleep(this, true);
     } else {
       this._cancelPendingSleep();
       this._getSyncedActor()!.sleep();
@@ -1260,14 +1259,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (this._index === -1 || this._isKinematic || !this._simulationEnabled) return null;
     this._cancelPendingSleep();
     return this._getSyncedActor();
-  }
-
-  /** @internal */
-  _isActivating(): boolean {
-    for (let entity: Entity | null = this.entity; entity; entity = entity.parent) {
-      if (entity._isActivating) return true;
-    }
-    return false;
   }
 
   /** @internal Consumes a sleep request after the scene has synchronized all Collider edits. */
