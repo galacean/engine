@@ -1382,28 +1382,81 @@ describe("Rigidbody", function () {
     expect(second.onWake).toHaveBeenCalledTimes(2);
   });
 
-  it("registers Script sleep callbacks assigned before entering the scene", () => {
-    const wakeCalls: Rigidbody[] = [];
-    const sleepCalls: Rigidbody[] = [];
-    const holder = rootEntity.createChild("holder");
-    holder.isActive = false;
-    const box = holder.createChild("sleep-script");
+  it.each([false, true])(
+    "registers Script sleep callbacks assigned before entering the scene (scriptFirst=%s)",
+    (scriptFirst) => {
+      const wakeCalls: Rigidbody[] = [];
+      const sleepCalls: Rigidbody[] = [];
+      const holder = rootEntity.createChild("holder");
+      holder.isActive = false;
+      const box = holder.createChild("sleep-script");
+      box.addComponent(BoxCollider);
+      let body: Rigidbody;
+      if (!scriptFirst) {
+        body = box.addComponent(Rigidbody);
+        body.useGravity = false;
+      }
+
+      const script = box.addComponent(Script);
+      script.onWake = (target) => wakeCalls.push(target);
+      script.onSleep = (target) => sleepCalls.push(target);
+
+      if (scriptFirst) {
+        body = box.addComponent(Rigidbody);
+        body.useGravity = false;
+      }
+
+      holder.isActive = true;
+      const physics = engine.sceneManager.activeScene.physics;
+      physics._update(physics.fixedTimeStep);
+      expect(wakeCalls).toEqual([body!]);
+
+      body!.sleep();
+      physics._update(physics.fixedTimeStep);
+      expect(sleepCalls).toEqual([body!]);
+    }
+  );
+
+  it("ignores Script sleep callbacks assigned after scene entry regardless of component order", () => {
+    const onWake = vi.fn();
+    const onSleep = vi.fn();
+    const box = rootEntity.createChild("late-sleep-script");
     box.addComponent(BoxCollider);
+    const script = box.addComponent(Script);
+    script.onWake = onWake;
+    script.onSleep = onSleep;
+
     const body = box.addComponent(Rigidbody);
     body.useGravity = false;
+    const setSleepEventId = vi.spyOn(body._getNativeActor(), "setSleepEventId");
+    try {
+      const physics = engine.sceneManager.activeScene.physics;
+      physics._update(physics.fixedTimeStep);
+      body.simulationEnabled = false;
+      body.simulationEnabled = true;
+      body.sleep();
+      physics._update(physics.fixedTimeStep);
+      expect(onWake).not.toHaveBeenCalled();
+      expect(onSleep).not.toHaveBeenCalled();
+      expect(setSleepEventId).not.toHaveBeenCalled();
 
-    const script = box.addComponent(Script);
-    script.onWake = (target) => wakeCalls.push(target);
-    script.onSleep = (target) => sleepCalls.push(target);
+      script.enabled = false;
+      script.enabled = true;
+      expect(setSleepEventId).toHaveBeenCalledTimes(1);
+      expect(setSleepEventId.mock.calls[0][0]).toBeGreaterThan(0);
 
-    holder.isActive = true;
-    const physics = engine.sceneManager.activeScene.physics;
-    physics._update(physics.fixedTimeStep);
-    expect(wakeCalls).toEqual([body]);
+      body.wakeUp();
+      physics._update(physics.fixedTimeStep);
+      expect(onWake.mock.calls).toEqual([[body]]);
 
-    body.sleep();
-    physics._update(physics.fixedTimeStep);
-    expect(sleepCalls).toEqual([body]);
+      script.destroy();
+      expect(setSleepEventId).toHaveBeenLastCalledWith(0);
+      body.sleep();
+      physics._update(physics.fixedTimeStep);
+      expect(onSleep).not.toHaveBeenCalled();
+    } finally {
+      setSleepEventId.mockRestore();
+    }
   });
 
   it.each([true, false])("merges partial inherited prefab input with manual input first: %s", async (inputFirst) => {

@@ -8,7 +8,7 @@ import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { ActiveChangeFlag } from "../enums/ActiveChangeFlag";
 import type { Scene } from "../Scene";
-import { Script } from "../Script";
+import { ScriptPhysicsEventFlags } from "../Script";
 import { Transform } from "../Transform";
 import { Collider } from "./Collider";
 import { differsF32, isValidPositiveFloat32, rotationDiffersF32 } from "./float32";
@@ -961,11 +961,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (!scene) return;
 
     if (this._simulationEnabled) {
-      const { prototype } = Script;
       const scripts = this.entity._scripts;
       for (let i = 0, count = scripts.length; i < count; i++) {
         const script = scripts.get(i);
-        if (script && (script.onSleep !== prototype.onSleep || script.onWake !== prototype.onWake)) {
+        if (script && script._physicsEventFlags & ScriptPhysicsEventFlags.Sleep) {
           this._setSleepEventRegistration(scene, true);
           return;
         }

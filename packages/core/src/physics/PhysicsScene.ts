@@ -3,7 +3,7 @@ import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
-import { Script } from "../Script";
+import { Script, ScriptPhysicsEventFlags } from "../Script";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
@@ -878,14 +878,14 @@ export class PhysicsScene {
 
   /** @internal */
   _onScriptEnabled(script: Script, flags: number): void {
-    flags & 1 && this._addContactEventConsumer(1);
-    flags & 2 && script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
+    flags & ScriptPhysicsEventFlags.Contact && this._addContactEventConsumer(1);
+    flags & ScriptPhysicsEventFlags.Sleep && script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
   }
 
   /** @internal */
   _onScriptDisabled(script: Script, flags: number): void {
-    flags & 1 && this._addContactEventConsumer(-1);
-    flags & 2 && script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
+    flags & ScriptPhysicsEventFlags.Contact && this._addContactEventConsumer(-1);
+    flags & ScriptPhysicsEventFlags.Sleep && script.entity.getComponent(Rigidbody)?._syncSleepEventRegistration();
   }
 
   private _addContactEventConsumer(delta: 1 | -1): void {

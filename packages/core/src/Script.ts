@@ -35,8 +35,9 @@ export class Script extends Component {
   @ignoreClone
   _entityScriptsIndex: number = -1;
 
+  /** @internal */
   @ignoreClone
-  private _physicsEventFlags: number = 0;
+  _physicsEventFlags: number = 0;
 
   /**
    * Called when be enabled first time, only once.
@@ -254,8 +255,9 @@ export class Script extends Component {
       (this.onCollisionEnter !== prototype.onCollisionEnter ||
       this.onCollisionExit !== prototype.onCollisionExit ||
       this.onCollisionStay !== prototype.onCollisionStay
-        ? 1
-        : 0) | (this.onSleep !== prototype.onSleep || this.onWake !== prototype.onWake ? 2 : 0);
+        ? ScriptPhysicsEventFlags.Contact
+        : 0) |
+      (this.onSleep !== prototype.onSleep || this.onWake !== prototype.onWake ? ScriptPhysicsEventFlags.Sleep : 0);
     if (physicsFlags !== 0) {
       this._physicsEventFlags = physicsFlags;
       this.scene!.physics._onScriptEnabled(this, physicsFlags);
@@ -298,6 +300,12 @@ export class Script extends Component {
     super._onDestroy();
     this.onDestroy();
   }
+}
+
+/** @internal */
+export const enum ScriptPhysicsEventFlags {
+  Contact = 1 << 0,
+  Sleep = 1 << 1
 }
 
 export enum PointerMethods {
