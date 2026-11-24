@@ -5,20 +5,23 @@
 #include "ShaderLibrary/PostProcess/Filtering.glsl"
 
 mediump sampler2D renderer_BlitTexture;
-mediump sampler2D material_lowMipTexture;
 vec4 material_BloomParams;
-vec4 material_lowMipTexelSize;
+vec4 renderer_texelSize;
 
 void frag(Varyings v) {
-    mediump vec4 highMip = texture2D(renderer_BlitTexture, v.v_uv);
-
     #ifdef BLOOM_HQ
-      mediump vec4 lowMip = sampleTexture2DBicubic(material_lowMipTexture, v.v_uv, material_lowMipTexelSize);
+      mediump vec3 lowMip = sampleTexture2DBicubic(renderer_BlitTexture, v.v_uv, renderer_texelSize).rgb;
     #else
-      mediump vec4 lowMip = texture2D(material_lowMipTexture, v.v_uv);
+      // 4-tap bilinear 3x3 tent; pre-weight samples to avoid mediump (fp16) overflow
+      vec2 halfTexel = renderer_texelSize.xy * 0.5;
+      mediump vec3 lowMip = texture2D(renderer_BlitTexture, v.v_uv + vec2(-halfTexel.x, -halfTexel.y)).rgb * 0.25;
+      lowMip += texture2D(renderer_BlitTexture, v.v_uv + vec2( halfTexel.x, -halfTexel.y)).rgb * 0.25;
+      lowMip += texture2D(renderer_BlitTexture, v.v_uv + vec2(-halfTexel.x,  halfTexel.y)).rgb * 0.25;
+      lowMip += texture2D(renderer_BlitTexture, v.v_uv + vec2( halfTexel.x,  halfTexel.y)).rgb * 0.25;
     #endif
 
-    gl_FragColor = mix(highMip, lowMip, material_BloomParams.z);
+    // Alpha carries scatter for in-place BlendState with highMip (dst.a stays 0.0)
+    gl_FragColor = vec4(lowMip, material_BloomParams.z);
 }
 
 #endif

@@ -5,12 +5,17 @@ import {
   Color,
   ColorAdjustmentsEffect,
   Matrix,
+  MeshRenderer,
   MSAASamples,
   PostProcess,
+  PrimitiveMesh,
   RenderTarget,
   Scene,
   Texture2D,
   TextureFormat,
+  TonemappingEffect,
+  TonemappingMode,
+  UnlitMaterial,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
@@ -221,6 +226,117 @@ describe("ColorAdjustmentsEffect", () => {
     colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
     const brightExposed = readCenterPixel(pixels)[0];
     expect(brightExposed).toBeGreaterThan(darkExposed + 50);
+
+    const gl = (engine as any)._hardwareRenderer.gl as WebGL2RenderingContext;
+    expect(gl.getError()).toBe(gl.NO_ERROR);
+
+    rt.destroy(true);
+    scene.destroy();
+  });
+
+  it("preserves premultiplied alpha, zero-alpha bloom, and high-EV HDR precision in a float RT", () => {
+    const scene = new Scene(engine);
+    engine.sceneManager.activeScene = scene;
+
+    const cameraEntity = scene.createRootEntity("Camera");
+    const camera = cameraEntity.addComponent(Camera);
+    camera.enableHDR = true;
+    camera.isAlphaOutputRequired = true;
+    camera.enablePostProcess = true;
+    camera.msaaSamples = MSAASamples.None;
+    cameraEntity.transform.setPosition(0, 0, 10);
+    cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
+
+    const colorTex = new Texture2D(engine, SIZE, SIZE, TextureFormat.R32G32B32A32_SFloat, false, false);
+    const rt = new RenderTarget(engine, SIZE, SIZE, colorTex, TextureFormat.Depth24, 1);
+    camera.renderTarget = rt;
+
+    const post = scene.createRootEntity("Post").addComponent(PostProcess);
+    post.isGlobal = true;
+    const grading = post.addEffect(ColorAdjustmentsEffect)!;
+    const pixels = new Float32Array(SIZE * SIZE * 4);
+    const readCenterFloat = (): [number, number, number, number] => {
+      const cx = SIZE >> 1;
+      const cy = SIZE >> 1;
+      const idx = (cy * SIZE + cx) * 4;
+      return [pixels[idx], pixels[idx + 1], pixels[idx + 2], pixels[idx + 3]];
+    };
+
+    // 1. Opaque 18% middle gray at +100 contrast remains ~0.18 (within fp16 internal HDR precision)
+    scene.background.solidColor = new Color(0.18, 0.18, 0.18, 1);
+    grading.contrast.value = 100;
+    engine.update();
+    colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+    const opaqueMid = readCenterFloat();
+    expect(opaqueMid[0]).toBeCloseTo(0.18, 2);
+    expect(opaqueMid[3]).toBeCloseTo(1, 3);
+
+    // 2. Semi-transparent (alpha = 0.5) 18% middle gray at +100 contrast remains ~0.09 (not ~0.043)
+    scene.background.solidColor = new Color(0.18, 0.18, 0.18, 0.5);
+    grading.contrast.value = 100;
+    engine.update();
+    colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+    const semiMid = readCenterFloat();
+    expect(semiMid[0]).toBeCloseTo(0.09, 2);
+    expect(semiMid[1]).toBeCloseTo(0.09, 2);
+    expect(semiMid[2]).toBeCloseTo(0.09, 2);
+    expect(semiMid[3]).toBeCloseTo(0.5, 3);
+
+    // 3. Fully transparent black (0, 0, 0, 0) at -100 contrast stays (0, 0, 0, 0) (not lifted to 0.18)
+    scene.background.solidColor = new Color(0, 0, 0, 0);
+    grading.contrast.value = -100;
+    engine.update();
+    colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+    const zeroAlpha = readCenterFloat();
+    expect(zeroAlpha[0]).toBeCloseTo(0, 4);
+    expect(zeroAlpha[1]).toBeCloseTo(0, 4);
+    expect(zeroAlpha[2]).toBeCloseTo(0, 4);
+    expect(zeroAlpha[3]).toBeCloseTo(0, 4);
+
+    // 4. Additive Bloom in zero-alpha regions is preserved under -100 and +100 contrast
+    const brightEntity = scene.createRootEntity("BrightCube");
+    const brightRenderer = brightEntity.addComponent(MeshRenderer);
+    brightRenderer.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
+    const brightMat = new UnlitMaterial(engine);
+    brightMat.baseColor = new Color(8, 6, 4, 1);
+    brightRenderer.setMaterial(brightMat);
+
+    const bloom = post.addEffect(BloomEffect)!;
+    bloom.downScale.value = BloomDownScaleMode.Half;
+    bloom.threshold.value = 0.8;
+    bloom.intensity.value = 1.0;
+
+    for (const contrastValue of [-100, 100]) {
+      grading.contrast.value = contrastValue;
+      engine.update();
+      colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+      let maxZeroAlphaBloom = 0;
+      for (let i = 0; i < SIZE * SIZE; i++) {
+        const a = pixels[i * 4 + 3];
+        if (a < 1e-3) {
+          maxZeroAlphaBloom = Math.max(maxZeroAlphaBloom, pixels[i * 4]);
+        }
+      }
+      expect(maxZeroAlphaBloom).toBeGreaterThan(0.05);
+    }
+
+    brightEntity.destroy();
+    brightMat.destroy();
+    bloom.enabled = false;
+
+    // 5. Extreme HDR (100.0) + +10 EV stays finite through white balance and ACES tonemapping
+    scene.background.solidColor = new Color(100, 80, 60, 1);
+    grading.contrast.value = 0;
+    grading.postExposure.value = 10;
+    grading.temperature.value = 25;
+    post.addEffect(TonemappingEffect)!.mode.value = TonemappingMode.ACES;
+    engine.update();
+    colorTex.getPixelBuffer(0, 0, SIZE, SIZE, 0, pixels);
+    const hdrPeak = readCenterFloat();
+    expect(Number.isFinite(hdrPeak[0])).toBe(true);
+    expect(Number.isFinite(hdrPeak[1])).toBe(true);
+    expect(Number.isFinite(hdrPeak[2])).toBe(true);
+    expect(hdrPeak[0]).toBeGreaterThan(0.95);
 
     const gl = (engine as any)._hardwareRenderer.gl as WebGL2RenderingContext;
     expect(gl.getError()).toBe(gl.NO_ERROR);

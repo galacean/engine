@@ -1,7 +1,8 @@
-import { expect, beforeAll, afterAll, describe, it } from "vitest";
+import { expect, beforeAll, afterAll, describe, it, vi } from "vitest";
 import { WebGLEngine } from "@galacean/engine";
-import { Loader, MeshRenderer, Script } from "@galacean/engine-core";
+import { AssetPromise, Loader, MeshRenderer, Script } from "@galacean/engine-core";
 import { PrefabParser } from "../../../packages/loader/src/prefab/PrefabParser";
+import { PrefabResource } from "../../../packages/loader/src/prefab/PrefabResource";
 import type { PrefabFile } from "../../../packages/loader/src/schema/PrefabSchema";
 
 let engine: WebGLEngine;
@@ -54,9 +55,63 @@ describe("PrefabResource refCount", () => {
       root: 0
     } as any;
 
+    const referPool = (engine.resourceManager as any)._referResourcePool;
+    const beforeCount = Object.keys(referPool).length;
     expect(() => PrefabParser.parse(engine, "invalid.prefab", prefabData)).toThrow(
       'Unsupported prefab format version "1.0". Expected "2.0".'
     );
+    expect(Object.keys(referPool).length).toBe(beforeCount);
+  });
+
+  it("should hide in-flight PrefabResource from findResourcesByType and protect it from gc", async () => {
+    const nestedPrefab = await PrefabParser.parse(engine, "in-flight-nested.prefab", {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "nestedRoot" }],
+      components: [],
+      root: 0
+    });
+
+    let resolveNested!: (res: PrefabResource) => void;
+    const refSpy = vi
+      .spyOn(engine.resourceManager, "getResourceByRef")
+      .mockImplementationOnce(
+        () =>
+          new AssetPromise<PrefabResource>((resolve) => {
+            resolveNested = resolve;
+          }) as any
+      );
+
+    try {
+      const outerPromise = PrefabParser.parse(engine, "in-flight-outer.prefab", {
+        version: "2.0",
+        refs: [{ url: "in-flight-nested.prefab", type: "prefab" }],
+        entities: [{ name: "outerRoot", children: [1] }, { instance: { asset: 0 } }],
+        components: [],
+        root: 0
+      } as any);
+
+      // In-flight PrefabResource must stay invisible to findResourcesByType and survive concurrent gc()
+      expect(engine.resourceManager.findResourcesByType(PrefabResource).some((r) => r.url === "in-flight-outer.prefab")).toBe(
+        false
+      );
+      nestedPrefab.isGCIgnored = true;
+      engine.resourceManager.gc();
+      expect(engine.resourceManager.findResourcesByType(PrefabResource).some((r) => r.url === "in-flight-outer.prefab")).toBe(
+        false
+      );
+
+      resolveNested(nestedPrefab);
+      const outerPrefab = await outerPromise;
+      expect(outerPrefab.destroyed).toBe(false);
+      expect(engine.resourceManager.findResourcesByType(PrefabResource)).toContain(outerPrefab);
+
+      outerPrefab.destroy();
+    } finally {
+      refSpy.mockRestore();
+      nestedPrefab.isGCIgnored = false;
+      nestedPrefab.destroy();
+    }
   });
 
   it("should increase and decrease with instantiated entities", async () => {
@@ -192,9 +247,12 @@ describe("Prefab instance overrides", () => {
       root: 0
     } as any;
 
+    const referPool = (engine.resourceManager as any)._referResourcePool;
+    const beforeCount = Object.keys(referPool).length;
     await expect(PrefabParser.parse(engine, "invalid-ref.prefab", prefabData)).rejects.toThrow(
       "HierarchyParser: invalid ref index 0 for instance.asset"
     );
+    expect(Object.keys(referPool).length).toBe(beforeCount);
   });
 
   it("should apply entityProps overrides to nested prefab entities", async () => {
