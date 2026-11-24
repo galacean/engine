@@ -81,8 +81,6 @@ export abstract class Light extends Component {
    * Inverse view matrix.
    */
   get inverseViewMatrix(): Matrix {
-    const inverseViewMat = (this._inverseViewMat ||= new Matrix());
-    inverseViewMat.copyFrom(this.entity.transform.worldMatrix);
-    return inverseViewMat;
+    return (this._inverseViewMat ||= new Matrix()).copyFrom(this.entity.transform.worldMatrix);
   }
 }
