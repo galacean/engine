@@ -12,6 +12,7 @@ import {
   SphereCollider,
   Loader,
   MeshCollider,
+  PhysicsMaterial,
   PlaneCollider,
   PrimitiveMesh,
   Scene,
@@ -2063,16 +2064,19 @@ describe("Rigidbody", function () {
       const child = parent.createChild("reparented-child");
       const box = child.addComponent(BoxCollider);
 
+      const ray = new Ray(new Vector3(0, 55, 0), new Vector3(0, -1, 0));
+      expect(sourceScene.physics.raycast(ray, 10)).toBe(true);
+
       body.enabled = false;
       const newParent = sourceScene.createRootEntity("new-parent");
       newParent.transform.setPosition(0, 50, 0);
       newParent.addChild(child);
       otherScene.addRootEntity(parent);
+      body.enabled = true;
 
       expect(box.attachedRigidbody).toBeNull();
-      const ray = new Ray(new Vector3(0, 55, 0), new Vector3(0, -1, 0));
-      expect(sourceScene.physics.raycast(ray, 10)).toBe(true);
       expect(otherScene.physics.raycast(ray, 10)).toBe(false);
+      expect(sourceScene.physics.raycast(ray, 10)).toBe(true);
       parent.transform.setPosition(0, 80, 0);
       expect(otherScene.physics.raycast(new Ray(new Vector3(0, 85, 0), new Vector3(0, -1, 0)), 10)).toBe(false);
     } finally {
@@ -2294,5 +2298,90 @@ describe("Rigidbody", function () {
     } finally {
       getChildTransform.mockRestore();
     }
+  });
+
+  it("rejects physics components and materials before insertion when physics is not initialized on the Engine", async () => {
+    const noPhysicsEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    try {
+      const scene = noPhysicsEngine.sceneManager.activeScene;
+      const detached = noPhysicsEngine.createEntity("detached-no-physics");
+      expect(() => detached.addComponent(Rigidbody)).toThrow();
+      expect(() => detached.addComponent(BoxCollider)).toThrow();
+      expect(() => new PhysicsMaterial(noPhysicsEngine)).toThrow();
+      expect(detached.getComponent(Rigidbody)).toBeNull();
+      expect(detached.getComponent(BoxCollider)).toBeNull();
+      expect(() => scene.addRootEntity(detached)).not.toThrow();
+      expect(() => scene.removeRootEntity(detached)).not.toThrow();
+      expect(detached.scene).toBeNull();
+      detached.destroy();
+    } finally {
+      expect(() => noPhysicsEngine.destroy()).not.toThrow();
+    }
+  });
+
+  it("settles pending geometry principal axes before switching a disabled Rigidbody to manual inertiaTensor", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+
+    const runScenario = (readRotationFirst: boolean) => {
+      const entity = rootEntity.createChild(readRotationFirst ? "read-first" : "direct-write");
+      const body = entity.addComponent(Rigidbody);
+      const child = entity.createChild("rotated-box");
+      child.addComponent(BoxCollider).size.set(2, 4, 6);
+
+      // Initial sync attaches the child shape at 0 deg.
+      expect(physics.raycast(new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0)), 10)).toBe(true);
+
+      body.enabled = false;
+      child.transform.rotation.z = 30;
+      // Query sync submits the rotated shape pose and marks mass dirty on the disabled body.
+      physics.raycast(new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0)), 10);
+
+      if (readRotationFirst) {
+        void body.inertiaTensorRotation;
+      }
+      body.inertiaTensor = new Vector3(2, 3, 4);
+      const lockedRotation = body.inertiaTensorRotation.clone();
+
+      body.enabled = true;
+      body.applyTorque(new Vector3(3, 0, 0), ForceMode.Impulse);
+      physics._update(physics.fixedTimeStep);
+      const angularVelocity = body.angularVelocity.clone();
+      entity.destroy();
+      return { lockedRotation, angularVelocity };
+    };
+
+    const reference = runScenario(true);
+    const direct = runScenario(false);
+    expect(Math.abs(Quaternion.dot(direct.lockedRotation, reference.lockedRotation))).toBeCloseTo(1, 5);
+    expect(direct.angularVelocity.x).toBeCloseTo(reference.angularVelocity.x, 4);
+    expect(direct.angularVelocity.y).toBeCloseTo(reference.angularVelocity.y, 4);
+    expect(direct.angularVelocity.z).toBeCloseTo(reference.angularVelocity.z, 4);
+
+    // Scalar-only mass edits while disabled remain deferred until manual flags commit.
+    const deferred = rootEntity.createChild("disabled-mass-defer");
+    const deferredBody = deferred.addComponent(Rigidbody);
+    deferred.addComponent(BoxCollider).size.set(2, 2, 2);
+    physics._update(physics.fixedTimeStep);
+    deferredBody.enabled = false;
+    deferredBody.mass = 5;
+    deferredBody.inertiaTensor = new Vector3(2, 3, 4);
+    deferredBody.enabled = true;
+    deferredBody.applyForce(new Vector3(5, 0, 0), ForceMode.Impulse);
+    physics._update(physics.fixedTimeStep);
+    expect(deferredBody.linearVelocity.x).toBeCloseTo(1, 4);
+  });
+
+  it("computes getWorldCenterOfMass safely when out aliases entity.transform.worldPosition", () => {
+    const entity = rootEntity.createChild("com-alias");
+    entity.transform.setPosition(10, 0, 0);
+    const body = entity.addComponent(Rigidbody);
+    body.centerOfMass = new Vector3(1, 0, 0);
+
+    const out = body.getWorldCenterOfMass(entity.transform.worldPosition);
+    expect(out).toBe(entity.transform.worldPosition);
+    expect(out.x).toBeCloseTo(11, 5);
+    expect(out.y).toBeCloseTo(0, 5);
+    expect(out.z).toBeCloseTo(0, 5);
   });
 });

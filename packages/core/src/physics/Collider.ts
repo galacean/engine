@@ -214,8 +214,12 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
+   * @throws When physics is not initialized on the Engine.
    */
   constructor(entity: Entity) {
+    if (!entity.engine._physicsInitialized) {
+      throw new Error("Physics is not initialized on this Engine.");
+    }
     super(entity);
     this._id = Collider._idGenerator++;
     Engine._physicalObjectsMap[this._id] = this;

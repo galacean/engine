@@ -504,9 +504,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * @internal
-   * @throws When the Entity already has a Rigidbody.
+   * @throws When physics is not initialized on the Engine or the Entity already has a Rigidbody.
    */
   constructor(entity: Entity) {
+    if (!entity.engine._physicsInitialized) {
+      throw new Error("Physics is not initialized on this Engine.");
+    }
     if (entity.getComponent(Rigidbody)) {
       throw new Error(`Entity "${entity.name}" already has a Rigidbody.`);
     }
@@ -560,8 +563,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    */
   getWorldCenterOfMass(out: Vector3): Vector3 {
     const transform = this.entity.transform;
-    Vector3.transformByQuat(this.centerOfMass, transform.worldRotationQuaternion, out);
-    return out.add(transform.worldPosition);
+    const center = Rigidbody._tempCenter;
+    Vector3.transformByQuat(this.centerOfMass, transform.worldRotationQuaternion, center);
+    Vector3.add(center, transform.worldPosition, out);
+    return out;
   }
 
   /**
@@ -1311,10 +1316,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _handleInertiaTensorChanged(): void {
     if (this._automaticInertiaTensor) {
       // Changing mass alone does not move the principal axes; defer scalar mass until manual flags commit.
-      const deferMass = this._massDirtyIndex !== -1 && (this._massChanges & ~MassChanges.Mass) === 0;
+      const deferMass = this._massChanges === MassChanges.Mass;
       if (deferMass) this._massChanges = MassChanges.None;
-      this._registeredScene?.physics._syncColliders();
-      this._nativeActor && this._readInertiaTensorRotation(this._nativeActor);
+      const actor = this._getSyncedActor();
+      actor && this._readInertiaTensorRotation(actor);
       deferMass && this._markMassDirty(MassChanges.Mass);
     }
     this._automaticInertiaTensor = false;
