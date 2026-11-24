@@ -267,6 +267,8 @@ export interface TerrainProjectWorldIndex {
 /** Minimal stock Project schema with no Terrain-specific fields. */
 export interface TerrainProjectFile {
   engineVersion?: string;
+  /** Build-generated, manifest-relative PNG download aliases. Virtual resource paths still identify material inputs. */
+  textureDownloadPaths?: Record<string, string>;
   scene: string;
   /** All Scenes registered by a multi-demo release project. */
   scenes?: string[];

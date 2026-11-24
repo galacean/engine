@@ -213,8 +213,14 @@ export class ResourceManager {
     );
   }
 
+  private _downloadUrls?: ReadonlyMap<string, string>;
   private _prefetchedTextAssets?: ReadonlyMap<string, string>;
   private _prefetchedBinaryAssets?: ReadonlyMap<string, Uint8Array>;
+
+  /** Map resolved resource URLs to shared download URLs. The original URLs identify decoded resources. */
+  setDownloadUrls(urls: ReadonlyMap<string, string> | undefined): void {
+    this._downloadUrls = urls;
+  }
 
   /**
    * Registers an immutable read-only map of preloaded text assets keyed by resolved remote URL.
@@ -274,7 +280,7 @@ export class ResourceManager {
         }
       }
     }
-    return request(url, config);
+    return request(this._downloadUrls?.get(url) ?? url, config);
   }
 
   /**
@@ -401,6 +407,7 @@ export class ResourceManager {
     this._graphicResourcePool = null!;
     this._contentRestorerPool = null!;
     this._loadingPromises = null!;
+    this._downloadUrls = undefined;
     this._prefetchedTextAssets = undefined;
     this._prefetchedBinaryAssets = undefined;
   }
