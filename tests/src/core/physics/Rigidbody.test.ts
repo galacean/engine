@@ -1351,6 +1351,22 @@ describe("Rigidbody", function () {
     expect(() => kinematicBody.move(new Vector3(1, 2, 3))).not.toThrow();
   });
 
+  it("accumulates small kinematic moves from the published world pose", () => {
+    const entity = rootEntity.createChild("small steps");
+    const body = entity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const { transform } = entity;
+    vi.spyOn(engine.time, "deltaTime", "get").mockReturnValue(engine.sceneManager.activeScene.physics.fixedTimeStep);
+    const rotation = new Quaternion();
+    for (let i = 0; i < 3; i++) {
+      Quaternion.rotateZ(transform.worldRotationQuaternion, 1e-6, rotation);
+      body.move(new Vector3(transform.worldPosition.x + 5e-7, 0, 0), rotation);
+      engine.update();
+    }
+    expect(transform.worldPosition.x).toBeCloseTo(1.5e-6, 12);
+    expect(transform.worldRotationQuaternion.z).toBeCloseTo(Math.sin(1.5e-6), 12);
+  });
+
   it("preserves both position and rotation when move(pos) and move(rot) are called in the same step", function () {
     const physics = engine.sceneManager.activeScene.physics;
     const targetRot = new Quaternion();
