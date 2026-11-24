@@ -443,6 +443,56 @@ it("injects post-commit loop_guidance after 6 consecutive read-only rounds while
   expect(finalCallMessages[loopGuidanceIndex - 1]).toMatchObject({ role: "tool", toolCallId: "r5" });
 });
 
+it.each([
+  { page: "first", sourceFirst: false, offset: 1, column: 1 },
+  { page: "first", sourceFirst: true, offset: 1, column: 1 },
+  { page: "last", sourceFirst: false, offset: 350, column: 1 },
+  { page: "last", sourceFirst: true, offset: 350, column: 1 },
+  { page: "same-line continuation", sourceFirst: false, offset: 1, column: 2001 },
+  { page: "same-line continuation", sourceFirst: true, offset: 1, column: 2001 }
+])("reuses an inlined declaration for the $page page in the same batch (source first: $sourceFirst)", async ({
+  sourceFirst,
+  offset,
+  column
+}) => {
+  const apiPath = "declare/editor/native/api.d.ts";
+  const sourcePath = "declare/editor/native/source.d.ts";
+  const source =
+    column === 1
+      ? Array.from({ length: 393 }, (_, i) => `export type L${i + 1} = ${i + 1};`).join("\n")
+      : `export type Wide = "${"x".repeat(2250)}";\nexport type Tail = "done";`;
+  const lastLine = column === 1 ? "393: export type L393 = 393;" : '2: export type Tail = "done";';
+  const modules = [
+    { id: "declare/native/source.d.ts", source, imports: [] },
+    { id: "declare/native/api.d.ts", source: 'import "./source";', imports: ["declare/native/source.d.ts"] }
+  ];
+  const api = fileCall("read", { file_path: apiPath }, "api");
+  const direct = fileCall("read", { file_path: sourcePath, offset, column }, "source");
+  request.mockReset();
+  request
+    .mockResolvedValueOnce({
+      content: "",
+      finishReason: "tool_calls",
+      toolCalls: sourceFirst ? [direct, api] : [api, direct]
+    })
+    .mockResolvedValueOnce(final);
+  const loop = createTestAgentLoop({
+    definition: { ...definition, scriptApi: { ...definition.scriptApi, modules } },
+    tools: []
+  });
+  await loop.run("inspect editor declarations", {});
+
+  const replies = request.mock.calls[1][0].messages.filter((message) => message.role === "tool");
+  expect(replies.map((reply) => reply.toolCallId)).toEqual(sourceFirst ? ["source", "api"] : ["api", "source"]);
+  const apiReply = replies.find((reply) => reply.toolCallId === "api")!.content;
+  expect(apiReply).toContain(`<dependency path="${sourcePath}">`);
+  expect(apiReply).toContain(lastLine);
+  const directReply = replies.find((reply) => reply.toolCallId === "source")!.content;
+  expect(directReply).toContain("read this path again");
+  expect(directReply).not.toContain("export type");
+  expect(directReply).not.toContain("Continue with read");
+});
+
 it("does not pre-claim paginated declaration reads in parallel batches and resets postCommitReadOnlyRounds on user supplements", async () => {
   const sourceLines = Array.from({ length: 240 }, (_, i) => `export type L${i + 1} = ${i + 1};`).join("\n");
   const modules = [

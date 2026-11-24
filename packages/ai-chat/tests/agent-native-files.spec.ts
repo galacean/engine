@@ -556,17 +556,17 @@ it("deduplicates repeated full reads of unchanged skills/ and declare/ files alr
   const signal = new AbortController().signal;
 
   const dupSkill = await api.execute("read", { file_path: "skills/demo/SKILL.md" }, "d1", signal);
-  expect(dupSkill.content).toContain("Already present in current context (unchanged)");
+  expect(dupSkill.content).toContain("Already present at the time of this read");
   expect(dupSkill.result).toMatchObject({ ok: true, value: { path: "skills/demo/SKILL.md", deduplicated: true } });
 
   const dupDecl = await api.execute("read", { file_path: "declare/editor/custom/Demo.d.ts" }, "d2", signal);
-  expect(dupDecl.content).toContain("Already present in current context (unchanged)");
+  expect(dupDecl.content).toContain("Already present at the time of this read");
 
   // When underlying declaration content changes, re-read returns the fresh updated content instead of deduplicating.
   declText = "export interface Demo { value: number; nextField: string; }";
   const updatedDecl = await api.execute("read", { file_path: "declare/editor/custom/Demo.d.ts" }, "d2b", signal);
   expect(updatedDecl.content).toContain("nextField: string");
-  expect(updatedDecl.content).not.toContain("Already present in current context");
+  expect(updatedDecl.content).not.toContain("Already present at the time of this read");
 
   // Paginated reads (offset > 1) and mutable project files still return real file content.
   const offsetSkill = await api.execute("read", { file_path: "skills/demo/SKILL.md", offset: 2 }, "d3", signal);
@@ -574,6 +574,45 @@ it("deduplicates repeated full reads of unchanged skills/ and declare/ files alr
 
   const editable = await api.execute("read", { file_path: "Notes/editable.md" }, "d4", signal);
   expect(editable.content).toContain("1: line1");
+});
+
+it("returns a paginated declaration when only its unread tail changed", async () => {
+  const apiPath = "declare/editor/native/api.d.ts";
+  const sourcePath = "declare/editor/native/source.d.ts";
+  const prefix = Array.from({ length: 392 }, (_, i) => `export type L${i + 1} = ${i + 1};`).join("\n");
+  let source = `${prefix}\nexport type Tail = "before";`;
+  const definitions = { scriptApi: { entries: [], modules: [] }, toolNames: [] };
+  const files = createAgentProjectFiles(definitions.scriptApi, [
+    {
+      paths: () => [apiPath, sourcePath],
+      read: (path) => (path === apiPath ? 'import "./source";' : source)
+    }
+  ]);
+  let active = new Map<string, string>();
+  const tools = new AgentNativeFiles(
+    () => files,
+    () => definitions,
+    new Map(),
+    () => "unused",
+    60_000,
+    () => new Set(),
+    () => active
+  );
+  const signal = new AbortController().signal;
+  const first = await tools.execute("read", { file_path: apiPath }, "api", signal);
+  active = collectActiveReadContents([{ role: "tool", toolCallId: "api", content: first.content }]);
+  expect(active.get(sourcePath)).toContain('393: export type Tail = "before";');
+
+  source = `${prefix}\nexport type Tail = "after";`;
+  const direct = await tools.execute("read", { file_path: sourcePath }, "source", signal);
+  expect(direct.content).toContain("1: export type L1 = 1;");
+  expect(direct.content).toContain("Continue with read offset=");
+  expect(direct.content).not.toContain("Already present at the time of this read");
+  const tail = await tools.execute("read", { file_path: sourcePath, offset: 393 }, "tail", signal);
+  expect(tail.content).toContain('393: export type Tail = "after";');
+  const parent = await tools.execute("read", { file_path: apiPath }, "api-again", signal);
+  expect(parent.content).toContain("Already present at the time of this read");
+  expect(parent.content).toContain('393: export type Tail = "after";');
 });
 
 it("invalidates active read contents and paths after a capabilities_changed system injection", () => {
@@ -635,7 +674,7 @@ it("re-inlines evicted declaration dependencies even when the primary declaratio
     "d-both",
     signal
   );
-  expect(dedupOnly.content).toContain("Already present in current context (unchanged)");
+  expect(dedupOnly.content).toContain("Already present at the time of this read");
   expect(dedupOnly.content).not.toContain("<dependency path=");
 
   // Trigger: after compaction evicts MutationResult.d.ts while keeping terrain.patch.d.ts, re-reading
@@ -656,7 +695,7 @@ it("re-inlines evicted declaration dependencies even when the primary declaratio
     "d-evicted",
     signal
   );
-  expect(restored.content).toContain("Already present in current context (unchanged)");
+  expect(restored.content).toContain("Already present at the time of this read");
   expect(restored.content).toContain('<dependency path="declare/editor/world/common/MutationResult.d.ts">');
   expect(restored.content).toContain("export interface MutationResult { status: string; }");
   expect(restored.result).toMatchObject({

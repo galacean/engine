@@ -11,7 +11,9 @@ import {
   AgentNativeFiles,
   collectActiveReadContents,
   isParallelFileTool,
-  nativeFileTraceInput
+  nativeFileTraceInput,
+  omitCoveredReadPage,
+  type StaticReadPage
 } from "./agent-native-files";
 import { runToolBatch } from "./agent-tool-batch";
 import { fileToolStepResult, presentScriptOutput } from "./agent-output";
@@ -504,6 +506,7 @@ export class AgentLoop {
           { decision: decisionResult.decision, toolCallId: decisionResult.toolCallId }
         ];
         const messagesByCall: AgentMessage[][] = calls.map(() => []);
+        const readPages = new Map<Extract<AgentMessage, { role: "tool" }>, StaticReadPage>();
         // Model call IDs may repeat across turns; admission belongs to this batch slot.
         const startedCalls = new Set<number>();
         let batchScriptFailure: string | undefined;
@@ -612,7 +615,9 @@ export class AgentLoop {
               controller.signal,
               () => fileTools.execute(name, input, `${taskId}:${stepNumber}`, controller.signal)
             );
-            appendCallMessages({ role: "tool", toolCallId: decisionResult.toolCallId!, content: outcome.content });
+            const reply = { role: "tool" as const, toolCallId: decisionResult.toolCallId!, content: outcome.content };
+            appendCallMessages(reply);
+            if (outcome.readPage) readPages.set(reply, outcome.readPage);
             const result = fileToolStepResult(outcome);
             stageResults.push(result);
             step.scriptResult = structuredClone(result);
@@ -936,7 +941,7 @@ export class AgentLoop {
         };
         const decisionResultOriginal = decisionResult;
         activeReadContentsBeforeBatch = collectActiveReadContents(transcript.active);
-        batchClaimedDeclarations = new Set(activeReadContentsBeforeBatch.keys());
+        batchClaimedDeclarations = new Set();
         const batchSnapshot = calls.some(
           (call) =>
             call.decision.type === "file" &&
@@ -1004,6 +1009,15 @@ export class AgentLoop {
           }
         }
         const messages = messagesByCall.flat();
+        if (readPages.size) {
+          // A sibling can supply the whole file. A continuation may still start on line 1.
+          const completeReads = collectActiveReadContents(
+            messages.filter((message) => message.role !== "tool" || !readPages.has(message))
+          );
+          for (const [reply, read] of readPages) {
+            reply.content = omitCoveredReadPage(reply.content, read, completeReads);
+          }
+        }
         appendTranscript(
           ...messages.filter((message) => message.role === "tool"),
           ...messages.filter((message) => message.role !== "tool")
