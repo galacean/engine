@@ -69,6 +69,13 @@ export class Camera extends Component {
   cullingMask: Layer = Layer.Everything;
 
   /**
+   * Collision layers that can receive 3D physics pointer events from this camera.
+   * @remarks Set `null` to use the current `cullingMask`, or `Layer.Nothing` to disable physics pointer hits.
+   * @defaultValue `null`
+   */
+  physicsPointerMask: Layer | null = null;
+
+  /**
    * Determines which PostProcess to use.
    */
   postProcessMask: Layer = Layer.Everything;

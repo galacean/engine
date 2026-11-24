@@ -36,4 +36,4 @@ console.log(scene.physics.getColliderLayerCollision(Layer.Layer1, Layer.Layer2))
 1. Each collider can only belong to one collision layer
 2. By default, collisions can occur between all collision layers
 3. Collision layer settings affect both physical collisions and trigger events
-4. Built-in 3D pointer picking (`PhysicsPointerEventEmitter`) currently uses the active Camera's `cullingMask` as the physics query `layerMask`; ensure interactive colliders use a layer included in the camera's `cullingMask`.
+4. Built-in 3D pointer picking filters collision layers using the camera's `physicsPointerMask`. The default `null` follows the camera's current `cullingMask`. Set an explicit mask to control picking independently, or use `Layer.Nothing` to disable 3D physics pointer hits from that camera.

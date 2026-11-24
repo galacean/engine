@@ -36,4 +36,4 @@ console.log(scene.physics.getColliderLayerCollision(Layer.Layer1, Layer.Layer2))
 1. 每个碰撞器只能属于一个碰撞层
 2. 默认情况下，所有碰撞层之间都可以发生碰撞
 3. 碰撞层设置会同时影响物理碰撞和触发器事件
-4. 内置 3D 指针拾取（`PhysicsPointerEventEmitter`）当前默认复用活动相机的 `cullingMask` 作为物理查询 `layerMask`；需要响应点击或悬停交互的碰撞器应放在相机 `cullingMask` 包含的层中。
+4. 内置 3D 指针拾取使用相机的 `physicsPointerMask` 筛选碰撞层。默认值 `null` 跟随相机当前的 `cullingMask`。显式设置掩码可独立控制拾取层，使用 `Layer.Nothing` 可禁止该相机产生 3D 物理指针命中。
