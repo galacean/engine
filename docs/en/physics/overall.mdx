@@ -32,7 +32,9 @@ By default, `PhysXPhysics` loads the runtime shipped with the package. When host
 
 In Vite development, add `@galacean/engine-physics-physx` to `optimizeDeps.exclude` so the assets resolve relative to the package.
 
-Module Workers and Node.js can initialize the installed package directly. Classic Workers using `importScripts()` require an explicit loader URL. To set a custom location, pass `wasmModeUrl` for standard WASM and `wasmSIMDModeUrl` for SIMD in the second constructor argument. Use the release's `.mjs` loader for module Workers and Node.js, or its `.js` loader for web pages and classic Workers. Keep the matching `.wasm` beside the loader.
+Dedicated module Workers and Node.js use the packaged `.mjs` loader by default. Web pages and classic Workers use the `.js` loader. A classic Worker loading UMD with `importScripts()` requires an explicit loader URL.
+
+To host the runtime separately, set `wasmModeUrl` for standard WASM and `wasmSIMDModeUrl` for SIMD in the second constructor argument. Keep the `.wasm` from the same release beside its loader.
 
 ## Backend Notes
 
