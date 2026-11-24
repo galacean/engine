@@ -1,0 +1,22 @@
+packages/world-planning/src/spatial/oil-paint/OilPaintBrush.worker.ts
+  h_171a11afaf879a 1-27
+packages/world-planning/src/spatial/oil-paint/OilPaintBrushGenerator.ts
+  h_171a11afaf879a 1-137
+packages/world-planning/src/spatial/oil-paint/OilPaintTextures.ts
+  h_171a11afaf879a 9-21,24-28,31-33,35-45,47-55,57-74,78-98,100-109,112-122,125-129,131,139,153-158,161-174,176-193
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 342-343,955-961,971-977,1231-1232,1234-1243
+world/tests/seed-world/OilPaintBrushWorker.spec.ts
+  h_171a11afaf879a 1-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fca1cae8f932213e610533c3da5c6465f2afac34",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
