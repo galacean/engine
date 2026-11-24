@@ -1,0 +1,19 @@
+packages/core/src/Entity.ts
+  s_f97fc11ab7b962::t_4008660af7edf7 189,351,358,377,665-667,672,675-676
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "44dbbcedf755d499890ac791a8ba2f292f603d8a",
+  "prompts": {},
+  "sessions": {
+    "s_f97fc11ab7b962": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20b70-7cc2-7151-823b-f614fd73a46d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
