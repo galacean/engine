@@ -8,8 +8,8 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
  */
 export abstract class PhysXShape implements IPhysicsShape {
   protected static readonly _yAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
-  protected static _tempVector4 = new Vector4();
 
+  private static _tempVector4 = new Vector4();
   private static readonly _pose = {
     translation: new Vector3(),
     rotation: new Quaternion()

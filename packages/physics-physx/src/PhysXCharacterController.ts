@@ -11,11 +11,8 @@ import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 export class PhysXCharacterController implements ICharacterController {
   private static _tempVec = new Vector3();
 
-  /** @internal */
-  _id: number;
-  /** @internal */
-  _pxController: any = null;
-
+  private _id: number;
+  private _pxController: any = null;
   private _physXPhysics: PhysXPhysics;
   private _scene: PhysXPhysicsScene | null = null;
   private _pxMaterial: any;

@@ -34,8 +34,6 @@ import { PhysXSphereShape } from "./shape/PhysXSphereShape";
 export class PhysXPhysics implements IPhysics {
   /** @internal PhysX wasm object */
   _physX: any;
-  /** @internal PhysX Foundation SDK singleton class */
-  _pxFoundation: any;
   /** @internal PhysX physics object */
   _pxPhysics: any;
   /** @internal PhysX cooking object for mesh colliders */
@@ -46,6 +44,7 @@ export class PhysXPhysics implements IPhysics {
   readonly _meshCookCache: PhysXMeshCookCache = new WeakMap();
 
   private _initializePromise: Promise<void> | null = null;
+  private _pxFoundation: any;
   private _defaultErrorCallback: any;
   private _allocator: any;
 

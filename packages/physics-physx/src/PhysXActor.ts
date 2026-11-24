@@ -79,10 +79,7 @@ export abstract class PhysXActor implements IPhysicsActor {
     this._pxActor.release();
   }
 
-  /**
-   * @internal
-   */
-  _transform(pos: Vector3, rot: Quaternion): { translation: Vector3; rotation: Quaternion } {
+  protected _transform(pos: Vector3, rot: Quaternion): { translation: Vector3; rotation: Quaternion } {
     const transform = PhysXActor._tempTransform;
     // Keep entity-owned vectors out of the shared pose to avoid retaining their change callbacks.
     transform.translation.copyFrom(pos);

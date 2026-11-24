@@ -472,18 +472,12 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 }
 
-/**
- * @internal
- */
-enum AnchorOwner {
+const enum AnchorOwner {
   Self = 0x1,
   Connected = 0x2,
   Both = Self | Connected
 }
 
-/**
- * @internal
- */
 class JointBodyInfo extends DataObject {
   @ignoreClone
   anchor = new Vector3();
