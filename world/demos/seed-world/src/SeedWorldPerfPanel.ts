@@ -1,4 +1,9 @@
-import { attachMobileFrameCapture, type PerfCumulativeCounters, type PerfFrameObserver } from "./MobileFrameCapture";
+import {
+  attachMobileFrameCapture,
+  type MobileFrameCaptureRunOptions,
+  type PerfCumulativeCounters,
+  type PerfFrameObserver
+} from "./MobileFrameCapture";
 import { ShadowType, type Camera, type DirectLight, type Entity, type Scene, type WebGLEngine } from "@galacean/engine";
 import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import type { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
@@ -83,6 +88,7 @@ export interface SeedWorldPerfPanelOptions {
   readonly setBuildingVisible: (visible: boolean) => void;
   readonly setDprOverride: (dpr: number | null) => void;
   readonly onStartPerfTour?: () => void;
+  readonly suppressAutoBoot?: boolean;
 }
 
 const MODULE_DEFS: readonly { readonly key: SeedWorldPerfModuleKey; readonly label: string }[] = [
@@ -189,6 +195,10 @@ export class SeedWorldPerfPanel {
     this.badge.textContent = "PERF PANEL | sampling...";
     document.body.append(this.badge);
 
+    const rawCaptureSec =
+      typeof location !== "undefined" ? Number(new URLSearchParams(location.search).get("captureSec") || "") : NaN;
+    const captureSec = Number.isFinite(rawCaptureSec) && rawCaptureSec > 0 ? Math.min(15, Math.max(1, rawCaptureSec)) : 6;
+
     this.mobileCapture = attachMobileFrameCapture({
       engine: options.engine,
       scene: options.scene,
@@ -199,11 +209,38 @@ export class SeedWorldPerfPanel {
       setFrameObserver: (observer) => {
         this.frameObserver = observer;
       },
-      readPerfText: () => this.badge.textContent || ""
+      readPerfText: () => this.badge.textContent || "",
+      manualDurationMs: captureSec * 1000,
+      ...(options.suppressAutoBoot ? { autoBootDelayMs: null } : {})
     });
 
     this.panelWrap = this.buildPanelDom();
     document.body.append(this.panelWrap);
+  }
+
+  runTimedCapture(trigger: string, durationMs: number, runOptions?: MobileFrameCaptureRunOptions): void {
+    this.mobileCapture?.captureNow(trigger, durationMs, runOptions);
+  }
+
+  setModuleEnabled(key: SeedWorldPerfModuleKey, on: boolean): void {
+    this.applyToggle(key, on);
+    this.refreshButtons();
+  }
+
+  setSubGroupVisible(group: "trees" | "details" | "terrain", on: boolean): void {
+    const published = this.options.readPublished();
+    if (group === "trees") {
+      if (published) published.world.population.trees.isActive = on;
+    } else if (group === "details") {
+      if (published) published.world.population.details.isActive = on;
+    } else if (group === "terrain") {
+      const terrain = this.options.scene.findEntityByName("Terrain");
+      if (terrain) terrain.isActive = on;
+    }
+  }
+
+  setDpr(dpr: number | null): void {
+    this.options.setDprOverride(dpr);
   }
 
   isPaused(key: SeedWorldPerfModuleKey): boolean {

@@ -248,3 +248,82 @@ it("joins and releases an Ocean Look texture load that completes after runtime c
     library.destroy();
   }
 }, 60000);
+
+it("rejects OceanWaterBackend.createRuntime immediately on abort while OceanTextureLibrary is pending without unhandledRejection", async () => {
+  const f = await fixture("ocean");
+  let rejectLoad!: (error: Error) => void;
+  const pendingLoad = new Promise<OceanTextureLibrary>((_resolve, reject) => {
+    rejectLoad = reject;
+  });
+  const create = vi.spyOn(OceanTextureLibrary, "create").mockReturnValueOnce(pendingLoad);
+  const unhandled: unknown[] = [];
+  const onUnhandled = (event: PromiseRejectionEvent) => {
+    event.preventDefault();
+    unhandled.push(event.reason);
+  };
+  window.addEventListener("unhandledrejection", onUnhandled);
+  try {
+    const controller = new AbortController();
+    const preparing = f.system.prepareBatch([{ body: f.body, configuration: f.config }], controller.signal);
+    await expect.poll(() => create.mock.calls.length).toBe(1);
+    // Abort BEFORE pendingLoad settles — must reject immediately with AbortError (not hang on pendingLoad).
+    controller.abort();
+    await expect(preparing).rejects.toMatchObject({ name: "AbortError" });
+    // Late rejection after abort must NOT trigger unhandledRejection.
+    rejectLoad(new Error("late ocean texture failure"));
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(unhandled).toHaveLength(0);
+  } finally {
+    window.removeEventListener("unhandledrejection", onUnhandled);
+    await f.close();
+  }
+}, 60000);
+
+it("emits zero unhandledRejection events when OceanTextureLibrary rejects after sibling prepareStagedBody failure", async () => {
+  const f = await fixture("ocean");
+  let rejectLoad!: (error: Error) => void;
+  const pendingLoad = new Promise<OceanTextureLibrary>((_resolve, reject) => {
+    rejectLoad = reject;
+  });
+  vi.spyOn(OceanTextureLibrary, "create").mockReturnValueOnce(pendingLoad);
+  const unhandled: unknown[] = [];
+  const onUnhandled = (event: PromiseRejectionEvent) => {
+    event.preventDefault();
+    unhandled.push(event.reason);
+  };
+  window.addEventListener("unhandledrejection", onUnhandled);
+  // Create a sibling body whose world transform violates Ocean/Lake validation so prepareStagedBody rejects before transaction.prepare().
+  const badEntity = f.engine.sceneManager.activeScene!.createRootEntity("bad-sibling");
+  badEntity.transform.setScale(2, 2, 2);
+  const badBody = badEntity.addComponent(WaterBodyComponent);
+  const lakePreset = createWaterCreationPreset("lake");
+  const badConfig: WaterBodyConfiguration = {
+    asset: new WaterBodyResource(f.engine, compileWaterShape(lakePreset.shape, lakePreset.terrain, "bad-lake")),
+    look: new WaterLookResource(f.engine, defaultLook("lake", false)),
+    quality: new WaterQualityResource(f.engine, {
+      schemaVersion: 2,
+      id: "bad-lake",
+      ...createWaterQualitySettings("lake")
+    })
+  };
+  try {
+    await expect(
+      f.system.prepareBatch([
+        { body: f.body, configuration: f.config },
+        { body: badBody, configuration: badConfig }
+      ])
+    ).rejects.toThrow();
+    // Ocean's derived textures promise was never awaited by transaction.prepare(); rejecting now must produce 0 unhandledRejection events.
+    rejectLoad(new Error("ocean texture failure after sibling failure"));
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(unhandled).toHaveLength(0);
+  } finally {
+    window.removeEventListener("unhandledrejection", onUnhandled);
+    badConfig.asset.destroy();
+    badConfig.look?.destroy();
+    badConfig.quality.destroy();
+    await badBody.dispose();
+    badEntity.destroy();
+    await f.close();
+  }
+}, 60000);

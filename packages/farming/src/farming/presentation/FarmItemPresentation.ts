@@ -44,6 +44,8 @@ const prefabs = {
 interface ItemVisual {
   readonly root: Entity;
   readonly model: Entity;
+  itemType: FarmItem["type"];
+  loadRequested: boolean;
   highlight?: FarmItemHighlight;
   readonly content: MeshRenderer;
   readonly shadows: { renderer: Renderer; cast: boolean; receive: boolean }[];
@@ -96,6 +98,7 @@ export class FarmItemPresentation {
   private useElapsed = 0;
   private wait?: { remaining: number; duration: number; use: boolean; finish: (ok: boolean) => void };
   private active = true;
+  private deferOffscreenLoads: boolean;
   private readonly visibility = new FarmingGrowthVisibility();
   private readonly projected = new Vector3();
   private readonly heldBounds = {
@@ -110,8 +113,10 @@ export class FarmItemPresentation {
     private readonly camera: Camera,
     private readonly service: FarmingService,
     private readonly carryPoses: FarmItemCarryPoseOverrides = {},
-    private readonly schedule: PlantCreationScheduler = defaultPlantCreationScheduler
+    private readonly schedule: PlantCreationScheduler = defaultPlantCreationScheduler,
+    deferOffscreenLoads = false
   ) {
+    this.deferOffscreenLoads = deferOffscreenLoads;
     this.root = parent.createChild("Persistent farming items");
     registerFarmingPropResources(parent.engine);
     this.produceMaterial = new PBRMaterial(parent.engine);
@@ -120,6 +125,27 @@ export class FarmItemPresentation {
     this.materials.push(this.produceMaterial);
     this.release = service.subscribe(() => this.sync());
     this.sync();
+  }
+  setDeferOffscreenLoads(defer: boolean): void {
+    this.deferOffscreenLoads = defer;
+    if (!defer && !this.disposed && this.active) {
+      this.update(0);
+    }
+  }
+  private isSpawnVisible(position: Vector3): boolean {
+    const cameraPosition = this.camera.entity.transform.worldPosition;
+    if (!this.visibility.withinDrawDistance(position, cameraPosition, false)) return false;
+    const cam = this.camera as unknown as { projectionMatrix?: Matrix; viewMatrix?: Matrix };
+    if (cam.projectionMatrix && cam.viewMatrix) {
+      this.visibility.update(this.camera);
+      return this.visibility.priority(position, 2, cameraPosition, false) >= 0;
+    }
+    return true;
+  }
+  private ensureVisualLoaded(visual: ItemVisual): void {
+    if (visual.loadRequested || this.disposed) return;
+    visual.loadRequested = true;
+    this.loadItem({ type: visual.itemType }, visual);
   }
   private sync(): void {
     if (this.disposed) return;
@@ -146,6 +172,7 @@ export class FarmItemPresentation {
     }
     for (const item of state.instances) {
       let visual = this.visuals.get(item.id);
+      const held = item.id === carry?.id;
       if (!visual) {
         const root = this.root.createChild(item.id),
           model = root.createChild("Model");
@@ -156,6 +183,8 @@ export class FarmItemPresentation {
         visual = {
           root,
           model,
+          itemType: item.type,
+          loadRequested: false,
           content,
           cargoKey: "",
           shadowsDisabled: false,
@@ -165,7 +194,18 @@ export class FarmItemPresentation {
         this.visuals.set(item.id, visual);
         this.visualList.push({ id: item.id, visual });
         visual.seedId = item.seedId;
-        this.loadItem(item, visual);
+        visual.model.isActive = false;
+        if (!held) {
+          visual.root.transform.setWorldPosition(...item.position);
+          visual.root.transform.setWorldRotation(0, item.yaw ?? 0, 0);
+          visual.root.transform.setScale(1, 1, 1);
+        }
+        if (!this.deferOffscreenLoads || held || this.isSpawnVisible(visual.root.transform.worldPosition)) {
+          this.ensureVisualLoaded(visual);
+        }
+      }
+      if (held && !visual.loadRequested) {
+        this.ensureVisualLoaded(visual);
       }
       if (item.type === "seed-bag" && visual.seedId !== item.seedId) {
         visual.seedId = item.seedId;
@@ -197,7 +237,6 @@ export class FarmItemPresentation {
           visual.contentPreparation = task;
         }
       }
-      const held = item.id === carry?.id;
       this.setHeldShadows(visual, held);
       const parent = held ? this.camera.entity : this.root;
       if (visual.root.parent !== parent) {
@@ -373,6 +412,7 @@ export class FarmItemPresentation {
   async prepareHeld(signal: AbortSignal): Promise<boolean> {
     const held = carriedItem(this.service.getSnapshot().items);
     const visual = held && this.visuals.get(held.id);
+    if (visual && !visual.loadRequested) this.ensureVisualLoaded(visual);
     if (visual?.loading) await visual.loading;
     while (visual?.contentPreparation) await visual.contentPreparation;
     const remaining = Math.max(visual?.retraction?.remaining ?? 0, visual?.transfer?.remaining ?? 0);
@@ -391,6 +431,7 @@ export class FarmItemPresentation {
   async prepareUse(seconds: number, signal: AbortSignal): Promise<boolean> {
     const item = carriedItem(this.service.getSnapshot().items);
     const visual = item && this.visuals.get(item.id);
+    if (visual && !visual.loadRequested) this.ensureVisualLoaded(visual);
     if (visual?.loading) await visual.loading;
     if (this.disposed || !this.active || signal.aborted || visual?.error) return false;
     this.using = true;
@@ -455,6 +496,7 @@ export class FarmItemPresentation {
       visual.transfer?.restore();
       visual.workMotion?.restore();
       if (carried) {
+        if (!visual.loadRequested) this.ensureVisualLoaded(visual);
         visual.distanceVisible = true;
         if (!visual.root.isActive) visual.root.isActive = true;
         const pose = farmItemCarryPose(held!.type, this.camera.aspectRatio < 1, this.carryPoses);
@@ -543,6 +585,13 @@ export class FarmItemPresentation {
         if (visual.transfer && !visual.transfer.apply(seconds)) visual.transfer = undefined;
         const position = visual.root.transform.worldPosition;
         visual.distanceVisible = this.visibility.withinDrawDistance(position, cameraPosition, visual.distanceVisible);
+        if (
+          visual.distanceVisible &&
+          !visual.loadRequested &&
+          (!this.deferOffscreenLoads || this.isSpawnVisible(position))
+        ) {
+          this.ensureVisualLoaded(visual);
+        }
         if (visual.root.isActive !== visual.distanceVisible) visual.root.isActive = visual.distanceVisible;
         visual.highlight?.update(
           visual.distanceVisible && Vector3.distanceSquared(cameraPosition, position) < 64 && !visual.dropFrom

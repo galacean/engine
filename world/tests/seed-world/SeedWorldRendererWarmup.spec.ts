@@ -1663,4 +1663,652 @@ describe("renderer warmup scope", () => {
     expect(deferredAll.some((v) => v.shader === "WaterFar/test-ocean-far")).toBe(true);
     expect(deferredAll.some((v) => v.shader === "Water/Ocean.v1")).toBe(true);
   });
+
+  it("requests deferred completion for Effect/ParticleFeedback passes and polls parallel programs via fast timer when cooldownFrames and maxFrameIntervalMs are 0", async () => {
+    let polls = 0;
+    const getProgramCalls: unknown[][] = [];
+    const feedbackProgram = {
+      isValid: true,
+      _pollReady: () => ++polls >= 2
+    };
+    const feedbackPass = {
+      name: "TransformFeedback",
+      _getShaderProgram: (...args: unknown[]) => {
+        getProgramCalls.push(args);
+        return feedbackProgram;
+      }
+    };
+    const feedbackShader = {
+      name: "Effect/ParticleFeedback",
+      destroyed: false,
+      subShaders: [{ passes: [feedbackPass] }]
+    };
+    const findSpy = vi
+      .spyOn(Shader, "find")
+      .mockImplementation((name: string) => (name === "Effect/ParticleFeedback" ? (feedbackShader as any) : null));
+    const originalRaf = globalThis.requestAnimationFrame;
+    const rafSpy = vi.fn((cb: FrameRequestCallback) => {
+      cb(performance.now());
+      return 1;
+    });
+    (globalThis as { requestAnimationFrame?: typeof requestAnimationFrame }).requestAnimationFrame = rafSpy as any;
+    try {
+      const engine = {
+        _hardwareRenderer: {
+          gl: { getExtension: (name: string) => (name === "KHR_parallel_shader_compile" ? {} : null) }
+        }
+      } as any;
+      const report = await warmupSeedWorldShaderVariants(
+        engine,
+        [{ shader: "Effect/ParticleFeedback", si: 0, pi: 0, macros: [] }],
+        {
+          strict: true,
+          maximumPendingPrograms: 28,
+          pollIntervalMilliseconds: 4
+        }
+      );
+      expect(report.compiled).toBe(1);
+      expect(polls).toBe(2);
+      expect(rafSpy).not.toHaveBeenCalled();
+      expect(getProgramCalls).toHaveLength(1);
+      expect(getProgramCalls[0]?.[2]).toEqual(["v_FeedbackPosition", "v_FeedbackVelocity"]);
+      expect(getProgramCalls[0]?.[4]).toBe(true);
+
+      // Background warmup with cooldownFrames > 0 keeps rAF polling so frame pacing works.
+      polls = 0;
+      const bgReport = await warmupSeedWorldShaderVariants(
+        engine,
+        [{ shader: "Effect/ParticleFeedback", si: 0, pi: 0, macros: [] }],
+        {
+          strict: true,
+          cooldownFrames: 1,
+          pollIntervalMilliseconds: 4
+        }
+      );
+      expect(bgReport.compiled).toBe(1);
+      expect(rafSpy).toHaveBeenCalled();
+    } finally {
+      findSpy.mockRestore();
+      if (originalRaf === undefined) {
+        delete (globalThis as { requestAnimationFrame?: typeof requestAnimationFrame }).requestAnimationFrame;
+      } else {
+        globalThis.requestAnimationFrame = originalRaf;
+      }
+    }
+  });
+
+  it("frustum-culls offscreen Water/* and Masonry/SupportSurface, omits redundant non-SSR Forward twins for active SSR receivers, and gates SunLensFlare & Blit in primary while keeping all in secondary", async () => {
+    const { BoundingBox, Matrix, Vector3 } = await import("@galacean/engine");
+    const proj = new Matrix();
+    Matrix.perspective(Math.PI / 3, 1, 0.1, 200, proj);
+    const view = new Matrix();
+    Matrix.lookAt(new Vector3(0, 5, 0), new Vector3(0, 5, -20), new Vector3(0, 1, 0), view);
+
+    const makeShader = (name: string, stages: readonly string[]) => ({
+      name,
+      destroyed: false,
+      subShaders: [
+        {
+          passes: stages.map((stage) => ({
+            getTagValue: () => stage,
+            _renderState: {
+              _getRenderQueueByShaderData: () =>
+                name.startsWith("Water/") ? RenderQueueType.Transparent : RenderQueueType.Opaque
+            },
+            _renderStateDataMap: {}
+          }))
+        }
+      ]
+    });
+    const riverShader = makeShader("Water/River.v1", ["Forward", "SSRReceiver"]);
+    const lakeShader = makeShader("Water/Lake.v1", ["Forward", "SSRReceiver"]);
+    const oceanShader = makeShader("Water/Ocean.v1", ["Forward"]);
+    const supportShader = makeShader("Masonry/SupportSurface", ["Forward"]);
+    const blitShader = makeShader("Blit/Blit", ["Forward"]);
+    const flareShader = makeShader("PostProcess/SunLensFlare", ["Forward"]);
+    const flareVisShader = makeShader("PostProcess/SunLensFlareVisibility", ["TransformFeedback"]);
+    const ssrShader = {
+      name: "Lighting/ScreenSpaceReflection",
+      destroyed: false,
+      subShaders: [{ passes: Array.from({ length: 9 }, () => ({ getTagValue: () => "Forward" })) }]
+    };
+
+    const makeMat = (shader: any, ssrIntensity = 0) => ({
+      destroyed: false,
+      shader,
+      screenSpaceReflectionIntensity: ssrIntensity,
+      screenSpaceReflectionBilateral: false,
+      isTransparent: shader.name.startsWith("Water/"),
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    });
+    const makeBoundedRenderer = (mat: any, bounds: any, castShadows = false) => {
+      const r = Object.create(MeshRenderer.prototype);
+      Object.defineProperties(r, {
+        entity: { value: { isActiveInHierarchy: true, destroyed: false, layer: 1 } },
+        shaderData: { value: { _macroCollection: new ShaderMacroCollection() } },
+        mesh: { value: { _primitive: { vertexElements: [{ attribute: "NORMAL" }] } } },
+        enabled: { value: true },
+        destroyed: { value: false },
+        castShadows: { value: castShadows },
+        bounds: { value: bounds },
+        getMaterials: { value: () => [mat] }
+      });
+      return r;
+    };
+
+    const inFrontBox = new BoundingBox(new Vector3(-5, 0, -40), new Vector3(5, 2, -20));
+    const behindBox = new BoundingBox(new Vector3(-5, 0, 30), new Vector3(5, 2, 50));
+
+    const visibleRiver = makeBoundedRenderer(makeMat(riverShader, 1), inFrontBox);
+    const offscreenLake = makeBoundedRenderer(makeMat(lakeShader, 1), behindBox);
+    const offscreenOcean = makeBoundedRenderer(makeMat(oceanShader, 0), behindBox);
+    const offscreenSupport = makeBoundedRenderer(makeMat(supportShader, 0), behindBox);
+
+    const blitMat = makeMat(blitShader);
+    const flareMat = makeMat(flareShader);
+
+    // Sun behind camera (+Z reverseDirection while camera looks down -Z).
+    const behindSunScene = {
+      shaderData: { _macroCollection: new ShaderMacroCollection() },
+      background: { mode: 0 },
+      castShadows: true,
+      shadowDistance: 120,
+      sun: { reverseDirection: new Vector3(0, 0.5, 1) },
+      screenSpaceReflection: {
+        enabled: true,
+        quality: ScreenSpaceReflectionQuality.Medium,
+        intensity: 1,
+        maxRoughness: 0.6
+      }
+    } as any;
+    const camera = {
+      _updateShaderData() {},
+      _isIndependentCanvasEnabled: () => true,
+      enablePostProcess: true,
+      enableScreenSpaceReflection: true,
+      renderTarget: null,
+      entity: { transform: { worldPosition: new Vector3(0, 5, 0) } },
+      viewMatrix: view,
+      projectionMatrix: proj,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    } as any;
+    const engine = {
+      _macroCollection: new ShaderMacroCollection(),
+      _hardwareRenderer: { supportsRendering: true, capability: { maxDrawBuffers: 4 } },
+      _basicResources: { blitMaterial: blitMat },
+      _getActivePostProcessPasses: () => [{ isActive: true, _sunLensFlareMaterial: flareMat }]
+    } as any;
+    const roots = [
+      {
+        getComponentsIncludeChildren(_type: unknown, out: unknown[]) {
+          out.length = 0;
+          out.push(visibleRiver, offscreenLake, offscreenOcean, offscreenSupport);
+          return out;
+        }
+      }
+    ] as any;
+    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) => {
+      if (name === "Lighting/ScreenSpaceReflection") return ssrShader as any;
+      if (name === "PostProcess/SunLensFlareVisibility") return flareVisShader as any;
+      return null;
+    });
+    try {
+      const postState = {
+        enabled: true,
+        bloom: false,
+        bloomHighQuality: false,
+        bloomDirt: false,
+        colorAdjustments: false,
+        sunLensFlare: true
+      };
+      const primary = collectSeedWorldRendererVariants(engine, behindSunScene, camera, roots, {
+        onlyEnabledRenderers: true,
+        onlyFrustumVisible: true,
+        includeGpuInstancing: false,
+        postProcessState: postState
+      });
+
+      // Offscreen Lake, Ocean, SupportSurface, and behind-camera SunLensFlare are deferred out of primary.
+      expect(primary.some((v) => v.shader === "Water/Lake.v1")).toBe(false);
+      expect(primary.some((v) => v.shader === "Water/Ocean.v1")).toBe(false);
+      expect(primary.some((v) => v.shader === "Masonry/SupportSurface")).toBe(false);
+      expect(primary.some((v) => v.shader === "PostProcess/SunLensFlare")).toBe(false);
+      expect(primary.some((v) => v.shader === "PostProcess/SunLensFlareVisibility")).toBe(false);
+      // Visible River warms SSR Forward + SSRReceiver ONLY (no redundant non-SSR Forward duplicate).
+      const riverForward = primary.filter((v) => v.shader === "Water/River.v1" && v.pi === 0);
+      expect(riverForward).toHaveLength(1);
+      expect(riverForward[0]!.macros.some((m) => m.n === "CAMERA_ENABLE_SSR")).toBe(true);
+      expect(primary.some((v) => v.shader === "Water/River.v1" && v.pi === 1)).toBe(true);
+      expect(primary.some((v) => v.shader === "Lighting/ScreenSpaceReflection")).toBe(true);
+      // Primary Blit/Blit warms only the camera's active renderToTexture sRGB state (1 variant).
+      expect(primary.filter((v) => v.shader === "Blit/Blit")).toHaveLength(1);
+
+      // When NO SSR-receiving water is in frustum, Lighting/ScreenSpaceReflection is also deferred out of primary.
+      const noVisibleWaterRoots = [
+        {
+          getComponentsIncludeChildren(_type: unknown, out: unknown[]) {
+            out.length = 0;
+            out.push(offscreenLake, offscreenOcean, offscreenSupport);
+            return out;
+          }
+        }
+      ] as any;
+      const primaryNoSsr = collectSeedWorldRendererVariants(engine, behindSunScene, camera, noVisibleWaterRoots, {
+        onlyEnabledRenderers: true,
+        onlyFrustumVisible: true,
+        includeGpuInstancing: false,
+        postProcessState: postState
+      });
+      expect(primaryNoSsr.some((v) => v.shader === "Lighting/ScreenSpaceReflection")).toBe(false);
+
+      // When sun IS in front of camera (-Z), primary warms both SunLensFlare shaders.
+      const frontSunScene = { ...behindSunScene, sun: { reverseDirection: new Vector3(0, 0.2, -1) } };
+      const primarySunInFront = collectSeedWorldRendererVariants(engine, frontSunScene, camera, roots, {
+        onlyEnabledRenderers: true,
+        onlyFrustumVisible: true,
+        includeGpuInstancing: false,
+        postProcessState: postState
+      });
+      expect(primarySunInFront.some((v) => v.shader === "PostProcess/SunLensFlare")).toBe(true);
+      expect(primarySunInFront.some((v) => v.shader === "PostProcess/SunLensFlareVisibility")).toBe(true);
+
+      // Secondary collection (onlyFrustumVisible: false) retains ALL deferred variants (offscreen water,
+      // non-SSR water fallback, SupportSurface, SunLensFlare, and both Blit/Blit sRGB variants).
+      const secondary = collectSeedWorldRendererVariants(engine, behindSunScene, camera, roots, {
+        onlyEnabledRenderers: false,
+        onlyFrustumVisible: false,
+        includeGpuInstancing: false,
+        postProcessState: postState
+      });
+      expect(secondary.some((v) => v.shader === "Water/Lake.v1")).toBe(true);
+      expect(secondary.some((v) => v.shader === "Water/Ocean.v1")).toBe(true);
+      expect(secondary.some((v) => v.shader === "Masonry/SupportSurface")).toBe(true);
+      expect(secondary.some((v) => v.shader === "PostProcess/SunLensFlare")).toBe(true);
+      expect(secondary.some((v) => v.shader === "PostProcess/SunLensFlareVisibility")).toBe(true);
+      expect(secondary.filter((v) => v.shader === "Water/River.v1" && v.pi === 0)).toHaveLength(2);
+      expect(secondary.filter((v) => v.shader === "Blit/Blit")).toHaveLength(2);
+    } finally {
+      findSpy.mockRestore();
+    }
+  });
+
+  it("uses frustum-visible batch counts for GPU instancing in primary warmup while retaining both variants in secondary", async () => {
+    const { BoundingBox, Matrix, Vector3 } = await import("@galacean/engine");
+    const proj = new Matrix();
+    Matrix.perspective(Math.PI / 3, 1, 0.1, 200, proj);
+    const view = new Matrix();
+    Matrix.lookAt(new Vector3(0, 5, 0), new Vector3(0, 5, -20), new Vector3(0, 1, 0), view);
+
+    const makeShader = (name: string) => ({
+      name,
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+    });
+    const farTerrainMat = {
+      destroyed: false,
+      shader: makeShader("Terrain/Terrain"),
+      isTransparent: false,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    };
+    farTerrainMat.shaderData._macroCollection.enable(ShaderMacro.getByName("MATERIAL_TERRAIN_FAR"));
+    const propMat = {
+      destroyed: false,
+      shader: makeShader("PBR"),
+      isTransparent: false,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    };
+    const sharedFarMesh = { _primitive: { vertexElements: [{ attribute: "NORMAL" }] } };
+    const sharedPropMesh = { _primitive: { vertexElements: [{ attribute: "NORMAL" }] } };
+    const inFront = new BoundingBox(new Vector3(-5, 0, -40), new Vector3(5, 2, -20));
+    const behind = new BoundingBox(new Vector3(-5, 0, 30), new Vector3(5, 2, 50));
+    const makeTile = (mesh: any, mat: any, bounds: any) => {
+      const r = Object.create(MeshRenderer.prototype);
+      Object.defineProperties(r, {
+        entity: { value: { isActiveInHierarchy: true, destroyed: false, layer: 1 } },
+        shaderData: {
+          value: { _macroCollection: new ShaderMacroCollection(), _matchesRendererBatchShared: () => true }
+        },
+        mesh: { value: mesh },
+        enabled: { value: true },
+        destroyed: { value: false },
+        castShadows: { value: false },
+        receiveShadows: { value: true },
+        priority: { value: 50 },
+        bounds: { value: bounds },
+        getMaterials: { value: () => [mat] }
+      });
+      return r;
+    };
+    const allRenderers = [
+      // 4 frustum-visible far terrain tiles sharing (sharedFarMesh, farTerrainMat) -> instanced-only in primary.
+      makeTile(sharedFarMesh, farTerrainMat, inFront),
+      makeTile(sharedFarMesh, farTerrainMat, inFront),
+      makeTile(sharedFarMesh, farTerrainMat, inFront),
+      makeTile(sharedFarMesh, farTerrainMat, inFront),
+      // 1 frustum-visible PBR prop + 2 behind camera -> only 1 visible copy -> non-instanced-only in primary.
+      makeTile(sharedPropMesh, propMat, inFront),
+      makeTile(sharedPropMesh, propMat, behind),
+      makeTile(sharedPropMesh, propMat, behind)
+    ];
+    const engine = { _macroCollection: new ShaderMacroCollection() } as any;
+    const scene = {
+      shaderData: { _macroCollection: new ShaderMacroCollection() },
+      background: { mode: 0 },
+      castShadows: false
+    } as any;
+    const camera = {
+      _updateShaderData() {},
+      entity: { transform: { worldPosition: new Vector3(0, 5, 0) } },
+      viewMatrix: view,
+      projectionMatrix: proj,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    } as any;
+    const roots = [
+      {
+        getComponentsIncludeChildren(_type: unknown, out: unknown[]) {
+          out.length = 0;
+          out.push(...allRenderers);
+          return out;
+        }
+      }
+    ] as any;
+
+    const primary = collectSeedWorldRendererVariants(engine, scene, camera, roots, {
+      onlyEnabledRenderers: true,
+      onlyFrustumVisible: true,
+      includeGpuInstancing: true,
+      onlySharedMeshGpuInstancing: true
+    });
+    const primaryFar = primary.filter((v) => v.shader === "Terrain/Terrain");
+    expect(primaryFar).toHaveLength(1);
+    expect(primaryFar[0]!.macros.some((m) => m.n === "RENDERER_GPU_INSTANCE")).toBe(true);
+    const primaryProp = primary.filter((v) => v.shader === "PBR");
+    expect(primaryProp).toHaveLength(1);
+    expect(primaryProp[0]!.macros.some((m) => m.n === "RENDERER_GPU_INSTANCE")).toBe(false);
+
+    // Secondary keeps both non-instanced and instanced variants for exploration.
+    const secondary = collectSeedWorldRendererVariants(engine, scene, camera, roots, {
+      onlyEnabledRenderers: false,
+      onlyFrustumVisible: false,
+      includeGpuInstancing: true,
+      onlySharedMeshGpuInstancing: true
+    });
+    expect(secondary.filter((v) => v.shader === "Terrain/Terrain")).toHaveLength(2);
+    expect(secondary.filter((v) => v.shader === "PBR")).toHaveLength(2);
+  });
+
+  it("retains disabled resident Masonry/<sha256> unitLod renderers on active building roots under onlyEnabledRenderers while still skipping disabled SupportSurface and inactive buildings", () => {
+    const residentShaderName = `Masonry/${"c".repeat(64)}`;
+    const makeShader = (name: string) => ({
+      name,
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+    });
+    const makeMat = (name: string) => ({
+      destroyed: false,
+      shader: makeShader(name),
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    });
+    const activeDisabledResident = renderer(true, false, [makeMat(residentShaderName)], false);
+    const inactiveDisabledResident = renderer(false, false, [makeMat(`Masonry/${"d".repeat(64)}`)], false);
+    const activeDisabledSupport = renderer(true, false, [makeMat("Masonry/SupportSurface")], false);
+
+    const variants = collectSeedWorldRendererVariants(
+      { _macroCollection: new ShaderMacroCollection() } as any,
+      { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
+      { _updateShaderData() {}, shaderData: { _macroCollection: new ShaderMacroCollection() } } as any,
+      [
+        {
+          getComponentsIncludeChildren(_type: unknown, out: unknown[]) {
+            out.length = 0;
+            out.push(activeDisabledResident, inactiveDisabledResident, activeDisabledSupport);
+            return out;
+          }
+        }
+      ] as any,
+      {
+        includeInactiveEntities: false,
+        onlyEnabledRenderers: true,
+        includeGpuInstancing: false,
+        includeMasonryDither: false,
+        includeMasonryEntrance: false
+      }
+    );
+
+    expect(variants.map((v) => v.shader)).toEqual([residentShaderName]);
+  });
+
+  it("P1-9: suppresses non-instanced primary variant only for >=3 homogeneous real visible single-subMesh renderers under a single opaque sort-key bucket (H1/H2/H3 + Control)", async () => {
+    const { BoundingBox, Matrix, Vector3 } = await import("@galacean/engine");
+    const proj = new Matrix();
+    Matrix.perspective(Math.PI / 3, 1, 0.1, 200, proj);
+    const view = new Matrix();
+    Matrix.lookAt(new Vector3(0, 5, 0), new Vector3(0, 5, -20), new Vector3(0, 1, 0), view);
+
+    const makeMat = (shaderName: string) => ({
+      destroyed: false,
+      shader: {
+        name: shaderName,
+        destroyed: false,
+        subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+      },
+      isTransparent: false,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    });
+    const inFront = new BoundingBox(new Vector3(-5, 0, -40), new Vector3(5, 2, -20));
+    const makeRenderer = (opts: {
+      mesh: any;
+      materials: any[];
+      active?: boolean;
+      enabled?: boolean;
+      priority?: number;
+      frontFaceInvert?: boolean;
+      extraMacro?: string;
+    }) => {
+      const macros = new ShaderMacroCollection();
+      if (opts.extraMacro) macros.enable(ShaderMacro.getByName(opts.extraMacro));
+      const r = Object.create(MeshRenderer.prototype);
+      Object.defineProperties(r, {
+        entity: {
+          value: {
+            isActiveInHierarchy: opts.active ?? true,
+            destroyed: false,
+            layer: 1,
+            transform: { _isFrontFaceInvert: () => Boolean(opts.frontFaceInvert) }
+          }
+        },
+        shaderData: { value: { _macroCollection: macros, _matchesRendererBatchShared: () => true } },
+        mesh: { value: opts.mesh },
+        enabled: { value: opts.enabled ?? true },
+        destroyed: { value: false },
+        castShadows: { value: false },
+        receiveShadows: { value: true },
+        priority: { value: opts.priority ?? 0 },
+        bounds: { value: inFront },
+        getMaterials: { value: () => opts.materials }
+      });
+      return r;
+    };
+    const engine = { _macroCollection: new ShaderMacroCollection() } as any;
+    const scene = {
+      shaderData: { _macroCollection: new ShaderMacroCollection() },
+      background: { mode: 0 },
+      castShadows: false
+    } as any;
+    const camera = {
+      _updateShaderData() {},
+      entity: { transform: { worldPosition: new Vector3(0, 5, 0) } },
+      viewMatrix: view,
+      projectionMatrix: proj,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    } as any;
+    const runPrimary = (rootRenderers: any[], additionalRenderers?: any[]) =>
+      collectSeedWorldRendererVariants(
+        engine,
+        scene,
+        camera,
+        [
+          {
+            getComponentsIncludeChildren(_type: unknown, out: unknown[]) {
+              out.length = 0;
+              out.push(...rootRenderers);
+              return out;
+            }
+          }
+        ] as any,
+        {
+          includeInactiveEntities: false,
+          onlyEnabledRenderers: true,
+          onlyFrustumVisible: true,
+          includeGpuInstancing: true,
+          onlySharedMeshGpuInstancing: true,
+          additionalRenderers
+        }
+      );
+
+    // H1: Single renderer with 3 same-material subMeshes must NEVER self-count to 3 or drop non-instanced.
+    const multiSubMesh = { _primitive: { vertexElements: [{ attribute: "NORMAL" }] }, subMeshes: [{}, {}, {}] };
+    const h1Mat = makeMat("PBR");
+    const h1Variants = runPrimary([makeRenderer({ mesh: multiSubMesh, materials: [h1Mat, h1Mat, h1Mat] })]);
+    expect(h1Variants.some((v) => v.macros.every((m) => m.n !== "RENDERER_GPU_INSTANCE"))).toBe(true);
+
+    // H2: 2 real renderers + 2 forced additionalRenderers (inactive) must NOT drop non-instanced.
+    const h2Mesh = { _primitive: { vertexElements: [{ attribute: "NORMAL" }] }, subMeshes: [{}] };
+    const h2Mat = makeMat("PBR");
+    const h2Real = [
+      makeRenderer({ mesh: h2Mesh, materials: [h2Mat] }),
+      makeRenderer({ mesh: h2Mesh, materials: [h2Mat] })
+    ];
+    const h2Forced = [
+      makeRenderer({ mesh: h2Mesh, materials: [h2Mat], active: false }),
+      makeRenderer({ mesh: h2Mesh, materials: [h2Mat], active: false })
+    ];
+    const h2Variants = runPrimary(h2Real, h2Forced);
+    expect(h2Variants.some((v) => v.macros.every((m) => m.n !== "RENDERER_GPU_INSTANCE"))).toBe(true);
+    expect(h2Variants.some((v) => v.macros.some((m) => m.n === "RENDERER_GPU_INSTANCE"))).toBe(true);
+
+    // H3: 3 normal + 1 mirrored (frontFaceInvert=true) sharing (priority, material, mesh) sort key
+    // has 2 distinct batch buckets under the same sort key -> must keep non-instanced!
+    const h3Mesh = { _primitive: { vertexElements: [{ attribute: "NORMAL" }] }, subMeshes: [{}] };
+    const h3Mat = makeMat("PBR");
+    const h3Variants = runPrimary([
+      makeRenderer({ mesh: h3Mesh, materials: [h3Mat], priority: 50 }),
+      makeRenderer({ mesh: h3Mesh, materials: [h3Mat], priority: 50 }),
+      makeRenderer({ mesh: h3Mesh, materials: [h3Mat], priority: 50 }),
+      makeRenderer({ mesh: h3Mesh, materials: [h3Mat], priority: 50, frontFaceInvert: true })
+    ]);
+    expect(h3Variants.some((v) => v.macros.every((m) => m.n !== "RENDERER_GPU_INSTANCE"))).toBe(true);
+    expect(h3Variants.some((v) => v.macros.some((m) => m.n === "RENDERER_GPU_INSTANCE"))).toBe(true);
+
+    // Control: 3 homogeneous real visible single-subMesh renderers under 1 sort-key bucket -> instanced-only in primary!
+    const ctrlMesh = { _primitive: { vertexElements: [{ attribute: "NORMAL" }] }, subMeshes: [{}] };
+    const ctrlMat = makeMat("Terrain/Terrain");
+    const ctrlVariants = runPrimary([
+      makeRenderer({ mesh: ctrlMesh, materials: [ctrlMat], priority: 50 }),
+      makeRenderer({ mesh: ctrlMesh, materials: [ctrlMat], priority: 50 }),
+      makeRenderer({ mesh: ctrlMesh, materials: [ctrlMat], priority: 50 })
+    ]);
+    expect(ctrlVariants).toHaveLength(1);
+    expect(ctrlVariants[0]!.macros.some((m) => m.n === "RENDERER_GPU_INSTANCE")).toBe(true);
+  });
+
+  it("P2-5: honors SunLensFlareEffect.sunDirectionOverride ahead of scene.sun when gating SunLensFlare primary warmup", async () => {
+    const { Matrix, SunLensFlareEffect, Vector3 } = await import("@galacean/engine");
+    const proj = new Matrix();
+    Matrix.perspective(Math.PI / 3, 1, 0.1, 200, proj);
+    const view = new Matrix();
+    // Camera looks down -Z.
+    Matrix.lookAt(new Vector3(0, 5, 0), new Vector3(0, 5, -20), new Vector3(0, 1, 0), view);
+
+    const makeShader = (name: string, stage: string) => ({
+      name,
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => stage }] }]
+    });
+    const flareMat = {
+      destroyed: false,
+      shader: makeShader("PostProcess/SunLensFlare", "Forward"),
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    };
+    const flareVisShader = makeShader("PostProcess/SunLensFlareVisibility", "TransformFeedback");
+    const engine = {
+      _macroCollection: new ShaderMacroCollection(),
+      _hardwareRenderer: { supportsRendering: true },
+      _basicResources: {},
+      _getActivePostProcessPasses: () => [{ isActive: true, _sunLensFlareMaterial: flareMat }]
+    } as any;
+    const camera = {
+      _updateShaderData() {},
+      enablePostProcess: true,
+      renderTarget: null,
+      entity: { transform: { worldPosition: new Vector3(0, 5, 0) } },
+      viewMatrix: view,
+      projectionMatrix: proj,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    } as any;
+    const basePostState = {
+      enabled: true,
+      bloom: false,
+      bloomHighQuality: false,
+      bloomDirt: false,
+      colorAdjustments: false,
+      sunLensFlare: true
+    };
+    const findSpy = vi
+      .spyOn(Shader, "find")
+      .mockImplementation((name: string) => (name === "PostProcess/SunLensFlareVisibility" ? (flareVisShader as any) : null));
+    try {
+      // Trigger A: scene.sun is behind camera (+Z reverseDirection), but postProcessState.sunDirectionOverride
+      // travels along +Z (so -override points down -Z, directly in front of camera!) -> MUST warm both flare shaders.
+      const behindSunScene = {
+        shaderData: { _macroCollection: new ShaderMacroCollection() },
+        background: { mode: 0 },
+        sun: { reverseDirection: new Vector3(0, 0.4, 1) }
+      } as any;
+      const viaState = collectSeedWorldRendererVariants(engine, behindSunScene, camera, [], {
+        onlyFrustumVisible: true,
+        postProcessState: { ...basePostState, sunDirectionOverride: [0, -0.2, 1] }
+      });
+      expect(viaState.some((v) => v.shader === "PostProcess/SunLensFlare")).toBe(true);
+      expect(viaState.some((v) => v.shader === "PostProcess/SunLensFlareVisibility")).toBe(true);
+
+      // Trigger B: same via scene.postProcessManager.getBlendEffect(SunLensFlareEffect).
+      const viaBlendScene = {
+        ...behindSunScene,
+        postProcessManager: {
+          getBlendEffect: (type: unknown) =>
+            type === SunLensFlareEffect ? { sunDirectionOverride: { value: new Vector3(0, -0.2, 1) } } : undefined
+        }
+      } as any;
+      const viaBlend = collectSeedWorldRendererVariants(engine, viaBlendScene, camera, [], {
+        onlyFrustumVisible: true,
+        postProcessState: basePostState
+      });
+      expect(viaBlend.some((v) => v.shader === "PostProcess/SunLensFlare")).toBe(true);
+      expect(viaBlend.some((v) => v.shader === "PostProcess/SunLensFlareVisibility")).toBe(true);
+
+      // Control: scene.sun is in front (-Z reverseDirection), but sunDirectionOverride points down -Z
+      // (so -override is +Z, behind camera!) -> skips flare shaders in primary, retains in secondary.
+      const frontSunWithBehindOverride = {
+        shaderData: { _macroCollection: new ShaderMacroCollection() },
+        background: { mode: 0 },
+        sun: { reverseDirection: new Vector3(0, 0.2, -1) }
+      } as any;
+      const primarySkipped = collectSeedWorldRendererVariants(engine, frontSunWithBehindOverride, camera, [], {
+        onlyFrustumVisible: true,
+        postProcessState: { ...basePostState, sunDirectionOverride: [0, -0.2, -1] }
+      });
+      expect(primarySkipped.some((v) => v.shader === "PostProcess/SunLensFlare")).toBe(false);
+      expect(primarySkipped.some((v) => v.shader === "PostProcess/SunLensFlareVisibility")).toBe(false);
+
+      const secondaryKept = collectSeedWorldRendererVariants(engine, frontSunWithBehindOverride, camera, [], {
+        onlyFrustumVisible: false,
+        postProcessState: { ...basePostState, sunDirectionOverride: [0, -0.2, -1] }
+      });
+      expect(secondaryKept.some((v) => v.shader === "PostProcess/SunLensFlare")).toBe(true);
+      expect(secondaryKept.some((v) => v.shader === "PostProcess/SunLensFlareVisibility")).toBe(true);
+    } finally {
+      findSpy.mockRestore();
+    }
+  });
 });

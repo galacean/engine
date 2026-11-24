@@ -1,4 +1,5 @@
 import { simplifySpirvNoise } from "./SimplifySpirvNoise";
+import { optimizeStorageReads } from "./OptimizeStorageReads";
 
 /** Adapt the recovered ES shader's read-only std140 blocks to engine-managed
  * integer textures. All field offsets follow std140; unsupported declarations
@@ -21,6 +22,7 @@ interface Layout {
 }
 export function engineShaderSource(source: string) {
   source = simplifySpirvNoise(source);
+  source = optimizeStorageReads(source);
   // EngineResidentScene publishes the ordinary column-vector camera transform
   // (encoded as std140 row-major bytes). Storage order does not change the
   // multiplication convention: the recovered shaders use row-vector eye reads,

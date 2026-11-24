@@ -1,12 +1,17 @@
+import { readFileSync } from "node:fs";
 import zlib from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { seedWorldBootTrace } from "../../demos/seed-world/src/SeedWorldBootTrace";
 import { summarizeSeedWorldShaderAudit } from "../../demos/seed-world/src/SeedWorldShaderAudit";
 import { PlanningWorkerClient } from "../../demos/seed-world/src/planning/semantic-study/PlanningWorkerClient";
 import {
+  loadSeedWorldBuildingBinaryBundle,
+  loadSeedWorldCommonBinaryBundle,
+  loadSeedWorldTemplateBinaryBundles,
   mergeSeedWorldBinaryAssetMaps,
   parseSeedWorldCommonBinaryBundle,
-  releaseSeedWorldCommonBinaryBundle
+  releaseSeedWorldCommonBinaryBundle,
+  type SeedWorldTemplateBundleShardProgress
 } from "../../demos/seed-world/src/SeedWorldCommonBinaryBundle";
 import { parsePreloadedJson } from "../../demos/seed-world/src/SeedWorldProjectTextBundle";
 
@@ -257,6 +262,199 @@ describe("PlanningWorkerClient.prewarm ownership and failure recovery", () => {
       expect(instances[3]!.terminated).toBe(true);
     } finally {
       (globalThis as unknown as { Worker: typeof Worker }).Worker = originalWorker;
+    }
+  });
+});
+
+describe("progressive SWB1 shard registration and non-blocking cold-start order", () => {
+  it("registers each SWB1 shard into onShardLoaded and fetch() immediately as it arrives, replays to late subscribers, and drops late shards after release", async () => {
+    releaseSeedWorldCommonBinaryBundle();
+    const originalFetch = globalThis.fetch;
+    const baseFetch = (async () => new Response("fallback", { status: 404 })) as typeof fetch;
+    globalThis.fetch = baseFetch;
+    try {
+      const shard0Buf = buildSwb1Pack([
+        ["packages/vegetation/src/asset-assembly/generated/procedural-trees/a.json", new TextEncoder().encode('{"ok":1}')]
+      ]);
+      const shard1Buf = buildSwb1Pack([
+        ["packages/terrain/src/data/seed-world/public/tex.ktx2", new Uint8Array([9, 8, 7, 6])]
+      ]);
+      let resolveShard0!: (resp: Response) => void;
+      let resolveShard1!: (resp: Response) => void;
+      const customFetch = ((url: string | URL | Request) => {
+        const href = typeof url === "string" ? url : url instanceof URL ? url.href : url.url;
+        if (href.endsWith("shard-0.bin")) {
+          return new Promise<Response>((resolve) => {
+            resolveShard0 = resolve;
+          });
+        }
+        return new Promise<Response>((resolve) => {
+          resolveShard1 = resolve;
+        });
+      }) as typeof fetch;
+
+      const eventsA: Array<{ keys: string[]; progress: SeedWorldTemplateBundleShardProgress }> = [];
+      const task = loadSeedWorldTemplateBinaryBundles(
+        "original",
+        (assets, progress) => {
+          eventsA.push({ keys: [...assets.keys()], progress });
+        },
+        {
+          urls: ["shard-0.bin", "shard-1.bin"],
+          moduleBaseUrl: "https://example.test/assets/SeedWorldDemo.js",
+          distRootUrl: "https://example.test/",
+          fetchImpl: customFetch
+        }
+      );
+
+      // Shard 0 completes while shard 1 is still pending on slow Wi-Fi.
+      resolveShard0(new Response(shard0Buf.buffer.slice(shard0Buf.byteOffset, shard0Buf.byteOffset + shard0Buf.byteLength), { status: 200 }));
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(eventsA).toHaveLength(1);
+      expect(eventsA[0]!.progress).toMatchObject({ shardIndex: 0, completedShards: 1, totalShards: 2 });
+      // Fetch interceptor must already serve shard 0's entry from memory before shard 1 finishes!
+      const hitResp = await globalThis.fetch(
+        "https://example.test/packages/vegetation/src/asset-assembly/generated/procedural-trees/a.json"
+      );
+      expect(hitResp.status).toBe(200);
+      expect(await hitResp.text()).toBe('{"ok":1}');
+
+      // Late subscriber immediately receives already-arrived shard 0 AND later receives shard 1.
+      const eventsB: Array<{ keys: string[]; progress: SeedWorldTemplateBundleShardProgress }> = [];
+      const taskB = loadSeedWorldTemplateBinaryBundles(
+        "original",
+        (assets, progress) => {
+          eventsB.push({ keys: [...assets.keys()], progress });
+        },
+        {
+          urls: ["shard-0.bin", "shard-1.bin"],
+          moduleBaseUrl: "https://example.test/assets/SeedWorldDemo.js",
+          distRootUrl: "https://example.test/",
+          fetchImpl: customFetch
+        }
+      );
+      expect(taskB).toBe(task);
+      expect(eventsB).toHaveLength(1);
+      expect(eventsB[0]!.keys).toContain(
+        "https://example.test/packages/vegetation/src/asset-assembly/generated/procedural-trees/a.json"
+      );
+
+      // Now shard 1 arrives.
+      resolveShard1(new Response(shard1Buf.buffer.slice(shard1Buf.byteOffset, shard1Buf.byteOffset + shard1Buf.byteLength), { status: 200 }));
+      const merged = await task;
+      expect(merged?.size).toBe(2);
+      expect(eventsA).toHaveLength(2);
+      expect(eventsA[1]!.progress).toMatchObject({ shardIndex: 1, completedShards: 2, totalShards: 2 });
+      expect(eventsB).toHaveLength(2);
+
+      // Releasing uninstalls fetch wrapper and clears all state cleanly.
+      releaseSeedWorldCommonBinaryBundle();
+      expect(globalThis.fetch).toBe(baseFetch);
+      const missAfterRelease = await globalThis.fetch(
+        "https://example.test/packages/vegetation/src/asset-assembly/generated/procedural-trees/a.json"
+      );
+      expect(missAfterRelease.status).toBe(404);
+
+      // A shard completing AFTER releaseSeedWorldCommonBinaryBundle() must be dropped without re-installing fetch wrapper.
+      let resolveLate!: (resp: Response) => void;
+      const lateTask = loadSeedWorldTemplateBinaryBundles(
+        "sakura-pearl",
+        () => {
+          throw new Error("listener should not fire after release");
+        },
+        {
+          urls: ["late.bin"],
+          moduleBaseUrl: "https://example.test/assets/SeedWorldDemo.js",
+          distRootUrl: "https://example.test/",
+          fetchImpl: (() => new Promise<Response>((resolve) => {
+            resolveLate = resolve;
+          })) as typeof fetch
+        }
+      );
+      releaseSeedWorldCommonBinaryBundle();
+      resolveLate(new Response(shard0Buf.buffer.slice(shard0Buf.byteOffset, shard0Buf.byteOffset + shard0Buf.byteLength), { status: 200 }));
+      expect(await lateTask).toBeUndefined();
+      expect(globalThis.fetch).toBe(baseFetch);
+    } finally {
+      releaseSeedWorldCommonBinaryBundle();
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("launches raster.run, rockFormations.prepare, and project migration before awaiting template binary bundles in SeedWorldDemo", () => {
+    const source = readFileSync(new URL("../../demos/seed-world/SeedWorldDemo.ts", import.meta.url), "utf8");
+    const rasterIdx = source.indexOf('timed("raster.run"');
+    const rocksIdx = source.indexOf('timed("rockFormations.prepare"');
+    const migrateIdx = source.indexOf('timed("planningStorage.migrateToSource"');
+    const awaitTemplateIdx = source.indexOf('timed("await template binary bundles"');
+    const loadSceneIdx = source.indexOf('timed("loadSeedWorldScene"');
+    expect(rasterIdx).toBeGreaterThan(-1);
+    expect(rocksIdx).toBeGreaterThan(-1);
+    expect(migrateIdx).toBeGreaterThan(-1);
+    expect(awaitTemplateIdx).toBeGreaterThan(-1);
+    expect(loadSceneIdx).toBeGreaterThan(-1);
+    expect(rasterIdx).toBeLessThan(awaitTemplateIdx);
+    expect(rocksIdx).toBeLessThan(awaitTemplateIdx);
+    expect(migrateIdx).toBeLessThan(awaitTemplateIdx);
+    expect(awaitTemplateIdx).toBeLessThan(loadSceneIdx);
+  });
+
+  it("P1-17: drops in-flight common and building SWB1 bundles that complete after releaseSeedWorldCommonBinaryBundle without resurrecting globalThis.fetch", async () => {
+    releaseSeedWorldCommonBinaryBundle();
+    const originalFetch = globalThis.fetch;
+    const baseFetch = (async () => new Response("fallback", { status: 404 })) as typeof fetch;
+    globalThis.fetch = baseFetch;
+    try {
+      const commonBuf = buildSwb1Pack([
+        ["packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc", new TextEncoder().encode("{}")]
+      ]);
+      const buildingBuf = buildSwb1Pack([
+        ["packages/building/src/assets/wall.mesh", new Uint8Array([1, 2, 3, 4])]
+      ]);
+      let resolveCommon!: (resp: Response) => void;
+      let resolveBuilding!: (resp: Response) => void;
+      const commonTask = loadSeedWorldCommonBinaryBundle({
+        url: "common.bin",
+        moduleBaseUrl: "https://example.test/assets/SeedWorldDemo.js",
+        distRootUrl: "https://example.test/",
+        fetchImpl: (() =>
+          new Promise<Response>((resolve) => {
+            resolveCommon = resolve;
+          })) as typeof fetch
+      });
+      const buildingTask = loadSeedWorldBuildingBinaryBundle({
+        url: "building.bin",
+        moduleBaseUrl: "https://example.test/assets/SeedWorldDemo.js",
+        distRootUrl: "https://example.test/",
+        fetchImpl: (() =>
+          new Promise<Response>((resolve) => {
+            resolveBuilding = resolve;
+          })) as typeof fetch
+      });
+
+      // Dispose/release while both SWB1 bundles are still in flight.
+      releaseSeedWorldCommonBinaryBundle();
+      expect(globalThis.fetch).toBe(baseFetch);
+
+      resolveCommon(
+        new Response(commonBuf.buffer.slice(commonBuf.byteOffset, commonBuf.byteOffset + commonBuf.byteLength), {
+          status: 200
+        })
+      );
+      resolveBuilding(
+        new Response(buildingBuf.buffer.slice(buildingBuf.byteOffset, buildingBuf.byteOffset + buildingBuf.byteLength), {
+          status: 200
+        })
+      );
+
+      expect(await commonTask).toBeUndefined();
+      expect(await buildingTask).toBeUndefined();
+      // globalThis.fetch must remain uninstalled (not resurrected by stale bundles).
+      expect(globalThis.fetch).toBe(baseFetch);
+    } finally {
+      releaseSeedWorldCommonBinaryBundle();
+      globalThis.fetch = originalFetch;
     }
   });
 });

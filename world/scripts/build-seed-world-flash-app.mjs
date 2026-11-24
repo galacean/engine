@@ -190,6 +190,9 @@ function assertClassicWorkerPayloads(outputRoot, assetsRoot, assetNames) {
     if (source.includes("__SEED_WORLD_BUILDING_BIN_BUNDLE_URL__")) {
       throw new Error(`Flash App build did not replace __SEED_WORLD_BUILDING_BIN_BUNDLE_URL__ in ${assetName}`);
     }
+    if (source.includes("__SEED_WORLD_TEMPLATE_BIN_BUNDLES_JSON__")) {
+      throw new Error(`Flash App build did not replace __SEED_WORLD_TEMPLATE_BIN_BUNDLES_JSON__ in ${assetName}`);
+    }
     const relativeSelfLocationMatch = source.match(
       /new URL\(\s*["'](?![a-z]+:)[^"']+["']\s*,\s*self\.location(?:\.href)?\s*\)/u
     );

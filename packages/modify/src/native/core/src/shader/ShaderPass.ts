@@ -155,9 +155,10 @@ export class ShaderPass extends ShaderPart {
     engine: Engine,
     macroCollection: ShaderMacroCollection,
     feedbackOrDefer: string[] | boolean = false,
-    cacheOnly = false
+    cacheOnly = false,
+    deferCompletionOverride?: boolean
   ): ShaderProgram {
-    const deferCompletion = typeof feedbackOrDefer === "boolean" ? feedbackOrDefer : false;
+    const deferCompletion = deferCompletionOverride ?? (typeof feedbackOrDefer === "boolean" ? feedbackOrDefer : false);
     const requestedFeedback = Array.isArray(feedbackOrDefer) ? feedbackOrDefer : this._feedbackVaryings;
     const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     let shaderProgram = shaderProgramMap.get(macroCollection);

@@ -379,13 +379,16 @@ export function sampleBilinearGridHeight(
   return (a * (1 - tx) + b * tx) * (1 - tz) + (c * (1 - tx) + d * tx) * tz;
 }
 
+const croppedTerrainCache = new WeakMap<WaterTerrainSnapshot, Map<string, WaterTerrainSnapshot>>();
+
 /** Read-only domain view retaining original lattice vertices and triangle interpolation. */
 export function cropWaterTerrainSnapshot(
   terrain: WaterTerrainSnapshot,
   bounds: readonly [number, number, number, number]
 ): WaterTerrainSnapshot {
+  const immutableSource = validatedImmutableTerrains.has(terrain);
   if (
-    !isWaterTerrainSnapshot(terrain) ||
+    (!immutableSource && !isWaterTerrainSnapshot(terrain)) ||
     !bounds.every(Number.isFinite) ||
     bounds[2] <= bounds[0] ||
     bounds[3] <= bounds[1]
@@ -434,28 +437,77 @@ export function cropWaterTerrainSnapshot(
   const ix1 = Math.min(terrain.columns - 1, Math.ceil((x1 - terrain.origin[0]) / terrain.spacing - 1e-8));
   const iz1 = Math.min(terrain.rows - 1, Math.ceil((z1 - terrain.origin[1]) / spacingZ - 1e-8));
   if (ix1 <= ix0 || iz1 <= iz0) throw new Error("Water terrain crop is outside the source.");
-  const grid = captureWaterTerrainSnapshot(
-    {
-      id: `${terrain.id}:crop:${ix0}:${iz0}:${ix1}:${iz1}`,
-      revision: terrain.revision,
-      origin: [terrain.origin[0] + ix0 * terrain.spacing, terrain.origin[1] + iz0 * spacingZ],
-      spacing: terrain.spacing,
-      spacingZ,
-      columns: ix1 - ix0 + 1,
-      rows: iz1 - iz0 + 1,
-      ...(terrain.surface ? { surface: terrain.surface } : {})
-    },
-    (x, z) =>
-      terrain.heights[
-        Math.round((z - terrain.origin[1]) / spacingZ) * terrain.columns +
-          Math.round((x - terrain.origin[0]) / terrain.spacing)
-      ]
-  );
+
+  const cacheKey = immutableSource && patches.length === 0 ? `${ix0}:${iz0}:${ix1}:${iz1}` : undefined;
+  if (cacheKey) {
+    const cached = croppedTerrainCache.get(terrain)?.get(cacheKey);
+    if (cached) return cached;
+  }
+
+  const cols = ix1 - ix0 + 1;
+  const rows = iz1 - iz0 + 1;
+  const count = cols * rows;
+  const useFloat32 = terrain.surface === "float32-triangles";
+  const srcHeights = terrain.heights;
+  const srcCols = terrain.columns;
+  let ownedHeights: WaterTerrainHeights;
+  if (useFloat32) {
+    const heights = new Float32Array(count);
+    if (srcHeights instanceof Float32Array) {
+      for (let row = 0; row < rows; row++) {
+        const srcStart = (iz0 + row) * srcCols + ix0;
+        heights.set(srcHeights.subarray(srcStart, srcStart + cols), row * cols);
+      }
+    } else {
+      let writeIndex = 0;
+      for (let row = 0; row < rows; row++) {
+        const srcStart = (iz0 + row) * srcCols + ix0;
+        for (let col = 0; col < cols; col++) {
+          heights[writeIndex++] = Math.fround(srcHeights[srcStart + col]);
+        }
+      }
+    }
+    validatedImmutableTerrains.add(heights);
+    ownedHeights = heights;
+  } else {
+    const heights = new Array<number>(count);
+    let writeIndex = 0;
+    for (let row = 0; row < rows; row++) {
+      const srcStart = (iz0 + row) * srcCols + ix0;
+      for (let col = 0; col < cols; col++) {
+        heights[writeIndex++] = srcHeights[srcStart + col];
+      }
+    }
+    ownedHeights = Object.freeze(heights);
+  }
+  const grid: WaterTerrainSnapshot = Object.freeze({
+    id: `${terrain.id}:crop:${ix0}:${iz0}:${ix1}:${iz1}`,
+    revision: terrain.revision,
+    origin: Object.freeze([terrain.origin[0] + ix0 * terrain.spacing, terrain.origin[1] + iz0 * spacingZ]) as readonly [
+      number,
+      number
+    ],
+    spacing: terrain.spacing,
+    spacingZ,
+    columns: cols,
+    rows,
+    ...(terrain.surface ? { surface: terrain.surface } : {}),
+    heights: ownedHeights
+  });
   const cropped = patches.length ? { ...grid, refinements: Object.freeze(patches) } : grid;
   const contentHash = waterTerrainContentHash(cropped);
   // The owner may change outside this crop. Only this exact bed and its support affect Water.
   const result = Object.freeze({ ...cropped, id: `water-terrain:${contentHash}`, revision: 0 });
   validatedImmutableTerrains.add(result);
   rememberWaterTerrainContentHash(result, contentHash);
+  if (cacheKey) {
+    let byKey = croppedTerrainCache.get(terrain);
+    if (!byKey) {
+      byKey = new Map();
+      croppedTerrainCache.set(terrain, byKey);
+    }
+    if (byKey.size >= 16) byKey.delete(byKey.keys().next().value!);
+    byKey.set(cacheKey, result);
+  }
   return result;
 }

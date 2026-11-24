@@ -61,7 +61,10 @@ import {
   playAssetUpdateEffect
 } from "@galacean/engine-vegetation/asset-assembly/AssetEntranceEffect";
 import { plantSpeciesResourceUrl } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
-import { ProceduralPlantLibraryRuntime } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantLibraryRuntime";
+import {
+  createProceduralPlantLoadCache,
+  ProceduralPlantLibraryRuntime
+} from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantLibraryRuntime";
 import { loadPlantJSON } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantResources";
 import {
   loadProceduralPlantMaterialBindings,
@@ -809,6 +812,7 @@ export class PlanningNaturalVegetationRuntime {
       }
 
       const sourceLods = [0, 2, 3] as const;
+      const sharedLoadCache = createProceduralPlantLoadCache();
       const levelLoads = await Promise.all(
         sourceLods.map(async (lod, level) => {
           const prevLod = level > 0 ? sourceLods[level - 1] : -1;
@@ -830,7 +834,8 @@ export class PlanningNaturalVegetationRuntime {
             populationOnly: true,
             assetIds: distinctIds,
             lod,
-            ...(entryOverrides.size > 0 ? { entryOverrides } : {})
+            ...(entryOverrides.size > 0 ? { entryOverrides } : {}),
+            sharedCache: sharedLoadCache
           });
           plants.setShadows(SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.castShadows);
           return plants;

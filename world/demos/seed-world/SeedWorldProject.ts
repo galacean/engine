@@ -40,6 +40,9 @@ export function seedWorldProjectStorageId(seed: number, projectUrl: string, temp
 }
 
 const SEED_WORLD_SAVE_ID = /^seed-world:native-buildings-v(\d+)-[^:]*:(?:[a-z][a-z0-9-]*:)?\d+:(.+)$/;
+export const SEED_WORLD_RETIRED_SAVE_CLEANUP_DELAY_MS = 8000;
+const pendingRetiredSaveCleanups = new Map<string, ReturnType<typeof setTimeout>>();
+const activeRetiredSaveCleanupSessions = new Map<string, Set<RuntimeProjectSession>>();
 
 /** Stale data must not block startup: the storage key already keeps it from being loaded. */
 async function deleteRetiredSeedWorldSaves(projectUrl: string): Promise<void> {
@@ -56,6 +59,48 @@ async function deleteRetiredSeedWorldSaves(projectUrl: string): Promise<void> {
   } catch (error) {
     console.warn("Seed World could not delete retired saves", error);
   }
+}
+
+/** Defer retired-save cleanup off the startup critical path so it never competes with sessionOpen on iOS Safari IDB.
+ * Cancels the pending timer if the last active session for this projectUrl is disposed before cleanup fires. */
+function scheduleRetiredSeedWorldSaveCleanup(projectUrl: string, session: RuntimeProjectSession): void {
+  let sessions = activeRetiredSaveCleanupSessions.get(projectUrl);
+  if (!sessions) {
+    sessions = new Set();
+    activeRetiredSaveCleanupSessions.set(projectUrl, sessions);
+  }
+  sessions.add(session);
+
+  const originalDispose = session.dispose.bind(session);
+  let detached = false;
+  session.dispose = () => {
+    if (!detached) {
+      detached = true;
+      const active = activeRetiredSaveCleanupSessions.get(projectUrl);
+      if (active) {
+        active.delete(session);
+        if (active.size === 0) {
+          activeRetiredSaveCleanupSessions.delete(projectUrl);
+          const pending = pendingRetiredSaveCleanups.get(projectUrl);
+          if (pending !== undefined) {
+            clearTimeout(pending);
+            pendingRetiredSaveCleanups.delete(projectUrl);
+          }
+        }
+      }
+    }
+    originalDispose();
+  };
+
+  const existing = pendingRetiredSaveCleanups.get(projectUrl);
+  if (existing !== undefined) clearTimeout(existing);
+  const timer = setTimeout(() => {
+    pendingRetiredSaveCleanups.delete(projectUrl);
+    if (!activeRetiredSaveCleanupSessions.get(projectUrl)?.size) return;
+    void deleteRetiredSeedWorldSaves(projectUrl);
+  }, SEED_WORLD_RETIRED_SAVE_CLEANUP_DELAY_MS);
+  (timer as { unref?: () => void }).unref?.();
+  pendingRetiredSaveCleanups.set(projectUrl, timer);
 }
 
 /** Open a project ready for authoring in both the runtime and the planning editor. */
@@ -88,7 +133,6 @@ export async function openSeedWorldProject(
       ...builtinWaterDefaultFiles.filter((file) => !existingVirtualPaths.has(file.virtualPath))
     ]
   };
-  void deleteRetiredSeedWorldSaves(projectUrl);
   const project = await seedWorldBootTrace.span("openSeedWorldProject.sessionOpen", () =>
     RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl, template), initial, projectUrl, {
       scriptModules: seedWorldScriptModules,
@@ -121,6 +165,7 @@ export async function openSeedWorldProject(
       project.initializeDependencies()
     );
     project.registerProjectValidator(validatePlanningProject);
+    scheduleRetiredSeedWorldSaveCleanup(projectUrl, project);
     return project;
   } catch (error) {
     project.dispose();

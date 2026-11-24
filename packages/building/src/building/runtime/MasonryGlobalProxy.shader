@@ -285,14 +285,20 @@ Shader "Masonry/GlobalProxy" {
        if (plasterDetail.x < 0.5) discard;
        float limeVariation = plasterNativeNoise(v.uv * 1.2, 2) * 0.04;
        albedo = clamp(albedo + limeVariation, vec3(0.0), vec3(1.5));
-       albedo = mix(albedo, albedo * vec3(0.45, 0.40, 0.36), plasterDetail.y * 0.85);
+       // Match LOD1 pale stone-grey recessed mortar coat + subtle sunlit rim highlight (avoid dark brown outline).
+       float plasterLum = dot(albedo, vec3(0.2126, 0.7152, 0.0722));
+       vec3 mortarAlbedo = mix(albedo, vec3(plasterLum), 0.72) * vec3(0.86, 0.89, 0.85);
+       albedo = mix(albedo, mortarAlbedo, plasterDetail.y * 0.92);
+       albedo *= 1.0 + plasterDetail.z * 0.08;
       }
      #endif
      if (!isPlaster && kind <= 4.5 && v.surfaceTag.z < 0.5) {
       if (kind < 0.5) {
-       albedo *= masonryFarCourseTone(v.uv, vec2(2.1, 3.8), 0.5, 0.88, 0.88, 1.08);
+       // Match LOD1 sunlit brick reflectance & pale mortar/bevel joints across all distances.
+       albedo *= 1.20 * masonryFarCourseTone(v.uv, vec2(2.1, 3.8), 0.5, 1.10, 0.90, 1.08);
       } else if (kind < 1.5) {
-       albedo *= masonryFarCourseTone(v.uv, vec2(3.6, 3.2), 0.5, 0.82, 0.85, 1.10);
+       // Match LOD1 3D shingle-overlap AO & course crevices even at far distance (prevent washed-out pastel roof).
+       albedo *= 0.73 * masonryFarCourseTone(v.uv, vec2(3.6, 3.2), 0.5, 0.56, 0.86, 1.12);
       } else if (kind < 2.5) {
        albedo *= masonryFarCourseTone(v.uv, vec2(0.8, 4.5), 0.0, 0.84, 0.88, 1.06);
       } else if (kind > 3.5) {
@@ -300,8 +306,50 @@ Shader "Masonry/GlobalProxy" {
       }
      }
      vec3 n = normalize(v.normalWS) * (gl_FrontFacing || (kind > 2.5 && kind < 3.5) ? 1.0 : -1.0);
-     vec3 lit = masonryFarProxyLight(albedo, n, v.positionWS);
-     lit += vec3(1.0, 0.57, 0.18) * v.color.a;
+     vec3 baseLit = masonryFarProxyLight(kind > 5.5 ? vec3(0.05, 0.065, 0.075) : albedo, n, v.positionWS);
+     vec3 lit;
+     if (kind > 5.5) {
+      // Match LOD1 glass.shaderc / masonryWindowGlass (roughness=0.08, F0=0.04):
+      // dark recessed interior + physical view-dependent Fresnel sky/sun reflection + bold 45 deg diamond lead lattice.
+      vec2 horiz = abs(n.y) < 0.9 ? normalize(vec2(-n.z, n.x)) : vec2(1.0, 0.0);
+      float uWin = dot(v.positionWS.xz, horiz);
+      float vWin = v.positionWS.y;
+      vec2 diag = vec2(uWin + vWin, uWin - vWin) * 4.8;
+      vec2 fw = max(fwidth(diag), vec2(1e-4));
+      vec2 dEdge = abs(fract(diag) - 0.5);
+      vec2 lineMask = smoothstep(0.38 - fw, 0.38 + fw, dEdge);
+      float leadRaw = max(lineMask.x, lineMask.y);
+      float leadAA = 1.0 - smoothstep(0.35, 0.90, max(fw.x, fw.y));
+      float lead = mix(0.38, leadRaw, leadAA);
+      SurfaceData gs;
+      gs.viewDir = normalize(camera_Position - v.positionWS);
+      float ndotv = max(dot(n, gs.viewDir), 0.0001);
+      vec2 gDfg = envDFGApprox(0.08, ndotv);
+      vec3 skyRefl = getLightProbeRadiance(gs, n, 0.08);
+      vec3 specRefl = (0.04 * gDfg.x + gDfg.y) * skyRefl;
+      #ifdef SCENE_DIRECT_LIGHT_COUNT
+       DirectLight gSun = getDirectLight(0);
+       vec3 gL = -gSun.direction;
+       float gNL = max(dot(n, gL), 0.0);
+       if (gNL > 0.0) {
+        vec3 gH = normalize(gL + gs.viewDir);
+        float gNH = max(dot(n, gH), 0.0);
+        float gLH = max(dot(gL, gH), 0.0);
+        float gF = 0.04 + 0.96 * exp2((-5.55473 * gLH - 6.98316) * gLH);
+        float gA2 = 0.00004096;
+        float gDen = gNH * gNH * (gA2 - 1.0) + 1.0;
+        float gD = gA2 / (gDen * gDen);
+        float gV = gNL * sqrt(gA2 + (1.0 - gA2) * (ndotv * ndotv));
+        float gLT = ndotv * sqrt(gA2 + (1.0 - gA2) * (gNL * gNL));
+        float gG = 0.5 / max(gV + gLT, 1e-6);
+        specRefl += (gNL * gSun.color) * (gF * gD * gG);
+       }
+      #endif
+      vec3 glassColor = baseLit + specRefl + vec3(0.88, 0.78, 0.24) * (v.color.a * 0.55);
+      lit = mix(glassColor, baseLit * 0.28, lead);
+     } else {
+      lit = baseLit + vec3(1.0, 0.57, 0.18) * v.color.a;
+     }
      vec3 outRgb = masonrySceneFog(lit, v.positionWS);
      #ifdef GLOBAL_PROXY_ENTRANCE
       float rainbowEdge = 0.0;

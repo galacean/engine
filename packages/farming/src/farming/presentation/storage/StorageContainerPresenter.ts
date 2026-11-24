@@ -1,4 +1,4 @@
-import { AssetType, Entity, PBRMaterial, PrefabResource, Renderer, type Vector3 } from "@galacean/engine";
+import { AssetType, Entity, PBRMaterial, PrefabResource, Renderer, Vector3 } from "@galacean/engine";
 import { FarmingGrowthVisibility } from "../FarmingGrowthVisibility";
 import type { FarmingService } from "../../application/FarmingService";
 import type { FarmingDefinitionSet } from "../../domain/FarmDefinitions";
@@ -48,13 +48,18 @@ export class StorageContainerPresenter {
   private loading?: Promise<void>;
   private disposed = false;
   private error: string | null = null;
+  private deferOffscreenLoad: boolean;
   private readonly visibility = new FarmingGrowthVisibility();
+  private readonly containerPosition = new Vector3();
   constructor(
     parent: Entity,
     private readonly service: FarmingService,
     private readonly definitions: FarmingDefinitionSet,
-    private readonly getViewerPosition?: () => Vector3 | undefined
+    private readonly getViewerPosition?: () => Vector3 | undefined,
+    deferOffscreenLoad = false,
+    private readonly isPositionVisible?: (position: Vector3) => boolean
   ) {
+    this.deferOffscreenLoad = deferOffscreenLoad;
     // Persisted ground coordinates are world-space, independent of an area's transform or clone hierarchy.
     this.root = parent.scene!.createRootEntity(`Farming Warehouse/${service.getSnapshot().farmId}`);
     this.produce = new StorageProduceLibrary(parent.engine);
@@ -74,9 +79,36 @@ export class StorageContainerPresenter {
       }
     });
   }
+  setDeferOffscreenLoad(defer: boolean): void {
+    this.deferOffscreenLoad = defer;
+    if (
+      !defer &&
+      !this.disposed &&
+      !this.loading &&
+      !this.error &&
+      this.prefabs.size < 2 &&
+      this.hasNearbyContainer(false)
+    ) {
+      void this.prepare().catch(() => {});
+    }
+  }
+  private hasNearbyContainer(requireFrustum: boolean): boolean {
+    const viewer = this.getViewerPosition?.();
+    if (!viewer) return true;
+    const containers = this.service.getSnapshot().storage.containers;
+    for (let i = 0; i < containers.length; i++) {
+      const pos = containers[i].position;
+      this.containerPosition.set(pos[0], pos[1], pos[2]);
+      if (!this.visibility.withinDrawDistance(this.containerPosition, viewer, false)) continue;
+      if (!requireFrustum || !this.isPositionVisible || this.isPositionVisible(this.containerPosition)) return true;
+    }
+    return false;
+  }
   prepare(): Promise<void> {
     if (this.disposed) return Promise.resolve();
     if (this.loading) return this.loading;
+    if (this.deferOffscreenLoad && !this.hasNearbyContainer(true)) return Promise.resolve();
+    this.error = null;
     this.loading = Promise.all(
       (["cart", "basket"] as const).map(async (type) => {
         const prefab = await this.root.engine.resourceManager.load<PrefabResource>({
@@ -133,6 +165,11 @@ export class StorageContainerPresenter {
   }
   update(seconds: number): void {
     if (this.disposed) return;
+    if (!this.loading && !this.error && this.prefabs.size < 2) {
+      if (this.hasNearbyContainer(this.deferOffscreenLoad)) {
+        void this.prepare().catch(() => {});
+      }
+    }
     this.updateVisibility();
     if (!Number.isFinite(seconds) || seconds <= 0) return;
     for (const [unit, state] of this.appearing) {

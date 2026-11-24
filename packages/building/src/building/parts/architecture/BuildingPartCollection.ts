@@ -77,23 +77,30 @@ export function horizontalFrame(matrix: Matrix): BuildingPlacementFrame {
   return { position: [m[12], 0, m[14]], rotationY: Math.atan2(m[8], m[0]) };
 }
 export function validatePartCollection(members: Iterable<Component>) {
-  const frames = new Map<Entity, { groups: BuildingGroupComponent[]; parts: BuildingPartComponent[] }>();
+  const frames = new Map<
+    Entity,
+    { groups: BuildingGroupDef[]; parts: BuildingPartDef[]; connections: ConnectionDef[] }
+  >();
   for (const member of members) {
     if (!(member instanceof BuildingPartComponent) && !(member instanceof BuildingGroupComponent))
       throw Error("Building runtime requires a group or part component");
-    if (!member.definition) continue;
-    const frame = partFrame(member),
-      entry = frames.get(frame) ?? { groups: [], parts: [] };
-    if (member instanceof BuildingGroupComponent) entry.groups.push(member);
-    else entry.parts.push(member);
-    frames.set(frame, entry);
+    const rawDefinition = member._rawDefinition;
+    if (!rawDefinition) continue;
+    const frame = partFrame(member);
+    let entry = frames.get(frame);
+    if (!entry) {
+      entry = { groups: [], parts: [], connections: [] };
+      frames.set(frame, entry);
+    }
+    if (member instanceof BuildingGroupComponent) {
+      entry.groups.push(rawDefinition as BuildingGroupDef);
+    } else {
+      entry.parts.push(rawDefinition as BuildingPartDef);
+      const rawConnections = member._rawConnections;
+      for (let i = 0; i < rawConnections.length; i++) entry.connections.push(rawConnections[i]!);
+    }
   }
-  for (const { groups, parts } of frames.values())
-    validateBuildingDraft({
-      groups: groups.map((g) => g.definition!),
-      parts: parts.map((p) => p.definition!),
-      connections: parts.flatMap((p) => p.connections)
-    });
+  for (const draft of frames.values()) validateBuildingDraft(draft);
 }
 /** Native references contribute identities, not mutable engine object graphs. */
 export function buildingInputSignature(value: unknown): string {

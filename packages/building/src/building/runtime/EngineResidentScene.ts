@@ -25,7 +25,7 @@ import { restoreResource, restoreBuffer } from "@galacean/engine-modify/renderin
 import { buildBeveledBrickGeometry } from "./BeveledBrickGeometry";
 import { WoodUnitLod, GableWoodUnitLod } from "./WoodUnitLod.js";
 import { MaterialUnitLod } from "./MaterialUnitLod.js";
-import { getMasonryLodTuning } from "./MasonryLodPolicy";
+import { getMasonryLodTuning, resolveMasonryLodPixelHeight } from "./MasonryLodPolicy";
 import { BrickUnitLod } from "./BrickUnitLod.js";
 import { buildBrickStorageFromFeedback, type BrickFeedbackSource } from "./BrickPackKernel";
 import type { ConstructionTerrainGrid } from "./TerrainField";
@@ -579,10 +579,16 @@ export class EngineResidentScene {
         Math.hypot(model[8], model[9], model[10])
       );
       const minVpHeight = 540;
+      const logicalVpHeight = camera.renderTarget
+        ? camera.pixelViewport.height
+        : resolveMasonryLodPixelHeight(
+            (this.engine as { canvas?: { height: number; _webCanvas?: { clientHeight?: number } } } | undefined)
+              ?.canvas,
+            camera.viewport?.w ?? 1,
+            camera.pixelViewport.height
+          );
       const pixelScale =
-        0.5 *
-        Math.abs(camera.projectionMatrix.elements[5]) *
-        Math.max(minVpHeight, Math.min(2160, camera.pixelViewport.height));
+        0.5 * Math.abs(camera.projectionMatrix.elements[5]) * Math.max(minVpHeight, Math.min(2160, logicalVpHeight));
       let hasFrustumUnitLod = false;
       for (const draw of this.draws.values()) {
         const lod = draw.unitLod;

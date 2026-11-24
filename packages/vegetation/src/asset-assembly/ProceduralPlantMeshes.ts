@@ -20,33 +20,94 @@ import {
   type ProceduralPlantStructure
 } from "./ProceduralPlantGeometry";
 
+const keyF32Buf = new ArrayBuffer(4);
+const keyF32 = new Float32Array(keyF32Buf);
+const keyU32 = new Uint32Array(keyF32Buf);
+
 /** Identity of the actual uploaded attributes, excluding material and instance placement.
  * Float32 conversion matches the GPU buffers exactly; it is not a geometry-fitting tolerance.
  * Include tangents because equal positions/UVs with different tangent frames cannot share a Mesh.
  */
-function windFrameTuples(
-  frames: NonNullable<PlantMeshData["windFrames"]>
-): readonly (readonly [number, number, number, number])[] {
-  if (!(frames instanceof Float32Array)) return frames;
-  const tuples: [number, number, number, number][] = [];
-  for (let i = 0; i < frames.length; i += 4) tuples.push([frames[i], frames[i + 1], frames[i + 2], frames[i + 3]]);
-  return tuples;
-}
-
 export function plantMeshGeometryKey(data: PlantMeshData, normalMapped: boolean): string {
-  const attributes = [
-    data.positions,
-    data.normals,
-    data.uvs,
-    ...(data.leafFrames ? [data.leafFrames] : []),
-    ...(data.windFrames ? [windFrameTuples(data.windFrames)] : []),
-    ...(normalMapped ? [buildPlantMeshTangents(data)] : [])
-  ];
-  return JSON.stringify([
-    attributes.map((values) => values.map((v) => v.map(Math.fround))),
-    data.canopyOpticalDepths?.map(Math.fround),
-    Array.from(data.indices)
-  ]);
+  // 128-bit (4 x 32-bit) binary hash over exact Float32 GPU buffer bit patterns and indices.
+  let h0 = 0x811c9dc5;
+  let h1 = 0x9e3779b9;
+  let h2 = 0x243f6a88;
+  let h3 = 0xb7e15162;
+
+  const mixU32 = (word: number): void => {
+    const w = word >>> 0;
+    h0 = Math.imul(h0 ^ w, 0x01000193) >>> 0;
+    h1 = Math.imul((h1 ^ w) + 0x9e3779b9, 0x85ebca6b) >>> 0;
+    h1 ^= h1 >>> 13;
+    h2 = Math.imul(h2 ^ ((w << 11) | (w >>> 21)), 0xc2b2ae35) >>> 0;
+    h2 ^= h2 >>> 16;
+    h3 = (Math.imul(h3 ^ w, 0x27d4eb2d) + (h0 >>> 7)) >>> 0;
+  };
+
+  const mixF32 = (value: number): void => {
+    // Normalize -0 to +0 to match JSON.stringify([Math.fround(-0)]) === "[0]".
+    keyF32[0] = value === 0 ? 0 : value;
+    mixU32(keyU32[0]);
+  };
+
+  const mixTupleArray = (tuples: readonly (readonly number[])[], stride: number, tag: number): void => {
+    mixU32(tag);
+    mixU32(tuples.length);
+    for (let i = 0; i < tuples.length; i++) {
+      const t = tuples[i];
+      for (let k = 0; k < stride; k++) mixF32(t[k]);
+    }
+  };
+
+  mixTupleArray(data.positions, 3, 0x1001);
+  mixTupleArray(data.normals, 3, 0x1002);
+  mixTupleArray(data.uvs, 2, 0x1003);
+
+  if (data.leafFrames) {
+    mixTupleArray(data.leafFrames, 4, 0x1004);
+  } else {
+    mixU32(0x2004);
+  }
+
+  if (data.windFrames) {
+    if (data.windFrames instanceof Float32Array) {
+      const frames = data.windFrames;
+      mixU32(0x1005);
+      mixU32(frames.length >>> 2);
+      for (let i = 0; i < frames.length; i++) mixF32(frames[i]);
+    } else {
+      mixTupleArray(data.windFrames, 4, 0x1005);
+    }
+  } else {
+    mixU32(0x2005);
+  }
+
+  if (normalMapped) {
+    mixTupleArray(buildPlantMeshTangents(data), 4, 0x1006);
+  } else {
+    mixU32(0x2006);
+  }
+
+  if (data.canopyOpticalDepths) {
+    const depths = data.canopyOpticalDepths;
+    mixU32(0x1007);
+    mixU32(depths.length);
+    for (let i = 0; i < depths.length; i++) mixF32(depths[i]);
+  } else {
+    mixU32(0x2007);
+  }
+
+  const indices = data.indices;
+  mixU32(0x1008);
+  mixU32(indices.length);
+  for (let i = 0; i < indices.length; i++) mixU32(indices[i]);
+
+  return (
+    `pmg1:${data.positions.length}:${indices.length}:${normalMapped ? 1 : 0}:` +
+    `${h0.toString(16).padStart(8, "0")}${h1.toString(16).padStart(8, "0")}` +
+    `${h2.toString(16).padStart(8, "0")}${h3.toString(16).padStart(8, "0")}`
+  );
 }
 
 /** The caller owns these meshes and the materials referenced by materialId. */

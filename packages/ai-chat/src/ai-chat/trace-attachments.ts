@@ -40,10 +40,15 @@ export async function traceImageDataUrl(data: Blob): Promise<string> {
   return `data:${data.type};base64,${btoa(binary)}`;
 }
 
+const DEFAULT_TRACE_ATTACHMENTS_OPEN_TIMEOUT_MS = 4000;
+
 /** Immutable DSH-style objects: no automatic deletion and no resident blob cache. */
 export class IndexedDbTraceAttachments implements TraceAttachmentStorage {
   #database?: Promise<IDBDatabase>;
-  constructor(private readonly name = "seed-world-trace-attachments-v1") {}
+  constructor(
+    private readonly name = "seed-world-trace-attachments-v1",
+    private readonly openTimeoutMs = DEFAULT_TRACE_ATTACHMENTS_OPEN_TIMEOUT_MS
+  ) {}
 
   async save(image: TraceImageMetadata, data: Blob): Promise<void> {
     const db = await this.#open();
@@ -78,22 +83,73 @@ export class IndexedDbTraceAttachments implements TraceAttachmentStorage {
           reject(new Error("IndexedDB is unavailable"));
           return;
         }
-        const request = indexedDB.open(this.name, 2);
+        let settled = false;
+        let timedOut = false;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const finish = () => {
+          if (timer !== undefined) {
+            clearTimeout(timer);
+            timer = undefined;
+          }
+        };
+        let request: IDBOpenDBRequest;
+        try {
+          request = indexedDB.open(this.name, 2);
+        } catch (error) {
+          reject(error);
+          return;
+        }
+        if (Number.isFinite(this.openTimeoutMs) && this.openTimeoutMs > 0) {
+          timer = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            timedOut = true;
+            reject(new Error(`Trace attachment IndexedDB open timed out after ${this.openTimeoutMs}ms`));
+          }, this.openTimeoutMs);
+        }
         request.onupgradeneeded = () => {
+          if (timedOut || settled) {
+            try {
+              request.transaction?.abort();
+            } catch {
+              // Ignore if the upgrade transaction is already inactive or finished.
+            }
+            return;
+          }
           const db = request.result;
           if (!db.objectStoreNames.contains("images")) db.createObjectStore("images");
           // Preserve existing bytes; remove obsolete owners and fence out v1 deletion clients.
           if (db.objectStoreNames.contains("traces")) db.deleteObjectStore("traces");
         };
         request.onsuccess = () => {
+          if (timedOut || settled) {
+            try {
+              request.result.close();
+            } catch {
+              // Ignore errors when closing a late-arriving IDBDatabase handle.
+            }
+            return;
+          }
+          settled = true;
+          finish();
           request.result.onversionchange = () => {
             request.result.close();
             this.#database = undefined;
           };
           resolve(request.result);
         };
-        request.onerror = () => reject(request.error);
-        request.onblocked = () => reject(new Error("Trace attachment database is blocked"));
+        request.onerror = () => {
+          if (settled) return;
+          settled = true;
+          finish();
+          reject(request.error);
+        };
+        request.onblocked = () => {
+          if (settled) return;
+          settled = true;
+          finish();
+          reject(new Error("Trace attachment database is blocked"));
+        };
       }).catch((error) => {
         this.#database = undefined;
         throw error;

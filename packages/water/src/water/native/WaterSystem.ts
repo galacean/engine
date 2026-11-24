@@ -85,7 +85,7 @@ interface WaterBatchRenderRoots {
 // outside stageBody/prepareBatch so it cannot retain their transaction scopes.
 function nativeWaterRuntimeContext(
   system: WaterSystem,
-  textures: Readonly<OceanTextures> | undefined,
+  textures: Readonly<OceanTextures> | Promise<Readonly<OceanTextures>> | undefined,
   capture?: WaterBatchRenderRoots,
   surfaceShader?: import("@galacean/engine-core").Shader
 ) {
@@ -554,13 +554,15 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
     });
   }
 
-  private async stageBody(
+  private async prepareStagedBody(
     body: WaterBodyComponent,
     config: Readonly<WaterBodyConfiguration>,
-    transaction: WaterSceneBodySetTransaction,
     signal: AbortSignal,
     renderRoots?: WaterBatchRenderRoots
-  ): Promise<void> {
+  ): Promise<
+    | { kind: "stage"; request: Parameters<WaterSceneBodySetTransaction["stage"]>[0] }
+    | { kind: "remove"; bodyId: string }
+  > {
     const t = body.entity.transform,
       p = t.worldPosition,
       q = t.worldRotationQuaternion,
@@ -616,11 +618,12 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       representationState: config.representationState
     });
     if (!this._runtimeState.requestedEnabled) {
-      transaction.remove(body.waterId);
-      return;
+      return { kind: "remove", bodyId: body.waterId };
     }
-    let textures: Readonly<OceanTextures> | undefined;
-    if (source.kind === "ocean") {
+    const shouldStage =
+      body.enabled && body.entity.isActiveInHierarchy && this.enabled && this.entity.isActiveInHierarchy;
+    let textures: Readonly<OceanTextures> | Promise<Readonly<OceanTextures>> | undefined;
+    if (source.kind === "ocean" && shouldStage) {
       if (config.material)
         textures = describeOceanTextures(
           WATER_MATERIAL_TEXTURE_SLOTS.ocean.map(({ slot }) => config.material!.shaderData.getTexture(slot) ?? null)
@@ -630,27 +633,49 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
           this._lookTextures = undefined;
           throw error;
         });
-        textures = (await this._lookTextures).textures;
+        // Attach side-channel rejection handlers so early abort / sibling failure before consumption
+        // never emits UnhandledPromiseRejection, while actual awaiters still receive the original error.
+        void this._lookTextures.catch(() => {});
+        // Pass the in-flight Ocean texture promise directly into OceanWaterBackend.createRuntime so
+        // transaction.prepare() launches RiverCompileWorker and HeightfieldWaterBackend concurrently.
+        textures = this._lookTextures.then((library) => library.textures);
+        void textures.catch(() => {});
       }
     }
     signal.throwIfAborted();
-    if (body.enabled && body.entity.isActiveInHierarchy && this.enabled && this.entity.isActiveInHierarchy) {
-      transaction.stage({
-        bodyId: body.waterId,
-        asset,
-        instance,
-        // Built-ins are precompiled at full complexity. Lower tiers must retain the
-        // backend shader compiled from the derived appearance, rather than overwrite it.
-        createRuntimeContext: nativeWaterRuntimeContext(
-          this,
-          textures,
-          renderRoots,
-          config.material && (quality.surfaceShading === "high" || !isWaterBuiltinShader(config.material.shader))
-            ? config.material.shader
-            : undefined
-        )
-      });
-    } else transaction.remove(body.waterId);
+    if (shouldStage) {
+      return {
+        kind: "stage",
+        request: {
+          bodyId: body.waterId,
+          asset,
+          instance,
+          // Built-ins are precompiled at full complexity. Lower tiers must retain the
+          // backend shader compiled from the derived appearance, rather than overwrite it.
+          createRuntimeContext: nativeWaterRuntimeContext(
+            this,
+            textures,
+            renderRoots,
+            config.material && (quality.surfaceShading === "high" || !isWaterBuiltinShader(config.material.shader))
+              ? config.material.shader
+              : undefined
+          )
+        }
+      };
+    }
+    return { kind: "remove", bodyId: body.waterId };
+  }
+
+  private async stageBody(
+    body: WaterBodyComponent,
+    config: Readonly<WaterBodyConfiguration>,
+    transaction: WaterSceneBodySetTransaction,
+    signal: AbortSignal,
+    renderRoots?: WaterBatchRenderRoots
+  ): Promise<void> {
+    const action = await this.prepareStagedBody(body, config, signal, renderRoots);
+    if (action.kind === "stage") transaction.stage(action.request);
+    else transaction.remove(action.bodyId);
   }
 
   private validateOceanSet(updates: readonly WaterBatchUpdate[], removals: readonly WaterBodyComponent[] = []): void {
@@ -772,12 +797,28 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
         combined.throwIfAborted();
         transaction = publishRuntime ? this.host().beginBodySetTransaction() : undefined;
         for (const body of removed) transaction?.remove(body.waterId);
-        for (const { body, candidate } of candidates)
-          if (transaction) {
-            if (removed.includes(body)) transaction.remove(body.waterId);
-            else await this.stageBody(body, candidate.configuration, transaction, combined, renderRoots);
+        if (transaction) {
+          const activeTransaction = transaction;
+          const removedSet = new Set(removed);
+          const toStage: Array<{ body: WaterBodyComponent; configuration: Readonly<WaterBodyConfiguration> }> = [];
+          for (const { body, candidate } of candidates) {
+            if (removedSet.has(body)) activeTransaction.remove(body.waterId);
+            else toStage.push({ body, configuration: candidate.configuration });
           }
-        prepared = await transaction?.prepare(combined);
+          const stagedActions = await Promise.all(
+            toStage.map(({ body, configuration }) => this.prepareStagedBody(body, configuration, combined, renderRoots))
+          );
+          for (const action of stagedActions) {
+            if (action.kind === "stage") activeTransaction.stage(action.request);
+            else activeTransaction.remove(action.bodyId);
+          }
+        }
+        try {
+          prepared = await transaction?.prepare(combined);
+        } catch (error) {
+          if (combined.aborted) combined.throwIfAborted();
+          throw error;
+        }
         // Aborting while prepare awaited must also retire the newly returned candidate.
         if (finalized || combined.aborted) {
           try {

@@ -34,17 +34,26 @@ interface WorkerSlot {
   idleTimer?: ReturnType<typeof setTimeout>;
   assets: WeakMap<BuildingUnitAssets, Lease>;
   terrains: WeakMap<ConstructionTerrainGrid, Lease>;
+  retainedDetailAsset?: { value: BuildingUnitAssets; id: number };
+  retainedDetailTerrain?: { value: ConstructionTerrainGrid; id: number };
   pending: Map<number, { resolve(value: any): void; reject(error: unknown): void; cleanup(): void }>;
 }
 
-const DEFAULT_IDLE_TERMINATE_MS = 10000;
+const DEFAULT_IDLE_TERMINATE_MS = 45000;
 
-function defaultMaxBuildingWorkers(): number {
-  const cores =
-    typeof navigator !== "undefined" && Number.isFinite(navigator.hardwareConcurrency)
-      ? navigator.hardwareConcurrency
-      : 4;
-  return Math.min(3, Math.max(1, cores - 1));
+export function defaultMaxBuildingWorkers(): number {
+  if (typeof navigator !== "undefined") {
+    const cores = Number.isFinite(navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : 4;
+    const ua = navigator.userAgent ?? "";
+    const isMobile =
+      /iPhone|iPad|iPod|Android|Mobile/i.test(ua) ||
+      (/Macintosh/i.test(ua) && ((navigator as { maxTouchPoints?: number }).maxTouchPoints ?? 0) > 1);
+    if (isMobile || cores <= 4) {
+      return Math.min(2, Math.max(1, cores - 1));
+    }
+    return Math.min(3, Math.max(1, cores - 1));
+  }
+  return 3;
 }
 
 /** Scene-owned Worker service. Handles own solved geometry; cancel/reset/release
@@ -63,6 +72,11 @@ export class BuildingCpuClient {
   constructor(maxWorkers = defaultMaxBuildingWorkers(), idleTimeoutMs = DEFAULT_IDLE_TERMINATE_MS) {
     this.maxWorkers = Math.max(1, Math.floor(maxWorkers));
     this.idleTimeoutMs = Math.max(0, idleTimeoutMs);
+  }
+
+  /** Configured maximum worker concurrency for this client. */
+  get workerLimit(): number {
+    return this.maxWorkers;
   }
 
   private createSlot(): WorkerSlot {
@@ -103,6 +117,8 @@ export class BuildingCpuClient {
     worker.terminate();
     slot.assets = new WeakMap();
     slot.terrains = new WeakMap();
+    slot.retainedDetailAsset = undefined;
+    slot.retainedDetailTerrain = undefined;
   }
 
   private acquireResource<T extends object>(cache: WeakMap<T, Lease>, value: T) {
@@ -115,13 +131,28 @@ export class BuildingCpuClient {
     return { lease, first };
   }
 
-  private pickSlot(): WorkerSlot {
+  private pickSlot(preferredTerrain?: ConstructionTerrainGrid): WorkerSlot {
+    let warmIdle: WorkerSlot | undefined;
+    let liveIdle: WorkerSlot | undefined;
+    let firstIdle: WorkerSlot | undefined;
     let best: WorkerSlot | undefined;
     for (let i = 0; i < this.slots.length; i++) {
       const candidate = this.slots[i]!;
-      if (candidate.inFlight === 0) return candidate;
+      if (candidate.inFlight === 0) {
+        if (!firstIdle) firstIdle = candidate;
+        if (candidate.worker) {
+          if (!liveIdle) liveIdle = candidate;
+          if (preferredTerrain && candidate.retainedDetailTerrain?.value === preferredTerrain) {
+            warmIdle = candidate;
+            break;
+          }
+        }
+      }
       if (!best || candidate.inFlight < best.inFlight) best = candidate;
     }
+    if (warmIdle) return warmIdle;
+    if (liveIdle) return liveIdle;
+    if (firstIdle) return firstIdle;
     if (this.slots.length < this.maxWorkers) return this.createSlot();
     return best ?? this.createSlot();
   }
@@ -303,12 +334,19 @@ export class BuildingCpuClient {
                 signal
               ).result;
             } else {
-              // Worker hibernated while idle: transparently re-hydrate detail from lightweight draft/terrain refs.
-              const targetSlot = this.pickSlot();
+              // Worker hibernated while idle: transparently re-hydrate detail from lightweight draft/terrain refs,
+              // reusing the live worker's retained asset/terrain snapshot across buildings to avoid 15-25ms main-thread clones.
+              const targetSlot = this.pickSlot(terrain);
               const targetGen = targetSlot.generation;
               const targetEpoch = targetSlot.epoch;
-              const targetAsset = this.acquireResource(targetSlot.assets, units);
-              const targetGround = this.acquireResource(targetSlot.terrains, terrain);
+              const reuseAsset = Boolean(targetSlot.worker && targetSlot.retainedDetailAsset?.value === units);
+              const reuseTerrain = Boolean(targetSlot.worker && targetSlot.retainedDetailTerrain?.value === terrain);
+              const targetAsset = reuseAsset ? undefined : this.acquireResource(targetSlot.assets, units);
+              const targetGround = reuseTerrain ? undefined : this.acquireResource(targetSlot.terrains, terrain);
+              const assetId = reuseAsset ? targetSlot.retainedDetailAsset!.id : targetAsset!.lease.id;
+              const terrainId = reuseTerrain ? targetSlot.retainedDetailTerrain!.id : targetGround!.lease.id;
+              const sendUnits = !reuseAsset && targetAsset!.first;
+              const sendTerrain = !reuseTerrain && targetGround!.first;
               let reqId: number | undefined;
               let detailPromise: Promise<BuildingCpuDetail>;
               try {
@@ -318,27 +356,29 @@ export class BuildingCpuClient {
                     mode: "detailFromDraft",
                     draft,
                     options,
-                    assetId: targetAsset.lease.id,
-                    terrainId: targetGround.lease.id,
-                    ...(targetAsset.first ? { units } : {}),
-                    ...(targetGround.first ? { terrain } : {}),
+                    assetId,
+                    terrainId,
+                    ...(sendUnits ? { units } : {}),
+                    ...(sendTerrain ? { terrain } : {}),
                     feedbackGrid: true,
                     workerSlim: true,
                     ...(compileOptions?.omitEmptyCells ? { omitEmptyCells: true } : {})
                   },
                   signal
                 ));
+                targetSlot.retainedDetailAsset = { value: units, id: assetId };
+                targetSlot.retainedDetailTerrain = { value: terrain, id: terrainId };
               } catch (err) {
-                targetAsset.lease.refs = Math.max(0, targetAsset.lease.refs - 1);
-                targetGround.lease.refs = Math.max(0, targetGround.lease.refs - 1);
+                if (targetAsset) targetAsset.lease.refs = Math.max(0, targetAsset.lease.refs - 1);
+                if (targetGround) targetGround.lease.refs = Math.max(0, targetGround.lease.refs - 1);
                 throw err;
               }
               try {
                 detail = await detailPromise;
               } finally {
                 if (targetSlot.generation === targetGen && targetSlot.epoch === targetEpoch) {
-                  targetAsset.lease.refs = Math.max(0, targetAsset.lease.refs - 1);
-                  targetGround.lease.refs = Math.max(0, targetGround.lease.refs - 1);
+                  if (targetAsset) targetAsset.lease.refs = Math.max(0, targetAsset.lease.refs - 1);
+                  if (targetGround) targetGround.lease.refs = Math.max(0, targetGround.lease.refs - 1);
                   targetSlot.worker?.postMessage({ mode: "release", token: reqId! } satisfies BuildingWorkerRequest);
                 }
               }
@@ -416,6 +456,8 @@ export class BuildingCpuClient {
     }
     slot.assets = new WeakMap();
     slot.terrains = new WeakMap();
+    slot.retainedDetailAsset = undefined;
+    slot.retainedDetailTerrain = undefined;
     for (const request of slot.pending.values()) {
       request.cleanup();
       request.reject(reason);

@@ -643,7 +643,10 @@ export class ConfiguredAnimal implements AnimalAgent {
           if (plain !== outlined) {
             this.materialVariants.push({ renderer, index, outlined, plain });
           }
-          renderer.setMaterial(index, this.outlineEnabled ? outlined : plain);
+          const resolved = this.outlineEnabled ? outlined : plain;
+          if (outlined.screenSpaceReflectionIntensity !== 0) outlined.screenSpaceReflectionIntensity = 0;
+          if (plain.screenSpaceReflectionIntensity !== 0) plain.screenSpaceReflectionIntensity = 0;
+          renderer.setMaterial(index, resolved);
         });
       }
       if (config.rootMotionNode) {

@@ -8,7 +8,8 @@ import {
   type OceanNearshoreOutsidePolicies,
   type ValidatedOceanNearshoreDescriptor
 } from "../../authoring/ocean/OceanNearshoreTypes";
-import { asStableHashArray, hashStableValue } from "../shared/determinism";
+import { hashStableValue } from "../shared/determinism";
+import { numericContentIdentity } from "../shared/numericIdentity";
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import type {
   OceanNearshoreCompileResult,
@@ -34,7 +35,7 @@ function outsideMatchesTarget(policy: OceanNearshoreOutsidePolicy, targetWet: bo
 }
 
 function seedBoundaryDistance(
-  distances: Float64Array,
+  distances: Float32Array,
   grid: Readonly<OceanNearshoreGridConfig>,
   outside: Readonly<OceanNearshoreOutsidePolicies>,
   targetWet: boolean
@@ -64,9 +65,9 @@ function distanceToClass(
   grid: Readonly<OceanNearshoreGridConfig>,
   outside: Readonly<OceanNearshoreOutsidePolicies>,
   targetWet: boolean
-): Float64Array {
+): Float32Array {
   const { width, height, cellSizeXZ } = grid;
-  const distances = new Float64Array(wetMask.length);
+  const distances = new Float32Array(wetMask.length);
   const target = targetWet ? 1 : 0;
   for (let index = 0; index < distances.length; index++) {
     distances[index] = wetMask[index] === target ? 0 : Number.POSITIVE_INFINITY;
@@ -130,9 +131,8 @@ function distanceToClass(
 
 function compileWetMask(source: Readonly<ValidatedOceanNearshoreDescriptor>): Uint8Array {
   if (source.wetSource.kind === "mask") {
-    // Validation proved every selected texel has legal physical depth. Preserve
-    // the authored occupancy verbatim instead of silently changing authority.
-    return new Uint8Array(source.wetSource.mask);
+    // Validation proved every selected texel has legal physical depth and owns/freezes the mask.
+    return source.wetSource.mask;
   }
   const mask = new Uint8Array(source.bedHeights.length);
   const minimumDepth = source.wetSource.minimumDepth ?? OCEAN_NEARSHORE_DEFAULT_MINIMUM_DEPTH;
@@ -268,9 +268,9 @@ export class OceanNearshoreCompiler {
       id: descriptor.id,
       waterLevel: descriptor.waterLevel,
       grid: descriptor.grid,
-      bedHeights: asStableHashArray(descriptor.bedHeights),
-      signedShoreDistances: asStableHashArray(shoreDistances),
-      wetMask: asStableHashArray(wetMask),
+      bedHeights: numericContentIdentity(descriptor.bedHeights),
+      signedShoreDistances: numericContentIdentity(shoreDistances),
+      wetMask: numericContentIdentity(wetMask),
       outsidePolicy: descriptor.outsidePolicy
     });
     const compiledHash = hashStableValue({
@@ -281,7 +281,7 @@ export class OceanNearshoreCompiler {
         height: atlas.height,
         maximumDepth: atlas.maximumDepth,
         shoreDistanceRange: atlas.shoreDistanceRange,
-        pixels: asStableHashArray(atlas.pixels.borrowTypedArray())
+        pixels: numericContentIdentity(atlas.pixels.borrowTypedArray())
       }
     });
     const data: OceanNearshoreCompiledData = Object.freeze({

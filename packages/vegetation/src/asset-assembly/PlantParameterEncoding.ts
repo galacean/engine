@@ -167,67 +167,112 @@ export function decodePlantParameters<T>(value: unknown): T {
   } catch {
     return invalid();
   }
-  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0)),
-    view = new DataView(bytes.buffer);
-  if (p.count > bytes.length) return invalid();
+  const byteLength = binary.length;
+  const bytes = new Uint8Array(byteLength);
+  for (let i = 0; i < byteLength; i++) bytes[i] = binary.charCodeAt(i);
+  const view = new DataView(bytes.buffer);
+  const count = p.count;
+  if (count > byteLength) return invalid();
+  const strings = p.strings;
+  const stringsLen = strings.length;
+  const layoutsLen = layouts.length;
   let offset = 0;
-  const byte = (): number => (offset < bytes.length ? bytes[offset++] : invalid());
-  const uint = (): number => {
-    let n = 0,
-      place = 1;
+  const readUint = (): number => {
+    if (offset >= byteLength) return invalid();
+    const b0 = bytes[offset++];
+    if (b0 < 128) return b0;
+    let n = b0 & 0x7f;
+    let place = 128;
     for (;;) {
-      const b = byte();
-      n += (b % 128) * place;
+      if (offset >= byteLength) return invalid();
+      const b = bytes[offset++];
+      n += (b & 0x7f) * place;
       if (n > 0xffffffff) return invalid();
       if (b < 128) return n;
       place *= 128;
       if (place > 0xffffffff) return invalid();
     }
   };
-  const number = (): number => {
-    if (offset + 8 > bytes.length) return invalid();
-    const n = view.getFloat64(offset, true);
-    offset += 8;
-    return Number.isFinite(n) ? n : invalid();
-  };
-  const table: unknown[] = [];
-  const reference = (): unknown => table[index(uint(), table.length)];
-  for (let i = 0; i < p.count; i++) {
-    const tag = byte();
+  const table = new Array<unknown>(count);
+  for (let i = 0; i < count; i++) {
+    if (offset >= byteLength) return invalid();
+    const tag = bytes[offset++];
     switch (tag) {
       case Null:
-        table.push(null);
+        table[i] = null;
         break;
       case False:
-        table.push(false);
+        table[i] = false;
         break;
       case True:
-        table.push(true);
+        table[i] = true;
         break;
-      case NumberValue:
-        table.push(number());
+      case NumberValue: {
+        if (offset + 8 > byteLength) return invalid();
+        const n = view.getFloat64(offset, true);
+        offset += 8;
+        if (!Number.isFinite(n)) return invalid();
+        table[i] = n;
         break;
-      case StringValue:
-        table.push(p.strings[index(uint(), p.strings.length)]);
+      }
+      case StringValue: {
+        const ref = readUint();
+        if (ref >= stringsLen) return invalid();
+        table[i] = strings[ref];
         break;
-      case ArrayValue:
+      }
       case NumberArray: {
-        const length = uint(),
-          width = tag === NumberArray ? 8 : 1;
-        if (length > Math.floor((bytes.length - offset) / width)) return invalid();
-        const values = Array.from({ length }, tag === NumberArray ? number : reference);
-        table.push(values);
+        const length = readUint();
+        if (length > (byteLength - offset) >>> 3) return invalid();
+        const values = new Array<number>(length);
+        for (let j = 0; j < length; j++) {
+          const n = view.getFloat64(offset, true);
+          offset += 8;
+          if (!Number.isFinite(n)) return invalid();
+          values[j] = n;
+        }
+        table[i] = values;
+        break;
+      }
+      case ArrayValue: {
+        const length = readUint();
+        if (length > byteLength - offset) return invalid();
+        const values = new Array<unknown>(length);
+        for (let j = 0; j < length; j++) {
+          const ref = readUint();
+          if (ref >= i) return invalid();
+          values[j] = table[ref];
+        }
+        table[i] = values;
         break;
       }
       case RecordValue: {
-        const fields = layouts[index(uint(), layouts.length)];
-        table.push(Object.fromEntries(fields.map((field) => [field, reference()])));
+        const layoutIdx = readUint();
+        if (layoutIdx >= layoutsLen) return invalid();
+        const fields = layouts[layoutIdx];
+        const obj: Record<string, unknown> = {};
+        for (let j = 0; j < fields.length; j++) {
+          const ref = readUint();
+          if (ref >= i) return invalid();
+          const field = fields[j];
+          if (field === "__proto__") {
+            Object.defineProperty(obj, field, {
+              value: table[ref],
+              enumerable: true,
+              writable: true,
+              configurable: true
+            });
+          } else {
+            obj[field] = table[ref];
+          }
+        }
+        table[i] = obj;
         break;
       }
       default:
         return invalid();
     }
   }
-  if (offset !== bytes.length) return invalid();
-  return table[table.length - 1] as T;
+  if (offset !== byteLength) return invalid();
+  return table[count - 1] as T;
 }

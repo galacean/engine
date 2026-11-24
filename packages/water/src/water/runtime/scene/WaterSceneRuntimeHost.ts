@@ -1412,7 +1412,13 @@ export class WaterSceneRuntimeHost {
                 ?.reason ?? failures[0]!.reason
             );
           }
-          if (this._yieldBetweenBodyPreparationBatches && offset + batch.length < stagedRequests.length) {
+          // Skip inter-batch rAF yields during initial startup when no live water bodies are active yet
+          // (behind the opaque loading screen), preserving smooth frame pacing during interactive edits.
+          if (
+            this._yieldBetweenBodyPreparationBatches &&
+            this._activeBodies.size > 0 &&
+            offset + batch.length < stagedRequests.length
+          ) {
             await yieldWaterScenePreparationFrame(prepareAbort.signal);
           }
         }

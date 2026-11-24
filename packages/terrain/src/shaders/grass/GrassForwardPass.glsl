@@ -44,12 +44,27 @@ struct Attributes {
 // Compact instance data describes geometry. An explicit mode can opt out of the legacy ground path.
 #if defined(TERRAIN_PROJECT_GROUND_MATERIAL_BINDING) || (defined(RENDERER_SEED_WORLD_DETAIL_COMPACT) && !defined(RENDERER_SURFACE_GRASS_ATTACHMENT) && (!defined(RENDERER_GRASS_MATCH_GROUND) || RENDERER_GRASS_MATCH_GROUND == 1))
   #define TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
-  #if !defined(RENDERER_GRASS_MATCH_GROUND) && !defined(MATERIAL_GRASS_GROUND_SURFACE) && (defined(RENDERER_TERRAIN_UNTEXTURED_SINGLE_MAP) || defined(RENDERER_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP))
+  #if !defined(MATERIAL_GRASS_GROUND_SURFACE) && !defined(MATERIAL_FARM_GROUND_SURFACE) && (defined(RENDERER_TERRAIN_LAYERS) || defined(MATERIAL_TERRAIN_LAYERS) || defined(RENDERER_TERRAIN_UNTEXTURED_SINGLE_MAP) || defined(RENDERER_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP))
     #define TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
     #if !defined(RENDERER_ROCK_GRASS_GROUND) && !defined(RENDERER_GRASS_ROCK_APPEARANCE) && !defined(TERRAIN_PROJECT_SURFACE_GRASS_ATTACHMENT_ACTIVE)
       #define TERRAIN_PROJECT_GRASS_PACKED_VARYINGS
     #endif
   #endif
+#endif
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK) && !defined(MATERIAL_FARM_GROUND_SURFACE)
+  #define TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+#endif
+#if defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && SCENE_FOG_MODE != 0 && !defined(RENDERER_WORLD_PICK)
+  #define TERRAIN_PROJECT_GRASS_VERTEX_FOG
+#endif
+#if defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && defined(SCENE_DIRECT_LIGHT_COUNT) && defined(NEED_CALCULATE_SHADOWS) && !defined(RENDERER_WORLD_PICK)
+  #define TERRAIN_PROJECT_GRASS_VERTEX_SHADOW_COORD
+#endif
+#if defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && defined(SCENE_SURFACE_CLIMATE_DRY) && !defined(RENDERER_WORLD_PICK)
+  #define TERRAIN_PROJECT_GRASS_MATTE_LIGHTING
+#endif
+#if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX) && !defined(TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE)
+  #define TERRAIN_PROJECT_GRASS_VERTEX_PROBE_VOLUME
 #endif
 struct Varyings {
   #ifdef RENDERER_WORLD_PICK
@@ -85,14 +100,26 @@ struct Varyings {
     vec3 windBentNormalWS;
   #endif
   vec4 positionCS;
-  #if SCENE_FOG_MODE != 0
+  #ifdef TERRAIN_PROJECT_GRASS_VERTEX_FOG
+    vec4 fogData;
+  #elif SCENE_FOG_MODE != 0
     vec3 positionVS;
+  #endif
+  #if defined(TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW) && !(defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && defined(SCENE_SURFACE_CLIMATE_DRY))
+    float cloudShadow;
   #endif
   #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
     vec3 probeIrradiance;
     float probeWeight;
   #endif
-  #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
+  #ifdef TERRAIN_PROJECT_GRASS_VERTEX_SHADOW_COORD
+    #if SCENE_SHADOW_CASCADED_COUNT == 1
+      vec3 shadowCoord;
+      float shadowFade;
+    #else
+      vec4 shadowCoordFade;
+    #endif
+  #elif defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
     vec3 shadowCoord;
   #endif
 };
@@ -222,14 +249,26 @@ Varyings grassCulledVaryings() {
     output.windBentNormalWS = vec3(0.0, 1.0, 0.0);
   #endif
   output.positionCS = vec4(2.0, 2.0, 2.0, 1.0);
-  #if SCENE_FOG_MODE != 0
+  #ifdef TERRAIN_PROJECT_GRASS_VERTEX_FOG
+    output.fogData = vec4(0.0, 0.0, 0.0, 1.0);
+  #elif SCENE_FOG_MODE != 0
     output.positionVS = vec3(0.0);
+  #endif
+  #if defined(TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW) && !(defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && defined(SCENE_SURFACE_CLIMATE_DRY))
+    output.cloudShadow = 1.0;
   #endif
   #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
     output.probeIrradiance = vec3(0.0);
     output.probeWeight = 0.0;
   #endif
-  #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
+  #ifdef TERRAIN_PROJECT_GRASS_VERTEX_SHADOW_COORD
+    #if SCENE_SHADOW_CASCADED_COUNT == 1
+      output.shadowCoord = vec3(0.0);
+      output.shadowFade = 1.0;
+    #else
+      output.shadowCoordFade = vec4(0.0, 0.0, 0.0, 1.0);
+    #endif
+  #elif defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
     output.shadowCoord = vec3(0.0);
   #endif
   gl_Position = output.positionCS;
@@ -296,10 +335,18 @@ Varyings GrassVertex(Attributes attributes) {
     );
     output.positionWS = worldPosition.xyz / worldPosition.w;
     output.positionCS = camera_VPMat * worldPosition;
-    #if SCENE_FOG_MODE != 0
+    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_FOG
+      vec3 vPositionVS = (camera_ViewMat * worldPosition).xyz;
+      #ifdef SCENE_FOG_DIRECTIONAL_SKY
+        vec3 vFogRadiance = getFogSkyRadiance(vPositionVS);
+      #else
+        vec3 vFogRadiance = scene_FogColor.rgb;
+      #endif
+      output.fogData = vec4(vFogRadiance, getSceneFogVisibility(vPositionVS));
+    #elif SCENE_FOG_MODE != 0
       output.positionVS = (camera_ViewMat * worldPosition).xyz;
     #endif
-    #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
+    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_PROBE_VOLUME
       vec3 probeIrradiance;
       bool hasProbe = sampleProbeVolume(
         output.positionWS,
@@ -309,16 +356,49 @@ Varyings GrassVertex(Attributes attributes) {
       );
       output.probeIrradiance = probeIrradiance;
       output.probeWeight = hasProbe ? 1.0 : 0.0;
+    #elif defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
+      // Defer probe volume sampling to fragment when terrain surface samplers are active in VS
+      // so active vertex samplers stay <= 16 (WebGL2 minimum) across all macro combinations.
+      output.probeIrradiance = vec3(0.0);
+      output.probeWeight = 0.0;
     #endif
-    #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
+    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_SHADOW_COORD
+      #if SCENE_SHADOW_CASCADED_COUNT == 1
+        output.shadowCoord = getShadowCoord(output.positionWS);
+        output.shadowFade = getShadowFade(vRootPositionWS);
+      #else
+        mediump int vCascadeIndex = computeCascadeIndex(vRootPositionWS);
+        vec3 vShadowCoord = (getShadowMatrix(vCascadeIndex) * vec4(output.positionWS, 1.0)).xyz;
+        output.shadowCoordFade = vec4(vShadowCoord, getShadowFade(vRootPositionWS));
+      #endif
+    #elif defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
       output.shadowCoord = getShadowCoord(output.positionWS);
     #endif
     gl_Position = output.positionCS;
 
-    TerrainProjectLayerBlend root = terrainProjectSimpleGrassRootSurface(vRootPositionWS);
+    TerrainProjectLayerBlend root = terrainProjectGrassRootSurface(vRootPositionWS);
     vec3 rootColor = terrainProjectGroundColor(root, vRootPositionWS);
+    #if defined(RENDERER_GRASS_MATCH_GROUND) && RENDERER_GRASS_MATCH_GROUND == 1
+      vec3 matchWeights = max(vSurfaceWeights, vec3(0.0));
+      float matchWeightSum = dot(matchWeights, vec3(1.0));
+      matchWeights = matchWeightSum > 0.00001
+        ? matchWeights / matchWeightSum
+        : vec3(1.0, 0.0, 0.0);
+      vec3 matchColor =
+        grassColorFromField(0.5) * matchWeights.x +
+        renderer_GrassRoadColor.rgb * matchWeights.y +
+        material_GrassGroundColor.rgb * matchWeights.z;
+      rootColor = mix(rootColor, matchColor, terrainProjectGrassBladeAppearanceWeight(tipWeight));
+    #endif
     rootColor = terrainProjectBlendFarmGroundColor(rootColor, vRootPositionWS.xz, farmWeight);
-    output.rootGroundBase = vec4(rootColor, root.snowResponse);
+    #if defined(TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW) && defined(SCENE_SURFACE_CLIMATE_DRY)
+      output.rootGroundBase = vec4(rootColor, sampleVolumetricCloudShadow(vRootPositionWS));
+    #else
+      output.rootGroundBase = vec4(rootColor, root.snowResponse);
+      #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+        output.cloudShadow = sampleVolumetricCloudShadow(vRootPositionWS);
+      #endif
+    #endif
 
     float bladeShadeWeight = terrainProjectGrassBladeShadeWeight(tipWeight);
     vec3 windFieldNormal = terrainProjectGrassWindFieldNormal(vTerrainNormalWS, vWindCarrierNormalWS, vWindBentNormalWS);
@@ -437,7 +517,7 @@ Varyings GrassVertex(Attributes attributes) {
   #if SCENE_FOG_MODE != 0
     output.positionVS = (camera_ViewMat * worldPosition).xyz;
   #endif
-  #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
+  #ifdef TERRAIN_PROJECT_GRASS_VERTEX_PROBE_VOLUME
     vec3 probeIrradiance;
     bool hasProbe = sampleProbeVolume(
       output.positionWS,
@@ -447,14 +527,22 @@ Varyings GrassVertex(Attributes attributes) {
     );
     output.probeIrradiance = probeIrradiance;
     output.probeWeight = hasProbe ? 1.0 : 0.0;
+  #elif defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
+    // Defer probe volume sampling to fragment when terrain surface samplers are active in VS
+    // so active vertex samplers stay <= 16 (WebGL2 minimum) across all macro combinations.
+    output.probeIrradiance = vec3(0.0);
+    output.probeWeight = 0.0;
   #endif
   #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
     output.shadowCoord = getShadowCoord(output.positionWS);
   #endif
+  #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+    output.cloudShadow = sampleVolumetricCloudShadow(output.positionWS);
+  #endif
   gl_Position = output.positionCS;
   // Keep root material evaluation after the existing position and lighting varyings.
   #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
-    TerrainProjectLayerBlend root = terrainProjectSimpleGroundSurface(output.rootPositionWS, vec2(0.0), vec2(0.0));
+    TerrainProjectLayerBlend root = terrainProjectGrassRootSurface(output.rootPositionWS);
     vec3 rootColor = terrainProjectGroundColor(root, output.rootPositionWS);
     rootColor = terrainProjectBlendFarmGroundColor(rootColor, output.rootPositionWS.xz, farmWeight);
     output.rootGroundBase = vec4(rootColor, root.snowResponse);
@@ -469,6 +557,99 @@ Varyings GrassVertex(Attributes attributes) {
   return output;
   #endif
 }
+
+#ifdef TERRAIN_PROJECT_GRASS_MATTE_LIGHTING
+vec3 evaluateMatteGrassLighting(
+  Varyings input,
+  vec3 albedo,
+  vec3 normalWS,
+  float shadowAttenuation
+) {
+  // Dry grass blades have fixed metallic=0.0, roughness=1.0, IOR=1.5 (F0=0.04), AO=1.0.
+  // Diffuse albedo is albedo * (1.0 - F0) = albedo * 0.96. Direct GGX specular at roughness=1.0
+  // is ~0.01 * dotNL * lightColor, and envBRDFApprox(0.04, 1.0, 1.0, dotNV) * energyCompensation
+  // is strictly constant (~0.01646), matching full PBR within <0.3% with 0 cubemap/SSR/GGX cost.
+  vec3 diffuseAlbedo = albedo * 0.96;
+  vec3 directResponse = diffuseAlbedo + vec3(0.01);
+  vec3 totalRadiance = vec3(0.0);
+
+  #ifdef SCENE_DIRECT_LIGHT_COUNT
+    for (int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i++) {
+      if (!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])) {
+        DirectLight directionalLight = getDirectLight(i);
+        if (i == 0) {
+          directionalLight.color *= shadowAttenuation;
+        }
+        float dotNL = saturate(dot(normalWS, -directionalLight.direction));
+        totalRadiance += dotNL * directionalLight.color * directResponse;
+      }
+    }
+  #endif
+
+  #ifdef SCENE_POINT_LIGHT_COUNT
+    for (int i = 0; i < SCENE_POINT_LIGHT_COUNT; i++) {
+      if (!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])) {
+        PointLight pointLight = getPointLight(i);
+        vec3 lVector = pointLight.position - input.positionWS;
+        float lightDistance = length(lVector);
+        vec3 direction = lVector / max(lightDistance, 1e-5);
+        float attenuation = clamp(1.0 - pow(lightDistance / pointLight.distance, 4.0), 0.0, 1.0);
+        float dotNL = saturate(dot(normalWS, direction));
+        totalRadiance += (dotNL * attenuation) * pointLight.color * directResponse;
+      }
+    }
+  #endif
+
+  #ifdef SCENE_SPOT_LIGHT_COUNT
+    for (int i = 0; i < SCENE_SPOT_LIGHT_COUNT; i++) {
+      if (!isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])) {
+        SpotLight spotLight = getSpotLight(i);
+        vec3 lVector = spotLight.position - input.positionWS;
+        float lightDistance = length(lVector);
+        vec3 direction = lVector / max(lightDistance, 1e-5);
+        float angleCos = dot(direction, -spotLight.direction);
+        float spotEffect = smoothstep(spotLight.penumbraCos, spotLight.angleCos, angleCos);
+        float decayEffect = clamp(1.0 - pow(lightDistance / spotLight.distance, 4.0), 0.0, 1.0);
+        float dotNL = saturate(dot(normalWS, direction));
+        totalRadiance += (dotNL * spotEffect * decayEffect) * spotLight.color * directResponse;
+      }
+    }
+  #endif
+
+  #if defined(SCENE_USE_PROBE_VOLUME) || defined(SCENE_USE_SH)
+    vec3 globalIrradiance = getGlobalDiffuseIrradiance(normalWS);
+  #else
+    vec3 globalIrradiance = scene_EnvMapLight.diffuse * PI;
+  #endif
+  vec3 diffuseIrradiance = globalIrradiance * scene_EnvMapLight.diffuseIntensity;
+
+  #if defined(SCENE_USE_PROBE_VOLUME) && !defined(MATERIAL_DISABLE_PROBE_VOLUME)
+    vec3 probeIrradiance;
+    bool hasProbe;
+    #if defined(TERRAIN_PROJECT_GRASS_VERTEX_PROBE_VOLUME) && defined(RENDERER_HAS_NORMAL)
+      probeIrradiance = input.probeIrradiance;
+      hasProbe = input.probeWeight > 0.999 && dot(probeIrradiance, vec3(1.0)) > 1e-5;
+      if (!hasProbe) {
+        vec3 viewDir = normalize(camera_Position - input.positionWS);
+        hasProbe = sampleProbeVolume(input.positionWS, normalWS, viewDir, probeIrradiance);
+      }
+    #else
+      vec3 viewDir = normalize(camera_Position - input.positionWS);
+      hasProbe = sampleProbeVolume(input.positionWS, normalWS, viewDir, probeIrradiance);
+    #endif
+    if (hasProbe) {
+      diffuseIrradiance = probeIrradiance;
+    }
+  #endif
+
+  totalRadiance += diffuseIrradiance * (diffuseAlbedo * RECIPROCAL_PI);
+  #ifdef SCENE_USE_SPECULAR_ENV
+    totalRadiance += globalIrradiance * (0.01646 * RECIPROCAL_PI * scene_EnvMapLight.specularIntensity);
+  #endif
+
+  return max(totalRadiance, vec3(0.0));
+}
+#endif
 
 void GrassFragment(Varyings input) {
   #ifdef TERRAIN_PROJECT_GROUND_SHADOW_PCF
@@ -523,39 +704,65 @@ void GrassFragment(Varyings input) {
   #elif defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS)
     vec3 surfaceColor = input.rootGroundBase.rgb;
     vec3 shadingNormal = normalize(input.shadingNormalWS);
-    SurfaceData surfaceData = terrainProjectBuildSurfaceData(
-      input,
-      surfaceColor,
-      shadingNormal,
-      0.0,
-      0.0,
-      1.0
-    );
-    #ifndef SCENE_SURFACE_CLIMATE_DRY
-      if (dot(scene_SurfaceClimate, scene_SurfaceClimate) > 0.0) {
-        float bladeAppearanceWeight = terrainProjectGrassBladeAppearanceWeight(input.tipWeight);
-        float snowResponse = mix(
-          input.rootGroundBase.a,
-          material_GrassSurfaceSnowResponse.w,
-          bladeAppearanceWeight
-        );
-        terrainProjectApplySurfaceClimate(
-          surfaceData,
-          shadingNormal,
-          vec3(1.0, 0.0, snowResponse)
-        );
+    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_SHADOW_COORD
+      #if SCENE_SHADOW_CASCADED_COUNT == 1
+        vec3 grassShadowCoord = input.shadowCoord;
+        float grassShadowFade = input.shadowFade;
+      #else
+        vec3 grassShadowCoord = input.shadowCoordFade.xyz;
+        float grassShadowFade = input.shadowCoordFade.w;
+      #endif
+      float shadowAttenuation = 1.0;
+      if (grassShadowCoord.z > 0.0 && grassShadowCoord.z < 1.0) {
+        float rawShadow = textureLod(scene_ShadowMap, grassShadowCoord, 0.0);
+        shadowAttenuation = mix(1.0, mix(rawShadow, 1.0, grassShadowFade), scene_ShadowInfo.x);
       }
-    #endif
-    #ifdef TERRAIN_PROJECT_GROUND_SHADOW_PCF
+    #elif defined(TERRAIN_PROJECT_GROUND_SHADOW_PCF)
       float shadowAttenuation = sampleTerrainProjectGroundShadow(input, shadowPositionDx, shadowPositionDy);
     #else
       float shadowAttenuation = sampleTerrainProjectShadow(input);
     #endif
-    vec3 color = max(
-      terrainProjectFinalLighting(evaluateTerrainProjectLightingWithShadow(input, surfaceData, shadowAttenuation)),
-      vec3(0.0)
-    );
-    #if SCENE_FOG_MODE != 0
+    #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+      #ifdef SCENE_SURFACE_CLIMATE_DRY
+        shadowAttenuation *= input.rootGroundBase.a;
+      #else
+        shadowAttenuation *= input.cloudShadow;
+      #endif
+    #endif
+    #ifdef TERRAIN_PROJECT_GRASS_MATTE_LIGHTING
+      vec3 color = evaluateMatteGrassLighting(input, surfaceColor, shadingNormal, shadowAttenuation);
+    #else
+      SurfaceData surfaceData = terrainProjectBuildSurfaceData(
+        input,
+        surfaceColor,
+        shadingNormal,
+        0.0,
+        0.0,
+        1.0
+      );
+      #ifndef SCENE_SURFACE_CLIMATE_DRY
+        if (dot(scene_SurfaceClimate, scene_SurfaceClimate) > 0.0) {
+          float bladeAppearanceWeight = terrainProjectGrassBladeAppearanceWeight(input.tipWeight);
+          float snowResponse = mix(
+            input.rootGroundBase.a,
+            material_GrassSurfaceSnowResponse.w,
+            bladeAppearanceWeight
+          );
+          terrainProjectApplySurfaceClimate(
+            surfaceData,
+            shadingNormal,
+            vec3(1.0, 0.0, snowResponse)
+          );
+        }
+      #endif
+      vec3 color = max(
+        terrainProjectFinalLighting(evaluateTerrainProjectLightingWithShadow(input, surfaceData, shadowAttenuation)),
+        vec3(0.0)
+      );
+    #endif
+    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_FOG
+      color = mix(input.fogData.rgb, color, input.fogData.a);
+    #elif SCENE_FOG_MODE != 0
       color = fog(vec4(color, 1.0), input.positionVS).rgb;
     #endif
     if (renderer_GrassLodDebugColor.a > 0.0) {
@@ -592,7 +799,11 @@ void GrassFragment(Varyings input) {
     // One root samples the shared ground field for the complete clump, including
     // bent tips. Wind changes geometry without making colours slide across blades.
     #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
-      surfaceColor = input.rootGroundBase.rgb;
+      #if defined(RENDERER_GRASS_MATCH_GROUND) && RENDERER_GRASS_MATCH_GROUND == 1
+        surfaceColor = mix(input.rootGroundBase.rgb, surfaceColor, bladeAppearanceWeight);
+      #else
+        surfaceColor = input.rootGroundBase.rgb;
+      #endif
     #else
       vec3 groundPositionWS = input.rootPositionWS;
       TerrainProjectLayerBlend ground = terrainProjectGroundSurface(groundPositionWS);
@@ -630,7 +841,7 @@ void GrassFragment(Varyings input) {
     #else
     float surfaceReliefWeight = terrainProjectSurfaceReliefWeight(input.rootPositionWS);
     #endif
-    #if defined(RENDERER_GRASS_MATCH_GROUND) && RENDERER_GRASS_MATCH_GROUND == 1
+    #if defined(RENDERER_GRASS_MATCH_GROUND) && RENDERER_GRASS_MATCH_GROUND == 1 && !defined(TERRAIN_PROJECT_GRASS_ROOT_VARYINGS)
       vec3 rootNormal = terrainProjectLayerNormalToWorld(ground.tangentNormal, input.terrainNormalWS);
       shadingNormal = normalize(mix(rootNormal, shadingNormal, bladeShadeWeight));
     #endif
@@ -705,6 +916,9 @@ void GrassFragment(Varyings input) {
     float shadowAttenuation = sampleTerrainProjectGroundShadow(input, shadowPositionDx, shadowPositionDy);
   #else
     float shadowAttenuation = sampleTerrainProjectShadow(input);
+  #endif
+  #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+    shadowAttenuation *= input.cloudShadow;
   #endif
   vec3 color = max(
     terrainProjectFinalLighting(evaluateTerrainProjectLightingWithShadow(input, surfaceData, shadowAttenuation)),

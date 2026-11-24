@@ -41,6 +41,7 @@ import {
 import {
   attachPlantCanopyOpticalDepth,
   buildProceduralPlantGeometry,
+  buildProceduralPlantGeometryWithAutoWindHeight,
   mergePlantGeometryByMaterial,
   type PlantMeshData,
   type PlantPartMesh,
@@ -160,6 +161,24 @@ function canSpecimenCompactStatic(geometry: readonly PlantRenderPart[]): boolean
   );
 }
 
+/** Shared load/compile cache across concurrent multi-LOD calls to `ProceduralPlantLibraryRuntime.load`. */
+export interface ProceduralPlantLoadCache {
+  readonly libraryPromises: Map<string, Promise<LibraryIndexDocument>>;
+  readonly assetPromises: Map<string, Promise<ProceduralPlantAsset>>;
+  readonly compiledCache: Map<ProceduralPlantAsset, Map<string, ReturnType<typeof compileSpecimen>>>;
+  readonly placementBounds: Map<string, AssetAssemblyStandBounds>;
+}
+
+/** Creates a disposable cache that deduplicates JSON fetches, LOD0 compilation, and placement bounds across LODs. */
+export function createProceduralPlantLoadCache(): ProceduralPlantLoadCache {
+  return {
+    libraryPromises: new Map(),
+    assetPromises: new Map(),
+    compiledCache: new Map(),
+    placementBounds: new Map()
+  };
+}
+
 export class ProceduralPlantLibraryRuntime {
   private readonly _specimens: Specimen[] = [];
   private _labels?: AssetStageLabels;
@@ -208,6 +227,8 @@ export class ProceduralPlantLibraryRuntime {
       Pick<ProceduralPlantLibraryEntry, "geometryLodOffset" | "geometryLeafRetention">
     >;
     populationOnly?: boolean;
+    /** Optional shared cache across concurrent LOD loads to avoid duplicate JSON fetches and LOD0 compilation. */
+    sharedCache?: ProceduralPlantLoadCache;
     onProgress?: (loaded: number, total: number) => void;
   }): Promise<ProceduralPlantLibraryRuntime> {
     const runtime = new ProceduralPlantLibraryRuntime(
@@ -216,8 +237,17 @@ export class ProceduralPlantLibraryRuntime {
       Boolean(options.populationOnly)
     );
     try {
+      const sharedCache = options.sharedCache;
       const indexUrl = resolveLibraryIndexUrl(options.indexUrl);
-      const library = await loadPlantJSON<LibraryIndexDocument>(options.owner.engine, indexUrl);
+      let libraryPromise = sharedCache?.libraryPromises.get(indexUrl);
+      if (!libraryPromise) {
+        libraryPromise = loadPlantJSON<LibraryIndexDocument>(options.owner.engine, indexUrl).catch((error) => {
+          sharedCache?.libraryPromises.delete(indexUrl);
+          throw error;
+        });
+        sharedCache?.libraryPromises.set(indexUrl, libraryPromise);
+      }
+      const library = await libraryPromise;
       const entries = library.assets.filter((entry) => !options.assetIds || options.assetIds.has(entry.id));
       const sources = [...entries, ...(library.prototypes ?? [])];
       runtime._camera = options.camera;
@@ -241,13 +271,22 @@ export class ProceduralPlantLibraryRuntime {
       const uniqueSources = [...new Map(resolvedEntries.map(({ source }) => [source.id, source])).values()];
       const loadedAssets = new Map(
         await Promise.all(
-          uniqueSources.map(
-            async (source) =>
-              [source.id, await loadValidatedPlantAsset(options.owner.engine, source, indexUrl)] as const
-          )
+          uniqueSources.map(async (source) => {
+            const cacheKey = `${indexUrl}\0${source.id}`;
+            let assetPromise = sharedCache?.assetPromises.get(cacheKey);
+            if (!assetPromise) {
+              assetPromise = loadValidatedPlantAsset(options.owner.engine, source, indexUrl).catch((error) => {
+                sharedCache?.assetPromises.delete(cacheKey);
+                throw error;
+              });
+              sharedCache?.assetPromises.set(cacheKey, assetPromise);
+            }
+            return [source.id, await assetPromise] as const;
+          })
         )
       );
-      const compiledCache = new Map<ProceduralPlantAsset, Map<string, ReturnType<typeof compileSpecimen>>>();
+      const compiledCache =
+        sharedCache?.compiledCache ?? new Map<ProceduralPlantAsset, Map<string, ReturnType<typeof compileSpecimen>>>();
       let sliceStartedAt = performance.now();
       for (const { entry, source } of resolvedEntries) {
         const asset = loadedAssets.get(source.id)!;
@@ -272,15 +311,27 @@ export class ProceduralPlantLibraryRuntime {
         const override = options.entryOverrides?.get(entry.id);
         const lodOffset = Math.max(0, Math.floor(override?.geometryLodOffset ?? entry.geometryLodOffset ?? 0));
         const baseRetention = override?.geometryLeafRetention ?? entry.geometryLeafRetention ?? 1;
-        const base = getCompiledSpecimenCached(compiledCache, asset, 0, 1);
-        const placement = instantiateSpecimen(base, entry);
         const lod = Math.min((options.lod ?? 0) + lodOffset, asset.geometryLods.length - 1);
         const effectiveRetention =
           baseRetention < 0.999 && lod >= 3 && lodOffset < 3 ? Math.min(1, baseRetention * 2.4) : baseRetention;
-        const geometry =
-          lod === 0 && effectiveRetention >= 0.999
-            ? placement
-            : instantiateSpecimen(getCompiledSpecimenCached(compiledCache, asset, lod, effectiveRetention), entry);
+        let geometry: ReturnType<typeof instantiateSpecimen>;
+        let placementBounds: AssetAssemblyStandBounds;
+        if (lod === 0 && effectiveRetention >= 0.999) {
+          const base = getCompiledSpecimenCached(compiledCache, asset, 0, 1);
+          geometry = instantiateSpecimen(base, entry);
+          placementBounds = geometry.localBounds;
+          sharedCache?.placementBounds.set(entry.id, placementBounds);
+        } else {
+          const cachedBounds = sharedCache?.placementBounds.get(entry.id);
+          if (cachedBounds) {
+            placementBounds = cachedBounds;
+          } else {
+            const base = getCompiledSpecimenCached(compiledCache, asset, 0, 1);
+            placementBounds = instantiateSpecimen(base, entry).localBounds;
+            sharedCache?.placementBounds.set(entry.id, placementBounds);
+          }
+          geometry = instantiateSpecimen(getCompiledSpecimenCached(compiledCache, asset, lod, effectiveRetention), entry);
+        }
         runtime._specimens.push({
           entry: { ...entry, parameterFile: source.parameterFile },
           asset,
@@ -296,7 +347,7 @@ export class ProceduralPlantLibraryRuntime {
           labelClearance: 0,
           lod,
           bounds: geometry.localBounds,
-          placementBounds: placement.localBounds
+          placementBounds
         });
         options.onProgress?.(runtime._specimens.length, available.length);
         // Time-budgeted yield so 200+ specimens do not incur 200 serial timer clamps.
@@ -933,18 +984,18 @@ function compileSpecimen(asset: ProceduralPlantAsset, lod: number, leafRetention
   let reference = canopyReferences.get(asset);
   const flower = isFlowerSpecimen(asset);
   if ((asset.category === "Trees" || flower) && !reference) {
-    const windHeight = Math.max(
-      ...buildProceduralPlantGeometry(asset.geometryLods[0], 0).map(({ mesh }) => mesh.bounds[1][1])
-    );
-    const parts = buildProceduralPlantGeometry(
+    const built = buildProceduralPlantGeometryWithAutoWindHeight(
       asset.geometryLods[0],
       0,
       leaves,
-      windHeight,
       flower ? "flower" : "tree",
-      flower ? TERRAIN_FLOWER_WIND_RESPONSE_PROFILE.maximumBendRadians : 0
+      flower ? TERRAIN_FLOWER_WIND_RESPONSE_PROFILE.maximumBendRadians : 0,
+      true
     );
-    reference = { windHeight, parts: flower ? parts : attachPlantCanopyOpticalDepth(parts, leaves) };
+    reference = {
+      windHeight: built.windHeight,
+      parts: flower ? built.parts : attachPlantCanopyOpticalDepth(built.parts, leaves)
+    };
     canopyReferences.set(asset, reference);
   }
   const rawParts =
@@ -956,7 +1007,8 @@ function compileSpecimen(asset: ProceduralPlantAsset, lod: number, leafRetention
           leaves,
           reference?.windHeight,
           flower ? "flower" : "tree",
-          flower ? TERRAIN_FLOWER_WIND_RESPONSE_PROFILE.maximumBendRadians : 0
+          flower ? TERRAIN_FLOWER_WIND_RESPONSE_PROFILE.maximumBendRadians : 0,
+          true
         );
   let parts = rawParts;
   if (leafRetention > 0 && leafRetention < 0.999 && leaves.size > 0) {

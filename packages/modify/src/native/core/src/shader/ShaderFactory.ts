@@ -249,8 +249,10 @@ mat3 _normalMatFromModel(mat3 m) {
     });
   }
 
+  private static readonly _maxInstanceUBOBytes = 16384;
+
   private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceBufferLayout {
-    const maxUBOSize = engine._hardwareRenderer.maxUniformBlockSize;
+    const maxUBOSize = Math.min(engine._hardwareRenderer.maxUniformBlockSize, ShaderFactory._maxInstanceUBOBytes);
     const std140Map = ShaderFactory._std140TypeInfoMap;
     const instanceFields: InstanceFieldInfo[] = [];
     let currentOffset = 0;

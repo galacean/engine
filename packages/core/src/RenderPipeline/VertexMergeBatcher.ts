@@ -44,12 +44,15 @@ export class VertexMergeBatcher {
     const { chunk, indices: localIndices } = subChunk;
 
     const length = localIndices.length;
+    chunk.prepareIndexAppend(length);
     if (preElement) {
       preElement.subChunk!.subMesh.count += length;
     } else {
-      // First write this frame — init subMesh range
-      subChunk.subMesh.start = chunk.updateIndexLength;
-      subChunk.subMesh.count = length;
+      // First write this batch — init subMesh range
+      const subMesh = subChunk.subMesh;
+      subMesh.start = chunk.updateIndexLength;
+      subMesh.count = length;
+      chunk.recordPassSubMesh(subMesh);
     }
 
     let startIndex = chunk.updateIndexLength;

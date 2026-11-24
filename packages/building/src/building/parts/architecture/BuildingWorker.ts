@@ -34,13 +34,34 @@ const leases = new Map<number, { assetId: number; terrainId: number }>();
 const preparations = new Map<number, BuildingCpuPreparation["prepared"]>();
 const assets = new Map<number, BuildingUnitAssets>();
 const terrains = new Map<number, ConstructionTerrainGrid>();
+// Keep the most-recent detailFromDraft snapshot resident for the worker's live epoch so
+// subsequent buildings entering view do not re-clone the full terrain grid and unit assets
+// synchronously on the main thread. Cleared when superseded or when the worker hibernates.
+let retainedDetailAssetId: number | undefined;
+let retainedDetailTerrainId: number | undefined;
+function evictUnusedAsset(assetId: number | undefined) {
+  if (assetId === undefined || assetId === retainedDetailAssetId) return;
+  if (![...leases.values()].some((v) => v.assetId === assetId)) assets.delete(assetId);
+}
+function evictUnusedTerrain(terrainId: number | undefined) {
+  if (terrainId === undefined || terrainId === retainedDetailTerrainId) return;
+  if (![...leases.values()].some((v) => v.terrainId === terrainId)) terrains.delete(terrainId);
+}
+function retainDetailResources(assetId: number, terrainId: number) {
+  const prevAssetId = retainedDetailAssetId;
+  const prevTerrainId = retainedDetailTerrainId;
+  retainedDetailAssetId = assetId;
+  retainedDetailTerrainId = terrainId;
+  if (prevAssetId !== assetId) evictUnusedAsset(prevAssetId);
+  if (prevTerrainId !== terrainId) evictUnusedTerrain(prevTerrainId);
+}
 function release(token: number) {
   const lease = leases.get(token);
   preparations.delete(token);
   leases.delete(token);
   if (!lease) return;
-  if (![...leases.values()].some((v) => v.assetId === lease.assetId)) assets.delete(lease.assetId);
-  if (![...leases.values()].some((v) => v.terrainId === lease.terrainId)) terrains.delete(lease.terrainId);
+  evictUnusedAsset(lease.assetId);
+  evictUnusedTerrain(lease.terrainId);
 }
 const reply = (result: BuildingWorkerReply, transfer?: Transferable[]) =>
   transfer?.length ? self.postMessage(result, transfer) : self.postMessage(result);
@@ -129,6 +150,7 @@ async function handle(input: BuildingWorkerRequest) {
       const units = assets.get(input.assetId),
         terrain = terrains.get(input.terrainId);
       if (!units || !terrain) throw Error("Building Worker input snapshot is unavailable");
+      retainDetailResources(input.assetId, input.terrainId);
       const { prepared } = await prepareBuildingCpu(input.draft, terrain, units, input.options);
       const slim = Boolean(input.workerSlim);
       const result = await compileBuildingCpu(prepared, {

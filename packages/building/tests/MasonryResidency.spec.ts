@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { MasonryLodProbe, getMasonryResidencyBudget, setMasonryLodTuning } from "../src/building/runtime/MasonryLodPolicy";
+import {
+  MasonryLodProbe,
+  getMasonryResidencyBudget,
+  resolveMasonryLodPixelHeight,
+  setMasonryLodTuning
+} from "../src/building/runtime/MasonryLodPolicy";
 import { MasonryLodTransition } from "../src/building/runtime/MasonryLodTransition";
 import { EngineResidentScene } from "../src/building/runtime/EngineResidentScene";
 import {
@@ -550,5 +555,61 @@ describe("MasonryLodTransition", () => {
     } finally {
       setMasonryLodTuning({ lodCrossFade: true });
     }
+  });
+});
+
+describe("Masonry high-DPR LOD normalization", () => {
+  it("caps effective DPR scaling at 1.25x CSS pixels on 2x/3x mobile while preserving 1x, sub-1x, and headless mocks", () => {
+    expect(resolveMasonryLodPixelHeight({ height: 801, _webCanvas: { clientHeight: 801 } }, 1)).toBeCloseTo(801, 6);
+    expect(resolveMasonryLodPixelHeight({ height: 1602, _webCanvas: { clientHeight: 801 } }, 1)).toBeCloseTo(
+      801 * 1.25,
+      6
+    );
+    expect(resolveMasonryLodPixelHeight({ height: 1602, _webCanvas: { clientHeight: 801 } }, 0.5)).toBeCloseTo(
+      801 * 1.25 * 0.5,
+      6
+    );
+    expect(resolveMasonryLodPixelHeight({ height: 2532, _webCanvas: { clientHeight: 844 } }, 1)).toBeCloseTo(
+      844 * 1.25,
+      6
+    );
+    // Sub-1x render scale must not upscale beyond actual rendered pixels.
+    expect(resolveMasonryLodPixelHeight({ height: 400, _webCanvas: { clientHeight: 800 } }, 1)).toBeCloseTo(400, 6);
+    // Headless / mock canvases without DOM clientHeight preserve raw physical height.
+    expect(resolveMasonryLodPixelHeight({ height: 1596 }, 1)).toBeCloseTo(1596, 6);
+    // Explicit fallbackPhysicalHeight (camera.pixelViewport.height) is also DPR-normalized.
+    expect(resolveMasonryLodPixelHeight({ height: 1602, _webCanvas: { clientHeight: 801 } }, 1, 1602)).toBeCloseTo(
+      801 * 1.25,
+      6
+    );
+  });
+
+  it("assigns identical MasonryResidency LODs on 2x and 3x DPR mobile screens without over-promoting mid-range buildings to physical 2x", () => {
+    const distances = [12, 24, 38, 60, 100];
+    const runWithCanvas = (canvas: { width: number; height: number; _webCanvas?: { clientHeight: number } }) => {
+      const { camera } = makeFakeCameraAndEngine();
+      const engine = { canvas } as unknown as ConstructorParameters<typeof MasonryResidency>[0];
+      const entries = distances.map((d, idx) => makeEntry(idx, d));
+      const residency = new MasonryResidency(
+        engine,
+        camera,
+        entries,
+        createMasonryResidencyMetrics(),
+        () => {},
+        () => {}
+      );
+      residency.updateDemand(0.016);
+      return entries.map((e) => e.lod);
+    };
+
+    const lods125x = runWithCanvas({ width: 514, height: Math.round(801 * 1.25), _webCanvas: { clientHeight: 801 } });
+    const lods2x = runWithCanvas({ width: 822, height: 1602, _webCanvas: { clientHeight: 801 } });
+    const lods3x = runWithCanvas({ width: 1233, height: 2403, _webCanvas: { clientHeight: 801 } });
+    const lodsUnnormalizedPhysical = runWithCanvas({ width: 822, height: 1602 });
+
+    expect(lods2x).toEqual(lods125x);
+    expect(lods3x).toEqual(lods125x);
+    // Confirm the test spans a real LOD boundary where un-normalized 2x physical height would pick finer LODs.
+    expect(lodsUnnormalizedPhysical.some((lod, i) => lod < lods2x[i]!)).toBe(true);
   });
 });

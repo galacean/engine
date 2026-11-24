@@ -225,10 +225,13 @@ export class RenderQueue {
           const instanceBuffer = engine._batcherManager.instanceBuffer;
 
           instanceBuffer.setLayout(layout);
-          rhi.bindUniformBufferBase(ConstantBufferBindingPoint.RendererInstance, instanceBuffer.buffer._platformBuffer);
           for (let start = 0; start < totalCount; start += maxCount) {
             const count = Math.min(maxCount, totalCount - start);
             instanceBuffer.upload(instancedRenderers, start, count);
+            rhi.bindUniformBufferBase(
+              ConstantBufferBindingPoint.RendererInstance,
+              instanceBuffer.buffer._platformBuffer
+            );
             primitive.instanceCount = count;
             rhi.drawPrimitive(primitive, subPrimitive, program);
           }

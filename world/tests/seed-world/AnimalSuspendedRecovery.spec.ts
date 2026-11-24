@@ -158,8 +158,8 @@ async function run(local: boolean, sameLake = false, unrelated = false) {
     host.synchronize(state.result.plan, config, navigation(state.result.plan));
     await host.preparePresentation();
     const runtime = (host as any).runtime;
-    expect(runtime.population.system.maxPlanningMilliseconds).toBe(2);
-    expect(runtime.population.system.maxPlanningSteps).toBe(512);
+    expect(runtime.population.system.maxPlanningMilliseconds).toBe(0.8);
+    expect(runtime.population.system.maxPlanningSteps).toBe(192);
     const actor = runtime.population?.actors[0];
     expect(actor, JSON.stringify(host.inspect())).toBeDefined();
 
@@ -361,4 +361,44 @@ it("PlanningAnimalHost.preloadModule caches module without constructing runtime 
   expect(constructed).toHaveBeenCalledTimes(2);
   expect(prepared).toHaveBeenCalledTimes(2);
   await host2.dispose();
+});
+
+it("PlanningAnimalRuntime preserves 30Hz average rate at 31-59 FPS while bounding slow frames to at most 1 step", async () => {
+  const root = new Entity({ resourceManager: { _deleteAsset() {}, _deleteContentRestorer() {} } } as unknown as Engine);
+  const observer = { x: 10000, z: 10000 };
+  const host = new PlanningAnimalHost(
+    root,
+    () => observer,
+    async () => ({ PlanningAnimalRuntime })
+  );
+  try {
+    const state = fixture();
+    host.synchronize(state.result.plan, config, navigation(state.result.plan));
+    await host.preparePresentation();
+    const runtime = (host as any).runtime;
+    const updateSpy = vi.spyOn(runtime.population.system, "update");
+
+    // 45 FPS for 1 second (45 frames) -> must run 30 fixed 30Hz steps (not 22).
+    updateSpy.mockClear();
+    runtime.simulationAccumulator = 0;
+    for (let i = 0; i < 45; i++) host.advance!(1 / 45);
+    expect(updateSpy).toHaveBeenCalledTimes(30);
+    expect(updateSpy.mock.calls[0]![0]).toBeCloseTo(1 / 30, 6);
+
+    // 31 FPS for 1 second (31 frames) -> must run 30 fixed 30Hz steps (not 15).
+    updateSpy.mockClear();
+    runtime.simulationAccumulator = 0;
+    for (let i = 0; i < 31; i++) host.advance!(1 / 31);
+    expect(updateSpy).toHaveBeenCalledTimes(30);
+
+    // Single 100ms hitch frame -> strictly bounded to 1 step, and a 0ms follow-up does not fire a second step.
+    updateSpy.mockClear();
+    runtime.simulationAccumulator = 0;
+    host.advance!(0.1);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    host.advance!(0);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+  } finally {
+    await host.dispose();
+  }
 });

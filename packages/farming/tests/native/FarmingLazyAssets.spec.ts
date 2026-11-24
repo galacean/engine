@@ -186,3 +186,59 @@ it("recovers missing maps on existing soil and perimeter after backoff", async (
     vi.useRealTimers();
   }
 });
+
+it("P1-16: StorageContainerPresenter stops auto-retrying on update()/setDeferOffscreenLoad() after prefab load error while allowing explicit prepare() retry", async () => {
+  const { Vector3 } = await import("@galacean/engine");
+  const { StorageContainerPresenter } = await import("../../src/farming/presentation/storage/StorageContainerPresenter");
+  const engine = await HeadlessEngine.create({ glTFLoader: { meshOpt: { workerCount: 0 } } });
+  try {
+    const parent = engine.sceneManager.activeScene!.createRootEntity("StorageRetryParent");
+    let shouldFail = true;
+    const fakePrefab = {
+      instantiate: () => parent.scene!.createRootEntity("StoragePrefabInstance")
+    };
+    const loadSpy = vi.spyOn(engine.resourceManager, "load").mockImplementation((async () => {
+      if (shouldFail) throw new Error("prefab fetch failed");
+      return fakePrefab as any;
+    }) as typeof engine.resourceManager.load);
+    const viewerPos = new Vector3(0, 0, 0);
+    const fakeService = {
+      getSnapshot: () => ({
+        farmId: "farm-retry",
+        storage: {
+          containers: [{ id: "cart-1", typeId: "cart", position: [5, 0, 0], yaw: 0, cropId: null, contents: [] }]
+        }
+      }),
+      subscribe: () => () => {}
+    } as any;
+    const presenter = new StorageContainerPresenter(
+      parent,
+      fakeService,
+      FARM_DEFINITIONS,
+      () => viewerPos,
+      false
+    );
+
+    await expect(presenter.prepare()).rejects.toThrow("prefab fetch failed");
+    expect(presenter.snapshot().error).toContain("prefab fetch failed");
+    const loadsAfterFailure = loadSpy.mock.calls.length;
+    expect(loadsAfterFailure).toBe(2);
+
+    // Subsequent update() frames and setDeferOffscreenLoad(false) must NOT storm failed loads.
+    for (let i = 0; i < 5; i++) {
+      presenter.update(0.016);
+    }
+    presenter.setDeferOffscreenLoad(false);
+    expect(loadSpy).toHaveBeenCalledTimes(loadsAfterFailure);
+
+    // Explicit prepare() clears this.error and retries cleanly once the network recovers.
+    shouldFail = false;
+    await presenter.prepare();
+    expect(loadSpy).toHaveBeenCalledTimes(loadsAfterFailure + 2);
+    expect(presenter.snapshot().error).toBeNull();
+    expect(presenter.snapshot().ready).toBe(true);
+    presenter.dispose();
+  } finally {
+    engine.destroy();
+  }
+});

@@ -18,9 +18,11 @@ import {
   cloneRuntimeProjectContent,
   cloneRuntimeProjectManifest,
   cloneRuntimeProjectPackage,
+  isRuntimeProjectStorageUnavailableError,
   RUNTIME_PROJECT_SAVE_VERSION,
   RuntimeProjectSnapshot,
   RuntimeProjectStorage,
+  RuntimeProjectStorageUnavailableError,
   runtimeProjectFiles,
   validateRuntimeProject,
   type RuntimeProjectManifest,
@@ -319,6 +321,11 @@ export class RuntimeProjectSession {
     return this.scripts.host;
   }
 
+  /** False when IndexedDB was unavailable and this session fell back to ephemeral in-memory storage. */
+  get isPersistent(): boolean {
+    return !this.storage.isInMemory;
+  }
+
   /** Package support is opt-in host configuration, never a flag loaded from project data. */
   static async open(
     id: string,
@@ -330,9 +337,35 @@ export class RuntimeProjectSession {
       prefetchedTextAssets?: ReadonlyMap<string, string>;
     } = {}
   ): Promise<RuntimeProjectSession> {
-    const storage = await RuntimeProjectStorage.open();
+    let storage: RuntimeProjectStorage;
     try {
-      const saved = await storage.load(id);
+      storage = await RuntimeProjectStorage.open();
+    } catch (error) {
+      if (!isRecoverableStorageError(error)) {
+        throw error;
+      }
+      console.warn(
+        "[RuntimeProjectSession] IndexedDB storage unavailable during open; falling back to in-memory storage.",
+        error
+      );
+      storage = RuntimeProjectStorage.createInMemory();
+    }
+    try {
+      let saved: RuntimeProjectPackage | undefined;
+      try {
+        saved = await storage.load(id);
+      } catch (error) {
+        if (!isRecoverableStorageError(error)) {
+          throw error;
+        }
+        console.warn(
+          "[RuntimeProjectSession] IndexedDB storage unavailable during load; falling back to in-memory storage.",
+          error
+        );
+        storage.close();
+        storage = RuntimeProjectStorage.createInMemory();
+        saved = undefined;
+      }
       const pack: RuntimeProjectPackage = saved ?? {
         version: RUNTIME_PROJECT_SAVE_VERSION,
         project: {
@@ -1279,6 +1312,13 @@ export class RuntimeProjectSession {
     this.hasProjectedResources = false;
     this.storage.close();
   }
+}
+
+function isRecoverableStorageError(error: unknown): boolean {
+  return (
+    isRuntimeProjectStorageUnavailableError(error) &&
+    !(error instanceof RuntimeProjectStorageUnavailableError && error.blocked)
+  );
 }
 
 function sameOptionalResourceContent(a: string | Uint8Array | undefined, b: string | Uint8Array | undefined): boolean {

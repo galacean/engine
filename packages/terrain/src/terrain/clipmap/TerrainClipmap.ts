@@ -38,6 +38,20 @@ const EDGE_B = 2;
 const FILL_A = 3;
 const FILL_B = 4;
 
+/**
+ * Opaque queue priority for Geometry Clipmap terrain segments.
+ *
+ * `RenderQueue.compareForOpaque` sorts ascending by priority, so drawing terrain
+ * after foreground opaque occluders (masonry buildings `-105..-98`, rocks, tree
+ * trunks, grass, and low-poly structures at `0`) lets hardware Early-Z / TBDR HSR
+ * reject occluded terrain fragments before running the multi-layer terrain shader,
+ * while keeping a uniform priority across segments to preserve instanced batching.
+ * Terrain remains in `RenderQueueType.Opaque`, so it still renders before
+ * `AlphaTest`, skybox, forward depth resolve, SSR, and `Transparent` passes
+ * (vista, farmland underlay, water, particles, HUD).
+ */
+export const TERRAIN_CLIPMAP_RENDER_PRIORITY = 50;
+
 type Offset = readonly [x: number, z: number];
 
 /** Height-grid capability required by Geometry Clipmap topology. */
@@ -725,7 +739,7 @@ export class TerrainClipmap {
       renderer.mesh = mesh;
       renderer.setMaterial(material);
       renderer.setLod(lod, this._offsets.meshSize);
-      renderer.priority = -200;
+      renderer.priority = TERRAIN_CLIPMAP_RENDER_PRIORITY;
       renderer.castShadows = false;
       renderer.receiveShadows = true;
       this._segments.push({

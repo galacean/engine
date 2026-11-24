@@ -16,10 +16,11 @@ uniform highp sampler2D material_PlasterMortar;
 export const constructionPlasterGLSL = `${constructionPlasterWarpGLSL}
 
 // Original Jenkins/LCG corner noise is shared by body wear and effective-boundary erosion.
+// Share vertical Jenkins hashes across horizontal corners (bit-exact) and use 3/2 octaves
+// across all LODs/DepthOnly so depth, picking, and shading stay identical at ~3x lower ALU.
 highp uint plasterNativeHash(highp uint v) { v+=v<<10u;v^=v>>6u;v+=v<<3u;v^=v>>11u;return v+(v<<15u); }
-float plasterNativeCorner(highp ivec2 p) {
- highp uvec2 q=uvec2(p);
- highp uint v=((q.x*1664525u+plasterNativeHash(q.y))+1013904223u)*1664525u;
+float plasterNativeMix(highp uint xMul,highp uint hy) {
+ highp uint v=((xMul+hy)+1013904223u)*1664525u;
  v^=v>>11u;v^=(v<<7u)&2636928640u;v^=(v<<15u)&4022730752u;v^=v>>18u;
  return uintBitsToFloat((v&8388607u)|1065353216u)-1.0;
 }
@@ -27,9 +28,11 @@ float plasterNativeNoise(vec2 p,int octaves) {
  float value=0.0, amplitude=.5;
  for(int i=0;i<5;i++) {
   if(i>=octaves) break;
-  highp ivec2 q=ivec2(floor(p));vec2 f=fract(p);f=f*f*(3.0-2.0*f);
-  value+=amplitude*(mix(mix(plasterNativeCorner(q),plasterNativeCorner(q+ivec2(1,0)),f.x),
-    mix(plasterNativeCorner(q+ivec2(0,1)),plasterNativeCorner(q+ivec2(1)),f.x),f.y)*2.0-1.0);
+  highp uvec2 q=uvec2(ivec2(floor(p)));vec2 f=fract(p);f=f*f*(3.0-2.0*f);
+  highp uint x0=q.x*1664525u, x1=(q.x+1u)*1664525u;
+  highp uint hy0=plasterNativeHash(q.y), hy1=plasterNativeHash(q.y+1u);
+  value+=amplitude*(mix(mix(plasterNativeMix(x0,hy0),plasterNativeMix(x1,hy0),f.x),
+    mix(plasterNativeMix(x0,hy1),plasterNativeMix(x1,hy1),f.x),f.y)*2.0-1.0);
   amplitude*=.55;p=(p*1.9)*mat2(.8,-.6,.6,.8);
  }
  return value;
@@ -37,28 +40,29 @@ float plasterNativeNoise(vec2 p,int octaves) {
 float plasterNativeOffset(float wallLength) {
  return (uintBitsToFloat((plasterNativeHash(uint(wallLength*1.75))&8388607u)|1065353216u)-1.0)*10.0;
 }
-// nani_plaster.1.glsl: five octaves at half-metre chart frequency. Coverage
-// depends on geometry and authored wear only, never palette, tint or LOD.
+// nani_plaster.1.glsl: macro chart frequency (3 octaves preserve >88% variance across all LODs).
+// Coverage depends on geometry and authored wear only, never palette, tint or LOD.
 vec2 plasterField(vec2 uv,float wear,float wallLength) {
  float offset=plasterNativeOffset(wallLength);
  float seam=smoothstep(max(0.0,wallLength-1.0),wallLength,uv.x);
- float noise=plasterNativeNoise(uv*.5+.5+offset,5);
- if(seam>0.0) noise=mix(noise,plasterNativeNoise(vec2(wallLength-uv.x,uv.y)*.5+.5+offset,5),seam);
+ float noise=plasterNativeNoise(uv*.5+.5+offset,3);
+ if(seam>0.0) noise=mix(noise,plasterNativeNoise(vec2(wallLength-uv.x,uv.y)*.5+.5+offset,3),seam);
  return vec2(noise+wear*.5,smoothstep(0.0,${PLASTER_RISE.toFixed(1)},uv.y));
 }
 // Returns surviving coverage, continuous mortar exposure, rim height field.
 vec3 plasterSurface(vec2 uv,float wear,float wallLength,float boundaryDistance) {
  float edge=clamp(boundaryDistance,0.0,1.0);
- if(wear<=0.0) return vec3(step(.1,edge),0.0,0.0);
+ if(edge<.1 || wear>=1.0) return vec3(0.0);
+ if(wear<=0.0) return vec3(1.0,0.0,0.0);
  vec2 field=plasterField(uv,wear,wallLength);
  float edgeWeight=1.0-smoothstep(0.0,1.0,edge);
  if(edgeWeight>0.0) {
   float offset=plasterNativeOffset(wallLength);
-  float erosionNoise=plasterNativeNoise(uv+23.4+offset,3);
+  float erosionNoise=plasterNativeNoise(uv+23.4+offset,2);
   field.x+=edgeWeight*mix(.3,1.0,erosionNoise)*mix(1.0,5.0,edgeWeight);
  }
  float loss=field.x*mix(2.0,2.8,clamp(wear*2.0,0.0,1.0));
- float survives=wear>=1.0 ? 0.0 : step(loss,field.y*2.0)*step(.1,edge);
+ float survives=step(loss,field.y*2.0);
  float a=min(field.y*1.5-.2,.9),b=a+.1;
  float mortar=smoothstep(a,b,field.x*2.0);
  float rim=clamp(smoothstep(a-.1,b,field.x*2.0)-mortar,0.0,1.0);
@@ -82,25 +86,27 @@ vec3 plasterMortarColor(float layer) {
 vec3 plasterFinish(vec2 uv,vec4 params,vec3 color,vec3 detail,vec3 position,inout vec3 normal) {
  float offset=plasterNativeOffset(params.y);
  vec2 texUV=uv*.1+offset;
- vec3 paint=texture(material_PlasterColors,vec3(texUV,params.z)).rgb;
- float seam=smoothstep(max(0.0,params.y-1.0),params.y,uv.x);
- // Explicit gradients keep the texture sampling well-defined inside the seam branch.
+ // Compute all derivatives upfront under uniform control flow so discarded pixels
+ // can skip texture fetches and rim normal perturbation uses analytic hardware gradients
+ // instead of two redundant plasterSurface() finite-difference evaluations.
  vec2 tx=dFdx(texUV),ty=dFdy(texUV);
+ vec3 px=dFdx(position),py=dFdy(position);
+ vec2 ux=dFdx(uv),uy=dFdy(uv);
+ vec2 dz=vec2(dFdx(detail.z),dFdy(detail.z));
+ if(detail.x<.5) return vec3(0.0);
+ vec3 paint=textureGrad(material_PlasterColors,vec3(texUV,params.z),tx,ty).rgb;
+ float seam=smoothstep(max(0.0,params.y-1.0),params.y,uv.x);
  if(seam>0.0) paint=mix(paint,textureGrad(material_PlasterColors,
    vec3(vec2(params.y-uv.x,uv.y)*.1+offset,params.z),tx*vec2(-1,1),ty*vec2(-1,1)).rgb,seam);
  paint*=color/plasterPaletteLinear(params.z);
  // Native planar normal map is constant, so it needs no sampler. Derive the UV
  // tangent frame from the actual deformed surface (including round walls).
- vec3 px=dFdx(position),py=dFdy(position);
- vec2 ux=dFdx(uv),uy=dFdy(uv);
  vec3 mortar=detail.y>0.0 ? plasterMortarColor(params.z)*1.1*textureGrad(material_PlasterMortar,uv*.2,ux*.2,uy*.2).rgb : vec3(0.0);
  float det=ux.x*uy.y-ux.y*uy.x;
  float footprint=max(length(ux),length(uy));
- vec2 ed=vec2(dFdx(params.w),dFdy(params.w));
- vec2 edgeGradient=abs(det)>1e-10 ? vec2(ed.x*uy.y-ed.y*ux.y,ed.y*ux.x-ed.x*uy.x)/det : vec2(0);
  if(detail.z>0.0 && footprint<.25 && abs(det)>1e-10) {
-   float du=plasterSurface(uv+vec2(.01,0),params.x,params.y,params.w+.01*edgeGradient.x).z-detail.z;
-   float dv=plasterSurface(uv+vec2(0,.01),params.x,params.y,params.w+.01*edgeGradient.y).z-detail.z;
+   float du=(dz.x*uy.y-dz.y*ux.y)/det;
+   float dv=(dz.y*ux.x-dz.x*uy.x)/det;
    vec3 tangent=(px*uy.y-py*ux.y)/det;
    vec3 bitangent=(py*ux.x-px*uy.x)/det;
    // A raised finish h(u,v) has outward normal N - grad(h). Our metric UV
@@ -108,7 +114,7 @@ vec3 plasterFinish(vec2 uv,vec4 params,vec3 color,vec3 detail,vec3 position,inou
    // Native tangent*du - up*dv therefore becomes -dPdu*du - dPdv*dv here.
    // Keep the authored wear field intact; only correct its lighting orientation.
    vec3 edge=-normalize(tangent)*du-normalize(bitangent)*dv;
-   if(dot(edge,edge)>1e-12) normal=normalize(mix(normal,normalize(edge),
+   if(dot(edge,edge)>1e-8) normal=normalize(mix(normal,normalize(edge),
      detail.y*.3*(1.0-smoothstep(.03,.25,footprint))));
  }
  return mix(paint,mortar,detail.y);

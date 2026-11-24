@@ -1,5 +1,5 @@
-import { expect, it } from "vitest";
-import { TextureFormat, WebGLEngine } from "@galacean/engine";
+import { expect, it, vi } from "vitest";
+import { Texture2D, TextureFormat, WebGLEngine } from "@galacean/engine";
 import { BUILTIN_WATER_PROJECT_URL, loadBuiltinWaterTexture } from "../src/water/native/WaterBuiltinAssets";
 
 it("loads every native Water KTX2 with its original dimensions, color space and complete mip chain", async () => {
@@ -40,6 +40,57 @@ it("loads every native Water KTX2 with its original dimensions, color space and 
       }
     }
   } finally {
+    engine.destroy();
+  }
+}, 60000);
+
+it("evicts pendingDestroy textures without reusing them, gates blob revocation on destroyed, and forwards isGC", async () => {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  const revokeSpy = vi.spyOn(URL, "revokeObjectURL");
+  const superResource = new Texture2D(engine, 1, 1);
+  try {
+    const path = "Water/Textures/ocean-smoothWaves.ktx2";
+    const first = await loadBuiltinWaterTexture(engine, path);
+    const second = await loadBuiltinWaterTexture(engine, path);
+    expect(second).toBe(first);
+    expect(first.refCount).toBe(2);
+    // Drop both borrows so refCount === 0, then associate an unreferenced superResource:
+    // ReferResource.destroy(false, false) must fail while destroy(false, true) succeeds via isGC.
+    first._addReferCount(-2);
+    first._associationSuperResource(superResource);
+    const frameEngine = engine as unknown as { _frameInProcess: boolean };
+    frameEngine._frameInProcess = true;
+    try {
+      expect(first.destroy(false, false)).toBe(false);
+      expect(first.pendingDestroy).toBe(false);
+      expect(first.destroyed).toBe(false);
+
+      expect(first.destroy(false, true)).toBe(true);
+      expect(first.pendingDestroy).toBe(true);
+      expect(first.destroyed).toBe(false);
+      // Blob URL must NOT be revoked before actual destruction completes.
+      expect(revokeSpy).not.toHaveBeenCalled();
+    } finally {
+      frameEngine._frameInProcess = false;
+    }
+
+    // Must NOT reuse the pendingDestroy texture from cache; loads a fresh live texture instead.
+    const fresh = await loadBuiltinWaterTexture(engine, path);
+    try {
+      expect(fresh).not.toBe(first);
+      expect(fresh.pendingDestroy).toBe(false);
+      expect(fresh.destroyed).toBe(false);
+      // Advancing the engine frame flushes pendingDestroy -> destroyed and revokes first's blob URL.
+      engine.update();
+      expect(first.destroyed).toBe(true);
+      expect(revokeSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      fresh._addReferCount(-1);
+      fresh.destroy(true);
+    }
+  } finally {
+    superResource.destroy(true);
+    revokeSpy.mockRestore();
     engine.destroy();
   }
 }, 60000);

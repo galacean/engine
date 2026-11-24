@@ -1,5 +1,8 @@
 import { createImmutableWaterSnapshot } from "@galacean/engine-water/water/authoring/identity/WaterImmutableSnapshot";
-import { createRiverWaterBodyAssetAsync } from "@galacean/engine-water/water/authoring/river/RiverWaterBodyAuthoring";
+import {
+  createRiverWaterBodyAsset,
+  createRiverWaterBodyAssetAsync
+} from "@galacean/engine-water/water/authoring/river/RiverWaterBodyAuthoring";
 import { createFarmlandsWaterResourceFactories } from "@galacean/engine-water/water/resources/river/FarmlandsWaterRuntimeResources";
 import { Layer, Vector3, type Camera, type Engine, type Entity, type MeshRenderer } from "@galacean/engine";
 import {
@@ -973,10 +976,25 @@ export class PlanningWaterRuntime {
         .map(([id]) => id)
     );
     for (const id of changed) this.requestCache.delete(id);
-    for (const river of changed.size ? planningRiverDescriptors(plan, changed) : []) {
-      const asset = createImmutableWaterSnapshot(
-        await createRiverWaterBodyAssetAsync(river, "planning-river-asset:" + river.id, signal)
-      );
+    const riverDescriptors = changed.size ? planningRiverDescriptors(plan, changed) : [];
+    // During initial boot (no active water bodies yet, behind the opaque loading screen),
+    // hash synchronously to avoid 2ms MessageChannel macrotask yields that defer
+    // RiverCompileWorker behind terrain/solids/building main-thread work.
+    const initialStartup = this.components.size === 0 && !update;
+    const riverAssets = initialStartup
+      ? riverDescriptors.map((river) =>
+          createImmutableWaterSnapshot(createRiverWaterBodyAsset(river, "planning-river-asset:" + river.id))
+        )
+      : await Promise.all(
+          riverDescriptors.map((river) =>
+            createRiverWaterBodyAssetAsync(river, "planning-river-asset:" + river.id, signal).then((asset) =>
+              createImmutableWaterSnapshot(asset)
+            )
+          )
+        );
+    for (let i = 0; i < riverDescriptors.length; i++) {
+      const river = riverDescriptors[i]!;
+      const asset = riverAssets[i]!;
       const points = river.segments.flatMap((segment) => segment.curve.points);
       const reach = (point: (typeof points)[number]) => (point.width ?? river.defaults.shape.width) / 2;
       requests.push({
