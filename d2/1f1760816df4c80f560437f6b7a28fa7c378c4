@@ -1,0 +1,27 @@
+packages/runtime-editor/tests/runtime-project.spec.ts
+  s_f97fc11ab7b962::t_a99b36e73b0c6b 1459-1463,1494-1500
+  s_f97fc11ab7b962::t_c0ec7d10023081 1417-1458,1464-1493,1501-1521
+packages/runtime-editor/src/project/runtime-project-session.ts
+  s_f97fc11ab7b962::t_222b50c5b1d404 565-566,568,570-571,573,575,578-585
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d21f1760816df4c80f560437f6b7a28fa7c378c4",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  },
+  "sessions": {
+    "s_f97fc11ab7b962": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20b70-7cc2-7151-823b-f614fd73a46d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
