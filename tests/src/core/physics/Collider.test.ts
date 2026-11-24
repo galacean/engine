@@ -151,7 +151,7 @@ describe("Collider", () => {
     const hit = new HitResult();
     const ray = new Ray(new Vector3(2.75, 4, 0), new Vector3(0, -1, 0));
     expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
-    const geometryWrites = vi.spyOn(box._native["_pxShape"], "setGeometry");
+    const geometryWrites = vi.spyOn(box["_native"]["_pxShape"], "setGeometry");
 
     const bodyEntity = root.createChild();
     bodyEntity.transform.setPosition(10, 0, 0);
@@ -174,7 +174,7 @@ describe("Collider", () => {
     const body = entity.addComponent(Rigidbody);
     const ray = new Ray(new Vector3(0, 0, -3), new Vector3(0, 0, 1));
     expect(physics.raycast(ray, 5)).toBe(true);
-    const geometryWrites = vi.spyOn(box._native["_pxShape"], "setGeometry");
+    const geometryWrites = vi.spyOn(box["_native"]["_pxShape"], "setGeometry");
     const massRebuilds = vi.spyOn(body["_nativeActor"]!, "updateMassAndInertia");
 
     for (let degrees = 1; degrees <= 20; degrees++) {
@@ -259,7 +259,7 @@ describe("Collider", () => {
     box.size = new Vector3(2, 4, 6);
     expect(box.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(4);
     expectPoint(closest, 1, 0, 0);
-    const geometryWrites = vi.spyOn(box._native["_pxShape"], "setGeometry");
+    const geometryWrites = vi.spyOn(box["_native"]["_pxShape"], "setGeometry");
     root.transform.setScale(2, 1, 1);
     box.size.set(4, 2, 2);
     expect(box.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(1);
@@ -272,7 +272,7 @@ describe("Collider", () => {
     const closest = new Vector3();
     sphere.radius = 0.5;
     expect(sphere.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(4.5);
-    const geometryWrites = vi.spyOn(sphere._native["_pxShape"], "setGeometry");
+    const geometryWrites = vi.spyOn(sphere["_native"]["_pxShape"], "setGeometry");
     root.transform.setScale(2, 1, 1);
     sphere.radius = 2;
     expect(sphere.getClosestPoint(new Vector3(5, 0, 0), closest)).toBeCloseTo(1);
@@ -831,11 +831,11 @@ describe("Collider", () => {
       expect(capsule.getClosestPoint(new Vector3(-5, 5, 0), new Vector3())).toBeCloseTo(4, 4);
 
       // Decreasing height below 2 * radius reuses the sphere shape in-place without recreating it
-      const spherePxShape = (capsule._native as any)._pxShape;
+      const spherePxShape = (capsule["_native"] as any)._pxShape;
       capsule.height = 0.5;
       expect(physics.raycast(verticalRay, hit)).toBe(true);
       expect(hit.distance).toBeCloseTo(4, 4);
-      expect((capsule._native as any)._pxShape).toBe(spherePxShape);
+      expect((capsule["_native"] as any)._pxShape).toBe(spherePxShape);
 
       // Increasing height above 2 * radius restores a full capsule
       capsule.height = 4;
@@ -1076,7 +1076,7 @@ describe("Collider", () => {
       const hit = new HitResult();
 
       expect(physics.raycast(ray, hit)).toBe(true);
-      const pxShape = (capsule._native as any)._pxShape;
+      const pxShape = (capsule["_native"] as any)._pxShape;
       const setGeometrySpy = vi.spyOn(pxShape, "setGeometry");
 
       // Same-frame transition: (X, scale=(1,1,1)) -> (Y, scale=(0,1,1)) stays valid
@@ -1207,7 +1207,7 @@ describe("Collider", () => {
       const child = bodyEntity.createChild("collider");
       const box = child.addComponent(BoxCollider);
       expect(physics.raycast(downwardRay(0), hit) && hit.collider === box).toBe(true);
-      const geometryWrites = vi.spyOn(box._native["_pxShape"], "setGeometry");
+      const geometryWrites = vi.spyOn(box["_native"]["_pxShape"], "setGeometry");
       const massSpy = vi.spyOn((body as any)._nativeActor, "updateMassAndInertia");
       for (let i = 1; i <= 90; i++) {
         bodyEntity.transform.setRotation(0, i * 3.7, 0);
@@ -1525,7 +1525,7 @@ describe("Collider", () => {
       expect(hit.collider).toBe(childBox);
       expect(physics.raycast(new Ray(new Vector3(2, 5, 0), new Vector3(0, -1, 0)), 10)).toBe(false);
 
-      // Subsequent position-only child edit triggers _poseOnlyDirty and must preserve signed _poseScale.
+      // Subsequent position-only child edit triggers _poseOnlyDirty and must preserve signed world scale.
       child.transform.setPosition(0, 0, 3);
       expect(physics.raycast(new Ray(new Vector3(-2, 5, 3), new Vector3(0, -1, 0)), 10, hit)).toBe(true);
       expect(hit.collider).toBe(childBox);

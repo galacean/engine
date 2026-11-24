@@ -36,21 +36,34 @@ export class Collider extends Component implements ICloneHook<Collider> {
   private static readonly _tempInverseBodyRotation = new Quaternion();
   private static readonly _tempScale = new Vector3();
 
+  /**
+   * @internal
+   * @returns The index of a single collision layer
+   * @throws When the value is not exactly one of `Layer.Layer0` to `Layer.Layer31`.
+   */
+  static _getLayerIndex(layer: Layer): number {
+    const index = 31 - Math.clz32(layer);
+    if (index < 0 || (1 << index) >>> 0 !== layer) {
+      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
+    }
+    return index;
+  }
+
   /** @internal */
   @ignoreClone
   _id: number;
-  /** @internal The native shape, created from the current fields when first needed. */
-  @ignoreClone
-  _native: IPhysicsShape | null = null;
   /** @internal */
   @ignoreClone
   _dirtyIndex = -1;
   /** @internal The Rigidbody whose native actor holds the shape. */
   @ignoreClone
   _attachedBody: Rigidbody | null = null;
+
+  /** The native shape, created from the current fields when first needed. */
+  @ignoreClone
+  protected _native: IPhysicsShape | null = null;
   @ignoreClone
   protected _registeredScene: Scene | null = null;
-
   /** Index of the single collision layer. */
   protected _collisionLayerIndex = 0;
   @ignoreClone
@@ -63,8 +76,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   @ignoreClone
   private _poseOnlyDirty = false;
-  @ignoreClone
-  private _poseScale = new Vector3(1, 1, 1);
   @ignoreClone
   private _nativeActor: IPhysicsActor | null = null;
   @ignoreClone
@@ -182,19 +193,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * @returns The index of a single collision layer
-   * @throws When the value is not exactly one of `Layer.Layer0` to `Layer.Layer31`.
-   */
-  static _getLayerIndex(layer: Layer): number {
-    const index = 31 - Math.clz32(layer);
-    if (index < 0 || (1 << index) >>> 0 !== layer) {
-      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
-    }
-    return index;
-  }
-
-  /**
-   * @internal
    * @throws When physics is not initialized on the Engine.
    */
   constructor(entity: Entity) {
@@ -306,7 +304,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
     const worldMatrix = transform.worldMatrix;
     if (poseOnly) {
-      this._syncShapePose(this._native!, this._attachedBody, this._poseScale, false);
+      this._syncShapePose(this._native!, this._attachedBody, transform.lossyWorldScale, false);
       return;
     }
 
@@ -331,22 +329,18 @@ export class Collider extends Component implements ICloneHook<Collider> {
     // Replace geometry only on the actor that owns this Collider in the current hierarchy.
     this._nativeActor && this._attachedBody !== body && this._detach();
 
-    const scaleX = lossyScale.x;
-    const scaleY = lossyScale.y;
-    const scaleZ = lossyScale.z;
-    const scale = Collider._tempScale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
+    const scale = Collider._tempScale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
     const previousShape = this._native;
     const shape = this._syncNativeShape(scale);
     if (!shape) {
       this._detach();
       return;
     }
-    scale.set(scaleX, scaleY, scaleZ);
 
     const attachedActor = this._nativeActor;
     const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform);
     const replaced = shape !== previousShape;
-    this._syncShapePose(shape, body, scale, replaced);
+    this._syncShapePose(shape, body, lossyScale, replaced);
     if (!attachedActor) {
       actor.addShape(shape);
       if (body) {
@@ -363,7 +357,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
       this._native = shape;
       previousShape?.destroy();
     }
-    this._poseScale.copyFrom(scale);
   }
 
   /**
@@ -397,14 +390,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * Whether this Collider's declared configuration can belong to a non-kinematic Rigidbody.
-   */
-  _supportsDynamicBody(): boolean {
-    return true;
-  }
-
-  /**
-   * @internal
    * Whether the currently attached native shape can belong to a non-kinematic Rigidbody.
    */
   _nativeSupportsDynamicBody(): boolean {
@@ -433,6 +418,13 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
     }
     return null;
+  }
+
+  /**
+   * Whether this Collider's declared configuration can belong to a non-kinematic Rigidbody.
+   */
+  protected _supportsDynamicBody(): boolean {
+    return true;
   }
 
   /**

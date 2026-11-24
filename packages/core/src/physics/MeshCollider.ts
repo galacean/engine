@@ -144,13 +144,6 @@ export class MeshCollider extends Collider {
   /**
    * @internal
    */
-  override _supportsDynamicBody(): boolean {
-    return this._convex || !this._mesh;
-  }
-
-  /**
-   * @internal
-   */
   override _nativeSupportsDynamicBody(): boolean {
     return this._nativeConvex;
   }
@@ -174,6 +167,10 @@ export class MeshCollider extends Collider {
       this._nativeMesh = null;
       this._destroyNative();
     }
+  }
+
+  protected override _supportsDynamicBody(): boolean {
+    return this._convex || !this._mesh;
   }
 
   protected override _setIsTrigger(value: boolean): void {
