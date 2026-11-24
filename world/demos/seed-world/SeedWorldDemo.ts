@@ -808,6 +808,17 @@ export async function mountSeedWorldDemo(
     const initialProject = await timed("registerTerrainProjectResources", () =>
       registerTerrainProjectResources(engine!, projectUrl, preloadedProject)
     );
+    if (initialProject.textureDownloadPaths) {
+      const urls = new Map(
+        Object.entries(initialProject.textureDownloadPaths).map(([source, target]) => [
+          new URL(source, projectUrl).href,
+          new URL(target, projectUrl).href
+        ] as const)
+      );
+      (
+        engine!.resourceManager as { setDownloadUrls?: (urls: ReadonlyMap<string, string>) => void }
+      ).setDownloadUrls?.(urls);
+    }
     runtimeProject = await timed("openSeedWorldProject", () =>
       openSeedWorldProject(pageUrl, initialProject, prefetchedTextAssets)
     );
