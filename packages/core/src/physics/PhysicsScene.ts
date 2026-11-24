@@ -348,12 +348,12 @@ export class PhysicsScene {
 
     const normalizedDirection = distance > 0 ? this._syncCastDirection(ray.direction) : null;
 
-    const writer = hitResult && HitResultWriter.acquire(hitResult);
+    const writer = hitResult && HitResultWriter._acquire(hitResult);
     let result = false;
     if (normalizedDirection) {
-      result = this._nativePhysicsScene.raycast(ray.origin, normalizedDirection, distance, layerMask, writer?.onHit);
+      result = this._nativePhysicsScene.raycast(ray.origin, normalizedDirection, distance, layerMask, writer?._onHit);
     }
-    writer?.finish();
+    writer?._finish();
     return result;
   }
 
@@ -403,11 +403,11 @@ export class PhysicsScene {
     }
 
     const normalizedDirection = distance > 0 ? this._syncCastDirection(ray.direction) : null;
-    const writer = HitResultWriter.acquire(outHitResults);
+    const writer = HitResultWriter._acquire(outHitResults);
     if (normalizedDirection) {
-      this._nativePhysicsScene.raycastAll(ray.origin, normalizedDirection, distance, layerMask, writer.onHit);
+      this._nativePhysicsScene.raycastAll(ray.origin, normalizedDirection, distance, layerMask, writer._onHit);
     }
-    return writer.finish();
+    return writer._finish();
   }
 
   /**
@@ -486,7 +486,7 @@ export class PhysicsScene {
     const normalizedDirection =
       distance > 0 && PhysicsScene._isValidBoxExtents(halfExtents) ? this._syncCastDirection(direction) : null;
 
-    const writer = hitResult && HitResultWriter.acquire(hitResult);
+    const writer = hitResult && HitResultWriter._acquire(hitResult);
     let result = false;
     if (normalizedDirection) {
       result = this._nativePhysicsScene.boxCast(
@@ -496,10 +496,10 @@ export class PhysicsScene {
         normalizedDirection,
         distance,
         mask,
-        writer?.onHit
+        writer?._onHit
       );
     }
-    writer?.finish();
+    writer?._finish();
     return result;
   }
 
@@ -560,7 +560,7 @@ export class PhysicsScene {
     const normalizedDirection =
       distance > 0 && isValidPositiveFloat32(radius) ? this._syncCastDirection(direction) : null;
 
-    const writer = hitResult && HitResultWriter.acquire(hitResult);
+    const writer = hitResult && HitResultWriter._acquire(hitResult);
     let result = false;
     if (normalizedDirection) {
       result = this._nativePhysicsScene.sphereCast(
@@ -569,10 +569,10 @@ export class PhysicsScene {
         normalizedDirection,
         distance,
         layerMask,
-        writer?.onHit
+        writer?._onHit
       );
     }
-    writer?.finish();
+    writer?._finish();
     return result;
   }
 
@@ -660,10 +660,10 @@ export class PhysicsScene {
         ? this._syncCastDirection(direction)
         : null;
 
-    const writer = hitResult && HitResultWriter.acquire(hitResult);
+    const writer = hitResult && HitResultWriter._acquire(hitResult);
     let result = false;
     if (normalizedDirection) {
-      const onHit = writer?.onHit;
+      const onHit = writer?._onHit;
       result = isValidPositiveFloat32(halfCylinderHeight)
         ? this._nativePhysicsScene.capsuleCast(
             center,
@@ -677,7 +677,7 @@ export class PhysicsScene {
           )
         : this._nativePhysicsScene.sphereCast(center, radius, normalizedDirection, distance, mask, onHit);
     }
-    writer?.finish();
+    writer?._finish();
     return result;
   }
 
@@ -940,7 +940,7 @@ export class PhysicsScene {
    * @internal
    */
   _gc(): void {
-    HitResultWriter.gc();
+    HitResultWriter._gc();
     PhysicsScene._dispatchReceivers.length = 0;
     this._nativePhysicsScene?.gc();
   }
@@ -950,7 +950,7 @@ export class PhysicsScene {
    */
   _destroy(): void {
     this._gravity._onValueChanged = null;
-    HitResultWriter.gc();
+    HitResultWriter._gc();
     PhysicsScene._dispatchReceivers.length = 0;
     this._triggerReceivers.clear();
     this._pendingSleeps = undefined;
@@ -1103,18 +1103,21 @@ export class PhysicsScene {
   }
 }
 
-/** Holds caller output only while its synchronous physics query is active. */
+/**
+ * Holds caller output only while its synchronous physics query is active.
+ * @internal
+ */
 class HitResultWriter {
   private static readonly _idle: HitResultWriter[] = [];
   private static readonly _hitPool: HitResult[] = [];
 
-  static acquire(output: HitResult | HitResult[]): HitResultWriter {
+  static _acquire(output: HitResult | HitResult[]): HitResultWriter {
     const writer = HitResultWriter._idle.pop() ?? new HitResultWriter();
     writer._output = output;
     return writer;
   }
 
-  static gc(): void {
+  static _gc(): void {
     HitResultWriter._idle.length = 0;
     HitResultWriter._hitPool.length = 0;
   }
@@ -1133,7 +1136,7 @@ class HitResultWriter {
   }
 
   // Output observers can start another query and overwrite the borrowed vectors.
-  readonly onHit = (id: number, distance: number, { x, y, z }: Vector3, { x: nx, y: ny, z: nz }: Vector3): void => {
+  readonly _onHit = (id: number, distance: number, { x, y, z }: Vector3, { x: nx, y: ny, z: nz }: Vector3): void => {
     const collider = Engine._physicalObjectsMap[id];
     const output = this._output!;
     const index = this._count++;
@@ -1145,11 +1148,11 @@ class HitResultWriter {
     hit.normal.set(nx, ny, nz);
   };
 
-  private _output: HitResult | HitResult[] | null = null;
+  private _output?: HitResult | HitResult[];
   private _count = 0;
   private _discarded?: Set<HitResult>;
 
-  finish(): boolean {
+  _finish(): boolean {
     const output = this._output!;
     const count = this._count;
     if (Array.isArray(output)) {
@@ -1171,7 +1174,7 @@ class HitResultWriter {
     } else if (!count) {
       HitResultWriter._clear(output);
     }
-    this._output = null;
+    this._output = undefined;
     this._count = 0;
     HitResultWriter._idle.push(this);
     return count > 0;
