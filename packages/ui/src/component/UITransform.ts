@@ -242,11 +242,12 @@ export class UITransform extends Transform {
    */
   override _parentChange(oldParent?: Transform | null, keepWorldTransform: boolean = false): void {
     if (keepWorldTransform) {
-      this._preserveWorldPose(oldParent ?? null);
+      super._parentChange(oldParent, true);
+      this._updateWorldFlagWithParentRectChange(0);
     } else {
       this._isParentDirty = true;
+      this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
     }
-    this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
   }
 
   /**

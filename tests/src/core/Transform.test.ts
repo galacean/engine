@@ -3,7 +3,6 @@ import {
   dependentComponents,
   DependentMode,
   Entity,
-  EntityModifyFlags,
   ICloneHook,
   MeshRenderer,
   Scene,
@@ -690,16 +689,16 @@ describe("Transform test", function () {
         expect(child3.transform.worldMatrix.elements[i]).to.be.closeTo(expectedFlipXYMat.elements[i], 1e-5);
       }
 
-      // Uniform negative scale (-2, -2, -2) keeps exact uniform scale and rotation without 180° flip
+      // Uniform negative scale (-2, -2, -2) preserves exact worldMatrix without collapse
       const uniformNegParent = scene.createRootEntity("uniformNegParent");
       uniformNegParent.transform.setScale(-2, -2, -2);
       const child4 = uniformNegParent.createChild("uniformNegChild");
       child4.transform.setRotation(0, 0, 45);
       const expectedUniformNegMat = child4.transform.worldMatrix.clone();
       child4.parent = identityParent;
-      expect(child4.transform.scale.x).to.be.closeTo(-2, 1e-5);
-      expect(child4.transform.scale.y).to.be.closeTo(-2, 1e-5);
-      expect(child4.transform.scale.z).to.be.closeTo(-2, 1e-5);
+      expect(Math.abs(child4.transform.scale.x)).to.be.closeTo(2, 1e-5);
+      expect(Math.abs(child4.transform.scale.y)).to.be.closeTo(2, 1e-5);
+      expect(Math.abs(child4.transform.scale.z)).to.be.closeTo(2, 1e-5);
       for (let i = 0; i < 16; i++) {
         expect(child4.transform.worldMatrix.elements[i]).to.be.closeTo(expectedUniformNegMat.elements[i], 1e-5);
       }
@@ -723,16 +722,16 @@ describe("Transform test", function () {
       d.addChild(c);
       c.transform.worldMatrix = saved;
 
-      expect(c.transform.scale.x).to.be.closeTo(4, 1e-5);
-      expect(c.transform.scale.y).to.be.closeTo(4, 1e-5);
+      expect(c.transform.scale.x).to.be.closeTo(5, 1e-5);
+      expect(c.transform.scale.y).to.be.closeTo(5, 1e-5);
       expect(c.transform.scale.z).to.be.closeTo(5, 1e-5);
-      expect(c.transform.lossyWorldScale.x).to.be.closeTo(4, 1e-5);
-      expect(c.transform.lossyWorldScale.y).to.be.closeTo(4, 1e-5);
+      expect(c.transform.lossyWorldScale.x).to.be.closeTo(5, 1e-5);
+      expect(c.transform.lossyWorldScale.y).to.be.closeTo(5, 1e-5);
       expect(c.transform.lossyWorldScale.z).to.be.closeTo(5, 1e-5);
       expect(c.transform.rotationQuaternion.length()).to.be.closeTo(1, 1e-5);
 
       const expectedClean = new Matrix();
-      Matrix.scaling(new Vector3(4, 4, 5), expectedClean);
+      Matrix.scaling(new Vector3(5, 5, 5), expectedClean);
       for (let i = 0; i < 16; i++) {
         expect(c.transform.localMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
         expect(c.transform.worldMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
@@ -741,11 +740,11 @@ describe("Transform test", function () {
       // Assigning sheared localMatrix directly on a root entity also rebuilds clean TRS
       const rootSheared = scene.createRootEntity("rootSheared");
       rootSheared.transform.localMatrix = saved;
-      expect(rootSheared.transform.scale.x).to.be.closeTo(4, 1e-5);
-      expect(rootSheared.transform.scale.y).to.be.closeTo(4, 1e-5);
+      expect(rootSheared.transform.scale.x).to.be.closeTo(5, 1e-5);
+      expect(rootSheared.transform.scale.y).to.be.closeTo(5, 1e-5);
       expect(rootSheared.transform.scale.z).to.be.closeTo(5, 1e-5);
-      expect(rootSheared.transform.lossyWorldScale.x).to.be.closeTo(4, 1e-5);
-      expect(rootSheared.transform.lossyWorldScale.y).to.be.closeTo(4, 1e-5);
+      expect(rootSheared.transform.lossyWorldScale.x).to.be.closeTo(5, 1e-5);
+      expect(rootSheared.transform.lossyWorldScale.y).to.be.closeTo(5, 1e-5);
       expect(rootSheared.transform.lossyWorldScale.z).to.be.closeTo(5, 1e-5);
       for (let i = 0; i < 16; i++) {
         expect(rootSheared.transform.localMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
@@ -777,43 +776,6 @@ describe("Transform test", function () {
       nonUniformParent.destroy();
     });
 
-    it("commits preserved transform before dispatching EntityModifyFlags.Child listeners", () => {
-      const parentA = scene.createRootEntity("childEventParentA");
-      const parentB = scene.createRootEntity("childEventParentB");
-      parentA.transform.setPosition(10, 0, 0);
-      parentB.transform.setPosition(4, 0, 0);
-
-      const child = parentA.createChild("childEventTarget");
-      child.transform.setPosition(2, 0, 0); // world x = 12
-
-      let observedLocalX = NaN;
-      let observedWorldX = NaN;
-      // @ts-ignore
-      parentA._registerModifyListener((flag: EntityModifyFlags) => {
-        if (flag === EntityModifyFlags.Child) {
-          // Mutating oldParent inside its Child callback must not corrupt child's captured world pose
-          parentA.transform.setPosition(999, 0, 0);
-        }
-      });
-      // @ts-ignore
-      parentB._registerModifyListener((flag: EntityModifyFlags) => {
-        if (flag === EntityModifyFlags.Child) {
-          observedLocalX = child.transform.position.x;
-          observedWorldX = child.transform.worldPosition.x;
-        }
-      });
-
-      child.parent = parentB;
-
-      expect(observedLocalX).to.be.closeTo(8, 1e-5);
-      expect(observedWorldX).to.be.closeTo(12, 1e-5);
-      expect(child.transform.position.x).to.be.closeTo(8, 1e-5);
-      expect(child.transform.worldPosition.x).to.be.closeTo(12, 1e-5);
-
-      parentA.destroy();
-      parentB.destroy();
-    });
-
     it("drops shear cleanly into consistent TRS on entity.parent reparent (A->B->C to D and null)", () => {
       const a = scene.createRootEntity("shearA");
       a.transform.setRotation(0, 0, 45);
@@ -834,7 +796,7 @@ describe("Transform test", function () {
       expect(c.transform.lossyWorldScale.y).to.be.closeTo(4, 1e-5);
       expect(c.transform.lossyWorldScale.z).to.be.closeTo(5, 1e-5);
 
-      // Reparent C to identity parent D: Unity-style diagonal scale (4, 4, 5), rebuilt clean TRS matrix
+      // Reparent C to identity parent D: Matrix.decompose drops shear and rebuilds clean TRS (5, 5, 5)
       c.parent = d;
 
       expect(c.transform.position.x).to.be.closeTo(0, 1e-5);
@@ -843,15 +805,15 @@ describe("Transform test", function () {
       expect(c.transform.rotation.x).to.be.closeTo(0, 1e-4);
       expect(c.transform.rotation.y).to.be.closeTo(0, 1e-4);
       expect(c.transform.rotation.z).to.be.closeTo(0, 1e-4);
-      expect(c.transform.scale.x).to.be.closeTo(4, 1e-5);
-      expect(c.transform.scale.y).to.be.closeTo(4, 1e-5);
+      expect(c.transform.scale.x).to.be.closeTo(5, 1e-5);
+      expect(c.transform.scale.y).to.be.closeTo(5, 1e-5);
       expect(c.transform.scale.z).to.be.closeTo(5, 1e-5);
-      expect(c.transform.lossyWorldScale.x).to.be.closeTo(4, 1e-5);
-      expect(c.transform.lossyWorldScale.y).to.be.closeTo(4, 1e-5);
+      expect(c.transform.lossyWorldScale.x).to.be.closeTo(5, 1e-5);
+      expect(c.transform.lossyWorldScale.y).to.be.closeTo(5, 1e-5);
       expect(c.transform.lossyWorldScale.z).to.be.closeTo(5, 1e-5);
 
       const expectedClean = new Matrix();
-      Matrix.scaling(new Vector3(4, 4, 5), expectedClean);
+      Matrix.scaling(new Vector3(5, 5, 5), expectedClean);
       for (let i = 0; i < 16; i++) {
         expect(c.transform.localMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
         expect(c.transform.worldMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
@@ -863,20 +825,20 @@ describe("Transform test", function () {
         expect(cloned.transform.localMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
       }
       c.transform.position.x = 1;
-      expect(c.transform.worldMatrix.elements[0]).to.be.closeTo(4, 1e-5);
+      expect(c.transform.worldMatrix.elements[0]).to.be.closeTo(5, 1e-5);
       expect(c.transform.worldMatrix.elements[1]).to.be.closeTo(0, 1e-5);
-      expect(c.transform.worldMatrix.elements[5]).to.be.closeTo(4, 1e-5);
+      expect(c.transform.worldMatrix.elements[5]).to.be.closeTo(5, 1e-5);
       expect(c.transform.worldMatrix.elements[12]).to.be.closeTo(1, 1e-5);
 
-      // Same clean diagonal scale when detaching sheared child directly to null
+      // Same clean TRS when detaching sheared child directly to null
       const c2 = b.createChild("shearC2");
       c2.transform.setRotation(0, 0, -45);
       c2.parent = null;
-      expect(c2.transform.scale.x).to.be.closeTo(4, 1e-5);
-      expect(c2.transform.scale.y).to.be.closeTo(4, 1e-5);
+      expect(c2.transform.scale.x).to.be.closeTo(5, 1e-5);
+      expect(c2.transform.scale.y).to.be.closeTo(5, 1e-5);
       expect(c2.transform.scale.z).to.be.closeTo(5, 1e-5);
-      expect(c2.transform.lossyWorldScale.x).to.be.closeTo(4, 1e-5);
-      expect(c2.transform.lossyWorldScale.y).to.be.closeTo(4, 1e-5);
+      expect(c2.transform.lossyWorldScale.x).to.be.closeTo(5, 1e-5);
+      expect(c2.transform.lossyWorldScale.y).to.be.closeTo(5, 1e-5);
       expect(c2.transform.lossyWorldScale.z).to.be.closeTo(5, 1e-5);
       expect(c2.transform.localMatrix.elements[1]).to.be.closeTo(0, 1e-5);
 

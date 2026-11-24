@@ -186,7 +186,6 @@ export class Entity extends EngineObject {
 
   /**
    * The parent entity, or null if this entity has no parent.
-   * @remarks Assigning `parent` recalculates the entity's local transform to preserve its world pose (dropping any unrepresentable local shear). Use `addChild` / `removeChild` to preserve the local transform instead.
    */
   get parent(): Entity | null {
     return this._parent;
@@ -348,14 +347,12 @@ export class Entity extends EngineObject {
 
   /**
    * Add child entity.
-   * @remarks Preserves the child's local transform. Assign `child.parent` to preserve its world pose instead.
    * @param child - The child entity which want to be added
    */
   addChild(child: Entity): void;
 
   /**
    * Add child entity at specified index.
-   * @remarks Preserves the child's local transform. Assign `child.parent` to preserve its world pose instead.
    * @param index - specified index
    * @param child - The child entity which want to be added
    */
@@ -374,7 +371,6 @@ export class Entity extends EngineObject {
 
   /**
    * Remove child entity.
-   * @remarks Preserves the child's local transform. Assign `child.parent = null` to preserve its world pose instead.
    * @param child - The child entity which want to be removed
    */
   removeChild(child: Entity): void {
@@ -655,6 +651,11 @@ export class Entity extends EngineObject {
     this._modifyFlagManager?.dispatch(flag, param);
   }
 
+  private _addToChildrenList(index: number | undefined, child: Entity): void {
+    Entity._addToChildren(this._children, child, index);
+    this._dispatchModify(EntityModifyFlags.Child, this);
+  }
+
   private _setParent(parent: Entity | null, siblingIndex?: number, keepWorldTransform: boolean = false): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
@@ -662,18 +663,15 @@ export class Entity extends EngineObject {
       if (this._isRoot) {
         Entity._removeFromChildren(this._scene!._rootEntities, this);
         this._isRoot = false;
-      } else if (oldParent != null) {
-        Entity._removeFromChildren(oldParent._children, this);
-        this._parent = null;
+      } else {
+        this._removeFromParent();
       }
       this._parent = parent;
       if (parent) {
         this._isRoot = false;
-        Entity._addToChildren(parent._children, this, siblingIndex);
+        parent._addToChildrenList(siblingIndex, this);
       }
       this._transform._parentChange(oldParentTransform, keepWorldTransform);
-      oldParent?._dispatchModify(EntityModifyFlags.Child, oldParent);
-      parent?._dispatchModify(EntityModifyFlags.Child, parent);
       if (parent) {
         const oldScene = this._scene;
         const parentScene = parent._scene;
