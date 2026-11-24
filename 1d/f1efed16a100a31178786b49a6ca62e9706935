@@ -1,0 +1,60 @@
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases-v4.ts
+  h_ddbf152d31b140 623,627
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases.ts
+  h_ddbf152d31b140 1228-1229
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/seed-world-headless-fixture.ts
+  h_ddbf152d31b140 1003-1021,1025-1044,1082-1100,1646-1649,1673-1676,1841-1849,1859-1901
+packages/ai-chat/src/ai-chat/README.md
+  h_ddbf152d31b140 150
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  h_ddbf152d31b140 12,72,78-81,140,149,243,254,348-349,360-361,419-420,425-426,457,472,496-499,938-939,1016-1017,1034-1069,1169,1172,1247-1280,1287-1294,1302-1308,1361
+packages/ai-chat/src/ai-chat/agent-native-files.ts
+  h_ddbf152d31b140 11,37-38,40-41,43-48,51-52,54-55,58-62,163-164,207-217
+packages/ai-chat/src/ai-chat/agent-script-checker.ts
+  h_ddbf152d31b140 170-267,340-349,353-363,365,367,369,371-375
+packages/ai-chat/src/ai-chat/ai-chat-session.ts
+  h_ddbf152d31b140 44
+packages/ai-chat/src/ai-chat/context-compaction.ts
+  h_ddbf152d31b140 260,264-292
+packages/ai-chat/tests/agent-file-tools.spec.ts
+  h_ddbf152d31b140 533-602
+packages/ai-chat/tests/agent-native-files.spec.ts
+  h_ddbf152d31b140 2-8,529-600
+packages/ai-chat/tests/context-compaction-loop.spec.ts
+  h_ddbf152d31b140 243-358
+packages/ai-chat/tests/context-compaction.spec.ts
+  h_ddbf152d31b140 280-309
+packages/animals/src/skills/animals/SKILL.md
+  h_ddbf152d31b140 49
+packages/building/src/skills/building/SKILL.md
+  h_ddbf152d31b140 32
+packages/building/src/skills/building/references/structure.md
+  h_ddbf152d31b140 3-14
+packages/building/src/skills/building/references/wall.md
+  h_ddbf152d31b140 15
+packages/runtime-editor/src/skills/components/SKILL.md
+  h_ddbf152d31b140 24,26-35
+packages/runtime-editor/src/skills/history/SKILL.md
+  h_ddbf152d31b140 11-12
+packages/terrain/src/skills/terrain/SKILL.md
+  h_ddbf152d31b140 10
+packages/vegetation/src/skills/vegetation/SKILL.md
+  h_ddbf152d31b140 12
+packages/water/src/skills/water/SKILL.md
+  h_ddbf152d31b140 8,38
+world/demos/seed-world/agent-adapter/skills/runtime/SKILL.md
+  h_ddbf152d31b140 12
+world/demos/seed-world/agent-adapter/skills/spatial/SKILL.md
+  h_ddbf152d31b140 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1df1efed16a100a31178786b49a6ca62e9706935",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
