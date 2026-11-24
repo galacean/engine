@@ -134,7 +134,6 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
 
   /**
    * {@inheritDoc IDynamicActor.setSleepThreshold }
-   * @default 1e-5f * PxTolerancesScale::speed * PxTolerancesScale::speed
    */
   setSleepThreshold(value: number): void {
     this._pxActor.setSleepThreshold(value);
@@ -218,20 +217,17 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
    */
   move(position: Vector3 | null, rotation: Quaternion | null): void {
     const actor = this._pxActor;
-    const tempRotation = PhysXDynamicActor._tempRotation;
-    if (position && rotation) {
-      tempRotation.set(0, 0, 0, 1);
-      Quaternion.normalize(rotation, tempRotation);
-      actor.setKinematicTarget(position, tempRotation);
+    if (rotation) {
+      const { x, y, z, w } = rotation;
+      const length = Math.hypot(x, y, z, w);
+      if (!Number.isFinite(length) || length === 0) return;
+      const tempRotation = PhysXDynamicActor._tempRotation;
+      tempRotation.set(x / length, y / length, z / length, w / length);
+      const targetPosition = position ?? (actor.getKinematicTarget() ?? actor.getGlobalPose()).translation;
+      actor.setKinematicTarget(targetPosition, tempRotation);
     } else if (position) {
       const pose = actor.getKinematicTarget() ?? actor.getGlobalPose();
       actor.setKinematicTarget(position, pose.rotation);
-    } else if (rotation) {
-      const pose = actor.getKinematicTarget() ?? actor.getGlobalPose();
-      const priorRotation = pose.rotation;
-      tempRotation.set(priorRotation.x, priorRotation.y, priorRotation.z, priorRotation.w);
-      Quaternion.normalize(rotation, tempRotation);
-      actor.setKinematicTarget(pose.translation, tempRotation);
     }
   }
 
@@ -239,7 +235,7 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
    * {@inheritDoc IDynamicActor.sleep }
    */
   sleep(): void {
-    return this._pxActor.putToSleep();
+    this._pxActor.putToSleep();
   }
 
   /**
@@ -253,6 +249,6 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
    * {@inheritDoc IDynamicActor.wakeUp }
    */
   wakeUp(): void {
-    return this._pxActor.wakeUp();
+    this._pxActor.wakeUp();
   }
 }

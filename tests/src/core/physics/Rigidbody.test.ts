@@ -1379,6 +1379,42 @@ describe("Rigidbody", function () {
     expect(Math.abs(Quaternion.dot(boxB.transform.worldRotationQuaternion, rot2))).toBeCloseTo(1, 4);
   });
 
+  it("ignores kinematic move targets with zero or non-finite rotations", function () {
+    const physics = engine.sceneManager.activeScene.physics;
+    const initialRot = new Quaternion();
+    Quaternion.rotationYawPitchRoll(Math.PI / 2, 0, 0, initialRot);
+    const box = addBox(new Vector3(2, 2, 2), true, new Vector3(1, 2, 3));
+    box.transform.worldRotationQuaternion = initialRot;
+    const body = box.getComponent(Rigidbody);
+    body.isKinematic = true;
+
+    for (const invalidRot of [
+      new Quaternion(0, 0, 0, 0),
+      new Quaternion(Number.NaN, 0, 0, 1),
+      new Quaternion(Number.POSITIVE_INFINITY, 0, 0, 1)
+    ]) {
+      body.move(new Vector3(9, 8, 7), invalidRot);
+      body.move(invalidRot);
+    }
+    physics._update(physics.fixedTimeStep);
+    expect(box.transform.worldPosition.x).toBeCloseTo(1, 4);
+    expect(box.transform.worldPosition.y).toBeCloseTo(2, 4);
+    expect(box.transform.worldPosition.z).toBeCloseTo(3, 4);
+    expect(Math.abs(Quaternion.dot(box.transform.worldRotationQuaternion, initialRot))).toBeCloseTo(1, 4);
+
+    // An invalid rotation must also leave an already queued valid target intact.
+    const validRot = new Quaternion();
+    Quaternion.rotationYawPitchRoll(0, Math.PI / 4, 0, validRot);
+    body.move(new Vector3(4, 5, 6), validRot);
+    body.move(new Vector3(99, 99, 99), new Quaternion(0, 0, 0, 0));
+    body.move(new Quaternion(Number.NaN, 0, 0, 1));
+    physics._update(physics.fixedTimeStep);
+    expect(box.transform.worldPosition.x).toBeCloseTo(4, 4);
+    expect(box.transform.worldPosition.y).toBeCloseTo(5, 4);
+    expect(box.transform.worldPosition.z).toBeCloseTo(6, 4);
+    expect(Math.abs(Quaternion.dot(box.transform.worldRotationQuaternion, validRot))).toBeCloseTo(1, 4);
+  });
+
   it.each(["convex-then-dynamic", "dynamic-then-convex", "clear-then-dynamic"] as const)(
     "switches a kinematic body with an active non-convex MeshCollider to dynamic (%s)",
     function (order) {
