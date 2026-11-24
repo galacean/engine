@@ -154,6 +154,8 @@ export class SeedWorldPerfPanel {
   private winStartBufOrphans = 0;
 
   private dprIdx = 0;
+  private currentDprOverride: number | null = null;
+  private refreshDprButton: (() => void) | null = null;
   private disposed = false;
   private frameObserver: PerfFrameObserver | null = null;
   private mobileCapture: ReturnType<typeof attachMobileFrameCapture> | null = null;
@@ -227,6 +229,10 @@ export class SeedWorldPerfPanel {
     this.refreshButtons();
   }
 
+  isModuleEnabled(key: SeedWorldPerfModuleKey): boolean {
+    return this.liveState[key];
+  }
+
   setSubGroupVisible(group: "trees" | "details" | "terrain", on: boolean): void {
     const published = this.options.readPublished();
     if (group === "trees") {
@@ -239,8 +245,24 @@ export class SeedWorldPerfPanel {
     }
   }
 
+  isSubGroupVisible(group: "trees" | "details" | "terrain"): boolean {
+    const published = this.options.readPublished();
+    if (group === "trees") return published ? published.world.population.trees.isActive : true;
+    if (group === "details") return published ? published.world.population.details.isActive : true;
+    const terrain = this.options.scene.findEntityByName("Terrain");
+    return terrain ? terrain.isActive : true;
+  }
+
   setDpr(dpr: number | null): void {
+    this.currentDprOverride = dpr;
+    const idx = DPR_STEPS.indexOf(dpr);
+    if (idx >= 0) this.dprIdx = idx;
     this.options.setDprOverride(dpr);
+    this.refreshDprButton?.();
+  }
+
+  getDpr(): number | null {
+    return this.currentDprOverride;
   }
 
   isPaused(key: SeedWorldPerfModuleKey): boolean {
@@ -305,6 +327,7 @@ export class SeedWorldPerfPanel {
     this.disposed = true;
     this.frameObserver = null;
     this.currentDrawFbo = null;
+    this.refreshDprButton = null;
     this.mobileCapture?.dispose();
     for (let i = this.restoreHooks.length - 1; i >= 0; i--) {
       this.restoreHooks[i]();
@@ -766,7 +789,7 @@ export class SeedWorldPerfPanel {
     const dprBtn = document.createElement("button");
     dprBtn.type = "button";
     const updateDprLabel = () => {
-      const cur = DPR_STEPS[this.dprIdx];
+      const cur = this.currentDprOverride;
       const rawNative = window.devicePixelRatio || 1;
       const fmt = (v: number) => v.toFixed(1).replace(/\.0$/, "");
       const effective = fmt(Math.min(rawNative, cur ?? 2));
@@ -774,12 +797,14 @@ export class SeedWorldPerfPanel {
         cur === null ? `≤2x(${effective}x)` : cur === Infinity ? `原生(${fmt(rawNative)}x)` : `≤${cur}x(${effective}x)`;
       dprBtn.textContent = `渲染分辨率 DPR: ${label}`;
     };
+    this.refreshDprButton = updateDprLabel;
     dprBtn.style.cssText =
       "width:100%;margin-bottom:7px;background:#1d4ed8;color:#eff6ff;border:1px solid #60a5fa;border-radius:6px;padding:6px 8px;font:600 11px/1.2 sans-serif;cursor:pointer;";
     updateDprLabel();
     dprBtn.onclick = () => {
       this.dprIdx = (this.dprIdx + 1) % DPR_STEPS.length;
-      this.options.setDprOverride(DPR_STEPS[this.dprIdx]);
+      this.currentDprOverride = DPR_STEPS[this.dprIdx]!;
+      this.options.setDprOverride(this.currentDprOverride);
       updateDprLabel();
       this.mobileCapture?.schedule("dpr", 1200);
     };

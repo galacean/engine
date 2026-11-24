@@ -12,13 +12,16 @@ import type { RuntimeProjectSession } from "./runtime-project-session.ts";
 
 /** Flush already-dirty work when hidden, immediately flush async hidden commits, and guard unload. */
 export function attachProjectSaveLifecycle(
-  project: Pick<RuntimeProjectSession, "persistenceStatus" | "subscribePersistence" | "flush">,
+  project: Pick<RuntimeProjectSession, "persistenceStatus" | "subscribePersistence" | "flush"> & {
+    readonly isPersistent?: boolean;
+  },
   targetWindow: Pick<Window, "addEventListener">,
   targetDocument: Pick<Document, "addEventListener" | "visibilityState">,
   onStatusChange: () => void = () => {},
   signal?: AbortSignal
 ): () => void {
   if (signal?.aborted) return () => {};
+  const baselineCommitSeq = project.persistenceStatus.commitSeq;
   const lifecycle = new AbortController();
   const flush = () => {
     void project.flush().catch(() => {
@@ -36,7 +39,10 @@ export function attachProjectSaveLifecycle(
     "beforeunload",
     (event) => {
       const status = project.persistenceStatus;
-      if (status.commitSeq > status.savedSeq) {
+      if (status.state === "disposed") return;
+      const hasUnsaved =
+        project.isPersistent === false ? status.commitSeq > baselineCommitSeq : status.commitSeq > status.savedSeq;
+      if (hasUnsaved) {
         event.preventDefault();
         event.returnValue = "";
       }
@@ -138,27 +144,30 @@ class ProjectSaveIndicator extends Script {
   private updateStatus(): void {
     if (!this.project || !this.showIndicator) return;
     const state = this.project.persistenceStatus.state;
+    const ephemeral = !this.project.isPersistent;
     this.label.text =
       state === "disposed"
         ? ""
-        : state === "failed"
-          ? "保存失败 · 点击重试"
-          : state === "saving"
-            ? "保存中…"
-            : state === "pending"
-              ? "待保存"
-              : "已保存";
+        : ephemeral
+          ? "仅本次会话"
+          : state === "failed"
+            ? "保存失败 · 点击重试"
+            : state === "saving"
+              ? "保存中…"
+              : state === "pending"
+                ? "待保存"
+                : "已保存";
     // Keep the hit region local to the text, while allowing a comfortable vertical target.
     (this.label.entity.transform as UITransform).size.x = Math.max(44, this.label.text.length * 11);
-    this.label.raycastEnabled = state !== "disposed";
-    const targetAlpha = this.hovered ? 0.9 : state === "failed" ? 0.8 : state === "saved" ? 0.42 : 0.6;
+    this.label.raycastEnabled = state !== "disposed" && !ephemeral;
+    const targetAlpha = this.hovered ? 0.9 : ephemeral || state === "failed" ? 0.8 : state === "saved" ? 0.42 : 0.6;
     if (targetAlpha !== this.targetAlpha) {
       this.startAlpha = this.label.color.a;
       this.targetAlpha = targetAlpha;
       this.fadeTime = 0;
     }
     const alpha = this.label.color.a;
-    if (state === "failed") this.label.color.set(0.96, 0.83, 0.64, alpha);
+    if (ephemeral || state === "failed") this.label.color.set(0.96, 0.83, 0.64, alpha);
     else this.label.color.set(0.93, 0.96, 0.94, alpha);
   }
 

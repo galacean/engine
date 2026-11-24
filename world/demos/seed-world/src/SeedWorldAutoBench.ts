@@ -12,8 +12,11 @@ export interface SeedWorldAutoAblateDeps {
   readonly autoStart?: boolean;
   readonly canvas: HTMLCanvasElement;
   readonly setModule: (key: SeedWorldPerfModuleKey, on: boolean) => void;
+  readonly getModule?: (key: SeedWorldPerfModuleKey) => boolean;
   readonly setSubGroup: (group: "trees" | "details" | "terrain", on: boolean) => void;
+  readonly getSubGroup?: (group: "trees" | "details" | "terrain") => boolean;
   readonly setDpr: (dpr: number | null) => void;
+  readonly getDpr?: () => number | null;
   readonly readCounters: (out: PerfCumulativeCounters) => PerfCumulativeCounters;
 }
 
@@ -611,29 +614,68 @@ export function startSeedWorldAutoBench(deps: SeedWorldAutoBenchDeps): SeedWorld
       await waitForFpsStable((txt) => setBanner(txt.replace("自动压测", "模块消融"), false, "rgba(250,204,21,0.65)"), signal, 1500, 7000);
       if (disposed || signal?.aborted) return;
 
+      const moduleKeys: readonly SeedWorldPerfModuleKey[] = [
+        "building",
+        "shadow",
+        "clouds",
+        "water",
+        "bloom",
+        "hdr",
+        "animals",
+        "solids",
+        "farming",
+        "hud",
+        "ssr"
+      ];
+      const subGroupKeys: readonly ("trees" | "details" | "terrain")[] = ["trees", "details", "terrain"];
+      const initialModules = new Map<SeedWorldPerfModuleKey, boolean>(
+        moduleKeys.map((key) => [key, ablate.getModule ? ablate.getModule(key) : true])
+      );
+      const initialSubGroups = new Map<"trees" | "details" | "terrain", boolean>(
+        subGroupKeys.map((group) => [group, ablate.getSubGroup ? ablate.getSubGroup(group) : true])
+      );
+      const initialDpr = ablate.getDpr ? ablate.getDpr() : null;
+      const toggleModuleOff = (key: SeedWorldPerfModuleKey) => () => {
+        const prev = initialModules.get(key) ?? true;
+        if (!prev) return () => {};
+        ablate.setModule(key, false);
+        return () => ablate.setModule(key, prev);
+      };
+      const toggleSubGroupOff = (group: "trees" | "details" | "terrain") => () => {
+        const prev = initialSubGroups.get(group) ?? true;
+        if (!prev) return () => {};
+        ablate.setSubGroup(group, false);
+        return () => ablate.setSubGroup(group, prev);
+      };
+      const overrideDpr = (dpr: number) => () => {
+        if (initialDpr === dpr) return () => {};
+        ablate.setDpr(dpr);
+        return () => ablate.setDpr(initialDpr);
+      };
+
       const cases: readonly {
         readonly id: string;
         readonly label: string;
         readonly apply: () => () => void;
       }[] = [
-        { id: "baseline_start", label: "基线(全开)", apply: () => () => {} },
-        { id: "off:building", label: "关 原生建筑", apply: () => { ablate.setModule("building", false); return () => ablate.setModule("building", true); } },
-        { id: "off:trees", label: "关 树木", apply: () => { ablate.setSubGroup("trees", false); return () => ablate.setSubGroup("trees", true); } },
-        { id: "off:details", label: "关 草皮/林下", apply: () => { ablate.setSubGroup("details", false); return () => ablate.setSubGroup("details", true); } },
-        { id: "off:terrain", label: "关 地形网格", apply: () => { ablate.setSubGroup("terrain", false); return () => ablate.setSubGroup("terrain", true); } },
-        { id: "off:shadow", label: "关 阴影", apply: () => { ablate.setModule("shadow", false); return () => ablate.setModule("shadow", true); } },
-        { id: "off:clouds", label: "关 体积云", apply: () => { ablate.setModule("clouds", false); return () => ablate.setModule("clouds", true); } },
-        { id: "off:water", label: "关 水体", apply: () => { ablate.setModule("water", false); return () => ablate.setModule("water", true); } },
-        { id: "off:bloom", label: "关 Bloom", apply: () => { ablate.setModule("bloom", false); return () => ablate.setModule("bloom", true); } },
-        { id: "off:hdr", label: "关 HDR", apply: () => { ablate.setModule("hdr", false); return () => ablate.setModule("hdr", true); } },
-        { id: "off:animals", label: "关 动物", apply: () => { ablate.setModule("animals", false); return () => ablate.setModule("animals", true); } },
-        { id: "off:solids", label: "关 岩石地貌", apply: () => { ablate.setModule("solids", false); return () => ablate.setModule("solids", true); } },
-        { id: "off:farming", label: "关 农场", apply: () => { ablate.setModule("farming", false); return () => ablate.setModule("farming", true); } },
-        { id: "off:hud", label: "关 AI/HUD", apply: () => { ablate.setModule("hud", false); return () => ablate.setModule("hud", true); } },
-        { id: "off:ssr", label: "关 SSR", apply: () => { ablate.setModule("ssr", false); return () => ablate.setModule("ssr", true); } },
-        { id: "dpr:1.5", label: "DPR=1.5", apply: () => { ablate.setDpr(1.5); return () => ablate.setDpr(null); } },
-        { id: "dpr:1.0", label: "DPR=1.0", apply: () => { ablate.setDpr(1); return () => ablate.setDpr(null); } },
-        { id: "baseline_end", label: "基线复测(全开)", apply: () => () => {} }
+        { id: "baseline_start", label: "基线(当前配置)", apply: () => () => {} },
+        { id: "off:building", label: "关 原生建筑", apply: toggleModuleOff("building") },
+        { id: "off:trees", label: "关 树木", apply: toggleSubGroupOff("trees") },
+        { id: "off:details", label: "关 草皮/林下", apply: toggleSubGroupOff("details") },
+        { id: "off:terrain", label: "关 地形网格", apply: toggleSubGroupOff("terrain") },
+        { id: "off:shadow", label: "关 阴影", apply: toggleModuleOff("shadow") },
+        { id: "off:clouds", label: "关 体积云", apply: toggleModuleOff("clouds") },
+        { id: "off:water", label: "关 水体", apply: toggleModuleOff("water") },
+        { id: "off:bloom", label: "关 Bloom", apply: toggleModuleOff("bloom") },
+        { id: "off:hdr", label: "关 HDR", apply: toggleModuleOff("hdr") },
+        { id: "off:animals", label: "关 动物", apply: toggleModuleOff("animals") },
+        { id: "off:solids", label: "关 岩石地貌", apply: toggleModuleOff("solids") },
+        { id: "off:farming", label: "关 农场", apply: toggleModuleOff("farming") },
+        { id: "off:hud", label: "关 AI/HUD", apply: toggleModuleOff("hud") },
+        { id: "off:ssr", label: "关 SSR", apply: toggleModuleOff("ssr") },
+        { id: "dpr:1.5", label: "DPR=1.5", apply: overrideDpr(1.5) },
+        { id: "dpr:1.0", label: "DPR=1.0", apply: overrideDpr(1) },
+        { id: "baseline_end", label: "基线复测(当前配置)", apply: () => () => {} }
       ];
 
       const steps: Array<{

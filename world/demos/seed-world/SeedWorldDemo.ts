@@ -4110,8 +4110,11 @@ export async function mountSeedWorldDemo(
               autoStart: autoAblate,
               canvas,
               setModule: (key, on) => benchPerfPanel.setModuleEnabled(key, on),
+              getModule: (key) => benchPerfPanel.isModuleEnabled(key),
               setSubGroup: (group, on) => benchPerfPanel.setSubGroupVisible(group, on),
+              getSubGroup: (group) => benchPerfPanel.isSubGroupVisible(group),
               setDpr: (dpr) => benchPerfPanel.setDpr(dpr),
+              getDpr: () => benchPerfPanel.getDpr(),
               readCounters: (out) => benchPerfPanel.readCumulativeCounters(out)
             },
             signal: editorLifetime.signal
