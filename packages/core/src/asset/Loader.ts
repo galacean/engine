@@ -6,9 +6,6 @@ import { ResourceManager } from "./ResourceManager";
  * Loader abstract class.
  */
 export abstract class Loader<T> {
-  /** @internal Optional method key for normalizing authored values before a serialized mutation block. */
-  static readonly _preparePropsForLoad = Symbol("preparePropsForLoad");
-
   /**
    * Register a class with a string name for serialization and deserialization.
    * @param key - class name

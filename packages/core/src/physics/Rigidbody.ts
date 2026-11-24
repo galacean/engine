@@ -1086,7 +1086,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * @internal
-   * Recompute automatic mass properties before the next simulation step or query.
+   * Recompute automatic mass properties before the next simulation step or mass-dependent access.
    */
   _markMassDirty(changes = MassChanges.Geometry): void {
     this._massChanges |= changes;

@@ -189,7 +189,7 @@ export class CharacterController extends Collider {
     if (!scene) {
       return ControllerCollisionFlag.None;
     }
-    scene.physics._syncColliders();
+    scene.physics._syncColliders(false);
     if (!this._inScene) {
       return ControllerCollisionFlag.None;
     }

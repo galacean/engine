@@ -220,9 +220,28 @@ describe("Collider layer validation", () => {
 
   it("rejects collision layers that are not a single layer", () => {
     const box = root.createChild("box").addComponent(BoxCollider);
-    expect(() => (box.collisionLayer = Layer.Layer0 | Layer.Layer1)).toThrow();
-    expect(() => (box.collisionLayer = 0.5 as Layer)).toThrow();
-    expect(() => (box.collisionLayer = (2 ** 32) as Layer)).toThrow();
+    for (let i = 0; i < 32; i++) {
+      const layer = ((1 << i) >>> 0) as Layer;
+      box.collisionLayer = layer;
+      expect(box.collisionLayer).toBe(layer);
+    }
+    box.collisionLayer = Layer.Layer0;
+
+    for (const invalid of [
+      Layer.Layer0 | Layer.Layer1,
+      0.5,
+      2 ** 32,
+      2 ** 32 + 1,
+      2147483648.0000005,
+      2147483647.9999998,
+      -2147483648,
+      0,
+      NaN,
+      "1" as unknown as Layer,
+      true as unknown as Layer
+    ]) {
+      expect(() => (box.collisionLayer = invalid as Layer)).toThrow();
+    }
     expect(box.collisionLayer).toBe(Layer.Layer0);
     expect(() => physics.setColliderLayerCollision(Layer.Layer0 | Layer.Layer2, Layer.Layer1, true)).toThrow();
     expect(() => physics.getColliderLayerCollision(0.5 as Layer, Layer.Layer1)).toThrow();

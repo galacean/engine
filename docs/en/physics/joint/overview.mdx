@@ -38,7 +38,7 @@ All joint types share the following common characteristics:
    - `anchor`: The connection point on the joint's own Rigidbody
    - `connectedAnchor`: The connection point on the target object
 
-   When a Scene or Prefab declares `automaticConnectedAnchor: false`, it uses the supplied or inherited manual anchor. The default is `(0, 0, 0)` when both are absent. This is the connected Rigidbody's local origin, or the world origin for a world constraint.
+   When a Scene or Prefab switches a joint to manual mode (`automaticConnectedAnchor: false`), supply the full `connectedAnchor` vector (or inherit an existing manual anchor from a Prefab).
 
 3. **Break Thresholds**:
 

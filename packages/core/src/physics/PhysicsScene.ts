@@ -316,7 +316,7 @@ export class PhysicsScene {
         if (hitResult && !seenHits.has(hitResult)) {
           seenHits.add(hitResult);
           this._clearHitResult(hitResult);
-          pool.length < 256 && pool.push(hitResult);
+          pool.push(hitResult);
         }
       }
       seenHits.clear();
@@ -643,7 +643,7 @@ export class PhysicsScene {
       colliders.length = 0;
       return colliders;
     }
-    this._syncColliders();
+    this._syncColliders(false);
     const ids = this._nativePhysicsScene.overlapBoxAll(center, orientation, halfExtents, layerMask);
 
     return PhysicsScene._collectColliders(ids, colliders);
@@ -667,7 +667,7 @@ export class PhysicsScene {
       colliders.length = 0;
       return colliders;
     }
-    this._syncColliders();
+    this._syncColliders(false);
     const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
 
     return PhysicsScene._collectColliders(ids, colliders);
@@ -697,7 +697,7 @@ export class PhysicsScene {
       colliders.length = 0;
       return colliders;
     }
-    this._syncColliders();
+    this._syncColliders(false);
     const ids = isValidPositiveFloat32(halfCylinderHeight)
       ? this._nativePhysicsScene.overlapCapsuleAll(center, radius, halfCylinderHeight, orientation, layerMask)
       : this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
@@ -746,9 +746,9 @@ export class PhysicsScene {
   /**
    * @internal
    * Apply pending component changes to the native scene: Rigidbody poses first, then Collider ownership and poses
-   * relative to them, and finally the mass properties that depend on the attached Colliders.
+   * relative to them, and optionally the mass properties that depend on the attached Colliders.
    */
-  _syncColliders(): void {
+  _syncColliders(syncMass = true): void {
     const dirtyBodies = this._dirtyBodies;
     while (dirtyBodies.length) {
       const body = dirtyBodies.pop()!;
@@ -761,11 +761,13 @@ export class PhysicsScene {
       collider._dirtyIndex = -1;
       collider._sync();
     }
-    const massDirtyBodies = this._massDirtyBodies;
-    while (massDirtyBodies.length) {
-      const body = massDirtyBodies.pop()!;
-      body._massDirtyIndex = -1;
-      body._updateMass();
+    if (syncMass) {
+      const massDirtyBodies = this._massDirtyBodies;
+      while (massDirtyBodies.length) {
+        const body = massDirtyBodies.pop()!;
+        body._massDirtyIndex = -1;
+        body._updateMass();
+      }
     }
   }
 
@@ -1198,7 +1200,7 @@ export class PhysicsScene {
     const { x, y, z } = direction;
     const length = Math.sqrt(x * x + y * y + z * z);
     if (!(length > MathUtil.zeroTolerance && Number.isFinite(length))) return null;
-    this._syncColliders();
+    this._syncColliders(false);
     const inverseLength = 1 / length;
     return PhysicsScene._tempDirection.set(x * inverseLength, y * inverseLength, z * inverseLength);
   }

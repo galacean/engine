@@ -2865,6 +2865,65 @@ describe("Physics Test", () => {
       }
     });
 
+    it("defers mass and inertia recomputation across queries until simulation or mass-dependent Rigidbody APIs", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("deferred-mass");
+      const bodyEntity = root.createChild("body");
+      const body = bodyEntity.addComponent(Rigidbody);
+      body.useGravity = false;
+      const child = bodyEntity.createChild("box");
+      const box = child.addComponent(BoxCollider);
+      box.size = new Vector3(2, 2, 2);
+
+      const controllerEntity = root.createChild("controller");
+      controllerEntity.transform.setPosition(50, 0, 0);
+      const controller = controllerEntity.addComponent(CharacterController);
+
+      physicsScene._update(physicsScene.fixedTimeStep);
+      const actor = (body as any)._nativeActor;
+      const updateMass = vi.spyOn(actor, "updateMassAndInertia");
+      const setMassProps = vi.spyOn(actor, "setMassProperties");
+
+      body.mass = 8;
+      child.transform.setPosition(4, 0, 0);
+      box.size = new Vector3(1, 2, 2);
+
+      const hit = new HitResult();
+      expect(physicsScene.raycast(new Ray(new Vector3(0, 0, 0), new Vector3(1, 0, 0)), 20, hit)).toBe(true);
+      expect(hit.collider).toBe(box);
+      expect(hit.distance).toBeCloseTo(3.5, 4);
+      expect(physicsScene.overlapSphereAll(new Vector3(4, 0, 0), 0.1)).toEqual([box]);
+      expect(box.getClosestPoint(new Vector3(3, 0, 0), new Vector3())).toBeCloseTo(0.5, 4);
+      controller.move(new Vector3(0, 0, 0.1), 0.001, physicsScene.fixedTimeStep);
+      expect(updateMass).not.toHaveBeenCalled();
+      expect(setMassProps).not.toHaveBeenCalled();
+
+      expect(body.centerOfMass.x).toBeCloseTo(4, 5);
+      expect(updateMass).toHaveBeenCalledExactlyOnceWith(8, null, null, null);
+
+      body.mass = 12;
+      expect(physicsScene.raycast(new Ray(new Vector3(0, 0, 0), new Vector3(1, 0, 0)), 20, hit)).toBe(true);
+      expect(updateMass).toHaveBeenCalledTimes(1);
+
+      physicsScene._update(physicsScene.fixedTimeStep);
+      expect(updateMass).toHaveBeenCalledTimes(2);
+      expect(updateMass).toHaveBeenLastCalledWith(12, null, null, null);
+    });
+
+    it("recycles more than 256 trimmed raycastAll HitResults and drains the pool on gc", () => {
+      enginePhysX.resourceManager.gc();
+      const pool = (PhysicsScene as any)._raycastHitPool as HitResult[];
+      expect(pool).toHaveLength(0);
+
+      const hits = Array.from({ length: 300 }, () => new HitResult());
+      expect(physicsScene.raycastAll(new Ray(new Vector3(0, 500, 0), new Vector3(0, 1, 0)), 10, hits)).toBe(false);
+      expect(hits).toHaveLength(0);
+      expect(pool).toHaveLength(300);
+
+      enginePhysX.resourceManager.gc();
+      expect(pool).toHaveLength(0);
+    });
+
     afterEach(() => {
       vi.restoreAllMocks();
       for (const root of enginePhysX.sceneManager.activeScene.rootEntities.slice()) {
