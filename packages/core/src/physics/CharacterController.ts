@@ -325,9 +325,4 @@ export class CharacterController extends Collider {
     controller.setSlopeLimit(this._slopeLimit);
     return controller;
   }
-
-  private _setGeometryDirty(): void {
-    this._geometryDirty = true;
-    this._markDirty();
-  }
 }

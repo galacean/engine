@@ -206,8 +206,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     Engine._physicalObjectsMap[this._id] = this;
 
     this._markDirty = this._markDirty.bind(this);
-    this._onTransformChanged = this._onTransformChanged.bind(this);
-    entity._updateFlagManager.addListener(this._onTransformChanged);
+    entity._updateFlagManager.addListener(this._markDirty);
     //@ts-ignore
     this._center._onValueChanged = this._markDirty;
   }
@@ -292,7 +291,12 @@ export class Collider extends Component implements ICloneHook<Collider> {
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
     const worldMatrix = transform.worldMatrix;
     if (poseOnly) {
-      this._syncShapePose(this._native!, this._attachedBody, transform.lossyWorldScale, false);
+      const body = this._attachedBody;
+      if (body) {
+        this._syncShapePose(this._native!, body, transform.lossyWorldScale, false);
+      } else {
+        this._syncStaticActor(transform);
+      }
       return;
     }
 
@@ -368,11 +372,16 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * Queue this Collider for the next sync when it is in a scene.
+   * Queue a full sync for collider edits, or just the pose for an attached shape on a rigid transform change.
    */
   @ignoreClone
-  _markDirty(): void {
-    this._poseOnlyDirty = false;
+  _markDirty(transformFlags?: TransformModifyFlags): void {
+    if (transformFlags === undefined || transformFlags & TransformModifyFlags.WorldScale) {
+      this._poseOnlyDirty = false;
+    } else {
+      if (this._dirtyIndex !== -1 || this._attachedBody?.entity === this.entity) return;
+      this._poseOnlyDirty = !!this._nativeActor && !this._geometryDirty;
+    }
     this._registeredScene?.physics._markColliderDirty(this);
   }
 
@@ -413,6 +422,11 @@ export class Collider extends Component implements ICloneHook<Collider> {
    */
   protected _supportsDynamicBody(): boolean {
     return true;
+  }
+
+  protected _setGeometryDirty(): void {
+    this._geometryDirty = true;
+    this._markDirty();
   }
 
   /**
@@ -495,7 +509,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     //@ts-ignore
     this._center._onValueChanged = null;
     super._onDestroy();
-    this.entity._updateFlagManager.removeListener(this._onTransformChanged);
+    this.entity._updateFlagManager.removeListener(this._markDirty);
     this._destroyNative();
     this._staticActor?.destroy();
     this._staticActor = null;
@@ -503,25 +517,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._material = null;
     this._rejectedBody = null;
     delete Engine._physicalObjectsMap[this._id];
-  }
-
-  @ignoreClone
-  private _onTransformChanged(type: TransformModifyFlags): void {
-    // Without a scale or hierarchy change, keep any pending sync level and skip world-pose updates on the body's own Entity.
-    if (!(type & TransformModifyFlags.WorldScale)) {
-      if (this._dirtyIndex !== -1 || this._attachedBody?.entity === this.entity) {
-        return;
-      }
-      if (this._attachedBody && !this._geometryDirty) {
-        const scene = this._registeredScene;
-        if (scene) {
-          this._poseOnlyDirty = true;
-          scene.physics._markColliderDirty(this);
-        }
-        return;
-      }
-    }
-    this._markDirty();
   }
 
   private _syncStaticActor(transform: Transform): IStaticActor {

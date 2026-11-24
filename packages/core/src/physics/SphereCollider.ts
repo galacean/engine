@@ -27,8 +27,7 @@ export class SphereCollider extends Collider {
     value = Math.max(0, value);
     if (this._radius !== value) {
       this._radius = value;
-      this._geometryDirty = true;
-      this._markDirty();
+      this._setGeometryDirty();
     }
   }
 

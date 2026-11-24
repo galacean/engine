@@ -34,8 +34,7 @@ export class CapsuleCollider extends Collider {
     value = Math.max(0, value);
     if (this._radius !== value) {
       this._radius = value;
-      this._geometryDirty = true;
-      this._markDirty();
+      this._setGeometryDirty();
     }
   }
 
@@ -56,8 +55,7 @@ export class CapsuleCollider extends Collider {
     value = Math.max(0, value);
     if (this._height !== value) {
       this._height = value;
-      this._geometryDirty = true;
-      this._markDirty();
+      this._setGeometryDirty();
     }
   }
 
@@ -80,8 +78,7 @@ export class CapsuleCollider extends Collider {
     }
     if (this._direction !== value) {
       this._direction = value;
-      this._geometryDirty = true;
-      this._markDirty();
+      this._setGeometryDirty();
     }
   }
 

@@ -33,7 +33,7 @@ export class BoxCollider extends Collider {
   constructor(entity: Entity) {
     super(entity);
     //@ts-ignore
-    this._size._onValueChanged = this._onSizeChanged.bind(this);
+    this._size._onValueChanged = this._setGeometryDirty.bind(this);
   }
 
   protected override _syncGeometry(shape: IBoxShape | null, scale: Vector3): IBoxShape | null {
@@ -56,10 +56,5 @@ export class BoxCollider extends Collider {
     //@ts-ignore
     this._size._onValueChanged = null;
     super._onDestroy();
-  }
-
-  private _onSizeChanged(): void {
-    this._geometryDirty = true;
-    this._markDirty();
   }
 }
