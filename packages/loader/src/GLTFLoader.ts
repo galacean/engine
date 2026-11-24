@@ -53,6 +53,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
         .parse()
         .then((res) => {
           if (!context._aborted) {
+            glTFResource._isLoading = false;
             resolve(res);
           }
         })

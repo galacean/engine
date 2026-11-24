@@ -193,7 +193,9 @@ export class GLTFParserContext {
     }
     getPromises.length = 0;
 
-    this.glTFResource.destroy();
+    if (!this.glTFResource.destroy()) {
+      this.glTFResource._isLoading = false;
+    }
 
     this._createdResources.forEach((resource) => {
       resource._disassociationSuperResource(this.glTFResource);

@@ -118,6 +118,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
+    this._isLoading = false;
     this._engine.resourceManager._deleteReferResource(this);
     const refCount = this._getReferCount();
     if (refCount > 0) {

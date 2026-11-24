@@ -1226,4 +1226,114 @@ describe("glTF instance test", function () {
       remappedMaterial.destroy(true);
     }
   });
+
+  it("keeps aborted in-frame glTF hidden while pendingDestroy and clears _isLoading if retained", async () => {
+    engine.resourceManager.gc();
+    const positions = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    const bufferUri = `data:application/octet-stream;base64,${btoa(
+      String.fromCharCode(...new Uint8Array(positions.buffer))
+    )}`;
+    const delayedUri = "https://mock.local/delayed-in-frame-cancel.bin";
+    const gltfUrl = URL.createObjectURL(
+      new Blob(
+        [
+          JSON.stringify({
+            asset: { version: "2.0" },
+            buffers: [
+              { uri: bufferUri, byteLength: positions.byteLength },
+              { uri: delayedUri, byteLength: positions.byteLength }
+            ],
+            bufferViews: [
+              { buffer: 0, byteOffset: 0, byteLength: positions.byteLength },
+              { buffer: 1, byteOffset: 0, byteLength: positions.byteLength }
+            ],
+            accessors: [
+              { componentType: 5126, count: 3, type: "VEC3", bufferView: 0, min: [0, 0, 0], max: [1, 1, 0] },
+              { componentType: 5126, count: 3, type: "VEC3", bufferView: 1, min: [0, 0, 0], max: [1, 1, 0] }
+            ],
+            meshes: [
+              { primitives: [{ attributes: { POSITION: 0 } }] },
+              { primitives: [{ attributes: { POSITION: 1 } }] }
+            ],
+            nodes: [{ mesh: 0 }, { mesh: 1 }],
+            scenes: [{ nodes: [0, 1] }],
+            scene: 0
+          })
+        ],
+        { type: "model/gltf+json" }
+      )
+    );
+
+    const originalRequest = (engine.resourceManager as any)._requestByRemoteUrl;
+    let resolveDelayed!: (buf: ArrayBuffer) => void;
+    let markRequested!: () => void;
+    let requested = new Promise<void>((resolve) => {
+      markRequested = resolve;
+    });
+    const requestSpy = vi.spyOn(engine.resourceManager as any, "_requestByRemoteUrl").mockImplementation(function (
+      this: any,
+      url: string,
+      config: any
+    ) {
+      if (url === delayedUri) {
+        markRequested();
+        return new AssetPromise<ArrayBuffer>((resolve) => {
+          resolveDelayed = resolve;
+        });
+      }
+      return originalRequest.call(this, url, config);
+    });
+
+    const referPool = (engine.resourceManager as any)._referResourcePool;
+    const referBefore = Object.keys(referPool).length;
+
+    try {
+      // 1. In-frame cancel: pending-destroy glTFResource stays hidden from findResourcesByType until end-of-frame flush
+      const loading = engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url: gltfUrl });
+      await requested;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      (engine as any)._frameInProcess = true;
+      try {
+        loading.cancel();
+        expect(engine.resourceManager.findResourcesByType(GLTFResource).some((r) => r.url === gltfUrl)).to.be.false;
+        (engine as any)._processPendingDestroyObjects();
+      } finally {
+        (engine as any)._frameInProcess = false;
+      }
+
+      await expect(loading).rejects.toBe("canceled");
+      resolveDelayed(positions.buffer.slice(0));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(Object.keys(referPool).length).to.equal(referBefore);
+
+      // 2. If glTFResource is retained by an active reference during cancel(), destroy() returns false and _isLoading resets
+      requested = new Promise<void>((resolve) => {
+        markRequested = resolve;
+      });
+      const loading2 = engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url: gltfUrl });
+      await requested;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      const inFlight = Object.values(referPool).find((r: any) => r instanceof GLTFResource && r.url === gltfUrl) as GLTFResource;
+      expect(inFlight).to.exist;
+      expect((inFlight as any)._isLoading).to.be.true;
+      inFlight._addReferCount(1);
+
+      loading2.cancel();
+      await expect(loading2).rejects.toBe("canceled");
+      expect(inFlight.destroyed).to.be.false;
+      expect((inFlight as any)._isLoading).to.be.false;
+      expect(engine.resourceManager.findResourcesByType(GLTFResource)).to.include(inFlight);
+
+      inFlight._addReferCount(-1);
+      inFlight.destroy();
+      resolveDelayed(positions.buffer.slice(0));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(Object.keys(referPool).length).to.equal(referBefore);
+    } finally {
+      requestSpy.mockRestore();
+      URL.revokeObjectURL(gltfUrl);
+    }
+  });
 });
