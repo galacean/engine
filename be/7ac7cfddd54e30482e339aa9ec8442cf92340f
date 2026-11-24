@@ -1,0 +1,19 @@
+tests/src/core/Camera.test.ts
+  s_38a7399f48bd6d::t_ef261933dfb18d 378-398,400,449-471
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "be7ac7cfddd54e30482e339aa9ec8442cf92340f",
+  "prompts": {},
+  "sessions": {
+    "s_38a7399f48bd6d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20c71-e1c8-7921-853d-0fecff593f4e",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
