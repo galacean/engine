@@ -359,7 +359,7 @@ export class AgentLoop {
     let consecutiveNoProgressScripts = 0;
     let hasCommittedMutation = false;
     let postCommitReadOnlyRounds = 0;
-    const taskStaticReadCounts = new Map<string, number>();
+    const taskStaticReadPaths = new Set<string>();
     let repeatedStaticReadRounds = 0;
     this.#activeTaskId = taskId;
     this.#controller = controller;
@@ -418,13 +418,13 @@ export class AgentLoop {
         if (additions.length > 0) {
           hasCommittedMutation = false;
           postCommitReadOnlyRounds = 0;
-          taskStaticReadCounts.clear();
+          taskStaticReadPaths.clear();
           repeatedStaticReadRounds = 0;
         }
         throwIfAborted(controller.signal);
         if (this.#refreshConfiguration()) {
           postCommitReadOnlyRounds = 0;
-          taskStaticReadCounts.clear();
+          taskStaticReadPaths.clear();
           repeatedStaticReadRounds = 0;
           modelTools = buildAgentToolDefinitions(this.#definition);
           appendTranscript({
@@ -496,7 +496,7 @@ export class AgentLoop {
           throw normalizedError;
         }
         if (compactionState.compactionsInTask > compactionsBeforeTurn) {
-          taskStaticReadCounts.clear();
+          taskStaticReadPaths.clear();
           repeatedStaticReadRounds = 0;
         }
 
@@ -507,6 +507,8 @@ export class AgentLoop {
         ];
         const messagesByCall: AgentMessage[][] = calls.map(() => []);
         const readPages = new Map<Extract<AgentMessage, { role: "tool" }>, StaticReadPage>();
+        const completedStaticReads = new Set<string>();
+        const reusedReadPaths = new Set<string>();
         // Model call IDs may repeat across turns; admission belongs to this batch slot.
         const startedCalls = new Set<number>();
         let batchScriptFailure: string | undefined;
@@ -618,6 +620,18 @@ export class AgentLoop {
             const reply = { role: "tool" as const, toolCallId: decisionResult.toolCallId!, content: outcome.content };
             appendCallMessages(reply);
             if (outcome.readPage) readPages.set(reply, outcome.readPage);
+            const value = outcome.result.ok ? outcome.result.value : null;
+            if (
+              name === "read" &&
+              value &&
+              typeof value === "object" &&
+              "path" in value &&
+              typeof value.path === "string" &&
+              (value.path.startsWith("skills/") || value.path.startsWith("declare/"))
+            ) {
+              completedStaticReads.add(value.path);
+              if ("deduplicated" in value && value.deduplicated === true) reusedReadPaths.add(value.path);
+            }
             const result = fileToolStepResult(outcome);
             stageResults.push(result);
             step.scriptResult = structuredClone(result);
@@ -1027,7 +1041,7 @@ export class AgentLoop {
         if (batchCommittedMutation) {
           hasCommittedMutation = true;
           postCommitReadOnlyRounds = 0;
-          taskStaticReadCounts.clear();
+          taskStaticReadPaths.clear();
           repeatedStaticReadRounds = 0;
         } else if (
           hasCommittedMutation &&
@@ -1047,35 +1061,18 @@ export class AgentLoop {
         }
         if (
           !hasCommittedMutation &&
-          !batchCommittedMutation &&
           !calls.some((call) => call.decision.type === "execute" || call.decision.type === "final")
         ) {
-          const repeatedInBatch: string[] = [];
-          for (const call of calls) {
-            if (
-              call.decision.type === "file" &&
-              call.decision.name === "read" &&
-              typeof call.decision.input.file_path === "string" &&
-              (call.decision.input.offset ?? 1) === 1 &&
-              (call.decision.input.column ?? 1) === 1 &&
-              call.decision.input.limit == null
-            ) {
-              const p = call.decision.input.file_path;
-              if (p.startsWith("skills/") || p.startsWith("declare/")) {
-                const nextCount = (taskStaticReadCounts.get(p) ?? 0) + 1;
-                taskStaticReadCounts.set(p, nextCount);
-                if (nextCount >= 2) repeatedInBatch.push(p);
-              }
-            }
-          }
-          if (repeatedInBatch.length > 0) {
+          const repeatedPaths = [...reusedReadPaths].filter((path) => taskStaticReadPaths.has(path));
+          for (const path of completedStaticReads) taskStaticReadPaths.add(path);
+          if (repeatedPaths.length > 0) {
             repeatedStaticReadRounds += 1;
-            if (repeatedStaticReadRounds === 1 || repeatedStaticReadRounds % 2 === 1) {
+            if (repeatedStaticReadRounds % 2 === 1) {
               appendTranscript({
                 role: "user",
                 content: formatSystemInjection(
                   "loop_guidance",
-                  `你已在本任务内多次重复读取相同的技能/声明文档（${[...new Set(repeatedInBatch)].slice(0, 4).join("、")}）。请停止继续重读文档或反复搜索目录，直接基于已有声明调用 execute 完成当前可执行部分；若确认某项子需求超出接口能力，先完成可执行部分再如实说明限制。`
+                  `这些文件在读取时已有完整副本（${repeatedPaths.slice(0, 4).join("、")}）。需要这些文件时，复用上下文中仍可见的完整副本。继续定位完成用户请求仍缺少的信息。`
                 )
               });
             }

@@ -14,8 +14,19 @@ it("samples the restored lake using its current runtime water ID", async () => {
     const sampleLakeCenter = (targeted: boolean) =>
       sample.execute(sample.parseInput({ x: 4, z: 4, ...(targeted ? { target } : {}) }), { signal });
 
+    const spatialSearch = fixture.configuration.tools.find((tool) => tool.name === "spatial.search")!;
+    const waterSearch = (water: boolean, constraints = {}) =>
+      spatialSearch.execute(spatialSearch.parseInput({
+        constraints: { water, ...constraints }, sort: "nearest", limit: 1
+      }), { signal });
+    const spatialCheck = fixture.configuration.tools.find((tool) => tool.name === "spatial.check")!;
+    const checkLakeCenter = () =>
+      spatialCheck.execute(spatialCheck.parseInput({ positions: [{ x: 4, z: 4 }] }), { signal });
+
     const initialWaterId = bodyId();
     expect(await sampleLakeCenter(true)).toMatchObject({ water: true, id: initialWaterId });
+    expect(await waterSearch(true)).toMatchObject({ status: "matched", items: [{ surface: { water: true } }] });
+    expect(await waterSearch(true, { minimumElevationMetres: 30 })).toMatchObject({ status: "no_match", items: [] });
 
     async function applyEdit(transactionId: string, name: string, input: unknown) {
       const edit = editor.beginEdit(transactionId, signal);
@@ -27,29 +38,24 @@ it("samples the restored lake using its current runtime water ID", async () => {
       await edit.complete?.();
     }
 
+    await applyEdit("disable-lake", "component.update", { ...target, props: { enabled: false } });
+    expect(await sampleLakeCenter(false)).toMatchObject({ water: false });
+    expect(await checkLakeCenter()).toMatchObject({ items: [{ surface: { water: false } }] });
+    expect(await waterSearch(true)).toMatchObject({ status: "no_match", items: [] });
+    await applyEdit("undo-disable-lake", "history.undo", { transactionIds: ["disable-lake"] });
+
     await applyEdit("remove-lake", "component.remove", target);
-    const afterRemoval = await sampleLakeCenter(false);
+    expect(await sampleLakeCenter(false)).toMatchObject({ water: false });
+    expect(await checkLakeCenter()).toMatchObject({ items: [{ surface: { water: false } }] });
+    expect(await waterSearch(true)).toMatchObject({ status: "no_match", items: [] });
     await applyEdit("undo-remove-lake", "history.undo", { transactionIds: ["remove-lake"] });
     const restoredWaterId = bodyId();
     expect(restoredWaterId).not.toBe(initialWaterId);
     expect(await sampleLakeCenter(true)).toMatchObject({ water: true, id: restoredWaterId });
     expect(await sampleLakeCenter(false)).toMatchObject({ water: true, id: restoredWaterId });
-    expect(afterRemoval).toMatchObject({ water: false });
-
-    const spatialSearch = fixture.configuration.tools.find((tool) => tool.name === "spatial.search")!;
-    const waterSearch = (await spatialSearch.execute(
-      spatialSearch.parseInput({ constraints: { water: true }, sort: "nearest", limit: 1 }),
-      { signal }
-    )) as { items: Array<{ surface: { water: boolean } }> };
-    expect(waterSearch.items.length).toBeGreaterThan(0);
-    expect(waterSearch.items[0].surface.water).toBe(true);
-
-    const landSearch = (await spatialSearch.execute(
-      spatialSearch.parseInput({ constraints: { water: false }, sort: "nearest", limit: 1 }),
-      { signal }
-    )) as { items: Array<{ surface: { water: boolean } }> };
-    expect(landSearch.items.length).toBeGreaterThan(0);
-    expect(landSearch.items[0].surface.water).toBe(false);
+    expect(await checkLakeCenter()).toMatchObject({ items: [{ surface: { water: true } }] });
+    expect(await waterSearch(true)).toMatchObject({ status: "matched", items: [{ surface: { water: true } }] });
+    expect(await waterSearch(false)).toMatchObject({ status: "matched", items: [{ surface: { water: false } }] });
   } finally {
     await fixture.dispose();
   }

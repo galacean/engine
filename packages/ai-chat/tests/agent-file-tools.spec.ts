@@ -443,6 +443,43 @@ it("injects post-commit loop_guidance after 6 consecutive read-only rounds while
   expect(finalCallMessages[loopGuidanceIndex - 1]).toMatchObject({ role: "tool", toolCallId: "r5" });
 });
 
+it.each(["missing", "unchanged", "changed"] as const)("bases read-loop guidance on a %s file", async (mode) => {
+  const filePath = "declare/editor/retry.d.ts";
+  let source = "export interface Retry {};";
+  const projectFiles = [
+    {
+      paths: () => (mode === "missing" ? [] : [filePath]),
+      read: (path: string) => (mode !== "missing" && path === filePath ? source : undefined)
+    }
+  ];
+  request.mockReset();
+  for (const id of ["first", "repeat"]) {
+    request.mockImplementationOnce(async () => {
+      if (mode === "changed" && id === "repeat") source = "export interface Updated {};";
+      return {
+        content: "",
+        finishReason: "tool_calls",
+        toolCalls: [fileCall("read", { file_path: filePath }, id)]
+      };
+    });
+  }
+  request.mockResolvedValueOnce(final);
+  const loop = createTestAgentLoop({ definition: { ...definition, projectFiles }, tools: [] });
+  await loop.run("Inspect the declaration", {});
+
+  const messages = request.mock.lastCall![0].messages;
+  const reply = messages.find((message) => message.role === "tool" && message.toolCallId === "repeat");
+  const expected = {
+    missing: "Error:",
+    unchanged: "Already present at the time of this read",
+    changed: "export interface Updated {};"
+  };
+  expect(reply?.content).toContain(expected[mode]);
+  expect(
+    messages.some((message) => message.role === "user" && message.content.includes('type="loop_guidance"'))
+  ).toBe(mode === "unchanged");
+});
+
 it.each([
   { page: "first", sourceFirst: false, offset: 1, column: 1 },
   { page: "first", sourceFirst: true, offset: 1, column: 1 },
