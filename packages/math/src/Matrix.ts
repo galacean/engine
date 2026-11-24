@@ -519,48 +519,6 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
 
   /**
    * @internal
-   * Invert a rigid transform matrix [R t; 0 1] directly as [R^T -R^T*t; 0 1].
-   */
-  static _invertRigid(a: Matrix, out: Matrix): void {
-    const ae = a.elements;
-    const oe = out.elements;
-
-    const r11 = ae[0],
-      r12 = ae[4],
-      r13 = ae[8];
-    const r21 = ae[1],
-      r22 = ae[5],
-      r23 = ae[9];
-    const r31 = ae[2],
-      r32 = ae[6],
-      r33 = ae[10];
-    const tx = ae[12],
-      ty = ae[13],
-      tz = ae[14];
-
-    oe[0] = r11;
-    oe[1] = r12;
-    oe[2] = r13;
-    oe[3] = 0;
-
-    oe[4] = r21;
-    oe[5] = r22;
-    oe[6] = r23;
-    oe[7] = 0;
-
-    oe[8] = r31;
-    oe[9] = r32;
-    oe[10] = r33;
-    oe[11] = 0;
-
-    oe[12] = -(r11 * tx + r21 * ty + r31 * tz) + 0;
-    oe[13] = -(r12 * tx + r22 * ty + r32 * tz) + 0;
-    oe[14] = -(r13 * tx + r23 * ty + r33 * tz) + 0;
-    oe[15] = 1;
-  }
-
-  /**
-   * @internal
    * Calculate a 4x4 normal matrix [A^-T 0; 0 1] from an affine matrix.
    */
   static _normalMatrix(a: Matrix, out: Matrix, isUniformScaling: boolean): void | null {

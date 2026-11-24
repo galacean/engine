@@ -321,7 +321,7 @@ export class Camera extends Component {
     // Ignore scale
     const transform = this._entity.transform;
     Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, viewMatrix);
-    Matrix._invertRigid(viewMatrix, viewMatrix);
+    viewMatrix.invert();
     return viewMatrix;
   }
 
