@@ -73,13 +73,7 @@ export abstract class Light extends Component {
    */
   get viewMatrix(): Matrix {
     const viewMat = (this._viewMat ||= new Matrix());
-    const transform = this.entity.transform;
-    const worldMatrix = transform.worldMatrix;
-    if (transform._getWorldUniformScaling()) {
-      Matrix._invertUniformAffine(worldMatrix, viewMat);
-    } else {
-      Matrix.invert(worldMatrix, viewMat);
-    }
+    Matrix.invert(this.entity.transform.worldMatrix, viewMat);
     return viewMat;
   }
 
