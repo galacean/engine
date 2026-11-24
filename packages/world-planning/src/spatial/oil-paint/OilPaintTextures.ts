@@ -28,9 +28,9 @@ interface PendingBrushBake {
 }
 
 /**
- * Dedicated Worker client for baking the procedural seamless impasto brushstroke texture off the
- * main thread, matching `PlanningRasterClient`'s prewarm, zero-copy Transferable return, and
- * idle worker release behavior.
+ * Dedicated Worker client for baking the procedural seamless swirling impasto brushstroke texture
+ * off the main thread, matching `PlanningRasterClient`'s prewarm, zero-copy Transferable return,
+ * and idle worker release behavior.
  */
 class OilPaintBrushClient {
   private worker?: Worker;
@@ -150,7 +150,7 @@ function uploadImpastoTexture(engine: Engine, pixels: Uint8Array, size: number):
   return texture;
 }
 
-/** Pre-bakes the seamless oil-paint brush pixels in a background Worker (best-effort, idempotent). */
+/** Pre-bakes the seamless swirling oil-paint brush pixels in a background Worker (best-effort, idempotent). */
 export function prewarmOilPaintBrushTexture(
   size = OIL_PAINT_BRUSH_DEFAULT_SIZE,
   seed = OIL_PAINT_BRUSH_DEFAULT_SEED
@@ -158,7 +158,7 @@ export function prewarmOilPaintBrushTexture(
   brushClient.prewarm(size, seed);
 }
 
-/** Returns Worker-baked RGBA8 pixel data for the seamless impasto brush texture. */
+/** Returns Worker-baked RGBA8 pixel data for the seamless swirling impasto brush texture. */
 export function bakeOilPaintBrushPixels(
   size = OIL_PAINT_BRUSH_DEFAULT_SIZE,
   seed = OIL_PAINT_BRUSH_DEFAULT_SEED
@@ -166,7 +166,7 @@ export function bakeOilPaintBrushPixels(
   return brushClient.bake(size, seed);
 }
 
-/** Returns an engine-cached procedural seamless oil-paint impasto texture baked in a Web Worker. */
+/** Returns an engine-cached procedural seamless swirling impasto texture baked in a Web Worker. */
 export function getOilPaintBrushTexture(engine: Engine): Promise<Texture2D | undefined> {
   if (engine.destroyed) return Promise.resolve(undefined);
   const cached = textureCache.get(engine);

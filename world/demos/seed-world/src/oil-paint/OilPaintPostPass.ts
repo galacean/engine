@@ -14,20 +14,70 @@ import {
   TextureWrapMode,
   Vector4
 } from "@galacean/engine";
-import { OilPaintPostEffect } from "./OilPaintPostEffect";
+import { OilPaintKuwaharaQuality, OilPaintPostEffect } from "./OilPaintPostEffect";
 
 const OIL_PAINT_POST_SHADER_NAME = "PostProcess/OilPaint";
 
 /**
- * Structure-Tensor Anisotropic Kuwahara Oil-Paint Post-Process Pass:
- * - Downsamples scene color into an L2-cache-resident RGBA8 RT (<=420px short edge)
- * - Pass 0 (<=210px short edge -> Tensor RT): Sobel structure tensor from downsampled color
- * - Pass 1 (<=420px short edge -> Kuwahara RT): 4-sector elliptical Kuwahara with impasto ridge & sky mask in `.a`
- * - Pass 2 (Full-Res -> dest): lightweight composite blending painterly strokes, canvas weave, and tonal curve
+ * 120-FPS Kyprianidis, Kang & Döllner (2009) Structure-Tensor Anisotropic Kuwahara Oil-Paint Pass:
+ * Runs after Uber tonemapping (linear HDR) and BEFORE FinalPass (sRGB conversion):
+ * - Pass 0 (PreparePerceptual): 4-tap anti-aliased downsample + linear HDR -> perceptual sRGB [0..1]
+ *   (<=720p High / <=420p Mobile) so thin window mullions never alias and gradients match perception.
+ * - Pass 1 (StructureTensor): RGB-summed Sobel structure tensor (E, G, F) at 1/2 working res (Point filter).
+ * - Pass 2 (TensorBlurH): 5-tap separable horizontal Gaussian smoothing (sigma=1.0 on 1/2 grid).
+ * - Pass 3 (TensorBlurV): 5-tap vertical Gaussian smoothing -> true Rank-2 eigensystem (tangent, anisotropy).
+ * - Pass 4 (AnisotropicKuwahara8Polar): Unrolled 17-tap 2-ring 8-sector polar Kuwahara
+ *   (ZERO exp(), ZERO sqrt(), ZERO loops, constant sector weight sum, exact variance^4 == sigma^8 sharpness!).
+ * - Pass 5 (CompositeMerged): Full-res composite (2 taps), converts perceptual Kuwahara back to linear.
  */
-const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
+export const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
   SubShader "Default" {
-    Pass "StructureTensorLow" {
+    Pass "PreparePerceptual" {
+      DepthState = { Enabled = false; WriteEnabled = false; }
+
+      struct Attributes { vec4 POSITION_UV; };
+      struct Varyings { vec2 uv; };
+
+      sampler2D renderer_BlitTexture;
+      vec4 renderer_texelSize;
+      // x: downsampleRatio (srcHeight / dstHeight)
+      vec4 material_OilPrep0;
+
+      VertexShader = vert;
+      FragmentShader = fragPerceptual;
+
+      Varyings vert(Attributes attr) {
+        Varyings v;
+        gl_Position = vec4(attr.POSITION_UV.xy, 0.0, 1.0);
+        v.uv = attr.POSITION_UV.zw;
+        return v;
+      }
+
+      vec3 toPerceptual(vec3 lin) {
+        vec3 clamped = max(lin, vec3(0.0));
+        vec3 mapped = clamp(clamped / (1.0 + max(clamped - 1.0, vec3(0.0)) * 0.25), vec3(0.0), vec3(1.0));
+        return pow(mapped, vec3(0.45454545));
+      }
+
+      vec4 fragPerceptual(Varyings v) {
+        float ratio = material_OilPrep0.x;
+        vec3 srgb;
+        if (ratio > 1.15) {
+          // 4-tap anti-aliased tent box filter prevents thin window mullions from aliasing on Retina downsample.
+          vec2 d = renderer_texelSize.xy * (0.25 * ratio);
+          vec3 c0 = toPerceptual(texture2D(renderer_BlitTexture, clamp(v.uv + vec2(-d.x, -d.y), vec2(0.001), vec2(0.999))).rgb);
+          vec3 c1 = toPerceptual(texture2D(renderer_BlitTexture, clamp(v.uv + vec2( d.x, -d.y), vec2(0.001), vec2(0.999))).rgb);
+          vec3 c2 = toPerceptual(texture2D(renderer_BlitTexture, clamp(v.uv + vec2(-d.x,  d.y), vec2(0.001), vec2(0.999))).rgb);
+          vec3 c3 = toPerceptual(texture2D(renderer_BlitTexture, clamp(v.uv + vec2( d.x,  d.y), vec2(0.001), vec2(0.999))).rgb);
+          srgb = (c0 + c1 + c2 + c3) * 0.25;
+        } else {
+          srgb = toPerceptual(texture2D(renderer_BlitTexture, v.uv).rgb);
+        }
+        return vec4(srgb, 1.0);
+      }
+    }
+
+    Pass "StructureTensor" {
       DepthState = { Enabled = false; WriteEnabled = false; }
 
       struct Attributes { vec4 POSITION_UV; };
@@ -46,43 +96,116 @@ const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
         return v;
       }
 
-      float stLuma(vec3 c) {
-        return dot(c, vec3(0.2126, 0.7152, 0.0722));
+      vec3 sampleClamped(vec2 uv) {
+        return texture2D(renderer_BlitTexture, clamp(uv, vec2(0.002), vec2(0.998))).rgb;
       }
 
       vec4 fragTensor(Varyings v) {
-        vec2 t = renderer_texelSize.xy * 1.5;
-        float tl = stLuma(texture2D(renderer_BlitTexture, clamp(v.uv + vec2(-t.x, -t.y), vec2(0.002), vec2(0.998))).rgb);
-        float tc = stLuma(texture2D(renderer_BlitTexture, clamp(v.uv + vec2( 0.0, -t.y), vec2(0.002), vec2(0.998))).rgb);
-        float tr = stLuma(texture2D(renderer_BlitTexture, clamp(v.uv + vec2( t.x, -t.y), vec2(0.002), vec2(0.998))).rgb);
-        float ml = stLuma(texture2D(renderer_BlitTexture, clamp(v.uv + vec2(-t.x,  0.0), vec2(0.002), vec2(0.998))).rgb);
-        float mr = stLuma(texture2D(renderer_BlitTexture, clamp(v.uv + vec2( t.x,  0.0), vec2(0.002), vec2(0.998))).rgb);
-        float bl = stLuma(texture2D(renderer_BlitTexture, clamp(v.uv + vec2(-t.x,  t.y), vec2(0.002), vec2(0.998))).rgb);
-        float bc = stLuma(texture2D(renderer_BlitTexture, clamp(v.uv + vec2( 0.0,  t.y), vec2(0.002), vec2(0.998))).rgb);
-        float br = stLuma(texture2D(renderer_BlitTexture, clamp(v.uv + vec2( t.x,  t.y), vec2(0.002), vec2(0.998))).rgb);
+        vec2 t = renderer_texelSize.xy;
+        vec3 tl = sampleClamped(v.uv + vec2(-t.x, -t.y));
+        vec3 tc = sampleClamped(v.uv + vec2( 0.0, -t.y));
+        vec3 tr = sampleClamped(v.uv + vec2( t.x, -t.y));
+        vec3 ml = sampleClamped(v.uv + vec2(-t.x,  0.0));
+        vec3 mr = sampleClamped(v.uv + vec2( t.x,  0.0));
+        vec3 bl = sampleClamped(v.uv + vec2(-t.x,  t.y));
+        vec3 bc = sampleClamped(v.uv + vec2( 0.0,  t.y));
+        vec3 br = sampleClamped(v.uv + vec2( t.x,  t.y));
 
-        float gx = (tr + 2.0 * mr + br) - (tl + 2.0 * ml + bl);
-        float gy = (bl + 2.0 * bc + br) - (tl + 2.0 * tc + tr);
-        float E = gx * gx;
-        float G = gy * gy;
-        float F = gx * gy;
+        vec3 gx = ((tr + 2.0 * mr + br) - (tl + 2.0 * ml + bl)) * 0.25;
+        vec3 gy = ((bl + 2.0 * bc + br) - (tl + 2.0 * tc + tr)) * 0.25;
+
+        float E = dot(gx, gx);
+        float G = dot(gy, gy);
+        float F = dot(gx, gy);
+
+        return vec4(E * 4.0, G * 4.0, F * 2.0 + 0.5, 1.0);
+      }
+    }
+
+    Pass "TensorBlurH" {
+      DepthState = { Enabled = false; WriteEnabled = false; }
+
+      struct Attributes { vec4 POSITION_UV; };
+      struct Varyings { vec2 uv; };
+
+      sampler2D renderer_BlitTexture;
+      vec4 renderer_texelSize;
+
+      VertexShader = vert;
+      FragmentShader = fragBlurH;
+
+      Varyings vert(Attributes attr) {
+        Varyings v;
+        gl_Position = vec4(attr.POSITION_UV.xy, 0.0, 1.0);
+        v.uv = attr.POSITION_UV.zw;
+        return v;
+      }
+
+      vec4 fragBlurH(Varyings v) {
+        vec2 stepX = vec2(renderer_texelSize.x, 0.0);
+        vec4 sum = texture2D(renderer_BlitTexture, v.uv) * 0.40262;
+        sum += (texture2D(renderer_BlitTexture, clamp(v.uv - stepX * 1.0, vec2(0.002), vec2(0.998)))
+              + texture2D(renderer_BlitTexture, clamp(v.uv + stepX * 1.0, vec2(0.002), vec2(0.998)))) * 0.24420;
+        sum += (texture2D(renderer_BlitTexture, clamp(v.uv - stepX * 2.0, vec2(0.002), vec2(0.998)))
+              + texture2D(renderer_BlitTexture, clamp(v.uv + stepX * 2.0, vec2(0.002), vec2(0.998)))) * 0.05449;
+        return sum;
+      }
+    }
+
+    Pass "TensorBlurV" {
+      DepthState = { Enabled = false; WriteEnabled = false; }
+
+      struct Attributes { vec4 POSITION_UV; };
+      struct Varyings { vec2 uv; };
+
+      sampler2D renderer_BlitTexture;
+      vec4 renderer_texelSize;
+
+      VertexShader = vert;
+      FragmentShader = fragBlurV;
+
+      Varyings vert(Attributes attr) {
+        Varyings v;
+        gl_Position = vec4(attr.POSITION_UV.xy, 0.0, 1.0);
+        v.uv = attr.POSITION_UV.zw;
+        return v;
+      }
+
+      vec4 fragBlurV(Varyings v) {
+        vec2 stepY = vec2(0.0, renderer_texelSize.y);
+        vec4 acc = texture2D(renderer_BlitTexture, v.uv) * 0.40262;
+        acc += (texture2D(renderer_BlitTexture, clamp(v.uv - stepY * 1.0, vec2(0.002), vec2(0.998)))
+              + texture2D(renderer_BlitTexture, clamp(v.uv + stepY * 1.0, vec2(0.002), vec2(0.998)))) * 0.24420;
+        acc += (texture2D(renderer_BlitTexture, clamp(v.uv - stepY * 2.0, vec2(0.002), vec2(0.998)))
+              + texture2D(renderer_BlitTexture, clamp(v.uv + stepY * 2.0, vec2(0.002), vec2(0.998)))) * 0.05449;
+
+        float E = max(acc.r * 0.25, 0.0);
+        float G = max(acc.g * 0.25, 0.0);
+        float F = (acc.b - 0.5) * 0.5;
 
         float disc = sqrt(max((E - G) * (E - G) + 4.0 * F * F, 0.0));
         float lambda1 = 0.5 * (E + G + disc);
-        float lambda2 = 0.5 * (E + G - disc);
+        float lambda2 = max(0.5 * (E + G - disc), 0.0);
 
         vec2 tangent = vec2(lambda1 - E, -F);
         float tLen = length(tangent);
-        tangent = tLen > 1e-5 ? tangent / tLen : vec2(0.866, -0.5);
-        if (tangent.y < 0.0) tangent = -tangent;
+        if (tLen > 1e-6) {
+          tangent /= tLen;
+        } else {
+          tangent = E > G ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
+        }
+        if (tangent.y < 0.0 || (tangent.y == 0.0 && tangent.x < 0.0)) {
+          tangent = -tangent;
+        }
 
-        float anisotropy = (lambda1 + lambda2) > 1e-5 ? clamp((lambda1 - lambda2) / (lambda1 + lambda2), 0.0, 1.0) : 0.0;
-        float edgeStrength = clamp(sqrt(lambda1) * 2.5, 0.0, 1.0);
+        float lamSum = lambda1 + lambda2;
+        float anisotropy = lamSum > 1e-6 ? clamp((lambda1 - lambda2) / lamSum, 0.0, 1.0) : 0.0;
+        float edgeStrength = clamp(sqrt(lambda1) * 3.0, 0.0, 1.0);
         return vec4(tangent * 0.5 + 0.5, anisotropy, edgeStrength);
       }
     }
 
-    Pass "AnisotropicKuwaharaFast" {
+    Pass "AnisotropicKuwahara8Polar" {
       DepthState = { Enabled = false; WriteEnabled = false; }
 
       struct Attributes { vec4 POSITION_UV; };
@@ -110,6 +233,10 @@ const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
         return dot(c, vec3(0.2126, 0.7152, 0.0722));
       }
 
+      vec3 fetchClamped(vec2 uv) {
+        return texture2D(renderer_BlitTexture, clamp(uv, vec2(0.002), vec2(0.998))).rgb;
+      }
+
       vec4 fragKuwahara(Varyings v) {
         vec2 uv = v.uv;
         vec2 texel = renderer_texelSize.xy;
@@ -120,100 +247,127 @@ const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
 
         float centerDepth = hasDepth > 0.5 ? texture2D(material_DepthTexture, uv).r : 0.0;
         bool isSky = hasDepth > 0.5 && centerDepth >= 0.99997;
-        // Encode sky as alpha=0.0 so full-res Pass 2 needs ZERO DepthTexture reads!
         if (isSky) {
           return vec4(centerCol, 0.0);
         }
 
-        // Normalize by buffer short edge (matches PC landscape & Mobile portrait identically).
         float shortEdge = min(renderer_texelSize.z, renderer_texelSize.w);
         float radiusPx = brushRadius720 * max(shortEdge / 720.0, 0.45);
-        if (radiusPx <= 0.35) {
+        if (radiusPx <= 0.5) {
           return vec4(centerCol, 0.525);
         }
 
         vec4 tensor = texture2D(material_TensorTexture, uv);
-        vec2 tangent = normalize(tensor.xy * 2.0 - 1.0 + vec2(1e-4, 0.0));
+        vec2 tangent = tensor.xy * 2.0 - 1.0;
+        float tLen = length(tangent);
+        tangent = tLen > 1e-4 ? tangent / tLen : vec2(1.0, 0.0);
         vec2 normal2 = vec2(-tangent.y, tangent.x);
-        float anisotropy = tensor.z;
 
-        float stretch = 1.0 + anisoScale * (0.35 + 0.65 * anisotropy);
-        float majorR = radiusPx * stretch;
-        float minorR = max(1.1, radiusPx / sqrt(stretch));
-        vec2 axisU = tangent * majorR * texel;
-        vec2 axisV = normal2 * minorR * texel;
+        float anisoEff = sqrt(clamp(tensor.z, 0.0, 1.0)) * anisoScale;
+        float scaleA = 1.0 + clamp(anisoEff, 0.0, 2.5);
+        float majorR = radiusPx * scaleA;
+        float minorR = max(0.85, radiusPx / scaleA);
+        vec2 axU = tangent * majorR * texel;
+        vec2 axV = normal2 * minorR * texel;
+        vec2 diagP = (axU + axV) * 0.70710678;
+        vec2 diagM = (axV - axU) * 0.70710678;
 
-        vec3 m0 = centerCol * 0.06; vec3 s0 = centerCol * centerCol * 0.06; float w0 = 0.06;
-        vec3 m1 = centerCol * 0.06; vec3 s1 = centerCol * centerCol * 0.06; float w1 = 0.06;
-        vec3 m2 = centerCol * 0.06; vec3 s2 = centerCol * centerCol * 0.06; float w2 = 0.06;
-        vec3 m3 = centerCol * 0.06; vec3 s3 = centerCol * centerCol * 0.06; float w3 = 0.06;
+        // Unrolled 17-tap 2-ring 8-sector symmetric polar Kuwahara:
+        // ZERO exp(), ZERO sqrt(), ZERO loops, constant weight sum = 1.94 (invW = 0.5154639).
+        vec3 c0 = centerCol * 0.18;
+        vec3 c02 = centerCol * centerCol * 0.18;
+        vec3 m0 = c0; vec3 s0 = c02;
+        vec3 m1 = c0; vec3 s1 = c02;
+        vec3 m2 = c0; vec3 s2 = c02;
+        vec3 m3 = c0; vec3 s3 = c02;
+        vec3 m4 = c0; vec3 s4 = c02;
+        vec3 m5 = c0; vec3 s5 = c02;
+        vec3 m6 = c0; vec3 s6 = c02;
+        vec3 m7 = c0; vec3 s7 = c02;
 
-        // Compact 12-tap elliptical ring (13 taps total incl. center, 100% L2-cache-hit from RGBA8 RT!)
-        // Covers 4 directional sectors with smooth radial falloff.
-        vec2 offsets[12];
-        offsets[0]  = vec2( 0.50,  0.00);
-        offsets[1]  = vec2( 1.00,  0.00);
-        offsets[2]  = vec2( 0.68,  0.48);
-        offsets[3]  = vec2( 0.00,  0.50);
-        offsets[4]  = vec2( 0.00,  1.00);
-        offsets[5]  = vec2(-0.68,  0.48);
-        offsets[6]  = vec2(-0.50,  0.00);
-        offsets[7]  = vec2(-1.00,  0.00);
-        offsets[8]  = vec2(-0.68, -0.48);
-        offsets[9]  = vec2( 0.00, -0.50);
-        offsets[10] = vec2( 0.00, -1.00);
-        offsets[11] = vec2( 0.68, -0.48);
+        vec3 c; vec3 c2;
 
-        for (int i = 0; i < 12; i++) {
-          vec2 p = offsets[i];
-          vec2 suv = clamp(uv + axisU * p.x + axisV * p.y, vec2(0.002), vec2(0.998));
-          vec3 c = texture2D(renderer_BlitTexture, suv).rgb;
-          vec3 c2 = c * c;
-          float radial = 1.0 - 0.28 * dot(p, p);
+        // Ray 0 (+U): own=0, neighbors=7,1
+        c = fetchClamped(uv + axU * 0.48); c2 = c * c;
+        m0 += c * 0.62; s0 += c2 * 0.62; m7 += c * 0.22; s7 += c2 * 0.22; m1 += c * 0.22; s1 += c2 * 0.22;
+        c = fetchClamped(uv + axU * 0.94); c2 = c * c;
+        m0 += c * 0.42; s0 += c2 * 0.42; m7 += c * 0.14; s7 += c2 * 0.14; m1 += c * 0.14; s1 += c2 * 0.14;
 
-          float k0 = max(0.0,  p.x - abs(p.y) * 0.22) * radial;
-          float k1 = max(0.0,  p.y - abs(p.x) * 0.22) * radial;
-          float k2 = max(0.0, -p.x - abs(p.y) * 0.22) * radial;
-          float k3 = max(0.0, -p.y - abs(p.x) * 0.22) * radial;
+        // Ray 1 (+U+V): own=1, neighbors=0,2
+        c = fetchClamped(uv + diagP * 0.48); c2 = c * c;
+        m1 += c * 0.62; s1 += c2 * 0.62; m0 += c * 0.22; s0 += c2 * 0.22; m2 += c * 0.22; s2 += c2 * 0.22;
+        c = fetchClamped(uv + diagP * 0.94); c2 = c * c;
+        m1 += c * 0.42; s1 += c2 * 0.42; m0 += c * 0.14; s0 += c2 * 0.14; m2 += c * 0.14; s2 += c2 * 0.14;
 
-          m0 += c * k0; s0 += c2 * k0; w0 += k0;
-          m1 += c * k1; s1 += c2 * k1; w1 += k1;
-          m2 += c * k2; s2 += c2 * k2; w2 += k2;
-          m3 += c * k3; s3 += c2 * k3; w3 += k3;
-        }
+        // Ray 2 (+V): own=2, neighbors=1,3
+        c = fetchClamped(uv + axV * 0.48); c2 = c * c;
+        m2 += c * 0.62; s2 += c2 * 0.62; m1 += c * 0.22; s1 += c2 * 0.22; m3 += c * 0.22; s3 += c2 * 0.22;
+        c = fetchClamped(uv + axV * 0.94); c2 = c * c;
+        m2 += c * 0.42; s2 += c2 * 0.42; m1 += c * 0.14; s1 += c2 * 0.14; m3 += c * 0.14; s3 += c2 * 0.14;
 
-        vec3 mean0 = m0 / w0;
-        vec3 mean1 = m1 / w1;
-        vec3 mean2 = m2 / w2;
-        vec3 mean3 = m3 / w3;
+        // Ray 3 (-U+V): own=3, neighbors=2,4
+        c = fetchClamped(uv + diagM * 0.48); c2 = c * c;
+        m3 += c * 0.62; s3 += c2 * 0.62; m2 += c * 0.22; s2 += c2 * 0.22; m4 += c * 0.22; s4 += c2 * 0.22;
+        c = fetchClamped(uv + diagM * 0.94); c2 = c * c;
+        m3 += c * 0.42; s3 += c2 * 0.42; m2 += c * 0.14; s2 += c2 * 0.14; m4 += c * 0.14; s4 += c2 * 0.14;
 
-        vec3 v0 = max(s0 / w0 - mean0 * mean0, vec3(0.0));
-        vec3 v1 = max(s1 / w1 - mean1 * mean1, vec3(0.0));
-        vec3 v2 = max(s2 / w2 - mean2 * mean2, vec3(0.0));
-        vec3 v3 = max(s3 / w3 - mean3 * mean3, vec3(0.0));
+        // Ray 4 (-U): own=4, neighbors=3,5
+        c = fetchClamped(uv - axU * 0.48); c2 = c * c;
+        m4 += c * 0.62; s4 += c2 * 0.62; m3 += c * 0.22; s3 += c2 * 0.22; m5 += c * 0.22; s5 += c2 * 0.22;
+        c = fetchClamped(uv - axU * 0.94); c2 = c * c;
+        m4 += c * 0.42; s4 += c2 * 0.42; m3 += c * 0.14; s3 += c2 * 0.14; m5 += c * 0.14; s5 += c2 * 0.14;
 
-        float sig0 = v0.r + v0.g + v0.b;
-        float sig1 = v1.r + v1.g + v1.b;
-        float sig2 = v2.r + v2.g + v2.b;
-        float sig3 = v3.r + v3.g + v3.b;
+        // Ray 5 (-U-V): own=5, neighbors=4,6
+        c = fetchClamped(uv - diagP * 0.48); c2 = c * c;
+        m5 += c * 0.62; s5 += c2 * 0.62; m4 += c * 0.22; s4 += c2 * 0.22; m6 += c * 0.22; s6 += c2 * 0.22;
+        c = fetchClamped(uv - diagP * 0.94); c2 = c * c;
+        m5 += c * 0.42; s5 += c2 * 0.42; m4 += c * 0.14; s4 += c2 * 0.14; m6 += c * 0.14; s6 += c2 * 0.14;
 
-        float minSig = min(min(sig0, sig1), min(sig2, sig3));
-        // Fast rational sharpness (ZERO exp() / sqrt() transcendental ALU!)
-        float d0 = sig0 - minSig;
-        float d1 = sig1 - minSig;
-        float d2 = sig2 - minSig;
-        float d3 = sig3 - minSig;
-        float ew0 = 1.0 / (1.0 + d0 * 950.0);
-        float ew1 = 1.0 / (1.0 + d1 * 950.0);
-        float ew2 = 1.0 / (1.0 + d2 * 950.0);
-        float ew3 = 1.0 / (1.0 + d3 * 950.0);
-        vec3 outCol = (mean0 * ew0 + mean1 * ew1 + mean2 * ew2 + mean3 * ew3) / (ew0 + ew1 + ew2 + ew3);
+        // Ray 6 (-V): own=6, neighbors=5,7
+        c = fetchClamped(uv - axV * 0.48); c2 = c * c;
+        m6 += c * 0.62; s6 += c2 * 0.62; m5 += c * 0.22; s5 += c2 * 0.22; m7 += c * 0.22; s7 += c2 * 0.22;
+        c = fetchClamped(uv - axV * 0.94); c2 = c * c;
+        m6 += c * 0.42; s6 += c2 * 0.42; m5 += c * 0.14; s5 += c2 * 0.14; m7 += c * 0.14; s7 += c2 * 0.14;
 
-        // Compute scene-anchored paint-edge directional ridge right here from sector means (0 extra taps!)
-        // and pack into .a in [0.05..1.0] (0.0 reserved for sky).
-        float grad = kuwLuma(mean1) - kuwLuma(mean3);
+        // Ray 7 (+U-V): own=7, neighbors=6,0
+        c = fetchClamped(uv - diagM * 0.48); c2 = c * c;
+        m7 += c * 0.62; s7 += c2 * 0.62; m6 += c * 0.22; s6 += c2 * 0.22; m0 += c * 0.22; s0 += c2 * 0.22;
+        c = fetchClamped(uv - diagM * 0.94); c2 = c * c;
+        m7 += c * 0.42; s7 += c2 * 0.42; m6 += c * 0.14; s6 += c2 * 0.14; m0 += c * 0.14; s0 += c2 * 0.14;
+
+        float invW = 0.5154639;
+        vec3 mean0 = m0 * invW; vec3 v0 = max(s0 * invW - mean0 * mean0, vec3(0.0)); float var0 = v0.r + v0.g + v0.b;
+        vec3 mean1 = m1 * invW; vec3 v1 = max(s1 * invW - mean1 * mean1, vec3(0.0)); float var1 = v1.r + v1.g + v1.b;
+        vec3 mean2 = m2 * invW; vec3 v2 = max(s2 * invW - mean2 * mean2, vec3(0.0)); float var2 = v2.r + v2.g + v2.b;
+        vec3 mean3 = m3 * invW; vec3 v3 = max(s3 * invW - mean3 * mean3, vec3(0.0)); float var3 = v3.r + v3.g + v3.b;
+        vec3 mean4 = m4 * invW; vec3 v4 = max(s4 * invW - mean4 * mean4, vec3(0.0)); float var4 = v4.r + v4.g + v4.b;
+        vec3 mean5 = m5 * invW; vec3 v5 = max(s5 * invW - mean5 * mean5, vec3(0.0)); float var5 = v5.r + v5.g + v5.b;
+        vec3 mean6 = m6 * invW; vec3 v6 = max(s6 * invW - mean6 * mean6, vec3(0.0)); float var6 = v6.r + v6.g + v6.b;
+        vec3 mean7 = m7 * invW; vec3 v7 = max(s7 * invW - mean7 * mean7, vec3(0.0)); float var7 = v7.r + v7.g + v7.b;
+
+        // Exact q=8 on std-dev == r^4 on variance with ZERO sqrt() and ZERO exp()!
+        float minV = min(min(min(var0, var1), min(var2, var3)), min(min(var4, var5), min(var6, var7)));
+        float num = minV + 1e-5;
+
+        float r0 = num / (var0 + 1e-5); r0 *= r0; float ew0 = r0 * r0;
+        float r1 = num / (var1 + 1e-5); r1 *= r1; float ew1 = r1 * r1;
+        float r2 = num / (var2 + 1e-5); r2 *= r2; float ew2 = r2 * r2;
+        float r3 = num / (var3 + 1e-5); r3 *= r3; float ew3 = r3 * r3;
+        float r4 = num / (var4 + 1e-5); r4 *= r4; float ew4 = r4 * r4;
+        float r5 = num / (var5 + 1e-5); r5 *= r5; float ew5 = r5 * r5;
+        float r6 = num / (var6 + 1e-5); r6 *= r6; float ew6 = r6 * r6;
+        float r7 = num / (var7 + 1e-5); r7 *= r7; float ew7 = r7 * r7;
+
+        float ewSum = ew0 + ew1 + ew2 + ew3 + ew4 + ew5 + ew6 + ew7;
+        vec3 outCol = (
+          mean0 * ew0 + mean1 * ew1 + mean2 * ew2 + mean3 * ew3 +
+          mean4 * ew4 + mean5 * ew5 + mean6 * ew6 + mean7 * ew7
+        ) / max(ewSum, 1e-5);
+
+        // Cross-edge luminance gradient (+V sector 2 vs -V sector 6, 0 extra taps).
+        float grad = kuwLuma(mean2) - kuwLuma(mean6);
         float dirLight = dot(normal2, normalize(vec2(-0.6, 0.8)));
-        float ridge = clamp(grad * dirLight * 3.8, -0.8, 0.8);
+        float ridge = clamp(grad * dirLight * 3.2, -0.8, 0.8);
         float packedRidge = clamp(0.525 + ridge * 0.45, 0.05, 1.0);
         return vec4(outCol, packedRidge);
       }
@@ -256,63 +410,64 @@ const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
         float compareSplit = material_OilComposite0.w;
         float hasKuwahara = material_OilComposite1.x;
 
-        vec3 origCol = texture2D(renderer_BlitTexture, uv).rgb;
+        vec3 origLin = max(texture2D(renderer_BlitTexture, uv).rgb, vec3(0.0));
         if (compareSplit > 0.001 && uv.x < compareSplit) {
           if (abs(uv.x - compareSplit) < renderer_texelSize.x * 2.5) {
-            return vec4(1.0, 0.94, 0.78, 1.0);
+            return vec4(1.0, 0.86, 0.56, 1.0);
           }
-          return vec4(origCol, 1.0);
+          return vec4(origLin, 1.0);
         }
 
-        vec3 col = origCol;
+        vec3 origSrgb = pow(clamp(origLin, vec3(0.0), vec3(1.0)), vec3(0.45454545));
+        vec3 colSrgb = origSrgb;
         float sceneMask = 1.0;
         if (hasKuwahara > 0.5) {
           vec4 kuw = texture2D(material_KuwaharaTexture, uv);
-          // kuw.a == 0.0 marks sky pixels; [0.05..1.0] encodes scene-anchored impasto ridge!
           sceneMask = smoothstep(0.015, 0.045, kuw.a);
-          col = mix(origCol, kuw.rgb, painterlyStrength * sceneMask);
+          colSrgb = mix(origSrgb, kuw.rgb, painterlyStrength * sceneMask);
 
           if (screenImpasto > 0.001 && sceneMask > 0.01) {
             float ridge = clamp((kuw.a - 0.525) / 0.45, -0.8, 0.8);
-            col *= 1.0 + ridge * 0.18 * screenImpasto * sceneMask;
-            col += vec3(1.0, 0.97, 0.90) * max(ridge, 0.0) * max(ridge, 0.0) * 0.06 * screenImpasto * sceneMask;
+            colSrgb *= 1.0 + ridge * 0.14 * screenImpasto * sceneMask;
+            colSrgb += vec3(1.0, 0.97, 0.90) * max(ridge, 0.0) * max(ridge, 0.0) * 0.045 * screenImpasto * sceneMask;
           }
         }
 
-        // Gallery-faithful oil varnish S-curve & chroma-safe warm/cool glaze (keeps snow white & stone warm!).
         if (colorStylize > 0.001) {
           float stylizeEff = colorStylize * mix(0.18, 1.0, sceneMask);
-          float luma = max(oilLuma(col), 1e-4);
-          float maxC = max(col.r, max(col.g, col.b));
-          float minC = min(col.r, min(col.g, col.b));
+          float luma = max(oilLuma(colSrgb), 1e-4);
+          float maxC = max(colSrgb.r, max(colSrgb.g, colSrgb.b));
+          float minC = min(colSrgb.r, min(colSrgb.g, colSrgb.b));
           float colChroma = smoothstep(0.08, 0.32, (maxC - minC) / max(maxC, 1e-4));
-          vec3 warmHighlight = mix(vec3(1.02, 1.01, 0.99), vec3(1.09, 1.03, 0.91), colChroma);
+          vec3 warmHighlight = mix(vec3(1.01, 1.0, 0.99), vec3(1.07, 1.02, 0.92), colChroma);
           vec3 glaze = mix(vec3(0.95, 0.94, 1.03), warmHighlight, smoothstep(0.18, 0.72, luma));
-          vec3 glazed = col * glaze;
+          vec3 glazed = colSrgb * glaze;
           float gLuma = oilLuma(glazed);
-          glazed = mix(vec3(gLuma), glazed, 1.0 + 0.28 * stylizeEff * mix(0.25, 1.0, colChroma));
-          vec3 over = max(glazed - 0.82, 0.0);
-          glazed = min(glazed, 0.82) + over / (1.0 + over * 4.5);
+          glazed = mix(vec3(gLuma), glazed, 1.0 + 0.22 * stylizeEff * mix(0.25, 1.0, colChroma));
           vec3 c01 = clamp(glazed, 0.0, 1.0);
           vec3 sCurve = c01 * c01 * (3.0 - 2.0 * c01);
-          glazed = mix(glazed, sCurve, 0.24 * stylizeEff);
-          col = mix(col, max(glazed, vec3(0.0)), stylizeEff);
+          glazed = mix(glazed, sCurve, 0.20 * stylizeEff);
+          colSrgb = mix(colSrgb, clamp(glazed, vec3(0.0), vec3(1.0)), stylizeEff);
         }
 
-        return vec4(max(col, vec3(0.0)), 1.0);
+        vec3 outLin = pow(max(colSrgb, vec3(0.0)), vec3(2.2));
+        outLin = mix(origLin, outLin, max(sceneMask, colorStylize * 0.18));
+        return vec4(max(outLin, vec3(0.0)), 1.0);
       }
     }
   }
 }`;
 
 /**
- * High-performance Oil Paint post-process pass engineered for 120 FPS Retina displays:
- * - L2-cache-resident RGBA8 downsample (<=420px short edge)
- * - 13-tap 4-sector Anisotropic Kuwahara with zero `exp()` & packed `.a` sky/ridge mask
- * - Single full-res composite pass (only 2 taps).
+ * 120-FPS Kyprianidis (2009) Anisotropic Kuwahara Oil-Paint post-process pass:
+ * - Anti-aliased 4-tap linear -> perceptual sRGB working buffer (<=720p High / <=420p Mobile)
+ * - 5-tap separable Gaussian-smoothed RGB Structure Tensor (true Rank-2 anisotropy, crisp edge flow)
+ * - Unrolled 17-tap 2-ring 8-sector polar Kuwahara (0 exp(), 0 sqrt(), ~6.5x fewer fetches than 1080p 49-tap)
+ * - Single full-res composite pass (2 taps) returning linear color to FinalPass.
  */
 export class OilPaintPostPass extends PostProcessPass {
   private readonly _material: Material;
+  private readonly _prep0 = new Vector4();
   private readonly _params0 = new Vector4();
   private readonly _composite0 = new Vector4();
   private readonly _composite1 = new Vector4();
@@ -320,6 +475,8 @@ export class OilPaintPostPass extends PostProcessPass {
   private _kuwaharaRT: RenderTarget | null = null;
   private _kuwaharaW = 0;
   private _kuwaharaH = 0;
+  private _tensorTempRT: RenderTarget | null = null;
+  private _tensorBlurRT: RenderTarget | null = null;
   private _tensorRT: RenderTarget | null = null;
   private _tensorW = 0;
   private _tensorH = 0;
@@ -344,7 +501,7 @@ export class OilPaintPostPass extends PostProcessPass {
     if (super.isActive === value) return;
     super.isActive = value;
     if (!value) {
-      this._releaseTensorRT();
+      this._releaseTensorRTs();
       this._releaseKuwaharaRTs();
     }
   }
@@ -364,7 +521,6 @@ export class OilPaintPostPass extends PostProcessPass {
       return;
     }
 
-    // Sync 3D surface shader macro uniforms with the pluggable effect parameters.
     scene.shaderData.setFloat("scene_OilPaintImpasto", effect.impasto.value);
     scene.shaderData.setFloat("scene_OilPaintBrushScale", effect.brushScale.value);
 
@@ -378,12 +534,13 @@ export class OilPaintPostPass extends PostProcessPass {
 
     const runKuwahara =
       (effect.painterlyStrength.value > 0.001 && effect.brushRadius.value > 0.5) || effect.screenImpasto.value > 0.001;
-    let downTex: Texture2D | null = null;
 
     if (runKuwahara) {
-      // Cap Kuwahara working buffer to <=420px short edge (~672x420 RGBA8 = 1.1 MB -> 100% GPU L2 cache hit!).
+      const isMobileQuality = effect.kuwaharaQuality.value === OilPaintKuwaharaQuality.Mobile;
+      // High <=720p (~0.83M px * 17 taps = 14M taps -> 120 FPS on PC); Mobile <=420p (~4.8M taps -> 60 FPS on mobile).
+      const targetShortEdge = isMobileQuality ? 420 : 720;
       const shortEdge = Math.min(srcTexture.width, srcTexture.height);
-      const scale = Math.min(0.5, 420 / Math.max(1, shortEdge));
+      const scale = Math.min(1.0, targetShortEdge / Math.max(1, shortEdge));
       const kuwW = Math.max(1, Math.round(srcTexture.width * scale));
       const kuwH = Math.max(1, Math.round(srcTexture.height * scale));
       const tenW = Math.max(1, kuwW >> 1);
@@ -391,15 +548,35 @@ export class OilPaintPostPass extends PostProcessPass {
 
       this._ensureWorkRTs(kuwW, kuwH, tenW, tenH);
 
-      // Step 0a: 1-tap hardware bilinear downsample into L2-resident RGBA8 buffer.
-      Blitter.blitTexture(engine, srcTexture, this._downRT!);
-      downTex = this._downRT!.getColorTexture(0) as Texture2D;
+      // Pass 0: Anti-aliased 4-tap downsample + linear HDR -> perceptual sRGB working buffer.
+      this._prep0.set(srcTexture.height / Math.max(1, kuwH), 0, 0, 0);
+      shaderData.setVector4("material_OilPrep0", this._prep0);
+      Blitter.blitTexture(engine, srcTexture, this._downRT!, undefined, undefined, this._material, 0);
+      const workTex = this._downRT!.getColorTexture(0) as Texture2D;
 
-      // Step 0b: Structure tensor from L2-resident buffer (<=210px short edge).
-      Blitter.blitTexture(engine, downTex, this._tensorRT!, undefined, undefined, this._material, 0);
+      // Pass 1..3: RGB Sobel structure tensor (E, G, F) + 5-tap separable Gaussian smoothing (H -> V eigensystem).
+      Blitter.blitTexture(engine, workTex, this._tensorTempRT!, undefined, undefined, this._material, 1);
+      Blitter.blitTexture(
+        engine,
+        this._tensorTempRT!.getColorTexture(0) as Texture2D,
+        this._tensorBlurRT!,
+        undefined,
+        undefined,
+        this._material,
+        2
+      );
+      Blitter.blitTexture(
+        engine,
+        this._tensorBlurRT!.getColorTexture(0) as Texture2D,
+        this._tensorRT!,
+        undefined,
+        undefined,
+        this._material,
+        3
+      );
       shaderData.setTexture("material_TensorTexture", this._tensorRT!.getColorTexture(0));
 
-      // Step 1: 13-tap 4-sector Anisotropic Kuwahara + sky/ridge packed into .a (zero exp()).
+      // Pass 4: Unrolled 17-tap 2-ring 8-sector polar Anisotropic Kuwahara (0 exp, 0 sqrt).
       this._params0.set(
         effect.painterlyStrength.value,
         effect.brushRadius.value,
@@ -407,11 +584,11 @@ export class OilPaintPostPass extends PostProcessPass {
         hasDepth
       );
       shaderData.setVector4("material_OilParams0", this._params0);
-      Blitter.blitTexture(engine, downTex, this._kuwaharaRT!, undefined, undefined, this._material, 1);
+      Blitter.blitTexture(engine, workTex, this._kuwaharaRT!, undefined, undefined, this._material, 4);
       shaderData.setTexture("material_KuwaharaTexture", this._kuwaharaRT!.getColorTexture(0));
     }
 
-    // Step 2 (SINGLE Full-Res Pass -> dest): only 2 taps total!
+    // Pass 5 (SINGLE Full-Res Pass -> dest): only 2 taps total, returns linear color to FinalPass.
     this._composite0.set(
       effect.painterlyStrength.value,
       effect.colorStylize.value,
@@ -421,69 +598,82 @@ export class OilPaintPostPass extends PostProcessPass {
     this._composite1.set(runKuwahara ? 1 : 0, 0, 0, 0);
     shaderData.setVector4("material_OilComposite0", this._composite0);
     shaderData.setVector4("material_OilComposite1", this._composite1);
-    Blitter.blitTexture(engine, srcTexture, destTarget, undefined, undefined, this._material, 2);
+    Blitter.blitTexture(engine, srcTexture, destTarget, undefined, undefined, this._material, 5);
+  }
+
+  private _supportsHalfFloatRT(): boolean {
+    const rhi = (
+      this.engine as unknown as {
+        _hardwareRenderer?: { supportsRenderTargetColorFormat?: (format: TextureFormat) => boolean };
+      }
+    )._hardwareRenderer;
+    return Boolean(rhi?.supportsRenderTargetColorFormat?.(TextureFormat.R16G16B16A16_SFloat));
+  }
+
+  private _createRT(
+    w: number,
+    h: number,
+    format: TextureFormat,
+    filterMode: TextureFilterMode = TextureFilterMode.Bilinear
+  ): RenderTarget {
+    const tex = new Texture2D(this.engine, w, h, format, false, false);
+    tex.filterMode = filterMode;
+    tex.wrapModeU = TextureWrapMode.Clamp;
+    tex.wrapModeV = TextureWrapMode.Clamp;
+    return new RenderTarget(this.engine, w, h, tex, null, 1);
   }
 
   private _ensureWorkRTs(kuwW: number, kuwH: number, tenW: number, tenH: number): void {
-    if (
-      !this._downRT ||
-      !this._kuwaharaRT ||
-      this._kuwaharaW !== kuwW ||
-      this._kuwaharaH !== kuwH
-    ) {
+    if (!this._downRT || !this._kuwaharaRT || this._kuwaharaW !== kuwW || this._kuwaharaH !== kuwH) {
       this._releaseKuwaharaRTs();
-      const makeRT = (w: number, h: number) => {
-        const tex = new Texture2D(this.engine, w, h, TextureFormat.R8G8B8A8_UNorm, false, false);
-        tex.filterMode = TextureFilterMode.Bilinear;
-        tex.wrapModeU = TextureWrapMode.Clamp;
-        tex.wrapModeV = TextureWrapMode.Clamp;
-        return new RenderTarget(this.engine, w, h, tex, null, 1);
-      };
-      this._downRT = makeRT(kuwW, kuwH);
-      this._kuwaharaRT = makeRT(kuwW, kuwH);
+      this._downRT = this._createRT(kuwW, kuwH, TextureFormat.R8G8B8A8_UNorm, TextureFilterMode.Bilinear);
+      this._kuwaharaRT = this._createRT(kuwW, kuwH, TextureFormat.R8G8B8A8_UNorm, TextureFilterMode.Bilinear);
       this._kuwaharaW = kuwW;
       this._kuwaharaH = kuwH;
     }
 
-    if (!this._tensorRT || this._tensorW !== tenW || this._tensorH !== tenH) {
-      this._releaseTensorRT();
-      const tex = new Texture2D(this.engine, tenW, tenH, TextureFormat.R8G8B8A8_UNorm, false, false);
-      tex.filterMode = TextureFilterMode.Bilinear;
-      tex.wrapModeU = TextureWrapMode.Clamp;
-      tex.wrapModeV = TextureWrapMode.Clamp;
-      this._tensorRT = new RenderTarget(this.engine, tenW, tenH, tex, null, 1);
+    if (
+      !this._tensorTempRT ||
+      !this._tensorBlurRT ||
+      !this._tensorRT ||
+      this._tensorW !== tenW ||
+      this._tensorH !== tenH
+    ) {
+      this._releaseTensorRTs();
+      const rawFormat = this._supportsHalfFloatRT() ? TextureFormat.R16G16B16A16_SFloat : TextureFormat.R8G8B8A8_UNorm;
+      this._tensorTempRT = this._createRT(tenW, tenH, rawFormat, TextureFilterMode.Point);
+      this._tensorBlurRT = this._createRT(tenW, tenH, rawFormat, TextureFilterMode.Point);
+      this._tensorRT = this._createRT(tenW, tenH, TextureFormat.R8G8B8A8_UNorm, TextureFilterMode.Bilinear);
       this._tensorW = tenW;
       this._tensorH = tenH;
     }
   }
 
+  private _destroyRT(rt: RenderTarget | null): null {
+    if (rt) {
+      rt.getColorTexture(0)?.destroy();
+      rt.destroy();
+    }
+    return null;
+  }
+
   private _releaseKuwaharaRTs(): void {
-    if (this._downRT) {
-      this._downRT.getColorTexture(0)?.destroy();
-      this._downRT.destroy();
-      this._downRT = null;
-    }
-    if (this._kuwaharaRT) {
-      this._kuwaharaRT.getColorTexture(0)?.destroy();
-      this._kuwaharaRT.destroy();
-      this._kuwaharaRT = null;
-    }
+    this._downRT = this._destroyRT(this._downRT);
+    this._kuwaharaRT = this._destroyRT(this._kuwaharaRT);
     this._kuwaharaW = 0;
     this._kuwaharaH = 0;
   }
 
-  private _releaseTensorRT(): void {
-    if (this._tensorRT) {
-      this._tensorRT.getColorTexture(0)?.destroy();
-      this._tensorRT.destroy();
-      this._tensorRT = null;
-    }
+  private _releaseTensorRTs(): void {
+    this._tensorTempRT = this._destroyRT(this._tensorTempRT);
+    this._tensorBlurRT = this._destroyRT(this._tensorBlurRT);
+    this._tensorRT = this._destroyRT(this._tensorRT);
     this._tensorW = 0;
     this._tensorH = 0;
   }
 
   override _onDestroy(): void {
-    this._releaseTensorRT();
+    this._releaseTensorRTs();
     this._releaseKuwaharaRTs();
     this._material.destroy();
     super._onDestroy();

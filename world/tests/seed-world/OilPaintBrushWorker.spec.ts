@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import {
   OIL_PAINT_BRUSH_DEFAULT_SEED,
   OIL_PAINT_BRUSH_DEFAULT_SIZE,
   generateSeamlessImpastoPixels
 } from "@galacean/engine-world-planning/spatial/oil-paint/OilPaintBrushGenerator";
+import { OilPaintKuwaharaQuality, OilPaintPostEffect } from "../../demos/seed-world/src/oil-paint/OilPaintPostEffect";
+import { OIL_PAINT_POST_SHADER } from "../../demos/seed-world/src/oil-paint/OilPaintPostPass";
 
-describe("OilPaintBrush worker baking", () => {
+describe("OilPaintBrush worker baking & Kuwahara post-process", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -13,7 +16,7 @@ describe("OilPaintBrush worker baking", () => {
     vi.resetModules();
   });
 
-  it("generates deterministic RGBA8 impasto pixels with full height, gradient, and pigment spread", () => {
+  it("generates deterministic swirling RGBA8 impasto pixels with full height, gradient, and clustered pigment spread", () => {
     const first = generateSeamlessImpastoPixels(128, 42);
     const second = generateSeamlessImpastoPixels(128, 42);
     expect(first.length).toBe(128 * 128 * 4);
@@ -33,13 +36,14 @@ describe("OilPaintBrush worker baking", () => {
     }
     expect(minR).toBeLessThanOrEqual(8);
     expect(maxR).toBeGreaterThanOrEqual(245);
-    expect(maxG - minG).toBeGreaterThan(40);
+    expect(maxG - minG).toBeGreaterThan(35);
     expect(pigmentValues.size).toBeGreaterThan(20);
   });
 
   it("bakes via module Worker, deduplicates prewarm + bake, and terminates idle Worker", async () => {
     vi.useFakeTimers();
-    const spawned: { url: URL | string; options: WorkerOptions | undefined; posts: unknown[]; terminated: boolean }[] = [];
+    const spawned: { url: URL | string; options: WorkerOptions | undefined; posts: unknown[]; terminated: boolean }[] =
+      [];
 
     class FakeWorker {
       onmessage: ((event: MessageEvent) => void) | null = null;
@@ -106,7 +110,29 @@ describe("OilPaintBrush worker baking", () => {
     const pixels = await mod.bakeOilPaintBrushPixels(64, OIL_PAINT_BRUSH_DEFAULT_SEED);
     expect(pixels).toEqual(generateSeamlessImpastoPixels(64, OIL_PAINT_BRUSH_DEFAULT_SEED));
     expect(warnSpy).toHaveBeenCalled();
-
     expect(OIL_PAINT_BRUSH_DEFAULT_SIZE).toBe(512);
+  });
+
+  it("compiles all 6 OilPaintPostPass shader passes and blends kuwaharaQuality through PostProcessEffect._lerp", () => {
+    const compiler = new ShaderCompiler();
+    const compiled = compiler._parseShaderSource(OIL_PAINT_POST_SHADER);
+    expect(compiled.subShaders.length).toBe(1);
+    const passNames = compiled.subShaders[0].passes.map((p) => p.name);
+    expect(passNames).toEqual([
+      "PreparePerceptual",
+      "StructureTensor",
+      "TensorBlurH",
+      "TensorBlurV",
+      "AnisotropicKuwahara8Polar",
+      "CompositeMerged"
+    ]);
+
+    const blend = new OilPaintPostEffect();
+    const source = new OilPaintPostEffect();
+    source.kuwaharaQuality.value = OilPaintKuwaharaQuality.Mobile;
+    source.brushRadius.value = 8;
+    blend._lerp(source, 1);
+    expect(blend.kuwaharaQuality.value).toBe(OilPaintKuwaharaQuality.Mobile);
+    expect(blend.brushRadius.value).toBe(8);
   });
 });

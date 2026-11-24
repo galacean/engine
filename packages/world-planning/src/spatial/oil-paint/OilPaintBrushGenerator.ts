@@ -1,10 +1,33 @@
 export const OIL_PAINT_BRUSH_DEFAULT_SIZE = 512;
 export const OIL_PAINT_BRUSH_DEFAULT_SEED = 42;
 
+/** Toroidal periodic curl-like flow field so swirling strokes wrap seamlessly across tile borders. */
+function sampleToroidalSwirlAngle(cx: number, cy: number, size: number): number {
+  const twoPi = Math.PI * 2;
+  const nx = (cx / size) * twoPi;
+  const ny = (cy / size) * twoPi;
+  // Divergence-free periodic streamfunction psi(x,y) -> velocity (dPsi/dy, -dPsi/dx).
+  const vx = Math.cos(ny) * Math.sin(nx) + 0.55 * Math.cos(2.0 * ny - nx + 0.7) + 0.3 * Math.sin(nx + ny + 1.3);
+  const vy = -Math.sin(ny) * Math.cos(nx) + 0.55 * Math.cos(2.0 * nx + ny - 0.4) - 0.3 * Math.sin(nx + ny + 1.3);
+  return Math.atan2(vy, vx);
+}
+
+/** Toroidal periodic low-frequency pigment cluster field so nearby strokes form cohesive painterly color zones. */
+function sampleToroidalPigmentCluster(cx: number, cy: number, size: number): number {
+  const twoPi = Math.PI * 2;
+  const nx = (cx / size) * twoPi;
+  const ny = (cy / size) * twoPi;
+  const wave =
+    0.45 * Math.sin(nx + 0.4) * Math.cos(ny - 0.3) +
+    0.32 * Math.sin(2.0 * nx - ny + 1.1) +
+    0.23 * Math.cos(nx + 2.0 * ny - 0.8);
+  return Math.max(0.0, Math.min(1.0, wave * 0.5 + 0.5));
+}
+
 /**
- * Generates a seamlessly tileable (toroidal) bold impasto brushstroke RGBA8 pixel buffer
- * using opaque painter's-order overpainting (NOT blurry averaging) so every brushstroke
- * preserves sharp bristle grooves and a distinct broken-color pigment ID.
+ * Generates a seamlessly tileable (toroidal) Van Gogh swirling-ribbon impasto brushstroke
+ * RGBA8 pixel buffer using opaque painter's-order overpainting (NOT blurry averaging) so every
+ * stroke preserves crisp parallel bristle tracks and cohesive clustered broken-color zones.
  *
  * Pure CPU computation with zero `@galacean/engine` imports so it runs identically inside
  * `OilPaintBrush.worker.ts`, tests, and non-Worker fallback environments.
@@ -13,7 +36,7 @@ export const OIL_PAINT_BRUSH_DEFAULT_SEED = 42;
  * - R: crisp impasto thickness / height (0..1)
  * - G: horizontal height gradient dH/dx encoded around 0.5
  * - B: vertical height gradient dH/dy encoded around 0.5
- * - A: per-stroke discrete broken-color pigment warmth (0..1)
+ * - A: per-stroke clustered broken-color pigment warmth (0..1)
  */
 export function generateSeamlessImpastoPixels(
   size = OIL_PAINT_BRUSH_DEFAULT_SIZE,
@@ -27,32 +50,33 @@ export function generateSeamlessImpastoPixels(
   heightBuf.fill(0.35);
   pigmentBuf.fill(0.5);
 
-  // Three dense passes of flat, matte, overlapping oil-brush dabs (matching next-gallery Autumn Wood):
-  // clean crisp bristle strokes with ZERO raised pill rims (no plastic outlines!).
+  // Three dense passes of flowing, curved swirling-ribbon oil brushstrokes (coarse -> medium -> fine).
   const passes = [
-    { count: 240, lenMin: 20, lenMax: 38, widMin: 7, widMax: 13, opacity: 0.96 },
-    { count: 340, lenMin: 13, lenMax: 26, widMin: 5, widMax: 9, opacity: 0.98 },
-    { count: 320, lenMin: 9, lenMax: 19, widMin: 3.5, widMax: 7, opacity: 1.0 }
+    { count: 220, lenMin: 30, lenMax: 52, widMin: 5.5, widMax: 9.5, opacity: 0.96 },
+    { count: 320, lenMin: 21, lenMax: 38, widMin: 4.0, widMax: 7.2, opacity: 0.98 },
+    { count: 330, lenMin: 14, lenMax: 26, widMin: 2.8, widMax: 5.4, opacity: 1.0 }
   ];
 
   for (const pass of passes) {
     for (let i = 0; i < pass.count; i++) {
       const cx = rnd() * size;
       const cy = rnd() * size;
-      // Organic painterly multi-directional sweep (natural overlapping autumn strokes, never grid-aligned).
-      const baseAngle = rnd() < 0.55 ? -0.3 + (rnd() - 0.5) * 1.65 : rnd() * Math.PI * 2;
+      const baseAngle = sampleToroidalSwirlAngle(cx, cy, size) + (rnd() - 0.5) * 0.32;
       const cosA = Math.cos(baseAngle);
       const sinA = Math.sin(baseAngle);
       const halfLen = pass.lenMin + rnd() * (pass.lenMax - pass.lenMin);
       const halfWid = pass.widMin + rnd() * (pass.widMax - pass.widMin);
-      const curvature = (rnd() - 0.5) * 0.26;
-      const bristleFreq = 2.5 + rnd() * 2.5;
+      const curvature = (rnd() < 0.5 ? -1 : 1) * (0.28 + rnd() * 0.34);
+      const bristleFreq = 3.2 + rnd() * 3.0;
       const bristlePhase = rnd() * Math.PI * 2;
       const strokeHeight = 0.45 + rnd() * 0.52;
-      // Full-spectrum discrete pigment ID per dab so every single stroke has its own distinct paint color.
-      const strokePigment = rnd();
+      // Spatially clustered pigment ID (68% low-frequency painterly zone + 32% per-dab variation) to avoid confetti noise.
+      const strokePigment = Math.max(
+        0.0,
+        Math.min(1.0, sampleToroidalPigmentCluster(cx, cy, size) * 0.68 + rnd() * 0.32)
+      );
 
-      const bound = Math.ceil(Math.hypot(halfLen, halfWid) + 3);
+      const bound = Math.ceil(Math.hypot(halfLen, halfWid) + 4);
       const minX = Math.floor(cx - bound);
       const maxX = Math.ceil(cx + bound);
       const minY = Math.floor(cy - bound);
@@ -68,25 +92,24 @@ export function generateSeamlessImpastoPixels(
           if (u < -1.0 || u > 1.0) continue;
           const rawV = (-dx * sinA + dy * cosA) / halfWid;
           const v = rawV - curvature * (u * u - 0.35);
-          if (v < -1.0 || v > 1.0) continue;
+          if (v < -1.05 || v > 1.05) continue;
 
-          // Flat-brush rounded-rectangle silhouette (squircle) matching real hand-painted oil dabs.
-          const u4 = u * u * u * u;
-          const v4 = v * v * v * v;
-          const sq = u4 * 0.9 + v4 * 1.05;
-          if (sq >= 1.0) continue;
+          // Flowing Van Gogh curved ribbon stroke with tapered tips and crisp parallel bristle grooves.
+          const ribbonWidth = Math.max(0.28, 1.0 - 0.55 * u * u);
+          const nv = v / ribbonWidth;
+          const shape = u * u * 0.96 + nv * nv * nv * nv * 1.04;
+          if (shape >= 1.0) continue;
 
-          const bristleWave = Math.sin(v * bristleFreq * Math.PI + bristlePhase + u * 0.4);
-          const dryTail = u > 0.65 ? (u - 0.65) / 0.35 : 0.0;
-          if (dryTail > 0.3 && bristleWave < dryTail * 0.55 - 0.35) continue;
+          const bristleWave = Math.sin(nv * bristleFreq * Math.PI + bristlePhase + u * 0.85);
+          const dryTail = u > 0.6 ? (u - 0.6) / 0.4 : 0.0;
+          if (dryTail > 0.25 && bristleWave < dryTail * 0.65 - 0.3) continue;
 
-          // Clean flat matte dab edge (no embossed border halo!).
-          const edge = Math.min(1.0, (1.0 - sq) / 0.14);
+          const edge = Math.min(1.0, (1.0 - shape) / 0.14);
           const mask = edge * edge * (3.0 - 2.0 * edge) * pass.opacity;
 
-          // Subtle flat matte bristle variation along the stroke (ZERO raised sideBead pill rim!).
-          const furrow = 0.5 + 0.14 * bristleWave + 0.06 * Math.sin(u * 2.2 + bristlePhase);
-          const localHeight = Math.min(1.0, strokeHeight * (0.76 + 0.24 * furrow));
+          // Pronounced parallel impasto tracks following the swirling ribbon curve.
+          const track = 0.5 + 0.24 * bristleWave + 0.08 * Math.sin(u * 3.1 + bristlePhase);
+          const localHeight = Math.min(1.0, strokeHeight * (0.68 + 0.32 * track));
 
           const wx = ((px % size) + size) % size;
           const idx = rowOffset + wx;
