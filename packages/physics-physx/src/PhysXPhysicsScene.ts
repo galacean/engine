@@ -295,11 +295,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const physicsEvents = this._physicsEvents;
     const triggerEvents = physicsEvents.triggerEvents;
     const activeTriggers = this._activeTriggers;
-    triggerEvents.length = 0;
+    let count = 0;
     for (let i = 0; i < activeTriggers.length; ) {
       const event = activeTriggers[i];
       const state = (event.state = event._pendingState);
-      triggerEvents.push(event);
+      triggerEvents[count++] = event;
       if (state === PhysicsEventState.Enter) {
         event._pendingState = PhysicsEventState.Stay;
       } else if (state === PhysicsEventState.Exit) {
@@ -308,6 +308,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       }
       i++;
     }
+    triggerEvents.length = count;
     return physicsEvents;
   }
 

@@ -2410,7 +2410,7 @@ describe("Physics Test", () => {
         expect(collisionTestScript.onTriggerExit).toHaveBeenCalled();
       });
 
-      it("Dynamic Trigger Kinematic vs Dynamic Kinematic", () => {
+      it("Dynamic Kinematic vs Dynamic Kinematic", () => {
         const physicsMgr = enginePhysX.sceneManager.scenes[0].physics;
 
         const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
@@ -2718,27 +2718,43 @@ describe("Physics Test", () => {
     it("rejects non-positive or non-finite query geometry and distances without hits or inverted normals", () => {
       const root = enginePhysX.sceneManager.activeScene.createRootEntity("invalid-query-dims");
       const target = root.createChild("target");
-      target.addComponent(BoxCollider).size = new Vector3(2, 2, 2);
+      const targetCollider = target.addComponent(BoxCollider);
+      targetCollider.size = new Vector3(2, 2, 2);
 
       const hit = new HitResult();
-      hit.distance = 99;
+      const dirtyHit = () => {
+        hit.collider = targetCollider;
+        hit.entity = target;
+        hit.distance = 99;
+      };
       const origin = new Vector3(-5, 0, 0);
       const dir = new Vector3(1, 0, 0);
       const idQ = new Quaternion();
 
+      dirtyHit();
       expect(physicsScene.raycast(new Ray(origin, dir), 0, hit)).toBe(false);
       expect(hit.collider).toBeNull();
+      expect(hit.distance).toBe(0);
       expect(physicsScene.raycast(new Ray(origin, dir), -5, hit)).toBe(false);
       expect(physicsScene.raycast(new Ray(origin, dir), NaN, hit)).toBe(false);
 
+      dirtyHit();
       expect(physicsScene.boxCast(origin, new Vector3(0, 1, 1), dir, 20, hit)).toBe(false);
+      expect(hit.collider).toBeNull();
+      expect(hit.distance).toBe(0);
       expect(physicsScene.boxCast(origin, new Vector3(-1, 1, 1), dir, 20, hit)).toBe(false);
       expect(physicsScene.boxCast(origin, new Vector3(1, 1, 1), dir, 0, hit)).toBe(false);
+      dirtyHit();
       expect(physicsScene.sphereCast(origin, 0, dir, 20, hit)).toBe(false);
+      expect(hit.collider).toBeNull();
+      expect(hit.distance).toBe(0);
       expect(physicsScene.sphereCast(origin, -1, dir, 20, hit)).toBe(false);
       expect(physicsScene.sphereCast(origin, NaN, dir, 20, hit)).toBe(false);
       expect(physicsScene.sphereCast(origin, 0.5, dir, -1, hit)).toBe(false);
+      dirtyHit();
       expect(physicsScene.capsuleCast(origin, 0, 1, dir, 20, hit)).toBe(false);
+      expect(hit.collider).toBeNull();
+      expect(hit.distance).toBe(0);
       expect(physicsScene.capsuleCast(origin, -0.5, 1, dir, 20, hit)).toBe(false);
       expect(physicsScene.capsuleCast(origin, 0.5, -1, dir, 20, hit)).toBe(false);
       expect(physicsScene.capsuleCast(origin, 0.5, NaN, dir, 20, hit)).toBe(false);
@@ -2753,14 +2769,16 @@ describe("Physics Test", () => {
       expect(physicsScene.capsuleCast(new Vector3(-5, 1.75, 0), 0.5, 1, dir, 20, hit)).toBe(false);
       expect(physicsScene.capsuleCast(new Vector3(-5, 1.75, 0), 0.5, 2, dir, 20, hit)).toBe(true);
 
-      const existing = [target.getComponent(BoxCollider)!];
+      const existing = [targetCollider];
       expect(physicsScene.overlapBoxAll(new Vector3(), new Vector3(0, 1, 1), idQ, Layer.Everything, existing)).toEqual(
         []
       );
       expect(physicsScene.overlapBoxAll(new Vector3(), new Vector3(-1, 1, 1))).toEqual([]);
-      expect(physicsScene.overlapSphereAll(new Vector3(), 0)).toEqual([]);
+      existing.push(targetCollider);
+      expect(physicsScene.overlapSphereAll(new Vector3(), 0, Layer.Everything, existing)).toEqual([]);
       expect(physicsScene.overlapSphereAll(new Vector3(), -1)).toEqual([]);
-      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0, 1)).toEqual([]);
+      existing.push(targetCollider);
+      expect(physicsScene.overlapCapsuleAll(new Vector3(), 0, 1, idQ, Layer.Everything, existing)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, -1)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, NaN)).toEqual([]);
       expect(physicsScene.overlapCapsuleAll(new Vector3(), 0.5, 0)).toHaveLength(1);
@@ -2872,6 +2890,60 @@ describe("Physics Test", () => {
 
       enginePhysX.resourceManager.gc();
       expect(pool).toHaveLength(0);
+    });
+
+    it("prunes silently retired trigger pairs while keeping active pairs and drains dispatch receiver pool on gc", () => {
+      enginePhysX.resourceManager.gc();
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("trigger-prune-and-pool");
+      root.transform.setPosition(0, 1800, 0);
+
+      const zone = root.createChild("zone");
+      zone.addComponent(Rigidbody).isKinematic = true;
+      const zoneCollider = zone.addComponent(BoxCollider);
+      zoneCollider.isTrigger = true;
+      zoneCollider.size.set(4, 4, 4);
+
+      const stays: Collider[] = [];
+      const enters: Collider[] = [];
+      zone.addComponent(
+        class extends Script {
+          override onTriggerEnter(other: Collider): void {
+            enters.push(other);
+          }
+          override onTriggerStay(other: Collider): void {
+            stays.push(other);
+          }
+        }
+      );
+
+      const persistent = root.createChild("persistent").addComponent(BoxCollider);
+      const transient = root.createChild("transient").addComponent(BoxCollider);
+
+      physicsScene._update(physicsScene.fixedTimeStep);
+      expect(enters).toHaveLength(2);
+      const triggerReceivers = (physicsScene as any)._triggerReceivers as Map<number, unknown>;
+      expect(triggerReceivers.size).toBe(2);
+
+      const dispatchPool = (PhysicsScene as any)._dispatchReceivers as (Rigidbody | Collider | null)[][];
+      expect(dispatchPool).toHaveLength(1);
+      expect(dispatchPool[0].length).toBeGreaterThanOrEqual(8);
+      expect(dispatchPool[0].every((slot) => slot === null)).toBe(true);
+
+      // Silently retire one pair while the other stays active so the stale-entry prune sweep runs.
+      transient.enabled = false;
+      physicsScene._update(physicsScene.fixedTimeStep);
+      expect(triggerReceivers.size).toBe(1);
+      expect(stays).toEqual([persistent]);
+
+      // Re-enabling must emit a fresh Enter rather than reusing the retired receiver entry.
+      enters.length = 0;
+      transient.enabled = true;
+      physicsScene._update(physicsScene.fixedTimeStep);
+      expect(enters).toEqual([transient]);
+      expect(triggerReceivers.size).toBe(2);
+
+      enginePhysX.resourceManager.gc();
+      expect(dispatchPool).toHaveLength(0);
     });
 
     afterEach(() => {
