@@ -918,6 +918,87 @@ describe("Transform test", function () {
       parentA.destroy();
       parentB.destroy();
     });
+
+    it("uses TRS fast path without Matrix.invert for uniform-scale reparenting and worldPosition", () => {
+      const grandA = scene.createRootEntity("trsGrandA");
+      grandA.transform.setPosition(3, -2, 5);
+      grandA.transform.setRotation(15, 40, -20);
+      grandA.transform.setScale(-2, -2, -2);
+      const parentA = grandA.createChild("trsParentA");
+      parentA.transform.setPosition(1, 2, -3);
+      parentA.transform.setRotation(-30, 25, 60);
+      parentA.transform.setScale(1.5, 1.5, 1.5);
+
+      const grandB = scene.createRootEntity("trsGrandB");
+      grandB.transform.setPosition(-4, 7, 2);
+      grandB.transform.setRotation(50, -35, 10);
+      grandB.transform.setScale(2, 2, 2);
+      const parentB = grandB.createChild("trsParentB");
+      parentB.transform.setPosition(2, -1, 4);
+      parentB.transform.setRotation(10, 80, -45);
+      parentB.transform.setScale(-0.5, -0.5, -0.5);
+
+      const child = parentA.createChild("trsChild");
+      child.transform.setPosition(1.5, -2.5, 3.5);
+      child.transform.setRotation(20, -45, 70);
+      child.transform.setScale(1, 2, 3);
+
+      const expectedWorldMat = child.transform.worldMatrix.clone();
+      const expectedWorldPos = child.transform.worldPosition.clone();
+
+      const originalInvert = Matrix.invert;
+      let invertCalls = 0;
+      Matrix.invert = ((a: Matrix, out: Matrix) => {
+        invertCalls++;
+        return originalInvert(a, out);
+      }) as typeof Matrix.invert;
+
+      try {
+        child.parent = parentB;
+        expect(invertCalls).to.equal(0);
+        for (let i = 0; i < 16; i++) {
+          expect(child.transform.worldMatrix.elements[i]).to.be.closeTo(expectedWorldMat.elements[i], 1e-4);
+        }
+        expect(child.transform.worldPosition.x).to.be.closeTo(expectedWorldPos.x, 1e-4);
+        expect(child.transform.worldPosition.y).to.be.closeTo(expectedWorldPos.y, 1e-4);
+        expect(child.transform.worldPosition.z).to.be.closeTo(expectedWorldPos.z, 1e-4);
+
+        // Detaching to root also skips Matrix.invert
+        child.parent = null;
+        expect(invertCalls).to.equal(0);
+        for (let i = 0; i < 16; i++) {
+          expect(child.transform.worldMatrix.elements[i]).to.be.closeTo(expectedWorldMat.elements[i], 1e-4);
+        }
+
+        // Reattaching from root and setting worldPosition under uniform parent also skip Matrix.invert
+        child.parent = parentB;
+        child.transform.worldPosition.set(12, -8, 6);
+        expect(invertCalls).to.equal(0);
+        expect(child.transform.worldPosition.x).to.be.closeTo(12, 1e-4);
+        expect(child.transform.worldPosition.y).to.be.closeTo(-8, 1e-4);
+        expect(child.transform.worldPosition.z).to.be.closeTo(6, 1e-4);
+        const posFromMat = new Vector3();
+        child.transform.worldMatrix.getTranslation(posFromMat);
+        expect(posFromMat.x).to.be.closeTo(12, 1e-4);
+        expect(posFromMat.y).to.be.closeTo(-8, 1e-4);
+        expect(posFromMat.z).to.be.closeTo(6, 1e-4);
+
+        // Uniform zero-scale parent stays finite without NaN
+        const zeroUniformParent = scene.createRootEntity("zeroUniformParent");
+        zeroUniformParent.transform.setScale(0, 0, 0);
+        child.parent = zeroUniformParent;
+        child.transform.worldPosition.set(5, 6, 7);
+        expect(invertCalls).to.equal(0);
+        expect(Number.isFinite(child.transform.position.x)).to.equal(true);
+        expect(Number.isFinite(child.transform.worldPosition.x)).to.equal(true);
+        zeroUniformParent.destroy();
+      } finally {
+        Matrix.invert = originalInvert;
+      }
+
+      grandA.destroy();
+      grandB.destroy();
+    });
   });
 });
 
