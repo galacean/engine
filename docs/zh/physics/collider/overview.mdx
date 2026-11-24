@@ -55,6 +55,9 @@ label: Physics
 | 方法 | 描述 |
 | :-- | :-- |
 | [**getClosestPoint**](/apis/core/#Collider-getClosestPoint) | 返回世界空间中某点到碰撞器的距离并写出最近点。碰撞器不在模拟中时返回 -1。PlaneCollider、CharacterController 与非凸 MeshCollider 不支持 |
+| [**getBounds**](/apis/core/#Collider-getBounds) | 将世界空间轴对齐包围盒写入可复用的 `BoundingBox`，并返回 `true`。没有有限包围盒时返回 `false`，保留输出对象原有的值 |
+
+`getBounds(out)` 读取当前变换和形状参数，禁用或未加入场景时也可调用。包围盒不包含接触偏移。角色控制器的包围盒跟随世界空间的 `upDirection`。
 
 ## 形状属性
 
@@ -80,7 +83,7 @@ label: Physics
 
 ### PlaneCollider
 
-PlaneCollider 没有形状属性。它是朝向实体局部 +Y 轴的无限平面，可通过实体旋转调整朝向。它只能是静态的或归属于运动学刚体，且不支持 `getClosestPoint()`（返回 `-1`）和体积距离查询。
+PlaneCollider 没有形状属性。它是朝向实体局部 +Y 轴的无限平面，可通过实体旋转调整朝向。它只能是静态的或归属于运动学刚体，且不支持 `getClosestPoint()`（返回 `-1`）和体积距离查询。无限平面没有有限包围盒，`getBounds(out)` 返回 `false`。
 
 ### MeshCollider
 
@@ -89,6 +92,8 @@ PlaneCollider 没有形状属性。它是朝向实体局部 +Y 轴的无限平�
 | [**mesh**](/apis/core/#MeshCollider-mesh) | 用于碰撞的 [ModelMesh](/apis/core/#ModelMesh)。网格数据在上传后必须保持可访问，三角网格还需要索引；无效网格在同步时会移出模拟与查询，替换为有效网格后自动恢复 | null |
 | [**convex**](/apis/core/#MeshCollider-convex) | 是否使用由网格顶点生成的凸包。非凸网格不可作为触发器，也不可挂在非运动学刚体下；非法组合会在同步时移出模拟与查询，修正后自动恢复 | false |
 | [**cookingFlags**](/apis/core/#MeshCollider-cookingFlags) | 网格烘焙标志（`MeshColliderCookingFlag`） | Cleaning \| VertexWelding |
+
+`getBounds(out)` 根据碰撞器的姿态和绝对世界缩放变换 `mesh.bounds`。网格在物理烘焙前或释放 CPU 数据后仍可查询包围盒。
 
 ## 物理材质
 
