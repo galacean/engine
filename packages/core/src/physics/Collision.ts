@@ -7,13 +7,13 @@ import { ICollision } from "@galacean/engine-design";
  * @remarks The physics scene reuses this object. Read it during the callback and copy any values needed afterward.
  */
 export class Collision {
-  /** @internal */
-  _nativeCollision: ICollision;
-
   /** The Collider on the other side of this contact pair. */
   collider: Collider;
   /** The receiving Collider (on this Entity or owned by its Rigidbody). Contact normals and impulses are oriented from {@link collider} toward this Collider. */
   selfCollider: Collider;
+
+  /** @internal */
+  _nativeCollision: ICollision;
 
   /** The number of contact points in this callback. */
   get contactCount(): number {

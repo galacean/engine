@@ -8,7 +8,7 @@ import { PhysXJoint } from "./PhysXJoint";
  */
 export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
   constructor(physXPhysics: PhysXPhysics, actor: PhysXActor) {
-    super(physXPhysics);
+    super();
     this._actor = actor;
     this._pxJoint = physXPhysics._pxPhysics.createFixedJoint(
       actor._pxActor,

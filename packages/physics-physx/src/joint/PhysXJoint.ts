@@ -1,7 +1,6 @@
 import { IJoint } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXActor } from "../PhysXActor";
-import { PhysXPhysics } from "../PhysXPhysics";
 
 /**
  * Shared actor frames and constraint settings for PhysX joints.
@@ -17,12 +16,6 @@ export class PhysXJoint implements IJoint {
   protected _actor: PhysXActor;
   private _breakForce: number = Number.MAX_VALUE;
   private _breakTorque: number = Number.MAX_VALUE;
-
-  protected _physXPhysics: PhysXPhysics;
-
-  constructor(physXPhysics: PhysXPhysics) {
-    this._physXPhysics = physXPhysics;
-  }
 
   /**
    * {@inheritDoc IJoint.setConnectedActor }

@@ -146,15 +146,6 @@ export class HingeJoint extends Joint {
     this._onLimitsChanged = this._onLimitsChanged.bind(this);
   }
 
-  protected override _destroyNativeJoint(): void {
-    const nativeJoint = this._nativeJoint;
-    if (nativeJoint) {
-      this._angle = MathUtil.radianToDegree(nativeJoint.getAngle());
-      this._velocity = nativeJoint.getVelocity();
-    }
-    super._destroyNativeJoint();
-  }
-
   /**
    * @internal
    */
@@ -162,6 +153,15 @@ export class HingeJoint extends Joint {
     super._onClone(target);
     target._jointMotor?._updateFlagManager.addListener(target._onMotorChanged);
     target._limits?._updateFlagManager.addListener(target._onLimitsChanged);
+  }
+
+  protected override _destroyNativeJoint(): void {
+    const nativeJoint = this._nativeJoint;
+    if (nativeJoint) {
+      this._angle = MathUtil.radianToDegree(nativeJoint.getAngle());
+      this._velocity = nativeJoint.getVelocity();
+    }
+    super._destroyNativeJoint();
   }
 
   protected override _onDestroy(): void {

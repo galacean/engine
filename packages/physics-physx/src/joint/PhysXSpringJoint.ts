@@ -8,7 +8,7 @@ import { PhysXActor } from "../PhysXActor";
  */
 export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
   constructor(physXPhysics: PhysXPhysics, actor: PhysXActor) {
-    super(physXPhysics);
+    super();
     this._actor = actor;
     this._pxJoint = physXPhysics._pxPhysics.createDistanceJoint(
       actor._pxActor,

@@ -15,31 +15,14 @@ export class PhysicsMaterial extends ReferResource {
     bounceCombine: PhysicsMaterialCombineMode.Average
   };
 
+  /** @internal */
+  _nativeMaterial: IPhysicsMaterial;
+
   private _bounciness = PhysicsMaterial._defaultProperties.bounciness;
   private _dynamicFriction = PhysicsMaterial._defaultProperties.dynamicFriction;
   private _staticFriction = PhysicsMaterial._defaultProperties.staticFriction;
   private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterial._defaultProperties.bounceCombine;
   private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterial._defaultProperties.frictionCombine;
-
-  /** @internal */
-  _nativeMaterial: IPhysicsMaterial;
-
-  /**
-   * Create a physics material.
-   * @param engine - Engine to which the physics material belongs
-   * @throws When `engine` is invalid or physics is not initialized on it.
-   */
-  constructor(engine: Engine) {
-    if (!(engine instanceof Engine)) {
-      throw new Error("PhysicsMaterial requires an owning Engine.");
-    }
-    if (!engine._physicsInitialized) {
-      throw new Error("Physics is not initialized on this Engine.");
-    }
-    const nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
-    super(engine);
-    this._nativeMaterial = nativeMaterial;
-  }
 
   /**
    * The coefficient of bounciness. Must be between 0 and 1.
@@ -109,6 +92,23 @@ export class PhysicsMaterial extends ReferResource {
       this._frictionCombine = value;
       this._nativeMaterial.setFrictionCombine(value);
     }
+  }
+
+  /**
+   * Create a physics material.
+   * @param engine - Engine to which the physics material belongs
+   * @throws When `engine` is invalid or physics is not initialized on it.
+   */
+  constructor(engine: Engine) {
+    if (!(engine instanceof Engine)) {
+      throw new Error("PhysicsMaterial requires an owning Engine.");
+    }
+    if (!engine._physicsInitialized) {
+      throw new Error("Physics is not initialized on this Engine.");
+    }
+    const nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
+    super(engine);
+    this._nativeMaterial = nativeMaterial;
   }
 
   /**

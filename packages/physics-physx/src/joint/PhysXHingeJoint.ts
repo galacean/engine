@@ -12,7 +12,7 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   private _connectedAxisRotationQuaternion = new Quaternion();
 
   constructor(physXPhysics: PhysXPhysics, actor: PhysXActor) {
-    super(physXPhysics);
+    super();
     this._actor = actor;
     this._pxJoint = physXPhysics._pxPhysics.createRevoluteJoint(
       actor._pxActor,
@@ -49,12 +49,6 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
     }
     this._setLocalPose(0, this._anchor, axisRotationQuaternion);
     this._updateConnectedPose();
-  }
-
-  private _updateConnectedPose(): void {
-    const connectedAxisRotationQuaternion = this._connectedAxisRotationQuaternion;
-    Quaternion.multiply(this._rotation, this._axisRotationQuaternion, connectedAxisRotationQuaternion);
-    this._setLocalPose(1, this._connectedAnchor, connectedAxisRotationQuaternion);
   }
 
   override setAnchor(value: Vector3): void {
@@ -138,5 +132,11 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    */
   setDriveFreeSpin(enabled: boolean): void {
     this._pxJoint.setRevoluteJointFlag(4, enabled); // eDRIVE_FREESPIN
+  }
+
+  private _updateConnectedPose(): void {
+    const connectedAxisRotationQuaternion = this._connectedAxisRotationQuaternion;
+    Quaternion.multiply(this._rotation, this._axisRotationQuaternion, connectedAxisRotationQuaternion);
+    this._setLocalPose(1, this._connectedAnchor, connectedAxisRotationQuaternion);
   }
 }
