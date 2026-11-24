@@ -409,7 +409,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       const version = transformEntity._updateFlagManager.version;
       if (this._normalMatrixVersion !== version) {
         this._normalMatrixVersion = version;
-        this._updateNormalMatrix(worldMatrix, transform._getWorldUniformScaling());
+        Matrix._normalMatrix(worldMatrix, normalMatrix, transform._getWorldUniformScaling());
       }
 
       shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
@@ -477,71 +477,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
 
   protected _render(context: RenderContext): void {
     throw "not implement";
-  }
-
-  private _updateNormalMatrix(worldMatrix: Matrix, isUniformScaling: boolean): void {
-    const ae = worldMatrix.elements;
-    const oe = this._normalMatrix.elements;
-    const a11 = ae[0],
-      a12 = ae[1],
-      a13 = ae[2];
-    const a21 = ae[4],
-      a22 = ae[5],
-      a23 = ae[6];
-    const a31 = ae[8],
-      a32 = ae[9],
-      a33 = ae[10];
-
-    if (isUniformScaling) {
-      const s2 = a11 * a11 + a12 * a12 + a13 * a13;
-      if (!s2) {
-        return;
-      }
-      const invS2 = 1.0 / s2;
-      oe[0] = a11 * invS2;
-      oe[1] = a12 * invS2;
-      oe[2] = a13 * invS2;
-      oe[3] = 0;
-
-      oe[4] = a21 * invS2;
-      oe[5] = a22 * invS2;
-      oe[6] = a23 * invS2;
-      oe[7] = 0;
-
-      oe[8] = a31 * invS2;
-      oe[9] = a32 * invS2;
-      oe[10] = a33 * invS2;
-      oe[11] = 0;
-    } else {
-      const c00 = a22 * a33 - a23 * a32;
-      const c01 = a23 * a31 - a21 * a33;
-      const c02 = a21 * a32 - a22 * a31;
-      const det = a11 * c00 + a12 * c01 + a13 * c02;
-      if (!det) {
-        return;
-      }
-      const invDet = 1.0 / det;
-
-      oe[0] = c00 * invDet;
-      oe[1] = c01 * invDet;
-      oe[2] = c02 * invDet;
-      oe[3] = 0;
-
-      oe[4] = (a13 * a32 - a12 * a33) * invDet;
-      oe[5] = (a11 * a33 - a13 * a31) * invDet;
-      oe[6] = (a12 * a31 - a11 * a32) * invDet;
-      oe[7] = 0;
-
-      oe[8] = (a12 * a23 - a13 * a22) * invDet;
-      oe[9] = (a13 * a21 - a11 * a23) * invDet;
-      oe[10] = (a11 * a22 - a12 * a21) * invDet;
-      oe[11] = 0;
-    }
-
-    oe[12] = 0;
-    oe[13] = 0;
-    oe[14] = 0;
-    oe[15] = 1;
   }
 
   private _createInstanceMaterial(material: Material, index: number): Material {

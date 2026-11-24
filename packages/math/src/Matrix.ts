@@ -518,6 +518,174 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
   }
 
   /**
+   * @internal
+   * Invert a rigid transform matrix [R t; 0 1] directly as [R^T -R^T*t; 0 1].
+   */
+  static _invertRigid(a: Matrix, out: Matrix): void {
+    const ae = a.elements;
+    const oe = out.elements;
+
+    const r11 = ae[0],
+      r12 = ae[4],
+      r13 = ae[8];
+    const r21 = ae[1],
+      r22 = ae[5],
+      r23 = ae[9];
+    const r31 = ae[2],
+      r32 = ae[6],
+      r33 = ae[10];
+    const tx = ae[12],
+      ty = ae[13],
+      tz = ae[14];
+
+    oe[0] = r11;
+    oe[1] = r12;
+    oe[2] = r13;
+    oe[3] = 0;
+
+    oe[4] = r21;
+    oe[5] = r22;
+    oe[6] = r23;
+    oe[7] = 0;
+
+    oe[8] = r31;
+    oe[9] = r32;
+    oe[10] = r33;
+    oe[11] = 0;
+
+    oe[12] = -(r11 * tx + r21 * ty + r31 * tz) + 0;
+    oe[13] = -(r12 * tx + r22 * ty + r32 * tz) + 0;
+    oe[14] = -(r13 * tx + r23 * ty + r33 * tz) + 0;
+    oe[15] = 1;
+  }
+
+  /**
+   * @internal
+   * Invert a uniformly scaled affine matrix [sR t; 0 1] directly as [(1/s^2)A^T -(1/s^2)A^T*t; 0 1].
+   */
+  static _invertUniformAffine(a: Matrix, out: Matrix): void | null {
+    const ae = a.elements;
+    const a11 = ae[0],
+      a12 = ae[1],
+      a13 = ae[2];
+    const s2 = a11 * a11 + a12 * a12 + a13 * a13;
+    if (!s2) {
+      return null;
+    }
+
+    const invS2 = 1.0 / s2;
+    const a21 = ae[4],
+      a22 = ae[5],
+      a23 = ae[6];
+    const a31 = ae[8],
+      a32 = ae[9],
+      a33 = ae[10];
+    const tx = ae[12],
+      ty = ae[13],
+      tz = ae[14];
+
+    const r11 = a11 * invS2,
+      r12 = a21 * invS2,
+      r13 = a31 * invS2;
+    const r21 = a12 * invS2,
+      r22 = a22 * invS2,
+      r23 = a32 * invS2;
+    const r31 = a13 * invS2,
+      r32 = a23 * invS2,
+      r33 = a33 * invS2;
+
+    const oe = out.elements;
+    oe[0] = r11;
+    oe[1] = r12;
+    oe[2] = r13;
+    oe[3] = 0;
+
+    oe[4] = r21;
+    oe[5] = r22;
+    oe[6] = r23;
+    oe[7] = 0;
+
+    oe[8] = r31;
+    oe[9] = r32;
+    oe[10] = r33;
+    oe[11] = 0;
+
+    oe[12] = -(r11 * tx + r21 * ty + r31 * tz) + 0;
+    oe[13] = -(r12 * tx + r22 * ty + r32 * tz) + 0;
+    oe[14] = -(r13 * tx + r23 * ty + r33 * tz) + 0;
+    oe[15] = 1;
+  }
+
+  /**
+   * @internal
+   * Calculate a 4x4 normal matrix [A^-T 0; 0 1] from an affine matrix.
+   */
+  static _normalMatrix(a: Matrix, out: Matrix, isUniformScaling: boolean): void | null {
+    const ae = a.elements;
+    const a11 = ae[0],
+      a12 = ae[1],
+      a13 = ae[2];
+    const a21 = ae[4],
+      a22 = ae[5],
+      a23 = ae[6];
+    const a31 = ae[8],
+      a32 = ae[9],
+      a33 = ae[10];
+    const oe = out.elements;
+
+    if (isUniformScaling) {
+      const s2 = a11 * a11 + a12 * a12 + a13 * a13;
+      if (!s2) {
+        return null;
+      }
+      const invS2 = 1.0 / s2;
+      oe[0] = a11 * invS2;
+      oe[1] = a12 * invS2;
+      oe[2] = a13 * invS2;
+      oe[3] = 0;
+
+      oe[4] = a21 * invS2;
+      oe[5] = a22 * invS2;
+      oe[6] = a23 * invS2;
+      oe[7] = 0;
+
+      oe[8] = a31 * invS2;
+      oe[9] = a32 * invS2;
+      oe[10] = a33 * invS2;
+      oe[11] = 0;
+    } else {
+      const c00 = a22 * a33 - a23 * a32;
+      const c01 = a23 * a31 - a21 * a33;
+      const c02 = a21 * a32 - a22 * a31;
+      const det = a11 * c00 + a12 * c01 + a13 * c02;
+      if (!det) {
+        return null;
+      }
+      const invDet = 1.0 / det;
+
+      oe[0] = c00 * invDet;
+      oe[1] = c01 * invDet;
+      oe[2] = c02 * invDet;
+      oe[3] = 0;
+
+      oe[4] = (a13 * a32 - a12 * a33) * invDet;
+      oe[5] = (a11 * a33 - a13 * a31) * invDet;
+      oe[6] = (a12 * a31 - a11 * a32) * invDet;
+      oe[7] = 0;
+
+      oe[8] = (a12 * a23 - a13 * a22) * invDet;
+      oe[9] = (a13 * a21 - a11 * a23) * invDet;
+      oe[10] = (a11 * a22 - a12 * a21) * invDet;
+      oe[11] = 0;
+    }
+
+    oe[12] = 0;
+    oe[13] = 0;
+    oe[14] = 0;
+    oe[15] = 1;
+  }
+
+  /**
    * Calculate a right-handed look-at matrix.
    * @param eye - The position of the viewer's eye
    * @param target - The camera look-at target
