@@ -4,7 +4,6 @@ import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
-import { Loader } from "../../asset/Loader";
 import type { Scene } from "../../Scene";
 import { TransformModifyFlags } from "../../Transform";
 import { ignoreClone } from "../../clone/CloneDecorators";
@@ -236,18 +235,6 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     this._registeredScene = null;
     this.entity.getComponent(Rigidbody)?._detachJoint(this);
     this._destroyNativeJoint();
-  }
-
-  /** @internal Prepare the manual anchor when authored props switch from automatic mode. */
-  [Loader._preparePropsForLoad](props: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
-    const switchingToManual = this._automaticConnectedAnchor && props.automaticConnectedAnchor === false;
-    // A Scene's added entities receive their props before they are parented.
-    if (switchingToManual && !this.scene) {
-      this.automaticConnectedAnchor = false;
-    }
-    return switchingToManual && props.connectedAnchor === undefined
-      ? { ...props, connectedAnchor: { x: 0, y: 0, z: 0 } }
-      : props;
   }
 
   /**

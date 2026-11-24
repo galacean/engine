@@ -195,7 +195,7 @@ describe("Physics gameplay integration", () => {
   );
 
   it.each([true, false])(
-    "preserves partial manual anchors on entities added by a Scene override (anchor first=%s)",
+    "preserves manual anchors on entities added by a Scene override (anchor first=%s)",
     async (anchorFirst) => {
       const basePath = `joint-scene-base-${anchorFirst}.prefab`;
       await loadPrefab(basePath, {
@@ -207,7 +207,7 @@ describe("Physics gameplay integration", () => {
       });
 
       const anchor = { x: 1, y: 2, z: 3 };
-      const connectedAnchor = { y: 8 };
+      const connectedAnchor = { x: 0, y: 8, z: 0 };
       const props = anchorFirst
         ? { anchor, connectedAnchor, automaticConnectedAnchor: false }
         : { automaticConnectedAnchor: false, connectedAnchor, anchor };
