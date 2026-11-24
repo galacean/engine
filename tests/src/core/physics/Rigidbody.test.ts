@@ -940,7 +940,7 @@ describe("Rigidbody", function () {
     expect(bodyEntity.transform.position.y).below(-0.1);
   });
 
-  it("excludes kinematic-only colliders when switching isKinematic to false and restores them when kinematic again", function () {
+  it.each([false, true])("rechecks a non-convex mesh across kinematic transitions (isTrigger=%s)", (isTrigger) => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const physics = engine.sceneManager.activeScene.physics;
     const entity = rootEntity.createChild("kinematic-mesh-body");
@@ -948,18 +948,21 @@ describe("Rigidbody", function () {
     body.isKinematic = true;
     const mesh = entity.addComponent(MeshCollider);
     mesh.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2, { keepMeshData: true });
+    mesh.isTrigger = isTrigger;
     const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
 
-    expect(physics.raycast(ray, 10)).toBe(true);
+    expect(physics.raycast(ray, 10)).toBe(!isTrigger);
+    expect(errors).toHaveBeenCalledTimes(isTrigger ? 1 : 0);
+    errors.mockClear();
 
     body.isKinematic = false;
     expect(body.isKinematic).toBe(false);
     expect(physics.raycast(ray, 10)).toBe(false);
-    expect(errors).toHaveBeenCalledTimes(1);
+    expect(errors).toHaveBeenCalledExactlyOnceWith(expect.stringContaining("non-kinematic Rigidbody"));
 
     body.isKinematic = true;
     expect(body.isKinematic).toBe(true);
-    expect(physics.raycast(ray, 10)).toBe(true);
+    expect(physics.raycast(ray, 10)).toBe(!isTrigger);
   });
 
   it("constraints", function () {
@@ -2317,7 +2320,6 @@ describe("Rigidbody", function () {
       expect(boxSyncSpies[1]).toHaveBeenCalledTimes(1);
       expect(boxSyncSpies[2]).not.toHaveBeenCalled();
       expect(planeSyncSpy).toHaveBeenCalledTimes(1);
-      clearSpies();
     } finally {
       errors.mockRestore();
     }
