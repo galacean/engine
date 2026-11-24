@@ -3,6 +3,7 @@ import {
   FixedJoint,
   HingeJoint,
   SpringJoint,
+  Joint,
   Entity,
   Rigidbody,
   BoxCollider,
@@ -393,6 +394,12 @@ describe("Joint", function () {
     const box2Collider = box2.getComponent(Rigidbody);
     box1Collider.isKinematic = true;
     const fixedJoint = box1.addComponent(FixedJoint);
+    const breaks = vi.fn((joint: Joint) => expect(joint.isBroken).toBe(true));
+    class BreakListener extends Script {
+      onJointBreak = breaks;
+    }
+    box1.addComponent(BreakListener);
+    const connectedBreaks = vi.spyOn(box2.addComponent(Script), "onJointBreak");
     fixedJoint.connectedBody = box2.getComponent(Rigidbody);
     fixedJoint.automaticConnectedAnchor = true;
     fixedJoint.breakForce = 10;
@@ -400,11 +407,16 @@ describe("Joint", function () {
 
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).eq(0);
+    expect(breaks).not.toHaveBeenCalled();
+    expect(fixedJoint.isBroken).toBe(false);
 
     fixedJoint.breakForce = 0.9;
     box2Collider.wakeUp();
     engine.sceneManager.activeScene.physics._update(1);
     expect(box2Collider.linearVelocity.y).lessThan(0);
+    expect(breaks).toHaveBeenCalledExactlyOnceWith(fixedJoint);
+    expect(connectedBreaks).not.toHaveBeenCalled();
+    expect(fixedJoint.isBroken).toBe(true);
   });
 
   it("breakTorque", function () {
@@ -412,6 +424,7 @@ describe("Joint", function () {
     const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 1, 0));
     const box2 = addBox(new Vector3(1, 1, 1), new Vector3(1, 1, 0));
     const fixedJoint = box1.addComponent(FixedJoint);
+    const broken = vi.spyOn(box1.addComponent(Script), "onJointBreak");
     const box2Collider = box2.getComponent(Rigidbody);
     fixedJoint.connectedBody = box2.getComponent(Rigidbody);
     fixedJoint.automaticConnectedAnchor = true;
@@ -424,6 +437,27 @@ describe("Joint", function () {
     box2Collider.applyTorque(new Vector3(0, 1000, 0));
     engine.sceneManager.activeScene.physics._update(10);
     expect(Math.abs(box1.transform.position.z)).greaterThan(1);
+    expect(broken).toHaveBeenCalledExactlyOnceWith(fixedJoint);
+  });
+
+  it("stops dispatching a break when an earlier listener rebuilds the joint", () => {
+    const entity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
+    const joint = entity.addComponent(FixedJoint);
+    joint.breakForce = 0.5;
+    const rebuild = vi.fn((broken: Joint) => {
+      expect(broken.isBroken).toBe(true);
+      broken.enabled = false;
+      broken.breakForce = Infinity;
+      broken.enabled = true;
+    });
+    vi.spyOn(entity.addComponent(Script), "onJointBreak").mockImplementation(rebuild);
+    const laterListener = vi.spyOn(entity.addComponent(Script), "onJointBreak");
+
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(rebuild).toHaveBeenCalledExactlyOnceWith(joint);
+    expect(laterListener).not.toHaveBeenCalled();
+    expect(joint.isBroken).toBe(false);
   });
 
   it("clone", function () {

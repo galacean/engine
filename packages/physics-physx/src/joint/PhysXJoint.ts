@@ -99,6 +99,14 @@ export class PhysXJoint implements IJoint {
     this._pxJoint.setBreakForce(this._breakForce, this._breakTorque);
   }
 
+  setBreakEventId(id: number): void {
+    this._pxJoint.setBreakEventId(id);
+  }
+
+  isBroken(): boolean {
+    return this._pxJoint.isBroken();
+  }
+
   /**
    * {@inheritDoc IJoint.destroy }
    */

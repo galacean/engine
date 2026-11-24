@@ -104,3 +104,7 @@ For detailed script usage of each joint type, please refer to their respective d
 - [FixedJoint](/en/docs/physics/joint/fixedJoint)
 - [SpringJoint](/en/docs/physics/joint/springJoint)
 - [HingeJoint](/en/docs/physics/joint/hingeJoint)
+
+## Joint break notifications
+
+When the solver breaks a joint after exceeding its `breakForce` or `breakTorque`, enabled scripts on the joint's entity receive `onJointBreak(joint: Joint)` after the physics step. The joint component remains available and `joint.isBroken` describes its current native constraint. Disabling and re-enabling the joint creates a fresh constraint. Disabling or destroying a joint does not generate a break notification.
