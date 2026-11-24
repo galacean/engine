@@ -6,6 +6,7 @@ import {
   Engine,
   Entity,
   Layer,
+  Light,
   PointLight,
   PrimitiveMesh,
   Scene,
@@ -135,18 +136,37 @@ describe("Light test", function () {
     testLightEntity.transform.setPosition(4, -3, 7);
     testLightEntity.transform.setRotation(30, -50, 20);
 
+    const product = new Matrix();
+    const expectIdentityProduct = (light: Light) => {
+      Matrix.multiply(light.viewMatrix, light.inverseViewMatrix, product);
+      for (let i = 0; i < 16; i++) {
+        expect(product.elements[i]).to.be.closeTo(i % 5 === 0 ? 1 : 0, 1e-5);
+      }
+    };
+
     for (const scale of [new Vector3(1, 1, 1), new Vector3(-2, -2, -2), new Vector3(2, 3, 0.5)]) {
       testLightEntity.transform.scale = scale;
-      const expectedView = new Matrix();
-      Matrix.invert(testLightEntity.transform.worldMatrix, expectedView);
-      const actualView = testLight.viewMatrix;
-      const actualInvView = testLight.inverseViewMatrix;
-      for (let i = 0; i < 16; i++) {
-        expect(actualView.elements[i]).to.be.closeTo(expectedView.elements[i], 1e-5);
-        expect(actualInvView.elements[i]).to.be.closeTo(testLightEntity.transform.worldMatrix.elements[i], 1e-5);
+      expectIdentityProduct(testLight);
+    }
+
+    // Zero X scale after a valid viewMatrix keeps viewMatrix * inverseViewMatrix == I
+    testLightEntity.transform.setScale(1, 1, 1);
+    testLight.viewMatrix;
+    testLightEntity.transform.setScale(0, 1, 1);
+    expectIdentityProduct(testLight);
+    testLightEntity.destroy();
+
+    // Subclass overriding viewMatrix keeps viewMatrix * inverseViewMatrix == I
+    class CustomViewLight extends Light {
+      private _customView = new Matrix(2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4, 0, 5, -6, 7, 1);
+      override get viewMatrix(): Matrix {
+        return this._customView;
       }
     }
-    testLightEntity.destroy();
+    const customLightEntity = scene.createRootEntity("customViewLight");
+    const customLight = customLightEntity.addComponent(CustomViewLight);
+    expectIdentityProduct(customLight);
+    customLightEntity.destroy();
   });
 
   it("update shadow type", function () {

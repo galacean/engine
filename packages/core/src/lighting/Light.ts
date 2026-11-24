@@ -72,15 +72,17 @@ export abstract class Light extends Component {
    * View matrix.
    */
   get viewMatrix(): Matrix {
-    const viewMat = (this._viewMat ||= new Matrix());
-    Matrix.invert(this.entity.transform.worldMatrix, viewMat);
-    return viewMat;
+    if (!this._viewMat) this._viewMat = new Matrix();
+    Matrix.invert(this.entity.transform.worldMatrix, this._viewMat);
+    return this._viewMat;
   }
 
   /**
    * Inverse view matrix.
    */
   get inverseViewMatrix(): Matrix {
-    return (this._inverseViewMat ||= new Matrix()).copyFrom(this.entity.transform.worldMatrix);
+    if (!this._inverseViewMat) this._inverseViewMat = new Matrix();
+    Matrix.invert(this.viewMatrix, this._inverseViewMat);
+    return this._inverseViewMat;
   }
 }
