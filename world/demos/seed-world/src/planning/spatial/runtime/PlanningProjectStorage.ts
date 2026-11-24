@@ -56,8 +56,8 @@ export class PlanningProjectStorage {
       draft.writeDocument(`${pack.project.scene}.planning-source.json`, JSON.stringify({ version: 1 }));
       return draft.finish();
     };
-    if (this.project.update) await this.project.update(build);
-    else await this.project.publish(build(this.project.projectPackage));
+    if (this.project.update) await this.project.update(build, { userEdit: false });
+    else await this.project.publish(build(this.project.projectPackage), undefined, undefined, undefined, { userEdit: false });
     return planningSourceDocument(this.project.projectPackage)!;
   }
 
@@ -123,8 +123,8 @@ export class PlanningProjectStorage {
       draft.writeDocument(marker, JSON.stringify({ version: 2 }));
       return draft.finish();
     };
-    if (this.project.update) await this.project.update(build);
-    else await this.project.publish(build(this.project.projectPackage));
+    if (this.project.update) await this.project.update(build, { userEdit: false });
+    else await this.project.publish(build(this.project.projectPackage), undefined, undefined, undefined, { userEdit: false });
   }
 
   async save(document: PlanningDocument, transactionId?: string, resetWater = false): Promise<void> {

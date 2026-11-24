@@ -14,6 +14,7 @@ import type { RuntimeProjectSession } from "./runtime-project-session.ts";
 export function attachProjectSaveLifecycle(
   project: Pick<RuntimeProjectSession, "persistenceStatus" | "subscribePersistence" | "flush"> & {
     readonly isPersistent?: boolean;
+    readonly userEditSeq?: number;
   },
   targetWindow: Pick<Window, "addEventListener">,
   targetDocument: Pick<Document, "addEventListener" | "visibilityState">,
@@ -41,7 +42,11 @@ export function attachProjectSaveLifecycle(
       const status = project.persistenceStatus;
       if (status.state === "disposed") return;
       const hasUnsaved =
-        project.isPersistent === false ? status.commitSeq > baselineCommitSeq : status.commitSeq > status.savedSeq;
+        project.isPersistent === false
+          ? typeof project.userEditSeq === "number"
+            ? project.userEditSeq > 0
+            : status.commitSeq > baselineCommitSeq
+          : status.commitSeq > status.savedSeq;
       if (hasUnsaved) {
         event.preventDefault();
         event.returnValue = "";

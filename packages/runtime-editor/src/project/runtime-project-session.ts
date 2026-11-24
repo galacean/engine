@@ -272,6 +272,7 @@ export class RuntimeProjectSession {
   private readonly lifetime = new AbortController();
   private readonly persistence: RuntimeProjectPersistence;
   private persistenceSnapshot?: RuntimeProjectSnapshot;
+  private _userEditSeq = 0;
 
   private syncSnapshotContent(path: string, content: string | Uint8Array): void {
     const snapshot = this.persistenceSnapshot;
@@ -876,6 +877,10 @@ export class RuntimeProjectSession {
   get persistenceStatus() {
     return this.persistence.status;
   }
+  /** Monotonic count of committed user/gameplay edits (excludes system migrations, bootstrap hydration, clock checkpoints, and explicit save flushes). */
+  get userEditSeq(): number {
+    return this._userEditSeq;
+  }
   subscribePersistence(listener: Parameters<RuntimeProjectPersistence["subscribe"]>[0]): () => void {
     return this.persistence.subscribe(listener);
   }
@@ -955,7 +960,8 @@ export class RuntimeProjectSession {
     candidate: RuntimeProjectPackage,
     expectedRevision = this.publicationRevision,
     deletedAssets: readonly string[] = [],
-    history?: { transactionId: string; move?: HistoryMove; sceneChanges?: Record<string, RuntimeSceneChangeSet> }
+    history?: { transactionId: string; move?: HistoryMove; sceneChanges?: Record<string, RuntimeSceneChangeSet> },
+    options?: { userEdit?: boolean }
   ): Promise<RuntimeProjectUndo> {
     const snapshot = cloneRuntimeProjectPackage(candidate),
       removals = [...deletedAssets];
@@ -969,22 +975,36 @@ export class RuntimeProjectSession {
           );
         }
       }
-      return this.commitPackage(snapshot, undefined, history, undefined, true, undefined, true);
+      return this.commitPackage(
+        snapshot,
+        undefined,
+        history,
+        undefined,
+        true,
+        undefined,
+        true,
+        options?.userEdit !== false
+      );
     });
   }
 
   /** Build against the latest committed project, so independent asset owners cannot overwrite each other. */
   update(
     build: (current: RuntimeProjectPackage) => RuntimeProjectPackage,
-    options?: { recordHistory?: boolean }
+    options?: { recordHistory?: boolean; userEdit?: boolean }
   ): Promise<void> {
+    const recordHistory = options?.recordHistory !== false;
+    const userEdit = options?.userEdit ?? recordHistory;
     return this.enqueuePublication(async () => {
       await this.commitPackage(
         build(this.projectPackage),
         undefined,
         undefined,
         undefined,
-        options?.recordHistory !== false
+        recordHistory,
+        undefined,
+        false,
+        userEdit
       );
     });
   }
@@ -996,8 +1016,10 @@ export class RuntimeProjectSession {
       preservedDependencies?: ReadonlyMap<string, readonly string[]>;
       contents?: Readonly<Record<string, string | Uint8Array>>;
     },
-    options?: { recordHistory?: boolean }
+    options?: { recordHistory?: boolean; userEdit?: boolean }
   ): Promise<void> {
+    const recordHistory = options?.recordHistory !== false;
+    const userEdit = options?.userEdit ?? recordHistory;
     return this.enqueuePublication(async () => {
       const pack = this.projectPackage;
       const next = build(pack);
@@ -1011,8 +1033,10 @@ export class RuntimeProjectSession {
         undefined,
         undefined,
         undefined,
-        options?.recordHistory !== false,
-        next.preservedDependencies
+        recordHistory,
+        next.preservedDependencies,
+        false,
+        userEdit
       );
     });
   }
@@ -1036,6 +1060,8 @@ export class RuntimeProjectSession {
           /** Omit content to complete the transaction without publishing. */
           content?: RuntimeProjectPackage["contents"][string];
           value: T;
+          /** Set false for deterministic bootstrap hydration or clock-only checkpoints that are not user edits. */
+          userEdit?: boolean;
         }
       ): Promise<T> =>
         this.enqueuePublication(async () => {
@@ -1046,6 +1072,7 @@ export class RuntimeProjectSession {
             throw new Error(`Runtime asset identity conflict: ${path}`);
           const result = change(snapshotRuntimeProjectContent(pack.contents[path]));
           if (result.content === undefined) return result.value;
+          const userEdit = result.userEdit !== false;
           const content = cloneRuntimeProjectContent(result.content);
           const format = existing ? this.referenceFormats.get(existing.type) : undefined;
           let canFastCommit = false;
@@ -1070,7 +1097,10 @@ export class RuntimeProjectSession {
               }
             }
           }
-          if (canFastCommit && (await this.tryCommitRuntimeContentUpdate(path, content, existing, extractedDeps)))
+          if (
+            canFastCommit &&
+            (await this.tryCommitRuntimeContentUpdate(path, content, existing, extractedDeps, userEdit))
+          )
             return result.value;
           const files = pack.project.files;
           await this.commitPackage(
@@ -1082,7 +1112,13 @@ export class RuntimeProjectSession {
               },
               contents: { ...pack.contents, [path]: content }
             },
-            path
+            path,
+            undefined,
+            undefined,
+            true,
+            undefined,
+            false,
+            userEdit
           );
           return result.value;
         }, [path]),
@@ -1100,7 +1136,8 @@ export class RuntimeProjectSession {
     path: string,
     content: string | Uint8Array,
     existing?: RuntimeProjectManifest["files"][number],
-    extractedDeps?: readonly string[]
+    extractedDeps?: readonly string[],
+    userEdit = true
   ): Promise<boolean> {
     this.lifetime.signal.throwIfAborted();
     const pack = this.projectPackage;
@@ -1128,6 +1165,7 @@ export class RuntimeProjectSession {
     if (existing && extractedDeps !== undefined) {
       this.dependencyMaintenance.rememberAcceptedAsset(this.projectPackage, existing, extractedDeps);
     }
+    if (userEdit) this._userEditSeq++;
     this.persistence.committed();
     return true;
   }
@@ -1162,7 +1200,8 @@ export class RuntimeProjectSession {
     explicitRuntimeEdit?: { path: string; finalizeContent?: () => string | Uint8Array },
     recordHistory = true,
     preservedRemoteDependencies?: ReadonlyMap<string, readonly string[]>,
-    alreadyDetached = false
+    alreadyDetached = false,
+    userEdit = true
   ): Promise<RuntimeProjectUndo> {
     this.lifetime.signal.throwIfAborted();
     const checkpoint = runtimeEditWork();
@@ -1253,6 +1292,7 @@ export class RuntimeProjectSession {
     this.markManifestValidated();
     // Runtime-owned state is merged into every editor publication, so it does not stale an author draft.
     if (!runtimeWrite) this.acceptedRevision++;
+    if (userEdit) this._userEditSeq++;
     this.persistence.committed();
     // Explicit undo and session history share the accepted authoring boundary,
     // including preparation output and excluding runtime-owned progress.

@@ -96,11 +96,28 @@ it.each(["open-failure", "read-failure"] as const)(
       closeHud = mountProjectSaveControl(project, scene, canvas);
       const statusText = scene.findEntityByName("Project save status")!.getComponent(Text)!;
       expect(statusText.text).toBe("仅本次会话");
-      // Read-only visit after bootstrap migrations must NOT falsely prompt beforeunload.
+      // Read-only visit after pre-mount migrations must NOT falsely prompt beforeunload.
       expect(unloadPrevented()).toBe(false);
+
+      // Simulate post-mount system bootstrap (e.g. initializeBuildingScene) + runtime clock checkpoint + save():
+      // none of these are user edits, so beforeunload must remain quiet.
+      const bootstrapDraft = structuredClone(project.projectPackage);
+      bootstrapDraft.documents = { ...bootstrapDraft.documents, "Scene/main.scene.buildings.json": '{"init":true}' };
+      await project.publish(bootstrapDraft, project.publicationRevision, [], undefined, { userEdit: false });
+      const farmOwner = project.ownRuntimeAsset(
+        { virtualPath: "World/Farming.json", path: "runtime-world:farming", type: "JSON", dependencies: [] },
+        "owner"
+      );
+      await farmOwner.update(() => ({ content: '{"version":1,"farms":{}}', value: undefined, userEdit: false }));
+      await project.save();
+      expect(project.userEditSeq).toBe(0);
+      expect(statusText.text).toBe("仅本次会话");
+      expect(unloadPrevented()).toBe(false);
+      farmOwner.dispose();
 
       // Edit and flush: HUD must stay "仅本次会话" (never "已保存") and beforeunload must still warn.
       await publish(project, '{"value":"ephemeral-after-failure"}');
+      expect(project.userEditSeq).toBe(1);
       expect(statusText.text).toBe("仅本次会话");
       expect(unloadPrevented()).toBe(true);
       await project.flush();

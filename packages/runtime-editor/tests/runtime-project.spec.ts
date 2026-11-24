@@ -2499,3 +2499,77 @@ it("rejects onblocked and non-storage errors in RuntimeProjectSession.open() wit
     opening.mockRestore();
   }
 });
+
+it("separates userEditSeq from system commits and avoids false beforeunload prompts on ephemeral sessions", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const { attachProjectSaveLifecycle } = await import("../src/project/project-save-control");
+  const opening = vi
+    .spyOn(RuntimeProjectStorage, "open")
+    .mockRejectedValue(new RuntimeProjectStorageUnavailableError("Simulated IDB unavailable"));
+  const session = await RuntimeProjectSession.open("ephemeral-semantic", project().project, "https://example.com/project.json");
+  session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
+  const win = new EventTarget() as unknown as Window;
+  const doc = Object.assign(new EventTarget(), { visibilityState: "visible" as DocumentVisibilityState }) as unknown as Document;
+  const disposeLifecycle = attachProjectSaveLifecycle(session, win, doc);
+  const dispatchBeforeUnload = () => {
+    const ev = new Event("beforeunload", { cancelable: true });
+    win.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  };
+  try {
+    expect(session.isPersistent).toBe(false);
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 1. System migration via update({ recordHistory: false })
+    await session.update((pack) => ({ ...pack, documents: { ...pack.documents, "m.json": '{"v":1}' } }), {
+      recordHistory: false
+    });
+    expect(session.persistenceStatus.commitSeq).toBeGreaterThan(0);
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 2. System remote rebase via rebaseRemoteFiles({ recordHistory: false })
+    await session.rebaseRemoteFiles((pack) => ({ files: pack.project.files }), { recordHistory: false });
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 3. System bootstrap via publish(..., { userEdit: false })
+    const draft = structuredClone(session.projectPackage);
+    draft.documents = { ...draft.documents, "bootstrap.json": '{"ok":true}' };
+    await session.publish(draft, session.publicationRevision, [], undefined, { userEdit: false });
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 4. Runtime asset bootstrap + fast-path clock checkpoint via ownRuntimeAsset.update({ userEdit: false })
+    const owner = session.ownRuntimeAsset({ virtualPath: "farm.json", path: "farm.json", type: "Farming", dependencies: [] }, "owner");
+    await owner.update(() => ({ content: '{"version":1,"tick":0}', value: undefined, userEdit: false }));
+    await owner.update(() => ({ content: '{"version":1,"tick":1}', value: undefined, userEdit: false }));
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 5. Explicit save() flush alone does not mark user edits
+    await session.save();
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 6. Real user/gameplay edit (default userEdit: true) triggers beforeunload even after save()
+    await owner.update(() => ({ content: '{"version":1,"tick":2,"planted":true}', value: undefined }));
+    expect(session.userEditSeq).toBe(1);
+    expect(dispatchBeforeUnload()).toBe(true);
+    await session.save();
+    expect(session.userEditSeq).toBe(1);
+    expect(dispatchBeforeUnload()).toBe(true);
+
+    // 7. Standard authoring update() also increments userEditSeq
+    await session.update((pack) => ({ ...pack, documents: { ...pack.documents, "user.json": '{"a":1}' } }));
+    expect(session.userEditSeq).toBe(2);
+    expect(dispatchBeforeUnload()).toBe(true);
+
+    owner.dispose();
+  } finally {
+    disposeLifecycle();
+    session.dispose();
+    opening.mockRestore();
+  }
+});

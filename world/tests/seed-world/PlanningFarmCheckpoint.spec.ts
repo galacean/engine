@@ -1321,3 +1321,44 @@ it("sanitizes corrupted wallClockAnchors during transact and rejects non-empty a
     vi.restoreAllMocks();
   }
 });
+
+it("keeps project.userEditSeq at 0 across farm initialization, hidden-tab checkpoints, and rain ticks, and increments on user commands", async () => {
+  const f = await fixture();
+  try {
+    await f.service.initialize();
+    expect(f.project.persistenceStatus.commitSeq).toBeGreaterThan(0);
+    expect(f.project.userEditSeq).toBe(0);
+
+    // Tab-hide clock checkpoint persists to project storage without marking a user edit.
+    const commitAfterInit = f.project.persistenceStatus.commitSeq;
+    f.time.advanceBy(3000);
+    f.document.visibilityState = "hidden";
+    f.document.dispatchEvent(new Event("visibilitychange"));
+    await f.service.whenIdle();
+    expect(f.project.persistenceStatus.commitSeq).toBeGreaterThan(commitAfterInit);
+    expect(f.project.userEditSeq).toBe(0);
+
+    // Autonomous rain settlement modifies moisture in storage without marking a user edit.
+    const commitAfterHidden = f.project.persistenceStatus.commitSeq;
+    f.setRain(60);
+    f.time.advanceBy(3000);
+    const wet = await f.service.checkpoint();
+    expect(wet.plots[0].soil.moistureUnits).toBeGreaterThan(0);
+    expect(f.project.persistenceStatus.commitSeq).toBeGreaterThan(commitAfterHidden);
+    expect(f.project.userEditSeq).toBe(0);
+
+    // Real user gameplay command marks the session as having user edits.
+    const planted = await f.service.execute({
+      type: "plant",
+      farmId: "farm",
+      plotId: "plot",
+      seedId: "berry-seed",
+      commandId: "plant-user-edit",
+      expectedRevision: f.service.getSnapshot().revision
+    });
+    expect(planted.ok).toBe(true);
+    expect(f.project.userEditSeq).toBe(1);
+  } finally {
+    f.dispose();
+  }
+});

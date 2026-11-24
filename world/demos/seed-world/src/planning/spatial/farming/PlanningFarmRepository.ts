@@ -459,7 +459,11 @@ export class PlanningFarmRepository implements FarmRepository {
           next.initializations = { ...data.initializations, [farmId]: { initialized: true, requests: [...requests] } };
         }
         written = { content: JSON.stringify(next), data: next };
-        return { content: written.content, value: result.value };
+        return {
+          content: written.content,
+          value: result.value,
+          userEdit: !initialization && !result.clockOnly && result.userEdit !== false
+        };
       });
       if (written && this.project.projectPackage.contents[this.path] === written.content) {
         this.cached = written;

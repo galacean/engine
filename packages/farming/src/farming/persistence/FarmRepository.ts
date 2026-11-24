@@ -6,6 +6,8 @@ export interface FarmRepositoryTransaction<T> {
   readonly value: T;
   /** Automatic checkpoints can retain clock-only progress in memory. Explicit checkpoints persist it. */
   readonly clockOnly?: "volatile" | "persist";
+  /** Set false for initialization, autonomous clock/weather ticks, or ground re-sync that are not user edits. */
+  readonly userEdit?: boolean;
 }
 
 export interface FarmSnapshotReplacement {
