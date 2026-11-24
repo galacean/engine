@@ -31,6 +31,7 @@ const BUTTON_TOP = 90;
 const PERSPECTIVE_FOV_DEG = 28;
 const CAMERA_Z = 9.5;
 const CAMERA_BUTTON_3D_LAYER = Layer.Layer26;
+const GLASS_FACE_Z = -6.5;
 
 function setLayerRecursive(entity: Entity, layer: Layer): void {
   const stack: Entity[] = [entity];
@@ -182,11 +183,7 @@ function createForegroundContentCanvas(width: number, height: number, scale: num
   return canvas;
 }
 
-/**
- * VisionOS-inspired 3D Spatial Glass Capsule UI button:
- * bold perspective foreshortening, multi-layer 3D glass thickness, live frosted refraction,
- * crisp specular rim, floating foreground camera icon + label, and real camera-turn parallax.
- */
+/** A frosted-glass camera button with a fixed pose at its upper-right HUD anchor. */
 export class SeedWorldCameraButton {
   private readonly worldCamera: Camera;
   private readonly root: Entity;
@@ -195,14 +192,8 @@ export class SeedWorldCameraButton {
   private readonly bodyGlass: SeedWorldLiquidGlassUiMaterial;
   private readonly textures: Texture2D[] = [];
   private readonly sprites: Sprite[] = [];
-  private readonly worldForward = new Vector3();
-  private readonly prevWorldForward = new Vector3();
-  private hasPrevForward = false;
-  private parallaxYaw = 0;
-  private parallaxPitch = 0;
   private pressBlend = 0;
   private isPressed = false;
-  private time = 0;
 
   constructor(camera: Camera, control: HTMLButtonElement) {
     const engine = camera.engine;
@@ -263,22 +254,22 @@ export class SeedWorldCameraButton {
     canvas3d.renderMode = CanvasRenderMode.WorldSpace;
     canvas3d.camera = uiCam;
     (this.rig3d.transform as UITransform).size.set(PILL_WIDTH, PILL_HEIGHT);
+    this.rig3d.transform.setRotation(5, -14, 0);
 
-    // Layer 1 (z = -6): Physical 3D glass slab back bevel / depth edge
+    // The glyph sits at the rig origin. The bevel, glass and rim sit behind it.
     const depthEntity = this.rig3d.createChild("3D glass depth bevel");
     const depthImage = depthEntity.addComponent(Image);
     depthImage.sprite = depthAsset.sprite;
     depthImage.raycastEnabled = false;
     (depthEntity.transform as UITransform).size.set(PILL_WIDTH, PILL_HEIGHT);
-    depthEntity.transform.setPosition(0, 0, -6.5);
+    depthEntity.transform.setPosition(0, 0, GLASS_FACE_Z - 6.5);
 
-    // Layer 2 (z = 0): Real-time frosted liquid-glass pill refracting the live 3D world behind it
     const glassEntity = this.rig3d.createChild("3D frosted glass core");
     const glassImage = glassEntity.addComponent(Image);
     glassImage.sprite = whiteSprite;
     glassImage.raycastEnabled = false;
     (glassEntity.transform as UITransform).size.set(PILL_WIDTH - 6, PILL_HEIGHT - 6);
-    glassEntity.transform.setPosition(0, 0, 0);
+    glassEntity.transform.setPosition(0, 0, GLASS_FACE_Z);
     this.bodyGlass = new SeedWorldLiquidGlassUiMaterial(camera);
     this.bodyGlass.setFullLensRefraction(1);
     this.bodyGlass.setRoughness(0.56);
@@ -291,21 +282,18 @@ export class SeedWorldCameraButton {
     this.bodyGlass.setOpacity(0.92);
     glassImage.setMaterial(this.bodyGlass.material);
 
-    // Layer 3 (z = +1.2): VisionOS crisp directional white specular rim + top glass sheen
     const shellEntity = this.rig3d.createChild("3D glass specular rim");
     const shellImage = shellEntity.addComponent(Image);
     shellImage.sprite = shellAsset.sprite;
     shellImage.raycastEnabled = false;
     (shellEntity.transform as UITransform).size.set(PILL_WIDTH, PILL_HEIGHT);
-    shellEntity.transform.setPosition(0, 0, 1.2);
+    shellEntity.transform.setPosition(0, 0, GLASS_FACE_Z + 1.2);
 
-    // Layer 4 (z = +6.5): Floating pure-white camera icon + "拍照" with tangible 3D parallax separation
     const fgEntity = this.rig3d.createChild("3D floating camera glyph");
     const fgImage = fgEntity.addComponent(Image);
     fgImage.sprite = fgAsset.sprite;
     fgImage.raycastEnabled = false;
     (fgEntity.transform as UITransform).size.set(PILL_WIDTH, PILL_HEIGHT);
-    fgEntity.transform.setPosition(0, 0, 6.5);
 
     setLayerRecursive(this.rig3d, CAMERA_BUTTON_3D_LAYER);
 
@@ -317,6 +305,8 @@ export class SeedWorldCameraButton {
 
     const webCanvas = (engine.canvas as { _webCanvas?: HTMLCanvasElement })._webCanvas;
     const frustumHalfHeight = Math.tan((PERSPECTIVE_FOV_DEG * Math.PI) / 360) * CAMERA_Z;
+    let layoutWidth = 0;
+    let layoutHeight = 0;
 
     this.root.addComponent(CameraButtonInput).update = (deltaTime: number) => {
       const dt = Number.isFinite(deltaTime) ? Math.min(Math.max(deltaTime, 0), 0.1) : 0;
@@ -334,23 +324,7 @@ export class SeedWorldCameraButton {
 
       const pressTarget = this.isPressed ? 1 : 0;
       this.pressBlend += (pressTarget - this.pressBlend) * (1 - Math.exp(-16 * dt));
-      this.time += dt;
 
-      // Living 3D spatial inertia tracking world camera rotation
-      this.worldForward.copyFrom(camera.entity.transform.worldForward);
-      if (this.hasPrevForward) {
-        const dx = this.worldForward.x - this.prevWorldForward.x;
-        const dy = this.worldForward.y - this.prevWorldForward.y;
-        this.parallaxYaw = Math.max(-14, Math.min(14, this.parallaxYaw + dx * 68));
-        this.parallaxPitch = Math.max(-10, Math.min(10, this.parallaxPitch + dy * 55));
-      }
-      this.prevWorldForward.copyFrom(this.worldForward);
-      this.hasPrevForward = true;
-      const decay = Math.exp(-6.5 * dt);
-      this.parallaxYaw *= decay;
-      this.parallaxPitch *= decay;
-
-      const scaleFactor = 1 - this.pressBlend * 0.08;
       const disabledFactor = control.disabled ? 0.42 : 1;
       depthImage.color.a = disabledFactor;
       shellImage.color.a = disabledFactor;
@@ -358,38 +332,25 @@ export class SeedWorldCameraButton {
       this.bodyGlass.setOpacity(0.92 * disabledFactor);
       this.bodyGlass.setRimHighlight(this.pressBlend * 0.3);
 
-      const cw = Math.max(1, engine.canvas.width);
-      const ch = Math.max(1, engine.canvas.height);
-      const hudScale = resolveSeedWorldHudScale(cw, ch);
-      const refW = cw / hudScale;
-      const refH = ch / hudScale;
-      const aspect = cw / ch;
-
-      const glassW = (PILL_WIDTH - 6) * hudScale * scaleFactor;
-      const glassH = (PILL_HEIGHT - 6) * hudScale * scaleFactor;
+      const { width, height } = engine.canvas;
+      if (!width || !height || (width === layoutWidth && height === layoutHeight)) return;
+      layoutWidth = width;
+      layoutHeight = height;
+      const hudScale = resolveSeedWorldHudScale(width, height);
+      const glassW = (PILL_WIDTH - 6) * hudScale;
+      const glassH = (PILL_HEIGHT - 6) * hudScale;
       this.bodyGlass.setLayout(glassW, glassH, glassH * 0.5);
 
-      // Project upper-right HUD slot center accurately onto z = 0 plane of the 60-deg perspective camera
-      const centerRight = BUTTON_RIGHT + PILL_WIDTH * 0.5;
-      const centerTop = BUTTON_TOP + PILL_HEIGHT * 0.5;
-      const ndcX = 1 - (2 * centerRight) / refW;
-      const ndcY = 1 - (2 * centerTop) / refH;
-      const worldPerHud = (frustumHalfHeight * 2) / refH;
-      const hoverBob = Math.sin(this.time * 1.9) * 0.015;
-      const rigScale = worldPerHud * scaleFactor;
-
+      // Project the hit target's pixel center onto the glyph plane of the UI camera.
+      const anchor = hitTransform.worldPosition;
+      const worldPerPixel = (frustumHalfHeight * 2) / height;
       this.rig3d.transform.setPosition(
-        ndcX * frustumHalfHeight * aspect,
-        ndcY * frustumHalfHeight + hoverBob,
-        -this.pressBlend * 0.22
+        (anchor.x - width * 0.5) * worldPerPixel,
+        (anchor.y - height * 0.5) * worldPerPixel,
+        0
       );
+      const rigScale = worldPerPixel * hudScale;
       this.rig3d.transform.setScale(rigScale, rigScale, rigScale);
-
-      // Subtle, distortion-free 3D spatial angle (narrow FOV + gentle yaw avoids diagonal corner stretch!)
-      const yaw = -14 + Math.sin(this.time * 1.1) * 3.5 + this.parallaxYaw * 0.7 + this.pressBlend * 6;
-      const pitch = 5 + Math.cos(this.time * 0.9) * 2.0 + this.parallaxPitch * 0.7 + this.pressBlend * 8;
-      const roll = 0;
-      this.rig3d.transform.setRotation(pitch, yaw, roll);
     };
   }
 
