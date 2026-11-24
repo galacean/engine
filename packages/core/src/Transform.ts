@@ -308,14 +308,20 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   set worldMatrix(value: Matrix) {
-    if (this._worldMatrix !== value) {
-      this._worldMatrix.copyFrom(value);
-    }
     const parent = this._getParentTransform();
     if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat42);
+      if (Matrix.invert(parent.worldMatrix, Transform._tempMat42) === null) {
+        this._setDirtyFlagTrue(TransformModifyFlags.WorldMatrix);
+        return;
+      }
+      if (this._worldMatrix !== value) {
+        this._worldMatrix.copyFrom(value);
+      }
       Matrix.multiply(Transform._tempMat42, value, this._localMatrix);
     } else {
+      if (this._worldMatrix !== value) {
+        this._worldMatrix.copyFrom(value);
+      }
       this._localMatrix.copyFrom(value);
     }
     this.localMatrix = this._localMatrix;
@@ -695,7 +701,10 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const worldPosition = this._worldPosition;
     const parent = this._getParentTransform();
     if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat41);
+      if (Matrix.invert(parent.worldMatrix, Transform._tempMat41) === null) {
+        this._setDirtyFlagTrue(TransformModifyFlags.WorldPosition);
+        return;
+      }
       Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
     } else {
       this._position.copyFrom(worldPosition);
