@@ -1,0 +1,24 @@
+packages/core/src/physics/joint/Joint.ts
+  s_71b60d26703905::t_034895cd3f0443 241,243-248,371-377,381
+tests/src/core/physics/PhysicsGameplay.test.ts
+  s_71b60d26703905::t_b3fafe90f483e4 137-152,167,182,187,234
+  s_71b60d26703905::t_ad836ed248f276 153-166,168-181,183-186,188-195
+  s_71b60d26703905::t_0ffec8077c9467 36,86,196,208,232
+  s_71b60d26703905::t_3313178b978477 197-207,209-231,233
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "36f45b016473a0ee706025646bb4b5cca370cb28",
+  "prompts": {},
+  "sessions": {
+    "s_71b60d26703905": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2086b-2423-7963-bec2-7a56a2f3c1cb",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
