@@ -1,0 +1,20 @@
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_b581de1ed5520c 943,951,954,956,961,965
+  s_d2c65ec75a2f3e::t_30931633591153 955
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "837d6345344a0ef557f3a293f1208e776a69b8da",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
