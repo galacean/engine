@@ -4,6 +4,7 @@ import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
+import { Utils } from "../Utils";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
@@ -1019,14 +1020,8 @@ export class PhysicsScene {
   _scheduleSleep(body: Rigidbody, scheduled: boolean): void {
     if (scheduled) {
       (this._pendingSleeps ||= []).push(body);
-    } else {
-      const pendingSleeps = this._pendingSleeps;
-      if (!pendingSleeps) return;
-      const index = pendingSleeps.indexOf(body);
-      if (index !== -1) {
-        const last = pendingSleeps.pop()!;
-        if (last !== body) pendingSleeps[index] = last;
-      }
+    } else if (this._pendingSleeps) {
+      Utils.removeFromArray(this._pendingSleeps, body);
     }
   }
 

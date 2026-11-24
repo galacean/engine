@@ -20,31 +20,6 @@ export class MeshCollider extends Collider {
     return x >= minScale && y >= minScale && z >= minScale && x <= maxScale && y <= maxScale && z <= maxScale;
   }
 
-  private static _getMeshData(mesh: ModelMesh, convex: boolean): MeshData | null {
-    if (!mesh.accessible) {
-      console.warn("MeshCollider: mesh data is not accessible. Set 'keepMeshData' before uploading.");
-      return null;
-    }
-    let positions: Vector3[] | null;
-    let indices: Uint8Array | Uint16Array | Uint32Array | null;
-    try {
-      positions = mesh.getPositions();
-      indices = convex ? null : mesh.getIndices();
-    } catch (error) {
-      console.error(`MeshCollider: mesh data is not readable (${error}).`);
-      return null;
-    }
-    if (!positions || positions.length === 0) {
-      console.warn("MeshCollider: mesh has no position data.");
-      return null;
-    }
-    if (!convex && !indices) {
-      console.warn("MeshCollider: a non-convex mesh requires indices.");
-      return null;
-    }
-    return { positions, indices };
-  }
-
   @ignoreClone
   private _mesh: ModelMesh | null = null;
   private _convex = false;
@@ -223,8 +198,7 @@ export class MeshCollider extends Collider {
       this._nativeCookingFlags !== this._cookingFlags;
     let shape: IMeshShape;
     if (needsCook) {
-      const meshData = MeshCollider._getMeshData(mesh, this._convex);
-      const updated = meshData && this._cook(previous, mesh, meshData, scale);
+      const updated = this._cook(previous, mesh, scale);
       if (!updated) {
         this._rejection = MeshSyncRejection.CookFailed;
         if (this._native) {
@@ -264,13 +238,29 @@ export class MeshCollider extends Collider {
     this._nativeMesh = null;
   }
 
-  private _cook(
-    shape: IMeshShape | null,
-    mesh: ModelMesh,
-    { positions, indices }: MeshData,
-    scale: Vector3
-  ): IMeshShape | null {
+  private _cook(shape: IMeshShape | null, mesh: ModelMesh, scale: Vector3): IMeshShape | null {
     const convex = this._convex;
+    if (!mesh.accessible) {
+      console.warn("MeshCollider: mesh data is not accessible. Set 'keepMeshData' before uploading.");
+      return null;
+    }
+    let positions: Vector3[] | null;
+    let indices: Uint8Array | Uint16Array | Uint32Array | null;
+    try {
+      positions = mesh.getPositions();
+      indices = convex ? null : mesh.getIndices();
+    } catch (error) {
+      console.error(`MeshCollider: mesh data is not readable (${error}).`);
+      return null;
+    }
+    if (!positions || positions.length === 0) {
+      console.warn("MeshCollider: mesh has no position data.");
+      return null;
+    }
+    if (!convex && !indices) {
+      console.warn("MeshCollider: a non-convex mesh requires indices.");
+      return null;
+    }
     const flags = this._cookingFlags;
     if (shape && this._nativeConvex === convex) {
       return shape.setMeshData(positions, indices, flags, scale, mesh) ? shape : null;
@@ -297,11 +287,6 @@ export class MeshCollider extends Collider {
     }
   }
 }
-
-type MeshData = {
-  positions: Vector3[];
-  indices: Uint8Array | Uint16Array | Uint32Array | null;
-};
 
 const enum MeshSyncRejection {
   None = 0,

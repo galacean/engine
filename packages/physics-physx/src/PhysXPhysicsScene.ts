@@ -62,12 +62,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   private static _removeContactNeighbor(this: PhysXPhysicsScene, otherId: number): void {
-    const otherSet = this._activeContacts.get(otherId)!;
-    otherSet.delete(this._iterShapeId);
-    if (otherSet.size === 0) {
-      this._activeContacts.delete(otherId);
-      this._contactSetPool.push(otherSet);
-    }
+    this._deleteContactNeighbor(this._activeContacts, otherId, this._iterShapeId);
   }
 
   private static _queuePendingReplacedContact(this: PhysXPhysicsScene, otherId: number): void {
@@ -75,12 +70,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const small = id < otherId ? id : otherId;
     const big = id < otherId ? otherId : id;
     const pending = this._pendingReplacedContacts;
-    let set = pending.get(small);
-    if (!set) {
-      set = this._contactSetPool.pop() ?? new Set<number>();
-      pending.set(small, set);
-    }
-    set.add(big);
+    (pending.get(small) ?? this._acquireContactSet(pending, small)).add(big);
   }
 
   private static _flushPendingReplacedSet(this: PhysXPhysicsScene, set: Set<number>, small: number): void {
@@ -715,37 +705,34 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     event._floatOffset = offset;
   }
 
+  private _acquireContactSet(contacts: Map<number, Set<number>>, id: number): Set<number> {
+    const neighbors = this._contactSetPool.pop() ?? new Set<number>();
+    contacts.set(id, neighbors);
+    return neighbors;
+  }
+
+  private _deleteContactNeighbor(contacts: Map<number, Set<number>>, id: number, other: number): boolean {
+    const neighbors = contacts.get(id);
+    if (!neighbors?.delete(other)) return false;
+    if (neighbors.size === 0) {
+      contacts.delete(id);
+      this._contactSetPool.push(neighbors);
+    }
+    return true;
+  }
+
   private _addActiveContact(a: number, b: number): void {
-    const activeContacts = this._activeContacts;
-    let setA = activeContacts.get(a);
-    if (setA?.has(b)) return;
-    const pool = this._contactSetPool;
-    if (!setA) {
-      setA = pool.pop() ?? new Set<number>();
-      activeContacts.set(a, setA);
-    }
-    setA.add(b);
-    let setB = activeContacts.get(b);
-    if (!setB) {
-      setB = pool.pop() ?? new Set<number>();
-      activeContacts.set(b, setB);
-    }
-    setB.add(a);
+    const contacts = this._activeContacts;
+    const neighbors = contacts.get(a);
+    if (neighbors?.has(b)) return;
+    (neighbors ?? this._acquireContactSet(contacts, a)).add(b);
+    (contacts.get(b) ?? this._acquireContactSet(contacts, b)).add(a);
   }
 
   private _removeActiveContact(a: number, b: number): void {
-    const activeContacts = this._activeContacts;
-    const pool = this._contactSetPool;
-    const setA = activeContacts.get(a);
-    if (setA?.delete(b) && setA.size === 0) {
-      activeContacts.delete(a);
-      pool.push(setA);
-    }
-    const setB = activeContacts.get(b);
-    if (setB?.delete(a) && setB.size === 0) {
-      activeContacts.delete(b);
-      pool.push(setB);
-    }
+    const contacts = this._activeContacts;
+    this._deleteContactNeighbor(contacts, a, b);
+    this._deleteContactNeighbor(contacts, b, a);
   }
 
   private _clearContactsForShape(id: number): void {
@@ -763,13 +750,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     if (pending.size === 0) return false;
     const small = a < b ? a : b;
     const big = a < b ? b : a;
-    const set = pending.get(small);
-    if (!set?.delete(big)) return false;
-    if (set.size === 0) {
-      pending.delete(small);
-      this._contactSetPool.push(set);
-    }
-    return true;
+    return this._deleteContactNeighbor(pending, small, big);
   }
 
   private _flushReplacedContactExits(): void {

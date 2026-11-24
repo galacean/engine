@@ -9,6 +9,7 @@ import { Entity } from "../Entity";
 import { ActiveChangeFlag } from "../enums/ActiveChangeFlag";
 import type { Scene } from "../Scene";
 import { Transform } from "../Transform";
+import { Utils } from "../Utils";
 import { Collider } from "./Collider";
 import { differsF32, isValidPositiveFloat32, rotationDiffersF32 } from "./float32";
 import type { Joint } from "./joint/Joint";
@@ -443,7 +444,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
         }
       }
       this._nativeActor?.setMotionState(value, this._useCCD);
-      // Revisit the hierarchy so previously excluded shapes can rejoin when the body becomes kinematic.
+      // Revisit the hierarchy so excluded shapes rejoin on kinematic or re-evaluate dynamic constraints.
       this._registeredScene && this._markCollidersDirty();
     }
   }
@@ -898,13 +899,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @internal
    */
   _detachCollider(collider: Collider): void {
-    const colliders = this._attachedColliders;
-    const index = colliders.indexOf(collider);
-    if (index !== -1) {
-      colliders[index] = colliders[colliders.length - 1];
-      colliders.length--;
-      this._markMassDirty();
-    }
+    if (Utils.removeFromArray(this._attachedColliders, collider)) this._markMassDirty();
   }
 
   /**
@@ -918,14 +913,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @internal
    */
   _detachJoint(joint: Joint): void {
-    const joints = this._joints;
-    if (joints) {
-      const index = joints.indexOf(joint);
-      if (index !== -1) {
-        joints[index] = joints[joints.length - 1];
-        joints.length--;
-      }
-    }
+    this._joints && Utils.removeFromArray(this._joints, joint);
   }
 
   /**
@@ -1090,7 +1078,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const { _components: components, children } = entity;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
-      component instanceof Collider && component._markDirty();
+      component instanceof Collider && component._attachedBody !== this && component._markDirty();
     }
     for (let i = 0, n = children.length; i < n; i++) this._markCollidersDirty(children[i]);
   }

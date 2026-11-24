@@ -255,22 +255,30 @@ describe("Rigidbody", function () {
 
   it.each([true, false])("does not resync colliders owned by an independent Rigidbody (enabled: %s)", (enabled) => {
     const physics = engine.sceneManager.activeScene.physics;
-    const outer = rootEntity.createChild();
-    const body = outer.addComponent(Rigidbody);
-    const ownedCollider = outer.createChild().addComponent(BoxCollider);
-    const nested = outer.createChild();
-    const nestedBody = nested.addComponent(Rigidbody);
-    const nestedCollider = nested.createChild().addComponent(BoxCollider);
-    nestedBody.enabled = enabled;
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const outer = rootEntity.createChild();
+      const body = outer.addComponent(Rigidbody);
+      const ownedBox = outer.createChild().addComponent(BoxCollider);
+      const ownedPlane = outer.createChild().addComponent(PlaneCollider);
+      const nested = outer.createChild();
+      const nestedBody = nested.addComponent(Rigidbody);
+      const nestedCollider = nested.createChild().addComponent(PlaneCollider);
+      nestedBody.enabled = enabled;
 
-    const ray = new Ray(new Vector3(0, 8, 0), new Vector3(0, -1, 0));
-    physics.raycast(ray, 10);
-    const ownedSync = vi.spyOn(ownedCollider, "_sync");
-    const nestedSync = vi.spyOn(nestedCollider, "_sync");
-    body.isKinematic = true;
-    physics.raycast(ray, 10);
-    expect(ownedSync).toHaveBeenCalledOnce();
-    expect(nestedSync).not.toHaveBeenCalled();
+      const ray = new Ray(new Vector3(0, 8, 0), new Vector3(0, -1, 0));
+      physics.raycast(ray, 10);
+      const ownedBoxSync = vi.spyOn(ownedBox, "_sync");
+      const ownedPlaneSync = vi.spyOn(ownedPlane, "_sync");
+      const nestedSync = vi.spyOn(nestedCollider, "_sync");
+      body.isKinematic = true;
+      physics.raycast(ray, 10);
+      expect(ownedBoxSync).not.toHaveBeenCalled();
+      expect(ownedPlaneSync).toHaveBeenCalledOnce();
+      expect(nestedSync).not.toHaveBeenCalled();
+    } finally {
+      errors.mockRestore();
+    }
   });
 
   it("keeps infinite mass when enabling automatic inertia in the same batch", () => {
@@ -2255,5 +2263,86 @@ describe("Rigidbody", function () {
     const localAlias = new Vector3(0.02, 0, 0);
     expect(body.getRelativePointVelocity(localAlias, localAlias)).toBe(localAlias);
     expect(localAlias.y).toBeCloseTo(0.02, 4);
+  });
+
+  it("skips resyncing already-attached colliders across isKinematic and enable toggles while updating moved children", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const cast = (x: number, z = 0) => {
+      const hit = new HitResult();
+      return physics.raycast(new Ray(new Vector3(x, 4, z), new Vector3(0, -1, 0)), 10, hit) ? hit.collider : null;
+    };
+
+    const entity = rootEntity.createChild("compound-skip-clean");
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.isKinematic = true;
+
+    const boxes = [0, 4, 8].map((x, index) => {
+      const child = entity.createChild(`box-${index}`);
+      child.transform.setPosition(x, 0, 0);
+      return child.addComponent(BoxCollider);
+    });
+    const plane = entity.createChild("plane").addComponent(PlaneCollider);
+    expect(cast(50)).toBe(plane);
+
+    const boxSyncSpies = boxes.map((box) => vi.spyOn(box, "_sync"));
+    const planeSyncSpy = vi.spyOn(plane, "_sync");
+    const clearSpies = () => {
+      for (const spy of boxSyncSpies) spy.mockClear();
+      planeSyncSpy.mockClear();
+    };
+
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      // Toggling isKinematic in both directions skips clean attached boxes and syncs only the plane.
+      body.isKinematic = false;
+      expect(cast(50)).toBeNull();
+      expect(cast(4)).toBe(boxes[1]);
+      for (const spy of boxSyncSpies) expect(spy).not.toHaveBeenCalled();
+      expect(planeSyncSpy).toHaveBeenCalledTimes(1);
+      clearSpies();
+
+      body.isKinematic = true;
+      expect(cast(50)).toBe(plane);
+      for (const spy of boxSyncSpies) expect(spy).not.toHaveBeenCalled();
+      expect(planeSyncSpy).toHaveBeenCalledTimes(1);
+      clearSpies();
+
+      // Moving one child box before switching to dynamic syncs only that box and the plane.
+      boxes[1].entity.transform.setPosition(12, 0, 0);
+      body.isKinematic = false;
+      expect(cast(12)).toBe(boxes[1]);
+      expect(cast(4)).toBeNull();
+      expect(boxSyncSpies[0]).not.toHaveBeenCalled();
+      expect(boxSyncSpies[1]).toHaveBeenCalledTimes(1);
+      expect(boxSyncSpies[2]).not.toHaveBeenCalled();
+      expect(planeSyncSpy).toHaveBeenCalledTimes(1);
+      clearSpies();
+    } finally {
+      errors.mockRestore();
+    }
+
+    // Disabling and re-enabling an unchanged body skips resyncing all attached boxes.
+    boxes[1].entity.transform.setPosition(4, 0, 0);
+    expect(cast(4)).toBe(boxes[1]);
+    clearSpies();
+
+    body.enabled = false;
+    body.enabled = true;
+    expect(cast(4)).toBe(boxes[1]);
+    for (const spy of boxSyncSpies) expect(spy).not.toHaveBeenCalled();
+
+    // Disabling the body, moving a child box, translating and rotating the body, then re-enabling updates all world poses and COM.
+    body.enabled = false;
+    boxes[1].entity.transform.setPosition(13, 0, 0);
+    entity.transform.setPosition(100, 0, 20);
+    entity.transform.setRotation(0, 90, 0);
+    body.enabled = true;
+
+    expect(cast(100, 20)).toBe(boxes[0]);
+    expect(cast(100, 7)).toBe(boxes[1]);
+    expect(cast(100, 12)).toBe(boxes[2]);
+    expect(cast(4, 0)).toBeNull();
+    expect(body.centerOfMass.x).toBeCloseTo(7, 4);
   });
 });
