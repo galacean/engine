@@ -240,3 +240,184 @@ it("retains a newly arrived image for at least one follow-up round before offloa
   expect(messages(2).some((m) => m.role === "user" && m.image)).toBe(true);
   expect(request.mock.calls[2][0].contextCompaction).toBeUndefined();
 });
+
+it("preserves explicit caller triggerTokens without stepping up after in-task compaction", async () => {
+  for (const triggerTokens of [47_999, 48_000, 120_000]) {
+    request.mockReset();
+    request.mockResolvedValueOnce({ ...tool("a"), telemetry: { inputLimitTokens: 500_000 } });
+    request.mockResolvedValueOnce({
+      ...tool("b"),
+      telemetry: { inputLimitTokens: 500_000 },
+      contextCompaction: compact(3, "mid-task summary")
+    });
+    request.mockResolvedValueOnce(final());
+
+    const loop = createTestAgentLoop({ tools: [], definition });
+    await loop.run("explicit budget task", { contextCompaction: { triggerTokens, targetTokens: 20_000 } });
+
+    expect(request.mock.calls[1][0].contextCompaction).toEqual({
+      version: 2,
+      protectedPrefixLength: 3,
+      triggerTokens,
+      targetTokens: 20_000
+    });
+    expect(request.mock.calls[2][0].contextCompaction).toEqual({
+      version: 2,
+      protectedPrefixLength: 3,
+      triggerTokens,
+      targetTokens: 20_000
+    });
+  }
+});
+
+it("applies telemetry-adaptive session compaction budgets and steps up only on automatic budgets", async () => {
+  const { AIChatSession } = await import("../src/ai-chat/ai-chat-session");
+  request.mockResolvedValueOnce({ ...tool("a"), telemetry: { inputLimitTokens: 500_000 } });
+  request.mockResolvedValueOnce({
+    ...tool("b"),
+    telemetry: { inputLimitTokens: 500_000 },
+    contextCompaction: compact(3, "500k summary")
+  });
+  request.mockResolvedValueOnce(final());
+  const session500 = new AIChatSession({ agent: createTestAgentLoop({ tools: [], definition }) });
+  await session500.run("500k task", { model: "dsv41flash" });
+  expect(request.mock.calls[0][0].contextCompaction).toEqual({ version: 2, protectedPrefixLength: 3 });
+  expect(request.mock.calls[1][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 120_000,
+    targetTokens: 50_000
+  });
+  expect(request.mock.calls[2][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 160_000,
+    targetTokens: 50_000
+  });
+
+  // 128K window: adaptive budget and post-compaction step-up clamp strictly to floor(128_000 * 0.8) = 102_400.
+  request.mockReset();
+  request.mockResolvedValueOnce({ ...tool("a"), telemetry: { inputLimitTokens: 128_000 } });
+  request.mockResolvedValueOnce({
+    ...tool("b"),
+    telemetry: { inputLimitTokens: 128_000 },
+    contextCompaction: compact(3, "128k summary")
+  });
+  request.mockResolvedValueOnce(final());
+  const session128 = new AIChatSession({ agent: createTestAgentLoop({ tools: [], definition }) });
+  await session128.run("128k task");
+  expect(request.mock.calls[0][0].contextCompaction).toEqual({ version: 2, protectedPrefixLength: 3 });
+  expect(request.mock.calls[1][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 102_400,
+    targetTokens: 50_000
+  });
+  expect(request.mock.calls[2][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 102_400,
+    targetTokens: 50_000
+  });
+});
+
+it("re-inlines a declaration dependency evicted by compaction when re-reading the retained root in AIChatSession", async () => {
+  const { AIChatSession } = await import("../src/ai-chat/ai-chat-session");
+  const readCall = (id: string, filePath: string): AsapChatResult => ({
+    content: "",
+    finishReason: "tool_calls",
+    toolCalls: [{ id, type: "function", function: { name: "read", arguments: JSON.stringify({ file_path: filePath }) } }]
+  });
+  const defWithDecls = {
+    ...definition,
+    projectFiles: [
+      {
+        paths: () => ["declare/editor/world/common/MutationResult.d.ts", "declare/editor/world/tools/terrain.patch.d.ts"],
+        read: (p: string) =>
+          ({
+            "declare/editor/world/common/MutationResult.d.ts": "export interface MutationResult { status: string; }",
+            "declare/editor/world/tools/terrain.patch.d.ts":
+              'import type { MutationResult } from "../common/MutationResult";\nexport declare function patch(): Promise<MutationResult>;'
+          })[p]
+      }
+    ]
+  };
+  request.mockResolvedValueOnce(readCall("r1", "declare/editor/world/common/MutationResult.d.ts"));
+  request.mockResolvedValueOnce(readCall("r2", "declare/editor/world/tools/terrain.patch.d.ts"));
+  // Compaction cuts indices [0..3) (task_context + r1 assistant + r1 tool), retaining r2 (terrain.patch.d.ts).
+  request.mockResolvedValueOnce({
+    ...readCall("r3", "declare/editor/world/tools/terrain.patch.d.ts"),
+    contextCompaction: compact(3, "evicted MutationResult.d.ts")
+  });
+  request.mockResolvedValueOnce(final());
+
+  const session = new AIChatSession({ agent: createTestAgentLoop({ tools: [], definition: defWithDecls }) });
+  await session.run("patch terrain");
+
+  const finalRequestMessages = request.mock.calls[3][0].messages as { role: string; toolCallId?: string; content: string }[];
+  const r3Reply = finalRequestMessages.find((m) => m.role === "tool" && m.toolCallId === "r3");
+  expect(r3Reply?.content).toContain("Already present at the time of this read");
+  expect(r3Reply?.content).toContain('<dependency path="declare/editor/world/common/MutationResult.d.ts">');
+  expect(r3Reply?.content).toContain("export interface MutationResult { status: string; }");
+});
+
+it.each([1, 350])("reuses an inlined declaration across rounds and restores reads at offset %s after compaction", async (offset) => {
+  const sourcePath = "declare/editor/native/source.d.ts";
+  const apiPath = "declare/editor/native/api.d.ts";
+  const source = Array.from({ length: 393 }, (_, i) => `export type L${i + 1} = ${i + 1};`).join("\n");
+  const modules = [
+    { id: "declare/native/source.d.ts", source, imports: [] },
+    { id: "declare/native/api.d.ts", source: 'import "./source";', imports: ["declare/native/source.d.ts"] }
+  ];
+  const read = (id: string, file_path: string, offset?: number): AsapChatResult => ({
+    content: "",
+    finishReason: "tool_calls",
+    toolCalls: [{ id, type: "function", function: { name: "read", arguments: JSON.stringify({ file_path, offset }) } }]
+  });
+  request
+    .mockResolvedValueOnce(read("api", apiPath))
+    .mockResolvedValueOnce(read("reuse", sourcePath, offset))
+    .mockResolvedValueOnce({ ...read("after", sourcePath, offset), contextCompaction: compact(3) })
+    .mockResolvedValueOnce(final());
+  const loop = createTestAgentLoop({
+    definition: { ...definition, scriptApi: { ...definition.scriptApi, modules } },
+    tools: []
+  });
+  await loop.run("inspect editor declarations", {});
+
+  const reused = messages(2).find((message) => message.role === "tool" && message.toolCallId === "reuse")!.content;
+  expect(reused).toContain("Reuse the complete copy if it is still in context. Otherwise, you can read this path again if needed.");
+  expect(reused).not.toContain("Continue with read");
+  const after = messages(3).find((message) => message.role === "tool" && message.toolCallId === "after")!.content;
+  expect(after).toContain(`${offset}: export type L${offset} = ${offset};`);
+  if (offset === 1) expect(after).toContain("Continue with read offset=");
+  else expect(after).toContain("393: export type L393 = 393;");
+  const remaining = messages(3).filter((message) => message.role === "tool");
+  expect(remaining.map((reply) => reply.toolCallId)).toEqual(["reuse", "after"]);
+  expect(remaining[0].content).toBe(reused);
+});
+
+it("resets repeated static read guidance counters after server-side compaction", async () => {
+  const readSkill = (id: string): AsapChatResult => ({
+    content: "",
+    finishReason: "tool_calls",
+    toolCalls: [
+      { id, type: "function", function: { name: "read", arguments: JSON.stringify({ file_path: "skills/demo/SKILL.md" }) } }
+    ]
+  });
+  const defWithSkill = {
+    ...definition,
+    projectFiles: [{ paths: () => ["skills/demo/SKILL.md"], read: (p: string) => (p === "skills/demo/SKILL.md" ? "# Demo" : undefined) }]
+  };
+  request.mockResolvedValueOnce(readSkill("r1"));
+  request.mockResolvedValueOnce({ ...readSkill("r2"), contextCompaction: compact(3, "compacted summary") });
+  request.mockResolvedValueOnce(final());
+
+  const loop = createTestAgentLoop({ tools: [], definition: defWithSkill });
+  await loop.run("re-read after compaction", {});
+
+  const round3Messages = request.mock.calls[2][0].messages as { role: string; content: string }[];
+  expect(
+    round3Messages.some((m) => m.role === "user" && typeof m.content === "string" && m.content.includes('type="loop_guidance"'))
+  ).toBe(false);
+});

@@ -80,6 +80,7 @@ import type {
   SeedWorldEnginePort,
   SeedWorldLiveState,
   SeedWorldObject,
+  SeedWorldPointOrderField,
   SeedWorldResolvedSpatialTarget,
   SeedWorldResourceMutation,
   SeedWorldSpatialTarget
@@ -695,6 +696,9 @@ export async function createHeadlessSeedWorldFixture(options: {
   const removedIds = new Set<string>();
   const environmentMutations: Record<string, unknown>[] = [];
   const riversCreated: PlanningWaterCreation[] = [];
+  const initialLakeComponentId = "lake-body";
+  const lakeCenter = { x: 4, z: 4 };
+  const waterSurfaceElevation = 0.5;
   const teleports: Record<string, unknown>[] = [];
   const animalSpawns: Record<string, unknown>[] = [];
   const animalCommands: Record<string, unknown>[] = [];
@@ -1000,13 +1004,48 @@ export async function createHeadlessSeedWorldFixture(options: {
         for (const r of resources) {
           const p = r.properties as Record<string, any> | undefined;
           if (!p) continue;
-          const cx = typeof p.x === "number" ? p.x : typeof p.centerX === "number" ? p.centerX : undefined;
-          const cz = typeof p.z === "number" ? p.z : typeof p.centerZ === "number" ? p.centerZ : undefined;
+          const pos = Array.isArray((r as { position?: unknown }).position)
+            ? ((r as { position?: readonly number[] }).position as readonly number[])
+            : undefined;
+          const cx =
+            typeof p.x === "number"
+              ? p.x
+              : typeof p.centerX === "number"
+                ? p.centerX
+                : typeof pos?.[0] === "number"
+                  ? pos[0]
+                  : undefined;
+          const cz =
+            typeof p.z === "number"
+              ? p.z
+              : typeof p.centerZ === "number"
+                ? p.centerZ
+                : typeof pos?.[2] === "number"
+                  ? pos[2]
+                  : undefined;
           if (cx === undefined || cz === undefined) continue;
           const dist = Math.hypot(x - cx, z - cz);
           if (r.resourceType === "terrain-feature") {
-            const radius = Number(p.radiusMetres ?? p.radius ?? p.overallRadiusMetres ?? 20);
-            const height = Number(p.peakHeightMetres ?? p.heightMetres ?? p.baseElevationMetres ?? p.amplitude ?? 0);
+            const halfSpan =
+              typeof p.lengthMetres === "number" || typeof p.widthMetres === "number"
+                ? Math.max(Number(p.lengthMetres ?? 0), Number(p.widthMetres ?? 0)) * 0.5
+                : undefined;
+            const radius = Number(
+              p.radiusMetres ?? p.radius ?? p.influenceMajorRadiusMetres ?? p.overallRadiusMetres ?? halfSpan ?? 20
+            );
+            const hillRelief =
+              typeof p.pedestalLiftMetres === "number" || typeof p.peakReliefMetres === "number"
+                ? Number(p.pedestalLiftMetres ?? 0) + Number(p.peakReliefMetres ?? 0)
+                : undefined;
+            const height = Number(
+              p.elevationDeltaMetres ??
+                hillRelief ??
+                p.peakHeightMetres ??
+                p.heightMetres ??
+                p.baseElevationMetres ??
+                p.amplitude ??
+                0
+            );
             if (radius > 0 && dist < radius && Number.isFinite(height)) {
               const t = 1 - dist / radius;
               h += height * t * t * (3 - 2 * t);
@@ -1022,52 +1061,82 @@ export async function createHeadlessSeedWorldFixture(options: {
         }
         return h;
       };
-      if (input.mode === "sample") {
+      const pointAt = (x: number, z: number) => {
+        const height = effectiveHeightAt(x, z);
+        const water = waterIdAt(x, z) !== undefined;
+        const elevation = water ? waterSurfaceElevation : height;
         return {
-          samples: input.positions.map((pos: { x: number; z: number } | readonly [number, number]) => {
-            const x = Array.isArray(pos) ? Number(pos[0]) : Number((pos as { x: number }).x);
-            const z = Array.isArray(pos) ? Number(pos[1]) : Number((pos as { z: number }).z);
-            const h = effectiveHeightAt(x, z);
-            const water = isInsideInitialLake(x, z);
-            return {
-              insideWorld: Math.abs(x) <= 512 && Math.abs(z) <= 512,
-              position: [x, h, z],
-              height: h,
-              elevation: h,
-              slope: syntheticSlopeAt(x, z),
-              water,
-              ...(water ? { waterSurfaceElevationMetres: 0.5 } : {}),
-              moisture: 0.4,
-              riverDistanceMetres: 20,
-              roadDistanceMetres: 20
-            };
-          })
+          insideWorld: Math.abs(x) <= 512 && Math.abs(z) <= 512,
+          position: [x, elevation, z] as const,
+          height,
+          elevation,
+          slope: syntheticSlopeAt(x, z),
+          water,
+          ...(water ? { waterSurfaceElevationMetres: waterSurfaceElevation } : {}),
+          moisture: water ? 1 : 0.4,
+          riverDistanceMetres: water ? 0 : 20,
+          roadDistanceMetres: 20,
+          landCover: water ? "wetland" : "grassland"
         };
+      };
+      if (input.mode === "sample") {
+        return { samples: input.positions.map(({ x, z }) => pointAt(x, z)) };
+      }
+
+      // The fixture uses a small deterministic set of sites and the live water sources.
+      const sites = [
+        { x: 30, z: -35 },
+        { x: 28, z: -33 },
+        lakeCenter,
+        ...riversCreated.flatMap((river) => (river.kind === "river" ? river.parameters.points : []))
+      ];
+      if (input.nearestTo) sites.push(input.nearestTo);
+      const distinctSites = new Map(sites.map((site) => [`${site.x},${site.z}`, site]));
+      const { where, nearestTo } = input;
+      const matches = [...distinctSites.values()]
+        .map(({ x, z }) => pointAt(x, z))
+        .filter(
+          (point) =>
+            point.insideWorld &&
+            (where.water === undefined || point.water === where.water) &&
+            point.elevation >= (where.minimumElevation ?? -Infinity) &&
+            point.elevation <= (where.maximumElevation ?? Infinity) &&
+            point.slope >= (where.minimumSlope ?? -Infinity) &&
+            point.slope <= (where.maximumSlope ?? Infinity) &&
+            point.moisture >= (where.minimumMoisture ?? -Infinity) &&
+            point.moisture <= (where.maximumMoisture ?? Infinity) &&
+            point.riverDistanceMetres <= (where.maximumRiverDistance ?? Infinity) &&
+            point.roadDistanceMetres <= (where.maximumRoadDistance ?? Infinity) &&
+            (where.landCover === undefined || where.landCover.includes(point.landCover))
+        );
+      const orderValue = (point: ReturnType<typeof pointAt>, field: SeedWorldPointOrderField): number =>
+        ({
+          elevation: point.elevation,
+          slope: point.slope,
+          moisture: point.moisture,
+          riverDistance: point.riverDistanceMetres,
+          roadDistance: point.roadDistanceMetres,
+          distance: nearestTo ? Math.hypot(point.position[0] - nearestTo.x, point.position[2] - nearestTo.z) : 0
+        })[field];
+      matches.sort((left, right) => {
+        for (const { field, direction } of input.orderBy) {
+          const difference = orderValue(left, field) - orderValue(right, field);
+          if (difference !== 0) return direction === "asc" ? difference : -difference;
+        }
+        return left.position[0] - right.position[0] || left.position[2] - right.position[2];
+      });
+      const points: ReturnType<typeof pointAt>[] = [];
+      for (const point of matches) {
+        const [x, , z] = point.position;
+        if (points.every(({ position }) => Math.hypot(position[0] - x, position[2] - z) >= input.spacingMetres)) {
+          points.push(point);
+        }
       }
       return {
-        inspectedPointCount: 64,
-        matchedPointCount: 2,
-        effectiveSpacingMetres: (input as { spacingMetres?: number }).spacingMetres ?? 10,
-        points: [
-          {
-            position: [30, 12, -35],
-            elevation: 12,
-            slope: 0.02,
-            moisture: 0.3,
-            water: false,
-            riverDistanceMetres: 40,
-            roadDistanceMetres: 25
-          },
-          {
-            position: [28, 12, -33],
-            elevation: 12,
-            slope: 0.03,
-            moisture: 0.3,
-            water: false,
-            riverDistanceMetres: 38,
-            roadDistanceMetres: 24
-          }
-        ]
+        inspectedPointCount: distinctSites.size,
+        matchedPointCount: points.length,
+        effectiveSpacingMetres: input.spacingMetres,
+        points: points.slice(0, input.limit)
       };
     },
     queryWorldRegions: (kind) => {
@@ -1566,12 +1635,12 @@ export async function createHeadlessSeedWorldFixture(options: {
     entities: [
       { id: "building-host", name: "BuildingHost", position: [0, 0, 0], components: [] },
       { id: "farm-owner", name: "FarmRoot", position: [0, 0, 0], components: ["farm-system"] },
-      { id: "lake-root", name: "LakeWater", position: [0, 0, 0], components: ["lake-body"] },
+      { id: "lake-root", name: "LakeWater", position: [0, 0, 0], components: [initialLakeComponentId] },
       { id: "lantern-root", name: "Lantern", position: [3, 1, -4], components: [] }
     ],
     components: [
       { id: "farm-system", type: "FarmingSystem", props: {} },
-      { id: "lake-body", type: "WaterBodyComponent", props: lakeComponentProps }
+      { id: initialLakeComponentId, type: "WaterBodyComponent", props: lakeComponentProps }
     ]
   };
 
@@ -1589,7 +1658,10 @@ export async function createHeadlessSeedWorldFixture(options: {
       dependencies: ["Water/Textures/grasslands-water-normal-1024.ktx2"]
     },
     { virtualPath: "Water/Terrain/manual-bed.json", path: "Water/Terrain/manual-bed.json", type: "JSON", dependencies: [] },
-    { virtualPath: "Water/Terrain/manual-bed.bin", path: "Water/Terrain/manual-bed.bin", type: "Buffer", dependencies: [] }
+    { virtualPath: "Water/Terrain/manual-bed.bin", path: "Water/Terrain/manual-bed.bin", type: "Buffer", dependencies: [] },
+    ...(options.caseId === "63_assets_list_filter_info_inspect"
+      ? [{ virtualPath: "Models/sample-prop.glb", path: "Models/sample-prop.glb", type: "GLTF" as const, dependencies: [] }]
+      : [])
   ];
 
   const existingVPaths = new Set(baseFiles.map((f) => f.virtualPath));
@@ -1613,7 +1685,10 @@ export async function createHeadlessSeedWorldFixture(options: {
       "Scenes/Main.scene": JSON.stringify(mainSceneContent),
       "Water/Materials/lake.mat": lakeMatText,
       "Water/Terrain/manual-bed.json": manualBedJsonText,
-      "Water/Terrain/manual-bed.bin": manualBedBinBytes
+      "Water/Terrain/manual-bed.bin": manualBedBinBytes,
+      ...(options.caseId === "63_assets_list_filter_info_inspect"
+        ? { "Models/sample-prop.glb": createHelicopterGlbFixture() }
+        : {})
     },
     documents: {}
   };
@@ -1778,7 +1853,50 @@ export async function createHeadlessSeedWorldFixture(options: {
     getTarget: () => ({ plotId: "native/a", ground: null })
   };
 
-  // WaterSystem mock for Case 05 / 06 water.diagnostics + sample
+  // WaterSystem mock for Case 05 / 06 / 47 water.diagnostics + sample
+  const initialLakeEntity = scene.rootEntities.find((e) => e.name === "LakeWater");
+  const initialLakeBody = initialLakeEntity?.getComponent(WaterBodyComponent) as
+    | (WaterBodyComponent & { _configuration?: unknown })
+    | null
+    | undefined;
+  if (initialLakeBody && !initialLakeBody.configuration) {
+    initialLakeBody._configuration = { kind: "lake" };
+  }
+  const isPointInRiver = (river: PlanningWaterCreation, x: number, z: number): boolean => {
+    if (river.kind !== "river") return false;
+    const pts = (river.parameters as { points?: readonly { x: number; z: number; width?: number }[] })?.points;
+    if (!Array.isArray(pts) || pts.length === 0) return false;
+    if (pts.length === 1) {
+      const halfW = (pts[0].width ?? 6) * 0.5;
+      return Math.hypot(x - pts[0].x, z - pts[0].z) <= halfW;
+    }
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      const dx = b.x - a.x;
+      const dz = b.z - a.z;
+      const lenSq = dx * dx + dz * dz;
+      const t = lenSq > 0 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / lenSq)) : 0;
+      const dist = Math.hypot(x - (a.x + t * dx), z - (a.z + t * dz));
+      const halfW = Math.max(a.width ?? 6, b.width ?? 6) * 0.5;
+      if (dist <= halfW) return true;
+    }
+    return false;
+  };
+  function waterIdAt(x: number, z: number, waterId?: string): string | undefined {
+    const river = riversCreated.find(
+      (candidate) => (waterId === undefined || candidate.id === waterId) && isPointInRiver(candidate, x, z)
+    );
+    if (river) return river.id;
+    if (!isInsideInitialLake(x, z)) return undefined;
+
+    // Undo can restore the Source component as a new runtime water body.
+    const projection = nativeEditor.projection;
+    const [identity] = projection.queryComponents({ id: initialLakeComponentId, type: "WaterBodyComponent" });
+    const lake = identity && projection.resolveComponent(identity);
+    if (!(lake instanceof WaterBodyComponent) || !lake.enabled || !lake.entity.isActiveInHierarchy) return undefined;
+    return waterId === undefined || waterId === lake.waterId ? lake.waterId : undefined;
+  }
   const waterSystemMock = {
     destroyed: false,
     get revision() {
@@ -1788,18 +1906,28 @@ export async function createHeadlessSeedWorldFixture(options: {
       return { phase: "ready" as const, ready: true, bodyCount: liveState.water.bodyCount };
     },
     getBodyState: (waterId: string) => ({ active: true, ready: true, published: true, revision: 1, waterId }),
-    sample: (_x: number, _z: number, waterId?: string) => ({
-      water: true,
-      revision: liveState.water.hostRevision,
-      status: "resolved" as const,
-      id: waterId ?? riversCreated[0]?.id ?? "lake-body",
-      surfaceElevationMetres: 0.5,
-      surfaceModel: "planar",
-      depth: { value: 1.8, quality: "actual" as const },
-      bed: { value: -1.3, quality: "actual" as const },
-      shoreDistance: { value: 2.0, quality: "actual" as const },
-      velocity: { value: [0.2, 0.1], quality: "actual" as const }
-    }),
+    sample: (x: number, z: number, waterId?: string) => {
+      const resolvedId = waterIdAt(x, z, waterId);
+      if (!resolvedId) {
+        return {
+          water: false,
+          revision: liveState.water.hostRevision,
+          status: "resolved" as const
+        };
+      }
+      return {
+        water: true,
+        revision: liveState.water.hostRevision,
+        status: "resolved" as const,
+        id: resolvedId,
+        surfaceElevationMetres: waterSurfaceElevation,
+        surfaceModel: "planar",
+        depth: { value: 1.8, quality: "actual" as const },
+        bed: { value: -1.3, quality: "actual" as const },
+        shoreDistance: { value: 2.0, quality: "actual" as const },
+        velocity: { value: [0.2, 0.1], quality: "actual" as const }
+      };
+    },
     sampleSurface: () => ({ waterDepth: 1.8, surfaceY: 0.5, bedY: -1.3, velocityX: 0.2, velocityZ: 0.1, shoreDistance: 2.0 }),
     sampleDrops: () => ({ revision: liveState.water.hostRevision, drops: [] }),
     getDiagnostics: () => ({ ready: true, bodyCount: liveState.water.bodyCount, errors: [] })

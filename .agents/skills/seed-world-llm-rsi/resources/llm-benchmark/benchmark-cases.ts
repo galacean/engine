@@ -1225,8 +1225,8 @@ const CORE_AND_V3_CASES: readonly BenchmarkCaseDefinition[] = [
     name: "地形完整 CRUD：创建山丘 → 调高 → 局部修补地面 → 删除该山丘",
     category: "terrain-crud",
     turns: [
-      "在 (-15, 0, 25) 建一座半径 12 米、高 5 米的小山丘。",
-      "把刚才建的那座小山丘再调高到 9 米，然后把它删掉并确认删除。"
+      "在 (-15, 0, 25) 建一座半径 120 米、高 35 米的山丘。",
+      "把刚才建的那座山丘再调高到 50 米，然后把它删掉并确认删除。"
     ],
     expectedSkills: ["skills/terrain/SKILL.md"],
     expectedDeclares: [

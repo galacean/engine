@@ -1,6 +1,17 @@
 # 结构与自定义构件
 
-独立墙条和栅栏用 `Building.European.buildWall` 和 `buildFence`，参数是 id、length、depth、height、center、rotation 和 style。台阶用 `Building.European.buildSteps`，参数是 width、rise、run、count。静态网格会合批，不要逐块为砖瓦实例化对象。
+独立墙条和栅栏用 `Building.European.buildWall` 和 `buildFence`，参数是 `id`、`length`、`depth`、`height`、`center`、`rotation`（弧度）和可选 `style`。台阶用 `Building.European.buildSteps`，参数是 `id`、`width`、`rise`、`run`、`count`（1..1000 整数）。静态网格会合批，不要逐块为砖瓦实例化对象。
+
+## 常用欧式子生成器速查（直接用于 `tools.building.generate`）
+
+内置建筑资产库固定为 `Building/Units/building-kit.prefab`，无需读 `project.json` 或 `glob`/`grep` `declare/engine/` 翻内部源码；组合院落/多构件可在**同一次 `execute`** 中连续调用 `tools.building.generate` + `editor.asset.create` + `editor.entity.create` 完成：
+
+| `generator` | 常用 `parameters` 必填/关键字段 | 说明 |
+| --- | --- | --- |
+| `European.buildTower` | `{ id, seed?, height?: 10, circle?: { center: [0,0], radius: 2.5, phase: 0 }, wallColor?, roof?, attachments? }` | 默认圆形高塔（高 10m、半径 2.5m），支持 `wallColor` / `roof` / `attachments` |
+| `European.buildWall` | `{ id, seed?, length, depth, height, center?: [0,0], rotation?: 0 }` | 独立石墙条；**不支持** `wallColor` 或 `attachments`（需留院门开口时分两段墙留空，或放带 `kind:"opening"` 的小型 `buildHouses` 门楼） |
+| `European.buildFence` | `{ id, seed?, length, depth, height, center?: [0,0], rotation?: 0 }` | 独立木栅栏条；参数结构同 `buildWall` |
+| `European.buildSteps` | `{ id, width, rise, run, count }` | 石台阶；`width`/`rise`/`run` 为正数米，`count` 为阶数整数 |
 
 欧式墙体和屋顶共享组的刚性水平坐标。要移动整组，或编辑几何参数。挂件不能单独移动节点，改它的 `u`、`bottom` 或 `uv`。
 

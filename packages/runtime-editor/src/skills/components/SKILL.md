@@ -21,9 +21,18 @@ description: 给节点添加或移除组件、读取或修改组件属性、调�
 
 ## 修改
 
-组件属性使用 Editor 源数据结构：普通数值与结构体直接写 JSON（如 `intensity: 1`、`color: { r: 1, g: 1, b: 1, a: 1 }`），资产写 `{ $ref: virtualPath }`，层级引用写 `{ $entity: entityId }` 和 `{ $component: componentId }`。
+组件属性使用 Editor 源数据结构：普通数值与结构体直接写 JSON（如 `distance: 10`、`color: { r: 1, g: 1, b: 1, a: 1 }`），资产写 `{ $ref: virtualPath }`，层级引用写 `{ $entity: entityId }` 和 `{ $component: componentId }`。
 
-MeshRenderer 的 mesh 引用网格资产，material 引用材质资产，并编译为 setMaterial。内置引擎组件声明位于 `declare/engine/node_modules/@galacean/engine-core/types/`（如 `lighting/PointLight.d.ts` 及其父类 `lighting/Light.d.ts`），修改 Light 时按其实际声明确定属性名（父类属性同样直接写在 `props` 顶层），再用组件 ID 和变更的属性调用 `component.update`。
+MeshRenderer 的 `mesh` 引用网格资产，`material` 引用材质资产（编译为 `setMaterial`）。常用内置引擎组件持久化 `props` 与声明直链如下（无需 `glob`/`grep` 盲搜 `declare/engine/`）：
+
+| 组件 `type` | 常用顶层 `props` 字段（含父类 `enabled`） | 声明路径（仅在缺字段时按需直读） |
+| --- | --- | --- |
+| `MeshRenderer` | `mesh: { $ref: meshPath }`, `material: { $ref: matPath }`, `enabled?: boolean` | `declare/engine/node_modules/@galacean/engine-core/types/mesh/MeshRenderer.d.ts` |
+| `PointLight` | `distance?: number`, `color?: { r, g, b, a }`（**无 `intensity` 属性**，调亮度直接缩放 HDR `color` 的 RGB 分量）, `shadowStrength?: number`, `enabled?: boolean` | `declare/engine/node_modules/@galacean/engine-core/types/lighting/PointLight.d.ts`（父类 `Light.d.ts`） |
+| `DirectLight` | `color?: { r, g, b, a }`（**无 `intensity` 属性**，调亮度直接缩放 HDR `color` 的 RGB 分量）, `shadowStrength?: number`, `shadowNearPlaneOffset?: number`, `enabled?: boolean` | `declare/engine/node_modules/@galacean/engine-core/types/lighting/DirectLight.d.ts` |
+| `Camera` | `fieldOfView?: number`, `nearClipPlane?: number`, `farClipPlane?: number`, `enabled?: boolean` | `declare/engine/node_modules/@galacean/engine-core/types/Camera.d.ts` |
+
+如需修改其他组件属性，再按对应声明确定字段名（父类属性同样直接写在 `props` 顶层），用组件 ID 和变更的属性调用 `component.update`。
 
 以下操作会重建组件以恢复加载器默认值：移动组件、移除已序列化的属性、编辑显式 setter 调用。构建组件时，所属 Entity 会暂时停用，属性和引用绑定后再恢复。投影部分失败后，下一次原生编辑或撤销会重新同步作者组件，并重置它们的瞬时状态。
 

@@ -41,7 +41,7 @@ type Machine =
   | { kind: "disposed" };
 type SuspendedTurn = { initial: PendingInput; continuation: AgentContinuation; blocked: boolean };
 
-export const DEFAULT_SESSION_COMPACTION_BUDGET = { triggerTokens: 48_000, targetTokens: 20_000 } as const;
+export const DEFAULT_SESSION_COMPACTION_BUDGET = {} as const;
 
 /** One driver owns the inbox and all turn transitions, including stop/continue. */
 export class AIChatSession {

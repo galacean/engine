@@ -620,10 +620,11 @@ export const EXTENDED_V4_CASES: readonly BenchmarkCaseDefinition[] = [
       const { sceneJson } = getAllProjectSceneData(fixture);
       const node = (sceneJson.entities ?? []).find((e: any) => entityName(e) === "DryCabin");
       const pos = node ? entityPos(node) : undefined;
+      const insideLake = pos ? pos[0] >= 1 && pos[0] <= 7 && pos[2] >= 1 && pos[2] <= 7 : true;
       const distFromLake = pos ? Math.hypot(pos[0] - 4, pos[2] - 4) : 0;
       return [
         { name: "checked_spatial_water", pass: hasTool(called, "tools.spatial.check") || hasTool(called, "tools.spatial.search") || hasTool(called, "tools.water.sample"), detail: `called=${[...called].join(",")}` },
-        { name: "placed_on_dry_land_outside_lake", pass: Boolean(node) && distFromLake >= 3.5, detail: `pos=${JSON.stringify(pos)}, distFromLake=${distFromLake.toFixed(2)}` }
+        { name: "placed_on_dry_land_outside_lake", pass: Boolean(node) && !insideLake, detail: `pos=${JSON.stringify(pos)}, insideLake=${insideLake}, distFromLake=${distFromLake.toFixed(2)}` }
       ];
     }
   },

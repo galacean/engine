@@ -9,7 +9,7 @@ description: 创建、查询、移动、删除或调整树木、灌木、草地�
 
 从接口索引中选择：
 
-- 创建植物：用 `vegetation.create` 按植物类别（树、灌木、草、花、水草）与数量/范围创建。
+- 创建植物：用 `vegetation.create` 按植物类别（树、灌木、草、花、水草）与位置、分布创建。树木取自落点区域的生态，按返回的实际株数汇报。用户在意外观时，按下方的树形与材质能力选择可调整的属性。树种是明确条件时，先说明可按当地生态种植，或按支持的范围调整树木外观，待用户接受替代方案后再编辑。
 - 查找、检查或删除植物：用 `vegetation.query`、`vegetation.inspect`、`vegetation.delete`。
 - 移动或重随作者植物：单棵树 / 单株灌木用 `vegetation.update` 只支持改 `patch.target`（位置）与 `patch.seed`（形态种子），**不支持**单株缩放（scale）或旋转（rotation），也没有可编辑的场景 `Entity` / `Transform` 组件（不要去查场景节点、组件或运行时对象，不要读原生编辑 API）。若用户要求只放大/缩小或旋转单棵树/单株灌木，无需预先读取 `vegetation.config.get` 或材质槽，直接如实说明不支持单株缩放/旋转，并询问是否同意通过 `vegetation.config` 调整该物种整体尺寸（会影响同物种全部实例）。目标位置见 [spatial](skills/spatial/SKILL.md)。
 - 修改树的外观与颜色：先用 `vegetation.inspect` 读取详情。只有返回了 `treeRecipeId` 时才支持用 `vegetation.update` 的 `treeShape` 修改共享树形外观（槽位 `1`–`7`，`0` 为基线只读）。无 `treeRecipeId` 的原生程序化树、单株灌木及局部花丛/草丛均不支持 `treeShape`，也没有独立场景节点或材质组件（不要去查场景节点、组件或运行时对象，不要读原生编辑 API），不支持单株或局部改色。
