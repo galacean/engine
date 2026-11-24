@@ -562,21 +562,27 @@ export class RuntimeProjectSession {
       );
       await this.enqueuePublication(async () => {
         operationSignal.throwIfAborted();
-        const fileByPath = new Map(this.projectPackage.project.files.map((entry) => [entry.virtualPath, entry]));
+        const { project, contents } = this.projectPackage;
+        const fileByPath = new Map(project.files.map((entry) => [entry.virtualPath, entry]));
         const hydrated: Array<[string, string | Uint8Array]> = [];
+        // A stale result rejects the whole batch before any loaded contents become visible.
         for (const item of fetched) {
-          const current = fileByPath.get(item.file.virtualPath);
+          const path = item.file.virtualPath;
+          const current = fileByPath.get(path);
           if (item.pending.invalidated || resourceSignature(current) !== item.pending.fileSignature) {
-            throw new Error(`Asset changed while reading '${item.file.virtualPath}'; read it again`);
+            throw new Error(`Asset changed while reading '${path}'; read it again`);
           }
-          if (this.projectPackage.contents[item.file.virtualPath] === undefined) {
-            this.projectPackage.contents[item.file.virtualPath] = item.content;
-            hydrated.push([item.file.virtualPath, item.content]);
-            this.resourceChanges.recordRead(current!, item.content);
-            for (const listener of this.assetReadListeners) listener(current!, item.content);
-          }
+          if (contents[path] === undefined) hydrated.push([path, item.content]);
         }
         this.syncSnapshotContents(hydrated);
+        for (const [path, content] of hydrated) {
+          contents[path] = content;
+          this.resourceChanges.recordRead(fileByPath.get(path)!, content);
+        }
+        for (const [path, content] of hydrated) {
+          const file = fileByPath.get(path)!;
+          for (const listener of this.assetReadListeners) listener(file, content);
+        }
       }, []);
     } finally {
       for (const target of targets) this.pendingReads.delete(target.pending);

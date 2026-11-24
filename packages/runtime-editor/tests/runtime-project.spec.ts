@@ -1414,6 +1414,111 @@ function createInMemoryProjectStorage() {
   };
 }
 
+it("publishes a dependent asset batch atomically and persists a successful retry through a fast save", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const { storage, projectFiles, stats } = createInMemoryProjectStorage();
+  const id = "dependent-hydration-checkpoint";
+  const initial = project();
+  const texture = { virtualPath: "Textures/albedo.png", path: "albedo.png", type: "Texture", dependencies: [] };
+  const materials = ["wall", "floor", "roof"].map((name) => ({
+    virtualPath: `Materials/${name}.mat`,
+    path: `https://example.test/${name}.mat`,
+    type: "Material",
+    dependencies: [texture.virtualPath]
+  }));
+  const [wall, floor, roof] = materials;
+  const farm = { virtualPath: "farm.json", path: "farm.json", type: "Farming", dependencies: [] };
+  const materialContent = (name: string) =>
+    JSON.stringify({
+      name,
+      shader: "pbr",
+      macros: [],
+      shaderData: { material_BaseTexture: { type: "Texture", value: { url: texture.virtualPath } } }
+    });
+  initial.project.files.push(texture, ...materials, farm);
+  initial.contents[farm.virtualPath] = '{"revision":0}';
+  await storage.save(id, initial);
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage);
+  const readingRoof = Promise.withResolvers<void>();
+  const releaseRoof = Promise.withResolvers<void>();
+  const fetching = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    if (input === wall.path) return new Response(materialContent("wall"));
+    if (input === floor.path) return new Response(materialContent("floor"));
+    if (input === roof.path) {
+      readingRoof.resolve();
+      await releaseRoof.promise;
+      return new Response(materialContent("old roof"));
+    }
+    throw new Error(`Unexpected fetch: ${String(input)}`);
+  });
+  const session = await RuntimeProjectSession.open(id, initial.project, "https://example.test/");
+  session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
+  await session.initializeDependencies();
+  session.registerProjectValidator(() => {});
+  const owner = session.ownRuntimeAsset(farm, "owner");
+  const read = vi.fn((file: RuntimeProjectManifest["files"][number]) => ({
+    path: file.virtualPath,
+    wall: session.projectPackage.contents[wall.virtualPath],
+    floor: session.projectPackage.contents[floor.virtualPath]
+  }));
+  const unobserve = session.observeAssetReads(read);
+  const saveFarm = async (revision: number) => {
+    const manifest = session.projectPackage.project;
+    await owner.update(() => ({ content: JSON.stringify({ revision }), value: undefined }));
+    expect(session.projectPackage.project).toBe(manifest);
+    await session.flush();
+  };
+  try {
+    await session.resources();
+    await session.publishAsset(texture, new Uint8Array([255, 216, 255, 224]));
+    const failedBatch = session.resources();
+    const rejected = expect(failedBatch).rejects.toThrow(`Asset changed while reading '${roof.virtualPath}'`);
+    await Promise.race([readingRoof.promise, failedBatch]);
+    await session.publishAsset(roof, materialContent("edited roof"));
+    await session.flush();
+    const before = structuredClone(session.projectPackage);
+    const { commitSeq } = session.persistenceStatus;
+    const headerWrites = stats.projectsPutCount;
+
+    releaseRoof.resolve();
+    await rejected;
+    expect(session.projectPackage).toEqual(before);
+    expect(session.persistenceStatus.commitSeq).toBe(commitSeq);
+    expect(read).not.toHaveBeenCalled();
+    await saveFarm(1);
+    expect(projectFiles.has(`${id}\0asset\0${wall.virtualPath}`)).toBe(false);
+    expect(projectFiles.has(`${id}\0asset\0${floor.virtualPath}`)).toBe(false);
+    expect(stats.projectsPutCount).toBe(headerWrites);
+
+    await session.resources();
+    expect(read.mock.results.map(({ value }) => value)).toEqual(
+      [wall, floor].map(({ virtualPath }) => ({
+        path: virtualPath,
+        wall: materialContent("wall"),
+        floor: materialContent("floor")
+      }))
+    );
+    expect(session.projectPackage.contents[roof.virtualPath]).toBe(materialContent("edited roof"));
+    await saveFarm(2);
+    expect(projectFiles.get(`${id}\0asset\0${wall.virtualPath}`)).toBe(materialContent("wall"));
+    expect(projectFiles.get(`${id}\0asset\0${floor.virtualPath}`)).toBe(materialContent("floor"));
+    expect(stats.projectsPutCount).toBe(headerWrites + 1);
+
+    const { filesPutCount } = stats;
+    await saveFarm(3);
+    expect(stats.projectsPutCount).toBe(headerWrites + 1);
+    expect(stats.filesPutCount).toBe(filesPutCount + 1);
+    expect(await storage.load(id)).toEqual(session.projectPackage);
+  } finally {
+    releaseRoof.resolve();
+    unobserve();
+    owner.dispose();
+    session.dispose();
+    fetching.mockRestore();
+    opening.mockRestore();
+  }
+});
+
 it.each(["runtime", "authored"])("keeps validator mutations out of %s publications and storage", async (kind) => {
   const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
   const { storage } = createInMemoryProjectStorage();
