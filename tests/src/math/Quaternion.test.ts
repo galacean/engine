@@ -131,6 +131,19 @@ describe("Quaternion test", () => {
     expect(toString(out)).to.eq("quat(0.75, 0.75, 0.75, 0.5)");
   });
 
+  it("slerps between unit quaternions with a zero dot product", () => {
+    const start = new Quaternion();
+    const end = new Quaternion(0, 1, 0, 0);
+    const out = new Quaternion();
+    expect(Quaternion.dot(start, end)).to.eq(0);
+
+    Quaternion.slerp(start, end, 0.5, out);
+    expect(Quaternion.equals(out, new Quaternion(0, Math.SQRT1_2, 0, Math.SQRT1_2))).to.eq(true);
+
+    Quaternion.slerp(start, end, 1, out);
+    expect(Quaternion.equals(out, end)).to.eq(true);
+  });
+
   it("static normalize", () => {
     const a = new Quaternion(3, 4, 0, 0);
     const out = new Quaternion();
