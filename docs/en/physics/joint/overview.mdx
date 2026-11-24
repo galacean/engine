@@ -80,7 +80,7 @@ joint.automaticConnectedAnchor = false;
 joint.connectedAnchor.set(0, 0, 0);
 ```
 
-Assigning or mutating `connectedAnchor` disables `automaticConnectedAnchor`. Setting `automaticConnectedAnchor` to `true` recalculates the connected anchor from the current transforms; disabling it preserves the current value.
+Assigning or mutating `connectedAnchor` disables `automaticConnectedAnchor`. While the joint is active, setting `automaticConnectedAnchor` to `true` recalculates the connected anchor from the current transforms; disabling it preserves the current value.
 
 ### Common Property Configuration
 

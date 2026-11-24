@@ -134,19 +134,18 @@ describe("Physics gameplay integration", () => {
     expect(entity.getComponent(HingeJoint)!.axis).toMatchObject({ x: 0, y: 1, z: 0 });
   });
 
-  it("preserves a script-built joint's calculated anchor when switched to manual before entering a scene", () => {
+  it("defers automatic connectedAnchor calculation on a detached joint until it enters a scene", () => {
     const entity = engine.createEntity("detached joint");
     entity.transform.setPosition(10, 0, 0);
     entity.addComponent(BoxCollider);
     const joint = entity.addComponent(FixedJoint);
     entity.getComponent(Rigidbody)!.useGravity = false;
     joint.anchor.set(2, 0, 0);
-    joint.automaticConnectedAnchor = false;
+    expect(joint.connectedAnchor.x).toBe(0);
 
-    const connectedX = joint.connectedAnchor.x;
     root.addChild(entity);
+    expect(joint.connectedAnchor.x).toBe(12);
     step();
-    expect(connectedX).toBe(12);
     expect(entity.transform.worldPosition.x).toBeCloseTo(10, 5);
   });
 
