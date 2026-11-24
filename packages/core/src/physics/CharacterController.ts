@@ -20,7 +20,7 @@ import { normalizeDirection } from "./unitDirection";
  */
 export class CharacterController extends Collider {
   private static readonly _tempMovePosition = new Vector3();
-  private static _tempWorldScale = new Vector3();
+  private static readonly _tempWorldScale = new Vector3();
 
   private _radius = 0.5;
   private _height = 2;
