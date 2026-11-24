@@ -32,7 +32,6 @@ export class BoxCollider extends Collider {
    */
   constructor(entity: Entity) {
     super(entity);
-    //@ts-ignore
     this._size._onValueChanged = this._setGeometryDirty.bind(this);
   }
 
@@ -53,7 +52,6 @@ export class BoxCollider extends Collider {
   }
 
   protected override _onDestroy(): void {
-    //@ts-ignore
     this._size._onValueChanged = null;
     super._onDestroy();
   }

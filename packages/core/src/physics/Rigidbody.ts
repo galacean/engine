@@ -43,13 +43,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
   }
 
-  private static _isPositionImpulse(mode: ForceMode.Force | ForceMode.Impulse): boolean {
-    if (mode !== ForceMode.Force && mode !== ForceMode.Impulse) {
-      throw new RangeError("applyForceAtPosition requires ForceMode.Force or ForceMode.Impulse.");
-    }
-    return mode === ForceMode.Impulse;
-  }
-
   private static _transformRelativeVector(actor: IDynamicActor, local: Vector3): Vector3 | null {
     const rotation = Rigidbody._tempRotation;
     const world = Rigidbody._tempVec0;
@@ -152,10 +145,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   get linearVelocity(): Vector3 {
     const actor = this._nativeActor;
     if (actor) {
-      //@ts-ignore
       this._linearVelocity._onValueChanged = null;
       actor.getLinearVelocity(this._linearVelocity);
-      //@ts-ignore
       this._linearVelocity._onValueChanged = this._setLinearVelocity;
     }
     return this._linearVelocity;
@@ -171,10 +162,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   get angularVelocity(): Vector3 {
     const actor = this._nativeActor;
     if (actor) {
-      //@ts-ignore
       this._angularVelocity._onValueChanged = null;
       actor.getAngularVelocity(this._angularVelocity);
-      //@ts-ignore
       this._angularVelocity._onValueChanged = this._setAngularVelocity;
     }
     return this._angularVelocity;
@@ -498,13 +487,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._handleInertiaTensorChanged = this._handleInertiaTensorChanged.bind(this);
     this._onTransformChanged = this._onTransformChanged.bind(this);
 
-    //@ts-ignore
     this._linearVelocity._onValueChanged = this._setLinearVelocity;
-    //@ts-ignore
     this._angularVelocity._onValueChanged = this._setAngularVelocity;
-    //@ts-ignore
     this._centerOfMass._onValueChanged = this._handleCenterOfMassChanged;
-    //@ts-ignore
     this._inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
     entity._updateFlagManager.addListener(this._onTransformChanged);
   }
@@ -585,8 +570,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     position: Vector3,
     mode: ForceMode.Force | ForceMode.Impulse = ForceMode.Force
   ): void {
-    const impulse = Rigidbody._isPositionImpulse(mode);
-    this._getForceActor()?.addForceAtPosition(force, position, impulse);
+    if (mode !== ForceMode.Force && mode !== ForceMode.Impulse) {
+      throw new RangeError("applyForceAtPosition requires ForceMode.Force or ForceMode.Impulse.");
+    }
+    this._getForceActor()?.addForceAtPosition(force, position, mode === ForceMode.Impulse);
   }
 
   /**
@@ -1025,9 +1012,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   protected override _onDestroy(): void {
-    //@ts-ignore
     this._linearVelocity._onValueChanged = this._angularVelocity._onValueChanged = null;
-    //@ts-ignore
     this._centerOfMass._onValueChanged = this._inertiaTensor._onValueChanged = null;
     super._onDestroy();
     this.entity._updateFlagManager.removeListener(this._onTransformChanged);
@@ -1090,20 +1075,16 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const actor = this._getSyncedActor();
     if (actor) {
       const centerOfMass = this._centerOfMass;
-      // @ts-ignore
       centerOfMass._onValueChanged = null;
       actor.getCenterOfMass(centerOfMass);
-      // @ts-ignore
       centerOfMass._onValueChanged = this._handleCenterOfMassChanged;
     }
   }
 
   private _readInertiaTensor(actor: IDynamicActor): void {
     const inertiaTensor = this._inertiaTensor;
-    // @ts-ignore
     inertiaTensor._onValueChanged = null;
     actor.getInertiaTensor(inertiaTensor);
-    // @ts-ignore
     inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
   }
 

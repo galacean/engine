@@ -5,7 +5,7 @@ import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
-import { isValidPositiveFloat32 } from "./float32";
+import { clampNonNegativeDimension, isValidPositiveFloat32 } from "./float32";
 import { normalizeDirection } from "./unitDirection";
 
 /**
@@ -41,10 +41,7 @@ export class CharacterController extends Collider {
   }
 
   set radius(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CharacterController radius must be finite.");
-    }
-    value = Math.max(0, value);
+    value = clampNonNegativeDimension(value, "CharacterController radius");
     if (this._radius !== value) {
       this._radius = value;
       this._setGeometryDirty();
@@ -63,10 +60,7 @@ export class CharacterController extends Collider {
   }
 
   set height(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CharacterController height must be finite.");
-    }
-    value = Math.max(0, value);
+    value = clampNonNegativeDimension(value, "CharacterController height");
     if (this._height !== value) {
       this._height = value;
       this._setGeometryDirty();
@@ -99,10 +93,7 @@ export class CharacterController extends Collider {
   }
 
   set stepOffset(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CharacterController stepOffset must be finite.");
-    }
-    value = Math.max(0, value);
+    value = clampNonNegativeDimension(value, "CharacterController stepOffset");
     if (this._stepOffset !== value) {
       this._stepOffset = value;
       this._setGeometryDirty();

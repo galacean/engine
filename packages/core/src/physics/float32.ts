@@ -24,3 +24,10 @@ export function isValidPositiveFloat32(value: number): boolean {
   const f = Math.fround(value);
   return f >= 1.17549435e-38 && Number.isFinite(f);
 }
+
+export function clampNonNegativeDimension(value: number, property: string): number {
+  if (!Number.isFinite(value)) {
+    throw new Error(`${property} must be finite.`);
+  }
+  return Math.max(0, value);
+}

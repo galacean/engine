@@ -207,7 +207,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
     this._markDirty = this._markDirty.bind(this);
     entity._updateFlagManager.addListener(this._markDirty);
-    //@ts-ignore
     this._center._onValueChanged = this._markDirty;
   }
 
@@ -506,7 +505,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   protected override _onDestroy(): void {
-    //@ts-ignore
     this._center._onValueChanged = null;
     super._onDestroy();
     this.entity._updateFlagManager.removeListener(this._markDirty);

@@ -988,12 +988,12 @@ export class PhysicsScene {
    * Reorder the writeback list when a dirty body now sits below a later-indexed ancestor body.
    */
   _checkBodyOrder(body: Rigidbody): void {
-    if (this._bodyOrderDirty || this._bodies.length <= 1) return;
     const bodyIndex = body._index;
+    if (this._bodyOrderDirty || bodyIndex === this._bodies.length - 1) return;
     for (let parent = body.entity.parent; parent; parent = parent.parent) {
       const ancestor = parent.getComponent(Rigidbody);
-      if (ancestor && ancestor._index > bodyIndex) {
-        this._bodyOrderDirty = true;
+      if (ancestor && ancestor._index !== -1) {
+        this._bodyOrderDirty = ancestor._index > bodyIndex;
         return;
       }
     }

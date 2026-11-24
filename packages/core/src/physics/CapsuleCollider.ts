@@ -3,7 +3,7 @@ import { Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
-import { isValidPositiveFloat32 } from "./float32";
+import { clampNonNegativeDimension, isValidPositiveFloat32 } from "./float32";
 
 /**
  * A capsule-shaped collider.
@@ -28,10 +28,7 @@ export class CapsuleCollider extends Collider {
   }
 
   set radius(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CapsuleCollider radius must be finite.");
-    }
-    value = Math.max(0, value);
+    value = clampNonNegativeDimension(value, "CapsuleCollider radius");
     if (this._radius !== value) {
       this._radius = value;
       this._setGeometryDirty();
@@ -49,10 +46,7 @@ export class CapsuleCollider extends Collider {
   }
 
   set height(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CapsuleCollider height must be finite.");
-    }
-    value = Math.max(0, value);
+    value = clampNonNegativeDimension(value, "CapsuleCollider height");
     if (this._height !== value) {
       this._height = value;
       this._setGeometryDirty();

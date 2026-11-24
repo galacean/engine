@@ -156,20 +156,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   _addToScene(scene: PhysXPhysicsScene): void {
     this._scene = scene;
-    this._createPXController();
-  }
-
-  /**
-   * @internal
-   */
-  _removeFromScene(): void {
-    this._destroyPXController();
-    this._scene = null;
-  }
-
-  private _createPXController(): void {
     const physX = this._physXPhysics._physX;
-    const scene = this._scene!;
     const desc = new physX.PxCapsuleControllerDesc();
     desc.radius = this._radius;
     desc.height = this._height;
@@ -193,19 +180,23 @@ export class PhysXCharacterController implements ICharacterController {
     }
     this._pxController = pxController;
     pxController.setUUID(this._id);
-    const actor = pxController.getActor();
-    physX.setGroup(actor, this._collisionLayer);
-    actor.delete();
+    if (this._collisionLayer !== 0) {
+      this.setCollisionLayer(this._collisionLayer);
+    }
     scene._addShape(this._id);
   }
 
-  private _destroyPXController(): void {
+  /**
+   * @internal
+   */
+  _removeFromScene(): void {
     const pxController = this._pxController;
     if (pxController) {
       this._scene!._removeShape(this._id);
       pxController.release();
       this._pxController = null;
     }
+    this._scene = null;
   }
 
   private _syncControllerPose(controller: any, position: Vector3): void {
