@@ -28,7 +28,8 @@ export class ModelMesh extends Mesh {
   private _vertexCount: number = 0;
   private _vertexCountDirty: boolean = false;
   private _dataVersionCounter: number = 0;
-  private _topologyVersion = -1;
+  private _positionVersion = -1;
+  private _indicesVersion = -1;
 
   private _positions: Vector3[] | null = null;
   private _normals: Vector3[] | null = null;
@@ -109,11 +110,6 @@ export class ModelMesh extends Mesh {
     return this._blendShapeManager._blendShapeCount;
   }
 
-  /** @internal Revision of the positions read by getPositions, the position layout, and the indices. */
-  get _geometryVersion(): string {
-    return `${this._advancedVertexDataVersions[VertexElementIndex.Position] ?? -1}:${this._topologyVersion}`;
-  }
-
   /**
    * Create a model mesh.
    * @param engine - Engine to which the mesh belongs
@@ -135,6 +131,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._updateAdvancedVertexDataMarks(VertexElementFlags.Position, VertexElementIndex.Position);
+    this._positionVersion = this._advancedVertexDataVersions[VertexElementIndex.Position];
     this._positions = positions;
 
     this._vertexCount = positions?.length ?? 0;
@@ -146,13 +143,18 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setPositions() method after modification to ensure that the modification takes effect.
    */
   getPositions(): Vector3[] | null {
+    const previousPositions = this._positions;
     const positions = this._getVertexElementData(
-      this._positions,
+      previousPositions,
       VertexAttribute.Position,
       VertexElementIndex.Position,
       this._readVector3VertexData
     );
-    this._positions = positions;
+    if (positions !== previousPositions) {
+      // A layout change can decode different positions from the same buffer version.
+      this._positionVersion = this._dataVersionCounter++;
+      this._positions = positions;
+    }
     return positions;
   }
 
@@ -436,7 +438,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._indicesChangeFlag = true;
-    this._topologyVersion = this._dataVersionCounter++;
+    this._indicesVersion = this._dataVersionCounter++;
   }
 
   /**
@@ -508,7 +510,6 @@ export class ModelMesh extends Mesh {
     this._vertexCountDirty = true;
     this._blendShapeManager._bufferBindingOffset = -1;
     this._blendShapeManager._vertexElementOffset = count;
-    this._topologyVersion = this._dataVersionCounter++;
   }
 
   /**
@@ -705,6 +706,11 @@ export class ModelMesh extends Mesh {
     }
 
     this.setTangents(MeshTangentUtils.calculateTangents(positions, normals, uvs, this._indices));
+  }
+
+  /** @internal Revision of the positions returned by getPositions and optionally the indices. */
+  _getGeometryVersion(includeIndices: boolean): number {
+    return includeIndices ? Math.max(this._positionVersion, this._indicesVersion) : this._positionVersion;
   }
 
   /**
