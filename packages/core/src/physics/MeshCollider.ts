@@ -43,6 +43,7 @@ export class MeshCollider extends Collider {
    * The mesh used for collision detection, or null to remove the shape.
    * @remarks Keep the mesh data accessible when uploading it. Both modes need positions, and triangle meshes also
    * need indices. Simulation and queries exclude a mesh if cooking fails.
+   * After editing a mesh with its data setters, clear and reassign it to refresh an existing collider.
    */
   get mesh(): ModelMesh | null {
     return this._mesh;
@@ -201,7 +202,7 @@ export class MeshCollider extends Collider {
     let shape: IMeshShape;
     if (needsCook) {
       const meshData = MeshCollider._getMeshData(mesh, this._convex);
-      const updated = meshData && this._cook(previous, meshData, scale);
+      const updated = meshData && this._cook(previous, mesh, meshData, scale);
       if (!updated) {
         this._rejection = MeshSyncRejection.CookFailed;
         if (this._native) {
@@ -249,11 +250,16 @@ export class MeshCollider extends Collider {
     this._nativeMesh = null;
   }
 
-  private _cook(shape: IMeshShape | null, { positions, indices }: MeshData, scale: Vector3): IMeshShape | null {
+  private _cook(
+    shape: IMeshShape | null,
+    mesh: ModelMesh,
+    { positions, indices }: MeshData,
+    scale: Vector3
+  ): IMeshShape | null {
     const convex = this._convex;
     const flags = this._cookingFlags;
     if (shape && this._nativeConvex === convex) {
-      return shape.setMeshData(positions, indices, flags, scale) ? shape : null;
+      return shape.setMeshData(positions, indices, flags, scale, mesh) ? shape : null;
     }
     const replacement = Engine._nativePhysics.createMeshShape(
       this._id,
@@ -262,7 +268,8 @@ export class MeshCollider extends Collider {
       convex,
       this._getNativeMaterial(),
       flags,
-      scale
+      scale,
+      mesh
     );
     if (!replacement) return null;
     return this._initializeNativeShape(replacement);

@@ -345,6 +345,29 @@ describe("ModelMesh Test", async function () {
     expect(vertexBufferBindings.length).eq(1);
   });
 
+  it("uploads pending positions after the position layout is redeclared", () => {
+    const mesh = new ModelMesh(engine);
+    const buffer = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      new Float32Array([1, 2, 3]),
+      BufferUsage.Static,
+      true
+    );
+    try {
+      const position = new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0);
+      mesh.setVertexBufferBinding(buffer, 12);
+      mesh.setVertexElements([position]);
+      mesh.setPositions([new Vector3(4, 5, 6)]);
+      mesh.setVertexElements([position]);
+      mesh.uploadData(false);
+      expect(new Float32Array(buffer.data!.buffer)).toEqual(new Float32Array([4, 5, 6]));
+    } finally {
+      mesh.destroy();
+      buffer.destroy();
+    }
+  });
+
   it("reuses a listener when vertex buffers are rebound", () => {
     const mesh = new ModelMesh(engine);
     const first = new Buffer(

@@ -28,6 +28,7 @@ export class ModelMesh extends Mesh {
   private _vertexCount: number = 0;
   private _vertexCountDirty: boolean = false;
   private _dataVersionCounter: number = 0;
+  private _topologyVersion = -1;
 
   private _positions: Vector3[] | null = null;
   private _normals: Vector3[] | null = null;
@@ -106,6 +107,11 @@ export class ModelMesh extends Mesh {
    */
   get blendShapeCount(): number {
     return this._blendShapeManager._blendShapeCount;
+  }
+
+  /** @internal Revision of the positions read by getPositions, the position layout, and the indices. */
+  get _geometryVersion(): string {
+    return `${this._advancedVertexDataVersions[VertexElementIndex.Position] ?? -1}:${this._topologyVersion}`;
   }
 
   /**
@@ -430,10 +436,12 @@ export class ModelMesh extends Mesh {
     }
 
     this._indicesChangeFlag = true;
+    this._topologyVersion = this._dataVersionCounter++;
   }
 
   /**
    * Get indices for the mesh.
+   * @remarks Call {@link setIndices} after modifying the returned array to submit the changes.
    */
   getIndices(): Uint8Array | Uint16Array | Uint32Array | null {
     if (!this._accessible) {
@@ -450,6 +458,13 @@ export class ModelMesh extends Mesh {
    * Call this method will clear the vertex data set by the setPositions(), setNormals(), setColors(), setBoneWeights(), setBoneIndices(), setTangents(), setUVs() methods.
    */
   setVertexElements(elements: VertexElement[]): void {
+    const previousPosition = this._primitive._vertexElementMap[VertexAttribute.Position];
+    const previousBufferVersion = previousPosition
+      ? (this._vertexBufferInfos[previousPosition.bindingIndex]?.dataVersion ?? -1)
+      : -1;
+    const hasPendingPositions =
+      (this._advancedDataUpdateFlag & VertexElementFlags.Position) !== 0 &&
+      (this._advancedVertexDataVersions[VertexElementIndex.Position] ?? -1) > previousBufferVersion;
     this._clearVertexElements();
 
     const count = elements.length;
@@ -459,7 +474,12 @@ export class ModelMesh extends Mesh {
 
     // Clear data if vertex element not contains
     const vertexElementMap = this._primitive._vertexElementMap;
-    vertexElementMap[VertexAttribute.Position] || this.setPositions(null);
+    if (!vertexElementMap[VertexAttribute.Position]) {
+      this.setPositions(null);
+    } else if (!hasPendingPositions) {
+      // A new layout can read different positions from the same buffer.
+      this._advancedVertexDataVersions[VertexElementIndex.Position] = -1;
+    }
     vertexElementMap[VertexAttribute.Normal] || this.setNormals(null);
     vertexElementMap[VertexAttribute.Color] || this.setColors(null);
     vertexElementMap[VertexAttribute.BoneWeight] || this.setBoneWeights(null);
@@ -488,6 +508,7 @@ export class ModelMesh extends Mesh {
     this._vertexCountDirty = true;
     this._blendShapeManager._bufferBindingOffset = -1;
     this._blendShapeManager._vertexElementOffset = count;
+    this._topologyVersion = this._dataVersionCounter++;
   }
 
   /**

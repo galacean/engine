@@ -1,5 +1,5 @@
 import { Vector3 } from "@galacean/engine";
-import { IMeshShape, MeshColliderCookingFlag } from "@galacean/engine-design";
+import { IMeshShape, IPhysicsMeshSource, MeshColliderCookingFlag } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXShape } from "./PhysXShape";
@@ -10,7 +10,7 @@ import { PhysXShape } from "./PhysXShape";
 export class PhysXMeshShape extends PhysXShape implements IMeshShape {
   private static readonly _tightBoundsFlag = 1; // eTIGHT_BOUNDS = 1 (1<<0)
 
-  private _pxMesh: any = null;
+  private _cookedMesh: CookedMesh;
   private readonly _isConvex: boolean;
 
   constructor(
@@ -21,21 +21,27 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
     cookingFlags: MeshColliderCookingFlag,
-    scale: Vector3
+    scale: Vector3,
+    source: IPhysicsMeshSource
   ) {
     super(physXPhysics);
     this._isConvex = isConvex;
 
-    const pxMesh = this._cookMesh(positions, indices, cookingFlags);
-    if (!pxMesh) {
+    const cookedMesh = this._acquireCookedMesh(source, positions, indices, cookingFlags);
+    if (!cookedMesh) {
       return;
     }
 
-    const pxGeometry = this._createGeometry(pxMesh, scale);
+    const pxGeometry = this._createGeometry(cookedMesh.pxMesh, scale);
     const pxShape = this._createShape(pxGeometry, material);
+    if (!pxShape) {
+      pxGeometry.delete();
+      this._releaseCookedMesh(cookedMesh);
+      return;
+    }
 
     this._id = uniqueID;
-    this._pxMesh = pxMesh;
+    this._cookedMesh = cookedMesh;
     this._pxGeometry = pxGeometry;
     this._pxShape = pxShape;
     this._pxShape.setUUID(uniqueID);
@@ -48,16 +54,17 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     cookingFlags: MeshColliderCookingFlag,
-    scale: Vector3
+    scale: Vector3,
+    source: IPhysicsMeshSource
   ): boolean {
-    const pxMesh = this._cookMesh(positions, indices, cookingFlags);
-    if (!pxMesh) {
+    const cookedMesh = this._acquireCookedMesh(source, positions, indices, cookingFlags);
+    if (!cookedMesh) {
       return false;
     }
 
-    this._updateGeometry(pxMesh, scale);
-    this._pxMesh.release();
-    this._pxMesh = pxMesh;
+    this._updateGeometry(cookedMesh.pxMesh, scale);
+    this._releaseCookedMesh(this._cookedMesh);
+    this._cookedMesh = cookedMesh;
     return true;
   }
 
@@ -65,21 +72,67 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
    * {@inheritDoc IMeshShape.setScale }
    */
   setScale(scale: Vector3): void {
-    this._updateGeometry(this._pxMesh, scale);
+    this._updateGeometry(this._cookedMesh.pxMesh, scale);
   }
 
   /**
    * {@inheritDoc IPhysicsShape.destroy }
    */
   override destroy(): void {
-    this._pxMesh.release();
     super.destroy();
+    this._releaseCookedMesh(this._cookedMesh);
+    this._cookedMesh = null!;
+  }
+
+  private _acquireCookedMesh(
+    source: IPhysicsMeshSource,
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
+    cookingFlags: MeshColliderCookingFlag
+  ): CookedMesh | null {
+    // Welding has no effect with mesh cleaning disabled.
+    let preprocessFlags = 0;
+    if (!(cookingFlags & MeshColliderCookingFlag.Cleaning)) {
+      preprocessFlags = 2; // eDISABLE_CLEAN_MESH
+    } else if (cookingFlags & MeshColliderCookingFlag.VertexWelding) {
+      preprocessFlags = 1; // eWELD_VERTICES
+    }
+    // Preprocessing flags only affect triangle cooking.
+    const key = `${source._geometryVersion}:${this._isConvex ? "convex" : preprocessFlags}`;
+    const cache = this._physXPhysics._meshCookCache;
+    let variants = cache.get(source);
+    const existing = variants?.get(key);
+    if (existing) {
+      existing.users++;
+      return existing;
+    }
+
+    const pxMesh = this._cookMesh(positions, indices, preprocessFlags);
+    if (!pxMesh) return null;
+
+    if (!variants) cache.set(source, (variants = new Map()));
+    const cookedMesh = { source, key, pxMesh, users: 1 };
+    variants.set(key, cookedMesh);
+    return cookedMesh;
+  }
+
+  private _releaseCookedMesh(cookedMesh: CookedMesh): void {
+    if (--cookedMesh.users === 0) {
+      const { source, key, pxMesh } = cookedMesh;
+      const cache = this._physXPhysics._meshCookCache;
+      const variants = cache.get(source)!;
+      variants.delete(key);
+      if (variants.size === 0) cache.delete(source);
+      // Keep the creator's native reference until the last shape is done. PhysX drops
+      // the old geometry's reference before acquiring the new one in setGeometry.
+      pxMesh.release();
+    }
   }
 
   private _cookMesh(
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
-    cookingFlags: MeshColliderCookingFlag
+    preprocessFlags: number
   ): any | null {
     const {
       _physX: physX,
@@ -89,13 +142,6 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
     } = this._physXPhysics;
 
     // The cooking instance is shared, so set its preprocessing flags for each cook.
-    let preprocessFlags = 0;
-    if (cookingFlags & MeshColliderCookingFlag.VertexWelding) {
-      preprocessFlags |= 1; // eWELD_VERTICES
-    }
-    if (!(cookingFlags & MeshColliderCookingFlag.Cleaning)) {
-      preprocessFlags |= 2; // eDISABLE_CLEAN_MESH
-    }
     physX.setCookingMeshPreprocessParams(cookingParams, preprocessFlags);
     cooking.setParams(cookingParams);
 
@@ -153,7 +199,7 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
     }
   }
 
-  private _allocatePositions(positions: Vector3[]): number {
+  private _allocatePositions(positions: readonly Vector3[]): number {
     const physX = this._physXPhysics._physX;
     const length = positions.length;
     const ptr = physX._malloc(length * 3 * 4);
@@ -210,4 +256,14 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
     this._pxGeometry.delete();
     this._pxGeometry = newGeometry;
   }
+}
+
+/** @internal Shared cooks per source and input revision. */
+export type PhysXMeshCookCache = WeakMap<object, Map<string, CookedMesh>>;
+
+interface CookedMesh {
+  readonly source: object;
+  readonly key: string;
+  readonly pxMesh: { release(): void };
+  users: number;
 }

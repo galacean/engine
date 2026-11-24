@@ -5,7 +5,7 @@ import { IDynamicActor } from "./IDynamicActor";
 import { IPhysicsMaterial, IPhysicsMaterialProperties } from "./IPhysicsMaterial";
 import { IPhysicsScene } from "./IPhysicsScene";
 import { IStaticActor } from "./IStaticActor";
-import { IBoxShape, ICapsuleShape, IMeshShape, IPlaneShape, ISphereShape } from "./shape";
+import { IBoxShape, ICapsuleShape, IMeshShape, IPhysicsMeshSource, IPlaneShape, ISphereShape } from "./shape";
 
 /**
  * Creates and configures objects for the physics backend.
@@ -89,7 +89,7 @@ export interface IPhysics {
   ): ICapsuleShape;
 
   /**
-   * Create a shape from cooked mesh data.
+   * Create a shape from mesh data.
    * @param uniqueID - The collider ID reported by queries and events
    * @param positions - Unscaled vertices in mesh-local space
    * @param indices - Triangle indices, or null for a convex mesh
@@ -97,6 +97,7 @@ export interface IPhysics {
    * @param material - The material of this shape
    * @param cookingFlags - Cooking flags
    * @param scale - The absolute world scale applied to the cooked mesh
+   * @param source - Identity and revision of the submitted vertices and indices
    * @returns The shape, or null if mesh cooking or shape creation fails
    */
   createMeshShape(
@@ -106,7 +107,8 @@ export interface IPhysics {
     isConvex: boolean,
     material: IPhysicsMaterial,
     cookingFlags: MeshColliderCookingFlag,
-    scale: Vector3
+    scale: Vector3,
+    source: IPhysicsMeshSource
   ): IMeshShape | null;
 
   /**
