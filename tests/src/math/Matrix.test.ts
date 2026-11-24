@@ -473,6 +473,10 @@ describe("Matrix test", () => {
     expect(invExtreme.elements[13]).to.eq(-1);
     expect(invExtreme.elements[14]).to.eq(0);
 
+    const smallDet = new Matrix(s, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+    expect(Matrix.invert(smallDet, smallDet)).to.eq(undefined);
+    expect(smallDet.elements[0]).to.eq(1 / s);
+
     // Non-affine perspective projection matrix still inverts accurately
     const proj = new Matrix();
     Matrix.perspective(Math.PI / 3, 16 / 9, 0.1, 1000, proj);
@@ -482,6 +486,30 @@ describe("Matrix test", () => {
     for (let i = 0; i < 16; i++) {
       expect(prod.elements[i]).to.be.closeTo(i % 5 === 0 ? 1 : 0, 1e-4);
     }
+  });
+
+  it("inverts an affine translation equal to the third linear column", () => {
+    const n = 2 ** 18;
+    const a = new Matrix(2 ** -40, 0, 0, 0, n, n - 1, n, 0, n + 1, n, 1, 0, n + 1, n, 1, 1);
+    const out = new Matrix();
+
+    expect(Matrix.invert(a, out)).to.eq(undefined);
+    expect(out.elements.slice(12, 15)).to.deep.eq(new Float32Array([0, 0, -1]));
+    expect(Matrix.invert(a, a)).to.eq(undefined);
+    expect(a.elements).to.deep.eq(out.elements);
+  });
+
+  it.each([
+    { index: 10, component: "scale" },
+    { index: 12, component: "translation" }
+  ])("rejects affine matrices with non-finite $component without modifying out", ({ index }) => {
+    const a = new Matrix();
+    a.elements[index] = 2 ** 128; // Overflows Float32 matrix storage.
+    const sentinel = new Matrix(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17);
+    const out = sentinel.clone();
+
+    expect(Matrix.invert(a, out)).to.eq(null);
+    expect(out.elements).to.deep.eq(sentinel.elements);
   });
 
   it("rotateAxisAngle", () => {

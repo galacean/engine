@@ -440,36 +440,35 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
       const b03 = a12 * a23 - a13 * a22;
 
       let det = b00 * a33 - b01 * a32 + b03 * a31;
-      if (!det) {
+      // Summing three finite Float32 translations cannot overflow a JavaScript number.
+      if (!det || !Number.isFinite(det) || !Number.isFinite(a41 + a42 + a43)) {
         return null;
       }
       det = 1.0 / det;
 
-      const c11 = a22 * a33 - a23 * a32;
-      const c12 = a13 * a32 - a12 * a33;
-      const c21 = a23 * a31 - a21 * a33;
-      const c22 = a11 * a33 - a13 * a31;
-      const c31 = a21 * a32 - a22 * a31;
-      const c32 = a12 * a31 - a11 * a32;
+      // Preserve the general path's grouping so matching products cancel before they are scaled.
+      const b06 = a31 * a42 - a32 * a41;
+      const b07 = a31 * a43 - a33 * a41;
+      const b09 = a32 * a43 - a33 * a42;
 
-      oe[0] = c11 * det;
-      oe[1] = c12 * det;
+      oe[0] = (a22 * a33 - a23 * a32) * det;
+      oe[1] = (a13 * a32 - a12 * a33) * det;
       oe[2] = b03 * det;
       oe[3] = 0;
 
-      oe[4] = c21 * det;
-      oe[5] = c22 * det;
+      oe[4] = (a23 * a31 - a21 * a33) * det;
+      oe[5] = (a11 * a33 - a13 * a31) * det;
       oe[6] = -b01 * det + 0;
       oe[7] = 0;
 
-      oe[8] = c31 * det;
-      oe[9] = c32 * det;
+      oe[8] = (a21 * a32 - a22 * a31) * det;
+      oe[9] = (a12 * a31 - a11 * a32) * det;
       oe[10] = b00 * det;
       oe[11] = 0;
 
-      oe[12] = -(c11 * a41 + c21 * a42 + c31 * a43) * det + 0;
-      oe[13] = -(c12 * a41 + c22 * a42 + c32 * a43) * det + 0;
-      oe[14] = -(b03 * a41 - b01 * a42 + b00 * a43) * det + 0;
+      oe[12] = (a22 * b07 - a21 * b09 - a23 * b06) * det + 0;
+      oe[13] = (a11 * b09 - a12 * b07 + a13 * b06) * det + 0;
+      oe[14] = (a42 * b01 - a41 * b03 - a43 * b00) * det + 0;
       oe[15] = 1;
       return;
     }
