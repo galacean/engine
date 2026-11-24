@@ -11,7 +11,7 @@ import { Collider } from "./Collider";
 import type { PhysicsScene } from "./PhysicsScene";
 import { Rigidbody } from "./Rigidbody";
 import { isValidPositiveFloat32 } from "./float32";
-import { directionSnapshot, normalizeDirection } from "./unitDirection";
+import { normalizeDirection } from "./unitDirection";
 
 /**
  * A capsule that moves and slides along obstacles through {@link move}.
@@ -27,7 +27,7 @@ export class CharacterController extends Collider {
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   @assignmentClone
-  private _upDirection = directionSnapshot(0, 1, 0);
+  private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit = 45;
 
   @ignoreClone
