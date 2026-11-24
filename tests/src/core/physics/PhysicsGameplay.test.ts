@@ -33,6 +33,7 @@ import {
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PrefabFile } from "../../../../packages/loader/src/schema/PrefabSchema";
+import type { SceneFile } from "../../../../packages/loader/src/schema/SceneSchema";
 import { createPhysics } from "../../utils/physics";
 
 const meshFixtures = new Map<string, ModelMesh>();
@@ -82,7 +83,7 @@ describe("Physics gameplay integration", () => {
 
   afterAll(() => engine.destroy());
 
-  function createJSONUrl(data: PrefabFile): string {
+  function createJSONUrl(data: PrefabFile | SceneFile): string {
     const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
     urls.push(url);
     return url;
@@ -132,6 +133,104 @@ describe("Physics gameplay integration", () => {
     root.addChild(entity);
     expect(entity.getComponent(HingeJoint)!.axis).toMatchObject({ x: 0, y: 1, z: 0 });
   });
+
+  it("preserves a script-built joint's calculated anchor when switched to manual before entering a scene", () => {
+    const entity = engine.createEntity("detached joint");
+    entity.transform.setPosition(10, 0, 0);
+    entity.addComponent(BoxCollider);
+    const joint = entity.addComponent(FixedJoint);
+    entity.getComponent(Rigidbody)!.useGravity = false;
+    joint.anchor.set(2, 0, 0);
+    joint.automaticConnectedAnchor = false;
+
+    const connectedX = joint.connectedAnchor.x;
+    root.addChild(entity);
+    step();
+    expect(connectedX).toBe(12);
+    expect(entity.transform.worldPosition.x).toBeCloseTo(10, 5);
+  });
+
+  it.each([true, false])(
+    "preserves partial manual anchors in a nested Prefab (anchor first=%s)",
+    async (anchorFirst) => {
+      const basePath = `joint-base-${anchorFirst}.prefab`;
+      await loadPrefab(basePath, {
+        version: "2.0",
+        refs: [],
+        entities: [
+          { name: "base", children: [1] },
+          { name: "joint child", position: [10, 0, 0], components: [0] }
+        ],
+        components: [{ type: "FixedJoint", props: { automaticConnectedAnchor: true } }],
+        root: 0
+      });
+
+      const anchor = { x: 1, y: 2, z: 3 };
+      const connectedAnchor = { y: 8 };
+      const props = anchorFirst
+        ? { anchor, connectedAnchor, automaticConnectedAnchor: false }
+        : { automaticConnectedAnchor: false, connectedAnchor, anchor };
+      const prefab = await loadPrefab(`joint-override-${anchorFirst}.prefab`, {
+        version: "2.0",
+        refs: [{ url: basePath }],
+        entities: [
+          {
+            instance: {
+              asset: 0,
+              overrides: { componentProps: [{ path: [0], selector: { type: "FixedJoint", index: 0 }, props }] }
+            }
+          }
+        ],
+        components: [],
+        root: 0
+      });
+
+      const instance = prefab.instantiate();
+      root.addChild(instance);
+      const joint = instance.children[0].getComponent(FixedJoint)!;
+      expect(joint.anchor).toMatchObject(anchor);
+      expect(joint.connectedAnchor).toMatchObject({ x: 0, y: 8, z: 0 });
+      expect(joint.automaticConnectedAnchor).toBe(false);
+    }
+  );
+
+  it.each([true, false])(
+    "preserves partial manual anchors on entities added by a Scene override (anchor first=%s)",
+    async (anchorFirst) => {
+      const basePath = `joint-scene-base-${anchorFirst}.prefab`;
+      await loadPrefab(basePath, {
+        version: "2.0",
+        refs: [],
+        entities: [{ name: "base" }],
+        components: [],
+        root: 0
+      });
+
+      const anchor = { x: 1, y: 2, z: 3 };
+      const connectedAnchor = { y: 8 };
+      const props = anchorFirst
+        ? { anchor, connectedAnchor, automaticConnectedAnchor: false }
+        : { automaticConnectedAnchor: false, connectedAnchor, anchor };
+      const url = createJSONUrl({
+        version: "2.0",
+        refs: [{ url: basePath }],
+        entities: [
+          { instance: { asset: 0, overrides: { addedEntities: [{ parent: [], entity: 1 }] } } },
+          { name: "joint child", position: [10, 0, 0], components: [0] }
+        ],
+        components: [{ type: "FixedJoint", props }],
+        scene: { rootEntities: [0], background: { mode: 0, color: [0, 0, 0, 1] } }
+      });
+      const loadedScene = await engine.resourceManager.load<Scene>({ url, type: AssetType.Scene });
+      try {
+        const joint = loadedScene.rootEntities[0].children[0].getComponent(FixedJoint)!;
+        expect(joint.connectedAnchor).toMatchObject({ x: 0, y: 8, z: 0 });
+        expect(joint.automaticConnectedAnchor).toBe(false);
+      } finally {
+        loadedScene.destroy();
+      }
+    }
+  );
 
   it("simulates a compound cart rolling down a ramp into a capsule blocker and compares rotation constraints", () => {
     root.createChild("ground").addComponent(PlaneCollider);

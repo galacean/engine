@@ -238,11 +238,14 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     this._destroyNativeJoint();
   }
 
-  /** @internal Materialize the manual anchor default when authored props switch from automatic mode. */
+  /** @internal Prepare the manual anchor when authored props switch from automatic mode. */
   [Loader._preparePropsForLoad](props: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
-    return this._automaticConnectedAnchor &&
-      props.automaticConnectedAnchor === false &&
-      props.connectedAnchor === undefined
+    const switchingToManual = this._automaticConnectedAnchor && props.automaticConnectedAnchor === false;
+    // A Scene's added entities receive their props before they are parented.
+    if (switchingToManual && !this.scene) {
+      this.automaticConnectedAnchor = false;
+    }
+    return switchingToManual && props.connectedAnchor === undefined
       ? { ...props, connectedAnchor: { x: 0, y: 0, z: 0 } }
       : props;
   }
@@ -365,12 +368,17 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   private _calculateConnectedAnchor(): void {
-    // Prefab templates and detached entities resolve automatic anchors when placed in a scene.
-    if (!this.scene) return;
+    const entity = this.entity;
+    // Prefab template anchors are resolved on the instance.
+    if (!entity.scene) {
+      for (let ancestor: Entity | null = entity; ancestor; ancestor = ancestor.parent) {
+        if (ancestor._isTemplate) return;
+      }
+    }
     const bodyInfo = this._bodyInfo;
     const connectedAnchor = this._connectedBodyInfo.anchor;
     const connectedBody = this._connectedBody;
-    const selfMatrix = this.entity.transform.worldMatrix;
+    const selfMatrix = entity.transform.worldMatrix;
 
     connectedAnchor._onValueChanged = null;
     if (connectedBody) {
