@@ -337,6 +337,7 @@ export class TrailRenderer extends Renderer {
 
   private _initGeometry(): void {
     const primitive = new Primitive(this.engine);
+    primitive.isGCIgnored = true;
     this._primitive = primitive;
     // Vertex layout (9 floats = 36 bytes):
     // a_PositionBirthTime: xyz = position, w = birthTime (offset 0)
@@ -369,6 +370,7 @@ export class TrailRenderer extends Renderer {
       BufferUsage.Dynamic,
       false
     );
+    newVertexBuffer.isGCIgnored = true;
     const newVertices = new Float32Array(pointCount * pointFloatStride);
 
     // Migrate existing vertex data
