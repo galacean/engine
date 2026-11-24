@@ -1,0 +1,133 @@
+packages/core/src/shaderlib/pbr/ibl_frag_define.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 74
+packages/core/src/RenderPipeline/PipelineUtils.ts
+  s_d38fe2a3a29c8c::t_a5b38613fbadbe 2,88-89
+packages/core/src/shaderlib/extra/background-texture.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 7
+packages/core/src/shaderlib/extra/Blit.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 13,16,27,29
+packages/shader/src/shaders/Common.glsl
+  s_d38fe2a3a29c8c::t_ea6c8765d2991b 66-67,70,75-77
+  s_d38fe2a3a29c8c::t_844a01f41060ab 52-59,65
+  s_d38fe2a3a29c8c::t_17ffe6afa4b243 60-64,78-79
+packages/core/src/postProcess/shaders/Bloom/BloomBlurV.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 11-15
+packages/shader/src/shaders/shadingPBR/BSDF.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 408
+tests/src/shader-lab/ShaderLab.test.ts
+  s_d38fe2a3a29c8c::t_885c5f8034a85e 87-96
+packages/core/src/shader/ShaderProgram.ts
+  s_d38fe2a3a29c8c::t_04c8afa137132e 334
+  s_d38fe2a3a29c8c::t_a5b38613fbadbe 332-333,335-350
+packages/rhi-webgl/src/GLTextureCube.ts
+  s_d38fe2a3a29c8c::t_7251e03b8ff24a 20
+  s_d38fe2a3a29c8c::t_b81bba8ff57d18 17-18
+packages/core/src/postProcess/shaders/FinalSRGB.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 6
+packages/core/src/shaderlib/begin_mobile_frag.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 9,13,21
+packages/core/src/texture/Texture.ts
+  s_d38fe2a3a29c8c::t_a5b38613fbadbe 24-25
+packages/core/src/postProcess/shaders/Bloom/BloomUpsample.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 11,14,16
+packages/core/src/postProcess/shaders/Filtering.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 33,41,43-44
+  s_d38fe2a3a29c8c::t_ea6c8765d2991b 42
+packages/core/src/shaderlib/common.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 52-65,82-83,86,91-93
+  s_d38fe2a3a29c8c::t_844a01f41060ab 50-51,66,81
+  s_d38fe2a3a29c8c::t_a76eb79ee4f63b 67-80,94-95
+packages/shader/src/shaders/shadingPBR/LightIndirectFunctions.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 38
+tests/src/rhi-webgl/SRGBFallback.test.ts
+  s_d38fe2a3a29c8c::t_885c5f8034a85e 11,93,100-101,104-105,110-136,174,181,196,201-202,206,223,241,244
+  s_d38fe2a3a29c8c::t_95028eaa3c4fdc 43-45
+  s_d38fe2a3a29c8c::t_bfca78d0d9d92c 9,14,60,66,97,103,106,137-168,182,198,207,213-214,227,245
+  s_d38fe2a3a29c8c::t_8d702e6261cda5 6-8
+  s_d38fe2a3a29c8c::t_441c916f3d133b 10
+  s_d38fe2a3a29c8c::t_829f2539da8841 12-13
+  s_d38fe2a3a29c8c::t_b2686150caee59 15-17,40-42
+  s_d38fe2a3a29c8c::t_c8aaea663b4129 46-48,57-59
+  s_d38fe2a3a29c8c::t_dfe5ce8e65dcf6 61-65
+  s_d38fe2a3a29c8c::t_bbe4e0b6b7238b 67-69,90-92
+  s_d38fe2a3a29c8c::t_96235d225fb0b8 94-96
+  s_d38fe2a3a29c8c::t_c843bc89a05610 98-99
+  s_d38fe2a3a29c8c::t_826c37ebdc6b8c 102
+  s_d38fe2a3a29c8c::t_4dc11a24b7d8b2 107-109
+  s_d38fe2a3a29c8c::t_a3f35bb47e6df2 169-173
+  s_d38fe2a3a29c8c::t_5f60a060bc148e 175-180
+  s_d38fe2a3a29c8c::t_b082227688a68c 183-185,193-195
+  s_d38fe2a3a29c8c::t_8269e2d9f1a353 197
+  s_d38fe2a3a29c8c::t_68252da998dafa 199-200
+  s_d38fe2a3a29c8c::t_addf7bbabd775f 203-205
+  s_d38fe2a3a29c8c::t_2295ffe448cb35 208-212
+  s_d38fe2a3a29c8c::t_b6d699ec622681 215-217,220-222
+  s_d38fe2a3a29c8c::t_d052a8767f59ef 224-226
+  s_d38fe2a3a29c8c::t_8b8eb2a892daa6 228-230,238-240
+  s_d38fe2a3a29c8c::t_22584a227a9f8f 242-243
+  s_d38fe2a3a29c8c::t_3a69ff7272e76c 246
+docs/en/core/color.mdx
+  s_d38fe2a3a29c8c::t_95028eaa3c4fdc 93-118
+packages/core/src/shaderlib/extra/BlitScreen.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 16
+packages/core/src/postProcess/shaders/Bloom/BloomPrefilter.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 11-23,34
+packages/core/src/texture/RenderTarget.ts
+  s_d38fe2a3a29c8c::t_3e0b9daf9f15c3 2,165-170
+  s_d38fe2a3a29c8c::t_95028eaa3c4fdc 160-164
+packages/core/src/shaderlib/extra/sprite.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 9
+packages/core/src/shaderlib/extra/skybox.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 14
+packages/core/src/shaderlib/extra/unlit.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 16
+packages/rhi-webgl/src/GLTexture2D.ts
+  s_d38fe2a3a29c8c::t_7251e03b8ff24a 20
+  s_d38fe2a3a29c8c::t_b81bba8ff57d18 17-18
+packages/rhi-webgl/src/GLTexture.ts
+  s_d38fe2a3a29c8c::t_b81bba8ff57d18 708
+  s_d38fe2a3a29c8c::t_a5b38613fbadbe 709-713
+packages/core/src/shaderlib/pbr/pbr_helper.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 103,196
+packages/core/src/shaderlib/extra/particle.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 25,31
+packages/core/src/shaderlib/extra/trail.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 21,27
+packages/shader/src/shaders/shadingPBR/FragmentPBR.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 138,159,289
+packages/core/src/shader/ShaderUniform.ts
+  s_d38fe2a3a29c8c::t_a5b38613fbadbe 256-259
+packages/core/src/postProcess/shaders/UberPost.glsl
+  s_d38fe2a3a29c8c::t_ea6c8765d2991b 23,25,32
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 19
+docs/zh/core/color.mdx
+  s_d38fe2a3a29c8c::t_95028eaa3c4fdc 95-120
+packages/core/src/postProcess/shaders/Bloom/BloomBlurH.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 11-19
+packages/core/src/shaderlib/extra/text.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 9
+packages/ui/src/shader/uiDefault.fs.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 8
+packages/core/src/shaderlib/pbr/btdf.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 22
+packages/core/src/shaderlib/pbr/pbr_frag.glsl
+  s_d38fe2a3a29c8c::t_e2c76126a400d0 62
+packages/core/src/postProcess/shaders/FXAA/FXAA3_11.glsl
+  s_d38fe2a3a29c8c::t_368949219186bc 575
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0dfdd4dc899c916369e67e72141b52d3f0d0dbf9",
+  "prompts": {},
+  "sessions": {
+    "s_d38fe2a3a29c8c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a19249-28ae-7301-9850-276de3ebe437",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}
