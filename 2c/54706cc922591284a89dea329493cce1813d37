@@ -1,0 +1,16 @@
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 23
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 218,707,709-713,715-718,720-723,725-734,736-738,740-744,746-748,750-755,757-763,765-768,770-778,780-801,803-811,813-818,820-828,830-860,862-882,884-888,890-911,913-922,924-928,930-933,935-962,964-981,983-984,986-989,991-994,996-1003,1005-1010
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2c54706cc922591284a89dea329493cce1813d37",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
