@@ -1,0 +1,41 @@
+world/demos/seed-world/agent-adapter/skills/runtime/SKILL.md
+  s_ab59b8e40dc4d1::t_e9e9a9cd421d40 12
+packages/ai-chat/tests/agent-file-tools.spec.ts
+  s_ab59b8e40dc4d1::t_7d3811d39a6339 446
+  s_ab59b8e40dc4d1::t_8a34d3f0b7b809 448,451-452,457-463,472-477,480
+  s_ab59b8e40dc4d1::t_e67c75cd6f16b9 447,449-450,453-456,464-471,478-479,481-482
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  s_ab59b8e40dc4d1::t_d9bed2f2816d02 511,623-628,631,634
+  s_ab59b8e40dc4d1::t_8a34d3f0b7b809 362,421,427,499,510,629-630,632-633,1044,1066-1068,1070,1075
+packages/vegetation/src/skills/vegetation/SKILL.md
+  s_ab59b8e40dc4d1::t_d9bed2f2816d02 12
+packages/water/src/skills/water/SKILL.md
+  s_ab59b8e40dc4d1::t_d9bed2f2816d02 9
+  s_ab59b8e40dc4d1::t_fb025ad405cfc1 8
+  s_ab59b8e40dc4d1::t_8a34d3f0b7b809 10
+  s_ab59b8e40dc4d1::t_3e19c7b5d5eb84 40
+  s_ab59b8e40dc4d1::t_3e0a8fa3169393 17
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/water-sampling.spec.ts
+  s_ab59b8e40dc4d1::t_e67c75cd6f16b9 17-25,28-29,48-50,56-58
+  s_ab59b8e40dc4d1::t_3e0a8fa3169393 41
+  s_ab59b8e40dc4d1::t_7d3811d39a6339 42-46
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/seed-world-headless-fixture.ts
+  s_ab59b8e40dc4d1::t_8c834fc610aaa9 1887-1892,1895-1898
+  s_ab59b8e40dc4d1::t_d50cb2656aafaa 83,699-701,1064-1067,1069-1079,1081-1083,1085-1133,1136-1139,1886,1893-1894,1899,1910,1923
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5db567796b0f513c1031ec51ac24ec252c34b7df",
+  "prompts": {},
+  "sessions": {
+    "s_ab59b8e40dc4d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ce4-cb2b-71d3-86f0-6aa015964ede",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
