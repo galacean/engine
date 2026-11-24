@@ -29,6 +29,7 @@ execute 不能导入游戏 Script 模块，也不能调用运行时方法。
 - 生成器返回草稿 `BuildingDraft {groups, parts, connections}`，是纯 JSON。每个构件对应一个 `BuildingPartComponent`。构件写明几何生成器、铺设算法和 Unit，都用注册名。
 - 连接分两种：`attach`（一个构件依附一个或多个宿主，例如窗依附墙）和 `join`（两个构件对等相接）。规则由构件类型对决定，草稿里不写规则函数。
 - 门、窗、灯、老虎窗、活板门是资产库中的建筑预制件，按“类型/规格”引用。洞口由预制件的占位形状算出，不要另存洞口。
+- 资产库中**没有**独立烟囱构件；需要烟囱等无专用预制件的小装饰时，可直接用窄段 `buildWall` / 小型 `buildTower` 近似表达或在回复中说明限制，不要去 `declare/engine/` 里搜索 `MeshRenderer` 底层类。
 - 新架构不支持的功能会报错 `... is not available in the building system yet`，不要绕过。
 - 视觉复刻必须对照相同参数、相机和光照下的真实渲染。房屋没变不等于像素一致。
 

@@ -240,3 +240,119 @@ it("retains a newly arrived image for at least one follow-up round before offloa
   expect(messages(2).some((m) => m.role === "user" && m.image)).toBe(true);
   expect(request.mock.calls[2][0].contextCompaction).toBeUndefined();
 });
+
+it("steps up triggerTokens after in-task compaction bounded by observed inputLimitTokens", async () => {
+  request.mockResolvedValueOnce({ ...tool("a"), telemetry: { inputLimitTokens: 500_000 } });
+  request.mockResolvedValueOnce({
+    ...tool("b"),
+    telemetry: { inputLimitTokens: 500_000 },
+    contextCompaction: compact(3, "mid-task summary")
+  });
+  request.mockResolvedValueOnce(final());
+
+  const loop = createTestAgentLoop({ tools: [], definition });
+  await loop.run("complex task", { contextCompaction: { triggerTokens: 120_000, targetTokens: 50_000 } });
+
+  expect(request.mock.calls[1][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 120_000,
+    targetTokens: 50_000
+  });
+  expect(request.mock.calls[2][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 160_000,
+    targetTokens: 50_000
+  });
+});
+
+it("clamps compaction step-up to 80% of 128K inputLimitTokens and skips step-up when window is unknown", async () => {
+  // 128K window: 0.8 * 128_000 = 102_400; stepping from 90_000 must clamp at 102_400.
+  request.mockResolvedValueOnce({ ...tool("a"), telemetry: { inputLimitTokens: 128_000 } });
+  request.mockResolvedValueOnce({
+    ...tool("b"),
+    telemetry: { inputLimitTokens: 128_000 },
+    contextCompaction: compact(3, "128k summary")
+  });
+  request.mockResolvedValueOnce(final());
+
+  const loop128 = createTestAgentLoop({ tools: [], definition });
+  await loop128.run("128k task", { contextCompaction: { triggerTokens: 90_000, targetTokens: 45_000 } });
+
+  expect(request.mock.calls[2][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 102_400,
+    targetTokens: 45_000
+  });
+
+  // Unknown window (no telemetry): must not blindly raise triggerTokens above caller budget.
+  request.mockReset();
+  request.mockResolvedValueOnce(tool("a"));
+  request.mockResolvedValueOnce({ ...tool("b"), contextCompaction: compact(3, "unknown window summary") });
+  request.mockResolvedValueOnce(final());
+
+  const loopUnknown = createTestAgentLoop({ tools: [], definition });
+  await loopUnknown.run("unknown window task", { contextCompaction: { triggerTokens: 90_000, targetTokens: 45_000 } });
+
+  expect(request.mock.calls[2][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 90_000,
+    targetTokens: 45_000
+  });
+});
+
+it("applies telemetry-adaptive session compaction budgets across 500K and 128K models", async () => {
+  const { AIChatSession } = await import("../src/ai-chat/ai-chat-session");
+  request.mockResolvedValueOnce({ ...tool("a"), telemetry: { inputLimitTokens: 500_000 } });
+  request.mockResolvedValueOnce(final());
+  const session500 = new AIChatSession({ agent: createTestAgentLoop({ tools: [], definition }) });
+  await session500.run("500k task", { model: "dsv41flash" });
+  expect(request.mock.calls[0][0].contextCompaction).toEqual({ version: 2, protectedPrefixLength: 3 });
+  expect(request.mock.calls[1][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 120_000,
+    targetTokens: 50_000
+  });
+
+  request.mockReset();
+  request.mockResolvedValueOnce({ ...tool("a"), telemetry: { inputLimitTokens: 128_000 } });
+  request.mockResolvedValueOnce(final());
+  const session128 = new AIChatSession({ agent: createTestAgentLoop({ tools: [], definition }) });
+  await session128.run("128k task");
+  expect(request.mock.calls[0][0].contextCompaction).toEqual({ version: 2, protectedPrefixLength: 3 });
+  expect(request.mock.calls[1][0].contextCompaction).toEqual({
+    version: 2,
+    protectedPrefixLength: 3,
+    triggerTokens: 102_400,
+    targetTokens: 50_000
+  });
+});
+
+it("resets repeated static read guidance counters after server-side compaction", async () => {
+  const readSkill = (id: string): AsapChatResult => ({
+    content: "",
+    finishReason: "tool_calls",
+    toolCalls: [
+      { id, type: "function", function: { name: "read", arguments: JSON.stringify({ file_path: "skills/demo/SKILL.md" }) } }
+    ]
+  });
+  const defWithSkill = {
+    ...definition,
+    projectFiles: [{ paths: () => ["skills/demo/SKILL.md"], read: (p: string) => (p === "skills/demo/SKILL.md" ? "# Demo" : undefined) }]
+  };
+  request.mockResolvedValueOnce(readSkill("r1"));
+  request.mockResolvedValueOnce({ ...readSkill("r2"), contextCompaction: compact(3, "compacted summary") });
+  request.mockResolvedValueOnce(final());
+
+  const loop = createTestAgentLoop({ tools: [], definition: defWithSkill });
+  await loop.run("re-read after compaction", {});
+
+  const round3Messages = request.mock.calls[2][0].messages as { role: string; content: string }[];
+  expect(
+    round3Messages.some((m) => m.role === "user" && typeof m.content === "string" && m.content.includes('type="loop_guidance"'))
+  ).toBe(false);
+});

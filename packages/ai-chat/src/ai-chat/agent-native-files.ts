@@ -8,6 +8,7 @@ import {
 } from "@galacean/engine-project/project-files/virtual-project-files";
 import { compileProjectGlob } from "@galacean/engine-project/project-files/project-glob";
 import { MAX_READ_RESULT_BYTES, readAgentFile } from "./agent-file-read";
+import { readSystemInjection } from "./agent-protocol";
 import { toAgentValue } from "./agent-values";
 import type {
   AgentApiDeclarationModule,
@@ -33,21 +34,32 @@ const declareRelativeImportCache = new WeakMap<VirtualProjectFiles, Map<string, 
 type OmittedDependencyReason = "size" | "budget" | "paginated";
 type OmittedDependency = { path: string; bytes: number; reason: OmittedDependencyReason };
 
-const FULL_FILE_READ_HEADER_RE = /^<path>([^<\n]+)<\/path>\n<type>file<\/type>\n<content>\n(?:1: |\n<\/content>)/;
+const FULL_FILE_READ_BLOCK_RE =
+  /^<path>([^<\n]+)<\/path>\n<type>file<\/type>\n<content>\n(1: [\s\S]*|)\n<\/content>(?=\n<(?:dependency|omitted_dependencies)|$)/;
 
-export function collectActiveReadPaths(messages: readonly AgentMessage[]): Set<string> {
-  const paths = new Set<string>();
+export function collectActiveReadContents(messages: readonly AgentMessage[]): Map<string, string> {
+  const contents = new Map<string, string>();
   for (const message of messages) {
+    if (message.role === "user" && typeof message.content === "string") {
+      if (readSystemInjection(message.content)?.type === "capabilities_changed") {
+        contents.clear();
+      }
+      continue;
+    }
     if (message.role !== "tool" || typeof message.content !== "string") continue;
     if (!message.content.includes("(Continue with read offset=")) {
-      const primary = message.content.match(FULL_FILE_READ_HEADER_RE);
-      if (primary) paths.add(primary[1]);
+      const primary = message.content.match(FULL_FILE_READ_BLOCK_RE);
+      if (primary) contents.set(primary[1], primary[2]);
     }
-    for (const match of message.content.matchAll(/<dependency path="([^"\n]+)">/g)) {
-      paths.add(match[1]);
+    for (const match of message.content.matchAll(/<dependency path="([^"\n]+)">\n([\s\S]*?)\n<\/dependency>/g)) {
+      contents.set(match[1], match[2]);
     }
   }
-  return paths;
+  return contents;
+}
+
+export function collectActiveReadPaths(messages: readonly AgentMessage[]): Set<string> {
+  return new Set(collectActiveReadContents(messages).keys());
 }
 
 const filePath = z
@@ -148,7 +160,8 @@ export class AgentNativeFiles {
     private readonly observed: Map<string, string>,
     private readonly save: (content: string) => string,
     private readonly timeoutMs = 60_000,
-    private readonly claimedDeclarations?: () => Set<string>
+    private readonly claimedDeclarations?: () => Set<string>,
+    private readonly activeReadContents?: () => ReadonlyMap<string, string>
   ) {}
 
   async execute(
@@ -191,6 +204,17 @@ export class AgentNativeFiles {
         // same-line continuation. An offset alone would repeat a long line.
         const primaryRaw = result.lines.map((line) => line.text).join("\n");
         const body = result.lines.map((line) => `${line.number}: ${line.text}`).join("\n");
+        if (
+          this.activeReadContents &&
+          (input.offset ?? 1) === 1 &&
+          (input.column ?? 1) === 1 &&
+          !result.next &&
+          (result.path.startsWith("skills/") || result.path.startsWith("declare/")) &&
+          this.activeReadContents().get(result.path) === body
+        ) {
+          const dedupContent = `<path>${result.path}</path>\n<type>file</type>\n<content>\n[Already present in current context (unchanged). Reuse the earlier read result and proceed directly without re-reading.]\n</content>`;
+          return this.success({ path: result.path, deduplicated: true }, dedupContent);
+        }
         const continuation = result.next
           ? `\n(Continue with read offset=${result.next.offset}${result.next.column === undefined ? "" : ` column=${result.next.column}`}.)`
           : "";

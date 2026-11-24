@@ -5,7 +5,7 @@ description: 挖河、创建或编辑湖泊与河流，以及查询海洋、水�
 
 # 水体
 
-在 Seed World 中，挖河或溪流（例如「在我面前挖一条河」）时，读取[挖河接口](declare/editor/world/tools/water.digRiver.d.ts)，调用一次 `tools.water.digRiver`。没有指定尺寸或距离时传 `{}`。它在同一事务中生成河床和原生流水面。外层提交且激活无错误后即视为完成，可直接汇报结果；仅当用户明确要求核验水深或河道状态时，在下一次 `execute` 中用 `tools.water.sample` 抽样 1–2 个返回中心线的 `x/z` 点即可。注意 `tools.water.digRiver` **仅用于挖河/溪流**，不存在 `water.create` / `water.update` / `water.delete` 快捷工具。
+在 Seed World 中，挖河或溪流（例如「在我面前挖一条河」「在旁边挖条小河」）时，读取[挖河接口](declare/editor/world/tools/water.digRiver.d.ts)，调用一次 `tools.water.digRiver`。没有指定尺寸或距离时传 `{}`。它在同一事务中生成河床和原生流水面。注意 `tools.water.digRiver` 按玩家正前方的 `distanceMetres`（默认 20 米）定位，不支持左右侧偏移；当用户提出「旁边挖条小河」或与其他前方物体并列时，仍应直接调用 `tools.water.digRiver`（可通过调整 `distanceMetres` 错开距离，如 35–45 米，或用默认 `{}`）完成挖河，并在回复中如实说明实际落位与近似偏差，不要因此搁置不挖。外层提交且激活无错误后即视为完成，可直接汇报结果；仅当用户明确要求核验水深或河道状态时，在下一次 `execute` 中用 `tools.water.sample` 抽样 1–2 个返回中心线的 `x/z` 点即可。注意 `tools.water.digRiver` **仅用于挖河/溪流**，不存在 `water.create` / `water.update` / `water.delete` 快捷工具。
 
 编辑已有水体组件和手动配置水体直接走公共 `editor.entity`、`editor.component` 和 `editor.asset`（不要去找不存在的 `water.create`/`update`/`delete`）。先读[原生编辑 API](declare/editor/native/api.d.ts)，查询 `WaterBodyComponent` 并读取 `props.authoring`。资产 Ref 和运行时 `waterId` 都不是 Source 组件身份。读写湖泊/河流规划参数可用 `tools.water.config.get/update/reset`。
 
@@ -35,7 +35,7 @@ await editor.component.update({...target, props:{authoring:{...authoring, visibl
 ## 外观与质量
 
 - 一份原生 `.mat` 定义外观，纹理使用原生引用；不创建私有 Look 或 Quality 资产。Quality 是组件的类型化值，修改不应改变 shape、terrain 或 Material。
-- 用 `tools.water.capabilities({target:{scene,id}})` 获取当前材质路径、真实支持的参数及纹理槽元数据。类型、枚举和范围以此结果为准。
+- 用 `tools.water.capabilities({target:{scene,id}})` 获取当前材质路径、真实支持的参数及纹理槽元数据。类型、枚举和范围以此结果为准；若请求颜色（如浅水色/深水色）没有精确同名键，直接基于 `capabilities` 返回的参数与 `.mat` 现有 `shaderData` 颜色字段选择最匹配项修改，**严禁**对全仓或 `.shaderc`、`declare/engine/` 执行 `grep`/`glob` 搜索 `shallow`/`DepthColor` 等内部 uniform 名。拿到材质路径与参数后，尽量在**同一次 `execute`** 中完成 `asset.read`（先校验 `res.kind === "structured"`）+ `asset.create`/`asset.update` + `component.update`（修改 `props.authoring` 时先收窄 `typeof authoring === "object" && authoring !== null && !Array.isArray(authoring) && !("$ref" in authoring)`）。
 - 通过 `asset.read` 读取 `.mat`，检查 `kind === "structured"` 后使用返回的 `data`；只修改目标 shaderData entry 并保留其 type。参数值使用原生类型；纹理值是 `{url:资产虚拟路径}` 或 `null`。湖/河/海分别有 2/3/5 个公开纹理槽。
 - 共享修改：`asset.update` 原材质。实例独立修改：`asset.create` 复制完整材质，再在同一次 execute 中修改目标组件的 `authoring.material.{$ref}`。调用前明确共享范围；不修改其他引用相同纹理的槽或共享 Texture 的采样设置。
 - `0`、`false`、空纹理是明确值，不可用 truthy 判断丢弃。资源引用、色彩空间和能力由真实准备阶段校验。

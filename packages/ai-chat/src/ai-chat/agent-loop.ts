@@ -9,7 +9,7 @@ import { createAgentProjectFiles, projectDeclarationModules } from "./agent-proj
 import { AgentArtifacts } from "./agent-artifacts";
 import {
   AgentNativeFiles,
-  collectActiveReadPaths,
+  collectActiveReadContents,
   isParallelFileTool,
   nativeFileTraceInput
 } from "./agent-native-files";
@@ -69,12 +69,16 @@ import type {
 } from "./agent-types";
 
 const DEFAULT_MAX_MODEL_ATTEMPTS = 3;
-const DEFAULT_MAX_SCRIPT_REPAIRS = 3;
+const DEFAULT_MAX_SCRIPT_REPAIRS = 5;
 const DEFAULT_MAX_TOOL_FAILURE_ROUNDS = 3;
 const DEFAULT_MAX_CONSECUTIVE_NO_PROGRESS_SCRIPTS = 2;
 const DEFAULT_MAX_TOOL_CALLS_PER_SCRIPT = 50;
 const DEFAULT_MAX_TOOL_CALLS_PER_TASK = 256;
 const DEFAULT_SCRIPT_TIMEOUT_MS = 30_000;
+const DEFAULT_SESSION_SOFT_TRIGGER_TOKENS = 120_000;
+const DEFAULT_SESSION_SOFT_TARGET_TOKENS = 50_000;
+const COMPACTION_STEP_UP_TOKENS = 40_000;
+const COMPACTION_STEP_UP_CAP_TOKENS = 320_000;
 const taskFailures = new WeakMap<Error, AgentTaskFailure>();
 
 type ModelTurnResult = {
@@ -133,6 +137,7 @@ export class AgentLoop {
   readonly #listeners = new Set<AgentEventListener>();
   readonly #outputFiles = new AgentArtifacts();
   readonly #fileObservations = new Map<string, string>();
+  readonly #modelInputLimits = new Map<string, number>();
   #activeTaskId: string | null = null;
   #controller: AbortController | null = null;
 
@@ -141,6 +146,7 @@ export class AgentLoop {
     this.#scriptChecker.dispose?.();
     this.#outputFiles.clear();
     this.#fileObservations.clear();
+    this.#modelInputLimits.clear();
   }
 
   constructor(options: AgentLoopOptions) {
@@ -234,7 +240,7 @@ export class AgentLoop {
     if (this.running) throw new AgentBusyError();
 
     const contextCompaction = createContextCompactionRequest(options.contextCompaction);
-    const compactionState = { skipUntilActiveLength: 0 };
+    const compactionState = { skipUntilActiveLength: 0, compactionsInTask: 0 };
     const taskContext = options.context === undefined ? undefined : structuredClone(toAgentValue(options.context));
     const taskId = crypto.randomUUID();
     const controller = new AbortController();
@@ -245,6 +251,7 @@ export class AgentLoop {
     this.#refreshConfiguration();
     const sessionOwnedTranscript = Boolean(control?.sessionTranscript);
     const transcript = control?.sessionTranscript ?? new AgentContextTranscript();
+    let activeReadContentsBeforeBatch = new Map<string, string>();
     let batchClaimedDeclarations = new Set<string>();
     const historyReferences = [
       ...(control?.continuation?.visualReferences ?? []),
@@ -338,7 +345,8 @@ export class AgentLoop {
       this.#fileObservations,
       (content) => outputFiles.save(`${taskId}:files:${++fileOutputOrdinal}`, content),
       undefined,
-      () => batchClaimedDeclarations
+      () => batchClaimedDeclarations,
+      () => activeReadContentsBeforeBatch
     );
     let consecutiveScriptFailures = 0;
     let toolFailureRounds = 0;
@@ -349,6 +357,8 @@ export class AgentLoop {
     let consecutiveNoProgressScripts = 0;
     let hasCommittedMutation = false;
     let postCommitReadOnlyRounds = 0;
+    const taskStaticReadCounts = new Map<string, number>();
+    let repeatedStaticReadRounds = 0;
     this.#activeTaskId = taskId;
     this.#controller = controller;
     this.#emit({
@@ -406,10 +416,14 @@ export class AgentLoop {
         if (additions.length > 0) {
           hasCommittedMutation = false;
           postCommitReadOnlyRounds = 0;
+          taskStaticReadCounts.clear();
+          repeatedStaticReadRounds = 0;
         }
         throwIfAborted(controller.signal);
         if (this.#refreshConfiguration()) {
           postCommitReadOnlyRounds = 0;
+          taskStaticReadCounts.clear();
+          repeatedStaticReadRounds = 0;
           modelTools = buildAgentToolDefinitions(this.#definition);
           appendTranscript({
             role: "user",
@@ -440,6 +454,7 @@ export class AgentLoop {
           for (const error of runtimeErrors) reportedRuntimeErrors.add(error.id);
         }
 
+        const compactionsBeforeTurn = compactionState.compactionsInTask;
         let decisionResult: ModelTurnResult;
         try {
           decisionResult = await this.#requestModelTurn({
@@ -454,6 +469,7 @@ export class AgentLoop {
             observedAt,
             hostNotes: this.#definition.scriptApi.hostNotes,
             transcript,
+            sessionOwnedTranscript,
             images,
             contextCompaction,
             compactionState,
@@ -476,6 +492,10 @@ export class AgentLoop {
             error: normalizedError
           });
           throw normalizedError;
+        }
+        if (compactionState.compactionsInTask > compactionsBeforeTurn) {
+          taskStaticReadCounts.clear();
+          repeatedStaticReadRounds = 0;
         }
 
         appendTranscript(decisionResult.assistantMessage);
@@ -915,7 +935,8 @@ export class AgentLoop {
           }
         };
         const decisionResultOriginal = decisionResult;
-        batchClaimedDeclarations = collectActiveReadPaths(transcript.active);
+        activeReadContentsBeforeBatch = collectActiveReadContents(transcript.active);
+        batchClaimedDeclarations = new Set(activeReadContentsBeforeBatch.keys());
         const batchSnapshot = calls.some(
           (call) =>
             call.decision.type === "file" &&
@@ -992,6 +1013,8 @@ export class AgentLoop {
         if (batchCommittedMutation) {
           hasCommittedMutation = true;
           postCommitReadOnlyRounds = 0;
+          taskStaticReadCounts.clear();
+          repeatedStaticReadRounds = 0;
         } else if (
           hasCommittedMutation &&
           !batchHadWriteAttempt &&
@@ -1006,6 +1029,42 @@ export class AgentLoop {
                 "本任务此前已有已提交（committed）的修改，此后已连续多轮仅执行只读读取/查询。请核对用户目标与已有提交及验证回执：若目标已满足且无明确未解决错误，请立即停止排查并向用户汇报结果，不要重复读取已读文件或拆解底层组件细节。"
               )
             });
+          }
+        }
+        if (
+          !hasCommittedMutation &&
+          !batchCommittedMutation &&
+          !calls.some((call) => call.decision.type === "execute" || call.decision.type === "final")
+        ) {
+          const repeatedInBatch: string[] = [];
+          for (const call of calls) {
+            if (
+              call.decision.type === "file" &&
+              call.decision.name === "read" &&
+              typeof call.decision.input.file_path === "string" &&
+              (call.decision.input.offset ?? 1) === 1 &&
+              (call.decision.input.column ?? 1) === 1 &&
+              call.decision.input.limit == null
+            ) {
+              const p = call.decision.input.file_path;
+              if (p.startsWith("skills/") || p.startsWith("declare/")) {
+                const nextCount = (taskStaticReadCounts.get(p) ?? 0) + 1;
+                taskStaticReadCounts.set(p, nextCount);
+                if (nextCount >= 2) repeatedInBatch.push(p);
+              }
+            }
+          }
+          if (repeatedInBatch.length > 0) {
+            repeatedStaticReadRounds += 1;
+            if (repeatedStaticReadRounds === 1 || repeatedStaticReadRounds % 2 === 1) {
+              appendTranscript({
+                role: "user",
+                content: formatSystemInjection(
+                  "loop_guidance",
+                  `你已在本任务内多次重复读取相同的技能/声明文档（${[...new Set(repeatedInBatch)].slice(0, 4).join("、")}）。请停止继续重读文档或反复搜索目录，直接基于已有声明调用 execute 完成当前可执行部分；若确认某项子需求超出接口能力，先完成可执行部分再如实说明限制。`
+                )
+              });
+            }
           }
         }
         // All calls in this batch came from one model response. The model has not
@@ -1107,9 +1166,10 @@ export class AgentLoop {
     taskContext?: AgentValue;
     inputs: AgentUserInput[];
     transcript: AgentContextTranscript;
+    sessionOwnedTranscript: boolean;
     images: AgentImageStore;
     contextCompaction: ContextCompactionRequest;
-    compactionState: { skipUntilActiveLength: number };
+    compactionState: { skipUntilActiveLength: number; compactionsInTask: number };
     systemPrompt: string;
     tools: AgentModelToolDefinition[];
     model?: string;
@@ -1184,13 +1244,54 @@ export class AgentLoop {
         throwIfAborted(input.signal);
         requestStarted = true;
         const shouldSendCompaction = input.transcript.activeLength >= input.compactionState.skipUntilActiveLength;
+        const modelKey = input.model ?? "<default>";
+        const observedInputLimit = this.#modelInputLimits.get(modelKey);
+        const maxServerTrigger = observedInputLimit !== undefined ? Math.floor(observedInputLimit * 0.8) : undefined;
+        const maxServerTarget = observedInputLimit !== undefined ? Math.floor(observedInputLimit * 0.5) : undefined;
+        let effectiveTriggerTokens = input.contextCompaction.triggerTokens;
+        let effectiveTargetTokens = input.contextCompaction.targetTokens;
+        if (
+          effectiveTriggerTokens === undefined &&
+          effectiveTargetTokens === undefined &&
+          input.sessionOwnedTranscript &&
+          maxServerTrigger !== undefined &&
+          maxServerTarget !== undefined &&
+          maxServerTrigger > 1
+        ) {
+          effectiveTriggerTokens = Math.min(DEFAULT_SESSION_SOFT_TRIGGER_TOKENS, maxServerTrigger);
+          effectiveTargetTokens = Math.min(
+            DEFAULT_SESSION_SOFT_TARGET_TOKENS,
+            maxServerTarget,
+            effectiveTriggerTokens - 1
+          );
+        }
+        if (
+          effectiveTriggerTokens !== undefined &&
+          effectiveTriggerTokens >= 48_000 &&
+          input.compactionState.compactionsInTask > 0 &&
+          maxServerTrigger !== undefined
+        ) {
+          const stepped = Math.min(
+            COMPACTION_STEP_UP_CAP_TOKENS,
+            maxServerTrigger,
+            effectiveTriggerTokens + input.compactionState.compactionsInTask * COMPACTION_STEP_UP_TOKENS
+          );
+          effectiveTriggerTokens = Math.max(effectiveTriggerTokens, stepped);
+        }
         result = await requestAsapChat({
           timeoutMs: deadline - performance.now(),
           onRecovery,
           messages,
           imageBudget: input.images.budget,
           ...(shouldSendCompaction
-            ? { contextCompaction: { ...input.contextCompaction, protectedPrefixLength: contextRequest.prefixLength } }
+            ? {
+                contextCompaction: {
+                  ...input.contextCompaction,
+                  ...(effectiveTriggerTokens !== undefined ? { triggerTokens: effectiveTriggerTokens } : {}),
+                  ...(effectiveTargetTokens !== undefined ? { targetTokens: effectiveTargetTokens } : {}),
+                  protectedPrefixLength: contextRequest.prefixLength
+                }
+              }
             : {}),
           model: input.model,
           tools: input.tools,
@@ -1198,6 +1299,13 @@ export class AgentLoop {
           debugMode: input.debugMode,
           signal: input.signal
         });
+        if (
+          typeof result.telemetry?.inputLimitTokens === "number" &&
+          Number.isSafeInteger(result.telemetry.inputLimitTokens) &&
+          result.telemetry.inputLimitTokens > 0
+        ) {
+          this.#modelInputLimits.set(modelKey, result.telemetry.inputLimitTokens);
+        }
       } catch (error) {
         const requestError = normalizeError(error) as Error & Partial<AsapModelError>;
         const cancelled = input.signal.aborted || requestError instanceof AgentCancelledError;
@@ -1250,6 +1358,7 @@ export class AgentLoop {
       }
       if (attempt.contextCompaction?.status === "compacted") {
         input.compactionState.skipUntilActiveLength = 0;
+        input.compactionState.compactionsInTask += 1;
       } else if (attempt.contextCompaction?.status === "failed") {
         const unblocked = isCompactionUnreducibleFailure(attempt.contextCompaction)
           ? input.transcript.offloadSeenImagesForCompaction()

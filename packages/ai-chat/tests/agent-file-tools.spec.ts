@@ -530,3 +530,73 @@ it("does not pre-claim paginated declaration reads in parallel batches and reset
     finalMessages.some((m) => m.role === "user" && typeof m.content === "string" && m.content.includes('type="loop_guidance"'))
   ).toBe(false);
 });
+
+it("emits union narrowing hints for TS2339, destructuring availableProperties, and tuple hints for TS2322", () => {
+  const checker = new AgentJavaScriptChecker(agentTypecheckLibraries);
+  try {
+    const declarations = [
+      {
+        id: "declare/api.d.ts",
+        source: `
+          interface AreaInfo {
+            a1: number; a2: number; a3: number; a4: number; a5: number;
+            a6: number; a7: number; a8: number; a9: number; farmId: string;
+          }
+          type ValueUnion = string | number | { shape?: string; visible?: boolean };
+          declare const api: {
+            getArea(): AreaInfo;
+            getProp(): ValueUnion;
+            move(pos: [number, number, number]): void;
+          };
+        `
+      }
+    ];
+
+    const unionErr = checker.check("const p = api.getProp();\nconsole.log(p.shape);", declarations);
+    expect(unionErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const unionDiag = (unionErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(unionDiag.code).toBe(2339);
+    expect(String(unionDiag.hint)).toContain('typeof v === "object"');
+
+    const destructErr = checker.check("const { id } = api.getArea();\nconsole.log(id);", declarations);
+    expect(destructErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const destructDiag = (destructErr?.details as { diagnostics: { availableProperties?: { name: string }[] }[] }).diagnostics[0];
+    expect(destructDiag.availableProperties?.some((p) => p.name === "farmId")).toBe(true);
+
+    const tupleErr = checker.check("const coords = [1, 2, 3];\napi.move(coords);", declarations);
+    expect(tupleErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const tupleDiag = (tupleErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(tupleDiag.code).toBe(2345);
+    expect(String(tupleDiag.hint)).toContain("fixed-length tuple literal");
+
+    const unionDeclarations = [
+      {
+        id: "declare/union.d.ts",
+        source: `
+          type AssetRead = { path: string } & ({ kind: "text"; content: string } | { kind: "structured"; data: Record<string, unknown> } | { kind: "glb"; scenes: unknown[] });
+          type SourceVal = string | number | { $ref: string } | Record<string, unknown> | SourceVal[];
+          declare const uapi: { readAsset(): AssetRead; readProp(): SourceVal };
+        `
+      }
+    ];
+    const discErr = checker.check("const a = uapi.readAsset();\nconsole.log(a.data);", unionDeclarations);
+    expect(discErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const discDiag = (discErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(discDiag.code).toBe(2339);
+    expect(String(discDiag.hint)).toContain('kind === "structured"');
+
+    const aliasedDiscErr = checker.check("const { data: renamed } = uapi.readAsset();\nconsole.log(renamed);", unionDeclarations);
+    expect(aliasedDiscErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const aliasedDiscDiag = (aliasedDiscErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(aliasedDiscDiag.code).toBe(2339);
+    expect(String(aliasedDiscDiag.hint)).toContain('kind === "structured"');
+
+    const refErr = checker.check("const v = uapi.readProp();\nconsole.log(v.material);", unionDeclarations);
+    expect(refErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const refDiag = (refErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(refDiag.code).toBe(2339);
+    expect(String(refDiag.hint)).toContain('!("$ref" in v)');
+  } finally {
+    checker.dispose();
+  }
+});

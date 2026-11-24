@@ -277,4 +277,34 @@ describe("compaction contract", () => {
       revision: 3
     });
   });
+
+  it("micro-compacts oversized completed-turn static reads when active context exceeds budget", () => {
+    const context = new AgentContextTranscript();
+    const bigDecl = `<path>declare/editor/world/tools/big.d.ts</path>\n<type>file</type>\n<content>\n1: ${"x".repeat(5000)}\n</content>`;
+    const bigNote = `<path>Notes/plan.md</path>\n<type>file</type>\n<content>\n1: ${"y".repeat(5000)}\n</content>`;
+    context.push(
+      { role: "user", content: "turn 1" },
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [
+          { id: "r1", type: "function", function: { name: "read", arguments: "{}" } },
+          { id: "r2", type: "function", function: { name: "read", arguments: "{}" } }
+        ]
+      },
+      { role: "tool", toolCallId: "r1", content: bigDecl },
+      { role: "tool", toolCallId: "r2", content: bigNote },
+      { role: "assistant", content: "done" }
+    );
+    // Below default 80k threshold, completeTurn leaves messages untouched.
+    context.completeTurn();
+    expect(context.active[2].content).toBe(bigDecl);
+
+    // Above threshold, static declare/skills read is trimmed while user note stays intact.
+    const trimmed = context.compactCompletedTurnReads(8000, 4000);
+    expect(trimmed).toBe(1);
+    expect(context.active[2]).toMatchObject({ role: "tool", toolCallId: "r1" });
+    expect(context.active[2].content).toContain("Omitted large read from an earlier completed turn");
+    expect(context.active[3].content).toBe(bigNote);
+  });
 });

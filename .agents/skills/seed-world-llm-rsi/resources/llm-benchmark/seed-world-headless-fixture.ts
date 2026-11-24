@@ -1000,13 +1000,48 @@ export async function createHeadlessSeedWorldFixture(options: {
         for (const r of resources) {
           const p = r.properties as Record<string, any> | undefined;
           if (!p) continue;
-          const cx = typeof p.x === "number" ? p.x : typeof p.centerX === "number" ? p.centerX : undefined;
-          const cz = typeof p.z === "number" ? p.z : typeof p.centerZ === "number" ? p.centerZ : undefined;
+          const pos = Array.isArray((r as { position?: unknown }).position)
+            ? ((r as { position?: readonly number[] }).position as readonly number[])
+            : undefined;
+          const cx =
+            typeof p.x === "number"
+              ? p.x
+              : typeof p.centerX === "number"
+                ? p.centerX
+                : typeof pos?.[0] === "number"
+                  ? pos[0]
+                  : undefined;
+          const cz =
+            typeof p.z === "number"
+              ? p.z
+              : typeof p.centerZ === "number"
+                ? p.centerZ
+                : typeof pos?.[2] === "number"
+                  ? pos[2]
+                  : undefined;
           if (cx === undefined || cz === undefined) continue;
           const dist = Math.hypot(x - cx, z - cz);
           if (r.resourceType === "terrain-feature") {
-            const radius = Number(p.radiusMetres ?? p.radius ?? p.overallRadiusMetres ?? 20);
-            const height = Number(p.peakHeightMetres ?? p.heightMetres ?? p.baseElevationMetres ?? p.amplitude ?? 0);
+            const halfSpan =
+              typeof p.lengthMetres === "number" || typeof p.widthMetres === "number"
+                ? Math.max(Number(p.lengthMetres ?? 0), Number(p.widthMetres ?? 0)) * 0.5
+                : undefined;
+            const radius = Number(
+              p.radiusMetres ?? p.radius ?? p.influenceMajorRadiusMetres ?? p.overallRadiusMetres ?? halfSpan ?? 20
+            );
+            const hillRelief =
+              typeof p.pedestalLiftMetres === "number" || typeof p.peakReliefMetres === "number"
+                ? Number(p.pedestalLiftMetres ?? 0) + Number(p.peakReliefMetres ?? 0)
+                : undefined;
+            const height = Number(
+              p.elevationDeltaMetres ??
+                hillRelief ??
+                p.peakHeightMetres ??
+                p.heightMetres ??
+                p.baseElevationMetres ??
+                p.amplitude ??
+                0
+            );
             if (radius > 0 && dist < radius && Number.isFinite(height)) {
               const t = 1 - dist / radius;
               h += height * t * t * (3 - 2 * t);
@@ -1042,6 +1077,25 @@ export async function createHeadlessSeedWorldFixture(options: {
               roadDistanceMetres: 20
             };
           })
+        };
+      }
+      const constraints = (input as { constraints?: { water?: boolean } }).constraints;
+      if (constraints?.water === true) {
+        return {
+          inspectedPointCount: 64,
+          matchedPointCount: 1,
+          effectiveSpacingMetres: (input as { spacingMetres?: number }).spacingMetres ?? 10,
+          points: [
+            {
+              position: [4, 0.5, 4],
+              elevation: 0.5,
+              slope: 0,
+              moisture: 1.0,
+              water: true,
+              riverDistanceMetres: 0,
+              roadDistanceMetres: 15
+            }
+          ]
         };
       }
       return {
@@ -1589,7 +1643,10 @@ export async function createHeadlessSeedWorldFixture(options: {
       dependencies: ["Water/Textures/grasslands-water-normal-1024.ktx2"]
     },
     { virtualPath: "Water/Terrain/manual-bed.json", path: "Water/Terrain/manual-bed.json", type: "JSON", dependencies: [] },
-    { virtualPath: "Water/Terrain/manual-bed.bin", path: "Water/Terrain/manual-bed.bin", type: "Buffer", dependencies: [] }
+    { virtualPath: "Water/Terrain/manual-bed.bin", path: "Water/Terrain/manual-bed.bin", type: "Buffer", dependencies: [] },
+    ...(options.caseId === "63_assets_list_filter_info_inspect"
+      ? [{ virtualPath: "Models/sample-prop.glb", path: "Models/sample-prop.glb", type: "GLTF" as const, dependencies: [] }]
+      : [])
   ];
 
   const existingVPaths = new Set(baseFiles.map((f) => f.virtualPath));
@@ -1613,7 +1670,10 @@ export async function createHeadlessSeedWorldFixture(options: {
       "Scenes/Main.scene": JSON.stringify(mainSceneContent),
       "Water/Materials/lake.mat": lakeMatText,
       "Water/Terrain/manual-bed.json": manualBedJsonText,
-      "Water/Terrain/manual-bed.bin": manualBedBinBytes
+      "Water/Terrain/manual-bed.bin": manualBedBinBytes,
+      ...(options.caseId === "63_assets_list_filter_info_inspect"
+        ? { "Models/sample-prop.glb": createHelicopterGlbFixture() }
+        : {})
     },
     documents: {}
   };
@@ -1778,7 +1838,15 @@ export async function createHeadlessSeedWorldFixture(options: {
     getTarget: () => ({ plotId: "native/a", ground: null })
   };
 
-  // WaterSystem mock for Case 05 / 06 water.diagnostics + sample
+  // WaterSystem mock for Case 05 / 06 / 47 water.diagnostics + sample
+  const initialLakeEntity = scene.rootEntities.find((e) => e.name === "LakeWater");
+  const initialLakeBody = initialLakeEntity?.getComponent(WaterBodyComponent) as
+    | (WaterBodyComponent & { _configuration?: unknown })
+    | null
+    | undefined;
+  if (initialLakeBody && !initialLakeBody.configuration) {
+    initialLakeBody._configuration = { kind: "lake" };
+  }
   const waterSystemMock = {
     destroyed: false,
     get revision() {
@@ -1788,18 +1856,49 @@ export async function createHeadlessSeedWorldFixture(options: {
       return { phase: "ready" as const, ready: true, bodyCount: liveState.water.bodyCount };
     },
     getBodyState: (waterId: string) => ({ active: true, ready: true, published: true, revision: 1, waterId }),
-    sample: (_x: number, _z: number, waterId?: string) => ({
-      water: true,
-      revision: liveState.water.hostRevision,
-      status: "resolved" as const,
-      id: waterId ?? riversCreated[0]?.id ?? "lake-body",
-      surfaceElevationMetres: 0.5,
-      surfaceModel: "planar",
-      depth: { value: 1.8, quality: "actual" as const },
-      bed: { value: -1.3, quality: "actual" as const },
-      shoreDistance: { value: 2.0, quality: "actual" as const },
-      velocity: { value: [0.2, 0.1], quality: "actual" as const }
-    }),
+    sample: (x: number, z: number, waterId?: string) => {
+      const matchedRiver = riversCreated.find((river) => {
+        if (river.kind !== "river") return false;
+        const pts = (river.parameters as { points?: readonly { x: number; z: number; width?: number }[] })?.points;
+        if (!Array.isArray(pts) || pts.length === 0) return false;
+        if (pts.length === 1) {
+          const halfW = (pts[0].width ?? 6) * 0.5;
+          return Math.hypot(x - pts[0].x, z - pts[0].z) <= halfW;
+        }
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = pts[i];
+          const b = pts[i + 1];
+          const dx = b.x - a.x;
+          const dz = b.z - a.z;
+          const lenSq = dx * dx + dz * dz;
+          const t = lenSq > 0 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / lenSq)) : 0;
+          const dist = Math.hypot(x - (a.x + t * dx), z - (a.z + t * dz));
+          const halfW = Math.max(a.width ?? 6, b.width ?? 6) * 0.5;
+          if (dist <= halfW) return true;
+        }
+        return false;
+      });
+      const inWater = Boolean(waterId) || Boolean(matchedRiver) || isInsideInitialLake(x, z);
+      if (!inWater) {
+        return {
+          water: false,
+          revision: liveState.water.hostRevision,
+          status: "resolved" as const
+        };
+      }
+      return {
+        water: true,
+        revision: liveState.water.hostRevision,
+        status: "resolved" as const,
+        id: waterId ?? matchedRiver?.id ?? "lake-body",
+        surfaceElevationMetres: 0.5,
+        surfaceModel: "planar",
+        depth: { value: 1.8, quality: "actual" as const },
+        bed: { value: -1.3, quality: "actual" as const },
+        shoreDistance: { value: 2.0, quality: "actual" as const },
+        velocity: { value: [0.2, 0.1], quality: "actual" as const }
+      };
+    },
     sampleSurface: () => ({ waterDepth: 1.8, surfaceY: 0.5, bedY: -1.3, velocityX: 0.2, velocityZ: 0.1, shoreDistance: 2.0 }),
     sampleDrops: () => ({ revision: liveState.water.hostRevision, drops: [] }),
     getDiagnostics: () => ({ ready: true, bodyCount: liveState.water.bodyCount, errors: [] })

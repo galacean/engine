@@ -12,7 +12,7 @@
 
 资源包里没有的规格报 `Unknown asset {"prefab":"<type>/<rank>"}`。
 
-位置的写法：
+位置的写法（**`u`、`bottom`、`width`、`height` 对所有墙面挂件均为必填项**，漏写任一项会运行期报错 `Wall attachment "<id>" needs bottom, width and height`；常用参考：门 `bottom: 0, width: 1.2, height: 2.2`，窗 `bottom: 1.1, width: 1.0, height: 1.2`）：
 
 - `u` 是 `[0, 1)` 的周向参数，不是米。
 - `bottom`、`width`、`height` 的单位是米。
