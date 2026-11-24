@@ -103,7 +103,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _solverIterations = 4;
   private _solverVelocityIterations = 1;
   private _useGravity = true;
-  private _simulationEnabled = true;
   private _isKinematic = false;
   private _constraints: RigidbodyConstraints = 0;
   private _useCCD = false;
@@ -415,32 +414,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * Whether the body participates in physics simulation.
-   * @remarks A query-only body follows the Entity's Transform and retains its Collider query settings.
-   * Switching a registered body out of simulation clears its forces, velocities and kinematic target.
-   * Active trigger overlaps end on the first step while the body is query-only.
-   * Unbroken joints resume when both connected bodies participate in simulation.
-   * @defaultValue true
-   */
-  get simulationEnabled(): boolean {
-    return this._simulationEnabled;
-  }
-
-  set simulationEnabled(value: boolean) {
-    if (this._simulationEnabled !== value) {
-      this._simulationEnabled = value;
-      this._poseSynced = false;
-      !value && this._cancelPendingSleep();
-      this._nativeActor?.setSimulationEnabled(value);
-      this._syncSleepEventRegistration();
-      const joints = this._joints;
-      if (this._index !== -1 && joints) {
-        for (const joint of joints) joint._wakeOtherBody(this);
-      }
-    }
-  }
-
-  /**
    * Whether the body follows a target pose instead of responding to forces.
    * @remarks Use {@link move} to set a kinematic target. When changing to dynamic motion, kinematic-only shapes
    * leave simulation and queries until the body becomes kinematic again.
@@ -717,7 +690,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (
       this._index === -1 ||
       this._isKinematic ||
-      !this._simulationEnabled ||
       !Number.isFinite(strength) ||
       !Number.isFinite(radius) ||
       radius < 0 ||
@@ -795,29 +767,28 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * Sets the world-space target position for the next kinematic simulation step, preserving the target rotation.
-   * @remarks A body participating in simulation uses the target for scene queries immediately.
-   * The Entity's transform advances during simulation.
+   * @remarks The target is used for scene queries immediately. The Entity's transform advances during simulation.
    * @throws When the body is dynamic.
    */
   move(position: Vector3): void;
 
   /**
    * Sets the world-space target rotation for the next kinematic simulation step, preserving the target position.
-   * @remarks Requires an active kinematic Rigidbody with simulation enabled.
+   * @remarks Requires an active kinematic Rigidbody.
    * @throws When the body is dynamic.
    */
   move(rotation: Quaternion): void;
 
   /**
    * Sets the world-space target position and rotation for the next kinematic simulation step.
-   * @remarks Requires an active kinematic Rigidbody with simulation enabled.
+   * @remarks Requires an active kinematic Rigidbody.
    * @throws When the body is dynamic.
    */
   move(position: Vector3, rotation: Quaternion): void;
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
     if (!this._isKinematic) throw new Error("Rigidbody.move requires a kinematic body.");
-    if (!this._simulationEnabled || this._index === -1) return;
+    if (this._index === -1) return;
     // Teleport pending transform edits first so the move starts from the current pose
     const actor = this._getSyncedActor()!;
     this._poseSynced = false;
@@ -831,11 +802,11 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * Puts a simulated dynamic body to sleep.
+   * Puts an active dynamic body to sleep.
    * @remarks A request before registration in a scene applies before the first simulation step after registration.
    */
   sleep(): void {
-    if (this._isKinematic || !this._simulationEnabled) return;
+    if (this._isKinematic) return;
     const scene = this._registeredScene;
     if (!scene) {
       this._sleepPending = true;
@@ -853,7 +824,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * Wakes a simulated dynamic body and cancels a pending sleep request.
+   * Wakes a dynamic body and cancels a pending sleep request.
    */
   wakeUp(): void {
     this._cancelPendingSleep();
@@ -863,7 +834,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /** @internal Wakes the native actor while preserving an explicit sleep request for activation. */
   _wakeNative(): void {
     this._poseSynced = false;
-    if (this._index !== -1 && !this._isKinematic && this._simulationEnabled) {
+    if (this._index !== -1 && !this._isKinematic) {
       this._nativeActor!.wakeUp();
     }
   }
@@ -958,14 +929,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const scene = this._registeredScene;
     if (!scene) return;
 
-    if (this._simulationEnabled) {
-      const scripts = this.entity._scripts;
-      for (let i = 0, count = scripts.length; i < count; i++) {
-        const script = scripts.get(i);
-        if (script && script._physicsEventFlags & ScriptPhysicsEventFlags.Sleep) {
-          this._setSleepEventRegistration(scene, true);
-          return;
-        }
+    const scripts = this.entity._scripts;
+    for (let i = 0, count = scripts.length; i < count; i++) {
+      const script = scripts.get(i);
+      if (script && script._physicsEventFlags & ScriptPhysicsEventFlags.Sleep) {
+        this._setSleepEventRegistration(scene, true);
+        return;
       }
     }
     this._setSleepEventRegistration(scene, false);
@@ -992,10 +961,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
       // Non-convex triangle meshes require a kinematic native actor before attachment
       actor.setMotionState(this._isKinematic, this._useCCD);
-      !this._simulationEnabled && actor.setSimulationEnabled(false);
       actor.setLinearDamping(this._linearDamping);
       actor.setAngularDamping(this._angularDamping);
-      if (this._simulationEnabled && !this._isKinematic) {
+      if (!this._isKinematic) {
         actor.setLinearVelocity(this._linearVelocity);
         actor.setAngularVelocity(this._angularVelocity);
       }
@@ -1099,7 +1067,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * Write the simulated pose back to the Entity.
    */
   _writeBack(position: Vector3, rotation: Quaternion): void {
-    if (!this._simulationEnabled) return;
     const actor = this._nativeActor!;
     if (this._isKinematic || actor.isSleeping()) {
       if (this._poseSynced) return;
@@ -1271,7 +1238,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   private _getForceActor(): IDynamicActor | null {
-    if (this._index === -1 || this._isKinematic || !this._simulationEnabled) return null;
+    if (this._index === -1 || this._isKinematic) return null;
     this._cancelPendingSleep();
     return this._getSyncedActor();
   }
@@ -1292,7 +1259,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   @ignoreClone
   private _setLinearVelocity(): void {
-    if (!this._isKinematic && this._simulationEnabled) {
+    if (!this._isKinematic) {
       this._cancelPendingSleep();
       this._nativeActor?.setLinearVelocity(this._linearVelocity);
     }
@@ -1300,7 +1267,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   @ignoreClone
   private _setAngularVelocity(): void {
-    if (!this._isKinematic && this._simulationEnabled) {
+    if (!this._isKinematic) {
       this._cancelPendingSleep();
       this._nativeActor?.setAngularVelocity(this._angularVelocity);
     }

@@ -558,27 +558,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     }
   }
 
-  /** @internal Reconcile active trigger pairs when a shape stays in the scene. */
-  _refreshTriggerPairsForShape(id: number): void {
-    this._activeTriggers.length > 0 && this._shapeChanges.set(id, ShapeChange.Refreshed);
-  }
-
   /** @internal Reconcile active trigger and contact pairs across a same-actor shape replacement. */
   _replaceShape(id: number): void {
     if (this._activeTriggers.length > 0 || this._activeContacts.has(id)) {
       this._shapeChanges.set(id, ShapeChange.Replaced);
-    }
-  }
-
-  /** @internal Drop tracked active contacts for a removed or disabled shape. */
-  _clearContactsForShape(id: number): void {
-    const neighbors = this._activeContacts.get(id);
-    if (!neighbors) return;
-    this._activeContacts.delete(id);
-    for (const otherId of neighbors) {
-      const otherSet = this._activeContacts.get(otherId)!;
-      otherSet.delete(id);
-      otherSet.size === 0 && this._activeContacts.delete(otherId);
     }
   }
 
@@ -745,6 +728,17 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     if (setB) {
       setB.delete(a);
       setB.size === 0 && this._activeContacts.delete(b);
+    }
+  }
+
+  private _clearContactsForShape(id: number): void {
+    const neighbors = this._activeContacts.get(id);
+    if (!neighbors) return;
+    this._activeContacts.delete(id);
+    for (const otherId of neighbors) {
+      const otherSet = this._activeContacts.get(otherId)!;
+      otherSet.delete(id);
+      otherSet.size === 0 && this._activeContacts.delete(otherId);
     }
   }
 

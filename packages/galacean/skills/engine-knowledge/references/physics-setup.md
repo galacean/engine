@@ -10,7 +10,7 @@ Use this reference when choosing who owns motion, when synchronization occurs, o
 - A non-kinematic Rigidbody is simulation-owned. Drive continuous motion through velocity, forces, and torque rather than competing transform writes.
 - A direct Transform change is synchronized to the native actor before the next physics step or query as a teleport. It is not swept through the path between the old and new pose.
 - A kinematic Rigidbody is application-owned. Use `Rigidbody.move` when interactions along the movement path matter; a direct Transform assignment still has teleport semantics.
-- After each simulation step, the native pose of every enabled Rigidbody with `simulationEnabled = true` is written back to its Transform. `CharacterController.move` writes the Entity's world position immediately.
+- After each simulation step, the native pose of every enabled Rigidbody is written back to its Transform. `CharacterController.move` writes the Entity's world position immediately.
 
 ## Fixed-step order
 

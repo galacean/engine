@@ -46,7 +46,7 @@ The execution order when the PhysicsScene is updated:
 1. Execute user logic in `onPhysicsUpdate`
 2. Apply pending component changes: modified [Entity](/apis/core/#Entity) `Transform` data, [Collider](/en/docs/physics/collider/overview) ownership and properties are synchronized to the physics backend
 3. Simulate one fixed step
-4. Write the simulated poses of all enabled [Rigidbodies](/en/docs/physics/collider/rigidbody) with `simulationEnabled` enabled back to their `Entity`
+4. Write the simulated poses of all enabled [Rigidbodies](/en/docs/physics/collider/rigidbody) back to their `Entity`
 5. Dispatch collision, trigger, and sleep/wake events
 
 ## Setting Scene Gravity

@@ -1234,86 +1234,6 @@ describe("Rigidbody", function () {
     expect(box.transform.worldPosition.x).toBe(-2);
   });
 
-  it("keeps a query-only kinematic body at its authored pose after cancelling a target", () => {
-    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(-2, 0, 0));
-    const body = box.getComponent(Rigidbody);
-    const physics = engine.sceneManager.activeScene.physics;
-    const ray = new Ray(new Vector3(2, 0, 3), new Vector3(0, 0, -1));
-    const hitsAt = (x: number) => {
-      ray.origin.x = x;
-      return physics.raycast(ray);
-    };
-    body.isKinematic = true;
-    body.move(new Vector3(2, 0, 0));
-    expect(hitsAt(2)).toBe(true);
-
-    body.simulationEnabled = false;
-    expect(hitsAt(2)).toBe(false);
-    expect(hitsAt(-2)).toBe(true);
-    expect(() => body.move(new Vector3(5, 0, 0))).not.toThrow();
-    expect(hitsAt(5)).toBe(false);
-    box.transform.position.x = 0;
-    expect(hitsAt(0)).toBe(true);
-
-    body.simulationEnabled = true;
-    body.move(new Vector3(2, 0, 0));
-    expect(hitsAt(2)).toBe(true);
-    expect(hitsAt(0)).toBe(false);
-  });
-
-  it.each([false, true])("clears dynamic motion and resumes it after re-enabling (detached=%s)", (detached) => {
-    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 3, 0));
-    const body = box.getComponent(Rigidbody);
-    const physics = engine.sceneManager.activeScene.physics;
-    body.useGravity = false;
-    body.linearVelocity.x = 2;
-    body.angularVelocity.y = 1;
-    body.applyForce(new Vector3(100, 0, 0));
-
-    body.simulationEnabled = false;
-    body.applyForce(new Vector3(5, 0, 0), ForceMode.Impulse);
-    physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.x).toBe(0);
-    expect(body.linearVelocity.x).toBe(0);
-    expect(body.angularVelocity.y).toBe(0);
-
-    body.useGravity = true;
-    if (detached) box.isActive = false;
-    body.simulationEnabled = true;
-    if (detached) box.isActive = true;
-    physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.x).toBe(0);
-    expect(box.transform.worldPosition.y).toBeLessThan(3);
-    body.applyForce(new Vector3(1, 0, 0), ForceMode.Impulse);
-    physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.x).toBeGreaterThan(0);
-  });
-
-  it("suspends a joint's constraint and wakes the sleeping endpoint on suspension and return", () => {
-    const anchor = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 10, 0));
-    const anchorBody = anchor.getComponent(Rigidbody);
-    anchorBody.isKinematic = true;
-    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 5, 0));
-    const body = box.getComponent(Rigidbody);
-    const joint = box.addComponent(FixedJoint);
-    joint.connectedBody = anchorBody;
-    const physics = engine.sceneManager.activeScene.physics;
-
-    physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.y).toBeCloseTo(5, 2);
-
-    body.sleep();
-    anchorBody.simulationEnabled = false;
-    physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.y).toBeLessThan(5);
-
-    body.sleep();
-    anchor.transform.position.y = 11;
-    anchorBody.simulationEnabled = true;
-    for (let i = 0; i < 6; i++) physics._update(physics.fixedTimeStep);
-    expect(box.transform.worldPosition.y).toBeCloseTo(6, 2);
-  });
-
   it("reports a rigidbody's initial sleep state and the latest transition after each step", () => {
     const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 3, 0));
     const body = box.getComponent(Rigidbody);
@@ -1378,8 +1298,8 @@ describe("Rigidbody", function () {
     const physics = engine.sceneManager.activeScene.physics;
     body.useGravity = false;
     first.onSleep.mockImplementation(() => {
-      body.simulationEnabled = false;
-      body.simulationEnabled = true;
+      body.enabled = false;
+      body.enabled = true;
     });
 
     physics._update(physics.fixedTimeStep);
@@ -1388,6 +1308,7 @@ describe("Rigidbody", function () {
     physics._update(physics.fixedTimeStep);
     expect(first.onSleep).toHaveBeenCalledOnce();
     expect(second.onSleep).not.toHaveBeenCalled();
+    body.wakeUp();
     physics._update(physics.fixedTimeStep);
     expect(second.onWake).toHaveBeenCalledTimes(2);
   });
@@ -1442,8 +1363,8 @@ describe("Rigidbody", function () {
     try {
       const physics = engine.sceneManager.activeScene.physics;
       physics._update(physics.fixedTimeStep);
-      body.simulationEnabled = false;
-      body.simulationEnabled = true;
+      body.enabled = false;
+      body.enabled = true;
       body.sleep();
       physics._update(physics.fixedTimeStep);
       expect(onWake).not.toHaveBeenCalled();

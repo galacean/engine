@@ -1976,54 +1976,6 @@ describe("Physics Test", () => {
     });
 
     describe("Collision Test", () => {
-      it.each([false, true])("ends trigger overlaps on suspension (replace shape=%s)", (replaceShape) => {
-        const root = enginePhysX.sceneManager.activeScene.createRootEntity("query-only trigger pair");
-        root.transform.setPosition(0, 1000, 0);
-        const trigger = root.createChild();
-        trigger.addComponent(BoxCollider).isTrigger = true;
-        const enter = vi.fn();
-        const stay = vi.fn();
-        const exit = vi.fn();
-        trigger.addComponent(
-          class extends Script {
-            onTriggerEnter = enter;
-            onTriggerStay = stay;
-            onTriggerExit = exit;
-          }
-        );
-        const visitor = root.createChild();
-        const collider = replaceShape ? visitor.addComponent(CapsuleCollider) : visitor.addComponent(BoxCollider);
-        if (collider instanceof CapsuleCollider) collider.radius = 0.5;
-        const body = visitor.addComponent(Rigidbody);
-        body.isKinematic = true;
-
-        try {
-          physicsScene._update(physicsScene.fixedTimeStep);
-          physicsScene._update(physicsScene.fixedTimeStep);
-          expect(enter).toHaveBeenCalledTimes(1);
-          expect(stay).toHaveBeenCalledTimes(1);
-
-          body.simulationEnabled = false;
-          if (collider instanceof CapsuleCollider) collider.height = 1;
-          physicsScene._update(physicsScene.fixedTimeStep);
-          physicsScene._update(physicsScene.fixedTimeStep);
-          expect(stay).toHaveBeenCalledTimes(1);
-          expect(exit).toHaveBeenCalledTimes(1);
-          if (collider instanceof CapsuleCollider) {
-            expect(collider.getClosestPoint(new Vector3(0, 1001, 0), new Vector3())).toBeCloseTo(0.5);
-          }
-          const overlaps: Collider[] = [];
-          physicsScene.overlapSphereAll(visitor.transform.worldPosition, 0.25, Layer.Everything, overlaps);
-          expect(overlaps).toContain(collider);
-
-          body.simulationEnabled = true;
-          physicsScene._update(physicsScene.fixedTimeStep);
-          expect(enter).toHaveBeenCalledTimes(2);
-        } finally {
-          root.destroy();
-        }
-      });
-
       it.each([
         ["static", "static", false],
         ["dynamic", "dynamic", true],
