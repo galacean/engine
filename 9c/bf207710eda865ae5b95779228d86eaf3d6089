@@ -1,0 +1,19 @@
+packages/core/src/physics/Rigidbody.ts
+  s_6269937983ee4f::t_a0ab4df8803aa7 34,36,65,123,139,422,429,438,445,520,543,726,802,809,818,860,898,913,1120,1134-1138,1284
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9cbf207710eda865ae5b95779228d86eaf3d6089",
+  "prompts": {},
+  "sessions": {
+    "s_6269937983ee4f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a20c8b-e77c-730d-a015-7436aa546071",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
