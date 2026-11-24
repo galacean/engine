@@ -1,0 +1,18 @@
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_c385727b10f40c 187
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_c385727b10f40c 602-603,734-741
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_c385727b10f40c 2,951-1041
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1b3c1eba547f473fc90a77f1569b24c181ddd062",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+docs/en/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 67
+docs/zh/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1210cb99d30038a37838ebc56cbd1a521f8347bd",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
