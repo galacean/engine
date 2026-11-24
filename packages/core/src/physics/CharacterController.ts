@@ -224,42 +224,42 @@ export class CharacterController extends Collider {
    * @internal
    */
   override _sync(): void {
-    const scene = this._registeredScene!;
     const transform = this.entity.transform;
-    // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
+    // Reading the world matrix re-arms transform change notifications that are only sent from a clean state.
     transform.worldMatrix;
     const lossyScale = transform.lossyWorldScale;
-    const position = transform.worldPosition;
-    const colliderCenter = this.center;
     const scaleX = lossyScale.x;
     const scaleY = lossyScale.y;
     const scaleZ = lossyScale.z;
-    const scale = CharacterController._tempWorldScale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
-    const force = !this._inScene;
-    if (force || this._geometryDirty || this._scaleChanged(scale)) {
-      const radius = this._radius * Math.max(scale.x, scale.z);
-      const scaledHeight = this._height * scale.y;
+    const needsAttach = !this._inScene;
+
+    // Sync capsule dimensions and lazily create the native controller.
+    const absScale = CharacterController._tempWorldScale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
+    if (needsAttach || this._geometryDirty || this._scaleChanged(absScale)) {
+      const radius = this._radius * Math.max(absScale.x, absScale.z);
+      const scaledHeight = this._height * absScale.y;
       if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
         this._detach();
         return;
       }
       this._geometryDirty = false;
-      this._nativeScale.copyFrom(scale);
-      (this._controller ||= this._createNative()).setCapsule(
-        radius,
-        Math.max(0, scaledHeight * 0.5 - radius),
-        Math.min(this._stepOffset, Math.max(scaledHeight, 2 * radius))
-      );
+      this._nativeScale.copyFrom(absScale);
+      const halfHeight = Math.max(0, scaledHeight * 0.5 - radius);
+      const stepOffset = Math.min(this._stepOffset, Math.max(scaledHeight, 2 * radius));
+      (this._controller ||= this._createNative()).setCapsule(radius, halfHeight, stepOffset);
     }
 
+    // Sync world position and signed center offset.
     const controller = this._controller!;
+    const position = transform.worldPosition;
+    const colliderCenter = this.center;
     const centerX = colliderCenter.x * scaleX;
     const centerY = colliderCenter.y * scaleY;
     const centerZ = colliderCenter.z * scaleZ;
     const syncedCenter = this._syncedCenter;
     const nativePosition = this._nativePosition;
     if (
-      force ||
+      needsAttach ||
       centerX !== syncedCenter.x ||
       centerY !== syncedCenter.y ||
       centerZ !== syncedCenter.z ||
@@ -271,8 +271,10 @@ export class CharacterController extends Collider {
       nativePosition.copyFrom(position);
       controller.setWorldPosition(position, syncedCenter);
     }
-    if (force) {
-      scene.physics._nativePhysicsScene.addCharacterController(controller);
+
+    // Register in the native scene on first sync or after detaching.
+    if (needsAttach) {
+      this._registeredScene!.physics._nativePhysicsScene.addCharacterController(controller);
       this._inScene = true;
     }
   }
