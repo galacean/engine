@@ -86,6 +86,26 @@ describe("Matrix3x3 test", () => {
 
     Matrix3x3.normalMatrix(mat4, out);
     expect(Matrix3x3.equals(out, new Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1))).to.eq(true);
+
+    // Affine matrix fast path matches inverse-transpose of upper-left 3x3
+    const affine = new Matrix(2, 0.5, 0, 0, 0, 3, -0.5, 0, 0.25, 0, 4, 0, 10, -20, 30, 1);
+    const expected4 = new Matrix();
+    Matrix.invert(affine, expected4);
+    expected4.transpose();
+    expect(Matrix3x3.normalMatrix(affine, out)).to.eq(undefined);
+    expect(out.elements[0]).to.be.closeTo(expected4.elements[0], 1e-5);
+    expect(out.elements[1]).to.be.closeTo(expected4.elements[1], 1e-5);
+    expect(out.elements[2]).to.be.closeTo(expected4.elements[2], 1e-5);
+    expect(out.elements[3]).to.be.closeTo(expected4.elements[4], 1e-5);
+    expect(out.elements[4]).to.be.closeTo(expected4.elements[5], 1e-5);
+    expect(out.elements[5]).to.be.closeTo(expected4.elements[6], 1e-5);
+    expect(out.elements[6]).to.be.closeTo(expected4.elements[8], 1e-5);
+    expect(out.elements[7]).to.be.closeTo(expected4.elements[9], 1e-5);
+    expect(out.elements[8]).to.be.closeTo(expected4.elements[10], 1e-5);
+
+    // Singular affine matrix returns null
+    const singular = new Matrix(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1);
+    expect(Matrix3x3.normalMatrix(singular, out)).to.eq(null);
   });
 
   it("static rotate", () => {

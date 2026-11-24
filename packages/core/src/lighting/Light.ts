@@ -72,17 +72,65 @@ export abstract class Light extends Component {
    * View matrix.
    */
   get viewMatrix(): Matrix {
-    if (!this._viewMat) this._viewMat = new Matrix();
-    Matrix.invert(this.entity.transform.worldMatrix, this._viewMat);
-    return this._viewMat;
+    const viewMat = (this._viewMat ||= new Matrix());
+    const transform = this.entity.transform;
+    const worldMatrix = transform.worldMatrix;
+    if (transform._getWorldUniformScaling()) {
+      const ae = worldMatrix.elements;
+      const a11 = ae[0],
+        a12 = ae[1],
+        a13 = ae[2];
+      const s2 = a11 * a11 + a12 * a12 + a13 * a13;
+      if (s2) {
+        const invS2 = 1.0 / s2;
+        const a21 = ae[4],
+          a22 = ae[5],
+          a23 = ae[6];
+        const a31 = ae[8],
+          a32 = ae[9],
+          a33 = ae[10];
+        const tx = ae[12],
+          ty = ae[13],
+          tz = ae[14];
+        const r11 = a11 * invS2,
+          r12 = a21 * invS2,
+          r13 = a31 * invS2;
+        const r21 = a12 * invS2,
+          r22 = a22 * invS2,
+          r23 = a32 * invS2;
+        const r31 = a13 * invS2,
+          r32 = a23 * invS2,
+          r33 = a33 * invS2;
+        const oe = viewMat.elements;
+        oe[0] = r11;
+        oe[1] = r12;
+        oe[2] = r13;
+        oe[3] = 0;
+        oe[4] = r21;
+        oe[5] = r22;
+        oe[6] = r23;
+        oe[7] = 0;
+        oe[8] = r31;
+        oe[9] = r32;
+        oe[10] = r33;
+        oe[11] = 0;
+        oe[12] = -(r11 * tx + r21 * ty + r31 * tz) + 0;
+        oe[13] = -(r12 * tx + r22 * ty + r32 * tz) + 0;
+        oe[14] = -(r13 * tx + r23 * ty + r33 * tz) + 0;
+        oe[15] = 1;
+      }
+      return viewMat;
+    }
+    Matrix.invert(worldMatrix, viewMat);
+    return viewMat;
   }
 
   /**
    * Inverse view matrix.
    */
   get inverseViewMatrix(): Matrix {
-    if (!this._inverseViewMat) this._inverseViewMat = new Matrix();
-    Matrix.invert(this.viewMatrix, this._inverseViewMat);
-    return this._inverseViewMat;
+    const inverseViewMat = (this._inverseViewMat ||= new Matrix());
+    inverseViewMat.copyFrom(this.entity.transform.worldMatrix);
+    return inverseViewMat;
   }
 }

@@ -375,26 +375,29 @@ describe("camera test", function () {
     camera.entity.transform.rotation = new Vector3(-20, -40, 0);
 
     camera.resetViewMatrix();
-    expect(camera.viewMatrix).to.deep.eq(
-      new Matrix(
-        0.7660444378852844,
-        0.21984632313251495,
-        -0.6040228009223938,
-        0,
-        1.2836363083579272e-9,
-        0.9396926164627075,
-        0.3420201241970062,
-        -0,
-        0.6427876353263855,
-        -0.2620026171207428,
-        0.7198463082313538,
-        0,
-        -1.162318468093872,
-        -0.8735310435295105,
-        -3.447601795196533,
-        1
+    expect(
+      Matrix.equals(
+        camera.viewMatrix,
+        new Matrix(
+          0.7660444378852844,
+          0.21984630823135376,
+          -0.6040228009223938,
+          0,
+          0,
+          0.9396926164627075,
+          0.3420201539993286,
+          0,
+          0.6427876353263855,
+          -0.2620026171207428,
+          0.7198463082313538,
+          0,
+          -1.162318468093872,
+          -0.8735311031341553,
+          -3.4476020336151123,
+          1
+        )
       )
-    );
+    ).to.eq(true);
   });
 
   it("Custom projection matrix", () => {
@@ -441,6 +444,29 @@ describe("camera test", function () {
     expect(cloneCamera.shaderData).to.not.eq(camera.shaderData);
     // @ts-ignore
     expect(cloneCamera._globalShaderMacro).to.not.eq(camera._globalShaderMacro);
+  });
+
+  it("viewMatrix rigid fast path matches inverse rotationTranslation", () => {
+    const camEntity = engine.sceneManager.scenes[0].createRootEntity("rigidCam");
+    camEntity.transform.setPosition(3, -5, 12);
+    camEntity.transform.setRotation(25, -40, 15);
+    camEntity.transform.setScale(2, 3, 4); // Camera viewMatrix ignores scale
+    const cam = camEntity.addComponent(Camera);
+
+    const expected = new Matrix();
+    Matrix.rotationTranslation(
+      camEntity.transform.worldRotationQuaternion,
+      camEntity.transform.worldPosition,
+      expected
+    );
+    expected.invert();
+
+    const actual = cam.viewMatrix;
+    for (let i = 0; i < 16; i++) {
+      expect(actual.elements[i]).to.be.closeTo(expected.elements[i], 1e-5);
+    }
+
+    camEntity.destroy();
   });
 
   it("destroy test", () => {

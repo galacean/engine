@@ -13,7 +13,7 @@ import {
   SpotLight
 } from "@galacean/engine-core";
 import "@galacean/engine-loader";
-import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
+import { Color, Matrix, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 
 import { ShadowType } from "@galacean/engine-core";
@@ -128,6 +128,25 @@ describe("Light test", function () {
     expect(viewMatrix[13] + inverseViewMatrix[13]).to.deep.equal(0);
     expect(viewMatrix[14] + inverseViewMatrix[14]).to.deep.equal(0);
     expect(viewMatrix[15]).to.deep.equal(inverseViewMatrix[15]);
+
+    // Verify viewMatrix & inverseViewMatrix with transformed uniform (positive/negative) and non-uniform scales
+    const testLightEntity = scene.createRootEntity("scaledLight");
+    const testLight = testLightEntity.addComponent(DirectLight);
+    testLightEntity.transform.setPosition(4, -3, 7);
+    testLightEntity.transform.setRotation(30, -50, 20);
+
+    for (const scale of [new Vector3(1, 1, 1), new Vector3(-2, -2, -2), new Vector3(2, 3, 0.5)]) {
+      testLightEntity.transform.scale = scale;
+      const expectedView = new Matrix();
+      Matrix.invert(testLightEntity.transform.worldMatrix, expectedView);
+      const actualView = testLight.viewMatrix;
+      const actualInvView = testLight.inverseViewMatrix;
+      for (let i = 0; i < 16; i++) {
+        expect(actualView.elements[i]).to.be.closeTo(expectedView.elements[i], 1e-5);
+        expect(actualInvView.elements[i]).to.be.closeTo(testLightEntity.transform.worldMatrix.elements[i], 1e-5);
+      }
+    }
+    testLightEntity.destroy();
   });
 
   it("update shadow type", function () {

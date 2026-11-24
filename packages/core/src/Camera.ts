@@ -318,10 +318,25 @@ export class Camera extends Component {
     }
     this._isViewMatrixDirty.flag = false;
 
-    // Ignore scale
+    // Ignore scale: invert rigid transform M = [R t; 0 1] directly as [R^T -R^T*t; 0 1]
     const transform = this._entity.transform;
     Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, viewMatrix);
-    viewMatrix.invert();
+    const e = viewMatrix.elements;
+    const e1 = e[1],
+      e2 = e[2],
+      e6 = e[6];
+    e[1] = e[4];
+    e[2] = e[8];
+    e[4] = e1;
+    e[6] = e[9];
+    e[8] = e2;
+    e[9] = e6;
+    const tx = e[12],
+      ty = e[13],
+      tz = e[14];
+    e[12] = -(e[0] * tx + e[4] * ty + e[8] * tz) + 0;
+    e[13] = -(e[1] * tx + e[5] * ty + e[9] * tz) + 0;
+    e[14] = -(e[2] * tx + e[6] * ty + e[10] * tz) + 0;
     return viewMatrix;
   }
 

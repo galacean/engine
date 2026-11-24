@@ -430,6 +430,43 @@ describe("Matrix test", () => {
         )
       )
     ).to.eq(true);
+
+    // Affine matrix fast path (rotation + non-uniform/negative scale + translation)
+    const q = new Quaternion();
+    Quaternion.rotationYawPitchRoll(0.5, -0.3, 0.7, q);
+    const affine = new Matrix();
+    Matrix.affineTransformation(new Vector3(-2, 3, 0.5), q, new Vector3(10, -20, 30), affine);
+    const inv = new Matrix();
+    expect(Matrix.invert(affine, inv)).to.eq(undefined);
+    const prod = new Matrix();
+    Matrix.multiply(affine, inv, prod);
+    for (let i = 0; i < 16; i++) {
+      expect(prod.elements[i]).to.be.closeTo(i % 5 === 0 ? 1 : 0, 1e-5);
+    }
+
+    // In-place affine invert
+    const inPlace = affine.clone();
+    inPlace.invert();
+    for (let i = 0; i < 16; i++) {
+      expect(inPlace.elements[i]).to.be.closeTo(inv.elements[i], 1e-5);
+    }
+
+    // Singular affine matrix returns null and leaves out untouched
+    const singular = new Matrix(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 5, 6, 7, 1);
+    const sentinel = new Matrix(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17);
+    const out = sentinel.clone();
+    expect(Matrix.invert(singular, out)).to.eq(null);
+    expect(Matrix.equals(out, sentinel)).to.eq(true);
+
+    // Non-affine perspective projection matrix still inverts accurately
+    const proj = new Matrix();
+    Matrix.perspective(Math.PI / 3, 16 / 9, 0.1, 1000, proj);
+    const invProj = new Matrix();
+    expect(Matrix.invert(proj, invProj)).to.eq(undefined);
+    Matrix.multiply(proj, invProj, prod);
+    for (let i = 0; i < 16; i++) {
+      expect(prod.elements[i]).to.be.closeTo(i % 5 === 0 ? 1 : 0, 1e-4);
+    }
   });
 
   it("rotateAxisAngle", () => {

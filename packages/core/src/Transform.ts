@@ -899,7 +899,10 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
   }
 
-  private _getWorldUniformScaling(): boolean {
+  /**
+   * @internal
+   */
+  _getWorldUniformScaling(): boolean {
     if (this._isContainDirtyFlag(TransformModifyFlags.IsWorldUniformScaling)) {
       const localUniformScaling = this._localUniformScaling;
       if (localUniformScaling) {
