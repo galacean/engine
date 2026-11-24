@@ -10,6 +10,9 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   /** Whether to ignore the garbage collection check, if it is true, it will not be affected by ResourceManager.gc(). */
   isGCIgnored: boolean = false;
 
+  /** @internal */
+  _isLoading: boolean = false;
+
   private _refCount: number = 0;
   private _superResources: Set<ReferResource> | null = null;
   private _subResources: Set<ReferResource> | null = null;
@@ -97,7 +100,12 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   _hasActiveSuperResource(): boolean {
     if (this._superResources) {
       for (const superResource of this._superResources) {
-        if (superResource._refCount > 0 || superResource.isGCIgnored || superResource._hasActiveSuperResource()) {
+        if (
+          superResource._refCount > 0 ||
+          superResource.isGCIgnored ||
+          superResource._isLoading ||
+          superResource._hasActiveSuperResource()
+        ) {
           return true;
         }
       }

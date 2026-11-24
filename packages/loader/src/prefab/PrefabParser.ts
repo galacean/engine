@@ -8,13 +8,12 @@ import { PrefabResource } from "./PrefabResource";
 export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext> {
   static parse(engine: Engine, url: string, data: PrefabFile): Promise<PrefabResource> {
     const prefabResource = new PrefabResource(engine, url);
-    const resourceManager = engine.resourceManager;
-    resourceManager._addLoadingResource(prefabResource);
+    prefabResource._isLoading = true;
     const context = new ParserContext(engine, ParserType.Prefab, prefabResource);
     const parser = new PrefabParser(data, context, prefabResource);
     parser.start();
     return parser.promise.finally(() => {
-      resourceManager._deleteLoadingResource(prefabResource);
+      prefabResource._isLoading = false;
     });
   }
 

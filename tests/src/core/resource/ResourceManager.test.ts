@@ -601,7 +601,7 @@ describe("ResourceManager", () => {
 
       // @ts-ignore -- simulate an in-flight composite loader registering its pending ReferResource
       const loaderSpy = vi.spyOn(ResourceManager._loaders[AssetType.Material], "load").mockImplementation(() => {
-        resourceManager._addLoadingResource(mat);
+        mat._isLoading = true;
         return new AssetPromise<PBRMaterial>((resolve) => {
           resolveLoad = resolve;
         });

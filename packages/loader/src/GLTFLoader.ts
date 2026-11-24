@@ -39,7 +39,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const params = <GLTFParams>item.params;
     const glTFResource = new GLTFResource(resourceManager.engine, item.url!);
-    resourceManager._addLoadingResource(glTFResource);
+    glTFResource._isLoading = true;
     const context = new GLTFParserContext(glTFResource, resourceManager, {
       keepMeshData: false,
       ...params

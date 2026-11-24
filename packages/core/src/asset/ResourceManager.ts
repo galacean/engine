@@ -43,7 +43,6 @@ export class ResourceManager {
   baseUrl: string | null = null;
 
   private _loadingPromises: Record<string, AssetPromise<any>> = {};
-  private _loadingResources: Set<ReferResource> = new Set();
 
   /** Asset path pool, key is the `instanceID` of resource, value is asset path. */
   private _assetPool: Record<number, string> = Object.create(null);
@@ -119,10 +118,9 @@ export class ResourceManager {
   findResourcesByType<T extends EngineObject>(type: new (...args) => T): T[] {
     const resources = new Array<T>();
     const referResourcePool = this._referResourcePool;
-    const loadingResources = this._loadingResources;
     for (const k in referResourcePool) {
       const resource = referResourcePool[k];
-      if (resource instanceof type && !loadingResources.has(resource)) {
+      if (resource instanceof type && !resource._isLoading) {
         resources.push(resource);
       }
     }
@@ -249,20 +247,6 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addLoadingResource(resource: ReferResource): void {
-    this._loadingResources.add(resource);
-  }
-
-  /**
-   * @internal
-   */
-  _deleteLoadingResource(resource: ReferResource): void {
-    this._loadingResources?.delete(resource);
-  }
-
-  /**
-   * @internal
-   */
   _addReferResource(resource: ReferResource): void {
     this._referResourcePool[resource.instanceId] = resource;
   }
@@ -272,7 +256,6 @@ export class ResourceManager {
    */
   _deleteReferResource(resource: EngineObject): void {
     delete this._referResourcePool[resource.instanceId];
-    this._loadingResources.delete(resource as ReferResource);
   }
 
   /**
@@ -342,8 +325,6 @@ export class ResourceManager {
     this._graphicResourcePool = null!;
     this._contentRestorerPool = null!;
     this._loadingPromises = null!;
-    this._loadingResources.clear();
-    this._loadingResources = null!;
   }
 
   private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: VirtualResource): void {
@@ -434,7 +415,9 @@ export class ResourceManager {
 
     promise.then(
       (resource: T) => {
-        this._loadingResources?.delete(resource as ReferResource);
+        if (resource instanceof ReferResource) {
+          resource._isLoading = false;
+        }
         if (loader.useCache) {
           this._addAsset(remoteAssetBaseURL, resource as EngineObject);
         }
@@ -506,7 +489,6 @@ export class ResourceManager {
     }
 
     // Temporarily root GC-ignored, loading, and super-retained zero-ref resources through existing _addReferCount chains
-    const loadingResources = this._loadingResources;
     const pinned: ReferResource[] = [];
     let added: boolean;
     do {
@@ -515,7 +497,7 @@ export class ResourceManager {
         const object = objects[i];
         if (
           object._getReferCount() === 0 &&
-          (object.isGCIgnored || loadingResources.has(object) || object._hasActiveSuperResource())
+          (object.isGCIgnored || object._isLoading || object._hasActiveSuperResource())
         ) {
           pinned.push(object);
           object._addReferCount(1);
