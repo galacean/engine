@@ -1119,9 +1119,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _computePointVelocity(point: Vector3, out: Vector3, relative: boolean): Vector3 {
     const actor = this._getSyncedActor();
     if (!actor) return out.set(0, 0, 0);
-    const pointX = point.x;
-    const pointY = point.y;
-    const pointZ = point.z;
     const position = Rigidbody._tempPosition;
     const rotation = Rigidbody._tempRotation;
     const center = Rigidbody._tempCenter;
@@ -1131,17 +1128,18 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     actor.getWorldTransform(position, rotation);
     actor.getCenterOfMass(center);
     if (relative) {
-      offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
+      offset.set(point.x - center.x, point.y - center.y, point.z - center.z);
       Vector3.transformByQuat(offset, rotation, offset);
     } else {
       Vector3.transformByQuat(center, rotation, center);
       center.add(position);
-      offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
+      offset.set(point.x - center.x, point.y - center.y, point.z - center.z);
     }
     actor.getLinearVelocity(linearVelocity);
     actor.getAngularVelocity(angularVelocity);
-    Vector3.cross(angularVelocity, offset, out);
-    return out.add(linearVelocity);
+    Vector3.cross(angularVelocity, offset, offset);
+    Vector3.add(offset, linearVelocity, out);
+    return out;
   }
 
   /**

@@ -1206,14 +1206,18 @@ describe("Rigidbody", function () {
     body.linearVelocity.set(2, 0, 0);
     body.angularVelocity.set(0, 0, 1);
 
-    const out = new Vector3();
+    const createActor = vi.spyOn(backend, "createDynamicActor");
+    const out = rootEntity.createChild("velocity receiver").addComponent(Rigidbody).linearVelocity;
     expect(body.getWorldCenterOfMass(out)).toBe(out);
     expect(out.x).toBeCloseTo(2, 5);
     expect(out.y).toBeCloseTo(1, 5);
+    const setLinearVelocity = vi.spyOn(createActor.mock.results[0].value, "setLinearVelocity");
     expect(body.getPointVelocity(new Vector3(2, 2, 0), out)).toBe(out);
+    expect(setLinearVelocity).toHaveBeenCalledTimes(1);
     expect(out.x).toBeCloseTo(1, 5);
     expect(out.y).toBeCloseTo(0, 5);
     expect(body.getRelativePointVelocity(new Vector3(2, 0, 0), out)).toBe(out);
+    expect(setLinearVelocity).toHaveBeenCalledTimes(2);
     expect(out.x).toBeCloseTo(1, 5);
     expect(out.y).toBeCloseTo(0, 5);
 

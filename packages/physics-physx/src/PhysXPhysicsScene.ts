@@ -202,9 +202,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   addActor(actor: PhysXActor): void {
     actor._scene = this;
     this._pxScene.addActor(actor._pxActor, null);
-    const shapes = actor._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      this._addShape(shapes[i]._id);
+    const ids = actor._shapeIds;
+    for (let i = 0, n = ids.length; i < n; i++) {
+      this._addShape(ids[i]);
     }
   }
 
@@ -214,9 +214,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   removeActor(actor: PhysXActor): void {
     actor._scene = null;
     this._pxScene.removeActor(actor._pxActor, true);
-    const shapes = actor._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      this._removeShape(shapes[i]._id);
+    const ids = actor._shapeIds;
+    for (let i = 0, n = ids.length; i < n; i++) {
+      this._removeShape(ids[i]);
     }
   }
 
