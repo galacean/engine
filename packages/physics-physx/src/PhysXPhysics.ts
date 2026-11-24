@@ -8,6 +8,7 @@ import {
   IMeshShape,
   IPhysics,
   IPhysicsMaterialProperties,
+  IPhysicsMeshSource,
   IPhysicsScene,
   IPlaneShape,
   ISphereShape,
@@ -22,7 +23,7 @@ import { PhysXStaticActor } from "./PhysXStaticActor";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 import { PhysXBoxShape } from "./shape/PhysXBoxShape";
 import { PhysXCapsuleShape } from "./shape/PhysXCapsuleShape";
-import { PhysXMeshShape } from "./shape/PhysXMeshShape";
+import { PhysXMeshShape, type PhysXMeshCookCache } from "./shape/PhysXMeshShape";
 import { PhysXPlaneShape } from "./shape/PhysXPlaneShape";
 import { PhysXSphereShape } from "./shape/PhysXSphereShape";
 
@@ -41,6 +42,8 @@ export class PhysXPhysics implements IPhysics {
   _pxCooking: any;
   /** @internal PhysX cooking params */
   _pxCookingParams: any;
+  /** @internal Cooked geometry held by this backend's mesh shapes. */
+  readonly _meshCookCache: PhysXMeshCookCache = new WeakMap();
 
   private _initializePromise: Promise<void> | null = null;
   private _defaultErrorCallback: any;
@@ -160,9 +163,20 @@ export class PhysXPhysics implements IPhysics {
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
     cookingFlags: MeshColliderCookingFlag,
-    scale: Vector3
+    scale: Vector3,
+    source: IPhysicsMeshSource
   ): IMeshShape | null {
-    const shape = new PhysXMeshShape(this, uniqueID, positions, indices, isConvex, material, cookingFlags, scale);
+    const shape = new PhysXMeshShape(
+      this,
+      uniqueID,
+      positions,
+      indices,
+      isConvex,
+      material,
+      cookingFlags,
+      scale,
+      source
+    );
     return shape._pxShape ? shape : null;
   }
 

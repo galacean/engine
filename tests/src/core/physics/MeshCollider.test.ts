@@ -16,11 +16,12 @@ import {
   Script,
   SphereCollider,
   VertexAttribute,
+  VertexBufferBinding,
   VertexElement,
   VertexElementFormat
 } from "@galacean/engine-core";
 import { Ray, Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine";
+import { AssetType, type PrefabResource, WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 class CollisionRecorder extends Script {
@@ -60,9 +61,10 @@ describe("MeshCollider", () => {
   let engine: WebGLEngine;
   let root: Entity;
   let physics: PhysicsScene;
+  const backend = createPhysics();
 
   beforeAll(async () => {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: backend });
     physics = engine.sceneManager.activeScene.physics;
   });
 
@@ -104,16 +106,291 @@ describe("MeshCollider", () => {
     return entity.addComponent(CollisionRecorder);
   }
 
-  it("clones the mesh reference and cooks the clone", () => {
-    const collider = addMesh(true);
-    const cloneEntity = collider.entity.clone();
-    root.addChild(cloneEntity);
-    cloneEntity.transform.setPosition(5, 0, 0);
-    const clone = cloneEntity.getComponent(MeshCollider);
-    expect(clone.mesh).toBe(collider.mesh);
+  function watchCooking(convex: boolean, physicsBackend = backend) {
+    return vi.spyOn(physicsBackend._pxCooking, convex ? "createConvexMesh" : "createTriMesh");
+  }
+
+  it.each([false, true])(
+    "shares one cook across cloned shapes and releases it after the last use (convex=%s)",
+    (convex) => {
+      const cook = watchCooking(convex);
+      const collider = addMesh(convex);
+      const mesh = collider.mesh!;
+      const hit = new HitResult();
+      expect(physics.raycast(rayAt(0), hit) && hit.collider === collider).toBe(true);
+      const release = vi.spyOn(cook.mock.results[0].value, "release");
+
+      // Uploading new render attributes rewrites the vertex buffer without changing the positions.
+      mesh.setNormals(Array(mesh.vertexCount).fill(new Vector3(0, 1, 0)));
+      mesh.uploadData(false);
+      const cloneEntity = collider.entity.clone();
+      root.addChild(cloneEntity);
+      cloneEntity.transform.setPosition(6, 0, 0);
+      cloneEntity.transform.setScale(2, 1, 1);
+      const clone = cloneEntity.getComponent(MeshCollider)!;
+      expect(clone.mesh).toBe(mesh);
+      expect(physics.raycast(rayAt(7.5), hit) && hit.collider === clone).toBe(true);
+      expect(physics.raycast(rayAt(1.5))).toBe(false);
+      expect(cook).toHaveBeenCalledOnce();
+
+      cloneEntity.destroy();
+      expect(release).not.toHaveBeenCalled();
+      collider.entity.transform.setScale(2, 1, 1);
+      expect(physics.raycast(rayAt(1.5), hit) && hit.collider === collider).toBe(true);
+      expect(cook).toHaveBeenCalledOnce();
+      const probe = root.createChild("contact after rescale");
+      probe.transform.setPosition(1.5, 1.25, 0);
+      probe.addComponent(SphereCollider).radius = 0.5;
+      probe.addComponent(Rigidbody).useGravity = false;
+      const recorder = probe.addComponent(CollisionRecorder);
+      update();
+      expect(recorder.onCollisionEnter).toHaveBeenCalledOnce();
+      probe.destroy();
+
+      collider.enabled = false;
+      collider.mesh = null;
+      expect(release).toHaveBeenCalledOnce();
+      expect(mesh.refCount).toBe(0);
+
+      // With no live cook, reassignment reads even unsubmitted edits to the retained CPU positions.
+      for (const vertex of mesh.getPositions()!) vertex.x *= 3;
+      const rebound = addMesh(convex, mesh);
+      expect(physics.raycast(rayAt(2.5), hit) && hit.collider === rebound).toBe(true);
+      expect(cook).toHaveBeenCalledTimes(2);
+      const reboundRelease = vi.spyOn(cook.mock.results[1].value, "release");
+      rebound.destroy();
+      expect(reboundRelease).toHaveBeenCalledOnce();
+    }
+  );
+
+  it("shares a cook across instances of a loaded prefab", async () => {
+    const meshUrl = URL.createObjectURL(
+      new Blob(
+        [
+          JSON.stringify({
+            type: "cuboid",
+            cuboidWidth: 2,
+            cuboidHeight: 2,
+            cuboidDepth: 2,
+            cuboidOptions: { keepMeshData: true }
+          })
+        ],
+        { type: "application/json" }
+      )
+    );
+    const prefabUrl = URL.createObjectURL(
+      new Blob(
+        [
+          JSON.stringify({
+            version: "2.0",
+            refs: [{ url: "shared-cook.mesh" }],
+            root: 0,
+            entities: [{ name: "shared cook", components: [0] }],
+            components: [{ type: "MeshCollider", props: { mesh: { $ref: 0 } } }]
+          })
+        ],
+        { type: "application/json" }
+      )
+    );
+    try {
+      const resources = engine.resourceManager;
+      resources.registerVirtualResources([
+        { virtualPath: "shared-cook.mesh", path: meshUrl, type: AssetType.PrimitiveMesh }
+      ]);
+      const prefab = await resources.load<PrefabResource>({ url: prefabUrl, type: AssetType.Prefab });
+      const cook = watchCooking(false);
+      const a = prefab.instantiate();
+      const b = prefab.instantiate();
+      root.addChild(a);
+      root.addChild(b);
+      b.transform.setPosition(6, 0, 0);
+      b.transform.setScale(2, 1, 1);
+      const hit = new HitResult();
+      expect(physics.raycast(rayAt(0), hit) && hit.entity === a).toBe(true);
+      expect(physics.raycast(rayAt(7.5), hit) && hit.entity === b).toBe(true);
+      expect(cook).toHaveBeenCalledOnce();
+    } finally {
+      URL.revokeObjectURL(prefabUrl);
+      URL.revokeObjectURL(meshUrl);
+    }
+  });
+
+  it("uses new position and index data while existing colliders retain their snapshots", () => {
+    const cook = watchCooking(false);
+    const mesh = createModelMesh(engine, [-1, 0, -1, 1, 0, -1, 0, 0, 1, 3, 0, -1, 5, 0, -1, 4, 0, 1], [0, 2, 1]);
+    const first = addMesh(false, mesh);
     const hit = new HitResult();
-    expect(physics.raycast(new Ray(new Vector3(5, 5, 0), new Vector3(0, -1, 0)), hit)).toBe(true);
-    expect(hit.collider).toBe(clone);
+    expect(physics.raycast(rayAt(0), hit) && hit.collider === first).toBe(true);
+
+    const positions = mesh.getPositions()!;
+    for (const point of positions) point.x += 2;
+    mesh.setPositions(positions);
+    const second = addMesh(false, mesh);
+    second.entity.transform.setPosition(10, 0, 0);
+    expect(physics.raycast(rayAt(12), hit) && hit.collider === second).toBe(true);
+    expect(physics.raycast(rayAt(2))).toBe(false);
+
+    const indices = mesh.getIndices()!;
+    indices.set([3, 5, 4]);
+    mesh.setIndices(indices);
+    second.mesh = null;
+    second.mesh = mesh;
+    expect(physics.raycast(rayAt(16), hit) && hit.collider === second).toBe(true);
+    expect(physics.raycast(rayAt(12))).toBe(false);
+    expect(physics.raycast(rayAt(0), hit) && hit.collider === first).toBe(true);
+    first.destroy();
+    const third = addMesh(false, mesh);
+    expect(physics.raycast(rayAt(6), hit) && hit.collider === third).toBe(true);
+    expect(cook).toHaveBeenCalledTimes(3);
+  });
+
+  it("recooks after position buffer writes, layout changes, and buffer rebindings", () => {
+    const cube = createCubeMesh(engine);
+    const mesh = new ModelMesh(engine);
+    mesh.setIndices(cube.getIndices()!);
+    const positions = cube.getPositions()!;
+    const vertexData = (first: number, second: number) =>
+      new Float32Array(positions.flatMap(({ x, y, z }) => [x * first, y, z, x * second, y, z]));
+    const vertexBuffer = (first: number, second: number) =>
+      new Buffer(engine, BufferBindFlag.VertexBuffer, vertexData(first, second), BufferUsage.Static, true);
+    const positionElement = (offset: number) =>
+      new VertexElement(VertexAttribute.Position, offset, VertexElementFormat.Vector3, 0);
+
+    const buffer = vertexBuffer(1, 1);
+    mesh.setVertexElements([positionElement(0)]);
+    mesh.setVertexBufferBinding(buffer, 24);
+    const old = addMesh(false, mesh);
+    const hit = new HitResult();
+    const cook = watchCooking(false);
+    expect(physics.raycast(rayAt(0), hit) && hit.collider === old).toBe(true);
+    expect(physics.raycast(rayAt(1.5))).toBe(false);
+
+    buffer.setData(vertexData(2, 3));
+    const updated = addMesh(false, mesh);
+    updated.entity.transform.setPosition(12, 0, 0);
+    expect(physics.raycast(rayAt(13.5), hit) && hit.collider === updated).toBe(true);
+    expect(physics.raycast(rayAt(14.5))).toBe(false);
+
+    mesh.setVertexElements([positionElement(12)]);
+    updated.mesh = null;
+    updated.mesh = mesh;
+    expect(physics.raycast(rayAt(14.5), hit) && hit.collider === updated).toBe(true);
+
+    mesh.setVertexBufferBinding(vertexBuffer(1, 4), 24);
+    updated.mesh = null;
+    updated.mesh = mesh;
+    expect(physics.raycast(rayAt(15.5), hit) && hit.collider === updated).toBe(true);
+
+    mesh.setVertexBufferBindings([new VertexBufferBinding(vertexBuffer(1, 5), 24)]);
+    updated.mesh = null;
+    updated.mesh = mesh;
+    expect(physics.raycast(rayAt(16.5), hit) && hit.collider === updated).toBe(true);
+    expect(physics.raycast(rayAt(1.5))).toBe(false);
+    expect(cook).toHaveBeenCalledTimes(5);
+  });
+
+  it("separates convex and triangle cooks and shares equivalent triangle cooking flags", () => {
+    const triangle = watchCooking(false);
+    const convex = watchCooking(true);
+    const mesh = createCubeMesh(engine);
+    const raw = addMesh(false, mesh);
+    raw.cookingFlags = 0 as MeshColliderCookingFlag;
+    const noCleaning = addMesh(false, mesh);
+    noCleaning.cookingFlags = MeshColliderCookingFlag.VertexWelding;
+    noCleaning.entity.transform.setPosition(4, 0, 0);
+    const cleaned = addMesh(false, mesh);
+    cleaned.cookingFlags = MeshColliderCookingFlag.Cleaning;
+    cleaned.entity.transform.setPosition(8, 0, 0);
+    const hull = addMesh(true, mesh);
+    hull.entity.transform.setPosition(12, 0, 0);
+    const secondHull = addMesh(true, mesh);
+    secondHull.cookingFlags = MeshColliderCookingFlag.Cleaning;
+    secondHull.entity.transform.setPosition(16, 0, 0);
+    const hit = new HitResult();
+    for (const collider of [raw, noCleaning, cleaned, hull, secondHull]) {
+      expect(physics.raycast(rayAt(collider.entity.transform.position.x), hit) && hit.collider === collider).toBe(true);
+    }
+    expect(triangle).toHaveBeenCalledTimes(2);
+    expect(convex).toHaveBeenCalledOnce();
+  });
+
+  it("uses the selected position buffer even when the indices were committed later", () => {
+    const makeBinding = (x: number) =>
+      new VertexBufferBinding(
+        new Buffer(
+          engine,
+          BufferBindFlag.VertexBuffer,
+          new Float32Array([x - 1, 0, -1, x + 1, 0, -1, x, 0, 1]),
+          BufferUsage.Static,
+          true
+        ),
+        12
+      );
+    const mesh = new ModelMesh(engine);
+    mesh.setVertexBufferBindings([makeBinding(0), makeBinding(4)]);
+    const position = new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0);
+    mesh.setVertexElements([position]);
+    mesh.setIndices(new Uint16Array([0, 2, 1]));
+
+    const first = addMesh(false, mesh);
+    const hit = new HitResult();
+    expect(physics.raycast(rayAt(0), hit) && hit.collider === first).toBe(true);
+    position.bindingIndex = 1;
+    const second = addMesh(false, mesh);
+    expect(physics.raycast(rayAt(4), hit) && hit.collider === second).toBe(true);
+    expect(physics.raycast(rayAt(0), hit) && hit.collider === first).toBe(true);
+  });
+
+  it("rejects an inaccessible source even while another collider uses its existing cook", () => {
+    const cook = watchCooking(false);
+    const first = addMesh();
+    const mesh = first.mesh!;
+    expect(physics.raycast(rayAt(0))).toBe(true);
+    mesh.uploadData(true);
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const second = addMesh(false, mesh);
+    second.entity.transform.setPosition(5, 0, 0);
+    const hit = new HitResult();
+    expect(physics.raycast(rayAt(5))).toBe(false);
+    expect(physics.raycast(rayAt(0), hit) && hit.collider === first).toBe(true);
+    expect(warnings).toHaveBeenCalledOnce();
+    expect(cook).toHaveBeenCalledOnce();
+  });
+
+  it("cooks the same source independently in two PhysX instances", async () => {
+    const cook = watchCooking(true);
+    const first = addMesh(true);
+    expect(physics.raycast(rayAt(0))).toBe(true);
+    const mesh = first.mesh!;
+    const other = createPhysics();
+    await other.initialize();
+    const material = other.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
+    try {
+      const otherCook = watchCooking(true, other);
+      // Use the backend factory to exercise isolation without switching Engine's configured backend.
+      const shape = other.createMeshShape(
+        0,
+        mesh.getPositions()!,
+        null,
+        true,
+        material,
+        first.cookingFlags,
+        new Vector3(1, 1, 1),
+        mesh
+      );
+      try {
+        expect(shape?.pointDistance(new Vector3(2, 0, 0)).w).toBeCloseTo(1);
+        expect(otherCook).toHaveBeenCalledOnce();
+        expect(cook).toHaveBeenCalledOnce();
+      } finally {
+        shape?.destroy();
+      }
+    } finally {
+      material.destroy();
+      other.destroy();
+    }
+    const hit = new HitResult();
+    expect(physics.raycast(rayAt(0), hit) && hit.collider === first).toBe(true);
   });
 
   it("creates a triangle mesh lazily for raycasts", () => {
@@ -221,22 +498,23 @@ describe("MeshCollider", () => {
   });
 
   it.each([false, true])("preserves scaled center and geometry through mesh updates (convex=%s)", (convex) => {
+    const cook = watchCooking(convex);
     const collider = addMesh(convex);
     collider.center.x = 1;
     const hit = new HitResult();
     expect(physics.raycast(rayAt(3), hit)).toBe(false);
-    const cookedMesh = (collider._native as any)._pxMesh;
+    expect(cook).toHaveBeenCalledOnce();
     collider.entity.transform.setScale(2, 1, 1);
     expect(physics.raycast(rayAt(3), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
-    expect((collider._native as any)._pxMesh).toBe(cookedMesh);
+    expect(cook).toHaveBeenCalledOnce();
     expect(physics.raycast(rayAt(8), hit)).toBe(false);
     const geometryWrites = vi.spyOn(collider._native["_pxShape"], "setGeometry");
     collider.entity.transform.setScale(3, 1, 1);
     collider.mesh = createCubeMesh(engine, 2);
     expect(physics.raycast(rayAt(8), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
-    expect((collider._native as any)._pxMesh).not.toBe(cookedMesh);
+    expect(cook).toHaveBeenCalledTimes(2);
     expect(geometryWrites).toHaveBeenCalledTimes(1);
   });
 
@@ -601,10 +879,11 @@ describe("MeshCollider", () => {
   it.each(["disable-then-null", "null-then-disable"] as const)(
     "releases native mesh immediately when disabled and cleared (%s)",
     (order) => {
+      const cook = watchCooking(false);
       const collider = addMesh();
       const original = collider.mesh!;
       expect(physics.raycast(rayAt(0))).toBe(true);
-      const releaseSpy = vi.spyOn((collider._native as any)._pxMesh, "release");
+      const releaseSpy = vi.spyOn(cook.mock.results[0].value, "release");
 
       if (order === "disable-then-null") {
         collider.enabled = false;
