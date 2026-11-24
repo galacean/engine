@@ -365,17 +365,22 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     );
     const length = hits.length;
     if (!length) return;
+    const hitStride = 9;
+    if (length === hitStride) {
+      this._readHit(hits, 0, onHit);
+      return;
+    }
 
-    // Nested queries can overwrite the WASM view. Keep a separate snapshot for each active dispatch.
+    // The first callback can overwrite unread hits by issuing another query.
     const buffers = (this._raycastBuffers ||= []);
     let buffer = buffers.pop();
     if (!buffer || buffer.length < length) {
-      let nextLength = buffer ? buffer.length * 2 : 144;
+      let nextLength = buffer ? buffer.length * 2 : 16 * hitStride;
       while (nextLength < length) nextLength *= 2;
       buffer = new Float64Array(nextLength);
     }
     buffer.set(hits);
-    for (let i = 0; i < length; i += 9) {
+    for (let i = 0; i < length; i += hitStride) {
       this._readHit(buffer, i, onHit);
     }
     buffers.push(buffer);

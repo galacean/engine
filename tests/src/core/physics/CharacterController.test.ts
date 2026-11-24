@@ -11,7 +11,8 @@ import {
   PhysicsScene,
   PlaneCollider,
   Rigidbody,
-  Script
+  Script,
+  Transform
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
@@ -125,6 +126,37 @@ describe("CharacterController", () => {
     expect(role.transform.position.z).toBeCloseTo(2.5);
     update(2);
     expect(role.transform.worldPosition.z).toBeCloseTo(35);
+  });
+
+  it("keeps each controller's move when publishing one position moves another controller", () => {
+    let follow: (() => void) | undefined;
+    class FollowingTransform extends Transform {
+      override get worldPosition(): Vector3 {
+        return super.worldPosition;
+      }
+      override set worldPosition(value: Vector3) {
+        follow?.();
+        super.worldPosition = value;
+      }
+    }
+    const leader = new Entity(engine, "leader", FollowingTransform);
+    root.addChild(leader);
+    leader.transform.setPosition(0, 20, 0);
+    role.transform.setPosition(20, 20, 0);
+    const leadController = leader.addComponent(CharacterController);
+    const step = new Vector3(1, 0, 0);
+    leadController.move(step, 0, physics.fixedTimeStep);
+    follow = () => {
+      follow = undefined;
+      leadController.height = 3;
+      move(step);
+    };
+
+    leadController.move(new Vector3(2, 0, 0), 0, physics.fixedTimeStep);
+    expect(leader.transform.worldPosition.x).toBeCloseTo(3);
+    expect(role.transform.worldPosition.x).toBeCloseTo(21);
+    leadController.move(step, 0, physics.fixedTimeStep);
+    expect(leader.transform.worldPosition.x).toBeCloseTo(4);
   });
 
   it("moves during a real physics script callback", () => {

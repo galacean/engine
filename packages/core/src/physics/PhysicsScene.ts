@@ -1098,7 +1098,12 @@ export class PhysicsScene {
   private _syncCastDirection(direction: Vector3): Vector3 | null {
     const out = PhysicsScene._tempDirection;
     if (!Vector3.normalize(direction, out)) return null;
-    this._syncColliders(false);
+    if (this._dirtyBodies.length || this._dirtyColliders.length) {
+      // Transform accessors can run another query while colliders synchronize.
+      const { x, y, z } = out;
+      this._syncColliders(false);
+      out.set(x, y, z);
+    }
     return out;
   }
 

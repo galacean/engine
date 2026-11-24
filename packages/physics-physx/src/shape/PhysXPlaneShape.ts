@@ -9,9 +9,9 @@ import { PhysXShape } from "./PhysXShape";
  */
 export class PhysXPlaneShape extends PhysXShape implements IPlaneShape {
   constructor(physXPhysics: PhysXPhysics, uniqueID: number, material: PhysXPhysicsMaterial) {
-    super(physXPhysics);
+    super();
     this._pxGeometry = new physXPhysics._physX.PxPlaneGeometry();
-    this._initialize(material, uniqueID);
+    this._initialize(physXPhysics, material, uniqueID);
   }
 
   /**

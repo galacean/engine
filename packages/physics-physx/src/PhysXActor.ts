@@ -1,6 +1,5 @@
 import { IPhysicsActor } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
-import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXShape } from "./shape/PhysXShape";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 
@@ -19,12 +18,6 @@ export abstract class PhysXActor implements IPhysicsActor {
   _pxActor: any;
   /** @internal */
   _shapeIds = new Array<number>();
-
-  protected _physXPhysics: PhysXPhysics;
-
-  constructor(physXPhysics: PhysXPhysics) {
-    this._physXPhysics = physXPhysics;
-  }
 
   /**
    * {@inheritDoc IPhysicsActor.addShape }

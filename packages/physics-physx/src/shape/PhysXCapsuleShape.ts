@@ -27,10 +27,10 @@ export class PhysXCapsuleShape extends PhysXShape implements ICapsuleShape {
     material: PhysXPhysicsMaterial,
     upAxis: CapsuleColliderDirection
   ) {
-    super(physXPhysics);
+    super();
     this._axis = PhysXCapsuleShape._axes[upAxis];
     this._pxGeometry = new physXPhysics._physX.PxCapsuleGeometry(radius, halfHeight);
-    this._initialize(material, uniqueID);
+    this._initialize(physXPhysics, material, uniqueID);
   }
 
   /**

@@ -10,6 +10,7 @@ import { PhysXShape } from "./PhysXShape";
 export class PhysXMeshShape extends PhysXShape implements IMeshShape {
   private static readonly _tightBoundsFlag = 1; // eTIGHT_BOUNDS = 1 (1<<0)
 
+  private readonly _physXPhysics: PhysXPhysics;
   private _cookedMesh: CookedMesh;
   private readonly _isConvex: boolean;
 
@@ -24,7 +25,8 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
     scale: Vector3,
     source: IPhysicsMeshSource
   ) {
-    super(physXPhysics);
+    super();
+    this._physXPhysics = physXPhysics;
     this._isConvex = isConvex;
 
     const cookedMesh = this._acquireCookedMesh(source, positions, indices, cookingFlags);
@@ -34,7 +36,7 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
 
     this._cookedMesh = cookedMesh;
     this._pxGeometry = this._createGeometry(cookedMesh.pxMesh, scale);
-    this._initialize(material, uniqueID);
+    this._initialize(physXPhysics, material, uniqueID);
   }
 
   /**

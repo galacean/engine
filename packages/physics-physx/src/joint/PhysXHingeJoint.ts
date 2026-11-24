@@ -8,6 +8,7 @@ import { PhysXJoint } from "./PhysXJoint";
  * PhysX revolute joint.
  */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
+  private _anchor: Vector3;
   private _axisRotationQuaternion = new Quaternion();
   private _connectedAxisRotationQuaternion = new Quaternion();
 

@@ -9,9 +9,9 @@ import { PhysXShape } from "./PhysXShape";
  */
 export class PhysXBoxShape extends PhysXShape implements IBoxShape {
   constructor(physXPhysics: PhysXPhysics, uniqueID: number, halfExtents: Vector3, material: PhysXPhysicsMaterial) {
-    super(physXPhysics);
+    super();
     this._pxGeometry = new physXPhysics._physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
-    this._initialize(material, uniqueID);
+    this._initialize(physXPhysics, material, uniqueID);
   }
 
   /**

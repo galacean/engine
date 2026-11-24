@@ -9,12 +9,13 @@ import { PhysXPhysics } from "./PhysXPhysics";
 export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
   private static _tempRotation = new Quaternion();
 
+  private readonly _physXPhysics: PhysXPhysics;
   private _isKinematic = false;
 
   constructor(physXPhysics: PhysXPhysics, position: Vector3, rotation: Quaternion) {
-    super(physXPhysics);
-    const transform = this._transform(position, rotation);
-    this._pxActor = physXPhysics._pxPhysics.createRigidDynamic(transform);
+    super();
+    this._physXPhysics = physXPhysics;
+    this._pxActor = physXPhysics._pxPhysics.createRigidDynamic(this._transform(position, rotation));
   }
 
   /**

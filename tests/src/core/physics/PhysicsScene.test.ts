@@ -12,7 +12,8 @@ import {
   PhysicsScene,
   Scene,
   Script,
-  SphereCollider
+  SphereCollider,
+  Transform
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { PhysicsEventState, type IPhysicsEvents, type IPhysicsScene } from "@galacean/engine-design";
@@ -440,6 +441,37 @@ describe("Physics Test", () => {
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, Layer.Everything, outHitResult)).to.eq(false);
 
       root.destroy();
+    });
+
+    it("keeps the cast direction when synchronizing a collider performs another query", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("nested casts");
+      try {
+        const east = root.createChild("east");
+        east.transform.setPosition(5, 0, 0);
+        east.addComponent(BoxCollider);
+        const ground = root.createChild("ground");
+        ground.transform.setPosition(0, -5, 0);
+        ground.addComponent(BoxCollider);
+        const down = new Ray(new Vector3(), new Vector3(0, -1, 0));
+        const inner = new HitResult();
+        class GroundSamplingTransform extends Transform {
+          override get worldPosition(): Vector3 {
+            physicsScene.raycast(down, inner);
+            return super.worldPosition;
+          }
+        }
+        const sampler = new Entity(enginePhysX, "sampler", GroundSamplingTransform);
+        root.addChild(sampler);
+        sampler.transform.setPosition(10, 10, 0);
+        sampler.addComponent(BoxCollider);
+
+        const outer = new HitResult();
+        expect(physicsScene.raycast(new Ray(new Vector3(), new Vector3(2, 0, 0)), outer)).toBe(true);
+        expect(inner.entity?.name).toBe("ground");
+        expect(outer.entity?.name).toBe("east");
+      } finally {
+        root.destroy();
+      }
     });
 
     it("non-unit direction", () => {

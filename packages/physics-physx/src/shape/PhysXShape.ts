@@ -20,12 +20,7 @@ export abstract class PhysXShape implements IPhysicsShape {
   /** @internal */
   _id: number;
 
-  protected _physXPhysics: PhysXPhysics;
   protected _pxGeometry: any;
-
-  constructor(physXPhysics: PhysXPhysics) {
-    this._physXPhysics = physXPhysics;
-  }
 
   /**
    * {@inheritDoc IPhysicsShape.setLocalPose }
@@ -96,8 +91,8 @@ export abstract class PhysXShape implements IPhysicsShape {
     this._pxShape.setLocalPose(pose);
   }
 
-  protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
-    const { _physX: physX, _pxPhysics: physics } = this._physXPhysics;
+  protected _initialize(physXPhysics: PhysXPhysics, material: PhysXPhysicsMaterial, id: number): void {
+    const { _physX: physX, _pxPhysics: physics } = physXPhysics;
     const shapeFlags = new physX.PxShapeFlags(ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE);
     const shape = physics.createShape(this._pxGeometry, material._pxMaterial, true, shapeFlags);
     shapeFlags.delete();

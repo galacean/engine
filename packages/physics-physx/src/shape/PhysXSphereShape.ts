@@ -8,10 +8,10 @@ import { PhysXShape } from "./PhysXShape";
  */
 export class PhysXSphereShape extends PhysXShape implements ISphereShape {
   constructor(physXPhysics: PhysXPhysics, uniqueID: number, radius: number, material: PhysXPhysicsMaterial) {
-    super(physXPhysics);
+    super();
 
     this._pxGeometry = new physXPhysics._physX.PxSphereGeometry(radius);
-    this._initialize(material, uniqueID);
+    this._initialize(physXPhysics, material, uniqueID);
   }
 
   /**
