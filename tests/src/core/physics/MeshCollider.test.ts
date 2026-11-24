@@ -1133,45 +1133,37 @@ describe("MeshCollider", () => {
       expect(physics.raycast(rayAt(0), hit) && hit.collider === collider).toBe(true);
       expect(physics.raycast(rayAt(10, 10), hit) && hit.collider === otherBox).toBe(true);
 
-      const raw = new Float32Array([
-        -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1
-      ]);
-      const indices = new Uint16Array([
-        0, 3, 2, 0, 2, 1, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2, 0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5
-      ]);
-      const createBufferMesh = (readable: boolean): ModelMesh => {
-        const mesh = new ModelMesh(engine);
-        mesh.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0)]);
-        const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, raw, BufferUsage.Static, readable);
-        mesh.setVertexBufferBinding(buffer, 12);
-        mesh.setIndices(indices);
-        return mesh;
-      };
-
-      const gpuOnly = createBufferMesh(false);
+      const mesh = createCubeMesh(engine);
+      const shifted = new Float32Array(mesh.getPositions()!.flatMap(({ x, y, z }) => [x + 4, y, z]));
+      const setPositionBuffer = (readable: boolean) =>
+        mesh.setVertexBufferBinding(
+          new Buffer(engine, BufferBindFlag.VertexBuffer, shifted, BufferUsage.Static, readable),
+          12
+        );
       const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-      const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-      collider.mesh = gpuOnly;
-      expect(collider.mesh).toBe(gpuOnly);
-      // Missing CPU data must remove the old geometry without aborting unrelated queries or steps.
-      expect(() => physics.raycast(rayAt(10, 10), hit)).not.toThrow();
+      setPositionBuffer(false);
+      collider.mesh = mesh;
+      expect(physics.raycast(rayAt(10, 10), hit)).toBe(true);
       expect(hit.collider).toBe(otherBox);
       expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(collider.mesh).toBe(mesh);
       expect(errors).toHaveBeenCalled();
 
       const initialY = other.transform.position.y;
-      expect(() => update(2)).not.toThrow();
+      update(2);
       expect(other.transform.position.y).toBeLessThan(initialY);
       expect(otherBody.linearVelocity.y).toBeLessThan(0);
 
-      // Retrying the same unreadable resource remains excluded without throwing
-      collider.mesh = gpuOnly;
+      errors.mockClear();
+      collider.mesh = mesh;
       expect(physics.raycast(rayAt(0))).toBe(false);
-      expect(warnings.mock.calls.length + errors.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(errors).toHaveBeenCalled();
 
-      collider.mesh = createBufferMesh(true);
-      expect(physics.raycast(rayAt(0), hit) && hit.collider === collider).toBe(true);
+      setPositionBuffer(true);
+      collider.mesh = mesh;
+      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(physics.raycast(rayAt(4), hit) && hit.collider === collider).toBe(true);
     }
   );
 
