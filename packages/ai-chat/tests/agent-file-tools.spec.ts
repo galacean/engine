@@ -597,6 +597,7 @@ it("emits union narrowing hints for TS2339, destructuring availableProperties, a
             getArea(): AreaInfo;
             getProp(): ValueUnion;
             move(pos: [number, number, number]): void;
+            move2d(pos: [number, number]): void;
           };
         `
       }
@@ -618,6 +619,14 @@ it("emits union narrowing hints for TS2339, destructuring availableProperties, a
     const tupleDiag = (tupleErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
     expect(tupleDiag.code).toBe(2345);
     expect(String(tupleDiag.hint)).toContain("fixed-length tuple literal");
+    expect(String(tupleDiag.hint)).toContain("[number, number, number]");
+
+    const tuple2dErr = checker.check("const pt = [1, 2];\napi.move2d(pt);", declarations);
+    expect(tuple2dErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const tuple2dDiag = (tuple2dErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(tuple2dDiag.code).toBe(2345);
+    expect(String(tuple2dDiag.hint)).toContain("[number, number]");
+    expect(String(tuple2dDiag.hint)).not.toContain("[number, number, number]");
 
     const unionDeclarations = [
       {

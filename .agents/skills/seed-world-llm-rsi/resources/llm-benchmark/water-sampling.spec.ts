@@ -35,6 +35,21 @@ it("samples the restored lake using its current runtime water ID", async () => {
     expect(await sampleLakeCenter(true)).toMatchObject({ water: true, id: restoredWaterId });
     expect(await sampleLakeCenter(false)).toMatchObject({ water: true, id: restoredWaterId });
     expect(afterRemoval).toMatchObject({ water: false });
+
+    const spatialSearch = fixture.configuration.tools.find((tool) => tool.name === "spatial.search")!;
+    const waterSearch = (await spatialSearch.execute(
+      spatialSearch.parseInput({ constraints: { water: true }, sort: "nearest", limit: 1 }),
+      { signal }
+    )) as { items: Array<{ surface: { water: boolean } }> };
+    expect(waterSearch.items.length).toBeGreaterThan(0);
+    expect(waterSearch.items[0].surface.water).toBe(true);
+
+    const landSearch = (await spatialSearch.execute(
+      spatialSearch.parseInput({ constraints: { water: false }, sort: "nearest", limit: 1 }),
+      { signal }
+    )) as { items: Array<{ surface: { water: boolean } }> };
+    expect(landSearch.items.length).toBeGreaterThan(0);
+    expect(landSearch.items[0].surface.water).toBe(false);
   } finally {
     await fixture.dispose();
   }

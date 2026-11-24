@@ -362,7 +362,7 @@ function repairContext(diagnostic: ts.Diagnostic, checker: ts.TypeChecker): Reco
       : {}),
     ...(isTupleMismatch
       ? {
-          hint: "Plain JS array variables widen to number[]. Pass a fixed-length tuple literal directly inline (e.g. [x, y, z]), or annotate the variable with JSDoc /** @type {[number, number, number]} */."
+          hint: `Plain JS array variables widen to ${typeText(actual)}. Pass a fixed-length tuple literal matching ${typeText(nonNullableExpected)} directly inline, or annotate the variable with JSDoc /** @type {${typeText(nonNullableExpected)}} */.`
         }
       : literalUnion
         ? {

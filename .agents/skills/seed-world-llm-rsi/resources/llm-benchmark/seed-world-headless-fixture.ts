@@ -1079,8 +1079,10 @@ export async function createHeadlessSeedWorldFixture(options: {
           })
         };
       }
-      const constraints = (input as { constraints?: { water?: boolean } }).constraints;
-      if (constraints?.water === true) {
+      const waterFilter =
+        (input as { where?: { water?: boolean }; constraints?: { water?: boolean } }).where?.water ??
+        (input as { constraints?: { water?: boolean } }).constraints?.water;
+      if (waterFilter === true) {
         return {
           inspectedPointCount: 64,
           matchedPointCount: 1,
