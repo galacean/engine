@@ -66,20 +66,16 @@ export class GLTFResource extends ReferResource {
   protected override _onDestroy(): void {
     super._onDestroy();
 
-    const { textures, materials, meshes } = this;
-    textures && this._disassociateResources(textures);
-    materials && this._disassociateResources(materials);
-    if (meshes) {
-      for (let i = 0, n = meshes.length; i < n; i++) {
-        const meshArr = meshes[i];
-        meshArr && this._disassociateResources(meshArr);
+    const { _sceneRoots: sceneRoots, entities } = this;
+    if (sceneRoots) {
+      for (let i = 0, n = sceneRoots.length; i < n; i++) {
+        sceneRoots[i]?.destroy();
       }
     }
-  }
-
-  private _disassociateResources(resources: ReferResource[]): void {
-    for (let i = 0, n = resources.length; i < n; i++) {
-      resources[i]?._disassociationSuperResource(this);
+    if (entities) {
+      for (let i = 0, n = entities.length; i < n; i++) {
+        entities[i]?.destroy();
+      }
     }
   }
 
