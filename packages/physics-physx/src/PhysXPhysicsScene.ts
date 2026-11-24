@@ -97,7 +97,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /** @internal */
-  _contactData = new Float32Array(2560);
+  _contactData?: Float32Array;
 
   private _pxControllerManager: any = null;
   private _boxGeometry: any = null;
@@ -515,9 +515,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     events.contactEvents.length = 0;
     events.triggerEvents.length = 0;
     this._contactFloatOffset = 0;
-    if (this._contactData.length > 2560) {
-      this._contactData = new Float32Array(2560);
-    }
+    this._contactData = undefined;
   }
 
   /**
@@ -701,11 +699,13 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const offset = this._contactFloatOffset;
     const needed = offset + floatCount;
     let arena = this._contactData;
-    if (needed > arena.length) {
-      let nextLength = arena.length * 2;
+    if (!arena || needed > arena.length) {
+      let nextLength = arena ? arena.length * 2 : 2560;
       while (nextLength < needed) nextLength *= 2;
       const grown = new Float32Array(nextLength);
-      grown.set(arena.subarray(0, offset));
+      if (arena && offset > 0) {
+        grown.set(arena.subarray(0, offset));
+      }
       this._contactData = arena = grown;
     }
     for (let i = 0; i < floatCount; i++) {
@@ -808,7 +808,7 @@ class ContactEvent implements IContactEvent {
   }
 
   getContact(index: number, out: IContactPoint): void {
-    const data = this._scene._contactData;
+    const data = this._scene._contactData!;
     const offset = this._floatOffset + index * 10;
     out.position.set(data[offset], data[offset + 1], data[offset + 2]);
     out.normal.set(data[offset + 3], data[offset + 4], data[offset + 5]);
