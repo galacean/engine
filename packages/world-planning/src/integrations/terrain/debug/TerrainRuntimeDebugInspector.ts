@@ -384,6 +384,8 @@ export class TerrainRuntimeDebugInspector {
   readonly treeFolderHost: DebugInspectorPanelHost;
   /** Scoped host for page-owned rock and scene-prop authoring. */
   readonly rockFolderHost: DebugInspectorPanelHost;
+  /** Scoped host for page-owned building LOD, appearance, and component authoring. */
+  readonly buildingFolderHost: DebugInspectorPanelHost;
   /** Scoped host for Water-owned controls. */
   readonly waterFolderHost: DebugInspectorPanelHost;
   /** Scoped host for the dedicated screen-space-reflection authoring category. */
@@ -497,6 +499,7 @@ export class TerrainRuntimeDebugInspector {
     const vegetation = category("Grass & Vegetation / 草地与植被", false);
     const proceduralTrees = category("Procedural Trees / 程序化树", false);
     const rocks = category("Rocks / 岩石", false);
+    const buildings = category("Buildings / 建筑", false);
     const water = category("Water / 水", false);
     const ssr = category("Screen-space Reflection / 屏幕空间反射", false);
     const season = category("Season / 季节", false);
@@ -528,6 +531,7 @@ export class TerrainRuntimeDebugInspector {
     this.grassFolderHost = createPanelHost(inspector, vegetation);
     this.treeFolderHost = createPanelHost(inspector, proceduralTrees);
     this.rockFolderHost = createPanelHost(inspector, rocks);
+    this.buildingFolderHost = createPanelHost(inspector, buildings);
     this.waterFolderHost = createPanelHost(inspector, water);
     this.ssrFolderHost = createPanelHost(inspector, ssr);
     this.climateFolderHost = createPanelHost(inspector, climate);
@@ -1012,6 +1016,7 @@ function createPanelHost(inspector: DebugInspector, parent: dat.GUI): DebugInspe
     subfolder: (folder, title, open = true) => inspector.subfolder(folder, title, open),
     addReadout: (folder, label, outputId) => inspector.addReadout(folder, label, outputId),
     addAction: (folder, label, onClick) => inspector.addAction(folder, label, onClick),
+    addCustomContainer: (folder) => inspector.addCustomContainer(folder),
     refreshLayout: () => inspector.refreshLayout()
   };
 }

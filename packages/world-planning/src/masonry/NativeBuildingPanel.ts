@@ -26,15 +26,20 @@ export function mountNativeBuildingPanel(
     anchors(): readonly (readonly [number, number])[];
     land: BuildingLandQuery;
     appearanceEngine?: object;
+    container?: HTMLElement;
   }
 ) {
-  const panel = document.createElement("details");
+  const embedded = Boolean(placement?.container);
+  const panel = document.createElement(embedded ? "div" : "details");
   panel.id = "native-building-editor";
-  panel.style.cssText =
-    "position:fixed;right:18px;bottom:20px;z-index:46;width:340px;max-height:65vh;overflow:auto;background:#20282ef5;color:white;padding:10px;border-radius:8px;font:13px system-ui";
-  panel.innerHTML =
-    '<summary>建筑组件</summary><select data-field="component" aria-label="建筑组件" style="width:100%;margin:8px 0"></select><textarea aria-label="建筑实体与组件属性" spellcheck="false" style="width:100%;height:190px;box-sizing:border-box"></textarea><div><button data-action="apply">应用</button><button data-action="delete">删除对象</button><button data-action="undo">撤销</button><button data-action="redo">重做</button><button data-action="focus">查看对象</button><button data-action="roam">返回漫游</button></div><output style="display:block;white-space:pre-wrap"></output>';
-  document.body.append(panel);
+  if (embedded) {
+    panel.style.cssText = "width:100%;line-height:1.55";
+  } else {
+    panel.style.cssText =
+      "position:fixed;right:18px;bottom:20px;z-index:46;width:340px;max-height:65vh;overflow:auto;background:#20282ef5;color:white;padding:10px;border-radius:8px;font:13px system-ui";
+  }
+  panel.innerHTML = `${embedded ? "" : "<summary>建筑组件</summary>"}<select data-field="component" aria-label="建筑组件" style="width:100%;margin:8px 0"></select><textarea aria-label="建筑实体与组件属性" spellcheck="false" style="width:100%;height:170px;box-sizing:border-box"></textarea><div><button data-action="apply">应用</button><button data-action="delete">删除对象</button><button data-action="undo">撤销</button><button data-action="redo">重做</button><button data-action="focus">查看对象</button><button data-action="roam">返回漫游</button></div><output style="display:block;white-space:pre-wrap"></output>`;
+  (placement?.container ?? document.body).append(panel);
   const appearance = placement?.appearanceEngine
     ? mountMasonryAppearancePanel(panel, placement.appearanceEngine)
     : undefined;
@@ -140,7 +145,9 @@ export function mountNativeBuildingPanel(
       presets.append(option);
     }
     creation.append(presets, button);
-    panel.querySelector("summary")!.after(creation);
+    const summary = panel.querySelector("summary");
+    if (summary) summary.after(creation);
+    else select.before(creation);
     button.onclick = () =>
       void run(async () => {
         let selected = "";

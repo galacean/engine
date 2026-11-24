@@ -372,7 +372,6 @@ export async function mountSeedWorldDemo(
   let obbDebug: PlanningSeedObbDebug | undefined;
   let runtimeDebug: PlanningSeedRuntimeDebug | undefined;
   let debugSidebar: PlanningSeedDebugSidebar | undefined;
-  let lodDebugPanel: import("./src/SeedWorldLodDebugPanel.ts").SeedWorldLodDebugPanel | undefined;
   let perfPanel: import("./src/SeedWorldPerfPanel.ts").SeedWorldPerfPanel | undefined;
   let dprOverride: number | null = null;
   let exposure: TerrainWindGpuExposureProvider | undefined;
@@ -540,7 +539,6 @@ export async function mountSeedWorldDemo(
       () => {
         lightingProfile?.dispose();
         debugSidebar?.destroy();
-        lodDebugPanel?.dispose();
         if (perfTourTimer !== undefined) {
           window.clearTimeout(perfTourTimer);
           perfTourTimer = undefined;
@@ -613,6 +611,7 @@ export async function mountSeedWorldDemo(
   const dispose = createSeedWorldProjectClose(
     async () => {
       tools?.dispose();
+      await runtimeDebug?.stopEmbeddedPanels();
       await nativeWaterPanel?.stop();
       editorLifetime.abort();
       nativeEditor?.editor.dispose();
@@ -1427,7 +1426,7 @@ export async function mountSeedWorldDemo(
       if ((debugReadoutElapsed += dt) >= 0.1) {
         const tDbg = markTick ? performance.now() : 0;
         debugSidebar?.update();
-        lodDebugPanel?.update();
+        runtimeDebug?.updateLod();
         runtimeDebug?.refresh();
         debugReadoutElapsed = 0;
         const current = publication?.current;
@@ -3140,6 +3139,15 @@ export async function mountSeedWorldDemo(
           import("./src/SeedWorldLodDebugPanel.ts")
         ]);
       runtimeDebug = await PlanningSeedRuntimeDebug.create({
+        mountLodControls: ({ grassHost, buildingHost }) =>
+          new SeedWorldLodDebugPanel({
+            grassHost,
+            buildingHost,
+            engine,
+            camera,
+            readPopulation: () => readWorld()?.population,
+            readMasonryMetrics: () => publication?.current?.masonry?.metrics
+          }),
         extraControls:
           desert && startupTemplate?.rockSource !== "shared"
             ? async (gui) => {
@@ -3288,14 +3296,6 @@ export async function mountSeedWorldDemo(
       const bookmark = publication.current?.playerBookmark;
       if (bookmark) debugSidebar.restoreCameraMode(bookmark.mode);
       if (obbDebug) debugSidebar.mountObbControl(obbDebug.button);
-      lodDebugPanel = new SeedWorldLodDebugPanel({
-        host: shell,
-        engine,
-        camera,
-        readPopulation: () => readWorld()?.population,
-        readMasonryMetrics: () => publication?.current?.masonry?.metrics
-      });
-      lodDebugPanel.update();
     }
     // Dense visible details belong to the world presentation, including photo captures.
     timed("warmupPopulationDetails (startup)", () => publication!.current?.world.warmupPopulationDetails());
@@ -3456,59 +3456,72 @@ export async function mountSeedWorldDemo(
         import("@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel"),
         import("@galacean/engine-world-planning/masonry/NativeBuildingPanel")
       ]);
-      nativeWaterPanel = mountNativeWaterPanel(runtimeProject, nativeEditor);
-      nativeBuildingPanel = mountNativeBuildingPanel(
-        runtimeProject,
-        nativeEditor,
-        (position, forward) => {
-          captureMasonryView();
-          navigation.enabled = false;
-          navigation.setInputEnabled(false);
-          navigation.setGroundCollision(false);
-          camera.isOrthographic = false;
-          if (forward) {
-            camera.entity.transform.setWorldPosition(
-              position.x + forward.x * 8,
-              position.y + 3,
-              position.z + forward.z * 8
-            );
-            orbit.target.copyFrom(position);
-          } else {
-            camera.entity.transform.setWorldPosition(
-              position.x + 12,
-              Math.max(position.y, sampleHeight(position.x, position.z) ?? 0) + 9,
-              position.z + 15
-            );
-            orbit.target.set(
-              position.x,
-              Math.max(position.y, sampleHeight(position.x, position.z) ?? 0) + 3,
-              position.z
-            );
-          }
-          camera.entity.transform.lookAt(orbit.target);
-          debugSidebar?.restoreCameraMode("orbit");
-          orbit.enabled = true;
+      const focusBuilding = (position: Vector3, forward?: Vector3) => {
+        captureMasonryView();
+        navigation.enabled = false;
+        navigation.setInputEnabled(false);
+        navigation.setGroundCollision(false);
+        camera.isOrthographic = false;
+        if (forward) {
+          camera.entity.transform.setWorldPosition(
+            position.x + forward.x * 8,
+            position.y + 3,
+            position.z + forward.z * 8
+          );
+          orbit.target.copyFrom(position);
+        } else {
+          camera.entity.transform.setWorldPosition(
+            position.x + 12,
+            Math.max(position.y, sampleHeight(position.x, position.z) ?? 0) + 9,
+            position.z + 15
+          );
+          orbit.target.set(
+            position.x,
+            Math.max(position.y, sampleHeight(position.x, position.z) ?? 0) + 3,
+            position.z
+          );
+        }
+        camera.entity.transform.lookAt(orbit.target);
+        debugSidebar?.restoreCameraMode("orbit");
+        orbit.enabled = true;
+      };
+      const buildingPlacement = {
+        anchors: () => {
+          const current = publication?.current;
+          if (!current) throw Error("Seed 地形尚未发布");
+          return masonryPlacementAnchors(current, camera.entity.transform.worldPosition);
         },
-        returnFromMasonry,
-        {
-          anchors: () => {
+        land: {
+          sampleHeight: (x: number, z: number) => {
             const current = publication?.current;
             if (!current) throw Error("Seed 地形尚未发布");
-            return masonryPlacementAnchors(current, camera.entity.transform.worldPosition);
+            return sampleSeedWorldHeight(current.data.fields, x, z);
           },
-          land: {
-            sampleHeight: (x, z) => {
-              const current = publication?.current;
-              if (!current) throw Error("Seed 地形尚未发布");
-              return sampleSeedWorldHeight(current.data.fields, x, z);
-            },
-            isWater: (x, z) => {
-              return !!water?.sampleSurface(x, z, buildingWaterSample) && buildingWaterSample.waterDepth > 0;
-            }
-          },
-          appearanceEngine: engine
-        }
-      );
+          isWater: (x: number, z: number) => {
+            return !!water?.sampleSurface(x, z, buildingWaterSample) && buildingWaterSample.waterDepth > 0;
+          }
+        },
+        appearanceEngine: engine
+      };
+      if (runtimeDebug) {
+        runtimeDebug.attachNativeComponentPanels({
+          mountWater: (container) => mountNativeWaterPanel(runtimeProject!, nativeEditor!, { container }),
+          mountBuilding: (container) =>
+            mountNativeBuildingPanel(runtimeProject!, nativeEditor!, focusBuilding, returnFromMasonry, {
+              ...buildingPlacement,
+              container
+            })
+        });
+      } else {
+        nativeWaterPanel = mountNativeWaterPanel(runtimeProject, nativeEditor);
+        nativeBuildingPanel = mountNativeBuildingPanel(
+          runtimeProject,
+          nativeEditor,
+          focusBuilding,
+          returnFromMasonry,
+          buildingPlacement
+        );
+      }
     }
     timed("applySubjectView", () => applySubjectView());
     worldPicker ??= timed("SeedWorldPicker", () => new SeedWorldPicker(camera));
