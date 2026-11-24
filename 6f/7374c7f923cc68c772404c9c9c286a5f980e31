@@ -1,0 +1,47 @@
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_147482a53e9f64::t_451a150ef1799a 2,125,1507-1508,2170-2174
+packages/terrain/src/terrain/lod/TerrainLodGroupRendererRuntime.ts
+  s_147482a53e9f64::t_5b17d522cc4cf7 56,63-64,66
+packages/terrain/src/terrain/lod/TerrainLodGroupRuntime.ts
+  s_147482a53e9f64::t_f03352fde182f4 3-5,114,125-126,128,132-134,141,150-155,176-177,216,259,264-279
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  s_147482a53e9f64::t_da44fffa4d3ca9 14,54-55
+packages/world-planning/src/integrations/vegetation/AtomicAssetPreview.ts
+  s_959bd311695573::t_9eb38d75791889 15,82,649-650,799-800
+packages/world-planning/src/runtime/SeedWorldRockRuntime.ts
+  s_147482a53e9f64::t_48ec73df258002 2,403-404
+packages/world-planning/src/spatial/runtime/NaturalUnderstoryInstancedPool.ts
+  s_959bd311695573::t_3374d46c9d07dd 31,48-50,232,238,240,1120
+packages/world-planning/src/world/SeedWorldExactInstanceCellRuntime.ts
+  s_959bd311695573::t_2e08160196fc42 90-91,99-100,119-120,136-138
+world/demos/seed-world/src/SeedWorldMojavePreview.ts
+  s_147482a53e9f64::t_f3b43b702598a5 3,90-91
+world/tests/seed-world/ExactInstanceStaticReuse.spec.ts
+  s_147482a53e9f64::t_142f48bef7dca8 2-3,5,10-36
+world/tests/seed-world/SeedWorldRockLodCells.spec.ts
+  s_147482a53e9f64::t_8f9bc80129d047 4-7,17,215-272
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6f7374c7f923cc68c772404c9c9c286a5f980e31",
+  "prompts": {},
+  "sessions": {
+    "s_147482a53e9f64": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2068a-0f66-7261-874f-d518cb87d5f4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "鸿岳 <owen.wjh@alipay.com>"
+    },
+    "s_959bd311695573": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20d89-dbe3-73a1-8013-9caac6540eed",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "鸿岳 <owen.wjh@alipay.com>"
+    }
+  }
+}
