@@ -250,14 +250,6 @@ export class PhysicsScene {
     outHitResult.normal.copyFrom(normal);
   }
 
-  private static _clearHitResult(hitResult: HitResult): void {
-    hitResult.entity = null;
-    hitResult.collider = null;
-    hitResult.distance = 0;
-    hitResult.point.set(0, 0, 0);
-    hitResult.normal.set(0, 0, 0);
-  }
-
   /** @internal */
   _nativePhysicsScene: IPhysicsScene;
 
@@ -408,7 +400,7 @@ export class PhysicsScene {
     }
 
     if (!result && hitResult) {
-      PhysicsScene._clearHitResult(hitResult);
+      this._clearHitResult(hitResult);
     }
     return result;
   }
@@ -485,7 +477,7 @@ export class PhysicsScene {
         const hitResult = outHitResults[i];
         if (hitResult && !seenHits.has(hitResult)) {
           seenHits.add(hitResult);
-          PhysicsScene._clearHitResult(hitResult);
+          this._clearHitResult(hitResult);
           pool.push(hitResult);
         }
       }
@@ -587,7 +579,7 @@ export class PhysicsScene {
     }
 
     if (!result && hitResult) {
-      PhysicsScene._clearHitResult(hitResult);
+      this._clearHitResult(hitResult);
     }
     return result;
   }
@@ -664,7 +656,7 @@ export class PhysicsScene {
     }
 
     if (!result && hitResult) {
-      PhysicsScene._clearHitResult(hitResult);
+      this._clearHitResult(hitResult);
     }
     return result;
   }
@@ -773,7 +765,7 @@ export class PhysicsScene {
     }
 
     if (!result && hitResult) {
-      PhysicsScene._clearHitResult(hitResult);
+      this._clearHitResult(hitResult);
     }
     return result;
   }
@@ -1193,6 +1185,14 @@ export class PhysicsScene {
     if (!Vector3.normalize(direction, out)) return null;
     this._syncColliders(false);
     return out;
+  }
+
+  private _clearHitResult(hitResult: HitResult): void {
+    hitResult.entity = null;
+    hitResult.collider = null;
+    hitResult.distance = 0;
+    hitResult.point.set(0, 0, 0);
+    hitResult.normal.set(0, 0, 0);
   }
 
   private _setGravity(): void {
