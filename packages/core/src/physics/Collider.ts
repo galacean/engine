@@ -29,8 +29,8 @@ import { warnIfColliderSheared } from "./shearWarning";
  * and follows its Entity's transform. A disabled owner keeps its shapes out of simulation and queries.
  * {@link CharacterController} moves independently of Rigidbody ownership.
  *
- * On PhysX, transferring a Collider to another actor silently ends its active collision and trigger pairs;
- * pairs that still overlap on the next step start with a fresh enter event.
+ * On PhysX, transferring a Collider to another actor preserves trigger pairs that still overlap on the next step
+ * and reports `onTriggerExit` for pairs that separate. Continuing contacts start a new collision pair.
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)

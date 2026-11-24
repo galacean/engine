@@ -2023,8 +2023,8 @@ describe("Physics Test", () => {
         }
       });
 
-      it("dispatches pooled trigger events to current owners and leaves event counts readonly", () => {
-        const root = enginePhysX.sceneManager.activeScene.createRootEntity("trigger-event-dispatch");
+      it("tracks trigger receivers by canonical pair ID rather than event object identity and leaves counts readonly", () => {
+        const root = enginePhysX.sceneManager.activeScene.createRootEntity("trigger-pair-key");
         root.transform.setPosition(0, 1600, 0);
         const entityA = root.createChild("a");
         const ownerB = root.createChild("ownerB");
@@ -2071,6 +2071,7 @@ describe("Physics Test", () => {
         const pooledSlot = { shape0Id: colliderA._id, shape1Id: colliderB._id, state: PhysicsEventState.Enter };
         try {
           physicsScene._syncColliders();
+          // Enter (A, B) in pooledSlot while colliderB is owned by ownerB.
           (physicsScene as any)._dispatchEvents(
             Object.freeze({
               contactEvents: [],
@@ -2080,7 +2081,8 @@ describe("Physics Test", () => {
           );
           expect(enterA).toHaveBeenCalledOnce();
 
-          // Reuse the same pooledSlot object for (A, C) while passing a frozen non-zero contactEventCount.
+          // Reuse the same pooledSlot object for (A, C) while (A, B) stays active under swapped order,
+          // and pass non-zero frozen contactEventCount to verify it is never mutated.
           pooledSlot.shape0Id = colliderA._id;
           pooledSlot.shape1Id = colliderC._id;
           pooledSlot.state = PhysicsEventState.Enter;
@@ -2105,10 +2107,11 @@ describe("Physics Test", () => {
           expect(stayA).toHaveBeenCalledOnce();
           expect(enterC).toHaveBeenCalledExactlyOnceWith(colliderA, colliderC);
 
-          // Reparenting detaches from ownerB; dispatch routes Exit directly to the current owner without history state.
+          // Reparent entityB away from ownerB before Exit so delivery depends on historical lookup.
           root.addChild(entityB);
           physicsScene._syncColliders();
 
+          // Exit both using pooledSlot and swapped IDs.
           pooledSlot.shape0Id = colliderA._id;
           pooledSlot.shape1Id = colliderB._id;
           pooledSlot.state = PhysicsEventState.Exit;
@@ -2123,8 +2126,8 @@ describe("Physics Test", () => {
             } satisfies IPhysicsEvents)
           );
           expect(exitA).toHaveBeenCalledTimes(2);
-          expect(exitOwnerB).not.toHaveBeenCalled();
-          expect(exitB).toHaveBeenCalledExactlyOnceWith(colliderA, colliderB);
+          expect(exitOwnerB).toHaveBeenCalledExactlyOnceWith(colliderA, colliderB);
+          expect(exitB).not.toHaveBeenCalled();
           expect(exitC).toHaveBeenCalledExactlyOnceWith(colliderA, colliderC);
         } finally {
           root.destroy();
@@ -2889,9 +2892,9 @@ describe("Physics Test", () => {
       expect(pool).toHaveLength(0);
     });
 
-    it("silently retires disabled trigger pairs while keeping active pairs and drains dispatch receiver pool on gc", () => {
+    it("prunes silently retired trigger pairs while keeping active pairs and drains dispatch receiver pool on gc", () => {
       enginePhysX.resourceManager.gc();
-      const root = enginePhysX.sceneManager.activeScene.createRootEntity("trigger-retire-and-pool");
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("trigger-prune-and-pool");
       root.transform.setPosition(0, 1800, 0);
 
       const zone = root.createChild("zone");
@@ -2922,23 +2925,27 @@ describe("Physics Test", () => {
 
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(enters).toHaveLength(2);
+      const triggerReceivers = (physicsScene as any)._triggerReceivers as Map<number, unknown>;
+      expect(triggerReceivers.size).toBe(2);
 
       const dispatchPool = (PhysicsScene as any)._dispatchReceivers as (Rigidbody | Collider | null)[][];
       expect(dispatchPool).toHaveLength(1);
       expect(dispatchPool[0].length).toBeGreaterThanOrEqual(8);
       expect(dispatchPool[0].every((slot) => slot === null)).toBe(true);
 
-      // Silently retire one pair while the other stays active.
+      // Silently retire one pair while the other stays active so the stale-entry prune sweep runs.
       transient.enabled = false;
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(exits).toHaveLength(0);
+      expect(triggerReceivers.size).toBe(1);
       expect(stays).toEqual([persistent]);
 
-      // Re-enabling must emit a fresh Enter.
+      // Re-enabling must emit a fresh Enter rather than reusing the retired receiver entry.
       enters.length = 0;
       transient.enabled = true;
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(enters).toEqual([transient]);
+      expect(triggerReceivers.size).toBe(2);
 
       enginePhysX.resourceManager.gc();
       expect(dispatchPool).toHaveLength(0);

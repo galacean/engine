@@ -199,6 +199,7 @@ export class PhysXCharacterController implements ICharacterController {
     const actor = pxController.getActor();
     physX.setGroup(actor, this._collisionLayer);
     actor.delete();
+    scene._addShape(this._id);
   }
 
   private _destroyPXController(): void {

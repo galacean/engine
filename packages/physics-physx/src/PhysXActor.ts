@@ -32,6 +32,7 @@ export abstract class PhysXActor implements IPhysicsActor {
   addShape(shape: PhysXShape): void {
     this._pxActor.attachShape(shape._pxShape);
     this._shapes.push(shape);
+    this._scene?._addShape(shape._id);
   }
 
   /**

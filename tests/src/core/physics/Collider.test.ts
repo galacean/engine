@@ -452,7 +452,7 @@ describe("Collider", () => {
     expect(collider.getClosestPoint(new Vector3(10, 2, 3), closest)).toBeCloseTo(originalDistance);
   });
 
-  it("re-enters an overlapping trigger pair when its collider moves between static and dynamic owners", () => {
+  it("keeps an overlapping trigger pair when its collider moves between static and dynamic owners", () => {
     const volume = root.createChild("volume");
     volume.addComponent(BoxCollider);
     const probe = root.createChild("probe");
@@ -461,24 +461,24 @@ describe("Collider", () => {
     probe.addComponent(Rigidbody).isKinematic = true;
     const recorder = probe.addComponent(CollisionRecorder);
     update(2);
-    expect(recorder.onTriggerEnter).toHaveBeenCalledTimes(1);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
 
     const body = volume.addComponent(Rigidbody);
     body.useGravity = false;
     update(2);
-    expect(recorder.onTriggerEnter).toHaveBeenCalledTimes(2);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
     expect(recorder.onTriggerExit).not.toHaveBeenCalled();
 
     body.destroy();
     update(2);
-    expect(recorder.onTriggerEnter).toHaveBeenCalledTimes(3);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
     expect(recorder.onTriggerExit).not.toHaveBeenCalled();
 
-    // Separating the colliders ends the active pair once.
+    // The pair survives ownership changes. Separating the colliders ends it.
     probe.transform.setPosition(10, 0, 0);
     update(2);
     expect(recorder.onTriggerExit).toHaveBeenCalledOnce();
-    expect(recorder.onTriggerEnter).toHaveBeenCalledTimes(3);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
   });
 
   it("returns no closest point while the owning Rigidbody is disabled", () => {
