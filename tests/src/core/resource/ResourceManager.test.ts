@@ -616,5 +616,68 @@ describe("ResourceManager", () => {
       expect(mat.destroyed).toBe(true);
       expect(tex.destroyed).toBe(true);
     });
+
+    it("unregisters virtual resources by path or matching descriptor without clobbering newer registrations", async () => {
+      const resourceManager = engine.resourceManager;
+      const virtualPathA = "Assets/Unregister/a.txt";
+      const virtualPathB = "Assets/Unregister/b.txt";
+      const pathA1 = "blob:https://local.alipay.net/unregister-a1";
+      const pathA2 = "blob:https://local.alipay.net/unregister-a2";
+      const pathA3 = "blob:https://local.alipay.net/unregister-a3";
+      const pathB = "blob:https://local.alipay.net/unregister-b";
+      const descriptorA1 = { virtualPath: virtualPathA, path: pathA1, type: AssetType.Text };
+      const descriptorA2 = { virtualPath: virtualPathA, path: pathA2, type: AssetType.Text };
+      const descriptorA3 = { virtualPath: virtualPathA, path: pathA3, type: AssetType.Text };
+      const descriptorB = { virtualPath: virtualPathB, path: pathB, type: AssetType.Text };
+
+      resourceManager.registerVirtualResources([descriptorA1, descriptorB]);
+      expect(resourceManager._getRemoteUrl(virtualPathA)).equal(pathA1);
+      expect(resourceManager._getRemoteUrl(virtualPathB)).equal(pathB);
+
+      // Overwrite virtualPathA with a newer descriptor; stale cleanup of A1 must not remove A2
+      resourceManager.registerVirtualResources([descriptorA2]);
+      resourceManager.unregisterVirtualResources([descriptorA1, "Assets/Unregister/missing.txt"]);
+      expect(resourceManager._getRemoteUrl(virtualPathA)).equal(pathA2);
+
+      // Matching descriptor removes A2; bare string removes B unconditionally
+      resourceManager.unregisterVirtualResources([descriptorA2, virtualPathB]);
+      expect(resourceManager._getRemoteUrl(virtualPathA)).equal(virtualPathA);
+      expect(resourceManager._getRemoteUrl(virtualPathB)).equal(virtualPathB);
+      await expect(resourceManager.getResourceByRef({ url: virtualPathA })).resolves.toBeNull();
+      await expect(resourceManager.getResourceByRef({ url: virtualPathB })).resolves.toBeNull();
+
+      // Re-registering after unregistration resolves and loads the new backing URL cleanly
+      const requestSpy = vi
+        .spyOn(resourceManager, "_requestByRemoteUrl")
+        .mockReturnValue(AssetPromise.resolve("re-registered") as any);
+      let loaded: any;
+      try {
+        resourceManager.registerVirtualResources([descriptorA3]);
+        loaded = await resourceManager.getResourceByRef({ url: virtualPathA });
+        expect(loaded?.text).toBe("re-registered");
+        expect(requestSpy).toHaveBeenCalledWith(pathA3, expect.anything());
+        // Unregistering only removes the mapping and never destroys loaded asset instances
+        resourceManager.unregisterVirtualResources([descriptorA3]);
+        expect(loaded.destroyed).toBe(false);
+        expect(resourceManager._getRemoteUrl(virtualPathA)).equal(virtualPathA);
+      } finally {
+        loaded?.destroy();
+        requestSpy.mockRestore();
+        resourceManager.unregisterVirtualResources([descriptorA3]);
+      }
+    });
+
+    it("ignores unregisterVirtualResources cleanly after engine destruction", async () => {
+      const tempEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const resourceManager = tempEngine.resourceManager;
+      const descriptor = {
+        virtualPath: "Assets/Temp/a.txt",
+        path: "blob:https://local.alipay.net/temp-a",
+        type: AssetType.Text
+      };
+      resourceManager.registerVirtualResources([descriptor]);
+      tempEngine.destroy();
+      expect(() => resourceManager.unregisterVirtualResources(["Assets/Temp/a.txt", descriptor])).not.toThrow();
+    });
   });
 });
