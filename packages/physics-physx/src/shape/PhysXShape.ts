@@ -4,16 +4,6 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 
 /**
- * Flags which affect the behavior of Shapes.
- */
-const enum ShapeFlag {
-  /** The shape will partake in collision in the physical simulation. */
-  SIMULATION_SHAPE = 1 << 0,
-  /** The shape will partake in scene queries (ray casts, overlap tests, sweeps, ...). */
-  SCENE_QUERY_SHAPE = 1 << 1
-}
-
-/**
  * Abstract base class for PhysX shapes.
  */
 export abstract class PhysXShape implements IPhysicsShape {
@@ -115,4 +105,14 @@ export abstract class PhysXShape implements IPhysicsShape {
     this._pxShape = shape;
     shape.setUUID(id);
   }
+}
+
+/**
+ * Flags which affect the behavior of Shapes.
+ */
+const enum ShapeFlag {
+  /** The shape will partake in collision in the physical simulation. */
+  SIMULATION_SHAPE = 1 << 0,
+  /** The shape will partake in scene queries (ray casts, overlap tests, sweeps, ...). */
+  SCENE_QUERY_SHAPE = 1 << 1
 }
