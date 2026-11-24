@@ -30,7 +30,7 @@ interface RockVariantEntry {
   /** Fraction of the fitted mesh height to sink below the placement base. */
   groundInset: number;
   /** Authored local mesh AABB `[min, max]` matching the decoded GLB positions. */
-  bounds?: readonly [readonly number[], readonly number[]];
+  bounds?: readonly [V3, V3];
 }
 
 interface RockVariantPools {
@@ -38,7 +38,40 @@ interface RockVariantPools {
   stones: readonly RockVariantEntry[];
 }
 
-const variantPools: Readonly<Record<keyof typeof catalog.pools, RockVariantPools>> = catalog.pools;
+function readCatalogBounds(id: string, raw?: readonly (readonly number[])[]): readonly [V3, V3] | undefined {
+  if (!raw) return undefined;
+  if (raw.length !== 2 || raw[0].length !== 3 || raw[1].length !== 3) {
+    throw Error(`Invalid rock catalog bounds: ${id}`);
+  }
+  const min: V3 = [raw[0][0], raw[0][1], raw[0][2]];
+  const max: V3 = [raw[1][0], raw[1][1], raw[1][2]];
+  if (max.some((value, axis) => !Number.isFinite(value - min[axis]) || value <= min[axis])) {
+    throw Error(`Invalid rock catalog bounds: ${id}`);
+  }
+  return [min, max];
+}
+
+function readCatalogEntries(
+  entries: readonly {
+    id: string;
+    mesh: string;
+    hasDetachedPieces?: boolean;
+    groundInset: number;
+    bounds?: readonly (readonly number[])[];
+  }[]
+): readonly RockVariantEntry[] {
+  return entries.map((entry) => ({
+    ...entry,
+    bounds: readCatalogBounds(entry.id, entry.bounds)
+  }));
+}
+
+const variantPools: Readonly<Record<keyof typeof catalog.pools, RockVariantPools>> = {
+  shared: {
+    mountains: readCatalogEntries(catalog.pools.shared.mountains),
+    stones: readCatalogEntries(catalog.pools.shared.stones)
+  }
+};
 
 const MAX_VARIANTS = 10;
 const meshTasks = new WeakMap<Engine, Map<string, Promise<RockVariantAsset>>>();

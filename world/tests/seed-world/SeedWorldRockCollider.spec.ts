@@ -458,4 +458,31 @@ it("syncs uniform-XZ fitted rock top height into animal air obstacle checks", ()
   expect(
     habitat.canTraverseAir({ x: cx - 30, y: baseY + 25, z: cz }, { x: cx + 30, y: baseY + 25, z: cz }, 0.5, 1.0)
   ).toBe(true);
+
+  // Shorter fitted cliff (`left-cliff-step-1`) must not leave an air wall between fitted top (~27.89m) and taller planned OBB (~39.10m).
+  const shorterCliff = plan.rocks.find((r) => r.id.endsWith("left-cliff-step-1"))!;
+  expect(shorterCliff).toBeDefined();
+  const sBaseY = shorterCliff.baseHeight ?? 0;
+  const isolatedPlan = { ...plan, rocks: [shorterCliff], buildings: [], landscapes: [], courtyards: [], fences: [] };
+  const isolatedHabitat = new PlanningAnimalHabitat(
+    isolatedPlan,
+    {
+      sampleHeightInterpolated: () => sBaseY,
+      sampleContactIsWater: () => false
+    },
+    { spawnRadius: 2000, roamRadius: 2000 }
+  );
+  const sx = shorterCliff.center.x,
+    sz = shorterCliff.center.z;
+  expect(
+    isolatedHabitat.canTraverseAir({ x: sx, y: sBaseY + 15, z: sz }, { x: sx + 1, y: sBaseY + 15, z: sz }, 0.5, 1.0)
+  ).toBe(false);
+  expect(
+    isolatedHabitat.canTraverseAir(
+      { x: sx, y: sBaseY + 27.85, z: sz },
+      { x: sx + 1, y: sBaseY + 27.85, z: sz },
+      0.5,
+      1.0
+    )
+  ).toBe(true);
 });

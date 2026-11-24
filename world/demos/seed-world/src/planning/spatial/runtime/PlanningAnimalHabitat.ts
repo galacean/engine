@@ -231,7 +231,7 @@ export class PlanningAnimalHabitat {
             : part.layer === "landscape-rock"
               ? fittedRockHeights?.landscapes.get(box.id)
               : undefined;
-        const heightM = fittedHeight !== undefined ? Math.max(box.sizeY, fittedHeight) : box.sizeY;
+        const heightM = fittedHeight ?? box.sizeY;
         const solid: Solid = {
           // Match publication dependency identities. Unrelated part edits must not
           // renumber obstacles already visited by a suspended search.
