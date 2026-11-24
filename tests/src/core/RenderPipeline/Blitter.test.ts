@@ -1,4 +1,5 @@
 import {
+  AntiAliasing,
   Blitter,
   BloomEffect,
   Camera,
@@ -945,6 +946,97 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
     } finally {
       rt.destroy();
       tex.destroy();
+    }
+  });
+
+  it("gl.blitFramebuffer ignores stale GL_SCISSOR_TEST from a previous sub-viewport pass (FXAA background copy & MSAA resolve)", () => {
+    const scene = engine.sceneManager.scenes[0];
+
+    // 1. Reproduce Camera A (left-half sub-viewport) -> Camera B (full-screen FXAA, clearFlags=None, linear single-sample RT)
+    const texA = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const rtA = new RenderTarget(engine, 16, 16, texA, null, 1);
+    const texB = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const rtB = new RenderTarget(engine, 16, 16, texB, null, 1);
+
+    const camAEntity = scene.createRootEntity("camA");
+    const camA = camAEntity.addComponent(Camera);
+    camA.viewport = new Vector4(0, 0, 0.5, 1);
+    camA.renderTarget = rtA;
+    camA.clearFlags = CameraClearFlags.Color;
+    camA.priority = 1;
+
+    const camBEntity = scene.createRootEntity("camB");
+    const camB = camBEntity.addComponent(Camera);
+    camB.viewport = new Vector4(0, 0, 1, 1);
+    camB.renderTarget = rtB;
+    camB.antiAliasing = AntiAliasing.FXAA;
+    camB.clearFlags = CameraClearFlags.None;
+    camB.priority = 2;
+
+    // 2. Also verify MSAA resolve is not cropped when GL_SCISSOR_TEST is active before endRenderPass
+    const msaaTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const msaaRT = new RenderTarget(engine, 16, 16, msaaTex, null, 4);
+
+    try {
+      // Pre-fill texB with a known linear color across the entire 16x16 image
+      const seed = new Uint8Array(16 * 16 * 4);
+      for (let i = 0; i < 16 * 16; i++) {
+        seed[i * 4] = 112;
+        seed[i * 4 + 1] = 124;
+        seed[i * 4 + 2] = 146;
+        seed[i * 4 + 3] = 255;
+      }
+      texB.setPixelBuffer(seed);
+
+      // Render A (left-half scissor) then B (full-screen FXAA keeping background via blitInternalRTByBlitFrameBuffer)
+      camA.render();
+      expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(true);
+      camB.render();
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+
+      const outB = new Uint8Array(16 * 16 * 4);
+      texB.getPixelBuffer(outB);
+      const leftIdx = (8 * 16 + 3) * 4;
+      const rightIdx = (8 * 16 + 12) * 4;
+      // Both left and right halves must retain the pre-filled background (right half must NOT be cropped to [0,0,0,0])
+      expect(outB[leftIdx]).toBeGreaterThan(80);
+      expect(outB[leftIdx + 3]).toBe(255);
+      expect(outB[rightIdx]).toBeGreaterThan(80);
+      expect(outB[rightIdx + 1]).toBeGreaterThan(90);
+      expect(outB[rightIdx + 2]).toBeGreaterThan(110);
+      expect(outB[rightIdx + 3]).toBe(255);
+
+      // MSAA resolve with active sub-rect scissor must resolve both left and right halves
+      // @ts-ignore
+      const rhi = engine._hardwareRenderer;
+      const desc = new RenderPassDescriptor();
+      desc.reset(msaaRT, new Vector4(0, 0, 1, 1), true);
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
+      desc.clearColor.set(0.2, 0.8, 0.4, 1);
+      desc.colorStoreAction = RenderPassStoreAction.Resolve;
+      rhi.beginRenderPass(desc);
+      // Enable a left-half scissor inside the pass before ending
+      rhi.scissor(0, 0, 8, 16);
+      expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(true);
+      rhi.endRenderPass();
+      expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(false);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+
+      const outMSAA = new Uint8Array(16 * 16 * 4);
+      msaaTex.getPixelBuffer(outMSAA);
+      expect(outMSAA[rightIdx]).toBeGreaterThan(40);
+      expect(outMSAA[rightIdx + 1]).toBeGreaterThan(190);
+      expect(outMSAA[rightIdx + 2]).toBeGreaterThan(90);
+      expect(outMSAA[rightIdx + 3]).toBe(255);
+    } finally {
+      camAEntity.destroy();
+      camBEntity.destroy();
+      rtA.destroy();
+      rtB.destroy();
+      texA.destroy();
+      texB.destroy();
+      msaaRT.destroy();
+      msaaTex.destroy();
     }
   });
 });

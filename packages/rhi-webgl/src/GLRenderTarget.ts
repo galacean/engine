@@ -184,6 +184,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
+    rhi._disableScissorTest();
 
     for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
       const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;

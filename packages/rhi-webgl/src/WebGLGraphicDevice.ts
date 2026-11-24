@@ -599,6 +599,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const yStart = needFlipY ? srcHeight - viewport.y * srcHeight : srcHeight - viewport.y * srcHeight - blitHeight;
     const yEnd = needFlipY ? yStart - blitHeight : yStart + blitHeight;
 
+    // gl.blitFramebuffer is clipped by GL_SCISSOR_TEST; ensure stale scissor state from a previous pass does not crop the copy.
+    this._disableScissorTest();
     gl.blitFramebuffer(xStart, yStart, xEnd, yEnd, 0, 0, blitWidth, blitHeight, blitMask, gl.NEAREST);
   }
 
@@ -727,6 +729,14 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const webCanvas = this._webCanvas;
     webCanvas.removeEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.removeEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
+  }
+
+  /** @internal */
+  _disableScissorTest(): void {
+    if (this._scissorEnable) {
+      this._gl.disable(this._gl.SCISSOR_TEST);
+      this._scissorEnable = false;
+    }
   }
 
   /** @internal */
