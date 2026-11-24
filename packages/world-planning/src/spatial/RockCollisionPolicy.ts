@@ -67,14 +67,20 @@ export function applyRockCollisionPolicyToPlan(
   for (const rock of plan.rocks) {
     if (!rock.boxes) continue;
     for (const box of rock.boxes) {
-      if (box.collision === undefined) {
+      if (box.collisionOverride !== undefined) {
+        box.collision = box.collisionOverride;
+      } else if (box.collision === undefined) {
         box.collision = resolveRockCollision(box, policy);
       }
     }
   }
   for (const item of plan.landscapes ?? []) {
-    if (item.kind === "rock" && item.collision === undefined) {
-      item.collision = resolveRockCollision(item, policy);
+    if (item.kind === "rock") {
+      if (item.collisionOverride !== undefined) {
+        item.collision = item.collisionOverride;
+      } else if (item.collision === undefined) {
+        item.collision = resolveRockCollision(item, policy);
+      }
     }
   }
 }

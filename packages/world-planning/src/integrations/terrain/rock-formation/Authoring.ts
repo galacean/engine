@@ -45,7 +45,13 @@ export function applyRockObbSizes(plan: IslandPlan, document: PlanningDocument):
       dimensionsChanged ||= resized;
       footprintChanged ||= sizeX !== box.sizeX || sizeZ !== box.sizeZ;
       return resized
-        ? { ...box, sizeX, sizeY, sizeZ, collision: resolveRockCollision({ sizeX, sizeY, sizeZ }, collisionPolicy) }
+        ? {
+            ...box,
+            sizeX,
+            sizeY,
+            sizeZ,
+            collision: resolveRockCollision({ sizeX, sizeY, sizeZ }, collisionPolicy, box.collisionOverride)
+          }
         : box;
     });
     if (!dimensionsChanged) {

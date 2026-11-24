@@ -11,7 +11,6 @@ import {
   BufferUsage,
   Color,
   CurveKey,
-  Engine,
   GradientAlphaKey,
   GradientColorKey,
   type IndexBufferBinding,
@@ -491,7 +490,10 @@ export class WorldTemplateRuntime {
               ],
               yawRadians
             });
-            if (shouldCollide && (Engine as unknown as { _nativePhysics?: unknown })._nativePhysics) {
+            if (
+              shouldCollide &&
+              (normalized.engine as unknown as { _physicsInitialized?: boolean })._physicsInitialized
+            ) {
               const collider = normalized.addComponent(StaticCollider);
               const shape = new BoxColliderShape();
               shape.size.set(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, bounds.max.z - bounds.min.z);

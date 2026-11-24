@@ -216,11 +216,20 @@ function projectInstances(
         }
         const outline = envelope(shape.center, shape.width, shape.depth, 0);
         const { rockObbSource, ...rock } = plan.rocks[rockAt];
+        const priorBoxes = rockObbSource?.boxes ?? rock.boxes;
         const collisionPolicy = templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id);
-        const rockBoxes = boxes.map((box) => ({
-          ...box,
-          collision: resolveRockCollision({ sizeX: box.sizeX, sizeY: box.sizeY, sizeZ: box.sizeZ }, collisionPolicy)
-        }));
+        const rockBoxes = boxes.map((box, part) => {
+          const override = priorBoxes?.[part]?.collisionOverride;
+          return {
+            ...box,
+            ...(override !== undefined ? { collisionOverride: override } : {}),
+            collision: resolveRockCollision(
+              { sizeX: box.sizeX, sizeY: box.sizeY, sizeZ: box.sizeZ },
+              collisionPolicy,
+              override
+            )
+          };
+        });
         plan.rocks[rockAt] = {
           ...rock,
           ...shape,

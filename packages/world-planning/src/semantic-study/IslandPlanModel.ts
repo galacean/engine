@@ -328,8 +328,10 @@ export interface PlanSlope {
 /** Asset-independent landscape occupancy, separate from terrain-forming mountain rocks. */
 export interface PlanLandscape {
   assetId?: string;
-  /** Optional explicit physical/animal collision override; omitted defers to the unified rock size policy. */
+  /** Resolved physical/animal collision switch; omitted defers to the unified rock size policy. */
   collision?: boolean;
+  /** Optional explicit author/template collision switch retained across dimension edits. */
+  collisionOverride?: boolean;
   /** Explicit prefab rendering excludes the instance from procedural vegetation submission. */
   assetRenderMode?: "prefab";
   /** Shared appearance variant, independent of terrain color and model geometry. */

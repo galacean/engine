@@ -69,7 +69,11 @@ import {
 } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Authoring.ts";
 import { guidanceRockBox } from "../../../packages/world-planning/src/spatial/guidance/GuidanceRock.ts";
 import { applyLandscapeEdits } from "../../../packages/world-planning/src/spatial/layout/DerivedEdits.ts";
+import { projectLayoutGroups } from "../../../packages/world-planning/src/spatial/layout/LayoutPlanAdapter.ts";
 import { rockVariantFit } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts";
+import { createTemplatePlanningDocument } from "../../../packages/world-planning/src/spatial/WorldTemplateAuthoring.ts";
+import { generatePlanningDocument } from "../../../packages/world-planning/src/spatial/PlanningRuntime.ts";
+import { PlanningAnimalHabitat } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts";
 import type { PlanningDocument } from "../../../packages/world-planning/src/spatial/PlanningDocument.ts";
 
 const formation = (): RockFormationMesh => ({
@@ -342,9 +346,28 @@ it("re-evaluates rock collision on AI/editor OBB resizes, landscape edits, and g
       seed: 1,
       surfaceGrass: true,
       origin: [0, 0, 0],
-      guides: [{ id: "g", ownerId: "g", center: [0, 6, 0], size: [100, 12, 50], axes: [[1, 0, 0], [0, 1, 0], [0, 0, 1]] }]
+      guides: [
+        {
+          id: "g",
+          ownerId: "g",
+          center: [0, 6, 0],
+          size: [100, 12, 50],
+          axes: [
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]
+          ]
+        }
+      ]
     },
-    { id: "a", groundInset: 0.1, bounds: [[-5, 0, -5], [5, 5, 5]] } as any
+    {
+      id: "a",
+      groundInset: 0.1,
+      bounds: [
+        [-5, 0, -5],
+        [5, 5, 5]
+      ]
+    } as any
   );
   const fitX = Math.hypot(m[0], m[2]);
   const fitZ = Math.hypot(m[8], m[10]);
@@ -353,4 +376,86 @@ it("re-evaluates rock collision on AI/editor OBB resizes, landscape edits, and g
   expect(fitX).toBeCloseTo(5.0, 5);
   expect(fitZ).toBeCloseTo(5.0, 5);
   expect(fitY).toBeCloseTo(5.0, 5);
+});
+
+it("preserves explicit authored rock collision overrides across edits and matches policy on initial POI rocks", () => {
+  const { plan } = generatePlanningDocument(createTemplatePlanningDocument(3414254481, "titan-wasteland"));
+  const pillar = plan.landscapes!.find((item) => item.id.endsWith("island-pillar-sw"))!;
+  expect(pillar).toBeDefined();
+  expect(pillar.collision).toBe(true);
+  expect(pillar.collisionOverride).toBe(true);
+
+  // Editing height on an explicit collision:true slender pillar (1.0 x 1.0 m) must preserve collision: true.
+  applyLandscapeEdits(plan, { [pillar.id]: { height: 2.6 } }, () => 0);
+  const editedPillar = plan.landscapes!.find((item) => item.id === pillar.id)!;
+  expect(editedPillar.height).toBe(2.6);
+  expect(editedPillar.collision).toBe(true);
+  expect(editedPillar.collisionOverride).toBe(true);
+
+  // Initial POI layout projection applies the same rock size policy as subsequent edits.
+  const layoutPlan = {
+    parameters: { width: 1024, depth: 1024, seed: 1 },
+    buildings: [],
+    rocks: [],
+    mountains: [],
+    plazas: [],
+    regions: [],
+    routes: [],
+    planning: { ports: [], modules: [] }
+  } as unknown as IslandPlan;
+  projectLayoutGroups(
+    layoutPlan,
+    [
+      {
+        id: "poi-test",
+        center: { x: 100, z: 100 },
+        rule: { pattern: "region", radiusM: 20, openRadiusM: 0, pathWidthM: 2 } as any,
+        ports: [],
+        paths: [],
+        volumes: [
+          {
+            id: "poi-small-rock",
+            boxes: [{ center: { x: 100, z: 100 }, width: 1.2, depth: 1.1, height: 0.9, yaw: 0, elevation: 0 }]
+          },
+          {
+            id: "poi-large-rock",
+            boxes: [{ center: { x: 110, z: 100 }, width: 3.0, depth: 2.5, height: 2.0, yaw: 0, elevation: 0 }]
+          }
+        ]
+      } as any
+    ],
+    { "poi-test": "rock" },
+    false
+  );
+  expect(layoutPlan.rocks.find((r) => r.id === "poi-small-rock")!.boxes![0].collision).toBe(false);
+  expect(layoutPlan.rocks.find((r) => r.id === "poi-large-rock")!.boxes![0].collision).toBe(true);
+});
+
+it("syncs uniform-XZ fitted rock top height into animal air obstacle checks", () => {
+  const { plan } = generatePlanningDocument(createTemplatePlanningDocument(3414254481, "titan-wasteland"));
+  const cliff = plan.rocks.find((r) => r.id.endsWith("canyon-basin-far-c"))!;
+  expect(cliff).toBeDefined();
+  const baseY = cliff.baseHeight ?? 0;
+  expect(cliff.height).toBeCloseTo(8.5, 5);
+
+  const habitat = new PlanningAnimalHabitat(
+    plan,
+    {
+      sampleHeightInterpolated: () => baseY,
+      sampleContactIsWater: () => false
+    },
+    { spawnRadius: 2000, roamRadius: 2000 }
+  );
+
+  // Flight probe crossing at +14m above base (above planned 8.5m OBB, inside ~20.07m fitted rock top) must be blocked.
+  const cx = cliff.center.x,
+    cz = cliff.center.z;
+  expect(
+    habitat.canTraverseAir({ x: cx - 30, y: baseY + 14, z: cz }, { x: cx + 30, y: baseY + 14, z: cz }, 0.5, 1.0)
+  ).toBe(false);
+
+  // Flight probe safely above the ~20.07m fitted rock top must remain passable.
+  expect(
+    habitat.canTraverseAir({ x: cx - 30, y: baseY + 25, z: cz }, { x: cx + 30, y: baseY + 25, z: cz }, 0.5, 1.0)
+  ).toBe(true);
 });

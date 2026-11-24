@@ -29,6 +29,42 @@ import {
 } from "@galacean/engine-vegetation/asset-assembly/AssetEntranceEffect";
 import type { SeedWorldTerrainOcclusionReadPort } from "../../../runtime/SeedWorldTerrainOcclusionCuller.ts";
 
+const formationUniqueOwners = new WeakMap<RockFormationMesh, readonly string[]>();
+
+function uniqueFormationOwners(formation: RockFormationMesh): readonly string[] {
+  let unique = formationUniqueOwners.get(formation);
+  if (unique) return unique;
+  const owners = formation.owners;
+  if (!owners.length) {
+    unique = [];
+  } else if (formation.variant) {
+    unique = [owners[0]];
+  } else {
+    const first = owners[0];
+    let single = true;
+    for (let i = 1; i < owners.length; i++) {
+      if (owners[i] !== first) {
+        single = false;
+        break;
+      }
+    }
+    unique = single ? [first] : [...new Set(owners)].sort();
+  }
+  formationUniqueOwners.set(formation, unique);
+  return unique;
+}
+
+function formationCollisionKey(formation: RockFormationMesh, disabled: ReadonlySet<string>): string {
+  const unique = uniqueFormationOwners(formation);
+  if (unique.length === 0) return "";
+  if (unique.length === 1) return disabled.has(unique[0]) ? "0" : "1";
+  let key = "";
+  for (let i = 0; i < unique.length; i++) {
+    if (disabled.has(unique[i])) key += key ? `\0${unique[i]}` : unique[i];
+  }
+  return key;
+}
+
 interface RockViewEntry {
   formation: RockFormationMesh;
   entity: Entity;
@@ -185,7 +221,7 @@ export class RockFormationView {
     try {
       for (const formation of formations) {
         const current = base.get(formation.id);
-        const collisionKey = JSON.stringify([...new Set(formation.owners.filter((id) => disabled.has(id)))].sort());
+        const collisionKey = formationCollisionKey(formation, disabled);
         if (current?.formation === formation && current.collisionKey === collisionKey) next.set(formation.id, current);
         else {
           const entry = this.upload(formation, disabled, collisionKey);

@@ -35,7 +35,7 @@ export function applyLandscapeEdits(
       element.kind === "rock" &&
       (edit.width !== undefined || edit.depth !== undefined || edit.height !== undefined)
     ) {
-      element.collision = resolveRockCollision(element, rockCollisionPolicy);
+      element.collision = resolveRockCollision(element, rockCollisionPolicy, element.collisionOverride);
     }
     element.baseHeight = boxGroundBottom(
       element.kind === "tree"

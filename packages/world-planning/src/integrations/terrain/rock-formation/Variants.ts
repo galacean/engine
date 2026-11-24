@@ -20,6 +20,7 @@ import type {
 } from "@galacean/engine-terrain/rock-formation/types";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel";
 import { worldTemplate } from "../../../spatial/WorldTemplateCatalog";
+import { rockObbId } from "./Authoring.ts";
 import catalog from "./RockVariantCatalog.json";
 
 interface RockVariantEntry {
@@ -28,6 +29,8 @@ interface RockVariantEntry {
   hasDetachedPieces?: boolean;
   /** Fraction of the fitted mesh height to sink below the placement base. */
   groundInset: number;
+  /** Authored local mesh AABB `[min, max]` matching the decoded GLB positions. */
+  bounds?: readonly [readonly number[], readonly number[]];
 }
 
 interface RockVariantPools {
@@ -152,8 +155,8 @@ function rankedPool(seed: number, role: string, entries: readonly RockVariantEnt
 
 /** Both placement systems draw from the same seed-specific palette. */
 export function rockVariantPools(plan: IslandPlan) {
-  const seed = plan.parameters.seed;
-  const template = worldTemplate(plan.parameters.worldTemplate?.id);
+  const seed = plan.parameters?.seed ?? 0;
+  const template = worldTemplate(plan.parameters?.worldTemplate?.id);
   const rockSource = template?.rockSource ?? "shared";
   const stoneSource = template?.stoneSource ?? rockSource;
   if (rockSource === "authored" && stoneSource === "authored") return undefined;
@@ -186,6 +189,84 @@ export function pickFormationVariant(pool: readonly RockVariantEntry[], job: Roc
 /** Lower the fitted mesh by its authored inset, keeping the planned base as the reference. */
 export function rockVariantGroundOffset(asset: RockVariantAsset, scale: number): number {
   return -asset.groundInset * (asset.bounds[1][1] - asset.bounds[0][1]) * scale;
+}
+
+/**
+ * Computes the fitted vertical height above the planned base for one rock guide using catalog bounds
+ * and the exact same uniform-XZ / pillar fit rule as `rockVariantFit`.
+ */
+export function rockVariantFittedTopHeight(
+  plan: IslandPlan,
+  jobId: string,
+  sizeX: number,
+  sizeY: number,
+  sizeZ: number,
+  surfaceGrass: boolean,
+  pools = rockVariantPools(plan)
+): number | undefined {
+  if (!pools) return undefined;
+  const pool = surfaceGrass ? pools.mountains : pools.stones;
+  if (!pool.length) return undefined;
+  const seed = hashSeed(plan.parameters?.seed ?? 0, jobId);
+  const isPillar = !surfaceGrass && sizeY > Math.max(sizeX, sizeZ) * 1.5;
+  let selected = pickRockVariant(pool, seed);
+  if (selected?.hasDetachedPieces && isPillar) {
+    const singlePieceStones = pool.filter((entry) => !entry.hasDetachedPieces);
+    selected = pickRockVariant(singlePieceStones, seed);
+  }
+  const bounds = selected?.bounds;
+  if (!selected || !bounds) return undefined;
+  const spanX = bounds[1][0] - bounds[0][0];
+  const spanY = bounds[1][1] - bounds[0][1];
+  const spanZ = bounds[1][2] - bounds[0][2];
+  if (!(spanX > 0 && spanY > 0 && spanZ > 0)) return undefined;
+  const yScale = isPillar ? sizeY / spanY : Math.min(sizeX / spanX, sizeZ / spanZ);
+  return spanY * yScale * (1 - selected.groundInset);
+}
+
+/**
+ * Computes fitted vertical top heights above the planned base for all colliding shared-variant rocks
+ * in `plan`, allowing animal obstacle indexing to match protruding uniform-XZ rock tops without
+ * decoding GLBs or allocating extra OBBs.
+ */
+export function rockFormationFittedHeights(
+  plan: IslandPlan
+): { rockBoxes: ReadonlyMap<string, number>; landscapes: ReadonlyMap<string, number> } | undefined {
+  const pools = rockVariantPools(plan);
+  if (!pools) return undefined;
+  const rockBoxes = new Map<string, number>();
+  for (const rock of plan.rocks ?? []) {
+    if (rock.assetId) continue;
+    const boxes = rock.boxes ?? [
+      { id: rock.id, sizeX: rock.width, sizeY: rock.height, sizeZ: rock.depth, collision: true }
+    ];
+    for (const box of boxes) {
+      if (!box.collision) continue;
+      const fitted = rockVariantFittedTopHeight(
+        plan,
+        rockObbId(rock.id, box.id),
+        box.sizeX,
+        box.sizeY,
+        box.sizeZ,
+        true,
+        pools
+      );
+      if (fitted !== undefined) {
+        const previous = rockBoxes.get(box.id);
+        rockBoxes.set(box.id, previous === undefined ? fitted : Math.max(previous, fitted));
+      }
+    }
+  }
+  const landscapes = new Map<string, number>();
+  for (const item of plan.landscapes ?? []) {
+    if (item.kind !== "rock" || item.assetId || item.collision === false) continue;
+    const fitted = rockVariantFittedTopHeight(plan, item.id, item.width, item.height, item.depth, false, pools);
+    if (fitted !== undefined) {
+      const previous = landscapes.get(item.id);
+      landscapes.set(item.id, previous === undefined ? fitted : Math.max(previous, fitted));
+    }
+  }
+  return { rockBoxes, landscapes };
 }
 
 export function rockVariantFit(job: RockFormationJob, asset: RockVariantAsset): Float32Array {

@@ -48,7 +48,11 @@ export function createRockCollider(
   formation: RockFormationMesh,
   disabled: ReadonlySet<string>
 ) {
-  if (formation.owners.length && formation.owners.every((owner) => disabled.has(owner))) return undefined;
+  if (
+    formation.owners.length &&
+    (formation.variant ? disabled.has(formation.owners[0]) : formation.owners.every((owner) => disabled.has(owner)))
+  )
+    return undefined;
   const indices = rockCollisionIndices(formation, disabled);
   if (!indices.length) return undefined;
   const mesh = new ModelMesh(engine, `Rock collision · ${formation.id}`);

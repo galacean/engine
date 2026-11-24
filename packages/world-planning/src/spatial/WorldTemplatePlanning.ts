@@ -256,6 +256,7 @@ export function publishTemplateStones(plan: IslandPlan, ground: (point: PlanPoin
             sizeZ: stone.depth,
             elevation: baseHeight,
             yaw,
+            ...(stone.collision !== undefined ? { collisionOverride: stone.collision } : {}),
             collision: resolveRockCollision(stone, collisionPolicy, stone.collision),
             occlusion: true
           }
@@ -278,6 +279,7 @@ export function publishTemplateStones(plan: IslandPlan, ground: (point: PlanPoin
         baseHeight,
         outline,
         collisionRadius: Math.hypot(hw, hd),
+        ...(stone.collision !== undefined ? { collisionOverride: stone.collision } : {}),
         collision: resolveRockCollision(stone, collisionPolicy, stone.collision)
       });
     }
