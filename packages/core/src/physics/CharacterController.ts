@@ -1,9 +1,4 @@
-import {
-  ControllerCollisionFlag,
-  ControllerNonWalkableMode,
-  ICharacterController,
-  IPhysicsMaterial
-} from "@galacean/engine-design";
+import { ControllerCollisionFlag, ControllerNonWalkableMode, ICharacterController } from "@galacean/engine-design";
 import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
@@ -303,16 +298,8 @@ export class CharacterController extends Collider {
     return value;
   }
 
-  protected override _onContactOffsetChanged(value: number): void {
-    this._controller?.setContactOffset(value);
-  }
-
-  protected override _onMaterialChanged(material: IPhysicsMaterial): void {
-    this._controller?.setMaterial(material);
-  }
-
-  protected override _onCollisionLayerChanged(layerIndex: number): void {
-    this._controller?.setCollisionLayer(layerIndex);
+  protected override _getNative(): ICharacterController | null {
+    return this._controller;
   }
 
   protected override _destroyNative(): void {

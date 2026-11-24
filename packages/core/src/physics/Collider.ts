@@ -1,4 +1,10 @@
-import { IPhysicsActor, IPhysicsMaterial, IPhysicsShape, IStaticActor } from "@galacean/engine-design";
+import {
+  ICharacterController,
+  IPhysicsActor,
+  IPhysicsMaterial,
+  IPhysicsShape,
+  IStaticActor
+} from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { Logger } from "../base";
 import { BasicResources } from "../BasicResources";
@@ -142,7 +148,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     value = this._validateContactOffset(value);
     if (this._contactOffset !== value) {
       this._contactOffset = value;
-      this._onContactOffsetChanged(value);
+      this._getNative()?.setContactOffset(value);
     }
   }
 
@@ -164,7 +170,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       this._material && this._addResourceReferCount(this._material, -1);
       value && this._addResourceReferCount(value, 1);
       this._material = value;
-      this._onMaterialChanged(this._getNativeMaterial());
+      this._getNative()?.setMaterial(this._getNativeMaterial());
     }
   }
 
@@ -183,7 +189,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const index = Collider._getLayerIndex(value);
     if (this._collisionLayerIndex !== index) {
       this._collisionLayerIndex = index;
-      this._onCollisionLayerChanged(index);
+      this._getNative()?.setCollisionLayer(index);
     }
   }
 
@@ -465,16 +471,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return clamped;
   }
 
-  protected _onContactOffsetChanged(value: number): void {
-    this._native?.setContactOffset(value);
-  }
-
-  protected _onMaterialChanged(material: IPhysicsMaterial): void {
-    this._native?.setMaterial(material);
-  }
-
-  protected _onCollisionLayerChanged(layerIndex: number): void {
-    this._native?.setCollisionLayer(layerIndex);
+  protected _getNative(): IPhysicsShape | ICharacterController | null {
+    return this._native;
   }
 
   protected _destroyNative(): void {
