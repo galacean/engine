@@ -1847,6 +1847,28 @@ export async function createHeadlessSeedWorldFixture(options: {
   if (initialLakeBody && !initialLakeBody.configuration) {
     initialLakeBody._configuration = { kind: "lake" };
   }
+  const initialLakeWaterId = initialLakeBody?.waterId ?? "lake-body";
+  const isPointInRiver = (river: PlanningWaterCreation, x: number, z: number): boolean => {
+    if (river.kind !== "river") return false;
+    const pts = (river.parameters as { points?: readonly { x: number; z: number; width?: number }[] })?.points;
+    if (!Array.isArray(pts) || pts.length === 0) return false;
+    if (pts.length === 1) {
+      const halfW = (pts[0].width ?? 6) * 0.5;
+      return Math.hypot(x - pts[0].x, z - pts[0].z) <= halfW;
+    }
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      const dx = b.x - a.x;
+      const dz = b.z - a.z;
+      const lenSq = dx * dx + dz * dz;
+      const t = lenSq > 0 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / lenSq)) : 0;
+      const dist = Math.hypot(x - (a.x + t * dx), z - (a.z + t * dz));
+      const halfW = Math.max(a.width ?? 6, b.width ?? 6) * 0.5;
+      if (dist <= halfW) return true;
+    }
+    return false;
+  };
   const waterSystemMock = {
     destroyed: false,
     get revision() {
@@ -1857,29 +1879,20 @@ export async function createHeadlessSeedWorldFixture(options: {
     },
     getBodyState: (waterId: string) => ({ active: true, ready: true, published: true, revision: 1, waterId }),
     sample: (x: number, z: number, waterId?: string) => {
-      const matchedRiver = riversCreated.find((river) => {
-        if (river.kind !== "river") return false;
-        const pts = (river.parameters as { points?: readonly { x: number; z: number; width?: number }[] })?.points;
-        if (!Array.isArray(pts) || pts.length === 0) return false;
-        if (pts.length === 1) {
-          const halfW = (pts[0].width ?? 6) * 0.5;
-          return Math.hypot(x - pts[0].x, z - pts[0].z) <= halfW;
+      let resolvedId: string | undefined;
+      if (waterId) {
+        if (waterId === initialLakeWaterId || waterId === "lake-body") {
+          if (isInsideInitialLake(x, z)) resolvedId = waterId;
+        } else {
+          const targetRiver = riversCreated.find((river) => river.id === waterId);
+          if (targetRiver && isPointInRiver(targetRiver, x, z)) resolvedId = targetRiver.id;
         }
-        for (let i = 0; i < pts.length - 1; i++) {
-          const a = pts[i];
-          const b = pts[i + 1];
-          const dx = b.x - a.x;
-          const dz = b.z - a.z;
-          const lenSq = dx * dx + dz * dz;
-          const t = lenSq > 0 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / lenSq)) : 0;
-          const dist = Math.hypot(x - (a.x + t * dx), z - (a.z + t * dz));
-          const halfW = Math.max(a.width ?? 6, b.width ?? 6) * 0.5;
-          if (dist <= halfW) return true;
-        }
-        return false;
-      });
-      const inWater = Boolean(waterId) || Boolean(matchedRiver) || isInsideInitialLake(x, z);
-      if (!inWater) {
+      } else {
+        const matchedRiver = riversCreated.find((river) => isPointInRiver(river, x, z));
+        if (matchedRiver) resolvedId = matchedRiver.id;
+        else if (isInsideInitialLake(x, z)) resolvedId = initialLakeWaterId;
+      }
+      if (!resolvedId) {
         return {
           water: false,
           revision: liveState.water.hostRevision,
@@ -1890,7 +1903,7 @@ export async function createHeadlessSeedWorldFixture(options: {
         water: true,
         revision: liveState.water.hostRevision,
         status: "resolved" as const,
-        id: waterId ?? matchedRiver?.id ?? "lake-body",
+        id: resolvedId,
         surfaceElevationMetres: 0.5,
         surfaceModel: "planar",
         depth: { value: 1.8, quality: "actual" as const },

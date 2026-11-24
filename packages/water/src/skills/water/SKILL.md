@@ -5,7 +5,7 @@ description: 挖河、创建或编辑湖泊与河流，以及查询海洋、水�
 
 # 水体
 
-在 Seed World 中，挖河或溪流（例如「在我面前挖一条河」「在旁边挖条小河」）时，读取[挖河接口](declare/editor/world/tools/water.digRiver.d.ts)，调用一次 `tools.water.digRiver`。没有指定尺寸或距离时传 `{}`。它在同一事务中生成河床和原生流水面。注意 `tools.water.digRiver` 按玩家正前方的 `distanceMetres`（默认 20 米）定位，不支持左右侧偏移；当用户提出「旁边挖条小河」或与其他前方物体并列时，仍应直接调用 `tools.water.digRiver`（可通过调整 `distanceMetres` 错开距离，如 35–45 米，或用默认 `{}`）完成挖河，并在回复中如实说明实际落位与近似偏差，不要因此搁置不挖。外层提交且激活无错误后即视为完成，可直接汇报结果；仅当用户明确要求核验水深或河道状态时，在下一次 `execute` 中用 `tools.water.sample` 抽样 1–2 个返回中心线的 `x/z` 点即可。注意 `tools.water.digRiver` **仅用于挖河/溪流**，不存在 `water.create` / `water.update` / `water.delete` 快捷工具。
+在 Seed World 中，挖河或溪流（例如「在我面前挖一条河」「在旁边挖条小河」）时，读取[挖河接口](declare/editor/world/tools/water.digRiver.d.ts)，调用一次 `tools.water.digRiver`。没有指定尺寸或距离时传 `{}`。它在同一事务中生成河床和原生流水面。注意 `tools.water.digRiver` 仅支持在玩家正前方按 `distanceMetres`（默认 20 米）定位，不支持左右侧偏移或任意指定坐标：若用户只是模糊表达（如「在面前/旁边挖条小河」且未限定精确侧向偏移），可直接调用 `tools.water.digRiver` 并在回复中如实说明河道位于正前方实际距离；若用户明确指定了侧向偏移或精确坐标，先如实说明 `digRiver` 仅支持正前方定位，不要擅自改挖在正前方（需自定义落位时走原生 `WaterBodyComponent` + 地形凹坑，或先征求用户同意）。外层提交且激活无错误后即视为完成，可直接汇报结果；仅当用户明确要求核验水深或河道状态时，在下一次 `execute` 中用 `tools.water.sample` 抽样 1–2 个返回中心线的 `x/z` 点即可。注意 `tools.water.digRiver` **仅用于挖河/溪流**，不存在 `water.create` / `water.update` / `water.delete` 快捷工具。
 
 编辑已有水体组件和手动配置水体直接走公共 `editor.entity`、`editor.component` 和 `editor.asset`（不要去找不存在的 `water.create`/`update`/`delete`）。先读[原生编辑 API](declare/editor/native/api.d.ts)，查询 `WaterBodyComponent` 并读取 `props.authoring`。资产 Ref 和运行时 `waterId` 都不是 Source 组件身份。读写湖泊/河流规划参数可用 `tools.water.config.get/update/reset`。
 

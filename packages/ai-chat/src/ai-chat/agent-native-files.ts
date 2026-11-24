@@ -204,21 +204,20 @@ export class AgentNativeFiles {
         // same-line continuation. An offset alone would repeat a long line.
         const primaryRaw = result.lines.map((line) => line.text).join("\n");
         const body = result.lines.map((line) => `${line.number}: ${line.text}`).join("\n");
-        if (
+        const canDeduplicatePrimary = Boolean(
           this.activeReadContents &&
-          (input.offset ?? 1) === 1 &&
-          (input.column ?? 1) === 1 &&
-          !result.next &&
-          (result.path.startsWith("skills/") || result.path.startsWith("declare/")) &&
-          this.activeReadContents().get(result.path) === body
-        ) {
-          const dedupContent = `<path>${result.path}</path>\n<type>file</type>\n<content>\n[Already present in current context (unchanged). Reuse the earlier read result and proceed directly without re-reading.]\n</content>`;
-          return this.success({ path: result.path, deduplicated: true }, dedupContent);
-        }
+            (input.offset ?? 1) === 1 &&
+            (input.column ?? 1) === 1 &&
+            !result.next &&
+            (result.path.startsWith("skills/") || result.path.startsWith("declare/")) &&
+            this.activeReadContents().get(result.path) === body
+        );
         const continuation = result.next
           ? `\n(Continue with read offset=${result.next.offset}${result.next.column === undefined ? "" : ` column=${result.next.column}`}.)`
           : "";
-        const primary = `<path>${result.path}</path>\n<type>file</type>\n<content>\n${body}${continuation}\n</content>`;
+        const primary = canDeduplicatePrimary
+          ? `<path>${result.path}</path>\n<type>file</type>\n<content>\n[Already present in current context (unchanged). Reuse the earlier read result and proceed directly without re-reading.]\n</content>`
+          : `<path>${result.path}</path>\n<type>file</type>\n<content>\n${body}${continuation}\n</content>`;
         if (
           (input.offset ?? 1) === 1 &&
           (input.column ?? 1) === 1 &&
@@ -235,13 +234,16 @@ export class AgentNativeFiles {
             if (omittedBlock) content += omittedBlock;
             return this.success(
               {
-                ...result,
+                ...(canDeduplicatePrimary ? { path: result.path, deduplicated: true } : result),
                 ...(paths.length ? { inlinedDependencies: paths } : {}),
                 ...(emittedOmitted.length ? { omittedDependencies: emittedOmitted } : {})
               },
               content
             );
           }
+        }
+        if (canDeduplicatePrimary) {
+          return this.success({ path: result.path, deduplicated: true }, primary);
         }
         return this.success(result, primary);
       }

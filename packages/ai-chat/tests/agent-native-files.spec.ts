@@ -598,3 +598,73 @@ it("invalidates active read contents and paths after a capabilities_changed syst
   expect(contents.get("declare/editor/custom/Fresh.d.ts")).toBe("1: export interface Fresh { ok: boolean; }");
   expect(collectActiveReadPaths(messages)).toEqual(new Set(["declare/editor/custom/Fresh.d.ts"]));
 });
+
+it("re-inlines evicted declaration dependencies even when the primary declaration is deduplicated", async () => {
+  const provider = {
+    paths: () => ["declare/editor/world/common/MutationResult.d.ts", "declare/editor/world/tools/terrain.patch.d.ts"],
+    read: (p: string) =>
+      ({
+        "declare/editor/world/common/MutationResult.d.ts": "export interface MutationResult { status: string; }",
+        "declare/editor/world/tools/terrain.patch.d.ts":
+          'import type { MutationResult } from "../common/MutationResult";\nexport declare function patch(): Promise<MutationResult>;'
+      })[p]
+  };
+  const files = createAgentProjectFiles({ entries: [], modules: [] }, [provider]);
+  const primaryBody =
+    '1: import type { MutationResult } from "../common/MutationResult";\n2: export declare function patch(): Promise<MutationResult>;';
+  const depBody = "1: export interface MutationResult { status: string; }";
+
+  // Control: when both primary and dependency remain in active context, return pure dedup placeholder.
+  const activeBoth = new Map<string, string>([
+    ["declare/editor/world/tools/terrain.patch.d.ts", primaryBody],
+    ["declare/editor/world/common/MutationResult.d.ts", depBody]
+  ]);
+  const apiBoth = new AgentNativeFiles(
+    () => files,
+    () => ({ scriptApi: { catalog: "API", entries: [], modules: [] }, toolNames: [] }),
+    new Map(),
+    () => ".ai/outputs/out.txt",
+    60_000,
+    () => new Set(activeBoth.keys()),
+    () => activeBoth
+  );
+  const signal = new AbortController().signal;
+  const dedupOnly = await apiBoth.execute(
+    "read",
+    { file_path: "declare/editor/world/tools/terrain.patch.d.ts" },
+    "d-both",
+    signal
+  );
+  expect(dedupOnly.content).toContain("Already present in current context (unchanged)");
+  expect(dedupOnly.content).not.toContain("<dependency path=");
+
+  // Trigger: after compaction evicts MutationResult.d.ts while keeping terrain.patch.d.ts, re-reading
+  // terrain.patch.d.ts keeps the primary stubbed AND re-inlines the missing dependency.
+  const activePrimaryOnly = new Map<string, string>([["declare/editor/world/tools/terrain.patch.d.ts", primaryBody]]);
+  const apiEvicted = new AgentNativeFiles(
+    () => files,
+    () => ({ scriptApi: { catalog: "API", entries: [], modules: [] }, toolNames: [] }),
+    new Map(),
+    () => ".ai/outputs/out.txt",
+    60_000,
+    () => new Set(activePrimaryOnly.keys()),
+    () => activePrimaryOnly
+  );
+  const restored = await apiEvicted.execute(
+    "read",
+    { file_path: "declare/editor/world/tools/terrain.patch.d.ts" },
+    "d-evicted",
+    signal
+  );
+  expect(restored.content).toContain("Already present in current context (unchanged)");
+  expect(restored.content).toContain('<dependency path="declare/editor/world/common/MutationResult.d.ts">');
+  expect(restored.content).toContain("export interface MutationResult { status: string; }");
+  expect(restored.result).toMatchObject({
+    ok: true,
+    value: {
+      path: "declare/editor/world/tools/terrain.patch.d.ts",
+      deduplicated: true,
+      inlinedDependencies: ["declare/editor/world/common/MutationResult.d.ts"]
+    }
+  });
+});

@@ -1250,33 +1250,28 @@ export class AgentLoop {
         const maxServerTarget = observedInputLimit !== undefined ? Math.floor(observedInputLimit * 0.5) : undefined;
         let effectiveTriggerTokens = input.contextCompaction.triggerTokens;
         let effectiveTargetTokens = input.contextCompaction.targetTokens;
-        if (
+        const usingAdaptiveSessionBudget =
           effectiveTriggerTokens === undefined &&
           effectiveTargetTokens === undefined &&
           input.sessionOwnedTranscript &&
           maxServerTrigger !== undefined &&
           maxServerTarget !== undefined &&
-          maxServerTrigger > 1
-        ) {
+          maxServerTrigger > 1;
+        if (usingAdaptiveSessionBudget) {
           effectiveTriggerTokens = Math.min(DEFAULT_SESSION_SOFT_TRIGGER_TOKENS, maxServerTrigger);
           effectiveTargetTokens = Math.min(
             DEFAULT_SESSION_SOFT_TARGET_TOKENS,
             maxServerTarget,
             effectiveTriggerTokens - 1
           );
-        }
-        if (
-          effectiveTriggerTokens !== undefined &&
-          effectiveTriggerTokens >= 48_000 &&
-          input.compactionState.compactionsInTask > 0 &&
-          maxServerTrigger !== undefined
-        ) {
-          const stepped = Math.min(
-            COMPACTION_STEP_UP_CAP_TOKENS,
-            maxServerTrigger,
-            effectiveTriggerTokens + input.compactionState.compactionsInTask * COMPACTION_STEP_UP_TOKENS
-          );
-          effectiveTriggerTokens = Math.max(effectiveTriggerTokens, stepped);
+          if (effectiveTriggerTokens >= 48_000 && input.compactionState.compactionsInTask > 0) {
+            const stepped = Math.min(
+              COMPACTION_STEP_UP_CAP_TOKENS,
+              maxServerTrigger,
+              effectiveTriggerTokens + input.compactionState.compactionsInTask * COMPACTION_STEP_UP_TOKENS
+            );
+            effectiveTriggerTokens = Math.max(effectiveTriggerTokens, stepped);
+          }
         }
         result = await requestAsapChat({
           timeoutMs: deadline - performance.now(),
