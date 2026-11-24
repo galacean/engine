@@ -1578,5 +1578,69 @@ describe("Collider", () => {
         replaceSpy.mockRestore();
       }
     });
+
+    it("keeps pose-only updates across consecutive position and rotation writes without redundant Rigidbody lookup", () => {
+      const bodyEntity = root.createChild("compound-body");
+      const body = bodyEntity.addComponent(Rigidbody);
+      body.isKinematic = true;
+      const child = bodyEntity.createChild("child-box");
+      const box = child.addComponent(BoxCollider);
+      box.size = new Vector3(4, 1, 1);
+
+      const closest = new Vector3();
+      expect(box.getClosestPoint(new Vector3(2, 0, 0), closest)).toBe(0);
+      const findBody = vi.spyOn(box, "_findRigidbody");
+
+      // Position then rotation: reading world pose re-arms separate Transform change notifications.
+      child.transform.worldPosition;
+      child.transform.worldRotationQuaternion;
+      child.transform.setPosition(10, 0, 0);
+      child.transform.setRotation(0, 90, 0);
+      expect(box.getClosestPoint(new Vector3(10, 0, 2), closest)).toBeCloseTo(0, 5);
+      expect(box.getClosestPoint(new Vector3(12, 0, 0), closest)).toBeCloseTo(1.5, 5);
+      expect(findBody).not.toHaveBeenCalled();
+
+      // Rotation then position.
+      child.transform.worldPosition;
+      child.transform.worldRotationQuaternion;
+      child.transform.setRotation(0, 0, 0);
+      child.transform.setPosition(-10, 0, 0);
+      expect(box.getClosestPoint(new Vector3(-12, 0, 0), closest)).toBe(0);
+      expect(box.getClosestPoint(new Vector3(-10, 0, 2), closest)).toBeCloseTo(1.5, 5);
+      expect(findBody).not.toHaveBeenCalled();
+
+      // Mixing position and scale must upgrade to a full sync in both edit orders.
+      child.transform.worldPosition;
+      child.transform.setPosition(5, 0, 0);
+      child.transform.setScale(2, 1, 1);
+      expect(box.getClosestPoint(new Vector3(9, 0, 0), closest)).toBe(0);
+      expect(findBody).toHaveBeenCalledTimes(1);
+
+      child.transform.worldPosition;
+      child.transform.setScale(1, 1, 1);
+      child.transform.setPosition(6, 0, 0);
+      expect(box.getClosestPoint(new Vector3(8, 0, 0), closest)).toBe(0);
+      expect(box.getClosestPoint(new Vector3(9, 0, 0), closest)).toBeCloseTo(1, 5);
+      expect(findBody).toHaveBeenCalledTimes(2);
+
+      // Mixing position and geometry resize must upgrade to a full sync.
+      child.transform.worldPosition;
+      child.transform.setPosition(2, 0, 0);
+      box.size = new Vector3(1, 1, 1);
+      expect(box.getClosestPoint(new Vector3(3.5, 0, 0), closest)).toBeCloseTo(1, 5);
+      expect(findBody).toHaveBeenCalledTimes(3);
+
+      // Reparenting onto another Rigidbody must upgrade to a full sync and update ownership.
+      const otherEntity = root.createChild("other-body");
+      otherEntity.transform.setPosition(0, 20, 0);
+      const otherBody = otherEntity.addComponent(Rigidbody);
+      otherBody.isKinematic = true;
+      child.transform.worldPosition;
+      child.transform.setPosition(0, 0, 0);
+      otherEntity.addChild(child);
+      expect(box.getClosestPoint(new Vector3(0, 20, 0), closest)).toBe(0);
+      expect(box.attachedRigidbody).toBe(otherBody);
+      expect(findBody).toHaveBeenCalledTimes(4);
+    });
   });
 });

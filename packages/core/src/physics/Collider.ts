@@ -205,8 +205,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @throws When the value is not exactly one of `Layer.Layer0` to `Layer.Layer31`.
    */
   static _getLayerIndex(layer: Layer): number {
-    const index = Math.log2(layer);
-    if (!Number.isInteger(index) || index < 0 || index > 31) {
+    const index = 31 - Math.clz32(layer);
+    if (index < 0 || (1 << index) >>> 0 !== layer) {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
     return index;
@@ -247,7 +247,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @returns Distance in world units, 0 for a point inside or on the Collider, or -1 if the shape is unavailable.
    */
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
-    this._registeredScene?.physics._syncColliders();
+    this._registeredScene?.physics._syncColliders(false);
     const distance = this._getVolumeDistance(point, outClosestPoint);
     distance < 0 && console.warn("The collider is not in simulation.");
     return distance;
@@ -554,23 +554,19 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   @ignoreClone
   private _onTransformChanged(type: TransformModifyFlags): void {
-    // A Collider attached to a Rigidbody on its own Entity shares that actor's world pose;
-    // only scale or hierarchy changes (both include WorldScale) can alter its local shape.
-    if (this._attachedBody?.entity === this.entity && !(type & TransformModifyFlags.WorldScale)) {
-      return;
-    }
-    if (
-      !(type & TransformModifyFlags.WorldScale) &&
-      this._dirtyIndex === -1 &&
-      this._attachedBody &&
-      !this._geometryDirty
-    ) {
-      const scene = this._registeredScene;
-      if (scene) {
-        this._poseOnlyDirty = true;
-        scene.physics._markColliderDirty(this);
+    // Without a scale or hierarchy change, keep any pending sync level and skip world-pose updates on the body's own Entity.
+    if (!(type & TransformModifyFlags.WorldScale)) {
+      if (this._dirtyIndex !== -1 || this._attachedBody?.entity === this.entity) {
+        return;
       }
-      return;
+      if (this._attachedBody && !this._geometryDirty) {
+        const scene = this._registeredScene;
+        if (scene) {
+          this._poseOnlyDirty = true;
+          scene.physics._markColliderDirty(this);
+        }
+        return;
+      }
     }
     this._markDirty();
   }
