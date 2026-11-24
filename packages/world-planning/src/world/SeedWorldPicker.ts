@@ -26,6 +26,8 @@ import {
   TextureWrapMode,
   Matrix,
   Vector3,
+  type Layer,
+  type Quaternion,
   type Ray,
   type Entity,
   Vector4
@@ -75,6 +77,24 @@ class InteractionFrameBoundary extends Script {
   }
 }
 
+/** Frozen camera pose, projection, and visible render-view batches captured synchronously in the color frame. */
+export interface SeedWorldCapturedView {
+  readonly metadata: ViewCaptureMetadata;
+  readonly worldPosition: Vector3;
+  readonly worldRotationQuaternion?: Quaternion;
+  readonly nearClipPlane: number;
+  readonly farClipPlane: number;
+  readonly fieldOfView: number;
+  readonly aspectRatio: number;
+  readonly isOrthographic: boolean;
+  readonly orthographicSize: number;
+  readonly cullingMask: Layer;
+  readonly projectionMatrix: Matrix;
+  readonly viewport: Vector4;
+  readonly renderFilter?: Camera["renderFilter"];
+  readonly renderViewRenderers?: readonly Renderer[];
+}
+
 /** Immutable photo identity/depth capture, using the visible geometry and coverage. */
 export class SeedWorldPicker {
   private texture?: Texture2D;
@@ -110,6 +130,7 @@ export class SeedWorldPicker {
   };
   private interactionCamera?: Camera;
   private identityCamera?: Camera;
+  private activeCapturedRenderViewRenderers?: readonly Renderer[];
   private readonly materialEpochs = new WeakMap<Material, number>();
   private readonly collectBound = this.collect.bind(this);
 
@@ -387,31 +408,42 @@ export class SeedWorldPicker {
   captureColorOnly(
     signal?: AbortSignal,
     budget?: ImageResourceBudget
-  ): Promise<{ image: GpuPhoto; metadata: ViewCaptureMetadata; width: number; height: number }> {
+  ): Promise<{
+    image: GpuPhoto;
+    metadata: ViewCaptureMetadata;
+    width: number;
+    height: number;
+    capturedView: SeedWorldCapturedView;
+  }> {
     this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
     return this.frameCapture.request(
-      (image) => ({
-        image,
-        metadata: this.captureViewMetadata(),
-        width: image.width,
-        height: image.height
-      }),
+      (image) => {
+        const capturedView = this.captureCameraView();
+        return {
+          image,
+          metadata: capturedView.metadata,
+          width: image.width,
+          height: image.height,
+          capturedView
+        };
+      },
       signal,
       budget
     );
   }
 
-  /** Populate the pixel-aligned ID + depth texture asynchronously while the world camera remains frozen. */
+  /** Populate the pixel-aligned ID + depth texture asynchronously, replaying the color frame's frozen camera view. */
   captureIdentityBuffer(
     visit: SeedWorldPickSource,
     resolveRef: (batch: SeedWorldPickBatch) => ViewRef,
     image: GpuPhoto,
-    budget?: ImageResourceBudget
+    budget?: ImageResourceBudget,
+    capturedView?: SeedWorldCapturedView
   ): ViewFrame {
-    return this.captureIdentity(visit, resolveRef, image, budget);
+    return this.captureIdentity(visit, resolveRef, image, budget, capturedView);
   }
 
-  /** Called synchronously in the captured color frame, before asynchronous image encoding. */
+  /** Called synchronously in the captured color frame, before asynchronous image encoding or world unfreeze. */
   private captureViewMetadata(): ViewCaptureMetadata {
     const { worldPosition: p, worldForward: f } = this.camera.entity.transform;
     return {
@@ -423,7 +455,45 @@ export class SeedWorldPicker {
     };
   }
 
-  private ensureIdentityCamera(): Camera {
+  private captureCameraView(): SeedWorldCapturedView {
+    const source = this.camera;
+    const sourceTransform = source.entity.transform;
+    const metadata = this.captureViewMetadata();
+    const worldPosition = sourceTransform.worldPosition.clone
+      ? sourceTransform.worldPosition.clone()
+      : sourceTransform.worldPosition;
+    const worldRotationQuaternion = sourceTransform.worldRotationQuaternion?.clone
+      ? sourceTransform.worldRotationQuaternion.clone()
+      : sourceTransform.worldRotationQuaternion;
+    const projectionMatrix = source.projectionMatrix.clone ? source.projectionMatrix.clone() : source.projectionMatrix;
+    const viewport = source.viewport.clone ? source.viewport.clone() : source.viewport;
+    let renderViewRenderers: Renderer[] | undefined;
+    if (typeof source.visitRenderViewRenderers === "function") {
+      const captured: Renderer[] = [];
+      source.visitRenderViewRenderers((renderer) => {
+        captured.push(renderer);
+      });
+      renderViewRenderers = captured;
+    }
+    return {
+      metadata,
+      worldPosition,
+      worldRotationQuaternion,
+      nearClipPlane: source.nearClipPlane,
+      farClipPlane: source.farClipPlane,
+      fieldOfView: source.fieldOfView,
+      aspectRatio: source.aspectRatio,
+      isOrthographic: source.isOrthographic,
+      orthographicSize: source.orthographicSize,
+      cullingMask: source.cullingMask,
+      projectionMatrix,
+      viewport,
+      renderFilter: source.renderFilter,
+      renderViewRenderers
+    };
+  }
+
+  private ensureIdentityCamera(capturedView?: SeedWorldCapturedView): Camera {
     const source = this.camera;
     let identityCamera = this.identityCamera;
     if (!identityCamera) {
@@ -433,6 +503,16 @@ export class SeedWorldPicker {
       identityCamera.updateRendererVisibility = false;
       identityCamera.registerRenderViewCullingSource?.({
         cull: (context) => {
+          const frozenRenderers = this.activeCapturedRenderViewRenderers;
+          if (frozenRenderers) {
+            for (let i = 0, n = frozenRenderers.length; i < n; i++) {
+              const renderer = frozenRenderers[i]!;
+              if (!renderer.destroyed && renderer.enabled && context.isVisible(renderer.bounds)) {
+                context.submit(renderer);
+              }
+            }
+            return;
+          }
           source.visitRenderViewRenderers((renderer) => {
             if (context.isVisible(renderer.bounds)) context.submit(renderer);
           });
@@ -440,21 +520,39 @@ export class SeedWorldPicker {
       });
       this.identityCamera = identityCamera;
     }
-    const sourceTransform = source.entity.transform;
     const identityTransform = identityCamera.entity.transform;
-    identityTransform.worldPosition = sourceTransform.worldPosition;
-    if (sourceTransform.worldRotationQuaternion) {
-      identityTransform.worldRotationQuaternion = sourceTransform.worldRotationQuaternion;
+    if (capturedView) {
+      identityTransform.worldPosition = capturedView.worldPosition;
+      if (capturedView.worldRotationQuaternion) {
+        identityTransform.worldRotationQuaternion = capturedView.worldRotationQuaternion;
+      }
+      identityCamera.nearClipPlane = capturedView.nearClipPlane;
+      identityCamera.farClipPlane = capturedView.farClipPlane;
+      identityCamera.fieldOfView = capturedView.fieldOfView;
+      identityCamera.aspectRatio = capturedView.aspectRatio;
+      identityCamera.isOrthographic = capturedView.isOrthographic;
+      identityCamera.orthographicSize = capturedView.orthographicSize;
+      identityCamera.cullingMask = capturedView.cullingMask;
+      identityCamera.projectionMatrix = capturedView.projectionMatrix;
+      identityCamera.viewport.copyFrom?.(capturedView.viewport);
+      identityCamera.renderFilter = capturedView.renderFilter;
+    } else {
+      const sourceTransform = source.entity.transform;
+      identityTransform.worldPosition = sourceTransform.worldPosition;
+      if (sourceTransform.worldRotationQuaternion) {
+        identityTransform.worldRotationQuaternion = sourceTransform.worldRotationQuaternion;
+      }
+      identityCamera.nearClipPlane = source.nearClipPlane;
+      identityCamera.farClipPlane = source.farClipPlane;
+      identityCamera.fieldOfView = source.fieldOfView;
+      identityCamera.aspectRatio = source.aspectRatio;
+      identityCamera.isOrthographic = source.isOrthographic;
+      identityCamera.orthographicSize = source.orthographicSize;
+      identityCamera.cullingMask = source.cullingMask;
+      identityCamera.projectionMatrix = source.projectionMatrix;
+      identityCamera.viewport.copyFrom?.(source.viewport);
+      identityCamera.renderFilter = source.renderFilter;
     }
-    identityCamera.nearClipPlane = source.nearClipPlane;
-    identityCamera.farClipPlane = source.farClipPlane;
-    identityCamera.fieldOfView = source.fieldOfView;
-    identityCamera.aspectRatio = source.aspectRatio;
-    identityCamera.isOrthographic = source.isOrthographic;
-    identityCamera.orthographicSize = source.orthographicSize;
-    identityCamera.cullingMask = source.cullingMask;
-    identityCamera.projectionMatrix = source.projectionMatrix;
-    identityCamera.renderFilter = source.renderFilter;
     identityCamera.enableScreenSpaceReflection = false;
     return identityCamera;
   }
@@ -463,15 +561,19 @@ export class SeedWorldPicker {
     visit: SeedWorldPickSource,
     resolveRef: (batch: SeedWorldPickBatch) => ViewRef,
     image: GpuPhoto,
-    budget?: ImageResourceBudget
+    budget?: ImageResourceBudget,
+    capturedView?: SeedWorldCapturedView
   ): ViewFrame {
     const { width, height } = image;
-    const metadata = this.captureViewMetadata();
-    const captureCamera = this.ensureIdentityCamera();
+    const metadata = capturedView?.metadata ?? this.captureViewMetadata();
+    const captureCamera = this.ensureIdentityCamera(capturedView);
+    const surfaceProjectionMatrix = capturedView?.projectionMatrix ?? captureCamera.projectionMatrix;
+    const surfaceViewport = capturedView?.viewport ?? this.camera.viewport;
     // Scratch ID + depth + packed output. Only the packed RGBA8 survives capture.
     const release = budget?.reserve("temporary", width * height * 12);
     let result: ViewFrame | undefined;
     let packed: Texture2D | undefined, packedTarget: RenderTarget | undefined;
+    this.activeCapturedRenderViewRenderers = capturedView?.renderViewRenderers;
     try {
       // No simulation step can separate color, identity and depth.
       this.render(visit, {
@@ -494,17 +596,17 @@ export class SeedWorldPicker {
               keys: instanced ? Array.from({ length: batch!.count }, (_, index) => batch!.resolve(index)) : undefined
             };
           });
-          const camera = this.camera,
-            engine = camera.engine;
-          const inverseProjection = camera.projectionMatrix.clone().invert();
-          const v = camera.viewport,
+          const engine = captureCamera.engine ?? this.camera.engine;
+          const inverseProjection = surfaceProjectionMatrix.clone().invert();
+          const v = surfaceViewport,
             identityBits = snapshotIdentityBits(this.identityCount);
+          const viewMatrix = captureCamera.viewMatrix ?? this.camera.viewMatrix;
           const projection: SnapshotSurfaceProjection = {
             identityBits,
-            near: camera.nearClipPlane,
-            far: camera.farClipPlane,
+            near: captureCamera.nearClipPlane,
+            far: captureCamera.farClipPlane,
             inverseProjection: Array.from(inverseProjection.elements),
-            cameraWorld: Array.from(camera.viewMatrix.clone().invert().elements),
+            cameraWorld: Array.from(viewMatrix.clone().invert().elements),
             viewport: [v.x, v.y, v.z, v.w]
           };
           if (!(projection.near > 0) || !Number.isFinite(projection.far) || projection.far <= projection.near)
@@ -567,6 +669,7 @@ export class SeedWorldPicker {
       if (!result) throw new Error("View snapshot is unavailable");
       return result;
     } finally {
+      this.activeCapturedRenderViewRenderers = undefined;
       this.surfacePack?.shaderData.setTexture("material_SurfaceDepth", null!);
       const scratch = [this.target, this.texture, this.depth, packedTarget, result ? undefined : packed];
       this.target = undefined;

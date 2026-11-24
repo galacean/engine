@@ -77,10 +77,20 @@ export interface ViewAttachment {
   annotations: ViewAnnotation[];
 }
 
+function quantizeAnnotationCoord(value: number): number {
+  return Number.isFinite(value) ? Math.round(value * 10) / 10 + 0 : value;
+}
+
 export function createViewAnnotation(points: ViewPoint[], scale = 1, color = DEFAULT_PHOTO_INK): ViewAnnotation {
   if (!points.length) throw new Error("Empty annotation");
   if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error("Invalid annotation color");
-  return { points: structuredClone(points), width: 3 * scale, color };
+  const rawWidth = 3 * scale;
+  const quantizedWidth = Number.isFinite(rawWidth) ? Math.round(rawWidth * 100) / 100 || rawWidth : rawWidth;
+  return {
+    points: points.map((p) => ({ x: quantizeAnnotationCoord(p.x), y: quantizeAnnotationCoord(p.y) })),
+    width: quantizedWidth,
+    color
+  };
 }
 
 /** Rasterize the exact declared mask, including self-intersections (even/odd). */

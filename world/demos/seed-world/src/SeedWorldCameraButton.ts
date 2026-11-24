@@ -1,4 +1,8 @@
-import { HUD_REFERENCE_SHORT_SIDE, resolveSeedWorldHudScale } from "./SeedWorldHudLayout.ts";
+import {
+  HUD_REFERENCE_SHORT_SIDE,
+  SEED_WORLD_VOICE_ORB_LAYOUT,
+  resolveSeedWorldVoiceOrbLayout
+} from "./SeedWorldHudLayout.ts";
 import {
   Camera,
   Entity,
@@ -21,19 +25,13 @@ import {
 // Borderless animated Pen + live-drawing S-curve stroke UI (Pinterest Tile 3 motion iconography):
 // docked directly ABOVE the Voice Orb, horizontally centered on the orb's vertical axis in both wide & narrow HUD layouts.
 const ICON_SIZE = 112;
-const ORB_SIZE = 148;
-const ORB_RIGHT_WIDE = 116;
-const ORB_BOTTOM_WIDE = 64;
-const ORB_RIGHT_NARROW = 64;
-const ORB_BOTTOM_NARROW = 108;
-const ORB_RESERVED_RIGHT = ORB_RIGHT_WIDE + ORB_SIZE + 24;
-const PANEL_MIN_WIDTH = 260;
+const ORB_SIZE = SEED_WORLD_VOICE_ORB_LAYOUT.size;
 const BUTTON_GAP_WIDE = 24;
 const BUTTON_GAP_NARROW = 20;
-const BUTTON_RIGHT_WIDE = ORB_RIGHT_WIDE + (ORB_SIZE - ICON_SIZE) * 0.5;
-const BUTTON_BOTTOM_WIDE = ORB_BOTTOM_WIDE + ORB_SIZE + BUTTON_GAP_WIDE;
-const BUTTON_RIGHT_NARROW = ORB_RIGHT_NARROW + (ORB_SIZE - ICON_SIZE) * 0.5;
-const BUTTON_BOTTOM_NARROW = ORB_BOTTOM_NARROW + ORB_SIZE + BUTTON_GAP_NARROW;
+const BUTTON_RIGHT_WIDE = SEED_WORLD_VOICE_ORB_LAYOUT.rightWide + (ORB_SIZE - ICON_SIZE) * 0.5;
+const BUTTON_BOTTOM_WIDE = SEED_WORLD_VOICE_ORB_LAYOUT.bottomWide + ORB_SIZE + BUTTON_GAP_WIDE;
+const BUTTON_RIGHT_NARROW = SEED_WORLD_VOICE_ORB_LAYOUT.rightNarrow + (ORB_SIZE - ICON_SIZE) * 0.5;
+const BUTTON_BOTTOM_NARROW = SEED_WORLD_VOICE_ORB_LAYOUT.bottomNarrow + ORB_SIZE + BUTTON_GAP_NARROW;
 const CANVAS_SCALE = 3;
 const CYCLE_SECONDS = 3.4;
 const FRAME_INTERVAL = 1 / 30;
@@ -261,9 +259,7 @@ export class SeedWorldCameraButton {
       if (width !== lastWidth || height !== lastHeight) {
         lastWidth = width;
         lastHeight = height;
-        const uiScale = resolveSeedWorldHudScale(width, height);
-        const referenceWidth = width / Math.max(1e-4, uiScale);
-        const useWideLayout = referenceWidth - ORB_RESERVED_RIGHT * 2 >= PANEL_MIN_WIDTH;
+        const { useWideLayout } = resolveSeedWorldVoiceOrbLayout(width, height);
         baseAlignRight = useWideLayout ? BUTTON_RIGHT_WIDE : BUTTON_RIGHT_NARROW;
         iconTransform.alignBottom = useWideLayout ? BUTTON_BOTTOM_WIDE : BUTTON_BOTTOM_NARROW;
       }

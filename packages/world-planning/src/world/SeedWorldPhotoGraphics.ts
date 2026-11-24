@@ -1,12 +1,15 @@
 import { SeedWorldLiquidGlassUiMaterial } from "@galacean/engine-modify/rendering/LiquidGlassPostProcessPass";
 import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
 import markupViewportSource from "./MarkupViewport.shader?raw";
+import markupStrokeFieldSource from "./MarkupStrokeField.shader?raw";
 import { destroyPhotoResources } from "./SeedWorldPhotoResources";
 import { warmupPhotoPresentation } from "./SeedWorldPhotoWarmup";
 import { warmupSeedWorldRendererVariants } from "./SeedWorldShaderWarmup";
+import { buildStrokeCapsuleSegments, smoothPolyline, type CapsuleSegmentVertexData } from "./SeedWorldStrokeSmoothing";
 import type { PhotoImage } from "./SeedWorldPhotoImage";
 import { encodeImage, type ImageResourceBudget } from "@galacean/engine-ai-chat/ai-chat/image-resources";
 import {
+  BackgroundMode,
   BaseMaterial,
   Camera,
   CameraClearFlags,
@@ -26,6 +29,7 @@ import {
   Shader,
   TextRenderer,
   Texture2D,
+  TextureFilterMode,
   TextureFormat,
   TextureWrapMode,
   Vector2,
@@ -34,11 +38,9 @@ import {
   type Engine
 } from "@galacean/engine";
 import {
-  DEFAULT_MARKUP_INK,
   DEFAULT_PHOTO_INK,
   PHOTO_BADGE,
   PHOTO_TOOLBAR,
-  PHOTO_PALETTE,
   PHOTO_INK_COLORS,
   photoDetailLayout
 } from "./SeedWorldPhotoPalette";
@@ -119,14 +121,19 @@ export function strokeMesh(
   for (const mark of marks) {
     const startIndex = indices.length;
     const radius = mark.width / 2;
+    // Freehand export paths (separateMarks = true) get spline smoothing; geometric UI icons stay crisp.
+    const markPoints =
+      separateMarks && mark.points.length > 2
+        ? smoothPolyline(mark.points, Math.max(1.5, mark.width * 0.65))
+        : mark.points;
     const vertex = (x: number, y: number) => {
       const point = project(x, y);
       // Later strokes remain on top even when materials are batched by color.
       if (separateMarks) point.z += ranges.length * 0.0001;
       return point;
     };
-    for (let i = 0; i < mark.points.length; i++) {
-      const p = mark.points[i],
+    for (let i = 0; i < markPoints.length; i++) {
+      const p = markPoints[i],
         base = positions.length;
       positions.push(vertex(p.x, p.y));
       for (let j = 0; j < 10; j++) {
@@ -135,7 +142,7 @@ export function strokeMesh(
         triangle(base, base + 1 + j, base + 1 + ((j + 1) % 10));
       }
       if (!i) continue;
-      const prev = mark.points[i - 1],
+      const prev = markPoints[i - 1],
         dx = p.x - prev.x,
         dy = p.y - prev.y,
         length = Math.hypot(dx, dy);
@@ -296,7 +303,12 @@ export class PhotoGraphics {
   private readonly paletteSelection: MeshRenderer;
   readonly status: TextRenderer;
   readonly closeButtonTexture: Texture2D;
+  readonly emptyStrokeMaskTexture: Texture2D;
   readonly icons: MeshRenderer[] = [];
+  private readonly strokeFieldScene: Scene;
+  private readonly strokeFieldCamera: Camera;
+  private readonly strokeFieldRenderer: MeshRenderer;
+  private readonly strokeFieldMaterial: Material;
   private loading?: Promise<void>;
   private disposed = false;
   warmingUp = false;
@@ -333,7 +345,30 @@ export class PhotoGraphics {
     view.addComponent(PhotoFrame).tick = tick;
     this.font = Font.createFromOS(engine, '"PingFang SC", "Microsoft YaHei", sans-serif')!;
     this.closeButtonTexture = createCloseButtonTexture(engine);
-    this.resources.push(this.closeButtonTexture);
+    this.emptyStrokeMaskTexture = createEmptyStrokeMaskTexture(engine);
+    this.resources.push(this.closeButtonTexture, this.emptyStrokeMaskTexture);
+
+    // Dedicated offscreen scene for BlendOperation.Max capsule SDF accumulation (isolated from main scene background/lights).
+    this.strokeFieldScene = new Scene(engine, "Photo stroke field");
+    this.strokeFieldScene.background.mode = BackgroundMode.SolidColor;
+    this.strokeFieldScene.background.solidColor.set(0, 0, 0, 0);
+    const strokeCamEntity = this.strokeFieldScene.createRootEntity("Stroke field camera");
+    this.strokeFieldCamera = strokeCamEntity.addComponent(Camera);
+    this.strokeFieldCamera.isOrthographic = true;
+    this.strokeFieldCamera.nearClipPlane = 0.1;
+    this.strokeFieldCamera.farClipPlane = 50;
+    this.strokeFieldCamera.clearFlags = CameraClearFlags.Color;
+    this.strokeFieldCamera.enableHDR = this.strokeFieldCamera.enablePostProcess = false;
+    this.strokeFieldCamera.enableFrustumCulling = false;
+    this.strokeFieldCamera.enabled = false;
+    this.strokeFieldRenderer = this.strokeFieldScene
+      .createRootEntity("Stroke field capsules")
+      .addComponent(MeshRenderer);
+    this.strokeFieldRenderer.castShadows = false;
+    this.strokeFieldRenderer.receiveShadows = false;
+    this.strokeFieldMaterial = new Material(engine, ensureMarkupStrokeFieldShader());
+    this.strokeFieldRenderer.setMaterial(this.strokeFieldMaterial);
+
     this.backdrop = this.quad("Editing backdrop", new Color(0.0052, 0.0086, 0.0097, 0));
     (this.backdrop.getMaterial() as UnlitMaterial).isTransparent = true;
     this.backdrop.entity.isActive = false;
@@ -485,12 +520,33 @@ export class PhotoGraphics {
   tagWorkspaceEntity(entity: Entity): void {
     tagWorkspaceHierarchy(entity, PHOTO_WORKSPACE_LAYER);
   }
+  renderStrokeField(target: RenderTarget, imageWidth: number, imageHeight: number, mesh: ModelMesh): void {
+    if (this.disposed) return;
+    const width = Math.max(1, imageWidth);
+    const height = Math.max(1, imageHeight);
+    this.strokeFieldCamera.orthographicSize = height * 0.5;
+    this.strokeFieldCamera.aspectRatio = width / height;
+    this.strokeFieldCamera.entity.transform.setPosition(width * 0.5, -height * 0.5, 10);
+    this.strokeFieldCamera.renderTarget = target;
+    this.strokeFieldRenderer.mesh = mesh;
+    this.engine.sceneManager.addScene(this.strokeFieldScene);
+    try {
+      this.strokeFieldCamera.render();
+    } finally {
+      this.engine.sceneManager.removeScene(this.strokeFieldScene);
+      this.strokeFieldCamera.renderTarget = null;
+      this.strokeFieldRenderer.mesh = null!;
+    }
+  }
   prepare(): Promise<void> {
     return (this.loading ??= (async () => {
       if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
       const texture = new Texture2D(this.engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, true);
       texture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
       let surface: PhotoSurface | undefined;
+      let strokeWarmupMesh: ModelMesh | undefined;
+      let strokeWarmupTex: Texture2D | undefined;
+      let strokeWarmupTarget: RenderTarget | undefined;
       try {
         surface = new PhotoSurface(this, {
           texture,
@@ -519,8 +575,44 @@ export class PhotoGraphics {
           this.budget,
           [this.workspaceRoot]
         );
+        if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
+        // Precompile and draw the offscreen BlendOperation.Max stroke field shader so first paint has zero stalls.
+        strokeWarmupMesh = buildStrokeFieldMesh(this.engine, [
+          {
+            ax: 16,
+            ay: 32,
+            bx: 48,
+            by: 32,
+            radiusStart: 6,
+            radiusEnd: 6,
+            tipStart: 0,
+            tipEnd: 1,
+            arcStart: 0,
+            arcEnd: 1
+          }
+        ]);
+        strokeWarmupTex = new Texture2D(this.engine, 64, 64, TextureFormat.R8G8B8A8_UNorm, false, false);
+        strokeWarmupTarget = new RenderTarget(this.engine, 64, 64, strokeWarmupTex, null, 1);
+        this.strokeFieldCamera.orthographicSize = 32;
+        this.strokeFieldCamera.aspectRatio = 1;
+        this.strokeFieldCamera.entity.transform.setPosition(32, -32, 10);
+        this.strokeFieldCamera.renderTarget = strokeWarmupTarget;
+        this.strokeFieldRenderer.mesh = strokeWarmupMesh;
+        await warmupSeedWorldRendererVariants(
+          this.engine,
+          this.strokeFieldScene,
+          this.strokeFieldCamera,
+          this.strokeFieldScene.rootEntities,
+          { strict: true }
+        );
+        if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
+        this.renderStrokeField(strokeWarmupTarget, 64, 64, strokeWarmupMesh);
       } finally {
         this.warmingUp = false;
+        this.strokeFieldCamera.renderTarget = null;
+        this.strokeFieldRenderer.mesh = null!;
+        destroyOwnedMesh(strokeWarmupMesh);
+        destroyPhotoResources([strokeWarmupTarget, strokeWarmupTex]);
         surface?.dispose();
         texture.destroy(true);
         if (!this.disposed) this.toolbar.isActive = this.palette.isActive = this.badge.isActive = false;
@@ -686,6 +778,10 @@ export class PhotoGraphics {
     if (!this.worldCamera.destroyed) {
       this.worldCamera.cullingMask = (this.worldCamera.cullingMask | PHOTO_WORKSPACE_LAYER) as Layer;
     }
+    this.engine.sceneManager.removeScene(this.strokeFieldScene);
+    this.strokeFieldScene.ambientLight.destroy(true);
+    this.strokeFieldScene.destroy();
+    this.strokeFieldMaterial.destroy(true);
     this.workspaceRoot.destroy();
     this.camera.entity.destroy();
     for (const { glass } of this.glassPanels) glass.destroy();
@@ -696,9 +792,103 @@ export class PhotoGraphics {
 }
 
 const MARKUP_VIEWPORT_SHADER_NAME = "SeedWorld/MarkupViewportV1";
+const MARKUP_STROKE_FIELD_SHADER_NAME = "SeedWorld/MarkupStrokeFieldV1";
+const STROKE_MASK_MAX_DIM = 1024;
+const STROKE_GLOW_PADDING_SCALE = 6.85;
 const CLOSE_BUTTON_SIZE = 34;
 const CLOSE_BUTTON_INSET = 14;
 const CLOSE_BUTTON_HIT_RADIUS = 26;
+
+export interface PhotoStrokePaintOptions {
+  readonly activeStrokeIndex?: number;
+}
+
+function createEmptyStrokeMaskTexture(engine: Engine): Texture2D {
+  const texture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
+  texture.isGCIgnored = true;
+  texture.wrapModeU = TextureWrapMode.Clamp;
+  texture.wrapModeV = TextureWrapMode.Clamp;
+  texture.filterMode = TextureFilterMode.Bilinear;
+  texture.setPixelBuffer(new Uint8Array([0, 0, 0, 0]));
+  return texture;
+}
+
+function strokeMaskDimensions(imageWidth: number, imageHeight: number): { width: number; height: number } {
+  const w = Math.max(1, Math.round(imageWidth));
+  const h = Math.max(1, Math.round(imageHeight));
+  const maxDim = Math.max(w, h);
+  if (maxDim <= STROKE_MASK_MAX_DIM) {
+    return { width: Math.max(16, w), height: Math.max(16, h) };
+  }
+  const ratio = STROKE_MASK_MAX_DIM / maxDim;
+  return {
+    width: Math.max(16, Math.round(w * ratio)),
+    height: Math.max(16, Math.round(h * ratio))
+  };
+}
+
+/** Build quad-expanded tapered capsule geometry for the GPU BlendOperation.Max SDF field pass. */
+function buildStrokeFieldMesh(engine: Engine, segments: readonly CapsuleSegmentVertexData[]): ModelMesh {
+  const mesh = new ModelMesh(engine, "Markup stroke SDF capsules");
+  const positions: Vector3[] = [];
+  const uv0: Vector2[] = [];
+  const uv1: Vector2[] = [];
+  const colors: Color[] = [];
+  const indices: number[] = [];
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const dx = seg.bx - seg.ax;
+    const dy = seg.by - seg.ay;
+    const len = Math.hypot(dx, dy);
+    const tx = len > 1e-4 ? dx / len : 1;
+    const ty = len > 1e-4 ? dy / len : 0;
+    const nx = -ty;
+    const ny = tx;
+
+    const r0 = Math.max(0.5, seg.radiusStart);
+    const r1 = Math.max(0.5, seg.radiusEnd);
+    const invR0 = 1 / r0;
+    const pad = Math.max(r0, r1) * STROKE_GLOW_PADDING_SCALE;
+    const segInfo = new Vector2(len * invR0, r1 * invR0);
+    const meta = new Color(seg.tipStart, seg.tipEnd, 0, (seg.arcStart + seg.arcEnd) * 0.5);
+
+    const base = positions.length;
+    const corners: readonly [number, number][] = [
+      [-pad, -pad],
+      [len + pad, -pad],
+      [-pad, pad],
+      [len + pad, pad]
+    ];
+    for (let c = 0; c < 4; c++) {
+      const [u, v] = corners[c];
+      const px = seg.ax + u * tx + v * nx;
+      const py = seg.ay + u * ty + v * ny;
+      positions.push(new Vector3(px, -py, 0));
+      uv0.push(new Vector2(u * invR0, v * invR0));
+      uv1.push(segInfo);
+      colors.push(meta);
+    }
+    indices.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
+  }
+
+  if (!positions.length) {
+    positions.push(new Vector3());
+    uv0.push(new Vector2());
+    uv1.push(new Vector2());
+    colors.push(new Color(0, 0, 0, 0));
+  }
+  mesh.setPositions(positions);
+  mesh.setUVs(uv0, 0);
+  mesh.setUVs(uv1, 1);
+  mesh.setColors(colors);
+  mesh.setIndices(positions.length > 65535 ? new Uint32Array(indices) : new Uint16Array(indices));
+  mesh.addSubMesh(0, indices.length);
+  mesh.bounds.min.set(-100000, -100000, -1);
+  mesh.bounds.max.set(100000, 100000, 1);
+  mesh.uploadData(true);
+  return mesh;
+}
 
 function createCloseButtonTexture(engine: Engine): Texture2D {
   const size = 128;
@@ -755,11 +945,16 @@ function ensureMarkupViewportShader(): Shader {
   return Shader.find(MARKUP_VIEWPORT_SHADER_NAME) ?? Shader.create(markupViewportSource);
 }
 
-/** Procedural frozen-viewport markup canvas driven by a single static quad + GPU SDF shader (zero per-frame mesh rebuilds). */
+function ensureMarkupStrokeFieldShader(): Shader {
+  return Shader.find(MARKUP_STROKE_FIELD_SHADER_NAME) ?? Shader.create(markupStrokeFieldSource);
+}
+
+/** Procedural frozen-viewport markup canvas driven by a single static quad + GPU SDF & Apple Intelligence brush shader. */
 export class PhotoSurface {
   readonly root: Entity;
   readonly material: Material;
   readonly texture: Texture2D;
+  /** Retained for debug trace compatibility; active strokes render into an offscreen BlendOperation.Max SDF field. */
   readonly ink: MeshRenderer;
   private readonly viewportRenderer: MeshRenderer;
   private readonly viewportMesh: ModelMesh;
@@ -767,20 +962,15 @@ export class PhotoSurface {
   private readonly closeMaterial: UnlitMaterial;
   private readonly viewportRect = new Vector4(2, 2, 0, 0);
   private readonly markupParams = new Vector4(1, 1, 0, 0);
-  private readonly inkMaterial: UnlitMaterial;
-  private readonly inkMaterials = new Map<string, UnlitMaterial>();
-  private readonly fading: {
-    material: BaseMaterial;
-    color: Color;
-    alpha: number;
-    transparent: boolean;
-  }[] = [];
+  private readonly brushParams = new Vector4(0, 0, 0, 0);
+  private strokeMaskTexture?: Texture2D;
+  private strokeMaskTarget?: RenderTarget;
+  private strokeMaskRelease?: () => void;
   layoutWidth = 1;
   layoutHeight = 1;
   private opacity = 1;
   private rimOpacity = 1;
   private closeOpacity = 0;
-  private lastMarks: readonly ViewAnnotation[] = [];
   private disposed = false;
   constructor(
     private readonly graphics: PhotoGraphics,
@@ -792,7 +982,7 @@ export class PhotoSurface {
       this.root = graphics.workspaceRoot.createChild("Screen markup viewport");
       cleanup.push(() => this.root.destroy());
 
-      // Single unit quad uploaded ONCE; rounded corners, hairline border, and glowing hint circle run 100% in GPU SDF shader!
+      // Single unit quad uploaded ONCE; rounded corners, hairline border, onboarding circle and Apple Intelligence strokes run in GPU shader.
       this.viewportMesh = roundedViewportMesh(engine, 1, 1, 0);
       cleanup.push(() => destroyOwnedMesh(this.viewportMesh));
       this.viewportRenderer = this.root.createChild("Frozen viewport image").addComponent(MeshRenderer);
@@ -800,21 +990,18 @@ export class PhotoSurface {
       cleanup.push(() => this.material.destroy(true));
       this.texture = image.texture;
       this.material.shaderData.setTexture("material_BaseTexture", this.texture);
+      this.material.shaderData.setTexture("material_StrokeMaskTexture", graphics.emptyStrokeMaskTexture);
       this.material.shaderData.setVector4("material_ViewportRect", this.viewportRect);
       this.material.shaderData.setVector4("material_MarkupParams", this.markupParams);
+      this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
       this.viewportRenderer.mesh = this.viewportMesh;
       this.viewportRenderer.setMaterial(this.material);
 
       this.ink = this.root.createChild("Freehand annotation mesh").addComponent(MeshRenderer);
-      this.inkMaterial = flatMaterial(engine, inkColor(DEFAULT_MARKUP_INK));
-      // Must share Transparent render queue with MarkupViewportV1 so back-to-front Z sorting
-      // always composites freehand strokes (z = +3.5) cleanly above the rounded viewport quad (z = 0).
-      this.inkMaterial.isTransparent = true;
-      this.inkMaterials.set(DEFAULT_MARKUP_INK, this.inkMaterial);
-      this.ink.setMaterial(this.inkMaterial);
       this.ink.entity.transform.setPosition(0, 0, 3.5);
+      this.ink.entity.isActive = false;
 
-      // Sleek top-left circular × delete button rendered cleanly above viewport & ink (z = +4.5).
+      // Sleek top-left circular × delete button rendered cleanly above viewport & strokes (z = +4.5).
       this.closeRenderer = this.root.createChild("Markup delete button").addComponent(MeshRenderer);
       this.closeMaterial = new UnlitMaterial(engine);
       cleanup.push(() => this.closeMaterial.destroy(true));
@@ -827,18 +1014,32 @@ export class PhotoSurface {
       this.closeRenderer.entity.transform.setScale(CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, 1);
       this.closeRenderer.entity.isActive = false;
 
-      const inkColorRef = this.inkMaterial.shaderData.getColor("material_BaseColor");
-      this.fading.push({
-        material: this.inkMaterial,
-        color: inkColorRef,
-        alpha: inkColorRef.a,
-        transparent: this.inkMaterial.isTransparent
-      });
       graphics.tagWorkspaceEntity(this.root);
       this.root.isActive = false;
     } catch (error) {
       for (const dispose of cleanup.reverse()) dispose();
-      for (const material of this.inkMaterials.values()) material.destroy(true);
+      throw error;
+    }
+  }
+  private ensureStrokeMaskTarget(): RenderTarget {
+    if (this.strokeMaskTarget && this.strokeMaskTexture) return this.strokeMaskTarget;
+    const { width, height } = strokeMaskDimensions(this.image.width, this.image.height);
+    const release = this.graphics.budget?.reserve("display", width * height * 4);
+    let texture: Texture2D | undefined;
+    try {
+      texture = new Texture2D(this.graphics.engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, false);
+      texture.isGCIgnored = true;
+      texture.wrapModeU = TextureWrapMode.Clamp;
+      texture.wrapModeV = TextureWrapMode.Clamp;
+      texture.filterMode = TextureFilterMode.Bilinear;
+      const target = new RenderTarget(this.graphics.engine, width, height, texture, null, 1);
+      this.strokeMaskTexture = texture;
+      this.strokeMaskTarget = target;
+      this.strokeMaskRelease = release;
+      return target;
+    } catch (error) {
+      texture?.destroy(true);
+      release?.();
       throw error;
     }
   }
@@ -854,7 +1055,6 @@ export class PhotoSurface {
     const h = Math.max(2, height);
     const r = Math.max(0, cornerRadius);
     const inset = Math.max(0, borderInset);
-    const sizeChanged = Math.abs(w - this.layoutWidth) > 0.5 || Math.abs(h - this.layoutHeight) > 0.5;
     this.layoutWidth = w;
     this.layoutHeight = h;
     this.viewportRenderer.entity.transform.setScale(w, h, 1);
@@ -862,9 +1062,6 @@ export class PhotoSurface {
     this.closeRenderer.entity.transform.setPosition(closePos.x, closePos.y, 4.5);
     this.viewportRect.set(w, h, r, inset);
     this.material.shaderData.setVector4("material_ViewportRect", this.viewportRect);
-    if (sizeChanged && this.lastMarks.length > 0) {
-      this.paint(this.lastMarks);
-    }
   }
   setRimOpacity(value: number): void {
     this.rimOpacity = Math.max(0, Math.min(1, value));
@@ -888,6 +1085,12 @@ export class PhotoSurface {
     this.markupParams.w = Math.max(0, Math.min(1, alpha));
     this.material.shaderData.setVector4("material_MarkupParams", this.markupParams);
   }
+  /** Zero-allocation time advance for continuous Apple Intelligence iridescent flow and sparkle shimmer. */
+  setBrushTime(timeSeconds: number): void {
+    if (this.disposed) return;
+    this.brushParams.x = Number.isFinite(timeSeconds) ? timeSeconds % 3600 : 0;
+    this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
+  }
   setOpacity(value: number): void {
     value = Math.max(0, Math.min(1, value));
     if (this.opacity === value) return;
@@ -897,10 +1100,6 @@ export class PhotoSurface {
     const closeAlpha = this.closeOpacity * value;
     this.closeMaterial.baseColor.a = closeAlpha;
     this.closeRenderer.entity.isActive = closeAlpha > 0.01;
-    for (const { material, color, alpha, transparent } of this.fading) {
-      material.isTransparent = transparent || value < 0.999;
-      color.a = alpha * value;
-    }
   }
   /** Map image pixels (top-left origin) directly onto the pixel-exact viewport canvas. */
   point(x: number, y: number): Vector3 {
@@ -918,30 +1117,32 @@ export class PhotoSurface {
       y: (0.5 - localY / this.layoutHeight) * this.image.height
     };
   }
-  private materialsFor(marks: readonly ViewAnnotation[]): UnlitMaterial[] {
-    return marks.map((mark) => {
-      let material = this.inkMaterials.get(mark.color);
-      if (!material) {
-        material = flatMaterial(this.graphics.engine, inkColor(mark.color));
-        material.isTransparent = true;
-        this.inkMaterials.set(mark.color, material);
-        this.fading.push({
-          material,
-          color: material.baseColor,
-          alpha: 1,
-          transparent: true
-        });
-      }
-      return material;
-    });
-  }
-  paint(marks: readonly ViewAnnotation[]): void {
-    this.lastMarks = marks;
-    const old = this.ink.mesh;
-    this.ink.mesh = strokeMesh(this.graphics.engine, marks, (x, y) => this.point(x, y), true);
-    this.ink.setMaterials(this.materialsFor(marks));
-    destroyOwnedMesh(old as ModelMesh | undefined);
-    this.ink.entity.isActive = marks.length > 0;
+  paint(marks: readonly ViewAnnotation[], options?: PhotoStrokePaintOptions): void {
+    if (this.disposed) return;
+    this.ink.entity.isActive = false;
+    if (!marks.length) {
+      this.brushParams.y = 0;
+      this.material.shaderData.setTexture("material_StrokeMaskTexture", this.graphics.emptyStrokeMaskTexture);
+      this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
+      return;
+    }
+    const segments = buildStrokeCapsuleSegments(marks, this.image.width, this.image.height, options);
+    if (!segments.length) {
+      this.brushParams.y = 0;
+      this.material.shaderData.setTexture("material_StrokeMaskTexture", this.graphics.emptyStrokeMaskTexture);
+      this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
+      return;
+    }
+    const target = this.ensureStrokeMaskTarget();
+    const fieldMesh = buildStrokeFieldMesh(this.graphics.engine, segments);
+    try {
+      this.graphics.renderStrokeField(target, this.image.width, this.image.height, fieldMesh);
+    } finally {
+      destroyOwnedMesh(fieldMesh);
+    }
+    this.material.shaderData.setTexture("material_StrokeMaskTexture", this.strokeMaskTexture!);
+    this.brushParams.y = 1;
+    this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
   }
 
   dispose(): void {
@@ -951,7 +1152,11 @@ export class PhotoSurface {
     this.root.destroy();
     destroyOwnedMesh(mesh as ModelMesh | undefined);
     destroyOwnedMesh(this.viewportMesh);
-    for (const material of this.inkMaterials.values()) material.destroy(true);
+    const strokeMaskRelease = this.strokeMaskRelease;
+    this.strokeMaskRelease = undefined;
+    destroyPhotoResources([this.strokeMaskTarget, this.strokeMaskTexture], strokeMaskRelease);
+    this.strokeMaskTarget = undefined;
+    this.strokeMaskTexture = undefined;
     this.closeMaterial.destroy(true);
     this.material.destroy(true);
   }

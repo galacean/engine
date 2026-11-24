@@ -3445,8 +3445,8 @@ export async function mountSeedWorldDemo(
       async (signal, budget) => {
         // Fast color-first capture (1 frame, <16ms): opens the screen-markup canvas immediately
         // without blocking on pick-shader compilation or a synchronous 2nd full-scene ID render.
-        // While the world stays frozen during markup, populate the pixel-aligned ID+depth buffer
-        // asynchronously in the background (or before unfreezing/export on submission).
+        // `colorFrame.capturedView` freezes the exact camera pose, projection, and visible render-view
+        // batches so deferred ID+depth capture stays pixel-aligned even after the world unfreezes.
         const colorFrame = await worldPicker!.captureColorOnly(signal, budget);
         const identityAbort = new AbortController();
         let resolvedIdentities: ViewIdentityBuffer | undefined;
@@ -3470,7 +3470,8 @@ export async function mountSeedWorldDemo(
               (visitor) => snapshotPicks.visit(visitor),
               (batch) => inspection.target(batch.renderer),
               colorFrame.image,
-              budget
+              budget,
+              colorFrame.capturedView
             );
             if (identityDisposed || identityAbort.signal.aborted || disposed) {
               populated.identities.dispose();

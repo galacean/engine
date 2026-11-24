@@ -14,14 +14,19 @@ export class SeedWorldLassoPanel {
   private disposed = false;
   private confirming = false;
   private photoSerial = 0;
-  private readonly onVoiceSubmitted = () => {
-    if (!this.disposed && !this.confirming && this.workspace.active) {
+  private readonly onVoiceSubmitted = (event: Event) => {
+    if (this.disposed) return;
+    const detail = (event as CustomEvent<{ submittedToAgent?: boolean }>).detail;
+    if (detail?.submittedToAgent) {
+      this.workspace.markCurrentPhotosSubmitted();
+    }
+    if (!this.confirming && this.workspace.active) {
       void this.dismissSubmitted();
     }
   };
   private readonly onVoiceTurnEnded = () => {
     if (!this.disposed) {
-      this.workspace.clearSubmittedCard(false);
+      this.workspace.clearSubmittedCards(false);
     }
   };
   get active(): boolean {
@@ -85,9 +90,12 @@ export class SeedWorldLassoPanel {
   }
   async open(existing?: PhotoDocument): Promise<void> {
     if (this.active || this.disposed) return;
-    if (!existing && this.workspace.size >= this.views.maxPhotos) {
-      this.workspace.notify(`最多钉 ${this.views.maxPhotos} 张照片，先扯掉一张再拍。`);
-      return;
+    if (!existing) {
+      this.workspace.flushClearingCards();
+      if (this.workspace.size >= this.views.maxPhotos) {
+        this.workspace.notify(`最多保留 ${this.views.maxPhotos} 张照片，拖走或点开左上角 × 删除后再拍。`);
+        return;
+      }
     }
     const controller = (this.captureAbort = new AbortController()),
       signal = controller.signal;
@@ -127,10 +135,13 @@ export class SeedWorldLassoPanel {
     const signal = this.captureAbort.signal;
     const snapshotId = this.activeSnapshotId;
     try {
-      await Promise.all([
-        this.workspace.dismissSubmitted(signal),
-        snapshotId ? this.views.ensureIdentities(snapshotId) : Promise.resolve()
-      ]);
+      // Trigger deferred identity capture in background without locking the UI after minimize;
+      // captureIdentityBuffer replays the frozen camera view captured with the color frame,
+      // and SeedWorldViewSnapshots.exportVersion() awaits ensureIdentities() before LLM submission.
+      if (snapshotId) {
+        void this.views.ensureIdentities(snapshotId).catch(() => undefined);
+      }
+      await this.workspace.dismissSubmitted(signal);
       if (!signal.aborted) {
         // dismissSubmitted already shrank the screenshot into a docked mini card and unfroze the world.
         this.captureAbort = undefined;

@@ -1,5 +1,6 @@
 import type { ImageResourceBudget } from "@galacean/engine-ai-chat/ai-chat/image-resources";
 import { SeedWorldPhotoInput, type PhotoPointerPhase } from "./SeedWorldPhotoInput.ts";
+import { resolveSeedWorldVoiceOrbLayout } from "./SeedWorldHudLayout.ts";
 import { DEFAULT_MARKUP_INK, PHOTO_BADGE, photoDetailLayout } from "@galacean/engine-world-planning/world/SeedWorldPhotoPalette";
 import { SeedWorldPhotoInputTrace } from "./SeedWorldPhotoInputTrace.ts";
 import {
@@ -69,9 +70,11 @@ export class SeedWorldPhotoWorkspace {
   private outsideTap?: { pointer: number; x: number; y: number; moved: boolean };
   private closeTap?: { pointer: number; x: number; y: number; moved: boolean };
   private discarding?: { entry: Entry; controller: AbortController };
-  private submittedCard?: Entry;
-  private submittedCardFade?: AbortController;
+  private readonly submittedIds = new Set<string>();
+  private readonly clearingIds = new Set<string>();
+  private clearSubmittedAbort?: AbortController;
   private hintAbort?: AbortController;
+  private brushVisualTime = 0;
   private static hintShownInSession = false;
   private pointers = new Set<number>();
   private editing?: { entry: Entry; history: SeedWorldAnnotationHistory; existing: boolean };
@@ -83,7 +86,12 @@ export class SeedWorldPhotoWorkspace {
   private readonly originalLabel: string | null;
   private readonly originalTabIndex: number;
   get size(): number {
-    return this.entries.size;
+    let count = 0;
+    const discardingId = this.discarding?.entry.photo.snapshotId;
+    for (const id of this.entries.keys()) {
+      if (!this.clearingIds.has(id) && id !== discardingId) count++;
+    }
+    return count;
   }
   get active(): boolean {
     return this.mode !== "idle" || !!this.drag;
@@ -149,6 +157,11 @@ export class SeedWorldPhotoWorkspace {
         const rect = camera.canvas.getBoundingClientRect();
         this.input.resize(rect.width, rect.height);
         this.layout();
+        for (const entry of this.entries.values()) {
+          if (entry !== this.editing?.entry && entry !== this.discarding?.entry && !this.clearingIds.has(entry.photo.snapshotId)) {
+            entry.surface.setFrameLayout(entry.target.width, entry.target.height, 10, 0);
+          }
+        }
         if (this.editing && this.mode === "editing") {
           const targetPose = this.editPose(this.editing.entry.photo);
           const isFullscreen = this.markupMode === "fullscreen";
@@ -251,22 +264,16 @@ export class SeedWorldPhotoWorkspace {
       depth: 1
     };
   }
-  private submittedCardPose(photo: PhotoDocument): Pose {
-    const r = this.camera.canvas.getBoundingClientRect();
-    const ratio = photo.image.height / Math.max(1, photo.image.width);
-    const width = Math.min(136, Math.max(96, r.width * 0.145));
-    const height = width * ratio;
-    const anchorX = this.anchor.x - r.left;
-    const anchorTop = this.anchor.top - r.top;
-    return {
-      x: Math.max(width * 0.5 + 16, Math.min(r.width - width * 0.5 - 16, anchorX)),
-      y: Math.max(height * 0.5 + 16, Math.min(r.height - 16 - height * 0.5, anchorTop - 14 - height * 0.5)),
-      width,
-      height,
-      angle: 0,
-      z: 40,
-      depth: 1
-    };
+  private dockEntries(includeEntry?: Entry): Entry[] {
+    const discarding = this.discarding?.entry;
+    return [...this.entries.values()].filter(
+      (e) =>
+        e === includeEntry ||
+        (e !== this.editing?.entry &&
+          e !== discarding &&
+          !this.clearingIds.has(e.photo.snapshotId) &&
+          !(this.drag?.remove && this.drag.id === e.photo.snapshotId))
+    );
   }
   private shouldShowOnboardingHint(): boolean {
     if (typeof location !== "undefined" && new URLSearchParams(location.search).get("markupHint") === "1") {
@@ -323,34 +330,91 @@ export class SeedWorldPhotoWorkspace {
       if (!this.disposed) entry.surface.setHintLoop(0, 0);
     });
   }
-  /** Immediately dispose or gracefully fade away any docked submitted mini card. */
-  clearSubmittedCard(immediate = false): void {
-    const card = this.submittedCard;
-    if (!card) return;
-    this.submittedCardFade?.abort();
-    this.submittedCardFade = undefined;
-    const disposeCard = () => {
-      if (this.submittedCard === card) this.submittedCard = undefined;
-      card.surface.dispose();
-      card.release();
-      this.input.remove(card.photo.snapshotId);
-      this.entries.delete(card.photo.snapshotId);
+  /** Mark all currently active docked/editing photos as submitted to the active voice turn. */
+  markCurrentPhotosSubmitted(): void {
+    const discardingId = this.discarding?.entry.photo.snapshotId;
+    for (const id of this.entries.keys()) {
+      if (!this.clearingIds.has(id) && id !== discardingId) {
+        this.submittedIds.add(id);
+      }
+    }
+  }
+  /** Immediately dispose any cards currently fading out after a finished voice turn. */
+  flushClearingCards(): void {
+    if (!this.clearingIds.size && !this.clearSubmittedAbort) return;
+    this.clearSubmittedAbort?.abort();
+    this.clearSubmittedAbort = undefined;
+    const ids = [...this.clearingIds];
+    this.clearingIds.clear();
+    for (const id of ids) {
+      this.submittedIds.delete(id);
+      const entry = this.entries.get(id);
+      if (!entry) continue;
+      this.actions.remove(id);
+      entry.surface.dispose();
+      entry.release();
+      this.input.remove(id);
+      this.entries.delete(id);
+    }
+    if (!this.disposed) this.layout();
+  }
+  /** Immediately dispose or gracefully fade away all docked cards that were submitted in a voice turn. */
+  clearSubmittedCards(immediate = false): void {
+    const cards: Entry[] = [];
+    for (const id of [...this.submittedIds]) {
+      const entry = this.entries.get(id);
+      if (!entry || entry === this.editing?.entry || entry === this.discarding?.entry || this.clearingIds.has(id)) {
+        if (!entry) this.submittedIds.delete(id);
+        continue;
+      }
+      cards.push(entry);
+    }
+    if (!cards.length) return;
+    // Dispose any prior fading batch before replacing clearSubmittedAbort so reentrant clears never strand entries.
+    if (this.clearingIds.size > 0 || this.clearSubmittedAbort) {
+      this.flushClearingCards();
+    }
+    for (const entry of cards) {
+      const id = entry.photo.snapshotId;
+      this.submittedIds.delete(id);
+      this.clearingIds.add(id);
+      if (this.drag?.id === id) this.cancelDrag();
+      // Free the attachment slot immediately; active AI turns already hold their own snapshot leases.
+      this.actions.remove(id);
+    }
+    if (!this.disposed) this.layout();
+    const disposeCards = () => {
+      for (const card of cards) {
+        const id = card.photo.snapshotId;
+        if (!this.clearingIds.delete(id)) continue;
+        this.submittedIds.delete(id);
+        if (this.entries.get(id) !== card) continue;
+        card.surface.dispose();
+        card.release();
+        this.input.remove(id);
+        this.entries.delete(id);
+      }
+      if (!this.disposed) this.layout();
     };
     if (immediate || this.disposed) {
-      disposeCard();
+      disposeCards();
       return;
     }
-    const controller = (this.submittedCardFade = new AbortController());
-    const startOpacity = card.opacity;
+    const controller = (this.clearSubmittedAbort = new AbortController());
+    const startOpacities = cards.map((card) => card.opacity);
     void this.animate(260, controller.signal, (t) => {
-      card.opacity = startOpacity * (1 - t * t);
+      const factor = 1 - t * t;
+      for (let i = 0; i < cards.length; i++) {
+        if (!this.clearingIds.has(cards[i].photo.snapshotId)) continue;
+        cards[i].opacity = startOpacities[i] * factor;
+      }
     })
       .then(() => {
-        if (this.submittedCardFade === controller) this.submittedCardFade = undefined;
-        disposeCard();
+        if (this.clearSubmittedAbort === controller) this.clearSubmittedAbort = undefined;
+        disposeCards();
       })
       .catch(() => {
-        if (this.submittedCardFade === controller) this.submittedCardFade = undefined;
+        if (this.clearSubmittedAbort === controller) this.clearSubmittedAbort = undefined;
       });
   }
   async open(
@@ -358,12 +422,10 @@ export class SeedWorldPhotoWorkspace {
     signal: AbortSignal,
     print?: (target: () => DOMRect) => Promise<void>
   ): Promise<void> {
-    if (this.submittedCard?.photo.snapshotId === photo.snapshotId) {
-      this.submittedCardFade?.abort();
-      this.submittedCardFade = undefined;
-      this.submittedCard = undefined;
-    } else {
-      this.clearSubmittedCard(true);
+    const wasClearing = this.clearingIds.delete(photo.snapshotId);
+    this.submittedIds.delete(photo.snapshotId);
+    if (wasClearing || !this.entries.has(photo.snapshotId)) {
+      this.flushClearingCards();
     }
     let entry = this.entries.get(photo.snapshotId);
     const existing = !!entry;
@@ -469,7 +531,7 @@ export class SeedWorldPhotoWorkspace {
     this.refreshToolbar();
     this.startOnboardingHint(entry);
   }
-  /** After voice dialogue submits, shrink the entire marked screenshot smoothly into a mini rounded card docked in the world. */
+  /** After voice dialogue submits or margin tap minimizes, shrink the marked screenshot smoothly into the multi-card dock. */
   async dismissSubmitted(signal: AbortSignal): Promise<void> {
     const editing = this.editing;
     if (!editing) return;
@@ -482,7 +544,9 @@ export class SeedWorldPhotoWorkspace {
     // Commit current strokes onto the document so tapping the docked card reopens them intact.
     entry.photo = { ...entry.photo, history };
     const from = { ...entry.pose };
-    const cardPose = this.submittedCardPose(entry.photo);
+    // Lay out all docked cards including this entry so peer cards smoothly make room during the shrink animation.
+    this.layout(false, entry);
+    const cardPose = { ...entry.target };
     const startShade = this.shade;
     const startRadius = 20;
     const cardRadius = 10;
@@ -497,13 +561,14 @@ export class SeedWorldPhotoWorkspace {
       this.shade = startShade * (1 - e);
     });
     signal.throwIfAborted();
+    entry.surface.setFrameLayout(cardPose.width, cardPose.height, cardRadius, 0);
     entry.surface.setCloseOpacity(0);
     entry.pose = { ...cardPose };
     entry.target = { ...cardPose };
+    entry.liftTarget = 0;
     entry.opacity = entry.opacityTarget = 1;
     entry.visible = true;
     this.editing = undefined;
-    this.submittedCard = entry;
     this.finish();
   }
   async confirm(signal: AbortSignal): Promise<PhotoDocument> {
@@ -575,7 +640,10 @@ export class SeedWorldPhotoWorkspace {
       if (editing.existing) {
         this.actions.updateAttachment(editing.entry.photo.snapshotId, editing.entry.photo.history.annotations);
         editing.entry.surface.paint(editing.entry.photo.history.annotations);
+        this.layout(false, editing.entry);
         editing.entry.pose = { ...editing.entry.target };
+        editing.entry.surface.setFrameLayout(editing.entry.target.width, editing.entry.target.height, 10, 0);
+        editing.entry.surface.setCloseOpacity(0);
         editing.entry.liftTarget = 0;
       } else this.remove(editing.entry.photo.snapshotId);
     }
@@ -596,6 +664,8 @@ export class SeedWorldPhotoWorkspace {
     this.freeze(false);
   }
   remove(id: string): void {
+    this.submittedIds.delete(id);
+    this.clearingIds.delete(id);
     const entry = this.entries.get(id);
     if (!entry) return;
     this.actions.remove(id);
@@ -605,11 +675,63 @@ export class SeedWorldPhotoWorkspace {
     this.entries.delete(id);
     this.layout();
   }
-  private layout(followAnchor = false): void {
+  private layout(followAnchor = false, includeEntry?: Entry): void {
     const badge = this.badgeRect();
-    const card = this.submittedCard;
-    if (card) {
-      card.target = this.submittedCardPose(card.photo);
+    const r = this.camera.canvas.getBoundingClientRect();
+    const anchorX = this.anchor.x - r.left;
+    const anchorTop = this.anchor.top - r.top;
+    const included = this.dockEntries(includeEntry);
+    if (included.length > 0 && r.width > 0 && r.height > 0) {
+      const { useWideLayout, orbReservedRightPx } = resolveSeedWorldVoiceOrbLayout(r.width, r.height);
+      const safeSideMargin = useWideLayout ? orbReservedRightPx : 16;
+      const maxRowWidth = Math.max(112, r.width - safeSideMargin * 2);
+      const gap = included.length > 2 || r.width < 540 ? 12 : 14;
+      const preferredWidth =
+        r.width < 540 ? Math.min(120, Math.max(76, r.width * 0.28)) : Math.min(136, Math.max(96, r.width * 0.145));
+      const slotMaxWidth = Math.max(48, (maxRowWidth - gap * Math.max(0, included.length - 1)) / included.length);
+      const maxCardHeight = Math.max(64, Math.min(r.height > r.width ? 132 : 112, anchorTop - 32));
+      const sizes = included.map((entry) => {
+        const ratio = entry.photo.image.height / Math.max(1, entry.photo.image.width);
+        const width = Math.min(preferredWidth, slotMaxWidth, maxCardHeight / Math.max(0.2, ratio));
+        return { width, height: width * ratio };
+      });
+      const totalWidth = sizes.reduce((sum, s) => sum + s.width, 0) + Math.max(0, included.length - 1) * gap;
+      const minCenter = safeSideMargin + totalWidth * 0.5;
+      const maxCenter = r.width - safeSideMargin - totalWidth * 0.5;
+      const rowCenterX =
+        minCenter <= maxCenter ? Math.max(minCenter, Math.min(maxCenter, anchorX)) : r.width * 0.5;
+      let left = rowCenterX - totalWidth * 0.5;
+      included.forEach((entry, index) => {
+        const { width, height } = sizes[index];
+        const previousTarget = entry.target;
+        const y = Math.max(height * 0.5 + 16, Math.min(r.height - 16 - height * 0.5, anchorTop - 14 - height * 0.5));
+        entry.target = {
+          x: left + width * 0.5,
+          y,
+          width,
+          height,
+          angle: included.length > 1 ? entry.photo.angle : 0,
+          z: 24 + index * 2,
+          depth: 1
+        };
+        if (
+          followAnchor &&
+          entry !== this.editing?.entry &&
+          entry !== this.discarding?.entry &&
+          entry.photo.snapshotId !== this.drag?.id
+        ) {
+          const pose = entry.pose;
+          const target = entry.target;
+          pose.x += target.x - previousTarget.x;
+          pose.y += target.y - previousTarget.y;
+          pose.width += target.width - previousTarget.width;
+          pose.height += target.height - previousTarget.height;
+          pose.angle += target.angle - previousTarget.angle;
+          pose.z = target.z;
+          this.render(entry);
+        }
+        left += width + gap;
+      });
     }
     this.graphics.setBadge(0, 0, 0, false);
     this.input.setBadge(badge, false);
@@ -650,15 +772,22 @@ export class SeedWorldPhotoWorkspace {
         motion.cancel();
       }
     }
-    const t = matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) * 18);
+    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reducedMotion) {
+      this.brushVisualTime = (this.brushVisualTime + Math.min(Math.max(dt, 0), 0.1)) % 3600;
+    }
+    const t = reducedMotion ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) * 18);
     for (const entry of this.entries.values()) {
-      if (entry !== this.editing?.entry && entry !== this.discarding?.entry && entry.photo.snapshotId !== this.drag?.id)
+      const id = entry.photo.snapshotId;
+      const clearing = this.clearingIds.has(id);
+      if (entry !== this.editing?.entry && entry !== this.discarding?.entry && !clearing && id !== this.drag?.id)
         entry.pose = interpolate(entry.pose, entry.target, t);
       entry.lift = mix(entry.lift, entry.liftTarget, t);
-      if (entry !== this.discarding?.entry) {
+      if (entry !== this.discarding?.entry && !clearing) {
         entry.opacity = mix(entry.opacity, entry.opacityTarget, t);
         if (Math.abs(entry.opacity - entry.opacityTarget) < 0.001) entry.opacity = entry.opacityTarget;
       }
+      entry.surface.setBrushTime(this.brushVisualTime);
       this.render(entry);
     }
     const backdrop = this.graphics.backdrop;
@@ -672,7 +801,7 @@ export class SeedWorldPhotoWorkspace {
       this.graphics.status.text = "";
     }
     this.graphics.camera.enabled =
-      !this.graphics.warmingUp && (this.size > 0 || this.mode !== "idle" || !!this.graphics.status.text);
+      !this.graphics.warmingUp && (this.entries.size > 0 || this.mode !== "idle" || !!this.graphics.status.text);
     if (this.editing && this.trace.enabled)
       this.trace.sample("frame", {
         dt,
@@ -686,13 +815,17 @@ export class SeedWorldPhotoWorkspace {
   private render(entry: Entry): void {
     const { surface, pose: p } = entry;
     surface.setOpacity(entry.opacity);
-    // Show the frozen viewport while actively editing, discarding, or docked as a post-voice submitted mini card.
-    const showSurface =
-      entry.visible &&
-      (entry === this.editing?.entry || entry === this.discarding?.entry || entry === this.submittedCard);
+    const id = entry.photo.snapshotId;
+    const isEditingOrDiscarding = entry === this.editing?.entry || entry === this.discarding?.entry;
+    const showSurface = entry.visible && (isEditingOrDiscarding || this.anchor.visible);
     surface.root.isActive = showSurface;
-    const cardInteractive = entry === this.submittedCard && entry.visible && this.mode === "idle";
-    this.input.setPhoto(entry.photo.snapshotId, p, cardInteractive);
+    const cardInteractive =
+      !isEditingOrDiscarding &&
+      entry.visible &&
+      this.anchor.visible &&
+      this.mode === "idle" &&
+      !this.clearingIds.has(id);
+    this.input.setPhoto(id, p, cardInteractive);
     if (!showSurface) return;
     surface.root.transform.setPosition(p.x, -p.y, p.z);
     surface.root.transform.setRotation(0, 0, -p.angle);
@@ -739,15 +872,20 @@ export class SeedWorldPhotoWorkspace {
     };
   }
   private hit(p: ViewPoint): Entry | undefined {
-    const card = this.submittedCard;
-    if (!card || !card.visible || this.discarding) return undefined;
-    if (
-      Math.abs(p.x - card.pose.x) <= card.pose.width * 0.5 + 12 &&
-      Math.abs(p.y - card.pose.y) <= card.pose.height * 0.5 + 12
-    ) {
-      return card;
-    }
-    return undefined;
+    if (this.discarding || !this.anchor.visible) return undefined;
+    return [...this.entries.values()].reverse().find((entry) => {
+      const id = entry.photo.snapshotId;
+      if (!entry.visible || entry === this.editing?.entry || this.clearingIds.has(id)) return false;
+      const q = this.localPaper(entry, p);
+      const sx = entry.pose.width / Math.max(1, entry.surface.layoutWidth);
+      const sy = entry.pose.height / Math.max(1, entry.surface.layoutHeight);
+      const padX = 12 / Math.max(0.0001, sx);
+      const padY = 12 / Math.max(0.0001, sy);
+      return (
+        Math.abs(q.x) <= entry.surface.layoutWidth * 0.5 + padX &&
+        Math.abs(q.y) <= entry.surface.layoutHeight * 0.5 + padY
+      );
+    });
   }
   private localPaper(entry: Entry, p: ViewPoint): ViewPoint {
     const a = (entry.pose.angle * Math.PI) / 180,
@@ -900,8 +1038,13 @@ export class SeedWorldPhotoWorkspace {
             const annotation = createViewAnnotation(this.drawing.points, this.drawing.scale, this.drawing.color);
             this.updateHistory(history => history.add(annotation));
           } catch (error) {
-            this.trace.record("history-error", { error: String(error) });
-            this.notify(String(error));
+            const rawError = String(error);
+            this.trace.record("history-error", { error: rawError });
+            this.notify(
+              rawError.includes("65536") || (error instanceof Error && error.name === "AgentValueError")
+                ? "标记线条过多，请先删掉部分或重画。"
+                : rawError
+            );
           }
         }
         this.trace.record(isUp ? "stroke-committed" : "stroke-cancelled", {
@@ -1013,10 +1156,14 @@ export class SeedWorldPhotoWorkspace {
     const { entry, history } = this.editing!;
     const started = this.trace.enabled ? performance.now() : 0;
     try {
-      entry.surface.paint([
-        ...history.annotations,
-        ...(this.drawing ? [createViewAnnotation(this.drawing.points, this.drawing.scale, this.drawing.color)] : [])
-      ]);
+      const activeStrokeIndex = this.drawing ? history.annotations.length : undefined;
+      entry.surface.paint(
+        [
+          ...history.annotations,
+          ...(this.drawing ? [createViewAnnotation(this.drawing.points, this.drawing.scale, this.drawing.color)] : [])
+        ],
+        { activeStrokeIndex }
+      );
       if (this.trace.enabled)
         this.trace.sample("paint", {
           elapsedMs: performance.now() - started,
@@ -1045,17 +1192,14 @@ export class SeedWorldPhotoWorkspace {
     const history = this.editing?.history;
     this.camera.canvas.setAttribute(
       "aria-label",
-      `画面圈画标记：直接红笔圈画修改区域，长按语音球说话，点击空白处收起为卡片，点击左上角 × 删除。已画 ${history?.annotations.length ?? 0} 笔。`
+      `画面圈画标记：直接圈画标记修改区域，长按语音球说话，点击空白处收起为卡片，点击左上角 × 删除。已画 ${history?.annotations.length ?? 0} 笔。`
     );
   }
   private async discard(entry: Entry): Promise<void> {
     if (this.discarding) return;
-    const fromCard = entry === this.submittedCard;
-    if (fromCard) {
-      this.submittedCardFade?.abort();
-      this.submittedCardFade = undefined;
-      this.submittedCard = undefined;
-    }
+    const fromCard = entry !== this.editing?.entry;
+    this.submittedIds.delete(entry.photo.snapshotId);
+    this.clearingIds.delete(entry.photo.snapshotId);
     this.stopOnboardingHint();
     this.cancelDrawing();
     // Delete the attachment immediately; the remaining geometry is only the smooth exit animation.
@@ -1136,9 +1280,10 @@ export class SeedWorldPhotoWorkspace {
   dispose(): void {
     this.disposed = true;
     this.stopOnboardingHint();
-    this.submittedCardFade?.abort();
-    this.submittedCardFade = undefined;
-    this.submittedCard = undefined;
+    this.clearSubmittedAbort?.abort();
+    this.clearSubmittedAbort = undefined;
+    this.submittedIds.clear();
+    this.clearingIds.clear();
     this.discarding?.controller.abort();
     this.discarding = undefined;
     this.thawAfterFrame = undefined;
