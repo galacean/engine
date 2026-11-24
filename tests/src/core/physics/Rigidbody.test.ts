@@ -24,11 +24,6 @@ import { HorizontalAlignmentMode, UITransform } from "@galacean/engine-ui";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
 import { PrefabParser } from "../../../../packages/loader/src/prefab/PrefabParser";
 
-class SleepRecorder extends Script {
-  onSleep = vi.fn();
-  onWake = vi.fn();
-}
-
 describe("Rigidbody", function () {
   let engine: Engine;
   let rootEntity: Entity;
@@ -1234,160 +1229,15 @@ describe("Rigidbody", function () {
     expect(box.transform.worldPosition.x).toBe(-2);
   });
 
-  it("reports a rigidbody's initial sleep state and the latest transition after each step", () => {
-    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 3, 0));
-    const body = box.getComponent(Rigidbody);
-    const recorder = box.addComponent(SleepRecorder);
-    const childRecorder = box.createChild().addComponent(SleepRecorder);
-    const physics = engine.sceneManager.activeScene.physics;
-    body.useGravity = false;
-
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onWake.mock.calls).toEqual([[body]]);
-    expect(recorder.onSleep).not.toHaveBeenCalled();
-
-    body.sleep();
-    body.wakeUp();
-    body.sleep();
-    expect(body.isSleeping()).toBe(true);
-    expect(recorder.onSleep).not.toHaveBeenCalled();
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onSleep.mock.calls).toEqual([[body]]);
-    expect(recorder.onWake).toHaveBeenCalledOnce();
-
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onSleep).toHaveBeenCalledOnce();
-    body.applyForce(new Vector3(1, 0, 0), ForceMode.Impulse);
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onWake).toHaveBeenCalledTimes(2);
-
-    recorder.enabled = false;
-    body.sleep();
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onSleep).toHaveBeenCalledOnce();
-
-    body.wakeUp();
-    recorder.enabled = true;
-    physics._update(physics.fixedTimeStep);
-    expect(recorder.onWake).toHaveBeenCalledTimes(3);
-    expect(childRecorder.onSleep).not.toHaveBeenCalled();
-    expect(childRecorder.onWake).not.toHaveBeenCalled();
-  });
-
-  it("reports solver-induced sleep after the resting pose has been written back", () => {
+  it("lets a dynamic body fall asleep naturally after resting on a surface", () => {
     addPlane(0, 0, 0);
     const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 2, 0));
     const body = box.getComponent(Rigidbody);
-    const recorder = box.addComponent(SleepRecorder);
     const physics = engine.sceneManager.activeScene.physics;
-    let height = 0;
-    recorder.onSleep.mockImplementation(() => {
-      height = box.transform.worldPosition.y;
-    });
 
     for (let i = 0; i < 240 && !body.isSleeping(); i++) physics._update(physics.fixedTimeStep);
-    expect(recorder.onSleep.mock.calls).toEqual([[body]]);
-    expect(height).toBeCloseTo(0.5, 2);
-  });
-
-  it("drops the rest of a sleep dispatch when a callback replaces the body's registration", () => {
-    const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 3, 0));
-    const body = box.getComponent(Rigidbody);
-    const first = box.addComponent(SleepRecorder);
-    const second = box.addComponent(SleepRecorder);
-    const physics = engine.sceneManager.activeScene.physics;
-    body.useGravity = false;
-    first.onSleep.mockImplementation(() => {
-      body.enabled = false;
-      body.enabled = true;
-    });
-
-    physics._update(physics.fixedTimeStep);
-    expect(second.onWake).toHaveBeenCalledOnce();
-    body.sleep();
-    physics._update(physics.fixedTimeStep);
-    expect(first.onSleep).toHaveBeenCalledOnce();
-    expect(second.onSleep).not.toHaveBeenCalled();
-    body.wakeUp();
-    physics._update(physics.fixedTimeStep);
-    expect(second.onWake).toHaveBeenCalledTimes(2);
-  });
-
-  it.each([false, true])(
-    "registers Script sleep callbacks assigned before entering the scene (scriptFirst=%s)",
-    (scriptFirst) => {
-      const wakeCalls: Rigidbody[] = [];
-      const sleepCalls: Rigidbody[] = [];
-      const holder = rootEntity.createChild("holder");
-      holder.isActive = false;
-      const box = holder.createChild("sleep-script");
-      box.addComponent(BoxCollider);
-      let body: Rigidbody;
-      if (!scriptFirst) {
-        body = box.addComponent(Rigidbody);
-        body.useGravity = false;
-      }
-
-      const script = box.addComponent(Script);
-      script.onWake = (target) => wakeCalls.push(target);
-      script.onSleep = (target) => sleepCalls.push(target);
-
-      if (scriptFirst) {
-        body = box.addComponent(Rigidbody);
-        body.useGravity = false;
-      }
-
-      holder.isActive = true;
-      const physics = engine.sceneManager.activeScene.physics;
-      physics._update(physics.fixedTimeStep);
-      expect(wakeCalls).toEqual([body!]);
-
-      body!.sleep();
-      physics._update(physics.fixedTimeStep);
-      expect(sleepCalls).toEqual([body!]);
-    }
-  );
-
-  it("ignores Script sleep callbacks assigned after scene entry regardless of component order", () => {
-    const onWake = vi.fn();
-    const onSleep = vi.fn();
-    const box = rootEntity.createChild("late-sleep-script");
-    box.addComponent(BoxCollider);
-    const script = box.addComponent(Script);
-    script.onWake = onWake;
-    script.onSleep = onSleep;
-
-    const body = box.addComponent(Rigidbody);
-    body.useGravity = false;
-    const setSleepEventId = vi.spyOn(body._getNativeActor(), "setSleepEventId");
-    try {
-      const physics = engine.sceneManager.activeScene.physics;
-      physics._update(physics.fixedTimeStep);
-      body.enabled = false;
-      body.enabled = true;
-      body.sleep();
-      physics._update(physics.fixedTimeStep);
-      expect(onWake).not.toHaveBeenCalled();
-      expect(onSleep).not.toHaveBeenCalled();
-      expect(setSleepEventId).not.toHaveBeenCalled();
-
-      script.enabled = false;
-      script.enabled = true;
-      expect(setSleepEventId).toHaveBeenCalledTimes(1);
-      expect(setSleepEventId.mock.calls[0][0]).toBeGreaterThan(0);
-
-      body.wakeUp();
-      physics._update(physics.fixedTimeStep);
-      expect(onWake.mock.calls).toEqual([[body]]);
-
-      script.destroy();
-      expect(setSleepEventId).toHaveBeenLastCalledWith(0);
-      body.sleep();
-      physics._update(physics.fixedTimeStep);
-      expect(onSleep).not.toHaveBeenCalled();
-    } finally {
-      setSleepEventId.mockRestore();
-    }
+    expect(body.isSleeping()).toBe(true);
+    expect(box.transform.worldPosition.y).toBeCloseTo(0.5, 2);
   });
 
   it.each([true, false])("merges partial inherited prefab input with manual input first: %s", async (inputFirst) => {
@@ -2071,34 +1921,7 @@ describe("Rigidbody", function () {
     expect(hit.point.y).toBeCloseTo(5.5, 2);
   });
 
-  it("supports prototype Script.onSleep/onWake and applies sleep() during entity deactivation", () => {
-    const events: string[] = [];
-    const holder = rootEntity.createChild("proto-sleep-holder");
-    holder.transform.setPosition(0, 40, 0);
-    holder.addComponent(BoxCollider);
-    const body = holder.addComponent(Rigidbody);
-    body.useGravity = false;
-    const physics = engine.sceneManager.activeScene.physics;
-
-    class ProtoSleepScript extends Script {
-      override onWake(target: Rigidbody): void {
-        if (target === body) events.push("wake");
-      }
-      override onSleep(target: Rigidbody): void {
-        if (target === body) events.push("sleep");
-      }
-    }
-    const script = holder.addComponent(ProtoSleepScript);
-    physics._update(physics.fixedTimeStep);
-    expect(events).toEqual(["wake"]);
-
-    body.sleep();
-    physics._update(physics.fixedTimeStep);
-    expect(events).toEqual(["wake", "sleep"]);
-    script.enabled = false;
-    expect((holder as any)._scripts.length).toBe(0);
-
-    // Calling sleep() during deactivation executes immediately without deferring onto _pendingSleeps.
+  it("applies sleep() during entity deactivation without deferring onto _pendingSleeps", () => {
     const deactEntity = rootEntity.createChild("deact-sleep");
     deactEntity.addComponent(BoxCollider);
     deactEntity.addComponent(

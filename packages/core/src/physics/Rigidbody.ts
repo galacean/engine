@@ -8,7 +8,6 @@ import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { ActiveChangeFlag } from "../enums/ActiveChangeFlag";
 import type { Scene } from "../Scene";
-import { ScriptPhysicsEventFlags } from "../Script";
 import { Transform } from "../Transform";
 import { Collider } from "./Collider";
 import { differsF32, isValidPositiveFloat32, rotationDiffersF32 } from "./float32";
@@ -65,8 +64,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _poseSynced = false;
   @ignoreClone
   private _registeredScene: Scene | null = null;
-  @ignoreClone
-  private _sleepEventId = 0;
   @ignoreClone
   private _sleepPending = false;
   @ignoreClone
@@ -874,7 +871,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._poseSynced = false;
     this._markMassDirty();
     this._sleepPending && scene.physics._scheduleSleep(this, true);
-    this._syncSleepEventRegistration();
     this._syncJoints();
     this._markCollidersDirty();
   }
@@ -888,7 +884,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._registeredScene = null;
     this._poseSynced = false;
     this._sleepPending && scene.physics._scheduleSleep(this, false);
-    this._setSleepEventRegistration(scene, false);
     this._syncJoints();
     this._detachOrphanedColliders();
     scene.physics._removeRigidbody(this);
@@ -922,22 +917,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
     // Owned and excluded Colliders find their new owner on the next sync
     this._markCollidersDirty();
-  }
-
-  /** @internal Reconcile native sleep notifications with the active observers on this Entity. */
-  _syncSleepEventRegistration(): void {
-    const scene = this._registeredScene;
-    if (!scene) return;
-
-    const scripts = this.entity._scripts;
-    for (let i = 0, count = scripts.length; i < count; i++) {
-      const script = scripts.get(i);
-      if (script && script._physicsEventFlags & ScriptPhysicsEventFlags.Sleep) {
-        this._setSleepEventRegistration(scene, true);
-        return;
-      }
-    }
-    this._setSleepEventRegistration(scene, false);
   }
 
   /** @internal */
@@ -1144,20 +1123,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
         collider._markDirty();
       }
     }
-  }
-
-  private _setSleepEventRegistration(scene: Scene, enabled: boolean): void {
-    const id = this._sleepEventId;
-    if (enabled === (id !== 0)) return;
-
-    const physics = scene.physics;
-    if (enabled) {
-      this._sleepEventId = physics._registerEventTarget(this);
-    } else {
-      physics._unregisterEventTarget(id);
-      this._sleepEventId = 0;
-    }
-    this._nativeActor!.setSleepEventId(this._sleepEventId);
   }
 
   private _syncJoints(): void {

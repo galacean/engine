@@ -2068,15 +2068,13 @@ describe("Physics Test", () => {
             Object.freeze({
               contactEvents: [],
               contactEventCount: 0,
-              triggerEvents: [pooledSlot],
-              bodySleepEventIds: [],
-              bodySleepEventCount: 0
+              triggerEvents: [pooledSlot]
             } satisfies IPhysicsEvents)
           );
           expect(enterA).toHaveBeenCalledOnce();
 
           // Reuse the same pooledSlot object for (A, C) while (A, B) stays active under swapped order,
-          // and pass non-zero frozen contactEventCount / bodySleepEventCount to verify they are never mutated.
+          // and pass non-zero frozen contactEventCount to verify it is never mutated.
           pooledSlot.shape0Id = colliderA._id;
           pooledSlot.shape1Id = colliderC._id;
           pooledSlot.state = PhysicsEventState.Enter;
@@ -2094,13 +2092,10 @@ describe("Physics Test", () => {
             triggerEvents: [
               { shape0Id: colliderB._id, shape1Id: colliderA._id, state: PhysicsEventState.Stay },
               pooledSlot
-            ],
-            bodySleepEventIds: [999999],
-            bodySleepEventCount: 1
+            ]
           } satisfies IPhysicsEvents);
           (physicsScene as any)._dispatchEvents(frozenStep2);
           expect(frozenStep2.contactEventCount).toBe(1);
-          expect(frozenStep2.bodySleepEventCount).toBe(1);
           expect(stayA).toHaveBeenCalledOnce();
           expect(enterC).toHaveBeenCalledExactlyOnceWith(colliderA, colliderC);
 
@@ -2119,9 +2114,7 @@ describe("Physics Test", () => {
               triggerEvents: [
                 pooledSlot,
                 { shape0Id: colliderC._id, shape1Id: colliderA._id, state: PhysicsEventState.Exit }
-              ],
-              bodySleepEventIds: [],
-              bodySleepEventCount: 0
+              ]
             } satisfies IPhysicsEvents)
           );
           expect(exitA).toHaveBeenCalledTimes(2);

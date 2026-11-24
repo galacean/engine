@@ -117,8 +117,6 @@ PhysX uses a linear sweep for dynamic bodies and speculative contacts for kinema
 | [**wakeUp**](/apis/core/#Rigidbody-wakeUp) | Wake the Rigidbody up |
 | [**isSleeping**](/apis/core/#Rigidbody-isSleeping) | Whether the Rigidbody is sleeping |
 
-Scripts on the Rigidbody's Entity can implement `onSleep(body)` and `onWake(body)`. The callbacks run after the physics step and see the updated Transform. PhysX reports the latest transition in the step and can report the body's initial state when it enters simulation.
-
 `applyForce` and `applyTorque` default to `ForceMode.Force`. Use `ForceMode.Impulse` for a one-shot linear or angular impulse, `ForceMode.VelocityChange` for a direct change in velocity, and `ForceMode.Acceleration` for acceleration independent of mass or inertia.
 
 `applyRelativeForce` and `applyRelativeTorque` use the body's local axes with the same modes. `applyForceAtPosition` applies a force or impulse at a world-space position using `ForceMode.Force` (default) or `ForceMode.Impulse`.

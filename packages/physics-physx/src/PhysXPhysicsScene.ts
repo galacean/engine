@@ -72,9 +72,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private readonly _physicsEvents = {
     contactEvents: [] as ContactEvent[],
     contactEventCount: 0,
-    triggerEvents: [] as TriggerEvent[],
-    bodySleepEventIds: [] as number[],
-    bodySleepEventCount: 0
+    triggerEvents: [] as TriggerEvent[]
   };
 
   private _triggerEventPool: TriggerEvent[] = [];
@@ -118,10 +116,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     const simulationCallback = {
       onJointBreak: () => {},
-      onBodySleepChanged: (id: number, sleeping: boolean) => {
-        const events = this._physicsEvents;
-        events.bodySleepEventIds[events.bodySleepEventCount++] = sleeping ? -id : id;
-      },
       onContactBegin: (shape0ID: number, shape1ID: number, count: number, data: Float32Array) => {
         const state = this._consumePendingReplacedContact(shape0ID, shape1ID)
           ? PhysicsEventState.Stay
@@ -252,7 +246,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    */
   update(elapsedTime: number): void {
     this._physicsEvents.contactEventCount = 0;
-    this._physicsEvents.bodySleepEventCount = 0;
     this._contactFloatOffset = 0;
     this._syncShapeChanges();
     const scene = this._pxScene;
@@ -499,7 +492,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const events = this._physicsEvents;
     events.contactEvents.length = 0;
     events.triggerEvents.length = 0;
-    events.bodySleepEventIds.length = 0;
     this._contactFloatOffset = 0;
     if (this._contactData.length > 2560) {
       this._contactData = new Float32Array(2560);

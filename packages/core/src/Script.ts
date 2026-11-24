@@ -4,7 +4,6 @@ import { ignoreClone } from "./clone/CloneDecorators";
 import { PointerEventData } from "./input/pointer/PointerEventData";
 import { Collider } from "./physics";
 import { Collision } from "./physics/Collision";
-import type { Rigidbody } from "./physics/Rigidbody";
 
 /**
  * Script class, used for logic writing.
@@ -35,9 +34,8 @@ export class Script extends Component {
   @ignoreClone
   _entityScriptsIndex: number = -1;
 
-  /** @internal */
   @ignoreClone
-  _physicsEventFlags: number = 0;
+  private _contactEventRegistered: boolean = false;
 
   /**
    * Called when be enabled first time, only once.
@@ -124,21 +122,6 @@ export class Script extends Component {
    * @remarks The Collision data will be invalid after this call, you should copy the data if needed.
    */
   onCollisionStay(other: Collision): void {}
-
-  /**
-   * Called after a physics step when the Rigidbody on this Entity goes to sleep.
-   * @param body - The sleeping Rigidbody.
-   * @remarks Override on a Script subclass or assign before the script enters the scene.
-   * When fetching results, PhysX collects the latest transition for each subscribed body and can report its initial state.
-   */
-  onSleep(body: Rigidbody): void {}
-
-  /**
-   * Called after a physics step when the Rigidbody on this Entity wakes.
-   * @param body - The waking Rigidbody.
-   * @see {@link onSleep}
-   */
-  onWake(body: Rigidbody): void {}
 
   /**
    * Called when a pointer press is dispatched to this entity.
@@ -251,16 +234,13 @@ export class Script extends Component {
     }
 
     this._entity._addScript(this);
-    const physicsFlags =
-      (this.onCollisionEnter !== prototype.onCollisionEnter ||
+    if (
+      this.onCollisionEnter !== prototype.onCollisionEnter ||
       this.onCollisionExit !== prototype.onCollisionExit ||
       this.onCollisionStay !== prototype.onCollisionStay
-        ? ScriptPhysicsEventFlags.Contact
-        : 0) |
-      (this.onSleep !== prototype.onSleep || this.onWake !== prototype.onWake ? ScriptPhysicsEventFlags.Sleep : 0);
-    if (physicsFlags !== 0) {
-      this._physicsEventFlags = physicsFlags;
-      this.scene!.physics._onScriptEnabled(this, physicsFlags);
+    ) {
+      this._contactEventRegistered = true;
+      this.scene!.physics._addContactEventConsumer(1);
     }
   }
 
@@ -268,8 +248,7 @@ export class Script extends Component {
    * @internal
    */
   override _onDisableInScene(): void {
-    const scene = this.scene!;
-    const componentsManager = scene._componentsManager;
+    const componentsManager = this.scene!._componentsManager;
     const { prototype } = Script;
 
     if (!this._started) {
@@ -286,10 +265,9 @@ export class Script extends Component {
     }
 
     this._entity._removeScript(this);
-    const physicsFlags = this._physicsEventFlags;
-    if (physicsFlags !== 0) {
-      this._physicsEventFlags = 0;
-      scene.physics._onScriptDisabled(this, physicsFlags);
+    if (this._contactEventRegistered) {
+      this._contactEventRegistered = false;
+      this.scene!.physics._addContactEventConsumer(-1);
     }
   }
 
@@ -300,12 +278,6 @@ export class Script extends Component {
     super._onDestroy();
     this.onDestroy();
   }
-}
-
-/** @internal */
-export const enum ScriptPhysicsEventFlags {
-  Contact = 1 << 0,
-  Sleep = 1 << 1
 }
 
 export enum PointerMethods {

@@ -14,7 +14,7 @@ Use this reference when choosing who owns motion, when synchronization occurs, o
 
 ## Fixed-step order
 
-Within a physics step, active Scripts receive `onPhysicsUpdate`, pending component and Transform changes are synchronized to the native scene, the provider simulates, simulated Rigidbody poses are read back, and collision, trigger, and sleep/wake events are dispatched.
+Within a physics step, active Scripts receive `onPhysicsUpdate`, pending component and Transform changes are synchronized to the native scene, the provider simulates, simulated Rigidbody poses are read back, and collision and trigger events are dispatched.
 
 This ordering means a pose or force chosen in `onPhysicsUpdate` affects the upcoming step. Rendered-frame callbacks must not assume exactly one simulation step has occurred.
 

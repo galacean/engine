@@ -140,11 +140,6 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
     this._pxActor.setSleepThreshold(value);
   }
 
-  /** {@inheritDoc IDynamicActor.setSleepEventId} */
-  setSleepEventId(id: number): void {
-    this._pxActor.setSleepEventId(id);
-  }
-
   /**
    * {@inheritDoc IDynamicActor.setSolverIterations }
    */
