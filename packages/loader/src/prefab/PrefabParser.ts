@@ -7,27 +7,16 @@ import { PrefabResource } from "./PrefabResource";
 
 export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext> {
   static parse(engine: Engine, url: string, data: PrefabFile): Promise<PrefabResource> {
+    HierarchyParser._validateVersion(data, ParserType.Prefab);
     const prefabResource = new PrefabResource(engine, url);
     prefabResource._isLoading = true;
-    let parser: PrefabParser;
-    try {
-      const context = new ParserContext(engine, ParserType.Prefab, prefabResource);
-      parser = new PrefabParser(data, context, prefabResource);
-      parser.start();
-    } catch (e) {
+    const context = new ParserContext(engine, ParserType.Prefab, prefabResource);
+    const parser = new PrefabParser(data, context, prefabResource);
+    parser.start();
+    return parser.promise.catch((e) => {
       prefabResource.destroy();
       throw e;
-    }
-    return parser.promise.then(
-      (res) => {
-        prefabResource._isLoading = false;
-        return res;
-      },
-      (e) => {
-        prefabResource.destroy();
-        throw e;
-      }
-    );
+    });
   }
 
   constructor(
@@ -53,6 +42,7 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext>
 
   protected override _clearAndResolve(): PrefabResource {
     this.context.clear();
+    this.prefabResource._isLoading = false;
     return this.prefabResource;
   }
 }
