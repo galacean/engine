@@ -204,28 +204,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * Sets mass from the volume of the currently attached solid Colliders.
-   * @param density - Mass per cubic world unit. Must be a positive normal Float32.
-   * @returns Whether the registered body produced valid mass properties and accepted the mass.
-   * @remarks Recomputes automatic mass properties and preserves manual center of mass and inertia.
-   * Missing or unsupported volume leaves mass unchanged. Later geometry edits keep the resulting mass.
-   * @throws When density is not a positive normal Float32.
-   */
-  setDensity(density: number): boolean {
-    if (typeof density !== "number" || !isValidPositiveFloat32(density)) {
-      throw new RangeError("Rigidbody density must be a positive, normal, finite Float32.");
-    }
-    const scene = this._registeredScene;
-    if (!scene) return false;
-    scene.physics._syncColliders();
-    const mass = this._nativeActor!.setDensity(density, this._automaticCenterOfMass, this._automaticInertiaTensor);
-    if (mass === 0) return false;
-    this._mass = mass;
-    this._massChanges = MassChanges.None;
-    return true;
-  }
-
-  /**
    * Whether the center of mass is calculated automatically from the attached Colliders.
    * @remarks Disabling preserves the current value.
    */
@@ -313,72 +291,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   set inertiaTensorRotation(value: Quaternion) {
     this._inertiaTensorRotation !== value && this._applyInertiaTensorRotation(value);
-  }
-
-  /**
-   * Writes the world-space position of the center of mass to `out`.
-   * @returns The output vector.
-   */
-  getWorldCenterOfMass(out: Vector3): Vector3 {
-    const transform = this.entity.transform;
-    Vector3.transformByQuat(this.centerOfMass, transform.worldRotationQuaternion, out);
-    return out.add(transform.worldPosition);
-  }
-
-  /**
-   * Writes the simulated world-space velocity at a world-space point.
-   * @param point - Point in world space.
-   * @param out - Receives the velocity, or zero before the body has a physics actor.
-   * @returns The output vector.
-   */
-  getPointVelocity(point: Vector3, out: Vector3): Vector3 {
-    const actor = this._getSyncedActor();
-    if (!actor) return out.set(0, 0, 0);
-    const pointX = point.x;
-    const pointY = point.y;
-    const pointZ = point.z;
-    const position = Rigidbody._tempPosition;
-    const rotation = Rigidbody._tempRotation;
-    const center = Rigidbody._tempCenter;
-    const linearVelocity = Rigidbody._tempVec0;
-    const angularVelocity = Rigidbody._tempVec1;
-    const offset = Rigidbody._tempVec2;
-    actor.getWorldTransform(position, rotation);
-    actor.getCenterOfMass(center);
-    Vector3.transformByQuat(center, rotation, center);
-    center.add(position);
-    offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
-    actor.getLinearVelocity(linearVelocity);
-    actor.getAngularVelocity(angularVelocity);
-    Vector3.cross(angularVelocity, offset, out);
-    return out.add(linearVelocity);
-  }
-
-  /**
-   * Writes the simulated world-space velocity at a point in the unscaled local frame of the body.
-   * @param point - Point in the body's local frame.
-   * @param out - Receives the velocity, or zero before the body has a physics actor.
-   * @returns The output vector.
-   */
-  getRelativePointVelocity(point: Vector3, out: Vector3): Vector3 {
-    const actor = this._getSyncedActor();
-    if (!actor) return out.set(0, 0, 0);
-    const pointX = point.x;
-    const pointY = point.y;
-    const pointZ = point.z;
-    const rotation = Rigidbody._tempRotation;
-    const center = Rigidbody._tempCenter;
-    const linearVelocity = Rigidbody._tempVec0;
-    const angularVelocity = Rigidbody._tempVec1;
-    const offset = Rigidbody._tempVec2;
-    actor.getWorldTransform(Rigidbody._tempPosition, rotation);
-    actor.getCenterOfMass(center);
-    offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
-    Vector3.transformByQuat(offset, rotation, offset);
-    actor.getLinearVelocity(linearVelocity);
-    actor.getAngularVelocity(angularVelocity);
-    Vector3.cross(angularVelocity, offset, out);
-    return out.add(linearVelocity);
   }
 
   /**
@@ -618,6 +530,94 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     //@ts-ignore
     this._inertiaTensorRotation._onValueChanged = this._handleInertiaTensorRotationChanged;
     entity._updateFlagManager.addListener(this._onTransformChanged);
+  }
+
+  /**
+   * Sets mass from the volume of the currently attached solid Colliders.
+   * @param density - Mass per cubic world unit. Must be a positive normal Float32.
+   * @returns Whether the registered body produced valid mass properties and accepted the mass.
+   * @remarks Recomputes automatic mass properties and preserves manual center of mass and inertia.
+   * Missing or unsupported volume leaves mass unchanged. Later geometry edits keep the resulting mass.
+   * @throws When density is not a positive normal Float32.
+   */
+  setDensity(density: number): boolean {
+    if (typeof density !== "number" || !isValidPositiveFloat32(density)) {
+      throw new RangeError("Rigidbody density must be a positive, normal, finite Float32.");
+    }
+    const scene = this._registeredScene;
+    if (!scene) return false;
+    scene.physics._syncColliders();
+    const mass = this._nativeActor!.setDensity(density, this._automaticCenterOfMass, this._automaticInertiaTensor);
+    if (mass === 0) return false;
+    this._mass = mass;
+    this._massChanges = MassChanges.None;
+    return true;
+  }
+
+  /**
+   * Writes the world-space position of the center of mass to `out`.
+   * @returns The output vector.
+   */
+  getWorldCenterOfMass(out: Vector3): Vector3 {
+    const transform = this.entity.transform;
+    Vector3.transformByQuat(this.centerOfMass, transform.worldRotationQuaternion, out);
+    return out.add(transform.worldPosition);
+  }
+
+  /**
+   * Writes the simulated world-space velocity at a world-space point.
+   * @param point - Point in world space.
+   * @param out - Receives the velocity, or zero before the body has a physics actor.
+   * @returns The output vector.
+   */
+  getPointVelocity(point: Vector3, out: Vector3): Vector3 {
+    const actor = this._getSyncedActor();
+    if (!actor) return out.set(0, 0, 0);
+    const pointX = point.x;
+    const pointY = point.y;
+    const pointZ = point.z;
+    const position = Rigidbody._tempPosition;
+    const rotation = Rigidbody._tempRotation;
+    const center = Rigidbody._tempCenter;
+    const linearVelocity = Rigidbody._tempVec0;
+    const angularVelocity = Rigidbody._tempVec1;
+    const offset = Rigidbody._tempVec2;
+    actor.getWorldTransform(position, rotation);
+    actor.getCenterOfMass(center);
+    Vector3.transformByQuat(center, rotation, center);
+    center.add(position);
+    offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
+    actor.getLinearVelocity(linearVelocity);
+    actor.getAngularVelocity(angularVelocity);
+    Vector3.cross(angularVelocity, offset, out);
+    return out.add(linearVelocity);
+  }
+
+  /**
+   * Writes the simulated world-space velocity at a point in the unscaled local frame of the body.
+   * @param point - Point in the body's local frame.
+   * @param out - Receives the velocity, or zero before the body has a physics actor.
+   * @returns The output vector.
+   */
+  getRelativePointVelocity(point: Vector3, out: Vector3): Vector3 {
+    const actor = this._getSyncedActor();
+    if (!actor) return out.set(0, 0, 0);
+    const pointX = point.x;
+    const pointY = point.y;
+    const pointZ = point.z;
+    const rotation = Rigidbody._tempRotation;
+    const center = Rigidbody._tempCenter;
+    const linearVelocity = Rigidbody._tempVec0;
+    const angularVelocity = Rigidbody._tempVec1;
+    const offset = Rigidbody._tempVec2;
+    actor.getWorldTransform(Rigidbody._tempPosition, rotation);
+    actor.getCenterOfMass(center);
+    offset.set(pointX - center.x, pointY - center.y, pointZ - center.z);
+    Vector3.transformByQuat(offset, rotation, offset);
+    actor.getLinearVelocity(linearVelocity);
+    actor.getAngularVelocity(angularVelocity);
+    Vector3.cross(angularVelocity, offset, out);
+    return out.add(linearVelocity);
   }
 
   /**
@@ -948,18 +948,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._markCollidersDirty();
   }
 
-  private _detachOrphanedColliders(): void {
-    const colliders = this._attachedColliders;
-    for (let i = colliders.length - 1; i >= 0; i--) {
-      const collider = colliders[i];
-      if (collider._findRigidbody() !== this) {
-        // A hierarchy change while disabled or before re-entry may belong to another scene.
-        collider._detach();
-        collider._markDirty();
-      }
-    }
-  }
-
   /** @internal Reconcile native sleep notifications with the active observers on this Entity. */
   _syncSleepEventRegistration(): void {
     const scene = this._registeredScene;
@@ -976,20 +964,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       }
     }
     this._setSleepEventRegistration(scene, false);
-  }
-
-  private _setSleepEventRegistration(scene: Scene, enabled: boolean): void {
-    const id = this._sleepEventId;
-    if (enabled === (id !== 0)) return;
-
-    const physics = scene.physics;
-    if (enabled) {
-      this._sleepEventId = physics._registerEventTarget(this);
-    } else {
-      physics._unregisterEventTarget(id);
-      this._sleepEventId = 0;
-    }
-    this._nativeActor!.setSleepEventId(this._sleepEventId);
   }
 
   /** @internal */
@@ -1075,15 +1049,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       if (index !== -1) {
         joints[index] = joints[joints.length - 1];
         joints.length--;
-      }
-    }
-  }
-
-  private _syncJoints(): void {
-    const joints = this._joints;
-    if (joints) {
-      for (let i = joints.length - 1; i >= 0; i--) {
-        joints[i]._syncActiveJoint();
       }
     }
   }
@@ -1191,6 +1156,47 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     changes & MassChanges.Mass && actor.setMassProperties(mass);
   }
 
+  /** @internal Consumes a sleep request after the scene has synchronized all Collider edits. */
+  _applyScheduledSleep(): void {
+    this._sleepPending = false;
+    this._nativeActor!.sleep();
+  }
+
+  private _detachOrphanedColliders(): void {
+    const colliders = this._attachedColliders;
+    for (let i = colliders.length - 1; i >= 0; i--) {
+      const collider = colliders[i];
+      if (collider._findRigidbody() !== this) {
+        // A hierarchy change while disabled or before re-entry may belong to another scene.
+        collider._detach();
+        collider._markDirty();
+      }
+    }
+  }
+
+  private _setSleepEventRegistration(scene: Scene, enabled: boolean): void {
+    const id = this._sleepEventId;
+    if (enabled === (id !== 0)) return;
+
+    const physics = scene.physics;
+    if (enabled) {
+      this._sleepEventId = physics._registerEventTarget(this);
+    } else {
+      physics._unregisterEventTarget(id);
+      this._sleepEventId = 0;
+    }
+    this._nativeActor!.setSleepEventId(this._sleepEventId);
+  }
+
+  private _syncJoints(): void {
+    const joints = this._joints;
+    if (joints) {
+      for (let i = joints.length - 1; i >= 0; i--) {
+        joints[i]._syncActiveJoint();
+      }
+    }
+  }
+
   private _markCollidersDirty(entity = this.entity): void {
     if (!entity._isActiveInScene || (entity.getComponent(Rigidbody) ?? this) !== this) return;
     const { _components: components, children } = entity;
@@ -1263,12 +1269,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (this._index === -1 || this._isKinematic || !this._simulationEnabled) return null;
     this._cancelPendingSleep();
     return this._getSyncedActor();
-  }
-
-  /** @internal Consumes a sleep request after the scene has synchronized all Collider edits. */
-  _applyScheduledSleep(): void {
-    this._sleepPending = false;
-    this._nativeActor!.sleep();
   }
 
   private _cancelPendingSleep(): void {
