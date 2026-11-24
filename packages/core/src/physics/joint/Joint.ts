@@ -261,7 +261,20 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
    * @internal
    */
   _onBodyDestroyed(body: Rigidbody): void {
-    this._connectedBody === body && (this.connectedBody = null);
+    if (this._connectedBody === body) {
+      if (!this._automaticConnectedAnchor) {
+        const transform = body.entity.transform;
+        const anchor = this._connectedBodyInfo.anchor;
+        const worldAnchor = Joint._tempVector3;
+        Vector3.multiply(anchor, transform.lossyWorldScale, worldAnchor);
+        Vector3.transformByQuat(worldAnchor, transform.worldRotationQuaternion, worldAnchor);
+        worldAnchor.add(transform.worldPosition);
+        anchor._onValueChanged = null;
+        anchor.copyFrom(worldAnchor);
+        anchor._onValueChanged = this._handleConnectedAnchorChanged;
+      }
+      this.connectedBody = null;
+    }
   }
 
   /**
@@ -333,10 +346,11 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     nativeJoint.setBreakTorque(this._torque);
   }
 
-  protected _wakeBodies(): void {
-    this.entity.getComponent(Rigidbody)?._wakeNative();
+  protected _wakeBodies(onlyIfSleeping = false): void {
+    const selfBody = this.entity.getComponent(Rigidbody);
+    selfBody && (!onlyIfSleeping || selfBody.isSleeping()) && selfBody._wakeNative();
     const body = this._connectedBody;
-    body && body.scene === this.scene && body._wakeNative();
+    body && body.scene === this.scene && (!onlyIfSleeping || body.isSleeping()) && body._wakeNative();
   }
 
   private _syncFrames(nativeJoint: IJoint, owner: AnchorOwner): void {
@@ -395,21 +409,21 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
 
   @ignoreClone
   private _onSelfTransformChanged(type: TransformModifyFlags): void {
-    type & TransformModifyFlags.WorldScale && this._updateAnchors(AnchorOwner.Self);
+    type & TransformModifyFlags.WorldScale && this._updateAnchors(AnchorOwner.Self, false, true);
   }
 
   @ignoreClone
   private _onConnectedTransformChanged(type: TransformModifyFlags): void {
-    type & TransformModifyFlags.WorldScale && this._updateAnchors(AnchorOwner.Connected);
+    type & TransformModifyFlags.WorldScale && this._updateAnchors(AnchorOwner.Connected, false, true);
   }
 
-  /** Sync the edited anchors and wake both bodies once. Scale changes only rescale the existing anchors. */
-  private _updateAnchors(owner: AnchorOwner, recalculateConnected = false): void {
+  /** Sync the edited anchors and wake bodies once. Scale changes only wake sleeping bodies. */
+  private _updateAnchors(owner: AnchorOwner, recalculateConnected = false, wakeOnlyIfSleeping = false): void {
     recalculateConnected && this._calculateConnectedAnchor();
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
       this._syncAnchors(nativeJoint, owner);
-      this._wakeBodies();
+      this._wakeBodies(wakeOnlyIfSleeping);
     }
   }
 

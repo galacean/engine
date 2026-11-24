@@ -986,4 +986,149 @@ describe("Joint", function () {
       }
     }
   );
+
+  it("converts a manual connectedAnchor to world space when connectedBody is destroyed without altering explicit null assignment", function () {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+
+    for (const mode of ["body", "entity", "deferred"] as const) {
+      const target = addBox(new Vector3(1, 1, 1), new Vector3(10, 0, 0));
+      target.transform.setScale(2, 1, 1);
+      const targetBody = target.getComponent(Rigidbody)!;
+      targetBody.isKinematic = true;
+
+      const box = addBox(new Vector3(1, 1, 1), new Vector3(6, 0, 0));
+      const joint = box.addComponent(FixedJoint);
+      joint.connectedBody = targetBody;
+      joint.automaticConnectedAnchor = false;
+      joint.anchor.set(0, 0, 0);
+      joint.connectedAnchor.set(-2, 0, 0);
+
+      physics._update(physics.fixedTimeStep);
+      expect(box.transform.position.x).toBeCloseTo(6, 3);
+
+      if (mode === "body") {
+        targetBody.destroy();
+      } else if (mode === "entity") {
+        target.destroy();
+      } else {
+        box.addComponent(
+          class extends Script {
+            override onUpdate(): void {
+              if (!target.destroyed) {
+                target.destroy();
+              }
+            }
+          }
+        );
+        engine.update();
+      }
+
+      expect(joint.connectedBody).toBeNull();
+      expect(joint.automaticConnectedAnchor).toBe(false);
+      expect(joint.connectedAnchor.x).toBeCloseTo(6, 3);
+
+      physics._update(physics.fixedTimeStep);
+      expect(box.transform.position.x).toBeCloseTo(6, 3);
+
+      box.destroy();
+      if (!target.destroyed) {
+        target.destroy();
+      }
+    }
+
+    // Sheared ancestor: solver frame matches world position + rotated (anchor * lossyWorldScale), distinct from worldMatrix.
+    const parent = rootEntity.createChild("sheared-parent");
+    parent.transform.setScale(2, 1, 1);
+    const shearedTarget = parent.createChild("sheared-target");
+    shearedTarget.transform.setPosition(5, 0, 0);
+    shearedTarget.transform.setRotation(0, 0, 45);
+    shearedTarget.addComponent(BoxCollider);
+    const shearedTargetBody = shearedTarget.addComponent(Rigidbody);
+    shearedTargetBody.isKinematic = true;
+
+    const follower = addBox(new Vector3(1, 1, 1), new Vector3(10, 0, 0));
+    const shearedJoint = follower.addComponent(FixedJoint);
+    shearedJoint.connectedBody = shearedTargetBody;
+    shearedJoint.automaticConnectedAnchor = false;
+    shearedJoint.anchor.set(0, 0, 0);
+    shearedJoint.connectedAnchor.set(0, 2, 0);
+
+    physics._update(0.2);
+    const solvedX = follower.transform.worldPosition.x;
+    const solvedY = follower.transform.worldPosition.y;
+
+    shearedTarget.destroy();
+    expect(shearedJoint.connectedBody).toBeNull();
+    expect(shearedJoint.automaticConnectedAnchor).toBe(false);
+    expect(shearedJoint.connectedAnchor.x).toBeCloseTo(solvedX, 2);
+    expect(shearedJoint.connectedAnchor.y).toBeCloseTo(solvedY, 2);
+
+    physics._update(0.2);
+    expect(follower.transform.worldPosition.x).toBeCloseTo(solvedX, 2);
+    expect(follower.transform.worldPosition.y).toBeCloseTo(solvedY, 2);
+    follower.destroy();
+    parent.destroy();
+
+    // Explicit connectedBody = null keeps manual local/world anchor untouched.
+    const explicitTarget = addBox(new Vector3(1, 1, 1), new Vector3(10, 0, 0));
+    const explicitTargetBody = explicitTarget.getComponent(Rigidbody)!;
+    explicitTargetBody.isKinematic = true;
+    const explicitBox = addBox(new Vector3(1, 1, 1), new Vector3(6, 0, 0));
+    const explicitJoint = explicitBox.addComponent(FixedJoint);
+    explicitJoint.connectedBody = explicitTargetBody;
+    explicitJoint.automaticConnectedAnchor = false;
+    explicitJoint.connectedAnchor.set(-2, 0, 0);
+    explicitJoint.connectedBody = null;
+    expect(explicitJoint.connectedAnchor.x).toBe(-2);
+    expect(explicitJoint.automaticConnectedAnchor).toBe(false);
+  });
+
+  it("allows joints under non-uniform parent scale to sleep while waking sleeping joints on scale changes", function () {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+
+    for (const { parentScale, anchor } of [
+      { parentScale: new Vector3(2, 1, 1), anchor: new Vector3(0, 0, 0) },
+      { parentScale: new Vector3(1, 2, 1), anchor: new Vector3(0, 1, 0) }
+    ]) {
+      const parent = rootEntity.createChild("non-uniform-parent");
+      parent.transform.scale = parentScale;
+      const child = parent.createChild("hinge-child");
+      child.addComponent(BoxCollider);
+      const body = child.addComponent(Rigidbody);
+      const joint = child.addComponent(HingeJoint);
+      joint.anchor.copyFrom(anchor);
+      body.angularVelocity.set(0.01, 0, 0);
+
+      for (let i = 0; i < 60 && !body.isSleeping(); i++) {
+        physics._update(physics.fixedTimeStep);
+      }
+      expect(body.isSleeping()).toBe(true);
+      parent.destroy();
+    }
+
+    // Sleeping joint wakes on an external scale change and resolves to the scaled anchor.
+    const scaledBox = addBox(new Vector3(1, 1, 1), new Vector3(1, 0, 0));
+    const scaledBody = scaledBox.getComponent(Rigidbody)!;
+    const scaledJoint = scaledBox.addComponent(FixedJoint);
+    scaledJoint.automaticConnectedAnchor = false;
+    scaledJoint.anchor.set(1, 0, 0);
+    scaledJoint.connectedAnchor.set(2, 0, 0);
+
+    physics._update(physics.fixedTimeStep);
+    scaledBody.sleep();
+    expect(scaledBody.isSleeping()).toBe(true);
+
+    scaledBox.transform.setScale(2, 1, 1);
+    expect(scaledBody.isSleeping()).toBe(false);
+    physics._update(0.2);
+    expect(scaledBox.transform.position.x).toBeCloseTo(0, 2);
+
+    // Explicit anchor edits continue to wake sleeping bodies immediately.
+    scaledBody.sleep();
+    expect(scaledBody.isSleeping()).toBe(true);
+    scaledJoint.anchor.set(0.5, 0, 0);
+    expect(scaledBody.isSleeping()).toBe(false);
+  });
 });
