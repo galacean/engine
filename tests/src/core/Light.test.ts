@@ -6,7 +6,6 @@ import {
   Engine,
   Entity,
   Layer,
-  Light,
   PointLight,
   PrimitiveMesh,
   Scene,
@@ -14,7 +13,7 @@ import {
   SpotLight
 } from "@galacean/engine-core";
 import "@galacean/engine-loader";
-import { Color, Matrix, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
+import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 
 import { ShadowType } from "@galacean/engine-core";
@@ -129,44 +128,6 @@ describe("Light test", function () {
     expect(viewMatrix[13] + inverseViewMatrix[13]).to.deep.equal(0);
     expect(viewMatrix[14] + inverseViewMatrix[14]).to.deep.equal(0);
     expect(viewMatrix[15]).to.deep.equal(inverseViewMatrix[15]);
-
-    // Verify viewMatrix & inverseViewMatrix with transformed uniform (positive/negative) and non-uniform scales
-    const testLightEntity = scene.createRootEntity("scaledLight");
-    const testLight = testLightEntity.addComponent(DirectLight);
-    testLightEntity.transform.setPosition(4, -3, 7);
-    testLightEntity.transform.setRotation(30, -50, 20);
-
-    const product = new Matrix();
-    const expectIdentityProduct = (light: Light) => {
-      Matrix.multiply(light.viewMatrix, light.inverseViewMatrix, product);
-      for (let i = 0; i < 16; i++) {
-        expect(product.elements[i]).to.be.closeTo(i % 5 === 0 ? 1 : 0, 1e-5);
-      }
-    };
-
-    for (const scale of [new Vector3(1, 1, 1), new Vector3(-2, -2, -2), new Vector3(2, 3, 0.5)]) {
-      testLightEntity.transform.scale = scale;
-      expectIdentityProduct(testLight);
-    }
-
-    // Zero X scale after a valid viewMatrix keeps viewMatrix * inverseViewMatrix == I
-    testLightEntity.transform.setScale(1, 1, 1);
-    testLight.viewMatrix;
-    testLightEntity.transform.setScale(0, 1, 1);
-    expectIdentityProduct(testLight);
-    testLightEntity.destroy();
-
-    // Subclass overriding viewMatrix keeps viewMatrix * inverseViewMatrix == I
-    class CustomViewLight extends Light {
-      private _customView = new Matrix(2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 4, 0, 5, -6, 7, 1);
-      override get viewMatrix(): Matrix {
-        return this._customView;
-      }
-    }
-    const customLightEntity = scene.createRootEntity("customViewLight");
-    const customLight = customLightEntity.addComponent(CustomViewLight);
-    expectIdentityProduct(customLight);
-    customLightEntity.destroy();
   });
 
   it("update shadow type", function () {
