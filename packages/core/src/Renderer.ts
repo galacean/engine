@@ -393,8 +393,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
    */
   _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     const transformEntity = this._transformEntity!;
-    const transform = transformEntity.transform;
-    const worldMatrix = transform.worldMatrix;
+    const worldMatrix = transformEntity.transform.worldMatrix;
     const { shaderData } = this;
     if (onlyMVP) {
       const mvpMatrix = this._mvpMatrix;
@@ -409,7 +408,8 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       const version = transformEntity._updateFlagManager.version;
       if (this._normalMatrixVersion !== version) {
         this._normalMatrixVersion = version;
-        Matrix._normalMatrix(worldMatrix, normalMatrix, transform._getWorldUniformScaling());
+        Matrix.invert(worldMatrix, normalMatrix);
+        normalMatrix.transpose();
       }
 
       shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
