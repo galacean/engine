@@ -2951,18 +2951,26 @@ describe("Physics Test", () => {
       expect(updateMass).toHaveBeenLastCalledWith(12, null, null, null);
     });
 
-    it("recycles more than 256 trimmed raycastAll HitResults and drains the pool on gc", () => {
-      enginePhysX.resourceManager.gc();
-      const pool = (PhysicsScene as any)._raycastHitPool as HitResult[];
-      expect(pool).toHaveLength(0);
-
+    it("reuses more than 256 discarded ray hits across independent output arrays", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity();
+      root.transform.setPosition(0, 1800, 0);
+      root.addComponent(BoxCollider);
+      const ray = new Ray(new Vector3(-2, 1800, 0), new Vector3(1, 0, 0));
       const hits = Array.from({ length: 300 }, () => new HitResult());
-      expect(physicsScene.raycastAll(new Ray(new Vector3(0, 500, 0), new Vector3(0, 1, 0)), 10, hits)).toBe(false);
-      expect(hits).toHaveLength(0);
-      expect(pool).toHaveLength(300);
-
-      enginePhysX.resourceManager.gc();
-      expect(pool).toHaveLength(0);
+      const supplied = new Set(hits);
+      try {
+        expect(physicsScene.raycastAll(ray, 0, hits)).toBe(false);
+        expect(hits).toHaveLength(0);
+        for (let i = 0; i < 300; i++) {
+          const output: HitResult[] = [];
+          expect(physicsScene.raycastAll(ray, output)).toBe(true);
+          expect(supplied.delete(output[0])).toBe(true);
+        }
+        expect(supplied.size).toBe(0);
+      } finally {
+        root.destroy();
+        enginePhysX.resourceManager.gc();
+      }
     });
 
     it("prunes silently retired trigger pairs while keeping active pairs and drains dispatch receiver pool on gc", () => {
