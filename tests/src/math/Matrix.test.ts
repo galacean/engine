@@ -458,6 +458,11 @@ describe("Matrix test", () => {
     expect(Matrix.invert(singular, out)).to.eq(null);
     expect(Matrix.equals(out, sentinel)).to.eq(true);
 
+    // Duplicate-column singular affine matrix returns null without float residual drift
+    const duplicateColSingular = new Matrix(0.1, 0.1, 0.2, 0, 0.1, 0.1, 0.2, 0, 0.1, 0.2, 0.1, 0, 1, 2, 3, 1);
+    expect(Matrix.invert(duplicateColSingular, out)).to.eq(null);
+    expect(Matrix.equals(out, sentinel)).to.eq(true);
+
     // Non-affine perspective projection matrix still inverts accurately
     const proj = new Matrix();
     Matrix.perspective(Math.PI / 3, 16 / 9, 0.1, 1000, proj);

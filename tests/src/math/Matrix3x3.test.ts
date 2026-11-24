@@ -103,9 +103,17 @@ describe("Matrix3x3 test", () => {
     expect(out.elements[7]).to.be.closeTo(expected4.elements[9], 1e-5);
     expect(out.elements[8]).to.be.closeTo(expected4.elements[10], 1e-5);
 
-    // Singular affine matrix returns null
+    // Singular affine matrix returns null and leaves out untouched
+    const sentinel = new Matrix3x3(2, 3, 4, 5, 6, 7, 8, 9, 10);
+    const singularOut = sentinel.clone();
     const singular = new Matrix(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1);
-    expect(Matrix3x3.normalMatrix(singular, out)).to.eq(null);
+    expect(Matrix3x3.normalMatrix(singular, singularOut)).to.eq(null);
+    expect(Matrix3x3.equals(singularOut, sentinel)).to.eq(true);
+
+    // Duplicate-column singular affine matrix returns null without float residual drift
+    const duplicateColSingular = new Matrix(0.1, 0.1, 0.2, 0, 0.1, 0.1, 0.2, 0, 0.1, 0.2, 0.1, 0, 1, 2, 3, 1);
+    expect(Matrix3x3.normalMatrix(duplicateColSingular, singularOut)).to.eq(null);
+    expect(Matrix3x3.equals(singularOut, sentinel)).to.eq(true);
   });
 
   it("static rotate", () => {

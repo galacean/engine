@@ -435,25 +435,25 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
       a44 = ae[15];
 
     if (a14 === 0 && a24 === 0 && a34 === 0 && a44 === 1) {
-      const b00 = a22 * a33 - a23 * a32;
-      const b01 = a23 * a31 - a21 * a33;
-      const b02 = a21 * a32 - a22 * a31;
+      const b00 = a11 * a22 - a12 * a21;
+      const b01 = a11 * a23 - a13 * a21;
+      const b03 = a12 * a23 - a13 * a22;
 
-      let det = a11 * b00 + a12 * b01 + a13 * b02;
+      let det = b00 * a33 - b01 * a32 + b03 * a31;
       if (!det) {
         return null;
       }
       det = 1.0 / det;
 
-      const r11 = b00 * det;
+      const r11 = (a22 * a33 - a23 * a32) * det;
       const r12 = (a13 * a32 - a12 * a33) * det;
-      const r13 = (a12 * a23 - a13 * a22) * det;
-      const r21 = b01 * det;
+      const r13 = b03 * det;
+      const r21 = (a23 * a31 - a21 * a33) * det;
       const r22 = (a11 * a33 - a13 * a31) * det;
-      const r23 = (a13 * a21 - a11 * a23) * det;
-      const r31 = b02 * det;
+      const r23 = -b01 * det + 0;
+      const r31 = (a21 * a32 - a22 * a31) * det;
       const r32 = (a12 * a31 - a11 * a32) * det;
-      const r33 = (a11 * a22 - a12 * a21) * det;
+      const r33 = b00 * det;
 
       oe[0] = r11;
       oe[1] = r12;
