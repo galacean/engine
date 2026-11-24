@@ -1,5 +1,8 @@
 import type { TerrainProjectLodGroup, TerrainProjectPrototypeLod } from "../project/TerrainProjectContract";
 
+/** Fraction of a screen-height threshold used by renderers that opt into LOD hysteresis. */
+export const LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO = 0.06;
+
 /** Canonical LOD threshold consumed by the renderer-side state runtime. */
 export type TerrainLodLevelRuntimeConfig = Readonly<Pick<TerrainProjectPrototypeLod, "screenRelativeTransitionHeight">>;
 
@@ -108,6 +111,7 @@ export class TerrainLodGroupRuntime {
   private readonly _thresholds: readonly number[];
   private readonly _animatedCrossFade: boolean;
   private readonly _crossFadeDurationSeconds: number;
+  private readonly _hysteresisRatio: number;
 
   /** Whether this definition can emit animated source/target renderer pairs. */
   get usesAnimatedCrossFade(): boolean {
@@ -118,11 +122,15 @@ export class TerrainLodGroupRuntime {
    * Creates one shared runtime definition from validated canonical LODGroup fields.
    * @param config Canonical reference geometry, fade semantics, and decreasing LOD thresholds.
    * @param crossFadeDurationSeconds Scene-owned animated cross-fade duration in seconds. Zero disables animation.
-   * @throws If the duration is negative or non-finite.
+   * @param hysteresisRatio Fractional margin around the current LOD's boundaries. Zero uses the authored thresholds.
+   * @throws If the duration is invalid or the margin is outside [0, 1).
    */
-  constructor(config: TerrainLodGroupRuntimeConfig, crossFadeDurationSeconds = 0) {
+  constructor(config: TerrainLodGroupRuntimeConfig, crossFadeDurationSeconds = 0, hysteresisRatio = 0) {
     if (!Number.isFinite(crossFadeDurationSeconds) || crossFadeDurationSeconds < 0) {
       throw new Error("Terrain LODGroup cross-fade duration must be finite and non-negative");
+    }
+    if (!Number.isFinite(hysteresisRatio) || hysteresisRatio < 0 || hysteresisRatio >= 1) {
+      throw new RangeError("Terrain LODGroup hysteresis ratio must be in [0, 1)");
     }
     this.localReferencePoint = [...config.localReferencePoint];
     this.size = config.size;
@@ -130,6 +138,7 @@ export class TerrainLodGroupRuntime {
     this._animatedCrossFade =
       config.fadeMode === "CrossFade" && config.animateCrossFading && crossFadeDurationSeconds > 0;
     this._crossFadeDurationSeconds = crossFadeDurationSeconds;
+    this._hysteresisRatio = hysteresisRatio;
     for (let lodIndex = 0; lodIndex < this._thresholds.length; lodIndex++) stableRendererSets(lodIndex);
   }
 
@@ -138,7 +147,12 @@ export class TerrainLodGroupRuntime {
    * @returns A new state object with no clock or transition shared with any prior instance.
    */
   createInstance(): TerrainLodGroupInstance {
-    return new TerrainLodGroupInstanceState(this._thresholds, this._animatedCrossFade, this._crossFadeDurationSeconds);
+    return new TerrainLodGroupInstanceState(
+      this._thresholds,
+      this._animatedCrossFade,
+      this._crossFadeDurationSeconds,
+      this._hysteresisRatio
+    );
   }
 }
 
@@ -159,7 +173,8 @@ class TerrainLodGroupInstanceState implements TerrainLodGroupInstance {
   constructor(
     private readonly _thresholds: readonly number[],
     private readonly _animatedCrossFade: boolean,
-    private readonly _crossFadeDurationSeconds: number
+    private readonly _crossFadeDurationSeconds: number,
+    private readonly _hysteresisRatio: number
   ) {}
 
   update(observation: TerrainLodInstanceObservation): readonly TerrainLodRendererSetState[] {
@@ -198,7 +213,7 @@ class TerrainLodGroupInstanceState implements TerrainLodGroupInstance {
     this._finishElapsedTransition(timeSeconds);
     if (!observation.visible) return RENDERER_SETS_EMPTY;
 
-    const desiredLod = selectLod(this._thresholds, observation.screenRelativeHeight);
+    const desiredLod = this._selectLod(observation.screenRelativeHeight);
     if (this._settledLod === undefined) {
       this._settledLod = desiredLod;
       return RENDERER_SETS_STABLE;
@@ -241,9 +256,25 @@ class TerrainLodGroupInstanceState implements TerrainLodGroupInstance {
     observation: Extract<TerrainLodInstanceObservation, { readonly visible: true }>
   ): readonly TerrainLodRendererSetState[] {
     this._acceptObservation(observation);
+    this._settledLod = this._selectLod(observation.screenRelativeHeight);
     this._transitionActive = false;
-    this._settledLod = selectLod(this._thresholds, observation.screenRelativeHeight);
     return stableRendererSets(this._settledLod);
+  }
+
+  private _selectLod(screenRelativeHeight: number): number | null {
+    if (screenRelativeHeight === 0) return null;
+    // Keep the requested destination stable even while the visual blend is in progress.
+    const previous = this._transitionActive ? this._transitionToLod : this._settledLod;
+    if (this._hysteresisRatio > 0 && previous !== undefined) {
+      const level = previous ?? this._thresholds.length;
+      const lower = (this._thresholds[level] ?? 0) * (1 - this._hysteresisRatio);
+      const upper = (this._thresholds[level - 1] ?? Infinity) * (1 + this._hysteresisRatio);
+      if (screenRelativeHeight >= lower && screenRelativeHeight < upper) return previous;
+    }
+    for (let i = 0; i < this._thresholds.length; i++) {
+      if (screenRelativeHeight >= this._thresholds[i]) return i;
+    }
+    return null;
   }
 
   private _acceptObservation(observation: TerrainLodInstanceObservation): void {
@@ -284,16 +315,6 @@ class TerrainLodGroupInstanceState implements TerrainLodGroupInstance {
     this._transitionToLod = fromLod;
     this._transitionStartTimeSeconds = timeSeconds - reversedProgress * this._crossFadeDurationSeconds;
   }
-}
-
-function selectLod(thresholds: readonly number[], screenRelativeHeight: number): number | null {
-  if (screenRelativeHeight === 0) {
-    return null;
-  }
-  for (let lodIndex = 0; lodIndex < thresholds.length; lodIndex++) {
-    if (screenRelativeHeight >= thresholds[lodIndex]) return lodIndex;
-  }
-  return null;
 }
 
 function transitionProgress(

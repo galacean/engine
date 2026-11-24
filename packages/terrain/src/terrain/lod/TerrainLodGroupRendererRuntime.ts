@@ -53,15 +53,17 @@ export class TerrainLodGroupRendererRuntime {
    * @param camera Camera that determines the screen-relative LOD selection.
    * @param lodGroup Validated canonical LOD metadata with exact renderer selectors.
    * @param crossFadeDurationSeconds Scene-owned animated cross-fade duration in seconds.
+   * @param hysteresisRatio Fractional screen-height margin for keeping the current mesh or culled state.
    * @throws If a selector no longer resolves to the authored MeshRenderer or one renderer is reused by multiple LODs.
    */
   constructor(
     private readonly _root: Entity,
     camera: Camera,
     lodGroup: ResolvedLodGroup,
-    crossFadeDurationSeconds: number
+    crossFadeDurationSeconds: number,
+    hysteresisRatio = 0
   ) {
-    this._definition = new TerrainLodGroupRuntime(lodGroup, crossFadeDurationSeconds);
+    this._definition = new TerrainLodGroupRuntime(lodGroup, crossFadeDurationSeconds, hysteresisRatio);
     this._instance = this._definition.createInstance();
     this._screenRelativeHeight = new TerrainScreenRelativeHeightRuntime(
       this._root,

@@ -87,6 +87,8 @@ export interface SeedWorldExactInstancePlanarRange {
   readonly x: number;
   readonly z: number;
   readonly maxDistance: number;
+  /** Extra metres an admitted instance may travel beyond the entry radius. */
+  readonly hysteresisMetres?: number;
 }
 
 class ExactInstanceLodController implements SeedWorldExactInstanceSpatialController {
@@ -94,6 +96,8 @@ class ExactInstanceLodController implements SeedWorldExactInstanceSpatialControl
   private readonly _x: number;
   private readonly _z: number;
   private readonly _maxDistanceSq: number;
+  private readonly _exitDistanceSq: number = 0;
+  private _inPlanarRange = false;
   private readonly _isInRange: (() => boolean) | undefined;
 
   constructor(
@@ -112,6 +116,8 @@ class ExactInstanceLodController implements SeedWorldExactInstanceSpatialControl
       this._x = rangeOrCallback.x;
       this._z = rangeOrCallback.z;
       this._maxDistanceSq = rangeOrCallback.maxDistance * rangeOrCallback.maxDistance;
+      const exitDistance = rangeOrCallback.maxDistance + (rangeOrCallback.hysteresisMetres ?? 0);
+      this._exitDistanceSq = exitDistance * exitDistance;
     } else {
       this._isInRange = undefined;
       this._camera = undefined;
@@ -127,7 +133,9 @@ class ExactInstanceLodController implements SeedWorldExactInstanceSpatialControl
       const camPos = this._camera.entity.transform.worldPosition;
       const dx = this._x - camPos.x;
       const dz = this._z - camPos.z;
-      return this._lod.updateRenderers(timeSeconds, dx * dx + dz * dz <= this._maxDistanceSq);
+      const limitSq = this._inPlanarRange ? this._exitDistanceSq : this._maxDistanceSq;
+      this._inPlanarRange = dx * dx + dz * dz <= limitSq;
+      return this._lod.updateRenderers(timeSeconds, this._inPlanarRange);
     }
     if (this._isInRange !== undefined) {
       return this._lod.updateRenderers(timeSeconds, this._isInRange());
