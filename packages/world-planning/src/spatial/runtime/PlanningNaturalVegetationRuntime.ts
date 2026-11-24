@@ -28,9 +28,11 @@ import {
 } from "../../world/SeedWorldAssetPlacementProfile";
 import {
   BoundingBox,
+  BoxColliderShape,
   Color,
   Matrix,
   MeshRenderer,
+  StaticCollider,
   Vector3,
   Vector4,
   type Material,
@@ -97,7 +99,8 @@ import {
   type PlantMaterialParameters
 } from "../PlantMaterialParameters";
 import { resolveGeneratedFlowerAssetWeights } from "../../planning-data/FlowerAssetWeights";
-import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
+import { WORLD_TEMPLATE_ART, templateRockCollisionPolicy } from "../WorldTemplateArtDirection";
+import { resolveRockCollision, type RockCollisionPolicy } from "../RockCollisionPolicy";
 import type { LandscapeView, LandscapeFocus } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
 import type { RockFormationSettings } from "../../integrations/terrain/rock-formation/Settings";
 import {
@@ -143,6 +146,34 @@ type Source = Pick<PlantSource, "bounds" | "rendererBindings"> & {
   kind?: "stone";
   transitionHeights?: readonly number[];
   variantStone?: true;
+  /** Exact uniform-XZ fitted `[width, exposedHeight, depth]` in metres at `instance.scale = 1`. */
+  stoneFittedSize?: readonly [number, number, number];
+};
+/** One colliding tree-root companion stone OBB evaluated by the unified `RockCollisionPolicy`. */
+export interface CompanionStoneObstacle {
+  readonly id: string;
+  readonly x: number;
+  readonly z: number;
+  /** Math-plane yaw in radians matching `PlanningAnimalHabitat` OBB convention (`-entityRotationYRad`). */
+  readonly yaw: number;
+  readonly width: number;
+  readonly depth: number;
+  readonly bottom: number;
+  readonly top: number;
+}
+type CompanionStoneColliderEntry = {
+  record: CellPlantRecord;
+  obstacle: {
+    readonly id: string;
+    readonly x: number;
+    readonly z: number;
+    readonly yaw: number;
+    readonly width: number;
+    readonly depth: number;
+    bottom: number;
+    top: number;
+  };
+  colliderEntity?: Entity;
 };
 type Plant = {
   root: Entity;
@@ -170,6 +201,7 @@ type Cell = {
   plants: Plant[];
   records?: CellPlantRecord[];
   instancedRecords?: InstancedUnderstoryRecord[];
+  stoneColliders?: CompanionStoneColliderEntry[];
   counts: Readonly<Record<string, number>>;
   populations: VegetationLandscapePlan["diagnostics"]["populations"];
   decorations?: VegetationLandscapePlan["diagnostics"]["decorations"];
@@ -241,6 +273,10 @@ export class PlanningNaturalVegetationRuntime {
   private streamZ = NaN;
   private pendingCells: { key: string; x: number; z: number; distance: number }[] = [];
   private readonly groundExclusions = new Map<string, readonly PlanPoint[][]>();
+  private readonly stoneObstacleListeners = new Set<
+    (cellKey: string, obstacles: readonly CompanionStoneObstacle[] | undefined) => void
+  >();
+  private readonly publishedStoneObstacleKeys = new Set<string>();
   private foliageColors?: FoliageColors;
   private barkColors?: FoliageColors;
   private readonly treeRoot: Entity;
@@ -1331,6 +1367,7 @@ export class PlanningNaturalVegetationRuntime {
           this.detailRoot.addChild(cell.root);
           this.cells.set(key, cell);
           this.instancedUnderstory?.setCell(key, cell.instancedRecords ?? []);
+          this.notifyStoneObstacles(key, cell);
           if (previous) destroyTree(previous.root);
         }
         this.treeRegions = undefined;
@@ -1418,12 +1455,15 @@ export class PlanningNaturalVegetationRuntime {
       const enterDistance = worldSize / Math.max(1e-6, 2 * enterThreshold * tanHalfFov);
       return enterDistance <= shadowMaxDist;
     };
-    const worldHeight = (b.max[1] - b.min[1]) * (instance.scaleAxes?.[1] ?? instance.scale);
+    const worldHeight =
+      source.variantStone && source.stoneFittedSize
+        ? source.stoneFittedSize[1] * Math.abs(instance.scale)
+        : (b.max[1] - b.min[1]) * (instance.scaleAxes?.[1] ?? instance.scale);
     const resolveSpecimenCastShadows = (specimen: Source, level: number) =>
       source.kind === "stone"
         ? specimen.rendererBindings.every((binding) => binding.renderer.castShadows) &&
-          level === 0 &&
-          worldHeight >= 1.5
+          treeLevelWithinShadowDistance(level) &&
+          (worldHeight >= 0.65 || worldSize >= 1.2)
         : tree
           ? shadows.castShadows && treeLevelWithinShadowDistance(level)
           : shadows.castShadows && level === 0;
@@ -1623,8 +1663,8 @@ export class PlanningNaturalVegetationRuntime {
       const castShadows =
         source.kind === "stone"
           ? specimen.rendererBindings.every((binding) => binding.renderer.castShadows) &&
-            level === 0 &&
-            worldHeight >= 1.5
+            treeLevelWithinShadowDistance(level) &&
+            (worldHeight >= 0.65 || worldSize >= 1.2)
           : tree
             ? shadows.castShadows && treeLevelWithinShadowDistance(level)
             : shadows.castShadows && level === 0;
@@ -1666,7 +1706,10 @@ export class PlanningNaturalVegetationRuntime {
     const size = Math.max(b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]);
     const refYOffset = ((b.max[1] - b.min[1]) / 2 + groundingOffset) * scaleAxes[1];
     const worldSize = size * maxScale;
-    const worldHeight = (b.max[1] - b.min[1]) * scaleAxes[1];
+    const worldHeight =
+      source.variantStone && source.stoneFittedSize
+        ? source.stoneFittedSize[1] * Math.abs(instance.scale)
+        : (b.max[1] - b.min[1]) * scaleAxes[1];
     const { collapsedLevels, shadows } = this.resolvePlantCollapsedLevels(
       instance,
       source,
@@ -1750,11 +1793,123 @@ export class PlanningNaturalVegetationRuntime {
     return horizDistSq + dy * dy <= maxLodDist * maxLodDist;
   }
 
+  /** Active colliding companion stone OBBs grouped by resident detail cell key. */
+  getCompanionStoneObstacles(): ReadonlyMap<string, readonly CompanionStoneObstacle[]> {
+    const result = new Map<string, readonly CompanionStoneObstacle[]>();
+    for (const [key, cell] of this.cells) {
+      const active = this.activeStoneObstaclesForCell(cell);
+      if (active.length) result.set(key, active);
+    }
+    return result;
+  }
+
+  /** Subscribes to resident companion stone obstacle updates and replays currently loaded cells immediately. */
+  onCompanionStoneObstaclesChange(
+    listener: (cellKey: string, obstacles: readonly CompanionStoneObstacle[] | undefined) => void
+  ): () => void {
+    this.stoneObstacleListeners.add(listener);
+    for (const [key, cell] of this.cells) {
+      const active = this.activeStoneObstaclesForCell(cell);
+      if (active.length) listener(key, active);
+    }
+    return () => {
+      this.stoneObstacleListeners.delete(listener);
+    };
+  }
+
+  private activeStoneObstaclesForCell(cell?: Cell): readonly CompanionStoneObstacle[] {
+    if (!cell?.stoneColliders?.length) return [];
+    const active: CompanionStoneObstacle[] = [];
+    for (const entry of cell.stoneColliders) {
+      if (!this.groundExcluded(entry.record.instance)) active.push(entry.obstacle);
+    }
+    return active;
+  }
+
+  private notifyStoneObstacles(cellKey: string, cell?: Cell): void {
+    const active = this.activeStoneObstaclesForCell(cell);
+    const hasActive = active.length > 0;
+    const hadPublished = this.publishedStoneObstacleKeys.has(cellKey);
+    if (!hasActive && !hadPublished) return;
+    if (hasActive) this.publishedStoneObstacleKeys.add(cellKey);
+    else this.publishedStoneObstacleKeys.delete(cellKey);
+    if (!this.stoneObstacleListeners.size) return;
+    const payload = hasActive ? active : undefined;
+    for (const listener of this.stoneObstacleListeners) listener(cellKey, payload);
+  }
+
+  private attachCompanionStoneColliders(
+    root: Entity,
+    records: readonly CellPlantRecord[],
+    plan: IslandPlan = this.plan
+  ): CompanionStoneColliderEntry[] {
+    const policy: RockCollisionPolicy = templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id);
+    const physicsReady = Boolean(
+      (root.engine as unknown as { _physicsInitialized?: boolean } | undefined)?._physicsInitialized
+    );
+    const entries: CompanionStoneColliderEntry[] = [];
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i]!;
+      const source = this.sourceForPlant(record.instance, 0);
+      if (!source || source.kind !== "stone") continue;
+      let width: number;
+      let height: number;
+      let depth: number;
+      if (source.variantStone && source.stoneFittedSize) {
+        const s = Math.abs(record.instance.scale);
+        width = source.stoneFittedSize[0] * s;
+        height = source.stoneFittedSize[1] * s;
+        depth = source.stoneFittedSize[2] * s;
+      } else {
+        const b = source.bounds;
+        const scaleAxes = record.instance.scaleAxes ?? [
+          record.instance.scale,
+          record.instance.scale,
+          record.instance.scale
+        ];
+        width = (b.max[0] - b.min[0]) * Math.abs(scaleAxes[0]);
+        height = (b.max[1] - b.min[1]) * Math.abs(scaleAxes[1]);
+        depth = (b.max[2] - b.min[2]) * Math.abs(scaleAxes[2]);
+      }
+      if (!(width > 0 && height > 0 && depth > 0)) continue;
+      if (!resolveRockCollision({ width, depth, height }, policy)) continue;
+      const obstacle = {
+        id: record.instance.id,
+        x: record.instance.position[0],
+        z: record.instance.position[2],
+        yaw: -(record.instance.yaw * Math.PI) / 180,
+        width,
+        depth,
+        bottom: record.groundHeight,
+        top: record.groundHeight + height
+      };
+      let colliderEntity: Entity | undefined;
+      if (physicsReady) {
+        colliderEntity = root.createChild(`Companion stone collider · ${record.instance.id}`);
+        colliderEntity.transform.setPosition(obstacle.x, obstacle.bottom, obstacle.z);
+        colliderEntity.transform.setRotation(0, record.instance.yaw, 0);
+        colliderEntity.transform.setScale(1, 1, 1);
+        colliderEntity.isActive = !this.groundExcluded(record.instance);
+        const collider = colliderEntity.addComponent(StaticCollider);
+        const shape = new BoxColliderShape();
+        shape.size.set(width, height, depth);
+        shape.position.set(0, height / 2, 0);
+        const material = shape.getInstanceMaterial();
+        material.staticFriction = 0.15;
+        material.dynamicFriction = 0.05;
+        collider.addShape(shape);
+      }
+      entries.push({ record, obstacle, colliderEntity });
+    }
+    return entries;
+  }
+
   private buildPopulatedCell(
     root: Entity,
     result: VegetationLandscapePlan,
     fields = this.groundingFields,
-    rockSupport = this.preparedRockGround ?? this.rockGround
+    rockSupport = this.preparedRockGround ?? this.rockGround,
+    plan: IslandPlan = this.plan
   ): Cell {
     const records = result.instances.map((instance) => this.createCellRecord(instance, fields, rockSupport));
     const instancedRecords: InstancedUnderstoryRecord[] = [];
@@ -1762,6 +1917,7 @@ export class PlanningNaturalVegetationRuntime {
       const rec = records[i]!;
       if (rec.instanced) instancedRecords.push(rec.instanced);
     }
+    const stoneColliders = this.attachCompanionStoneColliders(root, records, plan);
     const plants: Plant[] = [];
     const camPos = this.camera?.entity?.transform?.worldPosition;
     if (camPos) {
@@ -1787,6 +1943,7 @@ export class PlanningNaturalVegetationRuntime {
       plants,
       records,
       instancedRecords,
+      stoneColliders,
       counts: result.diagnostics.layers,
       populations: result.diagnostics.populations,
       decorations: result.diagnostics.decorations,
@@ -1930,7 +2087,22 @@ export class PlanningNaturalVegetationRuntime {
         plant.lod.setAuthoringVisible(!this.groundExcluded(instance));
     };
     for (const tree of this.trees) refresh(tree);
-    for (const cell of this.cells.values()) for (const plant of cell.plants) refresh(plant);
+    for (const [key, cell] of this.cells) {
+      for (const plant of cell.plants) refresh(plant);
+      if (cell.stoneColliders?.length) {
+        let stoneExclusionChanged = false;
+        for (const entry of cell.stoneColliders) {
+          const nextActive = !this.groundExcluded(entry.record.instance);
+          if (entry.colliderEntity && !entry.colliderEntity.destroyed && entry.colliderEntity.isActive !== nextActive) {
+            entry.colliderEntity.isActive = nextActive;
+            stoneExclusionChanged = true;
+          } else if (!entry.colliderEntity) {
+            stoneExclusionChanged = true;
+          }
+        }
+        if (stoneExclusionChanged) this.notifyStoneObstacles(key, cell);
+      }
+    }
     if (this.instancedTreeEffects?.size) {
       for (const [id, active] of [...this.instancedTreeEffects]) {
         if (active.record && this.groundExcluded(active.record.instance)) {
@@ -2354,17 +2526,21 @@ export class PlanningNaturalVegetationRuntime {
               }
             }
           }
-          this.cells.set(key, {
+          const stoneColliders = this.attachCompanionStoneColliders(root, records, this.plan);
+          const cell: Cell = {
             root,
             plants,
             records,
             instancedRecords,
+            stoneColliders,
             counts: result.diagnostics.layers,
             populations: result.diagnostics.populations,
             decorations: result.diagnostics.decorations,
             visibilityRejected: result.diagnostics.rejected.visibility ?? 0
-          });
+          };
+          this.cells.set(key, cell);
           this.instancedUnderstory?.setCell(key, instancedRecords);
+          this.notifyStoneObstacles(key, cell);
           this.foliageColors = undefined;
           if (!this.lodMembershipDirty && plants.length > 0) {
             for (const plant of plants) {
@@ -2446,6 +2622,7 @@ export class PlanningNaturalVegetationRuntime {
         destroyTree(cell.root);
         this.cells.delete(key);
         this.instancedUnderstory?.removeCell(key);
+        this.notifyStoneObstacles(key, undefined);
         this.foliageColors = undefined;
       }
     }
@@ -2578,7 +2755,7 @@ export class PlanningNaturalVegetationRuntime {
         signal.throwIfAborted();
         const result = nextPlanner.compileCell(x, z),
           root = stage.createChild(`Natural cell ${key}`);
-        replacements.set(key, this.buildPopulatedCell(root, result, fields, rockSupport));
+        replacements.set(key, this.buildPopulatedCell(root, result, fields, rockSupport, plan));
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
       }
       signal.throwIfAborted();
@@ -2632,9 +2809,11 @@ export class PlanningNaturalVegetationRuntime {
         if (old) {
           this.cells.set(key, old);
           this.instancedUnderstory?.setCell(key, old.instancedRecords ?? []);
+          this.notifyStoneObstacles(key, old);
         } else {
           this.cells.delete(key);
           this.instancedUnderstory?.removeCell(key);
+          this.notifyStoneObstacles(key, undefined);
         }
       }
       this.plan = previous.plan;
@@ -2674,6 +2853,7 @@ export class PlanningNaturalVegetationRuntime {
             cell.root.isActive = true;
             this.cells.set(key, cell);
             this.instancedUnderstory?.setCell(key, cell.instancedRecords ?? []);
+            this.notifyStoneObstacles(key, cell);
           }
           for (const tree of nextTrees) if (!tree.root.isActive) tree.root.isActive = true;
           this.trees.splice(0, this.trees.length, ...nextTrees);
@@ -2962,6 +3142,22 @@ export class PlanningNaturalVegetationRuntime {
             }
           }
           for (const plant of cell.plants) commitPlantGrounding(plant);
+          if (cell.stoneColliders?.length) {
+            let moved = false;
+            for (const entry of cell.stoneColliders) {
+              const nextY = entry.record.groundHeight;
+              if (Math.abs(nextY - entry.obstacle.bottom) > 1e-6) {
+                const height = entry.obstacle.top - entry.obstacle.bottom;
+                entry.obstacle.bottom = nextY;
+                entry.obstacle.top = nextY + height;
+                if (entry.colliderEntity && !entry.colliderEntity.destroyed) {
+                  entry.colliderEntity.transform.setPosition(entry.obstacle.x, nextY, entry.obstacle.z);
+                }
+                moved = true;
+              }
+            }
+            if (moved) this.notifyStoneObstacles(key, cell);
+          }
         }
         targetTrees.length = 0;
         targetTreeRecords.length = 0;
@@ -3383,6 +3579,8 @@ export class PlanningNaturalVegetationRuntime {
     this.instancedUnderstory?.dispose();
     destroyTree(this.treeRoot);
     destroyTree(this.detailRoot);
+    for (const key of [...this.publishedStoneObstacleKeys]) this.notifyStoneObstacles(key, undefined);
+    this.stoneObstacleListeners.clear();
     this.cells.clear();
     this.trees.length = 0;
     this.treePool.clear();
@@ -3597,6 +3795,14 @@ async function createCompanionRockSources(
         id,
         assets.map((asset, index) => {
           const fit = rockVariantFit(job, asset);
+          const fitXScale = Math.hypot(fit[0], fit[2]) || 1;
+          const fitZScale = Math.hypot(fit[8], fit[10]) || 1;
+          const fitYScale = fit[5] || 1;
+          const stoneFittedSize: readonly [number, number, number] = [
+            (asset.bounds[1][0] - asset.bounds[0][0]) * fitXScale,
+            (asset.bounds[1][1] - asset.bounds[0][1]) * fitYScale * (1 - asset.groundInset),
+            (asset.bounds[1][2] - asset.bounds[0][2]) * fitZScale
+          ];
           const matrix = new Matrix();
           matrix.elements.set(fit);
           matrix.elements[12] += job.origin[0];
@@ -3614,6 +3820,7 @@ async function createCompanionRockSources(
             renderer.shaderData.setVector4("renderer_AssetAssemblyColor", new Vector4(1, 1, 1, 1));
             return {
               ...source,
+              stoneFittedSize,
               transitionHeights: thresholds,
               rendererBindings: [{ renderer, materialId: "surface" }]
             };

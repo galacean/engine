@@ -2,15 +2,17 @@ import type { IslandPlan, PlanRockBox } from "../../../semantic-study/IslandPlan
 import type { PlanningDocument } from "../../../spatial/PlanningDocument.ts";
 import { resolveComponent } from "../../../spatial/SpatialDocument.ts";
 import { envelope } from "../../../semantic-study/IslandPlanAtoms.ts";
-import { resolveRockCollision } from "../../../spatial/RockCollisionPolicy.ts";
+import { resolvePlanRockCollision } from "../../../spatial/RockCollisionPolicy.ts";
+import { rockObbId, rockVariantPools } from "../../../spatial/RockVariantFit.ts";
 import { templateRockCollisionPolicy } from "../../../spatial/WorldTemplateArtDirection.ts";
 import { rockFormationRegistry } from "./Settings.ts";
 
-export const rockObbId = (owner: string, box: string) => `${owner}:obb:${box}`;
+export { rockObbId };
 
 /** Sparse per-box dimension edits retain siblings and the immutable generated baseline. */
 export function applyRockObbSizes(plan: IslandPlan, document: PlanningDocument): void {
   const collisionPolicy = templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id);
+  const pools = collisionPolicy.minHeightM !== undefined ? rockVariantPools(plan) : undefined;
   plan.rocks = plan.rocks.map((rock) => {
     if (rock.assetId) return rock;
     const boxes: PlanRockBox[] = rock.rockObbSource?.boxes ??
@@ -24,7 +26,20 @@ export function applyRockObbSizes(plan: IslandPlan, document: PlanningDocument):
           sizeZ: rock.depth,
           yaw: rock.yaw,
           elevation: rock.baseHeight,
-          collision: resolveRockCollision(rock, collisionPolicy),
+          collision: resolvePlanRockCollision(
+            plan,
+            {
+              id: rockObbId(rock.id, rock.id),
+              width: rock.width,
+              depth: rock.depth,
+              height: rock.height,
+              assetId: rock.assetId,
+              surfaceGrass: true
+            },
+            collisionPolicy,
+            undefined,
+            pools
+          ),
           occlusion: true
         }
       ];
@@ -50,7 +65,13 @@ export function applyRockObbSizes(plan: IslandPlan, document: PlanningDocument):
             sizeX,
             sizeY,
             sizeZ,
-            collision: resolveRockCollision({ sizeX, sizeY, sizeZ }, collisionPolicy, box.collisionOverride)
+            collision: resolvePlanRockCollision(
+              plan,
+              { id, sizeX, sizeY, sizeZ, assetId: rock.assetId, surfaceGrass: true },
+              collisionPolicy,
+              box.collisionOverride,
+              pools
+            )
           }
         : box;
     });

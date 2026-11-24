@@ -12,7 +12,8 @@ import { boxOutline, type Volume } from "./Volumes";
 import { spatialRevealInputSignature } from "./SpatialEditInputs";
 import { updateSpatialInstanceConnections } from "./SpatialInstanceConnections";
 import { guidanceRockBox } from "../guidance/GuidanceRock";
-import { resolveRockCollision } from "../RockCollisionPolicy";
+import { resolvePlanRockCollision } from "../RockCollisionPolicy";
+import { rockObbId } from "../RockVariantFit";
 import { templateRockCollisionPolicy } from "../WorldTemplateArtDirection";
 import { applyRockObbSizes } from "../../integrations/terrain/rock-formation/Authoring.ts";
 
@@ -223,8 +224,16 @@ function projectInstances(
           return {
             ...box,
             ...(override !== undefined ? { collisionOverride: override } : {}),
-            collision: resolveRockCollision(
-              { sizeX: box.sizeX, sizeY: box.sizeY, sizeZ: box.sizeZ },
+            collision: resolvePlanRockCollision(
+              plan,
+              {
+                id: rockObbId(rock.id, box.id),
+                sizeX: box.sizeX,
+                sizeY: box.sizeY,
+                sizeZ: box.sizeZ,
+                assetId: rock.assetId,
+                surfaceGrass: true
+              },
               collisionPolicy,
               override
             )
@@ -294,7 +303,9 @@ function projectInstances(
         yaw: edit.yawDegrees === undefined ? guidanceBase.yaw : (edit.yawDegrees * Math.PI) / 180
       };
       rock.outline = rock.obb = envelope(rock.center, rock.width, rock.depth, rock.yaw);
-      rock.boxes = [guidanceRockBox(rock, ground, templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id))];
+      rock.boxes = [
+        guidanceRockBox(rock, ground, templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id), plan)
+      ];
       rock.baseHeight = rock.boxes[0].elevation;
       plan.rocks[rockAt] = rock;
     }

@@ -20,8 +20,6 @@ export class PlanningGroundWind extends Script {
   set meanBend(value: number) { this.set({ meanBend: value }); }
   get rootStiffness(): number { return this.values.rootStiffness; }
   set rootStiffness(value: number) { this.set({ rootStiffness: value }); }
-  get windHeightStartRatio(): number { return this.values.windHeightStartRatio; }
-  set windHeightStartRatio(value: number) { this.set({ windHeightStartRatio: value }); }
   get noiseSpeedMps(): number { return this.values.noiseSpeedMps; }
   set noiseSpeedMps(value: number) { this.set({ noiseSpeedMps: value }); }
   get noiseStrength(): number { return this.values.noiseStrength; }

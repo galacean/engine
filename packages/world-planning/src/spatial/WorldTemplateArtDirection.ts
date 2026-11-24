@@ -1,5 +1,6 @@
 import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
 import { resolveRockCollisionPolicy, type RockCollisionPolicy } from "./RockCollisionPolicy";
+import type { TerrainSeason } from "@galacean/engine-environment/terrain/environment/SceneSeasonPalette";
 import type { TemplateProceduralPlantInstance } from "./runtime/TemplateProceduralPlants";
 import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
@@ -52,6 +53,14 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   reference: string;
   /** Optional per-template rock/prop collision threshold override (falls back to DEFAULT_ROCK_COLLISION_POLICY). */
   rockCollision?: Partial<RockCollisionPolicy>;
+  /** Optional initial terrain season (defaults to TERRAIN_DEFAULT_SEASON when omitted). */
+  season?: TerrainSeason;
+  /** Whether animals render with toon outlines (defaults to true; set false for painterly/realistic templates). */
+  animalOutline?: boolean;
+  /** Optional per-template masonry/building tint overrides (wall/plaster, roof tiles, timber). */
+  buildingPalette?: Partial<Record<"brick" | "roof_tile" | "wooden_plank", string>>;
+  /** Optional per-tree linear RGB palette sampled deterministically across natural woodland trees. */
+  treeColorPalette?: readonly (readonly [number, number, number])[];
   grassGroundFusion?: boolean;
   /** Name of the equivalent opaque vertex-color material shared by the template's model assets. */
   sharedVertexColorMaterial?: string;
@@ -211,6 +220,8 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   spawnPoi?: {
     /** Optional offset [dx, dz] in metres from the spawn position for the spawn POI anchor. */
     anchorOffset?: readonly [number, number];
+    /** Optional per-Seed offset resolver [dx, dz] in metres from the spawn position (overrides static `anchorOffset`). */
+    resolveAnchorOffset?: (seed: number) => readonly [number, number];
     sizeWeight?: readonly [number, number];
     layout?: Record<string, string | number | boolean | readonly [number, number]>;
     landscape?: Record<string, number | readonly [number, number]>;
@@ -1490,13 +1501,28 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
   },
   "oil-paint": {
     reference: "oil-paint-autumn-mvp",
+    season: "autumn",
+    animalOutline: false,
+    buildingPalette: {
+      brick: "#d6b992",
+      roof_tile: "#a84c2a",
+      wooden_plank: "#7c4e2c"
+    },
+    treeColorPalette: [
+      [0.98, 0.72, 0.1],
+      [0.96, 0.84, 0.16],
+      [0.92, 0.34, 0.06],
+      [0.82, 0.14, 0.05],
+      [0.78, 0.44, 0.09],
+      [0.32, 0.62, 0.12]
+    ],
     modelLayout: "authored",
     grassGroundFusion: false,
     focus: ["autumn-lake-vista"],
     frameFraction: 0.85,
-    spawnOffset: [0, -39],
+    spawnOffset: [-4.5, -33],
     azimuthDegrees: 0,
-    lookAtOffset: [0, -1.5, -14],
+    lookAtOffset: [0, -2.6, 0],
     initialPlanning: {
       landMode: "continuous",
       relief: { reliefNearAmplitudeM: 0.4, reliefAmplitudeM: 2.0, reliefFarAmplitudeM: 4.2, reliefScaleM: 190 },
@@ -1526,10 +1552,19 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     models: [
       {
         id: "autumn-lake-vista",
-        position: [0, 0, 26],
+        position: [35.5, 0, 10],
         rotation: [0, 0, 0],
-        scale: [22, 16, 10],
+        scale: [12, 12, 8],
         footprint: [3.2, 3.2],
+        grounded: true,
+        invisible: true
+      },
+      {
+        id: "spawn-meadow-clearing",
+        position: [-2.0, 0, -30],
+        rotation: [0, 45, 0],
+        scale: [1, 1, 1],
+        footprint: [12, 14],
         grounded: true,
         invisible: true
       }
@@ -1588,6 +1623,10 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     // Unified warm earthy autumn stone across distant mountain peaks, lakeside boulders, and tree-root companion stones.
     stone: "#e2c49c",
     stoneBoost: 2.45,
+    rockCollision: {
+      minHorizontalM: 1.5,
+      minHeightM: 0.9
+    },
     // Inherit native Seed World physical sky & default solarPosition at 14:00 (2:00 PM afternoon light).
     lighting: {
       timeHours: 14.0,
@@ -1654,7 +1693,8 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     // Native spawn POI: area weight (`sizeWeight`) + radial falloff (`falloffRatio`) + configurable crown overlap
     // (`exclusionRadiusScale`) produce 360° cathedral density (~13-15 trees/1000m²) smoothly decaying to sparse horizon!
     spawnPoi: {
-      anchorOffset: [-16, 17],
+      anchorOffset: [-20.5, 11],
+      resolveAnchorOffset: (seed) => resolveOilPaintAutumn(seed).buildingAnchorOffset,
       sizeWeight: [1.3, 1.75],
       layout: {
         elementProfile: "habitable",

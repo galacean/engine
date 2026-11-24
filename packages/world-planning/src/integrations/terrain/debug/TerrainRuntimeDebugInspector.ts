@@ -1045,6 +1045,18 @@ function mountSeasonPaletteControls(
     "Contract / 数据约定"
   )("颜色定义全局类别色调；Influence=0 保留原色，1 应用完整色调并保留素材与地块的明暗层次");
   const states = {} as Record<TerrainSeason, Record<TerrainSeasonPaletteCategory, TerrainSeasonPaletteControlState>>;
+  const oilStates = {} as Record<
+    TerrainSeason,
+    {
+      dab0: string;
+      dab1: string;
+      dab2: string;
+      dab3: string;
+      warmTint: string;
+      coolTint: string;
+      paletteBlend: number;
+    }
+  >;
   const seasonLabels: Readonly<Record<TerrainSeason, string>> = {
     spring: "Spring / 春季",
     summer: "Summer / 夏季",
@@ -1066,6 +1078,23 @@ function mountSeasonPaletteControls(
       target.color = linearRgbToHex([color.r, color.g, color.b]);
       target.influence = color.influence;
     }
+    const oil = environment.getOilPaintSeasonPalette(season);
+    const oilTarget = oilStates[season];
+    oilTarget.dab0 = linearRgbToHex(oil.dabs[0]);
+    oilTarget.dab1 = linearRgbToHex(oil.dabs[1]);
+    oilTarget.dab2 = linearRgbToHex(oil.dabs[2]);
+    oilTarget.dab3 = linearRgbToHex(oil.dabs[3]);
+    oilTarget.warmTint = linearRgbToHex([
+      Math.min(1, oil.warmTint[0] / 1.25),
+      Math.min(1, oil.warmTint[1] / 1.25),
+      Math.min(1, oil.warmTint[2] / 1.25)
+    ]);
+    oilTarget.coolTint = linearRgbToHex([
+      Math.min(1, oil.coolTint[0] / 1.25),
+      Math.min(1, oil.coolTint[1] / 1.25),
+      Math.min(1, oil.coolTint[2] / 1.25)
+    ]);
+    oilTarget.paletteBlend = oil.paletteBlend;
   };
 
   for (const season of Object.values(SEASON_OPTIONS)) {
@@ -1095,6 +1124,48 @@ function mountSeasonPaletteControls(
         .onChange(apply);
       bindNumericInput(influenceController);
     }
+    const oilSource = environment.getOilPaintSeasonPalette(season);
+    const oilState = (oilStates[season] = {
+      dab0: linearRgbToHex(oilSource.dabs[0]),
+      dab1: linearRgbToHex(oilSource.dabs[1]),
+      dab2: linearRgbToHex(oilSource.dabs[2]),
+      dab3: linearRgbToHex(oilSource.dabs[3]),
+      warmTint: linearRgbToHex([
+        Math.min(1, oilSource.warmTint[0] / 1.25),
+        Math.min(1, oilSource.warmTint[1] / 1.25),
+        Math.min(1, oilSource.warmTint[2] / 1.25)
+      ]),
+      coolTint: linearRgbToHex([
+        Math.min(1, oilSource.coolTint[0] / 1.25),
+        Math.min(1, oilSource.coolTint[1] / 1.25),
+        Math.min(1, oilSource.coolTint[2] / 1.25)
+      ]),
+      paletteBlend: oilSource.paletteBlend
+    });
+    const oilFolder = inspector.subfolder(seasonFolder, "Oil Paint / 油画笔触", true);
+    const applyOil = (): void => {
+      const warm = hexToLinearRgb(oilState.warmTint);
+      const cool = hexToLinearRgb(oilState.coolTint);
+      environment.setOilPaintSeasonPalette(season, {
+        dabs: [
+          hexToLinearRgb(oilState.dab0),
+          hexToLinearRgb(oilState.dab1),
+          hexToLinearRgb(oilState.dab2),
+          hexToLinearRgb(oilState.dab3)
+        ],
+        warmTint: [warm[0] * 1.25, warm[1] * 1.25, warm[2] * 1.25],
+        coolTint: [cool[0] * 1.25, cool[1] * 1.25, cool[2] * 1.25],
+        paletteBlend: oilState.paletteBlend
+      });
+    };
+    oilFolder.addColor(oilState, "dab0").name("Dab 1 / 笔触色 1").onChange(applyOil);
+    oilFolder.addColor(oilState, "dab1").name("Dab 2 / 笔触色 2").onChange(applyOil);
+    oilFolder.addColor(oilState, "dab2").name("Dab 3 / 笔触色 3").onChange(applyOil);
+    oilFolder.addColor(oilState, "dab3").name("Dab 4 / 笔触色 4").onChange(applyOil);
+    oilFolder.addColor(oilState, "warmTint").name("Warm tint / 暖笔触").onChange(applyOil);
+    oilFolder.addColor(oilState, "coolTint").name("Cool tint / 冷笔触").onChange(applyOil);
+    const blendCtrl = oilFolder.add(oilState, "paletteBlend", 0, 1, 0.01).name("Blend / 混合强度").onChange(applyOil);
+    bindNumericInput(blendCtrl);
   }
 
   const synchronize = (): void => {

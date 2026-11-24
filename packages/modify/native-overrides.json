@@ -492,6 +492,10 @@
     "replacement": "packages/modify/src/native/shader/src/Shaders/PostProcess/SunLensFlareVisibility.shader"
   },
   {
+    "original": "packages/shader/src/ShaderLibrary/Common/OilPaintBrush.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Common/OilPaintBrush.glsl"
+  },
+  {
     "original": "packages/shader/src/ShaderLibrary/PostProcess/VolumetricLight.glsl",
     "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/VolumetricLight.glsl"
   },

@@ -12,7 +12,7 @@
     }
   },
   "oil-paint": {
-    "homeRadius": 42,
+    "homeRadius": 32,
     "residents": [
       "deer-01",
       "roe-deer-01",
@@ -26,10 +26,10 @@
       "sheep-01",
       "duck-01"
     ],
-    "residentSite": { "offsetX": 0, "offsetZ": -39, "radius": 44 },
+    "residentSite": { "offsetX": 4, "offsetZ": -23, "radius": 16 },
     "flock": {
       "typeId": "swan-01", "speciesId": "swan", "min": 4, "max": 6,
-      "offsetX": 4, "offsetZ": -6, "radius": 10.5
+      "offsetX": 6, "offsetZ": -6, "radius": 9.5
     }
   }
 }

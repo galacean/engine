@@ -78,6 +78,7 @@ import {
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { buildingScenePreparation, initializeBuildingScene } from "./masonry/BuildingSceneInitialization.ts";
 import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
+import { masonryAppearance, type MasonryTintRole } from "@galacean/engine-building/building/runtime/MasonryAppearance";
 import { getMasonryLodTuning, setMasonryLodTuning } from "@galacean/engine-building/building/runtime/MasonryLodPolicy";
 import {
   getRockLodCrossFadeEnabled,
@@ -365,6 +366,7 @@ export async function mountSeedWorldDemo(
   let vista: SeedWorldPanoramaVistaRuntime | undefined;
   let tools: PlanningSeedWorldSession | undefined;
   let animals: PlanningAnimalHost | undefined;
+  let detachCompanionStoneObstacles: (() => void) | undefined;
   let detachAnimalLightning: (() => void) | undefined;
   let farmingHost: PlanningFarmingHost | undefined;
   let visualQuery: SeedWorldVisualQuery | undefined;
@@ -589,7 +591,11 @@ export async function mountSeedWorldDemo(
         detachAnimalLightning?.();
       }
     ],
-    ["动物", () => animals?.dispose()],
+    ["动物", () => {
+      detachCompanionStoneObstacles?.();
+      detachCompanionStoneObstacles = undefined;
+      animals?.dispose();
+    }],
     ["玩家状态", () => playerState?.dispose()],
     [
       "编辑器",
@@ -1146,7 +1152,7 @@ export async function mountSeedWorldDemo(
       strokeAnisotropy: 1.45,
       colorStylize: 0.42,
       screenImpasto: 0.3,
-      impasto: 1.0,
+      impasto: 1.6,
       brushScale: 1.0,
       compareSplit: 0
     } as const;
@@ -1391,6 +1397,26 @@ export async function mountSeedWorldDemo(
       undefined,
       { surfaceWaterSsrRequiresRain: true, lazyPrecipitation: true }
     );
+    let appliedBuildingPaletteTemplate: string | undefined;
+    const applyTemplateBuildingPalette = (templateId: string) => {
+      if (!engine || appliedBuildingPaletteTemplate === templateId) return;
+      appliedBuildingPaletteTemplate = templateId;
+      const appearance = masonryAppearance(engine);
+      appearance.reset();
+      const palette = WORLD_TEMPLATE_ART[templateId]?.buildingPalette;
+      if (palette) {
+        for (const [role, hex] of Object.entries(palette)) {
+          if (hex) appearance.setColor(role as MasonryTintRole, hex);
+        }
+      }
+    };
+    applyTemplateBuildingPalette(startupTemplateId);
+    if (startupArt?.season) {
+      const prevDuration = environment.getSnapshot().transitionDuration;
+      environment.setTransitionDuration(0);
+      environment.setSeason(startupArt.season);
+      environment.setTransitionDuration(prevDuration);
+    }
     const initialWeather = source.session
       .inspect("world")
       .components.find((component) => component.type === "weather")?.values;
@@ -2908,6 +2934,7 @@ export async function mountSeedWorldDemo(
         sandstorm = undefined;
       }
       canvas.dataset.sandstorm = sandstorm ? "active" : "off";
+      applyTemplateBuildingPalette(templateId);
       if (templateId === "oil-paint") {
         try {
           await setOilPaintPassActive(true);
@@ -2922,6 +2949,14 @@ export async function mountSeedWorldDemo(
       }
       canvas.dataset.oilPaint = oilPaintMacroEnabled ? "active" : "off";
       if (publication!.current !== accepted || disposed) return;
+      detachCompanionStoneObstacles?.();
+      detachCompanionStoneObstacles = undefined;
+      animals!.clearDynamicObstacles();
+      if (accepted.vegetation) {
+        detachCompanionStoneObstacles = accepted.vegetation.onCompanionStoneObstaclesChange((cellKey, obstacles) => {
+          animals?.setDynamicObstacles(`companion-stone:${cellKey}`, obstacles);
+        });
+      }
       animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         surface: accepted.data.surfaceIntent
       });

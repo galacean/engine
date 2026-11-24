@@ -89,6 +89,18 @@ interface Solid extends PlanningAnimalBounds {
   seen: number;
 }
 
+/** Dynamic runtime obstacle OBB (e.g. streamed companion stone meeting `RockCollisionPolicy`). */
+export interface PlanningAnimalDynamicObstacle {
+  readonly id: string;
+  readonly x: number;
+  readonly z: number;
+  readonly yaw: number;
+  readonly width: number;
+  readonly depth: number;
+  readonly bottom: number;
+  readonly top: number;
+}
+
 /** Fixed horizontal range in world metres, centered on the published player spawn. */
 export interface PlanningAnimalRange {
   distribution?: AnimalPopulationDistribution;
@@ -104,6 +116,7 @@ export class PlanningAnimalHabitat {
   readonly origin: Readonly<PlanPoint>;
   readonly surface: PlanningAnimalSurface;
   private readonly solids = new SpatialBins<Solid>();
+  private readonly dynamicSolidGroups = new Map<string, Solid[]>();
   private solidCount = 0;
   private readonly range: Readonly<PlanningAnimalRange>;
   private waterCandidates?: PlanPoint[];
@@ -254,6 +267,56 @@ export class PlanningAnimalHabitat {
         this.solids.add(solid);
       }
     }
+  }
+
+  /** Replaces or clears one dynamic obstacle group (e.g. a streamed companion-stone cell). */
+  setDynamicSolids(groupKey: string, obstacles?: readonly PlanningAnimalDynamicObstacle[]): void {
+    const previous = this.dynamicSolidGroups.get(groupKey);
+    if (previous) {
+      for (const box of previous) this.solids.remove(box);
+      this.solidCount -= previous.length;
+      this.dynamicSolidGroups.delete(groupKey);
+    }
+    if (!obstacles?.length) return;
+    const added: Solid[] = [];
+    for (let i = 0; i < obstacles.length; i++) {
+      const obs = obstacles[i]!;
+      const cos = Math.cos(obs.yaw),
+        sin = Math.sin(obs.yaw);
+      const halfX = obs.width / 2,
+        halfZ = obs.depth / 2;
+      const extentX = Math.abs(cos) * halfX + Math.abs(sin) * halfZ;
+      const extentZ = Math.abs(sin) * halfX + Math.abs(cos) * halfZ;
+      const solid: Solid = {
+        id: `dynamic:${groupKey}:${obs.id}`,
+        x: obs.x,
+        z: obs.z,
+        cos,
+        sin,
+        halfX,
+        halfZ,
+        bottom: obs.bottom,
+        top: obs.top,
+        seen: 0,
+        minX: obs.x - extentX,
+        maxX: obs.x + extentX,
+        minZ: obs.z - extentZ,
+        maxZ: obs.z + extentZ
+      };
+      this.solids.add(solid);
+      added.push(solid);
+    }
+    this.solidCount += added.length;
+    this.dynamicSolidGroups.set(groupKey, added);
+  }
+
+  /** Clears all dynamic obstacle groups while retaining static plan solids. */
+  clearDynamicSolids(): void {
+    for (const previous of this.dynamicSolidGroups.values()) {
+      for (const box of previous) this.solids.remove(box);
+      this.solidCount -= previous.length;
+    }
+    this.dynamicSolidGroups.clear();
   }
 
   /** Published convex map extent; independent of terrain samples and observer position. */
@@ -682,6 +745,22 @@ class SpatialBins<T extends PlanningAnimalBounds & { seen: number }> {
           bin = this.bins.get(key);
         if (bin) bin.push(item);
         else this.bins.set(key, [item]);
+      }
+    }
+  }
+
+  remove(item: T): void {
+    this.rows = undefined;
+    for (let x = Math.floor(item.minX / this.cellM); x <= Math.floor(item.maxX / this.cellM); x++) {
+      for (let z = Math.floor(item.minZ / this.cellM); z <= Math.floor(item.maxZ / this.cellM); z++) {
+        const key = `${x}:${z}`,
+          bin = this.bins.get(key);
+        if (!bin) continue;
+        const idx = bin.indexOf(item);
+        if (idx >= 0) {
+          bin.splice(idx, 1);
+          if (!bin.length) this.bins.delete(key);
+        }
       }
     }
   }

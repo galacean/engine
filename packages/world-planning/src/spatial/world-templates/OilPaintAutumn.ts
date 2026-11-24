@@ -8,10 +8,30 @@ type WaterDef = NonNullable<WorldTemplateArtDirection["water"]>[number];
 type PlantingDef = NonNullable<WorldTemplateArtDirection["plantings"]>[number];
 type StoneDef = NonNullable<WorldTemplateArtDirection["stones"]>[number];
 
-const SPAWN_X = 0;
-const SPAWN_Z = -39;
-const VISTA_FOCUS_X = 0;
-const VISTA_FOCUS_Z = 26;
+const SPAWN_X = -4.5;
+const SPAWN_Z = -33;
+const VISTA_FOCUS_X = 35.5;
+const VISTA_FOCUS_Z = 10;
+
+// Camera-relative horizontal basis in world space (matching spawn -> vista focus sightline):
+// worldFwd = normalize(anchor - focus - (anchor - spawn)) = normalize(SPAWN_X - VISTA_FOCUS_X, VISTA_FOCUS_Z - SPAWN_Z)
+// worldRight = cross(worldFwd, +Y) = (-worldFwd.z, worldFwd.x)
+const VIEW_DX = SPAWN_X - VISTA_FOCUS_X;
+const VIEW_DZ = VISTA_FOCUS_Z - SPAWN_Z;
+const VIEW_LEN = Math.hypot(VIEW_DX, VIEW_DZ) || 1;
+const CAM_FWD_X = VIEW_DX / VIEW_LEN;
+const CAM_FWD_Z = VIEW_DZ / VIEW_LEN;
+const CAM_RIGHT_X = -CAM_FWD_Z;
+const CAM_RIGHT_Z = CAM_FWD_X;
+
+function camRelToWorldDelta(rightM: number, forwardM: number): readonly [number, number] {
+  return [rightM * CAM_RIGHT_X + forwardM * CAM_FWD_X, rightM * CAM_RIGHT_Z + forwardM * CAM_FWD_Z];
+}
+
+function camRelToLocal(rightM: number, forwardM: number): readonly [number, number] {
+  const [wdx, wdz] = camRelToWorldDelta(rightM, forwardM);
+  return [SPAWN_X - wdx, SPAWN_Z + wdz];
+}
 
 function createSeededRng(seed: number, salt: string): () => number {
   let step = 0;
@@ -46,6 +66,29 @@ function distanceToPolygonEdge(x: number, z: number, poly: readonly Point[]): nu
   return best;
 }
 
+function segmentsIntersect(a: Point, b: Point, c: Point, d: Point): boolean {
+  const cross = (p: Point, q: Point, r: Point) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  const d1 = cross(a, b, c);
+  const d2 = cross(a, b, d);
+  const d3 = cross(c, d, a);
+  const d4 = cross(c, d, b);
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+}
+
+function polygonSelfIntersects(poly: readonly Point[]): boolean {
+  const n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % n];
+    if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.25) return true;
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue;
+      if (segmentsIntersect(a, b, poly[j], poly[(j + 1) % n])) return true;
+    }
+  }
+  return false;
+}
+
 function isNearLake(x: number, z: number, poly: readonly Point[], margin: number): boolean {
   return pointInPolygon(x, z, poly) || (margin > 0 && distanceToPolygonEdge(x, z, poly) < margin);
 }
@@ -62,6 +105,8 @@ export interface OilPaintAutumnLayout {
   readonly water: WaterDef[];
   readonly stones: StoneDef[];
   readonly proceduralPlants: TemplateProceduralPlantInstance[];
+  /** Per-Seed randomized world offset `[dx, dz]` from spawn for the habitable cottage/tower POI. */
+  readonly buildingAnchorOffset: readonly [number, number];
 }
 
 const layoutCache = new Map<number, OilPaintAutumnLayout>();
@@ -82,101 +127,122 @@ export function resolveOilPaintAutumn(seed: number): OilPaintAutumnLayout {
   const rnd = createSeededRng(seed, "layout");
   const range = (min: number, max: number) => min + (max - min) * rnd();
 
-  // 1. Desert-oasis-inspired organic meandering woodland lake per Seed (multi-cove bays, headlands, S-bend, optional islet).
-  const modeRoll = rnd();
-  let lakeCx: number;
-  let lakeCz: number;
-  if (modeRoll < 0.35) {
-    lakeCx = range(-11.5, -5.0);
-    lakeCz = range(-7.0, 2.5);
-  } else if (modeRoll < 0.7) {
-    lakeCx = range(5.0, 11.5);
-    lakeCz = range(-7.0, 2.5);
-  } else {
-    lakeCx = range(-4.5, 4.5);
-    lakeCz = range(-7.5, 1.5);
-  }
-  const majorR = range(18.5, 23.5);
-  const minorR = range(11.0, 14.8);
-  const lakeYaw = range(-0.85, 0.85);
-  const cosYaw = Math.cos(lakeYaw);
-  const sinYaw = Math.sin(lakeYaw);
-
-  // Sculpt 3 asymmetric sheltered coves (pinches) and 2 protruding headlands/lobes like OasisFloodplain.ts
-  const coveCount = 3;
-  const coves = Array.from({ length: coveCount }, (_, i) => ({
-    angle: (i / coveCount) * Math.PI * 2 + range(-0.45, 0.45),
-    depth: range(0.28, 0.44),
-    width: range(0.32, 0.52)
-  }));
-  const lobes = Array.from({ length: 2 }, (_, i) => ({
-    angle: coves[i].angle + Math.PI / coveCount + range(-0.35, 0.35),
-    boost: range(0.22, 0.38),
-    width: range(0.45, 0.68)
-  }));
-  const bendAmp = range(2.2, 4.4) * (rnd() < 0.5 ? -1 : 1);
-  const bendPhase = range(-0.6, 0.6);
-  const phase2 = range(0, Math.PI * 2);
-  const phase4 = range(0, Math.PI * 2);
-  const phase5 = range(0, Math.PI * 2);
-
+  // 1. Per-Seed symmetric camera-relative organic woodland lake:
+  //    4 balanced archetypes (screen-left, screen-right, center-far, or off-axis side tarn)
+  //    so lakes naturally appear on the left, right, straight ahead, or tucked off to the side.
   const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
-  const shoreline: Point[] = [];
   const segments = 40;
+  let lakeCx = 0;
+  let lakeCz = 0;
+  let majorR = 19;
+  let shoreline: Point[] = [];
   let maxRadius = 0;
-  for (let i = 0; i < segments; i++) {
-    const theta = (i / segments) * Math.PI * 2;
-    let radial =
-      1.0 +
-      0.1 * Math.sin(theta * 2 + phase2) +
-      0.07 * Math.cos(theta * 4 + phase4) +
-      0.045 * Math.sin(theta * 5 + phase5);
-    for (const cove of coves) {
-      const d = angleDiff(theta, cove.angle) / cove.width;
-      radial -= cove.depth * Math.exp(-0.5 * d * d);
-    }
-    for (const lobe of lobes) {
-      const d = angleDiff(theta, lobe.angle) / lobe.width;
-      radial += lobe.boost * Math.exp(-0.5 * d * d);
-    }
-    radial = Math.max(0.42, Math.min(1.48, radial));
 
-    const lx = Math.cos(theta) * majorR * radial;
-    const lzBase = Math.sin(theta) * minorR * radial;
-    // Gentle S-curve spine bend along the major axis (creates natural meandering shore)
-    const spineT = Math.max(-1, Math.min(1, lx / majorR));
-    const lz = lzBase + Math.sin(spineT * Math.PI + bendPhase) * bendAmp;
-
-    let wx = lakeCx + lx * cosYaw - lz * sinYaw;
-    let wz = lakeCz + lx * sinYaw + lz * cosYaw;
-
-    // Guarantee dry clearance around spawn (0, -39) AND the vista framing focus (0, 26) on every Seed
-    const dSpawnX = wx - SPAWN_X;
-    const dSpawnZ = wz - SPAWN_Z;
-    const dSpawn = Math.hypot(dSpawnX, dSpawnZ);
-    const minSpawnClearM = 10.5;
-    if (dSpawn < minSpawnClearM) {
-      const push = minSpawnClearM / Math.max(dSpawn, 0.5);
-      wx = SPAWN_X + dSpawnX * push;
-      wz = SPAWN_Z + dSpawnZ * push;
+  for (let lakeAttempt = 0; lakeAttempt < 48; lakeAttempt++) {
+    const modeRoll = rnd();
+    let lakeRightM: number;
+    let lakeForwardM: number;
+    if (modeRoll < 0.27) {
+      // Screen-left woodland lake
+      lakeRightM = range(-36.0, -14.0);
+      lakeForwardM = range(20.0, 46.0);
+    } else if (modeRoll < 0.54) {
+      // Screen-right woodland lake (exact mirror of screen-left!)
+      lakeRightM = range(14.0, 36.0);
+      lakeForwardM = range(20.0, 46.0);
+    } else if (modeRoll < 0.74) {
+      // Center-forward meadow pond (cleanly between spawn and vista focus)
+      lakeRightM = range(-12.0, 12.0);
+      lakeForwardM = range(29.0, 40.0);
+    } else {
+      // Side / off-screen woodland tarn (50% far left, 50% far right)
+      const side = rnd() < 0.5 ? -1 : 1;
+      lakeRightM = side * range(28.0, 48.0);
+      lakeForwardM = range(-8.0, 26.0);
     }
-    const dFocusX = wx - VISTA_FOCUS_X;
-    const dFocusZ = wz - VISTA_FOCUS_Z;
-    const dFocus = Math.hypot(dFocusX, dFocusZ);
-    const minFocusClearM = 5.5;
-    if (dFocus < minFocusClearM) {
-      const push = minFocusClearM / Math.max(dFocus, 0.5);
-      wx = VISTA_FOCUS_X + dFocusX * push;
-      wz = VISTA_FOCUS_Z + dFocusZ * push;
-    }
-    if (wz > VISTA_FOCUS_Z - 4.5 && Math.abs(wx - VISTA_FOCUS_X) < 5.5) {
-      wz = VISTA_FOCUS_Z - 4.5;
+    [lakeCx, lakeCz] = camRelToLocal(lakeRightM, lakeForwardM);
+    majorR = range(14.5, 22.0);
+    const minorR = range(9.0, 14.0);
+    const lakeYaw = range(-1.45, 1.45);
+    const cosYaw = Math.cos(lakeYaw);
+    const sinYaw = Math.sin(lakeYaw);
+
+    // Sculpt 3 asymmetric sheltered coves (pinches) and 2 protruding headlands/lobes like OasisFloodplain.ts
+    const coveCount = 3;
+    const coves = Array.from({ length: coveCount }, (_, i) => ({
+      angle: (i / coveCount) * Math.PI * 2 + range(-0.45, 0.45),
+      depth: range(0.24, 0.38),
+      width: range(0.36, 0.56)
+    }));
+    const lobes = Array.from({ length: 2 }, (_, i) => ({
+      angle: coves[i].angle + Math.PI / coveCount + range(-0.35, 0.35),
+      boost: range(0.2, 0.34),
+      width: range(0.45, 0.68)
+    }));
+    const bendAmp = Math.min(minorR * 0.26, range(1.8, 3.6)) * (rnd() < 0.5 ? -1 : 1);
+    const bendPhase = range(-0.6, 0.6);
+    const phase2 = range(0, Math.PI * 2);
+    const phase4 = range(0, Math.PI * 2);
+    const phase5 = range(0, Math.PI * 2);
+
+    const candidate: Point[] = [];
+    let candidateMaxR = 0;
+    for (let i = 0; i < segments; i++) {
+      const theta = (i / segments) * Math.PI * 2;
+      let radial =
+        1.0 +
+        0.1 * Math.sin(theta * 2 + phase2) +
+        0.06 * Math.cos(theta * 4 + phase4) +
+        0.04 * Math.sin(theta * 5 + phase5);
+      for (const cove of coves) {
+        const d = angleDiff(theta, cove.angle) / cove.width;
+        radial -= cove.depth * Math.exp(-0.5 * d * d);
+      }
+      for (const lobe of lobes) {
+        const d = angleDiff(theta, lobe.angle) / lobe.width;
+        radial += lobe.boost * Math.exp(-0.5 * d * d);
+      }
+      radial = Math.max(0.48, Math.min(1.42, radial));
+
+      const lx = Math.cos(theta) * majorR * radial;
+      const lzBase = Math.sin(theta) * minorR * radial;
+      const spineT = Math.max(-1, Math.min(1, lx / majorR));
+      const lz = lzBase + Math.sin(spineT * Math.PI + bendPhase) * bendAmp;
+
+      const wx = lakeCx + lx * cosYaw - lz * sinYaw;
+      const wz = lakeCz + lx * sinYaw + lz * cosYaw;
+
+      const rx = Math.round(wx * 10) / 10;
+      const rz = Math.round(wz * 10) / 10;
+      candidateMaxR = Math.max(candidateMaxR, Math.hypot(rx - lakeCx, rz - lakeCz));
+      candidate.push([rx, rz]);
     }
 
-    const rx = Math.round(wx * 10) / 10;
-    const rz = Math.round(wz * 10) / 10;
-    maxRadius = Math.max(maxRadius, Math.hypot(rx - lakeCx, rz - lakeCz));
-    shoreline.push([rx, rz]);
+    if (polygonSelfIntersects(candidate)) continue;
+    if (
+      isNearLake(SPAWN_X, SPAWN_Z, candidate, 12.5) ||
+      isNearLake(-2.0, -30.0, candidate, 10.5) ||
+      isNearLake(VISTA_FOCUS_X, VISTA_FOCUS_Z, candidate, 6.5)
+    ) {
+      continue;
+    }
+    shoreline = candidate;
+    maxRadius = candidateMaxR;
+    break;
+  }
+  if (!shoreline.length) {
+    // Guaranteed clean fallback oval well clear of spawn, clearing, and vista focus
+    lakeCx = -10;
+    lakeCz = 18;
+    majorR = 18;
+    maxRadius = 18;
+    for (let i = 0; i < segments; i++) {
+      const theta = (i / segments) * Math.PI * 2;
+      shoreline.push([
+        Math.round((lakeCx + Math.cos(theta) * 18) * 10) / 10,
+        Math.round((lakeCz + Math.sin(theta) * 12) * 10) / 10
+      ]);
+    }
   }
 
   // Keep the woodland pond a clean shallow basin without a tiny submerged islet hole
@@ -216,8 +282,7 @@ export function resolveOilPaintAutumn(seed: number): OilPaintAutumnLayout {
       width: w,
       depth: d,
       height: h,
-      yawDegrees: Math.round(range(0, 360)),
-      collision: true
+      yawDegrees: Math.round(range(0, 360))
     });
   }
 
@@ -260,7 +325,44 @@ export function resolveOilPaintAutumn(seed: number): OilPaintAutumnLayout {
     );
   }
 
-  const resolved: OilPaintAutumnLayout = { water, stones, proceduralPlants };
+  // 4. Per-Seed symmetric camera-relative cottage/tower POI anchor offset [dx, dz] (world delta from spawn):
+  //    Balanced left / right / center-meadow / side-woods distribution so buildings appear equally on either
+  //    side (or tucked outside the opening frustum) while strictly staying dry outside this Seed's lake.
+  const bRnd = createSeededRng(seed, "building-anchor");
+  const bRange = (min: number, max: number) => min + (max - min) * bRnd();
+  const preferredSide = bRnd() < 0.5 ? -1 : 1;
+  const preferredRoll = bRnd();
+  let buildingAnchorOffset: readonly [number, number] = camRelToWorldDelta(preferredSide * 18, 22);
+  for (let attempt = 0; attempt < 48; attempt++) {
+    let bRightM: number;
+    let bForwardM: number;
+    // Keep preferred left/right side for the first 16 tries so one side's lake never systematically pushes all houses opposite
+    const side = attempt < 16 ? preferredSide : bRnd() < 0.5 ? -1 : 1;
+    const mode = attempt < 16 ? preferredRoll : bRnd();
+    if (mode < 0.68) {
+      // Screen-left or screen-right midground cottage
+      bRightM = side * bRange(10.0, 32.0);
+      bForwardM = bRange(16.0, 40.0);
+    } else if (mode < 0.84) {
+      // Center-forward across the sunlit meadow
+      bRightM = bRange(-10.0, 10.0);
+      bForwardM = bRange(20.0, 38.0);
+    } else {
+      // Side woodland glade (glimpsed at frame edge or discovered while roaming)
+      bRightM = side * bRange(26.0, 44.0);
+      bForwardM = bRange(-4.0, 20.0);
+    }
+    const [worldDx, worldDz] = camRelToWorldDelta(bRightM, bForwardM);
+    const localX = SPAWN_X - worldDx;
+    const localZ = SPAWN_Z + worldDz;
+    if (isNearLake(localX, localZ, shoreline, 12.5)) continue;
+    if (Math.hypot(localX - -2.0, localZ - -30.0) < 15.0) continue;
+    if (Math.hypot(localX - VISTA_FOCUS_X, localZ - VISTA_FOCUS_Z) < 10.0) continue;
+    buildingAnchorOffset = [Math.round(worldDx * 10) / 10, Math.round(worldDz * 10) / 10];
+    break;
+  }
+
+  const resolved: OilPaintAutumnLayout = { water, stones, proceduralPlants, buildingAnchorOffset };
   layoutCache.set(seed, resolved);
   return resolved;
 }

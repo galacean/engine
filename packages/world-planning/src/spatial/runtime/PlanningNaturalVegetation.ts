@@ -116,21 +116,12 @@ export function planningNaturalTrees(
   });
   const allowedTrees = palette.filter((asset) => !excludedAssetIds.has(asset.id));
   const activeTrees = allowedTrees.length > 0 ? allowedTrees : palette;
-  const isOilPaint = plan.parameters.worldTemplate?.id === "oil-paint";
-  // Rich per-tree random autumn oil-paint palette (linear RGB): gold, yellow, burnt orange, crimson, amber, olive green
-  const oilPaintTreePalette: readonly (readonly [number, number, number])[] = [
-    [0.98, 0.72, 0.1],
-    [0.96, 0.84, 0.16],
-    [0.92, 0.34, 0.06],
-    [0.82, 0.14, 0.05],
-    [0.78, 0.44, 0.09],
-    [0.32, 0.62, 0.12]
-  ];
+  const templateTreePalette = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.treeColorPalette;
   return candidates.map((tree) => {
     const hashParts = hashCanonicalKey(`${plan.parameters.seed}:tree:${tree.id}`).split(":");
     const hashVal = Number.parseInt(hashParts[1] ?? "0", 36);
     const stableInt = Number.isFinite(hashVal) ? Math.abs(hashVal) : 0;
-    let assetId = isOilPaint
+    let assetId = templateTreePalette?.length
       ? activeTrees[stableInt % activeTrees.length]!.id
       : (tree.assetId ?? naturalTreeDimensions(plan.parameters.seed, tree.id, tree.height, tree.center).assetId);
     if (excludedAssetIds.has(assetId)) {
@@ -154,11 +145,11 @@ export function planningNaturalTrees(
       PLANT_FOLIAGE_VARIATIONS.get(assetId)!,
       "foliage"
     );
-    const foliage = isOilPaint
+    const foliage = templateTreePalette?.length
       ? {
           brightness: 0.88 + ((stableInt % 97) / 96) * 0.28,
           tint: {
-            color: oilPaintTreePalette[Math.floor(stableInt / 7) % oilPaintTreePalette.length]!,
+            color: templateTreePalette[Math.floor(stableInt / 7) % templateTreePalette.length]!,
             influence: 0.88
           }
         }

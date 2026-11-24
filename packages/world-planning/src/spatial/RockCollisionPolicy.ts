@@ -1,4 +1,5 @@
 import type { IslandPlan } from "../semantic-study/IslandPlanModel.ts";
+import { rockObbId, rockVariantFittedTopHeight, rockVariantPools, type RockVariantPools } from "./RockVariantFit.ts";
 
 /**
  * Configurable rock/prop collision threshold.
@@ -8,7 +9,7 @@ import type { IslandPlan } from "../semantic-study/IslandPlanModel.ts";
 export interface RockCollisionPolicy {
   /** Minimum horizontal footprint span (width or depth, in metres) required to auto-enable collision. */
   readonly minHorizontalM: number;
-  /** Optional minimum height (in metres) required to auto-enable collision; omit to decide purely by footprint. */
+  /** Optional minimum exposed height (in metres) required to auto-enable collision; omit to decide purely by footprint. */
   readonly minHeightM?: number;
 }
 
@@ -57,6 +58,47 @@ export function resolveRockCollision(
 }
 
 /**
+ * Resolves the boolean `collision` switch for one rock in an `IslandPlan`.
+ * When `policy.minHeightM` is configured on a shared-variant rock (no `assetId`), evaluates the
+ * actual uniform-XZ / pillar fitted exposed height above the ground base rather than raw planned Y.
+ */
+export function resolvePlanRockCollision(
+  plan: Pick<IslandPlan, "parameters"> | undefined,
+  rock: {
+    id: string;
+    width?: number;
+    depth?: number;
+    height?: number;
+    sizeX?: number;
+    sizeZ?: number;
+    sizeY?: number;
+    assetId?: string;
+    surfaceGrass: boolean;
+  },
+  policy: RockCollisionPolicy = DEFAULT_ROCK_COLLISION_POLICY,
+  explicitCollision?: boolean,
+  pools?: RockVariantPools
+): boolean {
+  if (explicitCollision !== undefined) return explicitCollision;
+  const width = rock.width ?? rock.sizeX;
+  const depth = rock.depth ?? rock.sizeZ;
+  const rawHeight = rock.height ?? rock.sizeY;
+  let height = rawHeight;
+  if (
+    policy.minHeightM !== undefined &&
+    !rock.assetId &&
+    plan &&
+    width !== undefined &&
+    depth !== undefined &&
+    rawHeight !== undefined
+  ) {
+    const fitted = rockVariantFittedTopHeight(plan, rock.id, width, rawHeight, depth, rock.surfaceGrass, pools);
+    if (fitted !== undefined) height = fitted;
+  }
+  return resolveRockCollision({ width, depth, height }, policy);
+}
+
+/**
  * Stamps resolved `collision` switches onto rocks without an explicit flag in an `IslandPlan`.
  * Runs once per plan publication so downstream PhysX and OBB consumers only read the boolean switch.
  */
@@ -64,13 +106,27 @@ export function applyRockCollisionPolicyToPlan(
   plan: IslandPlan,
   policy: RockCollisionPolicy = DEFAULT_ROCK_COLLISION_POLICY
 ): void {
+  const pools = policy.minHeightM !== undefined ? rockVariantPools(plan) : undefined;
   for (const rock of plan.rocks) {
     if (!rock.boxes) continue;
     for (const box of rock.boxes) {
       if (box.collisionOverride !== undefined) {
         box.collision = box.collisionOverride;
       } else if (box.collision === undefined) {
-        box.collision = resolveRockCollision(box, policy);
+        box.collision = resolvePlanRockCollision(
+          plan,
+          {
+            id: rockObbId(rock.id, box.id),
+            sizeX: box.sizeX,
+            sizeY: box.sizeY,
+            sizeZ: box.sizeZ,
+            assetId: rock.assetId,
+            surfaceGrass: true
+          },
+          policy,
+          undefined,
+          pools
+        );
       }
     }
   }
@@ -79,7 +135,20 @@ export function applyRockCollisionPolicyToPlan(
       if (item.collisionOverride !== undefined) {
         item.collision = item.collisionOverride;
       } else if (item.collision === undefined) {
-        item.collision = resolveRockCollision(item, policy);
+        item.collision = resolvePlanRockCollision(
+          plan,
+          {
+            id: item.id,
+            width: item.width,
+            depth: item.depth,
+            height: item.height,
+            assetId: item.assetId,
+            surfaceGrass: false
+          },
+          policy,
+          undefined,
+          pools
+        );
       }
     }
   }

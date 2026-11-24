@@ -43,12 +43,6 @@ float terrainProjectGroundWindAngleFromNormalized(float normalizedField) {
 
 float terrainProjectGroundWindBodyWeight(float rootWeight) {
   float weight = clamp(rootWeight, 0.0, 1.0);
-  // scene_GroundWindShape.w: normalized height threshold (e.g. 0.5) below which stems stay rigidly rooted.
-  float startRatio = clamp(scene_GroundWindShape.w, 0.0, 0.92);
-  if (startRatio > 0.001) {
-    float windSpan = clamp((weight - startRatio) / max(1.0 - startRatio, 0.05), 0.0, 1.0);
-    return windSpan * windSpan * (3.0 - 2.0 * windSpan);
-  }
   float rootAnchor = smoothstep(0.0, 0.18, weight);
   return rootAnchor * mix(0.62, 1.0, weight);
 }

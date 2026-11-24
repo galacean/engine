@@ -97,10 +97,6 @@ export class SeedWorldGroundWindTuningRuntime {
       folder.add(this.tuning, "waveScaleMeters", 3, 24, 0.25).name("Wave scale m / 麦浪尺度").onChange(apply),
       folder.add(this.tuning, "meanBend", 0, 1.2, 0.01).name("Base bend rad / 基础倾角").onChange(apply),
       folder.add(this.tuning, "rootStiffness", 0.6, 3, 0.02).name("Root stiffness / 根部刚度").onChange(apply),
-      folder
-        .add(this.tuning, "windHeightStartRatio", 0, 0.9, 0.05)
-        .name("Wind start height / 风动起始高度")
-        .onChange(apply),
       folder.add(this.tuning, "noiseSpeedMps", 0, 4, 0.05).name("Noise speed m/s / 扰动速度").onChange(apply),
       folder.add(this.tuning, "noiseStrength", 0, 0.8, 0.01).name("Noise strength / 扰动强度").onChange(apply),
       folder.add(this.tuning, "colorStrength", 0, 1, 0.01).name("Color sweep / 色带强度").onChange(apply),
@@ -121,12 +117,7 @@ export class SeedWorldGroundWindTuningRuntime {
       this.tuning.meanBend
     );
     const noiseSpeedRatio = this.tuning.speedMps > 0 ? this.tuning.noiseSpeedMps / this.tuning.speedMps : 0;
-    this._shape.set(
-      this.tuning.rootStiffness,
-      noiseSpeedRatio,
-      this.tuning.colorStrength,
-      this.tuning.windHeightStartRatio ?? 0.5
-    );
+    this._shape.set(this.tuning.rootStiffness, noiseSpeedRatio, this.tuning.colorStrength, 0);
     this._scene.shaderData.setVector4(GROUND_WIND_WAVE, this._wave);
     this._scene.shaderData.setVector4(GROUND_WIND_SHAPE, this._shape);
     this._publishMotion();

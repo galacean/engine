@@ -290,30 +290,5 @@
           // matching material render-state binding, so B is not consumed again.
           fragmentAlpha = 1.0;
         }
-#ifdef SCENE_OIL_PAINT_STYLE
-        {
-          // Bold Monet / Impressionist horizontal oil strokes riding the water ripples.
-          vec2 waterStrokeUv = input.worldPosition.xz * vec2(0.24, 0.95) + vec2(elapsedTime * 0.09, -elapsedTime * 0.03);
-          vec2 waterCell = floor(waterStrokeUv);
-          vec2 waterLocal = fract(waterStrokeUv);
-          float wHash = fract(sin(dot(waterCell, vec2(127.1, 311.7))) * 43758.5453);
-          float wHash2 = fract(sin(dot(waterCell + vec2(19.3, 7.1), vec2(269.5, 183.3))) * 43758.5453);
-          // Staggered horizontal paint-dab capsules with crisp broken-color separation.
-          vec2 centeredDab = vec2((waterLocal.x - 0.5) * 2.0, (waterLocal.y - 0.5) * 2.0);
-          float dabMask = smoothstep(1.0, 0.45, dot(centeredDab, centeredDab));
-          float wRipple = sin(waterStrokeUv.y * 6.283185 + wHash * 6.283185 + elapsedTime * 1.2) * 0.5 + 0.5;
-          float wStroke = dabMask * smoothstep(0.22, 0.78, wRipple);
-          // Boldly step water luminance into painterly reflection bands.
-          float wLuma = max(dot(fragmentColor, vec3(0.2126, 0.7152, 0.0722)), 1e-4);
-          float qLuma = (floor(wLuma * 4.5 + (wHash - 0.5) * 0.55) + 0.5) / 4.5;
-          vec3 quantizedWater = fragmentColor * (mix(wLuma, qLuma, 0.68) / wLuma);
-          vec3 coolDab = vec3(0.76, 0.92, 1.18);
-          vec3 warmDab = vec3(1.26, 1.08, 0.78);
-          vec3 brokenTint = mix(coolDab, warmDab, smoothstep(0.25, 0.75, wHash2));
-          fragmentColor = mix(fragmentColor, quantizedWater * brokenTint, 0.82);
-          // Impasto golden sunlit stroke highlights on wave crests.
-          fragmentColor += vec3(0.26, 0.21, 0.11) * wStroke * smoothstep(0.08, 0.55, wLuma);
-        }
-#endif
         {{VALUE_093_CREATEWATERSURFACEV2RESOLVEDOUTPUTSTATEMENT_VEC4_FRAGMEN}}
       }

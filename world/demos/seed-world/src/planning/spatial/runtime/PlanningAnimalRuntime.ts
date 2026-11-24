@@ -9,6 +9,7 @@ import { FireflyPresenter } from "@galacean/engine-animals/gameplay/animal/Firef
 import type { Camera } from "@galacean/engine";
 import { querySeedAnimalCatalog, seedAnimalSpeciesId } from "./PlanningAnimalCatalog.ts";
 import { templateAnimalPopulation } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
+import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 import { PlanningAnimalSurfaceKind, type PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
 import type { AnimalInstanceDocument } from "@galacean/engine-animals/gameplay/animal/AnimalInstanceDocument";
 import {
@@ -65,6 +66,7 @@ import {
   type AnimalHome,
   chooseAnimalBirthHabitat,
   sampleAnimalSpawnDisk,
+  type PlanningAnimalDynamicObstacle,
   type PlanningAnimalNavigation,
   type PlanningAnimalMedium,
   type PlanningAnimalOccupant
@@ -134,6 +136,7 @@ interface Population {
   queue: Set<Actor>;
   plan: IslandPlan;
   config: AnimalPopulationConfig;
+  outlineEnabled: boolean;
   observerX: number;
   observerZ: number;
   abort: AbortController;
@@ -184,6 +187,26 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   private interaction = animalInteractionConfig();
   private previousPlayer?: { x: number; z: number };
   private simulationAccumulator = 0;
+  private readonly dynamicObstacles = new Map<string, readonly PlanningAnimalDynamicObstacle[]>();
+
+  /** Updates or removes one dynamic obstacle group (e.g. a streamed companion-stone cell) on the live habitat. */
+  setDynamicObstacles(groupKey: string, obstacles?: readonly PlanningAnimalDynamicObstacle[]): void {
+    if (obstacles?.length) this.dynamicObstacles.set(groupKey, obstacles);
+    else this.dynamicObstacles.delete(groupKey);
+    this.population?.habitat.setDynamicSolids(groupKey, obstacles);
+  }
+
+  /** Clears all dynamic obstacle groups (called before switching to a new world vegetation runtime). */
+  clearDynamicObstacles(): void {
+    this.dynamicObstacles.clear();
+    this.population?.habitat.clearDynamicSolids();
+  }
+
+  private applyDynamicObstacles(habitat: PlanningAnimalHabitat): void {
+    for (const [groupKey, obstacles] of this.dynamicObstacles) {
+      habitat.setDynamicSolids(groupKey, obstacles);
+    }
+  }
 
   /** Construct only after the host explicitly enables animals; model requests start on visible demand. */
   constructor(
@@ -269,6 +292,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           : undefined;
         if (!regions || regions.length) {
           current.habitat = new PlanningAnimalHabitat(plan, navigation, config, options.surface);
+          this.applyDynamicObstacles(current.habitat);
           this.revalidateSupport(
             current,
             change ? [...change.terrain, ...change.water, ...change.obstacles] : undefined
@@ -300,6 +324,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     try {
       const placementStart = performance.now();
       const habitat = new PlanningAnimalHabitat(plan, navigation, config, options.surface);
+      this.applyDynamicObstacles(habitat);
       this.habitatBuildMilliseconds = performance.now() - placementStart;
       this.placementAttempts = 0;
       const spawnPoints = new Map(config.types.map((type) => [type.typeId, type.spawnPoint]));
@@ -388,6 +413,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         queue: new Set(),
         plan,
         config: structuredClone(config),
+        outlineEnabled: WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.animalOutline ?? true,
         observerX: NaN,
         observerZ: NaN,
         abort: new AbortController(),
@@ -724,7 +750,9 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
             renderer.getMaterials().forEach((sourceMaterial, index) => {
               if (!sourceMaterial) return;
               const correction = config.materials?.find((entry) => entry.name === sourceMaterial.name);
-              let outlined = this.resolveMaterial(sourceMaterial);
+              let outlined = population.outlineEnabled
+                ? this.resolveMaterial(sourceMaterial)
+                : this.resolvePlainMaterial(sourceMaterial);
               let plain = this.resolvePlainMaterial(sourceMaterial);
               if (correction) {
                 const applyCorrection = (base: Material): Material => {
@@ -814,7 +842,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           }
         }
       }
-      if (OUTLINE_ZERO_DISTANCE > 0 && p.active.size) {
+      if (p.outlineEnabled && OUTLINE_ZERO_DISTANCE > 0 && p.active.size) {
         const observer = this.observer();
         for (const actor of p.active) this.updateActorOutline(actor, observer.x, observer.y, observer.z);
       }
@@ -1040,7 +1068,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           this.admit(p, actor);
           return;
         }
-        if (OUTLINE_ZERO_DISTANCE > 0) {
+        if (p.outlineEnabled && OUTLINE_ZERO_DISTANCE > 0) {
           const observer = this.observer();
           this.updateActorOutline(actor, observer.x, observer.y, observer.z);
         }
@@ -1081,7 +1109,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         {
           random: randomStream(actor.birth.seed),
           tightTurns: !!actor.home,
-          resolveMaterial: this.resolveMaterial,
+          resolveMaterial: p.outlineEnabled ? this.resolveMaterial : this.resolvePlainMaterial,
           resolvePlainMaterial: this.resolvePlainMaterial,
           distantUpdateSeconds: DISTANT_ANIMAL_UPDATE_SECONDS,
           interactionArrivalRadius: () =>

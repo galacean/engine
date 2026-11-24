@@ -17,7 +17,6 @@ Shader "Terrain/Vegetation" {
       FragmentShader = VegetationFragment;
 
       #define TERRAIN_PROJECT_FORWARD_PASS
-      #define TERRAIN_PROJECT_OIL_PAINT_FOLIAGE
       #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && defined(MATERIAL_HAS_NORMALTEXTURE)
         #define NEED_VERTEX_TANGENT
       #endif
@@ -76,9 +75,6 @@ Shader "Terrain/Vegetation" {
             float assetAssemblyLodFade;
           #endif
         #endif
-        #ifdef SCENE_OIL_PAINT_STYLE
-          float oilPaintLeafId;
-        #endif
         #if defined(RENDERER_PROCEDURAL_TREE_LEAF_MASK_LIBRARY) && defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
           float proceduralLeafShape;
         #endif
@@ -120,12 +116,6 @@ Shader "Terrain/Vegetation" {
       #include "shared/VegetationWind.glsl"
       #include "shared/LodDither.glsl"
       #include "shared/EntranceWave.glsl"
-      #define TERRAIN_PROJECT_HAS_OIL_PAINT_LEAF_ID
-      #ifdef SCENE_OIL_PAINT_STYLE
-        float terrainProjectOilPaintLeafId(Varyings varyings) {
-          return varyings.oilPaintLeafId;
-        }
-      #endif
       #include "shared/Lighting.glsl"
       #ifdef MATERIAL_ENABLE_TRANSLUCENCY
         #include "vegetation/VegetationTranslucency.glsl"
@@ -222,15 +212,6 @@ Shader "Terrain/Vegetation" {
           #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT)
             tangentOS.xyz = terrainProjectDetailTangentOS(tangentOS.xyz, attributes);
           #endif
-        #endif
-        #ifdef SCENE_OIL_PAINT_STYLE
-          float hasPivot = dot(proceduralTreeWindOriginOS, proceduralTreeWindOriginOS) > 1e-6 ? 1.0 : 0.0;
-          vec3 leafKey = mix(floor(positionOS.xyz * 4.0), floor(proceduralTreeWindOriginOS * 100.0 + 0.5), hasPivot);
-          float oilLeafSeed = dot(leafKey, vec3(12.9898, 78.233, 37.719));
-          #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
-            oilLeafSeed += dot(varyings.assetAssemblyColor, vec3(91.7, 157.3, 211.9));
-          #endif
-          varyings.oilPaintLeafId = fract(sin(oilLeafSeed) * 43758.5453);
         #endif
         #ifdef RENDERER_HAS_UV
           varyings.uv = attributes.TEXCOORD_0;

@@ -22,6 +22,7 @@ Shader "Animal/CuteZooToon" {
       #include "ShaderLibrary/Lighting/Light.glsl"
       #include "ShaderLibrary/Lighting/VolumetricCloudShadow.glsl"
       #include "ShaderLibrary/Shadow/Shadow.glsl"
+      #include "ShaderLibrary/Common/OilPaintBrush.glsl"
 
       vec4 material_BaseColor;
       #ifdef MATERIAL_HAS_BASETEXTURE
@@ -45,10 +46,6 @@ Shader "Animal/CuteZooToon" {
       #ifdef ANIMAL_TOON_SECOND_SHADE
         float animal_SecondStep;
         vec3 animal_SecondShadeColor;
-      #endif
-      #ifdef SCENE_OIL_PAINT_STYLE
-        sampler2D scene_OilPaintBrushTexture;
-        float scene_OilPaintImpasto;
       #endif
 
       struct ToonVaryings {
@@ -172,12 +169,6 @@ Shader "Animal/CuteZooToon" {
         }
       #endif
 
-      #ifdef SCENE_OIL_PAINT_STYLE
-        vec4 animalOilSampleImpasto(vec2 uv) {
-          return texture2D(scene_OilPaintBrushTexture, uv);
-        }
-      #endif
-
       void toonFragment(ToonVaryings v) {
         vec4 albedo = material_BaseColor;
         #ifdef MATERIAL_HAS_BASETEXTURE
@@ -191,93 +182,10 @@ Shader "Animal/CuteZooToon" {
         #else
           vec3 normal = vec3(0.0, 1.0, 0.0);
         #endif
-        vec3 environment = toonEnvironment(normal);
         #ifdef SCENE_OIL_PAINT_STYLE
-          // Object-space seamless triplanar brushstrokes with crisp tactile impasto relief matching rocks & foliage.
-          vec3 nrmOS = safeNormalize(v.normalOS);
-          vec3 w = pow(abs(nrmOS), vec3(4.0));
-          w /= max(w.x + w.y + w.z, 1e-4);
-          float bScale = 1.25;
-          vec4 brush = animalOilSampleImpasto(v.positionOS.zy * bScale) * w.x
-                     + animalOilSampleImpasto(v.positionOS.xz * bScale) * w.y
-                     + animalOilSampleImpasto(v.positionOS.xy * bScale) * w.z;
-          float bHeight = brush.r;
-          float gx = brush.g * 2.0 - 1.0;
-          float gy = brush.b * 2.0 - 1.0;
-          float pigment = brush.a;
-          float rake = 0.55 * gx - 0.78 * gy;
-
-          vec3 sunDir = vec3(0.24, 0.42, 0.87);
-          vec3 sunColor = vec3(0.0);
-          float sunMax = 0.0;
-          float lit = 0.0;
-          #ifdef SCENE_DIRECT_LIGHT_COUNT
-            for (int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i++) {
-              if (!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])) {
-                vec3 lc = scene_DirectLightColor[i];
-                float lm = max(lc.r, max(lc.g, lc.b));
-                if (lm > sunMax) {
-                  sunMax = lm;
-                  sunDir = safeNormalize(-scene_DirectLightDirection[i]);
-                  sunColor = lc;
-                  float shadow = 1.0;
-                  if (i == 0) {
-                    #ifdef NEED_CALCULATE_SHADOWS
-                      float shadowFloor;
-                      shadow = sampleToonShadow(v.positionWS, normal, dot(normal, sunDir), shadowFloor);
-                    #endif
-                    shadow *= sampleVolumetricCloudShadow(v.positionWS);
-                  }
-                  lit = shadow * clamp(dot(normal, sunDir) * 0.78 + 0.46, 0.0, 1.0);
-                }
-              }
-            }
-          #endif
-
-          float directEnergy = clamp(sunMax / 2.2, 0.0, 1.05);
-          float envLum = dot(environment, vec3(0.2126, 0.7152, 0.0722));
-          float envEnergy = clamp(envLum * 1.05, 0.025, 1.0);
-          float dayWeight = smoothstep(0.18, 0.65, max(directEnergy, envEnergy));
-          lit *= directEnergy;
-
-          // Warm, cohesive Impressionist animal palette with visible brushstrokes & creamy impasto relief.
-          float bandX = lit + (pigment - 0.5) * 0.34 + (bHeight - 0.5) * 0.18;
-          vec3 colLight = albedo.rgb * mix(vec3(1.06), vec3(1.18, 1.11, 0.94), dayWeight) + vec3(0.015, 0.011, 0.004) * directEnergy;
-          vec3 colMid = albedo.rgb * 0.95;
-          vec3 colShade = albedo.rgb * vec3(0.60, 0.56, 0.62) + vec3(0.016, 0.014, 0.020) * envEnergy;
-          vec3 painted = mix(colShade, colMid, smoothstep(0.18, 0.36, bandX));
-          painted = mix(painted, colLight, smoothstep(0.50, 0.70, bandX));
-
-          vec3 coolDab = painted * vec3(0.89, 0.93, 1.08);
-          vec3 warmDab = painted * vec3(1.13, 1.05, 0.88);
-          painted = mix(coolDab, warmDab, smoothstep(0.24, 0.76, pigment));
-          // Soft warm bounce from the autumn forest floor (scales down cleanly at night).
-          painted += (albedo.rgb * 0.45 + vec3(0.03) * envEnergy) * vec3(0.96, 0.68, 0.36) * max(-normal.y * 0.5 + 0.5, 0.0) * (1.0 - lit) * 0.34 * dayWeight;
-
-          // Respect real day/dusk/night intensity while keeping noon highlights soft and bloom-free.
-          vec3 normSun = sunMax > 1e-4 ? (sunColor / sunMax) : vec3(0.55, 0.68, 0.95);
-          vec3 ambientFloor = clamp(environment * 0.75, vec3(0.04, 0.05, 0.09), vec3(0.76, 0.74, 0.76));
-          vec3 directPeak = max(ambientFloor * 1.15, normSun * (1.08 * directEnergy));
-          vec3 lightScale = mix(ambientFloor, directPeak, smoothstep(0.18, 0.68, bandX));
-          painted *= lightScale * clamp(animal_Brightness, 0.75, 1.15);
-
-          vec3 viewDir = safeNormalize(camera_Position - v.positionWS);
-          float rim = pow(1.0 - max(0.0, dot(normal, viewDir)), 2.8);
-          float sunBack = pow(max(0.0, dot(-viewDir, sunDir)), 1.6) * 0.55 + 0.45;
-          painted += vec3(1.0, 0.94, 0.82) * normSun * rim * sunBack * 0.08 * directEnergy;
-
-          // Matte thick-oil impasto brushwork matching rock & foliage surfaces (tactile relief via shading, zero glossy white blowout!).
-          float impasto = max(scene_OilPaintImpasto, 0.0);
-          painted *= mix(0.84, 1.14, bHeight);
-          painted *= max(0.58, 1.0 + rake * 0.72 * impasto);
-          painted += vec3(1.0, 0.96, 0.88) * pow(max(rake, 0.0), 2.2) * 0.03 * impasto * max(directEnergy, envEnergy);
-
-          vec4 oilColor = vec4(max(painted, vec3(0.0)), 1.0);
-          #if SCENE_FOG_MODE != 0
-            oilColor = fog(oilColor, v.positionVS);
-          #endif
-          gl_FragColor = oilColor;
-        #else
+          applyOilPaintBrushSurface(v.positionOS, v.normalOS, 1.25, albedo.rgb, normal);
+        #endif
+        vec3 environment = toonEnvironment(normal);
         vec3 illumination = environment;
         #ifdef SCENE_DIRECT_LIGHT_COUNT
           float shadowVisibility = 1.0;
@@ -321,7 +229,6 @@ Shader "Animal/CuteZooToon" {
           color = fog(color, v.positionVS);
         #endif
         gl_FragColor = color;
-        #endif
       }
     }
   }

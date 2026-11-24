@@ -45,6 +45,9 @@ vi.mock("@galacean/engine", async (importOriginal) => ({
     constructor() {
       physics.shapes.push(this);
     }
+    getInstanceMaterial() {
+      return this.material;
+    }
     set mesh(value: unknown) {
       if (physics.fail) throw Error("cook failed");
       this.input = value;
@@ -70,7 +73,10 @@ import {
 import { guidanceRockBox } from "../../../packages/world-planning/src/spatial/guidance/GuidanceRock.ts";
 import { applyLandscapeEdits } from "../../../packages/world-planning/src/spatial/layout/DerivedEdits.ts";
 import { projectLayoutGroups } from "../../../packages/world-planning/src/spatial/layout/LayoutPlanAdapter.ts";
-import { rockVariantFit } from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts";
+import {
+  rockVariantFit,
+  rockVariantFittedTopHeight
+} from "../../../packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts";
 import { createTemplatePlanningDocument } from "../../../packages/world-planning/src/spatial/WorldTemplateAuthoring.ts";
 import { generatePlanningDocument } from "../../../packages/world-planning/src/spatial/PlanningRuntime.ts";
 import { PlanningAnimalHabitat } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts";
@@ -485,4 +491,84 @@ it("syncs uniform-XZ fitted rock top height into animal air obstacle checks", ()
       1.0
     )
   ).toBe(true);
+});
+
+it("evaluates minHeightM against uniform-XZ fitted exposed height instead of raw planned height", () => {
+  const plan = {
+    parameters: { seed: 999, width: 1024, depth: 1024, worldTemplate: { id: "oil-paint" } },
+    poiDistribution: true,
+    rocks: [],
+    buildings: [],
+    landscapes: [
+      {
+        id: "narrow-tall-non-pillar",
+        ownerId: "narrow-tall-non-pillar",
+        kind: "rock",
+        center: { x: 10, z: 10 },
+        // Raw planned height (1.4m) >= 0.9m, but <= 1.5 * width so it fits uniformly by XZ (exposed height < 0.9m).
+        width: 1.0,
+        depth: 0.9,
+        height: 1.4,
+        yaw: 0,
+        baseHeight: 0
+      },
+      {
+        id: "true-slender-pillar",
+        ownerId: "true-slender-pillar",
+        kind: "rock",
+        center: { x: 20, z: 10 },
+        // height (2.2m) > 1.5 * max(width, depth), so rockVariantFit treats it as a standing pillar.
+        width: 1.0,
+        depth: 1.0,
+        height: 2.2,
+        yaw: 0,
+        baseHeight: 0
+      }
+    ]
+  } as unknown as IslandPlan;
+
+  const narrowFitted = rockVariantFittedTopHeight(plan, "narrow-tall-non-pillar", 1.0, 1.4, 0.9, false)!;
+  const pillarFitted = rockVariantFittedTopHeight(plan, "true-slender-pillar", 1.0, 2.2, 1.0, false)!;
+  expect(narrowFitted).toBeLessThan(0.9);
+  expect(pillarFitted).toBeGreaterThanOrEqual(0.9);
+
+  applyRockCollisionPolicyToPlan(plan, { minHorizontalM: 1.5, minHeightM: 0.9 });
+  expect(plan.landscapes![0].collision).toBe(false);
+  expect(plan.landscapes![1].collision).toBe(true);
+});
+
+it("adds and removes dynamic companion-stone obstacles in PlanningAnimalHabitat", () => {
+  const plan = {
+    parameters: { seed: 1, width: 512, depth: 512 },
+    spawn: { x: 50, z: 50 },
+    rocks: [],
+    buildings: [],
+    landscapes: [],
+    waters: [],
+    courtyards: [],
+    fences: [],
+    bridges: []
+  } as unknown as IslandPlan;
+
+  const habitat = new PlanningAnimalHabitat(
+    plan,
+    {
+      sampleHeightInterpolated: () => 0,
+      sampleContactIsWater: () => false
+    },
+    { spawnRadius: 200, roamRadius: 200 }
+  );
+
+  // Open ground before streaming companion stones
+  expect(habitat.canTraverse({ x: 45, z: 50 }, { x: 55, z: 50 }, 0.4, 1.0)).toBe(true);
+
+  // Register a colliding 2.2m companion stone blocking the path
+  habitat.setDynamicSolids("companion-stone:0/0", [
+    { id: "stone-1", x: 50, z: 50, yaw: 0, width: 2.2, depth: 2.0, bottom: 0, top: 1.5 }
+  ]);
+  expect(habitat.canTraverse({ x: 45, z: 50 }, { x: 55, z: 50 }, 0.4, 1.0)).toBe(false);
+
+  // Evicting the cell removes the dynamic solid and restores traversal
+  habitat.setDynamicSolids("companion-stone:0/0", undefined);
+  expect(habitat.canTraverse({ x: 45, z: 50 }, { x: 55, z: 50 }, 0.4, 1.0)).toBe(true);
 });

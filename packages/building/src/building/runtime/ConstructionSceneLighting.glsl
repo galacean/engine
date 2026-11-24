@@ -8,6 +8,7 @@
 #include "ShaderLibrary/PBR/VaryingsPBR.glsl"
 #include "ShaderLibrary/PBR/LightDirectPBR.glsl"
 #include "ShaderLibrary/PBR/LightIndirectPBR.glsl"
+#include "ShaderLibrary/Common/OilPaintBrush.glsl"
 
 // Building-owned light metadata is refreshed at the camera boundary, after the
 // scene has packed its point-light list. Masks encode identity, never position.
@@ -16,50 +17,6 @@ int scene_MasonryLegacyMask;
 int scene_MasonryFallbackMask;
 vec4 scene_MasonryLightPositionRange[8];
 vec4 scene_MasonryLightColorIntensity[8];
-
-#ifdef SCENE_OIL_PAINT_STYLE
-sampler2D scene_OilPaintBrushTexture;
-float scene_OilPaintImpasto;
-float scene_OilPaintBrushScale;
-
-void masonryApplyOilPaintSurface(
-    inout vec3 albedo,
-    inout vec3 normalWS,
-    inout float roughness,
-    vec3 positionWS,
-    out float impastoRidge
-) {
-    vec3 n = normalize(normalWS);
-    vec3 an = abs(n);
-    vec3 blend = pow(max(an, vec3(1e-4)), vec3(4.0));
-    blend /= max(blend.x + blend.y + blend.z, 1e-4);
-
-    float scale = max(scene_OilPaintBrushScale, 0.25) * 0.34;
-    vec4 bx = texture2D(scene_OilPaintBrushTexture, positionWS.zy * scale);
-    vec4 by = texture2D(scene_OilPaintBrushTexture, positionWS.xz * scale);
-    vec4 bz = texture2D(scene_OilPaintBrushTexture, positionWS.xy * scale);
-    vec4 brush = bx * blend.x + by * blend.y + bz * blend.z;
-
-    float impasto = clamp(scene_OilPaintImpasto, 0.0, 1.8);
-    // World-anchored impasto relief normal perturbation across walls, roofs, timber & stone
-    vec2 gxy = (brush.rg * 2.0 - 1.0) * (0.48 * impasto);
-    vec3 upRef = an.y < 0.92 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
-    vec3 tAxis = normalize(cross(upRef, n));
-    vec3 bAxis = cross(n, tAxis);
-    normalWS = normalize(n + (tAxis * gxy.x + bAxis * gxy.y));
-
-    // Tactile flat-brush pigment variation (gentle matte warmth, zero chalky blowout)
-    float brushHeight = brush.b;
-    float brushVar = brush.a;
-    impastoRidge = (brushHeight - 0.5) * 2.0 * impasto;
-    float pigmentMod = mix(0.90, 1.11, brushHeight) * mix(0.95, 1.06, brushVar);
-    vec3 warmCool = mix(vec3(0.97, 0.96, 1.02), vec3(1.04, 1.01, 0.94), brushVar);
-    albedo *= pigmentMod * warmCool;
-
-    // Matte oil-paint surface finish so afternoon sun never produces glossy plastic specular
-    roughness = max(roughness, 0.80);
-}
-#endif
 
 void masonryPointRadiance(Varyings v, SurfaceData s, BSDFData bsdf, vec3 legacyNormal,
     vec3 color, vec3 position, float range, bool pbr, bool legacy,
@@ -137,8 +94,7 @@ void masonryDirectRadiance(Varyings v, SurfaceData s, BSDFData bsdf, vec3 legacy
 // Use the scene's actual PBR/IBL/shadow implementation, including runtime macros.
 vec3 masonrySceneLight(Varyings lightingVaryings, vec3 albedo, vec3 normalWS, vec3 positionWS, float roughness) {
     #ifdef SCENE_OIL_PAINT_STYLE
-      float oilImpastoRidge = 0.0;
-      masonryApplyOilPaintSurface(albedo, normalWS, roughness, positionWS, oilImpastoRidge);
+      applyOilPaintBrushSurface(positionWS, normalWS, 0.34, 0.0, albedo, normalWS, roughness);
     #endif
     SurfaceData s;
     s.albedoColor=albedo;
@@ -165,15 +121,7 @@ vec3 masonrySceneLight(Varyings lightingVaryings, vec3 albedo, vec3 normalWS, ve
     vec3 diffuse=vec3(0.0),specular=vec3(0.0);
     masonryDirectRadiance(lightingVaryings,s,bsdf,normalWS,shadow,diffuse,specular);
     evaluateIBL(lightingVaryings,s,bsdf,diffuse,specular);
-    #ifdef SCENE_OIL_PAINT_STYLE
-      // Soften glossy dielectric highlight & accentuate tactile impasto brush-ridge catchlight.
-      specular *= 0.24;
-      vec3 painted = diffuse + specular;
-      painted *= 1.0 + clamp(oilImpastoRidge * 0.08, -0.10, 0.12);
-      return painted;
-    #else
-      return diffuse+specular;
-    #endif
+    return diffuse+specular;
 }
 Varyings initMasonryLightingVaryings(vec3 normalWS, vec3 positionWS) {
     Varyings lightingVaryings;
@@ -195,9 +143,7 @@ vec3 masonryResidentSceneLight(vec3 albedo,vec3 normalWS,vec3 positionWS,float r
 }
 vec3 masonryFarProxyLight(vec3 albedo, vec3 normalWS, vec3 positionWS) {
     #ifdef SCENE_OIL_PAINT_STYLE
-      float oilProxyRoughness = 0.85;
-      float oilProxyRidge = 0.0;
-      masonryApplyOilPaintSurface(albedo, normalWS, oilProxyRoughness, positionWS, oilProxyRidge);
+      applyOilPaintBrushSurface(positionWS, normalWS, 0.34, albedo, normalWS);
     #endif
     Varyings lightingVaryings = initMasonryLightingVaryings(normalWS, positionWS);
     SurfaceData s;

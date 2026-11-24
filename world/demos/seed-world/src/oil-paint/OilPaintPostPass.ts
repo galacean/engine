@@ -19,13 +19,11 @@ import { OilPaintPostEffect } from "./OilPaintPostEffect";
 const OIL_PAINT_POST_SHADER_NAME = "PostProcess/OilPaint";
 
 /**
- * 120-FPS-grade Structure-Tensor Anisotropic Kuwahara + Merged Volumetric Light Composite:
- * - Downsamples scene color into an L2-cache-resident RGBA8 RT (<=420px short edge, ~1.1 MB vs 32 MB HDR!)
- * - Pass 0 (<=210px short edge -> Tensor RT): Sobel structure tensor from L2-cached color (<0.06 ms)
- * - Pass 1 (<=420px short edge -> Kuwahara RT): 13-tap 4-sector elliptical Kuwahara with ZERO exp(),
- *   100% L2-cache-hit reads, AND packs scene-anchored impasto ridge + sky mask into `.a` (<0.8 ms!)
- * - Pass 2 (Single Full-Res -> dest): ONLY 2 texture taps (+1 optional VL shaft tap) — ZERO full-res
- *   DepthTexture read, ZERO full-res TensorTexture read, ZERO duplicate full-res VL pass (<1.0 ms!).
+ * Structure-Tensor Anisotropic Kuwahara Oil-Paint Post-Process Pass:
+ * - Downsamples scene color into an L2-cache-resident RGBA8 RT (<=420px short edge)
+ * - Pass 0 (<=210px short edge -> Tensor RT): Sobel structure tensor from downsampled color
+ * - Pass 1 (<=420px short edge -> Kuwahara RT): 4-sector elliptical Kuwahara with impasto ridge & sky mask in `.a`
+ * - Pass 2 (Full-Res -> dest): lightweight composite blending painterly strokes, canvas weave, and tonal curve
  */
 const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
   SubShader "Default" {

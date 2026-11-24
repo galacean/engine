@@ -22,7 +22,7 @@ export class OilPaintPostEffect extends PostProcessEffect {
   screenImpasto = new PostProcessEffectFloatParameter(0.3, 0, 1.5);
 
   /** 3D surface shader impasto relief synced to `scene_OilPaintImpasto` (0..2). */
-  impasto = new PostProcessEffectFloatParameter(1.0, 0, 2);
+  impasto = new PostProcessEffectFloatParameter(1.6, 0, 2);
 
   /** 3D surface shader brushstroke frequency synced to `scene_OilPaintBrushScale` (0.2..2.5). */
   brushScale = new PostProcessEffectFloatParameter(1.0, 0.2, 2.5);

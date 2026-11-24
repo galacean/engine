@@ -476,9 +476,10 @@ export function prepareTemplatePlanningDocument(
   }
   let spawnPoiLayout: Record<string, string | number | boolean> | undefined;
   if (art.spawnPoi) {
+    const anchorOffset = art.spawnPoi.resolveAnchorOffset?.(seed) ?? art.spawnPoi.anchorOffset;
     const spawnPos = {
-      x: anchor.x - (art.spawnOffset?.[0] ?? 0) + (art.spawnPoi.anchorOffset?.[0] ?? 0),
-      z: anchor.z + (art.spawnOffset?.[1] ?? 0) + (art.spawnPoi.anchorOffset?.[1] ?? 0)
+      x: anchor.x - (art.spawnOffset?.[0] ?? 0) + (anchorOffset?.[0] ?? 0),
+      z: anchor.z + (art.spawnOffset?.[1] ?? 0) + (anchorOffset?.[1] ?? 0)
     };
     const poiLayout = exportPlanningRecipe(document).parameters.poiLayout ?? defaultPoiLayout();
     const { candidates } = distributePois(

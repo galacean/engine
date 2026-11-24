@@ -8,6 +8,7 @@ import Common_Attributes from "./Common/Attributes.glsl";
 import Common_Common from "./Common/Common.glsl";
 import Common_Fog from "./Common/Fog.glsl";
 import Common_Normal from "./Common/Normal.glsl";
+import Common_OilPaintBrush from "./Common/OilPaintBrush.glsl";
 import Common_Transform from "./Common/Transform.glsl";
 import Lighting_AmbientOcclusion_BilateralBlur from "./Lighting/AmbientOcclusion/BilateralBlur.glsl";
 import Lighting_AmbientOcclusion_ScalableAmbientOcclusion from "./Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl";
@@ -78,6 +79,7 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Common_Common, path: "ShaderLibrary/Common/Common.glsl" },
   { source: Common_Fog, path: "ShaderLibrary/Common/Fog.glsl" },
   { source: Common_Normal, path: "ShaderLibrary/Common/Normal.glsl" },
+  { source: Common_OilPaintBrush, path: "ShaderLibrary/Common/OilPaintBrush.glsl" },
   { source: Common_Transform, path: "ShaderLibrary/Common/Transform.glsl" },
   { source: Lighting_AmbientOcclusion_BilateralBlur, path: "ShaderLibrary/Lighting/AmbientOcclusion/BilateralBlur.glsl" },
   { source: Lighting_AmbientOcclusion_ScalableAmbientOcclusion, path: "ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl" },
