@@ -1,5 +1,15 @@
 import { expect, it, vi } from "vitest";
-import { cloneRuntimeProjectPackage, RUNTIME_PROJECT_SAVE_VERSION, RuntimeProjectStorage, runtimeProjectFiles, projectDocuments, validateRuntimeProject, type RuntimeProjectPackage } from "@galacean/engine-project/runtime-editor/project/runtime-project.ts";
+import {
+  assertAssetPath,
+  cloneRuntimeProjectPackage,
+  RUNTIME_PROJECT_SAVE_VERSION,
+  RuntimeProjectSnapshot,
+  RuntimeProjectStorage,
+  runtimeProjectFiles,
+  projectDocuments,
+  validateRuntimeProject,
+  type RuntimeProjectPackage
+} from "@galacean/engine-project/runtime-editor/project/runtime-project.ts";
 import { VirtualProjectFiles } from "@galacean/engine-project/project-files/virtual-project-files.ts";
 
 // Project restoration does not execute component scripts or initialize the browser engine.
@@ -60,31 +70,94 @@ it("rejects orphan content, missing Scenes and duplicate identities before persi
 });
 
 function savedStorage(saved: unknown) {
-  const database = { transaction() {
-    const request = {result:saved, onsuccess:undefined as undefined | (() => void)};
-    const tx = { oncomplete: undefined as undefined | (() => void),
-      objectStore: () => ({ get: () => request }) };
-    queueMicrotask(() => { request.onsuccess?.(); tx.oncomplete?.(); });
-    return tx;
-  }, close() {} };
+  const record = saved as (RuntimeProjectPackage & { storageRevision?: string }) | undefined;
+  const header = record
+    ? (() => {
+        const { contents, documents, storageRevision: _rev, ...metadata } = record;
+        return {
+          ...metadata,
+          storageFormat: "files" as const,
+          contentPaths: Object.keys(contents ?? {}),
+          ...(documents === undefined ? {} : { documentPaths: Object.keys(documents) })
+        };
+      })()
+    : undefined;
+  const revRecord = record ? { storageRevision: record.storageRevision ?? "saved-revision" } : undefined;
+  const database = {
+    transaction() {
+      let aborted = false;
+      const pending: Array<() => void> = [];
+      const tx = {
+        error: undefined as unknown,
+        oncomplete: undefined as (() => void) | undefined,
+        onabort: undefined as (() => void) | undefined,
+        abort() {
+          aborted = true;
+          queueMicrotask(() => tx.onabort?.());
+        },
+        objectStore(name: string) {
+          return {
+            get(key: unknown) {
+              const request = { result: undefined as unknown, onsuccess: undefined as (() => void) | undefined };
+              pending.push(() => {
+                if (name === "projects") request.result = header;
+                else if (name === "projectRevisions") request.result = revRecord;
+                else if (name === "projectFiles" && Array.isArray(key) && record) {
+                  const [, kind, path] = key as [string, string, string];
+                  request.result = kind === "asset" ? record.contents?.[path] : record.documents?.[path];
+                }
+                request.onsuccess?.();
+              });
+              return request;
+            }
+          };
+        }
+      };
+      queueMicrotask(() => {
+        for (let i = 0; i < pending.length; i++) {
+          if (aborted) return;
+          pending[i]();
+        }
+        if (!aborted) tx.oncomplete?.();
+      });
+      return tx;
+    },
+    close() {}
+  };
   return new RuntimeProjectStorage(database as unknown as IDBDatabase);
 }
 
 function databaseFactory(initialVersion = 0) {
   const stores = new Set<string>();
-  const createIndex = vi.fn();
-  const store = { createIndex };
+  const createdStores: string[] = [];
+  const deletedStores: string[] = [];
+  const createdIndexes = new Map<string, ReturnType<typeof vi.fn>>();
+  const storeFor = (name: string) => {
+    let createIndex = createdIndexes.get(name);
+    if (!createIndex) {
+      createIndex = vi.fn();
+      createdIndexes.set(name, createIndex);
+    }
+    return { createIndex };
+  };
   const database = {
     objectStoreNames: { contains: (name: string) => stores.has(name) },
-    createObjectStore(name: string) { stores.add(name); return store; },
-    deleteObjectStore(name: string) { stores.delete(name); },
+    createObjectStore(name: string) {
+      stores.add(name);
+      createdStores.push(name);
+      return storeFor(name);
+    },
+    deleteObjectStore(name: string) {
+      stores.delete(name);
+      deletedStores.push(name);
+    },
     close() {}
   };
   let version = initialVersion;
   const factory = { open: (_name: string, requestedVersion: number) => {
     const request = {
       result: database,
-      transaction: { objectStore: () => store },
+      transaction: { objectStore: (name: string) => storeFor(name) },
       error: undefined as DOMException | undefined,
       onupgradeneeded: undefined as undefined | ((event: {oldVersion: number}) => void),
       onerror: undefined as undefined | (() => void),
@@ -105,40 +178,55 @@ function databaseFactory(initialVersion = 0) {
     });
     return request;
   } };
-  return { factory: factory as unknown as IDBFactory, stores, createIndex, version: () => version };
+  return {
+    factory: factory as unknown as IDBFactory,
+    stores,
+    createdStores,
+    deletedStores,
+    createdIndexes,
+    version: () => version
+  };
 }
 
-it("opens the shared database schema at version 4 and upgrades an empty version 1 database", async () => {
+it("opens the single-format database schema at version 5 with split projectRevisions", async () => {
   const empty = databaseFactory();
   const storage = await RuntimeProjectStorage.open(empty.factory);
-  expect(empty.version()).toBe(4);
-  expect([...empty.stores]).toEqual(["projects", "projectFiles"]);
+  expect(empty.version()).toBe(5);
+  expect([...empty.stores]).toEqual(["projects", "projectRevisions", "projectFiles"]);
+  expect(empty.createdStores).toEqual(["projects", "projectRevisions", "projectFiles"]);
+  expect(empty.createdIndexes.get("projectRevisions")).toHaveBeenCalledWith(
+    "storageRevision",
+    "storageRevision",
+    { unique: true }
+  );
   storage.close();
+});
 
-  const existing = databaseFactory(1);
+it.each([1, 2, 4])("rebuilds cleanly into single-format version 5 when upgrading from older version %i", async (oldVer) => {
+  const existing = databaseFactory(oldVer);
   existing.stores.add("projects");
+  if (oldVer >= 4) existing.stores.add("projectFiles");
   const upgraded = await RuntimeProjectStorage.open(existing.factory);
-  expect(existing.version()).toBe(4);
-  expect([...existing.stores]).toEqual(["projects", "projectFiles"]);
+  expect(existing.version()).toBe(5);
+  expect(existing.deletedStores).toEqual(oldVer >= 4 ? ["projects", "projectFiles"] : ["projects"]);
+  expect(existing.createdStores).toEqual(["projects", "projectRevisions", "projectFiles"]);
+  expect(existing.createdIndexes.get("projectRevisions")).toHaveBeenCalledWith(
+    "storageRevision",
+    "storageRevision",
+    { unique: true }
+  );
   upgraded.close();
 });
 
-it("opens a database already upgraded by a newer worktree without dropping its project store", async () => {
-  const existing = databaseFactory(4);
+it("opens a database already at version 5 without recreating stores", async () => {
+  const existing = databaseFactory(5);
   existing.stores.add("projects");
+  existing.stores.add("projectRevisions");
   existing.stores.add("projectFiles");
   const storage = await RuntimeProjectStorage.open(existing.factory);
-  expect(existing.version()).toBe(4);
-  expect([...existing.stores]).toEqual(["projects", "projectFiles"]);
-  storage.close();
-});
-
-it("adds the revision index to version 2 without recreating its existing store", async () => {
-  const existing = databaseFactory(2);
-  existing.stores.add("projects");
-  const storage = await RuntimeProjectStorage.open(existing.factory);
-  expect(existing.version()).toBe(4);
-  expect(existing.createIndex).toHaveBeenCalledWith("storageRevision", "storageRevision", {unique:true});
+  expect(existing.version()).toBe(5);
+  expect(existing.deletedStores).toEqual([]);
+  expect(existing.createdStores).toEqual([]);
   storage.close();
 });
 
@@ -846,4 +934,916 @@ it("does not poison RuntimeDependencyMaintenance across failed rebase retries, m
     fetching.mockRestore();
     opening.mockRestore();
   }
+});
+
+it("runs validators and persists runtime-owned content updates", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  let savedPack: RuntimeProjectPackage | undefined;
+  const initial = project();
+  initial.project.files.push({ type: "Farming", dependencies: [], virtualPath: "farm.json", path: "farm.json" });
+  initial.contents["farm.json"] = '{"revision":0}';
+  const storage = {
+    load: async () => initial,
+    close() {},
+    save: vi.fn(async (_id: string, pack: RuntimeProjectPackage) => {
+      savedPack = structuredClone(pack);
+    })
+  };
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage as unknown as RuntimeProjectStorage);
+  const session = await RuntimeProjectSession.open("runtime-fast-path", initial.project, "https://example.com/");
+  session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
+  await session.initializeDependencies();
+  const validator = vi.fn((candidate: RuntimeProjectPackage) => {
+    if (candidate.contents["farm.json"] === '{"invalid":true}') throw new Error("Invalid farm state");
+  });
+  const releaseValidator = session.registerProjectValidator(validator);
+  const owner = session.ownRuntimeAsset({ virtualPath: "farm.json", path: "farm.json", type: "Farming" }, "owner");
+  try {
+    await owner.update(() => ({ content: '{"revision":1}', value: 1 }));
+    await expect(owner.update(() => ({ content: '{"invalid":true}', value: 2 }))).rejects.toThrow("Invalid farm state");
+    expect(session.projectPackage.contents["farm.json"]).toBe('{"revision":1}');
+    await owner.update(() => ({ content: '{"revision":2}', value: 3 }));
+    expect(validator).toHaveBeenCalledTimes(3);
+    await session.flush();
+    expect(savedPack?.contents["farm.json"]).toBe('{"revision":2}');
+    // Fallback to full validation path when files change via publish
+    const edited = structuredClone(session.projectPackage);
+    edited.project.directories = ["notes"];
+    await session.publish(edited);
+    await owner.update(() => ({ content: '{"revision":3}', value: 4 }));
+    await session.flush();
+    expect(savedPack?.contents["farm.json"]).toBe('{"revision":3}');
+    expect(savedPack?.project.directories).toEqual(["notes"]);
+  } finally {
+    releaseValidator();
+    owner.dispose();
+    session.dispose();
+    opening.mockRestore();
+  }
+});
+
+it("checks dependencies again when the format changes during a fast-path validator", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const initial = project();
+  const path = "farm.json";
+  const file = { type: "Farming", dependencies: [], virtualPath: path, path };
+  initial.project.files.push(file);
+  initial.contents[path] = "{}";
+  const storage = { load: async () => initial, close() {}, save: vi.fn(async () => {}) };
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage as unknown as RuntimeProjectStorage);
+  const session = await RuntimeProjectSession.open("fast-validation-format-change", initial.project, "https://example.com/");
+  const unregister = session.registerAssetFormats(new Map([[file.type, { references: () => [], referenceTypes: [] }]]));
+  await session.initializeDependencies();
+  const entered = deferred();
+  const gate = deferred();
+  session.registerProjectValidator(async () => {
+    entered.resolve();
+    await gate.promise;
+  });
+  const owner = session.ownRuntimeAsset(file, "owner");
+  try {
+    const pending = owner.update(() => ({ content: '{"revision":1}', value: undefined }));
+    await entered.promise;
+    unregister();
+    session.registerAssetFormats(new Map([[file.type, { references: () => ["mesh.bin"], referenceTypes: ["Mesh"] }]]));
+    expect(session.projectPackage.contents[path]).toBe("{}");
+    gate.resolve();
+    await pending;
+    expect(session.projectPackage.contents[path]).toBe('{"revision":1}');
+    expect(session.projectPackage.project.files.find((entry) => entry.virtualPath === path)?.dependencies).toEqual([
+      "mesh.bin"
+    ]);
+  } finally {
+    gate.resolve();
+    owner.dispose();
+    session.dispose();
+    opening.mockRestore();
+  }
+});
+
+it("keeps manifest validation intact on identical format re-registration and fast-commits unchanged-deps JSON assets", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const { projectHistoryPatch, projectHistoryPatches } = await import("../src/project/runtime-project-history");
+  const formats = new Map([
+    [
+      "JSON",
+      {
+        references: (content: string | Uint8Array) => {
+          const parsed = JSON.parse(typeof content === "string" ? content : new TextDecoder().decode(content));
+          return typeof parsed?.ref === "string" ? [parsed.ref] : [];
+        }
+      }
+    ]
+  ]);
+  const initial = project();
+  initial.project.files.push(
+    { type: "JSON", dependencies: [], virtualPath: "Animals/1.json", path: "runtime:animals", params: { seed: 1 } },
+    { type: "JSON", dependencies: [], virtualPath: "target.json", path: "target.json" }
+  );
+  initial.contents["Animals/1.json"] = '{"count":0}';
+  initial.contents["target.json"] = "{}";
+  const storage = {
+    load: async () => initial,
+    close() {},
+    save: vi.fn(async () => {})
+  };
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage as unknown as RuntimeProjectStorage);
+  const session = await RuntimeProjectSession.open("json-fast-path", initial.project, "https://example.com/");
+  const unregisterA = session.registerAssetFormats(formats);
+  await session.initializeDependencies();
+  const unregisterB = session.registerAssetFormats(formats);
+  const owner = session.ownRuntimeAsset({ virtualPath: "Animals/1.json", path: "runtime:animals", type: "JSON" }, "project");
+  const commitPackageSpy = vi.spyOn(session as unknown as { commitPackage: (...args: unknown[]) => Promise<unknown> }, "commitPackage");
+  try {
+    // Re-registering identical formats must not drop validated manifest state or force commitPackage fallback.
+    await owner.update(() => ({ content: '{"count":1}', value: undefined }));
+    expect(commitPackageSpy).not.toHaveBeenCalled();
+    expect(session.projectPackage.contents["Animals/1.json"]).toBe('{"count":1}');
+
+    // Adding a $ref changes dependencies and must fall back cleanly to commitPackage.
+    await owner.update(() => ({ content: '{"count":2,"ref":"target.json"}', value: undefined }));
+    expect(commitPackageSpy).toHaveBeenCalledTimes(1);
+    expect(session.projectPackage.project.files.find((f) => f.virtualPath === "Animals/1.json")?.dependencies).toEqual([
+      "target.json"
+    ]);
+
+    // Keeping the updated dependencies unchanged on the next write must re-enter fast commit.
+    await owner.update(() => ({ content: '{"count":3,"ref":"target.json"}', value: undefined }));
+    expect(commitPackageSpy).toHaveBeenCalledTimes(1);
+    await session.flush();
+    expect(storage.save).toHaveBeenCalledTimes(1);
+
+    // Verify projectHistoryPatches matches two separate projectHistoryPatch calls across files/params/directories/documents.
+    const prev = structuredClone(session.projectPackage);
+    prev.documents = { "Main.scene.meta": '{"summary":"old"}' };
+    const next = structuredClone(prev);
+    next.project.directories = ["extra"];
+    next.project.files[1].params = { seed: 2 };
+    next.contents["target.json"] = '{"v":2}';
+    next.documents = { "Main.scene.meta": '{"summary":"new"}' };
+    const symmetric = projectHistoryPatches(prev, next);
+    expect(symmetric.before).toEqual(projectHistoryPatch(next, prev));
+    expect(symmetric.after).toEqual(projectHistoryPatch(prev, next));
+  } finally {
+    commitPackageSpy.mockRestore();
+    owner.dispose();
+    unregisterB();
+    unregisterA();
+    session.dispose();
+    opening.mockRestore();
+  }
+});
+
+it("always runs full RuntimeProjectStorage.save validation even after session initialization", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const initial = project();
+  initial.project.files.push({ type: "Farming", dependencies: [], virtualPath: "farm.json", path: "farm.json" });
+  initial.contents["farm.json"] = '{"revision":0}';
+  const tx = {
+    objectStore: () => ({
+      index: () => ({ getKey: () => ({ onsuccess: undefined as (() => void) | undefined, result: undefined }) }),
+      getKey: () => ({ onsuccess: undefined as (() => void) | undefined, result: undefined }),
+      put() {},
+      delete() {}
+    }),
+    oncomplete: undefined as (() => void) | undefined,
+    onabort: undefined as (() => void) | undefined
+  };
+  const realStorage = new RuntimeProjectStorage({
+    transaction: () => tx,
+    close() {}
+  } as unknown as IDBDatabase);
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue({
+    load: async () => initial,
+    close() {},
+    save: (id: string, pack: RuntimeProjectPackage) => realStorage.save(id, pack)
+  } as unknown as RuntimeProjectStorage);
+  const session = await RuntimeProjectSession.open("option-1a-save", initial.project, "https://example.com/");
+  session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
+  await session.initializeDependencies();
+  try {
+    // Mutate manifest in-place after validation: Option 1A must still reject it on save().
+    session.projectPackage.project.scene = "Scene/missing.scene";
+    await expect(realStorage.save(session.id, session.projectPackage)).rejects.toThrow(
+      "Unregistered runtime Scene 'Scene/missing.scene'"
+    );
+  } finally {
+    realStorage.close();
+    session.dispose();
+    opening.mockRestore();
+  }
+});
+
+it("flushes async hidden-tab commits immediately via attachProjectSaveLifecycle without looping on failure", async () => {
+  vi.useFakeTimers();
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const { attachProjectSaveLifecycle } = await import("../src/project/project-save-control");
+  const initial = project();
+  initial.project.files.push({ type: "Farming", dependencies: [], virtualPath: "farm.json", path: "farm.json" });
+  initial.contents["farm.json"] = '{"revision":0}';
+  let failNext = false;
+  const saveMock = vi.fn(async () => {
+    if (failNext) throw new Error("Simulated IDB failure");
+  });
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue({
+    load: async () => initial,
+    close() {},
+    save: saveMock
+  } as unknown as RuntimeProjectStorage);
+  const session = await RuntimeProjectSession.open("hidden-flush-race", initial.project, "https://example.com/");
+  session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
+  await session.initializeDependencies();
+  const owner = session.ownRuntimeAsset({ virtualPath: "farm.json", path: "farm.json", type: "Farming" }, "owner");
+  const fakeWindow = new EventTarget() as unknown as Window;
+  const fakeDoc = Object.assign(new EventTarget(), { visibilityState: "visible" as DocumentVisibilityState }) as unknown as Document;
+  const abort = new AbortController();
+  const unsubscribe = attachProjectSaveLifecycle(session, fakeWindow, fakeDoc, () => {}, abort.signal);
+  try {
+    // Switch tab hidden: visibilitychange fires BEFORE FarmingService finishes async checkpoint update.
+    (fakeDoc as unknown as { visibilityState: DocumentVisibilityState }).visibilityState = "hidden";
+    fakeDoc.dispatchEvent(new Event("visibilitychange"));
+    expect(saveMock).not.toHaveBeenCalled();
+
+    // Async commit completes while hidden: must flush before the 250ms debounce timer elapses.
+    await owner.update(() => ({ content: '{"revision":1}', value: 1 }));
+    await vi.advanceTimersByTimeAsync(1);
+    expect(saveMock).toHaveBeenCalledTimes(1);
+    expect(session.persistenceStatus.state).toBe("saved");
+
+    // Failed hidden save must stay failed without loop-retrying.
+    failNext = true;
+    await owner.update(() => ({ content: '{"revision":2}', value: 2 }));
+    await vi.advanceTimersByTimeAsync(1);
+    expect(saveMock).toHaveBeenCalledTimes(2);
+    expect(session.persistenceStatus.state).toBe("failed");
+    await vi.advanceTimersByTimeAsync(500);
+    expect(saveMock).toHaveBeenCalledTimes(2);
+  } finally {
+    abort.abort();
+    unsubscribe();
+    owner.dispose();
+    session.dispose();
+    opening.mockRestore();
+    vi.useRealTimers();
+  }
+});
+
+it("tears down DOM listeners and persistence subscription symmetrically via signal, dispose(), or pre-aborted signal", async () => {
+  const { attachProjectSaveLifecycle } = await import("../src/project/project-save-control");
+  const listeners = new Set<() => void>();
+  const status = { commitSeq: 2, savedSeq: 1, state: "pending" as const, error: undefined };
+  const flushMock = vi.fn(async () => {});
+  const subscribeMock = vi.fn((listener: () => void) => {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  });
+  const projectLike = {
+    get persistenceStatus() {
+      return status;
+    },
+    subscribePersistence: subscribeMock,
+    flush: flushMock
+  };
+
+  // 1. Aborting external signal without calling dispose() unsubscribes subscribePersistence and detaches DOM listeners.
+  const win1 = new EventTarget() as unknown as Window;
+  const doc1 = Object.assign(new EventTarget(), { visibilityState: "hidden" as DocumentVisibilityState }) as unknown as Document;
+  const onChange1 = vi.fn();
+  const abort1 = new AbortController();
+  attachProjectSaveLifecycle(projectLike, win1, doc1, onChange1, abort1.signal);
+  expect(listeners.size).toBe(1);
+
+  abort1.abort();
+  expect(listeners.size).toBe(0);
+  for (const listener of listeners) listener();
+  doc1.dispatchEvent(new Event("visibilitychange"));
+  const unloadEvent1 = new Event("beforeunload", { cancelable: true });
+  win1.dispatchEvent(unloadEvent1);
+  expect(onChange1).not.toHaveBeenCalled();
+  expect(flushMock).not.toHaveBeenCalled();
+  expect(unloadEvent1.defaultPrevented).toBe(false);
+
+  // 2. Omitting signal and calling returned dispose() detaches DOM listeners and unsubscribes persistence.
+  const win2 = new EventTarget() as unknown as Window;
+  const doc2 = Object.assign(new EventTarget(), { visibilityState: "hidden" as DocumentVisibilityState }) as unknown as Document;
+  const onChange2 = vi.fn();
+  const dispose2 = attachProjectSaveLifecycle(projectLike, win2, doc2, onChange2);
+  expect(listeners.size).toBe(1);
+
+  // Confirm active before dispose: visibilitychange triggers flush and beforeunload prevents unload.
+  doc2.dispatchEvent(new Event("visibilitychange"));
+  expect(flushMock).toHaveBeenCalledTimes(1);
+  const unloadActive = new Event("beforeunload", { cancelable: true });
+  win2.dispatchEvent(unloadActive);
+  expect(unloadActive.defaultPrevented).toBe(true);
+
+  dispose2();
+  expect(listeners.size).toBe(0);
+  doc2.dispatchEvent(new Event("visibilitychange"));
+  expect(flushMock).toHaveBeenCalledTimes(1);
+  const unloadAfterDispose = new Event("beforeunload", { cancelable: true });
+  win2.dispatchEvent(unloadAfterDispose);
+  expect(unloadAfterDispose.defaultPrevented).toBe(false);
+
+  // 3. Pre-aborted signal registers zero DOM listeners and zero persistence subscriptions.
+  const preAborted = new AbortController();
+  preAborted.abort();
+  const winAdd = vi.fn();
+  const docAdd = vi.fn();
+  subscribeMock.mockClear();
+  const dispose3 = attachProjectSaveLifecycle(
+    projectLike,
+    { addEventListener: winAdd } as unknown as Window,
+    { addEventListener: docAdd, visibilityState: "visible" } as unknown as Document,
+    () => {},
+    preAborted.signal
+  );
+  expect(winAdd).not.toHaveBeenCalled();
+  expect(docAdd).not.toHaveBeenCalled();
+  expect(subscribeMock).not.toHaveBeenCalled();
+  expect(() => dispose3()).not.toThrow();
+});
+
+function createInMemoryProjectStorage() {
+  const hadIDBKeyRange = "IDBKeyRange" in globalThis;
+  const previousIDBKeyRange = (globalThis as { IDBKeyRange?: unknown }).IDBKeyRange;
+  if (!hadIDBKeyRange) {
+    (globalThis as { IDBKeyRange?: unknown }).IDBKeyRange = {
+      bound: (lower: unknown, upper: unknown) => ({ lower, upper })
+    };
+  }
+  const projects = new Map<string, Record<string, unknown>>();
+  const projectRevisions = new Map<string, { storageRevision: string }>();
+  const projectFiles = new Map<string, string | Uint8Array>();
+  const stats = { projectsPutCount: 0, revisionsPutCount: 0, filesPutCount: 0, filesRangeDeleteCount: 0 };
+  const fileKey = (key: [string, string, string]) => `${key[0]}\0${key[1]}\0${key[2]}`;
+  const database = {
+    transaction() {
+      let aborted = false;
+      const pending: Array<() => void> = [];
+      const tx = {
+        error: undefined as unknown,
+        oncomplete: undefined as (() => void) | undefined,
+        onabort: undefined as (() => void) | undefined,
+        abort() {
+          aborted = true;
+          queueMicrotask(() => tx.onabort?.());
+        },
+        objectStore(name: string) {
+          if (name === "projects") {
+            return {
+              get(id: string) {
+                const req = { result: undefined as unknown, onsuccess: undefined as (() => void) | undefined };
+                pending.push(() => {
+                  req.result = structuredClone(projects.get(id));
+                  req.onsuccess?.();
+                });
+                return req;
+              },
+              getAllKeys() {
+                const req = { result: undefined as unknown, onsuccess: undefined as (() => void) | undefined };
+                pending.push(() => {
+                  req.result = [...projects.keys()];
+                  req.onsuccess?.();
+                });
+                return req;
+              },
+              put(header: Record<string, unknown>, id: string) {
+                stats.projectsPutCount++;
+                projects.set(id, structuredClone(header));
+              },
+              delete(id: string) {
+                projects.delete(id);
+              }
+            };
+          }
+          if (name === "projectRevisions") {
+            return {
+              get(id: string) {
+                const req = { result: undefined as unknown, onsuccess: undefined as (() => void) | undefined };
+                pending.push(() => {
+                  req.result = structuredClone(projectRevisions.get(id));
+                  req.onsuccess?.();
+                });
+                return req;
+              },
+              getKey(id: string) {
+                const req = { result: undefined as unknown, onsuccess: undefined as (() => void) | undefined };
+                pending.push(() => {
+                  req.result = projectRevisions.has(id) ? id : undefined;
+                  req.onsuccess?.();
+                });
+                return req;
+              },
+              index(_idx: string) {
+                return {
+                  getKey(revision: string) {
+                    const req = { result: undefined as unknown, onsuccess: undefined as (() => void) | undefined };
+                    pending.push(() => {
+                      for (const [id, entry] of projectRevisions) {
+                        if (entry.storageRevision === revision) {
+                          req.result = id;
+                          break;
+                        }
+                      }
+                      req.onsuccess?.();
+                    });
+                    return req;
+                  }
+                };
+              },
+              put(entry: { storageRevision: string }, id: string) {
+                stats.revisionsPutCount++;
+                projectRevisions.set(id, structuredClone(entry));
+              },
+              delete(id: string) {
+                projectRevisions.delete(id);
+              }
+            };
+          }
+          return {
+            get(key: [string, string, string]) {
+              const req = { result: undefined as unknown, onsuccess: undefined as (() => void) | undefined };
+              pending.push(() => {
+                const found = projectFiles.get(fileKey(key));
+                req.result = found instanceof Uint8Array ? new Uint8Array(found) : found;
+                req.onsuccess?.();
+              });
+              return req;
+            },
+            put(content: string | Uint8Array, key: [string, string, string]) {
+              stats.filesPutCount++;
+              projectFiles.set(fileKey(key), content instanceof Uint8Array ? new Uint8Array(content) : content);
+            },
+            delete(target: [string, string, string] | { lower?: [string] }) {
+              if (Array.isArray(target)) {
+                projectFiles.delete(fileKey(target));
+              } else if (Array.isArray(target?.lower)) {
+                stats.filesRangeDeleteCount++;
+                const prefix = `${target.lower[0]}\0`;
+                for (const key of [...projectFiles.keys()]) {
+                  if (key.startsWith(prefix)) projectFiles.delete(key);
+                }
+              }
+            }
+          };
+        }
+      };
+      queueMicrotask(() => {
+        for (let i = 0; i < pending.length; i++) {
+          if (aborted) return;
+          pending[i]();
+        }
+        if (!aborted) tx.oncomplete?.();
+      });
+      return tx;
+    },
+    close() {
+      if (!hadIDBKeyRange) delete (globalThis as { IDBKeyRange?: unknown }).IDBKeyRange;
+      else (globalThis as { IDBKeyRange?: unknown }).IDBKeyRange = previousIDBKeyRange;
+    }
+  };
+  return {
+    projects,
+    projectRevisions,
+    projectFiles,
+    stats,
+    storage: new RuntimeProjectStorage(database as unknown as IDBDatabase)
+  };
+}
+
+it("publishes a dependent asset batch atomically and persists a successful retry through a fast save", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const { storage, projectFiles, stats } = createInMemoryProjectStorage();
+  const id = "dependent-hydration-checkpoint";
+  const initial = project();
+  const texture = { virtualPath: "Textures/albedo.png", path: "albedo.png", type: "Texture", dependencies: [] };
+  const materials = ["wall", "floor", "roof"].map((name) => ({
+    virtualPath: `Materials/${name}.mat`,
+    path: `https://example.test/${name}.mat`,
+    type: "Material",
+    dependencies: [texture.virtualPath]
+  }));
+  const [wall, floor, roof] = materials;
+  const farm = { virtualPath: "farm.json", path: "farm.json", type: "Farming", dependencies: [] };
+  const materialContent = (name: string) =>
+    JSON.stringify({
+      name,
+      shader: "pbr",
+      macros: [],
+      shaderData: { material_BaseTexture: { type: "Texture", value: { url: texture.virtualPath } } }
+    });
+  initial.project.files.push(texture, ...materials, farm);
+  initial.contents[farm.virtualPath] = '{"revision":0}';
+  await storage.save(id, initial);
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage);
+  const readingRoof = Promise.withResolvers<void>();
+  const releaseRoof = Promise.withResolvers<void>();
+  const fetching = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    if (input === wall.path) return new Response(materialContent("wall"));
+    if (input === floor.path) return new Response(materialContent("floor"));
+    if (input === roof.path) {
+      readingRoof.resolve();
+      await releaseRoof.promise;
+      return new Response(materialContent("old roof"));
+    }
+    throw new Error(`Unexpected fetch: ${String(input)}`);
+  });
+  const session = await RuntimeProjectSession.open(id, initial.project, "https://example.test/");
+  session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
+  await session.initializeDependencies();
+  session.registerProjectValidator(() => {});
+  const owner = session.ownRuntimeAsset(farm, "owner");
+  const read = vi.fn((file: RuntimeProjectManifest["files"][number]) => ({
+    path: file.virtualPath,
+    wall: session.projectPackage.contents[wall.virtualPath],
+    floor: session.projectPackage.contents[floor.virtualPath]
+  }));
+  const unobserve = session.observeAssetReads(read);
+  const saveFarm = async (revision: number) => {
+    const manifest = session.projectPackage.project;
+    await owner.update(() => ({ content: JSON.stringify({ revision }), value: undefined }));
+    expect(session.projectPackage.project).toBe(manifest);
+    await session.flush();
+  };
+  try {
+    await session.resources();
+    await session.publishAsset(texture, new Uint8Array([255, 216, 255, 224]));
+    const failedBatch = session.resources();
+    const rejected = expect(failedBatch).rejects.toThrow(`Asset changed while reading '${roof.virtualPath}'`);
+    await Promise.race([readingRoof.promise, failedBatch]);
+    await session.publishAsset(roof, materialContent("edited roof"));
+    await session.flush();
+    const before = structuredClone(session.projectPackage);
+    const { commitSeq } = session.persistenceStatus;
+    const headerWrites = stats.projectsPutCount;
+
+    releaseRoof.resolve();
+    await rejected;
+    expect(session.projectPackage).toEqual(before);
+    expect(session.persistenceStatus.commitSeq).toBe(commitSeq);
+    expect(read).not.toHaveBeenCalled();
+    await saveFarm(1);
+    expect(projectFiles.has(`${id}\0asset\0${wall.virtualPath}`)).toBe(false);
+    expect(projectFiles.has(`${id}\0asset\0${floor.virtualPath}`)).toBe(false);
+    expect(stats.projectsPutCount).toBe(headerWrites);
+
+    await session.resources();
+    expect(read.mock.results.map(({ value }) => value)).toEqual(
+      [wall, floor].map(({ virtualPath }) => ({
+        path: virtualPath,
+        wall: materialContent("wall"),
+        floor: materialContent("floor")
+      }))
+    );
+    expect(session.projectPackage.contents[roof.virtualPath]).toBe(materialContent("edited roof"));
+    await saveFarm(2);
+    expect(projectFiles.get(`${id}\0asset\0${wall.virtualPath}`)).toBe(materialContent("wall"));
+    expect(projectFiles.get(`${id}\0asset\0${floor.virtualPath}`)).toBe(materialContent("floor"));
+    expect(stats.projectsPutCount).toBe(headerWrites + 1);
+
+    const { filesPutCount } = stats;
+    await saveFarm(3);
+    expect(stats.projectsPutCount).toBe(headerWrites + 1);
+    expect(stats.filesPutCount).toBe(filesPutCount + 1);
+    expect(await storage.load(id)).toEqual(session.projectPackage);
+  } finally {
+    releaseRoof.resolve();
+    unobserve();
+    owner.dispose();
+    session.dispose();
+    fetching.mockRestore();
+    opening.mockRestore();
+  }
+});
+
+it.each(["runtime", "authored"])("keeps validator mutations out of %s publications and storage", async (kind) => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const { storage } = createInMemoryProjectStorage();
+  const initial = project();
+  const farmPath = "farm.json";
+  const farmFile = { type: "Farming", dependencies: [], virtualPath: farmPath, path: farmPath };
+  initial.project.files.push(farmFile);
+  initial.contents[farmPath] = '{"revision":0}';
+  initial.documents = { "notes.md": "before" };
+  const id = "runtime-owned-validator";
+  await storage.save(id, initial);
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage);
+  const session = await RuntimeProjectSession.open(id, initial.project, "https://example.com/");
+  session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
+  await session.initializeDependencies();
+  const owner = session.ownRuntimeAsset(farmFile, "owner");
+  let checked: RuntimeProjectPackage | undefined;
+  let reject = true;
+  const validate = vi.fn(async (candidate: RuntimeProjectPackage) => {
+    checked = candidate;
+    await Promise.resolve();
+    candidate.project.files[0].path = "updated.scene";
+    candidate.documents!["notes.md"] = "after";
+    (candidate.contents["mesh.bin"] as Uint8Array)[0] = 9;
+    candidate.contents[farmPath] = '{"revision":2}';
+    if (reject) throw Error("Rejected farm update");
+  });
+  const unregister = session.registerProjectValidator(validate);
+  try {
+    const update = () =>
+      kind === "runtime"
+        ? owner.update(() => ({ content: '{"revision":1}', value: undefined }))
+        : session.publish({ ...session.projectPackage, documents: { "notes.md": "authored" } });
+    const before = structuredClone(session.projectPackage);
+    const commitSeq = session.persistenceStatus.commitSeq;
+
+    await expect(update()).rejects.toThrow("Rejected farm update");
+    expect(session.projectPackage).toEqual(before);
+    expect(session.persistenceStatus.commitSeq).toBe(commitSeq);
+    expect(await storage.load(id)).toEqual(before);
+
+    reject = false;
+    await update();
+    expect(validate).toHaveBeenCalledTimes(2);
+    expect(session.projectPackage.project.files[0].path).toBe("main.scene");
+    expect(session.projectPackage.documents!["notes.md"]).toBe(kind === "authored" ? "authored" : "before");
+    expect(session.projectPackage.contents["mesh.bin"]).toEqual(new Uint8Array([1, 2]));
+    expect(session.projectPackage.contents[farmPath]).toBe(kind === "runtime" ? '{"revision":1}' : '{"revision":0}');
+    expect(session.persistenceStatus.commitSeq).toBe(commitSeq + 1);
+
+    // A validator retaining the candidate cannot mutate the accepted project later.
+    checked!.project.files[0].path = "retained.scene";
+    (checked!.contents["mesh.bin"] as Uint8Array)[0] = 7;
+    expect(session.projectPackage.project.files[0].path).toBe("main.scene");
+    expect(session.projectPackage.contents["mesh.bin"]).toEqual(new Uint8Array([1, 2]));
+    await session.flush();
+    expect(await storage.load(id)).toEqual(session.projectPackage);
+  } finally {
+    unregister();
+    owner.dispose();
+    session.dispose();
+    opening.mockRestore();
+  }
+});
+
+it("Option 1B: persists via private saveSnapshot without exposing fastPath to in-place projectPackage mutations", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const { projects, projectRevisions, projectFiles, stats, storage } = createInMemoryProjectStorage();
+  const initial = project();
+  initial.project.files.push({ type: "Farming", dependencies: [], virtualPath: "farm.json", path: "farm.json" });
+  initial.contents["farm.json"] = '{"revision":0}';
+
+  const saveSpy = vi.spyOn(storage, "save");
+  const saveSnapshotSpy = vi.spyOn(storage, "saveSnapshot");
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage);
+
+  const session = await RuntimeProjectSession.open("option-1b-idb", initial.project, "https://example.com/");
+  session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
+  await session.initializeDependencies();
+  const owner = session.ownRuntimeAsset({ virtualPath: "farm.json", path: "farm.json", type: "Farming" }, "owner");
+  const validate = vi.fn((candidate: Readonly<RuntimeProjectPackage>) => {
+    expect(candidate.contents["farm.json"]).toMatch(/^\{"revision":\d+\}$/);
+  });
+  const unregister = session.registerProjectValidator(validate);
+  try {
+    // 1. First steady-state save writes header + revision + initial baseline files via saveSnapshot.
+    await owner.update(() => ({ content: '{"revision":1}', value: 1 }));
+    await session.flush();
+    expect(saveSnapshotSpy).toHaveBeenCalledTimes(1);
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(stats.projectsPutCount).toBe(1);
+    expect(stats.revisionsPutCount).toBe(1);
+    expect(stats.filesRangeDeleteCount).toBe(1);
+    const initialFilesPutCount = stats.filesPutCount;
+    expect(initialFilesPutCount).toBe(1);
+    const firstRev = projectRevisions.get("option-1b-idb")?.storageRevision;
+    expect(firstRev).toBeTruthy();
+    expect(projectFiles.get("option-1b-idb\0asset\0farm.json")).toBe('{"revision":1}');
+
+    const manifest = session.projectPackage.project;
+    await owner.update(() => ({ content: '{"revision":2}', value: 2 }));
+    await session.flush();
+    expect(session.projectPackage.project).toBe(manifest);
+    expect(stats.projectsPutCount).toBe(1);
+
+    // 2. External in-place corruption of public projectPackage must NOT poison saveSnapshot or slip into IDB.
+    // Steady-state content update also skips rewriting the projects header and only puts the changed asset.
+    session.projectPackage.project.scene = "Scene/missing.scene";
+    session.projectPackage.contents["farm.json"] = '{"revision":999,"tampered":true}';
+
+    await owner.update(() => ({ content: '{"revision":3}', value: 3 }));
+    await session.flush();
+    expect(validate).toHaveBeenCalledTimes(3);
+    expect(saveSnapshotSpy).toHaveBeenCalledTimes(3);
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(stats.projectsPutCount).toBe(1);
+    expect(stats.revisionsPutCount).toBe(3);
+    expect(stats.filesRangeDeleteCount).toBe(1);
+    expect(stats.filesPutCount).toBe(initialFilesPutCount + 2);
+    expect(projectRevisions.get("option-1b-idb")?.storageRevision).not.toBe(firstRev);
+    expect((projects.get("option-1b-idb")?.project as { scene: string }).scene).toBe("Scene/main.scene");
+    expect(projectFiles.get("option-1b-idb\0asset\0farm.json")).toBe('{"revision":3}');
+
+    // 3. Both session.save() and public storage.save() read/validate the mutated projectPackage and reject it.
+    await expect(session.save()).rejects.toThrow("Unregistered runtime Scene 'Scene/missing.scene'");
+    await expect(storage.save(session.id, session.projectPackage)).rejects.toThrow(
+      "Unregistered runtime Scene 'Scene/missing.scene'"
+    );
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+  } finally {
+    unregister();
+    saveSpy.mockRestore();
+    saveSnapshotSpy.mockRestore();
+    owner.dispose();
+    session.dispose();
+    opening.mockRestore();
+  }
+});
+
+it("v5 single-format skips headers for content-only writes, rewrites on manifest/file changes or concurrent writes, and cleans all stores", async () => {
+  const { projects, projectRevisions, projectFiles, stats, storage } = createInMemoryProjectStorage();
+  try {
+    const base = project();
+    base.project.files.push({ type: "JSON", dependencies: [], virtualPath: "farm.json", path: "farm.json" });
+    base.contents["farm.json"] = '{"rev":0}';
+    const snap0 = RuntimeProjectSnapshot.create(base);
+
+    // Initial write has no baseline -> clears prior range, writes header + revision + all 3 files.
+    await storage.saveSnapshot("header-skip", snap0);
+    expect(stats.projectsPutCount).toBe(1);
+    expect(stats.revisionsPutCount).toBe(1);
+    expect(stats.filesRangeDeleteCount).toBe(1);
+    expect(stats.filesPutCount).toBe(3);
+
+    // Content-only update reuses baseline & header -> skips projects.put and only puts the changed asset.
+    const snap1 = snap0.withUpdatedContent("farm.json", '{"rev":1}');
+    await storage.saveSnapshot("header-skip", snap1);
+    expect(stats.projectsPutCount).toBe(1);
+    expect(stats.revisionsPutCount).toBe(2);
+    expect(stats.filesRangeDeleteCount).toBe(1);
+    expect(stats.filesPutCount).toBe(4);
+
+    // Adding a file changes manifest/contentPaths -> keeps baseline diffing (only new/changed files) and rewrites projects header.
+    const withNewFile = structuredClone(base);
+    withNewFile.project.files.push({ type: "JSON", dependencies: [], virtualPath: "extra.json", path: "extra.json" });
+    withNewFile.contents["farm.json"] = '{"rev":2}';
+    withNewFile.contents["extra.json"] = '{"ok":true}';
+    const snap2 = RuntimeProjectSnapshot.create(withNewFile);
+    await storage.saveSnapshot("header-skip", snap2);
+    expect(stats.projectsPutCount).toBe(2);
+    expect(stats.filesRangeDeleteCount).toBe(1);
+    expect(stats.filesPutCount).toBe(6);
+
+    // Simulate another writer changing projectRevisions + leaving an extra stale file:
+    // next save sees missing revision key -> clears stale files & forces full rewrite + header rewrite.
+    projectRevisions.set("header-skip", { storageRevision: "other-tab-revision" });
+    projectFiles.set("header-skip\0asset\0stale.json", "stale");
+    const snap3 = snap2.withUpdatedContent("farm.json", '{"rev":3}');
+    await storage.saveSnapshot("header-skip", snap3);
+    expect(stats.projectsPutCount).toBe(3);
+    expect(stats.filesRangeDeleteCount).toBe(2);
+    expect(projectFiles.has("header-skip\0asset\0stale.json")).toBe(false);
+
+    // Reload returns exact latest package, and deleteMatching cleans projects, projectRevisions, and projectFiles.
+    const restored = await storage.load("header-skip");
+    expect(restored?.contents["farm.json"]).toBe('{"rev":3}');
+    expect(restored?.contents["extra.json"]).toBe('{"ok":true}');
+
+    const removed = await storage.deleteMatching((id) => id === "header-skip");
+    expect(removed).toEqual(["header-skip"]);
+    expect(projects.has("header-skip")).toBe(false);
+    expect(projectRevisions.has("header-skip")).toBe(false);
+    expect([...projectFiles.keys()].some((k) => k.startsWith("header-skip\0"))).toBe(false);
+    expect(await storage.load("header-skip")).toBeUndefined();
+  } finally {
+    storage.close();
+  }
+});
+
+it("RuntimeProjectSnapshot isolates binary payloads and rejects tampering or forged tokens", async () => {
+  const { projectFiles, storage } = createInMemoryProjectStorage();
+  try {
+    const pack = project();
+    const initialBytes = pack.contents["mesh.bin"] as Uint8Array;
+    const snapshot = RuntimeProjectSnapshot.create(pack);
+
+    // Mutating input Uint8Array or manifest after snapshot creation must not alter the snapshot.
+    initialBytes[0] = 99;
+    pack.project.scene = "Scene/corrupted.scene";
+
+    expect(snapshot.hasPath("mesh.bin")).toBe(true);
+    expect(snapshot.hasPath("missing.bin")).toBe(false);
+    expect(() => snapshot.withUpdatedContent("missing.bin", "x")).toThrow("Unregistered runtime asset content");
+    expect(() => snapshot.withUpdatedContent("mesh.bin", null as unknown as string)).toThrow(
+      "Invalid runtime asset content"
+    );
+    expect(() => snapshot.withUpdatedContents([["mesh.bin", "ok"], ["missing.bin", "bad"]])).toThrow(
+      "Unregistered runtime asset content"
+    );
+
+    const nextBytes = new Uint8Array([7, 8, 9]);
+    const updated = snapshot.withUpdatedContent("mesh.bin", nextBytes);
+    nextBytes[1] = 255;
+
+    await storage.saveSnapshot("snap-iso", snapshot);
+    expect(projectFiles.get("snap-iso\0asset\0mesh.bin")).toEqual(new Uint8Array([1, 2]));
+
+    await storage.saveSnapshot("snap-iso", updated);
+    expect(projectFiles.get("snap-iso\0asset\0mesh.bin")).toEqual(new Uint8Array([7, 8, 9]));
+
+    const loaded = await storage.load("snap-iso");
+    expect(loaded?.project.scene).toBe("Scene/main.scene");
+    expect(loaded?.contents["mesh.bin"]).toEqual(new Uint8Array([7, 8, 9]));
+
+    await expect(storage.saveSnapshot("snap-iso", {} as unknown as RuntimeProjectSnapshot)).rejects.toThrow(
+      "Invalid runtime project snapshot"
+    );
+  } finally {
+    storage.close();
+  }
+});
+
+it("preserves exact assertAssetPath, validateRuntimeProject, and cloneRuntimeProjectPackage edge cases", () => {
+  for (const valid of [
+    "Scene/main.scene",
+    "skills.meta/x",
+    "editor.meta/x",
+    "a/.ai",
+    "a/b:c",
+    "...",
+    "Assets/Sub:Folder/item.json"
+  ]) {
+    expect(() => assertAssetPath(valid)).not.toThrow();
+  }
+  for (const invalid of [
+    "",
+    ".",
+    "..",
+    "a/.",
+    "a/..",
+    "a/../b",
+    "a//b",
+    "/a",
+    "a/",
+    "a\\b",
+    "a?b",
+    "a#b",
+    "http://example.com/a",
+    "data:text/plain",
+    "skills",
+    "skills.meta",
+    "skills/a",
+    "declare",
+    "declare/x",
+    ".ai",
+    ".ai/file",
+    "remote",
+    "remote/file",
+    "project.json",
+    "project.json.meta",
+    "editor",
+    "editor.meta",
+    "editor/file",
+    "engine",
+    "engine.meta",
+    "engine/file"
+  ]) {
+    expect(() => assertAssetPath(invalid), `expected '${invalid}' to throw`).toThrow("Invalid runtime asset path");
+  }
+
+  // Dependency duplicate error must run before invalid dependency path check.
+  const dupDeps = project();
+  dupDeps.project.files[0].dependencies = ["Scene/other.scene", "Scene/other.scene", "bad\\dep"];
+  expect(() => validateRuntimeProject(dupDeps)).toThrow("Invalid asset dependencies");
+
+  // Invalid non-registered dependency path must still fail assertAssetPath inside validateRuntimeProject.
+  const badDep = project();
+  badDep.project.files[0].dependencies = ["bad\\dep"];
+  expect(() => validateRuntimeProject(badDep)).toThrow("Invalid runtime asset path");
+
+  // Implicit parent directory from documents conflicts with registered file at that path.
+  const docDirConflict = project();
+  docDirConflict.project.files.push({ type: "JSON", virtualPath: "docs", path: "docs.json" });
+  docDirConflict.documents = { "docs/readme.txt": "hello" };
+  expect(() => validateRuntimeProject(docDirConflict)).toThrow("Path already exists: 'docs'");
+
+  // Explicit directory conflicts with document at exact path.
+  const explicitDirDocConflict = project();
+  explicitDirDocConflict.project.directories = ["Notes"];
+  explicitDirDocConflict.documents = { Notes: "note" };
+  expect(() => validateRuntimeProject(explicitDirDocConflict)).toThrow("Path already exists: 'Notes'");
+
+  // cloneRuntimeProjectPackage deep isolates metadata/params/dependencies/uint8 while keeping undefined keys.
+  const orig = project();
+  orig.project.engineVersion = undefined;
+  orig.project.files[0].params = { nested: { tags: ["a", "b"] } };
+  orig.documents = { "mesh.bin.meta": '{"summary":"m"}' };
+  const cloned = cloneRuntimeProjectPackage(orig);
+  expect(Object.hasOwn(cloned.project, "engineVersion")).toBe(true);
+  expect(cloned.project.engineVersion).toBeUndefined();
+  expect(cloned).toEqual(orig);
+  (cloned.project.files[0].params!.nested as { tags: string[] }).tags.push("c");
+  (cloned.contents["mesh.bin"] as Uint8Array)[0] = 77;
+  cloned.documents!["mesh.bin.meta"] = '{"summary":"changed"}';
+  expect((orig.project.files[0].params!.nested as { tags: string[] }).tags).toEqual(["a", "b"]);
+  expect((orig.contents["mesh.bin"] as Uint8Array)[0]).toBe(1);
+  expect(orig.documents["mesh.bin.meta"]).toBe('{"summary":"m"}');
 });

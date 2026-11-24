@@ -796,9 +796,36 @@ function* planningNaturalGroundPopulationSteps(
     const oldSource = previous?.source.detailDensityFields.find((old) => old.prototypeFamily === field.prototypeFamily);
     const oldField = previous?.result.detailDensityFields.find((old) => old.prototypeFamily === field.prototypeFamily);
     const cachedEdges = readRoadEdgeEntry(roadEdges.get(field.samples.length));
-    const reusable =
+    const grassRelHeight = settings.grassRelativeHeight;
+    const lowerMult = 1 - settings.grassHeightVariation;
+    const shrubHeight = heights?.shrubs ?? 0;
+    const grassHeight = heights?.grass ?? 0;
+    const maxFlowerHeight = flowerHeights.reduce((best, region) => Math.max(best, region.height), 0);
+    const currentUpperBound =
+      Math.max(grassHeight, shrubHeight, maxFlowerHeight) *
+      grassRelHeight *
+      Math.max(1, settings.roadsideGrassHeightRatio);
+    const useCompactUint16 =
+      Boolean(plan && heights) &&
+      Number.isFinite(currentUpperBound) &&
+      currentUpperBound > 0 &&
+      Number.isFinite(lowerMult) &&
+      lowerMult > 0 &&
+      lowerMult <= 1;
+    const reusableBase =
       oldSource && oldField?.heightRangeMetres && cachedEdges && oldField.samples.length === field.samples.length
         ? oldField
+        : undefined;
+    const reusableHeight = reusableBase?.heightRangeMetres;
+    const reusable =
+      reusableBase &&
+      (useCompactUint16
+        ? reusableHeight?.samples instanceof Uint16Array &&
+          reusableHeight.encodeScale !== undefined &&
+          reusableHeight.encodeScale >= currentUpperBound &&
+          reusableHeight.lowerMultiplier === lowerMult
+        : reusableHeight?.samples instanceof Float32Array)
+        ? reusableBase
         : undefined;
     const groundSamples = densityAt
       ? reusable
@@ -867,9 +894,14 @@ function* planningNaturalGroundPopulationSteps(
           edges.fill(1);
         }
       }
-      const samples = reusable
-        ? new Float32Array(reusable.heightRangeMetres!.samples)
-        : new Float32Array(field.samples.length * 2);
+      const encodeScale = useCompactUint16 ? (reusable?.heightRangeMetres?.encodeScale ?? currentUpperBound) : 0;
+      const samples = useCompactUint16
+        ? reusable
+          ? new Uint16Array(reusable.heightRangeMetres!.samples as Uint16Array)
+          : new Uint16Array(field.samples.length)
+        : reusable
+          ? new Float32Array(reusable.heightRangeMetres!.samples)
+          : new Float32Array(field.samples.length * 2);
       let minimum = Infinity,
         maximum = 0;
       const p = { x: 0, z: 0 };
@@ -877,10 +909,6 @@ function* planningNaturalGroundPopulationSteps(
       const oldFlowerSamples = oldFlowers?.samples;
       const oldSrcSamples = oldSource?.samples;
       const srcSamples = field.samples;
-      const grassRelHeight = settings.grassRelativeHeight;
-      const lowerMult = 1 - settings.grassHeightVariation;
-      const shrubHeight = heights.shrubs;
-      const grassHeight = heights.grass;
       for (let index = 0; index < srcSamples.length; index++) {
         if (index > 0 && index % (resolution * 16) === 0) yield;
         if (
@@ -889,8 +917,14 @@ function* planningNaturalGroundPopulationSteps(
           Boolean(oldFlowerSamples?.[index]) === Boolean(flowerSamples?.[index]) &&
           (!flowerContextChanged || !flowerSamples?.[index])
         ) {
-          const lo = samples[index * 2],
-            hi = samples[index * 2 + 1];
+          let lo: number, hi: number;
+          if (samples instanceof Uint16Array) {
+            hi = (samples[index]! / 65535) * encodeScale;
+            lo = hi * lowerMult;
+          } else {
+            lo = samples[index * 2]!;
+            hi = samples[index * 2 + 1]!;
+          }
           if (lo < minimum) minimum = lo;
           if (hi > maximum) maximum = hi;
           continue;
@@ -918,22 +952,41 @@ function* planningNaturalGroundPopulationSteps(
         const accent = Math.min(density.shrubs! > 0 ? shrubHeight : Infinity, flowerHeight);
         const reference = Number.isFinite(accent) ? accent : grassHeight;
         const upper = reference * grassRelHeight * edges[index];
-        samples[index * 2] = upper * lowerMult;
-        samples[index * 2 + 1] = upper;
-        const fLo = samples[index * 2];
-        const fHi = samples[index * 2 + 1];
+        let fLo: number, fHi: number;
+        if (samples instanceof Uint16Array) {
+          let q = Math.min(65535, Math.max(0, Math.round((upper / encodeScale) * 65535)));
+          if (upper > 0 && q === 0) q = 1;
+          samples[index] = q;
+          fHi = (q / 65535) * encodeScale;
+          fLo = fHi * lowerMult;
+        } else {
+          samples[index * 2] = upper * lowerMult;
+          samples[index * 2 + 1] = upper;
+          fLo = samples[index * 2];
+          fHi = samples[index * 2 + 1];
+        }
         if (fLo < minimum) minimum = fLo;
         if (fHi > maximum) maximum = fHi;
       }
-      heightRangeMetres = { samples, minimum, maximum };
+      heightRangeMetres = useCompactUint16
+        ? { samples: samples as Uint16Array, minimum, maximum, encodeScale, lowerMultiplier: lowerMult }
+        : { samples: samples as Float32Array, minimum, maximum };
     }
     // Height edits retain the original candidate identity, positions and colour variation.
     let hash = field.hash;
     if (heightRangeMetres) {
-      const bytes = new Uint8Array(heightRangeMetres.samples.buffer);
+      const bytes = new Uint8Array(
+        heightRangeMetres.samples.buffer,
+        heightRangeMetres.samples.byteOffset,
+        heightRangeMetres.samples.byteLength
+      );
       for (let i = 0; i < bytes.length; i += 65536) {
         if (i > 0) yield;
         hash = hashGroundProjectionBlock(bytes, i, hash);
+      }
+      if (heightRangeMetres.encodeScale !== undefined) {
+        hash = Math.imul(hash ^ Math.round(heightRangeMetres.encodeScale * 1e6), 16777619) >>> 0;
+        hash = Math.imul(hash ^ Math.round((heightRangeMetres.lowerMultiplier ?? 1) * 1e6), 16777619) >>> 0;
       }
     }
     if (densityAt && !heights) {

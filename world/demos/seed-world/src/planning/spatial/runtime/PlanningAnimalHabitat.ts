@@ -381,7 +381,8 @@ export class PlanningAnimalHabitat {
     ) return false;
     if (!this.containsFlightXY(from.x, from.z, radius) || !this.containsFlightXY(to.x, to.z, radius) ||
         this.firstSolidXY(from.x, from.z, to.x, to.z, radius, Math.min(from.y, to.y), Math.max(from.y, to.y) + height)) return false;
-    const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 0.5));
+    const dx = to.x - from.x, dz = to.z - from.z;
+    const steps = Math.max(1, Math.ceil(Math.sqrt(dx * dx + dz * dz) / 0.5));
     for (let i = 0; i <= steps; i++) {
       const t = i / steps, x = from.x + (to.x - from.x) * t, z = from.z + (to.z - from.z) * t;
       const ground = this.navigation.sampleHeightInterpolated(x, z);
@@ -392,9 +393,13 @@ export class PlanningAnimalHabitat {
 
   private containsFlightXY(x: number, z: number, radius: number): boolean {
     const area = this.range.distribution;
-    return area ? x - radius >= area.minX && x + radius <= area.maxX &&
-      z - radius >= area.minZ && z + radius <= area.maxZ :
-      Math.hypot(x - this.origin.x, z - this.origin.z) + radius <= this.range.roamRadius;
+    if (area) {
+      return x - radius >= area.minX && x + radius <= area.maxX &&
+        z - radius >= area.minZ && z + radius <= area.maxZ;
+    }
+    const ox = x - this.origin.x, oz = z - this.origin.z;
+    const limit = this.range.roamRadius - radius;
+    return limit >= 0 && ox * ox + oz * oz <= limit * limit;
   }
 
   private firstSolid(a: AnimalRoutePoint, b: AnimalRoutePoint, radius: number, bottom: number, top: number): Solid | undefined {

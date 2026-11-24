@@ -94,16 +94,61 @@ export class RuntimeProjectDependencies {
 
 type Content = RuntimeProjectPackage["contents"][string];
 
-function assetKey(file: AssetFile): string {
-  return JSON.stringify([file.virtualPath, file.type, file.path, file.params]);
+function sameStringArray(a: readonly string[] | undefined, b: readonly string[] | undefined): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
 }
+
+function sameAssetParams(
+  a: Readonly<Record<string, unknown>> | undefined,
+  b: Readonly<Record<string, unknown>> | undefined
+): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function sameAssetIdentity(a: AssetFile, b: AssetFile): boolean {
+  return (
+    a === b ||
+    (a.virtualPath === b.virtualPath && a.type === b.type && a.path === b.path && sameAssetParams(a.params, b.params))
+  );
+}
+
+type CachedFileIdentity = {
+  readonly virtualPath: string;
+  readonly type: string;
+  readonly path: string;
+  readonly paramsKey: string | undefined;
+};
+
+function captureFileIdentity(file: AssetFile): CachedFileIdentity {
+  return {
+    virtualPath: file.virtualPath,
+    type: file.type,
+    path: file.path,
+    paramsKey: file.params === undefined ? undefined : JSON.stringify(file.params)
+  };
+}
+
+function matchesFileIdentity(cached: CachedFileIdentity, file: AssetFile): boolean {
+  return (
+    cached.virtualPath === file.virtualPath &&
+    cached.type === file.type &&
+    cached.path === file.path &&
+    (file.params === undefined ? cached.paramsKey === undefined : cached.paramsKey === JSON.stringify(file.params))
+  );
+}
+
 function scriptEnvironmentKey(pack: RuntimeProjectPackage): string {
   const environment = projectScriptInputs(pack);
   return JSON.stringify(environment.declarations);
 }
 type ScriptSnapshot = {
   environment: string;
-  files: Map<string, { key: string; content: Content | undefined; dependencies: string[] }>;
+  files: Map<string, { identity: CachedFileIdentity; content: Content | undefined; dependencies: string[] }>;
 };
 
 /** Called only at a write boundary. Hydrating bytes through read() never invalidates metadata. */
@@ -121,7 +166,7 @@ export function invalidateChangedDependencies(
     const old = files.get(file.virtualPath);
     if (
       !old ||
-      assetKey(old) !== assetKey(file) ||
+      !sameAssetIdentity(old, file) ||
       !sameRuntimeProjectContent(previous.contents[file.virtualPath], candidate.contents[file.virtualPath])
     )
       delete file.dependencies;
@@ -133,7 +178,12 @@ export function invalidateChangedDependencies(
 export class RuntimeDependencyMaintenance {
   private readonly assets = new Map<
     string,
-    { key: string; content: Content | undefined; format: RuntimeAssetFormat | undefined; dependencies: string[] }
+    {
+      identity: CachedFileIdentity;
+      content: Content | undefined;
+      format: RuntimeAssetFormat | undefined;
+      dependencies: string[];
+    }
   >();
   private scripts?: ScriptSnapshot;
   private acceptedScripts?: ScriptSnapshot;
@@ -152,11 +202,21 @@ export class RuntimeDependencyMaintenance {
 
   private remember(pack: RuntimeProjectPackage, file: AssetFile, dependencies: readonly string[]): void {
     this.assets.set(file.virtualPath, {
-      key: assetKey(file),
+      identity: captureFileIdentity(file),
       content: snapshotRuntimeProjectContent(pack.contents[file.virtualPath]),
       format: this.formats.get(file.type),
       dependencies: [...dependencies]
     });
+  }
+
+  /** Record a validated non-script runtime content fast commit in maintenance cache. */
+  rememberAcceptedAsset(pack: RuntimeProjectPackage, file: AssetFile, dependencies: readonly string[]): void {
+    if (file.type === "script") return;
+    if (this.formats.get(file.type)?.referenceTypes?.length === 0) {
+      this.assets.delete(file.virtualPath);
+    } else {
+      this.remember(pack, file, dependencies);
+    }
   }
 
   private rememberScripts(pack: RuntimeProjectPackage): void {
@@ -168,7 +228,7 @@ export class RuntimeDependencyMaintenance {
           .map((file) => [
             file.virtualPath,
             {
-              key: assetKey(file),
+              identity: captureFileIdentity(file),
               content: snapshotRuntimeProjectContent(pack.contents[file.virtualPath]),
               dependencies: [...file.dependencies!]
             }
@@ -206,7 +266,7 @@ export class RuntimeDependencyMaintenance {
         files.every((file) => {
           const cached = previous.files.get(file.virtualPath),
             content = pack.contents[file.virtualPath];
-          if (!cached || cached.key !== assetKey(file)) return false;
+          if (!cached || !matchesFileIdentity(cached.identity, file)) return false;
           if (
             sameRuntimeProjectContent(cached.content, content) &&
             (content !== undefined || file.dependencies !== undefined)
@@ -215,8 +275,7 @@ export class RuntimeDependencyMaintenance {
           // A complete cold record can be hydrated by read(). Writes clear its metadata first.
           return (
             (cached.content === undefined || content === undefined) &&
-            file.dependencies !== undefined &&
-            JSON.stringify(file.dependencies) === JSON.stringify(cached.dependencies)
+            sameStringArray(file.dependencies, cached.dependencies)
           );
         })
     );
@@ -264,11 +323,10 @@ export class RuntimeDependencyMaintenance {
       const hydrated =
         cached?.content === undefined &&
         content !== undefined &&
-        file.dependencies !== undefined &&
-        JSON.stringify(file.dependencies) === JSON.stringify(cached?.dependencies);
+        sameStringArray(file.dependencies, cached?.dependencies);
       if (
         cached &&
-        cached.key === assetKey(file) &&
+        matchesFileIdentity(cached.identity, file) &&
         cached.format === format &&
         ((sameRuntimeProjectContent(cached.content, content) &&
           (content !== undefined || file.dependencies !== undefined)) ||
@@ -290,13 +348,25 @@ export class RuntimeDependencyMaintenance {
   }
 }
 
+/** Verify complete direct edges using a prebuilt set of registered virtual paths. */
+export function validateProjectDependenciesWithPaths(pack: RuntimeProjectPackage, paths: ReadonlySet<string>): void {
+  const files = pack.project.files;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const deps = file.dependencies;
+    if (deps === undefined) throw new Error(`Dependency information unavailable for: ${file.virtualPath}`);
+    for (let j = 0; j < deps.length; j++) {
+      if (!paths.has(deps[j])) {
+        throw new Error(`Asset '${file.virtualPath}' references missing asset '${deps[j]}'`);
+      }
+    }
+  }
+}
+
 /** Accepted projects have complete direct edges. Drafts can be temporarily incomplete. */
 export function validateProjectDependencies(pack: RuntimeProjectPackage): void {
-  const paths = new Set(pack.project.files.map((f) => f.virtualPath));
-  for (const file of pack.project.files) {
-    if (file.dependencies === undefined) throw new Error(`Dependency information unavailable for: ${file.virtualPath}`);
-    for (const dependency of file.dependencies)
-      if (!paths.has(dependency))
-        throw new Error(`Asset '${file.virtualPath}' references missing asset '${dependency}'`);
-  }
+  const files = pack.project.files;
+  const paths = new Set<string>();
+  for (let i = 0; i < files.length; i++) paths.add(files[i].virtualPath);
+  validateProjectDependenciesWithPaths(pack, paths);
 }

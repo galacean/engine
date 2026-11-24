@@ -1,5 +1,13 @@
 import type { PlanPoint } from "../../semantic-study/IslandPlanModel";
 
+export type SeedWorldOwnerSamples = Uint8Array | Uint16Array | Uint32Array;
+
+export function createOwnerSamples(maxOwners: number, length: number): SeedWorldOwnerSamples {
+  if (maxOwners <= 0xff) return new Uint8Array(length);
+  if (maxOwners <= 0xffff) return new Uint16Array(length);
+  return new Uint32Array(length);
+}
+
 /** Rasterize unions of regions, preserving each region's even-odd holes.
  * Samples are vertex-centred, row-major +Z. Four subpixel samples soften boundaries
  * without changing the authored contour. No density is regenerated here.
@@ -14,7 +22,7 @@ export function rasterizeCoverageRegions(
   resolution: number,
   width: number,
   depth: number,
-  owners?: Uint32Array
+  owners?: SeedWorldOwnerSamples
 ): Uint8Array {
   const bits = new Uint8Array(resolution * resolution),
     intervals = resolution - 1;

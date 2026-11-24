@@ -301,7 +301,7 @@ function requestStreamThroughCandyJar(
     sessionId = `ai-chat-${createStreamResponseNonce()}`;
     localChatSessions.set(window, sessionId);
   }
-  const identity = { sessionId, queryId: streamResponseNonce };
+  const identity = { sessionId, queryId: createStreamResponseNonce() };
 
   const remoteSkillParams = {
     action: "lingguang.ai.streamChat",

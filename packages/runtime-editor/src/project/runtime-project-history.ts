@@ -167,6 +167,114 @@ export class RuntimeProjectHistory {
   }
 }
 
+type AssetFile = RuntimeProjectManifest["files"][number];
+
+function sameStringArray(a: readonly string[] | undefined, b: readonly string[] | undefined): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+const STANDARD_ASSET_KEYS = new Set(["virtualPath", "path", "type", "params", "dependencies"]);
+
+function sameAssetFile(a: AssetFile | undefined, b: AssetFile | undefined): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined) return false;
+  if (a.virtualPath !== b.virtualPath || a.type !== b.type || a.path !== b.path) return false;
+  if (!sameStringArray(a.dependencies, b.dependencies)) return false;
+  if (a.params !== b.params) {
+    if (a.params === undefined || b.params === undefined) return false;
+    if (JSON.stringify(a.params) !== JSON.stringify(b.params)) return false;
+  }
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return JSON.stringify(a) === JSON.stringify(b);
+  for (let i = 0; i < keysA.length; i++) {
+    const key = keysA[i];
+    if (key !== keysB[i] || !STANDARD_ASSET_KEYS.has(key)) return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return true;
+}
+
+/** Build undo (`before`) and redo (`after`) patches in one symmetric pass. */
+export function projectHistoryPatches(
+  previous: RuntimeProjectPackage,
+  candidate: RuntimeProjectPackage,
+  excluded: ReadonlySet<string> = new Set(),
+  authoredContentPaths: ReadonlySet<string> = new Set(),
+  sceneChanges: Readonly<Record<string, RuntimeSceneChangeSet>> = {}
+): { before: RuntimeProjectUndo; after: RuntimeProjectUndo } {
+  const before: RuntimeProjectUndo = [];
+  const after: RuntimeProjectUndo = [];
+  if (!sameStringArray(candidate.project.directories, previous.project.directories)) {
+    before.push({ directories: previous.project.directories?.slice() });
+    after.push({ directories: candidate.project.directories?.slice() });
+  }
+  const previousFiles = new Map(previous.project.files.map((file) => [file.virtualPath, file]));
+  const candidateFiles = new Map(candidate.project.files.map((file) => [file.virtualPath, file]));
+  for (const path of new Set([...candidateFiles.keys(), ...previousFiles.keys()])) {
+    if (excluded.has(path)) continue;
+    const prevContent = previous.contents[path];
+    const candContent = candidate.contents[path];
+    const prevFile = previousFiles.get(path);
+    const candFile = candidateFiles.get(path);
+    const equal = sameRuntimeProjectContent(prevContent, candContent);
+    if (
+      sameAssetFile(candFile, prevFile) &&
+      (equal || (!authoredContentPaths.has(path) && (prevContent === undefined || candContent === undefined)))
+    )
+      continue;
+    const changes = sceneChanges[path];
+    const tracked =
+      changes &&
+      typeof prevContent === "string" &&
+      typeof candContent === "string" &&
+      ((changes.before === candContent && changes.after === prevContent) ||
+        (changes.after === candContent && changes.before === prevContent));
+    before.push({
+      ...(tracked
+        ? {
+            sceneChanges: {
+              fromContent: candContent,
+              entities: changes.entities.slice(),
+              components: changes.components.slice(),
+              roots: changes.roots
+            }
+          }
+        : {}),
+      path,
+      file: prevFile && structuredClone(prevFile),
+      content: prevContent === undefined ? undefined : structuredClone(prevContent)
+    });
+    after.push({
+      ...(tracked
+        ? {
+            sceneChanges: {
+              fromContent: prevContent,
+              entities: changes.entities.slice(),
+              components: changes.components.slice(),
+              roots: changes.roots
+            }
+          }
+        : {}),
+      path,
+      file: candFile && structuredClone(candFile),
+      content: candContent === undefined ? undefined : structuredClone(candContent)
+    });
+  }
+  for (const document of new Set([
+    ...Object.keys(candidate.documents ?? {}),
+    ...Object.keys(previous.documents ?? {})
+  ])) {
+    if (candidate.documents?.[document] !== previous.documents?.[document]) {
+      before.push({ document, content: previous.documents?.[document] });
+      after.push({ document, content: candidate.documents?.[document] });
+    }
+  }
+  return { before, after };
+}
+
 /** Compare author contents; an unloaded immutable source gaining a cache entry is unchanged. */
 export function projectHistoryPatch(
   from: RuntimeProjectPackage,
@@ -176,7 +284,7 @@ export function projectHistoryPatch(
   sceneChanges: Readonly<Record<string, RuntimeSceneChangeSet>> = {}
 ): RuntimeProjectUndo {
   const patch: RuntimeProjectUndo = [];
-  if (JSON.stringify(from.project.directories) !== JSON.stringify(to.project.directories))
+  if (!sameStringArray(from.project.directories, to.project.directories))
     patch.push({ directories: to.project.directories?.slice() });
   const a = new Map(from.project.files.map((file) => [file.virtualPath, file]));
   const b = new Map(to.project.files.map((file) => [file.virtualPath, file]));
@@ -186,7 +294,7 @@ export function projectHistoryPatch(
       right = to.contents[path];
     const equal = sameRuntimeProjectContent(left, right);
     if (
-      JSON.stringify(a.get(path)) === JSON.stringify(b.get(path)) &&
+      sameAssetFile(a.get(path), b.get(path)) &&
       (equal || (!authoredContentPaths.has(path) && (left === undefined || right === undefined)))
     )
       continue;

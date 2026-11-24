@@ -91,12 +91,19 @@ it("ingests the actual Seed World catalog once without downloading binary assets
   } finally { session.dispose(); }
 });
 
-it("recreates only the old project store on the incompatible IndexedDB upgrade", async () => {
-  let exists = true;
+it("recreates the single-format stores cleanly when upgrading the IndexedDB schema", async () => {
+  const existing = new Set<string>(["projects"]);
+  const revCreateIndex = vi.fn();
   const database = {
-    objectStoreNames: { contains: (name: string) => exists && name === "projects" },
-    deleteObjectStore: vi.fn(() => { exists = false; }),
-    createObjectStore: vi.fn(() => ({createIndex: vi.fn()})), close: vi.fn()
+    objectStoreNames: { contains: (name: string) => existing.has(name) },
+    deleteObjectStore: vi.fn((name: string) => {
+      existing.delete(name);
+    }),
+    createObjectStore: vi.fn((name: string) => {
+      existing.add(name);
+      return { createIndex: name === "projectRevisions" ? revCreateIndex : vi.fn() };
+    }),
+    close: vi.fn()
   };
   const factory = { open: vi.fn(() => {
     const request: any = { result: database };
@@ -104,9 +111,10 @@ it("recreates only the old project store on the incompatible IndexedDB upgrade",
     return request;
   }) };
   const storage = await RuntimeProjectStorage.open(factory as any);
-  expect(factory.open).toHaveBeenCalledWith("galacean-runtime-projects", 4);
+  expect(factory.open).toHaveBeenCalledWith("galacean-runtime-projects", 5);
   expect(database.deleteObjectStore.mock.calls).toEqual([["projects"]]);
-  expect(database.createObjectStore.mock.calls).toEqual([["projects"], ["projectFiles"]]);
+  expect(database.createObjectStore.mock.calls).toEqual([["projects"], ["projectRevisions"], ["projectFiles"]]);
+  expect(revCreateIndex).toHaveBeenCalledWith("storageRevision", "storageRevision", { unique: true });
   storage.close();
 });
 

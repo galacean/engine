@@ -7,6 +7,7 @@ import {
   Color,
   Material,
   MeshRenderer,
+  MSAASamples,
   PostProcess,
   PrimitiveMesh,
   Scene,
@@ -242,6 +243,7 @@ export class WorldBubbleLoadingScene {
     const root = scene.createRootEntity("World LoadingOrb Fusion Scene");
     const cameraEntity = root.createChild("Loading Camera");
     const camera = cameraEntity.addComponent(Camera);
+    camera.msaaSamples = MSAASamples.None;
     camera.clearFlags = CameraClearFlags.All;
     camera.isAlphaOutputRequired = true;
     camera.enableFrustumCulling = false;

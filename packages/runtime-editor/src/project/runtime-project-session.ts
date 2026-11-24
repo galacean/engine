@@ -1,5 +1,5 @@
 import { runtimeEditWork } from "../runtime-editor/runtime-edit-work";
-import { RuntimeProjectHistory, projectHistoryPatch, type HistoryMove } from "./runtime-project-history.ts";
+import { RuntimeProjectHistory, projectHistoryPatches, type HistoryMove } from "./runtime-project-history.ts";
 import { RuntimeAssetChanges, resourceSignature, sameResourceContent } from "./runtime-asset-changes.ts";
 import type { RuntimeScriptModule } from "../runtime-editor/scripts/runtime-script-environment.ts";
 import type { ProjectFileProvider } from "@galacean/engine-project/project-files/virtual-project-files";
@@ -15,14 +15,18 @@ import {
   prepareProjectSources
 } from "@galacean/engine-project/runtime-editor/scene/runtime-project-compiler";
 import {
+  cloneRuntimeProjectContent,
+  cloneRuntimeProjectManifest,
   cloneRuntimeProjectPackage,
   RUNTIME_PROJECT_SAVE_VERSION,
+  RuntimeProjectSnapshot,
   RuntimeProjectStorage,
   runtimeProjectFiles,
   validateRuntimeProject,
   type RuntimeProjectManifest,
   type RuntimeProjectPackage
 } from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import { snapshotRuntimeProjectContent } from "@galacean/engine-project/runtime-editor/project/runtime-project-content";
 import { nativeAssetFormats } from "./runtime-native-formats.ts";
 import type {
   RuntimeAssetFormat,
@@ -31,6 +35,7 @@ import type {
 } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import {
   RuntimeDependencyMaintenance,
+  extractAssetDependencies,
   invalidateChangedDependencies,
   validateProjectDependencies
 } from "@galacean/engine-project/runtime-editor/project/runtime-project-dependencies";
@@ -38,6 +43,13 @@ import {
   RuntimeProjectPersistence,
   type RuntimeProjectPersistenceOptions
 } from "@galacean/engine-project/runtime-editor/project/runtime-project-persistence";
+
+function sameStringArray(a: readonly string[] | undefined, b: readonly string[] | undefined): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
 
 export interface RuntimeProjectAssetSnapshot {
   readonly file: RuntimeProjectManifest["files"][number] | undefined;
@@ -68,6 +80,11 @@ type PrepareRuntimeAssetEdit = (
   finish?: () => void;
 };
 
+type RuntimeProjectValidator = (
+  candidate: Readonly<RuntimeProjectPackage>,
+  signal: AbortSignal
+) => void | Promise<void>;
+
 /** Owns project restoration and the lifetime of resource URLs in one game session. */
 export class RuntimeProjectSession {
   readonly history = new RuntimeProjectHistory();
@@ -80,14 +97,37 @@ export class RuntimeProjectSession {
   private readonly textAssetTypes = new Map<string, number>();
   private readonly runtimeAssetOwners = new Set<string>();
   private readonly runtimeAssetEditors = new Map<string, PrepareRuntimeAssetEdit>();
-  private readonly projectValidators = new Set<
-    (candidate: RuntimeProjectPackage, signal: AbortSignal) => void | Promise<void>
-  >();
+  private readonly projectValidators = new Set<RuntimeProjectValidator>();
   private readonly nativeFormats = nativeAssetFormats(() => ({}));
   private readonly referenceFormats = new Map(this.nativeFormats);
   readonly dependencyMaintenance: RuntimeDependencyMaintenance;
 
   private readonly formatRegistrations = new Map<string, { format: RuntimeAssetFormat; count: number }>();
+  private validatedManifest?: RuntimeProjectManifest;
+  private validatedFilesLength = -1;
+  private validatedDocuments?: RuntimeProjectPackage["documents"];
+
+  private markManifestValidated(): void {
+    this.validatedManifest = this.projectPackage.project;
+    this.validatedFilesLength = this.projectPackage.project.files.length;
+    this.validatedDocuments = this.projectPackage.documents;
+  }
+
+  private clearManifestValidation(): void {
+    this.validatedManifest = undefined;
+    this.validatedFilesLength = -1;
+    this.validatedDocuments = undefined;
+  }
+
+  private isManifestValidated(pack: RuntimeProjectPackage): boolean {
+    return (
+      !this.needsInitialization &&
+      this.validatedManifest === pack.project &&
+      this.validatedFilesLength === pack.project.files.length &&
+      this.validatedDocuments === pack.documents
+    );
+  }
+
   /** Same reference extractors serve editor drafts and direct domain publications. */
   registerAssetFormats(formats: ReadonlyMap<string, RuntimeAssetFormat>): () => void {
     this.lifetime.signal.throwIfAborted();
@@ -96,40 +136,55 @@ export class RuntimeProjectSession {
       const registered = this.formatRegistrations.get(type);
       if (registered && registered.format !== format) throw new Error(`Conflicting asset format '${type}'`);
     }
+    let formatChanged = false;
     for (const [type, format] of entries) {
-      this.formatRegistrations.set(type, { format, count: (this.formatRegistrations.get(type)?.count ?? 0) + 1 });
-      this.referenceFormats.set(type, format);
+      const existing = this.formatRegistrations.get(type);
+      this.formatRegistrations.set(type, { format, count: (existing?.count ?? 0) + 1 });
+      if (this.referenceFormats.get(type) !== format) {
+        this.referenceFormats.set(type, format);
+        formatChanged = true;
+      }
     }
+    if (formatChanged) this.clearManifestValidation();
     let released = false;
     return () => {
       if (released) return;
       released = true;
+      let releaseChanged = false;
       for (const [type] of entries) {
         const registered = this.formatRegistrations.get(type);
         if (!registered) continue;
         if (--registered.count > 0) continue;
         this.formatRegistrations.delete(type);
         const native = this.nativeFormats.get(type);
-        if (native) this.referenceFormats.set(type, native);
-        else this.referenceFormats.delete(type);
+        if (native) {
+          if (this.referenceFormats.get(type) !== native) {
+            this.referenceFormats.set(type, native);
+            releaseChanged = true;
+          }
+        } else if (this.referenceFormats.delete(type)) {
+          releaseChanged = true;
+        }
       }
+      if (releaseChanged) this.clearManifestValidation();
     };
   }
 
-  /** Domain constraints run on detached candidates before publication, never by inspecting live instances. */
-  registerProjectValidator(
-    validate: (candidate: RuntimeProjectPackage, signal: AbortSignal) => void | Promise<void>
-  ): () => void {
+  /** Inspect a detached, read-only candidate before publication. Throw to reject it.
+   * Use edit preparation to amend the proposed project. Validator mutations are discarded. */
+  registerProjectValidator(validate: RuntimeProjectValidator): () => void {
     this.lifetime.signal.throwIfAborted();
     this.projectValidators.add(validate);
     return () => this.projectValidators.delete(validate);
   }
   validateCandidate(candidate: RuntimeProjectPackage, signal = this.lifetime.signal): void | Promise<void> {
+    if (this.projectValidators.size === 0) return;
+    const detached = cloneRuntimeProjectPackage(candidate);
     let pending: Promise<void> | undefined;
     for (const validate of this.projectValidators) {
       const run = () => {
         signal.throwIfAborted();
-        return validate(candidate, signal);
+        return validate(detached, signal);
       };
       if (pending) pending = pending.then(run);
       else {
@@ -214,6 +269,29 @@ export class RuntimeProjectSession {
   private readonly scripts: RuntimeProjectScripts;
   private readonly lifetime = new AbortController();
   private readonly persistence: RuntimeProjectPersistence;
+  private persistenceSnapshot?: RuntimeProjectSnapshot;
+
+  private syncSnapshotContent(path: string, content: string | Uint8Array): void {
+    const snapshot = this.persistenceSnapshot;
+    if (!snapshot) return;
+    this.persistenceSnapshot = snapshot.hasPath(path) ? snapshot.withUpdatedContent(path, content) : undefined;
+  }
+
+  private syncSnapshotContents(entries: ReadonlyArray<readonly [string, string | Uint8Array]>): void {
+    const snapshot = this.persistenceSnapshot;
+    if (!snapshot || entries.length === 0) return;
+    if (entries.length === 1) {
+      this.syncSnapshotContent(entries[0][0], entries[0][1]);
+      return;
+    }
+    for (let i = 0; i < entries.length; i++) {
+      if (!snapshot.hasPath(entries[i][0])) {
+        this.persistenceSnapshot = undefined;
+        return;
+      }
+    }
+    this.persistenceSnapshot = snapshot.withUpdatedContents(entries);
+  }
   private constructor(
     readonly id: string,
     readonly projectPackage: RuntimeProjectPackage,
@@ -228,7 +306,10 @@ export class RuntimeProjectSession {
     // Storage captures immutable text references and copies mutable data only when
     // a checkpoint starts. Pending edits live solely in projectPackage.
     this.persistence = new RuntimeProjectPersistence(
-      () => this.storage.save(this.id, this.projectPackage),
+      () =>
+        this.persistenceSnapshot && typeof this.storage.saveSnapshot === "function"
+          ? this.storage.saveSnapshot(this.id, this.persistenceSnapshot)
+          : this.storage.save(this.id, this.projectPackage),
       persistenceOptions
     );
   }
@@ -399,6 +480,7 @@ export class RuntimeProjectSession {
             }
             if (this.projectPackage.contents[path] === undefined) {
               this.projectPackage.contents[path] = content;
+              this.syncSnapshotContent(path, content);
               this.resourceChanges.recordRead(current!, content);
               for (const listener of this.assetReadListeners) listener(current!, content);
             }
@@ -480,17 +562,26 @@ export class RuntimeProjectSession {
       );
       await this.enqueuePublication(async () => {
         operationSignal.throwIfAborted();
-        const fileByPath = new Map(this.projectPackage.project.files.map((entry) => [entry.virtualPath, entry]));
+        const { project, contents } = this.projectPackage;
+        const fileByPath = new Map(project.files.map((entry) => [entry.virtualPath, entry]));
+        const hydrated: Array<[string, string | Uint8Array]> = [];
+        // A stale result rejects the whole batch before any loaded contents become visible.
         for (const item of fetched) {
-          const current = fileByPath.get(item.file.virtualPath);
+          const path = item.file.virtualPath;
+          const current = fileByPath.get(path);
           if (item.pending.invalidated || resourceSignature(current) !== item.pending.fileSignature) {
-            throw new Error(`Asset changed while reading '${item.file.virtualPath}'; read it again`);
+            throw new Error(`Asset changed while reading '${path}'; read it again`);
           }
-          if (this.projectPackage.contents[item.file.virtualPath] === undefined) {
-            this.projectPackage.contents[item.file.virtualPath] = item.content;
-            this.resourceChanges.recordRead(current!, item.content);
-            for (const listener of this.assetReadListeners) listener(current!, item.content);
-          }
+          if (contents[path] === undefined) hydrated.push([path, item.content]);
+        }
+        this.syncSnapshotContents(hydrated);
+        for (const [path, content] of hydrated) {
+          contents[path] = content;
+          this.resourceChanges.recordRead(fileByPath.get(path)!, content);
+        }
+        for (const [path, content] of hydrated) {
+          const file = fileByPath.get(path)!;
+          for (const listener of this.assetReadListeners) listener(file, content);
         }
       }, []);
     } finally {
@@ -523,6 +614,7 @@ export class RuntimeProjectSession {
     }
     this.lifetime.signal.throwIfAborted();
     Object.assign(this.projectPackage.contents, converted);
+    this.syncSnapshotContents(Object.entries(converted));
   }
 
   async resources(signal?: AbortSignal): Promise<RuntimeProjectManifest["files"]> {
@@ -760,10 +852,13 @@ export class RuntimeProjectSession {
   async save(): Promise<void> {
     const target = await this.enqueuePublication(async () => {
       const candidate = await this.withDependencies(this.projectPackage);
+      const snapshot = RuntimeProjectSnapshot.create(candidate);
       this.lifetime.signal.throwIfAborted();
       this.projectPackage.project = candidate.project;
       this.projectPackage.contents = candidate.contents;
+      this.persistenceSnapshot = snapshot;
       this.dependencyMaintenance.accept(candidate);
+      this.markManifestValidated();
       return this.persistence.committed();
     }, []);
     await this.flush(target);
@@ -774,8 +869,10 @@ export class RuntimeProjectSession {
     return this.persistence.flush(target);
   }
 
-  private async withDependencies(pack: RuntimeProjectPackage): Promise<RuntimeProjectPackage> {
-    const candidate = { ...pack, project: structuredClone(pack.project), contents: { ...pack.contents } };
+  private async withDependencies(pack: RuntimeProjectPackage, detached = false): Promise<RuntimeProjectPackage> {
+    const candidate = detached
+      ? pack
+      : { ...pack, project: cloneRuntimeProjectManifest(pack.project), contents: { ...pack.contents } };
     let analyzed: Readonly<Record<string, readonly string[]>> | undefined;
     if (this.dependencyMaintenance.needsScriptAnalysis(candidate)) {
       const sources: Record<string, string> = {};
@@ -796,7 +893,8 @@ export class RuntimeProjectSession {
   /** Explicit ingestion of a new source catalog, never a migration of saved data. */
   async initializeDependencies(): Promise<void> {
     if (!this.needsInitialization) {
-      validateProjectDependencies(this.projectPackage);
+      this.persistenceSnapshot = RuntimeProjectSnapshot.create(this.projectPackage);
+      this.markManifestValidated();
       return;
     }
     const pendingFiles = this.projectPackage.project.files.filter((file) => {
@@ -805,10 +903,13 @@ export class RuntimeProjectSession {
     });
     await this.prepareFilesParallel(pendingFiles);
     const candidate = await this.withDependencies(this.projectPackage);
+    const snapshot = RuntimeProjectSnapshot.create(candidate);
     this.projectPackage.project = candidate.project;
     this.projectPackage.contents = candidate.contents;
+    this.persistenceSnapshot = snapshot;
     this.dependencyMaintenance.accept(candidate);
     this.needsInitialization = false;
+    this.markManifestValidated();
   }
 
   async historyPatch(move: HistoryMove, signal: AbortSignal) {
@@ -835,7 +936,7 @@ export class RuntimeProjectSession {
           );
         }
       }
-      return this.commitPackage(snapshot, undefined, history);
+      return this.commitPackage(snapshot, undefined, history, undefined, true, undefined, true);
     });
   }
 
@@ -910,16 +1011,43 @@ export class RuntimeProjectSession {
           const existing = pack.project.files.find((entry) => entry.virtualPath === path);
           if (existing && (existing.virtualPath !== path || existing.type !== file.type))
             throw new Error(`Runtime asset identity conflict: ${path}`);
-          const result = change(pack.contents[path]);
+          const result = change(snapshotRuntimeProjectContent(pack.contents[path]));
           if (result.content === undefined) return result.value;
+          const content = cloneRuntimeProjectContent(result.content);
+          const format = existing ? this.referenceFormats.get(existing.type) : undefined;
+          let canFastCommit = false;
+          let extractedDeps: string[] | undefined;
+          const baseFastReady =
+            existing !== undefined &&
+            existing.type !== "script" &&
+            this.isManifestValidated(pack) &&
+            Array.isArray(existing.dependencies);
+          if (baseFastReady && format) {
+            if (format.referenceTypes?.length === 0 && existing.dependencies!.length === 0) {
+              canFastCommit = true;
+            } else {
+              try {
+                const refs = extractAssetDependencies(existing, content, format);
+                if (refs !== undefined && sameStringArray(refs, existing.dependencies)) {
+                  extractedDeps = refs;
+                  canFastCommit = true;
+                }
+              } catch {
+                // Fall back to full package commit validation if fast reference extraction throws.
+              }
+            }
+          }
+          if (canFastCommit && (await this.tryCommitRuntimeContentUpdate(path, content, existing, extractedDeps)))
+            return result.value;
+          const files = pack.project.files;
           await this.commitPackage(
             {
               ...pack,
               project: {
                 ...pack.project,
-                files: existing ? [...pack.project.files] : [...pack.project.files, { ...file }]
+                files: files.some((entry) => entry.virtualPath === path) ? files : [...files, file]
               },
-              contents: { ...pack.contents, [path]: result.content }
+              contents: { ...pack.contents, [path]: content }
             },
             path
           );
@@ -933,6 +1061,42 @@ export class RuntimeProjectSession {
         if (retention === "owner") this.runtimeAssets.delete(path);
       }
     };
+  }
+
+  private async tryCommitRuntimeContentUpdate(
+    path: string,
+    content: string | Uint8Array,
+    existing?: RuntimeProjectManifest["files"][number],
+    extractedDeps?: readonly string[]
+  ): Promise<boolean> {
+    this.lifetime.signal.throwIfAborted();
+    const pack = this.projectPackage;
+    if (!this.isManifestValidated(pack)) return false;
+    const { project, documents, contents } = pack;
+    const nextContents = { ...contents, [path]: content };
+    const validation = this.validateCandidate({ ...pack, contents: nextContents });
+    if (validation) await validation;
+    this.lifetime.signal.throwIfAborted();
+    // Asset format registration can invalidate the fast path while a validator is pending.
+    if (
+      !this.isManifestValidated(pack) ||
+      pack.project !== project ||
+      pack.documents !== documents ||
+      pack.contents !== contents
+    )
+      return false;
+    for (const pending of this.pendingReads) {
+      if (pending.path === path && !sameOptionalResourceContent(content, contents[path])) {
+        pending.invalidated = true;
+      }
+    }
+    this.projectPackage.contents = nextContents;
+    this.syncSnapshotContent(path, content);
+    if (existing && extractedDeps !== undefined) {
+      this.dependencyMaintenance.rememberAcceptedAsset(this.projectPackage, existing, extractedDeps);
+    }
+    this.persistence.committed();
+    return true;
   }
 
   private enqueuePublication<T>(operation: () => Promise<T>, affectedAssets?: readonly string[]): Promise<T> {
@@ -964,12 +1128,20 @@ export class RuntimeProjectSession {
     history?: { transactionId: string; move?: HistoryMove; sceneChanges?: Record<string, RuntimeSceneChangeSet> },
     explicitRuntimeEdit?: { path: string; finalizeContent?: () => string | Uint8Array },
     recordHistory = true,
-    preservedRemoteDependencies?: ReadonlyMap<string, readonly string[]>
+    preservedRemoteDependencies?: ReadonlyMap<string, readonly string[]>,
+    alreadyDetached = false
   ): Promise<RuntimeProjectUndo> {
     this.lifetime.signal.throwIfAborted();
     const checkpoint = runtimeEditWork();
-    const contents = { ...candidate.contents },
-      files = structuredClone(candidate.project.files);
+    const project = alreadyDetached ? candidate.project : cloneRuntimeProjectManifest(candidate.project);
+    const files = project.files;
+    const contents = alreadyDetached ? candidate.contents : { ...candidate.contents };
+    const documents =
+      candidate.documents === undefined
+        ? undefined
+        : alreadyDetached
+          ? candidate.documents
+          : { ...candidate.documents };
     for (const path of this.runtimeAssets) {
       if (path === runtimeWrite || path === explicitRuntimeEdit?.path) continue;
       const file = this.projectPackage.project.files.find((file) => file.virtualPath === path);
@@ -979,10 +1151,12 @@ export class RuntimeProjectSession {
       else files[index] = structuredClone(file);
       if (this.projectPackage.contents[path] !== undefined) contents[path] = this.projectPackage.contents[path];
     }
-    candidate = { ...candidate, project: { ...candidate.project, files }, contents };
-    const authoredContentPaths = new Set(
-      Object.keys(candidate.contents).filter((path) => this.projectPackage.contents[path] === undefined)
-    );
+    candidate = {
+      ...candidate,
+      project,
+      contents,
+      ...(documents === undefined ? {} : { documents })
+    };
     invalidateChangedDependencies(this.projectPackage, candidate, this.referenceFormats);
     if (preservedRemoteDependencies?.size) {
       for (const file of candidate.project.files) {
@@ -994,16 +1168,22 @@ export class RuntimeProjectSession {
       }
     }
     await this.validateCandidate(candidate);
+    const authoredContentPaths = new Set(
+      Object.keys(candidate.contents).filter((path) => this.projectPackage.contents[path] === undefined)
+    );
     await checkpoint(this.lifetime.signal);
-    candidate = await this.withDependencies(candidate);
-    validateRuntimeProject(candidate);
+    candidate = await this.withDependencies(candidate, true);
+    let snapshot = RuntimeProjectSnapshot.create(candidate);
     await checkpoint(this.lifetime.signal);
     this.lifetime.signal.throwIfAborted();
-    if (explicitRuntimeEdit?.finalizeContent)
+    if (explicitRuntimeEdit?.finalizeContent) {
+      const finalized = explicitRuntimeEdit.finalizeContent();
       candidate = {
         ...candidate,
-        contents: { ...candidate.contents, [explicitRuntimeEdit.path]: explicitRuntimeEdit.finalizeContent() }
+        contents: { ...candidate.contents, [explicitRuntimeEdit.path]: finalized }
       };
+      snapshot = snapshot.withUpdatedContent(explicitRuntimeEdit.path, finalized);
+    }
     // Invalidate only affected in-flight reads, including delete/recreate of the same path.
     // Persistence does not control visibility: an accepted edit invalidates the
     // old source even while its checkpoint is pending or has failed.
@@ -1021,14 +1201,7 @@ export class RuntimeProjectSession {
     if (!runtimeWrite && recordHistory) {
       if (history?.move) this.history.patch(history.move);
       else this.history.assertNew(transactionId);
-      const before = projectHistoryPatch(
-        candidate,
-        this.projectPackage,
-        this.runtimeAssets,
-        authoredContentPaths,
-        history?.sceneChanges
-      );
-      const after = projectHistoryPatch(
+      const { before, after } = projectHistoryPatches(
         this.projectPackage,
         candidate,
         this.runtimeAssets,
@@ -1041,8 +1214,10 @@ export class RuntimeProjectSession {
     this.projectPackage.project = candidate.project;
     this.projectPackage.contents = candidate.contents;
     this.projectPackage.documents = candidate.documents;
+    this.persistenceSnapshot = snapshot;
     this.dependencyMaintenance.accept(candidate);
     this.needsInitialization = false;
+    this.markManifestValidated();
     // Runtime-owned state is merged into every editor publication, so it does not stale an author draft.
     if (!runtimeWrite) this.acceptedRevision++;
     this.persistence.committed();
@@ -1085,6 +1260,7 @@ export class RuntimeProjectSession {
 
   dispose(): void {
     this.lifetime.abort();
+    this.persistenceSnapshot = undefined;
     this.assetReadListeners.clear();
     this.persistence.dispose();
     this.runtimeAssets.clear();

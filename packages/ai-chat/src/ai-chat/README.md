@@ -635,6 +635,6 @@ Pick results contain runtime entity/component/instance identities, capture metad
 
 The conversation service owns image Blobs and GPU identity textures. Tasks and photo attachments hold leases. Point queries read small tiles; region queries read only the mask's bounding rectangle. Encoding is cached per immutable version. The shared memory budget reclaims unpinned frames first, and admission fails if in-use resources prevent allocation. History also expires after two unused turns. Task completion releases leases, not all conversation frames. These files never enter project persistence. Trace events contain references and metadata, not GPU buffers or host callbacks.
 
-本地 streamChat 为同一页面维持稳定 `sessionId`，每个请求以自己的 stream nonce 作为 `queryId`；用户停止通过既有 CandyJar `remoteSkill` 调用 `lingguang.ai.stopChat`，无需修改 Wrapper。
+本地 streamChat 为同一页面维持稳定 `sessionId`，每个请求独立生成随机 `queryId`（不复用 `streamResponseNonce`，避免 nonce 进入 Trace digest）；用户停止通过既有 CandyJar `remoteSkill` 调用 `lingguang.ai.stopChat` 并携带同一 `{ sessionId, queryId }`，无需修改 Wrapper。
 Session 立即停止接收结果；stopChat 的 `accepted` 只表示受理，不表示远端已终止。控制面失败会告警且不重发，模型总预算仍生效。
 本地 ASAP 入口负责登记现有取消 scope，公共退避等待感知该 scope；生产 SDK 路径仍使用其原有 AbortSignal 契约。

@@ -1387,8 +1387,17 @@ export function registerPlanningComponent(definition: PlanningComponentDefinitio
 export function refreshLayoutRuleChoices(): void {
   const field = planningRegistry.get("layout").fields.find((f) => f.key === "pattern")!;
   const rules = layoutRuleManifest();
-  field.options = rules.map((r) => r.id);
+  const previousOptions = field.options;
+  const nextOptions = rules.map((r) => r.id);
+  field.options = nextOptions;
   field.optionLabels = Object.fromEntries(rules.map((r) => [r.id, r.label]));
+  if (
+    !previousOptions ||
+    previousOptions.length !== nextOptions.length ||
+    nextOptions.some((id, idx) => previousOptions[idx] !== id)
+  ) {
+    planningRegistry.touch();
+  }
   for (const key of [
     "headingDegrees",
     "pathWidthM",

@@ -1,6 +1,7 @@
 import { sampleDensityOwner, hashDetailOwnership } from "../../world/SeedWorldDetailCandidateLattice";
 import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
 import type { SeedWorldPopulationPreview } from "../../runtime/SeedWorldPopulationPlan.ts";
+import { createOwnerSamples } from "../ecology/CoverageRaster";
 import { vegetationCoverage } from "../ecology/VegetationCoverage";
 
 /** Display-only projection of published instances; hierarchy switches never enter planning or persistence. */
@@ -52,7 +53,7 @@ export class PlanningPopulationVisibility {
         if (reference) {
           const resolution = reference.resolution,
             samples = new Uint8Array(reference.samples.length);
-          const owners = new Uint32Array(samples.length);
+          const owners = createOwnerSamples(selected.ownership.ids.length, samples.length);
           let hash = 2166136261;
           for (let z = 0; z < resolution; z++)
             for (let x = 0; x < resolution; x++) {
