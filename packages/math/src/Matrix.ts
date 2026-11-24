@@ -440,8 +440,9 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
       const b03 = a12 * a23 - a13 * a22;
 
       let det = b00 * a33 - b01 * a32 + b03 * a31;
-      // Summing three finite Float32 translations cannot overflow a JavaScript number.
-      if (!det || !Number.isFinite(det) || !Number.isFinite(a41 + a42 + a43)) {
+      // Finite Float32 elements yield |det| <= 6 * (3.4e38)^3 and |a41 + a42 + a43| <= 1.02e39,
+      // so summing them cannot overflow a JavaScript Float64 number.
+      if (!det || !Number.isFinite(det + a41 + a42 + a43)) {
         return null;
       }
       det = 1.0 / det;
