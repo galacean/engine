@@ -221,7 +221,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
     this._registeredScene?.physics._syncForQuery();
     const distance = this._getVolumeDistance(point, outClosestPoint);
-    distance < 0 && console.warn("The collider is not in simulation.");
+    distance < 0 && this._reportClosestPointFailure();
     return distance;
   }
 
@@ -413,6 +413,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
   protected _isInSimulation(): boolean {
     // A disabled Rigidbody is unregistered from the scene's enabled bodies but keeps its Colliders attached
     return this._nativeActor !== null && this._attachedBody?._index !== -1;
+  }
+
+  protected _reportClosestPointFailure(): void {
+    console.warn("The collider is not in simulation.");
   }
 
   /**
