@@ -115,7 +115,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const physX = physXPhysics._physX;
 
     const simulationCallback = {
-      onJointBreak: () => {},
       onContactBegin: (shape0ID: number, shape1ID: number, count: number, data: Float32Array) => {
         const state = this._consumePendingReplacedContact(shape0ID, shape1ID)
           ? PhysicsEventState.Stay
