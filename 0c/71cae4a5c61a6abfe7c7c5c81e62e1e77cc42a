@@ -1,0 +1,25 @@
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_97e2aa200bb550 1131,1136,1140-1142
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_97e2aa200bb550 205-207,217-219
+packages/physics-physx/src/PhysXActor.ts
+  s_d2c65ec75a2f3e::t_97e2aa200bb550 21,34,43-44
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_b4ee9b5bd3e96a 1209-1210,1214,1216,1220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0c71cae4a5c61a6abfe7c7c5c81e62e1e77cc42a",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
