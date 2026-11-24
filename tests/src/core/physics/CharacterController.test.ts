@@ -1011,4 +1011,47 @@ describe("CharacterController", () => {
       expect(physics.raycast(new Ray(new Vector3(2, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
     });
   });
+
+  it("detaches cleanly on non-finite or Float32-overflowing pose and recovers without toggling enabled", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const entity = root.createChild("invalid-pose-cct");
+    entity.transform.setPosition(0, 2, 0);
+    const cc = entity.addComponent(CharacterController);
+    cc.collisionLayer = Layer.Layer5;
+
+    // First attach with NaN center must neither register nor emit native creation errors.
+    cc.center.x = NaN;
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 1, Layer.Layer5)).toEqual([]);
+    expect(cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep)).toBe(ControllerCollisionFlag.None);
+    expect(entity.transform.position.x).toBe(0);
+
+    cc.center.x = 0;
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 1, Layer.Layer5)).toContain(cc);
+    cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep);
+    expect(entity.transform.position.x).toBeCloseTo(1, 3);
+
+    // Live NaN center while attached must detach cleanly and preserve the valid transform position.
+    cc.center.x = NaN;
+    expect(cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep)).toBe(ControllerCollisionFlag.None);
+    expect(Number.isFinite(entity.transform.position.x)).toBe(true);
+    expect(entity.transform.position.x).toBeCloseTo(1, 3);
+    expect(physics.overlapSphereAll(new Vector3(1, 2, 0), 1, Layer.Layer5)).not.toContain(cc);
+
+    cc.center.x = 0;
+    expect(physics.overlapSphereAll(new Vector3(1, 2, 0), 1, Layer.Layer5)).toContain(cc);
+    cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep);
+    expect(entity.transform.position.x).toBeCloseTo(2, 3);
+
+    // Float32-overflowing pose while attached must also detach and recover once restored.
+    cc.center.x = 1e39;
+    expect(cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep)).toBe(ControllerCollisionFlag.None);
+    expect(entity.transform.position.x).toBeCloseTo(2, 3);
+    expect(physics.overlapSphereAll(new Vector3(2, 2, 0), 1, Layer.Layer5)).not.toContain(cc);
+
+    cc.center.x = 0;
+    expect(physics.overlapSphereAll(new Vector3(2, 2, 0), 1, Layer.Layer5)).toContain(cc);
+    cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep);
+    expect(entity.transform.position.x).toBeCloseTo(3, 3);
+    expect(errors).not.toHaveBeenCalled();
+  });
 });

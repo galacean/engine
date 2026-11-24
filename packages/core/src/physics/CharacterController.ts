@@ -267,6 +267,14 @@ export class CharacterController extends Collider {
       position.y !== nativePosition.y ||
       position.z !== nativePosition.z
     ) {
+      if (
+        !Number.isFinite(Math.fround(position.x + centerX)) ||
+        !Number.isFinite(Math.fround(position.y + centerY)) ||
+        !Number.isFinite(Math.fround(position.z + centerZ))
+      ) {
+        this._detach();
+        return;
+      }
       syncedCenter.set(centerX, centerY, centerZ);
       nativePosition.copyFrom(position);
       controller.setWorldPosition(position, syncedCenter);
