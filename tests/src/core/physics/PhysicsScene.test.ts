@@ -1031,6 +1031,14 @@ describe("Physics Test", () => {
           expect(outerIds.sort((a, b) => a - b)).to.deep.equal([1, 2, 3]);
           expect(innerIds.sort((a, b) => a - b)).to.deep.equal([4, 5, 6]);
           expect(retainedPositions).to.have.length(3);
+          const sortedX = retainedPositions.map((position) => position.x).sort((a, b) => a - b);
+          expect(sortedX[0]).to.be.closeTo(1.5, 1e-5);
+          expect(sortedX[1]).to.be.closeTo(3.5, 1e-5);
+          expect(sortedX[2]).to.be.closeTo(5.5, 1e-5);
+          for (const position of retainedPositions) {
+            expect(position.y).to.be.closeTo(0, 1e-5);
+            expect(position.z).to.be.closeTo(0, 1e-5);
+          }
         };
 
         runNested();

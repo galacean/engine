@@ -289,20 +289,16 @@ describe("Collision", function () {
     const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
     scene.physics._update(scene.physics.fixedTimeStep);
     expect(nativeScene._shapeChanges.size).toBe(0);
+    expect(engine.isPaused).toBe(true);
 
-    engine.pause();
-    try {
-      for (let i = 0; i < 64; i++) {
-        const entity = rootEntity.createChild(`paused-box-${i}`);
-        entity.addComponent(BoxCollider);
-        expect(scene.physics.raycast(ray, 10)).toBe(true);
-        entity.destroy();
-        expect(scene.physics.raycast(ray, 10)).toBe(false);
-      }
-      engine.resourceManager.gc();
-      expect(nativeScene._shapeChanges.size).toBe(0);
-    } finally {
-      engine.resume();
+    for (let i = 0; i < 64; i++) {
+      const entity = rootEntity.createChild(`paused-box-${i}`);
+      entity.addComponent(BoxCollider);
+      expect(scene.physics.raycast(ray, 10)).toBe(true);
+      entity.destroy();
+      expect(scene.physics.raycast(ray, 10)).toBe(false);
     }
+    engine.resourceManager.gc();
+    expect(nativeScene._shapeChanges.size).toBe(0);
   });
 });
