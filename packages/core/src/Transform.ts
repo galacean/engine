@@ -11,7 +11,6 @@ import type { ICloneHook } from "./clone/ICloneHook";
  */
 export class Transform extends Component implements ICloneHook<Transform> {
   private static _tempQuat0: Quaternion = new Quaternion();
-  private static _tempQuat1: Quaternion = new Quaternion();
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
   private static _tempVec32: Vector3 = new Vector3();
@@ -585,88 +584,29 @@ export class Transform extends Component implements ICloneHook<Transform> {
    * @internal
    */
   _parentChange(oldParent?: Transform | null, keepWorldTransform: boolean = false): void {
-    this._isParentDirty = true;
-    if (!keepWorldTransform) {
-      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
-      return;
-    }
-
-    const parent = this._getParentTransform();
-    if ((!oldParent || oldParent._getWorldUniformScaling()) && (!parent || parent._getWorldUniformScaling())) {
-      const oldScale = oldParent ? oldParent._getWorldUniformScale() : 1;
-      const newScale = parent ? parent._getWorldUniformScale() : 1;
-      const invNewScale = 1 / newScale;
-      if (newScale === 0 || !Number.isFinite(invNewScale)) {
-        this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
-        return;
-      }
-
-      const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
-      const localQuat = this.rotationQuaternion;
-      const worldPos = Transform._tempVec30;
-      const worldQuat = Transform._tempQuat0;
+    if (keepWorldTransform) {
+      const tempMat0 = Transform._tempMat41;
       if (oldParent) {
-        const oldWorldQuat = oldParent.worldRotationQuaternion;
-        Vector3.transformByQuat(position, oldWorldQuat, worldPos);
-        if (oldScale !== 1) {
-          worldPos.scale(oldScale);
-        }
-        worldPos.add(oldParent.worldPosition);
-        Quaternion.multiply(oldWorldQuat, localQuat, worldQuat);
+        Matrix.multiply(oldParent.worldMatrix, this.localMatrix, tempMat0);
       } else {
-        worldPos.copyFrom(position);
-        worldQuat.copyFrom(localQuat);
+        tempMat0.copyFrom(this.localMatrix);
       }
-
-      position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
+      this._isParentDirty = true;
+      const parent = this._getParentTransform();
       if (parent) {
-        const invNewQuat = Transform._tempQuat1;
-        Quaternion.invert(parent.worldRotationQuaternion, invNewQuat);
-        Vector3.subtract(worldPos, parent.worldPosition, position);
-        Vector3.transformByQuat(position, invNewQuat, position);
-        if (newScale !== 1) {
-          position.scale(invNewScale);
+        const tempMat1 = Transform._tempMat42;
+        if (Matrix.invert(parent.worldMatrix, tempMat1) === null) {
+          this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+          return;
         }
-        Quaternion.multiply(invNewQuat, worldQuat, rotationQuaternion);
-        rotationQuaternion.normalize();
-      } else {
-        position.copyFrom(worldPos);
-        rotationQuaternion.copyFrom(worldQuat);
-        if (oldParent) {
-          rotationQuaternion.normalize();
-        }
+        Matrix.multiply(tempMat1, tempMat0, tempMat0);
       }
-      if (oldScale !== newScale) {
-        scale.scale(oldScale / newScale);
-      }
-
-      position._onValueChanged = this._onPositionChanged;
-      rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
-      scale._onValueChanged = this._onScaleChanged;
-
-      this._localUniformScaling = scale.x === scale.y && scale.y === scale.z;
-      this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalEuler);
-      this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
-      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
-      return;
-    }
-
-    const tempMat0 = Transform._tempMat41;
-    if (oldParent) {
-      Matrix.multiply(oldParent.worldMatrix, this.localMatrix, tempMat0);
+      this.localMatrix = tempMat0;
+      this._updateAllWorldFlag(TransformModifyFlags.IsWorldUniformScaling);
     } else {
-      tempMat0.copyFrom(this.localMatrix);
+      this._isParentDirty = true;
+      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
     }
-    if (parent) {
-      const tempMat1 = Transform._tempMat42;
-      if (Matrix.invert(parent.worldMatrix, tempMat1) === null) {
-        this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
-        return;
-      }
-      Matrix.multiply(tempMat1, tempMat0, tempMat0);
-    }
-    this.localMatrix = tempMat0;
-    this._updateAllWorldFlag(TransformModifyFlags.IsWorldUniformScaling);
   }
 
   /**
@@ -799,29 +739,8 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const worldPosition = this._worldPosition;
     const parent = this._getParentTransform();
     if (parent) {
-      if (parent._getWorldUniformScaling()) {
-        const parentScale = parent._getWorldUniformScale();
-        const invParentScale = 1 / parentScale;
-        if (parentScale === 0 || !Number.isFinite(invParentScale)) {
-          this._setDirtyFlagTrue(TransformModifyFlags.WorldPosition);
-          return;
-        }
-        const invParentQuat = Transform._tempQuat0;
-        const localPos = Transform._tempVec30;
-        Quaternion.invert(parent.worldRotationQuaternion, invParentQuat);
-        Vector3.subtract(worldPosition, parent.worldPosition, localPos);
-        Vector3.transformByQuat(localPos, invParentQuat, localPos);
-        if (parentScale !== 1) {
-          localPos.scale(invParentScale);
-        }
-        this._position.copyFrom(localPos);
-      } else {
-        if (Matrix.invert(parent.worldMatrix, Transform._tempMat41) === null) {
-          this._setDirtyFlagTrue(TransformModifyFlags.WorldPosition);
-          return;
-        }
-        Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
-      }
+      Matrix.invert(parent.worldMatrix, Transform._tempMat41);
+      Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
     } else {
       this._position.copyFrom(worldPosition);
     }
@@ -1036,16 +955,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
       this._setDirtyFlagFalse(TransformModifyFlags.IsWorldUniformScaling);
     }
     return this._worldUniformScaling;
-  }
-
-  private _getWorldUniformScale(): number {
-    let scale = this._scale.x;
-    let parent = this._getParentTransform();
-    while (parent) {
-      scale *= parent._scale.x;
-      parent = parent._getParentTransform();
-    }
-    return scale;
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
