@@ -1,0 +1,20 @@
+packages/core/src/Entity.ts
+  h_ddbf152d31b140 654-658,666-667,672
+packages/core/src/Transform.ts
+  h_ddbf152d31b140 266-267,273,315,322-324,588-596,599,655,657-664,668-669
+packages/ui/src/component/UITransform.ts
+  h_ddbf152d31b140 245-246,249
+tests/src/core/Transform.test.ts
+  h_ddbf152d31b140 692,699-701,725-726,728-729,734,743-744,746-747,799,808-809,811-812,816,828,830,833,837-838,840-841
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c02a81f5aa5bbc9a005cd27c0876ccd1fcd5ce11",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
