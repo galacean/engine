@@ -2,11 +2,16 @@ import { WaterReadonlyUint8Buffer } from "../../compiler/shared/ReadonlyNumericB
 import { decodeWaterConnectionPorts } from "../../authoring/connections/WaterConnection";
 /** Immutable compiler output for the finite, render-only Ocean backend. */
 import { createPhysicalSurfaceIdentity } from "../../authoring/body/PhysicalSurfaceIdentity";
+import {
+  createImmutableWaterSnapshot,
+  isImmutableWaterSnapshot
+} from "../../authoring/identity/WaterImmutableSnapshot";
 import { WaterBodySourceKind } from "../../authoring/body/WaterBodyAuthoringTypes";
 import { createWaterRepresentationV1 } from "../../authoring/body/WaterBodyRepresentation";
 import type { OceanNearshoreDiagnostic } from "../../authoring/ocean/OceanNearshoreTypes";
 import { OCEAN_LOOK } from "../../authoring/ocean/presets/OceanLook";
 import {
+  createWaterCompiledDataSnapshot,
   WaterReferenceCountedCompiledResource,
   type WaterCompiledBackendRouteIdentity
 } from "../../compiler/body/WaterCompiledResource";
@@ -188,39 +193,30 @@ function freezeSnapshot<T>(value: T): T {
 
 const EFFECTIVE_CACHE = new WeakMap<object, OceanWaterBodyDescriptorV1>();
 
-function clonePreservingTypedArrays(value: unknown): unknown {
-  if (value === null || typeof value !== "object") return value;
-  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return value;
-  if (Array.isArray(value)) return value.map((item) => clonePreservingTypedArrays(item));
-  const proto = Object.getPrototypeOf(value);
-  if (proto !== Object.prototype && proto !== null) return structuredClone(value);
-  const copy: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(value)) {
-    copy[k] = clonePreservingTypedArrays(v);
-  }
-  return copy;
-}
-
-function cloneNearshoreDescriptorPreservingTypedArrays<T extends Record<string, any> | undefined>(descriptor: T): T {
-  if (!descriptor) return descriptor;
-  return clonePreservingTypedArrays(descriptor) as T;
-}
-
-export function createEffectiveOceanWaterBodyDescriptor(value: unknown): OceanWaterBodyDescriptorV1 {
-  assertOceanWaterBodyDescriptor(value);
-  const cached = EFFECTIVE_CACHE.get(value);
-  if (cached) return cached;
+function effectiveOceanDescriptor(
+  value: OceanWaterBodyDescriptorV1,
+  nearshoreDescriptor: OceanWaterSourceConfig["nearshoreDescriptor"]
+): OceanWaterBodyDescriptorV1 {
   const effective = freezeSnapshot<OceanWaterBodyDescriptorV1>({
     schemaVersion: OCEAN_WATER_BODY_DESCRIPTOR_SCHEMA_VERSION,
     id: value.id,
     config: {
       waterLevel: value.config.waterLevel,
       ...(value.config.connections ? { connections: decodeWaterConnectionPorts(value.config.connections) } : {}),
-      nearshoreDescriptor: cloneNearshoreDescriptorPreservingTypedArrays(value.config.nearshoreDescriptor)
+      nearshoreDescriptor
     }
   });
   assertOceanWaterBodyDescriptor(effective);
-  EFFECTIVE_CACHE.set(value, effective);
+  return effective;
+}
+
+export function createEffectiveOceanWaterBodyDescriptor(value: unknown): OceanWaterBodyDescriptorV1 {
+  assertOceanWaterBodyDescriptor(value);
+  const cached = EFFECTIVE_CACHE.get(value);
+  if (cached) return cached;
+  // The snapshot helper borrows only buffers already owned by an immutable Water snapshot.
+  const effective = effectiveOceanDescriptor(value, createImmutableWaterSnapshot(value.config.nearshoreDescriptor));
+  if (isImmutableWaterSnapshot(value)) EFFECTIVE_CACHE.set(value, effective);
   EFFECTIVE_CACHE.set(effective, effective);
   return effective;
 }
@@ -289,7 +285,12 @@ export class OceanWaterCompiledResource extends WaterReferenceCountedCompiledRes
       sourceKind: WaterBodySourceKind.OceanNearshore
     })
   ): Readonly<OceanWaterCompiledTransferV1> {
-    const source = createEffectiveOceanWaterBodyDescriptor(descriptor);
+    assertOceanWaterBodyDescriptor(descriptor);
+    // Transfer can detach buffers. Give the payload its own copy, including when the input is a cached snapshot.
+    const source = effectiveOceanDescriptor(
+      descriptor,
+      createWaterCompiledDataSnapshot(descriptor.config.nearshoreDescriptor)
+    );
     // Both identities keep their existing hash formats, sharing the owned numeric view.
     const body = hashableDescriptor(source);
     const sourceHash = hashStableValue({ compilerVersion: OCEAN_WATER_COMPILER_VERSION, descriptor: body });

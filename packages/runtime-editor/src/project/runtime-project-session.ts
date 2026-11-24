@@ -15,6 +15,7 @@ import {
   prepareProjectSources
 } from "@galacean/engine-project/runtime-editor/scene/runtime-project-compiler";
 import {
+  cloneRuntimeProjectContent,
   cloneRuntimeProjectManifest,
   cloneRuntimeProjectPackage,
   RUNTIME_PROJECT_SAVE_VERSION,
@@ -25,6 +26,7 @@ import {
   type RuntimeProjectManifest,
   type RuntimeProjectPackage
 } from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import { snapshotRuntimeProjectContent } from "@galacean/engine-project/runtime-editor/project/runtime-project-content";
 import { nativeAssetFormats } from "./runtime-native-formats.ts";
 import type {
   RuntimeAssetFormat,
@@ -990,8 +992,9 @@ export class RuntimeProjectSession {
           const existing = pack.project.files.find((entry) => entry.virtualPath === path);
           if (existing && (existing.virtualPath !== path || existing.type !== file.type))
             throw new Error(`Runtime asset identity conflict: ${path}`);
-          const result = change(pack.contents[path]);
+          const result = change(snapshotRuntimeProjectContent(pack.contents[path]));
           if (result.content === undefined) return result.value;
+          const content = cloneRuntimeProjectContent(result.content);
           const format = existing ? this.referenceFormats.get(existing.type) : undefined;
           let canFastCommit = false;
           let extractedDeps: string[] | undefined;
@@ -1003,12 +1006,12 @@ export class RuntimeProjectSession {
             this.validatedFilesLength === pack.project.files.length &&
             this.validatedDocuments === pack.documents &&
             Array.isArray(existing.dependencies);
-          if (baseFastReady && format && (typeof result.content === "string" || result.content instanceof Uint8Array)) {
+          if (this.projectValidators.size === 0 && baseFastReady && format) {
             if (format.referenceTypes?.length === 0 && existing.dependencies!.length === 0) {
               canFastCommit = true;
             } else {
               try {
-                const refs = extractAssetDependencies(existing, result.content, format);
+                const refs = extractAssetDependencies(existing, content, format);
                 if (refs !== undefined && sameStringArray(refs, existing.dependencies)) {
                   extractedDeps = refs;
                   canFastCommit = true;
@@ -1018,8 +1021,9 @@ export class RuntimeProjectSession {
               }
             }
           }
-          if (canFastCommit) {
-            await this.commitRuntimeContentUpdate(path, result.content, existing, extractedDeps);
+          // Validators may amend the candidate. All such writes share the full publication path.
+          if (canFastCommit && this.projectValidators.size === 0) {
+            this.commitRuntimeContentUpdate(path, content, existing, extractedDeps);
           } else {
             await this.commitPackage(
               {
@@ -1028,7 +1032,7 @@ export class RuntimeProjectSession {
                   ...pack.project,
                   files: existing ? [...pack.project.files] : [...pack.project.files, { ...file }]
                 },
-                contents: { ...pack.contents, [path]: result.content }
+                contents: { ...pack.contents, [path]: content }
               },
               path
             );
@@ -1045,21 +1049,15 @@ export class RuntimeProjectSession {
     };
   }
 
-  private async commitRuntimeContentUpdate(
+  private commitRuntimeContentUpdate(
     path: string,
     content: string | Uint8Array,
     existing?: RuntimeProjectManifest["files"][number],
     extractedDeps?: readonly string[]
-  ): Promise<void> {
+  ): void {
     this.lifetime.signal.throwIfAborted();
-    if (typeof content !== "string" && !(content instanceof Uint8Array)) {
-      throw new Error(`Invalid runtime asset content '${path}'`);
-    }
     const pack = this.projectPackage;
     const nextContents = { ...pack.contents, [path]: content };
-    const candidate: RuntimeProjectPackage = { ...pack, contents: nextContents };
-    await this.validateCandidate(candidate);
-    this.lifetime.signal.throwIfAborted();
     for (const pending of this.pendingReads) {
       if (pending.path === path && !sameOptionalResourceContent(content, pack.contents[path])) {
         pending.invalidated = true;
@@ -1131,9 +1129,6 @@ export class RuntimeProjectSession {
       contents,
       ...(documents === undefined ? {} : { documents })
     };
-    const authoredContentPaths = new Set(
-      Object.keys(candidate.contents).filter((path) => this.projectPackage.contents[path] === undefined)
-    );
     invalidateChangedDependencies(this.projectPackage, candidate, this.referenceFormats);
     if (preservedRemoteDependencies?.size) {
       for (const file of candidate.project.files) {
@@ -1144,7 +1139,17 @@ export class RuntimeProjectSession {
         file.dependencies = [...preserved];
       }
     }
-    await this.validateCandidate(candidate);
+    if (this.projectValidators.size > 0) {
+      const validationCandidate = cloneRuntimeProjectPackage(candidate);
+      await this.validateCandidate(validationCandidate);
+      // Publish the validated result without exposing live state to retained validator references.
+      const validated = cloneRuntimeProjectPackage(validationCandidate);
+      invalidateChangedDependencies(candidate, validated, this.referenceFormats);
+      candidate = validated;
+    }
+    const authoredContentPaths = new Set(
+      Object.keys(candidate.contents).filter((path) => this.projectPackage.contents[path] === undefined)
+    );
     await checkpoint(this.lifetime.signal);
     candidate = await this.withDependencies(candidate, true);
     let snapshot = RuntimeProjectSnapshot.create(candidate);

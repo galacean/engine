@@ -936,7 +936,7 @@ it("does not poison RuntimeDependencyMaintenance across failed rebase retries, m
   }
 });
 
-it("keeps validators active and persists on the runtime-owned content fast path", async () => {
+it("runs validators and persists runtime-owned content updates", async () => {
   const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
   let savedPack: RuntimeProjectPackage | undefined;
   const initial = project();
@@ -1374,6 +1374,68 @@ function createInMemoryProjectStorage() {
     storage: new RuntimeProjectStorage(database as unknown as IDBDatabase)
   };
 }
+
+it("publishes and persists the same detached candidate after validating a runtime-owned update", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const { storage } = createInMemoryProjectStorage();
+  const initial = project();
+  const farmPath = "farm.json";
+  const farmFile = { type: "Farming", dependencies: [], virtualPath: farmPath, path: farmPath };
+  initial.project.files.push(farmFile);
+  initial.contents[farmPath] = '{"revision":0}';
+  initial.documents = { "notes.md": "before" };
+  const id = "runtime-owned-validator";
+  await storage.save(id, initial);
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage);
+  const session = await RuntimeProjectSession.open(id, initial.project, "https://example.com/");
+  session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
+  await session.initializeDependencies();
+  const owner = session.ownRuntimeAsset(farmFile, "owner");
+  let checked: RuntimeProjectPackage | undefined;
+  let reject = true;
+  const validate = vi.fn(async (candidate: RuntimeProjectPackage) => {
+    checked = candidate;
+    await Promise.resolve();
+    candidate.project.files[0].path = "updated.scene";
+    candidate.documents!["notes.md"] = "after";
+    (candidate.contents["mesh.bin"] as Uint8Array)[0] = 9;
+    candidate.contents[farmPath] = '{"revision":2}';
+    if (reject) throw Error("Rejected farm update");
+  });
+  const unregister = session.registerProjectValidator(validate);
+  try {
+    const update = () => owner.update(() => ({ content: '{"revision":1}', value: undefined }));
+    const before = structuredClone(session.projectPackage);
+    const commitSeq = session.persistenceStatus.commitSeq;
+
+    await expect(update()).rejects.toThrow("Rejected farm update");
+    expect(session.projectPackage).toEqual(before);
+    expect(session.persistenceStatus.commitSeq).toBe(commitSeq);
+    expect(await storage.load(id)).toEqual(before);
+
+    reject = false;
+    await update();
+    expect(validate).toHaveBeenCalledTimes(2);
+    expect(session.projectPackage.project.files[0].path).toBe("updated.scene");
+    expect(session.projectPackage.documents!["notes.md"]).toBe("after");
+    expect(session.projectPackage.contents["mesh.bin"]).toEqual(new Uint8Array([9, 2]));
+    expect(session.projectPackage.contents[farmPath]).toBe('{"revision":2}');
+    expect(session.persistenceStatus.commitSeq).toBe(commitSeq + 1);
+
+    // A validator retaining the candidate cannot mutate the accepted project later.
+    checked!.project.files[0].path = "retained.scene";
+    (checked!.contents["mesh.bin"] as Uint8Array)[0] = 7;
+    expect(session.projectPackage.project.files[0].path).toBe("updated.scene");
+    expect(session.projectPackage.contents["mesh.bin"]).toEqual(new Uint8Array([9, 2]));
+    await session.flush();
+    expect(await storage.load(id)).toEqual(session.projectPackage);
+  } finally {
+    unregister();
+    owner.dispose();
+    session.dispose();
+    opening.mockRestore();
+  }
+});
 
 it("Option 1B: persists via private saveSnapshot without exposing fastPath to in-place projectPackage mutations", async () => {
   const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");

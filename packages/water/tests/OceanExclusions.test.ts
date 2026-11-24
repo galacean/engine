@@ -2,6 +2,13 @@ import { expect, it } from "vitest";
 import { compileWaterShape, validateWaterShape, type WaterShapeAuthoring } from "../src/water/native/WaterAuthoring";
 import { createWaterRepresentationInstanceStateV1 } from "../src/water/authoring/body/WaterBodyInstance";
 import { createWaterQualitySettings } from "../src/water/native/WaterQualitySettings";
+import { createImmutableWaterSnapshot } from "../src/water/authoring/identity/WaterImmutableSnapshot";
+import {
+  computeOceanWaterSourceHash,
+  createEffectiveOceanWaterBodyDescriptor,
+  OceanWaterCompiledResource,
+  type OceanWaterBodyDescriptorV1
+} from "../src/water/runtime/ocean/OceanWaterCompiledResource";
 const shape: Extract<WaterShapeAuthoring, { kind: "ocean" }> = {
   kind: "ocean",
   waterLevel: 0,
@@ -111,13 +118,55 @@ it("accepts positive sub-metre resolved native river widths", () => {
   expect(() => compileWaterShape(river, bed, "narrow")).not.toThrow();
 });
 
-it("preserves nested wetSource.mask typed array without duplicating it across effective descriptor cache", async () => {
-  const { createEffectiveOceanWaterBodyDescriptor } = await import("../src/water/runtime/ocean/OceanWaterCompiledResource");
-  const compiled = compileWaterShape({ ...shape, boundaryConnected: true }, terrain, "ocean");
-  const raw = (compiled.source as any).descriptor;
-  const effective = createEffectiveOceanWaterBodyDescriptor(raw);
-  expect(effective.config.nearshoreDescriptor).not.toBe(raw.config.nearshoreDescriptor);
-  expect(effective.config.nearshoreDescriptor.bedHeights).toBe(raw.config.nearshoreDescriptor.bedHeights);
-  expect(effective.config.nearshoreDescriptor.wetSource).not.toBe(raw.config.nearshoreDescriptor.wetSource);
-  expect(effective.config.nearshoreDescriptor.wetSource.mask).toBe(raw.config.nearshoreDescriptor.wetSource.mask);
+function oceanDescriptor(): OceanWaterBodyDescriptorV1 {
+  const asset = compileWaterShape({ ...shape, boundaryConnected: true }, terrain, "ocean");
+  return (asset.source as { descriptor: OceanWaterBodyDescriptorV1 }).descriptor;
+}
+
+function wetMask(descriptor: OceanWaterBodyDescriptorV1): Uint8Array {
+  const wet = descriptor.config.nearshoreDescriptor.wetSource;
+  if (wet.kind !== "mask") throw Error("Expected an authored wet mask");
+  return wet.mask;
+}
+
+it("isolates compiled configuration, hash and atlas from mutable Ocean input", () => {
+  const input = oceanDescriptor();
+  const compiled = OceanWaterCompiledResource.compile(input);
+  try {
+    const accepted = { ...input, config: compiled.data.config };
+    const atlas = compiled.nearshoreResource.atlas.pixels;
+    const shoreCode = atlas.at(3);
+    wetMask(input)[0] = 0;
+    input.config.nearshoreDescriptor.bedHeights[0] = 1;
+
+    expect(wetMask(accepted)[0]).toBe(1);
+    expect(accepted.config.nearshoreDescriptor.bedHeights[0]).toBe(terrain.heights[0]);
+    expect(computeOceanWaterSourceHash(accepted)).toBe(compiled.identity.sourceHash);
+    expect(atlas.at(3)).toBe(shoreCode);
+
+    const recompiled = OceanWaterCompiledResource.compile(input);
+    try {
+      expect(wetMask({ ...input, config: recompiled.data.config })[0]).toBe(0);
+      expect(recompiled.identity.sourceHash).not.toBe(compiled.identity.sourceHash);
+    } finally {
+      recompiled.dispose();
+    }
+  } finally {
+    compiled.dispose();
+  }
+});
+
+it("reuses owned Ocean snapshot buffers and isolates transfer payloads", () => {
+  const input = createImmutableWaterSnapshot(oceanDescriptor());
+  const effective = createEffectiveOceanWaterBodyDescriptor(input);
+  expect(createEffectiveOceanWaterBodyDescriptor(input)).toBe(effective);
+  expect(effective.config.nearshoreDescriptor.bedHeights).toBe(input.config.nearshoreDescriptor.bedHeights);
+  expect(wetMask(effective)).toBe(wetMask(input));
+
+  const transfer = OceanWaterCompiledResource.compileForTransfer(input);
+  const mask = wetMask({ ...input, config: transfer.data.config });
+  const transferred = structuredClone(transfer, { transfer: [mask.buffer as ArrayBuffer] });
+  expect(wetMask({ ...input, config: transferred.data.config })[0]).toBe(1);
+  expect(wetMask(input)[0]).toBe(1);
+  expect(wetMask(effective)[0]).toBe(1);
 });
