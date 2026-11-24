@@ -339,6 +339,8 @@ export async function mountSeedWorldDemo(
   let oilPaintPostEffect: import("./src/oil-paint/OilPaintPostEffect").OilPaintPostEffect | undefined;
   let oilPaintPostPass: import("./src/oil-paint/OilPaintPostPass").OilPaintPostPass | undefined;
   let oilPaintMacroEnabled = false;
+  let oilPaintMacroDesired = false;
+  let oilPaintMacroRequestId = 0;
   let oilPaintDepthGuard: { active: boolean } | undefined;
   let oilPaintDepthLease: CameraDepthTexturePrePassLease | undefined;
   let mojaveLayout: Entity | undefined;
@@ -950,6 +952,13 @@ export async function mountSeedWorldDemo(
     );
     // Pre-spawn idle raster worker while planning worker runs so module fetch/parse is off the critical path.
     raster.prewarm();
+    if (requestedTemplateId === "oil-paint") {
+      void import("@galacean/engine-world-planning/spatial/oil-paint/OilPaintTextures")
+        .then(({ prewarmOilPaintBrushTexture }) => {
+          if (!disposed) prewarmOilPaintBrushTexture();
+        })
+        .catch(() => {});
+    }
     source = await timed("await planning source", () => sourceTask!);
     await timed("await common binary bundle", () => commonBinaryBundleTask!);
     commonBinaryBundleTask = undefined;
@@ -959,6 +968,13 @@ export async function mountSeedWorldDemo(
     const prewarmedPopulationResources = preparePlanningPopulationResources(engine);
     void prewarmedPopulationResources.catch(() => {});
     let prewarmedRasterPlan: IslandPlan | undefined = source.takeInitialPlan();
+    if (requestedTemplateId !== "oil-paint" && prewarmedRasterPlan?.parameters.worldTemplate?.id === "oil-paint") {
+      void import("@galacean/engine-world-planning/spatial/oil-paint/OilPaintTextures")
+        .then(({ prewarmOilPaintBrushTexture }) => {
+          if (!disposed) prewarmOilPaintBrushTexture();
+        })
+        .catch(() => {});
+    }
     const hasPlannedBuildings = (prewarmedRasterPlan?.buildings?.length ?? 0) > 0;
     if (hasPlannedBuildings) {
       if (!buildingBinaryBundleTask) {
@@ -1212,10 +1228,19 @@ export async function mountSeedWorldDemo(
     const setOilPaintMacroEnabled = async (enabled: boolean) => {
       const activeScene = scene;
       if (!activeScene) return;
+      oilPaintMacroDesired = enabled;
+      const requestId = ++oilPaintMacroRequestId;
       if (enabled) {
-        const { getOilPaintTextures } = await import("@galacean/engine-world-planning/spatial/oil-paint/OilPaintTextures");
-        if (disposed) return;
-        const { brush } = getOilPaintTextures(engine!);
+        const { getOilPaintBrushTexture } = await import(
+          "@galacean/engine-world-planning/spatial/oil-paint/OilPaintTextures"
+        );
+        if (disposed || !oilPaintMacroDesired || requestId !== oilPaintMacroRequestId || scene !== activeScene) {
+          return;
+        }
+        const brush = await getOilPaintBrushTexture(engine!);
+        if (!brush || disposed || !oilPaintMacroDesired || requestId !== oilPaintMacroRequestId || scene !== activeScene) {
+          return;
+        }
         oilPaintMacroEnabled = true;
         activeScene.shaderData.enableMacro("SCENE_OIL_PAINT_STYLE");
         activeScene.shaderData.setTexture("scene_OilPaintBrushTexture", brush);
