@@ -6,13 +6,11 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 /**
  * Flags which affect the behavior of Shapes.
  */
-enum ShapeFlag {
+const enum ShapeFlag {
   /** The shape will partake in collision in the physical simulation. */
   SIMULATION_SHAPE = 1 << 0,
   /** The shape will partake in scene queries (ray casts, overlap tests, sweeps, ...). */
-  SCENE_QUERY_SHAPE = 1 << 1,
-  /** The shape is a trigger which can send reports whenever other shapes enter/leave its volume. */
-  TRIGGER_SHAPE = 1 << 2
+  SCENE_QUERY_SHAPE = 1 << 1
 }
 
 /**
