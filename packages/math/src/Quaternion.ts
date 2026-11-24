@@ -254,19 +254,20 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     let opposite: number;
     let inverse: number;
     const dot = Quaternion.dot(start, end);
-    const sign = dot < 0 ? -1 : 1;
+    const absDot = Math.abs(dot);
 
-    if (Math.abs(dot) > 1.0 - MathUtil.zeroTolerance) {
+    if (absDot > 1.0 - MathUtil.zeroTolerance) {
       inverse = 1.0 - amount;
-      opposite = amount * sign;
+      opposite = amount;
     } else {
-      const acos = Math.acos(Math.abs(dot));
+      const acos = Math.acos(absDot);
       const invSin = 1.0 / Math.sin(acos);
 
       inverse = Math.sin((1.0 - amount) * acos) * invSin;
-      opposite = Math.sin(amount * acos) * invSin * sign;
+      opposite = Math.sin(amount * acos) * invSin;
     }
 
+    opposite *= dot < 0 ? -1 : 1;
     out._x = inverse * start._x + opposite * end._x;
     out._y = inverse * start._y + opposite * end._y;
     out._z = inverse * start._z + opposite * end._z;
