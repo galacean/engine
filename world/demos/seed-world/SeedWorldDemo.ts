@@ -3443,23 +3443,25 @@ export async function mountSeedWorldDemo(
     let snapshotWarmup: Promise<void> | undefined;
     viewSnapshots = new SeedWorldViewSnapshots(
       async (signal, budget) => {
+        signal?.throwIfAborted();
         // Fast color-first capture (1 frame, <16ms): opens the screen-markup canvas immediately
         // without blocking on pick-shader compilation or a synchronous 2nd full-scene ID render.
-        // `colorFrame.capturedView` freezes the exact camera pose, projection, and visible render-view
-        // batches so deferred ID+depth capture stays pixel-aligned even after the world unfreezes.
-        const colorFrame = await worldPicker!.captureColorOnly(signal, budget);
+        // The world camera stays frozen until deferred ID+depth capture settles so dynamic view-culled
+        // batches (trees, grass, understory, lotus) stay 100% pixel-aligned with the color frame.
+        const { image, metadata, width, height } = await worldPicker!.captureColorOnly(signal, budget);
         const identityAbort = new AbortController();
         let resolvedIdentities: ViewIdentityBuffer | undefined;
         let identityTask: Promise<void> | undefined;
         let identityDisposed = false;
-        let bgTimer: number | undefined;
-        const emptyBytes = colorFrame.width * colorFrame.height * 4;
+        let identitySettled = false;
+        let bgTimer: ReturnType<typeof setTimeout> | undefined;
+        const emptyBytes = width * height * 4;
 
         const populateIdentities = (): Promise<void> => {
           if (resolvedIdentities || identityDisposed) return Promise.resolve();
           if (identityTask) return identityTask;
           if (bgTimer !== undefined) {
-            window.clearTimeout(bgTimer);
+            globalThis.clearTimeout(bgTimer);
             bgTimer = undefined;
           }
           identityTask = (async () => {
@@ -3469,24 +3471,27 @@ export async function mountSeedWorldDemo(
             const populated = worldPicker!.captureIdentityBuffer(
               (visitor) => snapshotPicks.visit(visitor),
               (batch) => inspection.target(batch.renderer),
-              colorFrame.image,
-              budget,
-              colorFrame.capturedView
+              image,
+              budget
             );
             if (identityDisposed || identityAbort.signal.aborted || disposed) {
               populated.identities.dispose();
               return;
             }
             resolvedIdentities = populated.identities;
-          })().catch((error) => {
-            if (!identityDisposed && !identityAbort.signal.aborted) {
-              console.warn("[seed-world-planner] deferred identity capture failed", error);
-            }
-          });
+          })()
+            .catch((error) => {
+              if (!identityDisposed && !identityAbort.signal.aborted) {
+                console.warn("[seed-world-planner] deferred identity capture failed", error);
+              }
+            })
+            .finally(() => {
+              identitySettled = true;
+            });
           return identityTask;
         };
 
-        bgTimer = window.setTimeout(() => {
+        bgTimer = globalThis.setTimeout(() => {
           bgTimer = undefined;
           if (!identityDisposed && !disposed) void populateIdentities();
         }, 300);
@@ -3510,8 +3515,9 @@ export async function mountSeedWorldDemo(
           dispose() {
             if (identityDisposed) return;
             identityDisposed = true;
+            identitySettled = true;
             if (bgTimer !== undefined) {
-              window.clearTimeout(bgTimer);
+              globalThis.clearTimeout(bgTimer);
               bgTimer = undefined;
             }
             identityAbort.abort();
@@ -3521,12 +3527,13 @@ export async function mountSeedWorldDemo(
         };
 
         return {
-          image: colorFrame.image,
-          metadata: colorFrame.metadata,
-          width: colorFrame.width,
-          height: colorFrame.height,
+          image,
+          metadata,
+          width,
+          height,
           identities: deferredIdentities,
-          ensureIdentities: populateIdentities
+          ensureIdentities: populateIdentities,
+          hasIdentities: () => identitySettled
         };
       },
       () => {

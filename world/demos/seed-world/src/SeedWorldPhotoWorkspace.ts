@@ -532,7 +532,10 @@ export class SeedWorldPhotoWorkspace {
     this.startOnboardingHint(entry);
   }
   /** After voice dialogue submits or margin tap minimizes, shrink the marked screenshot smoothly into the multi-card dock. */
-  async dismissSubmitted(signal: AbortSignal): Promise<void> {
+  async dismissSubmitted(
+    signal: AbortSignal,
+    waitBeforeUnfreeze?: { readonly isPending: () => boolean; readonly wait: (signal: AbortSignal) => Promise<void> }
+  ): Promise<void> {
     const editing = this.editing;
     if (!editing) return;
     this.stopOnboardingHint();
@@ -568,6 +571,16 @@ export class SeedWorldPhotoWorkspace {
     entry.liftTarget = 0;
     entry.opacity = entry.opacityTarget = 1;
     entry.visible = true;
+    if (waitBeforeUnfreeze?.isPending()) {
+      // Keep the world camera frozen until deferred ID+depth capture finishes so dynamic view-culled
+      // batches stay pixel-aligned with the captured color frame (0ms extra wait when already settled).
+      this.setPhase("identities");
+      this.graphics.status.text = "正在建立画面拾取索引…";
+      this.statusUntil = 0;
+      await waitBeforeUnfreeze.wait(signal);
+      signal.throwIfAborted();
+      if (this.disposed) return;
+    }
     this.editing = undefined;
     this.finish();
   }
@@ -1007,7 +1020,9 @@ export class SeedWorldPhotoWorkspace {
         });
         const scale = this.editing!.entry.photo.image.width / Math.max(1, this.editing!.entry.pose.width);
         this.drawing = { pointer: event.id, points: [point], scale, color: this.brushColor };
-        this.paint();
+        if (!this.tryPaintDrawing()) {
+          this.drawing = undefined;
+        }
       } else if (isUp || cancel) {
         const closeTap = this.closeTap;
         if (closeTap?.pointer === event.id) {
@@ -1067,7 +1082,9 @@ export class SeedWorldPhotoWorkspace {
           });
         if (point && Math.hypot(point.x - last.x, point.y - last.y) > this.drawing.scale * 2) {
           this.drawing.points.push(point);
-          this.paint();
+          if (!this.tryPaintDrawing()) {
+            this.drawing = undefined;
+          }
         }
       }
       return;
@@ -1150,7 +1167,22 @@ export class SeedWorldPhotoWorkspace {
     this.closeTap = undefined;
     if (this.drawing) this.trace.record("drawing-ended", { reason, pointCount: this.drawing.points.length });
     this.drawing = undefined;
-    if (this.editing) this.paint();
+    if (this.editing) this.tryPaintDrawing();
+  }
+  private tryPaintDrawing(): boolean {
+    try {
+      this.paint();
+      return true;
+    } catch (error) {
+      this.notifyPaintError(error);
+      return false;
+    }
+  }
+  private notifyPaintError(error: unknown): void {
+    const rawError = error instanceof Error ? error.message : String(error);
+    const code = (error as { code?: unknown } | null)?.code;
+    const isMemoryLimit = code === "IMAGE_MEMORY_LIMIT" || rawError.includes("IMAGE_MEMORY_LIMIT");
+    this.notify(isMemoryLimit ? "显存空间不足，请先删除旧照片再继续标记。" : rawError);
   }
   private paint(): void {
     const { entry, history } = this.editing!;
@@ -1274,7 +1306,10 @@ export class SeedWorldPhotoWorkspace {
       if (this.drawing) this.cancelDrawing("escape");
       else if (this.drag) this.cancelDrag();
       else if (this.mode === "editing" && this.editing) this.actions.minimize();
-      else if (this.phase !== "return" && this.phase !== "discard") this.actions.cancel();
+      else if (this.phase === "identities") {
+        const id = this.editing?.entry.photo.snapshotId;
+        if (!id || !this.submittedIds.has(id)) this.actions.cancel();
+      } else if (this.phase !== "return" && this.phase !== "discard") this.actions.cancel();
     }
   }
   dispose(): void {

@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   createdTextures: [] as Array<{ width: number; height: number; isGCIgnored: boolean; destroyed: boolean }>,
   createdTargets: [] as Array<{ width: number; height: number; destroyed: boolean }>,
-  throwOnRenderTarget: false
+  createdMeshes: [] as Array<{ name: string; destroyed: boolean }>,
+  throwOnRenderTarget: false,
+  onStrokeWarmup: undefined as (() => Promise<void> | void) | undefined
 }));
 
 vi.mock("@galacean/engine", () => {
@@ -72,13 +74,22 @@ vi.mock("@galacean/engine", () => {
   }
   class ModelMesh {
     bounds = { min: { set() {} }, max: { set() {} } };
+    destroyed = false;
+    constructor(
+      public engine?: any,
+      public name = ""
+    ) {
+      state.createdMeshes.push(this);
+    }
     setPositions() {}
     setUVs() {}
     setColors() {}
     setIndices() {}
     addSubMesh() {}
     uploadData() {}
-    destroy() {}
+    destroy() {
+      this.destroyed = true;
+    }
   }
   class Material {
     shaderData = {
@@ -97,16 +108,80 @@ vi.mock("@galacean/engine", () => {
     mesh: any = null;
     castShadows = false;
     receiveShadows = false;
+    destroyed = false;
+    entity: any;
+    private _material: any = null;
+    constructor(entity: any) {
+      this.entity = entity;
+    }
+    setMaterial(material: any) {
+      this._material = material;
+    }
+    getMaterial() {
+      return this._material;
+    }
+    destroy() {
+      this.destroyed = true;
+    }
+  }
+  class CameraStub {
+    isOrthographic = false;
+    orthographicSize = 1;
+    aspectRatio = 1;
+    nearClipPlane = 0.1;
+    farClipPlane = 100;
+    clearFlags = 0;
+    cullingMask = 0;
+    priority = 0;
+    enabled = false;
+    enableHDR = false;
+    enablePostProcess = false;
+    enableScreenSpaceReflection = false;
+    destroyed = false;
+    private _viewport: { x: number; y: number } | null = { x: 0, y: 0 };
+    private _renderTarget: any = null;
+    constructor(public entity: any) {}
+    get renderTarget() {
+      return this._renderTarget;
+    }
+    set renderTarget(value: any) {
+      this._renderTarget = value;
+      // Mirror real Galacean Camera._adjustPixelViewport accessing this._viewport.x on destroyed camera.
+      void this._viewport!.x;
+    }
+    render() {}
+    destroy() {
+      this.destroyed = true;
+      this._viewport = null;
+    }
+  }
+  class TextRendererStub {
+    text = "";
+    font: any;
+    fontSize = 14;
+    color = new Color();
+    enableWrapping = false;
+    horizontalAlignment = 0;
+    verticalAlignment = 0;
     entity: any;
     constructor(entity: any) {
       this.entity = entity;
     }
-    setMaterial() {}
+    destroy() {}
+  }
+  class ScriptStub {
+    entity: any;
+    constructor(entity: any) {
+      this.entity = entity;
+    }
+    destroy() {}
   }
   class EntityStub {
     layer = 0;
     isActive = true;
+    destroyed = false;
     children: EntityStub[] = [];
+    components: any[] = [];
     transform = {
       setPosition() {},
       setScale() {}
@@ -118,17 +193,44 @@ vi.mock("@galacean/engine", () => {
       return child;
     }
     addComponent(Ctor: any) {
-      return new Ctor(this);
+      const component = new Ctor(this);
+      this.components.push(component);
+      return component;
     }
     getComponentsIncludeChildren() {
       return [];
     }
-    destroy() {}
+    destroy() {
+      if (this.destroyed) return;
+      this.destroyed = true;
+      for (const c of this.components) c.destroy?.();
+      for (const child of this.children) child.destroy();
+    }
+  }
+  class SceneStub {
+    rootEntities: EntityStub[] = [];
+    background = { mode: 0, solidColor: new Color() };
+    ambientLight = { destroy() {} };
+    destroyed = false;
+    constructor(
+      public engine?: any,
+      public name = ""
+    ) {}
+    createRootEntity(name = "") {
+      const e = new EntityStub(name);
+      this.rootEntities.push(e);
+      return e;
+    }
+    destroy() {
+      if (this.destroyed) return;
+      this.destroyed = true;
+      for (const root of this.rootEntities) root.destroy();
+    }
   }
   return {
     BackgroundMode: { SolidColor: 0 },
     BaseMaterial: Material,
-    Camera: class {},
+    Camera: CameraStub,
     CameraClearFlags: { Depth: 2, Color: 1 },
     Color,
     Entity: EntityStub,
@@ -138,13 +240,16 @@ vi.mock("@galacean/engine", () => {
     Matrix,
     MeshRenderer,
     ModelMesh,
-    PrimitiveMesh: {},
+    PrimitiveMesh: {
+      createPlane: (engine: any) => new ModelMesh(engine, "plane"),
+      createCuboid: (engine: any) => new ModelMesh(engine, "cuboid")
+    },
     RenderFace: { Double: 2 },
     RenderTarget,
-    Scene: class {},
-    Script: class {},
+    Scene: SceneStub,
+    Script: ScriptStub,
     Shader: { find: () => ({}), create: () => ({}) },
-    TextRenderer: class {},
+    TextRenderer: TextRendererStub,
     Texture2D,
     TextureFilterMode: { Bilinear: 1 },
     TextureFormat: { R8G8B8A8_UNorm: 0 },
@@ -157,7 +262,15 @@ vi.mock("@galacean/engine", () => {
 });
 
 vi.mock("@galacean/engine-modify/rendering/LiquidGlassPostProcessPass", () => ({
-  SeedWorldLiquidGlassUiMaterial: class {}
+  SeedWorldLiquidGlassUiMaterial: class {
+    material = { shaderData: { setTexture() {}, setVector4() {} }, destroy() {} };
+    setRoughness() {}
+    setWhiteTint() {}
+    setInteriorRefractionStrength() {}
+    setPanelRect() {}
+    setLayout() {}
+    destroy() {}
+  }
 }));
 vi.mock("@galacean/engine-modify/geometry/destroyOwnedMesh", () => ({
   destroyOwnedMesh(mesh?: { destroy?: () => void }) {
@@ -168,12 +281,14 @@ vi.mock("../src/world/SeedWorldPhotoWarmup", () => ({
   warmupPhotoPresentation: vi.fn(async () => {})
 }));
 vi.mock("../src/world/SeedWorldShaderWarmup", () => ({
-  warmupSeedWorldRendererVariants: vi.fn(async () => {})
+  warmupSeedWorldRendererVariants: vi.fn(async () => {
+    await state.onStrokeWarmup?.();
+  })
 }));
 
 import { ImageResourceBudget } from "@galacean/engine-ai-chat/ai-chat/image-resources";
-import { Entity, Texture2D } from "@galacean/engine";
-import { PhotoSurface } from "../src/world/SeedWorldPhotoGraphics";
+import { Entity, Scene, Texture2D } from "@galacean/engine";
+import { PhotoGraphics, PhotoSurface } from "../src/world/SeedWorldPhotoGraphics";
 import {
   SEED_WORLD_VOICE_ORB_LAYOUT,
   photoDetailLayout,
@@ -264,6 +379,71 @@ describe("PhotoSurface stroke mask budget & failure cleanup", () => {
     } finally {
       state.throwOnRenderTarget = false;
       surface.dispose();
+    }
+  });
+
+  it("rejects with AbortError and frees all stroke warmup GPU resources when dispose() runs during prepare()", async () => {
+    state.createdTextures.length = 0;
+    state.createdTargets.length = 0;
+    state.createdMeshes.length = 0;
+    state.throwOnRenderTarget = false;
+
+    const mainScene = new (Scene as any)({}, "main");
+    const engine: any = {
+      canvas: { width: 800, height: 600 },
+      sceneManager: {
+        addScene() {},
+        removeScene() {}
+      }
+    };
+    const worldCamera: any = {
+      scene: mainScene,
+      cullingMask: -1,
+      priority: 0,
+      destroyed: false
+    };
+    const canvas: any = {
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 })
+    };
+    const graphics = new PhotoGraphics(engine, canvas, worldCamera, () => {});
+    const texturesBeforePrepare = state.createdTextures.length;
+    const targetsBeforePrepare = state.createdTargets.length;
+    const meshesBeforePrepare = state.createdMeshes.length;
+
+    let releaseWarmup!: () => void;
+    let enteredStrokeWarmup!: () => void;
+    const strokeWarmupEntered = new Promise<void>((resolve) => {
+      enteredStrokeWarmup = resolve;
+    });
+    state.onStrokeWarmup = () => {
+      enteredStrokeWarmup();
+      return new Promise<void>((resolve) => {
+        releaseWarmup = resolve;
+      });
+    };
+
+    try {
+      const preparePromise = graphics.prepare();
+      await strokeWarmupEntered;
+
+      // Dispose concurrently while strokeFieldCamera has strokeWarmupTarget bound and warmup is in-flight.
+      graphics.dispose();
+      releaseWarmup();
+
+      await expect(preparePromise).rejects.toMatchObject({ name: "AbortError" });
+
+      // All temporary warmup textures, render targets, and meshes allocated during prepare() must be destroyed.
+      const warmupTextures = state.createdTextures.slice(texturesBeforePrepare);
+      const warmupTargets = state.createdTargets.slice(targetsBeforePrepare);
+      const warmupMeshes = state.createdMeshes.slice(meshesBeforePrepare);
+      expect(warmupTextures.length).toBeGreaterThanOrEqual(2);
+      expect(warmupTargets.length).toBe(1);
+      expect(warmupMeshes.length).toBeGreaterThanOrEqual(2);
+      expect(warmupTextures.every((t) => t.destroyed)).toBe(true);
+      expect(warmupTargets.every((t) => t.destroyed)).toBe(true);
+      expect(warmupMeshes.every((m) => m.destroyed)).toBe(true);
+    } finally {
+      state.onStrokeWarmup = undefined;
     }
   });
 });

@@ -44,7 +44,12 @@ const mocks = vi.hoisted(() => {
         y: (0.5 - localY / this.layoutHeight) * this.image.height
       };
     }
-    paint() {}
+    paintCalls = 0;
+    throwOnPaint: Error | null = null;
+    paint() {
+      this.paintCalls++;
+      if (this.throwOnPaint) throw this.throwOnPaint;
+    }
     dispose() {
       this.disposed = true;
       this.disposeCount++;
@@ -180,6 +185,7 @@ function createWorkspace(options: { reducedMotion?: boolean; updateAttachment?: 
   const { canvas } = installDomGlobals(options.reducedMotion ?? false);
   const released: string[] = [];
   const removed: string[] = [];
+  const freezeCalls: boolean[] = [];
   let frameCount = 0;
   const instantCamera: any = {
     canvas,
@@ -205,7 +211,9 @@ function createWorkspace(options: { reducedMotion?: boolean; updateAttachment?: 
     cancel() {
       ws.cancel();
     },
-    freeze() {},
+    freeze(frozen) {
+      freezeCalls.push(frozen);
+    },
     retain(id) {
       return () => released.push(id);
     }
@@ -219,7 +227,7 @@ function createWorkspace(options: { reducedMotion?: boolean; updateAttachment?: 
       (ws as any).tick(stepMs / 1000);
     }
   };
-  return { ws, canvas, released, removed, advanceMs };
+  return { ws, canvas, released, removed, freezeCalls, advanceMs };
 }
 
 describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
@@ -399,6 +407,131 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     (ws as any).handlePointer("move", { id: 1, phase: 1, button: 0, position: { x: cx + 20, y: cy + 10 } });
     (ws as any).handlePointer("end", { id: 1, phase: 2, button: 0, position: { x: cx + 25, y: cy + 12 } });
     expect(ws.graphics.status.text).toBe("标记线条过多，请先删掉部分或重画。");
+    ws.dispose();
+  });
+
+  it("keeps the world frozen during dismissSubmitted until pending deferred identities settle, and skips the wait when already ready", async () => {
+    const nowRef = { now: 1000 };
+    vi.spyOn(performance, "now").mockImplementation(() => nowRef.now);
+    const { ws, freezeCalls, advanceMs } = createWorkspace({ reducedMotion: false });
+
+    // Case 1: Identities already settled before shrink completes -> 0 extra delay, no status hint, unfreezes immediately.
+    const docReady = makeDoc("p-ready");
+    ws.beginCapture();
+    const openReady = ws.open(docReady, new AbortController().signal);
+    await Promise.resolve();
+    advanceMs(520, nowRef);
+    await openReady;
+    const dismissReady = ws.dismissSubmitted(new AbortController().signal, {
+      isPending: () => false,
+      wait: async () => {
+        throw new Error("should not wait when already ready");
+      }
+    });
+    advanceMs(420, nowRef);
+    await dismissReady;
+    expect(ws.phase).toBe("idle");
+    expect(ws.graphics.status.text).toBe("");
+    expect(freezeCalls.at(-1)).toBe(false);
+
+    // Case 2: Identities still pending when 380ms shrink finishes -> stays frozen in "identities" phase until resolved.
+    const docPending = makeDoc("p-pending");
+    ws.beginCapture();
+    const openPending = ws.open(docPending, new AbortController().signal);
+    await Promise.resolve();
+    advanceMs(520, nowRef);
+    await openPending;
+
+    let pending = true;
+    let resolveIdentities!: () => void;
+    const identitiesPromise = new Promise<void>((resolve) => {
+      resolveIdentities = () => {
+        pending = false;
+        resolve();
+      };
+    });
+    const dismissPending = ws.dismissSubmitted(new AbortController().signal, {
+      isPending: () => pending,
+      wait: () => identitiesPromise
+    });
+    advanceMs(420, nowRef);
+    await Promise.resolve();
+
+    expect(ws.phase).toBe("identities");
+    expect(ws.graphics.status.text).toBe("正在建立画面拾取索引…");
+    expect(freezeCalls.at(-1)).toBe(true);
+
+    resolveIdentities();
+    await dismissPending;
+
+    expect(ws.phase).toBe("idle");
+    expect(ws.graphics.status.text).toBe("");
+    expect(freezeCalls.at(-1)).toBe(false);
+
+    // Case 3: Cancelling/aborting while waiting in "identities" phase drops the unready photo and unfreezes cleanly.
+    const docAbort = makeDoc("p-abort");
+    const abortCtrl = new AbortController();
+    ws.beginCapture();
+    const openAbort = ws.open(docAbort, abortCtrl.signal);
+    await Promise.resolve();
+    advanceMs(520, nowRef);
+    await openAbort;
+
+    const dismissAbort = ws.dismissSubmitted(abortCtrl.signal, {
+      isPending: () => true,
+      wait: (waitSignal) =>
+        new Promise<void>((_, reject) => {
+          waitSignal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+        })
+    });
+    advanceMs(420, nowRef);
+    await Promise.resolve();
+    expect(ws.phase).toBe("identities");
+    expect(freezeCalls.at(-1)).toBe(true);
+
+    abortCtrl.abort();
+    ws.cancel();
+    await expect(dismissAbort).rejects.toMatchObject({ name: "AbortError" });
+    expect((ws as any).entries.has("p-abort")).toBe(false);
+    expect(ws.phase).toBe("idle");
+    expect(ws.graphics.status.text).toBe("");
+    expect(freezeCalls.at(-1)).toBe(false);
+    ws.dispose();
+  });
+
+  it("rolls back drawing state and shows a localized warning instead of throwing repeatedly when paint hits IMAGE_MEMORY_LIMIT", async () => {
+    const { ws } = createWorkspace({ reducedMotion: true });
+    const doc = makeDoc("p-oom");
+    await ws.open(doc, new AbortController().signal);
+    const entry = (ws as any).entries.get("p-oom");
+    const surface = mocks.surfaces.get("p-oom")!;
+    const cx = entry.pose.x;
+    const cy = entry.pose.y;
+
+    const oomError = Object.assign(new Error("IMAGE_MEMORY_LIMIT: Image resources in use exceed the available budget"), {
+      code: "IMAGE_MEMORY_LIMIT"
+    });
+    surface.throwOnPaint = oomError;
+    const paintCallsBefore = surface.paintCalls;
+
+    expect(() =>
+      (ws as any).handlePointer("begin", { id: 7, phase: 0, button: 0, position: { x: cx, y: cy } })
+    ).not.toThrow();
+    expect((ws as any).drawing).toBeUndefined();
+    expect(ws.graphics.status.text).toBe("显存空间不足，请先删除旧照片再继续标记。");
+    expect(surface.paintCalls).toBe(paintCallsBefore + 1);
+
+    // Subsequent move and up events must be clean no-ops with zero errors and zero additional paint attempts.
+    for (let i = 1; i <= 3; i++) {
+      expect(() =>
+        (ws as any).handlePointer("move", { id: 7, phase: 1, button: 0, position: { x: cx + i * 25, y: cy + i * 10 } })
+      ).not.toThrow();
+    }
+    expect(() =>
+      (ws as any).handlePointer("end", { id: 7, phase: 2, button: 0, position: { x: cx + 80, y: cy + 35 } })
+    ).not.toThrow();
+    expect(surface.paintCalls).toBe(paintCallsBefore + 1);
+
     ws.dispose();
   });
 });

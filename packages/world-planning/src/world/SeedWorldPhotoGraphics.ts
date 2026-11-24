@@ -607,10 +607,17 @@ export class PhotoGraphics {
         );
         if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
         this.renderStrokeField(strokeWarmupTarget, 64, 64, strokeWarmupMesh);
+      } catch (error) {
+        if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
+        throw error;
       } finally {
         this.warmingUp = false;
-        this.strokeFieldCamera.renderTarget = null;
-        this.strokeFieldRenderer.mesh = null!;
+        if (!this.disposed && !this.strokeFieldCamera.destroyed) {
+          this.strokeFieldCamera.renderTarget = null;
+        }
+        if (!this.disposed && !this.strokeFieldRenderer.destroyed) {
+          this.strokeFieldRenderer.mesh = null!;
+        }
         destroyOwnedMesh(strokeWarmupMesh);
         destroyPhotoResources([strokeWarmupTarget, strokeWarmupTex]);
         surface?.dispose();
@@ -777,6 +784,12 @@ export class PhotoGraphics {
     this.disposed = true;
     if (!this.worldCamera.destroyed) {
       this.worldCamera.cullingMask = (this.worldCamera.cullingMask | PHOTO_WORKSPACE_LAYER) as Layer;
+    }
+    if (!this.strokeFieldCamera.destroyed) {
+      this.strokeFieldCamera.renderTarget = null;
+    }
+    if (!this.strokeFieldRenderer.destroyed) {
+      this.strokeFieldRenderer.mesh = null!;
     }
     this.engine.sceneManager.removeScene(this.strokeFieldScene);
     this.strokeFieldScene.ambientLight.destroy(true);
@@ -1148,7 +1161,7 @@ export class PhotoSurface {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    const mesh = this.ink.mesh;
+    const mesh = this.ink.destroyed ? undefined : this.ink.mesh;
     this.root.destroy();
     destroyOwnedMesh(mesh as ModelMesh | undefined);
     destroyOwnedMesh(this.viewportMesh);

@@ -156,7 +156,7 @@ it("reuses scratch capacity and restores camera, layers and materials after a re
   expect(identityCameraDestroyed).toBe(true);
 });
 
-it("replays the frozen camera pose, projection, and visible render-view batches when deferred identity capture runs after the camera moves", async () => {
+it("submits render-view-culled renderers with enabled=false during captureIdentityBuffer while skipping destroyed or culled ones", async () => {
   const cloneableVec3 = (x: number, y: number, z: number) => ({
     x,
     y,
@@ -209,9 +209,12 @@ it("replays the frozen camera pose, projection, and visible render-view batches 
     }
   });
 
-  const capturedRendererA: any = { id: "captured-tree", destroyed: false, enabled: true, bounds: {} };
-  const movedRendererB: any = { id: "moved-rock", destroyed: false, enabled: true, bounds: {} };
-  let liveRenderViewRenderers: any[] = [capturedRendererA];
+  // Real Seed World render-view-culled batches (SeedWorldInstanceBatch, NaturalUnderstoryInstancedPool, etc.)
+  // intentionally keep renderer.enabled = false so the main camera does not double-draw them.
+  const disabledInstancedBatch: any = { id: "instanced-tree", destroyed: false, enabled: false, bounds: { visible: true } };
+  const destroyedBatch: any = { id: "destroyed-tree", destroyed: true, enabled: false, bounds: { visible: true } };
+  const frustumCulledBatch: any = { id: "behind-camera-tree", destroyed: false, enabled: false, bounds: { visible: false } };
+  const liveRenderViewRenderers: any[] = [disabledInstancedBatch, destroyedBatch, frustumCulledBatch];
   let cullingSource: { cull(ctx: any): void } | undefined;
   let observedPositionAtRender: any;
   let observedCulledRenderers: any[] = [];
@@ -258,7 +261,7 @@ it("replays the frozen camera pose, projection, and visible render-view batches 
           observedPositionAtRender = { ...auxTransform.worldPosition };
           observedCulledRenderers = [];
           cullingSource?.cull({
-            isVisible: () => true,
+            isVisible: (bounds: any) => !!bounds.visible,
             submit: (r: any) => observedCulledRenderers.push(r)
           });
         }
@@ -304,24 +307,14 @@ it("replays the frozen camera pose, projection, and visible render-view batches 
   const picker = new SeedWorldPicker(mainCamera);
   const colorFrame = await picker.captureColorOnly();
 
-  // Simulate world unfreeze & main camera moving away before deferred identity capture runs.
-  mainCamera.entity.transform.worldPosition.x = 999;
-  mainCamera.entity.transform.worldPosition.z = -500;
-  mainCamera.entity.transform.worldForward.x = 1;
-  mainCamera.entity.transform.worldForward.z = 0;
-  mainCamera.projectionMatrix = cloneableMat(777);
-  liveRenderViewRenderers = [movedRendererB];
-
   const populated = picker.captureIdentityBuffer(
     () => {},
     () => ({ entityId: 1, componentId: 1, componentType: "MeshRenderer" }),
-    colorFrame.image,
-    undefined,
-    colorFrame.capturedView
+    colorFrame.image
   );
 
   expect(observedPositionAtRender).toMatchObject({ x: 10, y: 5, z: 20 });
-  expect(observedCulledRenderers).toEqual([capturedRendererA]);
+  expect(observedCulledRenderers).toEqual([disabledInstancedBatch]);
   expect(populated.metadata?.viewer.position).toEqual([10, 5, 20]);
   expect(populated.metadata?.viewer.forward).toEqual([0, 0, -1]);
   expect(identityCamera.entity.transform.worldPosition).toMatchObject({ x: 10, y: 5, z: 20 });

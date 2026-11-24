@@ -54,6 +54,8 @@ export interface ViewFrame {
   identities: ViewIdentityBuffer;
   /** Optional deferred identity capture hook awaited before exporting or unfreezing the view. */
   ensureIdentities?: () => Promise<void>;
+  /** Synchronous check for whether deferred identity capture has already settled. */
+  hasIdentities?: () => boolean;
 }
 export interface ViewIdentityBuffer {
   readonly identityBits: number;
@@ -589,6 +591,11 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
         entry.versions.delete(imagePath);
       }
     }
+  }
+  hasIdentities(id: string): boolean {
+    const entry = this.frames.get(id);
+    if (!entry?.frame.ensureIdentities) return true;
+    return entry.frame.hasIdentities ? entry.frame.hasIdentities() : false;
   }
   async ensureIdentities(id: string): Promise<void> {
     const entry = this.frames.get(id);

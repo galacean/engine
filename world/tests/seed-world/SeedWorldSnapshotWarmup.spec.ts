@@ -34,7 +34,15 @@ function deferred() {
 
 function fixture() {
   const warmup = deferred();
-  const frame = {};
+  const colorImage = { width: 16, height: 12, dispose() {} };
+  const resolvedIdentities = {
+    identityBits: 14,
+    byteLength: 16 * 12 * 4,
+    estimatedPosition: () => undefined,
+    read: () => new Uint8Array(4),
+    resolve: () => ({ entityId: 1, componentId: 1, componentType: "MeshRenderer" }),
+    dispose: vi.fn()
+  };
   const state = {
     // Production lets a real capture retry after a failed warm-up.
     snapshotWarmup: warmup.promise.then(
@@ -42,69 +50,103 @@ function fixture() {
       () => {}
     ),
     waitForSnapshotWarmup,
+    disposed: false,
     pickPreparation: { flush: vi.fn(async (signal?: AbortSignal) => signal?.throwIfAborted()), ready: true },
-    worldPicker: { capture: vi.fn(async () => frame) },
+    worldPicker: {
+      captureColorOnly: vi.fn(async (signal?: AbortSignal) => {
+        signal?.throwIfAborted();
+        return {
+          image: colorImage,
+          metadata: { capturedAt: "2026-01-01T00:00:00.000Z", viewer: { position: [0, 0, 0], forward: [0, 0, -1] } },
+          width: 16,
+          height: 12
+        };
+      }),
+      captureIdentityBuffer: vi.fn(() => ({
+        image: colorImage,
+        width: 16,
+        height: 12,
+        identities: resolvedIdentities
+      }))
+    },
     snapshotPicks: { visit: vi.fn() },
     inspection: { target: vi.fn() }
   };
   const capture = new Function(...Object.keys(state), callbackCode)(...Object.values(state)) as (
     signal?: AbortSignal
-  ) => Promise<unknown>;
-  return { ...state, warmup, frame, capture };
+  ) => Promise<{
+    image: unknown;
+    identities: { dispose(): void; resolve(id: number): unknown };
+    ensureIdentities(): Promise<void>;
+    hasIdentities(): boolean;
+  }>;
+  return { ...state, warmup, resolvedIdentities, capture };
 }
 
 describe("snapshot warm-up cancellation", () => {
-  it("cancels one capture before warm-up settles while another capture keeps waiting", async () => {
-    const f = fixture(),
-      controller = new AbortController(),
-      reason = new Error("task stopped");
-    const cancelled = f.capture(controller.signal);
-    const rejected = expect(cancelled).rejects.toBe(reason);
-    const waiting = f.capture(new AbortController().signal);
+  it("cancels one deferred identity capture before warm-up settles while another capture keeps waiting", async () => {
+    const f = fixture();
+    const cancelledFrame = await f.capture(new AbortController().signal);
+    const waitingFrame = await f.capture(new AbortController().signal);
+    const cancelledId = cancelledFrame.ensureIdentities();
+    const waitingId = waitingFrame.ensureIdentities();
     try {
-      controller.abort(reason);
-      await rejected;
+      expect(cancelledFrame.hasIdentities()).toBe(false);
+      expect(waitingFrame.hasIdentities()).toBe(false);
+
+      cancelledFrame.identities.dispose();
+      await cancelledId;
+      expect(cancelledFrame.hasIdentities()).toBe(true);
       expect(f.pickPreparation.flush).not.toHaveBeenCalled();
-      expect(f.worldPicker.capture).not.toHaveBeenCalled();
+      expect(f.worldPicker.captureIdentityBuffer).not.toHaveBeenCalled();
+
       f.warmup.resolve();
-      await expect(waiting).resolves.toBe(f.frame);
-      expect(f.worldPicker.capture).toHaveBeenCalledOnce();
+      await waitingId;
+      expect(waitingFrame.hasIdentities()).toBe(true);
+      expect(f.worldPicker.captureIdentityBuffer).toHaveBeenCalledOnce();
+      expect(waitingFrame.identities.resolve(1)).toMatchObject({ entityId: 1 });
     } finally {
       f.warmup.resolve();
-      await Promise.allSettled([cancelled, waiting]);
+      waitingFrame.identities.dispose();
+      await Promise.allSettled([cancelledId, waitingId]);
     }
   });
 
-  it("rejects an already cancelled capture without waiting for warm-up", async () => {
+  it("rejects an already cancelled capture without waiting for warm-up or calling captureColorOnly", async () => {
     const f = fixture(),
       controller = new AbortController();
     controller.abort();
     try {
       await expect(f.capture(controller.signal)).rejects.toBe(controller.signal.reason);
-      expect(f.worldPicker.capture).not.toHaveBeenCalled();
+      expect(f.worldPicker.captureColorOnly).not.toHaveBeenCalled();
+      expect(f.worldPicker.captureIdentityBuffer).not.toHaveBeenCalled();
     } finally {
       f.warmup.resolve();
     }
   });
 
-  it("lets captures retry after a failed warm-up", async () => {
-    const f = fixture(),
-      capture = f.capture();
-    f.warmup.reject(new Error("warm-up failed"));
-    await expect(capture).resolves.toBe(f.frame);
-    expect(f.worldPicker.capture).toHaveBeenCalledOnce();
+  it("lets deferred identity capture retry after a failed warm-up", async () => {
+    const f = fixture();
+    const frame = await f.capture();
+    const populate = frame.ensureIdentities();
+    try {
+      f.warmup.reject(new Error("warm-up failed"));
+      await populate;
+      expect(frame.hasIdentities()).toBe(true);
+      expect(f.worldPicker.captureIdentityBuffer).toHaveBeenCalledOnce();
+    } finally {
+      frame.identities.dispose();
+    }
   });
 
-  it("does not capture when cancellation and warm-up completion occur in the same turn", async () => {
-    const f = fixture(),
-      controller = new AbortController(),
-      reason = new Error("task stopped");
-    const capture = f.capture(controller.signal);
-    const rejected = expect(capture).rejects.toBe(reason);
+  it("does not capture identities when disposal and warm-up completion occur in the same turn", async () => {
+    const f = fixture();
+    const frame = await f.capture();
+    const populate = frame.ensureIdentities();
     f.warmup.resolve();
-    controller.abort(reason);
-    await rejected;
-    expect(f.worldPicker.capture).not.toHaveBeenCalled();
+    frame.identities.dispose();
+    await populate;
+    expect(f.worldPicker.captureIdentityBuffer).not.toHaveBeenCalled();
   });
 
   it.each(["resolve", "reject", "abort"] as const)("removes the abort listener on %s", async (outcome) => {

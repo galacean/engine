@@ -4,6 +4,28 @@ import type { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/wor
 import { SeedWorldAnnotationHistory } from "./SeedWorldAnnotationHistory.ts";
 import type { SeedWorldInstantCamera } from "./SeedWorldInstantCamera.ts";
 
+function raceWithAbort(task: Promise<void>, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) {
+    return Promise.reject(signal.reason ?? new DOMException("Photo dismissal cancelled", "AbortError"));
+  }
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      reject(signal.reason ?? new DOMException("Photo dismissal cancelled", "AbortError"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    task.then(
+      () => {
+        signal.removeEventListener("abort", onAbort);
+        resolve();
+      },
+      (error) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      }
+    );
+  });
+}
+
 /** Owns snapshot transactions; the workspace owns all visible photo UI and Engine animation. */
 export class SeedWorldLassoPanel {
   readonly button = document.createElement("button");
@@ -135,13 +157,18 @@ export class SeedWorldLassoPanel {
     const signal = this.captureAbort.signal;
     const snapshotId = this.activeSnapshotId;
     try {
-      // Trigger deferred identity capture in background without locking the UI after minimize;
-      // captureIdentityBuffer replays the frozen camera view captured with the color frame,
-      // and SeedWorldViewSnapshots.exportVersion() awaits ensureIdentities() before LLM submission.
-      if (snapshotId) {
-        void this.views.ensureIdentities(snapshotId).catch(() => undefined);
-      }
-      await this.workspace.dismissSubmitted(signal);
+      // Kick off deferred identity capture immediately so it runs in parallel with the 380ms shrink animation.
+      // Only if it is still pending when shrink completes do we keep the world frozen until it settles,
+      // guaranteeing 100% pixel alignment with dynamic view-culled batches while keeping normal paths 0ms-delayed.
+      const identitiesTask = snapshotId ? this.views.ensureIdentities(snapshotId).catch(() => undefined) : undefined;
+      const waitBeforeUnfreeze =
+        snapshotId && identitiesTask
+          ? {
+              isPending: () => !this.views.hasIdentities(snapshotId),
+              wait: (waitSignal: AbortSignal) => raceWithAbort(identitiesTask, waitSignal)
+            }
+          : undefined;
+      await this.workspace.dismissSubmitted(signal, waitBeforeUnfreeze);
       if (!signal.aborted) {
         // dismissSubmitted already shrank the screenshot into a docked mini card and unfroze the world.
         this.captureAbort = undefined;
