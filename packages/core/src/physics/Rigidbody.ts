@@ -520,8 +520,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (typeof density !== "number" || !isValidPositiveFloat32(density)) {
       throw new RangeError("Rigidbody density must be a positive, normal, finite Float32.");
     }
-    if (!this._registeredScene) return false;
-    const mass = this._getSyncedActor()!.setDensity(density, this._automaticCenterOfMass, this._automaticInertiaTensor);
+    const scene = this._registeredScene;
+    if (!scene) return false;
+    scene.physics._syncColliders(false);
+    const mass = this._nativeActor!.setDensity(density, this._automaticCenterOfMass, this._automaticInertiaTensor);
     if (mass === 0) return false;
     this._mass = mass;
     this._massChanges = MassChanges.None;

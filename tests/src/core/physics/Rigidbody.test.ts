@@ -2207,6 +2207,7 @@ describe("Rigidbody", function () {
     const d = makeBody("body-d", 30);
     physics._update(physics.fixedTimeStep);
 
+    const spyA = vi.spyOn(a.body._getNativeActor(), "updateMassAndInertia");
     const spies = [b, c, d].map(({ body }) => vi.spyOn(body._getNativeActor(), "updateMassAndInertia"));
 
     // First shape edit batch on B/C/D, then access A via getPointVelocity and setDensity.
@@ -2216,7 +2217,11 @@ describe("Rigidbody", function () {
 
     const out = new Vector3();
     a.body.getPointVelocity(new Vector3(0, 1, 0), out);
+    // Editing A's collider before setDensity should neither pre-flush nor leave a stale mass recomputation for the step.
+    a.collider.size.set(2, 2, 2);
     expect(a.body.setDensity(2)).toBe(true);
+    expect(a.body.mass).toBeCloseTo(16, 4);
+    expect(spyA).not.toHaveBeenCalled();
     for (const spy of spies) expect(spy).not.toHaveBeenCalled();
 
     // Second shape edit batch on B/C/D before the fixed step; each body should recompute only once at step.
@@ -2225,6 +2230,8 @@ describe("Rigidbody", function () {
     d.collider.size.set(2, 2, 4);
     physics._update(physics.fixedTimeStep);
 
+    expect(spyA).not.toHaveBeenCalled();
+    expect(a.body.inertiaTensor.x).toBeCloseTo((16 * (4 + 4)) / 12, 4);
     for (const spy of spies) expect(spy).toHaveBeenCalledTimes(1);
     expect(b.body.inertiaTensor.x).toBeCloseTo((1 * (4 + 4)) / 12, 4);
     expect(c.body.inertiaTensor.x).toBeCloseTo((1 * (16 + 4)) / 12, 4);
