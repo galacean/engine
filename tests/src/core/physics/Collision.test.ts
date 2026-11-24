@@ -1,5 +1,15 @@
 import { createPhysics } from "../../utils/physics";
-import { BoxCollider, Collision, ContactPoint, Rigidbody, Entity, Engine, Scene, Script } from "@galacean/engine-core";
+import {
+  BoxCollider,
+  Collision,
+  ContactPoint,
+  PhysicsMaterial,
+  Rigidbody,
+  Entity,
+  Engine,
+  Scene,
+  Script
+} from "@galacean/engine-core";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
@@ -13,9 +23,10 @@ describe("Collision", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = boxEntity.addComponent(BoxCollider);
-    const material = physicsBox.getInstanceMaterial();
+    const material = new PhysicsMaterial(engine);
     material.dynamicFriction = 0;
     material.staticFriction = 0;
+    physicsBox.material = material;
     physicsBox.size = cubeSize;
     if (type) {
       boxEntity.addComponent(type);

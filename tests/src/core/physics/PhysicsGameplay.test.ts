@@ -19,6 +19,7 @@ import {
   MeshColliderCookingFlag,
   MeshTopology,
   ModelMesh,
+  PhysicsMaterial,
   PhysicsScene,
   PlaneCollider,
   PrimitiveMesh,
@@ -113,9 +114,10 @@ describe("Physics gameplay integration", () => {
     entity.transform.setRotation(0, 0, rotZ);
     const col = entity.addComponent(BoxCollider);
     col.size = size;
-    const mtl = col.getInstanceMaterial();
+    const mtl = new PhysicsMaterial(engine);
     mtl.dynamicFriction = friction;
     mtl.staticFriction = friction;
+    col.material = mtl;
     return col;
   }
 
@@ -317,9 +319,10 @@ describe("Physics gameplay integration", () => {
       wheel.transform.setPosition(x, -0.15, 0);
       const sc = wheel.addComponent(SphereCollider);
       sc.radius = 0.35;
-      const mtl = sc.getInstanceMaterial();
+      const mtl = new PhysicsMaterial(engine);
       mtl.dynamicFriction = 0.02;
       mtl.staticFriction = 0.02;
+      sc.material = mtl;
       return sc;
     };
     const wheels = [addWheel("front-wheel", 0.55), addWheel("rear-wheel", -0.55)];
@@ -367,9 +370,10 @@ describe("Physics gameplay integration", () => {
       entity.transform.setPosition(4.2, 3.2, z);
       const col = entity.addComponent(BoxCollider);
       col.size = new Vector3(0.8, 0.8, 0.8);
-      const mtl = col.getInstanceMaterial();
+      const mtl = new PhysicsMaterial(engine);
       mtl.dynamicFriction = 0.05;
       mtl.staticFriction = 0.05;
+      col.material = mtl;
       const rb = entity.addComponent(Rigidbody);
       if (freezeRot) {
         rb.constraints =
@@ -490,8 +494,10 @@ describe("Physics gameplay integration", () => {
     crate.transform.setPosition(0, 0.5, 0);
     const crateCol = crate.addComponent(BoxCollider);
     crateCol.size = new Vector3(1, 1, 1);
-    crateCol.getInstanceMaterial().dynamicFriction = 0.05;
-    crateCol.getInstanceMaterial().staticFriction = 0.05;
+    const crateMtl = new PhysicsMaterial(engine);
+    crateMtl.dynamicFriction = 0.05;
+    crateMtl.staticFriction = 0.05;
+    crateCol.material = crateMtl;
     crate.addComponent(Rigidbody);
 
     const rot = new Quaternion();

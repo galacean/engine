@@ -12,6 +12,7 @@ import {
   Camera,
   Script,
   PBRMaterial,
+  PhysicsMaterial,
   Entity
 } from "@galacean/engine";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
@@ -44,9 +45,10 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
 
     const collider = entity.addComponent(BoxCollider);
     collider.size = new Vector3(2, 2, 2);
-    const physicsMaterial = collider.getInstanceMaterial();
+    const physicsMaterial = new PhysicsMaterial(engine);
     physicsMaterial.dynamicFriction = 0;
     physicsMaterial.staticFriction = 0;
+    collider.material = physicsMaterial;
     entity.addComponent(Rigidbody);
 
     return entity;

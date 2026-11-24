@@ -31,7 +31,8 @@ describe("PhysicsMaterial ownership", () => {
     const entity = engine.sceneManager.activeScene.createRootEntity();
     const collider = entity.addComponent(Type);
     const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
-    const material = collider.getInstanceMaterial();
+    const material = new PhysicsMaterial(engine);
+    collider.material = material;
     const nativeDestroy = vi.spyOn(createMaterial.mock.results[0].value, "destroy");
     createMaterial.mockClear();
     expect(material.engine).toBe(engine);
@@ -64,7 +65,8 @@ describe("PhysicsMaterial ownership", () => {
     const scene = engine.sceneManager.activeScene;
     const entity = scene.createRootEntity();
     const collider = entity.addComponent(BoxCollider);
-    const original = collider.getInstanceMaterial();
+    const original = new PhysicsMaterial(engine);
+    collider.material = original;
     const material = new PhysicsMaterial(engine);
     collider.material = material;
     expect(original.refCount).toBe(0);
@@ -140,15 +142,6 @@ describe("PhysicsMaterial ownership", () => {
         expect(collider.material).toBe(shared);
         expect(shared.refCount).toBe(1);
         expect(foreign.refCount).toBe(0);
-        const instance = collider.getInstanceMaterial();
-        expect(instance.engine).toBe(engine);
-        expect(shared.refCount).toBe(0);
-        expect(shared.destroyed).toBe(false);
-        expect(() => (collider.material = foreign)).toThrow(/another engine/);
-        expect(collider.getInstanceMaterial()).toBe(instance);
-        expect(instance.refCount).toBe(1);
-        expect(foreign.refCount).toBe(0);
-        expect(createMaterial).toHaveBeenCalledTimes(1);
       } finally {
         other.destroy();
       }
@@ -176,16 +169,18 @@ describe("PhysicsMaterial ownership", () => {
     expect(material.refCount).toBe(0);
   });
 
-  it("allows reusing an instance after resetting to the default", () => {
+  it("allows reassigning and replacing a material after resetting to the default", () => {
     const collider = engine.sceneManager.activeScene.createRootEntity().addComponent(BoxCollider);
-    const original = collider.getInstanceMaterial();
+    const original = new PhysicsMaterial(engine);
+    collider.material = original;
     collider.material = null;
     expect(collider.material).toBeNull();
     expect(original.refCount).toBe(0);
     expect(original.destroyed).toBe(false);
     collider.material = original;
     expect(original.refCount).toBe(1);
-    const replacement = collider.getInstanceMaterial();
+    const replacement = original.clone();
+    collider.material = replacement;
     expect(replacement).not.toBe(original);
     expect(replacement.engine).toBe(engine);
     expect(replacement.refCount).toBe(1);

@@ -1,5 +1,14 @@
 import { createPhysics } from "../../utils/physics";
-import { HingeJoint, JointLimits, JointMotor, Entity, Rigidbody, BoxCollider, Engine } from "@galacean/engine-core";
+import {
+  HingeJoint,
+  JointLimits,
+  JointMotor,
+  Entity,
+  PhysicsMaterial,
+  Rigidbody,
+  BoxCollider,
+  Engine
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
@@ -13,8 +22,10 @@ describe("HingeJoint", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = boxEntity.addComponent(BoxCollider);
-    physicsBox.getInstanceMaterial().dynamicFriction = 0;
-    physicsBox.getInstanceMaterial().staticFriction = 0;
+    const material = new PhysicsMaterial(engine);
+    material.dynamicFriction = 0;
+    material.staticFriction = 0;
+    physicsBox.material = material;
     physicsBox.size = cubeSize;
     boxEntity.addComponent(Rigidbody);
     return boxEntity;

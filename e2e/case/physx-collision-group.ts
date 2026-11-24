@@ -13,6 +13,7 @@ import {
   PrimitiveMesh,
   Camera,
   PBRMaterial,
+  PhysicsMaterial,
   Entity,
   Layer
 } from "@galacean/engine";
@@ -44,7 +45,9 @@ function createPhysicsSphere(
   // Add physics
   const physicsSphere = sphereEntity.addComponent(SphereCollider);
   physicsSphere.radius = radius;
-  physicsSphere.getInstanceMaterial().bounciness = 0.8;
+  const spherePhysicsMaterial = new PhysicsMaterial(rootEntity.engine);
+  spherePhysicsMaterial.bounciness = 0.8;
+  physicsSphere.material = spherePhysicsMaterial;
   physicsSphere.collisionLayer = collisionLayer;
 
   sphereEntity.addComponent(Rigidbody);

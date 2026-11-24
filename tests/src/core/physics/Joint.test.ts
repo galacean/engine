@@ -8,6 +8,7 @@ import {
   BoxCollider,
   Engine,
   Loader,
+  PhysicsMaterial,
   Scene,
   Script
 } from "@galacean/engine-core";
@@ -30,8 +31,10 @@ describe("Joint", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = boxEntity.addComponent(BoxCollider);
-    physicsBox.getInstanceMaterial().dynamicFriction = 0;
-    physicsBox.getInstanceMaterial().staticFriction = 0;
+    const material = new PhysicsMaterial(engine);
+    material.dynamicFriction = 0;
+    material.staticFriction = 0;
+    physicsBox.material = material;
     physicsBox.size = cubeSize;
     boxEntity.addComponent(Rigidbody);
     return boxEntity;

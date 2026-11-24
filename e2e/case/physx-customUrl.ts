@@ -15,6 +15,7 @@ import {
   Script,
   Collider,
   PBRMaterial,
+  PhysicsMaterial,
   AmbientLight,
   AssetType,
   BlinnPhongMaterial,
@@ -44,10 +45,11 @@ function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: n
 
   const physicsBox = boxEntity.addComponent(BoxCollider);
   physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
-  const boxMaterial = physicsBox.getInstanceMaterial();
+  const boxMaterial = new PhysicsMaterial(rootEntity.engine);
   boxMaterial.staticFriction = 0.1;
   boxMaterial.dynamicFriction = 0.2;
   boxMaterial.bounciness = 1;
+  physicsBox.material = boxMaterial;
   physicsBox.isTrigger = true;
   return boxEntity;
 }
@@ -94,10 +96,11 @@ WebGLEngine.create({
 
   const physicsSphere = sphereEntity.addComponent(SphereCollider);
   physicsSphere.radius = radius;
-  const sphereMaterial = physicsSphere.getInstanceMaterial();
+  const sphereMaterial = new PhysicsMaterial(engine);
   sphereMaterial.staticFriction = 0.1;
   sphereMaterial.dynamicFriction = 0.2;
   sphereMaterial.bounciness = 1;
+  physicsSphere.material = sphereMaterial;
 
   const sphereBody = sphereEntity.addComponent(Rigidbody);
   sphereBody.isKinematic = true;

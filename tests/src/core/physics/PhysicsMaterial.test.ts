@@ -32,7 +32,7 @@ const defaults = {
 };
 const colliderTypes = [BoxCollider, SphereCollider, CapsuleCollider, PlaneCollider, MeshCollider];
 
-it("uses the complete default policy for shared and instance materials", async () => {
+it("uses the complete default policy for shared and newly created materials", async () => {
   const physics = createPhysics();
   const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
   let engine: Engine;
@@ -44,7 +44,8 @@ it("uses the complete default policy for shared and instance materials", async (
     expect(engine.resourceManager.findResourcesByType(PhysicsMaterial).length).toBe(0);
     const collider = engine.sceneManager.activeScene.createRootEntity().addComponent(BoxCollider);
     expect(collider.material).toBeNull();
-    const material = collider.getInstanceMaterial();
+    const material = new PhysicsMaterial(engine);
+    collider.material = material;
     expect(material.engine).toBe(engine);
     for (const key of Object.keys(defaults)) expect(material[key]).toBe(defaults[key]);
     expect(createMaterial).toHaveBeenNthCalledWith(2, defaults);
@@ -67,10 +68,11 @@ describe("PhysicsMaterial", () => {
     const entity = rootEntity.createChild("PlaneEntity");
     entity.transform.setPosition(x, y, z);
     const collider = entity.addComponent(PlaneCollider);
-    const material = collider.getInstanceMaterial();
+    const material = new PhysicsMaterial(engine);
     material.dynamicFriction = 0;
     material.staticFriction = 0;
     material.bounciness = 0;
+    collider.material = material;
     return entity;
   }
 
@@ -79,9 +81,10 @@ describe("PhysicsMaterial", () => {
     entity.transform.position = position;
     const collider = entity.addComponent(BoxCollider);
     collider.size = size;
-    const material = collider.getInstanceMaterial();
+    const material = new PhysicsMaterial(engine);
     material.dynamicFriction = 0;
     material.staticFriction = 0;
+    collider.material = material;
     entity.addComponent(Rigidbody);
     return entity;
   }
@@ -144,15 +147,15 @@ describe("PhysicsMaterial", () => {
     expect(createMaterial).not.toHaveBeenCalled();
   });
 
-  it.each(colliderTypes)("creates default instances and restores defaults without extra allocations for %s", (Type) => {
+  it.each(colliderTypes)("assigns custom materials and restores defaults without extra allocations for %s", (Type) => {
     const collider = rootEntity.createChild().addComponent(Type);
     const other = rootEntity.createChild().addComponent(Type);
     const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
     expect(collider.material).toBeNull();
     expect(other.material).toBeNull();
-    const material = collider.getInstanceMaterial();
+    const material = new PhysicsMaterial(engine);
+    collider.material = material;
     expect(collider.material).toBe(material);
-    expect(collider.getInstanceMaterial()).toBe(material);
     expect(createMaterial).toHaveBeenCalledTimes(1);
     for (const key of Object.keys(defaults)) expect(material[key]).toBe(defaults[key]);
     material.bounciness = 1;
@@ -162,13 +165,14 @@ describe("PhysicsMaterial", () => {
     expect(material.refCount).toBe(0);
     expect(material.destroyed).toBe(false);
     expect(createMaterial).toHaveBeenCalledTimes(1);
-    const next = collider.getInstanceMaterial();
+    const next = new PhysicsMaterial(engine);
+    collider.material = next;
     expect(next).not.toBe(material);
     expect(next.bounciness).toBe(0);
     expect(createMaterial).toHaveBeenCalledTimes(2);
   });
 
-  it("shares assigned materials and clones all properties only for an explicit instance", () => {
+  it("shares assigned materials and clones all properties when explicitly cloned", () => {
     const collider = rootEntity.createChild().addComponent(BoxCollider);
     const other = rootEntity.createChild().addComponent(BoxCollider);
     const shared = new PhysicsMaterial(engine);
@@ -183,34 +187,26 @@ describe("PhysicsMaterial", () => {
     collider.material.dynamicFriction = 0.3;
     expect(other.material.dynamicFriction).toBe(0.3);
     expect(createMaterial).not.toHaveBeenCalled();
-    const instance = collider.getInstanceMaterial();
-    expect(instance).not.toBe(shared);
-    expect(collider.material).toBe(instance);
+    const cloned = collider.material.clone();
+    collider.material = cloned;
+    expect(cloned).not.toBe(shared);
+    expect(collider.material).toBe(cloned);
     expect(other.material).toBe(shared);
-    for (const key of Object.keys(defaults)) expect(instance[key]).toBe(shared[key]);
-    instance.dynamicFriction = 0.9;
+    for (const key of Object.keys(defaults)) expect(cloned[key]).toBe(shared[key]);
+    cloned.dynamicFriction = 0.9;
     expect(shared.dynamicFriction).toBe(0.3);
-    collider.material = instance;
-    expect(collider.getInstanceMaterial()).toBe(instance);
     expect(createMaterial).toHaveBeenCalledTimes(1);
-    collider.material = shared;
-    const replacement = collider.getInstanceMaterial();
-    expect(replacement).not.toBe(instance);
-    expect(replacement).not.toBe(shared);
-    expect(replacement.dynamicFriction).toBe(0.3);
-    expect(createMaterial).toHaveBeenCalledTimes(2);
   });
 
-  it("creates independent instances from untouched clone defaults", () => {
+  it("keeps untouched clone defaults independent when assigning a material to the source", () => {
     const source = rootEntity.createChild("defaultSource");
     const collider = source.addComponent(BoxCollider);
     const clone = source.clone();
     rootEntity.addChild(clone);
-    const material = collider.getInstanceMaterial();
-    const cloneMaterial = clone.getComponent(BoxCollider).getInstanceMaterial();
+    const material = new PhysicsMaterial(engine);
     material.dynamicFriction = 0;
-    expect(cloneMaterial).not.toBe(material);
-    expect(cloneMaterial.dynamicFriction).toBe(0.6);
+    collider.material = material;
+    expect(clone.getComponent(BoxCollider).material).toBeNull();
   });
 
   it("preserves default and assigned materials when a live mesh is recooked", () => {
@@ -228,8 +224,9 @@ describe("PhysicsMaterial", () => {
     expect(collider.material).toBeNull();
     expect(createMesh).toHaveBeenCalledTimes(1);
     const defaultNative = createMesh.mock.calls[0][4];
-    const material = collider.getInstanceMaterial();
+    const material = new PhysicsMaterial(engine);
     material.bounciness = 0.8;
+    collider.material = material;
     collider.convex = false;
     sync();
     expect(createMaterial).toHaveBeenCalledTimes(1);
@@ -286,7 +283,7 @@ describe("PhysicsMaterial", () => {
     { Type: CharacterController, assigned: false },
     { Type: CharacterController, assigned: true }
   ])(
-    "updates active $Type.name components when instancing or resetting material (assigned: $assigned)",
+    "updates active $Type.name components when assigning or resetting material (assigned: $assigned)",
     ({ Type, assigned }) => {
       const entity = rootEntity.createChild("materialController");
       entity.transform.setPosition(100, 100, 0);
@@ -304,9 +301,10 @@ describe("PhysicsMaterial", () => {
         return height;
       };
       const defaultRestingHeight = dropProbe();
-      const material = controller.getInstanceMaterial();
+      const material = new PhysicsMaterial(engine);
       material.bounciness = 1;
       material.bounceCombine = PhysicsMaterialCombineMode.Maximum;
+      controller.material = material;
       const replacement = new PhysicsMaterial(engine);
       expect(dropProbe()).toBeGreaterThan(defaultRestingHeight + 1);
       controller.enabled = false;
@@ -340,49 +338,45 @@ describe("PhysicsMaterial", () => {
     collider.automaticInertiaTensor = true;
     collider2.automaticInertiaTensor = true;
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().bounciness = 1;
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().bounciness = 0;
+    collider.entity.getComponent(BoxCollider).material!.bounciness = 1;
+    collider2.entity.getComponent(BoxCollider).material!.bounciness = 0;
 
     engine.sceneManager.activeScene.physics._update(2);
     expect(boxEntity.transform.position.y).greaterThan(0);
     expect(formatValue(boxEntity2.transform.position.y)).eq(0);
   });
 
-  it.each([false, true])(
-    "clones share material references but reset instance ownership (instanced: %s)",
-    (instanced) => {
-      const sourceEntity = rootEntity.createChild("materialClone");
-      const sourceShape = sourceEntity.addComponent(BoxCollider);
-      const sourceMaterial = instanced ? sourceShape.getInstanceMaterial() : new PhysicsMaterial(engine);
-      sourceShape.material = sourceMaterial;
-      sourceMaterial.bounciness = 0.7;
-      const destroySpy = vi.spyOn(PhysicsMaterial.prototype, "destroy");
-      const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
-      const cloneEntity = sourceEntity.clone();
-      const cloneShape = cloneEntity.getComponent(BoxCollider);
-      let cloneMaterial: PhysicsMaterial;
-      try {
-        expect(cloneShape.material).toBe(sourceMaterial);
-        expect(createMaterial).not.toHaveBeenCalled();
-        expect(destroySpy).not.toHaveBeenCalled();
-        cloneMaterial = cloneShape.getInstanceMaterial();
-        expect(cloneMaterial).not.toBe(sourceMaterial);
-        expect(cloneMaterial.bounciness).toBe(0.7);
-        expect(cloneShape.getInstanceMaterial()).toBe(cloneMaterial);
-        expect(createMaterial).toHaveBeenCalledTimes(1);
-        cloneMaterial.bounciness = 0;
-        expect(sourceShape.material.bounciness).toBe(0.7);
-        if (instanced) expect(sourceShape.getInstanceMaterial()).toBe(sourceMaterial);
-      } finally {
-        destroySpy.mockRestore();
-        createMaterial.mockRestore();
-        cloneEntity.destroy();
-        sourceEntity.destroy();
-        sourceMaterial.destroy();
-        cloneMaterial?.destroy();
-      }
+  it("clones share material references until an explicit clone is assigned", () => {
+    const sourceEntity = rootEntity.createChild("materialClone");
+    const sourceShape = sourceEntity.addComponent(BoxCollider);
+    const sourceMaterial = new PhysicsMaterial(engine);
+    sourceShape.material = sourceMaterial;
+    sourceMaterial.bounciness = 0.7;
+    const destroySpy = vi.spyOn(PhysicsMaterial.prototype, "destroy");
+    const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
+    const cloneEntity = sourceEntity.clone();
+    const cloneShape = cloneEntity.getComponent(BoxCollider);
+    let cloneMaterial: PhysicsMaterial;
+    try {
+      expect(cloneShape.material).toBe(sourceMaterial);
+      expect(createMaterial).not.toHaveBeenCalled();
+      expect(destroySpy).not.toHaveBeenCalled();
+      cloneMaterial = cloneShape.material!.clone();
+      cloneShape.material = cloneMaterial;
+      expect(cloneMaterial).not.toBe(sourceMaterial);
+      expect(cloneMaterial.bounciness).toBe(0.7);
+      expect(createMaterial).toHaveBeenCalledTimes(1);
+      cloneMaterial.bounciness = 0;
+      expect(sourceShape.material.bounciness).toBe(0.7);
+    } finally {
+      destroySpy.mockRestore();
+      createMaterial.mockRestore();
+      cloneEntity.destroy();
+      sourceEntity.destroy();
+      sourceMaterial.destroy();
+      cloneMaterial?.destroy();
     }
-  );
+  });
 
   it("bounceCombine Average", () => {
     const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
@@ -391,8 +385,8 @@ describe("PhysicsMaterial", () => {
     collider.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().bounciness = 1;
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().bounceCombine = PhysicsMaterialCombineMode.Average;
+    collider.entity.getComponent(BoxCollider).material!.bounciness = 1;
+    collider.entity.getComponent(BoxCollider).material!.bounceCombine = PhysicsMaterialCombineMode.Average;
 
     engine.sceneManager.activeScene.physics._update(2);
     expect(formatValue(boxEntity.transform.position.y)).eq(0.1775);
@@ -402,9 +396,9 @@ describe("PhysicsMaterial", () => {
     const collider2 = boxEntity2.getComponent(Rigidbody);
     collider2.automaticCenterOfMass = true;
     collider2.automaticInertiaTensor = true;
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().bounciness = 0.5;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().bounciness = 0.5;
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().bounceCombine = PhysicsMaterialCombineMode.Average;
+    collider2.entity.getComponent(BoxCollider).material!.bounciness = 0.5;
+    ground.getComponent(PlaneCollider).material!.bounciness = 0.5;
+    collider2.entity.getComponent(BoxCollider).material!.bounceCombine = PhysicsMaterialCombineMode.Average;
 
     engine.sceneManager.activeScene.physics._update(2);
     expect(formatValue(boxEntity2.transform.position.y)).eq(0.1775);
@@ -416,9 +410,9 @@ describe("PhysicsMaterial", () => {
     const collider = boxEntity.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().bounciness = 1;
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().bounceCombine = PhysicsMaterialCombineMode.Minimum;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().bounciness = 0;
+    collider.entity.getComponent(BoxCollider).material!.bounciness = 1;
+    collider.entity.getComponent(BoxCollider).material!.bounceCombine = PhysicsMaterialCombineMode.Minimum;
+    ground.getComponent(PlaneCollider).material!.bounciness = 0;
 
     engine.sceneManager.activeScene.physics._update(2);
     expect(formatValue(boxEntity.transform.position.y)).eq(0);
@@ -430,9 +424,9 @@ describe("PhysicsMaterial", () => {
     const collider = boxEntity.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().bounciness = 0;
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().bounceCombine = PhysicsMaterialCombineMode.Maximum;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().bounciness = 1;
+    collider.entity.getComponent(BoxCollider).material!.bounciness = 0;
+    collider.entity.getComponent(BoxCollider).material!.bounceCombine = PhysicsMaterialCombineMode.Maximum;
+    ground.getComponent(PlaneCollider).material!.bounciness = 1;
 
     engine.sceneManager.activeScene.physics._update(2);
     // Standard and SIMD solvers differ in the last few float32 bits
@@ -445,9 +439,9 @@ describe("PhysicsMaterial", () => {
     const collider = boxEntity.getComponent(Rigidbody);
     collider.automaticCenterOfMass = true;
     collider.automaticInertiaTensor = true;
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().bounciness = 1;
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().bounceCombine = PhysicsMaterialCombineMode.Multiply;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().bounciness = 0.5;
+    collider.entity.getComponent(BoxCollider).material!.bounciness = 1;
+    collider.entity.getComponent(BoxCollider).material!.bounceCombine = PhysicsMaterialCombineMode.Multiply;
+    ground.getComponent(PlaneCollider).material!.bounciness = 0.5;
 
     engine.sceneManager.activeScene.physics._update(2);
     expect(formatValue(boxEntity.transform.position.y)).eq(0.1775);
@@ -466,8 +460,8 @@ describe("PhysicsMaterial", () => {
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
     collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().dynamicFriction = 1;
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().dynamicFriction = 0.5;
+    collider.entity.getComponent(BoxCollider).material!.dynamicFriction = 1;
+    collider2.entity.getComponent(BoxCollider).material!.dynamicFriction = 0.5;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     collider2.applyForce(new Vector3(0, 0, 1000));
@@ -489,8 +483,8 @@ describe("PhysicsMaterial", () => {
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
     collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().staticFriction = 2000;
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().staticFriction = 100;
+    collider.entity.getComponent(BoxCollider).material!.staticFriction = 2000;
+    collider2.entity.getComponent(BoxCollider).material!.staticFriction = 100;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     collider2.applyForce(new Vector3(0, 0, 1000));
@@ -509,18 +503,17 @@ describe("PhysicsMaterial", () => {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Average;
+    collider.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Average;
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().staticFriction = 2000;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().staticFriction = 0;
+    collider.entity.getComponent(BoxCollider).material!.staticFriction = 2000;
+    ground.getComponent(PlaneCollider).material!.staticFriction = 0;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
     expect(boxEntity.transform.position.z).closeTo(0, 0.001);
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().staticFriction = 0;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().staticFriction = 2000;
+    collider.entity.getComponent(BoxCollider).material!.staticFriction = 0;
+    ground.getComponent(PlaneCollider).material!.staticFriction = 2000;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -536,11 +529,10 @@ describe("PhysicsMaterial", () => {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Minimum;
+    collider.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Minimum;
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().staticFriction = 2000;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().staticFriction = 0;
+    collider.entity.getComponent(BoxCollider).material!.staticFriction = 2000;
+    ground.getComponent(PlaneCollider).material!.staticFriction = 0;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -550,11 +542,10 @@ describe("PhysicsMaterial", () => {
     const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(0, 0, 0));
     const collider2 = boxEntity2.getComponent(Rigidbody);
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Minimum;
+    collider2.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Minimum;
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().staticFriction = 0;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().staticFriction = 2000;
+    collider2.entity.getComponent(BoxCollider).material!.staticFriction = 0;
+    ground.getComponent(PlaneCollider).material!.staticFriction = 2000;
 
     collider2.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -570,11 +561,10 @@ describe("PhysicsMaterial", () => {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Maximum;
+    collider.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Maximum;
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().staticFriction = 2000;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().staticFriction = 0;
+    collider.entity.getComponent(BoxCollider).material!.staticFriction = 2000;
+    ground.getComponent(PlaneCollider).material!.staticFriction = 0;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -588,11 +578,10 @@ describe("PhysicsMaterial", () => {
     collider2.automaticInertiaTensor = false;
     collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Maximum;
+    collider2.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Maximum;
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().staticFriction = 0;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().staticFriction = 2000;
+    collider2.entity.getComponent(BoxCollider).material!.staticFriction = 0;
+    ground.getComponent(PlaneCollider).material!.staticFriction = 2000;
 
     collider2.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -611,10 +600,10 @@ describe("PhysicsMaterial", () => {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    const material = collider.entity.getComponent(BoxCollider).getInstanceMaterial();
+    const material = collider.entity.getComponent(BoxCollider).material!;
     material.frictionCombine = PhysicsMaterialCombineMode.Multiply;
     material.staticFriction = boxFriction;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().staticFriction = groundFriction;
+    ground.getComponent(PlaneCollider).material!.staticFriction = groundFriction;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -635,11 +624,10 @@ describe("PhysicsMaterial", () => {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Average;
+    collider.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Average;
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().dynamicFriction = 10;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().staticFriction = 0;
+    collider.entity.getComponent(BoxCollider).material!.dynamicFriction = 10;
+    ground.getComponent(PlaneCollider).material!.staticFriction = 0;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -653,11 +641,10 @@ describe("PhysicsMaterial", () => {
     collider2.automaticInertiaTensor = false;
     collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Average;
+    collider2.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Average;
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().dynamicFriction = 5;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().dynamicFriction = 5;
+    collider2.entity.getComponent(BoxCollider).material!.dynamicFriction = 5;
+    ground.getComponent(PlaneCollider).material!.dynamicFriction = 5;
 
     collider2.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -673,11 +660,10 @@ describe("PhysicsMaterial", () => {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Minimum;
+    collider.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Minimum;
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().dynamicFriction = 10;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().dynamicFriction = 0;
+    collider.entity.getComponent(BoxCollider).material!.dynamicFriction = 10;
+    ground.getComponent(PlaneCollider).material!.dynamicFriction = 0;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -691,11 +677,10 @@ describe("PhysicsMaterial", () => {
     collider2.automaticInertiaTensor = false;
     collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Minimum;
+    collider2.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Minimum;
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().dynamicFriction = 0;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().dynamicFriction = 10;
+    collider2.entity.getComponent(BoxCollider).material!.dynamicFriction = 0;
+    ground.getComponent(PlaneCollider).material!.dynamicFriction = 10;
 
     collider2.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -711,11 +696,10 @@ describe("PhysicsMaterial", () => {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Maximum;
+    collider.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Maximum;
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().dynamicFriction = 10;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().dynamicFriction = 0;
+    collider.entity.getComponent(BoxCollider).material!.dynamicFriction = 10;
+    ground.getComponent(PlaneCollider).material!.dynamicFriction = 0;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -729,11 +713,10 @@ describe("PhysicsMaterial", () => {
     collider2.automaticInertiaTensor = false;
     collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Maximum;
+    collider2.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Maximum;
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().dynamicFriction = 0;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().dynamicFriction = 10;
+    collider2.entity.getComponent(BoxCollider).material!.dynamicFriction = 0;
+    ground.getComponent(PlaneCollider).material!.dynamicFriction = 10;
 
     collider2.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -749,11 +732,10 @@ describe("PhysicsMaterial", () => {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Multiply;
+    collider.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Multiply;
 
-    collider.entity.getComponent(BoxCollider).getInstanceMaterial().dynamicFriction = 2;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().dynamicFriction = 5;
+    collider.entity.getComponent(BoxCollider).material!.dynamicFriction = 2;
+    ground.getComponent(PlaneCollider).material!.dynamicFriction = 5;
 
     collider.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);
@@ -767,11 +749,10 @@ describe("PhysicsMaterial", () => {
     collider2.automaticInertiaTensor = false;
     collider2.inertiaTensor.set(10000000, 10000000, 10000000);
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().frictionCombine =
-      PhysicsMaterialCombineMode.Multiply;
+    collider2.entity.getComponent(BoxCollider).material!.frictionCombine = PhysicsMaterialCombineMode.Multiply;
 
-    collider2.entity.getComponent(BoxCollider).getInstanceMaterial().dynamicFriction = 10;
-    ground.getComponent(PlaneCollider).getInstanceMaterial().dynamicFriction = 1;
+    collider2.entity.getComponent(BoxCollider).material!.dynamicFriction = 10;
+    ground.getComponent(PlaneCollider).material!.dynamicFriction = 1;
 
     collider2.applyForce(new Vector3(0, 0, 1000));
     engine.sceneManager.activeScene.physics._update(1);

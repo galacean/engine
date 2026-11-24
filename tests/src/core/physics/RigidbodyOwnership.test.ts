@@ -1019,19 +1019,6 @@ describe("Rigidbody ownership", () => {
   });
 
   describe("material", () => {
-    it("instantiates once from the Collider's own engine and reuses the instance", () => {
-      const box = root.createChild("box").addComponent(BoxCollider);
-      const shared = new PhysicsMaterial(engine);
-      shared.bounciness = 0.5;
-      box.material = shared;
-
-      const instance = box.getInstanceMaterial();
-      expect(instance).not.toBe(shared);
-      expect(instance.bounciness).toBe(0.5);
-      expect(box.getInstanceMaterial()).toBe(instance);
-      expect(box.material).toBe(instance);
-    });
-
     it("keeps shared material references when cloned", () => {
       const entity = root.createChild("box");
       const box = entity.addComponent(BoxCollider);

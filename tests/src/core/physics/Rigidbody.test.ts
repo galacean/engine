@@ -35,8 +35,10 @@ describe("Rigidbody", function () {
     planeEntity.transform.setScale(20, 1, 20);
 
     const physicsPlane = planeEntity.addComponent(PlaneCollider);
-    physicsPlane.getInstanceMaterial().dynamicFriction = 0;
-    physicsPlane.getInstanceMaterial().staticFriction = 0;
+    const material = new PhysicsMaterial(engine);
+    material.dynamicFriction = 0;
+    material.staticFriction = 0;
+    physicsPlane.material = material;
     return planeEntity;
   }
 
@@ -45,8 +47,10 @@ describe("Rigidbody", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = boxEntity.addComponent(BoxCollider);
-    physicsBox.getInstanceMaterial().dynamicFriction = 0;
-    physicsBox.getInstanceMaterial().staticFriction = 0;
+    const material = new PhysicsMaterial(engine);
+    material.dynamicFriction = 0;
+    material.staticFriction = 0;
+    physicsBox.material = material;
     physicsBox.size = cubeSize;
     if (dynamic) {
       const body = boxEntity.addComponent(Rigidbody);
@@ -995,9 +999,10 @@ describe("Rigidbody", function () {
     target.useGravity = false;
     target.mass = 20;
     for (const collider of [sphere, box.getComponent(BoxCollider)]) {
-      const material = collider.getInstanceMaterial();
+      const material = new PhysicsMaterial(engine);
       material.staticFriction = material.dynamicFriction = 1;
       material.bounciness = 0;
+      collider.material = material;
     }
 
     const physics = engine.sceneManager.activeScene.physics;

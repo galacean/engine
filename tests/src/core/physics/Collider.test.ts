@@ -612,9 +612,10 @@ describe("Collider", () => {
         const entity = root.createChild("sliding box");
         entity.transform.setPosition(0, 0.5, 0);
         const collider = entity.addComponent(BoxCollider);
-        const material = collider.getInstanceMaterial();
+        const material = new PhysicsMaterial(engine);
         material.dynamicFriction = 1;
         material.staticFriction = 0;
+        collider.material = material;
         const body = entity.addComponent(Rigidbody);
         body.automaticCenterOfMass = false;
         body.automaticInertiaTensor = false;

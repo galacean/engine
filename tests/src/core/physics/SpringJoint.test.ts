@@ -1,5 +1,5 @@
 import { createPhysics } from "../../utils/physics";
-import { Entity, Rigidbody, BoxCollider, Engine, SpringJoint } from "@galacean/engine-core";
+import { Entity, PhysicsMaterial, Rigidbody, BoxCollider, Engine, SpringJoint } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, afterAll, beforeEach, expect, it } from "vitest";
@@ -13,8 +13,10 @@ describe("SpringJoint", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = boxEntity.addComponent(BoxCollider);
-    physicsBox.getInstanceMaterial().dynamicFriction = 0;
-    physicsBox.getInstanceMaterial().staticFriction = 0;
+    const material = new PhysicsMaterial(engine);
+    material.dynamicFriction = 0;
+    material.staticFriction = 0;
+    physicsBox.material = material;
     physicsBox.size = cubeSize;
     boxEntity.addComponent(Rigidbody);
     return boxEntity;

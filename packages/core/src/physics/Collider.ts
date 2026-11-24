@@ -95,8 +95,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
   private _contactOffset = 0.02;
   @ignoreClone
   private _material: PhysicsMaterial | null = null;
-  @ignoreClone
-  private _materialInstanced = false;
 
   /**
    * The owning Rigidbody, even if disabled, or null if there is no owner.
@@ -151,8 +149,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * The assigned material, or null to use the shared default material.
    * @defaultValue null
-   * @remarks Retains an assigned material until replaced or the Collider is destroyed. Use
-   * {@link getInstanceMaterial} to obtain a per-Collider instance.
+   * @remarks Retains an assigned material until replaced or the Collider is destroyed.
    * @throws When the material belongs to another engine.
    */
   get material(): PhysicsMaterial | null {
@@ -164,7 +161,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
       if (value && value.engine !== this.engine) {
         throw new Error("The physics material belongs to another engine.");
       }
-      this._materialInstanced = false;
       this._material && this._addResourceReferCount(this._material, -1);
       value && this._addResourceReferCount(value, 1);
       this._material = value;
@@ -208,19 +204,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     entity._updateFlagManager.addListener(this._onTransformChanged);
     //@ts-ignore
     this._center._onValueChanged = this._markDirty;
-  }
-
-  /**
-   * Returns a material instance for this Collider.
-   * @remarks The first call clones the assigned {@link material} or creates a default material, then assigns the
-   * instance to this Collider. Later calls reuse it until the material changes.
-   */
-  getInstanceMaterial(): PhysicsMaterial {
-    if (!this._materialInstanced) {
-      this.material = this._material ? this._material.clone() : new PhysicsMaterial(this.engine);
-      this._materialInstanced = true;
-    }
-    return this._material!;
   }
 
   /**

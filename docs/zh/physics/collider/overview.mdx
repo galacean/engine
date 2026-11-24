@@ -54,7 +54,6 @@ label: Physics
 
 | 方法 | 描述 |
 | :-- | :-- |
-| [**getInstanceMaterial**](/apis/core/#Collider-getInstanceMaterial) | 返回该碰撞器独有的材质，见[物理材质](#物理材质) |
 | [**getClosestPoint**](/apis/core/#Collider-getClosestPoint) | 返回世界空间中某点到碰撞器的距离并写出最近点。碰撞器不在模拟中时返回 -1。PlaneCollider、CharacterController 与非凸 MeshCollider 不支持 |
 
 ## 形状属性
@@ -94,9 +93,8 @@ PlaneCollider 没有形状属性。它是朝向实体局部 +Y 轴的无限平�
 ## 物理材质
 
 - [**material**](/apis/core/#Collider-material)：读取或指定一个 [PhysicsMaterial](/apis/core/#PhysicsMaterial)，不会创建或克隆材质。修改材质会影响所有引用它的碰撞器。`null` 表示使用共享默认材质。指定属于其他引擎的材质会抛出异常。
-- [**getInstanceMaterial()**](/apis/core/#Collider-getInstanceMaterial)：首次调用时克隆已指定的材质（未指定时创建默认属性的材质）并指定给该碰撞器。之后的调用会复用它，直到指定了其他材质或 `null`。
 
-克隆实体后，克隆出的碰撞器与原碰撞器共享同一个材质引用；如需独立材质，可在克隆体上调用 `getInstanceMaterial()`。自己创建的材质在不再被碰撞器使用后应调用 `destroy()` 释放，共享默认材质无需手动清理。
+克隆实体后，克隆出的碰撞器与原碰撞器共享同一个材质引用；如需独立材质，可显式赋值 `collider.material.clone()` 或 `new PhysicsMaterial(engine)`。自己创建的材质在不再被碰撞器使用后应调用 `destroy()` 释放，共享默认材质无需手动清理。
 
 | 属性 | 描述 | 默认值 |
 | :-- | :-- | :-- |
@@ -174,8 +172,9 @@ box.material = sharedMaterial;
 sphere.material = sharedMaterial;
 
 // 盒子使用独立材质，球体继续使用共享材质。
-const instance = box.getInstanceMaterial();
-instance.bounciness = 0.8;
+const customMaterial = sharedMaterial.clone();
+customMaterial.bounciness = 0.8;
+box.material = customMaterial;
 ```
 
 ## 最佳实践
@@ -203,7 +202,7 @@ instance.bounciness = 0.8;
 | `capsuleShape.upAxis` | `capsuleCollider.direction` |
 | `ColliderShapeUpAxis` | `CapsuleColliderDirection` |
 | `MeshColliderShapeCookingFlag` | `MeshColliderCookingFlag` |
-| `shape.material` / `shape.getInstanceMaterial(engine)` | `collider.material` / `collider.getInstanceMaterial()` |
+| `shape.material` / `shape.getInstanceMaterial()` | `collider.material`（需要独立材质时显式赋值 `material.clone()` 或 `new PhysicsMaterial(engine)`） |
 | `shape.isTrigger` | `collider.isTrigger` |
 | `joint.connectedCollider` | `joint.connectedBody`（`Rigidbody` 或 `null`） |
 | `onTriggerEnter(other: ColliderShape)`（Stay/Exit 同理） | `onTriggerEnter(other: Collider, self: Collider)` |

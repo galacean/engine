@@ -16,9 +16,8 @@ const assigned: PhysicsMaterial | null = collider.material;
 if (assigned) assigned.bounciness = 0.5;
 // @ts-expect-error A Collider can use the shared default instead of an assigned material.
 collider.material.bounciness = 0.5;
-collider.getInstanceMaterial().bounciness = 0.5;
-// @ts-expect-error The Collider supplies its own engine owner.
-collider.getInstanceMaterial(engine);
+// @ts-expect-error Colliders no longer expose getInstanceMaterial(); assign a cloned or new PhysicsMaterial instead.
+collider.getInstanceMaterial();
 collider.material = null;
 
 const material = new PhysicsMaterial(engine);

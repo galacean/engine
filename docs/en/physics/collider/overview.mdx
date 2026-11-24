@@ -54,7 +54,6 @@ Shape sizes follow the absolute values of the Entity's world scale, while `cente
 
 | Method | Description |
 | :-- | :-- |
-| [**getInstanceMaterial**](/apis/core/#Collider-getInstanceMaterial) | Returns a material owned by this Collider, see [Physics Material](#physics-material) |
 | [**getClosestPoint**](/apis/core/#Collider-getClosestPoint) | Returns the distance from a world-space point to the Collider and writes the closest point. Returns -1 when the Collider is not in simulation. Not supported by PlaneCollider, CharacterController, and non-convex MeshCollider |
 
 ## Shape Properties
@@ -94,9 +93,8 @@ PlaneCollider has no shape properties. It is an infinite plane facing the Entity
 ## Physics Material
 
 - [**material**](/apis/core/#Collider-material): Gets or assigns a [PhysicsMaterial](/apis/core/#PhysicsMaterial) without creating or cloning one. Changes affect every Collider that references it. `null` selects the shared default material. Assigning a material that belongs to another Engine throws.
-- [**getInstanceMaterial()**](/apis/core/#Collider-getInstanceMaterial): Clones the assigned material, or creates one with default properties, and assigns it to this Collider on first use. Further calls reuse it until a different material or `null` is assigned.
 
-A cloned Entity's Colliders share the original material reference; call `getInstanceMaterial()` on the clone to get an independent material. Release materials you create with `destroy()` once no Collider uses them. The shared default material needs no manual cleanup.
+A cloned Entity's Colliders share the original material reference; assign `collider.material.clone()` or `new PhysicsMaterial(engine)` when a Collider needs an independent material. Release materials you create with `destroy()` once no Collider uses them. The shared default material needs no manual cleanup.
 
 | Property | Description | Default |
 | :-- | :-- | :-- |
@@ -174,8 +172,9 @@ box.material = sharedMaterial;
 sphere.material = sharedMaterial;
 
 // The box gets its own material so the sphere keeps using the shared settings.
-const instance = box.getInstanceMaterial();
-instance.bounciness = 0.8;
+const customMaterial = sharedMaterial.clone();
+customMaterial.bounciness = 0.8;
+box.material = customMaterial;
 ```
 
 ## Best Practices
@@ -203,7 +202,7 @@ Earlier versions attached shape objects to a `StaticCollider` or `DynamicCollide
 | `capsuleShape.upAxis` | `capsuleCollider.direction` |
 | `ColliderShapeUpAxis` | `CapsuleColliderDirection` |
 | `MeshColliderShapeCookingFlag` | `MeshColliderCookingFlag` |
-| `shape.material` / `shape.getInstanceMaterial(engine)` | `collider.material` / `collider.getInstanceMaterial()` |
+| `shape.material` / `shape.getInstanceMaterial()` | `collider.material` (assign `material.clone()` or `new PhysicsMaterial(engine)` for an independent material) |
 | `shape.isTrigger` | `collider.isTrigger` |
 | `joint.connectedCollider` | `joint.connectedBody` (a `Rigidbody` or `null`) |
 | `onTriggerEnter(other: ColliderShape)` (Stay/Exit likewise) | `onTriggerEnter(other: Collider, self: Collider)` |
