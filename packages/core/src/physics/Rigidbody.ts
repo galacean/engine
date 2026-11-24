@@ -31,9 +31,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private static readonly _tempVec0 = new Vector3();
   private static readonly _tempVec1 = new Vector3();
   private static readonly _tempVec2 = new Vector3();
-  private static _validateDamping(value: number): void {
+  private static _validateNonNegativeFloat32(value: number, name: string): void {
     if (typeof value !== "number" || !(value >= 0 && Number.isFinite(Math.fround(value)))) {
-      throw new RangeError("Rigidbody damping must be finite and nonnegative.");
+      throw new RangeError(`Rigidbody ${name} must be finite and nonnegative.`);
     }
   }
 
@@ -62,7 +62,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private _writingBack = false;
 
   @ignoreClone
-  private _wasSleeping = false;
+  private _poseSynced = false;
   @ignoreClone
   private _registeredScene: Scene | null = null;
   @ignoreClone
@@ -120,7 +120,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set linearDamping(value: number) {
-    Rigidbody._validateDamping(value);
+    Rigidbody._validateNonNegativeFloat32(value, "linearDamping");
     if (this._linearDamping !== value) {
       this._linearDamping = value;
       this._nativeActor?.setLinearDamping(value);
@@ -136,7 +136,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set angularDamping(value: number) {
-    Rigidbody._validateDamping(value);
+    Rigidbody._validateNonNegativeFloat32(value, "angularDamping");
     if (this._angularDamping !== value) {
       this._angularDamping = value;
       this._nativeActor?.setAngularDamping(value);
@@ -419,12 +419,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /**
    * Maximum speed at which the solver separates overlapping bodies, in world units per second.
    * @defaultValue 10
+   * @throws When assigned a negative or non-finite Float32 value.
    */
   get maxDepenetrationVelocity(): number {
     return this._maxDepenetrationVelocity;
   }
 
   set maxDepenetrationVelocity(value: number) {
+    Rigidbody._validateNonNegativeFloat32(value, "maxDepenetrationVelocity");
     if (this._maxDepenetrationVelocity !== value) {
       this._maxDepenetrationVelocity = value;
       this._nativeActor?.setMaxDepenetrationVelocity(value);
@@ -433,12 +435,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /**
    * The mass-normalized energy threshold, below which objects start going to sleep.
+   * @throws When assigned a negative or non-finite Float32 value.
    */
   get sleepThreshold(): number {
     return this._sleepThreshold;
   }
 
   set sleepThreshold(value: number) {
+    Rigidbody._validateNonNegativeFloat32(value, "sleepThreshold");
     if (value !== this._sleepThreshold) {
       this._sleepThreshold = value;
       this._nativeActor?.setSleepThreshold(value);
@@ -513,7 +517,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   set simulationEnabled(value: boolean) {
     if (this._simulationEnabled !== value) {
       this._simulationEnabled = value;
-      this._wasSleeping = false;
+      this._poseSynced = false;
       !value && this._cancelPendingSleep();
       this._nativeActor?.setSimulationEnabled(value);
       this._syncSleepEventRegistration();
@@ -536,7 +540,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
       this._isKinematic = value;
-      this._wasSleeping = false;
+      this._poseSynced = false;
       if (value) {
         this._cancelPendingSleep();
       } else {
@@ -719,8 +723,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     ) {
       return;
     }
-    const actor = this._getSyncedActor();
-    if (!actor || this._isKinematic || !this._simulationEnabled || this._index === -1) return;
+    const actor = this._getSyncedActor()!;
 
     const position = Rigidbody._tempPosition;
     const rotation = Rigidbody._tempRotation;
@@ -796,12 +799,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /**
    * Sets the world-space target rotation for the next kinematic simulation step, preserving the target position.
    * @remarks Requires an active kinematic Rigidbody with simulation enabled.
+   * @throws When the body is dynamic.
    */
   move(rotation: Quaternion): void;
 
   /**
    * Sets the world-space target position and rotation for the next kinematic simulation step.
    * @remarks Requires an active kinematic Rigidbody with simulation enabled.
+   * @throws When the body is dynamic.
    */
   move(position: Vector3, rotation: Quaternion): void;
 
@@ -810,6 +815,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (!this._simulationEnabled || this._index === -1) return;
     // Teleport pending transform edits first so the move starts from the current pose
     const actor = this._getSyncedActor()!;
+    this._poseSynced = false;
     if (rotation) {
       actor.move(<Vector3>positionOrRotation, rotation);
     } else if (positionOrRotation instanceof Vector3) {
@@ -851,7 +857,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /** @internal Wakes the native actor while preserving an explicit sleep request for activation. */
   _wakeNative(): void {
-    this._wasSleeping = false;
+    this._poseSynced = false;
     if (this._index !== -1 && !this._isKinematic && this._simulationEnabled) {
       this._nativeActor!.wakeUp();
     }
@@ -889,7 +895,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._detachOrphanedColliders();
     scene.physics._addRigidbody(this, actor);
     this._registeredScene = scene;
-    this._wasSleeping = false;
+    this._poseSynced = false;
     this._markMassDirty();
     this._sleepPending && scene.physics._scheduleSleep(this, true);
     this._syncSleepEventRegistration();
@@ -904,7 +910,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const scene = this._registeredScene;
     if (!scene) return;
     this._registeredScene = null;
-    this._wasSleeping = false;
+    this._poseSynced = false;
     this._sleepPending && scene.physics._scheduleSleep(this, false);
     this._setSleepEventRegistration(scene, false);
     this._syncJoints();
@@ -1111,7 +1117,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const nativePosition = this._nativePosition;
     const nativeRotation = this._nativeRotation;
     if (differsF32(position, nativePosition) || rotationDiffersF32(rotation, nativeRotation)) {
-      this._wasSleeping = false;
+      this._poseSynced = false;
       nativePosition.copyFrom(position);
       nativeRotation.copyFrom(rotation);
       actor.setWorldTransform(position, rotation);
@@ -1125,13 +1131,11 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   _writeBack(position: Vector3, rotation: Quaternion): void {
     if (!this._simulationEnabled) return;
     const actor = this._nativeActor!;
-    if (!this._isKinematic) {
-      if (actor.isSleeping()) {
-        if (this._wasSleeping) return;
-        this._wasSleeping = true;
-      } else {
-        this._wasSleeping = false;
-      }
+    if (this._isKinematic || actor.isSleeping()) {
+      if (this._poseSynced) return;
+      this._poseSynced = true;
+    } else {
+      this._poseSynced = false;
     }
 
     actor.getWorldTransform(position, rotation);
@@ -1277,7 +1281,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   @ignoreClone
   private _onTransformChanged(): void {
     if (this._writingBack) return;
-    this._wasSleeping = false;
+    this._poseSynced = false;
     this._registeredScene?.physics._markBodyDirty(this);
   }
 

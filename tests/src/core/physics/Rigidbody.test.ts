@@ -452,6 +452,10 @@ describe("Rigidbody", function () {
     expect(boxCollider.linearVelocity.x).eq(0);
     boxCollider2.maxDepenetrationVelocity = boxCollider.maxDepenetrationVelocity = 10;
     expect(boxCollider2.maxDepenetrationVelocity).eq(10);
+    for (const invalid of [-1, NaN, Infinity, -Infinity, 1e39]) {
+      expect(() => (boxCollider.maxDepenetrationVelocity = invalid)).toThrow(RangeError);
+    }
+    expect(boxCollider.maxDepenetrationVelocity).eq(10);
     boxCollider.wakeUp();
     boxCollider2.wakeUp();
     engine.sceneManager.activeScene.physics._update(1);
@@ -470,6 +474,10 @@ describe("Rigidbody", function () {
     expect(boxCollider.isSleeping()).false;
 
     boxCollider.sleepThreshold = 100;
+    expect(boxCollider.sleepThreshold).eq(100);
+    for (const invalid of [-1, NaN, Infinity, -Infinity, 1e39]) {
+      expect(() => (boxCollider.sleepThreshold = invalid)).toThrow(RangeError);
+    }
     expect(boxCollider.sleepThreshold).eq(100);
     engine.sceneManager.activeScene.physics._update(1);
     expect(boxCollider.isSleeping()).true;
@@ -2228,6 +2236,63 @@ describe("Rigidbody", function () {
       expect(setChildWorldTransform).not.toHaveBeenCalled();
     } finally {
       setChildWorldTransform.mockRestore();
+    }
+  });
+
+  it("skips native write-back on stationary kinematic bodies while still syncing move() and parent pose changes", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const entity = rootEntity.createChild("stationary-kinematic");
+    entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    body.isKinematic = true;
+
+    physics._update(physics.fixedTimeStep);
+    const getWorldTransform = vi.spyOn(body._getNativeActor(), "getWorldTransform");
+    try {
+      physics._update(physics.fixedTimeStep);
+      physics._update(physics.fixedTimeStep);
+      physics._update(physics.fixedTimeStep);
+      expect(getWorldTransform).not.toHaveBeenCalled();
+
+      body.move(new Vector3(2, 0, 0));
+      physics._update(physics.fixedTimeStep);
+      expect(getWorldTransform).toHaveBeenCalledTimes(1);
+      expect(entity.transform.position.x).toBeCloseTo(2, 4);
+
+      physics._update(physics.fixedTimeStep);
+      physics._update(physics.fixedTimeStep);
+      expect(getWorldTransform).toHaveBeenCalledTimes(1);
+
+      entity.transform.setPosition(5, 0, 0);
+      physics._update(physics.fixedTimeStep);
+      expect(entity.transform.position.x).toBeCloseTo(5, 4);
+      expect(getWorldTransform).toHaveBeenCalledTimes(2);
+
+      physics._update(physics.fixedTimeStep);
+      expect(getWorldTransform).toHaveBeenCalledTimes(2);
+    } finally {
+      getWorldTransform.mockRestore();
+    }
+
+    const parent = rootEntity.createChild("kinematic-parent");
+    parent.addComponent(BoxCollider);
+    const parentBody = parent.addComponent(Rigidbody);
+    parentBody.useGravity = false;
+    parentBody.linearVelocity = new Vector3(1, 0, 0);
+
+    const child = parent.createChild("kinematic-child");
+    child.addComponent(BoxCollider);
+    const childBody = child.addComponent(Rigidbody);
+    childBody.isKinematic = true;
+
+    physics._update(physics.fixedTimeStep);
+    const getChildTransform = vi.spyOn(childBody._getNativeActor(), "getWorldTransform");
+    try {
+      physics._update(physics.fixedTimeStep);
+      expect(getChildTransform).toHaveBeenCalledTimes(1);
+      expect(child.transform.worldPosition.x).toBeCloseTo(0, 4);
+    } finally {
+      getChildTransform.mockRestore();
     }
   });
 });
