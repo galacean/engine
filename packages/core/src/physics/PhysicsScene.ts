@@ -56,10 +56,6 @@ export class PhysicsScene {
     PhysicsScene._setHitResult(hitResult, colliderID, hitDistance, position, normal);
   };
 
-  private static _pruneTriggerReceiver(this: PhysicsScene, entry: TriggerReceivers, key: number): void {
-    entry.stamp !== this._triggerStepStamp && this._triggerReceivers.delete(key);
-  }
-
   private static _snapshotReceivers(
     events: readonly { shape0Id: number; shape1Id: number }[],
     count: number,
@@ -77,25 +73,6 @@ export class PhysicsScene {
       out[base + 2] = collider1;
       out[base + 3] = collider1._attachedBody ?? collider1;
     }
-  }
-
-  private static _triggerPairKey(small: number, big: number): number {
-    const sum = small + big;
-    return sum * (sum + 1) * 0.5 + big;
-  }
-
-  private static _dispatchTriggerOwnerChange(
-    previous: Rigidbody | Collider,
-    current: Rigidbody | Collider,
-    self: Collider,
-    other: Collider
-  ): void {
-    if (previous.entity !== current.entity) {
-      PhysicsScene._dispatchScripts(PhysicsEventState.Exit, previous, self, other);
-      PhysicsScene._dispatchScripts(PhysicsEventState.Enter, current, self, other);
-      return;
-    }
-    PhysicsScene._dispatchScripts(PhysicsEventState.Stay, current, self, other);
   }
 
   private static _dispatchScripts(
@@ -168,6 +145,34 @@ export class PhysicsScene {
       isValidPositiveFloat32(halfExtents.y) &&
       isValidPositiveFloat32(halfExtents.z)
     );
+  }
+
+  private static _parseCastArgs(
+    distanceOrResult?: number | HitResult,
+    layerMaskOrResult?: Layer | HitResult,
+    outHitResult?: HitResult
+  ) {
+    const args = PhysicsScene._parsedCastArgs;
+    let hitResult: HitResult | undefined;
+    let distance = Number.MAX_VALUE;
+    let layerMask = Layer.Everything;
+
+    if (typeof distanceOrResult === "number") {
+      distance = distanceOrResult;
+    } else if (distanceOrResult != null) {
+      hitResult = distanceOrResult;
+    }
+
+    if (typeof layerMaskOrResult === "number") {
+      layerMask = layerMaskOrResult;
+    } else if (layerMaskOrResult != null) {
+      hitResult = layerMaskOrResult;
+    }
+
+    args.distance = distance;
+    args.layerMask = layerMask;
+    args.hitResult = outHitResult ?? hitResult;
+    return args;
   }
 
   private static _parseOrientedCastArgs(
@@ -243,8 +248,6 @@ export class PhysicsScene {
   private _massDirtyBodies: Rigidbody[] = [];
   private _pendingSleeps?: Rigidbody[];
   private _collision: Collision;
-  private readonly _triggerReceivers = new Map<number, TriggerReceivers>();
-  private _triggerStepStamp = 0;
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _contactEventConsumerCount = 0;
@@ -359,25 +362,9 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult | undefined;
-
-    let distance = Number.MAX_VALUE;
-    if (typeof distanceOrResult === "number") {
-      distance = distanceOrResult;
-    } else if (distanceOrResult != undefined) {
-      hitResult = distanceOrResult;
-    }
-
-    let layerMask = Layer.Everything;
-    if (typeof layerMaskOrResult === "number") {
-      layerMask = layerMaskOrResult;
-    } else if (layerMaskOrResult != undefined) {
-      hitResult = layerMaskOrResult;
-    }
-
-    if (outHitResult) {
-      hitResult = outHitResult;
-    }
+    const parsed = PhysicsScene._parseCastArgs(distanceOrResult, layerMaskOrResult, outHitResult);
+    const { distance, layerMask, hitResult } = parsed;
+    parsed.hitResult = undefined;
 
     const normalizedDirection = distance > 0 ? this._syncCastDirection(ray.direction) : null;
 
@@ -629,24 +616,9 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult | undefined;
-    let distance = Number.MAX_VALUE;
-    let layerMask = Layer.Everything;
-
-    if (typeof distanceOrResult === "number") {
-      distance = distanceOrResult;
-      if (layerMaskOrResult?.constructor === HitResult) {
-        hitResult = layerMaskOrResult;
-      } else if (typeof layerMaskOrResult === "number") {
-        layerMask = layerMaskOrResult;
-      }
-    } else if (distanceOrResult?.constructor === HitResult) {
-      hitResult = distanceOrResult;
-    }
-
-    if (outHitResult) {
-      hitResult = outHitResult;
-    }
+    const parsed = PhysicsScene._parseCastArgs(distanceOrResult, layerMaskOrResult, outHitResult);
+    const { distance, layerMask, hitResult } = parsed;
+    parsed.hitResult = undefined;
 
     const normalizedDirection =
       distance > 0 && isValidPositiveFloat32(radius) ? this._syncCastDirection(direction) : null;
@@ -1057,7 +1029,6 @@ export class PhysicsScene {
     this._gravity._onValueChanged = null;
     PhysicsScene._raycastHitPool.length = 0;
     PhysicsScene._dispatchReceivers.length = 0;
-    this._triggerReceivers.clear();
     this._pendingSleeps = undefined;
     this._nativePhysicsScene?.destroy();
     this._nativePhysicsScene = null!;
@@ -1115,84 +1086,23 @@ export class PhysicsScene {
         collision.selfCollider = null!;
       }
 
-      if (triggerCount > 0) {
-        const triggerReceivers = this._triggerReceivers;
-        const stamp = ++this._triggerStepStamp;
-        let liveCount = 0;
-        for (let i = 0; i < triggerCount; i++) {
-          const event = triggerEvents[i];
-          const base = triggerOffset + i * 4;
-          let collider0 = <Collider>receivers[base];
-          let cur0 = receivers[base + 1];
-          let collider1 = <Collider>receivers[base + 2];
-          let cur1 = receivers[base + 3];
-          let small = collider0._id;
-          let big = collider1._id;
-          if (small > big) {
-            const tmpId = small;
-            small = big;
-            big = tmpId;
-            const tmpCollider = collider0;
-            collider0 = collider1;
-            collider1 = tmpCollider;
-            const tmpCur = cur0;
-            cur0 = cur1;
-            cur1 = tmpCur;
-          }
-          const key = PhysicsScene._triggerPairKey(small, big);
-          const state = event.state;
-          if (state === PhysicsEventState.Stay) {
-            const entry = triggerReceivers.get(key);
-            if (entry) {
-              entry.stamp = stamp;
-              liveCount++;
-              const prev0 = entry.receiver0;
-              if (prev0 === cur0) {
-                PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
-              } else {
-                entry.receiver0 = cur0;
-                PhysicsScene._dispatchTriggerOwnerChange(prev0, cur0, collider0, collider1);
-              }
-              const prev1 = entry.receiver1;
-              if (prev1 === cur1) {
-                PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
-              } else {
-                entry.receiver1 = cur1;
-                PhysicsScene._dispatchTriggerOwnerChange(prev1, cur1, collider1, collider0);
-              }
-            } else {
-              PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
-              PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
-            }
-          } else if (state === PhysicsEventState.Enter) {
-            triggerReceivers.set(key, { receiver0: cur0, receiver1: cur1, stamp });
-            liveCount++;
-            PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
-            PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
-          } else {
-            const entry = triggerReceivers.get(key);
-            entry && triggerReceivers.delete(key);
-            const target0 =
-              !entry || entry.receiver0 === cur0 || entry.receiver0.entity === cur0.entity ? cur0 : entry.receiver0;
-            const target1 =
-              !entry || entry.receiver1 === cur1 || entry.receiver1.entity === cur1.entity ? cur1 : entry.receiver1;
-            PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
-            PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
-          }
-        }
-        if (triggerReceivers.size > liveCount) {
-          triggerReceivers.forEach(PhysicsScene._pruneTriggerReceiver, this);
-        }
+      for (let i = 0; i < triggerCount; i++) {
+        const base = triggerOffset + i * 4;
+        const collider0 = <Collider>receivers[base];
+        const receiver0 = receivers[base + 1];
+        const collider1 = <Collider>receivers[base + 2];
+        const receiver1 = receivers[base + 3];
+        const state = triggerEvents[i].state;
+        PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1);
+        PhysicsScene._dispatchScripts(state, receiver1, collider1, collider0);
       }
+
       // Clear active slots in place without shrinking length so pooled arrays keep their backing storage.
       const totalSlots = triggerOffset + triggerCount * 4;
       for (let i = 0; i < totalSlots; i++) {
         receivers[i] = null!;
       }
       PhysicsScene._dispatchReceivers.push(receivers);
-    }
-    if (triggerCount === 0) {
-      this._triggerReceivers.size > 0 && this._triggerReceivers.clear();
     }
   }
 
@@ -1206,10 +1116,4 @@ export class PhysicsScene {
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
   }
-}
-
-interface TriggerReceivers {
-  receiver0: Rigidbody | Collider;
-  receiver1: Rigidbody | Collider;
-  stamp: number;
 }

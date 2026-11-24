@@ -701,7 +701,7 @@ describe("Rigidbody ownership", () => {
       }
     );
 
-    it("emits balanced Exit/Enter when an active trigger collider is reparented across bodies", () => {
+    it("retires the old trigger pair silently and re-enters when a trigger collider is reparented across bodies", () => {
       const zoneEntity = root.createChild("zone");
       const zone = zoneEntity.addComponent(BoxCollider);
       zone.isTrigger = true;
@@ -723,25 +723,25 @@ describe("Rigidbody ownership", () => {
       expect(recorderA.enters).toEqual([[zone, childCollider]]);
       expect(zoneRecorder.enters).toEqual([[childCollider, zone]]);
 
-      //Case (a): reparent while staying overlapping -> Exit on bodyA, Enter on bodyB
+      // Case (a): reparent while staying overlapping -> old bodyA pair retires silently, bodyB and zone re-enter cleanly
       entityB.addChild(child);
       update();
-      expect(recorderA.exits).toEqual([[zone, childCollider]]);
+      expect(recorderA.exits).toHaveLength(0);
       expect(recorderB.enters).toEqual([[zone, childCollider]]);
-      expect(zoneRecorder.enters).toHaveLength(1);
+      expect(zoneRecorder.enters).toHaveLength(2);
       expect(zoneRecorder.exits).toHaveLength(0);
 
       update();
       expect(recorderB.stays.length).toBeGreaterThanOrEqual(1);
 
-      //Case (b): reparent back to bodyA and move out in same step -> Exit on bodyB, nothing on bodyA
+      // Case (b): reparent back to bodyA and move out in same step -> old bodyB pair retires silently, no orphaned Exit
       recorderA.enters.length = 0;
       recorderA.exits.length = 0;
       recorderB.exits.length = 0;
       entityA.addChild(child);
       entityA.transform.setPosition(20, 0, 0);
       update(2);
-      expect(recorderB.exits).toEqual([[zone, childCollider]]);
+      expect(recorderB.exits).toHaveLength(0);
       expect(recorderA.enters).toHaveLength(0);
       expect(recorderA.exits).toHaveLength(0);
       expect(childRecorder.enters).toHaveLength(0);
@@ -829,7 +829,7 @@ describe("Rigidbody ownership", () => {
         expect(probeRecorder.enters).toHaveLength(0);
 
         update(1);
-        expect(recorderA.exits).toEqual([[zone, probeCollider]]);
+        expect(recorderA.exits).toHaveLength(0);
         expect(recorderB.enters).toHaveLength(0);
         expect(recorderB.stays).toHaveLength(0);
         expect(recorderB.exits).toHaveLength(0);
@@ -859,7 +859,7 @@ describe("Rigidbody ownership", () => {
       expect(recorderA.exits).toHaveLength(0);
     });
 
-    it("handles destroying the destination Rigidbody inside Exit before next-step static fallback", () => {
+    it("handles destroying the destination Rigidbody inside Enter before next-step static fallback", () => {
       const zoneEntity = root.createChild("zone");
       const zone = zoneEntity.addComponent(BoxCollider);
       zone.isTrigger = true;
@@ -872,11 +872,11 @@ describe("Rigidbody ownership", () => {
       const bodyB = addBody(entityB, true);
       const recorderB = entityB.addComponent(TriggerRecorder);
 
-      let aExits = 0;
-      entityA.addComponent(
+      let bDestroys = 0;
+      entityB.addComponent(
         class extends Script {
-          override onTriggerExit(): void {
-            aExits++;
+          override onTriggerEnter(): void {
+            bDestroys++;
             bodyB.destroy();
           }
         }
@@ -889,14 +889,14 @@ describe("Rigidbody ownership", () => {
       updateFrame(2);
       entityB.addChild(child);
       updateFrame();
-      expect(aExits).toBe(1);
+      expect(bDestroys).toBe(1);
       expect(bodyB.destroyed).toBe(true);
       expect(recorderB.enters).toHaveLength(1);
       expect(childRecorder.enters).toHaveLength(0);
 
-      // On the next frame while still overlapping, destroyed bodyB is skipped for Exit and the static collider enters cleanly
+      // On the next frame while still overlapping, destroyed bodyB retires silently and the static collider enters cleanly
       updateFrame();
-      expect(aExits).toBe(1);
+      expect(bDestroys).toBe(1);
       expect(recorderB.exits).toHaveLength(0);
       expect(childRecorder.enters).toEqual([[zone, childCollider]]);
     });
@@ -1109,7 +1109,7 @@ describe("Rigidbody ownership", () => {
     expect(hit.point.y).toBeCloseTo(1002.5, 2);
   });
 
-  it("keeps trigger Enter/Exit balanced when a collider's owning Rigidbody is destroyed during Enter", () => {
+  it("handles destroying a collider's owning Rigidbody during Enter or Exit cleanly across static fallback", () => {
     const createZone = (parent: Entity, onEnter: (other: Collider) => void) => {
       const zoneEntity = parent.createChild("zone");
       const zoneBody = zoneEntity.addComponent(Rigidbody);
@@ -1145,7 +1145,7 @@ describe("Rigidbody ownership", () => {
       return events;
     };
 
-    // Case 1: zone runs first (cur0) and marks target's same-entity Rigidbody for deferred destruction during Enter.
+    // Case 1: zone marks target's same-entity Rigidbody for deferred destruction during Enter; static fallback re-enters then stays.
     const case1 = root.createChild("enter-before-target");
     createZone(case1, () => {
       if (!targetBody1.pendingDestroy) targetBody1.destroy();
@@ -1160,10 +1160,12 @@ describe("Rigidbody ownership", () => {
     expect(targetBody1.destroyed).toBe(true);
     expect(log1).toEqual(["enter"]);
     updateFrame();
-    expect(log1).toEqual(["enter", "stay"]);
+    expect(log1).toEqual(["enter", "enter"]);
+    updateFrame();
+    expect(log1).toEqual(["enter", "enter", "stay"]);
     case1.destroy();
 
-    // Case 2: target runs first (cur0) and gets Enter, then zone destroys target's same-entity Rigidbody; separating still emits Exit.
+    // Case 2: target gets Enter then zone destroys its Rigidbody and separates; old dynamic pair retires silently without orphaned Exit.
     const case2 = root.createChild("target-before-zone");
     const target2 = case2.createChild("target2");
     const targetBody2 = target2.addComponent(Rigidbody);
@@ -1179,10 +1181,10 @@ describe("Rigidbody ownership", () => {
     expect(log2).toEqual(["enter"]);
     zone2.transform.setPosition(20, 0, 0);
     updateFrame();
-    expect(log2).toEqual(["enter", "exit"]);
+    expect(log2).toEqual(["enter"]);
     case2.destroy();
 
-    // Case 3: zoneA destroys target's shared Rigidbody during Enter in a two-zone overlap; pairs stay balanced across frames.
+    // Case 3: zoneA destroys target's shared Rigidbody during Enter in a two-zone overlap; static fallback re-enters both cleanly.
     const case3 = root.createChild("multi-trigger-same-step");
     createZone(case3, () => {
       if (!targetBody3.pendingDestroy) targetBody3.destroy();
@@ -1198,7 +1200,9 @@ describe("Rigidbody ownership", () => {
     expect(targetBody3.destroyed).toBe(true);
     expect(log3).toEqual(["enter", "enter"]);
     updateFrame();
-    expect(log3).toEqual(["enter", "enter", "stay", "stay"]);
+    expect(log3).toEqual(["enter", "enter", "enter", "enter"]);
+    updateFrame();
+    expect(log3).toEqual(["enter", "enter", "enter", "enter", "stay", "stay"]);
     case3.destroy();
 
     // Case 4 & 5: single-pair Exit and multi-pair same-step Exit where zone destroys target's same-entity Rigidbody in Exit.
