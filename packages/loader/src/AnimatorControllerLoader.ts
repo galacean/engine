@@ -19,28 +19,20 @@ import {
 class AnimatorControllerLoader extends Loader<AnimatorController> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimatorController> {
     return new AssetPromise((resolve, reject, _, __, onCancel) => {
-      let configPromise: AssetPromise<any> | null = null;
-      let animatorController: AnimatorController | null = null;
-      let aborted = false;
-      const abort = () => {
-        if (aborted) return;
-        aborted = true;
-        configPromise?.cancel();
-        animatorController?.destroy();
-        animatorController = null;
-      };
-      onCancel(abort);
-      configPromise = resourceManager._request<any>(item.url!, {
+      let canceled = false;
+      const configPromise = resourceManager._request<any>(item.url!, {
         ...item,
         type: "json"
       });
+      onCancel(() => {
+        canceled = true;
+        configPromise.cancel();
+      });
       configPromise
         .then((data) => {
-          if (aborted) return;
-          const controller = new AnimatorController(resourceManager.engine);
-          resourceManager._addLoadingResource(controller);
-          animatorController = controller;
+          if (canceled) return;
           const { layers, parameters } = data;
+          const controllerLayers: AnimatorControllerLayer[] = [];
           const promises: Promise<{ layerIndex: number; stateIndex: number; clip: AnimationClip | null }>[] = [];
           layers.forEach((layerData, layerIndex: number) => {
             const { name, blendingMode, weight, stateMachine: stateMachineData } = layerData;
@@ -111,29 +103,27 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                 );
               });
             }
-            controller.addLayer(layer);
-          });
-          parameters.forEach((parameterData) => {
-            if (parameterData.isTrigger) {
-              controller.addTriggerParameter(parameterData.name);
-            } else {
-              controller.addParameter(parameterData.name, parameterData.defaultValue);
-            }
+            controllerLayers.push(layer);
           });
           Promise.all(promises).then((clipData) => {
-            if (aborted) return;
+            if (canceled) return;
+            const animatorController = new AnimatorController(resourceManager.engine);
+            controllerLayers.forEach((layer) => animatorController.addLayer(layer));
+            parameters.forEach((parameterData) => {
+              if (parameterData.isTrigger) {
+                animatorController.addTriggerParameter(parameterData.name);
+              } else {
+                animatorController.addParameter(parameterData.name, parameterData.defaultValue);
+              }
+            });
             clipData.forEach((data) => {
               const { layerIndex, stateIndex, clip } = data;
-              controller.layers[layerIndex].stateMachine.states[stateIndex].clip = clip;
+              animatorController.layers[layerIndex].stateMachine.states[stateIndex].clip = clip;
             });
-            animatorController = null;
-            resolve(controller);
+            resolve(animatorController);
           });
         })
-        .catch((e) => {
-          abort();
-          reject(e);
-        });
+        .catch(reject);
     });
   }
 

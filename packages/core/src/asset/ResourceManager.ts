@@ -434,9 +434,7 @@ export class ResourceManager {
 
     promise.then(
       (resource: T) => {
-        if (resource instanceof ReferResource) {
-          this._loadingResources?.delete(resource);
-        }
+        this._loadingResources?.delete(resource as ReferResource);
         if (loader.useCache) {
           this._addAsset(remoteAssetBaseURL, resource as EngineObject);
         }
