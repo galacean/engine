@@ -95,17 +95,17 @@ function config({ location, pkgJson }) {
             preventAssignment: true,
             values: { [`../${assetDirectory}/`]: `./${assetDirectory}/` }
           }),
-          {
+          // Both UMD entries load their assets from the same directory.
+          compress && {
             name: "umd-assets",
             buildStart() {
               const sourceDirectory = path.join(location, assetDirectory);
+              this.addWatchFile(sourceDirectory);
               for (const filename of fs.readdirSync(sourceDirectory)) {
-                const source = path.join(sourceDirectory, filename);
-                this.addWatchFile(source);
                 this.emitFile({
                   type: "asset",
                   fileName: `${assetDirectory}/${filename}`,
-                  source: fs.readFileSync(source)
+                  source: fs.readFileSync(path.join(sourceDirectory, filename))
                 });
               }
             }
