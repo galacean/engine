@@ -1073,7 +1073,10 @@ export async function mountSeedWorldDemo(
       useProjectPlantResources(engine!, planningVegetationReferences(runtimeProject!.projectPackage));
     });
     // Persist initial project state asynchronously instead of blocking scene load on IndexedDB flush.
-    const startupSaveTask = timed("runtimeProject.save (startup)", () => runtimeProject!.save());
+    // Skip when degraded to ephemeral in-memory storage so startup neither wastes work nor bumps commitSeq after mount.
+    const startupSaveTask = runtimeProject.isPersistent
+      ? timed("runtimeProject.save (startup)", () => runtimeProject!.save())
+      : Promise.resolve();
     void startupSaveTask.catch(() => {});
     await startupShadersTask;
     if (hasPlannedBuildings && buildingBinaryBundleTask) {

@@ -83,9 +83,20 @@ it.each(["open-failure", "read-failure"] as const)(
 
       expect(project.isPersistent).toBe(false);
       expect(project.projectPackage.contents["notes.json"]).toBeUndefined();
+      // Simulate real SeedWorldDemo pre-mount bootstrap migrations (which bump commitSeq before HUD mounts).
+      await project.update(
+        (pack) => ({
+          ...pack,
+          documents: { ...pack.documents, "Scene/main.scene.bootstrap.json": JSON.stringify({ version: 1 }) }
+        }),
+        { recordHistory: false }
+      );
+      expect(project.persistenceStatus.commitSeq).toBeGreaterThan(0);
+
       closeHud = mountProjectSaveControl(project, scene, canvas);
       const statusText = scene.findEntityByName("Project save status")!.getComponent(Text)!;
       expect(statusText.text).toBe("仅本次会话");
+      // Read-only visit after bootstrap migrations must NOT falsely prompt beforeunload.
       expect(unloadPrevented()).toBe(false);
 
       // Edit and flush: HUD must stay "仅本次会话" (never "已保存") and beforeunload must still warn.

@@ -233,6 +233,7 @@ it("opens a database already at version 5 without recreating stores", async () =
 
 function memoryDatabaseFactory() {
   const projects = new Map<string, any>();
+  const projectRevisions = new Map<string, any>();
   const projectFiles = new Map<string, any>();
   const fileKey = (key: readonly [string, string, string]) => JSON.stringify(key);
   const handles: Array<{
@@ -253,7 +254,9 @@ function memoryDatabaseFactory() {
       }
     };
     const database: any = {
-      objectStoreNames: { contains: (name: string) => name === "projects" || name === "projectFiles" },
+      objectStoreNames: {
+        contains: (name: string) => name === "projects" || name === "projectRevisions" || name === "projectFiles"
+      },
       createObjectStore() {
         return { createIndex() {} };
       },
@@ -334,6 +337,52 @@ function memoryDatabaseFactory() {
                 },
                 delete(key: string) {
                   projects.delete(key);
+                }
+              };
+            }
+            if (name === "projectRevisions") {
+              return {
+                get(key: string) {
+                  const req: any = { result: undefined, onsuccess: null };
+                  pendingRequests.push(() => {
+                    req.result = projectRevisions.has(key) ? structuredClone(projectRevisions.get(key)) : undefined;
+                    req.onsuccess?.();
+                  });
+                  return req;
+                },
+                getKey(key: string) {
+                  const req: any = { result: undefined, onsuccess: null };
+                  pendingRequests.push(() => {
+                    req.result = projectRevisions.has(key) ? key : undefined;
+                    req.onsuccess?.();
+                  });
+                  return req;
+                },
+                index(indexName: string) {
+                  if (indexName !== "storageRevision") throw new Error(`Unknown index ${indexName}`);
+                  return {
+                    getKey(revision: string) {
+                      const req: any = { result: undefined, onsuccess: null };
+                      pendingRequests.push(() => {
+                        let found: string | undefined;
+                        for (const [id, entry] of projectRevisions) {
+                          if (entry?.storageRevision === revision) {
+                            found = id;
+                            break;
+                          }
+                        }
+                        req.result = found;
+                        req.onsuccess?.();
+                      });
+                      return req;
+                    }
+                  };
+                },
+                put(value: unknown, key: string) {
+                  projectRevisions.set(key, structuredClone(value));
+                },
+                delete(key: string) {
+                  projectRevisions.delete(key);
                 }
               };
             }
