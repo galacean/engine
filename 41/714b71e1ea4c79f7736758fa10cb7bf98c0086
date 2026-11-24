@@ -1,0 +1,19 @@
+packages/core/src/texture/enums/TextureFormat.ts
+  s_20e906a94dc4da::t_c74575eb95845d 5-6,9-10,19-20,23-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "41714b71e1ea4c79f7736758fa10cb7bf98c0086",
+  "prompts": {},
+  "sessions": {
+    "s_20e906a94dc4da": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c01c-65c0-75d2-94b2-30e4b6667f2f",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "鸿岳 <owen.wjh@alipay.com>"
+    }
+  }
+}
