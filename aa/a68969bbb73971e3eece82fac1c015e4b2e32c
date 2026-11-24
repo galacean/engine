@@ -1,0 +1,32 @@
+packages/core/src/physics/joint/Joint.ts
+  s_71b60d26703905::t_da9f503ea0e45b 243-245
+  s_71b60d26703905::t_f23aef95a206fc 7,65,241-242,246-249,368-369,413
+scripts/test-editor-preload.js
+  s_71b60d26703905::t_68fafa69d24e9c 43,46-50,52-53,81-89
+docs/en/physics/joint/overview.mdx
+  s_71b60d26703905::t_a00c0ac8e542db 41-42
+docs/zh/physics/joint/overview.mdx
+  s_71b60d26703905::t_8822c834eb21a9 41-42
+packages/core/src/asset/Loader.ts
+  s_71b60d26703905::t_39a0aacd11bf8c 9-11
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_71b60d26703905::t_6075ae2adfdee3 78-79
+tests/src/core/physics/Joint.test.ts
+  s_71b60d26703905::t_8e91dbcada2afc 3,164-196,906-946
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "aaa68969bbb73971e3eece82fac1c015e4b2e32c",
+  "prompts": {},
+  "sessions": {
+    "s_71b60d26703905": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2086b-2423-7963-bec2-7a56a2f3c1cb",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
