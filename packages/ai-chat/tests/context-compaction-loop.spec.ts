@@ -356,9 +356,45 @@ it("re-inlines a declaration dependency evicted by compaction when re-reading th
 
   const finalRequestMessages = request.mock.calls[3][0].messages as { role: string; toolCallId?: string; content: string }[];
   const r3Reply = finalRequestMessages.find((m) => m.role === "tool" && m.toolCallId === "r3");
-  expect(r3Reply?.content).toContain("Already present in current context (unchanged)");
+  expect(r3Reply?.content).toContain("Already present at the time of this read");
   expect(r3Reply?.content).toContain('<dependency path="declare/editor/world/common/MutationResult.d.ts">');
   expect(r3Reply?.content).toContain("export interface MutationResult { status: string; }");
+});
+
+it.each([1, 350])("reuses an inlined declaration across rounds and restores reads at offset %s after compaction", async (offset) => {
+  const sourcePath = "declare/editor/native/source.d.ts";
+  const apiPath = "declare/editor/native/api.d.ts";
+  const source = Array.from({ length: 393 }, (_, i) => `export type L${i + 1} = ${i + 1};`).join("\n");
+  const modules = [
+    { id: "declare/native/source.d.ts", source, imports: [] },
+    { id: "declare/native/api.d.ts", source: 'import "./source";', imports: ["declare/native/source.d.ts"] }
+  ];
+  const read = (id: string, file_path: string, offset?: number): AsapChatResult => ({
+    content: "",
+    finishReason: "tool_calls",
+    toolCalls: [{ id, type: "function", function: { name: "read", arguments: JSON.stringify({ file_path, offset }) } }]
+  });
+  request
+    .mockResolvedValueOnce(read("api", apiPath))
+    .mockResolvedValueOnce(read("reuse", sourcePath, offset))
+    .mockResolvedValueOnce({ ...read("after", sourcePath, offset), contextCompaction: compact(3) })
+    .mockResolvedValueOnce(final());
+  const loop = createTestAgentLoop({
+    definition: { ...definition, scriptApi: { ...definition.scriptApi, modules } },
+    tools: []
+  });
+  await loop.run("inspect editor declarations", {});
+
+  const reused = messages(2).find((message) => message.role === "tool" && message.toolCallId === "reuse")!.content;
+  expect(reused).toContain("Reuse the complete copy if it is still in context. Otherwise, you can read this path again if needed.");
+  expect(reused).not.toContain("Continue with read");
+  const after = messages(3).find((message) => message.role === "tool" && message.toolCallId === "after")!.content;
+  expect(after).toContain(`${offset}: export type L${offset} = ${offset};`);
+  if (offset === 1) expect(after).toContain("Continue with read offset=");
+  else expect(after).toContain("393: export type L393 = 393;");
+  const remaining = messages(3).filter((message) => message.role === "tool");
+  expect(remaining.map((reply) => reply.toolCallId)).toEqual(["reuse", "after"]);
+  expect(remaining[0].content).toBe(reused);
 });
 
 it("resets repeated static read guidance counters after server-side compaction", async () => {

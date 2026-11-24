@@ -24,6 +24,8 @@ const MAX_SINGLE_DEPENDENCY_BYTES = 16 * 1024;
 const MAX_INLINE_DEPENDENCY_BYTES = 18 * 1024;
 const MAX_OMITTED_DEPENDENCY_LINES = 12;
 const MAX_DEPENDENCY_SCAN = 48;
+const READ_ALREADY_PRESENT =
+  "[Already present at the time of this read. Reuse the complete copy if it is still in context. Otherwise, you can read this path again if needed.]";
 const isBarrelDeclarationPath = (path: string) => path === "index.d.ts" || path.endsWith("/index.d.ts");
 const declarationPath = (id: string) => `declare/editor/${id.replace(/^declare\//, "")}`;
 const RELATIVE_MODULE_FROM_RE =
@@ -131,7 +133,23 @@ export function nativeFileDefinitions(): AgentModelToolDefinition[] {
     };
   });
 }
-export type NativeFileOutcome = { content: string; result: AgentToolResult; receipt?: AgentExecutionReceipt };
+export type StaticReadPage = { path: string; fullBody: string; primaryLength: number };
+
+export type NativeFileOutcome = {
+  content: string;
+  result: AgentToolResult;
+  receipt?: AgentExecutionReceipt;
+  readPage?: StaticReadPage;
+};
+
+export function omitCoveredReadPage(
+  content: string,
+  read: StaticReadPage,
+  completeReads: ReadonlyMap<string, string>
+): string {
+  if (completeReads.get(read.path) !== read.fullBody) return content;
+  return formatReadContent(read.path, READ_ALREADY_PRESENT) + content.slice(read.primaryLength);
+}
 
 export function nativeFileTraceInput(input: Record<string, unknown>) {
   try {
@@ -190,62 +208,71 @@ export class AgentNativeFiles {
           signal
         );
         const snapshot = files.snapshot();
+        let confirmedContent: string | undefined;
         // Stream-only knowledge and binary descriptors need no edit observation.
         try {
           const text = snapshot.readContent(input.file_path);
-          if (!input.file_path.startsWith(".ai/") && observedContent !== undefined && text === observedContent)
+          if (!input.file_path.startsWith(".ai/") && observedContent !== undefined && text === observedContent) {
             this.observed.set(input.file_path, observedContent);
-          else this.observed.delete(input.file_path);
+            confirmedContent = observedContent;
+          } else {
+            this.observed.delete(input.file_path);
+          }
         } catch {
           this.observed.delete(input.file_path);
         }
         if (!("lines" in result)) return this.success(result, JSON.stringify(result));
         // Preserve the complete cursor in the model-facing text, including a
         // same-line continuation. An offset alone would repeat a long line.
-        const primaryRaw = result.lines.map((line) => line.text).join("\n");
+        const fromStart = (input.offset ?? 1) === 1 && (input.column ?? 1) === 1;
         const body = result.lines.map((line) => `${line.number}: ${line.text}`).join("\n");
-        const canDeduplicatePrimary = Boolean(
-          this.activeReadContents &&
-            (input.offset ?? 1) === 1 &&
-            (input.column ?? 1) === 1 &&
-            !result.next &&
-            (result.path.startsWith("skills/") || result.path.startsWith("declare/")) &&
-            this.activeReadContents().get(result.path) === body
+        const complete = fromStart && !result.next;
+        const isDeclare = result.path.startsWith("declare/");
+        const isDeclaration = isDeclare && result.path.endsWith(".d.ts");
+        let fullBody: string | undefined;
+        if (isDeclaration || (fromStart && (isDeclare || result.path.startsWith("skills/")))) {
+          if (complete) {
+            fullBody = body;
+          } else if (confirmedContent !== undefined && confirmedContent.length <= MAX_SINGLE_DEPENDENCY_BYTES) {
+            // A read window, including the last page, cannot establish the file's full contents.
+            fullBody = formatNumberedFile(confirmedContent);
+          }
+        }
+        const canDeduplicatePrimary =
+          fullBody !== undefined && this.activeReadContents?.().get(result.path) === fullBody;
+        const continuation =
+          result.next && !canDeduplicatePrimary
+            ? `\n(Continue with read offset=${result.next.offset}${result.next.column === undefined ? "" : ` column=${result.next.column}`}.)`
+            : "";
+        const primary = formatReadContent(
+          result.path,
+          canDeduplicatePrimary ? READ_ALREADY_PRESENT : body + continuation
         );
-        const continuation = result.next
-          ? `\n(Continue with read offset=${result.next.offset}${result.next.column === undefined ? "" : ` column=${result.next.column}`}.)`
-          : "";
-        const primary = canDeduplicatePrimary
-          ? `<path>${result.path}</path>\n<type>file</type>\n<content>\n[Already present in current context (unchanged). Reuse the earlier read result and proceed directly without re-reading.]\n</content>`
-          : `<path>${result.path}</path>\n<type>file</type>\n<content>\n${body}${continuation}\n</content>`;
-        if (
-          (input.offset ?? 1) === 1 &&
-          (input.column ?? 1) === 1 &&
-          result.path.startsWith("declare/editor/") &&
-          result.path.endsWith(".d.ts")
-        ) {
+        const value = canDeduplicatePrimary ? { path: result.path, deduplicated: true } : result;
+        let outcome: NativeFileOutcome | undefined;
+        if (fromStart && isDeclaration && result.path.startsWith("declare/editor/")) {
           const { blocks, paths, omitted } = this.collectInlineDependencies(files, snapshot, result.path, primary, {
-            paginated: Boolean(result.next),
-            rootSourceFallback: primaryRaw
+            paginated: Boolean(result.next && !canDeduplicatePrimary),
+            rootSourceFallback: result.lines.map((line) => line.text).join("\n")
           });
           if (paths.length || omitted.length) {
-            let content = `${primary}${blocks.join("")}`;
+            const content = `${primary}${blocks.join("")}`;
             const { block: omittedBlock, paths: emittedOmitted } = formatOmittedDependencies(omitted, content);
-            if (omittedBlock) content += omittedBlock;
-            return this.success(
+            outcome = this.success(
               {
-                ...(canDeduplicatePrimary ? { path: result.path, deduplicated: true } : result),
+                ...value,
                 ...(paths.length ? { inlinedDependencies: paths } : {}),
                 ...(emittedOmitted.length ? { omittedDependencies: emittedOmitted } : {})
               },
-              content
+              content + omittedBlock
             );
           }
         }
-        if (canDeduplicatePrimary) {
-          return this.success({ path: result.path, deduplicated: true }, primary);
+        outcome ??= this.success(value, primary);
+        if (!complete && !canDeduplicatePrimary && fullBody !== undefined) {
+          outcome.readPage = { path: result.path, fullBody, primaryLength: primary.length };
         }
-        return this.success(result, primary);
+        return outcome;
       }
       if (name === "glob") {
         const root = input.path ?? "";
@@ -439,6 +466,7 @@ export class AgentNativeFiles {
     }
     const rootModule = byPath.get(rootPath);
     const claimed = this.claimedDeclarations?.() ?? this.#defaultClaimed;
+    const activeContents = this.activeReadContents?.();
     const encoder = new TextEncoder();
     let totalResponseBytes = encoder.encode(primaryContent).byteLength;
     let inlineBytes = 0;
@@ -447,12 +475,18 @@ export class AgentNativeFiles {
     const omitted: OmittedDependency[] = [];
     const pushDependency = (depPath: string, depSource: string): boolean => {
       if (claimed.has(depPath)) return false;
+      const activeBody = activeContents?.get(depPath);
+      const numbered =
+        activeBody !== undefined && depSource.length <= MAX_SINGLE_DEPENDENCY_BYTES
+          ? formatNumberedFile(depSource)
+          : undefined;
+      if (activeBody !== undefined && activeBody === numbered) return false;
       const rawBytes = encoder.encode(depSource).byteLength;
       if (paginated) {
         omitted.push({ path: depPath, bytes: rawBytes, reason: "paginated" });
         return false;
       }
-      const block = formatDependencyBlock(depPath, depSource);
+      const block = `\n<dependency path="${depPath}">\n${numbered ?? formatNumberedFile(depSource)}\n</dependency>`;
       const blockBytes = encoder.encode(block).byteLength;
       if (blockBytes > MAX_SINGLE_DEPENDENCY_BYTES) {
         omitted.push({ path: depPath, bytes: rawBytes, reason: "size" });
@@ -532,15 +566,17 @@ function readDeclarationText(snapshot: ProjectFileSnapshot, path: string): strin
   }
 }
 
-function formatDependencyBlock(depPath: string, depSource: string): string {
-  const normalized = depSource.replace(/\r\n/g, "\n").replace(/\n$/, "");
-  const numbered = normalized
-    ? normalized
-        .split("\n")
-        .map((line, index) => `${index + 1}: ${line}`)
-        .join("\n")
-    : "";
-  return `\n<dependency path="${depPath}">\n${numbered}\n</dependency>`;
+function formatReadContent(path: string, body: string): string {
+  return `<path>${path}</path>\n<type>file</type>\n<content>\n${body}\n</content>`;
+}
+
+function formatNumberedFile(source: string): string {
+  if (!source) return "";
+  return source
+    .replace(/\n$/, "")
+    .split("\n")
+    .map((line, index) => `${index + 1}: ${line.replace(/\r$/, "")}`)
+    .join("\n");
 }
 
 function formatOmittedDependencies(
