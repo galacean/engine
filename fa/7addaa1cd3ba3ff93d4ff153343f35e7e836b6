@@ -1,0 +1,18 @@
+packages/ai-chat/src/ai-chat/README.md
+  h_ddbf152d31b140 638
+packages/ai-chat/src/ai-chat/asap-chat.ts
+  h_ddbf152d31b140 304
+packages/ai-chat/tests/model-retry-transport.spec.ts
+  h_ddbf152d31b140 179-215
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fa7addaa1cd3ba3ff93d4ff153343f35e7e836b6",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+docs/en/physics/joint/overview.mdx
+  h_dd004f51a3e5ec 83
+docs/zh/physics/joint/overview.mdx
+  h_dd004f51a3e5ec 83
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 3,8,11,22-27,99-100,167-171,185-189,203-207,221-225,288,391-392,396-405,407,426,431,434-435,438,440-459
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 5,164-198,200,1140-1256
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 137,144,147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "042d676a2f3cb74597e2644257be1e55d4d1f648",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

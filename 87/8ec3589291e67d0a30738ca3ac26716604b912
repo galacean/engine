@@ -1,0 +1,16 @@
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 270-277
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 1014-1056
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "878ec3589291e67d0a30738ca3ac26716604b912",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

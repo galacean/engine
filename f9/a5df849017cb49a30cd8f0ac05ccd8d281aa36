@@ -1,0 +1,22 @@
+docs/en/physics/collider/rigidbody.mdx
+  h_dd004f51a3e5ec 208-209
+docs/zh/physics/collider/rigidbody.mdx
+  h_dd004f51a3e5ec 208-209
+packages/core/src/Entity.ts
+  h_dd004f51a3e5ec 13
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 824-825,829,852
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 609,613-614,619-620,626,630-632
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f9a5df849017cb49a30cd8f0ac05ccd8d281aa36",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

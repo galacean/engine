@@ -1,0 +1,22 @@
+packages/core/src/asset/ResourceManager.ts
+  h_bd4dd7d663e619 46,122,125,249-262,275,345-346,437-439,510-511,518-521
+packages/loader/src/AnimatorControllerLoader.ts
+  h_bd4dd7d663e619 21-37,39-42,114,118,120,124,127,129-130,133-136
+packages/loader/src/GLTFLoader.ts
+  h_bd4dd7d663e619 42,51,60
+packages/loader/src/prefab/PrefabParser.ts
+  h_bd4dd7d663e619 11-12,16-18
+tests/src/core/resource/ResourceManager.test.ts
+  h_bd4dd7d663e619 1-9,594-637
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "af50c51c2298c3cc42a879e1cef7e9f2dd374281",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

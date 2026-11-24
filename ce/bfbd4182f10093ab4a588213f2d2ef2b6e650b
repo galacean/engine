@@ -1,0 +1,19 @@
+packages/physics-physx/src/shape/PhysXMeshShape.ts
+  s_7cb2d86e3ff3c3::t_efe83a7a7f9ab6 141-143,151-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cebfbd4182f10093ab4a588213f2d2ef2b6e650b",
+  "prompts": {},
+  "sessions": {
+    "s_7cb2d86e3ff3c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20c71-9676-7633-8d1c-7921faa5b7f8",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

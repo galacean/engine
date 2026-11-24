@@ -1,0 +1,24 @@
+tests/src/core/ShaderDataClone.test.ts
+  s_6cc4f1019a707b::t_b0b14010ada0e9 1-64
+  s_6cc4f1019a707b::t_2615b1a3ce99e1 65-80
+packages/core/src/shader/ShaderData.ts
+  s_6cc4f1019a707b::t_84d540d3cf28d3 614-617,619,621,623,627-631
+tests/src/core/ShaderDataRefCount.test.ts
+  s_6cc4f1019a707b::t_14e6f8e002ebc2 161,174,176,180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d6bd354e81c0fb4af52bb1272d958c91d622bfb6",
+  "prompts": {},
+  "sessions": {
+    "s_6cc4f1019a707b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12e11-813e-7902-8e1c-fd4b4b1bfa82",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

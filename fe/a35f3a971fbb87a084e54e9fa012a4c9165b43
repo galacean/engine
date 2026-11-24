@@ -1,0 +1,20 @@
+packages/core/src/Script.ts
+  h_dd004f51a3e5ec 38,40,258-260,305-310
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 6,881-882,887-888
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 11,967
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 1385-1423,1425-1428,1431-1441,1443-1446,1448-1450,1452-1459
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fea35f3a971fbb87a084e54e9fa012a4c9165b43",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

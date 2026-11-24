@@ -1,0 +1,41 @@
+tests/src/core/physics/Joint.test.ts
+  s_a20fbf413cca3c::t_1dfd3fb8b60a24 6,397-402,410-411,417-419,427,440-442,444-460
+  s_a20fbf413cca3c::t_6f04480609167c 443
+packages/physics-physx/src/joint/PhysXJoint.ts
+  s_a20fbf413cca3c::t_5c76ba2e645ae5 102-109
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_a20fbf413cca3c::t_5c76ba2e645ae5 75-76,119-121,252-253
+docs/zh/physics/joint/overview.mdx
+  s_a20fbf413cca3c::t_1dfd3fb8b60a24 109-112
+docs/en/physics/joint/overview.mdx
+  s_a20fbf413cca3c::t_1dfd3fb8b60a24 107-110
+packages/design/src/physics/IPhysicsEvents.ts
+  s_a20fbf413cca3c::t_5c76ba2e645ae5 27-28,35-36
+packages/core/src/physics/PhysicsScene.ts
+  s_a20fbf413cca3c::t_5c76ba2e645ae5 10,74-75,876-887,934,1019-1042
+packages/core/src/physics/joint/Joint.ts
+  s_a20fbf413cca3c::t_5c76ba2e645ae5 40-41,208,227,233-241,270,354-357,373,383-388
+  s_a20fbf413cca3c::t_15692a683e2d7a 389
+packages/core/src/Script.ts
+  s_a20fbf413cca3c::t_6f04480609167c 129
+  s_a20fbf413cca3c::t_5c76ba2e645ae5 7,127-128,130-132
+  s_a20fbf413cca3c::t_6cd7e751a3b43e 133
+packages/design/src/physics/joints/IJoint.ts
+  s_a20fbf413cca3c::t_5c76ba2e645ae5 58-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ea16177ea8367a1760bb438f485f9e0ac3206d3b",
+  "prompts": {},
+  "sessions": {
+    "s_a20fbf413cca3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2088c-3f7f-7131-8505-b699d01f3e8d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
