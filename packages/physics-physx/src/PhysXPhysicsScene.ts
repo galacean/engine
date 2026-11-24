@@ -737,12 +737,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const activeContacts = this._activeContacts;
     const pool = this._contactSetPool;
     const setA = activeContacts.get(a);
-    if (setA && setA.delete(b) && setA.size === 0) {
+    if (setA?.delete(b) && setA.size === 0) {
       activeContacts.delete(a);
       pool.push(setA);
     }
     const setB = activeContacts.get(b);
-    if (setB && setB.delete(a) && setB.size === 0) {
+    if (setB?.delete(a) && setB.size === 0) {
       activeContacts.delete(b);
       pool.push(setB);
     }
