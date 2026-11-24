@@ -3,6 +3,7 @@ import {
   dependentComponents,
   DependentMode,
   Entity,
+  EntityModifyFlags,
   ICloneHook,
   MeshRenderer,
   Scene,
@@ -641,6 +642,173 @@ describe("Transform test", function () {
       for (let i = 0; i < 16; i++) {
         expect(child.transform.worldMatrix.elements[i]).to.be.closeTo(expectedWorldMat.elements[i], 1e-5);
       }
+
+      parentA.destroy();
+      parentB.destroy();
+    });
+
+    it("preserves reflected world matrix without collapsing scale on rotated children under negative-scale parents", () => {
+      // Single-axis reflection (-1, 1, 1) with 45° Z child rotation (zero shear, det = -1)
+      const flipXParent = scene.createRootEntity("flipXParent");
+      flipXParent.transform.setScale(-1, 1, 1);
+      const child1 = flipXParent.createChild("flipXChild");
+      child1.transform.setRotation(0, 0, 45);
+      const expectedFlipXMat = child1.transform.worldMatrix.clone();
+      const identityParent = scene.createRootEntity("identityParent");
+
+      child1.parent = identityParent;
+      expect(Math.abs(child1.transform.scale.x)).to.be.closeTo(1, 1e-5);
+      expect(Math.abs(child1.transform.scale.y)).to.be.closeTo(1, 1e-5);
+      expect(Math.abs(child1.transform.scale.z)).to.be.closeTo(1, 1e-5);
+      for (let i = 0; i < 16; i++) {
+        expect(child1.transform.worldMatrix.elements[i]).to.be.closeTo(expectedFlipXMat.elements[i], 1e-5);
+      }
+
+      // Reverse: positive-scale 45° Z child attached under (-1, 1, 1) parent
+      const child2 = identityParent.createChild("intoFlipXChild");
+      child2.transform.setRotation(0, 0, 45);
+      const expectedIntoFlipMat = child2.transform.worldMatrix.clone();
+      child2.parent = flipXParent;
+      expect(Math.abs(child2.transform.scale.x)).to.be.closeTo(1, 1e-5);
+      expect(Math.abs(child2.transform.scale.y)).to.be.closeTo(1, 1e-5);
+      expect(Math.abs(child2.transform.scale.z)).to.be.closeTo(1, 1e-5);
+      for (let i = 0; i < 16; i++) {
+        expect(child2.transform.worldMatrix.elements[i]).to.be.closeTo(expectedIntoFlipMat.elements[i], 1e-5);
+      }
+
+      // Two-axis negative scale (-1, -1, 1) with 45° X child rotation (zero shear, det = +1)
+      const flipXYParent = scene.createRootEntity("flipXYParent");
+      flipXYParent.transform.setScale(-1, -1, 1);
+      const child3 = flipXYParent.createChild("flipXYChild");
+      child3.transform.setRotation(45, 0, 0);
+      const expectedFlipXYMat = child3.transform.worldMatrix.clone();
+      child3.parent = identityParent;
+      expect(Math.abs(child3.transform.scale.x)).to.be.closeTo(1, 1e-5);
+      expect(Math.abs(child3.transform.scale.y)).to.be.closeTo(1, 1e-5);
+      expect(Math.abs(child3.transform.scale.z)).to.be.closeTo(1, 1e-5);
+      for (let i = 0; i < 16; i++) {
+        expect(child3.transform.worldMatrix.elements[i]).to.be.closeTo(expectedFlipXYMat.elements[i], 1e-5);
+      }
+
+      // Uniform negative scale (-2, -2, -2) keeps exact uniform scale and rotation without 180° flip
+      const uniformNegParent = scene.createRootEntity("uniformNegParent");
+      uniformNegParent.transform.setScale(-2, -2, -2);
+      const child4 = uniformNegParent.createChild("uniformNegChild");
+      child4.transform.setRotation(0, 0, 45);
+      const expectedUniformNegMat = child4.transform.worldMatrix.clone();
+      child4.parent = identityParent;
+      expect(child4.transform.scale.x).to.be.closeTo(-2, 1e-5);
+      expect(child4.transform.scale.y).to.be.closeTo(-2, 1e-5);
+      expect(child4.transform.scale.z).to.be.closeTo(-2, 1e-5);
+      for (let i = 0; i < 16; i++) {
+        expect(child4.transform.worldMatrix.elements[i]).to.be.closeTo(expectedUniformNegMat.elements[i], 1e-5);
+      }
+
+      flipXParent.destroy();
+      flipXYParent.destroy();
+      uniformNegParent.destroy();
+      identityParent.destroy();
+    });
+
+    it("discards shear and rebuilds clean TRS when assigning sheared localMatrix or worldMatrix", () => {
+      const a = scene.createRootEntity("setMatA");
+      a.transform.setRotation(0, 0, 45);
+      const b = a.createChild("setMatB");
+      b.transform.setScale(7, 1, 5);
+      const c = b.createChild("setMatC");
+      c.transform.setRotation(0, 0, -45);
+      const d = scene.createRootEntity("setMatD");
+
+      const saved = c.transform.worldMatrix.clone();
+      d.addChild(c);
+      c.transform.worldMatrix = saved;
+
+      expect(c.transform.scale.x).to.be.closeTo(4, 1e-5);
+      expect(c.transform.scale.y).to.be.closeTo(4, 1e-5);
+      expect(c.transform.scale.z).to.be.closeTo(5, 1e-5);
+      expect(c.transform.lossyWorldScale.x).to.be.closeTo(4, 1e-5);
+      expect(c.transform.lossyWorldScale.y).to.be.closeTo(4, 1e-5);
+      expect(c.transform.lossyWorldScale.z).to.be.closeTo(5, 1e-5);
+      expect(c.transform.rotationQuaternion.length()).to.be.closeTo(1, 1e-5);
+
+      const expectedClean = new Matrix();
+      Matrix.scaling(new Vector3(4, 4, 5), expectedClean);
+      for (let i = 0; i < 16; i++) {
+        expect(c.transform.localMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
+        expect(c.transform.worldMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
+      }
+
+      // Assigning sheared localMatrix directly on a root entity also rebuilds clean TRS
+      const rootSheared = scene.createRootEntity("rootSheared");
+      rootSheared.transform.localMatrix = saved;
+      expect(rootSheared.transform.scale.x).to.be.closeTo(4, 1e-5);
+      expect(rootSheared.transform.scale.y).to.be.closeTo(4, 1e-5);
+      expect(rootSheared.transform.scale.z).to.be.closeTo(5, 1e-5);
+      expect(rootSheared.transform.lossyWorldScale.x).to.be.closeTo(4, 1e-5);
+      expect(rootSheared.transform.lossyWorldScale.y).to.be.closeTo(4, 1e-5);
+      expect(rootSheared.transform.lossyWorldScale.z).to.be.closeTo(5, 1e-5);
+      for (let i = 0; i < 16; i++) {
+        expect(rootSheared.transform.localMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
+        expect(rootSheared.transform.worldMatrix.elements[i]).to.be.closeTo(expectedClean.elements[i], 1e-5);
+      }
+
+      // Clean worldMatrix under non-uniform parent that induces local shear rebuilds consistent worldMatrix
+      const nonUniformParent = scene.createRootEntity("nonUniformSetWorld");
+      nonUniformParent.transform.setScale(7, 1, 5);
+      const childUnderNonUniform = nonUniformParent.createChild("childUnderNonUniform");
+      const rot45 = new Matrix();
+      const q45 = new Quaternion();
+      Quaternion.rotationZ(Math.PI / 4, q45);
+      Matrix.rotationQuaternion(q45, rot45);
+      childUnderNonUniform.transform.worldMatrix = rot45;
+      const expectedWorld = new Matrix();
+      Matrix.multiply(
+        nonUniformParent.transform.worldMatrix,
+        childUnderNonUniform.transform.localMatrix,
+        expectedWorld
+      );
+      for (let i = 0; i < 16; i++) {
+        expect(childUnderNonUniform.transform.worldMatrix.elements[i]).to.be.closeTo(expectedWorld.elements[i], 1e-5);
+      }
+
+      a.destroy();
+      d.destroy();
+      rootSheared.destroy();
+      nonUniformParent.destroy();
+    });
+
+    it("commits preserved transform before dispatching EntityModifyFlags.Child listeners", () => {
+      const parentA = scene.createRootEntity("childEventParentA");
+      const parentB = scene.createRootEntity("childEventParentB");
+      parentA.transform.setPosition(10, 0, 0);
+      parentB.transform.setPosition(4, 0, 0);
+
+      const child = parentA.createChild("childEventTarget");
+      child.transform.setPosition(2, 0, 0); // world x = 12
+
+      let observedLocalX = NaN;
+      let observedWorldX = NaN;
+      // @ts-ignore
+      parentA._registerModifyListener((flag: EntityModifyFlags) => {
+        if (flag === EntityModifyFlags.Child) {
+          // Mutating oldParent inside its Child callback must not corrupt child's captured world pose
+          parentA.transform.setPosition(999, 0, 0);
+        }
+      });
+      // @ts-ignore
+      parentB._registerModifyListener((flag: EntityModifyFlags) => {
+        if (flag === EntityModifyFlags.Child) {
+          observedLocalX = child.transform.position.x;
+          observedWorldX = child.transform.worldPosition.x;
+        }
+      });
+
+      child.parent = parentB;
+
+      expect(observedLocalX).to.be.closeTo(8, 1e-5);
+      expect(observedWorldX).to.be.closeTo(12, 1e-5);
+      expect(child.transform.position.x).to.be.closeTo(8, 1e-5);
+      expect(child.transform.worldPosition.x).to.be.closeTo(12, 1e-5);
 
       parentA.destroy();
       parentB.destroy();

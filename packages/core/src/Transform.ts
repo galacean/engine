@@ -247,7 +247,10 @@ export class Transform extends Component implements ICloneHook<Transform> {
 
   /**
    * Local matrix.
-   * @remarks Need to re-assign after modification to ensure that the modification takes effect.
+   * @remarks
+   * Need to re-assign after modification to ensure that the modification takes effect.
+   * Only shear-free TRS affine matrices are supported when assigning; if the matrix contains shear,
+   * the shear component will be discarded and `localMatrix` will be rebuilt from the decomposed TRS pose.
    */
   get localMatrix(): Matrix {
     if (this._isContainDirtyFlag(TransformModifyFlags.LocalMatrix)) {
@@ -258,23 +261,22 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   set localMatrix(value: Matrix) {
-    if (this._localMatrix !== value) {
-      this._localMatrix.copyFrom(value);
-    }
     const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
-    // @ts-ignore
     position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
 
-    value.decompose(position, rotationQuaternion, scale);
+    const hasShear = this._decomposeLocalMatrix(value, position, rotationQuaternion, scale);
+    if (!hasShear && this._localMatrix !== value) {
+      this._localMatrix.copyFrom(value);
+    }
     this._onLocalMatrixChanging();
+    if (hasShear) {
+      this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+    }
     this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
 
-    // @ts-ignore
     position._onValueChanged = this._onPositionChanged;
-    // @ts-ignore
     rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
-    // @ts-ignore
     scale._onValueChanged = this._onScaleChanged;
     const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
     if (this._localUniformScaling !== localUniformScaling) {
@@ -287,7 +289,10 @@ export class Transform extends Component implements ICloneHook<Transform> {
 
   /**
    * World matrix.
-   * @remarks Need to re-assign after modification to ensure that the modification takes effect.
+   * @remarks
+   * Need to re-assign after modification to ensure that the modification takes effect.
+   * Only affine matrices whose resulting local matrix is a shear-free TRS matrix are preserved losslessly;
+   * if the computed local matrix contains shear, the shear component will be discarded and rebuilt from the decomposed TRS pose.
    */
   get worldMatrix(): Matrix {
     if (this._isContainDirtyFlag(TransformModifyFlags.WorldMatrix)) {
@@ -308,13 +313,17 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
     const parent = this._getParentTransform();
     if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat42);
+      if (Matrix.invert(parent.worldMatrix, Transform._tempMat42) === null) {
+        return;
+      }
       Matrix.multiply(Transform._tempMat42, value, this._localMatrix);
     } else {
       this._localMatrix.copyFrom(value);
     }
     this.localMatrix = this._localMatrix;
-    this._onWorldMatrixChanging();
+    if (!this._isContainDirtyFlag(TransformModifyFlags.LocalMatrix)) {
+      this._onWorldMatrixChanging();
+    }
   }
 
   /**
@@ -636,8 +645,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
   protected _preserveWorldPose(oldParent: Transform | null): void {
     const oldWorldMat = Transform._tempMat41;
     const oldWorldRot = Transform._tempQuat1;
-    const oldWorldPos = Transform._tempVec30;
-    const oldWorldRotScaMat = Transform._tempMat30;
 
     if (oldParent) {
       Matrix.multiply(oldParent.worldMatrix, this.localMatrix, oldWorldMat);
@@ -646,8 +653,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
       oldWorldMat.copyFrom(this.localMatrix);
       oldWorldRot.copyFrom(this.rotationQuaternion);
     }
-    oldWorldMat.getTranslation(oldWorldPos);
-    oldWorldRotScaMat.copyFromMatrix(oldWorldMat);
 
     this._isParentDirty = true;
     const newParent = this._getParentTransform();
@@ -655,45 +660,68 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const { _position: position, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
     position._onValueChanged = rotationQuaternion._onValueChanged = scale._onValueChanged = null;
 
-    if (newParent) {
-      const invNewParentQuat = Transform._tempQuat0;
-      Quaternion.invert(newParent.worldRotationQuaternion, invNewParentQuat);
-      Quaternion.multiply(invNewParentQuat, oldWorldRot, rotationQuaternion);
-      rotationQuaternion.normalize();
+    const uniformParents =
+      (!oldParent || oldParent._getWorldUniformScaling()) && (!newParent || newParent._getWorldUniformScaling());
 
-      const invNewParentMat = Transform._tempMat42;
-      if (Matrix.invert(newParent.worldMatrix, invNewParentMat) !== null) {
-        Vector3.transformCoordinate(oldWorldPos, invNewParentMat, position);
+    if (uniformParents) {
+      const oldWorldPos = Transform._tempVec30;
+      const oldWorldRotScaMat = Transform._tempMat30;
+      oldWorldMat.getTranslation(oldWorldPos);
+      oldWorldRotScaMat.copyFromMatrix(oldWorldMat);
 
-        const invNewParentRotScaMat = Transform._tempMat31;
-        const localRotScaMat = Transform._tempMat32;
-        invNewParentRotScaMat.copyFromMatrix(invNewParentMat);
-        Matrix3x3.multiply(invNewParentRotScaMat, oldWorldRotScaMat, localRotScaMat);
+      if (newParent) {
+        const invNewParentQuat = Transform._tempQuat0;
+        Quaternion.invert(newParent.worldRotationQuaternion, invNewParentQuat);
+        Quaternion.multiply(invNewParentQuat, oldWorldRot, rotationQuaternion);
+        rotationQuaternion.normalize();
+
+        const invNewParentMat = Transform._tempMat42;
+        if (Matrix.invert(newParent.worldMatrix, invNewParentMat) !== null) {
+          Vector3.transformCoordinate(oldWorldPos, invNewParentMat, position);
+
+          const invNewParentRotScaMat = Transform._tempMat31;
+          const localRotScaMat = Transform._tempMat32;
+          invNewParentRotScaMat.copyFromMatrix(invNewParentMat);
+          Matrix3x3.multiply(invNewParentRotScaMat, oldWorldRotScaMat, localRotScaMat);
+
+          const invLocalRot = Transform._tempQuat0;
+          const invLocalRotMat = Transform._tempMat30;
+          const scaleMat = Transform._tempMat31;
+          Quaternion.invert(rotationQuaternion, invLocalRot);
+          Matrix3x3.rotationQuaternion(invLocalRot, invLocalRotMat);
+          Matrix3x3.multiply(invLocalRotMat, localRotScaMat, scaleMat);
+
+          const e = scaleMat.elements;
+          scale.set(e[0], e[4], e[8]);
+        }
+      } else {
+        position.copyFrom(oldWorldPos);
+        rotationQuaternion.copyFrom(oldWorldRot);
+        rotationQuaternion.normalize();
 
         const invLocalRot = Transform._tempQuat0;
-        const invLocalRotMat = Transform._tempMat30;
-        const scaleMat = Transform._tempMat31;
+        const invLocalRotMat = Transform._tempMat31;
+        const scaleMat = Transform._tempMat32;
         Quaternion.invert(rotationQuaternion, invLocalRot);
         Matrix3x3.rotationQuaternion(invLocalRot, invLocalRotMat);
-        Matrix3x3.multiply(invLocalRotMat, localRotScaMat, scaleMat);
+        Matrix3x3.multiply(invLocalRotMat, oldWorldRotScaMat, scaleMat);
 
         const e = scaleMat.elements;
         scale.set(e[0], e[4], e[8]);
       }
+    } else if (newParent) {
+      const invNewParentMat = Transform._tempMat42;
+      if (Matrix.invert(newParent.worldMatrix, invNewParentMat) !== null) {
+        Matrix.multiply(invNewParentMat, oldWorldMat, oldWorldMat);
+        this._decomposeLocalMatrix(oldWorldMat, position, rotationQuaternion, scale);
+      } else {
+        const invNewParentQuat = Transform._tempQuat0;
+        Quaternion.invert(newParent.worldRotationQuaternion, invNewParentQuat);
+        Quaternion.multiply(invNewParentQuat, oldWorldRot, rotationQuaternion);
+        rotationQuaternion.normalize();
+      }
     } else {
-      position.copyFrom(oldWorldPos);
-      rotationQuaternion.copyFrom(oldWorldRot);
-      rotationQuaternion.normalize();
-
-      const invLocalRot = Transform._tempQuat0;
-      const invLocalRotMat = Transform._tempMat31;
-      const scaleMat = Transform._tempMat32;
-      Quaternion.invert(rotationQuaternion, invLocalRot);
-      Matrix3x3.rotationQuaternion(invLocalRot, invLocalRotMat);
-      Matrix3x3.multiply(invLocalRotMat, oldWorldRotScaMat, scaleMat);
-
-      const e = scaleMat.elements;
-      scale.set(e[0], e[4], e[8]);
+      this._decomposeLocalMatrix(oldWorldMat, position, rotationQuaternion, scale);
     }
 
     position._onValueChanged = this._onPositionChanged;
@@ -703,6 +731,133 @@ export class Transform extends Component implements ICloneHook<Transform> {
     this._localUniformScaling = scale.x === scale.y && scale.y === scale.z;
     this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalMatrix);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
+  }
+
+  private _decomposeLocalMatrix(matrix: Matrix, position: Vector3, rotation: Quaternion, scale: Vector3): boolean {
+    const e = matrix.elements;
+    const m11 = e[0],
+      m12 = e[1],
+      m13 = e[2];
+    const m21 = e[4],
+      m22 = e[5],
+      m23 = e[6];
+    const m31 = e[8],
+      m32 = e[9],
+      m33 = e[10];
+    position.set(e[12], e[13], e[14]);
+
+    let sx = Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
+    const sy = Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
+    const sz = Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
+
+    const dot12 = m11 * m21 + m12 * m22 + m13 * m23;
+    const dot13 = m11 * m31 + m12 * m32 + m13 * m33;
+    const dot23 = m21 * m31 + m22 * m32 + m23 * m33;
+    const shearTolerance = 1e-4;
+    const hasShear =
+      Math.abs(dot12) > shearTolerance * sx * sy ||
+      Math.abs(dot13) > shearTolerance * sx * sz ||
+      Math.abs(dot23) > shearTolerance * sy * sz ||
+      e[3] !== 0 ||
+      e[7] !== 0 ||
+      e[11] !== 0 ||
+      Math.abs(e[15] - 1) > shearTolerance;
+
+    const zero = MathUtil.zeroTolerance;
+    if (sx < zero || sy < zero || sz < zero) {
+      matrix.decompose(position, rotation, scale);
+      rotation.normalize();
+      return hasShear;
+    }
+
+    const invMaxS = 1 / Math.max(sx, sy, sz);
+    const n11 = m11 * invMaxS,
+      n12 = m12 * invMaxS,
+      n13 = m13 * invMaxS;
+    const n21 = m21 * invMaxS,
+      n22 = m22 * invMaxS,
+      n23 = m23 * invMaxS;
+    const n31 = m31 * invMaxS,
+      n32 = m32 * invMaxS,
+      n33 = m33 * invMaxS;
+    const detNorm = n11 * (n22 * n33 - n23 * n32) - n21 * (n12 * n33 - n13 * n32) + n31 * (n12 * n23 - n13 * n22);
+
+    if (!hasShear || Math.abs(detNorm) <= zero) {
+      if (detNorm < 0) sx = -sx;
+      scale.set(sx, sy, sz);
+      const invSX = 1 / sx;
+      const invSY = 1 / sy;
+      const invSZ = 1 / sz;
+      const rm = Transform._tempMat30;
+      const rme = rm.elements;
+      rme[0] = m11 * invSX;
+      rme[1] = m12 * invSX;
+      rme[2] = m13 * invSX;
+      rme[3] = m21 * invSY;
+      rme[4] = m22 * invSY;
+      rme[5] = m23 * invSY;
+      rme[6] = m31 * invSZ;
+      rme[7] = m32 * invSZ;
+      rme[8] = m33 * invSZ;
+      Quaternion.rotationMatrix3x3(rm, rotation);
+      rotation.normalize();
+      return hasShear;
+    }
+
+    // Polar decomposition on normalized 3x3 linear matrix to extract nearest proper rotation,
+    // then project scale along the resulting orthogonal axes (diagonal of R^T * L).
+    const l = Transform._tempMat30;
+    const le = l.elements;
+    le[0] = m11;
+    le[1] = m12;
+    le[2] = m13;
+    le[3] = m21;
+    le[4] = m22;
+    le[5] = m23;
+    le[6] = m31;
+    le[7] = m32;
+    le[8] = m33;
+
+    const sign = detNorm < 0 ? -1 : 1;
+    const r = Transform._tempMat31;
+    const re = r.elements;
+    re[0] = n11 * sign;
+    re[1] = n12 * sign;
+    re[2] = n13 * sign;
+    re[3] = n21;
+    re[4] = n22;
+    re[5] = n23;
+    re[6] = n31;
+    re[7] = n32;
+    re[8] = n33;
+
+    const inv = Transform._tempMat32;
+    const ie = inv.elements;
+    for (let iter = 0; iter < 10; iter++) {
+      if (Math.abs(r.determinant()) <= zero) {
+        break;
+      }
+      Matrix3x3.invert(r, inv);
+      inv.transpose();
+      let maxDiff = 0;
+      for (let j = 0; j < 9; j++) {
+        const next = 0.5 * (re[j] + ie[j]);
+        const diff = Math.abs(next - re[j]);
+        if (diff > maxDiff) maxDiff = diff;
+        re[j] = next;
+      }
+      if (maxDiff <= zero) {
+        break;
+      }
+    }
+
+    Quaternion.rotationMatrix3x3(r, rotation);
+    rotation.normalize();
+    Matrix3x3.rotationQuaternion(rotation, r);
+    r.transpose();
+    Matrix3x3.multiply(r, l, inv);
+    scale.set(ie[0], ie[4], ie[8]);
+    return true;
   }
 
   protected _onLocalMatrixChanging(): void {
