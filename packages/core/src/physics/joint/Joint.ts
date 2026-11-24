@@ -440,8 +440,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     const bodyInfo = isSelf ? this._bodyInfo : this._connectedBodyInfo;
     const anchor = bodyInfo.anchor;
     if (anchor.x === 0 && anchor.y === 0 && anchor.z === 0) return;
-    const entity = isSelf ? this.entity : this._connectedBody?.entity;
-    if (!entity) return;
+    const entity = isSelf ? this.entity : this._connectedBody!.entity;
     const scaled = Joint._tempVector3;
     Vector3.multiply(anchor, entity.transform.lossyWorldScale, scaled);
     const actual = bodyInfo.actualAnchor;
