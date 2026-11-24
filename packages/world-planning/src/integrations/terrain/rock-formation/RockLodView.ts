@@ -11,6 +11,7 @@ import { ROCK_LOD_SCREEN_HEIGHTS } from "@galacean/engine-terrain/rock-formation
 import type { RockVariantAsset } from "@galacean/engine-terrain/rock-formation/types";
 import {
   createTerrainLodRendererSetScratch,
+  LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO,
   TerrainLodGroupRuntime,
   type TerrainLodGroupInstance
 } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
@@ -50,7 +51,8 @@ const lodGroup = new TerrainLodGroupRuntime(
     animateCrossFading: true,
     lods: heights.map((screenRelativeTransitionHeight) => ({ screenRelativeTransitionHeight }))
   },
-  TREE_ASSEMBLY_LOD_CROSS_FADE_SECONDS
+  TREE_ASSEMBLY_LOD_CROSS_FADE_SECONDS,
+  LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO
 );
 
 interface RockLodEntry {

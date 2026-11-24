@@ -32,7 +32,9 @@ export class ProjectPathConflictError extends Error {
 }
 
 /** Agents read these host mounts. Only the host changes them. */
-const READ_ONLY_PROJECT_ROOTS = Object.freeze(["project.json", "skills", "declare", ".ai", "remote"]);
+export const READ_ONLY_PROJECT_ROOTS = Object.freeze(["project.json", "skills", "declare", ".ai", "remote"]);
+const READ_ONLY_PROJECT_ROOT_SET = new Set<string>(READ_ONLY_PROJECT_ROOTS);
+const READ_ONLY_PROJECT_META_SET = new Set<string>(READ_ONLY_PROJECT_ROOTS.map((root) => `${root}.meta`));
 
 export class ProjectPathReadOnlyError extends Error {
   readonly code = "READ_ONLY_PATH";
@@ -42,9 +44,9 @@ export class ProjectPathReadOnlyError extends Error {
 }
 
 export function isProjectPathReadOnly(path: string): boolean {
-  return READ_ONLY_PROJECT_ROOTS.some(
-    (root) => path === root || path === `${root}.meta` || path.startsWith(`${root}/`)
-  );
+  const slash = path.indexOf("/");
+  if (slash === -1) return READ_ONLY_PROJECT_ROOT_SET.has(path) || READ_ONLY_PROJECT_META_SET.has(path);
+  return READ_ONLY_PROJECT_ROOT_SET.has(path.slice(0, slash));
 }
 
 export function assertProjectPathWritable(path: string): void {

@@ -1,21 +1,20 @@
 import { SeedWorldLiquidGlassUiMaterial } from "@galacean/engine-modify/rendering/LiquidGlassPostProcessPass";
 import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import markupViewportSource from "./MarkupViewport.shader?raw";
 import { destroyPhotoResources } from "./SeedWorldPhotoResources";
 import { warmupPhotoPresentation } from "./SeedWorldPhotoWarmup";
 import { warmupSeedWorldRendererVariants } from "./SeedWorldShaderWarmup";
 import type { PhotoImage } from "./SeedWorldPhotoImage";
 import { encodeImage, type ImageResourceBudget } from "@galacean/engine-ai-chat/ai-chat/image-resources";
 import {
-  AssetType,
   BaseMaterial,
-  BoundingBox,
   Camera,
   CameraClearFlags,
   Color,
   Entity,
   Font,
-  GLTFResource,
   Layer,
+  Material,
   Matrix,
   MeshRenderer,
   ModelMesh,
@@ -24,16 +23,20 @@ import {
   RenderTarget,
   Scene,
   Script,
+  Shader,
   TextRenderer,
   Texture2D,
   TextureFormat,
   TextureWrapMode,
   Vector2,
   Vector3,
+  Vector4,
   type Engine
 } from "@galacean/engine";
 import {
+  DEFAULT_MARKUP_INK,
   DEFAULT_PHOTO_INK,
+  PHOTO_BADGE,
   PHOTO_TOOLBAR,
   PHOTO_PALETTE,
   PHOTO_INK_COLORS,
@@ -46,7 +49,6 @@ export const PAPER_HEIGHT = 1.22337079;
 export const PHOTO_WORKSPACE_LAYER = Layer.Layer25;
 const WORKSPACE_UNIT_SCALE = 0.001;
 export const PHOTO_MODEL_URL = new URL("../assets/instant-camera/polaroid-photo.glb", import.meta.url).href;
-const PIN_URL = new URL("../assets/instant-camera/thumbtack.glb", import.meta.url).href;
 import { UnlitMaterial } from "@galacean/engine";
 
 function tagWorkspaceHierarchy(entity: Entity, layer: Layer): void {
@@ -170,6 +172,109 @@ export function flatMaterial(engine: Engine, color: Color): UnlitMaterial {
   return material;
 }
 
+/** Build a pixel-exact rounded-rectangle mesh with exact [0, 1] UVs (top-left origin). */
+function roundedViewportMesh(engine: Engine, width: number, height: number, radius: number): ModelMesh {
+  const mesh = new ModelMesh(engine, "Markup viewport");
+  const hw = Math.max(0.5, width * 0.5);
+  const hh = Math.max(0.5, height * 0.5);
+  const r = Math.max(0, Math.min(radius, hw, hh));
+  if (r < 0.5) {
+    mesh.setPositions([
+      new Vector3(-hw, hh, 0),
+      new Vector3(hw, hh, 0),
+      new Vector3(-hw, -hh, 0),
+      new Vector3(hw, -hh, 0)
+    ]);
+    mesh.setUVs([new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1)]);
+    mesh.setIndices(new Uint16Array([0, 2, 1, 1, 2, 3]));
+    mesh.addSubMesh(0, 6);
+  } else {
+    const segs = 12;
+    const positions: Vector3[] = [new Vector3(0, 0, 0)];
+    const uvs: Vector2[] = [new Vector2(0.5, 0.5)];
+    const corners: readonly [number, number][] = [
+      [hw - r, hh - r],
+      [-hw + r, hh - r],
+      [-hw + r, -hh + r],
+      [hw - r, -hh + r]
+    ];
+    for (let c = 0; c < 4; c++) {
+      for (let j = 0; j <= segs; j++) {
+        const angle = (c * Math.PI) / 2 + ((j / segs) * Math.PI) / 2;
+        const x = corners[c][0] + r * Math.cos(angle);
+        const y = corners[c][1] + r * Math.sin(angle);
+        positions.push(new Vector3(x, y, 0));
+        uvs.push(new Vector2((x + hw) / (hw * 2), (hh - y) / (hh * 2)));
+      }
+    }
+    const indices: number[] = [];
+    for (let i = 1; i < positions.length; i++) {
+      indices.push(0, i, i + 1 === positions.length ? 1 : i + 1);
+    }
+    mesh.setPositions(positions);
+    mesh.setUVs(uvs);
+    mesh.setIndices(new Uint16Array(indices));
+    mesh.addSubMesh(0, indices.length);
+  }
+  mesh.bounds.min.set(-hw, -hh, -1);
+  mesh.bounds.max.set(hw, hh, 1);
+  mesh.uploadData(true);
+  return mesh;
+}
+
+/** Build a pixel-exact closed rounded-rectangle luminous border ring (no elliptical stretch). */
+function roundedFrameRingMesh(
+  engine: Engine,
+  width: number,
+  height: number,
+  radius: number,
+  thickness: number
+): ModelMesh {
+  const mesh = new ModelMesh(engine, "Markup luminous frame");
+  const hw = Math.max(1, width * 0.5);
+  const hh = Math.max(1, height * 0.5);
+  const r = Math.max(0.5, Math.min(radius, hw - 0.5, hh - 0.5));
+  const halfT = Math.max(0.4, thickness * 0.5);
+  const segs = 12;
+  const corners: readonly [number, number][] = [
+    [hw - r, hh - r],
+    [-hw + r, hh - r],
+    [-hw + r, -hh + r],
+    [hw - r, -hh + r]
+  ];
+  const positions: Vector3[] = [];
+  for (let c = 0; c < 4; c++) {
+    for (let j = 0; j <= segs; j++) {
+      const angle = (c * Math.PI) / 2 + ((j / segs) * Math.PI) / 2;
+      const nx = Math.cos(angle);
+      const ny = Math.sin(angle);
+      const cx = corners[c][0];
+      const cy = corners[c][1];
+      const rIn = Math.max(0, r - halfT);
+      const rOut = r + halfT;
+      positions.push(new Vector3(cx + rIn * nx, cy + rIn * ny, 0));
+      positions.push(new Vector3(cx + rOut * nx, cy + rOut * ny, 0));
+    }
+  }
+  const ringPoints = positions.length / 2;
+  const indices: number[] = [];
+  for (let i = 0; i < ringPoints; i++) {
+    const next = (i + 1) % ringPoints;
+    const i0 = i * 2;
+    const i1 = i0 + 1;
+    const n0 = next * 2;
+    const n1 = n0 + 1;
+    indices.push(i0, i1, n1, i0, n1, n0);
+  }
+  mesh.setPositions(positions);
+  mesh.setIndices(new Uint16Array(indices));
+  mesh.addSubMesh(0, indices.length);
+  mesh.bounds.min.set(-hw - halfT, -hh - halfT, -1);
+  mesh.bounds.max.set(hw + halfT, hh + halfT, 1);
+  mesh.uploadData(true);
+  return mesh;
+}
+
 class PhotoFrame extends Script {
   tick?: (dt: number) => void;
   onUpdate(dt: number): void {
@@ -185,21 +290,23 @@ export class PhotoGraphics {
   readonly backdrop: MeshRenderer;
   readonly toolbar: Entity;
   readonly palette: Entity;
+  readonly badge: Entity;
+  private readonly badgeLabel: TextRenderer;
   private readonly paletteIndicator: MeshRenderer;
   private readonly paletteSelection: MeshRenderer;
   readonly status: TextRenderer;
+  readonly closeButtonTexture: Texture2D;
   readonly icons: MeshRenderer[] = [];
-  private paper!: GLTFResource;
-  private pin!: GLTFResource;
   private loading?: Promise<void>;
   private disposed = false;
   warmingUp = false;
-  private readonly resources: Array<ModelMesh | BaseMaterial> = [];
+  private readonly resources: Array<ModelMesh | BaseMaterial | Texture2D> = [];
   private readonly glassPanels: {
     glass: SeedWorldLiquidGlassUiMaterial;
     width: number;
     height: number;
     radius: number;
+    scaledByToolbar: boolean;
   }[] = [];
   constructor(
     readonly engine: Engine,
@@ -225,6 +332,8 @@ export class PhotoGraphics {
     this.camera.enableHDR = this.camera.enablePostProcess = false;
     view.addComponent(PhotoFrame).tick = tick;
     this.font = Font.createFromOS(engine, '"PingFang SC", "Microsoft YaHei", sans-serif')!;
+    this.closeButtonTexture = createCloseButtonTexture(engine);
+    this.resources.push(this.closeButtonTexture);
     this.backdrop = this.quad("Editing backdrop", new Color(0.0052, 0.0086, 0.0097, 0));
     (this.backdrop.getMaterial() as UnlitMaterial).isTransparent = true;
     this.backdrop.entity.isActive = false;
@@ -336,30 +445,54 @@ export class PhotoGraphics {
     this.setInkColor(DEFAULT_PHOTO_INK);
     this.palette.isActive = false;
     this.toolbar.isActive = false;
+    this.badge = this.workspaceRoot.createChild("Markup summary badge");
+    this.glassPanel(
+      "Badge glass",
+      PHOTO_BADGE.width,
+      PHOTO_BADGE.height,
+      PHOTO_BADGE.radius,
+      this.badge,
+      0,
+      0,
+      0,
+      false
+    );
+    const badgeRimEntity = this.badge.createChild("Badge luminous rim");
+    const badgeRimRenderer = badgeRimEntity.addComponent(MeshRenderer);
+    const badgeRimMesh = roundedFrameRingMesh(engine, PHOTO_BADGE.width, PHOTO_BADGE.height, PHOTO_BADGE.radius, 1.1);
+    const badgeRimMaterial = flatMaterial(engine, new Color(1.0, 1.0, 1.0, 0.24));
+    badgeRimMaterial.isTransparent = true;
+    badgeRimRenderer.mesh = badgeRimMesh;
+    badgeRimRenderer.setMaterial(badgeRimMaterial);
+    badgeRimEntity.transform.setPosition(0, 0, 1);
+    this.resources.push(badgeRimMesh, badgeRimMaterial);
+    this.rounded("Badge dot", 7, 7, 3.5, inkColor(DEFAULT_PHOTO_INK), this.badge, -44, 0, 2);
+    this.badgeLabel = this.text("Badge label", "已标记 1 处", 13, this.badge);
+    this.badgeLabel.color = new Color(1, 1, 1, 0.96);
+    this.badgeLabel.entity.transform.setPosition(8, 0, 2);
+    this.badge.isActive = false;
     this.status = this.text("Photo status", "", 13);
     tagWorkspaceHierarchy(this.workspaceRoot, PHOTO_WORKSPACE_LAYER);
     this.resize();
+  }
+  setBadge(count: number, x: number, y: number, visible: boolean): void {
+    const active = visible && count > 0;
+    this.badge.isActive = active;
+    if (!active) return;
+    this.badge.transform.setPosition(x, -y, 500);
+    this.badgeLabel.text = `已标记 ${count} 处`;
   }
   tagWorkspaceEntity(entity: Entity): void {
     tagWorkspaceHierarchy(entity, PHOTO_WORKSPACE_LAYER);
   }
   prepare(): Promise<void> {
-    return (this.loading ??= Promise.all([
-      this.engine.resourceManager.load<GLTFResource>({
-        type: AssetType.GLTF,
-        url: PHOTO_MODEL_URL,
-        params: { keepMeshData: true }
-      }),
-      this.engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url: PIN_URL })
-    ]).then(async ([paper, pin]) => {
+    return (this.loading ??= (async () => {
       if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
-      this.paper = paper;
-      this.pin = pin;
       const texture = new Texture2D(this.engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, true);
       texture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
       let surface: PhotoSurface | undefined;
       try {
-        surface = new PhotoSurface(this, paper, pin, {
+        surface = new PhotoSurface(this, {
           texture,
           width: 1,
           height: 1,
@@ -368,18 +501,18 @@ export class PhotoGraphics {
           },
           dispose() {}
         });
-        surface.caption.text = "SEED WORLD · 0123456789/";
+        surface.setFrameLayout(64, 64, 12, 0);
         this.warmingUp = true;
         await warmupPhotoPresentation(
           this.camera,
           () => {
-            this.toolbar.isActive = this.palette.isActive = true;
+            this.toolbar.isActive = this.palette.isActive = this.badge.isActive = true;
             try {
               this.camera.render();
               surface!.setOpacity(0.5);
               this.camera.render();
             } finally {
-              this.toolbar.isActive = this.palette.isActive = false;
+              this.toolbar.isActive = this.palette.isActive = this.badge.isActive = false;
             }
           },
           () => this.disposed,
@@ -390,9 +523,9 @@ export class PhotoGraphics {
         this.warmingUp = false;
         surface?.dispose();
         texture.destroy(true);
-        if (!this.disposed) this.toolbar.isActive = this.palette.isActive = false;
+        if (!this.disposed) this.toolbar.isActive = this.palette.isActive = this.badge.isActive = false;
       }
-    }));
+    })());
   }
   resize(): void {
     const rect = this.canvas.getBoundingClientRect();
@@ -410,8 +543,10 @@ export class PhotoGraphics {
     this.palette.transform.setPosition((palette.x - toolbar.x) / scale, -(palette.y - toolbar.y) / scale, 5);
     this.status.entity.transform.setPosition(rect.width / 2, -rect.height + 36, 500);
     const pixelScale = this.engine.canvas.width / Math.max(1, rect.width);
-    for (const { glass, width, height, radius } of this.glassPanels)
-      glass.setLayout(width * pixelScale * scale, height * pixelScale * scale, radius * pixelScale * scale);
+    for (const { glass, width, height, radius, scaledByToolbar } of this.glassPanels) {
+      const s = scaledByToolbar ? scale : 1;
+      glass.setLayout(width * pixelScale * s, height * pixelScale * s, radius * pixelScale * s);
+    }
   }
   private glassPanel(
     name: string,
@@ -421,7 +556,8 @@ export class PhotoGraphics {
     parent: Entity,
     x: number,
     y: number,
-    z: number
+    z: number,
+    scaledByToolbar = true
   ): void {
     const entity = parent.createChild(name),
       renderer = entity.addComponent(MeshRenderer);
@@ -449,7 +585,7 @@ export class PhotoGraphics {
     renderer.setMaterial(glass.material);
     entity.transform.setPosition(x, y, z);
     this.resources.push(mesh);
-    this.glassPanels.push({ glass, width, height, radius });
+    this.glassPanels.push({ glass, width, height, radius, scaledByToolbar });
   }
   text(name: string, value: string, size: number, parent?: Entity): TextRenderer {
     const entity = (parent ?? this.workspaceRoot).createChild(name);
@@ -536,7 +672,7 @@ export class PhotoGraphics {
   async create(image: PhotoImage): Promise<PhotoSurface> {
     await this.prepare();
     if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
-    const surface = new PhotoSurface(this, this.paper, this.pin, image);
+    const surface = new PhotoSurface(this, image);
     try {
       return surface;
     } catch (error) {
@@ -559,185 +695,248 @@ export class PhotoGraphics {
   }
 }
 
-/** One real sheet and one real thumbtack per attachment. Only their transforms change between states. */
+const MARKUP_VIEWPORT_SHADER_NAME = "SeedWorld/MarkupViewportV1";
+const CLOSE_BUTTON_SIZE = 34;
+const CLOSE_BUTTON_INSET = 14;
+const CLOSE_BUTTON_HIT_RADIUS = 26;
+
+function createCloseButtonTexture(engine: Engine): Texture2D {
+  const size = 128;
+  const texture = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8_UNorm, false, true);
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      const c = size * 0.5;
+      const radius = size * 0.42;
+      ctx.clearRect(0, 0, size, size);
+
+      // Soft translucent frosted dark circle with subtle depth shadow
+      ctx.save();
+      ctx.shadowColor = "rgba(0, 0, 0, 0.34)";
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 2;
+      ctx.beginPath();
+      ctx.arc(c, c, radius, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(16, 20, 28, 0.54)";
+      ctx.fill();
+      ctx.restore();
+
+      // Ultra-thin frosted white hairline rim
+      ctx.beginPath();
+      ctx.arc(c, c, radius - 1.5, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.38)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Crisp centered white × with rounded stroke caps
+      const arm = size * 0.145;
+      ctx.beginPath();
+      ctx.moveTo(c - arm, c - arm);
+      ctx.lineTo(c + arm, c + arm);
+      ctx.moveTo(c + arm, c - arm);
+      ctx.lineTo(c - arm, c + arm);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.96)";
+      ctx.lineWidth = 7.2;
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      texture.setImageSource(canvas);
+      return texture;
+    }
+  }
+  texture.setPixelBuffer(new Uint8Array(size * size * 4));
+  return texture;
+}
+
+function ensureMarkupViewportShader(): Shader {
+  return Shader.find(MARKUP_VIEWPORT_SHADER_NAME) ?? Shader.create(markupViewportSource);
+}
+
+/** Procedural frozen-viewport markup canvas driven by a single static quad + GPU SDF shader (zero per-frame mesh rebuilds). */
 export class PhotoSurface {
   readonly root: Entity;
-  readonly pin: Entity;
-  readonly material: UnlitMaterial;
+  readonly material: Material;
   readonly texture: Texture2D;
   readonly ink: MeshRenderer;
-  readonly caption: TextRenderer;
+  private readonly viewportRenderer: MeshRenderer;
+  private readonly viewportMesh: ModelMesh;
+  private readonly closeRenderer: MeshRenderer;
+  private readonly closeMaterial: UnlitMaterial;
+  private readonly viewportRect = new Vector4(2, 2, 0, 0);
+  private readonly markupParams = new Vector4(1, 1, 0, 0);
   private readonly inkMaterial: UnlitMaterial;
   private readonly inkMaterials = new Map<string, UnlitMaterial>();
-  private readonly paperMaterials: BaseMaterial[] = [];
   private readonly fading: {
     material: BaseMaterial;
     color: Color;
     alpha: number;
     transparent: boolean;
-    face: RenderFace;
   }[] = [];
+  layoutWidth = 1;
+  layoutHeight = 1;
   private opacity = 1;
-  private triangles: { p: Vector3[]; uv: Vector2[] }[] = [];
+  private rimOpacity = 1;
+  private closeOpacity = 0;
+  private lastMarks: readonly ViewAnnotation[] = [];
   private disposed = false;
   constructor(
     private readonly graphics: PhotoGraphics,
-    paper: GLTFResource,
-    pinResource: GLTFResource,
     readonly image: PhotoImage
   ) {
     const { engine } = graphics;
     const cleanup: (() => void)[] = [];
     try {
-      this.root = new Entity(engine, "Photograph");
+      this.root = graphics.workspaceRoot.createChild("Screen markup viewport");
       cleanup.push(() => this.root.destroy());
-      const model = paper.instantiateSceneRoot();
-      this.root.addChild(model);
-      const face = alignPhotoModel(model);
-      this.material = photoMaterial(engine);
+
+      // Single unit quad uploaded ONCE; rounded corners, hairline border, and glowing hint circle run 100% in GPU SDF shader!
+      this.viewportMesh = roundedViewportMesh(engine, 1, 1, 0);
+      cleanup.push(() => destroyOwnedMesh(this.viewportMesh));
+      this.viewportRenderer = this.root.createChild("Frozen viewport image").addComponent(MeshRenderer);
+      this.material = new Material(engine, ensureMarkupViewportShader());
       cleanup.push(() => this.material.destroy(true));
-      face.setMaterial(this.material);
       this.texture = image.texture;
-      this.material.baseTexture = this.texture;
-      // GLTF instances share materials. Clone the paper only, so fading one photo cannot dim its siblings.
-      for (const renderer of model.getComponentsIncludeChildren(MeshRenderer, [])) {
-        renderer.getMaterials().forEach((source, index) => {
-          if (source === this.material || !(source instanceof BaseMaterial)) return;
-          const material = source.clone() as BaseMaterial;
-          renderer.setMaterial(index, material);
-          this.paperMaterials.push(material);
-        });
-      }
-      const mesh = face.mesh as ModelMesh,
-        positions = mesh.getPositions()!,
-        uv = mesh.getUVs()!,
-        indices = mesh.getIndices()!;
-      const matrix = face.entity.transform.worldMatrix;
-      for (let i = 0; i < indices.length; i += 3) {
-        const p: Vector3[] = [],
-          tex: Vector2[] = [];
-        for (let j = 0; j < 3; j++) {
-          const k = indices[i + j],
-            v = new Vector3();
-          Vector3.transformCoordinate(positions[k], matrix, v);
-          p.push(v);
-          tex.push(new Vector2((uv[k].x - 0.581698) / 0.277616024, (0.347292 - uv[k].y) / 0.300857));
-        }
-        this.triangles.push({ p, uv: tex });
-      }
+      this.material.shaderData.setTexture("material_BaseTexture", this.texture);
+      this.material.shaderData.setVector4("material_ViewportRect", this.viewportRect);
+      this.material.shaderData.setVector4("material_MarkupParams", this.markupParams);
+      this.viewportRenderer.mesh = this.viewportMesh;
+      this.viewportRenderer.setMaterial(this.material);
+
       this.ink = this.root.createChild("Freehand annotation mesh").addComponent(MeshRenderer);
-      this.inkMaterial = flatMaterial(engine, inkColor(DEFAULT_PHOTO_INK));
-      this.inkMaterials.set(DEFAULT_PHOTO_INK, this.inkMaterial);
+      this.inkMaterial = flatMaterial(engine, inkColor(DEFAULT_MARKUP_INK));
+      // Must share Transparent render queue with MarkupViewportV1 so back-to-front Z sorting
+      // always composites freehand strokes (z = +3.5) cleanly above the rounded viewport quad (z = 0).
+      this.inkMaterial.isTransparent = true;
+      this.inkMaterials.set(DEFAULT_MARKUP_INK, this.inkMaterial);
       this.ink.setMaterial(this.inkMaterial);
-      this.caption = graphics.text("Photo watermark", "SEED WORLD", 16, this.root);
-      this.caption.color = new Color(0.06, 0.09, 0.08, 1);
-      for (const material of [...this.paperMaterials, this.material, this.inkMaterial]) {
-        const color = material.shaderData.getColor("material_BaseColor");
-        this.fading.push({
-          material,
-          color,
-          alpha: color.a,
-          transparent: material.isTransparent,
-          face: material.renderFace
-        });
-      }
-      this.caption.entity.transform.setPosition(0, -0.52, 0.03);
-      this.caption.entity.transform.setScale(0.1, 0.1, 0.1);
-      this.pin = new Entity(engine, "Thumbtack: needle into paper");
-      cleanup.push(() => this.pin.destroy());
-      const pivot = this.pin.createChild("Needle tip pivot"),
-        pinModel = pinResource.instantiateSceneRoot();
-      pivot.addChild(pinModel);
-      const bounds = new BoundingBox(
-        new Vector3(Infinity, Infinity, Infinity),
-        new Vector3(-Infinity, -Infinity, -Infinity)
-      );
-      for (const renderer of pinModel.getComponentsIncludeChildren(MeshRenderer, [])) {
-        BoundingBox.merge(bounds, renderer.bounds, bounds);
-        renderer.castShadows = false;
-      }
-      const center = bounds.getCenter(new Vector3()),
-        extent = bounds.getExtent(new Vector3());
-      const scale = 1 / (extent.y * 2);
-      pinModel.transform.setScale(scale, scale, scale);
-      pinModel.transform.setPosition(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
-      pivot.transform.setRotation(78, 12, -8);
-      graphics.workspaceRoot.addChild(this.root);
-      graphics.workspaceRoot.addChild(this.pin);
+      this.ink.entity.transform.setPosition(0, 0, 3.5);
+
+      // Sleek top-left circular × delete button rendered cleanly above viewport & ink (z = +4.5).
+      this.closeRenderer = this.root.createChild("Markup delete button").addComponent(MeshRenderer);
+      this.closeMaterial = new UnlitMaterial(engine);
+      cleanup.push(() => this.closeMaterial.destroy(true));
+      this.closeMaterial.renderFace = RenderFace.Double;
+      this.closeMaterial.isTransparent = true;
+      this.closeMaterial.baseTexture = graphics.closeButtonTexture;
+      this.closeMaterial.baseColor.set(1, 1, 1, 0);
+      this.closeRenderer.mesh = this.viewportMesh;
+      this.closeRenderer.setMaterial(this.closeMaterial);
+      this.closeRenderer.entity.transform.setScale(CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, 1);
+      this.closeRenderer.entity.isActive = false;
+
+      const inkColorRef = this.inkMaterial.shaderData.getColor("material_BaseColor");
+      this.fading.push({
+        material: this.inkMaterial,
+        color: inkColorRef,
+        alpha: inkColorRef.a,
+        transparent: this.inkMaterial.isTransparent
+      });
       graphics.tagWorkspaceEntity(this.root);
-      graphics.tagWorkspaceEntity(this.pin);
-      this.root.isActive = this.pin.isActive = false;
+      this.root.isActive = false;
     } catch (error) {
       for (const dispose of cleanup.reverse()) dispose();
-      for (const material of this.paperMaterials) material.destroy(true);
       for (const material of this.inkMaterials.values()) material.destroy(true);
       throw error;
     }
+  }
+  private closeCenter(): { x: number; y: number } {
+    return {
+      x: -this.layoutWidth * 0.5 + CLOSE_BUTTON_INSET + CLOSE_BUTTON_SIZE * 0.5,
+      y: this.layoutHeight * 0.5 - CLOSE_BUTTON_INSET - CLOSE_BUTTON_SIZE * 0.5
+    };
+  }
+  /** Zero-allocation uniform update for silky 60/120fps animated corner radius & 4-edge inset transitions. */
+  setFrameLayout(width: number, height: number, cornerRadius: number, borderInset: number): void {
+    const w = Math.max(2, width);
+    const h = Math.max(2, height);
+    const r = Math.max(0, cornerRadius);
+    const inset = Math.max(0, borderInset);
+    const sizeChanged = Math.abs(w - this.layoutWidth) > 0.5 || Math.abs(h - this.layoutHeight) > 0.5;
+    this.layoutWidth = w;
+    this.layoutHeight = h;
+    this.viewportRenderer.entity.transform.setScale(w, h, 1);
+    const closePos = this.closeCenter();
+    this.closeRenderer.entity.transform.setPosition(closePos.x, closePos.y, 4.5);
+    this.viewportRect.set(w, h, r, inset);
+    this.material.shaderData.setVector4("material_ViewportRect", this.viewportRect);
+    if (sizeChanged && this.lastMarks.length > 0) {
+      this.paint(this.lastMarks);
+    }
+  }
+  setRimOpacity(value: number): void {
+    this.rimOpacity = Math.max(0, Math.min(1, value));
+    this.markupParams.y = this.rimOpacity;
+    this.material.shaderData.setVector4("material_MarkupParams", this.markupParams);
+  }
+  setCloseOpacity(value: number): void {
+    this.closeOpacity = Math.max(0, Math.min(1, value));
+    const effective = this.closeOpacity * this.opacity;
+    this.closeMaterial.baseColor.a = effective;
+    this.closeRenderer.entity.isActive = effective > 0.01;
+  }
+  isCloseButtonHit(localX: number, localY: number): boolean {
+    if (this.closeOpacity < 0.25) return false;
+    const center = this.closeCenter();
+    return Math.hypot(localX - center.x, localY - center.y) <= CLOSE_BUTTON_HIT_RADIUS;
+  }
+  /** Pure GPU SDF glowing highlight onboarding circle (zero mesh rebuilds, zero jaggies). */
+  setHintLoop(progress: number, alpha: number): void {
+    this.markupParams.z = Math.max(0, Math.min(1, progress));
+    this.markupParams.w = Math.max(0, Math.min(1, alpha));
+    this.material.shaderData.setVector4("material_MarkupParams", this.markupParams);
   }
   setOpacity(value: number): void {
     value = Math.max(0, Math.min(1, value));
     if (this.opacity === value) return;
     this.opacity = value;
-    for (const { material, color, alpha, transparent, face } of this.fading) {
+    this.markupParams.x = value;
+    this.material.shaderData.setVector4("material_MarkupParams", this.markupParams);
+    const closeAlpha = this.closeOpacity * value;
+    this.closeMaterial.baseColor.a = closeAlpha;
+    this.closeRenderer.entity.isActive = closeAlpha > 0.01;
+    for (const { material, color, alpha, transparent } of this.fading) {
       material.isTransparent = transparent || value < 0.999;
-      // Do not reveal the rear printed lettering through the fading front of the paper.
-      if (this.paperMaterials.includes(material)) material.renderFace = value < 0.999 ? RenderFace.Front : face;
       color.a = alpha * value;
     }
-    this.caption.color.a = value;
   }
-  /** UV barycentrics keep ink on the supplied curved paper, rather than on a floating flat overlay. */
+  /** Map image pixels (top-left origin) directly onto the pixel-exact viewport canvas. */
   point(x: number, y: number): Vector3 {
-    const u = Math.max(0, Math.min(1, x / this.image.width)),
-      v = Math.max(0, Math.min(1, y / this.image.height));
-    for (const { p, uv } of this.triangles) {
-      const [a, b, c] = uv,
-        den = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y);
-      const wa = ((b.y - c.y) * (u - c.x) + (c.x - b.x) * (v - c.y)) / den;
-      const wb = ((c.y - a.y) * (u - c.x) + (a.x - c.x) * (v - c.y)) / den,
-        wc = 1 - wa - wb;
-      if (wa >= -0.0001 && wb >= -0.0001 && wc >= -0.0001)
-        return new Vector3(
-          p[0].x * wa + p[1].x * wb + p[2].x * wc,
-          p[0].y * wa + p[1].y * wb + p[2].y * wc,
-          p[0].z * wa + p[1].z * wb + p[2].z * wc + 0.002
-        );
-    }
-    throw new Error("Photo UV is outside the source model surface");
+    const u = Math.max(0, Math.min(1, x / this.image.width));
+    const v = Math.max(0, Math.min(1, y / this.image.height));
+    return new Vector3((u - 0.5) * this.layoutWidth, (0.5 - v) * this.layoutHeight, 0);
   }
-  /** Orthographic screen-to-paper hit test using actual normalized mesh triangles. */
+  /** Exact O(1) hit test in pixel coordinates relative to viewport center. */
   imagePoint(localX: number, localY: number): ViewPoint | undefined {
-    for (const { p, uv } of this.triangles) {
-      const [a, b, c] = p,
-        den = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y);
-      const wa = ((b.y - c.y) * (localX - c.x) + (c.x - b.x) * (localY - c.y)) / den;
-      const wb = ((c.y - a.y) * (localX - c.x) + (a.x - c.x) * (localY - c.y)) / den,
-        wc = 1 - wa - wb;
-      if (wa >= 0 && wb >= 0 && wc >= 0)
-        return {
-          x: (uv[0].x * wa + uv[1].x * wb + uv[2].x * wc) * this.image.width,
-          y: (uv[0].y * wa + uv[1].y * wb + uv[2].y * wc) * this.image.height
-        };
-    }
+    const hw = this.layoutWidth * 0.5;
+    const hh = this.layoutHeight * 0.5;
+    if (Math.abs(localX) > hw || Math.abs(localY) > hh) return undefined;
+    return {
+      x: (localX / this.layoutWidth + 0.5) * this.image.width,
+      y: (0.5 - localY / this.layoutHeight) * this.image.height
+    };
   }
   private materialsFor(marks: readonly ViewAnnotation[]): UnlitMaterial[] {
     return marks.map((mark) => {
       let material = this.inkMaterials.get(mark.color);
       if (!material) {
         material = flatMaterial(this.graphics.engine, inkColor(mark.color));
+        material.isTransparent = true;
         this.inkMaterials.set(mark.color, material);
         this.fading.push({
           material,
           color: material.baseColor,
           alpha: 1,
-          transparent: false,
-          face: material.renderFace
+          transparent: true
         });
       }
       return material;
     });
   }
   paint(marks: readonly ViewAnnotation[]): void {
+    this.lastMarks = marks;
     const old = this.ink.mesh;
     this.ink.mesh = strokeMesh(this.graphics.engine, marks, (x, y) => this.point(x, y), true);
     this.ink.setMaterials(this.materialsFor(marks));
@@ -750,11 +949,11 @@ export class PhotoSurface {
     this.disposed = true;
     const mesh = this.ink.mesh;
     this.root.destroy();
-    this.pin.destroy();
     destroyOwnedMesh(mesh as ModelMesh | undefined);
+    destroyOwnedMesh(this.viewportMesh);
     for (const material of this.inkMaterials.values()) material.destroy(true);
+    this.closeMaterial.destroy(true);
     this.material.destroy(true);
-    for (const material of this.paperMaterials) material.destroy(true);
   }
 }
 

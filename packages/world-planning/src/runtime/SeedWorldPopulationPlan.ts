@@ -113,6 +113,16 @@ export interface SeedWorldPopulationInstance {
   readonly colorVariation: number;
 }
 
+export type SeedWorldDetailOwnerSamples = Uint8Array | Uint16Array | Uint32Array;
+
+export interface SeedWorldDetailHeightRangeField {
+  readonly samples: Float32Array | Uint16Array;
+  readonly minimum: number;
+  readonly maximum: number;
+  readonly encodeScale?: number;
+  readonly lowerMultiplier?: number;
+}
+
 /** One dense Detail channel rendered from the same saved brush operations as the 2D plan. */
 export interface SeedWorldDetailDensityField {
   /** Stable authored Detail prototype. */
@@ -128,12 +138,13 @@ export interface SeedWorldDetailDensityField {
   /** Row-major brush coverage samples; zero means no authored detail. */
   readonly samples: Uint8Array;
   /** Editable region provenance: one-based indices into ids; shared by species using this density. */
-  readonly ownership?: { readonly ids: readonly string[]; readonly samples: Uint32Array };
+  readonly ownership?: { readonly ids: readonly string[]; readonly samples: SeedWorldDetailOwnerSamples };
   /** Optional immutable candidate identity for presentation masks; absent preserves content-seeded generation. */
   readonly candidateSeed?: number;
   /** Optional ecology-produced grass height interval in metres, aligned with samples.
-   * Interleaved [minimum, maximum] pairs. Absent retains the native species parameters. */
-  readonly heightRangeMetres?: { readonly samples: Float32Array; readonly minimum: number; readonly maximum: number };
+   * Interleaved [minimum, maximum] Float32 pairs or compact scaled Uint16 upper heights.
+   * Absent retains the native species parameters. */
+  readonly heightRangeMetres?: SeedWorldDetailHeightRangeField;
   /** Stable hash of all density samples and the density scale. */
   readonly hash: number;
 }
@@ -177,7 +188,10 @@ export function cloneSeedWorldPopulationPreview(preview: SeedWorldPopulationPrev
             ? {
                 heightRangeMetres: {
                   ...field.heightRangeMetres,
-                  samples: new Float32Array(field.heightRangeMetres.samples)
+                  samples:
+                    field.heightRangeMetres.samples instanceof Uint16Array
+                      ? new Uint16Array(field.heightRangeMetres.samples)
+                      : new Float32Array(field.heightRangeMetres.samples)
                 }
               }
             : {})

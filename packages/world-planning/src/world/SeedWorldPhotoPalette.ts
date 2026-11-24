@@ -1,6 +1,9 @@
 /** Opaque sRGB colors only. Brush opacity is intentionally not configurable. */
 export const DEFAULT_PHOTO_INK = "#71e6ff";
-export const PHOTO_TOOLBAR = { width: 52, height: 204, padding: 6, step: 48 } as const;
+/** Default high-contrast vivid red ink for screen markup annotations. */
+export const DEFAULT_MARKUP_INK = "#ff453a";
+export const PHOTO_TOOLBAR = { width: 52, height: 52, padding: 2, step: 48 } as const;
+export const PHOTO_BADGE = { width: 128, height: 36, radius: 18 } as const;
 export const PHOTO_PALETTE = {
   padding: 12,
   cell: 28,
@@ -18,9 +21,9 @@ export function photoDetailLayout(width: number, height: number) {
   const hudScale = Math.max(1, Math.min(width, height)) / 720;
   const referenceWidth = width / hudScale;
   const orbSizeUnits = 148;
-  const orbRightWideUnits = 196;
-  const orbBottomWideUnits = 62;
-  const orbRightNarrowUnits = 32;
+  const orbRightWideUnits = 116;
+  const orbBottomWideUnits = 64;
+  const orbRightNarrowUnits = 64;
   const orbBottomNarrowUnits = 108;
   const orbReservedRightUnits = orbRightWideUnits + orbSizeUnits + 24;
   const useWideHudLayout = referenceWidth - orbReservedRightUnits * 2 >= 260;
@@ -33,8 +36,14 @@ export function photoDetailLayout(width: number, height: number) {
   const orbTop = height - orbBottom - orbSize;
 
   const isWideLandscape = width > height * 1.15;
+  // Clear iPhone Dynamic Island / notch: left edge in landscape, top edge in portrait.
+  const notchSafeMargin = isWideLandscape
+    ? Math.max(margin, Math.min(60, width * 0.068))
+    : Math.max(margin, Math.min(58, height * 0.068));
+  const photoLeft = isWideLandscape ? notchSafeMargin : margin;
+  const photoTop = isWideLandscape ? margin : notchSafeMargin;
   const orbClearanceGap = 14;
-  const availableAboveOrb = Math.max(1, orbTop - margin - orbClearanceGap);
+  const availableAboveOrb = Math.max(1, orbTop - photoTop - orbClearanceGap);
   const scale = Math.min(
     1,
     Math.max(1, width - margin * 2) / (PHOTO_PALETTE.width + gap + PHOTO_TOOLBAR.width),
@@ -44,7 +53,7 @@ export function photoDetailLayout(width: number, height: number) {
   const toolbarWidth = PHOTO_TOOLBAR.width * scale;
   const toolbarHeight = PHOTO_TOOLBAR.height * scale;
   const toolbarX = Math.min(width - margin - toolbarWidth, Math.max(margin, orbCenterX - toolbarWidth * 0.5));
-  const toolbarY = Math.max(margin, margin + (availableAboveOrb - toolbarHeight) * 0.5);
+  const toolbarY = Math.max(photoTop, photoTop + (availableAboveOrb - toolbarHeight) * 0.5);
   const toolbar = {
     x: toolbarX,
     y: toolbarY,
@@ -52,9 +61,9 @@ export function photoDetailLayout(width: number, height: number) {
     height: toolbarHeight
   };
   const palette = {
-    x: Math.max(margin, toolbar.x - (gap + PHOTO_PALETTE.width) * scale),
+    x: Math.max(photoLeft, toolbar.x - (gap + PHOTO_PALETTE.width) * scale),
     y: Math.max(
-      margin,
+      photoTop,
       Math.min(
         height - margin - PHOTO_PALETTE.height * scale,
         toolbar.y + (toolbar.height - PHOTO_PALETTE.height * scale) * 0.5
@@ -63,18 +72,18 @@ export function photoDetailLayout(width: number, height: number) {
     width: PHOTO_PALETTE.width * scale,
     height: PHOTO_PALETTE.height * scale
   };
-  const photoRightLimit = isWideLandscape ? Math.min(toolbar.x, orbLeft) - gap : toolbar.x - gap;
+  const photoRightLimit = isWideLandscape ? orbLeft - gap : width - margin;
   const photoAreaHeight = isWideLandscape
-    ? Math.max(1, height - margin * 2)
-    : Math.max(1, orbTop - margin - orbClearanceGap);
+    ? Math.max(1, height - photoTop - margin)
+    : Math.max(1, orbTop - photoTop - orbClearanceGap);
   return {
     scale,
     toolbar,
     palette,
     photo: {
-      x: margin,
-      y: margin,
-      width: Math.max(1, photoRightLimit - margin),
+      x: photoLeft,
+      y: photoTop,
+      width: Math.max(1, photoRightLimit - photoLeft),
       height: photoAreaHeight
     }
   };

@@ -3,6 +3,7 @@ import {
   BlendFactor,
   BlendMode,
   BoundingBox,
+  BoxColliderShape,
   BoxShape,
   Buffer,
   BufferBindFlag,
@@ -34,6 +35,7 @@ import {
   Script,
   Shader,
   SphereShape,
+  StaticCollider,
   UnlitMaterial,
   PrimitiveMesh,
   Texture2D,
@@ -66,7 +68,12 @@ import { rockFormationGround } from "../../integrations/terrain/rock-formation/P
 import { compositionSubjectTerraceBox } from "../SpatialCompositionGeometry";
 import { spatialCompositionParameters } from "../SpatialCompositionParameters";
 import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "../WorldTemplateCatalog";
-import { WORLD_TEMPLATE_ART, type WorldTemplateArtDirection } from "../WorldTemplateArtDirection";
+import {
+  templateRockCollisionPolicy,
+  WORLD_TEMPLATE_ART,
+  type WorldTemplateArtDirection
+} from "../WorldTemplateArtDirection";
+import { resolveRockCollision } from "../RockCollisionPolicy";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { resolveWorldTemplateScene, type ResolvedWorldTemplateScene } from "../WorldTemplateView";
 import { fitTemplateAsset, stretchTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
@@ -197,6 +204,15 @@ export class WorldTemplateRuntime {
   private mesh?: ModelMesh;
   private material?: UnlitMaterial;
   private readonly models: { id: string; url: string; entity: Entity }[] = [];
+  /** Resolved GLB model collision decisions (explicit switch + fitted GLB bounding box vs template policy). */
+  readonly modelColliders: {
+    id: string;
+    entity: Entity;
+    collision: boolean;
+    size: [number, number, number];
+    center: [number, number, number];
+    yawRadians: number;
+  }[] = [];
   private readonly groundedNodes = new Map<string, Entity>();
   private readonly leafMaterials = new Map<string, Material>();
   private readonly assetMaterials = new Map<string, PBRMaterial | UnlitMaterial>();
@@ -446,6 +462,49 @@ export class WorldTemplateRuntime {
             fit.offset[1] / node.scale[1],
             fit.offset[2] / node.scale[2]
           );
+          if (template.rockSource === "authored" || node.collision === true) {
+            const glbWidth = (bounds.max.x - bounds.min.x) * scale[0];
+            const glbHeight = (bounds.max.y - bounds.min.y) * scale[1];
+            const glbDepth = (bounds.max.z - bounds.min.z) * scale[2];
+            const collisionPolicy = templateRockCollisionPolicy(template.id);
+            const shouldCollide = resolveRockCollision(
+              { width: glbWidth, depth: glbDepth, height: glbHeight },
+              collisionPolicy,
+              node.collision
+            );
+            const localCenterX = ((bounds.min.x + bounds.max.x) / 2) * scale[0] + fit.offset[0];
+            const localCenterY = ((bounds.min.y + bounds.max.y) / 2) * scale[1] + fit.offset[1];
+            const localCenterZ = ((bounds.min.z + bounds.max.z) / 2) * scale[2] + fit.offset[2];
+            const yawRadians = (node.rotation[1] * Math.PI) / 180;
+            const cy = Math.cos(yawRadians),
+              sy = Math.sin(yawRadians);
+            this.modelColliders.push({
+              id: node.id,
+              entity,
+              collision: shouldCollide,
+              size: [glbWidth, glbHeight, glbDepth],
+              center: [
+                position[0] + localCenterX * cy + localCenterZ * sy,
+                position[1] + localCenterY,
+                position[2] - localCenterX * sy + localCenterZ * cy
+              ],
+              yawRadians
+            });
+            if (
+              shouldCollide &&
+              (normalized.engine as unknown as { _physicsInitialized?: boolean })._physicsInitialized
+            ) {
+              const collider = normalized.addComponent(StaticCollider);
+              const shape = new BoxColliderShape();
+              shape.size.set(bounds.max.x - bounds.min.x, bounds.max.y - bounds.min.y, bounds.max.z - bounds.min.z);
+              shape.position.set(
+                (bounds.min.x + bounds.max.x) / 2,
+                (bounds.min.y + bounds.max.y) / 2,
+                (bounds.min.z + bounds.max.z) / 2
+              );
+              collider.addShape(shape);
+            }
+          }
           if (camera && node.assetLod) {
             modelLods ??= this.root.addComponent(TemplateModelLods);
             modelLods.track(levels, bounds, camera, node.assetLod.screenRelativeHeights, chunkBounds);

@@ -3,7 +3,7 @@ import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import { rockObbId } from "./Authoring.ts";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
 
-/** Rendered triangles excluded by an authored collision flag remain visible. */
+/** Rendered triangles excluded by an authored collision switch remain visible. */
 export function disabledRockCollisionOwners(plan: IslandPlan): ReadonlySet<string> {
   const disabled = new Set<string>();
   for (const rock of plan.rocks)
@@ -48,7 +48,11 @@ export function createRockCollider(
   formation: RockFormationMesh,
   disabled: ReadonlySet<string>
 ) {
-  if (formation.owners.length && formation.owners.every((owner) => disabled.has(owner))) return undefined;
+  if (
+    formation.owners.length &&
+    (formation.variant ? disabled.has(formation.owners[0]) : formation.owners.every((owner) => disabled.has(owner)))
+  )
+    return undefined;
   const indices = rockCollisionIndices(formation, disabled);
   if (!indices.length) return undefined;
   const mesh = new ModelMesh(engine, `Rock collision · ${formation.id}`);

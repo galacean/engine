@@ -383,6 +383,34 @@ export class SeedWorldPicker {
     );
   }
 
+  /** Fast color-only capture (1 frame, zero pick shader compile / 2nd scene pass) for instant UI opening. */
+  captureColorOnly(
+    signal?: AbortSignal,
+    budget?: ImageResourceBudget
+  ): Promise<{ image: GpuPhoto; metadata: ViewCaptureMetadata; width: number; height: number }> {
+    this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
+    return this.frameCapture.request(
+      (image) => ({
+        image,
+        metadata: this.captureViewMetadata(),
+        width: image.width,
+        height: image.height
+      }),
+      signal,
+      budget
+    );
+  }
+
+  /** Populate the pixel-aligned ID + depth texture asynchronously while the world camera remains frozen. */
+  captureIdentityBuffer(
+    visit: SeedWorldPickSource,
+    resolveRef: (batch: SeedWorldPickBatch) => ViewRef,
+    image: GpuPhoto,
+    budget?: ImageResourceBudget
+  ): ViewFrame {
+    return this.captureIdentity(visit, resolveRef, image, budget);
+  }
+
   /** Called synchronously in the captured color frame, before asynchronous image encoding. */
   private captureViewMetadata(): ViewCaptureMetadata {
     const { worldPosition: p, worldForward: f } = this.camera.entity.transform;

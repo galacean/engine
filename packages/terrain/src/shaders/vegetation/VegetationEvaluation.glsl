@@ -42,7 +42,12 @@ vec4 material_SnowResponse;
       nearColor = mix(nearColor, varyings.assetAssemblyColor, varyings.sharedGrassColorOverrideMask);
       farColor = mix(farColor, varyings.assetAssemblyColor, varyings.sharedGrassColorOverrideMask);
     #endif
-    vec3 groundColor = terrainProjectGroundColor(ground, groundPositionWS);
+    vec3 groundColor = terrainProjectGroundColorGrad(
+      ground,
+      groundPositionWS,
+      dFdx(groundPositionWS.xz),
+      dFdy(groundPositionWS.xz)
+    );
     groundColor = terrainProjectBlendFarmGroundColor(groundColor, groundPositionWS.xz);
     vec3 groundNormal = terrainProjectSharedGrassGroundNormal(varyings.sharedGrassRootTip.xz);
     vec3 carrierNormal = vec3(0.0, 1.0, 0.0);

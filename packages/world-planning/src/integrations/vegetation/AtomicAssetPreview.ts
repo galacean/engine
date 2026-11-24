@@ -12,6 +12,7 @@ import {
 } from "@galacean/engine";
 import {
   createTerrainLodRendererSetScratch,
+  LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO,
   TerrainLodGroupRuntime,
   type TerrainLodGroupInstance,
   type TerrainLodRendererSetScratch,
@@ -78,6 +79,7 @@ interface AtomicInventorySource {
 interface AtomicPreviewLodPolicy {
   readonly screenRelativeTransitionHeights?: readonly number[];
   readonly terminalDistanceMetres?: number;
+  readonly hysteresisRatio?: number;
 }
 
 type InventoryEntry =
@@ -644,7 +646,8 @@ function createPreviewLodBinding(
         screenRelativeTransitionHeight
       }))
     },
-    LOD_CROSS_FADE_SECONDS
+    LOD_CROSS_FADE_SECONDS,
+    policy.hysteresisRatio
   );
   return {
     id,
@@ -793,7 +796,8 @@ function atomEntry(
   group: string,
   lodPolicy?: AtomicPreviewLodPolicy
 ): InventoryEntry {
-  return { kind: "atom", id, label, source, lodPolicy, group };
+  const policy = group === "rock" ? { ...lodPolicy, hysteresisRatio: LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO } : lodPolicy;
+  return { kind: "atom", id, label, source, lodPolicy: policy, group };
 }
 
 function seedWorldSurfaceDetailLodPolicy(source: AtomicInventorySource): AtomicPreviewLodPolicy {

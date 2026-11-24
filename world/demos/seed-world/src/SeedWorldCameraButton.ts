@@ -1,14 +1,11 @@
 import { HUD_REFERENCE_SHORT_SIDE, resolveSeedWorldHudScale } from "./SeedWorldHudLayout.ts";
 import {
   Camera,
-  CameraClearFlags,
   Entity,
-  Layer,
   Script,
   Sprite,
   Texture2D,
   TextureFormat,
-  Vector3,
   type PointerEventData
 } from "@galacean/engine";
 import {
@@ -20,28 +17,28 @@ import {
   UITransform,
   VerticalAlignmentMode
 } from "@galacean/engine-ui";
-import { SeedWorldLiquidGlassUiMaterial } from "@galacean/engine-modify/rendering/LiquidGlassPostProcessPass";
 
-// Upper-right VisionOS-style spatial frosted-glass button (720-unit reference short side):
-// clean symmetric rounded capsule with undistorted 3D perspective (narrow FOV avoids corner shear).
-const PILL_WIDTH = 66;
-const PILL_HEIGHT = 66;
-const BUTTON_RIGHT = 28;
-const BUTTON_TOP = 90;
-const PERSPECTIVE_FOV_DEG = 28;
-const CAMERA_Z = 9.5;
-const CAMERA_BUTTON_3D_LAYER = Layer.Layer26;
+// Borderless animated Pen + live-drawing S-curve stroke UI (Pinterest Tile 3 motion iconography):
+// docked directly ABOVE the Voice Orb, horizontally centered on the orb's vertical axis in both wide & narrow HUD layouts.
+const ICON_SIZE = 112;
+const ORB_SIZE = 148;
+const ORB_RIGHT_WIDE = 116;
+const ORB_BOTTOM_WIDE = 64;
+const ORB_RIGHT_NARROW = 64;
+const ORB_BOTTOM_NARROW = 108;
+const ORB_RESERVED_RIGHT = ORB_RIGHT_WIDE + ORB_SIZE + 24;
+const PANEL_MIN_WIDTH = 260;
+const BUTTON_GAP_WIDE = 24;
+const BUTTON_GAP_NARROW = 20;
+const BUTTON_RIGHT_WIDE = ORB_RIGHT_WIDE + (ORB_SIZE - ICON_SIZE) * 0.5;
+const BUTTON_BOTTOM_WIDE = ORB_BOTTOM_WIDE + ORB_SIZE + BUTTON_GAP_WIDE;
+const BUTTON_RIGHT_NARROW = ORB_RIGHT_NARROW + (ORB_SIZE - ICON_SIZE) * 0.5;
+const BUTTON_BOTTOM_NARROW = ORB_BOTTOM_NARROW + ORB_SIZE + BUTTON_GAP_NARROW;
+const CANVAS_SCALE = 3;
+const CYCLE_SECONDS = 3.4;
+const FRAME_INTERVAL = 1 / 30;
 
-function setLayerRecursive(entity: Entity, layer: Layer): void {
-  const stack: Entity[] = [entity];
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-    current.layer = layer;
-    for (let i = 0; i < current.children.length; i++) stack.push(current.children[i]);
-  }
-}
-
-class CameraButtonInput extends Script {
+class MarkupButtonInput extends Script {
   update?: (deltaTime: number) => void;
   activate?: () => void;
   pressed?: (value: boolean) => void;
@@ -52,280 +49,235 @@ class CameraButtonInput extends Script {
   override onPointerClick(_event: PointerEventData): void { this.activate?.(); }
 }
 
-function makeCanvasTexture(engine: Camera["engine"], canvas: HTMLCanvasElement): { texture: Texture2D; sprite: Sprite } {
-  const texture = new Texture2D(engine, canvas.width, canvas.height, TextureFormat.R8G8B8A8_UNorm, false);
-  texture.setImageSource(canvas);
-  return { texture, sprite: new Sprite(engine, texture) };
+function easeInOutCubic(t: number): number {
+  const x = Math.max(0, Math.min(1, t));
+  return x < 0.5 ? 4 * x * x * x : 1 - ((-2 * x + 2) ** 3) / 2;
 }
 
-/** High-DPI VisionOS frosted pill border + specular sheen + subtle dark glass contrast tint. */
-function createGlassShellCanvas(width: number, height: number, scale: number): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
-  canvas.width = width * scale;
-  canvas.height = height * scale;
-  const ctx = canvas.getContext("2d")!;
-  ctx.scale(scale, scale);
-  const pad = 3;
-  const w = width - pad * 2;
-  const h = height - pad * 2;
-  const r = h * 0.5;
+function cubicBezier(p0: number, p1: number, p2: number, p3: number, t: number): number {
+  const u = 1 - t;
+  return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
+}
 
-  // Subtle dark-cool translucent tint so white glyph & specular rim pop crisply even against bright sky
-  const fillGrad = ctx.createLinearGradient(pad, pad, pad + w, pad + h);
-  fillGrad.addColorStop(0, "rgba(255, 255, 255, 0.22)");
-  fillGrad.addColorStop(0.45, "rgba(200, 220, 240, 0.10)");
-  fillGrad.addColorStop(1, "rgba(22, 32, 48, 0.24)");
-  ctx.fillStyle = fillGrad;
-  ctx.beginPath();
-  ctx.roundRect(pad, pad, w, h, r);
-  ctx.fill();
+/** Sample the organic 2-segment S-curve stroke in local icon space (0..ICON_SIZE). */
+function sampleScribblePoint(t: number, cx: number, cy: number): [number, number] {
+  const clamped = Math.max(0, Math.min(1, t));
+  if (clamped <= 0.5) {
+    const s = clamped * 2;
+    return [
+      cubicBezier(cx - 38, cx - 38, cx - 21, cx - 21, s),
+      cubicBezier(cy + 14, cy - 8, cy - 8, cy + 7, s)
+    ];
+  }
+  const s = (clamped - 0.5) * 2;
+  return [
+    cubicBezier(cx - 21, cx - 21, cx - 6, cx - 2, s),
+    cubicBezier(cy + 7, cy + 24, cy + 24, cy + 12, s)
+  ];
+}
 
-  // Top-left inner specular glass sheen strictly clipped inside the circle/capsule path
+/** Draw one frame of the borderless animated Pen + S-curve stroke icon. */
+function renderAnimatedMarkupIcon(ctx: CanvasRenderingContext2D, phaseSeconds: number): void {
+  const size = ICON_SIZE;
+  ctx.setTransform(CANVAS_SCALE, 0, 0, CANVAS_SCALE, 0, 0);
+  ctx.clearRect(0, 0, size, size);
+
+  const cx = size * 0.5;
+  const cy = size * 0.54;
+  const t = ((phaseSeconds % CYCLE_SECONDS) + CYCLE_SECONDS) % CYCLE_SECONDS;
+
+  // Motion phases:
+  // 0.00 - 0.45: calm resting pen
+  // 0.45 - 0.80: pen glides cleanly to start of stroke
+  // 0.80 - 1.75: pen traces the luminous S-curve stroke (0 -> 1)
+  // 1.75 - 2.45: hold full pen + scribble silhouette
+  // 2.45 - 3.05: stroke smoothly sweeps into pen tip (start 0 -> 1) while pen returns to rest
+  // 3.05 - 3.40: calm pause
+  const restTip: [number, number] = [cx - 2, cy + 12];
+  const startTip = sampleScribblePoint(0, cx, cy);
+
+  let drawStart = 0;
+  let drawEnd = 0;
+  let tipX = restTip[0];
+  let tipY = restTip[1];
+  let extraTiltDeg = 0;
+  let penLift = 0;
+
+  if (t < 0.45) {
+    tipX = restTip[0];
+    tipY = restTip[1];
+  } else if (t < 0.8) {
+    const k = easeInOutCubic((t - 0.45) / 0.35);
+    tipX = restTip[0] + (startTip[0] - restTip[0]) * k;
+    tipY = restTip[1] + (startTip[1] - restTip[1]) * k - Math.sin(k * Math.PI) * 8.0;
+    extraTiltDeg = -6 * k;
+    penLift = Math.sin(k * Math.PI) * 2.2;
+  } else if (t < 1.75) {
+    const k = easeInOutCubic((t - 0.8) / 0.95);
+    drawStart = 0;
+    drawEnd = k;
+    const pt = sampleScribblePoint(k, cx, cy);
+    const ptAhead = sampleScribblePoint(Math.min(1, k + 0.03), cx, cy);
+    tipX = pt[0];
+    tipY = pt[1];
+    const dy = ptAhead[1] - pt[1];
+    extraTiltDeg = -6 + k * 6 + Math.max(-5, Math.min(5, dy * 1.1));
+  } else if (t < 2.45) {
+    drawStart = 0;
+    drawEnd = 1;
+    tipX = restTip[0];
+    tipY = restTip[1];
+  } else if (t < 3.05) {
+    const k = easeInOutCubic((t - 2.45) / 0.6);
+    drawStart = k;
+    drawEnd = 1;
+    tipX = restTip[0];
+    tipY = restTip[1];
+  }
+
+  // 1. Draw the live S-curve stroke segment [drawStart .. drawEnd]
+  if (drawEnd - drawStart > 0.006) {
+    const steps = 44;
+    const span = drawEnd - drawStart;
+
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.shadowColor = "rgba(8, 16, 30, 0.58)";
+    ctx.shadowBlur = 11;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2.6;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 5.4;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const [px, py] = sampleScribblePoint(drawStart + (span * i) / steps, cx, cy);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 2. Draw the bold minimalist tilted stylus/pen anchored directly at its nib (tipX, tipY)
   ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(pad + 1.5, pad + 1.5, w - 3, h - 3, Math.max(0, r - 1.5));
-  ctx.clip();
-  const sheenGrad = ctx.createLinearGradient(pad, pad, pad, pad + h * 0.55);
-  sheenGrad.addColorStop(0, "rgba(255, 255, 255, 0.34)");
-  sheenGrad.addColorStop(1, "rgba(255, 255, 255, 0.0)");
-  ctx.fillStyle = sheenGrad;
-  ctx.fillRect(pad, pad, w, h * 0.55);
-  ctx.restore();
-
-  // Signature VisionOS crisp directional specular rim (brightest top-left, soft bottom-right)
-  const rimGrad = ctx.createLinearGradient(pad, pad, pad + w, pad + h);
-  rimGrad.addColorStop(0, "rgba(255, 255, 255, 0.96)");
-  rimGrad.addColorStop(0.35, "rgba(235, 248, 255, 0.68)");
-  rimGrad.addColorStop(0.75, "rgba(210, 232, 255, 0.42)");
-  rimGrad.addColorStop(1, "rgba(255, 255, 255, 0.78)");
-  ctx.strokeStyle = rimGrad;
-  ctx.lineWidth = 1.9;
-  ctx.beginPath();
-  ctx.roundRect(pad + 0.9, pad + 0.9, w - 1.8, h - 1.8, r);
-  ctx.stroke();
-
-  return canvas;
-}
-
-/** Back 3D slab edge rim to create tangible glass-pane thickness under perspective yaw. */
-function createGlassDepthEdgeCanvas(width: number, height: number, scale: number): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
-  canvas.width = width * scale;
-  canvas.height = height * scale;
-  const ctx = canvas.getContext("2d")!;
-  ctx.scale(scale, scale);
-  const pad = 3;
-  const w = width - pad * 2;
-  const h = height - pad * 2;
-  const r = h * 0.5;
-
-  // Soft translucent depth shadow + glass back bevel
-  ctx.fillStyle = "rgba(12, 20, 34, 0.24)";
-  ctx.beginPath();
-  ctx.roundRect(pad, pad, w, h, r);
-  ctx.fill();
-
-  ctx.strokeStyle = "rgba(210, 236, 255, 0.48)";
-  ctx.lineWidth = 2.0;
-  ctx.beginPath();
-  ctx.roundRect(pad + 0.9, pad + 0.9, w - 1.8, h - 1.8, r);
-  ctx.stroke();
-
-  return canvas;
-}
-
-/** Crisp floating pure-white camera glyph (zero text) rendered on a separate forward Z-layer. */
-function createForegroundContentCanvas(width: number, height: number, scale: number): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
-  canvas.width = width * scale;
-  canvas.height = height * scale;
-  const ctx = canvas.getContext("2d")!;
-  ctx.scale(scale, scale);
-
-  // Subtle depth shadow cast onto the frosted glass behind
-  ctx.shadowColor = "rgba(10, 20, 36, 0.42)";
-  ctx.shadowBlur = 6;
+  ctx.translate(tipX, tipY - penLift);
+  ctx.rotate(((36 + extraTiltDeg) * Math.PI) / 180);
+  ctx.shadowColor = "rgba(8, 16, 30, 0.62)";
+  ctx.shadowBlur = 12;
   ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 1.8;
+  ctx.shadowOffsetY = 2.8;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
 
-  // Centered crisp minimalist camera icon
-  const cw = 32;
-  const ch = 22.5;
-  const ix = (width - cw) * 0.5;
-  const iy = (height - ch) * 0.5 - 1;
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.roundRect(ix, iy + 4.5, cw, ch - 2, 5.2);
-  ctx.roundRect(ix + 8.5, iy + 0.8, 15, 7.5, 3);
-  ctx.fill();
+  const halfW = 7.4;
+  const collarY = -13.5;
+  const topY = -50.0;
 
-  // Hollow circular lens cutout + subtle glossy center dot
-  ctx.save();
-  ctx.shadowColor = "transparent";
-  ctx.globalCompositeOperation = "destination-out";
+  // Outline barrel + rounded cap + crisp tapered nib ending exactly at (0, 0)
+  ctx.lineWidth = 4.8;
   ctx.beginPath();
-  ctx.arc(width * 0.5, iy + 14.8, 6.6, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-halfW, collarY);
+  ctx.lineTo(-halfW, topY + 5.0);
+  ctx.arcTo(-halfW, topY, 0, topY, 5.0);
+  ctx.arcTo(halfW, topY, halfW, topY + 5.0, 5.0);
+  ctx.lineTo(halfW, collarY);
+  ctx.closePath();
+  ctx.stroke();
+
+  // Subtle collar divider line
+  ctx.lineWidth = 3.6;
+  ctx.beginPath();
+  ctx.moveTo(-halfW + 1.0, collarY - 0.5);
+  ctx.lineTo(halfW - 1.0, collarY - 0.5);
+  ctx.stroke();
   ctx.restore();
-
-  ctx.fillStyle = "rgba(225, 248, 255, 0.96)";
-  ctx.beginPath();
-  ctx.arc(width * 0.5, iy + 14.8, 2.8, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Tiny flash accent dot on top-right of camera body
-  ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
-  ctx.beginPath();
-  ctx.arc(ix + cw - 5.2, iy + 8.6, 1.35, 0, Math.PI * 2);
-  ctx.fill();
-
-  return canvas;
 }
 
 /**
- * VisionOS-inspired 3D Spatial Glass Capsule UI button:
- * bold perspective foreshortening, multi-layer 3D glass thickness, live frosted refraction,
- * crisp specular rim, floating foreground camera icon + label, and real camera-turn parallax.
+ * Borderless animated Screen-Markup entry button (Pinterest Tile 3 motion iconography):
+ * pure floating minimalist stylus + live S-curve stroke animation, zero circular backdrop.
  */
 export class SeedWorldCameraButton {
-  private readonly worldCamera: Camera;
   private readonly root: Entity;
-  private readonly camEntity: Entity;
-  private readonly rig3d: Entity;
-  private readonly bodyGlass: SeedWorldLiquidGlassUiMaterial;
-  private readonly textures: Texture2D[] = [];
-  private readonly sprites: Sprite[] = [];
-  private readonly worldForward = new Vector3();
-  private readonly prevWorldForward = new Vector3();
-  private hasPrevForward = false;
-  private parallaxYaw = 0;
-  private parallaxPitch = 0;
+  private readonly texture: Texture2D;
+  private readonly sprite: Sprite;
+  private readonly iconCanvas: HTMLCanvasElement;
+  private readonly iconCtx: CanvasRenderingContext2D;
   private pressBlend = 0;
   private isPressed = false;
-  private time = 0;
+  private animTime = 0;
+  private frameAccumulator = FRAME_INTERVAL;
 
   constructor(camera: Camera, control: HTMLButtonElement) {
     const engine = camera.engine;
     const scene = camera.scene!;
-    this.worldCamera = camera;
-    camera.cullingMask = (camera.cullingMask & ~CAMERA_BUTTON_3D_LAYER) as Layer;
 
-    // 1. ScreenSpaceOverlay hit target synced to the upper-right capsule bounds.
-    this.root = scene.createRootEntity("Screenshot button UI");
-    const hitCanvas = this.root.addComponent(UICanvas);
-    hitCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
-    hitCanvas.camera = camera;
-    hitCanvas.referenceResolution.set(HUD_REFERENCE_SHORT_SIDE, HUD_REFERENCE_SHORT_SIDE);
-    hitCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.ExpandAdaptation;
-    hitCanvas.sortOrder = 32_100;
+    this.root = scene.createRootEntity("Screen markup button UI");
+    const uiCanvas = this.root.addComponent(UICanvas);
+    uiCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+    uiCanvas.camera = camera;
+    uiCanvas.referenceResolution.set(HUD_REFERENCE_SHORT_SIDE, HUD_REFERENCE_SHORT_SIDE);
+    uiCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.ExpandAdaptation;
+    uiCanvas.sortOrder = 32_100;
 
-    const target = this.root.createChild("Camera capture");
-    const hit = target.addComponent(Image);
-    hit.color.a = 0;
-    const hitTransform = target.transform as UITransform;
-    hitTransform.size.set(PILL_WIDTH, PILL_HEIGHT);
-    hitTransform.horizontalAlignment = HorizontalAlignmentMode.Right;
-    hitTransform.verticalAlignment = VerticalAlignmentMode.Top;
-    hitTransform.alignRight = BUTTON_RIGHT;
-    hitTransform.alignTop = BUTTON_TOP;
+    this.iconCanvas = document.createElement("canvas");
+    this.iconCanvas.width = ICON_SIZE * CANVAS_SCALE;
+    this.iconCanvas.height = ICON_SIZE * CANVAS_SCALE;
+    this.iconCtx = this.iconCanvas.getContext("2d")!;
+    renderAnimatedMarkupIcon(this.iconCtx, 0);
 
-    // 2. Generate crisp 4x Retina textures for the frosted glass pill, 3D slab edge, and floating icon.
-    const white = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
-    white.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
-    const whiteSprite = new Sprite(engine, white);
-    this.textures.push(white);
-    this.sprites.push(whiteSprite);
+    this.texture = new Texture2D(engine, this.iconCanvas.width, this.iconCanvas.height, TextureFormat.R8G8B8A8_UNorm, false);
+    this.texture.setImageSource(this.iconCanvas);
+    this.sprite = new Sprite(engine, this.texture);
 
-    const depthAsset = makeCanvasTexture(engine, createGlassDepthEdgeCanvas(PILL_WIDTH, PILL_HEIGHT, 4));
-    const shellAsset = makeCanvasTexture(engine, createGlassShellCanvas(PILL_WIDTH, PILL_HEIGHT, 4));
-    const fgAsset = makeCanvasTexture(engine, createForegroundContentCanvas(PILL_WIDTH, PILL_HEIGHT, 4));
-    this.textures.push(depthAsset.texture, shellAsset.texture, fgAsset.texture);
-    this.sprites.push(depthAsset.sprite, shellAsset.sprite, fgAsset.sprite);
+    const target = this.root.createChild("Screen markup trigger");
+    const iconImage = target.addComponent(Image);
+    iconImage.sprite = this.sprite;
+    iconImage.color.set(1, 1, 1, 1);
 
-    // 3. Layer-isolated 3D perspective camera in the single main Scene (zero extra Scene).
-    const camEntity = (this.camEntity = scene.createRootEntity("Camera 3D UI view"));
-    camEntity.layer = CAMERA_BUTTON_3D_LAYER;
-    const uiCam = camEntity.addComponent(Camera);
-    uiCam.isOrthographic = false;
-    uiCam.fieldOfView = PERSPECTIVE_FOV_DEG;
-    uiCam.nearClipPlane = 0.1;
-    uiCam.farClipPlane = 30;
-    uiCam.priority = 10;
-    uiCam.cullingMask = CAMERA_BUTTON_3D_LAYER;
-    uiCam.clearFlags = CameraClearFlags.Depth;
-    uiCam.enableHDR = false;
-    uiCam.enablePostProcess = false;
-    camEntity.transform.setPosition(0, 0, CAMERA_Z);
-    camEntity.transform.lookAt(new Vector3());
+    const iconTransform = target.transform as UITransform;
+    iconTransform.size.set(ICON_SIZE, ICON_SIZE);
+    iconTransform.horizontalAlignment = HorizontalAlignmentMode.Right;
+    iconTransform.verticalAlignment = VerticalAlignmentMode.Bottom;
+    iconTransform.alignRight = BUTTON_RIGHT_WIDE;
+    iconTransform.alignBottom = BUTTON_BOTTOM_WIDE;
 
-    this.rig3d = scene.createRootEntity("Spatial 3D glass capsule");
-    const canvas3d = this.rig3d.addComponent(UICanvas);
-    canvas3d.renderMode = CanvasRenderMode.WorldSpace;
-    canvas3d.camera = uiCam;
-    (this.rig3d.transform as UITransform).size.set(PILL_WIDTH, PILL_HEIGHT);
-
-    // Layer 1 (z = -6): Physical 3D glass slab back bevel / depth edge
-    const depthEntity = this.rig3d.createChild("3D glass depth bevel");
-    const depthImage = depthEntity.addComponent(Image);
-    depthImage.sprite = depthAsset.sprite;
-    depthImage.raycastEnabled = false;
-    (depthEntity.transform as UITransform).size.set(PILL_WIDTH, PILL_HEIGHT);
-    depthEntity.transform.setPosition(0, 0, -6.5);
-
-    // Layer 2 (z = 0): Real-time frosted liquid-glass pill refracting the live 3D world behind it
-    const glassEntity = this.rig3d.createChild("3D frosted glass core");
-    const glassImage = glassEntity.addComponent(Image);
-    glassImage.sprite = whiteSprite;
-    glassImage.raycastEnabled = false;
-    (glassEntity.transform as UITransform).size.set(PILL_WIDTH - 6, PILL_HEIGHT - 6);
-    glassEntity.transform.setPosition(0, 0, 0);
-    this.bodyGlass = new SeedWorldLiquidGlassUiMaterial(camera);
-    this.bodyGlass.setFullLensRefraction(1);
-    this.bodyGlass.setRoughness(0.56);
-    this.bodyGlass.setFrostScale(0.26);
-    this.bodyGlass.setLensIor(1.12);
-    this.bodyGlass.setLensThickness(0.65);
-    this.bodyGlass.setChromaticAberration(0.28);
-    this.bodyGlass.setLensFresnel(0.85);
-    this.bodyGlass.setWhiteTint(0.06);
-    this.bodyGlass.setOpacity(0.92);
-    glassImage.setMaterial(this.bodyGlass.material);
-
-    // Layer 3 (z = +1.2): VisionOS crisp directional white specular rim + top glass sheen
-    const shellEntity = this.rig3d.createChild("3D glass specular rim");
-    const shellImage = shellEntity.addComponent(Image);
-    shellImage.sprite = shellAsset.sprite;
-    shellImage.raycastEnabled = false;
-    (shellEntity.transform as UITransform).size.set(PILL_WIDTH, PILL_HEIGHT);
-    shellEntity.transform.setPosition(0, 0, 1.2);
-
-    // Layer 4 (z = +6.5): Floating pure-white camera icon + "拍照" with tangible 3D parallax separation
-    const fgEntity = this.rig3d.createChild("3D floating camera glyph");
-    const fgImage = fgEntity.addComponent(Image);
-    fgImage.sprite = fgAsset.sprite;
-    fgImage.raycastEnabled = false;
-    (fgEntity.transform as UITransform).size.set(PILL_WIDTH, PILL_HEIGHT);
-    fgEntity.transform.setPosition(0, 0, 6.5);
-
-    setLayerRecursive(this.rig3d, CAMERA_BUTTON_3D_LAYER);
-
-    const input = target.addComponent(CameraButtonInput);
+    const input = target.addComponent(MarkupButtonInput);
     input.activate = () => { if (!control.disabled && !control.hidden) control.click(); };
     input.pressed = value => {
       this.isPressed = value && !control.disabled;
     };
 
     const webCanvas = (engine.canvas as { _webCanvas?: HTMLCanvasElement })._webCanvas;
-    const frustumHalfHeight = Math.tan((PERSPECTIVE_FOV_DEG * Math.PI) / 360) * CAMERA_Z;
+    let lastWidth = -1;
+    let lastHeight = -1;
+    let baseAlignRight = BUTTON_RIGHT_WIDE;
 
-    this.root.addComponent(CameraButtonInput).update = (deltaTime: number) => {
+    this.root.addComponent(MarkupButtonInput).update = (deltaTime: number) => {
+      const { width, height } = engine.canvas;
+      if (width !== lastWidth || height !== lastHeight) {
+        lastWidth = width;
+        lastHeight = height;
+        const uiScale = resolveSeedWorldHudScale(width, height);
+        const referenceWidth = width / Math.max(1e-4, uiScale);
+        const useWideLayout = referenceWidth - ORB_RESERVED_RIGHT * 2 >= PANEL_MIN_WIDTH;
+        baseAlignRight = useWideLayout ? BUTTON_RIGHT_WIDE : BUTTON_RIGHT_NARROW;
+        iconTransform.alignBottom = useWideLayout ? BUTTON_BOTTOM_WIDE : BUTTON_BOTTOM_NARROW;
+      }
+      const orbExpand = Math.max(0, Math.min(1, Number(webCanvas?.dataset.voiceOrbExpand) || 0));
+      // Smoothly dissolve & hide the pen icon while long-pressing / speaking to the Voice Orb.
+      const voiceHide = Math.min(1, orbExpand * 2.4);
+      const voiceAlpha = 1 - voiceHide * voiceHide * (3 - 2 * voiceHide);
+      iconTransform.alignRight = baseAlignRight;
+
       const dt = Number.isFinite(deltaTime) ? Math.min(Math.max(deltaTime, 0), 0.1) : 0;
       const photoPhase = webCanvas?.dataset.photoPhase;
       const photoActive = Boolean(photoPhase && photoPhase !== "idle");
-      const visible = !control.hidden && control.style.display !== "none" && !photoActive;
+      const visible = !control.hidden && control.style.display !== "none" && !photoActive && voiceAlpha > 0.02;
       target.isActive = visible;
-      this.camEntity.isActive = visible;
-      this.rig3d.isActive = visible;
       if (!visible) {
         this.isPressed = false;
         this.pressBlend = 0;
@@ -334,74 +286,23 @@ export class SeedWorldCameraButton {
 
       const pressTarget = this.isPressed ? 1 : 0;
       this.pressBlend += (pressTarget - this.pressBlend) * (1 - Math.exp(-16 * dt));
-      this.time += dt;
+      const scale = (1 - this.pressBlend * 0.12) * (0.86 + 0.14 * voiceAlpha);
+      iconTransform.setScale(scale, scale, 1);
+      iconImage.color.a = (control.disabled ? 0.42 : 1) * voiceAlpha;
 
-      // Living 3D spatial inertia tracking world camera rotation
-      this.worldForward.copyFrom(camera.entity.transform.worldForward);
-      if (this.hasPrevForward) {
-        const dx = this.worldForward.x - this.prevWorldForward.x;
-        const dy = this.worldForward.y - this.prevWorldForward.y;
-        this.parallaxYaw = Math.max(-14, Math.min(14, this.parallaxYaw + dx * 68));
-        this.parallaxPitch = Math.max(-10, Math.min(10, this.parallaxPitch + dy * 55));
+      this.animTime += dt;
+      this.frameAccumulator += dt;
+      if (this.frameAccumulator >= FRAME_INTERVAL) {
+        this.frameAccumulator %= FRAME_INTERVAL;
+        renderAnimatedMarkupIcon(this.iconCtx, this.animTime);
+        this.texture.setImageSource(this.iconCanvas);
       }
-      this.prevWorldForward.copyFrom(this.worldForward);
-      this.hasPrevForward = true;
-      const decay = Math.exp(-6.5 * dt);
-      this.parallaxYaw *= decay;
-      this.parallaxPitch *= decay;
-
-      const scaleFactor = 1 - this.pressBlend * 0.08;
-      const disabledFactor = control.disabled ? 0.42 : 1;
-      depthImage.color.a = disabledFactor;
-      shellImage.color.a = disabledFactor;
-      fgImage.color.a = disabledFactor;
-      this.bodyGlass.setOpacity(0.92 * disabledFactor);
-      this.bodyGlass.setRimHighlight(this.pressBlend * 0.3);
-
-      const cw = Math.max(1, engine.canvas.width);
-      const ch = Math.max(1, engine.canvas.height);
-      const hudScale = resolveSeedWorldHudScale(cw, ch);
-      const refW = cw / hudScale;
-      const refH = ch / hudScale;
-      const aspect = cw / ch;
-
-      const glassW = (PILL_WIDTH - 6) * hudScale * scaleFactor;
-      const glassH = (PILL_HEIGHT - 6) * hudScale * scaleFactor;
-      this.bodyGlass.setLayout(glassW, glassH, glassH * 0.5);
-
-      // Project upper-right HUD slot center accurately onto z = 0 plane of the 60-deg perspective camera
-      const centerRight = BUTTON_RIGHT + PILL_WIDTH * 0.5;
-      const centerTop = BUTTON_TOP + PILL_HEIGHT * 0.5;
-      const ndcX = 1 - (2 * centerRight) / refW;
-      const ndcY = 1 - (2 * centerTop) / refH;
-      const worldPerHud = (frustumHalfHeight * 2) / refH;
-      const hoverBob = Math.sin(this.time * 1.9) * 0.015;
-      const rigScale = worldPerHud * scaleFactor;
-
-      this.rig3d.transform.setPosition(
-        ndcX * frustumHalfHeight * aspect,
-        ndcY * frustumHalfHeight + hoverBob,
-        -this.pressBlend * 0.22
-      );
-      this.rig3d.transform.setScale(rigScale, rigScale, rigScale);
-
-      // Subtle, distortion-free 3D spatial angle (narrow FOV + gentle yaw avoids diagonal corner stretch!)
-      const yaw = -14 + Math.sin(this.time * 1.1) * 3.5 + this.parallaxYaw * 0.7 + this.pressBlend * 6;
-      const pitch = 5 + Math.cos(this.time * 0.9) * 2.0 + this.parallaxPitch * 0.7 + this.pressBlend * 8;
-      const roll = 0;
-      this.rig3d.transform.setRotation(pitch, yaw, roll);
     };
   }
 
   dispose(): void {
-    if (!this.worldCamera.destroyed) {
-      this.worldCamera.cullingMask = (this.worldCamera.cullingMask | CAMERA_BUTTON_3D_LAYER) as Layer;
-    }
     this.root.destroy();
-    this.camEntity.destroy();
-    this.rig3d.destroy();
-    this.bodyGlass.destroy();
-    for (const sprite of this.sprites) sprite.destroy();
-    for (const texture of this.textures) texture.destroy();
+    this.sprite.destroy();
+    this.texture.destroy();
   }
 }

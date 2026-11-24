@@ -52,6 +52,8 @@ export interface ViewFrame {
   height: number;
   /** Frozen GPU identity texture; no CPU full-image cache or historical scene graph. */
   identities: ViewIdentityBuffer;
+  /** Optional deferred identity capture hook awaited before exporting or unfreezing the view. */
+  ensureIdentities?: () => Promise<void>;
 }
 export interface ViewIdentityBuffer {
   readonly identityBits: number;
@@ -578,10 +580,19 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
       }
     }
   }
+  async ensureIdentities(id: string): Promise<void> {
+    const entry = this.frames.get(id);
+    if (!entry?.frame.ensureIdentities) return;
+    await entry.frame.ensureIdentities();
+  }
   private async exportVersion(entry: SnapshotEntry, version: ImageVersion): Promise<AgentViewImage> {
     if (version.image) return version.image;
     if (!version.pending) {
       version.pending = afterImageReclamation(async () => {
+        if (entry.frame.ensureIdentities) {
+          await entry.frame.ensureIdentities();
+          if (this.disposed) throw new Error("Snapshot store is disposed");
+        }
         const image = await entry.frame.image.export(version.annotations);
         if (this.disposed) throw new Error("Snapshot store is disposed");
         validateImage(image);

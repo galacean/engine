@@ -71,7 +71,10 @@ import {
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterPublication";
 import { visitPlanningWorldPickBatches } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
 import { SeedWorldPicker } from "@galacean/engine-world-planning/world/SeedWorldPicker";
-import { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
+import {
+  SeedWorldViewSnapshots,
+  type ViewIdentityBuffer
+} from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { buildingScenePreparation, initializeBuildingScene } from "./masonry/BuildingSceneInitialization.ts";
 import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
@@ -487,12 +490,65 @@ export async function mountSeedWorldDemo(
     record();
     return result;
   };
+  // Decouple visual loading animation & percentage from coarse real milestones (4%, 55%, etc.)
+  // so the loading orb and counter glide smoothly without ever looking frozen during heavy boot steps.
+  const LOADING_VISUAL_CEILING = 0.98;
+  const LOADING_TIME_CONSTANT_SEC = 4.6;
+  const LOADING_MAX_SLEW_PER_SEC = 0.24;
+  let realLoadingProgress = 0;
+  let visualLoadingProgress = 0;
+  let displayedLoadingPercent = 0;
+  let smoothLoadingRaf: number | undefined;
+  let smoothLoadingActive = true;
+  const loadingStartedMs = performance.now();
+  let lastSmoothFrameMs = loadingStartedMs;
+
+  const renderDisplayedPercent = (value: number) => {
+    if (disposed || loading.dataset.state === "error") return;
+    const clamped = Math.max(0, Math.min(1, value));
+    const nextPercent = Math.max(displayedLoadingPercent, Math.round(clamped * 100));
+    displayedLoadingPercent = nextPercent;
+    percent.value = `${nextPercent}%`;
+  };
+
+  const stopSmoothLoading = () => {
+    smoothLoadingActive = false;
+    if (smoothLoadingRaf !== undefined) {
+      cancelAnimationFrame(smoothLoadingRaf);
+      smoothLoadingRaf = undefined;
+    }
+  };
+
+  const tickSmoothLoading = (now: number) => {
+    smoothLoadingRaf = undefined;
+    if (!smoothLoadingActive || disposed || loading.dataset.state === "error") return;
+    const dt = Math.max(0, Math.min((now - lastSmoothFrameMs) / 1000, 0.1));
+    lastSmoothFrameMs = now;
+    const elapsedSec = Math.max(0, (now - loadingStartedMs) / 1000);
+    // Smooth asymptotic curve gliding continuously toward 98% regardless of real checkpoint pauses.
+    const timeCurve = LOADING_VISUAL_CEILING * (1 - Math.exp(-elapsedSec / LOADING_TIME_CONSTANT_SEC));
+    const targetVisual = Math.min(LOADING_VISUAL_CEILING, Math.max(timeCurve, realLoadingProgress * 0.95));
+    if (targetVisual > visualLoadingProgress) {
+      const easedStep = (targetVisual - visualLoadingProgress) * (1 - Math.exp(-3.4 * dt));
+      const cappedStep = Math.min(easedStep, LOADING_MAX_SLEW_PER_SEC * dt);
+      visualLoadingProgress = Math.min(LOADING_VISUAL_CEILING, visualLoadingProgress + Math.max(cappedStep, 0));
+    }
+    orb?.setProgress(visualLoadingProgress);
+    renderDisplayedPercent(visualLoadingProgress);
+    smoothLoadingRaf = requestAnimationFrame(tickSmoothLoading);
+  };
+  smoothLoadingRaf = requestAnimationFrame(tickSmoothLoading);
+
   const progress = (value: number, stage: string) => {
     traceBootPhase(stage, value);
-    percent.value = `${Math.round(value * 100)}%`;
+    realLoadingProgress = Math.max(realLoadingProgress, Math.max(0, Math.min(1, value)));
     loading.setAttribute("aria-label", stage);
     canvas.dataset.bootPhase = stage;
-    orb?.setProgress(value);
+    if (value >= 1) {
+      stopSmoothLoading();
+      // When the orb is present, let orb.reveal() smoothly sweep the counter up to 100%.
+      if (!orb) renderDisplayedPercent(1);
+    }
   };
   let disconnectEditorAssets: (() => void) | undefined;
   let restoreLodCrossFade: (() => void) | undefined;
@@ -504,6 +560,7 @@ export async function mountSeedWorldDemo(
       () => {
         disposed = true;
         ready = false;
+        stopSmoothLoading();
         (globalThis as SeedWorldDiagnosticGlobal).__seedWorldOnDiagnosticHost?.(undefined);
         seedWorldBootTrace.dispose(true);
         editorLifetime.abort();
@@ -644,6 +701,7 @@ export async function mountSeedWorldDemo(
           }
         : value
     );
+    stopSmoothLoading();
     loading.hidden = false;
     loading.dataset.state = "error";
     const reason = (error: unknown): string =>
@@ -689,24 +747,27 @@ export async function mountSeedWorldDemo(
         mergeSeedWorldBinaryAssetMaps(prefetchedCommonBinaryAssets, prefetchedBuildingBinaryAssets)
       );
     };
-    const prefetchedTextAssetsTask = timed("loadProjectTextBundle (parallel)", () => loadSeedWorldProjectTextBundle());
+    let prefetchedTextAssetsTask: Promise<ReadonlyMap<string, string> | undefined> | undefined = timed(
+      "loadProjectTextBundle (parallel)",
+      () => loadSeedWorldProjectTextBundle()
+    );
     void prefetchedTextAssetsTask.catch(() => {});
-    const commonBinaryBundleTask = timed("loadCommonBinaryBundle (parallel)", () =>
+    let commonBinaryBundleTask: Promise<void> | undefined = timed("loadCommonBinaryBundle (parallel)", () =>
       loadSeedWorldCommonBinaryBundle().then((assets) => {
+        if (disposed || prefetchedBinaryReleased) return;
         prefetchedCommonBinaryAssets = assets;
         syncPrefetchedBinaryAssets();
-        return assets;
       })
     );
     void commonBinaryBundleTask.catch(() => {});
     const requestedTemplateId = pageUrl.searchParams.get("template") ?? "original";
     const eagerBuildingBundle = requestedTemplateId !== "titan-wasteland" && requestedTemplateId !== "low-poly";
-    let buildingBinaryBundleTask: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined = eagerBuildingBundle
+    let buildingBinaryBundleTask: Promise<void> | undefined = eagerBuildingBundle
       ? timed("loadBuildingBinaryBundle (parallel)", () =>
           loadSeedWorldBuildingBinaryBundle().then((assets) => {
+            if (disposed || prefetchedBinaryReleased) return;
             prefetchedBuildingBinaryAssets = assets;
             syncPrefetchedBinaryAssets();
-            return assets;
           })
         )
       : undefined;
@@ -814,11 +875,17 @@ export async function mountSeedWorldDemo(
       engine!.run();
     });
     traceBootPhase("loadingScene");
-    orb = await timed("WorldBubbleLoadingScene.createInEngine", () => WorldBubbleLoadingScene.createInEngine(engine!));
+    orb = await timed("WorldBubbleLoadingScene.createInEngine", () =>
+      WorldBubbleLoadingScene.createInEngine(engine!, {
+        onVisualProgress: (visual) => renderDisplayedPercent(visual)
+      })
+    );
+    if (visualLoadingProgress > 0) orb.synchronizeProgress(visualLoadingProgress);
     loading.dataset.state = "loading";
     progress(0.04, "准备 Seed 场景");
     syncPrefetchedBinaryAssets();
-    const prefetchedTextAssets = await timed("await project text bundle", () => prefetchedTextAssetsTask);
+    const prefetchedTextAssets = await timed("await project text bundle", () => prefetchedTextAssetsTask!);
+    prefetchedTextAssetsTask = undefined;
     (
       engine!.resourceManager as {
         setPrefetchedTextAssets?: (assets: ReadonlyMap<string, string> | undefined) => void;
@@ -830,6 +897,17 @@ export async function mountSeedWorldDemo(
     const initialProject = await timed("registerTerrainProjectResources", () =>
       registerTerrainProjectResources(engine!, projectUrl, preloadedProject)
     );
+    if (initialProject.textureDownloadPaths) {
+      const urls = new Map(
+        Object.entries(initialProject.textureDownloadPaths).map(([source, target]) => [
+          new URL(source, projectUrl).href,
+          new URL(target, projectUrl).href
+        ] as const)
+      );
+      (
+        engine!.resourceManager as { setDownloadUrls?: (urls: ReadonlyMap<string, string>) => void }
+      ).setDownloadUrls?.(urls);
+    }
     runtimeProject = await timed("openSeedWorldProject", () =>
       openSeedWorldProject(pageUrl, initialProject, prefetchedTextAssets)
     );
@@ -867,7 +945,8 @@ export async function mountSeedWorldDemo(
     // Pre-spawn idle raster worker while planning worker runs so module fetch/parse is off the critical path.
     raster.prewarm();
     source = await timed("await planning source", () => sourceTask!);
-    await timed("await common binary bundle", () => commonBinaryBundleTask);
+    await timed("await common binary bundle", () => commonBinaryBundleTask!);
+    commonBinaryBundleTask = undefined;
     // Kick off background raster, rocks, population resources, and (only when planned) building leaf preload
     // after planningSource.worker finishes so KTX2 WASM workers never starve big-core planning or trigger
     // early mobile thermal throttling.
@@ -879,13 +958,14 @@ export async function mountSeedWorldDemo(
       if (!buildingBinaryBundleTask) {
         buildingBinaryBundleTask = timed("loadBuildingBinaryBundle", () =>
           loadSeedWorldBuildingBinaryBundle().then((assets) => {
+            if (disposed || prefetchedBinaryReleased) return;
             prefetchedBuildingBinaryAssets = assets;
             syncPrefetchedBinaryAssets();
-            return assets;
           })
         );
       }
       await timed("await building binary bundle", () => buildingBinaryBundleTask!);
+      buildingBinaryBundleTask = undefined;
     }
     if (hasPlannedBuildings && !disposed && runtimeProject) {
       const leafTypes = new Set(["Mesh", "KTX2", "Texture", "Shader"]);
@@ -974,7 +1054,7 @@ export async function mountSeedWorldDemo(
     for (const result of startup) if (result.status === "rejected") throw result.reason;
     let { library, profiles } = await sourceResources;
     if (disposed) throw new Error("Seed page disposed during startup");
-    unmountProjectSave = mountProjectSaveControl(runtimeProject, scene!, canvas);
+    unmountProjectSave = mountProjectSaveControl(runtimeProject, scene!, canvas, { showIndicator: false });
     const desert =
       source.session.recipe().parameters.worldTemplate?.id === "titan-wasteland"
         ? await import("./src/DesertPresentation")
@@ -3128,7 +3208,7 @@ export async function mountSeedWorldDemo(
       isActive: () => ready && !disposed,
 
       initiallyOpen: true,
-      traceEnabled: pageUrl.searchParams.get("agentTrace") !== "0"
+      traceEnabled: pageUrl.searchParams.get("agentTrace") === "1"
     });
     recordPublicationPhase("hudCreation", hudCreationAt);
     if (pageUrl.searchParams.get("debug") === "1") {
@@ -3532,16 +3612,90 @@ export async function mountSeedWorldDemo(
     let snapshotWarmup: Promise<void> | undefined;
     viewSnapshots = new SeedWorldViewSnapshots(
       async (signal, budget) => {
-        // The warm-up and a view capture use the same single frame-capture request.
-        await waitForSnapshotWarmup(snapshotWarmup, signal);
-        await pickPreparation!.flush(signal);
-        return worldPicker!.capture(
-          (visitor) => snapshotPicks.visit(visitor),
-          (batch) => inspection.target(batch.renderer),
-          signal,
-          budget,
-          () => pickPreparation!.ready
-        );
+        // Fast color-first capture (1 frame, <16ms): opens the screen-markup canvas immediately
+        // without blocking on pick-shader compilation or a synchronous 2nd full-scene ID render.
+        // While the world stays frozen during markup, populate the pixel-aligned ID+depth buffer
+        // asynchronously in the background (or before unfreezing/export on submission).
+        const colorFrame = await worldPicker!.captureColorOnly(signal, budget);
+        const identityAbort = new AbortController();
+        let resolvedIdentities: ViewIdentityBuffer | undefined;
+        let identityTask: Promise<void> | undefined;
+        let identityDisposed = false;
+        let bgTimer: number | undefined;
+        const emptyBytes = colorFrame.width * colorFrame.height * 4;
+
+        const populateIdentities = (): Promise<void> => {
+          if (resolvedIdentities || identityDisposed) return Promise.resolve();
+          if (identityTask) return identityTask;
+          if (bgTimer !== undefined) {
+            window.clearTimeout(bgTimer);
+            bgTimer = undefined;
+          }
+          identityTask = (async () => {
+            await waitForSnapshotWarmup(snapshotWarmup, identityAbort.signal);
+            await pickPreparation!.flush(identityAbort.signal);
+            if (identityDisposed || identityAbort.signal.aborted || disposed) return;
+            const populated = worldPicker!.captureIdentityBuffer(
+              (visitor) => snapshotPicks.visit(visitor),
+              (batch) => inspection.target(batch.renderer),
+              colorFrame.image,
+              budget
+            );
+            if (identityDisposed || identityAbort.signal.aborted || disposed) {
+              populated.identities.dispose();
+              return;
+            }
+            resolvedIdentities = populated.identities;
+          })().catch((error) => {
+            if (!identityDisposed && !identityAbort.signal.aborted) {
+              console.warn("[seed-world-planner] deferred identity capture failed", error);
+            }
+          });
+          return identityTask;
+        };
+
+        bgTimer = window.setTimeout(() => {
+          bgTimer = undefined;
+          if (!identityDisposed && !disposed) void populateIdentities();
+        }, 300);
+
+        const deferredIdentities: ViewIdentityBuffer = {
+          get identityBits() {
+            return resolvedIdentities?.identityBits ?? 14;
+          },
+          get byteLength() {
+            return resolvedIdentities?.byteLength ?? emptyBytes;
+          },
+          estimatedPosition(pixels, offset, x, y) {
+            return resolvedIdentities?.estimatedPosition(pixels, offset, x, y);
+          },
+          read(x, y, w, h) {
+            return resolvedIdentities ? resolvedIdentities.read(x, y, w, h) : new Uint8Array(w * h * 4);
+          },
+          resolve(id) {
+            return resolvedIdentities?.resolve(id);
+          },
+          dispose() {
+            if (identityDisposed) return;
+            identityDisposed = true;
+            if (bgTimer !== undefined) {
+              window.clearTimeout(bgTimer);
+              bgTimer = undefined;
+            }
+            identityAbort.abort();
+            resolvedIdentities?.dispose();
+            resolvedIdentities = undefined;
+          }
+        };
+
+        return {
+          image: colorFrame.image,
+          metadata: colorFrame.metadata,
+          width: colorFrame.width,
+          height: colorFrame.height,
+          identities: deferredIdentities,
+          ensureIdentities: populateIdentities
+        };
       },
       () => {
         const state = tools!.application.getViewState();
@@ -3648,6 +3802,9 @@ export async function mountSeedWorldDemo(
     prefetchedBinaryReleased = true;
     prefetchedCommonBinaryAssets = undefined;
     prefetchedBuildingBinaryAssets = undefined;
+    commonBinaryBundleTask = undefined;
+    buildingBinaryBundleTask = undefined;
+    prefetchedTextAssetsTask = undefined;
     engine?.resourceManager?.setPrefetchedBinaryAssets?.(undefined);
     releaseSeedWorldCommonBinaryBundle();
     // The world is already visible and navigable. Keep post-ready GPU compilation non-blocking:
@@ -3911,6 +4068,7 @@ export async function mountSeedWorldDemo(
     if (bootTraceParam) {
       void seedWorldBootTrace.reportToDiag("error");
     }
+    stopSmoothLoading();
     canvas.dataset.status = "error";
     canvas.dataset.error = String(error);
     loading.dataset.state = "error";

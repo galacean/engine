@@ -22,6 +22,7 @@ export class SeedWorldPhotoInput {
   private readonly root: Entity;
   private readonly canvas: UICanvas;
   private readonly modal: Entity;
+  private readonly badge: Entity;
   private readonly photos = new Map<string, Entity>();
   private width = 1;
   private height = 1;
@@ -37,6 +38,8 @@ export class SeedWorldPhotoInput {
     this.canvas.sortOrder = 32_500;
     this.modal = this.surface("Photo modal input");
     this.modal.isActive = false;
+    this.badge = this.surface("Markup badge input");
+    this.badge.isActive = false;
   }
   private surface(name: string): Entity {
     const entity = this.root.createChild(name);
@@ -53,6 +56,14 @@ export class SeedWorldPhotoInput {
   }
   setModal(active: boolean): void {
     this.modal.isActive = active;
+    if (active) this.badge.isActive = false;
+  }
+  setBadge(rect: { x: number; y: number; width: number; height: number }, visible: boolean): void {
+    this.badge.isActive = visible && !this.modal.isActive;
+    if (!this.badge.isActive) return;
+    const transform = this.badge.transform as UITransform;
+    transform.size.set(rect.width, rect.height);
+    transform.setPosition(rect.x - this.width / 2, this.height / 2 - rect.y, 0);
   }
   setPhoto(
     id: string,
@@ -67,7 +78,8 @@ export class SeedWorldPhotoInput {
     // During editing/animation the whole canvas owns input, including margins and toolbar.
     entity.isActive = visible && !this.modal.isActive;
     const transform = entity.transform as UITransform;
-    transform.size.set(pose.width, pose.height);
+    // Slight invisible touch slop makes tapping and grabbing the compact mini card effortless on mobile.
+    transform.size.set(pose.width + 20, pose.height + 20);
     transform.setPosition(pose.x - this.width / 2, this.height / 2 - pose.y, 0);
     transform.setRotation(0, 0, -pose.angle);
   }

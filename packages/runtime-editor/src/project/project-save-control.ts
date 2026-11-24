@@ -10,10 +10,63 @@ import {
 } from "@galacean/engine-ui";
 import type { RuntimeProjectSession } from "./runtime-project-session.ts";
 
+/** Flush already-dirty work when hidden, immediately flush async hidden commits, and guard unload. */
+export function attachProjectSaveLifecycle(
+  project: Pick<RuntimeProjectSession, "persistenceStatus" | "subscribePersistence" | "flush">,
+  targetWindow: Pick<Window, "addEventListener">,
+  targetDocument: Pick<Document, "addEventListener" | "visibilityState">,
+  onStatusChange: () => void = () => {},
+  signal?: AbortSignal
+): () => void {
+  if (signal?.aborted) return () => {};
+  const lifecycle = new AbortController();
+  const flush = () => {
+    void project.flush().catch(() => {
+      /* Persistence owns failure and publishes it to the view. */
+    });
+  };
+  targetDocument.addEventListener(
+    "visibilitychange",
+    () => {
+      if (targetDocument.visibilityState === "hidden") flush();
+    },
+    { signal: lifecycle.signal }
+  );
+  targetWindow.addEventListener(
+    "beforeunload",
+    (event) => {
+      const status = project.persistenceStatus;
+      if (status.commitSeq > status.savedSeq) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    },
+    { signal: lifecycle.signal }
+  );
+  const unsubscribe = project.subscribePersistence(() => {
+    onStatusChange();
+    // Flush async commits (e.g. FarmingService checkpoint) that land after visibilitychange -> hidden fires.
+    if (targetDocument.visibilityState === "hidden" && project.persistenceStatus.state === "pending") {
+      flush();
+    }
+  });
+  let disposed = false;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    signal?.removeEventListener("abort", dispose);
+    lifecycle.abort();
+    unsubscribe();
+  };
+  signal?.addEventListener("abort", dispose, { once: true });
+  return dispose;
+}
+
 /** Projects persistence state; InputManager owns hover and retry hit testing. */
 class ProjectSaveIndicator extends Script {
   private project?: RuntimeProjectSession;
   private label!: Text;
+  private showIndicator = true;
   private hovered = false;
   private targetAlpha = 0.42;
   private startAlpha = 0.42;
@@ -24,14 +77,16 @@ class ProjectSaveIndicator extends Script {
   private safeArea?: HTMLDivElement;
   private abort?: AbortController;
 
-  initialize(project: RuntimeProjectSession, canvasElement: HTMLCanvasElement): void {
+  initialize(project: RuntimeProjectSession, canvasElement: HTMLCanvasElement, showIndicator = true): void {
     this.project = project;
+    this.showIndicator = showIndicator;
     const canvas = this.entity.addComponent(UICanvas);
     canvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
     canvas.resolutionAdaptationMode = ResolutionAdaptationMode.BothAdaptation;
     // Below photo/voice modal input, above the world's fallback drag surface.
     canvas.sortOrder = 100;
     const labelEntity = this.entity.createChild("Project save status");
+    labelEntity.isActive = showIndicator;
     this.label = labelEntity.addComponent(Text);
     this.label.fontSize = 11;
     this.label.horizontalAlignment = TextHorizontalAlignment.Left;
@@ -60,25 +115,7 @@ class ProjectSaveIndicator extends Script {
     const signal = this.abort.signal;
     window.addEventListener("resize", resize, { signal });
     window.addEventListener("blur", () => this.setHovered(false), { signal });
-    document.addEventListener(
-      "visibilitychange",
-      () => {
-        if (document.visibilityState === "hidden") this.flush();
-      },
-      { signal }
-    );
-    window.addEventListener(
-      "beforeunload",
-      (event) => {
-        const status = project.persistenceStatus;
-        if (status.commitSeq > status.savedSeq) {
-          event.preventDefault();
-          event.returnValue = "";
-        }
-      },
-      { signal }
-    );
-    this.unsubscribe = project.subscribePersistence(() => this.updateStatus());
+    this.unsubscribe = attachProjectSaveLifecycle(project, window, document, () => this.updateStatus(), signal);
     resize();
     this.updateStatus();
   }
@@ -99,7 +136,7 @@ class ProjectSaveIndicator extends Script {
   }
 
   private updateStatus(): void {
-    if (!this.project) return;
+    if (!this.project || !this.showIndicator) return;
     const state = this.project.persistenceStatus.state;
     this.label.text =
       state === "disposed"
@@ -163,11 +200,12 @@ class ProjectSavePointer extends Script {
 export function mountProjectSaveControl(
   project: RuntimeProjectSession,
   scene: Scene,
-  canvas: HTMLCanvasElement
+  canvas: HTMLCanvasElement,
+  options?: { showIndicator?: boolean }
 ): () => void {
   const root = scene.createRootEntity("Project persistence HUD");
   try {
-    root.addComponent(ProjectSaveIndicator).initialize(project, canvas);
+    root.addComponent(ProjectSaveIndicator).initialize(project, canvas, options?.showIndicator ?? true);
   } catch (error) {
     root.destroy();
     throw error;

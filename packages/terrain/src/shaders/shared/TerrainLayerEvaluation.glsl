@@ -601,14 +601,14 @@
 
   #include "shared/GrassSurfaceField.glsl"
   // Both terrain and vegetation use this unlit palette evaluation.
-  vec3 terrainProjectGroundColor(TerrainProjectLayerBlend blend, vec3 positionWS) {
+  vec3 terrainProjectGroundColorGrad(TerrainProjectLayerBlend blend, vec3 positionWS, vec2 posDx, vec2 posDy) {
     vec3 color = blend.albedo;
     #ifdef MATERIAL_TERRAIN_GRASS_SHADING
       float grassW = clamp(blend.grassWeight, 0.0, 1.0);
       float roadW = clamp(blend.roadWeight, 0.0, 1.0);
       if (grassW > 0.001 || roadW > 0.001) {
         float vista = grassColorFieldVistaBlendWeight(positionWS);
-        float field = terrainProjectGrassSurfaceField(positionWS);
+        float field = terrainProjectGrassSurfaceFieldGrad(positionWS, posDx, posDy);
         if (grassW > 0.001) {
           color += (grassColorFromField(field) - vec3(1.0)) * grassW;
         }
@@ -621,14 +621,18 @@
       float roadW = clamp(blend.roadWeight, 0.0, 1.0);
       if (roadW > 0.001) {
         float vista = grassColorFieldVistaBlendWeight(positionWS);
-        color = mix(color, roadDetailColorFromField(terrainProjectGrassSurfaceField(positionWS), GROUND_TerrainRoadColor.rgb, vista), roadW);
+        color = mix(color, roadDetailColorFromField(terrainProjectGrassSurfaceFieldGrad(positionWS, posDx, posDy), GROUND_TerrainRoadColor.rgb, vista), roadW);
       }
       #else
       float vista = grassColorFieldVistaBlendWeight(positionWS);
-      color = roadDetailColorFromField(terrainProjectGrassSurfaceField(positionWS), GROUND_TerrainRoadColor.rgb, vista);
+      color = roadDetailColorFromField(terrainProjectGrassSurfaceFieldGrad(positionWS, posDx, posDy), GROUND_TerrainRoadColor.rgb, vista);
       #endif
     #endif
     return color;
+  }
+
+  vec3 terrainProjectGroundColor(TerrainProjectLayerBlend blend, vec3 positionWS) {
+    return terrainProjectGroundColorGrad(blend, positionWS, vec2(0.0), vec2(0.0));
   }
 
   TerrainProjectLayerBlend terrainProjectGroundSurface(vec3 positionWS) {

@@ -114,6 +114,7 @@
     "./integrations/terrain/rock-formation/Publication": "./src/integrations/terrain/rock-formation/Publication.ts",
     "./integrations/terrain/rock-formation/RockMaterial": "./src/integrations/terrain/rock-formation/RockMaterial.ts",
     "./integrations/terrain/rock-formation/Settings": "./src/integrations/terrain/rock-formation/Settings.ts",
+    "./integrations/terrain/rock-formation/Variants": "./src/integrations/terrain/rock-formation/Variants.ts",
     "./integrations/terrain/rock-formation/View": "./src/integrations/terrain/rock-formation/View.ts",
     "./integrations/vegetation/AssetAssemblyLabRuntime": "./src/integrations/vegetation/AssetAssemblyLabRuntime.ts",
     "./integrations/vegetation/AssetAssemblySkyRuntime": "./src/integrations/vegetation/AssetAssemblySkyRuntime.ts",

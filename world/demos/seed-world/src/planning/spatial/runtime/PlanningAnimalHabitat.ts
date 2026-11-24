@@ -4,6 +4,7 @@ import { PlanningAnimalSurface, type PlanningAnimalSurfaceData } from "./Plannin
 import type { AnimalPopulationPosition, AnimalPopulationDistribution } from "@galacean/engine-animals/gameplay/animal/AnimalPopulation";
 import type { IslandPlan, PlanPoint } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { planningWhiteboxes } from "@galacean/engine-world-planning/semantic-study/PlanningWhiteboxes";
+import { rockFormationFittedHeights } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Variants";
 
 export type PlanningAnimalMedium = "ground" | "air" | "water";
 
@@ -211,6 +212,7 @@ export class PlanningAnimalHabitat {
       }
     }
     const ground = (p: PlanPoint) => navigation.sampleHeightInterpolated(p.x, p.z) ?? 0;
+    const fittedRockHeights = rockFormationFittedHeights(plan);
     for (const part of planningWhiteboxes(plan, ground)) {
       // Decks and approaches are navigation support; treating their thickness as an obstacle blocks sloped decks.
       if (part.layer === "bridge") continue;
@@ -223,6 +225,13 @@ export class PlanningAnimalHabitat {
         const extentX = Math.abs(cos) * halfX + Math.abs(sin) * halfZ;
         const extentZ = Math.abs(sin) * halfX + Math.abs(cos) * halfZ;
         const bottom = box.elevation ?? ground(box.center);
+        const fittedHeight =
+          part.layer === "rock"
+            ? fittedRockHeights?.rockBoxes.get(box.id)
+            : part.layer === "landscape-rock"
+              ? fittedRockHeights?.landscapes.get(box.id)
+              : undefined;
+        const heightM = fittedHeight ?? box.sizeY;
         const solid: Solid = {
           // Match publication dependency identities. Unrelated part edits must not
           // renumber obstacles already visited by a suspended search.
@@ -234,7 +243,7 @@ export class PlanningAnimalHabitat {
           halfX,
           halfZ,
           bottom,
-          top: bottom + box.sizeY,
+          top: bottom + heightM,
           seen: 0,
           minX: box.center.x - extentX,
           maxX: box.center.x + extentX,
@@ -381,7 +390,8 @@ export class PlanningAnimalHabitat {
     ) return false;
     if (!this.containsFlightXY(from.x, from.z, radius) || !this.containsFlightXY(to.x, to.z, radius) ||
         this.firstSolidXY(from.x, from.z, to.x, to.z, radius, Math.min(from.y, to.y), Math.max(from.y, to.y) + height)) return false;
-    const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 0.5));
+    const dx = to.x - from.x, dz = to.z - from.z;
+    const steps = Math.max(1, Math.ceil(Math.sqrt(dx * dx + dz * dz) / 0.5));
     for (let i = 0; i <= steps; i++) {
       const t = i / steps, x = from.x + (to.x - from.x) * t, z = from.z + (to.z - from.z) * t;
       const ground = this.navigation.sampleHeightInterpolated(x, z);
@@ -392,9 +402,13 @@ export class PlanningAnimalHabitat {
 
   private containsFlightXY(x: number, z: number, radius: number): boolean {
     const area = this.range.distribution;
-    return area ? x - radius >= area.minX && x + radius <= area.maxX &&
-      z - radius >= area.minZ && z + radius <= area.maxZ :
-      Math.hypot(x - this.origin.x, z - this.origin.z) + radius <= this.range.roamRadius;
+    if (area) {
+      return x - radius >= area.minX && x + radius <= area.maxX &&
+        z - radius >= area.minZ && z + radius <= area.maxZ;
+    }
+    const ox = x - this.origin.x, oz = z - this.origin.z;
+    const limit = this.range.roamRadius - radius;
+    return limit >= 0 && ox * ox + oz * oz <= limit * limit;
   }
 
   private firstSolid(a: AnimalRoutePoint, b: AnimalRoutePoint, radius: number, bottom: number, top: number): Solid | undefined {

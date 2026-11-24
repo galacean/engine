@@ -1,4 +1,5 @@
 import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
+import { resolveRockCollisionPolicy, type RockCollisionPolicy } from "./RockCollisionPolicy";
 import type { TemplateProceduralPlantInstance } from "./runtime/TemplateProceduralPlants";
 import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
@@ -49,6 +50,8 @@ export interface WorldTemplatePalette {
  * Camera fitting uses only the focus entries. */
 export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   reference: string;
+  /** Optional per-template rock/prop collision threshold override (falls back to DEFAULT_ROCK_COLLISION_POLICY). */
+  rockCollision?: Partial<RockCollisionPolicy>;
   grassGroundFusion?: boolean;
   /** Name of the equivalent opaque vertex-color material shared by the template's model assets. */
   sharedVertexColorMaterial?: string;
@@ -986,8 +989,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         width,
         depth,
         height,
-        yawDegrees,
-        collision: false
+        yawDegrees
       }))
     ],
     grass: ["#e2b678", "#f2d6a2"],
@@ -1702,3 +1704,8 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     }
   }
 };
+
+/** Resolves the effective rock/prop collision threshold for a template (global default merged with per-template override). */
+export function templateRockCollisionPolicy(templateId?: string): RockCollisionPolicy {
+  return resolveRockCollisionPolicy(templateId ? WORLD_TEMPLATE_ART[templateId]?.rockCollision : undefined);
+}

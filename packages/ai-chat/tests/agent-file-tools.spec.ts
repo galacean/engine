@@ -443,6 +443,93 @@ it("injects post-commit loop_guidance after 6 consecutive read-only rounds while
   expect(finalCallMessages[loopGuidanceIndex - 1]).toMatchObject({ role: "tool", toolCallId: "r5" });
 });
 
+it.each(["missing", "unchanged", "changed"] as const)("bases read-loop guidance on a %s file", async (mode) => {
+  const filePath = "declare/editor/retry.d.ts";
+  let source = "export interface Retry {};";
+  const projectFiles = [
+    {
+      paths: () => (mode === "missing" ? [] : [filePath]),
+      read: (path: string) => (mode !== "missing" && path === filePath ? source : undefined)
+    }
+  ];
+  request.mockReset();
+  for (const id of ["first", "repeat"]) {
+    request.mockImplementationOnce(async () => {
+      if (mode === "changed" && id === "repeat") source = "export interface Updated {};";
+      return {
+        content: "",
+        finishReason: "tool_calls",
+        toolCalls: [fileCall("read", { file_path: filePath }, id)]
+      };
+    });
+  }
+  request.mockResolvedValueOnce(final);
+  const loop = createTestAgentLoop({ definition: { ...definition, projectFiles }, tools: [] });
+  await loop.run("Inspect the declaration", {});
+
+  const messages = request.mock.lastCall![0].messages;
+  const reply = messages.find((message) => message.role === "tool" && message.toolCallId === "repeat");
+  const expected = {
+    missing: "Error:",
+    unchanged: "Already present at the time of this read",
+    changed: "export interface Updated {};"
+  };
+  expect(reply?.content).toContain(expected[mode]);
+  expect(
+    messages.some((message) => message.role === "user" && message.content.includes('type="loop_guidance"'))
+  ).toBe(mode === "unchanged");
+});
+
+it.each([
+  { page: "first", sourceFirst: false, offset: 1, column: 1 },
+  { page: "first", sourceFirst: true, offset: 1, column: 1 },
+  { page: "last", sourceFirst: false, offset: 350, column: 1 },
+  { page: "last", sourceFirst: true, offset: 350, column: 1 },
+  { page: "same-line continuation", sourceFirst: false, offset: 1, column: 2001 },
+  { page: "same-line continuation", sourceFirst: true, offset: 1, column: 2001 }
+])("reuses an inlined declaration for the $page page in the same batch (source first: $sourceFirst)", async ({
+  sourceFirst,
+  offset,
+  column
+}) => {
+  const apiPath = "declare/editor/native/api.d.ts";
+  const sourcePath = "declare/editor/native/source.d.ts";
+  const source =
+    column === 1
+      ? Array.from({ length: 393 }, (_, i) => `export type L${i + 1} = ${i + 1};`).join("\n")
+      : `export type Wide = "${"x".repeat(2250)}";\nexport type Tail = "done";`;
+  const lastLine = column === 1 ? "393: export type L393 = 393;" : '2: export type Tail = "done";';
+  const modules = [
+    { id: "declare/native/source.d.ts", source, imports: [] },
+    { id: "declare/native/api.d.ts", source: 'import "./source";', imports: ["declare/native/source.d.ts"] }
+  ];
+  const api = fileCall("read", { file_path: apiPath }, "api");
+  const direct = fileCall("read", { file_path: sourcePath, offset, column }, "source");
+  request.mockReset();
+  request
+    .mockResolvedValueOnce({
+      content: "",
+      finishReason: "tool_calls",
+      toolCalls: sourceFirst ? [direct, api] : [api, direct]
+    })
+    .mockResolvedValueOnce(final);
+  const loop = createTestAgentLoop({
+    definition: { ...definition, scriptApi: { ...definition.scriptApi, modules } },
+    tools: []
+  });
+  await loop.run("inspect editor declarations", {});
+
+  const replies = request.mock.calls[1][0].messages.filter((message) => message.role === "tool");
+  expect(replies.map((reply) => reply.toolCallId)).toEqual(sourceFirst ? ["source", "api"] : ["api", "source"]);
+  const apiReply = replies.find((reply) => reply.toolCallId === "api")!.content;
+  expect(apiReply).toContain(`<dependency path="${sourcePath}">`);
+  expect(apiReply).toContain(lastLine);
+  const directReply = replies.find((reply) => reply.toolCallId === "source")!.content;
+  expect(directReply).toContain("read this path again");
+  expect(directReply).not.toContain("export type");
+  expect(directReply).not.toContain("Continue with read");
+});
+
 it("does not pre-claim paginated declaration reads in parallel batches and resets postCommitReadOnlyRounds on user supplements", async () => {
   const sourceLines = Array.from({ length: 240 }, (_, i) => `export type L${i + 1} = ${i + 1};`).join("\n");
   const modules = [
@@ -529,4 +616,83 @@ it("does not pre-claim paginated declaration reads in parallel batches and reset
   expect(
     finalMessages.some((m) => m.role === "user" && typeof m.content === "string" && m.content.includes('type="loop_guidance"'))
   ).toBe(false);
+});
+
+it("emits union narrowing hints for TS2339, destructuring availableProperties, and tuple hints for TS2322", () => {
+  const checker = new AgentJavaScriptChecker(agentTypecheckLibraries);
+  try {
+    const declarations = [
+      {
+        id: "declare/api.d.ts",
+        source: `
+          interface AreaInfo {
+            a1: number; a2: number; a3: number; a4: number; a5: number;
+            a6: number; a7: number; a8: number; a9: number; farmId: string;
+          }
+          type ValueUnion = string | number | { shape?: string; visible?: boolean };
+          declare const api: {
+            getArea(): AreaInfo;
+            getProp(): ValueUnion;
+            move(pos: [number, number, number]): void;
+            move2d(pos: [number, number]): void;
+          };
+        `
+      }
+    ];
+
+    const unionErr = checker.check("const p = api.getProp();\nconsole.log(p.shape);", declarations);
+    expect(unionErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const unionDiag = (unionErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(unionDiag.code).toBe(2339);
+    expect(String(unionDiag.hint)).toContain('typeof v === "object"');
+
+    const destructErr = checker.check("const { id } = api.getArea();\nconsole.log(id);", declarations);
+    expect(destructErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const destructDiag = (destructErr?.details as { diagnostics: { availableProperties?: { name: string }[] }[] }).diagnostics[0];
+    expect(destructDiag.availableProperties?.some((p) => p.name === "farmId")).toBe(true);
+
+    const tupleErr = checker.check("const coords = [1, 2, 3];\napi.move(coords);", declarations);
+    expect(tupleErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const tupleDiag = (tupleErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(tupleDiag.code).toBe(2345);
+    expect(String(tupleDiag.hint)).toContain("fixed-length tuple literal");
+    expect(String(tupleDiag.hint)).toContain("[number, number, number]");
+
+    const tuple2dErr = checker.check("const pt = [1, 2];\napi.move2d(pt);", declarations);
+    expect(tuple2dErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const tuple2dDiag = (tuple2dErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(tuple2dDiag.code).toBe(2345);
+    expect(String(tuple2dDiag.hint)).toContain("[number, number]");
+    expect(String(tuple2dDiag.hint)).not.toContain("[number, number, number]");
+
+    const unionDeclarations = [
+      {
+        id: "declare/union.d.ts",
+        source: `
+          type AssetRead = { path: string } & ({ kind: "text"; content: string } | { kind: "structured"; data: Record<string, unknown> } | { kind: "glb"; scenes: unknown[] });
+          type SourceVal = string | number | { $ref: string } | Record<string, unknown> | SourceVal[];
+          declare const uapi: { readAsset(): AssetRead; readProp(): SourceVal };
+        `
+      }
+    ];
+    const discErr = checker.check("const a = uapi.readAsset();\nconsole.log(a.data);", unionDeclarations);
+    expect(discErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const discDiag = (discErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(discDiag.code).toBe(2339);
+    expect(String(discDiag.hint)).toContain('kind === "structured"');
+
+    const aliasedDiscErr = checker.check("const { data: renamed } = uapi.readAsset();\nconsole.log(renamed);", unionDeclarations);
+    expect(aliasedDiscErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const aliasedDiscDiag = (aliasedDiscErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(aliasedDiscDiag.code).toBe(2339);
+    expect(String(aliasedDiscDiag.hint)).toContain('kind === "structured"');
+
+    const refErr = checker.check("const v = uapi.readProp();\nconsole.log(v.material);", unionDeclarations);
+    expect(refErr?.code).toBe("SCRIPT_CHECK_FAILED");
+    const refDiag = (refErr?.details as { diagnostics: Record<string, unknown>[] }).diagnostics[0];
+    expect(refDiag.code).toBe(2339);
+    expect(String(refDiag.hint)).toContain('!("$ref" in v)');
+  } finally {
+    checker.dispose();
+  }
 });

@@ -1,8 +1,9 @@
 import type { IslandPlan, PlanPoint } from "../semantic-study/IslandPlanModel";
+import { resolveRockCollision } from "./RockCollisionPolicy";
 import { createPlanningRingQuery } from "../semantic-study/WorldPlanningTerrain";
 import { buildWorldTemplateGeometry, templateNodeFootprint } from "./WorldTemplateGeometry";
 import { worldTemplate } from "./WorldTemplateCatalog";
-import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
+import { templateRockCollisionPolicy, WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
 import { poiTerritories } from "./ecology/PoiTerritories";
 import type { SubjectViewPose } from "./PlanningSubjectView";
 import { spatialCompositionParameters } from "./SpatialCompositionParameters";
@@ -205,6 +206,7 @@ export function publishTemplateStones(plan: IslandPlan, ground: (point: PlanPoin
   const art = id ? WORLD_TEMPLATE_ART[id] : undefined;
   const resolvedStones = art?.resolveStones ? art.resolveStones(plan.parameters.seed) : art?.stones;
   if (!resolvedStones?.length) return;
+  const collisionPolicy = templateRockCollisionPolicy(id);
   const anchor = plan.worldTemplateSite?.center ?? {
     x: plan.parameters.width / 2,
     z: plan.parameters.depth / 2
@@ -255,7 +257,8 @@ export function publishTemplateStones(plan: IslandPlan, ground: (point: PlanPoin
             sizeZ: stone.depth,
             elevation: baseHeight,
             yaw,
-            collision: stone.collision !== false,
+            ...(stone.collision !== undefined ? { collisionOverride: stone.collision } : {}),
+            collision: resolveRockCollision(stone, collisionPolicy, stone.collision),
             occlusion: true
           }
         ]
@@ -277,7 +280,8 @@ export function publishTemplateStones(plan: IslandPlan, ground: (point: PlanPoin
         baseHeight,
         outline,
         collisionRadius: Math.hypot(hw, hd),
-        ...(stone.collision === false ? { collision: false as const } : {})
+        ...(stone.collision !== undefined ? { collisionOverride: stone.collision } : {}),
+        collision: resolveRockCollision(stone, collisionPolicy, stone.collision)
       });
     }
   }

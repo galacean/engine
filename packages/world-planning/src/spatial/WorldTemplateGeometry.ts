@@ -14,6 +14,8 @@ export interface TemplateNode {
   castShadows?: boolean;
   /** Framing-only envelope node that does not create a placeholder mesh at runtime. */
   invisible?: boolean;
+  /** Optional explicit collision switch; omitted defers to template rock collision policy using mounted GLB bounds. */
+  collision?: boolean;
   /** Stretch the asset along each axis to match the authored envelope. */
   stretchToEnvelope?: boolean;
   /** Planting plane in the imported model's metre coordinates; defaults to its lowest point. */

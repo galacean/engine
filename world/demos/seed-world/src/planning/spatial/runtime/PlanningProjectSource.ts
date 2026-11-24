@@ -17,8 +17,8 @@ import {
   type PlanningDocument
 } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import {
-  applySpatialCommands,
   resolveComponent,
+  validateSpatialDocument,
   type SpatialDocument
 } from "@galacean/engine-world-planning/spatial/SpatialDocument";
 import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
@@ -87,12 +87,13 @@ const ownedProperties = new Map<string, readonly string[]>([
   ]
 ]);
 
-// Cache parsed inputs, never validation success. All consumers still execute their
-// rules; public documents remain detached. Keep only the latest project view.
+// Cache parsed inputs, and document validation keyed by planningRegistry.revision.
+// Consumers still validate live pack/registry changes; public documents remain detached.
 let parsed:
   | {
       inputs: RuntimeProjectInputs;
       document?: { value: PlanningDocument | undefined };
+      documentValidatedRevision?: number;
       vegetation?: { value: PlantProjectResources | undefined };
       winds?: Record<string, unknown>[];
     }
@@ -156,13 +157,18 @@ export const validatePlanningSource: RuntimeEditPreparation = async (edit) => {
 
 /** Seed World's authored owner is mandatory after import; deleting it cannot silently start a new world. */
 export function validatePlanningProject(pack: RuntimeProjectPackage): void {
-  const document = planningSourceDocument(pack);
+  const input = planningInputs(pack);
+  input.document ??= { value: readPlanningSourceDocument(pack) };
+  const document = input.document.value;
   if (!document) {
     if (pack.documents?.[`${pack.project.scene}.planning-source.json`])
       throw new Error("Imported project requires a PlanningProjectAuthoring owner");
     return;
   }
-  applySpatialCommands(document, [], planningRegistry);
+  if (input.documentValidatedRevision !== planningRegistry.revision) {
+    validateSpatialDocument(document, planningRegistry);
+    input.documentValidatedRevision = planningRegistry.revision;
+  }
   if (pack.project.files.some((file) => file.virtualPath === DEFAULT_PLANT_PROJECT_RESOURCES.catalog)) {
     const refs = planningVegetationReferences(pack);
     if (!refs) throw new Error("Planning Scene requires a vegetation resource owner");
@@ -174,7 +180,6 @@ export function validatePlanningProject(pack: RuntimeProjectPackage): void {
       if (pack.project.files.find((file) => file.virtualPath === refs[key])?.type !== type)
         throw new Error(`Vegetation ${key} requires a ${type} asset`);
   }
-  const input = planningInputs(pack);
   if (!input.winds) {
     const draft = new RuntimeProjectEdit(
         pack,

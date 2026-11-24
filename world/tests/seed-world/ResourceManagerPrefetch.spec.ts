@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AssetPromise, Engine, ResourceManager } from "@galacean/engine";
+import { AssetPromise, Engine, EngineObject, ResourceManager } from "@galacean/engine";
 
 function createTestEngine(): Engine {
   return {
@@ -8,9 +8,28 @@ function createTestEngine(): Engine {
   } as unknown as Engine;
 }
 
-describe("ResourceManager prefetch caches and abort signal handling", () => {
+describe("ResourceManager asset requests", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("shares a download URL while caching each material's resource independently", async () => {
+    const engine = createTestEngine();
+    const rm = new ResourceManager(engine);
+    const projectUrl = "https://example.test/project/bark.png";
+    const templateUrl = "https://example.test/assets/bark-12345678.png";
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response("texture bytes"));
+    rm.setDownloadUrls(new Map([[projectUrl, templateUrl]]));
+
+    await Promise.all([projectUrl, templateUrl].map((url) => rm._request(url, { type: "arraybuffer" })));
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([templateUrl, templateUrl]);
+
+    const projectResource = new EngineObject(engine);
+    const templateResource = new EngineObject(engine);
+    rm.replaceCachedResource(projectUrl, projectResource);
+    rm.replaceCachedResource(templateUrl, templateResource);
+    expect(rm.getFromCache(projectUrl)).toBe(projectResource);
+    expect(rm.getFromCache(templateUrl)).toBe(templateResource);
   });
 
   it("rejects immediately when config.signal is already aborted before checking prefetched caches", async () => {

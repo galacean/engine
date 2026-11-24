@@ -4,6 +4,8 @@ import { publishRoadPath } from "./RoadGeometry";
 import { envelope } from "../../semantic-study/IslandPlanAtoms";
 import { boxOutline } from "./Volumes";
 import { volumeEnvelope, type LayoutGroup } from "./LayoutKernel";
+import { resolveRockCollision } from "../RockCollisionPolicy";
+import { templateRockCollisionPolicy } from "../WorldTemplateArtDirection";
 
 /** Renderer-only bindings. Adding an asset mapping does not add a spatial rule or an exclusion. */
 export type LayoutAppearance = "building" | "rock" | "region";
@@ -25,6 +27,7 @@ export function projectLayoutGroups(
   plan.regions = plan.regions.filter((r) => r.kind === "island");
   plan.planning!.ports = [];
   plan.planning!.modules = plan.planning!.modules.filter((m) => m.kind === "land" || m.kind === "island");
+  const rockCollisionPolicy = templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id);
   for (const group of groups) {
     const outline = envelope(group.center, group.rule.radiusM * 2, group.rule.radiusM * 2, 0);
     plan.planning!.modules.push({
@@ -76,7 +79,7 @@ export function projectLayoutGroups(
         sizeY: b.height,
         yaw: b.yaw,
         elevation: b.elevation,
-        collision: true,
+        collision: binding === "rock" ? resolveRockCollision(b, rockCollisionPolicy) : true,
         occlusion: true
       }));
       if (binding === "building")

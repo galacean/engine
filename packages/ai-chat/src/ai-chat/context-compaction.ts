@@ -257,9 +257,39 @@ export class AgentContextTranscript {
     });
     if (fallbackAssistantMessage && this.#active.at(-1)?.role !== "assistant") {
       this.push({ role: "assistant", content: fallbackAssistantMessage });
+      this.compactCompletedTurnReads();
       return;
     }
     if (changed) this.#revision++;
+    this.compactCompletedTurnReads();
+  }
+
+  /**
+   * Deterministically trim oversized static knowledge/declaration reads from
+   * already-completed turns once active context grows large, keeping tool-call
+   * pairing intact and avoiding premature mid-task LLM summary compaction.
+   */
+  compactCompletedTurnReads(minTotalChars = 80_000, minMessageChars = 4_000): number {
+    let totalChars = 0;
+    for (const message of this.#active) {
+      if (typeof message.content === "string") totalChars += message.content.length;
+    }
+    if (totalChars < minTotalChars) return 0;
+    let compacted = 0;
+    this.#active = this.#active.map((message) => {
+      if (message.role !== "tool" || typeof message.content !== "string") return message;
+      if (message.content.length < minMessageChars) return message;
+      const match = message.content.match(FULL_FILE_READ_HEADER_RE);
+      const path = match?.[1];
+      if (!path || (!path.startsWith("skills/") && !path.startsWith("declare/"))) return message;
+      compacted++;
+      return {
+        ...message,
+        content: `<path>${path}</path>\n<type>file</type>\n<content>\n[Omitted large read from an earlier completed turn (${message.content.length} chars) to preserve context budget. Re-read with read if needed.]\n</content>`
+      };
+    });
+    if (compacted) this.#revision++;
+    return compacted;
   }
 
   push(...messages: AgentMessage[]): void {

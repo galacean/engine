@@ -100,14 +100,26 @@ function validRecords(value: unknown, field: SpatialField): boolean {
 
 export class ComponentRegistry {
   private definitions = new Map<string, ComponentDefinition>();
+  private _revision = 0;
+  get revision(): number {
+    return this._revision;
+  }
+  /** Bump revision when an external mutator updates registered options or constraints in place. */
+  touch(): void {
+    this._revision++;
+  }
   register(definition: ComponentDefinition): void {
     if (this.definitions.has(definition.type)) throw new Error(`组件重复注册：${definition.type}`);
     if (new Set(definition.fields.map((f) => f.key)).size !== definition.fields.length) throw new Error("组件字段重复");
     this.definitions.set(definition.type, definition);
+    this._revision++;
   }
   /** Remove a registration only when its exact owner still holds it. Existing documents require the plugin. */
   unregister(definition: ComponentDefinition): void {
-    if (this.definitions.get(definition.type) === definition) this.definitions.delete(definition.type);
+    if (this.definitions.get(definition.type) === definition) {
+      this.definitions.delete(definition.type);
+      this._revision++;
+    }
   }
   get(type: string): ComponentDefinition {
     const definition = this.definitions.get(type);
@@ -236,6 +248,28 @@ export function resolveComponent(
   visiting.delete(key);
   return { values, sources };
 }
+/** Validate a document against a component registry without cloning it. */
+export function validateSpatialDocument(document: SpatialDocument, registry: ComponentRegistry): void {
+  if (document.version !== 1) throw new Error("工程版本不支持");
+  for (const [id, entity] of Object.entries(document.entities)) {
+    if (entity.id !== id || typeof entity.name !== "string" || !entity.components) throw new Error("实体结构无效");
+    const seen = new Set([entity.id]);
+    let parent = entity.parent;
+    while (parent) {
+      if (seen.has(parent) || !document.entities[parent]) throw new Error("实体归属循环或父节点不存在");
+      seen.add(parent);
+      parent = document.entities[parent].parent;
+    }
+    for (const type of Object.keys(entity.components)) {
+      registry.validate(type, entity.components[type].values);
+      const effective = resolveComponent(document, entity.id, type, registry).values;
+      registry.get(type).validate?.(effective);
+      for (const [min, max] of registry.get(type).ranges ?? [])
+        if (Number(effective[min]) > Number(effective[max])) throw new Error("参数范围上下限倒置");
+    }
+  }
+}
+
 /** Apply a batch atomically. Caller runs physical systems before accepting the candidate. */
 export function applySpatialCommands(
   document: SpatialDocument,
@@ -285,23 +319,7 @@ export function applySpatialCommands(
       for (const key of command.fields ?? Object.keys(component.values)) delete component.values[key];
     }
   }
-  for (const [id, entity] of Object.entries(next.entities)) {
-    if (entity.id !== id || typeof entity.name !== "string" || !entity.components) throw new Error("实体结构无效");
-    const seen = new Set([entity.id]);
-    let parent = entity.parent;
-    while (parent) {
-      if (seen.has(parent) || !next.entities[parent]) throw new Error("实体归属循环或父节点不存在");
-      seen.add(parent);
-      parent = next.entities[parent].parent;
-    }
-    for (const type of Object.keys(entity.components)) {
-      registry.validate(type, entity.components[type].values);
-      const effective = resolveComponent(next, entity.id, type, registry).values;
-      registry.get(type).validate?.(effective);
-      for (const [min, max] of registry.get(type).ranges ?? [])
-        if (Number(effective[min]) > Number(effective[max])) throw new Error("参数范围上下限倒置");
-    }
-  }
+  validateSpatialDocument(next, registry);
   next.revision++;
   return next;
 }
