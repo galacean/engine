@@ -1,0 +1,26 @@
+packages/core/src/mesh/ModelMesh.ts
+  s_a20fbf413cca3c::t_2fcef30352bc0a 31-32,134,146,148,153-157,441,711-713
+  s_a20fbf413cca3c::t_f86f78b5c43f90 714-715
+packages/design/src/physics/shape/IMeshShape.ts
+  s_a20fbf413cca3c::t_2fcef30352bc0a 7
+packages/physics-physx/src/shape/PhysXMeshShape.ts
+  s_a20fbf413cca3c::t_2fcef30352bc0a 87-92,94,96,105,130,151-152,255,259
+tests/src/core/physics/MeshCollider.test.ts
+  s_a20fbf413cca3c::t_8602e354725adf 317-339
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "065254f13846f2e0c13bad0ad448dd26ba385535",
+  "prompts": {},
+  "sessions": {
+    "s_a20fbf413cca3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2088c-3f7f-7131-8505-b699d01f3e8d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

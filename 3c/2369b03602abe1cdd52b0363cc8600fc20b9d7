@@ -1,0 +1,20 @@
+packages/math/src/Quaternion.ts
+  s_a493caf86b2278::t_ff08908a151b34 257,259
+  s_a493caf86b2278::t_d960e3be706961 261,263,267,270
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3c2369b03602abe1cdd52b0363cc8600fc20b9d7",
+  "prompts": {},
+  "sessions": {
+    "s_a493caf86b2278": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20bc3-4ee9-7533-9777-c1828596f6c8",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

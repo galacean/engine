@@ -1,0 +1,22 @@
+packages/math/src/Matrix.ts
+  s_d362598745f697::t_6ef030746b7d48 443-444,449-452,454-455,459-460,464-465,469-471
+tests/src/math/Matrix.test.ts
+  s_d362598745f697::t_d15a16f8cce89b 476-479,491-513
+  s_d362598745f697::t_91064b4dc31b3a 514
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d0229d69af2c280225a4d059d152e8c48e4095bf",
+  "prompts": {},
+  "sessions": {
+    "s_d362598745f697": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ba5-6481-7962-8961-bb70ad032958",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

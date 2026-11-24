@@ -1,0 +1,14 @@
+packages/core/src/lighting/Light.ts
+  h_ddbf152d31b140 84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "44d8bff3b8f06464955bf9c852cb26becf5bb487",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

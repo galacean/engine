@@ -1,0 +1,31 @@
+packages/runtime-editor/src/project/runtime-project-session.ts
+  s_0373997fdb8cbf::t_3c1389086a8834 21,25,324-328,340-352,354-368,1317-1323
+world/scripts/build-seed-world-flash-app.mjs
+  s_0373997fdb8cbf::t_6a5f42e7e7b283 193-195
+world/tests/seed-world/AnimalSuspendedRecovery.spec.ts
+  s_972b53da038c3c::t_9a1fcdae4b1811 161-162,365-404
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8159c113e8f66bc555673e6fe4d0c56af886c1de",
+  "prompts": {},
+  "sessions": {
+    "s_0373997fdb8cbf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a192e5-99f1-7531-8f6e-963a84b12db4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_972b53da038c3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20b70-80eb-7ed2-a7c4-b88c943c4d92",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

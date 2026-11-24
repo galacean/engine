@@ -1,0 +1,28 @@
+packages/ai-chat/tests/context-compaction-loop.spec.ts
+  s_ab59b8e40dc4d1::t_a3ea14114194e7 359,364-397
+  s_ab59b8e40dc4d1::t_34da9f33c63641 398-399
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  s_ab59b8e40dc4d1::t_a3ea14114194e7 14-16,509,618-620,944,1012-1020
+packages/ai-chat/src/ai-chat/agent-native-files.ts
+  s_ab59b8e40dc4d1::t_a3ea14114194e7 27-28,136-152,211,215,217-220,227,229-249,251-253,255-256,259,261,263,267,271-273,275,469,478-483,489,569-579
+packages/ai-chat/tests/agent-file-tools.spec.ts
+  s_ab59b8e40dc4d1::t_a3ea14114194e7 446-495
+packages/ai-chat/tests/agent-native-files.spec.ts
+  s_ab59b8e40dc4d1::t_a3ea14114194e7 559,563,569,579-617,677,698
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "64a58eed22782a61b3cb922e0713e4d389051591",
+  "prompts": {},
+  "sessions": {
+    "s_ab59b8e40dc4d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ce4-cb2b-71d3-86f0-6aa015964ede",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
