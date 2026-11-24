@@ -1,0 +1,37 @@
+world/vite.config.mjs
+  s_d4a6e1c37975f1::t_3ebdbee50ca4c2 10,506
+packages/terrain/src/terrain/project/TerrainProjectContract.ts
+  s_d4a6e1c37975f1::t_8fa3fb6f477b27 270-271
+world/README.md
+  s_d4a6e1c37975f1::t_3ebdbee50ca4c2 80-81
+world/demos/seed-world/SeedWorldDemo.ts
+  s_d4a6e1c37975f1::t_8fa3fb6f477b27 811-817,821
+  s_d4a6e1c37975f1::t_3ebdbee50ca4c2 818-820
+world/scripts/seed-world-plant-texture-downloads.mjs
+  s_d4a6e1c37975f1::t_8fa3fb6f477b27 1-11,13-43
+  s_d4a6e1c37975f1::t_741b002a2e0b33 12
+packages/modify/src/native/core/src/asset/ResourceManager.ts
+  s_d4a6e1c37975f1::t_8fa3fb6f477b27 216,221-224,283,410
+  s_d4a6e1c37975f1::t_3ebdbee50ca4c2 220
+world/scripts/tests/seed-world-plant-texture-downloads.test.mjs
+  s_d4a6e1c37975f1::t_8fa3fb6f477b27 1-45
+world/tests/seed-world/ResourceManagerPrefetch.spec.ts
+  s_d4a6e1c37975f1::t_2f89f714761e0e 2,11,16-32
+  s_d4a6e1c37975f1::t_0b949a64cedc9a 33-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "04255825dc207cd7a67e8e710e3b136fb9e4b090",
+  "prompts": {},
+  "sessions": {
+    "s_d4a6e1c37975f1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20882-0e64-7940-8c91-7f3a42ad3568",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "鸿岳 <owen.wjh@alipay.com>"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+docs/en/physics/joint/overview.mdx
+  s_a20fbf413cca3c::t_9e316f9c4a88de 41
+docs/zh/physics/joint/overview.mdx
+  s_a20fbf413cca3c::t_05fa5a3c3fde82 41
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_71b60d26703905::t_45863f746be756 78
+tests/src/core/physics/PhysicsGameplay.test.ts
+  s_a20fbf413cca3c::t_1b88d89fdeaa31 198,210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3a5bf6a782bff20274f123cc51bd224f80757d19",
+  "prompts": {},
+  "sessions": {
+    "s_71b60d26703905": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2086b-2423-7963-bec2-7a56a2f3c1cb",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_a20fbf413cca3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2088c-3f7f-7131-8505-b699d01f3e8d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

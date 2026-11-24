@@ -1,0 +1,52 @@
+packages/physics-physx/src/shape/PhysXMeshShape.ts
+  s_a20fbf413cca3c::t_cebd037a986eb0 84
+  s_a20fbf413cca3c::t_83231d707d2412 100-101
+  s_a20fbf413cca3c::t_0835cd1ee443d2 13,31,35,37-41,44,61,65-67,75,83,93,102-109,111-130,202,260-268
+  s_a20fbf413cca3c::t_f8dd4904081e57 131
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 2,24-25,30,57-58,60,87-88,92,94-99,110,132-135
+  s_a20fbf413cca3c::t_f6e091f576b38c 269
+packages/design/src/physics/shape/index.ts
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 6
+packages/design/src/physics/IPhysics.ts
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 8,92,100,110-111
+tests/src/core/physics/MeshCollider.test.ts
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 113-134,136-164,167-194,256-257,373-374,378-379
+  s_a20fbf413cca3c::t_27582d4772eb36 241-243,315-320,323,326-341
+  s_a20fbf413cca3c::t_acd389513ea7a2 321-322,324-325
+  s_a20fbf413cca3c::t_a34cd7ec8a4719 19,24,64,67,109-112,135,165-166,195-240,244-255,258-296,298-305,309,311-314,342-372,375-377,380-391,393,501,506,510,517,882,886
+  s_a20fbf413cca3c::t_83231d707d2412 306-308,310
+  s_a20fbf413cca3c::t_33253640cef8b6 297
+tests/src/core/ModelMesh.test.ts
+  s_a20fbf413cca3c::t_27582d4772eb36 348-370
+packages/core/src/physics/MeshCollider.ts
+  s_a20fbf413cca3c::t_acd389513ea7a2 253-258
+  s_a20fbf413cca3c::t_0835cd1ee443d2 46
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 205,262,271-272
+packages/physics-physx/src/PhysXPhysics.ts
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 11,166-167
+  s_a20fbf413cca3c::t_0835cd1ee443d2 26,45-46
+  s_a20fbf413cca3c::t_acd389513ea7a2 169-179
+packages/core/src/mesh/ModelMesh.ts
+  s_a20fbf413cca3c::t_0835cd1ee443d2 31,115-116,439,480-482,511
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 112-114,444,461-462,464-467,477-479
+  s_a20fbf413cca3c::t_acd389513ea7a2 463
+packages/design/src/physics/shape/IMeshShape.ts
+  s_a20fbf413cca3c::t_0835cd1ee443d2 8-9
+  s_a20fbf413cca3c::t_95c5aa160eb7c4 5-7,20,27-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "523f76c5eb8a5ce2f31277dee02ad31bd7957fed",
+  "prompts": {},
+  "sessions": {
+    "s_a20fbf413cca3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2088c-3f7f-7131-8505-b699d01f3e8d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": null
+    }
+  }
+}

@@ -1,0 +1,92 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 141,202-213,405-412
+  s_0373997fdb8cbf::t_874a5b066ebdd2 413
+packages/core/src/RenderPipeline/MaskManager.ts
+  s_0373997fdb8cbf::t_41675d49bfc028 114-119,141-144,146
+  s_0373997fdb8cbf::t_4dc10fa039509d 273-274
+  s_0373997fdb8cbf::t_536b2baec7c170 1-4,10-11,17,52-59,72-88,90-91,94-101,103-113,120-122,124-140,145,147-153,156-157,159,162-184,188,206
+packages/shader/src/Shaders/2D/UIRectMask.shader
+  s_0373997fdb8cbf::t_4dc10fa039509d 1-36
+packages/ui/src/component/UIRenderer.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 22,91,93,312,372-378,388-407,410-415,417-419,421-424,438
+packages/galacean/src/ShaderPool.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 12
+  s_0373997fdb8cbf::t_64d1cff73e7e9b 59
+packages/shader/src/Shaders/2D/Text.shader
+  s_0373997fdb8cbf::t_4dc10fa039509d 36,54
+tests/src/ui/Mask.test.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 53-64
+  s_0373997fdb8cbf::t_b6d9b606d2ac2b 65
+packages/core/src/RenderPipeline/CullingResults.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 15-16,24
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 18,27,48-58
+tests/src/ui/RectMask2D.test.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 11,13-22,60,64,67-69,169,198-199,202,218,420
+packages/ui/src/component/advanced/RectMask2D.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 1-2,7-11,21-22,63
+  s_0373997fdb8cbf::t_b6d9b606d2ac2b 14
+packages/core/src/Renderer.ts
+  s_0373997fdb8cbf::t_41675d49bfc028 66-69
+  s_0373997fdb8cbf::t_bd5c291186da94 60-65,70-71
+packages/core/src/shader/state/StencilState.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 176-177
+examples/src/ui-rect-mask.ts
+  s_0373997fdb8cbf::t_fd13a9847d3420 73
+  s_0373997fdb8cbf::t_4dc10fa039509d 1-72,74-204
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_0373997fdb8cbf::t_41675d49bfc028 133-137,225
+  s_0373997fdb8cbf::t_4dc10fa039509d 118,128,245-248
+  s_0373997fdb8cbf::t_ba3104b347d0ef 53-54,91-93,110-117,119-127,129-132,138-146,214-224,226-244
+e2e/case/ui-rectMask.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 29
+packages/ui/src/component/advanced/Mask.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 9-11
+packages/shader/src/ShaderLibrary/index.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 62,124
+tests/src/core/shader/state/RenderState.test.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 170-190
+packages/ui/src/enums/RectMaskMode.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 1-7
+packages/core/src/RenderPipeline/VertexMergeBatcher.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 24-33,36-40,49,57-76
+  s_0373997fdb8cbf::t_e356c96bda0a09 77-79
+packages/shader/src/ShaderLibrary/UI/RectClip.glsl
+  s_0373997fdb8cbf::t_4dc10fa039509d 1-14
+tests/src/ui/RectMask2DOutside.test.ts
+  s_0373997fdb8cbf::t_41675d49bfc028 539-541,595-597,620
+  s_0373997fdb8cbf::t_4dc10fa039509d 1-93,95-232,234-302,304-305,307,310-314,320-324,327-328,332,334,337-341,345-532,534-538,542-568,570,572-588,590,592-594,598-616,619,621-625,627-727
+  s_0373997fdb8cbf::t_8a5637be24e06f 571,589,591,626
+  s_0373997fdb8cbf::t_fd13a9847d3420 94,233,303,306,308-309,315-319,325-326,329-331,333,335-336,342-344,533,569,617-618
+packages/shader/src/Shaders/2D/UIDefault.shader
+  s_0373997fdb8cbf::t_4dc10fa039509d 28,60
+packages/core/src/BasicResources.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 96-110,112-114,116-122,124,183
+  s_0373997fdb8cbf::t_b37634cc152807 75-95,262-263
+packages/ui/src/index.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 4
+packages/shader/src/Shaders/index.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 8,40
+packages/core/src/RenderPipeline/RenderContext.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 8,35-37,75-81
+packages/core/src/shader/BuiltinShaders.ts
+  s_0373997fdb8cbf::t_8a22a8a91b7383 19
+packages/core/src/ui/UIUtils.ts
+  s_0373997fdb8cbf::t_e916fc3088619d 56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "53dce07e936781c7e08226392330995135e48029",
+  "prompts": {},
+  "sessions": {
+    "s_0373997fdb8cbf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a192e5-99f1-7531-8f6e-963a84b12db4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+packages/core/src/BasicResources.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 75-95
+packages/core/src/RenderPipeline/MaskManager.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 88,134-136,192
+  s_0373997fdb8cbf::t_011580966b53fb 2,44-45,47,52,58-73,76-79,81-87,89-97,100-104,108,126,214,216
+packages/core/src/ui/UIUtils.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 57
+  s_0373997fdb8cbf::t_d875673ffb2ddf 54-56
+  s_0373997fdb8cbf::t_576add430eb1e1 58-60
+packages/core/src/2d/sprite/SpriteMask.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 2,17-33
+  s_0373997fdb8cbf::t_d54f8dec37d922 34
+tests/src/ui/RectMask2D.test.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 326
+packages/ui/src/component/advanced/Mask.ts
+  s_0373997fdb8cbf::t_b6d9b606d2ac2b 11,14-15
+  s_0373997fdb8cbf::t_4dc10fa039509d 2-4,6-9,12-13
+tests/src/ui/Mask.test.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 2-3,6,9-11,14-15,17-20,22,24-31,33-50,53-65,67-87,89-106,108-118,121-130,133-148,150-158,160-172,175-188,190-206,208-223,226-238,240-241,243-282,284-314,317-319,322-326,328-330,335-336,338,342-348,351,353-373,375-380,382-388,391-398,401-433
+  s_0373997fdb8cbf::t_b6d9b606d2ac2b 21,119,389
+examples/src/ui-mask.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 54-61,68
+  s_0373997fdb8cbf::t_c4a0e6e8edb899 123,145
+packages/ui/src/component/UIRenderer.ts
+  s_0373997fdb8cbf::t_b6d9b606d2ac2b 84-86,297-307,371-377
+  s_0373997fdb8cbf::t_4dc10fa039509d 20,295-296,308-309,368-370
+  s_0373997fdb8cbf::t_8d5c3191dc411f 118-119,147,535
+packages/ui/src/component/UICanvas.ts
+  s_0373997fdb8cbf::t_4dc10fa039509d 29,45,436,439,526-527,534-535,548-552,575
+e2e/case/ui-mask.ts
+  s_0373997fdb8cbf::t_3fee5749c84404 51,82,105
+packages/core/src/2d/sprite/MaskRenderable.ts
+  s_0373997fdb8cbf::t_99f37806a97ab4 27,140,218,223,228,262
+packages/core/src/2d/sprite/SpriteMaskUtils.ts
+  s_0373997fdb8cbf::t_a706e8d0eb60b6 84,89,94,99-100
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_0373997fdb8cbf::t_ac70529f3bf6f1 93-97,101
+packages/core/src/RenderPipeline/VertexMergeBatcher.ts
+  s_0373997fdb8cbf::t_a3f2a34b5003eb 15-22,60-62
+packages/core/src/Renderer.ts
+  s_0373997fdb8cbf::t_4b0500f3cbaff7 3,57-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b90636240b80f6484ddf93cf804ab71dc4db9e44",
+  "prompts": {},
+  "sessions": {
+    "s_0373997fdb8cbf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a192e5-99f1-7531-8f6e-963a84b12db4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
