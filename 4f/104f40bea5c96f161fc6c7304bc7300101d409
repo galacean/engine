@@ -1,0 +1,16 @@
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 66,324-341,461-463,478,584,586
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 995-1053,1715-1743
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4f104f40bea5c96f161fc6c7304bc7300101d409",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

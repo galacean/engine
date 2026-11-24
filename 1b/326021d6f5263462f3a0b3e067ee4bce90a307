@@ -1,0 +1,14 @@
+packages/loader/src/SpriteAtlasLoader.ts
+  h_bd4dd7d663e619 32-35,39,76-87,89-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1b326021d6f5263462f3a0b3e067ee4bce90a307",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
