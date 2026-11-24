@@ -17,6 +17,7 @@ const greens = asset("greens.glb");
 const boulder = asset("boulder.glb");
 const mountain = asset("mountain.glb");
 const mountainBlue = asset("mountain-blue.glb");
+const NON_COLLIDING_ASSETS = new Set([oak, pine, wheat, greens, westArch, eastArch]);
 
 function model(
   id: string,
@@ -26,8 +27,10 @@ function model(
   scale: TemplateNode["scale"],
   yaw = 0,
   footprint?: TemplateNode["footprint"],
-  assetGroundY?: number
+  assetGroundY?: number,
+  collision?: boolean
 ): TemplateNode {
+  const explicitCollision = collision ?? (NON_COLLIDING_ASSETS.has(assetUrl) ? false : undefined);
   return {
     id,
     assetUrl,
@@ -37,6 +40,7 @@ function model(
     grounded: true,
     footprint,
     ...(assetGroundY === undefined ? {} : { assetGroundY }),
+    ...(explicitCollision === undefined ? {} : { collision: explicitCollision }),
     ...(assetUrl === mountain || assetUrl === mountainBlue ? { stretchToEnvelope: true } : {})
   };
 }

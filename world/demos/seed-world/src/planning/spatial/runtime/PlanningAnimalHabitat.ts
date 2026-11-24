@@ -4,6 +4,7 @@ import { PlanningAnimalSurface, type PlanningAnimalSurfaceData } from "./Plannin
 import type { AnimalPopulationPosition, AnimalPopulationDistribution } from "@galacean/engine-animals/gameplay/animal/AnimalPopulation";
 import type { IslandPlan, PlanPoint } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { planningWhiteboxes } from "@galacean/engine-world-planning/semantic-study/PlanningWhiteboxes";
+import { rockFormationFittedHeights } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Variants";
 
 export type PlanningAnimalMedium = "ground" | "air" | "water";
 
@@ -211,6 +212,7 @@ export class PlanningAnimalHabitat {
       }
     }
     const ground = (p: PlanPoint) => navigation.sampleHeightInterpolated(p.x, p.z) ?? 0;
+    const fittedRockHeights = rockFormationFittedHeights(plan);
     for (const part of planningWhiteboxes(plan, ground)) {
       // Decks and approaches are navigation support; treating their thickness as an obstacle blocks sloped decks.
       if (part.layer === "bridge") continue;
@@ -223,6 +225,13 @@ export class PlanningAnimalHabitat {
         const extentX = Math.abs(cos) * halfX + Math.abs(sin) * halfZ;
         const extentZ = Math.abs(sin) * halfX + Math.abs(cos) * halfZ;
         const bottom = box.elevation ?? ground(box.center);
+        const fittedHeight =
+          part.layer === "rock"
+            ? fittedRockHeights?.rockBoxes.get(box.id)
+            : part.layer === "landscape-rock"
+              ? fittedRockHeights?.landscapes.get(box.id)
+              : undefined;
+        const heightM = fittedHeight ?? box.sizeY;
         const solid: Solid = {
           // Match publication dependency identities. Unrelated part edits must not
           // renumber obstacles already visited by a suspended search.
@@ -234,7 +243,7 @@ export class PlanningAnimalHabitat {
           halfX,
           halfZ,
           bottom,
-          top: bottom + box.sizeY,
+          top: bottom + heightM,
           seen: 0,
           minX: box.center.x - extentX,
           maxX: box.center.x + extentX,
