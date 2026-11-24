@@ -16,6 +16,7 @@ import {
   RenderTarget,
   Shader,
   Texture2D,
+  TextureFilterMode,
   TextureFormat,
   UnlitMaterial,
   Vector4,
@@ -1037,6 +1038,120 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       texB.destroy();
       msaaRT.destroy();
       msaaTex.destroy();
+    }
+  });
+
+  it("resolves depth-only MSAA render targets via depthStoreAction and avoids redundant depth blits on MRT", () => {
+    // @ts-ignore
+    const context = engine._renderContext;
+    context.camera = camera;
+    const fullViewport = new Vector4(0, 0, 1, 1);
+
+    // 1. Depth-only 4x MSAA RenderTarget: clear 0.25 -> Resolve, then clear 0.75 -> Resolve, verify sampled depth updates to ~0.75
+    const depthTex = new Texture2D(engine, 16, 16, TextureFormat.Depth24, false, false);
+    depthTex.filterMode = TextureFilterMode.Point;
+    const depthRT = new RenderTarget(engine, 16, 16, null, depthTex, 4);
+
+    const readbackTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const readbackRT = new RenderTarget(engine, 16, 16, readbackTex, null, 1);
+    const depthSampleShader = Shader.create(`Shader "Test/DepthSample" {
+      SubShader "Default" {
+        Pass "0" {
+          DepthState = { Enabled = false; WriteEnabled = false; }
+          VertexShader = vert;
+          FragmentShader = frag;
+          struct Attributes { vec4 POSITION_UV; };
+          struct Varyings { vec2 v_uv; };
+          sampler2D renderer_BlitTexture;
+          Varyings vert(Attributes attr) {
+            Varyings v;
+            gl_Position = vec4(attr.POSITION_UV.xy, 0.0, 1.0);
+            v.v_uv = attr.POSITION_UV.zw;
+            return v;
+          }
+          void frag(Varyings v) {
+            float d = texture2D(renderer_BlitTexture, v.v_uv).r;
+            gl_FragColor = vec4(d, d, d, 1.0);
+          }
+        }
+      }
+    }`);
+    const depthSampleMat = new Material(engine, depthSampleShader);
+
+    // 2. MRT (2 color attachments) + DepthTexture + 4x MSAA: DEPTH_BUFFER_BIT must be blitted only once (on attachment 0)
+    const mrtColor0 = new Texture2D(engine, 8, 8, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const mrtColor1 = new Texture2D(engine, 8, 8, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const mrtDepth = new Texture2D(engine, 8, 8, TextureFormat.Depth24, false, false);
+    const mrtRT = new RenderTarget(engine, 8, 8, [mrtColor0, mrtColor1], mrtDepth, 4);
+
+    const desc = new RenderPassDescriptor();
+    const pixels = new Uint8Array(16 * 16 * 4);
+    const invSpy = vi.spyOn(gl, "invalidateFramebuffer");
+    const blitSpy = vi.spyOn(gl, "blitFramebuffer");
+
+    try {
+      // Seed depthTex to 0.25 via StoreAndResolve (must NOT invalidate READ depth)
+      invSpy.mockClear();
+      desc.reset(depthRT, fullViewport, true);
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
+      desc.clearDepth = 0.25;
+      desc.depthStoreAction = RenderPassStoreAction.StoreAndResolve;
+      context.beginRenderPass(desc);
+      context.endRenderPass();
+      expect(invSpy).not.toHaveBeenCalled();
+
+      Blitter.blitTexture(engine, depthTex, readbackRT, 0, fullViewport, depthSampleMat);
+      readbackTex.getPixelBuffer(pixels);
+      expect(pixels[0]).toBeGreaterThanOrEqual(60);
+      expect(pixels[0]).toBeLessThanOrEqual(68);
+
+      // Overwrite depth to 0.75 via Resolve (must blit DEPTH_BUFFER_BIT and invalidate READ_FRAMEBUFFER DEPTH_ATTACHMENT)
+      invSpy.mockClear();
+      blitSpy.mockClear();
+      desc.reset(depthRT, fullViewport, true);
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
+      desc.clearDepth = 0.75;
+      desc.depthStoreAction = RenderPassStoreAction.Resolve;
+      context.beginRenderPass(desc);
+      context.endRenderPass();
+
+      expect(blitSpy).toHaveBeenCalledTimes(1);
+      expect(blitSpy.mock.calls[0][8]).toBe(gl.DEPTH_BUFFER_BIT);
+      expect(invSpy).toHaveBeenCalledWith(gl.READ_FRAMEBUFFER, [gl.DEPTH_ATTACHMENT]);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+
+      Blitter.blitTexture(engine, depthTex, readbackRT, 0, fullViewport, depthSampleMat);
+      readbackTex.getPixelBuffer(pixels);
+      expect(pixels[0]).toBeGreaterThanOrEqual(187);
+      expect(pixels[0]).toBeLessThanOrEqual(195);
+
+      // MRT + depthTexture MSAA resolve: 2 color blits, but DEPTH_BUFFER_BIT only on the first blit
+      blitSpy.mockClear();
+      desc.reset(mrtRT, fullViewport, true);
+      desc.colorLoadAction = RenderPassLoadAction.Clear;
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
+      desc.colorStoreAction = RenderPassStoreAction.Resolve;
+      desc.depthStoreAction = RenderPassStoreAction.Resolve;
+      context.beginRenderPass(desc);
+      context.endRenderPass();
+
+      expect(blitSpy).toHaveBeenCalledTimes(2);
+      expect(blitSpy.mock.calls[0][8]).toBe(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      expect(blitSpy.mock.calls[1][8]).toBe(gl.COLOR_BUFFER_BIT);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+    } finally {
+      invSpy.mockRestore();
+      blitSpy.mockRestore();
+      depthSampleMat.destroy();
+      depthSampleShader.destroy();
+      depthRT.destroy();
+      depthTex.destroy();
+      readbackRT.destroy();
+      readbackTex.destroy();
+      mrtRT.destroy();
+      mrtColor0.destroy();
+      mrtColor1.destroy();
+      mrtDepth.destroy();
     }
   });
 });

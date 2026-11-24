@@ -482,21 +482,29 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._activeDepthStoreAction = RenderPassStoreAction.Store;
     this._activeStencilStoreAction = RenderPassStoreAction.Store;
 
+    const discardColor = colorStore === RenderPassStoreAction.Discard;
     const discardDepth = depthStore === RenderPassStoreAction.Discard;
     const discardStencil = stencilStore === RenderPassStoreAction.Discard;
 
-    if (
-      target &&
-      target.antiAliasing > 1 &&
-      (colorStore === RenderPassStoreAction.Resolve || colorStore === RenderPassStoreAction.StoreAndResolve)
-    ) {
-      const glRT = target._platformRenderTarget as GLRenderTarget;
-      glRT._resolveRenderTarget(colorStore === RenderPassStoreAction.Resolve, discardDepth, discardStencil);
-      return;
+    if (target && target.antiAliasing > 1) {
+      const resolveColor =
+        target.colorTextureCount > 0 &&
+        (colorStore === RenderPassStoreAction.Resolve || colorStore === RenderPassStoreAction.StoreAndResolve);
+      const resolveDepth =
+        !!target.depthTexture &&
+        (depthStore === RenderPassStoreAction.Resolve ||
+          depthStore === RenderPassStoreAction.StoreAndResolve ||
+          resolveColor);
+      if (resolveColor || resolveDepth) {
+        const glRT = target._platformRenderTarget as GLRenderTarget;
+        const discardMSAAColor = discardColor || colorStore === RenderPassStoreAction.Resolve;
+        const discardMSAADepth = discardDepth || depthStore === RenderPassStoreAction.Resolve;
+        glRT._resolveRenderTarget(resolveColor, discardMSAAColor, resolveDepth, discardMSAADepth, discardStencil);
+        return;
+      }
     }
 
     // Issue gl.invalidateFramebuffer on pass end so TBDR GPUs skip flushing discarded attachments back to DRAM.
-    const discardColor = colorStore === RenderPassStoreAction.Discard;
     if (discardColor || discardDepth || discardStencil) {
       this._invalidateFrameBufferAttachments(this._gl.FRAMEBUFFER, target, discardColor, discardDepth, discardStencil);
     }

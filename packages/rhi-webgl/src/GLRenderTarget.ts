@@ -161,46 +161,59 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    * Render passes with declared store actions use `_resolveRenderTarget` via `endRenderPass()`.
    */
   blitRenderTarget(): void {
-    this._resolveRenderTarget(false, false, false);
+    this._resolveRenderTarget(this._target.colorTextureCount > 0, false, !!this._target.depthTexture, false, false);
   }
 
   /** @internal */
-  _resolveRenderTarget(discardMSAA: boolean, discardDepth: boolean, discardStencil: boolean): void {
+  _resolveRenderTarget(
+    resolveColor: boolean,
+    discardMSAAColor: boolean,
+    resolveDepth: boolean,
+    discardDepth: boolean,
+    discardStencil: boolean
+  ): void {
     if (!this._MSAAFrameBuffer) return;
 
     const gl = this._gl;
     const rhi = this._rhi;
     const target = this._target;
-    const resolveDepth = !!target.depthTexture;
-    const mask = gl.COLOR_BUFFER_BIT | (resolveDepth ? gl.DEPTH_BUFFER_BIT : 0);
     const { colorTextureCount, width, height } = target;
+    resolveColor = resolveColor && colorTextureCount > 0;
+    resolveDepth = resolveDepth && !!target.depthTexture;
 
-    // Discard transient MSAA depth/stencil while _MSAAFrameBuffer is still the bound DRAW_FRAMEBUFFER
+    // Discard non-resolved MSAA attachments while _MSAAFrameBuffer is still the bound DRAW_FRAMEBUFFER
     // so TBDR GPUs skip flushing them before DRAW_FRAMEBUFFER switches to the resolve target (matches Unity TextureReadbackGLES.cpp)
+    const preDiscardColor = discardMSAAColor && !resolveColor;
     const preDiscardDepth = discardDepth && !resolveDepth;
-    if (preDiscardDepth || discardStencil) {
-      rhi._invalidateFrameBufferAttachments(gl.FRAMEBUFFER, target, false, preDiscardDepth, discardStencil);
+    if (preDiscardColor || preDiscardDepth || discardStencil) {
+      rhi._invalidateFrameBufferAttachments(gl.FRAMEBUFFER, target, preDiscardColor, preDiscardDepth, discardStencil);
     }
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
     rhi._disableScissorTest();
 
-    for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
-      const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
+    if (resolveColor) {
+      for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
+        const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
+        const mask = gl.COLOR_BUFFER_BIT | (resolveDepth && textureIndex === 0 ? gl.DEPTH_BUFFER_BIT : 0);
 
-      this._blitDrawBuffers![textureIndex] = attachment;
+        this._blitDrawBuffers![textureIndex] = attachment;
 
-      gl.readBuffer(attachment);
-      gl.drawBuffers(this._blitDrawBuffers!);
-      gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
+        gl.readBuffer(attachment);
+        gl.drawBuffers(this._blitDrawBuffers!);
+        gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
 
-      this._blitDrawBuffers![textureIndex] = gl.NONE;
+        this._blitDrawBuffers![textureIndex] = gl.NONE;
+      }
+    } else if (resolveDepth) {
+      gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
     }
 
+    const postDiscardColor = discardMSAAColor && resolveColor;
     const postDiscardDepth = discardDepth && resolveDepth;
-    if (discardMSAA || postDiscardDepth) {
-      rhi._invalidateFrameBufferAttachments(gl.READ_FRAMEBUFFER, target, discardMSAA, postDiscardDepth, false);
+    if (postDiscardColor || postDiscardDepth) {
+      rhi._invalidateFrameBufferAttachments(gl.READ_FRAMEBUFFER, target, postDiscardColor, postDiscardDepth, false);
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
