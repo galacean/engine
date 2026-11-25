@@ -56,8 +56,6 @@ export class Mask extends MaskRenderable(UIRenderer) {
     }
   }
 
-  protected override _updateRectMaskClipState(): void {}
-
   /**
    * @inheritdoc
    */

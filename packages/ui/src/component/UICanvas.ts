@@ -27,7 +27,7 @@ import { ResolutionAdaptationMode } from "../enums/ResolutionAdaptationMode";
 import { UIHitResult } from "../input/UIHitResult";
 import { IElement } from "../interface/IElement";
 import { IGroupAble } from "../interface/IGroupAble";
-import type { IMaskRenderable } from "@galacean/engine";
+import { UIClipScope } from "./UIClipScope";
 import { RectMask2D } from "./advanced/RectMask2D";
 import { UIGroup } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
@@ -43,8 +43,8 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   /** @internal */
   static _hierarchyCounter: number = 1;
   private static _tempGroupAbleList: IGroupAble[] = [];
-  private static _tempMaskList: IMaskRenderable[] = [];
-  private static _tempRectMaskList: RectMask2D[] = [];
+  @ignoreClone
+  private _clipVersion = 0;
   private static _tempVec3: Vector3 = new Vector3();
   private static _tempMat: Matrix = new Matrix();
 
@@ -262,15 +262,13 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
    */
   _raycast(ray: Ray, out: UIHitResult, distance: number, cullingMask: Layer): boolean {
     const minDistance = this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay ? -Infinity : 0;
+    const clipVersion = ++this._clipVersion;
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
-      if (
-        (cullingMask & element.entity.layer) !== 0 &&
-        element.raycastEnabled &&
-        element._raycast(ray, out, distance, minDistance)
-      ) {
-        return true;
+      if ((cullingMask & element.entity.layer) !== 0 && element.raycastEnabled) {
+        element._clipScope.resolve(this, clipVersion);
+        if (element._raycast(ray, out, distance, minDistance)) return true;
       }
     }
     out.component = null;
@@ -303,23 +301,33 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const nx = uy * vz - uz * vy;
     const ny = uz * vx - ux * vz;
     const nz = ux * vy - uy * vx;
-    const det = nx * nx + ny * ny + nz * nz;
-    if (!(det > 0)) {
-      return false;
+    let wx = e[8],
+      wy = e[9],
+      wz = e[10];
+    let det = nx * wx + ny * wy + nz * wz;
+    // A flattened ancestor can leave a small residual after Float32 matrix multiplication.
+    const normalLengthSq = nx * nx + ny * ny + nz * nz;
+    const zLengthSq = wx * wx + wy * wy + wz * wz;
+    if (det * det <= (2 ** -23) ** 2 * normalLengthSq * zLengthSq) {
+      // A flat canvas still has local XY coordinates if its two axes span a plane.
+      wx = nx;
+      wy = ny;
+      wz = nz;
+      det = normalLengthSq;
+      if (det === 0) return false;
     }
+
+    // First two rows of the affine inverse: (V × W) / det and (W × U) / det.
     const invDet = 1 / det;
-    const a = ux * ux + uy * uy + uz * uz;
-    const b = ux * vx + uy * vy + uz * vz;
-    const c = vx * vx + vy * vy + vz * vz;
+    const rxx = (vy * wz - vz * wy) * invDet;
+    const rxy = (vz * wx - vx * wz) * invDet;
+    const rxz = (vx * wy - vy * wx) * invDet;
+    const ryx = (wy * uz - wz * uy) * invDet;
+    const ryy = (wz * ux - wx * uz) * invDet;
+    const ryz = (wx * uy - wy * ux) * invDet;
     const ox = e[12],
       oy = e[13],
       oz = e[14];
-    const rxx = (c * ux - b * vx) * invDet;
-    const rxy = (c * uy - b * vy) * invDet;
-    const rxz = (c * uz - b * vz) * invDet;
-    const ryx = (a * vx - b * ux) * invDet;
-    const ryy = (a * vy - b * uy) * invDet;
-    const ryz = (a * vz - b * uz) * invDet;
     outAxisX.set(rxx, rxy, rxz, -(ox * rxx + oy * rxy + oz * rxz));
     outAxisY.set(ryx, ryy, ryz, -(ox * ryx + oy * ryy + oz * ryz));
     return true;
@@ -359,6 +367,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const virtualCamera = context.virtualCamera;
     this._updateSortDistance(virtualCamera.isOrthographic, virtualCamera.position, virtualCamera.forward);
     const { width, height } = engine.canvas;
+    const clipVersion = ++this._clipVersion;
     const renderers = this._getRenderers();
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
@@ -383,7 +392,16 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
             break;
         }
       }
-      renderer._prepareRender(context);
+      const scope = renderer._clipScope;
+      scope.resolve(this, clipVersion);
+      const start = renderElements.length;
+      renderer._prepareRender(context, this);
+      for (let j = start; j < renderElements.length; j++) {
+        const element = renderElements[j];
+        element._uiClip = scope;
+        element.priority = this.sortOrder;
+        element.distanceForSort = this._sortDistance;
+      }
       renderer._renderFrameCount = frameCount;
     }
 
@@ -472,11 +490,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const { _orderedRenderers: renderers, entity } = this;
     const uiHierarchyVersion = entity._uiHierarchyVersion;
     if (this._hierarchyVersion !== uiHierarchyVersion) {
-      UICanvas._tempMaskList.length = 0;
-      UICanvas._tempRectMaskList.length = 0;
-      renderers.length = this._walk(this.entity, renderers, 0, null, 0);
-      UICanvas._tempMaskList.length = 0;
-      UICanvas._tempRectMaskList.length = 0;
+      renderers.length = this._walk(this.entity, renderers);
       UICanvas._tempGroupAbleList.length = 0;
       this._hierarchyVersion = uiHierarchyVersion;
       ++UICanvas._hierarchyCounter;
@@ -563,16 +577,12 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     renderers: UIRenderer[],
     depth = 0,
     group: UIGroup | null = null,
-    rectMaskCount: number = 0,
-    maskCount: number = 0
+    scope = UIClipScope.empty
   ): number {
     // @ts-ignore
     const components: Component[] = entity._components;
     const tempGroupAbleList = UICanvas._tempGroupAbleList;
-    const tempRectMaskList = UICanvas._tempRectMaskList;
-    let localRectMaskCount = 0;
-    const masks = UICanvas._tempMaskList;
-    let localMaskCount = 0;
+    let childScope = scope;
     let groupAbleCount = 0;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
@@ -584,11 +594,10 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
         if (component._isGroupDirty) {
           tempGroupAbleList[groupAbleCount++] = component;
         }
-        component._setRectMasks(tempRectMaskList, rectMaskCount);
-        component._setMasks(masks, maskCount);
+        component._clipScope = scope;
         const mask = component._getUIMask();
         if (mask) {
-          masks[maskCount + localMaskCount++] = mask;
+          childScope = new UIClipScope(childScope, undefined, mask);
         }
       } else if (component instanceof UIInteractive) {
         component._isRootCanvasDirty && Utils.setRootCanvas(component, this);
@@ -596,7 +605,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
           tempGroupAbleList[groupAbleCount++] = component;
         }
       } else if (component instanceof RectMask2D) {
-        tempRectMaskList[rectMaskCount + localRectMaskCount++] = component;
+        childScope = new UIClipScope(childScope, component);
       } else if (component instanceof UIGroup) {
         component._isRootCanvasDirty && Utils.setRootCanvas(component, this);
         component._isGroupDirty && Utils.setGroup(component, group);
@@ -609,15 +618,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const children = entity.children;
     for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
-      child.isActive &&
-        (depth = this._walk(
-          child,
-          renderers,
-          depth,
-          group,
-          rectMaskCount + localRectMaskCount,
-          maskCount + localMaskCount
-        ));
+      if (child.isActive) depth = this._walk(child, renderers, depth, group, childScope);
     }
     return depth;
   }

@@ -1,3 +1,4 @@
+import { DepthState } from "../shader/state/DepthState";
 import { Matrix, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
@@ -34,6 +35,9 @@ export class RenderContext {
 
   /** Whether the currently bound target has a stencil attachment. */
   hasStencil = false;
+
+  /** When set, this pass owns depth testing and writing for all its draws. */
+  depthStateOverride: DepthState | null = null;
 
   flipProjection: boolean | null = false;
   viewMatrix: Matrix;

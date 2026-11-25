@@ -81,6 +81,15 @@ export class NullGraphicDevice implements IHardwareRenderer {
   clearRenderTarget(): void {}
   drawPrimitive(): void {}
   blitInternalRTByBlitFrameBuffer(): void {}
+  getMainFrameBufferWidth(): number {
+    return 0;
+  }
+  getMainFrameBufferHeight(): number {
+    return 0;
+  }
+  getMainFrameBufferColorFormat(): never {
+    throw new Error("A framebuffer is unavailable on a null graphics device.");
+  }
   copyRenderTargetToSubTexture(): never {
     throw new Error("Framebuffer copies require a graphics device.");
   }

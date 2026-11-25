@@ -176,7 +176,11 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
   }
 
-  protected override _render(context): void {
+  protected override _render(
+    context,
+    renderElements = this._getRootCanvas()!._renderElements,
+    referenceResolutionPerUnit = this._getRootCanvas()!.referenceResolutionPerUnit
+  ): void {
     const { _sprite: sprite } = this;
     const transform = <UITransform>this._transformEntity!.transform;
     const { x: width, y: height } = transform.size;
@@ -199,7 +203,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
 
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
-    const canvas = this._getRootCanvas()!;
     // Update position
     if (dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(
@@ -210,7 +213,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         transform.pivot,
         false,
         false,
-        canvas.referenceResolutionPerUnit
+        referenceResolutionPerUnit
       );
       dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
@@ -233,9 +236,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     const subChunk = this._subChunk;
     renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite!.texture, subChunk);
     renderElement.subShader = material.shader.subShaders[0];
-    renderElement.priority = canvas.sortOrder;
-    renderElement.distanceForSort = canvas._sortDistance;
-    canvas._renderElements.push(renderElement);
+    renderElements.push(renderElement);
   }
 
   @ignoreClone

@@ -85,9 +85,10 @@ export class MaskManager {
   drawUIMasks(context: RenderContext, stage: string, receiver: RenderElement): readonly RenderStateElementMap[] | null {
     const { component } = receiver;
     const interaction = component._maskInteraction;
-    const masks = interaction === SpriteMaskInteraction.None ? null : component._uiMasks;
+    const clip = receiver._uiClip!;
+    const masks = interaction === SpriteMaskInteraction.None ? null : clip.masks;
     const spriteCount = masks?.length ?? 0;
-    const rects = component._uiMaskOutsideRects;
+    const rects = clip.outsideRects;
     const rectCount = rects?.length ?? 0;
     if (spriteCount + rectCount > 8) {
       Logger.warn("UI masks support at most 8 stencil ancestors.");
@@ -147,14 +148,8 @@ export class MaskManager {
         this._rectMaskData
       );
       element.subShader = material.shader.subShaders[0];
-      this._rectMaskData.setVector4(
-        MaskManager._maskAxisXProp,
-        component._uiMaskAxisX ?? MaskManager._defaultMaskAxisX
-      );
-      this._rectMaskData.setVector4(
-        MaskManager._maskAxisYProp,
-        component._uiMaskAxisY ?? MaskManager._defaultMaskAxisY
-      );
+      this._rectMaskData.setVector4(MaskManager._maskAxisXProp, clip.axisX);
+      this._rectMaskData.setVector4(MaskManager._maskAxisYProp, clip.axisY);
       queue.batchedElements.push(element);
       for (let i = 0; i < rectCount; i++) {
         this._rectMaskData.setVector4(MaskManager._maskRectProp, rects![i]);

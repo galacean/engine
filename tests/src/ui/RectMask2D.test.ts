@@ -333,7 +333,7 @@ describe("RectMask2D", () => {
     expect(countRed()).toBeGreaterThan(100);
   });
 
-  it("should apply multiple RectMask2D on the same entity and clear static temp list after walk", async () => {
+  it("applies multiple RectMask2D on the same entity and releases their scope on destruction", async () => {
     const fixture = await createUIFixture({ width: 128, height: 128 });
     const maskEntity = fixture.canvasEntity.createChild("multiMask");
     (maskEntity.transform as UITransform).size.set(60, 60);
@@ -353,8 +353,8 @@ describe("RectMask2D", () => {
     expect(sampleWorldPixel(fixture, 20, 64)[0]).toBeLessThan(20);
 
     fixture.canvasEntity.destroy();
-    // @ts-ignore
-    expect(UICanvas._tempRectMaskList.length).toBe(0);
+    expect(image._clipScope.outsideRects).toHaveLength(0);
+    expect(image._clipScope.hasInside).toBe(false);
   });
 });
 

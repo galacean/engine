@@ -17,8 +17,12 @@ import {
   SpriteRenderer,
   Texture2D,
   RenderTarget,
+  Layer,
   TextureFormat
 } from "@galacean/engine-core";
+import { Ray, Vector3 } from "@galacean/engine-math";
+import { UIHitResult } from "../../../packages/ui/src/input/UIHitResult";
+import { WebXRSession } from "../../../packages/xr-webxr/src/WebXRSession";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import {
   CanvasRenderMode,
@@ -439,6 +443,206 @@ describe("RectMask2D Outside", () => {
     }
   });
 
+  for (const alpha of [false, true]) {
+    it(`preserves screen RGBA when switching to masked Overlay (alpha=${alpha})`, async () => {
+      const f = await createFixture(CanvasRenderMode.ScreenSpaceOverlay, false, undefined, true, alpha);
+      f.engine.sceneManager.activeScene.background.solidColor.set(0.2, 0.4, 0.6, 0.5);
+      const hole = addRect(f.ui, outside, 20);
+      const image = addImage(f, hole.entity);
+      image.color.a = 0.5;
+      hole.enabled = false;
+      render(f);
+      const background = pixel(f, 64, 2);
+      const blended = pixel(f, 30, 64);
+      expect(background[0]).toBeGreaterThan(0);
+      expect(background[3]).toBe(alpha ? 128 : 255);
+      hole.enabled = true;
+      render(f);
+      expect(getGL(f).getError()).toBe(getGL(f).NO_ERROR);
+      expect(pixel(f, 64, 64)).toEqual(background);
+      expect(pixel(f, 30, 64)).toEqual(blended);
+    });
+  }
+
+  it.each([false, true])(
+    "preserves Overlay order when a sibling starts using stencil (existing depth=%s)",
+    async (existingDepth) => {
+      const f = await createFixture(CanvasRenderMode.ScreenSpaceOverlay, true, undefined, true, true, existingDepth);
+      expect(getGL(f).getContextAttributes()!.depth).toBe(existingDepth);
+      const blue = new UnlitMaterial(f.engine);
+      blue.isTransparent = true;
+      blue.shaderData.setInt("depthWriteEnabled", 1);
+      blue.baseColor.set(0, 0, 1, 1);
+      addImage(f, f.ui).setMaterial(blue);
+      const top = addImage(f, f.ui);
+      const hole = addRect(f.ui, outside, 8, 50);
+      const masked = addImage(f, hole.entity);
+      (masked.entity.transform as UITransform).size.set(18, 18);
+      for (const enabled of [false, true]) {
+        hole.enabled = enabled;
+        render(f);
+        expect(Array.from(pixel(f, 64, 64))).toEqual([255, 0, 0, 255]);
+        expectClick(f, top, 64, 64, true);
+      }
+    }
+  );
+
+  it.each([
+    [256, true],
+    [128, false]
+  ] as const)("preserves redirected output width %i and alpha (context alpha=%s)", async (width, alpha) => {
+    const f = await createFixture(CanvasRenderMode.ScreenSpaceOverlay, false, undefined, true, alpha);
+    f.ui.parent!.findByName("camera")!.getComponent(Camera)!.enabled = false;
+    const left = addImage(f, f.ui, -32);
+    (left.entity.transform as UITransform).size.set(64, 128);
+    const right = addImage(f, f.ui, 32);
+    (right.entity.transform as UITransform).size.set(64, 128);
+    right.color.set(0, 0, 1, 0.5);
+
+    const holes = [1, 2].map((order) => {
+      const canvas = f.ui.parent!.createChild("overlay").addComponent(UICanvas);
+      canvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+      canvas.referenceResolution.set(128, 128);
+      canvas.sortOrder = order;
+      const hole = addRect(canvas.entity, outside, 8);
+      const image = addImage(f, hole.entity);
+      (image.entity.transform as UITransform).size.set(16, 16);
+      return hole;
+    });
+
+    const gl = getGL(f) as WebGL2RenderingContext;
+    const color = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, color);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, width, 128);
+    const framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, color);
+    const session = new WebXRSession(
+      f.engine._hardwareRenderer,
+      { requestAnimationFrame: () => 1, cancelAnimationFrame: () => {} } as unknown as XRSession,
+      { framebuffer, framebufferWidth: width, framebufferHeight: 128 } as XRWebGLLayer,
+      {} as XRReferenceSpace
+    );
+    const copy = vi.spyOn(gl, "copyTexSubImage2D");
+    try {
+      session.onUpdate();
+      for (const enabled of [false, true]) {
+        for (const hole of holes) hole.enabled = enabled;
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        copy.mockClear();
+        render(f);
+        expect(copy).toHaveBeenCalledTimes(enabled ? 1 : 0);
+        expect(Array.from(pixel(f, width - 12, 72))).toEqual([0, 0, 127, 128]);
+        expect(gl.getError()).toBe(gl.NO_ERROR);
+      }
+    } finally {
+      copy.mockRestore();
+      session.stop();
+      gl.deleteFramebuffer(framebuffer);
+      gl.deleteRenderbuffer(color);
+    }
+  });
+
+  it("uses the surviving XY plane of a rotated canvas under a flattened parent", async () => {
+    const f = await createFixture(CanvasRenderMode.WorldSpace);
+    const root = f.ui.parent!;
+    const camera = root.findByName("camera")!.getComponent(Camera)!;
+    camera.entity.transform.setPosition(64, 64, 85);
+    camera.farClipPlane = 1000;
+    const holder = root.createChild("flat parent");
+    holder.transform.setPosition(64, 64, 0);
+    holder.transform.setScale(1, 1, 0);
+    holder.transform.setRotation(21, 27, 6);
+    holder.addChild(f.ui);
+    f.ui.transform.setPosition(0, 0, 0);
+    f.ui.transform.setRotation(14, 32, 15);
+    const mask = addRect(f.ui, inside, 24);
+    const image = addImage(f, mask.entity);
+    for (const mode of [inside, outside]) {
+      mask.mode = mode;
+      expectVisible(f, image, 64, 64, mode === inside);
+      expectVisible(f, image, 92, 64, mode === outside);
+    }
+  });
+
+  it("resolves sibling clipping once per traversal and refreshes it for same-frame input", async () => {
+    const f = await createFixture(CanvasRenderMode.WorldSpace);
+    const mask = addRect(f.ui, inside, 40);
+    const first = addImage(f, mask.entity);
+    const top = addImage(f, mask.entity);
+    const canvas = f.ui.getComponent(UICanvas)!;
+    const ray = new Ray(new Vector3(64, 64, 10), new Vector3(0, 0, -1));
+    const hit = new UIHitResult();
+    const geometry = vi.spyOn(mask, "_getCanvasRect");
+    render(f);
+    expect(geometry).toHaveBeenCalledTimes(1);
+    expect(canvas._raycast(ray, hit, 100, Layer.Everything)).toBe(true);
+    expect(hit.entity).toBe(top.entity);
+    mask.mode = outside;
+    geometry.mockClear();
+    expect(canvas._raycast(ray, hit, 100, Layer.Everything)).toBe(false);
+    expect(geometry).toHaveBeenCalledTimes(1);
+    mask.entity.transform.setPosition(32, 0, 0);
+    expect(canvas._raycast(ray, hit, 100, Layer.Everything)).toBe(true);
+    expect(hit.entity).toBe(top.entity);
+    f.ui.addChild(first.entity);
+    mask.entity.transform.setPosition(0, 0, 0);
+    expect(canvas._raycast(ray, hit, 100, Layer.Everything)).toBe(true);
+    expect(hit.entity).toBe(first.entity);
+  });
+
+  it("copies the Overlay background only for a masked Transparent Forward pass", async () => {
+    const f = await createFixture(CanvasRenderMode.ScreenSpaceOverlay, false, new ShaderCompiler());
+    const image = addImage(f, addRect(f.ui, outside, 20).entity);
+    const uiMaterial = image.getMaterial()!;
+    const depthShader =
+      Shader.find("Test/UIDepthOnly") ??
+      Shader.create(`Shader "Test/UIDepthOnly" {
+        SubShader "Default" { UsePass "Pipeline/DepthOnly/Default/DepthOnly" }
+      }`)!;
+    const opaque = new UnlitMaterial(f.engine);
+    const copy = vi.spyOn(getGL(f), "copyTexSubImage2D");
+    try {
+      for (const material of [new Material(f.engine, depthShader), opaque, uiMaterial]) {
+        image.setMaterial(material);
+        copy.mockClear();
+        render(f);
+        const draws = material === uiMaterial;
+        expect(copy).toHaveBeenCalledTimes(draws ? 1 : 0);
+        expect(pixel(f, 30, 64)[0]).toBe(draws ? 255 : 0);
+        expect(pixel(f, 64, 64)[0]).toBe(0);
+      }
+    } finally {
+      copy.mockRestore();
+    }
+  });
+
+  for (const mode of [inside, outside]) {
+    it(`clips in sheared canvas local XY when the receiver moves in Z (mode=${mode})`, async () => {
+      const f = await createFixture(CanvasRenderMode.WorldSpace);
+      const root = f.ui.parent!;
+      const camera = root.findByName("camera")!.getComponent(Camera)!;
+      camera.entity.transform.setPosition(64, 64, 128);
+      camera.farClipPlane = 512;
+      const holder = root.createChild("scaled holder");
+      holder.transform.setPosition(64, 64, 0);
+      holder.transform.setScale(2, 1, 1);
+      holder.addChild(f.ui);
+      f.ui.transform.setPosition(0, 0, 0);
+      f.ui.transform.setRotation(0, 45, 0);
+      const image = addImage(f, addRect(f.ui, mode, 10).entity);
+      image.entity.transform.setPosition(0, 0, 20);
+      // Local (0, 0, 20) projects to x=92.3, within the mask's local x range [-5, 5].
+      expectVisible(f, image, 92, 64, mode === inside);
+      expectVisible(f, image, 104, 64, mode === outside);
+      // Flattening Z moves the image center back to x=64 and leaves its XY plane valid.
+      f.ui.transform.setScale(1, 1, 0);
+      expectVisible(f, image, 64, 64, mode === inside);
+      expectVisible(f, image, 76, 64, mode === outside);
+    });
+  }
+
   it("draws the complement of image-mask intersections only once per pixel", async () => {
     const f = await createFixture();
     const a = f.ui.createChild("a").addComponent(Mask);
@@ -472,7 +676,7 @@ describe("RectMask2D Outside", () => {
     const image = addImage(f, parent);
     expectVisible(f, image, 64, 64, true);
     // No active stencil rectangles are derived from empty constraints.
-    expect(image._uiMaskOutsideRects.length).toBe(0);
+    expect(image._clipScope.outsideRects.length).toBe(0);
   });
 
   it("clips world XY on the receiver plane under perspective projection", async () => {
@@ -800,13 +1004,16 @@ async function createFixture(
   mode = CanvasRenderMode.ScreenSpaceOverlay,
   stencil = true,
   shaderCompiler?: ShaderCompiler,
-  depth = true
+  depth = true,
+  alpha = true,
+  existingDepth = false
 ): Promise<Fixture> {
   const canvas = document.createElement("canvas");
   canvas.style.width = "128px";
   canvas.style.height = "128px";
   document.body.appendChild(canvas);
-  const engine = await WebGLEngine.create({ canvas, shaderCompiler, graphicDeviceOptions: { stencil, depth } });
+  if (existingDepth) canvas.getContext("webgl2", { depth: true, alpha, stencil: false, antialias: false });
+  const engine = await WebGLEngine.create({ canvas, shaderCompiler, graphicDeviceOptions: { stencil, depth, alpha } });
   engine.canvas.setResolution(128, 128);
   const scene = engine.sceneManager.activeScene;
   scene.background.solidColor.set(0, 0, 0, 1);

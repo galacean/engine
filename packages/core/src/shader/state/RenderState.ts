@@ -45,7 +45,7 @@ export class RenderState extends DataObject {
     const lastRenderState = engine._lastRenderState;
     const context = engine._renderContext;
     this.blendState._apply(hardwareRenderer, lastRenderState, customRenderStates);
-    this.depthState._apply(hardwareRenderer, lastRenderState, customRenderStates);
+    (context.depthStateOverride ?? this.depthState)._apply(hardwareRenderer, lastRenderState, customRenderStates);
     this.stencilState._apply(hardwareRenderer, lastRenderState, customRenderStates);
     this.rasterState._apply(
       hardwareRenderer,

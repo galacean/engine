@@ -399,7 +399,7 @@ export class BasicRenderPipeline {
       );
 
       // Inspect every pass before deduplicating queues (Forward and DepthOnly can share a queue).
-      if (renderElement.component._usesUIStencil) {
+      if (renderElement._usesUIStencil) {
         const stage = shaderPass.getTagValue(RenderContext.pipelineStageKey);
         if (stage === PipelineStage.Forward) {
           cullingResults.forwardNeedsUIStencil = true;
