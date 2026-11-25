@@ -67,7 +67,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
     this._assembler.initialize(this);
 
-    if (cureType._isCopyMode) {
+    // With separate read and write paths, a mutable read result may not be the write target.
+    if (cureType._isCopyMode && (!getProperty || getProperty === property)) {
       const value = this._assembler.getTargetValue();
       if (!Object.isFrozen(value)) this._writableTarget = value;
     }
