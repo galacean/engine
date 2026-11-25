@@ -38,11 +38,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     pose.translation.copyFrom(center);
     const rotation = pose.rotation;
     if (orientation) {
-      if (axis) {
-        Quaternion.multiply(orientation, axis, rotation);
-      } else {
-        rotation.copyFrom(orientation);
-      }
+      axis ? Quaternion.multiply(orientation, axis, rotation) : rotation.copyFrom(orientation);
       rotation.normalize();
     } else {
       rotation.set(0, 0, 0, 1);

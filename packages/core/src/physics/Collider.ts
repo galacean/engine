@@ -290,11 +290,7 @@ export class Collider extends Component {
     if (!this.entity._isActiveInScene && this._findRigidbody() !== this._attachedBody) return;
     if (poseOnly) {
       const body = this._attachedBody;
-      if (body) {
-        this._syncShapePose(this._native!, body, false);
-      } else {
-        this._syncStaticActor(transform);
-      }
+      body ? this._syncShapePose(this._native!, body, false) : this._syncStaticActor(transform);
       return;
     }
 
@@ -336,11 +332,7 @@ export class Collider extends Component {
     this._syncShapePose(shape, body, replaced);
     if (!attachedActor) {
       actor.addShape(shape);
-      if (body) {
-        body._attachCollider(this);
-      } else {
-        scene.physics._nativePhysicsScene.addActor(actor);
-      }
+      body ? body._attachCollider(this) : scene.physics._nativePhysicsScene.addActor(actor);
       this._nativeActor = actor;
       this._attachedBody = body;
     } else if (replaced) {

@@ -83,11 +83,7 @@ export abstract class PhysXShape implements IPhysicsShape {
     const pose = PhysXShape._pose;
     const nativeRotation = pose.rotation;
     pose.translation.copyFrom(position);
-    if (axis) {
-      Quaternion.multiply(rotation, axis, nativeRotation);
-    } else {
-      nativeRotation.copyFrom(rotation);
-    }
+    axis ? Quaternion.multiply(rotation, axis, nativeRotation) : nativeRotation.copyFrom(rotation);
     nativeRotation.normalize();
     this._pxShape.setLocalPose(pose);
   }

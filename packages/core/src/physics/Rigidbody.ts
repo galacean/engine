@@ -825,11 +825,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._registeredScene = scene;
     this._poseSynced = false;
     if (this._massChanges) scene.physics._queueMassUpdate(this);
-    if (this._sleepPending) {
-      scene.physics._scheduleSleep(this, true);
-    } else {
-      this._wakeNative();
-    }
+    this._sleepPending ? scene.physics._scheduleSleep(this, true) : this._wakeNative();
     this._syncJoints();
     this._markCollidersDirty();
   }

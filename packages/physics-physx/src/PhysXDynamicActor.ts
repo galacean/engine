@@ -205,11 +205,7 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
    * {@inheritDoc IDynamicActor.addForceAtPosition }
    */
   addForceAtPosition(force: Vector3, position: Vector3, impulse: boolean): void {
-    if (impulse) {
-      this._pxActor.addImpulseAtPos(force, position);
-    } else {
-      this._pxActor.addForceAtPos(force, position);
-    }
+    impulse ? this._pxActor.addImpulseAtPos(force, position) : this._pxActor.addForceAtPos(force, position);
   }
 
   /**
