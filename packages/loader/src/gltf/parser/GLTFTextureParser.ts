@@ -70,7 +70,8 @@ export class GLTFTextureParser extends GLTFParser {
       texture = context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
         const buffer = buffers![bufferView.buffer];
         const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
-        return ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType).then((image) => {
+        const imageUrl = imageName || textureName || url;
+        return ImageDecoder._withTextureSource(imageBuffer, imageUrl, mimeType, (image) => {
           if (context._aborted) throw "canceled";
           const { width, height } = image;
           const format = TextureFormat.R8G8B8A8_UNorm;

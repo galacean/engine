@@ -91,7 +91,10 @@ beforeAll(async () => {
   engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   pngBytes = await encodeCanvas("image/png");
   jpegBytes = await encodeCanvas("image/jpeg");
-  webpBytes = await encodeCanvas("image/webp");
+  // WebKit's canvas encoder can return PNG when asked for WebP.
+  webpBytes = Uint8Array.from(atob("UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v02aAA="), (c) =>
+    c.charCodeAt(0)
+  );
 });
 
 afterEach(() => {
@@ -150,14 +153,48 @@ describe("ImageDecoder", () => {
     expect(types).toEqual(["image/jpeg"]);
   });
 
-  it("decodes a Galacean binary Texture2D through a typed blob", async () => {
-    const types = spyObjectUrlTypes();
-    mockRequest(encodeGalaceanTexture("Texture2D", [pngBytes]));
+  it("uploads binary Texture2D with stable translucent pixels and releases any bitmap", async () => {
+    const nativeDecode = createImageBitmap.bind(globalThis);
+    const bitmaps: ImageBitmap[] = [];
+    const bitmapTypes: string[] = [];
+    const bitmapDecoder = vi.spyOn(globalThis, "createImageBitmap").mockImplementation(async (source, options) => {
+      bitmapTypes.push((source as Blob).type);
+      const bitmap = await nativeDecode(source, options as ImageBitmapOptions);
+      bitmaps.push(bitmap);
+      return bitmap;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "rgba(220, 70, 20, 0.5)";
+    ctx.fillRect(0, 0, 1, 1);
+    const image = await new Promise<Blob>((resolve) => canvas.toBlob((blob) => resolve(blob!), "image/png"));
+    mockRequest(encodeGalaceanTexture("Texture2D", [new Uint8Array(await image.arrayBuffer())]));
     const texture = await engine.resourceManager.load<Texture2D>({
-      url: "image-decoder/2d.tex",
+      url: "image-decoder/bitmap.tex",
       type: AssetType.Texture
     });
-    expect(texture).toBeInstanceOf(Texture2D);
+    const bitmapPixels = new Uint8Array(4);
+    texture.getPixelBuffer(bitmapPixels);
+    if (navigator.vendor === "Google Inc.") {
+      expect(bitmapTypes).toEqual(["image/png"]);
+      expect(bitmaps[0].width).toBe(0);
+    } else {
+      expect(bitmapTypes).toEqual([]);
+    }
+
+    // A bitmap decoder that cannot handle these bytes still uses the platform image decoder.
+    bitmapDecoder.mockRejectedValueOnce(new DOMException("Cannot decode bitmap", "InvalidStateError"));
+    const types = spyObjectUrlTypes();
+    const fallback = await engine.resourceManager.load<Texture2D>({
+      url: "image-decoder/element.tex",
+      type: AssetType.Texture
+    });
+    const imagePixels = new Uint8Array(4);
+    fallback.getPixelBuffer(imagePixels);
+    expect(imagePixels[3]).toBe(128);
+    expect(bitmapPixels).toEqual(imagePixels);
     expect(types).toEqual(["image/png"]);
   });
 
@@ -214,10 +251,15 @@ describe("ImageDecoder", () => {
       const glb = encodeGLBTexture(pngBytes);
       const dataUrl = `data:model/gltf-binary;base64,${btoa(String.fromCharCode(...new Uint8Array(glb)))}`;
       const resource = await localEngine.resourceManager.load<GLTFResource>({ url: dataUrl, type: AssetType.GLTF });
-      expect(resource.textures?.[0].width).toBe(1);
-      expect(resource.textures?.[0].height).toBe(1);
+      const texture = resource.textures![0];
+      const before = new Uint8Array(4);
+      const after = new Uint8Array(4);
+      texture.getPixelBuffer(before);
+      expect(before).toEqual(new Uint8Array([0, 0, 0, 255]));
+      texture.setPixelBuffer(new Uint8Array([255, 0, 0, 255]));
       await localEngine.resourceManager._restoreResourcesContent();
-      expect(resource.textures?.[0].width).toBe(1);
+      texture.getPixelBuffer(after);
+      expect(after).toEqual(before);
 
       const brokenGlb = encodeGLBTexture(new Uint8Array([1, 2, 3, 4]));
       const brokenUrl = `data:model/gltf-binary;base64,${btoa(String.fromCharCode(...new Uint8Array(brokenGlb)))}`;

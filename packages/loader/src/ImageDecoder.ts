@@ -1,5 +1,10 @@
 import { AssetPromise, Platform, SystemInfo } from "@galacean/engine-core";
 
+// Chromium 112 added the from-image option. WebKit can round translucent RGB differently.
+const chromiumVersion =
+  typeof navigator === "undefined" ? "" : /\b(?:(?:Headless)?Chrome|Chromium)\/(\d+)/.exec(navigator.userAgent)?.[1];
+const supportsBitmapUpload = Number(chromiumVersion) >= 112;
+
 /**
  * Decodes encoded image bytes (PNG, JPEG, WebP, ...) into an image element.
  *
@@ -10,10 +15,47 @@ import { AssetPromise, Platform, SystemInfo } from "@galacean/engine-core";
  */
 export class ImageDecoder {
   static _decode(data: ArrayBuffer | ArrayBufferView, url: string, mimeType?: string): AssetPromise<HTMLImageElement> {
+    return ImageDecoder._decodeElement(ImageDecoder._createBlob(data, mimeType), url);
+  }
+
+  /** Decode for a synchronous 2D texture upload and release the bitmap even if the upload throws. */
+  static _withTextureSource<T>(
+    data: ArrayBuffer | ArrayBufferView,
+    url: string,
+    mimeType: string | undefined,
+    upload: (image: HTMLImageElement | ImageBitmap) => T
+  ): AssetPromise<T> {
+    const blob = ImageDecoder._createBlob(data, mimeType);
+    if (!supportsBitmapUpload || typeof createImageBitmap !== "function") {
+      return ImageDecoder._decodeElement(blob, url).then(upload);
+    }
+
+    // ImageBitmap takes these settings at decode time. WebGL's unpack flags do not apply to it.
+    return AssetPromise.resolve(
+      createImageBitmap(blob, {
+        imageOrientation: "from-image",
+        premultiplyAlpha: "none",
+        colorSpaceConversion: "default"
+      })
+    ).then(
+      (bitmap) => {
+        try {
+          return upload(bitmap);
+        } finally {
+          bitmap.close();
+        }
+      },
+      () => ImageDecoder._decodeElement(blob, url).then(upload)
+    );
+  }
+
+  private static _createBlob(data: ArrayBuffer | ArrayBufferView, mimeType?: string): Blob {
+    return new Blob([data as BlobPart], { type: mimeType || ImageDecoder._getMimeType(data) });
+  }
+
+  private static _decodeElement(blob: Blob, url: string): AssetPromise<HTMLImageElement> {
     return new AssetPromise((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(
-        new Blob([data as BlobPart], { type: mimeType || ImageDecoder._getMimeType(data) })
-      );
+      const objectUrl = URL.createObjectURL(blob);
       const image = new Image();
       image.onload = () => {
         const complete = () => {
@@ -32,7 +74,7 @@ export class ImageDecoder {
       };
       image.onerror = image.onabort = () => {
         ImageDecoder._releaseObjectUrl(image, objectUrl);
-        reject(new Error(`TextureLoader: failed to decode texture "${url}" (${data.byteLength} bytes).`));
+        reject(new Error(`TextureLoader: failed to decode texture "${url}" (${blob.size} bytes).`));
       };
       image.crossOrigin = "anonymous";
       image.src = objectUrl;
