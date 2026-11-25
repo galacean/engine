@@ -20,7 +20,7 @@ export class SeedWorldAnnotationHistory {
     return copy;
   }
   add(shape: ViewAnnotation): void {
-    if (this.cursor >= 64) throw new Error("最多保留 64 笔，请撤销部分标记后再画。");
+    if (this.cursor >= 64) throw new Error("已达 64 笔，本笔未保存。\n请先发送当前照片，或重拍。");
     this.marks.splice(this.cursor, this.marks.length - this.cursor, structuredClone(shape));
     this.cursor++;
   }

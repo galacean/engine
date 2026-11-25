@@ -44,7 +44,7 @@ function serializeBounded(
   const normalized = normalize(value, label, rejectUndefinedProperties);
   const size = byteLength(normalized);
   if (size > maxBytes) {
-    throw new AgentValueError(`${label} exceeds ${maxBytes} bytes`);
+    throw new AgentValueSizeError(`${label} exceeds ${maxBytes} bytes`);
   }
   return normalized;
 }
@@ -165,6 +165,8 @@ export class AgentValueError extends Error {
     this.name = "AgentValueError";
   }
 }
+
+export class AgentValueSizeError extends AgentValueError {}
 
 export class AgentOutputTooLargeError extends AgentValueError {
   constructor(message: string) {
