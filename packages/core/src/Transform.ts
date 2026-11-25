@@ -235,7 +235,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
       if (parent) {
         // Clear ancestor WorldScale dirty flags on both paths.
         const parentLossyWorldScale = parent.lossyWorldScale;
-        if (parent._getWorldUniformScaling()) {
+        if (parent._getWorldUniformScaling() || this._isLocalRotationIdentity()) {
           Vector3.multiply(parentLossyWorldScale, this._scale, this._lossyWorldScale);
         } else {
           const scaleMat = this._getScaleMatrix();
@@ -810,6 +810,15 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
   }
 
+  private _isLocalRotationIdentity(): boolean {
+    if (this._isContainDirtyFlag(TransformModifyFlags.LocalQuat)) {
+      const rotation = this._rotation;
+      return rotation.x === 0 && rotation.y === 0 && rotation.z === 0;
+    }
+    const q = this._rotationQuaternion;
+    return q.x === 0 && q.y === 0 && q.z === 0 && (q.w === 1 || q.w === -1);
+  }
+
   private _getScaleMatrix(): Matrix3x3 {
     const invRotation = Transform._tempQuat0;
     const invRotationMat = Transform._tempMat30;
@@ -900,7 +909,8 @@ export class Transform extends Component implements ICloneHook<Transform> {
     }
   }
 
-  private _getWorldUniformScaling(): boolean {
+  /** @internal */
+  _getWorldUniformScaling(): boolean {
     if (this._isContainDirtyFlag(TransformModifyFlags.IsWorldUniformScaling)) {
       const localUniformScaling = this._localUniformScaling;
       if (localUniformScaling) {

@@ -101,7 +101,12 @@ describe("Transform test", function () {
       child.transform.setScale(4, 5, 6);
       child.transform.setRotation(90, 0, 0);
       expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(4, 15, 12));
-      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(2);
+      // Unrotated parent uses exact scalar multiplication; rotated child still falls back to matrix decomposition.
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(1);
+
+      grandparent.transform.localMatrix = new Matrix();
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(4, 5, 6));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(1);
 
       parent.transform.setPosition(4, 0, 0);
       grandparent.transform.setScale(2, 2, 3);
@@ -113,6 +118,7 @@ describe("Transform test", function () {
       // Establish a clean uniform baseline before testing set localMatrix after position + uniform rotation
       grandparent.transform.setScale(2, 2, 2);
       expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(8, 10, 12));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(2);
 
       parent.transform.setPosition(1, 2, 3);
       parent.transform.setRotation(0, 90, 0);
@@ -123,6 +129,61 @@ describe("Transform test", function () {
     } finally {
       scaleMatMultiplySpy.mockRestore();
       grandparent.destroy();
+    }
+  });
+
+  it("keeps unrotated child lossyWorldScale exact without matrix decomposition while a non-uniform parent rotates", () => {
+    const parent = scene.createRootEntity("non-uniform-parent");
+    const child = parent.createChild("unrotated-child");
+    const grandchild = child.createChild("unrotated-grandchild");
+    const scaleMatMultiplySpy = vi.spyOn(Matrix3x3, "multiply");
+    try {
+      parent.transform.setScale(2, 3, 2);
+      grandchild.transform.setScale(2, 0.5, 4);
+
+      for (let step = 1; step <= 90; step++) {
+        parent.transform.setRotation(0, step * 3.7, 0);
+        expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 2));
+        expect(grandchild.transform.lossyWorldScale).toEqual(new Vector3(4, 1.5, 8));
+      }
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+
+      child.transform.setRotation(0, 0, 90);
+      expect(child.transform.lossyWorldScale).toEqual(new Vector3(3, 2, 2));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(1);
+
+      scaleMatMultiplySpy.mockClear();
+      child.transform.setRotationQuaternion(0, 0, 0, -1);
+      parent.transform.setRotation(0, 37, 0);
+      expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 2));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+
+      child.transform.setRotation(0, 0, 0);
+      parent.transform.setRotation(0, 74, 0);
+      expect(child.transform.lossyWorldScale).toEqual(new Vector3(2, 3, 2));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+
+      // Unrotated child under a sheared parent still matches its matrix scale without extra multiplication.
+      const shearGrandparent = scene.createRootEntity("shear-grandparent");
+      const shearParent = shearGrandparent.createChild("shear-parent");
+      const shearChild = shearParent.createChild("shear-child");
+      try {
+        shearGrandparent.transform.setScale(2, 1, 1);
+        shearParent.transform.setRotation(0, 0, 45);
+        shearChild.transform.setScale(2, 3, 4);
+        const parentScale = shearParent.transform.lossyWorldScale.clone();
+        scaleMatMultiplySpy.mockClear();
+        const childScale = shearChild.transform.lossyWorldScale;
+        expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(0);
+        expect(childScale.x).toBeCloseTo(parentScale.x * 2, 6);
+        expect(childScale.y).toBeCloseTo(parentScale.y * 3, 6);
+        expect(childScale.z).toBeCloseTo(parentScale.z * 4, 6);
+      } finally {
+        shearGrandparent.destroy();
+      }
+    } finally {
+      scaleMatMultiplySpy.mockRestore();
+      parent.destroy();
     }
   });
 
@@ -605,15 +666,10 @@ describe("Transform test", function () {
   });
 
   it("clone keeps correct world position when a component reads worldMatrix during clone", () => {
-    // A component that reads its (world) transform inside `_onClone` — exactly what the engine's own
-    // DynamicCollider does (`_onClone` -> `_syncNative` -> `_addNativeShape` reads `lossyWorldScale`).
-    // Clone fills children before the parent's own components, so this read resolves the PARENT's
-    // `_parentTransformCache` (and sets `_isParentDirty = false`) BEFORE the parent transform's
-    // `_parentTransformCache` is cloned. Without `@ignoreClone` that copy overwrites the resolved
-    // value with the source's `null`, leaving `cache === null` while `_isParentDirty === false`
-    // (a stale cache that is never revalidated), so after reparent the node renders at the origin.
+    // A child's clone hook can resolve the parent's transform cache before the parent's fields are copied.
+    // Copying the source's unresolved cache would discard the cloned parent link.
     class WorldReaderOnClone extends Script implements ICloneHook<WorldReaderOnClone> {
-      _onClone(target: any): void {
+      _onClone(target: WorldReaderOnClone): void {
         target.entity.transform.worldMatrix;
       }
     }
