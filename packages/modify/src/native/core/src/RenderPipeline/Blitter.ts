@@ -1,12 +1,12 @@
-import { Color, Vector4 } from "@galacean/engine-math";
+import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Material } from "../material";
-import { ShaderProperty } from "../shader";
+import { RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
+import { ColorWriteMask, ShaderPass, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { ColorWriteMask } from "../shader/enums/ColorWriteMask";
+import { RenderStateElementKey } from "../shader/enums/RenderStateElementKey";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderTarget, Texture2D } from "../texture";
 import { PipelineUtils } from "./PipelineUtils";
@@ -27,21 +27,23 @@ export class Blitter {
   })();
   private static _texelSize = new Vector4();
   private static _defaultScaleOffset = new Vector4(1, 1, 0, 0);
-  private static _clearColor = new Color(0, 0, 0, 0);
+  private static _passDescriptor = new RenderPassDescriptor();
 
   /**
-   * Blit texture to destination render target using a triangle.
+   * Blit texture to destination render target using a standalone render pass and a full-screen triangle.
+   * @remarks
+   * When `colorLoadAction` is `RenderPassLoadAction.DontCare` or `RenderPassLoadAction.Clear`, it is automatically
+   * downgraded to `Load` if `destination` is the default backbuffer, uses MRT, renders to a sub-viewport, or the
+   * material enables blending or a partial `ColorWriteMask`.
    * @param engine - Engine
    * @param source - Source texture
    * @param destination - Destination render target
-   * @param mipLevel - Mip level to blit
+   * @param mipLevel - Source texture mip level to sample
    * @param viewport - Viewport
    * @param material - The material to use when blit
    * @param passIndex - Pass index to use of the provided material
    * @param sourceScaleOffset - Source scale and offset
-   * @param destMipLevel - Destination mip level to render into
-   * @param invalidateColor - Whether to invalidate destination color buffer before full-viewport overwrite
-   * @param scissorRect - Optional GL pixel scissor rectangle `(x, y, width, height)` applied after binding the target
+   * @param colorLoadAction - Color attachment load action for the render pass (defaults to `Load`)
    */
   static blitTexture(
     engine: Engine,
@@ -52,24 +54,55 @@ export class Blitter {
     material: Material | null = null,
     passIndex = 0,
     sourceScaleOffset?: Vector4,
-    destMipLevel: number = 0,
-    invalidateColor: boolean = true,
-    scissorRect?: Vector4
+    colorLoadAction: RenderPassLoadAction = RenderPassLoadAction.Load
+  ): void {
+    const blitMaterial = material || engine._basicResources.blitMaterial;
+    const context = engine._renderContext;
+    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
+    const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
+    const resolvedLoadAction =
+      destination &&
+      destination.colorTextureCount === 1 &&
+      isFullViewport &&
+      colorLoadAction !== RenderPassLoadAction.Load &&
+      Blitter._canClearColorTarget(pass, blitMaterial.shaderData)
+        ? colorLoadAction
+        : RenderPassLoadAction.Load;
+
+    const passDescriptor = Blitter._passDescriptor.reset(destination, viewport, !!destination, 0);
+    passDescriptor.colorLoadAction = resolvedLoadAction;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, source, mipLevel, blitMaterial, passIndex, sourceScaleOffset);
+    context.endRenderPass();
+  }
+
+  /**
+   * Draw a full-screen blit triangle within the currently active render pass.
+   * @remarks
+   * Callers must already be inside an active render pass (between `beginRenderPass` and `endRenderPass`).
+   * For standalone full-screen blits (such as custom `PostProcessPass`), prefer {@link Blitter.blitTexture}.
+   * @param engine - Engine
+   * @param source - Source texture
+   * @param mipLevel - Source texture mip level to sample
+   * @param material - The material to use when blit
+   * @param passIndex - Pass index to use of the provided material
+   * @param sourceScaleOffset - Source scale and offset
+   */
+  static draw(
+    engine: Engine,
+    source: Texture2D,
+    mipLevel: number = 0,
+    material: Material | null = null,
+    passIndex = 0,
+    sourceScaleOffset?: Vector4
   ): void {
     const basicResources = engine._basicResources;
-    const blitMesh = destination ? basicResources.flipYBlitMesh : basicResources.blitMesh;
     const blitMaterial = material || basicResources.blitMaterial;
     const rhi = engine._hardwareRenderer;
     const context = engine._renderContext;
     const camera = context.camera;
-
-    // We not use projection matrix when blit, but we must modify flipProjection to make front face correct
-    context.flipProjection = !!destination;
-
-    context.setRenderTarget(destination, viewport, destMipLevel);
-    if (scissorRect) {
-      rhi.scissor(scissorRect.x, scissorRect.y, scissorRect.z, scissorRect.w);
-    }
+    const blitMesh = context.flipProjection ? basicResources.flipYBlitMesh : basicResources.blitMesh;
+    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
 
     const rendererShaderData = Blitter._rendererShaderData;
 
@@ -79,7 +112,6 @@ export class Blitter {
     rendererShaderData.setVector4(Blitter._blitTexelSizeProperty, Blitter._texelSize);
     rendererShaderData.setVector4(Blitter._sourceScaleOffsetProperty, sourceScaleOffset ?? Blitter._defaultScaleOffset);
 
-    const pass = blitMaterial.shader.subShaders[0].passes[passIndex];
     const compileMacros = Shader._compileMacros;
 
     ShaderMacroCollection.unionCollection(
@@ -110,50 +142,25 @@ export class Blitter {
     const renderState = pass._renderState;
     renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
 
-    const appliedState = engine._lastRenderState;
-    const rhiWithScissor = rhi as {
-      _scissorEnable?: boolean;
-      _lastScissor?: Vector4;
-      getMainFrameBufferWidth?: () => number;
-      getMainFrameBufferHeight?: () => number;
-    };
-    const activeScissor = rhiWithScissor._lastScissor;
-    const targetWidth =
-      destination !== null
-        ? Math.max(1, destination.width >> destMipLevel)
-        : rhiWithScissor.getMainFrameBufferWidth?.();
-    const targetHeight =
-      destination !== null
-        ? Math.max(1, destination.height >> destMipLevel)
-        : rhiWithScissor.getMainFrameBufferHeight?.();
-    const fullScissorClear =
-      !rhiWithScissor._scissorEnable ||
-      (activeScissor !== undefined &&
-        targetWidth !== undefined &&
-        targetHeight !== undefined &&
-        activeScissor.x === 0 &&
-        activeScissor.y === 0 &&
-        activeScissor.z === targetWidth &&
-        activeScissor.w === targetHeight);
-    if (
-      invalidateColor &&
-      destination !== null &&
-      viewport.x === 0 &&
-      viewport.y === 0 &&
-      viewport.z === 1 &&
-      viewport.w === 1 &&
-      fullScissorClear &&
-      !appliedState.blendState.targetBlendState.enabled &&
-      !appliedState.depthState.enabled &&
-      !appliedState.stencilState.enabled &&
-      appliedState.blendState.targetBlendState.colorWriteMask === ColorWriteMask.All
-    ) {
-      // Full-RT non-scissored clear maps to TBDR hardware MTLLoadActionClear (0 DRAM read)
-      // while marking the attachment Initialized to avoid ANGLE-Metal RobustResourceInit CPU replaceRegion.
-      rhi.clearRenderTarget(engine, CameraClearFlags.Color, Blitter._clearColor);
-    }
-
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
     rendererShaderData.setTexture(Blitter._blitTextureProperty, null);
+  }
+
+  private static _canClearColorTarget(pass: ShaderPass, shaderData: ShaderData): boolean {
+    const renderStateDataMap = pass._renderStateDataMap;
+    const targetBlendState = pass._renderState.blendState.targetBlendState;
+
+    const enabledProp = renderStateDataMap[RenderStateElementKey.BlendStateEnabled0];
+    const blendEnabled = enabledProp !== undefined ? !!shaderData.getFloat(enabledProp) : targetBlendState.enabled;
+    if (blendEnabled) {
+      return false;
+    }
+
+    const colorWriteMaskProp = renderStateDataMap[RenderStateElementKey.BlendStateColorWriteMask0];
+    const colorWriteMask =
+      colorWriteMaskProp !== undefined
+        ? (shaderData.getFloat(colorWriteMaskProp) ?? ColorWriteMask.All)
+        : targetBlendState.colorWriteMask;
+    return colorWriteMask === ColorWriteMask.All;
   }
 }

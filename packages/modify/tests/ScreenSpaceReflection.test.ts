@@ -27,6 +27,9 @@ import {
   PostProcessPassEvent,
   PrimitiveMesh,
   RenderFace,
+  RenderPassDescriptor,
+  RenderPassLoadAction,
+  RenderPassStoreAction,
   RenderQueueType,
   RenderTarget,
   type RenderViewCullingSource,
@@ -3137,9 +3140,14 @@ describe("ScreenSpaceReflection v2", () => {
     });
 
     try {
-      // 1) Non-MSAA High HDR frame: Blitter uses non-scissored gl.clear(COLOR) (never invalidateFramebuffer(COLOR0)
-      //    which triggers ANGLE-Metal RobustResourceInit CPU replaceRegion), while SSR & internalColorTarget still
-      //    discard DepthStencil STORE via invalidateFramebuffer.
+      const rhi = engine._hardwareRenderer as unknown as { _preferClearForLoadDontCare: boolean };
+      const origPreferClear = rhi._preferClearForLoadDontCare;
+
+      // 1a) Non-MSAA High HDR frame with Apple/Metal policy (_preferClearForLoadDontCare = true):
+      //     DontCare uses non-scissored gl.clear(COLOR) (never invalidateFramebuffer(COLOR0) which triggers
+      //     ANGLE-Metal RobustResourceInit CPU replaceRegion), while SSR & internalColorTarget discard
+      //     Depth and Stencil separately (avoiding Adreno combined DEPTH_STENCIL_ATTACHMENT leak bug).
+      rhi._preferClearForLoadDontCare = true;
       cam.msaaSamples = MSAASamples.None;
       engine.update();
       expect(
@@ -3152,41 +3160,57 @@ describe("ScreenSpaceReflection v2", () => {
       ).toBe(true);
       expect(
         calls.some(
-          (c) =>
-            c.target === gl.FRAMEBUFFER &&
-            c.attachments.length === 1 &&
-            c.attachments[0] === gl.DEPTH_STENCIL_ATTACHMENT
+          (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.DEPTH_ATTACHMENT
+        )
+      ).toBe(true);
+      expect(
+        calls.some(
+          (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.STENCIL_ATTACHMENT
         )
       ).toBe(true);
       expect(drainGlErrors(gl)).toEqual([]);
 
-      // 2) Low (!useTemporal) also invalidates _ssrDepthTex after HiZTrace with 0 GL errors
+      // 1b) Non-Apple GLES policy (_preferClearForLoadDontCare = false):
+      //     DontCare uses gl.invalidateFramebuffer(COLOR_ATTACHMENT0) to avoid Adreno R11F_G11F_B10F gl.clear slow path.
+      calls.length = 0;
+      clearCalls.length = 0;
+      rhi._preferClearForLoadDontCare = false;
+      engine.update();
+      expect(
+        calls.some(
+          (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.COLOR_ATTACHMENT0
+        )
+      ).toBe(true);
+      expect(drainGlErrors(gl)).toEqual([]);
+      rhi._preferClearForLoadDontCare = origPreferClear;
+
+      // 2) Low (!useTemporal) also invalidates _ssrDepthTex Depth & Stencil separately after HiZTrace with 0 GL errors
       calls.length = 0;
       scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Low;
       engine.update();
       expect(
         calls.some(
-          (c) =>
-            c.target === gl.FRAMEBUFFER &&
-            c.attachments.length === 1 &&
-            c.attachments[0] === gl.DEPTH_STENCIL_ATTACHMENT
+          (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.DEPTH_ATTACHMENT
+        )
+      ).toBe(true);
+      expect(
+        calls.some(
+          (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.STENCIL_ATTACHMENT
         )
       ).toBe(true);
       expect(drainGlErrors(gl)).toEqual([]);
 
-      // 3) MSAA 4x + opaqueTextureEnabled (mid-frame resolve must NOT discard MSAA; final resolve MUST discard READ_FRAMEBUFFER)
+      // 3) MSAA 4x + opaqueTextureEnabled (mid-frame StoreAndResolve must NOT discard MSAA; final Resolve MUST discard
+      //    non-resolved depth/stencil before blit and MSAA color on READ_FRAMEBUFFER right after blit)
       calls.length = 0;
       scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
       cam.msaaSamples = MSAASamples.FourX;
       cam.opaqueTextureEnabled = true;
       stepFrames(engine, 2);
       const msaaDiscardCalls = calls.filter(
-        (c) =>
-          c.target === gl.READ_FRAMEBUFFER &&
-          c.attachments.includes(gl.COLOR_ATTACHMENT0) &&
-          c.attachments.includes(gl.DEPTH_STENCIL_ATTACHMENT)
+        (c) => c.target === gl.READ_FRAMEBUFFER && c.attachments.includes(gl.COLOR_ATTACHMENT0)
       );
-      // Exactly 1 MSAA discard per frame (final resolve), NOT on mid-frame opaqueTexture resolve
+      // Exactly 1 MSAA color discard per frame (final Resolve), NOT on mid-frame opaqueTexture StoreAndResolve
       expect(msaaDiscardCalls.length).toBe(2);
       expect(drainGlErrors(gl)).toEqual([]);
     } finally {
@@ -4185,33 +4209,24 @@ describe("ScreenSpaceReflection v2", () => {
     expect(floorSample.maxR).toBeGreaterThan(80);
     expect(floorSample.avgR).toBeGreaterThan(20);
 
-    // 3) P1-1 & P2-1: RHI invalidateRenderTarget enforces full-target scissor check and bound-FBO check.
+    // 3) P1-1 & P2-1: Declarative RenderPassDescriptor load/store actions enforce scissor safety and lifecycle bounds.
     const rhi = engine._hardwareRenderer;
     const invSpy = vi.spyOn(gl, "invalidateFramebuffer");
     try {
-      rhi.activeRenderTarget(rt, new Vector4(0, 0, 1, 1), true, 0);
-      // Partial scissor prevents full-target invalidation
-      rhi.scissor(0, 0, 40, 40);
-      rhi.invalidateRenderTarget?.(rt, CameraClearFlags.Color, true, 0);
-      expect(invSpy).not.toHaveBeenCalled();
+      const desc = new RenderPassDescriptor().reset(rt, new Vector4(0, 0, 1, 1), true, 0);
+      desc.depthStoreAction = RenderPassStoreAction.Discard;
+      desc.stencilStoreAction = RenderPassStoreAction.Discard;
+      rhi.beginRenderPass(desc);
+      rhi.endRenderPass();
+      expect(invSpy).toHaveBeenCalled();
 
-      // Full-target scissor allows invalidation
-      rhi.scissor(0, 0, rt.width, rt.height);
-      rhi.invalidateRenderTarget?.(rt, CameraClearFlags.Color, true, 0);
-      expect(invSpy).toHaveBeenCalledTimes(1);
-
-      // Switching away to default FBO causes invalidateRenderTarget(rt, ...) to no-op cleanly (0 GL errors)
+      // Default framebuffer (null) skips invalidateFramebuffer cleanly with 0 GL errors.
       invSpy.mockClear();
-      rhi.activeRenderTarget(null, new Vector4(0, 0, 1, 1), false, 0);
-      rhi.invalidateRenderTarget?.(rt, CameraClearFlags.DepthStencil);
-      expect(invSpy).not.toHaveBeenCalled();
-
-      // Destroyed RenderTarget with null FBO must NOT match default framebuffer (null === null)
-      const tempTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false);
-      const tempRT = new RenderTarget(engine, 16, 16, tempTex, TextureFormat.Depth24Stencil8);
-      tempRT.destroy(true);
-      tempTex.destroy(true);
-      rhi.invalidateRenderTarget?.(tempRT, CameraClearFlags.Color);
+      const mainDesc = new RenderPassDescriptor().reset(null, new Vector4(0, 0, 1, 1), false, 0);
+      mainDesc.depthStoreAction = RenderPassStoreAction.Discard;
+      mainDesc.stencilStoreAction = RenderPassStoreAction.Discard;
+      rhi.beginRenderPass(mainDesc);
+      rhi.endRenderPass();
       expect(invSpy).not.toHaveBeenCalled();
       expect(drainGlErrors(gl)).toEqual([]);
     } finally {
@@ -4857,10 +4872,13 @@ describe("ScreenSpaceReflection v2", () => {
     ];
 
     const renderAllMips = () => {
+      const desc = new RenderPassDescriptor();
       for (let m = 0; m < 4; m++) {
-        rhi.activeRenderTarget(mipRT, new Vector4(0, 0, 1, 1), true, m);
-        rhi.invalidateRenderTarget?.(mipRT, CameraClearFlags.Color, true, m);
-        rhi.clearRenderTarget(engine, CameraClearFlags.Color, colors[m]);
+        desc.reset(mipRT, new Vector4(0, 0, 1, 1), true, m);
+        desc.colorLoadAction = RenderPassLoadAction.Clear;
+        desc.clearColor.copyFrom(colors[m]);
+        rhi.beginRenderPass(desc);
+        rhi.endRenderPass();
       }
       rhi.activeRenderTarget(null, new Vector4(0, 0, 1, 1), false, 0);
     };

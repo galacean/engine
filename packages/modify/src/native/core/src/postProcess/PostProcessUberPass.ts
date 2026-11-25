@@ -18,6 +18,7 @@ import { Material } from "../material";
 import type { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
+import { RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -62,6 +63,8 @@ const SUN_LENS_FLARE_FULL_DEPTH_RECT = new Vector4(1, 1, 0, 0);
 
 export class PostProcessUberPass extends PostProcessPass {
   static readonly UBER_SHADER_NAME = "PostProcess/Uber";
+
+  private _passDescriptor = new RenderPassDescriptor();
 
   private _uberMaterial: Material;
 
@@ -271,8 +274,18 @@ export class PostProcessUberPass extends PostProcessPass {
     } else {
       uberShaderData.disableMacro(TonemappingEffect._enableMacro);
     }
-    const viewport = destTarget === camera.renderTarget ? camera.viewport : undefined;
-    Blitter.blitTexture(camera.engine, srcTexture, destTarget, 0, viewport, this._uberMaterial, undefined);
+    const engine = camera.engine;
+    const context = engine._renderContext;
+    const viewport = destTarget === camera.renderTarget ? camera.viewport : PipelineUtils.defaultViewport;
+    const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
+    const passDescriptor = this._passDescriptor.reset(destTarget, viewport);
+    passDescriptor.colorLoadAction =
+      destTarget && destTarget.colorTextureCount === 1 && isFullViewport
+        ? RenderPassLoadAction.DontCare
+        : RenderPassLoadAction.Load;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, srcTexture, 0, this._uberMaterial);
+    context.endRenderPass();
   }
 
   /**
@@ -417,33 +430,29 @@ export class PostProcessUberPass extends PostProcessPass {
         volumetricLightBlend.bilateralSharpness.value
       );
 
+      const context = engine._renderContext;
+      const passDescriptor = this._passDescriptor;
       // Pass 3: 3D Shadow-Map Raymarching -> RT A
-      Blitter.blitTexture(engine, srcTexture, this._volumetricLightRTA, 0, undefined, vlMaterial, 3);
+      passDescriptor.reset(this._volumetricLightRTA);
+      passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, srcTexture, 0, vlMaterial, 3);
+      context.endRenderPass();
       // Pass 4 (H): Horizontal separable depth-aware bilateral blur (RT A -> RT B)
       const blurOffset = this._volumetricLightBlurOffset;
       blurOffset.set(1, 1, 1 / lowW, 0);
-      Blitter.blitTexture(
-        engine,
-        this._volumetricLightRTA.getColorTexture(0) as Texture2D,
-        this._volumetricLightRTB,
-        0,
-        undefined,
-        vlMaterial,
-        4,
-        blurOffset
-      );
+      passDescriptor.reset(this._volumetricLightRTB);
+      passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, this._volumetricLightRTA.getColorTexture(0) as Texture2D, 0, vlMaterial, 4, blurOffset);
+      context.endRenderPass();
       // Pass 4 (V): Vertical separable depth-aware bilateral blur (RT B -> RT A)
       blurOffset.set(1, 1, 0, 1 / lowH);
-      Blitter.blitTexture(
-        engine,
-        this._volumetricLightRTB.getColorTexture(0) as Texture2D,
-        this._volumetricLightRTA,
-        0,
-        undefined,
-        vlMaterial,
-        4,
-        blurOffset
-      );
+      passDescriptor.reset(this._volumetricLightRTA);
+      passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, this._volumetricLightRTB.getColorTexture(0) as Texture2D, 0, vlMaterial, 4, blurOffset);
+      context.endRenderPass();
 
       uberShaderData.enableMacro(VolumetricLightEffect._raymarchMacro);
       uberShaderData.setTexture(VolumetricLightEffect._textureProperty, this._volumetricLightRTA.getColorTexture(0));
@@ -510,28 +519,26 @@ export class PostProcessUberPass extends PostProcessPass {
       .set(tintR, tintG, tintB, screenState.effectiveStrength);
     vlShaderData.setFloat(VolumetricLightEffect._thresholdProperty, volumetricLightBlend.threshold.value);
 
+    const context = engine._renderContext;
+    const passDescriptor = this._passDescriptor;
     // Pass 0 (<=270p -> RT A): 1-tap sequential downsample + HDR sky luminance contrast extract.
-    Blitter.blitTexture(engine, srcTexture, this._volumetricLightRTA, undefined, undefined, vlMaterial, 0);
+    passDescriptor.reset(this._volumetricLightRTA);
+    passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, srcTexture, 0, vlMaterial, 0);
+    context.endRenderPass();
     // Pass 1 (<=270p -> RT B): 8-tap coarse radial scatter strictly inside low-res RT.
-    Blitter.blitTexture(
-      engine,
-      this._volumetricLightRTA.getColorTexture(0) as Texture2D,
-      this._volumetricLightRTB,
-      undefined,
-      undefined,
-      vlMaterial,
-      1
-    );
+    passDescriptor.reset(this._volumetricLightRTB);
+    passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, this._volumetricLightRTA.getColorTexture(0) as Texture2D, 0, vlMaterial, 1);
+    context.endRenderPass();
     // Pass 2 (<=270p -> RT A): 8-tap cascaded fine scatter (64-step equivalent smooth rays).
-    Blitter.blitTexture(
-      engine,
-      this._volumetricLightRTB.getColorTexture(0) as Texture2D,
-      this._volumetricLightRTA,
-      undefined,
-      undefined,
-      vlMaterial,
-      2
-    );
+    passDescriptor.reset(this._volumetricLightRTA);
+    passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, this._volumetricLightRTB.getColorTexture(0) as Texture2D, 0, vlMaterial, 2);
+    context.endRenderPass();
 
     uberShaderData.disableMacro(VolumetricLightEffect._raymarchMacro);
     uberShaderData.setTexture(VolumetricLightEffect._textureProperty, this._volumetricLightRTA.getColorTexture(0));
@@ -989,33 +996,33 @@ export class PostProcessUberPass extends PostProcessPass {
       this._releaseBloomRenderTargets(mipCount);
     }
 
+    const context = engine._renderContext;
+    const passDescriptor = this._passDescriptor;
+
     // Prefilter
-    Blitter.blitTexture(engine, srcTexture, mipRT[0], undefined, undefined, bloomMaterial, 0);
+    passDescriptor.reset(mipRT[0]);
+    passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, srcTexture, 0, bloomMaterial, 0);
+    context.endRenderPass();
 
     // Progressive single-pass 5x5 9-tap downsample pyramid (Castaño 2013)
     for (let i = 1; i < mipCount; i++) {
-      Blitter.blitTexture(
-        engine,
-        <Texture2D>mipRT[i - 1].getColorTexture(0),
-        mipRT[i],
-        undefined,
-        undefined,
-        bloomMaterial,
-        1
-      );
+      passDescriptor.reset(mipRT[i]);
+      passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, <Texture2D>mipRT[i - 1].getColorTexture(0), 0, bloomMaterial, 1);
+      context.endRenderPass();
     }
 
     // Progressive in-place upsample (4-tap 3x3 tent by default, bicubic with HQ filtering)
+    // Pass 2 blends in-place onto mipRT[i], so it must Load existing destination pixels.
     for (let i = mipCount - 2; i >= 0; i--) {
-      Blitter.blitTexture(
-        engine,
-        <Texture2D>mipRT[i + 1].getColorTexture(0),
-        mipRT[i],
-        undefined,
-        undefined,
-        bloomMaterial,
-        2
-      );
+      passDescriptor.reset(mipRT[i]);
+      passDescriptor.colorLoadAction = RenderPassLoadAction.Load;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, <Texture2D>mipRT[i + 1].getColorTexture(0), 0, bloomMaterial, 2);
+      context.endRenderPass();
     }
 
     // Setup bloom on uber

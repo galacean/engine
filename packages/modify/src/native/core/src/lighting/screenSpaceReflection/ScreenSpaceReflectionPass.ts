@@ -15,7 +15,7 @@ import { PipelineStage } from "../../RenderPipeline/enums/PipelineStage";
 import type { RenderQueue } from "../../RenderPipeline/RenderQueue";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { Material } from "../../material/Material";
-import { IHardwareRenderer } from "../../renderingHardwareInterface";
+import { IHardwareRenderer, RenderPassLoadAction, RenderPassStoreAction } from "../../renderingHardwareInterface";
 import { CompareFunction, Shader, ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
 import { RenderStateElementKey } from "../../shader/enums/RenderStateElementKey";
@@ -705,8 +705,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       this._destTexelSize.set(1 / destTex.width, 1 / destTex.height, destTex.width, destTex.height);
       materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
       this._sourceScaleOffset.set(sourceViewport.z, sourceViewport.w, sourceViewport.x, sourceViewport.y);
-      Blitter.blitTexture(
-        engine,
+      this._blitPass(
+        context,
         srcColorTex,
         destRT,
         0,
@@ -714,7 +714,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         this._material,
         PASS_COLOR_PYRAMID_PREFILTER,
         this._sourceScaleOffset,
-        0
+        0,
+        RenderPassLoadAction.DontCare
       );
     } finally {
       ScreenSpaceReflectionPass._setMacro(
@@ -815,8 +816,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
           materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
           materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
           materialData.setTexture(ScreenSpaceReflectionPass._matFullDepthProp, fullDepthTex);
-          Blitter.blitTexture(
-            engine,
+          this._blitPass(
+            context,
             fullDepthTex,
             ssrDepthRT,
             0,
@@ -824,7 +825,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
             material,
             PASS_DOWNSAMPLE_DEPTH,
             undefined,
-            0
+            0,
+            RenderPassLoadAction.Load
           );
           materialData.setTexture(ScreenSpaceReflectionPass._matFullDepthProp, null);
         } else {
@@ -920,8 +922,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
               materialData.setTexture(ScreenSpaceReflectionPass._matHiZInputProp, currHiZTex);
               materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
               materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
-              Blitter.blitTexture(
-                engine,
+              this._blitPass(
+                context,
                 currHiZTex,
                 currHiZColorRT,
                 0,
@@ -929,7 +931,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
                 material,
                 PASS_BUILD_HIZ_MIPN,
                 undefined,
-                m
+                m,
+                RenderPassLoadAction.DontCare
               );
             }
           } finally {
@@ -970,8 +973,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
             materialData.setTexture(ScreenSpaceReflectionPass._matHiZInputProp, currHiZTex);
             materialData.setVector4(ScreenSpaceReflectionPass._matSourceTexelSizeProp, this._sourceTexelSize);
             materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
-            Blitter.blitTexture(
-              engine,
+            this._blitPass(
+              context,
               currHiZTex,
               hiZScratchRT,
               m - 1,
@@ -979,7 +982,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
               material,
               PASS_BUILD_HIZ_MIPN,
               undefined,
-              0
+              0,
+              vpW === 1 && vpH === 1 ? RenderPassLoadAction.DontCare : RenderPassLoadAction.Load
             );
             materialData.setTexture(ScreenSpaceReflectionPass._matHiZInputProp, null);
 
@@ -1164,8 +1168,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         const traceOutRT = this._traceOutRT!;
         // Expand clear pad by 2px on traceOutRT so TemporalResolve neighbor taps outside scissor read zero.
         this._clearDirtyUnion(context, traceOutRT, this._traceDirtyRect, null, sx0, sy0, sx1, sy1, 2, traceW, traceH);
-        Blitter.blitTexture(
-          engine,
+        this._blitPass(
+          context,
           currRecvNR,
           traceOutRT,
           0,
@@ -1174,12 +1178,10 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
           PASS_HIZ_TRACE,
           undefined,
           0,
-          true,
-          scissorArg
+          RenderPassLoadAction.Load,
+          scissorArg,
+          !this._useTemporal && this._useHardwareStencil
         );
-        if (!this._useTemporal && this._useHardwareStencil) {
-          rhi.invalidateRenderTarget?.(traceOutRT, CameraClearFlags.DepthStencil);
-        }
       } finally {
         if (aliasRecv) {
           currRecvNR.filterMode = TextureFilterMode.Bilinear;
@@ -1223,10 +1225,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
           traceH
         );
         if (state === SSRRuntimeState.FirstTrace) {
-          this._copyTextureToRT(traceRawTex, dstSSRRT, 0, 0, undefined, scissorArg);
-          if (this._useHardwareStencil) {
-            rhi.invalidateRenderTarget?.(dstSSRRT, CameraClearFlags.DepthStencil);
-          }
+          this._copyTextureToRT(traceRawTex, dstSSRRT, 0, 0, undefined, scissorArg, this._useHardwareStencil);
           history.hasTemporalHistory = true;
         } else {
           const useHighVirtual = this._useHighVirtual;
@@ -1254,8 +1253,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
             materialData.setTexture(ScreenSpaceReflectionPass._matPrevNormalRoughnessProp, history.recvNRTex[prevIdx]!);
           }
 
-          Blitter.blitTexture(
-            engine,
+          this._blitPass(
+            context,
             traceRawTex,
             dstSSRRT,
             0,
@@ -1264,12 +1263,10 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
             PASS_TEMPORAL_RESOLVE,
             undefined,
             0,
-            true,
-            scissorArg
+            RenderPassLoadAction.Load,
+            scissorArg,
+            this._useHardwareStencil
           );
-          if (this._useHardwareStencil) {
-            rhi.invalidateRenderTarget?.(dstSSRRT, CameraClearFlags.DepthStencil);
-          }
 
           materialData.setTexture(ScreenSpaceReflectionPass._matTraceRawProp, null);
           materialData.setTexture(ScreenSpaceReflectionPass._matPrevSSRProp, null);
@@ -1435,8 +1432,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       this._destTexelSize.set(1 / colorW, 1 / colorH, colorW, colorH);
       materialData.setVector4(ScreenSpaceReflectionPass._matDestTexelSizeProp, this._destTexelSize);
       this._sourceScaleOffset.set(sourceViewport.z, sourceViewport.w, sourceViewport.x, sourceViewport.y);
-      Blitter.blitTexture(
-        engine,
+      this._blitPass(
+        context,
         srcColorTex,
         prevColorPyramidRT,
         0,
@@ -1444,7 +1441,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         this._material,
         PASS_COLOR_PYRAMID_PREFILTER,
         this._sourceScaleOffset,
-        0
+        0,
+        RenderPassLoadAction.DontCare
       );
       ScreenSpaceReflectionPass._setMacro(
         materialData._macroCollection,
@@ -1492,8 +1490,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
               ScreenSpaceReflectionPass._colorPyramidKarisDownsampleMacro,
               this._isFullResColorPyramid && m === 1
             );
-            Blitter.blitTexture(
-              engine,
+            this._blitPass(
+              context,
               prevColorPyramidTex,
               colorScratchRT,
               m - 1,
@@ -1501,7 +1499,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
               this._material,
               PASS_COLOR_PYRAMID_DOWNSAMPLE,
               undefined,
-              0
+              0,
+              vpW === 1 && vpH === 1 ? RenderPassLoadAction.DontCare : RenderPassLoadAction.Load
             );
 
             this._copyScaleOffset.set(dstW / mip1W, dstH / mip1H, 0, 0);
@@ -2111,21 +2110,14 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         materialData.setTexture(ScreenSpaceReflectionPass._matContribDepthProp, contribDepthTex);
       }
 
-      context.setRenderTarget(hiZDepthMip0RT, PipelineUtils.defaultViewport, 0);
-      // Full-RT non-scissored clear maps to TBDR MTLLoadActionClear (avoids ANGLE-Metal Color invalidate replaceRegion).
-      rhi.clearRenderTarget(engine, CameraClearFlags.All, this._clearZero);
-      Blitter.blitTexture(
-        engine,
-        fullDepthTex,
-        hiZDepthMip0RT,
-        0,
-        PipelineUtils.defaultViewport,
-        material,
-        PASS_DOWNSAMPLE_AND_BUILD_HIZ_MIP0,
-        undefined,
-        0,
-        false
-      );
+      const passDescriptor = this._passDescriptor.reset(hiZDepthMip0RT, PipelineUtils.defaultViewport, true, 0);
+      passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
+      passDescriptor.clearColor.copyFrom(this._clearZero);
+      passDescriptor.depthLoadAction = RenderPassLoadAction.Clear;
+      passDescriptor.stencilLoadAction = RenderPassLoadAction.Clear;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, fullDepthTex, 0, material, PASS_DOWNSAMPLE_AND_BUILD_HIZ_MIP0);
+      context.endRenderPass();
     } finally {
       materialData.setTexture(ScreenSpaceReflectionPass._matFullDepthProp, null);
       materialData.setTexture(ScreenSpaceReflectionPass._matContribDepthProp, null);
@@ -2184,8 +2176,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         materialData.setTexture(ScreenSpaceReflectionPass._matContribDepthProp, contribDepthTex);
       }
 
-      Blitter.blitTexture(
-        this.engine,
+      this._blitPass(
+        this.engine._renderContext,
         opaqueTex,
         destRT,
         0,
@@ -2193,7 +2185,8 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
         material,
         PASS_BUILD_HIZ_MIP0,
         undefined,
-        0
+        0,
+        RenderPassLoadAction.DontCare
       );
     } finally {
       materialData.setTexture(ScreenSpaceReflectionPass._matOpaqueDepthProp, null);
@@ -2532,18 +2525,47 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     return false;
   }
 
+  private _blitPass(
+    context: RenderContext,
+    source: Texture2D,
+    destRT: RenderTarget,
+    srcMipLevel: number,
+    viewport: Vector4,
+    material: Material,
+    passIndex: number,
+    scaleOffset: Vector4 | undefined,
+    destMipLevel: number,
+    colorLoadAction: RenderPassLoadAction,
+    scissorRect?: Vector4,
+    discardDepthStencil: boolean = false
+  ): void {
+    const passDescriptor = this._passDescriptor.reset(destRT, viewport, true, destMipLevel);
+    passDescriptor.colorLoadAction = scissorRect ? RenderPassLoadAction.Load : colorLoadAction;
+    if (discardDepthStencil) {
+      passDescriptor.depthStoreAction = RenderPassStoreAction.Discard;
+      passDescriptor.stencilStoreAction = RenderPassStoreAction.Discard;
+    }
+    context.beginRenderPass(passDescriptor);
+    if (scissorRect) {
+      this.engine._hardwareRenderer.scissor(scissorRect.x, scissorRect.y, scissorRect.z, scissorRect.w);
+    }
+    Blitter.draw(this.engine, source, srcMipLevel, material, passIndex, scaleOffset);
+    context.endRenderPass();
+  }
+
   private _copyTextureToRT(
     source: Texture2D,
     destRT: RenderTarget,
     destMipLevel: number,
     srcMipLevel: number = 0,
     scaleOffset?: Vector4,
-    scissorRect?: Vector4
+    scissorRect?: Vector4,
+    discardDepthStencil: boolean = false
   ): void {
     const materialData = this._material.shaderData;
     materialData.setTexture(ScreenSpaceReflectionPass._matCopyTextureProp, source);
-    Blitter.blitTexture(
-      this.engine,
+    this._blitPass(
+      this.engine._renderContext,
       source,
       destRT,
       srcMipLevel,
@@ -2552,8 +2574,9 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
       PASS_COPY_TEXTURE,
       scaleOffset,
       destMipLevel,
-      !scissorRect,
-      scissorRect
+      scissorRect ? RenderPassLoadAction.Load : RenderPassLoadAction.DontCare,
+      scissorRect,
+      discardDepthStencil
     );
     materialData.setTexture(ScreenSpaceReflectionPass._matCopyTextureProp, null);
   }

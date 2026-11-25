@@ -1,6 +1,7 @@
 import { Camera } from "../Camera";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
+import { RenderPassLoadAction, RenderPassStoreAction } from "../renderingHardwareInterface";
 import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { CullingResults } from "./CullingResults";
@@ -38,13 +39,16 @@ export class DepthOnlyPass extends PipelinePass {
     const engine = this.engine;
     const renderTarget = this.renderTarget;
     const camera = context.camera;
-    const rhi = engine._hardwareRenderer;
-    context.setRenderTarget(renderTarget, PipelineUtils.defaultViewport, 0);
-    rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
+    const passDescriptor = this._passDescriptor.reset(renderTarget, PipelineUtils.defaultViewport);
+    passDescriptor.depthLoadAction = RenderPassLoadAction.Clear;
+    passDescriptor.depthStoreAction = RenderPassStoreAction.Store;
+    context.beginRenderPass(passDescriptor);
 
     engine._renderCount++;
     cullingResults.opaqueQueue.render(context, PipelineStage.DepthOnly);
     cullingResults.alphaTestQueue.render(context, PipelineStage.DepthOnly);
+
+    context.endRenderPass();
 
     camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, renderTarget!.depthTexture);
   }

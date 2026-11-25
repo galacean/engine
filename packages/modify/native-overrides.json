@@ -766,5 +766,21 @@
   {
     "original": "packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts",
     "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts"
+  },
+  {
+    "original": "packages/core/src/renderingHardwareInterface/RenderPassDescriptor.ts",
+    "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/RenderPassDescriptor.ts"
+  },
+  {
+    "original": "packages/core/src/renderingHardwareInterface/RenderPassLoadAction.ts",
+    "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/RenderPassLoadAction.ts"
+  },
+  {
+    "original": "packages/core/src/renderingHardwareInterface/RenderPassStoreAction.ts",
+    "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/RenderPassStoreAction.ts"
+  },
+  {
+    "original": "packages/core/src/renderingHardwareInterface/index.ts",
+    "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/index.ts"
   }
 ]
