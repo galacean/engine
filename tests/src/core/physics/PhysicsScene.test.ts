@@ -42,13 +42,9 @@ class CollisionTestScript extends Script {
       [self, 10]
     ] as const) {
       const body = collider.attachedRigidbody;
-      if (body?.isKinematic) {
-        body.move(new Vector3(x, 0, 0));
-      } else if (body) {
-        body.applyForce(new Vector3(x * 10, 0, 0));
-      } else {
-        collider.entity.transform.position = new Vector3(x, 0, 0);
-      }
+      if (body?.isKinematic) body.move(new Vector3(x, 0, 0));
+      else if (body) body.applyForce(new Vector3(x * 10, 0, 0));
+      else collider.entity.transform.position = new Vector3(x, 0, 0);
     }
   }
 }

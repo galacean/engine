@@ -741,13 +741,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     // Teleport pending transform edits first so the move starts from the current pose
     const actor = this._getSyncedActor()!;
     this._poseSynced = false;
-    if (rotation) {
-      actor.move(<Vector3>positionOrRotation, rotation);
-    } else if ("w" in positionOrRotation) {
-      actor.move(null, positionOrRotation);
-    } else {
-      actor.move(positionOrRotation, null);
-    }
+    if (rotation) actor.move(<Vector3>positionOrRotation, rotation);
+    else if ("w" in positionOrRotation) actor.move(null, positionOrRotation);
+    else actor.move(positionOrRotation, null);
   }
 
   /**

@@ -1385,11 +1385,8 @@ describe("MeshCollider", () => {
 
       const badMesh = createCubeMesh(engine, 1);
       const badPositions = badMesh.getPositions()!.map((p) => p.clone());
-      if (mode === "sparse") {
-        delete badPositions[1];
-      } else {
-        badPositions[1].x = Number.NaN;
-      }
+      if (mode === "sparse") delete badPositions[1];
+      else badPositions[1].x = Number.NaN;
       badMesh.setPositions(badPositions);
 
       const errors = vi.spyOn(console, "error").mockImplementation(() => {});

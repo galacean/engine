@@ -246,11 +246,7 @@ export class Collider extends Component {
       return -1;
     }
     if (outClosestPoint) {
-      if (distance > 0) {
-        outClosestPoint.set(res.x, res.y, res.z);
-      } else {
-        outClosestPoint.copyFrom(point);
-      }
+      distance > 0 ? outClosestPoint.set(res.x, res.y, res.z) : outClosestPoint.copyFrom(point);
     }
     return Math.sqrt(distance);
   }

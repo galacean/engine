@@ -239,11 +239,8 @@ export class HingeJoint extends Joint {
     if (limits) {
       const min = MathUtil.degreeToRadian(limits.min);
       const max = MathUtil.degreeToRadian(limits.max);
-      if (this.useSpring) {
-        nativeJoint.setSoftLimit(min, max, limits.stiffness, limits.damping);
-      } else {
-        nativeJoint.setHardLimit(min, max, limits.contactDistance);
-      }
+      if (this.useSpring) nativeJoint.setSoftLimit(min, max, limits.stiffness, limits.damping);
+      else nativeJoint.setHardLimit(min, max, limits.contactDistance);
     }
   }
 }
