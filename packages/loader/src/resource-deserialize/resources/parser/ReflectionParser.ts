@@ -20,10 +20,16 @@ export class ReflectionParser {
     const promises: Promise<any>[] = [];
     if (props) {
       for (const key in props) {
-        const patch = instance instanceof Component && instance._isSnapshotProperty?.(key) ? {} : undefined;
-        const promise = this._resolveValue(props[key], patch ?? instance[key]).then((value) => {
-          // Concurrent partial overrides must each start from the latest committed snapshot.
-          instance[key] = patch && value === patch ? Object.assign(instance[key].clone(), patch) : value;
+        const origin = instance[key];
+        const patch =
+          origin && typeof origin === "object" && !Array.isArray(origin) && Object.isFrozen(origin) ? {} : undefined;
+        const promise = this._resolveValue(props[key], patch ?? origin).then((value) => {
+          if (patch && value === patch) {
+            // Concurrent partial overrides must each start from the latest committed snapshot.
+            const current = instance[key];
+            value = Object.assign(typeof current?.clone === "function" ? current.clone() : { ...current }, patch);
+          }
+          instance[key] = value;
         });
         promises.push(promise);
       }

@@ -1,4 +1,3 @@
-import { Component } from "../../../../Component";
 import { KeyframeValueType } from "../../../Keyframe";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
@@ -7,8 +6,6 @@ import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
  * @internal
  */
 export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAssembler<KeyframeValueType> {
-  requiresAssignment?: boolean;
-
   private _getMounted: Record<string, KeyframeValueType | Function>;
   private _setMounted: Record<string, KeyframeValueType | Function>;
 
@@ -116,9 +113,6 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
       }
     } else {
       handleType = HandleType.Property;
-      if (mounted instanceof Component && mounted._isSnapshotProperty?.(property)) {
-        this.requiresAssignment = true;
-      }
     }
 
     if (parseFlag & MountedParseFlag.Set) {

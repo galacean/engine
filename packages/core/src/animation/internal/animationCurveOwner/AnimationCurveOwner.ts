@@ -43,11 +43,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   updateMark: number = 0;
 
   private _assembler: IAnimationCurveOwnerAssembler<V>;
-  /** Cached only for bindings that can update the target value in place. */
-  private _targetReference?: V;
+  private _writableTarget?: V;
 
   get referenceTargetValue(): V {
-    return this._targetReference ?? this._assembler.getTargetValue();
+    return this._writableTarget ?? this._assembler.getTargetValue();
   }
 
   constructor(
@@ -68,8 +67,9 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
     this._assembler.initialize(this);
 
-    if (cureType._isCopyMode && !this._assembler.requiresAssignment) {
-      this._targetReference = this._assembler.getTargetValue();
+    if (cureType._isCopyMode) {
+      const value = this._assembler.getTargetValue();
+      if (!Object.isFrozen(value)) this._writableTarget = value;
     }
   }
 
@@ -159,18 +159,22 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   applyValue(value: V, weight: number, additive: boolean): void {
-    const { cureType, _targetReference: reference } = this;
-
-    if (additive) {
-      const base = reference ?? cureType._setValue(this._assembler.getTargetValue(), this.crossEvaluateData.value);
-      value = cureType._additiveValue!(value, weight, base);
-    } else if (weight !== 1) {
-      value = cureType._lerpValue!(this.referenceTargetValue, value, weight, reference ?? this.crossEvaluateData.value);
+    const { cureType, _assembler: assembler, _writableTarget: reference } = this;
+    if (additive || weight !== 1) {
+      const target = reference ?? cureType._setValue(assembler.getTargetValue(), this.crossEvaluateData.value);
+      value = additive
+        ? cureType._additiveValue!(value, weight, target)
+        : cureType._lerpValue!(target, value, weight, target);
     } else if (reference) {
       cureType._setValue(value, reference);
     }
     if (!reference) {
-      this._assembler.setTargetValue(value);
+      if (cureType._isCopyMode) {
+        // A setter can retain or freeze its input. Keep evaluation buffers private.
+        const sample = value as { clone(): KeyframeValueType } | { slice(): KeyframeValueType };
+        value = ("clone" in sample ? sample.clone() : sample.slice()) as V;
+      }
+      assembler.setTargetValue(value);
     }
   }
 

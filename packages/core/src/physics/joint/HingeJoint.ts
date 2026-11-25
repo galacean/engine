@@ -143,11 +143,6 @@ export class HingeJoint extends Joint {
     this._onLimitsChanged = this._onLimitsChanged.bind(this);
   }
 
-  /** @internal */
-  override _isSnapshotProperty(property: string): boolean {
-    return property === "axis";
-  }
-
   /**
    * @internal
    */

@@ -777,11 +777,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
   }
 
-  /** @internal */
-  override _isSnapshotProperty(property: string): boolean {
-    return property === "inertiaTensorRotation";
-  }
-
   /**
    * @internal
    * @inheritDoc
