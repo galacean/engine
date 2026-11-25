@@ -13,6 +13,8 @@ vec4 material_VolumetricLightParams0;
 vec4 material_VolumetricLightParams1;
 // rgb: linear tint, a: effectiveStrength
 vec4 material_VolumetricLightTint;
+// Configurable luminance extraction threshold for Low 2D emitter pass (soft-knee)
+float material_VolumetricLightThreshold;
 
 // 3D Shadow-Map Raymarch uniforms (Medium / High)
 mat4 camera_ViewInvMat;
@@ -73,22 +75,35 @@ float vlCornetteShanks(float cosTheta, float g) {
 void fragVolumetricLowExtract(Varyings v) {
   float skyThreshold = material_VolumetricLightParams1.x;
   float hasDepth = material_VolumetricLightParams1.y;
+  float aspectRatio = max(material_VolumetricLightParams1.z, 0.25);
   float postExposure = max(material_VolumetricLightParams1.w, 1e-4);
 
   vec3 rawCol = max(texture2D(renderer_BlitTexture, v.v_uv).rgb * postExposure, vec3(0.0));
   vec3 col = rawCol / (vec3(1.0) + rawCol * 0.25);
   float luma = vlLuma(col);
 
+  // Standard soft-knee luminance threshold (matches BloomEffect math): separates bright sky gaps
+  // and sunlit cloud silver-lining rims from darker cloud interiors without scene-specific heuristics.
+  float threshold = max(material_VolumetricLightThreshold, 0.0);
+  float knee = max(threshold * 0.5, 0.06);
+  float soft = clamp(luma - threshold + knee, 0.0, 2.0 * knee);
+  soft = (soft * soft) / (4.0 * knee + 1e-5);
+  float excess = max(luma - threshold, soft);
+
+  // Broad solar-angular emphasis focuses emission on sun-side cloud rims and canopy gaps.
+  vec2 dSun = (material_VolumetricLightParams0.xy - v.v_uv) * vec2(aspectRatio, 1.0);
+  float sunFocus = mix(0.45, 1.35, exp(-length(dSun) * 1.25));
+
   vec3 emitter = vec3(0.0);
   if (hasDepth > 0.5) {
     float depth = texture2D(material_VolumetricLightDepthTexture, v.v_uv).r;
     float isSky = smoothstep(skyThreshold, min(0.99998, skyThreshold + 0.00025), depth);
-    float skyRadiance = smoothstep(0.08, 0.28, luma) * min(luma * 2.2, 2.2);
+    float skyRadiance = min(excess * 3.0, 2.5) * sunFocus;
     vec3 skyChroma = col / max(luma, 1e-4);
     emitter = mix(vec3(1.0), min(skyChroma, vec3(1.5)), 0.35) * (isSky * skyRadiance);
   } else {
-    float excess = max(luma - 0.65, 0.0);
-    emitter = col * (excess / max(luma, 1e-4));
+    float skyRadiance = min(excess * 2.5, 2.2) * sunFocus;
+    emitter = col * (skyRadiance / max(luma, 1e-4));
   }
 
   gl_FragColor = vec4(emitter * material_VolumetricLightTint.rgb, 1.0);

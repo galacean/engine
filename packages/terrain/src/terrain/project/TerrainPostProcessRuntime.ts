@@ -104,6 +104,7 @@ export interface TerrainPostProcessDebugSnapshot {
     readonly enabled: boolean;
     readonly quality: VolumetricLightQuality;
     readonly intensity: number;
+    readonly threshold: number;
     readonly density: number;
     readonly decay: number;
     readonly softKnee: number;
@@ -158,6 +159,7 @@ export class TerrainPostProcessRuntime extends Script {
   private _volumetricLightEnabled = false;
   private _volumetricLightQuality: VolumetricLightQuality = VolumetricLightQuality.Low;
   private _volumetricLightIntensity = 0.6;
+  private _volumetricLightThreshold = 0.18;
   private _volumetricLightDensity = 0.72;
   private _volumetricLightDecay = 0.93;
   private _volumetricLightSoftKnee = 0.6;
@@ -522,6 +524,15 @@ export class TerrainPostProcessRuntime extends Script {
     this._applyVolumetricLight();
   }
 
+  /** Sets soft-knee luminance extraction threshold (`0..4`, Low mode). */
+  setVolumetricLightThreshold(threshold: number): void {
+    if (!Number.isFinite(threshold) || threshold < 0 || threshold > 4) {
+      throw new RangeError("Terrain volumetric light threshold must be finite and in [0, 4]");
+    }
+    this._volumetricLightThreshold = threshold;
+    this._applyVolumetricLight();
+  }
+
   /** Sets radial ray march density span (`0.2..1.5`). */
   setVolumetricLightDensity(density: number): void {
     if (!Number.isFinite(density) || density < 0.2 || density > 1.5) {
@@ -694,6 +705,7 @@ export class TerrainPostProcessRuntime extends Script {
       this.setVolumetricLightEnabled(volumetricLight.enabled);
       this.setVolumetricLightQuality(volumetricLight.quality);
       this.setVolumetricLightIntensity(volumetricLight.intensity);
+      this.setVolumetricLightThreshold(volumetricLight.threshold);
       this.setVolumetricLightDensity(volumetricLight.density);
       this.setVolumetricLightDecay(volumetricLight.decay);
       this.setVolumetricLightSoftKnee(volumetricLight.softKnee);
@@ -748,6 +760,7 @@ export class TerrainPostProcessRuntime extends Script {
         enabled: this._volumetricLightEnabled,
         quality: this._volumetricLightQuality,
         intensity: this._volumetricLightIntensity,
+        threshold: this._volumetricLightThreshold,
         density: this._volumetricLightDensity,
         decay: this._volumetricLightDecay,
         softKnee: this._volumetricLightSoftKnee,
@@ -886,6 +899,7 @@ export class TerrainPostProcessRuntime extends Script {
     volumetricLight.enabled = this._profileEnabled && this._volumetricLightEnabled;
     volumetricLight.quality.value = this._volumetricLightQuality;
     volumetricLight.intensity.value = this._volumetricLightIntensity;
+    volumetricLight.threshold.value = this._volumetricLightThreshold;
     volumetricLight.density.value = this._volumetricLightDensity;
     volumetricLight.decay.value = this._volumetricLightDecay;
     volumetricLight.softKnee.value = this._volumetricLightSoftKnee;

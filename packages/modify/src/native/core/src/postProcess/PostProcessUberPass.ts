@@ -153,6 +153,7 @@ export class PostProcessUberPass extends PostProcessPass {
       vlShaderData.setVector4(VolumetricLightEffect._params0Property, new Vector4(0.5, 0.25, 0.72, 0.93));
       vlShaderData.setVector4(VolumetricLightEffect._params1Property, new Vector4(0.9997, 0, 1, 1));
       vlShaderData.setVector4(VolumetricLightEffect._tintProperty, new Vector4(1, 0.9, 0.68, 0));
+      vlShaderData.setFloat(VolumetricLightEffect._thresholdProperty, 0.18);
       vlShaderData.setVector4(VolumetricLightEffect._raymarchParams0Property, new Vector4(1, 1, 80, 0.72));
       vlShaderData.setVector4(VolumetricLightEffect._raymarchParams1Property, new Vector4(0.035, 0, 0, 0));
       vlShaderData.setVector4(VolumetricLightEffect._sunDirProperty, new Vector4(0, 1, 0, 0));
@@ -507,6 +508,7 @@ export class PostProcessUberPass extends PostProcessPass {
     vlShaderData
       .getVector4(VolumetricLightEffect._tintProperty)
       .set(tintR, tintG, tintB, screenState.effectiveStrength);
+    vlShaderData.setFloat(VolumetricLightEffect._thresholdProperty, volumetricLightBlend.threshold.value);
 
     // Pass 0 (<=270p -> RT A): 1-tap sequential downsample + HDR sky luminance contrast extract.
     Blitter.blitTexture(engine, srcTexture, this._volumetricLightRTA, undefined, undefined, vlMaterial, 0);

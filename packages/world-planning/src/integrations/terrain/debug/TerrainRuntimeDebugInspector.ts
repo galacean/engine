@@ -790,6 +790,10 @@ export class TerrainRuntimeDebugInspector {
         .onChange(editPostProcess((intensity: number) => options.postProcess.setVolumetricLightIntensity(intensity)))
     );
     volumetricLight
+      .add(postProcessState.volumetricLight, "threshold", 0, 2, 0.01)
+      .name("Threshold / 亮度阈值 (Low)")
+      .onChange(editPostProcess((threshold: number) => options.postProcess.setVolumetricLightThreshold(threshold)));
+    volumetricLight
       .add(postProcessState.volumetricLight, "density", 0.2, 1.5, 0.02)
       .name("Density / 延伸密度 (Low)")
       .onChange(editPostProcess((density: number) => options.postProcess.setVolumetricLightDensity(density)));

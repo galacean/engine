@@ -83,6 +83,8 @@ export class VolumetricLightEffect extends PostProcessEffect {
   /** @internal */
   static _tintProperty: ShaderProperty = ShaderProperty.getByName("material_VolumetricLightTint");
   /** @internal */
+  static _thresholdProperty: ShaderProperty = ShaderProperty.getByName("material_VolumetricLightThreshold");
+  /** @internal */
   static _raymarchParams0Property: ShaderProperty = ShaderProperty.getByName("material_VolumetricLightRaymarchParams0");
   /** @internal */
   static _raymarchParams1Property: ShaderProperty = ShaderProperty.getByName("material_VolumetricLightRaymarchParams1");
@@ -98,6 +100,9 @@ export class VolumetricLightEffect extends PostProcessEffect {
 
   /** Overall linear intensity of the volumetric light shafts (`0..2.5`). */
   intensity = new PostProcessEffectFloatParameter(0.6, 0, 2.5);
+
+  /** Luminance extraction threshold separating bright sky gaps / silver-lining rims from dark cloud cores (`0..4`, Low mode). */
+  threshold = new PostProcessEffectFloatParameter(0.18, 0, 4);
 
   /** Radial ray span toward the projected sun position (`0.2..1.5`, Low mode). */
   density = new PostProcessEffectFloatParameter(0.72, 0.2, 1.5);
