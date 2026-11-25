@@ -150,7 +150,8 @@ export class RuntimeEditor {
   beginEdit(
     executionId: string,
     signal: AbortSignal,
-    contribute?: () => readonly RuntimeProjectContribution[]
+    contribute?: () => readonly RuntimeProjectContribution[],
+    options?: { userEdit?: boolean }
   ): RuntimeEditorEdit {
     const lifetime = new AbortController();
     const operationSignal = AbortSignal.any([signal, lifetime.signal, this.lifetime.signal]);
@@ -392,12 +393,19 @@ export class RuntimeEditor {
         if (phase !== "prepared") throw new Error(`Native edit is ${phase}`);
         phase = "committing";
         try {
-          if (candidate)
-            committedUndo = await this.project.publish(candidate, baseRevision, draft?.deletedAssetPaths(), {
+          if (candidate) {
+            const history = {
               transactionId: executionId,
               move: historyMove,
               sceneChanges
-            });
+            };
+            committedUndo =
+              options?.userEdit === false
+                ? await this.project.publish(candidate, baseRevision, draft?.deletedAssetPaths(), history, {
+                    userEdit: false
+                  })
+                : await this.project.publish(candidate, baseRevision, draft?.deletedAssetPaths(), history);
+          }
         } catch (error) {
           phase = "prepared";
           throw error;

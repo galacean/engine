@@ -25,6 +25,9 @@ Shader "SeedWorld/VoiceOrbV5" {
       sampler2D renderer_UITexture;
       float material_Time;
       float material_Listening;
+      // Per-axis quad expansion in canvas pixels (basePixelSize * (scale - 1.0)) so idle breathing
+      // and press expansion animate strictly on the GPU without mutating UITransform / chunkUI VBO.
+      float material_OrbScaleExpandPixels;
 
       // Tunable pastel iridescent palette stops (sRGB)
       vec4 material_OrbCyan;
@@ -60,7 +63,9 @@ Shader "SeedWorld/VoiceOrbV5" {
 
       Varyings vert(Attributes attr) {
         Varyings v;
-        gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0);
+        vec3 pos = attr.POSITION;
+        pos.xy += vec2(attr.TEXCOORD_0.x - 0.5, 0.5 - attr.TEXCOORD_0.y) * material_OrbScaleExpandPixels;
+        gl_Position = renderer_MVPMat * vec4(pos, 1.0);
         v.v_uv = attr.TEXCOORD_0;
         v.v_color = attr.COLOR_0;
         return v;

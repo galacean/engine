@@ -5,7 +5,7 @@ import {
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningAnimalWorldChange";
 import { querySeedAnimalCatalog } from "./PlanningAnimalCatalog.ts";
 import type { PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
-import type { Entity } from "@galacean/engine";
+import type { Camera, Entity } from "@galacean/engine";
 import type { AnimalPopulationConfig } from "@galacean/engine-animals/gameplay/animal/AnimalPopulation";
 import type { AnimalWorldEvent } from "@galacean/engine-animals/gameplay/animal/AnimalTaskController";
 import type {
@@ -44,7 +44,7 @@ type Runtime = Pick<
   | "setDynamicObstacles"
   | "clearDynamicObstacles"
 > &
-  Partial<Pick<PlanningAnimalRuntime, "prepareShaderWarmup">>;
+  Partial<Pick<PlanningAnimalRuntime, "prepareShaderWarmup" | "setStartupDeferOffscreenCamera">>;
 type RuntimeModule = {
   PlanningAnimalRuntime: new (
     parent: Entity,
@@ -68,6 +68,7 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
   private enabled = false;
   private disposed = false;
   private pending?: PopulationInput;
+  private startupDeferOffscreenCamera?: Camera;
   private runtime?: Runtime;
   private module?: RuntimeModule;
   private loading = false;
@@ -157,6 +158,12 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
     }
   }
 
+  /** During initial startup before reveal, defer downloading offscreen/wake-buffer animal GLBs. */
+  setStartupDeferOffscreenCamera(camera: Camera | undefined): void {
+    this.startupDeferOffscreenCamera = camera;
+    this.runtime?.setStartupDeferOffscreenCamera?.(camera);
+  }
+
   /** Startup may join current local presentation demand without loading distant catalog alternatives. */
   async preparePresentation(): Promise<void> {
     this.update(0);
@@ -184,6 +191,7 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
           for (const [groupKey, obstacles] of this.dynamicObstacles) {
             this.runtime.setDynamicObstacles(groupKey, obstacles);
           }
+          this.runtime.setStartupDeferOffscreenCamera?.(this.startupDeferOffscreenCamera);
         } catch (error) {
           this.fail(error);
           return;

@@ -173,6 +173,7 @@ type ProfileView = MasonryResidencyEntry & {
   worldOccupancy?: BuildingOccupancyQuery;
   occupancyMatrix: Float64Array;
   cpu: BuildingCpuHandle;
+  detailInput?: Pick<BuildingRuntimeInput, "assets" | "terrain" | "bindings" | "worldFrame" | "placement">;
   diagnostics: readonly { source: string; message: string }[];
   focus: Map<Component, BoundFocus>;
   inspection?: { controller: AbortController; result: Promise<ReturnType<typeof resolveDocument>["cells"]> };
@@ -218,6 +219,124 @@ type Build = {
   controller: AbortController;
   checkedRevision: number;
 };
+
+const MAX_WARMUP_BUILDINGS = 3;
+const STONE_HAT_PREFAB_PREFIXES = [
+  "window-gothic/",
+  "door-gothic/",
+  "dormer-gothic-half/",
+  "dormer-arrow-slit-half/"
+] as const;
+
+/** Run async work items with bounded concurrency, preserving output order and stopping dispatch on first error. */
+async function runWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const limit = Math.max(1, Math.min(items.length, Math.floor(concurrency)));
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  let firstError: unknown;
+  let hasError = false;
+  const runLane = async (): Promise<void> => {
+    while (!hasError) {
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      try {
+        results[index] = await worker(items[index]!, index);
+      } catch (error) {
+        if (!hasError) {
+          hasError = true;
+          firstError = error;
+        }
+        return;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: limit }, () => runLane()));
+  if (hasError) throw firstError;
+  return results;
+}
+
+/** Fingerprint strictly by shader-affecting features so pre-reveal masonry warmup covers every
+ * spawn-visible LOD0/LOD1 shader/macro variant without over-splitting identical shaders by part role. */
+export function masonryShaderFeatures(input: Pick<BuildingRuntimeInput, "draft">): Set<string> {
+  const groupSharedById = new Map<string, Readonly<Record<string, unknown>>>();
+  const groupHasWallRoofJoint = new Map<string, boolean>();
+  for (const group of input.draft.groups) {
+    if (group.shared) groupSharedById.set(group.id, group.shared);
+    const house = group.shared?.house as
+      | { circle?: unknown; roof?: { height?: number; ridge_length?: number } }
+      | undefined;
+    groupHasWallRoofJoint.set(
+      group.id,
+      Boolean(
+        house &&
+          hasConstructionWallRoofJointParams(
+            Boolean(house.circle),
+            house.roof?.height ?? 0,
+            house.roof?.ridge_length ?? 0
+          )
+      )
+    );
+  }
+  const resolveRef = (groupId: string, value: unknown): Record<string, unknown> | undefined => {
+    if (!value || typeof value !== "object") return undefined;
+    const obj = value as Record<string, unknown>;
+    const ref = obj["@shared"];
+    if (typeof ref === "string") {
+      const shared = groupSharedById.get(groupId)?.[ref];
+      if (shared && typeof shared === "object") {
+        return { ...(shared as Record<string, unknown>), ...obj };
+      }
+    }
+    return obj;
+  };
+  const features = new Set<string>();
+  for (const part of input.draft.parts) {
+    const unit = resolveRef(part.group, part.unit);
+    const unitSource = unit?.source;
+    const prefab =
+      unitSource && typeof unitSource === "object" && typeof (unitSource as { prefab?: unknown }).prefab === "string"
+        ? (unitSource as { prefab: string }).prefab
+        : undefined;
+    const algorithm = resolveRef(part.group, part.algorithm);
+    const frameMaterial = (algorithm?.params as { unitParams?: { frameMaterial?: unknown } } | undefined)?.unitParams
+      ?.frameMaterial;
+    if (prefab && STONE_HAT_PREFAB_PREFIXES.some((prefix) => prefab.startsWith(prefix))) {
+      features.add("decoration-stone");
+    }
+    if (frameMaterial === "wall") {
+      features.add("decoration-stone-frame");
+    }
+    const sourceKey =
+      unitSource === undefined ? "" : typeof unitSource === "string" ? unitSource : JSON.stringify(unitSource);
+    const type = part.type;
+    if (type === "wall") {
+      const jointFlag = groupHasWallRoofJoint.get(part.group) ? "1" : "0";
+      features.add(`wall:${sourceKey}|joint=${jointFlag}`);
+    } else if (type === "roof") {
+      features.add(`roof:${sourceKey}`);
+    } else if (type === "plaster") {
+      features.add("plaster");
+    } else if (type === "woodArch") {
+      features.add("wood-arch");
+    } else if (type === "roofDeck" || type === "steps") {
+      features.add("stone-floor");
+      if (sourceKey) features.add(`unit:${sourceKey}`);
+    } else if (type === "window" || type === "dormer" || type === "shedDormer" || type === "eaveDormer") {
+      features.add("window");
+    } else if (type === "door" || type === "lantern" || type === "hatch" || type === "roofLamp") {
+      features.add("decoration");
+    } else if (sourceKey) {
+      features.add(`unit:${sourceKey}`);
+    }
+  }
+  return features;
+}
+
 /** Scene scheduling and publication only; author models are supplied by the host.
  * The same runtime owns Worker snapshots, local rebuilds, terrain transactions,
  * residency and picking for any part collection. */
@@ -241,8 +360,24 @@ export class BuildingRuntime extends Script {
   protected host?: BuildingRuntimeHost;
   private pending?: Promise<void>;
   private detailPending?: Promise<void>;
-  private build?: Build;
+  private readonly activeBuilds = new Set<Build>();
   private detailBuild?: Build;
+  private flushDepth = 0;
+  private yieldDetailFrame(): Promise<void> {
+    if (this.flushDepth > 0 || typeof requestAnimationFrame !== "function") {
+      return new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
+    return new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        globalThis.cancelAnimationFrame?.(frame);
+        resolve();
+      }, 32);
+      const frame = requestAnimationFrame(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+  }
   private detailDirty = true;
   private retryAt = Infinity;
   private revision = 0;
@@ -275,6 +410,7 @@ export class BuildingRuntime extends Script {
   private probeRevision = -1;
   private frameRevision = -1;
   private frameGroups = new Map<Entity, Component[]>();
+  private frameMembers = new Map<Entity, Component[]>();
   private inputCacheRevision = -1;
   private inputCacheTerrain?: ConstructionTerrainSource;
   private readonly inputCache = new Map<Entity, BuildingRuntimeInput>();
@@ -361,7 +497,7 @@ export class BuildingRuntime extends Script {
 
   bind(host: BuildingRuntimeHost): void {
     this.terrainUpdate?.discard();
-    this.build?.controller.abort();
+    for (const build of this.activeBuilds) build.controller.abort();
     this.detailBuild?.controller.abort();
     this.clearExitingViews();
     if (host.terrain) validateConstructionTerrain(host.terrain.grid);
@@ -405,12 +541,13 @@ export class BuildingRuntime extends Script {
     this.members.delete(component);
     this.lightsDirty = true;
     if (this.host?.isBody(component)) {
-      for (const build of [this.build, this.detailBuild])
-        if (build?.bodies.includes(component)) build.controller.abort();
+      for (const build of this.activeBuilds) if (build.bodies.includes(component)) build.controller.abort();
+      if (this.detailBuild?.bodies.includes(component)) this.detailBuild.controller.abort();
       for (const [frame, view] of this.views)
         if (view.bodies.includes(component)) {
           view.signature = "";
-          for (const build of [this.build, this.detailBuild]) if (build?.frame === frame) build.controller.abort();
+          for (const build of this.activeBuilds) if (build.frame === frame) build.controller.abort();
+          if (this.detailBuild?.frame === frame) this.detailBuild.controller.abort();
           const id = view.groupIds.get(component)!;
           view.occupancy = view.occupancy.withoutOwner(id);
           view.worldOccupancy = undefined;
@@ -433,7 +570,7 @@ export class BuildingRuntime extends Script {
   /** Batch authored inputs without rebuilding against an intermediate environment. */
   async beginInputUpdate(): Promise<void> {
     this.inputUpdates++;
-    this.build?.controller.abort();
+    for (const build of this.activeBuilds) build.controller.abort();
     this.detailBuild?.controller.abort();
     // Previous input failures cannot veto applying their repair. The new input is validated at flush.
     await Promise.allSettled([this.pending, this.detailPending]);
@@ -475,6 +612,8 @@ export class BuildingRuntime extends Script {
     }
   }
   onUpdate(deltaTime: number): void {
+    const mark = (globalThis as { __mobileSeedTickMark?: (name: string, ms: number) => void }).__mobileSeedTickMark;
+    let t0 = mark ? performance.now() : 0;
     this.readTransforms();
     this.validateBuild();
     if (this.error && performance.now() >= this.retryAt) {
@@ -483,8 +622,19 @@ export class BuildingRuntime extends Script {
     }
     if (this.entrance.advance(deltaTime)) this.applyEntrance(this.entrance.changed);
     this.advanceExitingViews(deltaTime);
+    if (mark) {
+      mark("bldg.pre", performance.now() - t0);
+      t0 = performance.now();
+    }
     this.updateResidency(deltaTime);
+    if (mark) {
+      mark("bldg.residency", performance.now() - t0);
+      t0 = performance.now();
+    }
     this.updateLights(deltaTime);
+    if (mark) {
+      mark("bldg.lights", performance.now() - t0);
+    }
     if (this.host && !this.inputUpdates && !this.terrainUpdate && !this.pending && this.applied !== this.revision)
       void this.flush().catch(() => {});
   }
@@ -495,28 +645,33 @@ export class BuildingRuntime extends Script {
     if (this.inputUpdates) throw new DOMException("Building inputs are being applied", "AbortError");
     if (this.terrainUpdate) throw Error("Building environment publication is pending");
     if (!this.host) throw Error("Building system has no Scene identity provider");
-    do {
-      this.readTransforms();
-      this.validateBuild();
-      while (this.applied !== this.revision && !this.closed) {
-        if (!this.pending)
-          this.pending = this.drain().finally(() => {
-            this.pending = undefined;
-          });
-        await this.pending;
-        if (this.inputUpdates) throw new DOMException("Building inputs are being applied", "AbortError");
-      }
-      if (this.closed) throw Error("Building system is disposed");
-      if (this.error) throw this.error;
+    this.flushDepth++;
+    try {
+      do {
+        this.readTransforms();
+        this.validateBuild();
+        while (this.applied !== this.revision && !this.closed) {
+          if (!this.pending)
+            this.pending = this.drain().finally(() => {
+              this.pending = undefined;
+            });
+          await this.pending;
+          if (this.inputUpdates) throw new DOMException("Building inputs are being applied", "AbortError");
+        }
+        if (this.closed) throw Error("Building system is disposed");
+        if (this.error) throw this.error;
+        this.updateResidency(0);
+        await this.detailPending;
+        this.readTransforms();
+        this.validateBuild();
+      } while (this.applied !== this.revision);
       this.updateResidency(0);
-      await this.detailPending;
-      this.readTransforms();
-      this.validateBuild();
-    } while (this.applied !== this.revision);
-    this.updateResidency(0);
-    const failure = this.entries.find((entry) => entry.error && this.residency!.desired.has(entry));
-    if (failure) throw Error(failure.error);
-    this.updateLights(0);
+      const failure = this.entries.find((entry) => entry.error && this.residency!.desired.has(entry));
+      if (failure) throw Error(failure.error);
+      this.updateLights(0);
+    } finally {
+      this.flushDepth = Math.max(0, this.flushDepth - 1);
+    }
   }
   get terrainSource(): ConstructionTerrainSource | undefined {
     return this.publishedTerrain;
@@ -537,12 +692,17 @@ export class BuildingRuntime extends Script {
     if (!next) throw Error("Published building terrain is unavailable");
     validateConstructionTerrain(next.grid);
     signal?.throwIfAborted();
-    if (!this.inputUpdates) await this.flush();
+    // Skip redundant serial flush on fresh startup when no live views exist yet:
+    // prepareTerrain itself compiles all frames in parallel against `next` directly.
+    if (!this.inputUpdates && (this.views.size > 0 || this.pending)) await this.flush();
     this.host!.validate(this.members.keys());
     signal?.throwIfAborted();
     if (this.terrainUpdate) throw Error("Building environment publication is pending");
     this.readTransforms();
     const revision = this.revision,
+      beforeApplied = this.applied,
+      beforeError = this.error,
+      beforeRetryAt = this.retryAt,
       host = this.host!;
     let previous = this.publishedTerrain;
     const before = [...this.views.values()],
@@ -567,13 +727,15 @@ export class BuildingRuntime extends Script {
     const install = (
       entries: View[],
       terrain: ConstructionTerrainSource | undefined,
-      signatures: ReadonlyMap<View, string>
+      signatures: ReadonlyMap<View, string>,
+      appliedRevision: number
     ) => {
       for (const entry of this.views.values()) showView(entry, false);
       this.views.clear();
       this.entries.length = 0;
       this.residency!.desired.clear();
       this.publishedTerrain = terrain;
+      this.applied = appliedRevision;
       BuildingRuntime.clearInputCache(this);
       for (const entry of entries) {
         entry.signature = signatures.get(entry)!;
@@ -611,7 +773,9 @@ export class BuildingRuntime extends Script {
     };
     const rollback = () => {
       if (finished || !committed) return;
-      install(before, previous, beforeSignatures);
+      this.error = beforeError;
+      this.retryAt = beforeRetryAt;
+      install(before, previous, beforeSignatures, beforeApplied);
       committed = false;
     };
     const discard = () => {
@@ -627,8 +791,13 @@ export class BuildingRuntime extends Script {
       check();
       const frameList = [...this.frames().keys()];
       const effectiveSignal = signal ?? new AbortController().signal;
-      const views = await Promise.all(
-        frameList.map(async (frame) => {
+      const scene = this.entity?.scene;
+      if (scene) BuildingGlobalProxy.beginSceneBatch(scene);
+      const concurrency = Math.max(1, (this.compiler?.workerLimit ?? 3) + 1);
+      let views: Array<{ view: View; signature: string }>;
+      try {
+        views = await runWithConcurrency(frameList, concurrency, async (frame) => {
+          check();
           const input = this.input(frame, next),
             old = this.views.get(frame);
           const unchanged =
@@ -638,14 +807,24 @@ export class BuildingRuntime extends Script {
             input.execution !== "main" &&
             !terrainAffectsRegion(buildingWorldRegion(input.draft, input.placement), previous.grid, next.grid);
           const view = unchanged ? old : await this.prepareView(frame, input, check, effectiveSignal);
+          if (!unchanged) {
+            if (finished) {
+              destroyView(view);
+              throw Error("Building environment candidate is stale");
+            }
+            prepared.push(view);
+          }
           return { view, signature: input.signature };
-        })
-      );
+        });
+      } finally {
+        if (scene) BuildingGlobalProxy.endSceneBatch(scene);
+      }
+      check();
+      prepared.length = 0;
       for (const { view, signature } of views) {
         prepared.push(view);
         preparedSignatures.set(view, signature);
       }
-      check();
       // Capture immutable spatial facts before accepting, for navigation and
       // other world consumers. Hidden render state never leaks into live queries.
       const queries = this.queriesFor(prepared);
@@ -677,7 +856,9 @@ export class BuildingRuntime extends Script {
           // Set first so even an unexpected mutate-then-throw setter can roll back.
           committed = true;
           try {
-            install(prepared, next, preparedSignatures);
+            this.error = undefined;
+            this.retryAt = Infinity;
+            install(prepared, next, preparedSignatures, revision);
           } catch (error) {
             rollback();
             throw error;
@@ -701,17 +882,23 @@ export class BuildingRuntime extends Script {
   private frames(): Map<Entity, Component[]> {
     if (this.frameRevision === this.revision) return this.frameGroups;
     const frames = new Map<Entity, Component[]>();
-    for (const member of this.members.keys())
+    const membersByFrame = new Map<Entity, Component[]>();
+    for (const member of this.members.keys()) {
+      const frame = this.host!.frame(member);
+      if (frame.destroyed || frame.scene !== this.entity.scene)
+        throw Error("Building frame must belong to the active Scene");
+      let scoped = membersByFrame.get(frame);
+      if (!scoped) membersByFrame.set(frame, (scoped = []));
+      scoped.push(member);
       if (this.host!.isBody(member)) {
-        const frame = this.host!.frame(member);
-        if (frame.destroyed || frame.scene !== this.entity.scene)
-          throw Error("Building frame must belong to the active Scene");
-        const bodies = frames.get(frame) ?? [];
+        let bodies = frames.get(frame);
+        if (!bodies) frames.set(frame, (bodies = []));
         bodies.push(member);
-        frames.set(frame, bodies);
       }
+    }
     this.frameRevision = this.revision;
     this.frameGroups = frames;
+    this.frameMembers = membersByFrame;
     return frames;
   }
   protected input(frame: Entity, publishedTerrain = this.publishedTerrain): BuildingRuntimeInput {
@@ -727,16 +914,20 @@ export class BuildingRuntime extends Script {
     }
     const bodies = this.frames().get(frame);
     if (!bodies?.length) throw Error("Building group no longer has active owners");
-    const collected = this.host!.collect(frame, bodies, this.members.keys(), publishedTerrain);
+    const scopedMembers = this.frameRevision === this.revision ? this.frameMembers?.get(frame) : undefined;
+    const collected = this.host!.collect(frame, bodies, scopedMembers ?? this.members.keys(), publishedTerrain);
     if (useCache) this.inputCache.set(frame, collected);
     return collected;
   }
   private validateBuild(force = false): void {
-    this.validateSingleBuild(this.build, force);
+    for (const build of this.activeBuilds) this.validateSingleBuild(build, force);
     this.validateSingleBuild(this.detailBuild, force);
   }
   private validateSingleBuild(build: Build | undefined, force: boolean): void {
-    if (!build || build.controller.signal.aborted || (!force && build.checkedRevision === this.revision)) return;
+    if (!build || build.controller.signal.aborted) return;
+    if (build.checkedRevision === this.revision) {
+      if (!force || (this.applied === this.revision && this.dirtyTransformMembers.size === 0)) return;
+    }
     build.checkedRevision = this.revision;
     try {
       if (this.input(build.frame).signature === build.signature) return;
@@ -935,6 +1126,13 @@ export class BuildingRuntime extends Script {
         entranceInstanceKeys,
         occupancy,
         cpu,
+        detailInput: {
+          assets,
+          terrain,
+          bindings,
+          worldFrame: input.worldFrame,
+          placement
+        },
         diagnostics: candidate.diagnostics,
         focus: bindFocus(candidate.focus, bindings, frame, true),
         occupancyMatrix: new Float64Array(16).fill(NaN),
@@ -963,60 +1161,96 @@ export class BuildingRuntime extends Script {
   private async drain(): Promise<void> {
     while (!this.closed && !this.inputUpdates && this.applied !== this.revision) {
       const revision = this.revision;
-      let build: Build | undefined;
+      const batchBuilds = new Set<Build>();
+      let batchError: unknown;
+      let hasBatchError = false;
       this.error = undefined;
       this.retryAt = Infinity;
+      const scene = this.entity?.scene;
       try {
         this.host!.validate(this.members.keys());
         const frames = this.frames();
         for (const [frame, view] of this.views) if (!frames.has(frame)) this.retire(view, true);
+        const pendingFrames: Array<{ frame: Entity; input: BuildingRuntimeInput; old?: View }> = [];
         for (const frame of frames.keys()) {
-          const input = this.input(frame),
-            { signature, bodies } = input;
+          const input = this.input(frame);
           const old = this.views.get(frame);
-          if (old?.signature === signature) continue;
-          build = this.build = {
-            frame,
-            bodies,
-            signature,
-            controller: new AbortController(),
-            checkedRevision: this.revision
-          };
-          let candidate: View | undefined;
+          if (old?.signature === input.signature) continue;
+          pendingFrames.push({ frame, input, old });
+        }
+        if (pendingFrames.length > 0) {
+          if (scene) BuildingGlobalProxy.beginSceneBatch(scene);
+          const concurrency = Math.max(1, (this.compiler?.workerLimit ?? 3) + 1);
           try {
-            candidate = await this.prepareView(
-              frame,
-              input,
-              () => {
-                this.readTransforms();
-                this.validateBuild(true);
-                build!.controller.signal.throwIfAborted();
-              },
-              build.controller.signal
-            );
-            this.acceptEntrance(candidate, old);
-            if (!old || !old.occupancy.hasSameGeometry(candidate.occupancy)) this.surfaceRevision++;
-            if (old) this.retire(old, false);
-            this.views.set(frame, candidate);
-            this.lightsDirty = true;
-            if (candidate.kind === "profile") this.entries.push(candidate);
-            this.refreshProbe(candidate);
-            showView(candidate, this.shown);
-            this.generationSerial++;
-            candidate = undefined;
-            this.residency!.selectionDirty = true;
-            this.residency!.invalidate();
-            this.detailDirty = true;
-          } catch (error) {
-            if (candidate) destroyView(candidate);
-            throw error;
+            await runWithConcurrency(pendingFrames, concurrency, async ({ frame, input, old }) => {
+              if (this.closed || this.inputUpdates || hasBatchError) return;
+              const build: Build = {
+                frame,
+                bodies: input.bodies,
+                signature: input.signature,
+                controller: new AbortController(),
+                checkedRevision: this.revision
+              };
+              batchBuilds.add(build);
+              this.activeBuilds.add(build);
+              let candidate: View | undefined;
+              try {
+                candidate = await this.prepareView(
+                  frame,
+                  input,
+                  () => {
+                    this.readTransforms();
+                    this.validateBuild(true);
+                    build.controller.signal.throwIfAborted();
+                  },
+                  build.controller.signal
+                );
+                if (this.closed || this.inputUpdates || build.controller.signal.aborted) {
+                  destroyView(candidate);
+                  candidate = undefined;
+                  return;
+                }
+                const currentOld = this.views.get(frame);
+                this.acceptEntrance(candidate, currentOld ?? old);
+                if (!currentOld || !currentOld.occupancy.hasSameGeometry(candidate.occupancy)) this.surfaceRevision++;
+                if (currentOld) this.retire(currentOld, false);
+                this.views.set(frame, candidate);
+                this.lightsDirty = true;
+                if (candidate.kind === "profile") this.entries.push(candidate);
+                this.refreshProbe(candidate);
+                showView(candidate, this.shown);
+                this.generationSerial++;
+                candidate = undefined;
+                this.residency!.selectionDirty = true;
+                this.residency!.invalidate();
+                this.detailDirty = true;
+              } catch (error) {
+                if (candidate) destroyView(candidate);
+                if (!build.controller.signal.aborted) {
+                  if (!hasBatchError) {
+                    hasBatchError = true;
+                    batchError = error;
+                    for (const sibling of batchBuilds) {
+                      if (sibling !== build) sibling.controller.abort();
+                    }
+                  }
+                  throw error;
+                }
+              } finally {
+                batchBuilds.delete(build);
+                this.activeBuilds.delete(build);
+              }
+            });
+          } finally {
+            if (scene) BuildingGlobalProxy.endSceneBatch(scene);
           }
-          this.build = build = undefined;
         }
       } catch (error) {
-        if (!build?.controller.signal.aborted) this.error = error;
+        if (hasBatchError) this.error = batchError;
+        else this.error = error;
       } finally {
-        this.build = undefined;
+        for (const build of batchBuilds) this.activeBuilds.delete(build);
+        batchBuilds.clear();
       }
       if (!this.inputUpdates && revision === this.revision) {
         this.applied = revision;
@@ -1033,13 +1267,23 @@ export class BuildingRuntime extends Script {
   }
   private updateResidency(deltaTime: number): void {
     if (!this.residency || this.closed) return;
+    const mark = (globalThis as { __mobileSeedTickMark?: (name: string, ms: number) => void }).__mobileSeedTickMark;
     if (this.probeRevision !== this.revision) {
       for (const view of this.entries) this.refreshProbe(view);
       this.probeRevision = this.revision;
     }
     const now = performance.now();
+    let t0 = mark ? now : 0;
     this.residency.updateDemand(deltaTime, this.shown);
+    if (mark) {
+      mark("bldg.demand", performance.now() - t0);
+      t0 = performance.now();
+    }
     this.residency.updatePresentation(now, this.shown);
+    if (mark) {
+      mark("bldg.present", performance.now() - t0);
+      t0 = performance.now();
+    }
     for (let i = 0, n = this.entries.length; i < n; i++) {
       const retryAt = this.entries[i].retryAt;
       if (retryAt !== undefined && now >= retryAt) {
@@ -1054,10 +1298,12 @@ export class BuildingRuntime extends Script {
       !this.pending &&
       !this.detailPending &&
       this.detailDirty
-    )
+    ) {
       this.detailPending = this.pumpDetails().finally(() => {
         this.detailPending = undefined;
       });
+      if (mark) mark("bldg.pumpSync", performance.now() - t0);
+    }
   }
   private async pumpDetails(): Promise<void> {
     this.detailDirty = false;
@@ -1076,26 +1322,57 @@ export class BuildingRuntime extends Script {
       }
       let fine: Candidate | undefined, build: Build | undefined;
       try {
-        const input = this.input(view.frame);
-        if (input.signature !== view.signature) {
-          this.invalidate();
-          return;
+        // When no authoring or transform change occurred since publication, reuse the already-validated
+        // detail inputs directly instead of re-running collectBuildingParts (structuredClone + JSON hashing)
+        // synchronously inside onUpdate() on every newly visible village building.
+        const usePreparedInput =
+          Boolean(view.detailInput) && this.applied === this.revision && this.dirtyTransformMembers.size === 0;
+        let detailAssets: PrefabResource | undefined;
+        let detailTerrain: ConstructionTerrainSource | undefined;
+        let detailBindings: Map<string, BuildingObjectBinding>;
+        let detailWorldFrame: Matrix | undefined;
+        let detailPlacement: BuildingPlacementFrame;
+        let detailBodies: Component[];
+        let detailSignature: string;
+        if (usePreparedInput) {
+          const cached = view.detailInput!;
+          detailAssets = cached.assets;
+          detailTerrain = this.publishedTerrain ?? cached.terrain;
+          detailBindings = cached.bindings;
+          detailWorldFrame = cached.worldFrame;
+          detailPlacement = cached.placement;
+          detailBodies = view.bodies;
+          detailSignature = view.signature;
+        } else {
+          const input = this.input(view.frame);
+          if (input.signature !== view.signature) {
+            this.invalidate();
+            return;
+          }
+          detailAssets = input.assets;
+          detailTerrain = input.terrain;
+          detailBindings = input.bindings;
+          detailWorldFrame = input.worldFrame;
+          detailPlacement = input.placement;
+          detailBodies = input.bodies;
+          detailSignature = input.signature;
         }
         build = this.detailBuild = {
           frame: view.frame,
-          bodies: input.bodies,
-          signature: input.signature,
+          bodies: detailBodies,
+          signature: detailSignature,
           controller: new AbortController(),
           checkedRevision: this.revision
         };
         this.residencyMetrics.detailAttempts++;
         fine = await prepareBuildingDetail(view.cpu, {
-          assets: input.assets!,
+          assets: detailAssets!,
           parent: view.frame,
           camera: this.host!.camera,
           signal: build.controller.signal,
-          terrainGrid: input.terrain?.grid,
-          rigidDecorations: rigidBindings(input.bindings)
+          terrainGrid: detailTerrain?.grid,
+          rigidDecorations: rigidBindings(detailBindings),
+          yieldFrame: this.flushDepth === 0 ? () => this.yieldDetailFrame() : undefined
         });
         markGeneratedBuildingOutput(fine.runtime.root);
         this.readTransforms();
@@ -1106,8 +1383,8 @@ export class BuildingRuntime extends Script {
           continue;
         }
         fine.commit();
-        if (input.worldFrame) {
-          const placement = input.placement,
+        if (detailWorldFrame) {
+          const placement = detailPlacement,
             rotation = new Quaternion(),
             matrix = new Matrix();
           Quaternion.rotationEuler(0, placement.rotationY, 0, rotation);
@@ -1127,7 +1404,7 @@ export class BuildingRuntime extends Script {
         view.retryAt = undefined;
         residency.invalidate();
         residency.updatePresentation(performance.now(), this.shown);
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        await this.yieldDetailFrame();
       } catch (error) {
         fine?.destroy();
         if (!build?.controller.signal.aborted && !this.closed && this.views.get(view.frame) === view) {
@@ -1455,8 +1732,7 @@ export class BuildingRuntime extends Script {
       })
       .sort((a, b) => a.distSq - b.distSq);
 
-    const selected: Array<{ entry: ProfileView; input: BuildingRuntimeInput }> = [];
-    const seenFeatures = new Set<string>();
+    const candidates: Array<{ entry: ProfileView; input: BuildingRuntimeInput; features: Set<string> }> = [];
     for (const { entry } of ranked) {
       let input: BuildingRuntimeInput;
       try {
@@ -1465,56 +1741,35 @@ export class BuildingRuntime extends Script {
         continue;
       }
       if (!input.assets) continue;
-      const groupSharedById = new Map<string, Readonly<Record<string, unknown>>>();
-      for (const group of input.draft.groups) {
-        if (group.shared) groupSharedById.set(group.id, group.shared);
-      }
-      const resolveRef = (groupId: string, value: unknown): Record<string, unknown> | undefined => {
-        if (!value || typeof value !== "object") return undefined;
-        const obj = value as Record<string, unknown>;
-        const ref = obj["@shared"];
-        if (typeof ref === "string") {
-          const shared = groupSharedById.get(groupId)?.[ref];
-          if (shared && typeof shared === "object") {
-            return { ...(shared as Record<string, unknown>), ...obj };
+      candidates.push({ entry, input, features: masonryShaderFeatures(input) });
+    }
+    const selected: Array<{ entry: ProfileView; input: BuildingRuntimeInput }> = [];
+    const seenFeatures = new Set<string>();
+    const chosen = new Set<number>();
+    if (candidates.length > 0) {
+      // Always include the closest spawn-visible building first, then greedily cover remaining distinct
+      // shader features up to MAX_WARMUP_BUILDINGS (breaking ties by closest distance to camera).
+      selected.push({ entry: candidates[0]!.entry, input: candidates[0]!.input });
+      chosen.add(0);
+      for (const f of candidates[0]!.features) seenFeatures.add(f);
+      while (selected.length < MAX_WARMUP_BUILDINGS) {
+        let bestIdx = -1;
+        let bestNewCount = 0;
+        for (let i = 1; i < candidates.length; i++) {
+          if (chosen.has(i)) continue;
+          let newCount = 0;
+          for (const f of candidates[i]!.features) {
+            if (!seenFeatures.has(f)) newCount++;
+          }
+          if (newCount > bestNewCount) {
+            bestNewCount = newCount;
+            bestIdx = i;
           }
         }
-        return obj;
-      };
-      // Fingerprint strictly by shader-affecting features:
-      // 1. Resolved unit material source (`brick`, `roof_tile`, `wooden_plank`, etc.) + part type.
-      // 2. Whether the group produces a gable wall-roof joint (`injectWallRoofJoint` changes the brick/wood shader hash).
-      const groupHasWallRoofJoint = new Map<string, boolean>();
-      for (const group of input.draft.groups) {
-        const house = group.shared?.house as
-          | { circle?: unknown; roof?: { height?: number; ridge_length?: number } }
-          | undefined;
-        groupHasWallRoofJoint.set(
-          group.id,
-          Boolean(
-            house &&
-              hasConstructionWallRoofJointParams(
-                Boolean(house.circle),
-                house.roof?.height ?? 0,
-                house.roof?.ridge_length ?? 0
-              )
-          )
-        );
-      }
-      const features = new Set<string>();
-      for (const part of input.draft.parts) {
-        const unit = resolveRef(part.group, part.unit);
-        const sourceKey =
-          unit?.source === undefined ? "" : typeof unit.source === "string" ? unit.source : JSON.stringify(unit.source);
-        const jointFlag = groupHasWallRoofJoint.get(part.group) ? "1" : "0";
-        if (sourceKey) features.add(`unit:${sourceKey}|joint=${jointFlag}`);
-        features.add(`part:${part.type}|${sourceKey}|joint=${jointFlag}`);
-      }
-      const addsFeature = [...features].some((f) => !seenFeatures.has(f));
-      if (selected.length === 0 || addsFeature) {
-        selected.push({ entry, input });
-        for (const f of features) seenFeatures.add(f);
-        if (selected.length >= 12) break;
+        if (bestIdx === -1) break;
+        chosen.add(bestIdx);
+        selected.push({ entry: candidates[bestIdx]!.entry, input: candidates[bestIdx]!.input });
+        for (const f of candidates[bestIdx]!.features) seenFeatures.add(f);
       }
     }
     if (selected.length === 0) return { renderers: [], extraMaterials, decorationPointLightBudget, dispose() {} };
@@ -1614,7 +1869,7 @@ export class BuildingRuntime extends Script {
   onDestroy(): void {
     this.terrainUpdate?.discard();
     this.closed = true;
-    this.build?.controller.abort();
+    if (this.activeBuilds) for (const build of this.activeBuilds) build.controller.abort();
     this.detailBuild?.controller.abort();
     this.clearExitingViews();
     for (const view of [...this.views.values()]) this.retire(view, false);
@@ -1622,6 +1877,7 @@ export class BuildingRuntime extends Script {
     for (const flag of this.members.values()) flag.destroy();
     this.members.clear();
     this.dirtyTransformMembers.clear();
+    this.frameMembers?.clear();
     BuildingRuntime.clearInputCache(this);
     this.lights?.dispose();
   }

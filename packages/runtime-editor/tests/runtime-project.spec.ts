@@ -5,6 +5,7 @@ import {
   RUNTIME_PROJECT_SAVE_VERSION,
   RuntimeProjectSnapshot,
   RuntimeProjectStorage,
+  RuntimeProjectStorageUnavailableError,
   runtimeProjectFiles,
   projectDocuments,
   validateRuntimeProject,
@@ -16,6 +17,10 @@ import { VirtualProjectFiles } from "@galacean/engine-project/project-files/virt
 vi.mock("../src/runtime-editor/scripts/runtime-project-scripts", () => ({
   RuntimeProjectScripts: class { dispose() {} }
 }));
+
+function beforeUnloadEvent(): Event {
+  return Object.defineProperty(new Event("beforeunload", { cancelable: true }), "returnValue", { writable: true });
+}
 
 function project(): RuntimeProjectPackage {
   return { version: RUNTIME_PROJECT_SAVE_VERSION, project: { scene: "Scene/main.scene", scenes: ["Scene/main.scene", "Scene/other.scene"], files: [
@@ -228,6 +233,378 @@ it("opens a database already at version 5 without recreating stores", async () =
   expect(existing.deletedStores).toEqual([]);
   expect(existing.createdStores).toEqual([]);
   storage.close();
+});
+
+function memoryDatabaseFactory() {
+  const projects = new Map<string, any>();
+  const projectRevisions = new Map<string, any>();
+  const projectFiles = new Map<string, any>();
+  const fileKey = (key: readonly [string, string, string]) => JSON.stringify(key);
+  const handles: Array<{
+    database: IDBDatabase;
+    closed: boolean;
+    failTransactionsWith?: unknown;
+    triggerClose: () => void;
+  }> = [];
+
+  const createHandle = () => {
+    const handle = {
+      closed: false,
+      failTransactionsWith: undefined as unknown,
+      database: undefined as unknown as IDBDatabase,
+      triggerClose() {
+        handle.closed = true;
+        handle.database.onclose?.(new Event("close"));
+      }
+    };
+    const database: any = {
+      objectStoreNames: {
+        contains: (name: string) => name === "projects" || name === "projectRevisions" || name === "projectFiles"
+      },
+      createObjectStore() {
+        return { createIndex() {} };
+      },
+      deleteObjectStore() {},
+      onversionchange: null as ((event: Event) => void) | null,
+      onclose: null as ((event: Event) => void) | null,
+      close() {
+        handle.closed = true;
+      },
+      transaction(_stores: string[], _mode: IDBTransactionMode) {
+        if (handle.failTransactionsWith !== undefined) {
+          throw handle.failTransactionsWith;
+        }
+        if (handle.closed) {
+          throw new DOMException(
+            "Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing.",
+            "InvalidStateError"
+          );
+        }
+        const pendingRequests: Array<() => void> = [];
+        let aborted = false;
+        const tx: any = {
+          error: null as unknown,
+          oncomplete: null as (() => void) | null,
+          onabort: null as (() => void) | null,
+          abort() {
+            aborted = true;
+          },
+          objectStore(name: string) {
+            if (name === "projects") {
+              return {
+                get(key: string) {
+                  const req: any = { result: undefined, onsuccess: null };
+                  pendingRequests.push(() => {
+                    req.result = projects.has(key) ? structuredClone(projects.get(key)) : undefined;
+                    req.onsuccess?.();
+                  });
+                  return req;
+                },
+                getKey(key: string) {
+                  const req: any = { result: undefined, onsuccess: null };
+                  pendingRequests.push(() => {
+                    req.result = projects.has(key) ? key : undefined;
+                    req.onsuccess?.();
+                  });
+                  return req;
+                },
+                getAllKeys() {
+                  const req: any = { result: undefined, onsuccess: null };
+                  pendingRequests.push(() => {
+                    req.result = [...projects.keys()];
+                    req.onsuccess?.();
+                  });
+                  return req;
+                },
+                index(indexName: string) {
+                  if (indexName !== "storageRevision") throw new Error(`Unknown index ${indexName}`);
+                  return {
+                    getKey(revision: string) {
+                      const req: any = { result: undefined, onsuccess: null };
+                      pendingRequests.push(() => {
+                        let found: string | undefined;
+                        for (const [id, entry] of projects) {
+                          if (entry?.storageRevision === revision) {
+                            found = id;
+                            break;
+                          }
+                        }
+                        req.result = found;
+                        req.onsuccess?.();
+                      });
+                      return req;
+                    }
+                  };
+                },
+                put(value: unknown, key: string) {
+                  projects.set(key, structuredClone(value));
+                },
+                delete(key: string) {
+                  projects.delete(key);
+                }
+              };
+            }
+            if (name === "projectRevisions") {
+              return {
+                get(key: string) {
+                  const req: any = { result: undefined, onsuccess: null };
+                  pendingRequests.push(() => {
+                    req.result = projectRevisions.has(key) ? structuredClone(projectRevisions.get(key)) : undefined;
+                    req.onsuccess?.();
+                  });
+                  return req;
+                },
+                getKey(key: string) {
+                  const req: any = { result: undefined, onsuccess: null };
+                  pendingRequests.push(() => {
+                    req.result = projectRevisions.has(key) ? key : undefined;
+                    req.onsuccess?.();
+                  });
+                  return req;
+                },
+                index(indexName: string) {
+                  if (indexName !== "storageRevision") throw new Error(`Unknown index ${indexName}`);
+                  return {
+                    getKey(revision: string) {
+                      const req: any = { result: undefined, onsuccess: null };
+                      pendingRequests.push(() => {
+                        let found: string | undefined;
+                        for (const [id, entry] of projectRevisions) {
+                          if (entry?.storageRevision === revision) {
+                            found = id;
+                            break;
+                          }
+                        }
+                        req.result = found;
+                        req.onsuccess?.();
+                      });
+                      return req;
+                    }
+                  };
+                },
+                put(value: unknown, key: string) {
+                  projectRevisions.set(key, structuredClone(value));
+                },
+                delete(key: string) {
+                  projectRevisions.delete(key);
+                }
+              };
+            }
+            if (name === "projectFiles") {
+              return {
+                get(key: readonly [string, string, string]) {
+                  const req: any = { result: undefined, onsuccess: null };
+                  pendingRequests.push(() => {
+                    const stored = projectFiles.get(fileKey(key));
+                    req.result = stored === undefined ? undefined : structuredClone(stored);
+                    req.onsuccess?.();
+                  });
+                  return req;
+                },
+                put(value: unknown, key: readonly [string, string, string]) {
+                  projectFiles.set(fileKey(key), structuredClone(value));
+                },
+                delete(keyOrRange: any) {
+                  if (Array.isArray(keyOrRange)) {
+                    projectFiles.delete(fileKey(keyOrRange as [string, string, string]));
+                  } else if (keyOrRange && Array.isArray(keyOrRange.lower)) {
+                    const projectId = keyOrRange.lower[0];
+                    for (const serialized of [...projectFiles.keys()]) {
+                      const parsed = JSON.parse(serialized) as [string, string, string];
+                      if (parsed[0] === projectId) projectFiles.delete(serialized);
+                    }
+                  }
+                }
+              };
+            }
+            throw new Error(`Unknown store ${name}`);
+          }
+        };
+        queueMicrotask(() => {
+          while (pendingRequests.length && !aborted) {
+            const next = pendingRequests.shift()!;
+            next();
+          }
+          if (aborted) tx.onabort?.();
+          else tx.oncomplete?.();
+        });
+        return tx;
+      }
+    };
+    handle.database = database as IDBDatabase;
+    handles.push(handle);
+    return handle;
+  };
+
+  let openCount = 0;
+  const factory = {
+    open: (_name: string, _version: number) => {
+      openCount++;
+      const handle = createHandle();
+      const request: any = {
+        result: handle.database,
+        transaction: { objectStore: () => ({ createIndex() {} }) },
+        error: undefined,
+        onupgradeneeded: undefined,
+        onblocked: undefined,
+        onerror: undefined,
+        onsuccess: undefined
+      };
+      queueMicrotask(() => {
+        request.onsuccess?.();
+      });
+      return request;
+    }
+  };
+  return {
+    factory: factory as unknown as IDBFactory,
+    handles,
+    openCount: () => openCount
+  };
+}
+
+it("reopens transparently after browser-initiated database.onclose and completes save/load", async () => {
+  vi.stubGlobal("IDBKeyRange", { bound: (lower: unknown, upper: unknown) => ({ lower, upper }) });
+  const env = memoryDatabaseFactory();
+  const storage = await RuntimeProjectStorage.open(env.factory);
+  try {
+    const initial = project();
+    await storage.save("world", initial);
+    expect(env.openCount()).toBe(1);
+
+    // Simulate iOS WebKit unexpectedly closing the idle/backgrounded IDBDatabase connection.
+    env.handles[0].triggerClose();
+
+    const updated = project();
+    updated.contents["Scene/main.scene"] = '{"reopened":true}';
+    await storage.save("world", updated);
+    expect(env.openCount()).toBe(2);
+    expect(await storage.load("world")).toEqual(updated);
+    expect(env.openCount()).toBe(2);
+  } finally {
+    storage.close();
+    vi.unstubAllGlobals();
+  }
+});
+
+it("reopens and retries once when database.transaction() throws InvalidStateError closing, deduplicating concurrent reopens", async () => {
+  vi.stubGlobal("IDBKeyRange", { bound: (lower: unknown, upper: unknown) => ({ lower, upper }) });
+  const env = memoryDatabaseFactory();
+  const storage = await RuntimeProjectStorage.open(env.factory);
+  try {
+    const first = project();
+    await storage.save("world-a", first);
+    expect(env.openCount()).toBe(1);
+
+    // Simulate iOS WebKit throwing InvalidStateError synchronously before onclose has fired.
+    env.handles[0].failTransactionsWith = new DOMException(
+      "Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing.",
+      "InvalidStateError"
+    );
+
+    const second = project();
+    second.contents["Scene/main.scene"] = '{"recovered":true}';
+    const [loadedA] = await Promise.all([
+      storage.load("world-a"),
+      storage.save("world-b", second)
+    ]);
+    expect(env.handles[0].closed).toBe(true);
+    expect(env.openCount()).toBe(2);
+    expect(loadedA).toEqual(first);
+    expect(await storage.load("world-b")).toEqual(second);
+
+    // Also recover deleteMatching on a closing handle.
+    env.handles[1].failTransactionsWith = new DOMException(
+      "Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing.",
+      "InvalidStateError"
+    );
+    expect(await storage.deleteMatching((id) => id === "world-a")).toEqual(["world-a"]);
+    expect(env.openCount()).toBe(3);
+    expect(await storage.load("world-a")).toBeUndefined();
+  } finally {
+    storage.close();
+    vi.unstubAllGlobals();
+  }
+});
+
+it("retries in-flight loads and saves when abort precedes the shared connection close", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("IDBKeyRange", { bound: (lower: unknown, upper: unknown) => ({ lower, upper }) });
+  const env = memoryDatabaseFactory();
+  const storage = await RuntimeProjectStorage.open(env.factory);
+  try {
+    const initial = project();
+    await storage.save("world-a", initial);
+    const old = env.handles[0];
+    const begin = old.database.transaction.bind(old.database);
+    const starts = vi.spyOn(old.database, "transaction").mockImplementation((stores, mode) => {
+      const transaction = begin(stores, mode);
+      Object.defineProperty(transaction, "error", { value: new DOMException("Forced close", "UnknownError") });
+      transaction.abort();
+      return transaction;
+    });
+
+    const updated = project();
+    updated.contents["Scene/main.scene"] = '{"recovered":true}';
+    const pending = Promise.all([storage.load("world-a"), storage.save("world-b", updated)]);
+    const recovered = expect(pending).resolves.toEqual([initial, undefined]);
+    // The fake transaction delivers abort in a microtask. Close arrives in a later task.
+    setTimeout(() => old.triggerClose(), 0);
+    await vi.advanceTimersByTimeAsync(0);
+    await recovered;
+    expect(starts).toHaveBeenCalledTimes(2);
+    expect(env.openCount()).toBe(2);
+    expect(await storage.load("world-b")).toEqual(updated);
+  } finally {
+    storage.close();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  }
+});
+
+it("keeps an ordinary transaction abort failed when the connection stays open", async () => {
+  vi.useFakeTimers();
+  const env = memoryDatabaseFactory();
+  const storage = await RuntimeProjectStorage.open(env.factory);
+  try {
+    const database = env.handles[0].database;
+    const begin = database.transaction.bind(database);
+    vi.spyOn(database, "transaction").mockImplementationOnce((stores, mode) => {
+      const transaction = begin(stores, mode);
+      Object.defineProperty(transaction, "error", { value: new DOMException("Aborted", "AbortError") });
+      transaction.abort();
+      return transaction;
+    });
+
+    const failure = expect(storage.load("aborted")).rejects.toThrow("Project load transaction aborted");
+    await vi.runAllTimersAsync();
+    await failure;
+    expect(env.openCount()).toBe(1);
+    await expect(storage.load("missing")).resolves.toBeUndefined();
+  } finally {
+    storage.close();
+    vi.useRealTimers();
+  }
+});
+
+it("keeps explicit storage.close() permanently closed and rejects subsequent operations without reopening", async () => {
+  vi.stubGlobal("IDBKeyRange", { bound: (lower: unknown, upper: unknown) => ({ lower, upper }) });
+  const env = memoryDatabaseFactory();
+  const storage = await RuntimeProjectStorage.open(env.factory);
+  try {
+    await storage.save("world", project());
+    expect(env.openCount()).toBe(1);
+
+    storage.close();
+    expect(env.handles[0].closed).toBe(true);
+
+    await expect(storage.load("world")).rejects.toThrow("Project storage is closed");
+    await expect(storage.save("world", project())).rejects.toThrow("Project storage is closed");
+    await expect(storage.deleteMatching(() => true)).rejects.toThrow("Project storage is closed");
+    expect(env.openCount()).toBe(1);
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });
 
 // Cross-store atomicity, queued writes and stale-page replacement run against native
@@ -1188,6 +1565,46 @@ it("flushes async hidden-tab commits immediately via attachProjectSaveLifecycle 
   }
 });
 
+it("times out a hanging indexedDB.open() and closes late-arriving handles without leaking", async () => {
+  vi.useFakeTimers();
+  try {
+    const close = vi.fn();
+    const abort = vi.fn();
+    const lateDatabase = { close };
+    let pendingRequest: any;
+    const hangingFactory = {
+      open: () => {
+        pendingRequest = {
+          result: lateDatabase,
+          transaction: { abort },
+          error: undefined,
+          onupgradeneeded: undefined,
+          onblocked: undefined,
+          onerror: undefined,
+          onsuccess: undefined
+        };
+        return pendingRequest;
+      }
+    } as unknown as IDBFactory;
+
+    const opening = RuntimeProjectStorage.open(hangingFactory, { timeoutMs: 250 });
+    const rejected = expect(opening).rejects.toMatchObject({
+      name: "RuntimeProjectStorageUnavailableError",
+      timedOut: true
+    });
+    await vi.advanceTimersByTimeAsync(250);
+    await rejected;
+
+    // Late WebKit callbacks after timeout must abort any upgrade and close the leaked handle immediately.
+    pendingRequest.onupgradeneeded?.({ oldVersion: 0 });
+    expect(abort).toHaveBeenCalledTimes(1);
+    pendingRequest.onsuccess?.();
+    expect(close).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("tears down DOM listeners and persistence subscription symmetrically via signal, dispose(), or pre-aborted signal", async () => {
   const { attachProjectSaveLifecycle } = await import("../src/project/project-save-control");
   const listeners = new Set<() => void>();
@@ -1219,7 +1636,7 @@ it("tears down DOM listeners and persistence subscription symmetrically via sign
   expect(listeners.size).toBe(0);
   for (const listener of listeners) listener();
   doc1.dispatchEvent(new Event("visibilitychange"));
-  const unloadEvent1 = new Event("beforeunload", { cancelable: true });
+  const unloadEvent1 = beforeUnloadEvent();
   win1.dispatchEvent(unloadEvent1);
   expect(onChange1).not.toHaveBeenCalled();
   expect(flushMock).not.toHaveBeenCalled();
@@ -1235,7 +1652,7 @@ it("tears down DOM listeners and persistence subscription symmetrically via sign
   // Confirm active before dispose: visibilitychange triggers flush and beforeunload prevents unload.
   doc2.dispatchEvent(new Event("visibilitychange"));
   expect(flushMock).toHaveBeenCalledTimes(1);
-  const unloadActive = new Event("beforeunload", { cancelable: true });
+  const unloadActive = beforeUnloadEvent();
   win2.dispatchEvent(unloadActive);
   expect(unloadActive.defaultPrevented).toBe(true);
 
@@ -1243,7 +1660,7 @@ it("tears down DOM listeners and persistence subscription symmetrically via sign
   expect(listeners.size).toBe(0);
   doc2.dispatchEvent(new Event("visibilitychange"));
   expect(flushMock).toHaveBeenCalledTimes(1);
-  const unloadAfterDispose = new Event("beforeunload", { cancelable: true });
+  const unloadAfterDispose = beforeUnloadEvent();
   win2.dispatchEvent(unloadAfterDispose);
   expect(unloadAfterDispose.defaultPrevented).toBe(false);
 
@@ -1846,4 +2263,409 @@ it("preserves exact assertAssetPath, validateRuntimeProject, and cloneRuntimePro
   expect((orig.project.files[0].params!.nested as { tags: string[] }).tags).toEqual(["a", "b"]);
   expect((orig.contents["mesh.bin"] as Uint8Array)[0]).toBe(1);
   expect(orig.documents["mesh.bin.meta"]).toBe('{"summary":"m"}');
+});
+
+it("times out a hanging storage.load() transaction cleanly", async () => {
+  vi.useFakeTimers();
+  try {
+    const abort = vi.fn();
+    const hangingDatabase = {
+      onversionchange: null,
+      onclose: null,
+      close: vi.fn(),
+      transaction: () => ({
+        error: null,
+        oncomplete: null,
+        onabort: null,
+        abort,
+        objectStore: () => ({
+          get: () => ({ result: undefined, onsuccess: null })
+        })
+      })
+    } as unknown as IDBDatabase;
+    const storage = new RuntimeProjectStorage(hangingDatabase, undefined, { timeoutMs: 200 });
+    try {
+      const loading = storage.load("world");
+      const rejected = expect(loading).rejects.toMatchObject({
+        name: "RuntimeProjectStorageUnavailableError",
+        timedOut: true
+      });
+      await vi.advanceTimersByTimeAsync(200);
+      await rejected;
+      expect(abort).toHaveBeenCalledTimes(1);
+    } finally {
+      storage.close();
+    }
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("supports load, save, deleteMatching, detached cloning and close in RuntimeProjectStorage.createInMemory()", async () => {
+  const storage = RuntimeProjectStorage.createInMemory();
+  expect(storage.isInMemory).toBe(true);
+  expect(await storage.load("world-a")).toBeUndefined();
+
+  const packA = project();
+  await storage.save("world-a", packA);
+  // Mutating caller input after save must not affect stored snapshot.
+  (packA.contents["mesh.bin"] as Uint8Array)[0] = 99;
+  const loadedA = await storage.load("world-a");
+  expect(loadedA?.contents["mesh.bin"]).toEqual(new Uint8Array([1, 2]));
+  // Mutating loaded output must not affect stored snapshot.
+  (loadedA!.contents["mesh.bin"] as Uint8Array)[0] = 77;
+  expect((await storage.load("world-a"))?.contents["mesh.bin"]).toEqual(new Uint8Array([1, 2]));
+
+  await storage.save("world-b", project());
+  expect(await storage.deleteMatching((id) => id === "world-a")).toEqual(["world-a"]);
+  expect(await storage.load("world-a")).toBeUndefined();
+  expect(await storage.load("world-b")).toBeDefined();
+
+  storage.close();
+  await expect(storage.load("world-b")).rejects.toThrow("Project storage is closed");
+  await expect(storage.save("world-b", project())).rejects.toThrow("Project storage is closed");
+  await expect(storage.deleteMatching(() => true)).rejects.toThrow("Project storage is closed");
+});
+
+it("falls back to in-memory storage in RuntimeProjectSession.open() when IndexedDB hangs or fails and still supports save/load", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const opening = vi
+    .spyOn(RuntimeProjectStorage, "open")
+    .mockRejectedValue(
+      new RuntimeProjectStorageUnavailableError("Project storage IndexedDB open timed out after 4000ms", {
+        timedOut: true
+      })
+    );
+  const session = await RuntimeProjectSession.open("ios-wedged-idb", project().project, "https://example.com/project.json");
+  try {
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(session.isPersistent).toBe(false);
+    expect(session.projectPackage.project.scene).toBe("Scene/main.scene");
+    await session.publishAsset({ virtualPath: "notes.json", path: "notes.json", type: "JSON" }, '{"ok":true}');
+    await expect(session.save()).resolves.toBeUndefined();
+    expect(session.persistenceStatus.state).toBe("saved");
+    expect(session.projectPackage.contents["notes.json"]).toBe('{"ok":true}');
+  } finally {
+    session.dispose();
+    opening.mockRestore();
+    warn.mockRestore();
+  }
+});
+
+it("falls back to in-memory storage in RuntimeProjectSession.open() when initial storage.load() times out, while still rejecting invalid manifests", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const close = vi.fn();
+  const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue({
+    load: vi.fn(async () => {
+      throw new RuntimeProjectStorageUnavailableError("Project storage IndexedDB load timed out after 4000ms", {
+        timedOut: true
+      });
+    }),
+    save: vi.fn(async () => {}),
+    close
+  } as unknown as RuntimeProjectStorage);
+  try {
+    const session = await RuntimeProjectSession.open(
+      "ios-wedged-load",
+      project().project,
+      "https://example.com/project.json"
+    );
+    try {
+      expect(close).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledTimes(1);
+      await session.publishAsset({ virtualPath: "memo.json", path: "memo.json", type: "JSON" }, '{"saved":1}');
+      await expect(session.save()).resolves.toBeUndefined();
+      expect(session.persistenceStatus.state).toBe("saved");
+    } finally {
+      session.dispose();
+    }
+
+    // Invalid project manifest must still reject instead of being masked by storage fallback.
+    const invalidInitial = { scene: "Scene/missing.scene", files: [] };
+    await expect(
+      RuntimeProjectSession.open("invalid-manifest", invalidInitial, "https://example.com/project.json")
+    ).rejects.toThrow("Unregistered runtime Scene");
+  } finally {
+    opening.mockRestore();
+    warn.mockRestore();
+  }
+});
+
+it("keeps a supplied read-only backend and surfaces its load failure", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const pack = project();
+  const backendError = new DOMException("Shared world storage failed", "AbortError");
+  const storage = {
+    readOnly: true,
+    load: vi.fn().mockResolvedValueOnce(pack).mockRejectedValueOnce(backendError),
+    save: vi.fn(),
+    close: vi.fn()
+  };
+  const openLocal = vi.spyOn(RuntimeProjectStorage, "open");
+  try {
+    const baseUrl = "https://example.com/project.json";
+    const restored = await RuntimeProjectSession.open("viewer", pack.project, baseUrl, { storage });
+    try {
+      expect(restored.projectPackage).toEqual(pack);
+      expect(restored.restoredFromStorage).toBe(true);
+      expect(restored.canSave).toBe(false);
+      await restored.save();
+      expect(storage.save).not.toHaveBeenCalled();
+    } finally {
+      restored.dispose();
+    }
+
+    await expect(RuntimeProjectSession.open("viewer", pack.project, baseUrl, { storage })).rejects.toBe(backendError);
+    expect(storage.close).toHaveBeenCalledTimes(2);
+    expect(openLocal).not.toHaveBeenCalled();
+  } finally {
+    openLocal.mockRestore();
+  }
+});
+
+it("times out a hanging storage.save() transaction, aborts it, preserves baseline, and leaves queue/persistence retryable (P1-15)", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("IDBKeyRange", { bound: (lower: unknown, upper: unknown) => ({ lower, upper }) });
+  try {
+    const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+    const abort = vi.fn();
+    let hangNextSave = true;
+    const savedHeaders = new Map<string, unknown>();
+    const savedRevisions = new Map<string, unknown>();
+    const savedFiles = new Map<string, unknown>();
+
+    const database = {
+      onversionchange: null,
+      onclose: null,
+      close: vi.fn(),
+      transaction: (_stores: string[], mode: IDBTransactionMode) => {
+        if (mode === "readwrite" && hangNextSave) {
+          hangNextSave = false;
+          // Wedged write transaction: never fires onsuccess/oncomplete/onabort.
+          return {
+            error: null,
+            oncomplete: null,
+            onabort: null,
+            abort,
+            objectStore: () => ({
+              getKey: () => ({ result: undefined, onsuccess: null }),
+              index: () => ({ getKey: () => ({ result: undefined, onsuccess: null }) }),
+              put: vi.fn(),
+              delete: vi.fn()
+            })
+          };
+        }
+        const pending: Array<() => void> = [];
+        const tx: any = {
+          error: null,
+          oncomplete: null,
+          onabort: null,
+          abort: vi.fn(),
+          objectStore: (name: string) =>
+            name === "projects"
+              ? {
+                  get: (key: string) => {
+                    const req: any = { result: undefined, onsuccess: null };
+                    pending.push(() => {
+                      req.result = savedHeaders.get(key);
+                      req.onsuccess?.();
+                    });
+                    return req;
+                  },
+                  put: (value: unknown, key: string) => {
+                    savedHeaders.set(key, structuredClone(value));
+                  }
+                }
+              : name === "projectRevisions"
+                ? {
+                    get: (key: string) => {
+                      const req: any = { result: undefined, onsuccess: null };
+                      pending.push(() => {
+                        req.result = savedRevisions.get(key);
+                        req.onsuccess?.();
+                      });
+                      return req;
+                    },
+                    getKey: (key: string) => {
+                      const req: any = { result: undefined, onsuccess: null };
+                      pending.push(() => {
+                        req.result = savedRevisions.has(key) ? key : undefined;
+                        req.onsuccess?.();
+                      });
+                      return req;
+                    },
+                    index: () => ({
+                      getKey: () => {
+                        const req: any = { result: undefined, onsuccess: null };
+                        pending.push(() => {
+                          req.result = undefined;
+                          req.onsuccess?.();
+                        });
+                        return req;
+                      }
+                    }),
+                    put: (value: unknown, key: string) => {
+                      savedRevisions.set(key, structuredClone(value));
+                    }
+                  }
+                : {
+                    put: (value: unknown, key: unknown) => {
+                      savedFiles.set(JSON.stringify(key), structuredClone(value));
+                    },
+                    delete: vi.fn()
+                  }
+        };
+        queueMicrotask(() => {
+          for (const fn of pending) fn();
+          tx.oncomplete?.();
+        });
+        return tx;
+      }
+    } as unknown as IDBDatabase;
+
+    const storage = new RuntimeProjectStorage(database, undefined, { timeoutMs: 200 });
+    const opening = vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage);
+    const session = await RuntimeProjectSession.open("hang-save", project().project, "https://example.com/project.json");
+    try {
+      await session.publishAsset({ virtualPath: "retry.json", path: "retry.json", type: "JSON" }, '{"v":1}');
+      const firstFlush = session.flush();
+      const firstRejection = expect(firstFlush).rejects.toMatchObject({
+        name: "RuntimeProjectStorageUnavailableError",
+        timedOut: true
+      });
+      await vi.advanceTimersByTimeAsync(200);
+      await firstRejection;
+      expect(abort).toHaveBeenCalledTimes(1);
+      expect(session.persistenceStatus.state).toBe("failed");
+      expect(savedHeaders.has("hang-save")).toBe(false);
+
+      // Queue must be released and retryable: second flush succeeds and persists full snapshot.
+      await expect(session.flush()).resolves.toBeUndefined();
+      expect(session.persistenceStatus.state).toBe("saved");
+      expect(savedHeaders.has("hang-save")).toBe(true);
+      expect(savedFiles.get(JSON.stringify(["hang-save", "asset", "retry.json"]))).toBe('{"v":1}');
+    } finally {
+      session.dispose();
+      opening.mockRestore();
+    }
+  } finally {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  }
+});
+
+it("rejects onblocked and non-storage errors in RuntimeProjectSession.open() without falling back to in-memory storage (P1-14)", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const blockedFactory = {
+    open: () => {
+      const request: any = {
+        result: { close: vi.fn() },
+        onupgradeneeded: undefined,
+        onblocked: undefined,
+        onerror: undefined,
+        onsuccess: undefined
+      };
+      queueMicrotask(() => request.onblocked?.());
+      return request;
+    }
+  } as unknown as IDBFactory;
+
+  await expect(RuntimeProjectStorage.open(blockedFactory)).rejects.toMatchObject({
+    name: "RuntimeProjectStorageUnavailableError",
+    blocked: true,
+    message: "请关闭其他工程页面后重试，以升级工程存储。"
+  });
+
+  const opening = vi
+    .spyOn(RuntimeProjectStorage, "open")
+    .mockRejectedValueOnce(
+      new RuntimeProjectStorageUnavailableError("请关闭其他工程页面后重试，以升级工程存储。", { blocked: true })
+    )
+    .mockRejectedValueOnce(new Error("Unexpected caller bug"));
+  try {
+    await expect(
+      RuntimeProjectSession.open("blocked-upgrade", project().project, "https://example.com/project.json")
+    ).rejects.toThrow("请关闭其他工程页面后重试，以升级工程存储。");
+    await expect(
+      RuntimeProjectSession.open("non-storage-error", project().project, "https://example.com/project.json")
+    ).rejects.toThrow("Unexpected caller bug");
+  } finally {
+    opening.mockRestore();
+  }
+});
+
+it("separates userEditSeq from system commits and avoids false beforeunload prompts on ephemeral sessions", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const { attachProjectSaveLifecycle } = await import("../src/project/project-save-control");
+  const opening = vi
+    .spyOn(RuntimeProjectStorage, "open")
+    .mockRejectedValue(new RuntimeProjectStorageUnavailableError("Simulated IDB unavailable"));
+  const session = await RuntimeProjectSession.open("ephemeral-semantic", project().project, "https://example.com/project.json");
+  session.registerAssetFormats(new Map([["Farming", { validate() {}, referenceTypes: [], references: () => [] }]]));
+  const win = new EventTarget() as unknown as Window;
+  const doc = Object.assign(new EventTarget(), { visibilityState: "visible" as DocumentVisibilityState }) as unknown as Document;
+  const disposeLifecycle = attachProjectSaveLifecycle(session, win, doc);
+  const dispatchBeforeUnload = () => {
+    const ev = beforeUnloadEvent();
+    win.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  };
+  try {
+    expect(session.isPersistent).toBe(false);
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 1. System migration via update({ recordHistory: false })
+    await session.update((pack) => ({ ...pack, documents: { ...pack.documents, "m.json": '{"v":1}' } }), {
+      recordHistory: false
+    });
+    expect(session.persistenceStatus.commitSeq).toBeGreaterThan(0);
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 2. System remote rebase via rebaseRemoteFiles({ recordHistory: false })
+    await session.rebaseRemoteFiles((pack) => ({ files: pack.project.files }), { recordHistory: false });
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 3. System bootstrap via publish(..., { userEdit: false })
+    const draft = structuredClone(session.projectPackage);
+    draft.documents = { ...draft.documents, "bootstrap.json": '{"ok":true}' };
+    await session.publish(draft, session.publicationRevision, [], undefined, { userEdit: false });
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 4. Runtime asset bootstrap + fast-path clock checkpoint via ownRuntimeAsset.update({ userEdit: false })
+    const owner = session.ownRuntimeAsset({ virtualPath: "farm.json", path: "farm.json", type: "Farming", dependencies: [] }, "owner");
+    await owner.update(() => ({ content: '{"version":1,"tick":0}', value: undefined, userEdit: false }));
+    await owner.update(() => ({ content: '{"version":1,"tick":1}', value: undefined, userEdit: false }));
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 5. Explicit save() flush alone does not mark user edits
+    await session.save();
+    expect(session.userEditSeq).toBe(0);
+    expect(dispatchBeforeUnload()).toBe(false);
+
+    // 6. Real user/gameplay edit (default userEdit: true) triggers beforeunload even after save()
+    await owner.update(() => ({ content: '{"version":1,"tick":2,"planted":true}', value: undefined }));
+    expect(session.userEditSeq).toBe(1);
+    expect(dispatchBeforeUnload()).toBe(true);
+    await session.save();
+    expect(session.userEditSeq).toBe(1);
+    expect(dispatchBeforeUnload()).toBe(true);
+
+    // 7. Standard authoring update() also increments userEditSeq
+    await session.update((pack) => ({ ...pack, documents: { ...pack.documents, "user.json": '{"a":1}' } }));
+    expect(session.userEditSeq).toBe(2);
+    expect(dispatchBeforeUnload()).toBe(true);
+
+    owner.dispose();
+  } finally {
+    disposeLifecycle();
+    session.dispose();
+    opening.mockRestore();
+  }
 });

@@ -126,6 +126,7 @@ export interface TerrainPostProcessShaderWarmupState {
   readonly bloomDirt: boolean;
   readonly colorAdjustments: boolean;
   readonly sunLensFlare: boolean;
+  readonly sunDirectionOverride?: readonly [x: number, y: number, z: number];
   readonly tonemappingMode?: number;
 }
 
@@ -662,6 +663,11 @@ export class TerrainPostProcessRuntime extends Script {
     }
     const enabled = this._profileEnabled && this._postProcess.enabled;
     const bloom = enabled && this._bloom.isValid();
+    const overrideDir = this._sunLensFlare.sunDirectionOverride.value;
+    const sunDirectionOverride =
+      overrideDir.lengthSquared() > 1e-6
+        ? Object.freeze([overrideDir.x, overrideDir.y, overrideDir.z] as const)
+        : undefined;
     return Object.freeze({
       enabled,
       bloom,
@@ -669,6 +675,7 @@ export class TerrainPostProcessRuntime extends Script {
       bloomDirt: bloom && Boolean(this._bloom.dirtTexture.value),
       colorAdjustments: enabled && this._colorAdjustments.isValid(),
       sunLensFlare: enabled && this._sunLensFlare.isValid(),
+      ...(sunDirectionOverride ? { sunDirectionOverride } : {}),
       tonemappingMode: enabled && this._tonemapping.isValid() ? this._tonemapping.mode.value : undefined
     });
   }

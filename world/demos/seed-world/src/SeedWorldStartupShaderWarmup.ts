@@ -54,6 +54,8 @@ export interface SeedWorldStartupShaderWarmupDeps {
     signal: AbortSignal
   ) => Promise<SeedWorldAnimalShaderWarmupHandle | undefined> | undefined;
   readonly prepareVegetationPresentation?: () => Promise<unknown> | unknown;
+  /** Flushes spawn-visible LOD0 masonry residency before primary variant collection (no-op when no building is within LOD0 range at spawn). */
+  readonly prepareMasonryPresentation?: () => Promise<unknown> | unknown;
   readonly preparePrimaryVegetationShaderWarmup?: () => SeedWorldPrimaryVegetationShaderWarmupHandle | undefined;
   readonly prepareVegetationShaderWarmup?: () => SeedWorldVegetationShaderWarmupHandle | undefined;
   readonly prepareRockGrassShaderWarmup?: () => SeedWorldVegetationShaderWarmupHandle | undefined;
@@ -62,8 +64,6 @@ export interface SeedWorldStartupShaderWarmupDeps {
   ) => Promise<SeedWorldMasonryShaderWarmupHandle | undefined> | undefined;
   readonly prepareAssistantPresentation: () => { readonly root: Entity } | undefined;
   readonly getIncludeInactiveRoots?: () => readonly Entity[];
-  /** Optional small set of inactive roots (e.g. distance-culled village farm props) to warm in primary parallel startup. */
-  readonly getPrimaryIncludeInactiveRoots?: () => readonly Entity[];
   readonly hasOpaqueScreenSpaceReflection?: () => boolean;
   /** Whether to expand masonry shaders with Bayer LOD cross-fade dither variants. Defaults to true. */
   readonly includeMasonryDither?: boolean;
@@ -84,11 +84,22 @@ export interface SeedWorldStartupShaderWarmupDeps {
    * or deferred to post-ready idle warmup on synchronous (`parallel=false`) mobile GPUs. */
   readonly deferredBackgroundMaterials?: SeedWorldRendererWarmupOptions["additionalBackgroundMaterials"];
   /**
-   * When true (production startup), defer preparing offscreen secondary handles (masonry LOD0/1,
-   * unmaterialized vegetation species, rock grass, assistant HUD) and collecting `allVariants`
-   * until `collectDeferredVariants()` is invoked after first-screen reveal.
+   * When true (production startup), defer preparing offscreen secondary handles (distant animal
+   * species GLBs, unmaterialized vegetation species, offscreen inactive roots, assistant HUD) and
+   * collecting `allVariants` until `collectDeferredVariants()` is invoked after first-screen reveal.
+   * `precompileCoreMasonry` only keeps minimal core masonry shader-feature cover in startup and
+   * never defeats secondary deferral for distant animals, vegetation, or inactive roots.
    */
   readonly deferSecondaryCollection?: boolean;
+  /** Optional lifecycle hook notified right before and after active GPU shader compilation (e.g. to throttle the Loading Orb). */
+  readonly onWarmupPhaseChange?: (active: boolean) => void;
+  /**
+   * Optional monotonic revision token for dynamic scene residency (e.g. `masonry.presentationRevision`).
+   * If the revision advances while primary shader compilation is running (for instance, an async LOD0
+   * building finishes committing mid-warmup), startup runs a delta catch-up pass before reveal so
+   * newly-visible renderers never cause a first-frame compile miss (`revMiss`).
+   */
+  readonly getDynamicPresentationRevision?: () => string | number | undefined;
   readonly onWarmupEvent?: (message: string, detail: string) => void;
   readonly warmupOperations?: {
     readonly hasParallelShaderCompile?: typeof hasParallelShaderCompile;
@@ -234,7 +245,35 @@ export async function runSeedWorldStartupShaderWarmup(
   const precompileCoreMasonry =
     Boolean(deps.precompileCoreMasonry) || (Boolean(deps.precompileCoreMasonryOnParallel) && parallelCompile);
   const prepareMasonryInStartup = !deferSecondaryPrep || precompileCoreMasonry;
+  const prepareSecondaryInStartup = !deferSecondaryPrep;
   const includeMasonryDither = deps.includeMasonryDither ?? true;
+  const withWarmupThrottle = async <T>(work: () => Promise<T>): Promise<T> => {
+    if (deps.onWarmupPhaseChange) {
+      deps.onWarmupPhaseChange(true);
+      try {
+        return await work();
+      } finally {
+        deps.onWarmupPhaseChange(false);
+      }
+    }
+    const throttledEngine = deps.engine as unknown as { vSyncCount?: number };
+    const savedVSyncCount =
+      typeof throttledEngine.vSyncCount === "number" &&
+      throttledEngine.vSyncCount > 0 &&
+      throttledEngine.vSyncCount < 4
+        ? throttledEngine.vSyncCount
+        : undefined;
+    if (savedVSyncCount !== undefined) {
+      throttledEngine.vSyncCount = 4;
+    }
+    try {
+      return await work();
+    } finally {
+      if (savedVSyncCount !== undefined) {
+        throttledEngine.vSyncCount = savedVSyncCount;
+      }
+    }
+  };
   try {
     await deps.timed(
       prepareMasonryInStartup
@@ -244,13 +283,14 @@ export async function runSeedWorldStartupShaderWarmup(
         Promise.all([
           deps.prepareFarmingPresentation?.(),
           Promise.resolve(deps.prepareAnimalPresentation?.()).then(async () => {
-            if (!prepareMasonryInStartup || prepCleanedUp || prepAbort.signal.aborted) return;
+            if (!prepareSecondaryInStartup || prepCleanedUp || prepAbort.signal.aborted) return;
             const prepared = await deps.prepareAnimalShaderWarmup?.(prepAbort.signal);
             if (!prepared) return;
             if (prepCleanedUp) prepared.dispose();
             else animalWarmup = prepared;
           }),
           deps.prepareVegetationPresentation?.(),
+          deps.prepareMasonryPresentation?.(),
           ...(prepareMasonryInStartup
             ? [
                 deps.prepareMasonryShaderWarmup?.(prepAbort.signal)?.then((prepared) => {
@@ -265,15 +305,20 @@ export async function runSeedWorldStartupShaderWarmup(
     if (deps.isDisposed()) {
       throw new DOMException("Seed page disposed during shader preparation", "AbortError");
     }
-    if (!deferSecondaryPrep || precompileCoreMasonry) {
+    if (prepareSecondaryInStartup) {
       vegetationWarmup = deps.prepareVegetationShaderWarmup?.();
+    }
+    if (prepareSecondaryInStartup || precompileCoreMasonry) {
       rockGrassWarmup = deps.prepareRockGrassShaderWarmup?.();
     }
+    const startupMasonryPointLightBudget = masonryWarmup?.decorationPointLightBudget;
     deps.progress(0.98, "预编译场景渲染变体");
     const assistant = !deferSecondaryPrep && deps.showAssistant ? deps.prepareAssistantPresentation() : undefined;
     const includeInactiveRoots = deps.getIncludeInactiveRoots?.();
+    // CRUD-only deferredBackgroundMaterials (e.g. HologramRainbow) are never bound during initial
+    // reveal; always defer them to post-ready background warmup unless full agentTrace audit is active.
     const startupBackgroundMaterials =
-      parallelCompile && deps.deferredBackgroundMaterials?.length
+      !deferSecondary && parallelCompile && deps.deferredBackgroundMaterials?.length
         ? [...(deps.additionalBackgroundMaterials ?? []), ...deps.deferredBackgroundMaterials]
         : deps.additionalBackgroundMaterials;
     const baseWarmupOptions = {
@@ -291,7 +336,8 @@ export async function runSeedWorldStartupShaderWarmup(
       includeLiquidGlassMask: deps.showAssistant,
       includePhotoCopy: deps.showAssistant,
       frameBudgetMilliseconds: 32,
-      maximumPendingPrograms: parallelCompile ? 16 : 1,
+      maximumPendingPrograms: parallelCompile ? 28 : 1,
+      pollIntervalMilliseconds: parallelCompile ? 4 : 0,
       overlayRenderers: assistant?.root.getComponentsIncludeChildren(Renderer, []) ?? [],
       postProcessState: deps.getPostProcessWarmupState(),
       additionalBackgroundMaterials: startupBackgroundMaterials,
@@ -301,6 +347,7 @@ export async function runSeedWorldStartupShaderWarmup(
     } as const;
     const buildFullWarmupOptions = (handles: {
       masonry?: SeedWorldMasonryShaderWarmupHandle;
+      masonryPointLightBudget?: number;
       animal?: SeedWorldAnimalShaderWarmupHandle;
       vegetation?: SeedWorldVegetationShaderWarmupHandle;
       rockGrass?: SeedWorldVegetationShaderWarmupHandle;
@@ -315,6 +362,7 @@ export async function runSeedWorldStartupShaderWarmup(
         handles.masonry?.extraMaterials,
         handles.animal?.extraMaterials
       );
+      const pointLightBudget = handles.masonry?.decorationPointLightBudget ?? handles.masonryPointLightBudget;
       return {
         ...baseWarmupOptions,
         ...(handles.overlayRenderers !== undefined ? { overlayRenderers: handles.overlayRenderers } : {}),
@@ -323,13 +371,11 @@ export async function runSeedWorldStartupShaderWarmup(
         additionalRenderers: additionalRenderers.length ? additionalRenderers : undefined,
         additionalInstancedRenderers: handles.vegetation?.renderers,
         additionalRendererMaterials,
-        additionalPointLightCounts: handles.masonry?.decorationPointLightBudget
-          ? [handles.masonry.decorationPointLightBudget]
-          : undefined
+        additionalPointLightCounts: pointLightBudget ? [pointLightBudget] : undefined
       } as const;
     };
     const collectDeferredBackgroundVariants = (): readonly SeedWorldShaderVariantEntry[] => {
-      if (parallelCompile || !deps.deferredBackgroundMaterials?.length) return [];
+      if ((!deferSecondary && parallelCompile) || !deps.deferredBackgroundMaterials?.length) return [];
       return ops.collectSeedWorldRendererVariants(deps.engine, deps.scene, deps.camera, [], {
         additionalBackgroundMaterials: deps.deferredBackgroundMaterials,
         postProcessState: {
@@ -346,8 +392,9 @@ export async function runSeedWorldStartupShaderWarmup(
     };
     // Compile 100% of prioritized spawn-frame visible variants before reveal (never truncated),
     // and defer secondary template variants (offscreen renderers, offscreen masonry LOD0/LOD1,
-    // unmaterialized vegetation species, SCENE_POINT_LIGHT_COUNT=4, masonry LOD dither,
-    // PhotoCopy/LiquidGlassMask, mobile CRUD reveal/deferred effects) to post-reveal warmup.
+    // steady-state masonry entrance-OFF partners, unmaterialized vegetation species,
+    // SCENE_POINT_LIGHT_COUNT=4, masonry LOD dither, PhotoCopy/LiquidGlassMask, CRUD reveal/deferred
+    // effects) to post-reveal warmup.
     // Keep synchronous full-set warmup only when `agentTrace=1` requests full audit receipts.
     if (deferSecondary) {
       const primaryVegetationWarmup = deps.preparePrimaryVegetationShaderWarmup?.();
@@ -355,49 +402,45 @@ export async function runSeedWorldStartupShaderWarmup(
       const primaryAdditionalRenderers = [
         ...(primaryVegetationWarmup?.renderers ?? []),
         ...(coreMasonryInPrimary ? (masonryWarmup?.renderers ?? []) : []),
-        ...(precompileCoreMasonry ? (animalWarmup?.renderers ?? []) : []),
         ...(precompileCoreMasonry ? (rockGrassWarmup?.renderers ?? []) : [])
       ];
-      const primaryAdditionalInstancedRenderers = precompileCoreMasonry ? (vegetationWarmup?.renderers ?? []) : [];
-      const primaryExtraMaterials = precompileCoreMasonry
-        ? mergeExtraMaterials(
-            coreMasonryInPrimary ? masonryWarmup?.extraMaterials : undefined,
-            animalWarmup?.extraMaterials
-          )
-        : undefined;
-      const primaryInactiveRoots = precompileCoreMasonry ? deps.getPrimaryIncludeInactiveRoots?.() : undefined;
-      let primaryVariants: readonly SeedWorldShaderVariantEntry[];
-      try {
-        primaryVariants = ops.collectSeedWorldRendererVariants(
+      const primaryExtraMaterials = coreMasonryInPrimary ? masonryWarmup?.extraMaterials : undefined;
+      const collectActivePrimaryVariants = (includePreparedHandles: boolean): readonly SeedWorldShaderVariantEntry[] =>
+        ops.collectSeedWorldRendererVariants(
           deps.engine,
           deps.scene,
           deps.camera,
           deps.scene.rootEntities,
           {
             ...baseWarmupOptions,
-            includeInactiveRoots: primaryInactiveRoots?.length ? primaryInactiveRoots : undefined,
+            includeInactiveRoots: undefined,
             onlyEnabledRenderers: true,
             onlyFrustumVisible: true,
-            ...(primaryAdditionalRenderers.length ? { additionalRenderers: primaryAdditionalRenderers } : {}),
-            ...(primaryAdditionalInstancedRenderers.length
-              ? { additionalInstancedRenderers: primaryAdditionalInstancedRenderers }
+            ...(includePreparedHandles && primaryAdditionalRenderers.length
+              ? { additionalRenderers: primaryAdditionalRenderers }
               : {}),
-            ...(primaryExtraMaterials?.size ? { additionalRendererMaterials: primaryExtraMaterials } : {}),
-            ...(primaryVegetationWarmup?.cameraOnlyRenderers.length
+            ...(includePreparedHandles && primaryExtraMaterials?.size
+              ? { additionalRendererMaterials: primaryExtraMaterials }
+              : {}),
+            ...(includePreparedHandles && primaryVegetationWarmup?.cameraOnlyRenderers.length
               ? { additionalCameraOnlyRenderers: primaryVegetationWarmup.cameraOnlyRenderers }
               : {}),
-            ...(primaryVegetationWarmup?.shadowOnlyRenderers.length
+            ...(includePreparedHandles && primaryVegetationWarmup?.shadowOnlyRenderers.length
               ? { additionalShadowOnlyRenderers: primaryVegetationWarmup.shadowOnlyRenderers }
               : {}),
             ...(deferSecondaryPrep ? { overlayRenderers: [] } : {}),
             includeMasonryDither: false,
-            includeMasonryEntrance: parallelCompile,
+            includeMasonryEntrance: false,
             includeInstanceEntrance: false,
             includeLodDither: false,
             includeLiquidGlassMask: false,
             includePhotoCopy: false
           }
         );
+      const primaryRevisionBefore = deps.getDynamicPresentationRevision?.();
+      let primaryVariants: readonly SeedWorldShaderVariantEntry[];
+      try {
+        primaryVariants = collectActivePrimaryVariants(true);
       } finally {
         primaryVegetationWarmup?.dispose();
       }
@@ -407,19 +450,20 @@ export async function runSeedWorldStartupShaderWarmup(
       const primaryMasonryEntranceKeys = new Set<string>();
       let hasPrimaryMasonryEntrance = false;
       let hasPrimaryGlobalProxyEntrance = false;
-      for (const entry of primaryVariants) {
-        if (entry.shader.startsWith("Masonry/") && hasMasonryEntranceMacro(entry)) {
-          hasPrimaryMasonryEntrance = true;
-          if (!parallelCompile) {
+      const recordPrimaryMasonryEntrance = (entries: readonly SeedWorldShaderVariantEntry[]) => {
+        for (const entry of entries) {
+          if (entry.shader.startsWith("Masonry/") && hasMasonryEntranceMacro(entry)) {
+            hasPrimaryMasonryEntrance = true;
             primaryMasonryEntranceKeys.add(variantKeyWithoutMasonryEntrance(entry));
+            if (entry.shader === "Masonry/GlobalProxy") hasPrimaryGlobalProxyEntrance = true;
           }
-          if (entry.shader === "Masonry/GlobalProxy") hasPrimaryGlobalProxyEntrance = true;
         }
-      }
+      };
+      recordPrimaryMasonryEntrance(primaryVariants);
       const secondaryPriority = (entry: SeedWorldShaderVariantEntry): number => {
-        // Promote steady-state masonry variants paired with spawn-visible entrance variants on
-        // !parallelCompile devices, plus Masonry/GlobalProxyShadowOnly and Masonry/GlobalProxy's
-        // non-dither steady ShadowCaster pass whenever entrance mode deferred shadows until t=2.4s.
+        // Promote steady-state masonry variants paired with spawn-visible entrance variants,
+        // plus Masonry/GlobalProxyShadowOnly and Masonry/GlobalProxy's non-dither steady
+        // ShadowCaster pass whenever entrance mode deferred shadows until t=2.4s.
         if (
           entry.shader.startsWith("Masonry/") &&
           !hasMasonryEntranceMacro(entry) &&
@@ -457,6 +501,57 @@ export async function runSeedWorldStartupShaderWarmup(
           (a, b) => secondaryPriority(a) - secondaryPriority(b) || a.shader.localeCompare(b.shader)
         );
       };
+      const primaryWarmupOptions = {
+        strict: true,
+        signal: deps.lifetimeSignal,
+        preserveOrder: true,
+        frameBudgetMilliseconds: 32,
+        maximumPendingPrograms: parallelCompile ? 28 : 1,
+        pollIntervalMilliseconds: parallelCompile ? 4 : 0,
+        ssrVerifyReceiverDepth
+      };
+      shaderWarmup = await deps.timed("warmupSeedWorldRendererVariants", () =>
+        withWarmupThrottle(() =>
+          ops.warmupSeedWorldShaderVariants(deps.engine, orderedPrimary, primaryWarmupOptions)
+        )
+      );
+      const primaryRevisionAfter = deps.getDynamicPresentationRevision?.();
+      if (
+        primaryRevisionAfter !== undefined &&
+        primaryRevisionAfter !== primaryRevisionBefore &&
+        !deps.isDisposed() &&
+        !deps.lifetimeSignal?.aborted
+      ) {
+        const latePrimary = collectActivePrimaryVariants(false);
+        const lateMissing = [...ops.findMissingSeedWorldShaderVariants(primaryVariants, latePrimary)].sort(
+          (a, b) => startupShaderVariantPriority(a) - startupShaderVariantPriority(b) || a.shader.localeCompare(b.shader)
+        );
+        if (lateMissing.length > 0) {
+          const catchupReport = await deps.timed("warmupSeedWorldRendererVariants (late catchup)", () =>
+            withWarmupThrottle(() =>
+              ops.warmupSeedWorldShaderVariants(deps.engine, lateMissing, {
+                ...primaryWarmupOptions,
+                ssrVerifyReceiverDepth
+              })
+            )
+          );
+          primaryVariants = [...primaryVariants, ...lateMissing];
+          recordPrimaryMasonryEntrance(lateMissing);
+          shaderWarmup = {
+            requested: shaderWarmup.requested + catchupReport.requested,
+            compiled: shaderWarmup.compiled + catchupReport.compiled,
+            skipped: shaderWarmup.skipped && catchupReport.skipped,
+            parallelCompileSupported: shaderWarmup.parallelCompileSupported ?? catchupReport.parallelCompileSupported,
+            deferred: [...(shaderWarmup.deferred ?? []), ...(catchupReport.deferred ?? [])],
+            issues: [...shaderWarmup.issues, ...catchupReport.issues],
+            elapsedMilliseconds: shaderWarmup.elapsedMilliseconds + catchupReport.elapsedMilliseconds,
+            longestVariantMilliseconds: Math.max(
+              shaderWarmup.longestVariantMilliseconds,
+              catchupReport.longestVariantMilliseconds
+            )
+          };
+        }
+      }
       let secondaryVariants: readonly SeedWorldShaderVariantEntry[] = [];
       if (!deferSecondaryPrep) {
         secondaryVariants = computeSecondaryVariants(
@@ -479,29 +574,32 @@ export async function runSeedWorldStartupShaderWarmup(
           let deferredRockGrass: SeedWorldVegetationShaderWarmupHandle | undefined;
           let cleaned = false;
           try {
-            if (!precompileCoreMasonry) {
-              await Promise.all([
-                deps.prepareMasonryShaderWarmup?.(deferredAbort.signal)?.then((prepared) => {
-                  if (!prepared) return;
-                  if (cleaned) prepared.dispose();
-                  else deferredMasonry = prepared;
-                }),
-                deps.prepareAnimalShaderWarmup?.(deferredAbort.signal)?.then((prepared) => {
-                  if (!prepared) return;
-                  if (cleaned) prepared.dispose();
-                  else deferredAnimal = prepared;
-                })
-              ]);
-            }
+            await Promise.all([
+              ...(!precompileCoreMasonry
+                ? [
+                    deps.prepareMasonryShaderWarmup?.(deferredAbort.signal)?.then((prepared) => {
+                      if (!prepared) return;
+                      if (cleaned) prepared.dispose();
+                      else deferredMasonry = prepared;
+                    })
+                  ]
+                : []),
+              deps.prepareAnimalShaderWarmup?.(deferredAbort.signal)?.then((prepared) => {
+                if (!prepared) return;
+                if (cleaned) prepared.dispose();
+                else deferredAnimal = prepared;
+              })
+            ]);
             if (cleaned || deps.isDisposed() || deps.lifetimeSignal?.aborted) return [];
+            deferredVegetation = deps.prepareVegetationShaderWarmup?.();
             if (!precompileCoreMasonry) {
-              deferredVegetation = deps.prepareVegetationShaderWarmup?.();
               deferredRockGrass = deps.prepareRockGrassShaderWarmup?.();
             }
             const deferredAssistant = deps.showAssistant ? deps.prepareAssistantPresentation() : undefined;
             return computeSecondaryVariants(
               buildFullWarmupOptions({
                 masonry: deferredMasonry,
+                masonryPointLightBudget: startupMasonryPointLightBudget,
                 animal: deferredAnimal,
                 vegetation: deferredVegetation,
                 rockGrass: deferredRockGrass,
@@ -519,16 +617,6 @@ export async function runSeedWorldStartupShaderWarmup(
           }
         };
       }
-      shaderWarmup = await deps.timed("warmupSeedWorldRendererVariants", () =>
-        ops.warmupSeedWorldShaderVariants(deps.engine, orderedPrimary, {
-          strict: true,
-          signal: deps.lifetimeSignal,
-          preserveOrder: true,
-          frameBudgetMilliseconds: 32,
-          maximumPendingPrograms: parallelCompile ? 16 : 1,
-          ssrVerifyReceiverDepth
-        })
-      );
       deferredShaderVariants = [...(shaderWarmup.deferred ?? []), ...secondaryVariants];
     } else {
       const fullWarmupOptions = buildFullWarmupOptions({
@@ -539,14 +627,16 @@ export async function runSeedWorldStartupShaderWarmup(
       });
       let startupVariants: readonly SeedWorldShaderVariantEntry[] = [];
       shaderWarmup = await deps.timed("warmupSeedWorldRendererVariants", () =>
-        ops.warmupSeedWorldRendererVariants(deps.engine, deps.scene, deps.camera, deps.scene.rootEntities, {
-          ...fullWarmupOptions,
-          includeGenerationReveal: parallelCompile,
-          onVariants: (variants) => {
-            startupVariants = variants;
-            deps.canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
-          }
-        })
+        withWarmupThrottle(() =>
+          ops.warmupSeedWorldRendererVariants(deps.engine, deps.scene, deps.camera, deps.scene.rootEntities, {
+            ...fullWarmupOptions,
+            includeGenerationReveal: parallelCompile,
+            onVariants: (variants) => {
+              startupVariants = variants;
+              deps.canvas.dataset.buildingShaderWarmupVariants = JSON.stringify(variants);
+            }
+          })
+        )
       );
       if (!parallelCompile) {
         const variantKey = (entry: SeedWorldShaderVariantEntry) =>

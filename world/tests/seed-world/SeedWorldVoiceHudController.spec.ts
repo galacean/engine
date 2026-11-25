@@ -979,3 +979,83 @@ it("reuses canvas bounds for status refreshes and invalidates them on layout, vi
   expect(disconnects.every(fn => fn.mock.calls.length === 1)).toBe(true);
   expect(dispose).toHaveBeenCalledOnce();
 });
+
+it("drives VoiceOrb breathing and press expansion via GPU shader uniforms without ever calling orbTransform.setScale", async () => {
+  const { VoiceHudLayout } = await import("../../demos/seed-world/assistant/SeedWorldChatPanel");
+  const layout = Object.create(VoiceHudLayout.prototype) as InstanceType<typeof VoiceHudLayout>;
+  const floatUniforms = new Map<string, number>();
+  const setScale = vi.fn();
+  const setQuadExpandPixels = vi.fn();
+  const setLayout = vi.fn();
+  const setRimHighlight = vi.fn();
+  const setOpacity = vi.fn();
+  Object.assign(layout as any, {
+    _engine: { canvas: { width: 822, height: 1602 }, time: { actualElapsedTime: 0 } },
+    _scroll: { update: vi.fn(), cancel: vi.fn(), offset: 0, maximum: 0 },
+    readingPointers: [],
+    _width: 0,
+    _height: 0,
+    _panelBottom: 36,
+    _panelMaxHeight: 600,
+    _panelWidth: 500,
+    _panelHeight: 0,
+    _panelTargetHeight: 0,
+    _contentOpacity: 1,
+    _singleLinePanelHeight: 0,
+    _transcriptLayoutDirty: false,
+    _panelOpacity: 0,
+    _panelFadeStartOpacity: 0,
+    _panelTargetOpacity: 0,
+    _panelFadeElapsed: 0,
+    _panelFadeDuration: 0.22,
+    _transcriptWorking: false,
+    _transcriptWorkingStartedAt: 0,
+    _orbPhase: 0,
+    _orbBreathPhase: 0,
+    _orbListeningBlend: 0,
+    _orbBasePixelSize: 148,
+    _orbGlassOpacity: 1,
+    _orbPressState: "idle",
+    _panelHeld: false,
+    _motion: undefined,
+    _hintPulse: 0,
+    _lift: 0,
+    _angle: 0,
+    _panelX: 0,
+    _panelY: 0,
+    _anchorX: 0,
+    _anchorY: 0,
+    orbTransform: { alignRight: 0, alignBottom: 0, setScale },
+    orbMaterial: { shaderData: { setFloat: vi.fn((k: string, v: number) => floatUniforms.set(k, v)) } },
+    orbGlass: { setQuadExpandPixels, setLayout, setRimHighlight, setOpacity }
+  });
+
+  // 40 idle breathing frames (dt = 0.08s -> 3.2s, spanning full ±2.5% sine peak and trough).
+  let minExpand = Infinity;
+  let maxExpand = -Infinity;
+  for (let i = 0; i < 40; i++) {
+    layout.onUpdate(0.08);
+    const expand = floatUniforms.get("material_OrbScaleExpandPixels")!;
+    minExpand = Math.min(minExpand, expand);
+    maxExpand = Math.max(maxExpand, expand);
+    const [dx, dy] = setQuadExpandPixels.mock.calls.at(-1)!;
+    expect(dx).toBeCloseTo(expand, 6);
+    expect(dy).toBeCloseTo(expand, 6);
+  }
+  expect(setScale).not.toHaveBeenCalled();
+  // Base pixel size at 822x1602 = 148 * (822 / 720) ~= 168.967px -> ±2.5% is ±4.22px.
+  expect(minExpand).toBeLessThan(-3.5);
+  expect(maxExpand).toBeGreaterThan(3.5);
+
+  // Press/holding state (~1.72x expansion) also animates purely via shader uniforms with zero setScale calls.
+  layout.setOrbPressState("holding");
+  for (let i = 0; i < 15; i++) {
+    layout.onUpdate(0.08);
+  }
+  const pressedExpand = floatUniforms.get("material_OrbScaleExpandPixels")!;
+  expect(pressedExpand).toBeGreaterThan(100);
+  const [pdx, pdy] = setQuadExpandPixels.mock.calls.at(-1)!;
+  expect(pdx).toBeCloseTo(pressedExpand, 6);
+  expect(pdy).toBeCloseTo(pressedExpand, 6);
+  expect(setScale).not.toHaveBeenCalled();
+});

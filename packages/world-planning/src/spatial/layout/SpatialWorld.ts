@@ -1283,7 +1283,7 @@ function* spatialWorldStages(
     exclusions: relations,
     roads: automaticRoads
   };
-  if (p.farming?.enabled !== false) {
+  if (options.environment !== false && p.farming?.enabled !== false) {
     const farmSearchStarted = performance.now();
     const farmSignature = hashSignatureValue([
       worldSignature,

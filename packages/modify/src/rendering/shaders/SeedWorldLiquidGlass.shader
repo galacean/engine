@@ -40,6 +40,7 @@ Shader "SeedWorld/LiquidGlassUiV6" {
       float material_SeedWorldLensThickness;
       float material_SeedWorldFrostScale;
       float material_SeedWorldLensFresnel;
+      vec2 material_SeedWorldQuadExpandPixels;
       #ifdef SEED_WORLD_GLASS_MASK
         sampler2D material_SeedWorldGlassMask;
       #endif
@@ -58,7 +59,9 @@ Shader "SeedWorld/LiquidGlassUiV6" {
 
       Varyings vert(Attributes attr) {
         Varyings v;
-        vec4 clipPosition = renderer_MVPMat * vec4(attr.POSITION, 1.0);
+        vec3 pos = attr.POSITION;
+        pos.xy += vec2(attr.TEXCOORD_0.x - 0.5, 0.5 - attr.TEXCOORD_0.y) * material_SeedWorldQuadExpandPixels;
+        vec4 clipPosition = renderer_MVPMat * vec4(pos, 1.0);
         gl_Position = clipPosition;
         // Intermediate camera targets flip projection; scene sampling stays screen-oriented.
         vec2 screenPosition = vec2(clipPosition.x, clipPosition.y * camera_ProjectionParams.x);

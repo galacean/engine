@@ -1,4 +1,9 @@
-import { attachMobileFrameCapture, type PerfCumulativeCounters, type PerfFrameObserver } from "./MobileFrameCapture";
+import {
+  attachMobileFrameCapture,
+  type MobileFrameCaptureRunOptions,
+  type PerfCumulativeCounters,
+  type PerfFrameObserver
+} from "./MobileFrameCapture";
 import { ShadowType, type Camera, type DirectLight, type Entity, type Scene, type WebGLEngine } from "@galacean/engine";
 import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import type { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
@@ -83,6 +88,7 @@ export interface SeedWorldPerfPanelOptions {
   readonly setBuildingVisible: (visible: boolean) => void;
   readonly setDprOverride: (dpr: number | null) => void;
   readonly onStartPerfTour?: () => void;
+  readonly suppressAutoBoot?: boolean;
 }
 
 const MODULE_DEFS: readonly { readonly key: SeedWorldPerfModuleKey; readonly label: string }[] = [
@@ -148,6 +154,8 @@ export class SeedWorldPerfPanel {
   private winStartBufOrphans = 0;
 
   private dprIdx = 0;
+  private currentDprOverride: number | null = null;
+  private refreshDprButton: (() => void) | null = null;
   private disposed = false;
   private frameObserver: PerfFrameObserver | null = null;
   private mobileCapture: ReturnType<typeof attachMobileFrameCapture> | null = null;
@@ -189,6 +197,10 @@ export class SeedWorldPerfPanel {
     this.badge.textContent = "PERF PANEL | sampling...";
     document.body.append(this.badge);
 
+    const rawCaptureSec =
+      typeof location !== "undefined" ? Number(new URLSearchParams(location.search).get("captureSec") || "") : NaN;
+    const captureSec = Number.isFinite(rawCaptureSec) && rawCaptureSec > 0 ? Math.min(15, Math.max(1, rawCaptureSec)) : 6;
+
     this.mobileCapture = attachMobileFrameCapture({
       engine: options.engine,
       scene: options.scene,
@@ -199,11 +211,58 @@ export class SeedWorldPerfPanel {
       setFrameObserver: (observer) => {
         this.frameObserver = observer;
       },
-      readPerfText: () => this.badge.textContent || ""
+      readPerfText: () => this.badge.textContent || "",
+      manualDurationMs: captureSec * 1000,
+      ...(options.suppressAutoBoot ? { autoBootDelayMs: null } : {})
     });
 
     this.panelWrap = this.buildPanelDom();
     document.body.append(this.panelWrap);
+  }
+
+  runTimedCapture(trigger: string, durationMs: number, runOptions?: MobileFrameCaptureRunOptions): void {
+    this.mobileCapture?.captureNow(trigger, durationMs, runOptions);
+  }
+
+  setModuleEnabled(key: SeedWorldPerfModuleKey, on: boolean): void {
+    this.applyToggle(key, on);
+    this.refreshButtons();
+  }
+
+  isModuleEnabled(key: SeedWorldPerfModuleKey): boolean {
+    return this.liveState[key];
+  }
+
+  setSubGroupVisible(group: "trees" | "details" | "terrain", on: boolean): void {
+    const published = this.options.readPublished();
+    if (group === "trees") {
+      if (published) published.world.population.trees.isActive = on;
+    } else if (group === "details") {
+      if (published) published.world.population.details.isActive = on;
+    } else if (group === "terrain") {
+      const terrain = this.options.scene.findEntityByName("Terrain");
+      if (terrain) terrain.isActive = on;
+    }
+  }
+
+  isSubGroupVisible(group: "trees" | "details" | "terrain"): boolean {
+    const published = this.options.readPublished();
+    if (group === "trees") return published ? published.world.population.trees.isActive : true;
+    if (group === "details") return published ? published.world.population.details.isActive : true;
+    const terrain = this.options.scene.findEntityByName("Terrain");
+    return terrain ? terrain.isActive : true;
+  }
+
+  setDpr(dpr: number | null): void {
+    this.currentDprOverride = dpr;
+    const idx = DPR_STEPS.indexOf(dpr);
+    if (idx >= 0) this.dprIdx = idx;
+    this.options.setDprOverride(dpr);
+    this.refreshDprButton?.();
+  }
+
+  getDpr(): number | null {
+    return this.currentDprOverride;
   }
 
   isPaused(key: SeedWorldPerfModuleKey): boolean {
@@ -268,6 +327,7 @@ export class SeedWorldPerfPanel {
     this.disposed = true;
     this.frameObserver = null;
     this.currentDrawFbo = null;
+    this.refreshDprButton = null;
     this.mobileCapture?.dispose();
     for (let i = this.restoreHooks.length - 1; i >= 0; i--) {
       this.restoreHooks[i]();
@@ -729,7 +789,7 @@ export class SeedWorldPerfPanel {
     const dprBtn = document.createElement("button");
     dprBtn.type = "button";
     const updateDprLabel = () => {
-      const cur = DPR_STEPS[this.dprIdx];
+      const cur = this.currentDprOverride;
       const rawNative = window.devicePixelRatio || 1;
       const fmt = (v: number) => v.toFixed(1).replace(/\.0$/, "");
       const effective = fmt(Math.min(rawNative, cur ?? 2));
@@ -737,12 +797,14 @@ export class SeedWorldPerfPanel {
         cur === null ? `≤2x(${effective}x)` : cur === Infinity ? `原生(${fmt(rawNative)}x)` : `≤${cur}x(${effective}x)`;
       dprBtn.textContent = `渲染分辨率 DPR: ${label}`;
     };
+    this.refreshDprButton = updateDprLabel;
     dprBtn.style.cssText =
       "width:100%;margin-bottom:7px;background:#1d4ed8;color:#eff6ff;border:1px solid #60a5fa;border-radius:6px;padding:6px 8px;font:600 11px/1.2 sans-serif;cursor:pointer;";
     updateDprLabel();
     dprBtn.onclick = () => {
       this.dprIdx = (this.dprIdx + 1) % DPR_STEPS.length;
-      this.options.setDprOverride(DPR_STEPS[this.dprIdx]);
+      this.currentDprOverride = DPR_STEPS[this.dprIdx]!;
+      this.options.setDprOverride(this.currentDprOverride);
       updateDprLabel();
       this.mobileCapture?.schedule("dpr", 1200);
     };

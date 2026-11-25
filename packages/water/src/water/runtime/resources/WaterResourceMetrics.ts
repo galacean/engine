@@ -50,6 +50,28 @@ export function measureWaterOwnedCpuBytes(value: unknown): number {
 
   const visit = (candidate: unknown): number => {
     if (typeof candidate !== "object" || candidate === null) return 0;
+    if (Array.isArray(candidate)) {
+      const len = candidate.length;
+      if (len === 0) return 0;
+      // Fast path for vertex/UV/color numeric tuples (no ArrayBuffers, no Set traffic).
+      if (
+        len <= 4 &&
+        typeof candidate[0] === "number" &&
+        (len < 2 || typeof candidate[1] === "number") &&
+        (len < 3 || typeof candidate[2] === "number") &&
+        (len < 4 || typeof candidate[3] === "number")
+      ) {
+        return 0;
+      }
+      if (visitedObjects.has(candidate)) return 0;
+      visitedObjects.add(candidate);
+      let bytes = 0;
+      for (let i = 0; i < len; i++) {
+        const el = candidate[i];
+        if (typeof el === "object" && el !== null) bytes += visit(el);
+      }
+      return bytes;
+    }
     if (visitedObjects.has(candidate)) return 0;
     visitedObjects.add(candidate);
 
@@ -70,7 +92,12 @@ export function measureWaterOwnedCpuBytes(value: unknown): number {
       return candidate.byteLength;
     }
     let bytes = 0;
-    for (const nested of Object.values(candidate)) bytes += visit(nested);
+    const record = candidate as Record<string, unknown>;
+    for (const key in record) {
+      if (!Object.prototype.hasOwnProperty.call(record, key)) continue;
+      const nested = record[key];
+      if (typeof nested === "object" && nested !== null) bytes += visit(nested);
+    }
     return bytes;
   };
 

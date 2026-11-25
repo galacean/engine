@@ -30,10 +30,11 @@ export class GLPrimitive implements IPlatformPrimitive {
       if (primitive._bufferStructChanged) {
         this._clearVAO();
       }
-      if (!this._vaoMap.has(shaderProgram.id)) {
-        this._registerVAO(shaderProgram);
+      const vaoKey = shaderProgram.id * 16 + primitive._vaoSlotKey;
+      let vao = this._vaoMap.get(vaoKey);
+      if (vao === undefined) {
+        vao = this._registerVAO(shaderProgram, vaoKey);
       }
-      const vao = this._vaoMap.get(shaderProgram.id)!;
       gl.bindVertexArray(vao);
     } else {
       this._bindBufferAndAttrib(shaderProgram);
@@ -131,7 +132,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     }
   }
 
-  private _registerVAO(shaderProgram: IPlatformShaderProgram): void {
+  private _registerVAO(shaderProgram: IPlatformShaderProgram, vaoKey: number): WebGLVertexArrayObject | null {
     const gl = this._gl;
     const vao = gl.createVertexArray();
 
@@ -149,7 +150,8 @@ export class GLPrimitive implements IPlatformPrimitive {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     this._disableAttrib();
 
-    this._vaoMap.set(shaderProgram.id, vao);
+    this._vaoMap.set(vaoKey, vao);
+    return vao;
   }
 
   private _clearVAO(): void {

@@ -1735,7 +1735,8 @@ class VoiceOrbPointer extends Script {
   }
 }
 
-class VoiceHudLayout extends Script {
+/** @internal Exported so VoiceOrb GPU shader-scale invariants can be unit-tested directly. */
+export class VoiceHudLayout extends Script {
   controller: SeedWorldVoiceHudController | undefined;
   controlButton: VoiceTaskButton | undefined;
   controlGlass: SeedWorldLiquidGlassUiMaterial | undefined;
@@ -2187,7 +2188,11 @@ class VoiceHudLayout extends Script {
     const breath = 1 + Math.sin(this._orbBreathPhase * 2.25) * ORB_BREATH_AMPLITUDE * (1 - this._orbListeningBlend);
     const pressedScale = 1 + ORB_LISTEN_SCALE * this._orbListeningBlend;
     const totalOrbScale = breath * pressedScale;
-    this.orbTransform?.setScale(totalOrbScale, totalOrbScale, 1);
+    // Animate orb breathing and press expansion purely via GPU vertex-shader uniforms so
+    // orbTransform stays immutable and chunkUI performs zero VBO rebuilds/uploads during idle.
+    const expandOrbPixels = this._orbBasePixelSize * (totalOrbScale - 1);
+    orbShaderData?.setFloat("material_OrbScaleExpandPixels", expandOrbPixels);
+    this.orbGlass?.setQuadExpandPixels(expandOrbPixels, expandOrbPixels);
     const scaledOrbPixels = this._orbBasePixelSize * totalOrbScale;
     this.orbGlass?.setLayout(scaledOrbPixels, scaledOrbPixels, scaledOrbPixels * 0.5);
     const webCanvas = (this.engine.canvas as { _webCanvas?: HTMLCanvasElement })._webCanvas;
@@ -2471,6 +2476,7 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
   const orbData = orbMaterial.shaderData;
   orbData.setFloat("material_Time", 0);
   orbData.setFloat("material_Listening", 0);
+  orbData.setFloat("material_OrbScaleExpandPixels", 0);
   orbData.setVector4("material_OrbCyan", new Vector4(0.0, 0.96, 1.0, 1));
   orbData.setVector4("material_OrbAzure", new Vector4(0.14, 0.44, 1.0, 1));
   orbData.setVector4("material_OrbViolet", new Vector4(0.52, 0.16, 1.0, 1));

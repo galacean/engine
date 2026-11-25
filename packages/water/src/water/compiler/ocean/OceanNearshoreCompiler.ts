@@ -130,9 +130,8 @@ function distanceToClass(
 
 function compileWetMask(source: Readonly<ValidatedOceanNearshoreDescriptor>): Uint8Array {
   if (source.wetSource.kind === "mask") {
-    // Validation proved every selected texel has legal physical depth. Preserve
-    // the authored occupancy verbatim instead of silently changing authority.
-    return new Uint8Array(source.wetSource.mask);
+    // Validation proved every selected texel has legal physical depth and owns/freezes the mask.
+    return source.wetSource.mask;
   }
   const mask = new Uint8Array(source.bedHeights.length);
   const minimumDepth = source.wetSource.minimumDepth ?? OCEAN_NEARSHORE_DEFAULT_MINIMUM_DEPTH;

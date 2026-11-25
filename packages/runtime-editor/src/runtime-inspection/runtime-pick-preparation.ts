@@ -6,23 +6,17 @@ const PICK = "RENDERER_WORLD_PICK";
 type Work = { pass: ShaderPass; macros: readonly ShaderMacro[] };
 
 const ENGINE_NON_SCENE_PICK_SHADER_PREFIXES = ["PostProcess/", "Blit/", "Sky/", "Lighting/", "2D/"] as const;
+/** Engine-generic source Forward macros (e.g. orthographic UI/overlay cameras) that do not need eager pick clones. */
+const ENGINE_SKIPPED_PICK_SOURCE_MACROS = ["CAMERA_ORTHOGRAPHIC"] as const;
 /**
- * Source Forward variants carrying these macros are either orthographic UI/overlay scenes
- * or short-lived entrance/dither/authoring animation states that do not need eager pick clones.
+ * Macros never active on the offscreen identity/pick camera (`AO=false`, `SSR=false`, offscreen RT).
+ * Note: `SCENE_SHADOW_TYPE` is intentionally NOT stripped because `scene.castShadows = false` skips
+ * `CascadedShadowCasterPass` without running `Scene._updateShaderData()`, so `SCENE_SHADOW_TYPE`
+ * remains set on `scene.shaderData` during `camera.render()`.
  */
-const PICK_SKIPPED_SOURCE_MACROS = new Set([
-  "CAMERA_ORTHOGRAPHIC",
-  "RENDERER_GENERATION_REVEAL",
-  "TERRAIN_PROJECT_ENTRANCE_WAVE",
-  "RENDERER_MASONRY_ENTRANCE",
-  "GLOBAL_PROXY_ENTRANCE",
-  "RENDERER_MASONRY_DITHER",
-  "GLOBAL_PROXY_DITHER",
-  "MASONRY_SURFACE_DITHER"
-]);
-/** Macros never active on the offscreen identity/pick camera (`enableScreenSpaceReflection = false`). */
 const PICK_STRIPPED_MACROS = new Set([
   "ENGINE_OUTPUT_SRGB_CORRECT",
+  "SCENE_ENABLE_AMBIENT_OCCLUSION",
   "CAMERA_ENABLE_SSR",
   "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
   "CAMERA_SSR_BILATERAL_SAMPLE",
@@ -73,6 +67,12 @@ export interface RuntimePickPreparationOptions {
    * while paused are still buffered so nothing is lost once resumed.
    */
   readonly deferStart?: boolean;
+  /** Max concurrent compilations during idle background draining (defaults to 2 with parallel compile, 1 without). */
+  readonly backgroundConcurrency?: number;
+  /** Max concurrent compilations while a caller awaits `flush()` (defaults to 24 with parallel compile, 4 without). */
+  readonly flushConcurrency?: number;
+  /** Optional delay in milliseconds between background batches; ignored while `flush()` is active. */
+  readonly backgroundCooldownMs?: number;
 }
 
 /** Prepare companion picking programs when normal rendering prepares a new variant.
@@ -84,11 +84,19 @@ export class RuntimePickPreparation {
   private readonly targets = new WeakMap<ShaderPass, ShaderPass>();
   private readonly generated = new WeakSet<ShaderPass>();
   private readonly ignoredPrefixes: string[] = [...ENGINE_NON_SCENE_PICK_SHADER_PREFIXES];
+  private readonly ignoredSourceMacros = new Set<string>(ENGINE_SKIPPED_PICK_SOURCE_MACROS);
   private nonScenePassCache = new WeakMap<ShaderPass, boolean>();
   private scannedShaders = new WeakSet<Shader>();
   private readonly requested = new WeakMap<ShaderPass, Set<string>>();
   private readonly queue: Work[] = [];
   private readonly deferredObserved: { pass: ShaderPass; macros: readonly ShaderMacro[] }[] = [];
+  private readonly backgroundConcurrency?: number;
+  private readonly flushConcurrency?: number;
+  private readonly backgroundCooldownMs?: number;
+  private parallelCompileSupported?: boolean;
+  private urgentFlushCount = 0;
+  private wakeDrain?: () => void;
+  private wakeRaceSlot?: () => boolean;
   private paused = false;
   private meshReplacementsInitialized = false;
   private processing?: Promise<void>;
@@ -100,6 +108,9 @@ export class RuntimePickPreparation {
     options?: RuntimePickPreparationOptions
   ) {
     this.paused = Boolean(options?.deferStart);
+    this.backgroundConcurrency = options?.backgroundConcurrency;
+    this.flushConcurrency = options?.flushConcurrency;
+    this.backgroundCooldownMs = options?.backgroundCooldownMs;
     if (!this.paused) {
       this.ensureMeshReplacements();
     }
@@ -162,6 +173,13 @@ export class RuntimePickPreparation {
     }
   }
 
+  /** Register host-owned transient/domain source macros whose Forward variants should not queue eager pick clones. */
+  ignoreSourceMacros(macros: readonly string[]): void {
+    for (const macro of macros) {
+      if (macro) this.ignoredSourceMacros.add(macro);
+    }
+  }
+
   private request(source: ShaderPass, macros: readonly ShaderMacro[]): void {
     if (
       this.disposed ||
@@ -170,7 +188,7 @@ export class RuntimePickPreparation {
       isPickOcclusionPass(source) ||
       isNonScenePickPass(source, this.ignoredPrefixes, this.nonScenePassCache, this.scannedShaders) ||
       source.getTagValue("pipelineStage") !== "Forward" ||
-      macros.some((m) => m.name === PICK || PICK_SKIPPED_SOURCE_MACROS.has(m.name))
+      macros.some((m) => m.name === PICK || this.ignoredSourceMacros.has(m.name))
     )
       return;
     let target = this.targets.get(source);
@@ -195,6 +213,7 @@ export class RuntimePickPreparation {
     keys.add(key);
     this.queue.push({ pass: target, macros: variant });
     this.start();
+    this.wakeForWork();
   }
 
   private start(): void {
@@ -211,18 +230,152 @@ export class RuntimePickPreparation {
 
   private readonly meshReplacements = new WeakSet<ShaderPass>();
 
-  private async drain(): Promise<void> {
-    while (this.queue.length && !this.disposed) {
-      // Yield before source generation/GL submission; the notification itself is cheap.
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      const started = performance.now(),
-        pending: Promise<boolean>[] = [];
-      while (this.queue.length && pending.length < 2 && performance.now() - started < 4 && !this.disposed) {
-        const work = this.queue.shift()!;
-        pending.push(work.pass.compileVariantAsync(this.engine, work.macros, this.controller.signal));
+  private hasParallelCompile(): boolean {
+    if (this.parallelCompileSupported !== undefined) return this.parallelCompileSupported;
+    const gl = (
+      this.engine as unknown as {
+        _hardwareRenderer?: { gl?: { getExtension?: (name: string) => unknown } };
       }
-      const valid = await Promise.all(pending);
-      if (valid.some((value) => !value)) throw new Error("Runtime picking shader preparation failed");
+    )?._hardwareRenderer?.gl;
+    this.parallelCompileSupported = Boolean(gl?.getExtension?.("KHR_parallel_shader_compile"));
+    return this.parallelCompileSupported;
+  }
+
+  private wake(): void {
+    const callback = this.wakeDrain;
+    this.wakeDrain = undefined;
+    this.wakeRaceSlot = undefined;
+    callback?.();
+  }
+
+  /** Notify an active sliding-window wait only when a free concurrency slot exists; never cancels timers/cooldowns. */
+  private wakeForWork(): void {
+    this.wakeRaceSlot?.();
+  }
+
+  private waitOrWake(delayMs: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        if (this.wakeDrain === finish) this.wakeDrain = undefined;
+        resolve();
+      };
+      const timer = setTimeout(finish, delayMs);
+      this.wakeDrain = finish;
+    });
+  }
+
+  private raceInFlightOrWake(inFlight: ReadonlySet<Promise<void>>, canAcceptMore: () => boolean): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      let done = false;
+      const finish = (wokenByNewWork: boolean) => {
+        if (done) return;
+        done = true;
+        if (this.wakeDrain === onUrgentWake) this.wakeDrain = undefined;
+        if (this.wakeRaceSlot === tryWakeForSlot) this.wakeRaceSlot = undefined;
+        resolve(wokenByNewWork);
+      };
+      const onUrgentWake = () => finish(false);
+      const tryWakeForSlot = (): boolean => {
+        if (!canAcceptMore()) return false;
+        finish(true);
+        return true;
+      };
+      this.wakeDrain = onUrgentWake;
+      this.wakeRaceSlot = tryWakeForSlot;
+      void Promise.race(inFlight).finally(() => finish(false));
+    });
+  }
+
+  private async drain(): Promise<void> {
+    const parallel = this.hasParallelCompile();
+    const bgConcurrency = Math.max(1, Math.floor(this.backgroundConcurrency ?? (parallel ? 2 : 1)));
+    const urgentConcurrency = Math.max(bgConcurrency, Math.floor(this.flushConcurrency ?? (parallel ? 24 : 4)));
+    const bgCooldownMs = Math.max(0, Math.floor(this.backgroundCooldownMs ?? 0));
+    const inFlight = new Set<Promise<void>>();
+    let firstError: unknown;
+    let hasError = false;
+    let initialYieldDone = false;
+
+    const launch = (work: Work): void => {
+      const task = work.pass
+        .compileVariantAsync(this.engine, work.macros, this.controller.signal)
+        .then(
+          (valid) => {
+            if (!valid && !hasError) {
+              hasError = true;
+              firstError = new Error("Runtime picking shader preparation failed");
+            }
+          },
+          (error) => {
+            if (!hasError) {
+              hasError = true;
+              firstError = error;
+            }
+          }
+        )
+        .finally(() => {
+          inFlight.delete(task);
+        });
+      inFlight.add(task);
+    };
+
+    while ((this.queue.length > 0 || inFlight.size > 0) && !this.disposed && !hasError) {
+      if (!initialYieldDone) {
+        initialYieldDone = true;
+        if (this.urgentFlushCount === 0) {
+          // Yield before source generation/GL submission in background mode so observer callbacks stay cheap.
+          await this.waitOrWake(0);
+          if (this.disposed) break;
+        }
+      }
+
+      const urgent = this.urgentFlushCount > 0;
+      const limit = urgent ? urgentConcurrency : bgConcurrency;
+      const submitBudgetMs = urgent ? (parallel ? 24 : 12) : 4;
+      let submitted = 0;
+
+      if (this.queue.length > 0 && inFlight.size < limit) {
+        const started = performance.now();
+        while (
+          this.queue.length > 0 &&
+          inFlight.size < limit &&
+          (submitted === 0 || performance.now() - started < submitBudgetMs) &&
+          !this.disposed &&
+          !hasError
+        ) {
+          const work = this.queue.shift()!;
+          launch(work);
+          submitted++;
+        }
+      }
+
+      if (hasError || this.disposed) break;
+
+      const activeLimit = this.urgentFlushCount > 0 ? urgentConcurrency : bgConcurrency;
+      if (this.queue.length > 0 && inFlight.size < activeLimit) {
+        // Yield briefly only because submitBudgetMs elapsed, then continue filling the sliding window.
+        await this.waitOrWake(this.urgentFlushCount > 0 ? 0 : bgCooldownMs);
+      } else if (inFlight.size > 0) {
+        // Sliding window: wake as soon as any single program settles, flush() escalates, or new work arrives for a free slot.
+        const wokenByNewWork = await this.raceInFlightOrWake(inFlight, () => {
+          const currentLimit = this.urgentFlushCount > 0 ? urgentConcurrency : bgConcurrency;
+          return inFlight.size < currentLimit;
+        });
+        if (!wokenByNewWork && this.queue.length > 0 && this.urgentFlushCount === 0 && bgCooldownMs > 0) {
+          await this.waitOrWake(bgCooldownMs);
+        }
+      }
+    }
+
+    if (inFlight.size > 0) {
+      await Promise.allSettled(inFlight);
+    }
+    if (hasError && !this.disposed) {
+      throw firstError;
     }
   }
 
@@ -233,21 +386,39 @@ export class RuntimePickPreparation {
     return !this.paused && !this.processing;
   }
 
+  /** Keep urgent concurrency active across a multi-step capture window; call the returned function in finally. */
+  beginUrgent(): () => void {
+    let released = false;
+    this.urgentFlushCount++;
+    this.wake();
+    return () => {
+      if (released) return;
+      released = true;
+      this.urgentFlushCount--;
+    };
+  }
+
   /** Join queued preparation, e.g. before enabling the shutter or requesting a snapshot. */
   async flush(signal?: AbortSignal): Promise<void> {
     signal?.throwIfAborted();
-    if (this.paused) this.resume();
-    while (this.processing) {
-      const pending = this.processing;
-      await new Promise<void>((resolve, reject) => {
-        const abort = () => reject(signal!.reason);
-        signal?.addEventListener("abort", abort, { once: true });
-        pending.then(resolve, reject).finally(() => signal?.removeEventListener("abort", abort));
-      });
-      signal?.throwIfAborted();
+    this.urgentFlushCount++;
+    try {
+      if (this.paused) this.resume();
+      this.wake();
+      while (this.processing) {
+        const pending = this.processing;
+        await new Promise<void>((resolve, reject) => {
+          const abort = () => reject(signal!.reason);
+          signal?.addEventListener("abort", abort, { once: true });
+          pending.then(resolve, reject).finally(() => signal?.removeEventListener("abort", abort));
+        });
+        signal?.throwIfAborted();
+      }
+      if (this.disposed) throw new DOMException("Picking preparation disposed", "AbortError");
+      if (this.failure) throw this.failure;
+    } finally {
+      this.urgentFlushCount--;
     }
-    if (this.disposed) throw new DOMException("Picking preparation disposed", "AbortError");
-    if (this.failure) throw this.failure;
   }
 
   dispose(): void {
@@ -257,5 +428,6 @@ export class RuntimePickPreparation {
     this.unsubscribe();
     this.controller.abort();
     this.queue.length = 0;
+    this.wake();
   }
 }

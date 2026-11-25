@@ -145,14 +145,20 @@ Shader "Masonry/FarProxy" {
          if (plasterDetail.x < 0.5) discard;
          float limeVariation = plasterNativeNoise(v.uv * 1.2, 2) * 0.04;
          albedo = clamp(albedo + limeVariation, vec3(0.0), vec3(1.5));
-         albedo = mix(albedo, albedo * vec3(0.45, 0.40, 0.36), plasterDetail.y * 0.85);
+         // Match LOD1 pale stone-grey recessed mortar coat + subtle sunlit rim highlight (avoid dark brown outline).
+         float plasterLum = dot(albedo, vec3(0.2126, 0.7152, 0.0722));
+         vec3 mortarAlbedo = mix(albedo, vec3(plasterLum), 0.72) * vec3(0.86, 0.89, 0.85);
+         albedo = mix(albedo, mortarAlbedo, plasterDetail.y * 0.92);
+         albedo *= 1.0 + plasterDetail.z * 0.08;
        }
      #endif
      if (!isPlaster && kind <= 4.5 && v.surfaceTag.z < 0.5) {
        if (kind < 0.5) {
-         albedo *= masonryFarCourseTone(v.uv, vec2(2.1, 3.8), 0.5, 0.88, 0.88, 1.08);
+         // Match LOD1 sunlit brick reflectance & pale mortar/bevel joints across all distances.
+         albedo *= 1.20 * masonryFarCourseTone(v.uv, vec2(2.1, 3.8), 0.5, 1.10, 0.90, 1.08);
        } else if (kind < 1.5) {
-         albedo *= masonryFarCourseTone(v.uv, vec2(3.6, 3.2), 0.5, 0.82, 0.85, 1.10);
+         // Match LOD1 3D shingle-overlap AO & course crevices even at far distance (prevent washed-out pastel roof).
+         albedo *= 0.73 * masonryFarCourseTone(v.uv, vec2(3.6, 3.2), 0.5, 0.56, 0.86, 1.12);
        } else if (kind < 2.5) {
          albedo *= masonryFarCourseTone(v.uv, vec2(0.8, 4.5), 0.0, 0.84, 0.88, 1.06);
        } else if (kind > 3.5) {
@@ -160,8 +166,25 @@ Shader "Masonry/FarProxy" {
        }
      }
      vec3 n = normalize(v.normalWS) * (gl_FrontFacing || (kind > 2.5 && kind < 3.5) ? 1.0 : -1.0);
-     vec3 lit = masonryFarProxyLight(albedo, n, v.positionWS);
-     lit += vec3(1.0, 0.57, 0.18) * v.color.a;
+     vec3 baseLit = masonryFarProxyLight(kind > 5.5 ? vec3(0.05, 0.065, 0.075) : albedo, n, v.positionWS);
+     vec3 lit;
+     if (kind > 5.5) {
+       // Lightweight GPR-neutral glass shading (no cubemap sampler, no envDFGApprox, no GGX/fwidth)
+       // so Adreno wave occupancy stays flat on wall/roof pixels while keeping crisp reflective panes
+       // inside the 4-bar hollow window frames.
+       vec3 viewDir = normalize(camera_Position - v.positionWS);
+       float ndotv = max(dot(n, viewDir), 0.0);
+       float f1 = 1.0 - ndotv;
+       float f2 = f1 * f1;
+       float fresnel = 0.06 + 0.74 * (f2 * f2 * f1);
+       float reflY = clamp(2.0 * ndotv * n.y - viewDir.y, 0.0, 1.0);
+       float skyLum = min(dot(baseLit, vec3(12.0, 14.0, 14.0)), 2.2);
+       vec3 skyRefl = mix(vec3(0.55, 0.68, 0.80), vec3(0.72, 0.92, 1.25), reflY) * skyLum;
+       vec3 glassColor = baseLit + fresnel * skyRefl + vec3(0.88, 0.78, 0.24) * (v.color.a * 0.55);
+       lit = mix(glassColor, baseLit * 0.28, 0.38);
+     } else {
+       lit = baseLit + vec3(1.0, 0.57, 0.18) * v.color.a;
+     }
      vec3 outRgb = masonrySceneFog(lit, v.positionWS);
      if (renderer_MasonryLodDebugColor.a > 0.0) {
        outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);

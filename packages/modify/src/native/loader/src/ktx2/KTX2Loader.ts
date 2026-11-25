@@ -244,8 +244,23 @@ export class KTX2Loader extends Loader<KTX2Texture> {
     return null;
   }
 
-  private static _getBinomialLLCTranscoder(workerCount: number = 4) {
-    return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount));
+  /** @internal */
+  static _defaultWorkerCount(): number {
+    if (typeof navigator !== "undefined") {
+      const cores = navigator.hardwareConcurrency;
+      const ua = navigator.userAgent ?? "";
+      const isMobile =
+        /iPhone|iPad|iPod|Android|Mobile/i.test(ua) ||
+        (/Macintosh/i.test(ua) && ((navigator as { maxTouchPoints?: number }).maxTouchPoints ?? 0) > 1);
+      if (isMobile || (Number.isFinite(cores) && cores <= 4)) {
+        return 2;
+      }
+    }
+    return 4;
+  }
+
+  private static _getBinomialLLCTranscoder(workerCount?: number) {
+    return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount ?? KTX2Loader._defaultWorkerCount()));
   }
 
   private static _getEngineTextureFormat(

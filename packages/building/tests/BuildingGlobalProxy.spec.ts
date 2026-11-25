@@ -800,4 +800,69 @@ describe("BuildingGlobalProxy shader & spatial bucketing contract", () => {
       else delete g.cancelAnimationFrame;
     }
   });
+
+  it("coalesces staggered multi-building registrations into one bucket rebuild under beginSceneBatch/endSceneBatch", async () => {
+    const engine = createMockEngine();
+    const scene = createMockScene(engine);
+    const appearance = masonryAppearance(engine);
+
+    BuildingGlobalProxy.beginSceneBatch(scene);
+    const proxy = BuildingGlobalProxy.forScene(scene);
+    let rebuildCount = 0;
+    const origRebuild = (proxy as any).rebuildBucket.bind(proxy);
+    (proxy as any).rebuildBucket = (bucket: any) => {
+      rebuildCount++;
+      return origRebuild(bucket);
+    };
+
+    const handles = [];
+    for (let i = 0; i < 5; i++) {
+      const frame = scene.createRootEntity(`House_${i}`);
+      const root = frame.createChild(`Distance_${i}`);
+      handles.push(
+        proxy.register({
+          root,
+          frame,
+          parts: [makeNonBoxWallPart(`h${i}`, i * 6)],
+          decorationParts: [],
+          colorOwners: [{ id: `h${i}` }],
+          appearance,
+          hiddenOwners: new Set()
+        })
+      );
+      // Simulate worker completions landing across separate macrotasks + onLateUpdate ticks.
+      await new Promise((r) => setTimeout(r, 0));
+      proxy.flushOnLateUpdate();
+    }
+
+    // Zero GPU bucket rebuilds should have happened while the batch was open.
+    expect(rebuildCount).toBe(0);
+
+    BuildingGlobalProxy.endSceneBatch(scene);
+    expect(rebuildCount).toBe(1);
+
+    // Instance-level beginBatch/endBatch also coalesces multiple registrations into one rebuild.
+    proxy.beginBatch();
+    for (let i = 5; i < 8; i++) {
+      const frame = scene.createRootEntity(`House_${i}`);
+      const root = frame.createChild(`Distance_${i}`);
+      handles.push(
+        proxy.register({
+          root,
+          frame,
+          parts: [makeNonBoxWallPart(`h${i}`, i * 6)],
+          decorationParts: [],
+          colorOwners: [{ id: `h${i}` }],
+          appearance,
+          hiddenOwners: new Set()
+        })
+      );
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    expect(rebuildCount).toBe(1);
+    proxy.endBatch();
+    expect(rebuildCount).toBe(2);
+
+    for (const h of handles) h.destroy();
+  });
 });

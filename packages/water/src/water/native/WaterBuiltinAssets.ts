@@ -33,6 +33,7 @@ interface TextureAsset {
 }
 const resolvers = new WeakMap<Engine, (path: string) => string>();
 const converted = new WeakMap<Engine, Promise<TextureAsset[]>>();
+const loadedBuiltinTextures = new WeakMap<Engine, Map<string, Texture2D>>();
 
 /** Host-owned delivery URLs for the same immutable native resource closure. */
 export function configureWaterBuiltinAssets(engine: Engine, resolve: (path: string) => string): void {
@@ -66,12 +67,32 @@ export async function loadBuiltinWaterTexture(engine: Engine, path: string, sign
   const url =
     resolvers.get(engine)?.(path) ??
     (staticAsset ? new URL(staticAsset, import.meta.url).href : new URL(path, BUILTIN_WATER_PROJECT_URL).href);
+  const engineCacheExisting = loadedBuiltinTextures.get(engine);
+  // A delivery URL can alias another asset. Cache only the validated logical texture.
+  const existingTexture = engineCacheExisting?.get(path);
+  if (existingTexture) {
+    if (!existingTexture.destroyed && !existingTexture.pendingDestroy) {
+      signal?.throwIfAborted();
+      existingTexture._addReferCount(1);
+      return existingTexture;
+    }
+    engineCacheExisting!.delete(path);
+  }
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`Native Water texture '${path}' failed its source hash check.`);
   const bytes = await response.arrayBuffer();
   if ((await digestSha256Hex(bytes)) !== asset.sha256)
     throw new Error(`Native Water texture '${path}' failed its source hash check.`);
   signal?.throwIfAborted();
+  const engineCacheAfterFetch = loadedBuiltinTextures.get(engine);
+  const cachedAfterFetch = engineCacheAfterFetch?.get(path);
+  if (cachedAfterFetch) {
+    if (!cachedAfterFetch.destroyed && !cachedAfterFetch.pendingDestroy) {
+      cachedAfterFetch._addReferCount(1);
+      return cachedAfterFetch;
+    }
+    engineCacheAfterFetch!.delete(path);
+  }
   // Avoid a second network request when loading from an HTTP URL; reuse the already-fetched bytes via a Blob URL.
   const blobUrl = url.startsWith("blob:")
     ? undefined
@@ -88,25 +109,37 @@ export async function loadBuiltinWaterTexture(engine: Engine, path: string, sign
     throw error;
   }
   texture._addReferCount(1);
-  if (blobUrl) {
-    const originalDestroy = texture.destroy.bind(texture);
-    texture.destroy = (force?: boolean) => {
-      try {
-        return originalDestroy(force);
-      } finally {
-        if (texture.destroyed) URL.revokeObjectURL(blobUrl);
-      }
-    };
+  let engineCache = loadedBuiltinTextures.get(engine);
+  if (!engineCache) {
+    engineCache = new Map();
+    loadedBuiltinTextures.set(engine, engineCache);
   }
+  let blobRevoked = false;
+  const originalDestroy = texture.destroy.bind(texture) as (force?: boolean, isGC?: boolean) => boolean;
+  texture.destroy = ((force?: boolean, isGC?: boolean) => {
+    try {
+      return originalDestroy(force, isGC);
+    } finally {
+      if (texture.destroyed || texture.pendingDestroy) {
+        if (engineCache!.get(path) === texture) engineCache!.delete(path);
+      }
+      if (texture.destroyed && blobUrl && !blobRevoked) {
+        blobRevoked = true;
+        URL.revokeObjectURL(blobUrl);
+      }
+    }
+  }) as Texture2D["destroy"];
   try {
     signal?.throwIfAborted();
     if (
       texture.destroyed ||
+      texture.pendingDestroy ||
       texture.width !== asset.width ||
       texture.height !== asset.height ||
       texture.isSRGBColorSpace !== asset.params.isSRGBColorSpace
     )
       throw new Error(`Native Water texture '${path}' has incompatible dimensions or color space.`);
+    engineCache.set(path, texture);
     return texture;
   } catch (error) {
     texture._addReferCount(-1);

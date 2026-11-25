@@ -31,7 +31,7 @@ import { acceptedPlanningFarmingGround } from "./PlanningFarmingAcceptedGround.t
 import { FarmingInitializationError } from "@galacean/engine-farming/farming/application/FarmingInitializationError";
 import type { FarmSnapshot, FarmRepository } from "@galacean/engine-farming/farming/api/index";
 import { PLANNING_FARMING_DEFAULTS } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmingComponent";
-import type { Camera, Entity } from "@galacean/engine";
+import { BoundingBox, BoundingFrustum, Matrix, type Camera, type Entity, type Vector3 } from "@galacean/engine";
 import {
   FarmingSystem,
   FarmingAreaComponent,
@@ -142,11 +142,16 @@ export class PlanningFarmingRuntime {
   private record?: FarmingFarmDiagnostics;
   private readonly wallNowMs: () => number;
   private statusElapsed = 0;
+  private deferOffscreenProps: boolean;
+  private readonly frustumMatrix = new Matrix();
+  private readonly visibilityFrustum = new BoundingFrustum();
+  private readonly visibilityBox = new BoundingBox();
   constructor(
     private readonly options: {
       canvas?: HTMLCanvasElement;
       visualQuery?: SeedWorldVisualQuery;
       isInputEnabled?: () => boolean;
+      deferOffscreenProps?: boolean;
       system: FarmingSystem;
       statePath: string;
       camera: Camera;
@@ -160,6 +165,7 @@ export class PlanningFarmingRuntime {
     }
   ) {
     this.wallNowMs = options.wallNowMs ?? (() => Date.now());
+    this.deferOffscreenProps = Boolean(options.deferOffscreenProps);
     this.system = options.system;
     this.visualOcclusion = options.visualQuery;
     const { catalog, rules, state } = this.system;
@@ -200,6 +206,8 @@ export class PlanningFarmingRuntime {
         return {
           groundProvider: this.provider,
           getViewerPosition: () => this.options.camera.entity.transform.worldPosition,
+          deferOffscreenStorageLoad: this.deferOffscreenProps,
+          isStoragePositionVisible: (position) => this.isPositionInCameraFrustum(position, 3),
           repository: this.initializationRepository,
           clock: this.clock,
           captureWaterSupply: () => this.waterSupply.capture(area.farmId),
@@ -249,6 +257,20 @@ export class PlanningFarmingRuntime {
     return this.task;
   }
 
+  setDeferOffscreenProps(defer: boolean): void {
+    this.deferOffscreenProps = defer;
+    this.presentation?.setDeferOffscreenProps(defer);
+    this.area?.storagePresenter?.setDeferOffscreenLoad(defer);
+  }
+  private isPositionInCameraFrustum(position: Vector3, radius: number): boolean {
+    const cam = this.options.camera as unknown as { projectionMatrix?: Matrix; viewMatrix?: Matrix };
+    if (!cam.projectionMatrix || !cam.viewMatrix) return true;
+    Matrix.multiply(cam.projectionMatrix, cam.viewMatrix, this.frustumMatrix);
+    this.visibilityFrustum.calculateFromMatrix(this.frustumMatrix);
+    this.visibilityBox.min.set(position.x - radius, position.y - radius, position.z - radius);
+    this.visibilityBox.max.set(position.x + radius, position.y + radius, position.z + radius);
+    return this.visibilityFrustum.intersectsBox(this.visibilityBox);
+  }
   async preparePresentation(): Promise<void> {
     await this.task;
     await this.land?.whenReady;
@@ -753,7 +775,8 @@ export class PlanningFarmingRuntime {
           this.definitions,
           FARM_CROP_SCALES,
           getPlanningFarmSoilShader(),
-          this.land
+          this.land,
+          this.deferOffscreenProps
         );
         this.area.coordinator.presentation = this.presentation.port;
         if (this.area.sowingPresenter)

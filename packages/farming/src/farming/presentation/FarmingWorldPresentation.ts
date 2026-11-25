@@ -249,7 +249,8 @@ export class FarmingWorldPresentation {
     private readonly definitions: FarmingDefinitionSet,
     private readonly cropScales: Readonly<Record<string, number>> = {},
     soilShader?: Shader,
-    private readonly soilWork?: FarmingSoilWorkPresentation
+    private readonly soilWork?: FarmingSoilWorkPresentation,
+    deferOffscreenProps = false
   ) {
     this.snapshot = service.getSnapshot();
     for (const crop of definitions.catalog.crops) {
@@ -291,8 +292,13 @@ export class FarmingWorldPresentation {
           this.growthVisibility.withinDrawDistance(position, this.camera.entity.transform.worldPosition, wasVisible)
       }
     );
-    this.items = new FarmItemPresentation(this.root, camera, service, {}, (work, phase, signal) =>
-      this.plants.preparePresentationWork(work, phase, signal!)
+    this.items = new FarmItemPresentation(
+      this.root,
+      camera,
+      service,
+      {},
+      (work, phase, signal) => this.plants.preparePresentationWork(work, phase, signal!),
+      deferOffscreenProps
     );
     this.port = {
       getTarget: () => ({ ...this.target }),
@@ -346,6 +352,11 @@ export class FarmingWorldPresentation {
   /** Pause/resume asynchronous farm item shader compilation during critical first-screen reveal windows. */
   setBackgroundShaderWorkPaused(paused: boolean): void {
     this.plants.setShaderWorkPaused(paused);
+  }
+
+  /** Defer or release offscreen persistent farming tool loads (watering-can, hoe, basket, seed-bag). */
+  setDeferOffscreenProps(defer: boolean): void {
+    this.items.setDeferOffscreenLoads(defer);
   }
 
   /** Resolves once in-flight soil textures are bound so startup shader warmup sees final material macros. */

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BuildingCpuClient } from "../src/building/parts/architecture/BuildingCpuClient";
+import { BuildingCpuClient, defaultMaxBuildingWorkers } from "../src/building/parts/architecture/BuildingCpuClient";
 class WorkerPort {
   static instances: WorkerPort[] = [];
   onmessage: ((event: any) => void) | null = null;
@@ -385,4 +385,75 @@ it("fans out designInitialGroup across worker slots, reuses cached assets/terrai
   expect(w1.sent.filter((m) => m.mode === "release")).toHaveLength(1);
   expect(w2.sent.filter((m) => m.mode === "release")).toHaveLength(1);
   client.dispose();
+});
+
+it("retains units and terrain across sequential detailFromDraft compiles on a live respawned worker", async () => {
+  vi.stubGlobal("Worker", WorkerPort);
+  const client = new BuildingCpuClient(2, 20),
+    units = { tag: "units" } as any,
+    signal = new AbortController().signal;
+
+  const prepA = client.prepare(doc, terrain, units, signal);
+  const prepB = client.prepare(doc, terrain, units, signal);
+  const w0 = WorkerPort.instances[0]!;
+  w0.reply(w0.sent[0].id, { preview: { tag: "a" } });
+  const w1 = WorkerPort.instances[1] ?? w0;
+  const msgB = w1.sent.find((m) => m.mode === "preview" && m.id !== w0.sent[0].id)!;
+  w1.reply(msgB.id, { preview: { tag: "b" } });
+  const [a, b] = await Promise.all([prepA, prepB]);
+
+  // Wait for idle hibernation to terminate startup workers.
+  await new Promise((r) => setTimeout(r, 40));
+  expect(w0.terminated).toBe(true);
+
+  // First detailFromDraft after hibernation clones units + terrain once.
+  const firstDetail = a.cpu.compile(signal);
+  const respawned = WorkerPort.instances.at(-1)!;
+  expect(respawned.sent[0]).toMatchObject({ mode: "detailFromDraft", units, terrain });
+  respawned.reply(respawned.sent[0].id, { renderInput: { building: "a" } });
+  expect(await firstDetail).toEqual({ renderInput: { building: "a" } });
+
+  // Second sequential detailFromDraft on the same live worker reuses cached units + terrain (no re-clone!).
+  const secondDetail = b.cpu.compile(signal);
+  const secondReq = respawned.sent.find((m, idx) => idx > 0 && m.mode === "detailFromDraft")!;
+  expect(secondReq).toBeDefined();
+  expect(secondReq.assetId).toBe(respawned.sent[0].assetId);
+  expect(secondReq.terrainId).toBe(respawned.sent[0].terrainId);
+  expect(secondReq).not.toHaveProperty("units");
+  expect(secondReq).not.toHaveProperty("terrain");
+  respawned.reply(secondReq.id, { renderInput: { building: "b" } });
+  expect(await secondDetail).toEqual({ renderInput: { building: "b" } });
+
+  a.cpu.dispose();
+  b.cpu.dispose();
+  client.dispose();
+});
+
+it("caps default building worker concurrency to 2 on mobile or <=4-core devices and 3 on desktop", () => {
+  vi.stubGlobal("navigator", {
+    hardwareConcurrency: 4,
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"
+  });
+  expect(defaultMaxBuildingWorkers()).toBe(2);
+  expect(new BuildingCpuClient().workerLimit).toBe(2);
+
+  vi.stubGlobal("navigator", {
+    hardwareConcurrency: 8,
+    userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Mobile Safari/537.36"
+  });
+  expect(defaultMaxBuildingWorkers()).toBe(2);
+
+  vi.stubGlobal("navigator", {
+    hardwareConcurrency: 4,
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+  });
+  expect(defaultMaxBuildingWorkers()).toBe(2);
+
+  vi.stubGlobal("navigator", {
+    hardwareConcurrency: 8,
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    maxTouchPoints: 0
+  });
+  expect(defaultMaxBuildingWorkers()).toBe(3);
+  expect(new BuildingCpuClient().workerLimit).toBe(3);
 });

@@ -95,13 +95,16 @@
   vec2 material_TerrainAlphamapAtlasInvSize;
   #define GROUND_TerrainAlphamapAtlasInvSize material_TerrainAlphamapAtlasInvSize
   #endif
-  #ifdef TERRAIN_GROUND_RENDERER
-  highp sampler2D renderer_TerrainAlphamapMetadata;
-  #define GROUND_TerrainAlphamapMetadata renderer_TerrainAlphamapMetadata
-  #else
-  highp sampler2D material_TerrainAlphamapMetadata;
-  #define GROUND_TerrainAlphamapMetadata material_TerrainAlphamapMetadata
+  #ifndef MATERIAL_TERRAIN_SINGLE_ALPHAMAP
+    #ifdef TERRAIN_GROUND_RENDERER
+    highp sampler2D renderer_TerrainAlphamapMetadata;
+    #define GROUND_TerrainAlphamapMetadata renderer_TerrainAlphamapMetadata
+    #else
+    highp sampler2D material_TerrainAlphamapMetadata;
+    #define GROUND_TerrainAlphamapMetadata material_TerrainAlphamapMetadata
+    #endif
   #endif
+  #if !defined(MATERIAL_TERRAIN_UNTEXTURED_SINGLE_MAP) && !defined(MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP)
     #ifdef TERRAIN_GROUND_RENDERER
     highp sampler2D renderer_TerrainLayerMetadata;
     #define GROUND_TerrainLayerMetadata renderer_TerrainLayerMetadata
@@ -109,6 +112,7 @@
     highp sampler2D material_TerrainLayerMetadata;
     #define GROUND_TerrainLayerMetadata material_TerrainLayerMetadata
     #endif
+  #endif
     #if defined(MATERIAL_TERRAIN_LAYER_DIFFUSE_TEXTURES) && !defined(MATERIAL_TERRAIN_LAYER_SINGLE_DIFFUSE)
       #ifdef TERRAIN_GROUND_RENDERER
       highp sampler2DArray renderer_TerrainLayerDiffuseTextures;
@@ -118,7 +122,7 @@
       #define GROUND_TerrainLayerDiffuseTextures material_TerrainLayerDiffuseTextures
       #endif
     #endif
-    #ifdef MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES
+    #if defined(MATERIAL_TERRAIN_LAYER_NORMAL_TEXTURES) && !defined(TERRAIN_PROJECT_GRASS_ROOT_VARYINGS)
       #ifdef TERRAIN_GROUND_RENDERER
       highp sampler2DArray renderer_TerrainLayerNormalTextures;
       #define GROUND_TerrainLayerNormalTextures renderer_TerrainLayerNormalTextures
@@ -127,7 +131,7 @@
       #define GROUND_TerrainLayerNormalTextures material_TerrainLayerNormalTextures
       #endif
     #endif
-    #ifdef MATERIAL_TERRAIN_LAYER_MASK_TEXTURES
+    #if defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES) && !defined(TERRAIN_PROJECT_GRASS_ROOT_VARYINGS)
       #ifdef TERRAIN_GROUND_RENDERER
       highp sampler2DArray renderer_TerrainLayerMaskTextures;
       #define GROUND_TerrainLayerMaskTextures renderer_TerrainLayerMaskTextures
@@ -254,7 +258,8 @@
       float appearanceRole = materialScalars.w;
 
       #if defined(MATERIAL_TERRAIN_LAYER_DIFFUSE_TEXTURES) || \
-        defined(TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS) || defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES)
+        defined(TERRAIN_PROJECT_SAMPLE_LAYER_NORMALS) || \
+        (defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES) && !defined(TERRAIN_PROJECT_GRASS_ROOT_VARYINGS))
       vec4 tiling = terrainProjectLayerMetadataAt(layerIndex, 0);
       vec2 sampleUv = (positionWS.xz + tiling.zw) / tiling.xy;
       vec2 sampleDdx = positionDx / tiling.xy;
@@ -300,7 +305,7 @@
         }
       #endif
 
-      #ifdef MATERIAL_TERRAIN_LAYER_MASK_TEXTURES
+      #if defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES) && !defined(TERRAIN_PROJECT_GRASS_ROOT_VARYINGS)
       vec4 mask = vec4(0.0, 1.0, 0.0, 0.0);
       if (layerStorage.w >= 0.0) {
       vec4 maskSample = textureGrad(
@@ -328,7 +333,7 @@
 
       blend.albedo += diffuse.rgb * weight;
       blend.tangentNormal += tangentNormal * weight;
-      #ifdef MATERIAL_TERRAIN_LAYER_MASK_TEXTURES
+      #if defined(MATERIAL_TERRAIN_LAYER_MASK_TEXTURES) && !defined(TERRAIN_PROJECT_GRASS_ROOT_VARYINGS)
       float hasMask = layerStorage.w >= 0.0 ? 1.0 : 0.0;
       blend.metallic += mix(materialScalars.y, mask.r, hasMask) * weight;
       blend.smoothness += mix(materialScalars.z, mask.a, hasMask) * weight;
@@ -692,5 +697,67 @@
     return result;
     #endif
   }
+
+  #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
+  // Derivative-free root-only surface evaluation for grass vertices across both simple single-map
+  // and multi-alphamap / palette terrains. Matches terrainProjectGroundSurface without dFdx/dFdy.
+  TerrainProjectLayerBlend terrainProjectGrassRootSurface(vec3 positionWS) {
+    #if defined(MATERIAL_TERRAIN_UNTEXTURED_SINGLE_MAP) || defined(MATERIAL_TERRAIN_SINGLE_DIFFUSE_SINGLE_MAP)
+      return terrainProjectSimpleGrassRootSurface(positionWS);
+    #else
+      TerrainProjectLayerBlend result;
+      #ifdef TERRAIN_PROJECT_SAND_GLINTS
+        result.sandWeight = 0.0;
+      #endif
+      result.albedo = vec3(0.0);
+      result.tangentNormal = vec3(0.0, 0.0, 1.0);
+      result.metallic = 0.0;
+      result.smoothness = 0.0;
+      result.ambientOcclusion = 1.0;
+      result.snowResponse = 0.0;
+      result.grassWeight = 0.0;
+      result.roadWeight = 0.0;
+      result.weight = 0.0;
+      int region, first, count;
+      if (!terrainProjectResolveLayerGroups(positionWS.xz, region, first, count)) return result;
+      #ifdef MATERIAL_TERRAIN_SINGLE_ALPHAMAP
+        int groupCount = 1;
+      #else
+        int groupCount = count;
+      #endif
+      for (int i = 0; i < TERRAIN_PROJECT_MAX_ALPHAMAPS_PER_REGION; i++) {
+        if (i >= groupCount) break;
+        int alphamapIndex = first + i;
+        if (alphamapIndex >= 0 && alphamapIndex < GROUND_TerrainAlphamapCount) {
+          vec4 weights = terrainProjectSampleAlphamap(alphamapIndex, positionWS.xz, region);
+          #ifdef MATERIAL_TERRAIN_SINGLE_ALPHAMAP
+            vec4 layerIndices = GROUND_TerrainFirstLayerIndices;
+          #else
+            vec4 layerIndices = texelFetch(GROUND_TerrainAlphamapMetadata, ivec2(1, alphamapIndex), 0);
+          #endif
+          for (int channel = 0; channel < 4; channel++) {
+            terrainProjectAccumulateLayer(
+              result,
+              int(floor(layerIndices[channel] + 0.5)),
+              weights[channel],
+              positionWS,
+              vec2(0.0),
+              vec2(0.0)
+            );
+          }
+        }
+      }
+      if (result.weight > 0.0) {
+        float inverseWeight = 1.0 / result.weight;
+        result.albedo *= inverseWeight;
+        result.snowResponse *= inverseWeight;
+        result.grassWeight *= inverseWeight;
+        result.roadWeight *= inverseWeight;
+      }
+      result.tangentNormal = vec3(0.0, 0.0, 1.0);
+      return result;
+    #endif
+  }
+  #endif
 
 #endif

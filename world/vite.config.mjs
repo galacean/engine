@@ -8,6 +8,16 @@ import { PUGC_UNSUPPORTED_ASSET_EXTENSIONS, projectAssets } from "./scripts/proj
 import { createMobileDiagMiddleware } from "./scripts/mobile-diag-middleware.mjs";
 import { meshBrotliPlugin } from "./scripts/mesh-brotli.mjs";
 import { seedWorldPlantTextureDownloads } from "./scripts/seed-world-plant-texture-downloads.mjs";
+import {
+  SEED_WORLD_TEMPLATE_IDS,
+  buildGzippedSwb1Pack,
+  buildUncompressedSwb1Pack,
+  isSeedWorldCommonRockLodAsset,
+  previewCacheControlForPath,
+  shardTemplateBundleEntries,
+  templatesForSeedWorldJsonAsset,
+  templatesForSeedWorldMediaAsset
+} from "./scripts/seed-world-template-bundles.mjs";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const plantBuild = require("../packages/farming/src/farming/tools/plant-shader-precompile.cjs");
@@ -265,8 +275,10 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
         }
       }
 
-      // 2.5 Emit split gzipped SWB1 binary bundles (.mesh/.shaderc/.tex/.shader) BEFORE deleting CDN-offloaded
-      // files from dist, keyed by each entry's final runtime URL (CDN URL when offloaded, else dist-relative path).
+      // 2.5 Emit split gzipped SWB1 binary bundles (.mesh/.shaderc/.tex/.shader + shared rock LOD1/2 .glb) BEFORE
+      // deleting CDN-offloaded files from dist, keyed by each entry's final runtime URL (CDN URL when offloaded,
+      // else dist-relative path). Including rock LOD1/2 GLBs (~264 KB gz) in common-bin lets `rockFormations.prepare`
+      // launch alongside `raster.run` before template SWB1 finishes with zero duplicate HTTP fetches.
       const commonBinEntries = [];
       const buildingBinEntries = [];
       const seenCommonBinKeys = new Set();
@@ -275,11 +287,12 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
         const item = bundle[fileName];
         if (!item || item.type !== "asset") continue;
         const ext = path.extname(fileName).toLowerCase();
-        if (!FLASH_APP_COMMON_BIN_BUNDLE_EXTENSIONS.has(ext)) continue;
+        const isCommonRockLod = isSeedWorldCommonRockLodAsset(fileName);
+        if (!FLASH_APP_COMMON_BIN_BUNDLE_EXTENSIONS.has(ext) && !isCommonRockLod) continue;
         const buf = typeof item.source === "string" ? Buffer.from(item.source, "utf8") : Buffer.from(item.source);
         if (buf.length === 0) continue;
         const key = cdnUrlByFileName.get(fileName) ?? fileName;
-        const isBuildingAsset = fileName.startsWith("packages/building/");
+        const isBuildingAsset = !isCommonRockLod && fileName.startsWith("packages/building/");
         const seen = isBuildingAsset ? seenBuildingBinKeys : seenCommonBinKeys;
         const targetList = isBuildingAsset ? buildingBinEntries : commonBinEntries;
         if (seen.has(key)) continue;
@@ -320,6 +333,92 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
       };
       emitSwb1Bundle(commonBinEntries, "seed-world-common-bin-bundle", "__SEED_WORLD_COMMON_BIN_BUNDLE_URL__");
       emitSwb1Bundle(buildingBinEntries, "seed-world-building-bin-bundle", "__SEED_WORLD_BUILDING_BIN_BUNDLE_URL__");
+
+      // 2.6 Emit per-template SWB1 bundles BEFORE deleting CDN-offloaded leaf copies:
+      // - Gzipped per-template JSON SWB1 shard (`seed-world-tpl-<id>-json-bundle-<hash>.bin`) for >128 KiB
+      //   procedural tree `*-structure.json`, `plant-project-plant-species.json`, and water `conversion.json`
+      //   (compresses ~5 MB raw JSON -> ~0.7 MB).
+      // - Uncompressed per-template media SWB1 shards (`seed-world-tpl-<id>-s<N>-bundle-<hash>.bin`, <= 10 MiB/shard)
+      //   for already-compressed `.ktx2/.glb/.png/.treewind/.asset/.r8/.rgb8` (avoids double-decompression & 2x iOS RAM).
+      const templateEntriesById = new Map(SEED_WORLD_TEMPLATE_IDS.map((id) => [id, []]));
+      const seenKeysByTemplate = new Map(SEED_WORLD_TEMPLATE_IDS.map((id) => [id, new Set()]));
+      const templateJsonEntriesById = new Map(SEED_WORLD_TEMPLATE_IDS.map((id) => [id, []]));
+      const seenJsonKeysByTemplate = new Map(SEED_WORLD_TEMPLATE_IDS.map((id) => [id, new Set()]));
+      for (const fileName of Object.keys(bundle).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
+        const item = bundle[fileName];
+        if (!item || item.type !== "asset") continue;
+        const matchedJsonTemplates = templatesForSeedWorldJsonAsset(fileName);
+        if (matchedJsonTemplates.length > 0) {
+          const buf = typeof item.source === "string" ? Buffer.from(item.source, "utf8") : Buffer.from(item.source);
+          if (buf.length > 0) {
+            const key = cdnUrlByFileName.get(fileName) ?? fileName;
+            for (const templateId of matchedJsonTemplates) {
+              const seen = seenJsonKeysByTemplate.get(templateId);
+              if (seen.has(key)) continue;
+              seen.add(key);
+              templateJsonEntriesById.get(templateId).push({ key, buf });
+            }
+          }
+        }
+        const matchedTemplates = templatesForSeedWorldMediaAsset(fileName);
+        if (matchedTemplates.length === 0) continue;
+        const buf = typeof item.source === "string" ? Buffer.from(item.source, "utf8") : Buffer.from(item.source);
+        if (buf.length === 0) continue;
+        const key = cdnUrlByFileName.get(fileName) ?? fileName;
+        for (const templateId of matchedTemplates) {
+          const seen = seenKeysByTemplate.get(templateId);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          templateEntriesById.get(templateId).push({ key, buf });
+        }
+      }
+      const templateBundleManifest = {};
+      for (const templateId of SEED_WORLD_TEMPLATE_IDS) {
+        const urls = [];
+        const jsonEntries = templateJsonEntriesById.get(templateId);
+        if (jsonEntries.length > 0) {
+          jsonEntries.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+          const gzJsonPack = buildGzippedSwb1Pack(jsonEntries);
+          const { sha256, size } = sha256Buffer(gzJsonPack);
+          const namePrefix = `seed-world-tpl-${templateId}-json-bundle`;
+          const bundleFileName = `assets/${namePrefix}-${sha256.slice(0, 8)}.bin`;
+          const cdnEntry = cdnBySha256[sha256];
+          const runtimeUrl =
+            cdnEntry && typeof cdnEntry.url === "string" && cdnEntry.url.startsWith("https://") && cdnEntry.size === size
+              ? cdnEntry.url
+              : `./${namePrefix}-${sha256.slice(0, 8)}.bin`;
+          if (runtimeUrl.startsWith("./")) {
+            this.emitFile({ type: "asset", fileName: bundleFileName, source: gzJsonPack });
+          }
+          urls.push(runtimeUrl);
+        }
+        const entries = templateEntriesById.get(templateId);
+        const shards = shardTemplateBundleEntries(entries);
+        for (let shardIndex = 0; shardIndex < shards.length; shardIndex++) {
+          const rawPack = buildUncompressedSwb1Pack(shards[shardIndex]);
+          const { sha256, size } = sha256Buffer(rawPack);
+          const namePrefix = `seed-world-tpl-${templateId}-s${shardIndex}-bundle`;
+          const bundleFileName = `assets/${namePrefix}-${sha256.slice(0, 8)}.bin`;
+          const cdnEntry = cdnBySha256[sha256];
+          const runtimeUrl =
+            cdnEntry && typeof cdnEntry.url === "string" && cdnEntry.url.startsWith("https://") && cdnEntry.size === size
+              ? cdnEntry.url
+              : `./${namePrefix}-${sha256.slice(0, 8)}.bin`;
+          if (runtimeUrl.startsWith("./")) {
+            this.emitFile({ type: "asset", fileName: bundleFileName, source: rawPack });
+          }
+          urls.push(runtimeUrl);
+        }
+        if (urls.length > 0) {
+          templateBundleManifest[templateId] = urls;
+        }
+      }
+      const templateManifestLiteral = JSON.stringify(JSON.stringify(templateBundleManifest));
+      for (const item of Object.values(bundle)) {
+        if (item.type === "chunk" && item.code.includes("__SEED_WORLD_TEMPLATE_BIN_BUNDLES_JSON__")) {
+          item.code = item.code.replace(/["']__SEED_WORLD_TEMPLATE_BIN_BUNDLES_JSON__["']/gu, templateManifestLiteral);
+        }
+      }
 
       // Remove redundant local copies of CDN-hosted binaries from dist (Flash App only).
       if (offloadCdn) {
@@ -415,8 +514,6 @@ function previewGzipPlugin() {
     configurePreviewServer(server) {
       server.middlewares.use((req, res, next) => {
         if ((req.method !== "GET" && req.method !== "HEAD") || !req.url) return next();
-        const acceptEncoding = String(req.headers["accept-encoding"] || "");
-        if (!/\bgzip\b/i.test(acceptEncoding)) return next();
         let pathname;
         try {
           pathname = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
@@ -425,11 +522,13 @@ function previewGzipPlugin() {
         }
         const ext = path.extname(pathname).toLowerCase();
         if (!PREVIEW_GZIP_EXTENSIONS.has(ext)) {
-          if (pathname.startsWith("/assets/")) {
-            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          if (pathname.startsWith("/assets/") || pathname.startsWith("/packages/")) {
+            res.setHeader("Cache-Control", previewCacheControlForPath(pathname));
           }
           return next();
         }
+        const acceptEncoding = String(req.headers["accept-encoding"] || "");
+        if (!/\bgzip\b/i.test(acceptEncoding)) return next();
         const resolved = path.resolve(outDir, "." + pathname);
         if (!resolved.startsWith(outDir + path.sep)) return next();
         let stat;
@@ -448,10 +547,7 @@ function previewGzipPlugin() {
         const etag = `W/"gz-${stat.size}-${Math.floor(stat.mtimeMs)}"`;
         res.setHeader("Vary", "Accept-Encoding");
         res.setHeader("ETag", etag);
-        res.setHeader(
-          "Cache-Control",
-          pathname.includes("/assets/") ? "public, max-age=31536000, immutable" : "no-cache"
-        );
+        res.setHeader("Cache-Control", previewCacheControlForPath(pathname));
         if (req.headers["if-none-match"] === etag) {
           res.statusCode = 304;
           res.end();

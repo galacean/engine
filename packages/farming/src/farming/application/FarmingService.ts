@@ -330,6 +330,7 @@ export class FarmingService {
           return {
             snapshot,
             clockOnly: changed ? undefined : "volatile",
+            userEdit: false,
             value: {
               snapshot,
               summary: Object.freeze({
@@ -866,7 +867,7 @@ export class FarmingService {
           const snapshot = grounded.changes.length
             ? freezeSnapshot({ ...validated, items: grounded.items, revision: validated.revision + 1 })
             : validated;
-          return { snapshot, value: { snapshot, ...grounded } };
+          return { snapshot, userEdit: false, value: { snapshot, ...grounded } };
         },
         this.lifetime.signal
       );
@@ -978,6 +979,7 @@ export class FarmingService {
         return {
           snapshot,
           clockOnly: changed ? undefined : clockOnly,
+          userEdit: false,
           value: {
             snapshot,
             changes: advanced.changes,
@@ -1205,6 +1207,7 @@ export class FarmingService {
         return {
           snapshot,
           clockOnly: changed ? undefined : "volatile",
+          userEdit: false,
           value: { snapshot, changes: [...settled.changes, ...refreshed.changes, ...regrounded.changes] }
         };
       }

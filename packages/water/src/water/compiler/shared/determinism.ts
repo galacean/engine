@@ -389,7 +389,7 @@ export async function hashStableValueAsync(value: unknown, signal?: AbortSignal)
   let low = 0x811c9dc5,
     high = 0x9e3779b9,
     work = 0,
-    deadline = performance.now() + 2;
+    deadline = performance.now() + 8;
   for (const chunk of stableValueChunks(value)) {
     for (let i = 0; i < chunk.length; i++) {
       const code = chunk.charCodeAt(i),
@@ -404,7 +404,7 @@ export async function hashStableValueAsync(value: unknown, signal?: AbortSignal)
       if (++work % 4096 === 0 && performance.now() >= deadline) {
         await yieldHashTask();
         signal?.throwIfAborted();
-        deadline = performance.now() + 2;
+        deadline = performance.now() + 8;
       }
     }
   }

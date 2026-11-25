@@ -128,9 +128,8 @@ async function start(): Promise<void> {
   const { mountWorldLayout } = await import("./src/planning/semantic-study/WorldLayoutEditor.ts");
   const editor = await mountWorldLayout(host, {
     storageSelection: selection,
-    onGenerate3D: async (plan, session, waterResetRequest) => {
-      if (!session.result || session.pending) throw new Error("规划快照尚未就绪");
-      const handoff = { document: session.export(), result: session.result, waterResetRequest };
+    onGenerate3D: async (handoff) => {
+      const plan = handoff.result.plan;
       try {
         await editor.dispose();
         styles.remove();

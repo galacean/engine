@@ -38,6 +38,22 @@ const EDGE_B = 2;
 const FILL_A = 3;
 const FILL_B = 4;
 
+/**
+ * Opaque queue priority for Geometry Clipmap terrain segments.
+ *
+ * `RenderQueue.compareForOpaque` sorts ascending by priority. Placing terrain at
+ * `-103` draws it right after discard-free solid masonry buildings (`GlobalProxyBoxes`
+ * and LOD0/1 `brick / wood / roof` at `-105`), letting terrain write a continuous
+ * discard-free 8×8 LRZ / Early-Z depth surface strictly before `discard`-enabled
+ * plaster/structural passes (`GlobalProxyStruct` `-102/-98`, LOD0/1 plaster `-98`)
+ * and default-priority opaque geometry (`Surface` rocks/tree trunks and animals at `0`),
+ * while keeping a uniform priority across segments to preserve instanced batching.
+ * Grass renders in `RenderQueueType.AlphaTest` (after `Opaque`), and terrain remains in
+ * `RenderQueueType.Opaque` before `AlphaTest`, skybox, forward depth resolve, SSR, and
+ * `Transparent` passes (vista, farmland underlay, water, particles, HUD).
+ */
+export const TERRAIN_CLIPMAP_RENDER_PRIORITY = -103;
+
 type Offset = readonly [x: number, z: number];
 
 /** Height-grid capability required by Geometry Clipmap topology. */
@@ -725,7 +741,7 @@ export class TerrainClipmap {
       renderer.mesh = mesh;
       renderer.setMaterial(material);
       renderer.setLod(lod, this._offsets.meshSize);
-      renderer.priority = -200;
+      renderer.priority = TERRAIN_CLIPMAP_RENDER_PRIORITY;
       renderer.castShadows = false;
       renderer.receiveShadows = true;
       this._segments.push({

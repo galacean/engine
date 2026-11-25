@@ -18,6 +18,9 @@ import { PlanningAnimalSurfaceKind, type PlanningAnimalSurfaceData } from "./Pla
 import type { AnimalInstanceDocument } from "@galacean/engine-animals/gameplay/animal/AnimalInstanceDocument";
 import {
   BaseMaterial,
+  BoundingBox,
+  BoundingFrustum,
+  Matrix,
   MeshRenderer,
   PBRMaterial,
   RenderFace,
@@ -411,7 +414,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       });
       this.placementMilliseconds = performance.now() - placementStart;
       const root = this.parent.createChild("Seed animals");
-      const system = new AnimalSystem(),
+      const system = new AnimalSystem(12, 0.8, 192),
         crowd = new GroundAnimalCrowd();
       system.addMotionStep((dt) => crowd.advance(dt));
       candidate = {
@@ -920,6 +923,20 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     return actor;
   }
 
+  /**
+   * When set during startup (before first-screen reveal), `loadQueued` only dispatches GLB
+   * downloads for actors that are actually visible (`wanted`) within the spawn camera frustum,
+   * leaving behind-camera and hidden wake-buffer animals queued until post-reveal.
+   */
+  private startupDeferOffscreenCamera?: Camera;
+  private readonly startupFrustumMatrix = new Matrix();
+  private readonly startupFrustum = new BoundingFrustum();
+  private readonly startupActorBox = new BoundingBox();
+
+  setStartupDeferOffscreenCamera(camera: Camera | undefined): void {
+    this.startupDeferOffscreenCamera = camera;
+  }
+
   /** Prepare only actors already admitted at the current observer position, without advancing simulation. */
   async preparePresentation(): Promise<void> {
     const population = this.population;
@@ -929,12 +946,15 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   }
 
   /**
-   * Prepare shader warmup renderers and alternate (outlined / plain) toon materials for every
-   * distinct animal species present in the current population, including distant species not yet
-   * within spawn admission range. Temporary warmup clones live under an inactive entity and never
-   * affect live simulation or streaming state.
+   * Prepare shader warmup renderers and alternate (outlined / plain) toon materials for animal
+   * species in the current population. When `includeUnloadedSpecies` is false, only already-loaded
+   * spawn animals' alternate materials are collected (zero distant GLB downloads or instantiations);
+   * otherwise distant unloaded species are also instantiated under an inactive temporary root.
    */
-  async prepareShaderWarmup(signal?: AbortSignal): Promise<
+  async prepareShaderWarmup(
+    signal?: AbortSignal,
+    options?: { readonly includeUnloadedSpecies?: boolean }
+  ): Promise<
     | {
         readonly renderers: readonly Renderer[];
         readonly extraMaterials: ReadonlyMap<Renderer, readonly Material[]>;
@@ -944,6 +964,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   > {
     const population = this.population;
     if (!population || this.disposed || signal?.aborted) return undefined;
+    const includeUnloadedSpecies = options?.includeUnloadedSpecies !== false;
     const extraMaterials = new Map<Renderer, Material[]>();
     const coveredTypeIds = new Set<string>();
     const unloadedByTypeId = new Map<string, Actor>();
@@ -951,13 +972,15 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       if (actor.state === "loaded" && actor.animal) {
         coveredTypeIds.add(actor.asset.config.id);
         actor.animal.collectShaderWarmupMaterials(extraMaterials as Map<MeshRenderer, Material[]>);
-      } else if (actor.supportValid && !unloadedByTypeId.has(actor.asset.config.id)) {
+      } else if (includeUnloadedSpecies && actor.supportValid && !unloadedByTypeId.has(actor.asset.config.id)) {
         unloadedByTypeId.set(actor.asset.config.id, actor);
       }
     }
     const toLoad: Actor[] = [];
-    for (const [typeId, actor] of unloadedByTypeId) {
-      if (!coveredTypeIds.has(typeId)) toLoad.push(actor);
+    if (includeUnloadedSpecies) {
+      for (const [typeId, actor] of unloadedByTypeId) {
+        if (!coveredTypeIds.has(typeId)) toLoad.push(actor);
+      }
     }
     const renderers: Renderer[] = [];
     const ownedMaterials: Material[] = [];
@@ -1055,10 +1078,15 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     const deltaTime = Math.min(Math.max(seconds, 0), 0.1);
     p.fireflies?.population.prepare(deltaTime, this.observer(), this.interactions.fireflies?.activity() ?? 0);
     if (p.active.size || p.coarse.size || (p.fireflies?.population.visibility ?? 0) > 0) {
-      this.simulationAccumulator = Math.min(this.simulationAccumulator + deltaTime, 0.1);
-      const stepCount = Math.floor((this.simulationAccumulator + 1e-6) / ANIMAL_FIXED_STEP_SECONDS);
-      if (stepCount > 0) {
-        const stepSeconds = stepCount * ANIMAL_FIXED_STEP_SECONDS;
+      // Bound animal simulation to at most one fixed 30Hz step per rendered frame so a slow frame
+      // never cascades 2-3x crowd/motion substeps into a 12ms CPU spiral, while retaining up to
+      // one sub-step of remainder so 31-59 FPS devices still average a true 30Hz simulation rate.
+      this.simulationAccumulator = Math.min(
+        this.simulationAccumulator + deltaTime,
+        ANIMAL_FIXED_STEP_SECONDS * 2 - 1e-5
+      );
+      if (this.simulationAccumulator + 1e-6 >= ANIMAL_FIXED_STEP_SECONDS) {
+        const stepSeconds = ANIMAL_FIXED_STEP_SECONDS;
         this.simulationAccumulator = Math.max(0, this.simulationAccumulator - stepSeconds);
         p.navigation.beginAnimalUpdate?.();
         try {
@@ -1187,7 +1215,11 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
 
   private refreshObserver(p: Population, force = false): void {
     const observer = this.observer();
-    if (!force && observer.x === p.observerX && observer.z === p.observerZ) return;
+    if (!force) {
+      const dx = observer.x - p.observerX;
+      const dz = observer.z - p.observerZ;
+      if (dx * dx + dz * dz < 0.25) return;
+    }
     p.observerX = observer.x;
     p.observerZ = observer.z;
     for (const actor of p.actors) {
@@ -1291,8 +1323,30 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
 
   private loadQueued(p: Population): void {
     if (!p.queue.size) return;
+    const deferCam = this.startupDeferOffscreenCamera as
+      | (Camera & { projectionMatrix?: Matrix; viewMatrix?: Matrix })
+      | undefined;
+    let frustum: BoundingFrustum | undefined;
+    if (deferCam?.projectionMatrix && deferCam.viewMatrix) {
+      Matrix.multiply(deferCam.projectionMatrix, deferCam.viewMatrix, this.startupFrustumMatrix);
+      this.startupFrustum.calculateFromMatrix(this.startupFrustumMatrix);
+      frustum = this.startupFrustum;
+    }
     // Dispatch every admitted animal independently; completion or failure never gates another request.
-    for (const actor of p.queue) this.loadActor(p, actor);
+    for (const actor of p.queue) {
+      if (deferCam) {
+        if (!actor.wanted) continue;
+        if (frustum) {
+          const height = actor.footprint.height ?? 1;
+          const margin = Math.max(6, actor.footprint.radius + height * 2);
+          const y = actor.footprint.elevation ?? actor.birth.position.y;
+          this.startupActorBox.min.set(actor.x - margin, y - 2, actor.z - margin);
+          this.startupActorBox.max.set(actor.x + margin, y + height + 2, actor.z + margin);
+          if (!frustum.intersectsBox(this.startupActorBox)) continue;
+        }
+      }
+      this.loadActor(p, actor);
+    }
   }
 
   private loadActor(p: Population, actor: Actor): void {

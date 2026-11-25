@@ -1,5 +1,6 @@
 import surfacePackSource from "./SnapshotSurfacePack.shader?raw";
 import interactionDepthSource from "./InteractionDepthPack.shader?raw";
+import photoCopySource from "./PhotoCopy.shader?raw";
 import { snapshotIdentityBits, type SnapshotSurfaceProjection } from "./SnapshotSurfaceEncoding";
 import { destroyPhotoResources } from "./SeedWorldPhotoResources";
 import type { GpuPhoto } from "./SeedWorldPhotoImage";
@@ -21,6 +22,7 @@ import {
   Blitter,
   Material,
   Shader,
+  ShaderMacro,
   Script,
   TextureFilterMode,
   TextureWrapMode,
@@ -342,6 +344,36 @@ export class SeedWorldPicker {
     material.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.Less);
   }
 
+  /** Lightweight async precompile of blit shaders (`PhotoCopy` + `SnapshotSurfacePack`) without capturing a frame. */
+  async prewarmShaders(signal?: AbortSignal): Promise<void> {
+    signal?.throwIfAborted();
+    const scene = this.camera.scene;
+    const engine = this.camera.engine;
+    if (!scene || !engine) return;
+    const photoCopyShader = Shader.find("SeedWorld/PhotoCopy") ?? Shader.create(photoCopySource);
+    const surfacePackShader = Shader.find("SeedWorld/SnapshotSurfacePack") ?? Shader.create(surfacePackSource);
+    const sceneMacros: ShaderMacro[] = [];
+    const sceneMacroCollection = (scene.shaderData as unknown as { _macroCollection?: unknown })._macroCollection;
+    const getElements = (ShaderMacro as unknown as { _getMacrosElements?: (c: unknown, out: ShaderMacro[]) => void })
+      ._getMacrosElements;
+    if (sceneMacroCollection && getElements) {
+      getElements(sceneMacroCollection, sceneMacros);
+    }
+    // AO setter updates `SCENE_ENABLE_AMBIENT_OCCLUSION` synchronously; `castShadows = false` does
+    // not mutate `SCENE_SHADOW_TYPE` until the next `Scene._updateShaderData()`, so keep it intact.
+    const pickSceneMacros = sceneMacros.filter((m) => m.name !== "SCENE_ENABLE_AMBIENT_OCCLUSION");
+    const tasks: Promise<boolean>[] = [];
+    const photoPass = photoCopyShader?.subShaders[0]?.passes[0];
+    if (photoPass?.compileVariantAsync) {
+      tasks.push(photoPass.compileVariantAsync(engine, sceneMacros, signal));
+    }
+    const packPass = surfacePackShader?.subShaders[0]?.passes[0];
+    if (packPass?.compileVariantAsync) {
+      tasks.push(packPass.compileVariantAsync(engine, pickSceneMacros, signal));
+    }
+    if (tasks.length) await Promise.all(tasks);
+  }
+
   /** Exercise the exact photo/identity paths before the screenshot command is exposed. No retained snapshot or readback. */
   async prepareSnapshot(visit: SeedWorldPickSource, signal?: AbortSignal, budget?: ImageResourceBudget): Promise<void> {
     signal?.throwIfAborted();
@@ -641,8 +673,10 @@ export class SeedWorldPicker {
       camera.scene!.ambientOcclusion.enabled = false;
       background.mode = BackgroundMode.SolidColor;
       background.solidColor = this.black;
-      if (capture.visualDepth) camera.scene!.castShadows = false;
-      else {
+      // Identity/depth pick passes never consume shadow maps; disabling shadows skips the entire
+      // shadow cascade pass and avoids compiling ShadowCaster variants with RENDERER_WORLD_PICK.
+      camera.scene!.castShadows = false;
+      if (!capture.visualDepth) {
         visit(this.collectBound);
         // Photo identities retain their separate material override path.
         this.occlusion.prepare(camera, this.pickedRenderers);

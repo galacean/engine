@@ -479,9 +479,57 @@ export class RuntimeProjectSnapshot {
   }
 }
 
+export const DEFAULT_RUNTIME_PROJECT_STORAGE_TIMEOUT_MS = 4000;
+const RUNTIME_PROJECT_STORAGE_CLOSE_GRACE_MS = 50;
+
+export interface RuntimeProjectStorageOpenOptions {
+  /** Timeout in ms before aborting a wedged IndexedDB open or read. Set <= 0 or Infinity to disable. */
+  timeoutMs?: number;
+}
+
+export class RuntimeProjectStorageUnavailableError extends Error {
+  readonly timedOut: boolean;
+  readonly blocked: boolean;
+  constructor(message: string, options?: { cause?: unknown; timedOut?: boolean; blocked?: boolean }) {
+    super(message, options?.cause === undefined ? undefined : { cause: options.cause });
+    this.name = "RuntimeProjectStorageUnavailableError";
+    this.timedOut = options?.timedOut === true;
+    this.blocked = options?.blocked === true;
+  }
+}
+
+const STORAGE_UNAVAILABLE_DOM_EXCEPTION_NAMES = new Set([
+  "UnknownError",
+  "InvalidStateError",
+  "SecurityError",
+  "QuotaExceededError",
+  "AbortError",
+  "TransactionInactiveError",
+  "VersionError",
+  "TimeoutError"
+]);
+
+export function isRuntimeProjectStorageUnavailableError(error: unknown): boolean {
+  if (error instanceof RuntimeProjectStorageUnavailableError) return true;
+  if (typeof DOMException !== "undefined" && error instanceof DOMException) return true;
+  if (error && typeof error === "object" && "name" in error) {
+    return STORAGE_UNAVAILABLE_DOM_EXCEPTION_NAMES.has(String((error as { name?: unknown }).name));
+  }
+  return false;
+}
+
+function isClosingTransactionError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const name = "name" in error ? String((error as { name?: unknown }).name) : "";
+  if (name === "InvalidStateError") return true;
+  const message = "message" in error ? String((error as { message?: unknown }).message) : "";
+  return /\b(?:closing|closed)\b/i.test(message);
+}
+
 /** The session owns one backend for its lifetime. Viewers still initialize an in-memory project. */
 export interface RuntimeProjectBackend {
   readonly readOnly?: boolean;
+  readonly isInMemory?: boolean;
   load(id: string): Promise<RuntimeProjectPackage | undefined>;
   save(id: string, value: RuntimeProjectPackage): Promise<void>;
   saveSnapshot?(id: string, snapshot: RuntimeProjectSnapshot): Promise<void>;
@@ -492,20 +540,85 @@ export interface RuntimeProjectBackend {
  * A matching private revision permits differential writes. Other writers invalidate
  * that optimization, never the right to save the caller's complete snapshot.
  */
-export class RuntimeProjectStorage {
+export class RuntimeProjectStorage implements RuntimeProjectBackend {
   // Private snapshots are exact comparison baselines, never exposed as mutable author data.
   private readonly snapshots = new Map<string, StorageSnapshot>();
   private readonly operations = new Map<string, Promise<unknown>>();
+  private readonly databaseClosures = new WeakMap<IDBDatabase, AbortController>();
+  private readonly memoryStore?: Map<string, RuntimeProjectPackage>;
+  private readonly timeoutMs: number;
+  private database?: IDBDatabase;
   private closed = false;
-  constructor(private readonly database: IDBDatabase) {
-    database.onversionchange = () => this.close();
+  private connectionLost = false;
+  private reopenPromise?: Promise<IDBDatabase>;
+  constructor(
+    database: IDBDatabase,
+    private readonly factory?: IDBFactory,
+    options?: RuntimeProjectStorageOpenOptions
+  ) {
+    this.timeoutMs = options?.timeoutMs ?? DEFAULT_RUNTIME_PROJECT_STORAGE_TIMEOUT_MS;
+    if (database) {
+      this.database = database;
+      this.attachDatabaseHandlers(database);
+    } else {
+      this.memoryStore = new Map();
+    }
   }
 
-  static async open(factory: IDBFactory = indexedDB): Promise<RuntimeProjectStorage> {
-    const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = factory.open("galacean-runtime-projects", RUNTIME_PROJECT_DB_VERSION);
+  get isInMemory(): boolean {
+    return this.memoryStore !== undefined;
+  }
+
+  static createInMemory(): RuntimeProjectStorage {
+    return new RuntimeProjectStorage(undefined as unknown as IDBDatabase);
+  }
+
+  private static openDatabase(
+    factory: IDBFactory,
+    timeoutMs = DEFAULT_RUNTIME_PROJECT_STORAGE_TIMEOUT_MS
+  ): Promise<IDBDatabase> {
+    if (!factory || typeof factory.open !== "function") {
+      return Promise.reject(new RuntimeProjectStorageUnavailableError("IndexedDB is unavailable"));
+    }
+    return new Promise<IDBDatabase>((resolve, reject) => {
+      let settled = false;
       let blocked = false;
+      let timedOut = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const finish = () => {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+          timer = undefined;
+        }
+      };
+      let request: IDBOpenDBRequest;
+      try {
+        request = factory.open("galacean-runtime-projects", RUNTIME_PROJECT_DB_VERSION);
+      } catch (error) {
+        reject(new RuntimeProjectStorageUnavailableError("Failed to open project IndexedDB", { cause: error }));
+        return;
+      }
+      if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
+        timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          timedOut = true;
+          reject(
+            new RuntimeProjectStorageUnavailableError(`Project storage IndexedDB open timed out after ${timeoutMs}ms`, {
+              timedOut: true
+            })
+          );
+        }, timeoutMs);
+      }
       request.onupgradeneeded = () => {
+        if (timedOut || settled) {
+          try {
+            request.transaction?.abort();
+          } catch {
+            // Ignore if the upgrade transaction is already inactive or finished.
+          }
+          return;
+        }
         const database = request.result;
         // Single storage format: rebuild stores cleanly rather than migrating legacy records.
         for (const name of ["projects", "projectRevisions", "projectFiles"]) {
@@ -518,90 +631,311 @@ export class RuntimeProjectStorage {
       };
       request.onblocked = () => {
         blocked = true;
-        reject(new Error("请关闭其他工程页面后重试，以升级工程存储。"));
+        if (settled) return;
+        settled = true;
+        finish();
+        reject(
+          new RuntimeProjectStorageUnavailableError("请关闭其他工程页面后重试，以升级工程存储。", { blocked: true })
+        );
       };
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        if (settled) return;
+        settled = true;
+        finish();
+        reject(request.error ?? new RuntimeProjectStorageUnavailableError("Failed to open project IndexedDB"));
+      };
       request.onsuccess = () => {
-        if (blocked) {
-          request.result.close();
+        if (blocked || timedOut || settled) {
+          try {
+            request.result.close();
+          } catch {
+            // Ignore errors when closing a late-arriving IDBDatabase handle.
+          }
           return;
         }
+        settled = true;
+        finish();
         resolve(request.result);
       };
     });
-    return new RuntimeProjectStorage(database);
+  }
+
+  static async open(
+    factory: IDBFactory = typeof indexedDB !== "undefined" ? indexedDB : (undefined as unknown as IDBFactory),
+    options?: RuntimeProjectStorageOpenOptions
+  ): Promise<RuntimeProjectStorage> {
+    const timeoutMs = options?.timeoutMs ?? DEFAULT_RUNTIME_PROJECT_STORAGE_TIMEOUT_MS;
+    const database = await RuntimeProjectStorage.openDatabase(factory, timeoutMs);
+    return new RuntimeProjectStorage(database, factory, { timeoutMs });
+  }
+
+  private attachDatabaseHandlers(database: IDBDatabase): void {
+    const closure = new AbortController();
+    this.databaseClosures.set(database, closure);
+    database.onversionchange = () => {
+      if (this.database === database) this.close();
+    };
+    database.onclose = () => {
+      if (this.database === database && !this.closed) {
+        this.connectionLost = true;
+        this.snapshots.clear();
+      }
+      closure.abort();
+    };
+  }
+
+  private waitForDatabaseClose(database: IDBDatabase): Promise<boolean> {
+    const signal = this.databaseClosures.get(database)?.signal;
+    if (!signal || signal.aborted) return Promise.resolve(signal?.aborted ?? false);
+    // Forced closures can abort transactions before the browser delivers close.
+    return new Promise((resolve) => {
+      const onClose = () => {
+        clearTimeout(timer);
+        resolve(true);
+      };
+      const timer = setTimeout(() => {
+        signal.removeEventListener("abort", onClose);
+        resolve(false);
+      }, RUNTIME_PROJECT_STORAGE_CLOSE_GRACE_MS);
+      signal.addEventListener("abort", onClose, { once: true });
+    });
+  }
+
+  private detachAndClose(database: IDBDatabase): void {
+    database.onversionchange = null;
+    database.onclose = null;
+    this.databaseClosures.get(database)?.abort();
+    try {
+      database.close();
+    } catch {
+      // Ignore errors when closing an already closing/closed IDBDatabase handle.
+    }
+  }
+
+  private async reopenDatabase(staleDatabase?: IDBDatabase): Promise<IDBDatabase> {
+    if (this.closed) throw new Error("Project storage is closed");
+    if (this.reopenPromise) return this.reopenPromise;
+    if (staleDatabase && this.database && this.database !== staleDatabase && !this.connectionLost) return this.database;
+    const factory = this.factory;
+    if (!factory) throw new RuntimeProjectStorageUnavailableError("Project storage connection is closed");
+    this.connectionLost = true;
+    this.snapshots.clear();
+    const targetToClose = staleDatabase ?? this.database;
+    const reopening = (async () => {
+      if (targetToClose) this.detachAndClose(targetToClose);
+      if (this.database && this.database !== targetToClose) this.detachAndClose(this.database);
+      const next = await RuntimeProjectStorage.openDatabase(factory, this.timeoutMs);
+      if (this.closed) {
+        this.detachAndClose(next);
+        throw new Error("Project storage is closed");
+      }
+      this.database = next;
+      this.connectionLost = false;
+      this.attachDatabaseHandlers(next);
+      return next;
+    })();
+    this.reopenPromise = reopening;
+    try {
+      return await reopening;
+    } finally {
+      if (this.reopenPromise === reopening) this.reopenPromise = undefined;
+    }
+  }
+
+  private async withDatabaseTransaction<T>(
+    storeNames: readonly string[],
+    mode: IDBTransactionMode,
+    run: (transaction: IDBTransaction) => Promise<T>
+  ): Promise<T> {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (this.closed) throw new Error("Project storage is closed");
+      let database = this.database;
+      if ((!database || this.connectionLost) && this.factory) {
+        database = await this.reopenDatabase(database);
+      }
+      if (!database) throw new RuntimeProjectStorageUnavailableError("Project storage connection is closed");
+      let transaction: IDBTransaction;
+      try {
+        transaction = database.transaction(storeNames as string[], mode);
+      } catch (error) {
+        if (attempt === 0 && !this.closed && this.factory && isClosingTransactionError(error)) {
+          await this.reopenDatabase(database);
+          continue;
+        }
+        throw error;
+      }
+      try {
+        return await run(transaction);
+      } catch (error) {
+        if (
+          attempt !== 0 ||
+          this.closed ||
+          !this.factory ||
+          (error instanceof RuntimeProjectStorageUnavailableError && error.timedOut)
+        ) {
+          throw error;
+        }
+        const transactionError = transaction.error?.name;
+        const disconnected =
+          this.connectionLost ||
+          this.database !== database ||
+          ((transactionError === "AbortError" || transactionError === "UnknownError") &&
+            (await this.waitForDatabaseClose(database)));
+        if (!disconnected || this.closed) throw error;
+        await this.reopenDatabase(database);
+      }
+    }
+    throw new Error("Project storage transaction failed");
+  }
+
+  private runTimedTransaction<T>(
+    transaction: IDBTransaction,
+    operationName: "load" | "save" | "deleteMatching",
+    execute: (isSettled: () => boolean, resolve: (value: T) => void, reject: (reason?: unknown) => void) => void
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const finish = () => {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+          timer = undefined;
+        }
+      };
+      const settleResolve = (value: T) => {
+        if (settled) return;
+        settled = true;
+        finish();
+        resolve(value);
+      };
+      const settleReject = (reason?: unknown) => {
+        if (settled) return;
+        settled = true;
+        finish();
+        reject(reason);
+      };
+      if (Number.isFinite(this.timeoutMs) && this.timeoutMs > 0) {
+        timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          try {
+            transaction.abort();
+          } catch {
+            // Ignore errors when aborting a wedged/inactive transaction.
+          }
+          reject(
+            new RuntimeProjectStorageUnavailableError(
+              `Project storage IndexedDB ${operationName} timed out after ${this.timeoutMs}ms`,
+              { timedOut: true }
+            )
+          );
+        }, this.timeoutMs);
+      }
+      execute(() => settled, settleResolve, settleReject);
+    });
   }
 
   load(id: string): Promise<RuntimeProjectPackage | undefined> {
     return this.enqueue(id, async () => {
+      if (this.memoryStore) {
+        const stored = this.memoryStore.get(id);
+        if (stored === undefined) return undefined;
+        const result = cloneRuntimeProjectPackage(stored);
+        if (result.version !== RUNTIME_PROJECT_SAVE_VERSION)
+          throw new Error(`Unsupported saved project version '${result.version}'`);
+        const paths = validateRuntimeProjectInternal(result);
+        validateProjectDependenciesWithPaths(result, paths);
+        return result;
+      }
       let stored: StoredProjectHeader | undefined;
       let revRecord: StoredProjectRevision | undefined;
-      const result = await new Promise<RuntimeProjectPackage | undefined>((resolve, reject) => {
-        // A reader sees one committed revision across header, revision, and file records.
-        const transaction = this.database.transaction(["projects", "projectRevisions", "projectFiles"], "readonly");
-        const headerRequest = transaction.objectStore("projects").get(id);
-        const revRequest = transaction.objectStore("projectRevisions").get(id);
-        let headerLoaded = false;
-        let revLoaded = false;
-        let result: RuntimeProjectPackage | undefined, failure: unknown;
-        const onLoaded = () => {
-          if (!headerLoaded || !revLoaded || failure) return;
-          try {
-            if (stored === undefined) {
-              if (revRecord !== undefined) throw new Error("Invalid stored project header");
-              return;
+      const result = await this.withDatabaseTransaction(
+        ["projects", "projectRevisions", "projectFiles"],
+        "readonly",
+        (transaction) => {
+          stored = undefined;
+          revRecord = undefined;
+          return this.runTimedTransaction<RuntimeProjectPackage | undefined>(
+            transaction,
+            "load",
+            (isSettled, resolve, reject) => {
+              // A reader sees one committed revision across header, revision, and file records.
+              const headerRequest = transaction.objectStore("projects").get(id);
+              const revRequest = transaction.objectStore("projectRevisions").get(id);
+              let headerLoaded = false;
+              let revLoaded = false;
+              let result: RuntimeProjectPackage | undefined, failure: unknown;
+              const onLoaded = () => {
+                if (isSettled() || !headerLoaded || !revLoaded || failure) return;
+                try {
+                  if (stored === undefined) {
+                    if (revRecord !== undefined) throw new Error("Invalid stored project header");
+                    return;
+                  }
+                  const { storageFormat, contentPaths, documentPaths, ...metadata } = stored;
+                  if (
+                    storageFormat !== "files" ||
+                    !Array.isArray(contentPaths) ||
+                    (documentPaths !== undefined && !Array.isArray(documentPaths)) ||
+                    typeof revRecord?.storageRevision !== "string" ||
+                    !revRecord.storageRevision
+                  )
+                    throw new Error("Invalid stored project header");
+                  result = { ...metadata, contents: {}, ...(documentPaths === undefined ? {} : { documents: {} }) };
+                  const files = transaction.objectStore("projectFiles");
+                  const read = (kind: string, paths: string[], target: Record<string, unknown>) => {
+                    if (new Set(paths).size !== paths.length) throw new Error("Duplicate stored project paths");
+                    for (const path of paths) {
+                      assertAssetPath(path);
+                      const reading = files.get([id, kind, path]);
+                      reading.onsuccess = () => {
+                        if (isSettled() || failure) return;
+                        if (reading.result === undefined) {
+                          failure = new Error(`Missing stored project file '${path}'`);
+                          transaction.abort();
+                        } else
+                          Object.defineProperty(target, path, {
+                            value: reading.result,
+                            enumerable: true,
+                            writable: true,
+                            configurable: true
+                          });
+                      };
+                    }
+                  };
+                  read("asset", contentPaths, result.contents);
+                  read("document", documentPaths ?? [], result.documents ?? {});
+                } catch (error) {
+                  failure = error;
+                  transaction.abort();
+                }
+              };
+              headerRequest.onsuccess = () => {
+                if (isSettled()) return;
+                stored = headerRequest.result;
+                headerLoaded = true;
+                onLoaded();
+              };
+              revRequest.onsuccess = () => {
+                if (isSettled()) return;
+                revRecord = revRequest.result;
+                revLoaded = true;
+                onLoaded();
+              };
+              transaction.oncomplete = () => resolve(result);
+              transaction.onabort = () =>
+                reject(
+                  failure ??
+                    (transaction.error
+                      ? new RuntimeProjectStorageUnavailableError("Project load transaction aborted", {
+                          cause: transaction.error
+                        })
+                      : new RuntimeProjectStorageUnavailableError("Project load aborted"))
+                );
             }
-            const { storageFormat, contentPaths, documentPaths, ...metadata } = stored;
-            if (
-              storageFormat !== "files" ||
-              !Array.isArray(contentPaths) ||
-              (documentPaths !== undefined && !Array.isArray(documentPaths)) ||
-              typeof revRecord?.storageRevision !== "string" ||
-              !revRecord.storageRevision
-            )
-              throw new Error("Invalid stored project header");
-            result = { ...metadata, contents: {}, ...(documentPaths === undefined ? {} : { documents: {} }) };
-            const files = transaction.objectStore("projectFiles");
-            const read = (kind: string, paths: string[], target: Record<string, unknown>) => {
-              if (new Set(paths).size !== paths.length) throw new Error("Duplicate stored project paths");
-              for (const path of paths) {
-                assertAssetPath(path);
-                const reading = files.get([id, kind, path]);
-                reading.onsuccess = () => {
-                  if (failure) return;
-                  if (reading.result === undefined) {
-                    failure = new Error(`Missing stored project file '${path}'`);
-                    transaction.abort();
-                  } else
-                    Object.defineProperty(target, path, {
-                      value: reading.result,
-                      enumerable: true,
-                      writable: true,
-                      configurable: true
-                    });
-                };
-              }
-            };
-            read("asset", contentPaths, result.contents);
-            read("document", documentPaths ?? [], result.documents ?? {});
-          } catch (error) {
-            failure = error;
-            transaction.abort();
-          }
-        };
-        headerRequest.onsuccess = () => {
-          stored = headerRequest.result;
-          headerLoaded = true;
-          onLoaded();
-        };
-        revRequest.onsuccess = () => {
-          revRecord = revRequest.result;
-          revLoaded = true;
-          onLoaded();
-        };
-        transaction.oncomplete = () => resolve(result);
-        transaction.onabort = () => reject(failure ?? transaction.error ?? new Error("Project load aborted"));
-      });
+          );
+        }
+      );
       if (result === undefined) {
         this.snapshots.delete(id);
         return undefined;
@@ -610,7 +944,7 @@ export class RuntimeProjectStorage {
         throw new Error(`Unsupported saved project version '${result.version}'`);
       const paths = validateRuntimeProjectInternal(result);
       validateProjectDependenciesWithPaths(result, paths);
-      if (!this.closed) {
+      if (!this.closed && !this.connectionLost) {
         const snapshotContents: RuntimeProjectPackage["contents"] = {};
         for (const path in result.contents) {
           if (!Object.hasOwn(result.contents, path)) continue;
@@ -655,84 +989,96 @@ export class RuntimeProjectStorage {
   }
 
   private async savePrepared(id: string, candidate: RuntimeProjectPackage): Promise<void> {
+    if (this.memoryStore) {
+      await this.enqueue(id, async () => {
+        this.memoryStore!.set(id, candidate);
+      });
+      return;
+    }
     const { contents, documents } = candidate;
     const storageRevision = crypto.randomUUID();
     await this.enqueue(id, async () => {
-      const expected = this.snapshots.get(id);
-      await new Promise<void>((resolve, reject) => {
-        const transaction = this.database.transaction(["projects", "projectRevisions", "projectFiles"], "readwrite");
-        const projects = transaction.objectStore("projects"),
-          revisions = transaction.objectStore("projectRevisions"),
-          files = transaction.objectStore("projectFiles");
-        const request = expected ? revisions.index("storageRevision").getKey(expected.revision) : revisions.getKey(id);
-        let failure: unknown;
-        request.onsuccess = () => {
-          try {
-            const baseline = expected && request.result === id ? expected : undefined;
-            if (!baseline) {
-              // All second key components are strings; an array is a strict upper bound.
-              // Another writer or a recreated project requires a complete replacement:
-              // comparing with this owner's stale files would mix snapshots.
-              files.delete(IDBKeyRange.bound([id], [id, []]));
-            }
-            const write = (
-              kind: string,
-              next: RuntimeProjectPackage["contents"],
-              previous: RuntimeProjectPackage["contents"] = {}
-            ): boolean => {
-              let pathsChanged = !baseline;
-              for (const path in next) {
-                if (!Object.hasOwn(next, path)) continue;
-                const content = next[path];
-                const existed = baseline !== undefined && Object.hasOwn(previous, path);
-                if (!existed) pathsChanged = true;
-                if (!existed || !sameRuntimeProjectContent(previous[path], content)) {
-                  files.put(content, [id, kind, path]);
+      await this.withDatabaseTransaction(
+        ["projects", "projectRevisions", "projectFiles"],
+        "readwrite",
+        (transaction) => {
+          const expected = this.snapshots.get(id);
+          return this.runTimedTransaction<void>(transaction, "save", (isSettled, resolve, reject) => {
+            const projects = transaction.objectStore("projects"),
+              revisions = transaction.objectStore("projectRevisions"),
+              files = transaction.objectStore("projectFiles");
+            const request = expected ? revisions.index("storageRevision").getKey(expected.revision) : revisions.getKey(id);
+            let failure: unknown;
+            request.onsuccess = () => {
+              if (isSettled()) return;
+              try {
+                const baseline = expected && request.result === id ? expected : undefined;
+                if (!baseline) {
+                  // All second key components are strings; an array is a strict upper bound.
+                  // Another writer or a recreated project requires a complete replacement:
+                  // comparing with this owner's stale files would mix snapshots.
+                  files.delete(IDBKeyRange.bound([id], [id, []]));
                 }
-              }
-              if (baseline) {
-                for (const path in previous) {
-                  if (!Object.hasOwn(previous, path) || Object.hasOwn(next, path)) continue;
-                  pathsChanged = true;
-                  files.delete([id, kind, path]);
+                const write = (
+                  kind: string,
+                  next: RuntimeProjectPackage["contents"],
+                  previous: RuntimeProjectPackage["contents"] = {}
+                ): boolean => {
+                  let pathsChanged = !baseline;
+                  for (const path in next) {
+                    if (!Object.hasOwn(next, path)) continue;
+                    const content = next[path];
+                    const existed = baseline !== undefined && Object.hasOwn(previous, path);
+                    if (!existed) pathsChanged = true;
+                    if (!existed || !sameRuntimeProjectContent(previous[path], content)) {
+                      files.put(content, [id, kind, path]);
+                    }
+                  }
+                  if (baseline) {
+                    for (const path in previous) {
+                      if (!Object.hasOwn(previous, path) || Object.hasOwn(next, path)) continue;
+                      pathsChanged = true;
+                      files.delete([id, kind, path]);
+                    }
+                  }
+                  return pathsChanged;
+                };
+                const contentPathsChanged = write("asset", contents, baseline?.contents);
+                let documentPathsChanged = false;
+                if (!baseline || baseline.documents !== documents) {
+                  documentPathsChanged =
+                    write("document", documents ?? {}, baseline?.documents) ||
+                    (baseline?.documents === undefined) !== (documents === undefined);
                 }
+                const headerUnchanged =
+                  Boolean(baseline) &&
+                  baseline!.version === candidate.version &&
+                  baseline!.project === candidate.project &&
+                  !contentPathsChanged &&
+                  !documentPathsChanged;
+                if (!headerUnchanged) {
+                  const { contents: _contents, documents: _documents, ...metadata } = candidate;
+                  const header: StoredProjectHeader = {
+                    ...metadata,
+                    storageFormat: "files",
+                    contentPaths: Object.keys(contents),
+                    ...(documents === undefined ? {} : { documentPaths: Object.keys(documents) })
+                  };
+                  projects.put(header, id);
+                }
+                revisions.put({ storageRevision } satisfies StoredProjectRevision, id);
+              } catch (error) {
+                failure = error;
+                transaction.abort();
               }
-              return pathsChanged;
             };
-            const contentPathsChanged = write("asset", contents, baseline?.contents);
-            let documentPathsChanged = false;
-            if (!baseline || baseline.documents !== documents) {
-              documentPathsChanged =
-                write("document", documents ?? {}, baseline?.documents) ||
-                (baseline?.documents === undefined) !== (documents === undefined);
-            }
-            const headerUnchanged =
-              Boolean(baseline) &&
-              baseline!.version === candidate.version &&
-              baseline!.project === candidate.project &&
-              !contentPathsChanged &&
-              !documentPathsChanged;
-            if (!headerUnchanged) {
-              const { contents: _contents, documents: _documents, ...metadata } = candidate;
-              const header: StoredProjectHeader = {
-                ...metadata,
-                storageFormat: "files",
-                contentPaths: Object.keys(contents),
-                ...(documents === undefined ? {} : { documentPaths: Object.keys(documents) })
-              };
-              projects.put(header, id);
-            }
-            revisions.put({ storageRevision } satisfies StoredProjectRevision, id);
-          } catch (error) {
-            failure = error;
-            transaction.abort();
-          }
-        };
-        transaction.oncomplete = () => resolve();
-        transaction.onabort = () => reject(failure ?? transaction.error ?? new Error("Project save aborted"));
-      });
+            transaction.oncomplete = () => resolve();
+            transaction.onabort = () => reject(failure ?? transaction.error ?? new Error("Project save aborted"));
+          });
+        }
+      );
       // Failed/aborted transactions must never advance the diff baseline or expected revision.
-      if (!this.closed) {
+      if (!this.closed && !this.connectionLost) {
         this.snapshots.set(id, {
           revision: storageRevision,
           version: candidate.version,
@@ -751,34 +1097,45 @@ export class RuntimeProjectStorage {
    */
   deleteMatching(matches: (id: string) => boolean): Promise<string[]> {
     if (this.closed) return Promise.reject(new Error("Project storage is closed"));
-    return new Promise<string[]>((resolve, reject) => {
-      const transaction = this.database.transaction(["projects", "projectRevisions", "projectFiles"], "readwrite");
-      const projects = transaction.objectStore("projects"),
-        revisions = transaction.objectStore("projectRevisions"),
-        files = transaction.objectStore("projectFiles");
-      const request = projects.getAllKeys();
+    if (this.memoryStore) {
       const removed: string[] = [];
-      let failure: unknown;
-      request.onsuccess = () => {
-        try {
-          for (const id of request.result) {
-            if (typeof id !== "string" || !matches(id)) continue;
-            projects.delete(id);
-            revisions.delete(id);
-            // All second key components are strings; an array is a strict upper bound.
-            files.delete(IDBKeyRange.bound([id], [id, []]));
-            removed.push(id);
+      for (const id of [...this.memoryStore.keys()]) {
+        if (!matches(id)) continue;
+        this.memoryStore.delete(id);
+        removed.push(id);
+      }
+      return Promise.resolve(removed);
+    }
+    return this.withDatabaseTransaction(["projects", "projectRevisions", "projectFiles"], "readwrite", (transaction) => {
+      return this.runTimedTransaction<string[]>(transaction, "deleteMatching", (isSettled, resolve, reject) => {
+        const projects = transaction.objectStore("projects"),
+          revisions = transaction.objectStore("projectRevisions"),
+          files = transaction.objectStore("projectFiles");
+        const request = projects.getAllKeys();
+        const removed: string[] = [];
+        let failure: unknown;
+        request.onsuccess = () => {
+          if (isSettled()) return;
+          try {
+            for (const id of request.result) {
+              if (typeof id !== "string" || !matches(id)) continue;
+              projects.delete(id);
+              revisions.delete(id);
+              // All second key components are strings; an array is a strict upper bound.
+              files.delete(IDBKeyRange.bound([id], [id, []]));
+              removed.push(id);
+            }
+          } catch (error) {
+            failure = error;
+            transaction.abort();
           }
-        } catch (error) {
-          failure = error;
-          transaction.abort();
-        }
-      };
-      transaction.oncomplete = () => {
-        for (const id of removed) this.snapshots.delete(id);
-        resolve(removed);
-      };
-      transaction.onabort = () => reject(failure ?? transaction.error ?? new Error("Project deletion aborted"));
+        };
+        transaction.oncomplete = () => {
+          for (const id of removed) this.snapshots.delete(id);
+          resolve(removed);
+        };
+        transaction.onabort = () => reject(failure ?? transaction.error ?? new Error("Project deletion aborted"));
+      });
     });
   }
 
@@ -799,7 +1156,9 @@ export class RuntimeProjectStorage {
 
   close(): void {
     this.closed = true;
+    this.connectionLost = false;
     this.snapshots.clear();
-    this.database.close();
+    this.memoryStore?.clear();
+    if (this.database) this.detachAndClose(this.database);
   }
 }
