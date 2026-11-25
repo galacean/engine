@@ -787,13 +787,15 @@ describe("MeshCollider", () => {
   );
 
   it.each([false, true])(
-    "excludes geometry when recooking fails and allows retry once mesh data is fixed (convex=%s)",
+    "releases the previous mesh when recooking fails and recovers after the data is fixed (convex=%s)",
     (convex) => {
+      const cook = watchCooking(convex);
       const collider = addMesh(convex);
       const mesh = collider.mesh;
       const positions = mesh.getPositions().map((point) => point.clone());
       const indices = mesh.getIndices();
       expect(physics.raycast(rayAt(0))).toBe(true);
+      const release = vi.spyOn(cook.mock.results[0].value, "release");
       mesh.setPositions([new Vector3()]);
       mesh.setIndices(new Uint16Array([0, 0, 0]));
       const errors = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -801,6 +803,7 @@ describe("MeshCollider", () => {
       expect(collider.cookingFlags).toBe(MeshColliderCookingFlag.Cleaning);
       expect(collider.mesh).toBe(mesh);
       expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(release).toHaveBeenCalledOnce();
       expect(errors).toHaveBeenCalled();
       mesh.setPositions(positions);
       mesh.setIndices(indices);
