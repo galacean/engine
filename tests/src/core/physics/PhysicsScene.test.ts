@@ -3097,16 +3097,33 @@ describe("Physics Test", () => {
       expect(exits).toHaveLength(0);
       expect(triggerReceivers.size).toBe(1);
       expect(stays).toEqual([persistent]);
+      const receiverPool = (PhysicsScene as any)._triggerReceiverPool as Array<{
+        receiver0: unknown;
+        receiver1: unknown;
+      }>;
+      expect(receiverPool).toHaveLength(1);
+      expect(receiverPool[0].receiver0).toBeNull();
+      expect(receiverPool[0].receiver1).toBeNull();
 
-      // Re-enabling must emit a fresh Enter rather than reusing the retired receiver entry.
+      // Re-enabling must emit a fresh Enter and reuse the pooled receiver entry.
       enters.length = 0;
       transient.enabled = true;
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(enters).toEqual([transient]);
       expect(triggerReceivers.size).toBe(2);
+      expect(receiverPool).toHaveLength(0);
+
+      // Retiring the remaining pairs when no triggers remain active returns entries to the pool too.
+      persistent.enabled = false;
+      transient.enabled = false;
+      physicsScene._update(physicsScene.fixedTimeStep);
+      expect(triggerReceivers.size).toBe(0);
+      expect(receiverPool).toHaveLength(2);
+      expect(receiverPool.every((entry) => entry.receiver0 === null && entry.receiver1 === null)).toBe(true);
 
       enginePhysX.resourceManager.gc();
       expect(dispatchPool).toHaveLength(0);
+      expect(receiverPool).toHaveLength(0);
     });
 
     afterEach(() => {

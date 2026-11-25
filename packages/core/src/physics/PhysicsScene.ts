@@ -23,6 +23,7 @@ export class PhysicsScene {
   private static readonly _tempDirection = new Vector3();
   private static readonly _writeBackPoses: RigidbodyPose[] = [];
   private static readonly _snapshotBuffers: (Rigidbody | Collider)[][] = [];
+  private static readonly _triggerReceiverPool: TriggerReceivers[] = [];
   private static readonly _parsedCastArgs = {
     orientation: PhysicsScene._identityQuaternion,
     distance: Number.MAX_VALUE,
@@ -34,7 +35,11 @@ export class PhysicsScene {
   };
 
   private static _pruneTriggerReceiver(this: PhysicsScene, entry: TriggerReceivers, key: number): void {
-    entry.stamp !== this._triggerStepStamp && this._triggerReceivers.delete(key);
+    if (entry.stamp !== this._triggerStepStamp) {
+      this._triggerReceivers.delete(key);
+      entry.receiver0 = entry.receiver1 = null!;
+      PhysicsScene._triggerReceiverPool.push(entry);
+    }
   }
 
   private static _snapshotReceivers(
@@ -155,6 +160,11 @@ export class PhysicsScene {
       isValidPositiveFloat32(halfExtents.y) &&
       isValidPositiveFloat32(halfExtents.z)
     );
+  }
+
+  private static _capsuleHalfHeight(radius: number, height: number): number {
+    const halfHeight = (height - 2 * radius) * 0.5;
+    return isValidPositiveFloat32(radius) && height >= 0 && Number.isFinite(Math.fround(halfHeight)) ? halfHeight : NaN;
   }
 
   private static _parseCastArgs(
@@ -636,12 +646,9 @@ export class PhysicsScene {
     parsed.hitResult = undefined;
     parsed.orientation = PhysicsScene._identityQuaternion;
 
-    const cylinderHeight = height - 2 * radius;
-    const halfCylinderHeight = cylinderHeight * 0.5;
+    const halfCylinderHeight = PhysicsScene._capsuleHalfHeight(radius, height);
     const normalizedDirection =
-      distance > 0 && isValidPositiveFloat32(radius) && height >= 0 && Number.isFinite(Math.fround(halfCylinderHeight))
-        ? this._syncCastDirection(direction)
-        : null;
+      distance > 0 && !Number.isNaN(halfCylinderHeight) ? this._syncCastDirection(direction) : null;
 
     const writer = hitResult && HitResultWriter._acquire(hitResult);
     let result = false;
@@ -728,10 +735,9 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     colliders?: Collider[]
   ): Collider[] {
-    const cylinderHeight = height - 2 * radius;
-    const halfCylinderHeight = cylinderHeight * 0.5;
+    const halfCylinderHeight = PhysicsScene._capsuleHalfHeight(radius, height);
     let ids: ArrayLike<number> | undefined;
-    if (isValidPositiveFloat32(radius) && height >= 0 && Number.isFinite(Math.fround(halfCylinderHeight))) {
+    if (!Number.isNaN(halfCylinderHeight)) {
       this._syncColliders(false);
       ids = isValidPositiveFloat32(halfCylinderHeight)
         ? this._nativePhysicsScene.overlapCapsuleAll(center, radius, halfCylinderHeight, orientation, layerMask)
@@ -925,7 +931,10 @@ export class PhysicsScene {
    */
   _gc(): void {
     HitResultWriter._gc();
-    PhysicsScene._writeBackPoses.length = PhysicsScene._snapshotBuffers.length = 0;
+    PhysicsScene._writeBackPoses.length =
+      PhysicsScene._snapshotBuffers.length =
+      PhysicsScene._triggerReceiverPool.length =
+        0;
     this._nativePhysicsScene?.gc();
   }
 
@@ -935,7 +944,10 @@ export class PhysicsScene {
   _destroy(): void {
     this._gravity._onValueChanged = null;
     HitResultWriter._gc();
-    PhysicsScene._writeBackPoses.length = PhysicsScene._snapshotBuffers.length = 0;
+    PhysicsScene._writeBackPoses.length =
+      PhysicsScene._snapshotBuffers.length =
+      PhysicsScene._triggerReceiverPool.length =
+        0;
     this._triggerReceivers.clear();
     this._pendingSleeps = undefined;
     this._nativePhysicsScene?.destroy();
@@ -1050,17 +1062,29 @@ export class PhysicsScene {
               PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
             }
           } else if (state === PhysicsEventState.Enter) {
-            triggerReceivers.set(key, { receiver0: cur0, receiver1: cur1, stamp });
+            let entry = PhysicsScene._triggerReceiverPool.pop();
+            if (entry) {
+              entry.receiver0 = cur0;
+              entry.receiver1 = cur1;
+              entry.stamp = stamp;
+            } else {
+              entry = { receiver0: cur0, receiver1: cur1, stamp };
+            }
+            triggerReceivers.set(key, entry);
             liveCount++;
             PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
             PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
           } else {
             const entry = triggerReceivers.get(key);
-            entry && triggerReceivers.delete(key);
-            const target0 =
-              !entry || entry.receiver0 === cur0 || entry.receiver0.entity === cur0.entity ? cur0 : entry.receiver0;
-            const target1 =
-              !entry || entry.receiver1 === cur1 || entry.receiver1.entity === cur1.entity ? cur1 : entry.receiver1;
+            let target0 = cur0;
+            let target1 = cur1;
+            if (entry) {
+              triggerReceivers.delete(key);
+              if (entry.receiver0 !== cur0 && entry.receiver0.entity !== cur0.entity) target0 = entry.receiver0;
+              if (entry.receiver1 !== cur1 && entry.receiver1.entity !== cur1.entity) target1 = entry.receiver1;
+              entry.receiver0 = entry.receiver1 = null!;
+              PhysicsScene._triggerReceiverPool.push(entry);
+            }
             PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
             PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
           }
@@ -1076,8 +1100,9 @@ export class PhysicsScene {
       }
       PhysicsScene._snapshotBuffers.push(receivers);
     }
-    if (triggerCount === 0) {
-      this._triggerReceivers.size > 0 && this._triggerReceivers.clear();
+    if (triggerCount === 0 && this._triggerReceivers.size > 0) {
+      ++this._triggerStepStamp;
+      this._triggerReceivers.forEach(PhysicsScene._pruneTriggerReceiver, this);
     }
   }
 

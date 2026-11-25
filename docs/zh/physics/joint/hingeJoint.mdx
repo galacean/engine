@@ -103,7 +103,7 @@ const hingeJoint = entity.addComponent(HingeJoint);
 hingeJoint.connectedBody = targetEntity.getComponent(Rigidbody);
 
 // 绕关节的局部 Y 轴旋转。
-hingeJoint.axis.set(0, 1, 0);
+hingeJoint.axis = { x: 0, y: 1, z: 0 };
 ```
 
 ### 运动限制

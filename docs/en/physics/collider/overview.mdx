@@ -25,7 +25,7 @@ Whether a Collider moves with physics is decided by the hierarchy, not by the Co
 
 To build a compound shape, add several Collider components to the same Entity, or put them on child Entities under one Rigidbody. A nested Rigidbody starts its own group: Colliders below it belong to it, not to the outer Rigidbody.
 
-[PlaneCollider](/apis/core/#PlaneCollider) and a [MeshCollider](/apis/core/#MeshCollider) with `convex = false` can only be static or belong to a kinematic Rigidbody. Under a non-kinematic Rigidbody they are excluded from simulation with a console error until the Rigidbody becomes kinematic.
+[PlaneCollider](/apis/core/#PlaneCollider) and a [MeshCollider](/apis/core/#MeshCollider) with `convex = false` can only be static or belong to a kinematic Rigidbody. Under a non-kinematic Rigidbody they are excluded from simulation and queries with a console error until the Rigidbody becomes kinematic.
 
 ### Disable vs. Remove
 
