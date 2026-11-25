@@ -115,7 +115,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
 
   /** @inheritdoc */
   override evaluate(time: number): Float32Array | undefined {
-    if (this._keyCount > 0 && (!this._evaluateData.value || this._evaluateData.value.length !== this._valueSize)) {
+    if (this._keyCount > 0 && !this._evaluateData.value) {
       this._evaluateData.value = new Float32Array(this._valueSize);
     }
     return super.evaluate(time);

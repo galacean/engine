@@ -128,19 +128,21 @@ describe("AnimationCurve flat storage", () => {
     });
     expect(vec4Curve.getKey(1).value).toMatchObject({ x: 2, y: 4, z: 6, w: 8 });
 
-    // AnimationQuaternionCurve normalizes CubicSpline results and handles zero-norm antipodal midpoint
+    // AnimationQuaternionCurve normalizes asymmetric CubicSpline results (duration = 2) and handles zero-norm antipodal midpoint
     const quatCurve = new AnimationQuaternionCurve();
     quatCurve.interpolation = InterpolationType.CubicSpine;
     quatCurve.setKeys(
       new Float32Array([0, 2]),
-      new Float32Array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 4, 0, 0, 0, 0, -4, 0, 0, 1, 0, 0, 0, 0, 0]),
+      new Float32Array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 4, 0, -4, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]),
       true
     );
     const evaluatedQuat = quatCurve.evaluate(1)!;
-    expect(evaluatedQuat.x).toBeCloseTo(0, 5);
+    // Raw at t=0.5, duration=2: (x=1, y=0, z=1.5, w=0.5)
+    const invQuatLen = 1 / Math.hypot(1, 0, 1.5, 0.5);
+    expect(evaluatedQuat.x).toBeCloseTo(1 * invQuatLen, 5);
     expect(evaluatedQuat.y).toBeCloseTo(0, 5);
-    expect(evaluatedQuat.z).toBeCloseTo(Math.SQRT1_2, 5);
-    expect(evaluatedQuat.w).toBeCloseTo(Math.SQRT1_2, 5);
+    expect(evaluatedQuat.z).toBeCloseTo(1.5 * invQuatLen, 5);
+    expect(evaluatedQuat.w).toBeCloseTo(0.5 * invQuatLen, 5);
     expect(evaluatedQuat.length()).toBeCloseTo(1, 5);
     const quatKey = quatCurve.getKey(0);
     expect(quatKey.value).toBeInstanceOf(Quaternion);
@@ -158,14 +160,26 @@ describe("AnimationCurve flat storage", () => {
     const fallbackQuat = antipodalQuat.evaluate(0.5)!;
     expect(fallbackQuat).toMatchObject({ x: 0, y: 0, z: 0, w: 1 });
     expect(fallbackQuat.length()).toBeCloseTo(1, 5);
+
+    // Non-identity key 0 proves _subtractFirstKey for both tangent-less and tangent-bearing quaternion curves
     antipodalQuat.clearKeys();
-    antipodalQuat.addKey({ time: 0, value: new Quaternion(0, 0, 0, 1) });
-    antipodalQuat.addKey({ time: 1, value: new Quaternion(0, Math.SQRT1_2, 0, Math.SQRT1_2) });
+    antipodalQuat.addKey({ time: 0, value: new Quaternion(0, Math.SQRT1_2, 0, Math.SQRT1_2) });
+    antipodalQuat.addKey({ time: 1, value: new Quaternion(0, 1, 0, 0) });
     expect(antipodalQuat.getKey(1).inTangent).toBeUndefined();
-    expect(antipodalQuat._evaluateAdditive(1, { curKeyframeIndex: 0, value: new Quaternion() }).y).toBeCloseTo(
-      Math.SQRT1_2,
-      5
+    const additiveQuat = antipodalQuat._evaluateAdditive(1, { curKeyframeIndex: 0, value: new Quaternion() });
+    expect(additiveQuat.x).toBeCloseTo(0, 5);
+    expect(additiveQuat.y).toBeCloseTo(Math.SQRT1_2, 5);
+    expect(additiveQuat.z).toBeCloseTo(0, 5);
+    expect(additiveQuat.w).toBeCloseTo(Math.SQRT1_2, 5);
+
+    antipodalQuat.setKeys(
+      new Float32Array([0, 1]),
+      new Float32Array([9, 9, 9, 9, 0, Math.SQRT1_2, 0, Math.SQRT1_2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]),
+      true
     );
+    const additiveTangentQuat = antipodalQuat._evaluateAdditive(1, { curKeyframeIndex: 0, value: new Quaternion() });
+    expect(additiveTangentQuat.y).toBeCloseTo(Math.SQRT1_2, 5);
+    expect(additiveTangentQuat.w).toBeCloseTo(Math.SQRT1_2, 5);
 
     // AnimationColorCurve (RGBA value + Vector4 tangents, Linear + Hermite + additive)
     const colorCurve = new AnimationColorCurve();
@@ -218,6 +232,9 @@ describe("AnimationCurve flat storage", () => {
     const rectKey = rectCurve.getKey(0);
     expect(rectKey.value).toBeInstanceOf(Rect);
     expect(rectKey.inTangent).toBeUndefined();
+    rectCurve.setKeys(new Float32Array([0, 2]), new Float32Array([9, 10, 11, 12, 13, 14, 15, 16]));
+    expect(rectCurve.evaluate(1)).toMatchObject({ x: 9, y: 10, width: 11, height: 12 });
+    expect(rectCurve.evaluate(2)).toMatchObject({ x: 13, y: 14, width: 15, height: 16 });
   });
 
   it("supports dynamic-width Float32Array and number[] curves, morph remapping, and width changes", () => {
@@ -335,27 +352,32 @@ describe("AnimationCurve flat storage", () => {
     expect(curve.evaluate(0.5)).toMatchObject({ x: 5, y: 0, z: 0 });
     expect(curve.evaluate(1.5)).toMatchObject({ x: 15, y: 0, z: 0 });
 
-    // Moving a key earlier and later via setKey re-sorts cleanly
+    // Moving a key earlier and later via setKey re-sorts both times and packed values cleanly
     curve.setKey(2, { time: -1, value: new Vector3(-10, 0, 0) });
     expect([curve.getKey(0).time, curve.getKey(1).time, curve.getKey(2).time]).toEqual([-1, 0, 1]);
+    expect([curve.getKey(0).value.x, curve.getKey(1).value.x, curve.getKey(2).value.x]).toEqual([-10, 0, 10]);
     expect(curve.length).toBe(1);
 
     curve.setKey(0, { time: 3, value: new Vector3(30, 0, 0) });
     expect([curve.getKey(0).time, curve.getKey(1).time, curve.getKey(2).time]).toEqual([0, 1, 3]);
+    expect([curve.getKey(0).value.x, curve.getKey(1).value.x, curve.getKey(2).value.x]).toEqual([0, 10, 30]);
     expect(curve.length).toBe(3);
 
-    // Regression: removing last key updates length to the new last key's time (not 0)
+    // Regression: removing tail and non-tail keys updates length and shifts multi-component values
     curve.removeKey(2);
     expect(curve.keyCount).toBe(2);
     expect(curve.length).toBe(1);
     curve.removeKey(0);
+    expect(curve.keyCount).toBe(1);
+    expect(curve.getKey(0).time).toBe(1);
+    expect(curve.getKey(0).value).toMatchObject({ x: 10, y: 0, z: 0 });
     curve.removeKey(0);
     expect(curve.keyCount).toBe(0);
     expect(curve.length).toBe(0);
   });
 
   it("isolates shared setKeys buffers on mutation (copy-on-write) and handles tangent promotion cleanly", () => {
-    const sharedTimes = new Float32Array([0, 1]);
+    const sharedTimes = new Float64Array([0, 1]);
     const sharedValues = new Float32Array([0, 10]);
 
     const curveA = new AnimationFloatCurve();
@@ -379,6 +401,12 @@ describe("AnimationCurve flat storage", () => {
     expect(Array.from(sharedValues)).toEqual([0, 10]);
     expect(curveB.keyCount).toBe(2);
     expect(curveB.evaluate(0.5)).toBe(5);
+
+    // In-place setKey on Float64Array times & Float32Array values exercises _isBufferShared COW without growth or promotion.
+    curveB.setKey(0, { time: 0.25, value: 99 });
+    expect(Array.from(sharedTimes)).toEqual([0, 1]);
+    expect(Array.from(sharedValues)).toEqual([0, 10]);
+    expect(curveB.getKey(0)).toEqual({ time: 0.25, value: 99, inTangent: undefined, outTangent: undefined });
 
     // Prior keys promoted from 1x -> 3x have NaN tangents so [0, 1] steps to p0.
     expect(curveA.evaluate(0.5)).toBe(0);

@@ -36,7 +36,7 @@ import {
   registerGLTFExtension,
   registerGLTFParser
 } from "@galacean/engine-loader";
-import { Color, Vector3 } from "@galacean/engine-math";
+import { Color, Quaternion, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, afterAll, expect, it, vi } from "vitest";
 
@@ -785,7 +785,9 @@ describe("glTF Loader test", function () {
     try {
       resource = await engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url });
       const clip = resource.animations![0];
-      const [position, scale, rotation, weight, unplayedWeight] = clip.curveBindings.map((binding) => binding.curve!);
+      const [position, scale, rotation, weight, unplayedWeight, linearRotation] = clip.curveBindings.map(
+        (binding) => binding.curve!
+      );
       expect(clip.length).toBe(1);
       expect(position.keyCount).toBe(2);
       expect(position.evaluate(0.5)).toMatchObject({ x: 3, y: 4, z: 5 });
@@ -800,6 +802,12 @@ describe("glTF Loader test", function () {
 
       expect(rotation.evaluate(0.5)).toMatchObject({ x: 0, y: 0, z: 0, w: 1 });
       expect(rotation.evaluate(1)).toMatchObject({ x: 0, y: 0, z: -1, w: 0 });
+      const midLinearRot = linearRotation.evaluate(0.5) as Quaternion;
+      expect(midLinearRot.x).toBeCloseTo(0, 5);
+      expect(midLinearRot.y).toBeCloseTo(0, 5);
+      expect(midLinearRot.z).toBeCloseTo(-Math.SQRT1_2, 5);
+      expect(midLinearRot.w).toBeCloseTo(Math.SQRT1_2, 5);
+      expect(linearRotation.evaluate(1)).toMatchObject({ x: 0, y: 0, z: -1, w: 0 });
       expect(weight.evaluate(0.5)).toEqual(new Float32Array([0.5]));
       const cubic = resource.animations![1].curveBindings[0].curve!;
       expect(cubic.evaluate(0)).toEqual(new Float32Array([0]));

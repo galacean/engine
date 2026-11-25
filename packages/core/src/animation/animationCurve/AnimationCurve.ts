@@ -421,12 +421,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     const promoteTangents = newHasTangents && !oldHasTangents;
     const minValuesLength = minKeyCount * newStride;
 
-    if (
-      promoteTangents ||
-      this._isBufferShared ||
-      !(oldValues instanceof Float32Array) ||
-      oldValues.length < minValuesLength
-    ) {
+    if (promoteTangents || this._isBufferShared || oldValues.length < minValuesLength) {
       const nextValuesCap = this._times.length * newStride;
       const nextValues = nextValuesCap > 0 ? new Float32Array(nextValuesCap) : EMPTY_FLOAT32;
       if (count > 0 && valueSize > 0 && oldValues.length > 0) {
