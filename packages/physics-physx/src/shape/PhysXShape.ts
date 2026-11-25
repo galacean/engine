@@ -7,7 +7,8 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
  * Abstract base class for PhysX shapes.
  */
 export abstract class PhysXShape implements IPhysicsShape {
-  protected static readonly _yAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
+  /** @internal */
+  static readonly _yAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
 
   private static _tempVector4 = new Vector4();
   private static readonly _pose = {

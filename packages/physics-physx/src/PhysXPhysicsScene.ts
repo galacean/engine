@@ -16,12 +16,12 @@ import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
+import { PhysXShape } from "./shape/PhysXShape";
 
 /**
  * Simulates actors and runs scene queries through PhysX.
  */
 export class PhysXPhysicsScene implements IPhysicsScene {
-  private static readonly _capsuleYAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _tempPose: { translation: Vector3; rotation: Quaternion } = {
@@ -444,7 +444,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   ): boolean {
     return this._sweepSingle(
       this._getCapsuleGeometry(radius, halfHeight),
-      PhysXPhysicsScene._queryPose(center, orientation, PhysXPhysicsScene._capsuleYAxis),
+      PhysXPhysicsScene._queryPose(center, orientation, PhysXShape._yAxis),
       direction,
       distance,
       layerMask,
@@ -490,7 +490,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   ): Uint32Array {
     return this._pxSceneQueries.overlap(
       this._getCapsuleGeometry(radius, halfHeight),
-      PhysXPhysicsScene._queryPose(center, orientation, PhysXPhysicsScene._capsuleYAxis),
+      PhysXPhysicsScene._queryPose(center, orientation, PhysXShape._yAxis),
       layerMask,
       true,
       null
