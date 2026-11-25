@@ -1,0 +1,22 @@
+packages/core/src/animation/internal/animationCurveOwner/AnimationCurveOwner.ts
+  s_a6d173967f93e3::t_3d8c2b2d18f865 70-71
+tests/src/core/Animator.test.ts
+  s_a6d173967f93e3::t_ca1b2b9a927e49 1698-1701,1730-1743,1747
+  s_a6d173967f93e3::t_817d2cd41ace95 1744-1746,1748-1749
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "157e66f5671861f2c7ad320c996939a47d995b04",
+  "prompts": {},
+  "sessions": {
+    "s_a6d173967f93e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210db-b9a3-7dd1-8e63-77e21bd83933",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
