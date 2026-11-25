@@ -1,0 +1,49 @@
+packages/core/src/physics/joint/Joint.ts
+  s_18ddad9c3776b3::t_d800ad9bce2bb4 434-441
+packages/core/src/physics/PhysicsUtils.ts
+  s_18ddad9c3776b3::t_d800ad9bce2bb4 13,68,70-72
+docs/en/physics/joint/hingeJoint.mdx
+  s_f842f9b6c651e4::t_3a57b4e8c4dd70 65-66,76
+docs/en/physics/joint/springJoint.mdx
+  s_f842f9b6c651e4::t_2e277b9e76ee25 51
+docs/zh/physics/joint/hingeJoint.mdx
+  s_f842f9b6c651e4::t_ef23eb78b3ff98 65-66,76
+docs/zh/physics/joint/springJoint.mdx
+  s_f842f9b6c651e4::t_5b922dc8ac5c71 51
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  s_f842f9b6c651e4::t_55c0ce1028aef8 2,11-16,92-97,104-109,116
+packages/physics-physx/src/joint/PhysXJoint.ts
+  s_f842f9b6c651e4::t_a2b365992d255b 9
+packages/physics-physx/src/joint/PhysXSpringJoint.ts
+  s_f842f9b6c651e4::t_964baddba8c971 37
+tests/src/core/physics/HingeJoint.test.ts
+  s_f842f9b6c651e4::t_6cc9531b498d4a 259-296
+tests/src/core/physics/Joint.test.ts
+  s_f842f9b6c651e4::t_c8f0949f32483f 1224,1227,1480-1541
+tests/src/core/physics/SpringJoint.test.ts
+  s_f842f9b6c651e4::t_a594562954188e 202-217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0b7034b7f59683cba853464e3e76dcf8f707c0d7",
+  "prompts": {},
+  "sessions": {
+    "s_18ddad9c3776b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210c8-d82c-7753-a0de-39c652489604",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_f842f9b6c651e4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a211bf-088c-75d2-9f40-2ef940fb3dae",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
