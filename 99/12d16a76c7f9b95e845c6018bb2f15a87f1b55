@@ -1,0 +1,39 @@
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 18-19,30,72-74
+packages/project/src/runtime-editor/project/runtime-project.ts
+  s_ab59b8e40dc4d1::t_e0d451286a18d2 483,536,662-663,672,676-692,696,760-763,765,767-774
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 92,473,544-545,553-558
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 41-46,64-65
+packages/runtime-editor/tests/runtime-project.spec.ts
+  s_ab59b8e40dc4d1::t_359ed57be0c806 526-585
+world/demos/seed-world/main.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 104-105
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_ab59b8e40dc4d1::t_359ed57be0c806 223-277
+packages/building/tests/BuildingSceneLifecycle.spec.ts
+  s_ab59b8e40dc4d1::t_359ed57be0c806 474-524
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 705-706,777-778,860-861
+world/demos/seed-world/src/planning/semantic-study/WorldLayoutEditor.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 2,30-31
+world/demos/seed-world/dev/scene-visual-intent/SceneVisualIntentGeneration.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 241,325-329
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9912d16a76c7f9b95e845c6018bb2f15a87f1b55",
+  "prompts": {},
+  "sessions": {
+    "s_ab59b8e40dc4d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ce4-cb2b-71d3-86f0-6aa015964ede",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
