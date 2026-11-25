@@ -71,6 +71,7 @@ export class SeedWorldPhotoWorkspace {
   private closeTap?: { pointer: number; x: number; y: number; moved: boolean };
   private discarding?: { entry: Entry; controller: AbortController };
   private readonly submittedIds = new Set<string>();
+  private readonly pendingClearIds = new Set<string>();
   private readonly clearingIds = new Set<string>();
   private clearSubmittedAbort?: AbortController;
   private hintAbort?: AbortController;
@@ -89,9 +90,12 @@ export class SeedWorldPhotoWorkspace {
     let count = 0;
     const discardingId = this.discarding?.entry.photo.snapshotId;
     for (const id of this.entries.keys()) {
-      if (!this.clearingIds.has(id) && id !== discardingId) count++;
+      if (!this.clearingIds.has(id) && !this.pendingClearIds.has(id) && id !== discardingId) count++;
     }
     return count;
+  }
+  get isEditing(): boolean {
+    return !!this.editing;
   }
   get active(): boolean {
     return this.mode !== "idle" || !!this.drag;
@@ -363,8 +367,17 @@ export class SeedWorldPhotoWorkspace {
     const cards: Entry[] = [];
     for (const id of [...this.submittedIds]) {
       const entry = this.entries.get(id);
-      if (!entry || entry === this.editing?.entry || entry === this.discarding?.entry || this.clearingIds.has(id)) {
+      if (!entry || entry === this.discarding?.entry || this.clearingIds.has(id)) {
         if (!entry) this.submittedIds.delete(id);
+        continue;
+      }
+      if (entry === this.editing?.entry) {
+        // Turn ended before dismissSubmitted() finished shrinking/preparing identities:
+        // detach immediately so the finished turn's photo can never leak into the next turn,
+        // and fade out the card as soon as dismissSubmitted() completes.
+        this.submittedIds.delete(id);
+        this.pendingClearIds.add(id);
+        this.actions.remove(id);
         continue;
       }
       cards.push(entry);
@@ -424,6 +437,7 @@ export class SeedWorldPhotoWorkspace {
   ): Promise<void> {
     const wasClearing = this.clearingIds.delete(photo.snapshotId);
     this.submittedIds.delete(photo.snapshotId);
+    this.pendingClearIds.delete(photo.snapshotId);
     if (wasClearing || !this.entries.has(photo.snapshotId)) {
       this.flushClearingCards();
     }
@@ -581,8 +595,13 @@ export class SeedWorldPhotoWorkspace {
       signal.throwIfAborted();
       if (this.disposed) return;
     }
+    const dismissedId = entry.photo.snapshotId;
     this.editing = undefined;
     this.finish();
+    if (this.pendingClearIds.delete(dismissedId) && this.entries.get(dismissedId) === entry) {
+      this.submittedIds.add(dismissedId);
+      this.clearSubmittedCards(false);
+    }
   }
   async confirm(signal: AbortSignal): Promise<PhotoDocument> {
     const editing = this.editing!;
@@ -678,6 +697,7 @@ export class SeedWorldPhotoWorkspace {
   }
   remove(id: string): void {
     this.submittedIds.delete(id);
+    this.pendingClearIds.delete(id);
     this.clearingIds.delete(id);
     const entry = this.entries.get(id);
     if (!entry) return;
@@ -1225,6 +1245,7 @@ export class SeedWorldPhotoWorkspace {
     if (this.discarding) return;
     const fromCard = entry !== this.editing?.entry;
     this.submittedIds.delete(entry.photo.snapshotId);
+    this.pendingClearIds.delete(entry.photo.snapshotId);
     this.clearingIds.delete(entry.photo.snapshotId);
     this.stopOnboardingHint();
     this.cancelDrawing();
@@ -1312,6 +1333,7 @@ export class SeedWorldPhotoWorkspace {
     this.clearSubmittedAbort?.abort();
     this.clearSubmittedAbort = undefined;
     this.submittedIds.clear();
+    this.pendingClearIds.clear();
     this.clearingIds.clear();
     this.discarding?.controller.abort();
     this.discarding = undefined;

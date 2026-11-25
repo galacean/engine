@@ -26,9 +26,9 @@ Shader "SeedWorld/MarkupViewportV1" {
       sampler2D material_StrokeMaskTexture;
       // xy = viewport rect size in CSS pixels, z = corner radius in CSS pixels, w = rim inset in CSS pixels
       vec4 material_ViewportRect;
-      // x = overall opacity, y = hairline rim opacity, z = hint circle progress (0..1), w = hint alpha (0..1)
+      // x = overall opacity, y = hairline rim opacity, zw = reserved
       vec4 material_MarkupParams;
-      // x = elapsed seconds, y = hasStrokes (0 or 1), zw = reserved
+      // x = elapsed seconds, y = stroke overlay opacity (0..1), zw = reserved
       vec4 material_BrushParams;
 
       struct Attributes {
@@ -129,7 +129,7 @@ Shader "SeedWorld/MarkupViewportV1" {
 
       // Shared Apple Clean Up luminous white brush shading with flowing pastel iridescent edge aura,
       // sky-contrast cradle, active fingertip pearl orb, and drifting micro-stardust.
-      // Used identically by both freehand strokes (Pass 1 SDF RT) and the analytical onboarding hint circle.
+      // Driven by the offscreen BlendOperation.Max SDF field for both freehand marks and onboarding hint.
       vec3 applyAppleBrushShading(
         vec3 color,
         vec2 p,
@@ -200,11 +200,9 @@ Shader "SeedWorld/MarkupViewportV1" {
 
         float opacity = clamp(material_MarkupParams.x, 0.0, 1.0);
         float rimOpacity = clamp(material_MarkupParams.y, 0.0, 1.0);
-        float hintProgress = clamp(material_MarkupParams.z, 0.0, 1.0);
-        float hintAlpha = clamp(material_MarkupParams.w, 0.0, 1.0);
 
         float time = material_BrushParams.x;
-        float hasStrokes = material_BrushParams.y;
+        float strokeOpacity = clamp(material_BrushParams.y, 0.0, 1.0);
 
         // Exact pixel coordinates centered at (0, 0), +Y up.
         vec2 p = vec2(v.v_uv.x - 0.5, 0.5 - v.v_uv.y) * rectSize;
@@ -222,10 +220,13 @@ Shader "SeedWorld/MarkupViewportV1" {
         // Sample the frozen screenshot texture (hardware sRGB -> linear when sRGB texture).
         vec3 color = texture2D(material_BaseTexture, v.v_uv).rgb;
 
-        // 2. Apple Clean Up luminous white brush with delicate iridescent edge aura & stardust (zero self-overlap knots).
-        if (hasStrokes > 0.5) {
+        // 2. Apple Clean Up luminous white brush (shared 1:1 by both freehand marks and onboarding hint).
+        if (strokeOpacity > 0.002) {
           vec4 field = texture2D(material_StrokeMaskTexture, v.v_uv);
-          color = applyAppleBrushShading(color, p, rectSize, time, field.r, field.g, field.b);
+          if (field.g > 0.002) {
+            vec3 shaded = applyAppleBrushShading(color, p, rectSize, time, field.r, field.g, field.b);
+            color = mix(color, shaded, strokeOpacity);
+          }
         }
 
         // 3. Ultra-fine frosted-white hairline right along the rounded border (zero dark shadow bar).
@@ -235,83 +236,6 @@ Shader "SeedWorld/MarkupViewportV1" {
           float rimHalfWidth = rimInset > 0.5 ? 0.85 : 0.68;
           float rimMask = 1.0 - smoothstep(rimHalfWidth - aa, rimHalfWidth + aa, abs(dRim + rimHalfWidth));
           color = mix(color, vec3(1.0), rimMask * 0.46 * rimOpacity);
-        }
-
-        // 4. Onboarding circle rendered through the exact same SDF field encoding and applyAppleBrushShading()
-        //    as freehand strokes, so width, rounded caps, frosted white core, rainbow aura, tip orb, and stardust match 1:1.
-        if (hintAlpha > 0.002 && hintProgress > 0.005) {
-          vec2 center = vec2(0.0, rectSize.y * 0.02);
-          vec2 rel = p - center;
-          // Gentle organic tilt (-8 deg)
-          float cosT = 0.990268;
-          float sinT = 0.139173;
-          vec2 q = vec2(rel.x * cosT - rel.y * sinT, rel.x * sinT + rel.y * cosT);
-
-          float rx = max(rectSize.x * 0.148, 24.0);
-          float ry = max(rectSize.y * 0.215, 24.0);
-          vec2 u = vec2(q.x / rx, q.y / ry);
-          float uLen = max(length(u), 1e-4);
-          float theta = atan(u.y, u.x);
-
-          // Subtle organic hand-drawn wobble so it feels like a graceful human circle
-          float wobble = 1.0 + 0.036 * sin(theta * 2.0 + 0.65) + 0.018 * cos(theta * 3.0 - 0.3);
-          vec2 grad = vec2(u.x / rx, u.y / ry) / uLen;
-          float dist = abs(uLen - wobble) / max(length(grad), 1e-4);
-
-          // Clockwise arc sweep from upper-left (2.15 rad) with true rounded capsule start/tip end-caps.
-          float startAngle = 2.15;
-          float twoPi = 6.2831853;
-          float totalArc = twoPi * 1.02;
-          float drawnArc = hintProgress * totalArc;
-          float ang = mod(startAngle - theta, twoPi);
-
-          float startWobble = 1.0 + 0.036 * sin(startAngle * 2.0 + 0.65) + 0.018 * cos(startAngle * 3.0 - 0.3);
-          vec2 startQ = vec2(cos(startAngle) * rx, sin(startAngle) * ry) * startWobble;
-          float dStart = length(q - startQ);
-
-          float tipTheta = startAngle - drawnArc;
-          float tipWobble = 1.0 + 0.036 * sin(tipTheta * 2.0 + 0.65) + 0.018 * cos(tipTheta * 3.0 - 0.3);
-          vec2 tipQ = vec2(cos(tipTheta) * rx, sin(tipTheta) * ry) * tipWobble;
-          float dTip = length(q - tipQ);
-
-          bool insideDrawnArc = (drawnArc >= twoPi) || (ang <= drawnArc);
-          float curveDist = insideDrawnArc ? dist : min(dTip, dStart);
-
-          // Match buildStrokeCapsuleSegments() visual core radius in CSS pixels (3.0px logical width * 2.15 = 6.45px).
-          float shortSide = max(min(rectSize.x, rectSize.y), 1.0);
-          float baseRadius = clamp(6.45, shortSide * 0.0085, shortSide * 0.024);
-
-          // Match SeedWorldStrokeSmoothing start/end tapering & active tip liquid swell.
-          float tipActive = (1.0 - smoothstep(0.90, 1.0, hintProgress)) * smoothstep(0.0, 0.05, hintProgress);
-          float effectiveAng = insideDrawnArc ? ang : (dTip <= dStart ? drawnArc : 0.0);
-          float angFromTip = max(0.0, drawnArc - effectiveAng);
-          float startFactor = (drawnArc >= twoPi) ? 1.0 : (0.78 + 0.22 * smoothstep(0.0, 0.32, effectiveAng));
-          float endFactor = mix(
-            0.84 + 0.16 * smoothstep(0.0, 0.32, angFromTip),
-            1.0 + 0.10 * (1.0 - smoothstep(0.0, 0.32, angFromTip)),
-            tipActive
-          );
-          float localRadius = baseRadius * startFactor * endFactor;
-
-          // Synthesize the exact same (nearField, glowField, tipField) channels as MarkupStrokeField.shader.
-          float dNorm = curveDist / max(localRadius, 0.5);
-          float hintNearField = clamp(1.0 - dNorm / 2.6, 0.0, 1.0);
-          float hintGlowField = clamp(1.0 - dNorm / 6.8, 0.0, 1.0);
-          float tipWeight = tipActive * smoothstep(0.85, 0.0, angFromTip);
-          float hintTipField = tipWeight * clamp(1.0 - dNorm / 4.4, 0.0, 1.0);
-
-          if (hintGlowField > 0.002) {
-            vec3 hintShaded = applyAppleBrushShading(
-              color,
-              p,
-              rectSize,
-              time,
-              hintNearField,
-              hintGlowField,
-              hintTipField
-            );
-            color = mix(color, hintShaded, hintAlpha);
-          }
         }
 
         vec4 finalColor = vec4(color, fillMask * opacity);

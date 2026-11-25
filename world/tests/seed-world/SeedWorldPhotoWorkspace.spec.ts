@@ -531,4 +531,39 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
 
     ws.dispose();
   });
+
+  it("detaches immediately and clears a submitted photo when voice turn ends mid-dismissSubmitted shrink", async () => {
+    const nowRef = { now: 1000 };
+    vi.spyOn(performance, "now").mockImplementation(() => nowRef.now);
+    const { ws, released, removed, advanceMs } = createWorkspace({ reducedMotion: false });
+
+    const doc = makeDoc("p-fast-turn");
+    ws.beginCapture();
+    const openP = ws.open(doc, new AbortController().signal);
+    await Promise.resolve();
+    advanceMs(520, nowRef);
+    await openP;
+
+    expect(ws.isEditing).toBe(true);
+    ws.markCurrentPhotosSubmitted();
+    const dismissP = ws.dismissSubmitted(new AbortController().signal);
+    advanceMs(80, nowRef);
+
+    // Voice turn ends rapidly (e.g. user hit Stop or fast error) while 380ms shrink is still running.
+    ws.clearSubmittedCards(false);
+    // Attachment slot must be freed immediately so the finished turn's photo cannot leak into Turn 2.
+    expect(removed).toContain("p-fast-turn");
+    expect(ws.size).toBe(0);
+
+    // Finish the remaining shrink animation + deferred 260ms fade-out.
+    advanceMs(360, nowRef);
+    await dismissP;
+    advanceMs(320, nowRef);
+    await Promise.resolve();
+
+    expect((ws as any).entries.size).toBe(0);
+    expect(released).toEqual(["p-fast-turn"]);
+    expect(mocks.surfaces.get("p-fast-turn")?.disposeCount).toBe(1);
+    ws.dispose();
+  });
 });

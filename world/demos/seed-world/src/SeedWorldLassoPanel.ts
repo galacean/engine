@@ -43,7 +43,13 @@ export class SeedWorldLassoPanel {
       this.workspace.markCurrentPhotosSubmitted();
     }
     if (!this.confirming && this.workspace.active) {
-      void this.dismissSubmitted();
+      if (this.workspace.isEditing) {
+        void this.dismissSubmitted();
+      } else if (this.captureAbort) {
+        // Capture is still in-flight before any editing surface exists: abort cleanly instead of
+        // clearing captureAbort while open() continues (which would strand the upcoming canvas).
+        this.close();
+      }
     }
   };
   private readonly onVoiceTurnEnded = () => {
@@ -152,7 +158,7 @@ export class SeedWorldLassoPanel {
     }
   }
   private async dismissSubmitted(): Promise<void> {
-    if (this.confirming || !this.captureAbort) return;
+    if (this.confirming || !this.captureAbort || !this.workspace.isEditing) return;
     this.confirming = true;
     const signal = this.captureAbort.signal;
     const snapshotId = this.activeSnapshotId;

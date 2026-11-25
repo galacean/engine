@@ -351,6 +351,49 @@ describe("PhotoSurface stroke mask lifecycle & failure cleanup", () => {
     expect(budget.stats.total).toBe(0);
   });
 
+  it("renders onboarding hint circle via renderStrokeField without redundant redraws during pulse/fade and never clobbers user marks", () => {
+    state.createdTextures.length = 0;
+    state.createdTargets.length = 0;
+    state.throwOnRenderTarget = false;
+
+    const budget = new ImageResourceBudget(1024);
+    const graphics = createFakeGraphics(budget);
+    const image = {
+      texture: new Texture2D({} as any, 480, 768),
+      width: 480,
+      height: 768,
+      export: async () => {
+        throw new Error("unused");
+      },
+      dispose() {}
+    };
+
+    const surface = new PhotoSurface(graphics, image as any);
+    surface.setFrameLayout(380, 608, 20, 0);
+
+    // Mid-sweep bakes into strokeMaskTarget through the exact real brush pipeline.
+    surface.setHintLoop(0.5, 1.0);
+    expect(graphics.renderStrokeField).toHaveBeenCalledTimes(1);
+
+    // Closing bakes once; subsequent pulse & fade frames at progress=1 must NOT trigger any extra GPU redraws.
+    surface.setHintLoop(1.0, 1.0);
+    expect(graphics.renderStrokeField).toHaveBeenCalledTimes(2);
+    surface.setHintLoop(1.0, 0.86);
+    surface.setHintLoop(1.0, 0.45);
+    surface.setHintLoop(1.0, 0.12);
+    expect(graphics.renderStrokeField).toHaveBeenCalledTimes(2);
+
+    // User draws a real stroke; a late stopOnboardingHint -> setHintLoop(0, 0) must never wipe user marks.
+    surface.paint([{ points: [{ x: 40, y: 40 }, { x: 200, y: 180 }], width: 3.8, color: "#ff453a" }]);
+    expect(graphics.renderStrokeField).toHaveBeenCalledTimes(3);
+    const brushParamsAfterPaint = (surface as any).brushParams.y;
+    expect(brushParamsAfterPaint).toBe(1);
+
+    surface.setHintLoop(0, 0);
+    expect((surface as any).brushParams.y).toBe(1);
+    surface.dispose();
+  });
+
   it("destroys the newly created isGCIgnored Texture2D if RenderTarget construction throws", () => {
     state.createdTextures.length = 0;
     state.createdTargets.length = 0;

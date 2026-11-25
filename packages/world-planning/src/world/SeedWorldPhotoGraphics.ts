@@ -812,6 +812,42 @@ const CLOSE_BUTTON_SIZE = 34;
 const CLOSE_BUTTON_INSET = 14;
 const CLOSE_BUTTON_HIT_RADIUS = 26;
 
+function smoothstep01(edge0: number, edge1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - edge0) / Math.max(1e-5, edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+/** Generate an organic hand-drawn circular hint polyline in image pixels (near-circular on both landscape & portrait). */
+function buildOnboardingHintPoints(imageWidth: number, imageHeight: number, progress: number): ViewPoint[] {
+  const p = Math.max(0, Math.min(1, progress));
+  const shortSide = Math.max(1, Math.min(imageWidth, imageHeight));
+  const baseRadius = Math.max(24, shortSide * 0.25);
+  const rx = baseRadius * 1.05;
+  const ry = baseRadius * 0.96;
+  const cx = imageWidth * 0.5;
+  const cy = imageHeight * 0.48;
+  // Gentle -8 deg tilt matching a natural right-handed freehand circle.
+  const cosT = 0.990268;
+  const sinT = 0.139173;
+  const startAngle = 2.15;
+  const totalArc = Math.PI * 2 * 1.04;
+  const drawnArc = p * totalArc;
+  const steps = Math.max(1, Math.ceil(p * 64));
+  const points: ViewPoint[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const ang = (i / steps) * drawnArc;
+    const theta = startAngle - ang;
+    const wobble = 1.0 + 0.032 * Math.sin(theta * 2.0 + 0.65) + 0.016 * Math.cos(theta * 3.0 - 0.3);
+    const qx = Math.cos(theta) * rx * wobble;
+    const qy = Math.sin(theta) * ry * wobble;
+    // Rotate by -8 deg in +Y-up space, then map to image pixels (+Y down).
+    const relX = qx * cosT + qy * sinT;
+    const relY = -qx * sinT + qy * cosT;
+    points.push({ x: cx + relX, y: cy - relY });
+  }
+  return points;
+}
+
 export interface PhotoStrokePaintOptions {
   readonly activeStrokeIndex?: number;
 }
@@ -978,6 +1014,9 @@ export class PhotoSurface {
   private readonly brushParams = new Vector4(0, 0, 0, 0);
   private strokeMaskTexture?: Texture2D;
   private strokeMaskTarget?: RenderTarget;
+  private hasUserMarks = false;
+  private hintRenderedProgress = -1;
+  private hintRenderedTipEnergy = -1;
   layoutWidth = 1;
   layoutHeight = 1;
   private opacity = 1;
@@ -1090,11 +1129,55 @@ export class PhotoSurface {
     const center = this.closeCenter();
     return Math.hypot(localX - center.x, localY - center.y) <= CLOSE_BUTTON_HIT_RADIUS;
   }
-  /** Pure GPU SDF glowing highlight onboarding circle (zero mesh rebuilds, zero jaggies). */
+  /** Render the onboarding hint circle through the exact same BlendOperation.Max SDF brush pipeline as freehand strokes. */
   setHintLoop(progress: number, alpha: number): void {
-    this.markupParams.z = Math.max(0, Math.min(1, progress));
-    this.markupParams.w = Math.max(0, Math.min(1, alpha));
-    this.material.shaderData.setVector4("material_MarkupParams", this.markupParams);
+    if (this.disposed) return;
+    const p = Math.max(0, Math.min(1, progress));
+    const a = Math.max(0, Math.min(1, alpha));
+    if (this.hasUserMarks) {
+      this.hintRenderedProgress = -1;
+      this.hintRenderedTipEnergy = -1;
+      return;
+    }
+    if (p <= 0.005 || a <= 0.002) {
+      this.hintRenderedProgress = -1;
+      this.hintRenderedTipEnergy = -1;
+      this.brushParams.y = 0;
+      this.material.shaderData.setTexture("material_StrokeMaskTexture", this.graphics.emptyStrokeMaskTexture);
+      this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
+      return;
+    }
+    const tipEnergy = p < 1 ? (1 - smoothstep01(0.84, 1.0, p)) * smoothstep01(0.0, 0.06, p) : 0;
+    const needsBake =
+      this.hintRenderedProgress < 0 ||
+      (p < 1 ? Math.abs(p - this.hintRenderedProgress) >= 0.004 : this.hintRenderedProgress < 1) ||
+      Math.abs(tipEnergy - this.hintRenderedTipEnergy) >= 0.02;
+    if (needsBake) {
+      const points = buildOnboardingHintPoints(this.image.width, this.image.height, p);
+      const scale = this.image.width / Math.max(16, this.layoutWidth);
+      const segments = buildStrokeCapsuleSegments(
+        [{ points, width: 3 * scale }],
+        this.image.width,
+        this.image.height,
+        tipEnergy > 0.005 ? { activeStrokeIndex: 0, activeTipEnergy: tipEnergy } : {}
+      );
+      if (segments.length) {
+        const target = this.ensureStrokeMaskTarget();
+        const fieldMesh = buildStrokeFieldMesh(this.graphics.engine, segments);
+        try {
+          this.graphics.renderStrokeField(target, this.image.width, this.image.height, fieldMesh);
+        } finally {
+          destroyOwnedMesh(fieldMesh);
+        }
+        this.hintRenderedProgress = p;
+        this.hintRenderedTipEnergy = tipEnergy;
+      }
+    }
+    if (this.strokeMaskTexture && this.hintRenderedProgress > 0) {
+      this.material.shaderData.setTexture("material_StrokeMaskTexture", this.strokeMaskTexture);
+      this.brushParams.y = a;
+      this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
+    }
   }
   /** Zero-allocation time advance for continuous Apple Intelligence iridescent flow and sparkle shimmer. */
   setBrushTime(timeSeconds: number): void {
@@ -1131,7 +1214,10 @@ export class PhotoSurface {
   paint(marks: readonly ViewAnnotation[], options?: PhotoStrokePaintOptions): void {
     if (this.disposed) return;
     this.ink.entity.isActive = false;
+    this.hintRenderedProgress = -1;
+    this.hintRenderedTipEnergy = -1;
     if (!marks.length) {
+      this.hasUserMarks = false;
       this.brushParams.y = 0;
       this.material.shaderData.setTexture("material_StrokeMaskTexture", this.graphics.emptyStrokeMaskTexture);
       this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
@@ -1139,6 +1225,7 @@ export class PhotoSurface {
     }
     const segments = buildStrokeCapsuleSegments(marks, this.image.width, this.image.height, options);
     if (!segments.length) {
+      this.hasUserMarks = false;
       this.brushParams.y = 0;
       this.material.shaderData.setTexture("material_StrokeMaskTexture", this.graphics.emptyStrokeMaskTexture);
       this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
@@ -1151,6 +1238,7 @@ export class PhotoSurface {
     } finally {
       destroyOwnedMesh(fieldMesh);
     }
+    this.hasUserMarks = true;
     this.material.shaderData.setTexture("material_StrokeMaskTexture", this.strokeMaskTexture!);
     this.brushParams.y = 1;
     this.material.shaderData.setVector4("material_BrushParams", this.brushParams);

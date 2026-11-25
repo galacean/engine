@@ -94,5 +94,12 @@ describe("SeedWorldStrokeSmoothing", () => {
 
     const idleSegments = buildStrokeCapsuleSegments(marks, 1280, 720);
     expect(idleSegments.every((s) => s.tipStart === 0 && s.tipEnd === 0)).toBe(true);
+
+    const settlingSegments = buildStrokeCapsuleSegments(marks, 1280, 720, {
+      activeStrokeIndex: 1,
+      activeTipEnergy: 0.4
+    });
+    const settlingStroke1 = settlingSegments.filter((s) => s.ax >= 260);
+    expect(settlingStroke1[settlingStroke1.length - 1].tipEnd).toBeCloseTo(0.4, 3);
   });
 });

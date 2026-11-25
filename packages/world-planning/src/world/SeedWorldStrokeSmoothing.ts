@@ -18,6 +18,8 @@ export interface StrokeSmoothingOptions {
   readonly maxSegmentStep: number;
   /** True while the user is actively dragging this stroke (adds subtle liquid tip swell). */
   readonly active?: boolean;
+  /** Optional 0..1 active tip energy scale for smooth settling of tip swell and comet glow. */
+  readonly activeTipEnergy?: number;
 }
 
 export interface CapsuleSegmentVertexData {
@@ -174,7 +176,7 @@ export function buildSmoothedStrokeSamples(
 
   const startTaperLen = Math.min(totalArc * 0.32, baseRadius * 2.4);
   const endTaperLen = Math.min(totalArc * 0.32, baseRadius * 2.8);
-  const active = !!options.active;
+  const activeEnergy = options.active ? Math.max(0, Math.min(1, options.activeTipEnergy ?? 1)) : 0;
 
   return curve.map((pt, i) => {
     const arc = arcs[i];
@@ -183,9 +185,9 @@ export function buildSmoothedStrokeSamples(
     // Soft rounded entry so stroke starts never look harshly chopped.
     const startFactor = 0.78 + 0.22 * smoothstep(0, startTaperLen, arc);
     // Active finger tip forms a subtle liquid droplet; released strokes taper gracefully.
-    const endFactor = active
-      ? 1.0 + 0.1 * (1 - smoothstep(0, endTaperLen, fromEnd))
-      : 0.84 + 0.16 * smoothstep(0, endTaperLen, fromEnd);
+    const releasedEnd = 0.84 + 0.16 * smoothstep(0, endTaperLen, fromEnd);
+    const activeEnd = 1.0 + 0.1 * (1 - smoothstep(0, endTaperLen, fromEnd));
+    const endFactor = releasedEnd + (activeEnd - releasedEnd) * activeEnergy;
     return {
       x: pt.x,
       y: pt.y,
@@ -205,6 +207,7 @@ export function buildStrokeCapsuleSegments(
   imageHeight: number,
   options: {
     readonly activeStrokeIndex?: number;
+    readonly activeTipEnergy?: number;
   } = {}
 ): CapsuleSegmentVertexData[] {
   const segments: CapsuleSegmentVertexData[] = [];
@@ -217,12 +220,14 @@ export function buildStrokeCapsuleSegments(
     const mark = marks[strokeIndex];
     if (!mark.points.length) continue;
     const isActive = options.activeStrokeIndex === strokeIndex;
+    const tipEnergy = isActive ? Math.max(0, Math.min(1, options.activeTipEnergy ?? 1)) : 0;
     // Translate the 3px logical annotation width into a lush Apple Clean Up ribbon core (~6-8 CSS px).
     const baseRadius = Math.max(minVisualRadius, Math.min(maxVisualRadius, mark.width * 2.15));
     const samples = buildSmoothedStrokeSamples(mark.points, {
       baseRadius,
       maxSegmentStep: maxStep,
-      active: isActive
+      active: isActive,
+      activeTipEnergy: tipEnergy
     });
     if (!samples.length) continue;
 
@@ -235,8 +240,8 @@ export function buildStrokeCapsuleSegments(
         by: s.y,
         radiusStart: s.radius,
         radiusEnd: s.radius,
-        tipStart: isActive ? 1 : 0,
-        tipEnd: isActive ? 1 : 0,
+        tipStart: tipEnergy,
+        tipEnd: tipEnergy,
         arcStart: 1,
         arcEnd: 1
       });
@@ -248,8 +253,9 @@ export function buildStrokeCapsuleSegments(
     for (let i = 1; i < samples.length; i++) {
       const a = samples[i - 1];
       const b = samples[i];
-      const tipStart = isActive ? Math.pow(smoothstep(totalArc - tipTailLen, totalArc, a.arc), 1.55) : 0;
-      const tipEnd = isActive ? Math.pow(smoothstep(totalArc - tipTailLen, totalArc, b.arc), 1.55) : 0;
+      const tipStart =
+        tipEnergy > 0 ? tipEnergy * Math.pow(smoothstep(totalArc - tipTailLen, totalArc, a.arc), 1.55) : 0;
+      const tipEnd = tipEnergy > 0 ? tipEnergy * Math.pow(smoothstep(totalArc - tipTailLen, totalArc, b.arc), 1.55) : 0;
       segments.push({
         ax: a.x,
         ay: a.y,

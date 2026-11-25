@@ -2187,8 +2187,6 @@ class VoiceHudLayout extends Script {
     this.orbTransform?.setScale(totalOrbScale, totalOrbScale, 1);
     const scaledOrbPixels = this._orbBasePixelSize * totalOrbScale;
     this.orbGlass?.setLayout(scaledOrbPixels, scaledOrbPixels, scaledOrbPixels * 0.5);
-    // When the photo workspace overlay is active, fade out the orb's world-camera refraction layer
-    // so stale pre-photo terrain/grass never bleeds through the Polaroid paper or backdrop.
     const webCanvas = (this.engine.canvas as { _webCanvas?: HTMLCanvasElement })._webCanvas;
     // Publish the orb's live expansion (0..1) so adjacent HUD controls (such as the Screen-Markup pen icon)
     // smoothly glide out of the way when the orb blooms to 1.72x Siri listening scale.
