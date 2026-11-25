@@ -1,0 +1,152 @@
+packages/animals/src/gameplay/animal/CuteZooOutline.shader
+  h_171a11afaf879a 25-31,74-76
+packages/animals/src/gameplay/animal/CuteZooToon.shader
+  h_171a11afaf879a 49-52,56-59,74-81,175-180,195-280,324
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  h_171a11afaf879a 20-63,139-142,168-176,197-201
+packages/modify/native-overrides.json
+  h_171a11afaf879a 374-377,494-501
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_171a11afaf879a 20,90-96,222-233,238,251-253
+packages/modify/src/native/core/src/lighting/dayNight/DayNightEnvironmentAdapter.ts
+  h_171a11afaf879a 3-8,17-27,37,62,80,111-114
+packages/modify/src/native/core/src/lighting/dayNight/index.ts
+  h_171a11afaf879a 4
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  h_171a11afaf879a 32-33,36,98-109,144-155,169-170,183,188-189,203,247-258,278,285-398
+packages/modify/src/native/core/src/postProcess/effects/VolumetricLightEffect.ts
+  h_171a11afaf879a 1-184
+packages/modify/src/native/core/src/postProcess/effects/index.ts
+  h_171a11afaf879a 5
+packages/modify/src/native/galacean/src/ShaderPool.ts
+  h_171a11afaf879a 28,97
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  h_171a11afaf879a 30-37,85-93
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/VolumetricLight.glsl
+  h_171a11afaf879a 1-128
+packages/modify/src/native/shader/src/ShaderLibrary/index.ts
+  h_171a11afaf879a 66,136
+packages/modify/src/native/shader/src/Shaders/PostProcess/VolumetricLight.shader
+  h_171a11afaf879a 1-29
+packages/modify/src/native/shader/src/Shaders/index.ts
+  h_171a11afaf879a 31,76
+packages/modify/tests/VolumetricLight.spec.ts
+  h_171a11afaf879a 1-117
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/shaders/Surface.shader
+  h_171a11afaf879a 22
+packages/terrain/src/shaders/Vegetation.shader
+  h_171a11afaf879a 20,79-81,123-128,226-234
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_171a11afaf879a 2,278-283,388-392
+packages/terrain/src/shaders/shared/GroundWindField.glsl
+  h_171a11afaf879a 46-51
+packages/terrain/src/shaders/shared/Lighting.glsl
+  h_171a11afaf879a 16-371,414-425,427-429,433-435,437-455
+packages/terrain/src/shaders/shared/ProceduralTreeWind.glsl
+  h_171a11afaf879a 10-11,36,40,54,56-70,132-133,135-138,142,164-165,170
+packages/terrain/src/terrain/project/TerrainPostProcessRuntime.ts
+  h_171a11afaf879a 12-13,101-109,131,150-157,250-254,260,423-488,588,612-617,657-664,687,695,786-798
+packages/vegetation/src/asset-assembly/ProceduralPlantAsset.ts
+  h_171a11afaf879a 34-37
+packages/vegetation/src/asset-assembly/ProceduralPlantLibraryRuntime.ts
+  h_171a11afaf879a 138,140-141,143-146,148-149,151-152,206-209,250,272-275,277-279,281-283,926,950,961-981
+packages/vegetation/src/world/SeedWorldGroundWindTuning.ts
+  h_171a11afaf879a 100-103,124-129
+packages/vegetation/src/world/SeedWorldGroundWindTuningModel.ts
+  h_171a11afaf879a 9-10,25,40
+packages/water/src/water/runtime/heightfield/HeightfieldWaterSpatialFieldProvider.ts
+  h_171a11afaf879a 296-298
+packages/water/src/water/runtime/optics/CameraWaterFeatureBroker.ts
+  h_171a11afaf879a 153-154
+packages/water/src/water/shaders/heightfield/ForwardPass.glsl
+  h_171a11afaf879a 293-317
+packages/world-planning/src/integrations/terrain/debug/TerrainRuntimeDebugInspector.ts
+  h_171a11afaf879a 233-266,775-868,879,884-888
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  h_171a11afaf879a 8,1856-1858,1863-1864
+packages/world-planning/src/integrations/terrain/rock-formation/GrassExclusions.ts
+  h_171a11afaf879a 6,21
+packages/world-planning/src/integrations/terrain/rock-formation/Placement.ts
+  h_171a11afaf879a 3,60-65
+packages/world-planning/src/integrations/terrain/rock-formation/Publication.ts
+  h_171a11afaf879a 9,87
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  h_171a11afaf879a 57,76,106-113,115,124
+packages/world-planning/src/planning-data/template-wildlife.json
+  h_171a11afaf879a 13-33
+packages/world-planning/src/semantic-study/ContextLandscape.ts
+  h_171a11afaf879a 46-47,258-259,297-302,310-313,325,581,583,600-602,613-614,677-678,681-687,690,823-825
+packages/world-planning/src/semantic-study/PoiTrees.ts
+  h_171a11afaf879a 25-27
+packages/world-planning/src/spatial/PlanningComponents.ts
+  h_171a11afaf879a 332-342,928-929
+packages/world-planning/src/spatial/PlanningPresentation.ts
+  h_171a11afaf879a 67
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  h_171a11afaf879a 14-20,40-41,67,88-89,205-219,236,244,319-320,442,1488-1702
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  h_171a11afaf879a 119-140,252,432-436,477-536,540-550
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  h_171a11afaf879a 8,19-20,48,60,69-80
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  h_171a11afaf879a 15-16
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  h_171a11afaf879a 206-207,218
+packages/world-planning/src/spatial/oil-paint/OilPaintTextures.ts
+  h_171a11afaf879a 1-238
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_171a11afaf879a 63,103-104,117-128,130-138,149-165,172,203-204,206,239-242,248-257,262,264-266,270-272,276-278,283-287,294-319,367-368,383,394,430
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_171a11afaf879a 70-73,99,268,671-673,705-713,752-769,777-778,791-792,934-943,952-960,1030,1037-1038,1044,1051-1052,1406,1568-1589,1607,1715,2487-2488,2490,2501-2502,2504,3542-3550,3553,3625-3626
+packages/world-planning/src/spatial/runtime/PlanningWaterPublication.ts
+  h_171a11afaf879a 21,418
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_171a11afaf879a 1134-1138
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_171a11afaf879a 456
+packages/world-planning/src/spatial/world-templates/OilPaintAutumn.ts
+  h_171a11afaf879a 1-273
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 19,108-111,127,130,165-168,334-339,588-593,796-798,1064-1182,1933,2290,2524,2832-2844,3168,3964-3971
+world/demos/seed-world/oil-paint-playground.html
+  h_171a11afaf879a 1-52
+world/demos/seed-world/src/oil-paint/OilPaintControlPanel.ts
+  h_171a11afaf879a 1-504
+world/demos/seed-world/src/oil-paint/OilPaintPlayground.ts
+  h_171a11afaf879a 1-501
+world/demos/seed-world/src/oil-paint/OilPaintPostEffect.ts
+  h_171a11afaf879a 1-36
+world/demos/seed-world/src/oil-paint/OilPaintPostPass.ts
+  h_171a11afaf879a 1-493
+world/demos/seed-world/src/planning/spatial/PlanningVisualAuthoring.ts
+  h_171a11afaf879a 49
+world/demos/seed-world/src/planning/spatial/WorldTemplatePicker.css
+  h_171a11afaf879a 1,12,27
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAuthoringComponents.ts
+  h_171a11afaf879a 120,162
+world/demos/seed-world/src/planning/spatial/runtime/PlanningGroundWind.ts
+  h_171a11afaf879a 23-24
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  h_171a11afaf879a 30,430-433,435,463-475,517-650,652-659,661,777-784
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  h_171a11afaf879a 12-15,66,220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4ec3443cf7281fd7cc33ed0c259886366160f15b",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

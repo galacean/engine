@@ -1,0 +1,32 @@
+world/scripts/generate-markup-icon.mjs
+  s_01262a83dc0848::t_f6d90f8659226c 1,3,9,206,211,213-215
+  s_01262a83dc0848::t_24358632bfb662 212
+world/tests/seed-world-browser/MarkupButton.test.ts
+  s_01262a83dc0848::t_24358632bfb662 5,13,20
+world/tests/seed-world/SeedWorldPhotoWorkspace.spec.ts
+  s_01262a83dc0848::t_a1d6e6e086e296 402
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  s_01262a83dc0848::t_f6d90f8659226c 132-133
+world/tests/seed-world-browser/useLocalBasis.ts
+  s_01262a83dc0848::t_24358632bfb662 1-14
+world/tests/seed-world-browser/VegetationPigment.test.ts
+  s_01262a83dc0848::t_24358632bfb662 1
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  s_01262a83dc0848::t_a1d6e6e086e296 1027
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "24287e3511b9ea971c819a4e8bab2d863a921d84",
+  "prompts": {},
+  "sessions": {
+    "s_01262a83dc0848": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21179-2b09-7073-ab29-9e61b863ff8a",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

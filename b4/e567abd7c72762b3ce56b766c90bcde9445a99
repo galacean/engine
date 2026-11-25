@@ -1,0 +1,20 @@
+packages/core/src/physics/PhysicsScene.ts
+  s_781d0956816c41::t_1d0370a03e5365 403,480,582,659,768,1190-1195
+  s_781d0956816c41::t_7bdd93899350d9 1196-1197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b4e567abd7c72762b3ce56b766c90bcde9445a99",
+  "prompts": {},
+  "sessions": {
+    "s_781d0956816c41": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20e19-bc86-7322-9233-2497eeb1858b",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

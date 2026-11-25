@@ -1,0 +1,21 @@
+docs/en/physics/collider/characterController.mdx
+  s_18ddad9c3776b3::t_455b91cfefc55f 15,23-25,37,46,55,63,72,81-86,99-100,108,118,133-134,139-140,145-146,150-152
+docs/zh/physics/collider/characterController.mdx
+  s_18ddad9c3776b3::t_14eee71f9236e1 14-20,23-25,36-38,45-49,55,63,72,81-86,98-99,107,117,132-133,138-139,144-145,149-151,240
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2f4926816d9e2b353a2f3b31c750987cfdb6cef9",
+  "prompts": {},
+  "sessions": {
+    "s_18ddad9c3776b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210c8-d82c-7753-a0de-39c652489604",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

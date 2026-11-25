@@ -1,0 +1,22 @@
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 475
+packages/physics-physx/src/PhysXActor.ts
+  h_dd004f51a3e5ec 82
+packages/physics-physx/src/PhysXCharacterController.ts
+  h_dd004f51a3e5ec 14-15
+packages/physics-physx/src/PhysXPhysics.ts
+  h_dd004f51a3e5ec 47
+packages/physics-physx/src/shape/PhysXShape.ts
+  h_dd004f51a3e5ec 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c93aebcdc7e15827313b85b07ce5296ad6c38e32",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

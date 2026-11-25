@@ -1,0 +1,14 @@
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 443
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "183838896dea3eaa69aa11a25bacf84f2e775078",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

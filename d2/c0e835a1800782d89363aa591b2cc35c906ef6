@@ -1,0 +1,29 @@
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  s_02781447abdd68::t_f0f466d83d79a4 815-850,1017-1019,1132,1134-1180,1217-1218,1220,1228,1241
+packages/world-planning/tests/SeedWorldPhotoGraphics.spec.ts
+  s_02781447abdd68::t_d72fa42b1a9f12 354-396
+packages/world-planning/tests/SeedWorldStrokeSmoothing.spec.ts
+  s_02781447abdd68::t_8a53e4b2eb89bf 97-103
+world/demos/seed-world/src/SeedWorldLassoPanel.ts
+  s_02781447abdd68::t_7b6800766a621b 46-52,161
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  s_02781447abdd68::t_648e9552a746de 74,93,97-99,370,374-382,440,598,601-604,700,1248,1336
+world/tests/seed-world/SeedWorldPhotoWorkspace.spec.ts
+  s_02781447abdd68::t_0910e7db52f27a 534-568
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d2c0e835a1800782d89363aa591b2cc35c906ef6",
+  "prompts": {},
+  "sessions": {
+    "s_02781447abdd68": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cdd2-e33f-7600-95dc-ac58eab2f9bb",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

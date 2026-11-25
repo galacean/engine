@@ -1,0 +1,80 @@
+packages/modify/src/native/core/src/audio/AudioManager.ts
+  s_01262a83dc0848::t_7918ef88bf60ef 110-115
+packages/ai-chat/src/ai-chat/ai-chat-session.ts
+  s_01262a83dc0848::t_927eceb6233701 368-372
+  s_01262a83dc0848::t_7056d4606fbb43 23-24,366-367,373
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  s_01262a83dc0848::t_7918ef88bf60ef 381
+  s_01262a83dc0848::t_35525c1fd5e3a4 753,808-811,825-826,958,966,982,988
+  s_01262a83dc0848::t_d466414e8ab7a0 807
+world/demos/seed-world/SeedWorldDemo.ts
+  s_01262a83dc0848::t_2c74eafaa02440 74
+  s_01262a83dc0848::t_e82dd7fad520f0 3443-3453
+world/tests/seed-world-browser/AudioPlayback.test.ts
+  s_01262a83dc0848::t_8f3fcd6c308578 1-21
+world/tests/seed-world-browser/PhotoCapture.test.ts
+  s_01262a83dc0848::t_dbabe0352c2576 35-38,49-51
+  s_01262a83dc0848::t_30956b7ef7dc3d 1-34,39-48,52-89
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  s_01262a83dc0848::t_35525c1fd5e3a4 793,1162-1163
+  s_01262a83dc0848::t_eccf62c519c02e 351,353,393,608,1270
+packages/modify/src/native/core/src/audio/AudioSource.ts
+  s_01262a83dc0848::t_7918ef88bf60ef 321-328,335
+world/tests/seed-world/AIChatPhotoInput.spec.ts
+  s_01262a83dc0848::t_9aaad64039a32a 115,129
+  s_01262a83dc0848::t_2c74eafaa02440 188-211,213-222,224-233
+  s_01262a83dc0848::t_d9d74a3d8dc997 32,101
+  s_01262a83dc0848::t_927eceb6233701 212,223
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_01262a83dc0848::t_927eceb6233701 769
+  s_01262a83dc0848::t_de15398c989d71 738,740,758,770
+world/tests/seed-world/SeedWorldPhotoWorkspace.spec.ts
+  s_01262a83dc0848::t_eccf62c519c02e 286,291-299,301-302,304,314,339,563,719,788,795,810
+  s_01262a83dc0848::t_b8b920b73d9def 11,51,54,264-283
+  s_01262a83dc0848::t_9441f66370729b 109-111
+  s_01262a83dc0848::t_0fc8053bb065a7 284-285
+packages/world-planning/tests/SeedWorldPhotoGraphics.spec.ts
+  s_01262a83dc0848::t_72d8531185d9d7 552,563,591-594
+  s_01262a83dc0848::t_e94e2d1c40fb1f 410,415,433-435
+world/demos/seed-world/src/SeedWorldPhotoInputTrace.ts
+  s_01262a83dc0848::t_35525c1fd5e3a4 111
+packages/world-planning/src/world/SeedWorldPicker.ts
+  s_01262a83dc0848::t_d9d74a3d8dc997 386,409
+packages/world-planning/src/world/SeedWorldViewSnapshot.ts
+  s_01262a83dc0848::t_7fe85651605159 652-655
+  s_01262a83dc0848::t_ce1698d271c0b7 629,640,650-651
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  s_a61a893a3e253a::t_367e8f54aa2bb3 321
+packages/ai-chat/src/ai-chat/agent-types.ts
+  s_a61a893a3e253a::t_221fbb2df2e065 461
+packages/world-planning/src/world/MarkupViewport.shader
+  s_a61a893a3e253a::t_b2922777e72660 158-161
+world/demos/seed-world/src/SeedWorldLassoPanel.ts
+  s_a61a893a3e253a::t_74b46d1ae9b8cc 38,50-52
+world/tests/seed-world/SeedWorldSnapshotWarmup.spec.ts
+  s_a61a893a3e253a::t_8f89e862ecd185 37,46,52-53,57-63,65-66,68,70-71,74,78,84,90-95,98-103,105-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4c1ad679d34844d0e4ffbd3149781b0a0870aa31",
+  "prompts": {},
+  "sessions": {
+    "s_01262a83dc0848": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21179-2b09-7073-ab29-9e61b863ff8a",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

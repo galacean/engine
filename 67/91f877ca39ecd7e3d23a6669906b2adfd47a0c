@@ -1,0 +1,24 @@
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 26-27
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 150-177,365-367,619-621,1089-1097,1099
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 545-546,560-562
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 455,464,469,474,477,481
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 2026-2027,2083,2108,2126-2127,2892,2894,2905,2914-2916,2931,2934,2937
+tests/src/core/physics/RigidbodyOwnership.test.ts
+  h_dd004f51a3e5ec 704,726,729,731,737,744,832,862,875-876,878-879,892,897,899,1112,1148,1163-1165,1168,1184,1187,1203-1205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6791f877ca39ecd7e3d23a6669906b2adfd47a0c",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
