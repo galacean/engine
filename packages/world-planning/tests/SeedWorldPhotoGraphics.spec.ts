@@ -607,6 +607,61 @@ describe("PhotoSurface stroke mask lifecycle & failure cleanup", () => {
     graphics.playShutter();
     expect(audioSource.playCalls).toEqual([0, 0]);
   });
+
+  it("recovers cleanly without TDZ error or poisoned loading cache when resourceManager.load throws synchronously or rejects asynchronously", async () => {
+    state.createdAudioSources.length = 0;
+    state.audioResumeCalls = 0;
+    state.throwOnRenderTarget = false;
+
+    const fakeClip = { name: "recovered-shutter-clip" };
+    let mode: "sync-throw" | "async-reject" | "resolve" = "sync-throw";
+    const load = vi.fn(() => {
+      if (mode === "sync-throw") {
+        throw "loader not found: Audio";
+      }
+      if (mode === "async-reject") {
+        return Promise.reject(new Error("decode failed"));
+      }
+      return Promise.resolve(fakeClip);
+    });
+    const mainScene = new (Scene as any)({}, "main");
+    const engine: any = {
+      canvas: { width: 800, height: 600 },
+      sceneManager: { addScene() {}, removeScene() {} },
+      resourceManager: { load }
+    };
+    const worldCamera: any = { scene: mainScene, cullingMask: -1, priority: 0, destroyed: false };
+    const canvas: any = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+
+    const graphics = new PhotoGraphics(engine, canvas, worldCamera, () => {});
+    const audioSource = state.createdAudioSources[0]!;
+
+    // 1. Synchronous throw during prepare() must NOT reject prepare() or poison shutterClipLoading.
+    await expect(graphics.prepare()).resolves.toBeUndefined();
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(audioSource.clip).toBeNull();
+    expect((graphics as any).shutterClipLoading).toBeUndefined();
+
+    // 2. Subsequent async rejection on playShutter() must clear shutterClipLoading cleanly without playing.
+    mode = "async-reject";
+    graphics.playShutter();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(audioSource.clip).toBeNull();
+    expect(audioSource.playCalls).toEqual([]);
+    expect((graphics as any).shutterClipLoading).toBeUndefined();
+
+    // 3. Recovery once Audio loader/decode succeeds must attach clip, clear in-flight pointer, and play cleanly.
+    mode = "resolve";
+    graphics.playShutter();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(load).toHaveBeenCalledTimes(3);
+    expect(audioSource.clip).toBe(fakeClip);
+    expect(audioSource.playCalls).toEqual([0]);
+    expect((graphics as any).shutterClipLoading).toBeUndefined();
+
+    graphics.dispose();
+  });
 });
 
 describe("Shared Voice Orb HUD layout & overlap prevention", () => {

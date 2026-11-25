@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => {
     readonly ink = { entity: { isActive: false, isActiveInHierarchy: false, transform: { worldMatrix: { elements: [] } } }, mesh: null };
     layoutWidth = 100;
     layoutHeight = 100;
+    frameRadius = 0;
     opacity = 1;
     closeOpacity = 0;
     disposed = false;
@@ -18,9 +19,10 @@ const mocks = vi.hoisted(() => {
     constructor(public readonly id: string, public readonly image: { width: number; height: number }) {
       surfaces.set(id, this);
     }
-    setFrameLayout(width: number, height: number) {
+    setFrameLayout(width: number, height: number, radius = 0) {
       this.layoutWidth = Math.max(2, width);
       this.layoutHeight = Math.max(2, height);
+      this.frameRadius = radius;
     }
     setRimOpacity() {}
     setCloseOpacity(v: number) {
@@ -111,6 +113,7 @@ vi.mock("../../demos/seed-world/src/SeedWorldPhotoInputTrace.ts", () => ({
 }));
 
 import { SeedWorldAnnotationHistory } from "../../demos/seed-world/src/SeedWorldAnnotationHistory.ts";
+import { SeedWorldLassoPanel } from "../../demos/seed-world/src/SeedWorldLassoPanel.ts";
 import { SeedWorldPhotoWorkspace, type PhotoDocument } from "../../demos/seed-world/src/SeedWorldPhotoWorkspace.ts";
 import { resolveSeedWorldVoiceOrbLayout } from "../../demos/seed-world/src/SeedWorldHudLayout.ts";
 
@@ -142,12 +145,29 @@ function installDomGlobals(reducedMotion = false) {
     closest: () => null,
     focus() {}
   };
+  const dispatch = (event: Event) => {
+    for (const fn of [...(listeners.get(event.type) ?? [])]) {
+      fn(event);
+    }
+    return true;
+  };
   vi.stubGlobal("innerWidth", 1280);
   vi.stubGlobal("innerHeight", 800);
-  vi.stubGlobal("window", { addEventListener: add, removeEventListener: remove });
+  vi.stubGlobal("window", { addEventListener: add, removeEventListener: remove, dispatchEvent: dispatch });
   vi.stubGlobal("document", {
     addEventListener: add,
     removeEventListener: remove,
+    dispatchEvent: dispatch,
+    createElement: () => ({
+      type: "",
+      id: "",
+      title: "",
+      hidden: false,
+      disabled: false,
+      onclick: null as (() => void) | null,
+      setAttribute() {},
+      remove() {}
+    }),
     activeElement: null,
     hasFocus: () => true,
     visibilityState: "visible"
@@ -563,5 +583,246 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     expect(released).toEqual(["p-fast-turn"]);
     expect(mocks.surfaces.get("p-fast-turn")?.disposeCount).toBe(1);
     ws.dispose();
+  });
+
+  it("hands off cleanly from open() fly animation to dismissSubmitted() at both early (<100ms) and mid (~320ms) windows without errors or state regression", async () => {
+    const nowRef = { now: 1000 };
+    vi.spyOn(performance, "now").mockImplementation(() => nowRef.now);
+    const attached: string[] = [];
+    const { ws, advanceMs } = createWorkspace({
+      reducedMotion: false,
+      updateAttachment: (id) => attached.push(id)
+    });
+
+    // Early fly handoff (48ms into 480ms fly): dismissSubmitted finishes BEFORE original 480ms would have elapsed.
+    const docEarly = makeDoc("p-fly-early");
+    const ctrlEarly = new AbortController();
+    ws.beginCapture();
+    const openEarly = ws.open(docEarly, ctrlEarly.signal);
+    await Promise.resolve();
+    expect(ws.phase).toBe("fly");
+    // Attachment is already registered synchronously before fly begins (single source of truth).
+    expect(attached).toEqual(["p-fly-early"]);
+
+    advanceMs(48, nowRef);
+    const dismissEarly = ws.dismissSubmitted(ctrlEarly.signal);
+    expect(ws.phase).toBe("return");
+
+    // open() exits silently on handoff without throwing TypeError or clobbering return/idle state.
+    await expect(openEarly).resolves.toBeUndefined();
+    advanceMs(420, nowRef);
+    await dismissEarly;
+
+    const surfaceEarly = mocks.surfaces.get("p-fly-early")!;
+    expect(ws.phase).toBe("idle");
+    expect(ws.isEditing).toBe(false);
+    expect(ws.graphics.status.text).toBe("");
+    expect(surfaceEarly.closeOpacity).toBe(0);
+    expect(surfaceEarly.frameRadius).toBe(10);
+
+    // Advance past the original 480ms fly window: stale fly callbacks must never fire or corrupt docked card visuals.
+    advanceMs(240, nowRef);
+    expect(ws.phase).toBe("idle");
+    expect(surfaceEarly.closeOpacity).toBe(0);
+    expect(surfaceEarly.frameRadius).toBe(10);
+
+    // Mid fly handoff (320ms into 480ms fly, matching single-finger Voice Orb long-press release).
+    const docMid = makeDoc("p-fly-mid");
+    const ctrlMid = new AbortController();
+    const phases: string[] = [];
+    const origSetPhase = ws.setPhase.bind(ws);
+    vi.spyOn(ws, "setPhase").mockImplementation((phase: string) => {
+      phases.push(phase);
+      origSetPhase(phase);
+    });
+    ws.beginCapture();
+    const openMid = ws.open(docMid, ctrlMid.signal);
+    await Promise.resolve();
+    advanceMs(320, nowRef);
+    const dismissMid = ws.dismissSubmitted(ctrlMid.signal);
+    await expect(openMid).resolves.toBeUndefined();
+
+    // Advance through the 480ms mark while dismissSubmitted is still shrinking: phase must NOT regress to "editing".
+    advanceMs(220, nowRef);
+    expect(ws.phase).toBe("return");
+    expect(phases).not.toContain("editing");
+
+    advanceMs(220, nowRef);
+    await dismissMid;
+    const surfaceMid = mocks.surfaces.get("p-fly-mid")!;
+    expect(ws.phase).toBe("idle");
+    expect(surfaceMid.closeOpacity).toBe(0);
+    expect(surfaceMid.frameRadius).toBe(10);
+    expect(ws.size).toBe(2);
+    ws.dispose();
+  });
+
+  it("removes pre-registered attachment cleanly when a new photo is cancelled mid-fly", async () => {
+    const nowRef = { now: 1000 };
+    vi.spyOn(performance, "now").mockImplementation(() => nowRef.now);
+    const attached: string[] = [];
+    const { ws, released, removed, advanceMs } = createWorkspace({
+      reducedMotion: false,
+      updateAttachment: (id) => attached.push(id)
+    });
+
+    const doc = makeDoc("p-cancel-fly");
+    const ctrl = new AbortController();
+    ws.beginCapture();
+    const openP = ws.open(doc, ctrl.signal);
+    await Promise.resolve();
+    expect(attached).toEqual(["p-cancel-fly"]);
+    advanceMs(64, nowRef);
+
+    ctrl.abort();
+    ws.cancel();
+    await expect(openP).rejects.toMatchObject({ name: "AbortError" });
+    expect(removed).toContain("p-cancel-fly");
+    expect(released).toEqual(["p-cancel-fly"]);
+    expect(ws.size).toBe(0);
+    expect((ws as any).entries.size).toBe(0);
+    expect(ws.phase).toBe("idle");
+    ws.dispose();
+  });
+
+  it("does not resurrect a finished-turn reopened card when cancel() runs while it is in pendingClearIds", async () => {
+    const nowRef = { now: 1000 };
+    vi.spyOn(performance, "now").mockImplementation(() => nowRef.now);
+    const attached: string[] = [];
+    const { ws, released, removed, advanceMs } = createWorkspace({
+      reducedMotion: false,
+      updateAttachment: (id) => attached.push(id)
+    });
+
+    // Create and dock an existing photo.
+    const doc = makeDoc("p-reopen-pending");
+    const open1 = ws.open(doc, new AbortController().signal);
+    await Promise.resolve();
+    advanceMs(520, nowRef);
+    await open1;
+    const dismiss1 = ws.dismissSubmitted(new AbortController().signal);
+    advanceMs(420, nowRef);
+    await dismiss1;
+
+    // Reopen existing card, submit voice, and end voice turn while shrink/identities is still running.
+    const ctrl2 = new AbortController();
+    const open2 = ws.open(doc, ctrl2.signal);
+    await Promise.resolve();
+    advanceMs(400, nowRef);
+    await open2;
+    const attachCountBeforeCancel = attached.length;
+
+    ws.markCurrentPhotosSubmitted();
+    const dismiss2 = ws.dismissSubmitted(ctrl2.signal, {
+      isPending: () => true,
+      wait: (waitSignal) =>
+        new Promise<void>((_, reject) => {
+          waitSignal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+        })
+    });
+    advanceMs(420, nowRef);
+    await Promise.resolve();
+    expect(ws.phase).toBe("identities");
+
+    // Turn finishes -> moves p-reopen-pending into pendingClearIds and detaches immediately.
+    ws.clearSubmittedCards(false);
+    expect(removed).toContain("p-reopen-pending");
+    expect((ws as any).pendingClearIds.has("p-reopen-pending")).toBe(true);
+
+    // User cancels during identities wait -> must remove card instead of resurrecting attachment.
+    ctrl2.abort();
+    ws.cancel();
+    await expect(dismiss2).rejects.toMatchObject({ name: "AbortError" });
+    expect(attached.length).toBe(attachCountBeforeCancel);
+    expect((ws as any).entries.size).toBe(0);
+    expect((ws as any).pendingClearIds.size).toBe(0);
+    expect(ws.size).toBe(0);
+    expect(released).toEqual(["p-reopen-pending"]);
+    expect(mocks.surfaces.get("p-reopen-pending")?.disposeCount).toBe(1);
+    ws.dispose();
+  });
+
+  it("SeedWorldLassoPanel handles seed-world-voice-submitted mid-fly without error banner or stuck close button", async () => {
+    const nowRef = { now: 1000 };
+    vi.spyOn(performance, "now").mockImplementation(() => nowRef.now);
+    const { canvas } = installDomGlobals(false);
+    let frameCount = 0;
+    const attachments = new Map<string, any>();
+    let captureSeq = 0;
+    const views: any = {
+      maxPhotos: 4,
+      budget: undefined,
+      capture: vi.fn(async () => {
+        const id = `snap-${++captureSeq}`;
+        return {
+          snapshotId: id,
+          image: makeDoc(id).image
+        };
+      }),
+      pin: vi.fn(() => () => {}),
+      setAttachment: vi.fn((id: string, annotations: readonly any[]) => {
+        const att = { snapshotId: id, annotations };
+        attachments.set(id, att);
+        return att;
+      }),
+      removeAttachment: vi.fn((id: string) => attachments.delete(id)),
+      clearAttachments: vi.fn(() => attachments.clear()),
+      ensureIdentities: vi.fn(async () => {}),
+      hasIdentities: vi.fn(() => true)
+    };
+    const host: any = {
+      canvas,
+      worldCamera: {},
+      engine: {
+        time: {
+          get frameCount() {
+            return frameCount;
+          }
+        },
+        inputManager: { isKeyDown: () => false }
+      }
+    };
+    const panel = new SeedWorldLassoPanel(views, () => {}, host);
+    const ws: SeedWorldPhotoWorkspace = (panel as any).workspace;
+    const advanceMs = (ms: number) => {
+      const steps = Math.max(1, Math.ceil(ms / 16));
+      const stepMs = ms / steps;
+      for (let i = 0; i < steps; i++) {
+        nowRef.now += stepMs;
+        frameCount++;
+        (ws as any).tick(stepMs / 1000);
+      }
+    };
+
+    // Trigger open(), let capture resolve and enter fly (48ms), then fire submittedToAgent: true mid-fly.
+    const openPromise = panel.open();
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+    expect(ws.phase).toBe("fly");
+    expect(attachments.has("snap-1")).toBe(true);
+
+    advanceMs(48);
+    document.dispatchEvent(new CustomEvent("seed-world-voice-submitted", { detail: { submittedToAgent: true } }));
+    expect(ws.phase).toBe("return");
+
+    await openPromise;
+    advanceMs(440);
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+
+    expect(ws.phase).toBe("idle");
+    expect(panel.button.hidden).toBe(false);
+    expect(ws.graphics.status.text).toBe("");
+    const surface = mocks.surfaces.get("snap-1")!;
+    expect(surface.closeOpacity).toBe(0);
+    expect(surface.frameRadius).toBe(10);
+
+    // Voice turn ends -> submitted card fades out and disposes completely.
+    document.dispatchEvent(new CustomEvent("seed-world-voice-turn-ended"));
+    advanceMs(320);
+    for (let i = 0; i < 4; i++) await Promise.resolve();
+    expect(ws.size).toBe(0);
+    expect(attachments.size).toBe(0);
+    expect(surface.disposeCount).toBe(1);
+
+    panel.dispose();
   });
 });

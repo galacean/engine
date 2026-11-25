@@ -314,20 +314,27 @@ export class PhotoGraphics {
     if (this.shutterAudio.clip) return Promise.resolve(this.shutterAudio.clip);
     if (!this.engine.resourceManager?.load) return Promise.resolve(undefined);
     if (this.shutterClipLoading) return this.shutterClipLoading;
-    const task = (async () => {
-      try {
-        const clip = await this.engine.resourceManager.load<AudioClip>({
-          url: getShutterWavDataUrl(),
-          type: AssetType.Audio
-        });
-        if (this.disposed || this.shutterAudio.destroyed) return undefined;
+    let loadPromise: PromiseLike<AudioClip>;
+    try {
+      loadPromise = this.engine.resourceManager.load<AudioClip>({
+        url: getShutterWavDataUrl(),
+        type: AssetType.Audio
+      });
+    } catch {
+      return Promise.resolve(undefined);
+    }
+    const task: Promise<AudioClip | undefined> = Promise.resolve(loadPromise).then(
+      (clip) => {
+        if (this.shutterClipLoading === task) this.shutterClipLoading = undefined;
+        if (!clip || this.disposed || this.shutterAudio.destroyed) return undefined;
         this.shutterAudio.clip = clip;
         return clip;
-      } catch {
+      },
+      () => {
         if (this.shutterClipLoading === task) this.shutterClipLoading = undefined;
         return undefined;
       }
-    })();
+    );
     this.shutterClipLoading = task;
     return task;
   }
