@@ -1,0 +1,16 @@
+packages/world-planning/src/spatial/oil-paint/OilPaintWaterTextures.ts
+  h_171a11afaf879a 1-154
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  h_171a11afaf879a 42-47,200-201,380,387-395,406,1012-1060,1064-1072,1077,1080-1093,1097-1125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9f49b36cf4ae08bd19c58869c433338c5fa0b8e6",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
