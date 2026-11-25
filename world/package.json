@@ -6,6 +6,8 @@
   "scripts": {
     "terrain:build": "node scripts/build-terrain.js",
     "terrain:watch": "node scripts/build-terrain.js --watch",
+    "water:build": "node scripts/build-water.js",
+    "water:watch": "node scripts/build-water.js --watch",
     "dev": "vite --config vite.config.mjs",
     "build": "vite build --config vite.config.mjs",
     "typecheck": "node scripts/typecheck.mjs",
