@@ -1,0 +1,29 @@
+packages/building/src/building/runtime/EngineShaderSource.ts
+  s_02781447abdd68::t_ca14e762fb9834 2,161
+packages/building/tests/BuildingFarProxy.spec.ts
+  s_a61a893a3e253a::t_45b2ade6e458a8 175-176,183-185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "df7be9ec396106270cdd77f0ee61a806918e8a18",
+  "prompts": {},
+  "sessions": {
+    "s_02781447abdd68": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cdd2-e33f-7600-95dc-ac58eab2f9bb",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

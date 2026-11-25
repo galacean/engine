@@ -1,0 +1,18 @@
+docs/en/physics/manager.mdx
+  h_dd004f51a3e5ec 68-69
+docs/zh/physics/manager.mdx
+  h_dd004f51a3e5ec 67-68
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 346,348-352
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "837c10e87b82bcf14bb1a1dfa16f7caa16b621cc",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

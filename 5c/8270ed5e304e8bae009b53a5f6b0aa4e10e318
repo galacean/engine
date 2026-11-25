@@ -1,0 +1,69 @@
+packages/core/src/animation/animationCurve/AnimationArrayCurve.ts
+  s_f842f9b6c651e4::t_6087923264dcfe 5-10,99-100,102,110,125,140,147-150,154,160,164,168
+packages/core/src/animation/animationCurve/AnimationBoolCurve.ts
+  s_f842f9b6c651e4::t_24ce638a3250dd 57,63,68
+packages/core/src/animation/animationCurve/AnimationColorCurve.ts
+  s_f842f9b6c651e4::t_1a1962428689c9 1,6,86,122-125,131-136,151,156-166
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  s_f842f9b6c651e4::t_139e2504317186 22-24,57,62,67,95-97,99,111-113,155-156,172-174,238-253,316,327,341-346,348-349,353-388,393-394,397,409-412,456-471,478,526
+packages/core/src/animation/animationCurve/AnimationFloatArrayCurve.ts
+  s_f842f9b6c651e4::t_b1acf3d73eee7a 5-10,49-50,60,89,103-104,106,125,163-166,171,176,181-182,186
+packages/core/src/animation/animationCurve/AnimationFloatCurve.ts
+  s_18ddad9c3776b3::t_98a8f5724f14b2 5,79,100-107,111
+packages/core/src/animation/animationCurve/AnimationQuaternionCurve.ts
+  s_a906facbc0e1c1::t_a3a7b7d152033e 1,6,96,126-129,139-148,164,169-179
+packages/core/src/animation/animationCurve/AnimationRectCurve.ts
+  s_f842f9b6c651e4::t_ab44426691ca6d 52
+packages/core/src/animation/animationCurve/AnimationRefCurve.ts
+  s_18ddad9c3776b3::t_69727082879b27 37,42,47,50-54
+packages/core/src/animation/animationCurve/AnimationStringCurve.ts
+  s_18ddad9c3776b3::t_c56f1f6ba032fe 57,63,68
+packages/core/src/animation/animationCurve/AnimationVector2Curve.ts
+  s_18ddad9c3776b3::t_70882c4bf21523 6,86,115-118,124-127,139-142,144-145,153,155-161,163-165
+packages/core/src/animation/animationCurve/AnimationVector3Curve.ts
+  s_18ddad9c3776b3::t_e1a5276289eabb 6,86,116-119,125-129,141-144,146-147,155,157-166,168-171
+packages/core/src/animation/animationCurve/AnimationVector4Curve.ts
+  s_18ddad9c3776b3::t_4a498e94a4874f 6,86,122-125,131-136,151,156-166
+packages/core/src/animation/internal/AnimationCurvePack.ts
+  s_a906facbc0e1c1::t_063dffe7c2c23e 1-189
+packages/loader/src/AnimationClipLoader.ts
+  s_f842f9b6c651e4::t_12dc295c16af74 38
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  s_f842f9b6c651e4::t_93482ed91b063b 174-175,178
+packages/loader/src/resource-deserialize/resources/animationClip/AnimationClipDecoder.ts
+  s_f842f9b6c651e4::t_db7d695afd6f99 20-21,64,69,71,73,75,77,79,81,83,85,87,89,91,93,95,97,99,142-143,149-150,154-157,165,168-169,172,174,191,213-216
+tests/src/loader/AnimationClipDecoder.test.ts
+  s_a906facbc0e1c1::t_5e9bce6ab2e16f 4,13-14,16,19,140,143,152-154,157,162-163,165,207-242,260,262-265,268-269,271,273,279,290-304
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5c8270ed5e304e8bae009b53a5f6b0aa4e10e318",
+  "prompts": {},
+  "sessions": {
+    "s_18ddad9c3776b3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210c8-d82c-7753-a0de-39c652489604",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_a906facbc0e1c1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210ed-3fc5-7302-b74d-8f2376b79692",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_f842f9b6c651e4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a211bf-088c-75d2-9f40-2ef940fb3dae",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

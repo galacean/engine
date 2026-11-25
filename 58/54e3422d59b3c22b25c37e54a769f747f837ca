@@ -1,0 +1,40 @@
+world/demos/seed-world/src/SeedWorldAnnotationHistory.ts
+  s_01262a83dc0848::t_fac8c4bc714465 23
+world/tests/seed-world-browser/MarkupButton.test.ts
+  s_01262a83dc0848::t_6b8bee4e4d1619 21-30
+  s_01262a83dc0848::t_596db5480284ce 1-20,31-52
+world/tests/seed-world/SeedWorldPhotoWorkspace.spec.ts
+  s_01262a83dc0848::t_fac8c4bc714465 402-404,416
+  s_01262a83dc0848::t_9cda21c522b1dc 1,400-401,411,424-425
+packages/ai-chat/src/ai-chat/agent-values.ts
+  s_01262a83dc0848::t_9cda21c522b1dc 47,169
+  s_01262a83dc0848::t_fa8c7cb9952108 170
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  s_01262a83dc0848::t_2c6ffee226aa0a 1026
+  s_01262a83dc0848::t_9cda21c522b1dc 1,1021,1033-1034
+  s_01262a83dc0848::t_c6e8276bf2ec65 1025,1027-1031
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  s_01262a83dc0848::t_c6e8276bf2ec65 11
+  s_01262a83dc0848::t_fb07dba5b52d0c 152,173,175-177
+  s_01262a83dc0848::t_568f5397de1e66 6,8,15,50-58,62-66,71-72,74-76,85,102-103,126-144,178-187,195
+world/demos/seed-world/assets/markup-pen.json
+  s_01262a83dc0848::t_fd36730bb66219 1
+world/scripts/generate-markup-icon.mjs
+  s_01262a83dc0848::t_b187ed54bec73f 1-214
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5854e3422d59b3c22b25c37e54a769f747f837ca",
+  "prompts": {},
+  "sessions": {
+    "s_01262a83dc0848": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21179-2b09-7073-ab29-9e61b863ff8a",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
