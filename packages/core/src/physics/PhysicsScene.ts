@@ -8,7 +8,7 @@ import { Utils } from "../Utils";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
-import { Rigidbody } from "./Rigidbody";
+import { Rigidbody, type RigidbodyPose } from "./Rigidbody";
 import { isValidPositiveFloat32 } from "./float32";
 
 /**
@@ -21,8 +21,7 @@ import { isValidPositiveFloat32 } from "./float32";
 export class PhysicsScene {
   private static readonly _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static readonly _tempDirection = new Vector3();
-  private static readonly _tempPosition = new Vector3();
-  private static readonly _tempRotation = new Quaternion();
+  private static readonly _writeBackPoses: RigidbodyPose[] = [];
   private static readonly _snapshotBuffers: (Rigidbody | Collider)[][] = [];
   private static readonly _parsedCastArgs = {
     orientation: PhysicsScene._identityQuaternion,
@@ -163,26 +162,18 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ) {
+    if (typeof layerMaskOrResult !== "number") {
+      outHitResult ??= layerMaskOrResult;
+      layerMaskOrResult = Layer.Everything;
+    }
+    if (typeof distanceOrResult !== "number") {
+      outHitResult ??= distanceOrResult;
+      distanceOrResult = Number.MAX_VALUE;
+    }
     const args = PhysicsScene._parsedCastArgs;
-    let hitResult: HitResult | undefined;
-    let distance = Number.MAX_VALUE;
-    let layerMask = Layer.Everything;
-
-    if (typeof distanceOrResult === "number") {
-      distance = distanceOrResult;
-    } else if (distanceOrResult != null) {
-      hitResult = distanceOrResult;
-    }
-
-    if (typeof layerMaskOrResult === "number") {
-      layerMask = layerMaskOrResult;
-    } else if (layerMaskOrResult != null) {
-      hitResult = layerMaskOrResult;
-    }
-
-    args.distance = distance;
-    args.layerMask = layerMask;
-    args.hitResult = outHitResult ?? hitResult;
+    args.distance = distanceOrResult;
+    args.layerMask = layerMaskOrResult;
+    args.hitResult = outHitResult;
     return args;
   }
 
@@ -192,33 +183,14 @@ export class PhysicsScene {
     layerMask?: Layer,
     outHitResult?: HitResult
   ) {
-    const args = PhysicsScene._parsedCastArgs;
-    let hitResult: HitResult | undefined;
     let orientation = PhysicsScene._identityQuaternion;
-    let distance = Number.MAX_VALUE;
-    let mask = Layer.Everything;
-
-    if (typeof orientationOrDistanceOrResult === "number") {
-      distance = orientationOrDistanceOrResult;
-      if (distanceOrResult?.constructor === HitResult) {
-        hitResult = distanceOrResult;
-      }
-    } else if (orientationOrDistanceOrResult?.constructor === HitResult) {
-      hitResult = orientationOrDistanceOrResult;
-    } else if (orientationOrDistanceOrResult?.constructor === Quaternion) {
-      orientation = orientationOrDistanceOrResult;
-      if (typeof distanceOrResult === "number") {
-        distance = distanceOrResult;
-        if (typeof layerMask === "number") {
-          mask = layerMask;
-        }
-      }
+    if (layerMask !== undefined || orientationOrDistanceOrResult instanceof Quaternion) {
+      orientation = (orientationOrDistanceOrResult as Quaternion) ?? orientation;
+      orientationOrDistanceOrResult = distanceOrResult;
+      distanceOrResult = layerMask;
     }
-
+    const args = PhysicsScene._parseCastArgs(orientationOrDistanceOrResult, distanceOrResult, outHitResult);
     args.orientation = orientation;
-    args.distance = distance;
-    args.layerMask = mask;
-    args.hitResult = outHitResult ?? hitResult;
     return args;
   }
 
@@ -230,6 +202,7 @@ export class PhysicsScene {
   private _fixedTimeStep: number = 1 / 60;
 
   private _bodies: Rigidbody[] = [];
+  private _writeBackBodies: Rigidbody[] | null = null;
   private _bodyOrderDirty = false;
   private _dirtyBodies: Rigidbody[] = [];
   private _dirtyColliders: Collider[] = [];
@@ -781,7 +754,6 @@ export class PhysicsScene {
     const scene = this._scene;
     const componentsManager = scene._componentsManager;
     const nativePhysicsScene = this._nativePhysicsScene;
-    const bodies = this._bodies;
     for (let i = 0; i < step; i++) {
       if (!scene.isActive) return;
       componentsManager.callScriptOnPhysicsUpdate();
@@ -796,12 +768,20 @@ export class PhysicsScene {
       }
       nativePhysicsScene.update(fixedTimeStep);
       this._bodyOrderDirty && this._sortBodies();
-      const count = bodies.length;
-      if (count > 0) {
-        const position = PhysicsScene._tempPosition;
-        const rotation = PhysicsScene._tempRotation;
-        for (let j = 0; j < count; j++) {
-          bodies[j]._writeBack(position, rotation);
+      const bodies = this._bodies;
+      if (bodies.length) {
+        const poses = PhysicsScene._writeBackPoses;
+        const pose = poses.pop() ?? { position: new Vector3(), rotation: new Quaternion() };
+        const previous = this._writeBackBodies;
+        this._writeBackBodies = bodies;
+        const count = bodies.length;
+        let j = 0;
+        try {
+          for (; j < count; j++) bodies[j]._writeBack(scene, pose);
+        } finally {
+          if (j < count) bodies[j]._abortWriteBack(pose);
+          this._writeBackBodies = previous;
+          poses.push(pose);
         }
       }
       this._dispatchEvents(nativePhysicsScene.updateEvents());
@@ -880,7 +860,7 @@ export class PhysicsScene {
       }
       body._massDirtyIndex = -1;
     }
-    const bodies = this._bodies;
+    const bodies = this._getWritableBodies();
     const last = bodies.pop()!;
     if (last !== body) {
       bodies[body._index] = last;
@@ -945,7 +925,7 @@ export class PhysicsScene {
    */
   _gc(): void {
     HitResultWriter._gc();
-    PhysicsScene._snapshotBuffers.length = 0;
+    PhysicsScene._writeBackPoses.length = PhysicsScene._snapshotBuffers.length = 0;
     this._nativePhysicsScene?.gc();
   }
 
@@ -955,16 +935,22 @@ export class PhysicsScene {
   _destroy(): void {
     this._gravity._onValueChanged = null;
     HitResultWriter._gc();
-    PhysicsScene._snapshotBuffers.length = 0;
+    PhysicsScene._writeBackPoses.length = PhysicsScene._snapshotBuffers.length = 0;
     this._triggerReceivers.clear();
     this._pendingSleeps = undefined;
     this._nativePhysicsScene?.destroy();
     this._nativePhysicsScene = null!;
   }
 
+  private _getWritableBodies(): Rigidbody[] {
+    // Transform setters can remove or reorder bodies while their simulated poses are being published.
+    if (this._bodies === this._writeBackBodies) this._bodies = this._bodies.slice();
+    return this._bodies;
+  }
+
   private _sortBodies(): void {
     this._bodyOrderDirty = false;
-    const bodies = this._bodies;
+    const bodies = this._getWritableBodies();
     const length = bodies.length;
     // Publish ancestors first so each body's world pose is converted against its parent's simulated pose.
     for (let i = 0, n = length - 1; i < n; i++) {

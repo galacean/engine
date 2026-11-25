@@ -194,13 +194,6 @@ export class CharacterController extends Collider {
   /**
    * @internal
    */
-  override _getVolumeDistance(): number {
-    return -1;
-  }
-
-  /**
-   * @internal
-   */
   override _sync(): void {
     const transform = this.entity.transform;
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state.

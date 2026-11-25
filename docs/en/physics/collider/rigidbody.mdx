@@ -11,6 +11,7 @@ A Rigidbody ([Rigidbody](/apis/core/#Rigidbody)) puts its Entity under physics c
 
 - An Entity can have at most one Rigidbody; adding a second one throws.
 - The nearest Rigidbody on a Collider's Entity or its ancestors owns that Collider. Several Colliders on the Entity and its children form one compound body.
+- The engine writes simulated poses in parent-first order using the hierarchy at the start of writeback. Reparent bodies in `Script.onPhysicsUpdate()` when their new hierarchy must apply to the current step.
 - Disabling the Rigidbody removes it and all the Colliders it owns from simulation and queries; they do not become static, and their `enabled` values are unchanged.
 - Removing (destroying) the Rigidbody lets the next ancestor Rigidbody take ownership, or makes its Colliders static if there is no ancestor body.
 - A [PlaneCollider](/apis/core/#PlaneCollider) or a [MeshCollider](/apis/core/#MeshCollider) with `convex = false` can only belong to a kinematic Rigidbody. When `isKinematic` is `false`, those colliders log an error and are excluded from simulation and queries until the Rigidbody becomes kinematic again.

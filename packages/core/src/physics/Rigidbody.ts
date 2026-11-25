@@ -16,6 +16,12 @@ import type { Joint } from "./joint/Joint";
 
 export { ForceMode, RigidbodyConstraints } from "@galacean/engine-design";
 
+/** @internal */
+export interface RigidbodyPose {
+  position: Vector3;
+  rotation: Quaternion;
+}
+
 /**
  * Simulates the motion of an Entity and its compound collision shape.
  * @remarks Each Entity can have one Rigidbody. It owns colliders on its Entity and descendants up to the next
@@ -60,7 +66,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   @ignoreClone
   _index = -1;
   @ignoreClone
-  private _writingBack = false;
+  private _writingPose: RigidbodyPose | null = null;
 
   @ignoreClone
   private _poseSynced = false;
@@ -826,7 +832,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._poseSynced = false;
     this._sleepPending && scene.physics._scheduleSleep(this, false);
     this._syncJoints();
-    this._detachOrphanedColliders();
+    if (!this.destroyed) this._detachOrphanedColliders();
     scene.physics._removeRigidbody(this);
   }
 
@@ -936,6 +942,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       nativePosition.copyFrom(position);
       nativeRotation.copyFrom(rotation);
       actor.setWorldTransform(position, rotation);
+      // A query inside a Transform setter can commit a newer authored pose during writeback.
+      const publishing = this._writingPose;
+      if (publishing) {
+        publishing.position.copyFrom(position);
+        publishing.rotation.copyFrom(rotation);
+      }
     }
   }
 
@@ -943,35 +955,43 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @internal
    * Write the simulated pose back to the Entity.
    */
-  _writeBack(position: Vector3, rotation: Quaternion): void {
+  _writeBack(scene: Scene, pose: RigidbodyPose): void {
+    if (this._registeredScene !== scene) return;
     const actor = this._nativeActor!;
-    if (this._isKinematic || actor.isSleeping()) {
-      if (this._poseSynced) return;
-      this._poseSynced = true;
-    } else {
-      this._poseSynced = false;
-    }
+    if (this._poseSynced && (this._isKinematic || actor.isSleeping())) return;
+    this._poseSynced = this._isKinematic;
 
+    // A nested simulation of this body must publish its newer pose to the outer setter as well.
+    const previous = this._writingPose;
+    const { position, rotation } = (this._writingPose = previous ?? pose);
     actor.getWorldTransform(position, rotation);
     const transform = this.entity.transform;
     const worldPosition = transform.worldPosition;
     const positionChanged = differsF32(position, worldPosition);
-    this._writingBack = true;
     if (positionChanged) transform.worldPosition = position;
-
     const worldRotation = transform.worldRotationQuaternion;
     const rotationChanged = rotationDiffersF32(rotation, worldRotation);
     if (rotationChanged) transform.worldRotationQuaternion = rotation;
-    this._writingBack = false;
 
-    if (positionChanged || rotationChanged) {
-      // Re-read the published pose so constrained transforms such as UITransform do not trigger a false teleport.
-      this._nativePosition.copyFrom(transform.worldPosition);
-      this._nativeRotation.copyFrom(transform.worldRotationQuaternion);
-    } else {
-      this._nativePosition.copyFrom(worldPosition);
-      this._nativeRotation.copyFrom(worldRotation);
+    // A constrained Transform can publish a different pose from the one the actor supplied.
+    const changed = positionChanged || rotationChanged;
+    this._nativePosition.copyFrom(changed ? transform.worldPosition : worldPosition);
+    this._nativeRotation.copyFrom(changed ? transform.worldRotationQuaternion : worldRotation);
+    // Poll sleep once the pose settles, including transforms that constrain the simulated pose.
+    if (
+      !this._isKinematic &&
+      (!changed || differsF32(position, this._nativePosition) || rotationDiffersF32(rotation, this._nativeRotation)) &&
+      this._registeredScene === scene
+    ) {
+      this._poseSynced = actor.isSleeping();
     }
+    this._writingPose = previous;
+  }
+
+  /** @internal Retry an interrupted Transform write on the next step. */
+  _abortWriteBack(pose: RigidbodyPose): void {
+    if (this._writingPose === pose) this._writingPose = null;
+    this._poseSynced = false;
   }
 
   /**
@@ -990,7 +1010,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if ((autoCom || autoInertia) && isValidPositiveFloat32(mass)) {
       const colliders = this._attachedColliders;
       const count = colliders.length;
-      let i = 0;
+      // Dynamic actors already exclude kinematic-only geometry when their shapes attach.
+      let i = this._isKinematic ? 0 : count;
       while (i < count && colliders[i]._nativeSupportsDynamicBody()) i++;
       if (i === count) {
         actor.updateMassAndInertia(
@@ -1149,7 +1170,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   @ignoreClone
   private _onTransformChanged(): void {
-    if (this._writingBack) return;
+    if (this._writingPose) return;
     this._poseSynced = false;
     this._registeredScene?.physics._markBodyDirty(this);
   }

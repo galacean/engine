@@ -16,7 +16,8 @@ import {
   PlaneCollider,
   PrimitiveMesh,
   Scene,
-  Script
+  Script,
+  Transform
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
@@ -58,6 +59,27 @@ describe("Rigidbody", function () {
       body.automaticInertiaTensor = false;
     }
     return boxEntity;
+  }
+
+  function addBodyWithPositionSetter(beforeSet: () => void): Rigidbody {
+    class ObservedTransform extends Transform {
+      override get worldPosition(): Vector3 {
+        return super.worldPosition;
+      }
+      override set worldPosition(value: Vector3) {
+        beforeSet();
+        super.worldPosition = value;
+      }
+    }
+    const entity = new Entity(engine, "observed", ObservedTransform);
+    rootEntity.addChild(entity);
+    return entity.addComponent(Rigidbody);
+  }
+
+  function useFixedTimeStep(): number {
+    const step = engine.sceneManager.activeScene.physics.fixedTimeStep;
+    vi.spyOn(engine.time, "deltaTime", "get").mockReturnValue(step);
+    return step;
   }
 
   function formatValue(value: number) {
@@ -1356,7 +1378,7 @@ describe("Rigidbody", function () {
     const body = entity.addComponent(Rigidbody);
     body.isKinematic = true;
     const { transform } = entity;
-    vi.spyOn(engine.time, "deltaTime", "get").mockReturnValue(engine.sceneManager.activeScene.physics.fixedTimeStep);
+    useFixedTimeStep();
     const rotation = new Quaternion();
     for (let i = 0; i < 3; i++) {
       Quaternion.rotateZ(transform.worldRotationQuaternion, 1e-6, rotation);
@@ -1987,6 +2009,82 @@ describe("Rigidbody", function () {
     physics._update(physics.fixedTimeStep);
     expect(child.transform.worldPosition.x).toBeCloseTo(0, 4);
     expect(child.transform.worldPosition.y).toBeCloseTo(20, 4);
+  });
+
+  it("writes the remaining bodies when a Transform re-registers an earlier body", () => {
+    const first = rootEntity.createChild().addComponent(Rigidbody);
+    const driver = addBodyWithPositionSetter(() => {
+      first.enabled = false;
+      first.enabled = true;
+    });
+    const last = rootEntity.createChild().addComponent(Rigidbody);
+    for (const body of [first, driver, last]) {
+      body.useGravity = false;
+      body.linearVelocity.set(1, 0, 0);
+    }
+    const step = useFixedTimeStep();
+    engine.update();
+    expect(last.entity.transform.worldPosition.x).toBeCloseTo(step, 5);
+  });
+
+  it("retries a kinematic pose when its Transform setter throws", () => {
+    let firstWrite = true;
+    const body = addBodyWithPositionSetter(() => {
+      if (firstWrite) {
+        firstWrite = false;
+        throw new Error("first pose");
+      }
+    });
+    body.isKinematic = true;
+    body.move(new Vector3(8, 0, 0));
+    useFixedTimeStep();
+    expect(() => engine.update()).toThrow("first pose");
+    engine.update();
+    expect(body.entity.transform.worldPosition.x).toBe(8);
+  });
+
+  it.each([
+    [0, 9],
+    [12, 12]
+  ])("queries the current pose while publishing a body whose Transform was set to %s", (x, expected) => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const first = addBodyWithPositionSetter(() => second.entity.transform.setPosition(x, 4, 0));
+    const ray = new Ray(new Vector3(expected, 7, 0), new Vector3(0, -1, 0));
+    let hitDuringWrite = false;
+    const second = addBodyWithPositionSetter(() => {
+      hitDuringWrite = physics.raycast(ray, 5);
+    });
+    first.isKinematic = second.isKinematic = true;
+    second.entity.transform.setPosition(0, 4, 0);
+    second.entity.addComponent(SphereCollider);
+    first.move(new Vector3(6, 0, 0));
+    second.move(new Vector3(9, 4, 0));
+    useFixedTimeStep();
+    engine.update();
+    expect(hitDuringWrite).toBe(true);
+    expect(second.entity.transform.worldPosition.x).toBe(expected);
+    expect(physics.raycast(ray, 5)).toBe(true);
+  });
+
+  it("publishes each body's latest pose when a Transform setter advances another step", () => {
+    let nested = false;
+    const first = addBodyWithPositionSetter(() => {
+      if (!nested) {
+        nested = true;
+        engine.update();
+      }
+    });
+    const second = rootEntity.createChild().addComponent(Rigidbody);
+    first.useGravity = second.useGravity = false;
+    first.linearVelocity.set(1, 0, 0);
+    first.angularVelocity.set(0, 0, 2);
+    second.angularVelocity.set(2, 0, 0);
+    const step = useFixedTimeStep();
+    engine.update();
+    const transform = first.entity.transform;
+    expect(transform.worldPosition.x).toBeCloseTo(2 * step, 5);
+    expect(transform.worldRotationQuaternion.x).toBeCloseTo(0, 5);
+    expect(transform.worldRotationQuaternion.z).toBeGreaterThan(0);
   });
 
   it("re-arms child transform dirty flags after compound Rigidbody writeback", () => {

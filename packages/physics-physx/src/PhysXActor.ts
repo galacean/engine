@@ -1,5 +1,5 @@
 import { IPhysicsActor } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, Utils, Vector3 } from "@galacean/engine";
 import { PhysXShape } from "./shape/PhysXShape";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 
@@ -33,8 +33,7 @@ export abstract class PhysXActor implements IPhysicsActor {
    */
   removeShape(shape: PhysXShape): void {
     this._pxActor.detachShape(shape._pxShape, true);
-    const ids = this._shapeIds;
-    ids.splice(ids.indexOf(shape._id), 1);
+    Utils.removeFromArray(this._shapeIds, shape._id);
     this._scene?._removeShape(shape._id);
   }
 

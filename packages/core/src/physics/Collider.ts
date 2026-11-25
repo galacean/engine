@@ -394,10 +394,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * Detach before the Rigidbody releases its actor so the next sync can resolve the new owner.
+   * Resolve a new owner on the next sync after the Rigidbody releases its shape attachments.
    */
   _onBodyDestroyed(): void {
-    this._nativeActor!.removeShape(this._native!);
     this._nativeActor = null;
     this._attachedBody = null;
     this._markDirty();

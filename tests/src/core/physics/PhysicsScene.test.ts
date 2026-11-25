@@ -1353,7 +1353,8 @@ describe("Physics Test", () => {
       const center = new Vector3(3, 3, 3);
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
       const direction = new Vector3(0, 1, 0);
-      const orientation = new Quaternion();
+      class SweepRotation extends Quaternion {}
+      const orientation = new SweepRotation();
       expect(
         physicsScene.boxCast(center, halfExtents, direction, orientation, Number.MAX_VALUE, Layer.Everything)
       ).to.eq(false);
@@ -1465,7 +1466,8 @@ describe("Physics Test", () => {
       const center = new Vector3(3, 3, 3);
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
       const direction = new Vector3(-1, -1, -1).normalize();
-      const outHitResult = new HitResult();
+      class SweepHit extends HitResult {}
+      const outHitResult = new SweepHit();
 
       // Test boxCast(center, halfExtents, direction, outHitResult) - direct HitResult
       expect(physicsScene.boxCast(center, halfExtents, direction, outHitResult)).to.eq(true);
@@ -1753,7 +1755,7 @@ describe("Physics Test", () => {
       const radius = 0.5;
       const height = 2;
       const direction = new Vector3(-1, -1, -1).normalize();
-      const outHitResult = new HitResult();
+      const outHitResult: HitResult = { ...new HitResult() };
 
       // Test capsuleCast(center, radius, height, direction, outHitResult) - direct HitResult
       expect(physicsScene.capsuleCast(center, radius, height, direction, outHitResult)).to.eq(true);

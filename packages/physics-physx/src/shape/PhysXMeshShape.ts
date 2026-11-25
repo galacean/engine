@@ -166,18 +166,18 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
       console.error("PhysXMeshShape: could not allocate vertex data.");
       return 0;
     }
-    const view = new Float32Array(physX.HEAPF32.buffer, ptr, length * 3);
+    const heap: Float32Array = physX.HEAPF32;
     let i = 0;
-    for (let offset = 0; i < length; i++, offset += 3) {
+    for (let offset = ptr / Float32Array.BYTES_PER_ELEMENT; i < length; i++, offset += 3) {
       const point = positions[i];
       if (!point) break;
       const x = Math.fround(point.x);
       const y = Math.fround(point.y);
       const z = Math.fround(point.z);
       if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) break;
-      view[offset] = x;
-      view[offset + 1] = y;
-      view[offset + 2] = z;
+      heap[offset] = x;
+      heap[offset + 1] = y;
+      heap[offset + 2] = z;
     }
     if (i === length) return ptr;
     physX._free(ptr);
@@ -188,14 +188,14 @@ export class PhysXMeshShape extends PhysXShape implements IMeshShape {
   private _allocateIndices(indices: Uint8Array | Uint16Array | Uint32Array, isU32: boolean): number {
     const physX = this._physXPhysics._physX;
     // PhysX accepts 16- or 32-bit indices, so widen 8-bit input to 16 bits.
-    const TypedArrayCtor = isU32 ? Uint32Array : Uint16Array;
-    const ptr = physX._malloc(indices.length * TypedArrayCtor.BYTES_PER_ELEMENT);
+    const bytesPerIndex = isU32 ? Uint32Array.BYTES_PER_ELEMENT : Uint16Array.BYTES_PER_ELEMENT;
+    const ptr = physX._malloc(indices.length * bytesPerIndex);
     if (!ptr) {
       console.error("PhysXMeshShape: could not allocate index data.");
       return 0;
     }
     const heap = isU32 ? physX.HEAPU32 : physX.HEAPU16;
-    new TypedArrayCtor(heap.buffer, ptr, indices.length).set(indices);
+    heap.set(indices, ptr / bytesPerIndex);
     return ptr;
   }
 
