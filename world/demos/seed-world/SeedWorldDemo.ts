@@ -404,6 +404,7 @@ export async function mountSeedWorldDemo(
   let assistantInputEnabled = true;
   let unbindWorldClick: (() => void) | undefined;
   const editorLifetime = new AbortController();
+  canvas.addEventListener("contextmenu", (event) => event.preventDefault(), { signal: editorLifetime.signal });
   let pickPreparation: RuntimePickPreparation | undefined;
   let shaderAudit: import("./src/SeedWorldShaderAudit").SeedWorldShaderAuditHandle | undefined;
   let perfTour: import("./src/SeedWorldPerfTour").SeedWorldPerfTourHandle | undefined;

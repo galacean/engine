@@ -267,7 +267,7 @@ export class PlanningSeedRuntimeDebug {
           details: world.population.details,
           trees: world.population.trees,
           ...(solidsRoot ? { prefabs: solidsRoot } : {}),
-          lodControls: [world],
+          lodControls: [world, ...(published.vegetation ? [published.vegetation] : [])],
           capabilities: { prefabs: { category: "rocks", label: "Planning solids / 规划实体" } }
         },
         inspector: {

@@ -334,6 +334,7 @@ export class PlanningNaturalVegetation {
   private readonly flowerCoverage: ReturnType<typeof vegetationCoverage>;
   private readonly flowerRegions: NonNullable<IslandPlan["flowerRegions"]>;
   private readonly flowerAssetWeights: Readonly<Record<string, Readonly<Record<string, number>>>>;
+  private readonly stoneCompanion: boolean;
   private readonly footprints: {
     solids: readonly PlantingFootprint[];
     roads: readonly PlantingRoad[];
@@ -384,15 +385,28 @@ export class PlanningNaturalVegetation {
     const landscapes = associationPlan.landscapes;
     this.associationTrees = planningNaturalTrees(associationPlan, height, assets, excludedAssetIds);
     this.solids = [...plan.buildings, ...plan.rocks, ...landscapes.filter((item) => item.kind === "rock")];
+    const stoneCompanionCfg = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.stoneCompanionPlanting;
+    const stoneCompanion = Boolean(stoneCompanionCfg);
+    const maxMediumRockRadiusM =
+      typeof stoneCompanionCfg === "object" && stoneCompanionCfg.maxRockRadiusM !== undefined
+        ? stoneCompanionCfg.maxRockRadiusM
+        : 8;
     const baselineRocks = plan.rocks;
+    const anchorTrees = stoneCompanion ? this.trees : this.associationTrees;
+    const anchorRocks = stoneCompanion
+      ? [...baselineRocks, ...(plan.landscapes ?? []).filter((p) => p.kind === "rock")]
+      : [...baselineRocks, ...landscapes.filter((p) => p.kind === "rock")];
     this.anchors = [
-      ...this.associationTrees,
-      ...[...baselineRocks, ...landscapes.filter((p) => p.kind === "rock")].map((rock) => ({
-        id: rock.id,
-        layerId: "岩石",
-        position: [rock.center.x, height.sample(rock.center), rock.center.z] as const,
-        radius: Math.hypot(rock.width, rock.depth) / 2
-      }))
+      ...anchorTrees,
+      ...anchorRocks.map((rock) => {
+        const radius = Math.hypot(rock.width, rock.depth) / 2;
+        return {
+          id: rock.id,
+          layerId: stoneCompanion && radius <= maxMediumRockRadiusM ? "中等石头" : "岩石",
+          position: [rock.center.x, height.sample(rock.center), rock.center.z] as const,
+          radius
+        };
+      })
     ];
     this.grass = population.detailDensityFields.find((field) => field.category === "grass")!.samples;
     // These layers multiply the same substrate field in sample(). A globally
@@ -414,6 +428,31 @@ export class PlanningNaturalVegetation {
       (worldTemplate(plan.parameters.worldTemplate?.id)?.vegetation as string | undefined) !== "grass"
         ? createNaturalCompanionStoneLayer(assets.filter((asset) => asset.kind === "stone"))
         : undefined;
+    this.stoneCompanion = stoneCompanion;
+    // Anchor strictly to medium boulders ("中等石头", <= maxMediumRockRadiusM) and tree-foot boulders ("树脚石块")
+    // rather than giant horizon mountain outcrops ("岩石").
+    const stoneCompanionPatches = {
+      anchorLayers: ["中等石头", "树脚石块"] as const,
+      centerRadiusRatio: 1.9,
+      patchRadiusRatio: 1.45,
+      coverage: 0.84,
+      aspectRatio: [1, 1.5] as const
+    };
+    const withStoneCompanion = (layer: NaturalVegetationLayerRule): NaturalVegetationLayerRule => {
+      if (!stoneCompanion) return layer;
+      if (layer.id === "小灌木") {
+        return {
+          ...layer,
+          companionPlanting: {
+            patches: stoneCompanionPatches,
+            strength: 1,
+            densityMultiplier: 1,
+            densityPerM2: 0.34
+          }
+        };
+      }
+      return layer;
+    };
     this.layers = [
       ...(stones ? [stones] : []),
       ...createNaturalVegetationLayers(
@@ -427,7 +466,7 @@ export class PlanningNaturalVegetation {
           layer.id === "乔木"
             ? { ...layer, density: 0 }
             : layer.id === "零星野花"
-              ? {
+              ? withStoneCompanion({
                   ...layer,
                   density:
                     this.flowerRegions.some((r) => r.config.densityPerM2 > 0) && hasPositiveLayerAbundance("零星野花")
@@ -435,9 +474,9 @@ export class PlanningNaturalVegetation {
                       : 0,
                   maxSlopeDegrees: 90,
                   palette: layer.palette.map((member) => ({ ...member, weight: 1 }))
-                }
+                })
               : hasSubstrate && hasPositiveLayerAbundance(layer.id)
-                ? layer
+                ? withStoneCompanion(layer)
                 : { ...layer, density: 0 }
         )
     ];
@@ -486,6 +525,8 @@ export class PlanningNaturalVegetation {
       );
     });
     const cellHasTreeAnchors = nearbyAnchors.some((anchor) => anchor.layerId === "乔木");
+    const cellHasStoneCompanionAnchors =
+      cellHasTreeAnchors || nearbyAnchors.some((anchor) => anchor.layerId === "中等石头");
     let cellHasGrassSubstrate = false;
     {
       const resolution = this.fields.surfaceResolution,
@@ -527,6 +568,8 @@ export class PlanningNaturalVegetation {
     const cellLayers = this.layers.map((layer) => {
       if (layer.density === 0) return layer;
       if (layer.id === "树脚石块") return cellHasTreeAnchors ? layer : { ...layer, density: 0 };
+      if (this.stoneCompanion && layer.id === "小灌木")
+        return cellHasStoneCompanionAnchors ? layer : { ...layer, density: 0 };
       if (layer.id === "零星野花") return cellHasFlowers ? layer : { ...layer, density: 0 };
       return cellHasGrassSubstrate ? layer : { ...layer, density: 0 };
     });
@@ -619,6 +662,9 @@ export class PlanningNaturalVegetation {
       if (layerId === "树脚石块")
         return settings.companionStoneDensity ?? NATURAL_VEGETATION_DEFAULTS.companionStoneDensity;
       if (layerId === "零星野花") return this.densityAt({ x, z }).flowers!;
+      if (this.stoneCompanion && (layerId === "小灌木" || layerId === "高草与杂草")) {
+        return this.densityAt({ x, z })[densityKeys.get(layerId)!]!;
+      }
       return (this.grass[i] / 255) * this.densityAt({ x, z })[densityKeys.get(layerId)!]!;
     };
     const sample = (x: number, z: number) => {

@@ -1,6 +1,10 @@
 import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
 import { resolveRockCollisionPolicy, type RockCollisionPolicy } from "./RockCollisionPolicy";
-import type { TerrainSeason } from "@galacean/engine-environment/terrain/environment/SceneSeasonPalette";
+import {
+  TERRAIN_DEFAULT_SEASON_PALETTES,
+  type TerrainSeason
+} from "@galacean/engine-environment/terrain/environment/SceneSeasonPalette";
+import { OIL_PAINT_SEASON_PALETTES } from "./oil-paint/OilPaintSeasonPalette";
 import type { TemplateProceduralPlantInstance } from "./WorldTemplateVegetation";
 import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
@@ -15,7 +19,6 @@ import {
 } from "./world-templates/OasisFloodplain";
 import {
   OIL_PAINT_PLANTINGS,
-  OIL_PAINT_PROCEDURAL_PLANTS,
   OIL_PAINT_ROCKS,
   OIL_PAINT_WATER,
   resolveOilPaintAutumn
@@ -61,6 +64,21 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   buildingPalette?: Partial<Record<"brick" | "roof_tile" | "wooden_plank", string>>;
   /** Optional per-tree linear RGB palette sampled deterministically across natural woodland trees. */
   treeColorPalette?: readonly (readonly [number, number, number])[];
+  /** Optional per-instance linear RGB palette sampled deterministically across understory foliage/shrubs/herbs/flowers. */
+  understoryColorPalette?: readonly (readonly [number, number, number])[];
+  /** Optional per-template natural vegetation asset IDs to exclude from population planning. */
+  excludedVegetationIds?: readonly string[];
+  /** Optional per-template procedural plant geometry overrides (e.g. CPU-side leaf card pruning via `geometryLeafRetention`). */
+  plantGeometryOverrides?: Readonly<
+    Record<string, { readonly geometryLodOffset?: number; readonly geometryLeafRetention?: number }>
+  >;
+  /** Optional stone-side companion planting rule for understory shrubs beside medium boulders & tree-foot stones. */
+  stoneCompanionPlanting?:
+    | boolean
+    | {
+        /** Maximum radius (m) of configured `plan.rocks` treated as medium stones (excludes giant mountain peaks). */
+        readonly maxRockRadiusM?: number;
+      };
   grassGroundFusion?: boolean;
   /** Name of the equivalent opaque vertex-color material shared by the template's model assets. */
   sharedVertexColorMaterial?: string;
@@ -456,6 +474,17 @@ const sakuraPetals =
 
 const oasisWildlife = templateWildlife["titan-wasteland"];
 const oilPaintWildlife = templateWildlife["oil-paint"];
+
+const oilPaintAutumnBrush = OIL_PAINT_SEASON_PALETTES.autumn;
+const oilPaintAutumnLeaf = TERRAIN_DEFAULT_SEASON_PALETTES.autumn.treeLeaf;
+// Exact 5 seasonal colors from the Autumn Oil Paint panel (Dab 1..4 + Autumn Tree Leaves) in linear RGB.
+const OIL_PAINT_AUTUMN_5_COLORS: readonly (readonly [number, number, number])[] = [
+  oilPaintAutumnBrush.dabs[0],
+  oilPaintAutumnBrush.dabs[1],
+  oilPaintAutumnBrush.dabs[2],
+  oilPaintAutumnBrush.dabs[3],
+  [oilPaintAutumnLeaf.r, oilPaintAutumnLeaf.g, oilPaintAutumnLeaf.b]
+];
 
 export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirection>> = {
   "low-poly": LOW_POLY_VALLEY,
@@ -1512,14 +1541,84 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       roof_tile: "#a84c2a",
       wooden_plank: "#7c4e2c"
     },
-    treeColorPalette: [
-      [0.98, 0.72, 0.1],
-      [0.96, 0.84, 0.16],
-      [0.92, 0.34, 0.06],
-      [0.82, 0.14, 0.05],
-      [0.78, 0.44, 0.09],
-      [0.32, 0.62, 0.12]
+    // Exact 5 seasonal colors from the Autumn Oil Paint panel (Dab 1..4 + Autumn Tree Leaves):
+    treeColorPalette: OIL_PAINT_AUTUMN_5_COLORS,
+    understoryColorPalette: OIL_PAINT_AUTUMN_5_COLORS,
+    // Strictly 5 active vegetation species total (3 birch trees + 2 stone-side shrubs);
+    // all wildflowers, herbs, ground cover, leaf litter, mushrooms, firs, and extra bushes excluded at runtime.
+    excludedVegetationIds: [
+      "cartoon/tree/highlands-fir-3-candidate/v1",
+      "cartoon/shrub/highlands-bush-2/v1",
+      "SM_CoverPlant_01",
+      "SM_CoverPlant_02",
+      "SM_CoverPlant_03",
+      "SM_CoverPlant_04",
+      "SM_CoverPlant_05",
+      "SM_CoverPlant_06",
+      "SM_Leaves_BirchTree_01",
+      "SM_Leaves_BirchTree_02",
+      "SM_Leaves_OakTree_01",
+      "SM_Leaves_OakTree_02",
+      "SM_Mushroom_01",
+      "SM_Mushroom_02",
+      "SM_Mushroom_03",
+      "SM_Mushroom_04",
+      "SM_Mushroom_05",
+      "SM_Mushroom_06",
+      "SM_Mushroom_07",
+      "SM_Mushroom_08",
+      "SM_Mushroom_09",
+      "SM_Mushroom_10",
+      "SM_Mushroom_11",
+      "SM_Mushroom_12",
+      "SM_Grass_03_01",
+      "SM_Grass_03_02",
+      "SM_Grass_03_03",
+      "SM_Flower_09_01",
+      "SM_Flower_09_02",
+      "SM_Flower_09_03",
+      "SM_Flower_10_01",
+      "SM_Plant_01_01",
+      "SM_Plant_01_02",
+      "SM_Plant_01_03",
+      "SM_Plant_02_01",
+      "SM_Plant_02_02",
+      "SM_Plant_02_03",
+      "SM_Flower_01_01",
+      "SM_Flower_01_02",
+      "SM_Flower_01_03",
+      "SM_Flower_02_01",
+      "SM_Flower_02_02",
+      "SM_Flower_02_03",
+      "SM_Flower_03_01",
+      "SM_Flower_03_02",
+      "SM_Flower_03_03",
+      "SM_Flower_04_01",
+      "SM_Flower_04_02",
+      "SM_Flower_04_03",
+      "SM_Flower_05_01",
+      "SM_Flower_05_02",
+      "SM_Flower_05_03",
+      "SM_Flower_06_01",
+      "SM_Flower_06_02",
+      "SM_Flower_06_03",
+      "SM_Flower_07_01",
+      "SM_Flower_07_02",
+      "SM_Flower_07_03",
+      "SM_Flower_08_01",
+      "SM_Flower_08_02",
+      "SM_Flower_08_03"
     ],
+    // Dramatically prune leaf cards on trees (10% kept = -90% leaves) and shrubs (18% kept = -82% leaves)
+    // for an open, sunlit painterly canopy with visible branches & massively reduced alpha-test overdraw.
+    plantGeometryOverrides: {
+      SM_BirchTree_01: { geometryLeafRetention: 0.1 },
+      SM_BirchTree_02: { geometryLeafRetention: 0.1 },
+      SM_BirchTree_07: { geometryLeafRetention: 0.1 },
+      SM_BirchBush_03: { geometryLeafRetention: 0.18 },
+      SM_BirchBush_04: { geometryLeafRetention: 0.18 }
+    },
+    stoneCompanionPlanting: { maxRockRadiusM: 8 },
     modelLayout: "authored",
     grassGroundFusion: false,
     focus: ["autumn-lake-vista"],
@@ -1583,8 +1682,6 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     resolveWater: (seed) => resolveOilPaintAutumn(seed).water,
     stones: OIL_PAINT_ROCKS,
     resolveStones: (seed) => resolveOilPaintAutumn(seed).stones,
-    proceduralPlants: OIL_PAINT_PROCEDURAL_PLANTS,
-    resolveProceduralPlants: (seed) => resolveOilPaintAutumn(seed).proceduralPlants,
     grass: ["#346420", "#f8d44a"],
     ground: "#7c4b28",
     road: "#72492c",
@@ -1594,33 +1691,6 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       SM_BirchTree_02: "#5eb434",
       SM_BirchTree_07: "#e03420",
       "cartoon/tree/highlands-fir-3-candidate/v1": "#4c7a32"
-    },
-    plantPalette: {
-      layers: ["shrubs", "herbs", "cover", "flowers", "litter"],
-      parts: {
-        foliage: { color: "#88b83a", intensity: 1.15 },
-        leaves: { color: "#dc5a2a", intensity: 1.18 },
-        stem: { color: "#6a4c28", intensity: 1.0 },
-        petals: { color: "#f8c84e", intensity: 1.2 },
-        bark: { color: "#a87d5e", intensity: 1.15 }
-      },
-      species: {
-        SM_BirchBush_03: {
-          leaves: { color: "#7eb632", intensity: 1.18 },
-          bark: { color: "#a87d5e", intensity: 1.15 }
-        },
-        SM_BirchBush_04: {
-          leaves: { color: "#d4341e", intensity: 1.22 },
-          bark: { color: "#a87d5e", intensity: 1.15 }
-        },
-        SM_Grass_03_01: { foliage: { color: "#f8d44a", intensity: 1.26 } },
-        SM_Grass_03_02: { foliage: { color: "#386c22", intensity: 1.16 } },
-        SM_Grass_03_03: { foliage: { color: "#dc7e22", intensity: 1.22 } },
-        SM_Leaves_BirchTree_01: { leaves: { color: "#e69a28", intensity: 1.16 } },
-        SM_Leaves_BirchTree_02: { leaves: { color: "#cf3c22", intensity: 1.16 } },
-        SM_Leaves_OakTree_01: { leaves: { color: "#d87a24", intensity: 1.14 } },
-        SM_Leaves_OakTree_02: { leaves: { color: "#ba341e", intensity: 1.12 } }
-      }
     },
     bark: "#a87d5e",
     flowers: "#f0a43c",
@@ -1664,38 +1734,40 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
       treeHeightMinM: 18,
       treeHeightMaxM: 26,
       // Sakura-style companion stones around near tree roots & vegetation
-      companionStoneDensity: 0.3
+      companionStoneDensity: 0.3,
+      "plantSizes.shrubs.scaleMin": 0.07,
+      "plantSizes.shrubs.scaleMax": 0.21
     },
-    // Sparse birch woodland: keep full LOD0 across the entire spawn forest (~180-260m for trees, ~32-65m for bushes)
-    // and only switch to LOD1 outside the forest ring.
+    // Balanced birch woodland LOD: keep foreground/midground birch trees sharp at LOD0 (~65-95m)
+    // while letting distant trees & bushes transition cleanly to non-shadow-casting LOD1/LOD2.
     vegetationLod: {
-      treeThresholdScale: 0.22,
-      understoryThresholdScale: 0.25
+      treeThresholdScale: 0.65
     },
-    flowerCoverage: 0.002,
+    flowerCoverage: 0,
     initialLandscapePopulation: {
-      samplingDensityPer1000M2: 42
+      samplingDensityPer1000M2: 28
     },
-    // Outer world beyond the spawn POI radial falloff stays genuinely sparse (just a few distant trees & rocks)
+    // Outer world beyond the spawn POI radial falloff stays genuinely sparse (inspired by desert template:
+    // visible scattered solitary birch trees & occasional stones/shrubs between mountain valleys, never zero and never dense).
     initialLandscape: {
       density: 0.14,
-      edgeDensity: 0.08,
+      edgeDensity: 0.05,
       falloffRatio: 0.55,
       exclusionRadiusScale: 1.0,
-      "contexts.poi": 0.32,
-      "contexts.landform": 0.24,
-      "contexts.openland": 0.1,
-      companionStoneDensity: 0.2,
-      "vegetation.trees": 0.12,
+      "contexts.poi": 0.22,
+      "contexts.landform": 0.16,
+      "contexts.openland": 0.12,
+      companionStoneDensity: 0.08,
+      "vegetation.trees": 0.1,
       "vegetation.grass": 0.016,
       "vegetation.shrubs": 0.03,
-      "vegetation.herbs": 0.04,
-      "vegetation.cover": 0.002,
-      "vegetation.flowers": 0.002,
-      "vegetation.litter": 0.3
+      "vegetation.herbs": 0,
+      "vegetation.cover": 0,
+      "vegetation.flowers": 0,
+      "vegetation.litter": 0
     },
     // Native spawn POI: area weight (`sizeWeight`) + radial falloff (`falloffRatio`) + configurable crown overlap
-    // (`exclusionRadiusScale`) produce 360° cathedral density (~13-15 trees/1000m²) smoothly decaying to sparse horizon!
+    // (`exclusionRadiusScale`) produce 360° cathedral density smoothly decaying to sparse horizon!
     spawnPoi: {
       anchorOffset: [-20.5, 11],
       resolveAnchorOffset: (seed) => resolveOilPaintAutumn(seed).buildingAnchorOffset,
@@ -1716,13 +1788,15 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
         density: [0.95, 1.12],
         exclusionRadiusScale: [0.54, 0.64],
         falloffRatio: [0.54, 0.66],
-        edgeDensity: [0.05, 0.08],
+        edgeDensity: [0.02, 0.04],
         "contexts.poi": [0.92, 1.06],
-        "contexts.openland": [0.08, 0.12],
+        "contexts.openland": [0.03, 0.05],
         "vegetation.trees": [0.88, 0.96],
-        "vegetation.shrubs": [0.07, 0.11],
-        "vegetation.herbs": [0.06, 0.09],
-        "vegetation.litter": [0.4, 0.52],
+        "vegetation.shrubs": [0.24, 0.34],
+        "vegetation.herbs": [0, 0],
+        "vegetation.cover": [0, 0],
+        "vegetation.flowers": [0, 0],
+        "vegetation.litter": [0, 0],
         companionStoneDensity: [0.58, 0.7]
       }
     },
@@ -1730,14 +1804,13 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     animals: {
       enabled: true,
       "fireflies.enabled": false,
+      homeRadius: oilPaintWildlife.homeRadius,
       "species.min": oilPaintWildlife.residents.length + 1,
       "species.max": oilPaintWildlife.residents.length + 1,
-      "species.roe-deer.min": 3,
-      "species.roe-deer.max": 4,
       "species.moose.min": 3,
-      "species.moose.max": 4,
-      "species.deer.min": 2,
-      "species.deer.max": 3,
+      "species.moose.max": 5,
+      "species.deer.min": 3,
+      "species.deer.max": 5,
       "birdCount.min": oilPaintWildlife.flock.min,
       "birdCount.max": oilPaintWildlife.flock.max,
       "birdCount.species": "swan",

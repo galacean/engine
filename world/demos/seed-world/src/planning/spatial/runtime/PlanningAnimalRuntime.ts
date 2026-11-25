@@ -253,9 +253,13 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       this.errors = [];
       return;
     }
+    const templateHomeRadius = templateAnimalPopulation(plan.parameters.worldTemplate?.id)?.homeRadius;
     config = this.library.resolvePopulationConfig({
       ...config,
-      homeRadius: config.homeRadius ?? templateAnimalPopulation(plan.parameters.worldTemplate?.id)?.homeRadius,
+      homeRadius:
+        config.homeRadius !== undefined && templateHomeRadius !== undefined
+          ? Math.min(config.homeRadius, templateHomeRadius)
+          : (config.homeRadius ?? templateHomeRadius),
       ...(config.distribution
         ? {
             distribution: {

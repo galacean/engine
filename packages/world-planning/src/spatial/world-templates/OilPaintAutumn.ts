@@ -286,44 +286,8 @@ export function resolveOilPaintAutumn(seed: number): OilPaintAutumnLayout {
     });
   }
 
-  // 3. Lean GPU-instanced low-poly foreground & lakeside grass tufts (1 draw call total)
+  // 3. Procedural wind-blown grass tufts intentionally disabled for oil-paint (user feedback: harsh wind bending).
   const proceduralPlants: TemplateProceduralPlantInstance[] = [];
-  let tuftIdx = 1;
-  const pushTuft = (x: number, z: number, heightM: number, spreadScale: number, kind: "dry-grass" | "plume-grass") => {
-    if (Math.hypot(x - SPAWN_X, z - SPAWN_Z) < 2.2) return;
-    if (isNearLake(x, z, shoreline, 0.7)) return;
-    proceduralPlants.push({
-      id: `oil-paint-tuft-${tuftIdx++}`,
-      kind,
-      x,
-      z,
-      heightM,
-      spreadScale,
-      yawDegrees: Math.round(range(0, 360))
-    });
-  };
-
-  // Organic 360° grass tufts around spawn (16 total) + 6 tufts along this seed's randomized shoreline
-  for (let i = 0; i < 16; i++) {
-    const ang = (i / 16) * Math.PI * 2 + range(-0.22, 0.22);
-    const dist = range(3.5, 11.5);
-    const tx = SPAWN_X + Math.cos(ang) * dist;
-    const tz = SPAWN_Z + Math.sin(ang) * dist;
-    pushTuft(tx, tz, range(0.46, 0.78), range(1.4, 1.85), rnd() < 0.24 ? "plume-grass" : "dry-grass");
-  }
-  for (let i = 0; i < 6; i++) {
-    const pt = shoreline[(Math.floor(rnd() * segments) + i * 3) % segments];
-    const outX = pt[0] - lakeCx;
-    const outZ = pt[1] - lakeCz;
-    const len = Math.hypot(outX, outZ) || 1;
-    pushTuft(
-      pt[0] + (outX / len) * range(1.0, 2.2),
-      pt[1] + (outZ / len) * range(1.0, 2.2),
-      range(0.55, 0.92),
-      range(1.55, 2.0),
-      i % 2 === 0 ? "plume-grass" : "dry-grass"
-    );
-  }
 
   // 4. Per-Seed symmetric camera-relative cottage/tower POI anchor offset [dx, dz] (world delta from spawn):
   //    Balanced left / right / center-meadow / side-woods distribution so buildings appear equally on either

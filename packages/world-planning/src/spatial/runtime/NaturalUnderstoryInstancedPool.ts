@@ -603,6 +603,8 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
   private lastFovKey = NaN;
   private lastMaxDist = Infinity;
   private lastShadowDist = 0;
+  private lodEnabled = true;
+  private lodDistanceScale = 1;
   private contentRevision = 1;
   private membershipDirty = false;
   private dataDirty = false;
@@ -1073,6 +1075,17 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     }
   }
 
+  /** Applies debug Mesh LOD enablement and distance-scale multiplier (disabled = force LOD0 & infinite range). */
+  setLodTuning(enabled: boolean, distanceScale: number): void {
+    const scale = Number.isFinite(distanceScale) && distanceScale > 0 ? distanceScale : 1;
+    if (this.lodEnabled === enabled && this.lodDistanceScale === scale) return;
+    this.lodEnabled = enabled;
+    this.lodDistanceScale = scale;
+    this.dataDirty = true;
+    this.contentRevision++;
+    this.update(this.lastMaxDist, true, this.lastShadowDist);
+  }
+
   /**
    * Performs cell frustum/distance culling and LOD bucketing.
    * When multi-view culling is registered on the Camera, view 0 keeps strictly camera-frustum-visible
@@ -1160,7 +1173,7 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     const tanHalfFov = Math.tan((fov * Math.PI) / 360);
     const invTwoTanHalfFov = 1 / Math.max(1e-6, 2 * tanHalfFov);
     const invTwoOrthoSize = 1 / Math.max(1e-6, 2 * orthoSize);
-    const maxDist = maxDetailDistanceMetres;
+    const maxDist = this.lodEnabled ? maxDetailDistanceMetres : Infinity;
     const maxDistHysteresis = maxDist + UNDERSTORY_DISTANCE_HYSTERESIS_METRES;
     const maxDistSq = maxDist * maxDist;
     const maxDistHystSq = maxDistHysteresis * maxDistHysteresis;
@@ -1216,15 +1229,20 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
               }
               const shadowEligible = includeOffFrustumShadows && !inFrustum && horizDistSq <= shadowDistSq;
               if (inFrustum || shadowEligible) {
-                let screenHeight: number;
-                if (isOrtho) {
-                  screenHeight = rec.worldSize * invTwoOrthoSize;
+                let candidate: number;
+                if (!this.lodEnabled) {
+                  candidate = rec.lods.length > 0 ? 0 : -1;
                 } else {
-                  const dy = rec.worldCenterY - camY;
-                  const dist = Math.sqrt(horizDistSq + dy * dy);
-                  screenHeight = dist <= 1e-4 ? Infinity : (rec.worldSize * invTwoTanHalfFov) / dist;
+                  let screenHeight: number;
+                  if (isOrtho) {
+                    screenHeight = rec.worldSize * invTwoOrthoSize;
+                  } else {
+                    const dy = rec.worldCenterY - camY;
+                    const dist = Math.sqrt(horizDistSq + dy * dy);
+                    screenHeight = dist <= 1e-4 ? Infinity : (rec.worldSize * invTwoTanHalfFov) / dist;
+                  }
+                  candidate = resolveLodTier(screenHeight * this.lodDistanceScale, prev, rec.lods);
                 }
-                const candidate = resolveLodTier(screenHeight, prev, rec.lods);
                 if (candidate >= 0) {
                   if (inFrustum) {
                     next = candidate;

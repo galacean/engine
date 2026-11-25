@@ -274,6 +274,7 @@ export class PlanningNaturalVegetationRuntime {
   private readonly pendingRemovedLodEntries = new Set<SeedWorldExactInstanceSpatialEntry>();
   private streamX = NaN;
   private streamZ = NaN;
+  private lodEnabled = true;
   private pendingCells: { key: string; x: number; z: number; distance: number }[] = [];
   private readonly groundExclusions = new Map<string, readonly PlanPoint[][]>();
   private readonly stoneObstacleListeners = new Set<
@@ -709,9 +710,11 @@ export class PlanningNaturalVegetationRuntime {
       ...liveCatalog.treeRecipes,
       ...(liveCatalog.shrubRecipes ?? [])
     ] as unknown as readonly (typeof PLANT_SPECIES)[number][];
-    this.excludedAssetIds = new Set(
-      allLiveEntries.filter((entry) => entry.vegetation?.seedWorld === false).map((entry) => entry.id)
-    );
+    const templateExcluded = WORLD_TEMPLATE_ART[this.plan.parameters.worldTemplate?.id ?? ""]?.excludedVegetationIds;
+    this.excludedAssetIds = new Set([
+      ...allLiveEntries.filter((entry) => entry.vegetation?.seedWorld === false).map((entry) => entry.id),
+      ...(templateExcluded ?? [])
+    ]);
 
     for (const entry of allLiveEntries) {
       const baseEntry = baseById.get(entry.id);
@@ -790,20 +793,19 @@ export class PlanningNaturalVegetationRuntime {
         await this.materials.ensureAssets(pendingProcedural);
       }
 
+      const templateGeomOverrides = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.plantGeometryOverrides;
       const entryOverrides = new Map<string, { geometryLodOffset?: number; geometryLeafRetention?: number }>();
       for (const id of pendingProcedural) {
         const metaEntry = this.metadataSources.get(id)?.entry as
           | { geometryLodOffset?: number; geometryLeafRetention?: number }
           | undefined;
-        if (
-          metaEntry?.geometryLodOffset ||
-          (metaEntry?.geometryLeafRetention !== undefined && metaEntry.geometryLeafRetention < 1)
-        ) {
+        const tmplOverride = templateGeomOverrides?.[id];
+        const lodOffset = tmplOverride?.geometryLodOffset ?? metaEntry?.geometryLodOffset;
+        const leafRetention = tmplOverride?.geometryLeafRetention ?? metaEntry?.geometryLeafRetention;
+        if (lodOffset || (leafRetention !== undefined && leafRetention < 1)) {
           entryOverrides.set(id, {
-            ...(metaEntry.geometryLodOffset !== undefined ? { geometryLodOffset: metaEntry.geometryLodOffset } : {}),
-            ...(metaEntry.geometryLeafRetention !== undefined
-              ? { geometryLeafRetention: metaEntry.geometryLeafRetention }
-              : {})
+            ...(lodOffset !== undefined ? { geometryLodOffset: lodOffset } : {}),
+            ...(leafRetention !== undefined ? { geometryLeafRetention: leafRetention } : {})
           });
         }
       }
@@ -1468,6 +1470,27 @@ export class PlanningNaturalVegetationRuntime {
         ]),
         code
       );
+    const art = WORLD_TEMPLATE_ART[this.plan.parameters.worldTemplate?.id ?? ""];
+    const isTree = instance.layerId === "乔木";
+    const palette = isTree ? art?.treeColorPalette : art?.understoryColorPalette;
+    const role = PLANT_SPECIES_MATERIALS[instance.assetId]?.[binding.materialId]?.role;
+    if (palette?.length && (role === "leaf" || role === "shrub" || role === "flower")) {
+      let h = 2166136261 ^ (this.plan.parameters.seed | 0);
+      for (let i = 0; i < instance.id.length; i++) {
+        h ^= instance.id.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      const u = h >>> 0;
+      const swatch = palette[u % palette.length]!;
+      const brightness = 0.88 + (((u >>> 8) % 97) / 96) * 0.26;
+      const scale = binding.authoredColorScale;
+      return new Vector4(
+        swatch[0] * brightness * (scale?.[0] ?? 1),
+        swatch[1] * brightness * (scale?.[1] ?? 1),
+        swatch[2] * brightness * (scale?.[2] ?? 1),
+        code
+      );
+    }
     return new Vector4(
       ...resolvePlantMaterialColor(
         this.materialParameters,
@@ -1853,6 +1876,7 @@ export class PlanningNaturalVegetationRuntime {
     tanHalfFov: number,
     detailMaxDist: number
   ): boolean {
+    if (!this.lodEnabled) return true;
     const dx = record.instance.position[0] - camX;
     const dz = record.instance.position[2] - camZ;
     const horizDistSq = dx * dx + dz * dz;
@@ -1999,7 +2023,9 @@ export class PlanningNaturalVegetationRuntime {
       const isOrtho = !!this.camera.isOrthographic;
       const orthoSize = this.camera.orthographicSize ?? 10;
       const tanHalfFov = Math.tan(((this.camera.fieldOfView ?? 45) * Math.PI) / 360);
-      const detailMaxDist = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres;
+      const detailMaxDist = this.lodEnabled
+        ? SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres
+        : Infinity;
       for (const record of records) {
         if (record.instanced) continue;
         if (
@@ -2045,7 +2071,9 @@ export class PlanningNaturalVegetationRuntime {
     const isOrtho = !!this.camera.isOrthographic;
     const orthoSize = this.camera.orthographicSize ?? 10;
     const tanHalfFov = Math.tan(((this.camera.fieldOfView ?? 45) * Math.PI) / 360);
-    const detailMaxDist = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres;
+    const detailMaxDist = this.lodEnabled
+      ? SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres
+      : Infinity;
     const deadline = Number.isFinite(budgetMs) ? performance.now() + budgetMs : Infinity;
 
     const dematerializeDistSq = (detailMaxDist + 20) * (detailMaxDist + 20);
@@ -2425,9 +2453,11 @@ export class PlanningNaturalVegetationRuntime {
     this.time += dt;
     if (!this.error) {
       this.updateDetailStreaming();
-      this.materializeNearbyCellRecords(this.blockingPresentationDrain ? Infinity : 2.0);
+      this.materializeNearbyCellRecords(this.blockingPresentationDrain || !this.lodEnabled ? Infinity : 2.0);
       this.instancedTrees?.update(Infinity, false, (this.owner?.scene?.shadowDistance ?? 150) + 30);
-      this.instancedUnderstory?.update(SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres);
+      this.instancedUnderstory?.update(
+        this.lodEnabled ? SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres : Infinity
+      );
     }
     if (this.lodMembershipDirty) {
       if (
@@ -2489,7 +2519,7 @@ export class PlanningNaturalVegetationRuntime {
     const position = this.initialDrainPosition ?? this.camera.entity.transform.worldPosition;
     const dx = position.x - this.streamX;
     const dz = position.z - this.streamZ;
-    if (Number.isNaN(this.streamX) || dx * dx + dz * dz >= 1.0) {
+    if (Number.isNaN(this.streamX) || (this.lodEnabled && dx * dx + dz * dz >= 1.0)) {
       this.streamX = position.x;
       this.streamZ = position.z;
       this.refreshDetailResidency(position);
@@ -2498,133 +2528,153 @@ export class PlanningNaturalVegetationRuntime {
     let item = this.pendingCells.shift();
     while (item && this.cells.has(item.key)) item = this.pendingCells.shift();
     if (item) {
-      const { key, x, z } = item;
       const streamX = this.streamX,
         streamZ = this.streamZ;
       const planner = this.planner,
         rocks = this.rockSources;
       const isPresentationDrain = !!this.blockingPresentationDrain;
-      const sliceBudgetMs = isPresentationDrain ? 24 : 2;
+      const fastDrain = isPresentationDrain || !this.lodEnabled;
+      const sliceBudgetMs = fastDrain ? 24 : 2;
       const yieldSlice = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
       const load = async () => {
-        let result: VegetationLandscapePlan;
-        if (typeof planner.compileCellSteps === "function") {
-          const steps = planner.compileCellSteps(x, z);
-          let sliceStartedAt = performance.now();
-          for (;;) {
-            const next = steps.next();
-            if (next.done) {
-              result = next.value;
-              break;
-            }
-            if (performance.now() - sliceStartedAt >= sliceBudgetMs) {
-              await yieldSlice();
-              if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
-              sliceStartedAt = performance.now();
-            }
-          }
-        } else {
-          result = planner.compileCell(x, z);
-        }
-        const rockPrep = (
-          rocks as { prepareInstances?: (instances: readonly LandscapePlantInstance[]) => Promise<void> } | undefined
-        )?.prepareInstances?.(result.instances);
-        if (rockPrep) {
-          await rockPrep;
-        } else {
-          await yieldSlice();
-        }
-        if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
-        const root = this.detailRoot.createChild(`Natural cell ${key}`);
-        try {
-          const records: CellPlantRecord[] = [];
-          const instancedRecords: InstancedUnderstoryRecord[] = [];
-          let sliceStartedAt = performance.now();
-          for (let i = 0; i < result.instances.length; i++) {
-            const record = this.createCellRecord(result.instances[i]!);
-            records.push(record);
-            if (record.instanced) instancedRecords.push(record.instanced);
-            if ((i & 31) === 31 && performance.now() - sliceStartedAt >= sliceBudgetMs) {
-              await yieldSlice();
-              if (this.disposed || this.planner !== planner || this.rockSources !== rocks) {
-                destroyTree(root);
-                return;
+        let sliceStartedAt = performance.now();
+        let current: { key: string; x: number; z: number } | undefined = item;
+        while (current) {
+          const { key, x, z } = current;
+          let result: VegetationLandscapePlan;
+          if (typeof planner.compileCellSteps === "function") {
+            const steps = planner.compileCellSteps(x, z);
+            for (;;) {
+              const next = steps.next();
+              if (next.done) {
+                result = next.value;
+                break;
               }
+              if (performance.now() - sliceStartedAt >= sliceBudgetMs) {
+                await yieldSlice();
+                if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
+                sliceStartedAt = performance.now();
+              }
+            }
+          } else {
+            result = planner.compileCell(x, z);
+          }
+          if (result.instances.length > 0) {
+            const rockPrep = (
+              rocks as
+                | { prepareInstances?: (instances: readonly LandscapePlantInstance[]) => Promise<void> }
+                | undefined
+            )?.prepareInstances?.(result.instances);
+            if (rockPrep) {
+              await rockPrep;
+            } else if (!fastDrain || performance.now() - sliceStartedAt >= sliceBudgetMs) {
+              await yieldSlice();
               sliceStartedAt = performance.now();
             }
-          }
-          const plants: Plant[] = [];
-          const camPos = this.camera?.entity?.transform?.worldPosition;
-          if (camPos && records.length > 0) {
-            const camX = camPos.x ?? 0,
-              camY = camPos.y ?? 0,
-              camZ = camPos.z ?? 0;
-            const isOrtho = !!this.camera.isOrthographic;
-            const orthoSize = this.camera.orthographicSize ?? 10;
-            const tanHalfFov = Math.tan(((this.camera.fieldOfView ?? 45) * Math.PI) / 360);
-            const detailMaxDist = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres;
+          } else if (!fastDrain) {
+            await yieldSlice();
             sliceStartedAt = performance.now();
-            for (const record of records) {
-              if (record.instanced) continue;
-              if (
-                this.isRecordWithinMaterializeRange(
-                  record,
-                  camX,
-                  camY,
-                  camZ,
-                  isOrtho,
-                  orthoSize,
-                  tanHalfFov,
-                  detailMaxDist
-                )
-              ) {
-                record.plant = this.plant(
-                  root,
-                  record.instance,
-                  false,
-                  this.groundingFields,
-                  this.preparedRockGround ?? this.rockGround,
-                  record.groundHeight
-                );
-                plants.push(record.plant);
-                if (performance.now() - sliceStartedAt >= sliceBudgetMs) {
-                  await yieldSlice();
-                  if (this.disposed || this.planner !== planner || this.rockSources !== rocks) {
-                    destroyTree(root);
-                    return;
+          }
+          if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
+          const root = this.detailRoot.createChild(`Natural cell ${key}`);
+          try {
+            const records: CellPlantRecord[] = [];
+            const instancedRecords: InstancedUnderstoryRecord[] = [];
+            for (let i = 0; i < result.instances.length; i++) {
+              const record = this.createCellRecord(result.instances[i]!);
+              records.push(record);
+              if (record.instanced) instancedRecords.push(record.instanced);
+              if ((i & 31) === 31 && performance.now() - sliceStartedAt >= sliceBudgetMs) {
+                await yieldSlice();
+                if (this.disposed || this.planner !== planner || this.rockSources !== rocks) {
+                  destroyTree(root);
+                  return;
+                }
+                sliceStartedAt = performance.now();
+              }
+            }
+            const plants: Plant[] = [];
+            const camPos = this.camera?.entity?.transform?.worldPosition;
+            if (camPos && records.length > 0) {
+              const camX = camPos.x ?? 0,
+                camY = camPos.y ?? 0,
+                camZ = camPos.z ?? 0;
+              const isOrtho = !!this.camera.isOrthographic;
+              const orthoSize = this.camera.orthographicSize ?? 10;
+              const tanHalfFov = Math.tan(((this.camera.fieldOfView ?? 45) * Math.PI) / 360);
+              const detailMaxDist = this.lodEnabled
+                ? SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres
+                : Infinity;
+              for (const record of records) {
+                if (record.instanced) continue;
+                if (
+                  this.isRecordWithinMaterializeRange(
+                    record,
+                    camX,
+                    camY,
+                    camZ,
+                    isOrtho,
+                    orthoSize,
+                    tanHalfFov,
+                    detailMaxDist
+                  )
+                ) {
+                  record.plant = this.plant(
+                    root,
+                    record.instance,
+                    false,
+                    this.groundingFields,
+                    this.preparedRockGround ?? this.rockGround,
+                    record.groundHeight
+                  );
+                  plants.push(record.plant);
+                  if (performance.now() - sliceStartedAt >= sliceBudgetMs) {
+                    await yieldSlice();
+                    if (this.disposed || this.planner !== planner || this.rockSources !== rocks) {
+                      destroyTree(root);
+                      return;
+                    }
+                    sliceStartedAt = performance.now();
                   }
-                  sliceStartedAt = performance.now();
                 }
               }
             }
-          }
-          const stoneColliders = this.attachCompanionStoneColliders(root, records, this.plan);
-          const cell: Cell = {
-            root,
-            plants,
-            records,
-            instancedRecords,
-            stoneColliders,
-            counts: result.diagnostics.layers,
-            populations: result.diagnostics.populations,
-            decorations: result.diagnostics.decorations,
-            visibilityRejected: result.diagnostics.rejected.visibility ?? 0
-          };
-          this.cells.set(key, cell);
-          this.instancedUnderstory?.setCell(key, instancedRecords);
-          this.notifyStoneObstacles(key, cell);
-          this.foliageColors = undefined;
-          if (!this.lodMembershipDirty && plants.length > 0) {
-            for (const plant of plants) {
-              const lodEntry = this.plantLodEntry(plant, true);
-              this.pendingRemovedLodEntries.delete(lodEntry);
-              this.pendingAddedLodEntries.add(lodEntry);
+            const stoneColliders = this.attachCompanionStoneColliders(root, records, this.plan);
+            const cell: Cell = {
+              root,
+              plants,
+              records,
+              instancedRecords,
+              stoneColliders,
+              counts: result.diagnostics.layers,
+              populations: result.diagnostics.populations,
+              decorations: result.diagnostics.decorations,
+              visibilityRejected: result.diagnostics.rejected.visibility ?? 0
+            };
+            this.cells.set(key, cell);
+            this.instancedUnderstory?.setCell(key, instancedRecords);
+            this.notifyStoneObstacles(key, cell);
+            this.foliageColors = undefined;
+            if (!this.lodMembershipDirty && plants.length > 0) {
+              for (const plant of plants) {
+                const lodEntry = this.plantLodEntry(plant, true);
+                this.pendingRemovedLodEntries.delete(lodEntry);
+                this.pendingAddedLodEntries.add(lodEntry);
+              }
             }
+            this.materializeCamX = NaN;
+          } catch (error) {
+            destroyTree(root);
+            throw error;
           }
-          this.materializeCamX = NaN;
-        } catch (error) {
-          destroyTree(root);
-          throw error;
+          if (this.lodEnabled) break;
+          if (performance.now() - sliceStartedAt >= sliceBudgetMs) {
+            await yieldSlice();
+            if (this.disposed || this.planner !== planner || this.rockSources !== rocks || this.lodEnabled) return;
+            sliceStartedAt = performance.now();
+          }
+          current = this.pendingCells.shift();
+          while (current && this.cells.has(current.key)) current = this.pendingCells.shift();
         }
       };
       this.detailTask = load()
@@ -2638,8 +2688,7 @@ export class PlanningNaturalVegetationRuntime {
           if (
             this.planner !== planner ||
             this.rockSources !== rocks ||
-            this.streamX !== streamX ||
-            this.streamZ !== streamZ
+            (this.lodEnabled && (this.streamX !== streamX || this.streamZ !== streamZ))
           )
             this.streamX = NaN;
         });
@@ -2649,9 +2698,13 @@ export class PlanningNaturalVegetationRuntime {
   private refreshDetailResidency(position: { readonly x: number; readonly z: number }): void {
     const profile = SEED_WORLD_POPULATION_RUNTIME_PROFILE,
       cellSize = profile.cellMetres;
-    const distance = profile.detail.materialFade.maximumDistanceMetres;
+    const distance = this.lodEnabled
+      ? profile.detail.materialFade.maximumDistanceMetres
+      : Math.hypot(this.plan.parameters.width, this.plan.parameters.depth);
     const distanceSq = distance * distance;
-    const retainSq = profile.detail.prefetchDistanceMetres * profile.detail.prefetchDistanceMetres;
+    const retainSq = this.lodEnabled
+      ? profile.detail.prefetchDistanceMetres * profile.detail.prefetchDistanceMetres
+      : Infinity;
     const px = position.x,
       pz = position.z;
     const minX = Math.max(0, Math.floor((px - distance) / cellSize));
@@ -3256,6 +3309,24 @@ export class PlanningNaturalVegetationRuntime {
         consumed = true;
       }
     };
+  }
+  /** Applies debug Mesh LOD toggle & distance scale to instanced trees and understory shrubs/stones. */
+  setLodTuning(tuning: { readonly enabled: boolean; readonly distanceScale: number }): void {
+    if (this.disposed) return;
+    const enabledChanged = this.lodEnabled !== tuning.enabled;
+    this.lodEnabled = tuning.enabled;
+    this.instancedTrees?.setLodTuning(tuning.enabled, tuning.distanceScale);
+    this.instancedUnderstory?.setLodTuning(tuning.enabled, tuning.distanceScale);
+    for (const tree of this.trees) tree.lod.setTuning(tuning);
+    for (const cell of this.cells.values()) {
+      for (const plant of cell.plants) plant.lod.setTuning(tuning);
+    }
+    if (enabledChanged) {
+      this.streamX = NaN;
+      this.streamZ = NaN;
+      this.materializeCamX = NaN;
+      this.updateDetailStreaming();
+    }
   }
   /** LOD visibility stays renderer-owned; descriptor identities survive every LOD transition. */
   visitPickBatches(visitor: SeedWorldPickVisitor): void {
