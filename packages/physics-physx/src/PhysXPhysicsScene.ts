@@ -549,12 +549,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   /**
    * @internal
-   * Queue removal for the next simulation step. Pairs for a collider that stays removed end silently.
+   * Queue removal for active trigger pairs. Pairs for a collider that stays removed end silently.
    * If the same collider ID returns before the step, rediscovered pairs continue and the others emit exits.
    */
   _removeShape(id: number): void {
     this._clearContactsForShape(id);
-    if (this._activeTriggers.length > 0) {
+    if (this._hasActiveTrigger(id)) {
       this._shapeChanges.set(id, ShapeChange.Removed);
     } else {
       this._shapeChanges.delete(id);
@@ -564,7 +564,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   /** @internal Reconcile active trigger and contact pairs across a same-actor shape replacement. */
   _replaceShape(id: number): void {
-    if (this._activeTriggers.length > 0 || this._activeContacts.has(id)) {
+    if (this._activeContacts.has(id) || this._hasActiveTrigger(id)) {
       this._shapeChanges.set(id, ShapeChange.Reconciled);
     }
   }
@@ -635,6 +635,15 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       this._readHit(hits, 0, outHitResult);
     }
     return true;
+  }
+
+  private _hasActiveTrigger(id: number): boolean {
+    const triggers = this._activeTriggers;
+    for (let i = 0, n = triggers.length; i < n; i++) {
+      const trigger = triggers[i];
+      if (trigger.shape0Id === id || trigger.shape1Id === id) return true;
+    }
+    return false;
   }
 
   private _syncShapeChanges(): void {
