@@ -5,6 +5,7 @@ import { Engine } from "../Engine";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { Collider } from "./Collider";
 import type { PhysicsScene } from "./PhysicsScene";
+import { PhysicsUtils } from "./PhysicsUtils";
 
 /**
  * A collider based on a triangle mesh or a convex hull.
@@ -155,7 +156,7 @@ export class MeshCollider extends Collider {
     const mesh = this._mesh;
     if (!mesh) return null;
 
-    const scaleChanged = this._scaleChanged(scale);
+    const scaleChanged = PhysicsUtils.differsF32(scale, this._nativeScale);
     if (scaleChanged && !MeshCollider._isValidScale(scale)) {
       return null;
     }

@@ -182,6 +182,63 @@ describe("MeshCollider", () => {
     expect(physics.raycast(ray, hit) && hit.collider === collider).toBe(true);
   });
 
+  it("keeps native geometry and local pose when rotation preserves inherited mesh scale", () => {
+    root.transform.setScale(-2, 3, -2);
+    const child = root.createChild("rotating body");
+    const body = child.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const mesh = child.addComponent(MeshCollider);
+    mesh.mesh = createCubeMesh(engine);
+    mesh.convex = true;
+    mesh.center.x = 3;
+
+    const point = new Vector3();
+    const hit = new HitResult();
+    const ray = new Ray(new Vector3(), new Vector3(0, -1, 0));
+    const expectHit = () => {
+      Vector3.transformCoordinate(mesh.center, child.transform.worldMatrix, point);
+      ray.origin.set(point.x, 5, point.z);
+      expect(physics.raycast(ray, hit) && hit.collider === mesh).toBe(true);
+    };
+    expectHit();
+    const shape = mesh["_native"]!;
+    const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
+    const poseWrites = vi.spyOn(shape, "setLocalPose");
+    const massUpdates = vi.spyOn(body["_nativeActor"]!, "updateMassAndInertia");
+    for (const angle of [11.1, 0]) {
+      child.transform.setRotation(0, angle, 0);
+      expectHit();
+    }
+    expect(geometryWrites).not.toHaveBeenCalled();
+    expect(poseWrites).not.toHaveBeenCalled();
+    expect(massUpdates).not.toHaveBeenCalled();
+  });
+
+  it.each(["static", "same entity", "compound"])("keeps the local mesh center under a rotated mirror (%s)", (owner) => {
+    root.transform.setScale(-1, 1, 1);
+    const child = root.createChild("rotated mesh");
+    child.transform.setRotation(0, 0, 45);
+    if (owner !== "static") {
+      const bodyEntity = owner === "compound" ? root : child;
+      bodyEntity.addComponent(Rigidbody).isKinematic = true;
+    }
+    const collider = child.addComponent(MeshCollider);
+    collider.mesh = createCubeMesh(engine, 0.25);
+    collider.center.x = 3;
+
+    const center = new Vector3();
+    const ray = new Ray(new Vector3(), new Vector3(0, 0, -1));
+    const hit = new HitResult();
+    for (const shift of [0, 1]) {
+      child.transform.position.y = shift;
+      Vector3.transformCoordinate(collider.center, child.transform.worldMatrix, center);
+      ray.origin.set(center.x, center.y, 5);
+      expect(physics.raycast(ray, hit) && hit.collider === collider).toBe(true);
+      ray.origin.set(0, shift, 5);
+      expect(physics.raycast(ray)).toBe(false);
+    }
+  });
+
   it("shares a cook across instances of a loaded prefab", async () => {
     const meshUrl = URL.createObjectURL(
       new Blob(

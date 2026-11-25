@@ -36,9 +36,7 @@ export class Collider extends Component {
   private static _idGenerator = 0;
   private static readonly _shearToleranceSquared = 1e-8;
   private static readonly _tempPosition = new Vector3();
-  private static readonly _tempBodyOffset = new Vector3();
   private static readonly _tempRotation = new Quaternion();
-  private static readonly _tempInverseBodyRotation = new Quaternion();
   private static readonly _tempScale = new Vector3();
 
   /**
@@ -306,7 +304,7 @@ export class Collider extends Component {
     if (poseOnly) {
       const body = this._attachedBody;
       if (body) {
-        this._syncShapePose(this._native!, body, transform.lossyWorldScale, false);
+        this._syncShapePose(this._native!, body, false);
       } else {
         this._syncStaticActor(transform);
       }
@@ -348,7 +346,7 @@ export class Collider extends Component {
     const attachedActor = this._nativeActor;
     const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform);
     const replaced = shape !== previousShape;
-    this._syncShapePose(shape, body, lossyScale, replaced);
+    this._syncShapePose(shape, body, replaced);
     if (!attachedActor) {
       actor.addShape(shape);
       if (body) {
@@ -558,15 +556,28 @@ export class Collider extends Component {
     return actor;
   }
 
-  private _syncShapePose(shape: IPhysicsShape, body: Rigidbody | null, scale: Vector3, force: boolean): void {
-    const position = Collider._tempPosition;
+  private _syncShapePose(shape: IPhysicsShape, body: Rigidbody | null, force: boolean): void {
+    const entity = this.entity;
+    const actorEntity = body?.entity ?? entity;
+    const position = Collider._tempPosition.copyFrom(this._center);
     const rotation = Collider._tempRotation.set(0, 0, 0, 1);
-    Vector3.multiply(this._center, scale, position);
-
-    if (body) {
-      const entity = this.entity;
-      const bodyEntity = body.entity;
-      entity !== bodyEntity && this._transformPoseToBodySpace(entity, bodyEntity, position, rotation);
+    // Carry the local center through the same transforms as a child placed at that point.
+    for (let current = entity; current !== actorEntity; current = current.parent!) {
+      const transform = current.transform;
+      Vector3.transformToVec3(position, transform.localMatrix, position);
+      Quaternion.multiply(transform.rotationQuaternion, rotation, rotation);
+    }
+    if (position.x !== 0 || position.y !== 0 || position.z !== 0) {
+      const transform = actorEntity.transform;
+      const parent = actorEntity.parent;
+      if (parent && !parent.transform._getWorldUniformScaling()) {
+        // The native actor already applies world rotation, but inherited scale may mix the local axes.
+        const e = transform._getScaleMatrix().elements;
+        const { x, y, z } = position;
+        position.set(e[0] * x + e[3] * y + e[6] * z, e[1] * x + e[4] * y + e[7] * z, e[2] * x + e[5] * y + e[8] * z);
+      } else {
+        position.multiply(transform.lossyWorldScale);
+      }
     }
 
     const nativePosition = this._nativePosition;
@@ -581,29 +592,6 @@ export class Collider extends Component {
       shape.setLocalPose(position, rotation);
       if (!this._isTrigger) this._attachedBody?._markMassDirty();
     }
-  }
-
-  private _transformPoseToBodySpace(entity: Entity, body: Entity, position: Vector3, rotation: Quaternion): void {
-    // Accumulate the child origin and rotation in the body's local frame, where rigid body motion cancels out.
-    const offset = Collider._tempBodyOffset.set(0, 0, 0);
-    for (let current = entity; current !== body; current = current.parent!) {
-      const transform = current.transform;
-      Vector3.transformToVec3(offset, transform.localMatrix, offset);
-      Quaternion.multiply(transform.rotationQuaternion, rotation, rotation);
-    }
-    const bodyTransform = body.transform;
-    const parent = body.parent;
-    if (parent && !parent.transform._getWorldUniformScaling()) {
-      // Inherited shear still affects the child origin even though the native shape ignores shear.
-      const inverseRotation = Collider._tempInverseBodyRotation;
-      Quaternion.invert(bodyTransform.worldRotationQuaternion, inverseRotation);
-      Vector3.transformNormal(offset, bodyTransform.worldMatrix, offset);
-      Vector3.transformByQuat(offset, inverseRotation, offset);
-    } else {
-      Vector3.multiply(offset, bodyTransform.lossyWorldScale, offset);
-    }
-    Vector3.transformByQuat(position, rotation, position);
-    position.add(offset);
   }
 
   private _getGeometryScale(lossyScale: Vector3, worldMatrix: Matrix): Vector3 {
