@@ -182,7 +182,7 @@ describe.each(runtimeModes)("MeshColliderShape PhysX (%s)", (runtimeMode) => {
       const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
       meshShape.mesh = mesh;
 
-      const material = new PhysicsMaterial();
+      const material = new PhysicsMaterial(engine);
       material.staticFriction = 0.5;
       material.dynamicFriction = 0.3;
       material.bounciness = 0.2;

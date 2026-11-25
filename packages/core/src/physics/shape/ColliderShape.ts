@@ -4,7 +4,7 @@ import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
 import { Engine } from "../../Engine";
 
@@ -22,7 +22,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   _nativeShape: IColliderShape | null;
   @ignoreClone
   protected _id: number;
-  @assignmentClone
+  @ignoreClone
   protected _material: PhysicsMaterial | null = null;
   @ignoreClone
   private _materialInstanced: boolean = false;
@@ -64,8 +64,9 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   /**
-   * Contact offset for this shape, the value must be greater than or equal to 0.
+   * Contact offset for this shape. Finite negative values are clamped to 0.
    * @defaultValue 0.02
+   * @throws When the value is not finite.
    */
   get contactOffset(): number {
     return this._contactOffset;
@@ -85,7 +86,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   /**
    * The assigned material, or null to use the shared default material.
    * @defaultValue null
-   * @remarks This property returns null for the shared default. Use {@link getInstanceMaterial} to obtain an instance.
+   * @remarks Retains an assigned material until replaced or the shape is destroyed. Use {@link getInstanceMaterial} to obtain a per-shape instance.
    */
   get material(): PhysicsMaterial | null {
     return this._material;
@@ -94,6 +95,8 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   set material(value: PhysicsMaterial | null) {
     if (this._material !== value) {
       this._materialInstanced = false;
+      this._material?._addReferCount(-1);
+      value?._addReferCount(1);
       this._material = value;
       this._nativeShape?.setMaterial(this._getNativeMaterial());
     }
@@ -155,13 +158,18 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   /**
    * Get the instance material for this shape.
-   * @remarks On first use, assigns a clone of {@link material}, or a new material with default properties if null.
-   * Reuses the instance until a different material or null is assigned.
-   * @returns The instance material
+   * @remarks Clones {@link material} or creates a default {@link PhysicsMaterial} when not yet instanced, assigns it,
+   * and reuses it until {@link material} is set to a different material or null.
+   * @param engine - Engine that owns the instance; must match {@link material} if one is already assigned
+   * @returns The shape-specific material instance
+   * @throws When {@link material} belongs to another engine.
    */
-  getInstanceMaterial(): PhysicsMaterial {
+  getInstanceMaterial(engine: Engine): PhysicsMaterial {
+    if (this._material && this._material.engine !== engine) {
+      throw new Error("The physics material belongs to another engine.");
+    }
     if (!this._materialInstanced) {
-      this.material = this._material ? this._material.clone() : new PhysicsMaterial();
+      this.material = this._material ? this._material.clone() : new PhysicsMaterial(engine);
       this._materialInstanced = true;
     }
     return this._material!;
@@ -193,10 +201,12 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   /**
    * @internal
-   * @inheritdoc
+   * @inheritDoc
    */
   _onClone(target: ColliderShape): void {
-    // The clone shares its material until it requests an instance
+    // _material is @ignoreClone: assign it through the setter before _cloneNativeShape, which may build the native shape from the target's material.
+    target.material = this._material;
+    // Even a reused target sharing this material must request its own instance again.
     target._materialInstanced = false;
     this._cloneNativeShape(target);
   }
@@ -209,6 +219,8 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
       this._nativeShape.destroy();
       this._nativeShape = null;
     }
+    this._material?._addReferCount(-1);
+    this._material = null;
     delete Engine._physicalObjectsMap[this._id];
   }
 
@@ -217,7 +229,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   protected _getNativeMaterial(): IPhysicsMaterial {
-    return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial._nativeMaterial;
+    return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial;
   }
 
   protected _syncNative(): void {
@@ -236,7 +248,6 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     nativeShape.setContactOffset(this._contactOffset);
     nativeShape.setIsTrigger(this._isTrigger);
     nativeShape.setIsSceneQuery(this._isSceneQuery);
-    nativeShape.setMaterial(this._getNativeMaterial());
   }
 
   @ignoreClone

@@ -45,9 +45,9 @@ function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: n
 
   const physicsBox = new BoxColliderShape();
   physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
-  physicsBox.getInstanceMaterial().staticFriction = 0.1;
-  physicsBox.getInstanceMaterial().dynamicFriction = 0.2;
-  physicsBox.getInstanceMaterial().bounciness = 1;
+  physicsBox.getInstanceMaterial(rootEntity.engine).staticFriction = 0.1;
+  physicsBox.getInstanceMaterial(rootEntity.engine).dynamicFriction = 0.2;
+  physicsBox.getInstanceMaterial(rootEntity.engine).bounciness = 1;
   physicsBox.isTrigger = true;
 
   const boxCollider = boxEntity.addComponent(StaticCollider);
@@ -98,9 +98,9 @@ WebGLEngine.create({
 
   const physicsSphere = new SphereColliderShape();
   physicsSphere.radius = radius;
-  physicsSphere.getInstanceMaterial().staticFriction = 0.1;
-  physicsSphere.getInstanceMaterial().dynamicFriction = 0.2;
-  physicsSphere.getInstanceMaterial().bounciness = 1;
+  physicsSphere.getInstanceMaterial(engine).staticFriction = 0.1;
+  physicsSphere.getInstanceMaterial(engine).dynamicFriction = 0.2;
+  physicsSphere.getInstanceMaterial(engine).bounciness = 1;
 
   const sphereCollider = sphereEntity.addComponent(DynamicCollider);
   sphereCollider.isKinematic = true;
