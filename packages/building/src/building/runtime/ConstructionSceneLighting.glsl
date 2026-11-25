@@ -8,6 +8,7 @@
 #include "ShaderLibrary/PBR/VaryingsPBR.glsl"
 #include "ShaderLibrary/PBR/LightDirectPBR.glsl"
 #include "ShaderLibrary/PBR/LightIndirectPBR.glsl"
+#include "ShaderLibrary/Common/OilPaintBrush.glsl"
 
 // Building-owned light metadata is refreshed at the camera boundary, after the
 // scene has packed its point-light list. Masks encode identity, never position.
@@ -92,6 +93,9 @@ void masonryDirectRadiance(Varyings v, SurfaceData s, BSDFData bsdf, vec3 legacy
 // The material producer supplies LINEAR albedo and a world-space surface normal.
 // Use the scene's actual PBR/IBL/shadow implementation, including runtime macros.
 vec3 masonrySceneLight(Varyings lightingVaryings, vec3 albedo, vec3 normalWS, vec3 positionWS, float roughness) {
+    #ifdef SCENE_OIL_PAINT_STYLE
+      applyOilPaintBrushSurface(positionWS, normalWS, 0.34, 0.0, albedo, normalWS, roughness);
+    #endif
     SurfaceData s;
     s.albedoColor=albedo;
     s.emissiveColor=vec3(0.0);
@@ -138,6 +142,9 @@ vec3 masonryResidentSceneLight(vec3 albedo,vec3 normalWS,vec3 positionWS,float r
     return masonrySceneLight(lightingVaryings,albedo,normalWS,positionWS,roughness);
 }
 vec3 masonryFarProxyLight(vec3 albedo, vec3 normalWS, vec3 positionWS) {
+    #ifdef SCENE_OIL_PAINT_STYLE
+      applyOilPaintBrushSurface(positionWS, normalWS, 0.34, albedo, normalWS);
+    #endif
     Varyings lightingVaryings = initMasonryLightingVaryings(normalWS, positionWS);
     SurfaceData s;
     s.albedoColor = albedo;

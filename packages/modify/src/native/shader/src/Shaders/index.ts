@@ -28,6 +28,7 @@ import PostProcess_FinalSRGB from "./PostProcess/FinalSRGB.shader";
 import PostProcess_SunLensFlare from "./PostProcess/SunLensFlare.shader";
 import PostProcess_SunLensFlareVisibility from "./PostProcess/SunLensFlareVisibility.shader";
 import PostProcess_Uber from "./PostProcess/Uber.shader";
+import PostProcess_VolumetricLight from "./PostProcess/VolumetricLight.shader";
 import Sky_BackgroundTexture from "./Sky/BackgroundTexture.shader";
 import Sky_SkyProcedural from "./Sky/SkyProcedural.shader";
 import Sky_Skybox from "./Sky/Skybox.shader";
@@ -72,6 +73,7 @@ export const shaders: IShaderSource[] = [
   { source: PostProcess_SunLensFlare, path: "Shaders/PostProcess/SunLensFlare.shader" },
   { source: PostProcess_SunLensFlareVisibility, path: "Shaders/PostProcess/SunLensFlareVisibility.shader" },
   { source: PostProcess_Uber, path: "Shaders/PostProcess/Uber.shader" },
+  { source: PostProcess_VolumetricLight, path: "Shaders/PostProcess/VolumetricLight.shader" },
   { source: Sky_BackgroundTexture, path: "Shaders/Sky/BackgroundTexture.shader" },
   { source: Sky_SkyProcedural, path: "Shaders/Sky/SkyProcedural.shader" },
   { source: Sky_Skybox, path: "Shaders/Sky/Skybox.shader" },

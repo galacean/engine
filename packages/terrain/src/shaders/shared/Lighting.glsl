@@ -3,6 +3,7 @@
 
 #include "ShaderLibrary/PBR/LightDirectPBR.glsl"
 #include "ShaderLibrary/PBR/LightIndirectPBR.glsl"
+#include "ShaderLibrary/Common/OilPaintBrush.glsl"
 #include "shared/Shadow.glsl"
 
 struct TerrainProjectLightingResult {
@@ -36,6 +37,24 @@ TerrainProjectLightingResult evaluateTerrainProjectLightingWithShadow(Varyings v
     surfaceData.albedoColor,
     result.shadowAttenuation
   );
+  #ifdef SCENE_OIL_PAINT_STYLE
+    #ifdef TERRAIN_PROJECT_SURFACE_EVALUATION_INCLUDED
+      float oilBrushScale = 0.32;
+      float oilPaletteStrength = 0.0;
+    #else
+      float oilBrushScale = 0.42;
+      float oilPaletteStrength = 0.80;
+    #endif
+    applyOilPaintBrushSurface(
+      surfaceData.position,
+      surfaceData.normal,
+      oilBrushScale,
+      oilPaletteStrength,
+      surfaceData.albedoColor,
+      surfaceData.normal,
+      surfaceData.roughness
+    );
+  #endif
 
   BSDFData bsdfData;
   initBSDFData(surfaceData, bsdfData);

@@ -1,4 +1,4 @@
-.sp-template-dialog { width:min(1080px,calc(100vw - 64px)); max-height:calc(100vh - 64px); border:1px solid #bccbb9; border-radius:22px; padding:28px; color:#344d43; background:#f4f3e9; box-shadow:0 32px 100px #07172266; }
+.sp-template-dialog { width:min(1240px,calc(100vw - 48px)); max-height:calc(100vh - 48px); border:1px solid #bccbb9; border-radius:22px; padding:28px; color:#344d43; background:#f4f3e9; box-shadow:0 32px 100px #07172266; }
 .sp-template-dialog::backdrop { background:#0b1d32a3; backdrop-filter:blur(5px); }
 .sp-template-dialog[open] { display:flex; flex-direction:column; box-sizing:border-box; }
 .sp-template-dialog>header,.sp-template-dialog>p,.sp-template-dialog>footer { flex-shrink:0; }
@@ -9,7 +9,7 @@
 .sp-template-dialog button { cursor:pointer; color:inherit; font:inherit; }
 .sp-template-dialog [data-close] { border:0; background:transparent; font-size:22px; padding:10px; }
 .sp-template-intro { font-size:13px; color:#627568; margin:8px 0 22px; }
-.sp-template-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; }
+.sp-template-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; }
 .sp-template-grid button { display:flex; flex-direction:column; text-align:left; padding:0 0 14px; border:2px solid transparent; background:#fffaf0; border-radius:13px; overflow:hidden; transition:transform .15s,border-color .15s; }
 .sp-template-grid button:hover { transform:translateY(-3px); }
 .sp-template-grid button[aria-pressed=true] { border-color:#567b60; box-shadow:0 0 0 2px #d2dfcc; }
@@ -24,7 +24,7 @@
 .sp-template-dialog footer p { width:100%; margin:0; color:#a24335; }
 .sp-template-dialog footer p:empty { display:none; }
 .sp-template-dialog footer small { width:100%; color:#788375; }
-@media(max-width:1000px) { .sp-template-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:1120px) { .sp-template-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 @media(max-width:600px) { .sp-template-dialog { padding:18px; width:calc(100vw - 24px); } .sp-template-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
 body[data-mode="template"] { background:#000; color:#f5f5f0; }

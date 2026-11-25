@@ -22,7 +22,9 @@ export function placePoiTrees(
     ...(plan.plazas ?? []).map((p) => p.outline)
   ];
   plan.landscapes = [];
-  for (const site of plan.poiDistribution!.sites.filter((s) => s.active && !s.memberIds.length)) {
+  for (const site of plan.poiDistribution!.sites.filter(
+    (s) => s.active && !s.memberIds.length && s.id !== "poi-template-spawn"
+  )) {
     const id = `tree-${site.id}`,
       seed = plan.parameters.seed,
       tree = treeDimensions(id, poiTreeHeight(seed, id, site.id, config, edits, undefined, site.domainId), site.center),

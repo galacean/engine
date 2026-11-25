@@ -6,7 +6,7 @@ import type { PublishedPlanningSeedScene } from "../../../spatial/runtime/Planni
 import { planningPresentedSolids } from "../../../spatial/runtime/PlanningPresentedSolids.ts";
 import type { RockFormationSettings } from "./Settings.ts";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
-import { rockFormationPlacements } from "./Placement.ts";
+import { rockGrassPlacements } from "./Placement.ts";
 import { rockGrassExclusions } from "./GrassExclusions.ts";
 import { sampleSeedWorldHeight } from "../../../runtime/SeedWorldFields.ts";
 
@@ -84,7 +84,7 @@ export async function prepareRockFormationPublication(
     masonry = await current.masonry?.prepareRockSupports(plan, meshes, revision, signal);
     signal.throwIfAborted();
     grass = current.world.population.prepareRockGrass(
-      rockFormationPlacements(presented, meshes),
+      rockGrassPlacements(presented, meshes),
       rockGrassExclusions(plan, current.data.fields, (x, y, z) => current.navigation.samplePointIsUnderwater(x, y, z))
     );
     return {

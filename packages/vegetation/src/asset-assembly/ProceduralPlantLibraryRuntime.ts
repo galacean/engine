@@ -135,19 +135,21 @@ async function loadValidatedPlantAsset(
 }
 
 function getCompiledSpecimenCached(
-  cache: Map<ProceduralPlantAsset, Map<number, ReturnType<typeof compileSpecimen>>>,
+  cache: Map<ProceduralPlantAsset, Map<string, ReturnType<typeof compileSpecimen>>>,
   asset: ProceduralPlantAsset,
-  lod: number
+  lod: number,
+  leafRetention = 1
 ): ReturnType<typeof compileSpecimen> {
-  let byLod = cache.get(asset);
-  if (!byLod) {
-    byLod = new Map();
-    cache.set(asset, byLod);
+  let byKey = cache.get(asset);
+  if (!byKey) {
+    byKey = new Map();
+    cache.set(asset, byKey);
   }
-  let compiled = byLod.get(lod);
+  const key = `${lod}:${leafRetention.toFixed(4)}`;
+  let compiled = byKey.get(key);
   if (!compiled) {
-    compiled = compileSpecimen(asset, lod);
-    byLod.set(lod, compiled);
+    compiled = compileSpecimen(asset, lod, leafRetention);
+    byKey.set(key, compiled);
   }
   return compiled;
 }
@@ -201,6 +203,10 @@ export class ProceduralPlantLibraryRuntime {
     /** Production consumers borrow a finite palette and authored LOD without exhibition UI. */
     assetIds?: ReadonlySet<string>;
     lod?: number;
+    entryOverrides?: ReadonlyMap<
+      string,
+      Pick<ProceduralPlantLibraryEntry, "geometryLodOffset" | "geometryLeafRetention">
+    >;
     populationOnly?: boolean;
     onProgress?: (loaded: number, total: number) => void;
   }): Promise<ProceduralPlantLibraryRuntime> {
@@ -241,7 +247,7 @@ export class ProceduralPlantLibraryRuntime {
           )
         )
       );
-      const compiledCache = new Map<ProceduralPlantAsset, Map<number, ReturnType<typeof compileSpecimen>>>();
+      const compiledCache = new Map<ProceduralPlantAsset, Map<string, ReturnType<typeof compileSpecimen>>>();
       let sliceStartedAt = performance.now();
       for (const { entry, source } of resolvedEntries) {
         const asset = loadedAssets.get(source.id)!;
@@ -263,11 +269,18 @@ export class ProceduralPlantLibraryRuntime {
         const colors = new Map(
           activeSlots.map(([id]) => [id, options.colorForSlot(appearanceAsset, entry.materialAliases?.[id] ?? id)])
         );
-        const base = getCompiledSpecimenCached(compiledCache, asset, 0);
+        const override = options.entryOverrides?.get(entry.id);
+        const lodOffset = Math.max(0, Math.floor(override?.geometryLodOffset ?? entry.geometryLodOffset ?? 0));
+        const baseRetention = override?.geometryLeafRetention ?? entry.geometryLeafRetention ?? 1;
+        const base = getCompiledSpecimenCached(compiledCache, asset, 0, 1);
         const placement = instantiateSpecimen(base, entry);
-        const lod = Math.min(options.lod ?? 0, asset.geometryLods.length - 1);
+        const lod = Math.min((options.lod ?? 0) + lodOffset, asset.geometryLods.length - 1);
+        const effectiveRetention =
+          baseRetention < 0.999 && lod >= 3 && lodOffset < 3 ? Math.min(1, baseRetention * 2.4) : baseRetention;
         const geometry =
-          lod === 0 ? placement : instantiateSpecimen(getCompiledSpecimenCached(compiledCache, asset, lod), entry);
+          lod === 0 && effectiveRetention >= 0.999
+            ? placement
+            : instantiateSpecimen(getCompiledSpecimenCached(compiledCache, asset, lod, effectiveRetention), entry);
         runtime._specimens.push({
           entry: { ...entry, parameterFile: source.parameterFile },
           asset,
@@ -910,7 +923,7 @@ function isFlowerSpecimen(asset: ProceduralPlantAsset): boolean {
   return Object.values(asset.materialSlots).some((name) => /^flowers([_.]\d+)?$/i.test(name));
 }
 
-function compileSpecimen(asset: ProceduralPlantAsset, lod: number) {
+function compileSpecimen(asset: ProceduralPlantAsset, lod: number, leafRetention = 1) {
   const leaves = new Set(
     Object.entries(asset.materialSlots)
       .filter(([, name]) => asset.category === "Trees" && !/^(bark|wood)([_.]\d+)?$/i.test(name))
@@ -934,7 +947,7 @@ function compileSpecimen(asset: ProceduralPlantAsset, lod: number) {
     reference = { windHeight, parts: flower ? parts : attachPlantCanopyOpticalDepth(parts, leaves) };
     canopyReferences.set(asset, reference);
   }
-  const parts =
+  const rawParts =
     lod === 0 && reference
       ? reference.parts
       : buildProceduralPlantGeometry(
@@ -945,6 +958,27 @@ function compileSpecimen(asset: ProceduralPlantAsset, lod: number) {
           flower ? "flower" : "tree",
           flower ? TERRAIN_FLOWER_WIND_RESPONSE_PROFILE.maximumBendRadians : 0
         );
+  let parts = rawParts;
+  if (leafRetention > 0 && leafRetention < 0.999 && leaves.size > 0) {
+    let leafOrdinal = 0;
+    const pruned: PlantPartMesh[] = [];
+    let firstLeaf: PlantPartMesh | undefined;
+    let keptLeaves = 0;
+    for (const part of rawParts) {
+      if (!leaves.has(part.materialId)) {
+        pruned.push(part);
+        continue;
+      }
+      if (!firstLeaf) firstLeaf = part;
+      const hash01 = (Math.imul(leafOrdinal++ + 1, 2654435761) >>> 0) / 0x100000000;
+      if (hash01 < leafRetention) {
+        pruned.push(part);
+        keptLeaves++;
+      }
+    }
+    if (keptLeaves === 0 && firstLeaf) pruned.push(firstLeaf);
+    parts = pruned;
+  }
   const geometry = mergePlantGeometryByMaterial(
     reference && !flower && lod !== 0 ? attachPlantCanopyOpticalDepth(parts, leaves, reference.parts) : parts
   );

@@ -18,7 +18,7 @@ import type {
   SeedWorldAnimalService
 } from "../../../../agent-adapter/ports/SeedWorldAnimalService.ts";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
-import type { PlanningAnimalNavigation } from "./PlanningAnimalHabitat.ts";
+import type { PlanningAnimalDynamicObstacle, PlanningAnimalNavigation } from "./PlanningAnimalHabitat.ts";
 import type { PlanningAnimalPanelSnapshot } from "./PlanningAnimalPanel.ts";
 import type { PlanningAnimalRuntime, PlanningAnimalInteractions } from "./PlanningAnimalRuntime.ts";
 
@@ -41,6 +41,8 @@ type Runtime = Pick<
   | "observationPosition"
   | "inspect"
   | "shoo"
+  | "setDynamicObstacles"
+  | "clearDynamicObstacles"
 > &
   Partial<Pick<PlanningAnimalRuntime, "prepareShaderWarmup">>;
 type RuntimeModule = {
@@ -73,6 +75,7 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
   private attempted = false;
   private errors: string[] = [];
   private readonly cleanups = new Set<Promise<void>>();
+  private readonly dynamicObstacles = new Map<string, readonly PlanningAnimalDynamicObstacle[]>();
 
   constructor(
     private readonly parent: Entity,
@@ -120,6 +123,20 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
     this.advance = (seconds) => this.update(seconds);
   }
 
+  /** Forward streamed companion-stone (or other dynamic) obstacle updates to the animal habitat. */
+  setDynamicObstacles(groupKey: string, obstacles?: readonly PlanningAnimalDynamicObstacle[]): void {
+    if (this.disposed) return;
+    if (obstacles?.length) this.dynamicObstacles.set(groupKey, obstacles);
+    else this.dynamicObstacles.delete(groupKey);
+    this.runtime?.setDynamicObstacles(groupKey, obstacles);
+  }
+
+  /** Clear all dynamic obstacle groups (e.g. before binding a new world publication's vegetation runtime). */
+  clearDynamicObstacles(): void {
+    this.dynamicObstacles.clear();
+    this.runtime?.clearDynamicObstacles();
+  }
+
   /** Pre-import the animal runtime chunk during startup raster/terrain work when animals are enabled. */
   preloadModule(): void {
     if (this.disposed || this.module || this.loading || this.attempted) return;
@@ -164,6 +181,9 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
       if (this.module) {
         try {
           this.runtime = new this.module.PlanningAnimalRuntime(this.parent, this.observer, this.interactions);
+          for (const [groupKey, obstacles] of this.dynamicObstacles) {
+            this.runtime.setDynamicObstacles(groupKey, obstacles);
+          }
         } catch (error) {
           this.fail(error);
           return;

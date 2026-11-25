@@ -15,13 +15,18 @@ import type { WaterSourceAuthoring } from "./NativeWaterEditor";
 export function mountNativeWaterPanel(
   project: RuntimeProjectSession,
   editor: RuntimeNativeEditor,
-  options: { close?: () => Promise<void> } = {}
+  options: { close?: () => Promise<void>; container?: HTMLElement } = {}
 ) {
-  const panel = document.createElement("details");
+  const embedded = Boolean(options.container);
+  const panel = document.createElement(embedded ? "div" : "details");
   panel.id = "native-water-editor";
-  panel.style.cssText =
-    "position:fixed;right:18px;top:20px;z-index:46;width:280px;max-height:75vh;overflow:auto;padding:12px;background:#20282ef5;color:#edf1f2;border-radius:8px;font:13px system-ui;line-height:1.8";
-  panel.innerHTML = `<summary>水体组件</summary>
+  if (embedded) {
+    panel.style.cssText = "width:100%;line-height:1.65";
+  } else {
+    panel.style.cssText =
+      "position:fixed;right:18px;top:20px;z-index:46;width:280px;max-height:75vh;overflow:auto;padding:12px;background:#20282ef5;color:#edf1f2;border-radius:8px;font:13px system-ui;line-height:1.8";
+  }
+  panel.innerHTML = `${embedded ? "" : "<summary>水体组件</summary>"}
     <label>水体 <select data-body aria-label="水体" style="width:100%"></select></label>
     <label data-shape>水位偏移（米） <input data-value type="number" step="0.05" aria-label="水位偏移" style="width:100%"></label>
     <label><input data-visible type="checkbox">显示水面</label> <label><input data-enabled type="checkbox">启用水体</label>
@@ -35,7 +40,7 @@ export function mountNativeWaterPanel(
     <input data-texture aria-label="纹理资源" style="width:100%" placeholder="留空以清空此槽"><button data-texture-reference>替换此槽纹理</button>
     <hr><button data-undo>撤销</button><button data-redo>重做</button><button data-save>保存</button><button data-delete>移除水体</button>${options.close ? "<button data-close>关闭工程</button>" : ""}
     <output style="display:block;white-space:pre-wrap" aria-live="polite"></output>`;
-  document.body.append(panel);
+  (options.container ?? document.body).append(panel);
   const field = <T extends HTMLElement>(selector: string) => panel.querySelector<T>(selector)!;
   const select = field<HTMLSelectElement>("[data-body]"),
     value = field<HTMLInputElement>("[data-value]"),

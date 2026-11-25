@@ -8,6 +8,7 @@ import Common_Attributes from "./Common/Attributes.glsl";
 import Common_Common from "./Common/Common.glsl";
 import Common_Fog from "./Common/Fog.glsl";
 import Common_Normal from "./Common/Normal.glsl";
+import Common_OilPaintBrush from "./Common/OilPaintBrush.glsl";
 import Common_Transform from "./Common/Transform.glsl";
 import Lighting_AmbientOcclusion_BilateralBlur from "./Lighting/AmbientOcclusion/BilateralBlur.glsl";
 import Lighting_AmbientOcclusion_ScalableAmbientOcclusion from "./Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl";
@@ -63,6 +64,7 @@ import PostProcess_Tonemapping_ACES_Tonescale from "./PostProcess/Tonemapping/AC
 import PostProcess_Tonemapping_ACESTonemapping from "./PostProcess/Tonemapping/ACESTonemapping.glsl";
 import PostProcess_Tonemapping_NeutralTonemapping from "./PostProcess/Tonemapping/NeutralTonemapping.glsl";
 import PostProcess_UberPost from "./PostProcess/UberPost.glsl";
+import PostProcess_VolumetricLight from "./PostProcess/VolumetricLight.glsl";
 import Shadow_Shadow from "./Shadow/Shadow.glsl";
 import Shadow_ShadowSampleTent from "./Shadow/ShadowSampleTent.glsl";
 import Skin_BlendShape from "./Skin/BlendShape.glsl";
@@ -77,6 +79,7 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Common_Common, path: "ShaderLibrary/Common/Common.glsl" },
   { source: Common_Fog, path: "ShaderLibrary/Common/Fog.glsl" },
   { source: Common_Normal, path: "ShaderLibrary/Common/Normal.glsl" },
+  { source: Common_OilPaintBrush, path: "ShaderLibrary/Common/OilPaintBrush.glsl" },
   { source: Common_Transform, path: "ShaderLibrary/Common/Transform.glsl" },
   { source: Lighting_AmbientOcclusion_BilateralBlur, path: "ShaderLibrary/Lighting/AmbientOcclusion/BilateralBlur.glsl" },
   { source: Lighting_AmbientOcclusion_ScalableAmbientOcclusion, path: "ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl" },
@@ -132,6 +135,7 @@ export const shaderLibrary: IShaderSource[] = [
   { source: PostProcess_Tonemapping_ACESTonemapping, path: "ShaderLibrary/PostProcess/Tonemapping/ACESTonemapping.glsl" },
   { source: PostProcess_Tonemapping_NeutralTonemapping, path: "ShaderLibrary/PostProcess/Tonemapping/NeutralTonemapping.glsl" },
   { source: PostProcess_UberPost, path: "ShaderLibrary/PostProcess/UberPost.glsl" },
+  { source: PostProcess_VolumetricLight, path: "ShaderLibrary/PostProcess/VolumetricLight.glsl" },
   { source: Shadow_Shadow, path: "ShaderLibrary/Shadow/Shadow.glsl" },
   { source: Shadow_ShadowSampleTent, path: "ShaderLibrary/Shadow/ShadowSampleTent.glsl" },
   { source: Skin_BlendShape, path: "ShaderLibrary/Skin/BlendShape.glsl" },

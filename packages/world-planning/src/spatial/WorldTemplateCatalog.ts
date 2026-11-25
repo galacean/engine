@@ -5,7 +5,7 @@ export interface WorldTemplate {
   id: string;
   name: string;
   icon: string;
-  family: "sakura" | "forest" | "low-poly" | "desert";
+  family: "sakura" | "forest" | "low-poly" | "desert" | "oil-paint";
   colors: readonly [string, string, string, string];
   subject: string;
   /** The desert template uses a sparse shrub habitat. */
@@ -16,6 +16,8 @@ export interface WorldTemplate {
   stoneSource?: WorldTemplate["rockSource"];
   /** Source of the color on grass-bearing rock tops. */
   rockTopCover?: "grass" | "ground";
+  /** Whether 3D grass blades are generated on top of rock formations. Defaults to true. */
+  rockTopGrass?: boolean;
   terrain: { heightM: number; widthM: number; count: number; coverage: number };
 }
 const gentleBaseTerrain = { heightM: 10, widthM: 180 };
@@ -43,6 +45,7 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
   {
     id: "low-poly",
     rockSource: "authored",
+    rockTopGrass: false,
     name: "Low Poly",
     icon: "🌲",
     family: "low-poly",
@@ -54,6 +57,7 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
     id: "titan-wasteland",
     rockSource: "shared",
     rockTopCover: "ground",
+    rockTopGrass: false,
     name: "幻兽荒原",
     icon: "🏜️",
     family: "desert",
@@ -62,6 +66,18 @@ export const WORLD_TEMPLATES: readonly WorldTemplate[] = [
     subject: "红岩绿洲 · 绯树砾岸",
     // The oasis is a level floodplain. Its canyon walls and distant benches are separate authored landforms.
     terrain: { ...gentleBaseTerrain, widthM: 270, count: 0, coverage: 0.85 }
+  },
+  {
+    id: "oil-paint",
+    name: "秋林油画",
+    icon: "🎨",
+    family: "oil-paint",
+    rockSource: "shared",
+    rockTopCover: "ground",
+    rockTopGrass: false,
+    colors: ["#c88238", "#e8b454", "#b84422", "#6e6685"],
+    subject: "厚涂秋林 · 湖畔鹿影 · 画布暖雾",
+    terrain: { ...gentleBaseTerrain, widthM: 220, count: 0, coverage: 0.85 }
   }
 ];
 export function worldTemplate(id: unknown): WorldTemplate | undefined {

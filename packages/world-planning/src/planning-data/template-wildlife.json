@@ -10,5 +10,26 @@
       "typeId": "flamingo-01", "speciesId": "flamingo", "min": 10, "max": 13,
       "offsetX": 16, "offsetZ": -11, "radius": 5.5, "groundAtBirth": true
     }
+  },
+  "oil-paint": {
+    "homeRadius": 32,
+    "residents": [
+      "deer-01",
+      "roe-deer-01",
+      "moose-01",
+      "bear-01",
+      "wolf-01",
+      "fox-01",
+      "raccoon-01",
+      "squirrel",
+      "horse-01",
+      "sheep-01",
+      "duck-01"
+    ],
+    "residentSite": { "offsetX": 4, "offsetZ": -23, "radius": 16 },
+    "flock": {
+      "typeId": "swan-01", "speciesId": "swan", "min": 4, "max": 6,
+      "offsetX": 6, "offsetZ": -6, "radius": 9.5
+    }
   }
 }

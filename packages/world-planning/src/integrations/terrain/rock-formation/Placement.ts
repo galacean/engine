@@ -1,5 +1,6 @@
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
 import type { RockFormationMesh, V3 } from "@galacean/engine-terrain/rock-formation/types";
+import { worldTemplate } from "../../../spatial/WorldTemplateCatalog.ts";
 import { rockObbId } from "./Authoring.ts";
 import { ConstructionGroundSupports } from "@galacean/engine-building/building/runtime/ConstructionGroundSupports";
 
@@ -55,4 +56,10 @@ export function rockFormationPlacements(plan: IslandPlan, formations: readonly R
     formation,
     origin: [formation.origin[0], bottoms.get(formation.id) ?? formation.origin[1], formation.origin[2]] as V3
   }));
+}
+
+/** Placements eligible for 3D rock-top grass blades (empty when template disables `rockTopGrass`). */
+export function rockGrassPlacements(plan: IslandPlan, formations: readonly RockFormationMesh[]) {
+  if (worldTemplate(plan.parameters.worldTemplate?.id)?.rockTopGrass === false) return [];
+  return rockFormationPlacements(plan, formations);
 }

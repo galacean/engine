@@ -9,7 +9,8 @@ import {
   SunLensFlareEffect,
   TonemappingEffect,
   TonemappingMode,
-  Vector3
+  Vector3,
+  VolumetricLightEffect
 } from "@galacean/engine";
 
 /** Serializable post-processing profile used by the authored terrain Scene. */
@@ -97,6 +98,15 @@ export interface TerrainPostProcessDebugSnapshot {
     readonly tintG: number;
     readonly tintB: number;
   };
+  /** Mutable engine-native Uber-pass volumetric light shaft controls. */
+  readonly volumetricLight: {
+    readonly enabled: boolean;
+    readonly intensity: number;
+    readonly density: number;
+    readonly decay: number;
+    readonly softKnee: number;
+    readonly skyDepthThreshold: number;
+  };
 }
 
 /** Detached state of this profile's native effects, independent of shared pass material caches. */
@@ -118,6 +128,7 @@ export class TerrainPostProcessRuntime extends Script {
   private _tonemapping: TonemappingEffect | null = null;
   private _bloom: BloomEffect | null = null;
   private _sunLensFlare: SunLensFlareEffect | null = null;
+  private _volumetricLight: VolumetricLightEffect | null = null;
   private _profileEnabled = true;
   private _colorAdjustmentsEnabled = true;
   private _tonemappingEnabled = true;
@@ -136,6 +147,14 @@ export class TerrainPostProcessRuntime extends Script {
   private readonly _sunLensFlareSolarDirection = new Vector3(0, 0, 0);
   private _sunLensFlareSolarAttenuation = 1;
   private readonly _sunLensFlareSolarColor = new Color(1, 1, 1, 1);
+  private _volumetricLightEnabled = false;
+  private _volumetricLightIntensity = 0.6;
+  private _volumetricLightDensity = 0.72;
+  private _volumetricLightDecay = 0.93;
+  private _volumetricLightSoftKnee = 0.6;
+  private _volumetricLightSkyDepthThreshold = 0.9997;
+  private readonly _volumetricLightSolarDirection = new Vector3(0, 0, 0);
+  private _volumetricLightSolarVisibility = 1;
   private _manualOverrides: TerrainPostProcessManualOverrides = {};
 
   /** @returns Whether the authored effects currently contribute while the camera pipeline remains resident. */
@@ -228,11 +247,17 @@ export class TerrainPostProcessRuntime extends Script {
     sunLensFlare.temporalSmoothing.value = this._sunLensFlareTemporalSmoothing;
     sunLensFlare.sunDirectionOverride.value.copyFrom(this._sunLensFlareSolarDirection);
 
+    const volumetricLight = postProcess.addEffect(VolumetricLightEffect)!;
+    volumetricLight.enabled = this._profileEnabled && this._volumetricLightEnabled;
+    volumetricLight.sunDirectionOverride.value.copyFrom(this._volumetricLightSolarDirection);
+    volumetricLight.solarVisibility.value = this._volumetricLightSolarVisibility;
+
     this._postProcess = postProcess;
     this._colorAdjustments = colorAdjustments;
     this._tonemapping = tonemapping;
     this._bloom = bloom;
     this._sunLensFlare = sunLensFlare;
+    this._volumetricLight = volumetricLight;
     this._applyProfileEnabled();
   }
 
@@ -395,6 +420,72 @@ export class TerrainPostProcessRuntime extends Script {
     this._applySunLensFlare();
   }
 
+  /** Native Uber-pass volumetric light effect instance owned by this post-process profile. */
+  get volumetricLightEffect(): VolumetricLightEffect | null {
+    return this._volumetricLight;
+  }
+
+  /** Enables or disables the engine-native Uber-pass volumetric light effect. */
+  setVolumetricLightEnabled(enabled: boolean): void {
+    this._volumetricLightEnabled = enabled;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets overall linear intensity of volumetric light shafts (`0..2.5`). */
+  setVolumetricLightIntensity(intensity: number): void {
+    if (!Number.isFinite(intensity) || intensity < 0 || intensity > 2.5) {
+      throw new RangeError("Terrain volumetric light intensity must be finite and in [0, 2.5]");
+    }
+    this._volumetricLightIntensity = intensity;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets radial ray march density span (`0.2..1.5`). */
+  setVolumetricLightDensity(density: number): void {
+    if (!Number.isFinite(density) || density < 0.2 || density > 1.5) {
+      throw new RangeError("Terrain volumetric light density must be finite and in [0.2, 1.5]");
+    }
+    this._volumetricLightDensity = density;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets per-step exponential retention decay (`0.75..0.99`). */
+  setVolumetricLightDecay(decay: number): void {
+    if (!Number.isFinite(decay) || decay < 0.75 || decay > 0.99) {
+      throw new RangeError("Terrain volumetric light decay must be finite and in [0.75, 0.99]");
+    }
+    this._volumetricLightDecay = decay;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets soft highlight roll-off (`0..1`). */
+  setVolumetricLightSoftKnee(softKnee: number): void {
+    if (!Number.isFinite(softKnee) || softKnee < 0 || softKnee > 1) {
+      throw new RangeError("Terrain volumetric light softKnee must be finite and in [0, 1]");
+    }
+    this._volumetricLightSoftKnee = softKnee;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets depth threshold separating unoccluded sky gaps from foreground geometry (`0.9..0.99998`). */
+  setVolumetricLightSkyDepthThreshold(threshold: number): void {
+    if (!Number.isFinite(threshold) || threshold < 0.9 || threshold > 0.99998) {
+      throw new RangeError("Terrain volumetric light skyDepthThreshold must be finite and in [0.9, 0.99998]");
+    }
+    this._volumetricLightSkyDepthThreshold = threshold;
+    this._applyVolumetricLight();
+  }
+
+  /** Synchronizes the astronomical sun direction and day/weather visibility gate for volumetric light shafts. */
+  setVolumetricLightSolarState(sunDirection: Readonly<Vector3>, solarVisibility: number): void {
+    if (!Number.isFinite(solarVisibility) || solarVisibility < 0) {
+      throw new RangeError("Terrain volumetric light solar visibility must be finite and non-negative");
+    }
+    this._volumetricLightSolarDirection.set(sunDirection.x, sunDirection.y, sunDirection.z);
+    this._volumetricLightSolarVisibility = Math.min(Math.max(solarVisibility, 0), 1);
+    this._applyVolumetricLight();
+  }
+
   /** Overrides weather-authored native Uber exposure compensation in EV stops. */
   setPostExposure(postExposure: number): void {
     const clampedExposure = clampPostExposure(postExposure);
@@ -494,7 +585,7 @@ export class TerrainPostProcessRuntime extends Script {
     const initial = this.getDebugSnapshot();
     const overrides = { ...this._manualOverrides };
     return () => {
-      const { colorAdjustments: color, bloom, sunLensFlare } = initial;
+      const { colorAdjustments: color, bloom, sunLensFlare, volumetricLight } = initial;
       this.setProfileEnabled(initial.enabled);
       this.setColorAdjustmentsEnabled(color.enabled);
       this.setPostExposure(color.postExposure);
@@ -518,6 +609,12 @@ export class TerrainPostProcessRuntime extends Script {
       this.setSunLensFlareGhostSpread(sunLensFlare.ghostSpread);
       this.setSunLensFlareGhostChromaticity(sunLensFlare.ghostChromaticity);
       this.setSunLensFlareTint(sunLensFlare.tintR, sunLensFlare.tintG, sunLensFlare.tintB);
+      this.setVolumetricLightEnabled(volumetricLight.enabled);
+      this.setVolumetricLightIntensity(volumetricLight.intensity);
+      this.setVolumetricLightDensity(volumetricLight.density);
+      this.setVolumetricLightDecay(volumetricLight.decay);
+      this.setVolumetricLightSoftKnee(volumetricLight.softKnee);
+      this.setVolumetricLightSkyDepthThreshold(volumetricLight.skyDepthThreshold);
       this._manualOverrides = { ...overrides };
     };
   }
@@ -557,6 +654,14 @@ export class TerrainPostProcessRuntime extends Script {
         tintR: this._sunLensFlareTint.r,
         tintG: this._sunLensFlareTint.g,
         tintB: this._sunLensFlareTint.b
+      },
+      volumetricLight: {
+        enabled: this._volumetricLightEnabled,
+        intensity: this._volumetricLightIntensity,
+        density: this._volumetricLightDensity,
+        decay: this._volumetricLightDecay,
+        softKnee: this._volumetricLightSoftKnee,
+        skyDepthThreshold: this._volumetricLightSkyDepthThreshold
       }
     };
   }
@@ -579,6 +684,7 @@ export class TerrainPostProcessRuntime extends Script {
     this._tonemapping = null;
     this._bloom = null;
     this._sunLensFlare = null;
+    this._volumetricLight = null;
   }
 
   private _applyProfileEnabled(): void {
@@ -586,6 +692,7 @@ export class TerrainPostProcessRuntime extends Script {
     this._applyTonemapping();
     this._applyBloom();
     this._applySunLensFlare();
+    this._applyVolumetricLight();
   }
 
   private _setColorAdjustment(
@@ -675,6 +782,19 @@ export class TerrainPostProcessRuntime extends Script {
       this._sunLensFlareTint.b * this._sunLensFlareSolarColor.b,
       1
     );
+  }
+
+  private _applyVolumetricLight(): void {
+    const volumetricLight = this._volumetricLight;
+    if (!volumetricLight) return;
+    volumetricLight.enabled = this._profileEnabled && this._volumetricLightEnabled;
+    volumetricLight.intensity.value = this._volumetricLightIntensity;
+    volumetricLight.density.value = this._volumetricLightDensity;
+    volumetricLight.decay.value = this._volumetricLightDecay;
+    volumetricLight.softKnee.value = this._volumetricLightSoftKnee;
+    volumetricLight.skyDepthThreshold.value = this._volumetricLightSkyDepthThreshold;
+    volumetricLight.sunDirectionOverride.value.copyFrom(this._volumetricLightSolarDirection);
+    volumetricLight.solarVisibility.value = this._volumetricLightSolarVisibility;
   }
 }
 

@@ -21,6 +21,8 @@ export interface DebugInspectorPanelHost {
   addReadout(folder: dat.GUI, label: string, outputId?: string): (value: string) => void;
   /** Appends an action button. */
   addAction(folder: dat.GUI, label: string, onClick: () => void): HTMLButtonElement;
+  /** Appends a custom embedded DOM container inside a collapsible folder row. */
+  addCustomContainer(folder: dat.GUI): HTMLElement;
   /** Recomputes the category scroll range after a feature panel changes. */
   refreshLayout(): void;
 }
@@ -166,6 +168,19 @@ export class DebugInspector implements DebugInspectorPanelHost {
     return button;
   }
 
+  /** Appends an embedded DOM container row inside a dat.gui folder. */
+  addCustomContainer(folder: dat.GUI): HTMLElement {
+    const list = folderControllerList(folder);
+    const item = document.createElement("li");
+    item.className = "debug-inspector__custom-row";
+    const container = document.createElement("div");
+    container.className = "debug-inspector__custom-container";
+    item.append(container);
+    list.append(item);
+    refreshFolderLayout(folder);
+    return container;
+  }
+
   /** Recomputes the root scroll range after a runtime module appends controls. */
   refreshLayout(): void {
     refreshFolderLayout(this.gui);
@@ -251,7 +266,23 @@ function installInspectorStyles(): void {
     .debug-inspector__preview-row { height: auto !important; padding: 5px !important; }
     .debug-inspector ul.closed > .debug-inspector__preview-row,
     .debug-inspector ul.closed > .debug-inspector__readout-row,
-    .debug-inspector ul.closed > .debug-inspector__action-row { height: 0 !important; overflow: hidden; padding-top: 0 !important; padding-bottom: 0 !important; }
+    .debug-inspector ul.closed > .debug-inspector__action-row,
+    .debug-inspector ul.closed > .debug-inspector__custom-row { height: 0 !important; overflow: hidden; padding-top: 0 !important; padding-bottom: 0 !important; border: 0 !important; }
+    .debug-inspector__custom-row { height: auto !important; padding: 6px 8px !important; line-height: 1.5; color: #dbe6f2; background: #191f28; }
+    .debug-inspector__custom-container { width: 100%; box-sizing: border-box; font: 12px/1.5 system-ui, -apple-system, sans-serif; color: #dbe6f2; }
+    .debug-inspector__custom-container label { display: block; margin: 4px 0; color: #c4cfdd; }
+    .debug-inspector__custom-container input[type="text"],
+    .debug-inspector__custom-container input[type="number"],
+    .debug-inspector__custom-container input:not([type]),
+    .debug-inspector__custom-container select,
+    .debug-inspector__custom-container textarea { background: var(--debug-field); color: #eef5ff; border: 1px solid #344151; border-radius: 3px; padding: 3px 5px; font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; box-sizing: border-box; }
+    .debug-inspector__custom-container button { margin: 3px 4px 3px 0; padding: 4px 7px; color: #edf6ff; background: #2c4c6e; border: 1px solid #416891; border-radius: 3px; cursor: pointer; font: 11px system-ui, sans-serif; }
+    .debug-inspector__custom-container button:hover:not(:disabled) { background: #36608c; }
+    .debug-inspector__custom-container button:disabled { opacity: 0.45; cursor: default; }
+    .debug-inspector__custom-container fieldset { border: 1px solid #344151; border-radius: 4px; padding: 6px 8px; margin: 0 0 8px; }
+    .debug-inspector__custom-container legend { padding: 0 4px; color: #9fc5ea; font-weight: 600; font-size: 11px; }
+    .debug-inspector__custom-container hr { border: 0; border-top: 1px solid #2c3746; margin: 8px 0; }
+    .debug-inspector__custom-container output { font-size: 11px; color: #9ad8b6; margin-top: 4px; }
     .debug-inspector__preview { display: grid; grid-template-columns: 54px minmax(0, 1fr); width: 100%; gap: 8px; align-items: center; padding: 5px; color: #d4e0ed; background: var(--debug-field); border: 1px solid transparent; border-radius: 3px; cursor: pointer; font: inherit; text-align: left; }
     .debug-inspector__preview:hover { border-color: #6a7f98; }
     .debug-inspector__preview.is-active { border-color: var(--debug-accent); box-shadow: inset 0 0 0 1px var(--debug-accent); background: #172536; }

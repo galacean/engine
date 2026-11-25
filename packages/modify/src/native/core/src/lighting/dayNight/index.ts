@@ -1,7 +1,7 @@
 export { DayNightClock } from "./DayNightClock";
 export { DayNightLightingAdapter, DayNightProbeTimelineAdapter } from "./DayNightAdapters";
 export type { DayNightProbeScenarioKey } from "./DayNightAdapters";
-export { DayNightEnvironmentAdapter } from "./DayNightEnvironmentAdapter";
+export { DayNightEnvironmentAdapter, resolveDayNightSolarVisibility } from "./DayNightEnvironmentAdapter";
 export type { DayNightEnvironmentAdapterOptions } from "./DayNightEnvironmentAdapter";
 export { DayNightMoonLighting } from "./DayNightMoonLighting";
 export type { DayNightMoonLightingOptions, DayNightMoonLightingState } from "./DayNightMoonLighting";

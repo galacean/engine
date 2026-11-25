@@ -330,6 +330,17 @@ const landscape = [
     default: 1
   }),
   {
+    ...number("exclusionRadiusScale", "景观互斥半径系数", {
+      unit: "倍",
+      step: 0.05,
+      min: 0.05,
+      max: 4,
+      default: 1
+    }),
+    description:
+      "控制候选树/石疏化时的冠幅互斥半径倍率（默认 1 倍保持完整冠幅间距；调小至 0.3–0.5 可让高大树冠自然搭接形成密林；LLM 与局部 POI 均可自由覆盖，仅重新采样当前区域）。"
+  },
+  {
     ...number("boundaryBlendM", "区域边界过渡", {
       unit: "m",
       step: 1,
@@ -914,7 +925,8 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
       { key: "bloom", label: "Bloom", type: "boolean", default: true },
       number("bloomThreshold", "Bloom 阈值", { unit: "", step: 0.05, min: 0, default: POST.bloomThreshold }),
       number("bloomIntensity", "Bloom 强度", { unit: "", step: 0.05, min: 0, default: POST.bloomIntensity }),
-      number("bloomScatter", "Bloom 扩散", { unit: "%", step: 0.01, min: 0, max: 1, default: POST.bloomScatter })
+      number("bloomScatter", "Bloom 扩散", { unit: "%", step: 0.01, min: 0, max: 1, default: POST.bloomScatter }),
+      { key: "volumetricLight", label: "体积光", type: "boolean", default: false }
     ]
   },
   { type: "world", label: "世界生成", version: 1, tab: "world", fields: globals, global: localPaths(globals) },

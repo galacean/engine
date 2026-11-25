@@ -60,6 +60,7 @@ import {
 } from "../../world/SeedWorldAssetPlacementProfile";
 import { envelope } from "../../semantic-study/IslandPlanAtoms";
 import { applyLandscapeEdits } from "../layout/DerivedEdits";
+import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
 import { worldTemplate } from "../WorldTemplateCatalog";
 
 export interface PlanningPlantAsset extends LandscapePlantAsset {
@@ -99,7 +100,8 @@ export function planningNaturalTrees(
     landscapes?: readonly import("../../semantic-study/ContextLandscape").LandscapeCandidate[];
   },
   height: Pick<PlanningHeightmap, "sample">,
-  assets: readonly PlanningPlantAsset[]
+  assets: readonly PlanningPlantAsset[],
+  excludedAssetIds: ReadonlySet<string> = SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS
 ): LandscapePlantInstance[] {
   const removed = planningRemovedObjectIds(plan.authoredResources ?? []);
   const candidates = (plan.landscapes ?? []).filter(
@@ -112,9 +114,19 @@ export function planningNaturalTrees(
     if (!asset) throw new Error(`Missing planned tree asset: ${id}`);
     return asset;
   });
+  const allowedTrees = palette.filter((asset) => !excludedAssetIds.has(asset.id));
+  const activeTrees = allowedTrees.length > 0 ? allowedTrees : palette;
+  const templateTreePalette = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.treeColorPalette;
   return candidates.map((tree) => {
-    const assetId =
-      tree.assetId ?? naturalTreeDimensions(plan.parameters.seed, tree.id, tree.height, tree.center).assetId;
+    const hashParts = hashCanonicalKey(`${plan.parameters.seed}:tree:${tree.id}`).split(":");
+    const hashVal = Number.parseInt(hashParts[1] ?? "0", 36);
+    const stableInt = Number.isFinite(hashVal) ? Math.abs(hashVal) : 0;
+    let assetId = templateTreePalette?.length
+      ? activeTrees[stableInt % activeTrees.length]!.id
+      : (tree.assetId ?? naturalTreeDimensions(plan.parameters.seed, tree.id, tree.height, tree.center).assetId);
+    if (excludedAssetIds.has(assetId)) {
+      assetId = activeTrees[stableInt % activeTrees.length]!.id;
+    }
     const asset = palette.find((asset) => asset.id === assetId);
     if (!asset) throw new Error(`Missing planned tree asset: ${assetId}`);
     const spans = asset.bounds.max.map((v, axis) => v - asset.bounds.min[axis]);
@@ -125,20 +137,30 @@ export function planningNaturalTrees(
     const scale = Math.min(tree.width / spans[0] / spread, tree.height / spans[1], tree.depth / spans[2] / spread);
     const species = PLANT_TREE_SPECIES.find((species) => species.assetId === assetId)!;
     const region = speciesAt([tree.center.x, tree.center.z], tree.id);
+    const baseFoliage = vegetationColorVariation(
+      plan.parameters.seed,
+      species.speciesGroup,
+      tree.id,
+      region,
+      PLANT_FOLIAGE_VARIATIONS.get(assetId)!,
+      "foliage"
+    );
+    const foliage = templateTreePalette?.length
+      ? {
+          brightness: 0.88 + ((stableInt % 97) / 96) * 0.28,
+          tint: {
+            color: templateTreePalette[Math.floor(stableInt / 7) % templateTreePalette.length]!,
+            influence: 0.88
+          }
+        }
+      : baseFoliage;
     return {
       id: tree.id,
       assetId: asset.id,
       layerId: "乔木",
       clusterId: tree.id,
       appearance: {
-        foliage: vegetationColorVariation(
-          plan.parameters.seed,
-          species.speciesGroup,
-          tree.id,
-          region,
-          PLANT_FOLIAGE_VARIATIONS.get(assetId)!,
-          "foliage"
-        ),
+        foliage,
         ...(PLANT_BARK_VARIATIONS.has(assetId)
           ? {
               bark: vegetationColorVariation(
@@ -169,9 +191,10 @@ export function planningEditablePlants(
   plan: IslandPlan,
   ground: Pick<PlanningHeightmap, "sample">,
   assets: readonly PlanningPlantAsset[],
-  population?: Pick<SeedWorldPopulationPreview, "treeInstances">
+  population?: Pick<SeedWorldPopulationPreview, "treeInstances">,
+  excludedAssetIds: ReadonlySet<string> = SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS
 ): LandscapePlantInstance[] {
-  const generated = planningNaturalTrees(plan, ground, assets);
+  const generated = planningNaturalTrees(plan, ground, assets, excludedAssetIds);
   const allResources = plan.authoredResources ?? [];
   const removed = planningRemovedObjectIds(allResources);
   const singleResources = allResources.filter(
@@ -204,36 +227,87 @@ export function planningEditablePlants(
           );
   const authored = [...authoredSingle, ...authoredArea];
   const indexedAssets = new Map(assets.map((asset) => [asset.id, asset]));
+  const templateLandscape = plan.parameters.worldTemplate?.id
+    ? WORLD_TEMPLATE_ART[plan.parameters.worldTemplate.id]?.landscape
+    : undefined;
+  const speciesAt = createNaturalTreeSpeciesRegions(plan.parameters.seed);
   return [
     ...generated,
     ...authored.map((plant): LandscapePlantInstance => {
       const placement = resolveSeedWorldAssetPlacement(plant.intent);
       const profile = getSeedWorldAssetPlacementProfile(plant.intent.profileKey);
-      const height = profile.geometry.verticalBoundsMetres[1] * placement.scale[1];
+      const baseHeight = profile.geometry.verticalBoundsMetres[1] * placement.scale[1];
+      const useTemplateTreeHeight =
+        plant.category === "tree" &&
+        templateLandscape?.treeHeightMinM !== undefined &&
+        templateLandscape?.treeHeightMaxM !== undefined &&
+        templateLandscape.treeHeightMaxM >= templateLandscape.treeHeightMinM;
+      const height = useTemplateTreeHeight
+        ? templateLandscape.treeHeightMinM! +
+          (templateLandscape.treeHeightMaxM! - templateLandscape.treeHeightMinM!) * plant.intent.sizeRank
+        : baseHeight;
       const center = {
         x: plant.normalizedPosition.x * plan.parameters.width,
         z: plant.normalizedPosition.y * plan.parameters.width
       };
-      const palette =
+      const basePalette =
         plant.category === "tree" ? NATURAL_VEGETATION_PALETTES.trees : NATURAL_VEGETATION_PALETTES.shrubs;
-      const assetId =
+      const filteredPalette = basePalette.filter((id) => !excludedAssetIds.has(id));
+      const palette = filteredPalette.length > 0 ? filteredPalette : basePalette;
+      let assetId =
         plant.category === "tree"
           ? naturalTreeDimensions(plan.parameters.seed, plant.id, height, center).assetId
           : palette[plant.prototypeRank % palette.length];
+      if (plant.category === "tree" && excludedAssetIds.has(assetId)) {
+        assetId = palette[plant.prototypeRank % palette.length];
+      }
       const asset = indexedAssets.get(assetId);
       if (!asset) throw new Error(`Missing authored plant asset: ${assetId}`);
       const spans = asset.bounds.max.map((v, axis) => v - asset.bounds.min[axis]);
-      const dimensions = [plant.footprintMetres[0], height, plant.footprintMetres[1]];
+      const dimensions = useTemplateTreeHeight
+        ? [(spans[0] / spans[1]) * height, height, (spans[2] / spans[1]) * height]
+        : [plant.footprintMetres[0], height, plant.footprintMetres[1]];
       if (![...spans, ...dimensions].every((v) => Number.isFinite(v) && v > 0))
         throw new Error(`Invalid authored plant dimensions: ${plant.id}`);
       const scale = Math.min(...dimensions.map((v, axis) => v / spans[axis]));
       const ownerId = plant.authoringBrushId ?? plant.id;
+      const treeSpecies =
+        plant.category === "tree" ? PLANT_TREE_SPECIES.find((species) => species.assetId === assetId) : undefined;
+      const treeRegion = treeSpecies ? speciesAt([center.x, center.z], plant.id) : undefined;
+      const foliageVar = treeSpecies ? PLANT_FOLIAGE_VARIATIONS.get(assetId) : undefined;
+      const barkVar = treeSpecies ? PLANT_BARK_VARIATIONS.get(assetId) : undefined;
       return {
         id: plant.id,
         assetId,
         layerId: plant.category === "tree" ? "乔木" : "小灌木",
         clusterId: ownerId,
         scopeId: ownerId,
+        ...(treeSpecies && treeRegion && foliageVar
+          ? {
+              appearance: {
+                foliage: vegetationColorVariation(
+                  plan.parameters.seed,
+                  treeSpecies.speciesGroup,
+                  plant.id,
+                  treeRegion,
+                  foliageVar,
+                  "foliage"
+                ),
+                ...(barkVar
+                  ? {
+                      bark: vegetationColorVariation(
+                        plan.parameters.seed,
+                        treeSpecies.speciesGroup,
+                        plant.id,
+                        treeRegion,
+                        barkVar,
+                        "bark"
+                      )
+                    }
+                  : {})
+              }
+            }
+          : {}),
         position: [center.x, ground.sample(center), center.z],
         yaw: (plant.yawRadians * 180) / Math.PI,
         scale,
@@ -281,7 +355,8 @@ export class PlanningNaturalVegetation {
     private readonly fields: SeedWorldFields,
     population: SeedWorldPopulationPreview,
     private readonly assets: readonly PlanningPlantAsset[],
-    private readonly presentation?: ReturnType<typeof subjectViewLandscape>
+    private readonly presentation?: ReturnType<typeof subjectViewLandscape>,
+    excludedAssetIds: ReadonlySet<string> = SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS
   ) {
     this.densityAt = naturalVegetationAt(plan);
     this.flowerCoverage = vegetationCoverage(plan);
@@ -296,7 +371,7 @@ export class PlanningNaturalVegetation {
         )
       ])
     );
-    this.trees = planningNaturalTrees(plan, height, assets);
+    this.trees = planningNaturalTrees(plan, height, assets, excludedAssetIds);
     const state = plan.spatialLayout,
       slots = state?.landscapeBase?.slots;
     const sources = state?.baselineLandscapes ?? plan.landscapes ?? [];
@@ -307,7 +382,7 @@ export class PlanningNaturalVegetation {
     };
     applyLandscapeEdits(associationPlan, state?.instanceEdits ?? {}, (point) => height.sample(point));
     const landscapes = associationPlan.landscapes;
-    this.associationTrees = planningNaturalTrees(associationPlan, height, assets);
+    this.associationTrees = planningNaturalTrees(associationPlan, height, assets, excludedAssetIds);
     this.solids = [...plan.buildings, ...plan.rocks, ...landscapes.filter((item) => item.kind === "rock")];
     const baselineRocks = plan.rocks;
     this.anchors = [
@@ -343,7 +418,7 @@ export class PlanningNaturalVegetation {
       ...(stones ? [stones] : []),
       ...createNaturalVegetationLayers(
         assets,
-        SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS,
+        excludedAssetIds,
         plan.parameters.seed,
         plan.naturalVegetation?.plantSizes
       )

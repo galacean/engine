@@ -22,6 +22,7 @@ Shader "Animal/CuteZooToon" {
       #include "ShaderLibrary/Lighting/Light.glsl"
       #include "ShaderLibrary/Lighting/VolumetricCloudShadow.glsl"
       #include "ShaderLibrary/Shadow/Shadow.glsl"
+      #include "ShaderLibrary/Common/OilPaintBrush.glsl"
 
       vec4 material_BaseColor;
       #ifdef MATERIAL_HAS_BASETEXTURE
@@ -49,6 +50,10 @@ Shader "Animal/CuteZooToon" {
 
       struct ToonVaryings {
         vec3 positionWS;
+        #ifdef SCENE_OIL_PAINT_STYLE
+          vec3 positionOS;
+          vec3 normalOS;
+        #endif
         #ifdef RENDERER_HAS_NORMAL
           vec3 normalWS;
         #endif
@@ -63,6 +68,14 @@ Shader "Animal/CuteZooToon" {
       ToonVaryings toonVertex(Attributes attributes) {
         ToonVaryings v;
         vec4 position = vec4(attributes.POSITION, 1.0);
+        #ifdef SCENE_OIL_PAINT_STYLE
+          v.positionOS = attributes.POSITION;
+          #ifdef RENDERER_HAS_NORMAL
+            v.normalOS = attributes.NORMAL;
+          #else
+            v.normalOS = vec3(0.0, 1.0, 0.0);
+          #endif
+        #endif
         #ifdef RENDERER_HAS_NORMAL
           vec3 normal = attributes.NORMAL;
           #ifdef RENDERER_HAS_TANGENT
@@ -168,6 +181,9 @@ Shader "Animal/CuteZooToon" {
           vec3 normal = safeNormalize(v.normalWS) * (float(gl_FrontFacing) * 2.0 - 1.0);
         #else
           vec3 normal = vec3(0.0, 1.0, 0.0);
+        #endif
+        #ifdef SCENE_OIL_PAINT_STYLE
+          applyOilPaintBrushSurface(v.positionOS, v.normalOS, 1.25, albedo.rgb, normal);
         #endif
         vec3 environment = toonEnvironment(normal);
         vec3 illumination = environment;

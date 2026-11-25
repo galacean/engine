@@ -16,7 +16,7 @@ import {
   rockGrassExclusions,
   rockGrassWaterTest
 } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/GrassExclusions";
-import { rockFormationPlacements } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Placement";
+import { rockGrassPlacements } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Placement";
 import {
   canPublishRockFormationEdit,
   prepareRockFormationPublication,
@@ -78,6 +78,7 @@ import {
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { buildingScenePreparation, initializeBuildingScene } from "./masonry/BuildingSceneInitialization.ts";
 import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
+import { masonryAppearance, type MasonryTintRole } from "@galacean/engine-building/building/runtime/MasonryAppearance";
 import { getMasonryLodTuning, setMasonryLodTuning } from "@galacean/engine-building/building/runtime/MasonryLodPolicy";
 import {
   getRockLodCrossFadeEnabled,
@@ -108,6 +109,10 @@ import { PlanningAnimalProjectAuthoring } from "./src/planning/spatial/runtime/P
 import { PlanningAnimalFood } from "./src/planning/spatial/runtime/PlanningAnimalFood.ts";
 import { PlanningAnimalHost } from "./src/planning/spatial/runtime/PlanningAnimalHost.ts";
 import "./src/planning/spatial/runtime/PlanningAuthoringComponents.ts";
+import {
+  acquireCameraDepthTexturePrePass,
+  type CameraDepthTexturePrePassLease
+} from "@galacean/engine-modify/rendering/CameraDepthTexturePrePass";
 import { PlanningEntityAuthoring } from "./src/planning/spatial/runtime/PlanningAuthoringComponents.ts";
 import {
   planningVegetationReferences,
@@ -123,8 +128,10 @@ import type { SeedWorldLassoPanel } from "./src/SeedWorldLassoPanel.ts";
 import {
   AssetType,
   Camera,
+  DepthTextureMode,
   DirectLight,
   FogMode,
+  PostProcess,
   ShadowType,
   Matrix,
   Quaternion,
@@ -159,7 +166,10 @@ import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/proj
 import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import { OrbitControl } from "@galacean/engine-toolkit-controls/dist/es/OrbitControl.js";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
-import type { TerrainVistaDebugControl } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
+import type {
+  TerrainOilPaintDebugControl,
+  TerrainVistaDebugControl
+} from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
 import { sampleTerrainSurfacePuddleMask } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainRainImpactSurface";
 import {
   TerrainWindGpuExposureProvider,
@@ -325,6 +335,12 @@ export async function mountSeedWorldDemo(
   let sourceTask: ReturnType<typeof createPlanningWorldSource> | undefined;
   let publication: PlanningSeedScenePublication | undefined;
   let sandstorm: Entity | undefined;
+  let oilPaintPostEntity: Entity | undefined;
+  let oilPaintPostEffect: import("./src/oil-paint/OilPaintPostEffect").OilPaintPostEffect | undefined;
+  let oilPaintPostPass: import("./src/oil-paint/OilPaintPostPass").OilPaintPostPass | undefined;
+  let oilPaintMacroEnabled = false;
+  let oilPaintMacroDesired = false;
+  let oilPaintMacroRequestId = 0;
   let mojaveLayout: Entity | undefined;
   const readWorld = () => publication?.current?.world;
   const readRevision = () => publication?.current?.revision ?? 0;
@@ -350,6 +366,7 @@ export async function mountSeedWorldDemo(
   let vista: SeedWorldPanoramaVistaRuntime | undefined;
   let tools: PlanningSeedWorldSession | undefined;
   let animals: PlanningAnimalHost | undefined;
+  let detachCompanionStoneObstacles: (() => void) | undefined;
   let detachAnimalLightning: (() => void) | undefined;
   let farmingHost: PlanningFarmingHost | undefined;
   let visualQuery: SeedWorldVisualQuery | undefined;
@@ -360,7 +377,6 @@ export async function mountSeedWorldDemo(
   let obbDebug: PlanningSeedObbDebug | undefined;
   let runtimeDebug: PlanningSeedRuntimeDebug | undefined;
   let debugSidebar: PlanningSeedDebugSidebar | undefined;
-  let lodDebugPanel: import("./src/SeedWorldLodDebugPanel.ts").SeedWorldLodDebugPanel | undefined;
   let perfPanel: import("./src/SeedWorldPerfPanel.ts").SeedWorldPerfPanel | undefined;
   let dprOverride: number | null = null;
   let exposure: TerrainWindGpuExposureProvider | undefined;
@@ -575,14 +591,17 @@ export async function mountSeedWorldDemo(
         detachAnimalLightning?.();
       }
     ],
-    ["动物", () => animals?.dispose()],
+    ["动物", () => {
+      detachCompanionStoneObstacles?.();
+      detachCompanionStoneObstacles = undefined;
+      animals?.dispose();
+    }],
     ["玩家状态", () => playerState?.dispose()],
     [
       "编辑器",
       () => {
         lightingProfile?.dispose();
         debugSidebar?.destroy();
-        lodDebugPanel?.dispose();
         if (perfTourTimer !== undefined) {
           window.clearTimeout(perfTourTimer);
           perfTourTimer = undefined;
@@ -627,6 +646,10 @@ export async function mountSeedWorldDemo(
     ["水运行", () => water?.destroy()],
     ["远景环山", () => vista?.destroy()],
     ["沙雾", () => sandstorm?.destroy()],
+    ["油画后处理效果", () => {
+      oilPaintPostEntity?.destroy();
+    }],
+    ["油画后处理 Pass", () => oilPaintPostPass?.destroy()],
     ["Mojave 景观", () => mojaveLayout?.destroy()],
     ["环境", () => environment?.destroy()],
     ["光照", () => lighting?.destroy()],
@@ -649,6 +672,7 @@ export async function mountSeedWorldDemo(
   const dispose = createSeedWorldProjectClose(
     async () => {
       tools?.dispose();
+      await runtimeDebug?.stopEmbeddedPanels();
       await nativeWaterPanel?.stop();
       editorLifetime.abort();
       nativeEditor?.editor.dispose();
@@ -833,7 +857,9 @@ export async function mountSeedWorldDemo(
       "SeedWorld/SnapshotSurfacePack",
       "SeedWorld/InteractionDepthPack",
       "SeedWorld/PanoramaFarHorizon",
-      "SeedWorld/HologramRainbow"
+      "SeedWorld/HologramRainbow",
+      "OilPaint/",
+      "PostProcess/OilPaint"
     ]);
     const resize = () => {
       if (!canvas.clientWidth || !canvas.clientHeight) return;
@@ -922,6 +948,13 @@ export async function mountSeedWorldDemo(
     );
     // Pre-spawn idle raster worker while planning worker runs so module fetch/parse is off the critical path.
     raster.prewarm();
+    if (requestedTemplateId === "oil-paint") {
+      void import("@galacean/engine-world-planning/spatial/oil-paint/OilPaintTextures")
+        .then(({ prewarmOilPaintBrushTexture }) => {
+          if (!disposed) prewarmOilPaintBrushTexture();
+        })
+        .catch(() => {});
+    }
     source = await timed("await planning source", () => sourceTask!);
     await timed("await common binary bundle", () => commonBinaryBundleTask!);
     commonBinaryBundleTask = undefined;
@@ -931,6 +964,13 @@ export async function mountSeedWorldDemo(
     const prewarmedPopulationResources = preparePlanningPopulationResources(engine);
     void prewarmedPopulationResources.catch(() => {});
     let prewarmedRasterPlan: IslandPlan | undefined = source.takeInitialPlan();
+    if (requestedTemplateId !== "oil-paint" && prewarmedRasterPlan?.parameters.worldTemplate?.id === "oil-paint") {
+      void import("@galacean/engine-world-planning/spatial/oil-paint/OilPaintTextures")
+        .then(({ prewarmOilPaintBrushTexture }) => {
+          if (!disposed) prewarmOilPaintBrushTexture();
+        })
+        .catch(() => {});
+    }
     const hasPlannedBuildings = (prewarmedRasterPlan?.buildings?.length ?? 0) > 0;
     if (hasPlannedBuildings) {
       if (!buildingBinaryBundleTask) {
@@ -1118,6 +1158,97 @@ export async function mountSeedWorldDemo(
       restore?.();
     };
 
+    const OIL_PAINT_DEFAULTS = {
+      painterlyStrength: 0.88,
+      brushRadius: 5.0,
+      impasto: 1.4,
+      brushScale: 0.72
+    } as const;
+    const ensureOilPaintPassMounted = async () => {
+      if (oilPaintPostEntity && oilPaintPostEffect && oilPaintPostPass) return;
+      const [{ OilPaintPostEffect }, { OilPaintPostPass }] = await Promise.all([
+        import("./src/oil-paint/OilPaintPostEffect"),
+        import("./src/oil-paint/OilPaintPostPass")
+      ]);
+      if (disposed) return;
+      if (!oilPaintPostEntity) {
+        oilPaintPostEntity = root.createChild("OilPaintPostProcess");
+        const postProcess = oilPaintPostEntity.addComponent(PostProcess);
+        postProcess.isGlobal = true;
+        oilPaintPostEffect = postProcess.addEffect(OilPaintPostEffect);
+      }
+      if (!oilPaintPostPass) {
+        oilPaintPostPass = new OilPaintPostPass(engine!);
+        oilPaintPostPass.isActive = false;
+        engine!.addPostProcessPass(oilPaintPostPass);
+      }
+    };
+    const setOilPaintPassActive = async (active: boolean) => {
+      if (active) {
+        await ensureOilPaintPassMounted();
+        if (disposed || !oilPaintPostPass) return;
+        oilPaintPostPass.isActive = true;
+      } else {
+        if (oilPaintPostPass) oilPaintPostPass.isActive = false;
+      }
+    };
+    const setOilPaintMacroEnabled = async (enabled: boolean) => {
+      const activeScene = scene;
+      if (!activeScene) return;
+      oilPaintMacroDesired = enabled;
+      const requestId = ++oilPaintMacroRequestId;
+      if (enabled) {
+        const { getOilPaintBrushTexture } = await import(
+          "@galacean/engine-world-planning/spatial/oil-paint/OilPaintTextures"
+        );
+        if (disposed || !oilPaintMacroDesired || requestId !== oilPaintMacroRequestId || scene !== activeScene) {
+          return;
+        }
+        const brush = await getOilPaintBrushTexture(engine!);
+        if (!brush || disposed || !oilPaintMacroDesired || requestId !== oilPaintMacroRequestId || scene !== activeScene) {
+          return;
+        }
+        oilPaintMacroEnabled = true;
+        activeScene.shaderData.enableMacro("SCENE_OIL_PAINT_STYLE");
+        activeScene.shaderData.setTexture("scene_OilPaintBrushTexture", brush);
+        activeScene.shaderData.setFloat("scene_OilPaintImpasto", oilPaintPostEffect?.impasto.value ?? OIL_PAINT_DEFAULTS.impasto);
+        activeScene.shaderData.setFloat("scene_OilPaintBrushScale", oilPaintPostEffect?.brushScale.value ?? OIL_PAINT_DEFAULTS.brushScale);
+      } else if (oilPaintMacroEnabled) {
+        activeScene.shaderData.disableMacro("SCENE_OIL_PAINT_STYLE");
+        oilPaintMacroEnabled = false;
+      }
+      canvas.dataset.oilPaint = oilPaintMacroEnabled ? "active" : "off";
+    };
+    const oilPaintDebugControl: TerrainOilPaintDebugControl = {
+      getSnapshot: () => ({
+        passActive: oilPaintPostPass?.isActive ?? false,
+        shaderMacro: oilPaintMacroEnabled,
+        painterlyStrength: oilPaintPostEffect?.painterlyStrength.value ?? OIL_PAINT_DEFAULTS.painterlyStrength,
+        brushRadius: oilPaintPostEffect?.brushRadius.value ?? OIL_PAINT_DEFAULTS.brushRadius,
+        impasto: oilPaintPostEffect?.impasto.value ?? OIL_PAINT_DEFAULTS.impasto,
+        brushScale: oilPaintPostEffect?.brushScale.value ?? OIL_PAINT_DEFAULTS.brushScale
+      }),
+      setPassActive: (active) => setOilPaintPassActive(active),
+      setShaderMacro: (enabled) => setOilPaintMacroEnabled(enabled),
+      setParam: (key, value) => {
+        if (oilPaintPostEffect) {
+          oilPaintPostEffect[key].value = value;
+        }
+        if (key === "impasto") scene?.shaderData.setFloat("scene_OilPaintImpasto", value);
+        if (key === "brushScale") scene?.shaderData.setFloat("scene_OilPaintBrushScale", value);
+      },
+      reset: () => {
+        if (oilPaintPostEffect) {
+          oilPaintPostEffect.painterlyStrength.value = OIL_PAINT_DEFAULTS.painterlyStrength;
+          oilPaintPostEffect.brushRadius.value = OIL_PAINT_DEFAULTS.brushRadius;
+          oilPaintPostEffect.impasto.value = OIL_PAINT_DEFAULTS.impasto;
+          oilPaintPostEffect.brushScale.value = OIL_PAINT_DEFAULTS.brushScale;
+        }
+        scene?.shaderData.setFloat("scene_OilPaintImpasto", OIL_PAINT_DEFAULTS.impasto);
+        scene?.shaderData.setFloat("scene_OilPaintBrushScale", OIL_PAINT_DEFAULTS.brushScale);
+      }
+    };
+
     const startupTemplateId = source.session.recipe().parameters.worldTemplate?.id ?? "";
     const startupTemplate = worldTemplate(startupTemplateId);
     const startupArt = WORLD_TEMPLATE_ART[startupTemplateId];
@@ -1250,6 +1381,26 @@ export async function mountSeedWorldDemo(
       undefined,
       { surfaceWaterSsrRequiresRain: true, lazyPrecipitation: true }
     );
+    let appliedBuildingPaletteTemplate: string | undefined;
+    const applyTemplateBuildingPalette = (templateId: string) => {
+      if (!engine || appliedBuildingPaletteTemplate === templateId) return;
+      appliedBuildingPaletteTemplate = templateId;
+      const appearance = masonryAppearance(engine);
+      appearance.reset();
+      const palette = WORLD_TEMPLATE_ART[templateId]?.buildingPalette;
+      if (palette) {
+        for (const [role, hex] of Object.entries(palette)) {
+          if (hex) appearance.setColor(role as MasonryTintRole, hex);
+        }
+      }
+    };
+    applyTemplateBuildingPalette(startupTemplateId);
+    if (startupArt?.season) {
+      const prevDuration = environment.getSnapshot().transitionDuration;
+      environment.setTransitionDuration(0);
+      environment.setSeason(startupArt.season);
+      environment.setTransitionDuration(prevDuration);
+    }
     const initialWeather = source.session
       .inspect("world")
       .components.find((component) => component.type === "weather")?.values;
@@ -1365,7 +1516,7 @@ export async function mountSeedWorldDemo(
       if ((debugReadoutElapsed += dt) >= 0.1) {
         const tDbg = markTick ? performance.now() : 0;
         debugSidebar?.update();
-        lodDebugPanel?.update();
+        runtimeDebug?.updateLod();
         runtimeDebug?.refresh();
         debugReadoutElapsed = 0;
         const current = publication?.current;
@@ -1868,7 +2019,7 @@ export async function mountSeedWorldDemo(
                   meshes
                 );
                 grass = current.world.population.prepareRockGrass(
-                  rockFormationPlacements(presented, meshes),
+                  rockGrassPlacements(presented, meshes),
                   rockGrassExclusions(plan, current.data.fields, rockGrassWaterTest(water!))
                 );
               }
@@ -2225,7 +2376,7 @@ export async function mountSeedWorldDemo(
                     );
                     const solidFrame = await candidateSolids!.prepare(presented);
                     const grassFrame = candidate!.population.prepareRockGrass(
-                      rockFormationPlacements(presented, candidateSolids!.formations),
+                      rockGrassPlacements(presented, candidateSolids!.formations),
                       rockGrassExclusions(candidateSolids!.sourcePlan, fields, rockGrassWaterTest(water!))
                     );
                     try {
@@ -2459,7 +2610,7 @@ export async function mountSeedWorldDemo(
             candidate!.population.setRockGrassGround(readRockFormationSettings(document));
             candidate!.population
               .prepareRockGrass(
-                rockFormationPlacements(presented, formationMeshes),
+                rockGrassPlacements(presented, formationMeshes),
                 rockGrassExclusions(plan, candidateData.fields, rockGrassWaterTest(water!))
               )
               .commit();
@@ -2767,7 +2918,29 @@ export async function mountSeedWorldDemo(
         sandstorm = undefined;
       }
       canvas.dataset.sandstorm = sandstorm ? "active" : "off";
+      applyTemplateBuildingPalette(templateId);
+      if (templateId === "oil-paint") {
+        try {
+          await setOilPaintPassActive(true);
+          if (publication!.current !== accepted || disposed) return;
+          await setOilPaintMacroEnabled(true);
+        } catch (error) {
+          if (!disposed) console.warn("[seed-world] oil-paint style setup failed", error);
+        }
+      } else {
+        await setOilPaintPassActive(false);
+        await setOilPaintMacroEnabled(false);
+      }
+      canvas.dataset.oilPaint = oilPaintMacroEnabled ? "active" : "off";
       if (publication!.current !== accepted || disposed) return;
+      detachCompanionStoneObstacles?.();
+      detachCompanionStoneObstacles = undefined;
+      animals!.clearDynamicObstacles();
+      if (accepted.vegetation) {
+        detachCompanionStoneObstacles = accepted.vegetation.onCompanionStoneObstaclesChange((cellKey, obstacles) => {
+          animals?.setDynamicObstacles(`companion-stone:${cellKey}`, obstacles);
+        });
+      }
       animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
         surface: accepted.data.surfaceIntent
       });
@@ -3065,6 +3238,15 @@ export async function mountSeedWorldDemo(
           import("./src/SeedWorldLodDebugPanel.ts")
         ]);
       runtimeDebug = await PlanningSeedRuntimeDebug.create({
+        mountLodControls: ({ grassHost, buildingHost }) =>
+          new SeedWorldLodDebugPanel({
+            grassHost,
+            buildingHost,
+            engine,
+            camera,
+            readPopulation: () => readWorld()?.population,
+            readMasonryMetrics: () => publication?.current?.masonry?.metrics
+          }),
         extraControls:
           desert && startupTemplate?.rockSource !== "shared"
             ? async (gui) => {
@@ -3090,6 +3272,7 @@ export async function mountSeedWorldDemo(
         water,
         audio: audio.audio,
         vista: vistaControls,
+        oilPaint: oilPaintDebugControl,
         setGrassGroundFusion: (enabled) =>
           tools!.dispatchParameters([
             {
@@ -3212,14 +3395,6 @@ export async function mountSeedWorldDemo(
       const bookmark = publication.current?.playerBookmark;
       if (bookmark) debugSidebar.restoreCameraMode(bookmark.mode);
       if (obbDebug) debugSidebar.mountObbControl(obbDebug.button);
-      lodDebugPanel = new SeedWorldLodDebugPanel({
-        host: shell,
-        engine,
-        camera,
-        readPopulation: () => readWorld()?.population,
-        readMasonryMetrics: () => publication?.current?.masonry?.metrics
-      });
-      lodDebugPanel.update();
     }
     // Dense visible details belong to the world presentation, including photo captures.
     timed("warmupPopulationDetails (startup)", () => publication!.current?.world.warmupPopulationDetails());
@@ -3380,59 +3555,72 @@ export async function mountSeedWorldDemo(
         import("@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel"),
         import("@galacean/engine-world-planning/masonry/NativeBuildingPanel")
       ]);
-      nativeWaterPanel = mountNativeWaterPanel(runtimeProject, nativeEditor);
-      nativeBuildingPanel = mountNativeBuildingPanel(
-        runtimeProject,
-        nativeEditor,
-        (position, forward) => {
-          captureMasonryView();
-          navigation.enabled = false;
-          navigation.setInputEnabled(false);
-          navigation.setGroundCollision(false);
-          camera.isOrthographic = false;
-          if (forward) {
-            camera.entity.transform.setWorldPosition(
-              position.x + forward.x * 8,
-              position.y + 3,
-              position.z + forward.z * 8
-            );
-            orbit.target.copyFrom(position);
-          } else {
-            camera.entity.transform.setWorldPosition(
-              position.x + 12,
-              Math.max(position.y, sampleHeight(position.x, position.z) ?? 0) + 9,
-              position.z + 15
-            );
-            orbit.target.set(
-              position.x,
-              Math.max(position.y, sampleHeight(position.x, position.z) ?? 0) + 3,
-              position.z
-            );
-          }
-          camera.entity.transform.lookAt(orbit.target);
-          debugSidebar?.restoreCameraMode("orbit");
-          orbit.enabled = true;
+      const focusBuilding = (position: Vector3, forward?: Vector3) => {
+        captureMasonryView();
+        navigation.enabled = false;
+        navigation.setInputEnabled(false);
+        navigation.setGroundCollision(false);
+        camera.isOrthographic = false;
+        if (forward) {
+          camera.entity.transform.setWorldPosition(
+            position.x + forward.x * 8,
+            position.y + 3,
+            position.z + forward.z * 8
+          );
+          orbit.target.copyFrom(position);
+        } else {
+          camera.entity.transform.setWorldPosition(
+            position.x + 12,
+            Math.max(position.y, sampleHeight(position.x, position.z) ?? 0) + 9,
+            position.z + 15
+          );
+          orbit.target.set(
+            position.x,
+            Math.max(position.y, sampleHeight(position.x, position.z) ?? 0) + 3,
+            position.z
+          );
+        }
+        camera.entity.transform.lookAt(orbit.target);
+        debugSidebar?.restoreCameraMode("orbit");
+        orbit.enabled = true;
+      };
+      const buildingPlacement = {
+        anchors: () => {
+          const current = publication?.current;
+          if (!current) throw Error("Seed 地形尚未发布");
+          return masonryPlacementAnchors(current, camera.entity.transform.worldPosition);
         },
-        returnFromMasonry,
-        {
-          anchors: () => {
+        land: {
+          sampleHeight: (x: number, z: number) => {
             const current = publication?.current;
             if (!current) throw Error("Seed 地形尚未发布");
-            return masonryPlacementAnchors(current, camera.entity.transform.worldPosition);
+            return sampleSeedWorldHeight(current.data.fields, x, z);
           },
-          land: {
-            sampleHeight: (x, z) => {
-              const current = publication?.current;
-              if (!current) throw Error("Seed 地形尚未发布");
-              return sampleSeedWorldHeight(current.data.fields, x, z);
-            },
-            isWater: (x, z) => {
-              return !!water?.sampleSurface(x, z, buildingWaterSample) && buildingWaterSample.waterDepth > 0;
-            }
-          },
-          appearanceEngine: engine
-        }
-      );
+          isWater: (x: number, z: number) => {
+            return !!water?.sampleSurface(x, z, buildingWaterSample) && buildingWaterSample.waterDepth > 0;
+          }
+        },
+        appearanceEngine: engine
+      };
+      if (runtimeDebug) {
+        runtimeDebug.attachNativeComponentPanels({
+          mountWater: (container) => mountNativeWaterPanel(runtimeProject!, nativeEditor!, { container }),
+          mountBuilding: (container) =>
+            mountNativeBuildingPanel(runtimeProject!, nativeEditor!, focusBuilding, returnFromMasonry, {
+              ...buildingPlacement,
+              container
+            })
+        });
+      } else {
+        nativeWaterPanel = mountNativeWaterPanel(runtimeProject, nativeEditor);
+        nativeBuildingPanel = mountNativeBuildingPanel(
+          runtimeProject,
+          nativeEditor,
+          focusBuilding,
+          returnFromMasonry,
+          buildingPlacement
+        );
+      }
     }
     timed("applySubjectView", () => applySubjectView());
     worldPicker ??= timed("SeedWorldPicker", () => new SeedWorldPicker(camera));
@@ -3963,6 +4151,14 @@ async function applyPresentation(
     if (sources.bloomThreshold?.length) post.setBloomThreshold(Number(p.bloomThreshold));
     if (sources.bloomIntensity?.length) post.setBloomIntensity(Number(p.bloomIntensity));
     if (sources.bloomScatter?.length) post.setBloomScatter(Number(p.bloomScatter));
+    const templateId = session.document.entities.world.components.worldTemplate?.values.id;
+    const templateVolumetricDefault =
+      typeof templateId === "string"
+        ? Boolean(WORLD_TEMPLATE_ART[templateId]?.postProcess?.volumetricLight)
+        : false;
+    post.setVolumetricLightEnabled(
+      sources.volumetricLight?.length ? Boolean(p.volumetricLight) : templateVolumetricDefault
+    );
   }
 }
 

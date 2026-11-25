@@ -515,7 +515,9 @@ export function planVisualGuidance(
             protectedAt.add(protectedFootprint);
             volumes = treeWhiteboxes(tree, baseHeight);
           } else {
-            volumes = [guidanceRockBox(solid, ground, templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id))];
+            volumes = [
+              guidanceRockBox(solid, ground, templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id), plan)
+            ];
             solid.boxes = volumes;
             plan.rocks.push(solid);
             const occupiedFootprint = { ...footprint(outline), groupId: solid.groupId };

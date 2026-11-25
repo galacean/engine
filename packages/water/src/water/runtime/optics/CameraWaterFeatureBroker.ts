@@ -150,7 +150,8 @@ export class CameraWaterFeatureBroker {
     if (this._originalForwardDepthResolveEnabled !== undefined) {
       this._camera._enableForwardDepthResolve =
         this._originalForwardDepthResolveEnabled ||
-        (depthRequested && this._originalDepthTextureMode === DepthTextureMode.None);
+        ((depthRequested || this._camera.depthTextureMode !== DepthTextureMode.None) &&
+          this._originalDepthTextureMode === DepthTextureMode.None);
     }
     this._camera.opaqueTextureEnabled = opaqueRequested;
     this._camera.opaqueTextureDownsampling = selectedDownsampling;
