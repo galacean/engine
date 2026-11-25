@@ -1,0 +1,39 @@
+world/scripts/build-seed-world-flash-app.mjs
+  s_caf11bdf90f800::t_042b30bec562af 4,9,37,55
+world/README.md
+  s_caf11bdf90f800::t_9150a9b6e88095 80
+world/scripts/build-seed-world-npm.mjs
+  s_caf11bdf90f800::t_86a89da80dac8a 1-111
+world/scripts/build-seed-world-flash-source.mjs
+  s_caf11bdf90f800::t_042b30bec562af 17,20,234,237,344-347,352,419-420,423
+  s_caf11bdf90f800::t_f71fd4c4a93d12 31
+packages/modify/build/prepare.mjs
+  s_caf11bdf90f800::t_042b30bec562af 27-29
+.agents/skills/seed-world-flash-publish/SKILL.md
+  s_caf11bdf90f800::t_27124179267f8c 13-33,47,61,66
+packages/shader-compiler/src/bundler/precompile.ts
+  s_caf11bdf90f800::t_042b30bec562af 70-71,124,156,168,236,244-252,272,279-283
+  s_caf11bdf90f800::t_6e1221f87e7b3d 284-285
+packages/shader-compiler/src/bundler/cli.ts
+  s_caf11bdf90f800::t_042b30bec562af 9,19-20,27,39-40
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_caf11bdf90f800::t_27124179267f8c 9,12-14,17,21-22,24,45,54,57,62,92,95,98,101,116,136,138-140,143,145
+world/scripts/sync-flash-app-cdn-assets.py
+  s_caf11bdf90f800::t_9150a9b6e88095 279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "16dba939153c338c28ff149f93fa459d09d95c18",
+  "prompts": {},
+  "sessions": {
+    "s_caf11bdf90f800": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21128-caf4-7572-852e-e731f2e790df",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+packages/runtime-editor/tests/runtime-project.spec.ts
+  s_ab59b8e40dc4d1::t_757eed0d93ee15 2502-2575
+world/tests/seed-world/PlanningFarmCheckpoint.spec.ts
+  s_ab59b8e40dc4d1::t_8b2bd474c03008 1090,1325-1364
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "746bf016a919268d39e1120c4b4f0b67b90231ac",
+  "prompts": {},
+  "sessions": {
+    "s_ab59b8e40dc4d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ce4-cb2b-71d3-86f0-6aa015964ede",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
