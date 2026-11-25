@@ -1,0 +1,19 @@
+tests/src/core/ShaderMacroCollection.test.ts
+  s_dcadea7fd99279::t_cff343c492c299 12,24,28,95-99,101-107,109,112-114,116-144,146-148,150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2ad8cb424df5554ad754efc924ff745a1659c508",
+  "prompts": {},
+  "sessions": {
+    "s_dcadea7fd99279": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21356-8848-70c2-980b-85c8418ffb42",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}

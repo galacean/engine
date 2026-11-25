@@ -1,0 +1,58 @@
+packages/modify/native-overrides.json
+  h_171a11afaf879a 769-784
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_171a11afaf879a 21,74,570-595,616-638,640-647,650-651,653-658,660-664,681-685,782-791,798-801,803-804,846-855
+packages/modify/src/native/core/src/RenderPipeline/Blitter.ts
+  h_171a11afaf879a 1,4-5,9,30,33-37,41,46,57-97,104-105,148-165
+packages/modify/src/native/core/src/RenderPipeline/DepthOnlyPass.ts
+  h_171a11afaf879a 4,42-45,51-52
+packages/modify/src/native/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_171a11afaf879a 4,80-84
+packages/modify/src/native/core/src/RenderPipeline/PipelinePass.ts
+  h_171a11afaf879a 4,21-22
+packages/modify/src/native/core/src/RenderPipeline/RenderContext.ts
+  h_171a11afaf879a 6-7,109-151
+packages/modify/src/native/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_171a11afaf879a 9,139,141,145-149,154-158,161,163-167
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_171a11afaf879a 18,708-709,717-718,819-820,828-829,925-926,934-935,976-977,985-986,1171-1172,1181-1183,1228,1256-1257,1266-1268,1435-1436,1444-1445,1493-1494,1502-1503,2113-2120,2179-2180,2188-2189,2528-2555,2562-2563,2567-2568,2577-2579
+packages/modify/src/native/core/src/postProcess/FinalPass.ts
+  h_171a11afaf879a 9,61,65-69,74-86,88-92
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  h_171a11afaf879a 21,67-68,277-288,433-434,436-440,444-448,451-455,522-523,525-529,531-535,537-541,999-1001,1003-1007,1011-1015,1019,1021-1025
+packages/modify/src/native/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_171a11afaf879a 18,73-81
+packages/modify/src/native/core/src/renderingHardwareInterface/IPlatformRenderTarget.ts
+  h_171a11afaf879a 17
+packages/modify/src/native/core/src/renderingHardwareInterface/RenderPassDescriptor.ts
+  h_171a11afaf879a 1-84
+packages/modify/src/native/core/src/renderingHardwareInterface/RenderPassLoadAction.ts
+  h_171a11afaf879a 1-18
+packages/modify/src/native/core/src/renderingHardwareInterface/RenderPassStoreAction.ts
+  h_171a11afaf879a 1-18
+packages/modify/src/native/core/src/renderingHardwareInterface/index.ts
+  h_171a11afaf879a 1-14
+packages/modify/src/native/core/src/shadow/CascadedShadowCasterPass.ts
+  h_171a11afaf879a 10,136-139,182
+packages/modify/src/native/core/src/texture/RenderTarget.ts
+  h_171a11afaf879a 272-273
+packages/modify/src/native/rhi-null/src/NullGraphicDevice.ts
+  h_171a11afaf879a 83-84
+packages/modify/src/native/rhi-webgl/src/GLRenderTarget.ts
+  h_171a11afaf879a 16-22,78-87,148-149,151-161,163-188,191-194,202-204,206-217,221-233,236-237,239-242,244,246-248,250-253,256-259,262-263,272-275
+packages/modify/src/native/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_171a11afaf879a 22-24,101-110,128-129,133-136,355,360-367,372-373,452,455-566,572,574-575,583,657-658,716-718,746,756-757,765-767,775,778,780-789,794,800-916
+packages/modify/tests/ScreenSpaceReflection.test.ts
+  h_171a11afaf879a 28-30,3139-3146,3159-3164,3169-3183,3189-3194,3199-3200,3207,3209,4208,4212-4219,4221-4225,4871,4873-4877
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c8fdf1f3b22be0885f0726d33b64e0e82aee0c9d",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
