@@ -1,0 +1,21 @@
+packages/core/src/physics/Collider.ts
+  s_a906facbc0e1c1::t_a81a8c3f3569ec 41-43,61-74,530,546-547,548-556,559-562,566-567
+tests/src/core/physics/Collider.test.ts
+  s_a906facbc0e1c1::t_a81a8c3f3569ec 236-253,263
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "27fc5e18f7c5880d37579f04f165668d5680f828",
+  "prompts": {},
+  "sessions": {
+    "s_a906facbc0e1c1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210ed-3fc5-7302-b74d-8f2376b79692",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

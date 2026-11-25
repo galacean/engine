@@ -1,0 +1,26 @@
+packages/terrain/src/terrain/debug/DebugInspector.ts
+  h_171a11afaf879a 24-25,171-183,269-285
+packages/world-planning/src/integrations/terrain/debug/TerrainRuntimeDebugInspector.ts
+  h_171a11afaf879a 387-388,502,534,1019
+packages/world-planning/src/masonry/NativeBuildingPanel.ts
+  h_171a11afaf879a 29,32-33,35-42,148-150
+packages/world-planning/src/spatial/runtime/NativeWaterPanel.ts
+  h_171a11afaf879a 18,20-21,23-29,43
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 614,1429,3142-3150,3459-3492,3494-3495,3498,3500-3524
+world/demos/seed-world/src/SeedWorldLodDebugPanel.ts
+  h_171a11afaf879a 7,26-28,41-44,56-63,65-70,72-74,76-77,79-80,82-84,87-92,98-130,132-133,135,137,148-178,181,202-203,206,210-218,235-239,242-248,252-254,259
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  h_171a11afaf879a 12,15,47-51,55-59,90-94,178-216,337-345,464-470
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "100cff64c5745499d66253809d39564710130f84",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+packages/world-planning/src/world/MarkupViewport.shader
+  h_ddbf152d31b140 130-195,228,240-241,261,268-314
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0981f8a181e2ac94e262aea87b6578e3c7fc75fb",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
