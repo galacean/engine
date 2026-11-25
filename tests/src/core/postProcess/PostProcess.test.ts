@@ -951,4 +951,97 @@ describe("PostProcess", () => {
       bloomEngine.destroy();
     }
   });
+
+  it("Bloom prefilter rejects NaN/Inf HDR pixels while keeping finite HALF_MAX bounded", async () => {
+    const size = 128;
+    const htmlCanvas = document.createElement("canvas");
+    htmlCanvas.width = size;
+    htmlCanvas.height = size;
+    const bloomEngine = await WebGLEngine.create({ canvas: htmlCanvas });
+    const bloomScene = bloomEngine.sceneManager.scenes[0];
+    bloomScene.background.solidColor.set(0, 0, 0, 1);
+
+    const cameraEntity = bloomScene.createRootEntity("camera");
+    cameraEntity.transform.setPosition(0, 0, 10);
+    const bloomCamera = cameraEntity.addComponent(Camera);
+    bloomCamera.isOrthographic = true;
+    bloomCamera.orthographicSize = size / 2;
+    bloomCamera.enablePostProcess = true;
+    bloomCamera.enableHDR = true;
+
+    const destColorTexture = new Texture2D(bloomEngine, size, size, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const destTarget = new RenderTarget(bloomEngine, size, size, destColorTexture);
+    bloomCamera.renderTarget = destTarget;
+
+    const dotEntity = bloomScene.createRootEntity("bad-pixel");
+    const renderer = dotEntity.addComponent(MeshRenderer);
+    renderer.mesh = PrimitiveMesh.createCuboid(bloomEngine, 4, 4, 1);
+    const material = new UnlitMaterial(bloomEngine);
+    renderer.setMaterial(material);
+
+    const pp = bloomScene.createRootEntity("post-process").addComponent(PostProcess);
+    const bloomEffect = pp.addEffect(BloomEffect);
+    bloomEffect.maxIterations.value = 5;
+    bloomEffect.threshold.value = 0.5;
+    bloomEffect.scatter.value = 0.7;
+    bloomEffect.intensity.value = 1;
+
+    try {
+      const gl = (bloomEngine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+      const outPixels = new Uint8Array(size * size * 4);
+      const readPixel = (x: number, y: number) => {
+        const idx = (y * size + x) * 4;
+        return [outPixels[idx], outPixels[idx + 1], outPixels[idx + 2]];
+      };
+
+      // Test both Quarter 4-tap and HQ 13-tap prefilter paths against NaN, +Inf, and -Inf HDR values
+      for (const hq of [false, true]) {
+        bloomEffect.downScale.value = BloomDownScaleMode.Quarter;
+        bloomEffect.highQualityFiltering.value = hq;
+
+        for (const badColor of [
+          [Number.NaN, Number.NaN, Number.NaN],
+          [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
+          [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY],
+          [-65504, -65504, -65504]
+        ]) {
+          material.baseColor.set(badColor[0], badColor[1], badColor[2], 1);
+          while (gl.getError() !== gl.NO_ERROR);
+          bloomEngine.update();
+          expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+          destColorTexture.getPixelBuffer(outPixels);
+          // Surrounding background pixels (outside the 4x4 center quad) must stay 0 — never explode into a white bloom flash
+          const nearHalo = readPixel(72, 64);
+          const farHalo = readPixel(96, 64);
+          expect(nearHalo[0]).to.equal(0);
+          expect(nearHalo[1]).to.equal(0);
+          expect(nearHalo[2]).to.equal(0);
+          expect(farHalo[0]).to.equal(0);
+          expect(farHalo[1]).to.equal(0);
+          expect(farHalo[2]).to.equal(0);
+        }
+
+        // Finite HALF_MAX (65504) must remain finite through the HDR bloom pyramid (decaying cleanly with tiny intensity).
+        bloomEffect.intensity.value = 0.001;
+        material.baseColor.set(65504, 65504, 65504, 1);
+        while (gl.getError() !== gl.NO_ERROR);
+        bloomEngine.update();
+        expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+        destColorTexture.getPixelBuffer(outPixels);
+        const nearHalo = readPixel(70, 64);
+        const corner = readPixel(0, 0);
+        expect(nearHalo[0]).to.be.greaterThan(0);
+        expect(nearHalo[2]).to.be.greaterThan(0);
+        expect(corner[0]).to.be.lessThan(255);
+        expect(corner[2]).to.be.lessThan(255);
+        bloomEffect.intensity.value = 1;
+      }
+    } finally {
+      bloomCamera.renderTarget = null;
+      destTarget.destroy(true);
+      bloomEngine.destroy();
+    }
+  });
 });
