@@ -1,5 +1,8 @@
 import { createPhysics } from "../../utils/physics";
 import {
+  AnimationClip,
+  AnimationQuaternionCurve,
+  Camera,
   Engine,
   Entity,
   BoxCollider,
@@ -20,7 +23,7 @@ import {
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
-import { HorizontalAlignmentMode, UITransform } from "@galacean/engine-ui";
+import { CanvasRenderMode, HorizontalAlignmentMode, UICanvas, UITransform } from "@galacean/engine-ui";
 import { vi, describe, beforeAll, afterAll, beforeEach, afterEach, expect, it } from "vitest";
 import { PrefabParser } from "../../../../packages/loader/src/prefab/PrefabParser";
 
@@ -177,6 +180,61 @@ describe("Rigidbody", function () {
     const hit = new HitResult();
     expect(physics.raycast(ray, 4, hit)).toBe(true);
     expect(hit.collider).toBe(collider);
+    const center = body.getWorldCenterOfMass(new Vector3());
+    expect(center.x).toBeCloseTo(2);
+    body.applyForceAtPosition(new Vector3(0, 1, 0), center, ForceMode.Impulse);
+    physics._update(physics.fixedTimeStep);
+    expect(body.angularVelocity.z).toBeCloseTo(0);
+  });
+
+  it.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true]
+  ])("keeps a camera-driven Canvas queryable after write-back (nested=%s, camera first=%s)", (nested, cameraFirst) => {
+    const cameraEntity = rootEntity.createChild();
+    const canvasEntity = (nested ? cameraEntity : rootEntity).createChild();
+    const canvas = canvasEntity.addComponent(UICanvas);
+    canvas.camera = cameraEntity.addComponent(Camera);
+    canvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    const box = canvasEntity.addComponent(BoxCollider);
+    let canvasBody: Rigidbody;
+    if (!cameraFirst) canvasBody = canvasEntity.addComponent(Rigidbody);
+    const cameraBody = cameraEntity.addComponent(Rigidbody);
+    cameraBody.useGravity = false;
+    if (cameraFirst) canvasBody = canvasEntity.addComponent(Rigidbody);
+    canvasBody.isKinematic = true;
+
+    const step = useFixedTimeStep();
+    engine.update();
+    const z = canvasEntity.transform.worldPosition.z;
+    const hit = new HitResult();
+    const hitsCanvas = (x: number) =>
+      rootEntity.scene.physics.raycast(new Ray(new Vector3(x, 0, z - 2), new Vector3(0, 0, 1)), 4, hit) &&
+      hit.collider === box;
+    expect(hitsCanvas(0)).toBe(true);
+    cameraBody.linearVelocity.x = 2 / step;
+    engine.update();
+    expect(canvasEntity.transform.worldPosition.x).toBeCloseTo(2);
+    expect(hitsCanvas(2)).toBe(true);
+    expect(hitsCanvas(0)).toBe(false);
+
+    cameraBody.linearVelocity.x = 0;
+    engine.update();
+    expect(canvasEntity.transform.worldPosition.x).toBeCloseTo(2);
+    expect(hitsCanvas(2)).toBe(true);
+
+    // The camera authors the previous position while PhysX moves the Canvas to a different target.
+    canvasBody.move(new Vector3(4, 0, z));
+    engine.update();
+    expect(canvasEntity.transform.worldPosition.x).toBeCloseTo(4);
+    canvasBody.move(new Vector3(6, 0, z));
+    cameraBody.linearVelocity.x = 2 / step;
+    engine.update();
+    expect(canvasEntity.transform.worldPosition.x).toBeCloseTo(4);
+    expect(hitsCanvas(4)).toBe(true);
+    expect(hitsCanvas(6)).toBe(false);
   });
 
   it("mass", function () {
@@ -709,6 +767,35 @@ describe("Rigidbody", function () {
     shape.size.x = 3;
     expect(body.inertiaTensor.y).toBeCloseTo(autoInertia ? 360 : 3);
     expect(body.mass).toBeCloseTo(96);
+  });
+
+  it("retains density-derived inertia across disable and re-enable without a geometry change", () => {
+    const entity = rootEntity.createChild();
+    const body = entity.addComponent(Rigidbody);
+    const sphere = entity.addComponent(SphereCollider);
+    sphere.radius = 0.5;
+    sphere.center.x = 2048;
+    expect(body.setDensity(2)).toBe(true);
+    const mass = body.mass;
+    const inertia = body.inertiaTensor.clone();
+
+    body.enabled = false;
+    body.enabled = true;
+    expect(body.mass).toBe(mass);
+    expect(body.inertiaTensor).toMatchObject({ x: inertia.x, y: inertia.y, z: inertia.z });
+  });
+
+  it("computes kinematic mass from solid shapes when a trigger plane is attached", () => {
+    const entity = rootEntity.createChild();
+    const body = entity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const box = entity.createChild().addComponent(BoxCollider);
+    box.size.set(2, 4, 6);
+    box.center.x = 3;
+    entity.createChild().addComponent(PlaneCollider).isTrigger = true;
+
+    expect(body.centerOfMass.x).toBeCloseTo(3);
+    expect(body.inertiaTensor.x).toBeCloseTo((4 ** 2 + 6 ** 2) / 12);
   });
 
   it("preserves pending authored mass when the density computation cannot succeed", () => {
@@ -1785,6 +1872,28 @@ describe("Rigidbody", function () {
     expect(body.angularVelocity.z).toBeCloseTo(0, 5);
   });
 
+  it("samples animated principal axes through the Rigidbody setter", () => {
+    const entity = rootEntity.createChild();
+    entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.angularDamping = 0;
+    body.inertiaTensor = new Vector3(2, 3, 4);
+    const previous = body.inertiaTensorRotation;
+    const clip = new AnimationClip("principal axes");
+    const curve = new AnimationQuaternionCurve();
+    curve.addKey({ time: 0, value: new Quaternion().rotateZ(Math.PI / 2) });
+    clip.addCurveBinding("", Rigidbody, "inertiaTensorRotation", curve);
+    clip.sampleAnimation(entity, 0);
+
+    expect(previous.z).toBe(0);
+    expect(body.inertiaTensorRotation.z).toBeCloseTo(Math.SQRT1_2);
+    body.applyTorque(new Vector3(3, 0, 0), ForceMode.Impulse);
+    const physics = entity.scene.physics;
+    physics._update(physics.fixedTimeStep);
+    expect(body.angularVelocity.x).toBeCloseTo(1);
+  });
+
   it("uses read-only snapshot whole-value semantics and atomic validation on inertiaTensorRotation", () => {
     const physics = engine.sceneManager.activeScene.physics;
     const entity = rootEntity.createChild("snapshot-inertia-rotation");
@@ -1797,6 +1906,7 @@ describe("Rigidbody", function () {
     // Reading while automatic does not turn off automaticInertiaTensor.
     const autoRotation = body.inertiaTensorRotation;
     expect(body.automaticInertiaTensor).toBe(true);
+    expect(() => Reflect.set(autoRotation, "z", 1)).toThrow(TypeError);
     expect(autoRotation).toMatchObject({ x: 0, y: 0, z: 0, w: 1 });
 
     // Non-unit whole-value assignment normalizes, disables auto, preserves computed tensor, and leaves old snapshot intact.
@@ -1804,6 +1914,7 @@ describe("Rigidbody", function () {
     const w30 = Math.cos(Math.PI / 12);
     body.inertiaTensorRotation = { x: 0, y: 0, z: 2 * z30, w: 2 * w30 };
     expect(body.automaticInertiaTensor).toBe(false);
+    expect(() => Reflect.set(body.inertiaTensorRotation, "z", 0)).toThrow(TypeError);
     expect(body.inertiaTensorRotation.z).toBeCloseTo(z30, 5);
     expect(body.inertiaTensorRotation.w).toBeCloseTo(w30, 5);
     expect(autoRotation).toMatchObject({ x: 0, y: 0, z: 0, w: 1 });
@@ -1950,7 +2061,8 @@ describe("Rigidbody", function () {
 
   it("flushes mass edits on disabled Rigidbodies when reading centerOfMass or inertiaTensor", () => {
     const entity = rootEntity.createChild("disabled-mass");
-    const box = entity.addComponent(BoxCollider);
+    const child = entity.createChild();
+    const box = child.addComponent(BoxCollider);
     box.size.set(2, 2, 2);
     box.center.set(3, 0, 0);
     const body = entity.addComponent(Rigidbody);
@@ -1959,7 +2071,9 @@ describe("Rigidbody", function () {
 
     body.enabled = false;
     body.mass = 10;
-    expect(body.centerOfMass.x).toBeCloseTo(3, 4);
+    child.transform.position.x = 2;
+    body.automaticCenterOfMass = false;
+    expect(body.centerOfMass.x).toBeCloseTo(5, 4);
     expect(body.inertiaTensor.x).toBeCloseTo(baseInertiaX * 5, 4);
   });
 
@@ -2177,46 +2291,34 @@ describe("Rigidbody", function () {
   it("settles pending geometry principal axes before switching a disabled Rigidbody to manual inertiaTensor", () => {
     const physics = engine.sceneManager.activeScene.physics;
 
-    const runScenario = (readRotationFirst: boolean) => {
-      const entity = rootEntity.createChild(readRotationFirst ? "read-first" : "direct-write");
+    for (const queryBeforeWrite of [false, true]) {
+      const entity = rootEntity.createChild();
       const body = entity.addComponent(Rigidbody);
       body.useGravity = false;
-      const child = entity.createChild("rotated-box");
+      body.angularDamping = 0;
+      const child = entity.createChild();
       child.addComponent(BoxCollider).size.set(2, 4, 6);
-
-      // Initial sync attaches the child shape at 0 deg.
-      expect(physics.raycast(new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0)), 10)).toBe(true);
+      const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0));
+      expect(physics.raycast(ray, 10)).toBe(true);
 
       body.enabled = false;
       child.transform.rotation.z = 30;
-      // Query sync submits the rotated shape pose and marks mass dirty on the disabled body.
-      physics.raycast(new Ray(new Vector3(0, 5, 0), new Vector3(0, -1, 0)), 10);
-
-      if (readRotationFirst) {
+      child.transform.position.x = 3;
+      if (queryBeforeWrite) {
+        expect(physics.raycast(ray, 10)).toBe(false);
         void body.inertiaTensorRotation;
       }
       body.inertiaTensor = new Vector3(2, 3, 4);
-      const lockedRotation = body.inertiaTensorRotation;
+      body.automaticCenterOfMass = false;
 
       body.enabled = true;
+      expect(body.centerOfMass.x).toBeCloseTo(3);
       body.applyTorque(new Vector3(3, 0, 0), ForceMode.Impulse);
       physics._update(physics.fixedTimeStep);
-      const angularVelocity = body.angularVelocity.clone();
+      expect(body.angularVelocity.x).toBeCloseTo(1.375, 4);
+      expect(body.angularVelocity.y).toBeCloseTo(Math.sqrt(3) / 8, 4);
       entity.destroy();
-      return { lockedRotation, angularVelocity };
-    };
-
-    const reference = runScenario(true);
-    const direct = runScenario(false);
-    const dot =
-      direct.lockedRotation.x * reference.lockedRotation.x +
-      direct.lockedRotation.y * reference.lockedRotation.y +
-      direct.lockedRotation.z * reference.lockedRotation.z +
-      direct.lockedRotation.w * reference.lockedRotation.w;
-    expect(Math.abs(dot)).toBeCloseTo(1, 5);
-    expect(direct.angularVelocity.x).toBeCloseTo(reference.angularVelocity.x, 4);
-    expect(direct.angularVelocity.y).toBeCloseTo(reference.angularVelocity.y, 4);
-    expect(direct.angularVelocity.z).toBeCloseTo(reference.angularVelocity.z, 4);
+    }
 
     // Scalar-only mass edits while disabled remain deferred until manual flags commit.
     const deferred = rootEntity.createChild("disabled-mass-defer");

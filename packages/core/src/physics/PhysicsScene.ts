@@ -872,14 +872,6 @@ export class PhysicsScene {
         for (let j = 0; j < count; j++) {
           bodies[j]._writeBack(position, rotation);
         }
-        // Ancestor write-back propagates dirty flags to descendant bodies that just published in this same loop.
-        const dirtyBodies = this._dirtyBodies;
-        if (dirtyBodies.length > 0) {
-          for (let j = 0, n = dirtyBodies.length; j < n; j++) {
-            dirtyBodies[j]._dirtyIndex = -1;
-          }
-          dirtyBodies.length = 0;
-        }
       }
       this._dispatchEvents(nativePhysicsScene.updateEvents());
     }

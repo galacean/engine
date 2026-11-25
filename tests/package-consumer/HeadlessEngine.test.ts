@@ -667,14 +667,25 @@ it("installs and resolves the headless engine and its PhysX runtime independentl
       ["await import", "WebAssemblySIMD"]
     ]) {
       const script = `const { HeadlessEngine } = ${load}("@galacean/engine-rhi-null");
-        const { BoxCollider, PBRMaterial, PrimitiveMesh, Ray, Vector3 } = ${load}("@galacean/engine");
+        const { BoxCollider, PBRMaterial, PrimitiveMesh, Ray, Rigidbody, Vector3 } = ${load}("@galacean/engine");
         const { PhysXPhysics, PhysXRuntimeMode } = ${load}("@galacean/engine-physics-physx");
-        HeadlessEngine.create({ physics: new PhysXPhysics(PhysXRuntimeMode.${runtime}) }).then(engine => {
+        HeadlessEngine.create({ physics: new PhysXPhysics(PhysXRuntimeMode.${runtime}) }).then(async engine => {
           if (PrimitiveMesh.createCuboid(engine, 2, 4, 6).bounds.max.y !== 2) throw Error("bounds");
           if (new PBRMaterial(engine).shader.name !== "PBR") throw Error("shader");
           const scene = engine.sceneManager.activeScene;
           scene.createRootEntity().addComponent(BoxCollider);
           if (!scene.physics.raycast(new Ray(new Vector3(0, 0, 2), new Vector3(0, 0, -1)))) throw Error("raycast");
+          const { Vector3: ModuleVector3 } = await import("@galacean/engine-math/dist/module.js");
+          const platform = scene.createRootEntity();
+          const body = platform.addComponent(Rigidbody);
+          body.isKinematic = true;
+          platform.addComponent(BoxCollider);
+          const target = new ModuleVector3(7, 0, 0);
+          if (target instanceof Vector3) throw Error("expected separate math package entry points");
+          body.move(target);
+          if (!scene.physics.raycast(new Ray(new Vector3(7, 2, 0), new Vector3(0, -1, 0)), 4)) {
+            throw Error("mixed-module kinematic move");
+          }
           engine.destroy();
         }).catch(error => { console.error(error); process.exitCode = 1; });`;
       const probe = spawnSync(
