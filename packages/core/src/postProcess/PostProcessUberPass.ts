@@ -84,7 +84,7 @@ export class PostProcessUberPass extends PostProcessPass {
     const passDescriptor = this._passDescriptor.reset(destTarget, viewport);
     passDescriptor.colorLoadAction =
       destTarget && destTarget.colorTextureCount === 1 && isFullViewport
-        ? RenderPassLoadAction.Clear
+        ? RenderPassLoadAction.DontCare
         : RenderPassLoadAction.Load;
     context.beginRenderPass(passDescriptor);
     Blitter.draw(engine, srcTexture, 0, this._uberMaterial);
@@ -193,7 +193,7 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Prefilter
     passDescriptor.reset(mipRT[0]);
-    passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
+    passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
     context.beginRenderPass(passDescriptor);
     Blitter.draw(engine, srcTexture, 0, bloomMaterial, 0);
     context.endRenderPass();
@@ -201,7 +201,7 @@ export class PostProcessUberPass extends PostProcessPass {
     // Progressive single-pass 5x5 9-tap downsample pyramid (Castaño 2013)
     for (let i = 1; i < mipCount; i++) {
       passDescriptor.reset(mipRT[i]);
-      passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
+      passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
       context.beginRenderPass(passDescriptor);
       Blitter.draw(engine, <Texture2D>mipRT[i - 1].getColorTexture(0), 0, bloomMaterial, 1);
       context.endRenderPass();

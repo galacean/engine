@@ -120,7 +120,7 @@ const customPass = new CustomPass(engine);
 engine.addPostProcessPass(customPass);
 ```
 
-> Mobile performance tip: If your custom post-processing shader **overwrites the entire destination** without alpha blending or `discard`, you can pass `RenderPassLoadAction.Clear` as the last argument of `Blitter.blitTexture` (defaults to `RenderPassLoadAction.Load`). This lets mobile TBDR GPUs skip loading stale destination contents from DRAM into tile memory:
+> Mobile performance tip: If your custom post-processing shader **overwrites the entire destination** without alpha blending or `discard`, you can pass `RenderPassLoadAction.DontCare` as the last argument of `Blitter.blitTexture` (defaults to `RenderPassLoadAction.Load`). This lets mobile TBDR GPUs skip loading stale destination contents from DRAM into tile memory:
 >
 > ```ts
 > Blitter.blitTexture(
@@ -132,7 +132,7 @@ engine.addPostProcessPass(customPass);
 >   this._blitMaterial,
 >   0,
 >   undefined,
->   RenderPassLoadAction.Clear
+>   RenderPassLoadAction.DontCare
 > );
 > ```
 

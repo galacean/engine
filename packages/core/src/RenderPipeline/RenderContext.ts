@@ -92,17 +92,17 @@ export class RenderContext {
         stencilState
       } = engine._lastRenderState;
       if (
-        descriptor.colorLoadAction === RenderPassLoadAction.Clear &&
+        descriptor.colorLoadAction !== RenderPassLoadAction.Load &&
         targetBlendState.colorWriteMask !== ColorWriteMask.All
       ) {
         gl.colorMask(true, true, true, true);
         targetBlendState.colorWriteMask = ColorWriteMask.All;
       }
-      if (descriptor.depthLoadAction === RenderPassLoadAction.Clear && depthState.writeEnabled !== true) {
+      if (descriptor.depthLoadAction !== RenderPassLoadAction.Load && depthState.writeEnabled !== true) {
         gl.depthMask(true);
         depthState.writeEnabled = true;
       }
-      if (descriptor.stencilLoadAction === RenderPassLoadAction.Clear && stencilState.writeMask !== 0xff) {
+      if (descriptor.stencilLoadAction !== RenderPassLoadAction.Load && stencilState.writeMask !== 0xff) {
         gl.stencilMask(0xff);
         stencilState.writeMask = 0xff;
       }

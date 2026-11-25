@@ -786,8 +786,13 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       }));
       expect(nonMsaaCalls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.DEPTH_ATTACHMENT] });
       expect(nonMsaaCalls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.STENCIL_ATTACHMENT] });
-      // LoadAction.Clear uses gl.clear(COLOR_BUFFER_BIT) instead of gl.invalidateFramebuffer(COLOR_ATTACHMENT0)
-      expect(nonMsaaCalls).not.toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
+      // On Apple/Metal, DontCare uses gl.clear(COLOR_BUFFER_BIT); on non-Apple GLES, DontCare uses gl.invalidateFramebuffer(COLOR_ATTACHMENT0)
+      // @ts-ignore
+      if (engine._hardwareRenderer._preferClearForLoadDontCare) {
+        expect(nonMsaaCalls).not.toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
+      } else {
+        expect(nonMsaaCalls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
+      }
 
       // 2b. Cold Frame-1 4x MSAA + clearFlags.All: zero GL error and single MSAA bind before clear (no _frameBuffer ping-pong)
       camera.renderTarget = null;
@@ -836,7 +841,12 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       expect(msaaCalls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.DEPTH_ATTACHMENT] });
       expect(msaaCalls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.STENCIL_ATTACHMENT] });
       expect(msaaCalls).toContainEqual({ target: gl.READ_FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
-      expect(msaaCalls).not.toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
+      // @ts-ignore
+      if (engine._hardwareRenderer._preferClearForLoadDontCare) {
+        expect(msaaCalls).not.toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
+      } else {
+        expect(msaaCalls).toContainEqual({ target: gl.FRAMEBUFFER, attachments: [gl.COLOR_ATTACHMENT0] });
+      }
 
       // Verify opaqueTexture captured pure red opaque quad (mid-pass StoreAndResolve)
       const opaqueTex = camera.shaderData.getTexture(Camera._cameraOpaqueTextureProperty) as Texture2D;
@@ -1152,6 +1162,107 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       mrtColor0.destroy();
       mrtColor1.destroy();
       mrtDepth.destroy();
+    }
+  });
+
+  it("RenderPassLoadAction.DontCare dispatches gl.clear on Apple/Metal and gl.invalidateFramebuffer on non-Apple GLES", () => {
+    // @ts-ignore
+    const rhi = engine._hardwareRenderer;
+    // @ts-ignore
+    const context = engine._renderContext;
+    const gl = rhi.gl as WebGL2RenderingContext;
+
+    const srcTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const dstTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const dstRT = new RenderTarget(engine, 16, 16, dstTex, TextureFormat.Depth24Stencil8, 1);
+    const srcPixels = new Uint8Array(16 * 16 * 4);
+    for (let i = 0; i < 16 * 16; i++) {
+      srcPixels[i * 4] = 180;
+      srcPixels[i * 4 + 1] = 90;
+      srcPixels[i * 4 + 2] = 45;
+      srcPixels[i * 4 + 3] = 255;
+    }
+    srcTex.setPixelBuffer(srcPixels);
+
+    const origPreferClear = rhi._preferClearForLoadDontCare;
+    const invSpy = vi.spyOn(gl, "invalidateFramebuffer");
+    const clearSpy = vi.spyOn(gl, "clear");
+    const desc = new RenderPassDescriptor();
+    const outPixels = new Uint8Array(16 * 16 * 4);
+
+    try {
+      // 1. Apple/Metal path (_preferClearForLoadDontCare = true): DontCare clears with (0,0,0,0) and never calls invalidateFramebuffer
+      rhi._preferClearForLoadDontCare = true;
+      invSpy.mockClear();
+      clearSpy.mockClear();
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderPassLoadAction.DontCare);
+      expect(invSpy).not.toHaveBeenCalled();
+      expect(clearSpy).toHaveBeenCalledTimes(1);
+      expect(clearSpy).toHaveBeenCalledWith(gl.COLOR_BUFFER_BIT);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+      dstTex.getPixelBuffer(outPixels);
+      expect(Array.from(outPixels.slice(0, 4))).toEqual([180, 90, 45, 255]);
+
+      // Verify DontCare with stale descriptor.clearColor still clears to (0,0,0,0), not stale clearColor
+      desc.reset(dstRT);
+      desc.colorLoadAction = RenderPassLoadAction.DontCare;
+      desc.clearColor.set(1, 0, 0, 1);
+      context.beginRenderPass(desc);
+      context.endRenderPass();
+      dstTex.getPixelBuffer(outPixels);
+      expect(Array.from(outPixels.slice(0, 4))).toEqual([0, 0, 0, 0]);
+
+      // 2. Non-Apple GLES path (_preferClearForLoadDontCare = false): DontCare calls gl.invalidateFramebuffer([COLOR_ATTACHMENT0]) and skips gl.clear
+      rhi._preferClearForLoadDontCare = false;
+      invSpy.mockClear();
+      clearSpy.mockClear();
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderPassLoadAction.DontCare);
+      expect(clearSpy).not.toHaveBeenCalled();
+      expect(invSpy).toHaveBeenCalledTimes(1);
+      expect(invSpy.mock.calls[0][0]).toBe(gl.FRAMEBUFFER);
+      expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.COLOR_ATTACHMENT0]);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+      dstTex.getPixelBuffer(outPixels);
+      expect(Array.from(outPixels.slice(0, 4))).toEqual([180, 90, 45, 255]);
+
+      // 3. Mixed Clear (depth) + DontCare (color) on non-Apple GLES: depth clears, color invalidates
+      invSpy.mockClear();
+      clearSpy.mockClear();
+      desc.reset(dstRT);
+      desc.colorLoadAction = RenderPassLoadAction.DontCare;
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
+      desc.clearDepth = 1;
+      context.beginRenderPass(desc);
+      context.endRenderPass();
+      expect(clearSpy).toHaveBeenCalledTimes(1);
+      expect(clearSpy).toHaveBeenCalledWith(gl.DEPTH_BUFFER_BIT);
+      expect(invSpy).toHaveBeenCalledTimes(1);
+      expect(Array.from(invSpy.mock.calls[0][1])).toEqual([gl.COLOR_ATTACHMENT0]);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+
+      // 4. Blitter.blitTexture with DontCare on sub-viewport safely downgrades to Load (neither clear nor invalidate)
+      invSpy.mockClear();
+      clearSpy.mockClear();
+      Blitter.blitTexture(
+        engine,
+        srcTex,
+        dstRT,
+        0,
+        new Vector4(0.5, 0, 0.5, 1),
+        null,
+        0,
+        undefined,
+        RenderPassLoadAction.DontCare
+      );
+      expect(clearSpy).not.toHaveBeenCalled();
+      expect(invSpy).not.toHaveBeenCalled();
+    } finally {
+      rhi._preferClearForLoadDontCare = origPreferClear;
+      invSpy.mockRestore();
+      clearSpy.mockRestore();
+      dstRT.destroy();
+      dstTex.destroy();
+      srcTex.destroy();
     }
   });
 });

@@ -64,7 +64,7 @@ export class FinalPass extends PipelinePass {
     const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
     const finalLoadAction =
       renderTarget && renderTarget.colorTextureCount === 1 && isFullViewport
-        ? RenderPassLoadAction.Clear
+        ? RenderPassLoadAction.DontCare
         : RenderPassLoadAction.Load;
 
     // Should convert to sRGB when FXAA is enabled or camera's render target is not set
@@ -72,7 +72,7 @@ export class FinalPass extends PipelinePass {
     if (enableFXAA) {
       const srgbTarget = this._srgbRenderTarget!;
       passDescriptor.reset(srgbTarget);
-      passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
+      passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
       context.beginRenderPass(passDescriptor);
       Blitter.draw(engine, sourceTexture, 0, this._sRGBmaterial, 0);
       context.endRenderPass();

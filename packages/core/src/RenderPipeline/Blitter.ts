@@ -28,9 +28,9 @@ export class Blitter {
   /**
    * Blit texture to destination render target using a standalone render pass and a full-screen triangle.
    * @remarks
-   * When `colorLoadAction` is `RenderPassLoadAction.Clear`, the clear is automatically downgraded to `Load`
-   * if `destination` is the default backbuffer, uses MRT, renders to a sub-viewport, or the material enables
-   * blending or a partial `ColorWriteMask`.
+   * When `colorLoadAction` is `RenderPassLoadAction.DontCare` or `RenderPassLoadAction.Clear`, it is automatically
+   * downgraded to `Load` if `destination` is the default backbuffer, uses MRT, renders to a sub-viewport, or the
+   * material enables blending or a partial `ColorWriteMask`.
    * @param engine - Engine
    * @param source - Source texture
    * @param destination - Destination render target
@@ -60,9 +60,9 @@ export class Blitter {
       destination &&
       destination.colorTextureCount === 1 &&
       isFullViewport &&
-      colorLoadAction === RenderPassLoadAction.Clear &&
+      colorLoadAction !== RenderPassLoadAction.Load &&
       Blitter._canClearColorTarget(pass, blitMaterial.shaderData)
-        ? RenderPassLoadAction.Clear
+        ? colorLoadAction
         : RenderPassLoadAction.Load;
 
     const passDescriptor = Blitter._passDescriptor.reset(destination, viewport, !!destination, 0);

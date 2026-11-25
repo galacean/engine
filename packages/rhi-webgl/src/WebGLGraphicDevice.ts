@@ -97,6 +97,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   _supportsInvalidateFramebuffer: boolean = true;
   /** @internal */
+  _preferClearForLoadDontCare: boolean = false;
+  /** @internal */
   _activeRenderTarget: RenderTarget | null = null;
   private _inRenderPass: boolean = false;
   private _activeColorStoreAction: RenderPassStoreAction = RenderPassStoreAction.Store;
@@ -448,22 +450,46 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._activeDepthStoreAction = descriptor.depthStoreAction;
     this._activeStencilStoreAction = descriptor.stencilStoreAction;
 
-    // On WebGL2 (especially iOS WebKit / ANGLE-Metal), full-target gl.clear() maps directly to hardware
-    // MTLLoadActionClear (zero DRAM tile load) while keeping RobustResourceInit satisfied, avoiding CPU
-    // MTLTexture.replaceRegion stalls that gl.invalidateFramebuffer on load can trigger.
-    const clearColor = descriptor.colorLoadAction === RenderPassLoadAction.Clear;
-    const clearDepth = descriptor.depthLoadAction === RenderPassLoadAction.Clear;
-    const clearStencil = descriptor.stencilLoadAction === RenderPassLoadAction.Clear;
+    // On Apple/Metal WebGL2 backends (iOS / macOS Safari & ANGLE-Metal), full-target gl.clear() maps directly
+    // to hardware MTLLoadActionClear while keeping RobustResourceInit satisfied, avoiding CPU MTLTexture.replaceRegion
+    // stalls that gl.invalidateFramebuffer on load can trigger.
+    // On non-Apple GLES backends (e.g. Qualcomm Adreno, Huawei Maleoon, ARM Mali), gl.invalidateFramebuffer avoids
+    // driver clear slow paths (such as Adreno 650 R11F_G11F_B10F lacking hardware fast-clear) while still skipping DRAM tile loads.
+    const preferClear = this._preferClearForLoadDontCare;
+    const clearColor =
+      descriptor.colorLoadAction === RenderPassLoadAction.Clear ||
+      (preferClear && descriptor.colorLoadAction === RenderPassLoadAction.DontCare);
+    const clearDepth =
+      descriptor.depthLoadAction === RenderPassLoadAction.Clear ||
+      (preferClear && descriptor.depthLoadAction === RenderPassLoadAction.DontCare);
+    const clearStencil =
+      descriptor.stencilLoadAction === RenderPassLoadAction.Clear ||
+      (preferClear && descriptor.stencilLoadAction === RenderPassLoadAction.DontCare);
     if (clearColor || clearDepth || clearStencil) {
       this._clearFrameBufferAttachments(
         renderTarget,
         clearColor,
         clearDepth,
         clearStencil,
-        descriptor.clearColor,
-        descriptor.clearDepth,
-        descriptor.clearStencil
+        descriptor.colorLoadAction === RenderPassLoadAction.Clear ? descriptor.clearColor : null,
+        descriptor.depthLoadAction === RenderPassLoadAction.Clear ? descriptor.clearDepth : 1,
+        descriptor.stencilLoadAction === RenderPassLoadAction.Clear ? descriptor.clearStencil : 0
       );
+    }
+
+    if (!preferClear) {
+      const invalidateColor = descriptor.colorLoadAction === RenderPassLoadAction.DontCare;
+      const invalidateDepth = descriptor.depthLoadAction === RenderPassLoadAction.DontCare;
+      const invalidateStencil = descriptor.stencilLoadAction === RenderPassLoadAction.DontCare;
+      if (invalidateColor || invalidateDepth || invalidateStencil) {
+        this._invalidateFrameBufferAttachments(
+          this._gl.FRAMEBUFFER,
+          renderTarget,
+          invalidateColor,
+          invalidateDepth,
+          invalidateStencil
+        );
+      }
     }
   }
 
@@ -723,12 +749,21 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.activeTexture(gl.TEXTURE0);
 
     const debugRenderInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    let vendor = "";
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
+      vendor = gl.getParameter(debugRenderInfo.UNMASKED_VENDOR_WEBGL) || "";
     }
+    const rendererStr = this._renderer || gl.getParameter(gl.RENDERER) || "";
+    const vendorStr = vendor || gl.getParameter(gl.VENDOR) || "";
     this._supportsInvalidateFramebuffer =
       typeof gl.invalidateFramebuffer === "function" &&
-      !(this._renderer && this._renderer.includes("Intel") && this._renderer.includes("Mesa"));
+      !(rendererStr.includes("Intel") && rendererStr.includes("Mesa"));
+    this._preferClearForLoadDontCare =
+      !this._supportsInvalidateFramebuffer ||
+      rendererStr.includes("Apple") ||
+      rendererStr.includes("Metal") ||
+      vendorStr.includes("Apple");
     this.maxUniformBlockSize = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
   }
 

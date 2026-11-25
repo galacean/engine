@@ -267,7 +267,7 @@ export class BasicRenderPipeline {
         rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture!, camera.viewport);
         // Then blit grab texture to internal RT's color buffer
         const copyPassDescriptor = this._passDescriptor.reset(internalColorTarget);
-        copyPassDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
+        copyPassDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
         context.beginRenderPass(copyPassDescriptor);
         Blitter.draw(
           engine,
@@ -385,7 +385,7 @@ export class BasicRenderPipeline {
       passDescriptor.reset(cameraRenderTarget, viewport);
       passDescriptor.colorLoadAction =
         cameraRenderTarget && cameraRenderTarget.colorTextureCount === 1 && isFullViewport
-          ? RenderPassLoadAction.Clear
+          ? RenderPassLoadAction.DontCare
           : RenderPassLoadAction.Load;
       context.beginRenderPass(passDescriptor);
       Blitter.draw(engine, <Texture2D>outputTarget!.getColorTexture(0));
