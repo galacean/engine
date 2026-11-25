@@ -2,6 +2,7 @@ import {
   AnimationClip,
   AnimationEvent,
   AnimationFloatCurve,
+  AnimationQuaternionCurve,
   AnimationVector3Curve,
   Animator,
   AnimatorConditionMode,
@@ -1748,6 +1749,55 @@ describe("Animator test", function () {
         for (let frame = 0; frame < 2; frame++) {
           player.update(1);
           expect(direction.value).toMatchObject({ x: 1, y: 0, z });
+        }
+      } finally {
+        entity.destroy();
+      }
+    });
+
+    it("preserves the final pose on a weighted additive quaternion layer with a frozen property", () => {
+      class Orientation extends Script {
+        private _value: Readonly<Quaternion> = Object.freeze(new Quaternion());
+
+        get value(): Readonly<Quaternion> {
+          return this._value;
+        }
+        set value(orientation: Quaternion) {
+          this._value = Object.freeze(orientation);
+        }
+      }
+
+      function orientationClip(...values: Quaternion[]): AnimationClip {
+        const clip = new AnimationClip("orientation");
+        const curve = new AnimationQuaternionCurve();
+        values.forEach((value, time) => curve.addKey({ time, value }));
+        clip.addCurveBinding("", Orientation, "value", curve);
+        return clip;
+      }
+
+      const entity = engine.sceneManager.activeScene.createRootEntity();
+      try {
+        const orientation = entity.addComponent(Orientation);
+        const player = entity.addComponent(Animator);
+        const controller = new AnimatorController(engine);
+        const base = new AnimatorControllerLayer("base");
+        const twist = new AnimatorControllerLayer("twist");
+        controller.addLayer(base);
+        controller.addLayer(twist);
+        base.stateMachine.addState("base").clip = orientationClip(new Quaternion());
+        twist.weight = 0.5;
+        twist.blendingMode = AnimatorLayerBlendingMode.Additive;
+        const state = twist.stateMachine.addState("twist");
+        state.clip = orientationClip(new Quaternion(), new Quaternion().rotateZ(Math.PI / 2));
+        state.wrapMode = WrapMode.Once;
+        player.animatorController = controller;
+        player.play("base", 0);
+        player.play("twist", 1);
+        engine.update();
+        for (let frame = 0; frame < 3; frame++) {
+          player.update(1);
+          expect(orientation.value.z).toBeCloseTo(1 / Math.sqrt(5), 5);
+          expect(orientation.value.w).toBeCloseTo(2 / Math.sqrt(5), 5);
         }
       } finally {
         entity.destroy();

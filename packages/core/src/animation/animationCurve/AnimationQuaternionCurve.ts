@@ -16,8 +16,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /** @internal */
   static _isCopyMode: boolean = true;
 
-  /** @internal */
-  private static _tempConjugateQuat = new Quaternion();
+  private static _tempQuat = new Quaternion();
 
   /**
    * @internal
@@ -48,12 +47,9 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
    * @internal
    */
   static _additiveValue(value: Quaternion, weight: number, out: Quaternion): Quaternion {
-    value.x = value.x * weight;
-    value.y = value.y * weight;
-    value.z = value.z * weight;
-
-    value.normalize();
-    out.multiply(value);
+    const temp = AnimationQuaternionCurve._tempQuat;
+    temp.set(value.x * weight, value.y * weight, value.z * weight, value.w).normalize();
+    out.multiply(temp);
     return out;
   }
 
@@ -61,7 +57,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
    * @internal
    */
   static _subtractValue(src: Quaternion, base: Quaternion, out: Quaternion): Quaternion {
-    const { _tempConjugateQuat: conjugate } = AnimationQuaternionCurve;
+    const { _tempQuat: conjugate } = AnimationQuaternionCurve;
     Quaternion.conjugate(base, conjugate);
     Quaternion.multiply(conjugate, src, out);
     return out;
