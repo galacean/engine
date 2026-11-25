@@ -2014,19 +2014,27 @@ describe("Rigidbody", function () {
     expect(hit.point.y).toBeCloseTo(5.5, 2);
   });
 
-  it("applies sleep() during entity deactivation without deferring onto _pendingSleeps", () => {
+  it("applies sleep() during entity deactivation without deferring sleep to re-activation", () => {
+    const physics = engine.sceneManager.activeScene.physics;
     const deactEntity = rootEntity.createChild("deact-sleep");
     deactEntity.addComponent(BoxCollider);
+    let sleptInDisable = false;
     deactEntity.addComponent(
       class extends Script {
         override onDisable(): void {
           deactBody.sleep();
+          sleptInDisable = deactBody.isSleeping();
         }
       }
     );
     const deactBody = deactEntity.addComponent(Rigidbody);
+    deactBody.useGravity = false;
     deactEntity.isActive = false;
-    expect((deactBody as any)._sleepPending).toBe(false);
+    expect(sleptInDisable).toBe(true);
+
+    deactEntity.isActive = true;
+    physics._update(physics.fixedTimeStep);
+    expect(deactBody.isSleeping()).toBe(false);
   });
 
   it("does not re-dirty moving bodies during write-back while still syncing subsequent user Transform edits", () => {
@@ -2072,10 +2080,20 @@ describe("Rigidbody", function () {
 
     physics._update(physics.fixedTimeStep);
     const setChildWorldTransform = vi.spyOn(childBody._getNativeActor(), "setWorldTransform");
+    const syncChildPose = vi.spyOn(childBody, "_syncPose");
     try {
       physics._update(physics.fixedTimeStep);
+      expect(syncChildPose).not.toHaveBeenCalled();
       expect(setChildWorldTransform).not.toHaveBeenCalled();
+
+      // Subsequent user edits on the child still fire transform updates and teleport the native actor.
+      child.transform.setPosition(0, 10, 0);
+      physics._update(physics.fixedTimeStep);
+      expect(syncChildPose).toHaveBeenCalledTimes(1);
+      expect(setChildWorldTransform).toHaveBeenCalledTimes(1);
+      expect(child.transform.worldPosition.y).toBeCloseTo(10, 4);
     } finally {
+      syncChildPose.mockRestore();
       setChildWorldTransform.mockRestore();
     }
   });
@@ -2158,11 +2176,11 @@ describe("Rigidbody", function () {
 
   it("settles pending geometry principal axes before switching a disabled Rigidbody to manual inertiaTensor", () => {
     const physics = engine.sceneManager.activeScene.physics;
-    physics.gravity.set(0, 0, 0);
 
     const runScenario = (readRotationFirst: boolean) => {
       const entity = rootEntity.createChild(readRotationFirst ? "read-first" : "direct-write");
       const body = entity.addComponent(Rigidbody);
+      body.useGravity = false;
       const child = entity.createChild("rotated-box");
       child.addComponent(BoxCollider).size.set(2, 4, 6);
 
@@ -2203,6 +2221,7 @@ describe("Rigidbody", function () {
     // Scalar-only mass edits while disabled remain deferred until manual flags commit.
     const deferred = rootEntity.createChild("disabled-mass-defer");
     const deferredBody = deferred.addComponent(Rigidbody);
+    deferredBody.useGravity = false;
     deferred.addComponent(BoxCollider).size.set(2, 2, 2);
     physics._update(physics.fixedTimeStep);
     deferredBody.enabled = false;
@@ -2372,5 +2391,58 @@ describe("Rigidbody", function () {
     expect(cast(100, 12)).toBe(boxes[2]);
     expect(cast(4, 0)).toBeNull();
     expect(body.centerOfMass.x).toBeCloseTo(7, 4);
+  });
+
+  it("wakes dynamic bodies on kinematic release, re-enable, gravity enable, and constraint unlock without manual wakeUp", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const step = (count: number) => {
+      for (let i = 0; i < count; i++) physics._update(physics.fixedTimeStep);
+    };
+
+    // 1. Active kinematic -> dynamic falls immediately without calling wakeUp().
+    const activeDrop = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 10, 0));
+    const activeBody = activeDrop.getComponent(Rigidbody)!;
+    activeBody.isKinematic = true;
+    step(5);
+    activeBody.isKinematic = false;
+    expect(activeBody.isSleeping()).toBe(false);
+    step(10);
+    expect(activeDrop.transform.worldPosition.y).toBeLessThan(9.9);
+
+    // 2. Disabled kinematic -> dynamic -> re-enable falls immediately without calling wakeUp().
+    const reenableDrop = addBox(new Vector3(1, 1, 1), true, new Vector3(5, 10, 0));
+    const reenableBody = reenableDrop.getComponent(Rigidbody)!;
+    reenableBody.isKinematic = true;
+    step(5);
+    reenableBody.enabled = false;
+    reenableBody.isKinematic = false;
+    reenableBody.enabled = true;
+    expect(reenableBody.isSleeping()).toBe(false);
+    step(10);
+    expect(reenableDrop.transform.worldPosition.y).toBeLessThan(9.9);
+
+    // 3. Auto-slept zero-gravity body wakes and falls when useGravity becomes true.
+    const gravityDrop = addBox(new Vector3(1, 1, 1), true, new Vector3(10, 10, 0));
+    const gravityBody = gravityDrop.getComponent(Rigidbody)!;
+    gravityBody.useGravity = false;
+    step(60);
+    expect(gravityBody.isSleeping()).toBe(true);
+    gravityBody.useGravity = true;
+    expect(gravityBody.isSleeping()).toBe(false);
+    step(10);
+    expect(gravityDrop.transform.worldPosition.y).toBeLessThan(9.9);
+
+    // 4. Auto-slept constrained body wakes on axis unlock, while adding locks keeps a sleeping body asleep.
+    const constraintDrop = addBox(new Vector3(1, 1, 1), true, new Vector3(15, 10, 0));
+    const constraintBody = constraintDrop.getComponent(Rigidbody)!;
+    constraintBody.constraints = RigidbodyConstraints.FreezePositionY;
+    step(60);
+    expect(constraintBody.isSleeping()).toBe(true);
+    constraintBody.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezePositionX;
+    expect(constraintBody.isSleeping()).toBe(true);
+    constraintBody.constraints = RigidbodyConstraints.None;
+    expect(constraintBody.isSleeping()).toBe(false);
+    step(10);
+    expect(constraintDrop.transform.worldPosition.y).toBeLessThan(9.9);
   });
 });

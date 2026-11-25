@@ -187,11 +187,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
     if (this._mass !== value) {
       this._mass = value;
-      if (this._registeredScene) {
-        this._markMassDirty(MassChanges.Mass);
-      } else if (this._nativeActor) {
-        this._massChanges |= MassChanges.Mass;
-      }
+      this._nativeActor && this._markMassChange(MassChanges.Mass);
     }
   }
 
@@ -403,6 +399,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (this._useGravity !== value) {
       this._useGravity = value;
       this._nativeActor?.setUseGravity(value);
+      value && this._wakeNative();
     }
   }
 
@@ -433,6 +430,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
         }
       }
       this._nativeActor?.setMotionState(value, this._useCCD);
+      if (!value) this._wakeNative();
       // Revisit the hierarchy so excluded shapes rejoin on kinematic or re-evaluate dynamic constraints.
       this._registeredScene && this._markCollidersDirty();
     }
@@ -446,9 +444,11 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set constraints(value: RigidbodyConstraints) {
-    if (this._constraints !== value) {
+    const prev = this._constraints;
+    if (prev !== value) {
       this._constraints = value;
       this._nativeActor?.setConstraints(value);
+      (prev & ~value) !== 0 && this._wakeNative();
     }
   }
 
@@ -811,7 +811,11 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._registeredScene = scene;
     this._poseSynced = false;
     this._markMassDirty();
-    this._sleepPending && scene.physics._scheduleSleep(this, true);
+    if (this._sleepPending) {
+      scene.physics._scheduleSleep(this, true);
+    } else {
+      this._wakeNative();
+    }
     this._syncJoints();
     this._markCollidersDirty();
   }
@@ -823,7 +827,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const scene = this._registeredScene;
     if (!scene) return;
     this._registeredScene = null;
-    this._poseSynced = false;
     this._sleepPending && scene.physics._scheduleSleep(this, false);
     this._syncJoints();
     if (!this.destroyed) this._detachOrphanedColliders();
@@ -907,14 +910,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @internal
    * Recompute automatic mass properties before the next simulation step or mass-dependent access.
    */
-  _markMassDirty(changes = MassChanges.Geometry): void {
-    this._massChanges |= changes;
-    if (
-      this._massDirtyIndex === -1 &&
-      (this._automaticCenterOfMass || this._automaticInertiaTensor || this._massChanges & MassChanges.Mass)
-    ) {
-      this._registeredScene?.physics._queueMassUpdate(this);
-    }
+  _markMassDirty(): void {
+    this._markMassChange(MassChanges.Geometry);
   }
 
   /**
@@ -1072,6 +1069,16 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     for (let i = 0, n = children.length; i < n; i++) this._markCollidersDirty(children[i]);
   }
 
+  private _markMassChange(changes: MassChanges): void {
+    this._massChanges |= changes;
+    if (
+      this._massDirtyIndex === -1 &&
+      (this._automaticCenterOfMass || this._automaticInertiaTensor || this._massChanges & MassChanges.Mass)
+    ) {
+      this._registeredScene?.physics._queueMassUpdate(this);
+    }
+  }
+
   /**
    * Read the computed center of mass into its field, applying pending changes first.
    */
@@ -1188,7 +1195,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       if (deferMass) this._massChanges = MassChanges.None;
       const actor = this._getSyncedActor();
       actor && this._readInertiaTensorRotation(actor);
-      deferMass && this._markMassDirty(MassChanges.Mass);
+      deferMass && this._markMassChange(MassChanges.Mass);
     }
     this._automaticInertiaTensor = false;
     this._nativeActor?.setMassProperties(undefined, undefined, this._inertiaTensor);
