@@ -1,3 +1,4 @@
+import { toAgentValue } from "@galacean/engine-ai-chat/ai-chat/agent-values";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
@@ -396,20 +397,23 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     ws.dispose();
   });
 
-  it("shows a friendly localized warning when an annotation exceeds the 64 KiB AgentValue cap", async () => {
+  it.each([
+    [0, "本笔过长，未保存。请缩短笔画后重试。"],
+    [1, "本笔未保存，请缩短笔画后重试。\n也可以发送当前照片，或重拍。"],
+    [64, "已达 64 笔，本笔未保存。\n请先发送当前照片，或重拍。"]
+  ] as const)("preserves %i prior strokes and offers an available action when a limit is reached", async (count, message) => {
     let callCount = 0;
     const { ws } = createWorkspace({
       reducedMotion: true,
       updateAttachment: () => {
         callCount++;
         if (callCount > 1) {
-          const err = new Error("Agent context, script input, or result exceeds 65536 bytes");
-          err.name = "AgentValueError";
-          throw err;
+          toAgentValue("x".repeat(65536));
         }
       }
     });
     const doc = makeDoc("p-big");
+    for (let i = 0; i < count; i++) doc.history.add({ points: [{ x: 10, y: 20 }], width: 3, color: "#ff453a" });
     await ws.open(doc, new AbortController().signal);
     const entry = (ws as any).entries.get("p-big");
     const cx = entry.pose.x;
@@ -417,7 +421,8 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     (ws as any).handlePointer("begin", { id: 1, phase: 0, button: 0, position: { x: cx, y: cy } });
     (ws as any).handlePointer("move", { id: 1, phase: 1, button: 0, position: { x: cx + 20, y: cy + 10 } });
     (ws as any).handlePointer("end", { id: 1, phase: 2, button: 0, position: { x: cx + 25, y: cy + 12 } });
-    expect(ws.graphics.status.text).toBe("标记线条过多，请先删掉部分或重画。");
+    expect(ws.graphics.status.text).toBe(message);
+    expect(ws["editing"]!.history.annotations).toEqual(doc.history.annotations);
     ws.dispose();
   });
 

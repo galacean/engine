@@ -1,3 +1,4 @@
+import { AgentValueSizeError } from "@galacean/engine-ai-chat/ai-chat/agent-values";
 import type { ImageResourceBudget } from "@galacean/engine-ai-chat/ai-chat/image-resources";
 import { SeedWorldPhotoInput, type PhotoPointerPhase } from "./SeedWorldPhotoInput.ts";
 import { resolveSeedWorldVoiceOrbLayout } from "./SeedWorldHudLayout.ts";
@@ -1017,20 +1018,21 @@ export class SeedWorldPhotoWorkspace {
           try {
             const annotation = createViewAnnotation(this.drawing.points, this.drawing.scale, this.drawing.color);
             this.updateHistory(history => history.add(annotation));
+            this.trace.record("stroke-committed", { type, pointCount: this.drawing.points.length });
           } catch (error) {
             const rawError = String(error);
             this.trace.record("history-error", { error: rawError });
-            this.notify(
-              rawError.includes("65536") || (error instanceof Error && error.name === "AgentValueError")
-                ? "标记线条过多，请先删掉部分或重画。"
-                : rawError
-            );
+            if (error instanceof AgentValueSizeError) {
+              this.notify(this.editing?.history.annotations.length
+                ? "本笔未保存，请缩短笔画后重试。\n也可以发送当前照片，或重拍。"
+                : "本笔过长，未保存。请缩短笔画后重试。");
+            } else {
+              this.notify(error instanceof Error ? error.message : rawError);
+            }
           }
+        } else {
+          this.trace.record("stroke-cancelled", { type, pointCount: this.drawing.points.length });
         }
-        this.trace.record(isUp ? "stroke-committed" : "stroke-cancelled", {
-          type,
-          pointCount: this.drawing.points.length
-        });
         this.cancelDrawing(type);
       } else if (type === "move" && this.closeTap?.pointer === event.id) {
         this.closeTap.moved ||= Math.hypot(p.x - this.closeTap.x, p.y - this.closeTap.y) > config.tapSlop;
