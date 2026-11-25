@@ -1167,4 +1167,60 @@ describe("CharacterController", () => {
     cc.move(new Vector3(1, -0.1, 0), 0.001, physics.fixedTimeStep);
     expect(child.transform.worldPosition.y).toBeGreaterThan(2.0);
   });
+
+  it("transforms local center with Entity rotation and mirrored ancestors while keeping capsule upright", () => {
+    const hit = new HitResult();
+
+    // Case A: Y +90 rotation moves local center (2, 0, 0) to world (0, 0, -2) and stays synced across move().
+    const yawEntity = root.createChild("yaw-center-cct");
+    yawEntity.transform.setPosition(0, 2, 0);
+    yawEntity.transform.setRotation(0, 90, 0);
+    const yawCC = yawEntity.addComponent(CharacterController);
+    yawCC.radius = 0.5;
+    yawCC.height = 2;
+    yawCC.center.set(2, 0, 0);
+    yawCC.collisionLayer = Layer.Layer6;
+
+    expect(physics.raycast(new Ray(new Vector3(0, 10, -2), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(yawCC);
+    expect(physics.raycast(new Ray(new Vector3(2, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
+
+    yawCC.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep);
+    expect(yawEntity.transform.worldPosition.x).toBeCloseTo(1, 4);
+    update();
+    expect(physics.raycast(new Ray(new Vector3(1, 10, -2), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(yawCC);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, -2), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
+
+    // Case B: Z +90 tilt moves local center (0, 2, 0) to world (-2, 5, 0) while keeping capsule upright along +Y.
+    const tiltEntity = root.createChild("tilt-center-cct");
+    tiltEntity.transform.setPosition(0, 5, 0);
+    tiltEntity.transform.setRotation(0, 0, 90);
+    const tiltCC = tiltEntity.addComponent(CharacterController);
+    tiltCC.radius = 0.5;
+    tiltCC.height = 2;
+    tiltCC.center.set(0, 2, 0);
+    tiltCC.collisionLayer = Layer.Layer6;
+
+    expect(physics.raycast(new Ray(new Vector3(-2, 5.7, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(tiltCC);
+    expect(physics.raycast(new Ray(new Vector3(-2.7, 5, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6)).toBe(false);
+
+    // Case C: Mirrored ancestor (-1, 1, 1) with Y +45 rotation preserves rotated center without collapsing X.
+    const mirrorParent = root.createChild("mirrored-center-parent");
+    mirrorParent.transform.setScale(-1, 1, 1);
+    const mirrorChild = mirrorParent.createChild("mirrored-center-cct");
+    mirrorChild.transform.setRotation(0, 45, 0);
+    const mirrorCC = mirrorChild.addComponent(CharacterController);
+    mirrorCC.radius = 0.5;
+    mirrorCC.height = 2;
+    mirrorCC.center.set(2, 0, 0);
+    mirrorCC.collisionLayer = Layer.Layer6;
+
+    expect(
+      physics.raycast(new Ray(new Vector3(-Math.SQRT2, 10, -Math.SQRT2), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)
+    ).toBe(true);
+    expect(hit.collider).toBe(mirrorCC);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
+  });
 });

@@ -11,18 +11,16 @@ label: Physics
 
 角色控制器和[刚体](/docs/physics/collider/rigidbody)虽然都可以实现物体的移动，但它们有着显著的区别：
 
-| 特性 | 角色控制器 | 刚体 |
-|------|------------|------------|
-| 移动方式 | 通过 `move()` 方法直接控制位移 | 通过施加力或设置速度来移动 |
-| 碰撞响应 | 手动处理碰撞响应，自动处理台阶和斜坡 | 基于物理模拟的碰撞响应 |
-| 重力处理 | 需要手动实现重力效果 | 自动应用场景重力 |
-| 形状 | 内置胶囊体 | 所在实体及子实体上的任意碰撞器组件 |
-| 适用场景 | 角色控制、第一/第三人称游戏 | 物理模拟、刚体运动 |
+| 特性     | 角色控制器                           | 刚体                               |
+| -------- | ------------------------------------ | ---------------------------------- |
+| 移动方式 | 通过 `move()` 方法直接控制位移       | 通过施加力或设置速度来移动         |
+| 碰撞响应 | 手动处理碰撞响应，自动处理台阶和斜坡 | 基于物理模拟的碰撞响应             |
+| 重力处理 | 需要手动实现重力效果                 | 自动应用场景重力                   |
+| 形状     | 内置胶囊体                           | 所在实体及子实体上的任意碰撞器组件 |
+| 适用场景 | 角色控制、第一/第三人称游戏          | 物理模拟、刚体运动                 |
 
 <Callout type="positive">
-选择建议：
-- 如果需要精确控制角色的移动和碰撞响应，使用角色控制器
-- 如果需要真实的物理模拟效果，使用刚体
+  选择建议： - 如果需要精确控制角色的移动和碰撞响应，使用角色控制器 - 如果需要真实的物理模拟效果，使用刚体
 </Callout>
 
 ## 使用方法
@@ -33,34 +31,35 @@ label: Physics
 
 2. 设置胶囊体的 `radius`、`height` 和 `center`，使其与角色的外形尽量匹配。
 
-<Callout type="positive">
-角色控制器自带胶囊几何形状，不使用其他碰撞器组件，也不会被任何刚体拥有。
-</Callout>
+<Callout type="positive">角色控制器自带胶囊几何形状，不使用其他碰撞器组件，也不会被任何刚体拥有。</Callout>
 
 3. 根据需要设置控制器的属性，各属性的含义和作用请参考下文。
 
 ## 属性说明
 
 ### 几何形状
-| 属性 | 描述 | 默认值 |
-| ---- | ---- | ------ |
-| [**radius**](/apis/core/#CharacterController-radius) | 胶囊体在实体局部空间中的半径 | 0.5 |
-| [**height**](/apis/core/#CharacterController-height) | 胶囊总高度，包含两端半球 | 2 |
-| [**center**](/apis/core/#Collider-center) | 几何形状在实体局部空间中的中心 | (0, 0, 0) |
 
-半径和高度跟随实体世界缩放的绝对值，`center` 则乘以带符号世界缩放。
+| 属性                                                 | 描述                           | 默认值    |
+| ---------------------------------------------------- | ------------------------------ | --------- |
+| [**radius**](/apis/core/#CharacterController-radius) | 胶囊体在实体局部空间中的半径   | 0.5       |
+| [**height**](/apis/core/#CharacterController-height) | 胶囊总高度，包含两端半球       | 2         |
+| [**center**](/apis/core/#Collider-center)            | 几何形状在实体局部空间中的中心 | (0, 0, 0) |
+
+半径和高度跟随实体世界缩放的绝对值，`center` 作为实体局部点随实体的世界旋转和缩放偏移到世界空间，胶囊自身朝向仍仅由 `upDirection` 决定。
 
 ### 继承自 Collider 的属性
+
 | 属性 | 描述 | 默认值 |
-| ---- | ---- | ------ |
+| --- | --- | --- |
 | [**contactOffset**](/apis/core/#CharacterController-contactOffset) | 接触偏移，必须大于 0，否则抛出异常 | 0.02 |
 | [**collisionLayer**](/apis/core/#Collider-collisionLayer) | 控制器所属的碰撞层 | Layer.Layer0 |
 | [**material**](/apis/core/#Collider-material) | 物理材质，`null` 表示共享默认材质 | null |
 | [**isTrigger**](/apis/core/#CharacterController-isTrigger) | 始终为 false，设置为 true 会抛出异常 | false |
 
 ### 特有属性
+
 | 属性 | 描述 | 默认值 |
-| ---- | ---- | ------ |
+| --- | --- | --- |
 | [**stepOffset**](/apis/core/#CharacterController-stepOffset) | 请求的台阶高度，使用世界单位。非有限值会抛出异常，负值会限制为 0。组件会保留声明值，并在同步时将实际生效的步高限幅至缩放后的有效胶囊总高内。 | 0.5 |
 | [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | 角色可以行走的最大斜坡角度（度）。<ul><li>超过此角度的斜面将被视为不可行走的墙壁</li><li>影响角色的爬坡能力</li></ul> | 45° |
 | [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | 定义如何处理不可行走的表面。<ul><li>PreventClimbing：阻止角色攀爬不可行走的斜坡，但不会强制其他移动（默认）</li><li>PreventClimbingAndForceSliding：阻止角色攀爬不可行走的斜坡，并强制角色沿斜坡滑下</li></ul> | PreventClimbing |
@@ -69,7 +68,7 @@ label: Physics
 ## 公开方法
 
 | 方法名 | 描述 |
-| ---- | ---- |
+| --- | --- |
 | [**move**](/apis/core/#CharacterController-move) | 移动角色控制器，并立即把结果写入实体的世界坐标。返回一个碰撞标志值，标识碰撞状态；控制器不在场景中时返回 0。<ul><li>displacement：移动向量</li><li>minDist：最小移动距离</li><li>elapsedTime：经过的时间</li></ul> |
 
 角色控制器不支持 `getClosestPoint`，调用时返回 -1。
@@ -78,16 +77,17 @@ label: Physics
 
 移动函数 `move()` 会返回一个碰撞标志值，用于表示角色控制器与环境的碰撞状态。这些标志可以通过按位与运算(&)来检测：
 
-| 标志名称 | 值 | 说明 |
-|---------|----|----|
-| None | 0 | 没有发生任何碰撞 |
-| Sides | 1 | 与侧面发生碰撞 |
-| Up | 2 | 与上方发生碰撞（如天花板） |
-| Down | 4 | 与下方发生碰撞（如地面） |
+| 标志名称 | 值  | 说明                       |
+| -------- | --- | -------------------------- |
+| None     | 0   | 没有发生任何碰撞           |
+| Sides    | 1   | 与侧面发生碰撞             |
+| Up       | 2   | 与上方发生碰撞（如天花板） |
+| Down     | 4   | 与下方发生碰撞（如地面）   |
 
 ## 脚本使用
 
 ### 基础配置
+
 ```typescript
 const controller = entity.addComponent(CharacterController);
 controller.radius = 0.5;
@@ -95,16 +95,17 @@ controller.height = 2;
 controller.center = new Vector3(0, 1, 0);
 
 // 配置控制器属性
-controller.stepOffset = 0.5;      // 设置台阶高度
-controller.slopeLimit = 45;       // 设置最大可行走斜坡角度
+controller.stepOffset = 0.5; // 设置台阶高度
+controller.slopeLimit = 45; // 设置最大可行走斜坡角度
 controller.upDirection = new Vector3(0, 1, 0); // 设置向上方向
 ```
 
 ### 使用移动函数
+
 ```typescript
 class CharacterMovement extends Script {
   private _velocity = new Vector3();
-  
+
   onUpdate(deltaTime: number) {
     const controller = this.entity.getComponent(CharacterController);
 
@@ -114,7 +115,7 @@ class CharacterMovement extends Script {
 
     // 帧时长以秒传入。将最小移动距离设为 0，避免过滤小幅移动。
     const collisionFlags = controller.move(displacement, 0, deltaTime);
-    
+
     // 处理碰撞响应
     if (collisionFlags & ControllerCollisionFlag.Down) {
       // 角色接触地面
@@ -124,37 +125,38 @@ class CharacterMovement extends Script {
 ```
 
 使用示例：
+
 ```typescript
 const flags = controller.move(displacement, 0, deltaTime);
 
 // 检查是否接触地面
 if (flags & ControllerCollisionFlag.Down) {
-    // 角色在地面上
-    this._isGrounded = true;
+  // 角色在地面上
+  this._isGrounded = true;
 }
 
 // 检查是否撞到天花板
 if (flags & ControllerCollisionFlag.Up) {
-    // 角色撞到头部
-    this._velocity.y = 0;
+  // 角色撞到头部
+  this._velocity.y = 0;
 }
 
 // 检查是否撞到墙壁
 if (flags & ControllerCollisionFlag.Sides) {
-    // 角色撞到墙壁
-    this._handleWallCollision();
+  // 角色撞到墙壁
+  this._handleWallCollision();
 }
 
 // 可以同时检查多个标志
-if ((flags & ControllerCollisionFlag.Down) && 
-    (flags & ControllerCollisionFlag.Sides)) {
-    // 角色同时接触地面和墙壁
+if (flags & ControllerCollisionFlag.Down && flags & ControllerCollisionFlag.Sides) {
+  // 角色同时接触地面和墙壁
 }
 ```
 
 ### 斜坡/台阶行走
 
 1. **斜坡行走**
+
 ```typescript
 // 通过设置 slopeLimit 控制可行走的斜坡角度
 controller.slopeLimit = 60; // 允许更陡的斜坡
@@ -164,6 +166,7 @@ controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSl
 ```
 
 2. **台阶行走调整**
+
 ```typescript
 // 调整 stepOffset 来控制可跨越的台阶高度
 controller.stepOffset = 0.3; // 较低的台阶
@@ -231,10 +234,10 @@ class CharacterMovement extends Script {
 ## 限制和注意事项
 
 1. **几何形状**
+
    - 控制器只有一个内置胶囊体；实体上的其他碰撞器组件是独立的碰撞器
    - 控制器不能作为触发器，也不支持 `getClosestPoint`
 
 2. **性能考虑**
    - 每个角色控制器都会占用一定的物理计算资源
    - 建议在场景中控制角色控制器的数量
-

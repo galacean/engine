@@ -12,7 +12,7 @@ The [CharacterController](/apis/core/#CharacterController) is a special collider
 While both the Character Controller and a [Rigidbody](/en/docs/physics/collider/rigidbody) can move objects, they have significant differences:
 
 | Feature | Character Controller | Rigidbody |
-|---------|---------------------|------------------|
+| --- | --- | --- |
 | Movement Method | Direct displacement control via `move()` method | Movement through forces or velocity |
 | Collision Response | Manual collision response, automatic step and slope handling | Physics-based collision response |
 | Gravity Handling | Requires manual gravity implementation | Automatic scene gravity application |
@@ -20,9 +20,8 @@ While both the Character Controller and a [Rigidbody](/en/docs/physics/collider/
 | Use Cases | Character control, first/third-person games | Physics simulation, rigid body motion |
 
 <Callout type="positive">
-Recommendations:
-- Use Character Controller when precise control over character movement and collision response is needed
-- Use Rigidbody when realistic physics simulation is required
+  Recommendations: - Use Character Controller when precise control over character movement and collision response is
+  needed - Use Rigidbody when realistic physics simulation is required
 </Callout>
 
 ## Usage
@@ -34,7 +33,8 @@ Recommendations:
 2. Set the capsule's `radius`, `height`, and `center` to match the character's appearance as closely as possible.
 
 <Callout type="positive">
-The Character Controller carries its own capsule geometry instead of using other Collider components, and it is never owned by a Rigidbody.
+  The Character Controller carries its own capsule geometry instead of using other Collider components, and it is never
+  owned by a Rigidbody.
 </Callout>
 
 3. Adjust the controller's properties according to your needs. The meaning and function of each property are explained below.
@@ -42,25 +42,28 @@ The Character Controller carries its own capsule geometry instead of using other
 ## Property Description
 
 ### Geometry
+
 | Property | Description | Default |
-|----------|-------------|---------|
+| --- | --- | --- |
 | [**radius**](/apis/core/#CharacterController-radius) | Capsule radius in the Entity's local space | 0.5 |
 | [**height**](/apis/core/#CharacterController-height) | Total capsule height including both caps | 2 |
 | [**center**](/apis/core/#Collider-center) | Center of the geometry in the Entity's local space | (0, 0, 0) |
 
-Radius and height follow the absolute Entity's world scale, while `center` uses signed world scale.
+Radius and height follow the absolute Entity's world scale. `center` is a local point transformed by the Entity's world rotation and scale, while the capsule orientation itself is controlled only by `upDirection`.
 
 ### Properties Inherited from Collider
+
 | Property | Description | Default |
-|----------|-------------|---------|
+| --- | --- | --- |
 | [**contactOffset**](/apis/core/#CharacterController-contactOffset) | Contact offset. Must be greater than 0; other values throw | 0.02 |
 | [**collisionLayer**](/apis/core/#Collider-collisionLayer) | Collision layer of the controller | Layer.Layer0 |
 | [**material**](/apis/core/#Collider-material) | Physics material, `null` for the shared default | null |
 | [**isTrigger**](/apis/core/#CharacterController-isTrigger) | Always false; setting it to true throws | false |
 
 ### Specific Properties
+
 | Property | Description | Default |
-|----------|-------------|---------|
+| --- | --- | --- |
 | [**stepOffset**](/apis/core/#CharacterController-stepOffset) | Requested step height in world units. Non-finite values throw, and finite negative values are clamped to 0. The assigned value is preserved, while the effective step height is clamped to the scaled capsule's effective total height during synchronization. | 0.5 |
 | [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | Maximum slope angle (in degrees) the character can walk on.<ul><li>Surfaces steeper than this angle will be treated as unwalkable walls</li><li>Affects the character's climbing ability</li></ul> | 45° |
 | [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | Defines how to handle unwalkable surfaces.<ul><li>PreventClimbing: Prevents the character from climbing unwalkable slopes but doesn't force other movements (default)</li><li>PreventClimbingAndForceSliding: Prevents the character from climbing unwalkable slopes and forces the character to slide down</li></ul> | PreventClimbing |
@@ -69,7 +72,7 @@ Radius and height follow the absolute Entity's world scale, while `center` uses 
 ## Public Methods
 
 | Method | Description |
-|--------|-------------|
+| --- | --- |
 | [**move**](/apis/core/#CharacterController-move) | Move the character controller and write the result to the Entity's world position immediately. Returns a collision flag value indicating collision status, or 0 when the controller is not in a scene.<ul><li>displacement: Movement vector</li><li>minDist: Minimum movement distance</li><li>elapsedTime: Elapsed time</li></ul> |
 
 `getClosestPoint` is not supported by the Character Controller and returns -1.
@@ -78,16 +81,17 @@ Radius and height follow the absolute Entity's world scale, while `center` uses 
 
 The `move()` function returns a collision flag value that indicates the character controller's collision status with the environment. These flags can be detected using bitwise AND operations (&):
 
-| Flag Name | Value | Description |
-|-----------|-------|-------------|
-| None | 0 | No collision occurred |
-| Sides | 1 | Collided with sides |
-| Up | 2 | Collided with the top (e.g., ceiling) |
-| Down | 4 | Collided with the bottom (e.g., ground) |
+| Flag Name | Value | Description                             |
+| --------- | ----- | --------------------------------------- |
+| None      | 0     | No collision occurred                   |
+| Sides     | 1     | Collided with sides                     |
+| Up        | 2     | Collided with the top (e.g., ceiling)   |
+| Down      | 4     | Collided with the bottom (e.g., ground) |
 
 ## Script Usage
 
 ### Basic Configuration
+
 ```typescript
 // Create a capsule controller.
 const controller = entity.addComponent(CharacterController);
@@ -96,16 +100,17 @@ controller.height = 2;
 controller.center = new Vector3(0, 1, 0);
 
 // Configure controller properties
-controller.stepOffset = 0.5;      // Set step height
-controller.slopeLimit = 45;       // Set maximum walkable slope angle
+controller.stepOffset = 0.5; // Set step height
+controller.slopeLimit = 45; // Set maximum walkable slope angle
 controller.upDirection = new Vector3(0, 1, 0); // Set upward direction
 ```
 
 ### Using the Move Function
+
 ```typescript
 class CharacterMovement extends Script {
   private _velocity = new Vector3();
-  
+
   onUpdate(deltaTime: number) {
     const controller = this.entity.getComponent(CharacterController);
 
@@ -115,7 +120,7 @@ class CharacterMovement extends Script {
 
     // Pass the frame duration in seconds. Use a zero minimum distance to avoid filtering out small moves.
     const collisionFlags = controller.move(displacement, 0, deltaTime);
-    
+
     // Handle collision response
     if (collisionFlags & ControllerCollisionFlag.Down) {
       // Character is on the ground
@@ -125,37 +130,38 @@ class CharacterMovement extends Script {
 ```
 
 Usage example:
+
 ```typescript
 const flags = controller.move(displacement, 0, deltaTime);
 
 // Check if touching ground
 if (flags & ControllerCollisionFlag.Down) {
-    // Character is on ground
-    this._isGrounded = true;
+  // Character is on ground
+  this._isGrounded = true;
 }
 
 // Check if hitting ceiling
 if (flags & ControllerCollisionFlag.Up) {
-    // Character hit ceiling
-    this._velocity.y = 0;
+  // Character hit ceiling
+  this._velocity.y = 0;
 }
 
 // Check if hitting wall
 if (flags & ControllerCollisionFlag.Sides) {
-    // Character hit wall
-    this._handleWallCollision();
+  // Character hit wall
+  this._handleWallCollision();
 }
 
 // Can check multiple flags simultaneously
-if ((flags & ControllerCollisionFlag.Down) && 
-    (flags & ControllerCollisionFlag.Sides)) {
-    // Character is touching both ground and wall
+if (flags & ControllerCollisionFlag.Down && flags & ControllerCollisionFlag.Sides) {
+  // Character is touching both ground and wall
 }
 ```
 
 ### Slope/Step Walking
 
 1. **Slope Walking**
+
 ```typescript
 // Control walkable slope angle by setting slopeLimit
 controller.slopeLimit = 60; // Allow steeper slopes
@@ -165,6 +171,7 @@ controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSl
 ```
 
 2. **Step Walking Adjustment**
+
 ```typescript
 // Adjust stepOffset to control climbable step height
 controller.stepOffset = 0.3; // Lower steps
@@ -233,6 +240,7 @@ class CharacterMovement extends Script {
 ## Limitations and Considerations
 
 1. **Geometry**
+
    - The controller has a single inline capsule; other Collider components on the Entity are separate Colliders
    - The controller cannot be a trigger and does not support `getClosestPoint`
 

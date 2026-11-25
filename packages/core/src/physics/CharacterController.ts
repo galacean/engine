@@ -9,8 +9,9 @@ import { Rigidbody } from "./Rigidbody";
 
 /**
  * A capsule that moves and slides along obstacles through {@link move}.
- * @remarks The Entity's world scale sizes the shape, and {@link upDirection} orients it. The controller moves
- * independently of Rigidbody ownership and Entity rotation.
+ * @remarks The Entity's world scale sizes the shape, {@link center} transforms with the Entity's world rotation and
+ * scale, and {@link upDirection} orients the capsule itself. The controller moves independently of Rigidbody
+ * ownership and Entity rotation.
  */
 export class CharacterController extends Collider {
   private static readonly _defaultUpDirection = Object.freeze(new Vector3(0, 1, 0));
@@ -197,9 +198,6 @@ export class CharacterController extends Collider {
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state.
     const worldMatrix = transform.worldMatrix;
     const lossyScale = transform.lossyWorldScale;
-    const scaleX = lossyScale.x;
-    const scaleY = lossyScale.y;
-    const scaleZ = lossyScale.z;
     const needsAttach = !this._inScene;
 
     // Sync capsule dimensions and lazily create the native controller.
@@ -218,13 +216,22 @@ export class CharacterController extends Collider {
       (this._controller ||= this._createNative()).setCapsule(radius, halfHeight, stepOffset);
     }
 
-    // Sync world position and signed center offset.
+    // Sync world position and local center transformed into world space.
     const controller = this._controller!;
     const position = transform.worldPosition;
     const colliderCenter = this.center;
-    const centerX = colliderCenter.x * scaleX;
-    const centerY = colliderCenter.y * scaleY;
-    const centerZ = colliderCenter.z * scaleZ;
+    const cx = colliderCenter.x;
+    const cy = colliderCenter.y;
+    const cz = colliderCenter.z;
+    let centerX = 0;
+    let centerY = 0;
+    let centerZ = 0;
+    if (cx !== 0 || cy !== 0 || cz !== 0) {
+      const e = worldMatrix.elements;
+      centerX = cx * e[0] + cy * e[4] + cz * e[8];
+      centerY = cx * e[1] + cy * e[5] + cz * e[9];
+      centerZ = cx * e[2] + cy * e[6] + cz * e[10];
+    }
     const syncedCenter = this._syncedCenter;
     const nativePosition = this._nativePosition;
     if (
