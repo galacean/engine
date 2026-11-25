@@ -21,7 +21,6 @@ export class MeshCollider extends Collider {
     return x >= minScale && y >= minScale && z >= minScale && x <= maxScale && y <= maxScale && z <= maxScale;
   }
 
-  @ignoreClone
   private _mesh: ModelMesh | null = null;
   private _convex = false;
   private _cookingFlags = MeshColliderCookingFlag.Cleaning | MeshColliderCookingFlag.VertexWelding;
@@ -121,16 +120,6 @@ export class MeshCollider extends Collider {
    */
   override _nativeSupportsDynamicBody(): boolean {
     return this._nativeConvex;
-  }
-
-  /**
-   * @internal
-   * @inheritDoc
-   */
-  override _onClone(target: MeshCollider): void {
-    super._onClone(target);
-    // _mesh is @ignoreClone: assign it through the setter so the clone retains its own reference.
-    target.mesh = this._mesh;
   }
 
   /**

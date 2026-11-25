@@ -9,7 +9,6 @@ import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Logger } from "../base";
 import { BasicResources } from "../BasicResources";
 import { ignoreClone } from "../clone/CloneDecorators";
-import type { ICloneHook } from "../clone/ICloneHook";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Engine } from "../Engine";
@@ -33,7 +32,7 @@ import { Rigidbody } from "./Rigidbody";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Collider extends Component implements ICloneHook<Collider> {
+export class Collider extends Component {
   private static _idGenerator = 0;
   private static readonly _shearToleranceSquared = 1e-8;
   private static readonly _tempPosition = new Vector3();
@@ -53,6 +52,30 @@ export class Collider extends Component implements ICloneHook<Collider> {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
     return index;
+  }
+
+  private static _getAxisLength(entity: Entity, scaledAncestor: Entity, axis: Vector3): number {
+    for (let node = entity; node !== scaledAncestor; node = node.parent!) {
+      const transform = node.transform;
+      axis.multiply(transform.scale).transformByQuat(transform.rotationQuaternion);
+    }
+    return axis.multiply(scaledAncestor.transform.scale).length();
+  }
+
+  private static _isSheared(worldMatrix: Matrix): boolean {
+    // A rotated, non-uniformly scaled ancestor can make the transformed axes non-orthogonal.
+    const e = worldMatrix.elements;
+    const xLengthSquared = e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
+    const yLengthSquared = e[4] * e[4] + e[5] * e[5] + e[6] * e[6];
+    const zLengthSquared = e[8] * e[8] + e[9] * e[9] + e[10] * e[10];
+    const xy = e[0] * e[4] + e[1] * e[5] + e[2] * e[6];
+    const xz = e[0] * e[8] + e[1] * e[9] + e[2] * e[10];
+    const yz = e[4] * e[8] + e[5] * e[9] + e[6] * e[10];
+    return (
+      xy * xy > Collider._shearToleranceSquared * xLengthSquared * yLengthSquared ||
+      xz * xz > Collider._shearToleranceSquared * xLengthSquared * zLengthSquared ||
+      yz * yz > Collider._shearToleranceSquared * yLengthSquared * zLengthSquared
+    );
   }
 
   /** @internal */
@@ -99,16 +122,12 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   private _center = new Vector3();
   private _contactOffset = 0.02;
-  @ignoreClone
   private _material: PhysicsMaterial | null = null;
 
   /**
    * The owning Rigidbody, even if disabled, or null if there is no owner.
    */
   get attachedRigidbody(): Rigidbody | null {
-    if (this._dirtyIndex === -1 && this._nativeActor) {
-      return this._attachedBody;
-    }
     return this._findRigidbody();
   }
 
@@ -271,15 +290,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * @inheritDoc
-   */
-  _onClone(target: Collider): void {
-    // _material is @ignoreClone: assign it through the setter so the target retains its own reference.
-    target.material = this._material;
-  }
-
-  /**
-   * @internal
    * Reconcile native ownership and pose with the hierarchy. Called by the physics scene before simulation and queries.
    */
   _sync(): void {
@@ -299,8 +309,11 @@ export class Collider extends Component implements ICloneHook<Collider> {
       return;
     }
 
-    if (Logger.isEnabled && !this._shearWarned) {
-      this._shearWarned = this._warnIfSheared(worldMatrix);
+    if (Logger.isEnabled && !this._shearWarned && Collider._isSheared(worldMatrix)) {
+      this._shearWarned = true;
+      Logger.warn(
+        `${this.constructor.name}: the world transform of "${this.entity.name}" is sheared, which physics cannot represent; the shape ignores the shear.`
+      );
     }
 
     const lossyScale = transform.lossyWorldScale;
@@ -320,7 +333,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     // Replace geometry only on the actor that owns this Collider in the current hierarchy.
     this._nativeActor && this._attachedBody !== body && this._detach();
 
-    const scale = Collider._tempScale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+    const scale = this._getGeometryScale(lossyScale, worldMatrix);
     const previousShape = this._native;
     const shape = this._syncNativeShape(scale);
     if (!shape) {
@@ -379,7 +392,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       this._poseOnlyDirty = false;
     } else {
       if (this._dirtyIndex !== -1 || this._attachedBody?.entity === this.entity) return;
-      this._poseOnlyDirty = !!this._nativeActor && !this._geometryDirty;
+      this._poseOnlyDirty = !!this._nativeActor;
     }
     this._registeredScene?.physics._markColliderDirty(this);
   }
@@ -589,25 +602,39 @@ export class Collider extends Component implements ICloneHook<Collider> {
     position.add(offset);
   }
 
-  private _warnIfSheared(worldMatrix: Matrix): boolean {
-    // A rotated, non-uniformly scaled ancestor can make the transformed axes non-orthogonal.
-    const e = worldMatrix.elements;
-    const xLengthSquared = e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
-    const yLengthSquared = e[4] * e[4] + e[5] * e[5] + e[6] * e[6];
-    const zLengthSquared = e[8] * e[8] + e[9] * e[9] + e[10] * e[10];
-    const xy = e[0] * e[4] + e[1] * e[5] + e[2] * e[6];
-    const xz = e[0] * e[8] + e[1] * e[9] + e[2] * e[10];
-    const yz = e[4] * e[8] + e[5] * e[9] + e[6] * e[10];
-    if (
-      xy * xy > Collider._shearToleranceSquared * xLengthSquared * yLengthSquared ||
-      xz * xz > Collider._shearToleranceSquared * xLengthSquared * zLengthSquared ||
-      yz * yz > Collider._shearToleranceSquared * yLengthSquared * zLengthSquared
-    ) {
-      Logger.warn(
-        `${this.constructor.name}: the world transform of "${this.entity.name}" is sheared, which physics cannot represent; the shape ignores the shear.`
-      );
-      return true;
+  private _getGeometryScale(lossyScale: Vector3, worldMatrix: Matrix): Vector3 {
+    const entity = this.entity;
+    const scale = Collider._tempScale;
+    let mirrored = false;
+    let scaledAncestor: Entity | null = null;
+    let outerScale = 1;
+    for (let ancestor = entity.parent; ancestor; ancestor = ancestor.parent) {
+      const transform = ancestor.transform;
+      if (transform._getWorldUniformScaling()) {
+        outerScale *= Math.abs(transform.lossyWorldScale.x);
+        break;
+      }
+      const { x, y, z } = transform.scale;
+      mirrored ||= x < 0 !== y < 0 || y < 0 !== z < 0;
+      if (Math.abs(x) === Math.abs(y) && Math.abs(y) === Math.abs(z)) {
+        outerScale *= Math.abs(x);
+      } else {
+        scaledAncestor = ancestor;
+        outerScale = 1;
+      }
     }
-    return false;
+
+    if (!mirrored || Collider._isSheared(worldMatrix)) {
+      return scale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+    }
+    // A mirror can cancel signed projections. Rotations outside the last non-uniform scale cannot change lengths.
+    if (scaledAncestor) {
+      const x = Collider._getAxisLength(entity, scaledAncestor, scale.set(1, 0, 0));
+      const y = Collider._getAxisLength(entity, scaledAncestor, scale.set(0, 1, 0));
+      const z = Collider._getAxisLength(entity, scaledAncestor, scale.set(0, 0, 1));
+      return scale.set(x * outerScale, y * outerScale, z * outerScale);
+    }
+    const local = entity.transform.scale;
+    return scale.set(Math.abs(local.x) * outerScale, Math.abs(local.y) * outerScale, Math.abs(local.z) * outerScale);
   }
 }
