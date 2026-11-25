@@ -13,13 +13,16 @@ export class PhysicsUtils {
     );
   }
 
-  /** Compare rotations submitted directly as native Float32 quaternions. */
+  /** Compare orientations after the same normalization and Float32 conversion as the native pose. */
   static rotationDiffersF32(a: Quaternion, b: Quaternion): boolean {
+    if (a.x === b.x && a.y === b.y && a.z === b.z && a.w === b.w) return false;
+    const scaleA = 1 / a.length();
+    const scaleB = (Quaternion.dot(a, b) < 0 ? -1 : 1) / b.length();
     return (
-      PhysicsUtils._componentDiffersF32(a.x, b.x) ||
-      PhysicsUtils._componentDiffersF32(a.y, b.y) ||
-      PhysicsUtils._componentDiffersF32(a.z, b.z) ||
-      PhysicsUtils._componentDiffersF32(a.w, b.w)
+      PhysicsUtils._componentDiffersF32(a.x * scaleA, b.x * scaleB) ||
+      PhysicsUtils._componentDiffersF32(a.y * scaleA, b.y * scaleB) ||
+      PhysicsUtils._componentDiffersF32(a.z * scaleA, b.z * scaleB) ||
+      PhysicsUtils._componentDiffersF32(a.w * scaleA, b.w * scaleB)
     );
   }
 

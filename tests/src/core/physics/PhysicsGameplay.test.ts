@@ -152,6 +152,25 @@ describe("Physics gameplay integration", () => {
     }
   });
 
+  it("applies a Prefab's initial sleep request independently to each instance", async () => {
+    const prefab = await loadPrefab("sleeping-body.prefab", {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "body", components: [0] }],
+      components: [{ type: "Rigidbody", calls: [{ method: "sleep", args: [] }] }],
+      root: 0
+    });
+    const sleeping = prefab.instantiate();
+    const awake = prefab.instantiate();
+    awake.getComponent(Rigidbody)!.wakeUp();
+    root.addChild(sleeping);
+    root.addChild(awake);
+    step();
+    expect(sleeping.getComponent(Rigidbody)!.isSleeping()).toBe(true);
+    expect(sleeping.transform.position.y).toBe(0);
+    expect(awake.transform.position.y).toBeLessThan(0);
+  });
+
   it("loads a complete hinge axis from a runtime Prefab call", async () => {
     const prefab = await loadPrefab("hinge-axis.prefab", {
       version: "2.0",

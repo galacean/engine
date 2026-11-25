@@ -2,6 +2,7 @@ import { createPhysics } from "../../utils/physics";
 import {
   AnimationClip,
   AnimationQuaternionCurve,
+  AnimationVector3Curve,
   Camera,
   Engine,
   Entity,
@@ -19,7 +20,8 @@ import {
   PlaneCollider,
   PrimitiveMesh,
   Scene,
-  Script
+  Script,
+  Transform
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
@@ -357,6 +359,78 @@ describe("Rigidbody", function () {
     body.applyForce(new Vector3(10, 0, 0));
     physics._update(physics.fixedTimeStep);
     expect(body.linearVelocity.x).toBeCloseTo(0, 6);
+  });
+
+  it.each([false, true])("updates the center of an infinite-mass body regardless of a prior read (%s)", (readFirst) => {
+    useFixedTimeStep();
+    const entity = rootEntity.createChild();
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.angularDamping = 0;
+    body.inertiaTensor = new Vector3(2, 3, 4);
+    const box = entity.addComponent(BoxCollider);
+    box.center.x = 3;
+    if (readFirst) expect(body.centerOfMass.x).toBe(3);
+    body.mass = 0;
+    expect(body.centerOfMass.x).toBe(3);
+    box.center.x = 7;
+    expect(body.centerOfMass.x).toBe(7);
+
+    body.applyForce(new Vector3(1, 0, 0), ForceMode.Impulse);
+    body.applyTorque(new Vector3(0, 0, 4), ForceMode.Impulse);
+    engine.update();
+    expect(body.linearVelocity.x).toBe(0);
+    expect(body.angularVelocity.z).toBeCloseTo(1);
+  });
+
+  it.each(["removed", "trigger"])("resets the automatic center when the last solid is %s at infinite mass", (edit) => {
+    const entity = rootEntity.createChild();
+    const body = entity.addComponent(Rigidbody);
+    body.mass = 0;
+    const box = entity.addComponent(BoxCollider);
+    box.center.x = 3;
+    expect(body.centerOfMass.x).toBe(3);
+    if (edit === "removed") box.destroy();
+    else box.isTrigger = true;
+    expect(body.centerOfMass.x).toBe(0);
+  });
+
+  it.each([0, 1])("keeps the world mass frame fixed when the box grows about the same center (mass=%s)", (mass) => {
+    const entity = rootEntity.createChild();
+    entity.transform.setPosition(2.5, 3.5, 4.5);
+    entity.transform.setRotation(23, 53, 61);
+    const body = entity.addComponent(Rigidbody);
+    body.mass = mass;
+    body.inertiaTensor = new Vector3(2, 3, 4);
+    body.inertiaTensorRotation = new Quaternion().rotateZ(Math.PI / 3);
+    const box = entity.addComponent(BoxCollider);
+    box.center.set(1, 4, -3);
+
+    const initial = body.getWorldCenterOfMass(new Vector3());
+    const current = new Vector3();
+    for (let i = 0; i < 32; i++) {
+      box.size.y = 2 + (i % 2);
+      body.getWorldCenterOfMass(current);
+    }
+    expect(current).toEqual(initial);
+  });
+
+  it("locks the supplied mass vectors even when they reference the body's own values", () => {
+    const entity = rootEntity.createChild();
+    const body = entity.addComponent(Rigidbody);
+    const box = entity.addComponent(BoxCollider);
+    box.center.x = 3;
+    box.size.set(2, 4, 6);
+    const center = body.centerOfMass;
+    const tensor = body.inertiaTensor;
+    box.center.x = 7;
+    box.size.y = 8;
+    body.centerOfMass = center;
+    body.inertiaTensor = tensor;
+    expect(body.automaticCenterOfMass).toBe(false);
+    expect(body.automaticInertiaTensor).toBe(false);
+    expect(body.centerOfMass.x).toBe(3);
+    expect(body.inertiaTensor.x).toBeCloseTo(13 / 3);
   });
 
   it("centerOfMass", function () {
@@ -705,6 +779,32 @@ describe("Rigidbody", function () {
     physics._update(physics.fixedTimeStep);
     expect(body.isSleeping()).toBe(true);
     expect(entity.transform.worldPosition.y).toBe(5);
+  });
+
+  it.each([false, true])("cancels initial sleep only for a valid force (%s)", (applyImpulse) => {
+    useFixedTimeStep();
+    const entity = new Entity(engine);
+    entity.transform.setPosition(0, 10, 0);
+    entity.transform.setRotation(0, 0, -45);
+    const body = entity.addComponent(Rigidbody);
+    body.sleep();
+    rootEntity.addChild(entity);
+
+    const rejected = new Vector3(NaN, 0, 0);
+    const impulse = new Vector3(1, 0, 0);
+    body.applyForce(rejected);
+    body.applyTorque(rejected);
+    body.applyForceAtPosition(impulse, rejected);
+    const local = new Vector3(2.5e38, 2.5e38, 0);
+    body.applyRelativeForce(local);
+    body.applyRelativeTorque(local);
+    if (applyImpulse) body.applyForce(impulse, ForceMode.Impulse);
+
+    engine.update();
+    expect(body.isSleeping()).toBe(!applyImpulse);
+    expect(body.linearVelocity.x).toBeCloseTo(applyImpulse ? 1 : 0);
+    if (applyImpulse) expect(entity.transform.position.y).toBeLessThan(10);
+    else expect(entity.transform.position.y).toBe(10);
   });
 
   it("honors sleep requested before a world joint enters simulation", () => {
@@ -1455,6 +1555,44 @@ describe("Rigidbody", function () {
     expect(() => kinematicBody.move(new Vector3(1, 2, 3))).not.toThrow();
   });
 
+  it.each([0, 1e-7])("overrides a pending move only for a different animated orientation (w=%s)", (w) => {
+    useFixedTimeStep();
+    const entity = rootEntity.createChild();
+    entity.transform.rotationQuaternion = new Quaternion(0, 1, 0, 0);
+    const body = entity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const box = entity.addComponent(BoxCollider);
+    body.move(new Vector3(10, 0, 0));
+    const curve = new AnimationQuaternionCurve();
+    curve.addKey({ time: 0, value: new Quaternion(0, -1, 0, w) });
+    const clip = new AnimationClip("orientation");
+    clip.addCurveBinding("", Transform, "rotationQuaternion", curve);
+    clip.sampleAnimation(entity, 0);
+
+    const x = w === 0 ? 10 : 0;
+    const hit = new HitResult();
+    expect(entity.scene.physics.raycast(new Ray(new Vector3(x, 0, -3), new Vector3(0, 0, 1)), 6, hit)).toBe(true);
+    expect(hit.collider).toBe(box);
+    engine.update();
+    expect(entity.transform.position.x).toBe(x);
+  });
+
+  it("keeps a pending move when a short rotation track samples the original orientation", () => {
+    useFixedTimeStep();
+    const entity = rootEntity.createChild();
+    const body = entity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    body.move(new Vector3(10, 0, 0));
+    const curve = new AnimationQuaternionCurve();
+    curve.addKey({ time: 0, value: new Quaternion().rotateY(0.001) });
+    curve.addKey({ time: 1, value: new Quaternion().rotateY(-0.001) });
+    const clip = new AnimationClip("short arc");
+    clip.addCurveBinding("", Transform, "rotationQuaternion", curve);
+    clip.sampleAnimation(entity, 0.5);
+    engine.update();
+    expect(entity.transform.position.x).toBe(10);
+  });
+
   it("accumulates small kinematic moves from the published world pose", () => {
     const entity = rootEntity.createChild("small steps");
     const body = entity.addComponent(Rigidbody);
@@ -1905,6 +2043,25 @@ describe("Rigidbody", function () {
     expect(body.angularVelocity.x).toBeCloseTo(1);
   });
 
+  it("keeps the world center fixed when animation repeats the same mass properties", () => {
+    const entity = rootEntity.createChild();
+    entity.transform.setPosition(2.5, 3.5, 4.5);
+    entity.transform.setRotation(23, 53, 61);
+    const body = entity.addComponent(Rigidbody);
+    const clip = new AnimationClip("constant mass frame");
+    const centers = new AnimationVector3Curve();
+    centers.addKey({ time: 0, value: new Vector3(1, 4, -3) });
+    clip.addCurveBinding("", Rigidbody, "centerOfMass", centers);
+    const axes = new AnimationQuaternionCurve();
+    axes.addKey({ time: 0, value: new Quaternion().rotateZ(Math.PI / 3) });
+    clip.addCurveBinding("", Rigidbody, "inertiaTensorRotation", axes);
+    clip.sampleAnimation(entity, 0);
+
+    const initial = body.getWorldCenterOfMass(new Vector3());
+    for (let i = 0; i < 32; i++) clip.sampleAnimation(entity, 0);
+    expect(body.getWorldCenterOfMass(new Vector3())).toEqual(initial);
+  });
+
   it("uses read-only snapshot whole-value semantics and atomic validation on inertiaTensorRotation", () => {
     const physics = engine.sceneManager.activeScene.physics;
     const entity = rootEntity.createChild("snapshot-inertia-rotation");
@@ -1987,14 +2144,6 @@ describe("Rigidbody", function () {
     body.inertiaTensorRotation = new Quaternion();
     expect(clonedBody.inertiaTensorRotation.w).toBeCloseTo(Math.SQRT1_2, 5);
     clonedEntity.destroy();
-
-    // Same-reference assignments on mutable vector properties preserve automatic modes.
-    body.automaticCenterOfMass = true;
-    body.centerOfMass = body.centerOfMass;
-    expect(body.automaticCenterOfMass).toBe(true);
-    body.automaticInertiaTensor = true;
-    body.inertiaTensor = body.inertiaTensor;
-    expect(body.automaticInertiaTensor).toBe(true);
   });
 
   it("ignores non-finite force inputs and force calls on kinematic bodies", () => {
