@@ -1,0 +1,24 @@
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 533
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 1158-1159
+packages/core/src/physics/PhysicsUtils.ts
+  h_dd004f51a3e5ec 130
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 35,41,197,530,1038
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 122,145,326
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 714
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9a2f006424d6bbddc4e3f5f1b1c6d281edb14760",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
