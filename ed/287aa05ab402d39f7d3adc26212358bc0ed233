@@ -1,0 +1,32 @@
+packages/water/package.json
+  h_a3c79ce84ffdc2 11-26,28-43
+packages/water/src/water/native/index.ts
+  h_a3c79ce84ffdc2 42
+packages/water/src/water/native/registerNativeWater.ts
+  h_a3c79ce84ffdc2 1-11
+packages/water/src/water/runtime/heightfield/HeightfieldWaterCompileWorkerClient.ts
+  h_a3c79ce84ffdc2 24,143
+packages/water/src/water/runtime/heightfield/HeightfieldWaterCompileWorkerFactory.ts
+  h_a3c79ce84ffdc2 1-5
+packages/water/src/water/runtime/river/RiverCompileWorkerClient.ts
+  h_a3c79ce84ffdc2 7,39
+packages/water/src/water/runtime/river/RiverCompileWorkerFactory.ts
+  h_a3c79ce84ffdc2 1-5
+packages/water/tests/WaterPackageBuild.test.mjs
+  h_a3c79ce84ffdc2 1-521
+world/package.json
+  h_a3c79ce84ffdc2 9-10
+world/scripts/build-water.js
+  h_a3c79ce84ffdc2 1-912
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ed287aa05ab402d39f7d3adc26212358bc0ed233",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
