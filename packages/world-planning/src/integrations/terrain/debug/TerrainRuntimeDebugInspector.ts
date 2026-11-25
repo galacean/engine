@@ -244,28 +244,15 @@ export interface TerrainOilPaintDebugSnapshot {
   readonly shaderMacro: boolean;
   readonly painterlyStrength: number;
   readonly brushRadius: number;
-  readonly colorStylize: number;
-  readonly screenImpasto: number;
   readonly impasto: number;
   readonly brushScale: number;
-  readonly compareSplit: number;
 }
 
 export interface TerrainOilPaintDebugControl {
   getSnapshot(): TerrainOilPaintDebugSnapshot;
   setPassActive(active: boolean): void | Promise<void>;
   setShaderMacro(enabled: boolean): void | Promise<void>;
-  setParam(
-    key:
-      | "painterlyStrength"
-      | "brushRadius"
-      | "colorStylize"
-      | "screenImpasto"
-      | "impasto"
-      | "brushScale"
-      | "compareSplit",
-    value: number
-  ): void;
+  setParam(key: "painterlyStrength" | "brushRadius" | "impasto" | "brushScale", value: number): void;
   reset(): void | Promise<void>;
 }
 
@@ -845,14 +832,6 @@ export class TerrainRuntimeDebugInspector {
         .name("Brush radius / 笔触半径")
         .onChange((v: number) => oilControl.setParam("brushRadius", v));
       oilPaintFolder
-        .add(state, "colorStylize", 0, 1, 0.01)
-        .name("Color stylize / 油画色阶")
-        .onChange((v: number) => oilControl.setParam("colorStylize", v));
-      oilPaintFolder
-        .add(state, "screenImpasto", 0, 1.5, 0.01)
-        .name("Screen impasto / 浮雕高光")
-        .onChange((v: number) => oilControl.setParam("screenImpasto", v));
-      oilPaintFolder
         .add(state, "impasto", 0, 2, 0.05)
         .name("3D impasto / 3D 厚涂")
         .onChange((v: number) => oilControl.setParam("impasto", v));
@@ -860,10 +839,6 @@ export class TerrainRuntimeDebugInspector {
         .add(state, "brushScale", 0.2, 2.5, 0.05)
         .name("3D brush scale / 3D 笔触密度")
         .onChange((v: number) => oilControl.setParam("brushScale", v));
-      oilPaintFolder
-        .add(state, "compareSplit", 0, 1, 0.01)
-        .name("Compare split / A/B 分屏")
-        .onChange((v: number) => oilControl.setParam("compareSplit", v));
 
       if (options.environment) {
         const env = options.environment;

@@ -22,8 +22,7 @@ const OIL_PAINT_POST_SHADER_NAME = "PostProcess/OilPaint";
  * - 5 taps total (center + 20-deg rotated orthogonal arms leveraging HW bilinear filtering)
  * - ZERO sqrt() / pow() / exp() / divisions (0 SFU bottlenecks!)
  * - Scalar L1 4-quadrant spread + single winning-quadrant vec3 mean (~20 live registers -> max SIMD occupancy!)
- * - Zero-extra-tap scalar Laplacian thin-detail guard keeps 1-2px animal eyes, antlers & window mullions crisp
- * - Ultra-light warm-highlight / cool-shadow oil varnish glaze reusing scalar luma.
+ * - Zero-extra-tap scalar Laplacian thin-detail guard keeps 1-2px animal eyes, antlers & window mullions crisp.
  */
 export const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
   SubShader "Default" {
@@ -36,7 +35,7 @@ export const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
       sampler2D renderer_BlitTexture;
       vec4 renderer_texelSize;
 
-      // x: painterlyStrength, y: brushRadius (720px short-edge), z: colorStylize, w: unused
+      // x: painterlyStrength, y: brushRadius (720px short-edge), z..w: unused
       vec4 material_OilParams0;
 
       VertexShader = vert;
@@ -54,7 +53,6 @@ export const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
         vec2 texel = renderer_texelSize.xy;
         float painterlyStrength = material_OilParams0.x;
         float brushRadius720 = material_OilParams0.y;
-        float colorStylize = material_OilParams0.z;
 
         vec3 c0 = texture2D(renderer_BlitTexture, uv).rgb;
         float shortEdge = min(renderer_texelSize.z, renderer_texelSize.w);
@@ -101,11 +99,6 @@ export const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
         float thinGuard = 1.0 - clamp((abs(l0 - avgL) - 0.08) * 5.0, 0.0, 1.0);
         vec3 col = mix(c0, kuw, painterlyStrength * thinGuard);
 
-        // Ultra-lean warm-highlight / cool-shadow gallery oil varnish glaze (0 divisions, 0 smoothstep)
-        float g = clamp(l0 * 1.6 - 0.15, 0.0, 1.0);
-        vec3 glaze = mix(vec3(0.96, 0.96, 1.04), vec3(1.06, 1.02, 0.93), g);
-        col *= mix(vec3(1.0), glaze, colorStylize);
-
         return vec4(col, 1.0);
       }
     }
@@ -148,12 +141,7 @@ export class OilPaintPostPass extends PostProcessPass {
     scene.shaderData.setFloat("scene_OilPaintImpasto", effect.impasto.value);
     scene.shaderData.setFloat("scene_OilPaintBrushScale", effect.brushScale.value);
 
-    this._params0.set(
-      effect.painterlyStrength.value,
-      effect.brushRadius.value,
-      effect.colorStylize.value,
-      0
-    );
+    this._params0.set(effect.painterlyStrength.value, effect.brushRadius.value, 0, 0);
 
     this._material.shaderData.setVector4("material_OilParams0", this._params0);
 

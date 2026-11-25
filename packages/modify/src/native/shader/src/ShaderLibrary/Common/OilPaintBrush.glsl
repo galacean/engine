@@ -13,7 +13,6 @@
   vec4 scene_OilPaintDab3;
   vec4 scene_OilPaintCoolTint;
   vec4 scene_OilPaintWarmTint;
-  vec4 scene_OilPaintShadeTint;
 
   #ifdef OIL_PAINT_BRUSH_PLANAR_ANTI_TILE
     // Lightweight dual-rotated height-blend anti-tiling for large horizontal terrain planes (zero sin/cos, zero noise ALU).
@@ -71,23 +70,12 @@
     inout vec3 shadingNormal,
     inout float roughness
   ) {
-    float nLen = length(shadingNormal);
-    vec3 n = nLen > 1e-5 ? shadingNormal / nLen : vec3(0.0, 1.0, 0.0);
-    float sLen = length(sampleNormal);
-    vec3 sn = sLen > 1e-5 ? sampleNormal / sLen : vec3(0.0, 1.0, 0.0);
-
     float scale = max(scene_OilPaintBrushScale, 0.05) * scaleMultiplier;
-    vec4 brush = sampleOilPaintBrush(samplePos, sn, scale);
+    vec4 brush = sampleOilPaintBrush(samplePos, sampleNormal, scale);
     float impasto = clamp(scene_OilPaintImpasto, 0.0, 2.0);
     float height = brush.r;
     vec2 grad = (brush.gb * 2.0 - 1.0) * (0.48 * impasto);
     float pigment = brush.a;
-
-    // Perturb shading normal along tangent plane for physical impasto relief under real scene lighting.
-    vec3 upRef = abs(n.y) < 0.92 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
-    vec3 tAxis = normalize(cross(upRef, n));
-    vec3 bAxis = cross(n, tAxis);
-    shadingNormal = normalize(n + tAxis * grad.x + bAxis * grad.y);
 
     // Seasonal brushstroke palette modulation (100% CPU-driven via scene_OilPaintDab0..3; 0 on animals/buildings/stone/bark).
     float maxC = max(albedo.r, max(albedo.g, albedo.b));
@@ -104,6 +92,7 @@
     }
 
     // Seasonal warm/cool broken-color brushstroke temperature & tactile impasto height/rake relief.
+    // Tangent-space normal reconstruction is intentionally omitted (matte roughness >= 0.84; albedo height+rake provides relief).
     float dabMix = mix(0.26, 0.68, smoothstep(0.08, 0.36, chroma));
     vec3 coolDab = mix(vec3(1.0), scene_OilPaintCoolTint.rgb, dabMix);
     vec3 warmDab = mix(vec3(1.0), scene_OilPaintWarmTint.rgb, dabMix);

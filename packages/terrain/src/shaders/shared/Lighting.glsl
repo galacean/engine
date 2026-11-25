@@ -54,7 +54,6 @@ TerrainProjectLightingResult evaluateTerrainProjectLightingWithShadow(Varyings v
       surfaceData.normal,
       surfaceData.roughness
     );
-    surfaceData.dotNV = max(dot(surfaceData.normal, surfaceData.viewDir), 0.0001);
   #endif
 
   BSDFData bsdfData;

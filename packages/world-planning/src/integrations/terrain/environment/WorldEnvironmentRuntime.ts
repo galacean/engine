@@ -35,7 +35,6 @@ import {
   OIL_PAINT_DAB1,
   OIL_PAINT_DAB2,
   OIL_PAINT_DAB3,
-  OIL_PAINT_SHADE_TINT,
   OIL_PAINT_WARM_TINT,
   resolveOilPaintSeasonPalette,
   type MutableOilPaintSeasonPaletteTable,
@@ -459,7 +458,6 @@ export class WorldEnvironmentRuntime {
     shaderData.setVector4(OIL_PAINT_DAB3, this._oilPaintSeasonUniforms.dab3);
     shaderData.setVector4(OIL_PAINT_COOL_TINT, this._oilPaintSeasonUniforms.coolTint);
     shaderData.setVector4(OIL_PAINT_WARM_TINT, this._oilPaintSeasonUniforms.warmTint);
-    shaderData.setVector4(OIL_PAINT_SHADE_TINT, this._oilPaintSeasonUniforms.shadeTint);
     shaderData.setVector4(SURFACE_CLIMATE, this._surfaceVector);
     shaderData.setVector4(TERRAIN_WATER_COVERAGE_PARAMS, this._terrainWaterCoverageParams);
     shaderData.setVector4(TERRAIN_WATER_SURFACE_PARAMS, this._terrainWaterSurfaceParams);
@@ -597,7 +595,6 @@ export class WorldEnvironmentRuntime {
       ],
       coolTint: [palette.coolTint[0], palette.coolTint[1], palette.coolTint[2]],
       warmTint: [palette.warmTint[0], palette.warmTint[1], palette.warmTint[2]],
-      shadeTint: [palette.shadeTint[0], palette.shadeTint[1], palette.shadeTint[2]],
       paletteBlend: palette.paletteBlend,
       chromaThreshold: palette.chromaThreshold
     };
@@ -624,11 +621,6 @@ export class WorldEnvironmentRuntime {
       target.warmTint[0] = patch.warmTint[0];
       target.warmTint[1] = patch.warmTint[1];
       target.warmTint[2] = patch.warmTint[2];
-    }
-    if (patch.shadeTint) {
-      target.shadeTint[0] = patch.shadeTint[0];
-      target.shadeTint[1] = patch.shadeTint[1];
-      target.shadeTint[2] = patch.shadeTint[2];
     }
     if (patch.paletteBlend !== undefined) target.paletteBlend = clamp01(patch.paletteBlend);
     if (patch.chromaThreshold !== undefined) target.chromaThreshold = patch.chromaThreshold;

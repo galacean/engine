@@ -12,8 +12,6 @@ export interface OilPaintSeasonPalette {
   readonly coolTint: OilPaintRgb;
   /** Warm brushstroke temperature tint multiplier (linear RGB). */
   readonly warmTint: OilPaintRgb;
-  /** Shadow/shaded brushstroke tint multiplier (linear RGB). */
-  readonly shadeTint: OilPaintRgb;
   /** Palette blend strength on terrain & foliage surfaces [0, 1]. */
   readonly paletteBlend: number;
   /** Minimum surface chroma for palette dab application (negative in winter so white snow receives snow dabs). */
@@ -24,7 +22,6 @@ export interface MutableOilPaintSeasonPalette {
   dabs: [MutableOilPaintRgb, MutableOilPaintRgb, MutableOilPaintRgb, MutableOilPaintRgb];
   coolTint: MutableOilPaintRgb;
   warmTint: MutableOilPaintRgb;
-  shadeTint: MutableOilPaintRgb;
   paletteBlend: number;
   chromaThreshold: number;
 }
@@ -56,7 +53,6 @@ const SPRING_SUMMER_PALETTE: OilPaintSeasonPalette = Object.freeze({
   ] as const),
   coolTint: Object.freeze([0.84, 0.96, 1.12] as const),
   warmTint: Object.freeze([1.14, 1.1, 0.86] as const),
-  shadeTint: Object.freeze([0.72, 0.86, 0.96] as const),
   paletteBlend: 0.52,
   chromaThreshold: 0.14
 });
@@ -71,7 +67,6 @@ const AUTUMN_PALETTE: OilPaintSeasonPalette = Object.freeze({
   ] as const),
   coolTint: Object.freeze([0.88, 0.9, 1.08] as const),
   warmTint: Object.freeze([1.14, 1.05, 0.84] as const),
-  shadeTint: Object.freeze([0.84, 0.74, 0.74] as const),
   paletteBlend: 0.52,
   chromaThreshold: 0.14
 });
@@ -86,7 +81,6 @@ const WINTER_PALETTE: OilPaintSeasonPalette = Object.freeze({
   ] as const),
   coolTint: Object.freeze([0.78, 0.88, 1.18] as const),
   warmTint: Object.freeze([1.14, 1.07, 0.92] as const),
-  shadeTint: Object.freeze([0.66, 0.78, 1.06] as const),
   paletteBlend: 0.62,
   chromaThreshold: -0.15
 });
@@ -101,7 +95,6 @@ const WARM_OCHRE_SCHEME: OilPaintSeasonPalette = Object.freeze({
   ] as const),
   coolTint: Object.freeze([0.9, 0.92, 1.04] as const),
   warmTint: Object.freeze([1.1, 1.04, 0.88] as const),
-  shadeTint: Object.freeze([0.82, 0.74, 0.72] as const),
   paletteBlend: 0.45,
   chromaThreshold: 0.14
 });
@@ -116,7 +109,6 @@ const MONET_MEADOW_SCHEME: OilPaintSeasonPalette = Object.freeze({
   ] as const),
   coolTint: Object.freeze([0.84, 0.95, 1.1] as const),
   warmTint: Object.freeze([1.12, 1.08, 0.88] as const),
-  shadeTint: Object.freeze([0.74, 0.84, 0.96] as const),
   paletteBlend: 0.46,
   chromaThreshold: 0.14
 });
@@ -131,7 +123,6 @@ const TWILIGHT_BLUE_SCHEME: OilPaintSeasonPalette = Object.freeze({
   ] as const),
   coolTint: Object.freeze([0.78, 0.88, 1.18] as const),
   warmTint: Object.freeze([1.14, 1.04, 0.84] as const),
-  shadeTint: Object.freeze([0.64, 0.72, 0.96] as const),
   paletteBlend: 0.52,
   chromaThreshold: 0.12
 });
@@ -146,7 +137,6 @@ const SUBDUED_NATURAL_SCHEME: OilPaintSeasonPalette = Object.freeze({
   ] as const),
   coolTint: Object.freeze([0.94, 0.96, 1.04] as const),
   warmTint: Object.freeze([1.06, 1.03, 0.94] as const),
-  shadeTint: Object.freeze([0.88, 0.84, 0.84] as const),
   paletteBlend: 0.22,
   chromaThreshold: 0.16
 });
@@ -179,7 +169,6 @@ function clonePalette(source: OilPaintSeasonPalette): MutableOilPaintSeasonPalet
     ],
     coolTint: [source.coolTint[0], source.coolTint[1], source.coolTint[2]],
     warmTint: [source.warmTint[0], source.warmTint[1], source.warmTint[2]],
-    shadeTint: [source.shadeTint[0], source.shadeTint[1], source.shadeTint[2]],
     paletteBlend: source.paletteBlend,
     chromaThreshold: source.chromaThreshold
   };
@@ -202,7 +191,6 @@ export const OIL_PAINT_DAB2 = ShaderProperty.getByName("scene_OilPaintDab2");
 export const OIL_PAINT_DAB3 = ShaderProperty.getByName("scene_OilPaintDab3");
 export const OIL_PAINT_COOL_TINT = ShaderProperty.getByName("scene_OilPaintCoolTint");
 export const OIL_PAINT_WARM_TINT = ShaderProperty.getByName("scene_OilPaintWarmTint");
-export const OIL_PAINT_SHADE_TINT = ShaderProperty.getByName("scene_OilPaintShadeTint");
 
 export interface OilPaintSeasonUniforms {
   readonly dab0: Vector4;
@@ -211,7 +199,6 @@ export interface OilPaintSeasonUniforms {
   readonly dab3: Vector4;
   readonly coolTint: Vector4;
   readonly warmTint: Vector4;
-  readonly shadeTint: Vector4;
 }
 
 export function createOilPaintSeasonUniforms(): OilPaintSeasonUniforms {
@@ -221,8 +208,7 @@ export function createOilPaintSeasonUniforms(): OilPaintSeasonUniforms {
     dab2: new Vector4(0.72, 0.28, 0.09, 0),
     dab3: new Vector4(0.54, 0.48, 0.15, 0),
     coolTint: new Vector4(0.88, 0.9, 1.08, 1),
-    warmTint: new Vector4(1.14, 1.05, 0.84, 1),
-    shadeTint: new Vector4(0.84, 0.74, 0.74, 1)
+    warmTint: new Vector4(1.14, 1.05, 0.84, 1)
   };
 }
 
@@ -270,5 +256,4 @@ export function resolveOilPaintSeasonPalette(
   mixRgb(sp.dabs[3], su.dabs[3], au.dabs[3], wi.dabs[3], out.dab3, 0);
   mixRgb(sp.coolTint, su.coolTint, au.coolTint, wi.coolTint, out.coolTint, 1);
   mixRgb(sp.warmTint, su.warmTint, au.warmTint, wi.warmTint, out.warmTint, 1);
-  mixRgb(sp.shadeTint, su.shadeTint, au.shadeTint, wi.shadeTint, out.shadeTint, 1);
 }

@@ -1161,11 +1161,8 @@ export async function mountSeedWorldDemo(
     const OIL_PAINT_DEFAULTS = {
       painterlyStrength: 0.88,
       brushRadius: 5.0,
-      colorStylize: 0.38,
-      screenImpasto: 0.25,
       impasto: 1.4,
-      brushScale: 0.72,
-      compareSplit: 0
+      brushScale: 0.72
     } as const;
     const ensureOilPaintPassMounted = async () => {
       if (oilPaintPostEntity && oilPaintPostEffect && oilPaintPostPass) return;
@@ -1228,11 +1225,8 @@ export async function mountSeedWorldDemo(
         shaderMacro: oilPaintMacroEnabled,
         painterlyStrength: oilPaintPostEffect?.painterlyStrength.value ?? OIL_PAINT_DEFAULTS.painterlyStrength,
         brushRadius: oilPaintPostEffect?.brushRadius.value ?? OIL_PAINT_DEFAULTS.brushRadius,
-        colorStylize: oilPaintPostEffect?.colorStylize.value ?? OIL_PAINT_DEFAULTS.colorStylize,
-        screenImpasto: oilPaintPostEffect?.screenImpasto.value ?? OIL_PAINT_DEFAULTS.screenImpasto,
         impasto: oilPaintPostEffect?.impasto.value ?? OIL_PAINT_DEFAULTS.impasto,
-        brushScale: oilPaintPostEffect?.brushScale.value ?? OIL_PAINT_DEFAULTS.brushScale,
-        compareSplit: oilPaintPostEffect?.compareSplit.value ?? OIL_PAINT_DEFAULTS.compareSplit
+        brushScale: oilPaintPostEffect?.brushScale.value ?? OIL_PAINT_DEFAULTS.brushScale
       }),
       setPassActive: (active) => setOilPaintPassActive(active),
       setShaderMacro: (enabled) => setOilPaintMacroEnabled(enabled),
@@ -1247,11 +1241,8 @@ export async function mountSeedWorldDemo(
         if (oilPaintPostEffect) {
           oilPaintPostEffect.painterlyStrength.value = OIL_PAINT_DEFAULTS.painterlyStrength;
           oilPaintPostEffect.brushRadius.value = OIL_PAINT_DEFAULTS.brushRadius;
-          oilPaintPostEffect.colorStylize.value = OIL_PAINT_DEFAULTS.colorStylize;
-          oilPaintPostEffect.screenImpasto.value = OIL_PAINT_DEFAULTS.screenImpasto;
           oilPaintPostEffect.impasto.value = OIL_PAINT_DEFAULTS.impasto;
           oilPaintPostEffect.brushScale.value = OIL_PAINT_DEFAULTS.brushScale;
-          oilPaintPostEffect.compareSplit.value = OIL_PAINT_DEFAULTS.compareSplit;
         }
         scene?.shaderData.setFloat("scene_OilPaintImpasto", OIL_PAINT_DEFAULTS.impasto);
         scene?.shaderData.setFloat("scene_OilPaintBrushScale", OIL_PAINT_DEFAULTS.brushScale);
