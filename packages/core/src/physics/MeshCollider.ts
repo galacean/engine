@@ -4,6 +4,7 @@ import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { Collider } from "./Collider";
+import type { PhysicsScene } from "./PhysicsScene";
 
 /**
  * A collider based on a triangle mesh or a convex hull.
@@ -26,14 +27,13 @@ export class MeshCollider extends Collider {
   private _cookingFlags = MeshColliderCookingFlag.Cleaning | MeshColliderCookingFlag.VertexWelding;
 
   @ignoreClone
-  private _nativeMesh: ModelMesh | null = null;
+  private _nativeMesh: ModelMesh | null;
   @ignoreClone
   private _nativeConvex = false;
   @ignoreClone
-  private _nativeCookingFlags: MeshColliderCookingFlag =
-    MeshColliderCookingFlag.Cleaning | MeshColliderCookingFlag.VertexWelding;
+  private _nativeCookingFlags: MeshColliderCookingFlag;
   @ignoreClone
-  private _nativeTrigger = false;
+  private _nativeTrigger: boolean;
   @ignoreClone
   private _rejection = MeshSyncRejection.None;
 
@@ -50,7 +50,7 @@ export class MeshCollider extends Collider {
   set mesh(value: ModelMesh | null) {
     if (this._mesh !== value || this._rejection === MeshSyncRejection.CookFailed) {
       this._setMesh(value);
-      if (!value || (!this._registeredScene && this._nativeMesh !== value)) {
+      if (!value || !this._registeredScene) {
         this._nativeMesh = null;
         !this._registeredScene && this._destroyNative();
       }
@@ -136,9 +136,10 @@ export class MeshCollider extends Collider {
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
-    super._onDisableInScene();
-    if (this._native && (!this._mesh || this._nativeMesh !== this._mesh)) {
+  override _detach(physicsScene?: PhysicsScene): void {
+    super._detach(physicsScene);
+    // A Rigidbody can detach the shape while mesh edits are still queued for the next sync.
+    if (this._native && this._dirtyIndex === -1 && (!this._mesh || this._nativeMesh !== this._mesh)) {
       this._nativeMesh = null;
       this._destroyNative();
     }
@@ -163,13 +164,7 @@ export class MeshCollider extends Collider {
 
   protected override _syncNativeShape(scale: Vector3): IPhysicsShape | null {
     const mesh = this._mesh;
-    if (!mesh) {
-      if (this._native) {
-        this._detach();
-        this._destroyNative();
-      }
-      return null;
-    }
+    if (!mesh) return null;
 
     const scaleChanged = this._scaleChanged(scale);
     if (scaleChanged && !MeshCollider._isValidScale(scale)) {
@@ -201,10 +196,6 @@ export class MeshCollider extends Collider {
       const updated = this._cook(previous, mesh, scale);
       if (!updated) {
         this._rejection = MeshSyncRejection.CookFailed;
-        if (this._native) {
-          this._detach();
-          this._destroyNative();
-        }
         this._nativeMesh = null;
         return null;
       }
@@ -222,7 +213,7 @@ export class MeshCollider extends Collider {
     const geometryChanged = needsCook || scaleChanged;
     geometryChanged && this._nativeScale.copyFrom(scale);
 
-    const triggerChanged = this._nativeConvex && this._nativeTrigger !== this._isTrigger;
+    const triggerChanged = this._nativeTrigger !== this._isTrigger;
     if (triggerChanged) {
       shape.setIsTrigger(this._isTrigger);
       this._nativeTrigger = this._isTrigger;
@@ -241,7 +232,9 @@ export class MeshCollider extends Collider {
   private _cook(shape: IMeshShape | null, mesh: ModelMesh, scale: Vector3): IMeshShape | null {
     const convex = this._convex;
     if (!mesh.accessible) {
-      console.warn("MeshCollider: mesh data is not accessible. Set 'keepMeshData' before uploading.");
+      console.warn(
+        "MeshCollider: mesh data is not accessible. Use mesh.uploadData(false) or enable keepMeshData at creation."
+      );
       return null;
     }
     let positions: Vector3[] | null;
