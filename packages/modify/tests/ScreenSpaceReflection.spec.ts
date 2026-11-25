@@ -577,4 +577,74 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
     );
     expect(evaluated9Tap).toContain("1.0 / 9.0");
   });
+
+  it("Blitter.draw isolates fullscreen/SSR/post-process shaders from scene macros like SCENE_POINT_LIGHT_COUNT while preserving camera macros", async () => {
+    const { Blitter, ShaderMacro, ShaderMacroCollection } = await import("@galacean/engine");
+
+    const observedMacroSets: Set<string>[] = [];
+    const fakeProgram = {
+      bind() {},
+      regroupUniformBlocks() {},
+      uploadAll() {},
+      uploadMultiGroupUniforms() {},
+      uploadUnGroupTextures() {},
+      sceneUniformBlock: {},
+      cameraUniformBlock: {},
+      rendererUniformBlock: {},
+      materialUniformBlock: {}
+    };
+    const fakePass = {
+      _getShaderProgram(_engine: unknown, macros: any) {
+        const elems: any[] = [];
+        (ShaderMacro as any)._getMacrosElements(macros, elems);
+        observedMacroSets.push(new Set(elems.map((m) => (m.value !== undefined ? `${m.name}=${m.value}` : m.name))));
+        return fakeProgram;
+      },
+      _renderState: { _applyStates() {} },
+      _renderStateDataMap: {}
+    };
+    const fakeMaterial = {
+      shader: { subShaders: [{ passes: [fakePass] }] },
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    } as any;
+    const fakeSceneMacros = new ShaderMacroCollection();
+    const fakeCameraMacros = new ShaderMacroCollection();
+    fakeCameraMacros.enable(ShaderMacro.getByName("CAMERA_ORTHOGRAPHIC"));
+    const fakeGlobalMacros = new ShaderMacroCollection();
+
+    const fakeEngine = {
+      _macroCollection: new ShaderMacroCollection(),
+      _basicResources: {
+        blitMaterial: fakeMaterial,
+        blitMesh: { _primitive: {}, subMesh: {} },
+        flipYBlitMesh: { _primitive: {}, subMesh: {} }
+      },
+      _hardwareRenderer: { drawPrimitive() {} },
+      _renderContext: {
+        flipProjection: false,
+        camera: {
+          _globalShaderMacro: fakeGlobalMacros,
+          shaderData: { _macroCollection: fakeCameraMacros },
+          scene: { shaderData: { _macroCollection: fakeSceneMacros } }
+        }
+      }
+    } as any;
+    const fakeSource = { width: 128, height: 128 } as any;
+
+    // Frame A: 0 point lights
+    ShaderMacroCollection.unionCollection(fakeSceneMacros, fakeCameraMacros, fakeGlobalMacros);
+    Blitter.draw(fakeEngine, fakeSource, 0, fakeMaterial, 0);
+
+    // Frame B: village spawns 4 point lights (mutates scene & camera._globalShaderMacro)
+    fakeSceneMacros.enable(ShaderMacro.getByName("SCENE_POINT_LIGHT_COUNT", "4"));
+    fakeSceneMacros.enable(ShaderMacro.getByName("SCENE_DIRECT_LIGHT_COUNT", "1"));
+    ShaderMacroCollection.unionCollection(fakeSceneMacros, fakeCameraMacros, fakeGlobalMacros);
+    Blitter.draw(fakeEngine, fakeSource, 0, fakeMaterial, 0);
+
+    expect(observedMacroSets).toHaveLength(2);
+    expect(observedMacroSets[0]).toEqual(observedMacroSets[1]);
+    expect(observedMacroSets[1]!.has("CAMERA_ORTHOGRAPHIC")).toBe(true);
+    expect(observedMacroSets[1]!.has("SCENE_POINT_LIGHT_COUNT=4")).toBe(false);
+    expect(observedMacroSets[1]!.has("SCENE_DIRECT_LIGHT_COUNT=1")).toBe(false);
+  });
 });

@@ -2327,4 +2327,150 @@ describe("renderer warmup scope", () => {
       findSpy.mockRestore();
     }
   });
+
+  it("isolates fullscreen Blitter / SSR / PostProcess / PhotoCopy warmup variants from scene light/shadow/fog macros while preserving camera macros", () => {
+    const makeSimpleShader = (name: string, stages: readonly string[], queue = 1000) => ({
+      name,
+      destroyed: false,
+      subShaders: [
+        {
+          passes: stages.map((pipelineStage) => ({
+            _tags: { pipelineStage },
+            getTagValue: (key: string) => (key === "pipelineStage" ? pipelineStage : undefined),
+            _renderState: { _getRenderQueueByShaderData: () => queue },
+            _renderStateDataMap: {}
+          }))
+        }
+      ]
+    });
+    const ssrShader = {
+      name: "Lighting/ScreenSpaceReflection",
+      destroyed: false,
+      subShaders: [
+        {
+          passes: Array.from({ length: 9 }, () => ({
+            _tags: {},
+            getTagValue: () => undefined,
+            _renderState: { _getRenderQueueByShaderData: () => 1000 },
+            _renderStateDataMap: {}
+          }))
+        }
+      ]
+    };
+    const photoCopyShader = makeSimpleShader("SeedWorld/PhotoCopy", ["Forward"]);
+    const blitShader = makeSimpleShader("Blit/Blit", ["Forward"]);
+    const srgbShader = makeSimpleShader("PostProcess/FinalSRGB", ["Forward"]);
+    const bloomShader = makeSimpleShader("PostProcess/Bloom", ["Forward"]);
+    const uberShader = makeSimpleShader("PostProcess/Uber", ["Forward"]);
+    const waterShader = makeSimpleShader("Water/LakeHeightfieldHighHybrid", ["Forward", "SSRReceiver"], 3000);
+
+    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) => {
+      if (name === "Lighting/ScreenSpaceReflection") return ssrShader as any;
+      if (name === "SeedWorld/PhotoCopy") return photoCopyShader as any;
+      return null;
+    });
+
+    try {
+      const sceneMacros = new ShaderMacroCollection();
+      sceneMacros.enable(ShaderMacro.getByName("SCENE_DIRECT_LIGHT_COUNT", "1"));
+      sceneMacros.enable(ShaderMacro.getByName("SCENE_POINT_LIGHT_COUNT", "4"));
+      sceneMacros.enable(ShaderMacro.getByName("SCENE_SHADOW_TYPE", "2"));
+      sceneMacros.enable(ShaderMacro.getByName("SCENE_FOG_MODE", "2"));
+
+      const camMacros = new ShaderMacroCollection();
+      camMacros.enable(ShaderMacro.getByName("CAMERA_ORTHOGRAPHIC"));
+
+      const waterMaterial = {
+        destroyed: false,
+        shader: waterShader,
+        isTransparent: true,
+        screenSpaceReflectionIntensity: 1,
+        screenSpaceReflectionBilateral: false,
+        shaderData: { _macroCollection: new ShaderMacroCollection() }
+      };
+      const waterRenderer = {
+        destroyed: false,
+        enabled: true,
+        castShadows: false,
+        entity: { destroyed: false, isActiveInHierarchy: true },
+        shaderData: { _macroCollection: new ShaderMacroCollection() },
+        getMaterials: () => [waterMaterial]
+      };
+      const root = {
+        getComponentsIncludeChildren: (_type: unknown, out: unknown[]) => {
+          out.length = 0;
+          out.push(renderer(true, false, [waterMaterial as any]));
+          return out;
+        }
+      };
+
+      const makeMat = (shader: any) => ({
+        destroyed: false,
+        shader,
+        shaderData: { _macroCollection: new ShaderMacroCollection() }
+      });
+
+      const engine = {
+        _macroCollection: new ShaderMacroCollection(),
+        _hardwareRenderer: { supportsRendering: true },
+        _basicResources: { blitMaterial: makeMat(blitShader) },
+        _getActivePostProcessPasses: () => [
+          {
+            isActive: true,
+            _bloomMaterial: makeMat(bloomShader),
+            _uberMaterial: makeMat(uberShader)
+          }
+        ]
+      } as any;
+      const scene = {
+        shaderData: { _macroCollection: sceneMacros },
+        background: { mode: 0 },
+        screenSpaceReflection: { enabled: true, quality: 1, intensity: 1, maxRoughness: 0.6, useLinearTrace: true }
+      } as any;
+      const camera = {
+        _updateShaderData() {},
+        _isIndependentCanvasEnabled: () => true,
+        _needFinalPass: () => true,
+        _renderPipeline: { _finalPass: { _sRGBmaterial: makeMat(srgbShader) } },
+        _enableForwardDepthResolve: true,
+        enableHDR: true,
+        enablePostProcess: true,
+        opaqueTextureEnabled: true,
+        enableScreenSpaceReflection: true,
+        shaderData: { _macroCollection: camMacros }
+      } as any;
+
+      const variants = collectSeedWorldRendererVariants(engine, scene, camera, [root as any], {
+        includePhotoCopy: true,
+        postProcessState: { enabled: true, bloom: true, colorAdjustments: true }
+      });
+
+      const isolatedShaders = [
+        "Blit/Blit",
+        "PostProcess/FinalSRGB",
+        "PostProcess/Bloom",
+        "PostProcess/Uber",
+        "Lighting/ScreenSpaceReflection",
+        "SeedWorld/PhotoCopy"
+      ];
+      for (const shaderName of isolatedShaders) {
+        const matched = variants.filter((v) => v.shader === shaderName);
+        expect(matched.length, `${shaderName} should be warmed`).toBeGreaterThan(0);
+        for (const v of matched) {
+          const macroNames = new Set(v.macros.map((m) => m.n));
+          expect(macroNames.has("CAMERA_ORTHOGRAPHIC"), `${shaderName} keeps camera macro`).toBe(true);
+          expect(macroNames.has("SCENE_POINT_LIGHT_COUNT"), `${shaderName} must not inherit point light count`).toBe(
+            false
+          );
+          expect(macroNames.has("SCENE_DIRECT_LIGHT_COUNT"), `${shaderName} must not inherit direct light count`).toBe(
+            false
+          );
+          expect(macroNames.has("SCENE_SHADOW_TYPE"), `${shaderName} must not inherit shadow macro`).toBe(false);
+          expect(macroNames.has("SCENE_FOG_MODE"), `${shaderName} must not inherit fog macro`).toBe(false);
+        }
+      }
+    } finally {
+      findSpy.mockRestore();
+    }
+  });
 });
