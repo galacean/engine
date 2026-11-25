@@ -165,6 +165,7 @@ export class SeedWorldLiquidGlassUiMaterial {
   private readonly _binder: SeedWorldLiquidGlassTextureBinder;
   private readonly _material: Material;
   private readonly _panelPixelSize = new Vector2(1, 1);
+  private readonly _quadExpandPixels = new Vector2(0, 0);
   private _destroyed = false;
   private _roughness = 0;
   private _fullLensRefraction = 0;
@@ -191,6 +192,7 @@ export class SeedWorldLiquidGlassUiMaterial {
     material.shaderData.setFloat("material_SeedWorldLensThickness", 1.75);
     material.shaderData.setFloat("material_SeedWorldFrostScale", 0.22);
     material.shaderData.setFloat("material_SeedWorldLensFresnel", 1);
+    material.shaderData.setVector2("material_SeedWorldQuadExpandPixels", this._quadExpandPixels);
     const binder = (this._binder =
       camera.entity.getComponent(SeedWorldLiquidGlassTextureBinder) ??
       camera.entity.addComponent(SeedWorldLiquidGlassTextureBinder));
@@ -213,6 +215,17 @@ export class SeedWorldLiquidGlassUiMaterial {
     const shaderData = this._material.shaderData;
     shaderData.setVector2("material_SeedWorldPanelPixelSize", this._panelPixelSize);
     shaderData.setFloat("material_SeedWorldCornerRadiusPixels", Math.max(cornerRadiusPixels, 0.5));
+  }
+
+  /**
+   * Expands or contracts an axis-aligned screen-space UI quad around its center in canvas pixels on the GPU,
+   * avoiding per-frame CPU transform/VBO rebuilds for continuous animations such as orb breathing.
+   * @param deltaWidthPixels - Width delta in canvas pixels (`baseWidth * (scale - 1)`).
+   * @param deltaHeightPixels - Height delta in canvas pixels (`baseHeight * (scale - 1)`).
+   */
+  setQuadExpandPixels(deltaWidthPixels: number, deltaHeightPixels: number): void {
+    this._quadExpandPixels.set(deltaWidthPixels, deltaHeightPixels);
+    this._material.shaderData.setVector2("material_SeedWorldQuadExpandPixels", this._quadExpandPixels);
   }
 
   /**

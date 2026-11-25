@@ -172,16 +172,17 @@ describe("Masonry/FarProxy shader packing contract", () => {
     expect(glassMaxZ).toBeGreaterThan(5.05);
 
     // 4. Both GlobalProxy and FarProxy shaders use stone-grey mortar, roof AO / brick calibration,
-    //    physical Fresnel (envDFGApprox + getLightProbeRadiance) dark-interior diamond-lattice glass,
-    //    and a single masonryFarProxyLight call.
+    //    GPR-neutral sky-gradient Fresnel glass (no cubemap sampler / envDFGApprox / GGX / fwidth in
+    //    the glass branch so wall/roof Adreno wave occupancy stays flat), and a single masonryFarProxyLight call.
     for (const src of [globalProxyShaderSource, farProxyShaderSource]) {
       expect(src).not.toContain("vec3(0.45, 0.40, 0.36)");
       expect(src).not.toContain("vec3(0.44, 0.48, 0.47)");
       expect(src).toContain("mortarAlbedo");
       expect(src).toContain("0.73 * masonryFarCourseTone");
       expect(src).toContain("1.20 * masonryFarCourseTone");
-      expect(src).toContain("envDFGApprox(0.08");
-      expect(src).toContain("getLightProbeRadiance(gs, n, 0.08)");
+      expect(src).not.toContain("envDFGApprox(");
+      expect(src).not.toContain("getLightProbeRadiance(");
+      expect(src).toContain("float fresnel =");
       expect(src.match(/\bmasonryFarProxyLight\s*\(/g)).toHaveLength(1);
     }
   });

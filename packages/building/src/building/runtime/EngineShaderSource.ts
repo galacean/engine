@@ -1,5 +1,5 @@
 import { simplifySpirvNoise } from "./SimplifySpirvNoise";
-import { optimizeStorageReads } from "./OptimizeStorageReads";
+import { flattenShaderSource, optimizeStorageReads } from "./OptimizeStorageReads";
 
 /** Adapt the recovered ES shader's read-only std140 blocks to engine-managed
  * integer textures. All field offsets follow std140; unsupported declarations
@@ -158,5 +158,5 @@ export function engineShaderSource(source: string) {
   }
   source = source.slice(0, start) + readers.join("\n") + "\n" + source.slice(start);
   source = source.replace("void main(){", `void main(){${initializers.join("")}`);
-  return { source: dormerUniform + source.replace(/^#version 300 es\s*/, ""), blocks };
+  return { source: flattenShaderSource(dormerUniform + source.replace(/^#version 300 es\s*/, "")), blocks };
 }

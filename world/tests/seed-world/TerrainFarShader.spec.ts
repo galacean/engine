@@ -248,7 +248,7 @@ describe("Terrain near/far production shader variants", () => {
     expect(fs).toContain("evaluateTerrainProjectLightingWithShadow");
   });
 
-  it("activates packed varyings, vertex cloud/fog/shadow hoisting, and matte dry lighting across single-map, multi-alphamap, and match-ground grass", () => {
+  it("activates packed varyings (<= 4 vec4s / 13 floats), fragment matte dry lighting + 1-tap shadow, and disables vertex cloud/fog/shadow hoisting across single-map, multi-alphamap, and match-ground grass", () => {
     const prodBase: [string, string][] = [
       ["GRAPHICS_API_WEBGL2", ""],
       ["RENDERER_HAS_UV", ""],
@@ -303,37 +303,74 @@ describe("Terrain near/far production shader variants", () => {
       ]
     ];
 
+    const widthForType = (typeName: string): number => {
+      if (typeName === "float") return 1;
+      if (typeName === "vec2") return 2;
+      if (typeName === "vec3") return 3;
+      if (typeName === "vec4") return 4;
+      throw new Error(`Unexpected varying type: ${typeName}`);
+    };
+
     for (const [label, entries] of packedCases) {
       const macros = new Map(entries);
       const vs = ShaderMacroProcessor.evaluate(grassForward.vertexShaderInstructions, macros);
       const fs = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, macros);
+      const vsBody = vs.slice(vs.indexOf("Varyings GrassVertex"));
+      const matteFn = fs.slice(fs.indexOf("vec3 evaluateMatteGrassLighting"), fs.indexOf("void GrassFragment"));
       const fsBody = fs.slice(fs.indexOf("void GrassFragment"));
 
       expect(vs, `${label} vs should evaluate root surface in vertex`).toContain("terrainProjectGrassRootSurface");
-      expect(vs, `${label} vs should hoist cloud shadow`).toContain("sampleVolumetricCloudShadow");
-      expect(vs, `${label} vs should hoist fog radiance`).toContain("getFogSkyRadiance");
-      expect(vs, `${label} vs should hoist cascade shadow coord`).toContain("shadowCoordFade");
+      // FSMatteOnly: NO vertex hoisting of cloud shadow, fog, or multi-cascade shadow coordinates
+      expect(vsBody, `${label} vs must not hoist cloud shadow`).not.toContain("sampleVolumetricCloudShadow");
+      expect(vsBody, `${label} vs must not hoist fog radiance`).not.toContain("getFogSkyRadiance");
+      expect(vsBody, `${label} vs must not hoist fog visibility`).not.toContain("getSceneFogVisibility");
+      expect(vsBody, `${label} vs must not hoist cascade index`).not.toContain("computeCascadeIndex");
+      expect(vsBody, `${label} vs must not hoist shadow matrix`).not.toContain("getShadowMatrix");
+      expect(vsBody, `${label} vs must not hoist shadow fade`).not.toContain("getShadowFade");
+      expect(vs, `${label} vs must not declare hoisted fogData`).not.toContain("fogData");
+      expect(vs, `${label} vs must not declare hoisted shadowCoordFade`).not.toContain("shadowCoordFade");
+      expect(vs, `${label} vs must not declare hoisted cloudShadow`).not.toContain("cloudShadow");
+
+      // Packed user varyings stay <= 4 vec4 VPC slots / 13 floats (positionCS is dead-stripped in matte FS)
+      const outDecls = [...vs.matchAll(/\bout\s+(float|vec[234])\s+(\w+)\s*;/g)]
+        .map((m) => ({ type: m[1], name: m[2], floats: widthForType(m[1]) }))
+        .filter((d) => d.name !== "positionCS");
+      const totalFloats = outDecls.reduce((sum, d) => sum + d.floats, 0);
+      expect(outDecls.map((d) => `${d.type} ${d.name}`), `${label} packed VS varyings`).toEqual([
+        "vec3 positionWS",
+        "vec4 rootGroundBase",
+        "vec3 shadingNormalWS",
+        "vec3 positionVS"
+      ]);
+      expect(outDecls.length, `${label} active varying slots must be <= 4 vec4s`).toBeLessThanOrEqual(4);
+      expect(totalFloats, `${label} active varying floats must be <= 13`).toBeLessThanOrEqual(13);
+      expect(matteFn, `${label} matte lighting must not read positionCS`).not.toContain("positionCS");
+      expect(fsBody, `${label} matte fragment must not read positionCS`).not.toContain("positionCS");
+
       expect(vs, `${label} vs must be derivative-free`).not.toMatch(/\bdFd[xy]\s*\(/);
       expect(vs, `${label} vs must avoid continue for Safari 16.1`).not.toMatch(/\bcontinue\s*;/);
 
       expect(fsBody, `${label} fs should use matte dry lighting`).toContain("evaluateMatteGrassLighting");
-      expect(fsBody, `${label} fs should read hoisted fogData`).toContain("fogData");
-      expect(fsBody, `${label} fs should read hoisted shadowCoordFade`).toContain("shadowCoordFade");
+      expect(fsBody, `${label} fs should evaluate shadow coord in fragment`).toContain("getShadowCoord");
+      expect(fsBody, `${label} fs should evaluate shadow fade in fragment`).toContain("getShadowFade");
+      expect(fsBody, `${label} fs should evaluate cloud shadow in fragment`).toContain("sampleVolumetricCloudShadow");
+      expect(fsBody, `${label} fs should evaluate fog in fragment using positionVS`).toMatch(
+        /\bfog\s*\(\s*vec4\s*\(\s*color\s*,\s*1\.0\s*\)\s*,\s*input_\s*\.\s*positionVS\s*\)/
+      );
+      expect(fsBody, `${label} fs must not read hoisted fogData`).not.toContain("fogData");
+      expect(fsBody, `${label} fs must not read hoisted shadowCoordFade`).not.toContain("shadowCoordFade");
       expect(fsBody, `${label} fs should not run full PBR/SSR lighting`).not.toContain(
         "evaluateTerrainProjectLightingWithShadow"
       );
-      expect(fsBody, `${label} fs should not sample cloud shadow per pixel`).not.toContain(
-        "sampleVolumetricCloudShadow"
-      );
+      expect(fsBody, `${label} fs should not use 9-tap soft shadow filter`).not.toContain("sampleTerrainProjectShadow");
       expect(fsBody, `${label} fs should not evaluate ground layers per pixel`).not.toContain(
         "terrainProjectGroundSurface"
       );
-      expect(fsBody, `${label} fs should not evaluate fog per pixel`).not.toMatch(/\bfog\s*\(/);
       expect(fsBody, `${label} fs should do only 1 hardware bilinear shadow fetch`).toContain(
         "textureLod ( scene_ShadowMap , grassShadowCoord , 0.0 )"
       );
       const texCalls = fsBody.match(/\btexture(Lod|Grad|2D)?\s*\(/g) ?? [];
-      expect(texCalls, `${label} fs should have exactly 1 texture fetch`).toHaveLength(1);
+      expect(texCalls, `${label} fs should have exactly 1 direct shadow texture fetch`).toHaveLength(1);
     }
 
     // Multi-alphamap grass vertex skips unused normal/mask texture fetches
@@ -369,9 +406,14 @@ describe("Terrain near/far production shader variants", () => {
     const cascade1Macros = new Map(
       packedCases[0][1].map(([k, v]) => (k === "SCENE_SHADOW_CASCADED_COUNT" ? [k, "1"] : [k, v]))
     );
+    const cascade1Vs = ShaderMacroProcessor.evaluate(grassForward.vertexShaderInstructions, cascade1Macros);
     const cascade1Fs = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, cascade1Macros);
-    expect(cascade1Fs).toContain("shadowFade");
-    expect(cascade1Fs.slice(cascade1Fs.indexOf("void GrassFragment"))).toContain("evaluateMatteGrassLighting");
+    const cascade1FsBody = cascade1Fs.slice(cascade1Fs.indexOf("void GrassFragment"));
+    expect(cascade1Vs).not.toContain("shadowFade");
+    expect(cascade1FsBody).toContain("input_.shadowCoord");
+    expect(cascade1FsBody).toContain("getShadowFade");
+    expect(cascade1FsBody).toContain("textureLod ( scene_ShadowMap , grassShadowCoord , 0.0 )");
+    expect(cascade1FsBody).toContain("evaluateMatteGrassLighting");
 
     const rockMatch1Macros = new Map([
       ...packedCases[2][1],
@@ -413,10 +455,12 @@ describe("Terrain near/far production shader variants", () => {
     ]);
     const vs = ShaderMacroProcessor.evaluate(grassForward.vertexShaderInstructions, macros);
     const fs = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, macros);
+    const vsBody = vs.slice(vs.indexOf("Varyings GrassVertex"));
     const matteFn = fs.slice(fs.indexOf("vec3 evaluateMatteGrassLighting"), fs.indexOf("void GrassFragment"));
+    const fsBody = fs.slice(fs.indexOf("void GrassFragment"));
 
-    expect(vs).toContain("sampleVolumetricCloudShadow");
-    expect(fs.slice(fs.indexOf("void GrassFragment"))).toMatch(/shadowAttenuation\s*\*=\s*input_\.rootGroundBase\.a/);
+    expect(vsBody).not.toContain("sampleVolumetricCloudShadow");
+    expect(fsBody).toMatch(/shadowAttenuation\s*\*=\s*sampleVolumetricCloudShadow\s*\(\s*input_\s*\.\s*positionWS\s*\)/);
     expect(matteFn).toMatch(/directionalLight\s*\.\s*color\s*\*=\s*shadowAttenuation/);
   });
 

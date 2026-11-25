@@ -39,7 +39,7 @@ interface WorkerSlot {
   pending: Map<number, { resolve(value: any): void; reject(error: unknown): void; cleanup(): void }>;
 }
 
-const DEFAULT_IDLE_TERMINATE_MS = 45000;
+const DEFAULT_IDLE_TERMINATE_MS = 25000;
 
 export function defaultMaxBuildingWorkers(): number {
   if (typeof navigator !== "undefined") {

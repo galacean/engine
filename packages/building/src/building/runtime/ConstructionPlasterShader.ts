@@ -84,16 +84,14 @@ vec3 plasterMortarColor(float layer) {
  return vec3(0.0);
 }
 vec3 plasterFinish(vec2 uv,vec4 params,vec3 color,vec3 detail,vec3 position,inout vec3 normal) {
+ // Compute only UV derivatives upfront (4 floats) under uniform control flow so discarded
+ // pixels skip texture fetches; derive texUV grads from ux/uy and defer position/rim gradients
+ // until after texture fetches to avoid holding 12 extra floats live in Adreno GPRs.
+ vec2 ux=dFdx(uv),uy=dFdy(uv);
+ if(detail.x<.5) return vec3(0.0);
  float offset=plasterNativeOffset(params.y);
  vec2 texUV=uv*.1+offset;
- // Compute all derivatives upfront under uniform control flow so discarded pixels
- // can skip texture fetches and rim normal perturbation uses analytic hardware gradients
- // instead of two redundant plasterSurface() finite-difference evaluations.
- vec2 tx=dFdx(texUV),ty=dFdy(texUV);
- vec3 px=dFdx(position),py=dFdy(position);
- vec2 ux=dFdx(uv),uy=dFdy(uv);
- vec2 dz=vec2(dFdx(detail.z),dFdy(detail.z));
- if(detail.x<.5) return vec3(0.0);
+ vec2 tx=ux*.1,ty=uy*.1;
  vec3 paint=textureGrad(material_PlasterColors,vec3(texUV,params.z),tx,ty).rgb;
  float seam=smoothstep(max(0.0,params.y-1.0),params.y,uv.x);
  if(seam>0.0) paint=mix(paint,textureGrad(material_PlasterColors,
@@ -102,13 +100,17 @@ vec3 plasterFinish(vec2 uv,vec4 params,vec3 color,vec3 detail,vec3 position,inou
  // Native planar normal map is constant, so it needs no sampler. Derive the UV
  // tangent frame from the actual deformed surface (including round walls).
  vec3 mortar=detail.y>0.0 ? plasterMortarColor(params.z)*1.1*textureGrad(material_PlasterMortar,uv*.2,ux*.2,uy*.2).rgb : vec3(0.0);
+ vec3 outAlbedo=mix(paint,mortar,detail.y);
  float det=ux.x*uy.y-ux.y*uy.x;
  float footprint=max(length(ux),length(uy));
  if(detail.z>0.0 && footprint<.25 && abs(det)>1e-10) {
-   float du=(dz.x*uy.y-dz.y*ux.y)/det;
-   float dv=(dz.y*ux.x-dz.x*uy.x)/det;
-   vec3 tangent=(px*uy.y-py*ux.y)/det;
-   vec3 bitangent=(py*ux.x-px*uy.x)/det;
+   vec2 dz=vec2(dFdx(detail.z),dFdy(detail.z));
+   vec3 px=dFdx(position),py=dFdy(position);
+   float invDet=1.0/det;
+   float du=(dz.x*uy.y-dz.y*ux.y)*invDet;
+   float dv=(dz.y*ux.x-dz.x*uy.x)*invDet;
+   vec3 tangent=(px*uy.y-py*ux.y)*invDet;
+   vec3 bitangent=(py*ux.x-px*uy.x)*invDet;
    // A raised finish h(u,v) has outward normal N - grad(h). Our metric UV
    // tangent points along +u; native cross(N,up) points along -u instead.
    // Native tangent*du - up*dv therefore becomes -dPdu*du - dPdv*dv here.
@@ -117,6 +119,6 @@ vec3 plasterFinish(vec2 uv,vec4 params,vec3 color,vec3 detail,vec3 position,inou
    if(dot(edge,edge)>1e-8) normal=normalize(mix(normal,normalize(edge),
      detail.y*.3*(1.0-smoothstep(.03,.25,footprint))));
  }
- return mix(paint,mortar,detail.y);
+ return outAlbedo;
 }
 `;

@@ -25,6 +25,19 @@ export class PrimitiveChunk {
   static subChunkPool = new ReturnableObjectPool(SubPrimitiveChunk, 10);
   static subMeshPool = new ReturnableObjectPool(SubMesh, 10);
 
+  private static readonly _vertexStride = 36;
+  // `_maxSlots = _frameSafetyDistance + 1` (4 slots for 3-frame safety):
+  // When multiple UICanvases share one chunk in the same frame (UIUtils.renderOverlay), a static
+  // Canvas 0 reads the previous frame's active slot (stamping lastFrame = F) before a dynamic
+  // Canvas 1 writes a fresh slot (also stamped F). That keeps 2 slots active per frame, so a
+  // single dynamic canvas uses 3 slots (0->1->2->0) while multi-canvas uses 4 (0->1->2->3->0)
+  // without ever deadlocking into SetDataOptions.Discard. Fits exact 2-bit VAO slot keys (0..15).
+  private static readonly _maxSlots = 4;
+  private static readonly _frameSafetyDistance = 3;
+  private static readonly _minSnapshotCapacity = 64;
+  private static readonly _minVboBytes = 4096;
+  private static readonly _minIboBytes = 1024;
+
   primitive: Primitive;
   vertices: Float32Array;
   indices: Uint16Array;
@@ -36,9 +49,17 @@ export class PrimitiveChunk {
   vertexFreeAreas: Array<VertexArea>;
 
   private _engine: Engine;
-  private _gpuVboSnapshot: Float32Array;
+  private _maxVboByteLength: number;
+  private _maxIboByteLength: number;
+  private _vboBindings: VertexBufferBinding[];
+  private _vboLastFrame: number[];
+  private _activeVboSlot = 0;
+  private _iboBindings: IndexBufferBinding[];
+  private _iboLastFrame: number[];
+  private _activeIboSlot = 0;
+  private _gpuVboSnapshot: Float32Array | null = null;
   private _gpuVboValidEnd = 0;
-  private _gpuIboSnapshot: Uint16Array;
+  private _gpuIboSnapshot: Uint16Array | null = null;
   private _gpuIboValidEnd = 0;
   private _indexUploadStart = 0;
   private _passIndexStart = 0;
@@ -57,26 +78,31 @@ export class PrimitiveChunk {
     primitive.addVertexElement(new VertexElement("COLOR_0", 20, VertexElementFormat.Vector4, 0));
     primitive._addReferCount(1);
 
-    // Vertices
-    const vertexStride = 36;
-    const vertexBuffer = new Buffer(
-      engine,
-      BufferBindFlag.VertexBuffer,
-      maxVertexCount * vertexStride,
-      BufferUsage.Dynamic,
-      true
-    );
-    primitive.setVertexBufferBinding(0, new VertexBufferBinding(vertexBuffer, vertexStride));
+    // CPU staging arrays stay stable across GPU ring-buffer slot rotations; GPU buffers use
+    // readable=false and size lazily by power-of-2 active prefix (min 4 KB VBO / 1 KB IBO) so
+    // small UI chunks use less VRAM across all 4 ring slots than a single eager 176 KB allocation.
+    const vertexStride = PrimitiveChunk._vertexStride;
+    this._maxVboByteLength = maxVertexCount * vertexStride;
+    this._maxIboByteLength = maxVertexCount * 8;
+    this.vertices = new Float32Array(maxVertexCount * 9);
+    this.indices = new Uint16Array(maxVertexCount * 4);
 
-    // Indices
-    const indexBuffer = new Buffer(engine, BufferBindFlag.IndexBuffer, maxVertexCount * 8, BufferUsage.Dynamic, true);
-    primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
+    // Start both VBO and IBO rings at 1 tightly-sized slot so static chunks incur minimal VRAM.
+    const initialVboBytes = Math.min(PrimitiveChunk._minVboBytes, this._maxVboByteLength);
+    const vertexBuffer = this._createGpuBuffer(BufferBindFlag.VertexBuffer, initialVboBytes);
+    const vboBinding = new VertexBufferBinding(vertexBuffer, vertexStride);
+    this._vboBindings = [vboBinding];
+    this._vboLastFrame = [-PrimitiveChunk._frameSafetyDistance];
+    primitive.setVertexBufferBinding(0, vboBinding);
+
+    const initialIboBytes = Math.min(PrimitiveChunk._minIboBytes, this._maxIboByteLength);
+    const indexBuffer = this._createGpuBuffer(BufferBindFlag.IndexBuffer, initialIboBytes);
+    const iboBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt16);
+    this._iboBindings = [iboBinding];
+    this._iboLastFrame = [-PrimitiveChunk._frameSafetyDistance];
+    primitive.setIndexBufferBinding(iboBinding);
 
     this.primitive = primitive;
-    this.vertices = new Float32Array(vertexBuffer.data!.buffer);
-    this.indices = new Uint16Array(indexBuffer.data!.buffer);
-    this._gpuVboSnapshot = new Float32Array(this.vertices.length);
-    this._gpuIboSnapshot = new Uint16Array(this.indices.length);
     this.vertexFreeAreas = [new VertexArea(0, maxVertexCount * 9)];
   }
 
@@ -143,22 +169,33 @@ export class PrimitiveChunk {
     while (newLength < requiredLength) {
       newLength *= 2;
     }
-    const oldBuffer = this.primitive.indexBufferBinding?.buffer;
-    const newBuffer = new Buffer(
-      this._engine,
-      BufferBindFlag.IndexBuffer,
-      newLength * Uint16Array.BYTES_PER_ELEMENT,
-      BufferUsage.Dynamic,
-      true
-    );
-    const newIndices = new Uint16Array(newBuffer.data!.buffer);
+    const newIndices = new Uint16Array(newLength);
     if (this.updateIndexLength > 0) {
       newIndices.set(this.indices.subarray(0, this.updateIndexLength), 0);
     }
-    this.primitive.setIndexBufferBinding(new IndexBufferBinding(newBuffer, IndexFormat.UInt16));
-    oldBuffer?.destroy();
+    const newMaxByteLength = newLength * Uint16Array.BYTES_PER_ELEMENT;
+    const initialGpuBytes = PrimitiveChunk._nextBufferByteLength(
+      requiredLength * Uint16Array.BYTES_PER_ELEMENT,
+      newMaxByteLength,
+      PrimitiveChunk._minIboBytes
+    );
+    const newBuffer = this._createGpuBuffer(BufferBindFlag.IndexBuffer, initialGpuBytes);
+    const newBinding = new IndexBufferBinding(newBuffer, IndexFormat.UInt16);
+    const oldBindings = this._iboBindings;
+
+    // Structural rebind clears all VAOs referencing old IBO slots and drops the active old IBO refCount.
+    this.primitive.setIndexBufferBinding(newBinding);
+    this.primitive._vaoSlotKey = this._activeVboSlot << 2;
+    for (let i = 0, n = oldBindings.length; i < n; ++i) {
+      oldBindings[i].buffer.destroy();
+    }
+
+    this._maxIboByteLength = newMaxByteLength;
+    this._iboBindings = [newBinding];
+    this._iboLastFrame = [-PrimitiveChunk._frameSafetyDistance];
+    this._activeIboSlot = 0;
     this.indices = newIndices;
-    this._gpuIboSnapshot = new Uint16Array(newLength);
+    this._gpuIboSnapshot = null;
     this._gpuIboValidEnd = 0;
     this._indexUploadStart = 0;
     this._indexCompacted = false;
@@ -187,24 +224,35 @@ export class PrimitiveChunk {
   }
 
   uploadBuffer(): void {
-    // Set data option use Discard when data changes, or will result in performance slowdown when open antialias
-    // and cross-rendering of 3D and 2D elements on iOS Metal (iphone X / 15 pro max / XR).
-    // When vertices or indices are unchanged since the last GPU upload, skip setData completely (0 orphans, 0 stalls).
-    const { primitive, updateVertexStart, updateVertexEnd } = this;
-    const vboBuffer = primitive.vertexBufferBindings[0]!.buffer;
+    // Rotating 3-frame VBO/IBO ring buffer:
+    // - Static frames skip setData completely (0 uploads, 0 orphans) while refreshing the active
+    //   slot's last-used frame so an upcoming dynamic frame never overwrites an in-flight buffer.
+    // - Dynamic frames acquire a frame-safe slot (currentFrame - lastUsedFrame >= 3, lazily grown
+    //   1 -> 2 -> 3) and upload only the active prefix with SetDataOptions.None (gl.bufferSubData),
+    //   yielding zero Discard orphans and zero write-after-read stalls on Android TBDR & iOS Metal MSAA.
+    // - SetDataOptions.Discard is only used as a safety fallback if >3 uploads occur within 3 frames
+    //   (e.g., dense same-frame multi-pass MaskManager loops).
+    const primitive = this.primitive;
+    const currentFrame = this._engine.time.frameCount;
+    let bindingsChanged = false;
+
+    const { updateVertexStart, updateVertexEnd } = this;
     const hasVertexUpdate =
       updateVertexStart !== Number.MAX_SAFE_INTEGER && updateVertexEnd !== Number.MIN_SAFE_INTEGER;
-    const vboLost = vboBuffer.isContentLost;
+    const activeVbo = this._vboBindings[this._activeVboSlot].buffer;
+    const vboLost = activeVbo.isContentLost;
     if (hasVertexUpdate || vboLost) {
       const vertices = this.vertices;
-      const vboSnap = this._gpuVboSnapshot;
       const prevVboValidEnd = this._gpuVboValidEnd;
       if (vboLost) {
         this._gpuVboValidEnd = 0;
+        this._resetSlotFrames(this._vboLastFrame);
+        primitive._bufferStructChanged = true;
       }
       const uploadEnd = Math.max(prevVboValidEnd, hasVertexUpdate ? updateVertexEnd : 0);
+      let vboSnap = this._gpuVboSnapshot;
       let vboDirty = vboLost ? uploadEnd > 0 : updateVertexEnd > this._gpuVboValidEnd;
-      if (!vboDirty && hasVertexUpdate) {
+      if (!vboDirty && hasVertexUpdate && vboSnap) {
         for (let i = updateVertexStart; i < updateVertexEnd; i++) {
           if (vertices[i] !== vboSnap[i]) {
             vboDirty = true;
@@ -213,29 +261,44 @@ export class PrimitiveChunk {
         }
       }
       if (vboDirty) {
+        vboSnap = this._ensureVboSnapshot(uploadEnd);
         vboSnap.set(vertices.subarray(0, uploadEnd), 0);
-        vboBuffer.setData(vertices, 0, 0, uploadEnd, SetDataOptions.Discard);
+        const requiredBytes = uploadEnd * Float32Array.BYTES_PER_ELEMENT;
+        const { slotIndex, needsDiscard } = this._acquireVboSlot(currentFrame, vboLost, requiredBytes);
+        const targetVbo = this._vboBindings[slotIndex].buffer;
+        if (targetVbo.isContentLost) {
+          primitive._bufferStructChanged = true;
+        }
+        targetVbo.setData(vertices, 0, 0, uploadEnd, needsDiscard ? SetDataOptions.Discard : SetDataOptions.None);
+        if (slotIndex !== this._activeVboSlot) {
+          this._activeVboSlot = slotIndex;
+          bindingsChanged = true;
+        }
         this._gpuVboValidEnd = uploadEnd;
+      } else if (hasVertexUpdate && this._gpuVboValidEnd > 0) {
+        this._vboLastFrame[this._activeVboSlot] = currentFrame;
       }
 
       this.updateVertexStart = Number.MAX_SAFE_INTEGER;
       this.updateVertexEnd = Number.MIN_SAFE_INTEGER;
     }
 
-    const iboBuffer = primitive.indexBufferBinding!.buffer;
-    const iboLost = iboBuffer.isContentLost;
+    const activeIbo = this._iboBindings[this._activeIboSlot].buffer;
+    const iboLost = activeIbo.isContentLost;
     const indexStart = this._indexUploadStart;
     const indexEnd = this.updateIndexLength;
     if (indexEnd > indexStart || iboLost) {
       const indices = this.indices;
-      const iboSnap = this._gpuIboSnapshot;
       const prevIboValidEnd = this._gpuIboValidEnd;
       if (iboLost) {
         this._gpuIboValidEnd = 0;
+        this._resetSlotFrames(this._iboLastFrame);
+        primitive._bufferStructChanged = true;
       }
       const uploadEnd = this._indexCompacted ? indexEnd : Math.max(prevIboValidEnd, indexEnd);
+      let iboSnap = this._gpuIboSnapshot;
       let iboDirty = iboLost ? uploadEnd > 0 : indexEnd > this._gpuIboValidEnd;
-      if (!iboDirty && indexEnd > indexStart) {
+      if (!iboDirty && indexEnd > indexStart && iboSnap) {
         for (let i = indexStart; i < indexEnd; i++) {
           if (indices[i] !== iboSnap[i]) {
             iboDirty = true;
@@ -244,32 +307,235 @@ export class PrimitiveChunk {
         }
       }
       if (iboDirty) {
+        iboSnap = this._ensureIboSnapshot(uploadEnd);
         iboSnap.set(indices.subarray(0, uploadEnd), 0);
-        iboBuffer.setData(indices, 0, 0, uploadEnd, SetDataOptions.Discard);
+        const requiredBytes = uploadEnd * Uint16Array.BYTES_PER_ELEMENT;
+        const { slotIndex, needsDiscard } = this._acquireIboSlot(currentFrame, iboLost, requiredBytes);
+        const targetIbo = this._iboBindings[slotIndex].buffer;
+        if (targetIbo.isContentLost) {
+          primitive._bufferStructChanged = true;
+        }
+        targetIbo.setData(indices, 0, 0, uploadEnd, needsDiscard ? SetDataOptions.Discard : SetDataOptions.None);
+        if (slotIndex !== this._activeIboSlot) {
+          this._activeIboSlot = slotIndex;
+          bindingsChanged = true;
+        }
         this._gpuIboValidEnd = uploadEnd;
+      } else if (indexEnd > indexStart && this._gpuIboValidEnd > 0) {
+        this._iboLastFrame[this._activeIboSlot] = currentFrame;
       }
       this._indexUploadStart = indexEnd;
       this._passIndexStart = indexEnd;
       this._passSubMeshes.length = 0;
       this._indexCompacted = false;
     }
+
+    if (bindingsChanged) {
+      primitive._swapRingBufferBindings(
+        this._vboBindings[this._activeVboSlot],
+        this._iboBindings[this._activeIboSlot],
+        (this._activeVboSlot << 2) | this._activeIboSlot
+      );
+    }
   }
 
   destroy(): void {
-    const vertexBuffer = this.primitive.vertexBufferBindings[0]?.buffer;
-    const indexBuffer = this.primitive.indexBufferBinding?.buffer;
+    const vboBindings = this._vboBindings;
+    const iboBindings = this._iboBindings;
     this.primitive._addReferCount(-1);
     this.primitive.destroy();
-    vertexBuffer?.destroy();
-    indexBuffer?.destroy();
+    for (let i = 0, n = vboBindings.length; i < n; ++i) {
+      vboBindings[i].buffer.destroy();
+    }
+    for (let i = 0, n = iboBindings.length; i < n; ++i) {
+      iboBindings[i].buffer.destroy();
+    }
+    this._vboBindings = null!;
+    this._vboLastFrame = null!;
+    this._iboBindings = null!;
+    this._iboLastFrame = null!;
     this.primitive = null!;
     this.vertices = null!;
     this.indices = null!;
-    this._gpuVboSnapshot = null!;
-    this._gpuIboSnapshot = null!;
+    this._gpuVboSnapshot = null;
+    this._gpuIboSnapshot = null;
     this._passSubMeshes.length = 0;
     this._passSubMeshes = null!;
     this._engine = null!;
+  }
+
+  private _createGpuBuffer(bindFlag: BufferBindFlag, byteLength: number): Buffer {
+    const buffer = new Buffer(this._engine, bindFlag, byteLength, BufferUsage.Dynamic, false);
+    // Ring slots not currently bound to `this.primitive` have refCount=0; keep them owned by the chunk.
+    buffer.isGCIgnored = true;
+    return buffer;
+  }
+
+  private _resetSlotFrames(lastFrames: number[]): void {
+    const sentinel = -PrimitiveChunk._frameSafetyDistance;
+    for (let i = 0, n = lastFrames.length; i < n; ++i) {
+      lastFrames[i] = sentinel;
+    }
+  }
+
+  private _ensureVboSnapshot(requiredLength: number): Float32Array {
+    let snap = this._gpuVboSnapshot;
+    if (!snap || snap.length < requiredLength) {
+      const cap = PrimitiveChunk._nextSnapshotCapacity(requiredLength, this.vertices.length);
+      snap = new Float32Array(cap);
+      this._gpuVboSnapshot = snap;
+    }
+    return snap;
+  }
+
+  private _ensureIboSnapshot(requiredLength: number): Uint16Array {
+    let snap = this._gpuIboSnapshot;
+    if (!snap || snap.length < requiredLength) {
+      const cap = PrimitiveChunk._nextSnapshotCapacity(requiredLength, this.indices.length);
+      snap = new Uint16Array(cap);
+      this._gpuIboSnapshot = snap;
+    }
+    return snap;
+  }
+
+  private static _nextSnapshotCapacity(requiredLength: number, maxLength: number): number {
+    let cap = PrimitiveChunk._minSnapshotCapacity;
+    while (cap < requiredLength) {
+      cap *= 2;
+    }
+    return Math.min(cap, maxLength);
+  }
+
+  private static _nextBufferByteLength(requiredBytes: number, maxBytes: number, minBytes: number): number {
+    let cap = Math.min(minBytes, maxBytes);
+    while (cap < requiredBytes && cap < maxBytes) {
+      cap *= 2;
+    }
+    return Math.min(cap, maxBytes);
+  }
+
+  private _ensureVboSlotCapacity(slotIndex: number, requiredBytes: number): boolean {
+    const bindings = this._vboBindings;
+    const oldBinding = bindings[slotIndex];
+    if (oldBinding.buffer.byteLength >= requiredBytes) {
+      return false;
+    }
+    const nextBytes = PrimitiveChunk._nextBufferByteLength(
+      requiredBytes,
+      this._maxVboByteLength,
+      PrimitiveChunk._minVboBytes
+    );
+    const newBuffer = this._createGpuBuffer(BufferBindFlag.VertexBuffer, nextBytes);
+    const newBinding = new VertexBufferBinding(newBuffer, PrimitiveChunk._vertexStride);
+    bindings[slotIndex] = newBinding;
+    if (slotIndex === this._activeVboSlot) {
+      this.primitive.setVertexBufferBinding(0, newBinding);
+    } else {
+      this.primitive._bufferStructChanged = true;
+    }
+    oldBinding.buffer.destroy();
+    return true;
+  }
+
+  private _ensureIboSlotCapacity(slotIndex: number, requiredBytes: number): boolean {
+    const bindings = this._iboBindings;
+    const oldBinding = bindings[slotIndex];
+    if (oldBinding.buffer.byteLength >= requiredBytes) {
+      return false;
+    }
+    const nextBytes = PrimitiveChunk._nextBufferByteLength(
+      requiredBytes,
+      this._maxIboByteLength,
+      PrimitiveChunk._minIboBytes
+    );
+    const newBuffer = this._createGpuBuffer(BufferBindFlag.IndexBuffer, nextBytes);
+    const newBinding = new IndexBufferBinding(newBuffer, IndexFormat.UInt16);
+    bindings[slotIndex] = newBinding;
+    if (slotIndex === this._activeIboSlot) {
+      this.primitive.setIndexBufferBinding(newBinding);
+    } else {
+      this.primitive._bufferStructChanged = true;
+    }
+    oldBinding.buffer.destroy();
+    return true;
+  }
+
+  private _acquireVboSlot(
+    currentFrame: number,
+    preferActive: boolean,
+    requiredBytes: number
+  ): { slotIndex: number; needsDiscard: boolean } {
+    const bindings = this._vboBindings;
+    const lastFrames = this._vboLastFrame;
+    const len = bindings.length;
+    const safeDelta = PrimitiveChunk._frameSafetyDistance;
+    const startOffset = preferActive ? 0 : 1;
+
+    for (let step = 0; step < len; step++) {
+      const idx = (this._activeVboSlot + startOffset + step) % len;
+      if (currentFrame - lastFrames[idx] >= safeDelta) {
+        this._ensureVboSlotCapacity(idx, requiredBytes);
+        lastFrames[idx] = currentFrame;
+        return { slotIndex: idx, needsDiscard: false };
+      }
+    }
+
+    if (len < PrimitiveChunk._maxSlots) {
+      const slotBytes = PrimitiveChunk._nextBufferByteLength(
+        requiredBytes,
+        this._maxVboByteLength,
+        PrimitiveChunk._minVboBytes
+      );
+      const buffer = this._createGpuBuffer(BufferBindFlag.VertexBuffer, slotBytes);
+      bindings.push(new VertexBufferBinding(buffer, PrimitiveChunk._vertexStride));
+      lastFrames.push(currentFrame);
+      return { slotIndex: len, needsDiscard: false };
+    }
+
+    const idx = (this._activeVboSlot + 1) % len;
+    const resized = this._ensureVboSlotCapacity(idx, requiredBytes);
+    const needsDiscard = !resized && currentFrame - lastFrames[idx] < safeDelta;
+    lastFrames[idx] = currentFrame;
+    return { slotIndex: idx, needsDiscard };
+  }
+
+  private _acquireIboSlot(
+    currentFrame: number,
+    preferActive: boolean,
+    requiredBytes: number
+  ): { slotIndex: number; needsDiscard: boolean } {
+    const bindings = this._iboBindings;
+    const lastFrames = this._iboLastFrame;
+    const len = bindings.length;
+    const safeDelta = PrimitiveChunk._frameSafetyDistance;
+    const startOffset = preferActive ? 0 : 1;
+
+    for (let step = 0; step < len; step++) {
+      const idx = (this._activeIboSlot + startOffset + step) % len;
+      if (currentFrame - lastFrames[idx] >= safeDelta) {
+        this._ensureIboSlotCapacity(idx, requiredBytes);
+        lastFrames[idx] = currentFrame;
+        return { slotIndex: idx, needsDiscard: false };
+      }
+    }
+
+    if (len < PrimitiveChunk._maxSlots) {
+      const slotBytes = PrimitiveChunk._nextBufferByteLength(
+        requiredBytes,
+        this._maxIboByteLength,
+        PrimitiveChunk._minIboBytes
+      );
+      const buffer = this._createGpuBuffer(BufferBindFlag.IndexBuffer, slotBytes);
+      bindings.push(new IndexBufferBinding(buffer, IndexFormat.UInt16));
+      lastFrames.push(currentFrame);
+      return { slotIndex: len, needsDiscard: false };
+    }
+
+    const idx = (this._activeIboSlot + 1) % len;
+    const resized = this._ensureIboSlotCapacity(idx, requiredBytes);
+    const needsDiscard = !resized && currentFrame - lastFrames[idx] < safeDelta;
+    lastFrames[idx] = currentFrame;
+    return { slotIndex: idx, needsDiscard };
   }
 
   private _allocateArea(needSize: number): VertexArea | null {

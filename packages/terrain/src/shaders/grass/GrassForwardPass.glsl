@@ -51,16 +51,10 @@ struct Attributes {
     #endif
   #endif
 #endif
-#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK) && !defined(MATERIAL_FARM_GROUND_SURFACE)
-  #define TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
-#endif
-#if defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && SCENE_FOG_MODE != 0 && !defined(RENDERER_WORLD_PICK)
-  #define TERRAIN_PROJECT_GRASS_VERTEX_FOG
-#endif
-#if defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && defined(SCENE_DIRECT_LIGHT_COUNT) && defined(NEED_CALCULATE_SHADOWS) && !defined(RENDERER_WORLD_PICK)
-  #define TERRAIN_PROJECT_GRASS_VERTEX_SHADOW_COORD
-#endif
 #if defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && defined(SCENE_SURFACE_CLIMATE_DRY) && !defined(RENDERER_WORLD_PICK)
+  // Keep dry grass lighting lightweight in fragment without hoisting cloud shadow, fog, or
+  // multi-cascade shadow coordinates into vertex (avoids VPC slot bloat beyond 4 vec4s / 13 floats
+  // and per-vertex ALU/texture overhead on sub-pixel grass blades).
   #define TERRAIN_PROJECT_GRASS_MATTE_LIGHTING
 #endif
 #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX) && !defined(TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE)
@@ -100,26 +94,14 @@ struct Varyings {
     vec3 windBentNormalWS;
   #endif
   vec4 positionCS;
-  #ifdef TERRAIN_PROJECT_GRASS_VERTEX_FOG
-    vec4 fogData;
-  #elif SCENE_FOG_MODE != 0
+  #if SCENE_FOG_MODE != 0
     vec3 positionVS;
-  #endif
-  #if defined(TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW) && !(defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && defined(SCENE_SURFACE_CLIMATE_DRY))
-    float cloudShadow;
   #endif
   #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
     vec3 probeIrradiance;
     float probeWeight;
   #endif
-  #ifdef TERRAIN_PROJECT_GRASS_VERTEX_SHADOW_COORD
-    #if SCENE_SHADOW_CASCADED_COUNT == 1
-      vec3 shadowCoord;
-      float shadowFade;
-    #else
-      vec4 shadowCoordFade;
-    #endif
-  #elif defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
+  #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
     vec3 shadowCoord;
   #endif
 };
@@ -249,26 +231,14 @@ Varyings grassCulledVaryings() {
     output.windBentNormalWS = vec3(0.0, 1.0, 0.0);
   #endif
   output.positionCS = vec4(2.0, 2.0, 2.0, 1.0);
-  #ifdef TERRAIN_PROJECT_GRASS_VERTEX_FOG
-    output.fogData = vec4(0.0, 0.0, 0.0, 1.0);
-  #elif SCENE_FOG_MODE != 0
+  #if SCENE_FOG_MODE != 0
     output.positionVS = vec3(0.0);
-  #endif
-  #if defined(TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW) && !(defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && defined(SCENE_SURFACE_CLIMATE_DRY))
-    output.cloudShadow = 1.0;
   #endif
   #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
     output.probeIrradiance = vec3(0.0);
     output.probeWeight = 0.0;
   #endif
-  #ifdef TERRAIN_PROJECT_GRASS_VERTEX_SHADOW_COORD
-    #if SCENE_SHADOW_CASCADED_COUNT == 1
-      output.shadowCoord = vec3(0.0);
-      output.shadowFade = 1.0;
-    #else
-      output.shadowCoordFade = vec4(0.0, 0.0, 0.0, 1.0);
-    #endif
-  #elif defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
+  #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
     output.shadowCoord = vec3(0.0);
   #endif
   gl_Position = output.positionCS;
@@ -335,15 +305,7 @@ Varyings GrassVertex(Attributes attributes) {
     );
     output.positionWS = worldPosition.xyz / worldPosition.w;
     output.positionCS = camera_VPMat * worldPosition;
-    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_FOG
-      vec3 vPositionVS = (camera_ViewMat * worldPosition).xyz;
-      #ifdef SCENE_FOG_DIRECTIONAL_SKY
-        vec3 vFogRadiance = getFogSkyRadiance(vPositionVS);
-      #else
-        vec3 vFogRadiance = scene_FogColor.rgb;
-      #endif
-      output.fogData = vec4(vFogRadiance, getSceneFogVisibility(vPositionVS));
-    #elif SCENE_FOG_MODE != 0
+    #if SCENE_FOG_MODE != 0
       output.positionVS = (camera_ViewMat * worldPosition).xyz;
     #endif
     #ifdef TERRAIN_PROJECT_GRASS_VERTEX_PROBE_VOLUME
@@ -362,16 +324,7 @@ Varyings GrassVertex(Attributes attributes) {
       output.probeIrradiance = vec3(0.0);
       output.probeWeight = 0.0;
     #endif
-    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_SHADOW_COORD
-      #if SCENE_SHADOW_CASCADED_COUNT == 1
-        output.shadowCoord = getShadowCoord(output.positionWS);
-        output.shadowFade = getShadowFade(vRootPositionWS);
-      #else
-        mediump int vCascadeIndex = computeCascadeIndex(vRootPositionWS);
-        vec3 vShadowCoord = (getShadowMatrix(vCascadeIndex) * vec4(output.positionWS, 1.0)).xyz;
-        output.shadowCoordFade = vec4(vShadowCoord, getShadowFade(vRootPositionWS));
-      #endif
-    #elif defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
+    #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
       output.shadowCoord = getShadowCoord(output.positionWS);
     #endif
     gl_Position = output.positionCS;
@@ -391,14 +344,7 @@ Varyings GrassVertex(Attributes attributes) {
       rootColor = mix(rootColor, matchColor, terrainProjectGrassBladeAppearanceWeight(tipWeight));
     #endif
     rootColor = terrainProjectBlendFarmGroundColor(rootColor, vRootPositionWS.xz, farmWeight);
-    #if defined(TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW) && defined(SCENE_SURFACE_CLIMATE_DRY)
-      output.rootGroundBase = vec4(rootColor, sampleVolumetricCloudShadow(vRootPositionWS));
-    #else
-      output.rootGroundBase = vec4(rootColor, root.snowResponse);
-      #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
-        output.cloudShadow = sampleVolumetricCloudShadow(vRootPositionWS);
-      #endif
-    #endif
+    output.rootGroundBase = vec4(rootColor, root.snowResponse);
 
     float bladeShadeWeight = terrainProjectGrassBladeShadeWeight(tipWeight);
     vec3 windFieldNormal = terrainProjectGrassWindFieldNormal(vTerrainNormalWS, vWindCarrierNormalWS, vWindBentNormalWS);
@@ -535,9 +481,6 @@ Varyings GrassVertex(Attributes attributes) {
   #endif
   #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
     output.shadowCoord = getShadowCoord(output.positionWS);
-  #endif
-  #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
-    output.cloudShadow = sampleVolumetricCloudShadow(output.positionWS);
   #endif
   gl_Position = output.positionCS;
   // Keep root material evaluation after the existing position and lighting varyings.
@@ -704,30 +647,23 @@ void GrassFragment(Varyings input) {
   #elif defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS)
     vec3 surfaceColor = input.rootGroundBase.rgb;
     vec3 shadingNormal = normalize(input.shadingNormalWS);
-    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_SHADOW_COORD
+    #if defined(SCENE_DIRECT_LIGHT_COUNT) && defined(NEED_CALCULATE_SHADOWS)
       #if SCENE_SHADOW_CASCADED_COUNT == 1
         vec3 grassShadowCoord = input.shadowCoord;
-        float grassShadowFade = input.shadowFade;
       #else
-        vec3 grassShadowCoord = input.shadowCoordFade.xyz;
-        float grassShadowFade = input.shadowCoordFade.w;
+        vec3 grassShadowCoord = getShadowCoord(input.positionWS);
       #endif
       float shadowAttenuation = 1.0;
       if (grassShadowCoord.z > 0.0 && grassShadowCoord.z < 1.0) {
         float rawShadow = textureLod(scene_ShadowMap, grassShadowCoord, 0.0);
+        float grassShadowFade = getShadowFade(input.positionWS);
         shadowAttenuation = mix(1.0, mix(rawShadow, 1.0, grassShadowFade), scene_ShadowInfo.x);
       }
-    #elif defined(TERRAIN_PROJECT_GROUND_SHADOW_PCF)
-      float shadowAttenuation = sampleTerrainProjectGroundShadow(input, shadowPositionDx, shadowPositionDy);
     #else
-      float shadowAttenuation = sampleTerrainProjectShadow(input);
+      float shadowAttenuation = 1.0;
     #endif
-    #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
-      #ifdef SCENE_SURFACE_CLIMATE_DRY
-        shadowAttenuation *= input.rootGroundBase.a;
-      #else
-        shadowAttenuation *= input.cloudShadow;
-      #endif
+    #ifdef SCENE_VOLUMETRIC_CLOUD_SHADOW
+      shadowAttenuation *= sampleVolumetricCloudShadow(input.positionWS);
     #endif
     #ifdef TERRAIN_PROJECT_GRASS_MATTE_LIGHTING
       vec3 color = evaluateMatteGrassLighting(input, surfaceColor, shadingNormal, shadowAttenuation);
@@ -760,9 +696,7 @@ void GrassFragment(Varyings input) {
         vec3(0.0)
       );
     #endif
-    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_FOG
-      color = mix(input.fogData.rgb, color, input.fogData.a);
-    #elif SCENE_FOG_MODE != 0
+    #if SCENE_FOG_MODE != 0
       color = fog(vec4(color, 1.0), input.positionVS).rgb;
     #endif
     if (renderer_GrassLodDebugColor.a > 0.0) {
@@ -916,9 +850,6 @@ void GrassFragment(Varyings input) {
     float shadowAttenuation = sampleTerrainProjectGroundShadow(input, shadowPositionDx, shadowPositionDy);
   #else
     float shadowAttenuation = sampleTerrainProjectShadow(input);
-  #endif
-  #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
-    shadowAttenuation *= input.cloudShadow;
   #endif
   vec3 color = max(
     terrainProjectFinalLighting(evaluateTerrainProjectLightingWithShadow(input, surfaceData, shadowAttenuation)),

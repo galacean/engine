@@ -109,7 +109,7 @@ function createFakeEntity(name: string): Entity {
 }
 
 describe("TerrainClipmap opaque draw-order priority", () => {
-  it("assigns uniform post-occluder priority to every clipmap segment renderer", () => {
+  it("assigns uniform post-solid-building LRZ priority to every clipmap segment renderer", () => {
     const root = createFakeEntity("Terrain");
     const cameraEntity = createFakeEntity("Camera");
     const camera = { entity: cameraEntity } as unknown as Camera;
@@ -150,14 +150,14 @@ describe("TerrainClipmap opaque draw-order priority", () => {
         priorities.push(renderer.priority);
       });
       expect(priorities.length).toBe(clipmap.segmentCount);
-      expect(TERRAIN_CLIPMAP_RENDER_PRIORITY).toBe(50);
+      expect(TERRAIN_CLIPMAP_RENDER_PRIORITY).toBe(-103);
       expect(new Set(priorities)).toEqual(new Set([TERRAIN_CLIPMAP_RENDER_PRIORITY]));
     } finally {
       clipmap.destroy();
     }
   });
 
-  it("sorts buildings and default opaque occluders strictly before terrain in RenderQueue.compareForOpaque", () => {
+  it("sorts solid buildings before terrain, and terrain before discard-enabled plaster and rocks/trunks in RenderQueue.compareForOpaque", () => {
     const makeElement = (priority: number, matId: number, primId: number) =>
       ({
         priority,
@@ -166,11 +166,17 @@ describe("TerrainClipmap opaque draw-order priority", () => {
       }) as Parameters<typeof RenderQueue.compareForOpaque>[0];
 
     const masonrySolid = makeElement(-105, 10, 1);
-    const masonryPlaster = makeElement(-98, 11, 2);
-    const rocksAndGrass = makeElement(0, 12, 3);
     const terrain = makeElement(TERRAIN_CLIPMAP_RENDER_PRIORITY, 1, 0);
+    const masonryStructDiscard = makeElement(-102, 13, 4);
+    const masonryPlaster = makeElement(-98, 11, 2);
+    const rocksAndTrunks = makeElement(0, 12, 3);
 
-    const sorted = [terrain, rocksAndGrass, masonryPlaster, masonrySolid].sort(RenderQueue.compareForOpaque);
-    expect(sorted).toEqual([masonrySolid, masonryPlaster, rocksAndGrass, terrain]);
+    const sorted = [rocksAndTrunks, masonryPlaster, terrain, masonrySolid].sort(RenderQueue.compareForOpaque);
+    expect(sorted).toEqual([masonrySolid, terrain, masonryPlaster, rocksAndTrunks]);
+
+    const sortedWithStruct = [rocksAndTrunks, masonryPlaster, masonryStructDiscard, terrain, masonrySolid].sort(
+      RenderQueue.compareForOpaque
+    );
+    expect(sortedWithStruct).toEqual([masonrySolid, terrain, masonryStructDiscard, masonryPlaster, rocksAndTrunks]);
   });
 });

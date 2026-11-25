@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { engineShaderSource } from "../src/building/runtime/EngineShaderSource";
-import { optimizeStorageReads } from "../src/building/runtime/OptimizeStorageReads";
+import { flattenShaderSource, optimizeStorageReads } from "../src/building/runtime/OptimizeStorageReads";
 import { injectConstructionEntrance } from "../src/building/runtime/ConstructionEntranceShader";
 
 const SHADERS_DIR = path.resolve(__dirname, "../src/building/assets/native/Shaders");
@@ -276,5 +276,17 @@ void main(){original_main();}`;
     expect(balancedDelimiters(outComment)).toBe(true);
     expect(outComment).toContain("uint es_h0=read_buf(int(idx));");
     expect(outComment).toContain("uint sum = es_h0 + es_h0;");
+  });
+
+  it("flattens ConsString ropes and SlicedString parents without altering content", () => {
+    expect(flattenShaderSource("")).toBe("");
+    expect(flattenShaderSource("abc")).toBe("abc");
+    const big = "x".repeat(4096) + "marker" + "y".repeat(4096);
+    const sliced = big.slice(4090, 4110);
+    const rope = sliced + "\nvec3 x = vec3(1.0);\n" + sliced;
+    expect(flattenShaderSource(sliced)).toBe(sliced);
+    expect(flattenShaderSource(rope)).toBe(rope);
+    const withNull = "abc\u0000def\u0000ghi";
+    expect(flattenShaderSource(withNull)).toBe(withNull);
   });
 });

@@ -1,8 +1,10 @@
 import { SetDataOptions, WebGLEngine } from "@galacean/engine";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { Buffer } from "../../../../packages/core/src/graphic/Buffer";
 import { PrimitiveChunk } from "../../../../packages/core/src/RenderPipeline/PrimitiveChunk";
 import { VertexMergeBatcher } from "../../../../packages/core/src/RenderPipeline/VertexMergeBatcher";
 import type { RenderElement } from "../../../../packages/core/src/RenderPipeline/RenderElement";
+import { GLPrimitive } from "../../../../packages/rhi-webgl/src/GLPrimitive";
 
 function makeElement(chunk: PrimitiveChunk, vertexCount: number, localIndices: number[]): RenderElement {
   const subChunk = chunk.allocateSubChunk(vertexCount)!;
@@ -27,41 +29,369 @@ describe("PrimitiveChunk", () => {
     engine = undefined;
   });
 
-  it("skips redundant VBO/IBO GPU uploads in steady-state frames when vertex and index data are unchanged", async () => {
+  it("skips redundant VBO/IBO GPU uploads in steady-state frames and allocates only 1 slot for static chunks", async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const chunk = new PrimitiveChunk(engine, 128);
     chunks.push(chunk);
 
-    const vbo = chunk.primitive.vertexBufferBindings[0]!.buffer;
-    const ibo = chunk.primitive.indexBufferBinding!.buffer;
-    const vboSpy = vi.spyOn(vbo, "setData");
-    const iboSpy = vi.spyOn(ibo, "setData");
+    const vbo0 = chunk.primitive.vertexBufferBindings[0]!.buffer;
+    const ibo0 = chunk.primitive.indexBufferBinding!.buffer;
+    const vboSpy = vi.spyOn(vbo0, "setData");
+    const iboSpy = vi.spyOn(ibo0, "setData");
 
     const elem = makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]);
 
-    // Frame 1: initial upload.
+    // Frame 1: initial upload to fresh slot 0 uses SetDataOptions.None (zero Discard orphans).
     (engine.time as any)._frameCount = 1;
     VertexMergeBatcher.batch(null, elem);
     chunk.uploadBuffer();
     expect(vboSpy).toHaveBeenCalledTimes(1);
     expect(iboSpy).toHaveBeenCalledTimes(1);
-    expect(vboSpy.mock.calls[0][4]).toBe(SetDataOptions.Discard);
-    expect(iboSpy.mock.calls[0][4]).toBe(SetDataOptions.Discard);
+    expect(vboSpy.mock.calls[0][4]).toBe(SetDataOptions.None);
+    expect(iboSpy.mock.calls[0][4]).toBe(SetDataOptions.None);
 
-    // Frame 2: identical data -> zero GPU uploads.
-    (engine.time as any)._frameCount = 2;
-    VertexMergeBatcher.batch(null, elem);
-    chunk.uploadBuffer();
+    // Frames 2..4: identical data -> zero GPU uploads, ring stays at 1 VBO + 1 IBO (zero extra VRAM).
+    for (let frame = 2; frame <= 4; frame++) {
+      (engine.time as any)._frameCount = frame;
+      VertexMergeBatcher.batch(null, elem);
+      chunk.uploadBuffer();
+    }
     expect(vboSpy).toHaveBeenCalledTimes(1);
     expect(iboSpy).toHaveBeenCalledTimes(1);
+    expect((chunk as any)._vboBindings.length).toBe(1);
+    expect((chunk as any)._iboBindings.length).toBe(1);
 
-    // Frame 3: mutate a single vertex float -> only VBO uploads.
-    (engine.time as any)._frameCount = 3;
+    // Frame 5: mutate a single vertex float right after static Frame 4 drew vbo0 ->
+    // vbo0 is still in-flight (5 - 4 < 3), so VBO safely rotates to a new slot with SetDataOptions.None,
+    // while unchanged IBO stays on ibo0 with zero IBO uploads.
+    (engine.time as any)._frameCount = 5;
     chunk.vertices[0] = 999;
     VertexMergeBatcher.batch(null, elem);
     chunk.uploadBuffer();
-    expect(vboSpy).toHaveBeenCalledTimes(2);
+    const vbo1 = chunk.primitive.vertexBufferBindings[0]!.buffer;
+    expect(vbo1).not.toBe(vbo0);
+    expect(vboSpy).toHaveBeenCalledTimes(1);
+    expect(chunk.primitive.indexBufferBinding!.buffer).toBe(ibo0);
     expect(iboSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("rotates 3-frame VBO/IBO ring slots across continuous dynamic frames with zero Discard orphans and bounded VRAM", async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const chunk = new PrimitiveChunk(engine, 128);
+    chunks.push(chunk);
+
+    const elem = makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]);
+    const gl = (engine._hardwareRenderer as any).gl as WebGL2RenderingContext;
+    const setDataSpy = vi.spyOn(Buffer.prototype, "setData");
+    const bufferDataSpy = vi.spyOn(gl, "bufferData");
+    const bufferSubDataSpy = vi.spyOn(gl, "bufferSubData");
+
+    const vboHistory: Buffer[] = [];
+    const iboHistory: Buffer[] = [];
+
+    // 12 consecutive dynamic frames: vertices and indices both change every single frame.
+    for (let frame = 1; frame <= 12; frame++) {
+      (engine.time as any)._frameCount = frame;
+      chunk.vertices[0] = frame * 10;
+      elem.subChunk!.indices = frame % 2 === 0 ? [0, 1, 2, 2, 1, 3] : [0, 2, 1, 1, 2, 3];
+      VertexMergeBatcher.batch(null, elem);
+      chunk.uploadBuffer();
+      vboHistory.push(chunk.primitive.vertexBufferBindings[0]!.buffer);
+      iboHistory.push(chunk.primitive.indexBufferBinding!.buffer);
+    }
+
+    // Ring grows lazily to exactly 3 VBOs and 3 IBOs and cycles 0 -> 1 -> 2 -> 0 -> 1 -> 2.
+    expect((chunk as any)._vboBindings.length).toBe(3);
+    expect((chunk as any)._iboBindings.length).toBe(3);
+    expect(new Set(vboHistory).size).toBe(3);
+    expect(new Set(iboHistory).size).toBe(3);
+    for (let i = 3; i < 12; i++) {
+      expect(vboHistory[i]).toBe(vboHistory[i - 3]);
+      expect(iboHistory[i]).toBe(iboHistory[i - 3]);
+    }
+
+    // Every single upload used SetDataOptions.None (ZERO Discard orphans!).
+    expect(setDataSpy).toHaveBeenCalledTimes(24); // 12 VBO + 12 IBO
+    for (const call of setDataSpy.mock.calls) {
+      expect(call[4]).toBe(SetDataOptions.None);
+    }
+    // Only the 2 lazily allocated VBOs + 2 lazily allocated IBOs called gl.bufferData (constructor storage).
+    // Frames 4..12 perform ZERO gl.bufferData calls.
+    expect(bufferDataSpy).toHaveBeenCalledTimes(4);
+    expect(bufferSubDataSpy).toHaveBeenCalledTimes(24);
+
+    // Destroying the chunk destroys ALL 3 VBO slots and ALL 3 IBO slots cleanly.
+    const allVbos = [...new Set(vboHistory)];
+    const allIbos = [...new Set(iboHistory)];
+    chunk.destroy();
+    for (const buf of [...allVbos, ...allIbos]) {
+      expect(buf.destroyed).toBe(true);
+    }
+    setDataSpy.mockRestore();
+  });
+
+  it("falls back to SetDataOptions.Discard only when >4 uploads saturate a single frame (e.g. MaskManager)", async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const chunk = new PrimitiveChunk(engine, 128);
+    chunks.push(chunk);
+
+    const elem = makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]);
+    const setDataSpy = vi.spyOn(Buffer.prototype, "setData");
+
+    (engine.time as any)._frameCount = 1;
+    engine._frameInProcess = true;
+
+    // 6 dynamic VBO uploads in the SAME frame:
+    // - Uploads 1..4 use distinct ring slots 0, 1, 2, 3 with SetDataOptions.None (0 orphans).
+    // - Uploads 5..6 saturate the 4-slot cap and safely fall back to SetDataOptions.Discard.
+    const vboOptions: SetDataOptions[] = [];
+    for (let pass = 1; pass <= 6; pass++) {
+      engine._renderCount = pass;
+      chunk.vertices[0] = pass * 100;
+      VertexMergeBatcher.batch(null, elem);
+      const before = setDataSpy.mock.calls.length;
+      chunk.uploadBuffer();
+      const vboCall = setDataSpy.mock.calls
+        .slice(before)
+        .find((_, idx) => (setDataSpy.mock.instances[before + idx] as Buffer).type === 0);
+      expect(vboCall).toBeDefined();
+      vboOptions.push(vboCall![4] as SetDataOptions);
+    }
+    engine._frameInProcess = false;
+
+    expect(vboOptions).toEqual([
+      SetDataOptions.None,
+      SetDataOptions.None,
+      SetDataOptions.None,
+      SetDataOptions.None,
+      SetDataOptions.Discard,
+      SetDataOptions.Discard
+    ]);
+    expect((chunk as any)._vboBindings.length).toBe(4);
+    setDataSpy.mockRestore();
+  });
+
+  it("rotates cleanly with zero Discard orphans across multi-canvas static+dynamic passes (UIUtils.renderOverlay pattern)", async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const chunk = new PrimitiveChunk(engine, 4096);
+    chunks.push(chunk);
+
+    const rhi = engine._hardwareRenderer as any;
+    const gl = rhi.gl as WebGL2RenderingContext;
+    const glPrimitive = new GLPrimitive(rhi, chunk.primitive);
+    (chunk.primitive as any)._platformPrimitive = glPrimitive;
+    const fakeProgram = {
+      id: 77,
+      attributeLocation: { POSITION: 0, TEXCOORD_0: 1, COLOR_0: 2 }
+    } as any;
+    const drawElementsSpy = vi.spyOn(gl, "drawElements").mockImplementation(() => {});
+
+    const staticCanvasElem = makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]);
+    const dynamicCanvasElem = makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]);
+
+    // Warm up 4 frames: each frame static Canvas 0 batches/uploads/draws BEFORE dynamic Canvas 1 mutates.
+    const setDataSpy = vi.spyOn(Buffer.prototype, "setData");
+    for (let f = 1; f <= 4; f++) {
+      (engine.time as any)._frameCount = f;
+      engine._frameInProcess = true;
+      // Canvas 0 (static): stamps previous frame's active slot to f
+      VertexMergeBatcher.batch(null, staticCanvasElem);
+      chunk.uploadBuffer();
+      chunk.primitive.draw(fakeProgram, staticCanvasElem.subChunk!.subMesh);
+      // Canvas 1 (dynamic): mutates every frame
+      chunk.vertices[dynamicCanvasElem.subChunk!.vertexArea.start] = f * 3.14;
+      VertexMergeBatcher.batch(null, dynamicCanvasElem);
+      chunk.uploadBuffer();
+      chunk.primitive.draw(fakeProgram, dynamicCanvasElem.subChunk!.subMesh);
+      engine._frameInProcess = false;
+    }
+
+    // Multi-canvas steady state uses 4 slots (D+1 = 4) and tightly sized 4KB VBOs + 1KB IBOs (<= 20KB total VRAM!).
+    const vboSlots: Buffer[] = (chunk as any)._vboBindings.map((b: any) => b.buffer);
+    const iboSlots: Buffer[] = (chunk as any)._iboBindings.map((b: any) => b.buffer);
+    expect(vboSlots.length).toBe(4);
+    const totalGpuBytes = [...vboSlots, ...iboSlots].reduce((s, b) => s + b.byteLength, 0);
+    expect(totalGpuBytes).toBeLessThanOrEqual(4 * 4096 + 4 * 1024);
+
+    const createVaoSpy = vi.spyOn(gl, "createVertexArray");
+    const deleteVaoSpy = vi.spyOn(gl, "deleteVertexArray");
+    const bufferDataSpy = vi.spyOn(gl, "bufferData");
+    const callsBefore = setDataSpy.mock.calls.length;
+
+    // 12 more consecutive multi-canvas frames: ZERO Discard orphans, ZERO gl.bufferData calls, ZERO VAO thrashing!
+    for (let f = 5; f <= 16; f++) {
+      (engine.time as any)._frameCount = f;
+      engine._frameInProcess = true;
+      VertexMergeBatcher.batch(null, staticCanvasElem);
+      chunk.uploadBuffer();
+      chunk.primitive.draw(fakeProgram, staticCanvasElem.subChunk!.subMesh);
+      chunk.vertices[dynamicCanvasElem.subChunk!.vertexArea.start] = f * 3.14;
+      VertexMergeBatcher.batch(null, dynamicCanvasElem);
+      chunk.uploadBuffer();
+      chunk.primitive.draw(fakeProgram, dynamicCanvasElem.subChunk!.subMesh);
+      engine._frameInProcess = false;
+    }
+
+    const steadyCalls = setDataSpy.mock.calls.slice(callsBefore);
+    expect(steadyCalls.length).toBe(12); // exactly 1 VBO upload/frame, 0 IBO uploads
+    for (const call of steadyCalls) {
+      expect(call[4]).toBe(SetDataOptions.None);
+    }
+    const vboIboOrphans = bufferDataSpy.mock.calls.filter(
+      ([target]) => target === gl.ARRAY_BUFFER || target === gl.ELEMENT_ARRAY_BUFFER
+    );
+    expect(vboIboOrphans.length).toBe(0);
+    expect(createVaoSpy).toHaveBeenCalledTimes(0);
+    expect(deleteVaoSpy).toHaveBeenCalledTimes(0);
+
+    chunk.destroy();
+    for (const buf of [...vboSlots, ...iboSlots]) {
+      expect(buf.destroyed).toBe(true);
+    }
+    expect((glPrimitive as any)._vaoMap.size).toBe(0);
+    drawElementsSpy.mockRestore();
+    setDataSpy.mockRestore();
+  });
+
+  it("grows lazy power-of-2 GPU VBO slots on demand without leaks or Discard orphans", async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const chunk = new PrimitiveChunk(engine, 4096);
+    chunks.push(chunk);
+
+    // Initially 4 KB VBO + 1 KB IBO (vs 144 KB + 32 KB eager allocation).
+    const vboSmall = chunk.primitive.vertexBufferBindings[0]!.buffer;
+    const iboSmall = chunk.primitive.indexBufferBinding!.buffer;
+    expect(vboSmall.byteLength).toBe(4096);
+    expect(iboSmall.byteLength).toBe(1024);
+
+    // Allocate 200 quads (800 vertices * 36B = 28,800 B -> grows cleanly to 32,768 B).
+    const elems: RenderElement[] = [];
+    for (let i = 0; i < 200; i++) {
+      elems.push(makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]));
+    }
+    const setDataSpy = vi.spyOn(Buffer.prototype, "setData");
+    (engine.time as any)._frameCount = 1;
+    VertexMergeBatcher.batch(null, elems[0]);
+    for (let i = 1; i < elems.length; i++) {
+      VertexMergeBatcher.batch(elems[0], elems[i]);
+    }
+    chunk.uploadBuffer();
+
+    const vboGrown = chunk.primitive.vertexBufferBindings[0]!.buffer;
+    const iboGrown = chunk.primitive.indexBufferBinding!.buffer;
+    expect(vboSmall.destroyed).toBe(true);
+    expect(iboSmall.destroyed).toBe(true);
+    expect(vboGrown.byteLength).toBe(32768);
+    expect(iboGrown.byteLength).toBe(4096);
+    expect(chunk.primitive._bufferStructChanged).toBe(true);
+    for (const call of setDataSpy.mock.calls) {
+      expect(call[4]).toBe(SetDataOptions.None);
+    }
+
+    chunk.destroy();
+    expect(vboGrown.destroyed).toBe(true);
+    expect(iboGrown.destroyed).toBe(true);
+    setDataSpy.mockRestore();
+  });
+
+  it("caches per-slot VAOs across 3-frame dynamic rendering with zero VAO thrashing, zero orphans, and zero VAO leaks", async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const chunk = new PrimitiveChunk(engine, 128);
+    chunks.push(chunk);
+
+    // Bind live src GLPrimitive directly to the chunk's Primitive so this test validates src/GLPrimitive.ts
+    // independently of any prebuilt dist/ bundle.
+    const rhi = engine._hardwareRenderer as any;
+    const gl = rhi.gl as WebGL2RenderingContext;
+    const glPrimitive = new GLPrimitive(rhi, chunk.primitive);
+    (chunk.primitive as any)._platformPrimitive = glPrimitive;
+
+    const fakeProgram = {
+      id: 42,
+      attributeLocation: { POSITION: 0, TEXCOORD_0: 1, COLOR_0: 2 }
+    } as any;
+
+    const elem = makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]);
+    const createVaoSpy = vi.spyOn(gl, "createVertexArray");
+    const deleteVaoSpy = vi.spyOn(gl, "deleteVertexArray");
+    const drawElementsSpy = vi.spyOn(gl, "drawElements").mockImplementation(() => {});
+
+    // Warm up 3 dynamic frames so all 3 VBO ring slots and their per-slot VAOs are populated.
+    for (let f = 1; f <= 3; f++) {
+      (engine.time as any)._frameCount = f;
+      chunk.vertices[0] = f * 0.5;
+      VertexMergeBatcher.batch(null, elem);
+      chunk.uploadBuffer();
+      chunk.primitive.draw(fakeProgram, elem.subChunk!.subMesh);
+    }
+    expect((chunk as any)._vboBindings.length).toBe(3);
+    expect((glPrimitive as any)._vaoMap.size).toBe(3);
+    expect(createVaoSpy).toHaveBeenCalledTimes(3);
+    expect(deleteVaoSpy).toHaveBeenCalledTimes(0);
+
+    const bufferDataSpy = vi.spyOn(gl, "bufferData");
+
+    // Next 9 continuous dynamic frames: 0 VAO creations, 0 VAO deletions, 0 VBO/IBO bufferData orphans!
+    for (let f = 4; f <= 12; f++) {
+      (engine.time as any)._frameCount = f;
+      chunk.vertices[0] = f * 0.5;
+      VertexMergeBatcher.batch(null, elem);
+      chunk.uploadBuffer();
+      chunk.primitive.draw(fakeProgram, elem.subChunk!.subMesh);
+    }
+    expect(createVaoSpy).toHaveBeenCalledTimes(3);
+    expect(deleteVaoSpy).toHaveBeenCalledTimes(0);
+    expect(drawElementsSpy).toHaveBeenCalledTimes(12);
+    const vboIboOrphans = bufferDataSpy.mock.calls.filter(
+      ([target]) => target === gl.ARRAY_BUFFER || target === gl.ELEMENT_ARRAY_BUFFER
+    );
+    expect(vboIboOrphans.length).toBe(0);
+
+    // Destroying the chunk must delete EVERY cached VAO (0 VAO leaks) and ALL rotated VBO/IBO buffers.
+    const vboSlots: Buffer[] = (chunk as any)._vboBindings.map((b: any) => b.buffer);
+    const iboSlots: Buffer[] = (chunk as any)._iboBindings.map((b: any) => b.buffer);
+    chunk.destroy();
+    expect(deleteVaoSpy).toHaveBeenCalledTimes(3);
+    expect((glPrimitive as any)._vaoMap.size).toBe(0);
+    for (const buf of [...vboSlots, ...iboSlots]) {
+      expect(buf.destroyed).toBe(true);
+    }
+
+    drawElementsSpy.mockRestore();
+  });
+
+  it("keeps idle rotated ring slots alive across ResourceManager.gc() and sizes active-prefix snapshots lazily", async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const chunk = new PrimitiveChunk(engine, 4096);
+    chunks.push(chunk);
+
+    const elem = makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]);
+    for (let frame = 1; frame <= 3; frame++) {
+      (engine.time as any)._frameCount = frame;
+      chunk.vertices[0] = frame;
+      VertexMergeBatcher.batch(null, elem);
+      chunk.uploadBuffer();
+    }
+
+    const vboSlots: Buffer[] = (chunk as any)._vboBindings.map((b: any) => b.buffer);
+    expect(vboSlots.length).toBe(3);
+
+    // Active-prefix snapshots must scale with active geometry (~36 floats / 6 indices), NOT full 176 KB capacity.
+    const vboSnap: Float32Array = (chunk as any)._gpuVboSnapshot;
+    const iboSnap: Uint16Array = (chunk as any)._gpuIboSnapshot;
+    expect(vboSnap.byteLength).toBeLessThanOrEqual(256);
+    expect(iboSnap.byteLength).toBeLessThanOrEqual(128);
+
+    // Idle slots have refCount=0 but isGCIgnored=true, so gc() must never destroy them.
+    engine.resourceManager.gc();
+    for (const buf of vboSlots) {
+      expect(buf.destroyed).toBe(false);
+    }
+
+    chunk.destroy();
+    for (const buf of vboSlots) {
+      expect(buf.destroyed).toBe(true);
+    }
   });
 
   it("re-uploads full VBO/IBO high-water ranges immediately after WebGL context loss/restore even when static (P1-1)", async () => {
@@ -87,6 +417,7 @@ describe("PrimitiveChunk", () => {
     expect(iboSpy.mock.calls[0][3]).toBe(12); // 2 quads * 6 indices
 
     // Simulate WebGL context loss + restore rebuild (empty GPU buffers with _isContentLost = true).
+    chunk.primitive._bufferStructChanged = false;
     vbo._isContentLost = true;
     ibo._isContentLost = true;
     vbo._rebuild();
@@ -94,15 +425,16 @@ describe("PrimitiveChunk", () => {
     expect(vbo.isContentLost).toBe(true);
     expect(ibo.isContentLost).toBe(true);
 
-    // Frame 2: completely static (only elemA re-batched or even no writes at all) must restore full [0..72] & [0..12].
+    // Frame 2: completely static (no writes at all) must restore full [0..72] & [0..12] and invalidate stale VAOs.
     (engine.time as any)._frameCount = 2;
     chunk.uploadBuffer();
+    expect(chunk.primitive._bufferStructChanged).toBe(true);
     expect(vboSpy).toHaveBeenCalledTimes(2);
     expect(iboSpy).toHaveBeenCalledTimes(2);
     expect(vboSpy.mock.calls[1][3]).toBe(72);
-    expect(vboSpy.mock.calls[1][4]).toBe(SetDataOptions.Discard);
+    expect(vboSpy.mock.calls[1][4]).toBe(SetDataOptions.None);
     expect(iboSpy.mock.calls[1][3]).toBe(12);
-    expect(iboSpy.mock.calls[1][4]).toBe(SetDataOptions.Discard);
+    expect(iboSpy.mock.calls[1][4]).toBe(SetDataOptions.None);
     expect(vbo.isContentLost).toBe(false);
     expect(ibo.isContentLost).toBe(false);
 
@@ -165,6 +497,7 @@ describe("PrimitiveChunk", () => {
     chunk.uploadBuffer();
     expect(grownSpy).toHaveBeenCalledTimes(1);
     expect(grownSpy.mock.calls[0][3]).toBe(576);
+    expect(grownSpy.mock.calls[0][4]).toBe(SetDataOptions.None);
 
     // Destroying the chunk must dispose both VBO and the current grown IBO cleanly.
     chunk.destroy();
@@ -205,7 +538,7 @@ describe("PrimitiveChunk", () => {
     chunk.uploadBuffer();
     expect(grownSpy).toHaveBeenCalledTimes(1);
     expect(grownSpy.mock.calls[0][3]).toBe(516);
-    expect(grownSpy.mock.calls[0][4]).toBe(SetDataOptions.Discard);
+    expect(grownSpy.mock.calls[0][4]).toBe(SetDataOptions.None);
   });
 
   it("resets cursor on standalone manual camera.render() passes with frozen frameCount (0 reallocs, 1 steady-state upload) (Path A)", async () => {
@@ -319,19 +652,25 @@ describe("PrimitiveChunk", () => {
         lastMergedVOff + 3
       ]);
     }
+    engine._frameInProcess = false;
 
     expect(chunk.indices.length).toBe(initialLength);
-    expect(chunk.primitive.indexBufferBinding!.buffer).toBe(initialIbo);
-    expect(initialIbo.destroyed).toBe(false);
+    // Bounded to at most 4 rotated IBO slots, all at the initial 512-index capacity (zero growth).
+    const iboSlots: Buffer[] = (chunk as any)._iboBindings.map((b: any) => b.buffer);
+    expect(iboSlots.length).toBe(4);
+    expect(iboSlots).toContain(chunk.primitive.indexBufferBinding!.buffer);
+    for (const buf of iboSlots) {
+      expect(buf.byteLength).toBe(initialLength * Uint16Array.BYTES_PER_ELEMENT);
+      expect(buf.destroyed).toBe(false);
+    }
     expect(iboSpy.mock.calls.length).toBeGreaterThan(0);
   });
 
-  it("handles heterogeneous passes and MaskManager-style same-renderCount upload cycles with 0 growth, then grows minimally only when one pass exceeds capacity", async () => {
+  it("handles heterogeneous passes and MaskManager-style same-renderCount cycles with 0 growth, then disposes all rotated IBO slots on growth", async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const chunk = new PrimitiveChunk(engine, 128);
     chunks.push(chunk);
     const initialLength = chunk.indices.length; // 512
-    const initialIbo = chunk.primitive.indexBufferBinding!.buffer;
 
     const tinyQuad = makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]);
     const bigPassQuads = Array.from({ length: 10 }, () =>
@@ -367,12 +706,15 @@ describe("PrimitiveChunk", () => {
     }
 
     expect(chunk.indices.length).toBe(initialLength);
-    expect(chunk.primitive.indexBufferBinding!.buffer).toBe(initialIbo);
-    expect(initialIbo.destroyed).toBe(false);
+    const preGrowIbos: Buffer[] = (chunk as any)._iboBindings.map((b: any) => b.buffer);
+    expect(preGrowIbos.length).toBe(4);
+    for (const buf of preGrowIbos) {
+      expect(buf.destroyed).toBe(false);
+    }
 
     // Now a single pass genuinely needing 528 indices (> 512) after a 480-index dead prefix
-    // must compact the dead prefix first and grow only to 1024 (NOT 480 + 528 = 1008 -> still 1024,
-    // and start offset must be 0 rather than 480).
+    // must compact the dead prefix first, grow minimally to 1024, clear old VAOs, and destroy ALL 3 old IBO slots.
+    chunk.primitive._bufferStructChanged = false;
     for (let i = 0; i < bigPassQuads.length; i++) {
       VertexMergeBatcher.batch(null, bigPassQuads[i]); // 480
     }
@@ -385,13 +727,19 @@ describe("PrimitiveChunk", () => {
     chunk.uploadBuffer();
 
     expect(chunk.indices.length).toBe(1024);
+    expect(chunk.primitive._bufferStructChanged).toBe(true);
+    expect((chunk as any)._iboBindings.length).toBe(1);
     expect(bigPassQuads[0].subChunk!.subMesh.start).toBe(0);
     expect(extraQuad.subChunk!.subMesh.start).toBe(480);
     expect(extraQuad.subChunk!.subMesh.count).toBe(48);
-    expect(initialIbo.pendingDestroy).toBe(true);
+    for (const oldIbo of preGrowIbos) {
+      expect(oldIbo.pendingDestroy).toBe(true);
+    }
     (engine as any)._processPendingDestroyObjects();
     engine._frameInProcess = false;
-    expect(initialIbo.destroyed).toBe(true);
+    for (const oldIbo of preGrowIbos) {
+      expect(oldIbo.destroyed).toBe(true);
+    }
   });
 
   it("preserves zero-orphan steady-state (0 IBO uploads on Frame 2+) for multi-UICanvas passes in Engine.update() (Path C)", async () => {
@@ -399,9 +747,7 @@ describe("PrimitiveChunk", () => {
     const chunk = new PrimitiveChunk(engine, 128);
     chunks.push(chunk);
 
-    const ibo = chunk.primitive.indexBufferBinding!.buffer;
-    const iboSpy = vi.spyOn(ibo, "setData");
-
+    const setDataSpy = vi.spyOn(Buffer.prototype, "setData");
     const canvas0Elem = makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]);
     const canvas1Elem = makeElement(chunk, 4, [0, 1, 2, 2, 1, 3]);
 
@@ -420,18 +766,23 @@ describe("PrimitiveChunk", () => {
       engine!._frameInProcess = false;
     };
 
-    // Frame 1 populates [0..6) for Canvas 0 and [6..12) for Canvas 1.
+    // Frame 1 populates [0..6) on IBO slot 0 for Canvas 0 and rotates to IBO slot 1 for [0..12) on Canvas 1,
+    // both with SetDataOptions.None (zero Discard orphans!).
     runFrame(1);
     expect(canvas0Elem.subChunk!.subMesh.start).toBe(0);
     expect(canvas1Elem.subChunk!.subMesh.start).toBe(6);
-    const frame1Uploads = iboSpy.mock.calls.length;
-    expect(frame1Uploads).toBe(2);
+    const frame1Calls = setDataSpy.mock.calls.length;
+    expect(frame1Calls).toBe(4); // 2 VBO + 2 IBO across the 2 initial passes
+    for (const call of setDataSpy.mock.calls) {
+      expect(call[4]).toBe(SetDataOptions.None);
+    }
 
-    // Frame 2 & Frame 3: identical multi-canvas passes -> ZERO IBO setData calls!
+    // Frame 2 & Frame 3: identical multi-canvas passes -> ZERO VBO/IBO setData calls!
     runFrame(2);
     runFrame(3);
-    expect(iboSpy).toHaveBeenCalledTimes(frame1Uploads);
+    expect(setDataSpy).toHaveBeenCalledTimes(frame1Calls);
     expect(canvas0Elem.subChunk!.subMesh.start).toBe(0);
     expect(canvas1Elem.subChunk!.subMesh.start).toBe(6);
+    setDataSpy.mockRestore();
   });
 });

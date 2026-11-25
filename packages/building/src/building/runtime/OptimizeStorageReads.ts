@@ -536,8 +536,16 @@ function hoistRedundantStorageReads(source: string, readers: ReadonlyMap<string,
   return source.slice(0, mainOpen + 1) + mainBody + source.slice(mainClose);
 }
 
+/** Materialize a standalone flat string so V8 ConsString ropes and SlicedString parents
+ * created by iterative slice+concat passes are not retained on the JS heap. */
+export function flattenShaderSource(source: string): string {
+  if (!source) return source;
+  const flat = " " + source;
+  return flat.indexOf("\u0000") === -1 ? flat.slice(1) : flat.slice(1, flat.length);
+}
+
 export function optimizeStorageReads(source: string): string {
   if (!source.includes("word_") && !source.includes("read_")) return source;
   const { source: packed, readers } = packStorageReaders(source);
-  return hoistRedundantStorageReads(packed, readers);
+  return flattenShaderSource(hoistRedundantStorageReads(packed, readers));
 }

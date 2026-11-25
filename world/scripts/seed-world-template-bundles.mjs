@@ -118,6 +118,10 @@ export const LUSH_ONLY_TERRAIN_TEXTURES = new Set([
   "procedural-leaf-mask-fir.png"
 ]);
 
+// Leaf base texture referenced only by `Material/Vegetation/{birch-leaves,broadleaf-leaves}.mat` — loaded exclusively
+// by `WorldTemplateRuntime` (`sakura-pearl`, `emerald-forest`, `low-poly`, `titan-wasteland`) and 0-hit on `original`.
+export const WORLD_TEMPLATE_ONLY_TERRAIN_TEXTURES = new Set(["989ee6ee7600c0e4.ktx2"]);
+
 // Active terrain atoms actually consumed by Seed World pre-reveal (`World.scene`); legacy stone-1..4 / small-stone /
 // stones / grass-2 / grass-3 / grass-2-authored / rock-clif-1 are excluded.
 const ACTIVE_TERRAIN_ATOMS = new Set([
@@ -130,7 +134,10 @@ const ACTIVE_TERRAIN_ATOMS = new Set([
   "grass.glb"
 ]);
 
-// Procedural vegetation PNGs actively loaded pre-reveal across ALL 5 templates (World.scene + plant library).
+// Procedural vegetation PNGs actively loaded pre-reveal across ALL 5 templates (`preparePlanningPopulationResources`).
+// Note: even when non-Flash builds alias byte-identical PNGs via `project.json.textureDownloadPaths`,
+// `ResourceManager._requestByRemoteUrl` serves `_prefetchedBinaryAssets` BEFORE `_downloadUrls`, so these
+// `packages/vegetation/...` keys are 100% SWB1 hits in both normal and Flash App builds (0 extra HTTP requests).
 const VEG_PROC_SHARED_FILES = new Set([
   "dead-tree/dead-tree-bark-albedo.png",
   "dead-tree/dead-tree-bark-normal.png",
@@ -162,13 +169,17 @@ export function classifySeedWorldTemplateMediaAsset(fileName) {
 
   const base = path.posix.basename(normalized);
   if (normalized.startsWith("assets/")) {
-    if (normalized.startsWith("assets/prop-textures/") && base.startsWith("T_Farm_")) return "farming_starter_props";
+    // Offscreen starter farm props & prop textures are deferred at spawn (`deferOffscreenProps: true`); keep them
+    // out of startup SWB1 shards while leaving emitted dist/CDN assets intact for on-demand deferred fetch.
+    if (normalized.startsWith("assets/prop-textures/") && (base.startsWith("T_Farm_") || base.startsWith("T_SeedSack_"))) {
+      return "exclude_lazy";
+    }
     if (LAZY_ASSET_PATTERN.test(base)) return "exclude_lazy";
+    if (FARMING_STARTER_PROP_GLB_PATTERN.test(base)) return "exclude_lazy";
     if (FALLBACK_TEXTURE_PATTERN.test(base)) return "exclude_fallback";
     if (EXCLUDED_DIST_ASSET_PATTERN.test(base)) return "exclude_unused";
     if (CORE_ENV_ASSET_PATTERN.test(base)) return "core_env";
     if (FARMING_SOIL_CORE_PATTERN.test(base)) return "farming_soil_core";
-    if (FARMING_STARTER_PROP_GLB_PATTERN.test(base)) return "farming_starter_props";
     if (BRIDGES_ASSET_PATTERN.test(base)) return "bridges";
     if (LOW_POLY_MEADOW_BLOCKS_PATTERN.test(base)) return "low_poly_extra";
     if (SAKURA_ASSET_PATTERN.test(base)) return "tpl_sakura";
@@ -189,6 +200,7 @@ export function classifySeedWorldTemplateMediaAsset(fileName) {
     }
     if (EXCLUDED_TERRAIN_LEGACY_TEXTURES.has(base)) return "exclude_unused";
     if (LUSH_ONLY_TERRAIN_TEXTURES.has(base)) return "core_terrain_lush";
+    if (WORLD_TEMPLATE_ONLY_TERRAIN_TEXTURES.has(base)) return "core_terrain_world_template";
     return "core_terrain_shared";
   }
 
@@ -229,7 +241,8 @@ export function classifySeedWorldTemplateMediaAsset(fileName) {
   }
 
   if (normalized.startsWith("packages/farming/src/farming/assets/prop-textures/")) {
-    return "farming_starter_props";
+    // Starter farm prop textures (16 KTX2s, ~4.16 MiB) are deferred at spawn when farm props are offscreen.
+    return "exclude_lazy";
   }
 
   return null;
@@ -248,13 +261,13 @@ const TEMPLATE_CATEGORY_SETS = Object.freeze({
     "water_ocean",
     "building_tex",
     "bridges",
-    "farming_soil_core",
-    "farming_starter_props"
+    "farming_soil_core"
   ]),
   "sakura-pearl": new Set([
     "core_env",
     "core_terrain_shared",
     "core_terrain_lush",
+    "core_terrain_world_template",
     "terrain_lush_props",
     "veg_proc_shared",
     "veg_proc_lush",
@@ -269,6 +282,7 @@ const TEMPLATE_CATEGORY_SETS = Object.freeze({
     "core_env",
     "core_terrain_shared",
     "core_terrain_lush",
+    "core_terrain_world_template",
     "terrain_lush_props",
     "veg_proc_shared",
     "veg_proc_lush",
@@ -280,6 +294,7 @@ const TEMPLATE_CATEGORY_SETS = Object.freeze({
   "low-poly": new Set([
     "core_env",
     "core_terrain_shared",
+    "core_terrain_world_template",
     "terrain_lush_props",
     "veg_proc_shared",
     "water_pond",
@@ -288,6 +303,7 @@ const TEMPLATE_CATEGORY_SETS = Object.freeze({
   "titan-wasteland": new Set([
     "core_env",
     "core_terrain_shared",
+    "core_terrain_world_template",
     "terrain_lush_props",
     "veg_proc_shared",
     "water_pond",

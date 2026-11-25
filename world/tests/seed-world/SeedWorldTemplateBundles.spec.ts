@@ -6,6 +6,7 @@ import {
   LUSH_ONLY_TERRAIN_TEXTURES,
   SEED_WORLD_TEMPLATE_IDS,
   TEMPLATE_MEDIA_MAX_SHARD_BYTES,
+  WORLD_TEMPLATE_ONLY_TERRAIN_TEXTURES,
   buildGzippedSwb1Pack,
   buildUncompressedSwb1Pack,
   classifySeedWorldTemplateMediaAsset,
@@ -78,25 +79,88 @@ describe("seed-world-template-bundles", () => {
     ).toBe(true);
     expect(isSeedWorldCommonRockLodAsset("assets/hoe-077dcce8.glb")).toBe(false);
 
-    // Starter farm tools & T_Farm_* prop textures are bundled ONLY for `original` (sakura/emerald frame focal monuments)
-    for (const farmStarterAsset of [
-      "assets/hoe-077dcce8.glb",
-      "assets/watering-can-e0c3b6ee.glb",
-      "assets/cart-ef2df4e4.glb",
-      "packages/farming/src/farming/assets/prop-textures/T_Farm_Tools_A_C.ktx2",
-      "packages/farming/src/farming/assets/prop-textures/T_Farm_Tools_B_ORM.ktx2",
-      "packages/farming/src/farming/assets/prop-textures/T_Farm_Basket_Watering_Can_C.ktx2",
-      "assets/prop-textures/T_Farm_Tools_A_C.ktx2"
+    // Deferred starter farm props (6 GLBs + 16 prop-textures KTX2s, ~4.66 MiB) are excluded from startup SWB1
+    // across ALL templates because `deferOffscreenProps: true` loads them on demand only when visible/approached.
+    const farmingAssetsRoot = path.resolve(__dirname, "../../../packages/farming/src/farming/assets");
+    const propTextureDir = path.join(farmingAssetsRoot, "prop-textures");
+    const propTextureFiles = fs
+      .readdirSync(propTextureDir)
+      .filter((name) => name.endsWith(".ktx2"))
+      .sort();
+    expect(propTextureFiles.length).toBe(16);
+    for (const relGlb of [
+      "storage/cart.glb",
+      "storage/basket.glb",
+      "harvest/basket.glb",
+      "watering/watering-can.glb",
+      "tilling/hoe.glb",
+      "sowing/seed-sack.glb"
     ]) {
-      expect(templatesForSeedWorldMediaAsset(farmStarterAsset), farmStarterAsset).toEqual(["original"]);
+      expect(fs.existsSync(path.join(farmingAssetsRoot, relGlb)), `missing deferred source ${relGlb}`).toBe(true);
+    }
+    for (const deferredFarmStarterAsset of [
+      "assets/cart-ef2df4e4.glb",
+      "assets/watering-can-e0c3b6ee.glb",
+      "assets/basket-4a677216.glb",
+      "assets/basket-8f5b162f.glb",
+      "assets/hoe-077dcce8.glb",
+      "assets/seed-sack-ce1ad85e.glb",
+      "assets/prop-textures/T_Farm_Tools_A_C.ktx2",
+      "assets/prop-textures/T_SeedSack_C.ktx2",
+      ...propTextureFiles.map((name) => `packages/farming/src/farming/assets/prop-textures/${name}`)
+    ]) {
+      expect(classifySeedWorldTemplateMediaAsset(deferredFarmStarterAsset), deferredFarmStarterAsset).toBe(
+        "exclude_lazy"
+      );
+      expect(templatesForSeedWorldMediaAsset(deferredFarmStarterAsset), deferredFarmStarterAsset).toEqual([]);
     }
 
-    // Farming core soil textures stay in all 3 lush templates
+    // Farming core soil textures stay in all 3 lush templates (loaded at startup by SoilVisualProvider)
     expect(templatesForSeedWorldMediaAsset("assets/basecolor-614fb0dc.ktx2")).toEqual([
       "original",
       "sakura-pearl",
       "emerald-forest"
     ]);
+    expect(templatesForSeedWorldMediaAsset("assets/normalogl-a791def9.ktx2")).toEqual([
+      "original",
+      "sakura-pearl",
+      "emerald-forest"
+    ]);
+
+    // `989ee6ee7600c0e4.ktx2` (`Material/Vegetation/birch-leaves.mat`) is loaded only by WorldTemplateRuntime
+    // presets (`sakura-pearl`, `emerald-forest`, `low-poly`, `titan-wasteland`) and excluded from `original`.
+    const worldTemplateLeafTex = "packages/terrain/src/data/seed-world/public/Texture/989ee6ee7600c0e4.ktx2";
+    expect(classifySeedWorldTemplateMediaAsset(worldTemplateLeafTex)).toBe("core_terrain_world_template");
+    expect(templatesForSeedWorldMediaAsset(worldTemplateLeafTex)).toEqual([
+      "sakura-pearl",
+      "emerald-forest",
+      "low-poly",
+      "titan-wasteland"
+    ]);
+
+    // Procedural tree PNGs loaded via project virtual paths stay keyed under `packages/vegetation/...` because
+    // `ResourceManager._requestByRemoteUrl` serves `_prefetchedBinaryAssets` before `textureDownloadPaths` aliases.
+    for (const sharedVegPng of [
+      "packages/vegetation/src/asset-assembly/generated/procedural-trees/dead-tree/dead-tree-bark-albedo.png",
+      "packages/vegetation/src/asset-assembly/generated/procedural-trees/dead-tree/dead-tree-bark-normal.png",
+      "packages/vegetation/src/asset-assembly/generated/procedural-trees/dead-tree/dead-tree-leaves.png",
+      "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_01-part-01-256.png",
+      "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_02-part-05-256.png"
+    ]) {
+      expect(classifySeedWorldTemplateMediaAsset(sharedVegPng), sharedVegPng).toBe("veg_proc_shared");
+      expect(templatesForSeedWorldMediaAsset(sharedVegPng), sharedVegPng).toEqual([...SEED_WORLD_TEMPLATE_IDS]);
+    }
+    for (const lushVegPng of [
+      "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-birch-bark-256.png",
+      "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-birchtree_leaf_01_summer-part-01-256.png"
+    ]) {
+      expect(classifySeedWorldTemplateMediaAsset(lushVegPng), lushVegPng).toBe("veg_proc_lush");
+      expect(templatesForSeedWorldMediaAsset(lushVegPng), lushVegPng).toEqual([
+        "original",
+        "sakura-pearl",
+        "emerald-forest"
+      ]);
+    }
 
     // Template-exclusive assets stay strictly in their owning template
     expect(templatesForSeedWorldMediaAsset("assets/pink-tree-4a81847b.glb")).toEqual(["sakura-pearl"]);
@@ -447,7 +511,7 @@ describe("seed-world-template-bundles", () => {
     expect(previewCacheControlForPath("/world/demos/seed-world/assets/preview.png")).toBe("no-cache");
   });
 
-  it("keeps terrain legacy and lush-only texture hash sets synchronized with packages/terrain/src/data/seed-world", () => {
+  it("keeps terrain legacy, lush-only, and world-template-only texture hash sets synchronized with packages/terrain/src/data/seed-world", () => {
     const terrainRoot = path.resolve(__dirname, "../../../packages/terrain/src/data/seed-world");
     const textureDir = path.join(terrainRoot, "public/Texture");
     const materialDir = path.join(terrainRoot, "public/Material");
@@ -484,15 +548,44 @@ describe("seed-world-template-bundles", () => {
       "Vegetation/broadleaf-branches.mat"
     ]);
     const broadleafBarkMatKey = "Surface/broadleaf-bark.mat";
+    const worldTemplateLeafMatKeys = new Set([
+      "Vegetation/birch-leaves.mat",
+      "Vegetation/broadleaf-leaves.mat"
+    ]);
 
     const otherMatRefs = new Set<string>();
     const legacyOnlyRefs = new Set<string>();
     const broadleafBarkOnlyRefs = new Set<string>();
+    const worldTemplateLeafOnlyRefs = new Set<string>();
     for (const [matRel, refs] of matTextures) {
-      if (!legacyMatKeys.has(matRel) && matRel !== broadleafBarkMatKey) {
+      if (!legacyMatKeys.has(matRel) && matRel !== broadleafBarkMatKey && !worldTemplateLeafMatKeys.has(matRel)) {
         for (const r of refs) otherMatRefs.add(r);
       }
     }
+    // Also account for procedural vegetation `.mat` files in `packages/vegetation` (e.g. smoothness/dither textures
+    // shared with `birch-leaves.mat` / `broadleaf-leaves.mat`).
+    const vegMaterialDir = path.resolve(
+      __dirname,
+      "../../../packages/vegetation/src/asset-assembly/generated/procedural-trees"
+    );
+    const walkVegMats = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walkVegMats(full);
+        else if (entry.name.endsWith(".mat")) {
+          const refs = new Set<string>();
+          extractKtx2Names(JSON.parse(fs.readFileSync(full, "utf8")), refs);
+          for (const r of refs) {
+            // `plant-project-material-fe1cf6...` is lush broadleaf bark (tracked in broadleafBarkMatKey).
+            if (!matTextures.get(broadleafBarkMatKey)?.has(r) || r === "140c55bd97c21b9b.ktx2") {
+              otherMatRefs.add(r);
+            }
+          }
+        }
+      }
+    };
+    walkVegMats(vegMaterialDir);
+
     for (const matRel of legacyMatKeys) {
       expect(matTextures.has(matRel), `missing ${matRel}`).toBe(true);
       for (const r of matTextures.get(matRel)!) {
@@ -503,6 +596,14 @@ describe("seed-world-template-bundles", () => {
     for (const r of matTextures.get(broadleafBarkMatKey)!) {
       if (!otherMatRefs.has(r) && !legacyOnlyRefs.has(r)) broadleafBarkOnlyRefs.add(r);
     }
+    for (const matRel of worldTemplateLeafMatKeys) {
+      expect(matTextures.has(matRel), `missing ${matRel}`).toBe(true);
+      for (const r of matTextures.get(matRel)!) {
+        if (!otherMatRefs.has(r) && !legacyOnlyRefs.has(r) && !broadleafBarkOnlyRefs.has(r)) {
+          worldTemplateLeafOnlyRefs.add(r);
+        }
+      }
+    }
 
     // Every tracked hash must exist on disk in public/Texture/
     for (const hash of EXCLUDED_TERRAIN_LEGACY_TEXTURES) {
@@ -512,11 +613,16 @@ describe("seed-world-template-bundles", () => {
     for (const hash of lushKtx2Hashes) {
       expect(existingTextures.has(hash), `stale lush-only hash ${hash}`).toBe(true);
     }
+    for (const hash of WORLD_TEMPLATE_ONLY_TERRAIN_TEXTURES) {
+      expect(existingTextures.has(hash), `stale world-template-only hash ${hash}`).toBe(true);
+    }
 
-    // Exact sync with the 4 source .mat files (8 legacy + 4 lush-only broadleaf-bark)
+    // Exact sync with the source .mat files (8 legacy + 4 lush-only broadleaf-bark + 1 world-template-only leaf base)
     expect([...EXCLUDED_TERRAIN_LEGACY_TEXTURES].sort()).toEqual([...legacyOnlyRefs].sort());
     expect(EXCLUDED_TERRAIN_LEGACY_TEXTURES.size).toBe(8);
     expect(lushKtx2Hashes.sort()).toEqual([...broadleafBarkOnlyRefs].sort());
     expect(lushKtx2Hashes.length).toBe(4);
+    expect([...WORLD_TEMPLATE_ONLY_TERRAIN_TEXTURES].sort()).toEqual([...worldTemplateLeafOnlyRefs].sort());
+    expect(WORLD_TEMPLATE_ONLY_TERRAIN_TEXTURES.size).toBe(1);
   });
 });

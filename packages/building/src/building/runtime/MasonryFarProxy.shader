@@ -169,44 +169,19 @@ Shader "Masonry/FarProxy" {
      vec3 baseLit = masonryFarProxyLight(kind > 5.5 ? vec3(0.05, 0.065, 0.075) : albedo, n, v.positionWS);
      vec3 lit;
      if (kind > 5.5) {
-       // Match LOD1 glass.shaderc / masonryWindowGlass (roughness=0.08, F0=0.04):
-       // dark recessed interior + physical view-dependent Fresnel sky/sun reflection + bold 45 deg diamond lead lattice.
-       vec2 horiz = abs(n.y) < 0.9 ? normalize(vec2(-n.z, n.x)) : vec2(1.0, 0.0);
-       float uWin = dot(v.positionWS.xz, horiz);
-       float vWin = v.positionWS.y;
-       vec2 diag = vec2(uWin + vWin, uWin - vWin) * 4.8;
-       vec2 fw = max(fwidth(diag), vec2(1e-4));
-       vec2 dEdge = abs(fract(diag) - 0.5);
-       vec2 lineMask = smoothstep(0.38 - fw, 0.38 + fw, dEdge);
-       float leadRaw = max(lineMask.x, lineMask.y);
-       float leadAA = 1.0 - smoothstep(0.35, 0.90, max(fw.x, fw.y));
-       float lead = mix(0.38, leadRaw, leadAA);
-       SurfaceData gs;
-       gs.viewDir = normalize(camera_Position - v.positionWS);
-       float ndotv = max(dot(n, gs.viewDir), 0.0001);
-       vec2 gDfg = envDFGApprox(0.08, ndotv);
-       vec3 skyRefl = getLightProbeRadiance(gs, n, 0.08);
-       vec3 specRefl = (0.04 * gDfg.x + gDfg.y) * skyRefl;
-       #ifdef SCENE_DIRECT_LIGHT_COUNT
-         DirectLight gSun = getDirectLight(0);
-         vec3 gL = -gSun.direction;
-         float gNL = max(dot(n, gL), 0.0);
-         if (gNL > 0.0) {
-           vec3 gH = normalize(gL + gs.viewDir);
-           float gNH = max(dot(n, gH), 0.0);
-           float gLH = max(dot(gL, gH), 0.0);
-           float gF = 0.04 + 0.96 * exp2((-5.55473 * gLH - 6.98316) * gLH);
-           float gA2 = 0.00004096;
-           float gDen = gNH * gNH * (gA2 - 1.0) + 1.0;
-           float gD = gA2 / (gDen * gDen);
-           float gV = gNL * sqrt(gA2 + (1.0 - gA2) * (ndotv * ndotv));
-           float gLT = ndotv * sqrt(gA2 + (1.0 - gA2) * (gNL * gNL));
-           float gG = 0.5 / max(gV + gLT, 1e-6);
-           specRefl += (gNL * gSun.color) * (gF * gD * gG);
-         }
-       #endif
-       vec3 glassColor = baseLit + specRefl + vec3(0.88, 0.78, 0.24) * (v.color.a * 0.55);
-       lit = mix(glassColor, baseLit * 0.28, lead);
+       // Lightweight GPR-neutral glass shading (no cubemap sampler, no envDFGApprox, no GGX/fwidth)
+       // so Adreno wave occupancy stays flat on wall/roof pixels while keeping crisp reflective panes
+       // inside the 4-bar hollow window frames.
+       vec3 viewDir = normalize(camera_Position - v.positionWS);
+       float ndotv = max(dot(n, viewDir), 0.0);
+       float f1 = 1.0 - ndotv;
+       float f2 = f1 * f1;
+       float fresnel = 0.06 + 0.74 * (f2 * f2 * f1);
+       float reflY = clamp(2.0 * ndotv * n.y - viewDir.y, 0.0, 1.0);
+       float skyLum = min(dot(baseLit, vec3(12.0, 14.0, 14.0)), 2.2);
+       vec3 skyRefl = mix(vec3(0.55, 0.68, 0.80), vec3(0.72, 0.92, 1.25), reflY) * skyLum;
+       vec3 glassColor = baseLit + fresnel * skyRefl + vec3(0.88, 0.78, 0.24) * (v.color.a * 0.55);
+       lit = mix(glassColor, baseLit * 0.28, 0.38);
      } else {
        lit = baseLit + vec3(1.0, 0.57, 0.18) * v.color.a;
      }

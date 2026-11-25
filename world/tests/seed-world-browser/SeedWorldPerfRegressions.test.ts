@@ -2,14 +2,26 @@ import { expect, it, vi } from "vitest";
 import {
   AssetType,
   Camera,
+  Color,
   DirectLight,
+  Material,
   MeshRenderer,
+  Shader,
+  Sprite,
+  Texture2D,
+  TextureFormat,
+  Vector4,
   WebGLEngine,
   type GLTFResource,
   type PBRMaterial
 } from "@galacean/engine";
-import { Text } from "@galacean/engine-ui";
+import { CanvasRenderMode, Image, Text, UICanvas, UITransform } from "@galacean/engine-ui";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import {
+  SEED_WORLD_VOICE_ORB_SHADER_NAME,
+  SeedWorldLiquidGlassUiMaterial,
+  seedWorldVoiceOrbShaderSource
+} from "../../demos/seed-world/assistant/SeedWorldVoiceHudShaders";
 import { RuntimeProjectSession } from "../../../packages/runtime-editor/src/project/runtime-project-session";
 import { mountProjectSaveControl } from "../../../packages/runtime-editor/src/project/project-save-control";
 import { ConfiguredAnimal } from "../../../packages/animals/src/gameplay/animal/ConfiguredAnimal";
@@ -507,6 +519,209 @@ it("restores non-default user toggles and custom DPR when ablation is aborted mi
     panel.dispose();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    engine.destroy();
+    canvas.remove();
+  }
+});
+
+it("animates VoiceOrb and LiquidGlass scaling via GPU vertex uniforms with zero chunkUI uploads/orphans and verified pixel expansion", async () => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  document.body.append(canvas);
+  const engine = await WebGLEngine.create({ canvas, shaderCompiler: new ShaderCompiler() });
+  const scene = engine.sceneManager.activeScene!;
+  scene.background.solidColor.set(0, 0, 0, 1);
+  const root = scene.createRootEntity("voice-orb-gpu-scale-root");
+  const cameraEntity = root.createChild("world-cam");
+  const camera = cameraEntity.addComponent(Camera);
+
+  const uiRoot = root.createChild("ui-root");
+  const uiCanvas = uiRoot.addComponent(UICanvas);
+  uiCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+  uiCanvas.camera = camera;
+  uiCanvas.referenceResolution.set(256, 256);
+
+  const whiteTex = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
+  whiteTex.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
+  const whiteSprite = new Sprite(engine, whiteTex);
+
+  const orbGlass = new SeedWorldLiquidGlassUiMaterial(camera);
+  orbGlass.setFullLensRefraction(1);
+  orbGlass.setOpacity(1);
+  orbGlass.setLayout(80, 80, 40);
+
+  const orbShader = Shader.find(SEED_WORLD_VOICE_ORB_SHADER_NAME) ?? Shader.create(seedWorldVoiceOrbShaderSource);
+  const orbMat = new Material(engine, orbShader);
+  orbMat.shaderData.setFloat("material_Time", 0);
+  orbMat.shaderData.setFloat("material_Listening", 0);
+  orbMat.shaderData.setFloat("material_OrbScaleExpandPixels", 0);
+  orbMat.shaderData.setVector4("material_OrbCyan", new Vector4(24 / 255, 244 / 255, 1, 1));
+  orbMat.shaderData.setVector4("material_OrbAzure", new Vector4(85 / 255, 126 / 255, 1, 1));
+  orbMat.shaderData.setVector4("material_OrbViolet", new Vector4(141 / 255, 98 / 255, 1, 1));
+  orbMat.shaderData.setVector4("material_OrbOrchid", new Vector4(230 / 255, 98 / 255, 1, 1));
+  orbMat.shaderData.setVector4("material_OrbRose", new Vector4(1, 110 / 255, 224 / 255, 1));
+  orbMat.shaderData.setVector4("material_OrbCore", new Vector4(1, 1, 1, 1));
+  orbMat.shaderData.setVector4("material_OrbMotion", new Vector4(0.87, 1.58, 0.19, 0.88));
+  orbMat.shaderData.setVector4("material_OrbRibbon", new Vector4(1.02, 0.39, 1.45, 1.38));
+  orbMat.shaderData.setVector4("material_OrbDisp", new Vector4(0.032, 0.04, 0.4, 0));
+  orbMat.shaderData.setVector4("material_OrbTone", new Vector4(1.13, 1.22, 0.92, 0.82));
+  orbMat.shaderData.setVector4("material_OrbRim", new Vector4(0.36, 0.055, 0.18, 0.55));
+  orbMat.shaderData.setFloat("material_OrbShellThickness", 0.025);
+
+  const orbEntity = uiRoot.createChild("Siri voice orb");
+  const orbTransform = orbEntity.transform as UITransform;
+  orbTransform.size.set(80, 80);
+  const orbGlassImage = orbEntity.addComponent(Image);
+  orbGlassImage.sprite = whiteSprite;
+  orbGlassImage.color = new Color(1, 1, 1, 1);
+  orbGlassImage.setMaterial(orbGlass.material);
+
+  const orbVisualEntity = orbEntity.createChild("Siri voice orb visual");
+  const orbVisualTransform = orbVisualEntity.transform as UITransform;
+  orbVisualTransform.size.set(80, 80);
+  const orbVisualImage = orbVisualEntity.addComponent(Image);
+  orbVisualImage.sprite = whiteSprite;
+  orbVisualImage.color = new Color(1, 1, 1, 1);
+  orbVisualImage.setMaterial(orbMat);
+
+  try {
+    // Warm up 2 frames so chunkUI uploads initial quad vertices once and compiles both shaders.
+    engine.update();
+    engine.update();
+
+    const chunkUI = engine._batcherManager.primitiveChunkManagerUI.primitiveChunks[0];
+    expect(chunkUI).toBeDefined();
+    expect((chunkUI as any)._vboBindings.length).toBe(1);
+    expect((chunkUI as any)._iboBindings.length).toBe(1);
+
+    const gl = (engine._hardwareRenderer as any).gl as WebGL2RenderingContext;
+    const samplePixel = (x: number, y: number): [number, number, number, number] => {
+      const px = new Uint8Array(4);
+      gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      return [px[0], px[1], px[2], px[3]];
+    };
+
+    // At scale 1.0 (80x80 centered at (128,128) -> radius 40px): all 4 cardinal points at ±52px are outside (black).
+    const cardinalPoints: Array<[number, number]> = [
+      [180, 128],
+      [76, 128],
+      [128, 180],
+      [128, 76]
+    ];
+    for (const [x, y] of cardinalPoints) {
+      const px = samplePixel(x, y);
+      expect(px[0] + px[1] + px[2]).toBe(0);
+    }
+
+    const bufferDataSpy = vi.spyOn(gl, "bufferData");
+    const bufferSubDataSpy = vi.spyOn(gl, "bufferSubData");
+    const createVaoSpy = vi.spyOn(gl, "createVertexArray");
+    const deleteVaoSpy = vi.spyOn(gl, "deleteVertexArray");
+
+    // Run 20 idle breathing frames + 10 pressed-expansion frames purely via shader uniforms.
+    for (let f = 0; f < 30; f++) {
+      const scale = f < 20 ? 1 + Math.sin(f * 0.4) * 0.025 : 1.72;
+      const expandPx = 80 * (scale - 1);
+      orbMat.shaderData.setFloat("material_Time", f * 0.05);
+      orbMat.shaderData.setFloat("material_OrbScaleExpandPixels", expandPx);
+      orbGlass.setQuadExpandPixels(expandPx, expandPx);
+      orbGlass.setLayout(80 * scale, 80 * scale, 40 * scale);
+      engine.update();
+    }
+
+    // At 1.72x GPU vertex expansion (radius ~68.8px), all 4 cardinal points at ±52px are now symmetrically inside!
+    for (const [x, y] of cardinalPoints) {
+      const px = samplePixel(x, y);
+      expect(px[0] + px[1] + px[2]).toBeGreaterThan(20);
+    }
+
+    // Zero CPU VBO/IBO uploads, zero Discard orphans, zero VAO thrashing across all 30 animated frames!
+    const vboIboOrphans = bufferDataSpy.mock.calls.filter(
+      ([target]) => target === gl.ARRAY_BUFFER || target === gl.ELEMENT_ARRAY_BUFFER
+    );
+    const vboIboUploads = bufferSubDataSpy.mock.calls.filter(
+      ([target]) => target === gl.ARRAY_BUFFER || target === gl.ELEMENT_ARRAY_BUFFER
+    );
+    expect(vboIboOrphans.length).toBe(0);
+    expect(vboIboUploads.length).toBe(0);
+    expect(createVaoSpy).not.toHaveBeenCalled();
+    expect(deleteVaoSpy).not.toHaveBeenCalled();
+    expect(gl.getError()).toBe(gl.NO_ERROR);
+  } finally {
+    orbGlass.destroy();
+    orbMat.destroy();
+    whiteSprite.destroy();
+    whiteTex.destroy();
+    engine.destroy();
+    canvas.remove();
+  }
+});
+
+it("rotates PrimitiveChunk 3-frame VBO/IBO slots in modified WebGL2 RHI with zero Discard orphans, zero VAO thrashing, and zero leaks", async () => {
+  const { engine, canvas, scene } = await makeEngine();
+  const root = scene.createRootEntity("ring-ui-root");
+  root.createChild("cam").addComponent(Camera);
+
+  const uiCanvas = root.addComponent(UICanvas);
+  uiCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+  const tex = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
+  tex.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
+  const sprite = new Sprite(engine, tex);
+
+  const movingEntity = root.createChild("moving-ui");
+  const movingTransform = movingEntity.transform as UITransform;
+  movingTransform.size.set(32, 32);
+  const img = movingEntity.addComponent(Image);
+  img.sprite = sprite;
+
+  const gl = (engine._hardwareRenderer as any).gl as WebGL2RenderingContext;
+  try {
+    // Warm up 3 dynamic frames so the 3-slot VBO ring and per-slot VAOs in modified GLPrimitive are all initialized.
+    for (let f = 1; f <= 3; f++) {
+      movingTransform.setPosition(f * 2, 0, 0);
+      engine.update();
+    }
+
+    const chunkUI = engine._batcherManager.primitiveChunkManagerUI.primitiveChunks[0];
+    expect((chunkUI as any)._vboBindings.length).toBe(3);
+    expect((chunkUI as any)._iboBindings.length).toBe(1);
+    const vaoMap: Map<number, unknown> = (chunkUI.primitive as any)._platformPrimitive._vaoMap;
+    expect(vaoMap.size).toBe(3);
+
+    const bufferDataSpy = vi.spyOn(gl, "bufferData");
+    const bufferSubDataSpy = vi.spyOn(gl, "bufferSubData");
+    const createVaoSpy = vi.spyOn(gl, "createVertexArray");
+    const deleteVaoSpy = vi.spyOn(gl, "deleteVertexArray");
+
+    // 10 more consecutive animated UI frames: 0 Discard orphans, 0 VAO create/delete, exact 10 VBO subData uploads!
+    for (let f = 4; f <= 13; f++) {
+      movingTransform.setPosition(f * 2, 0, 0);
+      engine.update();
+    }
+
+    const vboIboOrphans = bufferDataSpy.mock.calls.filter(
+      ([target]) => target === gl.ARRAY_BUFFER || target === gl.ELEMENT_ARRAY_BUFFER
+    );
+    const vboSubDataUploads = bufferSubDataSpy.mock.calls.filter(([target]) => target === gl.ARRAY_BUFFER);
+    expect(vboIboOrphans.length).toBe(0);
+    expect(vboSubDataUploads.length).toBe(10);
+    expect(createVaoSpy).not.toHaveBeenCalled();
+    expect(deleteVaoSpy).not.toHaveBeenCalled();
+    expect(gl.getError()).toBe(gl.NO_ERROR);
+
+    const vboSlots = (chunkUI as any)._vboBindings.map((b: any) => b.buffer);
+    const iboSlots = (chunkUI as any)._iboBindings.map((b: any) => b.buffer);
+    const deletedBeforeDestroy = deleteVaoSpy.mock.calls.length;
+    engine._batcherManager.destroy();
+    expect(deleteVaoSpy.mock.calls.length - deletedBeforeDestroy).toBe(3);
+    expect(vaoMap.size).toBe(0);
+    for (const buf of [...vboSlots, ...iboSlots]) {
+      expect(buf.destroyed).toBe(true);
+    }
+  } finally {
+    sprite.destroy();
+    tex.destroy();
     engine.destroy();
     canvas.remove();
   }

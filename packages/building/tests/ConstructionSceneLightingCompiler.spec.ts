@@ -112,7 +112,7 @@ describe("Construction lighting compiler bridge", () => {
     expect(sourceNoSpot.length).toBeLessThan(18_000);
   });
 
-  it("keeps plaster shader diet invariants (analytic rim gradient, early discard before textureGrad, 3/2 octaves)", () => {
+  it("keeps plaster shader diet invariants (analytic rim gradient, narrowed dFdx/dFdy live range, early discard before textureGrad, 3/2 octaves)", () => {
     expect(constructionPlasterGLSL).toContain("if(edge<.1 || wear>=1.0) return vec3(0.0);");
     expect(constructionPlasterGLSL).toContain("plasterNativeNoise(uv*.5+.5+offset,3)");
     expect(constructionPlasterGLSL).toContain("plasterNativeNoise(uv+23.4+offset,2)");
@@ -120,7 +120,60 @@ describe("Construction lighting compiler bridge", () => {
     expect(finishCodeOnly).not.toContain("plasterSurface(");
     const earlyReturnIdx = finishCodeOnly.indexOf("if(detail.x<.5) return vec3(0.0);");
     const firstTexGradIdx = finishCodeOnly.indexOf("textureGrad(material_PlasterColors");
+    const posDerivIdx = finishCodeOnly.indexOf("dFdx(position)");
+    const rimDerivIdx = finishCodeOnly.indexOf("dFdx(detail.z)");
     expect(earlyReturnIdx).toBeGreaterThan(-1);
     expect(firstTexGradIdx).toBeGreaterThan(earlyReturnIdx);
+    // Position and rim derivatives are deferred past texture fetches to minimize Adreno GPR pressure.
+    expect(posDerivIdx).toBeGreaterThan(firstTexGradIdx);
+    expect(rimDerivIdx).toBeGreaterThan(firstTexGradIdx);
+  });
+
+  it("omits dead 8-light fallback loop and point-light loop from masonryFarProxyLight when no point lights are active", () => {
+    registerConstructionSceneLighting();
+    const compiler = new ShaderCompiler();
+    compiler._setIncludeMap(ShaderFactory.includeMap);
+    const farShader = `Shader "Masonry/FarProxyTest" {
+      SubShader "Default" { Pass "Forward" {
+        #include "Masonry/SceneLighting.glsl"
+        VertexShader = VS; FragmentShader = FS;
+        struct A { vec4 POSITION; };
+        void VS(A a) { gl_Position = a.POSITION; }
+        void FS() { gl_FragColor = vec4(masonryFarProxyLight(vec3(0.5), vec3(0.0, 1.0, 0.0), vec3(0.0)), 1.0); }
+      } }
+    }`;
+    const pass = compiler._parseShaderSource(farShader).subShaders[0].passes[0];
+    const compiled = compiler._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300,
+      undefined,
+      pass.contentScopeStarts
+    )!;
+    const noPointLights = ShaderMacroProcessor.evaluate(
+      [...compiled.fragmentShaderInstructions!],
+      new Map([
+        ["GRAPHICS_API_WEBGL2", ""],
+        ["SCENE_DIRECT_LIGHT_COUNT", "1"],
+        ["SCENE_USE_SH", ""]
+      ])
+    );
+    expect(noPointLights).not.toContain("scene_MasonryFallbackMask");
+    expect(noPointLights).not.toMatch(/\bgetPointLight\s*\(/);
+    expect((noPointLights.match(/\bfor\s*\(/g) ?? []).length).toBe(1);
+
+    const withPointLights = ShaderMacroProcessor.evaluate(
+      [...compiled.fragmentShaderInstructions!],
+      new Map([
+        ["GRAPHICS_API_WEBGL2", ""],
+        ["SCENE_DIRECT_LIGHT_COUNT", "1"],
+        ["SCENE_POINT_LIGHT_COUNT", "4"],
+        ["SCENE_USE_SH", ""]
+      ])
+    );
+    expect(withPointLights).not.toContain("scene_MasonryFallbackMask");
+    expect(withPointLights).toMatch(/\bgetPointLight\s*\(/);
+    expect((withPointLights.match(/\bfor\s*\(/g) ?? []).length).toBe(2);
   });
 });
