@@ -45,6 +45,36 @@ describe("InstanceBuffer", () => {
     expect(bufAfterSecond.isGCIgnored).toBe(true);
   });
 
+  it("orphans only after the ring saturates and reuses the oldest slot once it is frame-safe", async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const instanceBuffer = engine._batcherManager.instanceBuffer;
+    instanceBuffer.setLayout({ instanceFields: [], instanceMaxCount: 1, structSize: 16 });
+    const renderer = engine.sceneManager.activeScene.createRootEntity().addComponent(MeshRenderer);
+    const renderers = [renderer];
+    const oldest = instanceBuffer.buffer;
+    const oldestUpload = vi.spyOn(oldest, "setData");
+    const slots = new Set<typeof oldest>();
+
+    for (let i = 0; i < 192; i++) {
+      instanceBuffer.upload(renderers, 0, 1);
+      slots.add(instanceBuffer.buffer);
+    }
+    expect(slots.size).toBe(192);
+    expect(oldestUpload.mock.calls[0][4]).toBe(SetDataOptions.None);
+
+    instanceBuffer.upload(renderers, 0, 1);
+    expect(instanceBuffer.buffer).toBe(oldest);
+    expect(oldestUpload.mock.calls[1][4]).toBe(SetDataOptions.Discard);
+
+    engine.update();
+    engine.update();
+    const nextOldest = [...slots][1];
+    const reusableUpload = vi.spyOn(nextOldest, "setData");
+    instanceBuffer.upload(renderers, 0, 1);
+    expect(instanceBuffer.buffer).toBe(nextOldest);
+    expect(reusableUpload.mock.calls[0][4]).toBe(SetDataOptions.None);
+  });
+
   it("caches active VAO bindings and avoids per-draw UBO gl.bufferData orphans in steady-state rendered frames", async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const scene = engine.sceneManager.activeScene;

@@ -167,21 +167,27 @@ export function uploadTreeAssemblyInstanceRange(
   index: number,
   count: number
 ): void {
+  const { instanceBuffer, staging, recordFloats } = storage;
   if (
     !Number.isInteger(index) ||
     index < 0 ||
     !Number.isInteger(count) ||
     count < 1 ||
-    (index + count) * storage.recordFloats > storage.staging.length
+    (index + count) * recordFloats > staging.length
   ) {
     throw new RangeError("Tree Assembly instance index is outside its storage capacity");
   }
-  const dataOffset = index * storage.recordFloats;
-  storage.instanceBuffer.setData(
-    storage.staging,
+  // A partial upload clears Buffer.isContentLost even though the untouched records are still missing.
+  if (instanceBuffer.isContentLost) {
+    instanceBuffer.setData(staging);
+    return;
+  }
+  const dataOffset = index * recordFloats;
+  instanceBuffer.setData(
+    staging,
     dataOffset * Float32Array.BYTES_PER_ELEMENT,
     dataOffset,
-    count * storage.recordFloats,
+    count * recordFloats,
     SetDataOptions.None
   );
 }

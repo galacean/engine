@@ -30,6 +30,7 @@ import { loadPlantJSON } from "@galacean/engine-vegetation/asset-assembly/Proced
 describe("seed-world-template-bundles", () => {
   afterEach(() => {
     releaseSeedWorldCommonBinaryBundle();
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -342,6 +343,63 @@ describe("seed-world-template-bundles", () => {
       )!
     );
     expect(decoded).toBe(sampleJson);
+  });
+
+  it("keeps finished shards and aborts a stalled response body at the template bundle deadline", async () => {
+    vi.useFakeTimers();
+    const baseUrl = "https://example.test/";
+    const key = "assets/tree.glb";
+    const pack = buildUncompressedSwb1Pack([{ key, buf: Buffer.from([7]) }]);
+    const listener = vi.fn();
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const load = loadSeedWorldTemplateBinaryBundles("original", listener, {
+      urls: ["ready.wasm", "stalled.wasm"],
+      moduleBaseUrl: baseUrl,
+      distRootUrl: baseUrl,
+      fetchImpl: async (url, init) => {
+        if (String(url).endsWith("ready.wasm")) return new Response(new Uint8Array(pack));
+        const response = new Response();
+        response.arrayBuffer = () =>
+          new Promise((_, reject) => {
+            init?.signal?.addEventListener("abort", () => reject(init.signal!.reason), { once: true });
+          });
+        return response;
+      }
+    });
+    let settled = false;
+    void load.then(() => {
+      settled = true;
+    });
+
+    await vi.advanceTimersByTimeAsync(44_999);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(settled).toBe(true);
+    expect((await load)?.get(baseUrl + key)).toEqual(new Uint8Array([7]));
+    expect(warning).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts a template shard in flight when its bundle is released", async () => {
+    let signal: AbortSignal | null | undefined;
+    const listener = vi.fn();
+    const load = loadSeedWorldTemplateBinaryBundles("original", listener, {
+      urls: ["stalled.wasm"],
+      moduleBaseUrl: "https://example.test/",
+      fetchImpl: (_url, init) => {
+        signal = init?.signal;
+        return new Promise((_, reject) => {
+          signal?.addEventListener("abort", () => reject(signal!.reason), { once: true });
+        });
+      }
+    });
+
+    releaseSeedWorldCommonBinaryBundle();
+
+    expect(signal?.aborted).toBe(true);
+    await expect(load).resolves.toBeUndefined();
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it("intercepts direct GET fetch() calls for SWB1-prefetched assets and restores fetch on release", async () => {

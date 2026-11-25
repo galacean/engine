@@ -68,14 +68,15 @@ export async function loadBuiltinWaterTexture(engine: Engine, path: string, sign
     resolvers.get(engine)?.(path) ??
     (staticAsset ? new URL(staticAsset, import.meta.url).href : new URL(path, BUILTIN_WATER_PROJECT_URL).href);
   const engineCacheExisting = loadedBuiltinTextures.get(engine);
-  const existingTexture = engineCacheExisting?.get(url);
+  // A delivery URL can alias another asset. Cache only the validated logical texture.
+  const existingTexture = engineCacheExisting?.get(path);
   if (existingTexture) {
     if (!existingTexture.destroyed && !existingTexture.pendingDestroy) {
       signal?.throwIfAborted();
       existingTexture._addReferCount(1);
       return existingTexture;
     }
-    engineCacheExisting!.delete(url);
+    engineCacheExisting!.delete(path);
   }
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`Native Water texture '${path}' failed its source hash check.`);
@@ -84,13 +85,13 @@ export async function loadBuiltinWaterTexture(engine: Engine, path: string, sign
     throw new Error(`Native Water texture '${path}' failed its source hash check.`);
   signal?.throwIfAborted();
   const engineCacheAfterFetch = loadedBuiltinTextures.get(engine);
-  const cachedAfterFetch = engineCacheAfterFetch?.get(url);
+  const cachedAfterFetch = engineCacheAfterFetch?.get(path);
   if (cachedAfterFetch) {
     if (!cachedAfterFetch.destroyed && !cachedAfterFetch.pendingDestroy) {
       cachedAfterFetch._addReferCount(1);
       return cachedAfterFetch;
     }
-    engineCacheAfterFetch!.delete(url);
+    engineCacheAfterFetch!.delete(path);
   }
   // Avoid a second network request when loading from an HTTP URL; reuse the already-fetched bytes via a Blob URL.
   const blobUrl = url.startsWith("blob:")
@@ -113,7 +114,6 @@ export async function loadBuiltinWaterTexture(engine: Engine, path: string, sign
     engineCache = new Map();
     loadedBuiltinTextures.set(engine, engineCache);
   }
-  engineCache.set(url, texture);
   let blobRevoked = false;
   const originalDestroy = texture.destroy.bind(texture) as (force?: boolean, isGC?: boolean) => boolean;
   texture.destroy = ((force?: boolean, isGC?: boolean) => {
@@ -121,7 +121,7 @@ export async function loadBuiltinWaterTexture(engine: Engine, path: string, sign
       return originalDestroy(force, isGC);
     } finally {
       if (texture.destroyed || texture.pendingDestroy) {
-        if (engineCache!.get(url) === texture) engineCache!.delete(url);
+        if (engineCache!.get(path) === texture) engineCache!.delete(path);
       }
       if (texture.destroyed && blobUrl && !blobRevoked) {
         blobRevoked = true;
@@ -139,6 +139,7 @@ export async function loadBuiltinWaterTexture(engine: Engine, path: string, sign
       texture.isSRGBColorSpace !== asset.params.isSRGBColorSpace
     )
       throw new Error(`Native Water texture '${path}' has incompatible dimensions or color space.`);
+    engineCache.set(path, texture);
     return texture;
   } catch (error) {
     texture._addReferCount(-1);

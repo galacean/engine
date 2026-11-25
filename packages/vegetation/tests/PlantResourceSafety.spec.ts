@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AssetType, type Engine, type JSONAsset, type ModelMesh } from "@galacean/engine";
+import { AssetType, SetDataOptions, type Buffer, type Engine, type JSONAsset, type ModelMesh } from "@galacean/engine";
 import { loadPlantJSON, loadPlantParameters } from "../src/asset-assembly/ProceduralPlantResources";
+import { uploadTreeAssemblyInstanceRange } from "../src/asset-assembly/TreeAssemblyInstancedMesh";
 import { encodePlantParameters } from "../src/asset-assembly/PlantParameterEncoding";
 import * as ProceduralShrubSource from "../src/asset-assembly/ProceduralShrubSource";
 import { PLANT_SPECIES_CATALOG } from "../src/asset-assembly/PlantSpeciesCatalog";
@@ -8,6 +9,26 @@ import { PlantSpeciesSources } from "../src/asset-assembly/PlantSpeciesSources";
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+it("restores untouched plant records before clearing the content-lost flag during a partial edit", () => {
+  const staging = new Float32Array([1, 2, 3, 4, 5, 6]);
+  const restored = new Float32Array(staging.length);
+  const setData = vi.fn((data: Float32Array, byteOffset = 0, offset = 0, count = data.length) => {
+    restored.set(data.subarray(offset, offset + count), byteOffset / Float32Array.BYTES_PER_ELEMENT);
+    buffer.isContentLost = false;
+  });
+  const buffer = { isContentLost: true, setData };
+  const storage = { staging, recordFloats: 2, instanceBuffer: buffer as unknown as Buffer };
+
+  uploadTreeAssemblyInstanceRange(storage, 1, 1);
+
+  expect(restored).toEqual(staging);
+  expect(setData).toHaveBeenCalledWith(staging);
+  staging[2] = 30;
+  uploadTreeAssemblyInstanceRange(storage, 1, 1);
+  expect(restored).toEqual(staging);
+  expect(setData).toHaveBeenLastCalledWith(staging, 8, 2, 2, SetDataOptions.None);
 });
 
 describe("ProceduralPlantResources WeakMap caching (P1-12)", () => {

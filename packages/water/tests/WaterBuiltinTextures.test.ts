@@ -1,6 +1,10 @@
 import { expect, it, vi } from "vitest";
 import { Texture2D, TextureFormat, WebGLEngine } from "@galacean/engine";
-import { BUILTIN_WATER_PROJECT_URL, loadBuiltinWaterTexture } from "../src/water/native/WaterBuiltinAssets";
+import {
+  BUILTIN_WATER_PROJECT_URL,
+  configureWaterBuiltinAssets,
+  loadBuiltinWaterTexture
+} from "../src/water/native/WaterBuiltinAssets";
 
 it("loads every native Water KTX2 with its original dimensions, color space and complete mip chain", async () => {
   const canvas = document.createElement("canvas");
@@ -38,6 +42,27 @@ it("loads every native Water KTX2 with its original dimensions, color space and 
         texture._addReferCount(-1);
         texture.destroy();
       }
+    }
+  } finally {
+    engine.destroy();
+  }
+}, 60000);
+
+it("checks each built-in texture's identity even when the host aliases two paths to one delivery URL", async () => {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  const smooth = "Water/Textures/ocean-smoothWaves.ktx2";
+  const rough = "Water/Textures/ocean-roughWaves.ktx2";
+  configureWaterBuiltinAssets(
+    engine,
+    (path) => new URL(path === "conversion.json" ? path : smooth, BUILTIN_WATER_PROJECT_URL).href
+  );
+  try {
+    const texture = await loadBuiltinWaterTexture(engine, smooth);
+    try {
+      await expect(loadBuiltinWaterTexture(engine, rough)).rejects.toThrow(/source hash check/);
+    } finally {
+      texture._addReferCount(-1);
+      texture.destroy();
     }
   } finally {
     engine.destroy();

@@ -5,6 +5,7 @@ const BUILDING_BIN_BUNDLE_URL: string | undefined = "__SEED_WORLD_BUILDING_BIN_B
 const TEMPLATE_BIN_BUNDLES_JSON: string = "__SEED_WORLD_TEMPLATE_BIN_BUNDLES_JSON__";
 
 const BUNDLE_MAGIC = "SWB1";
+const TEMPLATE_BUNDLE_TIMEOUT_MS = 45_000;
 
 export interface SeedWorldTemplateBundleShardProgress {
   readonly shardIndex: number;
@@ -22,6 +23,7 @@ interface TemplateBundleState {
   readonly promise: Promise<ReadonlyMap<string, Uint8Array> | undefined>;
   readonly accumulated: Map<string, Uint8Array>;
   readonly listeners: Set<TemplateShardListener>;
+  readonly controller: AbortController;
   completedShards: number;
   readonly totalShards: number;
   settled: boolean;
@@ -340,6 +342,7 @@ export function loadSeedWorldTemplateBinaryBundles(
   const fetchFn = options?.fetchImpl ?? fetch;
   const accumulated = new Map<string, Uint8Array>();
   const listeners = new Set<TemplateShardListener>();
+  const controller = new AbortController();
   if (onShardLoaded) listeners.add(onShardLoaded);
   let state!: TemplateBundleState;
   const clearIfCurrent = () => {
@@ -347,12 +350,16 @@ export function loadSeedWorldTemplateBinaryBundles(
       cachedTemplateBundleStates.delete(cacheKey);
     }
   };
+  const timeout = setTimeout(() => {
+    controller.abort(new DOMException("Template bundle download timed out", "TimeoutError"));
+  }, TEMPLATE_BUNDLE_TIMEOUT_MS);
   const promise = (async () => {
     await Promise.all(
       urls.map(async (relOrUrl, index) => {
         try {
           const bundleUrl = new URL(relOrUrl, moduleBaseUrl).href;
-          const response = await fetchFn(bundleUrl);
+          const response = await fetchFn(bundleUrl, { signal: controller.signal });
+          if (cachedTemplateBundleStates.get(cacheKey) !== state) return;
           if (!response.ok) {
             console.warn(
               `[SeedWorld] Template '${templateId}' binary shard ${index} failed (${response.status}): ${bundleUrl}`
@@ -381,6 +388,7 @@ export function loadSeedWorldTemplateBinaryBundles(
             }
           }
         } catch (error) {
+          if (cachedTemplateBundleStates.get(cacheKey) !== state) return;
           console.warn(
             `[SeedWorld] Template '${templateId}' binary shard ${index} load failed, falling back to per-file fetches`,
             error
@@ -395,11 +403,12 @@ export function loadSeedWorldTemplateBinaryBundles(
       return undefined;
     }
     return accumulated;
-  })();
+  })().finally(() => clearTimeout(timeout));
   state = {
     promise,
     accumulated,
     listeners,
+    controller,
     completedShards: 0,
     totalShards: urls.length,
     settled: false
@@ -431,6 +440,7 @@ export function releaseSeedWorldCommonBinaryBundle(): void {
   cachedCommonBundlePromise = undefined;
   cachedBuildingBundlePromise = undefined;
   for (const state of cachedTemplateBundleStates.values()) {
+    if (!state.settled) state.controller.abort();
     state.listeners.clear();
     state.accumulated.clear();
     state.settled = true;

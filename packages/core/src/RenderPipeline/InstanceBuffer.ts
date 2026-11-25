@@ -45,7 +45,7 @@ export class InstanceBuffer {
       this._data = new ArrayBuffer(totalBytes);
       this._floatView = new Float32Array(this._data);
       this._intView = new Int32Array(this._data);
-      // Ensure at least one correctly-sized buffer exists immediately for callers inspecting `.buffer`.
+      // Provide a correctly sized buffer immediately without disturbing the age order of the ring.
       if (this._pool.length === 0) {
         const initial = this._createSlotBuffer(totalBytes);
         this._pool.push(initial);
@@ -53,9 +53,10 @@ export class InstanceBuffer {
         this.buffer = initial;
       } else if (!this.buffer || this.buffer.byteLength < totalBytes) {
         const replacement = this._createSlotBuffer(totalBytes);
-        this._pool[0]?.destroy();
-        this._pool[0] = replacement;
-        this._poolLastFrame[0] = -InstanceBuffer._frameSafetyDistance;
+        const oldest = this._cursor;
+        this._pool[oldest].destroy();
+        this._pool[oldest] = replacement;
+        this._poolLastFrame[oldest] = -InstanceBuffer._frameSafetyDistance;
         this.buffer = replacement;
       }
     }
@@ -95,15 +96,8 @@ export class InstanceBuffer {
     }
 
     const currentFrame = this._engine.time.frameCount;
-    const { slot, needsDiscard } = this._acquireSlot(currentFrame);
-    this.buffer = slot;
-    slot.setData(
-      floatView,
-      0,
-      0,
-      count * elementsPerInstance,
-      needsDiscard ? SetDataOptions.Discard : SetDataOptions.None
-    );
+    const options = this._acquireSlot(currentFrame);
+    this.buffer.setData(floatView, 0, 0, count * elementsPerInstance, options);
   }
 
   destroy(): void {
@@ -126,51 +120,34 @@ export class InstanceBuffer {
     return buf;
   }
 
-  private _acquireSlot(currentFrame: number): { slot: Buffer; needsDiscard: boolean } {
+  private _acquireSlot(currentFrame: number): SetDataOptions {
     const pool = this._pool;
     const lastFrames = this._poolLastFrame;
-    const poolLen = pool.length;
+    const oldest = this._cursor;
     const requiredBytes = this._requiredBytes;
-    const safeDelta = InstanceBuffer._frameSafetyDistance;
+    const busy = currentFrame - lastFrames[oldest] < InstanceBuffer._frameSafetyDistance;
 
-    // 1. Check the ring starting from `_cursor` (O(1) fast path in steady state; full scan only on rare miss).
-    for (let step = 0; step < poolLen; step++) {
-      const idx = (this._cursor + step) % poolLen;
-      if (currentFrame - lastFrames[idx] >= safeDelta) {
-        let slot = pool[idx];
-        if (slot.byteLength < requiredBytes) {
-          slot.destroy();
-          slot = this._createSlotBuffer(requiredBytes);
-          pool[idx] = slot;
-        }
-        lastFrames[idx] = currentFrame;
-        this._cursor = (idx + 1) % poolLen;
-        return { slot, needsDiscard: false };
-      }
-    }
-
-    // 2. Grow pool lazily up to cap so consecutive frames never collide or orphan.
-    if (poolLen < InstanceBuffer._maxPoolSize) {
+    if (busy && pool.length < InstanceBuffer._maxPoolSize) {
       const slot = this._createSlotBuffer(requiredBytes);
-      pool.push(slot);
-      lastFrames.push(currentFrame);
-      return { slot, needsDiscard: false };
+      // The slot before the oldest is the tail of the logical ring, including after wraparound.
+      pool.splice(oldest, 0, slot);
+      lastFrames.splice(oldest, 0, currentFrame);
+      this._cursor = oldest + 1;
+      this.buffer = slot;
+      return SetDataOptions.None;
     }
 
-    // 3. Saturated cap fallback: rotate cursor and Discard-orphan to prevent write-after-read hazards.
-    const idx = this._cursor % poolLen;
-    let slot = pool[idx];
+    let slot = pool[oldest];
+    let options = busy ? SetDataOptions.Discard : SetDataOptions.None;
     if (slot.byteLength < requiredBytes) {
+      const replacement = this._createSlotBuffer(requiredBytes);
       slot.destroy();
-      slot = this._createSlotBuffer(requiredBytes);
-      pool[idx] = slot;
-      lastFrames[idx] = currentFrame;
-      this._cursor = (idx + 1) % poolLen;
-      return { slot, needsDiscard: false };
+      slot = pool[oldest] = replacement;
+      options = SetDataOptions.None;
     }
-    const needsDiscard = currentFrame - lastFrames[idx] < safeDelta;
-    lastFrames[idx] = currentFrame;
-    this._cursor = (idx + 1) % poolLen;
-    return { slot, needsDiscard };
+    lastFrames[oldest] = currentFrame;
+    this._cursor = (oldest + 1) % pool.length;
+    this.buffer = slot;
+    return options;
   }
 }
