@@ -127,7 +127,7 @@ export class PhysicsUtils {
   /** Return the bit index (0-31) of a single collision layer, throwing if multiple or no bits are set. */
   static getLayerIndex(layer: Layer): number {
     const index = 31 - Math.clz32(layer);
-    if (index < 0 || (1 << index) >>> 0 !== layer) {
+    if ((1 << index) >>> 0 !== layer) {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
     return index;

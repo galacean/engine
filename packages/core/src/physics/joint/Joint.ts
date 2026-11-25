@@ -119,7 +119,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   set connectedMassScale(value: number) {
-    if (typeof value !== "number" || !(value > 0 && Number.isFinite(Math.fround(1 / value)))) {
+    if (!(value > 0 && Number.isFinite(Math.fround(1 / value)))) {
       throw new Error("Joint connectedMassScale must be positive with a finite Float32 inverse.");
     }
     if (value !== this._connectedBodyInfo.massScale) {
@@ -142,7 +142,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   }
 
   set massScale(value: number) {
-    if (typeof value !== "number" || !(value > 0 && Number.isFinite(Math.fround(1 / value)))) {
+    if (!(value > 0 && Number.isFinite(Math.fround(1 / value)))) {
       throw new Error("Joint massScale must be positive with a finite Float32 inverse.");
     }
     if (value !== this._bodyInfo.massScale) {
@@ -323,7 +323,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     this._bodyInfo.anchor._onValueChanged = null;
     this._connectedBodyInfo.anchor._onValueChanged = null;
     super._onDestroy();
-    if (this._registeredScene) this._onDisableInScene();
+    this._onDisableInScene();
     this.entity._updateFlagManager.removeListener(this._onSelfTransformChanged);
     const connectedBody = this._connectedBody;
     if (connectedBody) {

@@ -1155,8 +1155,8 @@ export class PhysicsScene {
             let target1 = cur1;
             if (entry) {
               triggerReceivers.delete(key);
-              if (entry.receiver0 !== cur0 && entry.receiver0.entity !== cur0.entity) target0 = entry.receiver0;
-              if (entry.receiver1 !== cur1 && entry.receiver1.entity !== cur1.entity) target1 = entry.receiver1;
+              if (entry.receiver0.entity !== cur0.entity) target0 = entry.receiver0;
+              if (entry.receiver1.entity !== cur1.entity) target1 = entry.receiver1;
               entry.receiver0 = entry.receiver1 = null!;
               PhysicsScene._triggerReceiverPool.push(entry);
             }

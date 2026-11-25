@@ -32,13 +32,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private static readonly _tempVec1 = new Vector3();
   private static readonly _tempVec2 = new Vector3();
   private static _validateNonNegativeFloat32(value: number, name: string): void {
-    if (typeof value !== "number" || !(value >= 0 && Number.isFinite(Math.fround(value)))) {
+    if (!(value >= 0 && Number.isFinite(Math.fround(value)))) {
       throw new RangeError(`Rigidbody ${name} must be finite and nonnegative.`);
     }
   }
 
   private static _validateSpeedLimit(value: number): void {
-    if (typeof value !== "number" || !(value >= 0 && Number.isFinite(Math.fround(Math.fround(value) ** 2)))) {
+    if (!(value >= 0 && Number.isFinite(Math.fround(Math.fround(value) ** 2)))) {
       throw new RangeError("Rigidbody speed limit must be nonnegative with a finite Float32 square.");
     }
   }
@@ -194,7 +194,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set mass(value: number) {
-    if (typeof value !== "number" || (value !== 0 && !PhysicsUtils.isValidPositiveFloat32(value))) {
+    if (value !== 0 && !PhysicsUtils.isValidPositiveFloat32(value)) {
       throw new RangeError("Rigidbody mass must be zero or a positive, normal, finite Float32.");
     }
     if (this._mass !== value) {
@@ -527,7 +527,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @throws When density is not a positive normal Float32.
    */
   setDensity(density: number): boolean {
-    if (typeof density !== "number" || !PhysicsUtils.isValidPositiveFloat32(density)) {
+    if (!PhysicsUtils.isValidPositiveFloat32(density)) {
       throw new RangeError("Rigidbody density must be a positive, normal, finite Float32.");
     }
     const scene = this._registeredScene;
@@ -1035,7 +1035,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._centerOfMass._onValueChanged = this._inertiaTensor._onValueChanged = null;
     super._onDestroy();
     // During onDisable the Entity can already be inactive while this actor is still registered.
-    if (this._registeredScene) this._onDisableInScene();
+    this._onDisableInScene();
     this.entity._updateFlagManager.removeListener(this._onTransformChanged);
     const joints = this._joints;
     if (joints) {

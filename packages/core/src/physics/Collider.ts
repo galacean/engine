@@ -530,7 +530,7 @@ export class Collider extends Component {
     this._center._onValueChanged = null;
     super._onDestroy();
     // An earlier onDisable can destroy this collider before its scene unregistration runs.
-    if (this._registeredScene) this._onDisableInScene();
+    this._onDisableInScene();
     this.entity._updateFlagManager.removeListener(this._markDirty);
     this._destroyNative();
     this._staticActor?.destroy();
