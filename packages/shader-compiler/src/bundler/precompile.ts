@@ -67,6 +67,8 @@ export interface PrecompileOptions {
   emitIndex?: boolean;
   /** Generate raw-source indexes: `<input>/index.ts` (.shader) + sibling `ShaderLibrary/index.ts` (.glsl). */
   emitSources?: boolean;
+  /** Explicit GLSL library root for a staged shader tree. */
+  includeLibrary?: string;
   /** Optional shader platform target passed through to `precompile`. Defaults to GLSL ES 3.00. */
   platformTarget?: number;
 }
@@ -119,7 +121,7 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
   }
 
   const shaderCompiler = await loadShaderCompiler();
-  shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir));
+  shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir, options.includeLibrary));
 
   let failed = 0;
   if (options.only) {
@@ -151,7 +153,7 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
   }
   fs.mkdirSync(outputDir, { recursive: true });
   const shaderCompiler = await loadShaderCompiler();
-  shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir));
+  shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir, options.includeLibrary));
 
   // .glsl change → full recompile (can't cheaply track include graphs).
   // .shader change → single-file recompile.
@@ -163,7 +165,7 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
     if (norm.endsWith(".glsl")) {
       console.log(`[shader-compiler-bundler] Include changed (${norm}), full recompile...`);
       if (options.emitSources) emitSources(inputDir);
-      shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir));
+      shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir, options.includeLibrary));
       const failed = compileAll(shaderCompiler, inputDir, outputDir, platformTarget, options.clean);
       if (options.emitIndex) emitIndex(outputDir);
       if (failed > 0) console.error(`[shader-compiler-bundler] ${failed} shader(s) failed to precompile.`);
@@ -231,12 +233,21 @@ async function importReleasePrecompiler(): Promise<unknown> {
 
 // Local .glsl come from inputDir; standard library comes from
 // `@galacean/engine-shader/sources` with a sibling-dir fallback for engine self-build cold-start.
-async function collectIncludeMap(inputDir: string): Promise<Record<string, string>> {
+async function collectIncludeMap(inputDir: string, includeLibrary?: string): Promise<Record<string, string>> {
   const map = Object.create(null) as Record<string, string>;
 
   for (const file of findFiles(inputDir, ".glsl")) {
     const relPath = normalizePath(path.relative(inputDir, file));
     addIncludeSource(map, relPath, fs.readFileSync(file, "utf-8"));
+  }
+
+  if (includeLibrary) {
+    const library = path.resolve(includeLibrary);
+    if (!fs.statSync(library).isDirectory()) {
+      throw new Error(`Shader include library is not a directory: ${library}`);
+    }
+    addLibrarySources(map, library);
+    return map;
   }
 
   // Resolve from inputDir's node_modules so consumers without transitive linkage to shader-compiler can still find it.
@@ -258,14 +269,18 @@ async function collectIncludeMap(inputDir: string): Promise<Record<string, strin
     // Engine self-build cold-start has no generated sources entry yet.
     const siblingLibrary = path.join(path.dirname(inputDir), "ShaderLibrary");
     if (fs.existsSync(siblingLibrary)) {
-      for (const file of findFiles(siblingLibrary, ".glsl")) {
-        const rel = normalizePath(path.relative(siblingLibrary, file));
-        addIncludeSource(map, `ShaderLibrary/${rel}`, fs.readFileSync(file, "utf-8"));
-      }
+      addLibrarySources(map, siblingLibrary);
     }
   }
 
   return map;
+}
+
+function addLibrarySources(map: Record<string, string>, library: string): void {
+  for (const file of findFiles(library, ".glsl")) {
+    const rel = normalizePath(path.relative(library, file));
+    addIncludeSource(map, `ShaderLibrary/${rel}`, fs.readFileSync(file, "utf-8"));
+  }
 }
 
 function addIncludeSource(map: Record<string, string>, key: string, source: string): void {
