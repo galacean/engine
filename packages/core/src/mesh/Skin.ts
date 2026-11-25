@@ -10,18 +10,28 @@ import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
  * Skin used for skinned mesh renderer.
  */
 export class Skin extends DataObject {
-  /** Inverse bind matrices. */
-  inverseBindMatrices = new Array<Matrix>();
-
   /** @internal */
   _skinMatrices: Float32Array;
   /** @internal */
   _updatedManager = new UpdateFlagManager();
 
+  private _inverseBindMatrices = new Array<Matrix>();
   private _rootBone: Entity;
   private _bones = new Array<Entity>();
   @ignoreClone
   private _updateMark = -1;
+
+  /**
+   * Inverse bind matrices.
+   */
+  get inverseBindMatrices(): Matrix[] {
+    return this._inverseBindMatrices;
+  }
+
+  set inverseBindMatrices(value: Matrix[]) {
+    this._inverseBindMatrices = value;
+    this._updatedManager.dispatch(SkinUpdateFlag.InverseBindMatricesChanged, value);
+  }
 
   /**
    * Root bone.
@@ -32,8 +42,8 @@ export class Skin extends DataObject {
 
   set rootBone(value: Entity) {
     if (this._rootBone !== value) {
-      this._updatedManager.dispatch(SkinUpdateFlag.RootBoneChanged, value);
       this._rootBone = value;
+      this._updatedManager.dispatch(SkinUpdateFlag.RootBoneChanged, value);
     }
   }
 
@@ -48,15 +58,23 @@ export class Skin extends DataObject {
     const bones = this._bones;
     const boneCount = value?.length ?? 0;
     const lastBoneCount = bones.length;
+    let bonesChanged = lastBoneCount !== boneCount;
 
     bones.length = boneCount;
     for (let i = 0; i < boneCount; i++) {
-      bones[i] = value[i];
+      const bone = value[i];
+      if (bones[i] !== bone) {
+        bonesChanged = true;
+      }
+      bones[i] = bone;
     }
 
     if (lastBoneCount !== boneCount) {
       this._skinMatrices = new Float32Array(boneCount * 16);
       this._updatedManager.dispatch(SkinUpdateFlag.BoneCountChanged, boneCount);
+    }
+    if (bonesChanged) {
+      this._updatedManager.dispatch(SkinUpdateFlag.BonesChanged, bones);
     }
   }
 
@@ -106,5 +124,7 @@ export class Skin extends DataObject {
 
 export enum SkinUpdateFlag {
   BoneCountChanged,
-  RootBoneChanged
+  RootBoneChanged,
+  BonesChanged,
+  InverseBindMatricesChanged
 }

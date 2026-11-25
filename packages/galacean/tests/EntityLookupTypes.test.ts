@@ -7,7 +7,7 @@ import { expect, it } from "vitest";
 it("checks nullable public declarations", { timeout: 30_000 }, () => {
   const fileName = fileURLToPath(new URL("../../../tests/entity-lookup-types.ts", import.meta.url));
   const source = `
-import { AnimationRefCurve, AnimatorState, BloomEffect, Component, DirectLight, Entity, Keyframe, ModelMesh, PostProcess, ReferResource, Scene, SceneManager, Shader } from "@galacean/engine";
+import { AnimationRefCurve, AnimatorState, BloomEffect, BoundingBox, Component, DirectLight, Entity, Keyframe, ModelMesh, PostProcess, ReferResource, Scene, SceneManager, Shader, SkinnedMeshRenderer } from "@galacean/engine";
 declare const entity: Entity;
 declare const scene: Scene;
 declare const component: Component;
@@ -24,6 +24,12 @@ const sun: DirectLight | null | undefined = scene.sun;
 declare const mesh: ModelMesh;
 declare const volume: PostProcess;
 declare const state: AnimatorState;
+declare const skinnedMeshRenderer: SkinnedMeshRenderer;
+const localBounds: BoundingBox = skinnedMeshRenderer.localBounds;
+localBounds.min;
+skinnedMeshRenderer.localBounds = localBounds;
+skinnedMeshRenderer.localBounds = null;
+skinnedMeshRenderer.localBounds = undefined;
 const positions = mesh.getPositions();
 positions?.length;
 const effect = volume.addEffect(BloomEffect);
