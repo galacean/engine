@@ -20,7 +20,7 @@ const OIL_PAINT_POST_SHADER_NAME = "PostProcess/OilPaint";
  * Runs 1:1 at native display resolution directly from `srcTexture` -> `destTarget` (+1 draw call total!):
  * - Paints ALL pixels including sky & clouds harmoniously (zero DepthPrePass overhead, zero sky/forest mismatch)
  * - Fast sqrt() perceptual space (zero pow(), zero exp(), ~5x faster than pow(1/2.2))
- * - 13-tap 4-quadrant Kuwahara with exact variance^4 == sigma^8 sharpness
+ * - 5-tap rotated 4-quadrant Kuwahara with exact variance^4 == sigma^8 sharpness
  * - Zero-extra-tap Laplacian thin-detail guard keeps 1-2px animal eyes, antlers & diamond window mullions 100% sharp
  * - Zero-extra-tap native impasto paint-edge ridge & gallery oil varnish glaze.
  */
@@ -86,47 +86,42 @@ export const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
         float radiusPx = brushRadius720 * max(shortEdge / 720.0, 0.5);
 
         if ((painterlyStrength > 0.001 || screenImpasto > 0.001) && radiusPx > 0.5) {
-          vec2 r1 = texel * max(1.0, radiusPx * 0.45);
-          vec2 r2 = texel * max(1.5, radiusPx * 0.80);
-          vec2 r3 = texel * max(2.2, radiusPx * 1.15);
+          vec2 r = texel * max(1.2, radiusPx * 0.72);
+          // 4 rotated-cross neighbor fetches (5 taps total incl. center, -62% 4K bandwidth vs 13-tap, -44% vs 9-tap!)
+          // 20-deg rotated orthogonal arms leverage hardware bilinear filtering and avoid axis-aligned grid artifacts.
+          vec2 d0 = vec2( r.x * 0.94, -r.y * 0.34);
+          vec2 d1 = vec2(-r.x * 0.34, -r.y * 0.94);
 
-          // 12 neighbor fetches (13 taps total incl. center, ZERO extra RenderTargets, ZERO DepthTexture!)
-          vec3 cE1 = fetchPerceptual(uv + vec2( r1.x,  0.0));
-          vec3 cW1 = fetchPerceptual(uv + vec2(-r1.x,  0.0));
-          vec3 cN1 = fetchPerceptual(uv + vec2( 0.0, -r1.y));
-          vec3 cS1 = fetchPerceptual(uv + vec2( 0.0,  r1.y));
+          vec3 c0A = fetchPerceptual(uv + d0);
+          vec3 c1A = fetchPerceptual(uv + d1);
+          vec3 c2A = fetchPerceptual(uv - d0);
+          vec3 c3A = fetchPerceptual(uv - d1);
 
-          vec3 cNE = fetchPerceptual(uv + vec2( r2.x, -r2.y));
-          vec3 cNW = fetchPerceptual(uv + vec2(-r2.x, -r2.y));
-          vec3 cSW = fetchPerceptual(uv + vec2(-r2.x,  r2.y));
-          vec3 cSE = fetchPerceptual(uv + vec2( r2.x,  r2.y));
-
-          vec3 cE3 = fetchPerceptual(uv + vec2( r3.x,  0.0));
-          vec3 cW3 = fetchPerceptual(uv + vec2(-r3.x,  0.0));
-          vec3 cN3 = fetchPerceptual(uv + vec2( 0.0, -r3.y));
-          vec3 cS3 = fetchPerceptual(uv + vec2( 0.0,  r3.y));
-
-          // 4 overlapping Kuwahara quadrants (weights: center 0.5 + 2*inner 1.0 + diag 1.0 + 2*outer 0.75 = 5.0 -> *0.2)
+          // 4 overlapping 3-tap Kuwahara quadrants (weights: center 0.5 + 2*arm 1.0 = 2.5 -> * 0.4)
           vec3 c0Half = c0 * 0.5;
           vec3 c02Half = c0 * c0 * 0.5;
+          vec3 c0A2 = c0A * c0A;
+          vec3 c1A2 = c1A * c1A;
+          vec3 c2A2 = c2A * c2A;
+          vec3 c3A2 = c3A * c3A;
 
-          vec3 m0 = (c0Half + cE1 + cN1 + cNE + (cE3 + cN3) * 0.75) * 0.2;
-          vec3 s0 = (c02Half + cE1 * cE1 + cN1 * cN1 + cNE * cNE + (cE3 * cE3 + cN3 * cN3) * 0.75) * 0.2;
+          vec3 m0 = (c0Half + c0A + c1A) * 0.4;
+          vec3 s0 = (c02Half + c0A2 + c1A2) * 0.4;
           vec3 dv0 = max(s0 - m0 * m0, vec3(0.0));
           float var0 = dv0.r + dv0.g + dv0.b;
 
-          vec3 m1 = (c0Half + cW1 + cN1 + cNW + (cW3 + cN3) * 0.75) * 0.2;
-          vec3 s1 = (c02Half + cW1 * cW1 + cN1 * cN1 + cNW * cNW + (cW3 * cW3 + cN3 * cN3) * 0.75) * 0.2;
+          vec3 m1 = (c0Half + c1A + c2A) * 0.4;
+          vec3 s1 = (c02Half + c1A2 + c2A2) * 0.4;
           vec3 dv1 = max(s1 - m1 * m1, vec3(0.0));
           float var1 = dv1.r + dv1.g + dv1.b;
 
-          vec3 m2 = (c0Half + cW1 + cS1 + cSW + (cW3 + cS3) * 0.75) * 0.2;
-          vec3 s2 = (c02Half + cW1 * cW1 + cS1 * cS1 + cSW * cSW + (cW3 * cW3 + cS3 * cS3) * 0.75) * 0.2;
+          vec3 m2 = (c0Half + c2A + c3A) * 0.4;
+          vec3 s2 = (c02Half + c2A2 + c3A2) * 0.4;
           vec3 dv2 = max(s2 - m2 * m2, vec3(0.0));
           float var2 = dv2.r + dv2.g + dv2.b;
 
-          vec3 m3 = (c0Half + cE1 + cS1 + cSE + (cE3 + cS3) * 0.75) * 0.2;
-          vec3 s3 = (c02Half + cE1 * cE1 + cS1 * cS1 + cSE * cSE + (cE3 * cE3 + cS3 * cS3) * 0.75) * 0.2;
+          vec3 m3 = (c0Half + c3A + c0A) * 0.4;
+          vec3 s3 = (c02Half + c3A2 + c0A2) * 0.4;
           vec3 dv3 = max(s3 - m3 * m3, vec3(0.0));
           float var3 = dv3.r + dv3.g + dv3.b;
 
@@ -140,9 +135,9 @@ export const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
           vec3 kuw = (m0 * ew0 + m1 * ew1 + m2 * ew2 + m3 * ew3) / max(ew0 + ew1 + ew2 + ew3, 1e-5);
 
           // Laplacian micro-detail guard (0 extra taps):
-          // Thin 1-2px isolated features (animal eyes, antlers, diamond window mullions) have high |c0 - avg(cardinals)|^2
+          // Thin 1-2px isolated features (animal eyes, antlers, diamond window mullions) have high |c0 - avg(arms)|^2
           // whereas clouds, sky, foliage canopies, roofs, walls & hills have smooth/step edges and receive full oil painting!
-          vec3 avgCard = (cE1 + cW1 + cN1 + cS1) * 0.25;
+          vec3 avgCard = (c0A + c1A + c2A + c3A) * 0.25;
           vec3 lapDiff = c0 - avgCard;
           float lap = dot(lapDiff, lapDiff);
           float thinGuard = 1.0 - clamp((lap - 0.008) / 0.032, 0.0, 1.0);
