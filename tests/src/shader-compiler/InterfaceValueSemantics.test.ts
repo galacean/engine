@@ -62,9 +62,21 @@ const cases: {
   paths?: CompilationPath[];
 }[] = [
   {
-    name: "varying members keep source names when no global uses them",
-    source: valueShader("Varyings v; float a = 0.25; v.a = a; return v;"),
+    name: "varying members keep source names when no global or local uses them",
+    source: valueShader("Varyings v; float localVal = 0.25; v.a = localVal; return v;"),
     outputName: "a",
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "varying members rename to avoid shadowing function-local variables of another type",
+    source: valueShader("Varyings v; vec4 a = vec4(0.25); v.a = a.x; return v;"),
+    outputName: "a_1",
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "varying members rename to avoid shadowing function parameters of another type",
+    source: valueShader("Varyings v; v.a = extractVal(vec4(0.25)); return v;", "float extractVal(vec4 a) { return a.x; }"),
+    outputName: "a_1",
     pixel: [64, 0, 0, 255]
   },
   {
@@ -497,7 +509,9 @@ describe.runIf(typeof document !== "undefined")("interface value semantics on We
         )!.source;
         const renamed = compile(renamedSource, target, path, compiler, precompiler);
         expect(renamed.vertexOutputNames).toEqual({ a: "a_1" });
-        expect(compile(positionCollision, target, path, compiler, precompiler).vertexOutputNames).toBeUndefined();
+        expect(compile(positionCollision, target, path, compiler, precompiler).vertexOutputNames).toEqual({
+          position: "position_1"
+        });
         const repeated = compile(source, target, path, compiler, precompiler);
         expect(JSON.stringify([repeated.vertexShaderInstructions, repeated.fragmentShaderInstructions])).toBe(expected);
         expect(repeated.vertexOutputNames).toBeUndefined();

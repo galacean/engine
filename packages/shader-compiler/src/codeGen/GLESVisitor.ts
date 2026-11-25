@@ -36,6 +36,8 @@ import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
 export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend, IPoolElement {
   /** Names of pass-scope declarations, which stage-interface globals must not redeclare. */
   private readonly _globalNames = new Set<string>();
+  /** Names of function-local variables and parameters; varyings avoid them to prevent driver shadowing bugs (e.g. Maleoon 910). */
+  private readonly _localNames = new Set<string>();
   /** Interface type and variable tokens whose source names GLSL ES rejects. */
   private readonly _escapedDeclarations = new Map<BaseToken, string>();
   private _vertexOutputNames?: Record<string, string>;
@@ -82,6 +84,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this.context.reset();
     this.context.names.reset();
     this._globalNames.clear();
+    this._localNames.clear();
     this._escapedDeclarations.clear();
     this._vertexOutputNames = undefined;
     this.reset();
@@ -116,6 +119,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this.context.reset();
     this.context.names.reset();
     this._globalNames.clear();
+    this._localNames.clear();
     this._escapedDeclarations.clear();
     this._vertexOutputNames = undefined;
     this.reset();
@@ -130,6 +134,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       hasUnsafeIdentifier ||= isUnsafeGLSLIdentifier(name);
     }
     shaderData.symbolTable.forEach((symbol) => this._globalNames.add(symbol.ident));
+    this._collectLocalNames(node);
 
     const outerGlobalMacroDeclarations = coreInfo.outerGlobalMacroDeclarations;
     const { io } = coreInfo;
@@ -235,6 +240,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       context.onReferenceStructProps = undefined;
       this._fragmentVaryingProps.clear();
       this._globalNames.clear();
+      this._localNames.clear();
       this._escapedDeclarations.clear();
       this._vertexOutputNames = undefined;
       context.reset();
@@ -346,8 +352,11 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     const sameName = (item: StructProp) => item.ident.lexeme === name;
     const conflicts =
       this._globalNames.has(name) ||
-      // Vertex attributes and fragment outputs share a stage scope with varyings.
-      (!isOutput && (context.attributeList.some(sameName) || context.mrtList.some(sameName)));
+      // Vertex attributes, fragment outputs, and function-local/parameter names must not collide with
+      // generated varying globals (some mobile GLSL ES drivers such as Maleoon 910 reject local shadowing
+      // of a global `out` varying with a different type).
+      (!isOutput &&
+        (this._localNames.has(name) || context.attributeList.some(sameName) || context.mrtList.some(sameName)));
     const key = `${isOutput ? "output" : "varying"}:${name}`;
     const generated = isUnsafeGLSLIdentifier(name)
       ? context.names.sourceName(key, name)
@@ -379,6 +388,18 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     return structs?.length && this.context.getStructRole(structs)
       ? this.context.names.sourceName(`variable:${name}`, name)
       : name;
+  }
+
+  private _collectLocalNames(node: TreeNode): void {
+    if (node instanceof ASTNode.ParameterDeclarator) {
+      if (node.ident) this._localNames.add(node.ident.lexeme);
+    } else if (node instanceof ASTNode.SingleDeclaration || node instanceof ASTNode.InitDeclaratorList) {
+      const ident = node.declarator?.identifier;
+      if (ident) this._localNames.add(ident.lexeme);
+    }
+    for (const child of node.children) {
+      if (child instanceof TreeNode) this._collectLocalNames(child);
+    }
   }
 
   private _collectEscapedDeclarations(node: TreeNode): void {
