@@ -33,7 +33,7 @@ export class GLTFAnimatorControllerParser extends GLTFParser {
   ): AnimatorController {
     const { glTFResource } = context;
     const engine = glTFResource.engine;
-    const animatorController = new AnimatorController(engine);
+    const animatorController = context._trackResource(new AnimatorController(engine));
     const layer = new AnimatorControllerLayer("layer");
     const animatorStateMachine = new AnimatorStateMachine();
     animatorController.addLayer(layer);

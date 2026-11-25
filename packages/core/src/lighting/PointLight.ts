@@ -22,8 +22,22 @@ export class PointLight extends Light {
     shaderData.setFloatArray(PointLight._distanceProperty, data.distance);
   }
 
-  /** Defines a distance cutoff at which the light's intensity must be considered zero. */
-  distance: number = 100;
+  private _distance: number = 100;
+
+  /**
+   * Maximum range of the light in world units, where distance attenuation reaches zero.
+   * @remarks
+   * Set to `Infinity` (or a value exceeding 32-bit float range) for unlimited inverse-square falloff.
+   * Values `<= 0` fall back to `1e-4`.
+   * @defaultValue `100`
+   */
+  get distance(): number {
+    return this._distance || Infinity;
+  }
+
+  set distance(value: number) {
+    this._distance = Light._encodeDistance(value);
+  }
 
   /**
    * Get light position.
@@ -53,7 +67,8 @@ export class PointLight extends Light {
     data.position[positionStart] = position.x;
     data.position[positionStart + 1] = position.y;
     data.position[positionStart + 2] = position.z;
-    data.distance[distanceStart] = this.distance;
+
+    data.distance[distanceStart] = this._distance;
   }
 
   /**
@@ -81,6 +96,6 @@ export interface IPointLightShaderData {
   color: Float32Array;
   // Light position.
   position: Float32Array;
-  // Defines a distance cutoff at which the light's intensity must be considered zero.
+  // Light cutoff distance in world units (0 encodes unlimited range)
   distance: Float32Array;
 }

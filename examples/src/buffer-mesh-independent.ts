@@ -71,7 +71,8 @@ async function main() {
   // Create light.
   const lightEntity = rootEntity.createChild("pointLight");
   const pointLight = lightEntity.addComponent(PointLight);
-  pointLight.distance = 10;
+  pointLight.distance = 20;
+  pointLight.color.set(40, 40, 40, 1);
   lightEntity.transform.setPosition(2, 5, 5);
   // Create camera.
   const cameraEntity = rootEntity.createChild("Camera");

@@ -131,6 +131,19 @@ describe("Quaternion test", () => {
     expect(toString(out)).to.eq("quat(0.75, 0.75, 0.75, 0.5)");
   });
 
+  it("slerps between unit quaternions with a zero dot product", () => {
+    const start = new Quaternion();
+    const end = new Quaternion(0, 1, 0, 0);
+    const out = new Quaternion();
+    expect(Quaternion.dot(start, end)).to.eq(0);
+
+    Quaternion.slerp(start, end, 0.5, out);
+    expect(Quaternion.equals(out, new Quaternion(0, Math.SQRT1_2, 0, Math.SQRT1_2))).to.eq(true);
+
+    Quaternion.slerp(start, end, 1, out);
+    expect(Quaternion.equals(out, end)).to.eq(true);
+  });
+
   it("static normalize", () => {
     const a = new Quaternion(3, 4, 0, 0);
     const out = new Quaternion();
@@ -284,5 +297,23 @@ describe("Quaternion test", () => {
     const a = new Quaternion(3, 4, 5, 0);
     expect(MathUtil.equals(Math.sqrt(50), a.length())).to.eq(true);
     expect(a.lengthSquared()).to.eq(50);
+  });
+
+  it("slerp should trigger _onValueChanged once", () => {
+    const start = new Quaternion(0, 0, 0, 1);
+    const end = new Quaternion(0, Math.SQRT1_2, 0, Math.SQRT1_2);
+    const out = new Quaternion();
+    let calls = 0;
+    // @ts-ignore
+    out._onValueChanged = () => calls++;
+
+    Quaternion.slerp(start, end, 0.5, out);
+    expect(calls).to.eq(1);
+    expect(MathUtil.equals(out.length(), 1)).to.eq(true);
+
+    // Aliasing: out === start
+    Quaternion.slerp(out, end, 0.5, out);
+    expect(calls).to.eq(2);
+    expect(MathUtil.equals(out.length(), 1)).to.eq(true);
   });
 });

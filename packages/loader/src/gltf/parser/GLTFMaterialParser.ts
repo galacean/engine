@@ -182,13 +182,16 @@ export class GLTFMaterialParser extends GLTFParser {
     );
 
     if (!material) {
-      material = new PBRMaterial(engine);
+      material = context._trackResource(new PBRMaterial(engine));
       material.name = materialInfo.name!;
       GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
     }
 
     return AssetPromise.resolve(material).then((material) => {
-      material ||= engine._basicResources._getBlinnPhongMaterial();
+      if (context._aborted) throw "canceled";
+      if (!material) {
+        return engine._basicResources._getBlinnPhongDefaultMaterial();
+      }
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, material, materialInfo);
       material._associationSuperResource(glTFResource);
       return material;
