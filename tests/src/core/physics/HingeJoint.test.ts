@@ -119,7 +119,9 @@ describe("HingeJoint", function () {
     const curve = new AnimationVector3Curve();
     curve.addKey({ time: 0, value: new Vector3(0, 2, 0) });
     clip.addCurveBinding("", HingeJoint, "axis", curve);
+    const previousAxis = joint.axis;
     clip.sampleAnimation(boxEntity, 0);
+    expect(previousAxis).toMatchObject({ x: 1, y: 0, z: 0 });
     expect(joint.axis).toMatchObject({ x: 0, y: 1, z: 0 });
     expect(formatValue(joint.angle)).eq(0);
 
@@ -127,6 +129,8 @@ describe("HingeJoint", function () {
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(joint.velocity)).eq(6.89082);
     expect(formatValue(joint.angle)).eq(6.58019);
+    const angularVelocity = collider2.angularVelocity;
+    expect(angularVelocity.y / angularVelocity.length()).toBeCloseTo(1, 4);
   });
 
   it("hardLimit", function () {
@@ -544,6 +548,7 @@ describe("HingeJoint", function () {
     joint.motor.targetVelocity = 4;
     joint.useMotor = true;
     engine.sceneManager.activeScene.physics._update(1 / 60);
+    joint.enabled = false;
     expect(Math.abs(joint.angle)).toBeGreaterThan(0);
     expect(Math.abs(joint.velocity)).toBeGreaterThan(0);
 
