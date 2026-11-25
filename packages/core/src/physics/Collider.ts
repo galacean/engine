@@ -274,6 +274,8 @@ export class Collider extends Component {
    * @internal
    */
   override _onEnableInScene(): void {
+    // An earlier onEnable in the same batch can already have destroyed this collider.
+    if (this.destroyed) return;
     this._registeredScene = this.scene!;
     this._markDirty();
   }
@@ -299,6 +301,8 @@ export class Collider extends Component {
     const transform = this.entity.transform;
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
     const worldMatrix = transform.worldMatrix;
+    // onDisable can query a shape after reparenting, before its former actor releases it.
+    if (!this.entity._isActiveInScene && this._findRigidbody() !== this._attachedBody) return;
     if (poseOnly) {
       const body = this._attachedBody;
       if (body) {

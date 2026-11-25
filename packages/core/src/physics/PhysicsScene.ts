@@ -893,10 +893,7 @@ export class PhysicsScene {
     while (dirtyColliders.length) {
       const collider = dirtyColliders.pop()!;
       collider._dirtyIndex = -1;
-      // onDisable can query after the Entity leaves the hierarchy. Its Collider will detach in its own callback.
-      if (collider.entity._isActiveInScene) {
-        collider._sync();
-      }
+      collider._sync();
     }
     if (syncMass) {
       const massDirtyBodies = this._massDirtyBodies;

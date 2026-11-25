@@ -162,6 +162,26 @@ describe("MeshCollider", () => {
     }
   );
 
+  it("keeps a pending mesh queryable after an onDisable callback reparents it", () => {
+    const group = root.createChild("group");
+    const meshEntity = group.createChild("mesh");
+    const ray = rayAt(0);
+    const collider = meshEntity.addComponent(MeshCollider);
+    collider.mesh = createCubeMesh(engine);
+    group.createChild("driver").addComponent(
+      class extends Script {
+        override onDisable(): void {
+          physics.raycast(ray);
+          root.addChild(meshEntity);
+        }
+      }
+    );
+
+    group.isActive = false;
+    const hit = new HitResult();
+    expect(physics.raycast(ray, hit) && hit.collider === collider).toBe(true);
+  });
+
   it("shares a cook across instances of a loaded prefab", async () => {
     const meshUrl = URL.createObjectURL(
       new Blob(

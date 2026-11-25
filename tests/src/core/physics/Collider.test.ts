@@ -143,7 +143,27 @@ describe("Collider", () => {
     expect(physics.overlapSphereAll(new Vector3(10, 0, 0), 0.1)).toEqual([childCollider]);
   });
 
-  it.each([true, false])("allows queries while removing a moved child (script first=%s)", (scriptFirst) => {
+  it("keeps a collider destroyed by an earlier onEnable out of queries", () => {
+    const child = new Entity(engine);
+    child.addComponent(
+      class extends Script {
+        override onEnable(): void {
+          box.destroy();
+        }
+      }
+    );
+    const box = child.addComponent(BoxCollider);
+    root.addChild(child);
+
+    expect(child.getComponent(BoxCollider)).toBeNull();
+    expect(physics.raycast(new Ray(new Vector3(0, 0, 4), new Vector3(0, 0, -1)), new HitResult())).toBe(false);
+  });
+
+  it.each([
+    [true, false],
+    [false, false],
+    [true, true]
+  ])("allows queries while removing a moved child (script first=%s, center edited=%s)", (scriptFirst, editCenter) => {
     root.addComponent(Rigidbody).isKinematic = true;
     const ray = new Ray(new Vector3(0, 0, 4), new Vector3(0, 0, -1));
     let hitDuringDisable: unknown;
@@ -162,6 +182,7 @@ describe("Collider", () => {
     try {
       expect(physics.raycast(ray)).toBe(true);
       child.transform.position.z = 1;
+      if (editCenter) child.getComponent(BoxCollider)!.center.x = 4;
       root.removeChild(child);
       expect(hitDuringDisable).toBe(scriptFirst);
       expect(child.scene).toBeNull();
