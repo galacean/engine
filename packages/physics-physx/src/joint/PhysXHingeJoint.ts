@@ -1,5 +1,5 @@
 import { IHingeJoint } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { MathUtil, Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXActor } from "../PhysXActor";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
@@ -8,6 +8,12 @@ import { PhysXJoint } from "./PhysXJoint";
  * PhysX revolute joint.
  */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
+  private static _clampLimit(angle: number): number {
+    // Largest Float32 strictly below PhysX's open limit of two pi radians.
+    const max = 6.283185005187988;
+    return MathUtil.clamp(angle, -max, max);
+  }
+
   private _anchor: Vector3;
   private _axisRotationQuaternion = new Quaternion();
   private _connectedAxisRotationQuaternion = new Quaternion();
@@ -83,21 +89,31 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    * {@inheritDoc IHingeJoint.setHardLimit }
    */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number): void {
-    this._pxJoint.setHardLimit(lowerLimit, upperLimit, contactDist, 0);
+    this._pxJoint.setHardLimit(
+      PhysXHingeJoint._clampLimit(lowerLimit),
+      PhysXHingeJoint._clampLimit(upperLimit),
+      contactDist,
+      0
+    );
   }
 
   /**
    * {@inheritDoc IHingeJoint.setSoftLimit }
    */
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void {
-    this._pxJoint.setSoftLimit(lowerLimit, upperLimit, stiffness, damping);
+    this._pxJoint.setSoftLimit(
+      PhysXHingeJoint._clampLimit(lowerLimit),
+      PhysXHingeJoint._clampLimit(upperLimit),
+      stiffness,
+      damping
+    );
   }
 
   /**
    * {@inheritDoc IHingeJoint.setDriveVelocity }
    */
   setDriveVelocity(velocity: number): void {
-    this._pxJoint.setDriveVelocity(velocity, false);
+    this._pxJoint.setDriveVelocity(MathUtil.clamp(velocity, -PhysXJoint._maxFloat32, PhysXJoint._maxFloat32), false);
   }
 
   /**

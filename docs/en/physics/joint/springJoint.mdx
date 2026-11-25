@@ -48,7 +48,7 @@ The connection target must be a [Rigidbody](/en/docs/physics/collider/rigidbody)
   The minimum allowed distance. When the distance between objects is less than this value, the joint applies a pushing force.
 
 - [**maxDistance**](/apis/core/#SpringJoint-maxDistance)  
-  The maximum allowed distance. When the distance between objects exceeds this value, the joint applies a pulling force.
+  The maximum allowed distance. When the distance between objects exceeds this value, the joint applies a pulling force. Set it to `Infinity` to remove the upper distance bound.
 
 - [**tolerance**](/apis/core/#SpringJoint-tolerance)  
   The tolerance range value, default is 0.25. This value determines when the joint starts to apply constraint forces:

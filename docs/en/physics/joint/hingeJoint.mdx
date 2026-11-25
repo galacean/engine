@@ -62,6 +62,8 @@ The connection target must be a [Rigidbody](/en/docs/physics/collider/rigidbody)
 | **stiffness**   | Spring stiffness (only effective when useSpring is true)                           |
 | **damping**     | Damping coefficient (only effective when useSpring is true)                           |
 
+PhysX applies each angular limit within its open range of −360° to 360°. The properties retain the values you set.
+
 ### Motor Drive
 - [**useMotor**](/apis/core/#HingeJoint-useMotor)  
   Whether to enable the motor function. When enabled, the hinge can be actively driven to rotate.
@@ -71,7 +73,7 @@ The connection target must be a [Rigidbody](/en/docs/physics/collider/rigidbody)
 
 | Property            | Description                                                                 |
 | --------------- | -------------------------------------------------------------------- |
-| **targetVelocity** | Target angular velocity (radians/second)                                               |
+| **targetVelocity** | Target angular velocity (radians/second). Use `Infinity` or `-Infinity` for continuous drive in the chosen direction, subject to the force limit. |
 | **forceLimit**  | Maximum torque limit                                                        |
 | **freeSpin**    | Whether to allow free spin                                                    |
 | **gearRatio**   | Gear ratio, used to adjust the actual output angular velocity                                    |

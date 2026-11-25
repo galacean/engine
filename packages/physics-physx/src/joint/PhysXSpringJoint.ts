@@ -34,7 +34,7 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
    * {@inheritDoc ISpringJoint.setMaxDistance }
    */
   setMaxDistance(distance: number): void {
-    this._pxJoint.setMaxDistance(distance);
+    this._pxJoint.setMaxDistance(Math.min(distance, PhysXJoint._maxFloat32));
   }
 
   /**

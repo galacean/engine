@@ -199,6 +199,22 @@ describe("SpringJoint", function () {
     expect(newBox.transform.position.x).eq(6);
   });
 
+  it("removes a finite distance limit when maxDistance is set to Infinity", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+    const box = addBox(new Vector3(1, 1, 1), new Vector3());
+    const joint = box.addComponent(SpringJoint);
+    joint.stiffness = 10000;
+    joint.damping = 32;
+    joint.tolerance = 0;
+    joint.maxDistance = 1;
+    joint.maxDistance = Infinity;
+    box.getComponent(Rigidbody)!.linearVelocity.set(8, 0, 0);
+    physics._update(0.5);
+    expect(box.transform.worldPosition.x).toBeGreaterThan(3.5);
+    expect(joint.maxDistance).toBe(Infinity);
+  });
+
   it("applies spring settings configured while inactive when the Entity enters simulation", function () {
     engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
     const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));

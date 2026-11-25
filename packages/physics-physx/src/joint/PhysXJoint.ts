@@ -6,6 +6,7 @@ import { PhysXActor } from "../PhysXActor";
  * Shared actor frames and constraint settings for PhysX joints.
  */
 export class PhysXJoint implements IJoint {
+  protected static readonly _maxFloat32 = 3.4028234663852886e38;
   protected static _defaultVec = new Vector3();
   protected static _defaultQuat = new Quaternion();
 

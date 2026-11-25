@@ -1,4 +1,4 @@
-import { Quaternion, Vector3, type Vector3Like } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector3, type Vector3Like } from "@galacean/engine-math";
 import type { Entity } from "../Entity";
 import type { Layer } from "../Layer";
 
@@ -6,6 +6,12 @@ import type { Layer } from "../Layer";
  * @internal
  */
 export class PhysicsUtils {
+  private static readonly _columns = [new Vector3(), new Vector3(), new Vector3()];
+  private static readonly _cofactors = [new Vector3(), new Vector3(), new Vector3()];
+  private static readonly _localCofactors = new Float64Array(12);
+  private static readonly _trsMatrix = new Matrix();
+  private static readonly _frameRotation = new Quaternion();
+
   /** Compare positions submitted directly as native Float32 vectors. */
   static differsF32(a: Vector3, b: Vector3): boolean {
     return (
@@ -59,112 +65,63 @@ export class PhysicsUtils {
 
   /** Scale a local offset into the Entity's rotation-aligned actor frame. */
   static scaleToActorFrame(entity: Entity, local: Vector3, out: Vector3): void {
-    const transform = entity.transform;
-    const parent = entity.parent;
-    if (parent && !parent.transform._getWorldUniformScaling()) {
-      // The native actor applies world rotation, while inherited non-uniform scale can mix local axes.
-      const e = transform._getScaleMatrix().elements;
-      const { x, y, z } = local;
-      out.set(e[0] * x + e[3] * y + e[6] * z, e[1] * x + e[4] * y + e[7] * z, e[2] * x + e[5] * y + e[8] * z);
+    const scale = PhysicsUtils._getDiagonalScale(entity);
+    if (scale) {
+      Vector3.multiply(local, scale, out);
       return;
     }
-    Vector3.multiply(local, transform.lossyWorldScale, out);
+    const transform = entity.transform;
+    Vector3.transformNormal(local, transform.worldMatrix, out);
+    const rotation = PhysicsUtils._frameRotation;
+    Quaternion.normalize(transform.worldRotationQuaternion, rotation);
+    rotation.conjugate();
+    Vector3.transformByQuat(out, rotation, out);
   }
 
-  /** Unscale an offset from the Entity's rotation-aligned actor frame back into local space. */
+  /** Recover the shortest local offset whose reachable world position is closest to the actor offset. */
   static unscaleFromActorFrame(entity: Entity, offset: Vector3, out: Vector3): void {
+    if (offset.x === 0 && offset.y === 0 && offset.z === 0) {
+      out.set(0, 0, 0);
+      return;
+    }
+    const scale = PhysicsUtils._getDiagonalScale(entity);
+    if (scale) {
+      out.set(scale.x ? offset.x / scale.x : 0, scale.y ? offset.y / scale.y : 0, scale.z ? offset.z / scale.z : 0);
+      return;
+    }
     const transform = entity.transform;
-    const parent = entity.parent;
-    if (!parent || parent.transform._getWorldUniformScaling()) {
-      const scale = transform.lossyWorldScale;
-      const x = offset.x / scale.x;
-      const y = offset.y / scale.y;
-      const z = offset.z / scale.z;
-      out.set(Number.isFinite(x) ? x : 0, Number.isFinite(y) ? y : 0, Number.isFinite(z) ? z : 0);
+    Quaternion.normalize(transform.worldRotationQuaternion, PhysicsUtils._frameRotation);
+    Vector3.transformByQuat(offset, PhysicsUtils._frameRotation, out);
+    const columns = PhysicsUtils._columns;
+    const cofactors = PhysicsUtils._cofactors;
+    const det = PhysicsUtils._readAnchorFrame(entity);
+    const a = columns[0],
+      b = columns[1],
+      c = columns[2];
+    const bc = cofactors[0],
+      ca = cofactors[1],
+      ab = cofactors[2];
+    if (det !== 0) {
+      out.set(Vector3.dot(out, bc) / det, Vector3.dot(out, ca) / det, Vector3.dot(out, ab) / det);
       return;
     }
-
-    const e = transform._getScaleMatrix().elements;
-    const m00 = e[0],
-      m10 = e[1],
-      m20 = e[2];
-    const m01 = e[3],
-      m11 = e[4],
-      m21 = e[5];
-    const m02 = e[6],
-      m12 = e[7],
-      m22 = e[8];
-    const bx = offset.x,
-      by = offset.y,
-      bz = offset.z;
-
-    const c00 = m11 * m22 - m21 * m12;
-    const c01 = m21 * m02 - m01 * m22;
-    const c02 = m01 * m12 - m11 * m02;
-    const det = m00 * c00 + m10 * c01 + m20 * c02;
-
-    const g00 = m00 * m00 + m10 * m10 + m20 * m20;
-    const g11 = m01 * m01 + m11 * m11 + m21 * m21;
-    const g22 = m02 * m02 + m12 * m12 + m22 * m22;
-    const volBound = Math.sqrt(g00) * Math.sqrt(g11) * Math.sqrt(g22);
-    if (volBound > 0 && Math.abs(det) > volBound * 1e-6) {
-      const invDet = 1 / det;
-      const x = (c00 * bx + c01 * by + c02 * bz) * invDet;
-      const y = ((m20 * m12 - m10 * m22) * bx + (m00 * m22 - m20 * m02) * by + (m10 * m02 - m00 * m12) * bz) * invDet;
-      const z = ((m10 * m21 - m20 * m11) * bx + (m20 * m01 - m00 * m21) * by + (m00 * m11 - m10 * m01) * bz) * invDet;
-      if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
-        out.set(x, y, z);
-        return;
-      }
+    const squaredArea = bc.lengthSquared() + ca.lengthSquared() + ab.lengthSquared();
+    if (squaredArea > 0) {
+      // For a plane, combine all column pairs to obtain the shortest local anchor for the projected world point.
+      Vector3.cross(out, a, a);
+      Vector3.cross(out, b, b);
+      Vector3.cross(out, c, c);
+      out.set(
+        (Vector3.dot(b, ab) - Vector3.dot(c, ca)) / squaredArea,
+        (Vector3.dot(c, bc) - Vector3.dot(a, ab)) / squaredArea,
+        (Vector3.dot(a, ca) - Vector3.dot(b, bc)) / squaredArea
+      );
+    } else {
+      // On a line the pseudoinverse is the transpose divided by the sum of squared column lengths.
+      const squaredLength = a.lengthSquared() + b.lengthSquared() + c.lengthSquared();
+      const weight = squaredLength > 0 ? 1 / squaredLength : 0;
+      out.set(Vector3.dot(a, out) * weight, Vector3.dot(b, out) * weight, Vector3.dot(c, out) * weight);
     }
-
-    // Singular scale matrix: project onto the best-conditioned non-degenerate column subspace.
-    const g01 = m00 * m01 + m10 * m11 + m20 * m21;
-    const g02 = m00 * m02 + m10 * m12 + m20 * m22;
-    const g12 = m01 * m02 + m11 * m12 + m21 * m22;
-    const r0 = m00 * bx + m10 * by + m20 * bz;
-    const r1 = m01 * bx + m11 * by + m21 * bz;
-    const r2 = m02 * bx + m12 * by + m22 * bz;
-
-    const d01 = g00 * g11 - g01 * g01;
-    const d02 = g00 * g22 - g02 * g02;
-    const d12 = g11 * g22 - g12 * g12;
-    const s01 = g00 > 0 && g11 > 0 ? d01 / (g00 * g11) : 0;
-    const s02 = g00 > 0 && g22 > 0 ? d02 / (g00 * g22) : 0;
-    const s12 = g11 > 0 && g22 > 0 ? d12 / (g11 * g22) : 0;
-    if (Math.max(s01, s02, s12) > 1e-12) {
-      let x = 0;
-      let y = 0;
-      let z = 0;
-      if (s01 >= s02 && s01 >= s12) {
-        x = (g11 * r0 - g01 * r1) / d01;
-        y = (g00 * r1 - g01 * r0) / d01;
-      } else if (s02 >= s12) {
-        x = (g22 * r0 - g02 * r2) / d02;
-        z = (g00 * r2 - g02 * r0) / d02;
-      } else {
-        y = (g22 * r1 - g12 * r2) / d12;
-        z = (g11 * r2 - g12 * r1) / d12;
-      }
-      out.set(Number.isFinite(x) ? x : 0, Number.isFinite(y) ? y : 0, Number.isFinite(z) ? z : 0);
-      return;
-    }
-
-    const maxG = Math.max(g00, g11, g22);
-    if (maxG > 0) {
-      if (g00 >= g11 && g00 >= g22) {
-        const x = r0 / g00;
-        out.set(Number.isFinite(x) ? x : 0, 0, 0);
-      } else if (g11 >= g22) {
-        const y = r1 / g11;
-        out.set(0, Number.isFinite(y) ? y : 0, 0);
-      } else {
-        const z = r2 / g22;
-        out.set(0, 0, Number.isFinite(z) ? z : 0);
-      }
-      return;
-    }
-    out.set(0, 0, 0);
   }
 
   /** Return the bit index (0-31) of a single collision layer, throwing if multiple or no bits are set. */
@@ -174,6 +131,117 @@ export class PhysicsUtils {
       throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
     }
     return index;
+  }
+
+  private static _getDiagonalScale(entity: Entity): Vector3 | null {
+    const transform = entity.transform;
+    // Consume WorldScale so a subsequent edit can notify the joint again.
+    const scale = transform.lossyWorldScale;
+    if (PhysicsUtils._matchesTRS(transform.worldMatrix, scale, transform.worldRotationQuaternion)) return scale;
+    const parent = entity.parent;
+    if (!parent || !parent.transform._getWorldUniformScaling()) return null;
+
+    // Products of ordinary rotations can round a near-zero coefficient differently from their quaternion product.
+    // Uniform ancestors still cancel in actor space if each local matrix actually represents its declared TRS.
+    for (let node: Entity | null = entity; node; node = node.parent) {
+      const local = node.transform;
+      if (!PhysicsUtils._matchesTRS(local.localMatrix, local.scale, local.rotationQuaternion)) return null;
+    }
+    return scale;
+  }
+
+  private static _matchesTRS(matrix: Matrix, scale: Vector3, rotation: Quaternion): boolean {
+    const trs = PhysicsUtils._trsMatrix;
+    Matrix.affineTransformation(scale, rotation, Vector3._zero, trs);
+    const expected = trs.elements,
+      actual = matrix.elements;
+    // Compare each coefficient at Float32 precision. A genuinely small axis must retain its own scale.
+    for (let col = 0; col < 12; col += 4) {
+      for (let row = 0; row < 3; row++) {
+        const a = expected[col + row],
+          b = actual[col + row];
+        if (a !== b && Math.abs(a - b) > 4 * 2 ** -23 * Math.max(Math.abs(a), Math.abs(b))) return false;
+      }
+    }
+    return true;
+  }
+
+  private static _readAnchorFrame(entity: Entity): number {
+    const columns = PhysicsUtils._columns;
+    const cofactors = PhysicsUtils._cofactors;
+    let node: Entity | null = entity;
+    while (node && node.transform.localMatrix.determinant() !== 0) node = node.parent;
+    const world = entity.transform.worldMatrix.elements;
+    if (!node) {
+      for (let i = 0; i < 3; i++) columns[i].copyFromArray(world, i * 4);
+      for (let i = 0; i < 3; i++) Vector3.cross(columns[(i + 1) % 3], columns[(i + 2) % 3], cofactors[i]);
+      return Vector3.dot(columns[0], cofactors[0]);
+    }
+
+    // A collapsed layer has already lost a dimension. A rounded world matrix can falsely regain it.
+    // Propagate directions and oriented areas separately: cof(A B) = cof(A) cof(B), even for singular A or B.
+    for (let i = 0; i < 3; i++) {
+      columns[i].set(i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0);
+      cofactors[i].copyFrom(columns[i]);
+    }
+    const firstCollapsed = node;
+    const localCofactors = PhysicsUtils._localCofactors;
+    for (; node; node = node.parent) {
+      const matrix = node.transform.localMatrix;
+      const e = matrix.elements;
+      const projectedAgain = node !== firstCollapsed && matrix.determinant() === 0;
+      for (let i = 0; i < 3; i++) {
+        const j = ((i + 1) % 3) * 4,
+          k = ((i + 2) % 3) * 4;
+        localCofactors[4 * i] = e[j + 1] * e[k + 2] - e[j + 2] * e[k + 1];
+        localCofactors[4 * i + 1] = e[j + 2] * e[k] - e[j] * e[k + 2];
+        localCofactors[4 * i + 2] = e[j] * e[k + 1] - e[j + 1] * e[k];
+      }
+      PhysicsUtils._transformBasis(columns, e, projectedAgain);
+      PhysicsUtils._transformBasis(cofactors, localCofactors, projectedAgain);
+    }
+    // Use the same Float32 world columns as the forward map, restricted to the surviving plane or line.
+    let axis = PhysicsUtils._longest(cofactors);
+    const plane = axis.lengthSquared() > 0;
+    if (!plane) axis = PhysicsUtils._longest(columns);
+    const length = axis.length();
+    if (length > 0) {
+      const x = axis.x / length,
+        y = axis.y / length,
+        z = axis.z / length;
+      for (let i = 0; i < 3; i++) {
+        const v = columns[i].copyFromArray(world, i * 4);
+        const dot = v.x * x + v.y * y + v.z * z;
+        if (plane) v.set(v.x - dot * x, v.y - dot * y, v.z - dot * z);
+        else v.set(dot * x, dot * y, dot * z);
+      }
+      if (plane) {
+        for (let i = 0; i < 3; i++) Vector3.cross(columns[(i + 1) % 3], columns[(i + 2) % 3], cofactors[i]);
+      }
+    }
+    return 0;
+  }
+
+  private static _longest(basis: Vector3[]): Vector3 {
+    let longest = basis[0];
+    for (let i = 1; i < 3; i++) if (basis[i].lengthSquared() > longest.lengthSquared()) longest = basis[i];
+    return longest;
+  }
+
+  private static _transformBasis(basis: Vector3[], e: Float32Array | Float64Array, projectedAgain: boolean): void {
+    // Successive projections can annihilate a direction or an entire plane. Discard only roundoff at that step.
+    let roundoff = 0;
+    if (projectedAgain) {
+      for (let i = 0; i < 12; i += 4) roundoff += e[i] * e[i] + e[i + 1] * e[i + 1] + e[i + 2] * e[i + 2];
+      roundoff *= (8 * Number.EPSILON) ** 2;
+    }
+    for (let i = 0; i < 3; i++) {
+      const v = basis[i];
+      const { x, y, z } = v;
+      const tolerance = roundoff * v.lengthSquared();
+      v.set(e[0] * x + e[4] * y + e[8] * z, e[1] * x + e[5] * y + e[9] * z, e[2] * x + e[6] * y + e[10] * z);
+      if (projectedAgain && v.lengthSquared() <= tolerance) v.set(0, 0, 0);
+    }
   }
 
   private static _componentDiffersF32(a: number, b: number): boolean {

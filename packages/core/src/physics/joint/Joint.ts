@@ -431,8 +431,12 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     const self = info === this._bodyInfo;
     const entity = self ? this.entity : this._connectedBody?.entity;
     const scaled = Joint._tempVector3;
-    if (entity) PhysicsUtils.scaleToActorFrame(entity, info.anchor, scaled);
-    else scaled.copyFrom(info.anchor);
+    const anchor = info.anchor;
+    if (entity && (anchor.x !== 0 || anchor.y !== 0 || anchor.z !== 0)) {
+      PhysicsUtils.scaleToActorFrame(entity, anchor, scaled);
+    } else {
+      scaled.copyFrom(anchor);
+    }
 
     const actual = info.actualAnchor;
     if (!force && !PhysicsUtils.differsF32(scaled, actual)) return false;
