@@ -22,7 +22,6 @@ export class SeedWorldPhotoInput {
   private readonly root: Entity;
   private readonly canvas: UICanvas;
   private readonly modal: Entity;
-  private readonly badge: Entity;
   private readonly photos = new Map<string, Entity>();
   private width = 1;
   private height = 1;
@@ -38,8 +37,6 @@ export class SeedWorldPhotoInput {
     this.canvas.sortOrder = 32_500;
     this.modal = this.surface("Photo modal input");
     this.modal.isActive = false;
-    this.badge = this.surface("Markup badge input");
-    this.badge.isActive = false;
   }
   private surface(name: string): Entity {
     const entity = this.root.createChild(name);
@@ -56,14 +53,6 @@ export class SeedWorldPhotoInput {
   }
   setModal(active: boolean): void {
     this.modal.isActive = active;
-    if (active) this.badge.isActive = false;
-  }
-  setBadge(rect: { x: number; y: number; width: number; height: number }, visible: boolean): void {
-    this.badge.isActive = visible && !this.modal.isActive;
-    if (!this.badge.isActive) return;
-    const transform = this.badge.transform as UITransform;
-    transform.size.set(rect.width, rect.height);
-    transform.setPosition(rect.x - this.width / 2, this.height / 2 - rect.y, 0);
   }
   setPhoto(
     id: string,

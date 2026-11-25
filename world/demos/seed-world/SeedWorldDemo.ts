@@ -73,10 +73,7 @@ import {
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterPublication";
 import { visitPlanningWorldPickBatches } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
 import { SeedWorldPicker } from "@galacean/engine-world-planning/world/SeedWorldPicker";
-import {
-  SeedWorldViewSnapshots,
-  type ViewIdentityBuffer
-} from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
+import { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { buildingScenePreparation, initializeBuildingScene } from "./masonry/BuildingSceneInitialization.ts";
 import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
@@ -3644,90 +3641,17 @@ export async function mountSeedWorldDemo(
     let snapshotWarmup: Promise<void> | undefined;
     viewSnapshots = new SeedWorldViewSnapshots(
       async (signal, budget) => {
-        // Fast color-first capture (1 frame, <16ms): opens the screen-markup canvas immediately
-        // without blocking on pick-shader compilation or a synchronous 2nd full-scene ID render.
-        // While the world stays frozen during markup, populate the pixel-aligned ID+depth buffer
-        // asynchronously in the background (or before unfreezing/export on submission).
-        const colorFrame = await worldPicker!.captureColorOnly(signal, budget);
-        const identityAbort = new AbortController();
-        let resolvedIdentities: ViewIdentityBuffer | undefined;
-        let identityTask: Promise<void> | undefined;
-        let identityDisposed = false;
-        let bgTimer: number | undefined;
-        const emptyBytes = colorFrame.width * colorFrame.height * 4;
-
-        const populateIdentities = (): Promise<void> => {
-          if (resolvedIdentities || identityDisposed) return Promise.resolve();
-          if (identityTask) return identityTask;
-          if (bgTimer !== undefined) {
-            window.clearTimeout(bgTimer);
-            bgTimer = undefined;
-          }
-          identityTask = (async () => {
-            await waitForSnapshotWarmup(snapshotWarmup, identityAbort.signal);
-            await pickPreparation!.flush(identityAbort.signal);
-            if (identityDisposed || identityAbort.signal.aborted || disposed) return;
-            const populated = worldPicker!.captureIdentityBuffer(
-              (visitor) => snapshotPicks.visit(visitor),
-              (batch) => inspection.target(batch.renderer),
-              colorFrame.image,
-              budget
-            );
-            if (identityDisposed || identityAbort.signal.aborted || disposed) {
-              populated.identities.dispose();
-              return;
-            }
-            resolvedIdentities = populated.identities;
-          })().catch((error) => {
-            if (!identityDisposed && !identityAbort.signal.aborted) {
-              console.warn("[seed-world-planner] deferred identity capture failed", error);
-            }
-          });
-          return identityTask;
-        };
-
-        bgTimer = window.setTimeout(() => {
-          bgTimer = undefined;
-          if (!identityDisposed && !disposed) void populateIdentities();
-        }, 300);
-
-        const deferredIdentities: ViewIdentityBuffer = {
-          get identityBits() {
-            return resolvedIdentities?.identityBits ?? 14;
-          },
-          get byteLength() {
-            return resolvedIdentities?.byteLength ?? emptyBytes;
-          },
-          estimatedPosition(pixels, offset, x, y) {
-            return resolvedIdentities?.estimatedPosition(pixels, offset, x, y);
-          },
-          read(x, y, w, h) {
-            return resolvedIdentities ? resolvedIdentities.read(x, y, w, h) : new Uint8Array(w * h * 4);
-          },
-          resolve(id) {
-            return resolvedIdentities?.resolve(id);
-          },
-          dispose() {
-            if (identityDisposed) return;
-            identityDisposed = true;
-            if (bgTimer !== undefined) {
-              window.clearTimeout(bgTimer);
-              bgTimer = undefined;
-            }
-            identityAbort.abort();
-            resolvedIdentities?.dispose();
-            resolvedIdentities = undefined;
-          }
-        };
-
-        return {
-          image: colorFrame.image,
-          metadata: colorFrame.metadata,
-          width: colorFrame.width,
-          height: colorFrame.height,
-          identities: deferredIdentities,
-          ensureIdentities: populateIdentities
-        };
+        // Join shared preparation before choosing the frame. The picker captures color, IDs and
+        // depth in one camera callback, before a resize or simulation tick can separate them.
+        await waitForSnapshotWarmup(snapshotWarmup, signal);
+        await pickPreparation!.flush(signal);
+        return worldPicker!.capture(
+          (visitor) => snapshotPicks.visit(visitor),
+          (batch) => inspection.target(batch.renderer),
+          signal,
+          budget,
+          () => pickPreparation!.ready
+        );
       },
       () => {
         const state = tools!.application.getViewState();
@@ -4048,10 +3972,9 @@ export async function mountSeedWorldDemo(
       });
     }
     void (async () => {
-      const [, { SeedWorldLassoPanel }, { SeedWorldInstantCamera }] = await Promise.all([
+      const [, { SeedWorldLassoPanel }] = await Promise.all([
         capturePathWarmup,
-        import("./src/SeedWorldLassoPanel.ts"),
-        import("./src/SeedWorldInstantCamera.ts")
+        import("./src/SeedWorldLassoPanel.ts")
       ]);
       if (disposed) return;
       const preparingLasso = (lassoPanel = new SeedWorldLassoPanel(
@@ -4069,15 +3992,15 @@ export async function mountSeedWorldDemo(
             navigation.setInputEnabled(enabled);
           }
         },
-        new SeedWorldInstantCamera(engine!, canvas, camera, preparingViews.budget)
+        { engine: engine!, canvas, worldCamera: camera }
       ));
       if (eagerCapturePathWarmup) {
         await timed("lassoPanel.prepare", () => preparingLasso.prepare());
         await timed("farmingInteraction.prepare", () => farmingHost?.runtime?.prepareInteraction());
         await timed("pickPreparation.flush #2", () => preparingPicks.flush(editorLifetime.signal));
       } else {
-        // Preload photo paper GLB + shaders in the background after initial scene warmup
-        // so the first camera click opens immediately without stalling.
+        // Preload markup canvas shaders and shutter audio in the background after initial scene warmup
+        // so the first markup click opens immediately without stalling.
         void bgWarmupDone.then(() => {
           if (!disposed) void preparingLasso.prewarm();
         });

@@ -383,11 +383,16 @@ export class SeedWorldPicker {
     );
   }
 
-  /** Fast color-only capture (1 frame, zero pick shader compile / 2nd scene pass) for instant UI opening. */
+  /** Capture a color-only image. Use capture() when the image also needs pixel-aligned picking. */
   captureColorOnly(
     signal?: AbortSignal,
     budget?: ImageResourceBudget
-  ): Promise<{ image: GpuPhoto; metadata: ViewCaptureMetadata; width: number; height: number }> {
+  ): Promise<{
+    image: GpuPhoto;
+    metadata: ViewCaptureMetadata;
+    width: number;
+    height: number;
+  }> {
     this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
     return this.frameCapture.request(
       (image) => ({
@@ -401,7 +406,7 @@ export class SeedWorldPicker {
     );
   }
 
-  /** Populate the pixel-aligned ID + depth texture asynchronously while the world camera remains frozen. */
+  /** Render identities for the current view. Pair with an existing image only if projection, viewport and scene still match. */
   captureIdentityBuffer(
     visit: SeedWorldPickSource,
     resolveRef: (batch: SeedWorldPickBatch) => ViewRef,
@@ -411,7 +416,7 @@ export class SeedWorldPicker {
     return this.captureIdentity(visit, resolveRef, image, budget);
   }
 
-  /** Called synchronously in the captured color frame, before asynchronous image encoding. */
+  /** Called synchronously in the captured color frame, before asynchronous image encoding or world unfreeze. */
   private captureViewMetadata(): ViewCaptureMetadata {
     const { worldPosition: p, worldForward: f } = this.camera.entity.transform;
     return {
@@ -434,14 +439,16 @@ export class SeedWorldPicker {
       identityCamera.registerRenderViewCullingSource?.({
         cull: (context) => {
           source.visitRenderViewRenderers((renderer) => {
-            if (context.isVisible(renderer.bounds)) context.submit(renderer);
+            // Render-view-culled instanced/single batches intentionally keep renderer.enabled = false
+            // so the main camera does not double-draw them; submit whenever alive and frustum-visible.
+            if (!renderer.destroyed && context.isVisible(renderer.bounds)) context.submit(renderer);
           });
         }
       });
       this.identityCamera = identityCamera;
     }
-    const sourceTransform = source.entity.transform;
     const identityTransform = identityCamera.entity.transform;
+    const sourceTransform = source.entity.transform;
     identityTransform.worldPosition = sourceTransform.worldPosition;
     if (sourceTransform.worldRotationQuaternion) {
       identityTransform.worldRotationQuaternion = sourceTransform.worldRotationQuaternion;
@@ -454,6 +461,7 @@ export class SeedWorldPicker {
     identityCamera.orthographicSize = source.orthographicSize;
     identityCamera.cullingMask = source.cullingMask;
     identityCamera.projectionMatrix = source.projectionMatrix;
+    identityCamera.viewport.copyFrom?.(source.viewport);
     identityCamera.renderFilter = source.renderFilter;
     identityCamera.enableScreenSpaceReflection = false;
     return identityCamera;
@@ -468,6 +476,8 @@ export class SeedWorldPicker {
     const { width, height } = image;
     const metadata = this.captureViewMetadata();
     const captureCamera = this.ensureIdentityCamera();
+    const surfaceProjectionMatrix = captureCamera.projectionMatrix;
+    const surfaceViewport = this.camera.viewport;
     // Scratch ID + depth + packed output. Only the packed RGBA8 survives capture.
     const release = budget?.reserve("temporary", width * height * 12);
     let result: ViewFrame | undefined;
@@ -494,17 +504,17 @@ export class SeedWorldPicker {
               keys: instanced ? Array.from({ length: batch!.count }, (_, index) => batch!.resolve(index)) : undefined
             };
           });
-          const camera = this.camera,
-            engine = camera.engine;
-          const inverseProjection = camera.projectionMatrix.clone().invert();
-          const v = camera.viewport,
+          const engine = captureCamera.engine ?? this.camera.engine;
+          const inverseProjection = surfaceProjectionMatrix.clone().invert();
+          const v = surfaceViewport,
             identityBits = snapshotIdentityBits(this.identityCount);
+          const viewMatrix = captureCamera.viewMatrix ?? this.camera.viewMatrix;
           const projection: SnapshotSurfaceProjection = {
             identityBits,
-            near: camera.nearClipPlane,
-            far: camera.farClipPlane,
+            near: captureCamera.nearClipPlane,
+            far: captureCamera.farClipPlane,
             inverseProjection: Array.from(inverseProjection.elements),
-            cameraWorld: Array.from(camera.viewMatrix.clone().invert().elements),
+            cameraWorld: Array.from(viewMatrix.clone().invert().elements),
             viewport: [v.x, v.y, v.z, v.w]
           };
           if (!(projection.near > 0) || !Number.isFinite(projection.far) || projection.far <= projection.near)

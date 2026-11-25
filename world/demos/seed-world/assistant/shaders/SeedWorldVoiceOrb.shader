@@ -169,13 +169,13 @@ Shader "SeedWorld/VoiceOrbV5" {
         float zShift = 0.16 * sin(outPhi + phaseTime * 0.7);
         float zEnv = exp(-pow((qR.z - zShift) / max(beltWidth, 0.08), 2.0));
 
-        // Open sweeping ~240-degree comet/crescent taper along the ribbon circumference
-        float arcEnv = smoothstep(-0.72, 0.58, cos(outPhi - arcBias));
+        // Smooth 360-degree aurora brightness undulation (never creates an off-center lopsided gap)
+        float arcEnv = 0.56 + 0.44 * cos(outPhi - arcBias);
 
         // Keep pole strictly zero so atan() can never pinch
         float poleGuard = smoothstep(0.12, 0.26, rXY);
 
-        float env = zEnv * (0.22 + 0.78 * arcEnv) * poleGuard;
+        float env = zEnv * arcEnv * poleGuard;
         outCrest = coreSheet * env;
         return (coreSheet * 1.15 + softTail) * env;
       }
@@ -215,23 +215,20 @@ Shader "SeedWorld/VoiceOrbV5" {
           * orbRotX(0.22 + 0.14 * sway * sin(t * 0.38))
           * orbRotY(0.18 * sway * cos(t * 0.33));
 
-        // Inner Silk Shell (R ~ 0.44): crisp electric Cyan-Aqua curved inner fold bordering & curving past the core
+        // Inner Silk Shell (R ~ 0.44): centered strictly at (0, 0, 0) so aurora stays concentric with the LiquidGlass orb
         mat3 rotInner = orbRotZ(t * 0.45 + 0.5)
           * orbRotX(0.58 + 0.24 * sway * sin(t * 0.52 + 0.7))
           * orbRotY(-0.38 * sway * cos(t * 0.44));
-        vec3 offInner = vec3(0.085 * cos(t * 0.42), 0.085 * sin(t * 0.49), 0.04);
 
-        // Mid Silk Shell (R ~ 0.64): sweeping Cobalt / Periwinkle / Violet / Cyan primary layered silk arc
+        // Mid Silk Shell (R ~ 0.64): centered strictly at (0, 0, 0)
         mat3 rotMid = orbRotZ(-t * 0.56 + 1.8)
           * orbRotX(-0.42 + 0.22 * sway * cos(t * 0.46 + 1.5))
           * orbRotY(0.32 * sway * sin(t * 0.39 + 0.4));
-        vec3 offMid = vec3(-0.07 * sin(t * 0.37), 0.07 * cos(t * 0.41), -0.03);
 
-        // Outer Silk Shell (R ~ 0.79): lush Orchid-Magenta / Violet / Cyan / Lemon outer sweeping veil
+        // Outer Silk Shell (R ~ 0.79): centered strictly at (0, 0, 0)
         mat3 rotOuter = orbRotZ(-t * 0.38 - 0.9)
           * orbRotX(0.34 + 0.20 * sway * sin(t * 0.41 + 2.4))
           * orbRotY(-0.26 * sway * cos(t * 0.35 + 1.1));
-        vec3 offOuter = vec3(0.06 * cos(t * 0.33 + 1.2), -0.06 * sin(t * 0.36 + 0.5), 0.02);
 
         vec3 cCyan = material_OrbCyan.rgb;
         vec3 cAzure = material_OrbAzure.rgb;
@@ -239,7 +236,8 @@ Shader "SeedWorld/VoiceOrbV5" {
         vec3 cOrchid = material_OrbOrchid.rgb;
         vec3 cRose = material_OrbRose.rgb;
         vec3 cCore = material_OrbCore.rgb;
-        vec3 cLemon = vec3(0.95, 1.00, 0.50);
+        // Classic northern-lights emerald-aqua shimmer instead of yellow-lemon so aurora stays vivid over grass/sand.
+        vec3 cAuroraMint = vec3(0.04, 1.00, 0.72);
 
         // 18-step analytic 3D volumetric integration for razor-smooth curved silk crests
         vec3 accumRgb = vec3(0.0);
@@ -272,11 +270,11 @@ Shader "SeedWorld/VoiceOrbV5" {
           float basePhase = (phi0 / 6.2831853) + 0.12 * q0.z * (1.0 + dispTwist) + dispAmount * 1.2 * (r3 - 0.55);
           vec3 colBase = evalAuroraSpectrum(basePhase, cCyan, cAzure, cViolet, cOrchid, cRose, cCore);
 
-          // --- Concentric Silk Shell 1 (Inner Cyan-Aqua Curved Fold, R ~ 0.44) ---
+          // --- Concentric Silk Shell 1 (Inner Cyan-Aqua Curved Fold, R ~ 0.44, 0 deg phase) ---
           float phiIn, crestIn;
-          vec3 qIn = rotInner * (q - offInner);
+          vec3 qIn = rotInner * q;
           float dIn = evalCurvedSilkRibbon(
-            qIn, 0.44 * cavityR, 0.042 * widthScale, 0.42, 0.062 * sway, wf, t * 0.85, 0.4, phiIn, crestIn
+            qIn, 0.44 * cavityR, 0.042 * widthScale, 0.42, 0.056 * sway, wf, t * 0.85, 0.0, phiIn, crestIn
           ) * crestStrength * 0.86;
           vec3 colIn = mix(
             cCyan,
@@ -284,106 +282,91 @@ Shader "SeedWorld/VoiceOrbV5" {
             smoothstep(-0.2, 0.75, cos(phiIn - 1.1) + dispAmount * 2.5) * 0.34
           );
 
-          // --- Concentric Silk Shell 2 (Mid Periwinkle-Violet-Cyan Layered Ribbon, R ~ 0.64) ---
+          // --- Concentric Silk Shell 2 (Mid Periwinkle-Violet-Cyan Layered Ribbon, R ~ 0.64, 120 deg phase) ---
           float phiMid, crestMid;
-          vec3 qMid = rotMid * (q - offMid);
+          vec3 qMid = rotMid * q;
           float dMid = evalCurvedSilkRibbon(
-            qMid, 0.64 * cavityR, 0.048 * widthScale, 0.48, 0.068 * sway, wf, -t * 0.75, 2.2, phiMid, crestMid
+            qMid, 0.64 * cavityR, 0.048 * widthScale, 0.48, 0.060 * sway, wf, -t * 0.75, 2.094395, phiMid, crestMid
           ) * crestStrength * 0.92;
           float midPhase = (phiMid / 6.2831853) + 0.14 + 0.14 * qMid.z + dispAmount * 1.8;
           vec3 colMid = evalAuroraSpectrum(midPhase, cCyan, cAzure, cViolet, cOrchid, cRose, cCore);
 
-          // --- Concentric Silk Shell 3 (Outer Orchid-Rose-Cyan-Lemon Sweeping Veil, R ~ 0.79) ---
+          // --- Concentric Silk Shell 3 (Outer Orchid-Rose-Cyan-Mint Sweeping Veil, R ~ 0.79, 240 deg phase) ---
           float phiOut, crestOut;
-          vec3 qOut = rotOuter * (q - offOuter);
+          vec3 qOut = rotOuter * q;
           float dOut = evalCurvedSilkRibbon(
-            qOut, 0.79 * cavityR, 0.046 * widthScale, 0.46, 0.060 * sway, wf, t * 0.68, -1.1, phiOut, crestOut
+            qOut, 0.79 * cavityR, 0.046 * widthScale, 0.46, 0.054 * sway, wf, t * 0.68, 4.188790, phiOut, crestOut
           ) * crestStrength * 0.90;
           float outPhase = (phiOut / 6.2831853) + 0.52 - 0.12 * qOut.z - dispAmount * 1.6;
           vec3 colOut = evalAuroraSpectrum(outPhase, cCyan, cAzure, cViolet, cOrchid, cRose, cCore);
 
-          // Signature luminous pale Lemon-Lime iridescent shimmer along the outer cyan-to-rose tangent!
-          float lemonLobe = smoothstep(0.56, 0.88, r3)
-            * pow(max(0.0, cos(phi0 + 1.85 + 0.45 * sin(t * 0.35))), 2.1);
-          colOut = mix(colOut, cLemon, lemonLobe * 0.84);
-          colBase = mix(colBase, cLemon, lemonLobe * 0.62);
+          // Luminous emerald-aqua northern-lights shimmer along the outer cyan-to-magenta tangent
+          float auroraLobe = smoothstep(0.48, 0.88, r3)
+            * pow(max(0.0, cos(phi0 + 1.85 + 0.45 * sin(t * 0.35))), 2.0);
+          colOut = mix(colOut, cAuroraMint, auroraLobe * 0.76);
+          colBase = mix(colBase, cAuroraMint, auroraLobe * 0.56);
 
           float totalD = dBase + dIn + dMid + dOut;
           if (totalD <= 0.002) continue;
 
           vec3 stepCol = (colBase * dBase + colIn * dIn + colMid * dMid + colOut * dOut) / totalD;
           float localCrest = clamp((crestIn + crestMid + crestOut) * crestStrength, 0.0, 1.0);
-          // Broad veil bodies stay airy luminous pastel; sharp curved silk crests carry rich vivid color!
-          stepCol = mix(mix(stepCol, cCore, 0.24), stepCol, clamp(0.32 + localCrest * 0.78, 0.0, 1.0));
-          float depthLift = mix(1.04, 0.94, u);
+          // Keep aurora veils rich & deeply chromatic (no milky white washout); lift glowing silk ridges cleanly.
+          vec3 deepVeil = pow(clamp(stepCol, 0.0, 1.0), vec3(1.18));
+          vec3 brightCrest = clamp(stepCol * 1.26 + vec3(0.04), 0.0, 1.0);
+          stepCol = mix(deepVeil, brightCrest, clamp(0.28 + localCrest * 0.72, 0.0, 1.0));
+          float depthLift = mix(1.06, 0.92, u);
           stepCol = clamp(stepCol * depthLift, 0.0, 1.0);
 
-          float stepAlpha = clamp(totalD * outerMask * ds * 1.62, 0.0, 0.50);
+          float stepAlpha = clamp(totalD * outerMask * ds * 1.85, 0.0, 0.56);
           accumRgb += transmittance * stepAlpha * stepCol;
           accumA += transmittance * stepAlpha;
-          accumCrest += transmittance * localCrest * outerMask * ds * 1.6;
-          transmittance *= (1.0 - stepAlpha * 0.74);
+          accumCrest += transmittance * localCrest * outerMask * ds * 1.75;
+          transmittance *= (1.0 - stepAlpha * 0.72);
         }
 
-        // Pure translucent silk compositing: NO opaque white fill covering the center!
-        // Where silk ribbons live, they glow cleanly; where the hollow center opens, the refracted
-        // crystal-glass game world beneath shines directly through.
+        // Pure translucent 3D aurora silk ribbons suspended inside the authentic Liquid Glass lens shell:
+        // Outer rim (r > 0.79) feathers cleanly to zero so the underlying LiquidGlass shader's
+        // signature thick curved refraction band, chromatic edge dispersion, and specular reflection ring shine unobstructed.
         float listen = clamp(material_Listening, 0.0, 1.0);
         const float listenBright = 0.16;
 
-        vec3 silkCol = accumA > 0.0005 ? (accumRgb / accumA) : cCore;
-        float silkCoverage = clamp((accumA * 1.04 + accumCrest * 0.22) * (1.0 + listen * 0.08), 0.0, 0.94);
+        vec3 silkCol = accumA > 0.0005 ? (accumRgb / accumA) : cCyan;
+        float silkCoverage = clamp((accumA * 1.18 + accumCrest * 0.28) * (1.0 + listen * 0.10), 0.0, 0.95);
 
-        // Optional subtle luminous highlight on silk crests (kept airy, never blown-out white)
+        // Luminous colored aurora ridge boost (glows vibrantly without washing out to pastel white)
         vec3 orbRgb = mix(
           silkCol,
-          mix(silkCol, cCore, 0.35),
-          clamp(accumCrest * coreLift * (0.45 + listen * 0.10), 0.0, 0.48)
+          clamp(silkCol * 1.32 + vec3(0.06, 0.08, 0.10), 0.0, 1.0),
+          clamp(accumCrest * coreLift * (0.55 + listen * 0.14), 0.0, 0.56)
         );
 
-        // Saturation & intensity tone adjustment: vivid jewel saturation on hold + restrained brightness lift
+        // Rich jewel-aurora saturation & intensity tone adjustment
         float luma = dot(orbRgb, vec3(0.299, 0.587, 0.114));
         float activeSat = mix(material_OrbTone.y, max(material_OrbTone.y, 1.95), listen);
         float activeIntensity = material_OrbTone.x * (1.0 + listen * listenBright);
         orbRgb = clamp(mix(vec3(luma), orbRgb, activeSat) * activeIntensity, 0.0, 1.0);
 
-        // Center transparency: centerClear = 1.0 -> completely clear crystal center; lower -> soft pearl veil
+        // Preserve transparent breathing gaps while keeping aurora curtains bold and vibrant inside the liquid glass
         float centerClear = clamp(material_OrbTone.w, 0.0, 1.0);
-        float centerHollow = exp(-pow(r / 0.38, 2.0));
-        float centerVeilAlpha = (1.0 - centerClear) * 0.42 * (0.35 + 0.65 * centerHollow);
-        // Slightly thin out low-density haze inside the hollow core so background refraction reads vividly
-        float hollowAtten = 1.0 - centerHollow * centerClear * 0.55;
+        float centerHollow = exp(-pow(r / 0.34, 2.0));
+        float hollowAtten = 1.0 - centerHollow * centerClear * 0.36;
+        float glassBevelClearance = 1.0 - smoothstep(0.79, 0.94, r);
         float bodyAlpha = clamp(
-          max(silkCoverage * hollowAtten, centerVeilAlpha) * material_OrbTone.z,
+          silkCoverage * hollowAtten * material_OrbTone.z * glassBevelClearance,
           0.0,
-          0.94
+          0.92
         );
-        // When only center veil contributes (no silk), keep its color softly pearlescent
-        orbRgb = mix(cCore, orbRgb, smoothstep(0.02, 0.22, silkCoverage));
 
-        // Delicate, razor-thin crystal glass rim (brightens softly while listening, never heavy white)
+        // Ultra-subtle upper-left interior specular breath only (never covers the outer LiquidGlass refraction ring).
         float angle = atan(p.y, p.x);
-        float rimWidth = clamp(material_OrbRim.y, 0.015, 0.45);
-        float fresnelOuter = pow(clamp(1.0 - zOuter, 0.0, 1.0), 5.5);
-        float outerShell = smoothstep(1.0 - rimWidth, 0.988, r);
-        float topGlint = smoothstep(0.28, 0.96, cos(angle - 2.15))
-          * smoothstep(0.76, 0.96, r)
-          * (1.0 - smoothstep(0.972, 0.998, r));
-        vec3 rimSrgb = mix(
-          cCore,
-          mix(cCyan, cRose, 0.5 + 0.5 * cos(angle + t * 0.35)),
-          clamp(material_OrbRim.w, 0.0, 1.0) * 0.55
-        );
-        float rimListenBoost = 1.0 + listen * listenBright * 0.65;
-        float rimAlpha = clamp(
-          ((outerShell * 0.42 + fresnelOuter * 0.32) * material_OrbRim.x + topGlint * material_OrbRim.z) * rimListenBoost,
-          0.0,
-          0.70
-        );
-
+        float topGlint = smoothstep(0.35, 0.96, cos(angle + 2.22))
+          * smoothstep(0.54, 0.78, r)
+          * (1.0 - smoothstep(0.80, 0.94, r));
         vec3 outSrgb = orbRgb;
         float outAlpha = bodyAlpha;
-        blendOver(outSrgb, outAlpha, rimSrgb, rimAlpha);
+        float glintAlpha = clamp(topGlint * material_OrbRim.z * (1.0 + listen * 0.35), 0.0, 0.32);
+        blendOver(outSrgb, outAlpha, vec3(1.0, 0.998, 1.0), glintAlpha);
 
         outAlpha *= circleMask;
         if (outAlpha <= 0.002) discard;

@@ -318,6 +318,7 @@ export class AgentLoop {
         });
         reportImages("captured", transcript.offloadImages(), saved.reference.imagePath);
       }
+      if (recorded.length && inputId) control?.onAttachmentsAccepted?.(inputId);
       if (recorded.length && options.debugMode)
         this.#emit({ type: "input_attachments", taskId, inputId, images: recorded });
       return references;

@@ -3,15 +3,49 @@ const counters = vi.hoisted(() => ({ textures: 0, targets: 0, texturesDestroyed:
 vi.mock("@galacean/engine", () => ({
   Layer: { Layer31: 1 << 31 }, CameraClearFlags: { All: 7, Color: 1 }, AntiAliasing: { None: 0 }, Camera: class {},
   BackgroundMode: { SolidColor: 0 }, CompareFunction: { Less: 1, LessEqual: 2 }, DepthTextureMode: { None: 0 },
-  TextureFormat: { R8G8B8A8: 0, Depth24Stencil8: 1 },
+  TextureFormat: { R8G8B8A8: 0, R8G8B8A8_UNorm: 0, Depth24Stencil8: 1 },
   TextureFilterMode: { Point: 0 }, TextureWrapMode: { Clamp: 0 },
   Color: class { constructor(public r = 0, public g = 0, public b = 0, public a = 1) {} copyFrom(c: any) { Object.assign(this, c); } },
-  Matrix: class { static multiply() {} invert() {} }, Vector3: class {}, Renderer: class {}, Script: class {},
-  Texture2D: class { constructor() { counters.textures++; } destroy() { counters.texturesDestroyed++; } getPixelBuffer(...args: any[]) { args.at(-1).fill(0); } },
+  Matrix: class {
+    elements = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+    static multiply() {}
+    clone() { const m = new (this.constructor as any)(); m.elements.set(this.elements); return m; }
+    invert() { return this; }
+  },
+  Vector3: class {
+    constructor(public x = 0, public y = 0, public z = 0) {}
+    clone() { return new (this.constructor as any)(this.x, this.y, this.z); }
+  },
+  Vector4: class {
+    constructor(public x = 0, public y = 0, public z = 0, public w = 0) {}
+    clone() { return new (this.constructor as any)(this.x, this.y, this.z, this.w); }
+    set(x: number, y: number, z: number, w: number) { this.x = x; this.y = y; this.z = z; this.w = w; }
+    copyFrom(v: any) { this.x = v.x; this.y = v.y; this.z = v.z; this.w = v.w; }
+  },
+  Shader: { find: () => ({}), create: () => ({}) },
+  Material: class {
+    shaderData = { setTexture() {}, setMatrix() {}, setVector4() {} };
+    destroy() {}
+  },
+  Blitter: { blitTexture() {} },
+  EngineEventType: { DeviceLost: "devicelost" },
+  Renderer: class {}, Script: class {},
+  Texture2D: class {
+    constructor(public engine: any) { counters.textures++; }
+    destroy() { counters.texturesDestroyed++; }
+    getPixelBuffer(...args: any[]) { args.at(-1).fill(0); }
+  },
   RenderTarget: class { constructor(_engine: any, public width: number, public height: number) { counters.targets++; } destroy() { counters.targetsDestroyed++; } }
 }));
 vi.mock("@galacean/engine-runtime-editor/runtime-inspection/runtime-pick-occlusion.ts", () => ({ RuntimePickOcclusion: class { prepare() {} restore() {} } }));
-vi.mock("../src/world/SeedWorldFrameCapture", () => ({ SeedWorldFrameCapture: class {} }));
+vi.mock("../src/world/SeedWorldFrameCapture", () => ({
+  SeedWorldFrameCapture: class {
+    request(onFrame: (photo: any) => any) {
+      return Promise.resolve(onFrame({ width: 16, height: 12, dispose() {} }));
+    }
+    destroy() {}
+  }
+}));
 import { SeedWorldPicker } from "../src/world/SeedWorldPicker";
 
 it("reuses scratch capacity and restores camera, layers and materials after a render failure", async () => {
@@ -120,4 +154,170 @@ it("reuses scratch capacity and restores camera, layers and materials after a re
   expect(identityCamera.renderTarget).toBe(null);
   picker.dispose();
   expect(identityCameraDestroyed).toBe(true);
+});
+
+it("submits render-view-culled renderers with enabled=false during captureIdentityBuffer while skipping destroyed or culled ones", async () => {
+  const cloneableVec3 = (x: number, y: number, z: number) => ({
+    x,
+    y,
+    z,
+    clone() {
+      return cloneableVec3(this.x, this.y, this.z);
+    }
+  });
+  const cloneableQuat = (x: number, y: number, z: number, w: number) => ({
+    x,
+    y,
+    z,
+    w,
+    clone() {
+      return cloneableQuat(this.x, this.y, this.z, this.w);
+    }
+  });
+  const cloneableMat = (tx: number) => {
+    const elements = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, tx, 0, 0, 1]);
+    const mat: any = {
+      elements,
+      clone() {
+        return cloneableMat(this.elements[12]!);
+      },
+      invert() {
+        return this;
+      }
+    };
+    return mat;
+  };
+  const cloneableViewport = (x: number, y: number, z: number, w: number) => ({
+    x,
+    y,
+    z,
+    w,
+    clone() {
+      return cloneableViewport(this.x, this.y, this.z, this.w);
+    },
+    set(nx: number, ny: number, nz: number, nw: number) {
+      this.x = nx;
+      this.y = ny;
+      this.z = nz;
+      this.w = nw;
+    },
+    copyFrom(v: any) {
+      this.x = v.x;
+      this.y = v.y;
+      this.z = v.z;
+      this.w = v.w;
+    }
+  });
+
+  // Real Seed World render-view-culled batches (SeedWorldInstanceBatch, NaturalUnderstoryInstancedPool, etc.)
+  // intentionally keep renderer.enabled = false so the main camera does not double-draw them.
+  const disabledInstancedBatch: any = { id: "instanced-tree", destroyed: false, enabled: false, bounds: { visible: true } };
+  const destroyedBatch: any = { id: "destroyed-tree", destroyed: true, enabled: false, bounds: { visible: true } };
+  const frustumCulledBatch: any = { id: "behind-camera-tree", destroyed: false, enabled: false, bounds: { visible: false } };
+  const liveRenderViewRenderers: any[] = [disabledInstancedBatch, destroyedBatch, frustumCulledBatch];
+  let cullingSource: { cull(ctx: any): void } | undefined;
+  let observedPositionAtRender: any;
+  let observedCulledRenderers: any[] = [];
+  let identityCamera: any;
+
+  const scene: any = {
+    rootEntities: [],
+    ambientOcclusion: { enabled: false },
+    castShadows: true,
+    background: { mode: 0, solidColor: { r: 0, g: 0, b: 0, a: 1 } },
+    createRootEntity() {
+      const auxTransform: any = { worldPosition: cloneableVec3(0, 0, 0), worldRotationQuaternion: cloneableQuat(0, 0, 0, 1) };
+      const auxCamera: any = {
+        entity: { transform: auxTransform, destroy() {} },
+        engine: mainCamera.engine,
+        scene,
+        enabled: false,
+        enableScreenSpaceReflection: false,
+        updateRendererVisibility: false,
+        nearClipPlane: 0.1,
+        farClipPlane: 100,
+        fieldOfView: 45,
+        aspectRatio: 1.5,
+        isOrthographic: false,
+        orthographicSize: 10,
+        cullingMask: -1,
+        projectionMatrix: cloneableMat(0),
+        get viewMatrix() {
+          return cloneableMat(this.entity.transform.worldPosition.x);
+        },
+        viewport: cloneableViewport(0, 0, 1, 1),
+        resetProjectionMatrix() {},
+        registerRenderViewCullingSource(src: { cull(ctx: any): void }) {
+          cullingSource = src;
+        },
+        renderTarget: null,
+        clearFlags: 7,
+        enableHDR: false,
+        enablePostProcess: false,
+        opaqueTextureEnabled: false,
+        antiAliasing: 0,
+        depthTextureMode: 0,
+        render() {
+          observedPositionAtRender = { ...auxTransform.worldPosition };
+          observedCulledRenderers = [];
+          cullingSource?.cull({
+            isVisible: (bounds: any) => !!bounds.visible,
+            submit: (r: any) => observedCulledRenderers.push(r)
+          });
+        }
+      };
+      identityCamera = auxCamera;
+      return { addComponent: () => auxCamera };
+    }
+  };
+
+  const mainCamera: any = {
+    entity: {
+      transform: {
+        worldPosition: cloneableVec3(10, 5, 20),
+        worldForward: cloneableVec3(0, 0, -1),
+        worldRotationQuaternion: cloneableQuat(0, 0.25, 0, 0.968)
+      },
+      addComponent: (Ctor: any) => new Ctor()
+    },
+    engine: {
+      canvas: { width: 16, height: 12 },
+      _renderContext: { camera: null, flipProjection: false },
+      on() {},
+      off() {}
+    },
+    scene,
+    nearClipPlane: 0.2,
+    farClipPlane: 250,
+    fieldOfView: 60,
+    aspectRatio: 16 / 12,
+    isOrthographic: false,
+    orthographicSize: 10,
+    cullingMask: -1,
+    projectionMatrix: cloneableMat(42),
+    get viewMatrix() {
+      return cloneableMat(this.entity.transform.worldPosition.x);
+    },
+    viewport: cloneableViewport(0, 0, 1, 1),
+    visitRenderViewRenderers(visitor: (renderer: any) => void) {
+      for (const r of liveRenderViewRenderers) visitor(r);
+    }
+  };
+
+  const picker = new SeedWorldPicker(mainCamera);
+  const colorFrame = await picker.captureColorOnly();
+
+  const populated = picker.captureIdentityBuffer(
+    () => {},
+    () => ({ entityId: 1, componentId: 1, componentType: "MeshRenderer" }),
+    colorFrame.image
+  );
+
+  expect(observedPositionAtRender).toMatchObject({ x: 10, y: 5, z: 20 });
+  expect(observedCulledRenderers).toEqual([disabledInstancedBatch]);
+  expect(populated.metadata?.viewer.position).toEqual([10, 5, 20]);
+  expect(populated.metadata?.viewer.forward).toEqual([0, 0, -1]);
+  expect(identityCamera.entity.transform.worldPosition).toMatchObject({ x: 10, y: 5, z: 20 });
+  populated.identities.dispose();
+  picker.dispose();
 });

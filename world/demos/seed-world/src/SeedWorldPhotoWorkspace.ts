@@ -1,13 +1,15 @@
 import type { ImageResourceBudget } from "@galacean/engine-ai-chat/ai-chat/image-resources";
 import { SeedWorldPhotoInput, type PhotoPointerPhase } from "./SeedWorldPhotoInput.ts";
-import { DEFAULT_MARKUP_INK, PHOTO_BADGE, photoDetailLayout } from "@galacean/engine-world-planning/world/SeedWorldPhotoPalette";
+import { resolveSeedWorldVoiceOrbLayout } from "./SeedWorldHudLayout.ts";
+import { DEFAULT_MARKUP_INK, photoDetailLayout } from "@galacean/engine-world-planning/world/SeedWorldPhotoPalette";
 import { SeedWorldPhotoInputTrace } from "./SeedWorldPhotoInputTrace.ts";
 import {
   Keys,
   PointerButton,
   PointerPhase,
   UnlitMaterial,
-  type ModelMesh,
+  type Camera,
+  type Engine,
   type Pointer,
   type PointerEventData
 } from "@galacean/engine";
@@ -16,7 +18,12 @@ import { SeedWorldAnnotationHistory } from "./SeedWorldAnnotationHistory.ts";
 import { SEED_WORLD_PHOTO_CONFIG as config } from "@galacean/engine-world-planning/world/SeedWorldPhotoConfig";
 import { createViewAnnotation, type ViewAnnotation, type ViewPoint } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
 import { PhotoGraphics, PhotoSurface } from "@galacean/engine-world-planning/world/SeedWorldPhotoGraphics";
-import type { SeedWorldInstantCamera } from "./SeedWorldInstantCamera.ts";
+
+export interface PhotoWorkspaceHost {
+  readonly engine: Engine;
+  readonly canvas: HTMLCanvasElement;
+  readonly worldCamera: Camera;
+}
 
 export interface PhotoDocument {
   snapshotId: string;
@@ -36,6 +43,8 @@ type Entry = {
   opacity: number;
   opacityTarget: number;
   visible: boolean;
+  frameRadius: number;
+  closeOpacity: number;
   release(): void;
 };
 type Drag = { id: string; pointer: number; x: number; y: number; origin: Pose; moved: boolean; remove: boolean };
@@ -69,9 +78,13 @@ export class SeedWorldPhotoWorkspace {
   private outsideTap?: { pointer: number; x: number; y: number; moved: boolean };
   private closeTap?: { pointer: number; x: number; y: number; moved: boolean };
   private discarding?: { entry: Entry; controller: AbortController };
-  private submittedCard?: Entry;
-  private submittedCardFade?: AbortController;
+  private readonly pendingClearIds = new Set<string>();
+  private readonly clearingIds = new Set<string>();
+  private clearSubmittedAbort?: AbortController;
+  private openTransitionAbort?: AbortController;
+  private static readonly OPEN_HANDOFF = Symbol("photo-open-handoff");
   private hintAbort?: AbortController;
+  private brushVisualTime = 0;
   private static hintShownInSession = false;
   private pointers = new Set<number>();
   private editing?: { entry: Entry; history: SeedWorldAnnotationHistory; existing: boolean };
@@ -83,7 +96,15 @@ export class SeedWorldPhotoWorkspace {
   private readonly originalLabel: string | null;
   private readonly originalTabIndex: number;
   get size(): number {
-    return this.entries.size;
+    let count = 0;
+    const discardingId = this.discarding?.entry.photo.snapshotId;
+    for (const id of this.entries.keys()) {
+      if (!this.clearingIds.has(id) && !this.pendingClearIds.has(id) && id !== discardingId) count++;
+    }
+    return count;
+  }
+  get isEditing(): boolean {
+    return !!this.editing;
   }
   get active(): boolean {
     return this.mode !== "idle" || !!this.drag;
@@ -92,7 +113,7 @@ export class SeedWorldPhotoWorkspace {
     return this.graphics.canvas.dataset.photoPhase ?? "idle";
   }
   constructor(
-    private readonly camera: SeedWorldInstantCamera,
+    private readonly host: PhotoWorkspaceHost,
     private readonly actions: {
       edit: (photo: PhotoDocument) => void;
       remove: (id: string) => void;
@@ -105,21 +126,21 @@ export class SeedWorldPhotoWorkspace {
     },
     budget?: ImageResourceBudget
   ) {
-    this.originalLabel = camera.canvas.getAttribute("aria-label");
-    this.originalTabIndex = camera.canvas.tabIndex;
-    camera.canvas.tabIndex = 0;
-    this.graphics = new PhotoGraphics(camera.engine, camera.canvas, camera.worldCamera, (dt) => this.tick(dt), budget);
+    this.originalLabel = host.canvas.getAttribute("aria-label");
+    this.originalTabIndex = host.canvas.tabIndex;
+    host.canvas.tabIndex = 0;
+    this.graphics = new PhotoGraphics(host.engine, host.canvas, host.worldCamera, (dt) => this.tick(dt), budget);
     this.trace = new SeedWorldPhotoInputTrace(() => this.traceState());
     const signal = this.abort.signal;
     this.input = new SeedWorldPhotoInput(this.graphics.scene, (phase, event) => this.pointer(phase, event));
-    const rect = camera.canvas.getBoundingClientRect();
+    const rect = host.canvas.getBoundingClientRect();
     this.input.resize(rect.width, rect.height);
     // Browser default actions must be prevented synchronously. Commands themselves use InputManager.
     document.addEventListener(
       "keydown",
       (event) => {
         if (
-          this.active && document.activeElement === this.camera.canvas &&
+          this.active && document.activeElement === this.host.canvas &&
           (event.key === "Tab" ||
             event.key === "Escape" ||
             event.key === "Enter" ||
@@ -146,13 +167,19 @@ export class SeedWorldPhotoWorkspace {
         this.cancelDrawing("resize");
         this.cancelDrag();
         this.graphics.resize();
-        const rect = camera.canvas.getBoundingClientRect();
+        const rect = host.canvas.getBoundingClientRect();
         this.input.resize(rect.width, rect.height);
         this.layout();
+        for (const entry of this.entries.values()) {
+          if (entry !== this.editing?.entry && entry !== this.discarding?.entry && !this.clearingIds.has(entry.photo.snapshotId)) {
+            this.setEntryFrame(entry, entry.target.width, entry.target.height, 10, 0);
+          }
+        }
         if (this.editing && this.mode === "editing") {
           const targetPose = this.editPose(this.editing.entry.photo);
           const isFullscreen = this.markupMode === "fullscreen";
-          this.editing.entry.surface.setFrameLayout(
+          this.setEntryFrame(
+            this.editing.entry,
             targetPose.width,
             targetPose.height,
             20,
@@ -165,9 +192,11 @@ export class SeedWorldPhotoWorkspace {
     );
     this.setPhase("idle");
   }
+  playShutter(): void {
+    this.graphics.playShutter();
+  }
   setPhase(phase: string): void {
     this.input.setModal(this.mode !== "idle");
-    if (this.mode !== "editing") this.graphics.palette.isActive = false;
     this.graphics.canvas.dataset.photoPhase = phase;
     this.trace.record("phase", { phase });
   }
@@ -192,7 +221,7 @@ export class SeedWorldPhotoWorkspace {
   }
   private raiseCanvas(): void {
     if (this.restoreLayer) return;
-    const host = this.camera.canvas.closest("main") ?? this.camera.canvas;
+    const host = this.host.canvas.closest("main") ?? this.host.canvas;
     const oldPosition = host.style.position,
       oldZ = host.style.zIndex;
     if (getComputedStyle(host).position === "static") host.style.position = "relative";
@@ -202,11 +231,6 @@ export class SeedWorldPhotoWorkspace {
       host.style.zIndex = oldZ;
     };
   }
-  editRect(photo: PhotoDocument): DOMRect {
-    const p = this.editPose(photo),
-      r = this.camera.canvas.getBoundingClientRect();
-    return new DOMRect(r.left + p.x - p.width / 2, r.top + p.y - p.height / 2, p.width, p.height);
-  }
   private get markupMode(): "inset" | "fullscreen" {
     if (typeof location !== "undefined") {
       const value = new URLSearchParams(location.search).get("markupMode");
@@ -214,19 +238,8 @@ export class SeedWorldPhotoWorkspace {
     }
     return "inset";
   }
-  private badgeRect(): { x: number; y: number; width: number; height: number } {
-    const rect = this.camera.canvas.getBoundingClientRect();
-    const x = this.anchor.x - rect.left;
-    const top = this.anchor.top - rect.top;
-    return {
-      x: Math.max(PHOTO_BADGE.width * 0.5 + 12, Math.min(rect.width - PHOTO_BADGE.width * 0.5 - 12, x)),
-      y: Math.max(PHOTO_BADGE.height * 0.5 + 12, top - 14 - PHOTO_BADGE.height * 0.5),
-      width: PHOTO_BADGE.width,
-      height: PHOTO_BADGE.height
-    };
-  }
   private editPose(photo: PhotoDocument): Pose {
-    const r = this.camera.canvas.getBoundingClientRect();
+    const r = this.host.canvas.getBoundingClientRect();
     if (this.markupMode === "fullscreen") {
       return {
         x: r.width / 2,
@@ -251,22 +264,16 @@ export class SeedWorldPhotoWorkspace {
       depth: 1
     };
   }
-  private submittedCardPose(photo: PhotoDocument): Pose {
-    const r = this.camera.canvas.getBoundingClientRect();
-    const ratio = photo.image.height / Math.max(1, photo.image.width);
-    const width = Math.min(136, Math.max(96, r.width * 0.145));
-    const height = width * ratio;
-    const anchorX = this.anchor.x - r.left;
-    const anchorTop = this.anchor.top - r.top;
-    return {
-      x: Math.max(width * 0.5 + 16, Math.min(r.width - width * 0.5 - 16, anchorX)),
-      y: Math.max(height * 0.5 + 16, Math.min(r.height - 16 - height * 0.5, anchorTop - 14 - height * 0.5)),
-      width,
-      height,
-      angle: 0,
-      z: 40,
-      depth: 1
-    };
+  private dockEntries(includeEntry?: Entry): Entry[] {
+    const discarding = this.discarding?.entry;
+    return [...this.entries.values()].filter(
+      (e) =>
+        e === includeEntry ||
+        (e !== this.editing?.entry &&
+          e !== discarding &&
+          !this.clearingIds.has(e.photo.snapshotId) &&
+          !(this.drag?.remove && this.drag.id === e.photo.snapshotId))
+    );
   }
   private shouldShowOnboardingHint(): boolean {
     if (typeof location !== "undefined" && new URLSearchParams(location.search).get("markupHint") === "1") {
@@ -323,47 +330,103 @@ export class SeedWorldPhotoWorkspace {
       if (!this.disposed) entry.surface.setHintLoop(0, 0);
     });
   }
-  /** Immediately dispose or gracefully fade away any docked submitted mini card. */
-  clearSubmittedCard(immediate = false): void {
-    const card = this.submittedCard;
-    if (!card) return;
-    this.submittedCardFade?.abort();
-    this.submittedCardFade = undefined;
-    const disposeCard = () => {
-      if (this.submittedCard === card) this.submittedCard = undefined;
-      card.surface.dispose();
-      card.release();
-      this.input.remove(card.photo.snapshotId);
-      this.entries.delete(card.photo.snapshotId);
+  /** Immediately dispose any cards currently fading out after a finished voice turn. */
+  flushClearingCards(): void {
+    if (!this.clearingIds.size && !this.clearSubmittedAbort) return;
+    this.clearSubmittedAbort?.abort();
+    this.clearSubmittedAbort = undefined;
+    const ids = [...this.clearingIds];
+    this.clearingIds.clear();
+    for (const id of ids) {
+      const entry = this.entries.get(id);
+      if (!entry) continue;
+      entry.surface.dispose();
+      entry.release();
+      this.input.remove(id);
+      this.entries.delete(id);
+    }
+    if (!this.disposed) this.layout();
+  }
+  /** Immediately dispose or gracefully fade away all docked cards that were submitted in a voice turn. */
+  clearSubmittedCards(snapshotIds: readonly string[]): void {
+    const cards: Entry[] = [];
+    for (const id of snapshotIds) {
+      const entry = this.entries.get(id);
+      if (!entry || entry === this.discarding?.entry || this.clearingIds.has(id)) {
+        continue;
+      }
+      if (entry === this.editing?.entry) {
+        // Turn ended before dismissSubmitted() finished shrinking/preparing identities:
+        // detach immediately so the finished turn's photo can never leak into the next turn,
+        // and fade out the card as soon as dismissSubmitted() completes.
+        this.pendingClearIds.add(id);
+        this.actions.remove(id);
+        continue;
+      }
+      cards.push(entry);
+    }
+    if (!cards.length) return;
+    // Dispose any prior fading batch before replacing clearSubmittedAbort so reentrant clears never strand entries.
+    if (this.clearingIds.size > 0 || this.clearSubmittedAbort) {
+      this.flushClearingCards();
+    }
+    for (const entry of cards) {
+      const id = entry.photo.snapshotId;
+      this.clearingIds.add(id);
+      if (this.drag?.id === id) this.cancelDrag();
+      // Free the attachment slot immediately; active AI turns already hold their own snapshot leases.
+      this.actions.remove(id);
+    }
+    if (!this.disposed) this.layout();
+    const disposeCards = () => {
+      for (const card of cards) {
+        const id = card.photo.snapshotId;
+        if (!this.clearingIds.delete(id)) continue;
+        if (this.entries.get(id) !== card) continue;
+        card.surface.dispose();
+        card.release();
+        this.input.remove(id);
+        this.entries.delete(id);
+      }
+      if (!this.disposed) this.layout();
     };
-    if (immediate || this.disposed) {
-      disposeCard();
+    if (this.disposed) {
+      disposeCards();
       return;
     }
-    const controller = (this.submittedCardFade = new AbortController());
-    const startOpacity = card.opacity;
+    const controller = (this.clearSubmittedAbort = new AbortController());
+    const startOpacities = cards.map((card) => card.opacity);
     void this.animate(260, controller.signal, (t) => {
-      card.opacity = startOpacity * (1 - t * t);
+      const factor = 1 - t * t;
+      for (let i = 0; i < cards.length; i++) {
+        if (!this.clearingIds.has(cards[i].photo.snapshotId)) continue;
+        cards[i].opacity = startOpacities[i] * factor;
+      }
     })
       .then(() => {
-        if (this.submittedCardFade === controller) this.submittedCardFade = undefined;
-        disposeCard();
+        if (this.clearSubmittedAbort === controller) this.clearSubmittedAbort = undefined;
+        disposeCards();
       })
       .catch(() => {
-        if (this.submittedCardFade === controller) this.submittedCardFade = undefined;
+        if (this.clearSubmittedAbort === controller) this.clearSubmittedAbort = undefined;
       });
+  }
+  private setEntryFrame(entry: Entry, width: number, height: number, radius: number, rimWidth: number): void {
+    entry.frameRadius = radius;
+    entry.surface.setFrameLayout(width, height, radius, rimWidth);
+  }
+  private setEntryCloseOpacity(entry: Entry, opacity: number): void {
+    entry.closeOpacity = opacity;
+    entry.surface.setCloseOpacity(opacity);
   }
   async open(
     photo: PhotoDocument,
-    signal: AbortSignal,
-    print?: (target: () => DOMRect) => Promise<void>
+    signal: AbortSignal
   ): Promise<void> {
-    if (this.submittedCard?.photo.snapshotId === photo.snapshotId) {
-      this.submittedCardFade?.abort();
-      this.submittedCardFade = undefined;
-      this.submittedCard = undefined;
-    } else {
-      this.clearSubmittedCard(true);
+    const wasClearing = this.clearingIds.delete(photo.snapshotId);
+    this.pendingClearIds.delete(photo.snapshotId);
+    if (wasClearing || !this.entries.has(photo.snapshotId)) {
+      this.flushClearingCards();
     }
     let entry = this.entries.get(photo.snapshotId);
     const existing = !!entry;
@@ -385,6 +448,8 @@ export class SeedWorldPhotoWorkspace {
         opacity: 1,
         opacityTarget: 1,
         visible: false,
+        frameRadius: 0,
+        closeOpacity: 0,
         release: this.actions.retain(photo.snapshotId)
       };
       this.entries.set(photo.snapshotId, entry);
@@ -397,169 +462,155 @@ export class SeedWorldPhotoWorkspace {
     entry.opacityTarget = 1;
     this.editing = { entry, history: photo.history.clone(), existing };
     entry.surface.paint(this.editing.history.annotations);
-    this.mode = "busy";
-    if (print) {
-      entry.surface.setFrameLayout(targetPose.width, targetPose.height, targetRadius, isFullscreen ? 6 : 0);
-      entry.surface.setRimOpacity(1);
-      await print(() => this.editRect(photo));
-      signal.throwIfAborted();
-      entry.pose = targetPose;
-      entry.visible = true;
-      this.shade = targetShade;
-      this.render(entry);
-      this.camera.hide();
-    } else if (isFullscreen) {
-      entry.surface.setFrameLayout(targetPose.width, targetPose.height, targetRadius, 6);
-      entry.pose = { ...targetPose };
-      entry.visible = true;
-      entry.liftTarget = 1;
-      this.shade = 0;
-      this.setPhase("fly");
-      await this.animate(220, signal, (t) => {
-        const e = 1 - (1 - t) ** 3;
-        entry!.opacity = 1;
-        entry!.surface.setRimOpacity(e);
-      });
-    } else {
-      const r = this.camera.canvas.getBoundingClientRect();
-      const from: Pose = existing
-        ? { ...entry.pose, z: targetPose.z }
-        : {
-            x: r.width / 2,
-            y: r.height / 2,
-            width: r.width,
-            height: r.height,
-            angle: 0,
-            z: targetPose.z,
-            depth: 1
-          };
-      const startRadius = existing ? 10 : 0;
-      const startRim = existing ? 1 : 0;
-      const openDuration = existing ? 360 : 480;
-      entry.pose = { ...from };
-      entry.opacity = 1;
-      entry.visible = true;
-      entry.liftTarget = 1;
-      entry.surface.setFrameLayout(from.width, from.height, startRadius, 0);
-      entry.surface.setRimOpacity(startRim);
-      entry.surface.setCloseOpacity(0);
-      this.render(entry);
-      this.setPhase("fly");
-      await this.animate(openDuration, signal, (t) => {
-        const e = 1 - Math.pow(1 - t, 3.2);
-        const current = interpolate(from, targetPose, e);
-        entry!.pose = current;
-        entry!.surface.setFrameLayout(current.width, current.height, mix(startRadius, targetRadius, e), 0);
-        entry!.surface.setRimOpacity(mix(startRim, 1, e));
-        entry!.surface.setCloseOpacity(e);
-        this.shade = targetShade * e;
-      });
-    }
+    // Register/sync attachment synchronously before the fly animation so entries and attachments
+    // stay consistent if voice submission hands off mid-fly.
     this.actions.updateAttachment(photo.snapshotId, this.editing.history.annotations);
+    this.mode = "busy";
+
+    // Dedicated fly-transition abort controller lets dismissSubmitted() cleanly take over mid-fly
+    // without cancelling the outer capture session or running competing animations on the same entry.
+    this.openTransitionAbort?.abort(SeedWorldPhotoWorkspace.OPEN_HANDOFF);
+    const flyAbort = (this.openTransitionAbort = new AbortController());
+    const onOuterAbort = () => flyAbort.abort(signal.reason ?? new DOMException("Photo open cancelled", "AbortError"));
+    if (signal.aborted) {
+      onOuterAbort();
+    } else {
+      signal.addEventListener("abort", onOuterAbort, { once: true });
+    }
+    const flySignal = flyAbort.signal;
+
+    try {
+      if (isFullscreen) {
+        this.setEntryFrame(entry, targetPose.width, targetPose.height, targetRadius, 6);
+        this.setEntryCloseOpacity(entry, 0);
+        entry.pose = { ...targetPose };
+        entry.visible = true;
+        entry.liftTarget = 1;
+        this.shade = 0;
+        this.setPhase("fly");
+        await this.animate(220, flySignal, (t) => {
+          const e = 1 - (1 - t) ** 3;
+          entry!.opacity = 1;
+          entry!.surface.setRimOpacity(e);
+        });
+      } else {
+        const r = this.host.canvas.getBoundingClientRect();
+        const from: Pose = existing
+          ? { ...entry.pose, z: targetPose.z }
+          : {
+              x: r.width / 2,
+              y: r.height / 2,
+              width: r.width,
+              height: r.height,
+              angle: 0,
+              z: targetPose.z,
+              depth: 1
+            };
+        const startRadius = existing ? entry.frameRadius : 0;
+        const startRim = existing ? 1 : 0;
+        const openDuration = existing ? 360 : 480;
+        entry.pose = { ...from };
+        entry.opacity = 1;
+        entry.visible = true;
+        entry.liftTarget = 1;
+        this.setEntryFrame(entry, from.width, from.height, startRadius, 0);
+        entry.surface.setRimOpacity(startRim);
+        this.setEntryCloseOpacity(entry, 0);
+        this.render(entry);
+        this.setPhase("fly");
+        await this.animate(openDuration, flySignal, (t) => {
+          const e = 1 - Math.pow(1 - t, 3.2);
+          const current = interpolate(from, targetPose, e);
+          entry!.pose = current;
+          this.setEntryFrame(entry!, current.width, current.height, mix(startRadius, targetRadius, e), 0);
+          entry!.surface.setRimOpacity(mix(startRim, 1, e));
+          this.setEntryCloseOpacity(entry!, e);
+          this.shade = targetShade * e;
+        });
+      }
+    } catch (error) {
+      if (flySignal.aborted && flySignal.reason === SeedWorldPhotoWorkspace.OPEN_HANDOFF) {
+        return;
+      }
+      throw error;
+    } finally {
+      signal.removeEventListener("abort", onOuterAbort);
+      if (this.openTransitionAbort === flyAbort) this.openTransitionAbort = undefined;
+    }
+
+    if (flySignal.aborted || signal.aborted || this.disposed || this.editing?.entry !== entry) return;
     this.mode = "editing";
     entry.opacity = entry.opacityTarget = 1;
-    entry.surface.setCloseOpacity(1);
+    this.setEntryCloseOpacity(entry, 1);
     this.render(entry);
     this.setPhase("editing");
-    // Pure zero-chrome markup canvas: no toolbar, no color picker, no undo/redo/delete clutter.
-    this.graphics.toolbar.isActive = false;
-    this.graphics.palette.isActive = false;
     this.graphics.status.text = "";
-    this.camera.canvas.focus();
-    this.refreshToolbar();
+    this.host.canvas.focus();
+    this.updateAriaLabel();
     this.startOnboardingHint(entry);
   }
-  /** After voice dialogue submits, shrink the entire marked screenshot smoothly into a mini rounded card docked in the world. */
-  async dismissSubmitted(signal: AbortSignal): Promise<void> {
+  /** After voice dialogue submits or margin tap minimizes, shrink the marked screenshot smoothly into the multi-card dock. */
+  async dismissSubmitted(
+    signal: AbortSignal,
+    waitBeforeUnfreeze?: { readonly isPending: () => boolean; readonly wait: (signal: AbortSignal) => Promise<void> }
+  ): Promise<void> {
     const editing = this.editing;
     if (!editing) return;
+    // Cancel any in-flight open() fly motion synchronously so only dismissSubmitted() drives this entry.
+    this.openTransitionAbort?.abort(SeedWorldPhotoWorkspace.OPEN_HANDOFF);
+    this.openTransitionAbort = undefined;
     this.stopOnboardingHint();
     this.cancelDrawing();
     this.mode = "busy";
-    this.graphics.toolbar.isActive = false;
-    this.graphics.palette.isActive = false;
     const { entry, history } = editing;
     // Commit current strokes onto the document so tapping the docked card reopens them intact.
     entry.photo = { ...entry.photo, history };
     const from = { ...entry.pose };
-    const cardPose = this.submittedCardPose(entry.photo);
+    // Lay out all docked cards including this entry so peer cards smoothly make room during the shrink animation.
+    this.layout(false, entry);
+    const cardPose = { ...entry.target };
     const startShade = this.shade;
-    const startRadius = 20;
+    const startRadius = entry.frameRadius;
+    const startCloseOpacity = entry.closeOpacity;
     const cardRadius = 10;
     this.setPhase("return");
     await this.animate(380, signal, (t) => {
       const e = 1 - (1 - t) ** 3;
       const current = interpolate(from, cardPose, e);
       entry.pose = current;
-      entry.surface.setFrameLayout(current.width, current.height, mix(startRadius, cardRadius, e), 0);
+      this.setEntryFrame(entry, current.width, current.height, mix(startRadius, cardRadius, e), 0);
       entry.surface.setRimOpacity(1);
-      entry.surface.setCloseOpacity(Math.max(0, 1 - e * 2.5));
+      this.setEntryCloseOpacity(entry, startCloseOpacity * Math.max(0, 1 - e * 2.5));
       this.shade = startShade * (1 - e);
     });
     signal.throwIfAborted();
-    entry.surface.setCloseOpacity(0);
+    this.setEntryFrame(entry, cardPose.width, cardPose.height, cardRadius, 0);
+    this.setEntryCloseOpacity(entry, 0);
     entry.pose = { ...cardPose };
     entry.target = { ...cardPose };
+    entry.liftTarget = 0;
     entry.opacity = entry.opacityTarget = 1;
     entry.visible = true;
-    this.editing = undefined;
-    this.submittedCard = entry;
-    this.finish();
-  }
-  async confirm(signal: AbortSignal): Promise<PhotoDocument> {
-    const editing = this.editing!;
-    this.cancelDrawing();
-    this.mode = "busy";
-    this.graphics.toolbar.isActive = false;
-    const { entry, history } = editing;
-    const updated = { ...entry.photo, history };
-    signal.throwIfAborted();
-    const from = { ...entry.pose };
-    const badge = this.badgeRect();
-    const to: Pose = {
-      x: badge.x,
-      y: badge.y,
-      width: from.width * 0.22,
-      height: from.height * 0.22,
-      angle: 0,
-      z: 20,
-      depth: 1
-    };
-    const startShade = this.shade;
-    this.setPhase("return");
-    await this.animate(190, signal, (t) => {
-      const e = 1 - (1 - t) ** 3;
-      entry.pose = this.markupMode === "fullscreen" ? from : interpolate(from, to, e);
-      entry.opacity = 1 - e;
-      this.shade = startShade * (1 - e);
-    });
-    signal.throwIfAborted();
-    return updated;
-  }
-  commit(photo: PhotoDocument): void {
-    const entry = this.entries.get(photo.snapshotId)!;
-    entry.photo = photo;
-    entry.pose = { ...entry.target };
-    entry.opacity = entry.opacityTarget = 0;
-    entry.visible = false;
-    entry.liftTarget = 0;
+    if (waitBeforeUnfreeze?.isPending()) {
+      // Keep the world camera frozen until deferred ID+depth capture finishes so dynamic view-culled
+      // batches stay pixel-aligned with the captured color frame (0ms extra wait when already settled).
+      this.setPhase("identities");
+      this.graphics.status.text = "正在建立画面拾取索引…";
+      this.statusUntil = 0;
+      await waitBeforeUnfreeze.wait(signal);
+      signal.throwIfAborted();
+      if (this.disposed) return;
+    }
+    const dismissedId = entry.photo.snapshotId;
     this.editing = undefined;
     this.finish();
-  }
-  recover(message: string): void {
-    if (!this.editing) return;
-    const targetPose = this.editPose(this.editing.entry.photo);
-    this.editing.entry.pose = targetPose;
-    this.editing.entry.opacity = this.editing.entry.opacityTarget = 1;
-    this.editing.entry.visible = true;
-    this.shade = this.markupMode === "fullscreen" ? 0 : 0.42;
-    this.mode = "editing";
-    this.graphics.toolbar.isActive = true;
-    this.setPhase("editing");
-    this.refreshToolbar();
-    this.notify(message);
+    if (this.pendingClearIds.delete(dismissedId) && this.entries.get(dismissedId) === entry) {
+      this.clearSubmittedCards([dismissedId]);
+    }
   }
   cancel(): void {
+    this.openTransitionAbort?.abort(new DOMException("Photo open cancelled", "AbortError"));
+    this.openTransitionAbort = undefined;
     this.stopOnboardingHint();
     if (this.discarding) {
       const { entry, controller } = this.discarding;
@@ -572,12 +623,18 @@ export class SeedWorldPhotoWorkspace {
     const editing = this.editing;
     this.editing = undefined;
     if (editing) {
-      if (editing.existing) {
-        this.actions.updateAttachment(editing.entry.photo.snapshotId, editing.entry.photo.history.annotations);
+      const id = editing.entry.photo.snapshotId;
+      if (editing.existing && !this.pendingClearIds.has(id)) {
+        this.actions.updateAttachment(id, editing.entry.photo.history.annotations);
         editing.entry.surface.paint(editing.entry.photo.history.annotations);
+        this.layout(false, editing.entry);
         editing.entry.pose = { ...editing.entry.target };
+        this.setEntryFrame(editing.entry, editing.entry.target.width, editing.entry.target.height, 10, 0);
+        this.setEntryCloseOpacity(editing.entry, 0);
         editing.entry.liftTarget = 0;
-      } else this.remove(editing.entry.photo.snapshotId);
+      } else {
+        this.remove(id);
+      }
     }
     this.finish();
   }
@@ -585,17 +642,18 @@ export class SeedWorldPhotoWorkspace {
     this.mode = "idle";
     this.pointers.clear();
     this.shade = 0;
-    this.graphics.toolbar.isActive = false;
     this.graphics.status.text = "";
     this.restoreLayer?.();
     this.restoreLayer = undefined;
-    if (this.originalLabel === null) this.camera.canvas.removeAttribute("aria-label");
-    else this.camera.canvas.setAttribute("aria-label", this.originalLabel);
+    if (this.originalLabel === null) this.host.canvas.removeAttribute("aria-label");
+    else this.host.canvas.setAttribute("aria-label", this.originalLabel);
     this.setPhase("idle");
     this.layout();
     this.freeze(false);
   }
   remove(id: string): void {
+    this.pendingClearIds.delete(id);
+    this.clearingIds.delete(id);
     const entry = this.entries.get(id);
     if (!entry) return;
     this.actions.remove(id);
@@ -605,14 +663,63 @@ export class SeedWorldPhotoWorkspace {
     this.entries.delete(id);
     this.layout();
   }
-  private layout(followAnchor = false): void {
-    const badge = this.badgeRect();
-    const card = this.submittedCard;
-    if (card) {
-      card.target = this.submittedCardPose(card.photo);
+  private layout(followAnchor = false, includeEntry?: Entry): void {
+    const r = this.host.canvas.getBoundingClientRect();
+    const anchorX = this.anchor.x - r.left;
+    const anchorTop = this.anchor.top - r.top;
+    const included = this.dockEntries(includeEntry);
+    if (included.length > 0 && r.width > 0 && r.height > 0) {
+      const { useWideLayout, orbReservedRightPx } = resolveSeedWorldVoiceOrbLayout(r.width, r.height);
+      const safeSideMargin = useWideLayout ? orbReservedRightPx : 16;
+      const maxRowWidth = Math.max(112, r.width - safeSideMargin * 2);
+      const gap = included.length > 2 || r.width < 540 ? 12 : 14;
+      const preferredWidth =
+        r.width < 540 ? Math.min(120, Math.max(76, r.width * 0.28)) : Math.min(136, Math.max(96, r.width * 0.145));
+      const slotMaxWidth = Math.max(48, (maxRowWidth - gap * Math.max(0, included.length - 1)) / included.length);
+      const maxCardHeight = Math.max(64, Math.min(r.height > r.width ? 132 : 112, anchorTop - 32));
+      const sizes = included.map((entry) => {
+        const ratio = entry.photo.image.height / Math.max(1, entry.photo.image.width);
+        const width = Math.min(preferredWidth, slotMaxWidth, maxCardHeight / Math.max(0.2, ratio));
+        return { width, height: width * ratio };
+      });
+      const totalWidth = sizes.reduce((sum, s) => sum + s.width, 0) + Math.max(0, included.length - 1) * gap;
+      const minCenter = safeSideMargin + totalWidth * 0.5;
+      const maxCenter = r.width - safeSideMargin - totalWidth * 0.5;
+      const rowCenterX =
+        minCenter <= maxCenter ? Math.max(minCenter, Math.min(maxCenter, anchorX)) : r.width * 0.5;
+      let left = rowCenterX - totalWidth * 0.5;
+      included.forEach((entry, index) => {
+        const { width, height } = sizes[index];
+        const previousTarget = entry.target;
+        const y = Math.max(height * 0.5 + 16, Math.min(r.height - 16 - height * 0.5, anchorTop - 14 - height * 0.5));
+        entry.target = {
+          x: left + width * 0.5,
+          y,
+          width,
+          height,
+          angle: included.length > 1 ? entry.photo.angle : 0,
+          z: 24 + index * 2,
+          depth: 1
+        };
+        if (
+          followAnchor &&
+          entry !== this.editing?.entry &&
+          entry !== this.discarding?.entry &&
+          entry.photo.snapshotId !== this.drag?.id
+        ) {
+          const pose = entry.pose;
+          const target = entry.target;
+          pose.x += target.x - previousTarget.x;
+          pose.y += target.y - previousTarget.y;
+          pose.width += target.width - previousTarget.width;
+          pose.height += target.height - previousTarget.height;
+          pose.angle += target.angle - previousTarget.angle;
+          pose.z = target.z;
+          this.render(entry);
+        }
+        left += width + gap;
+      });
     }
-    this.graphics.setBadge(0, 0, 0, false);
-    this.input.setBadge(badge, false);
   }
   private freeze(value: boolean): void {
     if (value) {
@@ -620,7 +727,7 @@ export class SeedWorldPhotoWorkspace {
       this.actions.freeze(true);
     } else if (this.handlingInput) {
       // EndDrag runs before scene updates. Keep world controls disabled through the release frame.
-      this.thawAfterFrame = this.camera.engine.time.frameCount + 1;
+      this.thawAfterFrame = this.host.engine.time.frameCount + 1;
     } else {
       this.thawAfterFrame = undefined;
       this.actions.freeze(false);
@@ -628,7 +735,7 @@ export class SeedWorldPhotoWorkspace {
   }
   private tick(dt: number): void {
     if (this.disposed) return;
-    if (this.thawAfterFrame !== undefined && this.camera.engine.time.frameCount >= this.thawAfterFrame) {
+    if (this.thawAfterFrame !== undefined && this.host.engine.time.frameCount >= this.thawAfterFrame) {
       this.thawAfterFrame = undefined;
       if (!this.active) this.actions.freeze(false);
     }
@@ -650,49 +757,56 @@ export class SeedWorldPhotoWorkspace {
         motion.cancel();
       }
     }
-    const t = matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) * 18);
+    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reducedMotion) {
+      this.brushVisualTime = (this.brushVisualTime + Math.min(Math.max(dt, 0), 0.1)) % 3600;
+    }
+    const t = reducedMotion ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) * 18);
     for (const entry of this.entries.values()) {
-      if (entry !== this.editing?.entry && entry !== this.discarding?.entry && entry.photo.snapshotId !== this.drag?.id)
+      const id = entry.photo.snapshotId;
+      const clearing = this.clearingIds.has(id);
+      if (entry !== this.editing?.entry && entry !== this.discarding?.entry && !clearing && id !== this.drag?.id)
         entry.pose = interpolate(entry.pose, entry.target, t);
       entry.lift = mix(entry.lift, entry.liftTarget, t);
-      if (entry !== this.discarding?.entry) {
+      if (entry !== this.discarding?.entry && !clearing) {
         entry.opacity = mix(entry.opacity, entry.opacityTarget, t);
         if (Math.abs(entry.opacity - entry.opacityTarget) < 0.001) entry.opacity = entry.opacityTarget;
       }
+      entry.surface.setBrushTime(this.brushVisualTime);
       this.render(entry);
     }
     const backdrop = this.graphics.backdrop;
     backdrop.entity.isActive = this.shade > 0.001;
     (backdrop.getMaterial() as UnlitMaterial).baseColor.a = this.shade;
-    const badge = this.badgeRect();
-    this.graphics.setBadge(0, badge.x, badge.y, false);
-    this.input.setBadge(badge, false);
     if (this.statusUntil && now > this.statusUntil) {
       this.statusUntil = 0;
       this.graphics.status.text = "";
     }
     this.graphics.camera.enabled =
-      !this.graphics.warmingUp && (this.size > 0 || this.mode !== "idle" || !!this.graphics.status.text);
+      !this.graphics.warmingUp && (this.entries.size > 0 || this.mode !== "idle" || !!this.graphics.status.text);
     if (this.editing && this.trace.enabled)
       this.trace.sample("frame", {
         dt,
         cameraEnabled: this.graphics.camera.enabled,
         sceneActive: this.graphics.scene.isActive,
         rootActive: this.editing.entry.surface.root.isActiveInHierarchy,
-        inkActive: this.editing.entry.surface.ink.entity.isActiveInHierarchy,
-        vertices: (this.editing.entry.surface.ink.mesh as ModelMesh | null)?.vertexCount
+        hasUserMarks: this.editing.entry.surface.hasUserMarks
       });
   }
   private render(entry: Entry): void {
     const { surface, pose: p } = entry;
     surface.setOpacity(entry.opacity);
-    // Show the frozen viewport while actively editing, discarding, or docked as a post-voice submitted mini card.
-    const showSurface =
-      entry.visible &&
-      (entry === this.editing?.entry || entry === this.discarding?.entry || entry === this.submittedCard);
+    const id = entry.photo.snapshotId;
+    const isEditingOrDiscarding = entry === this.editing?.entry || entry === this.discarding?.entry;
+    const showSurface = entry.visible && (isEditingOrDiscarding || this.anchor.visible);
     surface.root.isActive = showSurface;
-    const cardInteractive = entry === this.submittedCard && entry.visible && this.mode === "idle";
-    this.input.setPhoto(entry.photo.snapshotId, p, cardInteractive);
+    const cardInteractive =
+      !isEditingOrDiscarding &&
+      entry.visible &&
+      this.anchor.visible &&
+      this.mode === "idle" &&
+      !this.clearingIds.has(id);
+    this.input.setPhoto(id, p, cardInteractive);
     if (!showSurface) return;
     surface.root.transform.setPosition(p.x, -p.y, p.z);
     surface.root.transform.setRotation(0, 0, -p.angle);
@@ -732,22 +846,27 @@ export class SeedWorldPhotoWorkspace {
     });
   }
   private local(pointer: Pointer): ViewPoint {
-    const r = this.camera.canvas.getBoundingClientRect();
+    const r = this.host.canvas.getBoundingClientRect();
     return {
-      x: (pointer.position.x * r.width) / this.camera.canvas.width,
-      y: (pointer.position.y * r.height) / this.camera.canvas.height
+      x: (pointer.position.x * r.width) / this.host.canvas.width,
+      y: (pointer.position.y * r.height) / this.host.canvas.height
     };
   }
   private hit(p: ViewPoint): Entry | undefined {
-    const card = this.submittedCard;
-    if (!card || !card.visible || this.discarding) return undefined;
-    if (
-      Math.abs(p.x - card.pose.x) <= card.pose.width * 0.5 + 12 &&
-      Math.abs(p.y - card.pose.y) <= card.pose.height * 0.5 + 12
-    ) {
-      return card;
-    }
-    return undefined;
+    if (this.discarding || !this.anchor.visible) return undefined;
+    return [...this.entries.values()].reverse().find((entry) => {
+      const id = entry.photo.snapshotId;
+      if (!entry.visible || entry === this.editing?.entry || this.clearingIds.has(id)) return false;
+      const q = this.localPaper(entry, p);
+      const sx = entry.pose.width / Math.max(1, entry.surface.layoutWidth);
+      const sy = entry.pose.height / Math.max(1, entry.surface.layoutHeight);
+      const padX = 12 / Math.max(0.0001, sx);
+      const padY = 12 / Math.max(0.0001, sy);
+      return (
+        Math.abs(q.x) <= entry.surface.layoutWidth * 0.5 + padX &&
+        Math.abs(q.y) <= entry.surface.layoutHeight * 0.5 + padY
+      );
+    });
   }
   private localPaper(entry: Entry, p: ViewPoint): ViewPoint {
     const a = (entry.pose.angle * Math.PI) / 180,
@@ -767,10 +886,10 @@ export class SeedWorldPhotoWorkspace {
   }
   private traceState(): Record<string, unknown> {
     const entry = this.editing?.entry,
-      rect = this.camera.canvas.getBoundingClientRect();
+      rect = this.host.canvas.getBoundingClientRect();
     return {
       mode: this.mode,
-      phase: this.camera.canvas.dataset.photoPhase,
+      phase: this.host.canvas.dataset.photoPhase,
       pointers: [...this.pointers],
       snapshotId: entry?.photo.snapshotId,
       drawing: this.drawing
@@ -778,15 +897,14 @@ export class SeedWorldPhotoWorkspace {
         : null,
       strokes: this.editing?.history.annotations.length,
       brushColor: this.brushColor,
-      paletteOpen: this.graphics.palette.isActive,
       pose: entry ? { ...entry.pose } : null,
       canvas: {
         left: rect.left,
         top: rect.top,
         width: rect.width,
         height: rect.height,
-        bufferWidth: this.camera.canvas.width,
-        bufferHeight: this.camera.canvas.height
+        bufferWidth: this.host.canvas.width,
+        bufferHeight: this.host.canvas.height
       },
       focused: document.hasFocus(),
       visibility: document.visibilityState
@@ -849,8 +967,6 @@ export class SeedWorldPhotoWorkspace {
         this.outsideTap = undefined;
         this.closeTap = undefined;
         this.stopOnboardingHint();
-        this.graphics.toolbar.isActive = false;
-        this.graphics.palette.isActive = false;
         const entry = this.editing!.entry;
         const q = this.localPaper(entry, p);
         if (entry.surface.isCloseButtonHit(q.x, q.y)) {
@@ -869,7 +985,9 @@ export class SeedWorldPhotoWorkspace {
         });
         const scale = this.editing!.entry.photo.image.width / Math.max(1, this.editing!.entry.pose.width);
         this.drawing = { pointer: event.id, points: [point], scale, color: this.brushColor };
-        this.paint();
+        if (!this.tryPaintDrawing()) {
+          this.drawing = undefined;
+        }
       } else if (isUp || cancel) {
         const closeTap = this.closeTap;
         if (closeTap?.pointer === event.id) {
@@ -900,8 +1018,13 @@ export class SeedWorldPhotoWorkspace {
             const annotation = createViewAnnotation(this.drawing.points, this.drawing.scale, this.drawing.color);
             this.updateHistory(history => history.add(annotation));
           } catch (error) {
-            this.trace.record("history-error", { error: String(error) });
-            this.notify(String(error));
+            const rawError = String(error);
+            this.trace.record("history-error", { error: rawError });
+            this.notify(
+              rawError.includes("65536") || (error instanceof Error && error.name === "AgentValueError")
+                ? "标记线条过多，请先删掉部分或重画。"
+                : rawError
+            );
           }
         }
         this.trace.record(isUp ? "stroke-committed" : "stroke-cancelled", {
@@ -924,7 +1047,9 @@ export class SeedWorldPhotoWorkspace {
           });
         if (point && Math.hypot(point.x - last.x, point.y - last.y) > this.drawing.scale * 2) {
           this.drawing.points.push(point);
-          this.paint();
+          if (!this.tryPaintDrawing()) {
+            this.drawing = undefined;
+          }
         }
       }
       return;
@@ -1007,30 +1132,41 @@ export class SeedWorldPhotoWorkspace {
     this.closeTap = undefined;
     if (this.drawing) this.trace.record("drawing-ended", { reason, pointCount: this.drawing.points.length });
     this.drawing = undefined;
-    if (this.editing) this.paint();
+    if (this.editing) this.tryPaintDrawing();
+  }
+  private tryPaintDrawing(): boolean {
+    try {
+      this.paint();
+      return true;
+    } catch {
+      this.notify("画面标记渲染失败，请重试。");
+      return false;
+    }
   }
   private paint(): void {
     const { entry, history } = this.editing!;
     const started = this.trace.enabled ? performance.now() : 0;
     try {
-      entry.surface.paint([
-        ...history.annotations,
-        ...(this.drawing ? [createViewAnnotation(this.drawing.points, this.drawing.scale, this.drawing.color)] : [])
-      ]);
+      const activeStrokeIndex = this.drawing ? history.annotations.length : undefined;
+      entry.surface.paint(
+        [
+          ...history.annotations,
+          ...(this.drawing ? [createViewAnnotation(this.drawing.points, this.drawing.scale, this.drawing.color)] : [])
+        ],
+        { activeStrokeIndex }
+      );
       if (this.trace.enabled)
         this.trace.sample("paint", {
           elapsedMs: performance.now() - started,
-          vertices: (entry.surface.ink.mesh as ModelMesh | null)?.vertexCount,
           rootActive: entry.surface.root.isActiveInHierarchy,
-          inkActive: entry.surface.ink.entity.isActiveInHierarchy,
-          cameraEnabled: this.graphics.camera.enabled,
-          inkWorldMatrix: Array.from(entry.surface.ink.entity.transform.worldMatrix.elements)
+          hasUserMarks: entry.surface.hasUserMarks,
+          cameraEnabled: this.graphics.camera.enabled
         });
     } catch (error) {
       this.trace.record("paint-error", { error: String(error instanceof Error ? error.stack : error) });
       throw error;
     }
-    this.refreshToolbar();
+    this.updateAriaLabel();
   }
   private updateHistory(change: (history: SeedWorldAnnotationHistory) => void): void {
     const editing = this.editing;
@@ -1041,21 +1177,22 @@ export class SeedWorldPhotoWorkspace {
     this.actions.updateAttachment(editing.entry.photo.snapshotId, next.annotations);
     editing.history = next;
   }
-  private refreshToolbar(): void {
+  private updateAriaLabel(): void {
     const history = this.editing?.history;
-    this.camera.canvas.setAttribute(
+    this.host.canvas.setAttribute(
       "aria-label",
-      `画面圈画标记：直接红笔圈画修改区域，长按语音球说话，点击空白处收起为卡片，点击左上角 × 删除。已画 ${history?.annotations.length ?? 0} 笔。`
+      `画面圈画标记：直接圈画标记修改区域，长按语音球说话，点击空白处收起为卡片，点击左上角 × 删除。已画 ${history?.annotations.length ?? 0} 笔。`
     );
   }
   private async discard(entry: Entry): Promise<void> {
     if (this.discarding) return;
-    const fromCard = entry === this.submittedCard;
-    if (fromCard) {
-      this.submittedCardFade?.abort();
-      this.submittedCardFade = undefined;
-      this.submittedCard = undefined;
+    const fromCard = entry !== this.editing?.entry;
+    if (!fromCard) {
+      this.openTransitionAbort?.abort(SeedWorldPhotoWorkspace.OPEN_HANDOFF);
+      this.openTransitionAbort = undefined;
     }
+    this.pendingClearIds.delete(entry.photo.snapshotId);
+    this.clearingIds.delete(entry.photo.snapshotId);
     this.stopOnboardingHint();
     this.cancelDrawing();
     // Delete the attachment immediately; the remaining geometry is only the smooth exit animation.
@@ -1066,13 +1203,11 @@ export class SeedWorldPhotoWorkspace {
     this.discarding = { entry, controller };
     this.mode = "busy";
     this.freeze(true);
-    this.graphics.toolbar.isActive = false;
-    this.graphics.palette.isActive = false;
     this.graphics.status.text = "";
     entry.liftTarget = 1;
     this.setPhase("discard");
     this.layout();
-    const r = this.camera.canvas.getBoundingClientRect();
+    const r = this.host.canvas.getBoundingClientRect();
     const from = { ...entry.pose };
     const fullPose: Pose = fromCard
       ? {
@@ -1092,20 +1227,22 @@ export class SeedWorldPhotoWorkspace {
     const isFullscreen = this.markupMode === "fullscreen";
     const opacity = entry.opacity,
       shade = this.shade;
+    const startRadius = entry.frameRadius;
+    const startCloseOpacity = fromCard ? 0 : entry.closeOpacity;
     try {
       await this.animate(fromCard ? 220 : 260, controller.signal, (t) => {
         const e = 1 - (1 - t) ** 3;
         if (fromCard) {
           const current = interpolate(from, fullPose, e);
           entry.pose = current;
-          entry.surface.setFrameLayout(current.width, current.height, 10 * (1 - e * 0.4), 0);
+          this.setEntryFrame(entry, current.width, current.height, startRadius * (1 - e * 0.4), 0);
         } else if (!isFullscreen) {
           const current = interpolate(from, fullPose, e);
           entry.pose = current;
-          entry.surface.setFrameLayout(current.width, current.height, 20 * (1 - e), 0);
+          this.setEntryFrame(entry, current.width, current.height, startRadius * (1 - e), 0);
         }
         entry.surface.setRimOpacity(1 - e);
-        entry.surface.setCloseOpacity(fromCard ? 0 : 1 - e);
+        this.setEntryCloseOpacity(entry, startCloseOpacity * (1 - e));
         entry.opacity = opacity * (1 - e);
         this.shade = shade * (1 - e);
         this.render(entry);
@@ -1124,8 +1261,8 @@ export class SeedWorldPhotoWorkspace {
     }
   }
   private key(): void {
-    if (!this.active || document.activeElement !== this.camera.canvas) return;
-    const input = this.camera.engine.inputManager;
+    if (!this.active || document.activeElement !== this.host.canvas) return;
+    const input = this.host.engine.inputManager;
     if (input.isKeyDown(Keys.Escape)) {
       if (this.drawing) this.cancelDrawing("escape");
       else if (this.drag) this.cancelDrag();
@@ -1135,15 +1272,18 @@ export class SeedWorldPhotoWorkspace {
   }
   dispose(): void {
     this.disposed = true;
+    this.openTransitionAbort?.abort(new DOMException("Disposed", "AbortError"));
+    this.openTransitionAbort = undefined;
     this.stopOnboardingHint();
-    this.submittedCardFade?.abort();
-    this.submittedCardFade = undefined;
-    this.submittedCard = undefined;
+    this.clearSubmittedAbort?.abort();
+    this.clearSubmittedAbort = undefined;
+    this.pendingClearIds.clear();
+    this.clearingIds.clear();
     this.discarding?.controller.abort();
     this.discarding = undefined;
     this.thawAfterFrame = undefined;
     this.actions.freeze(false);
-    this.camera.canvas.tabIndex = this.originalTabIndex;
+    this.host.canvas.tabIndex = this.originalTabIndex;
     this.abort.abort();
     for (const motion of [...this.motions]) motion.cancel();
     this.restoreLayer?.();

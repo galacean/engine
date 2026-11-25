@@ -1,8 +1,29 @@
-import { SeedWorldPhotoWorkspace, type PhotoDocument } from "./SeedWorldPhotoWorkspace.ts";
+import { SeedWorldPhotoWorkspace, type PhotoDocument, type PhotoWorkspaceHost } from "./SeedWorldPhotoWorkspace.ts";
 import { SEED_WORLD_PHOTO_CONFIG } from "@galacean/engine-world-planning/world/SeedWorldPhotoConfig";
 import type { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
 import { SeedWorldAnnotationHistory } from "./SeedWorldAnnotationHistory.ts";
-import type { SeedWorldInstantCamera } from "./SeedWorldInstantCamera.ts";
+
+function raceWithAbort(task: Promise<void>, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) {
+    return Promise.reject(signal.reason ?? new DOMException("Photo dismissal cancelled", "AbortError"));
+  }
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      reject(signal.reason ?? new DOMException("Photo dismissal cancelled", "AbortError"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    task.then(
+      () => {
+        signal.removeEventListener("abort", onAbort);
+        resolve();
+      },
+      (error) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      }
+    );
+  });
+}
 
 /** Owns snapshot transactions; the workspace owns all visible photo UI and Engine animation. */
 export class SeedWorldLassoPanel {
@@ -15,14 +36,20 @@ export class SeedWorldLassoPanel {
   private confirming = false;
   private photoSerial = 0;
   private readonly onVoiceSubmitted = () => {
-    if (!this.disposed && !this.confirming && this.workspace.active) {
-      void this.dismissSubmitted();
+    if (this.disposed) return;
+    if (!this.confirming && this.workspace.active) {
+      if (this.workspace.isEditing) {
+        void this.dismissSubmitted();
+      } else if (this.captureAbort) {
+        // Capture is still in-flight before any editing surface exists: abort cleanly instead of
+        // clearing captureAbort while open() continues (which would strand the upcoming canvas).
+        this.close();
+      }
     }
   };
-  private readonly onVoiceTurnEnded = () => {
-    if (!this.disposed) {
-      this.workspace.clearSubmittedCard(false);
-    }
+  private readonly onVoiceTurnEnded = (event: Event) => {
+    const ids = (event as CustomEvent<{ snapshotIds: string[] }>).detail?.snapshotIds;
+    if (!this.disposed && ids?.length) this.workspace.clearSubmittedCards(ids);
   };
   get active(): boolean {
     return !!this.captureAbort || this.workspace.active;
@@ -30,14 +57,14 @@ export class SeedWorldLassoPanel {
   constructor(
     private readonly views: SeedWorldViewSnapshots,
     setFrozen: (frozen: boolean) => void,
-    private readonly instantCamera: SeedWorldInstantCamera
+    host: PhotoWorkspaceHost
   ) {
     this.button.type = "button";
     this.button.id = "world-screenshot";
     this.button.title = "截屏并标记";
     this.button.setAttribute("aria-label", "截屏并标记");
     // Unmounted command handle; SeedWorldCameraButton renders and receives Engine input.
-    this.workspace = new SeedWorldPhotoWorkspace(instantCamera, {
+    this.workspace = new SeedWorldPhotoWorkspace(host, {
       edit: (photo) => {
         void this.open(photo);
       },
@@ -58,7 +85,6 @@ export class SeedWorldLassoPanel {
     }, views.budget);
     this.button.onclick = () => {
       if (!this.active) {
-        instantCamera.unlockAudio();
         void this.open();
       }
     };
@@ -85,9 +111,14 @@ export class SeedWorldLassoPanel {
   }
   async open(existing?: PhotoDocument): Promise<void> {
     if (this.active || this.disposed) return;
-    if (!existing && this.workspace.size >= this.views.maxPhotos) {
-      this.workspace.notify(`最多钉 ${this.views.maxPhotos} 张照片，先扯掉一张再拍。`);
-      return;
+    if (!existing) {
+      this.workspace.flushClearingCards();
+      if (this.workspace.size >= this.views.maxPhotos) {
+        this.workspace.notify(`最多保留 ${this.views.maxPhotos} 张照片，拖走或点开左上角 × 删除后再拍。`);
+        return;
+      }
+      // Play shutter click synchronously inside the click gesture via the Engine's AudioSource component.
+      this.workspace.playShutter();
     }
     const controller = (this.captureAbort = new AbortController()),
       signal = controller.signal;
@@ -122,15 +153,23 @@ export class SeedWorldLassoPanel {
     }
   }
   private async dismissSubmitted(): Promise<void> {
-    if (this.confirming || !this.captureAbort) return;
+    if (this.confirming || !this.captureAbort || !this.workspace.isEditing) return;
     this.confirming = true;
     const signal = this.captureAbort.signal;
     const snapshotId = this.activeSnapshotId;
     try {
-      await Promise.all([
-        this.workspace.dismissSubmitted(signal),
-        snapshotId ? this.views.ensureIdentities(snapshotId) : Promise.resolve()
-      ]);
+      // Kick off deferred identity capture immediately so it runs in parallel with the 380ms shrink animation.
+      // Only if it is still pending when shrink completes do we keep the world frozen until it settles,
+      // guaranteeing 100% pixel alignment with dynamic view-culled batches while keeping normal paths 0ms-delayed.
+      const identitiesTask = snapshotId ? this.views.ensureIdentities(snapshotId).catch(() => undefined) : undefined;
+      const waitBeforeUnfreeze =
+        snapshotId && identitiesTask
+          ? {
+              isPending: () => !this.views.hasIdentities(snapshotId),
+              wait: (waitSignal: AbortSignal) => raceWithAbort(identitiesTask, waitSignal)
+            }
+          : undefined;
+      await this.workspace.dismissSubmitted(signal, waitBeforeUnfreeze);
       if (!signal.aborted) {
         // dismissSubmitted already shrank the screenshot into a docked mini card and unfroze the world.
         this.captureAbort = undefined;
@@ -149,7 +188,6 @@ export class SeedWorldLassoPanel {
     this.captureAbort?.abort();
     this.captureAbort = undefined;
     this.activeSnapshotId = undefined;
-    this.instantCamera.hide();
     this.workspace.cancel();
     this.releaseView?.();
     this.releaseView = undefined;
@@ -165,6 +203,5 @@ export class SeedWorldLassoPanel {
     this.workspace.dispose();
     this.views.clearAttachments();
     this.button.remove();
-    this.instantCamera.dispose();
   }
 }
