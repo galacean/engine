@@ -259,8 +259,8 @@ export class KTX2Loader extends Loader<KTX2Texture> {
     return 4;
   }
 
-  private static _getBinomialLLCTranscoder(workerCount: number = KTX2Loader._defaultWorkerCount()) {
-    return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount));
+  private static _getBinomialLLCTranscoder(workerCount?: number) {
+    return (this._binomialLLCTranscoder ??= new BinomialLLCTranscoder(workerCount ?? KTX2Loader._defaultWorkerCount()));
   }
 
   private static _getEngineTextureFormat(

@@ -368,15 +368,14 @@ export class BuildingRuntime extends Script {
       return new Promise<void>((resolve) => setTimeout(resolve, 0));
     }
     return new Promise<void>((resolve) => {
-      let settled = false;
-      const done = () => {
-        if (settled) return;
-        settled = true;
+      const timer = setTimeout(() => {
+        globalThis.cancelAnimationFrame?.(frame);
+        resolve();
+      }, 32);
+      const frame = requestAnimationFrame(() => {
         clearTimeout(timer);
         resolve();
-      };
-      const timer = setTimeout(done, 32);
-      requestAnimationFrame(done);
+      });
     });
   }
   private detailDirty = true;

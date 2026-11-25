@@ -31,6 +31,27 @@ function makeMockFrame(scene: any, x = 0, z = 0) {
 }
 
 describe("BuildingRuntime boot optimizations", () => {
+  it("cancels the pending frame callback when the detail yield falls back to its timer", async () => {
+    vi.useFakeTimers();
+    const cancelFrame = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", () => 42);
+    vi.stubGlobal("cancelAnimationFrame", cancelFrame);
+    try {
+      const yieldDetailFrame = (
+        BuildingRuntime.prototype as unknown as { yieldDetailFrame(): Promise<void> }
+      ).yieldDetailFrame;
+      const pending = yieldDetailFrame.call({ flushDepth: 0 });
+
+      await vi.advanceTimersByTimeAsync(32);
+
+      await pending;
+      expect(cancelFrame).toHaveBeenCalledExactlyOnceWith(42);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
+  });
+
   it("skips redundant flush() on initial empty prepareTerrain and sets applied on commit/rollback", async () => {
     const scene = { id: "boot-scene" };
     const frame = makeMockFrame(scene);

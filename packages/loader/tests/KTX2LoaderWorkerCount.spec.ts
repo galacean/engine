@@ -5,6 +5,7 @@ import { KTX2Loader } from "../src/ktx2/KTX2Loader";
 afterEach(() => {
   KTX2Loader.release();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("KTX2Loader mobile worker cap", () => {
@@ -42,6 +43,16 @@ describe("KTX2Loader mobile worker cap", () => {
     expect(KTX2Loader._defaultWorkerCount()).toBe(4);
   });
 
+  it("detects the default worker count only when creating the transcoder", () => {
+    const detectWorkerCount = vi.spyOn(KTX2Loader, "_defaultWorkerCount");
+    const loader = KTX2Loader as unknown as { _getBinomialLLCTranscoder(): { destroy(): void } };
+    const transcoder = loader._getBinomialLLCTranscoder();
+    vi.spyOn(transcoder, "destroy").mockImplementation(() => {});
+
+    expect(loader._getBinomialLLCTranscoder()).toBe(transcoder);
+    expect(detectWorkerCount).toHaveBeenCalledTimes(1);
+  });
+
   it("keeps packages/modify KTX2Loader override in sync with packages/loader _defaultWorkerCount (P1-4)", () => {
     const loaderSrc = fs.readFileSync(new URL("../src/ktx2/KTX2Loader.ts", import.meta.url), "utf8");
     const modifySrc = fs.readFileSync(
@@ -50,7 +61,7 @@ describe("KTX2Loader mobile worker cap", () => {
     );
     const extractBlock = (src: string) => {
       const match = src.match(
-        /static _defaultWorkerCount\(\): number \{[\s\S]*?private static _getBinomialLLCTranscoder\([^)]*\)/
+        /static _defaultWorkerCount\(\): number \{[\s\S]*?private static _getBinomialLLCTranscoder\([^)]*\) \{[\s\S]*?\n  \}/
       );
       expect(match).not.toBeNull();
       return match![0];
@@ -58,6 +69,5 @@ describe("KTX2Loader mobile worker cap", () => {
     const loaderBlock = extractBlock(loaderSrc);
     const modifyBlock = extractBlock(modifySrc);
     expect(modifyBlock).toBe(loaderBlock);
-    expect(modifyBlock).toContain("workerCount: number = KTX2Loader._defaultWorkerCount()");
   });
 });
