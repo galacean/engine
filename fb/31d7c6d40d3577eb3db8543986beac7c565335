@@ -1,0 +1,38 @@
+world/demos/seed-world/src/SeedWorldAnnotationHistory.ts
+  s_01262a83dc0848::t_03cf8b09da3366 23
+world/tests/seed-world-browser/MarkupButton.test.ts
+  s_01262a83dc0848::t_03cf8b09da3366 1-55
+packages/ai-chat/src/ai-chat/agent-values.ts
+  s_01262a83dc0848::t_03cf8b09da3366 47,169
+  s_01262a83dc0848::t_d7393941cf79dc 170
+world/tests/seed-world-browser/VegetationPigment.test.ts
+  s_01262a83dc0848::t_03cf8b09da3366 1
+world/tests/seed-world/SeedWorldPhotoWorkspace.spec.ts
+  s_01262a83dc0848::t_03cf8b09da3366 1,400-404,411,416,424-425
+world/demos/seed-world/assets/markup-pen.json
+  s_01262a83dc0848::t_03cf8b09da3366 1
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  s_01262a83dc0848::t_03cf8b09da3366 6,8,11,15,50-58,62-66,71-72,74-76,85,102-103,126-143,151,172,174-186,194
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  s_01262a83dc0848::t_03cf8b09da3366 1,1021,1025-1031,1033-1034
+world/scripts/generate-markup-icon.mjs
+  s_01262a83dc0848::t_03cf8b09da3366 1-219
+world/tests/seed-world-browser/useLocalBasis.ts
+  s_01262a83dc0848::t_03cf8b09da3366 1-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fb31d7c6d40d3577eb3db8543986beac7c565335",
+  "prompts": {},
+  "sessions": {
+    "s_01262a83dc0848": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21179-2b09-7073-ab29-9e61b863ff8a",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
