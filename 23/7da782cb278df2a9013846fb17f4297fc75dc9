@@ -1,0 +1,68 @@
+world/demos/seed-world/index.html
+  s_02781447abdd68::t_989c24db12535c 7
+world/demos/seed-world/main.ts
+  s_02781447abdd68::t_989c24db12535c 2-3,61-65,68-86,160
+world/demos/seed-world/README.md
+  s_02781447abdd68::t_989c24db12535c 123-147
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_02781447abdd68::t_989c24db12535c 94-102,134-148
+  s_02781447abdd68::t_5742d44ef77fc6 149
+world/demos/seed-world/SeedWorldProject.ts
+  s_02781447abdd68::t_989c24db12535c 1-3,37,39,64-75,106-113,116,122,136
+world/package.json
+  s_02781447abdd68::t_989c24db12535c 34
+packages/runtime-editor/src/project/runtime-project-session.ts
+  s_02781447abdd68::t_989c24db12535c 26,299,329,335,845-850,861,871,1107,1232
+packages/project/src/runtime-editor/project/runtime-project.ts
+  s_02781447abdd68::t_989c24db12535c 482-490
+world/demos/seed-world/SeedWorldDemo.ts
+  s_02781447abdd68::t_989c24db12535c 89,311,925,1079-1083,1268,3196,3432,3679,3743,4016
+pnpm-lock.yaml
+  s_02781447abdd68::t_3a852f14addc7a 874-876
+world/demos/seed-world/base.js
+  s_02781447abdd68::t_6181b5beaeddb2 1-11
+world/demos/seed-world/storage/PublishedWorldAssets.ts
+  s_02781447abdd68::t_c907202126bc5a 1-59
+world/demos/seed-world/storage/SeedWorldStorageHost.ts
+  s_02781447abdd68::t_0a74b625b308e0 1-49
+world/demos/seed-world/storage/SharedWorldFiles.ts
+  s_02781447abdd68::t_27ccc7c6bee4ff 1-90
+world/demos/seed-world/storage/SharedWorldStorage.ts
+  s_02781447abdd68::t_dc019489926dbc 1-614
+world/demos/seed-world/storage/WorldDbRateLimit.ts
+  s_02781447abdd68::t_4b0c1ad703c650 1-68
+world/demos/seed-world/storage/WorldSaveCompression.ts
+  s_02781447abdd68::t_d0cff185c3c2ff 1-53
+world/demos/seed-world/storage/WorldSaveGzip.worker.ts
+  s_02781447abdd68::t_dae4f59c9d1266 1-10
+world/demos/seed-world/storage/gzipWorldBytes.ts
+  s_02781447abdd68::t_290f5f7d63b62a 1-7
+world/demos/seed-world/storage/local-world-db.mjs
+  s_02781447abdd68::t_66831bae100e3f 1-128
+world/demos/seed-world/storage/world_save.sql
+  s_02781447abdd68::t_1bf82392c6eaf4 1-7
+world/scripts/acceptance/shared-world-resources.mjs
+  s_02781447abdd68::t_899ac9a4148dda 1-145
+world/scripts/acceptance/shared-world-storage.mjs
+  s_02781447abdd68::t_d4c6e171164bc9 1-260
+world/tests/seed-world/SharedWorldStorage.spec.ts
+  s_02781447abdd68::t_06d1f458a4bb3f 1-1028
+world/tests/seed-world/WorldDbRateLimit.spec.ts
+  s_02781447abdd68::t_e5ac8f1598705e 1-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "237da782cb278df2a9013846fb17f4297fc75dc9",
+  "prompts": {},
+  "sessions": {
+    "s_02781447abdd68": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cdd2-e33f-7600-95dc-ac58eab2f9bb",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
