@@ -87,12 +87,12 @@ VertexInputs getVertexInputs(Attributes attributes){
 
 
     inputs.positionOS = position;
-    vec4 positionWS = renderer_ModelMat * position;
-    inputs.positionWS = positionWS.xyz / positionWS.w;
+    vec4 worldPosition = renderer_ModelMat * position;
+    inputs.positionWS = worldPosition.xyz / worldPosition.w;
 
      #if SCENE_FOG_MODE != 0
-        vec4 positionVS = renderer_MVMat * position;
-        inputs.positionVS = positionVS.xyz / positionVS.w;
+        vec4 viewPosition = renderer_MVMat * position;
+        inputs.positionVS = viewPosition.xyz / viewPosition.w;
     #endif
 
     return inputs;

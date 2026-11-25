@@ -185,8 +185,8 @@ Shader "Pipeline/SSRReceiver" {
           varyings.vertexAlpha = attributes.COLOR_0.a;
         #endif
 
-        vec4 positionWS = renderer_ModelMat * position;
-        varyings.positionWS = positionWS.xyz / positionWS.w;
+        vec4 worldPosition = renderer_ModelMat * position;
+        varyings.positionWS = worldPosition.xyz / worldPosition.w;
         gl_Position = renderer_MVPMat * position;
         return varyings;
       }
