@@ -16,6 +16,7 @@ import {
   setFarShadowCascadeProxy
 } from "@galacean/engine-modify/rendering/FarShadowCascadeProxy";
 import { resolvePlanningNaturalPlantPick } from "./PlanningWorldPicking";
+import { VegetationColors, type VegetationColorSample } from "../VegetationColors";
 import {
   landscapeGrassPaletteArea,
   LANDSCAPE_GRASS_COVERAGE
@@ -92,6 +93,7 @@ import {
 } from "./PlanningNaturalVegetation";
 import {
   PLANT_MATERIAL_SLOTS,
+  nativeMaterialPart,
   plantMaterialColorOverrideMask,
   plantMaterialField,
   resolvePlantMaterialColor,
@@ -256,6 +258,7 @@ export class PlanningNaturalVegetationRuntime {
   private readonly treeRecordPool = new Map<string, InstancedUnderstoryRecord>();
   private readonly stagedTreeRecordHeights = new WeakMap<InstancedUnderstoryRecord, number>();
   private readonly previewColors = new Map<string, readonly [number, number, number]>();
+  private localColors?: VegetationColors;
   private readonly previewSurfaces = new WeakMap<Material, PlanningPlantAppearancePreview>();
   private height!: PlanningHeightmap;
   private readonly cells = new Map<string, Cell>();
@@ -1142,7 +1145,9 @@ export class PlanningNaturalVegetationRuntime {
             !before!.position.some((value, index) => value !== instance.position[index]) &&
             JSON.stringify(before!.scaleAxes) === JSON.stringify(instance.scaleAxes);
           const unchangedAppearance =
-            sameIdentity && JSON.stringify(before!.appearance) === JSON.stringify(instance.appearance);
+            sameIdentity &&
+            before!.scopeId === instance.scopeId &&
+            JSON.stringify(before!.appearance) === JSON.stringify(instance.appearance);
           const ground = unchangedTransform
             ? retainedInstanced!.groundHeight
             : this.plantGroundHeight(this.groundingFields, instance, this.sources[0].get(instance.assetId));
@@ -1194,7 +1199,11 @@ export class PlanningNaturalVegetationRuntime {
         // Regional colour follows the edited location through the same native
         // bindings as initial publication. Stage uniforms; retain every renderer.
         const appearance =
-          JSON.stringify(before.appearance) !== JSON.stringify(instance.appearance)
+          JSON.stringify(before.appearance) !== JSON.stringify(instance.appearance) ||
+          (this.localColors?.records.length &&
+            (before.scopeId !== instance.scopeId ||
+              before.position[0] !== instance.position[0] ||
+              before.position[2] !== instance.position[2]))
             ? plant.appearanceBindings.map(({ renderer, source: binding }) => ({
                 renderer,
                 color: this.plantColor(instance, binding),
@@ -1384,8 +1393,71 @@ export class PlanningNaturalVegetationRuntime {
       }
     };
   }
+  setLocalColors(colors: VegetationColors): void {
+    if (this.localColors === colors || (!this.localColors?.records.length && !colors.records.length)) return;
+    const changed = colors.changedSamples(this.localColors);
+    const affected = (instance: LandscapePlantInstance) => {
+      const sample = this.colorSample(instance);
+      return !!sample && changed(sample);
+    };
+    this.localColors = colors;
+    const refresh = (plant: Plant) => {
+      if (!affected(plant.instance)) return;
+      for (const { renderer, source } of plant.appearanceBindings) {
+        const color = this.plantColor(plant.instance, source);
+        const old = renderer.shaderData.getVector4("renderer_AssetAssemblyColor");
+        if (old?.w !== color.w)
+          applyPlantRendererColor(
+            renderer,
+            color,
+            !!source.renderer.shaderData.getVector4("renderer_ProceduralTreeLeafColor")
+          );
+      }
+    };
+    for (const plant of this.treePool.values()) refresh(plant);
+    for (const cell of this.cells.values()) for (const plant of cell.plants) refresh(plant);
+    for (const { plant } of this.instancedTreeEffects.values()) refresh(plant);
+    // Retired woody records may be restored by undo after an edit to their pigment.
+    const activeRecords = new Set(this.treeRecords);
+    for (const [id, record] of this.treeRecordPool) {
+      if (!activeRecords.has(record) && affected(record.instance)) this.treeRecordPool.delete(id);
+    }
+    const resolve = (instance: LandscapePlantInstance, materialId: string) => this.pigmentCode(instance, materialId);
+    this.instancedTrees.refreshLocalColors(affected, resolve);
+    this.instancedUnderstory.refreshLocalColors(affected, resolve);
+  }
+
+  private colorSample(instance: LandscapePlantInstance): VegetationColorSample | undefined {
+    const kind =
+      instance.layerId === "乔木"
+        ? "tree"
+        : instance.layerId === "小灌木"
+          ? "shrub"
+          : instance.layerId === "零星野花"
+            ? "flower"
+            : undefined;
+    if (!kind) return;
+    const regionId = instance.scopeId;
+    const ownerId =
+      kind === "flower" ? this.plan.flowerRegions?.find((region) => region.id === regionId)?.ownerId : regionId;
+    return { id: instance.id, assetId: instance.assetId, position: instance.position, kind, regionId, ownerId };
+  }
+
+  private pigmentCode(instance: LandscapePlantInstance, materialId: string): number | undefined {
+    if (!this.localColors?.records.length) return;
+    const sample = this.colorSample(instance);
+    const slot = PLANT_SPECIES_MATERIALS[instance.assetId]?.[materialId];
+    if (!sample || !slot) return;
+    const part = nativeMaterialPart(slot);
+    if (part === "petals" || (sample.kind !== "flower" && (part === "leaves" || part === "foliage"))) {
+      return this.localColors.shaderCode(sample, "foliageColorRgb");
+    }
+    if (part === "bark" && sample.kind !== "flower") return this.localColors.shaderCode(sample, "barkColorRgb");
+  }
+
   private plantColor(instance: LandscapePlantInstance, binding: Source["rendererBindings"][number]): Vector4 {
     const source = binding.renderer.shaderData.getVector4("renderer_AssetAssemblyColor");
+    const code = this.pigmentCode(instance, binding.materialId) ?? source.w;
     const preview = this.previewColors.get(JSON.stringify([instance.assetId, binding.materialId]));
     if (preview)
       return new Vector4(
@@ -1394,7 +1466,7 @@ export class PlanningNaturalVegetationRuntime {
           number,
           number
         ]),
-        source.w
+        code
       );
     return new Vector4(
       ...resolvePlantMaterialColor(
@@ -1405,7 +1477,7 @@ export class PlanningNaturalVegetationRuntime {
         instance.appearance,
         binding.authoredColorScale
       ),
-      source.w
+      code
     );
   }
   private sourceForPlant(instance: LandscapePlantInstance, level: number): Source {
@@ -3221,7 +3293,8 @@ export class PlanningNaturalVegetationRuntime {
       authoredPlantIds: (this.plan.authoredResources ?? [])
         .filter(
           (resource) =>
-            resource.resourceType === "vegetation-brush" && ["tree", "shrub"].includes(resource.properties.category)
+            resource.resourceType === "vegetation-brush" &&
+            ["tree", "shrub", "flower"].includes(resource.properties.category)
         )
         .map((resource) => resource.resourceId),
       flowers: this.plan.flowerRegions ?? [],

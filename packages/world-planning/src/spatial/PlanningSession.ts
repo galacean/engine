@@ -951,6 +951,9 @@ export class PlanningSession {
           {
             ...d,
             revision: 0,
+            authoredResources: (d.authoredResources ?? []).filter(
+              (resource) => resource.resourceType !== "vegetation-color"
+            ),
             farmInitializationRequests: undefined,
             entities: Object.fromEntries(
               Object.entries(d.entities).map(([id, e]) => [

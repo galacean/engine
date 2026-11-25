@@ -309,6 +309,7 @@
     "./spatial/PlanningQueryDataOwner": "./src/spatial/PlanningQueryDataOwner.ts",
     "./spatial/PlanningResourcePreflight": "./src/spatial/PlanningResourcePreflight.ts",
     "./spatial/PlanningResources": "./src/spatial/PlanningResources.ts",
+    "./spatial/VegetationColors": "./src/spatial/VegetationColors.ts",
     "./spatial/PlanningRuntime": "./src/spatial/PlanningRuntime.ts",
     "./spatial/PlanningScene": "./src/spatial/PlanningScene.ts",
     "./spatial/PlanningSession": "./src/spatial/PlanningSession.ts",

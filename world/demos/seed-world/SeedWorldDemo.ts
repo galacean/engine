@@ -53,6 +53,8 @@ import {
 } from "@galacean/engine-world-planning/spatial/PlanningSubjectView";
 import { applyPlanningWeather } from "@galacean/engine-world-planning/spatial/PlanningWeather";
 import { readPlantMaterialParameters } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
+import { planningVegetationColors } from "@galacean/engine-world-planning/spatial/PlanningResources";
+import { VegetationColors } from "@galacean/engine-world-planning/spatial/VegetationColors";
 import { createSeedWorldWaterAgentKnowledge } from "./agent-adapter/SeedWorldKnowledge";
 import { WATER_QUERY_CONTRACTS } from "@galacean/engine-world-planning/spatial/runtime/WaterQueryContract";
 import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
@@ -329,6 +331,7 @@ export async function mountSeedWorldDemo(
   let engine: WebGLEngine | undefined;
   let orb: WorldBubbleLoadingScene | undefined;
   let scene: Scene | undefined;
+  let plantColors = new VegetationColors([]);
   const planningWorker = new PlanningWorkerClient();
   let bootEmptyBuildingGeneratorId: string | undefined;
   let source: Awaited<ReturnType<typeof createPlanningWorldSource>> | undefined;
@@ -352,6 +355,7 @@ export async function mountSeedWorldDemo(
           fields: current.heightTransition?.fields ?? current.data.fields,
           world: current.world,
           vegetation: current.vegetation,
+          templateVegetation: current.template?.vegetationAssets,
           surface: current.data.surfaceIntent,
           publicationRevision: current.revision,
           sourcePlan: planningWaterQueryProjection(current.plan, current.solids.plan),
@@ -3029,8 +3033,17 @@ export async function mountSeedWorldDemo(
     });
     await source.initialize(async (document, result, context) => {
       const prepared = await preparePublication(document, result, context);
+      const records = planningVegetationColors(document);
+      const changed = JSON.stringify(records) !== JSON.stringify(plantColors.records);
+      const colors = changed ? new VegetationColors(records) : plantColors;
       return {
         ...prepared,
+        commit() {
+          prepared.commit();
+          plantColors = colors;
+          publication?.current?.vegetation?.setLocalColors(colors);
+          publication?.current?.template?.setLocalColors(colors);
+        },
         afterCommit: () => {
           const accepted = publication?.current;
           if (!disposed && vista && accepted && source?.session.document.revision === document.revision) {

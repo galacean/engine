@@ -8,6 +8,7 @@ import type {
   SeedWorldTerrainFeatureInput
 } from "../agent-adapter/ports/SeedWorldEnginePort";
 import type { PlanningDocument } from "./PlanningDocument";
+import { vegetationColorKey, vegetationColorResourceSchema, type VegetationColorResource } from "./VegetationColors";
 import {
   SEED_WORLD_REMOVABLE_OBJECT_KINDS,
   type SeedWorldObjectRemovalInput
@@ -49,7 +50,15 @@ export type PlanningResource =
   | PlanningTerrainPatchResource
   | PlanningTerrainFeatureResource
   | PlanningObjectRemovalResource
+  | VegetationColorResource
   | PlanningTreeVariationResource;
+export function planningVegetationColors(document: {
+  authoredResources?: readonly PlanningResource[];
+}): VegetationColorResource[] {
+  return (document.authoredResources ?? []).filter(
+    (r): r is VegetationColorResource => r.resourceType === "vegetation-color"
+  );
+}
 export function planningRemovedObjectIds(resources: readonly PlanningResource[]): Set<string> {
   return new Set(
     resources.flatMap((resource) => (resource.resourceType === "object-removal" ? [resource.properties.objectId] : []))
@@ -114,6 +123,7 @@ const landform = z.strictObject({
 const identity = { resourceId: z.string().min(1) };
 const resources = z.array(
   z.discriminatedUnion("resourceType", [
+    vegetationColorResourceSchema,
     z.strictObject({
       ...identity,
       resourceType: z.literal("tree-variation"),
@@ -159,12 +169,18 @@ export function parsePlanningResources(value: unknown): PlanningResource[] {
   const parsed = resources.parse(value);
   if (new Set(parsed.map((resource) => resource.resourceId)).size !== parsed.length)
     throw new Error("Duplicate planning resource identity");
-  for (const resource of parsed)
+  for (const resource of parsed) {
+    if (
+      resource.resourceType === "vegetation-color" &&
+      resource.resourceId !== vegetationColorKey(resource.properties.target)
+    )
+      throw new Error("Vegetation color identity disagrees with its target");
     if (
       resource.resourceType === "tree-variation" &&
       resource.resourceId !== treeVariationKey(resource.properties.recipeId, resource.properties.variationIndex)
     )
       throw new Error("Tree variation identity disagrees with its recipe/effect");
+  }
   return parsed;
 }
 export function validatePlanningResources(value: unknown): asserts value is PlanningResource[] {
@@ -173,7 +189,7 @@ export function validatePlanningResources(value: unknown): asserts value is Plan
 
 export function planningResourceSnapshot(document: PlanningDocument): SeedWorldAuthoringSnapshot {
   const resources: SeedWorldAuthoringResource[] = (document.authoredResources ?? [])
-    .filter((resource) => resource.resourceType !== "tree-variation")
+    .filter((resource) => resource.resourceType !== "tree-variation" && resource.resourceType !== "vegetation-color")
     .map((resource) => {
       const contentHash = hashRiverStableValue(resource);
       if (resource.resourceType === "terrain-patch")
@@ -185,6 +201,7 @@ export function planningResourceSnapshot(document: PlanningDocument): SeedWorldA
     draftRevision: document.revision,
     authoringStateHash: hashRiverStableValue(document.authoredResources ?? []),
     resources,
+    vegetationColors: planningVegetationColors(document),
     removedObjectIds: [...planningRemovedObjectIds(document.authoredResources ?? [])]
   };
 }

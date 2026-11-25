@@ -75,19 +75,40 @@ import {
 } from "../WorldTemplateArtDirection";
 import { resolveRockCollision } from "../RockCollisionPolicy";
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
-import { resolveWorldTemplateScene, type ResolvedWorldTemplateScene } from "../WorldTemplateView";
+import {
+  resolveWorldTemplateScene,
+  type ResolvedTemplateNode,
+  type ResolvedWorldTemplateScene
+} from "../WorldTemplateView";
+import {
+  placeTemplatePlants,
+  templateProceduralPlants,
+  templateVegetationAssets,
+  type TemplatePlantPlacement
+} from "../WorldTemplateVegetation";
 import { fitTemplateAsset, stretchTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
+import type { VegetationColors, VegetationColorPart, VegetationColorSample } from "../VegetationColors";
+import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import { MeshPickBatch } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-mesh-picking";
 import {
   mountTemplateProceduralPlants,
   preloadTemplateProceduralPlantResources,
   type TemplateProceduralPlantResources
 } from "./TemplateProceduralPlants";
 import translucentShader from "./TemplateTranslucent.shader?raw";
+import vertexColorTreeShader from "./TemplateVertexColorTree.shader?raw";
 import fireflyShader from "./TemplateFirefly.shader?raw";
 import petalShader from "./TemplatePetal.shader?raw";
 import butterflyShader from "./TemplateButterfly.shader?raw";
 
 const MODEL_LOD_CHUNK_PREFIX = "Chunk_";
+function hasNativePlantPick(material: Material): boolean {
+  return material.shader.name === "Terrain/Vegetation" || material.shader.name === "Terrain/Surface";
+}
+const vertexColorTreePigments = [
+  ["foliageColorRgb", "renderer_TemplateFoliagePigment"],
+  ["barkColorRgb", "renderer_TemplateBarkPigment"]
+] as const;
 
 function modelBounds(entity: Entity): BoundingBox {
   const bounds = new BoundingBox(
@@ -204,6 +225,17 @@ export class WorldTemplateRuntime {
   private mesh?: ModelMesh;
   private material?: UnlitMaterial;
   private readonly models: { id: string; url: string; entity: Entity }[] = [];
+  private readonly plantPickBatches: MeshPickBatch[] = [];
+  private readonly vertexColorTreeMaterials = new Map<Material, Material>();
+  private readonly vertexColorTrees: { renderer: MeshRenderer; sample: VegetationColorSample }[] = [];
+  private readonly plantMaterials: {
+    node: TemplateNode;
+    sample: VegetationColorSample;
+    part: VegetationColorPart;
+    original: Material;
+    slots: { renderer: MeshRenderer; index: number }[];
+    override?: Material;
+  }[] = [];
   /** Resolved GLB model collision decisions (explicit switch + fitted GLB bounding box vs template policy). */
   readonly modelColliders: {
     id: string;
@@ -231,7 +263,13 @@ export class WorldTemplateRuntime {
   private butterflyTrailMaterial?: ParticleMaterial;
   private butterflyTrailTexture?: Texture2D;
   private readonly foliageWindDisposals: Array<() => void> = [];
-  private disposeProceduralPlants?: () => void;
+  private proceduralPlants?: ReturnType<typeof mountTemplateProceduralPlants>;
+  private localColors?: VegetationColors;
+  private modelNodes: readonly ResolvedTemplateNode[];
+  private plantAssets: ReturnType<typeof templateVegetationAssets> = [];
+  get vegetationAssets(): Readonly<typeof this.plantAssets> {
+    return this.plantAssets;
+  }
   private readonly leafTemplate?: Material;
   private readonly plantResources?: TemplateProceduralPlantResources;
   private readonly camera?: Camera;
@@ -263,10 +301,8 @@ export class WorldTemplateRuntime {
       }
     }
     const art = WORLD_TEMPLATE_ART[template.id];
-    const resolvedPlants = art.resolveProceduralPlants
-      ? art.resolveProceduralPlants(plan.parameters.seed)
-      : art.proceduralPlants;
-    const hasProceduralPlants = Boolean(resolvedPlants?.length);
+    const resolvedPlants = templateProceduralPlants(art, plan.parameters.seed);
+    const hasProceduralPlants = resolvedPlants.length > 0;
     const needsLeafMaterial = leafModelUrls.size > 0 || hasProceduralPlants;
     const leafTemplateTask = needsLeafMaterial
       ? parent.engine.resourceManager.load<Material>({
@@ -280,7 +316,7 @@ export class WorldTemplateRuntime {
         })
       : Promise.resolve(undefined);
     const plantResourcesTask = hasProceduralPlants
-      ? preloadTemplateProceduralPlantResources(parent.engine, new Set(resolvedPlants!.map((plant) => plant.kind)))
+      ? preloadTemplateProceduralPlantResources(parent.engine, new Set(resolvedPlants.map((plant) => plant.kind)))
       : Promise.resolve(undefined);
     const petalTextureUrl = WORLD_TEMPLATE_ART[template.id].petals?.textureUrl;
     const petalTextureTask = petalTextureUrl
@@ -359,6 +395,7 @@ export class WorldTemplateRuntime {
   ) {
     this.template = template;
     this.geometry = scene.geometry;
+    this.modelNodes = scene.nodes;
     this.focusBounds = scene.focusBounds;
     this.leafTemplate = leafTemplate;
     this.plantResources = plantResources;
@@ -431,9 +468,55 @@ export class WorldTemplateRuntime {
             }
           }
           for (const level of levels) level.transform.rotate(0, node.assetYawDegrees ?? 0, 0);
+          // Capture original GLB slot names before the foliage lighting adapter replaces them.
+          const vegetation = node.vegetation;
+          const sample = vegetation && { id: node.id, kind: vegetation.kind, assetId: vegetation.assetId, position };
+          const plantSlots =
+            vegetation && sample
+              ? normalized.getComponentsIncludeChildren(MeshRenderer, []).flatMap((renderer) => {
+                  this.plantPickBatches.push(new MeshPickBatch(renderer, node.id, hasNativePlantPick));
+                  if (vegetation.vertexColorParts && renderer.enableVertexColor) {
+                    renderer.getMaterials().forEach((material, index) => {
+                      if (!material) return;
+                      let shared = this.vertexColorTreeMaterials.get(material);
+                      if (!shared) {
+                        shared = material.clone();
+                        shared.shader =
+                          Shader.find("Planning/TemplateVertexColorTree") ?? Shader.create(vertexColorTreeShader);
+                        this.vertexColorTreeMaterials.set(material, shared);
+                      }
+                      renderer.setMaterial(index, shared);
+                    });
+                    for (const [, property] of vertexColorTreePigments)
+                      renderer.shaderData.setVector4(property, new Vector4());
+                    this.vertexColorTrees.push({ renderer, sample });
+                    return [];
+                  }
+                  return renderer.getMaterials().flatMap((material, index) => {
+                    if (!material) return [];
+                    const part: VegetationColorPart | undefined = vegetation.barkMaterials?.includes(material.name)
+                      ? "barkColorRgb"
+                      : node.assetLeafMaterials?.includes(material.name)
+                        ? "foliageColorRgb"
+                        : undefined;
+                    return part ? [{ renderer, index, part }] : [];
+                  });
+                })
+              : [];
           if (node.assetLeafMaterials?.length)
             this.bindLeafMaterials(normalized, node.assetLeafMaterials, leafTemplate!, node);
           if (node.assetMaterials) this.bindAssetMaterials(normalized, node.assetMaterials);
+          for (const { renderer, index, part } of plantSlots) {
+            const original = renderer.getMaterial(index)!;
+            let binding = this.plantMaterials.find(
+              (b) => b.node === node && b.part === part && b.original === original
+            );
+            if (!binding) {
+              binding = { node, sample: sample!, part, original, slots: [] };
+              this.plantMaterials.push(binding);
+            }
+            binding.slots.push({ renderer, index });
+          }
           // Template GLB models (bark, wood, stone, foliage) are diffuse/rough props, not SSR mirrors.
           for (const renderer of normalized.getComponentsIncludeChildren(MeshRenderer, [])) {
             for (const material of renderer.getMaterials()) {
@@ -537,33 +620,32 @@ export class WorldTemplateRuntime {
         this.createButterflyParticles(butterflies, ground, butterflyTexture);
       }
       const templateArt = WORLD_TEMPLATE_ART[template.id];
-      const proceduralPlants = templateArt.resolveProceduralPlants
-        ? templateArt.resolveProceduralPlants(plan.parameters.seed)
-        : templateArt.proceduralPlants;
-      if (proceduralPlants?.length) {
-        const rockSurface = formations?.length ? rockFormationGround(plan, formations) : undefined;
-        const rockGround = rockSurface
-          ? (wx: number, wz: number) => {
-              const floor = ground(wx, wz);
-              return floor === undefined ? undefined : rockSurface(wx, wz, floor);
-            }
-          : undefined;
-        this.disposeProceduralPlants = mountTemplateProceduralPlants(
-          this.root,
-          this.anchor,
-          ground,
-          proceduralPlants,
-          plan.parameters.seed,
-          leafTemplate,
-          rockGround,
-          plantResources,
-          camera
-        );
-      }
+      const entries = templateProceduralPlants(templateArt, plan.parameters.seed);
+      const rockSurface =
+        formations?.length && entries.some((plant) => plant.onRock) ? rockFormationGround(plan, formations) : undefined;
+      this.mountPlants(placeTemplatePlants(entries, this.anchor, ground, rockSurface), plan.parameters.seed);
     } catch (error) {
       this.dispose();
       throw error;
     }
+  }
+
+  private mountPlants(placements: readonly TemplatePlantPlacement[], seed: number): void {
+    const next = placements.length
+      ? mountTemplateProceduralPlants(
+          this.root,
+          this.anchor,
+          placements,
+          seed,
+          this.leafTemplate,
+          this.plantResources,
+          this.camera
+        )
+      : undefined;
+    if (this.localColors) next?.setLocalColors(this.localColors);
+    this.proceduralPlants?.dispose();
+    this.proceduralPlants = next;
+    this.plantAssets = templateVegetationAssets(this.modelNodes, placements);
   }
 
   /** Resolve new vertical supports before the corresponding rock meshes become visible. */
@@ -576,41 +658,23 @@ export class WorldTemplateRuntime {
       compositionSubjectTerraceBox(spatialCompositionParameters(plan.parameters.spatialComposition))
     );
     const templateArt = WORLD_TEMPLATE_ART[this.template.id];
-    const proceduralPlants = templateArt.resolveProceduralPlants
-      ? templateArt.resolveProceduralPlants(plan.parameters.seed)
-      : templateArt.proceduralPlants;
-    const hasRockPlants = Boolean(proceduralPlants?.some((plant) => plant.onRock));
+    const proceduralPlants = templateProceduralPlants(templateArt, plan.parameters.seed);
+    const hasRockPlants = proceduralPlants.some((plant) => plant.onRock);
     if (!hasSubjectTerrace && !hasRockPlants) return;
     const scene = hasSubjectTerrace ? resolveWorldTemplateScene(plan, ground, formations) : undefined;
     const rockSurface = hasRockPlants && formations.length ? rockFormationGround(plan, formations) : undefined;
+    const placements = placeTemplatePlants(proceduralPlants, this.anchor, ground, rockSurface);
     return () => {
+      if (this.destroyed) return;
       if (scene) {
+        this.modelNodes = scene.nodes;
         for (const { node, position } of scene.nodes) {
           const entity = this.groundedNodes.get(node.id);
           if (entity) entity.transform.position.y = position[1] - this.anchor.y;
         }
         this.focusBounds = scene.focusBounds;
       }
-      if (hasRockPlants && proceduralPlants?.length && !this.destroyed) {
-        this.disposeProceduralPlants?.();
-        const rockGround = rockSurface
-          ? (wx: number, wz: number) => {
-              const floor = ground(wx, wz);
-              return floor === undefined ? undefined : rockSurface(wx, wz, floor);
-            }
-          : undefined;
-        this.disposeProceduralPlants = mountTemplateProceduralPlants(
-          this.root,
-          this.anchor,
-          ground,
-          proceduralPlants,
-          plan.parameters.seed,
-          this.leafTemplate,
-          rockGround,
-          this.plantResources,
-          this.camera
-        );
-      }
+      this.mountPlants(placements, plan.parameters.seed);
     };
   }
 
@@ -1498,6 +1562,62 @@ export class WorldTemplateRuntime {
     for (const slot of requested)
       if (!found.has(slot)) throw new Error(`Missing template foliage material slot: ${slot}`);
   }
+  visitPickBatches(visitor: SeedWorldPickVisitor): void {
+    this.proceduralPlants?.visitPickBatches(visitor);
+    for (const batch of this.plantPickBatches)
+      if (batch.renderer.enabled && batch.renderer.entity.isActiveInHierarchy) visitor(batch);
+  }
+
+  setLocalColors(colors: VegetationColors): void {
+    if (this.localColors === colors) return;
+    const changed = colors.changedSamples(this.localColors);
+    this.localColors = colors;
+    this.proceduralPlants?.setLocalColors(colors);
+    for (const { renderer, sample } of this.vertexColorTrees) {
+      if (!changed(sample)) continue;
+      for (const [part, property] of vertexColorTreePigments) {
+        const { colorRgb, weight } = colors.resolve(sample, part);
+        const value = renderer.shaderData.getVector4(property);
+        if (colorRgb) {
+          value.set(
+            Color.sRGBToLinearSpace(colorRgb[0] / 255),
+            Color.sRGBToLinearSpace(colorRgb[1] / 255),
+            Color.sRGBToLinearSpace(colorRgb[2] / 255),
+            weight
+          );
+        } else value.set(0, 0, 0, 0);
+        renderer.shaderData.setVector4(property, value);
+      }
+    }
+    for (const binding of this.plantMaterials) {
+      const { node, sample, part, original, slots } = binding;
+      if (!changed(sample)) continue;
+      const { colorRgb, weight } = colors.resolve(sample, part);
+      if (!colorRgb) {
+        if (binding.override) {
+          for (const { renderer, index } of slots) renderer.setMaterial(index, original);
+          binding.override.destroy();
+          binding.override = undefined;
+        }
+        continue;
+      }
+      if (!binding.override) {
+        const material = original.clone();
+        if (part === "barkColorRgb")
+          material.shader = Shader.find("Planning/TemplateTranslucent") ?? Shader.create(translucentShader);
+        material.shaderData.enableMacro("MATERIAL_TEMPLATE_PLANT_PIGMENT");
+        for (const { renderer, index } of slots) renderer.setMaterial(index, material);
+        binding.override = material;
+      }
+      const gain =
+        part === "foliageColorRgb"
+          ? (node.assetLeafIntensity ?? 1) / (1 + original.shaderData.getFloat("material_LeafAlbedoTextureBlend"))
+          : 1;
+      const [r, g, b] = colorRgb.map((channel) => Color.sRGBToLinearSpace(channel / 255) * gain);
+      binding.override.shaderData.setVector4("material_TemplatePlantPigment", new Vector4(r, g, b, weight));
+    }
+  }
+
   activate(canvas: HTMLCanvasElement): void {
     canvas.dataset.worldTemplate = JSON.stringify({
       id: this.template.id,
@@ -1643,6 +1763,12 @@ export class WorldTemplateRuntime {
     if (this.destroyed) return;
     this.destroyed = true;
     this.root.destroy();
+    for (const binding of this.plantMaterials) binding.override?.destroy();
+    this.plantMaterials.length = 0;
+    this.plantPickBatches.length = 0;
+    for (const material of this.vertexColorTreeMaterials.values()) material.destroy();
+    this.vertexColorTreeMaterials.clear();
+    this.vertexColorTrees.length = 0;
     this.leafMaterials.forEach((material) => material.destroy());
     this.leafMaterials.clear();
     this.assetMaterials.forEach((material) => material.destroy());
@@ -1653,7 +1779,7 @@ export class WorldTemplateRuntime {
     for (const destroy of this.foliageWindDisposals) destroy();
     this.foliageWindDisposals.length = 0;
     this.boughWindMeshes.clear();
-    this.disposeProceduralPlants?.();
+    this.proceduralPlants?.dispose();
     this.petalMaterial?.destroy();
     this.butterflyMaterial?.destroy();
     this.butterflyWingMesh?.destroy();

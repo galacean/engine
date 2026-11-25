@@ -1,7 +1,7 @@
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { templateBaseSeed } from "../WorldTemplateCatalog";
 import type { WorldTemplateArtDirection } from "../WorldTemplateArtDirection";
-import type { TemplateProceduralPlantInstance } from "../runtime/TemplateProceduralPlants";
+import type { TemplateProceduralPlantInstance } from "../WorldTemplateVegetation";
 
 type Point = [number, number];
 

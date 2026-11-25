@@ -33,7 +33,9 @@ function instanceInputs(document: PlanningDocument): string {
   return JSON.stringify(
     canonical({
       ...other,
-      authoredResources: (authoredResources ?? []).filter((resource) => !isInstanceResource(resource)),
+      authoredResources: (authoredResources ?? []).filter(
+        (resource) => !isInstanceResource(resource) && resource.resourceType !== "vegetation-color"
+      ),
       entities: Object.fromEntries(
         Object.entries(entities).flatMap(([id, entity]) => {
           const components = canonical(
@@ -445,9 +447,15 @@ export function tryEditSpatialInstances(
     (id) => JSON.stringify(canonical(before[id])) !== JSON.stringify(canonical(edits[id]))
   );
   const oldResources = new Map(
-    (previous.plan.authoredResources ?? []).map((resource) => [resource.resourceId, resource])
+    (previous.plan.authoredResources ?? [])
+      .filter((resource) => resource.resourceType !== "vegetation-color")
+      .map((resource) => [resource.resourceId, resource])
   );
-  const newResources = new Map((document.authoredResources ?? []).map((resource) => [resource.resourceId, resource]));
+  const newResources = new Map(
+    (document.authoredResources ?? [])
+      .filter((resource) => resource.resourceType !== "vegetation-color")
+      .map((resource) => [resource.resourceId, resource])
+  );
   const resourceChanges = [...new Set([...oldResources.keys(), ...newResources.keys()])].filter(
     (id) => JSON.stringify(canonical(oldResources.get(id))) !== JSON.stringify(canonical(newResources.get(id)))
   );

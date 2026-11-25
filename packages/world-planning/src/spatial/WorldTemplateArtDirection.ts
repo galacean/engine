@@ -1,7 +1,7 @@
 import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
 import { resolveRockCollisionPolicy, type RockCollisionPolicy } from "./RockCollisionPolicy";
 import type { TerrainSeason } from "@galacean/engine-environment/terrain/environment/SceneSeasonPalette";
-import type { TemplateProceduralPlantInstance } from "./runtime/TemplateProceduralPlants";
+import type { TemplateProceduralPlantInstance } from "./WorldTemplateVegetation";
 import type { SeedWorldCameraBookmark } from "../world/SeedWorldCameraBookmark";
 import type { SpatialCompositionParameters } from "./SpatialCompositionParameters";
 import { WORLD_TEMPLATE_CONFIGS } from "./WorldTemplateConfig";
@@ -408,6 +408,7 @@ const forestOakRoot = {
   halfWidth: 0.034349252409877185,
   halfDepth: 0.03463059992993678
 };
+const forestOakVegetation = { kind: "tree", assetId: "forest-giant-oak", barkMaterials: ["Bark_512"] } as const;
 const forestOak = (id: string, x: number, z: number, height: number, yaw: number): TemplateNode => ({
   ...model(id, [x, 0, z], [height, height, height * 0.65], true, yaw),
   footprint: [height * 0.065, height * 0.065],
@@ -417,6 +418,7 @@ const forestOak = (id: string, x: number, z: number, height: number, yaw: number
     (2 * forestOakRoot.halfDepth * height) / (forestOakRoot.topY - forestOakRoot.plantingY)
   ],
   assetUrl: new URL("../assets/forest-giant-oak.glb", import.meta.url).href,
+  vegetation: forestOakVegetation,
   assetLod: {
     url: new URL("../assets/forest-giant-oak-lods.glb", import.meta.url).href,
     // Each Chunk_* spatial sub-volume (trunk + 4 canopy clusters) is tracked independently by its own
@@ -478,6 +480,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
             assetGroundY: sakuraSubject.assetGroundY,
             assetYawDegrees: sakuraSubject.assetYawDegrees,
             assetLeafMaterials: sakuraSubject.leaf.materials,
+            vegetation: { kind: "tree", assetId: sakuraSubject.asset, barkMaterials: sakuraSubject.barkMaterials },
             assetLeafColor: sakuraSubject.leaf.color,
             assetLeafIntensity: sakuraSubject.leaf.intensity,
             assetLeafTextureBlend: sakuraSubject.leaf.textureBlend,
@@ -700,6 +703,7 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     models: [
       {
         id: "oasis-scarlet-tree",
+        vegetation: forestOakVegetation,
         position: [-14, 0, -1],
         rotation: [0, 0, 0],
         scale: [21, 18.5, 17],

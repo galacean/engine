@@ -79,6 +79,9 @@ it("uses producer-owned native meadow identities and visits persistent batches f
     properties: { planningEntityId: "tree-author" }
   });
   expect(resolvePlanningNaturalPlantPick({ id: "opaque-tree-id" }, true)).toBe("opaque-tree-id");
+  expect(resolvePlanningNaturalPlantPick({ id: "shrub-member", scopeId: "brush", layerId: "小灌木" }, false)).toBe(
+    "shrub-member"
+  );
   expect(resolvePlanningNaturalPlantPick({ id: "unrelated/random:id", scopeId: "flowers" }, false)).toBe("flowers");
   expect(resolvePlanningNaturalPlantPick({ id: "understory" }, false)).toBe(PLANNING_GRASSLAND_ID);
   expect(resolvePlanningNaturalPlantPick({ id: "companion-stone-1" }, false, "stone")).toBeUndefined();

@@ -14,12 +14,48 @@ import {
   type SeedWorldAssetKind
 } from "../../agent-adapter/contracts/SeedWorldAssetContracts";
 import { planningRemovedObjectIds } from "../PlanningResources";
+import { resolveWorldTemplateScene } from "../WorldTemplateView";
+import { placeTemplatePlants, templateProceduralPlants, templateVegetationAssets } from "../WorldTemplateVegetation";
+import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
+import { planningGroundSurface } from "../../semantic-study/PlanningHeightmap";
 
 export const PLANNING_GRASSLAND_ID = "planning:grassland";
 export const PLANNING_TERRAIN_ID = "planning:terrain";
+const templatePlants = new WeakMap<IslandPlan, SeedWorldAssetCandidate[]>();
+
+function templateVegetation(plan: IslandPlan): SeedWorldAssetCandidate[] {
+  const cached = templatePlants.get(plan);
+  if (cached) return cached;
+  let plants: SeedWorldAssetCandidate[] = [];
+  const art = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""];
+  if (
+    plan.worldTemplateSite &&
+    art &&
+    (art.resolveModels ||
+      art.models.some((m) => m.vegetation) ||
+      art.resolveProceduralPlants ||
+      art.proceduralPlants?.length)
+  ) {
+    const surface = planningGroundSurface(plan);
+    const ground = (x: number, z: number) => surface.sample({ x, z });
+    const scene = resolveWorldTemplateScene(plan, ground);
+    if (scene) {
+      const [x, y, z] = scene.anchor;
+      plants = templateVegetationAssets(
+        scene.nodes,
+        placeTemplatePlants(templateProceduralPlants(art, plan.parameters.seed), { x, y, z }, ground)
+      );
+    }
+  }
+  templatePlants.set(plan, plants);
+  return plants;
+}
 
 /** Published geometry supplies the same identity to picking and the existing Agent asset catalog. */
-export function planningPickAssets(plan: IslandPlan): readonly SeedWorldAssetCandidate[] {
+export function planningPickAssets(
+  plan: IslandPlan,
+  mountedTemplatePlants?: readonly SeedWorldAssetCandidate[]
+): readonly SeedWorldAssetCandidate[] {
   const assets: SeedWorldAssetCandidate[] = [];
   const ids = new Set<string>();
   const removed = planningRemovedObjectIds(plan.authoredResources ?? []);
@@ -40,6 +76,11 @@ export function planningPickAssets(plan: IslandPlan): readonly SeedWorldAssetCan
   }
   add(PLANNING_GRASSLAND_ID, "vegetation", "grassland", "world");
   add(PLANNING_TERRAIN_ID, "terrain", "terrain", "world");
+  for (const plant of mountedTemplatePlants ?? templateVegetation(plan)) {
+    if (removed.has(plant.ref.id)) continue;
+    ids.add(plant.ref.id);
+    assets.push(plant);
+  }
   // Native meadow trees are owned by the published plan, rather than the legacy population catalog.
   if (plan.naturalVegetation)
     for (const tree of plan.landscapes ?? []) if (tree.kind === "tree") add(tree.id, "vegetation", "tree", tree.id);
@@ -77,12 +118,14 @@ export function resolvePlanningDetailPick(category: "grass" | "flower", owner?: 
 
 /** The producer retains the area owner; random instance IDs are never parsed as authoring IDs. */
 export function resolvePlanningNaturalPlantPick(
-  instance: Pick<LandscapePlantInstance, "id" | "scopeId">,
+  instance: Pick<LandscapePlantInstance, "id" | "scopeId"> & Partial<Pick<LandscapePlantInstance, "layerId">>,
   tree: boolean,
   kind?: "stone"
 ): string | undefined {
   if (kind === "stone") return undefined;
-  return tree ? instance.id : (instance.scopeId ?? PLANNING_GRASSLAND_ID);
+  // The planning producer publishes scoped woody brush members as individually editable assets.
+  if (tree || (instance.layerId === "小灌木" && instance.scopeId)) return instance.id;
+  return instance.scopeId ?? PLANNING_GRASSLAND_ID;
 }
 
 export function insideRings(point: PlanPoint, rings: PlanPoint[][]): boolean {
@@ -180,6 +223,7 @@ class PlanningPickTraversal {
     try {
       this.scene.world.visitPickBatches(visitor, resolveDetailIdentity, PLANNING_GRASSLAND_ID);
       this.scene.vegetation?.visitPickBatches(visitor);
+      this.scene.template?.visitPickBatches(visitor);
       this.scene.solids.visitPickBatches(visitor);
       this.scene.masonry?.visitPickBatches(visitor);
       water.visitPickBatches(visitor);

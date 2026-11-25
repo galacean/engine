@@ -48,7 +48,8 @@ vi.mock("@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh", 
     ),
     uploadTreeAssemblyInstances: vi.fn((view: any, count: number) => {
       view.mesh.instanceCount = count;
-    })
+    }),
+    uploadTreeAssemblyInstanceRange: vi.fn()
   };
 });
 
@@ -256,6 +257,43 @@ describe("NaturalUnderstoryInstancedPool", () => {
     expect(canInstanceUnderstoryLevels(makeLevels(unlit)[0]!.specimen, makeLevels(unlit))).toBe(false);
     expect(canInstanceUnderstoryLevels(makeLevels(catalog)[0]!.specimen, makeLevels(catalog))).toBe(false);
     expect(canInstanceUnderstoryLevels(makeLevels(sharedGrass)[0]!.specimen, makeLevels(sharedGrass))).toBe(false);
+  });
+
+  it.each([false, true])("updates one resident's pigment in the same batch (GPU variation %s)", async (gpu) => {
+    const { parent, camera } = createMockParentAndCamera();
+    const pool = new NaturalUnderstoryInstancedPool(parent, camera, "paint");
+    const spec: InstancedUnderstoryBucketSpec = {
+      key: "one-material",
+      mesh: createMockMesh(),
+      material: createMockMaterial("Terrain/Vegetation"),
+      macros: [],
+      castShadows: false,
+      receiveShadows: true,
+      enableVertexColor: false,
+      usesGpuVariation: gpu,
+      interactionOccluder: true
+    };
+    const trees = ["target", "neighbor"].map((id, i) => makeRecord({ id, x: i, z: -12, spec }));
+    pool.setCell("trees", trees);
+    pool.update(300, true);
+    const bucket = (pool as any).buckets.get(spec.key);
+    const original = bucket.view.staging.slice();
+    const { encodePlantPigment } = await import("@galacean/engine-world-planning/spatial/VegetationColors");
+    const { uploadTreeAssemblyInstanceRange } = await import(
+      "@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh"
+    );
+    const dye = encodePlantPigment([200, 0, 255], 1)!;
+    const target = (instance: LandscapePlantInstance) => instance.id === "target";
+    pool.refreshLocalColors(target, () => dye);
+    expect(uploadTreeAssemblyInstanceRange).toHaveBeenLastCalledWith(bucket.storage, 0, 1);
+    expect(bucket.view.staging[15]).toBe(dye);
+    if (gpu) expect(bucket.view.staging[23]).toBe(dye);
+    expect(bucket.view.staging.slice(bucket.view.recordFloats)).toEqual(original.slice(bucket.view.recordFloats));
+    expect(pool.bucketCount).toBe(1);
+    expect(bucket.view.mesh.instanceCount).toBe(2);
+    pool.refreshLocalColors(target, () => undefined);
+    expect(bucket.view.staging).toEqual(original);
+    pool.dispose();
   });
 
   it("transfers shared GPU leaf-frame uniforms and enables RENDERER_ASSET_ASSEMBLY_INSTANCE on bucket renderers", () => {

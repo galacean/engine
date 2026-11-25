@@ -35,6 +35,9 @@ export function planningVegetationCatalog(runtime: { getAuthoringSnapshot(): Pla
     }),
     ...flowers.filter(region => region.areaM2 > 0).map(region => ({
       ref: { id: region.id, domain: "vegetation" as const, kind: "flower-field", source: "natural" as const },
+      ...(authored.has(region.ownerId) ? {
+        relations: { parent: { id: region.ownerId, domain: "vegetation" as const, kind: "flower-field" as const, source: "authored" as const } }
+      } : {}),
       properties: { assetKind: "flower-field", distribution: "habitat-fill", seed, planningEntityId: region.id }
     }))
   ];

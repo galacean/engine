@@ -7,12 +7,15 @@ import { compileAuthoredVegetation } from "@galacean/engine-world-planning/spati
 import { planningSpatialSnapshotReader } from "../src/planning/spatial/runtime/PlanningSpatialQueries.ts";
 import { planningSolidObjects } from "../src/planning/spatial/runtime/PlanningObjectCatalog.ts";
 import { treeVariationKey } from "@galacean/engine-vegetation/world/SeedWorldTreeShapeControls";
+import { patchVegetationColor, vegetationColorKey } from "@galacean/engine-world-planning/spatial/VegetationColors";
 import type { SeedWorldEnginePort, SeedWorldResourceMutation, SeedWorldObject, SeedWorldAuthoringResource } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import type { SeedWorldAssetCandidate } from "@galacean/engine-world-planning/agent-adapter/SeedWorldAssetManager";
 
 /** Planning-owned projection keeps native assets coherent with unpublished author edits. */
 export interface PlanningResourcePortOptions {
+  /** Mounted template placements include the height of the visible rock ledges. */
+  templateCatalog?(plan: IslandPlan): readonly SeedWorldAssetCandidate[] | undefined;
   nativeCatalog?(
     plan: IslandPlan,
     revision: number,
@@ -49,8 +52,22 @@ export function createPlanningResourcePort(base: SeedWorldEnginePort, session: P
   const snapshot = () => planningResourceSnapshot(session.document);
   const mutate = async (mutations: readonly Readonly<SeedWorldResourceMutation>[], signal: AbortSignal, edit?: WaterEditOptions) => {
     signal.throwIfAborted();
-    if (mutations.some(mutation => !["terrain-patch", "terrain-feature", "vegetation-brush", "object-removal", "tree-variation"].includes(mutation.resourceType)))
-      throw new Error("NOT_SUPPORTED: Water authoring uses Source components through public editor.component/entity/asset APIs.");
+    if (
+      mutations.some(
+        (mutation) =>
+          ![
+            "terrain-patch",
+            "terrain-feature",
+            "vegetation-brush",
+            "object-removal",
+            "tree-variation",
+            "vegetation-color"
+          ].includes(mutation.resourceType)
+      )
+    )
+      throw new Error(
+        "NOT_SUPPORTED: Water authoring uses Source components through public editor.component/entity/asset APIs."
+      );
     const durations = mutations.flatMap(mutation => mutation.resourceType === "terrain-feature" && mutation.action !== "delete"
       ? [resolveSeedWorldTerrainTransitionDurationSeconds(mutation.transitionDurationSeconds)] : []);
     const duration = durations.length ? Math.max(...durations) : undefined;
@@ -58,6 +75,21 @@ export function createPlanningResourcePort(base: SeedWorldEnginePort, session: P
     let resources = document.authoredResources ??= [];
     const results: { action: string; resourceType: string; resourceId: string; resource?: SeedWorldAuthoringResource; realizedPlantCount?: number }[] = [];
     for (const mutation of mutations) {
+      if (mutation.resourceType === "vegetation-color") {
+        const resourceId = vegetationColorKey(mutation.target);
+        const index = resources.findIndex((resource) => resource.resourceId === resourceId);
+        const previous = resources[index];
+        const color = patchVegetationColor(
+          previous?.resourceType === "vegetation-color" ? previous : undefined,
+          mutation.target,
+          mutation.patch
+        );
+        if (index >= 0) resources.splice(index, 1, ...(color ? [color] : []));
+        else if (color) resources.push(color);
+        document.authoredResources = resources = parsePlanningResources(resources);
+        results.push({ action: "update", resourceType: mutation.resourceType, resourceId });
+        continue;
+      }
       if (mutation.resourceType === "tree-variation") {
         const { recipeId, variationIndex, controls } = mutation.value;
         const resourceId = treeVariationKey(recipeId, variationIndex);
@@ -101,9 +133,15 @@ export function createPlanningResourcePort(base: SeedWorldEnginePort, session: P
       const resource = mutation.action === "delete" ? existing! : planningResourceSnapshot(document).resources.find(resource => resource.resourceId === resourceId)!;
       const world = base.readWorldState()!.world;
       for (const resource of resources) {
-        if (resource.resourceType === "tree-variation" || resource.resourceType === "object-removal" ||
-          (resource.resourceType === "vegetation-brush" && resource.properties.distributionKind === "single" &&
-            ["tree", "shrub"].includes(resource.properties.category))) continue;
+        if (
+          resource.resourceType === "tree-variation" ||
+          resource.resourceType === "vegetation-color" ||
+          resource.resourceType === "object-removal" ||
+          (resource.resourceType === "vegetation-brush" &&
+            resource.properties.distributionKind === "single" &&
+            ["tree", "shrub"].includes(resource.properties.category))
+        )
+          continue;
         const { properties } = resource;
         if (properties.x < 0 || properties.z < 0 || properties.x > world.sizeMetres || properties.z > world.sizeMetres)
           throw new Error("Authored resource is outside the world");

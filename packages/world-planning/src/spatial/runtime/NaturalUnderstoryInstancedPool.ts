@@ -24,6 +24,7 @@ import {
   TREE_ASSEMBLY_GPU_VARIATION_INSTANCE_FLOATS,
   TREE_ASSEMBLY_INSTANCE_FLOATS,
   uploadTreeAssemblyInstances,
+  uploadTreeAssemblyInstanceRange,
   type TreeAssemblyInstancedMesh,
   type TreeAssemblyInstanceStorage
 } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh";
@@ -120,6 +121,8 @@ export interface InstancedUnderstoryPart {
   colorR: number;
   colorG: number;
   colorB: number;
+  pigmentCode?: number;
+  cameraSlot?: number;
   readonly varX: number;
   readonly varY: number;
   readonly varZ: number;
@@ -284,7 +287,7 @@ function writePartInstance(
     staging[offset + 12] = part.colorR;
     staging[offset + 13] = part.colorG;
     staging[offset + 14] = part.colorB;
-    staging[offset + 15] = 1;
+    staging[offset + 15] = part.pigmentCode ?? 1;
     staging[offset + 16] = part.varX;
     staging[offset + 17] = part.varY;
     staging[offset + 18] = part.varZ;
@@ -292,7 +295,7 @@ function writePartInstance(
     staging[offset + 20] = part.colorR;
     staging[offset + 21] = part.colorG;
     staging[offset + 22] = part.colorB;
-    staging[offset + 23] = 1;
+    staging[offset + 23] = part.pigmentCode ?? 1;
   } else {
     staging[offset] = part.posX;
     staging[offset + 1] = part.posY;
@@ -309,7 +312,7 @@ function writePartInstance(
     staging[offset + 12] = part.colorR;
     staging[offset + 13] = part.colorG;
     staging[offset + 14] = part.colorB;
-    staging[offset + 15] = 1;
+    staging[offset + 15] = part.pigmentCode ?? 1;
   }
 }
 
@@ -514,6 +517,7 @@ export function buildInstancedUnderstoryRecord(params: {
         colorR: color.x,
         colorG: color.y,
         colorB: color.z,
+        pigmentCode: Math.abs(color.w) > 1 ? color.w : undefined,
         varX: gpuVar?.x ?? 1,
         varY: gpuVar?.y ?? 1,
         varZ: gpuVar?.z ?? 1,
@@ -779,7 +783,46 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     if (changed) this.membershipDirty = true;
   }
 
-  /** Synchronously updates per-instance colors (and bucket override macros if needed) for previewAppearance. */
+  /** Update all LODs and upload affected visible slots in their existing draw batches. */
+  refreshLocalColors(
+    affected: (instance: LandscapePlantInstance) => boolean,
+    resolve: (instance: LandscapePlantInstance, materialId: string) => number | undefined
+  ): void {
+    const dirty = new Map<TreeAssemblyInstanceStorage, { first: number; last: number }>();
+    for (const cell of this.cells.values()) {
+      for (const record of cell.records) {
+        if (!affected(record.instance)) continue;
+        const codes = new Map<string, number | undefined>();
+        for (const lod of record.lods)
+          for (const part of lod.parts) {
+            if (!codes.has(part.materialId)) codes.set(part.materialId, resolve(record.instance, part.materialId));
+            const code = codes.get(part.materialId);
+            if (part.pigmentCode === code) continue;
+            part.pigmentCode = code;
+            if (
+              this.membershipDirty ||
+              this.dataDirty ||
+              lod !== record.lods[record.assignedLod] ||
+              part.cameraSlot === undefined
+            )
+              continue;
+            const bucket = this.buckets.get(part.bucketKey);
+            if (!bucket?.storage) continue;
+            const slot = part.cameraSlot;
+            const storage = bucket.storage;
+            writePartInstance(storage.staging, slot * storage.recordFloats, part, bucket.spec.usesGpuVariation);
+            const range = dirty.get(storage);
+            if (range) {
+              range.first = Math.min(range.first, slot);
+              range.last = Math.max(range.last, slot);
+            } else dirty.set(storage, { first: slot, last: slot });
+          }
+      }
+    }
+    for (const [storage, { first, last }] of dirty) uploadTreeAssemblyInstanceRange(storage, first, last - first + 1);
+  }
+
+  /** Synchronously updates per-species colors and bucket override macros for previewAppearance. */
   refreshAppearanceColors(
     assetId: string,
     materialId: string,
@@ -807,6 +850,7 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
             part.colorR = nextColor.x;
             part.colorG = nextColor.y;
             part.colorB = nextColor.z;
+            part.pigmentCode = Math.abs(nextColor.w) > 1 ? nextColor.w : undefined;
             const prevSpec = part.bucketSpec;
             const wantR = enableAllOverrideChannels || overrideMask[0] !== 0;
             const wantG = enableAllOverrideChannels || overrideMask[1] !== 0;
@@ -1257,6 +1301,7 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
           const part = parts[p]!;
           const bucket = this.buckets.get(part.bucketKey)!;
           const slot = bucket.writeCursor++;
+          part.cameraSlot = slot;
           const view = bucket.view!;
           writePartInstance(view.staging, slot * view.recordFloats, part, bucket.spec.usesGpuVariation);
 

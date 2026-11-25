@@ -1,6 +1,7 @@
 import { waterColorRgbSchema } from "./SeedWorldWaterColorContract";
 import * as z from "zod";
 import { treeShapeSchema } from "./SeedWorldTreeShapeContract";
+import { vegetationColorStateSchema } from "../../spatial/VegetationColors";
 
 /** Every persistent semantic asset owns one public declaration module. */
 export const SEED_WORLD_ASSET_TYPE_CATALOG = Object.freeze({
@@ -211,6 +212,7 @@ export const waterAssetPropertiesSchema = z
 
 export const treeAssetPropertiesSchema = z
   .strictObject({
+    colorOverride: vegetationColorStateSchema.optional(),
     assetKind: z.literal("tree").describe("单棵可独立引用的树。"),
     proceduralAssetId: z.string().optional().describe("实际渲染的程序化资源标识；材质槽按此物种发现。"),
     planningEntityId: z.string().optional().describe("规划组件目标；通过 vegetation.config.get/update 修改。"),
@@ -241,7 +243,9 @@ export const treeAssetPropertiesSchema = z
 
 export const shrubAssetPropertiesSchema = z
   .strictObject({
+    colorOverride: vegetationColorStateSchema.optional(),
     assetKind: z.literal("shrub").describe("单株可独立引用的灌木。"),
+    species: z.string().optional().describe("灌木物种标识，可用于局部改色的 assetIds。"),
     proceduralAssetId: z.string().optional().describe("实际渲染的程序化资源标识；材质槽按此物种发现。"),
     planningEntityId: z.string().optional().describe("规划组件目标；通过 vegetation.config.get/update 修改。"),
     footprintMetres: z
@@ -268,16 +272,23 @@ const vegetationAreaAssetPropertiesBaseSchema = z.strictObject({
 });
 
 export const forestAssetPropertiesSchema = vegetationAreaAssetPropertiesBaseSchema
-  .extend({ assetKind: z.literal("forest") })
+  .extend({ assetKind: z.literal("forest"), colorOverride: vegetationColorStateSchema.optional() })
   .describe("树林资产的公共语义属性。");
 export const shrublandAssetPropertiesSchema = vegetationAreaAssetPropertiesBaseSchema
-  .extend({ assetKind: z.literal("shrubland") })
+  .extend({ assetKind: z.literal("shrubland"), colorOverride: vegetationColorStateSchema.optional() })
   .describe("灌木丛资产的公共语义属性。");
 export const grasslandAssetPropertiesSchema = vegetationAreaAssetPropertiesBaseSchema
   .extend({ assetKind: z.literal("grassland") })
   .describe("草地资产的公共语义属性。");
 export const flowerFieldAssetPropertiesSchema = vegetationAreaAssetPropertiesBaseSchema
-  .extend({ assetKind: z.literal("flower-field") })
+  .extend({
+    assetKind: z.literal("flower-field"),
+    distribution: z
+      .enum(["area", "habitat-fill", "clump"])
+      .describe("clump 表示可按种植位置单独拾取和改色的一丛模板花。"),
+    species: z.string().optional().describe("花簇物种标识，可用于局部改色的 assetIds。"),
+    colorOverride: vegetationColorStateSchema.optional()
+  })
   .describe("花地资产的公共语义属性。");
 export const aquaticGrassBedAssetPropertiesSchema = vegetationAreaAssetPropertiesBaseSchema
   .extend({

@@ -16,6 +16,26 @@ export type ShrublandAsset = Asset<"shrubland"> & {
     distribution: "area" | "habitat-fill";
     /** 可复现植被分布的随机种子。 */
     seed?: number;
+    colorOverride?: {
+      foliage: {
+        source: "instance" | "area" | "species-default";
+        /** 单株或最上层生效区域的稳定标识。 */
+        sourceId?: string;
+        /** 生效覆盖的合成色，使用 sRGB 整数 0–255。继承物种默认色时为 null。 */
+        colorRgb: [number, number, number] | null;
+        /** 合成色对基础反照率的覆盖权重，包含边缘羽化。 */
+        weight: number;
+      };
+      bark: {
+        source: "instance" | "area" | "species-default";
+        /** 单株或最上层生效区域的稳定标识。 */
+        sourceId?: string;
+        /** 生效覆盖的合成色，使用 sRGB 整数 0–255。继承物种默认色时为 null。 */
+        colorRgb: [number, number, number] | null;
+        /** 合成色对基础反照率的覆盖权重，包含边缘羽化。 */
+        weight: number;
+      };
+    };
   };
 };
 declare global {

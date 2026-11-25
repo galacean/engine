@@ -22,6 +22,7 @@ interface WorldTemplateConfig {
       assetGroundY: number;
       assetYawDegrees: number;
       leaf: { materials: string[]; color: string; intensity: number; textureBlend: number };
+      barkMaterials: string[];
       bark?: { material: string; color: string; intensity: number };
     };
   };

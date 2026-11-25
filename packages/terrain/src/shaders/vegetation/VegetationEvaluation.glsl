@@ -8,6 +8,9 @@
 
 // Materials own physical weather-response coefficients; SceneSeason owns seasonal colour.
 vec4 material_SnowResponse;
+#ifdef MATERIAL_TEMPLATE_PLANT_PIGMENT
+  vec4 material_TemplatePlantPigment;
+#endif
 
 #if defined(MATERIAL_VEGETATION_SHARED_GRASS_APPEARANCE) || defined(MATERIAL_VEGETATION_SHARED_GRASS_COLOR)
   #include "shared/GrassColorField.glsl"
@@ -41,6 +44,8 @@ vec4 material_SnowResponse;
     #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
       nearColor = mix(nearColor, varyings.assetAssemblyColor, varyings.sharedGrassColorOverrideMask);
       farColor = mix(farColor, varyings.assetAssemblyColor, varyings.sharedGrassColorOverrideMask);
+      nearColor = mix(nearColor, varyings.plantPigment.rgb, varyings.plantPigment.a);
+      farColor = mix(farColor, varyings.plantPigment.rgb, varyings.plantPigment.a);
     #endif
     vec3 groundColor = terrainProjectGroundColorGrad(
       ground,
@@ -316,6 +321,14 @@ SurfaceData evaluateVegetationMaterial(Varyings varyings, bool isFrontFacing, fl
       TERRAIN_PROJECT_SEASON_SPECIES_TREE_BARK, terrainProjectPlantAuthoredChannels()
     );
   #endif
+  #endif
+  #ifdef MATERIAL_TEMPLATE_PLANT_PIGMENT
+    float pigmentDetail = dot(baseTexture.rgb, vec3(0.2126, 0.7152, 0.0722));
+    surfaceData.albedoColor = mix(surfaceData.albedoColor,
+      terrainProjectEvaluateLeafAlbedo(vec3(pigmentDetail), material_TemplatePlantPigment.rgb), material_TemplatePlantPigment.a);
+  #elif defined(RENDERER_ASSET_ASSEMBLY_INSTANCE)
+    surfaceData.albedoColor = mix(surfaceData.albedoColor,
+      varyings.plantPigment.rgb * dot(baseTexture.rgb, vec3(0.2126, 0.7152, 0.0722)), varyings.plantPigment.a);
   #endif
   #ifndef SCENE_SURFACE_CLIMATE_DRY
   #if defined(MATERIAL_VEGETATION_CLIMATE_GRASS) || defined(MATERIAL_VEGETATION_CLIMATE_FLOWER)

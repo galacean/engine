@@ -24,6 +24,11 @@ export interface TemplateNode {
   assetYawDegrees?: number;
   /** Source material slots whose authored normals use the shared foliage lighting contract. */
   assetLeafMaterials?: readonly string[];
+  /** Authored woody subject registered for vegetation picking and independent foliage/bark pigments. */
+  vegetation?: { kind: "tree"; assetId: string } & (
+    | { barkMaterials: readonly string[]; vertexColorParts?: false }
+    | { vertexColorParts: true; barkMaterials?: never }
+  );
   /** Optional sRGB leaf tint for the supplied model; its bark and textures retain their authored values. */
   assetLeafColor?: string;
   /** Linear intensity of the leaf pigment, including values above one. */
