@@ -192,6 +192,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       if (!gl || !gl.deleteQuery) {
         throw new Error("WebGL2 is not supported.");
       }
+      // An existing context retains the alpha mode with which its framebuffer was created.
+      this._options.alpha = gl.getContextAttributes()?.alpha ?? this._options.alpha;
       this._gl = gl;
       this._initGLState(gl);
     } finally {
@@ -387,6 +389,16 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     } else {
       Logger.error("draw primitive failed.");
     }
+  }
+
+  /** Color format supplied by the owner of a redirected main framebuffer. */
+  _mainFrameColorFormat?: TextureFormat;
+
+  getMainFrameBufferColorFormat(): TextureFormat {
+    return (
+      this._mainFrameColorFormat ??
+      (this._options.alpha === false ? TextureFormat.R8G8B8_UNorm : TextureFormat.R8G8B8A8_UNorm)
+    );
   }
 
   getMainFrameBufferWidth(): number {

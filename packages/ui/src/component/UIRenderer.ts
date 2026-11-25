@@ -4,20 +4,22 @@ import {
   DependentMode,
   Entity,
   EntityModifyFlags,
-  Matrix,
-  Plane,
+  SpriteMaskUtils,
   Ray,
   Renderer,
   RendererUpdateFlags,
+  ShaderMacro,
   ShaderMacroCollection,
   ShaderProperty,
+  SpriteMaskInteraction,
   Vector3,
   Vector4,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
-import type { PrimitiveChunkManager } from "@galacean/engine";
+import type { IMaskRenderable, PrimitiveChunkManager, RenderElement } from "@galacean/engine";
 import { Utils } from "../Utils";
+import { UIClipScope } from "./UIClipScope";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
@@ -31,11 +33,17 @@ export class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   static _tempVec31: Vector3 = new Vector3();
   /** @internal */
-  static _tempMat: Matrix = new Matrix();
-  /** @internal */
-  static _tempPlane: Plane = new Plane();
+  static _tempNormal: Vector3 = new Vector3();
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
+  /** @internal */
+  static _rectClipRectProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipRect");
+  /** @internal */
+  static _rectClipAxisXProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipAxisX");
+  /** @internal */
+  static _rectClipAxisYProperty: ShaderProperty = ShaderProperty.getByName("renderer_UIRectClipAxisY");
+  /** @internal */
+  static _rectClipMacro: ShaderMacro = ShaderMacro.getByName("RENDERER_ENABLE_UI_RECT_CLIP");
 
   /**
    * Custom boundary for raycast detection.
@@ -67,7 +75,9 @@ export class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   @ignoreClone
   _subChunk;
-
+  /** @internal */
+  @ignoreClone
+  _clipScope = UIClipScope.empty;
   private _raycastEnabled: boolean = true;
   protected _color: Color = new Color(1, 1, 1, 1);
 
@@ -81,6 +91,20 @@ export class UIRenderer extends Renderer implements IGraphics {
   set color(value: Color) {
     if (this._color !== value) {
       this._color.copyFrom(value);
+    }
+  }
+
+  /**
+   * Visibility relative to the intersection of ancestor UI Masks. Defaults to VisibleInsideMask.
+   * With no ancestor Mask, the renderer is unaffected. RectMask2D clipping is independent.
+   */
+  get maskInteraction(): SpriteMaskInteraction {
+    return this._maskInteraction;
+  }
+
+  set maskInteraction(value: SpriteMaskInteraction) {
+    if (this._maskInteraction !== value) {
+      this._maskInteraction = value;
     }
   }
 
@@ -100,6 +124,7 @@ export class UIRenderer extends Renderer implements IGraphics {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
     this._dirtyUpdateFlag = RendererUpdateFlags.WorldVolume | UIRendererUpdateFlags.Color;
     this._onColorChanged = this._onColorChanged.bind(this);
     //@ts-ignore
@@ -112,7 +137,10 @@ export class UIRenderer extends Renderer implements IGraphics {
    * @internal
    */
   override _canBatch(preElement, curElement): boolean {
-    return VertexMergeBatcher.canBatchSprite(preElement, curElement);
+    return (
+      VertexMergeBatcher.canBatchSprite(preElement, curElement) &&
+      this._clipScope.canBatch(preElement.component, curElement.component)
+    );
   }
 
   /**
@@ -133,13 +161,23 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  override _prepareRender(context): void {
+  override _prepareRender(context, canvas = this._getRootCanvas()!): void {
     // Update once per frame per renderer, not influenced by batched
     if (this._renderFrameCount !== this.engine.time.frameCount) {
       this._update(context);
     }
 
-    this._render(context);
+    const clip = this._clipScope;
+    if (!clip.fitsStencil(this._maskInteraction)) return;
+    if (clip.hasInside) {
+      this.shaderData.enableMacro(UIRenderer._rectClipMacro);
+      this.shaderData.setVector4(UIRenderer._rectClipRectProperty, clip.insideRect);
+      this.shaderData.setVector4(UIRenderer._rectClipAxisXProperty, clip.axisX);
+      this.shaderData.setVector4(UIRenderer._rectClipAxisYProperty, clip.axisY);
+    } else {
+      this.shaderData.disableMacro(UIRenderer._rectClipMacro);
+    }
+    this._render(context, canvas._renderElements, canvas.referenceResolutionPerUnit);
 
     // union camera global macro and renderer macro.
     ShaderMacroCollection.unionCollection(
@@ -165,6 +203,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   override _onDisableInScene(): void {
     this._overrideUpdate && this.scene!._componentsManager.removeOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
+    this._clipScope = UIClipScope.empty;
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
   }
@@ -243,21 +282,40 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: UIHitResult, distance: number): boolean {
-    const plane = UIRenderer._tempPlane;
+  _getUIMask(): IMaskRenderable | null {
+    return null;
+  }
+
+  protected override _render(context, elements?: RenderElement[], referenceResolutionPerUnit?: number): void {
+    super._render(context);
+  }
+
+  /**
+   * @internal
+   */
+  _raycast(ray: Ray, out: UIHitResult, maxDistance: number, minDistance: number = 0): boolean {
+    if (!this._clipScope.fitsStencil(this._maskInteraction)) {
+      return false;
+    }
     const transform = <UITransform>this._transformEntity!.transform;
-    const normal = plane.normal.copyFrom(transform.worldForward);
-    plane.distance = -Vector3.dot(normal, transform.worldPosition);
-    const curDistance = ray.intersectPlane(plane);
-    if (curDistance >= 0 && curDistance < distance) {
+    const normal = UIRenderer._tempNormal;
+    const localPosition = UIRenderer._tempVec31;
+    const curDistance = SpriteMaskUtils.intersectRayXYPlane(
+      ray,
+      transform.worldMatrix,
+      minDistance,
+      maxDistance,
+      localPosition,
+      normal
+    );
+    if (curDistance !== null) {
       const hitPointWorld = ray.getPoint(curDistance, UIRenderer._tempVec30);
-      const worldMatrixInv = UIRenderer._tempMat;
-      Matrix.invert(transform.worldMatrix, worldMatrixInv);
-      const localPosition = UIRenderer._tempVec31;
-      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, localPosition);
-      if (this._hitTest(localPosition)) {
+      if (
+        this._hitTest(localPosition) &&
+        this._clipScope.contains(hitPointWorld, ray, minDistance, maxDistance, this._maskInteraction)
+      ) {
         out.component = this;
-        out.distance = curDistance;
+        out.distance = Math.abs(curDistance);
         out.entity = this.entity;
         out.normal.copyFrom(normal);
         out.point.copyFrom(hitPointWorld);
@@ -290,6 +348,7 @@ export class UIRenderer extends Renderer implements IGraphics {
     //@ts-ignore
     this._color._onValueChanged = null;
     this._color = null!;
+    this._clipScope = UIClipScope.empty;
   }
 }
 

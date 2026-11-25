@@ -7,6 +7,7 @@ import {
   PointerEventData,
   PointerEventEmitter,
   Scene,
+  Vector2,
   registerPointerEventEmitter
 } from "@galacean/engine";
 import { UICanvas } from "..";
@@ -23,6 +24,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   }
 
   private static _MAX_PATH_DEPTH = 2048;
+  private static _viewportPoint = new Vector2();
   private static _tempSet: Set<number> = new Set();
   private static _path: Entity[] = [];
   private static _tempArray0: Entity[] = [];
@@ -46,11 +48,11 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       if (!scene.isActive || scene.destroyed) continue;
       const componentsManager = scene._componentsManager;
       let canvasElements = componentsManager._overlayCanvases as DisorderedArray<UICanvas>;
-      // Convert screen coordinates to overlay coordinates.
-      ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
+      // Overlay projects onto XY. Its picking line passes through every Z at this screen point.
+      ray.origin.set(position.x, scene.engine.canvas.height - position.y, 0);
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
-        if (canvasElements.get(j)._raycast(ray, hitResult, Number.MAX_SAFE_INTEGER, Layer.Everything)) {
+        if (canvasElements.get(j)._raycast(ray, hitResult, Infinity, Layer.Everything)) {
           this._updateRaycast(hitResult.component, pointer);
           return;
         }
@@ -69,10 +71,11 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         ) {
           continue;
         }
-        camera.screenPointToRay(pointer.position, ray);
+        const viewportPoint = camera.screenToViewportPoint(position, UIPointerEventEmitter._viewportPoint);
+        const rayLength = camera._viewportPointToRaySegment(viewportPoint, ray);
 
         canvasElements = componentsManager._canvases as DisorderedArray<UICanvas>;
-        const { isOrthographic, farClipPlane, cullingMask } = camera;
+        const { isOrthographic, cullingMask } = camera;
         const { worldPosition, worldForward } = camera.entity.transform;
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           canvasElements.get(k)._updateSortDistance(isOrthographic, worldPosition, worldForward);
@@ -86,7 +89,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           const canvas = canvasElements.get(k);
           if (!canvas._canDispatchEvent(camera)) continue;
-          if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) {
+          if (canvas._raycast(ray, hitResult, rayLength, cullingMask)) {
             this._updateRaycast(hitResult.component, pointer);
             return;
           }

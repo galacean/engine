@@ -25,6 +25,8 @@ Shader "2D/UIDefault" {
 
       #include "ShaderLibrary/Common/Common.glsl"
 
+      #include "ShaderLibrary/UI/RectClip.glsl"
+
       mat4 renderer_MVPMat;
       sampler2D renderer_UITexture;
 
@@ -37,6 +39,9 @@ Shader "2D/UIDefault" {
       struct Varyings {
           vec2 v_uv;
           vec4 v_color;
+          #ifdef RENDERER_ENABLE_UI_RECT_CLIP
+          vec2 v_clipPosition;
+          #endif
       };
 
       Varyings vert(Attributes attr) {
@@ -45,6 +50,9 @@ Shader "2D/UIDefault" {
           gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0);
           v.v_uv = attr.TEXCOORD_0;
           v.v_color = attr.COLOR_0;
+          #ifdef RENDERER_ENABLE_UI_RECT_CLIP
+          v.v_clipPosition = getUIRectClipPosition(attr.POSITION);
+          #endif
 
           return v;
       }
@@ -52,6 +60,10 @@ Shader "2D/UIDefault" {
       void frag(Varyings v) {
           vec4 baseColor = texture2D(renderer_UITexture, v.v_uv);
           vec4 finalColor = baseColor * v.v_color;
+
+          #ifdef RENDERER_ENABLE_UI_RECT_CLIP
+          clipUIRect(v.v_clipPosition);
+          #endif
 
           #ifdef ENGINE_SHOULD_SRGB_CORRECT
               finalColor = outputSRGBCorrection(finalColor);

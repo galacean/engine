@@ -16,6 +16,7 @@ export interface BuiltinShaders {
   readonly spriteMask: Shader;
   readonly text: Shader;
   readonly trail: Shader;
+  readonly uiRectMask: Shader;
   readonly ui: Shader;
   readonly spine: Shader;
   readonly particle: Shader;

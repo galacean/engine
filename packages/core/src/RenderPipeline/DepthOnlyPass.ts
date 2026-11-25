@@ -15,7 +15,7 @@ import { PipelineStage } from "./enums/PipelineStage";
 export class DepthOnlyPass extends PipelinePass {
   renderTarget: RenderTarget | null;
 
-  onConfig(camera: Camera): void {
+  onConfig(camera: Camera, needsUIStencil: boolean): void {
     const { width, height } = camera.pixelViewport;
 
     const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
@@ -24,7 +24,7 @@ export class DepthOnlyPass extends PipelinePass {
       width,
       height,
       null,
-      TextureFormat.Depth24,
+      needsUIStencil ? TextureFormat.Depth24Stencil8 : TextureFormat.Depth24,
       true,
       false,
       false,
@@ -47,6 +47,12 @@ export class DepthOnlyPass extends PipelinePass {
     engine._renderCount++;
     cullingResults.opaqueQueue.render(context, PipelineStage.DepthOnly);
     cullingResults.alphaTestQueue.render(context, PipelineStage.DepthOnly);
+    // The following Forward pass uses a different stencil attachment.
+    if (cullingResults.depthNeedsUIStencil) {
+      camera.scene!._maskManager.clearUIMasks(context);
+      // Mask writer programs are shared with Forward, whose projection can have a different Y flip.
+      engine._renderCount++;
+    }
 
     camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this.renderTarget!.depthTexture);
   }

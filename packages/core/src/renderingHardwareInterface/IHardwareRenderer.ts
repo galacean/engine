@@ -30,6 +30,7 @@ export interface IHardwareRenderer {
   };
   /** @internal */
   readonly _options: {
+    readonly alpha?: boolean;
     readonly depth?: boolean;
     readonly stencil?: boolean;
     readonly _forceFlush?: boolean;
@@ -59,6 +60,9 @@ export interface IHardwareRenderer {
   createPlatformRenderTarget(target: RenderTarget): IPlatformRenderTarget;
   createPlatformTransformFeedback(): IPlatformTransformFeedback;
   createPlatformTransformFeedbackPrimitive(): IPlatformTransformFeedbackPrimitive;
+  getMainFrameBufferWidth(): number;
+  getMainFrameBufferHeight(): number;
+  getMainFrameBufferColorFormat(): TextureFormat;
   activeRenderTarget(
     target: RenderTarget | null,
     viewport: Vector4,

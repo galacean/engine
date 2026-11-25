@@ -1,3 +1,6 @@
+import type { Vector4 } from "@galacean/engine-math";
+import type { IMaskRenderable } from "../2d/sprite/MaskRenderable";
+import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { Renderer } from "../Renderer";
 import { Primitive, SubMesh } from "../graphic";
 import { Material } from "../material";
@@ -6,7 +9,28 @@ import { Texture2D } from "../texture";
 import { IPoolElement } from "../utils/ObjectPool";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
+/** Resolved UI coverage needed by the stencil pass. Shared by draws in the same scope. */
+interface UIStencilClip {
+  readonly masks: readonly IMaskRenderable[];
+  readonly outsideRects: readonly Vector4[];
+  readonly axisX: Vector4;
+  readonly axisY: Vector4;
+}
+
 export class RenderElement implements IPoolElement {
+  /** @internal Null for draws using scene SpriteMask layers. */
+  _uiClip: UIStencilClip | null = null;
+
+  /** @internal */
+  get _usesUIStencil(): boolean {
+    const clip = this._uiClip;
+    return (
+      !!clip &&
+      (clip.outsideRects.length > 0 ||
+        (this.component._maskInteraction !== SpriteMaskInteraction.None && clip.masks.length > 0))
+    );
+  }
+
   priority: number;
   distanceForSort: number;
   component: Renderer;
@@ -33,6 +57,7 @@ export class RenderElement implements IPoolElement {
     subChunk?: SubPrimitiveChunk,
     shaderData?: ShaderData
   ): void {
+    this._uiClip = null;
     this.component = component;
     this.material = material;
     this.primitive = primitive;
@@ -61,6 +86,7 @@ export class RenderElement implements IPoolElement {
       source.subChunk,
       source.shaderData
     );
+    this._uiClip = source._uiClip;
     this.priority = source.priority;
     this.distanceForSort = source.distanceForSort;
     this.subShader = source.subShader;
@@ -68,6 +94,7 @@ export class RenderElement implements IPoolElement {
   }
 
   dispose(): void {
+    this._uiClip = null;
     this.component = null!;
     this.material = null!;
     this.primitive = null!;

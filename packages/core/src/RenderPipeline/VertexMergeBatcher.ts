@@ -12,6 +12,8 @@ export class VertexMergeBatcher {
     const preRenderer = <SpriteRenderer>preElement.component;
     const renderer = <SpriteRenderer>curElement.component;
     const maskInteraction = preRenderer.maskInteraction;
+    const clip = preElement._uiClip;
+    if (clip !== curElement._uiClip) return false;
 
     // Order: cheap reference checks → mask state → tag lookup (rare opt-out)
     return (
@@ -19,7 +21,9 @@ export class VertexMergeBatcher {
       preElement.texture === curElement.texture &&
       preElement.material === curElement.material &&
       maskInteraction === renderer.maskInteraction &&
-      (maskInteraction === SpriteMaskInteraction.None || preRenderer.maskLayer === renderer.maskLayer) &&
+      (clip !== null ||
+        maskInteraction === SpriteMaskInteraction.None ||
+        preRenderer.maskLayer === renderer.maskLayer) &&
       curElement.subShader.passes[0].getTagValue(VertexMergeBatcher._disableBatchTag) !== true
     );
   }

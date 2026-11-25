@@ -1,6 +1,7 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { BasicResources, RenderStateElementMap } from "../BasicResources";
 import { Utils } from "../Utils";
+import type { ShaderData, ShaderPass } from "../shader";
 import { RenderQueueType, Shader } from "../shader";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -47,10 +48,22 @@ export class RenderQueue {
     batcherManager.batch(this.elements, this.batchedElements);
   }
 
+  needsUIStencil(stage: string): boolean {
+    for (const element of this.batchedElements) {
+      if (!element._usesUIStencil) continue;
+      const { subShader, material } = element;
+      for (const pass of subShader.passes) {
+        if (this._matchesPass(pass, stage, material.shaderData)) return true;
+      }
+    }
+    return false;
+  }
+
   render(
     context: RenderContext,
     pipelineStageTagValue: string,
-    maskType: RenderQueueMaskType = RenderQueueMaskType.No
+    maskType: RenderQueueMaskType = RenderQueueMaskType.No,
+    maskStates?: RenderStateElementMap
   ): void {
     const batchedElements = this.batchedElements;
     const length = batchedElements.length;
@@ -63,8 +76,6 @@ export class RenderQueue {
     const { instanceId: sceneId, shaderData: sceneData, _maskManager: maskManager } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
-    const pipelineStageKey = RenderContext.pipelineStageKey;
-    const renderQueueType = this.renderQueueType;
     const needMaskType = maskType !== RenderQueueMaskType.No;
 
     for (let i = 0; i < length; i++) {
@@ -82,49 +93,58 @@ export class RenderQueue {
         }
       }
 
-      // Resolve mask render states
-      const maskInteraction = component._maskInteraction;
-      const needMaskInteraction = maskInteraction !== SpriteMaskInteraction.None;
-      let customStates: RenderStateElementMap | null = null;
-
-      if (needMaskType) {
-        customStates = BasicResources.getMaskTypeRenderStates(maskType);
-      } else {
-        if (needMaskInteraction) {
-          maskManager.drawMask(context, pipelineStageTagValue, component._maskLayer);
-          customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
-        } else {
-          maskManager.isReadStencil(material) && maskManager.clearMask(context, pipelineStageTagValue);
-        }
-        maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true);
-      }
-
       const { shaderData: renderElementShaderData } = curElement;
       const shaderPasses = curElement.subShader.passes;
       const { shaderData: rendererData, instanceId: rendererId } = component;
       const { shaderData: materialData, instanceId: materialId } = material;
 
-      // Build compile macros
+      let prepared = false;
+      let customStates: RenderStateElementMap | null = null;
+      let uiReadStates: readonly RenderStateElementMap[] | null = null;
       const compileMacros = Shader._compileMacros;
-      ShaderMacroCollection.unionCollection(component._globalShaderMacro, materialData._macroCollection, compileMacros);
-      ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
-
-      if (isInstanced) {
-        compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
-      }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
-        if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
-          continue;
-        }
-
+        if (!this._matchesPass(shaderPass, pipelineStageTagValue, materialData, needMaskType)) continue;
         const renderState = shaderPass._renderState;
-        if (!needMaskType) {
-          const passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
-          if (passQueueType !== renderQueueType) {
-            continue;
+
+        // A queue can contain elements that have no pass for this stage.
+        if (!prepared) {
+          // Resolve mask render states
+          const maskInteraction = component._maskInteraction;
+          const needMaskInteraction = maskInteraction !== SpriteMaskInteraction.None;
+
+          if (needMaskType) {
+            customStates = maskStates ?? BasicResources.getMaskTypeRenderStates(maskType);
+          } else {
+            if (curElement._usesUIStencil) {
+              uiReadStates = maskManager.drawUIMasks(context, pipelineStageTagValue, curElement);
+              if (!uiReadStates) {
+                break;
+              }
+            } else if (curElement._uiClip === null && needMaskInteraction) {
+              maskManager.drawMask(context, pipelineStageTagValue, component._maskLayer);
+              customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
+            } else {
+              maskManager.clearUIMasks(context);
+              maskManager.isReadStencil(material) && maskManager.clearMask(context, pipelineStageTagValue);
+            }
+            maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true);
           }
+
+          // Build compile macros
+          ShaderMacroCollection.unionCollection(
+            component._globalShaderMacro,
+            materialData._macroCollection,
+            compileMacros
+          );
+          ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
+
+          if (isInstanced) {
+            compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
+          }
+
+          prepared = true;
         }
 
         const program = shaderPass._getShaderProgram(engine, compileMacros);
@@ -194,40 +214,55 @@ export class RenderQueue {
         }
         program.uploadMultiGroupUniforms(sceneData, cameraData, rendererData, materialData, renderElementShaderData);
 
-        // Apply render state
-        renderState._applyStates(
-          engine,
-          component._isFrontFaceInvert(),
-          shaderPass._renderStateDataMap,
-          material.shaderData,
-          customStates,
-          renderElementShaderData
-        );
+        // Usually one test. The legacy receiver Outside mode partitions the complement of
+        // multiple image masks into disjoint tests, preserving alpha blending without another bit.
+        for (let maskPass = 0, count = uiReadStates?.length ?? 1; maskPass < count; maskPass++) {
+          // Apply render state
+          renderState._applyStates(
+            engine,
+            component._isFrontFaceInvert(),
+            shaderPass._renderStateDataMap,
+            material.shaderData,
+            uiReadStates ? uiReadStates[maskPass] : customStates,
+            renderElementShaderData
+          );
 
-        // Draw
-        const layout = program._instanceLayout;
-        if (isInstanced && layout) {
-          const { primitive, subPrimitive, instancedRenderers } = curElement;
-          const totalCount = instancedRenderers.length;
-          const maxCount = layout.instanceMaxCount;
-          const instanceBuffer = engine._batcherManager.instanceBuffer;
+          // Draw
+          const layout = program._instanceLayout;
+          if (isInstanced && layout) {
+            const { primitive, subPrimitive, instancedRenderers } = curElement;
+            const totalCount = instancedRenderers.length;
+            const maxCount = layout.instanceMaxCount;
+            const instanceBuffer = engine._batcherManager.instanceBuffer;
 
-          instanceBuffer.setLayout(layout);
-          rhi.bindUniformBufferBase(ConstantBufferBindingPoint.RendererInstance, instanceBuffer.buffer._platformBuffer);
-          for (let start = 0; start < totalCount; start += maxCount) {
-            const count = Math.min(maxCount, totalCount - start);
-            instanceBuffer.upload(instancedRenderers, start, count);
-            primitive.instanceCount = count;
-            rhi.drawPrimitive(primitive, subPrimitive, program);
+            instanceBuffer.setLayout(layout);
+            rhi.bindUniformBufferBase(
+              ConstantBufferBindingPoint.RendererInstance,
+              instanceBuffer.buffer._platformBuffer
+            );
+            for (let start = 0; start < totalCount; start += maxCount) {
+              const count = Math.min(maxCount, totalCount - start);
+              instanceBuffer.upload(instancedRenderers, start, count);
+              primitive.instanceCount = count;
+              rhi.drawPrimitive(primitive, subPrimitive, program);
+            }
+            primitive.instanceCount = 0;
+          } else {
+            rhi.drawPrimitive(curElement.primitive, curElement.subPrimitive, program);
           }
-          primitive.instanceCount = 0;
-        } else {
-          rhi.drawPrimitive(curElement.primitive, curElement.subPrimitive, program);
         }
       }
     }
 
     this.rendererUpdateFlag = ContextRendererUpdateFlag.None;
+  }
+
+  private _matchesPass(pass: ShaderPass, stage: string, materialData: ShaderData, maskWriter = false): boolean {
+    return (
+      pass.getTagValue(RenderContext.pipelineStageKey) === stage &&
+      (maskWriter ||
+        pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, materialData) === this.renderQueueType)
+    );
   }
 
   clear(): void {

@@ -72,6 +72,60 @@ export class BasicResources {
     return renderStates;
   }
 
+  private static _uiMaskReadStates = new Map<number, RenderStateElementMap[]>();
+  private static _uiMaskWriteStates = new Map<number, RenderStateElementMap>();
+
+  /** UI owns the eight stencil bits while its masks are active. SpriteMask keeps its layer counts. */
+  static getUIMaskReadStates(
+    spriteCount: number,
+    rectCount: number,
+    interaction: SpriteMaskInteraction
+  ): readonly RenderStateElementMap[] {
+    const outside = interaction === SpriteMaskInteraction.VisibleOutsideMask && spriteCount > 0;
+    const key = spriteCount | (rectCount << 4) | (outside ? 0x100 : 0);
+    let states = this._uiMaskReadStates.get(key);
+    if (!states) {
+      states = [];
+      const spriteBits = (1 << spriteCount) - 1;
+      const rectBits = ((1 << rectCount) - 1) << spriteCount;
+      // A single NotEqual test complements image masks. When intersecting rectangle holes,
+      // partition by the first failed image ancestor so each pixel is still drawn only once.
+      const partitionOutside = outside && rectCount > 0;
+      const compare = outside && !partitionOutside ? CompareFunction.NotEqual : CompareFunction.Equal;
+      const count = partitionOutside ? spriteCount : 1;
+      for (let i = 0; i < count; i++) {
+        const readMask = rectBits | (partitionOutside ? (1 << (i + 1)) - 1 : spriteBits);
+        const reference = rectBits | (partitionOutside ? (1 << i) - 1 : spriteBits);
+        states.push({
+          ...this.getMaskInteractionRenderStates(SpriteMaskInteraction.VisibleInsideMask),
+          [RenderStateElementKey.StencilStateMask]: readMask,
+          [RenderStateElementKey.StencilStateReferenceValue]: reference,
+          [RenderStateElementKey.StencilStateCompareFunctionFront]: compare,
+          [RenderStateElementKey.StencilStateCompareFunctionBack]: compare
+        });
+      }
+      this._uiMaskReadStates.set(key, states);
+    }
+    return states;
+  }
+
+  static getUIMaskWriteStates(writeMask: number, reference: number): RenderStateElementMap {
+    const key = (writeMask << 8) | reference;
+    let states = this._uiMaskWriteStates.get(key);
+    if (!states) {
+      states = {
+        ...this.getMaskTypeRenderStates(RenderQueueMaskType.Increment),
+        [RenderStateElementKey.StencilStateMask]: 0xff,
+        [RenderStateElementKey.StencilStateWriteMask]: writeMask,
+        [RenderStateElementKey.StencilStateReferenceValue]: reference,
+        [RenderStateElementKey.StencilStatePassOperationFront]: StencilOperation.Replace,
+        [RenderStateElementKey.StencilStatePassOperationBack]: StencilOperation.Replace
+      };
+      this._uiMaskWriteStates.set(key, states);
+    }
+    return states;
+  }
+
   static getMaskTypeRenderStates(maskType: RenderQueueMaskType): RenderStateElementMap {
     const isIncrement = maskType === RenderQueueMaskType.Increment;
     let renderStates: RenderStateElementMap | null;
@@ -126,6 +180,7 @@ export class BasicResources {
   readonly spriteDefaultMaterial: Material;
   readonly textDefaultMaterial: Material;
   readonly spriteMaskDefaultMaterial: Material;
+  readonly uiRectMaskMaterial: Material;
 
   readonly meshMagentaMaterial: Material;
   readonly particleMagentaMaterial: Material;
@@ -203,6 +258,8 @@ export class BasicResources {
     this.spriteDefaultMaterial = this._create2DMaterial(engine, shaders.sprite);
     this.textDefaultMaterial = this._create2DMaterial(engine, shaders.text);
     this.spriteMaskDefaultMaterial = this._create2DMaterial(engine, shaders.spriteMask);
+
+    this.uiRectMaskMaterial = this._create2DMaterial(engine, shaders.uiRectMask);
 
     this.meshMagentaMaterial = this._createMagentaMaterial(engine, shaders.unlit);
     this.particleMagentaMaterial = this._createMagentaMaterial(engine, shaders.particle);

@@ -53,7 +53,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   /** @internal */
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
-
   @ignoreClone
   protected _overrideUpdate: boolean = false;
   @ignoreClone

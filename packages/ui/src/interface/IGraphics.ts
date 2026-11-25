@@ -6,5 +6,5 @@ export interface IGraphics extends IGroupAble {
   raycastEnabled: boolean;
   raycastPadding: Vector4;
 
-  _raycast(ray: Ray, out: UIHitResult, distance: number): boolean;
+  _raycast(ray: Ray, out: UIHitResult, maxDistance: number, minDistance?: number): boolean;
 }

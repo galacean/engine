@@ -196,17 +196,6 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   /**
-   * The mask layer the sprite renderer belongs to.
-   */
-  get maskLayer(): number {
-    return this._maskLayer;
-  }
-
-  set maskLayer(value: number) {
-    this._maskLayer = value;
-  }
-
-  /**
    * The bounding volume of the TextRenderer.
    */
   override get bounds(): BoundingBox {
@@ -303,7 +292,7 @@ export class Text extends UIRenderer implements ITextRenderer {
     BoundingBox.transform(worldBounds, this._transformEntity!.transform.worldMatrix, worldBounds);
   }
 
-  protected override _render(context): void {
+  protected override _render(context, renderElements = this._getRootCanvas()!._renderElements): void {
     if (this._isTextNoVisible()) {
       return;
     }
@@ -313,7 +302,6 @@ export class Text extends UIRenderer implements ITextRenderer {
       this._setDirtyFlagFalse(DirtyFlag.SubFont);
     }
 
-    const canvas = this._getRootCanvas()!;
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
       this._updateLocalData();
       this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
@@ -332,9 +320,6 @@ export class Text extends UIRenderer implements ITextRenderer {
     const engine = context.camera.engine;
     const textRenderElementPool = engine._textRenderElementPool;
     const material = this.getMaterial()!;
-    const renderElements = canvas._renderElements;
-    const priority = canvas.sortOrder;
-    const distanceForSort = canvas._sortDistance;
     const textChunks = this._textChunks;
     const subShader = material.shader.subShaders[0];
     for (let i = 0, n = textChunks.length; i < n; ++i) {
@@ -344,8 +329,6 @@ export class Text extends UIRenderer implements ITextRenderer {
       renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk, shaderData);
       shaderData.setTexture(Text._textTextureProperty, texture);
       renderElement.subShader = subShader;
-      renderElement.priority = priority;
-      renderElement.distanceForSort = distanceForSort;
       renderElements.push(renderElement);
     }
   }

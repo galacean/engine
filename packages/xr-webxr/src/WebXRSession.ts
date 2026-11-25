@@ -1,4 +1,4 @@
-import type { WebGLGraphicDevice } from "@galacean/engine";
+import { TextureFormat, type WebGLGraphicDevice } from "@galacean/engine";
 import { IXRInputEvent, IXRSession } from "@galacean/engine-design";
 import { XRInputEventType, XRTargetRayMode, XRTrackedInputDevice } from "@galacean/engine-xr";
 import { getInputSource } from "./Util";
@@ -111,6 +111,8 @@ export class WebXRSession implements IXRSession {
   onUpdate(): void {
     const { _rhi: rhi, _platformLayer: layer } = this;
     rhi._mainFrameBuffer = layer.framebuffer;
+    // Immersive layers are created with alpha; inline sessions keep the context drawing buffer.
+    rhi._mainFrameColorFormat = layer.framebuffer ? TextureFormat.R8G8B8A8_UNorm : undefined;
     rhi._mainFrameWidth = layer.framebufferWidth;
     rhi._mainFrameHeight = layer.framebufferHeight;
   }
@@ -170,6 +172,7 @@ export class WebXRSession implements IXRSession {
   private _clearMainFrameBuffer(): void {
     const rhi = this._rhi;
     rhi._mainFrameBuffer = null;
+    rhi._mainFrameColorFormat = undefined;
     rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
   }
 

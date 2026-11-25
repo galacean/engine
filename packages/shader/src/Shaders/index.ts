@@ -5,6 +5,7 @@ import _2D_Sprite from "./2D/Sprite.shader";
 import _2D_SpriteMask from "./2D/SpriteMask.shader";
 import _2D_Text from "./2D/Text.shader";
 import _2D_UIDefault from "./2D/UIDefault.shader";
+import _2D_UIRectMask from "./2D/UIRectMask.shader";
 import BlinnPhong from "./BlinnPhong.shader";
 import Blit_Blit from "./Blit/Blit.shader";
 import Blit_BlitScreen from "./Blit/BlitScreen.shader";
@@ -36,6 +37,7 @@ export const shaders: IShaderSource[] = [
   { source: _2D_SpriteMask, path: "Shaders/2D/SpriteMask.shader" },
   { source: _2D_Text, path: "Shaders/2D/Text.shader" },
   { source: _2D_UIDefault, path: "Shaders/2D/UIDefault.shader" },
+  { source: _2D_UIRectMask, path: "Shaders/2D/UIRectMask.shader" },
   { source: BlinnPhong, path: "Shaders/BlinnPhong.shader" },
   { source: Blit_Blit, path: "Shaders/Blit/Blit.shader" },
   { source: Blit_BlitScreen, path: "Shaders/Blit/BlitScreen.shader" },

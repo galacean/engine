@@ -30,7 +30,7 @@ import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
 import type { IHardwareRenderer } from "./renderingHardwareInterface";
-import { UIUtils } from "./ui/UIUtils";
+import { OverlayPass } from "./RenderPipeline/OverlayPass";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
@@ -601,7 +601,7 @@ export class Engine extends EventDispatcher {
       const uiCanvas = componentsManager._overlayCanvases;
       if (uiCanvas.length > 0) {
         componentsManager.sortOverlayUICanvases();
-        UIUtils.renderOverlay(this, scene, uiCanvas);
+        OverlayPass.render(this, scene, uiCanvas);
       }
     }
   }
