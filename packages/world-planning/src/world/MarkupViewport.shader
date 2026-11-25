@@ -127,6 +127,72 @@ Shader "SeedWorld/MarkupViewportV1" {
         return 1.0 - (1.0 - b) * (1.0 - l);
       }
 
+      // Shared Apple Clean Up luminous white brush shading with flowing pastel iridescent edge aura,
+      // sky-contrast cradle, active fingertip pearl orb, and drifting micro-stardust.
+      // Used identically by both freehand strokes (Pass 1 SDF RT) and the analytical onboarding hint circle.
+      vec3 applyAppleBrushShading(
+        vec3 color,
+        vec2 p,
+        vec2 rectSize,
+        float time,
+        float nearField,
+        float glowField,
+        float tipField
+      ) {
+        if (glowField <= 0.002) {
+          return color;
+        }
+        float dNorm = (1.0 - nearField) * 2.6;
+        float dGlow = (1.0 - glowField) * 6.8;
+
+        float warp = 0.0;
+        vec3 iridOuter = appleIridescentSheen(p, rectSize, time, 0.0, warp);
+        vec3 iridInner = appleIridescentSheen(p, rectSize, time, 0.22, warp);
+
+        float breath = 0.95 + 0.05 * sin(time * 2.1 + warp * 4.2);
+
+        // Soft feathered profile:
+        // - outerAura / edgeRing carry the shifting Apple Intelligence rainbow halo
+        // - bodyMask / coreMask form the clean translucent frosted-white brush base
+        float outerAura = exp(-max(0.0, dGlow - 0.82) * 0.62) * smoothstep(0.0, 0.12, glowField) * 0.46 * breath;
+        float edgeRing = exp(-pow((dNorm - 1.16) * 1.25, 2.0)) * smoothstep(0.02, 0.16, glowField) * 0.70 * breath;
+        float bodyMask = smoothstep(1.34, 0.42, dNorm) * smoothstep(0.02, 0.14, nearField);
+        float coreMask = smoothstep(0.84, 0.08, dNorm) * smoothstep(0.02, 0.14, nearField);
+
+        // Sky-contrast iridescent cradle: on bright sky/clouds, tint the feathered edge gently with the flowing
+        // cyan/violet/pink aura so the white brush ribbon floats crisply even across sunlit white clouds.
+        float bgLuma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+        float brightBg = smoothstep(0.24, 0.84, bgLuma);
+        float haloTintMask = clamp(edgeRing * 0.88 + outerAura * 0.95, 0.0, 1.0) * brightBg;
+        vec3 brightHaloTint = mix(color * 0.78, iridOuter * 0.92, 0.56);
+        color = mix(color, brightHaloTint, haloTintMask * 0.62);
+
+        // Translucent luminous white base body with just a delicate opalescent sheen (true Apple Clean Up white base).
+        vec3 whiteBase = mix(vec3(0.990, 0.993, 1.000), iridInner, 0.14);
+        float bodyAlpha = bodyMask * mix(0.58, 0.48, brightBg);
+        color = mix(color, whiteBase, bodyAlpha);
+
+        // Iridescent outer glow + luminous white-pearl fingertip orb via Screen blend.
+        vec3 tipLight = mix(vec3(1.0, 0.996, 1.0), iridInner, 0.30) * (tipField * tipField * 0.72);
+        vec3 glowLight = iridOuter * outerAura + mix(iridInner, vec3(1.0), 0.22) * (edgeRing * 0.58) + tipLight;
+        color = screenBlend(color, glowLight);
+
+        // Silky pure-white luminous core along the center of the stroke.
+        vec3 coreWhite = mix(vec3(1.0, 0.998, 1.0), iridInner, 0.06);
+        float coreMix = clamp(coreMask * 0.62 + tipField * coreMask * 0.22, 0.0, 0.86);
+        color = mix(color, coreWhite, coreMix);
+
+        // Fine drifting pure-white stardust sparkles inside the brush trail.
+        float sparkleRegion = clamp(bodyMask * 0.95 + edgeRing * 0.68, 0.0, 1.0);
+        float s1 = sparkleLayer(p, 13.0, time, 1.7);
+        float s2 = sparkleLayer(p * 1.15 + vec2(37.0, -19.0), 21.0, time * 0.82, 9.3);
+        float sparkleIntensity = (s1 * 0.95 + s2 * 0.75) * sparkleRegion * (1.0 + tipField * 0.85);
+        vec3 sparkleColor = mix(vec3(1.0), iridOuter, 0.22);
+        color = screenBlend(color, sparkleColor * (sparkleIntensity * 0.98));
+
+        return color;
+      }
+
       void frag(Varyings v) {
         vec2 rectSize = max(material_ViewportRect.xy, vec2(2.0));
         float cornerRadius = material_ViewportRect.z;
@@ -159,59 +225,7 @@ Shader "SeedWorld/MarkupViewportV1" {
         // 2. Apple Clean Up luminous white brush with delicate iridescent edge aura & stardust (zero self-overlap knots).
         if (hasStrokes > 0.5) {
           vec4 field = texture2D(material_StrokeMaskTexture, v.v_uv);
-          float nearField = field.r;
-          float glowField = field.g;
-          float tipField = field.b;
-
-          if (glowField > 0.002) {
-            float dNorm = (1.0 - nearField) * 2.6;
-            float dGlow = (1.0 - glowField) * 6.8;
-
-            float warp = 0.0;
-            vec3 iridOuter = appleIridescentSheen(p, rectSize, time, 0.0, warp);
-            vec3 iridInner = appleIridescentSheen(p, rectSize, time, 0.22, warp);
-
-            float breath = 0.95 + 0.05 * sin(time * 2.1 + warp * 4.2);
-
-            // Soft feathered profile:
-            // - outerAura / edgeRing carry the shifting Apple Intelligence rainbow halo
-            // - bodyMask / coreMask form the clean translucent frosted-white brush base
-            float outerAura = exp(-max(0.0, dGlow - 0.82) * 0.62) * smoothstep(0.0, 0.12, glowField) * 0.46 * breath;
-            float edgeRing = exp(-pow((dNorm - 1.16) * 1.25, 2.0)) * smoothstep(0.02, 0.16, glowField) * 0.70 * breath;
-            float bodyMask = smoothstep(1.34, 0.42, dNorm) * smoothstep(0.02, 0.14, nearField);
-            float coreMask = smoothstep(0.84, 0.08, dNorm) * smoothstep(0.02, 0.14, nearField);
-
-            // Sky-contrast iridescent cradle: on bright sky/clouds, tint the feathered edge gently with the flowing
-            // cyan/violet/pink aura so the white brush ribbon floats crisply even across sunlit white clouds.
-            float bgLuma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-            float brightBg = smoothstep(0.24, 0.84, bgLuma);
-            float haloTintMask = clamp(edgeRing * 0.88 + outerAura * 0.95, 0.0, 1.0) * brightBg;
-            vec3 brightHaloTint = mix(color * 0.78, iridOuter * 0.92, 0.56);
-            color = mix(color, brightHaloTint, haloTintMask * 0.62);
-
-            // Translucent luminous white base body with just a delicate opalescent sheen (true Apple Clean Up white base).
-            vec3 whiteBase = mix(vec3(0.990, 0.993, 1.000), iridInner, 0.14);
-            float bodyAlpha = bodyMask * mix(0.58, 0.48, brightBg);
-            color = mix(color, whiteBase, bodyAlpha);
-
-            // Iridescent outer glow + luminous white-pearl fingertip orb via Screen blend.
-            vec3 tipLight = mix(vec3(1.0, 0.996, 1.0), iridInner, 0.30) * (tipField * tipField * 0.72);
-            vec3 glowLight = iridOuter * outerAura + mix(iridInner, vec3(1.0), 0.22) * (edgeRing * 0.58) + tipLight;
-            color = screenBlend(color, glowLight);
-
-            // Silky pure-white luminous core along the center of the stroke.
-            vec3 coreWhite = mix(vec3(1.0, 0.998, 1.0), iridInner, 0.06);
-            float coreMix = clamp(coreMask * 0.62 + tipField * coreMask * 0.22, 0.0, 0.86);
-            color = mix(color, coreWhite, coreMix);
-
-            // Fine drifting pure-white stardust sparkles inside the brush trail.
-            float sparkleRegion = clamp(bodyMask * 0.95 + edgeRing * 0.68, 0.0, 1.0);
-            float s1 = sparkleLayer(p, 13.0, time, 1.7);
-            float s2 = sparkleLayer(p * 1.15 + vec2(37.0, -19.0), 21.0, time * 0.82, 9.3);
-            float sparkleIntensity = (s1 * 0.95 + s2 * 0.75) * sparkleRegion * (1.0 + tipField * 0.85);
-            vec3 sparkleColor = mix(vec3(1.0), iridOuter, 0.22);
-            color = screenBlend(color, sparkleColor * (sparkleIntensity * 0.98));
-          }
+          color = applyAppleBrushShading(color, p, rectSize, time, field.r, field.g, field.b);
         }
 
         // 3. Ultra-fine frosted-white hairline right along the rounded border (zero dark shadow bar).
@@ -223,7 +237,8 @@ Shader "SeedWorld/MarkupViewportV1" {
           color = mix(color, vec3(1.0), rimMask * 0.46 * rimOpacity);
         }
 
-        // 4. Analytical pixel-perfect luminous white onboarding circle with subtle Apple iridescent aura.
+        // 4. Onboarding circle rendered through the exact same SDF field encoding and applyAppleBrushShading()
+        //    as freehand strokes, so width, rounded caps, frosted white core, rainbow aura, tip orb, and stardust match 1:1.
         if (hintAlpha > 0.002 && hintProgress > 0.005) {
           vec2 center = vec2(0.0, rectSize.y * 0.02);
           vec2 rel = p - center;
@@ -243,51 +258,60 @@ Shader "SeedWorld/MarkupViewportV1" {
           vec2 grad = vec2(u.x / rx, u.y / ry) / uLen;
           float dist = abs(uLen - wobble) / max(length(grad), 1e-4);
 
-          // Clockwise arc sweep from upper-left (-2.15 rad) with smooth leading tip
+          // Clockwise arc sweep from upper-left (2.15 rad) with true rounded capsule start/tip end-caps.
           float startAngle = 2.15;
           float twoPi = 6.2831853;
           float totalArc = twoPi * 1.02;
           float drawnArc = hintProgress * totalArc;
           float ang = mod(startAngle - theta, twoPi);
-          float arcMask = 1.0 - smoothstep(drawnArc - 0.16, drawnArc + 0.05, ang);
-          if (drawnArc > twoPi && ang < drawnArc - twoPi) {
-            arcMask = 1.0;
+
+          float startWobble = 1.0 + 0.036 * sin(startAngle * 2.0 + 0.65) + 0.018 * cos(startAngle * 3.0 - 0.3);
+          vec2 startQ = vec2(cos(startAngle) * rx, sin(startAngle) * ry) * startWobble;
+          float dStart = length(q - startQ);
+
+          float tipTheta = startAngle - drawnArc;
+          float tipWobble = 1.0 + 0.036 * sin(tipTheta * 2.0 + 0.65) + 0.018 * cos(tipTheta * 3.0 - 0.3);
+          vec2 tipQ = vec2(cos(tipTheta) * rx, sin(tipTheta) * ry) * tipWobble;
+          float dTip = length(q - tipQ);
+
+          bool insideDrawnArc = (drawnArc >= twoPi) || (ang <= drawnArc);
+          float curveDist = insideDrawnArc ? dist : min(dTip, dStart);
+
+          // Match buildStrokeCapsuleSegments() visual core radius in CSS pixels (3.0px logical width * 2.15 = 6.45px).
+          float shortSide = max(min(rectSize.x, rectSize.y), 1.0);
+          float baseRadius = clamp(6.45, shortSide * 0.0085, shortSide * 0.024);
+
+          // Match SeedWorldStrokeSmoothing start/end tapering & active tip liquid swell.
+          float tipActive = (1.0 - smoothstep(0.90, 1.0, hintProgress)) * smoothstep(0.0, 0.05, hintProgress);
+          float effectiveAng = insideDrawnArc ? ang : (dTip <= dStart ? drawnArc : 0.0);
+          float angFromTip = max(0.0, drawnArc - effectiveAng);
+          float startFactor = (drawnArc >= twoPi) ? 1.0 : (0.78 + 0.22 * smoothstep(0.0, 0.32, effectiveAng));
+          float endFactor = mix(
+            0.84 + 0.16 * smoothstep(0.0, 0.32, angFromTip),
+            1.0 + 0.10 * (1.0 - smoothstep(0.0, 0.32, angFromTip)),
+            tipActive
+          );
+          float localRadius = baseRadius * startFactor * endFactor;
+
+          // Synthesize the exact same (nearField, glowField, tipField) channels as MarkupStrokeField.shader.
+          float dNorm = curveDist / max(localRadius, 0.5);
+          float hintNearField = clamp(1.0 - dNorm / 2.6, 0.0, 1.0);
+          float hintGlowField = clamp(1.0 - dNorm / 6.8, 0.0, 1.0);
+          float tipWeight = tipActive * smoothstep(0.85, 0.0, angFromTip);
+          float hintTipField = tipWeight * clamp(1.0 - dNorm / 4.4, 0.0, 1.0);
+
+          if (hintGlowField > 0.002) {
+            vec3 hintShaded = applyAppleBrushShading(
+              color,
+              p,
+              rectSize,
+              time,
+              hintNearField,
+              hintGlowField,
+              hintTipField
+            );
+            color = mix(color, hintShaded, hintAlpha);
           }
-          float tailFade = smoothstep(0.0, 0.10, ang + (drawnArc > twoPi ? 1.0 : 0.0));
-          float strokeVis = arcMask * tailFade;
-
-          float hintWarp = 0.0;
-          vec3 hintIrid = appleIridescentSheen(p, rectSize, time, 0.10, hintWarp);
-          vec3 hintHaloIrid = sampleApplePastelPalette(ang / twoPi + time * 0.22 + 0.18);
-
-          float wideAura = exp(-dist * 0.068) * 0.48;
-          float midHalo = exp(-dist * 0.20) * 0.72;
-          float crispCore = 1.0 - smoothstep(1.8, 3.8, dist);
-
-          // Subtle sky contrast around the white hint circle so it gleams over sunlit clouds too.
-          float hintBgLuma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-          float hintBright = smoothstep(0.24, 0.84, hintBgLuma);
-          float hintCradle = clamp((midHalo * 0.75 + wideAura * 0.85) * strokeVis * hintAlpha * hintBright, 0.0, 1.0);
-          color = mix(color, mix(color * 0.80, hintHaloIrid * 0.92, 0.52), hintCradle * 0.55);
-
-          vec3 glowColor = hintHaloIrid * wideAura + mix(hintIrid, vec3(1.0), 0.30) * midHalo;
-          vec3 coreColor = mix(vec3(1.0, 0.998, 1.0), hintIrid, 0.08);
-
-          // Leading luminous white pen-tip orb while actively tracing
-          float tipVis = (1.0 - smoothstep(0.92, 1.0, hintProgress)) * smoothstep(0.0, 0.06, hintProgress);
-          float tipGlow = 0.0;
-          if (tipVis > 0.002) {
-            float tipTheta = startAngle - drawnArc;
-            float tipWobble = 1.0 + 0.036 * sin(tipTheta * 2.0 + 0.65) + 0.018 * cos(tipTheta * 3.0 - 0.3);
-            vec2 tipQ = vec2(cos(tipTheta) * rx, sin(tipTheta) * ry) * tipWobble;
-            float tipDist = length(q - tipQ);
-            tipGlow = (exp(-tipDist * 0.12) * 0.90 + (1.0 - smoothstep(2.0, 5.0, tipDist)) * 0.85) * tipVis;
-          }
-
-          float h = hintAlpha;
-          vec3 addedLight = (glowColor * strokeVis + mix(vec3(1.0), hintIrid, 0.25) * tipGlow) * h;
-          color = screenBlend(color, addedLight);
-          color = mix(color, coreColor, clamp((crispCore * strokeVis * 0.88 + tipGlow * 0.55) * h, 0.0, 1.0));
         }
 
         vec4 finalColor = vec4(color, fillMask * opacity);
