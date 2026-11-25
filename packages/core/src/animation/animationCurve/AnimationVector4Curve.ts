@@ -1,4 +1,5 @@
 import { Vector4 } from "@galacean/engine-math";
+import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
@@ -74,20 +75,55 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
     return out;
   }
 
+  constructor() {
+    super(4);
+    this._evaluateData.value = new Vector4();
+  }
+
   /**
-   * @internal
+   * Replace all keyframes with packed `Vector4` buffers.
+   * @param times - Keyframe timestamps in seconds
+   * @param values - Packed keyframe scalars (`4` per key, or `12` per key as `[inTangent, value, outTangent]`)
+   * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
    */
-  static _hermiteInterpolationValue(
-    frame: Keyframe<Vector4>,
-    nextFrame: Keyframe<Vector4>,
+  setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
+    this._setNumericKeys(times, values, 4, hasTangents);
+  }
+
+  protected override _evaluateKey(index: number, out: Vector4): Vector4 {
+    const values = this._values;
+    const offset = this._hasTangents ? index * 12 + 4 : index * 4;
+    return out.set(values[offset], values[offset + 1], values[offset + 2], values[offset + 3]);
+  }
+
+  protected override _evaluateLinear(curIndex: number, nextIndex: number, t: number, out: Vector4): Vector4 {
+    const values = this._values;
+    const stride = this._hasTangents ? 12 : 4;
+    const valueOffset = this._hasTangents ? 4 : 0;
+    const o0 = curIndex * stride + valueOffset;
+    const o1 = nextIndex * stride + valueOffset;
+    const x0 = values[o0];
+    const y0 = values[o0 + 1];
+    const z0 = values[o0 + 2];
+    const w0 = values[o0 + 3];
+    return out.set(
+      x0 + (values[o1] - x0) * t,
+      y0 + (values[o1 + 1] - y0) * t,
+      z0 + (values[o1 + 2] - z0) * t,
+      w0 + (values[o1 + 3] - w0) * t
+    );
+  }
+
+  protected override _evaluateHermite(
+    curIndex: number,
+    nextIndex: number,
     t: number,
-    dur: number,
+    duration: number,
     out: Vector4
   ): Vector4 {
-    const p0 = frame.value;
-    const tan0 = frame.outTangent!;
-    const p1 = nextFrame.value;
-    const tan1 = nextFrame.inTangent!;
+    const values = this._values;
+    const o0 = curIndex * 12 + 4;
+    const o1 = nextIndex * 12;
 
     const t2 = t * t;
     const t3 = t2 * t;
@@ -96,39 +132,106 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
     const c = t3 - t2;
     const d = -2.0 * t3 + 3.0 * t2;
 
-    let t0 = tan0.x,
-      t1 = tan1.x;
-    if (Number.isFinite(t0) && Number.isFinite(t1)) {
-      out.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
-    } else {
-      out.x = p0.x;
-    }
+    const p0x = values[o0];
+    const p0y = values[o0 + 1];
+    const p0z = values[o0 + 2];
+    const p0w = values[o0 + 3];
+    let t0 = values[o0 + 4];
+    let t1 = values[o1];
+    const x =
+      Number.isFinite(t0) && Number.isFinite(t1)
+        ? a * p0x + b * t0 * duration + c * t1 * duration + d * values[o1 + 4]
+        : p0x;
 
-    (t0 = tan0.y), (t1 = tan1.y);
-    if (Number.isFinite(t0) && Number.isFinite(t1)) {
-      out.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
-    } else {
-      out.y = p0.y;
-    }
+    t0 = values[o0 + 5];
+    t1 = values[o1 + 1];
+    const y =
+      Number.isFinite(t0) && Number.isFinite(t1)
+        ? a * p0y + b * t0 * duration + c * t1 * duration + d * values[o1 + 5]
+        : p0y;
 
-    (t0 = tan0.z), (t1 = tan1.z);
-    if (Number.isFinite(t0) && Number.isFinite(t1)) {
-      out.z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
-    } else {
-      out.z = p0.z;
-    }
+    t0 = values[o0 + 6];
+    t1 = values[o1 + 2];
+    const z =
+      Number.isFinite(t0) && Number.isFinite(t1)
+        ? a * p0z + b * t0 * duration + c * t1 * duration + d * values[o1 + 6]
+        : p0z;
 
-    (t0 = tan0.w), (t1 = tan1.w);
-    if (Number.isFinite(t0) && Number.isFinite(t1)) {
-      out.w = a * p0.w + b * t0 * dur + c * t1 * dur + d * p1.w;
-    } else {
-      out.w = p0.w;
-    }
-    return out;
+    t0 = values[o0 + 7];
+    t1 = values[o1 + 3];
+    const w =
+      Number.isFinite(t0) && Number.isFinite(t1)
+        ? a * p0w + b * t0 * duration + c * t1 * duration + d * values[o1 + 7]
+        : p0w;
+
+    return out.set(x, y, z, w);
   }
 
-  constructor() {
-    super();
-    this._evaluateData.value = new Vector4();
+  protected override _subtractFirstKey(out: Vector4): Vector4 {
+    const values = this._values;
+    const offset = this._hasTangents ? 4 : 0;
+    return out.set(
+      out.x - values[offset],
+      out.y - values[offset + 1],
+      out.z - values[offset + 2],
+      out.w - values[offset + 3]
+    );
+  }
+
+  protected override _readKeyAt(index: number, out: Keyframe<Vector4>): void {
+    const values = this._values;
+    if (this._hasTangents) {
+      let offset = index * 12;
+      (out.inTangent ||= new Vector4()).set(values[offset++], values[offset++], values[offset++], values[offset++]);
+      (out.value ||= new Vector4()).set(values[offset++], values[offset++], values[offset++], values[offset++]);
+      (out.outTangent ||= new Vector4()).set(values[offset++], values[offset++], values[offset++], values[offset]);
+    } else {
+      const offset = index * 4;
+      (out.value ||= new Vector4()).set(values[offset], values[offset + 1], values[offset + 2], values[offset + 3]);
+      out.inTangent = undefined;
+      out.outTangent = undefined;
+    }
+  }
+
+  protected override _writeKeyAt(index: number, key: Keyframe<Vector4>): void {
+    const values = this._values;
+    const { value } = key;
+    if (this._hasTangents) {
+      let offset = index * 12;
+      const inTangent = key.inTangent;
+      if (inTangent) {
+        values[offset++] = inTangent.x;
+        values[offset++] = inTangent.y;
+        values[offset++] = inTangent.z;
+        values[offset++] = inTangent.w;
+      } else {
+        values[offset++] = NaN;
+        values[offset++] = NaN;
+        values[offset++] = NaN;
+        values[offset++] = NaN;
+      }
+      values[offset++] = value.x;
+      values[offset++] = value.y;
+      values[offset++] = value.z;
+      values[offset++] = value.w;
+      const outTangent = key.outTangent;
+      if (outTangent) {
+        values[offset++] = outTangent.x;
+        values[offset++] = outTangent.y;
+        values[offset++] = outTangent.z;
+        values[offset] = outTangent.w;
+      } else {
+        values[offset++] = NaN;
+        values[offset++] = NaN;
+        values[offset++] = NaN;
+        values[offset] = NaN;
+      }
+    } else {
+      const offset = index * 4;
+      values[offset] = value.x;
+      values[offset + 1] = value.y;
+      values[offset + 2] = value.z;
+      values[offset + 3] = value.w;
+    }
   }
 }

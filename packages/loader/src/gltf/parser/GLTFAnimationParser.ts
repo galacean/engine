@@ -8,12 +8,10 @@ import {
   ComponentConstructor,
   Entity,
   InterpolationType,
-  Keyframe,
   SkinnedMeshRenderer,
   Transform,
   TypedArray
 } from "@galacean/engine-core";
-import { Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
 import {
   AnimationChannelTargetPath,
   AnimationSamplerInterpolation,
@@ -44,20 +42,31 @@ export class GLTFAnimationParser extends GLTFParser {
       context.get<Entity>(GLTFParserType.Scene)
     ]).then(([data]) => {
       const sampleDataCollection = new Array<SampleData>(samplers.length);
+      let normalizedOutputs: Map<number, Float32Array> | undefined;
+
+      function samples(index: number, normalize = false): TypedArray {
+        const values = data.get(index)!;
+        if (normalize) {
+          const outputs = (normalizedOutputs ||= new Map());
+          const cached = outputs.get(index);
+          if (cached) return cached;
+          const scale = GLTFUtils.getNormalizedComponentScale(accessors![index].componentType);
+          const output = new Float32Array(values.length);
+          for (let i = 0, n = values.length; i < n; i++) {
+            output[i] = Math.max(-1, values[i] * scale);
+          }
+          outputs.set(index, output);
+          return output;
+        }
+        // A dormant curve needs only its accessor's samples.
+        if (values.byteLength === values.buffer.byteLength) return values;
+        const retained = values.slice();
+        data.set(index, retained);
+        return retained;
+      }
+
       for (let j = 0, m = samplers.length; j < m; j++) {
         const sampler = samplers[j];
-        const input = data.get(sampler.input)!;
-        let output = data.get(sampler.output)!;
-        const outputAccessor = accessors![sampler.output];
-        if (outputAccessor.normalized) {
-          const scale = GLTFUtils.getNormalizedComponentScale(outputAccessor.componentType);
-          const scaled = new Float32Array(output.length);
-          for (let k = 0, v = output.length; k < v; k++) {
-            scaled[k] = output[k] * scale;
-          }
-          output = scaled;
-        }
-
         const interpolation = sampler.interpolation ?? AnimationSamplerInterpolation.Linear;
         let samplerInterpolation: InterpolationType;
         switch (interpolation) {
@@ -73,9 +82,8 @@ export class GLTFAnimationParser extends GLTFParser {
         }
         sampleDataCollection[j] = {
           interpolation: samplerInterpolation,
-          input,
-          output,
-          outputSize: output.length / input.length
+          input: samples(sampler.input),
+          output: samples(sampler.output, accessors![sampler.output].normalized)
         };
       }
 
@@ -115,7 +123,6 @@ export class GLTFAnimationParser extends GLTFParser {
             ComponentType = SkinnedMeshRenderer;
             propertyName = "blendShapeWeights";
             break;
-          default:
         }
 
         const curve = this._addCurve(target.path, sampleDataCollection[glTFChannel.sampler]);
@@ -187,72 +194,26 @@ export class GLTFAnimationParser extends GLTFParser {
   }
 
   private static _addCurve(animationChannelTargetPath: AnimationChannelTargetPath, sampleData: SampleData) {
-    const { input, output, outputSize } = sampleData;
+    const { input, output, interpolation } = sampleData;
+    const hasTangents = interpolation === InterpolationType.CubicSpine;
+    let curve: AnimationVector3Curve | AnimationQuaternionCurve | AnimationFloatArrayCurve;
 
     switch (animationChannelTargetPath) {
       case AnimationChannelTargetPath.TRANSLATION:
-      case AnimationChannelTargetPath.SCALE: {
-        const curve = new AnimationVector3Curve();
-        const interpolation = (curve.interpolation = sampleData.interpolation);
-
-        let offset = 0;
-        for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new Keyframe<Vector3>();
-          keyframe.time = input[i];
-          if (interpolation === InterpolationType.CubicSpine) {
-            keyframe.inTangent = new Vector3(output[offset++], output[offset++], output[offset++]);
-            keyframe.value = new Vector3(output[offset++], output[offset++], output[offset++]);
-            keyframe.outTangent = new Vector3(output[offset++], output[offset++], output[offset++]);
-          } else {
-            keyframe.value = new Vector3(output[offset++], output[offset++], output[offset++]);
-          }
-          curve.addKey(keyframe);
-        }
-        return curve;
-      }
-      case AnimationChannelTargetPath.ROTATION: {
-        const curve = new AnimationQuaternionCurve();
-        const interpolation = (curve.interpolation = sampleData.interpolation);
-
-        let offset = 0;
-        for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new Keyframe<Quaternion>();
-          keyframe.time = input[i];
-          if (interpolation === InterpolationType.CubicSpine) {
-            keyframe.inTangent = new Vector4(output[offset++], output[offset++], output[offset++], output[offset++]);
-            keyframe.value = new Quaternion(output[offset++], output[offset++], output[offset++], output[offset++]);
-            keyframe.outTangent = new Vector4(output[offset++], output[offset++], output[offset++], output[offset++]);
-          } else {
-            keyframe.value = new Quaternion(output[offset++], output[offset++], output[offset++], output[offset++]);
-          }
-          curve.addKey(keyframe);
-        }
-        return curve;
-      }
-      case AnimationChannelTargetPath.WEIGHTS: {
-        const curve = new AnimationFloatArrayCurve();
-        curve.interpolation = sampleData.interpolation;
-
-        let offset = 0;
-        for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new Keyframe<Float32Array>();
-          keyframe.time = input[i];
-          if (curve.interpolation === InterpolationType.CubicSpine) {
-            keyframe.inTangent = Array.from(output.subarray(offset, offset + outputSize));
-            offset += outputSize;
-            keyframe.value = output.slice(offset, offset + outputSize) as Float32Array;
-            offset += outputSize;
-            keyframe.outTangent = Array.from(output.subarray(offset, offset + outputSize));
-            offset += outputSize;
-          } else {
-            keyframe.value = output.slice(offset, offset + outputSize) as Float32Array;
-            offset += outputSize;
-          }
-          curve.addKey(keyframe);
-        }
-        return curve;
-      }
+      case AnimationChannelTargetPath.SCALE:
+        curve = new AnimationVector3Curve();
+        break;
+      case AnimationChannelTargetPath.ROTATION:
+        curve = new AnimationQuaternionCurve();
+        break;
+      case AnimationChannelTargetPath.WEIGHTS:
+        curve = new AnimationFloatArrayCurve();
+        break;
     }
+
+    curve.interpolation = interpolation;
+    curve.setKeys(input, output, hasTangents);
+    return curve;
   }
 
   parse(context: GLTFParserContext, index: number): AssetPromise<AnimationClip> {
@@ -275,5 +236,4 @@ interface SampleData {
   input: TypedArray;
   output: TypedArray;
   interpolation: InterpolationType;
-  outputSize: number;
 }

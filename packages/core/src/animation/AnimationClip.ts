@@ -225,7 +225,7 @@ export class AnimationClip extends EngineObject {
           continue;
         }
         const curveOwner = curve._getTempCurveOwner(targetEntity, component);
-        if (curveOwner && curve.curve!.keys.length) {
+        if (curveOwner && curve.curve!.keyCount) {
           const value = curveOwner.evaluateValue(curve.curve!, time, false);
           curveOwner.applyValue(value!, 1, false);
         }

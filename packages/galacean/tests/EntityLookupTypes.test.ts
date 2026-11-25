@@ -7,7 +7,7 @@ import { expect, it } from "vitest";
 it("checks nullable public declarations", { timeout: 30_000 }, () => {
   const fileName = fileURLToPath(new URL("../../../tests/entity-lookup-types.ts", import.meta.url));
   const source = `
-import { AnimationRefCurve, AnimatorState, BloomEffect, Component, DirectLight, Entity, Keyframe, ModelMesh, PostProcess, ReferResource, Scene, SceneManager, Shader } from "@galacean/engine";
+import { AnimationRefCurve, AnimationVector3Curve, AnimatorState, BloomEffect, Component, DirectLight, Entity, Keyframe, ModelMesh, PostProcess, ReferResource, Scene, SceneManager, Shader } from "@galacean/engine";
 declare const entity: Entity;
 declare const scene: Scene;
 declare const component: Component;
@@ -32,7 +32,15 @@ state.clip = null;
 state.clip = undefined;
 const key = new Keyframe<ReferResource | null>();
 key.value = null;
-new AnimationRefCurve().addKey(key);
+const refCurve = new AnimationRefCurve();
+refCurve.addKey(key);
+const keyCount: number = refCurve.keyCount;
+const readKey: Keyframe<ReferResource | null> = refCurve.getKey(0, key);
+refCurve.setKeys(new Float32Array([0]), [null]);
+const vectorCurve = new AnimationVector3Curve();
+vectorCurve.setKeys(new Float32Array([0]), new Float32Array([1, 2, 3]), false);
+void keyCount;
+void readKey;
 const shader: Shader = Shader.create("typed-shader", []);
 shader.name;
 const foundShader: Shader | undefined = Shader.find("missing");

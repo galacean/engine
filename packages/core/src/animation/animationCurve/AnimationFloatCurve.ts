@@ -1,3 +1,4 @@
+import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
@@ -67,17 +68,40 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     return source;
   }
 
+  constructor() {
+    super(1);
+    this._evaluateData.value = 0;
+  }
+
   /**
-   * @internal
+   * Replace all keyframes with packed scalar arrays.
+   * @param times - Keyframe timestamps in seconds
+   * @param values - Packed keyframe scalars (`1` per key, or `3` per key as `[inTangent, value, outTangent]`)
+   * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
    */
-  static _hermiteInterpolationValue(
-    frame: Keyframe<number>,
-    nextFrame: Keyframe<number>,
-    t: number,
-    dur: number
-  ): number {
-    const t0 = frame.outTangent!;
-    const t1 = nextFrame.inTangent!;
+  setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
+    this._setNumericKeys(times, values, 1, hasTangents);
+  }
+
+  protected override _evaluateKey(index: number): number {
+    return this._values[this._hasTangents ? index * 3 + 1 : index];
+  }
+
+  protected override _evaluateLinear(curIndex: number, nextIndex: number, t: number): number {
+    const values = this._values;
+    const stride = this._hasTangents ? 3 : 1;
+    const valueOffset = this._hasTangents ? 1 : 0;
+    const p0 = values[curIndex * stride + valueOffset];
+    return p0 + (values[nextIndex * stride + valueOffset] - p0) * t;
+  }
+
+  protected override _evaluateHermite(curIndex: number, nextIndex: number, t: number, duration: number): number {
+    const values = this._values;
+    const o0 = curIndex * 3 + 1;
+    const o1 = nextIndex * 3;
+    const p0 = values[o0];
+    const t0 = values[o0 + 1];
+    const t1 = values[o1];
     if (Number.isFinite(t0) && Number.isFinite(t1)) {
       const t2 = t * t;
       const t3 = t2 * t;
@@ -85,14 +109,38 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
       const b = t3 - 2.0 * t2 + t;
       const c = t3 - t2;
       const d = -2.0 * t3 + 3.0 * t2;
-      return a * frame.value + b * t0 * dur + c * t1 * dur + d * nextFrame.value;
+      return a * p0 + b * t0 * duration + c * t1 * duration + d * values[o1 + 1];
+    }
+    return p0;
+  }
+
+  protected override _subtractFirstKey(out: number): number {
+    return out - this._values[this._hasTangents ? 1 : 0];
+  }
+
+  protected override _readKeyAt(index: number, out: Keyframe<number>): void {
+    const values = this._values;
+    if (this._hasTangents) {
+      const offset = index * 3;
+      out.inTangent = values[offset];
+      out.value = values[offset + 1];
+      out.outTangent = values[offset + 2];
     } else {
-      return frame.value;
+      out.value = values[index];
+      out.inTangent = undefined;
+      out.outTangent = undefined;
     }
   }
 
-  constructor() {
-    super();
-    this._evaluateData.value = 0;
+  protected override _writeKeyAt(index: number, key: Keyframe<number>): void {
+    const values = this._values;
+    if (this._hasTangents) {
+      const offset = index * 3;
+      values[offset] = key.inTangent ?? NaN;
+      values[offset + 1] = key.value;
+      values[offset + 2] = key.outTangent ?? NaN;
+    } else {
+      values[index] = key.value;
+    }
   }
 }

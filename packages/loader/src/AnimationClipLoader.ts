@@ -1,12 +1,13 @@
 import {
-  resourceLoader,
-  Loader,
+  AnimationClip,
+  AnimationRefCurve,
   AssetPromise,
   AssetType,
+  Loader,
   LoadItem,
+  ReferResource,
   ResourceManager,
-  AnimationClip,
-  ReferResource
+  resourceLoader
 } from "@galacean/engine-core";
 import { decode } from "./resource-deserialize";
 
@@ -15,23 +16,33 @@ class AnimationClipLoader extends Loader<AnimationClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimationClip> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        ._request<any>(item.url!, {
+        ._request<ArrayBuffer>(item.url!, {
           ...item,
           type: "arraybuffer"
         })
         .then((data) => {
           return decode<AnimationClip>(data, resourceManager.engine)
             .then((clip) => {
-              const curveBindingPromises = clip.curveBindings.map((curveBinding) => {
-                const curve = curveBinding.curve!;
-                const promises = curve.keys.map((key) => {
-                  return this._parseKeyframeValue(key, resourceManager).then((actualValue) => {
-                    key.value = actualValue;
-                  });
-                });
-                return Promise.all(promises);
-              });
-              return Promise.all(curveBindingPromises).then(() => {
+              const curveBindings = clip.curveBindings;
+              const promises: Promise<void>[] = [];
+              for (let i = 0, n = curveBindings.length; i < n; i++) {
+                const curve = curveBindings[i].curve;
+                if (!(curve instanceof AnimationRefCurve)) continue;
+                for (let j = 0, m = curve.keyCount; j < m; j++) {
+                  const key = curve.getKey(j);
+                  const value = key.value as { url?: string } | null;
+                  if (typeof value === "object" && value?.url) {
+                    const keyIndex = j;
+                    promises.push(
+                      resourceManager.getResourceByRef<ReferResource>(value as never).then((asset: ReferResource) => {
+                        key.value = asset;
+                        curve.setKey(keyIndex, key);
+                      })
+                    );
+                  }
+                }
+              }
+              return Promise.all(promises).then(() => {
                 resolve(clip);
               });
             })
@@ -39,20 +50,5 @@ class AnimationClipLoader extends Loader<AnimationClip> {
         })
         .catch(reject);
     });
-  }
-
-  private _parseKeyframeValue(keyframe: any, resourceManager: ResourceManager): Promise<any> {
-    const value = keyframe.value;
-
-    if (typeof value === "object" && (value as any)?.url) {
-      return new Promise((resolve) => {
-        resourceManager.getResourceByRef<ReferResource>(value as any).then((asset: ReferResource) => {
-          keyframe.value = asset;
-          resolve(keyframe.value);
-        });
-      });
-    } else {
-      return Promise.resolve(keyframe.value);
-    }
   }
 }
