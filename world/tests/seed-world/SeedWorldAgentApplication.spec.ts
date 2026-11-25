@@ -113,6 +113,8 @@ describe("SeedWorldAgentApplication final architecture", () => {
     const animals: SeedWorldAnimalService = {
       catalog: vi.fn(),
       spawn: vi.fn(),
+      deleteAnimal: vi.fn(),
+      updateAnimal: vi.fn(),
       query: vi.fn(() => ({ enabled: false, animals: [], matchedCount: 0, offset: 0 })),
       describe: vi.fn(),
       command: vi.fn(),
@@ -1781,7 +1783,7 @@ it("reports left/right from the frozen viewer basis in every heading", async () 
 it("returns animal direction through the public query using the same task viewer as world assets", async () => {
   const { engine, setCamera } = createHarness();
   const animals: SeedWorldAnimalService = {
-    catalog: vi.fn(), spawn: vi.fn(), describe: vi.fn(), command: vi.fn(), receipt: vi.fn(),
+    catalog: vi.fn(), spawn: vi.fn(), deleteAnimal: vi.fn(), updateAnimal: vi.fn(), describe: vi.fn(), command: vi.fn(), receipt: vi.fn(),
     query: vi.fn(() => ({ enabled: true, matchedCount: 1, offset: 0,
       animals: [{id: "cow-1", typeId: "cow", speciesId: "cattle", label: "Cow", loaded: true, visible: true, position: [3, 0, 0] as [number, number, number]}] }))
   };

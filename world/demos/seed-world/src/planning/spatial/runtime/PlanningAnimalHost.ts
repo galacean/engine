@@ -10,6 +10,8 @@ import type { AnimalPopulationConfig } from "@galacean/engine-animals/gameplay/a
 import type { AnimalWorldEvent } from "@galacean/engine-animals/gameplay/animal/AnimalTaskController";
 import type {
   SeedWorldAnimalSpawn,
+  SeedWorldAnimalDelete,
+  SeedWorldAnimalUpdate,
   SeedWorldAnimalCommand,
   SeedWorldAnimalQuery,
   SeedWorldAnimalReceipt,
@@ -23,6 +25,8 @@ import type { PlanningAnimalRuntime, PlanningAnimalInteractions } from "./Planni
 type Runtime = Pick<
   PlanningAnimalRuntime,
   | "spawn"
+  | "deleteAnimal"
+  | "updateAnimal"
   | "synchronize"
   | "update"
   | "preparePresentation"
@@ -216,6 +220,28 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
   spawn(input: SeedWorldAnimalSpawn) {
     return (
       this.runtime?.spawn(input) ?? {
+        requestId: input.requestId,
+        status: "rejected" as const,
+        reason: this.unavailable()
+      }
+    );
+  }
+
+  deleteAnimal(input: SeedWorldAnimalDelete) {
+    return (
+      this.runtime?.deleteAnimal(input) ?? {
+        id: input.id,
+        requestId: input.requestId,
+        status: "rejected" as const,
+        reason: this.unavailable()
+      }
+    );
+  }
+
+  updateAnimal(input: SeedWorldAnimalUpdate) {
+    return (
+      this.runtime?.updateAnimal(input) ?? {
+        id: input.id,
         requestId: input.requestId,
         status: "rejected" as const,
         reason: this.unavailable()

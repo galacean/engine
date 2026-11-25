@@ -221,4 +221,138 @@ describe("persistent explicit animal additions", () => {
     expect(store.read(110513)).toHaveLength(1);
     expect(host.population.actors).toHaveLength(1);
   });
+
+  it("deletes both generated and spawned animals persistently with idempotency and rollback on flush failure", async () => {
+    const state = project(),
+      store = new PlanningAnimalProjectAuthoring(state as any),
+      host = runtime(store);
+    const typeId = SEED_ANIMAL_TYPES.find((type) => !type.canFly)!.typeId;
+    // Seed a deterministic generated animal alongside an authored animal.
+    const generatedBirth = {
+      id: `animal:${typeId}:0`,
+      typeId,
+      appearanceId: host.library.resolve({ typeId }).reference.appearanceId,
+      position: { x: 10, y: 7, z: 10 },
+      heading: 0,
+      seed: 123
+    };
+    const generatedActor = host.addActor(host.population, generatedBirth);
+    host.population.layout.animals.push(generatedBirth);
+    const spawned = await host.spawn({ requestId: "spawn-to-delete", typeId, position: { x: 30, z: 40 } });
+    expect(spawned.status).toBe("accepted");
+    expect(host.population.actors).toHaveLength(2);
+
+    // Rollback on flush failure leaves generated animal intact.
+    const originalFlush = state.flush;
+    state.flush = vi.fn().mockRejectedValueOnce(new Error("DB unavailable")).mockImplementation(originalFlush);
+    expect((await host.deleteAnimal({ id: generatedActor.birth.id, requestId: "del-gen-1" })).reason).toBe(
+      "persistence_failed"
+    );
+    expect(host.population.actors).toHaveLength(2);
+    expect(store.readRemovals(110513)).toEqual([]);
+
+    // Delete generated animal succeeds without disturbing the authored animal.
+    const delGen = await host.deleteAnimal({ id: generatedActor.birth.id, requestId: "del-gen-1" });
+    expect(delGen).toEqual({ id: generatedActor.birth.id, requestId: "del-gen-1", status: "accepted" });
+    expect(host.population.actors.map((a: any) => a.birth.id)).toEqual([spawned.id]);
+    // Idempotent retry + conflict + not_found checks.
+    expect(await host.deleteAnimal({ id: generatedActor.birth.id, requestId: "del-gen-1" })).toEqual(delGen);
+    expect((await host.deleteAnimal({ id: spawned.id!, requestId: "del-gen-1" })).reason).toBe("request_id_conflict");
+    expect((await host.deleteAnimal({ id: generatedActor.birth.id, requestId: "del-gen-2" })).reason).toBe("not_found");
+
+    // Delete spawned animal removes it from both runtime and additions.
+    const delAuthored = await host.deleteAnimal({ id: spawned.id!, requestId: "del-auth-1" });
+    expect(delAuthored.status).toBe("accepted");
+    expect(host.population.actors).toHaveLength(0);
+    expect(store.read(110513)).toEqual([]);
+
+    // Reload from durable project state keeps both deleted and preserves delete idempotency.
+    const restoredStore = new PlanningAnimalProjectAuthoring(project(JSON.parse(state.durable)) as any);
+    const restored = runtime(restoredStore);
+    const removedIds = new Set(restoredStore.readRemovals(110513).map((r) => r.id));
+    expect(removedIds.has(generatedBirth.id)).toBe(true);
+    expect(removedIds.has(spawned.id!)).toBe(true);
+    restored.restoreAdditions(restored.population);
+    expect(restored.population.actors).toHaveLength(0);
+    expect(await restored.deleteAnimal({ id: generatedBirth.id, requestId: "del-gen-1" })).toEqual(delGen);
+  });
+
+  it("updates scale, appearance, position and heading persistently without rebuilding other actors", async () => {
+    const state = project(),
+      store = new PlanningAnimalProjectAuthoring(state as any),
+      host = runtime(store);
+    const multiAppearance = host.library.catalog.animals.find((a: any) => (a.appearances?.length ?? 0) >= 2)!;
+    const typeId = multiAppearance.id;
+    const [firstApp, secondApp] = multiAppearance.appearances!;
+    const spawned = await host.spawn({
+      requestId: "spawn-for-update",
+      typeId,
+      appearanceId: firstApp.id,
+      position: { x: 20, z: 25 }
+    });
+    expect(spawned.status).toBe("accepted");
+    const other = await host.spawn({
+      requestId: "spawn-bystander",
+      typeId,
+      appearanceId: firstApp.id,
+      position: { x: 60, z: 60 }
+    });
+    expect(other.status).toBe("accepted");
+
+    // Reject unknown appearance before persisting.
+    expect(
+      (await host.updateAnimal({ id: spawned.id!, requestId: "upd-bad-app", appearanceId: "no-such-skin" })).reason
+    ).toBe("unknown_appearance");
+    expect(store.readOverrides(110513).size).toBe(0);
+
+    // Reject position colliding with bystander.
+    expect(
+      (await host.updateAnimal({ id: spawned.id!, requestId: "upd-overlap", position: { x: 60, z: 60 } })).reason
+    ).toBe("position_blocked");
+
+    // Apply valid scale + appearance + position + heading update.
+    const updated = await host.updateAnimal({
+      id: spawned.id!,
+      requestId: "upd-ok-1",
+      appearanceId: secondApp.id,
+      scale: 2.25,
+      position: { x: 35, z: 45 },
+      heading: 1.2
+    });
+    expect(updated).toMatchObject({
+      id: spawned.id,
+      requestId: "upd-ok-1",
+      status: "accepted",
+      typeId,
+      appearanceId: secondApp.id,
+      scale: 2.25,
+      position: [35, 7, 45]
+    });
+    // Idempotent retry & conflict detection.
+    expect(
+      await host.updateAnimal({
+        id: spawned.id!,
+        requestId: "upd-ok-1",
+        appearanceId: secondApp.id,
+        scale: 2.25,
+        position: { x: 35, z: 45 },
+        heading: 1.2
+      })
+    ).toEqual(updated);
+    expect((await host.updateAnimal({ id: spawned.id!, requestId: "upd-ok-1", scale: 3.0 })).reason).toBe(
+      "request_id_conflict"
+    );
+
+    // Reload from durable project state restores updated appearance, scale and pose on target only.
+    const restoredStore = new PlanningAnimalProjectAuthoring(project(JSON.parse(state.durable)) as any);
+    const restored = runtime(restoredStore);
+    restored.restoreAdditions(restored.population);
+    const restoredTarget = restored.population.actors.find((a: any) => a.birth.id === spawned.id)!;
+    const restoredOther = restored.population.actors.find((a: any) => a.birth.id === other.id)!;
+    expect(restoredTarget.birth.appearanceId).toBe(secondApp.id);
+    expect(restoredTarget.scale).toBe(2.25);
+    expect(restoredTarget.birth.position).toEqual({ x: 35, y: 7, z: 45 });
+    expect(restoredTarget.birth.heading).toBe(1.2);
+    expect(restoredOther.birth.appearanceId).toBe(firstApp.id);
+  });
 });

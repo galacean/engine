@@ -11,6 +11,8 @@ export interface SeedWorldAnimalSummary {
   speciesId: string;
   id: string;
   typeId: string;
+  appearanceId?: string;
+  scale?: number;
   label: string;
   loaded: boolean;
   visible: boolean;
@@ -105,6 +107,42 @@ export interface SeedWorldAnimalSpawnReceipt {
   reason?: string;
 }
 
+/** One persistent explicit deletion of either a generated or spawned animal identity. */
+export interface SeedWorldAnimalDelete {
+  id: string;
+  requestId: string;
+}
+
+/** Confirmation that the animal identity was removed and persisted without rebuilding other animals. */
+export interface SeedWorldAnimalDeleteReceipt {
+  id: string;
+  requestId: string;
+  status: "accepted" | "rejected";
+  reason?: string;
+}
+
+/** One persistent explicit property update on an existing animal identity. */
+export interface SeedWorldAnimalUpdate {
+  id: string;
+  requestId: string;
+  appearanceId?: string;
+  scale?: number;
+  position?: { x: number; z: number };
+  heading?: number;
+}
+
+/** Confirmation that updated properties were validated, applied and persisted for this animal identity. */
+export interface SeedWorldAnimalUpdateReceipt {
+  id: string;
+  requestId: string;
+  status: "accepted" | "rejected";
+  typeId?: string;
+  appearanceId?: string;
+  scale?: number;
+  position?: readonly [number, number, number];
+  reason?: string;
+}
+
 /** One host service shared by UI and Agent. Query/describe/receipt must not trigger resource loading. */
 export interface SeedWorldAnimalService {
   catalog(input: SeedWorldAnimalCatalogQuery): {
@@ -115,6 +153,8 @@ export interface SeedWorldAnimalService {
     nextOffset?: number;
   };
   spawn(input: SeedWorldAnimalSpawn): SeedWorldAnimalSpawnReceipt | Promise<SeedWorldAnimalSpawnReceipt>;
+  deleteAnimal(input: SeedWorldAnimalDelete): SeedWorldAnimalDeleteReceipt | Promise<SeedWorldAnimalDeleteReceipt>;
+  updateAnimal(input: SeedWorldAnimalUpdate): SeedWorldAnimalUpdateReceipt | Promise<SeedWorldAnimalUpdateReceipt>;
   query(input: SeedWorldAnimalQuery): {
     enabled: boolean;
     animals: readonly SeedWorldAnimalSummary[];
