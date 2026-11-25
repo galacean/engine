@@ -12,8 +12,7 @@ import {
   PhysicsScene,
   Scene,
   Script,
-  SphereCollider,
-  Transform
+  SphereCollider
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { PhysicsEventState, type IPhysicsEvents, type IPhysicsScene } from "@galacean/engine-design";
@@ -443,37 +442,6 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
-    it("keeps the cast direction when synchronizing a collider performs another query", () => {
-      const root = enginePhysX.sceneManager.activeScene.createRootEntity("nested casts");
-      try {
-        const east = root.createChild("east");
-        east.transform.setPosition(5, 0, 0);
-        east.addComponent(BoxCollider);
-        const ground = root.createChild("ground");
-        ground.transform.setPosition(0, -5, 0);
-        ground.addComponent(BoxCollider);
-        const down = new Ray(new Vector3(), new Vector3(0, -1, 0));
-        const inner = new HitResult();
-        class GroundSamplingTransform extends Transform {
-          override get worldPosition(): Vector3 {
-            physicsScene.raycast(down, inner);
-            return super.worldPosition;
-          }
-        }
-        const sampler = new Entity(enginePhysX, "sampler", GroundSamplingTransform);
-        root.addChild(sampler);
-        sampler.transform.setPosition(10, 10, 0);
-        sampler.addComponent(BoxCollider);
-
-        const outer = new HitResult();
-        expect(physicsScene.raycast(new Ray(new Vector3(), new Vector3(2, 0, 0)), outer)).toBe(true);
-        expect(inner.entity?.name).toBe("ground");
-        expect(outer.entity?.name).toBe("east");
-      } finally {
-        root.destroy();
-      }
-    });
-
     it("non-unit direction", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
@@ -744,101 +712,6 @@ describe("Physics Test", () => {
       expect(new Set(results).size).to.eq(2);
       expect(results.map((hit) => hit.collider)).to.have.members(shapes);
       root.destroy();
-    });
-
-    it("preserves ray hits when publishing an output starts another query", () => {
-      const scene = enginePhysX.sceneManager.activeScene;
-      const root = scene.createRootEntity("nested-ray-output");
-      for (let i = 0; i < 3; i++) {
-        const box = root.createChild();
-        box.transform.setPosition(i * 3, 1800, 0);
-        box.addComponent(BoxCollider);
-      }
-      const outerRay = new Ray(new Vector3(-2, 1800, 0), new Vector3(1, 0, 0));
-      const innerRay = new Ray(new Vector3(0, 1802, 0), new Vector3(0, -1, 0));
-      const inner: HitResult[] = [];
-      const outer = new Proxy<HitResult[]>([], {
-        set(target, key, value) {
-          const written = Reflect.set(target, key, value);
-          if (key === "0") scene.physics.raycastAll(innerRay, inner);
-          return written;
-        }
-      });
-      try {
-        expect(scene.physics.raycastAll(outerRay, outer)).toBe(true);
-        expect(inner).to.have.length(1);
-        expect(inner[0].normal.y).toBe(1);
-        expect(outer.map((hit) => hit.distance)).to.have.members([1.5, 4.5, 7.5]);
-        for (const hit of outer) {
-          expect(hit.point.x).toBe(hit.distance - 2);
-          expect(hit.point.y).toBe(1800);
-          expect(hit.normal.x).toBe(-1);
-        }
-      } finally {
-        root.destroy();
-      }
-    });
-
-    it("skips subsequent ray hits destroyed while earlier results are being written", () => {
-      const root = enginePhysX.sceneManager.activeScene.createRootEntity("retired-ray-hit");
-      const boxes = [0, 3, 6].map((x) => {
-        const entity = root.createChild();
-        entity.transform.setPosition(x, 1800, 0);
-        return entity.addComponent(BoxCollider);
-      });
-      const ray = new Ray(new Vector3(-2, 1800, 0), new Vector3(1, 0, 0));
-      const hits = [
-        new Proxy(new HitResult(), {
-          set(target, key, value) {
-            const written = Reflect.set(target, key, value);
-            if (key === "distance") boxes.find((box) => box !== target.collider)!.entity.destroy();
-            return written;
-          }
-        })
-      ];
-      expect(physicsScene.raycastAll(ray, hits)).toBe(true);
-      expect(hits.map((hit) => hit.collider)).to.have.members(boxes.filter((box) => !box.destroyed));
-      expect(hits).toHaveLength(2);
-    });
-
-    it.each([false, true])("keeps ray hit ownership across a nested trim (observer throws: %s)", (throws) => {
-      const scene = enginePhysX.sceneManager.activeScene;
-      const root = scene.createRootEntity("nested-ray-trim");
-      root.transform.setPosition(0, 1800, 0);
-      const box = root.addComponent(BoxCollider);
-      const ray = new Ray(new Vector3(-2, 1800, 0), new Vector3(1, 0, 0));
-      const inner = [new HitResult()];
-      const previous = new HitResult();
-      expect(scene.physics.raycast(ray, previous)).toBe(true);
-      const retired = new Proxy(previous, {
-        set(target, key, value) {
-          const cleared = key === "distance" && value === 0 && target.distance !== 0;
-          const written = Reflect.set(target, key, value);
-          if (cleared) {
-            scene.physics.raycastAll(ray, 0, inner);
-            if (throws) throw new Error("observer stopped");
-          }
-          return written;
-        }
-      });
-      const live = new HitResult();
-      const outer = [live, new HitResult(), retired, live];
-      try {
-        if (throws) expect(() => scene.physics.raycastAll(ray, outer)).toThrow("observer stopped");
-        expect(scene.physics.raycastAll(ray, outer)).toBe(true);
-        expect(inner).to.have.length(0);
-        expect(outer).to.have.length(1);
-        expect(outer[0]).toBe(live);
-        expect(live.collider).toBe(box);
-        const outputs: HitResult[][] = [inner, [], []];
-        for (const hits of outputs) expect(scene.physics.raycastAll(ray, hits)).toBe(true);
-        const borrowed = outputs.map((hits) => hits[0]);
-        expect(borrowed).not.to.include(live);
-        expect(new Set(borrowed).size).toBe(3);
-      } finally {
-        root.destroy();
-        enginePhysX.resourceManager.gc();
-      }
     });
 
     it("raycastAll writes into caller-supplied entries without replacing aliases", () => {
@@ -1776,27 +1649,6 @@ describe("Physics Test", () => {
       expect(physicsScene.capsuleCast(center, radius, height, direction, 0.1, outHitResult)).to.eq(false);
 
       root.destroy();
-    });
-
-    it("keeps the outer overlap set when publishing it starts another query", () => {
-      const scene = enginePhysX.sceneManager.activeScene;
-      const root = scene.createRootEntity();
-      const boxes = [0, 2, 100, 102].map((x) => {
-        const entity = root.createChild();
-        entity.transform.setPosition(x, 1800, 0);
-        return entity.addComponent(BoxCollider);
-      });
-      const inner: Collider[] = [];
-      const outer = new Proxy<Collider[]>([], {
-        set(target, key, value) {
-          const written = Reflect.set(target, key, value);
-          if (key === "0") scene.physics.overlapSphereAll(new Vector3(101, 1800, 0), 3, Layer.Everything, inner);
-          return written;
-        }
-      });
-      expect(scene.physics.overlapSphereAll(new Vector3(1, 1800, 0), 3, Layer.Everything, outer)).toBe(outer);
-      expect(outer).to.have.members(boxes.slice(0, 2));
-      expect(inner).to.have.members(boxes.slice(2));
     });
 
     it("overlapBoxAll", () => {
@@ -3086,7 +2938,7 @@ describe("Physics Test", () => {
       const triggerReceivers = (physicsScene as any)._triggerReceivers as Map<number, unknown>;
       expect(triggerReceivers.size).toBe(2);
 
-      const dispatchPool = (PhysicsScene as any)._snapshotBuffers as (Rigidbody | Collider | null)[][];
+      const dispatchPool = (PhysicsScene as any)._dispatchReceivers as (Rigidbody | Collider | null)[][];
       expect(dispatchPool).toHaveLength(1);
       expect(dispatchPool[0].length).toBeGreaterThanOrEqual(8);
       expect(dispatchPool[0].every((slot) => slot === null)).toBe(true);

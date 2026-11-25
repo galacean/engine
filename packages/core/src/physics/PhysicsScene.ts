@@ -9,7 +9,7 @@ import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { PhysicsUtils } from "./PhysicsUtils";
-import { Rigidbody, type RigidbodyPose } from "./Rigidbody";
+import { Rigidbody } from "./Rigidbody";
 
 /**
  * Simulates colliders, rigidbodies, and constraints in a scene.
@@ -21,8 +21,11 @@ import { Rigidbody, type RigidbodyPose } from "./Rigidbody";
 export class PhysicsScene {
   private static readonly _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static readonly _tempDirection = new Vector3();
-  private static readonly _writeBackPoses: RigidbodyPose[] = [];
-  private static readonly _snapshotBuffers: (Rigidbody | Collider)[][] = [];
+  private static readonly _raycastHitPool: HitResult[] = [];
+  private static readonly _raycastSeenHits = new Set<HitResult>();
+  private static readonly _tempPosition = new Vector3();
+  private static readonly _tempRotation = new Quaternion();
+  private static readonly _dispatchReceivers: (Rigidbody | Collider)[][] = [];
   private static readonly _triggerReceiverPool: TriggerReceivers[] = [];
   private static readonly _parsedCastArgs = {
     orientation: PhysicsScene._identityQuaternion,
@@ -32,6 +35,27 @@ export class PhysicsScene {
   };
   private static readonly _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
+  };
+  private static _activeHitResult: HitResult | null = null;
+  private static _activeHitResults: HitResult[] | null = null;
+  private static _activeHitCount = 0;
+  private static readonly _onSingleHit = (
+    colliderID: number,
+    distance: number,
+    position: Vector3,
+    normal: Vector3
+  ): void => {
+    PhysicsScene._setHitResult(PhysicsScene._activeHitResult!, colliderID, distance, position, normal);
+  };
+  private static readonly _onMultiHit = (
+    colliderID: number,
+    hitDistance: number,
+    position: Vector3,
+    normal: Vector3
+  ): void => {
+    const hitResult = (PhysicsScene._activeHitResults![PhysicsScene._activeHitCount++] ||=
+      PhysicsScene._raycastHitPool.pop() ?? new HitResult());
+    PhysicsScene._setHitResult(hitResult, colliderID, hitDistance, position, normal);
   };
 
   private static _pruneTriggerReceiver(this: PhysicsScene, entry: TriggerReceivers, key: number): void {
@@ -138,17 +162,8 @@ export class PhysicsScene {
     const physicalObjectsMap = Engine._physicalObjectsMap;
     const count = ids?.length ?? 0;
     const result = out ?? [];
-    // Writing to caller storage may run another query and overwrite the borrowed IDs.
-    const snapshot = out && count > 1 ? (PhysicsScene._snapshotBuffers.pop() ?? []) : result;
     for (let i = 0; i < count; i++) {
-      snapshot[i] = physicalObjectsMap[ids![i]];
-    }
-    if (snapshot !== result) {
-      for (let i = 0; i < count; i++) {
-        result[i] = snapshot[i] as Collider;
-        snapshot[i] = null!;
-      }
-      PhysicsScene._snapshotBuffers.push(snapshot);
+      result[i] = physicalObjectsMap[ids![i]];
     }
     result.length = count;
     return result;
@@ -206,6 +221,29 @@ export class PhysicsScene {
     return args;
   }
 
+  private static _setHitResult(
+    outHitResult: HitResult,
+    colliderID: number,
+    distance: number,
+    position: Vector3,
+    normal: Vector3
+  ): void {
+    const collider = Engine._physicalObjectsMap[colliderID];
+    outHitResult.entity = collider.entity;
+    outHitResult.collider = collider;
+    outHitResult.distance = distance;
+    outHitResult.point.copyFrom(position);
+    outHitResult.normal.copyFrom(normal);
+  }
+
+  private static _clearHitResult(hitResult: HitResult): void {
+    hitResult.entity = null;
+    hitResult.collider = null;
+    hitResult.distance = 0;
+    hitResult.point.set(0, 0, 0);
+    hitResult.normal.set(0, 0, 0);
+  }
+
   /** @internal */
   _nativePhysicsScene: IPhysicsScene;
 
@@ -214,7 +252,6 @@ export class PhysicsScene {
   private _fixedTimeStep: number = 1 / 60;
 
   private _bodies: Rigidbody[] = [];
-  private _writeBackBodies: Rigidbody[] | null = null;
   private _bodyOrderDirty = false;
   private _dirtyBodies: Rigidbody[] = [];
   private _dirtyColliders: Collider[] = [];
@@ -343,12 +380,22 @@ export class PhysicsScene {
 
     const normalizedDirection = distance > 0 ? this._syncCastDirection(ray.direction) : null;
 
-    const writer = hitResult && HitResultWriter._acquire(hitResult);
     let result = false;
     if (normalizedDirection) {
-      result = this._nativePhysicsScene.raycast(ray.origin, normalizedDirection, distance, layerMask, writer?._onHit);
+      PhysicsScene._activeHitResult = hitResult ?? null;
+      result = this._nativePhysicsScene.raycast(
+        ray.origin,
+        normalizedDirection,
+        distance,
+        layerMask,
+        hitResult ? PhysicsScene._onSingleHit : undefined
+      );
+      PhysicsScene._activeHitResult = null;
     }
-    writer?._finish();
+
+    if (!result && hitResult) {
+      PhysicsScene._clearHitResult(hitResult);
+    }
     return result;
   }
 
@@ -397,12 +444,41 @@ export class PhysicsScene {
       return this.raycast(ray, distance, layerMask);
     }
 
+    const pool = PhysicsScene._raycastHitPool;
+    let hitCount = 0;
     const normalizedDirection = distance > 0 ? this._syncCastDirection(ray.direction) : null;
-    const writer = HitResultWriter._acquire(outHitResults);
     if (normalizedDirection) {
-      this._nativePhysicsScene.raycastAll(ray.origin, normalizedDirection, distance, layerMask, writer._onHit);
+      PhysicsScene._activeHitResults = outHitResults;
+      PhysicsScene._activeHitCount = 0;
+      this._nativePhysicsScene.raycastAll(
+        ray.origin,
+        normalizedDirection,
+        distance,
+        layerMask,
+        PhysicsScene._onMultiHit
+      );
+      hitCount = PhysicsScene._activeHitCount;
+      PhysicsScene._activeHitResults = null;
     }
-    return writer._finish();
+    const length = outHitResults.length;
+    if (hitCount < length) {
+      // Caller entries can alias retained hits or each other. Recycle only unreferenced objects once.
+      const seenHits = PhysicsScene._raycastSeenHits;
+      for (let i = 0; i < hitCount; i++) {
+        seenHits.add(outHitResults[i]);
+      }
+      for (let i = hitCount; i < length; i++) {
+        const hitResult = outHitResults[i];
+        if (hitResult && !seenHits.has(hitResult)) {
+          seenHits.add(hitResult);
+          PhysicsScene._clearHitResult(hitResult);
+          pool.push(hitResult);
+        }
+      }
+      seenHits.clear();
+    }
+    outHitResults.length = hitCount;
+    return hitCount > 0;
   }
 
   /**
@@ -481,9 +557,9 @@ export class PhysicsScene {
     const normalizedDirection =
       distance > 0 && PhysicsScene._isValidBoxExtents(halfExtents) ? this._syncCastDirection(direction) : null;
 
-    const writer = hitResult && HitResultWriter._acquire(hitResult);
     let result = false;
     if (normalizedDirection) {
+      PhysicsScene._activeHitResult = hitResult ?? null;
       result = this._nativePhysicsScene.boxCast(
         center,
         orientation,
@@ -491,10 +567,14 @@ export class PhysicsScene {
         normalizedDirection,
         distance,
         mask,
-        writer?._onHit
+        hitResult ? PhysicsScene._onSingleHit : undefined
       );
+      PhysicsScene._activeHitResult = null;
     }
-    writer?._finish();
+
+    if (!result && hitResult) {
+      PhysicsScene._clearHitResult(hitResult);
+    }
     return result;
   }
 
@@ -555,19 +635,23 @@ export class PhysicsScene {
     const normalizedDirection =
       distance > 0 && PhysicsUtils.isValidPositiveFloat32(radius) ? this._syncCastDirection(direction) : null;
 
-    const writer = hitResult && HitResultWriter._acquire(hitResult);
     let result = false;
     if (normalizedDirection) {
+      PhysicsScene._activeHitResult = hitResult ?? null;
       result = this._nativePhysicsScene.sphereCast(
         center,
         radius,
         normalizedDirection,
         distance,
         layerMask,
-        writer?._onHit
+        hitResult ? PhysicsScene._onSingleHit : undefined
       );
+      PhysicsScene._activeHitResult = null;
     }
-    writer?._finish();
+
+    if (!result && hitResult) {
+      PhysicsScene._clearHitResult(hitResult);
+    }
     return result;
   }
 
@@ -652,10 +736,10 @@ export class PhysicsScene {
     const normalizedDirection =
       distance > 0 && !Number.isNaN(halfCylinderHeight) ? this._syncCastDirection(direction) : null;
 
-    const writer = hitResult && HitResultWriter._acquire(hitResult);
     let result = false;
     if (normalizedDirection) {
-      const onHit = writer?._onHit;
+      PhysicsScene._activeHitResult = hitResult ?? null;
+      const onHit = hitResult ? PhysicsScene._onSingleHit : undefined;
       result = PhysicsUtils.isValidPositiveFloat32(halfCylinderHeight)
         ? this._nativePhysicsScene.capsuleCast(
             center,
@@ -668,8 +752,12 @@ export class PhysicsScene {
             onHit
           )
         : this._nativePhysicsScene.sphereCast(center, radius, normalizedDirection, distance, mask, onHit);
+      PhysicsScene._activeHitResult = null;
     }
-    writer?._finish();
+
+    if (!result && hitResult) {
+      PhysicsScene._clearHitResult(hitResult);
+    }
     return result;
   }
 
@@ -762,6 +850,7 @@ export class PhysicsScene {
     const scene = this._scene;
     const componentsManager = scene._componentsManager;
     const nativePhysicsScene = this._nativePhysicsScene;
+    const bodies = this._bodies;
     for (let i = 0; i < step; i++) {
       if (!scene.isActive) return;
       componentsManager.callScriptOnPhysicsUpdate();
@@ -776,20 +865,12 @@ export class PhysicsScene {
       }
       nativePhysicsScene.update(fixedTimeStep);
       this._bodyOrderDirty && this._sortBodies();
-      const bodies = this._bodies;
-      if (bodies.length) {
-        const poses = PhysicsScene._writeBackPoses;
-        const pose = poses.pop() ?? { position: new Vector3(), rotation: new Quaternion() };
-        const previous = this._writeBackBodies;
-        this._writeBackBodies = bodies;
-        const count = bodies.length;
-        let j = 0;
-        try {
-          for (; j < count; j++) bodies[j]._writeBack(scene, pose);
-        } finally {
-          if (j < count) bodies[j]._abortWriteBack(pose);
-          this._writeBackBodies = previous;
-          poses.push(pose);
+      const count = bodies.length;
+      if (count > 0) {
+        const position = PhysicsScene._tempPosition;
+        const rotation = PhysicsScene._tempRotation;
+        for (let j = 0; j < count; j++) {
+          bodies[j]._writeBack(position, rotation);
         }
       }
       this._dispatchEvents(nativePhysicsScene.updateEvents());
@@ -868,7 +949,7 @@ export class PhysicsScene {
       }
       body._massDirtyIndex = -1;
     }
-    const bodies = this._getWritableBodies();
+    const bodies = this._bodies;
     const last = bodies.pop()!;
     if (last !== body) {
       bodies[body._index] = last;
@@ -932,9 +1013,8 @@ export class PhysicsScene {
    * @internal
    */
   _gc(): void {
-    HitResultWriter._gc();
-    PhysicsScene._writeBackPoses.length =
-      PhysicsScene._snapshotBuffers.length =
+    PhysicsScene._raycastHitPool.length =
+      PhysicsScene._dispatchReceivers.length =
       PhysicsScene._triggerReceiverPool.length =
         0;
     this._nativePhysicsScene?.gc();
@@ -945,9 +1025,8 @@ export class PhysicsScene {
    */
   _destroy(): void {
     this._gravity._onValueChanged = null;
-    HitResultWriter._gc();
-    PhysicsScene._writeBackPoses.length =
-      PhysicsScene._snapshotBuffers.length =
+    PhysicsScene._raycastHitPool.length =
+      PhysicsScene._dispatchReceivers.length =
       PhysicsScene._triggerReceiverPool.length =
         0;
     this._triggerReceivers.clear();
@@ -956,15 +1035,9 @@ export class PhysicsScene {
     this._nativePhysicsScene = null!;
   }
 
-  private _getWritableBodies(): Rigidbody[] {
-    // Transform setters can remove or reorder bodies while their simulated poses are being published.
-    if (this._bodies === this._writeBackBodies) this._bodies = this._bodies.slice();
-    return this._bodies;
-  }
-
   private _sortBodies(): void {
     this._bodyOrderDirty = false;
-    const bodies = this._getWritableBodies();
+    const bodies = this._bodies;
     const length = bodies.length;
     // Publish ancestors first so each body's world pose is converted against its parent's simulated pose.
     for (let i = 0, n = length - 1; i < n; i++) {
@@ -991,7 +1064,7 @@ export class PhysicsScene {
     const triggerOffset = contactEventCount * 4;
     if (contactEventCount > 0 || triggerCount > 0) {
       // Snapshot both colliders and receivers before any script mutates Collider ownership or re-syncs the scene.
-      const receivers = PhysicsScene._snapshotBuffers.pop() ?? [];
+      const receivers = PhysicsScene._dispatchReceivers.pop() ?? [];
       PhysicsScene._snapshotReceivers(contactEvents, contactEventCount, receivers, 0);
       PhysicsScene._snapshotReceivers(triggerEvents, triggerCount, receivers, triggerOffset);
 
@@ -1100,7 +1173,7 @@ export class PhysicsScene {
       for (let i = 0; i < totalSlots; i++) {
         receivers[i] = null!;
       }
-      PhysicsScene._snapshotBuffers.push(receivers);
+      PhysicsScene._dispatchReceivers.push(receivers);
     }
     if (triggerCount === 0 && this._triggerReceivers.size > 0) {
       ++this._triggerStepStamp;
@@ -1111,97 +1184,12 @@ export class PhysicsScene {
   private _syncCastDirection(direction: Vector3): Vector3 | null {
     const out = PhysicsScene._tempDirection;
     if (!Vector3.normalize(direction, out)) return null;
-    if (this._dirtyBodies.length || this._dirtyColliders.length) {
-      // Transform accessors can run another query while colliders synchronize.
-      const { x, y, z } = out;
-      this._syncColliders(false);
-      out.set(x, y, z);
-    }
+    this._syncColliders(false);
     return out;
   }
 
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
-  }
-}
-
-/**
- * Holds caller output only while its synchronous physics query is active.
- * @internal
- */
-class HitResultWriter {
-  private static readonly _idle: HitResultWriter[] = [];
-  private static readonly _hitPool: HitResult[] = [];
-
-  static _acquire(output: HitResult | HitResult[]): HitResultWriter {
-    const writer = HitResultWriter._idle.pop() ?? new HitResultWriter();
-    writer._output = output;
-    return writer;
-  }
-
-  static _gc(): void {
-    HitResultWriter._idle.length = 0;
-    HitResultWriter._hitPool.length = 0;
-  }
-
-  private static _clear(hit: HitResult): void {
-    hit.entity = null;
-    hit.collider = null;
-    hit.distance = 0;
-    hit.point.set(0, 0, 0);
-    hit.normal.set(0, 0, 0);
-  }
-
-  private static _recycle(hit: HitResult): void {
-    HitResultWriter._clear(hit);
-    HitResultWriter._hitPool.push(hit);
-  }
-
-  // Output observers can start another query and overwrite the borrowed vectors.
-  readonly _onHit = (id: number, distance: number, { x, y, z }: Vector3, { x: nx, y: ny, z: nz }: Vector3): void => {
-    const collider = Engine._physicalObjectsMap[id];
-    // Publishing an earlier hit may have destroyed this collider.
-    if (!collider) return;
-    const output = this._output!;
-    const index = this._count++;
-    const hit = Array.isArray(output) ? (output[index] ||= HitResultWriter._hitPool.pop() ?? new HitResult()) : output;
-    hit.entity = collider.entity;
-    hit.collider = collider;
-    hit.distance = distance;
-    hit.point.set(x, y, z);
-    hit.normal.set(nx, ny, nz);
-  };
-
-  private _output?: HitResult | HitResult[];
-  private _count = 0;
-  private _discarded?: Set<HitResult>;
-
-  _finish(): boolean {
-    const output = this._output!;
-    const count = this._count;
-    if (Array.isArray(output)) {
-      const length = output.length;
-      if (count < length) {
-        const discarded = (this._discarded ||= new Set<HitResult>());
-        for (let i = count; i < length; i++) {
-          const hit = output[i];
-          if (hit) discarded.add(hit);
-        }
-        for (let i = 0; i < count; i++) {
-          discarded.delete(output[i]);
-        }
-        // Detach discarded entries before clearing them. An output observer may start another query or throw.
-        output.length = count;
-        discarded.forEach(HitResultWriter._recycle);
-        discarded.clear();
-      }
-    } else if (!count) {
-      HitResultWriter._clear(output);
-    }
-    this._output = undefined;
-    this._count = 0;
-    HitResultWriter._idle.push(this);
-    return count > 0;
   }
 }
 

@@ -13,6 +13,7 @@ import { Rigidbody } from "./Rigidbody";
  * independently of Rigidbody ownership and Entity rotation.
  */
 export class CharacterController extends Collider {
+  private static readonly _tempMovePosition = new Vector3();
   private static readonly _tempWorldScale = new Vector3();
 
   private _radius = 0.5;
@@ -28,9 +29,6 @@ export class CharacterController extends Collider {
   private _inScene = false;
   @ignoreClone
   private _syncedCenter = new Vector3();
-  // A Transform setter can move another controller or resync this one before it copies the new position.
-  @ignoreClone
-  private readonly _movePosition = new Vector3();
 
   /**
    * The capsule radius in the Entity's local space. Finite negative values are clamped to 0.
@@ -169,7 +167,7 @@ export class CharacterController extends Collider {
     }
     const controller = this._controller!;
     const flags = controller.move(disp, minDist, elapsedTime);
-    const position = this._movePosition;
+    const position = CharacterController._tempMovePosition;
     controller.getWorldPosition(position);
     const transform = this.entity.transform;
     const worldPosition = transform.worldPosition;
