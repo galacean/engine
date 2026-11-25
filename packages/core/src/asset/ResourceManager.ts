@@ -120,7 +120,7 @@ export class ResourceManager {
     const referResourcePool = this._referResourcePool;
     for (const k in referResourcePool) {
       const resource = referResourcePool[k];
-      if (resource instanceof type) {
+      if (resource instanceof type && !resource._isLoading) {
         resources.push(resource);
       }
     }
@@ -325,6 +325,7 @@ export class ResourceManager {
     this._graphicResourcePool = null!;
     this._contentRestorerPool = null!;
     this._loadingPromises = null!;
+    this._virtualPathResourceMap = null!;
   }
 
   private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: VirtualResource): void {
@@ -478,11 +479,46 @@ export class ResourceManager {
 
   private _gc(forceDestroy: boolean): void {
     const objects = <ReferResource[]>Utils.objectValues(this._referResourcePool);
+    if (forceDestroy) {
+      for (let i = 0, n = objects.length; i < n; i++) {
+        objects[i].destroy(true, true);
+      }
+      return;
+    }
+
+    // Temporarily pin zero-ref roots via _addReferCount so downstream references survive gc()
+    const pinned: ReferResource[] = [];
+    let added: boolean;
+    do {
+      added = false;
+      for (let i = 0, n = objects.length; i < n; i++) {
+        const object = objects[i];
+        if (
+          object._getReferCount() === 0 &&
+          (object.isGCIgnored || object._isLoading || object._hasActiveSuperResource())
+        ) {
+          pinned.push(object);
+          object._addReferCount(1);
+          added = true;
+        }
+      }
+    } while (added);
+
+    const garbage: ReferResource[] = [];
     for (let i = 0, n = objects.length; i < n; i++) {
       const object = objects[i];
-      if (!object.isGCIgnored || forceDestroy) {
-        object.destroy(forceDestroy, true);
+      if (object._getReferCount() === 0) {
+        garbage.push(object);
       }
+    }
+
+    // Unpin before destroying so _onDestroy() cascades (e.g. FontAtlas.texture) see actual refCounts
+    for (let i = 0, n = pinned.length; i < n; i++) {
+      pinned[i]._addReferCount(-1);
+    }
+
+    for (let i = 0, n = garbage.length; i < n; i++) {
+      garbage[i].destroy(false, true);
     }
   }
 
@@ -575,6 +611,21 @@ export class ResourceManager {
     resources.forEach((resource) => {
       this._virtualPathResourceMap[resource.virtualPath] = resource;
     });
+  }
+
+  /**
+   * Unregister virtual asset paths from the virtual resource map.
+   * @param virtualPaths - Virtual asset paths to remove
+   * @remarks Removing a mapping does not destroy loaded resources or clear cached assets; missing entries and post-destroy calls are no-ops.
+   */
+  unregisterVirtualResources(virtualPaths: readonly string[]): void {
+    const virtualPathMap = this._virtualPathResourceMap;
+    if (!virtualPathMap) {
+      return;
+    }
+    for (let i = 0, n = virtualPaths.length; i < n; i++) {
+      delete virtualPathMap[virtualPaths[i]];
+    }
   }
 
   /**

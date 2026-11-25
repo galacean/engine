@@ -523,14 +523,8 @@ export class Entity extends EngineObject {
     }
   }
 
-  /**
-   * Destroy self.
-   */
-  override destroy(): void {
-    super.destroy();
-    if (!this._destroyed) {
-      return;
-    }
+  protected override _onDestroy(): void {
+    super._onDestroy();
 
     if (this._templateResource) {
       this._isTemplate || this._templateResource._addReferCount(-1);

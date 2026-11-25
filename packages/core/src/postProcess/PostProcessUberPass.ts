@@ -24,10 +24,12 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Uber Material
     const uberMaterial = new Material(engine, Engine._builtinShaders.uber);
+    uberMaterial.isGCIgnored = true;
     this._uberMaterial = uberMaterial;
 
     // Bloom Material
     const bloomMaterial = new Material(engine, Engine._builtinShaders.bloom);
+    bloomMaterial.isGCIgnored = true;
     this._bloomMaterial = bloomMaterial;
 
     // ShaderData initialization
