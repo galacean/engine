@@ -1173,16 +1173,10 @@ export class SeedWorldPhotoWorkspace {
     try {
       this.paint();
       return true;
-    } catch (error) {
-      this.notifyPaintError(error);
+    } catch {
+      this.notify("画面标记渲染失败，请重试。");
       return false;
     }
-  }
-  private notifyPaintError(error: unknown): void {
-    const rawError = error instanceof Error ? error.message : String(error);
-    const code = (error as { code?: unknown } | null)?.code;
-    const isMemoryLimit = code === "IMAGE_MEMORY_LIMIT" || rawError.includes("IMAGE_MEMORY_LIMIT");
-    this.notify(isMemoryLimit ? "显存空间不足，请先删除旧照片再继续标记。" : rawError);
   }
   private paint(): void {
     const { entry, history } = this.editing!;

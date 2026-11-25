@@ -309,13 +309,15 @@ function createFakeGraphics(budget: ImageResourceBudget) {
   } as any;
 }
 
-describe("PhotoSurface stroke mask budget & failure cleanup", () => {
-  it("reserves display budget when lazily allocating strokeMaskTarget and releases it on dispose", () => {
+describe("PhotoSurface stroke mask lifecycle & failure cleanup", () => {
+  it("lazily allocates and disposes strokeMaskTarget without charging ImageResourceBudget even when budget is full", () => {
     state.createdTextures.length = 0;
     state.createdTargets.length = 0;
     state.throwOnRenderTarget = false;
 
-    const budget = new ImageResourceBudget(10 * 1024 * 1024);
+    // Exhaust the entire ImageResourceBudget to verify freehand drawing is completely decoupled from image budget.
+    const budget = new ImageResourceBudget(1024);
+    const releaseAll = budget.reserve("image", 1024);
     const graphics = createFakeGraphics(budget);
     const image = {
       texture: new Texture2D({} as any, 768, 480),
@@ -328,23 +330,28 @@ describe("PhotoSurface stroke mask budget & failure cleanup", () => {
     };
 
     const surface = new PhotoSurface(graphics, image as any);
+    const texturesBefore = state.createdTextures.length;
     expect(budget.stats.display).toBe(0);
 
     surface.paint([{ points: [{ x: 10, y: 10 }, { x: 120, y: 90 }], width: 6, color: "#ff453a" }]);
-    const expectedBytes = 768 * 480 * 4;
-    expect(budget.stats.display).toBe(expectedBytes);
+    expect(budget.stats.display).toBe(0);
+    expect(state.createdTextures.length).toBe(texturesBefore + 1);
+    expect(state.createdTargets.length).toBe(1);
     expect(graphics.renderStrokeField).toHaveBeenCalledTimes(1);
 
-    // Subsequent paints reuse the allocated RenderTarget without double-charging budget.
+    // Subsequent paints reuse the allocated RenderTarget without allocating another texture/target.
     surface.paint([{ points: [{ x: 20, y: 20 }, { x: 160, y: 140 }], width: 6, color: "#ff453a" }]);
-    expect(budget.stats.display).toBe(expectedBytes);
+    expect(state.createdTextures.length).toBe(texturesBefore + 1);
+    expect(state.createdTargets.length).toBe(1);
 
     surface.dispose();
-    expect(budget.stats.display).toBe(0);
+    expect(state.createdTextures.at(-1)!.destroyed).toBe(true);
+    expect(state.createdTargets[0]!.destroyed).toBe(true);
+    releaseAll();
     expect(budget.stats.total).toBe(0);
   });
 
-  it("destroys the newly created isGCIgnored Texture2D and releases budget if RenderTarget construction throws", () => {
+  it("destroys the newly created isGCIgnored Texture2D if RenderTarget construction throws", () => {
     state.createdTextures.length = 0;
     state.createdTargets.length = 0;
     state.throwOnRenderTarget = false;

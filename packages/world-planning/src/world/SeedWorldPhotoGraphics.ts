@@ -978,7 +978,6 @@ export class PhotoSurface {
   private readonly brushParams = new Vector4(0, 0, 0, 0);
   private strokeMaskTexture?: Texture2D;
   private strokeMaskTarget?: RenderTarget;
-  private strokeMaskRelease?: () => void;
   layoutWidth = 1;
   layoutHeight = 1;
   private opacity = 1;
@@ -1036,8 +1035,9 @@ export class PhotoSurface {
   }
   private ensureStrokeMaskTarget(): RenderTarget {
     if (this.strokeMaskTarget && this.strokeMaskTexture) return this.strokeMaskTarget;
+    // Bounded UI render cache (at most maxPhotos live surfaces, <= 1024px each); intentionally decoupled
+    // from ImageResourceBudget so synchronous freehand drawing never stalls or fails on image-budget accounting.
     const { width, height } = strokeMaskDimensions(this.image.width, this.image.height);
-    const release = this.graphics.budget?.reserve("display", width * height * 4);
     let texture: Texture2D | undefined;
     try {
       texture = new Texture2D(this.graphics.engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, false);
@@ -1048,11 +1048,9 @@ export class PhotoSurface {
       const target = new RenderTarget(this.graphics.engine, width, height, texture, null, 1);
       this.strokeMaskTexture = texture;
       this.strokeMaskTarget = target;
-      this.strokeMaskRelease = release;
       return target;
     } catch (error) {
       texture?.destroy(true);
-      release?.();
       throw error;
     }
   }
@@ -1165,9 +1163,7 @@ export class PhotoSurface {
     this.root.destroy();
     destroyOwnedMesh(mesh as ModelMesh | undefined);
     destroyOwnedMesh(this.viewportMesh);
-    const strokeMaskRelease = this.strokeMaskRelease;
-    this.strokeMaskRelease = undefined;
-    destroyPhotoResources([this.strokeMaskTarget, this.strokeMaskTexture], strokeMaskRelease);
+    destroyPhotoResources([this.strokeMaskTarget, this.strokeMaskTexture]);
     this.strokeMaskTarget = undefined;
     this.strokeMaskTexture = undefined;
     this.closeMaterial.destroy(true);

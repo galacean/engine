@@ -499,26 +499,23 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     ws.dispose();
   });
 
-  it("rolls back drawing state and shows a localized warning instead of throwing repeatedly when paint hits IMAGE_MEMORY_LIMIT", async () => {
+  it("rolls back drawing state and shows a localized warning instead of throwing repeatedly when paint fails", async () => {
     const { ws } = createWorkspace({ reducedMotion: true });
-    const doc = makeDoc("p-oom");
+    const doc = makeDoc("p-paint-fail");
     await ws.open(doc, new AbortController().signal);
-    const entry = (ws as any).entries.get("p-oom");
-    const surface = mocks.surfaces.get("p-oom")!;
+    const entry = (ws as any).entries.get("p-paint-fail");
+    const surface = mocks.surfaces.get("p-paint-fail")!;
     const cx = entry.pose.x;
     const cy = entry.pose.y;
 
-    const oomError = Object.assign(new Error("IMAGE_MEMORY_LIMIT: Image resources in use exceed the available budget"), {
-      code: "IMAGE_MEMORY_LIMIT"
-    });
-    surface.throwOnPaint = oomError;
+    surface.throwOnPaint = new Error("WebGL FBO incomplete");
     const paintCallsBefore = surface.paintCalls;
 
     expect(() =>
       (ws as any).handlePointer("begin", { id: 7, phase: 0, button: 0, position: { x: cx, y: cy } })
     ).not.toThrow();
     expect((ws as any).drawing).toBeUndefined();
-    expect(ws.graphics.status.text).toBe("显存空间不足，请先删除旧照片再继续标记。");
+    expect(ws.graphics.status.text).toBe("画面标记渲染失败，请重试。");
     expect(surface.paintCalls).toBe(paintCallsBefore + 1);
 
     // Subsequent move and up events must be clean no-ops with zero errors and zero additional paint attempts.
