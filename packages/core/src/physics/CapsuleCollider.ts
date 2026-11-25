@@ -3,7 +3,7 @@ import { Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
-import { clampNonNegativeDimension, isValidPositiveFloat32 } from "./float32";
+import { PhysicsUtils } from "./PhysicsUtils";
 
 /**
  * A capsule-shaped collider.
@@ -28,7 +28,7 @@ export class CapsuleCollider extends Collider {
   }
 
   set radius(value: number) {
-    value = clampNonNegativeDimension(value, "CapsuleCollider radius");
+    value = PhysicsUtils.clampNonNegative(value, "CapsuleCollider radius");
     if (this._radius !== value) {
       this._radius = value;
       this._setGeometryDirty();
@@ -46,7 +46,7 @@ export class CapsuleCollider extends Collider {
   }
 
   set height(value: number) {
-    value = clampNonNegativeDimension(value, "CapsuleCollider height");
+    value = PhysicsUtils.clampNonNegative(value, "CapsuleCollider height");
     if (this._height !== value) {
       this._height = value;
       this._setGeometryDirty();
@@ -100,10 +100,10 @@ export class CapsuleCollider extends Collider {
     }
     const radius = this._radius * radialScale;
     const halfHeight = this._height * heightScale * 0.5 - radius;
-    if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(halfHeight))) {
+    if (!PhysicsUtils.isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(halfHeight))) {
       return null;
     }
-    const isSphere = !isValidPositiveFloat32(halfHeight);
+    const isSphere = !PhysicsUtils.isValidPositiveFloat32(halfHeight);
     if (isSphere) {
       if (shape && this._nativeIsSphere) {
         (<ISphereShape>shape).setRadius(radius);

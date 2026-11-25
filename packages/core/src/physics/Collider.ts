@@ -5,7 +5,7 @@ import {
   IPhysicsShape,
   IStaticActor
 } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Logger } from "../base";
 import { BasicResources } from "../BasicResources";
 import { ignoreClone } from "../clone/CloneDecorators";
@@ -19,9 +19,8 @@ import type { Scene } from "../Scene";
 import { Transform, TransformModifyFlags } from "../Transform";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import type { PhysicsScene } from "./PhysicsScene";
+import { PhysicsUtils } from "./PhysicsUtils";
 import { Rigidbody } from "./Rigidbody";
-import { differsF32, rotationDiffersF32 } from "./float32";
-import { warnIfColliderSheared } from "./shearWarning";
 
 /**
  * A collision shape attached to an Entity.
@@ -36,6 +35,7 @@ import { warnIfColliderSheared } from "./shearWarning";
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Collider extends Component implements ICloneHook<Collider> {
   private static _idGenerator = 0;
+  private static readonly _shearToleranceSquared = 1e-8;
   private static readonly _tempPosition = new Vector3();
   private static readonly _tempBodyOffset = new Vector3();
   private static readonly _tempRotation = new Quaternion();
@@ -300,7 +300,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
 
     if (Logger.isEnabled && !this._shearWarned) {
-      this._shearWarned = warnIfColliderSheared(worldMatrix, this);
+      this._shearWarned = this._warnIfSheared(worldMatrix);
     }
 
     const lossyScale = transform.lossyWorldScale;
@@ -528,7 +528,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     const nativePosition = this._nativeWorldPosition;
     const nativeRotation = this._nativeWorldRotation;
-    if (differsF32(position, nativePosition) || rotationDiffersF32(rotation, nativeRotation)) {
+    if (
+      PhysicsUtils.differsF32(position, nativePosition) ||
+      PhysicsUtils.rotationDiffersF32(rotation, nativeRotation)
+    ) {
       actor.setWorldTransform(position, rotation);
       nativePosition.copyFrom(position);
       nativeRotation.copyFrom(rotation);
@@ -549,7 +552,11 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
     const nativePosition = this._nativePosition;
     const nativeRotation = this._nativeRotation;
-    if (force || differsF32(position, nativePosition) || rotationDiffersF32(rotation, nativeRotation)) {
+    if (
+      force ||
+      PhysicsUtils.differsF32(position, nativePosition) ||
+      PhysicsUtils.rotationDiffersF32(rotation, nativeRotation)
+    ) {
       nativePosition.copyFrom(position);
       (this._nativeRotation ||= new Quaternion()).copyFrom(rotation);
       shape.setLocalPose(position, rotation);
@@ -578,5 +585,27 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     Vector3.transformByQuat(position, rotation, position);
     position.add(offset);
+  }
+
+  private _warnIfSheared(worldMatrix: Matrix): boolean {
+    // A rotated, non-uniformly scaled ancestor can make the transformed axes non-orthogonal.
+    const e = worldMatrix.elements;
+    const xLengthSquared = e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
+    const yLengthSquared = e[4] * e[4] + e[5] * e[5] + e[6] * e[6];
+    const zLengthSquared = e[8] * e[8] + e[9] * e[9] + e[10] * e[10];
+    const xy = e[0] * e[4] + e[1] * e[5] + e[2] * e[6];
+    const xz = e[0] * e[8] + e[1] * e[9] + e[2] * e[10];
+    const yz = e[4] * e[8] + e[5] * e[9] + e[6] * e[10];
+    if (
+      xy * xy > Collider._shearToleranceSquared * xLengthSquared * yLengthSquared ||
+      xz * xz > Collider._shearToleranceSquared * xLengthSquared * zLengthSquared ||
+      yz * yz > Collider._shearToleranceSquared * yLengthSquared * zLengthSquared
+    ) {
+      Logger.warn(
+        `${this.constructor.name}: the world transform of "${this.entity.name}" is sheared, which physics cannot represent; the shape ignores the shear.`
+      );
+      return true;
+    }
+    return false;
   }
 }

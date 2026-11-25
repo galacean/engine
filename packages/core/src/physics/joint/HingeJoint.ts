@@ -2,7 +2,7 @@ import { IDynamicActor, IHingeJoint, IPhysicsScene } from "@galacean/engine-desi
 import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import { Entity } from "../../Entity";
-import { normalizeDirection } from "../unitDirection";
+import { PhysicsUtils } from "../PhysicsUtils";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
 import { JointMotor } from "./JointMotor";
@@ -179,7 +179,7 @@ export class HingeJoint extends Joint {
 
   // Runtime Prefab calls use this method name.
   private _setAxis(value: Readonly<Vector3Like>): void {
-    const axis = normalizeDirection(this._axis, value, "HingeJoint axis");
+    const axis = PhysicsUtils.normalizeDirection(this._axis, value, "HingeJoint axis");
     if (axis !== this._axis) {
       this._axis = axis;
       const nativeJoint = this._nativeJoint;

@@ -8,7 +8,7 @@ import type { Scene } from "../../Scene";
 import { type Transform, TransformModifyFlags } from "../../Transform";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
-import { differsF32 } from "../float32";
+import { PhysicsUtils } from "../PhysicsUtils";
 import { Rigidbody } from "../Rigidbody";
 
 /**
@@ -439,7 +439,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     const scaled = Joint._tempVector3;
     Vector3.multiply(anchor, entity.transform.lossyWorldScale, scaled);
     const actual = bodyInfo.actualAnchor;
-    if (differsF32(scaled, actual)) {
+    if (PhysicsUtils.differsF32(scaled, actual)) {
       actual.copyFrom(scaled);
       isSelf ? nativeJoint.setAnchor(actual) : nativeJoint.setConnectedAnchor(actual);
       this._wakeBodies(true);

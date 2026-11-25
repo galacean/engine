@@ -4,9 +4,8 @@ import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 import type { PhysicsScene } from "./PhysicsScene";
+import { PhysicsUtils } from "./PhysicsUtils";
 import { Rigidbody } from "./Rigidbody";
-import { clampNonNegativeDimension, isValidPositiveFloat32 } from "./float32";
-import { normalizeDirection } from "./unitDirection";
 
 /**
  * A capsule that moves and slides along obstacles through {@link move}.
@@ -43,7 +42,7 @@ export class CharacterController extends Collider {
   }
 
   set radius(value: number) {
-    value = clampNonNegativeDimension(value, "CharacterController radius");
+    value = PhysicsUtils.clampNonNegative(value, "CharacterController radius");
     if (this._radius !== value) {
       this._radius = value;
       this._setGeometryDirty();
@@ -62,7 +61,7 @@ export class CharacterController extends Collider {
   }
 
   set height(value: number) {
-    value = clampNonNegativeDimension(value, "CharacterController height");
+    value = PhysicsUtils.clampNonNegative(value, "CharacterController height");
     if (this._height !== value) {
       this._height = value;
       this._setGeometryDirty();
@@ -95,7 +94,7 @@ export class CharacterController extends Collider {
   }
 
   set stepOffset(value: number) {
-    value = clampNonNegativeDimension(value, "CharacterController stepOffset");
+    value = PhysicsUtils.clampNonNegative(value, "CharacterController stepOffset");
     if (this._stepOffset !== value) {
       this._stepOffset = value;
       this._setGeometryDirty();
@@ -209,7 +208,7 @@ export class CharacterController extends Collider {
     if (needsAttach || this._geometryDirty || this._scaleChanged(absScale)) {
       const radius = this._radius * Math.max(absScale.x, absScale.z);
       const scaledHeight = this._height * absScale.y;
-      if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
+      if (!PhysicsUtils.isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
         this._detach();
         return;
       }
@@ -278,7 +277,7 @@ export class CharacterController extends Collider {
    * @throws When the value is not a positive, normal, finite Float32.
    */
   protected override _validateContactOffset(value: number): number {
-    if (!isValidPositiveFloat32(value)) {
+    if (!PhysicsUtils.isValidPositiveFloat32(value)) {
       throw new Error("CharacterController contactOffset must be a positive, normal, finite Float32.");
     }
     return value;
@@ -295,7 +294,7 @@ export class CharacterController extends Collider {
 
   // Runtime Prefab calls use this method name.
   private _setUpDirection(value: Readonly<Vector3Like>): void {
-    const up = normalizeDirection(this._upDirection, value, "CharacterController upDirection");
+    const up = PhysicsUtils.normalizeDirection(this._upDirection, value, "CharacterController upDirection");
     if (up !== this._upDirection) {
       this._upDirection = up;
       this._controller?.setUpDirection(up);

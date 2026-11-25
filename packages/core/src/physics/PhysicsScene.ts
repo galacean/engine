@@ -8,8 +8,8 @@ import { Utils } from "../Utils";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
+import { PhysicsUtils } from "./PhysicsUtils";
 import { Rigidbody, type RigidbodyPose } from "./Rigidbody";
-import { isValidPositiveFloat32 } from "./float32";
 
 /**
  * Simulates colliders, rigidbodies, and constraints in a scene.
@@ -156,15 +156,17 @@ export class PhysicsScene {
 
   private static _isValidBoxExtents(halfExtents: Vector3): boolean {
     return (
-      isValidPositiveFloat32(halfExtents.x) &&
-      isValidPositiveFloat32(halfExtents.y) &&
-      isValidPositiveFloat32(halfExtents.z)
+      PhysicsUtils.isValidPositiveFloat32(halfExtents.x) &&
+      PhysicsUtils.isValidPositiveFloat32(halfExtents.y) &&
+      PhysicsUtils.isValidPositiveFloat32(halfExtents.z)
     );
   }
 
   private static _capsuleHalfHeight(radius: number, height: number): number {
     const halfHeight = (height - 2 * radius) * 0.5;
-    return isValidPositiveFloat32(radius) && height >= 0 && Number.isFinite(Math.fround(halfHeight)) ? halfHeight : NaN;
+    return PhysicsUtils.isValidPositiveFloat32(radius) && height >= 0 && Number.isFinite(Math.fround(halfHeight))
+      ? halfHeight
+      : NaN;
   }
 
   private static _parseCastArgs(
@@ -551,7 +553,7 @@ export class PhysicsScene {
     parsed.hitResult = undefined;
 
     const normalizedDirection =
-      distance > 0 && isValidPositiveFloat32(radius) ? this._syncCastDirection(direction) : null;
+      distance > 0 && PhysicsUtils.isValidPositiveFloat32(radius) ? this._syncCastDirection(direction) : null;
 
     const writer = hitResult && HitResultWriter._acquire(hitResult);
     let result = false;
@@ -654,7 +656,7 @@ export class PhysicsScene {
     let result = false;
     if (normalizedDirection) {
       const onHit = writer?._onHit;
-      result = isValidPositiveFloat32(halfCylinderHeight)
+      result = PhysicsUtils.isValidPositiveFloat32(halfCylinderHeight)
         ? this._nativePhysicsScene.capsuleCast(
             center,
             radius,
@@ -710,7 +712,7 @@ export class PhysicsScene {
     colliders?: Collider[]
   ): Collider[] {
     let ids: ArrayLike<number> | undefined;
-    if (isValidPositiveFloat32(radius)) {
+    if (PhysicsUtils.isValidPositiveFloat32(radius)) {
       this._syncColliders(false);
       ids = this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
     }
@@ -739,7 +741,7 @@ export class PhysicsScene {
     let ids: ArrayLike<number> | undefined;
     if (!Number.isNaN(halfCylinderHeight)) {
       this._syncColliders(false);
-      ids = isValidPositiveFloat32(halfCylinderHeight)
+      ids = PhysicsUtils.isValidPositiveFloat32(halfCylinderHeight)
         ? this._nativePhysicsScene.overlapCapsuleAll(center, radius, halfCylinderHeight, orientation, layerMask)
         : this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
     }

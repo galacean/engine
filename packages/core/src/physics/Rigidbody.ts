@@ -11,7 +11,7 @@ import type { Scene } from "../Scene";
 import { Transform } from "../Transform";
 import { Utils } from "../Utils";
 import { Collider } from "./Collider";
-import { differsF32, isValidPositiveFloat32, rotationDiffersF32 } from "./float32";
+import { PhysicsUtils } from "./PhysicsUtils";
 import type { Joint } from "./joint/Joint";
 
 export { ForceMode, RigidbodyConstraints } from "@galacean/engine-design";
@@ -188,7 +188,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   set mass(value: number) {
-    if (typeof value !== "number" || (value !== 0 && !isValidPositiveFloat32(value))) {
+    if (typeof value !== "number" || (value !== 0 && !PhysicsUtils.isValidPositiveFloat32(value))) {
       throw new RangeError("Rigidbody mass must be zero or a positive, normal, finite Float32.");
     }
     if (this._mass !== value) {
@@ -509,7 +509,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * @throws When density is not a positive normal Float32.
    */
   setDensity(density: number): boolean {
-    if (typeof density !== "number" || !isValidPositiveFloat32(density)) {
+    if (typeof density !== "number" || !PhysicsUtils.isValidPositiveFloat32(density)) {
       throw new RangeError("Rigidbody density must be a positive, normal, finite Float32.");
     }
     const scene = this._registeredScene;
@@ -937,7 +937,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const rotation = transform.worldRotationQuaternion;
     const nativePosition = this._nativePosition;
     const nativeRotation = this._nativeRotation;
-    if (differsF32(position, nativePosition) || rotationDiffersF32(rotation, nativeRotation)) {
+    if (
+      PhysicsUtils.differsF32(position, nativePosition) ||
+      PhysicsUtils.rotationDiffersF32(rotation, nativeRotation)
+    ) {
       this._poseSynced = false;
       nativePosition.copyFrom(position);
       nativeRotation.copyFrom(rotation);
@@ -967,10 +970,10 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     actor.getWorldTransform(position, rotation);
     const transform = this.entity.transform;
     const worldPosition = transform.worldPosition;
-    const positionChanged = differsF32(position, worldPosition);
+    const positionChanged = PhysicsUtils.differsF32(position, worldPosition);
     if (positionChanged) transform.worldPosition = position;
     const worldRotation = transform.worldRotationQuaternion;
-    const rotationChanged = rotationDiffersF32(rotation, worldRotation);
+    const rotationChanged = PhysicsUtils.rotationDiffersF32(rotation, worldRotation);
     if (rotationChanged) transform.worldRotationQuaternion = rotation;
 
     // A constrained Transform can publish a different pose from the one the actor supplied.
@@ -980,7 +983,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     // Poll sleep once the pose settles, including transforms that constrain the simulated pose.
     if (
       !this._isKinematic &&
-      (!changed || differsF32(position, this._nativePosition) || rotationDiffersF32(rotation, this._nativeRotation)) &&
+      (!changed ||
+        PhysicsUtils.differsF32(position, this._nativePosition) ||
+        PhysicsUtils.rotationDiffersF32(rotation, this._nativeRotation)) &&
       this._registeredScene === scene
     ) {
       this._poseSynced = actor.isSleeping();
@@ -1007,7 +1012,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const autoCom = this._automaticCenterOfMass;
     const autoInertia = this._automaticInertiaTensor;
     // PhysX uses zero as infinite mass, but automatic mass properties require a positive mass.
-    if ((autoCom || autoInertia) && isValidPositiveFloat32(mass)) {
+    if ((autoCom || autoInertia) && PhysicsUtils.isValidPositiveFloat32(mass)) {
       const colliders = this._attachedColliders;
       const count = colliders.length;
       // Dynamic actors already exclude kinematic-only geometry when their shapes attach.
