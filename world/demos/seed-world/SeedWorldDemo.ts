@@ -86,6 +86,7 @@ import {
 import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
+import { seedWorldStorageHost } from "./storage/SeedWorldStorageHost";
 import { openSeedWorldProject } from "./SeedWorldProject.ts";
 import {
   loadSeedWorldBuildingBinaryBundle,
@@ -307,6 +308,7 @@ export async function mountSeedWorldDemo(
     retrievalManifestUrl?: string;
   } = {}
 ): Promise<void> {
+  let showAssistant = options.showAssistant !== false;
   const pageUrl = planningPageUrl().url;
   // Explicit diagnostic comparison only; never persists or changes shared defaults.
   const shaderWarmupBenchmark =
@@ -920,6 +922,7 @@ export async function mountSeedWorldDemo(
       runtimeProject.dispose();
       throw new Error("Seed page disposed during project restoration");
     }
+    showAssistant = showAssistant && runtimeProject.canSave;
     const planningStorage = new PlanningProjectStorage(runtimeProject, seedWorldProjectFormats);
     sourceTask = timed("createPlanningWorldSource (parallel)", () =>
       createPlanningWorldSource(pageUrl.search, handoff, planningStorage, planningWorker)
@@ -1073,7 +1076,11 @@ export async function mountSeedWorldDemo(
     for (const result of startup) if (result.status === "rejected") throw result.reason;
     let { library, profiles } = await sourceResources;
     if (disposed) throw new Error("Seed page disposed during startup");
-    unmountProjectSave = mountProjectSaveControl(runtimeProject, scene!, canvas, { showIndicator: false });
+    if (runtimeProject.canSave) {
+      unmountProjectSave = mountProjectSaveControl(runtimeProject, scene!, canvas, {
+        showIndicator: Boolean(await seedWorldStorageHost())
+      });
+    }
     const desert =
       source.session.recipe().parameters.worldTemplate?.id === "titan-wasteland"
         ? await import("./src/DesertPresentation")
@@ -1258,7 +1265,7 @@ export async function mountSeedWorldDemo(
       ...(startupTemplate?.family ? { templateFamily: startupTemplate.family } : {}),
       features: {
         hasPlannedBuildings,
-        showAssistant: options.showAssistant !== false,
+        showAssistant,
         precompileShaders
       }
     });
@@ -3186,7 +3193,7 @@ export async function mountSeedWorldDemo(
         onRepresentationChanged: (enabled) => {
           if (ready) {
             if (enabled) tools?.hide();
-            else tools?.show();
+            else if (showAssistant) tools?.show();
           }
         }
       });
@@ -3422,7 +3429,7 @@ export async function mountSeedWorldDemo(
       camera,
       pageUrl,
       canvas,
-      showAssistant: options.showAssistant !== false,
+      showAssistant,
       isDisposed: () => disposed,
       lifetimeSignal: editorLifetime.signal,
       progress,
@@ -3669,7 +3676,7 @@ export async function mountSeedWorldDemo(
       );
     });
     await timed("await startupSaveTask", () => startupSaveTask);
-    if (options.showAssistant !== false) timed("tools.show", () => tools!.show());
+    if (showAssistant) timed("tools.show", () => tools!.show());
     const startPerfTour = async () => {
       if (disposed || !engine) return;
       if (!perfTour) {
@@ -3733,7 +3740,7 @@ export async function mountSeedWorldDemo(
           },
           getVistaVisible: () => vistaControls.visible,
           setHudVisible: (visible) => {
-            if (visible) tools?.show();
+            if (visible && showAssistant) tools?.show();
             else tools?.hide();
           },
           setBuildingVisible: (visible) => {
@@ -4006,7 +4013,7 @@ export async function mountSeedWorldDemo(
         });
       }
       if (disposed) return;
-      if (options.showAssistant !== false)
+      if (showAssistant)
         preparingTools.assistant!.mountScreenshotButton(preparingLasso.button, canvas, (x, top, visible) =>
           preparingLasso.setAttachmentAnchor(x, top, visible)
         );

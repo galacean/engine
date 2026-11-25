@@ -1,4 +1,6 @@
 import "./src/installInsecureContextCryptoFallback.ts";
+import { seedWorldStorageHost } from "./storage/SeedWorldStorageHost";
+import { SharedWorldStorage } from "./storage/SharedWorldStorage";
 import type { PlanningWorldHandoff } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
 import { planningStartupSeed, selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupSeed.ts";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
@@ -56,10 +58,32 @@ async function enterSeedWorld(handoff?: PlanningWorldHandoff): Promise<void> {
 
 async function start(): Promise<void> {
   const page = planningPageUrl();
-  const template = page.url.searchParams.get("template");
-  const seed = planningStartupSeed(page.url.searchParams);
+  const storage = await seedWorldStorageHost();
+  let template = page.url.searchParams.get("template");
+  const entryTemplate = template === "original" ? template : worldTemplate(template)?.id;
+  const saved = storage && await SharedWorldStorage.inspect(storage.db, entryTemplate);
+  const seed = saved?.identity?.seed ?? planningStartupSeed(page.url.searchParams);
   let entrySeed = seed;
   let updateUrl = page.url.searchParams.get("seed") !== String(seed);
+  if (storage?.readOnly && !saved) {
+    const message = document.createElement("p");
+    message.style.color = "white";
+    message.textContent = "作者尚未保存这个世界。";
+    document.body.append(message);
+    return;
+  }
+  if (saved) {
+    const savedTemplate = saved.identity?.template;
+    if (!saved.checkpoint && entryTemplate) template = entryTemplate;
+    else if (savedTemplate && (savedTemplate === "original" || worldTemplate(savedTemplate))) template = savedTemplate;
+    else template = worldTemplate(template)?.id ?? "original";
+    page.url.searchParams.set("template", template);
+    updateUrl = true;
+  }
+  if (storage?.readOnly) {
+    page.url.searchParams.delete("debug");
+    updateUrl = true;
+  }
   if (template !== "original" && !worldTemplate(template)) {
     document.body.dataset.mode = "template";
     const host = document.createElement("div");
@@ -133,6 +157,7 @@ function showStartupError(error: unknown): void {
   console.error("Seed World startup", error);
   if (document.getElementById("world-loading")) return;
   const message = document.createElement("p");
+  message.style.color = "white";
   message.textContent = "世界暂未加载完成，请刷新重试。已保存的工程不会被覆盖。";
   document.body.append(message);
 }

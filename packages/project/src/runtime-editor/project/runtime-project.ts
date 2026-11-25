@@ -479,6 +479,15 @@ export class RuntimeProjectSnapshot {
   }
 }
 
+/** The session owns one backend for its lifetime. Viewers still initialize an in-memory project. */
+export interface RuntimeProjectBackend {
+  readonly readOnly?: boolean;
+  load(id: string): Promise<RuntimeProjectPackage | undefined>;
+  save(id: string, value: RuntimeProjectPackage): Promise<void>;
+  saveSnapshot?(id: string, snapshot: RuntimeProjectSnapshot): Promise<void>;
+  close(): void;
+}
+
 /** Each save atomically replaces the complete project; the last write transaction wins.
  * A matching private revision permits differential writes. Other writers invalidate
  * that optimization, never the right to save the caller's complete snapshot.

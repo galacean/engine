@@ -91,6 +91,15 @@ http://127.0.0.1:4180/?aiChat=1&bootTrace=1
 
 核对控制台无 404 / Worker 报错，首屏 `bootTrace` 与合并文本包加载正常，进入 3D 世界后地形、水体、植被、建筑与相机交互均正常（排查渲染或性能可改用 `?debug=1&view=3d&bootTrace=1`）。`python3 -m http.server` 无 gzip 压缩，仅适合功能冒烟；评估真实加载耗时或手机局域网预览时应使用带 gzip 的本地静态服务。
 
+使用本地 SQLite 验收共享存档时，保持上述静态服务运行，并在仓库根目录执行：
+
+```bash
+node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180
+```
+
+此用例使用 Node 22.13+、Playwright Chromium 和正式构建产物，模拟管理员保存夜景、访客浏览以及跨应用版本重开。
+静态素材按构建清单加载，数据库调用在本机完成。
+
 ## 5. 发布为灵光闪应用
 
 发布使用内部 PUGC Flash App 发布工具管理 Artifact ID、版本、OSS 上传和数据库注册。**一个发布工具 checkout 只能绑定一个 Artifact**；首次发布新 Artifact 时必须用它自己的 `scripts/init-app-context.cjs` 初始化，不能借用其他应用的 `app-context.local.json`。
@@ -121,6 +130,22 @@ env -u OSS_ACCESS_KEY_ID -u OSS_SECRET_ACCESS_KEY \
     --app-key flash-app \
     --timeout 300
 ```
+
+### 首次启用共享世界存档
+
+在发布工具 checkout 中使用目标模板自己的 Artifact 上下文和作者身份建表。
+对每个源模板执行一次，后续应用版本复用该表。
+
+```bash
+node "$PUBLISHER_ROOT/scripts/db-update-table-schema.cjs" \
+  --ddl-file "$ENGINE_WORKTREE_ROOT/world/demos/seed-world/storage/world_save.sql" \
+  --table-kind share --data-object "世界存档"
+```
+
+召回和模板创建都需要平台 clone 新实例并复制表结构。
+验收时确认克隆者获得新实例的 MANAGER，且新实例的表为空。
+分享链接应打开作者的原实例，访客角色为 USER。
+引擎使用宿主提供的实例和角色，用户无需填写 UID。
 
 ## 6. 发布后验收与正式上架
 
