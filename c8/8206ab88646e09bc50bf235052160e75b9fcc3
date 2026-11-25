@@ -1,0 +1,30 @@
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  s_a71f0ec6cb2ba3::t_344a71bb32024c 3-4,7,15,27-36,47-53,58-62,66-69,71-76,78-84,86-90,93,96-114,117-120
+  s_a71f0ec6cb2ba3::t_58adc3fe55d1f2 55-57
+  s_a71f0ec6cb2ba3::t_20ceb8c51c4d18 1-2,5-6,8-14,16-22,26,37-46,54,63-65,70,77,85,91-92,94-95,115-116,121
+  s_a71f0ec6cb2ba3::t_5d1cb5618bdac5 23-25
+world/demos/seed-world/SeedWorldDemo.ts
+  s_a71f0ec6cb2ba3::t_1f52d165d4df3c 850-853,1558
+  s_a71f0ec6cb2ba3::t_52ad81d3ce534a 832-834
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  s_a71f0ec6cb2ba3::t_3de423fdec8f27 320-321,359-360,385-386,1043-1045
+  s_a71f0ec6cb2ba3::t_1f52d165d4df3c 561-565,1035
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_a71f0ec6cb2ba3::t_1f52d165d4df3c 42-43,283-296
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c88206ab88646e09bc50bf235052160e75b9fcc3",
+  "prompts": {},
+  "sessions": {
+    "s_a71f0ec6cb2ba3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed14-9176-7b50-92c9-d23705d25bb5",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

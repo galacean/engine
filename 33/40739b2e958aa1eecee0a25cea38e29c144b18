@@ -1,0 +1,46 @@
+packages/physics-physx/src/PhysXPhysics.ts
+  s_d2c65ec75a2f3e::t_fec50326f969ae 12,36,55-56,169,175
+packages/core/src/mesh/ModelMesh.ts
+  s_d2c65ec75a2f3e::t_20cdaa89b3cb73 62,435,440,449-457,466,470-472,482-489,491-492,494,795-796,809
+  s_d2c65ec75a2f3e::t_4b52038c0e448c 31,467-469,490,493,791-794,807-808,810,1120
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_67e6a5ffe180da 202
+tests/src/core/physics/Collision.test.ts
+  s_d2c65ec75a2f3e::t_3c7a258417b0ee 252,254-261,263-266,268-270,272,282
+  s_d2c65ec75a2f3e::t_c0a2316c41b70f 248-251,253,262,267,271,273-281,283-285
+packages/design/src/physics/shape/IMeshColliderShape.ts
+  s_d2c65ec75a2f3e::t_a4cc75a440b9d9 7,9
+  s_d2c65ec75a2f3e::t_fec50326f969ae 4-6,8,10-14,24,26,29,33
+packages/physics-physx/src/shape/PhysXMeshColliderShape.ts
+  s_d2c65ec75a2f3e::t_a3827dc44600c9 13
+  s_d2c65ec75a2f3e::t_20cdaa89b3cb73 2-3,7-12,14-31,45,54-55,57,62,67,76-78,80-82,89,96,104-111,113-122
+  s_d2c65ec75a2f3e::t_fec50326f969ae 38,112
+packages/core/src/physics/MeshCollider.ts
+  s_d2c65ec75a2f3e::t_a4cc75a440b9d9 1,22,48-49,218,223,264,270,274,293,315
+tests/src/core/physics/MeshCollider.test.ts
+  s_d2c65ec75a2f3e::t_fec50326f969ae 147-182
+packages/design/src/physics/IPhysics.ts
+  s_d2c65ec75a2f3e::t_a4cc75a440b9d9 14,101,103,107,112
+packages/design/src/physics/shape/index.ts
+  s_d2c65ec75a2f3e::t_2ab2ae7e394a7e 7
+tests/src/core/ModelMesh.test.ts
+  s_d2c65ec75a2f3e::t_fcd7b232c680bc 68-99
+tests/src/core/physics/PhysicsMaterial.test.ts
+  s_d2c65ec75a2f3e::t_416bbdf4f91765 121,245,252-253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3340739b2e958aa1eecee0a25cea38e29c144b18",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

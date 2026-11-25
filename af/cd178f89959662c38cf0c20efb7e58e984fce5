@@ -1,0 +1,18 @@
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 53-98,102,113,123,159-161,180-182,205,344,372,387-388,390,468,481,500,509,553,574,633,665,684,693-696,711,718-719,721,723-724,727,729-730,736-741,743-746,754-757,767-770,777,821
+tests/src/core/physics/Collision.test.ts
+  h_dd004f51a3e5ec 292-299,301-302
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 1034-1041
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "afcd178f89959662c38cf0c20efb7e58e984fce5",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

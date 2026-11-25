@@ -1,0 +1,28 @@
+docs/en/physics/collider/event.mdx
+  h_dd004f51a3e5ec 37,39-40
+docs/zh/physics/collider/event.mdx
+  h_dd004f51a3e5ec 37,39-40
+packages/core/src/Script.ts
+  h_dd004f51a3e5ec 88,95,102
+packages/core/src/physics/Collision.ts
+  h_dd004f51a3e5ec 15
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 947-950,965-968,1002,1007-1008,1024
+packages/galacean/skills/engine-knowledge/references/physics-setup.md
+  h_dd004f51a3e5ec 25
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 164-173,213,518
+tests/src/core/physics/RigidbodyOwnership.test.ts
+  h_dd004f51a3e5ec 516-636
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e5c24fd42b9ee8224763eeab468d785fb99e8bbc",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

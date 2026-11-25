@@ -1,0 +1,20 @@
+packages/rhi-webgl/src/GLCapability.ts
+  h_bd4dd7d663e619 194,196,203,216,227
+packages/rhi-webgl/src/GLTexture.ts
+  h_bd4dd7d663e619 545-549
+tests/src/core/texture/FloatTexture.test.ts
+  h_bd4dd7d663e619 12,111-113,133,139-143,163-164
+tests/src/loader/TextureLoader.test.ts
+  h_bd4dd7d663e619 1,89-90,94,105,115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9e2b9a37f83af959cbfa40f103c9bbe281c33a42",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

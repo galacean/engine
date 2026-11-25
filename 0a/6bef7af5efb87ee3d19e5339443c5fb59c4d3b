@@ -1,0 +1,19 @@
+packages/modify/src/native/core/src/shader/ShaderData.ts
+  s_20e906a94dc4da::t_56b2fd98f3ad98 42-43,498-503,645,650-653,659,718
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0a6bef7af5efb87ee3d19e5339443c5fb59c4d3b",
+  "prompts": {},
+  "sessions": {
+    "s_20e906a94dc4da": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c01c-65c0-75d2-94b2-30e4b6667f2f",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "鸿岳 <owen.wjh@alipay.com>"
+    }
+  }
+}

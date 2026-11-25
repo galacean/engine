@@ -1,0 +1,116 @@
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases.ts
+  h_ddbf152d31b140 401-415,417
+packages/ai-chat/src/ai-chat/agent-editor-facade.ts
+  h_ddbf152d31b140 42,65,98
+packages/building/src/skills/building/references/planning.md
+  h_ddbf152d31b140 72,75-76
+packages/farming/src/farming/native/FarmingAPIDeclarations.ts
+  h_ddbf152d31b140 6,8
+packages/farming/src/farming/native/FarmingMethodDocs.ts
+  h_ddbf152d31b140 11,16,21,26,31,36,41,46,51,56,61,66,71,76,81,86,91,96,101,106,111,116,121,126,131,136,141,146,151,156,161,166,171,176
+packages/farming/src/farming/scripts/generate-native-api.mjs
+  h_ddbf152d31b140 100,102,120,137
+packages/farming/src/skills/farming/SKILL.md
+  h_ddbf152d31b140 34,59
+packages/farming/src/skills/farming/references/overview.md
+  h_ddbf152d31b140 34,44,81
+packages/farming/tests/native/FarmingEditor.spec.ts
+  h_ddbf152d31b140 24,36,58-59,79,155,161-162
+packages/farming/tests/native/FarmingInstructionSuite.ts
+  h_ddbf152d31b140 181,183
+packages/farming/tests/native/FarmingNative.spec.ts
+  h_ddbf152d31b140 94
+packages/project/src/api-contract/scripts/component-query.mjs
+  h_ddbf152d31b140 10,13,31-32,34-35
+packages/runtime-editor/src/runtime-editor-agent/runtime-native-knowledge.ts
+  h_ddbf152d31b140 40-41
+packages/runtime-editor/src/runtime-editor-agent/runtime-native-tools.ts
+  h_ddbf152d31b140 26-31,90-106
+packages/runtime-editor/src/runtime-editor-agent/runtime-scene-api.generated.ts
+  h_ddbf152d31b140 3
+packages/runtime-editor/src/runtime-editor-agent/runtime-scene-api.ts
+  h_ddbf152d31b140 30,36
+packages/runtime-editor/src/runtime-editor/scene/runtime-scene-edit.ts
+  h_ddbf152d31b140 105,114,120,126-130
+packages/runtime-editor/src/runtime-inspection/runtime-inspection-contracts.ts
+  h_ddbf152d31b140 61,68,77,86,88,95
+packages/runtime-editor/src/runtime-inspection/runtime-scene-inspection.ts
+  h_ddbf152d31b140 87,95,104
+packages/runtime-editor/src/skills/scene-nodes/SKILL.md
+  h_ddbf152d31b140 12,15
+packages/runtime-editor/tests/runtime-native-knowledge.spec.ts
+  h_ddbf152d31b140 39,62,64,68
+packages/runtime-editor/tests/virtual-path-contract.spec.ts
+  h_ddbf152d31b140 16-17
+packages/water/src/skills/water/SKILL.md
+  h_ddbf152d31b140 21
+packages/world-planning/tests/WaterPublicEditing.test.ts
+  h_ddbf152d31b140 81
+world/demos/seed-world/agent-adapter/SeedWorldKnowledge.ts
+  h_ddbf152d31b140 34
+world/demos/seed-world/agent-adapter/contracts/generate-agent-contracts.ts
+  h_ddbf152d31b140 9,19,70-71,737-738,740
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  h_ddbf152d31b140 4,179,184,419,681-692,742,754,771,783,786,831,841,851,861,1042,1045,1055,1059,1070,1074,1084,1088,1099,1103,1106-1107,1187,1227
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/ImpactBudget.d.ts
+  h_ddbf152d31b140 1-13
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/Ref.d.ts
+  h_ddbf152d31b140 15
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/Selector.d.ts
+  h_ddbf152d31b140 17,75
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/TreeShapePatch.d.ts
+  h_ddbf152d31b140 1-29
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/runtime.component.query.d.ts
+  h_ddbf152d31b140 11,23
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/runtime.entity.children.d.ts
+  h_ddbf152d31b140 11,24
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.create.d.ts
+  h_ddbf152d31b140 6,44,82
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.patch.d.ts
+  h_ddbf152d31b140 5,35
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.update.d.ts
+  h_ddbf152d31b140 6,41,75
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.create.d.ts
+  h_ddbf152d31b140 6,40,57
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.update.d.ts
+  h_ddbf152d31b140 6,10,28,36,54,76,96
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.animals.catalog.d.ts
+  h_ddbf152d31b140 13,35
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.animals.query.d.ts
+  h_ddbf152d31b140 32
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.delete.d.ts
+  h_ddbf152d31b140 5,23,29
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.inspect.d.ts
+  h_ddbf152d31b140 13
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.query.d.ts
+  h_ddbf152d31b140 19,26,84
+world/demos/seed-world/agent-adapter/tools/animal-tools.ts
+  h_ddbf152d31b140 52,144,154,206-211,245
+world/demos/seed-world/agent-adapter/tools/runtime-tools.ts
+  h_ddbf152d31b140 15,28
+world/demos/seed-world/agent-adapter/tools/spatial-tools.ts
+  h_ddbf152d31b140 56,240,246
+world/demos/seed-world/agent-adapter/tools/tool-contract.ts
+  h_ddbf152d31b140 67,87-94,97
+world/tests/seed-world/AgentKnowledgeAudit.spec.ts
+  h_ddbf152d31b140 151-156,173,178,181-183
+world/tests/seed-world/RuntimeSceneInspection.spec.ts
+  h_ddbf152d31b140 51-52,60,91,99,116,123-125,128,144,153,156,174
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  h_ddbf152d31b140 147,1911,1913
+world/tests/seed-world/SeedWorldAnimalTools.spec.ts
+  h_ddbf152d31b140 42,65,153,175-176,178
+world/tests/seed-world/component-query-declarations.spec.ts
+  h_ddbf152d31b140 43,46,52,56,78,98-100,122,131,157-158,174,183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b3c3e42dd5d2290f5542b5aea5a5a1479abfc934",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_f99cbe750c41b6 399-400,604-606,610-617,619-620,624,637
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_fb12e04e02a986 33,153-156,159,639-640,692,695-696,698,702-707,709-710,817-821
+  s_d2c65ec75a2f3e::t_df48907dd248fa 741-746,748
+  s_d2c65ec75a2f3e::t_dd76bdab5550bf 699-700,708,714
+  s_d2c65ec75a2f3e::t_a6e18fe82fec9b 634-638
+  s_d2c65ec75a2f3e::t_9bacf49836a3a7 701
+  s_d2c65ec75a2f3e::t_7b085382bfc2d6 822-823
+packages/core/src/physics/joint/SpringJoint.ts
+  s_d2c65ec75a2f3e::t_bd7b8f9150e43f 1,100-101
+tests/src/core/Scene.test.ts
+  s_d2c65ec75a2f3e::t_4b60ee83382a20 443-468
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_d2c65ec75a2f3e::t_7bd59145e2254a 47-53,57,64-72,74-76
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_fb12e04e02a986 10,798,838-839,870-871
+  s_d2c65ec75a2f3e::t_8eb33f7f8a7452 827
+tests/src/core/Entity.test.ts
+  s_d2c65ec75a2f3e::t_9060398f08dd27 1023-1052
+  s_d2c65ec75a2f3e::t_4b60ee83382a20 834-839,843-844,846-853,855-857,874,879-881,883-884,910-911,927,930-936
+  s_d2c65ec75a2f3e::t_6b5fb35eb90732 861,877,908-909,982-1022,1053-1070
+  s_377380b9d9a256::t_a898ddb3028097 831-833,840-842,845,854,858-860,862-873,875-876,878,882,885-907,912-926,928-929
+packages/core/src/physics/SphereCollider.ts
+  s_d2c65ec75a2f3e::t_7bd59145e2254a 33-40
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_d4bd127d3db4d8 313-317
+  s_d2c65ec75a2f3e::t_5274c813f801bd 522-529
+  s_d2c65ec75a2f3e::t_8eb33f7f8a7452 38-39,63-64,70-76,78,82-85,152,175,183,374-377,388,464-466,469-476,479-482,485-489
+  s_d2c65ec75a2f3e::t_f72940cca999cd 153-155
+  s_d2c65ec75a2f3e::t_952a3b08f4c518 244-251,265-272,288-295,302-306,330-334,389-426
+packages/core/src/physics/joint/HingeJoint.ts
+  s_d2c65ec75a2f3e::t_bd7b8f9150e43f 1,200-201
+packages/design/src/physics/shape/IColliderShape.ts
+  s_d2c65ec75a2f3e::t_b503fd52389b6e 6
+packages/core/src/physics/joint/Joint.ts
+  s_d2c65ec75a2f3e::t_bd7b8f9150e43f 23-25,56,62,248,258,342,350,363,367,371,385,389,509
+packages/core/src/physics/joint/FixedJoint.ts
+  s_d2c65ec75a2f3e::t_bd7b8f9150e43f 1,9-10
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_fb12e04e02a986 159-191
+  s_d2c65ec75a2f3e::t_df48907dd248fa 192-211
+  s_d2c65ec75a2f3e::t_dd76bdab5550bf 212-225
+packages/core/src/Entity.ts
+  s_d2c65ec75a2f3e::t_927a9f7cd7d88f 896
+  s_d2c65ec75a2f3e::t_9060398f08dd27 657,703
+  s_d2c65ec75a2f3e::t_5938bfd094d7e8 854
+  s_d2c65ec75a2f3e::t_d55146dc933ce9 169-173,175-177,762,772,778,783-801,828,830,832,834-837,839-853,855-856,868,902-904,912,914,919,922,924,928-932,934-936
+  s_d2c65ec75a2f3e::t_3e8c1b89d38501 867,878,880,899,901,905,907-909
+  s_377380b9d9a256::t_0b2b9f49cc236f 100,749,858-866,869-877,879,882-886,888-892,894-895,897-898,913,915-918,920-921,923,925-927,937-943
+packages/core/src/Scene.ts
+  s_d2c65ec75a2f3e::t_1d9b710021f400 347,356
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a40f0101c5333779f45cfb8443a169f345524a0d",
+  "prompts": {},
+  "sessions": {
+    "s_377380b9d9a256": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f7dd-8702-7241-99bf-b5e87945a0bd",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

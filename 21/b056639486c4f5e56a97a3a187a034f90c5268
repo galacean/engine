@@ -1,0 +1,19 @@
+tests/package-consumer/HeadlessEngine.test.ts
+  s_d5a8b8f9cef6f5::t_a54159ba287536 63-64,66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "21b056639486c4f5e56a97a3a187a034f90c5268",
+  "prompts": {},
+  "sessions": {
+    "s_d5a8b8f9cef6f5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c131-ec64-72d1-aae2-b9035e3ba176",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

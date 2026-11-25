@@ -1,0 +1,40 @@
+packages/core/src/animation/AnimationClip.ts
+  h_dd004f51a3e5ec 11-14,96-128
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  h_dd004f51a3e5ec 6-9,58-60,67-124,126
+packages/core/src/animation/animationCurve/AnimationFloatArrayCurve.ts
+  h_dd004f51a3e5ec 132-147
+packages/core/src/asset/request.ts
+  h_dd004f51a3e5ec 3-5,15,21-24,46-57,59,72,127,130-138
+packages/loader/src/HDRLoader.ts
+  h_dd004f51a3e5ec 17-24,103-105,108,239,241-242,266,270-272,287-289,292,298-308,312-316,318-320,332,334-352,360-363,369,380-383,393-395,403-405
+packages/loader/src/MaterialLoader.ts
+  h_dd004f51a3e5ec 8,27-77,81-101,103-153,155-165,191-196,198-199,210-212,214-215,218-270,273-281,283-285
+packages/loader/src/compressed-texture/KhronosTextureContainer.ts
+  h_dd004f51a3e5ec 18-37,39-40,42-47,49-51,53-58,62-67,172-174,180-182,211,223-233,235
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  h_dd004f51a3e5ec 171-173,176,186,188-189,195-197,200,210,212-213,219-221,224,238,240-241
+packages/loader/src/ktx2/KTX2Container.ts
+  h_dd004f51a3e5ec 22-41,64,81-90,93,115-123,125-126,128,132-135,137-138,141,143-146,177-179,202,207-209,211-213,222-224,230-233,259-263
+packages/loader/src/resource-deserialize/index.ts
+  h_dd004f51a3e5ec 21-25
+packages/loader/src/resource-deserialize/resources/animationClip/AnimationClipDecoder.ts
+  h_dd004f51a3e5ec 41-69,77-90,94-101,112-124,129-130,133,137,144-145,148,150-152,156,163-164,167,169-171,175,182-183,186,190,197-198,201,217,224-248,254-255,258,277,284-285,288,307,314-315,318,325,332-333,336,338,345-346,349,351,356-357
+packages/loader/src/resource-deserialize/utils/BufferReader.ts
+  h_dd004f51a3e5ec 32-39,65,78,85,92,108,157-162
+packages/loader/src/resource-deserialize/utils/Decorator.ts
+  h_dd004f51a3e5ec 9
+tests/src/loader/LoaderSecurity.test.ts
+  h_dd004f51a3e5ec 1-502
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "01e5cb3a74a04fafe5d2281be008c2e99990e82c",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

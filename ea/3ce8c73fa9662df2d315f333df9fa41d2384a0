@@ -1,0 +1,64 @@
+docs/en/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 51
+docs/en/physics/collider/collisionLayer.mdx
+  h_dd004f51a3e5ec 38-39
+docs/en/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 46,53,80,84,92,204-205,215
+docs/en/physics/query/overlap.mdx
+  h_dd004f51a3e5ec 199,272
+docs/en/physics/query/sweep.mdx
+  h_dd004f51a3e5ec 204,257,270
+docs/zh/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 51
+docs/zh/physics/collider/collisionLayer.mdx
+  h_dd004f51a3e5ec 39
+docs/zh/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 46,53,80,84,92,204-205,215
+docs/zh/physics/query/overlap.mdx
+  h_dd004f51a3e5ec 199,272
+docs/zh/physics/query/sweep.mdx
+  h_dd004f51a3e5ec 202,255,268
+packages/core/src/physics/CapsuleCollider.ts
+  h_dd004f51a3e5ec 5,15,62,64,68,81,85,89
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 233-236,251-253
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 180,455-457,461,468
+packages/core/src/physics/MeshCollider.ts
+  h_dd004f51a3e5ec 7,29,36-37,81,83,87
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 584,707
+packages/core/src/physics/enums/CapsuleColliderDirection.ts
+  h_dd004f51a3e5ec 2,4-5,7,9
+packages/core/src/physics/enums/MeshColliderCookingFlag.ts
+  h_dd004f51a3e5ec 4,7
+packages/core/src/physics/enums/index.ts
+  h_dd004f51a3e5ec 1,3
+packages/design/src/physics/IPhysicsScene.ts
+  h_dd004f51a3e5ec 154,196
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 18,358,404,513-517,520-532
+packages/physics-physx/src/shape/PhysXMeshColliderShape.ts
+  h_dd004f51a3e5ec 1,99,102
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 1008-1024
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 5,346,413,421-424,427,481,884,892,947,957,965,1293,1295,1377-1406
+tests/src/core/physics/MeshCollider.test.ts
+  h_dd004f51a3e5ec 11,351,424-425,495-496,502-503,574,598,603
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 19,689,819,884,902
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 1597,1619,1628,1630,1634-1642
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ea3ce8c73fa9662df2d315f333df9fa41d2384a0",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

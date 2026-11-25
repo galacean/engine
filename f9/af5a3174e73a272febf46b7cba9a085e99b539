@@ -1,0 +1,18 @@
+packages/modify/native-overrides.json
+  h_ddbf152d31b140 594-597
+packages/modify/src/native/core/src/shader/ShaderMacroCollection.ts
+  h_ddbf152d31b140 1-186
+packages/modify/tests/ShaderMacroCollection.spec.ts
+  h_ddbf152d31b140 1-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f9af5a3174e73a272febf46b7cba9a085e99b539",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

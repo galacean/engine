@@ -1,0 +1,26 @@
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  h_ddbf152d31b140 25-26,54,184,186-188,195-198,202-215,296,321,326-327,331,333,338,371,376,386,390-391,398-401,406-408,419-420,424,426,429,438-454,465-466,492,514,519-520,522-523,527-528,533-534,544-565,570,573-574,587-647,650-653,658-662,987-988,992,996-997,999-1000,1002-1021,1023,1133,1138,1150,1163-1168,1183-1188,1213,1215
+packages/building/src/building/runtime/MasonryGlobalProxy.shader
+  h_ddbf152d31b140 23
+packages/building/src/building/runtime/MasonryGlobalProxyShadowCaster.glsl
+  h_ddbf152d31b140 1-45
+packages/building/src/building/runtime/MasonryGlobalProxyShadowOnly.shader
+  h_ddbf152d31b140 1-26
+packages/building/tests/BuildingGlobalProxy.spec.ts
+  h_ddbf152d31b140 1-351
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 478-502
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_ddbf152d31b140 1-2,146-180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2350305b5dc54612474e546f573119bc8cf9ab45",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

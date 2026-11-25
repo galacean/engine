@@ -1,0 +1,31 @@
+packages/core/src/asset/GraphicsResource.ts
+  s_3ee6eea2868467::t_7f720f2ea7c62e 15-17
+packages/core/src/asset/ReferResource.ts
+  s_3ee6eea2868467::t_fbce35142147dd 23,25
+packages/core/src/texture/RenderTarget.ts
+  s_3ee6eea2868467::t_c6b74b808882b1 169,185,200
+packages/core/src/texture/Texture2DArray.ts
+  s_3ee6eea2868467::t_b54bdc4efa86f0 191-192
+packages/rhi-webgl/src/GLTexture2D.ts
+  s_3ee6eea2868467::t_80c99f8bb8881e 1,20,49,59
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  s_3ee6eea2868467::t_0400c67d522d00 62
+packages/rhi-webgl/src/GLTextureCube.ts
+  s_3ee6eea2868467::t_644cebf846f84c 1,20,48,74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "171edd23c22ca17564030b3dfc147fb5b2e092f3",
+  "prompts": {},
+  "sessions": {
+    "s_3ee6eea2868467": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e9f3-3257-7082-9101-0df93aec4a93",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

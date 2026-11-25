@@ -1,0 +1,25 @@
+packages/core/src/physics/CapsuleCollider.ts
+  s_d2c65ec75a2f3e::t_219bd157055e70 37,58,81
+packages/core/src/physics/SphereCollider.ts
+  s_d2c65ec75a2f3e::t_219bd157055e70 30
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_219bd157055e70 209,294-299,375,378-384,427-431,512
+packages/core/src/physics/BoxCollider.ts
+  s_d2c65ec75a2f3e::t_219bd157055e70 36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4fea5ecf159eb2670eedf81ce4b386056f14226d",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

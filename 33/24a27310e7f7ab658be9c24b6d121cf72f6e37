@@ -1,0 +1,20 @@
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 217,220-222
+packages/core/src/physics/PhysicsMaterial.ts
+  h_dd004f51a3e5ec 30,36-38
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 507,510-512,566-569,1319,1321-1322
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 15,2067-2069,2075,2079,2302-2386
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3324a27310e7f7ab658be9c24b6d121cf72f6e37",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

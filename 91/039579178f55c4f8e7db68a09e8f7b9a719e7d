@@ -1,0 +1,58 @@
+tests/src/core/physics/Collider.test.ts
+  s_87cc7a3b1b4ffa::t_f611a1ddb9fe91 16
+  s_87cc7a3b1b4ffa::t_2cd381cb158513 46
+  s_87cc7a3b1b4ffa::t_13c2a0b40a6cf4 3-5,7,9-12,14,18-26,29,31-32,34,36-37,40-41,44-45,47-49,52,54-58,60-64,72-100,103-110,113-125,128-136,139-146,149-167,169-192,195-214,217-228,231-270,278-304,307,385-404,407-419,421-451,455
+  s_87cc7a3b1b4ffa::t_751a4fbf202463 66-71
+  s_87cc7a3b1b4ffa::t_7b345c96366f0a 273-277
+  s_87cc7a3b1b4ffa::t_6279dad39a6291 312,315,317,319,322,326,333-334
+  s_87cc7a3b1b4ffa::t_b10a2d733de9bb 308-311,313-314,316,318,320-321,323-325,327-332,340-382
+  s_87cc7a3b1b4ffa::t_fefdc1d166af15 454
+  s_87cc7a3b1b4ffa::t_7510f9908d1919 452-453
+  s_87cc7a3b1b4ffa::t_96434e3c977f73 335-339
+tests/src/core/postProcess/PostProcess.test.ts
+  s_87cc7a3b1b4ffa::t_64071026c1848b 425-443
+  s_87cc7a3b1b4ffa::t_9b1f68e32b32f6 424
+  s_87cc7a3b1b4ffa::t_a6a45bcec9adf0 377-378
+  s_87cc7a3b1b4ffa::t_e0fffcd69eecbd 16
+tests/src/core/physics/CharacterController.test.ts
+  s_87cc7a3b1b4ffa::t_2cc72153a1cac2 157
+  s_87cc7a3b1b4ffa::t_1989c82fe5f313 293
+  s_87cc7a3b1b4ffa::t_c9e76f94eddccb 165
+  s_87cc7a3b1b4ffa::t_8df4c81d184cae 88
+  s_87cc7a3b1b4ffa::t_ed26786c46300c 220
+  s_87cc7a3b1b4ffa::t_15eee314a0c06b 251,260
+  s_87cc7a3b1b4ffa::t_e6e512b114bc8d 254
+  s_87cc7a3b1b4ffa::t_e4404af7b1e7b9 169-175
+  s_87cc7a3b1b4ffa::t_3fb5e2d9d1b505 230,232
+  s_87cc7a3b1b4ffa::t_193b82f111c2fd 263-265,267-274,276-284,286-292,294-299,301-343,345-379,381-399,401-403,405
+  s_87cc7a3b1b4ffa::t_67d941295fc112 3,5,7-9,11-13,17,19-24,26,28,32-36,39-42,45,47-53,55-60,62-64,66-68,70-81,84,86-87,89-121,123-127,130-136,139-140,142-156,158-162,164,166-168,176-204,206-219,221-229,231,233-250,252-253,255-259,261-262
+  s_87cc7a3b1b4ffa::t_7d07e09bda2e62 266
+  s_87cc7a3b1b4ffa::t_9f4b1b8bfe5009 275
+tests/src/core/physics/MeshCollider.test.ts
+  s_87cc7a3b1b4ffa::t_5ebd8ba1e8829d 227-242
+  s_87cc7a3b1b4ffa::t_3b231e4ddb8403 378
+  s_87cc7a3b1b4ffa::t_e81f87fafade70 208-212
+  s_87cc7a3b1b4ffa::t_6076cf51705d41 257-377,379-403,405-406,409-415,417-439,442,444-448,450-547
+  s_87cc7a3b1b4ffa::t_9b8c9d658d2ba3 1-207,213-226,243-256,548
+  s_87cc7a3b1b4ffa::t_8db610d46fbc71 416
+  s_87cc7a3b1b4ffa::t_1930c3c9896489 404,407-408
+  s_87cc7a3b1b4ffa::t_839f3f3eb83365 440-441
+  s_87cc7a3b1b4ffa::t_f8641578eb11d9 443
+  s_87cc7a3b1b4ffa::t_dcb71c732e8018 449
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "91039579178f55c4f8e7db68a09e8f7b9a719e7d",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

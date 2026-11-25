@@ -1,0 +1,48 @@
+docs/en/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 64
+docs/en/physics/collider/rigidbody.mdx
+  h_dd004f51a3e5ec 15
+docs/en/physics/joint/fixedJoint.mdx
+  h_dd004f51a3e5ec 31,35,38,43,47,50,54
+docs/en/physics/joint/hingeJoint.mdx
+  h_dd004f51a3e5ec 61
+docs/en/physics/manager.mdx
+  h_dd004f51a3e5ec 49-50
+docs/zh/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 64
+docs/zh/physics/collider/rigidbody.mdx
+  h_dd004f51a3e5ec 15
+docs/zh/physics/joint/hingeJoint.mdx
+  h_dd004f51a3e5ec 61
+docs/zh/physics/manager.mdx
+  h_dd004f51a3e5ec 48-49
+packages/galacean/skills/engine-knowledge/references/physics-setup.md
+  h_dd004f51a3e5ec 9,13,17
+tests/package-consumer/PhysicsMaterialApi.test.ts
+  h_dd004f51a3e5ec 5
+tests/src/core/Transform.test.ts
+  h_dd004f51a3e5ec 777-778
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 5,764,771,944-1004
+tests/src/core/physics/MeshCollider.test.ts
+  h_dd004f51a3e5ec 672-681
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 2783-2807
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 18,981,988,990-993,1000,1004,2019-2198
+tests/src/core/physics/RigidbodyOwnership.test.ts
+  h_dd004f51a3e5ec 631-915
+tests/src/core/postProcess/PostProcess.test.ts
+  h_dd004f51a3e5ec 12,449,451-468,488,491-524
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "db47037854054445bb56e6cfa4655f72512e7e8e",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

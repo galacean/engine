@@ -1,0 +1,14 @@
+packages/farming/src/farming/presentation/FarmingWorldPresentation.ts
+  h_ddbf152d31b140 356
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "21eab88268e8cd1ddc9b7bb4d5fb89006047960d",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

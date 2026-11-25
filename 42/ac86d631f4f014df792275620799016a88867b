@@ -1,0 +1,42 @@
+packages/farming/src/farming/api/index.ts
+  h_a3c79ce84ffdc2 11-16
+packages/farming/src/farming/application/FarmingService.ts
+  h_a3c79ce84ffdc2 71,74,79,84,89-97,124,163,253-262,311,369,939,971,1066-1067,1193,1323-1357
+packages/farming/src/farming/domain/FarmCommands.ts
+  h_a3c79ce84ffdc2 245-249
+packages/farming/src/farming/domain/FarmSimulation.ts
+  h_a3c79ce84ffdc2 12,14,17,23-26,228-479
+packages/farming/src/farming/domain/SoilMoisture.ts
+  h_a3c79ce84ffdc2 35-84
+packages/farming/src/farming/domain/applyFarmCommand.ts
+  h_a3c79ce84ffdc2 97-99
+packages/farming/src/farming/domain/index.ts
+  h_a3c79ce84ffdc2 38-44,57-58
+packages/farming/src/farming/native/FarmingAreaComponent.ts
+  h_a3c79ce84ffdc2 48
+packages/farming/src/skills/farming/references/state-and-units.md
+  h_a3c79ce84ffdc2 50
+packages/farming/tests/native/OfflineApproximateGrowth.spec.ts
+  h_a3c79ce84ffdc2 1-456
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmClock.ts
+  h_a3c79ce84ffdc2 2-3,5-32
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmRepository.ts
+  h_a3c79ce84ffdc2 18,23,28-66,166-167,262-270,339-343,403-405,415,417-422,441-455
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingAssets.ts
+  h_a3c79ce84ffdc2 71-80
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmingRuntime.ts
+  h_a3c79ce84ffdc2 16-21,143,159,162,194-195,207-213,681-693
+world/tests/seed-world/PlanningFarmCheckpoint.spec.ts
+  h_a3c79ce84ffdc2 18-22,35,1090-1323
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "42ac86d631f4f014df792275620799016a88867b",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

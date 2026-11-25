@@ -1,0 +1,20 @@
+packages/core/src/renderingHardwareInterface/RenderPassStoreAction.ts
+  h_c385727b10f40c 5-7,14,16
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_c385727b10f40c 164,168-174,181-182,184,186,188-189,196-199,201,203-205,207-210,213,215-216
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_c385727b10f40c 485,489-504
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_c385727b10f40c 19,1043-1156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7b394ec3c08db5ef5afc2a283e0c4051f6952bb2",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl
+  h_79b10db07e6052 12-14,16-17,19-21,23-24,26-28
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl
+  h_79b10db07e6052 17-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "20964b7622717176bf80b20e296266140a020b73",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

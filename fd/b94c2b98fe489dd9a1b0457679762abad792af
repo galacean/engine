@@ -1,0 +1,304 @@
+docs/en/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 51
+docs/en/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 28
+docs/en/physics/collider/rigidbody.mdx
+  h_dd004f51a3e5ec 14,32,87
+docs/en/physics/joint/fixedJoint.mdx
+  h_dd004f51a3e5ec 31,35,38,43,47,50,54
+docs/en/physics/joint/hingeJoint.mdx
+  h_dd004f51a3e5ec 31,65-66,76,108
+docs/en/physics/joint/springJoint.mdx
+  h_dd004f51a3e5ec 31,43,51
+docs/en/physics/overall.mdx
+  h_dd004f51a3e5ec 28-30,34-36,40
+docs/zh/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 51
+docs/zh/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 28
+docs/zh/physics/collider/rigidbody.mdx
+  h_dd004f51a3e5ec 14,32,87
+docs/zh/physics/joint/fixedJoint.mdx
+  h_dd004f51a3e5ec 31
+docs/zh/physics/joint/hingeJoint.mdx
+  h_dd004f51a3e5ec 31,65-66,76,108
+docs/zh/physics/joint/springJoint.mdx
+  h_dd004f51a3e5ec 31,43,51
+docs/zh/physics/overall.mdx
+  h_dd004f51a3e5ec 28-30,34-36,40
+e2e/.dev/vite.config.js
+  h_dd004f51a3e5ec 13
+e2e/case/animator-customAnimationClip.ts
+  h_dd004f51a3e5ec 93,96,99,102,111,114,117,120
+e2e/case/physx-collision-group.ts
+  h_dd004f51a3e5ec 75
+e2e/case/physx-collision.ts
+  h_dd004f51a3e5ec 73-74
+e2e/case/physx-customUrl.ts
+  h_dd004f51a3e5ec 60-61,78-79
+e2e/case/physx-mesh-collider-data.ts
+  h_dd004f51a3e5ec 229-230
+e2e/case/physx-mesh-collider.ts
+  h_dd004f51a3e5ec 71-72
+e2e/fixtures/originImage/Animator_animator-customAnimationClip.jpg
+  h_dd004f51a3e5ec 2-3
+e2e/fixtures/originImage/Physics_physx-collision-group.jpg
+  h_dd004f51a3e5ec 2-3
+e2e/fixtures/originImage/Physics_physx-collision.jpg
+  h_dd004f51a3e5ec 2-3
+e2e/fixtures/originImage/Physics_physx-customUrl.jpg
+  h_dd004f51a3e5ec 2-3
+e2e/fixtures/originImage/Physics_physx-mesh-collider-data.jpg
+  h_dd004f51a3e5ec 2-3
+e2e/fixtures/originImage/Physics_physx-mesh-collider.jpg
+  h_dd004f51a3e5ec 2-3
+e2e/package.json
+  h_dd004f51a3e5ec 4
+examples/package.json
+  h_dd004f51a3e5ec 3
+examples/src/buffer-mesh-independent.ts
+  h_dd004f51a3e5ec 74-75
+examples/src/buffer-mesh-interleaved.ts
+  h_dd004f51a3e5ec 31-32
+package.json
+  h_dd004f51a3e5ec 3
+packages/core/package.json
+  h_dd004f51a3e5ec 3
+packages/core/src/2d/atlas/SpriteAtlas.ts
+  h_dd004f51a3e5ec 67,77-83
+packages/core/src/2d/sprite/Sprite.ts
+  h_dd004f51a3e5ec 38,49-56,272
+packages/core/src/BasicResources.ts
+  h_dd004f51a3e5ec 137,218-224
+packages/core/src/Entity.ts
+  h_dd004f51a3e5ec 526-527
+packages/core/src/Script.ts
+  h_dd004f51a3e5ec 224-225,278-288
+packages/core/src/Transform.ts
+  h_dd004f51a3e5ec 661-662,665,712,714,717,735,739,753,755,759
+packages/core/src/animation/animationCurve/AnimationQuaternionCurve.ts
+  h_dd004f51a3e5ec 19,50-52,60
+packages/core/src/animation/animationCurve/AnimationVector3Curve.ts
+  h_dd004f51a3e5ec 56
+packages/core/src/animation/internal/animationCurveOwner/AnimationCurveOwner.ts
+  h_dd004f51a3e5ec 46-50,70-73,155,159,163-172,174-176,178
+packages/core/src/asset/ReferResource.ts
+  h_dd004f51a3e5ec 13-15,17-18,50-51,63-65,72-73,97-115,121,127-130
+packages/core/src/asset/ResourceManager.ts
+  h_dd004f51a3e5ec 123,328,482-507,510-511,514-522,616-630
+packages/core/src/graphic/Mesh.ts
+  h_dd004f51a3e5ec 64,173-174
+packages/core/src/lighting/AmbientLight.ts
+  h_dd004f51a3e5ec 110-118,120-123,162,166-177,184-196,211,215-219
+packages/core/src/lighting/Light.ts
+  h_dd004f51a3e5ec 11-18
+packages/core/src/lighting/PointLight.ts
+  h_dd004f51a3e5ec 25-40,70-71,99
+packages/core/src/lighting/SpotLight.ts
+  h_dd004f51a3e5ec 1,32,41-55,105-106,138
+packages/core/src/mesh/BlendShapeManager.ts
+  h_dd004f51a3e5ec 268,289-314,322,343,360,362-363,372
+packages/core/src/mesh/MeshRenderer.ts
+  h_dd004f51a3e5ec 68
+packages/core/src/mesh/ModelMesh.ts
+  h_dd004f51a3e5ec 509,666,668-671,680-681,688-692,732-734,739-744,788-789,791-792,808-809,811,860
+packages/core/src/particle/ParticleRenderer.ts
+  h_dd004f51a3e5ec 240
+packages/core/src/physics/BoxCollider.ts
+  h_dd004f51a3e5ec 6,35,43-47
+packages/core/src/physics/CapsuleCollider.ts
+  h_dd004f51a3e5ec 6,31,34,49,52,75,103,106
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 3,7,12-14,17,24-25,45,64,97,206,211,215,226,230-241,293,310
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 8,21,35,37,42-45,47-63,193,213,261-262,288-289,291-292,296-300,320,331,334,367,370-376,390,430-434,457,511-546,550-552,574-577,585-588,590-597,602-606,610
+packages/core/src/physics/MeshCollider.ts
+  h_dd004f51a3e5ec 7-8,30,34,36,53,115-118,145,151,153,200,204,218-220
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 11,29,62-66,161,163-166,168-169,174-176,180-186,192-194,196-198,200-203,214-217,219,239-246,259,325-326,339-340,420,497,599,659,676,758,760,766,782,801,803-806,823,825-828,849,851-857,1017,1020-1021,1057-1060,1069-1072,1181-1189,1195-1203,1219-1221
+packages/core/src/physics/PhysicsUtils.ts
+  h_dd004f51a3e5ec 1-250
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 14,46-51,54-55,57-62,64,189,197,202,236,276,414,429,444-456,458,470-471,474,510,530,545,549,584,599-604,613,622-623,632-633,669,710,746,748-749,803,819-820,827-828,842,851-857,902,909,930-931,948-951,965-968,970-971,976,980,984-995,1011,1014-1016,1037,1041-1042,1048,1096-1102,1126-1129,1131-1133,1145-1148,1151-1152,1156-1158,1162,1164-1167,1173,1175-1182,1184,1195,1198-1201,1206,1214,1230,1244-1252
+packages/core/src/physics/SphereCollider.ts
+  h_dd004f51a3e5ec 5,24,27,38
+packages/core/src/physics/joint/HingeJoint.ts
+  h_dd004f51a3e5ec 3,5,14-15,18-19,49,57,112-113,115-119,131-132,134-138,151-152,172-173,178,215-216,221-222
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 8,11,22,29,33,105-109,246,265-268,270-271,278,281-284,287-289,313,326,349-350,366-378,380-389,391-393,398-402,408-409,414,419,422,425,427,430-438,441-447
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_dd004f51a3e5ec 27,32
+packages/core/src/utils/DisorderedArray.ts
+  h_dd004f51a3e5ec 110-117,130-138,203,205,212-214
+packages/design/package.json
+  h_dd004f51a3e5ec 3
+packages/design/src/physics/IDynamicActor.ts
+  h_dd004f51a3e5ec 66
+packages/design/src/physics/IPhysicsActor.ts
+  h_dd004f51a3e5ec 43
+packages/galacean/package.json
+  h_dd004f51a3e5ec 3
+packages/loader/package.json
+  h_dd004f51a3e5ec 3
+packages/loader/src/AnimatorControllerLoader.ts
+  h_dd004f51a3e5ec 21-31,33,35,106,109-118
+packages/loader/src/GLTFLoader.ts
+  h_dd004f51a3e5ec 42,51,54-59,61
+packages/loader/src/SpriteAtlasLoader.ts
+  h_dd004f51a3e5ec 24-28,30-31,36-43,46,51,54,58,66-70,74,77-96,98-101
+packages/loader/src/gltf/GLTFResource.ts
+  h_dd004f51a3e5ec 69-72,75-78
+packages/loader/src/gltf/extensions/KHR_lights_punctual.ts
+  h_dd004f51a3e5ec 33-35
+packages/loader/src/gltf/extensions/KHR_materials_unlit.ts
+  h_dd004f51a3e5ec 12
+packages/loader/src/gltf/extensions/KHR_texture_basisu.ts
+  h_dd004f51a3e5ec 37,58-63,75
+packages/loader/src/gltf/parser/GLTFAnimatorControllerParser.ts
+  h_dd004f51a3e5ec 36
+packages/loader/src/gltf/parser/GLTFMaterialParser.ts
+  h_dd004f51a3e5ec 185,191-194
+packages/loader/src/gltf/parser/GLTFMeshParser.ts
+  h_dd004f51a3e5ec 50,74-75,91-93,132,156,271,274,277
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  h_dd004f51a3e5ec 11,40,42,44,87-89,91,94,96-104,108,110-125,146-148,158-159,168-208
+packages/loader/src/gltf/parser/GLTFSceneParser.ts
+  h_dd004f51a3e5ec 38,54,76,149,152,187
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_dd004f51a3e5ec 35-37,61,74,80-82,122
+packages/loader/src/prefab/PrefabParser.ts
+  h_dd004f51a3e5ec 10,12,16-19,45
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 22-29,41
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 23-32,181
+packages/math/package.json
+  h_dd004f51a3e5ec 3
+packages/math/src/Quaternion.ts
+  h_dd004f51a3e5ec 257,259,261,263,267,270-274
+packages/physics-physx/README.md
+  h_dd004f51a3e5ec 24-25,27,29-31
+packages/physics-physx/package.json
+  h_dd004f51a3e5ec 3,18
+packages/physics-physx/src/PhysXActor.ts
+  h_dd004f51a3e5ec 2,20,27,36
+packages/physics-physx/src/PhysXCharacterController.ts
+  h_dd004f51a3e5ec 183-185,189-192,199
+packages/physics-physx/src/PhysXDynamicActor.ts
+  h_dd004f51a3e5ec 12,16-18,87-105,208
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 19,41,201-203,213-215,364-368,370,374,379,443,489,548,553,563,636-644
+packages/physics-physx/src/PhysXStaticActor.ts
+  h_dd004f51a3e5ec 11
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  h_dd004f51a3e5ec 2,11-17,92-97,104-109,116
+packages/physics-physx/src/joint/PhysXJoint.ts
+  h_dd004f51a3e5ec 9
+packages/physics-physx/src/joint/PhysXSpringJoint.ts
+  h_dd004f51a3e5ec 37
+packages/physics-physx/src/shape/PhysXBoxShape.ts
+  h_dd004f51a3e5ec 12,14
+packages/physics-physx/src/shape/PhysXCapsuleShape.ts
+  h_dd004f51a3e5ec 30,33
+packages/physics-physx/src/shape/PhysXMeshShape.ts
+  h_dd004f51a3e5ec 13,28-29,39,169,171,178-180,191-192,198
+packages/physics-physx/src/shape/PhysXPlaneShape.ts
+  h_dd004f51a3e5ec 12,14
+packages/physics-physx/src/shape/PhysXShape.ts
+  h_dd004f51a3e5ec 10-11,86,91-92
+packages/physics-physx/src/shape/PhysXSphereShape.ts
+  h_dd004f51a3e5ec 11,14
+packages/rhi-null/package.json
+  h_dd004f51a3e5ec 3
+packages/rhi-webgl/package.json
+  h_dd004f51a3e5ec 3
+packages/shader-analyzer/package.json
+  h_dd004f51a3e5ec 3
+packages/shader-compiler/package.json
+  h_dd004f51a3e5ec 3
+packages/shader-parser/package.json
+  h_dd004f51a3e5ec 3
+packages/shader/package.json
+  h_dd004f51a3e5ec 3
+packages/shader/src/ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl
+  h_dd004f51a3e5ec 55-63,99-106,114-124
+packages/shader/src/ShaderLibrary/Lighting/Light.glsl
+  h_dd004f51a3e5ec 34-46
+packages/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl
+  h_dd004f51a3e5ec 64-69,78-86
+packages/spine-core-3.8/package.json
+  h_dd004f51a3e5ec 3
+packages/spine-core-4.2/package.json
+  h_dd004f51a3e5ec 3
+packages/spine/package.json
+  h_dd004f51a3e5ec 3
+packages/ui/package.json
+  h_dd004f51a3e5ec 3
+packages/xr-webxr/package.json
+  h_dd004f51a3e5ec 3
+packages/xr/package.json
+  h_dd004f51a3e5ec 3
+rollup.config.js
+  h_dd004f51a3e5ec 129-137,274-304,311,345-357,360
+scripts/build-official-preload.js
+  h_dd004f51a3e5ec 64
+tests/package-consumer/HeadlessEngine.test.ts
+  h_dd004f51a3e5ec 5,625,632-642,659-672,675-688,691-698
+tests/package.json
+  h_dd004f51a3e5ec 4
+tests/src/core/Animator.test.ts
+  h_dd004f51a3e5ec 5-6,25,1688-1831
+tests/src/core/ModelMesh.test.ts
+  h_dd004f51a3e5ec 664-730
+tests/src/core/Transform.test.ts
+  h_dd004f51a3e5ec 107-110,121,214-236,669-670,672
+tests/src/core/Utils.test.ts
+  h_dd004f51a3e5ec 95-191
+tests/src/core/lighting/LightAttenuation.test.ts
+  h_dd004f51a3e5ec 1-243
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 3-8,16,21-22,75-87,517-557,857-858,1141-1227
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 146-246,1529,1533,1734
+tests/src/core/physics/HingeJoint.test.ts
+  h_dd004f51a3e5ec 3-4,104,118-125,132-133,259-296,588,622-644
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 3-4,18,485-510,914-999,1027-1039,1224-1267,1432-1592
+tests/src/core/physics/MeshCollider.test.ts
+  h_dd004f51a3e5ec 2,157,165-241,867,869,875,883,981-1004,1239-1245,1248-1250,1253,1257,1261-1262,1264,1266-1269,1304-1332,1334-1336,1339,1343-1347,1351
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 124-173,208,218-223,233-238,243-252,267-273,292-296
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 1229-1230,1342-1343,1631,2883-2887,2889-2902,2952-2960,2966-2974,2978
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 3-10,27-29,33,73-78,190-244,369-495,844-890,953-981,1015-1025,1228,1236,1239-1241,1246,1250,1417-1449,1527-1528,1532,1534,1538,1672-1725,2138-2218,2231,2239,2378-2379,2388-2390,2394-2436,2488-2528,2531,2536,2541,2543-2547,2593,2596,2598-2604,2606,2690-2691,2693-2695,2697-2698,2702-2704,2708,2711,2714-2715,2717,2722,2893-2945
+tests/src/core/physics/SpringJoint.test.ts
+  h_dd004f51a3e5ec 71,202-217
+tests/src/core/resource/ReferResource.test.ts
+  h_dd004f51a3e5ec 1-23,26-31,85-493
+tests/src/core/resource/ResourceManager.test.ts
+  h_dd004f51a3e5ec 1-9,594-675
+tests/src/loader/AnimatorControllerLoader.test.ts
+  h_dd004f51a3e5ec 1-136
+tests/src/loader/GLTFLoader.test.ts
+  h_dd004f51a3e5ec 12,817-819,827-829,912,915,922-1338
+tests/src/loader/PhysicsMaterialLoader.test.ts
+  h_dd004f51a3e5ec 1,63,69,75-76,83-86,93,95
+tests/src/loader/PrefabResource.test.ts
+  h_dd004f51a3e5ec 1,3-4,6,33-58,63-64,87-88,92-141,277-278,282,988-1080
+tests/src/loader/SpriteAtlasLoader.test.ts
+  h_dd004f51a3e5ec 1,65-245
+tests/src/math/Quaternion.test.ts
+  h_dd004f51a3e5ec 134-146,301-318
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fdb94c2b98fe489dd9a1b0457679762abad792af",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

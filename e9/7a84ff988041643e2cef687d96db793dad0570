@@ -1,0 +1,30 @@
+packages/core/src/Engine.ts
+  h_171a11afaf879a 688-689
+packages/core/src/mesh/ModelMesh.ts
+  h_171a11afaf879a 798-813,816,820
+packages/core/src/shader/Shader.ts
+  h_171a11afaf879a 211,224
+packages/core/src/shader/ShaderProgram.ts
+  h_171a11afaf879a 180,182,184-189
+packages/core/src/shader/ShaderProgramMap.ts
+  h_171a11afaf879a 57-58,63,66,72
+packages/loader/src/GLTFContentRestorer.ts
+  h_171a11afaf879a 16-17,35-37,53-54,56,60-77,80,82-88,90-92,95-104,106-129,131-135,144-171,174-180,187-189,191-196,199-204,278
+packages/loader/src/gltf/GLTFUtils.ts
+  h_171a11afaf879a 167-168,173,182,267,269,276,278
+packages/loader/src/gltf/parser/GLTFBufferParser.ts
+  h_171a11afaf879a 14,17-21,29
+tests/src/core/ContextRestoreAndMesh.test.ts
+  h_171a11afaf879a 1-168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e97a84ff988041643e2cef687d96db793dad0570",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

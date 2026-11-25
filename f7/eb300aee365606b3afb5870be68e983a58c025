@@ -1,0 +1,19 @@
+packages/core/src/lighting/Light.ts
+  s_f135b9bf53eec4::t_10175b142c515f 76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f7eb300aee365606b3afb5870be68e983a58c025",
+  "prompts": {},
+  "sessions": {
+    "s_f135b9bf53eec4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d00c-69a4-7821-b09d-0ef677629e66",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

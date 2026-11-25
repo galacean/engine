@@ -1,0 +1,56 @@
+tests/src/core/physics/PhysicsMaterialOwnership.test.ts
+  s_d2c65ec75a2f3e::t_a619724c7791ad 45-50
+  s_d2c65ec75a2f3e::t_d81459c1c816cf 5-6,9,11-12,35-44,51-136
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_36dc4d78cecfd1 209,334-335,339,418,429-433,663,684-686
+  s_d2c65ec75a2f3e::t_0d1fed540f1577 687
+docs/zh/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_c1eb34fd1ae169 121-122
+  s_d2c65ec75a2f3e::t_4276ae5f805b10 123-124
+packages/design/src/physics/IDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_2afed8e455d419 195-197
+  s_d2c65ec75a2f3e::t_b664ab9818f02f 183-194
+packages/loader/src/schema/SceneSchema.ts
+  s_d2c65ec75a2f3e::t_a65fc4b4a65158 48-51
+packages/physics-physx/src/PhysXDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_b664ab9818f02f 216-243
+  s_d2c65ec75a2f3e::t_2afed8e455d419 244-254
+docs/en/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_c1eb34fd1ae169 121-122
+  s_d2c65ec75a2f3e::t_3304cb6dedf96a 123-124
+packages/loader/src/SceneLoader.ts
+  s_d2c65ec75a2f3e::t_a65fc4b4a65158 25,117-122
+  s_d2c65ec75a2f3e::t_41a3fb32530720 18
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_1d7d91f8ba1694 1437-1509,1511,1513,1515-1517,1520-1521,1523-1525,1527-1529,1531,1537,1544,1546-1547,1549,1566,1568
+  s_d2c65ec75a2f3e::t_326ded9440072a 1510,1512,1514,1518-1519,1522,1526,1530,1532-1536,1538-1543,1545,1548,1550-1565,1567,1569
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_2afed8e455d419 41,623-643
+  s_d2c65ec75a2f3e::t_b664ab9818f02f 572-601,604-617,620-622
+  s_d2c65ec75a2f3e::t_b794db8d412611 36-40,42,602-603,618-619
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_a619724c7791ad 21,131,142-144,146-148,159-160
+  s_d2c65ec75a2f3e::t_36dc4d78cecfd1 106,127-130,132-141,145,149-158,161-164,1275-1276
+docs/en/physics/manager.mdx
+  s_d2c65ec75a2f3e::t_67c08f6c203f30 10-13
+docs/zh/physics/manager.mdx
+  s_d2c65ec75a2f3e::t_0c4199457a32dd 10-13
+tests/src/loader/PhysicsMaterialLoader.test.ts
+  s_d2c65ec75a2f3e::t_5edb34710c2783 2-11,73-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5d5f99ee1d32de360afc57fd60e44df32e80323e",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

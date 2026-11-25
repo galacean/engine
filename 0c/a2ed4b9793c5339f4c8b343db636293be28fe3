@@ -1,0 +1,20 @@
+packages/loader/src/MaterialLoader.ts
+  h_bd4dd7d663e619 14,58,61,64,67,70,74,76
+packages/loader/src/schema/MaterialSchema.ts
+  h_bd4dd7d663e619 2,4,6,8-34
+packages/loader/tests/MaterialSchemaTypes.test.ts
+  h_bd4dd7d663e619 1-67
+tests/src/loader/MaterialLoader.test.ts
+  h_bd4dd7d663e619 106-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0ca2ed4b9793c5339f4c8b343db636293be28fe3",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

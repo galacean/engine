@@ -1,0 +1,20 @@
+packages/design/src/physics/ICharacterController.ts
+  h_dd004f51a3e5ec 12-13
+packages/design/src/physics/IPhysics.ts
+  h_dd004f51a3e5ec 78-79
+packages/design/src/physics/IPhysicsScene.ts
+  h_dd004f51a3e5ec 174-175,216-217
+packages/design/src/physics/shape/ICapsuleShape.ts
+  h_dd004f51a3e5ec 10-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3346fb8b34814b15be610e81e285510e169a47ae",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+packages/core/src/lighting/AmbientLight.ts
+  h_bd4dd7d663e619 162,166-169,189-193,211,215-219
+packages/loader/src/SpriteAtlasLoader.ts
+  h_bd4dd7d663e619 25,27-32,37,51,54,66-70,74,78-95
+tests/src/core/resource/ReferResource.test.ts
+  h_bd4dd7d663e619 390-411
+tests/src/loader/SpriteAtlasLoader.test.ts
+  h_bd4dd7d663e619 1,139,145-147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "313d4109a3687f683874852cd4790170f65db322",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

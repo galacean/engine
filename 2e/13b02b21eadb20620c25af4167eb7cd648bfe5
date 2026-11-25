@@ -1,0 +1,16 @@
+packages/core/src/Transform.ts
+  h_ddbf152d31b140 236,242-243,813-824
+tests/src/core/Transform.test.ts
+  h_ddbf152d31b140 87-126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2e13b02b21eadb20620c25af4167eb7cd648bfe5",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

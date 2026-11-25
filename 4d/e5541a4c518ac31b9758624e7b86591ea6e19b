@@ -1,0 +1,19 @@
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  s_3cd6502d102d7f::t_1c035d02f4e877 17-20,22-23,25-27,29-30,32-34,40-43,45,49-51,62-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4de5541a4c518ac31b9758624e7b86591ea6e19b",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

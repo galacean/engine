@@ -1,0 +1,92 @@
+docs/en/physics/collider/event.mdx
+  h_dd004f51a3e5ec 18-19,39,41-44,97-116
+docs/en/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 49-50,53-55,58-61,101
+docs/zh/physics/collider/event.mdx
+  h_dd004f51a3e5ec 18-19,39,42-44,96-115
+docs/zh/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 49-50,53-55,58-61,101
+packages/core/src/Component.ts
+  h_dd004f51a3e5ec 5,43
+packages/core/src/Engine.ts
+  h_dd004f51a3e5ec 55-61,320,579
+packages/core/src/Entity.ts
+  h_dd004f51a3e5ec 270,795
+packages/core/src/Scene.ts
+  h_dd004f51a3e5ec 416
+packages/core/src/base/EngineObject.ts
+  h_dd004f51a3e5ec 52
+packages/core/src/mesh/ModelMesh.ts
+  h_dd004f51a3e5ec 31,62,435,440,449-457,466-472,482-494,791-796,821-824,1120
+packages/core/src/physics/CapsuleCollider.ts
+  h_dd004f51a3e5ec 1,9-10,41,76-79,98-99,102-109,111-122
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 134-147,331-333,381-383,385-386,393-394
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 8,91-92,109-110,121-122,124,142,195-232,234-235,242-244,247-269,316-339,410-437,461-462,464,508-509,539-540,551,651,677,680-681,683-685,700,710-712,745-756,788-792,800
+packages/core/src/physics/Collision.ts
+  h_dd004f51a3e5ec 1-3,5,15-17,23-43,49-63,71-72,75,79-82
+packages/core/src/physics/ContactModification.ts
+  h_dd004f51a3e5ec 1-150
+packages/core/src/physics/MeshCollider.ts
+  h_dd004f51a3e5ec 1,18,22,48-49,72-89,148-150,205-209,212,218,223,264,270,274,280-282,293,315
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 11,56-82,726-757,760-762,764,775,935,1029-1045
+packages/core/src/physics/index.ts
+  h_dd004f51a3e5ec 6
+packages/design/src/physics/ICharacterController.ts
+  h_dd004f51a3e5ec 42-44,51-56
+packages/design/src/physics/ICollision.ts
+  h_dd004f51a3e5ec 1-3,5,8,11-18,21-24
+packages/design/src/physics/IContactModification.ts
+  h_dd004f51a3e5ec 1-23
+packages/design/src/physics/IPhysics.ts
+  h_dd004f51a3e5ec 13,100,102,106,111
+packages/design/src/physics/IPhysicsScene.ts
+  h_dd004f51a3e5ec 4,54-56
+packages/design/src/physics/index.ts
+  h_dd004f51a3e5ec 8-9
+packages/design/src/physics/shape/IColliderShape.ts
+  h_dd004f51a3e5ec 17-19,21,35-37,50-61
+packages/design/src/physics/shape/IMeshColliderShape.ts
+  h_dd004f51a3e5ec 4-14,19-21,24,26,29,33
+packages/design/src/physics/shape/index.ts
+  h_dd004f51a3e5ec 6
+packages/physics-physx/src/PhysXCharacterController.ts
+  h_dd004f51a3e5ec 30-31,33-34,113-122,131-142,293-297
+packages/physics-physx/src/PhysXPhysics.ts
+  h_dd004f51a3e5ec 1,10,31,50-51,82,167,173
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 3,7,38,190-205,444-446,608,618,639,641-642,644-673,676-681
+packages/physics-physx/src/shape/PhysXColliderShape.ts
+  h_dd004f51a3e5ec 14,49,51-52,69-73,88-107,148-150
+packages/physics-physx/src/shape/PhysXMeshColliderShape.ts
+  h_dd004f51a3e5ec 2-3,7-31,38-39,45,54-55,57,62,67,76-78,80-82,86-91,96,104-122,128-129,149,208,217-220,225-227,253-260
+tests/src/core/ModelMesh.test.ts
+  h_dd004f51a3e5ec 68-99
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 20,71-93,353,372-425,457-538,634,642-645,660-664,1074,1093-1100,1102-1103,1163,1533,1535
+tests/src/core/physics/ColliderLayer.test.ts
+  h_dd004f51a3e5ec 14,258-321
+tests/src/core/physics/Collision.test.ts
+  h_dd004f51a3e5ec 247-357
+tests/src/core/physics/ContactModification.test.ts
+  h_dd004f51a3e5ec 1-163
+tests/src/core/physics/MeshCollider.test.ts
+  h_dd004f51a3e5ec 85-101,113-137,159-194
+tests/src/core/physics/PhysicsMaterial.test.ts
+  h_dd004f51a3e5ec 121,231,238-239
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 12-13,173-205,331-378
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ce92647a54a826cc7d589b749a2e25b975ca478f",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

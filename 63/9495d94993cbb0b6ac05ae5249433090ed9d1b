@@ -1,0 +1,24 @@
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  h_171a11afaf879a 1-9,23-29,46-51,61-66,69,72-82,95-97,105,107-112,119-145,147,150,170,172-187,191-203,205-251,255-258,282,288
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  h_171a11afaf879a 25,59-60,71
+packages/world-planning/src/spatial/runtime/PlanningSeedSolids.ts
+  h_171a11afaf879a 21,54,81-82
+packages/world-planning/src/world/SeedWorldExactInstanceCellRuntime.ts
+  h_171a11afaf879a 162,168-169,171,216,227,404-405,417-422
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 1225,1744
+world/tests/seed-world/SeedWorldRockLodCells.spec.ts
+  h_171a11afaf879a 1-337
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "639495d94993cbb0b6ac05ae5249433090ed9d1b",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

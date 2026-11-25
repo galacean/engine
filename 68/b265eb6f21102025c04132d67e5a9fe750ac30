@@ -1,0 +1,22 @@
+tests/src/core/physics/Collider.test.ts
+  s_9a07c85a0912bc::t_c927d5efb0eef7 716,725,839,847-850,852-855,857
+  s_9a07c85a0912bc::t_50ce94e1733578 846,856
+packages/core/src/physics/BoxCollider.ts
+  s_9a07c85a0912bc::t_919284df066535 16,18-19,26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "68b265eb6f21102025c04132d67e5a9fe750ac30",
+  "prompts": {},
+  "sessions": {
+    "s_9a07c85a0912bc": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a2065f-d56d-7175-a080-e45884abae0d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

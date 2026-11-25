@@ -1,0 +1,23 @@
+packages/core/src/2d/text/TextUtils.ts
+  s_da48a1c3cefcb7::t_2f68e8740dfefe 434
+packages/core/src/texture/enums/TextureFormat.ts
+  s_da48a1c3cefcb7::t_3f9e5160485af5 6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,65,67,69,71,73,75,77,79
+packages/rhi-webgl/src/GLTexture.ts
+  s_da48a1c3cefcb7::t_31f7e787887366 537
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1a711dded4a29869e2b078dc93949d94d3cac8b6",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

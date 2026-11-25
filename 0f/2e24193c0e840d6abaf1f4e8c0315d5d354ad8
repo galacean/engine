@@ -1,0 +1,14 @@
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  h_79b10db07e6052 63-65,67,143-149,266-271,902,907-910,1203,1213-1220,1277-1278,1291,1294,1302,1306,1311,1330,1333,1341,1343,1352,1354,1369-1370,1373-1374,1430,1439,1441-1449,1654,1656-1657,1659,1661,1663-1664,1666
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0f2e24193c0e840d6abaf1f4e8c0315d5d354ad8",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

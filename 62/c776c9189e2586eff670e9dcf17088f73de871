@@ -1,0 +1,29 @@
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_a906facbc0e1c1::t_ff362cd1034206 184
+  s_a906facbc0e1c1::t_95dfb0de96ec61 6,8-10,24,78,82-84,90-91,108,110,181,186-188,190,192,194-195
+  s_a906facbc0e1c1::t_5cb53e720dd5f2 26,28-29,85,88-89,176,178
+  s_a906facbc0e1c1::t_1c3cf70bee379d 7,25,27,81,86-87,92,177,182-183,185,189,193
+  s_a906facbc0e1c1::t_f5c2c343e52fae 79-80
+tests/src/loader/PrefabResource.test.ts
+  s_a906facbc0e1c1::t_ff362cd1034206 12
+  s_a906facbc0e1c1::t_67f1b4bcea9039 31,487,493-496,523-524,1062-1065
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_a906facbc0e1c1::t_95dfb0de96ec61 228-229
+  s_a906facbc0e1c1::t_fcedcd27690b58 185,189,198,201-203,209-210,243,247,257
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "62c776c9189e2586eff670e9dcf17088f73de871",
+  "prompts": {},
+  "sessions": {
+    "s_a906facbc0e1c1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210ed-3fc5-7302-b74d-8f2376b79692",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

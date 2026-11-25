@@ -1,0 +1,30 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_171a11afaf879a 74-77,154-157,174-175,189-190,210,227-228,230,244-246,254,293,317,321,323,336,339-343,357,366-377
+packages/core/src/RenderPipeline/Blitter.ts
+  h_171a11afaf879a 9,35-36,46-48,60
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_171a11afaf879a 17-18,24-29,39-40,56-65
+packages/core/src/postProcess/FinalPass.ts
+  h_171a11afaf879a 10-17,26-27,45-52,54-55,61-62,86-97,99-110,121-122
+packages/core/src/postProcess/PostProcessManager.ts
+  h_171a11afaf879a 172-178,188,223-227,231-232,270,275-276
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_171a11afaf879a 131-132
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_171a11afaf879a 16-18,21,23-28,125,129,151-157,165,175-176,193-198,201,203,206-208,214,219-227,229,231-239,242-245,264,281-283,286-298
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_171a11afaf879a 411,413,415-416
+tests/src/rhi-webgl/RenderTargetAttachmentGuards.test.ts
+  h_171a11afaf879a 5,7,12,20,151-590
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "290dda3d9335f6e4b97edc3f4087a8f0cb3894bd",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

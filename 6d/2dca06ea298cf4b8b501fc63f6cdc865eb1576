@@ -1,0 +1,94 @@
+packages/animals/src/gameplay/animal/CuteZooToon.shader
+  h_171a11afaf879a 25,186-188
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  h_171a11afaf879a 11,97,124,146
+packages/modify/native-overrides.json
+  h_171a11afaf879a 494-497
+packages/modify/src/native/shader/src/ShaderLibrary/Common/OilPaintBrush.glsl
+  h_171a11afaf879a 1-134
+packages/modify/src/native/shader/src/ShaderLibrary/index.ts
+  h_171a11afaf879a 11,82
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_171a11afaf879a 277,382
+packages/terrain/src/shaders/shared/Lighting.glsl
+  h_171a11afaf879a 6,40-61,81-98,100,104-105
+packages/terrain/src/shaders/shared/ProceduralTreeWind.glsl
+  h_171a11afaf879a 34,38,52,54,116,121,143,148
+packages/vegetation/src/world/SeedWorldGroundWindTuning.ts
+  h_171a11afaf879a 120
+packages/world-planning/src/integrations/terrain/debug/TerrainRuntimeDebugInspector.ts
+  h_171a11afaf879a 1048-1059,1081-1097,1127-1168
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  h_171a11afaf879a 30-44,340-341,456-462,586-637,644,1243
+packages/world-planning/src/integrations/terrain/rock-formation/Authoring.ts
+  h_171a11afaf879a 5-6,10,15,29-42,68-74
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  h_171a11afaf879a 21-28,30,137
+packages/world-planning/src/planning-data/template-wildlife.json
+  h_171a11afaf879a 15,29,32
+packages/world-planning/src/spatial/RockCollisionPolicy.ts
+  h_171a11afaf879a 2,12,60-100,109,116-129,138-151
+packages/world-planning/src/spatial/RockVariantFit.ts
+  h_171a11afaf879a 1-169
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  h_171a11afaf879a 3,56-63,223-224,1504-1518,1523,1525,1555,1557,1561-1569,1626-1629,1696-1697
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  h_171a11afaf879a 479,481-482
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  h_171a11afaf879a 2-3,211,263-275,298-310
+packages/world-planning/src/spatial/guidance/GuidanceRock.ts
+  h_171a11afaf879a 2-8,15-16,27-38
+packages/world-planning/src/spatial/guidance/VisualGuidance.ts
+  h_171a11afaf879a 518-520
+packages/world-planning/src/spatial/layout/DerivedEdits.ts
+  h_171a11afaf879a 4-8,14,42-54
+packages/world-planning/src/spatial/layout/LayoutPlanAdapter.ts
+  h_171a11afaf879a 7-8,32,84-99
+packages/world-planning/src/spatial/layout/SpatialInstanceEdits.ts
+  h_171a11afaf879a 15-16,227-236,306-308
+packages/world-planning/src/spatial/oil-paint/OilPaintSeasonPalette.ts
+  h_171a11afaf879a 1-190
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_171a11afaf879a 119,124,148,152
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_171a11afaf879a 31,35,102-103,149-176,204,276-279,1370,1458-1461,1465-1466,1666-1667,1709-1712,1796-1906,1911-1912,1920,1946,2090-2105,2529-2530,2535,2540-2541,2543,2625,2758,2812,2816,2856,3145-3160,3582-3583,3798-3805,3823
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_171a11afaf879a 1134-1138
+packages/world-planning/src/spatial/world-templates/OilPaintAutumn.ts
+  h_171a11afaf879a 11-34,69-91,108-109,130-132,135-138,140-161,163-218,220-227,229-244,285,328-365
+world/demos/animals/roaming/registrations.json
+  h_171a11afaf879a 2011,2015
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 81,369,594-598,1155,1400-1419,2937,2952-2959
+world/demos/seed-world/src/oil-paint/OilPaintPostEffect.ts
+  h_171a11afaf879a 25
+world/demos/seed-world/src/oil-paint/OilPaintPostPass.ts
+  h_171a11afaf879a 22-26
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  h_171a11afaf879a 92-103,119,272-321,752-767
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHost.ts
+  h_171a11afaf879a 19,40-41,74,122-135,180-182
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 12,69,139,190-209,295,327,416,753-755,845,1071,1112
+world/tests/seed-world/SeedWorldRockCollider.spec.ts
+  h_171a11afaf879a 48-50,76-79,495-574
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6d2dca06ea298cf4b8b501fc63f6cdc865eb1576",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

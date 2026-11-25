@@ -1,0 +1,26 @@
+.agents/skills/seed-world-llm-rsi/SKILL.md
+  h_ddbf152d31b140 18,30-35
+.agents/skills/seed-world-llm-rsi/references/metrics-and-audit.md
+  h_ddbf152d31b140 1,54-77,80
+.agents/skills/seed-world-llm-rsi/references/rsi-loop.md
+  h_ddbf152d31b140 58,60-64
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases-v4.ts
+  h_ddbf152d31b140 1-1216
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases.ts
+  h_ddbf152d31b140 3,93,136,145,160,165,175,197,201,203,495,1582,1593-1635
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/run-benchmark.spec.ts
+  h_ddbf152d31b140 6,13
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/seed-world-headless-fixture.ts
+  h_ddbf152d31b140 72,406,417,705-726,1271-1280,1283-1284,1292-1296,1302-1306,1319-1325,1348-1360,1370,1997-2009,2031-2032,2046
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4f53cd258ddbd5f0de365e996a98d25ded787c86",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

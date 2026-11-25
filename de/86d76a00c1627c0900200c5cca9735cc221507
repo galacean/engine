@@ -1,0 +1,18 @@
+packages/world-planning/src/spatial/runtime/NaturalUnderstoryInstancedPool.ts
+  h_171a11afaf879a 5,9,15-17,35-41,46-57,146,160-170,183,244-312,529-535,547,579,587-594,597-599,607-608,611-621,864-868,883-932,935-936,952-958,994,996-1003,1025-1030,1040,1074,1089,1162,1189,1193,1197-1203,1210-1329,1337-1339,1354-1355,1361-1408
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_171a11afaf879a 279-282,287-291
+world/tests/seed-world/NaturalUnderstoryInstancedPool.spec.ts
+  h_171a11afaf879a 5,11-12,15,419-586
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "de86d76a00c1627c0900200c5cca9735cc221507",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

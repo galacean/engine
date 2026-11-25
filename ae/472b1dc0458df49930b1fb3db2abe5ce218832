@@ -1,0 +1,36 @@
+docs/en/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 38
+docs/en/physics/manager.mdx
+  h_dd004f51a3e5ec 52-72
+docs/zh/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 38
+docs/zh/physics/manager.mdx
+  h_dd004f51a3e5ec 51-71
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 162-165,176-181
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 222
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 15-18,260-271,357-366,822,846,876,953-970,1239
+packages/core/src/postProcess/PostProcessManager.ts
+  h_dd004f51a3e5ec 91-92
+packages/galacean/skills/engine-knowledge/references/physics-setup.md
+  h_dd004f51a3e5ec 11
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 41,1078-1133
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 2954-3061,3064
+tests/src/core/postProcess/PostProcess.test.ts
+  h_dd004f51a3e5ec 484-509
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ae472b1dc0458df49930b1fb3db2abe5ce218832",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

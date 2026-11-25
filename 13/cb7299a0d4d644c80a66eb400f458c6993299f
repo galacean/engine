@@ -1,0 +1,14 @@
+packages/animals/src/gameplay/animal/AnimalAnimationBasis.ts
+  h_171a11afaf879a 5,17,21,23-249,251-254
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "13cb7299a0d4d644c80a66eb400f458c6993299f",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

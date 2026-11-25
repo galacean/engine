@@ -1,0 +1,30 @@
+packages/modify/package.json
+  h_79b10db07e6052 16
+packages/modify/src/native/core/src/shadow/CascadedShadowCasterPass.ts
+  h_79b10db07e6052 233,235-295
+packages/modify/src/rendering/FarShadowCascadeProxy.ts
+  h_79b10db07e6052 1-31
+packages/modify/tests/FarShadowCascadeProxy.test.ts
+  h_79b10db07e6052 1-124
+packages/terrain/src/terrain/lod/TerrainLodGroupRendererRuntime.ts
+  h_79b10db07e6052 294
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  h_79b10db07e6052 11-15,35,80-82,85,87,96-100,150
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  h_79b10db07e6052 5083-5117,5153-5154,5179,5215-5221
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_79b10db07e6052 13-16,1028,1030-1031,1037,1117-1125
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_79b10db07e6052 48-51,90,104-115,128-129,206
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e15bcf447db760c3ac9cacf4d6a5d2148070b411",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

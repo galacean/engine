@@ -1,0 +1,33 @@
+world/demos/seed-world/SeedWorldDemo.ts
+  s_a61a893a3e253a::t_d6bee9c44b45f3 4113,4115,4117
+world/demos/seed-world/src/SeedWorldAutoBench.ts
+  s_a61a893a3e253a::t_107842fe8253e4 15,17,19,617-655,661-678
+world/demos/seed-world/src/SeedWorldPerfPanel.ts
+  s_a61a893a3e253a::t_236810511299d9 157-158,232-235,248-255,257-259,261-265,330,792,800,806-807
+world/tests/seed-world-browser/SeedWorldPerfRegressions.test.ts
+  s_f135b9bf53eec4::t_aeacd4e1a5bff5 1-485
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b08e9a09556c6ea8959e3d6b7c3865003d4f941f",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_f135b9bf53eec4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d00c-69a4-7821-b09d-0ef677629e66",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

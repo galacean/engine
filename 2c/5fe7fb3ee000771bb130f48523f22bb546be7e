@@ -1,0 +1,35 @@
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  s_ae6fab0fbe1884::t_ef38c18cde9d60 155-160
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_ae6fab0fbe1884::t_ef38c18cde9d60 256-258
+packages/world-planning/src/spatial/layout/MojaveDesertLayout.ts
+  s_ae6fab0fbe1884::t_ef38c18cde9d60 30-32
+packages/world-planning/src/integrations/terrain/rock-formation/Collider.ts
+  s_ae6fab0fbe1884::t_ef38c18cde9d60 11-12,51
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  s_ae6fab0fbe1884::t_ef38c18cde9d60 331-332
+world/demos/seed-world/src/SeedWorldMojavePreview.ts
+  s_ae6fab0fbe1884::t_ef38c18cde9d60 47,314
+world/demos/seed-world/src/planning/semantic-study/PlanningLayerTree.ts
+  s_ae6fab0fbe1884::t_ef38c18cde9d60 4,36
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_ae6fab0fbe1884::t_ef38c18cde9d60 29-30,165
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  s_ae6fab0fbe1884::t_ef38c18cde9d60 30-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2c5fe7fb3ee000771bb130f48523f22bb546be7e",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

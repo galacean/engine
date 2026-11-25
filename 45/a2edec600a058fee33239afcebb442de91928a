@@ -1,0 +1,37 @@
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_da48a1c3cefcb7::t_84f6f4b02f673c 1-2
+packages/rhi-webgl/src/GLCapability.ts
+  s_da48a1c3cefcb7::t_84f6f4b02f673c 132-134
+packages/webgl1-polyfill/tests/integration/index.test.ts
+  s_da48a1c3cefcb7::t_89217e4656c15e 3
+  s_da48a1c3cefcb7::t_10fd6ef5e118d4 53,77
+packages/webgl1-polyfill/src/index.ts
+  s_da48a1c3cefcb7::t_84f6f4b02f673c 3
+packages/webgl1-polyfill/tests/helpers/canvas.ts
+  s_da48a1c3cefcb7::t_89217e4656c15e 10-12,14
+packages/rhi-webgl/package.json
+  s_da48a1c3cefcb7::t_84f6f4b02f673c 25-26
+packages/rhi-webgl/src/WebGLEngine.ts
+  s_da48a1c3cefcb7::t_89217e4656c15e 119
+  s_da48a1c3cefcb7::t_10fd6ef5e118d4 120-121
+tests/src/rhi-webgl/GLCapability.test.ts
+  s_da48a1c3cefcb7::t_84f6f4b02f673c 50-72
+pnpm-lock.yaml
+  s_da48a1c3cefcb7::t_a559014185c4fb 278-280
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "45a2edec600a058fee33239afcebb442de91928a",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

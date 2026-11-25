@@ -1,0 +1,23 @@
+docs/zh/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_9eac52c595c2db 127-128
+  s_d2c65ec75a2f3e::t_461868f800ba68 133-135,145,148,151,153-155,157-158
+docs/en/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_461868f800ba68 133-135,145,148,151,153-155,157-158
+  s_d2c65ec75a2f3e::t_9eac52c595c2db 127-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e640c6fbd47e5d9a7d1cc819ee47dd2e8111c497",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+packages/core/src/physics/MeshCollider.ts
+  h_dd004f51a3e5ec 14-47,78,168-178,302,304-312
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 34-54,57-58,90-109,553-558,563,568-570,812-817
+tests/src/core/physics/Collision.test.ts
+  h_dd004f51a3e5ec 3,55,66,76-84,89-103,272-296
+tests/src/core/physics/MeshCollider.test.ts
+  h_dd004f51a3e5ec 931-961
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3e3003d576b29ae61b0405ee1a57945eac7eedeb",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

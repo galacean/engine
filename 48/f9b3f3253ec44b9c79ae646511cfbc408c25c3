@@ -1,0 +1,24 @@
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  s_71d829bec7869b::t_d3a8b3e50151e2 446,453
+  s_71d829bec7869b::t_01b4075ca8f9e0 15,189,272-278,314-315,321,435,445,452,458
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  s_71d829bec7869b::t_d3a8b3e50151e2 16-17,85-91,95-96,218-222,253
+packages/core/src/animation/animationCurve/AnimationQuaternionCurve.ts
+  s_71d829bec7869b::t_01b4075ca8f9e0 105-112,114,120-121,155,160-167,184-197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "48f9b3f3253ec44b9c79ae646511cfbc408c25c3",
+  "prompts": {},
+  "sessions": {
+    "s_71d829bec7869b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a212d6-cdf5-7f11-ba28-f30304403c44",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

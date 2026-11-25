@@ -1,0 +1,49 @@
+e2e/config.ts
+  s_f1a7b8285f1df2::t_f74ce3127616a6 549,555,561
+  s_f1a7b8285f1df2::t_ecc5c472138555 235,241,247,253,259,265,271,283,289,421,427,433,439,445,451,457,463,469,487
+e2e/primitive-mesh.md
+  s_f1a7b8285f1df2::t_429f3907d06ef4 24
+  s_f1a7b8285f1df2::t_e605f84add5284 25
+e2e/fixtures/originImage/GPUInstancing_gpu-instancing-custom-data.jpg
+  s_f1a7b8285f1df2::t_71a1f58fefafaa 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-billboard-stretched.jpg
+  s_f1a7b8285f1df2::t_6cb22a5b8ee69f 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-3d-rotation-life-seperate.jpg
+  s_f1a7b8285f1df2::t_358c0354380708 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-3d-rotation.jpg
+  s_f1a7b8285f1df2::t_673109a4967cb5 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-rotation-life-seperate.jpg
+  s_f1a7b8285f1df2::t_3667a11031d919 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-rotation-life.jpg
+  s_f1a7b8285f1df2::t_66c7370ebe09e2 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-rotation-world.jpg
+  s_f1a7b8285f1df2::t_59096a9990d65a 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-rotation.jpg
+  s_f1a7b8285f1df2::t_930808b2df7dde 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone.jpg
+  s_f1a7b8285f1df2::t_d5097c9364c0f0 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-no-shape-world.jpg
+  s_f1a7b8285f1df2::t_061d7d3d81cc82 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-no-shape.jpg
+  s_f1a7b8285f1df2::t_8a2e714bd7fd51 2-3
+e2e/fixtures/originImage/Primitive_primitive-capsule.jpg
+  s_f1a7b8285f1df2::t_3d7c0a5faf06a0 2-3
+e2e/fixtures/originImage/Primitive_primitive-cylinder.jpg
+  s_f1a7b8285f1df2::t_8b3ffdb767eb01 2-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "032c33a7074df70d065263e79fa9450d88318196",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

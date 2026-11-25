@@ -1,0 +1,54 @@
+e2e/package.json
+  h_bd4dd7d663e619 4
+examples/package.json
+  h_bd4dd7d663e619 3
+package.json
+  h_bd4dd7d663e619 3
+packages/core/package.json
+  h_bd4dd7d663e619 3
+packages/design/package.json
+  h_bd4dd7d663e619 3
+packages/galacean/package.json
+  h_bd4dd7d663e619 3
+packages/loader/package.json
+  h_bd4dd7d663e619 3
+packages/math/package.json
+  h_bd4dd7d663e619 3
+packages/physics-physx/package.json
+  h_bd4dd7d663e619 3
+packages/rhi-webgl/package.json
+  h_bd4dd7d663e619 3
+packages/shader-analyzer/package.json
+  h_bd4dd7d663e619 3
+packages/shader-compiler/package.json
+  h_bd4dd7d663e619 3
+packages/shader-parser/package.json
+  h_bd4dd7d663e619 3
+packages/shader/package.json
+  h_bd4dd7d663e619 3
+packages/spine-core-3.8/package.json
+  h_bd4dd7d663e619 3
+packages/spine-core-4.2/package.json
+  h_bd4dd7d663e619 3
+packages/spine/package.json
+  h_bd4dd7d663e619 3
+packages/ui/package.json
+  h_bd4dd7d663e619 3
+packages/xr-webxr/package.json
+  h_bd4dd7d663e619 3
+packages/xr/package.json
+  h_bd4dd7d663e619 3
+tests/package.json
+  h_bd4dd7d663e619 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dd2cd733f3bc20da2176e594ca4afd7223e8e10e",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

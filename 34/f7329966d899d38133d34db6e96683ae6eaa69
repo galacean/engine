@@ -1,0 +1,100 @@
+examples/screen-space-reflection/SSR_AUTHORING.md
+  h_a3c79ce84ffdc2 9,13,15-17,21-23,25-28,32-36
+packages/core/src/Camera.ts
+  h_a3c79ce84ffdc2 664
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_a3c79ce84ffdc2 154,290-294,342-352,385-396
+packages/core/src/RenderPipeline/Blitter.ts
+  h_a3c79ce84ffdc2 1,3,9,23-27,30,43-44,55-57,70-72,106-131
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_a3c79ce84ffdc2 51-62
+packages/core/src/RenderPipeline/RenderContext.ts
+  h_a3c79ce84ffdc2 40-57,100
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_a3c79ce84ffdc2 4,52-56,86-88,110-112,121,189-199
+packages/core/src/RenderPipeline/RenderTargetPool.ts
+  h_a3c79ce84ffdc2 4-10,20,170-189,195-198
+packages/core/src/Scene.ts
+  h_a3c79ce84ffdc2 519
+packages/core/src/base/EngineObject.ts
+  h_a3c79ce84ffdc2 66-78
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_a3c79ce84ffdc2 140,145,150
+packages/core/src/lighting/screenSpaceReflection/SSRDepthOccluderCuller.ts
+  h_a3c79ce84ffdc2 1-86
+packages/core/src/lighting/screenSpaceReflection/SSRDiagnostics.ts
+  h_a3c79ce84ffdc2 28
+packages/core/src/lighting/screenSpaceReflection/SSRForwardProgramResolver.ts
+  h_a3c79ce84ffdc2 1-187
+packages/core/src/lighting/screenSpaceReflection/SSRHistoryState.ts
+  h_a3c79ce84ffdc2 2,13,21,23,26-27,32-35,42-49,54-80,90,92,106-109,118-134,137,143
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_a3c79ce84ffdc2 1,11,14,22,24,29-38,41,49,59-60,87-89,91,94,103-104,108,124-126,128-132,134,139,149-150,161,164,167,180,184,192-195,225-226,237,246-247,250-251,253,259,273-277,286,291-292,298-305,307-311,317,321,325-364,366,368,370,372-381,384-385,398,417,431,452-463,486,489-490,496,505-508,512,514-515,532,534,536-537,543,550,552,584,594-595,601-608,612-626,663-672,676-717,719,724-733,741-785,787-820,822,831-842,846,848-857,859-878,884,889-890,892,895-935,937-969,980-992,994-997,1001-1058,1064-1067,1072,1082-1091,1095,1149-1150,1161-1162,1171-1226,1230,1232,1239-1240,1249,1255,1258,1264,1274,1302-1305,1309,1315-1318,1332,1349-1355,1363-1368,1370,1373,1388-1404,1418-1442,1445,1452-1453,1461-1467,1476-1481,1484,1487-1491,1498-1504,1511-1533,1535-1567,1583,1585-1587,1589-1597,1600-1608,1611-1614,1616-1620,1648-1663,1665-1673,1676-1698,1722,1724-1727,1729-1737,1739-1761,1765-1865,1879-1889,1891-1928,1930-1995,1997-2000,2003-2007,2010-2011,2013-2203,2211-2213,2224-2226,2251-2288,2290-2291,2293,2296-2297,2300-2303,2310,2313,2324-2331,2335-2338,2354-2356,2362,2365,2371,2373-2383,2393-2394,2401,2422
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionQuality.ts
+  h_a3c79ce84ffdc2 7
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts
+  h_a3c79ce84ffdc2 16,31,144-155,170,186,201-202
+packages/core/src/material/BaseMaterial.ts
+  h_a3c79ce84ffdc2 15-37
+packages/core/src/material/Material.ts
+  h_a3c79ce84ffdc2 25-39,118-119
+packages/core/src/material/PBRMaterial.ts
+  h_a3c79ce84ffdc2 574,590,608,621
+packages/core/src/postProcess/FinalPass.ts
+  h_a3c79ce84ffdc2 67-78,80-91,93
+packages/core/src/postProcess/PostProcessManager.ts
+  h_a3c79ce84ffdc2 6,28-29,195-204,214,217,220-224,238-252,303-305,307,311,315,323-344,346,360-365
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_a3c79ce84ffdc2 79-90,191,202-205
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_a3c79ce84ffdc2 72
+packages/core/src/renderingHardwareInterface/IPlatformRenderTarget.ts
+  h_a3c79ce84ffdc2 16,18
+packages/core/src/renderingHardwareInterface/IPlatformTexture2D.ts
+  h_a3c79ce84ffdc2 53-57
+packages/core/src/shader/ShaderData.ts
+  h_a3c79ce84ffdc2 27-29,760
+packages/core/src/shader/ShaderProgram.ts
+  h_a3c79ce84ffdc2 74,76,90,96,104,202,353-368,510-512,560-561,593-623
+packages/core/src/texture/RenderTarget.ts
+  h_a3c79ce84ffdc2 216-221,255,258,272-273
+packages/core/src/texture/Texture2D.ts
+  h_a3c79ce84ffdc2 171-192
+packages/loader/src/MaterialLoader.ts
+  h_a3c79ce84ffdc2 4,91-93,124-129,133-138
+packages/loader/src/schema/MaterialSchema.ts
+  h_a3c79ce84ffdc2 8-9
+packages/rhi-null/src/NullGraphicDevice.ts
+  h_a3c79ce84ffdc2 84
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_a3c79ce84ffdc2 2,18,27,30-31,38,83-84,95-130,134,145,160,171-172,177,187,189,211-214,216-229,238-247,262,316,352,356-392
+packages/rhi-webgl/src/GLTexture.ts
+  h_a3c79ce84ffdc2 559-568,610
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  h_a3c79ce84ffdc2 121
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_a3c79ce84ffdc2 112-116,325-338,340,390-435,475-477,550,570,631,661-678
+packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl
+  h_a3c79ce84ffdc2 81-88
+packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl
+  h_a3c79ce84ffdc2 8,22,29,31,79-80,83,87-92,94,100-104,108-135
+packages/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  h_a3c79ce84ffdc2 20,39,44,50,54,85,113,136,142,221,225,308-309,321-340,342-395,397-425,427-429,431-482,485-511,513-548,550,554-561,563,565-577,580-584,587,613,615,618,626,629,636-640,647-653,709-710,718,722,731-734,742-745,753-777,780-784,786-818,821-843,845,847-851,876,879-882,884,896,969-1043
+packages/shader/src/Shaders/Pipeline/SSRReceiver.shader
+  h_a3c79ce84ffdc2 11,122-123,242,245
+tests/src/core/lighting/ScreenSpaceReflection.test.ts
+  h_a3c79ce84ffdc2 22,24,27,36,48,253-254,257-258,346-347,351-352,355-356,360-361,396-397,407-408,418-419,505-510,567,573-575,714-721,821-825,1056-1057,1059-1078,1080-1101,1103-1116,1118-1133,1135-1141,1143-1269,1468-1469,1473-1478,1502,1671,1677-1680,1813,1817-1818,1820-1834,1836,1840-1841,1854-1880,1894-1895,2012,2043-2053,2159-2162,2164,2169,2253-2258,2263,2268-2270,2503-2507,2509-2519,2561-2567,2744-5641
+tests/src/core/postProcess/PostProcess.test.ts
+  h_a3c79ce84ffdc2 27,954-1083
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "34f7329966d899d38133d34db6e96683ae6eaa69",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

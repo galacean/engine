@@ -1,0 +1,29 @@
+packages/world-planning/src/world/SeedWorldViewSnapshot.ts
+  s_1b90965562f41c::t_a0e075b908b3ca 55-56,583-587,592-595
+world/demos/seed-world/src/SeedWorldPhotoInput.ts
+  s_c8cebd5c74180d::t_1e5f22d867f3b2 25,41-42,59-66,81-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "de143f9dd15caef69130d505e974ecc269555d74",
+  "prompts": {},
+  "sessions": {
+    "s_1b90965562f41c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20cba-6204-74e1-9219-25b2d450ff94",
+        "model": "gpt-6.1-terra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    },
+    "s_c8cebd5c74180d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20d5d-e76b-7231-9b91-0bf872dca226",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

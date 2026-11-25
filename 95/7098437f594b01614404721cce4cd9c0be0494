@@ -1,0 +1,26 @@
+tests/src/core/postProcess/PostProcess.test.ts
+  h_171a11afaf879a 954-1045
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  s_3cd6502d102d7f::t_23dd3e22d51012 48-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "957098437f594b01614404721cce4cd9c0be0494",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  },
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+packages/core/src/physics/joint/Joint.ts
+  s_781d0956816c41::t_befaa4026857d6 37,265-267
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0d8cf6113fa2a635ef2adaa01d2f6a428c9634e7",
+  "prompts": {},
+  "sessions": {
+    "s_781d0956816c41": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20e19-bc86-7322-9233-2497eeb1858b",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

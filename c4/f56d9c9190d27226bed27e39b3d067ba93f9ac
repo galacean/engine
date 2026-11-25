@@ -1,0 +1,20 @@
+tests/benchmarks/seed-templates/demo.mjs
+  s_3cd6502d102d7f::t_256d3acdeb4a8b 1-24,33-34,38,40
+  s_3cd6502d102d7f::t_023fda8f23d253 25-32,41-52,58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c4f56d9c9190d27226bed27e39b3d067ba93f9ac",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

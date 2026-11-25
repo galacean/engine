@@ -1,0 +1,20 @@
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  h_ddbf152d31b140 317-329,332-333,337
+packages/world-planning/tests/SeedWorldPhotoGraphics.spec.ts
+  h_ddbf152d31b140 610-664
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  h_ddbf152d31b140 47-48,86-87,177,183-184,431-438,469-470,483-485,487-494,496,498-559,562,577-579,591-592,599,601,605-606,631-632,645-647,651-652,654-656,1213-1216,1254-1255,1262,1266,1269,1302-1303
+world/tests/seed-world/SeedWorldPhotoWorkspace.spec.ts
+  h_ddbf152d31b140 14,22,25,116,148-153,156,160-170,587-827
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b8cb058cb3ea8cd58dde6a99e7c9788c0a7850a6",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

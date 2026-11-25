@@ -1,0 +1,42 @@
+packages/core/src/physics/Rigidbody.ts
+  s_87cc7a3b1b4ffa::t_b15242ac4743f0 390-391,400,408
+  s_87cc7a3b1b4ffa::t_ac964af33bf83e 617,619-620
+  s_87cc7a3b1b4ffa::t_ac9573bd6dc5ea 202-209,218
+  s_87cc7a3b1b4ffa::t_57675a4e6557d0 149,166-173,182
+  s_87cc7a3b1b4ffa::t_04837a9f8a1161 441-442
+  s_87cc7a3b1b4ffa::t_c3acf33f1adeea 556-557
+  s_87cc7a3b1b4ffa::t_26af0faf33d582 323-324
+  s_87cc7a3b1b4ffa::t_fbbf2726375289 616,661-697
+  s_87cc7a3b1b4ffa::t_b41ab3743bcdbd 17-18
+  s_87cc7a3b1b4ffa::t_a7177682988913 636
+  s_87cc7a3b1b4ffa::t_4ff6eea1506c67 603-604,608,611-615
+  s_e2b8ab02c8b193::t_0cee2598a861f0 698
+tests/src/core/physics/Rigidbody.test.ts
+  s_87cc7a3b1b4ffa::t_9bcf0bfafd2421 219-220
+packages/core/src/physics/PhysicsScene.ts
+  s_87cc7a3b1b4ffa::t_4750f0d6164513 825-830
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c017ae083c47223f9fd97723a2786768a5f993cd",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_e2b8ab02c8b193": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "53998d71-ecc6-4029-8497-2cf9a46909e4",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

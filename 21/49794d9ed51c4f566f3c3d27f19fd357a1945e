@@ -1,0 +1,35 @@
+packages/physics-havok/src/HavokDynamicCollider.ts
+  s_a3b336843a4c83::t_ba1ac86ae00722 40-41,97,100,111,131,254,259,264,275,290-292,310,325,334,346,365,536,546,552
+packages/physics-havok/src/HavokPhysicsMaterial.ts
+  s_a3b336843a4c83::t_2e038efa1e8e29 5
+packages/physics-havok/src/joint/HavokFixedJoint.ts
+  s_a3b336843a4c83::t_e24d23c62064e4 12,129
+packages/physics-havok/src/joint/HavokJoint.ts
+  s_a3b336843a4c83::t_e3265af3d616ea 29,149,154,159,164,184,245,247
+tests/package-consumer/PhysicsHavokPackage.test.ts
+  s_6e577c7c504f4f::t_abf3fdae2ac34d 92,97,101-138,148-150,162-164,175,210-224,240-255
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2149794d9ed51c4f566f3c3d27f19fd357a1945e",
+  "prompts": {},
+  "sessions": {
+    "s_6e577c7c504f4f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1f2ce-eaa2-74f4-bbbb-10c5421a34cc",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_a3b336843a4c83": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1f533-34f1-74cf-973c-7e47ac7c339a",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+packages/core/src/renderingHardwareInterface/IPlatformBuffer.ts
+  s_3cd6502d102d7f::t_a36df67c474a0b 18-21
+tests/src/rhi-webgpu/UniformArena.test.ts
+  s_3cd6502d102d7f::t_6f7d6e80654c65 1-4,6-7,14-24,34-35,38-41,45-49,52-53,55-63
+  s_3cd6502d102d7f::t_66ec296db5da3a 5,8-13,25-33,36-37,42-44,50-51,54
+packages/core/src/shader/GlobalUniformBlock.ts
+  s_3cd6502d102d7f::t_a36df67c474a0b 170-180
+packages/rhi-webgpu/src/WebGPUBuffer.ts
+  s_3cd6502d102d7f::t_a36df67c474a0b 48-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "547c9e892ea6400ecd392af558780e0e151b9bd2",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

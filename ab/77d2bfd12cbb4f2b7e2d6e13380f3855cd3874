@@ -1,0 +1,21 @@
+packages/world-planning/src/semantic-study/PlanningWhiteboxes.ts
+  s_400c2d1e050e6a::t_79a04f2b33d91e 154
+world/tests/seed-world/AnimalLocalWorldChange.spec.ts
+  s_400c2d1e050e6a::t_a3e9985748f7d5 185-200
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ab77d2bfd12cbb4f2b7e2d6e13380f3855cd3874",
+  "prompts": {},
+  "sessions": {
+    "s_400c2d1e050e6a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1eec7-99c5-78c0-a326-98cab4c67870",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

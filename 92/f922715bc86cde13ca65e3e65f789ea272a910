@@ -1,0 +1,16 @@
+packages/core/src/mesh/ModelMesh.ts
+  h_171a11afaf879a 860
+tests/src/core/ContextRestoreAndMesh.test.ts
+  h_171a11afaf879a 268-305
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "92f922715bc86cde13ca65e3e65f789ea272a910",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

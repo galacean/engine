@@ -1,0 +1,16 @@
+packages/core/src/asset/ResourceManager.ts
+  h_bd4dd7d663e619 328,616-641
+tests/src/core/resource/ResourceManager.test.ts
+  h_bd4dd7d663e619 619-681
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "36898c21858d562ca28dd19354c102a41975101e",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

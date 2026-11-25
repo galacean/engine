@@ -1,0 +1,21 @@
+packages/shader-compiler/src/codeGen/GLES300.ts
+  s_da48a1c3cefcb7::t_29356ce51d3c6c 2,86-102,105,107,110,113,115,117
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  s_da48a1c3cefcb7::t_55cb4aa000c8d7 69-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c482dcb8a3c6955eedaadae14414d1d24e0a90ce",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

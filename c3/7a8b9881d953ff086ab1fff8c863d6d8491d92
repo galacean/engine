@@ -1,0 +1,30 @@
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  h_171a11afaf879a 33-34,99,103,156-159,175,263,304-305,308,311,318,324-347,349-466,469-470,477,491,509,511,513,523-532,534-535,541
+packages/modify/src/native/core/src/postProcess/effects/VolumetricLightEffect.ts
+  h_171a11afaf879a 4,9,14-31,38-45,59-62,70-73,85-97,102,105,108,117-134,153,167-171,178,203-217,242-262
+packages/modify/src/native/core/src/postProcess/effects/index.ts
+  h_171a11afaf879a 5
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  h_171a11afaf879a 31-38,40-41,45-76,126-134
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/VolumetricLight.glsl
+  h_171a11afaf879a 6,8,17-38,58-79,82,84-88,90-91,93-94,97,105,107,113-116,121,135,153-346
+packages/modify/src/native/shader/src/Shaders/PostProcess/VolumetricLight.shader
+  h_171a11afaf879a 3,10,16-29,41-66
+packages/modify/tests/VolumetricLight.spec.ts
+  h_171a11afaf879a 2-10,96-101,130-225
+packages/terrain/src/terrain/project/TerrainPostProcessRuntime.ts
+  h_171a11afaf879a 13-14,105,111-116,159,165-170,449-515,695,701-706,749,754-760,887,893-898
+packages/world-planning/src/integrations/terrain/debug/TerrainRuntimeDebugInspector.ts
+  h_171a11afaf879a 2,774-785,794,798,806,810-835
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c37a8b9881d953ff086ab1fff8c863d6d8491d92",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

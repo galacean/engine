@@ -1,0 +1,21 @@
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_a4d9dd90218d81::t_a01e73c548b48d 17,43-45,63-66,68-69,71-75,169,180,213-226,237-245,269-272,286,367-369,380-382,399-401,461-465,528-532,584,597
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  s_a4d9dd90218d81::t_eae659099cb0f3 102-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0d4644612a28836260159c3f03ff29f444562289",
+  "prompts": {},
+  "sessions": {
+    "s_a4d9dd90218d81": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1fc06-e419-7d62-a252-2e83fbdcf328",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

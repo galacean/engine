@@ -1,0 +1,25 @@
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_d8ee274aaca994::t_859cac061fad62 282
+packages/loader/README.md
+  s_d8ee274aaca994::t_56799396bea3a0 3-5
+tests/src/core/postProcess/PostProcess.test.ts
+  s_d8ee274aaca994::t_38a0b3779c844d 180
+tests/src/loader/PrefabResource.test.ts
+  s_d8ee274aaca994::t_42070bdd0d2981 65-68,318-319,783-860
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "26620e266e787d5979277a64deeb91b304a44c43",
+  "prompts": {},
+  "sessions": {
+    "s_d8ee274aaca994": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cf59e742-f257-4c31-b534-b6b028898e35",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

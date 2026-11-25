@@ -1,0 +1,27 @@
+packages/terrain/src/shader/TerrainGroundBlend.glsl
+  s_b4932ee6673859::t_01ca51f672d73e 1-45
+packages/terrain/src/shader/TerrainHeight.glsl
+  s_b4932ee6673859::t_46150c77d22e18 1-83
+packages/terrain/src/shader/TerrainHeightField.glsl
+  s_b4932ee6673859::t_9b608fe8d1c002 1-64
+packages/terrain/src/shader/TerrainRegions.glsl
+  s_b4932ee6673859::t_8fd858ff244c16 1-68
+packages/terrain/src/shader/TerrainSurfaceData.glsl
+  s_b4932ee6673859::t_79fb17cfbfd8c3 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8c384b1cfde2d5957ce2e40b1ddb133a65fbd32d",
+  "prompts": {},
+  "sessions": {
+    "s_b4932ee6673859": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ed5a-1ad6-72d1-bbb3-b76240cdaf12",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

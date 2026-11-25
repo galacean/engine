@@ -1,0 +1,48 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_c385727b10f40c 12,53,235,238-246,248-250,252-255,263-288,291-293,295,298-299,301-303,305-312,331-332,338-344,353-354,393
+packages/core/src/RenderPipeline/Blitter.ts
+  h_c385727b10f40c 4,26,64,77,81-82,84-89,123
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  h_c385727b10f40c 3,18-19,45-48,54-55
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_c385727b10f40c 4,61
+packages/core/src/RenderPipeline/RenderContext.ts
+  h_c385727b10f40c 6,69,72,81-97
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_c385727b10f40c 9,150,165,180
+packages/core/src/postProcess/FinalPass.ts
+  h_c385727b10f40c 9,77,89,101
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_c385727b10f40c 7,89,195,213,224,248
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_c385727b10f40c 19,71,73-74
+packages/core/src/renderingHardwareInterface/RenderPassDescriptor.ts
+  h_c385727b10f40c 1-65
+packages/core/src/renderingHardwareInterface/RenderTargetLoadAction.ts
+  h_c385727b10f40c 2,6,9-10,12
+packages/core/src/renderingHardwareInterface/RenderTargetStoreAction.ts
+  h_c385727b10f40c 2-4,7-8,10-11,14
+packages/core/src/renderingHardwareInterface/index.ts
+  h_c385727b10f40c 12-14
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_c385727b10f40c 9,60,126-129,216-217
+packages/rhi-null/src/NullGraphicDevice.ts
+  h_c385727b10f40c 81-82
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_c385727b10f40c 162-166,177-180,198-200
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_c385727b10f40c 22,24-25,98,103-106,432,434-443,445-509,657-659,733,736-738
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_c385727b10f40c 11,13-14,103,108,123,126-127,132,135-144,146-147,149,152-155,157-159,164-167,174,177-181,184,187,190-194,197,200,202-217,220,222-229,231-236,238,240-241,243-246,252,255-261,265,268-271,280-283,287-291,297,304-308,311-312,324-332,339-342,344-345,476,500,520,531,538,545,552,555,568,571,606,612,614-621,627,634,636-640,666,814-830,832
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "42a9b5029956828fd4ced504f9c797179940aa04",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

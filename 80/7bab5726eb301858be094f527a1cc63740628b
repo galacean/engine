@@ -1,0 +1,97 @@
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_168dc8319b495b 634,1299,1564
+  s_f1a7b8285f1df2::t_bf199709590ffd 32,37,43,47-55,61,71-73,79,85,87,91-94,99,106,108-109,113-118,120,137,143,149-150,154-157,161,167,182-183,214,224,229,234,239,244,254,259,264,269,274,322,342,363,365-366,379-381,394-416,418-425,427,437,491,523-525,568,576-581,605-606,635,638,640,699,717-719,738-741,811,813-815,833-839,843-844,855,861,866,885-886,912-913,923-924,935-936,947-948,959-960,970-971,981-982,992-993,1018,1035-1037,1055-1057,1059-1060,1083,1094-1099,1113-1114,1122,1203,1241,1274-1275,1295-1298,1303-1304,1339-1340,1364-1366,1378-1380,1402-1403,1433-1435,1458-1459,1462,1487,1508-1511,1526-1527,1538-1540,1567,1589-1590,1619,1668,1670-1671,1725-1727,1748-1750,1779,1806,1840,1865
+  s_f1a7b8285f1df2::t_60430570265b09 1531,1537
+packages/loader/src/PrimitiveMeshLoader.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 38,62,109-110
+e2e/case/multi-camera-no-clear.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 57,86
+e2e/case/primitive-sections.ts
+  s_f1a7b8285f1df2::t_168dc8319b495b 35
+  s_f1a7b8285f1df2::t_bf199709590ffd 31,36,42-43
+  s_f1a7b8285f1df2::t_2ce29bad282b7e 30
+e2e/case/material-white-furnace.ts
+  s_f1a7b8285f1df2::t_3823576eee6dea 98
+e2e/case/primitive-all.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 89,97,100,104,112,120,131,135,144,154,160-161,163-164,169-172
+tests/src/core/mesh/BlendShapeManager.test.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 221
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_f1a7b8285f1df2::t_3823576eee6dea 1813,1815,1946,1964-1970,1972,1975,1977
+  s_f1a7b8285f1df2::t_168dc8319b495b 604
+  s_f1a7b8285f1df2::t_1d1260de4eaae7 570-571,586
+  s_f1a7b8285f1df2::t_bf199709590ffd 186,192-196,231,235-236,240,333,337-342,347,361-363,371-372,374,413,418,431,435,448,452,465,469,482,486,523,527,556,572-575,588-591,599,603,612-613,616,620,645,649,656-658,660-661,665,676,902,913,924,929-930,935-936,968,976,983,1048,1053,1092,1098,1197,1199,1202-1203,1210,1215,1254,1256-1257,1259,1262,1267-1268,1276-1277,1282,1466-1469,1473,1475-1477,1479-1481,1528,1597,1607,1618
+e2e/case/primitive-topology.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 11,16,21,51,57,78,83,88,93,98,108,113,118,123,134,152,162
+  s_f1a7b8285f1df2::t_168dc8319b495b 15,20,50,56,97,117,122,133,147,157
+  s_f1a7b8285f1df2::t_2ce29bad282b7e 77,82,87,92,107,112
+tests/package-consumer/fixtures/PrimitiveMeshApi.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 39,41-44,50-51,53,59-60,67-68,75-76,82,85,87-89,91,93,96,98-106,108-111,113-114,116,118-120,123-126,188,275,277,279,281,291,300-302,304,306,308
+tests/src/core/mesh/PrimitiveMesh.test.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 23-24,40,64,92-93,116-118,138,159,183-185,196-198
+  s_f1a7b8285f1df2::t_168dc8319b495b 87,89,99,103
+  s_f1a7b8285f1df2::t_c95d54f8a4ecdf 94
+tests/src/core/physics/ColliderLayer.test.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 105
+tests/src/core/physics/MeshColliderLayer.test.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 29
+packages/loader/src/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 73,123,125,242,246
+  s_f1a7b8285f1df2::t_168dc8319b495b 244
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 62-63,73,94,139-145,168-170,176-178,183-184,193-195,201-203,228-229,231,308,327-329,336-338,358,364,375-376,380-381,385-386,390-391,413,418-419,436-438,440,446-448,450,459,461-462,470,472-473,481,484-488,496,498,508-511,515-516,524-526,529,537-539,542,552,554,563-564,568
+  s_f1a7b8285f1df2::t_3823576eee6dea 616,625-628,654
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_168dc8319b495b 148,150,162,169,177,190-194,199-200,202,205,207
+  s_f1a7b8285f1df2::t_0cc9b67faa6ba3 139,209,216,218,225,227,253,263,273,276,302,306
+tests/package-consumer/fixtures/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_3823576eee6dea 15,21-25,31,47,53,59,65-66,100,106,112
+e2e/case/primitive-materials.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 22-26,30,44,50,56,63,70,77-79,86-89,109,116
+  s_f1a7b8285f1df2::t_168dc8319b495b 37,94,101,108
+e2e/case/primitive-sphere-sections.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 58-59,63-66,69-70,75,82-86
+examples/src/shader-04-multi-pass.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 137
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_f1a7b8285f1df2::t_168dc8319b495b 11,14,21,54,58,60,62,64,66,68
+  s_f1a7b8285f1df2::t_fc2607f5488056 70,76,80
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_168dc8319b495b 150,154,166,173,181,195-199,205-206,208,211
+  s_f1a7b8285f1df2::t_0b86bc844ca460 139,213,215,222,224,231,233,259,269,279,282,308,312
+examples/src/shader-03-ui-script.ts
+  s_f1a7b8285f1df2::t_bf199709590ffd 191
+e2e/case/primitive-contours.ts
+  s_f1a7b8285f1df2::t_168dc8319b495b 87,102
+  s_f1a7b8285f1df2::t_2ce29bad282b7e 73,97,107
+  s_f1a7b8285f1df2::t_bf199709590ffd 75-76,83,88,93,98,103,108,113
+packages/core/src/mesh/PrimitiveMeshOptions.ts
+  s_f1a7b8285f1df2::t_168dc8319b495b 357
+  s_f1a7b8285f1df2::t_bf199709590ffd 12,40,46,53,79,90,93,95,127,159,191,223,234,240,267,289,317,328,339,350,355,358,360,366,377,387,389,395,401,412,426,429,434
+e2e/fixtures/originImage/Primitive_primitive-contours.jpg
+  s_f1a7b8285f1df2::t_fb4490eaf76723 2-3
+e2e/fixtures/originImage/Primitive_primitive-materials.jpg
+  s_f1a7b8285f1df2::t_301edfb9a878c9 2-3
+e2e/fixtures/originImage/Primitive_primitive-sections.jpg
+  s_f1a7b8285f1df2::t_a4b5c83286c1bf 2-3
+e2e/fixtures/originImage/Primitive_primitive-topology.jpg
+  s_f1a7b8285f1df2::t_700eb2452c60de 2-3
+e2e/primitive-mesh.md
+  s_f1a7b8285f1df2::t_de4c8ac61ad5fa 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "807bab5726eb301858be094f527a1cc63740628b",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
