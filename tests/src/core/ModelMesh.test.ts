@@ -688,4 +688,44 @@ describe("ModelMesh Test", async function () {
       recovered.destroy();
     }
   });
+
+  it("tracks geometry revision across position, layout, and index updates", () => {
+    const mesh = new ModelMesh(engine);
+    const bufferMesh = new ModelMesh(engine);
+    const buffer = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      new Float32Array([1, 2, 3, 4, 5, 6]),
+      BufferUsage.Static,
+      true
+    );
+    try {
+      const initialVersion = mesh._getGeometryVersion(false);
+      mesh.setPositions([new Vector3(1, 0, 0)]);
+      const afterSetPositions = mesh._getGeometryVersion(false);
+      expect(afterSetPositions).toBeGreaterThan(initialVersion);
+
+      mesh.setIndices(new Uint16Array([0, 0, 0]));
+      expect(mesh._getGeometryVersion(false)).toBe(afterSetPositions);
+      expect(mesh._getGeometryVersion(true)).toBeGreaterThan(afterSetPositions);
+
+      bufferMesh.setVertexBufferBinding(buffer, 24, 0);
+      bufferMesh.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0)]);
+      const decodedA = bufferMesh.getPositions()!;
+      const afterDecodeA = bufferMesh._getGeometryVersion(false);
+      expect(decodedA[0]).toMatchObject({ x: 1, y: 2, z: 3 });
+      expect(afterDecodeA).toBeGreaterThan(-1);
+
+      // Redeclaring position layout with a new byte offset forces fresh readback and advances revision.
+      bufferMesh.setVertexElements([new VertexElement(VertexAttribute.Position, 12, VertexElementFormat.Vector3, 0)]);
+      const decodedB = bufferMesh.getPositions()!;
+      const afterDecodeB = bufferMesh._getGeometryVersion(false);
+      expect(decodedB[0]).toMatchObject({ x: 4, y: 5, z: 6 });
+      expect(afterDecodeB).toBeGreaterThan(afterDecodeA);
+    } finally {
+      mesh.destroy();
+      bufferMesh.destroy();
+      buffer.destroy();
+    }
+  });
 });
