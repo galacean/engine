@@ -62,7 +62,10 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
                   }
                 });
               } else {
-                return ImageDecoder._decode(bufferData, this.resource.url, textureRestoreInfo.mimeType).then(
+                return ImageDecoder._withTextureSource(
+                  bufferData,
+                  this.resource.url,
+                  textureRestoreInfo.mimeType,
                   (image) => {
                     texture.setImageSource(image);
                     texture.generateMipmaps();

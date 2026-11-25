@@ -52,7 +52,7 @@ class Texture2DDecoder {
       });
     }
 
-    return ImageDecoder._decode(imageData, url).then((img) => {
+    return ImageDecoder._withTextureSource(imageData, url, undefined, (img) => {
       const texture = getTexture();
       texture.setImageSource(img);
       texture.generateMipmaps();
