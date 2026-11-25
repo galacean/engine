@@ -1695,6 +1695,10 @@ describe("Animator test", function () {
       set value(direction: Vector3) {
         this._value = Object.freeze(direction);
       }
+
+      readValue(): Vector3 {
+        return new Vector3().copyFrom(this._value);
+      }
     }
 
     function directionClip(...values: Vector3[]): AnimationClip {
@@ -1717,6 +1721,26 @@ describe("Animator test", function () {
         clip.sampleAnimation(entity, 1);
         expect(initial).toMatchObject({ x: 1, y: 0, z: 0 });
         expect(sampled).toMatchObject({ x: 0, y: 1, z: 0 });
+        expect(direction.value).toMatchObject({ x: 0, y: 0, z: 1 });
+      } finally {
+        entity.destroy();
+      }
+    });
+
+    it("writes whole vectors through the setter when a separate read path returns a mutable copy", () => {
+      const entity = engine.sceneManager.activeScene.createRootEntity();
+      try {
+        const direction = entity.addComponent(Direction);
+        const clip = new AnimationClip("direction");
+        const curve = new AnimationVector3Curve();
+        curve.addKey({ time: 0, value: new Vector3(0, 1, 0) });
+        curve.addKey({ time: 1, value: new Vector3(0, 0, 1) });
+        clip.addCurveBinding("", Direction, "value", "readValue()", curve);
+
+        clip.sampleAnimation(entity, 0);
+        const first = direction.value;
+        clip.sampleAnimation(entity, 1);
+        expect(first).toMatchObject({ x: 0, y: 1, z: 0 });
         expect(direction.value).toMatchObject({ x: 0, y: 0, z: 1 });
       } finally {
         entity.destroy();

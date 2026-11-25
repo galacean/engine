@@ -819,7 +819,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
     return q.x === 0 && q.y === 0 && q.z === 0 && (q.w === 1 || q.w === -1);
   }
 
-  /** Signed world scale and shear in the Entity's rotation frame. The result is shared scratch storage. */
   private _getScaleMatrix(): Matrix3x3 {
     const invRotation = Transform._tempQuat0;
     const invRotationMat = Transform._tempMat30;
