@@ -1,4 +1,6 @@
 import "./src/installInsecureContextCryptoFallback.ts";
+import { seedWorldStorageHost } from "./storage/SeedWorldStorageHost";
+import { SharedWorldStorage, type WorldSelection } from "./storage/SharedWorldStorage";
 import type { PlanningWorldHandoff } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
 import { planningStartupSeed, selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupSeed.ts";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
@@ -10,7 +12,7 @@ import {
 import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
 
 /** The planning preview and native Seed page have independent renderer lifetimes. */
-async function enterSeedWorld(handoff?: PlanningWorldHandoff): Promise<void> {
+async function enterSeedWorld(handoff?: PlanningWorldHandoff, selection?: WorldSelection): Promise<void> {
   document.getElementById("planning-app")?.remove();
   document.body.classList.remove("island-plan-page", "base-map-page");
   document.body.dataset.mode = "world";
@@ -51,15 +53,39 @@ async function enterSeedWorld(handoff?: PlanningWorldHandoff): Promise<void> {
   entryTiming.stylesReadyMs = performance.now();
   entryTiming.mountStartMs = performance.now();
   reportEntry();
-  await mountSeedWorldDemo(handoff);
+  await mountSeedWorldDemo(handoff, { storageSelection: selection });
 }
 
 async function start(): Promise<void> {
   const page = planningPageUrl();
-  const template = page.url.searchParams.get("template");
-  const seed = planningStartupSeed(page.url.searchParams);
+  const storage = await seedWorldStorageHost();
+  let template = page.url.searchParams.get("template");
+  const entryTemplate = template === "original" ? template : worldTemplate(template)?.id;
+  const selection = storage && await SharedWorldStorage.select(storage.db, storage.appVersion, entryTemplate);
+  const saved = selection?.raw === undefined ? undefined : selection;
+  const readOnly = storage?.readOnly || saved?.olderApp;
+  const seed = saved?.identity?.seed ?? planningStartupSeed(page.url.searchParams);
   let entrySeed = seed;
   let updateUrl = page.url.searchParams.get("seed") !== String(seed);
+  if (readOnly && (!saved || (saved.olderApp && !saved.identity))) {
+    const message = document.createElement("p");
+    message.style.color = "white";
+    message.textContent = saved?.olderApp ? "世界已更新，请从最新版本打开。" : "作者尚未保存这个世界。";
+    document.body.append(message);
+    return;
+  }
+  if (saved) {
+    const savedTemplate = saved.identity?.template;
+    if (!saved.checkpoint && entryTemplate) template = entryTemplate;
+    else if (savedTemplate && (savedTemplate === "original" || worldTemplate(savedTemplate))) template = savedTemplate;
+    else template = worldTemplate(template)?.id ?? "original";
+    page.url.searchParams.set("template", template);
+    updateUrl = true;
+  }
+  if (readOnly) {
+    page.url.searchParams.delete("debug");
+    updateUrl = true;
+  }
   if (template !== "original" && !worldTemplate(template)) {
     document.body.dataset.mode = "template";
     const host = document.createElement("div");
@@ -87,7 +113,7 @@ async function start(): Promise<void> {
     }
   }
   if (planningPageUrl().url.searchParams.get("debug") !== "1" || planningPageUrl().url.searchParams.get("view") === "3d") {
-    await enterSeedWorld();
+    await enterSeedWorld(undefined, selection);
     return;
   }
   document.body.dataset.mode = "planning";
@@ -101,6 +127,7 @@ async function start(): Promise<void> {
   document.body.append(host);
   const { mountWorldLayout } = await import("./src/planning/semantic-study/WorldLayoutEditor.ts");
   const editor = await mountWorldLayout(host, {
+    storageSelection: selection,
     onGenerate3D: async (plan, session, waterResetRequest) => {
       if (!session.result || session.pending) throw new Error("规划快照尚未就绪");
       const handoff = { document: session.export(), result: session.result, waterResetRequest };
@@ -116,7 +143,7 @@ async function start(): Promise<void> {
         url.searchParams.set("debug", "1");
         url.searchParams.set("view", "3d");
         if (panel) url.searchParams.set("panel", "1");
-        url.searchParams.set("template", plan.parameters.worldTemplate?.id ?? "original");
+        url.searchParams.set("template", plan.parameters.worldTemplate?.id || "original");
         appendPreservedDiagParams(url.searchParams, preserved);
         if (page.canReplaceHistory) history.replaceState(null, "", url);
         else {
@@ -133,6 +160,7 @@ function showStartupError(error: unknown): void {
   console.error("Seed World startup", error);
   if (document.getElementById("world-loading")) return;
   const message = document.createElement("p");
+  message.style.color = "white";
   message.textContent = "世界暂未加载完成，请刷新重试。已保存的工程不会被覆盖。";
   document.body.append(message);
 }

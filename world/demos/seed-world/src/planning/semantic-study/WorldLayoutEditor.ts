@@ -1,3 +1,4 @@
+import type { WorldSelection } from "../../../storage/SharedWorldStorage";
 import type { PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { poiForElement } from "@galacean/engine-world-planning/semantic-study/PoiContents";
 import { defaultPoiLayout, validatePoiConfig } from "@galacean/engine-world-planning/semantic-study/PoiDistribution";
@@ -26,6 +27,7 @@ const GLOBALS: readonly { key: GlobalKey; label: string; group: string; min?: nu
 ];
 /** Actions owned by the application outside the planning preview. */
 export interface WorldPlanningOptions {
+  storageSelection?: WorldSelection;
   /** Generate from the published layout. Read the session before disposing its editor/executor. */
   onGenerate3D?: (plan: IslandPlan, session: PlanningSession, waterResetRequest?: string) => void | Promise<void>;
 }

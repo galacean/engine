@@ -23,6 +23,7 @@ import {
   RuntimeProjectStorage,
   runtimeProjectFiles,
   validateRuntimeProject,
+  type RuntimeProjectBackend,
   type RuntimeProjectManifest,
   type RuntimeProjectPackage
 } from "@galacean/engine-project/runtime-editor/project/runtime-project";
@@ -270,6 +271,7 @@ export class RuntimeProjectSession {
   private readonly lifetime = new AbortController();
   private readonly persistence: RuntimeProjectPersistence;
   private persistenceSnapshot?: RuntimeProjectSnapshot;
+  readonly restoredFromStorage: boolean;
 
   private syncSnapshotContent(path: string, content: string | Uint8Array): void {
     const snapshot = this.persistenceSnapshot;
@@ -295,12 +297,13 @@ export class RuntimeProjectSession {
   private constructor(
     readonly id: string,
     readonly projectPackage: RuntimeProjectPackage,
-    private readonly storage: RuntimeProjectStorage,
+    private readonly storage: RuntimeProjectBackend,
     modules: readonly RuntimeScriptModule[] = [],
     private needsInitialization = false,
     persistenceOptions?: RuntimeProjectPersistenceOptions,
     private readonly prefetchedTextAssets?: ReadonlyMap<string, string>
   ) {
+    this.restoredFromStorage = !needsInitialization;
     this.scripts = new RuntimeProjectScripts(modules);
     this.dependencyMaintenance = new RuntimeDependencyMaintenance(projectPackage, this.referenceFormats);
     // Storage captures immutable text references and copies mutable data only when
@@ -325,12 +328,13 @@ export class RuntimeProjectSession {
     initial: RuntimeProjectManifest,
     baseUrl: string,
     options: {
+      storage?: RuntimeProjectBackend;
       scriptModules?: readonly RuntimeScriptModule[];
       persistence?: RuntimeProjectPersistenceOptions;
       prefetchedTextAssets?: ReadonlyMap<string, string>;
     } = {}
   ): Promise<RuntimeProjectSession> {
-    const storage = await RuntimeProjectStorage.open();
+    const storage = options.storage ?? (await RuntimeProjectStorage.open());
     try {
       const saved = await storage.load(id);
       const pack: RuntimeProjectPackage = saved ?? {
@@ -840,6 +844,12 @@ export class RuntimeProjectSession {
   get publicationRevision(): number {
     return this.acceptedRevision;
   }
+  get canSave(): boolean {
+    return !this.storage.readOnly;
+  }
+  private checkpoint(): number {
+    return this.canSave ? this.persistence.committed() : this.persistence.status.savedSeq;
+  }
   get persistenceStatus() {
     return this.persistence.status;
   }
@@ -850,6 +860,7 @@ export class RuntimeProjectSession {
   /** Explicit checkpoint, including prepared remote content. Does not hold the
    * publication queue while waiting for storage. */
   async save(): Promise<void> {
+    if (!this.canSave) return;
     const target = await this.enqueuePublication(async () => {
       const candidate = await this.withDependencies(this.projectPackage);
       const snapshot = RuntimeProjectSnapshot.create(candidate);
@@ -859,7 +870,7 @@ export class RuntimeProjectSession {
       this.persistenceSnapshot = snapshot;
       this.dependencyMaintenance.accept(candidate);
       this.markManifestValidated();
-      return this.persistence.committed();
+      return this.checkpoint();
     }, []);
     await this.flush(target);
   }
@@ -1095,7 +1106,7 @@ export class RuntimeProjectSession {
     if (existing && extractedDeps !== undefined) {
       this.dependencyMaintenance.rememberAcceptedAsset(this.projectPackage, existing, extractedDeps);
     }
-    this.persistence.committed();
+    this.checkpoint();
     return true;
   }
 
@@ -1220,7 +1231,7 @@ export class RuntimeProjectSession {
     this.markManifestValidated();
     // Runtime-owned state is merged into every editor publication, so it does not stale an author draft.
     if (!runtimeWrite) this.acceptedRevision++;
-    this.persistence.committed();
+    this.checkpoint();
     // Explicit undo and session history share the accepted authoring boundary,
     // including preparation output and excluding runtime-owned progress.
     return undo;
