@@ -901,6 +901,30 @@ describe("MeshCollider", () => {
     expect(hit.collider).toBe(collider);
   });
 
+  it.each([false, true])(
+    "unregisters a mesh collider destroyed by an earlier onDisable (kinematic=%s)",
+    (kinematic) => {
+      if (kinematic) root.addComponent(Rigidbody).isKinematic = true;
+      const entity = root.createChild();
+      entity.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            collider.destroy();
+          }
+        }
+      );
+      const collider = entity.addComponent(MeshCollider);
+      const mesh = createCubeMesh(engine);
+      collider.mesh = mesh;
+      expect(physics.raycast(rayAt(0))).toBe(true);
+
+      entity.isActive = false;
+      expect(entity.getComponent(MeshCollider)).toBeNull();
+      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(mesh.refCount).toBe(0);
+    }
+  );
+
   it.each(["disable-then-null", "null-then-disable"] as const)(
     "releases native mesh immediately when disabled and cleared (%s)",
     (order) => {
