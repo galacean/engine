@@ -1,8 +1,7 @@
-import { SeedWorldPhotoWorkspace, type PhotoDocument } from "./SeedWorldPhotoWorkspace.ts";
+import { SeedWorldPhotoWorkspace, type PhotoDocument, type PhotoWorkspaceHost } from "./SeedWorldPhotoWorkspace.ts";
 import { SEED_WORLD_PHOTO_CONFIG } from "@galacean/engine-world-planning/world/SeedWorldPhotoConfig";
 import type { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
 import { SeedWorldAnnotationHistory } from "./SeedWorldAnnotationHistory.ts";
-import type { SeedWorldInstantCamera } from "./SeedWorldInstantCamera.ts";
 
 function raceWithAbort(task: Promise<void>, signal: AbortSignal): Promise<void> {
   if (signal.aborted) {
@@ -63,14 +62,14 @@ export class SeedWorldLassoPanel {
   constructor(
     private readonly views: SeedWorldViewSnapshots,
     setFrozen: (frozen: boolean) => void,
-    private readonly instantCamera: SeedWorldInstantCamera
+    host: PhotoWorkspaceHost
   ) {
     this.button.type = "button";
     this.button.id = "world-screenshot";
     this.button.title = "截屏并标记";
     this.button.setAttribute("aria-label", "截屏并标记");
     // Unmounted command handle; SeedWorldCameraButton renders and receives Engine input.
-    this.workspace = new SeedWorldPhotoWorkspace(instantCamera, {
+    this.workspace = new SeedWorldPhotoWorkspace(host, {
       edit: (photo) => {
         void this.open(photo);
       },
@@ -91,7 +90,6 @@ export class SeedWorldLassoPanel {
     }, views.budget);
     this.button.onclick = () => {
       if (!this.active) {
-        instantCamera.unlockAudio();
         void this.open();
       }
     };
@@ -124,6 +122,8 @@ export class SeedWorldLassoPanel {
         this.workspace.notify(`最多保留 ${this.views.maxPhotos} 张照片，拖走或点开左上角 × 删除后再拍。`);
         return;
       }
+      // Play shutter click synchronously inside the click gesture via the Engine's AudioSource component.
+      this.workspace.playShutter();
     }
     const controller = (this.captureAbort = new AbortController()),
       signal = controller.signal;
@@ -193,7 +193,6 @@ export class SeedWorldLassoPanel {
     this.captureAbort?.abort();
     this.captureAbort = undefined;
     this.activeSnapshotId = undefined;
-    this.instantCamera.hide();
     this.workspace.cancel();
     this.releaseView?.();
     this.releaseView = undefined;
@@ -209,6 +208,5 @@ export class SeedWorldLassoPanel {
     this.workspace.dispose();
     this.views.clearAttachments();
     this.button.remove();
-    this.instantCamera.dispose();
   }
 }

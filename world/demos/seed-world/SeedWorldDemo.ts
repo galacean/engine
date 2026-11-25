@@ -3855,10 +3855,9 @@ export async function mountSeedWorldDemo(
       });
     }
     void (async () => {
-      const [, { SeedWorldLassoPanel }, { SeedWorldInstantCamera }] = await Promise.all([
+      const [, { SeedWorldLassoPanel }] = await Promise.all([
         capturePathWarmup,
-        import("./src/SeedWorldLassoPanel.ts"),
-        import("./src/SeedWorldInstantCamera.ts")
+        import("./src/SeedWorldLassoPanel.ts")
       ]);
       if (disposed) return;
       const preparingLasso = (lassoPanel = new SeedWorldLassoPanel(
@@ -3876,15 +3875,15 @@ export async function mountSeedWorldDemo(
             navigation.setInputEnabled(enabled);
           }
         },
-        new SeedWorldInstantCamera(engine!, canvas, camera, preparingViews.budget)
+        { engine: engine!, canvas, worldCamera: camera }
       ));
       if (eagerCapturePathWarmup) {
         await timed("lassoPanel.prepare", () => preparingLasso.prepare());
         await timed("farmingInteraction.prepare", () => farmingHost?.runtime?.prepareInteraction());
         await timed("pickPreparation.flush #2", () => preparingPicks.flush(editorLifetime.signal));
       } else {
-        // Preload photo paper GLB + shaders in the background after initial scene warmup
-        // so the first camera click opens immediately without stalling.
+        // Preload markup canvas shaders and shutter audio in the background after initial scene warmup
+        // so the first markup click opens immediately without stalling.
         void bgWarmupDone.then(() => {
           if (!disposed) void preparingLasso.prewarm();
         });

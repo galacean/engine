@@ -1,4 +1,3 @@
-import { SeedWorldLiquidGlassUiMaterial } from "@galacean/engine-modify/rendering/LiquidGlassPostProcessPass";
 import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
 import markupViewportSource from "./MarkupViewport.shader?raw";
 import markupStrokeFieldSource from "./MarkupStrokeField.shader?raw";
@@ -9,6 +8,10 @@ import { buildStrokeCapsuleSegments, smoothPolyline, type CapsuleSegmentVertexDa
 import type { PhotoImage } from "./SeedWorldPhotoImage";
 import { encodeImage, type ImageResourceBudget } from "@galacean/engine-ai-chat/ai-chat/image-resources";
 import {
+  AssetType,
+  AudioClip,
+  AudioManager,
+  AudioSource,
   BackgroundMode,
   BaseMaterial,
   Camera,
@@ -18,7 +21,6 @@ import {
   Font,
   Layer,
   Material,
-  Matrix,
   MeshRenderer,
   ModelMesh,
   PrimitiveMesh,
@@ -32,26 +34,77 @@ import {
   TextureFilterMode,
   TextureFormat,
   TextureWrapMode,
+  UnlitMaterial,
   Vector2,
   Vector3,
   Vector4,
   type Engine
 } from "@galacean/engine";
-import {
-  DEFAULT_PHOTO_INK,
-  PHOTO_BADGE,
-  PHOTO_TOOLBAR,
-  PHOTO_INK_COLORS,
-  photoDetailLayout
-} from "./SeedWorldPhotoPalette";
 import type { AgentViewImage } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import type { ViewAnnotation, ViewPoint } from "./SeedWorldViewSnapshot";
 
-export const PAPER_HEIGHT = 1.22337079;
 export const PHOTO_WORKSPACE_LAYER = Layer.Layer25;
 const WORKSPACE_UNIT_SCALE = 0.001;
-export const PHOTO_MODEL_URL = new URL("../assets/instant-camera/polaroid-photo.glb", import.meta.url).href;
-import { UnlitMaterial } from "@galacean/engine";
+
+let cachedShutterWavDataUrl: string | undefined;
+
+/** Synthesize a deterministic, crisp 95ms mechanical camera shutter click as a 16-bit mono PCM WAV data URL. */
+function getShutterWavDataUrl(): string {
+  if (cachedShutterWavDataUrl) return cachedShutterWavDataUrl;
+  const sampleRate = 22050;
+  const durationSeconds = 0.095;
+  const numSamples = Math.floor(sampleRate * durationSeconds);
+  const dataSize = numSamples * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const bytes = new Uint8Array(buffer);
+  const writeAscii = (offset: number, text: string) => {
+    for (let i = 0; i < text.length; i++) bytes[offset + i] = text.charCodeAt(i);
+  };
+  writeAscii(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeAscii(8, "WAVE");
+  writeAscii(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeAscii(36, "data");
+  view.setUint32(40, dataSize, true);
+
+  let seed = 0x51a7f3c9;
+  let prevNoise = 0;
+  const fadeOutSamples = Math.max(1, Math.floor(sampleRate * 0.003));
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sampleRate;
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const rawNoise = (seed / 0xffffffff) * 2 - 1;
+    const hpNoise = rawNoise - prevNoise * 0.45;
+    prevNoise = rawNoise;
+
+    // Stage 1 (0ms): crisp shutter release snap.
+    let sample =
+      hpNoise * Math.exp(-t / 0.0085) * 0.68 + Math.sin(2 * Math.PI * 2450 * t) * Math.exp(-t / 0.0045) * 0.24;
+    // Stage 2 (26ms): gentle shutter curtain close click.
+    if (t >= 0.026) {
+      const dt = t - 0.026;
+      sample +=
+        hpNoise * Math.exp(-dt / 0.011) * 0.38 + Math.sin(2 * Math.PI * 1350 * dt) * Math.exp(-dt / 0.007) * 0.2;
+    }
+    const tail = numSamples - i;
+    if (tail < fadeOutSamples) sample *= tail / fadeOutSamples;
+    const clamped = Math.max(-1, Math.min(1, sample));
+    view.setInt16(44 + i * 2, Math.round(clamped * 32767), true);
+  }
+
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
+  cachedShutterWavDataUrl = `data:audio/wav;base64,${btoa(binary)}`;
+  return cachedShutterWavDataUrl;
+}
 
 function tagWorkspaceHierarchy(entity: Entity, layer: Layer): void {
   const stack: Entity[] = [entity];
@@ -64,37 +117,6 @@ function tagWorkspaceHierarchy(entity: Entity, layer: Layer): void {
     renderer.castShadows = false;
     renderer.receiveShadows = false;
   }
-}
-
-/** Use the source model's UV basis, retaining its geometry, front/back and white border. */
-export function alignPhotoModel(model: Entity): MeshRenderer {
-  model.findByName("Sketchfab_model")!.transform.localMatrix = new Matrix(
-    0.0298394402,
-    0.0268802237,
-    -0.0270753508,
-    0,
-    -0.0364202821,
-    0.0303085626,
-    -0.0100482498,
-    0,
-    0.0113659183,
-    0.026549159,
-    0.0388840751,
-    0,
-    0.0654004818,
-    -1.0822054144,
-    0.1900346723,
-    1
-  );
-  model.findByName("photo.obj.cleaner.gles")!.transform.setPosition(0, 0, 0);
-  for (const renderer of model.getComponentsIncludeChildren(MeshRenderer, [])) renderer.castShadows = false;
-  return model.findByName("Object_3")!.getComponent(MeshRenderer)!;
-}
-export function photoMaterial(engine: Engine): UnlitMaterial {
-  const ink = new UnlitMaterial(engine);
-  ink.renderFace = RenderFace.Double;
-  ink.tilingOffset.set(1 / 0.277616024, -1 / 0.300857, -0.581698 / 0.277616024, 0.347292 / 0.300857);
-  return ink;
 }
 
 export function inkColor(hex: string): Color {
@@ -179,105 +201,20 @@ export function flatMaterial(engine: Engine, color: Color): UnlitMaterial {
   return material;
 }
 
-/** Build a pixel-exact rounded-rectangle mesh with exact [0, 1] UVs (top-left origin). */
-function roundedViewportMesh(engine: Engine, width: number, height: number, radius: number): ModelMesh {
+/** Build a unit quad mesh with exact [0, 1] UVs (top-left origin); corners & borders run in shader SDF. */
+function unitViewportQuadMesh(engine: Engine): ModelMesh {
   const mesh = new ModelMesh(engine, "Markup viewport");
-  const hw = Math.max(0.5, width * 0.5);
-  const hh = Math.max(0.5, height * 0.5);
-  const r = Math.max(0, Math.min(radius, hw, hh));
-  if (r < 0.5) {
-    mesh.setPositions([
-      new Vector3(-hw, hh, 0),
-      new Vector3(hw, hh, 0),
-      new Vector3(-hw, -hh, 0),
-      new Vector3(hw, -hh, 0)
-    ]);
-    mesh.setUVs([new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1)]);
-    mesh.setIndices(new Uint16Array([0, 2, 1, 1, 2, 3]));
-    mesh.addSubMesh(0, 6);
-  } else {
-    const segs = 12;
-    const positions: Vector3[] = [new Vector3(0, 0, 0)];
-    const uvs: Vector2[] = [new Vector2(0.5, 0.5)];
-    const corners: readonly [number, number][] = [
-      [hw - r, hh - r],
-      [-hw + r, hh - r],
-      [-hw + r, -hh + r],
-      [hw - r, -hh + r]
-    ];
-    for (let c = 0; c < 4; c++) {
-      for (let j = 0; j <= segs; j++) {
-        const angle = (c * Math.PI) / 2 + ((j / segs) * Math.PI) / 2;
-        const x = corners[c][0] + r * Math.cos(angle);
-        const y = corners[c][1] + r * Math.sin(angle);
-        positions.push(new Vector3(x, y, 0));
-        uvs.push(new Vector2((x + hw) / (hw * 2), (hh - y) / (hh * 2)));
-      }
-    }
-    const indices: number[] = [];
-    for (let i = 1; i < positions.length; i++) {
-      indices.push(0, i, i + 1 === positions.length ? 1 : i + 1);
-    }
-    mesh.setPositions(positions);
-    mesh.setUVs(uvs);
-    mesh.setIndices(new Uint16Array(indices));
-    mesh.addSubMesh(0, indices.length);
-  }
-  mesh.bounds.min.set(-hw, -hh, -1);
-  mesh.bounds.max.set(hw, hh, 1);
-  mesh.uploadData(true);
-  return mesh;
-}
-
-/** Build a pixel-exact closed rounded-rectangle luminous border ring (no elliptical stretch). */
-function roundedFrameRingMesh(
-  engine: Engine,
-  width: number,
-  height: number,
-  radius: number,
-  thickness: number
-): ModelMesh {
-  const mesh = new ModelMesh(engine, "Markup luminous frame");
-  const hw = Math.max(1, width * 0.5);
-  const hh = Math.max(1, height * 0.5);
-  const r = Math.max(0.5, Math.min(radius, hw - 0.5, hh - 0.5));
-  const halfT = Math.max(0.4, thickness * 0.5);
-  const segs = 12;
-  const corners: readonly [number, number][] = [
-    [hw - r, hh - r],
-    [-hw + r, hh - r],
-    [-hw + r, -hh + r],
-    [hw - r, -hh + r]
-  ];
-  const positions: Vector3[] = [];
-  for (let c = 0; c < 4; c++) {
-    for (let j = 0; j <= segs; j++) {
-      const angle = (c * Math.PI) / 2 + ((j / segs) * Math.PI) / 2;
-      const nx = Math.cos(angle);
-      const ny = Math.sin(angle);
-      const cx = corners[c][0];
-      const cy = corners[c][1];
-      const rIn = Math.max(0, r - halfT);
-      const rOut = r + halfT;
-      positions.push(new Vector3(cx + rIn * nx, cy + rIn * ny, 0));
-      positions.push(new Vector3(cx + rOut * nx, cy + rOut * ny, 0));
-    }
-  }
-  const ringPoints = positions.length / 2;
-  const indices: number[] = [];
-  for (let i = 0; i < ringPoints; i++) {
-    const next = (i + 1) % ringPoints;
-    const i0 = i * 2;
-    const i1 = i0 + 1;
-    const n0 = next * 2;
-    const n1 = n0 + 1;
-    indices.push(i0, i1, n1, i0, n1, n0);
-  }
-  mesh.setPositions(positions);
-  mesh.setIndices(new Uint16Array(indices));
-  mesh.addSubMesh(0, indices.length);
-  mesh.bounds.min.set(-hw - halfT, -hh - halfT, -1);
-  mesh.bounds.max.set(hw + halfT, hh + halfT, 1);
+  mesh.setPositions([
+    new Vector3(-0.5, 0.5, 0),
+    new Vector3(0.5, 0.5, 0),
+    new Vector3(-0.5, -0.5, 0),
+    new Vector3(0.5, -0.5, 0)
+  ]);
+  mesh.setUVs([new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1)]);
+  mesh.setIndices(new Uint16Array([0, 2, 1, 1, 2, 3]));
+  mesh.addSubMesh(0, 6);
+  mesh.bounds.min.set(-0.5, -0.5, -1);
+  mesh.bounds.max.set(0.5, 0.5, 1);
   mesh.uploadData(true);
   return mesh;
 }
@@ -295,16 +232,11 @@ export class PhotoGraphics {
   readonly camera: Camera;
   readonly font: Font;
   readonly backdrop: MeshRenderer;
-  readonly toolbar: Entity;
-  readonly palette: Entity;
-  readonly badge: Entity;
-  private readonly badgeLabel: TextRenderer;
-  private readonly paletteIndicator: MeshRenderer;
-  private readonly paletteSelection: MeshRenderer;
   readonly status: TextRenderer;
   readonly closeButtonTexture: Texture2D;
   readonly emptyStrokeMaskTexture: Texture2D;
-  readonly icons: MeshRenderer[] = [];
+  private readonly shutterAudio: AudioSource;
+  private shutterClipLoading?: Promise<AudioClip | undefined>;
   private readonly strokeFieldScene: Scene;
   private readonly strokeFieldCamera: Camera;
   private readonly strokeFieldRenderer: MeshRenderer;
@@ -313,13 +245,6 @@ export class PhotoGraphics {
   private disposed = false;
   warmingUp = false;
   private readonly resources: Array<ModelMesh | BaseMaterial | Texture2D> = [];
-  private readonly glassPanels: {
-    glass: SeedWorldLiquidGlassUiMaterial;
-    width: number;
-    height: number;
-    radius: number;
-    scaledByToolbar: boolean;
-  }[] = [];
   constructor(
     readonly engine: Engine,
     readonly canvas: HTMLCanvasElement,
@@ -348,6 +273,14 @@ export class PhotoGraphics {
     this.emptyStrokeMaskTexture = createEmptyStrokeMaskTexture(engine);
     this.resources.push(this.closeButtonTexture, this.emptyStrokeMaskTexture);
 
+    // Non-spatial UI shutter sound driven by Galacean Engine's AudioSource + AudioManager.
+    const shutterEntity = this.workspaceRoot.createChild("Photo shutter audio");
+    this.shutterAudio = shutterEntity.addComponent(AudioSource);
+    this.shutterAudio.playOnEnabled = false;
+    this.shutterAudio.loop = false;
+    this.shutterAudio.spatial = false;
+    this.shutterAudio.volume = 0.24;
+
     // Dedicated offscreen scene for BlendOperation.Max capsule SDF accumulation (isolated from main scene background/lights).
     this.strokeFieldScene = new Scene(engine, "Photo stroke field");
     this.strokeFieldScene.background.mode = BackgroundMode.SolidColor;
@@ -372,150 +305,47 @@ export class PhotoGraphics {
     this.backdrop = this.quad("Editing backdrop", new Color(0.0052, 0.0086, 0.0097, 0));
     (this.backdrop.getMaterial() as UnlitMaterial).isTransparent = true;
     this.backdrop.entity.isActive = false;
-    this.toolbar = this.workspaceRoot.createChild("Photo toolbar");
-    this.glassPanel(
-      "Toolbar glass",
-      PHOTO_TOOLBAR.width,
-      PHOTO_TOOLBAR.height,
-      26,
-      this.toolbar,
-      26,
-      -PHOTO_TOOLBAR.height / 2,
-      0
-    );
-    // Icons use the same engine triangle stroke renderer as freehand marks; no SVG/DOM drawing.
-    // Sample a cubic curve densely so the 24px return arrow has no visible elbow segments.
-    // Mirror the same path for redo to keep both icons geometrically identical.
-    const returnArc = Array.from({ length: 33 }, (_, i) => {
-      const t = i / 32,
-        u = 1 - t;
-      return [
-        3 * u ** 3 + 3 * 16 * u ** 2 * t + 3 * 21 * u * t ** 2 + 21 * t ** 3,
-        10 * u ** 3 + 3 * 10 * u ** 2 * t + 3 * 10 * u * t ** 2 + 20 * t ** 3
-      ];
-    });
-    const undoPaths = [
-      [
-        [9, 4],
-        [3, 10],
-        [9, 16]
-      ],
-      returnArc
-    ];
-    const icons = [
-      [
-        [
-          [3, 6],
-          [21, 6]
-        ],
-        [
-          [9, 6],
-          [9, 3],
-          [15, 3],
-          [15, 6]
-        ],
-        [
-          [5, 6],
-          [6, 21],
-          [18, 21],
-          [19, 6]
-        ],
-        [
-          [10, 10],
-          [10, 17]
-        ],
-        [
-          [14, 10],
-          [14, 17]
-        ]
-      ],
-      undoPaths,
-      undoPaths.map((path) => path.map(([x, y]) => [24 - x, y])),
-      []
-    ];
-    icons.forEach((paths, index) => {
-      const entity = this.toolbar.createChild(["Discard", "Undo", "Redo", "Palette"][index]);
-      entity.transform.setPosition(14, -(index * PHOTO_TOOLBAR.step + 18), 3);
-      const renderer = entity.addComponent(MeshRenderer);
-      const mesh = strokeMesh(
-        engine,
-        paths.map((points) => ({ width: 1.9, points: points.map(([x, y]) => ({ x, y })) })),
-        (x, y) => new Vector3(x, -y, 0)
-      );
-      const material = flatMaterial(engine, new Color(1, 1, 1, 1));
-      material.isTransparent = true;
-      renderer.mesh = mesh;
-      renderer.setMaterial(material);
-      this.icons.push(renderer);
-      this.resources.push(mesh, material);
-    });
-    this.rounded("Ink ring", 24, 24, 12, new Color(1, 1, 1, 0.85), this.toolbar, 26, -174, 3);
-    this.paletteIndicator = this.rounded(
-      "Current ink",
-      17,
-      17,
-      8.5,
-      inkColor(DEFAULT_PHOTO_INK),
-      this.toolbar,
-      26,
-      -174,
-      4
-    );
-    this.palette = this.toolbar.createChild("Ink palette");
-    this.glassPanel("Palette glass", 248, 192, 26, this.palette, 124, -96, 1);
-    PHOTO_INK_COLORS.forEach((hex, i) =>
-      this.rounded(
-        "Ink " + hex,
-        24,
-        24,
-        12,
-        inkColor(hex),
-        this.palette,
-        26 + (i % 8) * 28,
-        -(26 + Math.floor(i / 8) * 28),
-        2
-      )
-    );
-    this.paletteSelection = this.rounded("Selected ink", 9, 9, 4.5, new Color(1, 1, 1, 1), this.palette, 0, 0, 3);
-    this.setInkColor(DEFAULT_PHOTO_INK);
-    this.palette.isActive = false;
-    this.toolbar.isActive = false;
-    this.badge = this.workspaceRoot.createChild("Markup summary badge");
-    this.glassPanel(
-      "Badge glass",
-      PHOTO_BADGE.width,
-      PHOTO_BADGE.height,
-      PHOTO_BADGE.radius,
-      this.badge,
-      0,
-      0,
-      0,
-      false
-    );
-    const badgeRimEntity = this.badge.createChild("Badge luminous rim");
-    const badgeRimRenderer = badgeRimEntity.addComponent(MeshRenderer);
-    const badgeRimMesh = roundedFrameRingMesh(engine, PHOTO_BADGE.width, PHOTO_BADGE.height, PHOTO_BADGE.radius, 1.1);
-    const badgeRimMaterial = flatMaterial(engine, new Color(1.0, 1.0, 1.0, 0.24));
-    badgeRimMaterial.isTransparent = true;
-    badgeRimRenderer.mesh = badgeRimMesh;
-    badgeRimRenderer.setMaterial(badgeRimMaterial);
-    badgeRimEntity.transform.setPosition(0, 0, 1);
-    this.resources.push(badgeRimMesh, badgeRimMaterial);
-    this.rounded("Badge dot", 7, 7, 3.5, inkColor(DEFAULT_PHOTO_INK), this.badge, -44, 0, 2);
-    this.badgeLabel = this.text("Badge label", "已标记 1 处", 13, this.badge);
-    this.badgeLabel.color = new Color(1, 1, 1, 0.96);
-    this.badgeLabel.entity.transform.setPosition(8, 0, 2);
-    this.badge.isActive = false;
     this.status = this.text("Photo status", "", 13);
     tagWorkspaceHierarchy(this.workspaceRoot, PHOTO_WORKSPACE_LAYER);
     this.resize();
   }
-  setBadge(count: number, x: number, y: number, visible: boolean): void {
-    const active = visible && count > 0;
-    this.badge.isActive = active;
-    if (!active) return;
-    this.badge.transform.setPosition(x, -y, 500);
-    this.badgeLabel.text = `已标记 ${count} 处`;
+  private ensureShutterClip(): Promise<AudioClip | undefined> {
+    if (this.disposed || this.shutterAudio.destroyed) return Promise.resolve(undefined);
+    if (this.shutterAudio.clip) return Promise.resolve(this.shutterAudio.clip);
+    if (!this.engine.resourceManager?.load) return Promise.resolve(undefined);
+    if (this.shutterClipLoading) return this.shutterClipLoading;
+    const task = (async () => {
+      try {
+        const clip = await this.engine.resourceManager.load<AudioClip>({
+          url: getShutterWavDataUrl(),
+          type: AssetType.Audio
+        });
+        if (this.disposed || this.shutterAudio.destroyed) return undefined;
+        this.shutterAudio.clip = clip;
+        return clip;
+      } catch {
+        if (this.shutterClipLoading === task) this.shutterClipLoading = undefined;
+        return undefined;
+      }
+    })();
+    this.shutterClipLoading = task;
+    return task;
+  }
+  /** Play a crisp shutter click via the Engine AudioSource component; safe to call inside a user click gesture. */
+  playShutter(): void {
+    if (this.disposed || this.shutterAudio.destroyed) return;
+    if (this.shutterAudio.clip) {
+      this.shutterAudio.stop();
+      this.shutterAudio.play(0);
+      return;
+    }
+    // Capture the active user gesture immediately so iOS Safari unlocks audio while the clip decodes.
+    void AudioManager.resume().catch(() => {});
+    void this.ensureShutterClip().then((clip) => {
+      if (!clip || this.disposed || this.shutterAudio.destroyed) return;
+      this.shutterAudio.stop();
+      this.shutterAudio.play(0);
+    });
   }
   tagWorkspaceEntity(entity: Entity): void {
     tagWorkspaceHierarchy(entity, PHOTO_WORKSPACE_LAYER);
@@ -541,6 +371,7 @@ export class PhotoGraphics {
   prepare(): Promise<void> {
     return (this.loading ??= (async () => {
       if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
+      const shutterTask = this.ensureShutterClip();
       const texture = new Texture2D(this.engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, true);
       texture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
       let surface: PhotoSurface | undefined;
@@ -558,17 +389,20 @@ export class PhotoGraphics {
           dispose() {}
         });
         surface.setFrameLayout(64, 64, 12, 0);
+        surface.setCloseOpacity(1);
         this.warmingUp = true;
         await warmupPhotoPresentation(
           this.camera,
           () => {
-            this.toolbar.isActive = this.palette.isActive = this.badge.isActive = true;
+            surface!.root.isActive = true;
+            this.backdrop.entity.isActive = true;
             try {
               this.camera.render();
               surface!.setOpacity(0.5);
               this.camera.render();
             } finally {
-              this.toolbar.isActive = this.palette.isActive = this.badge.isActive = false;
+              surface!.root.isActive = false;
+              this.backdrop.entity.isActive = false;
             }
           },
           () => this.disposed,
@@ -607,6 +441,8 @@ export class PhotoGraphics {
         );
         if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
         this.renderStrokeField(strokeWarmupTarget, 64, 64, strokeWarmupMesh);
+        await shutterTask;
+        if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
       } catch (error) {
         if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
         throw error;
@@ -622,7 +458,7 @@ export class PhotoGraphics {
         destroyPhotoResources([strokeWarmupTarget, strokeWarmupTex]);
         surface?.dispose();
         texture.destroy(true);
-        if (!this.disposed) this.toolbar.isActive = this.palette.isActive = this.badge.isActive = false;
+        if (!this.disposed) this.backdrop.entity.isActive = false;
       }
     })());
   }
@@ -636,55 +472,7 @@ export class PhotoGraphics {
     );
     this.backdrop.entity.transform.setPosition(rect.width / 2, -rect.height / 2, 100);
     this.backdrop.entity.transform.setScale(rect.width, rect.height, 1);
-    const { toolbar, palette, scale } = photoDetailLayout(rect.width, rect.height);
-    this.toolbar.transform.setPosition(toolbar.x, -toolbar.y, 500);
-    this.toolbar.transform.setScale(scale, scale, 1);
-    this.palette.transform.setPosition((palette.x - toolbar.x) / scale, -(palette.y - toolbar.y) / scale, 5);
     this.status.entity.transform.setPosition(rect.width / 2, -rect.height + 36, 500);
-    const pixelScale = this.engine.canvas.width / Math.max(1, rect.width);
-    for (const { glass, width, height, radius, scaledByToolbar } of this.glassPanels) {
-      const s = scaledByToolbar ? scale : 1;
-      glass.setLayout(width * pixelScale * s, height * pixelScale * s, radius * pixelScale * s);
-    }
-  }
-  private glassPanel(
-    name: string,
-    width: number,
-    height: number,
-    radius: number,
-    parent: Entity,
-    x: number,
-    y: number,
-    z: number,
-    scaledByToolbar = true
-  ): void {
-    const entity = parent.createChild(name),
-      renderer = entity.addComponent(MeshRenderer);
-    const mesh = new ModelMesh(this.engine, name);
-    mesh.setPositions([
-      new Vector3(-width / 2, height / 2, 0),
-      new Vector3(width / 2, height / 2, 0),
-      new Vector3(-width / 2, -height / 2, 0),
-      new Vector3(width / 2, -height / 2, 0)
-    ]);
-    mesh.setUVs([new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1)]);
-    // A dark, neutral transmission keeps white controls legible even over bright skies.
-    mesh.setColors(Array.from({ length: 4 }, () => new Color(0.22, 0.25, 0.28, 1)));
-    mesh.setIndices(new Uint16Array([0, 2, 1, 1, 2, 3]));
-    mesh.addSubMesh(0, 6);
-    mesh.bounds.min.set(-width / 2, -height / 2, -0.01);
-    mesh.bounds.max.set(width / 2, height / 2, 0.01);
-    mesh.uploadData(true);
-    const glass = new SeedWorldLiquidGlassUiMaterial(this.worldCamera);
-    // Frost the existing scene texture; no additional scene render or blur target.
-    glass.setRoughness(0.85);
-    glass.setWhiteTint(0.12);
-    glass.setInteriorRefractionStrength(0);
-    renderer.mesh = mesh;
-    renderer.setMaterial(glass.material);
-    entity.transform.setPosition(x, y, z);
-    this.resources.push(mesh);
-    this.glassPanels.push({ glass, width, height, radius, scaledByToolbar });
   }
   text(name: string, value: string, size: number, parent?: Entity): TextRenderer {
     const entity = (parent ?? this.workspaceRoot).createChild(name);
@@ -709,65 +497,6 @@ export class PhotoGraphics {
     this.resources.push(mesh, material);
     return renderer;
   }
-  setInkColor(hex: string): void {
-    (this.paletteIndicator.getMaterial() as UnlitMaterial).baseColor = inkColor(hex);
-    const index = PHOTO_INK_COLORS.indexOf(hex);
-    this.paletteSelection.entity.isActive = index >= 0;
-    if (index >= 0) {
-      this.paletteSelection.entity.transform.setPosition(26 + (index % 8) * 28, -(26 + Math.floor(index / 8) * 28), 3);
-      const color = inkColor(hex);
-      (this.paletteSelection.getMaterial() as UnlitMaterial).baseColor = new Color(
-        color.r + color.g + color.b > 1.5 ? 0.02 : 1,
-        color.r + color.g + color.b > 1.5 ? 0.02 : 1,
-        color.r + color.g + color.b > 1.5 ? 0.02 : 1,
-        1
-      );
-    }
-  }
-  rounded(
-    name: string,
-    width: number,
-    height: number,
-    radius: number,
-    color: Color,
-    parent: Entity,
-    x: number,
-    y: number,
-    z: number
-  ): MeshRenderer {
-    const entity = parent.createChild(name),
-      renderer = entity.addComponent(MeshRenderer);
-    const mesh = new ModelMesh(this.engine, name);
-    const positions = [new Vector3()],
-      indices: number[] = [];
-    const corners = [
-      [width / 2 - radius, height / 2 - radius],
-      [-width / 2 + radius, height / 2 - radius],
-      [-width / 2 + radius, -height / 2 + radius],
-      [width / 2 - radius, -height / 2 + radius]
-    ];
-    for (let c = 0; c < 4; c++)
-      for (let j = 0; j <= 10; j++) {
-        const angle = (c * Math.PI) / 2 + ((j / 10) * Math.PI) / 2;
-        positions.push(
-          new Vector3(corners[c][0] + radius * Math.cos(angle), corners[c][1] + radius * Math.sin(angle), 0)
-        );
-      }
-    for (let i = 1; i < positions.length; i++) indices.push(0, i, i + 1 === positions.length ? 1 : i + 1);
-    mesh.setPositions(positions);
-    mesh.setIndices(new Uint16Array(indices));
-    mesh.addSubMesh(0, indices.length);
-    mesh.bounds.min.set(-width / 2, -height / 2, -0.01);
-    mesh.bounds.max.set(width / 2, height / 2, 0.01);
-    mesh.uploadData(true);
-    const material = flatMaterial(this.engine, color);
-    material.isTransparent = true;
-    renderer.mesh = mesh;
-    renderer.setMaterial(material);
-    entity.transform.setPosition(x, y, z);
-    this.resources.push(mesh, material);
-    return renderer;
-  }
   async create(image: PhotoImage): Promise<PhotoSurface> {
     await this.prepare();
     if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
@@ -782,6 +511,11 @@ export class PhotoGraphics {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    if (!this.shutterAudio.destroyed) {
+      this.shutterAudio.stop();
+      this.shutterAudio.clip = null;
+    }
+    this.shutterClipLoading = undefined;
     if (!this.worldCamera.destroyed) {
       this.worldCamera.cullingMask = (this.worldCamera.cullingMask | PHOTO_WORKSPACE_LAYER) as Layer;
     }
@@ -797,7 +531,6 @@ export class PhotoGraphics {
     this.strokeFieldMaterial.destroy(true);
     this.workspaceRoot.destroy();
     this.camera.entity.destroy();
-    for (const { glass } of this.glassPanels) glass.destroy();
     this.resources.forEach((resource) =>
       resource instanceof ModelMesh ? destroyOwnedMesh(resource) : resource.destroy(true)
     );
@@ -1034,7 +767,7 @@ export class PhotoSurface {
       cleanup.push(() => this.root.destroy());
 
       // Single unit quad uploaded ONCE; rounded corners, hairline border, onboarding circle and Apple Intelligence strokes run in GPU shader.
-      this.viewportMesh = roundedViewportMesh(engine, 1, 1, 0);
+      this.viewportMesh = unitViewportQuadMesh(engine);
       cleanup.push(() => destroyOwnedMesh(this.viewportMesh));
       this.viewportRenderer = this.root.createChild("Frozen viewport image").addComponent(MeshRenderer);
       this.material = new Material(engine, ensureMarkupViewportShader());

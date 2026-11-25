@@ -22,7 +22,7 @@ export async function warmupPhotoPresentation(
   let texture: Texture2D | undefined, offscreen: RenderTarget | undefined;
   camera.enabled = false;
   try {
-    // Include inactive paper, flash and palette geometry. No world-system-specific variants.
+    // Include inactive viewport, backdrop and close button geometry. No world-system-specific variants.
     const options = { strict: true, activatedLightRoots: scene.rootEntities };
     await warmupSeedWorldRendererVariants(engine, scene, camera, targetRoots, options);
     if (disposed()) throw new DOMException("Photo presentation disposed", "AbortError");

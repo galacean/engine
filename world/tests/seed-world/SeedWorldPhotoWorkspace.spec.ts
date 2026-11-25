@@ -70,18 +70,18 @@ vi.mock("@galacean/engine-world-planning/world/SeedWorldPhotoGraphics", () => {
     readonly scene = { isActive: true };
     readonly camera = { enabled: false };
     readonly backdrop = { entity: { isActive: false }, getMaterial: () => ({ baseColor: { a: 0 } }) };
-    readonly toolbar = { isActive: false };
-    readonly palette = { isActive: false };
     readonly status = { text: "" };
     warmingUp = false;
+    shutterCalls = 0;
     constructor(
       public readonly engine: any,
       public readonly canvas: HTMLCanvasElement
     ) {}
     async prepare() {}
     resize() {}
-    setBadge() {}
-    setInkColor() {}
+    playShutter() {
+      this.shutterCalls++;
+    }
     async create(image: { width: number; height: number; __id?: string }) {
       return new mocks.FakeSurface(image.__id ?? `img-${mocks.surfaces.size}`, image);
     }
@@ -95,7 +95,6 @@ vi.mock("../../demos/seed-world/src/SeedWorldPhotoInput.ts", () => ({
     constructor(_scene: any, public readonly onPointer: (phase: string, event: any) => void) {}
     resize() {}
     setModal() {}
-    setBadge() {}
     setPhoto() {}
     remove() {}
     dispose() {}
@@ -187,7 +186,7 @@ function createWorkspace(options: { reducedMotion?: boolean; updateAttachment?: 
   const removed: string[] = [];
   const freezeCalls: boolean[] = [];
   let frameCount = 0;
-  const instantCamera: any = {
+  const host: any = {
     canvas,
     worldCamera: {},
     engine: {
@@ -197,10 +196,9 @@ function createWorkspace(options: { reducedMotion?: boolean; updateAttachment?: 
         }
       },
       inputManager: { isKeyDown: () => false }
-    },
-    hide() {}
+    }
   };
-  const ws = new SeedWorldPhotoWorkspace(instantCamera, {
+  const ws = new SeedWorldPhotoWorkspace(host, {
     edit() {},
     remove(id) {
       removed.push(id);

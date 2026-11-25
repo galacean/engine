@@ -1050,12 +1050,6 @@
       "size": 2772,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/63cedb5f56870b40-gothic-collision-3.mesh"
     },
-    "64247222100b15f470d9baa969b227301fac3e587ea9cf0148cef28407568360": {
-      "examplePath": "assets/thumbtack-64247222.glb",
-      "ext": ".glb",
-      "size": 48300,
-      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/64247222100b15f4-thumbtack-64247222.glb"
-    },
     "64f6de0e3a60d0eee09e57bb11933bd4941dd37168370787a26b3b7dcf9eb5af": {
       "examplePath": "packages/farming/src/farming/assets/plant-textures/rice-quaternius.ktx2",
       "ext": ".ktx2",
@@ -1968,12 +1962,6 @@
       "size": 2168,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/c117a41d4ee0e7d8-grass.glb"
     },
-    "c16ee9bd2c4fb5a499c2d529b3dc3840443f61981c2e47414437a6020dc78b86": {
-      "examplePath": "assets/polaroid-photo-c16ee9bd.glb",
-      "ext": ".glb",
-      "size": 695828,
-      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/c16ee9bd2c4fb5a4-polaroid-photo-c16ee9bd.glb"
-    },
     "c29c4e49cd659579b66b753112cd7b88da872cd278933693cebd7409833528e6": {
       "examplePath": "packages/terrain/src/data/seed-world/public/atoms/rock-clif-1-lod0.glb",
       "ext": ".glb",
@@ -2507,12 +2495,6 @@
       "ext": ".ktx2",
       "size": 295342,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/f017443722c962d6-grass-mud-normal-1024-f0174437.ktx2"
-    },
-    "f043b5851af4224d97a2e0a317eb7017e835d16814fed29e4c2035ae8223f955": {
-      "examplePath": "assets/polaroid-camera-f043b585.glb",
-      "ext": ".glb",
-      "size": 2534216,
-      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/f043b5851af4224d-polaroid-camera-f043b585.glb"
     },
     "f0c8b9be35c2f143e20c87769f104e9112dc1333241656cab7912d16b39fb10b": {
       "examplePath": "packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc",

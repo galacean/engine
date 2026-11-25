@@ -300,5 +300,7 @@ export class SeedWorldCameraButton {
     this.root.destroy();
     this.sprite.destroy();
     this.texture.destroy();
+    this.iconCanvas.width = 0;
+    this.iconCanvas.height = 0;
   }
 }

@@ -4,6 +4,17 @@ const state = vi.hoisted(() => ({
   createdTextures: [] as Array<{ width: number; height: number; isGCIgnored: boolean; destroyed: boolean }>,
   createdTargets: [] as Array<{ width: number; height: number; destroyed: boolean }>,
   createdMeshes: [] as Array<{ name: string; destroyed: boolean }>,
+  createdAudioSources: [] as Array<{
+    playOnEnabled: boolean;
+    loop: boolean;
+    spatial: boolean;
+    volume: number;
+    clip: any;
+    playCalls: Array<number | undefined>;
+    stopCalls: number;
+    destroyed: boolean;
+  }>,
+  audioResumeCalls: 0,
   throwOnRenderTarget: false,
   onStrokeWarmup: undefined as (() => Promise<void> | void) | undefined
 }));
@@ -36,7 +47,6 @@ vi.mock("@galacean/engine", () => {
       return v;
     }
   }
-  class Matrix {}
   class Texture2D {
     isGCIgnored = false;
     wrapModeU = 0;
@@ -176,6 +186,41 @@ vi.mock("@galacean/engine", () => {
     }
     destroy() {}
   }
+  class AudioClipStub {
+    constructor(
+      public engine?: any,
+      public name = ""
+    ) {}
+  }
+  class AudioSourceStub {
+    playOnEnabled = true;
+    loop = false;
+    spatial = false;
+    volume = 1;
+    clip: any = null;
+    playCalls: Array<number | undefined> = [];
+    stopCalls = 0;
+    destroyed = false;
+    constructor(public entity: any) {
+      state.createdAudioSources.push(this);
+    }
+    play(offset?: number) {
+      this.playCalls.push(offset);
+    }
+    stop() {
+      this.stopCalls++;
+    }
+    destroy() {
+      this.destroyed = true;
+      this.clip = null;
+    }
+  }
+  const AudioManagerStub = {
+    resume() {
+      state.audioResumeCalls++;
+      return Promise.resolve();
+    }
+  };
   class EntityStub {
     layer = 0;
     isActive = true;
@@ -228,6 +273,10 @@ vi.mock("@galacean/engine", () => {
     }
   }
   return {
+    AssetType: { Audio: "Audio" },
+    AudioClip: AudioClipStub,
+    AudioManager: AudioManagerStub,
+    AudioSource: AudioSourceStub,
     BackgroundMode: { SolidColor: 0 },
     BaseMaterial: Material,
     Camera: CameraStub,
@@ -237,7 +286,6 @@ vi.mock("@galacean/engine", () => {
     Font: { createFromOS: () => ({}) },
     Layer: { Layer25: 1 << 25 },
     Material,
-    Matrix,
     MeshRenderer,
     ModelMesh,
     PrimitiveMesh: {
@@ -261,17 +309,6 @@ vi.mock("@galacean/engine", () => {
   };
 });
 
-vi.mock("@galacean/engine-modify/rendering/LiquidGlassPostProcessPass", () => ({
-  SeedWorldLiquidGlassUiMaterial: class {
-    material = { shaderData: { setTexture() {}, setVector4() {} }, destroy() {} };
-    setRoughness() {}
-    setWhiteTint() {}
-    setInteriorRefractionStrength() {}
-    setPanelRect() {}
-    setLayout() {}
-    destroy() {}
-  }
-}));
 vi.mock("@galacean/engine-modify/geometry/destroyOwnedMesh", () => ({
   destroyOwnedMesh(mesh?: { destroy?: () => void }) {
     mesh?.destroy?.();
@@ -495,6 +532,80 @@ describe("PhotoSurface stroke mask lifecycle & failure cleanup", () => {
     } finally {
       state.onStrokeWarmup = undefined;
     }
+  });
+
+  it("allocates zero legacy toolbar/palette/badge meshes and plays shutter audio via Engine AudioSource", async () => {
+    state.createdTextures.length = 0;
+    state.createdTargets.length = 0;
+    state.createdMeshes.length = 0;
+    state.createdAudioSources.length = 0;
+    state.audioResumeCalls = 0;
+    state.throwOnRenderTarget = false;
+
+    const loadedAudioRequests: Array<{ url: string; type: string }> = [];
+    const fakeClip = { name: "shutter-clip" };
+    const mainScene = new (Scene as any)({}, "main");
+    const engine: any = {
+      canvas: { width: 800, height: 600 },
+      sceneManager: {
+        addScene() {},
+        removeScene() {}
+      },
+      resourceManager: {
+        load: vi.fn(async (req: { url: string; type: string }) => {
+          loadedAudioRequests.push(req);
+          return fakeClip;
+        })
+      }
+    };
+    const worldCamera: any = {
+      scene: mainScene,
+      cullingMask: -1,
+      priority: 0,
+      destroyed: false
+    };
+    const canvas: any = {
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 })
+    };
+
+    const graphics = new PhotoGraphics(engine, canvas, worldCamera, () => {});
+    // Only the editing backdrop cuboid mesh should exist — no hidden toolbar, 48-swatch palette, or badge meshes.
+    expect(state.createdMeshes).toHaveLength(1);
+    expect(state.createdMeshes[0]!.name).toBe("cuboid");
+    expect(state.createdAudioSources).toHaveLength(1);
+    const audioSource = state.createdAudioSources[0]!;
+    expect(audioSource.playOnEnabled).toBe(false);
+    expect(audioSource.loop).toBe(false);
+    expect(audioSource.spatial).toBe(false);
+    expect(audioSource.volume).toBeGreaterThan(0);
+
+    // Cold click before prepare() captures the gesture via AudioManager.resume() and plays once the WAV AudioClip loads.
+    graphics.playShutter();
+    expect(state.audioResumeCalls).toBe(1);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(loadedAudioRequests).toHaveLength(1);
+    expect(loadedAudioRequests[0]!.type).toBe("Audio");
+    expect(loadedAudioRequests[0]!.url.startsWith("data:audio/wav;base64,")).toBe(true);
+    // Decode base64 header to assert valid RIFF/WAVE header.
+    const wavHeader = atob(loadedAudioRequests[0]!.url.slice("data:audio/wav;base64,".length)).slice(0, 12);
+    expect(wavHeader.slice(0, 4)).toBe("RIFF");
+    expect(wavHeader.slice(8, 12)).toBe("WAVE");
+    expect(audioSource.clip).toBe(fakeClip);
+    expect(audioSource.stopCalls).toBe(1);
+    expect(audioSource.playCalls).toEqual([0]);
+
+    // Warm click plays synchronously without reloading the AudioClip or calling AudioManager.resume() manually.
+    graphics.playShutter();
+    expect(loadedAudioRequests).toHaveLength(1);
+    expect(audioSource.stopCalls).toBe(2);
+    expect(audioSource.playCalls).toEqual([0, 0]);
+
+    // Dispose stops and detaches the clip cleanly; subsequent playShutter() is a no-op.
+    graphics.dispose();
+    expect(audioSource.destroyed).toBe(true);
+    expect(audioSource.clip).toBeNull();
+    graphics.playShutter();
+    expect(audioSource.playCalls).toEqual([0, 0]);
   });
 });
 
