@@ -1,6 +1,5 @@
 import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { evaluateHermiteScalar } from "../internal/AnimationCurvePack";
 import { Keyframe } from "../Keyframe";
@@ -13,7 +12,7 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<number>>()
 export class AnimationFloatCurve extends AnimationCurve<number> {
   /** @internal */
-  static _isCopyMode: boolean = false;
+  static readonly _isCopyMode = false;
   /** @internal */
   static _supportInterpolationMode: boolean = true;
 
@@ -25,13 +24,6 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     owner.fixedPoseValue = 0;
     owner.baseEvaluateData.value = 0;
     owner.crossEvaluateData.value = 0;
-  }
-
-  /**
-   * @internal
-   */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
-    owner.finalValue = 0;
   }
 
   /**
@@ -60,13 +52,6 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
    */
   static _getZeroValue(): number {
     return 0;
-  }
-
-  /**
-   * @internal
-   */
-  static _setValue(source: number): number {
-    return source;
   }
 
   constructor() {

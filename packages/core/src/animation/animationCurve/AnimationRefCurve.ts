@@ -1,8 +1,6 @@
 import { ReferResource } from "../../asset/ReferResource";
 import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
-import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
@@ -12,26 +10,14 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<ReferResource | null>>()
 export class AnimationRefCurve extends AnimationCurve<ReferResource | null> {
   /** @internal */
-  static _isCopyMode: boolean = false;
+  static readonly _isCopyMode = false;
   /** @internal */
   static _supportInterpolationMode: boolean = false;
 
   /**
    * @internal
    */
-  static _initializeOwner(_owner: AnimationCurveOwner<ReferResource | null>): void {}
-
-  /**
-   * @internal
-   */
-  static _initializeLayerOwner(_owner: AnimationCurveLayerOwner): void {}
-
-  /**
-   * @internal
-   */
-  static _setValue(value: ReferResource | null): ReferResource | null {
-    return value;
-  }
+  static _initializeOwner(): void {}
 
   constructor() {
     super(0, true);

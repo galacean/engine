@@ -5,17 +5,21 @@ import { KeyframeValueType } from "../../Keyframe";
 /**
  * @internal
  */
-export interface IAnimationCurveCalculator<V extends KeyframeValueType> {
-  _isCopyMode: boolean;
+export type IAnimationCurveCalculator<V extends KeyframeValueType> = {
   _supportInterpolationMode: boolean;
 
   _initializeOwner(owner: AnimationCurveOwner<V>);
-  _initializeLayerOwner(owner: AnimationCurveLayerOwner);
-  _setValue(src: V, out?: V): V;
 
   // Lerp need
   _lerpValue?(src: V, dest: V, weight: number, out?: V): V;
   _additiveValue?(additive: V, weight: number, srcOut: V): V;
   _subtractValue?(src: V, base: V, out?: V): V;
   _getZeroValue?(out?: V): V;
-}
+} & (
+  | { readonly _isCopyMode: false }
+  | {
+      readonly _isCopyMode: true;
+      _initializeLayerOwner(owner: AnimationCurveLayerOwner): void;
+      _setValue(src: V, out: V): V;
+    }
+);

@@ -14,7 +14,7 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Vector3>>()
 export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /** @internal */
-  static _isCopyMode: boolean = true;
+  static readonly _isCopyMode = true;
   /** @internal */
   static _supportInterpolationMode: boolean = true;
 

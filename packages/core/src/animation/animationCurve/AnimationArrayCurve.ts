@@ -18,7 +18,7 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<number[]>>()
 export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /** @internal */
-  static _isCopyMode: boolean = true;
+  static readonly _isCopyMode = true;
   /** @internal */
   static _supportInterpolationMode: boolean = true;
 

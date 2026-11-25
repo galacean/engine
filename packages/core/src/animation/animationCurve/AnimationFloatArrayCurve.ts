@@ -18,7 +18,7 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Float32Array>>()
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /** @internal */
-  static _isCopyMode: boolean = true;
+  static readonly _isCopyMode = true;
   /** @internal */
   static _supportInterpolationMode: boolean = true;
 

@@ -14,7 +14,7 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Color>>()
 export class AnimationColorCurve extends AnimationCurve<Color> {
   /** @internal */
-  static _isCopyMode: boolean = true;
+  static readonly _isCopyMode = true;
   /** @internal */
   static _supportInterpolationMode: boolean = true;
 

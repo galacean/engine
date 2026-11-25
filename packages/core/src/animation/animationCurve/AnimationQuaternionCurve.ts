@@ -16,7 +16,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /** @internal */
   static _supportInterpolationMode: boolean = true;
   /** @internal */
-  static _isCopyMode: boolean = true;
+  static readonly _isCopyMode = true;
 
   private static _tempConjugateQuat = new Quaternion();
   private static _tempQuat0 = new Quaternion();

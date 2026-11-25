@@ -13,7 +13,7 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Rect>>()
 export class AnimationRectCurve extends AnimationCurve<Rect> {
   /** @internal */
-  static _isCopyMode: boolean = true;
+  static readonly _isCopyMode = true;
   /** @internal */
   static _supportInterpolationMode: boolean = false;
 
@@ -24,7 +24,6 @@ export class AnimationRectCurve extends AnimationCurve<Rect> {
     owner.defaultValue = new Rect();
     owner.fixedPoseValue = new Rect();
     owner.baseEvaluateData.value = new Rect();
-    owner.crossEvaluateData.value = new Rect();
   }
 
   /**
