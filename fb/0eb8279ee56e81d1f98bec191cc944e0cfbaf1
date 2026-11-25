@@ -1,0 +1,21 @@
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_d5da8c666c9067::t_5d2dd8781d5302 568,570-573,578-752,767-791,796-797,799-800
+  s_d5da8c666c9067::t_23ee7d5a1f34e0 567
+  s_d5da8c666c9067::t_be826cd6a9be69 801
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fb0eb8279ee56e81d1f98bec191cc944e0cfbaf1",
+  "prompts": {},
+  "sessions": {
+    "s_d5da8c666c9067": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21229-2698-7642-9db8-6417cc7a2560",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
