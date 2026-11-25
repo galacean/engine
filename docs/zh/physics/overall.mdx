@@ -25,10 +25,9 @@ const engine = await WebGLEngine.create({
 });
 ```
 
-默认情况下，`PhysXPhysics` 加载 npm 包自带的运行时。自行托管构建产物时，按入口保留对应的相对路径。
+UMD、ESM 和 CommonJS 入口默认从同级的 `./libs/` 加载包内运行时。自行托管时，将 `dist/libs/` 目录和入口文件放在一起。
 
-- `dist/browser.js` 和 `dist/browser.min.js`（UMD）从脚本同级的 `./libs/` 加载。
-- `dist/module.js`（ESM）和 `dist/main.js`（CommonJS）从相对入口的 `../libs/` 加载，即包根目录下的 `libs/`。
+升级到 2.0 时，把直接导入资源的路径和 CDN 链接从 `@galacean/engine-physics-physx/libs/*` 改为 `@galacean/engine-physics-physx/dist/libs/*`。
 
 使用 Vite 开发时，将 `@galacean/engine-physics-physx` 加入 `optimizeDeps.exclude`，使资源按包内路径解析。
 

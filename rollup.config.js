@@ -86,32 +86,6 @@ function config({ location, pkgJson }) {
   return {
     umd: (compress) => {
       const umdConfig = pkgJson.umd;
-      const assetDirectory = umdConfig.assetDirectory;
-      if (assetDirectory) {
-        // CDN publication preserves the directory structure under dist.
-        curPlugins.push(
-          replace({
-            delimiters: ["", ""],
-            preventAssignment: true,
-            values: { [`../${assetDirectory}/`]: `./${assetDirectory}/` }
-          }),
-          // Both UMD entries load their assets from the same directory.
-          compress && {
-            name: "umd-assets",
-            buildStart() {
-              const sourceDirectory = path.join(location, assetDirectory);
-              this.addWatchFile(sourceDirectory);
-              for (const filename of fs.readdirSync(sourceDirectory)) {
-                this.emitFile({
-                  type: "asset",
-                  fileName: `${assetDirectory}/${filename}`,
-                  source: fs.readFileSync(path.join(sourceDirectory, filename))
-                });
-              }
-            }
-          }
-        );
-      }
 
       if (compress) {
         curPlugins.push(minify({ sourceMap: true }));
@@ -297,8 +271,37 @@ function shaderParserModuleConfig() {
   };
 }
 
-async function makeRollupConfig({ type, compress = true, visualizer = true, ..._ }) {
-  return config({ ..._ })[type](compress, visualizer);
+async function makeRollupConfig({ location, pkgJson, type, compress = true }) {
+  const build = config({ location, pkgJson })[type](compress);
+  const { assetDirectory } = pkgJson;
+  if (assetDirectory) {
+    const sourceDirectory = path.join(location, assetDirectory);
+    build.plugins.push(
+      replace({
+        delimiters: ["", ""],
+        preventAssignment: true,
+        values: { [`../${assetDirectory}/`]: `./${assetDirectory}/` }
+      }),
+      // All entries share the assets emitted by ESM, or by the minified entry in a UMD-only build.
+      (type === "module" || (BUILD_TYPE === "UMD" && compress)) && {
+        name: "package-assets",
+        buildStart() {
+          this.addWatchFile(sourceDirectory);
+        },
+        generateBundle({ format }) {
+          if (format === "cjs") return;
+          for (const filename of fs.readdirSync(sourceDirectory)) {
+            this.emitFile({
+              type: "asset",
+              fileName: `${assetDirectory}/${filename}`,
+              source: fs.readFileSync(path.join(sourceDirectory, filename))
+            });
+          }
+        }
+      }
+    );
+  }
+  return build;
 }
 
 let promises = [];
@@ -324,16 +327,7 @@ function getUMD() {
   const configs = pkgs.filter((pkg) => pkg.pkgJson.umd);
   return configs
     .map((config) => makeRollupConfig({ ...config, type: "umd" }))
-    .concat(
-      configs.map((config) =>
-        makeRollupConfig({
-          ...config,
-          type: "umd",
-          compress: false,
-          visualizer: false
-        })
-      )
-    );
+    .concat(configs.map((config) => makeRollupConfig({ ...config, type: "umd", compress: false })));
 }
 
 function getModule() {

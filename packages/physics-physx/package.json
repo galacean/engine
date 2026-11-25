@@ -15,19 +15,18 @@
   "jsdelivr": "dist/browser.min.js",
   "debug": "src/index.ts",
   "types": "types/index.d.ts",
+  "assetDirectory": "libs",
   "scripts": {
     "b:types": "tsc"
   },
   "umd": {
     "name": "Galacean.PhysicsPhysX",
-    "assetDirectory": "libs",
     "globals": {
       "@galacean/engine": "Galacean"
     }
   },
   "files": [
     "dist/**/*",
-    "libs/**/*",
     "types/**/*"
   ],
   "devDependencies": {
