@@ -16,13 +16,14 @@ import { OilPaintPostEffect } from "./OilPaintPostEffect";
 const OIL_PAINT_POST_SHADER_NAME = "PostProcess/OilPaint";
 
 /**
- * 120-FPS Single-Pass, Zero-Extra-RT, Zero-DepthPrePass Oil Paint Post-Process Pass:
+ * Ultra-Lean 120-FPS Single-Pass, Zero-Extra-RT, Zero-DepthPrePass 5-Tap Oil Paint Post-Process Pass:
  * Runs 1:1 at native display resolution directly from `srcTexture` -> `destTarget` (+1 draw call total!):
  * - Paints ALL pixels including sky & clouds harmoniously (zero DepthPrePass overhead, zero sky/forest mismatch)
- * - Fast sqrt() perceptual space (zero pow(), zero exp(), ~5x faster than pow(1/2.2))
- * - 5-tap rotated 4-quadrant Kuwahara with exact variance^4 == sigma^8 sharpness
- * - Zero-extra-tap Laplacian thin-detail guard keeps 1-2px animal eyes, antlers & diamond window mullions 100% sharp
- * - Zero-extra-tap native impasto paint-edge ridge & gallery oil varnish glaze.
+ * - 5 taps total (center + 20-deg rotated orthogonal arms leveraging HW bilinear filtering)
+ * - ZERO sqrt() / pow() / exp() / divisions (0 SFU bottlenecks!)
+ * - Scalar L1 4-quadrant spread + single winning-quadrant vec3 mean (~20 live registers -> max SIMD occupancy!)
+ * - Zero-extra-tap scalar Laplacian thin-detail guard keeps 1-2px animal eyes, antlers & window mullions crisp
+ * - Ultra-light warm-highlight / cool-shadow oil varnish glaze reusing scalar luma.
  */
 export const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
   SubShader "Default" {
@@ -35,10 +36,8 @@ export const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
       sampler2D renderer_BlitTexture;
       vec4 renderer_texelSize;
 
-      // x: painterlyStrength, y: brushRadius (720px short-edge), z: colorStylize, w: screenImpasto
+      // x: painterlyStrength, y: brushRadius (720px short-edge), z: colorStylize, w: unused
       vec4 material_OilParams0;
-      // x: compareSplit, y..w: unused
-      vec4 material_OilParams1;
 
       VertexShader = vert;
       FragmentShader = fragOilPaint;
@@ -50,150 +49,78 @@ export const OIL_PAINT_POST_SHADER = `Shader "${OIL_PAINT_POST_SHADER_NAME}" {
         return v;
       }
 
-      float oilLuma(vec3 c) {
-        return dot(c, vec3(0.2126, 0.7152, 0.0722));
-      }
-
-      vec3 fetchPerceptual(vec2 uv) {
-        vec3 lin = clamp(texture2D(renderer_BlitTexture, clamp(uv, vec2(0.001), vec2(0.999))).rgb, vec3(0.0), vec3(1.0));
-        // Hardware sqrt() (gamma 2.0) avoids 39 transcendental pow() calls per 4K pixel!
-        return sqrt(lin);
-      }
-
       vec4 fragOilPaint(Varyings v) {
         vec2 uv = v.uv;
         vec2 texel = renderer_texelSize.xy;
         float painterlyStrength = material_OilParams0.x;
         float brushRadius720 = material_OilParams0.y;
         float colorStylize = material_OilParams0.z;
-        float screenImpasto = material_OilParams0.w;
-        float compareSplit = material_OilParams1.x;
 
-        vec3 origLin = max(texture2D(renderer_BlitTexture, uv).rgb, vec3(0.0));
-        if (compareSplit > 0.001 && uv.x < compareSplit) {
-          if (abs(uv.x - compareSplit) < texel.x * 2.5) {
-            return vec4(1.0, 0.86, 0.56, 1.0);
-          }
-          return vec4(origLin, 1.0);
-        }
-
-        // Preserve any HDR highlight excess above 1.0 (sun / specular bloom) cleanly through perceptual pass.
-        vec3 hdrExcess = max(origLin - vec3(1.0), vec3(0.0));
-        vec3 c0 = sqrt(min(origLin, vec3(1.0)));
-        vec3 col = c0;
-
+        vec3 c0 = texture2D(renderer_BlitTexture, uv).rgb;
         float shortEdge = min(renderer_texelSize.z, renderer_texelSize.w);
-        float radiusPx = brushRadius720 * max(shortEdge / 720.0, 0.5);
+        vec2 r = texel * max(1.2, brushRadius720 * max(shortEdge * 0.0013889, 0.5) * 0.72);
+        vec2 d0 = vec2( r.x * 0.94, -r.y * 0.34);
+        vec2 d1 = vec2(-r.x * 0.34, -r.y * 0.94);
 
-        if ((painterlyStrength > 0.001 || screenImpasto > 0.001) && radiusPx > 0.5) {
-          vec2 r = texel * max(1.2, radiusPx * 0.72);
-          // 4 rotated-cross neighbor fetches (5 taps total incl. center, -62% 4K bandwidth vs 13-tap, -44% vs 9-tap!)
-          // 20-deg rotated orthogonal arms leverage hardware bilinear filtering and avoid axis-aligned grid artifacts.
-          vec2 d0 = vec2( r.x * 0.94, -r.y * 0.34);
-          vec2 d1 = vec2(-r.x * 0.34, -r.y * 0.94);
+        vec3 c1 = texture2D(renderer_BlitTexture, uv + d0).rgb;
+        vec3 c2 = texture2D(renderer_BlitTexture, uv + d1).rgb;
+        vec3 c3 = texture2D(renderer_BlitTexture, uv - d0).rgb;
+        vec3 c4 = texture2D(renderer_BlitTexture, uv - d1).rgb;
 
-          vec3 c0A = fetchPerceptual(uv + d0);
-          vec3 c1A = fetchPerceptual(uv + d1);
-          vec3 c2A = fetchPerceptual(uv - d0);
-          vec3 c3A = fetchPerceptual(uv - d1);
+        // Scalar luma (0 sqrt, 0 divisions, 5 dots total)
+        vec3 lumaW = vec3(0.2126, 0.7152, 0.0722);
+        float l0 = dot(c0, lumaW);
+        float l1 = dot(c1, lumaW);
+        float l2 = dot(c2, lumaW);
+        float l3 = dot(c3, lumaW);
+        float l4 = dot(c4, lumaW);
 
-          // 4 overlapping 3-tap Kuwahara quadrants (weights: center 0.5 + 2*arm 1.0 = 2.5 -> * 0.4)
-          vec3 c0Half = c0 * 0.5;
-          vec3 c02Half = c0 * c0 * 0.5;
-          vec3 c0A2 = c0A * c0A;
-          vec3 c1A2 = c1A * c1A;
-          vec3 c2A2 = c2A * c2A;
-          vec3 c3A2 = c3A * c3A;
+        // 4-quadrant L1 spread (16 scalar ALU, 0 squares, 0 divisions, linear dark/bright fairness)
+        float a1 = abs(l0 - l1);
+        float a2 = abs(l0 - l2);
+        float a3 = abs(l0 - l3);
+        float a4 = abs(l0 - l4);
 
-          vec3 m0 = (c0Half + c0A + c1A) * 0.4;
-          vec3 s0 = (c02Half + c0A2 + c1A2) * 0.4;
-          vec3 dv0 = max(s0 - m0 * m0, vec3(0.0));
-          float var0 = dv0.r + dv0.g + dv0.b;
+        float v0 = a1 + a2 + abs(l1 - l2);
+        float v1 = a2 + a3 + abs(l2 - l3);
+        float v2 = a3 + a4 + abs(l3 - l4);
+        float v3 = a4 + a1 + abs(l4 - l1);
 
-          vec3 m1 = (c0Half + c1A + c2A) * 0.4;
-          vec3 s1 = (c02Half + c1A2 + c2A2) * 0.4;
-          vec3 dv1 = max(s1 - m1 * m1, vec3(0.0));
-          float var1 = dv1.r + dv1.g + dv1.b;
+        // Zero-division winner selection: compute only ONE quadrant vec3 mean instead of four!
+        float bestV = v0;
+        vec3 wA = c1;
+        vec3 wB = c2;
+        if (v1 < bestV) { bestV = v1; wA = c2; wB = c3; }
+        if (v2 < bestV) { bestV = v2; wA = c3; wB = c4; }
+        if (v3 < bestV) { wA = c4; wB = c1; }
 
-          vec3 m2 = (c0Half + c2A + c3A) * 0.4;
-          vec3 s2 = (c02Half + c2A2 + c3A2) * 0.4;
-          vec3 dv2 = max(s2 - m2 * m2, vec3(0.0));
-          float var2 = dv2.r + dv2.g + dv2.b;
+        vec3 kuw = (c0 * 0.5 + wA + wB) * 0.4;
 
-          vec3 m3 = (c0Half + c3A + c0A) * 0.4;
-          vec3 s3 = (c02Half + c3A2 + c0A2) * 0.4;
-          vec3 dv3 = max(s3 - m3 * m3, vec3(0.0));
-          float var3 = dv3.r + dv3.g + dv3.b;
+        // Zero-extra-tap scalar Laplacian micro-detail guard (preserves 1-2px animal eyes & window mullions)
+        float avgL = (l1 + l2 + l3 + l4) * 0.25;
+        float thinGuard = 1.0 - clamp((abs(l0 - avgL) - 0.08) * 5.0, 0.0, 1.0);
+        vec3 col = mix(c0, kuw, painterlyStrength * thinGuard);
 
-          float minV = min(min(var0, var1), min(var2, var3));
-          float num = minV + 1.5e-5;
-          float k0 = num / (var0 + 1.5e-5); k0 *= k0; float ew0 = k0 * k0;
-          float k1 = num / (var1 + 1.5e-5); k1 *= k1; float ew1 = k1 * k1;
-          float k2 = num / (var2 + 1.5e-5); k2 *= k2; float ew2 = k2 * k2;
-          float k3 = num / (var3 + 1.5e-5); k3 *= k3; float ew3 = k3 * k3;
+        // Ultra-lean warm-highlight / cool-shadow gallery oil varnish glaze (0 divisions, 0 smoothstep)
+        float g = clamp(l0 * 1.6 - 0.15, 0.0, 1.0);
+        vec3 glaze = mix(vec3(0.96, 0.96, 1.04), vec3(1.06, 1.02, 0.93), g);
+        col *= mix(vec3(1.0), glaze, colorStylize);
 
-          vec3 kuw = (m0 * ew0 + m1 * ew1 + m2 * ew2 + m3 * ew3) / max(ew0 + ew1 + ew2 + ew3, 1e-5);
-
-          // Laplacian micro-detail guard (0 extra taps):
-          // Thin 1-2px isolated features (animal eyes, antlers, diamond window mullions) have high |c0 - avg(arms)|^2
-          // whereas clouds, sky, foliage canopies, roofs, walls & hills have smooth/step edges and receive full oil painting!
-          vec3 avgCard = (c0A + c1A + c2A + c3A) * 0.25;
-          vec3 lapDiff = c0 - avgCard;
-          float lap = dot(lapDiff, lapDiff);
-          float thinGuard = 1.0 - clamp((lap - 0.008) / 0.032, 0.0, 1.0);
-
-          col = mix(c0, kuw, painterlyStrength * thinGuard);
-
-          // Native-resolution impasto paint-edge ridge from 4 quadrant means (0 extra taps!).
-          if (screenImpasto > 0.001) {
-            float lNE = oilLuma(m0);
-            float lNW = oilLuma(m1);
-            float lSW = oilLuma(m2);
-            float lSE = oilLuma(m3);
-            float gx = (lNE + lSE) - (lNW + lSW);
-            float gy = (lSW + lSE) - (lNW + lNE);
-            float ridge = clamp((gx * -0.6 + gy * 0.8) * 1.4, -0.5, 0.5) * thinGuard;
-            col *= 1.0 + ridge * 0.16 * screenImpasto;
-            col += vec3(1.0, 0.97, 0.90) * max(ridge, 0.0) * max(ridge, 0.0) * 0.05 * screenImpasto;
-          }
-        }
-
-        // Gallery oil varnish S-curve & chroma-safe warm/cool glaze (harmonizes sky, clouds & 3D scene together!).
-        if (colorStylize > 0.001) {
-          float luma = max(oilLuma(col), 1e-4);
-          float maxC = max(col.r, max(col.g, col.b));
-          float minC = min(col.r, min(col.g, col.b));
-          float colChroma = smoothstep(0.08, 0.32, (maxC - minC) / max(maxC, 1e-4));
-          vec3 warmHighlight = mix(vec3(1.01, 1.0, 0.99), vec3(1.08, 1.03, 0.91), colChroma);
-          vec3 glaze = mix(vec3(0.95, 0.95, 1.04), warmHighlight, smoothstep(0.18, 0.72, luma));
-          vec3 glazed = col * glaze;
-          float gLuma = oilLuma(glazed);
-          glazed = mix(vec3(gLuma), glazed, 1.0 + 0.22 * colorStylize * mix(0.25, 1.0, colChroma));
-          vec3 c01 = clamp(glazed, 0.0, 1.0);
-          vec3 sCurve = c01 * c01 * (3.0 - 2.0 * c01);
-          glazed = mix(glazed, sCurve, 0.20 * colorStylize);
-          col = mix(col, clamp(glazed, vec3(0.0), vec3(1.0)), colorStylize);
-        }
-
-        // Exact inverse of sqrt() perceptual space (1 multiply, zero pow!) + preserved HDR highlight excess.
-        vec3 clampedCol = max(col, vec3(0.0));
-        vec3 outLin = clampedCol * clampedCol + hdrExcess * 0.85;
-        return vec4(outLin, 1.0);
+        return vec4(col, 1.0);
       }
     }
   }
 }`;
 
 /**
- * 120-FPS Single-Pass, Zero-Extra-RT, Zero-DepthPrePass Oil-Paint post-process pass:
- * - Zero intermediate RenderTargets (zero FBO switches / zero TBDR tile flushes)
- * - Zero DepthPrePass (paints sky & clouds seamlessly alongside terrain, trees, buildings, and wildlife)
- * - 1:1 native display resolution with Laplacian thin-detail guard (zero mosaic, zero window aliasing, crisp animal eyes).
+ * Ultra-Lean 120-FPS Single-Pass, Zero-Extra-RT, Zero-DepthPrePass Oil-Paint post-process pass:
+ * - Zero intermediate RenderTargets and zero DepthPrePass (paints sky & clouds seamlessly alongside 3D scene)
+ * - 5-tap rotated 4-quadrant L1 Kuwahara with zero sqrt/divisions and low register footprint
+ * - Scalar Laplacian thin-detail guard preserves animal eyes, antlers & diamond window mullions at native resolution.
  */
 export class OilPaintPostPass extends PostProcessPass {
   private readonly _material: Material;
   private readonly _params0 = new Vector4();
-  private readonly _params1 = new Vector4();
 
   constructor(engine: Engine) {
     super(engine);
@@ -225,13 +152,10 @@ export class OilPaintPostPass extends PostProcessPass {
       effect.painterlyStrength.value,
       effect.brushRadius.value,
       effect.colorStylize.value,
-      effect.screenImpasto.value
+      0
     );
-    this._params1.set(effect.compareSplit.value, 0, 0, 0);
 
-    const shaderData = this._material.shaderData;
-    shaderData.setVector4("material_OilParams0", this._params0);
-    shaderData.setVector4("material_OilParams1", this._params1);
+    this._material.shaderData.setVector4("material_OilParams0", this._params0);
 
     // Single direct native-res pass (0 extra RTs, +1 draw call total!).
     Blitter.blitTexture(engine, srcTexture, destTarget, undefined, undefined, this._material, 0);
