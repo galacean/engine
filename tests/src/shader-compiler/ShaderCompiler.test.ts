@@ -910,9 +910,9 @@ void frag(Varyings input) { gl_FragColor = readColor(input); }`;
       ShaderLanguage.GLSLES300
     )!.fragment;
     expect(fragment).to.match(/layout\(location = 0\) out vec4/);
-    expect(fragment).to.match(/\w+\s*=\s*\w+\.color/);
-    expect(fragment.match(/return\s+outputValue\s*;/g)).to.have.lengthOf(2);
-    expect(fragment).to.match(/void\s+main\s*\(\s*\)\s*\{\s*\w+\s*\(\s*frag\s*\(\s*\)/);
+    expect(fragment).to.match(/void\s+frag\s*\(\s*\)/);
+    expect(fragment.match(/return\s*;/g)).to.have.lengthOf(2);
+    expect(fragment).to.match(/void\s+main\s*\(\s*\)\s*\{\s*frag\s*\(\s*\)\s*;/);
   });
 
   it("rejects an MRT contract that would emit an undefined output location", () => {

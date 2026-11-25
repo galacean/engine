@@ -133,4 +133,45 @@ describe("MRT interface backend conversion", () => {
       });
     }
   }
+
+  it("lowers direct MRT fragment outputs without a local struct variable or struct return", () => {
+    const mrtShader = `Shader "direct-mrt-lowering" { SubShader "s" { Pass "p" {
+      bool material_Skip;
+      struct MRTOut {
+        layout(location = 0) vec4 radiance;
+        #ifdef EXTRA_OUT
+        layout(location = 1) vec4 meta;
+        #endif
+      };
+      void vert() { gl_Position = vec4(0.0, 0.0, 0.0, 1.0); gl_PointSize = 1.0; }
+      MRTOut frag() {
+        if (material_Skip) discard;
+        MRTOut outVal;
+        outVal.radiance = vec4(0.25, 0.5, 0.75, 1.0);
+        #ifdef EXTRA_OUT
+        outVal.meta = vec4(0.4, 0.0, 0.0, 1.0);
+        #endif
+        return outVal;
+      }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    const compiler = new ShaderCompiler();
+    const pass = compiler._parseShaderSource(mrtShader).subShaders[0].passes[0];
+    const compiled = compiler._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300,
+      undefined,
+      pass.contentScopeStarts
+    )!;
+    const generated = ShaderMacroProcessor.evaluate(compiled.fragmentShaderInstructions!, new Map([["EXTRA_OUT", "1"]]));
+    expect(generated).toMatch(/void\s+frag\s*\(\s*\)/);
+    expect(generated).not.toMatch(/MRTOut\s+outVal\s*;/);
+    expect(generated).not.toMatch(/write_MRTOut\s*\(\s*frag/);
+    expect(generated).toMatch(/output_color\s*=\s*vec4/);
+    expect(generated).toMatch(/output_color_1\s*=\s*vec4/);
+    expect(generated).toMatch(/void\s+main\s*\(\s*\)\s*\{\s*frag\s*\(\s*\)\s*;/);
+  });
 });
