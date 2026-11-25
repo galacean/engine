@@ -138,6 +138,7 @@ git pull --ff upstream master
 - All features or bug fixes **must be tested** by one or more specs (unit-tests).
 - All public API methods **must be documented**.
 - We use Prettier as an automatic code formatter. Run `pnpm format` to format your code, and `pnpm lint` to check code quality, after making any changes to the code.
+- One-line `if` statements carry no braces (`if (!this._isTrigger) this._attachedBody?._markMassDirty();`). When both arms of a two-way branch are a single statement, either keep them brace-less with `else` on its own line, or use a conditional expression when the whole line fits the 120-character print width. Add braces as soon as an arm needs two statements, a declaration, or a wrapped line.
 
 
 
