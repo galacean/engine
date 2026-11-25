@@ -1824,6 +1824,9 @@ describe("renderer warmup scope", () => {
     const camera = {
       _updateShaderData() {},
       _isIndependentCanvasEnabled: () => true,
+      depthTextureMode: DepthTextureMode.PrePass,
+      _enableForwardDepthResolve: true,
+      opaqueTextureEnabled: true,
       enablePostProcess: true,
       enableScreenSpaceReflection: true,
       renderTarget: null,
@@ -1874,7 +1877,7 @@ describe("renderer warmup scope", () => {
       expect(primary.some((v) => v.shader === "Masonry/SupportSurface")).toBe(false);
       expect(primary.some((v) => v.shader === "PostProcess/SunLensFlare")).toBe(false);
       expect(primary.some((v) => v.shader === "PostProcess/SunLensFlareVisibility")).toBe(false);
-      // Visible River warms SSR Forward + SSRReceiver ONLY (no redundant non-SSR Forward duplicate).
+      // Visible River warms SSR Forward + SSRReceiver ONLY when current-frame color reuse avoids WarmupColor Frame 0.
       const riverForward = primary.filter((v) => v.shader === "Water/River.v1" && v.pi === 0);
       expect(riverForward).toHaveLength(1);
       expect(riverForward[0]!.macros.some((m) => m.n === "CAMERA_ENABLE_SSR")).toBe(true);
@@ -1882,6 +1885,19 @@ describe("renderer warmup scope", () => {
       expect(primary.some((v) => v.shader === "Lighting/ScreenSpaceReflection")).toBe(true);
       // Primary Blit/Blit warms only the camera's active renderToTexture sRGB state (1 variant).
       expect(primary.filter((v) => v.shader === "Blit/Blit")).toHaveLength(1);
+
+      // When Frame 0 enters WarmupColor (`!canReuseCurrentFrameColor`, e.g. `!opaqueTextureEnabled` or rainy opaque SSR),
+      // primary warmup MUST retain the non-SSR Forward variant so Frame 0 does not suffer revealCompileMisses.
+      const warmupColorCamera = { ...camera, opaqueTextureEnabled: false };
+      const primaryWarmupColor = collectSeedWorldRendererVariants(engine, behindSunScene, warmupColorCamera, roots, {
+        onlyEnabledRenderers: true,
+        onlyFrustumVisible: true,
+        includeGpuInstancing: false,
+        postProcessState: postState
+      });
+      const riverWarmupForward = primaryWarmupColor.filter((v) => v.shader === "Water/River.v1" && v.pi === 0);
+      expect(riverWarmupForward.some((v) => v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR"))).toBe(true);
+      expect(riverWarmupForward.some((v) => !v.macros.some((m) => m.n === "CAMERA_ENABLE_SSR"))).toBe(true);
 
       // When NO SSR-receiving water is in frustum, Lighting/ScreenSpaceReflection is also deferred out of primary.
       const noVisibleWaterRoots = [

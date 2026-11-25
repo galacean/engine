@@ -402,6 +402,17 @@ describe("Terrain near/far production shader variants", () => {
     expect(match0Body).not.toContain("evaluateMatteGrassLighting");
     expect(match0Body).toContain("evaluateTerrainProjectLightingWithShadow");
 
+    // SCENE_OIL_PAINT_STYLE must bypass TERRAIN_PROJECT_GRASS_MATTE_LIGHTING so dry oil-paint grass
+    // still evaluates applyOilPaintBrushSurface via evaluateTerrainProjectLightingWithShadow.
+    const oilPaintDryFs = ShaderMacroProcessor.evaluate(
+      grassForward.fragmentShaderInstructions,
+      new Map([...packedCases[0][1], ["SCENE_OIL_PAINT_STYLE", ""]])
+    );
+    const oilPaintDryBody = oilPaintDryFs.slice(oilPaintDryFs.indexOf("void GrassFragment"));
+    expect(oilPaintDryBody).not.toContain("evaluateMatteGrassLighting");
+    expect(oilPaintDryBody).toContain("evaluateTerrainProjectLightingWithShadow");
+    expect(oilPaintDryFs).toContain("applyOilPaintBrushSurface");
+
     // Edge cases: 1-cascade shadow, rock appearance + match-ground=1, and point/spot/probe dry matte
     const cascade1Macros = new Map(
       packedCases[0][1].map(([k, v]) => (k === "SCENE_SHADOW_CASCADED_COUNT" ? [k, "1"] : [k, v]))

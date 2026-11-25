@@ -102,9 +102,33 @@ function variant(source: Shader) {
   return result;
 }
 
+function materialCanOcclude(source: Material): boolean {
+  if (!source.shader || source.shader.destroyed) return false;
+  for (const sub of source.shader.subShaders) {
+    for (const original of sub.passes) {
+      if ((original.getTagValue("pipelineStage") ?? "Forward") !== "Forward") continue;
+      const pass = original as unknown as Pass;
+      const value = (key: State, fallback: boolean) => {
+        const property = pass._renderStateDataMap[key];
+        return property ? (source.shaderData.getFloat(property) ?? 1) !== 0 : fallback;
+      };
+      const depth = pass._renderState.depthState;
+      const stencil = pass._renderState.stencilState;
+      const writesDepth =
+        value(State.DepthStateEnabled, depth.enabled) && value(State.DepthStateWriteEnabled, depth.writeEnabled);
+      const writesStencil = value(State.StencilStateEnabled, stencil.enabled);
+      if (writesDepth || writesStencil) return true;
+    }
+  }
+  return false;
+}
+
 /** Unregistered surfaces still occlude IDs in the same draw, without a scene prepass. */
 export class RuntimePickOcclusion {
   private readonly saved: { renderer: Renderer; materials: (Material | null)[] }[] = [];
+  private readonly skippedRenderers = new Set<Renderer>();
+  private filteredCamera?: Camera;
+  private priorRenderFilter?: Camera["renderFilter"];
   private readonly materials = new Map<Material, Material>();
 
   prepare(camera: Camera, registered: ReadonlySet<Renderer>): void {
@@ -118,9 +142,27 @@ export class RuntimePickOcclusion {
         )
           continue;
         const originals = renderer.getMaterials().slice();
+        // Non-depth/stencil-writing transparent effects produce a GPU no-op under ColorWriteMask.None.
+        // Skip them via camera.renderFilter rather than toggling renderer.enabled (which would fire
+        // lifecycle hooks such as ParticleRenderer._onDisable and stop/clear active particles).
+        const hasOccluder = originals.some((source) => Boolean(source && materialCanOcclude(source)));
+        if (!hasOccluder) {
+          this.skippedRenderers.add(renderer);
+          continue;
+        }
         this.saved.push({ renderer, materials: originals });
         renderer.setMaterials(originals.map((source) => (source ? this.material(source) : source)));
       }
+    }
+    if (this.skippedRenderers.size > 0) {
+      const prior = camera.renderFilter;
+      const skipped = this.skippedRenderers;
+      this.filteredCamera = camera;
+      this.priorRenderFilter = prior;
+      camera.renderFilter = (renderable) => {
+        if (skipped.has(renderable as Renderer)) return false;
+        return prior ? prior(renderable) : true;
+      };
     }
   }
 
@@ -150,6 +192,12 @@ export class RuntimePickOcclusion {
   }
 
   restore(): void {
+    if (this.filteredCamera) {
+      this.filteredCamera.renderFilter = this.priorRenderFilter;
+      this.filteredCamera = undefined;
+      this.priorRenderFilter = undefined;
+    }
+    this.skippedRenderers.clear();
     for (const { renderer, materials } of this.saved) renderer.setMaterials(materials);
     this.saved.length = 0;
     for (const material of this.materials.values()) material.destroy();

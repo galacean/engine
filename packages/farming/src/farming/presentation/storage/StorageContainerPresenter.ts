@@ -21,6 +21,7 @@ interface ContainerView {
   cropId: string | null;
   units: Entity[];
   unitCrops: string[];
+  unitLocals: (readonly [number, number, number])[];
   state: StorageContainerState;
   distanceVisible: boolean;
 }
@@ -93,9 +94,10 @@ export class StorageContainerPresenter {
     }
   }
   private hasNearbyContainer(requireFrustum: boolean): boolean {
+    const containers = this.service.getSnapshot().storage.containers;
+    if (containers.length === 0) return false;
     const viewer = this.getViewerPosition?.();
     if (!viewer) return true;
-    const containers = this.service.getSnapshot().storage.containers;
     for (let i = 0; i < containers.length; i++) {
       const pos = containers[i].position;
       this.containerPosition.set(pos[0], pos[1], pos[2]);
@@ -140,28 +142,72 @@ export class StorageContainerPresenter {
   isContainerVisible(id: string): boolean {
     return !this.disposed && !!this.views.get(id)?.root.isActiveInHierarchy;
   }
+  /** Single authoritative world-position formula shared by deferred and materialized cargo slots. */
+  private slotWorldPosition(
+    state: StorageContainerState,
+    local: readonly [number, number, number]
+  ): readonly [number, number, number] {
+    const [lx, ly, lz] = local;
+    if (state.yaw === 0) {
+      return [state.position[0] + lx, state.position[1] + ly, state.position[2] + lz];
+    }
+    if (state.yaw === 90) {
+      return [state.position[0] + lz, state.position[1] + ly, state.position[2] - lx];
+    }
+    const rad = (state.yaw * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    return [state.position[0] + lx * cos + lz * sin, state.position[1] + ly, state.position[2] - lx * sin + lz * cos];
+  }
   /**
-   * Read the world centre of the last presented unit belonging to a cargo stack.
-   * Distance-hidden containers keep their positions; unprepared or absent cargo has no food position.
+   * Read the world centre of the last visible unit belonging to a cargo stack.
+   * Both materialized and distance-deferred containers use the same deterministic slot formula so
+   * strict equality checks stay stable across draw-distance transitions; absent cargo returns null.
    * @param containerId Stable container identity.
    * @param cropId Crop species bound to the observed stack.
    * @param itemId Inventory item bound to the observed stack.
-   * @returns A detached world position, or null if that stack has no presented unit.
+   * @returns A detached world position, or null if that stack has no visible cargo unit.
    */
   foodPosition(containerId: string, cropId: string, itemId: string): readonly [number, number, number] | null {
+    if (this.disposed) return null;
     const view = this.views.get(containerId);
-    if (this.disposed || !view) return null;
-    let end = 0;
-    for (const entry of containerContents(view.state)) {
-      const start = end;
-      end = Math.min(view.units.length, end + entry.quantity);
-      if (entry.cropId === cropId && entry.itemId === itemId && end > start) {
-        const position = view.units[end - 1].transform.worldPosition;
-        return [position.x, position.y, position.z];
+    if (view) {
+      let end = 0;
+      for (const entry of containerContents(view.state)) {
+        const start = end;
+        end = Math.min(view.units.length, end + entry.quantity);
+        if (entry.cropId === cropId && entry.itemId === itemId && end > start) {
+          return this.slotWorldPosition(view.state, view.unitLocals[end - 1]);
+        }
+        if (end === view.units.length) break;
       }
-      if (end === view.units.length) break;
+      return null;
     }
-    return null;
+    // Distance-deferred containers have not instantiated visual prefabs yet; compute the exact same
+    // produce slot world position analytically so distant animals can still locate stored food.
+    const state = this.service.getSnapshot().storage.containers.find((c) => c.id === containerId);
+    if (!state) return null;
+    const rules = storageDefinitions(this.definitions);
+    const type = rules.containers.find((t) => t.id === state.typeId);
+    if (!type) return null;
+    const visible = visibleContainerContents(state, rules);
+    const crops = visible.flatMap((entry) => Array<string>(entry.quantity).fill(entry.cropId));
+    if (!crops.length) return null;
+    let end = 0;
+    let targetIndex = -1;
+    for (const entry of containerContents(state)) {
+      const start = end;
+      end = Math.min(crops.length, end + entry.quantity);
+      if (entry.cropId === cropId && entry.itemId === itemId && end > start) {
+        targetIndex = end - 1;
+        break;
+      }
+      if (end === crops.length) break;
+    }
+    if (targetIndex < 0) return null;
+    const capacity = storageDisplayCapacity(state, rules);
+    const slots = storageProduceSlots(type.appearance, crops, capacity, (id) => this.produce.dimensions(id));
+    return this.slotWorldPosition(state, slots[targetIndex].position);
   }
   update(seconds: number): void {
     if (this.disposed) return;
@@ -181,8 +227,11 @@ export class StorageContainerPresenter {
     }
   }
   snapshot(): StoragePresentationSnapshot {
+    // Align with FarmingWorldPresentation: offscreen/distance-deferred or empty-container states are
+    // not "pending"; only active prefab loading or an unloaded nearby container blocks readiness.
+    const deferredOrIdle = !this.loading && !this.hasNearbyContainer(this.deferOffscreenLoad);
     return {
-      ready: !this.disposed && this.prefabs.size === 2 && !this.error,
+      ready: !this.disposed && !this.error && (this.prefabs.size === 2 || deferredOrIdle),
       error: this.error,
       containers: [...this.views].map(([id, view]) => ({
         id,
@@ -235,6 +284,7 @@ export class StorageContainerPresenter {
           label: "",
           units: [],
           unitCrops: [],
+          unitLocals: [],
           cropId: null,
           state,
           distanceVisible: true
@@ -249,6 +299,7 @@ export class StorageContainerPresenter {
       while (view.units.length > crops.length) {
         const unit = view.units.pop()!;
         view.unitCrops.pop();
+        view.unitLocals.pop();
         this.appearing.delete(unit);
         unit.destroy();
       }
@@ -260,6 +311,7 @@ export class StorageContainerPresenter {
           for (let index = 0; index < crops.length; index++) {
             const cropId = crops[index];
             const slot = slots[index];
+            view.unitLocals[index] = slot.position;
             if (view.unitCrops[index] === cropId) {
               view.units[index].transform.setPosition(...slot.position);
               continue;

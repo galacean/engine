@@ -1,6 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Logger, Shader, ShaderLanguage, ShaderMacro, ShaderPass } from "@galacean/engine";
-import { pickOcclusionPass } from "../src/runtime-inspection/runtime-pick-occlusion";
+import {
+  Camera,
+  Layer,
+  Logger,
+  Material,
+  ParticleRenderer,
+  Shader,
+  ShaderLanguage,
+  ShaderMacro,
+  ShaderPass
+} from "@galacean/engine";
+import { HeadlessEngine } from "../../rhi-null/src/HeadlessEngine";
+import { RuntimePickOcclusion, pickOcclusionPass } from "../src/runtime-inspection/runtime-pick-occlusion";
 import { RuntimePickPreparation } from "../src/runtime-inspection/runtime-pick-preparation";
 
 function makeForwardPass(name = "Forward"): ShaderPass {
@@ -140,8 +151,8 @@ describe("RuntimePickPreparation non-scene shader filtering", () => {
     expect(valuesSpy.mock.calls.length).toBe(scansAfterFirst);
   });
 
-  it("skips orthographic and transient animation variants and strips SSR macros from pick clones", () => {
-    const { queue, emit } = createHarness();
+  it("skips orthographic and host-registered transient macros and strips SSR/AO macros from pick clones", () => {
+    const { prep, queue, emit } = createHarness();
     const pickable = Shader.create("TestScene/PickableSurface", [
       new ShaderPass(
         "Forward",
@@ -157,25 +168,33 @@ describe("RuntimePickPreparation non-scene shader filtering", () => {
     createdShaders.push(pickable);
     const pass = pickable.subShaders[0].passes[0];
 
+    // Generic engine macro is skipped out of the box; host-owned domain macros must be registered via ignoreSourceMacros.
     emit(pass, [ShaderMacro.getByName("CAMERA_ORTHOGRAPHIC")]);
-    emit(pass, [ShaderMacro.getByName("RENDERER_GENERATION_REVEAL")]);
-    emit(pass, [ShaderMacro.getByName("RENDERER_MASONRY_ENTRANCE")]);
-    emit(pass, [ShaderMacro.getByName("GLOBAL_PROXY_DITHER")]);
+    expect(queue).toHaveLength(0);
+
+    prep.ignoreSourceMacros(["HOST_ENTRANCE_MACRO", "HOST_DITHER_MACRO"]);
+    emit(pass, [ShaderMacro.getByName("HOST_ENTRANCE_MACRO")]);
+    emit(pass, [ShaderMacro.getByName("HOST_DITHER_MACRO")]);
     expect(queue).toHaveLength(0);
 
     emit(pass, [
       ShaderMacro.getByName("CAMERA_ENABLE_SSR"),
       ShaderMacro.getByName("SSR_PACKED_HDR_REINHARD"),
+      ShaderMacro.getByName("SCENE_SHADOW_TYPE", "1"),
+      ShaderMacro.getByName("SCENE_ENABLE_AMBIENT_OCCLUSION"),
       ShaderMacro.getByName("RENDERER_HAS_UV")
     ]);
-    // Second variant differing only by stripped SSR macros deduplicates cleanly to the same pick key.
-    emit(pass, [ShaderMacro.getByName("RENDERER_HAS_UV")]);
+    // Second variant differing only by stripped SSR/AO macros deduplicates cleanly to the same pick key
+    // while keeping SCENE_SHADOW_TYPE (which stays active on scene.shaderData during offscreen pick render).
+    emit(pass, [ShaderMacro.getByName("SCENE_SHADOW_TYPE", "1"), ShaderMacro.getByName("RENDERER_HAS_UV")]);
     expect(queue).toHaveLength(1);
     const macroNames = queue[0]!.macros.map((m) => m.name);
     expect(macroNames).toContain("RENDERER_HAS_UV");
     expect(macroNames).toContain("RENDERER_WORLD_PICK");
+    expect(macroNames).toContain("SCENE_SHADOW_TYPE");
     expect(macroNames).not.toContain("CAMERA_ENABLE_SSR");
     expect(macroNames).not.toContain("SSR_PACKED_HDR_REINHARD");
+    expect(macroNames).not.toContain("SCENE_ENABLE_AMBIENT_OCCLUSION");
   });
 });
 
@@ -246,6 +265,355 @@ describe("pickOcclusionPass pipelineStage cache sync", () => {
       prep.dispose();
       if (!sceneShader.destroyed) sceneShader.destroy(true);
       vi.restoreAllMocks();
+    }
+  });
+});
+
+describe("RuntimePickPreparation dual-gear sliding-window scheduler", () => {
+  const createdShaders: Shader[] = [];
+  const preparations: RuntimePickPreparation[] = [];
+
+  function createControlledEngine(parallel = true) {
+    return {
+      _hardwareRenderer: {
+        gl: {
+          getExtension: (name: string) => (parallel && name === "KHR_parallel_shader_compile" ? {} : null)
+        }
+      }
+    } as never;
+  }
+
+  function createDeferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  function waitMicrotasks(turns = 6): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, turns * 4));
+  }
+
+  afterEach(() => {
+    for (const prep of preparations.splice(0)) prep.dispose();
+    for (const shader of createdShaders.splice(0)) {
+      if (!shader.destroyed) shader.destroy(true);
+    }
+    vi.restoreAllMocks();
+  });
+
+  it("refills freed sliding-window slots immediately without waiting for slow peers", async () => {
+    let observer: ((pass: ShaderPass, macros: readonly ShaderMacro[]) => void) | undefined;
+    vi.spyOn(ShaderPass, "observeVariants").mockImplementation((_engine, cb) => {
+      observer = cb;
+      return () => {
+        observer = undefined;
+      };
+    });
+    vi.spyOn(Shader, "find").mockReturnValue(null);
+
+    const gates: Array<ReturnType<typeof createDeferred<boolean>>> = [];
+    vi.spyOn(ShaderPass.prototype, "compileVariantAsync").mockImplementation(() => {
+      const gate = createDeferred<boolean>();
+      gates.push(gate);
+      return gate.promise;
+    });
+
+    const prep = new RuntimePickPreparation(createControlledEngine(true), {
+      backgroundConcurrency: 2,
+      flushConcurrency: 6
+    });
+    preparations.push(prep);
+    const shader = Shader.create("TestScene/SlidingWindow", [makeForwardPass()])!;
+    createdShaders.push(shader);
+    const pass = shader.subShaders[0].passes[0];
+
+    observer!(pass, [ShaderMacro.getByName("SW_0")]);
+    observer!(pass, [ShaderMacro.getByName("SW_1")]);
+    observer!(pass, [ShaderMacro.getByName("SW_2")]);
+
+    await waitMicrotasks(3);
+    expect(gates).toHaveLength(2);
+
+    // Resolve only the 2nd (fast) program while the 1st (slow) program is still pending:
+    // the 3rd program should start immediately instead of blocking behind Promise.all.
+    gates[1]!.resolve(true);
+    await waitMicrotasks(3);
+    expect(gates).toHaveLength(3);
+
+    gates[0]!.resolve(true);
+    gates[2]!.resolve(true);
+    await prep.flush();
+    expect(prep.ready).toBe(true);
+  });
+
+  it("escalates concurrency and wakes immediately when flush() arrives during background drain", async () => {
+    let observer: ((pass: ShaderPass, macros: readonly ShaderMacro[]) => void) | undefined;
+    vi.spyOn(ShaderPass, "observeVariants").mockImplementation((_engine, cb) => {
+      observer = cb;
+      return () => {
+        observer = undefined;
+      };
+    });
+    vi.spyOn(Shader, "find").mockReturnValue(null);
+
+    const gates: Array<ReturnType<typeof createDeferred<boolean>>> = [];
+    vi.spyOn(ShaderPass.prototype, "compileVariantAsync").mockImplementation(() => {
+      const gate = createDeferred<boolean>();
+      gates.push(gate);
+      return gate.promise;
+    });
+
+    const prep = new RuntimePickPreparation(createControlledEngine(true), {
+      backgroundConcurrency: 1,
+      flushConcurrency: 5,
+      backgroundCooldownMs: 250
+    });
+    preparations.push(prep);
+    const shader = Shader.create("TestScene/Escalation", [makeForwardPass()])!;
+    createdShaders.push(shader);
+    const pass = shader.subShaders[0].passes[0];
+
+    for (let i = 0; i < 6; i++) {
+      observer!(pass, [ShaderMacro.getByName(`ESC_${i}`)]);
+    }
+
+    // In background mode, only backgroundConcurrency (1) starts.
+    await waitMicrotasks(3);
+    expect(gates).toHaveLength(1);
+
+    // Trigger flush(): it must wake immediately and expand up to flushConcurrency (5).
+    const flushAbort = new AbortController();
+    const flushPromise = prep.flush(flushAbort.signal);
+    await waitMicrotasks(3);
+    expect(gates).toHaveLength(5);
+
+    // Aborting one flush caller restores background pacing (urgentFlushCount -> 0) and rejects only that caller.
+    flushAbort.abort(new DOMException("cancelled", "AbortError"));
+    await expect(flushPromise).rejects.toThrow();
+
+    for (const gate of gates) gate.resolve(true);
+    await waitMicrotasks(3);
+    // Back in backgroundCooldownMs (250ms), so the 6th variant waits until cooldown or next flush().
+    expect(gates).toHaveLength(5);
+
+    const secondFlush = prep.flush();
+    await waitMicrotasks(3);
+    expect(gates).toHaveLength(6);
+    gates[5]!.resolve(true);
+
+    await secondFlush;
+    expect(prep.ready).toBe(true);
+  });
+
+  it("keeps urgent concurrency active across beginUrgent() lease even for newly observed variants", async () => {
+    let observer: ((pass: ShaderPass, macros: readonly ShaderMacro[]) => void) | undefined;
+    vi.spyOn(ShaderPass, "observeVariants").mockImplementation((_engine, cb) => {
+      observer = cb;
+      return () => {
+        observer = undefined;
+      };
+    });
+    vi.spyOn(Shader, "find").mockReturnValue(null);
+
+    const gates: Array<ReturnType<typeof createDeferred<boolean>>> = [];
+    vi.spyOn(ShaderPass.prototype, "compileVariantAsync").mockImplementation(() => {
+      const gate = createDeferred<boolean>();
+      gates.push(gate);
+      return gate.promise;
+    });
+
+    const prep = new RuntimePickPreparation(createControlledEngine(true), {
+      backgroundConcurrency: 1,
+      flushConcurrency: 4,
+      backgroundCooldownMs: 250
+    });
+    preparations.push(prep);
+    const shader = Shader.create("TestScene/UrgentLease", [makeForwardPass()])!;
+    createdShaders.push(shader);
+    const pass = shader.subShaders[0].passes[0];
+
+    const endUrgent = prep.beginUrgent();
+    try {
+      for (let i = 0; i < 4; i++) observer!(pass, [ShaderMacro.getByName(`LEASE_${i}`)]);
+      await waitMicrotasks(3);
+      expect(gates).toHaveLength(4);
+      for (const gate of gates) gate.resolve(true);
+      await prep.flush();
+    } finally {
+      endUrgent();
+    }
+    expect(prep.ready).toBe(true);
+  });
+
+  it("yields to a macrotask before background compile, preserves cooldown on incoming variants, and avoids spurious Promise.race when full", async () => {
+    let observer: ((pass: ShaderPass, macros: readonly ShaderMacro[]) => void) | undefined;
+    vi.spyOn(ShaderPass, "observeVariants").mockImplementation((_engine, cb) => {
+      observer = cb;
+      return () => {
+        observer = undefined;
+      };
+    });
+    vi.spyOn(Shader, "find").mockReturnValue(null);
+
+    const gates: Array<ReturnType<typeof createDeferred<boolean>>> = [];
+    const starts: number[] = [];
+    const raceSpy = vi.spyOn(Promise, "race");
+    vi.spyOn(ShaderPass.prototype, "compileVariantAsync").mockImplementation(() => {
+      starts.push(performance.now());
+      const gate = createDeferred<boolean>();
+      gates.push(gate);
+      return gate.promise;
+    });
+
+    const prep = new RuntimePickPreparation(createControlledEngine(true), {
+      backgroundConcurrency: 2,
+      flushConcurrency: 6,
+      backgroundCooldownMs: 90
+    });
+    preparations.push(prep);
+    const shader = Shader.create("TestScene/WakeChannels", [makeForwardPass()])!;
+    createdShaders.push(shader);
+    const pass = shader.subShaders[0].passes[0];
+
+    // 1. Initial background yield must stay a real macrotask (never cancelled synchronously by request()).
+    observer!(pass, [ShaderMacro.getByName("WC_0")]);
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    expect(gates).toHaveLength(0);
+
+    // After macrotask fires, WC_0 starts in slot 1/2.
+    await waitMicrotasks(3);
+    expect(gates).toHaveLength(1);
+
+    // 2. Arriving WC_1 while slot 2/2 is free wakes raceInFlightOrWake immediately (without waiting for cooldown or WC_0).
+    observer!(pass, [ShaderMacro.getByName("WC_1")]);
+    await waitMicrotasks(2);
+    expect(gates).toHaveLength(2);
+
+    // 3. While inFlight is FULL (2/2), arriving variants must NOT cause spurious Promise.race subscriptions.
+    const racesWhileFullBefore = raceSpy.mock.calls.length;
+    observer!(pass, [ShaderMacro.getByName("WC_2")]);
+    observer!(pass, [ShaderMacro.getByName("WC_3")]);
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+    expect(raceSpy.mock.calls.length).toBe(racesWhileFullBefore);
+    expect(gates).toHaveLength(2);
+
+    // 4. Settling WC_0 enters backgroundCooldownMs (90ms); arriving WC_4 mid-cooldown must NOT cancel the cooldown.
+    const settledAt = performance.now();
+    gates[0]!.resolve(true);
+    await new Promise((r) => setTimeout(r, 20));
+    observer!(pass, [ShaderMacro.getByName("WC_4")]);
+    await new Promise((r) => setTimeout(r, 25));
+    expect(gates).toHaveLength(2);
+
+    // After full 90ms cooldown elapses, WC_2 launches.
+    await new Promise((r) => setTimeout(r, 80));
+    expect(gates.length).toBeGreaterThanOrEqual(3);
+    expect(starts[2]! - settledAt).toBeGreaterThanOrEqual(80);
+
+    const flushPromise = prep.flush();
+    await waitMicrotasks(3);
+    for (const gate of gates) gate.resolve(true);
+    await flushPromise;
+    expect(gates).toHaveLength(5);
+    expect(prep.ready).toBe(true);
+  });
+
+  it("falls back to concurrency 1 in background and 4 in flush when KHR_parallel_shader_compile is unavailable", async () => {
+    let observer: ((pass: ShaderPass, macros: readonly ShaderMacro[]) => void) | undefined;
+    vi.spyOn(ShaderPass, "observeVariants").mockImplementation((_engine, cb) => {
+      observer = cb;
+      return () => {
+        observer = undefined;
+      };
+    });
+    vi.spyOn(Shader, "find").mockReturnValue(null);
+
+    const gates: Array<ReturnType<typeof createDeferred<boolean>>> = [];
+    vi.spyOn(ShaderPass.prototype, "compileVariantAsync").mockImplementation(() => {
+      const gate = createDeferred<boolean>();
+      gates.push(gate);
+      return gate.promise;
+    });
+
+    const prep = new RuntimePickPreparation(createControlledEngine(false));
+    preparations.push(prep);
+    const shader = Shader.create("TestScene/NoParallel", [makeForwardPass()])!;
+    createdShaders.push(shader);
+    const pass = shader.subShaders[0].passes[0];
+
+    for (let i = 0; i < 6; i++) observer!(pass, [ShaderMacro.getByName(`NP_${i}`)]);
+    await waitMicrotasks(3);
+    expect(gates).toHaveLength(1);
+
+    const flushPromise = prep.flush();
+    await waitMicrotasks(3);
+    expect(gates).toHaveLength(4);
+
+    for (const gate of gates) gate.resolve(true);
+    await waitMicrotasks(3);
+    expect(gates).toHaveLength(6);
+    gates[4]!.resolve(true);
+    gates[5]!.resolve(true);
+    await flushPromise;
+    expect(prep.ready).toBe(true);
+  });
+
+  it("RuntimePickOcclusion skips non-occluding ParticleRenderer via camera.renderFilter without firing _onDisable or stopping particles", async () => {
+    const engine = await HeadlessEngine.create({ glTFLoader: { meshOpt: { workerCount: 0 } } });
+    try {
+      const scene = engine.sceneManager.activeScene!;
+      const cameraEntity = scene.createRootEntity("PickCam");
+      const camera = cameraEntity.addComponent(Camera);
+      camera.cullingMask = Layer.Everything;
+
+      const transparentPass = makeForwardPass("Forward");
+      (
+        transparentPass as unknown as {
+          _renderState: { depthState: { enabled: boolean; writeEnabled: boolean }; stencilState: { enabled: boolean } };
+        }
+      )._renderState.depthState.writeEnabled = false;
+      (
+        transparentPass as unknown as {
+          _renderState: { stencilState: { enabled: boolean } };
+        }
+      )._renderState.stencilState.enabled = false;
+      const transparentShader = Shader.create("TestPick/TransparentParticle", [transparentPass])!;
+      createdShaders.push(transparentShader);
+      const transparentMat = new Material(engine, transparentShader);
+
+      const particleEntity = scene.createRootEntity("Petals");
+      const particle = particleEntity.addComponent(ParticleRenderer);
+      particle.setMaterial(transparentMat);
+      particle.generator.main.playOnEnabled = false;
+      const onDisableSpy = vi.spyOn(particle, "_onDisable");
+      const stopSpy = vi.spyOn(particle.generator, "stop");
+
+      const priorFilter = vi.fn(() => true);
+      camera.renderFilter = priorFilter;
+
+      const occlusion = new RuntimePickOcclusion();
+      occlusion.prepare(camera, new Set());
+
+      // ParticleRenderer must stay enabled (never triggering _onDisable / stop) and be filtered via camera.renderFilter.
+      expect(particle.enabled).toBe(true);
+      expect(onDisableSpy).not.toHaveBeenCalled();
+      expect(stopSpy).not.toHaveBeenCalled();
+      expect(camera.renderFilter).not.toBe(priorFilter);
+      expect(camera.renderFilter!(particle)).toBe(false);
+      // Unrelated renderables delegate to the prior camera.renderFilter.
+      expect(camera.renderFilter!({} as never)).toBe(true);
+      expect(priorFilter).toHaveBeenCalledTimes(1);
+
+      occlusion.restore();
+      expect(camera.renderFilter).toBe(priorFilter);
+      expect(particle.enabled).toBe(true);
+      transparentMat.destroy(true);
+    } finally {
+      engine.destroy();
     }
   });
 });

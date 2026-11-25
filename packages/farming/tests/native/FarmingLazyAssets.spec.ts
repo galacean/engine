@@ -242,3 +242,128 @@ it("P1-16: StorageContainerPresenter stops auto-retrying on update()/setDeferOff
     engine.destroy();
   }
 });
+
+it("StorageContainerPresenter reports ready when deferred beyond draw distance or empty and computes bitwise-stable foodPosition without uploading deferred meshes", async () => {
+  const { ModelMesh, Vector3 } = await import("@galacean/engine");
+  const { StorageContainerPresenter } = await import("../../src/farming/presentation/storage/StorageContainerPresenter");
+  const engine = await HeadlessEngine.create({ glTFLoader: { meshOpt: { workerCount: 0 } } });
+  try {
+    const parent = engine.sceneManager.activeScene!.createRootEntity("StorageDeferredParent");
+    const fakePrefab = {
+      instantiate: () => parent.scene!.createRootEntity("StoragePrefabInstance")
+    };
+    const loadSpy = vi.spyOn(engine.resourceManager, "load").mockResolvedValue(fakePrefab as any);
+    const uploadSpy = vi.spyOn(ModelMesh.prototype, "uploadData");
+    const viewerPos = new Vector3(0, 0, 0);
+    const wheat = FARM_DEFINITIONS.catalog.crops.find((c) => c.id === "wheat") ?? FARM_DEFINITIONS.catalog.crops[0];
+    const rice = FARM_DEFINITIONS.catalog.crops.find((c) => c.id === "rice");
+    const tomato = FARM_DEFINITIONS.catalog.crops.find((c) => c.id === "tomato");
+    const cropId = wheat.id;
+    const itemId = wheat.harvest.itemId;
+    const containers = [
+      {
+        id: "cart-distant-yaw0",
+        typeId: "cart",
+        groundId: "ground-1",
+        order: 1,
+        position: [120, 4, -30] as [number, number, number],
+        yaw: 0,
+        cropId,
+        itemId,
+        quantity: 3
+      },
+      {
+        id: "cart-distant",
+        typeId: "cart",
+        groundId: "ground-1",
+        order: 2,
+        position: [125, 4, -30] as [number, number, number],
+        yaw: 90,
+        cropId,
+        itemId,
+        quantity: 3,
+        ...(rice ? { additionalContents: [{ cropId: rice.id, itemId: rice.harvest.itemId, quantity: 2 }] } : {})
+      },
+      ...(tomato
+        ? [
+            {
+              id: "basket-distant",
+              typeId: "basket",
+              groundId: "ground-1",
+              order: 3,
+              position: [122, 4, -30] as [number, number, number],
+              yaw: 0,
+              cropId: tomato.id,
+              itemId: tomato.harvest.itemId,
+              quantity: 2
+            }
+          ]
+        : [])
+    ];
+    const fakeService = {
+      getSnapshot: () => ({
+        farmId: "farm-distant",
+        storage: { containers }
+      }),
+      subscribe: () => () => {}
+    } as any;
+    const presenter = new StorageContainerPresenter(
+      parent,
+      fakeService,
+      FARM_DEFINITIONS,
+      () => viewerPos,
+      true,
+      () => false
+    );
+
+    // Distant offscreen container (> 50m): prepare() skips prefab fetch, snapshot().ready stays true (not stuck pending).
+    await presenter.prepare();
+    expect(loadSpy).not.toHaveBeenCalled();
+    expect(presenter.snapshot().ready).toBe(true);
+
+    // Even after startup deferral is lifted while camera remains > 50m away, readiness stays true and foodPosition works on CPU without GPU mesh uploads.
+    presenter.setDeferOffscreenLoad(false);
+    presenter.update(0.016);
+    expect(loadSpy).not.toHaveBeenCalled();
+    expect(presenter.snapshot().ready).toBe(true);
+    uploadSpy.mockClear();
+    const analyticalCart0 = presenter.foodPosition("cart-distant-yaw0", cropId, itemId);
+    const analyticalCart90 = presenter.foodPosition("cart-distant", cropId, itemId);
+    const analyticalBasket = tomato ? presenter.foodPosition("basket-distant", tomato.id, tomato.harvest.itemId) : null;
+    expect(analyticalCart0).not.toBeNull();
+    expect(analyticalCart90).not.toBeNull();
+    if (tomato) expect(analyticalBasket).not.toBeNull();
+    expect(uploadSpy).not.toHaveBeenCalled();
+
+    // Once player approaches within 50m and prefabs instantiate, materialized foodPosition is bitwise identical (===)
+    // to satisfy PlanningAnimalFood strict equality guards.
+    viewerPos.set(115, 4, -30);
+    await presenter.prepare();
+    expect(loadSpy).toHaveBeenCalledTimes(2);
+    const materializedCart0 = presenter.foodPosition("cart-distant-yaw0", cropId, itemId);
+    const materializedCart90 = presenter.foodPosition("cart-distant", cropId, itemId);
+    expect(materializedCart0).toEqual(analyticalCart0);
+    expect(materializedCart90).toEqual(analyticalCart90);
+    if (tomato) {
+      const materializedBasket = presenter.foodPosition("basket-distant", tomato.id, tomato.harvest.itemId);
+      expect(materializedBasket).toEqual(analyticalBasket);
+    }
+    presenter.dispose();
+
+    // Empty container farm reports ready without loading prefabs even when getViewerPosition is omitted or returns undefined.
+    const emptyService = {
+      getSnapshot: () => ({ farmId: "farm-empty", storage: { containers: [] } }),
+      subscribe: () => () => {}
+    } as any;
+    loadSpy.mockClear();
+    for (const getViewer of [undefined, () => undefined, () => viewerPos]) {
+      const emptyPresenter = new StorageContainerPresenter(parent, emptyService, FARM_DEFINITIONS, getViewer, true);
+      expect(emptyPresenter.snapshot().ready).toBe(true);
+      await emptyPresenter.prepare();
+      expect(loadSpy).not.toHaveBeenCalled();
+      emptyPresenter.dispose();
+    }
+  } finally {
+    engine.destroy();
+  }
+});

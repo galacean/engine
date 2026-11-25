@@ -1676,25 +1676,26 @@ function collectSeedWorldRendererVariantsInternal(
   }
   // Warm deferred SSR DepthOnly / Forward SSR variants + exact Lighting/ScreenSpaceReflection v2 passes when receivers exist.
   const hasAnySsrReceivers = ssrContext.hasTransparentSsr || ssrContext.hasOpaqueSsr;
-  if (ssrContext.skipNonSsrForwardForReceivers && !(ssrEnabled && hasAnySsrReceivers)) {
-    // Safety net: if a Forward material skipped its base variant expecting SSR, but no SSRReceiver pass
-    // was actually active to turn SSR on, keep its non-SSR Forward variant so nothing is missed.
+  const useHighVirtual =
+    ssrQuality === ScreenSpaceReflectionQuality.High || ssrQuality === ScreenSpaceReflectionQuality.XHigh;
+  const isXHigh = ssrQuality === ScreenSpaceReflectionQuality.XHigh;
+  const deferSSRToPostOpaque =
+    !ssrContext.hasOpaqueSsr && ssrContext.hasTransparentSsr && forwardDepthResolveEnabled && !depthPrepassEnabled;
+  const hasFullDepthForSsr = depthPrepassEnabled || deferSSRToPostOpaque;
+  const cameraOpaqueTextureEnabled = Boolean(
+    (camera as unknown as { opaqueTextureEnabled?: boolean }).opaqueTextureEnabled
+  );
+  const canReuseCurrentFrameColor =
+    deferSSRToPostOpaque && cameraOpaqueTextureEnabled && !isXHigh && !ssrContext.hasContribDepth;
+  if (ssrContext.skipNonSsrForwardForReceivers && (!(ssrEnabled && hasAnySsrReceivers) || !canReuseCurrentFrameColor)) {
+    // Safety net: keep non-SSR Forward variants whenever SSR will not run on Frame 0 — either because
+    // no SSRReceiver pass is active or because `!canReuseCurrentFrameColor` enters `WarmupColor` on
+    // cold Frame 0 (clearing `ssrState.enabled = false` before Forward).
     for (const entry of ssrContext.deferredSsrForward ?? []) {
       variants.push({ shader: entry.shader, si: entry.si, pi: entry.pi, macros: entry.macros });
     }
   }
   if (ssrEnabled && hasAnySsrReceivers) {
-    const useHighVirtual =
-      ssrQuality === ScreenSpaceReflectionQuality.High || ssrQuality === ScreenSpaceReflectionQuality.XHigh;
-    const isXHigh = ssrQuality === ScreenSpaceReflectionQuality.XHigh;
-    const deferSSRToPostOpaque =
-      !ssrContext.hasOpaqueSsr && ssrContext.hasTransparentSsr && forwardDepthResolveEnabled && !depthPrepassEnabled;
-    const hasFullDepthForSsr = depthPrepassEnabled || deferSSRToPostOpaque;
-    const cameraOpaqueTextureEnabled = Boolean(
-      (camera as unknown as { opaqueTextureEnabled?: boolean }).opaqueTextureEnabled
-    );
-    const canReuseCurrentFrameColor =
-      deferSSRToPostOpaque && cameraOpaqueTextureEnabled && !isXHigh && !ssrContext.hasContribDepth;
     if (!hasFullDepthForSsr && ssrContext.deferredSsrDepthOnly?.length) {
       variants.push(...ssrContext.deferredSsrDepthOnly);
     }

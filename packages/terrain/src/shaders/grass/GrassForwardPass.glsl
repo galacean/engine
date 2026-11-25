@@ -51,7 +51,7 @@ struct Attributes {
     #endif
   #endif
 #endif
-#if defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && defined(SCENE_SURFACE_CLIMATE_DRY) && !defined(RENDERER_WORLD_PICK)
+#if defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS) && defined(SCENE_SURFACE_CLIMATE_DRY) && !defined(RENDERER_WORLD_PICK) && !defined(SCENE_OIL_PAINT_STYLE)
   // Keep dry grass lighting lightweight in fragment without hoisting cloud shadow, fog, or
   // multi-cascade shadow coordinates into vertex (avoids VPC slot bloat beyond 4 vec4s / 13 floats
   // and per-vertex ALU/texture overhead on sub-pixel grass blades).

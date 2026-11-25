@@ -8,8 +8,7 @@ import {
   type OceanNearshoreOutsidePolicies,
   type ValidatedOceanNearshoreDescriptor
 } from "../../authoring/ocean/OceanNearshoreTypes";
-import { hashStableValue } from "../shared/determinism";
-import { numericContentIdentity } from "../shared/numericIdentity";
+import { asStableHashArray, hashStableValue } from "../shared/determinism";
 import { WaterBufferOwnership } from "../shared/WaterBufferOwnership";
 import type {
   OceanNearshoreCompileResult,
@@ -35,7 +34,7 @@ function outsideMatchesTarget(policy: OceanNearshoreOutsidePolicy, targetWet: bo
 }
 
 function seedBoundaryDistance(
-  distances: Float32Array,
+  distances: Float64Array,
   grid: Readonly<OceanNearshoreGridConfig>,
   outside: Readonly<OceanNearshoreOutsidePolicies>,
   targetWet: boolean
@@ -65,9 +64,9 @@ function distanceToClass(
   grid: Readonly<OceanNearshoreGridConfig>,
   outside: Readonly<OceanNearshoreOutsidePolicies>,
   targetWet: boolean
-): Float32Array {
+): Float64Array {
   const { width, height, cellSizeXZ } = grid;
-  const distances = new Float32Array(wetMask.length);
+  const distances = new Float64Array(wetMask.length);
   const target = targetWet ? 1 : 0;
   for (let index = 0; index < distances.length; index++) {
     distances[index] = wetMask[index] === target ? 0 : Number.POSITIVE_INFINITY;
@@ -268,9 +267,9 @@ export class OceanNearshoreCompiler {
       id: descriptor.id,
       waterLevel: descriptor.waterLevel,
       grid: descriptor.grid,
-      bedHeights: numericContentIdentity(descriptor.bedHeights),
-      signedShoreDistances: numericContentIdentity(shoreDistances),
-      wetMask: numericContentIdentity(wetMask),
+      bedHeights: asStableHashArray(descriptor.bedHeights),
+      signedShoreDistances: asStableHashArray(shoreDistances),
+      wetMask: asStableHashArray(wetMask),
       outsidePolicy: descriptor.outsidePolicy
     });
     const compiledHash = hashStableValue({
@@ -281,7 +280,7 @@ export class OceanNearshoreCompiler {
         height: atlas.height,
         maximumDepth: atlas.maximumDepth,
         shoreDistanceRange: atlas.shoreDistanceRange,
-        pixels: numericContentIdentity(atlas.pixels.borrowTypedArray())
+        pixels: asStableHashArray(atlas.pixels.borrowTypedArray())
       }
     });
     const data: OceanNearshoreCompiledData = Object.freeze({

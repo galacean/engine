@@ -112,7 +112,7 @@ describe("Construction lighting compiler bridge", () => {
     expect(sourceNoSpot.length).toBeLessThan(18_000);
   });
 
-  it("keeps plaster shader diet invariants (analytic rim gradient, narrowed dFdx/dFdy live range, early discard before textureGrad, 3/2 octaves)", () => {
+  it("keeps plaster shader diet invariants (uniform dFdx/dFdy before discard, rim normal before textureGrad, early discard before textureGrad, 3/2 octaves)", () => {
     expect(constructionPlasterGLSL).toContain("if(edge<.1 || wear>=1.0) return vec3(0.0);");
     expect(constructionPlasterGLSL).toContain("plasterNativeNoise(uv*.5+.5+offset,3)");
     expect(constructionPlasterGLSL).toContain("plasterNativeNoise(uv+23.4+offset,2)");
@@ -120,13 +120,22 @@ describe("Construction lighting compiler bridge", () => {
     expect(finishCodeOnly).not.toContain("plasterSurface(");
     const earlyReturnIdx = finishCodeOnly.indexOf("if(detail.x<.5) return vec3(0.0);");
     const firstTexGradIdx = finishCodeOnly.indexOf("textureGrad(material_PlasterColors");
+    const uvDerivIdx = finishCodeOnly.indexOf("dFdx(uv)");
     const posDerivIdx = finishCodeOnly.indexOf("dFdx(position)");
     const rimDerivIdx = finishCodeOnly.indexOf("dFdx(detail.z)");
+    const rimNormalWriteIdx = finishCodeOnly.indexOf("if(dot(edge,edge)>1e-8)");
     expect(earlyReturnIdx).toBeGreaterThan(-1);
     expect(firstTexGradIdx).toBeGreaterThan(earlyReturnIdx);
-    // Position and rim derivatives are deferred past texture fetches to minimize Adreno GPR pressure.
-    expect(posDerivIdx).toBeGreaterThan(firstTexGradIdx);
-    expect(rimDerivIdx).toBeGreaterThan(firstTexGradIdx);
+    // All screen-space derivatives must execute in uniform control flow prior to per-fragment early return (GLSL ES 3.00 §8.13.1).
+    expect(uvDerivIdx).toBeGreaterThan(-1);
+    expect(uvDerivIdx).toBeLessThan(earlyReturnIdx);
+    expect(posDerivIdx).toBeGreaterThan(-1);
+    expect(posDerivIdx).toBeLessThan(earlyReturnIdx);
+    expect(rimDerivIdx).toBeGreaterThan(-1);
+    expect(rimDerivIdx).toBeLessThan(earlyReturnIdx);
+    // Rim normal perturbation completes before texture fetches so zero position/rim derivative registers stay live across textureGrad.
+    expect(rimNormalWriteIdx).toBeGreaterThan(earlyReturnIdx);
+    expect(rimNormalWriteIdx).toBeLessThan(firstTexGradIdx);
   });
 
   it("omits dead 8-light fallback loop and point-light loop from masonryFarProxyLight when no point lights are active", () => {

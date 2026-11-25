@@ -826,6 +826,7 @@ export async function mountSeedWorldDemo(
         shaderCompiler: new ShaderCompiler()
       })
     );
+    let parallelCompileSupported = false;
     {
       const rhi = (engine as unknown as { _hardwareRenderer?: { gl?: WebGL2RenderingContext } })._hardwareRenderer;
       const gl = rhi?.gl;
@@ -837,20 +838,20 @@ export async function mountSeedWorldDemo(
         const renderer = dbg
           ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) ?? "")
           : String(gl.getParameter(gl.RENDERER) ?? "");
-        const parallelCompile = Boolean(gl.getExtension("KHR_parallel_shader_compile"));
+        parallelCompileSupported = Boolean(gl.getExtension("KHR_parallel_shader_compile"));
         seedWorldBootTrace.setMeta({
           device: {
             webglVersion: "WebGL2",
             gpuVendor: vendor || "unknown",
             gpuRenderer: renderer || "unknown",
-            parallelShaderCompile: parallelCompile
+            parallelShaderCompile: parallelCompileSupported
           }
         });
         seedWorldBootTrace.event(
           "info",
           "webgl",
           `WebGL2 ${renderer || "unknown"}`,
-          `texUnits=${gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)} vsTex=${gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS)} combTex=${gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS)} vsUni=${gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS)} fsUni=${gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS)} vary=${gl.getParameter(gl.MAX_VARYING_VECTORS)} attr=${gl.getParameter(gl.MAX_VERTEX_ATTRIBS)} parallel=${parallelCompile}`
+          `texUnits=${gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)} vsTex=${gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS)} combTex=${gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS)} vsUni=${gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS)} fsUni=${gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS)} vary=${gl.getParameter(gl.MAX_VARYING_VECTORS)} attr=${gl.getParameter(gl.MAX_VERTEX_ATTRIBS)} parallel=${parallelCompileSupported}`
         );
       }
     }
@@ -869,9 +870,18 @@ export async function mountSeedWorldDemo(
         return publication?.current;
       }
     });
+    const isTouchMobilePick =
+      typeof window !== "undefined" &&
+      ("ontouchstart" in window || (typeof navigator !== "undefined" && (navigator.maxTouchPoints ?? 0) > 0));
     pickPreparation = timed(
       "new RuntimePickPreparation",
-      () => new RuntimePickPreparation(engine!, { deferStart: true })
+      () =>
+        new RuntimePickPreparation(engine!, {
+          deferStart: true,
+          backgroundConcurrency: parallelCompileSupported ? (isTouchMobilePick ? 4 : 12) : isTouchMobilePick ? 1 : 2,
+          backgroundCooldownMs: isTouchMobilePick ? 16 : 0,
+          flushConcurrency: parallelCompileSupported ? 28 : 4
+        })
     );
     pickPreparation.ignoreShaderPrefixes([
       "IntegratedWorld/",
@@ -886,8 +896,20 @@ export async function mountSeedWorldDemo(
       "SeedWorld/InteractionDepthPack",
       "SeedWorld/PanoramaFarHorizon",
       "SeedWorld/HologramRainbow",
+      "SeedWorld/ForwardGrassTF",
+      "SeedWorld/MarkupViewport",
+      "SeedWorld/MarkupStrokeField",
       "OilPaint/",
       "PostProcess/OilPaint"
+    ]);
+    pickPreparation.ignoreSourceMacros([
+      "RENDERER_GENERATION_REVEAL",
+      "TERRAIN_PROJECT_ENTRANCE_WAVE",
+      "RENDERER_MASONRY_ENTRANCE",
+      "GLOBAL_PROXY_ENTRANCE",
+      "RENDERER_MASONRY_DITHER",
+      "GLOBAL_PROXY_DITHER",
+      "MASONRY_SURFACE_DITHER"
     ]);
     const resize = () => {
       if (!canvas.clientWidth || !canvas.clientHeight) return;
@@ -3460,15 +3482,20 @@ export async function mountSeedWorldDemo(
       async (signal, budget) => {
         // Join shared preparation before choosing the frame. The picker captures color, IDs and
         // depth in one camera callback, before a resize or simulation tick can separate them.
-        await waitForSnapshotWarmup(snapshotWarmup, signal);
-        await pickPreparation!.flush(signal);
-        return worldPicker!.capture(
-          (visitor) => snapshotPicks.visit(visitor),
-          (batch) => inspection.target(batch.renderer),
-          signal,
-          budget,
-          () => pickPreparation!.ready
-        );
+        const endUrgent = pickPreparation!.beginUrgent();
+        try {
+          await waitForSnapshotWarmup(snapshotWarmup, signal);
+          await pickPreparation!.flush(signal);
+          return await worldPicker!.capture(
+            (visitor) => snapshotPicks.visit(visitor),
+            (batch) => inspection.target(batch.renderer),
+            signal,
+            budget,
+            () => pickPreparation!.ready
+          );
+        } finally {
+          endUrgent();
+        }
       },
       () => {
         const state = tools!.application.getViewState();
@@ -4005,6 +4032,7 @@ export async function mountSeedWorldDemo(
             };
             const isBgWarmupPaused = () =>
               perfTourRunning ||
+              lassoFrozen ||
               activePointers.size > 0 ||
               activeTouches > 0 ||
               (lastInteractionAt > 0 && performance.now() - lastInteractionAt < 1500);
@@ -4042,11 +4070,11 @@ export async function mountSeedWorldDemo(
                     strict: false,
                     signal: editorLifetime.signal,
                     preserveOrder: true,
-                    frameBudgetMilliseconds: 4,
-                    maximumPendingPrograms: isTouchMobile ? 1 : parallelBgWarmup ? 2 : 1,
-                    cooldownFrames: isTouchMobile ? 3 : 1,
-                    maxFrameIntervalMs: 45,
-                    backoffMilliseconds: isTouchMobile ? 350 : 150,
+                    frameBudgetMilliseconds: isTouchMobile ? 6 : 8,
+                    maximumPendingPrograms: parallelBgWarmup ? (isTouchMobile ? 4 : 12) : isTouchMobile ? 1 : 2,
+                    cooldownFrames: isTouchMobile ? 1 : 0,
+                    maxFrameIntervalMs: isTouchMobile ? 65 : 80,
+                    backoffMilliseconds: isTouchMobile ? 250 : 120,
                     isPaused: isBgWarmupPaused,
                     ssrVerifyReceiverDepth
                   });
@@ -4172,10 +4200,24 @@ export async function mountSeedWorldDemo(
         await timed("farmingInteraction.prepare", () => farmingHost?.runtime?.prepareInteraction());
         await timed("pickPreparation.flush #2", () => preparingPicks.flush(editorLifetime.signal));
       } else {
-        // Preload markup canvas shaders and shutter audio in the background after initial scene warmup
-        // so the first markup click opens immediately without stalling.
-        void bgWarmupDone.then(() => {
-          if (!disposed) void preparingLasso.prewarm();
+        // Preload lightweight markup UI + capture blit shaders shortly after world ready (without waiting
+        // behind 70+ offscreen exploration shaders), then drain deferred pick shaders once bgWarmupDone settles.
+        const earlyPrewarmTimer = window.setTimeout(() => {
+          if (disposed || editorLifetime.signal.aborted) return;
+          if (autoBenchRequested || autoAblateRequested || perfTourParam) return;
+          void Promise.all([
+            preparingLasso.prewarm(),
+            preparingPicker.prewarmShaders(editorLifetime.signal).catch(() => undefined)
+          ]);
+        }, 200);
+        editorLifetime.signal.addEventListener("abort", () => window.clearTimeout(earlyPrewarmTimer), { once: true });
+        void bgWarmupDone.then(async () => {
+          if (disposed || editorLifetime.signal.aborted) return;
+          if (autoBenchRequested || autoAblateRequested || perfTourParam) {
+            await preparingLasso.prewarm();
+            return;
+          }
+          preparingPicks.resume();
         });
       }
       if (disposed) return;
