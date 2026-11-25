@@ -1,0 +1,319 @@
+world/gallery/demos/farming/first-person-farm/main.ts
+  s_b88eff05ec1924::t_af8d07e4baaf0d 161,188,258,268
+world/gallery/demos/farming/first-person-farm/scene/FarmScene.ts
+  s_b88eff05ec1924::t_7aa10238551892 196,527,540,566,583,590,613
+world/gallery/demos/farming/first-person-farm/ui/FarmHud.ts
+  s_b88eff05ec1924::t_85cf65afd7e126 155-156,161,422
+world/gallery/demos/terrain/data/grasslands/public/Shader/Grass.shaderc
+  s_b88eff05ec1924::t_459c26999708d2 1
+world/gallery/demos/terrain/data/grasslands/public/Shader/Terrain.shaderc
+  s_b88eff05ec1924::t_d2d3ea0b727651 1
+world/gallery/demos/terrain/data/grasslands/public/Shader/Vegetation.shaderc
+  s_b88eff05ec1924::t_f512003ec0f325 1
+world/gallery/demos/terrain/data/grasslands/source/public/Shader/Grass.shaderc
+  s_b88eff05ec1924::t_babd33c72ae1a5 1
+world/gallery/demos/terrain/data/grasslands/source/public/Shader/Terrain.shaderc
+  s_b88eff05ec1924::t_b3a8b884652f83 1
+world/gallery/demos/terrain/data/grasslands/source/public/Shader/Vegetation.shaderc
+  s_b88eff05ec1924::t_03c4e0784900cc 1
+world/gallery/demos/terrain/data/seed-world/public/Shader/Grass.shaderc
+  s_b88eff05ec1924::t_507442b76d1b05 1
+world/gallery/demos/terrain/data/seed-world/public/Shader/Terrain.shaderc
+  s_b88eff05ec1924::t_1c5d37c2558156 1
+world/gallery/demos/terrain/data/seed-world/public/Shader/Vegetation.shaderc
+  s_b88eff05ec1924::t_1f09c04a172af4 1
+world/gallery/demos/terrain/project-tests/PlanningFarmingAccessPublication.spec.ts
+  s_b88eff05ec1924::t_22ab7af31e211d 11-13
+world/gallery/demos/terrain/project-tests/PlanningFarmingControls.spec.ts
+  s_b88eff05ec1924::t_6ff00c953655af 71,477
+world/gallery/demos/terrain/project-tests/PlanningFarmingPersistence.spec.ts
+  s_b88eff05ec1924::t_5cead4f4792971 345-358
+world/gallery/demos/terrain/project-tests/PlanningFarmingRuntime.spec.ts
+  s_b88eff05ec1924::t_e999515c4759a0 13,575-595
+world/gallery/demos/terrain/project-tests/PlanningFarmingVegetation.spec.ts
+  s_b88eff05ec1924::t_4191ba83d2fc5f 2,13-15,17,21,31,64,66-68,79-80,111,119-238,262-264
+world/gallery/demos/terrain/project-tests/PlanningNaturalVegetation.spec.ts
+  s_b88eff05ec1924::t_6e1b7d3e741893 378-391
+world/gallery/demos/terrain/project-tests/SeedWorldGeneratedRockGrass.spec.ts
+  s_b88eff05ec1924::t_53d3c1350d38f4 58-71
+world/gallery/demos/terrain/project-tests/SeedWorldPaintedRockMaterial.spec.ts
+  s_b88eff05ec1924::t_7ddbf4725ab38f 9,47-52,119-123
+world/gallery/demos/terrain/project-tests/TerrainShaderPasses.spec.ts
+  s_b88eff05ec1924::t_e95c24ffef817d 88,320-323
+world/gallery/demos/terrain/project-tests/runtime/public/Shader/Grass.shaderc
+  s_b88eff05ec1924::t_05721f4b46ff32 1
+world/gallery/demos/terrain/project-tests/runtime/public/Shader/Terrain.shaderc
+  s_b88eff05ec1924::t_b66180327ce413 1
+world/gallery/demos/terrain/project-tests/runtime/public/Shader/Vegetation.shaderc
+  s_b88eff05ec1924::t_4f7e9cae7f184c 1
+world/gallery/demos/terrain/seed-world-planner/SeedWorldDemo.ts
+  s_b88eff05ec1924::t_0f36c9eb9eab6a 745,937
+world/gallery/demos/terrain/seed-world-planner/V2_IMPLEMENTATION.md
+  s_b88eff05ec1924::t_4f40d36ae1ff15 144-173,189-245,11236-11245,11386-11438
+world/gallery/demos/terrain/seed-world-planner/rock-formation/ColorBlend.glsl
+  s_b88eff05ec1924::t_6fbcd96266e8d8 1-2,4
+world/gallery/demos/terrain/seed-world-planner/rock-formation/GrassSurface.ts
+  s_b88eff05ec1924::t_4cb194ba259979 199-207,217-222
+world/gallery/demos/terrain/seed-world-planner/rock-formation/OriginalRockSurface.glsl
+  s_b88eff05ec1924::t_d87738af474e5c 3
+world/gallery/demos/terrain/seed-world-planner/rock-formation/PaintedRockMaterial.ts
+  s_b88eff05ec1924::t_67648196a061dd 6,9,19-35,116-119,169-171
+world/gallery/demos/terrain/seed-world-planner/rock-formation/Publication.ts
+  s_b88eff05ec1924::t_8a732b49d6b6a3 38,97
+world/gallery/demos/terrain/seed-world-planner/rock-formation/README.md
+  s_b88eff05ec1924::t_bba16674688a46 113-125
+world/gallery/demos/terrain/seed-world-planner/rock-formation/RockFormation.shader
+  s_b88eff05ec1924::t_7a870a983d8a1f 14,19-20,38,41-57,59,61,63-65
+world/gallery/demos/terrain/seed-world-planner/spatial/README.md
+  s_b88eff05ec1924::t_3d00387c21d8be 67-69
+world/gallery/demos/terrain/seed-world-planner/spatial/farming/PlanningFarmLandCoverage.ts
+  s_b88eff05ec1924::t_9a82ef25e3358f 21-22,25
+world/gallery/demos/terrain/seed-world-planner/spatial/farming/PlanningFarmRepository.ts
+  s_b88eff05ec1924::t_f1db695b571cd9 71,122
+world/gallery/demos/terrain/seed-world-planner/spatial/farming/PlanningFarmingControls.ts
+  s_b88eff05ec1924::t_d041c67201ae9e 38,344,470,480
+world/gallery/demos/terrain/seed-world-planner/spatial/farming/PlanningFarmingProjectValidation.ts
+  s_b88eff05ec1924::t_67e7ccfb67f4e0 98
+world/gallery/demos/terrain/seed-world-planner/spatial/farming/PlanningFarmingRuntime.ts
+  s_b88eff05ec1924::t_4948c2f7dfd2fd 19,171,462-463,615-616,665
+world/gallery/demos/terrain/seed-world-planner/spatial/farming/PlanningFarmingVegetation.ts
+  s_b88eff05ec1924::t_5cb1f714aa12cd 7-8,48-51,61,66
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningNaturalVegetation.ts
+  s_b88eff05ec1924::t_31fda8c0613c8e 307,377,389,409,446
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldPopulationRuntime.ts
+  s_b88eff05ec1924::t_327f8041eb735f 7-8,671,1309,1327-1332,2596,5780,5826-5827
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldRockSurfaceGrass.ts
+  s_b88eff05ec1924::t_f3c1d8375cf05b 16-17
+world/gallery/demos/terrain/seed-world-planner/systems/runtime-declarations.json
+  s_b88eff05ec1924::t_2f3e9b2a047aaa 150,260,263-265,269-270,276-277,279-280,284-286,290-291,297
+world/gallery/demos/terrain/shaders/grass/GrassForwardPass.glsl
+  s_b88eff05ec1924::t_cbd82c0fad796c 51-54,104-106,186-190,194-199,302-304,355-357,405-407,412-414
+world/gallery/demos/terrain/shaders/shared/GrassSurfaceField.glsl
+  s_b88eff05ec1924::t_8335d3e3636a00 1-16
+world/gallery/demos/terrain/shaders/shared/RockGrassGround.glsl
+  s_b88eff05ec1924::t_586041bed5d3cf 1-24
+world/gallery/demos/terrain/shaders/shared/RockSurfaceColor.glsl
+  s_b88eff05ec1924::t_e7ea511635cc1e 1-20
+world/gallery/demos/terrain/shaders/shared/SurfaceRelief.glsl
+  s_b88eff05ec1924::t_6b75ae70dffb52 38,42-46,62,68-80
+world/gallery/demos/terrain/shaders/shared/TerrainLayerEvaluation.glsl
+  s_b88eff05ec1924::t_8de1bec877fd43 540,546
+world/gallery/package.json
+  s_b88eff05ec1924::t_d6e1d2138a3d29 64
+world/gallery/shared/farming/README.md
+  s_b88eff05ec1924::t_00e1e3438185dd 118-119,125,153,159,214,220,248,252,264,282,301,303,308,312,315-318
+world/gallery/shared/farming/application/FarmingActionCoordinator.ts
+  s_b88eff05ec1924::t_a0c3f87fb92b54 13-14,72,166,178,189-191,202,388,495
+world/gallery/shared/farming/application/FarmingActivityLog.ts
+  s_b88eff05ec1924::t_9a8b5b0b26e8db 83
+world/gallery/shared/farming/application/FarmingItemDrop.ts
+  s_b88eff05ec1924::t_5acc0a7454e1d7 17-18,36
+world/gallery/shared/farming/application/FarmingItemInteraction.ts
+  s_b88eff05ec1924::t_71be1d3ecf2326 111-114,118-119,123,144,208,235,262
+world/gallery/shared/farming/application/FarmingService.ts
+  s_b88eff05ec1924::t_c99163288d6356 289,527,731,1182
+world/gallery/shared/farming/application/FarmingStarter.ts
+  s_b88eff05ec1924::t_8a4bc260248f6f 15-16,21-34,173
+world/gallery/shared/farming/application/FarmingWorkTarget.ts
+  s_b88eff05ec1924::t_1bbcf51383c4a8 6
+world/gallery/shared/farming/assets/CROP-SCALE.md
+  s_b88eff05ec1924::t_7edf18d445ae19 1-44
+world/gallery/shared/farming/assets/prop-textures/manifest.json
+  s_b88eff05ec1924::t_bc250b98073853 184
+world/gallery/shared/farming/assets/storage/README.md
+  s_b88eff05ec1924::t_460b0ef20f7fd3 3,15-20
+world/gallery/shared/farming/assets/storage/source-measurements.json
+  s_b88eff05ec1924::t_a4355ff295a5c5 12-31
+world/gallery/shared/farming/config/FarmingActionConfig.ts
+  s_b88eff05ec1924::t_aa5d79600ffed5 1-2
+world/gallery/shared/farming/config/FarmingSimulationConfig.ts
+  s_b88eff05ec1924::t_ac667521610bc8 2,23,50,54-61,66,87,89-91
+world/gallery/shared/farming/domain/CommandReceipts.ts
+  s_b88eff05ec1924::t_4b6ac49d612e8a 38,40
+world/gallery/shared/farming/domain/FarmActions.ts
+  s_b88eff05ec1924::t_40694be957c0dd 57,148,156,160
+world/gallery/shared/farming/domain/FarmCommandValidation.ts
+  s_b88eff05ec1924::t_297d174b723056 37,39
+world/gallery/shared/farming/domain/FarmItemDimensions.ts
+  s_b88eff05ec1924::t_b825e486e3a504 11
+world/gallery/shared/farming/domain/FarmItems.ts
+  s_b88eff05ec1924::t_a158403cf69684 5,19-20,71,78
+world/gallery/shared/farming/domain/FarmState.ts
+  s_b88eff05ec1924::t_e439b1f457237d 11,64
+world/gallery/shared/farming/domain/FarmValidation.ts
+  s_b88eff05ec1924::t_0665873902cd72 17,339,344-345,357
+world/gallery/shared/farming/domain/ResolveCarriedAction.ts
+  s_b88eff05ec1924::t_244b29ac411314 10,16,40,53
+world/gallery/shared/farming/domain/RetiredFarmItems.ts
+  s_b88eff05ec1924::t_4a1bf948c90dbf 1-2,4-10,12-36,39-42,44
+world/gallery/shared/farming/domain/applyFarmCommand.ts
+  s_b88eff05ec1924::t_094d2543afee11 119,143,151
+world/gallery/shared/farming/domain/createInitialFarmSnapshot.ts
+  s_b88eff05ec1924::t_ac9d2a5ca9aa5d 101,105
+world/gallery/shared/farming/domain/rules/FarmItemRules.ts
+  s_b88eff05ec1924::t_45c2967292b665 27-28,30-34,49-50,54,73,89-90,92,108-109,229-232,235,248,250,277,339-341
+world/gallery/shared/farming/fixes/pr103-performance-review.md
+  s_b88eff05ec1924::t_d7b1a589fc4328 1-60
+world/gallery/shared/farming/native/FarmingAPI.ts
+  s_b88eff05ec1924::t_e2083c3d19fed6 182,317
+world/gallery/shared/farming/native/FarmingAPIContract.ts
+  s_b88eff05ec1924::t_1528abaeb782fe 245,317,402
+world/gallery/shared/farming/native/FarmingAPIDeclarations.ts
+  s_b88eff05ec1924::t_5cb3043a9790ab 2
+world/gallery/shared/farming/native/FarmingAreaComponent.ts
+  s_b88eff05ec1924::t_3a1e2fab297875 7,37,283-288
+world/gallery/shared/farming/native/FarmingComponentEditor.ts
+  s_b88eff05ec1924::t_65dd7d1861a4a7 36
+world/gallery/shared/farming/native/FarmingKnowledge.ts
+  s_b88eff05ec1924::t_bb5db2891bc367 5,9,13,21
+world/gallery/shared/farming/native/README.md
+  s_b88eff05ec1924::t_8699f7734847c5 72
+world/gallery/shared/farming/native/knowledge/README.md
+  s_b88eff05ec1924::t_283820bdcc5ebd 16
+world/gallery/shared/farming/native/knowledge/operations.md
+  s_b88eff05ec1924::t_c4e26400795545 112,114,124,126,142
+world/gallery/shared/farming/native/knowledge/state-and-units.md
+  s_b88eff05ec1924::t_4b3f0407e7a568 14,16,30
+world/gallery/shared/farming/native/knowledge/system-editor.md
+  s_b88eff05ec1924::t_26ed9d33b06137 44,59
+world/gallery/shared/farming/presentation/DefaultCropScales.ts
+  s_b88eff05ec1924::t_a7f62403b28f72 1-3,5-6,8-11,13-18
+world/gallery/shared/farming/presentation/FarmItemLookDownPose.ts
+  s_b88eff05ec1924::t_297d43c8543af6 11
+world/gallery/shared/farming/presentation/FarmItemPresentation.ts
+  s_b88eff05ec1924::t_21b622381993d8 24,56-58,83,168-176,181,218-219,262-266,274-275,293,298-302,313,337-338,353,376-377,381,388-389,403
+world/gallery/shared/farming/presentation/FarmItemRetraction.ts
+  s_b88eff05ec1924::t_ae8c7f4fc93984 1-10,14-33,36-37,39-75
+world/gallery/shared/farming/presentation/FarmingPlotSelection.ts
+  s_b88eff05ec1924::t_08d9a72ac2ea30 1-5,7-23,26-39,41-43,45-61,63-64,66,68-74,76-77,79-82,85-126,128-155,158-163,165,169-170,173-174
+world/gallery/shared/farming/presentation/FarmingSelectionTexture.ts
+  s_b88eff05ec1924::t_4536ff68564e89 1-33
+world/gallery/shared/farming/presentation/FarmingTargetHint.ts
+  s_b88eff05ec1924::t_292ee375437f7a 1-10,12-33,35-37,39-94,97-105,107-113,115-126,129-136,138-143,145-146,148-151,153-155,157-182,186-189,191-198
+world/gallery/shared/farming/presentation/FarmingTargetHintShader.ts
+  s_b88eff05ec1924::t_1878d13db98eb2 1-53
+world/gallery/shared/farming/presentation/FarmingWorldPresentation.ts
+  s_b88eff05ec1924::t_dd1a57a0c7ec4e 2-3,8,19,38,47-48,90-106,111-119,131,148,156,187-195,203-206,208,234-264,268-278,280,297,299,301-347,412,471-475,515-546,552-566,570,573,585,603,640,666,672,703-704,755-765,767,770-773,776,825-826,838,858-859,866-871,878,931-933,939
+world/gallery/shared/farming/presentation/PlantHarvestEffect.ts
+  s_b88eff05ec1924::t_f8980c6aff5b73 105,121,149
+world/gallery/shared/farming/presentation/soil/SoilBoundary.ts
+  s_b88eff05ec1924::t_b4a432061e18cd 31,47,50-62,70-73,103-111,116
+world/gallery/shared/farming/presentation/soil/SoilMoistureShader.ts
+  s_b88eff05ec1924::t_70dc07e1714ff6 88-89
+world/gallery/shared/farming/presentation/soil/SoilVisualConfig.ts
+  s_b88eff05ec1924::t_4e4c051e92c286 18-19
+world/gallery/shared/farming/presentation/soil/SoilVisualProvider.ts
+  s_b88eff05ec1924::t_ac863dbea4f565 141,145-148
+world/gallery/shared/farming/presentation/soil/SoilWorkPresenter.ts
+  s_b88eff05ec1924::t_147e506428a0df 121,131-133,138-140,147,151
+world/gallery/shared/farming/presentation/sowing/SowingSeedLibrary.ts
+  s_b88eff05ec1924::t_d06b304f568b09 8-10,35-41
+world/gallery/shared/farming/presentation/storage/StorageContainerPresenter.ts
+  s_b88eff05ec1924::t_00510d5cb51619 1-2,18-19,45,49-50,102-104,154-167,211-225
+world/gallery/shared/farming/procedural/README.md
+  s_b88eff05ec1924::t_732ddde26945be 45
+world/gallery/shared/farming/tests/browser/farm-demo.e2e.spec.ts
+  s_b88eff05ec1924::t_b1341e5a8d3874 77
+world/gallery/shared/farming/tests/browser/farmland.e2e.spec.ts
+  s_b88eff05ec1924::t_bdadb7c6f4527f 149,221,683
+world/gallery/shared/farming/tests/browser/flat-soil.e2e.spec.ts
+  s_b88eff05ec1924::t_5605eaab6d886e 22-24
+world/gallery/shared/farming/tests/browser/flat-soil/main.ts
+  s_b88eff05ec1924::t_be2e86cfdf2090 141,147,152,155-156
+world/gallery/shared/farming/tests/browser/mobile-performance/main.ts
+  s_b88eff05ec1924::t_187b8ee983c085 270
+world/gallery/shared/farming/tests/browser/target-hint/index.html
+  s_b88eff05ec1924::t_042359d9e9e114 2-4
+world/gallery/shared/farming/tests/browser/target-hint/main.ts
+  s_b88eff05ec1924::t_cc39510e92e694 1-143
+world/gallery/shared/farming/tests/native/FarmingAgentLoop.spec.ts
+  s_b88eff05ec1924::t_953cc24cb7258d 84,89,91,94
+world/gallery/shared/farming/tests/native/FarmingClockSettlement.spec.ts
+  s_b88eff05ec1924::t_3b2468599b2c81 150,155
+world/gallery/shared/farming/tests/native/FarmingComponentEditor.spec.ts
+  s_b88eff05ec1924::t_0dd371258427d0 60-62,66
+world/gallery/shared/farming/tests/native/FarmingDiagnostics.spec.ts
+  s_b88eff05ec1924::t_402ffd97ca0a0f 177,179
+world/gallery/shared/farming/tests/native/FarmingEditor.spec.ts
+  s_b88eff05ec1924::t_7acc093a35a00a 94-96,100
+world/gallery/shared/farming/tests/native/FarmingItems.spec.ts
+  s_b88eff05ec1924::t_bbaf164f801237 178,233-234
+world/gallery/shared/farming/tests/native/FarmingNative.spec.ts
+  s_b88eff05ec1924::t_404b09306615a9 36-55,73,75
+world/gallery/shared/farming/tests/unit/anchor-reprojection.spec.ts
+  s_b88eff05ec1924::t_16390a498c4f4e 3,6,17,44
+world/gallery/shared/farming/tests/unit/crop-scale.spec.ts
+  s_b88eff05ec1924::t_24d20ebb840ab1 1-41
+world/gallery/shared/farming/tests/unit/growth-controls.spec.ts
+  s_b88eff05ec1924::t_9f82de83f24ebc 31,61,101,139,143-173
+world/gallery/shared/farming/tests/unit/immersive-items.spec.ts
+  s_b88eff05ec1924::t_d71e89db1264f8 468,476,478-479,494,520
+world/gallery/shared/farming/tests/unit/item-drop.spec.ts
+  s_b88eff05ec1924::t_be59e7e08ddffb 23,28,30,36,41-52,61,64,69,72,78,81,90-92,111-116
+world/gallery/shared/farming/tests/unit/item-ground-pose.spec.ts
+  s_b88eff05ec1924::t_3ace5788e1b137 17
+world/gallery/shared/farming/tests/unit/item-model-scale.spec.ts
+  s_b88eff05ec1924::t_d97eff394c09ce 74
+world/gallery/shared/farming/tests/unit/item-retraction.spec.ts
+  s_b88eff05ec1924::t_797b1ecab89572 1-116
+world/gallery/shared/farming/tests/unit/item-transition.spec.ts
+  s_b88eff05ec1924::t_d6ade7da4d2e38 1-5,7-56,58-69,72-95
+world/gallery/shared/farming/tests/unit/item-work-motion.spec.ts
+  s_b88eff05ec1924::t_9fc3a695a3f5ce 45
+world/gallery/shared/farming/tests/unit/plot-management.spec.ts
+  s_b88eff05ec1924::t_9c03dc92d94d33 190,322
+world/gallery/shared/farming/tests/unit/plot-selection-bounds.spec.ts
+  s_b88eff05ec1924::t_7e4e2b3dcc799a 1-38
+world/gallery/shared/farming/tests/unit/plot-selection.spec.ts
+  s_b88eff05ec1924::t_e342a661d9c033 1-2,4-9,11-16,18-27,30-36,38-78,81-115,117-135,137-147,149-179
+world/gallery/shared/farming/tests/unit/retired-items.spec.ts
+  s_b88eff05ec1924::t_f41cd20161128c 1-10,13-114
+world/gallery/shared/farming/tests/unit/soil-boundary.spec.ts
+  s_b88eff05ec1924::t_ae7614d00d72e1 60-93
+world/gallery/shared/farming/tests/unit/soil-reveal-material.spec.ts
+  s_b88eff05ec1924::t_f02efcaf7cb5a2 1-60
+world/gallery/shared/farming/tests/unit/sowing-seed-scale.spec.ts
+  s_b88eff05ec1924::t_fa473d94be1118 1-43,45-73
+world/gallery/shared/farming/tests/unit/spatial-field.spec.ts
+  s_b88eff05ec1924::t_3e06717dadef78 126,355
+world/gallery/shared/farming/tests/unit/storage-presenter.spec.ts
+  s_b88eff05ec1924::t_b6d29b7bb676ae 2,10-11,15,42-54,77,102-103,148-173
+world/gallery/shared/farming/tests/unit/target-hint.spec.ts
+  s_b88eff05ec1924::t_68f91cbf1539da 1-194
+world/gallery/shared/farming/tests/unit/world-presentation-harvest.spec.ts
+  s_b88eff05ec1924::t_7749417696eb81 32-37,44-45,97-108,133-148,156-161,240-261,264,280,292-293,441,487,493,542,548,555,586,591,594,612-712,722,724-725,736-737,746,783,785-786,791-792,812-814,830,929-1085
+world/gallery/shared/farming/tools/export-storage.py
+  s_b88eff05ec1924::t_6aff1dcd5136c6 8,12,18-19,21-22,79-107,114-119
+world/gallery/shared/farming/tools/production-boundary.cjs
+  s_b88eff05ec1924::t_0a5d99df5c5fe0 5
+world/gallery/tests/llm/README.md
+  s_b88eff05ec1924::t_ac191f558b40ba 2,69,84
+world/gallery/tests/llm/atomic.test.mjs
+  s_b88eff05ec1924::t_3b612d16bbf0c1 11-13,15,17,28
+world/gallery/tests/llm/cases/farming-atomic.json
+  s_b88eff05ec1924::t_dab8e7de8cc7eb 467,591-592,622-623,823,841
+world/gallery/tests/llm/farming-atomic-oracles.mjs
+  s_b88eff05ec1924::t_3f167ea691abfa 23,35,38,86
+world/gallery/tests/llm/farming-fixtures.ts
+  s_b88eff05ec1924::t_0e8c36a6d2602e 41-44,47-48
+world/gallery/tsconfig.farming.json
+  s_b88eff05ec1924::t_ff96fd2b109309 16
+world/package.json
+  s_b88eff05ec1924::t_e8658017381475 46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "296ed4216ea476b7488d35898fcb5333a427bbc4",
+  "prompts": {},
+  "sessions": {
+    "s_b88eff05ec1924": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a154d1-f8c2-7e22-b9cf-0aa981dbfd49",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}
