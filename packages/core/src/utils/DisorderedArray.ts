@@ -154,11 +154,13 @@ export class DisorderedArray<T> {
     this._elements.length = this.length;
   }
 
-  private _startLoop(): void {
+  /** @internal */
+  _startLoop(): void {
     ++this._loopCounter;
   }
 
-  private _endLoop(swapFn: ((e: T, idx: number) => void) | undefined): void {
+  /** @internal */
+  _endLoop(swapFn: ((e: T, idx: number) => void) | undefined): void {
     if (--this._loopCounter !== 0) {
       return;
     }
