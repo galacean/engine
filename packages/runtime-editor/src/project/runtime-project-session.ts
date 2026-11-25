@@ -637,14 +637,21 @@ export class RuntimeProjectSession {
     );
     await this.prepareFilesParallel(hierarchyFiles);
     const converted: Record<string, string> = {};
+    const repairedDependencies = new Map<(typeof hierarchyFiles)[number], string[]>();
     for (const file of hierarchyFiles) {
-      const text = this.projectPackage.contents[file.virtualPath];
+      let text = this.projectPackage.contents[file.virtualPath];
       if (typeof text !== "string") throw new Error(`Hierarchy '${file.virtualPath}' is not text`);
       const hierarchy = JSON.parse(text);
       if (!hierarchy.asset)
-        converted[file.virtualPath] = JSON.stringify(
+        text = converted[file.virtualPath] = JSON.stringify(
           importRuntimeHierarchy(hierarchy, file.virtualPath, this.projectPackage.project.files, isRegisteredComponent)
         );
+      // Older Seed World saves recorded empty edges for built-in prefabs. Use the
+      // source already in memory so authored overrides keep their own references.
+      if (file.dependencies?.length === 0) {
+        const dependencies = extractAssetDependencies(file, text, this.referenceFormats.get(file.type));
+        if (dependencies?.length) repairedDependencies.set(file, dependencies);
+      }
     }
     const candidate = { ...this.projectPackage, contents: { ...this.projectPackage.contents, ...converted } };
     for (const path of Object.keys(converted)) {
@@ -654,7 +661,16 @@ export class RuntimeProjectSession {
     }
     this.lifetime.signal.throwIfAborted();
     Object.assign(this.projectPackage.contents, converted);
-    this.syncSnapshotContents(Object.entries(converted));
+    if (repairedDependencies.size) {
+      for (const [file, dependencies] of repairedDependencies) {
+        file.dependencies = dependencies;
+        this.dependencyMaintenance.rememberAcceptedAsset(this.projectPackage, file, dependencies);
+      }
+      this.clearManifestValidation();
+      this.persistenceSnapshot = undefined;
+    } else {
+      this.syncSnapshotContents(Object.entries(converted));
+    }
   }
 
   async resources(signal?: AbortSignal): Promise<RuntimeProjectManifest["files"]> {

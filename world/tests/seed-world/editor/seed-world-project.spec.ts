@@ -110,6 +110,11 @@ it.each(["runtime", "planning"] as const)(
     expect(
       project.projectPackage.project.files.find((file) => file.virtualPath === PLANNING_PROJECT_PATH)?.dependencies
     ).toEqual([]);
+    // A previously saved project can have the original catalog's empty prefab edges.
+    const savedPrefab = f.records.get(project.id)!.project.files.find(
+      (file) => file.virtualPath === "Prefab/Detail/detail-00.prefab"
+    )!;
+    savedPrefab.dependencies = [];
     project.dispose();
     sessions.pop();
 
@@ -117,6 +122,9 @@ it.each(["runtime", "planning"] as const)(
     const restored = await openSeedWorldProject(f.url, initial);
     sessions.push(restored);
     expect(f.fetcher).not.toHaveBeenCalled();
+    expect(
+      restored.projectPackage.project.files.find((file) => file.virtualPath === savedPrefab.virtualPath)?.dependencies
+    ).toEqual(["Material/Vegetation/grass-2.mat", "Models/grass-2-authored.glb"]);
     const restoredStorage = new PlanningProjectStorage(restored);
     const loaded = (await restoredStorage.load(42))!;
     expect(loaded.entities.world.components.world.values.landCoverage).toBe(0.7);
