@@ -2978,8 +2978,117 @@ describe("Physics Test", () => {
       expect(receiverPool).toHaveLength(0);
     });
 
+    it("controls query-time synchronization via autoSyncTransforms and syncTransforms", () => {
+      expect(physicsScene.autoSyncTransforms).toBe(true);
+
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("auto-sync-transforms");
+      const target = root.createChild("target");
+      const box = target.addComponent(BoxCollider);
+      box.size.set(2, 2, 2);
+
+      const hit = new HitResult();
+      const hits: HitResult[] = [];
+      const closest = new Vector3();
+      const identity = new Quaternion();
+      const down = new Vector3(0, -1, 0);
+      const halfExtents = new Vector3(0.25, 0.25, 0.25);
+
+      // Default autoSyncTransforms = true makes the new collider immediately visible.
+      expect(physicsScene.raycast(new Ray(new Vector3(0, 5, 0), down), 10, hit)).toBe(true);
+      expect(hit.collider).toBe(box);
+
+      physicsScene.autoSyncTransforms = false;
+      try {
+        target.transform.setPosition(10, 0, 0);
+        const added = root.createChild("added");
+        added.transform.setPosition(20, 0, 0);
+        const addedBox = added.addComponent(BoxCollider);
+        addedBox.size.set(2, 2, 2);
+
+        // Queries still read the last synchronized state until syncTransforms() or a simulation step runs.
+        expect(physicsScene.raycast(new Ray(new Vector3(0, 5, 0), down), 10, hit)).toBe(true);
+        expect(hit.collider).toBe(box);
+        expect(physicsScene.raycast(new Ray(new Vector3(10, 5, 0), down), 10, hit)).toBe(false);
+        expect(physicsScene.raycast(new Ray(new Vector3(20, 5, 0), down), 10, hit)).toBe(false);
+        expect(physicsScene.raycastAll(new Ray(new Vector3(10, 5, 0), down), 10, hits)).toBe(false);
+        expect(physicsScene.boxCast(new Vector3(10, 5, 0), halfExtents, down, 10, hit)).toBe(false);
+        expect(physicsScene.sphereCast(new Vector3(10, 5, 0), 0.25, down, 10, hit)).toBe(false);
+        expect(physicsScene.capsuleCast(new Vector3(10, 5, 0), 0.25, 1, down, 10, hit)).toBe(false);
+        expect(physicsScene.overlapBoxAll(new Vector3(10, 0, 0), halfExtents, identity)).toEqual([]);
+        expect(physicsScene.overlapSphereAll(new Vector3(10, 0, 0), 0.25)).toEqual([]);
+        expect(physicsScene.overlapCapsuleAll(new Vector3(10, 0, 0), 0.25, 1, identity)).toEqual([]);
+        expect(box.getClosestPoint(new Vector3(0, 3, 0), closest)).toBeCloseTo(2, 4);
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        expect(addedBox.getClosestPoint(new Vector3(20, 3, 0), closest)).toBe(-1);
+        expect(warn).toHaveBeenCalledTimes(1);
+        warn.mockRestore();
+
+        // Manual syncTransforms() flushes pending Transform and Collider edits for all queries.
+        physicsScene.syncTransforms();
+        expect(physicsScene.raycast(new Ray(new Vector3(0, 5, 0), down), 10, hit)).toBe(false);
+        expect(physicsScene.raycast(new Ray(new Vector3(10, 5, 0), down), 10, hit)).toBe(true);
+        expect(hit.collider).toBe(box);
+        expect(physicsScene.raycast(new Ray(new Vector3(20, 5, 0), down), 10, hit)).toBe(true);
+        expect(hit.collider).toBe(addedBox);
+        expect(physicsScene.raycastAll(new Ray(new Vector3(10, 5, 0), down), 10, hits)).toBe(true);
+        expect(hits.map((item) => item.collider)).toEqual([box]);
+        expect(physicsScene.boxCast(new Vector3(10, 5, 0), halfExtents, down, 10, hit)).toBe(true);
+        expect(physicsScene.sphereCast(new Vector3(10, 5, 0), 0.25, down, 10, hit)).toBe(true);
+        expect(physicsScene.capsuleCast(new Vector3(10, 5, 0), 0.25, 1, down, 10, hit)).toBe(true);
+        expect(physicsScene.overlapBoxAll(new Vector3(10, 0, 0), halfExtents, identity)).toEqual([box]);
+        expect(physicsScene.overlapSphereAll(new Vector3(10, 0, 0), 0.25)).toEqual([box]);
+        expect(physicsScene.overlapCapsuleAll(new Vector3(10, 0, 0), 0.25, 1, identity)).toEqual([box]);
+        expect(box.getClosestPoint(new Vector3(10, 3, 0), closest)).toBeCloseTo(2, 4);
+        expect(addedBox.getClosestPoint(new Vector3(20, 3, 0), closest)).toBeCloseTo(2, 4);
+
+        // Simulation steps still synchronize automatically when autoSyncTransforms is false.
+        target.transform.setPosition(30, 0, 0);
+        expect(physicsScene.raycast(new Ray(new Vector3(30, 5, 0), down), 10, hit)).toBe(false);
+        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(physicsScene.raycast(new Ray(new Vector3(30, 5, 0), down), 10, hit)).toBe(true);
+        expect(hit.collider).toBe(box);
+      } finally {
+        physicsScene.autoSyncTransforms = true;
+      }
+    });
+
+    it("keeps syncTransforms free of mass recomputation while Rigidbody mass APIs still sync when autoSyncTransforms is false", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("sync-transforms-mass");
+      const bodyEntity = root.createChild("body");
+      const body = bodyEntity.addComponent(Rigidbody);
+      body.useGravity = false;
+      const child = bodyEntity.createChild("box");
+      const box = child.addComponent(BoxCollider);
+      box.size.set(2, 2, 2);
+
+      physicsScene._update(physicsScene.fixedTimeStep);
+      const actor = (body as any)._nativeActor;
+      const updateMass = vi.spyOn(actor, "updateMassAndInertia");
+
+      physicsScene.autoSyncTransforms = false;
+      try {
+        body.mass = 6;
+        child.transform.setPosition(4, 0, 0);
+        box.size.set(1, 2, 2);
+
+        physicsScene.syncTransforms();
+        expect(updateMass).not.toHaveBeenCalled();
+
+        const hit = new HitResult();
+        expect(physicsScene.raycast(new Ray(new Vector3(0, 0, 0), new Vector3(1, 0, 0)), 20, hit)).toBe(true);
+        expect(hit.collider).toBe(box);
+        expect(hit.distance).toBeCloseTo(3.5, 4);
+
+        expect(body.centerOfMass.x).toBeCloseTo(4, 5);
+        expect(updateMass).toHaveBeenCalledExactlyOnceWith(6, null, null, null);
+      } finally {
+        physicsScene.autoSyncTransforms = true;
+      }
+    });
+
     afterEach(() => {
       vi.restoreAllMocks();
+      physicsScene.autoSyncTransforms = true;
       for (const root of enginePhysX.sceneManager.activeScene.rootEntities.slice()) {
         root.destroy();
       }

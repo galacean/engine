@@ -221,9 +221,9 @@ export class Collider extends Component {
    * @returns Distance in world units, 0 for a point inside or on the Collider, or -1 if the shape is unavailable.
    */
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
-    this._registeredScene?.physics._syncColliders(false);
+    this._registeredScene?.physics._syncForQuery();
     const distance = this._getVolumeDistance(point, outClosestPoint);
-    distance < 0 && console.warn("The collider is not in simulation.");
+    distance < 0 && this._reportClosestPointFailure();
     return distance;
   }
 
@@ -235,8 +235,7 @@ export class Collider extends Component {
    * @returns The distance, or -1 when the shape is unavailable
    */
   _getVolumeDistance(point: Vector3, outClosestPoint?: Vector3): number {
-    // A disabled Rigidbody is unregistered from the scene's enabled bodies but keeps its Colliders attached
-    if (!this._nativeActor || this._attachedBody?._index === -1) {
+    if (!this._isInSimulation()) {
       return -1;
     }
 
@@ -407,6 +406,18 @@ export class Collider extends Component {
       }
     }
     return null;
+  }
+
+  /**
+   * Whether this Collider currently has an active native shape in simulation.
+   */
+  protected _isInSimulation(): boolean {
+    // A disabled Rigidbody is unregistered from the scene's enabled bodies but keeps its Colliders attached
+    return this._nativeActor !== null && this._attachedBody?._index !== -1;
+  }
+
+  protected _reportClosestPointFailure(): void {
+    console.warn("The collider is not in simulation.");
   }
 
   /**

@@ -46,6 +46,7 @@ describe("CharacterController", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    physics.autoSyncTransforms = true;
     root.destroy();
     engine.resourceManager.gc();
   });
@@ -1222,5 +1223,61 @@ describe("CharacterController", () => {
     ).toBe(true);
     expect(hit.collider).toBe(mirrorCC);
     expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
+  });
+
+  it("syncs only its own pending state on move when autoSyncTransforms is false", () => {
+    const wall = root.createChild("wall");
+    wall.transform.setPosition(20, 2, 20);
+    const wallBox = wall.addComponent(BoxCollider);
+    wallBox.size.set(1, 4, 4);
+    const gaugeWall = root.createChild("gauge-wall");
+    gaugeWall.transform.setPosition(10, 2, 20);
+    gaugeWall.addComponent(BoxCollider).size.set(1, 4, 4);
+    physics.syncTransforms();
+
+    physics.autoSyncTransforms = false;
+    try {
+      // Newly added controller attaches and moves without requiring a scene-wide sync.
+      const actor = root.createChild("cct-auto-sync-off");
+      actor.transform.setPosition(0, 2, 20);
+      const cc = actor.addComponent(CharacterController);
+      cc.radius = 0.5;
+      cc.height = 2;
+
+      cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep);
+      expect(actor.transform.worldPosition.x).toBeCloseTo(1, 3);
+
+      // Teleporting and resizing the controller itself take effect on the very next move.
+      actor.transform.setPosition(7, 2, 20);
+      cc.radius = 1;
+      cc.height = 3;
+      const resizedFlags = cc.move(new Vector3(5, 0, 0), 0.001, physics.fixedTimeStep);
+      expect(resizedFlags & ControllerCollisionFlag.Sides).toBeTruthy();
+      // Left face of gaugeWall is at x = 9.5; with radius 1 + contactOffset 0.02, center stops near x = 8.48.
+      expect(actor.transform.worldPosition.x).toBeLessThan(8.6);
+      expect(actor.transform.worldPosition.x).toBeGreaterThan(8.3);
+
+      // Moving an unrelated wall into the path is NOT flushed by cc.move() while autoSyncTransforms is false.
+      actor.transform.setPosition(-2, 2, 20);
+      cc.radius = 0.4;
+      cc.height = 1.6;
+      wall.transform.setPosition(0, 2, 20);
+      const unobstructedFlags = cc.move(new Vector3(3.5, 0, 0), 0.001, physics.fixedTimeStep);
+      expect(unobstructedFlags & ControllerCollisionFlag.Sides).toBe(0);
+      expect(actor.transform.worldPosition.x).toBeCloseTo(1.5, 3);
+
+      const hit = new HitResult();
+      expect(physics.raycast(new Ray(new Vector3(0, 6, 20), new Vector3(0, -1, 0)), 4, hit)).toBe(false);
+      expect(physics.raycast(new Ray(new Vector3(20, 6, 20), new Vector3(0, -1, 0)), 4, hit)).toBe(true);
+      expect(hit.collider).toBe(wallBox);
+
+      // After explicit syncTransforms(), cc.move() collides with the wall at its updated pose.
+      physics.syncTransforms();
+      const blockedFlags = cc.move(new Vector3(-3, 0, 0), 0.001, physics.fixedTimeStep);
+      expect(blockedFlags & ControllerCollisionFlag.Sides).toBeTruthy();
+      expect(actor.transform.worldPosition.x).toBeGreaterThan(0.8);
+    } finally {
+      physics.autoSyncTransforms = true;
+    }
   });
 });

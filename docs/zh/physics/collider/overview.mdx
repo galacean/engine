@@ -35,7 +35,7 @@ label: Physics
 | 禁用所属刚体         | 刚体及其拥有的所有碰撞器退出模拟和查询；它们**不会**变成静态碰撞器，各自的 `enabled` 值不变 |
 | 移除（销毁）所属刚体 | 它拥有的碰撞器变为静态，或归属层级更上方的下一个刚体                                        |
 
-组件的改动会在每次物理模拟步进以及每次查询（射线检测、形状投射、重叠检测）之前统一应用，因此添加或启用组件的先后顺序不影响结果。
+组件的改动会在每次物理模拟步进前统一应用；在 [PhysicsScene.autoSyncTransforms](/apis/core/#PhysicsScene-autoSyncTransforms) 为 `true`（默认）时，也会在每次查询（射线检测、形状投射、重叠检测、`getClosestPoint`）之前统一应用，因此添加或启用组件的先后顺序不影响结果。当 `autoSyncTransforms` 为 `false` 时，如需在下次模拟步进前让查询立即生效，可调用 [PhysicsScene.syncTransforms](/apis/core/#PhysicsScene-syncTransforms)。
 
 ## 通用属性
 

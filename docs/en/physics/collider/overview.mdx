@@ -35,7 +35,7 @@ To build a compound shape, add several Collider components to the same Entity, o
 | Disable the owning Rigidbody | The Rigidbody and all the Colliders it owns leave simulation and queries; they do **not** become static. Their `enabled` values are unchanged |
 | Remove (destroy) the owning Rigidbody | The Colliders it owned become static, or join the next Rigidbody further up the hierarchy |
 
-Component changes are collected and applied in one pass before each simulation step and before each query (raycast, shape cast, overlap), so the order in which you add or enable components does not matter.
+Component changes are collected and applied in one pass before each simulation step and, while [PhysicsScene.autoSyncTransforms](/apis/core/#PhysicsScene-autoSyncTransforms) is `true` (default), before each query (raycast, shape cast, overlap, `getClosestPoint`), so the order in which you add or enable components does not matter. When `autoSyncTransforms` is `false`, call [PhysicsScene.syncTransforms](/apis/core/#PhysicsScene-syncTransforms) to flush pending changes before querying.
 
 ## Shared Properties
 

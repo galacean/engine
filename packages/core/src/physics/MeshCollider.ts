@@ -92,25 +92,11 @@ export class MeshCollider extends Collider {
   }
 
   /**
-   * Finds the closest point in a convex hull.
-   * @param point - Point to measure from in world space.
-   * @param outClosestPoint - Receives the closest point in world space. Left unchanged if the query fails.
-   * @returns Distance in world units, 0 for a point inside or on the hull, or -1 if the hull is unavailable.
-   */
-  override getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
-    if (this._mesh && !this._convex) {
-      console.error("MeshCollider: getClosestPoint is only supported when convex is true.");
-      return -1;
-    }
-    return super.getClosestPoint(point, outClosestPoint);
-  }
-
-  /**
    * @internal
    * @inheritDoc
    */
   override _getVolumeDistance(point: Vector3, outClosestPoint?: Vector3): number {
-    if (!this._convex) {
+    if (!this._nativeConvex) {
       return -1;
     }
     return super._getVolumeDistance(point, outClosestPoint);
@@ -132,6 +118,14 @@ export class MeshCollider extends Collider {
     if (this._native && this._dirtyIndex === -1 && (!this._mesh || this._nativeMesh !== this._mesh)) {
       this._nativeMesh = null;
       this._destroyNative();
+    }
+  }
+
+  protected override _reportClosestPointFailure(): void {
+    if (this._isInSimulation() && !this._nativeConvex) {
+      console.error("MeshCollider: getClosestPoint is only supported when convex is true.");
+    } else {
+      super._reportClosestPointFailure();
     }
   }
 

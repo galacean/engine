@@ -28,7 +28,7 @@ import {
   TonemappingEffect,
   UnlitMaterial
 } from "@galacean/engine-core";
-import { MathUtil } from "@galacean/engine-math";
+import { MathUtil, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -481,6 +481,32 @@ describe("PostProcess", () => {
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity2);
       moveBeforeRender.destroy();
+
+      // With autoSyncTransforms disabled, local post-process volume queries do not implicitly flush pending edits.
+      scene.physics.autoSyncTransforms = false;
+      try {
+        secondCollider.center.set(0, 0, 0);
+        scene.physics.syncTransforms();
+        const moveWithoutAutoSync = cameraEntity.addComponent(
+          class extends Script {
+            override onBeginRender(): void {
+              secondCollider.center.set(radius * 2, 0, 0);
+            }
+          }
+        );
+        try {
+          engine.update();
+          expect(bloomBlend.intensity.value).to.equal(intensity1);
+          scene.physics.syncTransforms();
+          engine.update();
+          expect(bloomBlend.intensity.value).to.equal(intensity2);
+        } finally {
+          moveWithoutAutoSync.destroy();
+        }
+      } finally {
+        scene.physics.autoSyncTransforms = true;
+      }
+
       secondCollider.enabled = false;
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(intensity1);
@@ -510,6 +536,49 @@ describe("PostProcess", () => {
         expect(bloomBlend.intensity.value).to.equal(intensity1);
         expect(warnSpy).not.toHaveBeenCalled();
         expect(errorSpy).not.toHaveBeenCalled();
+
+        // Synced convex MeshCollider remains active for getClosestPoint and local PostProcess when convex = false is unsynced.
+        cameraEntity.transform.position.set(0, 0, 0);
+        meshCollider.convex = true;
+        scene.physics.syncTransforms();
+        const closest = new Vector3();
+        expect(meshCollider.getClosestPoint(new Vector3(3, 0, 0), closest)).toBeCloseTo(2, 4);
+        engine.update();
+        expect(bloomBlend.intensity.value).to.equal(intensity2);
+
+        const previousFixedTimeStep = scene.physics.fixedTimeStep;
+        let physicsSteps = 0;
+        const stepCounter = postEntity.addComponent(
+          class extends Script {
+            override onPhysicsUpdate(): void {
+              physicsSteps++;
+            }
+          }
+        );
+        scene.physics.autoSyncTransforms = false;
+        scene.physics.fixedTimeStep = 10;
+        try {
+          meshCollider.convex = false;
+          expect(meshCollider.getClosestPoint(new Vector3(3, 0, 0), closest)).toBeCloseTo(2, 4);
+          engine.update();
+          expect(physicsSteps).to.equal(0);
+          expect(bloomBlend.intensity.value).to.equal(intensity2);
+          expect(warnSpy).not.toHaveBeenCalled();
+          expect(errorSpy).not.toHaveBeenCalled();
+
+          scene.physics.syncTransforms();
+          expect(meshCollider.getClosestPoint(new Vector3(3, 0, 0), closest)).to.equal(-1);
+          expect(errorSpy).toHaveBeenCalledTimes(1);
+          engine.update();
+          expect(physicsSteps).to.equal(0);
+          expect(bloomBlend.intensity.value).to.equal(intensity1);
+          expect(warnSpy).not.toHaveBeenCalled();
+        } finally {
+          scene.physics.autoSyncTransforms = true;
+          scene.physics.fixedTimeStep = previousFixedTimeStep;
+          stepCounter.destroy();
+        }
+
         plane.destroy();
         controller.destroy();
         meshCollider.destroy();
