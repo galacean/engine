@@ -39,19 +39,6 @@ export class Collider extends Component {
   private static readonly _tempRotation = new Quaternion();
   private static readonly _tempScale = new Vector3();
 
-  /**
-   * @internal
-   * @returns The index of a single collision layer
-   * @throws When the value is not exactly one of `Layer.Layer0` to `Layer.Layer31`.
-   */
-  static _getLayerIndex(layer: Layer): number {
-    const index = 31 - Math.clz32(layer);
-    if (index < 0 || (1 << index) >>> 0 !== layer) {
-      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
-    }
-    return index;
-  }
-
   private static _getAxisLength(entity: Entity, scaledAncestor: Entity, axis: Vector3): number {
     for (let node = entity; node !== scaledAncestor; node = node.parent!) {
       const transform = node.transform;
@@ -203,7 +190,7 @@ export class Collider extends Component {
   }
 
   set collisionLayer(value: Layer) {
-    const index = Collider._getLayerIndex(value);
+    const index = PhysicsUtils.getLayerIndex(value);
     if (this._collisionLayerIndex !== index) {
       this._collisionLayerIndex = index;
       this._getNative()?.setCollisionLayer(index);

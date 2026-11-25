@@ -309,8 +309,8 @@ export class PhysicsScene {
    */
   getColliderLayerCollision(layer1: Layer, layer2: Layer): boolean {
     return this._nativePhysicsScene.getColliderLayerCollision(
-      Collider._getLayerIndex(layer1),
-      Collider._getLayerIndex(layer2)
+      PhysicsUtils.getLayerIndex(layer1),
+      PhysicsUtils.getLayerIndex(layer2)
     );
   }
 
@@ -323,8 +323,8 @@ export class PhysicsScene {
    */
   setColliderLayerCollision(layer1: Layer, layer2: Layer, isCollide: boolean): void {
     this._nativePhysicsScene.setColliderLayerCollision(
-      Collider._getLayerIndex(layer1),
-      Collider._getLayerIndex(layer2),
+      PhysicsUtils.getLayerIndex(layer1),
+      PhysicsUtils.getLayerIndex(layer2),
       isCollide
     );
   }
