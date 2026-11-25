@@ -28,6 +28,8 @@ export class ModelMesh extends Mesh {
   private _vertexCount: number = 0;
   private _vertexCountDirty: boolean = false;
   private _dataVersionCounter: number = 0;
+  private _positionVersion = -1;
+  private _indicesVersion = -1;
 
   private _positions: Vector3[] | null = null;
   private _normals: Vector3[] | null = null;
@@ -129,6 +131,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._updateAdvancedVertexDataMarks(VertexElementFlags.Position, VertexElementIndex.Position);
+    this._positionVersion = this._advancedVertexDataVersions[VertexElementIndex.Position];
     this._positions = positions;
 
     this._vertexCount = positions?.length ?? 0;
@@ -140,13 +143,18 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setPositions() method after modification to ensure that the modification takes effect.
    */
   getPositions(): Vector3[] | null {
+    const previousPositions = this._positions;
     const positions = this._getVertexElementData(
-      this._positions,
+      previousPositions,
       VertexAttribute.Position,
       VertexElementIndex.Position,
       this._readVector3VertexData
     );
-    this._positions = positions;
+    if (positions !== previousPositions) {
+      // A layout change can decode different positions from the same buffer version.
+      this._positionVersion = this._dataVersionCounter++;
+      this._positions = positions;
+    }
     return positions;
   }
 
@@ -430,10 +438,12 @@ export class ModelMesh extends Mesh {
     }
 
     this._indicesChangeFlag = true;
+    this._indicesVersion = this._dataVersionCounter++;
   }
 
   /**
    * Get indices for the mesh.
+   * @remarks Call {@link setIndices} after modifying the returned array to submit the changes.
    */
   getIndices(): Uint8Array | Uint16Array | Uint32Array | null {
     if (!this._accessible) {
@@ -450,6 +460,13 @@ export class ModelMesh extends Mesh {
    * Call this method will clear the vertex data set by the setPositions(), setNormals(), setColors(), setBoneWeights(), setBoneIndices(), setTangents(), setUVs() methods.
    */
   setVertexElements(elements: VertexElement[]): void {
+    const previousPosition = this._primitive._vertexElementMap[VertexAttribute.Position];
+    const previousBufferVersion = previousPosition
+      ? (this._vertexBufferInfos[previousPosition.bindingIndex]?.dataVersion ?? -1)
+      : -1;
+    const hasPendingPositions =
+      (this._advancedDataUpdateFlag & VertexElementFlags.Position) !== 0 &&
+      (this._advancedVertexDataVersions[VertexElementIndex.Position] ?? -1) > previousBufferVersion;
     this._clearVertexElements();
 
     const count = elements.length;
@@ -459,7 +476,12 @@ export class ModelMesh extends Mesh {
 
     // Clear data if vertex element not contains
     const vertexElementMap = this._primitive._vertexElementMap;
-    vertexElementMap[VertexAttribute.Position] || this.setPositions(null);
+    if (!vertexElementMap[VertexAttribute.Position]) {
+      this.setPositions(null);
+    } else if (!hasPendingPositions) {
+      // A new layout can read different positions from the same buffer.
+      this._advancedVertexDataVersions[VertexElementIndex.Position] = -1;
+    }
     vertexElementMap[VertexAttribute.Normal] || this.setNormals(null);
     vertexElementMap[VertexAttribute.Color] || this.setColors(null);
     vertexElementMap[VertexAttribute.BoneWeight] || this.setBoneWeights(null);
@@ -694,6 +716,11 @@ export class ModelMesh extends Mesh {
     this.setTangents(MeshTangentUtils.calculateTangents(positions, normals, uvs, this._indices));
   }
 
+  /** @internal Revision of the positions returned by getPositions and optionally the indices. */
+  _getGeometryVersion(includeIndices: boolean): number {
+    return includeIndices ? Math.max(this._positionVersion, this._indicesVersion) : this._positionVersion;
+  }
+
   /**
    * @internal
    */
@@ -778,8 +805,10 @@ export class ModelMesh extends Mesh {
     if (advancedDataVersion >= bufferDataVersion) {
       return vertices;
     } else {
+      // Retain the old version if readback throws so the next read can retry.
+      const result = readVertexData.call(this, vertexAttribute);
       advancedVertexDataVersions[vertexElementIndex] = bufferDataVersion;
-      return readVertexData.call(this, vertexAttribute);
+      return result;
     }
   }
 
