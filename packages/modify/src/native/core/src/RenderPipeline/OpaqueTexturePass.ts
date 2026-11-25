@@ -1,6 +1,7 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Downsampling } from "../enums/Downsampling";
+import { RenderPassLoadAction } from "../renderingHardwareInterface";
 import { Texture, Texture2D, TextureFilterMode, TextureFormat } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
@@ -76,7 +77,11 @@ export class OpaqueTexturePass extends PipelinePass {
   }
 
   override onRender(context: RenderContext): void {
-    Blitter.blitTexture(this.engine, <Texture2D>this._cameraColorTexture, this._renderTarget);
+    const passDescriptor = this._passDescriptor.reset(this._renderTarget);
+    passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(this.engine, <Texture2D>this._cameraColorTexture);
+    context.endRenderPass();
     context.camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, this._renderTarget!.getColorTexture(0));
   }
 

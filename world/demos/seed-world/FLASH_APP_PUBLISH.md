@@ -6,26 +6,22 @@
 
 ## 1. 前置环境
 
-在仓库根目录准备环境（Node.js ≥ 20.19，pnpm 9.3.0）：
+闪应用发布使用 Node.js ≥ 20.19 和 npm 10.9.3。先从要发布的提交创建独立 Git 工作树，再运行仓库内的构建入口。
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm b:module
-pnpm --dir world prepare:engine
+git worktree add --detach ../seed-world-npm-release HEAD
+cd ../seed-world-npm-release
+node world/scripts/build-seed-world-npm.mjs
 ```
 
-`prepare:engine` 会生成 `packages/modify/.cache/` 下的着色器与编译产物；`build:seed-world-flash-app` 仅校验 `packages/modify/.cache/shaders.ts` 是否存在，不会自动检测源码是否更新。因此**每次 `pull` / `rebase` / 切换分支，或修改 `packages/modify` / `packages/shader` 后都应重新执行 `prepare:engine`**。
-
-若改动涉及被地形引用的公共 `ShaderLibrary/*.glsl`（如 `Shadow.glsl`、`Fog.glsl`、`Light.glsl`、`VolumetricCloudShadow.glsl`）或 `packages/terrain/src/shaders/**`，`prepare:engine` 不会更新地形预编译件，须额外重编 4 个 Seed World 地形着色器：
-
-```bash
-node world/scripts/prepare-terrain-shaders.mjs Grass Surface Terrain Vegetation
-```
+该入口在发布工作树中转换 `workspace:*` 依赖，生成并复用 `package-lock.json`，用 `npm ci` 安装依赖。随后编译引擎、刷新 Seed World 的着色器及地形预编译件，并生成运行目录和源码快照。开发工作树和 CI 继续使用仓库原有的 pnpm 配置。生成的 npm 配置随源码快照交付。
 
 ## 2. 构建闪应用产物
 
+完整入口已构建运行产物。需要在已准备好的发布工作树中单独重建时执行
+
 ```bash
-pnpm --dir world build:seed-world-flash-app
+npm run build:seed-world-flash-app --workspace world
 ```
 
 唯一应发布的产物目录是：
@@ -46,7 +42,7 @@ world/dist/seed-world-flash-app
   "$ASAP_SERVICE_DIR/.venv/bin/python" world/scripts/sync-flash-app-cdn-assets.py
   # 如需上传（密钥位于 ~/.config/galacean-flash-app/afts.env，可用 world/scripts/set-flash-app-cdn-secret.sh 初始化）
   "$ASAP_SERVICE_DIR/.venv/bin/python" world/scripts/sync-flash-app-cdn-assets.py --apply
-  pnpm --dir world build:seed-world-flash-app
+  npm run build:seed-world-flash-app --workspace world
   ```
   > 若 `project.json` 的 CDN URL 发生变化，合并文本包 `seed-world-project-text-bundle-*.json` 的哈希会更新，再执行一次 `--apply` 与 `build:seed-world-flash-app` 即可收敛至 `pending upload: 0`。
 - **`about:srcdoc` 地址与文本包 URL 兼容**：正式闪应用容器通过 sandbox iframe 的 `srcdoc` 运行入口，此时 `location.href` 为 `about:srcdoc`。页面已通过 `SeedWorldDocumentUrl` 读取宿主注入的 `meta[name="flash-app-html-url"]`，不会直接对 `about:srcdoc` 调用 `history.replaceState`；同时构建脚本会强校验所有 chunk 中**不含未替换的 `__SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__` 占位符**，且**不含相对路径 `new URL("...", self.location)`**（避免 `about:srcdoc` 下抛 `Invalid URL` 导致合并文本包静默加载失败）。
@@ -55,15 +51,15 @@ world/dist/seed-world-flash-app
 
 ## 3. 构建可重建源码快照
 
-发布器使用的 `--source-dir` 必须单独构建，不能直接传入整个引擎仓库 worktree：
+发布器的 `--source-dir` 使用完整入口生成的源码目录。运行产物或 CDN 清单更新后，在发布工作树重建源码快照。
 
 ```bash
-pnpm --dir world build:seed-world-flash-source
+npm run build:seed-world-flash-source --workspace world
 ```
 
 构建脚本（`world/scripts/build-seed-world-flash-source.mjs`）会执行以下操作：
 
-1. 将根 workspace 配置文件、`world/`（仅保留 `demos/seed-world` 与构建脚本）以及 13 个 World workspace 包复制到 `world/dist/seed-world-flash-source`。
+1. 将 npm workspace 配置和锁文件、`world/`（仅保留 `demos/seed-world` 与构建脚本）以及 13 个 World workspace 包复制到 `world/dist/seed-world-flash-source`。
 2. 排除 `node_modules`、测试目录（`tests`、`e2e`）、构建缓存与无关 Demo、Grasslands 预计算数据，以及已有运行时 KTX2 派生物的制作源 PNG（如水体制作源图与 `prop-textures/source`），不删除任何运行时资源。
 3. 写入 `REBUILD.md` 与 `SOURCE_SNAPSHOT.json`。
 4. 通过临时链接原生引擎包与依赖，对当前仓库与源码快照各执行一次未压缩的闪应用 Vite 构建，逐文件比对文件集合与 SHA-256，确保两者字节级一致。
@@ -91,18 +87,28 @@ http://127.0.0.1:4180/?aiChat=1&bootTrace=1
 
 核对控制台无 404 / Worker 报错，首屏 `bootTrace` 与合并文本包加载正常，进入 3D 世界后地形、水体、植被、建筑与相机交互均正常（排查渲染或性能可改用 `?debug=1&view=3d&bootTrace=1`）。`python3 -m http.server` 无 gzip 压缩，仅适合功能冒烟；评估真实加载耗时或手机局域网预览时应使用带 gzip 的本地静态服务。
 
-## 5. 发布为灵光闪应用
-
-发布使用内部 PUGC Flash App 发布工具管理 Artifact ID、版本、OSS 上传和数据库注册。**一个发布工具 checkout 只能绑定一个 Artifact**；首次发布新 Artifact 时必须用它自己的 `scripts/init-app-context.cjs` 初始化，不能借用其他应用的 `app-context.local.json`。
+使用本地 SQLite 验收共享存档时，保持上述静态服务运行，并在仓库根目录执行：
 
 ```bash
-ENGINE_WORKTREE_ROOT=/absolute/path/to/engine
+node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180
+```
+
+此用例使用 Node 22.13+、Playwright Chromium 和正式构建产物，模拟管理员保存夜景、访客浏览以及跨应用版本重开。
+静态素材按构建清单加载，数据库调用在本机完成。
+SQLite 存档用例使用单独的 Vitest 项目。在 Node 22.13+ 下运行 `pnpm exec vitest run --project @galacean/world-storage-tests`，支持 SQLite 的 Node 版本也会在根测试入口自动收集该项目。
+
+## 5. 发布为灵光闪应用
+
+用支持 `scripts/asap-publish.cjs` 的 PUGC 发布器上传和登记。各应用使用专用发布器上下文。已有 Artifact 发布前通过 `GET /api/trace/versions_by_artifact` 核对线上版本，对齐本地待发布版本。首次发布使用专用 checkout 的 `scripts/init-app-context.cjs`。
+
+```bash
+ENGINE_WORKTREE_ROOT=/absolute/path/to/seed-world-npm-release
 PUBLISHER_ROOT=/absolute/path/to/pugc-flash-app-2
 ASAP_SERVICE_DIR=/absolute/path/to/asap-service
+APP_TYPE=game  # 替换为该 Artifact 的实际登记类型
 
 cd "$ENGINE_WORKTREE_ROOT"
-pnpm --dir world build:seed-world-flash-app
-pnpm --dir world build:seed-world-flash-source
+node world/scripts/build-seed-world-npm.mjs
 
 # 仅首次创建该 Artifact 时执行；后续版本继续复用同一个发布工具 checkout。
 test -f "$PUBLISHER_ROOT/scripts/app-context.local.json" || \
@@ -117,10 +123,28 @@ env -u OSS_ACCESS_KEY_ID -u OSS_SECRET_ACCESS_KEY \
     --project-dir "$ENGINE_WORKTREE_ROOT/world/dist/seed-world-flash-app" \
     --source-dir "$ENGINE_WORKTREE_ROOT/world/dist/seed-world-flash-source" \
     --title "Seed World AIChat" \
-    --type miniapp \
+    --type "$APP_TYPE" \
     --app-key flash-app \
     --timeout 300
 ```
+
+### 首次启用共享世界存档
+
+在发布工具 checkout 中使用目标模板自己的 Artifact 上下文和作者身份建表。
+对每个源模板执行一次，后续应用版本复用该表。
+
+```bash
+node "$PUBLISHER_ROOT/scripts/db-update-table-schema.cjs" \
+  --ddl-file "$ENGINE_WORKTREE_ROOT/world/demos/seed-world/storage/world_save.sql" \
+  --table-kind share --data-object "世界存档"
+```
+
+召回和模板创建都需要平台 clone 新实例并复制表结构。
+验收时确认克隆者获得新实例的 MANAGER，且新实例的表为空。
+分享链接应打开作者的原实例，访客角色为 USER。二创入口由发布平台关闭。
+如允许普通访客打开原实例，发布前须核对该实例生效的服务端策略允许访客读取存档并拒绝写入。
+建表命令指定表类型，默认共享策略允许 USER 写入；负责发布的宿主须配置并验收实际访问策略。
+引擎使用宿主提供的实例和角色，用户无需填写 UID。
 
 ## 6. 发布后验收与正式上架
 
@@ -137,15 +161,15 @@ env -u OSS_ACCESS_KEY_ID -u OSS_SECRET_ACCESS_KEY \
 
 | 现象 | 原因 | 处理 |
 | --- | --- | --- |
-| `Missing packages/modify/.cache/shaders.ts` 或打包后仍是旧着色器 | 尚未准备引擎着色器缓存，或 pull/rebase 后 `.cache/shaders.ts` 过期 / 地形 `.shaderc` 未重编 | 执行 `pnpm b:module && pnpm --dir world prepare:engine`；改动涉及公共 `ShaderLibrary/*.glsl` 或 `packages/terrain/src/shaders/**` 时，再执行 `node world/scripts/prepare-terrain-shaders.mjs Grass Surface Terrain Vegetation` |
+| `Missing packages/modify/.cache/shaders.ts` 或打包后仍是旧着色器 | 尚未准备引擎着色器缓存，或 pull/rebase 后 `.cache/shaders.ts` 过期 / 地形 `.shaderc` 未重编 | 在发布工作树重新执行 `node world/scripts/build-seed-world-npm.mjs` |
 | 构建警告 `Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json` | 新增或变更的 `.shaderc`/资产/合并文本包尚未同步至 MDN CDN | 执行 `sync-flash-app-cdn-assets.py --apply` 并重编 `build:seed-world-flash-app`（若修改了 `project.json` 引用资产，通常需两轮收敛至 `pending upload: 0`），然后再执行 `build:seed-world-flash-source` 并提交更新后的 `flash-app-cdn-manifest.json` |
-| 构建报 `resolves a relative URL against self.location` 或 `did not replace __SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__` | 代码直接写了 `new URL("...", import.meta.url)` 被 Vite 改写为 `self.location`，或构建未走闪应用插件 | 将 `import.meta.url` 保存在局部常量后再构造 URL（避免 Vite `asset-import-meta-url` 改写为 `self.location`），并确认使用 `pnpm --dir world build:seed-world-flash-app` |
-| 独立产物进入 3D 后资源 404 | 发布了 `world/dist/seed-world` 或绕过了闪应用构建脚本 | 重新执行 `pnpm --dir world build:seed-world-flash-app`，只发布 `world/dist/seed-world-flash-app` |
-| Entry URL 打开后脚本请求指向 `/assets` 或 `../../../assets` | 使用了普通 `pnpm --dir world build` 而非闪应用构建 | 使用 `pnpm --dir world build:seed-world-flash-app`，确认 `index.html` 位于产物根目录且引用 `./assets/...` |
+| 构建报 `resolves a relative URL against self.location` 或 `did not replace __SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__` | 代码直接写了 `new URL("...", import.meta.url)` 被 Vite 改写为 `self.location`，或构建未走闪应用插件 | 将 `import.meta.url` 保存在局部常量后再构造 URL（避免 Vite `asset-import-meta-url` 改写为 `self.location`），并确认使用 `npm run build:seed-world-flash-app --workspace world` |
+| 独立产物进入 3D 后资源 404 | 发布了 `world/dist/seed-world` 或绕过了闪应用构建脚本 | 重新执行 `npm run build:seed-world-flash-app --workspace world`，只发布 `world/dist/seed-world-flash-app` |
+| Entry URL 打开后脚本请求指向 `/assets` 或 `../../../assets` | 使用了普通 `npm run build --workspace world` 而非闪应用构建 | 使用 `npm run build:seed-world-flash-app --workspace world`，确认 `index.html` 位于产物根目录且引用 `./assets/...` |
 | Chrome 正常，但钉钉 / 移动 WebView 卡在加载阶段或 Worker 报错 | Worker 使用了 `{ type: "module" }` 或跨源 URL | 重新运行 `build:seed-world-flash-app`，确保所有 Worker 均经 `flashAppClassicWorkers` 改写为 classic Blob `importScripts(...)` |
 | Entry URL 请求 `.br`、`.r8`、`.r16`、`.rgb8`、`.f32le`、`.treewind`、`.asset` 等资源 404 | 绕过了 PUGC 物理扩展名兼容转换，或新增了未被 PUGC 收录的自定义扩展名 | 使用标准构建脚本；如为新增自定义扩展名，将其加入 `world/scripts/project-assets.mjs` 的 `PUGC_UNSUPPORTED_ASSET_EXTENSIONS` 并重新构建 |
-| 源码备份超过 100 MiB | 直接把整个仓库传给了 `--source-dir`，或源码目录新增了未压缩制作源素材 | 使用 `pnpm --dir world build:seed-world-flash-source` 生成专用目录；若仍超限，排查新增制作源资产并在保留运行时派生物的前提下于脚本中排除 |
+| 源码备份超过 100 MiB | 直接把整个仓库传给了 `--source-dir`，或源码目录新增了未压缩制作源素材 | 使用 `npm run build:seed-world-flash-source --workspace world` 生成专用目录；若仍超限，排查新增制作源资产并在保留运行时派生物的前提下于脚本中排除 |
 | Step 2 报 `TypeError: 请检查 asap-service 环境、依赖及发布权限` | `deploy.cjs` 默认调用系统 `python3`（缺少 `asap-service` 依赖或版本低于 3.10） | 显式传入 `ASAP_SERVICE_DIR` 与 `ASAP_PYTHON="$ASAP_SERVICE_DIR/.venv/bin/python"` |
-| Step 5 报 `type 不匹配：已有记录为 'miniapp'，本次传入 'game'` | 复用已有 Artifact 时 `--type` 与数据库中首次注册的类型不一致 | 按报错提示改为匹配已有记录的 `--type`（`miniapp` 或 `game`）后重试 |
+| Step 5 报 `type 不匹配：已有记录为 'miniapp'，本次传入 'game'` | 复用已有 Artifact 时 `--type` 与数据库中首次注册的类型不一致 | 核对版本登记状态。已有入口与备份可用时，沿用登记类型并只重试注册 |
 | 最新 Entry 正常，但正式分享页仍运行旧代码 | 正式分享记录固定在上一次上架的 Artifact Entry | 在灵光侧重新发布 / 上架当前 Artifact 版本，并核对分享页内层 `flash-app-html-url` 与主 JS hash |
 | Trace 未路由到 DeepSeek V4.1 Flash 或无 Tool 调用 | Artifact 不在目标 ASAP 的 requested-model 白名单，或线上未开放 `AI_STREAM_CHAT` | 核对 Trace 的 `debug.modelName`、ASAP 服务端 digest、Artifact 白名单与线上能力声明 |

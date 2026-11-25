@@ -1,4 +1,5 @@
 export { BasicRenderPipeline, RenderQueueFlags } from "./BasicRenderPipeline";
+export type { CameraAuxiliaryRenderOptions } from "./BasicRenderPipeline";
 export { VertexMergeBatcher } from "./VertexMergeBatcher";
 /** @internal */
 export type { PrimitiveChunkManager } from "./PrimitiveChunkManager";

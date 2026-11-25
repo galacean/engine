@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { Camera, DirectLight, Matrix, Vector3, VolumetricLightEffect } from "@galacean/engine";
+import {
+  Camera,
+  DirectLight,
+  Matrix,
+  ShadowType,
+  Vector3,
+  VolumetricLightEffect,
+  VolumetricLightQuality
+} from "@galacean/engine";
 
 function createPerspectiveCameraMock(options: {
   position?: Vector3;
@@ -85,7 +93,12 @@ describe("VolumetricLightEffect projection, ring clamp, and night gating", () =>
 
     // Restore daylight, test below horizon
     effect.solarVisibility.value = 1;
-    VolumetricLightEffect._resolveScreenState(camera, createSceneMock(new Vector3(0, -0.1, -1).normalize()), effect, out);
+    VolumetricLightEffect._resolveScreenState(
+      camera,
+      createSceneMock(new Vector3(0, -0.1, -1).normalize()),
+      effect,
+      out
+    );
     expect(out.visible).toBe(false);
 
     // Orthographic camera
@@ -113,5 +126,101 @@ describe("VolumetricLightEffect projection, ring clamp, and night gating", () =>
     VolumetricLightEffect._resolveScreenState(camera, moonScene, effect, out);
     expect(out.visible).toBe(false);
     expect(out.effectiveStrength).toBe(0);
+  });
+
+  it("defaults to Low quality and enables 360-degree 3D raymarch on Medium/High when shadows are active", () => {
+    const effect = new VolumetricLightEffect();
+    effect.enabled = true;
+    expect(effect.quality.value).toBe(VolumetricLightQuality.Low);
+
+    // Camera facing directly AWAY from the sun (forwardDot < 0)
+    const dirToSun = new Vector3(0, 0.5, 0.8660254).normalize();
+    const camera = createPerspectiveCameraMock({ target: new Vector3(0, 0, -1) });
+    const shadowScene = {
+      castShadows: true,
+      shadowDistance: 120,
+      _lightManager: {
+        _sunlight: {
+          reverseDirection: dirToSun,
+          shadowType: ShadowType.SoftLow,
+          shadowStrength: 1.0
+        } as unknown as DirectLight
+      }
+    } as any;
+    const out = { visible: false, sunU: 0, sunV: 0, effectiveStrength: 0, aspectRatio: 1, useRaymarch: false };
+
+    // Low 2D skips when facing directly away from the sun
+    VolumetricLightEffect._resolveScreenState(camera, shadowScene, effect, out);
+    expect(out.visible).toBe(false);
+    expect(out.useRaymarch).toBe(false);
+
+    // Medium / High 3D raymarch stays active at 360-degree camera angles
+    effect.quality.value = VolumetricLightQuality.Medium;
+    VolumetricLightEffect._resolveScreenState(camera, shadowScene, effect, out);
+    expect(out.visible).toBe(true);
+    expect(out.useRaymarch).toBe(true);
+    expect(out.effectiveStrength).toBeCloseTo(0.6, 4);
+
+    effect.quality.value = VolumetricLightQuality.High;
+    VolumetricLightEffect._resolveScreenState(camera, shadowScene, effect, out);
+    expect(out.visible).toBe(true);
+    expect(out.useRaymarch).toBe(true);
+  });
+
+  it("falls back cleanly from Medium/High to 2D radial when shadows are disabled or shadowDistance <= 0", () => {
+    const effect = new VolumetricLightEffect();
+    effect.enabled = true;
+    effect.quality.value = VolumetricLightQuality.High;
+    const dirToSun = new Vector3(0, 0.5, -Math.sqrt(3) / 2).normalize();
+    const camera = createPerspectiveCameraMock({ target: dirToSun });
+    const out = { visible: false, sunU: 0, sunV: 0, effectiveStrength: 0, aspectRatio: 1, useRaymarch: false };
+
+    // Shadows disabled on scene
+    VolumetricLightEffect._resolveScreenState(
+      camera,
+      {
+        castShadows: false,
+        shadowDistance: 120,
+        _lightManager: {
+          _sunlight: { reverseDirection: dirToSun, shadowType: ShadowType.SoftLow, shadowStrength: 1 }
+        }
+      } as any,
+      effect,
+      out
+    );
+    expect(out.visible).toBe(true);
+    expect(out.useRaymarch).toBe(false);
+
+    // shadowDistance == 0
+    VolumetricLightEffect._resolveScreenState(
+      camera,
+      {
+        castShadows: true,
+        shadowDistance: 0,
+        _lightManager: {
+          _sunlight: { reverseDirection: dirToSun, shadowType: ShadowType.SoftLow, shadowStrength: 1 }
+        }
+      } as any,
+      effect,
+      out
+    );
+    expect(out.visible).toBe(true);
+    expect(out.useRaymarch).toBe(false);
+
+    // shadowStrength == 0
+    VolumetricLightEffect._resolveScreenState(
+      camera,
+      {
+        castShadows: true,
+        shadowDistance: 120,
+        _lightManager: {
+          _sunlight: { reverseDirection: dirToSun, shadowType: ShadowType.SoftLow, shadowStrength: 0 }
+        }
+      } as any,
+      effect,
+      out
+    );
+    expect(out.visible).toBe(true);
+    expect(out.useRaymarch).toBe(false);
   });
 });

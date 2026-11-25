@@ -46,7 +46,7 @@ export async function mountSpatialEditor(
   const root = document.createElement("div");
   root.className = "island-plan-editor base-map-editor world-layout-editor world-planning-editor spatial-editor";
   root.inert = true;
-  root.innerHTML = `<aside class="ip-sidebar sp-hierarchy"><header class="ip-brand"><h1>空间规划</h1><p data-ui="poi-summary" aria-live="polite"></p><dl data-ui="summary" class="sp-layout-statistics" aria-label="最终布局统计"></dl><p data-ui="area-statistics" class="sp-selected-statistics"></p><p data-ui="selected-statistics" class="sp-selected-statistics" hidden></p><a data-ui="visual-intent" target="_blank" rel="noopener">场景视觉意图 ↗</a></header><section data-ui="hierarchy"><div data-ui="layers"></div></section></aside><main class="ip-workspace"><header class="ip-topbar"><span data-ui="revision"></span><span data-ui="progress" role="status" hidden></span><nav aria-label="规划视图"><button data-action="open">打开工程</button><input data-ui="file" type="file" accept="application/json,.json,.scene" hidden><button data-action="save">导出工程</button><button data-action="clear" title="恢复当前工程的默认规划参数，保留场景与其他资产">重置规划参数</button><button data-action="fit">全图</button><button data-action="plan" aria-pressed="true">俯视</button><button data-action="oblique" aria-pressed="false">白盒测试</button><button data-action="director" aria-pressed="false" disabled>导演</button><button data-action="generate">生成 3D</button></nav></header><div class="ip-viewport" data-ui="viewport"></div></main><aside class="ip-sidebar sp-inspector"><nav class="sp-tabs"><button data-tab="inspector">Inspector</button><button data-tab="world">全局规划</button><button data-tab="wayfinding">心理地图</button><button data-tab="lighting">光照与后处理</button><button data-tab="display">辅助显示</button><button data-tab="diagnostics">诊断</button></nav><section data-ui="world-save" class="sp-world-save" hidden><button data-action="clear-save" type="button">清空存档</button><p>清除当前 Seed 的视角和离地高度，保留规划、建筑与农场。</p><p data-ui="world-save-status" role="status" hidden></p></section><div data-ui="inspector"></div><section data-ui="display" aria-label="辅助显示" hidden><div data-ui="display-layers"></div></section><section data-ui="diagnostics" hidden><p role="status" data-ui="status" class="sp-status" hidden></p><p data-ui="flower-diagnostics"></p><pre data-ui="checks"></pre></section></aside>`;
+  root.innerHTML = `<aside class="ip-sidebar sp-hierarchy"><header class="ip-brand"><h1>空间规划</h1><p data-ui="poi-summary" aria-live="polite"></p><dl data-ui="summary" class="sp-layout-statistics" aria-label="最终布局统计"></dl><p data-ui="area-statistics" class="sp-selected-statistics"></p><p data-ui="selected-statistics" class="sp-selected-statistics" hidden></p><a data-ui="visual-intent" target="_blank" rel="noopener">场景视觉意图 ↗</a></header><section data-ui="hierarchy"><div data-ui="layers"></div></section></aside><main class="ip-workspace"><header class="ip-topbar"><span data-ui="revision"></span><span data-ui="progress" role="status" hidden></span><nav aria-label="规划视图"><button data-action="open">打开工程</button><input data-ui="file" type="file" accept="application/json,.json,.scene" hidden><button data-action="save">导出工程</button><button data-action="clear" title="恢复当前工程的默认规划参数，保留场景与其他资产">重置规划参数</button><button data-action="fit">全图</button><button data-action="plan" aria-pressed="true">俯视</button><button data-action="oblique" aria-pressed="false">白盒测试</button><button data-action="director" aria-pressed="false" disabled>导演</button><button data-action="generate">生成 3D</button></nav></header><p class="sp-save-warning" role="status" data-ui="save-warning" hidden></p><div class="ip-viewport" data-ui="viewport"></div></main><aside class="ip-sidebar sp-inspector"><nav class="sp-tabs"><button data-tab="inspector">Inspector</button><button data-tab="world">全局规划</button><button data-tab="wayfinding">心理地图</button><button data-tab="lighting">光照与后处理</button><button data-tab="display">辅助显示</button><button data-tab="diagnostics">诊断</button></nav><section data-ui="world-save" class="sp-world-save" hidden><button data-action="clear-save" type="button">清空存档</button><p>清除当前 Seed 的视角和离地高度，保留规划、建筑与农场。</p><p data-ui="world-save-status" role="status" hidden></p></section><div data-ui="inspector"></div><section data-ui="display" aria-label="辅助显示" hidden><div data-ui="display-layers"></div></section><section data-ui="diagnostics" hidden><p role="status" data-ui="status" class="sp-status" hidden></p><p data-ui="flower-diagnostics"></p><pre data-ui="checks"></pre></section></aside>`;
   host.replaceChildren(root);
   const ui = <T extends HTMLElement = HTMLElement>(id: string) => root.querySelector<T>(`[data-ui="${id}"]`)!;
   const button = (id: string) => root.querySelector<HTMLButtonElement>(`[data-action="${id}"]`)!;
@@ -55,7 +55,11 @@ export async function mountSpatialEditor(
   const pageUrl = planningPageUrl();
   const query = pageUrl.url.searchParams;
   const parameters = readSemanticParameters(`?seed=${query.get("seed") ?? ""}`);
-  const project = await openSeedWorldProject(pageUrl.url);
+  const project = await openSeedWorldProject(pageUrl.url, undefined, undefined, options.storageSelection);
+  if (!project.canSave) {
+    project.dispose();
+    throw new Error("当前版本的世界只能查看，请打开最新版本进行编辑");
+  }
   const storage = new PlanningProjectStorage(project, seedWorldProjectFormats);
   let farmSaveSeed: number | undefined;
   let farmSaveLabel = "使用当前 Seed 的存档";
@@ -90,6 +94,12 @@ export async function mountSpatialEditor(
   }
   let storageWarning = "";
   let hasUserEdits = false;
+  function reportStorageWarning(message: string) {
+    storageWarning = message;
+    const warning = ui("save-warning");
+    warning.textContent = message;
+    warning.hidden = !message;
+  }
   let clearingStorage = false;
   let resettingPlanning = false;
   let saved: PlanningDocument | undefined;
@@ -100,7 +110,7 @@ export async function mountSpatialEditor(
       resetPlanningFarmSaveChoice(saved);
     }
   } catch (error) {
-    storageWarning = "本地数据读取失败：" + String(error);
+    reportStorageWarning("规划数据读取失败：" + String(error));
   }
   const client = new PlanningWorkerClient();
   client.onProgress=stage=>{ui("progress").hidden=false;ui("progress").textContent=stage+"…";};
@@ -333,9 +343,9 @@ export async function mountSpatialEditor(
       await storage.save(session.export());
       // The planning page explicitly reports a saved document and may replace its URL.
       await project.flush();
-      storageWarning = "";
+      reportStorageWarning("");
     } catch (error) {
-      storageWarning = "本地数据保存失败，当前修改尚未保存：" + String(error);
+      reportStorageWarning("规划尚未保存。可先导出工程。 " + String(error));
     }
     // Keep the old document URL recoverable if its one-time migration could not be saved.
     if (!planningSourceDocument(project.projectPackage) && pageUrl.canReplaceHistory && (!storageWarning || !query.has("document")))
@@ -476,8 +486,8 @@ export async function mountSpatialEditor(
       render();
       if (!receipt || receipt.status === "accepted") {
         if (receipt) {
-          try { await project.flush(); storageWarning = ""; }
-          catch (error) { storageWarning = "作者修改已接受，保存失败，可重试保存：" + String(error); }
+          try { await project.flush(); reportStorageWarning(""); }
+          catch (error) { reportStorageWarning("规划尚未保存。可先导出工程。 " + String(error)); }
           status(storageWarning);
         }
         else status(storageWarning);

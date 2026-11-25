@@ -5,6 +5,7 @@ import {
   Blitter,
   BloomEffect,
   Camera,
+  type CameraAuxiliaryRenderOptions,
   CameraClearFlags,
   Color,
   DepthTextureMode,
@@ -12,6 +13,7 @@ import {
   DirectLight,
   Engine,
   Entity,
+  Layer,
   Loader,
   Material,
   MeshRenderer,
@@ -25,8 +27,13 @@ import {
   PostProcessPassEvent,
   PrimitiveMesh,
   RenderFace,
+  RenderPassDescriptor,
+  RenderPassLoadAction,
+  RenderPassStoreAction,
   RenderQueueType,
   RenderTarget,
+  type RenderViewCullingSource,
+  ReplacementFailureStrategy,
   Scene,
   ScreenSpaceReflectionQuality,
   ScreenSpaceReflectionSettings,
@@ -3133,9 +3140,14 @@ describe("ScreenSpaceReflection v2", () => {
     });
 
     try {
-      // 1) Non-MSAA High HDR frame: Blitter uses non-scissored gl.clear(COLOR) (never invalidateFramebuffer(COLOR0)
-      //    which triggers ANGLE-Metal RobustResourceInit CPU replaceRegion), while SSR & internalColorTarget still
-      //    discard DepthStencil STORE via invalidateFramebuffer.
+      const rhi = engine._hardwareRenderer as unknown as { _preferClearForLoadDontCare: boolean };
+      const origPreferClear = rhi._preferClearForLoadDontCare;
+
+      // 1a) Non-MSAA High HDR frame with Apple/Metal policy (_preferClearForLoadDontCare = true):
+      //     DontCare uses non-scissored gl.clear(COLOR) (never invalidateFramebuffer(COLOR0) which triggers
+      //     ANGLE-Metal RobustResourceInit CPU replaceRegion), while SSR & internalColorTarget discard
+      //     Depth and Stencil separately (avoiding Adreno combined DEPTH_STENCIL_ATTACHMENT leak bug).
+      rhi._preferClearForLoadDontCare = true;
       cam.msaaSamples = MSAASamples.None;
       engine.update();
       expect(
@@ -3148,41 +3160,57 @@ describe("ScreenSpaceReflection v2", () => {
       ).toBe(true);
       expect(
         calls.some(
-          (c) =>
-            c.target === gl.FRAMEBUFFER &&
-            c.attachments.length === 1 &&
-            c.attachments[0] === gl.DEPTH_STENCIL_ATTACHMENT
+          (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.DEPTH_ATTACHMENT
+        )
+      ).toBe(true);
+      expect(
+        calls.some(
+          (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.STENCIL_ATTACHMENT
         )
       ).toBe(true);
       expect(drainGlErrors(gl)).toEqual([]);
 
-      // 2) Low (!useTemporal) also invalidates _ssrDepthTex after HiZTrace with 0 GL errors
+      // 1b) Non-Apple GLES policy (_preferClearForLoadDontCare = false):
+      //     DontCare uses gl.invalidateFramebuffer(COLOR_ATTACHMENT0) to avoid Adreno R11F_G11F_B10F gl.clear slow path.
+      calls.length = 0;
+      clearCalls.length = 0;
+      rhi._preferClearForLoadDontCare = false;
+      engine.update();
+      expect(
+        calls.some(
+          (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.COLOR_ATTACHMENT0
+        )
+      ).toBe(true);
+      expect(drainGlErrors(gl)).toEqual([]);
+      rhi._preferClearForLoadDontCare = origPreferClear;
+
+      // 2) Low (!useTemporal) also invalidates _ssrDepthTex Depth & Stencil separately after HiZTrace with 0 GL errors
       calls.length = 0;
       scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Low;
       engine.update();
       expect(
         calls.some(
-          (c) =>
-            c.target === gl.FRAMEBUFFER &&
-            c.attachments.length === 1 &&
-            c.attachments[0] === gl.DEPTH_STENCIL_ATTACHMENT
+          (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.DEPTH_ATTACHMENT
+        )
+      ).toBe(true);
+      expect(
+        calls.some(
+          (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.STENCIL_ATTACHMENT
         )
       ).toBe(true);
       expect(drainGlErrors(gl)).toEqual([]);
 
-      // 3) MSAA 4x + opaqueTextureEnabled (mid-frame resolve must NOT discard MSAA; final resolve MUST discard READ_FRAMEBUFFER)
+      // 3) MSAA 4x + opaqueTextureEnabled (mid-frame StoreAndResolve must NOT discard MSAA; final Resolve MUST discard
+      //    non-resolved depth/stencil before blit and MSAA color on READ_FRAMEBUFFER right after blit)
       calls.length = 0;
       scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
       cam.msaaSamples = MSAASamples.FourX;
       cam.opaqueTextureEnabled = true;
       stepFrames(engine, 2);
       const msaaDiscardCalls = calls.filter(
-        (c) =>
-          c.target === gl.READ_FRAMEBUFFER &&
-          c.attachments.includes(gl.COLOR_ATTACHMENT0) &&
-          c.attachments.includes(gl.DEPTH_STENCIL_ATTACHMENT)
+        (c) => c.target === gl.READ_FRAMEBUFFER && c.attachments.includes(gl.COLOR_ATTACHMENT0)
       );
-      // Exactly 1 MSAA discard per frame (final resolve), NOT on mid-frame opaqueTexture resolve
+      // Exactly 1 MSAA color discard per frame (final Resolve), NOT on mid-frame opaqueTexture StoreAndResolve
       expect(msaaDiscardCalls.length).toBe(2);
       expect(drainGlErrors(gl)).toEqual([]);
     } finally {
@@ -4181,33 +4209,24 @@ describe("ScreenSpaceReflection v2", () => {
     expect(floorSample.maxR).toBeGreaterThan(80);
     expect(floorSample.avgR).toBeGreaterThan(20);
 
-    // 3) P1-1 & P2-1: RHI invalidateRenderTarget enforces full-target scissor check and bound-FBO check.
+    // 3) P1-1 & P2-1: Declarative RenderPassDescriptor load/store actions enforce scissor safety and lifecycle bounds.
     const rhi = engine._hardwareRenderer;
     const invSpy = vi.spyOn(gl, "invalidateFramebuffer");
     try {
-      rhi.activeRenderTarget(rt, new Vector4(0, 0, 1, 1), true, 0);
-      // Partial scissor prevents full-target invalidation
-      rhi.scissor(0, 0, 40, 40);
-      rhi.invalidateRenderTarget?.(rt, CameraClearFlags.Color, true, 0);
-      expect(invSpy).not.toHaveBeenCalled();
+      const desc = new RenderPassDescriptor().reset(rt, new Vector4(0, 0, 1, 1), true, 0);
+      desc.depthStoreAction = RenderPassStoreAction.Discard;
+      desc.stencilStoreAction = RenderPassStoreAction.Discard;
+      rhi.beginRenderPass(desc);
+      rhi.endRenderPass();
+      expect(invSpy).toHaveBeenCalled();
 
-      // Full-target scissor allows invalidation
-      rhi.scissor(0, 0, rt.width, rt.height);
-      rhi.invalidateRenderTarget?.(rt, CameraClearFlags.Color, true, 0);
-      expect(invSpy).toHaveBeenCalledTimes(1);
-
-      // Switching away to default FBO causes invalidateRenderTarget(rt, ...) to no-op cleanly (0 GL errors)
+      // Default framebuffer (null) skips invalidateFramebuffer cleanly with 0 GL errors.
       invSpy.mockClear();
-      rhi.activeRenderTarget(null, new Vector4(0, 0, 1, 1), false, 0);
-      rhi.invalidateRenderTarget?.(rt, CameraClearFlags.DepthStencil);
-      expect(invSpy).not.toHaveBeenCalled();
-
-      // Destroyed RenderTarget with null FBO must NOT match default framebuffer (null === null)
-      const tempTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false);
-      const tempRT = new RenderTarget(engine, 16, 16, tempTex, TextureFormat.Depth24Stencil8);
-      tempRT.destroy(true);
-      tempTex.destroy(true);
-      rhi.invalidateRenderTarget?.(tempRT, CameraClearFlags.Color);
+      const mainDesc = new RenderPassDescriptor().reset(null, new Vector4(0, 0, 1, 1), false, 0);
+      mainDesc.depthStoreAction = RenderPassStoreAction.Discard;
+      mainDesc.stencilStoreAction = RenderPassStoreAction.Discard;
+      rhi.beginRenderPass(mainDesc);
+      rhi.endRenderPass();
       expect(invSpy).not.toHaveBeenCalled();
       expect(drainGlErrors(gl)).toEqual([]);
     } finally {
@@ -4853,10 +4872,13 @@ describe("ScreenSpaceReflection v2", () => {
     ];
 
     const renderAllMips = () => {
+      const desc = new RenderPassDescriptor();
       for (let m = 0; m < 4; m++) {
-        rhi.activeRenderTarget(mipRT, new Vector4(0, 0, 1, 1), true, m);
-        rhi.invalidateRenderTarget?.(mipRT, CameraClearFlags.Color, true, m);
-        rhi.clearRenderTarget(engine, CameraClearFlags.Color, colors[m]);
+        desc.reset(mipRT, new Vector4(0, 0, 1, 1), true, m);
+        desc.colorLoadAction = RenderPassLoadAction.Clear;
+        desc.clearColor.copyFrom(colors[m]);
+        rhi.beginRenderPass(desc);
+        rhi.endRenderPass();
       }
       rhi.activeRenderTarget(null, new Vector4(0, 0, 1, 1), false, 0);
     };
@@ -5228,5 +5250,484 @@ describe("ScreenSpaceReflection v2", () => {
 
     rt.destroy(true);
     tex.destroy(true);
+  });
+  it("Camera.renderAuxiliary: preserves SSR ActiveSteady, history, camera state, and visibility across Outline two-pass and Picker square-RT patterns", async () => {
+    const engine = await WebGLEngine.create({
+      canvas: createCanvas(160, 120),
+      shaderCompiler: new ShaderCompiler(),
+      graphicDeviceOptions: {
+        alpha: false,
+        antialias: true,
+        stencil: true,
+        preserveDrawingBuffer: true
+      }
+    });
+    createdEngines.push(engine);
+
+    const scene = engine.sceneManager.activeScene;
+    scene.background.mode = BackgroundMode.SolidColor;
+    scene.background.solidColor.set(0, 0, 0, 1);
+    scene.ambientLight.diffuseMode = DiffuseMode.SolidColor;
+    scene.ambientLight.diffuseSolidColor.set(0, 0, 0, 1);
+    scene.ambientLight.diffuseIntensity = 0;
+    scene.ambientLight.specularIntensity = 0;
+    const gl = engine._hardwareRenderer.gl;
+    drainGlErrors(gl);
+
+    const { rt, tex } = createReadbackRT(engine, 160, 120);
+    const { rt: outlineRT, tex: outlineTex } = createReadbackRT(engine, 160, 120);
+    const { rt: pickerRT, tex: pickerTex } = createReadbackRT(engine, 128, 128);
+
+    const root = scene.createRootEntity("root");
+    const camEnt = root.createChild("cam");
+    camEnt.transform.setPosition(0, 1.35, 3.6);
+    camEnt.transform.lookAt(new Vector3(0, 0.35, -1.2));
+    const cam = camEnt.addComponent(Camera);
+    cam.nearClipPlane = 0.2;
+    cam.farClipPlane = 50;
+    cam.cullingMask = Layer.Layer0 | Layer.Layer1;
+    cam.renderTarget = rt;
+
+    const floorMat = new PBRMaterial(engine);
+    floorMat.baseColor = new Color(0.02, 0.02, 0.02, 1);
+    floorMat.metallic = 0.0;
+    floorMat.roughness = 0.03;
+    floorMat.screenSpaceReflectionIntensity = 1.0;
+    addPlane(engine, root, "mirrorFloor", [0, 0, -0.8], 10, 10, floorMat);
+
+    const wallMat = new PBRMaterial(engine);
+    wallMat.baseColor = new Color(0.1, 0, 0, 1);
+    wallMat.emissiveColor = new Color(4.0, 0.0, 0.0, 1);
+    wallMat.screenSpaceReflectionIntensity = 0;
+    addBox(engine, root, "redWall", [0, 1.85, -1.8], [3.2, 2.0, 0.4], wallMat);
+
+    // Target entity on Layer1 (selected/hovered entity for Outline Pass 1 and Picker).
+    const selectedMat = new PBRMaterial(engine);
+    selectedMat.baseColor = new Color(0.2, 0.2, 0.2, 1);
+    selectedMat.screenSpaceReflectionIntensity = 0;
+    const selectedEnt = addBox(engine, root, "selectedBox", [0, 0.75, -0.2], [0.7, 0.7, 0.7], selectedMat);
+    selectedEnt.layer = Layer.Layer1;
+
+    // Layer29 non-SSR overlay quad (mimics OutlineManager Pass 2 with 0 SSR receivers).
+    const overlayMat = new UnlitMaterial(engine);
+    overlayMat.baseColor = new Color(0, 0, 1, 1);
+    const overlayEnt = addPlane(engine, root, "outlineOverlayQuad", [0, 1.0, 1.0], 0.5, 0.5, overlayMat);
+    overlayEnt.layer = Layer.Layer29;
+
+    // Off-layer entity excluded from main camera cullingMask to assert auxiliary render never bumps _renderFrameCount.
+    const auxOnlyMat = new UnlitMaterial(engine);
+    auxOnlyMat.baseColor = new Color(1, 1, 0, 1);
+    const auxOnlyEnt = addBox(engine, root, "auxOnlyBox", [0, 0.8, -0.4], [0.5, 0.5, 0.5], auxOnlyMat);
+    auxOnlyEnt.layer = Layer.Layer28;
+    const auxOnlyRenderer = auxOnlyEnt.getComponent(MeshRenderer)!;
+
+    // Registered RenderViewCullingSource to assert auxiliary borrows main-view `_submittedViewRenderers`
+    // read-only without re-invoking `source.cull()` or mutating main-view caches.
+    const sourceBatchEnt = addBox(engine, root, "sourceBatchBox", [-0.9, 0.6, -0.5], [0.4, 0.4, 0.4], selectedMat);
+    sourceBatchEnt.layer = Layer.Layer0;
+    const sourceBatchRenderer = sourceBatchEnt.getComponent(MeshRenderer)!;
+    sourceBatchRenderer.enabled = false;
+    let cullingSourceCalls = 0;
+    const cullingSource: RenderViewCullingSource = {
+      cull(cullCtx) {
+        cullingSourceCalls++;
+        cullCtx.submit(sourceBatchRenderer);
+      }
+    };
+    const cullingReg = cam.registerRenderViewCullingSource(cullingSource);
+
+    const silhouetteShader = Shader.create(`Shader "Test/AuxOutlineSilhouette" {
+      SubShader "Default" {
+        Pass "Forward" {
+          Tags { pipelineStage = "Forward" }
+          VertexShader = vert;
+          FragmentShader = frag;
+          #include "ShaderLibrary/Common/Common.glsl"
+          #include "ShaderLibrary/Common/Transform.glsl"
+          #include "ShaderLibrary/Common/Attributes.glsl"
+          void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+          void frag() { gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); }
+        }
+      }
+    }`);
+
+    const pickerShader = Shader.create(`Shader "Test/AuxPickerId" {
+      SubShader "Default" {
+        Pass "Forward" {
+          Tags { pipelineStage = "Forward" }
+          VertexShader = vert;
+          FragmentShader = frag;
+          #include "ShaderLibrary/Common/Common.glsl"
+          #include "ShaderLibrary/Common/Transform.glsl"
+          #include "ShaderLibrary/Common/Attributes.glsl"
+          void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+          void frag() { gl_FragColor = vec4(0.0, 0.5, 1.0, 1.0); }
+        }
+      }
+    }`);
+
+    try {
+      scene.screenSpaceReflection.enabled = true;
+      scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
+      stepFrames(engine, 4);
+
+      // @ts-ignore inspect internal SSR pass state
+      const ssrPass = cam._renderPipeline._ssrPass;
+      expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+      expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
+      // @ts-ignore
+      const prevColorPyramidBefore = ssrPass._history.prevColorPyramidTex;
+      expect(prevColorPyramidBefore).not.toBeNull();
+      expect(prevColorPyramidBefore.destroyed).toBe(false);
+
+      const baselineFloor = sampleRegionRGB(tex, 0.35, 0.72, 0.65, 0.95);
+      expect(baselineFloor.maxR).toBeGreaterThan(80);
+      const auxOnlyFrameCountBefore = auxOnlyRenderer._renderFrameCount;
+      expect(auxOnlyFrameCountBefore).toBeUndefined();
+
+      const baselineViewport = cam.viewport.clone();
+      const baselineProj = new Float32Array(cam._virtualCamera.projectionMatrix.elements);
+      const baselineAspect = cam.aspectRatio;
+      const baselineRenderFilter = cam.renderFilter;
+      const baselineViewRenderers: unknown[] = [];
+      cam.visitRenderViewRenderers((r) => baselineViewRenderers.push(r));
+      expect(baselineViewRenderers).toEqual([sourceBatchRenderer]);
+
+      // Run 4 consecutive frames interleaving Picker (square RT + aspectRatio override + culling sources),
+      // main frame render, Outline Pass 1 (replacementShader offscreen), and Outline Pass 2 (no replacementShader,
+      // Layer29 0 SSR receivers, drawing directly to screen canvas null).
+      const clearZero = new Color(0, 0, 0, 0);
+      for (let frame = 0; frame < 4; frame++) {
+        const callsBeforeAux = cullingSourceCalls;
+        const pickerOpts: CameraAuxiliaryRenderOptions = {
+          renderTarget: pickerRT,
+          cullingMask: Layer.Layer1,
+          clearFlags: CameraClearFlags.All,
+          clearColor: clearZero,
+          replacementShader: pickerShader,
+          replacementFailureStrategy: ReplacementFailureStrategy.KeepOriginalShader,
+          aspectRatio: cam.aspectRatio,
+          includeRenderViewCullingSources: true
+        };
+        cam.renderAuxiliary(pickerOpts);
+        expect(cullingSourceCalls).toBe(callsBeforeAux);
+
+        // Verify Picker auxiliary render did not clobber main-view RenderViewCulling renderers.
+        const midFrameViewRenderers: unknown[] = [];
+        cam.visitRenderViewRenderers((r) => midFrameViewRenderers.push(r));
+        expect(midFrameViewRenderers).toEqual([sourceBatchRenderer]);
+
+        // Main frame render.
+        stepFrames(engine, 1);
+        expect(cullingSourceCalls).toBeGreaterThan(callsBeforeAux);
+
+        const callsAfterMain = cullingSourceCalls;
+        const sourceBatchFrameCountBeforeAux = sourceBatchRenderer._renderFrameCount;
+        // Borrowed RenderViewCullingSource renderer on Layer0 renders when mask/filter allow without re-calling cull().
+        cam.renderAuxiliary({
+          renderTarget: pickerRT,
+          cullingMask: Layer.Layer0,
+          clearFlags: CameraClearFlags.All,
+          clearColor: clearZero,
+          replacementShader: pickerShader,
+          renderFilter: (r) => r === sourceBatchRenderer,
+          aspectRatio: cam.aspectRatio,
+          includeRenderViewCullingSources: true
+        });
+        expect(cullingSourceCalls).toBe(callsAfterMain);
+        expect(sourceBatchRenderer._renderFrameCount).toBe(sourceBatchFrameCountBeforeAux);
+        expect(sampleRegionRGB(pickerTex, 0.0, 0.0, 1.0, 1.0).maxB).toBeGreaterThan(200);
+
+        // Layer filtering still excludes borrowed RenderViewCullingSource renderer when cullingMask omits Layer0.
+        cam.renderAuxiliary({
+          renderTarget: pickerRT,
+          cullingMask: Layer.Layer1,
+          clearFlags: CameraClearFlags.All,
+          clearColor: clearZero,
+          replacementShader: pickerShader,
+          renderFilter: (r) => r === sourceBatchRenderer,
+          aspectRatio: cam.aspectRatio,
+          includeRenderViewCullingSources: true
+        });
+        expect(cullingSourceCalls).toBe(callsAfterMain);
+        expect(sampleRegionRGB(pickerTex, 0.0, 0.0, 1.0, 1.0).maxB).toBe(0);
+
+        // Outline Pass 1: silhouette into offscreen RT.
+        cam.renderAuxiliary({
+          renderTarget: outlineRT,
+          cullingMask: Layer.Layer1,
+          clearFlags: CameraClearFlags.All,
+          clearColor: clearZero,
+          replacementShader: silhouetteShader
+        });
+
+        // Outline Pass 2: 0 SSR receivers on Layer29, no replacementShader, directly to default screen canvas.
+        cam.renderAuxiliary({
+          renderTarget: null,
+          cullingMask: Layer.Layer29,
+          clearFlags: CameraClearFlags.None,
+          replacementShader: null
+        });
+
+        // Off-layer auxiliary draw must not update renderer visibility frame count.
+        cam.renderAuxiliary({
+          renderTarget: outlineRT,
+          cullingMask: Layer.Layer28,
+          clearFlags: CameraClearFlags.All,
+          clearColor: clearZero
+        });
+
+        const diag = cam.screenSpaceReflectionDiagnostics;
+        expect(diag.state).toBe(SSRRuntimeState.ActiveSteady);
+        expect(diag.active).toBe(true);
+        // @ts-ignore
+        expect(ssrPass._history.prevColorPyramidTex).toBe(prevColorPyramidBefore);
+        expect(prevColorPyramidBefore.destroyed).toBe(false);
+
+        const afterFloor = sampleRegionRGB(tex, 0.35, 0.72, 0.65, 0.95);
+        expect(afterFloor.maxR).toBeGreaterThan(80);
+        expect(afterFloor.avgR).toBeGreaterThanOrEqual(baselineFloor.avgR * 0.85);
+        expect(drainGlErrors(gl)).toEqual([]);
+      }
+
+      // Main camera state, projection matrix, visibility timestamp, and RenderViewCulling cache remain pristine.
+      expect(cam.renderTarget).toBe(rt);
+      expect(cam.viewport.x).toBe(baselineViewport.x);
+      expect(cam.viewport.y).toBe(baselineViewport.y);
+      expect(cam.viewport.z).toBe(baselineViewport.z);
+      expect(cam.viewport.w).toBe(baselineViewport.w);
+      expect(cam.cullingMask).toBe(Layer.Layer0 | Layer.Layer1);
+      expect(cam.enableFrustumCulling).toBe(true);
+      expect(cam.clearFlags).toBe(CameraClearFlags.All);
+      expect(cam._replacementShader).toBeNull();
+      // @ts-ignore
+      expect(cam._customAspectRatio).toBeUndefined();
+      expect(cam.aspectRatio).toBe(baselineAspect);
+      expect(cam.enableScreenSpaceReflection).toBe(true);
+      expect(cam.updateRendererVisibility).toBe(true);
+      expect(cam.renderFilter).toBe(baselineRenderFilter);
+      expect(Array.from(cam._virtualCamera.projectionMatrix.elements)).toEqual(Array.from(baselineProj));
+      expect(auxOnlyRenderer._renderFrameCount).toBe(auxOnlyFrameCountBefore);
+
+      const finalViewRenderers: unknown[] = [];
+      cam.visitRenderViewRenderers((r) => finalViewRenderers.push(r));
+      expect(finalViewRenderers).toEqual([sourceBatchRenderer]);
+    } finally {
+      cullingReg.unregister();
+      silhouetteShader.destroy();
+      pickerShader.destroy();
+      pickerRT.destroy(true);
+      pickerTex.destroy(true);
+      outlineRT.destroy(true);
+      outlineTex.destroy(true);
+      rt.destroy(true);
+      tex.destroy(true);
+    }
+  });
+
+  it("Camera.renderAuxiliary: outputs accurate silhouette/ID pixels respecting clearColor, cullingMask, replacementShader, renderFilter, and aspectRatio override", async () => {
+    const engine = await WebGLEngine.create({
+      canvas: createCanvas(160, 120),
+      shaderCompiler: new ShaderCompiler(),
+      graphicDeviceOptions: {
+        alpha: false,
+        antialias: true,
+        stencil: true,
+        preserveDrawingBuffer: true
+      }
+    });
+    createdEngines.push(engine);
+
+    const scene = engine.sceneManager.activeScene;
+    scene.background.mode = BackgroundMode.SolidColor;
+    scene.background.solidColor.set(0, 0, 0, 1);
+    const gl = engine._hardwareRenderer.gl;
+    drainGlErrors(gl);
+
+    // Linear RGBA8 offscreen RT (matches Picker ID / Outline silhouette usage without sRGB encoding).
+    const auxTex = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const auxRT = new RenderTarget(engine, 128, 128, auxTex, TextureFormat.Depth24Stencil8, 1);
+    const root = scene.createRootEntity("root");
+    const camEnt = root.createChild("cam");
+    camEnt.transform.setPosition(0, 0, 4.0);
+    camEnt.transform.lookAt(new Vector3(0, 0, 0));
+    const cam = camEnt.addComponent(Camera);
+    cam.nearClipPlane = 0.2;
+    cam.farClipPlane = 50;
+    cam.cullingMask = Layer.Layer0;
+
+    // Layer0 red box (should be excluded when cullingMask = Layer1).
+    const redMat = new UnlitMaterial(engine);
+    redMat.baseColor = new Color(1, 0, 0, 1);
+    const layer0Box = addBox(engine, root, "layer0Box", [0, 0, 0], [3.0, 3.0, 0.2], redMat);
+    layer0Box.layer = Layer.Layer0;
+
+    // Layer1 center box for silhouette / ID + aspectRatio verification.
+    const whiteMat = new UnlitMaterial(engine);
+    whiteMat.baseColor = new Color(1, 1, 1, 1);
+    const layer1Box = addBox(engine, root, "layer1Box", [0, 0, 0.5], [1.0, 1.0, 0.2], whiteMat);
+    layer1Box.layer = Layer.Layer1;
+
+    const greenIdShader = Shader.create(`Shader "Test/AuxGreenId" {
+      SubShader "Default" {
+        Pass "Forward" {
+          Tags { pipelineStage = "Forward" }
+          VertexShader = vert;
+          FragmentShader = frag;
+          #include "ShaderLibrary/Common/Common.glsl"
+          #include "ShaderLibrary/Common/Transform.glsl"
+          #include "ShaderLibrary/Common/Attributes.glsl"
+          void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+          void frag() { gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); }
+        }
+      }
+    }`);
+
+    const countGreenWidthAtCenterRow = (texture: Texture2D): number => {
+      const w = texture.width;
+      const h = texture.height;
+      const pixels = new Uint8Array(w * h * 4);
+      texture.getPixelBuffer(0, 0, w, h, 0, pixels);
+      const y = h >> 1;
+      let greenCols = 0;
+      for (let x = 0; x < w; x++) {
+        const idx = (y * w + x) * 4;
+        if (pixels[idx + 1] > 200 && pixels[idx] < 20) greenCols++;
+      }
+      return greenCols;
+    };
+
+    try {
+      // Pre-first-render call (when RenderContext.camera is still undefined) must be allowed.
+      cam.renderAuxiliary({
+        renderTarget: auxRT,
+        cullingMask: Layer.Layer1,
+        clearFlags: CameraClearFlags.All,
+        clearColor: new Color(0, 0, 0, 0)
+      });
+      expect(engine._renderContext.camera).toBeNull();
+
+      // Run one frame to initialize camera state.
+      stepFrames(engine, 1);
+      const origProj = new Float32Array(cam._virtualCamera.projectionMatrix.elements);
+      const origAspect = cam.aspectRatio;
+
+      // 1. Verify clearColor, cullingMask (Layer1 only, ignoring Layer0 red box), and replacementShader (green).
+      const clearBg = new Color(0.2, 0.4, 0.8, 1.0);
+      cam.renderAuxiliary({
+        renderTarget: auxRT,
+        cullingMask: Layer.Layer1,
+        clearFlags: CameraClearFlags.All,
+        clearColor: clearBg,
+        replacementShader: greenIdShader,
+        aspectRatio: 1.0
+      });
+
+      const corner = sampleRegionRGB(auxTex, 0.0, 0.0, 0.1, 0.1);
+      expect(corner.avgR).toBeGreaterThan(40);
+      expect(corner.avgR).toBeLessThan(65);
+      expect(corner.avgG).toBeGreaterThan(90);
+      expect(corner.avgG).toBeLessThan(115);
+      expect(corner.avgB).toBeGreaterThan(190);
+      expect(corner.avgB).toBeLessThan(220);
+
+      const center = sampleRegionRGB(auxTex, 0.45, 0.45, 0.55, 0.55);
+      expect(center.avgG).toBeGreaterThan(240);
+      expect(center.avgR).toBeLessThan(10);
+      expect(center.avgB).toBeLessThan(10);
+
+      const widthAspect1 = countGreenWidthAtCenterRow(auxTex);
+      expect(widthAspect1).toBeGreaterThan(20);
+
+      // 2. Verify aspectRatio override (3.0 narrows projected horizontal width in the same square RT)
+      // without mutating main camera's aspectRatio or _virtualCamera.projectionMatrix.
+      cam.renderAuxiliary({
+        renderTarget: auxRT,
+        cullingMask: Layer.Layer1,
+        clearFlags: CameraClearFlags.All,
+        clearColor: clearBg,
+        replacementShader: greenIdShader,
+        aspectRatio: 3.0
+      });
+      const widthAspect3 = countGreenWidthAtCenterRow(auxTex);
+      expect(widthAspect3).toBeGreaterThan(4);
+      expect(widthAspect1).toBeGreaterThan(widthAspect3 * 2.2);
+
+      // 3. Verify renderFilter override and explicit renderFilter: null overriding camera.renderFilter.
+      cam.renderFilter = () => false;
+      cam.renderAuxiliary({
+        renderTarget: auxRT,
+        cullingMask: Layer.Layer1,
+        clearFlags: CameraClearFlags.All,
+        clearColor: clearBg,
+        replacementShader: greenIdShader,
+        aspectRatio: 1.0
+      });
+      expect(countGreenWidthAtCenterRow(auxTex)).toBe(0);
+
+      cam.renderAuxiliary({
+        renderTarget: auxRT,
+        cullingMask: Layer.Layer1,
+        clearFlags: CameraClearFlags.All,
+        clearColor: clearBg,
+        replacementShader: greenIdShader,
+        aspectRatio: 1.0,
+        renderFilter: null
+      });
+      expect(countGreenWidthAtCenterRow(auxTex)).toBe(widthAspect1);
+      cam.renderFilter = undefined;
+
+      // 4. Verify re-entrancy guard rejects nested calls during an active auxiliary or main render pass.
+      let auxReentrantError: unknown = null;
+      cam.renderAuxiliary({
+        renderTarget: auxRT,
+        cullingMask: Layer.Layer1,
+        clearFlags: CameraClearFlags.All,
+        clearColor: clearBg,
+        replacementShader: greenIdShader,
+        aspectRatio: 1.0,
+        renderFilter: () => {
+          if (!auxReentrantError) {
+            try {
+              cam.renderAuxiliary({ renderTarget: auxRT });
+            } catch (err) {
+              auxReentrantError = err;
+            }
+          }
+          return true;
+        }
+      });
+      expect(auxReentrantError).toBeInstanceOf(Error);
+      expect((auxReentrantError as Error).message).toMatch(/re-entrantly/i);
+      expect(engine._renderContext.camera).toBeNull();
+
+      let mainReentrantError: unknown = null;
+      cam.renderFilter = () => {
+        if (!mainReentrantError) {
+          try {
+            cam.renderAuxiliary({ renderTarget: auxRT });
+          } catch (err) {
+            mainReentrantError = err;
+          }
+        }
+        return true;
+      };
+      stepFrames(engine, 1);
+      cam.renderFilter = undefined;
+      expect(mainReentrantError).toBeInstanceOf(Error);
+      expect((mainReentrantError as Error).message).toMatch(/re-entrantly/i);
+      expect(engine._renderContext.camera).toBeNull();
+
+      // Confirm main camera aspectRatio & projection matrix untouched.
+      expect(cam.aspectRatio).toBe(origAspect);
+      // @ts-ignore
+      expect(cam._customAspectRatio).toBeUndefined();
+      expect(Array.from(cam._virtualCamera.projectionMatrix.elements)).toEqual(Array.from(origProj));
+      expect(drainGlErrors(gl)).toEqual([]);
+    } finally {
+      greenIdShader.destroy();
+      auxRT.destroy(true);
+      auxTex.destroy(true);
+    }
   });
 });

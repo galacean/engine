@@ -24,7 +24,9 @@ execFileSync(
     path.join(source, "Shaders"),
     path.join(cache, "compiled"),
     "--clean",
-    "--emit-index"
+    "--emit-index",
+    "--include-library",
+    path.join(source, "ShaderLibrary")
   ],
   { cwd: root, stdio: "inherit" }
 );

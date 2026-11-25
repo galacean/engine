@@ -18,6 +18,10 @@ vi.mock("../src/runtime-editor/scripts/runtime-project-scripts", () => ({
   RuntimeProjectScripts: class { dispose() {} }
 }));
 
+function beforeUnloadEvent(): Event {
+  return Object.defineProperty(new Event("beforeunload", { cancelable: true }), "returnValue", { writable: true });
+}
+
 function project(): RuntimeProjectPackage {
   return { version: RUNTIME_PROJECT_SAVE_VERSION, project: { scene: "Scene/main.scene", scenes: ["Scene/main.scene", "Scene/other.scene"], files: [
     {  type: "Scene", dependencies: [], virtualPath: "Scene/main.scene", path: "main.scene" },
@@ -1632,7 +1636,7 @@ it("tears down DOM listeners and persistence subscription symmetrically via sign
   expect(listeners.size).toBe(0);
   for (const listener of listeners) listener();
   doc1.dispatchEvent(new Event("visibilitychange"));
-  const unloadEvent1 = new Event("beforeunload", { cancelable: true });
+  const unloadEvent1 = beforeUnloadEvent();
   win1.dispatchEvent(unloadEvent1);
   expect(onChange1).not.toHaveBeenCalled();
   expect(flushMock).not.toHaveBeenCalled();
@@ -1648,7 +1652,7 @@ it("tears down DOM listeners and persistence subscription symmetrically via sign
   // Confirm active before dispose: visibilitychange triggers flush and beforeunload prevents unload.
   doc2.dispatchEvent(new Event("visibilitychange"));
   expect(flushMock).toHaveBeenCalledTimes(1);
-  const unloadActive = new Event("beforeunload", { cancelable: true });
+  const unloadActive = beforeUnloadEvent();
   win2.dispatchEvent(unloadActive);
   expect(unloadActive.defaultPrevented).toBe(true);
 
@@ -1656,7 +1660,7 @@ it("tears down DOM listeners and persistence subscription symmetrically via sign
   expect(listeners.size).toBe(0);
   doc2.dispatchEvent(new Event("visibilitychange"));
   expect(flushMock).toHaveBeenCalledTimes(1);
-  const unloadAfterDispose = new Event("beforeunload", { cancelable: true });
+  const unloadAfterDispose = beforeUnloadEvent();
   win2.dispatchEvent(unloadAfterDispose);
   expect(unloadAfterDispose.defaultPrevented).toBe(false);
 
@@ -2389,6 +2393,38 @@ it("falls back to in-memory storage in RuntimeProjectSession.open() when initial
   }
 });
 
+it("keeps a supplied read-only backend and surfaces its load failure", async () => {
+  const { RuntimeProjectSession } = await import("../src/project/runtime-project-session");
+  const pack = project();
+  const backendError = new DOMException("Shared world storage failed", "AbortError");
+  const storage = {
+    readOnly: true,
+    load: vi.fn().mockResolvedValueOnce(pack).mockRejectedValueOnce(backendError),
+    save: vi.fn(),
+    close: vi.fn()
+  };
+  const openLocal = vi.spyOn(RuntimeProjectStorage, "open");
+  try {
+    const baseUrl = "https://example.com/project.json";
+    const restored = await RuntimeProjectSession.open("viewer", pack.project, baseUrl, { storage });
+    try {
+      expect(restored.projectPackage).toEqual(pack);
+      expect(restored.restoredFromStorage).toBe(true);
+      expect(restored.canSave).toBe(false);
+      await restored.save();
+      expect(storage.save).not.toHaveBeenCalled();
+    } finally {
+      restored.dispose();
+    }
+
+    await expect(RuntimeProjectSession.open("viewer", pack.project, baseUrl, { storage })).rejects.toBe(backendError);
+    expect(storage.close).toHaveBeenCalledTimes(2);
+    expect(openLocal).not.toHaveBeenCalled();
+  } finally {
+    openLocal.mockRestore();
+  }
+});
+
 it("times out a hanging storage.save() transaction, aborts it, preserves baseline, and leaves queue/persistence retryable (P1-15)", async () => {
   vi.useFakeTimers();
   vi.stubGlobal("IDBKeyRange", { bound: (lower: unknown, upper: unknown) => ({ lower, upper }) });
@@ -2572,7 +2608,7 @@ it("separates userEditSeq from system commits and avoids false beforeunload prom
   const doc = Object.assign(new EventTarget(), { visibilityState: "visible" as DocumentVisibilityState }) as unknown as Document;
   const disposeLifecycle = attachProjectSaveLifecycle(session, win, doc);
   const dispatchBeforeUnload = () => {
-    const ev = new Event("beforeunload", { cancelable: true });
+    const ev = beforeUnloadEvent();
     win.dispatchEvent(ev);
     return ev.defaultPrevented;
   };

@@ -154,14 +154,55 @@ export class KTX2Loader extends Loader<KTX2Texture> {
     return texture;
   }
 
+  private static _astc2DArraySupport = new WeakMap<object, boolean>();
+
+  private static _supportsCompressedTexture2DArrayASTC(renderer: any): boolean {
+    if (!renderer || typeof renderer !== "object") return true;
+    const cached = this._astc2DArraySupport.get(renderer);
+    if (cached !== undefined) return cached;
+    const gl = renderer.gl as WebGL2RenderingContext | undefined;
+    if (!gl || typeof gl.texStorage3D !== "function" || typeof gl.compressedTexSubImage3D !== "function") {
+      this._astc2DArraySupport.set(renderer, false);
+      return false;
+    }
+    // Some Android Chromium WebGL2 decoders (e.g. non-ANGLE validating decoder on Adreno) advertise
+    // WEBGL_compressed_texture_astc and accept texStorage3D, yet reject compressedTexSubImage3D
+    // with GL_INVALID_VALUE ("size is not correct for dimensions"). Probe a 4x4x1 block once.
+    let supported = false;
+    const prevTex = gl.getParameter(gl.TEXTURE_BINDING_2D_ARRAY);
+    const tex = gl.createTexture();
+    if (tex) {
+      try {
+        while (gl.getError() !== gl.NO_ERROR) {}
+        gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex);
+        const ASTC_4X4_RGBA = 0x93b0;
+        // Probe with depth=2 because the bug only manifests for multi-layer uploads (depth > 1).
+        gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, ASTC_4X4_RGBA, 4, 4, 2);
+        gl.compressedTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, 0, 4, 4, 2, ASTC_4X4_RGBA, new Uint8Array(32));
+        supported = gl.getError() === gl.NO_ERROR;
+      } catch {
+        supported = false;
+      } finally {
+        gl.bindTexture(gl.TEXTURE_2D_ARRAY, prevTex);
+        gl.deleteTexture(tex);
+      }
+    }
+    this._astc2DArraySupport.set(renderer, supported);
+    return supported;
+  }
+
   private static _decideTargetFormat(
     engine: Engine,
     ktx2Container: KTX2Container,
     priorityFormats?: KTX2TargetFormat[]
   ): KTX2TargetFormat {
     const renderer = (engine as any)._hardwareRenderer;
-    const { isSRGB, pixelWidth, pixelHeight } = ktx2Container;
-    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats!, isSRGB) as KTX2TargetFormat;
+    const { isSRGB, pixelWidth, pixelHeight, layerCount } = ktx2Container;
+    let formats = priorityFormats!;
+    if (layerCount > 0 && !this._supportsCompressedTexture2DArrayASTC(renderer)) {
+      formats = formats.filter((f) => f !== KTX2TargetFormat.ASTC && f !== KTX2TargetFormat.ASTC_HDR_4x4);
+    }
+    const targetFormat = this._detectSupportedFormat(renderer, formats, isSRGB) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&

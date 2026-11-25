@@ -261,6 +261,7 @@ it("preserves explicit user edit provenance when planning enters a temporary wor
         const doc = Object.assign(new EventTarget(), { visibilityState: "visible" as const });
         dispose = attachProjectSaveLifecycle(target, win, doc);
         const event = new Event("beforeunload", { cancelable: true });
+        Object.defineProperty(event, "returnValue", { writable: true });
         win.dispatchEvent(event);
         expect(target.userEditSeq).toBe(userEdit ? 1 : 0);
         expect(event.defaultPrevented).toBe(userEdit);

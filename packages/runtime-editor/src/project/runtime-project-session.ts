@@ -25,6 +25,7 @@ import {
   RuntimeProjectStorageUnavailableError,
   runtimeProjectFiles,
   validateRuntimeProject,
+  type RuntimeProjectBackend,
   type RuntimeProjectManifest,
   type RuntimeProjectPackage
 } from "@galacean/engine-project/runtime-editor/project/runtime-project";
@@ -273,6 +274,7 @@ export class RuntimeProjectSession {
   private readonly persistence: RuntimeProjectPersistence;
   private persistenceSnapshot?: RuntimeProjectSnapshot;
   private _userEditSeq = 0;
+  readonly restoredFromStorage: boolean;
 
   private syncSnapshotContent(path: string, content: string | Uint8Array): void {
     const snapshot = this.persistenceSnapshot;
@@ -298,12 +300,13 @@ export class RuntimeProjectSession {
   private constructor(
     readonly id: string,
     readonly projectPackage: RuntimeProjectPackage,
-    private readonly storage: RuntimeProjectStorage,
+    private readonly storage: RuntimeProjectBackend,
     modules: readonly RuntimeScriptModule[] = [],
     private needsInitialization = false,
     persistenceOptions?: RuntimeProjectPersistenceOptions,
     private readonly prefetchedTextAssets?: ReadonlyMap<string, string>
   ) {
+    this.restoredFromStorage = !needsInitialization;
     this.scripts = new RuntimeProjectScripts(modules);
     this.dependencyMaintenance = new RuntimeDependencyMaintenance(projectPackage, this.referenceFormats);
     // Storage captures immutable text references and copies mutable data only when
@@ -333,30 +336,33 @@ export class RuntimeProjectSession {
     initial: RuntimeProjectManifest,
     baseUrl: string,
     options: {
+      storage?: RuntimeProjectBackend;
       scriptModules?: readonly RuntimeScriptModule[];
       persistence?: RuntimeProjectPersistenceOptions;
       prefetchedTextAssets?: ReadonlyMap<string, string>;
     } = {}
   ): Promise<RuntimeProjectSession> {
-    let storage: RuntimeProjectStorage;
-    try {
-      storage = await RuntimeProjectStorage.open();
-    } catch (error) {
-      if (!isRecoverableStorageError(error)) {
-        throw error;
+    let storage = options.storage;
+    if (!storage) {
+      try {
+        storage = await RuntimeProjectStorage.open();
+      } catch (error) {
+        if (!isRecoverableStorageError(error)) {
+          throw error;
+        }
+        console.warn(
+          "[RuntimeProjectSession] IndexedDB storage unavailable during open; falling back to in-memory storage.",
+          error
+        );
+        storage = RuntimeProjectStorage.createInMemory();
       }
-      console.warn(
-        "[RuntimeProjectSession] IndexedDB storage unavailable during open; falling back to in-memory storage.",
-        error
-      );
-      storage = RuntimeProjectStorage.createInMemory();
     }
     try {
       let saved: RuntimeProjectPackage | undefined;
       try {
         saved = await storage.load(id);
       } catch (error) {
-        if (!isRecoverableStorageError(error)) {
+        if (options.storage || !isRecoverableStorageError(error)) {
           throw error;
         }
         console.warn(
@@ -874,6 +880,12 @@ export class RuntimeProjectSession {
   get publicationRevision(): number {
     return this.acceptedRevision;
   }
+  get canSave(): boolean {
+    return !this.storage.readOnly;
+  }
+  private checkpoint(): number {
+    return this.canSave ? this.persistence.committed() : this.persistence.status.savedSeq;
+  }
   get persistenceStatus() {
     return this.persistence.status;
   }
@@ -888,6 +900,7 @@ export class RuntimeProjectSession {
   /** Explicit checkpoint, including prepared remote content. Does not hold the
    * publication queue while waiting for storage. */
   async save(): Promise<void> {
+    if (!this.canSave) return;
     const target = await this.enqueuePublication(async () => {
       const candidate = await this.withDependencies(this.projectPackage);
       const snapshot = RuntimeProjectSnapshot.create(candidate);
@@ -897,7 +910,7 @@ export class RuntimeProjectSession {
       this.persistenceSnapshot = snapshot;
       this.dependencyMaintenance.accept(candidate);
       this.markManifestValidated();
-      return this.persistence.committed();
+      return this.checkpoint();
     }, []);
     await this.flush(target);
   }
@@ -1166,7 +1179,7 @@ export class RuntimeProjectSession {
       this.dependencyMaintenance.rememberAcceptedAsset(this.projectPackage, existing, extractedDeps);
     }
     if (userEdit) this._userEditSeq++;
-    this.persistence.committed();
+    this.checkpoint();
     return true;
   }
 
@@ -1293,7 +1306,7 @@ export class RuntimeProjectSession {
     // Runtime-owned state is merged into every editor publication, so it does not stale an author draft.
     if (!runtimeWrite) this.acceptedRevision++;
     if (userEdit) this._userEditSeq++;
-    this.persistence.committed();
+    this.checkpoint();
     // Explicit undo and session history share the accepted authoring boundary,
     // including preparation output and excluding runtime-owned progress.
     return undo;

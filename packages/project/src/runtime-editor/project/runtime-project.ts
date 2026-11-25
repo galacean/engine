@@ -525,11 +525,22 @@ function isClosingTransactionError(error: unknown): boolean {
   const message = "message" in error ? String((error as { message?: unknown }).message) : "";
   return /\b(?:closing|closed)\b/i.test(message);
 }
+
+/** The session owns one backend for its lifetime. Viewers still initialize an in-memory project. */
+export interface RuntimeProjectBackend {
+  readonly readOnly?: boolean;
+  readonly isInMemory?: boolean;
+  load(id: string): Promise<RuntimeProjectPackage | undefined>;
+  save(id: string, value: RuntimeProjectPackage): Promise<void>;
+  saveSnapshot?(id: string, snapshot: RuntimeProjectSnapshot): Promise<void>;
+  close(): void;
+}
+
 /** Each save atomically replaces the complete project; the last write transaction wins.
  * A matching private revision permits differential writes. Other writers invalidate
  * that optimization, never the right to save the caller's complete snapshot.
  */
-export class RuntimeProjectStorage {
+export class RuntimeProjectStorage implements RuntimeProjectBackend {
   // Private snapshots are exact comparison baselines, never exposed as mutable author data.
   private readonly snapshots = new Map<string, StorageSnapshot>();
   private readonly operations = new Map<string, Promise<unknown>>();

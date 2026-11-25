@@ -3,7 +3,8 @@ import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
-import { Shader, ShaderProperty } from "../shader";
+import { RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
+import { ColorWriteMask, Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
 import { RenderTarget, TextureCubeFace } from "../texture";
 
@@ -103,6 +104,49 @@ export class RenderContext {
     } else {
       engine._macroCollection.enable(Engine._outputSRGBCorrectMacro);
     }
+  }
+
+  beginRenderPass(descriptor: RenderPassDescriptor): void {
+    const engine = this.camera.engine;
+    const rhi = engine._hardwareRenderer;
+    this.flipProjection = descriptor.isFlipProjection;
+
+    // WebGL gl.clear() is masked by current color/depth/stencil write masks; reset cached masks on core's RenderState before clearing.
+    if (rhi.supportsRendering) {
+      const gl = rhi.gl;
+      const {
+        blendState: { targetBlendState },
+        depthState,
+        stencilState
+      } = engine._lastRenderState;
+      if (
+        descriptor.colorLoadAction !== RenderPassLoadAction.Load &&
+        targetBlendState.colorWriteMask !== ColorWriteMask.All
+      ) {
+        gl.colorMask(true, true, true, true);
+        targetBlendState.colorWriteMask = ColorWriteMask.All;
+      }
+      if (descriptor.depthLoadAction !== RenderPassLoadAction.Load && depthState.writeEnabled !== true) {
+        gl.depthMask(true);
+        depthState.writeEnabled = true;
+      }
+      if (descriptor.stencilLoadAction !== RenderPassLoadAction.Load && stencilState.writeMask !== 0xff) {
+        gl.stencilMask(0xff);
+        stencilState.writeMask = 0xff;
+      }
+    }
+
+    rhi.beginRenderPass(descriptor);
+
+    if (descriptor.renderTarget) {
+      engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);
+    } else {
+      engine._macroCollection.enable(Engine._outputSRGBCorrectMacro);
+    }
+  }
+
+  endRenderPass(): void {
+    this.camera.engine._hardwareRenderer.endRenderPass();
   }
 
   garbageCollection(): void {

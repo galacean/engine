@@ -8,7 +8,39 @@
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
+  "typesVersions": {
+    "*": {
+      "water-builtin-shaders": [
+        "dist/water-builtin-shaders.d.mts"
+      ],
+      "water-authoring": [
+        "dist/water-authoring.d.mts"
+      ],
+      "water-runtime": [
+        "dist/water-runtime.d.mts"
+      ],
+      "water-presets": [
+        "dist/water-presets.d.mts"
+      ]
+    }
+  },
   "exports": {
+    "./water-builtin-shaders": {
+      "types": "./dist/water-builtin-shaders.d.mts",
+      "default": "./dist/water-builtin-shaders.js"
+    },
+    "./water-authoring": {
+      "types": "./dist/water-authoring.d.mts",
+      "default": "./dist/water-authoring.js"
+    },
+    "./water-runtime": {
+      "types": "./dist/water-runtime.d.mts",
+      "default": "./dist/water-runtime.js"
+    },
+    "./water-presets": {
+      "types": "./dist/water-presets.d.mts",
+      "default": "./dist/water-presets.js"
+    },
     ".": "./src/index.ts",
     "./*": "./src/*",
     "./bridges/BridgeApproach": "./src/bridges/BridgeApproach.ts",

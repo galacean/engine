@@ -1,7 +1,3 @@
-import { Loader } from "@galacean/engine-core";
-import { WaterBodyComponent } from "./WaterBodyComponent";
-import { registerWaterBuiltinShaders } from "./WaterBuiltinShaders";
-import { WaterSystem } from "./WaterSystem";
 export { createWaterAgentPackage } from "./WaterAgent";
 export { WATER_API_CONTRACT, WATER_KNOWLEDGE, WaterAPI } from "./WaterAPI";
 export type {
@@ -43,12 +39,7 @@ export {
   type WaterRuntimeIntegration
 } from "./WaterSystem";
 
-/** Call before ResourceManager loads a Scene/Prefab containing Water components. */
-export function registerNativeWater(): void {
-  registerWaterBuiltinShaders();
-  Loader.registerClass("WaterSystem", WaterSystem);
-  Loader.registerClass("WaterBodyComponent", WaterBodyComponent);
-}
+export { registerNativeWater } from "./registerNativeWater";
 
 export {
   decodeWaterTerrainAssets,

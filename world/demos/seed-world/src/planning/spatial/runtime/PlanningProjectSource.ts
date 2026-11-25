@@ -200,10 +200,15 @@ export function validatePlanningProject(pack: RuntimeProjectPackage): void {
   }
 }
 
-export function planningSourceDocument(pack: RuntimeProjectPackage): PlanningDocument | undefined {
+function cachedPlanningSourceDocument(pack: RuntimeProjectPackage): PlanningDocument | undefined {
   const input = planningInputs(pack);
   input.document ??= { value: readPlanningSourceDocument(pack) };
-  return input.document.value && structuredClone(input.document.value);
+  return input.document.value;
+}
+
+export function planningSourceDocument(pack: RuntimeProjectPackage): PlanningDocument | undefined {
+  const document = cachedPlanningSourceDocument(pack);
+  return document && structuredClone(document);
 }
 
 function readPlanningSourceDocument(pack: RuntimeProjectPackage): PlanningDocument | undefined {
@@ -249,6 +254,11 @@ function templateId(document: PlanningDocument): string {
   return document.entities.world.components.worldTemplate
     ? String(resolveComponent(document, "world", "worldTemplate", planningRegistry).values.id ?? "")
     : "";
+}
+
+export function planningSourceIdentity(pack: RuntimeProjectPackage) {
+  const document = cachedPlanningSourceDocument(pack);
+  return document && { seed: planningSeed(document), template: templateId(document) || "original" };
 }
 
 /** Composition water overrides belong to their layout. Independent native Water survives layout replacement. */

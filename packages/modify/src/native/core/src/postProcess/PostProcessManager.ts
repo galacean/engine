@@ -3,7 +3,6 @@ import { Camera } from "../Camera";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
 import { Logger } from "../base/Logger";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Material } from "../material";
 import { Collider } from "../physics";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
@@ -194,14 +193,6 @@ export class PostProcessManager {
       const pass = activePasses[i];
       const destRT = this._currentDestRenderTarget;
       pass.onRender(camera, this._getCurrentSourceTexture(), destRT);
-      if (
-        (destRT === this._swapRenderTarget || destRT === this._swapRenderTarget2) &&
-        destRT &&
-        !destRT.depthTexture &&
-        destRT._depthFormat !== null
-      ) {
-        engine._hardwareRenderer.invalidateRenderTarget?.(destRT, CameraClearFlags.DepthStencil);
-      }
       this._remainActivePassCount--;
       this._swapRT();
     }

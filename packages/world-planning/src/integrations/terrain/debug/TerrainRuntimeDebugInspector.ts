@@ -1,5 +1,5 @@
 import * as dat from "dat.gui";
-import { FogMode, TonemappingMode, WeatherPresets } from "@galacean/engine";
+import { FogMode, TonemappingMode, VolumetricLightQuality, WeatherPresets } from "@galacean/engine";
 import { DebugInspector, type DebugInspectorPanelHost } from "@galacean/engine-terrain/terrain/debug/DebugInspector";
 import {
   TerrainRuntimeDebug,
@@ -771,6 +771,18 @@ export class TerrainRuntimeDebugInspector {
       .add(postProcessState.volumetricLight, "enabled")
       .name("Enabled / 启用")
       .onChange(editPostProcess((enabled: boolean) => options.postProcess.setVolumetricLightEnabled(enabled)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "quality", {
+        "Low / 低 (2D 屏幕空间)": VolumetricLightQuality.Low,
+        "Medium / 中 (3D 阴影体 360p)": VolumetricLightQuality.Medium,
+        "High / 高 (3D 阴影体 720p)": VolumetricLightQuality.High
+      })
+      .name("Quality / 质量")
+      .onChange(
+        editPostProcess((quality: number) =>
+          options.postProcess.setVolumetricLightQuality(Number(quality) as VolumetricLightQuality)
+        )
+      );
     bindNumericInput(
       volumetricLight
         .add(postProcessState.volumetricLight, "intensity", 0, 2.5, 0.02)
@@ -778,12 +790,16 @@ export class TerrainRuntimeDebugInspector {
         .onChange(editPostProcess((intensity: number) => options.postProcess.setVolumetricLightIntensity(intensity)))
     );
     volumetricLight
+      .add(postProcessState.volumetricLight, "threshold", 0, 2, 0.01)
+      .name("Threshold / 亮度阈值 (Low)")
+      .onChange(editPostProcess((threshold: number) => options.postProcess.setVolumetricLightThreshold(threshold)));
+    volumetricLight
       .add(postProcessState.volumetricLight, "density", 0.2, 1.5, 0.02)
-      .name("Density / 延伸密度")
+      .name("Density / 延伸密度 (Low)")
       .onChange(editPostProcess((density: number) => options.postProcess.setVolumetricLightDensity(density)));
     volumetricLight
       .add(postProcessState.volumetricLight, "decay", 0.75, 0.99, 0.005)
-      .name("Decay / 衰减系数")
+      .name("Decay / 衰减系数 (Low)")
       .onChange(editPostProcess((decay: number) => options.postProcess.setVolumetricLightDecay(decay)));
     volumetricLight
       .add(postProcessState.volumetricLight, "softKnee", 0, 1, 0.02)
@@ -791,9 +807,35 @@ export class TerrainRuntimeDebugInspector {
       .onChange(editPostProcess((softKnee: number) => options.postProcess.setVolumetricLightSoftKnee(softKnee)));
     volumetricLight
       .add(postProcessState.volumetricLight, "skyDepthThreshold", 0.9, 0.99998, 0.0001)
-      .name("Sky depth / 天空深度阈值")
+      .name("Sky depth / 天空深度阈值 (Low)")
       .onChange(
         editPostProcess((threshold: number) => options.postProcess.setVolumetricLightSkyDepthThreshold(threshold))
+      );
+    volumetricLight
+      .add(postProcessState.volumetricLight, "anisotropy", -0.9, 0.95, 0.01)
+      .name("Anisotropy / 前向各向异性 (3D)")
+      .onChange(editPostProcess((anisotropy: number) => options.postProcess.setVolumetricLightAnisotropy(anisotropy)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "extinction", 0.001, 0.1, 0.001)
+      .name("Extinction / 散射密度 (3D)")
+      .onChange(editPostProcess((extinction: number) => options.postProcess.setVolumetricLightExtinction(extinction)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "maxDistance", 5, 500, 1)
+      .name("Max distance / 有效距离 (3D)")
+      .onChange(editPostProcess((distance: number) => options.postProcess.setVolumetricLightMaxDistance(distance)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "heightFalloff", 0, 0.3, 0.005)
+      .name("Height falloff / 高度衰减 (3D)")
+      .onChange(editPostProcess((falloff: number) => options.postProcess.setVolumetricLightHeightFalloff(falloff)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "baseHeight", -50, 100, 1)
+      .name("Base height / 衰减基准高度 (3D)")
+      .onChange(editPostProcess((height: number) => options.postProcess.setVolumetricLightBaseHeight(height)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "bilateralSharpness", 0.5, 64, 0.5)
+      .name("Bilateral / 保边锐度 (3D)")
+      .onChange(
+        editPostProcess((sharpness: number) => options.postProcess.setVolumetricLightBilateralSharpness(sharpness))
       );
 
     let oilPaintFolder: dat.GUI | undefined;

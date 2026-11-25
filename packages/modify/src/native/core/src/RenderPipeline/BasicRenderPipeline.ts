@@ -1,9 +1,12 @@
 import type { Renderer } from "../Renderer";
-import type { Plane } from "@galacean/engine-math";
-import { MathUtil, Vector2, Vector4 } from "@galacean/engine-math";
+import type { IUICanvas } from "../ui/IUICanvas";
+import type { BoundingFrustum, Plane } from "@galacean/engine-math";
+import { Color, MathUtil, Vector2, Vector4 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Engine } from "../Engine";
 import { Camera } from "../Camera";
+import type { Layer } from "../Layer";
+import type { VirtualCamera } from "../VirtualCamera";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -18,6 +21,7 @@ import {
   type SunLensFlareScreenState
 } from "../postProcess/effects/SunLensFlareEffect";
 import { VolumetricLightEffect, type VolumetricLightScreenState } from "../postProcess/effects/VolumetricLightEffect";
+import { RenderPassDescriptor, RenderPassLoadAction, RenderPassStoreAction } from "../renderingHardwareInterface";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { SubShader } from "../shader/SubShader";
@@ -47,6 +51,37 @@ import {
   type RenderViewCullingSourceRegistration
 } from "./RenderViewCulling";
 import { PipelineStage } from "./enums/PipelineStage";
+
+/**
+ * Options for stateless auxiliary rendering via `Camera.renderAuxiliary`.
+ */
+export interface CameraAuxiliaryRenderOptions {
+  /** Target RenderTarget; pass `null` explicitly to draw directly to the default screen canvas; omit to use `camera.renderTarget`. */
+  renderTarget?: RenderTarget | null;
+  /** Normalized viewport `(x, y, width, height)`; omit to use `camera.viewport`. */
+  viewport?: Vector4;
+  /** Culling layer mask; omit to use `camera.cullingMask`. */
+  cullingMask?: Layer;
+  /** Whether to enable frustum culling; omit to use `camera.enableFrustumCulling`. */
+  enableFrustumCulling?: boolean;
+  /** Clear flags; omit to use `camera.clearFlags`. */
+  clearFlags?: CameraClearFlags;
+  /** Straight (unpremultiplied) clear color when `clearFlags` includes `Color` (internally premultiplied by alpha before clearing, matching `scene.background.solidColor`); omit to use `scene.background.solidColor`. Auxiliary pass never draws Skybox or background texture. */
+  clearColor?: Color;
+  /** Replacement shader for this auxiliary draw; omit or `null` to disable replacement shader (does not inherit `camera._replacementShader`). */
+  replacementShader?: Shader | null;
+  /** SubShader tag name paired with `replacementShader`. */
+  replacementTagName?: string;
+  /** Fallback strategy when tag does not match; defaults to `ReplacementFailureStrategy.KeepOriginalShader`. */
+  replacementFailureStrategy?: ReplacementFailureStrategy;
+  /** Optional projection aspect ratio override (for example locking viewport aspect ratio when rendering to a square RT) without mutating `camera._customAspectRatio` or `camera._virtualCamera`. */
+  aspectRatio?: number;
+  /** Optional render filter; omit to use `camera.renderFilter`, pass `null` explicitly to disable filtering. */
+  renderFilter?: ((renderable: Renderer | IUICanvas) => boolean) | null;
+  /** Whether to include `RenderViewCullingSource` batches already submitted by the latest main-camera view (read-only borrow of `_submittedViewRenderers` without calling `source.cull()` or mutating main-view caches); defaults to `false`. */
+  includeRenderViewCullingSources?: boolean;
+}
+
 /**
  * Basic render pipeline.
  */
@@ -70,6 +105,7 @@ export class BasicRenderPipeline {
   private readonly _renderViewCullingSources: RegisteredRenderViewCullingSource[] = [];
   private readonly _renderViewCullingContext = new RenderViewCullingContextImpl();
   private _shouldCopyBackgroundColor = false;
+  private _passDescriptor = new RenderPassDescriptor();
   private _destroyed = false;
   /** @internal */
   _sunLensFlareDepthTexture: Texture | null = null;
@@ -80,6 +116,7 @@ export class BasicRenderPipeline {
 
   private _sunLensFlareDepthPatchRT: RenderTarget | null = null;
   private readonly _sunLensFlareDepthViewport = new Vector4();
+  private readonly _auxClearColor = new Color();
   private readonly _sunLensFlareScreenState: SunLensFlareScreenState = {
     visible: false,
     sunU: 0.5,
@@ -188,6 +225,97 @@ export class BasicRenderPipeline {
       this._renderWithContext(context, cubeFace, mipLevel, ignoreClear);
     } finally {
       context._ssrState.reset();
+    }
+  }
+
+  /**
+   * Perform a stateless auxiliary forward render pass without mutating main-pipeline state or persistent pass caches.
+   * @internal
+   */
+  renderAuxiliary(
+    context: RenderContext,
+    virtualCamera: VirtualCamera,
+    frustum: BoundingFrustum,
+    options?: CameraAuxiliaryRenderOptions
+  ): void {
+    if (this._destroyed) return;
+    const engine = this._camera.engine;
+    const prevOutputSRGBCorrect = engine._macroCollection.isEnable(Engine._outputSRGBCorrectMacro);
+    context._ssrState.reset();
+    try {
+      this._renderAuxiliaryWithContext(context, virtualCamera, frustum, options);
+    } finally {
+      context._ssrState.reset();
+      if (prevOutputSRGBCorrect) {
+        engine._macroCollection.enable(Engine._outputSRGBCorrectMacro);
+      } else {
+        engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);
+      }
+    }
+  }
+
+  private _renderAuxiliaryWithContext(
+    context: RenderContext,
+    virtualCamera: VirtualCamera,
+    frustum: BoundingFrustum,
+    options?: CameraAuxiliaryRenderOptions
+  ): void {
+    const camera = this._camera;
+    const engine = camera.engine;
+    const scene = camera.scene!;
+    const rhi = engine._hardwareRenderer;
+    const cullingResults = this._cullingResults;
+
+    const target = options?.renderTarget !== undefined ? options.renderTarget : camera.renderTarget;
+    const viewport = options?.viewport ?? camera.viewport;
+    const cullingMask = options?.cullingMask ?? camera.cullingMask;
+    const enableFrustumCulling = options?.enableFrustumCulling ?? camera.enableFrustumCulling;
+    const clearFlags = options?.clearFlags ?? camera.clearFlags;
+    const renderFilter = options?.renderFilter !== undefined ? options.renderFilter : (camera.renderFilter ?? null);
+    const includeRenderViewCullingSources = options?.includeRenderViewCullingSources ?? false;
+    const needFlipProjection = !!target;
+
+    cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
+    cullingResults.reset();
+
+    context.applyVirtualCamera(virtualCamera, needFlipProjection);
+    this._prepareRenderAuxiliary(context, cullingMask, enableFrustumCulling, frustum, renderFilter);
+    if (includeRenderViewCullingSources) {
+      this._prepareAuxiliaryRenderViewCulling(context, cullingMask, enableFrustumCulling, frustum, renderFilter);
+    }
+
+    const batcherManager = engine._batcherManager;
+    cullingResults.sortBatch(batcherManager);
+    batcherManager.uploadBuffer();
+
+    context.setRenderTarget(target, viewport);
+
+    if (clearFlags !== CameraClearFlags.None) {
+      if (clearFlags & CameraClearFlags.Color) {
+        const sourceColor = options?.clearColor ?? scene.background.solidColor;
+        const a = sourceColor.a;
+        const clearColor = this._auxClearColor;
+        clearColor.set(sourceColor.r * a, sourceColor.g * a, sourceColor.b * a, a);
+        rhi.clearRenderTarget(engine, clearFlags, clearColor);
+      } else {
+        rhi.clearRenderTarget(engine, clearFlags, null);
+      }
+    }
+
+    const maskManager = scene._maskManager;
+    if (clearFlags & CameraClearFlags.Stencil) {
+      maskManager.hasStencilWritten = false;
+    }
+
+    const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
+    opaqueQueue.render(context, PipelineStage.Forward);
+    alphaTestQueue.render(context, PipelineStage.Forward);
+    transparentQueue.render(context, PipelineStage.Forward);
+    maskManager.clearMask(context, PipelineStage.Forward);
+
+    if (target) {
+      target._blitRenderTarget();
+      target.generateMipmaps();
     }
   }
 
@@ -469,6 +597,36 @@ export class BasicRenderPipeline {
     this._cullRegisteredRenderViewSources(cullingContext);
   }
 
+  private _prepareAuxiliaryRenderViewCulling(
+    context: RenderContext,
+    cullingMask: Layer,
+    enableFrustumCulling: boolean,
+    frustum: BoundingFrustum,
+    renderFilter: ((renderable: Renderer | IUICanvas) => boolean) | null
+  ): void {
+    const renderers = this._submittedViewRenderers;
+    for (let i = 0, n = renderers.length; i < n; i++) {
+      const renderer = renderers[i];
+      if (renderer.destroyed || renderer.pendingDestroy) {
+        continue;
+      }
+      const entity = renderer.entity;
+      if (!entity || !entity.isActiveInHierarchy) {
+        continue;
+      }
+      if ((cullingMask & entity.layer) === 0) {
+        continue;
+      }
+      if (enableFrustumCulling && !frustum.intersectsBox(renderer.bounds)) {
+        continue;
+      }
+      if (renderFilter && !renderFilter(renderer)) {
+        continue;
+      }
+      renderer._prepareRender(context);
+    }
+  }
+
   /** Runs registered batch sources for one directional-light shadow cascade. @internal */
   _prepareShadowRenderViewCulling(
     context: RenderContext,
@@ -565,7 +723,32 @@ export class BasicRenderPipeline {
     const internalColorTarget = this._internalColorTarget;
     const colorTarget = internalColorTarget || camera.renderTarget;
     const colorViewport = internalColorTarget ? PipelineUtils.defaultViewport : camera.viewport;
-    const needFlipProjection = !!internalColorTarget || (camera.renderTarget && cubeFace == undefined);
+    const needFlipProjection = !!(internalColorTarget || (camera.renderTarget && cubeFace == undefined));
+    const keepColorFlag = !!internalColorTarget && (~finalClearFlags & CameraClearFlags.Color) !== 0;
+    const hasInternalMSAA = !!internalColorTarget && internalColorTarget.antiAliasing > 1;
+    const canDiscardInternalDepthStencil =
+      !!internalColorTarget && !internalColorTarget.depthTexture && internalColorTarget._depthFormat !== null;
+    const finalColorStoreAction = hasInternalMSAA ? RenderPassStoreAction.Resolve : RenderPassStoreAction.Store;
+    const finalDepthStoreAction = canDiscardInternalDepthStencil
+      ? RenderPassStoreAction.Discard
+      : RenderPassStoreAction.Store;
+    const finalStencilStoreAction = canDiscardInternalDepthStencil
+      ? RenderPassStoreAction.Discard
+      : RenderPassStoreAction.Store;
+    const needMidPassBreak =
+      forwardDepthResolveEnabled ||
+      sunLensFlareDepthPatchEnabled ||
+      camera.opaqueTextureEnabled ||
+      deferSSRToPostOpaque;
+    const midPassNeedsResolve =
+      !!colorTarget && colorTarget.antiAliasing > 1 && (forwardDepthResolveEnabled || camera.opaqueTextureEnabled);
+    const opaqueColorStoreAction = needMidPassBreak
+      ? midPassNeedsResolve
+        ? RenderPassStoreAction.StoreAndResolve
+        : RenderPassStoreAction.Store
+      : finalColorStoreAction;
+    const opaqueDepthStoreAction = needMidPassBreak ? RenderPassStoreAction.Store : finalDepthStoreAction;
+    const opaqueStencilStoreAction = needMidPassBreak ? RenderPassStoreAction.Store : finalStencilStoreAction;
 
     // Sky materials may schedule material-owned prepasses, such as a shared
     // volumetric direction-cache update, before the main color target is bound.
@@ -586,46 +769,55 @@ export class BasicRenderPipeline {
       context.applyVirtualCamera(camera._virtualCamera, needFlipProjection);
     }
 
-    context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    // Copy/blit existing background into internalColorTarget outside the main RenderPass
+    if (keepColorFlag) {
+      if (this._shouldCopyBackgroundColor) {
+        // Copy RT's color buffer to grab texture
+        rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture!, camera.viewport);
+        // Then blit grab texture to internal RT's color buffer
+        const copyPassDescriptor = this._passDescriptor.reset(internalColorTarget);
+        copyPassDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+        context.beginRenderPass(copyPassDescriptor);
+        Blitter.draw(
+          engine,
+          this._copyBackgroundTexture!,
+          0,
+          camera.renderTarget ? null : engine._basicResources.blitScreenMaterial
+        );
+        context.endRenderPass();
+      } else {
+        // Only blit color buffer from back buffer
+        const ignoreFlags = CameraClearFlags.DepthStencil;
+        rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget!, ignoreFlags, camera.viewport);
+      }
+      context.flipProjection = needFlipProjection;
+    }
 
-    // Clear color
-    if (finalClearFlags !== CameraClearFlags.None) {
-      const premultiplyColor = Background._premultiplySolidColor;
+    const passDescriptor = this._passDescriptor.reset(
+      colorTarget,
+      colorViewport,
+      needFlipProjection,
+      mipLevel ?? 0,
+      cubeFace
+    );
+    if (finalClearFlags & CameraClearFlags.Color) {
       const { solidColor } = background;
       const { a } = solidColor;
-      premultiplyColor.set(solidColor.r * a, solidColor.g * a, solidColor.b * a, a);
-      rhi.clearRenderTarget(engine, finalClearFlags, premultiplyColor);
+      passDescriptor.colorLoadAction = RenderPassLoadAction.Clear;
+      passDescriptor.clearColor.set(solidColor.r * a, solidColor.g * a, solidColor.b * a, a);
     }
-
-    if (internalColorTarget) {
-      // Force clear internal color target depth and stencil buffer, because it already missed due to post process, HDR, sRGB covert, etc.
-      const keepDSFlags = ~finalClearFlags & CameraClearFlags.DepthStencil;
-      if (keepDSFlags) {
-        rhi.clearRenderTarget(engine, keepDSFlags);
-      }
-
-      const keepColorFlag = ~finalClearFlags & CameraClearFlags.Color;
-      if (keepColorFlag) {
-        if (this._shouldCopyBackgroundColor) {
-          // Copy RT's color buffer to grab texture
-          rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture!, camera.viewport);
-          // Then blit grab texture to internal RT's color buffer
-          Blitter.blitTexture(
-            engine,
-            this._copyBackgroundTexture!,
-            internalColorTarget,
-            0,
-            undefined,
-            camera.renderTarget ? undefined : engine._basicResources.blitScreenMaterial
-          );
-        } else {
-          // Only blit color buffer from back buffer
-          const ignoreFlags = CameraClearFlags.DepthStencil;
-          rhi.blitInternalRTByBlitFrameBuffer(camera.renderTarget, internalColorTarget, ignoreFlags, camera.viewport);
-        }
-      }
-      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    // Force clear internal color target depth and stencil buffer, because it already missed due to post process, HDR, sRGB convert, etc.
+    if (internalColorTarget || (finalClearFlags & CameraClearFlags.Depth) !== 0) {
+      passDescriptor.depthLoadAction = RenderPassLoadAction.Clear;
     }
+    if (internalColorTarget || (finalClearFlags & CameraClearFlags.Stencil) !== 0) {
+      passDescriptor.stencilLoadAction = RenderPassLoadAction.Clear;
+    }
+    passDescriptor.colorStoreAction = opaqueColorStoreAction;
+    passDescriptor.depthStoreAction = opaqueDepthStoreAction;
+    passDescriptor.stencilStoreAction = opaqueStencilStoreAction;
+
+    context.beginRenderPass(passDescriptor);
 
     const maskManager = scene._maskManager;
     if (finalClearFlags & CameraClearFlags.Stencil) {
@@ -642,15 +834,17 @@ export class BasicRenderPipeline {
       }
     }
 
-    let forwardTargetResolved = false;
+    if (needMidPassBreak) {
+      // End opaque pass (resolves MSAA while preserving samples + depth/stencil for transparent pass when needed)
+      context.endRenderPass();
+    }
+
     let resolvedForwardDepthRT: RenderTarget | null = null;
     if (forwardDepthResolveEnabled) {
       if (!internalColorTarget || !colorTarget) {
         throw new Error("Forward depth resolve requires an internal color target.");
       }
       if (colorTarget.antiAliasing > 1) {
-        colorTarget!._blitRenderTarget();
-        forwardTargetResolved = true;
         resolvedForwardDepthRT = colorTarget;
         const depthTexture = colorTarget.depthTexture;
         if (!depthTexture) throw new Error("MSAA forward depth resolve requires a resolved depth texture.");
@@ -666,9 +860,6 @@ export class BasicRenderPipeline {
         resolvedForwardDepthRT = depthOnlyPass.renderTarget;
       }
       camera._depthTextureSource = "forward-resolve";
-      if (!camera.opaqueTextureEnabled && !deferSSRToPostOpaque) {
-        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-      }
     } else if (sunLensFlareDepthPatchEnabled && internalColorTarget && colorTarget) {
       const depthFormat = colorTarget._depthFormat;
       if (depthFormat !== null && depthFormat !== TextureFormat.Stencil) {
@@ -706,20 +897,12 @@ export class BasicRenderPipeline {
         );
         this._sunLensFlareDepthTexture = this._sunLensFlareDepthPatchRT.depthTexture;
         this._sunLensFlareDepthRect.set(srcW / patchW, srcH / patchH, -srcX0 / patchW, -srcY0 / patchH);
-        if (!camera.opaqueTextureEnabled) {
-          context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-        }
       }
     }
 
     // Copy opaque texture (optionally sharing a mipmapped R11G11B10 color pyramid with post-opaque water SSR)
     let reusedOpaqueColorTex: Texture2D | null = null;
     if (camera.opaqueTextureEnabled) {
-      // Should blit to resolve the MSAA
-      if (!forwardTargetResolved) {
-        colorTarget!._blitRenderTarget();
-      }
-
       const wantOpaqueColorForSSR = deferSSRToPostOpaque && this._ssrPass.canReuseOpaqueColorPyramid;
       const opaqueTexturePass = this._opaqueTexturePass;
       opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!, wantOpaqueColorForSSR);
@@ -737,11 +920,6 @@ export class BasicRenderPipeline {
       } else {
         opaqueTexturePass.onRender(context);
       }
-
-      // Should revert to original render target
-      if (!deferSSRToPostOpaque) {
-        context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
-      }
     } else {
       this._opaqueTexturePass.release();
       camera.shaderData.setTexture(Camera._cameraOpaqueTextureProperty, null);
@@ -757,27 +935,29 @@ export class BasicRenderPipeline {
           reusedOpaqueColorTex._setMipLevelRange(0, 0);
         }
       }
-      context.setRenderTarget(colorTarget, colorViewport, mipLevel, cubeFace);
+    }
+
+    if (needMidPassBreak) {
+      // Resume on original render target for transparent pass
+      context.flipProjection = needFlipProjection;
+      passDescriptor.reset(colorTarget, colorViewport, needFlipProjection, mipLevel ?? 0, cubeFace);
+      passDescriptor.colorStoreAction = finalColorStoreAction;
+      passDescriptor.depthStoreAction = finalDepthStoreAction;
+      passDescriptor.stencilStoreAction = finalStencilStoreAction;
+      context.beginRenderPass(passDescriptor);
     }
 
     transparentQueue.render(context, PipelineStage.Forward);
     // Revert stencil buffer generated by mask
     maskManager.clearMask(context, PipelineStage.Forward);
 
-    // Resolve the scene color once and share it with SSR history + PostProcessManager
+    // End main pass (applies declared MSAA resolve and transient depth/stencil discard)
+    context.endRenderPass();
+
+    // Resolve non-internal camera render target once if needed and share with SSR history + PostProcessManager
     const colorTargetResolved = !!colorTarget;
-    if (colorTarget) {
-      if (colorTarget === internalColorTarget) {
-        if (colorTarget.antiAliasing > 1) {
-          // Final resolve for this camera: discard MSAA color+depth renderbuffers right after resolve to skip TBDR STORE.
-          colorTarget._blitRenderTarget(true);
-        } else if (!colorTarget.depthTexture && colorTarget._depthFormat !== null) {
-          // Non-MSAA internal color target is still bound; discard unused depth/stencil renderbuffer before switching FBO.
-          rhi.invalidateRenderTarget?.(colorTarget, CameraClearFlags.DepthStencil);
-        }
-      } else {
-        colorTarget._blitRenderTarget();
-      }
+    if (colorTarget && colorTarget !== internalColorTarget) {
+      colorTarget._blitRenderTarget();
     }
     if (reusedOpaqueColorTex) {
       this._ssrPass.commitCurrentFrameHistory(context);
@@ -819,7 +999,16 @@ export class BasicRenderPipeline {
 
     // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
     if (outputTarget !== cameraRenderTarget) {
-      Blitter.blitTexture(engine, <Texture2D>outputTarget!.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
+      const viewport = camera.viewport;
+      const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
+      passDescriptor.reset(cameraRenderTarget, viewport);
+      passDescriptor.colorLoadAction =
+        cameraRenderTarget && cameraRenderTarget.colorTextureCount === 1 && isFullViewport
+          ? RenderPassLoadAction.DontCare
+          : RenderPassLoadAction.Load;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, <Texture2D>outputTarget!.getColorTexture(0));
+      context.endRenderPass();
     }
 
     const cameraTargetAlreadyResolved =
@@ -988,6 +1177,50 @@ export class BasicRenderPipeline {
         continue;
       }
       if (camera.renderFilter && !camera.renderFilter(canvas)) continue;
+      canvas._prepareRender(context);
+      const canvasElements = canvas._batchedRenderElements;
+      for (let j = 0, m = canvasElements.length; j < m; j++) {
+        this.pushRenderElement(context, canvasElements[j]);
+      }
+    }
+  }
+
+  private _prepareRenderAuxiliary(
+    context: RenderContext,
+    cullingMask: Layer,
+    enableFrustumCulling: boolean,
+    frustum: BoundingFrustum,
+    renderFilter: ((renderable: Renderer | IUICanvas) => boolean) | null
+  ): void {
+    const camera = context.camera;
+    const { _renderers: renderers, _canvases: canvases } = camera.scene!._componentsManager;
+
+    const rendererElements = renderers._elements;
+    for (let i = renderers.length - 1; i >= 0; --i) {
+      const renderer = rendererElements[i];
+      if (!(cullingMask & renderer._entity.layer)) {
+        continue;
+      }
+
+      if (enableFrustumCulling) {
+        if (!frustum.intersectsBox(renderer.bounds)) {
+          continue;
+        }
+      }
+      if (renderFilter && !renderFilter(renderer)) continue;
+      renderer._prepareRender(context);
+    }
+
+    const canvasesElements = canvases._elements;
+    for (let i = canvases.length - 1; i >= 0; i--) {
+      const canvas = canvasesElements[i];
+      if (!(cullingMask & canvas.entity.layer)) {
+        continue;
+      }
+      if (!canvas._canRender(camera)) {
+        continue;
+      }
+      if (renderFilter && !renderFilter(canvas)) continue;
       canvas._prepareRender(context);
       const canvasElements = canvas._batchedRenderElements;
       for (let j = 0, m = canvasElements.length; j < m; j++) {

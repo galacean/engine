@@ -871,6 +871,9 @@ importers:
       esbuild-wasm:
         specifier: 0.25.8
         version: 0.25.8
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
       katex:
         specifier: 0.18.7
         version: 0.18.7
