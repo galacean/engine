@@ -806,23 +806,12 @@ function collectSeedWorldRendererVariantsInternal(
     (camera.shaderData as unknown as RuntimeShaderData)._macroCollection,
     cameraMacros
   );
-  // Fullscreen Blitter / SSR / PostProcess shaders compile against camera-only macros (never scene macros
-  // like SCENE_POINT_LIGHT_COUNT), so keep a matching camera-only macro set for auxiliary & SSR warmup.
-  const blitCameraMacros = new ShaderMacroCollection();
-  ShaderMacroCollection.unionCollection(
-    (camera.shaderData as unknown as RuntimeShaderData)._macroCollection,
-    (camera.shaderData as unknown as RuntimeShaderData)._macroCollection,
-    blitCameraMacros
-  );
   // Active cameras can retain transient Forward SSR macros from the previous frame; strip them so warmup
   // never leaks stale SSR variants onto non-SSR passes or SSR-disabled collections.
   const activeCameraMacros: ShaderMacro[] = [];
   (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(cameraMacros, activeCameraMacros);
   for (const macro of activeCameraMacros) {
-    if (SSR_ALL_FORWARD_MACROS.has(macro.name)) {
-      cameraMacros.disable(macro);
-      blitCameraMacros.disable(macro);
-    }
+    if (SSR_ALL_FORWARD_MACROS.has(macro.name)) cameraMacros.disable(macro);
   }
 
   if (options.activatedLightRoots) {
@@ -1648,7 +1637,7 @@ function collectSeedWorldRendererVariantsInternal(
     if (!material || material.destroyed || material.shader.destroyed) continue;
     const macros = new ShaderMacroCollection();
     ShaderMacroCollection.unionCollection(
-      blitCameraMacros,
+      cameraMacros,
       (material.shaderData as unknown as RuntimeShaderData)._macroCollection,
       macros
     );
@@ -1763,11 +1752,7 @@ function collectSeedWorldRendererVariantsInternal(
       const subShader = ssrShader.subShaders[0];
       if (subShader) {
         const baseSsrMacros = new ShaderMacroCollection();
-        ShaderMacroCollection.unionCollection(
-          blitCameraMacros,
-          (engine as RuntimeEngine)._macroCollection,
-          baseSsrMacros
-        );
+        ShaderMacroCollection.unionCollection(cameraMacros, (engine as RuntimeEngine)._macroCollection, baseSsrMacros);
         if (ssrPackedDepthRG8) baseSsrMacros.enable(ShaderMacro.getByName("SSR_PACKED_DEPTH_RG8"));
         if (ssrPackedNormalOct8) baseSsrMacros.enable(ShaderMacro.getByName("SSR_PACKED_NORMAL_OCT8"));
         if (ssrPackedHDRReinhard) baseSsrMacros.enable(ShaderMacro.getByName("SSR_PACKED_HDR_REINHARD"));
@@ -1842,7 +1827,7 @@ function collectSeedWorldRendererVariantsInternal(
     const photoCopyShader = Shader.find("SeedWorld/PhotoCopy") ?? Shader.create(photoCopySource);
     if (photoCopyShader && !photoCopyShader.destroyed) {
       const photoMacros = new ShaderMacroCollection();
-      ShaderMacroCollection.unionCollection(blitCameraMacros, (engine as RuntimeEngine)._macroCollection, photoMacros);
+      ShaderMacroCollection.unionCollection(cameraMacros, (engine as RuntimeEngine)._macroCollection, photoMacros);
       appendShaderVariants(photoCopyShader, photoMacros, variants, false, true, undefined, supportsRendering);
     }
   }

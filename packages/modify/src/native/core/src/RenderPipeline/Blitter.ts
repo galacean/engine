@@ -114,11 +114,8 @@ export class Blitter {
 
     const compileMacros = Shader._compileMacros;
 
-    // Fullscreen blit / screen-space / post-process passes only need camera-level macros
-    // (e.g. CAMERA_ORTHOGRAPHIC), not scene lighting/shadow/fog macros such as SCENE_POINT_LIGHT_COUNT,
-    // which otherwise trigger redundant synchronous shader recompilations when scene lights change.
     ShaderMacroCollection.unionCollection(
-      camera.shaderData._macroCollection,
+      camera._globalShaderMacro,
       blitMaterial.shaderData._macroCollection,
       compileMacros
     );

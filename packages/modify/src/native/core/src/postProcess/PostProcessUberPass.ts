@@ -759,11 +759,7 @@ export class PostProcessUberPass extends PostProcessPass {
 
     const pass = flareMaterial.shader.subShaders[0].passes[0];
     const compileMacros = Shader._compileMacros;
-    ShaderMacroCollection.unionCollection(
-      camera.shaderData._macroCollection,
-      flareShaderData._macroCollection,
-      compileMacros
-    );
+    ShaderMacroCollection.unionCollection(camera._globalShaderMacro, flareShaderData._macroCollection, compileMacros);
     ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
 
     const program = pass._getShaderProgram(engine, compileMacros);
