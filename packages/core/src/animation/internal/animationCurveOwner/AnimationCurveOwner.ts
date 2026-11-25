@@ -39,11 +39,16 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   fixedPoseValue: V;
   baseEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null! };
   crossEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null! };
-  referenceTargetValue: V;
   cureType: IAnimationCurveCalculator<V>;
   updateMark: number = 0;
 
   private _assembler: IAnimationCurveOwnerAssembler<V>;
+  /** Cached only for bindings that can update the target value in place. */
+  private _targetReference?: V;
+
+  get referenceTargetValue(): V {
+    return this._targetReference ?? this._assembler.getTargetValue();
+  }
 
   constructor(
     target: Entity,
@@ -63,8 +68,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
     this._assembler.initialize(this);
 
-    if (cureType._isCopyMode) {
-      this.referenceTargetValue = this._assembler.getTargetValue();
+    if (cureType._isCopyMode && !this._assembler.requiresAssignment) {
+      this._targetReference = this._assembler.getTargetValue();
     }
   }
 
@@ -146,51 +151,26 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   saveDefaultValue(): void {
-    if (this.cureType._isCopyMode) {
-      this.cureType._setValue(this.referenceTargetValue, this.defaultValue);
-    } else {
-      this.defaultValue = this._assembler.getTargetValue();
-    }
+    this.defaultValue = this.cureType._setValue(this.referenceTargetValue, this.defaultValue);
   }
 
   saveFixedPoseValue(): void {
-    if (this.cureType._isCopyMode) {
-      this.cureType._setValue(this.referenceTargetValue, this.fixedPoseValue);
-    } else {
-      this.fixedPoseValue = this._assembler.getTargetValue();
-    }
+    this.fixedPoseValue = this.cureType._setValue(this.referenceTargetValue, this.fixedPoseValue);
   }
 
   applyValue(value: V, weight: number, additive: boolean): void {
-    const cureType = this.cureType;
+    const { cureType, _targetReference: reference } = this;
 
     if (additive) {
-      const assembler = this._assembler;
-
-      if (cureType._isCopyMode) {
-        cureType._additiveValue!(value, weight, this.referenceTargetValue);
-      } else {
-        const originValue = assembler.getTargetValue();
-        const additiveValue = cureType._additiveValue!(value, weight, originValue);
-        assembler.setTargetValue(additiveValue);
-      }
-    } else {
-      if (weight === 1.0) {
-        if (cureType._isCopyMode) {
-          cureType._setValue(value, this.referenceTargetValue);
-        } else {
-          this._assembler.setTargetValue(value);
-        }
-      } else {
-        if (cureType._isCopyMode) {
-          const targetValue = this.referenceTargetValue;
-          cureType._lerpValue!(targetValue, value, weight, targetValue);
-        } else {
-          const originValue = this._assembler.getTargetValue();
-          const lerpValue = cureType._lerpValue!(originValue, value, weight);
-          this._assembler.setTargetValue(lerpValue);
-        }
-      }
+      const base = reference ?? cureType._setValue(this._assembler.getTargetValue(), this.crossEvaluateData.value);
+      value = cureType._additiveValue!(value, weight, base);
+    } else if (weight !== 1) {
+      value = cureType._lerpValue!(this.referenceTargetValue, value, weight, reference ?? this.crossEvaluateData.value);
+    } else if (reference) {
+      cureType._setValue(value, reference);
+    }
+    if (!reference) {
+      this._assembler.setTargetValue(value);
     }
   }
 

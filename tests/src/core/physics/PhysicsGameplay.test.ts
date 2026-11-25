@@ -155,7 +155,7 @@ describe("Physics gameplay integration", () => {
       version: "2.0",
       refs: [{ url: basePath, type: AssetType.Prefab }],
       entities: [
-        { name: "wrapper", children: [1, 2] },
+        { name: "wrapper", children: [1, 2, 3] },
         { instance: { asset: 0 } },
         {
           instance: {
@@ -165,7 +165,12 @@ describe("Physics gameplay integration", () => {
                 {
                   path: [],
                   selector: { type: "CharacterController", index: 0 },
-                  props: { upDirection: { x: 1, y: 0, z: 0 } }
+                  props: { upDirection: { x: 1 } }
+                },
+                {
+                  path: [],
+                  selector: { type: "CharacterController", index: 0 },
+                  props: { upDirection: { z: 1 } }
                 },
                 {
                   path: [],
@@ -177,6 +182,16 @@ describe("Physics gameplay integration", () => {
                   selector: { type: "HingeJoint", index: 0 },
                   props: { axis: { x: 0, y: 2, z: 0 } }
                 }
+              ]
+            }
+          }
+        },
+        {
+          instance: {
+            asset: 0,
+            overrides: {
+              componentProps: [
+                { path: [], selector: { type: "CharacterController", index: 0 }, props: { upDirection: { y: 0 } } }
               ]
             }
           }
@@ -194,7 +209,13 @@ describe("Physics gameplay integration", () => {
     const siblingCC = wrapper.children[0].getComponent(CharacterController)!;
     const overriddenCC = wrapper.children[1].getComponent(CharacterController)!;
     const freshCC = freshBase.getComponent(CharacterController)!;
-    expect(overriddenCC.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
+    expect(overriddenCC.upDirection.x).toBeCloseTo(0.5);
+    expect(overriddenCC.upDirection.y).toBeCloseTo(0.5);
+    expect(overriddenCC.upDirection.z).toBeCloseTo(Math.SQRT1_2);
+    const zeroOverride = wrapper.children[2].getComponent(CharacterController)!;
+    expect(zeroOverride.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
+    expect(physics.overlapSphereAll(new Vector3(0, 0.8, 0), 0.01)).toContain(zeroOverride);
+    expect(physics.overlapSphereAll(new Vector3(0.8, 0, 0), 0.01)).not.toContain(zeroOverride);
     expect(siblingCC.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
     expect(freshCC.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
 

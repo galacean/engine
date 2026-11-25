@@ -20,8 +20,10 @@ export class ReflectionParser {
     const promises: Promise<any>[] = [];
     if (props) {
       for (const key in props) {
-        const promise = this._resolveValue(props[key], instance[key]).then((v) => {
-          instance[key] = v;
+        const patch = instance instanceof Component && instance._isSnapshotProperty?.(key) ? {} : undefined;
+        const promise = this._resolveValue(props[key], patch ?? instance[key]).then((value) => {
+          // Concurrent partial overrides must each start from the latest committed snapshot.
+          instance[key] = patch && value === patch ? Object.assign(instance[key].clone(), patch) : value;
         });
         promises.push(promise);
       }
@@ -170,11 +172,7 @@ export class ReflectionParser {
       originValue && typeof originValue === "object" && !Array.isArray(originValue)
         ? originValue
         : ({} as Record<string, unknown>);
-    const promises: Promise<any>[] = [];
-    for (const key in obj) {
-      promises.push(this._resolveValue(obj[key], target[key]).then((v) => (target[key] = v)));
-    }
-    return Promise.all(promises).then(() => target);
+    return this.parseProps(target, obj);
   }
 
   private _getRegisteredClass(value: unknown, sentinel: "$type" | "$class"): any {

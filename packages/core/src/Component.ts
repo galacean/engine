@@ -82,6 +82,9 @@ export class Component extends EngineObject {
     this._entity = entity;
   }
 
+  /** @internal Whether the property exposes a cloneable snapshot that must be written through its setter. */
+  _isSnapshotProperty?(property: string): boolean;
+
   /**
    * @internal
    */

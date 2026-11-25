@@ -1,5 +1,11 @@
 import { createPhysics } from "../../utils/physics";
 import {
+  AnimationClip,
+  AnimationVector3Curve,
+  Animator,
+  AnimatorController,
+  AnimatorControllerLayer,
+  AnimatorLayerBlendingMode,
   BoxCollider,
   CharacterController,
   Collider,
@@ -7,11 +13,13 @@ import {
   ControllerNonWalkableMode,
   Entity,
   HitResult,
+  Keyframe,
   Layer,
   PhysicsScene,
   PlaneCollider,
   Rigidbody,
-  Script
+  Script,
+  WrapMode
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
@@ -61,6 +69,19 @@ describe("CharacterController", () => {
 
   function move(displacement: Vector3): number {
     return controller.move(displacement, 0.0001, physics.fixedTimeStep);
+  }
+
+  function directionClip(...directions: Vector3[]): AnimationClip {
+    const clip = new AnimationClip("tilt");
+    const curve = new AnimationVector3Curve();
+    directions.forEach((direction, time) => {
+      const key = new Keyframe<Vector3>();
+      key.time = time;
+      key.value = direction;
+      curve.addKey(key);
+    });
+    clip.addCurveBinding("role", CharacterController, "upDirection", curve);
+    return clip;
   }
 
   function update(count = 1): void {
@@ -490,6 +511,47 @@ describe("CharacterController", () => {
     controller.destroy();
     expect(controller.destroyed).toBe(true);
     expect(move(new Vector3(1, 0, 0))).toBe(0);
+  });
+
+  it("applies a full up-direction animation key to the live capsule", () => {
+    role.transform.setPosition(0, 10, 0);
+    controller.height = 9;
+    move(new Vector3(0, 0, 0.02));
+    const original = controller.upDirection;
+    directionClip(new Vector3(2, 0, 0)).sampleAnimation(root, 0);
+    const flags = move(new Vector3(0, -20, 0));
+    expect(flags & ControllerCollisionFlag.Sides).toBeTruthy();
+    expect(role.transform.worldPosition.y).toBeCloseTo(0.52, 2);
+    expect(controller.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
+    expect(original).toMatchObject({ x: 0, y: 1, z: 0 });
+  });
+
+  it.each([
+    { mode: AnimatorLayerBlendingMode.Override, x: 2 / Math.sqrt(5), z: 1 / Math.sqrt(5) },
+    { mode: AnimatorLayerBlendingMode.Additive, x: Math.SQRT1_2, z: Math.SQRT1_2 }
+  ])("blends upDirection from the current base layer and holds the last key (mode=$mode)", ({ mode, x, z }) => {
+    const animator = root.addComponent(Animator);
+    const animatorController = new AnimatorController(engine);
+    const base = new AnimatorControllerLayer("base");
+    const tilt = new AnimatorControllerLayer("tilt");
+    animatorController.addLayer(base);
+    animatorController.addLayer(tilt);
+    base.stateMachine.addState("forward").clip = directionClip(new Vector3(0, 0, 1));
+    tilt.weight = 0.5;
+    tilt.blendingMode = mode;
+    const state = tilt.stateMachine.addState("lean");
+    state.clip = directionClip(new Vector3(), new Vector3(2, 0, 0));
+    state.wrapMode = WrapMode.Once;
+    animator.animatorController = animatorController;
+    animator.play("forward", 0);
+    animator.play("lean", 1);
+    engine.update();
+
+    for (let i = 0; i < 2; i++) {
+      animator.update(1);
+      expect(controller.upDirection.x).toBeCloseTo(x);
+      expect(controller.upDirection.z).toBeCloseTo(z);
+    }
   });
 
   it("returns a read-only up direction snapshot", () => {

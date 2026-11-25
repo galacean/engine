@@ -188,6 +188,11 @@ export class CharacterController extends Collider {
     return -1;
   }
 
+  /** @internal */
+  override _isSnapshotProperty(property: string): boolean {
+    return property === "upDirection";
+  }
+
   /**
    * @internal
    */
