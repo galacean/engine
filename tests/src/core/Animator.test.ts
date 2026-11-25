@@ -1684,7 +1684,7 @@ describe("Animator test", function () {
     expect(spine.transform.position.y).to.eq(1);
   });
 
-  it("samples whole vectors through a setter that freezes its value", () => {
+  describe("frozen vector properties", () => {
     class Direction extends Script {
       private _value: Readonly<Vector3Like> = Object.freeze({ x: 1, y: 0, z: 0 });
 
@@ -1696,25 +1696,63 @@ describe("Animator test", function () {
       }
     }
 
-    const entity = engine.sceneManager.activeScene.createRootEntity();
-    try {
-      const direction = entity.addComponent(Direction);
-      const initial = direction.value;
+    function directionClip(...values: Vector3[]): AnimationClip {
       const clip = new AnimationClip("direction");
       const curve = new AnimationVector3Curve();
-      curve.addKey({ time: 0, value: new Vector3(0, 1, 0) });
-      curve.addKey({ time: 1, value: new Vector3(0, 0, 1) });
+      values.forEach((value, time) => curve.addKey({ time, value }));
       clip.addCurveBinding("", Direction, "value", curve);
-
-      clip.sampleAnimation(entity, 0);
-      const sampled = direction.value;
-      clip.sampleAnimation(entity, 1);
-      expect(initial).toMatchObject({ x: 1, y: 0, z: 0 });
-      expect(sampled).toMatchObject({ x: 0, y: 1, z: 0 });
-      expect(direction.value).toMatchObject({ x: 0, y: 0, z: 1 });
-    } finally {
-      entity.destroy();
+      return clip;
     }
+
+    it("samples whole vectors through a setter that freezes its value", () => {
+      const entity = engine.sceneManager.activeScene.createRootEntity();
+      try {
+        const direction = entity.addComponent(Direction);
+        const initial = direction.value;
+        const clip = directionClip(new Vector3(0, 1, 0), new Vector3(0, 0, 1));
+
+        clip.sampleAnimation(entity, 0);
+        const sampled = direction.value;
+        clip.sampleAnimation(entity, 1);
+        expect(initial).toMatchObject({ x: 1, y: 0, z: 0 });
+        expect(sampled).toMatchObject({ x: 0, y: 1, z: 0 });
+        expect(direction.value).toMatchObject({ x: 0, y: 0, z: 1 });
+      } finally {
+        entity.destroy();
+      }
+    });
+
+    it.each([
+      { mode: AnimatorLayerBlendingMode.Override, z: 0.5 },
+      { mode: AnimatorLayerBlendingMode.Additive, z: 1 }
+    ])("preserves the final pose on a weighted layer ($mode)", ({ mode, z }) => {
+      const entity = engine.sceneManager.activeScene.createRootEntity();
+      try {
+        const direction = entity.addComponent(Direction);
+        const player = entity.addComponent(Animator);
+        const controller = new AnimatorController(engine);
+        const base = new AnimatorControllerLayer("base");
+        const overlay = new AnimatorControllerLayer("overlay");
+        controller.addLayer(base);
+        controller.addLayer(overlay);
+        base.stateMachine.addState("forward").clip = directionClip(new Vector3(0, 0, 1));
+        overlay.weight = 0.5;
+        overlay.blendingMode = mode;
+        const lean = overlay.stateMachine.addState("lean");
+        lean.clip = directionClip(new Vector3(), new Vector3(2, 0, 0));
+        lean.wrapMode = WrapMode.Once;
+        player.animatorController = controller;
+        player.play("forward", 0);
+        player.play("lean", 1);
+        engine.update();
+        for (let frame = 0; frame < 2; frame++) {
+          player.update(1);
+          expect(direction.value).toMatchObject({ x: 1, y: 0, z });
+        }
+      } finally {
+        entity.destroy();
+      }
+    });
   });
 
   it("sampleAnimation samples clip curves without firing AnimationEvents", () => {
