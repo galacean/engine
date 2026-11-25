@@ -94,7 +94,9 @@ export function applyFarmCommand(
   }
 
   const targetTime = context.targetSystemTimeMs ?? snapshot.simulation.lastSystemTimeMs;
-  const settled = settleFarmTime(snapshot, targetTime, definitions, context);
+  const settled = context.settleTime
+    ? context.settleTime(snapshot, targetTime)
+    : settleFarmTime(snapshot, targetTime, definitions, context);
   const working = settled.snapshot;
   if (command.type === "consume-basket") {
     if (command.expectedGroundRevision !== undefined && command.expectedGroundRevision !== context.groundView?.revision)

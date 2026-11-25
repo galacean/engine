@@ -13,7 +13,12 @@ import {
   type PlanningFarmWaterGroundView,
   type PlanningFarmWaterScheduler
 } from "./PlanningFarmWaterSupply.ts";
-import { PlanningFarmClock } from "./PlanningFarmClock.ts";
+import {
+  PLANNING_FARM_BACKGROUND_APPROXIMATE_THRESHOLD_MS,
+  PLANNING_FARM_OFFLINE_MAX_CATCH_UP_MS,
+  PlanningFarmClock,
+  resolvePlanningOfflineElapsedMs
+} from "./PlanningFarmClock.ts";
 import { getPlanningFarmSoilShader } from "./PlanningFarmSoilShader.ts";
 import { planningFarmEnvironment, type PlanningFarmEnvironmentSource } from "./PlanningFarmEnvironment.ts";
 import {
@@ -135,6 +140,7 @@ export class PlanningFarmingRuntime {
     return !this.stopping && !this.disposed && !this.system.destroyed && !this.system.isDisposed;
   }
   private record?: FarmingFarmDiagnostics;
+  private readonly wallNowMs: () => number;
   private statusElapsed = 0;
   constructor(
     private readonly options: {
@@ -150,8 +156,10 @@ export class PlanningFarmingRuntime {
       waterSupplyScheduler?: PlanningFarmWaterScheduler;
       readEnvironment?: () => PlanningFarmEnvironmentSource | undefined;
       readInitializationRequest?: () => string | undefined;
+      wallNowMs?: () => number;
     }
   ) {
+    this.wallNowMs = options.wallNowMs ?? (() => Date.now());
     this.system = options.system;
     this.visualOcclusion = options.visualQuery;
     const { catalog, rules, state } = this.system;
@@ -183,7 +191,8 @@ export class PlanningFarmingRuntime {
         this.statePath,
         () => this.stateResource,
         (snapshot, farmId) =>
-          validatePlanningFarmSave(snapshot, farmId, this.definitions, undefined, rules.data.simulationConfig)
+          validatePlanningFarmSave(snapshot, farmId, this.definitions, undefined, rules.data.simulationConfig),
+        this.wallNowMs
       );
       this.root = root = this.system.entity.createChild("Farming Runtime");
       this.releaseDependencies = releaseDependencies = this.system.configureRuntime((area) => {
@@ -195,7 +204,13 @@ export class PlanningFarmingRuntime {
           clock: this.clock,
           captureWaterSupply: () => this.waterSupply.capture(area.farmId),
           sampleEnvironment: () => planningFarmEnvironment(this.options.readEnvironment?.()),
-          autoAdvance: true
+          autoAdvance: true,
+          offlineCatchUp: {
+            mode: "approximate",
+            maximumCatchUpMs: PLANNING_FARM_OFFLINE_MAX_CATCH_UP_MS,
+            preserveSavedEnvironment: true,
+            backgroundApproximateThresholdMs: PLANNING_FARM_BACKGROUND_APPROXIMATE_THRESHOLD_MS
+          }
         };
       });
       this.api = new FarmingAPI(this.system);
@@ -663,7 +678,19 @@ export class PlanningFarmingRuntime {
     if (this.provider) this.provider.publish(view);
     else this.provider = new PlanningFarmingGroundProvider(view);
     if (!this.area) {
-      this.clock = new PlanningFarmClock(saved?.simulation.lastSystemTimeMs);
+      const anchor =
+        !fresh && !policy.replace && saved ? await this.repository.readWallClockAnchor(farm.farmId) : undefined;
+      guard();
+      const stepMs = resolveSimulationConfig(
+        this.definitions.soilProfile,
+        this.resources.rules.data.simulationConfig
+      ).stepMs;
+      const nowWallMs = this.wallNowMs();
+      const offlineElapsedMs = resolvePlanningOfflineElapsedMs(saved, anchor, nowWallMs, stepMs);
+      const initialTimeMs = saved
+        ? saved.simulation.lastSystemTimeMs + offlineElapsedMs
+        : Math.max(0, Math.floor(nowWallMs));
+      this.clock = new PlanningFarmClock(Number.isSafeInteger(initialTimeMs) ? initialTimeMs : undefined);
       this.saveRequest = requestId;
       this.initializationRepository = this.repository.forInitialization({ requestId, recover });
       const area = this.root.createChild("Farm Starter").addComponent(FarmingAreaComponent);

@@ -32,6 +32,56 @@ export function evaporateSoilMoisture(
   return Math.max(water.minimumMoisture, moisture);
 }
 
+export interface SoilEvaporationIntegral {
+  endMoisture: number;
+  averageMoisture: number;
+}
+
+/**
+ * Closed-form end moisture and exact time-averaged moisture over [0, elapsedMinutes]
+ * under pure evaporation (ignoring lateral diffusion, rain, and near-water recharge).
+ */
+export function integrateSoilEvaporation(
+  moistureUnits: number,
+  water: FarmingSimulationConfig["water"],
+  elapsedMinutes: number,
+  out: SoilEvaporationIntegral = { endMoisture: 0, averageMoisture: 0 }
+): SoilEvaporationIntegral {
+  const rate = soilEvaporationPerMinute(water.capacity, water);
+  if (rate === 0 || moistureUnits <= water.minimumMoisture || elapsedMinutes <= 0) {
+    const clamped = Math.max(water.minimumMoisture, Math.min(water.capacity, moistureUnits));
+    out.endMoisture = clamped;
+    out.averageMoisture = clamped;
+    return out;
+  }
+  let linearMinutes = 0;
+  let stage1End = moistureUnits;
+  let area = 0;
+  if (moistureUnits > water.evaporationSlowdownThreshold) {
+    linearMinutes = Math.min(elapsedMinutes, (moistureUnits - water.evaporationSlowdownThreshold) / rate);
+    stage1End = moistureUnits - rate * linearMinutes;
+    area += 0.5 * (moistureUnits + stage1End) * linearMinutes;
+  }
+  const expMinutes = Math.max(0, elapsedMinutes - linearMinutes);
+  const dryingRange = water.evaporationSlowdownThreshold - water.minimumMoisture;
+  let endMoisture = stage1End;
+  if (expMinutes > 0) {
+    if (dryingRange > 0) {
+      const decay = Math.exp((-rate * expMinutes) / dryingRange);
+      endMoisture = Math.max(
+        water.minimumMoisture,
+        water.minimumMoisture + (stage1End - water.minimumMoisture) * decay
+      );
+      area += water.minimumMoisture * expMinutes + ((stage1End - endMoisture) * dryingRange) / rate;
+    } else {
+      area += stage1End * expMinutes;
+    }
+  }
+  out.endMoisture = Math.max(water.minimumMoisture, Math.min(water.capacity, endMoisture));
+  out.averageMoisture = Math.max(water.minimumMoisture, Math.min(water.capacity, area / elapsedMinutes));
+  return out;
+}
+
 export interface SoilWaterRates {
   readonly rainWaterPerMinute: number;
   readonly nearWaterPerMinute: number;

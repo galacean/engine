@@ -45,6 +45,7 @@ export interface FarmingAreaDependencies {
   readonly sampleEnvironment?: FarmingServiceOptions["sampleEnvironment"];
   readonly captureWaterSupply?: FarmingServiceOptions["captureWaterSupply"];
   readonly autoAdvance?: boolean;
+  readonly offlineCatchUp?: FarmingServiceOptions["offlineCatchUp"];
   readonly presentation?: FarmingPresentationPort;
   readonly createCropInstanceId?: FarmingServiceOptions["createCropInstanceId"];
 }
