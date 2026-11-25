@@ -150,6 +150,29 @@ describe("Transform test", function () {
     parent.destroy();
   });
 
+  it("identifies the source of inherited and directly authored pose changes", () => {
+    const parent = scene.createRootEntity();
+    const middle = parent.createChild();
+    const child = middle.createChild();
+    const sources: unknown[] = [];
+    child._updateFlagManager.addListener((_flags, source) => sources.push(source));
+
+    expect(child.transform.worldPosition.x).toBe(0);
+    parent.transform.setPosition(4, 0, 0);
+    expect(sources.pop()).toBe(parent.transform);
+    expect(child.transform.worldPosition.x).toBe(4);
+
+    expect(child.transform.worldRotationQuaternion.w).toBe(1);
+    middle.transform.setRotation(0, 90, 0);
+    expect(sources.pop()).toBe(middle.transform);
+    expect(child.transform.worldRotationQuaternion.y).toBeCloseTo(Math.SQRT1_2);
+
+    expect(child.transform.worldPosition.y).toBe(0);
+    child.transform.setWorldPosition(4, 3, 0);
+    expect(sources.pop()).toBe(child.transform);
+    parent.destroy();
+  });
+
   it("Parent Dirty", () => {
     const root1 = scene.createRootEntity();
     const root2 = scene.createRootEntity();
