@@ -1034,6 +1034,9 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   protected override _onDestroy(): void {
+    const registeredActor = this._registeredScene ? this._nativeActor : null;
+    // A manual joint anchor also observes pose edits made since the last simulation step.
+    if (this._dirtyIndex !== -1 && this._joints?.length) this._syncPose();
     this._linearVelocity._onValueChanged = this._angularVelocity._onValueChanged = null;
     this._centerOfMass._onValueChanged = this._inertiaTensor._onValueChanged = null;
     super._onDestroy();
@@ -1044,7 +1047,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     if (joints) {
       this._joints = null;
       for (let i = joints.length - 1; i >= 0; i--) {
-        joints[i]._onBodyDestroyed(this);
+        joints[i]._onBodyDestroyed(this, registeredActor);
       }
     }
     const actor = this._nativeActor;

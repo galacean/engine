@@ -151,8 +151,8 @@ export class HingeJoint extends Joint {
   /**
    * @internal
    */
-  override _onClone(target: HingeJoint): void {
-    super._onClone(target);
+  override _onClone(target: HingeJoint, cloneMap: ReadonlyMap<object, object>): void {
+    super._onClone(target, cloneMap);
     target._jointMotor?._updateFlagManager.addListener(target._onMotorChanged);
     target._limits?._updateFlagManager.addListener(target._onLimitsChanged);
   }
