@@ -5,11 +5,10 @@ import {
   IPhysicsShape,
   IStaticActor
 } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Logger } from "../base";
 import { BasicResources } from "../BasicResources";
 import { ignoreClone } from "../clone/CloneDecorators";
-import type { ICloneHook } from "../clone/ICloneHook";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Engine } from "../Engine";
@@ -19,9 +18,8 @@ import type { Scene } from "../Scene";
 import { Transform, TransformModifyFlags } from "../Transform";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import type { PhysicsScene } from "./PhysicsScene";
+import { PhysicsUtils } from "./PhysicsUtils";
 import { Rigidbody } from "./Rigidbody";
-import { differsF32, rotationDiffersF32 } from "./float32";
-import { warnIfColliderSheared } from "./shearWarning";
 
 /**
  * A collision shape attached to an Entity.
@@ -34,25 +32,35 @@ import { warnIfColliderSheared } from "./shearWarning";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Collider extends Component implements ICloneHook<Collider> {
+export class Collider extends Component {
   private static _idGenerator = 0;
+  private static readonly _shearToleranceSquared = 1e-8;
   private static readonly _tempPosition = new Vector3();
-  private static readonly _tempBodyOffset = new Vector3();
   private static readonly _tempRotation = new Quaternion();
-  private static readonly _tempInverseBodyRotation = new Quaternion();
   private static readonly _tempScale = new Vector3();
 
-  /**
-   * @internal
-   * @returns The index of a single collision layer
-   * @throws When the value is not exactly one of `Layer.Layer0` to `Layer.Layer31`.
-   */
-  static _getLayerIndex(layer: Layer): number {
-    const index = 31 - Math.clz32(layer);
-    if (index < 0 || (1 << index) >>> 0 !== layer) {
-      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
+  private static _getAxisLength(entity: Entity, scaledAncestor: Entity, axis: Vector3): number {
+    for (let node = entity; node !== scaledAncestor; node = node.parent!) {
+      const transform = node.transform;
+      axis.multiply(transform.scale).transformByQuat(transform.rotationQuaternion);
     }
-    return index;
+    return axis.multiply(scaledAncestor.transform.scale).length();
+  }
+
+  private static _isSheared(worldMatrix: Matrix): boolean {
+    // A rotated, non-uniformly scaled ancestor can make the transformed axes non-orthogonal.
+    const e = worldMatrix.elements;
+    const xLengthSquared = e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
+    const yLengthSquared = e[4] * e[4] + e[5] * e[5] + e[6] * e[6];
+    const zLengthSquared = e[8] * e[8] + e[9] * e[9] + e[10] * e[10];
+    const xy = e[0] * e[4] + e[1] * e[5] + e[2] * e[6];
+    const xz = e[0] * e[8] + e[1] * e[9] + e[2] * e[10];
+    const yz = e[4] * e[8] + e[5] * e[9] + e[6] * e[10];
+    return (
+      xy * xy > Collider._shearToleranceSquared * xLengthSquared * yLengthSquared ||
+      xz * xz > Collider._shearToleranceSquared * xLengthSquared * zLengthSquared ||
+      yz * yz > Collider._shearToleranceSquared * yLengthSquared * zLengthSquared
+    );
   }
 
   /** @internal */
@@ -99,16 +107,12 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   private _center = new Vector3();
   private _contactOffset = 0.02;
-  @ignoreClone
   private _material: PhysicsMaterial | null = null;
 
   /**
    * The owning Rigidbody, even if disabled, or null if there is no owner.
    */
   get attachedRigidbody(): Rigidbody | null {
-    if (this._dirtyIndex === -1 && this._nativeActor) {
-      return this._attachedBody;
-    }
     return this._findRigidbody();
   }
 
@@ -186,7 +190,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   set collisionLayer(value: Layer) {
-    const index = Collider._getLayerIndex(value);
+    const index = PhysicsUtils.getLayerIndex(value);
     if (this._collisionLayerIndex !== index) {
       this._collisionLayerIndex = index;
       this._getNative()?.setCollisionLayer(index);
@@ -206,9 +210,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     Engine._physicalObjectsMap[this._id] = this;
 
     this._markDirty = this._markDirty.bind(this);
-    this._onTransformChanged = this._onTransformChanged.bind(this);
-    entity._updateFlagManager.addListener(this._onTransformChanged);
-    //@ts-ignore
+    entity._updateFlagManager.addListener(this._markDirty);
     this._center._onValueChanged = this._markDirty;
   }
 
@@ -256,6 +258,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @internal
    */
   override _onEnableInScene(): void {
+    // An earlier onEnable in the same batch can already have destroyed this collider.
+    if (this.destroyed) return;
     this._registeredScene = this.scene!;
     this._markDirty();
   }
@@ -272,15 +276,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * @inheritDoc
-   */
-  _onClone(target: Collider): void {
-    // _material is @ignoreClone: assign it through the setter so the target retains its own reference.
-    target.material = this._material;
-  }
-
-  /**
-   * @internal
    * Reconcile native ownership and pose with the hierarchy. Called by the physics scene before simulation and queries.
    */
   _sync(): void {
@@ -290,13 +285,19 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const transform = this.entity.transform;
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state
     const worldMatrix = transform.worldMatrix;
+    // onDisable can query a shape after reparenting, before its former actor releases it.
+    if (!this.entity._isActiveInScene && this._findRigidbody() !== this._attachedBody) return;
     if (poseOnly) {
-      this._syncShapePose(this._native!, this._attachedBody, transform.lossyWorldScale, false);
+      const body = this._attachedBody;
+      body ? this._syncShapePose(this._native!, body, false) : this._syncStaticActor(transform);
       return;
     }
 
-    if (Logger.isEnabled && !this._shearWarned) {
-      this._shearWarned = warnIfColliderSheared(worldMatrix, this);
+    if (Logger.isEnabled && !this._shearWarned && Collider._isSheared(worldMatrix)) {
+      this._shearWarned = true;
+      Logger.warn(
+        `${this.constructor.name}: the world transform of "${this.entity.name}" is sheared, which physics cannot represent; the shape ignores the shear.`
+      );
     }
 
     const lossyScale = transform.lossyWorldScale;
@@ -316,7 +317,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     // Replace geometry only on the actor that owns this Collider in the current hierarchy.
     this._nativeActor && this._attachedBody !== body && this._detach();
 
-    const scale = Collider._tempScale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+    const scale = this._getGeometryScale(lossyScale, worldMatrix);
     const previousShape = this._native;
     const shape = this._syncNativeShape(scale);
     if (!shape) {
@@ -327,14 +328,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
     const attachedActor = this._nativeActor;
     const actor = body ? (attachedActor ?? body._getNativeActor()) : this._syncStaticActor(transform);
     const replaced = shape !== previousShape;
-    this._syncShapePose(shape, body, lossyScale, replaced);
+    this._syncShapePose(shape, body, replaced);
     if (!attachedActor) {
       actor.addShape(shape);
-      if (body) {
-        body._attachCollider(this);
-      } else {
-        scene.physics._nativePhysicsScene.addActor(actor);
-      }
+      body ? body._attachCollider(this) : scene.physics._nativePhysicsScene.addActor(actor);
       this._nativeActor = actor;
       this._attachedBody = body;
     } else if (replaced) {
@@ -367,11 +364,16 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * Queue this Collider for the next sync when it is in a scene.
+   * Queue a full sync for collider edits, or just the pose for an attached shape on a rigid transform change.
    */
   @ignoreClone
-  _markDirty(): void {
-    this._poseOnlyDirty = false;
+  _markDirty(transformFlags?: TransformModifyFlags): void {
+    if (transformFlags === undefined || transformFlags & TransformModifyFlags.WorldScale) {
+      this._poseOnlyDirty = false;
+    } else {
+      if (this._dirtyIndex !== -1 || this._attachedBody?.entity === this.entity) return;
+      this._poseOnlyDirty = !!this._nativeActor;
+    }
     this._registeredScene?.physics._markColliderDirty(this);
   }
 
@@ -385,10 +387,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * @internal
-   * Detach before the Rigidbody releases its actor so the next sync can resolve the new owner.
+   * Resolve a new owner on the next sync after the Rigidbody releases its shape attachments.
    */
   _onBodyDestroyed(): void {
-    this._nativeActor!.removeShape(this._native!);
     this._nativeActor = null;
     this._attachedBody = null;
     this._markDirty();
@@ -426,6 +427,11 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return true;
   }
 
+  protected _setGeometryDirty(): void {
+    this._geometryDirty = true;
+    this._markDirty();
+  }
+
   /**
    * Apply the final scaled geometry, or create the shape when absent.
    * @returns The shape, or null when the geometry is invalid or unsupported.
@@ -448,7 +454,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       shape !== previous && this._initializeNativeShape(shape);
       this._nativeScale.copyFrom(scale);
       this._geometryDirty = false;
-      this._attachedBody?._markMassDirty();
+      if (!this._isTrigger) this._attachedBody?._markMassDirty();
     }
     return shape;
   }
@@ -502,11 +508,48 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial;
   }
 
+  protected _getGeometryScale(lossyScale: Vector3, worldMatrix: Matrix): Vector3 {
+    const entity = this.entity;
+    const scale = Collider._tempScale;
+    let mirrored = false;
+    let scaledAncestor: Entity | null = null;
+    let outerScale = 1;
+    for (let ancestor = entity.parent; ancestor; ancestor = ancestor.parent) {
+      const transform = ancestor.transform;
+      if (transform._getWorldUniformScaling()) {
+        outerScale *= Math.abs(transform.lossyWorldScale.x);
+        break;
+      }
+      const { x, y, z } = transform.scale;
+      mirrored ||= x < 0 !== y < 0 || y < 0 !== z < 0;
+      if (Math.abs(x) === Math.abs(y) && Math.abs(y) === Math.abs(z)) {
+        outerScale *= Math.abs(x);
+      } else {
+        scaledAncestor = ancestor;
+        outerScale = 1;
+      }
+    }
+
+    if (!mirrored || Collider._isSheared(worldMatrix)) {
+      return scale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+    }
+    // A mirror can cancel signed projections. Rotations outside the last non-uniform scale cannot change lengths.
+    if (scaledAncestor) {
+      const x = Collider._getAxisLength(entity, scaledAncestor, scale.set(1, 0, 0));
+      const y = Collider._getAxisLength(entity, scaledAncestor, scale.set(0, 1, 0));
+      const z = Collider._getAxisLength(entity, scaledAncestor, scale.set(0, 0, 1));
+      return scale.set(x * outerScale, y * outerScale, z * outerScale);
+    }
+    const local = entity.transform.scale;
+    return scale.set(Math.abs(local.x) * outerScale, Math.abs(local.y) * outerScale, Math.abs(local.z) * outerScale);
+  }
+
   protected override _onDestroy(): void {
-    //@ts-ignore
     this._center._onValueChanged = null;
     super._onDestroy();
-    this.entity._updateFlagManager.removeListener(this._onTransformChanged);
+    // An earlier onDisable can destroy this collider before its scene unregistration runs.
+    if (this._registeredScene) this._onDisableInScene();
+    this.entity._updateFlagManager.removeListener(this._markDirty);
     this._destroyNative();
     this._staticActor?.destroy();
     this._staticActor = null;
@@ -514,25 +557,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     this._material = null;
     this._rejectedBody = null;
     delete Engine._physicalObjectsMap[this._id];
-  }
-
-  @ignoreClone
-  private _onTransformChanged(type: TransformModifyFlags): void {
-    // Without a scale or hierarchy change, keep any pending sync level and skip world-pose updates on the body's own Entity.
-    if (!(type & TransformModifyFlags.WorldScale)) {
-      if (this._dirtyIndex !== -1 || this._attachedBody?.entity === this.entity) {
-        return;
-      }
-      if (this._attachedBody && !this._geometryDirty) {
-        const scene = this._registeredScene;
-        if (scene) {
-          this._poseOnlyDirty = true;
-          scene.physics._markColliderDirty(this);
-        }
-        return;
-      }
-    }
-    this._markDirty();
   }
 
   private _syncStaticActor(transform: Transform): IStaticActor {
@@ -547,7 +571,10 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
     const nativePosition = this._nativeWorldPosition;
     const nativeRotation = this._nativeWorldRotation;
-    if (differsF32(position, nativePosition) || rotationDiffersF32(rotation, nativeRotation)) {
+    if (
+      PhysicsUtils.differsF32(position, nativePosition) ||
+      PhysicsUtils.rotationDiffersF32(rotation, nativeRotation)
+    ) {
       actor.setWorldTransform(position, rotation);
       nativePosition.copyFrom(position);
       nativeRotation.copyFrom(rotation);
@@ -555,47 +582,32 @@ export class Collider extends Component implements ICloneHook<Collider> {
     return actor;
   }
 
-  private _syncShapePose(shape: IPhysicsShape, body: Rigidbody | null, scale: Vector3, force: boolean): void {
-    const position = Collider._tempPosition;
+  private _syncShapePose(shape: IPhysicsShape, body: Rigidbody | null, force: boolean): void {
+    const entity = this.entity;
+    const actorEntity = body?.entity ?? entity;
+    const position = Collider._tempPosition.copyFrom(this._center);
     const rotation = Collider._tempRotation.set(0, 0, 0, 1);
-    Vector3.multiply(this._center, scale, position);
-
-    if (body) {
-      const entity = this.entity;
-      const bodyEntity = body.entity;
-      entity !== bodyEntity && this._transformPoseToBodySpace(entity, bodyEntity, position, rotation);
+    // Carry the local center through the same transforms as a child placed at that point.
+    for (let current = entity; current !== actorEntity; current = current.parent!) {
+      const transform = current.transform;
+      Vector3.transformToVec3(position, transform.localMatrix, position);
+      Quaternion.multiply(transform.rotationQuaternion, rotation, rotation);
+    }
+    if (position.x !== 0 || position.y !== 0 || position.z !== 0) {
+      PhysicsUtils.scaleToActorFrame(actorEntity, position, position);
     }
 
     const nativePosition = this._nativePosition;
     const nativeRotation = this._nativeRotation;
-    if (force || differsF32(position, nativePosition) || rotationDiffersF32(rotation, nativeRotation)) {
+    if (
+      force ||
+      PhysicsUtils.differsF32(position, nativePosition) ||
+      PhysicsUtils.rotationDiffersF32(rotation, nativeRotation)
+    ) {
       nativePosition.copyFrom(position);
       (this._nativeRotation ||= new Quaternion()).copyFrom(rotation);
       shape.setLocalPose(position, rotation);
-      this._attachedBody?._markMassDirty();
+      if (!this._isTrigger) this._attachedBody?._markMassDirty();
     }
-  }
-
-  private _transformPoseToBodySpace(entity: Entity, body: Entity, position: Vector3, rotation: Quaternion): void {
-    // Accumulate the child origin and rotation in the body's local frame, where rigid body motion cancels out.
-    const offset = Collider._tempBodyOffset.set(0, 0, 0);
-    for (let current = entity; current !== body; current = current.parent!) {
-      const transform = current.transform;
-      Vector3.transformToVec3(offset, transform.localMatrix, offset);
-      Quaternion.multiply(transform.rotationQuaternion, rotation, rotation);
-    }
-    const bodyTransform = body.transform;
-    const parent = body.parent;
-    if (parent && !parent.transform._getWorldUniformScaling()) {
-      // Inherited shear still affects the child origin even though the native shape ignores shear.
-      const inverseRotation = Collider._tempInverseBodyRotation;
-      Quaternion.invert(bodyTransform.worldRotationQuaternion, inverseRotation);
-      Vector3.transformNormal(offset, bodyTransform.worldMatrix, offset);
-      Vector3.transformByQuat(offset, inverseRotation, offset);
-    } else {
-      Vector3.multiply(offset, bodyTransform.lossyWorldScale, offset);
-    }
-    Vector3.transformByQuat(position, rotation, position);
-    position.add(offset);
   }
 }

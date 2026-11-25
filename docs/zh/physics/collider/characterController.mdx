@@ -48,7 +48,7 @@ label: Physics
 | [**height**](/apis/core/#CharacterController-height) | 胶囊总高度，包含两端半球 | 2 |
 | [**center**](/apis/core/#Collider-center) | 几何形状在实体局部空间中的中心 | (0, 0, 0) |
 
-半径和高度跟随实体世界缩放的绝对值，`center` 则乘以带符号世界缩放。
+半径和高度跟随实体世界缩放的绝对值，`center` 作为实体局部点随实体的世界旋转和缩放偏移到世界空间，胶囊自身朝向仍仅由 `upDirection` 决定。
 
 ### 继承自 Collider 的属性
 | 属性 | 描述 | 默认值 |

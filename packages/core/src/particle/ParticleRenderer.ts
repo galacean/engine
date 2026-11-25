@@ -237,7 +237,7 @@ export class ParticleRenderer extends Renderer {
 
   protected override _onDestroy(): void {
     const mesh = this._mesh;
-    if (mesh && !mesh.destroyed) {
+    if (mesh) {
       this._addResourceReferCount(mesh, -1);
     }
     super._onDestroy();

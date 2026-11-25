@@ -25,17 +25,19 @@ const engine = await WebGLEngine.create({
 });
 ```
 
-The default loader uses the PhysX JavaScript and WebAssembly files shipped with the package. When serving the files directly, load the entry from `dist/` and keep `libs/` beside it. For a separately hosted build, use the PhysX files from the same Engine release and pass the script URL as `wasmModeUrl` or `wasmSIMDModeUrl` in the second constructor argument.
+The UMD, ESM, and CommonJS entries load the packaged runtime from `./libs/` beside the entry file. When self-hosting, copy `dist/libs/` alongside that file.
+
+In 2.0, direct npm imports and URLs on npm mirrors such as jsDelivr use `@galacean/engine-physics-physx/dist/libs/*`. The Galacean CDN serves `dist/` as the version root, so its runtime URLs use `<version>/libs/*`.
 
 In Vite development, add `@galacean/engine-physics-physx` to `optimizeDeps.exclude` so the assets resolve relative to the package.
 
-In a classic Web Worker loading the UMD bundle with `importScripts()`, provide explicit runtime script URLs.
-In a dedicated module Worker, import the package and initialize `PhysXPhysics` directly. The package loads its
-`.mjs` factory and the matching WASM. The same initialization works from Node.js using the installed package.
+Dedicated module Workers and Node.js use the packaged `.mjs` loader by default. Web pages and classic Workers use the `.js` loader. A classic Worker loading UMD with `importScripts()` requires an explicit loader URL.
+
+To host the runtime separately, set `wasmModeUrl` for standard WASM and `wasmSIMDModeUrl` for SIMD in the second constructor argument. Keep the `.wasm` from the same release beside its loader.
 
 ## Backend Notes
 
-PhysX provides complete physics functionality and high-performance simulation. It requires WebAssembly; `Auto` runtime mode only selects between SIMD and non-SIMD WebAssembly builds. Choosing the PhysX backend adds about 2.5 MB of wasm/js runtime files, which can affect package size and initialization speed.
+PhysX requires WebAssembly. `Auto` selects SIMD when supported and otherwise uses the standard build. Startup loads one JavaScript loader and its matching WASM binary, about 2.5 MiB for the standard build or 3.0 MiB for SIMD before compression.
 
 | Feature                        | physics-physx |
 | ------------------------------ | ------------- |

@@ -48,7 +48,7 @@ The Character Controller carries its own capsule geometry instead of using other
 | [**height**](/apis/core/#CharacterController-height) | Total capsule height including both caps | 2 |
 | [**center**](/apis/core/#Collider-center) | Center of the geometry in the Entity's local space | (0, 0, 0) |
 
-Radius and height follow the absolute Entity's world scale, while `center` uses signed world scale.
+Radius and height follow the absolute Entity's world scale. `center` is a local point transformed by the Entity's world rotation and scale, while the capsule orientation itself is controlled only by `upDirection`.
 
 ### Properties Inherited from Collider
 | Property | Description | Default |

@@ -3,7 +3,7 @@ import { Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
-import { isValidPositiveFloat32 } from "./float32";
+import { PhysicsUtils } from "./PhysicsUtils";
 
 /**
  * A capsule-shaped collider.
@@ -28,14 +28,10 @@ export class CapsuleCollider extends Collider {
   }
 
   set radius(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CapsuleCollider radius must be finite.");
-    }
-    value = Math.max(0, value);
+    value = PhysicsUtils.clampNonNegative(value, "CapsuleCollider radius");
     if (this._radius !== value) {
       this._radius = value;
-      this._geometryDirty = true;
-      this._markDirty();
+      this._setGeometryDirty();
     }
   }
 
@@ -50,14 +46,10 @@ export class CapsuleCollider extends Collider {
   }
 
   set height(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CapsuleCollider height must be finite.");
-    }
-    value = Math.max(0, value);
+    value = PhysicsUtils.clampNonNegative(value, "CapsuleCollider height");
     if (this._height !== value) {
       this._height = value;
-      this._geometryDirty = true;
-      this._markDirty();
+      this._setGeometryDirty();
     }
   }
 
@@ -80,8 +72,7 @@ export class CapsuleCollider extends Collider {
     }
     if (this._direction !== value) {
       this._direction = value;
-      this._geometryDirty = true;
-      this._markDirty();
+      this._setGeometryDirty();
     }
   }
 
@@ -109,10 +100,10 @@ export class CapsuleCollider extends Collider {
     }
     const radius = this._radius * radialScale;
     const halfHeight = this._height * heightScale * 0.5 - radius;
-    if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(halfHeight))) {
+    if (!PhysicsUtils.isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(halfHeight))) {
       return null;
     }
-    const isSphere = !isValidPositiveFloat32(halfHeight);
+    const isSphere = !PhysicsUtils.isValidPositiveFloat32(halfHeight);
     if (isSphere) {
       if (shape && this._nativeIsSphere) {
         (<ISphereShape>shape).setRadius(radius);

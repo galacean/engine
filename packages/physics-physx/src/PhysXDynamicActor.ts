@@ -9,12 +9,13 @@ import { PhysXPhysics } from "./PhysXPhysics";
 export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
   private static _tempRotation = new Quaternion();
 
+  private readonly _physXPhysics: PhysXPhysics;
   private _isKinematic = false;
 
   constructor(physXPhysics: PhysXPhysics, position: Vector3, rotation: Quaternion) {
-    super(physXPhysics);
-    const transform = this._transform(position, rotation);
-    this._pxActor = physXPhysics._pxPhysics.createRigidDynamic(transform);
+    super();
+    this._physXPhysics = physXPhysics;
+    this._pxActor = physXPhysics._pxPhysics.createRigidDynamic(this._transform(position, rotation));
   }
 
   /**
@@ -83,7 +84,25 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
     inertiaTensorRotation: Quaternion | null
   ): void {
     const actor = this._pxActor;
-    actor.setMassAndUpdateInertia(mass);
+    // Unit density computes the solid shapes' centroid and inertia in their mass frame.
+    // Uniformly scaling the mass scales the diagonal without changing the principal axes.
+    const inertiaMass = mass || 1;
+    const unitMass = actor.setDensity(1, centerOfMass === null, inertiaTensor === null);
+    if (unitMass === 0) {
+      // The explicit-mass solver also sets the defaults for an empty body.
+      const computed = actor.setMassAndUpdateInertia(inertiaMass);
+      if (!computed || mass === 0) actor.setMass(mass);
+    } else {
+      if (unitMass !== mass) actor.setMass(mass);
+      if (!inertiaTensor && unitMass !== inertiaMass) {
+        const diagonal = actor.getMassSpaceInertiaTensor();
+        const scale = inertiaMass / unitMass;
+        diagonal.x *= scale;
+        diagonal.y *= scale;
+        diagonal.z *= scale;
+        actor.setMassSpaceInertiaTensor(diagonal);
+      }
+    }
     centerOfMass && actor.setCMassLocalPose(centerOfMass);
     inertiaTensor && actor.setMassSpaceInertiaTensor(inertiaTensor);
     inertiaTensorRotation && actor.setInertiaTensorRotation(inertiaTensorRotation);
@@ -186,11 +205,7 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
    * {@inheritDoc IDynamicActor.addForceAtPosition }
    */
   addForceAtPosition(force: Vector3, position: Vector3, impulse: boolean): void {
-    if (impulse) {
-      this._pxActor.addImpulseAtPos(force, position);
-    } else {
-      this._pxActor.addForceAtPos(force, position);
-    }
+    impulse ? this._pxActor.addImpulseAtPos(force, position) : this._pxActor.addForceAtPos(force, position);
   }
 
   /**

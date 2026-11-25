@@ -26,12 +26,6 @@ export class Script extends Component {
   _onPhysicsUpdateIndex: number = -1;
   /** @internal */
   @ignoreClone
-  _onPreRenderIndex: number = -1;
-  /** @internal */
-  @ignoreClone
-  _onPostRenderIndex: number = -1;
-  /** @internal */
-  @ignoreClone
   _entityScriptsIndex: number = -1;
 
   @ignoreClone
@@ -227,7 +221,8 @@ export class Script extends Component {
       componentsManager.addOnPhysicsUpdateScript(this);
     }
 
-    for (const pointerMethod of Object.values(PointerMethods)) {
+    for (let i = 0; i < pointerMethods.length; i++) {
+      const pointerMethod = pointerMethods[i];
       if (this[pointerMethod] === prototype[pointerMethod]) {
         this[pointerMethod] = null!;
       }
@@ -280,14 +275,14 @@ export class Script extends Component {
   }
 }
 
-export enum PointerMethods {
-  onPointerDown = "onPointerDown",
-  onPointerUp = "onPointerUp",
-  onPointerClick = "onPointerClick",
-  onPointerEnter = "onPointerEnter",
-  onPointerExit = "onPointerExit",
-  onPointerBeginDrag = "onPointerBeginDrag",
-  onPointerDrag = "onPointerDrag",
-  onPointerEndDrag = "onPointerEndDrag",
-  onPointerDrop = "onPointerDrop"
-}
+const pointerMethods = [
+  "onPointerDown",
+  "onPointerUp",
+  "onPointerClick",
+  "onPointerEnter",
+  "onPointerExit",
+  "onPointerBeginDrag",
+  "onPointerDrag",
+  "onPointerEndDrag",
+  "onPointerDrop"
+] as const;

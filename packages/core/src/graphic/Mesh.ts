@@ -61,6 +61,7 @@ export abstract class Mesh extends ReferResource {
     super(engine);
     this.name = name;
     this._primitive = new Primitive(engine);
+    this._primitive._associationSuperResource(this);
     this._onBoundsChanged = this._onBoundsChanged.bind(this);
 
     const bounds = this._bounds;
@@ -169,6 +170,8 @@ export abstract class Mesh extends ReferResource {
    * @internal
    */
   override _addReferCount(value: number): void {
+    // Forced destruction drains the remaining references once, before stale owners release or copy theirs.
+    if (this._destroyed && this.refCount === 0) return;
     super._addReferCount(value);
     this._primitive._addReferCount(value);
   }

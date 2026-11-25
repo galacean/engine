@@ -61,8 +61,7 @@ config.firstParty.forEach((pkg) => {
   if (fs.existsSync(browserFile)) {
     const content = fs.readFileSync(browserFile);
     fs.appendFileSync(outputOfficialFile, content);
-    const { umd } = require(path.join(rootDir, pkg.path, "package.json"));
-    const assetDirectory = umd?.assetDirectory;
+    const { assetDirectory } = require(path.join(rootDir, pkg.path, "package.json"));
     if (assetDirectory) {
       fs.cpSync(
         path.join(path.dirname(browserFile), assetDirectory),

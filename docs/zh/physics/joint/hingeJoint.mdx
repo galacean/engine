@@ -28,7 +28,7 @@ label: Physics
 ## 属性说明
 
 ### 连接刚体
-- [**connectedBody**](/apis/core/#HingeJoint-connectedBody)  
+- [**connectedBody**](/apis/core/#HingeJoint-connectedBody)\
   指定要连接的目标刚体。当设置为 null 时，关节会连接到世界空间中的一个固定点。
 
 ### 锚点设置
@@ -62,6 +62,8 @@ label: Physics
 | **stiffness**   | 弹簧刚度（仅在 useSpring 为 true 时生效）                           |
 | **damping**     | 阻尼系数（仅在 useSpring 为 true 时生效）                           |
 
+PhysX 求解时把两个角度端点分别限制在 −360° 到 360° 的开区间内。属性保留设置的角度。
+
 ### 马达驱动
 - [**useMotor**](/apis/core/#HingeJoint-useMotor)  
   是否启用马达功能。启用后可以主动驱动铰链转动。
@@ -71,7 +73,7 @@ label: Physics
 
 | 属性            | 描述                                                                 |
 | --------------- | -------------------------------------------------------------------- |
-| **targetVelocity** | 目标角速度（弧度/秒）                                               |
+| **targetVelocity** | 目标角速度（弧度/秒）。设为 `Infinity` 或 `-Infinity` 可在扭矩限制内持续向对应方向驱动。 |
 | **forceLimit**  | 最大扭矩限制                                                        |
 | **freeSpin**    | 是否允许自由旋转                                                    |
 | **gearRatio**   | 齿轮比，用于调整实际输出的角速度                                    |
@@ -103,7 +105,7 @@ const hingeJoint = entity.addComponent(HingeJoint);
 hingeJoint.connectedBody = targetEntity.getComponent(Rigidbody);
 
 // 绕关节的局部 Y 轴旋转。
-hingeJoint.axis.set(0, 1, 0);
+hingeJoint.axis = { x: 0, y: 1, z: 0 };
 ```
 
 ### 运动限制

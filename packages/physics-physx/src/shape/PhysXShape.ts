@@ -7,7 +7,8 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
  * Abstract base class for PhysX shapes.
  */
 export abstract class PhysXShape implements IPhysicsShape {
-  protected static readonly _yAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
+  /** @internal */
+  static readonly _yAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
 
   private static _tempVector4 = new Vector4();
   private static readonly _pose = {
@@ -20,12 +21,7 @@ export abstract class PhysXShape implements IPhysicsShape {
   /** @internal */
   _id: number;
 
-  protected _physXPhysics: PhysXPhysics;
   protected _pxGeometry: any;
-
-  constructor(physXPhysics: PhysXPhysics) {
-    this._physXPhysics = physXPhysics;
-  }
 
   /**
    * {@inheritDoc IPhysicsShape.setLocalPose }
@@ -87,17 +83,13 @@ export abstract class PhysXShape implements IPhysicsShape {
     const pose = PhysXShape._pose;
     const nativeRotation = pose.rotation;
     pose.translation.copyFrom(position);
-    if (axis) {
-      Quaternion.multiply(rotation, axis, nativeRotation);
-    } else {
-      nativeRotation.copyFrom(rotation);
-    }
+    axis ? Quaternion.multiply(rotation, axis, nativeRotation) : nativeRotation.copyFrom(rotation);
     nativeRotation.normalize();
     this._pxShape.setLocalPose(pose);
   }
 
-  protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
-    const { _physX: physX, _pxPhysics: physics } = this._physXPhysics;
+  protected _initialize(physXPhysics: PhysXPhysics, material: PhysXPhysicsMaterial, id: number): void {
+    const { _physX: physX, _pxPhysics: physics } = physXPhysics;
     const shapeFlags = new physX.PxShapeFlags(ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE);
     const shape = physics.createShape(this._pxGeometry, material._pxMaterial, true, shapeFlags);
     shapeFlags.delete();

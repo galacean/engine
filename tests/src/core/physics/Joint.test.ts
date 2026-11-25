@@ -1,5 +1,7 @@
 import { createPhysics } from "../../utils/physics";
 import {
+  AnimationClip,
+  AnimationVector3Curve,
   FixedJoint,
   HingeJoint,
   SpringJoint,
@@ -13,6 +15,7 @@ import {
   Script
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
+import { HorizontalAlignmentMode, UITransform } from "@galacean/engine-ui";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import {
   ParserContext,
@@ -479,6 +482,32 @@ describe("Joint", function () {
     expect(cloneJoint.connectedAnchor.x).toBe(1);
   });
 
+  it("releases a cloned joint's constructor connection when it is cleared", () => {
+    const target = rootEntity.createChild().addComponent(Rigidbody);
+    target.isKinematic = true;
+    class Pin extends FixedJoint {
+      constructor(entity: Entity) {
+        super(entity);
+        this.connectedBody = target;
+        this.connectedAnchor.set(1, 0, 0);
+      }
+    }
+    const source = rootEntity.createChild();
+    source.addComponent(Pin);
+    const clone = source.clone();
+    rootEntity.addChild(clone);
+    const joint = clone.getComponent(Pin)!;
+    expect(joint.connectedBody).toBe(target);
+    joint.connectedBody = null;
+    target.entity.transform.setScale(2, 1, 1);
+    joint.automaticConnectedAnchor = true;
+    const pinnedX = joint.connectedAnchor.x;
+    clone.transform.setPosition(pinnedX + 3, 0, 0);
+    target.enabled = false;
+    expect(joint.connectedAnchor.x).toBe(pinnedX);
+    expect(source.getComponent(Pin)!.connectedBody).toBe(target);
+  });
+
   it("applies joint settings configured while inactive when the Entity enters simulation", function () {
     engine.sceneManager.activeScene.physics.gravity.set(0, 0, 0);
     const box1 = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
@@ -882,6 +911,92 @@ describe("Joint", function () {
     expect(deferredBox.getComponent(Rigidbody)).toBeNull();
   });
 
+  it.each([false, true])("destroys a queued joint during activation (remove body=%s)", (removeBody) => {
+    const host = new Entity(engine);
+    host.addComponent(
+      class extends Script {
+        override onEnable(): void {
+          joint.destroy();
+          if (removeBody) body.destroy();
+        }
+      }
+    );
+    const body = host.addComponent(Rigidbody);
+    const joint = host.addComponent(FixedJoint);
+    rootEntity.addChild(host);
+    expect(host.getComponent(FixedJoint)).toBeNull();
+    if (removeBody) {
+      expect(host.getComponent(Rigidbody)).toBeNull();
+    } else {
+      body.linearVelocity.set(2, 0, 0);
+      engine.sceneManager.activeScene.physics._update(0.5);
+      expect(host.transform.worldPosition.x).toBeCloseTo(1, 4);
+    }
+  });
+
+  it("releases a joint destroyed while its deactivating host leaves the hierarchy", () => {
+    const parent = rootEntity.createChild();
+    const host = parent.createChild();
+    const body = host.addComponent(Rigidbody);
+    host.addComponent(
+      class extends Script {
+        override onDisable(): void {
+          if (!joint.destroyed) {
+            joint.destroy();
+            host.parent = null;
+          }
+        }
+      }
+    );
+    const joint = host.addComponent(FixedJoint);
+    parent.isActive = false;
+    rootEntity.addChild(host);
+    body.linearVelocity.set(2, 0, 0);
+    engine.sceneManager.activeScene.physics._update(0.5);
+    expect(host.getComponent(FixedJoint)).toBeNull();
+    expect(host.transform.worldPosition.x).toBeCloseTo(1, 4);
+  });
+
+  it.each([
+    [0, 35],
+    [30, 60]
+  ])(
+    "keeps a resampled local anchor fixed in the world after rotating parent %i and body %i degrees",
+    (parentAngle, angle) => {
+      const parent = rootEntity.createChild();
+      parent.transform.setRotation(0, 0, parentAngle);
+      const host = parent.createChild();
+      const joint = host.addComponent(SpringJoint);
+      joint.anchor.set(1, 0, 0);
+      const worldAnchor = joint.connectedAnchor.clone();
+      host.transform.setRotation(0, 0, angle);
+      joint.anchor.set(1, 0, 0);
+      expect(Vector3.distance(joint.connectedAnchor, worldAnchor)).toBe(0);
+    }
+  );
+
+  it("keeps a spring tied to its world anchor while animation samples a constant local anchor", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+    const host = rootEntity.createChild();
+    const spring = host.addComponent(SpringJoint);
+    spring.maxDistance = 1;
+    spring.stiffness = 20000;
+    spring.damping = 30;
+    spring.tolerance = 0;
+    const curve = new AnimationVector3Curve();
+    curve.addKey({ time: 0, value: new Vector3() });
+    const clip = new AnimationClip("hold anchor");
+    clip.addCurveBinding("", SpringJoint, "anchor", curve);
+    host.getComponent(Rigidbody)!.linearVelocity.set(8, 0, 0);
+    for (let i = 0; i < 120; i++) {
+      clip.sampleAnimation(host, i * physics.fixedTimeStep);
+      physics._update(physics.fixedTimeStep);
+    }
+    expect(spring.connectedAnchor.x).toBe(0);
+    expect(Math.abs(host.transform.worldPosition.x)).toBeLessThanOrEqual(1);
+  });
+
   it("disables automaticConnectedAnchor on connectedAnchor assignment and keeps the calculated anchor when disabled", function () {
     const box = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const joint = box.addComponent(FixedJoint);
@@ -909,6 +1024,19 @@ describe("Joint", function () {
     joint.connectedAnchor = joint.connectedAnchor;
     expect(joint.automaticConnectedAnchor).toBe(true);
     expect(body.isSleeping()).toBe(true);
+
+    const curve = new AnimationVector3Curve();
+    curve.addKey({ time: 0, value: joint.connectedAnchor.clone() });
+    const clip = new AnimationClip("hold connected anchor");
+    clip.addCurveBinding("", FixedJoint, "connectedAnchor", curve);
+    clip.sampleAnimation(box, 0);
+    expect(joint.automaticConnectedAnchor).toBe(false);
+    expect(body.isSleeping()).toBe(true);
+
+    joint.automaticConnectedAnchor = true;
+    box.transform.setPosition(3, 5, 0);
+    joint.automaticConnectedAnchor = true;
+    expect(joint.connectedAnchor.x).toBe(3);
   });
 
   it.each([true, false])(
@@ -1093,6 +1221,50 @@ describe("Joint", function () {
     expect(explicitJoint.automaticConnectedAnchor).toBe(false);
   });
 
+  it("captures the simulated anchor of a layout-aligned body and preserves it on destruction", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+    const parent = rootEntity.createChild();
+    parent.addComponent(UITransform);
+    const target = parent.createChild();
+    (target.transform as UITransform).horizontalAlignment = HorizontalAlignmentMode.Center;
+    target.addComponent(BoxCollider);
+    const targetBody = target.addComponent(Rigidbody);
+    const follower = addBox(new Vector3(1, 1, 1), new Vector3(2, 0, 0));
+    const joint = follower.addComponent(FixedJoint);
+    joint.connectedBody = targetBody;
+    joint.connectedAnchor.set(2, 0, 0);
+    targetBody.linearVelocity.set(8, 0, 0);
+    follower.getComponent(Rigidbody)!.linearVelocity.set(8, 0, 0);
+    physics._update(1);
+    expect(target.transform.worldPosition.x).toBe(0);
+    const before = follower.transform.worldPosition.x;
+    expect(before).toBeGreaterThan(2);
+
+    const worldJoint = target.addComponent(FixedJoint);
+    expect(worldJoint.connectedAnchor.x).toBeCloseTo(before - 2, 3);
+    worldJoint.destroy();
+    joint.connectedAnchor.x = -3;
+    joint.automaticConnectedAnchor = true;
+    expect(joint.connectedAnchor.x).toBeCloseTo(2, 3);
+    joint.automaticConnectedAnchor = false;
+    targetBody.destroy();
+    expect(joint.connectedAnchor.x).toBeCloseTo(before, 3);
+    physics._update(physics.fixedTimeStep);
+    expect(follower.transform.worldPosition.x).toBeCloseTo(before, 3);
+  });
+
+  it.each([true, false])("preserves a target's last authored pose on destruction (enabled=%s)", (enabled) => {
+    const target = rootEntity.createChild().addComponent(Rigidbody);
+    const joint = rootEntity.createChild().addComponent(FixedJoint);
+    joint.connectedBody = target;
+    joint.connectedAnchor.set(2, 0, 0);
+    target.enabled = enabled;
+    target.entity.transform.setPosition(20, 0, 0);
+    target.destroy();
+    expect(joint.connectedAnchor.x).toBe(22);
+  });
+
   it("allows joints under non-uniform parent scale to sleep while waking sleeping joints on scale changes", function () {
     const physics = engine.sceneManager.activeScene.physics;
     physics.gravity.set(0, 0, 0);
@@ -1256,5 +1428,166 @@ describe("Joint", function () {
     expect(body.isSleeping()).toBe(false);
     physics._update(0.3);
     expect(box.transform.position.y).toBeLessThan(4.8);
+  });
+
+  it("preserves local and automatic connected anchors under mirrored ancestors with rotation", function () {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+
+    // 1. Self entity under mirrored parent + Y=45° rotation maps local anchor accurately to world space.
+    const parent = rootEntity.createChild("mirrored-joint-parent");
+    parent.transform.setScale(-1, 1, 1);
+    const child = parent.createChild("mirrored-joint-child");
+    child.transform.setRotation(0, 45, 0);
+    child.addComponent(BoxCollider);
+    child.addComponent(Rigidbody);
+    const fixed = child.addComponent(FixedJoint);
+    fixed.anchor.set(2, 0, 0);
+    expect(fixed.connectedAnchor.x).toBeCloseTo(-Math.SQRT2, 4);
+    expect(fixed.connectedAnchor.y).toBeCloseTo(0, 4);
+    expect(fixed.connectedAnchor.z).toBeCloseTo(-Math.SQRT2, 4);
+    physics._update(0.2);
+    expect(child.transform.worldPosition.x).toBeCloseTo(0, 3);
+    expect(child.transform.worldPosition.z).toBeCloseTo(0, 3);
+
+    // 2. Connected body under mirrored parent + 44.9999°/45° preserves O(1) connectedAnchor and destruction world anchor.
+    for (const angle of [44.9999, 45]) {
+      const target = parent.createChild(`mirrored-target-${angle}`);
+      target.transform.setRotation(0, angle, 0);
+      const targetBody = target.addComponent(Rigidbody);
+      targetBody.isKinematic = true;
+
+      const owner = addBox(new Vector3(1, 1, 1), new Vector3(5, 3, 2));
+      const joint = owner.addComponent(FixedJoint);
+      joint.connectedBody = targetBody;
+      expect(joint.connectedAnchor.x).toBeCloseTo(-7 * Math.SQRT1_2, 3);
+      expect(joint.connectedAnchor.y).toBeCloseTo(3, 4);
+      expect(joint.connectedAnchor.z).toBeCloseTo(-3 * Math.SQRT1_2, 3);
+
+      joint.automaticConnectedAnchor = false;
+      if (angle === 44.9999) {
+        target.transform.setRotation(0, 0, 0);
+        targetBody.destroy();
+        expect(joint.connectedAnchor.x).toBeCloseTo(7 * Math.SQRT1_2, 3);
+        expect(joint.connectedAnchor.y).toBeCloseTo(3, 3);
+        expect(joint.connectedAnchor.z).toBeCloseTo(-3 * Math.SQRT1_2, 3);
+      } else {
+        targetBody.destroy();
+        expect(joint.connectedAnchor.x).toBeCloseTo(5, 3);
+        expect(joint.connectedAnchor.y).toBeCloseTo(3, 3);
+        expect(joint.connectedAnchor.z).toBeCloseTo(2, 3);
+      }
+      owner.destroy();
+      target.destroy();
+    }
+
+    // 3. Preserves non-degenerate axes when a mirrored rotated connectedBody has a zero-scaled axis.
+    const zeroTarget = parent.createChild("mirrored-zero-target");
+    zeroTarget.transform.setWorldPosition(10, 4, 2);
+    zeroTarget.transform.setScale(0, 2, 1);
+    zeroTarget.transform.setRotation(0, 45, 0);
+    const zeroTargetBody = zeroTarget.addComponent(Rigidbody);
+    zeroTargetBody.isKinematic = true;
+    const owner = addBox(new Vector3(1, 1, 1), new Vector3(15, 10, 5));
+    const zeroJoint = owner.addComponent(FixedJoint);
+    zeroJoint.connectedBody = zeroTargetBody;
+    expect(zeroJoint.connectedAnchor.x).toBe(0);
+    expect(zeroJoint.connectedAnchor.y).toBeCloseTo(3, 4);
+    expect(zeroJoint.connectedAnchor.z).toBeCloseTo(-Math.SQRT2, 4);
+  });
+
+  it("follows successive scale edits on a connected body without a collider", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+    const parent = rootEntity.createChild();
+    parent.transform.setScale(2, 1, 1);
+    const target = parent.createChild().addComponent(Rigidbody);
+    target.isKinematic = true;
+    const owner = rootEntity.createChild();
+    owner.transform.setPosition(2, 0, 0);
+    const joint = owner.addComponent(FixedJoint);
+    joint.connectedBody = target;
+    joint.connectedAnchor.set(1, 0, 0);
+
+    for (const x of [3, 5]) {
+      parent.transform.setScale(x - 0.5, 1, 1);
+      parent.transform.setScale(x, 1, 1);
+      physics._update(physics.fixedTimeStep);
+      expect(owner.transform.worldPosition.x).toBeCloseTo(x, 4);
+    }
+  });
+
+  it.each([
+    {
+      scale: new Vector3(0.0003, 0.0003, 1),
+      outerAngle: 0,
+      rotation: new Vector3(35, 41, 22),
+      point: new Vector3(2, 3, 4)
+    },
+    { scale: new Vector3(1e-7, 1, 0), outerAngle: 45, rotation: new Vector3(0, 0, 45), point: new Vector3(1, 1, 0) }
+  ])(
+    "preserves reachable thin axes when capturing an automatic anchor (parent rotation $outerAngle)",
+    ({ scale, outerAngle, rotation, point }) => {
+      const physics = engine.sceneManager.activeScene.physics;
+      physics.gravity.set(0, 0, 0);
+      const parent = rootEntity.createChild();
+      parent.transform.setRotation(0, 0, outerAngle);
+      parent.transform.scale = scale;
+      const target = parent.createChild();
+      target.transform.rotation = rotation;
+      const body = target.addComponent(Rigidbody);
+      body.isKinematic = true;
+      const owner = rootEntity.createChild();
+      owner.transform.position = point;
+      owner.addComponent(FixedJoint).connectedBody = body;
+
+      physics._update(0.2);
+      expect(Vector3.distance(owner.transform.worldPosition, point)).toBeLessThan(0.001);
+    }
+  );
+
+  it("keeps the projected anchor when a collapsed ancestor regains its scale", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+    const parent = rootEntity.createChild();
+    parent.transform.setRotation(0, 0, 30);
+    parent.transform.setScale(0, 1, 1);
+    const middle = parent.createChild();
+    middle.transform.setRotation(0, 0, 35);
+    const target = middle.createChild();
+    target.transform.setRotation(0, 0, -35);
+    const body = target.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const owner = rootEntity.createChild();
+    owner.transform.setPosition(Math.sqrt(3) / 2, 0.5, 0);
+    const joint = owner.addComponent(FixedJoint);
+    joint.connectedBody = body;
+    expect(joint.connectedAnchor.length()).toBeLessThan(0.0001);
+
+    parent.transform.setScale(1, 1, 1);
+    physics._update(0.2);
+    expect(owner.transform.worldPosition.length()).toBeLessThan(0.0001);
+  });
+
+  it("keeps a captured anchor stable as a flattened target rotates", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+    const parent = rootEntity.createChild();
+    parent.transform.setScale(0, 1, 1);
+    const target = parent.createChild();
+    target.transform.setRotation(0, 0, 0.01);
+    target.addComponent(BoxCollider);
+    const body = target.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const owner = rootEntity.createChild();
+    owner.transform.setPosition(0, 1, 0);
+    const joint = owner.addComponent(FixedJoint);
+    joint.connectedBody = body;
+    physics._update(physics.fixedTimeStep);
+    expect(joint.connectedAnchor.length()).toBeCloseTo(1, 4);
+
+    target.transform.setRotation(0, 0, 0.02);
+    physics._update(physics.fixedTimeStep);
+    expect(owner.transform.worldPosition.y).toBeCloseTo(1, 4);
   });
 });

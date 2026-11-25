@@ -121,6 +121,56 @@ describe("Physics gameplay integration", () => {
     return col;
   }
 
+  it.each([
+    { name: "unit Y", axis: { x: 0, y: 1, z: 0 }, x: 0, y: 1 },
+    { name: "zero", axis: { x: 0, y: 0, z: 0 }, x: 1, y: 0 },
+    { name: "partial XY", axis: { y: -1 }, x: Math.SQRT1_2, y: -Math.SQRT1_2 }
+  ])("drives a loaded hinge around its $name scene axis", async ({ axis, x, y }) => {
+    const url = createJSONUrl({
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "hinge", components: [0, 1, 2] }],
+      components: [
+        { type: "Rigidbody", props: { useGravity: false } },
+        { type: "BoxCollider" },
+        { type: "HingeJoint", props: { axis, useMotor: true, motor: { $type: "JointMotor", targetVelocity: 5 } } }
+      ],
+      scene: { rootEntities: [0], background: { mode: 0, color: [0, 0, 0, 1] } }
+    });
+    const loaded = await engine.resourceManager.load<Scene>({ url, type: AssetType.Scene });
+    try {
+      const entity = loaded.rootEntities[0];
+      expect(entity.getComponent(HingeJoint)!.axis).toMatchObject({ x: expect.closeTo(x), y: expect.closeTo(y), z: 0 });
+      loaded.physics._update(0.1);
+      const velocity = entity.getComponent(Rigidbody)!.angularVelocity;
+      const speed = velocity.length();
+      expect(speed).toBeGreaterThan(1);
+      // The connected body is the world, so a positive drive rotates the owning body about the negative axis.
+      expect((velocity.x * x + velocity.y * y) / speed).toBeCloseTo(-1, 4);
+    } finally {
+      loaded.destroy();
+    }
+  });
+
+  it("applies a Prefab's initial sleep request independently to each instance", async () => {
+    const prefab = await loadPrefab("sleeping-body.prefab", {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "body", components: [0] }],
+      components: [{ type: "Rigidbody", calls: [{ method: "sleep", args: [] }] }],
+      root: 0
+    });
+    const sleeping = prefab.instantiate();
+    const awake = prefab.instantiate();
+    awake.getComponent(Rigidbody)!.wakeUp();
+    root.addChild(sleeping);
+    root.addChild(awake);
+    step();
+    expect(sleeping.getComponent(Rigidbody)!.isSleeping()).toBe(true);
+    expect(sleeping.transform.position.y).toBe(0);
+    expect(awake.transform.position.y).toBeLessThan(0);
+  });
+
   it("loads a complete hinge axis from a runtime Prefab call", async () => {
     const prefab = await loadPrefab("hinge-axis.prefab", {
       version: "2.0",
@@ -155,7 +205,7 @@ describe("Physics gameplay integration", () => {
       version: "2.0",
       refs: [{ url: basePath, type: AssetType.Prefab }],
       entities: [
-        { name: "wrapper", children: [1, 2] },
+        { name: "wrapper", children: [1, 2, 3] },
         { instance: { asset: 0 } },
         {
           instance: {
@@ -165,7 +215,12 @@ describe("Physics gameplay integration", () => {
                 {
                   path: [],
                   selector: { type: "CharacterController", index: 0 },
-                  props: { upDirection: { x: 1, y: 0, z: 0 } }
+                  props: { upDirection: { x: 1 } }
+                },
+                {
+                  path: [],
+                  selector: { type: "CharacterController", index: 0 },
+                  props: { upDirection: { z: 1 } }
                 },
                 {
                   path: [],
@@ -175,8 +230,23 @@ describe("Physics gameplay integration", () => {
                 {
                   path: [],
                   selector: { type: "HingeJoint", index: 0 },
-                  props: { axis: { x: 0, y: 2, z: 0 } }
+                  props: { axis: { x: 0, y: 1 } }
+                },
+                {
+                  path: [],
+                  selector: { type: "HingeJoint", index: 0 },
+                  props: { axis: { z: 1 } }
                 }
+              ]
+            }
+          }
+        },
+        {
+          instance: {
+            asset: 0,
+            overrides: {
+              componentProps: [
+                { path: [], selector: { type: "CharacterController", index: 0 }, props: { upDirection: { y: 0 } } }
               ]
             }
           }
@@ -194,7 +264,13 @@ describe("Physics gameplay integration", () => {
     const siblingCC = wrapper.children[0].getComponent(CharacterController)!;
     const overriddenCC = wrapper.children[1].getComponent(CharacterController)!;
     const freshCC = freshBase.getComponent(CharacterController)!;
-    expect(overriddenCC.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
+    expect(overriddenCC.upDirection.x).toBeCloseTo(0.5);
+    expect(overriddenCC.upDirection.y).toBeCloseTo(0.5);
+    expect(overriddenCC.upDirection.z).toBeCloseTo(Math.SQRT1_2);
+    const zeroOverride = wrapper.children[2].getComponent(CharacterController)!;
+    expect(zeroOverride.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
+    expect(physics.overlapSphereAll(new Vector3(0, 0.8, 0), 0.01)).toContain(zeroOverride);
+    expect(physics.overlapSphereAll(new Vector3(0.8, 0, 0), 0.01)).not.toContain(zeroOverride);
     expect(siblingCC.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
     expect(freshCC.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
 
@@ -213,7 +289,11 @@ describe("Physics gameplay integration", () => {
     const siblingJoint = wrapper.children[0].getComponent(HingeJoint)!;
     const overriddenJoint = wrapper.children[1].getComponent(HingeJoint)!;
     const freshJoint = freshBase.getComponent(HingeJoint)!;
-    expect(overriddenJoint.axis).toMatchObject({ x: 0, y: 1, z: 0 });
+    expect(overriddenJoint.axis).toMatchObject({
+      x: 0,
+      y: expect.closeTo(Math.SQRT1_2),
+      z: expect.closeTo(Math.SQRT1_2)
+    });
     expect(siblingJoint.axis).toMatchObject({ x: 1, y: 0, z: 0 });
     expect(freshJoint.axis).toMatchObject({ x: 1, y: 0, z: 0 });
   });

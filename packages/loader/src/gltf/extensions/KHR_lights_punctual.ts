@@ -30,8 +30,9 @@ class KHR_lights_punctual extends GLTFExtensionParser {
       light.color.set(color[0] * intensity, color[1] * intensity, color[2] * intensity, 1);
     }
 
-    if (range && !(light instanceof DirectLight)) {
-      light.distance = range;
+    if (!(light instanceof DirectLight)) {
+      // KHR_lights_punctual defines omitted range as infinite rather than engine default
+      light.distance = range ?? Infinity;
     }
 
     if (spot && light instanceof SpotLight) {

@@ -40,7 +40,7 @@ export interface IPhysicsActor {
   replaceShape(previousShape: IPhysicsShape, newShape: IPhysicsShape): void;
 
   /**
-   * Release the native actor.
+   * Release the actor and detach its shapes. The caller retains the shapes for reuse or destruction.
    */
   destroy(): void;
 }

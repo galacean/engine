@@ -143,6 +143,107 @@ describe("Collider", () => {
     expect(physics.overlapSphereAll(new Vector3(10, 0, 0), 0.1)).toEqual([childCollider]);
   });
 
+  it("keeps a collider destroyed by an earlier onEnable out of queries", () => {
+    const child = new Entity(engine);
+    child.addComponent(
+      class extends Script {
+        override onEnable(): void {
+          box.destroy();
+        }
+      }
+    );
+    const box = child.addComponent(BoxCollider);
+    root.addChild(child);
+
+    expect(child.getComponent(BoxCollider)).toBeNull();
+    expect(physics.raycast(new Ray(new Vector3(0, 0, 4), new Vector3(0, 0, -1)), new HitResult())).toBe(false);
+  });
+
+  it.each([
+    [true, false],
+    [false, false],
+    [true, true]
+  ])("allows queries while removing a moved child (script first=%s, center edited=%s)", (scriptFirst, editCenter) => {
+    root.addComponent(Rigidbody).isKinematic = true;
+    const ray = new Ray(new Vector3(0, 0, 4), new Vector3(0, 0, -1));
+    let hitDuringDisable: unknown;
+    class QueryOnDisable extends Script {
+      override onDisable(): void {
+        try {
+          hitDuringDisable = physics.raycast(ray);
+        } catch (error) {
+          hitDuringDisable = error;
+        }
+      }
+    }
+    const components = scriptFirst ? [QueryOnDisable, BoxCollider] : [BoxCollider, QueryOnDisable];
+    const child = new Entity(engine, "child", ...components);
+    root.addChild(child);
+    try {
+      expect(physics.raycast(ray)).toBe(true);
+      child.transform.position.z = 1;
+      if (editCenter) child.getComponent(BoxCollider)!.center.x = 4;
+      root.removeChild(child);
+      expect(hitDuringDisable).toBe(scriptFirst);
+      expect(child.scene).toBeNull();
+      expect(physics.raycast(ray)).toBe(false);
+    } finally {
+      child.destroy();
+    }
+  });
+
+  it.each([true, false])("reads the new owner in a reparent disable callback (script first=%s)", (scriptFirst) => {
+    const source = root.addComponent(Rigidbody);
+    const destination = root.createChild("inactive parent");
+    destination.isActive = false;
+    const target = destination.addComponent(Rigidbody);
+    let observed: Rigidbody | null | undefined;
+    class ReadOwnerOnDisable extends Script {
+      override onDisable(): void {
+        observed = this.entity.getComponent(BoxCollider)!.attachedRigidbody;
+      }
+    }
+    const components = scriptFirst ? [ReadOwnerOnDisable, BoxCollider] : [BoxCollider, ReadOwnerOnDisable];
+    const child = new Entity(engine, "child", ...components);
+    root.addChild(child);
+    const box = child.getComponent(BoxCollider)!;
+    expect(box.getClosestPoint(new Vector3(), new Vector3())).toBe(0);
+    expect(box.attachedRigidbody).toBe(source);
+    destination.addChild(child);
+    expect(observed?.instanceId).toBe(target.instanceId);
+  });
+
+  it.each([
+    [-1, 1, 1],
+    [-2, 2, -3]
+  ])("preserves rotated box dimensions under parent scale (%s, %s, %s)", (sx, sy, sz) => {
+    root.addComponent(Rigidbody).isKinematic = true;
+    root.transform.setScale(sx, sy, sz);
+    const pivot = root.createChild("rotated pivot");
+    const box = pivot.createChild("box").addComponent(BoxCollider);
+    box.size.set(4, 0.5, 1);
+    pivot.transform.setRotation(0, 0, 45);
+
+    const hit = new HitResult();
+    const ray = new Ray(new Vector3(1, 1, 4), new Vector3(0, 0, -1));
+    expect(physics.raycast(ray, hit) && hit.collider === box).toBe(true);
+    expect(hit.point.z).toBeCloseTo(0.5 * Math.abs(sz));
+    expect(box.getClosestPoint(new Vector3(), new Vector3())).toBe(0);
+    ray.origin.x = -1;
+    expect(physics.raycast(ray)).toBe(false);
+  });
+
+  it("keeps the projected box size under a sheared mirror", () => {
+    root.transform.setScale(-2, 1, 3);
+    const entity = root.createChild();
+    entity.transform.setRotation(0, 0, 30);
+    const box = entity.addComponent(BoxCollider);
+    const point = new Vector3(2, 0, 0);
+    point.transformByQuat(entity.transform.worldRotationQuaternion);
+    // The signed X projection is -2 * cos²(30°) + sin²(30°) = -1.25.
+    expect(box.getClosestPoint(point, new Vector3())).toBeCloseTo(2 - 1.25 / 2, 5);
+  });
+
   it("updates ownership and raycasts without resubmitting an unchanged shape scale", () => {
     const shapeEntity = root.createChild();
     shapeEntity.transform.setPosition(2, 0, 0);
@@ -1425,11 +1526,11 @@ describe("Collider", () => {
       expect(center.z).toBeCloseTo(0, 6);
     });
 
-    it.each(["child-position", "child-center", "child-mesh", "same-entity-center"] as const)(
+    it.each(["child-position", "child-center", "child-mesh", "same-entity-center", "mirrored-parent"] as const)(
       "writes no native geometry, local pose, or mass while a body rotates around an unchanged scale axis (%s)",
       (setup) => {
         const bodyEntity = root.createChild(setup);
-        bodyEntity.transform.setScale(2, 3, 2);
+        bodyEntity.transform.setScale(setup === "mirrored-parent" ? -2 : 2, 3, 2);
         const body = bodyEntity.addComponent(Rigidbody);
         body.isKinematic = true;
         const holder = setup === "same-entity-center" ? bodyEntity : bodyEntity.createChild("shape");
@@ -1629,8 +1730,8 @@ describe("Collider", () => {
       child.transform.setPosition(0, 0, 0);
       otherEntity.addChild(child);
       expect(box.getClosestPoint(new Vector3(0, 20, 0), closest)).toBe(0);
-      expect(box.attachedRigidbody).toBe(otherBody);
       expect(findBody).toHaveBeenCalledTimes(4);
+      expect(box.attachedRigidbody).toBe(otherBody);
     });
   });
 });

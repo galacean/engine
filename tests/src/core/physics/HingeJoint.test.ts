@@ -1,5 +1,7 @@
 import { createPhysics } from "../../utils/physics";
 import {
+  AnimationClip,
+  AnimationVector3Curve,
   HingeJoint,
   JointLimits,
   JointMotor,
@@ -99,7 +101,7 @@ describe("HingeJoint", function () {
     expect(joint.connectedAnchor.z).toBeCloseTo(0, 5);
   });
 
-  it("axis", function () {
+  it("uses the sampled hinge axis between connected bodies", function () {
     const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
     const collider = boxEntity.getComponent(Rigidbody);
@@ -113,13 +115,22 @@ describe("HingeJoint", function () {
     joint.automaticConnectedAnchor = true;
     joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
-    joint.axis = { x: 0, y: 1, z: 0 };
+    const clip = new AnimationClip("hinge axis");
+    const curve = new AnimationVector3Curve();
+    curve.addKey({ time: 0, value: new Vector3(0, 2, 0) });
+    clip.addCurveBinding("", HingeJoint, "axis", curve);
+    const previousAxis = joint.axis;
+    clip.sampleAnimation(boxEntity, 0);
+    expect(previousAxis).toMatchObject({ x: 1, y: 0, z: 0 });
+    expect(joint.axis).toMatchObject({ x: 0, y: 1, z: 0 });
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));
     engine.sceneManager.activeScene.physics._update(1 / 60);
     expect(formatValue(joint.velocity)).eq(6.89082);
     expect(formatValue(joint.angle)).eq(6.58019);
+    const angularVelocity = collider2.angularVelocity;
+    expect(angularVelocity.y / angularVelocity.length()).toBeCloseTo(1, 4);
   });
 
   it("hardLimit", function () {
@@ -245,11 +256,48 @@ describe("HingeJoint", function () {
     expect(formatValue(joint.angle)).eq(50.06221);
   });
 
+  it.each([false, true])("widens active limits to a full turn (spring=%s)", (useSpring) => {
+    const joint = rootEntity.createChild().addComponent(HingeJoint);
+    const limits = (joint.limits = new JointLimits());
+    limits.min = -10;
+    limits.max = 10;
+    limits.stiffness = 20000;
+    limits.damping = 300;
+    joint.useSpring = useSpring;
+    joint.useLimits = true;
+    const motor = (joint.motor = new JointMotor());
+    motor.targetVelocity = 5;
+    joint.useMotor = true;
+    limits.min = -360;
+    limits.max = 360;
+
+    engine.sceneManager.activeScene.physics._update(0.5);
+    expect(joint.angle).toBeGreaterThan(100);
+    expect(limits.min).toBe(-360);
+    expect(limits.max).toBe(360);
+  });
+
+  it("reverses a torque-limited motor with an infinite target velocity", () => {
+    const box = addBox(new Vector3(1, 1, 1), new Vector3());
+    const joint = box.addComponent(HingeJoint);
+    const motor = (joint.motor = new JointMotor());
+    motor.forceLimit = 1;
+    motor.targetVelocity = -1;
+    joint.useMotor = true;
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(physics.fixedTimeStep);
+    expect(joint.angle).toBeLessThan(0);
+
+    motor.targetVelocity = Infinity;
+    physics._update(4 * physics.fixedTimeStep);
+    expect(joint.angle).toBeGreaterThan(0);
+    expect(motor.targetVelocity).toBe(Infinity);
+  });
+
   it("motor", function () {
     const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(0.5, 5, 0));
     const collider = boxEntity.getComponent(Rigidbody);
-    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
     joint.connectedBody = boxEntity2.getComponent(Rigidbody);
@@ -537,6 +585,7 @@ describe("HingeJoint", function () {
     joint.motor.targetVelocity = 4;
     joint.useMotor = true;
     engine.sceneManager.activeScene.physics._update(1 / 60);
+    joint.enabled = false;
     expect(Math.abs(joint.angle)).toBeGreaterThan(0);
     expect(Math.abs(joint.velocity)).toBeGreaterThan(0);
 
@@ -568,6 +617,29 @@ describe("HingeJoint", function () {
       motor.targetVelocity = 5;
       limits.max = 30;
     }).not.toThrow();
+  });
+
+  it("detaches a cloned hinge from motor and limit settings supplied by its constructor", () => {
+    class DoorHinge extends HingeJoint {
+      constructor(entity: Entity) {
+        super(entity);
+        this.motor = new JointMotor();
+        this.limits = new JointLimits();
+      }
+    }
+    const door = rootEntity.createChild();
+    door.addComponent(DoorHinge);
+    const clone = door.clone();
+    rootEntity.addChild(clone);
+    const hinge = clone.getComponent(DoorHinge)!;
+    const { motor, limits } = hinge;
+    hinge.motor = null;
+    hinge.limits = null;
+    const body = clone.getComponent(Rigidbody)!;
+    body.sleep();
+    motor!.targetVelocity = 5;
+    limits!.max = 30;
+    expect(body.isSleeping()).toBe(true);
   });
 
   it("disables active drive and limits immediately when motor or limits are cleared to null", function () {

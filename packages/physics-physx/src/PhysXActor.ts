@@ -1,6 +1,5 @@
 import { IPhysicsActor } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
-import { PhysXPhysics } from "./PhysXPhysics";
+import { Quaternion, Utils, Vector3 } from "@galacean/engine";
 import { PhysXShape } from "./shape/PhysXShape";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 
@@ -18,20 +17,14 @@ export abstract class PhysXActor implements IPhysicsActor {
   /** @internal */
   _pxActor: any;
   /** @internal */
-  _shapes = new Array<PhysXShape>();
-
-  protected _physXPhysics: PhysXPhysics;
-
-  constructor(physXPhysics: PhysXPhysics) {
-    this._physXPhysics = physXPhysics;
-  }
+  _shapeIds = new Array<number>();
 
   /**
    * {@inheritDoc IPhysicsActor.addShape }
    */
   addShape(shape: PhysXShape): void {
     this._pxActor.attachShape(shape._pxShape);
-    this._shapes.push(shape);
+    this._shapeIds.push(shape._id);
     this._scene?._addShape(shape._id);
   }
 
@@ -40,8 +33,7 @@ export abstract class PhysXActor implements IPhysicsActor {
    */
   removeShape(shape: PhysXShape): void {
     this._pxActor.detachShape(shape._pxShape, true);
-    const shapes = this._shapes;
-    shapes.splice(shapes.indexOf(shape), 1);
+    Utils.removeFromArray(this._shapeIds, shape._id);
     this._scene?._removeShape(shape._id);
   }
 
@@ -50,7 +42,6 @@ export abstract class PhysXActor implements IPhysicsActor {
    */
   replaceShape(previousShape: PhysXShape, newShape: PhysXShape): void {
     this._pxActor.attachShape(newShape._pxShape);
-    this._shapes[this._shapes.indexOf(previousShape)] = newShape;
     this._pxActor.detachShape(previousShape._pxShape, true);
     // Keep trigger overlaps and active contacts tied to this collider ID across shape replacement.
     this._scene?._replaceShape(newShape._id);

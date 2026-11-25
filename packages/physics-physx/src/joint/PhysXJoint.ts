@@ -6,11 +6,11 @@ import { PhysXActor } from "../PhysXActor";
  * Shared actor frames and constraint settings for PhysX joints.
  */
 export class PhysXJoint implements IJoint {
+  protected static readonly _maxFloat32 = 3.4028234663852886e38;
   protected static _defaultVec = new Vector3();
   protected static _defaultQuat = new Quaternion();
 
   protected _pxJoint: any;
-  protected _anchor: Vector3;
   protected _connectedAnchor: Vector3;
   protected _rotation: Quaternion = new Quaternion();
   protected _actor: PhysXActor;
@@ -29,7 +29,6 @@ export class PhysXJoint implements IJoint {
    */
   setAnchor(value: Vector3): void {
     this._setLocalPose(0, value, PhysXJoint._defaultQuat);
-    this._anchor = value;
   }
 
   /**

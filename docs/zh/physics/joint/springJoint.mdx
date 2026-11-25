@@ -28,7 +28,7 @@ label: Physics
 ## 属性说明
 
 ### 连接刚体
-- [**connectedBody**](/apis/core/#SpringJoint-connectedBody)  
+- [**connectedBody**](/apis/core/#SpringJoint-connectedBody)\
   指定要连接的目标刚体。当设置为 null 时，关节会连接到世界空间中的一个固定点。这允许你将物体固定在空间中的特定位置。
 
 ### 锚点设置
@@ -40,7 +40,7 @@ label: Physics
   - 当 connectedBody 为 null 时，表示世界空间中的绝对位置
   - 当 connectedBody 不为 null 时，表示目标刚体局部空间中的相对位置
 
-- **automaticConnectedAnchor**  
+- [**automaticConnectedAnchor**](/apis/core/#SpringJoint-automaticConnectedAnchor)\
   是否自动计算 connectedAnchor 的值。启用时，系统会自动设置连接点以确保物体间的初始位置关系。如需手动精确控制连接点，可将此属性设为 false。
 
 ### 距离约束
@@ -48,7 +48,7 @@ label: Physics
   允许的最小距离。当物体间距离小于此值时，关节会施加推开力。
 
 - [**maxDistance**](/apis/core/#SpringJoint-maxDistance)  
-  允许的最大距离。当物体间距离大于此值时，关节会施加拉近力。
+  允许的最大距离。当物体间距离大于此值时，关节会施加拉近力。设为 `Infinity` 可以解除距离上限。
 
 - [**tolerance**](/apis/core/#SpringJoint-tolerance)  
   容差范围值，默认为 0.25。这个值决定了关节开始产生约束力的时机：

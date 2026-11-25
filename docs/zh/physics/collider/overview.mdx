@@ -25,7 +25,7 @@ label: Physics
 
 要组合出复合形状，可以在同一实体上添加多个碰撞器组件，或把它们放在同一个刚体下的子实体上。嵌套的刚体会单独成组：它下面的碰撞器属于它，而不属于外层刚体。
 
-[PlaneCollider](/apis/core/#PlaneCollider) 和 `convex = false` 的 [MeshCollider](/apis/core/#MeshCollider) 只能是静态的，或属于运动学刚体。放在非运动学刚体下时，它们会被排除在模拟之外并输出控制台错误，直到刚体变为运动学。
+[PlaneCollider](/apis/core/#PlaneCollider) 和 `convex = false` 的 [MeshCollider](/apis/core/#MeshCollider) 只能是静态的，或属于运动学刚体。放在非运动学刚体下时，它们会退出模拟和查询并输出控制台错误，直到刚体变为运动学。
 
 ### 禁用与移除
 

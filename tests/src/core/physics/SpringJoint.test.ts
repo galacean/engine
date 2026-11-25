@@ -68,29 +68,7 @@ describe("SpringJoint", function () {
     expect(boxEntity2.transform.position.x).greaterThan(2);
   });
 
-  it("maxDistance", function () {
-    engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
-    const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
-    const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
-    const collider2 = boxEntity2.getComponent(Rigidbody);
-    const joint = boxEntity2.addComponent(SpringJoint);
-    const collider = (joint.connectedBody = boxEntity.getComponent(Rigidbody));
-    collider.isKinematic = true;
-    joint.automaticConnectedAnchor = false;
-    joint.anchor = new Vector3(-0.5, 0, 0);
-    joint.connectedAnchor = new Vector3(0.5, 0, 0);
-    joint.stiffness = 10000000000;
-    joint.damping = 1;
-    joint.minDistance = 1.1;
-    joint.maxDistance = 5;
-    joint.tolerance = 0;
-
-    engine.sceneManager.activeScene.physics._update(1);
-
-    expect(boxEntity2.transform.position.x).eq(6);
-  });
-
-  it("tolerance", function () {
+  it("applies maxDistance according to the configured tolerance", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
     const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
@@ -200,7 +178,6 @@ describe("SpringJoint", function () {
     engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
     const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
-    const collider2 = boxEntity2.getComponent(Rigidbody);
     const joint = boxEntity2.addComponent(SpringJoint);
     const collider = (joint.connectedBody = boxEntity.getComponent(Rigidbody));
     collider.isKinematic = true;
@@ -220,6 +197,22 @@ describe("SpringJoint", function () {
     engine.sceneManager.activeScene.physics._update(1);
 
     expect(newBox.transform.position.x).eq(6);
+  });
+
+  it("removes a finite distance limit when maxDistance is set to Infinity", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+    const box = addBox(new Vector3(1, 1, 1), new Vector3());
+    const joint = box.addComponent(SpringJoint);
+    joint.stiffness = 10000;
+    joint.damping = 32;
+    joint.tolerance = 0;
+    joint.maxDistance = 1;
+    joint.maxDistance = Infinity;
+    box.getComponent(Rigidbody)!.linearVelocity.set(8, 0, 0);
+    physics._update(0.5);
+    expect(box.transform.worldPosition.x).toBeGreaterThan(3.5);
+    expect(joint.maxDistance).toBe(Infinity);
   });
 
   it("applies spring settings configured while inactive when the Entity enters simulation", function () {

@@ -18,8 +18,6 @@ export class PostProcessManager {
   _uberMaterial: Material;
   /** @internal */
   _postProcessNeedSorting = false;
-  /** @internal */
-  _postProcessPassNeedSorting = false;
 
   private _activePostProcesses: PostProcess[] = [];
   private _swapRenderTarget: RenderTarget | null;

@@ -53,9 +53,7 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
    * @internal
    */
   static _additiveValue(value: Vector3, weight: number, out: Vector3): Vector3 {
-    Vector3.scale(value, weight, value);
-    Vector3.add(out, value, out);
-    return out;
+    return out.set(out.x + value.x * weight, out.y + value.y * weight, out.z + value.z * weight);
   }
 
   /**

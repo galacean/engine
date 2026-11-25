@@ -8,7 +8,7 @@ import { PhysXPhysics } from "./PhysXPhysics";
  */
 export class PhysXStaticActor extends PhysXActor implements IStaticActor {
   constructor(physXPhysics: PhysXPhysics, position: Vector3, rotation: Quaternion) {
-    super(physXPhysics);
+    super();
     this._pxActor = physXPhysics._pxPhysics.createRigidStatic(this._transform(position, rotation));
   }
 }

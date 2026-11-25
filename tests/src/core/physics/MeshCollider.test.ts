@@ -1,4 +1,5 @@
 import { createPhysics } from "../../utils/physics";
+import type { IMeshShape } from "@galacean/engine-design";
 import {
   BoxCollider,
   Buffer,
@@ -152,16 +153,91 @@ describe("MeshCollider", () => {
       expect(release).toHaveBeenCalledOnce();
       expect(mesh.refCount).toBe(0);
 
-      // With no live cook, reassignment reads even unsubmitted edits to the retained CPU positions.
-      for (const vertex of mesh.getPositions()!) vertex.x *= 3;
       const rebound = addMesh(convex, mesh);
-      expect(physics.raycast(rayAt(2.5), hit) && hit.collider === rebound).toBe(true);
+      expect(physics.raycast(rayAt(0), hit) && hit.collider === rebound).toBe(true);
       expect(cook).toHaveBeenCalledTimes(2);
       const reboundRelease = vi.spyOn(cook.mock.results[1].value, "release");
       rebound.destroy();
       expect(reboundRelease).toHaveBeenCalledOnce();
     }
   );
+
+  it("keeps a pending mesh queryable after an onDisable callback reparents it", () => {
+    const group = root.createChild("group");
+    const meshEntity = group.createChild("mesh");
+    const ray = rayAt(0);
+    const collider = meshEntity.addComponent(MeshCollider);
+    collider.mesh = createCubeMesh(engine);
+    group.createChild("driver").addComponent(
+      class extends Script {
+        override onDisable(): void {
+          physics.raycast(ray);
+          root.addChild(meshEntity);
+        }
+      }
+    );
+
+    group.isActive = false;
+    const hit = new HitResult();
+    expect(physics.raycast(ray, hit) && hit.collider === collider).toBe(true);
+  });
+
+  it("keeps native geometry and local pose when rotation preserves inherited mesh scale", () => {
+    root.transform.setScale(-2, 3, -2);
+    const child = root.createChild("rotating body");
+    const body = child.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const mesh = child.addComponent(MeshCollider);
+    mesh.mesh = createCubeMesh(engine);
+    mesh.convex = true;
+    mesh.center.x = 3;
+
+    const point = new Vector3();
+    const hit = new HitResult();
+    const ray = new Ray(new Vector3(), new Vector3(0, -1, 0));
+    const expectHit = () => {
+      Vector3.transformCoordinate(mesh.center, child.transform.worldMatrix, point);
+      ray.origin.set(point.x, 5, point.z);
+      expect(physics.raycast(ray, hit) && hit.collider === mesh).toBe(true);
+    };
+    expectHit();
+    const shape = mesh["_native"]!;
+    const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
+    const poseWrites = vi.spyOn(shape, "setLocalPose");
+    const massUpdates = vi.spyOn(body["_nativeActor"]!, "updateMassAndInertia");
+    for (const angle of [11.1, 0]) {
+      child.transform.setRotation(0, angle, 0);
+      expectHit();
+    }
+    expect(geometryWrites).not.toHaveBeenCalled();
+    expect(poseWrites).not.toHaveBeenCalled();
+    expect(massUpdates).not.toHaveBeenCalled();
+  });
+
+  it.each(["static", "same entity", "compound"])("keeps the local mesh center under a rotated mirror (%s)", (owner) => {
+    root.transform.setScale(-1, 1, 1);
+    const child = root.createChild("rotated mesh");
+    child.transform.setRotation(0, 0, 45);
+    if (owner !== "static") {
+      const bodyEntity = owner === "compound" ? root : child;
+      bodyEntity.addComponent(Rigidbody).isKinematic = true;
+    }
+    const collider = child.addComponent(MeshCollider);
+    collider.mesh = createCubeMesh(engine, 0.25);
+    collider.center.x = 3;
+
+    const center = new Vector3();
+    const ray = new Ray(new Vector3(), new Vector3(0, 0, -1));
+    const hit = new HitResult();
+    for (const shift of [0, 1]) {
+      child.transform.position.y = shift;
+      Vector3.transformCoordinate(collider.center, child.transform.worldMatrix, center);
+      ray.origin.set(center.x, center.y, 5);
+      expect(physics.raycast(ray, hit) && hit.collider === collider).toBe(true);
+      ray.origin.set(0, shift, 5);
+      expect(physics.raycast(ray)).toBe(false);
+    }
+  });
 
   it("shares a cook across instances of a loaded prefab", async () => {
     const meshUrl = URL.createObjectURL(
@@ -788,13 +864,15 @@ describe("MeshCollider", () => {
   );
 
   it.each([false, true])(
-    "excludes geometry when recooking fails and allows retry once mesh data is fixed (convex=%s)",
+    "releases the previous mesh when recooking fails and recovers after the data is fixed (convex=%s)",
     (convex) => {
+      const cook = watchCooking(convex);
       const collider = addMesh(convex);
       const mesh = collider.mesh;
       const positions = mesh.getPositions().map((point) => point.clone());
       const indices = mesh.getIndices();
       expect(physics.raycast(rayAt(0))).toBe(true);
+      const release = vi.spyOn(cook.mock.results[0].value, "release");
       mesh.setPositions([new Vector3()]);
       mesh.setIndices(new Uint16Array([0, 0, 0]));
       const errors = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -802,6 +880,7 @@ describe("MeshCollider", () => {
       expect(collider.cookingFlags).toBe(MeshColliderCookingFlag.Cleaning);
       expect(collider.mesh).toBe(mesh);
       expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(release).toHaveBeenCalledOnce();
       expect(errors).toHaveBeenCalled();
       mesh.setPositions(positions);
       mesh.setIndices(indices);
@@ -898,6 +977,30 @@ describe("MeshCollider", () => {
     expect(physics.raycast(rayAt(1.5), hit)).toBe(true);
     expect(hit.collider).toBe(collider);
   });
+
+  it.each([false, true])(
+    "unregisters a mesh collider destroyed by an earlier onDisable (kinematic=%s)",
+    (kinematic) => {
+      if (kinematic) root.addComponent(Rigidbody).isKinematic = true;
+      const entity = root.createChild();
+      entity.addComponent(
+        class extends Script {
+          override onDisable(): void {
+            collider.destroy();
+          }
+        }
+      );
+      const collider = entity.addComponent(MeshCollider);
+      const mesh = createCubeMesh(engine);
+      collider.mesh = mesh;
+      expect(physics.raycast(rayAt(0))).toBe(true);
+
+      entity.isActive = false;
+      expect(entity.getComponent(MeshCollider)).toBeNull();
+      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(mesh.refCount).toBe(0);
+    }
+  );
 
   it.each(["disable-then-null", "null-then-disable"] as const)(
     "releases native mesh immediately when disabled and cleared (%s)",
@@ -1133,45 +1236,37 @@ describe("MeshCollider", () => {
       expect(physics.raycast(rayAt(0), hit) && hit.collider === collider).toBe(true);
       expect(physics.raycast(rayAt(10, 10), hit) && hit.collider === otherBox).toBe(true);
 
-      const raw = new Float32Array([
-        -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1
-      ]);
-      const indices = new Uint16Array([
-        0, 3, 2, 0, 2, 1, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2, 0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5
-      ]);
-      const createBufferMesh = (readable: boolean): ModelMesh => {
-        const mesh = new ModelMesh(engine);
-        mesh.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0)]);
-        const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, raw, BufferUsage.Static, readable);
-        mesh.setVertexBufferBinding(buffer, 12);
-        mesh.setIndices(indices);
-        return mesh;
-      };
-
-      const gpuOnly = createBufferMesh(false);
+      const mesh = createCubeMesh(engine);
+      const shifted = new Float32Array(mesh.getPositions()!.flatMap(({ x, y, z }) => [x + 4, y, z]));
+      const setPositionBuffer = (readable: boolean) =>
+        mesh.setVertexBufferBinding(
+          new Buffer(engine, BufferBindFlag.VertexBuffer, shifted, BufferUsage.Static, readable),
+          12
+        );
       const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-      const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-      collider.mesh = gpuOnly;
-      expect(collider.mesh).toBe(gpuOnly);
-      // Missing CPU data must remove the old geometry without aborting unrelated queries or steps.
-      expect(() => physics.raycast(rayAt(10, 10), hit)).not.toThrow();
+      setPositionBuffer(false);
+      collider.mesh = mesh;
+      expect(physics.raycast(rayAt(10, 10), hit)).toBe(true);
       expect(hit.collider).toBe(otherBox);
       expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(collider.mesh).toBe(mesh);
       expect(errors).toHaveBeenCalled();
 
       const initialY = other.transform.position.y;
-      expect(() => update(2)).not.toThrow();
+      update(2);
       expect(other.transform.position.y).toBeLessThan(initialY);
       expect(otherBody.linearVelocity.y).toBeLessThan(0);
 
-      // Retrying the same unreadable resource remains excluded without throwing
-      collider.mesh = gpuOnly;
+      errors.mockClear();
+      collider.mesh = mesh;
       expect(physics.raycast(rayAt(0))).toBe(false);
-      expect(warnings.mock.calls.length + errors.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(errors).toHaveBeenCalled();
 
-      collider.mesh = createBufferMesh(true);
-      expect(physics.raycast(rayAt(0), hit) && hit.collider === collider).toBe(true);
+      setPositionBuffer(true);
+      collider.mesh = mesh;
+      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(physics.raycast(rayAt(4), hit) && hit.collider === collider).toBe(true);
     }
   );
 
@@ -1206,21 +1301,54 @@ describe("MeshCollider", () => {
     expect(outerHits).toEqual([false, true, true]);
   });
 
-  it("skips native recooking when convex or mesh returns to its already-cooked value before sync", () => {
+  it.each(["zero scale", "triangle trigger", "dynamic body"])(
+    "releases a replaced mesh when its replacement is excluded by %s and reads new vertices on rebind",
+    (reason) => {
+      const cook = watchCooking(false);
+      const collider = addMesh();
+      const original = collider.mesh!;
+      const entity = collider.entity;
+      expect(physics.raycast(rayAt(0))).toBe(true);
+      const release = vi.spyOn(cook.mock.results[0].value, "release");
+
+      collider.mesh = createCubeMesh(engine);
+      if (reason === "zero scale") entity.transform.setScale(0, 1, 1);
+      else if (reason === "triangle trigger") collider.isTrigger = true;
+      else entity.addComponent(Rigidbody);
+      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(release).toHaveBeenCalledOnce();
+
+      original.setPositions(original.getPositions()!.map((p) => new Vector3(p.x + 6, p.y, p.z)));
+      collider.mesh = original;
+      entity.transform.setScale(1, 1, 1);
+      collider.isTrigger = false;
+      entity.getComponent(Rigidbody)?.destroy();
+      expect(physics.raycast(rayAt(0))).toBe(false);
+      expect(physics.raycast(rayAt(6))).toBe(true);
+    }
+  );
+
+  it.each([false, true])("reuses the cooked mesh when edits revert before sync (temporary detach=%s)", (detach) => {
+    const cook = watchCooking(false);
     const collider = addMesh(false);
-    const meshA = collider.mesh;
+    const body = collider.entity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const meshA = collider.mesh!;
     const meshB = createCubeMesh(engine, 3);
     expect(physics.raycast(rayAt(0))).toBe(true);
-    const nativeShape = (collider as any)._native;
-    const cookSpy = vi.spyOn(nativeShape, "_cookMesh");
-    const setMeshDataSpy = vi.spyOn(nativeShape, "setMeshData");
+    const setMeshDataSpy = vi.spyOn(collider["_native"] as IMeshShape, "setMeshData");
     collider.convex = true;
     collider.convex = false;
     collider.mesh = meshB;
+    if (detach) {
+      meshA.uploadData(true);
+      body.isKinematic = false;
+      body.isKinematic = true;
+    }
     collider.mesh = meshA;
     expect(physics.raycast(rayAt(0))).toBe(true);
     expect(physics.raycast(rayAt(2.5))).toBe(false);
-    expect(cookSpy).not.toHaveBeenCalled();
+    expect(cook).toHaveBeenCalledOnce();
     expect(setMeshDataSpy).not.toHaveBeenCalled();
   });
 

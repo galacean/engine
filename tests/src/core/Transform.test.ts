@@ -104,6 +104,10 @@ describe("Transform test", function () {
       // Unrotated parent uses exact scalar multiplication; rotated child still falls back to matrix decomposition.
       expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(1);
 
+      grandparent.transform.localMatrix = new Matrix();
+      expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(4, 5, 6));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(1);
+
       parent.transform.setPosition(4, 0, 0);
       grandparent.transform.setScale(2, 2, 3);
       const afterNonUniform = child.transform.lossyWorldScale;
@@ -114,6 +118,7 @@ describe("Transform test", function () {
       // Establish a clean uniform baseline before testing set localMatrix after position + uniform rotation
       grandparent.transform.setScale(2, 2, 2);
       expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(8, 10, 12));
+      expect(scaleMatMultiplySpy).toHaveBeenCalledTimes(2);
 
       parent.transform.setPosition(1, 2, 3);
       parent.transform.setRotation(0, 90, 0);
@@ -182,32 +187,6 @@ describe("Transform test", function () {
     }
   });
 
-  it("reports internal world uniform scaling flags accurately", () => {
-    const parent = scene.createRootEntity("flags-parent");
-    const child = parent.createChild("flags-child");
-    try {
-      const parentTransform = parent.transform;
-      const childTransform = child.transform;
-      expect(childTransform._getWorldUniformScaling()).toBe(true);
-
-      parentTransform.setScale(2, 1, 1);
-      expect(childTransform._getWorldUniformScaling()).toBe(false);
-
-      parentTransform.localMatrix = new Matrix();
-      expect(parentTransform._getWorldUniformScaling()).toBe(true);
-      expect(childTransform._getWorldUniformScaling()).toBe(true);
-
-      parentTransform.setScale(2, 1, 1);
-      expect(childTransform._getWorldUniformScaling()).toBe(false);
-
-      parentTransform.setScale(2, 2, 2);
-      expect(parentTransform._getWorldUniformScaling()).toBe(true);
-      expect(childTransform._getWorldUniformScaling()).toBe(true);
-    } finally {
-      parent.destroy();
-    }
-  });
-
   it("preserves WorldScale listener fidelity across position, uniform rotation, and scale changes", () => {
     const parent = scene.createRootEntity("listener scale parent");
     const child = parent.createChild("listener scale child");
@@ -229,6 +208,29 @@ describe("Transform test", function () {
     expect(childFlags.some((flag) => (flag & TransformModifyFlags.WorldScale) !== 0)).to.equal(true);
     expect(child.transform.lossyWorldScale).to.deep.equal(new Vector3(2, 1, 1));
 
+    parent.destroy();
+  });
+
+  it("identifies the source of inherited and directly authored pose changes", () => {
+    const parent = scene.createRootEntity();
+    const middle = parent.createChild();
+    const child = middle.createChild();
+    const sources: unknown[] = [];
+    child._updateFlagManager.addListener((_flags, source) => sources.push(source));
+
+    expect(child.transform.worldPosition.x).toBe(0);
+    parent.transform.setPosition(4, 0, 0);
+    expect(sources.pop()).toBe(parent.transform);
+    expect(child.transform.worldPosition.x).toBe(4);
+
+    expect(child.transform.worldRotationQuaternion.w).toBe(1);
+    middle.transform.setRotation(0, 90, 0);
+    expect(sources.pop()).toBe(middle.transform);
+    expect(child.transform.worldRotationQuaternion.y).toBeCloseTo(Math.SQRT1_2);
+
+    expect(child.transform.worldPosition.y).toBe(0);
+    child.transform.setWorldPosition(4, 3, 0);
+    expect(sources.pop()).toBe(child.transform);
     parent.destroy();
   });
 
@@ -664,15 +666,10 @@ describe("Transform test", function () {
   });
 
   it("clone keeps correct world position when a component reads worldMatrix during clone", () => {
-    // A component that reads its (world) transform inside `_onClone` — exactly what the engine's own
-    // DynamicCollider does (`_onClone` -> `_syncNative` -> `_addNativeShape` reads `lossyWorldScale`).
-    // Clone fills children before the parent's own components, so this read resolves the PARENT's
-    // `_parentTransformCache` (and sets `_isParentDirty = false`) BEFORE the parent transform's
-    // `_parentTransformCache` is cloned. Without `@ignoreClone` that copy overwrites the resolved
-    // value with the source's `null`, leaving `cache === null` while `_isParentDirty === false`
-    // (a stale cache that is never revalidated), so after reparent the node renders at the origin.
+    // A child's clone hook can resolve the parent's transform cache before the parent's fields are copied.
+    // Copying the source's unresolved cache would discard the cloned parent link.
     class WorldReaderOnClone extends Script implements ICloneHook<WorldReaderOnClone> {
-      _onClone(target: any): void {
+      _onClone(target: WorldReaderOnClone): void {
         target.entity.transform.worldMatrix;
       }
     }

@@ -2,7 +2,7 @@ import { ISphereShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
-import { isValidPositiveFloat32 } from "./float32";
+import { PhysicsUtils } from "./PhysicsUtils";
 
 /**
  * A sphere-shaped collider.
@@ -21,14 +21,10 @@ export class SphereCollider extends Collider {
   }
 
   set radius(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("SphereCollider radius must be finite.");
-    }
-    value = Math.max(0, value);
+    value = PhysicsUtils.clampNonNegative(value, "SphereCollider radius");
     if (this._radius !== value) {
       this._radius = value;
-      this._geometryDirty = true;
-      this._markDirty();
+      this._setGeometryDirty();
     }
   }
 
@@ -39,7 +35,7 @@ export class SphereCollider extends Collider {
 
   protected override _syncGeometry(shape: ISphereShape | null, scale: Vector3): ISphereShape | null {
     const radius = this._radius * Math.max(scale.x, scale.y, scale.z);
-    if (!isValidPositiveFloat32(radius)) {
+    if (!PhysicsUtils.isValidPositiveFloat32(radius)) {
       return null;
     }
     if (!shape) {

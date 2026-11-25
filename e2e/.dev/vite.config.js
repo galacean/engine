@@ -10,6 +10,7 @@ String.prototype.replaceEJS = function (regStr, replaceStr) {
 
 // clear mpa
 fs.emptyDirSync(path.resolve(__dirname, OUT_PATH));
+fs.copySync(path.resolve(__dirname, "../../packages/physics-physx/libs"), path.resolve(__dirname, OUT_PATH, "physx"));
 
 // create mpa
 const demoList = fs

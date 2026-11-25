@@ -226,7 +226,8 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   // Light
   const light = rootEntity.createChild("light");
   light.transform.setPosition(5, 10, 5);
-  light.addComponent(PointLight);
+  const pointLight = light.addComponent(PointLight);
+  pointLight.color.set(150, 150, 150, 1);
 
   // Create wavy terrain (triangle mesh)
   createWavyTerrain(engine, rootEntity);

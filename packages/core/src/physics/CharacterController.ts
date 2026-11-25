@@ -1,27 +1,28 @@
 import { ControllerCollisionFlag, ControllerNonWalkableMode, ICharacterController } from "@galacean/engine-design";
 import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
-import { ignoreClone } from "../clone/CloneDecorators";
+import { assignmentClone, ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 import type { PhysicsScene } from "./PhysicsScene";
+import { PhysicsUtils } from "./PhysicsUtils";
 import { Rigidbody } from "./Rigidbody";
-import { isValidPositiveFloat32 } from "./float32";
-import { normalizeDirection } from "./unitDirection";
 
 /**
  * A capsule that moves and slides along obstacles through {@link move}.
- * @remarks The Entity's world scale sizes the shape, and {@link upDirection} orients it. The controller moves
- * independently of Rigidbody ownership and Entity rotation.
+ * @remarks The Entity's world scale sizes the shape, {@link center} transforms with the Entity's world rotation and
+ * scale, and {@link upDirection} orients the capsule itself. The controller moves independently of Rigidbody
+ * ownership and Entity rotation.
  */
 export class CharacterController extends Collider {
+  private static readonly _defaultUpDirection = Object.freeze(new Vector3(0, 1, 0));
   private static readonly _tempMovePosition = new Vector3();
-  private static readonly _tempWorldScale = new Vector3();
 
   private _radius = 0.5;
   private _height = 2;
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
-  private _upDirection = new Vector3(0, 1, 0);
+  @assignmentClone
+  private _upDirection = CharacterController._defaultUpDirection;
   private _slopeLimit = 45;
 
   @ignoreClone
@@ -41,10 +42,7 @@ export class CharacterController extends Collider {
   }
 
   set radius(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CharacterController radius must be finite.");
-    }
-    value = Math.max(0, value);
+    value = PhysicsUtils.clampNonNegative(value, "CharacterController radius");
     if (this._radius !== value) {
       this._radius = value;
       this._setGeometryDirty();
@@ -63,10 +61,7 @@ export class CharacterController extends Collider {
   }
 
   set height(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CharacterController height must be finite.");
-    }
-    value = Math.max(0, value);
+    value = PhysicsUtils.clampNonNegative(value, "CharacterController height");
     if (this._height !== value) {
       this._height = value;
       this._setGeometryDirty();
@@ -99,10 +94,7 @@ export class CharacterController extends Collider {
   }
 
   set stepOffset(value: number) {
-    if (!Number.isFinite(value)) {
-      throw new Error("CharacterController stepOffset must be finite.");
-    }
-    value = Math.max(0, value);
+    value = PhysicsUtils.clampNonNegative(value, "CharacterController stepOffset");
     if (this._stepOffset !== value) {
       this._stepOffset = value;
       this._setGeometryDirty();
@@ -208,29 +200,19 @@ export class CharacterController extends Collider {
   /**
    * @internal
    */
-  override _getVolumeDistance(): number {
-    return -1;
-  }
-
-  /**
-   * @internal
-   */
   override _sync(): void {
     const transform = this.entity.transform;
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state.
-    transform.worldMatrix;
+    const worldMatrix = transform.worldMatrix;
     const lossyScale = transform.lossyWorldScale;
-    const scaleX = lossyScale.x;
-    const scaleY = lossyScale.y;
-    const scaleZ = lossyScale.z;
     const needsAttach = !this._inScene;
 
     // Sync capsule dimensions and lazily create the native controller.
-    const absScale = CharacterController._tempWorldScale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
+    const absScale = this._getGeometryScale(lossyScale, worldMatrix);
     if (needsAttach || this._geometryDirty || this._scaleChanged(absScale)) {
       const radius = this._radius * Math.max(absScale.x, absScale.z);
       const scaledHeight = this._height * absScale.y;
-      if (!isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
+      if (!PhysicsUtils.isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
         this._detach();
         return;
       }
@@ -241,13 +223,22 @@ export class CharacterController extends Collider {
       (this._controller ||= this._createNative()).setCapsule(radius, halfHeight, stepOffset);
     }
 
-    // Sync world position and signed center offset.
+    // Sync world position and local center transformed into world space.
     const controller = this._controller!;
     const position = transform.worldPosition;
     const colliderCenter = this.center;
-    const centerX = colliderCenter.x * scaleX;
-    const centerY = colliderCenter.y * scaleY;
-    const centerZ = colliderCenter.z * scaleZ;
+    const cx = colliderCenter.x;
+    const cy = colliderCenter.y;
+    const cz = colliderCenter.z;
+    let centerX = 0;
+    let centerY = 0;
+    let centerZ = 0;
+    if (cx !== 0 || cy !== 0 || cz !== 0) {
+      const e = worldMatrix.elements;
+      centerX = cx * e[0] + cy * e[4] + cz * e[8];
+      centerY = cx * e[1] + cy * e[5] + cz * e[9];
+      centerZ = cx * e[2] + cy * e[6] + cz * e[10];
+    }
     const syncedCenter = this._syncedCenter;
     const nativePosition = this._nativePosition;
     if (
@@ -299,7 +290,7 @@ export class CharacterController extends Collider {
    * @throws When the value is not a positive, normal, finite Float32.
    */
   protected override _validateContactOffset(value: number): number {
-    if (!isValidPositiveFloat32(value)) {
+    if (!PhysicsUtils.isValidPositiveFloat32(value)) {
       throw new Error("CharacterController contactOffset must be a positive, normal, finite Float32.");
     }
     return value;
@@ -316,7 +307,7 @@ export class CharacterController extends Collider {
 
   // Runtime Prefab calls use this method name.
   private _setUpDirection(value: Readonly<Vector3Like>): void {
-    const up = normalizeDirection(this._upDirection, value, "CharacterController upDirection");
+    const up = PhysicsUtils.normalizeDirection(this._upDirection, value, "CharacterController upDirection");
     if (up !== this._upDirection) {
       this._upDirection = up;
       this._controller?.setUpDirection(up);
@@ -331,10 +322,5 @@ export class CharacterController extends Collider {
     controller.setUpDirection(this._upDirection);
     controller.setSlopeLimit(this._slopeLimit);
     return controller;
-  }
-
-  private _setGeometryDirty(): void {
-    this._geometryDirty = true;
-    this._markDirty();
   }
 }

@@ -1,5 +1,11 @@
 import { createPhysics } from "../../utils/physics";
 import {
+  AnimationClip,
+  AnimationVector3Curve,
+  Animator,
+  AnimatorController,
+  AnimatorControllerLayer,
+  AnimatorLayerBlendingMode,
   BoxCollider,
   CharacterController,
   Collider,
@@ -7,11 +13,13 @@ import {
   ControllerNonWalkableMode,
   Entity,
   HitResult,
+  Keyframe,
   Layer,
   PhysicsScene,
   PlaneCollider,
   Rigidbody,
-  Script
+  Script,
+  WrapMode
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
@@ -62,6 +70,19 @@ describe("CharacterController", () => {
 
   function move(displacement: Vector3): number {
     return controller.move(displacement, 0.0001, physics.fixedTimeStep);
+  }
+
+  function directionClip(...directions: Vector3[]): AnimationClip {
+    const clip = new AnimationClip("tilt");
+    const curve = new AnimationVector3Curve();
+    directions.forEach((direction, time) => {
+      const key = new Keyframe<Vector3>();
+      key.time = time;
+      key.value = direction;
+      curve.addKey(key);
+    });
+    clip.addCurveBinding("role", CharacterController, "upDirection", curve);
+    return clip;
   }
 
   function update(count = 1): void {
@@ -493,6 +514,47 @@ describe("CharacterController", () => {
     expect(move(new Vector3(1, 0, 0))).toBe(0);
   });
 
+  it("applies a full up-direction animation key to the live capsule", () => {
+    role.transform.setPosition(0, 10, 0);
+    controller.height = 9;
+    move(new Vector3(0, 0, 0.02));
+    const original = controller.upDirection;
+    directionClip(new Vector3(2, 0, 0)).sampleAnimation(root, 0);
+    const flags = move(new Vector3(0, -20, 0));
+    expect(flags & ControllerCollisionFlag.Sides).toBeTruthy();
+    expect(role.transform.worldPosition.y).toBeCloseTo(0.52, 2);
+    expect(controller.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
+    expect(original).toMatchObject({ x: 0, y: 1, z: 0 });
+  });
+
+  it.each([
+    { mode: AnimatorLayerBlendingMode.Override, x: 2 / Math.sqrt(5), z: 1 / Math.sqrt(5) },
+    { mode: AnimatorLayerBlendingMode.Additive, x: Math.SQRT1_2, z: Math.SQRT1_2 }
+  ])("blends upDirection from the current base layer and holds the last key (mode=$mode)", ({ mode, x, z }) => {
+    const animator = root.addComponent(Animator);
+    const animatorController = new AnimatorController(engine);
+    const base = new AnimatorControllerLayer("base");
+    const tilt = new AnimatorControllerLayer("tilt");
+    animatorController.addLayer(base);
+    animatorController.addLayer(tilt);
+    base.stateMachine.addState("forward").clip = directionClip(new Vector3(0, 0, 1));
+    tilt.weight = 0.5;
+    tilt.blendingMode = mode;
+    const state = tilt.stateMachine.addState("lean");
+    state.clip = directionClip(new Vector3(), new Vector3(2, 0, 0));
+    state.wrapMode = WrapMode.Once;
+    animator.animatorController = animatorController;
+    animator.play("forward", 0);
+    animator.play("lean", 1);
+    engine.update();
+
+    for (let i = 0; i < 2; i++) {
+      animator.update(1);
+      expect(controller.upDirection.x).toBeCloseTo(x);
+      expect(controller.upDirection.z).toBeCloseTo(z);
+    }
+  });
+
   it("returns a read-only up direction snapshot", () => {
     const { upDirection } = controller;
     controller.upDirection = new Vector3(1, 0, 0);
@@ -792,8 +854,8 @@ describe("CharacterController", () => {
     const clone = entity.clone();
     try {
       const clonedController = clone.getComponent(CharacterController);
-      expect(clonedController.upDirection).not.toBe(cc.upDirection);
-      expect(clonedController.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
+      expect(clonedController.upDirection).toBe(cc.upDirection);
+      expect(() => Object.assign(clonedController.upDirection, { x: 0 })).toThrow(TypeError);
       clonedController.upDirection = { x: 0, y: 1, z: 0 };
       expect(cc.upDirection.x).toBe(1);
     } finally {
@@ -1074,6 +1136,93 @@ describe("CharacterController", () => {
 
     role.transform.setPosition(5, 2, 0);
     expect(physics.overlapSphereAll(new Vector3(5, 2, 0), 0.2)).toContain(controller);
+  });
+
+  it("preserves capsule dimensions under mirrored ancestors with rotation", () => {
+    const parent = root.createChild("mirrored-rotated-parent");
+    parent.transform.setScale(-1, 1, 1);
+    const child = parent.createChild("mirrored-rotated-cct");
+    const cc = child.addComponent(CharacterController);
+    cc.radius = 0.5;
+    cc.height = 2;
+    cc.stepOffset = 1.5;
+    cc.collisionLayer = Layer.Layer6;
+
+    const hit = new HitResult();
+    for (const yAngle of [45, 44.9999]) {
+      child.transform.setRotation(0, yAngle, 0);
+      expect(physics.raycast(new Ray(new Vector3(0.25, 0, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit)).toBe(
+        true
+      );
+      expect(hit.collider).toBe(cc);
+    }
+
+    child.transform.setRotation(0, 0, 45);
+    expect(physics.raycast(new Ray(new Vector3(0, 0.6, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(cc);
+    expect(physics.raycast(new Ray(new Vector3(0, 0.9, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6)).toBe(false);
+
+    // Effective stepOffset (1.5 > 2 * radius = 1.0) relies on the uncollapsed Z-rotated capsule height.
+    addBox(new Vector3(2, 1.2, 2), new Vector3(1.6, 0.6, 0)).collisionLayer = Layer.Layer5;
+    child.transform.setPosition(0, 1, 0);
+    cc.move(new Vector3(1, -0.1, 0), 0.001, physics.fixedTimeStep);
+    expect(child.transform.worldPosition.y).toBeGreaterThan(2.0);
+  });
+
+  it("transforms local center with Entity rotation and mirrored ancestors while keeping capsule upright", () => {
+    const hit = new HitResult();
+
+    // Case A: Y +90 rotation moves local center (2, 0, 0) to world (0, 0, -2) and stays synced across move().
+    const yawEntity = root.createChild("yaw-center-cct");
+    yawEntity.transform.setPosition(0, 2, 0);
+    yawEntity.transform.setRotation(0, 90, 0);
+    const yawCC = yawEntity.addComponent(CharacterController);
+    yawCC.radius = 0.5;
+    yawCC.height = 2;
+    yawCC.center.set(2, 0, 0);
+    yawCC.collisionLayer = Layer.Layer6;
+
+    expect(physics.raycast(new Ray(new Vector3(0, 10, -2), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(yawCC);
+    expect(physics.raycast(new Ray(new Vector3(2, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
+
+    yawCC.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep);
+    expect(yawEntity.transform.worldPosition.x).toBeCloseTo(1, 4);
+    update();
+    expect(physics.raycast(new Ray(new Vector3(1, 10, -2), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(yawCC);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, -2), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
+
+    // Case B: Z +90 tilt moves local center (0, 2, 0) to world (-2, 5, 0) while keeping capsule upright along +Y.
+    const tiltEntity = root.createChild("tilt-center-cct");
+    tiltEntity.transform.setPosition(0, 5, 0);
+    tiltEntity.transform.setRotation(0, 0, 90);
+    const tiltCC = tiltEntity.addComponent(CharacterController);
+    tiltCC.radius = 0.5;
+    tiltCC.height = 2;
+    tiltCC.center.set(0, 2, 0);
+    tiltCC.collisionLayer = Layer.Layer6;
+
+    expect(physics.raycast(new Ray(new Vector3(-2, 5.7, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(tiltCC);
+    expect(physics.raycast(new Ray(new Vector3(-2.7, 5, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6)).toBe(false);
+
+    // Case C: Mirrored ancestor (-1, 1, 1) with Y +45 rotation preserves rotated center without collapsing X.
+    const mirrorParent = root.createChild("mirrored-center-parent");
+    mirrorParent.transform.setScale(-1, 1, 1);
+    const mirrorChild = mirrorParent.createChild("mirrored-center-cct");
+    mirrorChild.transform.setRotation(0, 45, 0);
+    const mirrorCC = mirrorChild.addComponent(CharacterController);
+    mirrorCC.radius = 0.5;
+    mirrorCC.height = 2;
+    mirrorCC.center.set(2, 0, 0);
+    mirrorCC.collisionLayer = Layer.Layer6;
+
+    expect(
+      physics.raycast(new Ray(new Vector3(-Math.SQRT2, 10, -Math.SQRT2), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)
+    ).toBe(true);
+    expect(hit.collider).toBe(mirrorCC);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
   });
 
   it("syncs only its own pending state on move when autoSyncTransforms is false", () => {

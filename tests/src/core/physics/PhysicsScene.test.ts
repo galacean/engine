@@ -1226,7 +1226,8 @@ describe("Physics Test", () => {
       const center = new Vector3(3, 3, 3);
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
       const direction = new Vector3(0, 1, 0);
-      const orientation = new Quaternion();
+      class SweepRotation extends Quaternion {}
+      const orientation = new SweepRotation();
       expect(
         physicsScene.boxCast(center, halfExtents, direction, orientation, Number.MAX_VALUE, Layer.Everything)
       ).to.eq(false);
@@ -1338,7 +1339,8 @@ describe("Physics Test", () => {
       const center = new Vector3(3, 3, 3);
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
       const direction = new Vector3(-1, -1, -1).normalize();
-      const outHitResult = new HitResult();
+      class SweepHit extends HitResult {}
+      const outHitResult = new SweepHit();
 
       // Test boxCast(center, halfExtents, direction, outHitResult) - direct HitResult
       expect(physicsScene.boxCast(center, halfExtents, direction, outHitResult)).to.eq(true);
@@ -1626,7 +1628,7 @@ describe("Physics Test", () => {
       const radius = 0.5;
       const height = 2;
       const direction = new Vector3(-1, -1, -1).normalize();
-      const outHitResult = new HitResult();
+      const outHitResult: HitResult = { ...new HitResult() };
 
       // Test capsuleCast(center, radius, height, direction, outHitResult) - direct HitResult
       expect(physicsScene.capsuleCast(center, radius, height, direction, outHitResult)).to.eq(true);
@@ -2878,18 +2880,26 @@ describe("Physics Test", () => {
       expect(updateMass).toHaveBeenLastCalledWith(12, null, null, null);
     });
 
-    it("recycles more than 256 trimmed raycastAll HitResults and drains the pool on gc", () => {
-      enginePhysX.resourceManager.gc();
-      const pool = (PhysicsScene as any)._raycastHitPool as HitResult[];
-      expect(pool).toHaveLength(0);
-
+    it("reuses more than 256 discarded ray hits across independent output arrays", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity();
+      root.transform.setPosition(0, 1800, 0);
+      root.addComponent(BoxCollider);
+      const ray = new Ray(new Vector3(-2, 1800, 0), new Vector3(1, 0, 0));
       const hits = Array.from({ length: 300 }, () => new HitResult());
-      expect(physicsScene.raycastAll(new Ray(new Vector3(0, 500, 0), new Vector3(0, 1, 0)), 10, hits)).toBe(false);
-      expect(hits).toHaveLength(0);
-      expect(pool).toHaveLength(300);
-
-      enginePhysX.resourceManager.gc();
-      expect(pool).toHaveLength(0);
+      const supplied = new Set(hits);
+      try {
+        expect(physicsScene.raycastAll(ray, 0, hits)).toBe(false);
+        expect(hits).toHaveLength(0);
+        for (let i = 0; i < 300; i++) {
+          const output: HitResult[] = [];
+          expect(physicsScene.raycastAll(ray, output)).toBe(true);
+          expect(supplied.delete(output[0])).toBe(true);
+        }
+        expect(supplied.size).toBe(0);
+      } finally {
+        root.destroy();
+        enginePhysX.resourceManager.gc();
+      }
     });
 
     it("prunes silently retired trigger pairs while keeping active pairs and drains dispatch receiver pool on gc", () => {
@@ -2939,16 +2949,33 @@ describe("Physics Test", () => {
       expect(exits).toHaveLength(0);
       expect(triggerReceivers.size).toBe(1);
       expect(stays).toEqual([persistent]);
+      const receiverPool = (PhysicsScene as any)._triggerReceiverPool as Array<{
+        receiver0: unknown;
+        receiver1: unknown;
+      }>;
+      expect(receiverPool).toHaveLength(1);
+      expect(receiverPool[0].receiver0).toBeNull();
+      expect(receiverPool[0].receiver1).toBeNull();
 
-      // Re-enabling must emit a fresh Enter rather than reusing the retired receiver entry.
+      // Re-enabling must emit a fresh Enter and reuse the pooled receiver entry.
       enters.length = 0;
       transient.enabled = true;
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(enters).toEqual([transient]);
       expect(triggerReceivers.size).toBe(2);
+      expect(receiverPool).toHaveLength(0);
+
+      // Retiring the remaining pairs when no triggers remain active returns entries to the pool too.
+      persistent.enabled = false;
+      transient.enabled = false;
+      physicsScene._update(physicsScene.fixedTimeStep);
+      expect(triggerReceivers.size).toBe(0);
+      expect(receiverPool).toHaveLength(2);
+      expect(receiverPool.every((entry) => entry.receiver0 === null && entry.receiver1 === null)).toBe(true);
 
       enginePhysX.resourceManager.gc();
       expect(dispatchPool).toHaveLength(0);
+      expect(receiverPool).toHaveLength(0);
     });
 
     it("controls query-time synchronization via autoSyncTransforms and syncTransforms", () => {

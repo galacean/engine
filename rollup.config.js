@@ -86,32 +86,6 @@ function config({ location, pkgJson }) {
   return {
     umd: (compress) => {
       const umdConfig = pkgJson.umd;
-      const assetDirectory = umdConfig.assetDirectory;
-      if (assetDirectory) {
-        // CDN publication preserves the directory structure under dist.
-        curPlugins.push(
-          replace({
-            delimiters: ["", ""],
-            preventAssignment: true,
-            values: { [`../${assetDirectory}/`]: `./${assetDirectory}/` }
-          }),
-          {
-            name: "umd-assets",
-            buildStart() {
-              const sourceDirectory = path.join(location, assetDirectory);
-              for (const filename of fs.readdirSync(sourceDirectory)) {
-                const source = path.join(sourceDirectory, filename);
-                this.addWatchFile(source);
-                this.emitFile({
-                  type: "asset",
-                  fileName: `${assetDirectory}/${filename}`,
-                  source: fs.readFileSync(source)
-                });
-              }
-            }
-          }
-        );
-      }
 
       if (compress) {
         curPlugins.push(minify({ sourceMap: true }));
@@ -152,18 +126,15 @@ function config({ location, pkgJson }) {
             file: mainFile,
             sourcemap: true,
             format: "commonjs",
-            plugins:
-              pkgJson.name === "@galacean/engine-physics-physx"
-                ? [
-                    {
-                      name: "preserve-physx-runtime-import",
-                      renderDynamicImport({ targetModuleId }) {
-                        // Node resolves the packaged ESM factory through a file URL.
-                        if (targetModuleId === null) return { left: "import(", right: ")" };
-                      }
-                    }
-                  ]
-                : []
+            plugins: [
+              {
+                name: "native-runtime-import",
+                renderDynamicImport({ targetModuleId }) {
+                  // Node loads file URLs through native import().
+                  if (targetModuleId === null) return { left: "import(", right: ")" };
+                }
+              }
+            ]
           }
         ],
         plugins: curPlugins
@@ -300,43 +271,44 @@ function shaderParserModuleConfig() {
   };
 }
 
-async function makeRollupConfig({ type, compress = true, visualizer = true, ..._ }) {
-  return config({ ..._ })[type](compress, visualizer);
-}
-
-let promises = [];
-
-switch (BUILD_TYPE) {
-  case "UMD":
-    promises.push(...getUMD());
-    break;
-  case "MODULE":
-    promises.push(...getModule());
-    break;
-  case "BUNDLED":
-    promises.push(...getBundled());
-    break;
-  case "ALL":
-    promises.push(...getAll());
-    break;
-  default:
-    break;
+function makeRollupConfig({ location, pkgJson, type, compress = true }) {
+  const build = config({ location, pkgJson })[type](compress);
+  const { assetDirectory } = pkgJson;
+  if (assetDirectory) {
+    const sourceDirectory = path.join(location, assetDirectory);
+    build.plugins.push(
+      replace({
+        delimiters: ["", ""],
+        preventAssignment: true,
+        values: { [`../${assetDirectory}/`]: `./${assetDirectory}/` }
+      }),
+      // All entries share the assets emitted by ESM, or by the minified entry in a UMD-only build.
+      (type === "module" || (BUILD_TYPE === "UMD" && compress)) && {
+        name: "package-assets",
+        buildStart() {
+          this.addWatchFile(sourceDirectory);
+        },
+        generateBundle({ format }) {
+          if (format === "cjs") return;
+          for (const filename of fs.readdirSync(sourceDirectory)) {
+            this.emitFile({
+              type: "asset",
+              fileName: `${assetDirectory}/${filename}`,
+              source: fs.readFileSync(path.join(sourceDirectory, filename))
+            });
+          }
+        }
+      }
+    );
+  }
+  return build;
 }
 
 function getUMD() {
   const configs = pkgs.filter((pkg) => pkg.pkgJson.umd);
   return configs
     .map((config) => makeRollupConfig({ ...config, type: "umd" }))
-    .concat(
-      configs.map((config) =>
-        makeRollupConfig({
-          ...config,
-          type: "umd",
-          compress: false,
-          visualizer: false
-        })
-      )
-    );
+    .concat(configs.map((config) => makeRollupConfig({ ...config, type: "umd", compress: false })));
 }
 
 function getModule() {
@@ -370,8 +342,19 @@ function getBundled() {
   return [];
 }
 
-function getAll() {
-  return [...getModule(), ...getUMD(), ...getBundled()];
+function getBuildConfigs() {
+  switch (BUILD_TYPE) {
+    case "UMD":
+      return getUMD();
+    case "MODULE":
+      return getModule();
+    case "BUNDLED":
+      return getBundled();
+    case "ALL":
+      return [...getModule(), ...getUMD(), ...getBundled()];
+    default:
+      return [];
+  }
 }
 
-export default Promise.all(promises);
+export default getBuildConfigs();

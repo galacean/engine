@@ -16,12 +16,12 @@ import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
+import { PhysXShape } from "./shape/PhysXShape";
 
 /**
  * Simulates actors and runs scene queries through PhysX.
  */
 export class PhysXPhysicsScene implements IPhysicsScene {
-  private static readonly _capsuleYAxis = new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2);
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _tempPose: { translation: Vector3; rotation: Quaternion } = {
@@ -38,11 +38,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     pose.translation.copyFrom(center);
     const rotation = pose.rotation;
     if (orientation) {
-      if (axis) {
-        Quaternion.multiply(orientation, axis, rotation);
-      } else {
-        rotation.copyFrom(orientation);
-      }
+      axis ? Quaternion.multiply(orientation, axis, rotation) : rotation.copyFrom(orientation);
       rotation.normalize();
     } else {
       rotation.set(0, 0, 0, 1);
@@ -202,9 +198,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   addActor(actor: PhysXActor): void {
     actor._scene = this;
     this._pxScene.addActor(actor._pxActor, null);
-    const shapes = actor._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      this._addShape(shapes[i]._id);
+    const ids = actor._shapeIds;
+    for (let i = 0, n = ids.length; i < n; i++) {
+      this._addShape(ids[i]);
     }
   }
 
@@ -214,9 +210,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   removeActor(actor: PhysXActor): void {
     actor._scene = null;
     this._pxScene.removeActor(actor._pxActor, true);
-    const shapes = actor._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      this._removeShape(shapes[i]._id);
+    const ids = actor._shapeIds;
+    for (let i = 0, n = ids.length; i < n; i++) {
+      this._removeShape(ids[i]);
     }
   }
 
@@ -365,17 +361,22 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     );
     const length = hits.length;
     if (!length) return;
+    const hitStride = 9;
+    if (length === hitStride) {
+      this._readHit(hits, 0, onHit);
+      return;
+    }
 
-    // Nested queries can overwrite the WASM view. Keep a separate snapshot for each active dispatch.
+    // The first callback can overwrite unread hits by issuing another query.
     const buffers = (this._raycastBuffers ||= []);
     let buffer = buffers.pop();
     if (!buffer || buffer.length < length) {
-      let nextLength = buffer ? buffer.length * 2 : 144;
+      let nextLength = buffer ? buffer.length * 2 : 16 * hitStride;
       while (nextLength < length) nextLength *= 2;
       buffer = new Float64Array(nextLength);
     }
     buffer.set(hits);
-    for (let i = 0; i < length; i += 9) {
+    for (let i = 0; i < length; i += hitStride) {
       this._readHit(buffer, i, onHit);
     }
     buffers.push(buffer);
@@ -439,7 +440,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   ): boolean {
     return this._sweepSingle(
       this._getCapsuleGeometry(radius, halfHeight),
-      PhysXPhysicsScene._queryPose(center, orientation, PhysXPhysicsScene._capsuleYAxis),
+      PhysXPhysicsScene._queryPose(center, orientation, PhysXShape._yAxis),
       direction,
       distance,
       layerMask,
@@ -485,7 +486,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   ): Uint32Array {
     return this._pxSceneQueries.overlap(
       this._getCapsuleGeometry(radius, halfHeight),
-      PhysXPhysicsScene._queryPose(center, orientation, PhysXPhysicsScene._capsuleYAxis),
+      PhysXPhysicsScene._queryPose(center, orientation, PhysXShape._yAxis),
       layerMask,
       true,
       null
@@ -544,12 +545,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   /**
    * @internal
-   * Queue removal for the next simulation step. Pairs for a collider that stays removed end silently.
+   * Queue removal for active trigger pairs. Pairs for a collider that stays removed end silently.
    * If the same collider ID returns before the step, rediscovered pairs continue and the others emit exits.
    */
   _removeShape(id: number): void {
     this._clearContactsForShape(id);
-    if (this._activeTriggers.length > 0) {
+    if (this._hasActiveTrigger(id)) {
       this._shapeChanges.set(id, ShapeChange.Removed);
     } else {
       this._shapeChanges.delete(id);
@@ -559,7 +560,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   /** @internal Reconcile active trigger and contact pairs across a same-actor shape replacement. */
   _replaceShape(id: number): void {
-    if (this._activeTriggers.length > 0 || this._activeContacts.has(id)) {
+    if (this._activeContacts.has(id) || this._hasActiveTrigger(id)) {
       this._shapeChanges.set(id, ShapeChange.Reconciled);
     }
   }
@@ -630,6 +631,15 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       this._readHit(hits, 0, outHitResult);
     }
     return true;
+  }
+
+  private _hasActiveTrigger(id: number): boolean {
+    const triggers = this._activeTriggers;
+    for (let i = 0, n = triggers.length; i < n; i++) {
+      const trigger = triggers[i];
+      if (trigger.shape0Id === id || trigger.shape1Id === id) return true;
+    }
+    return false;
   }
 
   private _syncShapeChanges(): void {
