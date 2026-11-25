@@ -15,8 +15,8 @@ type LoadableResource = EngineObject | Shader;
  */
 export class ResourceManager {
   /** @internal */
-  static _loaders: { [key: string]: Loader<any> } = {};
-  private static _extTypeMapping: { [key: string]: string } = {};
+  static _loaders: { [key: string]: Loader<any> } = Object.create(null);
+  private static _extTypeMapping: { [key: string]: string } = Object.create(null);
 
   /**
    * @internal
@@ -42,7 +42,7 @@ export class ResourceManager {
   /** Base url for loading assets. */
   baseUrl: string | null = null;
 
-  private _loadingPromises: Record<string, AssetPromise<any>> = {};
+  private _loadingPromises: Record<string, AssetPromise<any>> = Object.create(null);
 
   /** Asset path pool, key is the `instanceID` of resource, value is asset path. */
   private _assetPool: Record<number, string> = Object.create(null);
@@ -55,7 +55,7 @@ export class ResourceManager {
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
   /** Restorable resource information pool, key is the `instanceID` of resource. */
   private _contentRestorerPool: Record<number, ContentRestorer<any>> = Object.create(null);
-  private _subAssetPromiseCallbacks: SubAssetPromiseCallbacks<any> = {};
+  private _subAssetPromiseCallbacks: SubAssetPromiseCallbacks<any> = Object.create(null);
 
   /**
    * Create a ResourceManager.
@@ -213,7 +213,7 @@ export class ResourceManager {
    * @internal
    */
   _onSubAssetSuccess<T>(remoteAssetBaseURL: string, assetSubPath: string, value: T): void {
-    const subAssetPromiseCallbacks = (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {});
+    const subAssetPromiseCallbacks = (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= Object.create(null));
     const subPromiseCallback = subAssetPromiseCallbacks[assetSubPath];
     if (subPromiseCallback) {
       subPromiseCallback.resolve!(value);
@@ -344,7 +344,14 @@ export class ResourceManager {
     item.url = item.url ?? item.urls.join(",");
     // Parse url
     const { assetBaseURL, queryPath } = this._parseURL(item.url);
-    const paths = queryPath ? this._parseQueryPath(queryPath) : [];
+    let paths: string[] = [];
+    if (queryPath) {
+      try {
+        paths = this._parseQueryPath(queryPath);
+      } catch (error) {
+        return new AssetPromise((_, reject) => reject(error));
+      }
+    }
 
     const virtualResourceEntry = this._virtualPathResourceMap[assetBaseURL];
     this._resolveLoadItemOptions(item, virtualResourceEntry);
@@ -355,8 +362,12 @@ export class ResourceManager {
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
     if (cacheObject) {
-      return new AssetPromise((resolve) => {
-        resolve(this._getResolveResource(cacheObject, paths) as T);
+      return new AssetPromise((resolve, reject) => {
+        try {
+          resolve(this._getResolveResource(cacheObject, paths) as T);
+        } catch (error) {
+          reject(error);
+        }
       });
     }
 
@@ -448,7 +459,7 @@ export class ResourceManager {
 
     // Pending
     const promise = new AssetPromise<T>((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
-      (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {})[assetSubPath] = {
+      (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= Object.create(null))[assetSubPath] = {
         resolve,
         reject
       };
@@ -528,6 +539,15 @@ export class ResourceManager {
       for (let i = 0, n = paths.length; i < n; i++) {
         const path = paths[i];
         subResource = subResource?.[path];
+        if (
+          typeof subResource === "function" ||
+          subResource instanceof Engine ||
+          subResource === globalThis ||
+          subResource === Object.prototype ||
+          (typeof EventTarget !== "undefined" && subResource instanceof EventTarget)
+        ) {
+          throw new Error("Disallowed sub-asset path target");
+        }
         if (subResource === undefined) {
           throw new Error(`Sub-asset path does not exist: ${paths.join(".")}`);
         }
@@ -574,7 +594,7 @@ export class ResourceManager {
     return { assetBaseURL, queryPath };
   }
 
-  private _parseQueryPath(string): string[] {
+  private _parseQueryPath(string: string): string[] {
     const result: string[] = [];
     if (string.charCodeAt(0) === charCodeOfDot) {
       result.push("");
@@ -586,7 +606,11 @@ export class ResourceManager {
       } else if (expression) {
         key = expression.trim();
       }
+      if (key === "constructor" || key === "prototype" || key === "__proto__") {
+        throw new Error("Reserved sub-asset path member: " + key);
+      }
       result.push(key);
+      return match;
     });
     return result;
   }

@@ -12,8 +12,10 @@ import {
   AnimatorState,
   AnimatorConditionMode,
   AnimatorControllerParameterValue,
+  StateMachineScript,
   WrapMode
 } from "@galacean/engine-core";
+import { ReflectionParser } from "./resource-deserialize/resources/parser/ReflectionParser";
 
 @resourceLoader(AssetType.AnimatorController, ["animCtrl"])
 class AnimatorControllerLoader extends Loader<AnimatorController> {
@@ -61,7 +63,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                 state.clipStartTime = clipStartNormalizedTime;
                 state.clipEndTime = clipEndNormalizedTime;
                 scripts.forEach((script) => {
-                  state.addStateMachineScript(Loader.getClass(script));
+                  state.addStateMachineScript(ReflectionParser._resolveClass(script, StateMachineScript));
                 });
                 statesMap[id!] = state;
                 if (clipData) {
