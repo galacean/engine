@@ -2,6 +2,7 @@ packages/core/src/physics/joint/Joint.ts
   s_18ddad9c3776b3::t_d800ad9bce2bb4 434-441
 packages/core/src/physics/PhysicsUtils.ts
   s_18ddad9c3776b3::t_d800ad9bce2bb4 13,68,70-72
+  s_18ddad9c3776b3::t_0b6a8171d587cd 9-12
 docs/en/physics/joint/hingeJoint.mdx
   s_f842f9b6c651e4::t_3a57b4e8c4dd70 65-66,76
 docs/en/physics/joint/springJoint.mdx
