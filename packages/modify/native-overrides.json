@@ -592,6 +592,10 @@
     "replacement": "packages/modify/src/native/core/src/shader/ShaderData.ts"
   },
   {
+    "original": "packages/core/src/shader/ShaderMacroCollection.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/ShaderMacroCollection.ts"
+  },
+  {
     "original": "packages/core/src/shader/ShaderPass.ts",
     "replacement": "packages/modify/src/native/core/src/shader/ShaderPass.ts"
   },
