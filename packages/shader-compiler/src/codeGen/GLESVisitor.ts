@@ -3,7 +3,7 @@ import type { IPoolElement } from "@galacean/engine-core";
 import { BaseToken } from "@galacean/engine-shader-parser/internal";
 import { EShaderStage } from "@galacean/engine-shader-parser/internal";
 import { Keyword } from "@galacean/engine-shader-parser/internal";
-import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
+import { ASTNode, ParserUtils, TreeNode } from "@galacean/engine-shader-parser/internal";
 import { NodeChild } from "@galacean/engine-shader-parser/internal";
 import { ShaderData } from "@galacean/engine-shader-parser/internal";
 import { ESymbolType } from "@galacean/engine-shader-parser/internal";
@@ -104,6 +104,17 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     for (const precision of data.globalPrecisions) {
       out.push({ text: precision.codeGen(this), index: precision.location.start.index });
     }
+    for (const qualifier of data.globalQualifierDeclarations) {
+      const text = this._emitQualifierDeclaration(qualifier);
+      if (text) out.push({ text, index: qualifier.location.start.index });
+    }
+  }
+
+  private _emitQualifierDeclaration(node: ASTNode.QualifierDeclaration): string {
+    if (this.context.stage !== EShaderStage.VERTEX) return "";
+    const qualifier = node.children[0] as ASTNode.TypeQualifier;
+    if (!ParserUtils.isInvariantOnlyQualifier(qualifier)) return "";
+    return node.codeGen(this);
   }
 
   /**
@@ -1114,6 +1125,14 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
           text: child.codeGen(this),
           index: child.location.start.index
         });
+      } else if (child instanceof ASTNode.QualifierDeclaration) {
+        const text = this._emitQualifierDeclaration(child);
+        if (text) {
+          out.push({
+            text,
+            index: child.location.start.index
+          });
+        }
       } else if (child instanceof ASTNode.FunctionDefinition) {
         const text =
           this.context._referencedGlobalMacroASTs.indexOf(child) !== -1

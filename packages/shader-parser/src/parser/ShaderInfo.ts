@@ -46,6 +46,9 @@ export class ShaderData {
 
   globalPrecisions: ASTNode.PrecisionSpecifier[] = [];
 
+  /** Standalone global qualifier declarations outside conditional blocks. @internal */
+  globalQualifierDeclarations: ASTNode.QualifierDeclaration[] = [];
+
   globalMacroDeclarations: ASTNode.GlobalDeclaration[] = [];
 
   /**

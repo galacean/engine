@@ -1263,6 +1263,15 @@ namespace ASTNodes {
     }
   }
 
+  @ASTNodeDecorator(NoneTerminal.qualifier_declaration)
+  export class QualifierDeclaration extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      if (!sa.symbolTableStack.isInMacroBranch) {
+        sa.shaderData.globalQualifierDeclarations.push(this);
+      }
+    }
+  }
+
   @ASTNodeDecorator(NoneTerminal.function_identifier)
   export class FunctionIdentifier extends TreeNode {
     ident: GalaceanDataType;
@@ -1837,12 +1846,12 @@ namespace ASTNodes {
       // A global variable without an initializer is Galacean's implicit uniform (bound at runtime
       // by the material system). With an initializer, `this.isStatic` becomes true — it's a
       // compile-time value, not a uniform. `const`-qualified is a separate read-only path.
-      const hasInitializer = children.length === 4;
-      // Grammar `fully_specified_type ID array_specifier` — children[2] is the array specifier.
-      // Without it, `float arr[3]` at global scope stored as scalar `float`, then every `arr[i]`
-      // ref misfires `NonIndexableType`. Recover the array-ness at symbol level.
-      const arraySpecifier = children.length === 3 ? (children[2] as ArraySpecifier) : undefined;
-      const initializer = hasInitializer ? (children[3] as Initializer) : undefined;
+      const hasInitializer = children.length === 4 || children.length === 5;
+      // Preserve array-ness from either the declarator (`T arr[N]`) or the type specifier (`T[N] arr`).
+      const arraySpecifier =
+        (children.length === 3 || children.length === 5 ? (children[2] as ArraySpecifier) : undefined) ??
+        type.typeSpecifier.arraySpecifier;
+      const initializer = hasInitializer ? (children[children.length - 1] as Initializer) : undefined;
       const typeInfo = new SymbolType(
         type.type,
         type.typeSpecifier.lexeme,
@@ -1865,7 +1874,7 @@ namespace ASTNodes {
       const insertResult = sa.symbolTableStack.insert(sm, ident.branch);
       sa.reportRedefinition(ident.location, sm, insertResult);
 
-      if (children.length === 4) {
+      if (hasInitializer) {
         this.isStatic = true;
       }
     }
@@ -1906,9 +1915,15 @@ namespace ASTNodes {
         if (length === 3) {
           // variable_declaration_list ',' id
           newVariable.set(ident.location, [type, ident]);
-        } else {
+        } else if (length === 4) {
           // variable_declaration_list ',' id array_specifier
           newVariable.set(ident.location, [type, ident, children[3] as ArraySpecifier]);
+        } else if (length === 5) {
+          // variable_declaration_list ',' id '=' initializer
+          newVariable.set(ident.location, [type, ident, children[3], children[4]]);
+        } else {
+          // variable_declaration_list ',' id array_specifier '=' initializer
+          newVariable.set(ident.location, [type, ident, children[3], children[4], children[5]]);
         }
         newVariable.semanticAnalyze(sa);
         this.variableDeclarations.push(newVariable);
