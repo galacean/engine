@@ -1,11 +1,12 @@
-// Run with node world/scripts/generate-markup-icon.mjs after editing the icon.
+// Run with node world/scripts/generate-markup-icon.mjs and Khronos KTX-Software 4.4.2 on PATH.
 import { chromium } from "@playwright/test";
+import { execFileSync } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 
 const browser = await chromium.launch();
 try {
   const page = await browser.newPage();
-  const { webp, layout } = await page.evaluate(async () => {
+  const { png, layout } = await page.evaluate(async () => {
     const ICON_SIZE = 112;
     const CANVAS_SCALE = 3;
     const CYCLE_SECONDS = 3.4;
@@ -202,12 +203,16 @@ try {
       tile.close();
     }
     return {
-      webp: atlas.toDataURL("image/webp", 0.95).split(",")[1],
+      png: atlas.toDataURL("image/png").split(",")[1],
       layout: { fps, columns, rows, trim: [left, top, size - right, size - bottom].map(n => n / size), frames }
     };
   });
   const assets = new URL("../demos/seed-world/assets/", import.meta.url);
-  await writeFile(new URL("markup-pen.webp", assets), Buffer.from(webp, "base64"));
+  const ktx2 = execFileSync("ktx", [
+    "create", "--format", "R8G8B8A8_SRGB", "--assign-tf", "srgb", "--encode", "uastc", "--uastc-quality", "3",
+    "--zstd", "18", "--stdin", "--stdout"
+  ], { input: Buffer.from(png, "base64"), maxBuffer: 8 * 1024 * 1024 });
+  await writeFile(new URL("markup-pen.ktx2", assets), ktx2);
   await writeFile(new URL("markup-pen.json", assets), JSON.stringify(layout) + "\n");
 } finally {
   await browser.close();

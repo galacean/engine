@@ -129,9 +129,8 @@ export class SeedWorldCameraButton {
     let time = 0;
     let atlasReady = false;
     engine.resourceManager.load<Texture2D>({
-      url: new URL("../assets/markup-pen.webp", import.meta.url).href,
-      type: AssetType.Texture,
-      params: { mipmap: false }
+      url: new URL("../assets/markup-pen.ktx2", import.meta.url).href,
+      type: AssetType.KTX2
     }).then(texture => {
       if (this.sprite.destroyed) return;
       this.sprite.texture = texture;

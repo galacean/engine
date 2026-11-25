@@ -1024,7 +1024,7 @@ export class SeedWorldPhotoWorkspace {
             this.trace.record("history-error", { error: rawError });
             if (error instanceof AgentValueSizeError) {
               this.notify(this.editing?.history.annotations.length
-                ? "本笔未保存。请先发送当前照片，或重拍。"
+                ? "本笔未保存，请缩短笔画后重试。\n也可以发送当前照片，或重拍。"
                 : "本笔过长，未保存。请缩短笔画后重试。");
             } else {
               this.notify(error instanceof Error ? error.message : rawError);

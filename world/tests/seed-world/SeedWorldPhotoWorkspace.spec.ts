@@ -399,7 +399,7 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
 
   it.each([
     [0, "本笔过长，未保存。请缩短笔画后重试。"],
-    [1, "本笔未保存。请先发送当前照片，或重拍。"],
+    [1, "本笔未保存，请缩短笔画后重试。\n也可以发送当前照片，或重拍。"],
     [64, "已达 64 笔，本笔未保存。\n请先发送当前照片，或重拍。"]
   ] as const)("preserves %i prior strokes and offers an available action when a limit is reached", async (count, message) => {
     let callCount = 0;

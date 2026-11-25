@@ -2,6 +2,7 @@ import { Camera, Script, Texture2D, WebGLEngine } from "@galacean/engine";
 import { Image } from "@galacean/engine-ui";
 import { expect, it, vi } from "vitest";
 import { SeedWorldCameraButton } from "../../demos/seed-world/src/SeedWorldCameraButton";
+import { useLocalBasis } from "./useLocalBasis";
 
 it("animates the pen by switching atlas tiles and keeps holds and hidden frames idle", async () => {
   const canvas = document.createElement("canvas");
@@ -9,12 +10,14 @@ it("animates the pen by switching atlas tiles and keeps holds and hidden frames 
   const scene = engine.sceneManager.activeScene;
   const camera = scene.createRootEntity("Camera").addComponent(Camera);
   const control = document.createElement("button");
+  useLocalBasis();
   const button = new SeedWorldCameraButton(camera, control);
   try {
     const trigger = scene.findEntityByName("Screen markup trigger")!;
     const sprite = trigger.getComponent(Image)!.sprite!;
     const ticker = trigger.parent!.getComponent(Script)!;
     await vi.waitFor(() => expect(sprite.atlasRegion.width).toBeLessThan(1), { timeout: 10000 });
+    expect(sprite.texture!.mipmapCount).toBe(1);
     const upload = vi.spyOn(Texture2D.prototype, "setImageSource");
     const stroke = vi.spyOn(CanvasRenderingContext2D.prototype, "stroke");
     const tile = vi.spyOn(sprite, "atlasRegion", "set");
