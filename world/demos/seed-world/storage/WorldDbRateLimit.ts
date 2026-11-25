@@ -11,7 +11,7 @@ class ActionBudget {
 
   private async waitForSlot(): Promise<void> {
     for (;;) {
-      const now = Date.now();
+      const now = performance.now();
       while (this.starts.length && this.starts[0] + nextWindowMs <= now) this.starts.shift();
       const oldestExpires = this.starts.length >= maxStarts ? this.starts[0] + nextWindowMs : 0;
       const delay = Math.max(this.resumeAt, oldestExpires) - now;
@@ -29,7 +29,7 @@ class ActionBudget {
           await this.waitForSlot();
           signal?.throwIfAborted();
           resolve(call());
-          this.starts.push(Date.now());
+          this.starts.push(performance.now());
         })
         .catch(reject);
     });
@@ -49,7 +49,7 @@ class ActionBudget {
           refusal.message !== `[window.lingguang._call] rate limit exceeded: ${scaffoldAction}`
         )
           throw error;
-        this.resumeAt = Date.now() + nextWindowMs;
+        this.resumeAt = performance.now() + nextWindowMs;
         if (attempt >= 1) throw error;
       }
     }

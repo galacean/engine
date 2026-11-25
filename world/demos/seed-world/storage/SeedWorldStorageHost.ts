@@ -34,8 +34,23 @@ export async function resolveStorageHost(
   } catch (error) {
     console.warn("灵光角色读取失败，以访客身份打开世界", error);
   }
+  const scheduled = scheduleWorldDb(db, binding.source === "sdk");
+  if (binding.source === "sdk") {
+    scheduled.persistentTime = async () => {
+      const result = await scheduled.query({
+        sql: "SELECT UNIX_TIMESTAMP(NOW(3)) AS epochSeconds FROM world_save WHERE id = ? LIMIT 1",
+        binds: ["world"],
+        timeoutMs: 30000
+      });
+      const seconds = result.data?.[0]?.epochSeconds;
+      const now = Math.round(Number(seconds) * 1000);
+      if (!result.success || !Number.isSafeInteger(now) || now <= 0)
+        throw new Error(result.message || "世界存档数据库时钟不可用");
+      return now;
+    };
+  }
   return {
-    db: scheduleWorldDb(db, binding.source === "sdk"),
+    db: scheduled,
     appVersion,
     readOnly: role !== "MANAGER",
     importLegacyPreview: binding.importLegacyPreview

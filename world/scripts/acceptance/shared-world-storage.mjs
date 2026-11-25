@@ -9,13 +9,38 @@ import { chromium } from "@playwright/test";
 import { editResources, checkSharedResources, externalModel } from "./shared-world-resources.mjs";
 
 function readFile(sql, ref) {
-  const blocks = sql.prepare("SELECT payload FROM world_save WHERE generation=? ORDER BY part_no").all(ref.revision);
+  const blocks = sql.prepare("SELECT payload FROM world_save WHERE generation=? AND part_no>=0 ORDER BY part_no").all(ref.revision);
   return gunzipSync(Buffer.concat(blocks.map(({ payload }) => Buffer.from(payload, "base64"))));
 }
 function checkpoint(sql) {
   const head = JSON.parse(sql.prepare("SELECT payload FROM world_save WHERE id='world'").get().payload);
   assert.equal(head.format, 2);
   return new Map(JSON.parse(readFile(sql, head)).files);
+}
+
+async function waitForWorld(page) {
+  const canvas = page.locator("#world-canvas");
+  await page.waitForFunction(
+    () => ["ready", "error"].includes(document.querySelector("#world-canvas")?.dataset.status),
+    null,
+    { timeout: 240000 }
+  );
+  assert.equal(await canvas.getAttribute("data-status"), "ready", await canvas.getAttribute("data-error"));
+}
+
+async function saveTime(page, timeHours) {
+  await page.evaluate(async (timeHours) => {
+    const hud = window.seedWorldAI;
+    const project = hud._options.nativeEditor.project;
+    const editor = hud.application.getEditorDocument();
+    editor.settings.environment = { timeHours, transitionDuration: 0, waitForIbl: false };
+    editor.revision++;
+    await project.publishAsset(
+      { virtualPath: "World/Editor.json", path: "runtime-world:editor", type: "SeedWorldEditor" },
+      JSON.stringify(editor)
+    );
+    await project.flush();
+  }, timeHours);
 }
 
 async function checkLocalDb(page) {
@@ -52,16 +77,24 @@ function openInstance(id) {
   if (!instances.has(id)) {
     const conn = new DatabaseSync(":memory:");
     conn.exec(schema);
+    conn.function("now", (_precision) => Date.now());
+    conn.function("unix_timestamp", (now) => now / 1000);
+    conn.exec("ALTER TABLE world_save ADD COLUMN app_version INT NOT NULL DEFAULT 1");
     instances.set(id, conn);
   }
   return instances.get(id);
 }
 const browser = await chromium.launch({ args: ["--ignore-gpu-blocklist", "--use-angle=metal"] });
 try {
-  for (const step of ["empty visitor", "create", "share", "recall", "template", "reopen", "incompatible visitor", "incompatible owner", "regenerated visitor", "retired template", "browser"]) {
+  for (const step of [
+    "empty visitor", "create", "share", "recall", "template", "reopen", "older visitor", "planner publication race", "reconciliation failure",
+    "incompatible visitor", "incompatible owner", "regenerated visitor", "retired template", "browser", "planner"
+  ]) {
     const role = step === "share" || step.endsWith("visitor") ? "USER" : "MANAGER";
+    const version = step === "create" || step === "older visitor" || step === "planner publication race" ? 1 : 2;
+    const localDb = step === "browser" || step === "planner";
     const clone = step === "recall" || step === "template";
-    const id = "flashapp-local-" + (clone || step === "retired template" ? step : "source");
+    const id = "flashapp-local-" + (clone || step === "retired template" || step === "planner" ? step : "source");
     const sql = openInstance(id);
     if (step === "incompatible visitor")
       sql.exec("UPDATE world_save SET payload=json_set(payload,'$.engineVersion',999) WHERE id='world'");
@@ -69,19 +102,23 @@ try {
       const revision = randomUUID();
       const bytes = Buffer.from(JSON.stringify({ version: 6 }));
       const digest = createHash("sha256").update(bytes).digest("hex");
-      const put = sql.prepare("INSERT INTO world_save VALUES (?,?,?,?)");
+      const put = sql.prepare("INSERT INTO world_save (id, generation, part_no, payload) VALUES (?,?,?,?)");
       put.run(revision + "-0", revision, 0, gzipSync(bytes).toString("base64"));
       put.run("world", "head", -1, JSON.stringify({
         seed: 123, template: "retired-template", format: 1, engineVersion: 12, appVersion: "1", revision, parts: 1, digest
       }));
     }
-    const seed = step === "recall" ? "124" : step === "template" ? "125" : "123";
+    const seed = step === "recall" || step === "planner" ? "124" : step === "template" ? "125" : "123";
     const context = await browser.newContext({ viewport: { width: 800, height: 600 } });
     try {
       const page = await context.newPage();
       const errors = [];
       let writes = 0;
       let blockReads = 0;
+      let rejectedReconciliation = false;
+      let returnedPriorHead = false;
+      const readHead = (id) => sql.prepare("SELECT payload FROM world_save WHERE id = ?").get(id)?.payload;
+      const protectedHead = step === "planner publication race" ? readHead("world") : undefined;
       await context.route("**/*", (route) => {
         const url = new URL(route.request().url());
         if (url.origin === origin.origin && url.pathname === "/fixture/tree.gltf") {
@@ -97,16 +134,34 @@ try {
       });
       page.on("pageerror", (error) => errors.push(error.message));
       await page.exposeFunction("testWorldDb", (op, req) => {
-        const statement = sql.prepare(req.sql);
+        // The platform stamps INSERTs and limits reads/updates to the active app version.
+        if (req.sql.startsWith("INSERT")) {
+          writes++;
+          const put = sql.prepare("INSERT INTO world_save VALUES (?, ?, ?, ?, ?)");
+          return { success: true, data: { rowsAffected: Number(put.run(...req.binds, version).changes) } };
+        }
+        const statement = sql.prepare(req.sql.replace(
+          / WHERE (.+?)( ORDER BY | LIMIT |$)/,
+          (_, condition, suffix) => ` WHERE (${condition}) AND app_version <= ${version}${suffix}`
+        ));
         if (op === "query") {
+          if (step === "planner publication race" && !returnedPriorHead && req.binds[0] === "world" &&
+              req.sql.startsWith("SELECT payload")) {
+            returnedPriorHead = true;
+            return { success: true, data: [{ payload: readHead("archive-0000000000000001") }] };
+          }
           if (req.sql.includes("WHERE generation = ?")) blockReads++;
+          if (step === "reconciliation failure" && req.sql.includes("WHERE generation > ?") && !rejectedReconciliation) {
+            rejectedReconciliation = true;
+            return { success: false, message: "temporary reconciliation failure" };
+          }
           return { success: true, data: statement.all(...req.binds) };
         }
         writes++;
         return { success: true, data: { rowsAffected: Number(statement.run(...req.binds).changes) } };
       });
       await page.addInitScript(
-        ({ role, step, id }) => {
+        ({ role, localDb, version, id }) => {
           window.storageGzipReplies = 0;
           const observedWorkers = new WeakSet();
           const post = Worker.prototype.postMessage;
@@ -134,8 +189,8 @@ try {
             }
           };
           window.artifactId = id;
-          if (step === "browser") return;
-          window.artifactVersion = step === "create" ? "1" : "2";
+          if (localDb) return;
+          window.artifactVersion = String(version);
           const db = {
             role: async () => ({ role }),
             query: (req) => window.testWorldDb("query", req),
@@ -143,9 +198,9 @@ try {
           };
           window.lingguang = { db };
         },
-        { role, step, id }
+        { role, localDb, version, id }
       );
-      const query =
+      const query = step === "planner" || step === "planner publication race" ? "?template=original&seed=123&debug=1" :
         step === "create" || step === "recall" || step === "retired template" || step === "browser" ? "?template=original&seed=" + seed : "?seed=999";
       await page.goto(new URL(query, origin).href);
       if (step === "empty visitor") {
@@ -164,43 +219,43 @@ try {
         await page.getByLabel("风格世界 Seed").fill(seed);
         await page.locator("dialog [data-apply]").click();
       }
-      await page.waitForFunction(
-        () => ["ready", "error"].includes(document.querySelector("#world-canvas")?.dataset.status),
-        null,
-        { timeout: 240000 }
-      );
-      assert.equal(await page.locator("#world-canvas").getAttribute("data-status"), "ready");
+      if (step === "planner publication race") {
+        await page.getByRole("button", { name: "风格选择" }).click({ timeout: 90000 });
+        await page.getByLabel("风格世界 Seed").fill("124");
+        await page.locator("dialog [data-apply]").click();
+        await page.locator("dialog [role=status]").filter({ hasText: "另一会话已保存世界" }).waitFor({ timeout: 90000 });
+        await page.locator('[data-ui="save-warning"]').filter({ hasText: "规划尚未保存" }).waitFor();
+        assert.ok(returnedPriorHead);
+        assert.equal(writes, 0);
+        assert.equal(readHead("world"), protectedHead);
+        assert.equal(await page.locator("#world-canvas").count(), 0);
+        console.log(step, "passed");
+        continue;
+      }
+      if (step === "planner") {
+        await page.getByRole("button", { name: "风格选择" }).click({ timeout: 90_000 });
+        await page.getByLabel("风格世界 Seed").fill(seed);
+        await page.locator("dialog [data-apply]").click();
+        await page.locator("dialog.sp-template-dialog").waitFor({ state: "hidden", timeout: 90_000 });
+        await page.getByRole("button", { name: "生成 3D", exact: true }).click();
+      }
+      await waitForWorld(page);
       assert.equal(new URL(page.url()).searchParams.get("seed"), seed);
       assert.equal(await page.evaluate(() => Boolean(window.seedWorldAI)), role === "MANAGER");
       const hasLocalProject = await page.evaluate(async () =>
         (await indexedDB.databases()).some((db) => db.name?.startsWith("lingguang-world-save:"))
       );
-      assert.equal(hasLocalProject, step === "browser");
+      assert.equal(hasLocalProject, localDb);
       if (step === "create" || step === "browser") {
         // Submit an authoring asset through the same project publication/flush as an editor commit.
         // The test uses the mounted editor so production needs no test-only entry point.
         const before = step === "create" ? checkpoint(sql) : undefined;
-        await page.evaluate(async () => {
-          const hud = window.seedWorldAI;
-          const project = hud._options.nativeEditor.project;
-          const editor = hud.application.getEditorDocument();
-          editor.settings.environment = { timeHours: 21, transitionDuration: 0, waitForIbl: false };
-          editor.revision++;
-          await project.publishAsset(
-            { virtualPath: "World/Editor.json", path: "runtime-world:editor", type: "SeedWorldEditor" },
-            JSON.stringify(editor)
-          );
-          await project.flush();
-        });
+        await saveTime(page, 21);
         if (step === "browser") {
           await checkLocalDb(page);
           assert.equal(writes, 0);
           await page.reload();
-          await page.waitForFunction(
-            () => window.seedWorldAI && document.querySelector("#world-canvas")?.dataset.status === "ready",
-            null,
-            { timeout: 240000 }
-          );
+          await waitForWorld(page);
           assert.equal(await page.evaluate(() => window.seedWorldAI.application.getTime().timeHours), 21);
         } else {
           assert.ok((await page.evaluate(() => window.storageGzipReplies)) > 0, "scene saved by gzip worker");
@@ -244,8 +299,26 @@ try {
         assert.equal(head.seed, Number(seed));
         assert.equal(head.template, "original");
       }
-      if (step === "reopen")
+      if (step === "reopen") {
         assert.equal(await page.evaluate(() => window.seedWorldAI.application.getTime().timeHours), 21);
+        await saveTime(page, 22);
+      }
+      if (step === "older visitor") {
+        const oldIndex = JSON.parse(sql.prepare("SELECT payload FROM world_save WHERE id = ? AND part_no > 0").get("archive-0000000000000001").payload);
+        assert.equal(oldIndex.appVersion, "1");
+        await checkSharedResources(page, false);
+      }
+      if (step === "reconciliation failure") {
+        await page.waitForFunction(() => window.seedWorldAI?._options.nativeEditor.project.persistenceStatus.state === "failed");
+        assert.ok(rejectedReconciliation && blockReads > 0);
+        assert.equal(await page.evaluate(() => window.seedWorldAI.application.getTime().timeHours), 22);
+        await page.evaluate(() => window.seedWorldAI._options.nativeEditor.project.flush());
+      }
+      if (step === "planner") {
+        await page.reload();
+        await waitForWorld(page);
+        assert.equal(new URL(page.url()).searchParams.get("seed"), seed);
+      }
       await page.goto("about:blank");
       if (role === "USER") assert.equal(writes, 0);
       assert.deepEqual(errors, []);

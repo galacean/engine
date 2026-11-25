@@ -81,3 +81,17 @@ it("skips a cancelled queued read without spending the next query slot", async (
   expect(api.query).toHaveBeenCalledTimes(11);
   expect(api.query).toHaveBeenLastCalledWith({ ...request, binds: ["new"] });
 });
+
+it("reopens a budget window by elapsed time after the device clock moves backwards", async () => {
+  vi.useFakeTimers({ toFake: ["Date", "performance", "setTimeout", "clearTimeout"] });
+  const api = sdk();
+  const db = await open(api);
+  await Promise.all(Array.from({ length: 10 }, () => db.query(request)));
+  vi.setSystemTime(Date.now() - 60000);
+  const next = db.query(request);
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(api.query).toHaveBeenCalledTimes(10);
+  await vi.advanceTimersByTimeAsync(1);
+  await next;
+  expect(api.query).toHaveBeenCalledTimes(11);
+});

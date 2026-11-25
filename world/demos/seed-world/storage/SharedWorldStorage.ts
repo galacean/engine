@@ -23,6 +23,8 @@ export interface WorldDb {
   query(input: Statement, signal?: AbortSignal): Promise<{ success: boolean; data?: Record<string, unknown>[]; message?: string }>;
   execute(input: Statement): Promise<{ success: boolean; data?: { rowsAffected?: number }; message?: string }>;
   role(): Promise<{ success?: boolean; role?: string; data?: { role?: string } }>;
+  /** Shared database time, in Unix milliseconds. Standalone previews use session time. */
+  persistentTime?(): Promise<number>;
 }
 interface Statement {
   sql: string;
@@ -38,9 +40,17 @@ interface Head extends WorldIdentity {
   format: number;
   engineVersion: number;
   appVersion: string;
+  sequence?: number;
+  pinned?: BlockRef;
   revision: string;
   parts: number;
   digest: string;
+}
+export interface WorldSelection {
+  readonly raw?: string;
+  readonly olderApp: boolean;
+  readonly identity?: WorldIdentity;
+  readonly checkpoint?: Head;
 }
 
 export const WORLD_SAVE_VERSION = 12;
@@ -52,6 +62,10 @@ const cleanupBatchSize = 16;
 const revisionPattern = /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/;
 const pageSize = 4;
 const bytesPerPart = 75000; // Base64 encodes three bytes as four ASCII characters.
+const archiveGeneration = "archive";
+const selectArchive =
+  "SELECT payload AS payload FROM world_save WHERE generation = ? AND id <= ? AND part_no > ? ORDER BY id DESC LIMIT 1";
+const sealArchive = "UPDATE world_save SET payload = ?, part_no = ? WHERE id = ? AND part_no < ?";
 const selectHead = "SELECT payload AS payload FROM world_save WHERE id = ? LIMIT 2";
 const insert = "INSERT INTO world_save (id, generation, part_no, payload) VALUES (?, ?, ?, ?)";
 const removeParts = "DELETE FROM world_save WHERE generation = ?";
@@ -86,9 +100,28 @@ function supportsProjectVersion(version: number): boolean {
   return version === RUNTIME_PROJECT_SAVE_VERSION;
 }
 
+function appVersionNumber(version: string): number {
+  const value = Number(version);
+  if (!Number.isSafeInteger(value) || value < 1) throw new Error("闪应用版本号无效");
+  return value;
+}
+
+function parseStoredHead(raw: string): Head {
+  const head: Head = JSON.parse(raw);
+  appVersionNumber(head?.appVersion);
+  if (head.pinned !== undefined && !validRef(head.pinned)) throw new Error("旧版世界存档引用无效");
+  if (head.sequence !== undefined &&
+      (!Number.isSafeInteger(head.sequence) || head.sequence < 1 || head.sequence > 0x7fffffff))
+    throw new Error("世界存档提交序号无效");
+  return head;
+}
+
+function archiveId(version: number): string {
+  return "archive-" + String(version).padStart(16, "0");
+}
+
 // Identity can survive a breaking change even when its file index cannot be read.
-function parseHead(raw: string): { identity?: WorldIdentity; checkpoint?: Head } {
-  const h: Head = JSON.parse(raw);
+function parseHead(h: Head): { identity?: WorldIdentity; checkpoint?: Head } {
   if (!Number.isSafeInteger(h?.format) || h.format < 1 || !Number.isSafeInteger(h.engineVersion) || h.engineVersion < 1)
     throw new Error("世界存档索引损坏");
   const identity =
@@ -123,7 +156,10 @@ interface Collection {
   retired: RetiredGeneration[];
   collected: number;
   notBefore: number;
+  clockTime: number;
+  observedAt: number;
   restoreCursor: boolean;
+  superseded?: boolean;
   recordedCount?: number;
   retryAt: number;
 }
@@ -133,7 +169,7 @@ function canRetire(revision: unknown): revision is string {
     revision.length > 0 &&
     revision.length <= 64 &&
     revision !== "head" &&
-    revision !== "gc"
+    revision !== archiveGeneration
   );
 }
 const utf8 = new TextEncoder();
@@ -148,6 +184,8 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
   private cleanupTimer?: ReturnType<typeof setTimeout>;
   // Reconcile after a fresh open or uncertain write, before staging anything in this session.
   private reconcileGenerations = true;
+  private pinned?: { revision: string; generations: ReadonlySet<string> };
+  private superseded = false;
   private loaded = false;
   private readonly lifetime = new AbortController();
   private get closed(): boolean {
@@ -156,11 +194,13 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
   private constructor(
     private readonly db: WorldDb,
     readonly readOnly: boolean,
-    private readonly appVersion: string,
+    private readonly appVersion: number,
     private head: string | undefined,
+    private checkpoint: Head | undefined,
     readonly identity: WorldIdentity,
     private readonly published?: PublishedWorldAssets,
-    private readonly readLegacyPreview?: (id: string) => Promise<RuntimeProjectPackage | undefined>
+    private readonly readLegacyPreview?: (id: string) => Promise<RuntimeProjectPackage | undefined>,
+    private readonly identityFromProject?: (pack: RuntimeProjectPackage) => WorldIdentity | undefined
   ) {}
 
   private static async rows(db: WorldDb, sql: string, binds: Statement["binds"], signal?: AbortSignal) {
@@ -175,32 +215,51 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
     if (rows.length !== 1 || typeof rows[0].payload !== "string") throw new Error("世界存档索引无效");
     return rows[0].payload;
   }
-  static async inspect(db: WorldDb, entryTemplate?: string) {
+  private static async visibleHead(db: WorldDb, head: Head, version: number, signal?: AbortSignal) {
+    if (appVersionNumber(head.appVersion) <= version) return head;
+    const [row] = await this.rows(db, selectArchive, [archiveGeneration, archiveId(version), 0], signal);
+    if (!row) return undefined;
+    if (typeof row.payload !== "string") throw new Error("旧版世界存档索引无效");
+    const archived = parseStoredHead(row.payload);
+    if (appVersionNumber(archived.appVersion) > version) throw new Error("旧版世界存档版本无效");
+    return archived;
+  }
+
+  static async select(db: WorldDb, appVersion: string, entryTemplate?: string): Promise<WorldSelection> {
     const raw = await this.readHead(db);
-    if (raw === undefined) return undefined;
-    const saved = parseHead(raw);
+    if (raw === undefined) return { olderApp: false };
+    const current = parseStoredHead(raw);
+    const version = appVersionNumber(appVersion);
+    const olderApp = appVersionNumber(current.appVersion) > version;
+    const head = await this.visibleHead(db, current, version);
+    if (!head) return { raw, olderApp };
+    const saved = { ...parseHead(head), raw, olderApp };
     // Only inspect the nested format here if it can change which template the entry must start.
     if (entryTemplate && saved.checkpoint && saved.identity?.template !== entryTemplate) {
       const bytes = await this.readBlocks(db, saved.checkpoint);
-      const version = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes))?.version;
-      if (!supportsProjectVersion(version)) return { identity: saved.identity, checkpoint: undefined };
+      const projectVersion = JSON.parse(textDecoder.decode(bytes))?.version;
+      if (!supportsProjectVersion(projectVersion)) return { ...saved, checkpoint: undefined };
     }
     return saved;
   }
+
   static async open(
     db: WorldDb,
     readOnly: boolean,
     appVersion: string,
     identity: WorldIdentity,
     published?: PublishedWorldAssets,
-    readLegacyPreview?: (id: string) => Promise<RuntimeProjectPackage | undefined>
+    readLegacyPreview?: (id: string) => Promise<RuntimeProjectPackage | undefined>,
+    identityFromProject?: (pack: RuntimeProjectPackage) => WorldIdentity | undefined,
+    selection?: WorldSelection
   ) {
-    const raw = await this.readHead(db);
-    if (raw !== undefined) {
-      const saved = parseHead(raw).checkpoint;
-      if (saved && identity.seed !== saved.seed) throw new Error("世界已更新，请重新打开");
-    }
-    return new SharedWorldStorage(db, readOnly, appVersion, raw, identity, published, readLegacyPreview);
+    const version = appVersionNumber(appVersion);
+    const chosen = selection ?? await this.select(db, appVersion);
+    if (chosen.checkpoint && identity.seed !== chosen.checkpoint.seed) throw new Error("世界已更新，请重新打开");
+    return new SharedWorldStorage(
+      db, readOnly || chosen.olderApp, version, chosen.raw, chosen.checkpoint, identity,
+      published, readLegacyPreview, identityFromProject
+    );
   }
   private async execute(sql: string, binds: Statement["binds"]) {
     const r = await this.db.execute({ sql, binds, timeoutMs: 30000 });
@@ -212,9 +271,9 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
   async load(id?: string): Promise<RuntimeProjectPackage | undefined> {
     const lifetime = this.lifetime.signal;
     lifetime.throwIfAborted();
-    const current = this.head === undefined ? undefined : parseHead(this.head);
     let pack: RuntimeProjectPackage | undefined;
-    let checkpoint = current?.checkpoint;
+    let checkpoint = this.checkpoint;
+    let observedHead = this.head;
     let retryDeadline: number | undefined;
     while (checkpoint) {
       lifetime.throwIfAborted();
@@ -228,23 +287,29 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
         cancel();
         // A newer checkpoint can retire these chunks while a viewer is paging through them.
         const latest = await SharedWorldStorage.readHead(this.db, lifetime);
-        if (!latest || latest === this.head) throw error;
+        if (!latest || latest === observedHead) throw error;
         const now = performance.now();
         retryDeadline ??= now + restoreRetryBudgetMs;
         if (now >= retryDeadline) throw error;
-        const next = parseHead(latest);
+        const active = parseStoredHead(latest);
+        this.superseded = appVersionNumber(active.appVersion) > this.appVersion;
+        const nextVisible = await SharedWorldStorage.visibleHead(this.db, active, this.appVersion, lifetime);
+        if (!nextVisible || nextVisible.revision === checkpoint.revision) throw error;
+        const next = parseHead(nextVisible);
         if (next.identity?.seed !== this.identity.seed || next.identity.template !== this.identity.template)
           throw error;
         checkpoint = next.checkpoint;
-        this.head = latest;
+        observedHead = latest;
+        if (!this.superseded) this.head = latest;
       } finally {
         lifetime.removeEventListener("abort", cancel);
       }
     }
-    if (pack && current?.identity?.template !== this.identity.template) throw new Error("世界模板版本不兼容");
+    if (pack && checkpoint?.template !== this.identity.template) throw new Error("世界模板版本不兼容");
     if (!pack) this.baseline.clear();
     if (id && this.head === undefined && !this.readOnly) pack = await this.readLegacyPreview?.(id);
     lifetime.throwIfAborted();
+    this.checkpoint = checkpoint;
     this.loaded = true;
     this.scheduleMaintenance();
     return pack;
@@ -286,7 +351,7 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
     signal.throwIfAborted();
     const pack = restoreFiles(index, files, this.readOnly);
     this.baseline = baseline;
-    if (!this.readOnly) {
+    if (!this.readOnly && !this.superseded) {
       const retired = index.retired ?? [];
       if (
         !Array.isArray(retired) ||
@@ -300,7 +365,9 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
         )
       )
         throw new Error("世界存档回收清单无效");
-      this.setCollection(h.revision, retired, true);
+      // Standalone previews may restart after the device clock changes. Re-observe outstanding
+      // retirements on this session's monotonic clock while preserving acknowledged deletes.
+      this.setCollection(h.revision, this.db.persistentTime ? retired : retired.map(([, revision]) => [0, revision]), true);
     }
     return pack;
   }
@@ -350,9 +417,61 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
     }
     return { revision, parts, digest };
   }
-  private async unreferencedGenerations(previous?: Head): Promise<string[]> {
+  private async readPins(ref?: BlockRef): Promise<ReadonlySet<string>> {
+    if (!ref) return new Set();
+    if (this.pinned?.revision === ref.revision) return this.pinned.generations;
+    const pinned: unknown = JSON.parse(textDecoder.decode(await SharedWorldStorage.readBlocks(this.db, ref)));
+    if (!Array.isArray(pinned) || pinned.some((revision) => typeof revision !== "string" || !revisionPattern.test(revision)))
+      throw new Error("旧版世界存档引用无效");
+    const generations = new Set<string>(pinned);
+    this.pinned = { revision: ref.revision, generations };
+    return generations;
+  }
+
+  private async reserveArchive(version: number) {
+    const id = archiveId(version);
+    try {
+      if (await this.execute(insert, [id, archiveGeneration, 0, "{}"]) !== 1)
+        throw new Error("世界版本入口未写入");
+    } catch (error) {
+      const rows = await SharedWorldStorage.rows(this.db, selectHead, [id]);
+      if (rows.length !== 1) throw error;
+    }
+  }
+
+  private async archivePrevious(head: Head, existingPins: ReadonlySet<string>): Promise<ReadonlySet<string>> {
+    const sequence = head.sequence!;
+    const version = appVersionNumber(head.appVersion);
+    // Archive only a committed head observed in the shared row. A delayed upgrader
+    // cannot replace a newer observation, even if its request arrives after publication.
+    const { pinned: _currentPins, ...snapshot } = head;
+    const changed = await this.execute(sealArchive, [JSON.stringify(snapshot), sequence, archiveId(version), sequence]);
+    if (!changed) {
+      const rows = await SharedWorldStorage.rows(this.db, selectHead, [archiveId(version)]);
+      if (rows.length !== 1 || typeof rows[0].payload !== "string" ||
+          (parseStoredHead(rows[0].payload).sequence ?? 0) < sequence)
+        throw new Error("旧版世界存档未封存");
+    }
+    const pinned = new Set(existingPins);
+    pinned.add(head.revision);
+    const index: FileIndex = JSON.parse(textDecoder.decode(await SharedWorldStorage.readBlocks(this.db, head)));
+    if (!Array.isArray(index?.files)) throw new Error("旧版世界文件索引无效");
+    for (const [, ref] of index.files) {
+      if (!validRef(ref)) throw new Error("旧版世界文件引用无效");
+      pinned.add(ref.revision);
+    }
+    return pinned;
+  }
+
+  private async unreferencedGenerations(
+    pinned: ReadonlySet<string>,
+    checkpoint?: Head,
+    pinSet?: BlockRef
+  ): Promise<string[]> {
     const known = new Set([...this.baseline.values()].map(({ ref }) => ref.revision));
-    if (previous) known.add(previous.revision);
+    for (const revision of pinned) known.add(revision);
+    if (checkpoint) known.add(checkpoint.revision);
+    if (pinSet) known.add(pinSet.revision);
     const collection = this.collection;
     if (collection) {
       for (const [, revision] of collection.retired.slice(collection.collected)) known.add(revision);
@@ -375,12 +494,17 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
       if (rows.length < limit) return generations;
     }
   }
-  private retirementList(baseline: Baseline, unreferenced: string[]): RetiredGeneration[] {
+  private retirementList(
+    baseline: Baseline,
+    unreferenced: string[],
+    pinned: ReadonlySet<string>,
+    previous?: Head
+  ): RetiredGeneration[] {
     const retired = new Set(unreferenced);
     for (const { ref } of this.baseline.values()) retired.add(ref.revision);
     for (const { ref } of baseline.values()) retired.delete(ref.revision);
-    const previous = this.head && parseHead(this.head).checkpoint;
     if (previous) retired.add(previous.revision);
+    for (const revision of pinned) retired.delete(revision);
     const collection = this.collection;
     const remaining =
       collection?.retired
@@ -390,12 +514,14 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
     return remaining;
   }
 
-  // Only the manager reads this cursor. A lost progress write repeats idempotent deletes.
-  // The immutable index, published with the world head, owns the complete retirement list.
+  // A cursor belongs to one immutable index. A delayed write can only update its own
+  // cursor, and retiring that index also removes its cursor.
   private async recordProgress(state: Collection, count: number) {
-    const payload = JSON.stringify({ revision: state.revision, count, notBefore: state.notBefore });
-    if (await this.execute("UPDATE world_save SET payload = ? WHERE id = ?", [payload, "gc"])) return;
-    await this.execute(insert, ["gc", "gc", -1, payload]);
+    const id = "gc-" + state.revision;
+    const payload = JSON.stringify({ count, notBefore: this.db.persistentTime ? state.notBefore : undefined });
+    const updated = await this.execute("UPDATE world_save SET payload = ? WHERE id = ?", [payload, id]);
+    if (!updated && !this.closed && this.collection === state)
+      await this.execute(insert, [id, state.revision, -1, payload]);
   }
 
   private setCollection(revision: string, retired: RetiredGeneration[], restoreCursor: boolean, collected = 0) {
@@ -405,7 +531,9 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
           revision,
           retired,
           restoreCursor,
-          notBefore: Date.now() + retentionMs,
+          notBefore: 0,
+          clockTime: 0,
+          observedAt: 0,
           collected,
           retryAt: 0
         }
@@ -414,7 +542,7 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
 
   private async maintain(state: Collection) {
     if (state.restoreCursor) {
-      const rows = await SharedWorldStorage.rows(this.db, selectHead, ["gc"]);
+      const rows = await SharedWorldStorage.rows(this.db, selectHead, ["gc-" + state.revision]);
       let progress;
       try {
         progress = rows.length ? JSON.parse(String(rows[0].payload)) : undefined;
@@ -422,14 +550,12 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
         // The immutable index still owns every retirement. Replay it after a fresh grace period.
       }
       if (
-        progress?.revision === state.revision &&
-        Number.isSafeInteger(progress.notBefore) &&
-        progress.notBefore > 0 &&
-        Number.isSafeInteger(progress.count) &&
+        Number.isSafeInteger(progress?.count) &&
         progress.count >= 0 &&
         progress.count <= state.retired.length
       ) {
-        state.notBefore = progress.notBefore;
+        if (this.db.persistentTime && Number.isSafeInteger(progress.notBefore) && progress.notBefore > 0)
+          state.notBefore = progress.notBefore;
         state.collected = progress.count;
         state.recordedCount = progress.count;
       }
@@ -437,23 +563,31 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
     }
     if (this.closed || this.collection !== state) return;
     const first = state.retired[state.collected];
-    if (first && (first[0] || state.notBefore) <= Date.now()) {
-      // Dropping the session or publishing a new head stops further work on this cursor.
-      if ((await SharedWorldStorage.readHead(this.db)) !== state.head) {
-        state.retryAt = Date.now() + 5000;
-        return;
-      }
+    if (first) {
+      const now = this.db.persistentTime ? await this.db.persistentTime() : performance.now();
+      state.notBefore ||= now + retentionMs;
+      state.clockTime = now;
+      state.observedAt = performance.now();
+    }
+    if (this.closed || this.collection !== state) return;
+    if ((await SharedWorldStorage.readHead(this.db, this.lifetime.signal)) !== state.head) {
+      state.superseded = true;
+      return;
+    }
+    if (this.closed || this.collection !== state) return;
+    if (first && (first[0] || state.notBefore) <= state.clockTime) {
       const live = new Set([...this.baseline.values()].map(({ ref }) => ref.revision));
       live.add(state.revision);
+      if (this.checkpoint?.pinned) live.add(this.checkpoint.pinned.revision);
       const stop = Math.min(state.collected + cleanupBatchSize, state.retired.length);
       while (state.collected < stop && !this.closed && this.collection === state) {
         const [after, revision] = state.retired[state.collected];
-        if ((after || state.notBefore) > Date.now()) break;
+        if ((after || state.notBefore) > state.clockTime) break;
         if (!live.has(revision)) {
           try {
             await this.execute(removeParts, [revision]);
           } catch (error) {
-            state.retryAt = Date.now() + 5000;
+            state.retryAt = performance.now() + 5000;
             console.warn("旧分块删除失败，将保留回收进度", error);
             break;
           }
@@ -473,18 +607,21 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
   private scheduleMaintenance() {
     clearTimeout(this.cleanupTimer);
     const state = this.collection;
-    if (this.closed || this.collecting || !state) return;
+    if (this.closed || this.collecting || !state || state.superseded) return;
     const next = state.retired[state.collected];
     if (!next && state.recordedCount === state.collected) return;
     const due = next && state.recordedCount === state.collected ? next[0] || state.notBefore : 0;
-    const delay = Math.max(0, Math.max(due, state.retryAt) - Date.now());
+    const now = performance.now();
+    // Local elapsed time only schedules a check. It never authorizes a hosted delete.
+    const delay = Math.max(0, due ? due - state.clockTime - (now - state.observedAt) : 0, state.retryAt - now);
     this.cleanupTimer = setTimeout(
       async () => {
         this.collecting = true;
         try {
           await this.maintain(state);
         } catch (error) {
-          state.retryAt = Date.now() + 5000;
+          if (this.closed) return;
+          state.retryAt = performance.now() + 5000;
           console.warn("世界存档回收将在后台重试", error);
         } finally {
           this.collecting = false;
@@ -500,23 +637,25 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
     this.baseline = publication.baseline;
     // Deletes acknowledged during staging or a timed-out head switch belong to the inherited prefix.
     const collected = (this.collection?.collected ?? 0) - publication.retiredOffset;
-    this.setCollection(parseHead(publication.head).checkpoint!.revision, publication.retired, false, collected);
+    this.checkpoint = parseStoredHead(publication.head);
+    this.setCollection(this.checkpoint.revision, publication.retired, false, collected);
     this.scheduleMaintenance();
     this.pending = undefined;
   }
   async save(_id: string, pack: RuntimeProjectPackage) {
     if (!this.loaded || this.readOnly || this.closed) throw new Error("当前会话不能保存世界");
+    const identity = this.identityFromProject?.(pack) ?? this.identity;
     const files = captureFiles(pack, this.baseline, this.published);
     const index: FileIndex = { version: pack.version, hasDocuments: pack.documents !== undefined, files: [] };
     try {
-      await this.publish(files, index);
+      await this.publish(files, index, identity);
     } catch (error) {
       this.reconcileGenerations = true;
       throw error;
     }
   }
 
-  private async publish(files: Map<string, Content>, index: FileIndex) {
+  private async publish(files: Map<string, Content>, index: FileIndex, identity: WorldIdentity) {
     const remote = await SharedWorldStorage.readHead(this.db);
     if (this.pending && remote === this.pending.head) {
       this.accept(this.pending);
@@ -526,8 +665,17 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
       if (this.pending) await this.confirmPublication(this.pending);
     }
     const baseline: Baseline = new Map();
-    const previous = this.head ? parseHead(this.head).checkpoint : undefined;
-    const unreferenced = this.reconcileGenerations ? await this.unreferencedGenerations(previous) : [];
+    const row = this.head === undefined ? undefined : parseStoredHead(this.head);
+    if (row && appVersionNumber(row.appVersion) > this.appVersion)
+      throw new Error("另一会话已保存世界，请重新打开");
+    const previous = row && parseHead(row).checkpoint;
+    const previousSequence = row && appVersionNumber(row.appVersion) === this.appVersion ? row.sequence : undefined;
+    const newVersion = previousSequence === undefined;
+    const sequence = (previousSequence ?? 0) + 1;
+    if (sequence > 0x7fffffff) throw new Error("此版本存档已达到提交上限，请打开新版本");
+    const existingPins = await this.readPins(row?.pinned);
+    const pinned = row?.sequence && newVersion ? await this.archivePrevious(row, existingPins) : existingPins;
+    const unreferenced = this.reconcileGenerations ? await this.unreferencedGenerations(pinned, previous, row?.pinned) : [];
     this.reconcileGenerations = false;
     const staged: string[] = [];
     let next: string;
@@ -553,18 +701,41 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
       const indexText = JSON.stringify(index);
       const bytes = utf8.encode(indexText);
       const digest = await sha256(bytes);
-      if (!unreferenced.length && previous && (previous.contentDigest ?? previous.digest) === digest) return;
+      if (
+        !newVersion &&
+        !unreferenced.length &&
+        previous &&
+        previous.seed === identity.seed &&
+        previous.template === identity.template &&
+        (previous.contentDigest ?? previous.digest) === digest
+      ) return;
       retiredOffset = this.collection?.collected ?? 0;
-      retired = this.retirementList(baseline, unreferenced);
-      if (retired.length) index.retired = retired;
-      const text = retired.length ? JSON.stringify(index) : indexText;
-      const data = retired.length ? utf8.encode(text) : bytes;
-      const ref = await this.stage(data, retired.length ? await sha256(data) : digest, staged, text);
+      retired = this.retirementList(baseline, unreferenced, pinned, previous);
+      let pinRef = row?.pinned;
+      if (pinned !== existingPins) {
+        const pinText = JSON.stringify([...pinned]);
+        const pinBytes = utf8.encode(pinText);
+        const nextPinRef = await this.stage(pinBytes, await sha256(pinBytes), staged, pinText);
+        const oldPins = pinRef?.revision;
+        if (oldPins && !retired.some(([, revision]) => revision === oldPins)) retired.push([0, oldPins]);
+        pinRef = nextPinRef;
+      }
+      // A local session keeps its deadlines in memory. A future browser session
+      // can load its acknowledged progress, then observe a fresh grace period.
+      if (retired.length)
+        index.retired = this.db.persistentTime ? retired : retired.map(([, revision]) => [0, revision]);
+      const extended = retired.length;
+      const text = extended ? JSON.stringify(index) : indexText;
+      const data = extended ? utf8.encode(text) : bytes;
+      const ref = await this.stage(data, extended ? await sha256(data) : digest, staged, text);
+      if (newVersion) await this.reserveArchive(this.appVersion);
       next = JSON.stringify({
-        ...this.identity,
+        ...identity,
         format: 2,
         engineVersion: WORLD_SAVE_VERSION,
-        appVersion: this.appVersion,
+        appVersion: String(this.appVersion),
+        sequence,
+        ...(pinRef ? { pinned: pinRef } : {}),
         contentDigest: digest,
         ...ref
       } satisfies Head);

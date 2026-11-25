@@ -99,6 +99,7 @@ node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180
 
 此用例使用 Node 22.13+、Playwright Chromium 和正式构建产物，模拟管理员保存夜景、访客浏览以及跨应用版本重开。
 静态素材按构建清单加载，数据库调用在本机完成。
+SQLite 存档用例使用单独的 Vitest 项目。在 Node 22.13+ 下运行 `pnpm exec vitest run --project @galacean/world-storage-tests`，支持 SQLite 的 Node 版本也会在根测试入口自动收集该项目。
 
 ## 5. 发布为灵光闪应用
 
@@ -144,7 +145,9 @@ node "$PUBLISHER_ROOT/scripts/db-update-table-schema.cjs" \
 
 召回和模板创建都需要平台 clone 新实例并复制表结构。
 验收时确认克隆者获得新实例的 MANAGER，且新实例的表为空。
-分享链接应打开作者的原实例，访客角色为 USER。
+分享链接应打开作者的原实例，访客角色为 USER。二创入口由发布平台关闭。
+如允许普通访客打开原实例，发布前须核对该实例生效的服务端策略允许访客读取存档并拒绝写入。
+建表命令指定表类型，默认共享策略允许 USER 写入；负责发布的宿主须配置并验收实际访问策略。
 引擎使用宿主提供的实例和角色，用户无需填写 UID。
 
 ## 6. 发布后验收与正式上架

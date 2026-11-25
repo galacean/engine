@@ -271,6 +271,7 @@ export class RuntimeProjectSession {
   private readonly lifetime = new AbortController();
   private readonly persistence: RuntimeProjectPersistence;
   private persistenceSnapshot?: RuntimeProjectSnapshot;
+  readonly restoredFromStorage: boolean;
 
   private syncSnapshotContent(path: string, content: string | Uint8Array): void {
     const snapshot = this.persistenceSnapshot;
@@ -302,6 +303,7 @@ export class RuntimeProjectSession {
     persistenceOptions?: RuntimeProjectPersistenceOptions,
     private readonly prefetchedTextAssets?: ReadonlyMap<string, string>
   ) {
+    this.restoredFromStorage = !needsInitialization;
     this.scripts = new RuntimeProjectScripts(modules);
     this.dependencyMaintenance = new RuntimeDependencyMaintenance(projectPackage, this.referenceFormats);
     // Storage captures immutable text references and copies mutable data only when

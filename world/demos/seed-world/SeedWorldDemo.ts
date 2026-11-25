@@ -86,6 +86,7 @@ import {
 import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
+import type { WorldSelection } from "./storage/SharedWorldStorage";
 import { seedWorldStorageHost } from "./storage/SeedWorldStorageHost";
 import { openSeedWorldProject } from "./SeedWorldProject.ts";
 import {
@@ -306,6 +307,7 @@ export async function mountSeedWorldDemo(
     persistPlayerState?: boolean;
     assetSources?: readonly ProjectFileProvider[];
     retrievalManifestUrl?: string;
+    storageSelection?: WorldSelection;
   } = {}
 ): Promise<void> {
   let showAssistant = options.showAssistant !== false;
@@ -916,7 +918,7 @@ export async function mountSeedWorldDemo(
       ).setDownloadUrls?.(urls);
     }
     runtimeProject = await timed("openSeedWorldProject", () =>
-      openSeedWorldProject(pageUrl, initialProject, prefetchedTextAssets)
+      openSeedWorldProject(pageUrl, initialProject, prefetchedTextAssets, options.storageSelection)
     );
     if (disposed) {
       runtimeProject.dispose();
@@ -1055,7 +1057,8 @@ export async function mountSeedWorldDemo(
     ) {
       void engine!.resourceManager.load({ type: AssetType.Prefab, url: BUILTIN_BUILDING_ASSETS }).catch(() => {});
     }
-    // Persist initial project state asynchronously instead of blocking scene load on IndexedDB flush.
+    // Start the checkpoint alongside scene preparation. A restored world can be entered
+    // while its next save is pending or needs a retry through the save control.
     const startupSaveTask = timed("runtimeProject.save (startup)", () => runtimeProject!.save());
     void startupSaveTask.catch(() => {});
     await startupShadersTask;
@@ -3675,7 +3678,7 @@ export async function mountSeedWorldDemo(
         (distance) => rockNavigation?.raycastWorld(ray, distance) ?? root.scene!.physics.raycast(ray, distance)
       );
     });
-    await timed("await startupSaveTask", () => startupSaveTask);
+    if (!runtimeProject.restoredFromStorage) await timed("await initial checkpoint", () => startupSaveTask);
     if (showAssistant) timed("tools.show", () => tools!.show());
     const startPerfTour = async () => {
       if (disposed || !engine) return;

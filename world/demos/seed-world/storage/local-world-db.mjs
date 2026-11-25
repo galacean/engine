@@ -1,6 +1,8 @@
 // Standalone development SDK for the world_save statements in SharedWorldStorage.
 // Also distributed to the PUGC scaffold's Vite development entry.
 const selectHead = "select payload as payload from world_save where id = ? limit 2";
+const selectArchive = "select payload as payload from world_save where generation = ? and id <= ? and part_no > ? order by id desc limit 1";
+const sealArchive = "update world_save set payload = ?, part_no = ? where id = ? and part_no < ?";
 const selectParts = "select part_no as partno, payload as payload from world_save where generation = ? and part_no >= ? order by part_no asc limit ?";
 const selectGenerations = "select generation as generation from world_save where generation > ? order by generation asc limit ?";
 const insert = "insert into world_save (id, generation, part_no, payload) values (?, ?, ?, ?)";
@@ -35,6 +37,17 @@ function query(rows, sql, binds, done) {
   if (sql === selectHead) {
     const request = rows.get(binds[0]);
     request.onsuccess = () => done(request.result ? [{ payload: request.result.payload }] : []);
+  } else if (sql === selectArchive) {
+    const [generation, last, part] = binds;
+    const range = IDBKeyRange.bound(generation + "-", last);
+    const request = rows.openCursor(range, "prev");
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) done([]);
+      else if (cursor.value.generation === generation && cursor.value.part_no > part)
+        done([{ payload: cursor.value.payload }]);
+      else cursor.continue();
+    };
   } else if (sql === selectParts) {
     const [generation, firstPart, limit] = binds;
     const range = IDBKeyRange.bound([generation, firstPart], [generation, Infinity]);
@@ -70,6 +83,16 @@ function execute(rows, sql, binds, done) {
       const matches = row && (sql === update || row.payload === previous);
       if (matches) rows.put({ ...row, payload });
       done({ rowsAffected: matches ? 1 : 0 });
+    };
+  } else if (sql === sealArchive) {
+    const [payload, part_no, id, limit] = binds;
+    checkPayload(payload);
+    const request = rows.get(id);
+    request.onsuccess = () => {
+      const row = request.result;
+      const changed = row && row.part_no < limit;
+      if (changed) rows.put({ ...row, payload, part_no });
+      done({ rowsAffected: changed ? 1 : 0 });
     };
   } else if (sql === remove) {
     const request = rows.index("generation").openKeyCursor(IDBKeyRange.only(binds[0]));

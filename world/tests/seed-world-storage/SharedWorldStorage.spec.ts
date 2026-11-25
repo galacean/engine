@@ -34,13 +34,17 @@ function instance() {
   sql.exec(
     "CREATE TRIGGER payload_size BEFORE INSERT ON world_save WHEN length(NEW.payload)>100000 BEGIN SELECT RAISE(ABORT,'payload too large'); END"
   );
+  sql.exec(
+    "CREATE TRIGGER payload_update_size BEFORE UPDATE ON world_save WHEN length(NEW.payload)>100000 BEGIN SELECT RAISE(ABORT,'payload too large'); END"
+  );
   const db: WorldDb = {
     query: vi.fn(async ({ sql: statement, binds }) => ({ success: true, data: sql.prepare(statement).all(...binds) })),
     execute: vi.fn(async ({ sql: statement, binds }) => ({
       success: true,
       data: { rowsAffected: Number(sql.prepare(statement).run(...binds).changes) }
     })),
-    role: vi.fn(async () => ({ role: "MANAGER" }))
+    role: vi.fn(async () => ({ role: "MANAGER" })),
+    persistentTime: async () => Date.now()
   };
   const open = async (readOnly = false, version = "1") => {
     const storage = await SharedWorldStorage.open(db, readOnly, version, identity);
@@ -49,6 +53,30 @@ function instance() {
   };
   return { sql, db, open };
 }
+function versions(sql: DatabaseSync) {
+  sql.exec("ALTER TABLE world_save ADD COLUMN app_version INT NOT NULL DEFAULT 1");
+  return async (version: number, readOnly = false) => {
+    const visible = (statement: string) => statement.replace(
+      / WHERE (.+?)( ORDER BY | LIMIT |$)/,
+      (_, condition, suffix) => ' WHERE (' + condition + ') AND app_version <= ' + version + suffix
+    );
+    const db: WorldDb = {
+      query: async ({ sql: statement, binds }) => ({ success: true, data: sql.prepare(visible(statement)).all(...binds) }),
+      execute: async ({ sql: statement, binds }) => ({
+        success: true,
+        data: { rowsAffected: Number(statement.startsWith("INSERT")
+          ? sql.prepare("INSERT INTO world_save VALUES (?, ?, ?, ?, ?)").run(...binds, version).changes
+          : sql.prepare(visible(statement)).run(...binds).changes) }
+      }),
+      role: async () => ({ role: "MANAGER" }),
+      persistentTime: async () => Date.now()
+    };
+    const storage = await SharedWorldStorage.open(db, readOnly, String(version), identity);
+    stores.push(storage);
+    return storage;
+  };
+}
+
 // Incompressible, printable and deterministic so the DB boundary is actually exercised.
 function noise(length: number) {
   return Array.from({ length: Math.ceil(length / 43) }, (_, i) =>
@@ -107,7 +135,7 @@ function seedLegacy(sql: DatabaseSync, pack: RuntimeProjectPackage) {
 function refs(sql: DatabaseSync) {
   const head = JSON.parse(String(sql.prepare("SELECT payload FROM world_save WHERE id='world'").get()!.payload));
   expect(head.format).toBe(2);
-  const rows = sql.prepare("SELECT payload FROM world_save WHERE generation=? ORDER BY part_no").all(head.revision);
+  const rows = sql.prepare("SELECT payload FROM world_save WHERE generation=? AND part_no>=0 ORDER BY part_no").all(head.revision);
   const index = JSON.parse(
     gunzipSync(Buffer.concat(rows.map((r) => Buffer.from(String(r.payload), "base64")))).toString()
   );
@@ -220,7 +248,7 @@ describe("Lingguang shared world checkpoints", () => {
     const restored = (await owner.load())!;
     published.recordRead(mesh, restored.contents[mesh.virtualPath]);
     await owner.save("", restored);
-    const sparse = (await (await open(true)).load())!;
+    const sparse = (await (await open(true, "2")).load())!;
     expect(sparse.contents).toEqual({ [local.virtualPath]: "21:00" });
     expect(sparse.project).toEqual(stored({ ...pack, contents: { [local.virtualPath]: "21:00" } }).project);
     expect(sparse.documents).toEqual(pack.documents);
@@ -229,7 +257,7 @@ describe("Lingguang shared world checkpoints", () => {
     restored.contents[scene.virtualPath] = "edited scene at original URL";
     (restored.contents[mesh.virtualPath] as Uint8Array)[0] = 99;
     await owner.save("", restored);
-    expect((await (await open(true)).load())!.contents).toEqual(restored.contents);
+    expect((await (await open(true, "2")).load())!.contents).toEqual(restored.contents);
     restored.project.files[0].path += "?v=2";
     restored.contents[scene.virtualPath] = "published scene";
     expect(published.overrides(restored)[scene.virtualPath]).toBe("published scene");
@@ -251,7 +279,7 @@ describe("Lingguang shared world checkpoints", () => {
       if (key === "lingguang://world/files/entry.scene") expect(after.get(key)).not.toEqual(ref);
       else expect(after.get(key)).toEqual(ref);
     }
-    expect(vi.mocked(db.execute).mock.calls.filter(([r]) => r.sql.startsWith("INSERT") && r.binds[0] !== "gc")).toHaveLength(2);
+    expect(vi.mocked(db.execute).mock.calls.filter(([r]) => r.sql.startsWith("INSERT") && !String(r.binds[0]).startsWith("gc-"))).toHaveLength(2);
     const again = await open();
     const restored = (await again.load())!;
     vi.mocked(db.execute).mockClear();
@@ -361,6 +389,190 @@ describe("Lingguang shared world checkpoints", () => {
     }
   );
 
+  it("keeps the last snapshot visible to an older app after a newer app saves and collects", async () => {
+    useStorageClock();
+    const { sql } = instance();
+    const openVersion = versions(sql);
+    const v1 = await openVersion(1);
+    await v1.load();
+    await v1.save("", project("v1"));
+    const v2 = await openVersion(2);
+    expect(await v2.load()).toEqual(stored(project("v1")));
+    await v2.save("", project("v2 first"));
+    await expect(v1.save("", project("stale edit"))).rejects.toThrow("另一会话已保存");
+    await v2.save("", project("v2 final"));
+    await vi.advanceTimersByTimeAsync(300_010);
+    const old = await openVersion(1);
+    expect(old.readOnly).toBe(true);
+    expect(await old.load()).toEqual(stored(project("v1")));
+    await expect(old.save("", project("stale edit"))).rejects.toThrow("不能保存");
+    expect(await (await openVersion(2, true)).load()).toEqual(stored(project("v2 final")));
+    v2.close();
+    const reopened = await openVersion(2);
+    await reopened.load();
+    await reopened.save("", project("v2 after reconciliation"));
+    await vi.advanceTimersByTimeAsync(300_010);
+    expect(await (await openVersion(1, true)).load()).toEqual(stored(project("v1")));
+  });
+
+  it("keeps the shared publication entry bounded across hundreds of versions", async () => {
+    const { sql } = instance();
+    const openVersion = versions(sql);
+    for (let version = 1; version <= 350; version++) {
+      const writer = await openVersion(version);
+      await writer.load();
+      await writer.save("", project(String(version)));
+      writer.close();
+    }
+    const row = sql.prepare("SELECT length(payload) AS size FROM world_save WHERE id='world'").get()!;
+    expect(Number(row.size)).toBeLessThan(1024);
+    for (const version of [1, 17, 349, 350])
+      expect(await (await openVersion(version, true)).load()).toEqual(stored(project(String(version))));
+  }, 120_000);
+
+  it("keeps the final committed snapshot when two upgrades try to seal different observations", async () => {
+    const { db, sql, open } = instance();
+    const old = await open();
+    await old.load();
+    await old.save("", project("first"));
+    const delayed = await open(false, "2");
+    await delayed.load();
+    let sealReached!: () => void;
+    let releaseSeal!: () => void;
+    const atSeal = new Promise<void>(resolve => { sealReached = resolve; });
+    const canSeal = new Promise<void>(resolve => { releaseSeal = resolve; });
+    const execute = db.execute;
+    let firstSeal = true;
+    db.execute = async (request) => {
+      if (firstSeal && request.sql.includes("part_no < ?")) {
+        firstSeal = false;
+        sealReached();
+        await canSeal;
+      }
+      return execute(request);
+    };
+    const delayedResult = expect(delayed.save("", project("losing upgrade"))).rejects.toThrow("另一会话已保存");
+    await atSeal;
+    try {
+      await old.save("", project("last"));
+      const upgrade = await open(false, "3");
+      await upgrade.load();
+      await upgrade.save("", project("new"));
+    } finally {
+      releaseSeal();
+    }
+    await delayedResult;
+    expect(await (await open(true)).load()).toEqual(stored(project("last")));
+    expect(await (await open(true, "2")).load()).toEqual(stored(project("last")));
+    expect(await (await open(true, "3")).load()).toEqual(stored(project("new")));
+    expect(sql.prepare("SELECT count(*) AS count FROM world_save WHERE generation='archive'").get()!.count).toBe(3);
+  });
+
+  it("does not promote an older writer if restore has to retry through a frozen snapshot", async () => {
+    useStorageClock();
+    const { sql } = instance();
+    const openVersion = versions(sql);
+    const first = await openVersion(1);
+    await first.load();
+    await first.save("", project("first"));
+    const old = await openVersion(1);
+    await first.save("", project("last"));
+    first.close();
+    const upgrade = await openVersion(2);
+    await upgrade.load();
+    await upgrade.save("", project("new"));
+    await vi.advanceTimersByTimeAsync(300_010);
+    expect(await old.load()).toEqual(stored(project("last")));
+    await expect(old.save("", project("stale edit"))).rejects.toThrow("另一会话已保存");
+    expect(await (await openVersion(2, true)).load()).toEqual(stored(project("new")));
+  });
+
+  it("keeps history references live when regenerating an incompatible active checkpoint", async () => {
+    useStorageClock();
+    const { sql } = instance();
+    const openVersion = versions(sql);
+    const first = await openVersion(1);
+    await first.load();
+    await first.save("", project("archived"));
+    first.close();
+    const second = await openVersion(2);
+    await second.load();
+    await second.save("", project("incompatible"));
+    second.close();
+    sql.exec("UPDATE world_save SET payload=json_set(payload,'$.engineVersion',999) WHERE id='world'");
+    const restore = await openVersion(2);
+    expect(await restore.load()).toBeUndefined();
+    await restore.save("", project("regenerated"));
+    await vi.advanceTimersByTimeAsync(300_010);
+    const reopened = await openVersion(2);
+    expect(await reopened.load()).toEqual(stored(project("regenerated")));
+    await reopened.save("", project("latest"));
+    expect(await (await openVersion(1, true)).load()).toEqual(stored(project("archived")));
+  });
+
+  it("authorizes expiration using database time even after device clocks change and the progress row is lost", async () => {
+    useStorageClock();
+    const { db, sql, open } = instance();
+    let dbTime = Date.now();
+    db.persistentTime = async () => dbTime;
+    const author = await open();
+    await author.load();
+    await author.save("", project("A"));
+    const oldRevision = refs(sql).get("lingguang://world/files/entry.scene")!.revision;
+    const visitor = await open(true);
+    await author.save("", project("B"));
+    await vi.advanceTimersByTimeAsync(1);
+    await author.save("", project("C"));
+    author.close();
+    sql.exec("DELETE FROM world_save WHERE id LIKE 'gc-%'");
+    vi.setSystemTime(Date.now() + 360_000);
+    const reopened = await open();
+    expect(await reopened.load()).toEqual(stored(project("C")));
+    await vi.advanceTimersByTimeAsync(300_001);
+    const oldChunk = () => sql.prepare("SELECT id FROM world_save WHERE generation=?").get(oldRevision);
+    expect(oldChunk()).toBeDefined();
+    expect(await visitor.load()).toEqual(stored(project("A")));
+    dbTime += 300_001;
+    await vi.advanceTimersByTimeAsync(301_000);
+    expect(oldChunk()).toBeUndefined();
+  });
+
+  it("reopens standalone saves without persisting session-relative deadlines", async () => {
+    useStorageClock();
+    const { db, open, sql } = instance();
+    delete db.persistentTime;
+    vi.spyOn(performance, "now").mockReturnValue(4.25);
+    const author = await open();
+    await author.load();
+    await author.save("", project("A"));
+    await author.save("", project("B"));
+    await vi.advanceTimersByTimeAsync(1);
+    await author.save("", project("C"));
+    author.close();
+    const reopened = await open();
+    expect(await reopened.load()).toEqual(stored(project("C")));
+    const cursor = sql.prepare("SELECT payload FROM world_save WHERE id LIKE 'gc-%'").get()!;
+    expect(JSON.parse(String(cursor.payload))).toEqual({ count: 0 });
+  });
+
+  it("publishes the identity of the captured project and opens it under that identity", async () => {
+    const { db } = instance();
+    const next = { seed: 124, template: "low-poly" };
+    const writer = await SharedWorldStorage.open(db, false, "1", identity, undefined, undefined, (pack) =>
+      JSON.parse(String(pack.contents["entry.scene"]))
+    );
+    stores.push(writer);
+    await writer.load();
+    await writer.save("", project(JSON.stringify(identity)));
+    const changed = project(JSON.stringify(next));
+    await writer.save("", changed);
+    expect((await SharedWorldStorage.select(db, "1"))?.identity).toEqual(next);
+    await expect(SharedWorldStorage.open(db, false, "1", identity)).rejects.toThrow("世界已更新");
+    const reopened = await SharedWorldStorage.open(db, false, "1", next);
+    stores.push(reopened);
+    expect(await reopened.load()).toEqual(stored(changed));
+  });
+
   it("splits a large project.json and rejects a missing file while its index remains readable", async () => {
     const { open, sql, db } = instance();
     const pack = project();
@@ -391,7 +603,7 @@ describe("Lingguang shared world checkpoints", () => {
     await owner.save("", project("A"));
     for (const entry of ["召回", "模板创建"]) {
       const clone = instance();
-      expect(await SharedWorldStorage.inspect(clone.db)).toBeUndefined();
+      expect((await SharedWorldStorage.select(clone.db, "1")).raw).toBeUndefined();
       const own = await clone.open();
       expect(await own.load()).toBeUndefined();
       await own.save("", project(entry));
@@ -565,7 +777,7 @@ describe("Lingguang shared world checkpoints", () => {
     const owner = await open();
     await owner.load();
     await owner.save("", project("A"));
-    const generations = () => sql.prepare("SELECT generation FROM world_save WHERE part_no=0").all().map(row => row.generation);
+    const generations = () => sql.prepare("SELECT generation FROM world_save WHERE part_no=0 AND generation<>\'archive\'").all().map(row => row.generation);
     const original = new Set(generations());
     const execute = db.execute;
     let late!: () => ReturnType<WorldDb["execute"]>;
@@ -597,7 +809,7 @@ describe("Lingguang shared world checkpoints", () => {
     const { open, db, sql } = instance();
     const owner = await open();
     await owner.load();
-    const generations = () => sql.prepare("SELECT generation FROM world_save WHERE part_no=0").all().map(r => String(r.generation));
+    const generations = () => sql.prepare("SELECT generation FROM world_save WHERE part_no=0 AND generation<>\'archive\'").all().map(r => String(r.generation));
     for (let i = 0; i < 10; i++) {
       await owner.save("", project(String(i)));
       await vi.advanceTimersByTimeAsync(6000);
@@ -848,7 +1060,7 @@ describe("Lingguang shared world checkpoints", () => {
     const { db, sql } = instance();
     const appIdentity = { seed: identity.seed, template: "app-template" };
     seedLegacy(sql, project());
-    expect((await SharedWorldStorage.inspect(db, appIdentity.template))?.checkpoint).toBeDefined();
+    expect((await SharedWorldStorage.select(db, "2", appIdentity.template))?.checkpoint).toBeDefined();
     const wrong = await SharedWorldStorage.open(db, false, "2", appIdentity);
     await expect(wrong.load()).rejects.toThrow("世界模板版本不兼容");
     wrong.close();
@@ -856,11 +1068,11 @@ describe("Lingguang shared world checkpoints", () => {
     const old = project();
     Object.assign(old, { version: 6 });
     seedLegacy(sql, old);
-    expect((await SharedWorldStorage.inspect(db, appIdentity.template))?.checkpoint).toBeUndefined();
+    expect((await SharedWorldStorage.select(db, "2", appIdentity.template))?.checkpoint).toBeUndefined();
     const owner = await SharedWorldStorage.open(db, false, "2", appIdentity);
     expect(await owner.load()).toBeUndefined();
     await owner.save("", project("app world"));
-    expect((await SharedWorldStorage.inspect(db))?.identity).toEqual(appIdentity);
+    expect((await SharedWorldStorage.select(db, "2"))?.identity).toEqual(appIdentity);
     owner.close();
   });
 
@@ -883,6 +1095,64 @@ describe("Lingguang shared world checkpoints", () => {
     owner.close();
   });
 
+  it("isolates retirement progress when a prior manager writes after publication", async () => {
+    useStorageClock();
+    const { db, open, sql } = instance();
+    const author = await open();
+    await author.load();
+    await author.save("", project("A"));
+    const revision = () => JSON.parse(String(sql.prepare("SELECT payload FROM world_save WHERE id='world'").get()!.payload)).revision;
+    const execute = db.execute;
+    let releaseOld!: () => void;
+    const canContinue = new Promise<void>(resolve => { releaseOld = resolve; });
+    let oldCursor = "";
+    db.execute = async (request) => {
+      if (String(request.binds[1]) === oldCursor && request.sql.startsWith("UPDATE")) await canContinue;
+      return execute(request);
+    };
+    await author.save("", project("B"));
+    oldCursor = "gc-" + revision();
+    await vi.advanceTimersByTimeAsync(1);
+    const publisher = await open();
+    await publisher.load();
+    await publisher.save("", project("C"));
+    await vi.advanceTimersByTimeAsync(1);
+    const newCursor = "gc-" + revision();
+    const cursor = sql.prepare("SELECT payload FROM world_save WHERE id=?");
+    const current = cursor.get(newCursor);
+    expect(current).toBeDefined();
+    releaseOld();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(cursor.get(oldCursor)).toBeDefined();
+    expect(cursor.get(newCursor)).toEqual(current);
+  });
+
+  it("does not insert a retirement cursor after the writer closes during an update", async () => {
+    useStorageClock();
+    const { db, open, sql } = instance();
+    const owner = await open();
+    await owner.load();
+    await owner.save("", project("A"));
+    const execute = db.execute;
+    let releaseUpdate!: () => void;
+    const canContinue = new Promise<void>(resolve => { releaseUpdate = resolve; });
+    let waiting = false;
+    db.execute = async (request) => {
+      if (String(request.binds[1]).startsWith("gc-") && request.sql.startsWith("UPDATE")) {
+        waiting = true;
+        await canContinue;
+      }
+      return execute(request);
+    };
+    await owner.save("", project("B"));
+    await vi.advanceTimersByTimeAsync(1);
+    expect(waiting).toBe(true);
+    owner.close();
+    releaseUpdate();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(sql.prepare("SELECT id FROM world_save WHERE id LIKE 'gc-%'").get()).toBeUndefined();
+  });
+
   it.each([false, true])("recovers retirement after closing immediately after publication (lost cursor: %s)", async (loseCursor) => {
     const { open, db, sql } = instance();
     useStorageClock();
@@ -893,7 +1163,7 @@ describe("Lingguang shared world checkpoints", () => {
     const hasOld = () => !!sql.prepare("SELECT id FROM world_save WHERE generation=?").get(original);
     const execute = db.execute;
     db.execute = async (req) => {
-      if (loseCursor && req.binds.includes("gc")) throw Error("offline after world switch");
+      if (loseCursor && req.binds.some(value => String(value).startsWith("gc-"))) throw Error("offline after world switch");
       return execute(req);
     };
     await owner.save("", project("B"));
@@ -948,9 +1218,9 @@ describe("Lingguang shared world checkpoints", () => {
         insertPart.run(generation + "-0", generation, "retired");
       }
     }
-    const oldGenerations = sql.prepare("SELECT generation FROM world_save WHERE part_no=0").all();
+    const oldGenerations = sql.prepare("SELECT generation FROM world_save WHERE part_no=0 AND generation<>\'archive\'").all();
     vi.mocked(db.execute).mockClear();
-    expect((await SharedWorldStorage.inspect(db))?.identity).toEqual(identity);
+    expect((await SharedWorldStorage.select(db, "1"))?.identity).toEqual(identity);
     const visitor = await open(true);
     expect(await visitor.load()).toBeUndefined();
     await expect(visitor.save("", project())).rejects.toThrow();
@@ -962,7 +1232,7 @@ describe("Lingguang shared world checkpoints", () => {
     vi.mocked(db.execute).mockRejectedValueOnce(new Error("write failed"));
     await expect(owner.save("", project("regenerated"))).rejects.toThrow("write failed");
     expect(oldHead()).toBe(original);
-    expect(sql.prepare("SELECT generation FROM world_save WHERE part_no=0").all()).toEqual(oldGenerations);
+    expect(sql.prepare("SELECT generation FROM world_save WHERE part_no=0 AND generation<>\'archive\'").all()).toEqual(oldGenerations);
     await owner.save("", project("regenerated"));
     expect(await (await open(true)).load()).toEqual(stored(project("regenerated")));
     for (const { generation } of oldGenerations)
