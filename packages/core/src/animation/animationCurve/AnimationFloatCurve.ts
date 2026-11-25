@@ -2,6 +2,7 @@ import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
+import { evaluateHermiteScalar } from "../internal/AnimationCurvePack";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -75,6 +76,7 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
 
   /**
    * Replace all keyframes with packed scalar arrays.
+   * When `times` is already ascending, `times` and `values` are retained by reference without copying (copy-on-write on mutation) and must not be mutated by the caller; unsorted inputs or later edits copy `values` into `Float32Array`.
    * @param times - Keyframe timestamps in seconds
    * @param values - Packed keyframe scalars (`1` per key, or `3` per key as `[inTangent, value, outTangent]`)
    * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
@@ -95,23 +97,18 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     return p0 + (values[nextIndex * stride + valueOffset] - p0) * t;
   }
 
-  protected override _evaluateHermite(curIndex: number, nextIndex: number, t: number, duration: number): number {
+  protected override _evaluateHermite(
+    curIndex: number,
+    nextIndex: number,
+    a: number,
+    bd: number,
+    cd: number,
+    d: number
+  ): number {
     const values = this._values;
     const o0 = curIndex * 3 + 1;
     const o1 = nextIndex * 3;
-    const p0 = values[o0];
-    const t0 = values[o0 + 1];
-    const t1 = values[o1];
-    if (Number.isFinite(t0) && Number.isFinite(t1)) {
-      const t2 = t * t;
-      const t3 = t2 * t;
-      const a = 2.0 * t3 - 3.0 * t2 + 1.0;
-      const b = t3 - 2.0 * t2 + t;
-      const c = t3 - t2;
-      const d = -2.0 * t3 + 3.0 * t2;
-      return a * p0 + b * t0 * duration + c * t1 * duration + d * values[o1 + 1];
-    }
-    return p0;
+    return evaluateHermiteScalar(values[o0], values[o0 + 1], values[o1], values[o1 + 1], a, bd, cd, d);
   }
 
   protected override _subtractFirstKey(out: number): number {

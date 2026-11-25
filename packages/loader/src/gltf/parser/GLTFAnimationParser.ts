@@ -171,11 +171,11 @@ export class GLTFAnimationParser extends GLTFParser {
         pending.push(
           context.get<Uint8Array>(GLTFParserType.BufferView, viewIndex).then((view) => {
             for (let i = 0, n = indices!.length; i < n; i++) {
-              const index = indices![i];
-              const { byteOffset = 0, componentType, count, type } = accessors![index];
+              const accessorIndex = indices![i];
+              const { byteOffset = 0, componentType, count, type } = accessors![accessorIndex];
               const ArrayType = GLTFUtils.getComponentType(componentType);
               data.set(
-                index,
+                accessorIndex,
                 new ArrayType(view.buffer, view.byteOffset + byteOffset, count * GLTFUtils.getAccessorTypeSize(type))
               );
             }

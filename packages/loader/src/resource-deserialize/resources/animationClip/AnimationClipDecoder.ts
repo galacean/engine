@@ -17,7 +17,8 @@ import {
   Engine,
   KeyframeValueType,
   Loader,
-  ReferResource
+  ReferResource,
+  TypedArray
 } from "@galacean/engine-core";
 import type { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
@@ -60,86 +61,45 @@ export class AnimationClipDecoder {
         const typeIndex = version >= 2 ? bufferReader.nextUint16() : 0;
         const property = bufferReader.nextStr();
         const getProperty = bufferReader.nextStr();
-        let curve: AnimationCurve<KeyframeValueType>;
+        let curve!: AnimationCurve<KeyframeValueType>;
         const interpolation = bufferReader.nextUint8();
         const keysLen = bufferReader.nextUint16();
         const curveType = bufferReader.nextStr();
         switch (curveType) {
-          case "AnimationFloatCurve": {
+          case "AnimationFloatCurve":
             curve = new AnimationFloatCurve();
-            curve.interpolation = interpolation;
-            if (keysLen > 0) {
-              const { times, values } = AnimationClipDecoder._readFixedNumericKeys(bufferReader, keysLen, 1);
-              (<AnimationFloatCurve>curve).setKeys(times, values, true);
-            }
+            AnimationClipDecoder._decodeFixedNumericCurve(<AnimationFloatCurve>curve, bufferReader, keysLen, 1);
             break;
-          }
-          case "AnimationArrayCurve": {
+          case "AnimationArrayCurve":
             curve = new AnimationArrayCurve();
-            curve.interpolation = interpolation;
-            const decoded = AnimationClipDecoder._readVariableNumericKeys(bufferReader, keysLen);
-            if (decoded) {
-              (<AnimationArrayCurve>curve).setKeys(decoded.times, decoded.values, true);
-            }
+            AnimationClipDecoder._decodeVariableNumericCurve(<AnimationArrayCurve>curve, bufferReader, keysLen);
             break;
-          }
-          case "AnimationFloatArrayCurve": {
+          case "AnimationFloatArrayCurve":
             curve = new AnimationFloatArrayCurve();
-            curve.interpolation = interpolation;
-            const decoded = AnimationClipDecoder._readVariableNumericKeys(bufferReader, keysLen);
-            if (decoded) {
-              (<AnimationFloatArrayCurve>curve).setKeys(decoded.times, decoded.values, true);
-            }
+            AnimationClipDecoder._decodeVariableNumericCurve(<AnimationFloatArrayCurve>curve, bufferReader, keysLen);
             break;
-          }
-          case "AnimationVector2Curve": {
+          case "AnimationVector2Curve":
             curve = new AnimationVector2Curve();
-            curve.interpolation = interpolation;
-            if (keysLen > 0) {
-              const { times, values } = AnimationClipDecoder._readFixedNumericKeys(bufferReader, keysLen, 2);
-              (<AnimationVector2Curve>curve).setKeys(times, values, true);
-            }
+            AnimationClipDecoder._decodeFixedNumericCurve(<AnimationVector2Curve>curve, bufferReader, keysLen, 2);
             break;
-          }
-          case "AnimationVector3Curve": {
+          case "AnimationVector3Curve":
             curve = new AnimationVector3Curve();
-            curve.interpolation = interpolation;
-            if (keysLen > 0) {
-              const { times, values } = AnimationClipDecoder._readFixedNumericKeys(bufferReader, keysLen, 3);
-              (<AnimationVector3Curve>curve).setKeys(times, values, true);
-            }
+            AnimationClipDecoder._decodeFixedNumericCurve(<AnimationVector3Curve>curve, bufferReader, keysLen, 3);
             break;
-          }
-          case "AnimationVector4Curve": {
+          case "AnimationVector4Curve":
             curve = new AnimationVector4Curve();
-            curve.interpolation = interpolation;
-            if (keysLen > 0) {
-              const { times, values } = AnimationClipDecoder._readFixedNumericKeys(bufferReader, keysLen, 4);
-              (<AnimationVector4Curve>curve).setKeys(times, values, true);
-            }
+            AnimationClipDecoder._decodeFixedNumericCurve(<AnimationVector4Curve>curve, bufferReader, keysLen, 4);
             break;
-          }
-          case "AnimationColorCurve": {
+          case "AnimationColorCurve":
             curve = new AnimationColorCurve();
-            curve.interpolation = interpolation;
-            if (keysLen > 0) {
-              const { times, values } = AnimationClipDecoder._readFixedNumericKeys(bufferReader, keysLen, 4);
-              (<AnimationColorCurve>curve).setKeys(times, values, true);
-            }
+            AnimationClipDecoder._decodeFixedNumericCurve(<AnimationColorCurve>curve, bufferReader, keysLen, 4);
             break;
-          }
-          case "AnimationQuaternionCurve": {
+          case "AnimationQuaternionCurve":
             curve = new AnimationQuaternionCurve();
-            curve.interpolation = interpolation;
-            if (keysLen > 0) {
-              const { times, values } = AnimationClipDecoder._readFixedNumericKeys(bufferReader, keysLen, 4);
-              (<AnimationQuaternionCurve>curve).setKeys(times, values, true);
-            }
+            AnimationClipDecoder._decodeFixedNumericCurve(<AnimationQuaternionCurve>curve, bufferReader, keysLen, 4);
             break;
-          }
           case "AnimationRefCurve": {
             curve = new AnimationRefCurve();
-            curve.interpolation = interpolation;
             if (keysLen > 0) {
               const times = new Float32Array(keysLen);
               const values = new Array<ReferResource | null>(keysLen);
@@ -154,7 +114,6 @@ export class AnimationClipDecoder {
           }
           case "AnimationBoolCurve": {
             curve = new AnimationBoolCurve();
-            curve.interpolation = interpolation;
             if (keysLen > 0) {
               const times = new Float32Array(keysLen);
               const values = new Array<boolean>(keysLen);
@@ -168,7 +127,6 @@ export class AnimationClipDecoder {
           }
           case "AnimationStringCurve": {
             curve = new AnimationStringCurve();
-            curve.interpolation = interpolation;
             if (keysLen > 0) {
               const times = new Float32Array(keysLen);
               const values = new Array<string>(keysLen);
@@ -181,17 +139,22 @@ export class AnimationClipDecoder {
             break;
           }
         }
-        clip.addCurveBinding(relativePath, componentType, typeIndex, property, getProperty, curve!);
+        curve.interpolation = interpolation;
+        clip.addCurveBinding(relativePath, componentType, typeIndex, property, getProperty, curve);
       }
       resolve(clip);
     });
   }
 
-  private static _readFixedNumericKeys(
+  private static _decodeFixedNumericCurve(
+    curve: NumericSetKeysCurve,
     bufferReader: BufferReader,
     keysLen: number,
     valueSize: number
-  ): { times: Float32Array; values: Float32Array } {
+  ): void {
+    if (keysLen === 0) {
+      return;
+    }
     const times = new Float32Array(keysLen);
     const stride = valueSize * 3;
     const values = new Float32Array(keysLen * stride);
@@ -199,17 +162,17 @@ export class AnimationClipDecoder {
       times[j] = bufferReader.nextFloat32();
       AnimationClipDecoder._readFloatTriple(bufferReader, values, base, valueSize);
     }
-    return { times, values };
+    curve.setKeys(times, values, true);
   }
 
-  private static _readVariableNumericKeys(
+  private static _decodeVariableNumericCurve(
+    curve: NumericSetKeysCurve,
     bufferReader: BufferReader,
     keysLen: number
-  ): { times: Float32Array; values: Float32Array } | null {
+  ): void {
     if (keysLen === 0) {
-      return null;
+      return;
     }
-
     const times = new Float32Array(keysLen);
     times[0] = bufferReader.nextFloat32();
     const valueSize = bufferReader.nextUint16();
@@ -225,7 +188,7 @@ export class AnimationClipDecoder {
       }
       AnimationClipDecoder._readFloatTriple(bufferReader, values, base, valueSize);
     }
-    return { times, values };
+    curve.setKeys(times, values, true);
   }
 
   private static _readFloatTriple(
@@ -246,4 +209,8 @@ export class AnimationClipDecoder {
       values[outOffset + k] = bufferReader.nextFloat32();
     }
   }
+}
+
+interface NumericSetKeysCurve {
+  setKeys(times: TypedArray, values: TypedArray, hasTangents?: boolean): void;
 }

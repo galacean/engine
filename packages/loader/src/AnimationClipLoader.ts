@@ -32,11 +32,10 @@ class AnimationClipLoader extends Loader<AnimationClip> {
                   const key = curve.getKey(j);
                   const value = key.value as { url?: string } | null;
                   if (typeof value === "object" && value?.url) {
-                    const keyIndex = j;
                     promises.push(
                       resourceManager.getResourceByRef<ReferResource>(value as never).then((asset: ReferResource) => {
                         key.value = asset;
-                        curve.setKey(keyIndex, key);
+                        curve.setKey(j, key);
                       })
                     );
                   }

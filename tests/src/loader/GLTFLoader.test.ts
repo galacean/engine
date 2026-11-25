@@ -1,5 +1,6 @@
 import {
   AnimationClip,
+  AnimationFloatArrayCurve,
   Animator,
   AnimatorControllerLayer,
   AnimatorLayerBlendingMode,
@@ -760,14 +761,16 @@ describe("glTF Loader test", function () {
           samplers: [
             { input: 0, output: 1 },
             { input: 0, output: 2, interpolation: "STEP" },
-            { input: 0, output: 0 }
+            { input: 0, output: 0 },
+            { input: 0, output: 2, interpolation: "LINEAR" }
           ],
           channels: [
             { sampler: 0, target: { node: 0, path: "translation" } },
             { sampler: 0, target: { node: 0, path: "scale" } },
             { sampler: 1, target: { node: 0, path: "rotation" } },
             { sampler: 2, target: { node: 0, path: "weights" } },
-            { sampler: 2, target: { node: 1, path: "weights" } }
+            { sampler: 2, target: { node: 1, path: "weights" } },
+            { sampler: 3, target: { node: 1, path: "rotation" } }
           ]
         },
         {
@@ -806,16 +809,22 @@ describe("glTF Loader test", function () {
       instance = resource.instantiateSceneRoot();
       const wide = instance.findByName("Wide")!;
       const renderer = wide.getComponent(SkinnedMeshRenderer)!;
+      const seedCurve = new AnimationFloatArrayCurve();
+      seedCurve.setKeys(new Float32Array([0, 1]), new Float32Array([0.75, 0.75, 0.75, 0.75]), false);
+      const remapped = new AnimationClip("Retarget");
+      remapped.addCurveBinding("", SkinnedMeshRenderer, "blendShapeWeights", seedCurve);
       for (const [curve, expected] of [
         [weight, 0.5],
         [cubic, 0.75]
       ] as const) {
-        const remapped = new AnimationClip("Retarget");
-        remapped.addCurveBinding("", SkinnedMeshRenderer, "blendShapeWeights", curve);
+        remapped.curveBindings[0].curve = seedCurve;
+        remapped.sampleAnimation(wide, 0.5);
+        expect(Array.from(renderer.blendShapeWeights)).toEqual([0.75, 0.75]);
+        remapped.curveBindings[0].curve = curve;
         remapped.sampleAnimation(wide, 0.5);
         expect(Array.from(renderer.blendShapeWeights)).toEqual([expected, 0]);
-        remapped.destroy();
       }
+      remapped.destroy();
       expect(weight.getKey(1).value).toEqual(new Float32Array([1]));
       expect(weight.evaluate(0.75)).toEqual(new Float32Array([0.75]));
 
@@ -839,9 +848,9 @@ describe("glTF Loader test", function () {
     const rotLinear = [0, 0, 0, 1, 0, Math.SQRT1_2, 0, Math.SQRT1_2];
     const scaleCubic = [
       // key 0: inTangent, value, outTangent
-      0, 0, 0, 1, 1, 1, 0, 3, 0,
+      0, 0, 0, 1, 1, 1, 0, 4, 0,
       // key 1: inTangent, value, outTangent
-      0, 3, 0, 2, 3, 4, 0, 0, 0
+      0, 0, 0, 2, 3, 4, 0, 0, 0
     ];
     const weightLinear = [0, 1, 1, 0];
     const transStep = [1, 2, 3, 5, 6, 7];
@@ -1019,6 +1028,7 @@ describe("glTF Loader test", function () {
       animator.play("base", 0);
       stepAnimator(0.5);
       expect(actor.transform.position.x).toBeCloseTo(1, 5);
+      expect(actor.transform.scale.y).toBeCloseTo(2.5, 5);
       expect(actor.transform.rotationQuaternion.y).toBeCloseTo(Math.sin(Math.PI / 8), 5);
       expect(renderer.blendShapeWeights[0]).toBeCloseTo(0.5, 5);
       expect(renderer.blendShapeWeights[1]).toBeCloseTo(0.5, 5);
@@ -1035,6 +1045,12 @@ describe("glTF Loader test", function () {
       overlayClip.sampleAnimation(instance, 0.5);
       const { rotationQuaternion, scale, localMatrix } = actor.transform;
       const m = localMatrix.elements;
+      // At t=0.5: raw (0.05, 0.1, 0.65, 0.7) normalized -> invLen = 1 / sqrt(0.925)
+      const invNorm = 1 / Math.hypot(0.05, 0.1, 0.65, 0.7);
+      expect(rotationQuaternion.x).toBeCloseTo(0.05 * invNorm, 5);
+      expect(rotationQuaternion.y).toBeCloseTo(0.1 * invNorm, 5);
+      expect(rotationQuaternion.z).toBeCloseTo(0.65 * invNorm, 5);
+      expect(rotationQuaternion.w).toBeCloseTo(0.7 * invNorm, 5);
       expect(rotationQuaternion.length()).toBeCloseTo(1, 5);
       expect(Math.hypot(m[0], m[1], m[2])).toBeCloseTo(scale.x, 5);
 

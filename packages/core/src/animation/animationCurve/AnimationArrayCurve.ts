@@ -2,6 +2,12 @@ import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
+import {
+  evaluateHermiteArray,
+  readArrayKey,
+  subtractArrayFirstKey,
+  writeArrayKey
+} from "../internal/AnimationCurvePack";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -90,9 +96,10 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   }
 
   /**
-   * Replace all keyframes with packed scalar arrays.
+   * Replace all keyframes with packed scalar arrays; per-key element width is inferred from `values.length` and `times.length`.
+   * When `times` is already ascending, `times` and `values` are retained by reference without copying (copy-on-write on mutation) and must not be mutated by the caller; unsorted inputs or later edits copy `values` into `Float32Array`.
    * @param times - Keyframe timestamps in seconds
-   * @param values - Packed keyframe scalars (`valueSize` per key, or `valueSize * 3` as `[inTangent, value, outTangent]`)
+   * @param values - Packed keyframe scalars (`width` per key, or `width * 3` as `[inTangent, value, outTangent]`)
    * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
    */
   setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
@@ -100,16 +107,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   }
 
   protected override _prepareKeyValueSize(key: Keyframe<number[]>, isSingleKeyReplace: boolean): void {
-    const size = key.value.length;
-    if (this._keyCount === 0 || isSingleKeyReplace) {
-      if (this._valueSize !== size) {
-        this._clearValues();
-        this._valueSize = size;
-        this._hasTangents = false;
-      }
-    } else if (size !== this._valueSize) {
-      throw new Error(`Keyframe value length ${size} does not match curve value size ${this._valueSize}.`);
-    }
+    this._prepareVariableValueSize(key.value.length, isSingleKeyReplace);
   }
 
   protected override _clearValues(): void {
@@ -121,10 +119,10 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     const values = this._values;
     const valueSize = this._valueSize;
     const offset = this._hasTangents ? index * valueSize * 3 + valueSize : index * valueSize;
-    out.length = valueSize;
     for (let i = 0; i < valueSize; ++i) {
       out[i] = values[offset + i];
     }
+    out.length = valueSize;
     return out;
   }
 
@@ -135,108 +133,38 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     const valueOffset = this._hasTangents ? valueSize : 0;
     const o0 = curIndex * stride + valueOffset;
     const o1 = nextIndex * stride + valueOffset;
-    out.length = valueSize;
     for (let i = 0; i < valueSize; ++i) {
       const src = values[o0 + i];
       out[i] = src + (values[o1 + i] - src) * t;
     }
+    out.length = valueSize;
     return out;
   }
 
   protected override _evaluateHermite(
     curIndex: number,
     nextIndex: number,
-    t: number,
-    duration: number,
+    a: number,
+    bd: number,
+    cd: number,
+    d: number,
     out: number[]
   ): number[] {
-    const values = this._values;
     const valueSize = this._valueSize;
-    const stride = valueSize * 3;
-    const o0 = curIndex * stride + valueSize;
-    const o1 = nextIndex * stride;
-
-    const t2 = t * t;
-    const t3 = t2 * t;
-    const a = 2.0 * t3 - 3.0 * t2 + 1.0;
-    const b = t3 - 2.0 * t2 + t;
-    const c = t3 - t2;
-    const d = -2.0 * t3 + 3.0 * t2;
-
+    evaluateHermiteArray(this._values, valueSize, curIndex, nextIndex, a, bd, cd, d, out, valueSize);
     out.length = valueSize;
-    for (let i = 0; i < valueSize; ++i) {
-      const p0 = values[o0 + i];
-      const t0 = values[o0 + valueSize + i];
-      const t1 = values[o1 + i];
-      if (Number.isFinite(t0) && Number.isFinite(t1)) {
-        out[i] = a * p0 + b * t0 * duration + c * t1 * duration + d * values[o1 + valueSize + i];
-      } else {
-        out[i] = p0;
-      }
-    }
     return out;
   }
 
   protected override _subtractFirstKey(out: number[]): number[] {
-    const values = this._values;
-    const valueSize = this._valueSize;
-    const offset = this._hasTangents ? valueSize : 0;
-    const count = out.length < valueSize ? out.length : valueSize;
-    for (let i = 0; i < count; ++i) {
-      out[i] -= values[offset + i];
-    }
-    return out;
+    return subtractArrayFirstKey(this._values, this._valueSize, this._hasTangents, out);
   }
 
   protected override _readKeyAt(index: number, out: Keyframe<number[]>): void {
-    const values = this._values;
-    const valueSize = this._valueSize;
-    const stride = this._hasTangents ? valueSize * 3 : valueSize;
-    const offset = index * stride + (this._hasTangents ? valueSize : 0);
-
-    const dstValue = (out.value ||= new Array<number>(valueSize));
-    dstValue.length = valueSize;
-    for (let i = 0; i < valueSize; i++) {
-      dstValue[i] = values[offset + i];
-    }
-
-    if (this._hasTangents) {
-      const inOffset = offset - valueSize;
-      const outOffset = offset + valueSize;
-      const inTangent = (out.inTangent ||= new Array<number>(valueSize));
-      const outTangent = (out.outTangent ||= new Array<number>(valueSize));
-      inTangent.length = valueSize;
-      outTangent.length = valueSize;
-      for (let i = 0; i < valueSize; i++) {
-        inTangent[i] = values[inOffset + i];
-        outTangent[i] = values[outOffset + i];
-      }
-    } else {
-      out.inTangent = undefined;
-      out.outTangent = undefined;
-    }
+    readArrayKey(this._values, this._valueSize, this._hasTangents, index, out, out.value || []);
   }
 
   protected override _writeKeyAt(index: number, key: Keyframe<number[]>): void {
-    const values = this._values;
-    const valueSize = this._valueSize;
-    const { value } = key;
-    if (this._hasTangents) {
-      const base = index * valueSize * 3;
-      const valueOffset = base + valueSize;
-      const outOffset = valueOffset + valueSize;
-      const inTangent = key.inTangent;
-      const outTangent = key.outTangent;
-      for (let i = 0; i < valueSize; i++) {
-        values[base + i] = inTangent ? inTangent[i] : NaN;
-        values[valueOffset + i] = value[i];
-        values[outOffset + i] = outTangent ? outTangent[i] : NaN;
-      }
-    } else {
-      const base = index * valueSize;
-      for (let i = 0; i < valueSize; i++) {
-        values[base + i] = value[i];
-      }
-    }
+    writeArrayKey(this._values, this._valueSize, this._hasTangents, index, key);
   }
 }

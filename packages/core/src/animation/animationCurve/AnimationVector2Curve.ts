@@ -3,6 +3,7 @@ import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
+import { evaluateHermiteScalar } from "../internal/AnimationCurvePack";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -82,6 +83,7 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
 
   /**
    * Replace all keyframes with packed `Vector2` buffers.
+   * When `times` is already ascending, `times` and `values` are retained by reference without copying (copy-on-write on mutation) and must not be mutated by the caller; unsorted inputs or later edits copy `values` into `Float32Array`.
    * @param times - Keyframe timestamps in seconds
    * @param values - Packed keyframe scalars (`2` per key, or `6` per key as `[inTangent, value, outTangent]`)
    * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
@@ -110,38 +112,19 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   protected override _evaluateHermite(
     curIndex: number,
     nextIndex: number,
-    t: number,
-    duration: number,
+    a: number,
+    bd: number,
+    cd: number,
+    d: number,
     out: Vector2
   ): Vector2 {
     const values = this._values;
     const o0 = curIndex * 6 + 2;
     const o1 = nextIndex * 6;
-
-    const t2 = t * t;
-    const t3 = t2 * t;
-    const a = 2.0 * t3 - 3.0 * t2 + 1.0;
-    const b = t3 - 2.0 * t2 + t;
-    const c = t3 - t2;
-    const d = -2.0 * t3 + 3.0 * t2;
-
-    const p0x = values[o0];
-    const p0y = values[o0 + 1];
-    let t0 = values[o0 + 2];
-    let t1 = values[o1];
-    const x =
-      Number.isFinite(t0) && Number.isFinite(t1)
-        ? a * p0x + b * t0 * duration + c * t1 * duration + d * values[o1 + 2]
-        : p0x;
-
-    t0 = values[o0 + 3];
-    t1 = values[o1 + 1];
-    const y =
-      Number.isFinite(t0) && Number.isFinite(t1)
-        ? a * p0y + b * t0 * duration + c * t1 * duration + d * values[o1 + 3]
-        : p0y;
-
-    return out.set(x, y);
+    return out.set(
+      evaluateHermiteScalar(values[o0], values[o0 + 2], values[o1], values[o1 + 2], a, bd, cd, d),
+      evaluateHermiteScalar(values[o0 + 1], values[o0 + 3], values[o1 + 1], values[o1 + 3], a, bd, cd, d)
+    );
   }
 
   protected override _subtractFirstKey(out: Vector2): Vector2 {
@@ -153,13 +136,13 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   protected override _readKeyAt(index: number, out: Keyframe<Vector2>): void {
     const values = this._values;
     if (this._hasTangents) {
-      let offset = index * 6;
-      (out.inTangent ||= new Vector2()).set(values[offset++], values[offset++]);
-      (out.value ||= new Vector2()).set(values[offset++], values[offset++]);
-      (out.outTangent ||= new Vector2()).set(values[offset++], values[offset]);
+      const base = index * 6;
+      (out.inTangent ||= new Vector2()).set(values[base], values[base + 1]);
+      (out.value ||= new Vector2()).set(values[base + 2], values[base + 3]);
+      (out.outTangent ||= new Vector2()).set(values[base + 4], values[base + 5]);
     } else {
-      const offset = index * 2;
-      (out.value ||= new Vector2()).set(values[offset], values[offset + 1]);
+      const base = index * 2;
+      (out.value ||= new Vector2()).set(values[base], values[base + 1]);
       out.inTangent = undefined;
       out.outTangent = undefined;
     }
@@ -167,31 +150,19 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
 
   protected override _writeKeyAt(index: number, key: Keyframe<Vector2>): void {
     const values = this._values;
-    const { value } = key;
+    const { value, inTangent, outTangent } = key;
     if (this._hasTangents) {
-      let offset = index * 6;
-      const inTangent = key.inTangent;
-      if (inTangent) {
-        values[offset++] = inTangent.x;
-        values[offset++] = inTangent.y;
-      } else {
-        values[offset++] = NaN;
-        values[offset++] = NaN;
-      }
-      values[offset++] = value.x;
-      values[offset++] = value.y;
-      const outTangent = key.outTangent;
-      if (outTangent) {
-        values[offset++] = outTangent.x;
-        values[offset] = outTangent.y;
-      } else {
-        values[offset++] = NaN;
-        values[offset] = NaN;
-      }
+      const base = index * 6;
+      values[base] = inTangent ? inTangent.x : NaN;
+      values[base + 1] = inTangent ? inTangent.y : NaN;
+      values[base + 2] = value.x;
+      values[base + 3] = value.y;
+      values[base + 4] = outTangent ? outTangent.x : NaN;
+      values[base + 5] = outTangent ? outTangent.y : NaN;
     } else {
-      const offset = index * 2;
-      values[offset] = value.x;
-      values[offset + 1] = value.y;
+      const base = index * 2;
+      values[base] = value.x;
+      values[base + 1] = value.y;
     }
   }
 }

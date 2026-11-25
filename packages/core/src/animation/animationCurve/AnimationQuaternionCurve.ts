@@ -1,8 +1,9 @@
-import { Quaternion, Vector4 } from "@galacean/engine-math";
+import { MathUtil, Quaternion } from "@galacean/engine-math";
 import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
+import { evaluateHermiteScalar, readVec4Key, writeVec4Key } from "../internal/AnimationCurvePack";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -92,6 +93,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
 
   /**
    * Replace all keyframes with packed `Quaternion` buffers.
+   * When `times` is already ascending, `times` and `values` are retained by reference without copying (copy-on-write on mutation) and must not be mutated by the caller; unsorted inputs or later edits copy `values` into `Float32Array`.
    * @param times - Keyframe timestamps in seconds
    * @param values - Packed keyframe scalars (`4` per key, or `12` per key as `[inTangent, value, outTangent]`)
    * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
@@ -121,54 +123,29 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   protected override _evaluateHermite(
     curIndex: number,
     nextIndex: number,
-    t: number,
-    duration: number,
+    a: number,
+    bd: number,
+    cd: number,
+    d: number,
     out: Quaternion
   ): Quaternion {
     const values = this._values;
     const o0 = curIndex * 12 + 4;
     const o1 = nextIndex * 12;
-
-    const t2 = t * t;
-    const t3 = t2 * t;
-    const a = 2.0 * t3 - 3.0 * t2 + 1.0;
-    const b = t3 - 2.0 * t2 + t;
-    const c = t3 - t2;
-    const d = -2.0 * t3 + 3.0 * t2;
-
     const p0x = values[o0];
     const p0y = values[o0 + 1];
     const p0z = values[o0 + 2];
     const p0w = values[o0 + 3];
-    let t0 = values[o0 + 4];
-    let t1 = values[o1];
-    const x =
-      Number.isFinite(t0) && Number.isFinite(t1)
-        ? a * p0x + b * t0 * duration + c * t1 * duration + d * values[o1 + 4]
-        : p0x;
-
-    t0 = values[o0 + 5];
-    t1 = values[o1 + 1];
-    const y =
-      Number.isFinite(t0) && Number.isFinite(t1)
-        ? a * p0y + b * t0 * duration + c * t1 * duration + d * values[o1 + 5]
-        : p0y;
-
-    t0 = values[o0 + 6];
-    t1 = values[o1 + 2];
-    const z =
-      Number.isFinite(t0) && Number.isFinite(t1)
-        ? a * p0z + b * t0 * duration + c * t1 * duration + d * values[o1 + 6]
-        : p0z;
-
-    t0 = values[o0 + 7];
-    t1 = values[o1 + 3];
-    const w =
-      Number.isFinite(t0) && Number.isFinite(t1)
-        ? a * p0w + b * t0 * duration + c * t1 * duration + d * values[o1 + 7]
-        : p0w;
-
-    return out.set(x, y, z, w).normalize();
+    const x = evaluateHermiteScalar(p0x, values[o0 + 4], values[o1], values[o1 + 4], a, bd, cd, d);
+    const y = evaluateHermiteScalar(p0y, values[o0 + 5], values[o1 + 1], values[o1 + 5], a, bd, cd, d);
+    const z = evaluateHermiteScalar(p0z, values[o0 + 6], values[o1 + 2], values[o1 + 6], a, bd, cd, d);
+    const w = evaluateHermiteScalar(p0w, values[o0 + 7], values[o1 + 3], values[o1 + 7], a, bd, cd, d);
+    const len = Math.sqrt(x * x + y * y + z * z + w * w);
+    if (len > MathUtil.zeroTolerance) {
+      const invLen = 1 / len;
+      return out.set(x * invLen, y * invLen, z * invLen, w * invLen);
+    }
+    return out.set(p0x, p0y, p0z, p0w);
   }
 
   protected override _subtractFirstKey(out: Quaternion): Quaternion {
@@ -184,59 +161,21 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   }
 
   protected override _readKeyAt(index: number, out: Keyframe<Quaternion>): void {
-    const values = this._values;
-    if (this._hasTangents) {
-      let offset = index * 12;
-      (out.inTangent ||= new Vector4()).set(values[offset++], values[offset++], values[offset++], values[offset++]);
-      (out.value ||= new Quaternion()).set(values[offset++], values[offset++], values[offset++], values[offset++]);
-      (out.outTangent ||= new Vector4()).set(values[offset++], values[offset++], values[offset++], values[offset]);
-    } else {
-      const offset = index * 4;
-      (out.value ||= new Quaternion()).set(values[offset], values[offset + 1], values[offset + 2], values[offset + 3]);
-      out.inTangent = undefined;
-      out.outTangent = undefined;
-    }
+    readVec4Key(this._values, this._hasTangents, index, out, out.value || new Quaternion());
   }
 
   protected override _writeKeyAt(index: number, key: Keyframe<Quaternion>): void {
-    const values = this._values;
     const { value } = key;
-    if (this._hasTangents) {
-      let offset = index * 12;
-      const inTangent = key.inTangent;
-      if (inTangent) {
-        values[offset++] = inTangent.x;
-        values[offset++] = inTangent.y;
-        values[offset++] = inTangent.z;
-        values[offset++] = inTangent.w;
-      } else {
-        values[offset++] = NaN;
-        values[offset++] = NaN;
-        values[offset++] = NaN;
-        values[offset++] = NaN;
-      }
-      values[offset++] = value.x;
-      values[offset++] = value.y;
-      values[offset++] = value.z;
-      values[offset++] = value.w;
-      const outTangent = key.outTangent;
-      if (outTangent) {
-        values[offset++] = outTangent.x;
-        values[offset++] = outTangent.y;
-        values[offset++] = outTangent.z;
-        values[offset] = outTangent.w;
-      } else {
-        values[offset++] = NaN;
-        values[offset++] = NaN;
-        values[offset++] = NaN;
-        values[offset] = NaN;
-      }
-    } else {
-      const offset = index * 4;
-      values[offset] = value.x;
-      values[offset + 1] = value.y;
-      values[offset + 2] = value.z;
-      values[offset + 3] = value.w;
-    }
+    writeVec4Key(
+      this._values,
+      this._hasTangents,
+      index,
+      value.x,
+      value.y,
+      value.z,
+      value.w,
+      key.inTangent,
+      key.outTangent
+    );
   }
 }

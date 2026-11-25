@@ -49,6 +49,7 @@ export class AnimationRectCurve extends AnimationCurve<Rect> {
 
   /**
    * Replace all keyframes with packed `Rect` buffers (`x, y, width, height`).
+   * When `times` is already ascending, `times` and `values` are retained by reference without copying (copy-on-write on mutation) and must not be mutated by the caller; unsorted inputs or later edits copy `values` into `Float32Array`.
    * @param times - Keyframe timestamps in seconds
    * @param values - Packed keyframe scalars (`4` per keyframe)
    */

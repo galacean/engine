@@ -1,7 +1,7 @@
 import { AssetPromise, AssetType, Component, InterpolationType, Loader, ReferResource } from "@galacean/engine-core";
 import type { Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { Color, Vector4 } from "@galacean/engine-math";
+import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { AnimationClip } from "../../../packages/core/src/animation/AnimationClip";
 import { decode } from "../../../packages/loader/src/resource-deserialize";
 import type { BufferReader } from "../../../packages/loader/src/resource-deserialize/utils/BufferReader";
@@ -10,10 +10,13 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 class TestComponent extends Component {
   value = 0;
+  vec2 = new Vector2();
+  vec3 = new Vector3();
   vec4 = new Vector4();
+  quat = new Quaternion();
   color = new Color();
   weights: Float32Array = new Float32Array(2);
-  arr: number[] = [];
+  arr: number[] = [0, 0];
   flag = false;
   label = "";
   ref: ReferResource | null = null;
@@ -134,10 +137,10 @@ describe("AnimationClipDecoder", () => {
     entity.destroy();
   });
 
-  it("decodes multi-key Vector4, Hermite Color, array, and discrete curves into flat storage and resolves AnimationRefCurve refs", async () => {
+  it("decodes all numeric, array, and discrete curves into flat storage and resolves AnimationRefCurve refs", async () => {
     const bytes: number[] = [];
     writeHeader(bytes, 2);
-    writeUint16(bytes, 7);
+    writeUint16(bytes, 11);
 
     // 1. Multi-key AnimationVector4Curve (regression for missing key loop desyncing BufferReader)
     writeBindingHeader(bytes, 2, "vec4", InterpolationType.Linear, 2, "AnimationVector4Curve");
@@ -146,20 +149,20 @@ describe("AnimationClipDecoder", () => {
       [1, [5, 6, 7, 8]]
     ] as const) {
       writeFloat32(bytes, time);
-      for (const n of val) writeFloat32(bytes, n); // value
-      for (let k = 0; k < 4; k++) writeFloat32(bytes, 0); // inTangent
-      for (let k = 0; k < 4; k++) writeFloat32(bytes, 0); // outTangent
+      for (const n of val) writeFloat32(bytes, n);
+      for (let k = 0; k < 4; k++) writeFloat32(bytes, 0);
+      for (let k = 0; k < 4; k++) writeFloat32(bytes, 0);
     }
 
-    // 2. Hermite AnimationColorCurve: asymmetric tangents verify binary [value, inTangent, outTangent] reorders cleanly to [inTangent, value, outTangent]
+    // 2. Hermite AnimationColorCurve with non-unit duration [0, 2] and asymmetric out/in tangents
     writeBindingHeader(bytes, 2, "color", InterpolationType.Hermite, 2, "AnimationColorCurve");
     writeFloat32(bytes, 0);
     for (const n of [0, 0, 0, 1]) writeFloat32(bytes, n); // value
     for (const n of [0, 0, 0, 0]) writeFloat32(bytes, n); // inTangent
-    for (const n of [0, 4, 0, 0]) writeFloat32(bytes, n); // outTangent (g slope = 4)
-    writeFloat32(bytes, 1);
+    for (const n of [0, 2, 0, 0]) writeFloat32(bytes, n); // outTangent
+    writeFloat32(bytes, 2);
     for (const n of [1, 1, 1, 1]) writeFloat32(bytes, n); // value
-    for (const n of [0, 0, 0, 0]) writeFloat32(bytes, n); // inTangent
+    for (const n of [0, 0, -2, 0]) writeFloat32(bytes, n); // inTangent
     for (const n of [0, 0, 0, 0]) writeFloat32(bytes, n); // outTangent
 
     // 3. AnimationFloatArrayCurve
@@ -201,6 +204,42 @@ describe("AnimationClipDecoder", () => {
     writeFloat32(bytes, 1);
     writeString(bytes, "");
 
+    // 8. AnimationVector2Curve
+    writeBindingHeader(bytes, 2, "vec2", InterpolationType.Linear, 2, "AnimationVector2Curve");
+    for (const [time, val] of [
+      [0, [2, 4]],
+      [1, [6, 8]]
+    ] as const) {
+      writeFloat32(bytes, time);
+      for (const n of val) writeFloat32(bytes, n);
+      for (let k = 0; k < 4; k++) writeFloat32(bytes, 0);
+    }
+
+    // 9. AnimationVector3Curve
+    writeBindingHeader(bytes, 2, "vec3", InterpolationType.Linear, 2, "AnimationVector3Curve");
+    for (const [time, val] of [
+      [0, [1, 2, 3]],
+      [1, [3, 6, 9]]
+    ] as const) {
+      writeFloat32(bytes, time);
+      for (const n of val) writeFloat32(bytes, n);
+      for (let k = 0; k < 6; k++) writeFloat32(bytes, 0);
+    }
+
+    // 10. AnimationQuaternionCurve
+    writeBindingHeader(bytes, 2, "quat", InterpolationType.Linear, 2, "AnimationQuaternionCurve");
+    for (const [time, val] of [
+      [0, [0, 0, 0, 1]],
+      [1, [0, Math.SQRT1_2, 0, Math.SQRT1_2]]
+    ] as const) {
+      writeFloat32(bytes, time);
+      for (const n of val) writeFloat32(bytes, n);
+      for (let k = 0; k < 8; k++) writeFloat32(bytes, 0);
+    }
+
+    // 11. Empty AnimationFloatArrayCurve (keysLen = 0)
+    writeBindingHeader(bytes, 2, "weights", InterpolationType.Linear, 0, "AnimationFloatArrayCurve");
+
     const clipBuffer = finalizeHeader(bytes);
     const resolvedRef = {} as ReferResource;
     const reqSpy = vi.spyOn(engine.resourceManager, "_request" as never).mockResolvedValueOnce(clipBuffer as never);
@@ -218,21 +257,26 @@ describe("AnimationClipDecoder", () => {
       expect(vec4Curve.keyCount).toBe(2);
       expect(vec4Curve.evaluate(0.5)).toMatchObject({ x: 3, y: 4, z: 5, w: 6 });
 
-      // Hermite at t=0.5 with p0=0, outTangent=4, inTangent=0, p1=1 => 0.125*4 + 0.5*1 = 1.0 on g.
+      // Hermite at time = 1 on [0, 2]: g = 0.5*0 + 0.25*2 + 0.5*1 = 1.0, b = 0.5*0 - 0.25*(-2) + 0.5*1 = 1.0.
       const colorCurve = clip.curveBindings[1].curve!;
-      expect(colorCurve.evaluate(0.5)).toMatchObject({ r: 0.5, g: 1, b: 0.5, a: 1 });
-      const colorKey0 = colorCurve.getKey(0);
-      expect(colorKey0.inTangent).toMatchObject({ x: 0, y: 0, z: 0, w: 0 });
-      expect(colorKey0.outTangent).toMatchObject({ x: 0, y: 4, z: 0, w: 0 });
+      expect(colorCurve.evaluate(1)).toMatchObject({ r: 0.5, g: 1, b: 1, a: 1 });
+      expect(colorCurve.getKey(0).outTangent).toMatchObject({ x: 0, y: 2, z: 0, w: 0 });
+      expect(colorCurve.getKey(1).inTangent).toMatchObject({ x: 0, y: 0, z: -2, w: 0 });
+      expect(clip.curveBindings[10].curve!.keyCount).toBe(0);
 
       clip.sampleAnimation(entity, 0.5);
+      expect(target.vec2).toMatchObject({ x: 4, y: 6 });
+      expect(target.vec3).toMatchObject({ x: 2, y: 4, z: 6 });
       expect(target.vec4).toMatchObject({ x: 3, y: 4, z: 5, w: 6 });
+      expect(target.quat.y).toBeCloseTo(Math.sin(Math.PI / 8), 5);
       expect(Array.from(target.weights)).toEqual([0.5, 0.5]);
+      expect(target.arr).toEqual([20, 30]);
       expect(target.flag).toBe(true);
       expect(target.label).toBe("idle");
       expect(target.ref).toBe(resolvedRef);
 
       clip.sampleAnimation(entity, 1);
+      expect(target.arr).toEqual([30, 40]);
       expect(target.flag).toBe(false);
       expect(target.label).toBe("run");
       expect(target.ref).toBeNull();
@@ -242,5 +286,20 @@ describe("AnimationClipDecoder", () => {
       refSpy.mockRestore();
       entity.destroy();
     }
+  });
+
+  it("rejects array curves with inconsistent keyframe widths", async () => {
+    const bytes: number[] = [];
+    writeHeader(bytes, 2);
+    writeUint16(bytes, 1);
+    writeBindingHeader(bytes, 2, "arr", InterpolationType.Linear, 2, "AnimationArrayCurve");
+    writeFloat32(bytes, 0);
+    writeUint16(bytes, 1);
+    for (const n of [1, 0, 0]) writeFloat32(bytes, n);
+    writeFloat32(bytes, 1);
+    writeUint16(bytes, 2);
+    for (const n of [2, 3, 0, 0, 0, 0]) writeFloat32(bytes, n);
+
+    await expect(decode<AnimationClip>(finalizeHeader(bytes), engine)).rejects.toThrow(/inconsistent array keyframe/);
   });
 });
