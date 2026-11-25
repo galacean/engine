@@ -3,6 +3,10 @@ import {
   AnimationClip,
   AnimationQuaternionCurve,
   AnimationVector3Curve,
+  Animator,
+  AnimatorController,
+  AnimatorControllerLayer,
+  AnimatorLayerBlendingMode,
   Camera,
   Engine,
   Entity,
@@ -21,7 +25,8 @@ import {
   PrimitiveMesh,
   Scene,
   Script,
-  Transform
+  Transform,
+  WrapMode
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
@@ -2060,6 +2065,46 @@ describe("Rigidbody", function () {
     const initial = body.getWorldCenterOfMass(new Vector3());
     for (let i = 0; i < 32; i++) clip.sampleAnimation(entity, 0);
     expect(body.getWorldCenterOfMass(new Vector3())).toEqual(initial);
+  });
+
+  it("holds the finished additive inertiaTensorRotation pose across subsequent frames", () => {
+    const entity = rootEntity.createChild();
+    entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    const animator = entity.addComponent(Animator);
+    const animatorController = new AnimatorController(engine);
+    const base = new AnimatorControllerLayer("base");
+    const twist = new AnimatorControllerLayer("twist");
+    animatorController.addLayer(base);
+    animatorController.addLayer(twist);
+
+    const baseClip = new AnimationClip("base");
+    const baseCurve = new AnimationQuaternionCurve();
+    baseCurve.addKey({ time: 0, value: new Quaternion() });
+    baseClip.addCurveBinding("", Rigidbody, "inertiaTensorRotation", baseCurve);
+    base.stateMachine.addState("base").clip = baseClip;
+
+    twist.weight = 0.5;
+    twist.blendingMode = AnimatorLayerBlendingMode.Additive;
+    const twistClip = new AnimationClip("twist");
+    const twistCurve = new AnimationQuaternionCurve();
+    twistCurve.addKey({ time: 0, value: new Quaternion() });
+    twistCurve.addKey({ time: 0.5, value: new Quaternion().rotateZ(Math.PI / 2) });
+    twistClip.addCurveBinding("", Rigidbody, "inertiaTensorRotation", twistCurve);
+    const state = twist.stateMachine.addState("twist");
+    state.clip = twistClip;
+    state.wrapMode = WrapMode.Once;
+
+    animator.animatorController = animatorController;
+    animator.play("base", 0);
+    animator.play("twist", 1);
+    engine.update();
+
+    for (let i = 0; i < 3; i++) {
+      animator.update(1);
+      expect(body.inertiaTensorRotation.z).toBeCloseTo(1 / Math.sqrt(5), 5);
+      expect(body.inertiaTensorRotation.w).toBeCloseTo(2 / Math.sqrt(5), 5);
+    }
   });
 
   it("uses read-only snapshot whole-value semantics and atomic validation on inertiaTensorRotation", () => {

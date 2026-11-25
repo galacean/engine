@@ -1,4 +1,5 @@
 import { Quaternion, Vector3, type Vector3Like } from "@galacean/engine-math";
+import type { Entity } from "../Entity";
 
 /**
  * @internal
@@ -53,6 +54,20 @@ export class PhysicsUtils {
     y /= length;
     z /= length;
     return x === current.x && y === current.y && z === current.z ? current : Object.freeze(new Vector3(x, y, z));
+  }
+
+  /** Scale a local offset into the Entity's rotation-aligned actor frame. */
+  static scaleToActorFrame(entity: Entity, local: Vector3, out: Vector3): void {
+    const transform = entity.transform;
+    const parent = entity.parent;
+    if (parent && !parent.transform._getWorldUniformScaling()) {
+      // The native actor applies world rotation, while inherited non-uniform scale can mix local axes.
+      const e = transform._getScaleMatrix().elements;
+      const { x, y, z } = local;
+      out.set(e[0] * x + e[3] * y + e[6] * z, e[1] * x + e[4] * y + e[7] * z, e[2] * x + e[5] * y + e[8] * z);
+      return;
+    }
+    Vector3.multiply(local, transform.lossyWorldScale, out);
   }
 
   private static _componentDiffersF32(a: number, b: number): boolean {

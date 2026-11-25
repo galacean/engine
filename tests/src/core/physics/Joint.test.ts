@@ -1411,4 +1411,70 @@ describe("Joint", function () {
     physics._update(0.3);
     expect(box.transform.position.y).toBeLessThan(4.8);
   });
+
+  it("preserves local and automatic connected anchors under mirrored ancestors with rotation", function () {
+    const physics = engine.sceneManager.activeScene.physics;
+    physics.gravity.set(0, 0, 0);
+
+    // 1. Self entity under mirrored parent + Y=45° rotation maps local anchor accurately to world space.
+    const parent = rootEntity.createChild("mirrored-joint-parent");
+    parent.transform.setScale(-1, 1, 1);
+    const child = parent.createChild("mirrored-joint-child");
+    child.transform.setRotation(0, 45, 0);
+    child.addComponent(BoxCollider);
+    child.addComponent(Rigidbody);
+    const fixed = child.addComponent(FixedJoint);
+    fixed.anchor.set(2, 0, 0);
+    expect(fixed.connectedAnchor.x).toBeCloseTo(-Math.SQRT2, 4);
+    expect(fixed.connectedAnchor.y).toBeCloseTo(0, 4);
+    expect(fixed.connectedAnchor.z).toBeCloseTo(-Math.SQRT2, 4);
+    physics._update(0.2);
+    expect(child.transform.worldPosition.x).toBeCloseTo(0, 3);
+    expect(child.transform.worldPosition.z).toBeCloseTo(0, 3);
+
+    // 2. Connected body under mirrored parent + 44.9999°/45° preserves O(1) connectedAnchor and destruction world anchor.
+    for (const angle of [44.9999, 45]) {
+      const target = parent.createChild(`mirrored-target-${angle}`);
+      target.transform.setRotation(0, angle, 0);
+      const targetBody = target.addComponent(Rigidbody);
+      targetBody.isKinematic = true;
+
+      const owner = addBox(new Vector3(1, 1, 1), new Vector3(5, 3, 2));
+      const joint = owner.addComponent(FixedJoint);
+      joint.connectedBody = targetBody;
+      expect(joint.connectedAnchor.x).toBeCloseTo(-7 * Math.SQRT1_2, 3);
+      expect(joint.connectedAnchor.y).toBeCloseTo(3, 4);
+      expect(joint.connectedAnchor.z).toBeCloseTo(-3 * Math.SQRT1_2, 3);
+
+      joint.automaticConnectedAnchor = false;
+      if (angle === 44.9999) {
+        target.transform.setRotation(0, 0, 0);
+        targetBody.destroy();
+        expect(joint.connectedAnchor.x).toBeCloseTo(7 * Math.SQRT1_2, 3);
+        expect(joint.connectedAnchor.y).toBeCloseTo(3, 3);
+        expect(joint.connectedAnchor.z).toBeCloseTo(-3 * Math.SQRT1_2, 3);
+      } else {
+        targetBody.destroy();
+        expect(joint.connectedAnchor.x).toBeCloseTo(5, 3);
+        expect(joint.connectedAnchor.y).toBeCloseTo(3, 3);
+        expect(joint.connectedAnchor.z).toBeCloseTo(2, 3);
+      }
+      owner.destroy();
+      target.destroy();
+    }
+
+    // 3. Preserves non-degenerate axes when a mirrored rotated connectedBody has a zero-scaled axis.
+    const zeroTarget = parent.createChild("mirrored-zero-target");
+    zeroTarget.transform.setWorldPosition(10, 4, 2);
+    zeroTarget.transform.setScale(0, 2, 1);
+    zeroTarget.transform.setRotation(0, 45, 0);
+    const zeroTargetBody = zeroTarget.addComponent(Rigidbody);
+    zeroTargetBody.isKinematic = true;
+    const owner = addBox(new Vector3(1, 1, 1), new Vector3(15, 10, 5));
+    const zeroJoint = owner.addComponent(FixedJoint);
+    zeroJoint.connectedBody = zeroTargetBody;
+    expect(zeroJoint.connectedAnchor.x).toBe(0);
+    expect(zeroJoint.connectedAnchor.y).toBeCloseTo(3, 4);
+    expect(zeroJoint.connectedAnchor.z).toBeCloseTo(-Math.SQRT2, 4);
+  });
 });

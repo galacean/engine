@@ -15,7 +15,6 @@ import { Rigidbody } from "./Rigidbody";
 export class CharacterController extends Collider {
   private static readonly _defaultUpDirection = Object.freeze(new Vector3(0, 1, 0));
   private static readonly _tempMovePosition = new Vector3();
-  private static readonly _tempWorldScale = new Vector3();
 
   private _radius = 0.5;
   private _height = 2;
@@ -196,7 +195,7 @@ export class CharacterController extends Collider {
   override _sync(): void {
     const transform = this.entity.transform;
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state.
-    transform.worldMatrix;
+    const worldMatrix = transform.worldMatrix;
     const lossyScale = transform.lossyWorldScale;
     const scaleX = lossyScale.x;
     const scaleY = lossyScale.y;
@@ -204,7 +203,7 @@ export class CharacterController extends Collider {
     const needsAttach = !this._inScene;
 
     // Sync capsule dimensions and lazily create the native controller.
-    const absScale = CharacterController._tempWorldScale.set(Math.abs(scaleX), Math.abs(scaleY), Math.abs(scaleZ));
+    const absScale = this._getGeometryScale(lossyScale, worldMatrix);
     if (needsAttach || this._geometryDirty || this._scaleChanged(absScale)) {
       const radius = this._radius * Math.max(absScale.x, absScale.z);
       const scaledHeight = this._height * absScale.y;

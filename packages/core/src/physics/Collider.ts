@@ -518,6 +518,42 @@ export class Collider extends Component {
     return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial;
   }
 
+  protected _getGeometryScale(lossyScale: Vector3, worldMatrix: Matrix): Vector3 {
+    const entity = this.entity;
+    const scale = Collider._tempScale;
+    let mirrored = false;
+    let scaledAncestor: Entity | null = null;
+    let outerScale = 1;
+    for (let ancestor = entity.parent; ancestor; ancestor = ancestor.parent) {
+      const transform = ancestor.transform;
+      if (transform._getWorldUniformScaling()) {
+        outerScale *= Math.abs(transform.lossyWorldScale.x);
+        break;
+      }
+      const { x, y, z } = transform.scale;
+      mirrored ||= x < 0 !== y < 0 || y < 0 !== z < 0;
+      if (Math.abs(x) === Math.abs(y) && Math.abs(y) === Math.abs(z)) {
+        outerScale *= Math.abs(x);
+      } else {
+        scaledAncestor = ancestor;
+        outerScale = 1;
+      }
+    }
+
+    if (!mirrored || Collider._isSheared(worldMatrix)) {
+      return scale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
+    }
+    // A mirror can cancel signed projections. Rotations outside the last non-uniform scale cannot change lengths.
+    if (scaledAncestor) {
+      const x = Collider._getAxisLength(entity, scaledAncestor, scale.set(1, 0, 0));
+      const y = Collider._getAxisLength(entity, scaledAncestor, scale.set(0, 1, 0));
+      const z = Collider._getAxisLength(entity, scaledAncestor, scale.set(0, 0, 1));
+      return scale.set(x * outerScale, y * outerScale, z * outerScale);
+    }
+    const local = entity.transform.scale;
+    return scale.set(Math.abs(local.x) * outerScale, Math.abs(local.y) * outerScale, Math.abs(local.z) * outerScale);
+  }
+
   protected override _onDestroy(): void {
     this._center._onValueChanged = null;
     super._onDestroy();
@@ -568,16 +604,7 @@ export class Collider extends Component {
       Quaternion.multiply(transform.rotationQuaternion, rotation, rotation);
     }
     if (position.x !== 0 || position.y !== 0 || position.z !== 0) {
-      const transform = actorEntity.transform;
-      const parent = actorEntity.parent;
-      if (parent && !parent.transform._getWorldUniformScaling()) {
-        // The native actor already applies world rotation, but inherited scale may mix the local axes.
-        const e = transform._getScaleMatrix().elements;
-        const { x, y, z } = position;
-        position.set(e[0] * x + e[3] * y + e[6] * z, e[1] * x + e[4] * y + e[7] * z, e[2] * x + e[5] * y + e[8] * z);
-      } else {
-        position.multiply(transform.lossyWorldScale);
-      }
+      PhysicsUtils.scaleToActorFrame(actorEntity, position, position);
     }
 
     const nativePosition = this._nativePosition;
@@ -592,41 +619,5 @@ export class Collider extends Component {
       shape.setLocalPose(position, rotation);
       if (!this._isTrigger) this._attachedBody?._markMassDirty();
     }
-  }
-
-  private _getGeometryScale(lossyScale: Vector3, worldMatrix: Matrix): Vector3 {
-    const entity = this.entity;
-    const scale = Collider._tempScale;
-    let mirrored = false;
-    let scaledAncestor: Entity | null = null;
-    let outerScale = 1;
-    for (let ancestor = entity.parent; ancestor; ancestor = ancestor.parent) {
-      const transform = ancestor.transform;
-      if (transform._getWorldUniformScaling()) {
-        outerScale *= Math.abs(transform.lossyWorldScale.x);
-        break;
-      }
-      const { x, y, z } = transform.scale;
-      mirrored ||= x < 0 !== y < 0 || y < 0 !== z < 0;
-      if (Math.abs(x) === Math.abs(y) && Math.abs(y) === Math.abs(z)) {
-        outerScale *= Math.abs(x);
-      } else {
-        scaledAncestor = ancestor;
-        outerScale = 1;
-      }
-    }
-
-    if (!mirrored || Collider._isSheared(worldMatrix)) {
-      return scale.set(Math.abs(lossyScale.x), Math.abs(lossyScale.y), Math.abs(lossyScale.z));
-    }
-    // A mirror can cancel signed projections. Rotations outside the last non-uniform scale cannot change lengths.
-    if (scaledAncestor) {
-      const x = Collider._getAxisLength(entity, scaledAncestor, scale.set(1, 0, 0));
-      const y = Collider._getAxisLength(entity, scaledAncestor, scale.set(0, 1, 0));
-      const z = Collider._getAxisLength(entity, scaledAncestor, scale.set(0, 0, 1));
-      return scale.set(x * outerScale, y * outerScale, z * outerScale);
-    }
-    const local = entity.transform.scale;
-    return scale.set(Math.abs(local.x) * outerScale, Math.abs(local.y) * outerScale, Math.abs(local.z) * outerScale);
   }
 }

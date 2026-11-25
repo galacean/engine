@@ -1136,4 +1136,35 @@ describe("CharacterController", () => {
     role.transform.setPosition(5, 2, 0);
     expect(physics.overlapSphereAll(new Vector3(5, 2, 0), 0.2)).toContain(controller);
   });
+
+  it("preserves capsule dimensions under mirrored ancestors with rotation", () => {
+    const parent = root.createChild("mirrored-rotated-parent");
+    parent.transform.setScale(-1, 1, 1);
+    const child = parent.createChild("mirrored-rotated-cct");
+    const cc = child.addComponent(CharacterController);
+    cc.radius = 0.5;
+    cc.height = 2;
+    cc.stepOffset = 1.5;
+    cc.collisionLayer = Layer.Layer6;
+
+    const hit = new HitResult();
+    for (const yAngle of [45, 44.9999]) {
+      child.transform.setRotation(0, yAngle, 0);
+      expect(physics.raycast(new Ray(new Vector3(0.25, 0, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit)).toBe(
+        true
+      );
+      expect(hit.collider).toBe(cc);
+    }
+
+    child.transform.setRotation(0, 0, 45);
+    expect(physics.raycast(new Ray(new Vector3(0, 0.6, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(cc);
+    expect(physics.raycast(new Ray(new Vector3(0, 0.9, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6)).toBe(false);
+
+    // Effective stepOffset (1.5 > 2 * radius = 1.0) relies on the uncollapsed Z-rotated capsule height.
+    addBox(new Vector3(2, 1.2, 2), new Vector3(1.6, 0.6, 0)).collisionLayer = Layer.Layer5;
+    child.transform.setPosition(0, 1, 0);
+    cc.move(new Vector3(1, -0.1, 0), 0.001, physics.fixedTimeStep);
+    expect(child.transform.worldPosition.y).toBeGreaterThan(2.0);
+  });
 });
