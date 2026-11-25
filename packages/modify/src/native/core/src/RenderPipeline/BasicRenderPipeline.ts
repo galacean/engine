@@ -1,9 +1,12 @@
 import type { Renderer } from "../Renderer";
-import type { Plane } from "@galacean/engine-math";
-import { MathUtil, Vector2, Vector4 } from "@galacean/engine-math";
+import type { IUICanvas } from "../ui/IUICanvas";
+import type { BoundingFrustum, Plane } from "@galacean/engine-math";
+import { Color, MathUtil, Vector2, Vector4 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Engine } from "../Engine";
 import { Camera } from "../Camera";
+import type { Layer } from "../Layer";
+import type { VirtualCamera } from "../VirtualCamera";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -47,6 +50,37 @@ import {
   type RenderViewCullingSourceRegistration
 } from "./RenderViewCulling";
 import { PipelineStage } from "./enums/PipelineStage";
+
+/**
+ * Options for stateless auxiliary rendering via `Camera.renderAuxiliary`.
+ */
+export interface CameraAuxiliaryRenderOptions {
+  /** Target RenderTarget; pass `null` explicitly to draw directly to the default screen canvas; omit to use `camera.renderTarget`. */
+  renderTarget?: RenderTarget | null;
+  /** Normalized viewport `(x, y, width, height)`; omit to use `camera.viewport`. */
+  viewport?: Vector4;
+  /** Culling layer mask; omit to use `camera.cullingMask`. */
+  cullingMask?: Layer;
+  /** Whether to enable frustum culling; omit to use `camera.enableFrustumCulling`. */
+  enableFrustumCulling?: boolean;
+  /** Clear flags; omit to use `camera.clearFlags`. */
+  clearFlags?: CameraClearFlags;
+  /** Straight (unpremultiplied) clear color when `clearFlags` includes `Color` (internally premultiplied by alpha before clearing, matching `scene.background.solidColor`); omit to use `scene.background.solidColor`. Auxiliary pass never draws Skybox or background texture. */
+  clearColor?: Color;
+  /** Replacement shader for this auxiliary draw; omit or `null` to disable replacement shader (does not inherit `camera._replacementShader`). */
+  replacementShader?: Shader | null;
+  /** SubShader tag name paired with `replacementShader`. */
+  replacementTagName?: string;
+  /** Fallback strategy when tag does not match; defaults to `ReplacementFailureStrategy.KeepOriginalShader`. */
+  replacementFailureStrategy?: ReplacementFailureStrategy;
+  /** Optional projection aspect ratio override (for example locking viewport aspect ratio when rendering to a square RT) without mutating `camera._customAspectRatio` or `camera._virtualCamera`. */
+  aspectRatio?: number;
+  /** Optional render filter; omit to use `camera.renderFilter`, pass `null` explicitly to disable filtering. */
+  renderFilter?: ((renderable: Renderer | IUICanvas) => boolean) | null;
+  /** Whether to include `RenderViewCullingSource` batches already submitted by the latest main-camera view (read-only borrow of `_submittedViewRenderers` without calling `source.cull()` or mutating main-view caches); defaults to `false`. */
+  includeRenderViewCullingSources?: boolean;
+}
+
 /**
  * Basic render pipeline.
  */
@@ -80,6 +114,7 @@ export class BasicRenderPipeline {
 
   private _sunLensFlareDepthPatchRT: RenderTarget | null = null;
   private readonly _sunLensFlareDepthViewport = new Vector4();
+  private readonly _auxClearColor = new Color();
   private readonly _sunLensFlareScreenState: SunLensFlareScreenState = {
     visible: false,
     sunU: 0.5,
@@ -188,6 +223,97 @@ export class BasicRenderPipeline {
       this._renderWithContext(context, cubeFace, mipLevel, ignoreClear);
     } finally {
       context._ssrState.reset();
+    }
+  }
+
+  /**
+   * Perform a stateless auxiliary forward render pass without mutating main-pipeline state or persistent pass caches.
+   * @internal
+   */
+  renderAuxiliary(
+    context: RenderContext,
+    virtualCamera: VirtualCamera,
+    frustum: BoundingFrustum,
+    options?: CameraAuxiliaryRenderOptions
+  ): void {
+    if (this._destroyed) return;
+    const engine = this._camera.engine;
+    const prevOutputSRGBCorrect = engine._macroCollection.isEnable(Engine._outputSRGBCorrectMacro);
+    context._ssrState.reset();
+    try {
+      this._renderAuxiliaryWithContext(context, virtualCamera, frustum, options);
+    } finally {
+      context._ssrState.reset();
+      if (prevOutputSRGBCorrect) {
+        engine._macroCollection.enable(Engine._outputSRGBCorrectMacro);
+      } else {
+        engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);
+      }
+    }
+  }
+
+  private _renderAuxiliaryWithContext(
+    context: RenderContext,
+    virtualCamera: VirtualCamera,
+    frustum: BoundingFrustum,
+    options?: CameraAuxiliaryRenderOptions
+  ): void {
+    const camera = this._camera;
+    const engine = camera.engine;
+    const scene = camera.scene!;
+    const rhi = engine._hardwareRenderer;
+    const cullingResults = this._cullingResults;
+
+    const target = options?.renderTarget !== undefined ? options.renderTarget : camera.renderTarget;
+    const viewport = options?.viewport ?? camera.viewport;
+    const cullingMask = options?.cullingMask ?? camera.cullingMask;
+    const enableFrustumCulling = options?.enableFrustumCulling ?? camera.enableFrustumCulling;
+    const clearFlags = options?.clearFlags ?? camera.clearFlags;
+    const renderFilter = options?.renderFilter !== undefined ? options.renderFilter : (camera.renderFilter ?? null);
+    const includeRenderViewCullingSources = options?.includeRenderViewCullingSources ?? false;
+    const needFlipProjection = !!target;
+
+    cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
+    cullingResults.reset();
+
+    context.applyVirtualCamera(virtualCamera, needFlipProjection);
+    this._prepareRenderAuxiliary(context, cullingMask, enableFrustumCulling, frustum, renderFilter);
+    if (includeRenderViewCullingSources) {
+      this._prepareAuxiliaryRenderViewCulling(context, cullingMask, enableFrustumCulling, frustum, renderFilter);
+    }
+
+    const batcherManager = engine._batcherManager;
+    cullingResults.sortBatch(batcherManager);
+    batcherManager.uploadBuffer();
+
+    context.setRenderTarget(target, viewport);
+
+    if (clearFlags !== CameraClearFlags.None) {
+      if (clearFlags & CameraClearFlags.Color) {
+        const sourceColor = options?.clearColor ?? scene.background.solidColor;
+        const a = sourceColor.a;
+        const clearColor = this._auxClearColor;
+        clearColor.set(sourceColor.r * a, sourceColor.g * a, sourceColor.b * a, a);
+        rhi.clearRenderTarget(engine, clearFlags, clearColor);
+      } else {
+        rhi.clearRenderTarget(engine, clearFlags, null);
+      }
+    }
+
+    const maskManager = scene._maskManager;
+    if (clearFlags & CameraClearFlags.Stencil) {
+      maskManager.hasStencilWritten = false;
+    }
+
+    const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
+    opaqueQueue.render(context, PipelineStage.Forward);
+    alphaTestQueue.render(context, PipelineStage.Forward);
+    transparentQueue.render(context, PipelineStage.Forward);
+    maskManager.clearMask(context, PipelineStage.Forward);
+
+    if (target) {
+      target._blitRenderTarget();
+      target.generateMipmaps();
     }
   }
 
@@ -467,6 +593,36 @@ export class BasicRenderPipeline {
     this._submittedViewRenderers.length = 0;
     cullingContext._setCamera(context);
     this._cullRegisteredRenderViewSources(cullingContext);
+  }
+
+  private _prepareAuxiliaryRenderViewCulling(
+    context: RenderContext,
+    cullingMask: Layer,
+    enableFrustumCulling: boolean,
+    frustum: BoundingFrustum,
+    renderFilter: ((renderable: Renderer | IUICanvas) => boolean) | null
+  ): void {
+    const renderers = this._submittedViewRenderers;
+    for (let i = 0, n = renderers.length; i < n; i++) {
+      const renderer = renderers[i];
+      if (renderer.destroyed || renderer.pendingDestroy) {
+        continue;
+      }
+      const entity = renderer.entity;
+      if (!entity || !entity.isActiveInHierarchy) {
+        continue;
+      }
+      if ((cullingMask & entity.layer) === 0) {
+        continue;
+      }
+      if (enableFrustumCulling && !frustum.intersectsBox(renderer.bounds)) {
+        continue;
+      }
+      if (renderFilter && !renderFilter(renderer)) {
+        continue;
+      }
+      renderer._prepareRender(context);
+    }
   }
 
   /** Runs registered batch sources for one directional-light shadow cascade. @internal */
@@ -988,6 +1144,50 @@ export class BasicRenderPipeline {
         continue;
       }
       if (camera.renderFilter && !camera.renderFilter(canvas)) continue;
+      canvas._prepareRender(context);
+      const canvasElements = canvas._batchedRenderElements;
+      for (let j = 0, m = canvasElements.length; j < m; j++) {
+        this.pushRenderElement(context, canvasElements[j]);
+      }
+    }
+  }
+
+  private _prepareRenderAuxiliary(
+    context: RenderContext,
+    cullingMask: Layer,
+    enableFrustumCulling: boolean,
+    frustum: BoundingFrustum,
+    renderFilter: ((renderable: Renderer | IUICanvas) => boolean) | null
+  ): void {
+    const camera = context.camera;
+    const { _renderers: renderers, _canvases: canvases } = camera.scene!._componentsManager;
+
+    const rendererElements = renderers._elements;
+    for (let i = renderers.length - 1; i >= 0; --i) {
+      const renderer = rendererElements[i];
+      if (!(cullingMask & renderer._entity.layer)) {
+        continue;
+      }
+
+      if (enableFrustumCulling) {
+        if (!frustum.intersectsBox(renderer.bounds)) {
+          continue;
+        }
+      }
+      if (renderFilter && !renderFilter(renderer)) continue;
+      renderer._prepareRender(context);
+    }
+
+    const canvasesElements = canvases._elements;
+    for (let i = canvases.length - 1; i >= 0; i--) {
+      const canvas = canvasesElements[i];
+      if (!(cullingMask & canvas.entity.layer)) {
+        continue;
+      }
+      if (!canvas._canRender(camera)) {
+        continue;
+      }
+      if (renderFilter && !renderFilter(canvas)) continue;
       canvas._prepareRender(context);
       const canvasElements = canvas._batchedRenderElements;
       for (let j = 0, m = canvasElements.length; j < m; j++) {

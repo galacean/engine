@@ -6,7 +6,7 @@ import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Layer } from "./Layer";
-import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+import { BasicRenderPipeline, type CameraAuxiliaryRenderOptions } from "./RenderPipeline/BasicRenderPipeline";
 import type { RenderViewCullingSource, RenderViewCullingSourceRegistration } from "./RenderPipeline/RenderViewCulling";
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
@@ -213,6 +213,10 @@ export class Camera extends Component {
   private _pixelViewport: Rect = new Rect(0, 0, 0, 0);
   private _inverseProjectionMatrix: Matrix = new Matrix();
   private _invViewProjMat: Matrix = new Matrix();
+  @ignoreClone
+  private _auxVirtualCamera: VirtualCamera = new VirtualCamera();
+  @ignoreClone
+  private _auxFrustum: BoundingFrustum = new BoundingFrustum();
 
   /**
    * Whether to enable opaque texture.
@@ -728,6 +732,140 @@ export class Camera extends Component {
   }
 
   /**
+   * Perform a stateless auxiliary forward render pass without mutating camera state or touching
+   * main-pipeline caches/passes (shadow, depth prepass, SAO, SSR, opaque texture, post-process).
+   * Must only be called between render passes (e.g. `onUpdate`, `onBeginRender`, `onEndRender`);
+   * throws if invoked re-entrantly while another render pass is active.
+   * @param options - Optional per-call overrides for target, viewport, culling, clear, shader replacement, aspect ratio, and filter
+   */
+  renderAuxiliary(options?: CameraAuxiliaryRenderOptions): void {
+    const scene = this.scene;
+    if (!scene || this.destroyed) {
+      return;
+    }
+
+    const engine = this._engine;
+    const context = engine._renderContext;
+    if (context.camera != null) {
+      throw new Error("Camera.renderAuxiliary cannot be called re-entrantly during an active render pass.");
+    }
+    const auxVirtualCamera = this._auxVirtualCamera;
+    const sourceVirtualCamera = this._virtualCamera;
+
+    auxVirtualCamera.isOrthographic = sourceVirtualCamera.isOrthographic;
+    auxVirtualCamera.nearClipPlane = sourceVirtualCamera.nearClipPlane;
+    auxVirtualCamera.farClipPlane = sourceVirtualCamera.farClipPlane;
+    auxVirtualCamera.viewMatrix.copyFrom(this.viewMatrix);
+
+    const overrideAspectRatio = options?.aspectRatio;
+    if (
+      overrideAspectRatio !== undefined &&
+      Number.isFinite(overrideAspectRatio) &&
+      overrideAspectRatio > 0 &&
+      !this._isCustomProjectionMatrix &&
+      overrideAspectRatio !== this.aspectRatio
+    ) {
+      if (!auxVirtualCamera.isOrthographic) {
+        Matrix.perspective(
+          MathUtil.degreeToRadian(this._fieldOfView),
+          overrideAspectRatio,
+          auxVirtualCamera.nearClipPlane,
+          auxVirtualCamera.farClipPlane,
+          auxVirtualCamera.projectionMatrix
+        );
+      } else {
+        const width = this._orthographicSize * overrideAspectRatio;
+        const height = this._orthographicSize;
+        Matrix.ortho(
+          -width,
+          width,
+          -height,
+          height,
+          auxVirtualCamera.nearClipPlane,
+          auxVirtualCamera.farClipPlane,
+          auxVirtualCamera.projectionMatrix
+        );
+      }
+    } else {
+      auxVirtualCamera.projectionMatrix.copyFrom(this.projectionMatrix);
+    }
+
+    Matrix.multiply(
+      auxVirtualCamera.projectionMatrix,
+      auxVirtualCamera.viewMatrix,
+      auxVirtualCamera.viewProjectionMatrix
+    );
+
+    const transform = this._entity.transform;
+    auxVirtualCamera.position.copyFrom(transform.worldPosition);
+    if (auxVirtualCamera.isOrthographic) {
+      auxVirtualCamera.forward.copyFrom(transform.worldForward);
+    }
+
+    const enableFrustumCulling = options?.enableFrustumCulling ?? this.enableFrustumCulling;
+    if (enableFrustumCulling) {
+      this._auxFrustum.calculateFromMatrix(auxVirtualCamera.viewProjectionMatrix);
+    }
+
+    const prevVirtualCamera = context.virtualCamera;
+    const prevViewMatrix = context.viewMatrix;
+    const prevProjectionMatrix = context.projectionMatrix;
+    const prevViewProjectionMatrix = context.viewProjectionMatrix;
+    const prevFlipProjection = context.flipProjection;
+    const prevReplacementShader = context.replacementShader;
+    const prevReplacementTag = context.replacementTag;
+    const prevReplacementFailureStrategy = context.replacementFailureStrategy;
+    const prevOnlyShadowCaster = context._onlyShadowCaster;
+
+    const replacementShader = options?.replacementShader ?? null;
+    const replacementTag =
+      replacementShader && options?.replacementTagName ? ShaderTagKey.getByName(options.replacementTagName) : null;
+    const replacementFailureStrategy = replacementShader
+      ? (options?.replacementFailureStrategy ?? ReplacementFailureStrategy.KeepOriginalShader)
+      : null;
+
+    context.camera = this;
+    context.virtualCamera = auxVirtualCamera;
+    context.replacementShader = replacementShader;
+    context.replacementTag = replacementTag;
+    context.replacementFailureStrategy = replacementFailureStrategy;
+    context._onlyShadowCaster = false;
+    context._ssrState.reset();
+
+    try {
+      this._updateShaderData();
+
+      // Union scene and camera macro so calls prior to main render (e.g. onUpdate Picker) have fresh macros.
+      ShaderMacroCollection.unionCollection(
+        scene.shaderData._macroCollection,
+        this.shaderData._macroCollection,
+        this._globalShaderMacro
+      );
+
+      this._renderPipeline.renderAuxiliary(context, auxVirtualCamera, this._auxFrustum, options);
+    } finally {
+      context._ssrState.reset();
+      context.replacementShader = prevReplacementShader;
+      context.replacementTag = prevReplacementTag;
+      context.replacementFailureStrategy = prevReplacementFailureStrategy;
+      context._onlyShadowCaster = prevOnlyShadowCaster;
+
+      if (prevVirtualCamera === sourceVirtualCamera) {
+        context.camera = this;
+        context.applyVirtualCamera(sourceVirtualCamera, prevFlipProjection);
+      } else {
+        context.virtualCamera = prevVirtualCamera;
+        context.viewMatrix = prevViewMatrix;
+        context.projectionMatrix = prevProjectionMatrix;
+        context.viewProjectionMatrix = prevViewProjectionMatrix;
+        context.flipProjection = prevFlipProjection;
+      }
+      context.camera = null!;
+      engine._renderCount++;
+    }
+  }
+
+  /**
    * Registers a source-owned Renderer batch which is rebuilt for this Camera and each shadow cascade.
    * The source owns spatial culling and explicitly submits only its visible Renderer batches.
    * Keep source-owned Renderers disabled so normal scene traversal does not submit them a second time.
@@ -953,6 +1091,8 @@ export class Camera extends Component {
     this._viewport = null!;
     this._inverseProjectionMatrix = null!;
     this._invViewProjMat = null!;
+    this._auxVirtualCamera = null!;
+    this._auxFrustum = null!;
   }
 
   private _updatePixelViewport(): void {
