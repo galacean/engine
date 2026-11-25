@@ -853,8 +853,8 @@ describe("CharacterController", () => {
     const clone = entity.clone();
     try {
       const clonedController = clone.getComponent(CharacterController);
-      expect(clonedController.upDirection).not.toBe(cc.upDirection);
-      expect(clonedController.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
+      expect(clonedController.upDirection).toBe(cc.upDirection);
+      expect(() => Object.assign(clonedController.upDirection, { x: 0 })).toThrow(TypeError);
       clonedController.upDirection = { x: 0, y: 1, z: 0 };
       expect(cc.upDirection.x).toBe(1);
     } finally {

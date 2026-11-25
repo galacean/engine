@@ -1,6 +1,6 @@
 import { ControllerCollisionFlag, ControllerNonWalkableMode, ICharacterController } from "@galacean/engine-design";
 import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
-import { ignoreClone } from "../clone/CloneDecorators";
+import { assignmentClone, ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Collider } from "./Collider";
 import type { PhysicsScene } from "./PhysicsScene";
@@ -13,6 +13,7 @@ import { Rigidbody } from "./Rigidbody";
  * independently of Rigidbody ownership and Entity rotation.
  */
 export class CharacterController extends Collider {
+  private static readonly _defaultUpDirection = Object.freeze(new Vector3(0, 1, 0));
   private static readonly _tempMovePosition = new Vector3();
   private static readonly _tempWorldScale = new Vector3();
 
@@ -20,7 +21,8 @@ export class CharacterController extends Collider {
   private _height = 2;
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
-  private _upDirection = new Vector3(0, 1, 0);
+  @assignmentClone
+  private _upDirection = CharacterController._defaultUpDirection;
   private _slopeLimit = 45;
 
   @ignoreClone

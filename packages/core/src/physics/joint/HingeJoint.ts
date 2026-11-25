@@ -1,6 +1,6 @@
 import { IDynamicActor, IHingeJoint, IPhysicsScene } from "@galacean/engine-design";
 import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneDecorators";
+import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
 import { Entity } from "../../Entity";
 import { PhysicsUtils } from "../PhysicsUtils";
 import { Joint } from "./Joint";
@@ -11,9 +11,12 @@ import { JointMotor } from "./JointMotor";
  * A joint that allows rotation around one axis.
  */
 export class HingeJoint extends Joint {
+  private static readonly _defaultAxis = Object.freeze(new Vector3(1, 0, 0));
+
   protected declare _nativeJoint: IHingeJoint | null;
 
-  private _axis = new Vector3(1, 0, 0);
+  @assignmentClone
+  private _axis = HingeJoint._defaultAxis;
   private _useLimits = false;
   private _useMotor = false;
   private _useSpring = false;
@@ -138,6 +141,11 @@ export class HingeJoint extends Joint {
     super(entity);
     this._onMotorChanged = this._onMotorChanged.bind(this);
     this._onLimitsChanged = this._onLimitsChanged.bind(this);
+  }
+
+  /** @internal */
+  override _isSnapshotProperty(property: string): boolean {
+    return property === "axis";
   }
 
   /**

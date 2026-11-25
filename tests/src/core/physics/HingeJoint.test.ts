@@ -1,5 +1,7 @@
 import { createPhysics } from "../../utils/physics";
 import {
+  AnimationClip,
+  AnimationVector3Curve,
   HingeJoint,
   JointLimits,
   JointMotor,
@@ -99,7 +101,7 @@ describe("HingeJoint", function () {
     expect(joint.connectedAnchor.z).toBeCloseTo(0, 5);
   });
 
-  it("axis", function () {
+  it("uses the sampled hinge axis between connected bodies", function () {
     const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(2, 5, 0));
     const collider = boxEntity.getComponent(Rigidbody);
@@ -113,7 +115,12 @@ describe("HingeJoint", function () {
     joint.automaticConnectedAnchor = true;
     joint.connectedBody = boxEntity2.getComponent(Rigidbody);
     joint.anchor = new Vector3(0.5, 0, 0);
-    joint.axis = { x: 0, y: 1, z: 0 };
+    const clip = new AnimationClip("hinge axis");
+    const curve = new AnimationVector3Curve();
+    curve.addKey({ time: 0, value: new Vector3(0, 2, 0) });
+    clip.addCurveBinding("", HingeJoint, "axis", curve);
+    clip.sampleAnimation(boxEntity, 0);
+    expect(joint.axis).toMatchObject({ x: 0, y: 1, z: 0 });
     expect(formatValue(joint.angle)).eq(0);
 
     collider2.applyTorque(new Vector3(0, 1000, 0));

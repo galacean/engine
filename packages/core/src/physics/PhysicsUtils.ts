@@ -49,7 +49,7 @@ export class PhysicsUtils {
     x /= length;
     y /= length;
     z /= length;
-    return x === current.x && y === current.y && z === current.z ? current : new Vector3(x, y, z);
+    return x === current.x && y === current.y && z === current.z ? current : Object.freeze(new Vector3(x, y, z));
   }
 
   private static _componentDiffersF32(a: number, b: number): boolean {

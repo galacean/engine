@@ -121,6 +121,37 @@ describe("Physics gameplay integration", () => {
     return col;
   }
 
+  it.each([
+    { name: "unit Y", axis: { x: 0, y: 1, z: 0 }, x: 0, y: 1 },
+    { name: "zero", axis: { x: 0, y: 0, z: 0 }, x: 1, y: 0 },
+    { name: "partial XY", axis: { y: -1 }, x: Math.SQRT1_2, y: -Math.SQRT1_2 }
+  ])("drives a loaded hinge around its $name scene axis", async ({ axis, x, y }) => {
+    const url = createJSONUrl({
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "hinge", components: [0, 1, 2] }],
+      components: [
+        { type: "Rigidbody", props: { useGravity: false } },
+        { type: "BoxCollider" },
+        { type: "HingeJoint", props: { axis, useMotor: true, motor: { $type: "JointMotor", targetVelocity: 5 } } }
+      ],
+      scene: { rootEntities: [0], background: { mode: 0, color: [0, 0, 0, 1] } }
+    });
+    const loaded = await engine.resourceManager.load<Scene>({ url, type: AssetType.Scene });
+    try {
+      const entity = loaded.rootEntities[0];
+      expect(entity.getComponent(HingeJoint)!.axis).toMatchObject({ x: expect.closeTo(x), y: expect.closeTo(y), z: 0 });
+      loaded.physics._update(0.1);
+      const velocity = entity.getComponent(Rigidbody)!.angularVelocity;
+      const speed = velocity.length();
+      expect(speed).toBeGreaterThan(1);
+      // The connected body is the world, so a positive drive rotates the owning body about the negative axis.
+      expect((velocity.x * x + velocity.y * y) / speed).toBeCloseTo(-1, 4);
+    } finally {
+      loaded.destroy();
+    }
+  });
+
   it("loads a complete hinge axis from a runtime Prefab call", async () => {
     const prefab = await loadPrefab("hinge-axis.prefab", {
       version: "2.0",
@@ -180,7 +211,12 @@ describe("Physics gameplay integration", () => {
                 {
                   path: [],
                   selector: { type: "HingeJoint", index: 0 },
-                  props: { axis: { x: 0, y: 2, z: 0 } }
+                  props: { axis: { x: 0, y: 1 } }
+                },
+                {
+                  path: [],
+                  selector: { type: "HingeJoint", index: 0 },
+                  props: { axis: { z: 1 } }
                 }
               ]
             }
@@ -234,7 +270,11 @@ describe("Physics gameplay integration", () => {
     const siblingJoint = wrapper.children[0].getComponent(HingeJoint)!;
     const overriddenJoint = wrapper.children[1].getComponent(HingeJoint)!;
     const freshJoint = freshBase.getComponent(HingeJoint)!;
-    expect(overriddenJoint.axis).toMatchObject({ x: 0, y: 1, z: 0 });
+    expect(overriddenJoint.axis).toMatchObject({
+      x: 0,
+      y: expect.closeTo(Math.SQRT1_2),
+      z: expect.closeTo(Math.SQRT1_2)
+    });
     expect(siblingJoint.axis).toMatchObject({ x: 1, y: 0, z: 0 });
     expect(freshJoint.axis).toMatchObject({ x: 1, y: 0, z: 0 });
   });
