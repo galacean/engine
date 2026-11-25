@@ -10,7 +10,8 @@ import {
   TonemappingEffect,
   TonemappingMode,
   Vector3,
-  VolumetricLightEffect
+  VolumetricLightEffect,
+  VolumetricLightQuality
 } from "@galacean/engine";
 
 /** Serializable post-processing profile used by the authored terrain Scene. */
@@ -101,11 +102,19 @@ export interface TerrainPostProcessDebugSnapshot {
   /** Mutable engine-native Uber-pass volumetric light shaft controls. */
   readonly volumetricLight: {
     readonly enabled: boolean;
+    readonly quality: VolumetricLightQuality;
     readonly intensity: number;
+    readonly threshold: number;
     readonly density: number;
     readonly decay: number;
     readonly softKnee: number;
     readonly skyDepthThreshold: number;
+    readonly anisotropy: number;
+    readonly extinction: number;
+    readonly maxDistance: number;
+    readonly heightFalloff: number;
+    readonly baseHeight: number;
+    readonly bilateralSharpness: number;
   };
 }
 
@@ -148,11 +157,19 @@ export class TerrainPostProcessRuntime extends Script {
   private _sunLensFlareSolarAttenuation = 1;
   private readonly _sunLensFlareSolarColor = new Color(1, 1, 1, 1);
   private _volumetricLightEnabled = false;
+  private _volumetricLightQuality: VolumetricLightQuality = VolumetricLightQuality.Low;
   private _volumetricLightIntensity = 0.6;
+  private _volumetricLightThreshold = 0.18;
   private _volumetricLightDensity = 0.72;
   private _volumetricLightDecay = 0.93;
   private _volumetricLightSoftKnee = 0.6;
   private _volumetricLightSkyDepthThreshold = 0.9997;
+  private _volumetricLightAnisotropy = 0.72;
+  private _volumetricLightExtinction = 0.035;
+  private _volumetricLightMaxDistance = 80;
+  private _volumetricLightHeightFalloff = 0;
+  private _volumetricLightBaseHeight = 0;
+  private _volumetricLightBilateralSharpness = 12;
   private readonly _volumetricLightSolarDirection = new Vector3(0, 0, 0);
   private _volumetricLightSolarVisibility = 1;
   private _manualOverrides: TerrainPostProcessManualOverrides = {};
@@ -431,12 +448,88 @@ export class TerrainPostProcessRuntime extends Script {
     this._applyVolumetricLight();
   }
 
+  /** Sets the volumetric light quality tier (`Low`, `Medium`, or `High`). */
+  setVolumetricLightQuality(quality: VolumetricLightQuality): void {
+    if (
+      quality !== VolumetricLightQuality.Low &&
+      quality !== VolumetricLightQuality.Medium &&
+      quality !== VolumetricLightQuality.High
+    ) {
+      throw new RangeError("Terrain volumetric light quality must be Low, Medium, or High");
+    }
+    this._volumetricLightQuality = quality;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets Cornette-Shanks forward scattering anisotropy `g` (`-0.9..0.95`, Medium/High). */
+  setVolumetricLightAnisotropy(anisotropy: number): void {
+    if (!Number.isFinite(anisotropy) || anisotropy < -0.9 || anisotropy > 0.95) {
+      throw new RangeError("Terrain volumetric light anisotropy must be finite and in [-0.9, 0.95]");
+    }
+    this._volumetricLightAnisotropy = anisotropy;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets atmospheric extinction / scattering density (`0.001..0.25`, Medium/High). */
+  setVolumetricLightExtinction(extinction: number): void {
+    if (!Number.isFinite(extinction) || extinction < 0.001 || extinction > 0.25) {
+      throw new RangeError("Terrain volumetric light extinction must be finite and in [0.001, 0.25]");
+    }
+    this._volumetricLightExtinction = extinction;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets max 3D raymarching distance in meters (`5..500`, Medium/High). */
+  setVolumetricLightMaxDistance(maxDistance: number): void {
+    if (!Number.isFinite(maxDistance) || maxDistance < 5 || maxDistance > 500) {
+      throw new RangeError("Terrain volumetric light maxDistance must be finite and in [5, 500]");
+    }
+    this._volumetricLightMaxDistance = maxDistance;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets exponential altitude falloff (`0..1`, Medium/High). */
+  setVolumetricLightHeightFalloff(heightFalloff: number): void {
+    if (!Number.isFinite(heightFalloff) || heightFalloff < 0 || heightFalloff > 1) {
+      throw new RangeError("Terrain volumetric light heightFalloff must be finite and in [0, 1]");
+    }
+    this._volumetricLightHeightFalloff = heightFalloff;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets base world-space altitude for exponential height falloff (`-500..500`, Medium/High). */
+  setVolumetricLightBaseHeight(baseHeight: number): void {
+    if (!Number.isFinite(baseHeight) || baseHeight < -500 || baseHeight > 500) {
+      throw new RangeError("Terrain volumetric light baseHeight must be finite and in [-500, 500]");
+    }
+    this._volumetricLightBaseHeight = baseHeight;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets depth-edge sharpness for bilateral blur & upsample (`0.5..64`, Medium/High). */
+  setVolumetricLightBilateralSharpness(sharpness: number): void {
+    if (!Number.isFinite(sharpness) || sharpness < 0.5 || sharpness > 64) {
+      throw new RangeError("Terrain volumetric light bilateralSharpness must be finite and in [0.5, 64]");
+    }
+    this._volumetricLightBilateralSharpness = sharpness;
+    this._applyVolumetricLight();
+  }
+
   /** Sets overall linear intensity of volumetric light shafts (`0..2.5`). */
   setVolumetricLightIntensity(intensity: number): void {
     if (!Number.isFinite(intensity) || intensity < 0 || intensity > 2.5) {
       throw new RangeError("Terrain volumetric light intensity must be finite and in [0, 2.5]");
     }
     this._volumetricLightIntensity = intensity;
+    this._applyVolumetricLight();
+  }
+
+  /** Sets soft-knee luminance extraction threshold (`0..4`, Low mode). */
+  setVolumetricLightThreshold(threshold: number): void {
+    if (!Number.isFinite(threshold) || threshold < 0 || threshold > 4) {
+      throw new RangeError("Terrain volumetric light threshold must be finite and in [0, 4]");
+    }
+    this._volumetricLightThreshold = threshold;
     this._applyVolumetricLight();
   }
 
@@ -610,11 +703,19 @@ export class TerrainPostProcessRuntime extends Script {
       this.setSunLensFlareGhostChromaticity(sunLensFlare.ghostChromaticity);
       this.setSunLensFlareTint(sunLensFlare.tintR, sunLensFlare.tintG, sunLensFlare.tintB);
       this.setVolumetricLightEnabled(volumetricLight.enabled);
+      this.setVolumetricLightQuality(volumetricLight.quality);
       this.setVolumetricLightIntensity(volumetricLight.intensity);
+      this.setVolumetricLightThreshold(volumetricLight.threshold);
       this.setVolumetricLightDensity(volumetricLight.density);
       this.setVolumetricLightDecay(volumetricLight.decay);
       this.setVolumetricLightSoftKnee(volumetricLight.softKnee);
       this.setVolumetricLightSkyDepthThreshold(volumetricLight.skyDepthThreshold);
+      this.setVolumetricLightAnisotropy(volumetricLight.anisotropy);
+      this.setVolumetricLightExtinction(volumetricLight.extinction);
+      this.setVolumetricLightMaxDistance(volumetricLight.maxDistance);
+      this.setVolumetricLightHeightFalloff(volumetricLight.heightFalloff);
+      this.setVolumetricLightBaseHeight(volumetricLight.baseHeight);
+      this.setVolumetricLightBilateralSharpness(volumetricLight.bilateralSharpness);
       this._manualOverrides = { ...overrides };
     };
   }
@@ -657,11 +758,19 @@ export class TerrainPostProcessRuntime extends Script {
       },
       volumetricLight: {
         enabled: this._volumetricLightEnabled,
+        quality: this._volumetricLightQuality,
         intensity: this._volumetricLightIntensity,
+        threshold: this._volumetricLightThreshold,
         density: this._volumetricLightDensity,
         decay: this._volumetricLightDecay,
         softKnee: this._volumetricLightSoftKnee,
-        skyDepthThreshold: this._volumetricLightSkyDepthThreshold
+        skyDepthThreshold: this._volumetricLightSkyDepthThreshold,
+        anisotropy: this._volumetricLightAnisotropy,
+        extinction: this._volumetricLightExtinction,
+        maxDistance: this._volumetricLightMaxDistance,
+        heightFalloff: this._volumetricLightHeightFalloff,
+        baseHeight: this._volumetricLightBaseHeight,
+        bilateralSharpness: this._volumetricLightBilateralSharpness
       }
     };
   }
@@ -788,11 +897,19 @@ export class TerrainPostProcessRuntime extends Script {
     const volumetricLight = this._volumetricLight;
     if (!volumetricLight) return;
     volumetricLight.enabled = this._profileEnabled && this._volumetricLightEnabled;
+    volumetricLight.quality.value = this._volumetricLightQuality;
     volumetricLight.intensity.value = this._volumetricLightIntensity;
+    volumetricLight.threshold.value = this._volumetricLightThreshold;
     volumetricLight.density.value = this._volumetricLightDensity;
     volumetricLight.decay.value = this._volumetricLightDecay;
     volumetricLight.softKnee.value = this._volumetricLightSoftKnee;
     volumetricLight.skyDepthThreshold.value = this._volumetricLightSkyDepthThreshold;
+    volumetricLight.anisotropy.value = this._volumetricLightAnisotropy;
+    volumetricLight.extinction.value = this._volumetricLightExtinction;
+    volumetricLight.maxDistance.value = this._volumetricLightMaxDistance;
+    volumetricLight.heightFalloff.value = this._volumetricLightHeightFalloff;
+    volumetricLight.baseHeight.value = this._volumetricLightBaseHeight;
+    volumetricLight.bilateralSharpness.value = this._volumetricLightBilateralSharpness;
     volumetricLight.sunDirectionOverride.value.copyFrom(this._volumetricLightSolarDirection);
     volumetricLight.solarVisibility.value = this._volumetricLightSolarVisibility;
   }
