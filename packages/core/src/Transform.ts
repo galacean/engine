@@ -658,10 +658,11 @@ export class Transform extends Component implements ICloneHook<Transform> {
     this._dirtyFlag &= ~type;
   }
 
-  protected _worldAssociatedChange(type: number): void {
+  /** Position and rotation edits carry their originating Transform through descendant notifications. */
+  protected _worldAssociatedChange(type: number, source?: Transform): void {
     const dispatchFlags = type & ~this._dirtyFlag;
     this._dirtyFlag |= type;
-    this._entity._updateFlagManager.dispatch(dispatchFlags);
+    this._entity._updateFlagManager.dispatch(dispatchFlags, source);
   }
 
   protected _getParentTransform(): Transform | null {
@@ -708,12 +709,12 @@ export class Transform extends Component implements ICloneHook<Transform> {
    * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
    */
-  private _updateWorldPositionFlag(): void {
+  private _updateWorldPositionFlag(source: Transform = this): void {
     if (!this._isContainDirtyFlags(TransformModifyFlags.WmWp)) {
-      this._worldAssociatedChange(TransformModifyFlags.WmWp);
+      this._worldAssociatedChange(TransformModifyFlags.WmWp, source);
       const children = this._entity._children;
       for (let i = 0, n = children.length; i < n; i++) {
-        children[i].transform?._updateWorldPositionFlag();
+        children[i].transform?._updateWorldPositionFlag(source);
       }
     }
   }
@@ -731,11 +732,11 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const parentWorldUniformScaling = parent ? parent._getWorldUniformScaling() : true;
     let flags = parentWorldUniformScaling ? TransformModifyFlags.WmWeWq : TransformModifyFlags.WmWeWqWs;
     if (!this._isContainDirtyFlags(flags)) {
-      this._worldAssociatedChange(flags);
+      this._worldAssociatedChange(flags, this);
       flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
       const children = this._entity._children;
       for (let i = 0, n = children.length; i < n; i++) {
-        children[i].transform?._updateWorldPositionAndRotationFlag(flags); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
+        children[i].transform?._updateWorldPositionAndRotationFlag(flags, this); // Rotation update of parent entity will trigger world position, rotation and scale update of all child entity.
       }
     }
   }
@@ -749,13 +750,13 @@ export class Transform extends Component implements ICloneHook<Transform> {
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
    * @param flags - Dirty flag
    */
-  private _updateWorldPositionAndRotationFlag(flags: TransformModifyFlags): void {
+  private _updateWorldPositionAndRotationFlag(flags: TransformModifyFlags, source: Transform): void {
     if (!this._isContainDirtyFlags(flags)) {
-      this._worldAssociatedChange(flags);
+      this._worldAssociatedChange(flags, source);
       flags = this._getWorldUniformScaling() ? TransformModifyFlags.WmWpWeWq : TransformModifyFlags.WmWpWeWqWs;
       const children = this._entity._children;
       for (let i = 0, n = children.length; i < n; i++) {
-        children[i].transform?._updateWorldPositionAndRotationFlag(flags);
+        children[i].transform?._updateWorldPositionAndRotationFlag(flags, source);
       }
     }
   }
