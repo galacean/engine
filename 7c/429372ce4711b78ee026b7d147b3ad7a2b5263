@@ -1,0 +1,26 @@
+world/demos/seed-world/src/SeedWorldPerformancePanel.ts
+  s_400c2d1e050e6a::t_42e128df891496 16,23-33,35-41
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  s_400c2d1e050e6a::t_3b483a2ae027c6 631-642,644
+world/demos/seed-world/SeedWorldDemo.ts
+  s_400c2d1e050e6a::t_ca32a5e1cdce68 107,109,119,121-123,245-246,870-871,874,876,880,882-886,1013-1014,2443-2457,2462-2465,2467,2482,2484,2491-2496,2498-2508,2515-2542
+  s_400c2d1e050e6a::t_3b483a2ae027c6 114,2497,2509-2514
+world/demos/seed-world/styles.css
+  s_400c2d1e050e6a::t_42e128df891496 1263-1273
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7c429372ce4711b78ee026b7d147b3ad7a2b5263",
+  "prompts": {},
+  "sessions": {
+    "s_400c2d1e050e6a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1eec7-99c5-78c0-a326-98cab4c67870",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

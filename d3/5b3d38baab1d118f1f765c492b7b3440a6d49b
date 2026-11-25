@@ -1,0 +1,22 @@
+docs/en/physics/joint/overview.mdx
+  h_dd004f51a3e5ec 81
+docs/zh/physics/joint/overview.mdx
+  h_dd004f51a3e5ec 81
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 80,87,92,100,336,340,347,349,351,363-364,404,406
+tests/src/core/physics/HingeJoint.test.ts
+  h_dd004f51a3e5ec 43,51,57,63,67,71-88
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 2-12,15-20,838-947
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d35b3d38baab1d118f1f765c492b7b3440a6d49b",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

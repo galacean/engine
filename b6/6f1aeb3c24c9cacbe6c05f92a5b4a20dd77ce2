@@ -1,0 +1,164 @@
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 119,124,131,137,164
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 34,118,199,209,211,215,217-218,230,265-266,279
+packages/terrain/src/surface/SurfaceShader.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 21-30,36-37,54-58
+packages/animals/src/gameplay/animal/GroundAnimalSteering.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 21-22,57-64,66,73
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 14,62,64
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 42-43,81,184,199,276-277,288,293-297,493,581-582,586,588,600-601,673-680,745,750,786,788-789,791,822-823,830-831,849,866,883-890,892,894-902,904,907-919,922-923,943,949,1178
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAuthoringComponents.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 193,207,299,303-304
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalPanel.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 37,110,170-172
+packages/world-planning/src/spatial/AnimalPopulationComponent.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 168,407
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 75-87
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 212-213
+world/demos/seed-world/scripts/generate-low-poly-assets.py
+  s_400c2d1e050e6a::t_9dc168f0ce7972 109-121,125-134,139
+packages/water/src/water/runtime/optics/CameraWaterFeatureBroker.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 75-76,86,96,106,144,167,188,349
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 1,13,31,33,36,45-51,73,78-79,97-98,117-119,125-127,129-130,135-138,142-144,146-152
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 961-969,1440-1467,2715-2723,2725,2728
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 114-159,224,352-353
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalContent.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 31
+packages/modify/src/native/core/src/lighting/environment/RealtimeIBLBaker.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 372-374,378,409,557-558,572-585,594,656-668,677-708
+packages/world-planning/src/vista/PanoramaVistaGenerator.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 1-472
+packages/world-planning/src/integrations/grasslands/GrasslandsWaterPcg.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 45-46,65,68
+world/tests/seed-world/SeedWorldPanoramaVista.spec.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 1-85
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 401,403-411,1142-1144
+world/demos/seed-world/src/planning/spatial/PlanningWaterSource.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 13-19
+packages/animals/src/gameplay/animal/AnimalRegistration.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 91-92,144,416-435,484-502,521,534
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudMaterial.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 8-9,47-113,135,530-532,559-561,738,754-760,765,787-788,824,910-915,929,987-1009,1013-1015
+world/demos/seed-world/SeedWorldDemo.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 41,153,172,294,481,900,1651-1652,1656,2124-2186,2316
+  s_400c2d1e050e6a::t_da7a605cfaba0c 883,2569
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 157-159,182-256,1265-1266
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 10-16,38,46-47
+packages/world-planning/src/integrations/terrain/debug/TerrainRuntimeDebugInspector.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 231-239,475-491
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 15-18,50-51,92-113,350,571-591,714,809-811
+world/demos/seed-world/src/planning/planning-data/animal-behaviors.json
+  s_400c2d1e050e6a::t_9dc168f0ce7972 432
+packages/animals/src/gameplay/animal/AnimalInteraction.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 18
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 32,34,60
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 6,13-17,86-130
+world/tests/seed-world/AnimalAuthoring.spec.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 62-73
+packages/environment/src/terrain/lighting/TerrainScreenSpaceReflectionTuning.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 13,17-19
+packages/world-planning/src/runtime/SeedWorldPanoramaVistaRuntime.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 1-422
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 12,62,215
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 92-93,189-196,203-205,207-216,218-220,462-471,492,536,538-540,543-548,554-560,684,686,692-693
+  s_400c2d1e050e6a::t_db01f02c2f2568 744
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheSchedule.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 65-93,101-106
+packages/water/src/water/runtime/effects/WaterContactEffects.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 7,32-36,209-210,252-253,256-257
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 90-124
+packages/world-planning/package.json
+  s_400c2d1e050e6a::t_9dc168f0ce7972 476,480-481
+packages/building/src/building/runtime/ConstructionDecorationLights.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 2-10,17-21,44,93-97,111-116,119-126,137-138,146-155,170-173
+  s_400c2d1e050e6a::t_65fa4965f6f9d8 1
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 56,125-161,294,296-305,307-309,311-313,315-317,319-320,324,361-366,377-382,551-582,701,703-706,708-717,719,742,750,829
+packages/world-planning/src/planning-data/template-wildlife.json
+  s_400c2d1e050e6a::t_9dc168f0ce7972 3,8
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 91,127-131,317-320,355-358,1032-1043,1047-1050,1052,1281
+world/tests/seed-world/AnimalRoutePreview.spec.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 44-59,118,135-179
+  s_400c2d1e050e6a::t_933b85dda3f88d 180
+packages/animals/src/gameplay/animal/AnimalPopulation.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 53-54,168-169
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheRenderer.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 7,10,14,43-65,93-99,285-296,378-379,393-404,406,409-425,439-441
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 145,236,390,411-428,455,716,757-761,771,1281,1295-1296,1421-1426,1466-1470,1475-1478,1614-1619,1830-1832,1837-1848,1850-1858,1868-1878,1899-1900,1915,1921-1955,2103-2114,2124,2483-2484
+packages/world-planning/src/spatial/world-templates/LowPolyValley.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 1-2,5,44-933,938,940,942,944,949,964-970
+packages/building/src/building/runtime/MasonryResidency.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 8-9,114-121,129-136,139-146,151-158,407-411
+  s_400c2d1e050e6a::t_9d8384dd07a453 412
+packages/building/src/building/runtime/ConstructionDecorationLightPolicy.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 67-74,96,101-103,108-113,116-138,153-156,162-168,171-192
+world/demos/seed-world/src/planning/spatial/PlanningSceneAsset.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 31,41-43,46-47,96
+packages/animals/src/gameplay/animal/AnimalTaskController.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 67-68,103-104,645,659-664,706,713,718-728,734-739,744,765,831-832,868-871,891-895,909,911-912,917-939,959-960,1016,1034,1049
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 1654-1656,1983-1990,2094
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 37,515,540,603-604,621-622
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 23,612,618-620,853-857
+world/tests/seed-world/AnimalPlanningTasks.spec.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 187-206,468-544
+packages/terrain/src/terrain/debug/TerrainScreenSpaceReflectionPanel.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 14-15,75,195-197,210,259-261
+packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 17-21,87-120
+  s_400c2d1e050e6a::t_7b2d3736447d93 14-16,121-122
+world/tests/seed-world/SeedWorldAnimalClickRouting.spec.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 5-10,48-127
+world/tests/seed-world/AnimalMovementLifecycle.spec.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 145-146,287-299
+  s_400c2d1e050e6a::t_332bd76f801e09 300-301
+world/tests/seed-world/AnimalLocalWorldChange.spec.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 185-193
+packages/animals/src/gameplay/animal/GLBAnimalPresenter.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 5-6,46,77-81,87,143-144,149
+packages/modify/src/native/core/src/RenderPipeline/RenderTargetPool.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 9,32,222-224,228
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 48,51,155-184
+packages/animals/src/gameplay/animal/GroundAnimalRecovery.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 6,27,39,63,75,142-144
+packages/terrain/src/rock-formation/GrassPatches.ts
+  s_400c2d1e050e6a::t_9dc168f0ce7972 37-47,172,175-183,185-189,192-207,329-331,336-350
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b66f1aeb3c24c9cacbe6c05f92a5b4a20dd77ce2",
+  "prompts": {},
+  "sessions": {
+    "s_400c2d1e050e6a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1eec7-99c5-78c0-a326-98cab4c67870",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

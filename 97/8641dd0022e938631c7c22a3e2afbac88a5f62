@@ -1,0 +1,55 @@
+packages/core/src/particle/ParticleTransformFeedbackSimulator.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 53
+packages/core/src/Background.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 166
+packages/core/src/material/PBRMaterial.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 770
+packages/core/src/postProcess/FinalPass.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 26,31
+packages/core/src/sky/SkyBoxMaterial.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 66
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 28,32
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 51
+packages/core/src/particle/ParticleMaterial.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 14
+packages/core/src/shader/Shader.ts
+  s_887c9bfcd3faf0::t_fb385aec260e15 31-34,171,178,206,215,397,455,457-458
+packages/spine/src/renderer/SpineMaterial.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 9
+packages/core/src/BasicResources.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 143,146,193-194,306,313
+packages/core/src/trail/TrailMaterial.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 14
+packages/core/src/particle/ParticleSubEmitterSpawnState.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 51
+packages/ui/src/index.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 17
+packages/core/src/material/BlinnPhongMaterial.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 163
+tests/src/core/BuiltinShaderIdentity.test.ts
+  s_887c9bfcd3faf0::t_dffe7c65153d7c 6,21-26,129-150,153-157,159-161,163-164,166-185
+packages/core/src/sky/SkyProceduralMaterial.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 134
+packages/galacean/src/ShaderPool.ts
+  s_887c9bfcd3faf0::t_fb385aec260e15 83-84
+packages/core/src/material/UnlitMaterial.ts
+  s_887c9bfcd3faf0::t_b5fd763b312292 60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "978641dd0022e938631c7c22a3e2afbac88a5f62",
+  "prompts": {},
+  "sessions": {
+    "s_887c9bfcd3faf0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1334e-1e2b-7b23-b7e9-874f5ffe4d60",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

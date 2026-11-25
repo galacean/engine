@@ -1,0 +1,90 @@
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 60,293
+  s_b122ad0f5ae454::t_591c4d3b890af8 294-295
+world/demos/seed-world/SeedWorldDemo.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 167,170,185-186,1287-1295,1302-1304,1312-1316,1326-1327,1372-1373,1451,1539-1540
+  s_b122ad0f5ae454::t_dcda4e1969305f 1308
+packages/world-planning/src/spatial/PlanningWeather.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 20-28,45-48,80-96
+  s_b122ad0f5ae454::t_5c6def1bd8340a 97-99
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 35,42,45,64-65,80,87-88,91-95,98-100,125-132,135,139-150,155,159
+  s_b122ad0f5ae454::t_587fcde52f203c 160-162
+packages/world-planning/src/spatial/WorldTemplateView.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 8,22-61
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_b122ad0f5ae454::t_b1c9c836ade1ee 1
+packages/world-planning/src/spatial/runtime/StreetFacadeRuntime.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 1-2,6,8-24,26-63,70,76-77,84-87,91-94,110-112,118,128,130-144,146-190
+  s_b122ad0f5ae454::t_173b75f848d5bb 3-5,7,25,64-69,71-75,78-83,90,126-127,145
+  s_b122ad0f5ae454::t_441cbfb28de468 88-89
+  s_b122ad0f5ae454::t_195ca211c86954 95-97,107-109
+  s_b122ad0f5ae454::t_833243b690d51e 113-117
+  s_b122ad0f5ae454::t_302dea8ab90263 119-121,123-125
+  s_b122ad0f5ae454::t_6c9e9f50cae172 129
+  s_b122ad0f5ae454::t_5f6f822cf7ca27 191-193
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 343-345,401-402
+  s_b122ad0f5ae454::t_f053259db5fcdf 403-405
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 111-114,226-234,239,308,320-321
+  s_b122ad0f5ae454::t_3786bf772ae6a2 322-323
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 2,32,57-59,112-119,852-874,877-898,900-901,908,914-918,923
+  s_b122ad0f5ae454::t_8c254a833b949a 919-922
+  s_b122ad0f5ae454::t_60c90d1c294c8c 924-926
+packages/world-planning/src/spatial/WorldTemplateStreet.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 1-111
+  s_b122ad0f5ae454::t_e52b321b588053 112-113
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 9,562-563,566,574,615,730
+  s_b122ad0f5ae454::t_7b6eb00bb3730a 731-733
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 48,172,349-352,466-467,518-519,568
+  s_b122ad0f5ae454::t_9ec863c91da4d7 1119-1120
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 779-781,799-812
+world/tests/seed-world/TerrainFarShader.spec.ts
+  s_b122ad0f5ae454::t_cf298be6ffbcd8 28-41
+  s_b122ad0f5ae454::t_ef280a72a4ba7e 42-55
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  s_b122ad0f5ae454::t_d139c4d08aba86 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  s_b122ad0f5ae454::t_a31f3c5fd1ff7a 1
+packages/terrain/src/shaders/shared/SurfaceClimate.glsl
+  s_b122ad0f5ae454::t_436fd782ec901f 224-228,230,236-241,244,289-291,293,384-386
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  s_b122ad0f5ae454::t_ebfe0eddfa46e9 32,431,561-563,565
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  s_b122ad0f5ae454::t_7c60220c79a61d 11,103,120-122,442,447-451
+packages/world-planning/src/spatial/PlanningComponents.ts
+  s_b122ad0f5ae454::t_b4c456f1e868cc 687-693,1358
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_b122ad0f5ae454::t_76e0352780e7ce 22-23,124-125,130
+packages/world-planning/src/spatial/WorldTemplateEcology.ts
+  s_b122ad0f5ae454::t_da4d1fffea49a7 16-18,23-27
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  s_b122ad0f5ae454::t_9dd6422f0c661a 40
+packages/world-planning/src/spatial/layout/ConnectedCurve.ts
+  s_b122ad0f5ae454::t_bea96aa01678c0 111,170,173-174
+packages/world-planning/src/spatial/layout/EnvironmentStages.ts
+  s_b122ad0f5ae454::t_0d6bc9042a8f4f 3,218-219
+packages/world-planning/src/spatial/layout/LayoutRules.ts
+  s_b122ad0f5ae454::t_7e745421f365f0 53,158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "747400ee492ccf16c6d9843ee2015ca582a59c36",
+  "prompts": {},
+  "sessions": {
+    "s_b122ad0f5ae454": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bf25-ad07-7211-855e-b77cb0a0cc44",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

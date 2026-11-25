@@ -1,0 +1,45 @@
+packages/building/src/building/runtime/EngineShaderSource.ts
+  s_02781447abdd68::t_ca14e762fb9834 2,161
+packages/building/tests/BuildingFarProxy.spec.ts
+  s_a61a893a3e253a::t_45b2ade6e458a8 175-176,183-185
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  s_0373997fdb8cbf::t_ffa6dcba26c70d 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_0373997fdb8cbf::t_1bfe308706b165 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_0373997fdb8cbf::t_e0702ae13813b5 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  s_0373997fdb8cbf::t_7228d88bb77fb1 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "18cfe1d1bf6132b35ace16ab4e621001fd0d25f0",
+  "prompts": {},
+  "sessions": {
+    "s_02781447abdd68": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cdd2-e33f-7600-95dc-ac58eab2f9bb",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_0373997fdb8cbf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a192e5-99f1-7531-8f6e-963a84b12db4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+docs/en/physics/query/overlap.mdx
+  h_dd004f51a3e5ec 73-74,76,85,93,119,121,125,135,137,146,149,156-157,189,193,213,222,225,228-229,234-235,252,271,275,277-278,280,298-304
+docs/en/physics/query/sweep.mdx
+  h_dd004f51a3e5ec 53-58,74,105,132,180,219-230,250,266,270-271,274-276,290-294
+docs/zh/physics/query/overlap.mdx
+  h_dd004f51a3e5ec 73-74,76,85,93,119,121,125,135,137,146,149,156-157,189,193,213,222,225,228-229,234-235,252,271,275,277-278,280,298-301,303-304
+docs/zh/physics/query/sweep.mdx
+  h_dd004f51a3e5ec 15,53-58,74,105,126,132,178,217-228,248,264,268-269,272-274,288-291
+packages/core/src/physics/CapsuleCollider.ts
+  h_dd004f51a3e5ec 1,3,12,18-19,45,80,104,107-133,135
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 59,95,235-236,240
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 515,521,528,535,552,591,593,600-612,676,691-692,697-699
+packages/design/src/physics/ICharacterController.ts
+  h_dd004f51a3e5ec 12
+packages/physics-physx/src/PhysXCharacterController.ts
+  h_dd004f51a3e5ec 47-49,53,56
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 528,535-538,541,546,548-568,570-574,702,704-707,709-711
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 795,800-801,812,814,817-818,821-822,825-837,840-845,852,854,858-895,942,944-945,949-953
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 2524-2529,2532-2534,2545-2548,2550-2552,2560-2561,2568-2569
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ef0b35d54e4b38a225b1e6d8ee403e838b5bf2fb",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

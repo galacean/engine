@@ -1,0 +1,71 @@
+packages/core/src/RenderPipeline/RenderElement.ts
+  s_0373997fdb8cbf::t_a142e4270a835b 27-31
+  s_0373997fdb8cbf::t_54416c4e328e0c 1-3,12-19,21-26,32-33,60,89,97
+packages/ui/src/component/UIClipScope.ts
+  s_0373997fdb8cbf::t_a142e4270a835b 50-119
+  s_0373997fdb8cbf::t_dfb547ec6f9103 1-49,120-123
+packages/ui/src/component/advanced/Image.ts
+  s_0373997fdb8cbf::t_a142e4270a835b 179-183
+  s_0373997fdb8cbf::t_fa4e88d883f6b3 216,239
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_0373997fdb8cbf::t_8f338681380983 263-264
+  s_0373997fdb8cbf::t_0aa72451fe0924 4,51-61,108,120,125,260-262,265-267
+packages/core/src/RenderPipeline/OverlayPass.ts
+  s_0373997fdb8cbf::t_a142e4270a835b 93-104,111-112
+  s_0373997fdb8cbf::t_b82779cf4fe6e1 2-60,62-92,105,109-110,113-125
+  s_0373997fdb8cbf::t_f6342040794124 1,61,106-108
+packages/core/src/RenderPipeline/RenderContext.ts
+  s_0373997fdb8cbf::t_b82779cf4fe6e1 39-40
+  s_0373997fdb8cbf::t_be58e04eb11b7c 1,41
+packages/core/src/Engine.ts
+  s_0373997fdb8cbf::t_b82779cf4fe6e1 33,604
+packages/xr-webxr/src/WebXRSession.ts
+  s_0373997fdb8cbf::t_b82779cf4fe6e1 1,114-115,175
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_0373997fdb8cbf::t_b82779cf4fe6e1 63-65
+  s_0373997fdb8cbf::t_3b0afb5067934c 33
+packages/rhi-null/src/NullGraphicDevice.ts
+  s_0373997fdb8cbf::t_b82779cf4fe6e1 84-92
+tests/src/ui/RectMask2DOutside.test.ts
+  s_0373997fdb8cbf::t_a142e4270a835b 20,23-25,446-645,679,1007-1009,1015
+  s_0373997fdb8cbf::t_04e1b1bd70b922 1016
+packages/core/src/RenderPipeline/MaskManager.ts
+  s_0373997fdb8cbf::t_a142e4270a835b 151-152
+  s_0373997fdb8cbf::t_c5f0a4e810af8a 88-89,91
+packages/core/src/shader/state/RenderState.ts
+  s_0373997fdb8cbf::t_b82779cf4fe6e1 48
+packages/ui/src/component/UICanvas.ts
+  s_0373997fdb8cbf::t_a142e4270a835b 269
+  s_0373997fdb8cbf::t_8f338681380983 304-306
+  s_0373997fdb8cbf::t_d4721595a1d0d2 30,46-47,265,270-271,307-317,319-320,322-327,370,395-404,493,580,585,597,600,608,621
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_0373997fdb8cbf::t_a142e4270a835b 398-401
+  s_0373997fdb8cbf::t_b82779cf4fe6e1 394-397,402-403
+  s_0373997fdb8cbf::t_899d5875f5bf23 195-196
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_0373997fdb8cbf::t_9fbf4655a4aca2 402
+packages/core/src/RenderPipeline/VertexMergeBatcher.ts
+  s_0373997fdb8cbf::t_2bacbbfd5909a7 15-16,24
+packages/ui/src/component/UIRenderer.ts
+  s_0373997fdb8cbf::t_b3842df42a4925 20,22,80,140-143,164,170-178,180,206,289-290,297,315,351
+packages/ui/src/component/advanced/Text.ts
+  s_0373997fdb8cbf::t_979276104a4455 295
+tests/src/ui/RectMask2D.test.ts
+  s_0373997fdb8cbf::t_282990d9d35591 336,356-357
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d2ca080465073080f6905e5ee598470dc4fdeba0",
+  "prompts": {},
+  "sessions": {
+    "s_0373997fdb8cbf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a192e5-99f1-7531-8f6e-963a84b12db4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

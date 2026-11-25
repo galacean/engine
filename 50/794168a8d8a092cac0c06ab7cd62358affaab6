@@ -1,0 +1,36 @@
+packages/animals/src/gameplay/animal/AnimalSystem.ts
+  h_171a11afaf879a 47,113,218,221-223,226-268,274-287,460-463,466,487-489
+packages/animals/src/gameplay/animal/AnimalTaskController.ts
+  h_171a11afaf879a 106,791-793
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 459,1449-1454,1465-1498,1500-1501,1510,1518-1522
+packages/water/src/water/compiler/lake/LakeBoundaryCompiler.ts
+  h_171a11afaf879a 84,94-99,113-124
+packages/water/src/water/compiler/lake/LakeBoundaryQueryIndex.ts
+  h_171a11afaf879a 3-19,23-24,29-36,38-49,60-61,63-69,72-79,81-90,92,95-97,99-100,102-103,106,108-166
+packages/water/src/water/runtime/heightfield/HeightfieldWaterQueryService.ts
+  h_171a11afaf879a 3,69-153
+packages/water/src/water/runtime/heightfield/HeightfieldWaterSurfaceProvider.ts
+  h_171a11afaf879a 94-144,148
+packages/world-planning/src/spatial/runtime/PlanningNavigationSurface.ts
+  h_171a11afaf879a 7-14,20-21,24,27-36,42-45,48-49,51,68,74-170,202-211,225,245,275,277
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  h_171a11afaf879a 114,116-117,609-640
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  h_171a11afaf879a 33-34,37-39,109-110,396-403,407-418,422-434,436-509,514-515,521-522,524,530-535,539-545,548-552,556-564
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 924-927,937-938
+world/tests/seed-world/AnimalPathfindingPerfInvariants.spec.ts
+  h_171a11afaf879a 1-274
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "50794168a8d8a092cac0c06ab7cd62358affaab6",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

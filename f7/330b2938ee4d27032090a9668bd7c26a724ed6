@@ -1,0 +1,20 @@
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_ddbf152d31b140 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f7330b2938ee4d27032090a9668bd7c26a724ed6",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

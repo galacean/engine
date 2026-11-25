@@ -1,0 +1,58 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_dd004f51a3e5ec 455
+packages/core/src/RenderPipeline/Blitter.ts
+  h_dd004f51a3e5ec 80,85-91
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_dd004f51a3e5ec 142,195
+packages/core/src/audio/AudioManager.ts
+  h_dd004f51a3e5ec 11-12,21,32,37,48,51-53,78-115,118,126-127,138,141,157-163,166-173
+packages/core/src/audio/AudioSource.ts
+  h_dd004f51a3e5ec 17,26,28,85-91,93,95-97,127-129,139,142-143,155,158,161,166,168-170,173-185,187-188,191-192,198-201,212,220-221,228-234,275,284-289,292-293,298-317,330-337
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  h_dd004f51a3e5ec 78,81
+packages/core/src/shader/ShaderData.ts
+  h_dd004f51a3e5ec 18-23,424,426,465,467,654,681,686,688-692,696-697,699-700,755-768,770
+packages/core/src/shader/ShaderFactory.ts
+  h_dd004f51a3e5ec 221
+packages/core/src/shader/ShaderProgram.ts
+  h_dd004f51a3e5ec 6,37-52,61,86,148,153-189,205,207-217,243-250,253-256,261-277,279,282,285,288,291,294,296,404-405,558,560
+packages/core/src/shader/ShaderProperty.ts
+  h_dd004f51a3e5ec 10-13,37,39,45,47-48,58-68
+packages/core/src/shader/ShaderUniform.ts
+  h_dd004f51a3e5ec 289-291
+packages/core/src/shader/enums/ShaderDataGroup.ts
+  h_dd004f51a3e5ec 3,6-7,9,11,13,15,17
+packages/core/src/shader/enums/ShaderPropertyType.ts
+  h_dd004f51a3e5ec 3,6-7,9,11,13,15,17,19,21,23,25,27,29
+packages/core/src/shader/state/BlendState.ts
+  h_dd004f51a3e5ec 69-78,111-116,120-125,130-135,140-145
+packages/core/src/sky/Sky.ts
+  h_dd004f51a3e5ec 121,125
+packages/ui/src/Utils.ts
+  h_dd004f51a3e5ec 30,32-40,45,143-145
+packages/ui/src/component/UICanvas.ts
+  h_dd004f51a3e5ec 389-390,413-417,638
+tests/src/core/audio/AudioSourcePendingPlayback.test.ts
+  h_dd004f51a3e5ec 5-28,102,107,111,114,124-126,131-132,171,181,203-215,290-304,307-767,784,798,807,817,822,838,842,849-1140,1155,1158,1181-1182,1185,1192,1196,1201,1228-1380,1390,1397,1530,1536,1541,1585,1599,1608-1609,1612-1615,1625,1628-1635,1641-1648,1650-1651,1654-1657,1705,1709,1715,1717,1730,1734,1748-1750
+tests/src/core/material/Material.test.ts
+  h_dd004f51a3e5ec 57
+tests/src/core/shader/ShaderPropertyIsolation.test.ts
+  h_dd004f51a3e5ec 1-320
+tests/src/loader/MaterialLoader.test.ts
+  h_dd004f51a3e5ec 1,4,281-282,289-310,315,317-318,320,323
+tests/src/ui/UICanvas.test.ts
+  h_dd004f51a3e5ec 4,119-124,383-443
+tests/src/ui/UICanvasEdge.test.ts
+  h_dd004f51a3e5ec 1-241
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fc38f51eecac54f1baafed4f077ec31be404d886",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

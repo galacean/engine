@@ -1,0 +1,32 @@
+docs/en/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 95-112
+docs/zh/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 95-112
+packages/core/src/physics/HeightFieldCollider.ts
+  h_dd004f51a3e5ec 1-158
+packages/core/src/physics/index.ts
+  h_dd004f51a3e5ec 7-8
+packages/design/src/physics/IPhysics.ts
+  h_dd004f51a3e5ec 12,120-131
+packages/design/src/physics/shape/IHeightFieldColliderShape.ts
+  h_dd004f51a3e5ec 1-8
+packages/design/src/physics/shape/index.ts
+  h_dd004f51a3e5ec 4
+packages/physics-physx/src/PhysXPhysics.ts
+  h_dd004f51a3e5ec 8,31,185-197
+packages/physics-physx/src/shape/PhysXHeightFieldColliderShape.ts
+  h_dd004f51a3e5ec 1-76
+tests/src/core/physics/HeightFieldCollider.test.ts
+  h_dd004f51a3e5ec 1-119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7e626aa500c09d921db57a1813156b9ddd4e6669",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

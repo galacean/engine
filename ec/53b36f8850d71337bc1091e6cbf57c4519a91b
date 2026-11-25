@@ -1,0 +1,133 @@
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_79370855d7608e::t_92d4991071bc1d 107,115,689
+packages/world-planning/src/spatial/SpatialCompositionParameters.ts
+  s_79370855d7608e::t_92d4991071bc1d 8,75,208
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_79370855d7608e::t_92d4991071bc1d 1-4,7,23,32,35,64,107,114,195,199,202-205,208,212,215-218,220,225,233,239,241-243,246-247,249-251,254-259,273-296,394-638,905-923,1036-1037
+packages/world-planning/src/masonry/BuildingInitialDraft.ts
+  s_79370855d7608e::t_92d4991071bc1d 20,42-67
+  s_79370855d7608e::t_f1df7d26a87d45 68-70
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  s_79370855d7608e::t_92d4991071bc1d 11-17,42
+  s_a975bf164e8b11::t_c3cd7d69d22991 1
+  s_79370855d7608e::t_25a217e8852981 8-10
+  s_79370855d7608e::t_6254a44acc5d7d 41
+world/demos/seed-world/src/DesertVegetation.ts
+  s_a975bf164e8b11::t_7671f84d43cfe9 22-23,30-31,33-41,122-178,180,220-230,418
+packages/world-planning/src/masonry/BuildingInitialSource.ts
+  s_79370855d7608e::t_92d4991071bc1d 29-30,89
+world/demos/seed-world/src/planning/spatial/WorldTemplatePicker.ts
+  s_79370855d7608e::t_92d4991071bc1d 4,28,33,98
+packages/world-planning/src/spatial/runtime/StreetFacadeRuntime.ts
+  s_79370855d7608e::t_92d4991071bc1d 86,98-100,136-137,166
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_79370855d7608e::t_92d4991071bc1d 75-81,376-414,419,881-903,997-999,1001-1030,1032-1038,1040-1045,1047-1052,1092-1093,1102-1110,1145,1147-1154,1159,1163,1188,1192-1194,1208,1217,1222,1227-1228,1233,1240,1243
+  s_79370855d7608e::t_b96c78b4cab086 82-88,158
+  s_79370855d7608e::t_0f86a311c1038e 159-161
+  s_79370855d7608e::t_99c539f7613154 1164-1165
+  s_79370855d7608e::t_ca63f104087e37 1190-1191
+  s_79370855d7608e::t_899187d4ede1f6 1195-1197
+  s_79370855d7608e::t_dcfe72b960065e 1205-1207
+  s_79370855d7608e::t_5c2235d5a7c98c 1209-1211,1214-1216
+  s_79370855d7608e::t_e6e18b60c7320f 1218-1221
+  s_79370855d7608e::t_9a43f196b27747 1223-1226
+  s_79370855d7608e::t_eb1e57de205fd9 1229-1232
+  s_79370855d7608e::t_e60006df5ba3ed 1234-1239
+  s_79370855d7608e::t_6c8e99b5d41df8 1241-1242
+  s_79370855d7608e::t_9f7552aeb4213f 1244-1246
+world/tests/seed-world/PlanningStartupTemplate.spec.ts
+  s_a975bf164e8b11::t_d528c3fcbbd7ef 43
+  s_79370855d7608e::t_92d4991071bc1d 5-19
+  s_a975bf164e8b11::t_ec25509bc4de32 44-46
+packages/world-planning/src/integrations/terrain/environment/TerrainPrecipitationVfx.ts
+  s_79370855d7608e::t_92d4991071bc1d 9,29,174,320-321,457,1115-1140
+  s_79370855d7608e::t_50a6630fd146f1 1141-1143
+world/demos/seed-world/masonry/BuildingSceneInitialization.ts
+  s_79370855d7608e::t_92d4991071bc1d 9,11,16-22,24-25,27-28,35-41,50,52,55-97,100,113,119-122,129
+packages/world-planning/src/spatial/PlanningComponents.ts
+  s_79370855d7608e::t_92d4991071bc1d 500-509
+packages/world-planning/src/semantic-study/PlanningAlphamap.ts
+  s_79370855d7608e::t_92d4991071bc1d 7,163-164,215
+packages/world-planning/src/spatial/WorldTemplateStreet.ts
+  s_79370855d7608e::t_92d4991071bc1d 2,16-17,60-63,65-76
+  s_79370855d7608e::t_da669416f36470 77
+packages/world-planning/src/spatial/PlanningDocument.ts
+  s_79370855d7608e::t_92d4991071bc1d 426-511
+  s_79370855d7608e::t_a92fac47ec000c 512-514
+world/tests/seed-world/BuildingInitialSource.spec.ts
+  s_79370855d7608e::t_92d4991071bc1d 18-26,68-122
+world/demos/seed-world/src/DesertPresentation.ts
+  s_a975bf164e8b11::t_8467f3e828f8ac 23,25,28-29,32-33,36,40,74
+  s_a975bf164e8b11::t_1c92515c48b2f8 68,72-73,75-77
+  s_a975bf164e8b11::t_aad5e4f2e82205 11-12,78-81
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_79370855d7608e::t_92d4991071bc1d 126,128-129
+world/demos/seed-world/main.ts
+  s_79370855d7608e::t_92d4991071bc1d 2,38-40,51,55,57-60
+packages/world-planning/src/spatial/hydrology/LakeRegions.ts
+  s_79370855d7608e::t_92d4991071bc1d 68
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_79370855d7608e::t_92d4991071bc1d 6,8,24-25,136-163,283-295,319,335-344,405,407,409
+  s_79370855d7608e::t_b96c78b4cab086 168-171,178,186-187,190-191,229
+  s_a975bf164e8b11::t_2a47710abdbe26 306
+  s_a975bf164e8b11::t_721742d4cc3a11 26-28,302-305,307-311,320,332,346
+  s_a975bf164e8b11::t_083b6492fffae4 321-323,329-331
+  s_79370855d7608e::t_711eafe6ff58c9 402-404
+  s_79370855d7608e::t_5d8282d276885f 406
+  s_79370855d7608e::t_d795b9f888deb6 408
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  s_79370855d7608e::t_92d4991071bc1d 161-162,165,168-169
+world/tests/seed-world/PlantProjectAssets.spec.ts
+  s_79370855d7608e::t_92d4991071bc1d 123,166-226
+  s_79370855d7608e::t_4790516ca0de0d 227-229
+world/demos/seed-world/README.md
+  s_79370855d7608e::t_92d4991071bc1d 19-24
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  s_79370855d7608e::t_92d4991071bc1d 442,450-451
+world/demos/seed-world/SeedWorldDemo.ts
+  s_79370855d7608e::t_92d4991071bc1d 144,157-161,721-726,728,781,783,785-789,795-828
+  s_a975bf164e8b11::t_8c1045ea8b2398 98,1934-1935
+  s_a975bf164e8b11::t_83653247cb8176 99
+  s_79370855d7608e::t_aad31c550bd5d4 829
+world/demos/seed-world/SeedWorldProject.ts
+  s_79370855d7608e::t_92d4991071bc1d 27,145-146,222-263
+packages/world-planning/src/spatial/WorldTemplateAuthoring.ts
+  s_79370855d7608e::t_92d4991071bc1d 331,336,340-341,377-390,401-402,404-405,407,410-425,437,493,495-498
+packages/world-planning/src/spatial/layout/SpatialTerrain.ts
+  s_79370855d7608e::t_92d4991071bc1d 10-15
+  s_79370855d7608e::t_e0ef1017e0aa1d 16-18
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_79370855d7608e::t_92d4991071bc1d 29,495-506,513-544
+  s_79370855d7608e::t_0664d70b632818 507-509
+  s_79370855d7608e::t_9df0fe932de941 510-512
+  s_79370855d7608e::t_893a61dcab1bcd 545
+world/tests/seed-world/PlanningStorage.spec.ts
+  s_79370855d7608e::t_92d4991071bc1d 15-64
+packages/world-planning/src/spatial/SpatialCompositionGeometry.ts
+  s_79370855d7608e::t_92d4991071bc1d 36-37
+  s_79370855d7608e::t_89c970d56a271c 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ec53b36f8850d71337bc1091e6cbf57c4519a91b",
+  "prompts": {},
+  "sessions": {
+    "s_79370855d7608e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c5c8-bc55-7eb3-a4ac-dd78b05bbbbc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    },
+    "s_a975bf164e8b11": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e843-35ba-7e21-997a-bae227cd9412",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}

@@ -1,0 +1,34 @@
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_ddbf152d31b140 282-288,305-308,760-761,769,784
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  h_ddbf152d31b140 1221,1237,1286,1293-1294,1320-1321,1335-1339,1341,1380-1382
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  h_ddbf152d31b140 288,342,368,386,619,630,641-643,673-679,747-752,755,757-758,779,827,832,1012,1078,1322,1338,1472,1492
+packages/building/src/building/runtime/MasonryGlobalProxy.shader
+  h_ddbf152d31b140 235-240,246,252,254,306-324
+packages/building/tests/BuildingGlobalProxy.spec.ts
+  h_ddbf152d31b140 10-14,449-802
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 163-164,1452
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 2830-2834,2899-2900
+world/demos/seed-world/SeedWorldProject.ts
+  h_ddbf152d31b140 175-182
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  h_ddbf152d31b140 67,141,167,218-221,325,382
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 3-16,955-1156
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  h_ddbf152d31b140 452-494
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f30d3d4d6a2a6d75168baf8d39c0129c3cbbcef9",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

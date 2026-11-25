@@ -1,0 +1,30 @@
+e2e/.dev/physx.release.js
+  h_dd004f51a3e5ec 1
+e2e/.dev/physx.release.simd.js
+  h_dd004f51a3e5ec 1
+packages/physics-physx/libs/physx.release.js
+  h_dd004f51a3e5ec 1
+packages/physics-physx/libs/physx.release.mjs
+  h_dd004f51a3e5ec 1-2
+packages/physics-physx/libs/physx.release.simd.js
+  h_dd004f51a3e5ec 1
+packages/physics-physx/libs/physx.release.simd.mjs
+  h_dd004f51a3e5ec 1-2
+rollup.config.js
+  h_dd004f51a3e5ec 128-140
+tests/src/core/physics/PhysXRuntime.test.ts
+  h_dd004f51a3e5ec 1-20
+tests/src/core/physics/fixtures/physxModuleWorker.ts
+  h_dd004f51a3e5ec 1-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6c73d2b6078e5333d7c9c84bb9a15122cab40790",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+packages/world-planning/src/generation/terrain/StylizedTerrainMaterial.ts
+  s_c5192f23876072::t_a631d41238ee4e 17-52
+  s_c5192f23876072::t_7da4755d258b2d 53,62,76-121
+  s_c5192f23876072::t_79dd83290307e5 14-16
+  s_c5192f23876072::t_45752950885f15 54-56,59-61
+  s_c5192f23876072::t_031af365179c8d 63-65,73-75
+  s_c5192f23876072::t_933617d5eb0dc7 122-124
+packages/terrain/src/terrain/TerrainDetailPlacement.ts
+  s_c5192f23876072::t_b13396e7b9469e 1-13,24,27,34,37-38,42-47,51
+  s_c5192f23876072::t_25be65a5b888fe 14-16,21-23
+  s_c5192f23876072::t_c90b6f40e3ea15 25-26
+  s_c5192f23876072::t_ac20d6550c5905 28-33
+  s_c5192f23876072::t_5c67baf21ca3e9 35-36
+  s_c5192f23876072::t_0cf3d41ac47602 39-41
+  s_c5192f23876072::t_17cfc7bb83a05c 48-50
+packages/terrain/src/terrain/tools/StylizedTerrainAssets.ts
+  s_c5192f23876072::t_7b5d93b4427907 51
+  s_c5192f23876072::t_8dc1b28f7739ec 19-26
+  s_c5192f23876072::t_d68885eac10998 16-18
+  s_c5192f23876072::t_6025fc2715338f 27-29,48-50
+  s_c5192f23876072::t_1c312ddbc65b8b 52-54
+packages/terrain/src/index.ts
+  s_c5192f23876072::t_b600da5bfcfc69 2
+packages/terrain/src/terrain/TerrainMapComponent.ts
+  s_c5192f23876072::t_b13396e7b9469e 1-141
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  s_c5192f23876072::t_7b5d93b4427907 475,486
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  s_c5192f23876072::t_a631d41238ee4e 43-44,46,160-166,329-331,374-378,407-410
+packages/world-planning/package.json
+  s_c5192f23876072::t_b600da5bfcfc69 32
+  s_c5192f23876072::t_067088a0a09120 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9de281de89d8a8c564ab0727939d1c7b58a682bc",
+  "prompts": {},
+  "sessions": {
+    "s_c5192f23876072": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1be41-d252-7f01-875c-a0a08f6c1c55",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

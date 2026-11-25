@@ -1,0 +1,21 @@
+packages/core/src/physics/PhysicsScene.ts
+  s_a98bb81dd95a37::t_60be86d8991970 912-914,916-918,927-929,940,960
+tests/src/core/physics/Joint.test.ts
+  s_a98bb81dd95a37::t_72e0a64d54d05d 2,486-609
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3ded305ea930a1901398c8d5b19d8321027b4435",
+  "prompts": {},
+  "sessions": {
+    "s_a98bb81dd95a37": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1ef5a-5ada-7344-9c65-bdb8a830e3a2",
+        "model": "Kimi-K3.1-Pro:glink_domestic"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

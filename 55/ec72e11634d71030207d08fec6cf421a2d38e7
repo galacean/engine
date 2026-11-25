@@ -1,0 +1,59 @@
+packages/core/src/physics/CapsuleCollider.ts
+  s_d2c65ec75a2f3e::t_b6c579ef5e9cb2 9-10,14,39-41,95
+tests/src/core/physics/Collider.test.ts
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 106,410,414,423,497,545,560-563,639,938,942,1005,1033
+packages/core/src/physics/CharacterController.ts
+  s_d2c65ec75a2f3e::t_b6c579ef5e9cb2 24,75-77,303-304
+tests/src/core/physics/CharacterController.test.ts
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 93,316,322,447,464,479,657,795
+  s_d2c65ec75a2f3e::t_3db045edf4c28c 654
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 195,198,200-203,1026
+  s_d2c65ec75a2f3e::t_9eb7e5664b5a9e 420
+  s_d2c65ec75a2f3e::t_bf3beb48761431 413
+docs/zh/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 40-41
+docs/en/physics/collider/rigidbody.mdx
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 40-41
+docs/en/physics/collider/overview.mdx
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 80
+  s_d2c65ec75a2f3e::t_bf3beb48761431 195,214
+  s_d2c65ec75a2f3e::t_3b2e00ef1479de 215
+tests/src/core/physics/Joint.test.ts
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 260,271,284,302,313,326
+packages/physics-physx/src/PhysXDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_b6c579ef5e9cb2 2,66,73,124
+tests/src/core/physics/HingeJoint.test.ts
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 334,339,706-708
+  s_d2c65ec75a2f3e::t_bf3beb48761431 343,501
+docs/zh/physics/collider/overview.mdx
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 80
+  s_d2c65ec75a2f3e::t_bf3beb48761431 195,214
+  s_d2c65ec75a2f3e::t_1348687d90129c 215
+docs/zh/physics/collider/characterController.mdx
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 49,97
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_b6c579ef5e9cb2 60,121,238
+packages/design/src/physics/IDynamicCollider.ts
+  s_d2c65ec75a2f3e::t_b6c579ef5e9cb2 47,53,97
+docs/en/physics/collider/characterController.mdx
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 49,97
+tests/src/core/physics/PhysicsGameplay.test.ts
+  s_d2c65ec75a2f3e::t_4ed3adbc091a1c 162,170,244,254,267
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "55ec72e11634d71030207d08fec6cf421a2d38e7",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

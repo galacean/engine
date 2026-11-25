@@ -1,0 +1,38 @@
+packages/core/src/Camera.ts
+  h_a3c79ce84ffdc2 77,652,849-851
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_a3c79ce84ffdc2 11,13,50,77,96,101-108,162-165,167-169,171-172,175-190,193-194,196-198,202-214,217-225,227,229-231,233-241,351-352,409-430
+packages/core/src/RenderPipeline/RenderContext.ts
+  h_a3c79ce84ffdc2 6,8-10,14-27,58-62,106
+packages/core/src/RenderPipeline/RenderQueue.ts
+  h_a3c79ce84ffdc2 117,185-186
+packages/core/src/lighting/screenSpaceReflection/SSRDepthOccluderCuller.ts
+  h_a3c79ce84ffdc2 7,24,30,36,38,41-44,53,73,75,85
+packages/core/src/lighting/screenSpaceReflection/SSRDiagnostics.ts
+  h_a3c79ce84ffdc2 30-48
+packages/core/src/lighting/screenSpaceReflection/SSRForwardProgramResolver.ts
+  h_a3c79ce84ffdc2 3-4,14,17,28-42,64-107,112,114-124,131,162
+packages/core/src/lighting/screenSpaceReflection/SSRHistoryState.ts
+  h_a3c79ce84ffdc2 6-7,11,15-16,25-36,39,43,46,50,52,54,57,61,64,89,100,102-103,105-106,111-127
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_a3c79ce84ffdc2 4,24,42,51-69,129,228,282-284,286,303,312,314-317,448,459,462,504-506,518-522,524,553,600-601,618,674,719,869-875,1085,1095-1103,1266-1273,1276,1330-1334,1369,1443-1446,1449-1454,1471-1472,1484,1506-1510,1521,1551,1556-1557,1561,1577,1602,1604,1608,1624,1667,1675,1686,1691,1714-1715,1741,1750,1753,1759,1777-1778,1784-1786,1791-1792,1808,2308-2326,2330,2332-2357,2364,2423,2430-2432
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionQuality.ts
+  h_a3c79ce84ffdc2 2,5,7,9,11-12
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts
+  h_a3c79ce84ffdc2 1,9,11,13,15,17,19,21,23,25,32-73,88,100,104,111,119,125,133-135,141,149-151,155,157,165-167,173,181-183,187,189,197-199,203-204,217,222-256,260
+packages/loader/src/SceneLoader.ts
+  h_a3c79ce84ffdc2 13,163
+tests/src/core/lighting/ScreenSpaceReflection.test.ts
+  h_a3c79ce84ffdc2 295,317-323,328,331-345,353-370,580,1354,1427,1433,1983,2489,2522,2524,2527-2532,2543-2550,2591-2595,2597,2604-2611,2618,2624,2630,2638,2679,2685,2690,2697,2734,2736,2891,2950,2953,2955,2957-2958,2961,2983,3000,3039-3040,3442-3444,3555,4205-4211,4213,4221-4223,4247,4298,4304,4333,4451,4465,4470,4478,4489,5111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e5a2c56ceacb32871c3b659544844e190901d5d7",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

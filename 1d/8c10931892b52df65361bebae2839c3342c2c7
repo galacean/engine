@@ -1,0 +1,18 @@
+packages/shader/src/Shaders/Pipeline/DepthOnly.shader
+  h_171a11afaf879a 18-47,73-87,89-90,93-105
+packages/shader/src/Shaders/Pipeline/ShadowCaster.shader
+  h_171a11afaf879a 18-27,31-40,43-47,96-104,107-108,128,130,133-134
+tests/src/core/material/BuiltinShaderVertexColor.test.ts
+  h_171a11afaf879a 5-6,10-15,17,19,64,69-70,72-73,75-93,140-466
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1d8c10931892b52df65361bebae2839c3342c2c7",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

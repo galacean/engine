@@ -1,0 +1,24 @@
+e2e/fixtures/originImage/PostProcess_postProcess-HDR-bloom-ACES.jpg
+  h_79b10db07e6052 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-HDR-bloom-neutral.jpg
+  h_79b10db07e6052 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-LDR-bloom-neutral.jpg
+  h_79b10db07e6052 2-3
+e2e/fixtures/originImage/PostProcess_postProcess-customPass.jpg
+  h_79b10db07e6052 2-3
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_79b10db07e6052 190
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl
+  h_79b10db07e6052 13,18-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2c821339b93a0f1f3f4c8b6470fe86c9f80efa01",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

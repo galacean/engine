@@ -1,0 +1,27 @@
+docs/en/physics/query/sweep.mdx
+  s_d2c65ec75a2f3e::t_0907ff54b0fa39 74
+  s_d2c65ec75a2f3e::t_0694214db15ecc 57-66,159,200-209,218,270,272
+docs/en/physics/collider/characterController.mdx
+  s_d2c65ec75a2f3e::t_9c6537d5dc6af4 149,163
+docs/zh/physics/query/sweep.mdx
+  s_d2c65ec75a2f3e::t_0907ff54b0fa39 74
+  s_d2c65ec75a2f3e::t_0694214db15ecc 57-66,159,198-207,216,268,270
+docs/zh/physics/collider/characterController.mdx
+  s_d2c65ec75a2f3e::t_9c6537d5dc6af4 149,163
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8f1fcb9c9b3b468841315261a4fa6e81a509496a",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

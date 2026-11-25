@@ -1,0 +1,14 @@
+packages/ui/src/Utils.ts
+  h_ddbf152d31b140 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b0c3b95223f7940476a70aa6953348075f142267",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

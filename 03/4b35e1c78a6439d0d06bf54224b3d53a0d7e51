@@ -1,0 +1,14 @@
+packages/core/src/texture/Texture.ts
+  h_bd4dd7d663e619 13,42,49,56,63,70,105,112-113,170-179,204,248
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "034b35e1c78a6439d0d06bf54224b3d53a0d7e51",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

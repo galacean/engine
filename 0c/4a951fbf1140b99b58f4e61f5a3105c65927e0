@@ -1,0 +1,75 @@
+packages/shader-compiler/src/ShaderPrecompiler.ts
+  s_94724eedbeb654::t_2fe6e120ac1d61 117
+packages/core/src/shader/Shader.ts
+  s_94724eedbeb654::t_2fe6e120ac1d61 142-143,190-191
+packages/design/src/shader-compiler/IShaderProgramSource.ts
+  s_94724eedbeb654::t_2fe6e120ac1d61 9-10
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_94724eedbeb654::t_74a854b6349cdc 515,518
+  s_94724eedbeb654::t_3cb53963821155 36,424-426,433,505-513,517,519,540-542,574-577,579-582
+  s_94724eedbeb654::t_907cf9c148ced0 41-42,69-70,92-99,516,546-552,557-561,563-569,571,573,1146-1151
+  s_94724eedbeb654::t_810c5eb5320478 222-224
+  s_94724eedbeb654::t_45bc52960ed48c 260,297,430-431
+  s_94724eedbeb654::t_1379690118b23a 432
+  s_94724eedbeb654::t_05117cf559402b 553-556,570,572
+  s_94724eedbeb654::t_e4069919a77ca2 562
+  s_94724eedbeb654::t_6ff07f334c6b8f 514
+  s_94724eedbeb654::t_f03f3769bb3551 578
+  s_94724eedbeb654::t_c06e6215244748 434
+packages/core/src/shader/ShaderFactory.ts
+  s_94724eedbeb654::t_2c18895e8b023b 2,209,211-212,385,395,397-402
+tests/src/shader-compiler/expected/define-struct-access.frag.glsl
+  s_94724eedbeb654::t_89ff84b91327ba 13-16,24
+packages/core/src/shader/enums/ShaderPreprocessorDirective.ts
+  s_94724eedbeb654::t_810c5eb5320478 21
+packages/core/src/shader/ShaderMacroProcessor.ts
+  s_94724eedbeb654::t_810c5eb5320478 66,118,219-231,239
+tests/src/shader-compiler/expected/define-struct-access-global.frag.glsl
+  s_94724eedbeb654::t_89ff84b91327ba 20-22
+tests/src/shader-compiler/PrecompileABTest.test.ts
+  s_94724eedbeb654::t_cf04a46d92c011 624,632-633,656,664-665
+packages/core/src/shader/ShaderPass.ts
+  s_94724eedbeb654::t_2fe6e120ac1d61 44-45,63,70-71,80,133,150,170
+  s_94724eedbeb654::t_11d789a9bafe86 136-140
+packages/design/src/shader-compiler/ICondition.ts
+  s_94724eedbeb654::t_810c5eb5320478 156
+tests/src/shader-compiler/TransformFeedbackNames.test.ts
+  s_94724eedbeb654::t_2fe6e120ac1d61 73-96,100,105,107-109
+tests/src/core/Shader.test.ts
+  s_94724eedbeb654::t_2c18895e8b023b 451,454
+tests/src/shader-compiler/Precompile.test.ts
+  s_94724eedbeb654::t_cf04a46d92c011 1000,1008-1009
+packages/design/src/shader-compiler/IPrecompiledShader.ts
+  s_94724eedbeb654::t_2fe6e120ac1d61 23-24
+packages/shader-compiler/src/codeGen/GLES100.ts
+  s_94724eedbeb654::t_1379690118b23a 1,24-36
+  s_94724eedbeb654::t_3cb53963821155 6
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  s_94724eedbeb654::t_ee9c0fca25c0fd 851-852
+tests/src/shader-compiler/InterfaceMRTConversion.test.ts
+  s_94724eedbeb654::t_4e6b4ae67f0df3 4,70-114,116-117
+  s_94724eedbeb654::t_3cb53963821155 20-22,58-63,65-69,115,118
+  s_94724eedbeb654::t_74a854b6349cdc 45-57
+  s_94724eedbeb654::t_14149ba443162f 23-44
+  s_94724eedbeb654::t_ee9c0fca25c0fd 1-3,5-19,64,119
+packages/shader-compiler/src/ShaderInstructionEncoder.ts
+  s_94724eedbeb654::t_72016e2a893b53 76,97,105,290,294-300,304,306
+tests/src/shader-compiler/InterfaceValueSemantics.test.ts
+  s_94724eedbeb654::t_c555f5729ea6e1 255-272
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0c4a951fbf1140b99b58f4e61f5a3105c65927e0",
+  "prompts": {},
+  "sessions": {
+    "s_94724eedbeb654": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a079fa-a13e-79b1-bf89-79e33fe3774e",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

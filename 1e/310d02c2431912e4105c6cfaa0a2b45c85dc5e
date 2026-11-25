@@ -1,0 +1,24 @@
+docs/en/physics/manager.mdx
+  h_dd004f51a3e5ec 49
+docs/zh/physics/manager.mdx
+  h_dd004f51a3e5ec 48
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 770,777,784,791,805,809,827,837,932-937,966,1241,1262,1270
+packages/galacean/skills/engine-knowledge/references/physics-setup.md
+  h_dd004f51a3e5ec 13
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 734-744
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 1301-1302,1311,1366-1367
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1e310d02c2431912e4105c6cfaa0a2b45c85dc5e",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

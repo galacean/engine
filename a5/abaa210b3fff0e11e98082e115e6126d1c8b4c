@@ -1,0 +1,16 @@
+packages/core/src/Transform.ts
+  h_bd4dd7d663e619 234,239-248
+tests/src/core/Transform.test.ts
+  h_bd4dd7d663e619 86,95,104-133,153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a5abaa210b3fff0e11e98082e115e6126d1c8b4c",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

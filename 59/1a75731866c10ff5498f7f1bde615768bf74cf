@@ -1,0 +1,56 @@
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_ae6fab0fbe1884::t_d508fb7c7704a6 5,31,104-110,1899-1906,1908-1959
+  s_ae6fab0fbe1884::t_6e3e10f4f17349 111-115,135,509-512,523-524,537,854-855,1395-1399,1706,1907
+  s_ae6fab0fbe1884::t_88b3f5af445071 1960-1962
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  s_ae6fab0fbe1884::t_e94951b8436dc3 1-2,36-39,51-75,77-88,92,97,100,102
+  s_ae6fab0fbe1884::t_53ff96bc68845b 76
+  s_ae6fab0fbe1884::t_1324d545b93ead 89-91
+  s_ae6fab0fbe1884::t_9e116300df79c0 93-96
+  s_ae6fab0fbe1884::t_3ce500dbe31085 98-99
+  s_ae6fab0fbe1884::t_83f714ec8bbc61 101
+  s_ae6fab0fbe1884::t_0dec346d7d60ef 103-104
+packages/world-planning/src/integrations/terrain/rock-formation/RockMaterial.ts
+  s_ae6fab0fbe1884::t_e94951b8436dc3 1-2,104-110
+  s_ae6fab0fbe1884::t_e47ee7ae600679 111
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  s_ae6fab0fbe1884::t_e94951b8436dc3 1,7,20,23,38,110-113,141-145,169-208
+  s_ae6fab0fbe1884::t_1c4c60e360ec5c 209-211
+packages/world-planning/src/integrations/terrain/rock-formation/RockVariantCatalog.json
+  s_ae6fab0fbe1884::t_a9e95c2eff6e1a 3-112
+  s_ae6fab0fbe1884::t_6b6bc6efc717b0 1-2,113-115
+world/demos/seed-world/SeedWorldDemo.ts
+  s_ae6fab0fbe1884::t_e94951b8436dc3 332,1177,1285,1514
+packages/world-planning/src/spatial/world-templates/sakura-pearl.json
+  s_ae6fab0fbe1884::t_d508fb7c7704a6 334
+packages/terrain/src/rock-formation/GrassSurface.ts
+  s_ae6fab0fbe1884::t_d508fb7c7704a6 228
+world/demos/seed-world/main.ts
+  s_ae6fab0fbe1884::t_d508fb7c7704a6 90-93
+world/demos/seed-world/SeedWorldProject.ts
+  s_ae6fab0fbe1884::t_d508fb7c7704a6 16,32-34,37,64,72
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  s_ae6fab0fbe1884::t_6b6bc6efc717b0 1-4,9-39,41-136,140-185,187-196,198-222,225-263
+  s_ae6fab0fbe1884::t_e94951b8436dc3 264-322
+  s_ae6fab0fbe1884::t_a9e95c2eff6e1a 5-8,40,137-139,224
+  s_ae6fab0fbe1884::t_bbc02964218d81 186,197,223
+packages/terrain/src/rock-formation/types.ts
+  s_ae6fab0fbe1884::t_e94951b8436dc3 41-55
+  s_ae6fab0fbe1884::t_4f32f17b00f26e 65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "591a75731866c10ff5498f7f1bde615768bf74cf",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

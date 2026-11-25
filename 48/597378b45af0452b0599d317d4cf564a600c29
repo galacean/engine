@@ -1,0 +1,35 @@
+tests/src/math/Quaternion.test.ts
+  h_171a11afaf879a 288-290,292-293,295-312
+  h_171a11afaf879a 291,294
+tests/src/core/Transform.test.ts
+  h_171a11afaf879a 515-524,527-583,585-586,596
+  h_171a11afaf879a 525-526,584,587-595
+packages/core/src/Transform.ts
+  h_171a11afaf879a 173,175-179,393-402
+  h_171a11afaf879a 69,227,368-371,412-415
+packages/math/src/Quaternion.ts
+  h_171a11afaf879a 254-271,274,287-290
+packages/core/src/animation/internal/animationCurveOwner/AnimationCurveOwner.ts
+  h_171a11afaf879a 165-170,186,193,195
+packages/core/src/animation/internal/animationCurveOwner/assembler/IAnimationCurveOwnerAssembler.ts
+  h_171a11afaf879a 11-12
+packages/core/src/animation/internal/animationCurveOwner/assembler/PositionAnimationCurveOwnerAssembler.ts
+  h_171a11afaf879a 23-47
+packages/core/src/animation/internal/animationCurveOwner/assembler/RotationAnimationCurveOwnerAssembler.ts
+  h_171a11afaf879a 11-12,26-45
+packages/core/src/animation/internal/animationCurveOwner/assembler/ScaleAnimationCurveOwnerAssembler.ts
+  h_171a11afaf879a 24-40
+tests/src/core/Animator.test.ts
+  h_171a11afaf879a 5-6,25,1945-2109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "48597378b45af0452b0599d317d4cf564a600c29",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

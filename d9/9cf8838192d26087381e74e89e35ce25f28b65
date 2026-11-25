@@ -1,0 +1,19 @@
+e2e/fixtures/originImage/Physics_physx-mesh-collider.jpg
+  s_13ab4eed421f52::t_0e36230eab76d4 2-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d99cf8838192d26087381e74e89e35ce25f28b65",
+  "prompts": {},
+  "sessions": {
+    "s_13ab4eed421f52": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1fdd3-2346-7f52-9a2c-e41c605ff3ed",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

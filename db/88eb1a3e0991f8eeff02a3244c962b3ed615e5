@@ -1,0 +1,14 @@
+packages/core/src/shader/ShaderProgram.ts
+  h_bd4dd7d663e619 211-215,217,243-249,254
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "db88eb1a3e0991f8eeff02a3244c962b3ed615e5",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

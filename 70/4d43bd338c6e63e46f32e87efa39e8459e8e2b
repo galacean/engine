@@ -1,0 +1,16 @@
+packages/core/src/Camera.ts
+  h_ddbf152d31b140 324
+tests/src/core/Camera.test.ts
+  h_ddbf152d31b140 378-395,397
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "704d43bd338c6e63e46f32e87efa39e8459e8e2b",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

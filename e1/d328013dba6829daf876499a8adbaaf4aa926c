@@ -1,0 +1,14 @@
+packages/core/src/Engine.ts
+  h_bd4dd7d663e619 142-143,314-315
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e1d328013dba6829daf876499a8adbaaf4aa926c",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

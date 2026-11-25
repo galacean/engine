@@ -1,0 +1,54 @@
+packages/core/src/graphic/Buffer.ts
+  s_3cd6502d102d7f::t_756105ff845bcf 188-195,197-202
+packages/core/src/Engine.ts
+  s_3cd6502d102d7f::t_adca334f834e2d 83-84
+tests/src/rhi-webgl/GlobalUniformBlocks.test.ts
+  s_3cd6502d102d7f::t_5e43d18e79970f 360-393
+packages/core/src/shader/GlobalUniformBlock.ts
+  s_3cd6502d102d7f::t_adca334f834e2d 7,40,99,109-116,120-123,130
+  s_3cd6502d102d7f::t_93ec19d5d67d2d 124,135,139-142,147-150,163
+packages/core/src/shader/RendererUniformCache.ts
+  s_3cd6502d102d7f::t_adca334f834e2d 1-31,35-126
+  s_3cd6502d102d7f::t_aa0d44d83d6902 32-34
+tests/src/core/RenderPipeline/GlobalUniformBlock.test.ts
+  s_3cd6502d102d7f::t_be8a8b061de50d 1,30-32,45-46
+packages/core/src/shader/ShaderData.ts
+  s_3cd6502d102d7f::t_adca334f834e2d 18,62-64,85
+packages/rhi-webgl/src/GLBuffer.ts
+  s_3cd6502d102d7f::t_756105ff845bcf 58-60,62
+  s_3cd6502d102d7f::t_5e43d18e79970f 15,44,61,80
+  s_3cd6502d102d7f::t_2876d7bfdacb69 53-57,63-64
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_3cd6502d102d7f::t_70b2c13990c459 331-334
+  s_3cd6502d102d7f::t_756105ff845bcf 314-323,326,355-357
+  s_3cd6502d102d7f::t_8ac5bb7a5efc08 330,335-344,348
+packages/rhi-null/src/NullGraphicDevice.ts
+  s_3cd6502d102d7f::t_5e43d18e79970f 105,108
+  s_3cd6502d102d7f::t_0b7cc96e39adf4 106-107
+  s_3cd6502d102d7f::t_756105ff845bcf 1,97-104,109
+packages/rhi-null/src/NullBuffer.ts
+  s_3cd6502d102d7f::t_5e43d18e79970f 7-10
+tests/src/core/RenderPipeline/RendererUniformCache.test.ts
+  s_3cd6502d102d7f::t_57faa8d83b0011 48
+  s_3cd6502d102d7f::t_4b9ed464ecdd1c 1-47,49-142
+tests/src/core/RenderPipeline/AutomaticUniformBlocks.test.ts
+  s_3cd6502d102d7f::t_a9942dea5b18a5 212,216,221,227,243
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_3cd6502d102d7f::t_756105ff845bcf 90-98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "91125dd6d36b1bb183aff3e8c1e496fd46878153",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

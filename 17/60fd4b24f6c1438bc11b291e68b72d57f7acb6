@@ -1,0 +1,14 @@
+packages/core/src/texture/enums/TextureFormat.ts
+  h_bd4dd7d663e619 3,28,76,80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1760fd4b24f6c1438bc11b291e68b72d57f7acb6",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+world/demos/seed-world/src/MojaveAssets.json
+  s_0ad7efa77c17be::t_23f38189fd6e13 1-422
+world/demos/seed-world/src/SeedWorldSandstorm.ts
+  s_0ad7efa77c17be::t_5572becc06ede3 23
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  s_0ad7efa77c17be::t_01a3f14a330190 5,39,42
+packages/world-planning/src/integrations/terrain/rock-formation/RockMaterial.ts
+  s_0ad7efa77c17be::t_55b21566ebac82 26-27
+  s_0ad7efa77c17be::t_23f38189fd6e13 34-35
+world/demos/seed-world/src/SeedWorldMojavePreview.ts
+  s_0ad7efa77c17be::t_23f38189fd6e13 31-32,150,170
+world/demos/seed-world/src/DesertPresentation.ts
+  s_0ad7efa77c17be::t_23f38189fd6e13 1,81-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "eca4f7c558fcf8661f52b5d5cbee3dc7e3f83661",
+  "prompts": {},
+  "sessions": {
+    "s_0ad7efa77c17be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c9b0-c1c7-7c20-94e2-5d4a2cc750f7",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

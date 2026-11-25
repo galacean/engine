@@ -1,0 +1,27 @@
+tests/src/core/physics/UnityPhysicsPrototype.test.ts
+  s_89f62b485e437b::t_f4168ff9aa072f 95-99,123,169,184,186,192,204,206
+  s_89f62b485e437b::t_07f149432ea94c 262,264-265,267-273
+  s_89f62b485e437b::t_1cd2b08ea94582 18-30,190-191,193-197,199-203,205,207
+  s_89f62b485e437b::t_6c1b883bddcd75 127-128
+  s_89f62b485e437b::t_4e4b992735f8db 1-17,31-88,100-113,115-122,124-126,129-138,140-160,170-183,185,187-189,208-261,263,274-288,293-294
+  s_89f62b485e437b::t_45dd96eac5e0e0 198
+  s_89f62b485e437b::t_9aa73a08767896 89-94,114,139,289-292
+  s_89f62b485e437b::t_d19bc574e37c03 266
+  s_89f62b485e437b::t_747f484ec10401 161-168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cfb31726882cc10b46f167844c1eef7c35071d6b",
+  "prompts": {},
+  "sessions": {
+    "s_89f62b485e437b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1e26a-2627-7685-ab49-571422f416d8",
+        "model": "Kimi-K3.1-Pro:glink_domestic"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

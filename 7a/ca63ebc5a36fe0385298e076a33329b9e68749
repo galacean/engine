@@ -1,0 +1,14 @@
+packages/modify/src/native/shader/src/Shaders/PBR.shader
+  h_a3c79ce84ffdc2 222-311
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7aca63ebc5a36fe0385298e076a33329b9e68749",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

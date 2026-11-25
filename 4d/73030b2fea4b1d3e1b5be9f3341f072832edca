@@ -1,0 +1,16 @@
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 224,418-421
+packages/core/src/physics/MeshCollider.ts
+  h_dd004f51a3e5ec 133-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4d73030b2fea4b1d3e1b5be9f3341f072832edca",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+e2e/case/physx-character-controller.ts
+  s_cf656533c40977::t_0aa9aff10cd6ad 32,55,168
+  s_cf656533c40977::t_72708579fff8cc 10-31,33-37,63,75,146-167,169-171
+  s_cf656533c40977::t_1bf6b59dfb9149 65
+  s_cf656533c40977::t_daf516a64c8842 1-9,38-54,56-62,64,66-74,76-145,172-173
+e2e/case/physx-compound-rigidbody.ts
+  s_cf656533c40977::t_72708579fff8cc 25-38,102-182
+  s_cf656533c40977::t_0aa9aff10cd6ad 10,39-70
+  s_cf656533c40977::t_3aa91b779837a2 1-9,11-24,71-101,183-184
+e2e/tests/physics.spec.ts
+  s_cf656533c40977::t_0aa9aff10cd6ad 35-36
+  s_cf656533c40977::t_72708579fff8cc 1-5,11-34,37-39
+  s_cf656533c40977::t_1bf6b59dfb9149 6-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ff05752ae89743b774e1c7930d1cd24ee3285ad8",
+  "prompts": {},
+  "sessions": {
+    "s_cf656533c40977": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f352-19a3-73a3-9214-ebd4efed7fb0",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

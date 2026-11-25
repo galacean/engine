@@ -1,0 +1,29 @@
+tests/src/core/physics/Collider.test.ts
+  s_79ec0d4d62aff4::t_0324df52066df8 67-80,82-89,91-105,107-112
+  s_79ec0d4d62aff4::t_9f7edc351faa7f 81,90
+  s_79ec0d4d62aff4::t_f74e92658003fc 114-141
+  s_79ec0d4d62aff4::t_1e2f5f1cce7d45 106,113
+packages/core/src/physics/Rigidbody.ts
+  s_79ec0d4d62aff4::t_0324df52066df8 591-594
+  s_79ec0d4d62aff4::t_dd5fe2fce63b76 590
+  s_79ec0d4d62aff4::t_1e2f5f1cce7d45 598-600
+packages/core/src/physics/PhysicsScene.ts
+  s_79ec0d4d62aff4::t_e8d3686a7c488f 752-766,768
+  s_79ec0d4d62aff4::t_1e2f5f1cce7d45 767
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "44da8c8166bd21d1d8186e0fa3a2d297b12d85bf",
+  "prompts": {},
+  "sessions": {
+    "s_79ec0d4d62aff4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ea82-ee0f-7401-9320-6b7c8fe5ba93",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+packages/math/src/Matrix.ts
+  h_ddbf152d31b140 438-440,442,448,450-451,453-454,456
+packages/math/src/Matrix3x3.ts
+  h_ddbf152d31b140 300-302,304,310-312,318-320
+tests/src/math/Matrix.test.ts
+  h_ddbf152d31b140 461-465
+tests/src/math/Matrix3x3.test.ts
+  h_ddbf152d31b140 106-108,110-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0c473f152805ce89100b430c7cc36e69391b441e",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

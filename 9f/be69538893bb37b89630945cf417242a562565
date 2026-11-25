@@ -1,0 +1,31 @@
+tests/src/core/lighting/LightAttenuation.test.ts
+  s_ac6cdffb5a346f::t_2b25105c110b1a 132-135,217-219
+  s_ac6cdffb5a346f::t_ebb8c760581400 136,208-216,220-222
+  s_ac6cdffb5a346f::t_9f146cae42e441 223-224
+packages/core/src/lighting/Light.ts
+  s_ac6cdffb5a346f::t_ba7c8ddf2d5b14 7-8
+  s_ac6cdffb5a346f::t_2b25105c110b1a 83-95
+packages/core/src/lighting/PointLight.ts
+  s_ac6cdffb5a346f::t_2b25105c110b1a 4,29,33,37,69
+packages/core/src/lighting/SpotLight.ts
+  s_ac6cdffb5a346f::t_2b25105c110b1a 4,43,47,51,104
+packages/shader/src/ShaderLibrary/Lighting/Light.glsl
+  s_ac6cdffb5a346f::t_edd9e4b1c99893 42
+  s_ac6cdffb5a346f::t_2b25105c110b1a 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9fbe69538893bb37b89630945cf417242a562565",
+  "prompts": {},
+  "sessions": {
+    "s_ac6cdffb5a346f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20899-6b12-76e3-b491-3ce5ef960b7b",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

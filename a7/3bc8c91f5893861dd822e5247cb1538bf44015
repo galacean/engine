@@ -1,0 +1,21 @@
+packages/core/src/physics/PhysicsScene.ts
+  s_6269937983ee4f::t_780b0be11a6302 861
+tests/src/core/physics/Rigidbody.test.ts
+  s_6269937983ee4f::t_019a28b208772d 617
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a73bc8c91f5893861dd822e5247cb1538bf44015",
+  "prompts": {},
+  "sessions": {
+    "s_6269937983ee4f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a20c8b-e77c-730d-a015-7436aa546071",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

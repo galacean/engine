@@ -1,0 +1,289 @@
+packages/animals/src/gameplay/animal/AnimalSystem.ts
+  s_400c2d1e050e6a::t_a4b16ab704def0 10-11,55-56,84-93,144-159
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  s_400c2d1e050e6a::t_ec898a38a8d1be 7,279-280,379,508,783-786,856-866,887-888,890,911-941,943-944,1255-1259,1262,1265-1280,1284-1287,1289-1298,1300-1343,1345-1351,1353-1360,1362-1372,1374-1376,1694-1697,1703,1914,2010,2037-2040,2090,2260-2261,2372,2405-2406
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  s_400c2d1e050e6a::t_50852b51f7e5a2 32-50,62-72,91-100,108-114,130-134,136-139,152,154-155,192-196,202,310,323,330-404,417,419-420,422-423,425-426,432,434,514-518,726-795,807,867-868,874,942,945-1223
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  s_400c2d1e050e6a::t_753e892584260d 22-29,33,68,154,156-160,163-167,175,183,197-325,327-403,405,408,437-442,502,505-524,529,538-671,673-786,788-823,825-865,870,873-881,894,897-898,901,904-910,913,916-924,927-929,931-934
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  s_400c2d1e050e6a::t_ae814d8c2ec51e 1-470
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  s_400c2d1e050e6a::t_b7ca9481539051 129-160
+packages/building/src/building/runtime/DecorationNativeView.ts
+  s_400c2d1e050e6a::t_f97fb339cd34c4 44,63,185,216-219
+packages/building/src/building/runtime/EngineResidentScene.ts
+  s_400c2d1e050e6a::t_20b5d4e908115b 118,127-129,802-803,805,814-815,817,960-995,1036
+packages/building/src/building/runtime/MasonryDistanceSurface.shader
+  s_400c2d1e050e6a::t_4707f267f3fdf4 74,164-166,182-184
+packages/building/src/building/runtime/MasonryFarProxy.shader
+  s_400c2d1e050e6a::t_113dc29d27f719 1-151
+packages/building/src/building/runtime/MasonryLodPolicy.ts
+  s_400c2d1e050e6a::t_a1bd127444766b 23-69,88,108-109,113-118,121,129
+packages/building/src/building/runtime/MasonryResidency.ts
+  s_400c2d1e050e6a::t_0c20af06b62f8c 3-9,19-20,68-90,165-172,356,364
+packages/building/src/building/runtime/MountedDecorationRenderer.ts
+  s_400c2d1e050e6a::t_d1c40d658543e9 1,14-17,20-22,28,32,48-61,71-73
+packages/building/src/building/runtime/RigidDecorationRenderer.ts
+  s_400c2d1e050e6a::t_6b371a0c8c223f 2,27-34,45-46,49,52,56-61,72,77,90-109,117,119-122,146,171-180,182
+packages/building/tests/BuildingFarProxy.spec.ts
+  s_400c2d1e050e6a::t_6dc922b659f80e 1-63
+packages/core/src/Camera.ts
+  s_400c2d1e050e6a::t_a8cb1b806201ee 240,321-325
+packages/core/src/ComponentDispatch.ts
+  s_400c2d1e050e6a::t_926be7b15e8799 1-72
+packages/core/src/ComponentsManager.ts
+  s_400c2d1e050e6a::t_ef5269268c8fbd 1,201,205,209,213,217,221,225
+packages/core/src/Engine.ts
+  s_400c2d1e050e6a::t_96f1983de6b57e 2,587
+packages/core/src/Entity.ts
+  s_400c2d1e050e6a::t_6ac1e46369bb3f 61-64,448-449,604,637-642,674-675,751-770
+packages/core/src/Scene.ts
+  s_400c2d1e050e6a::t_0d8711bfd8acbb 383-384
+packages/core/src/animation/Animator.ts
+  s_400c2d1e050e6a::t_43c0e4179492f0 66,179,191-202,299
+packages/core/src/asset/Loader.ts
+  s_400c2d1e050e6a::t_676e19b630b078 15,40-45
+packages/core/src/base/EngineObject.ts
+  s_400c2d1e050e6a::t_82c781e26c8162 19-37,76,82
+packages/core/src/graphic/TransformFeedbackPrimitive.ts
+  s_400c2d1e050e6a::t_fdac25b94fa19b 16,22,30,37,39-44,51,58,66,81,97-99,103,117-118,120,124,126,129,142,165
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  s_400c2d1e050e6a::t_fc55cd15f46872 33,40-41,43,91-92,94-95
+packages/core/src/input/pointer/PointerManager.ts
+  s_400c2d1e050e6a::t_800c01b58fc25a 92-106,128,210-215
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_400c2d1e050e6a::t_f1f11faac8cb56 29
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  s_400c2d1e050e6a::t_d356e4aa962847 39-40,42
+packages/core/src/utils/DisorderedArray.ts
+  s_400c2d1e050e6a::t_43fb8b3bc25bb9 118-135
+packages/farming/src/farming/assets/prop-textures/manifest.json
+  s_400c2d1e050e6a::t_40056c79021c49 18-20,28-30,38-40,48-50,58-60,68-70,78-80,88-90,98-100,108-110,118-120,128-130,138-140,148-150,158-160,168-170
+packages/farming/src/farming/presentation/watering/WateringPresenter.ts
+  s_400c2d1e050e6a::t_f3de48323b2a57 45-48,51,70
+packages/loader/src/gltf/extensions/GLTFExtensionSchema.ts
+  s_400c2d1e050e6a::t_25a6587c9da28a 217
+packages/modify/src/native/core/src/Camera.ts
+  s_400c2d1e050e6a::t_5a38180cec24a3 289,370-374
+packages/modify/src/native/core/src/ComponentsManager.ts
+  s_400c2d1e050e6a::t_c6cc39e5df7856 1,198,202,206,210,214,218,222
+packages/modify/src/native/core/src/Engine.ts
+  s_400c2d1e050e6a::t_e83b842d85862b 1,34,590,657-660
+packages/modify/src/native/core/src/Entity.ts
+  s_400c2d1e050e6a::t_9c7f257ab0baf6 61-64,448-449,610,643-648,680-681,757-776
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_400c2d1e050e6a::t_aaf2563ddd5444 92-99,117,158,178,190,412,443-444,524-527
+packages/modify/src/native/core/src/Scene.ts
+  s_400c2d1e050e6a::t_d65da9e5e5ed8f 390-391
+packages/modify/src/native/core/src/graphic/TransformFeedbackSimulator.ts
+  s_400c2d1e050e6a::t_4377ad66fc4dc1 32,39-40,42,90-91,93-94
+packages/modify/src/native/core/src/shader/ShaderPass.ts
+  s_400c2d1e050e6a::t_ef2a9edc55ba17 146-150
+packages/modify/src/native/rhi-webgl/src/GLBuffer.ts
+  s_400c2d1e050e6a::t_5edd7095a34195 9,14,39,45,60-63
+packages/modify/src/native/rhi-webgl/src/GLPrimitive.ts
+  s_400c2d1e050e6a::t_0d8d730a36dfb2 27,33,45,57,59,98-99,173,177,186,195,197-199
+packages/modify/src/native/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_400c2d1e050e6a::t_1f1057054da7ac 8,16,23-25,56-58,65,67-70,74,77-79,93,98,115,145
+packages/modify/src/rendering/RestorableResources.ts
+  s_400c2d1e050e6a::t_0cddfa42789f31 23-25,41
+packages/modify/tests/RegisteredPipelinePass.test.ts
+  s_400c2d1e050e6a::t_2392d1cd9379ee 1-46
+packages/project/src/runtime-editor/project/runtime-project-edit.ts
+  s_400c2d1e050e6a::t_6496e4625a9dc2 22-38,41,75-81,83,186-187,189,195,213,225,240,293,309,320,340-342,344,348,359,386,395,397,410-450,469,483-490,518-519,522-531
+packages/project/tests/project-write-boundary.test.ts
+  s_400c2d1e050e6a::t_8e20278dc6fb11 21-50,94-129
+packages/rhi-webgl/src/GLBuffer.ts
+  s_400c2d1e050e6a::t_94fbb8814f114f 9,14,38,44,57-60
+packages/rhi-webgl/src/GLPrimitive.ts
+  s_400c2d1e050e6a::t_30cf408a643658 27,33,45,57,59,98-99,161,165,174,183,185-187
+packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_400c2d1e050e6a::t_32064c6780bec6 8,16,23-25,56-58,65,67-70,74,77-79,93,98,115,144
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_400c2d1e050e6a::t_b8e6063002cd66 110-111,289-297,634
+packages/runtime-editor/src/project/runtime-project-history.ts
+  s_400c2d1e050e6a::t_ea6d4e59fa0ae3 6-10,23,39,60,76-92,103-106,122-142,148-150,175-176,193-198,200-209,221-244
+packages/runtime-editor/src/project/runtime-project-session.ts
+  s_400c2d1e050e6a::t_f4a0eec7a5c8ea 29-30,718,813,856-869
+packages/runtime-editor/src/runtime-editor-agent/README.md
+  s_400c2d1e050e6a::t_941db2d0fed2ea 15-24,224-235
+packages/runtime-editor/src/runtime-editor/runtime-editor.ts
+  s_400c2d1e050e6a::t_20fb0b12946ae7 1-10,27,36,74-75,81-84,109-112,124-128,138,159,166-167,199-201,332,337-345,372-377,381-382,398-399,412,420-421,434
+packages/runtime-editor/src/runtime-editor/runtime-preparation-context.ts
+  s_400c2d1e050e6a::t_a8a1dac32bb540 1-293
+packages/runtime-editor/src/runtime-editor/scene/runtime-scene-changes.ts
+  s_400c2d1e050e6a::t_8df1e5cb3532f6 1-136
+packages/runtime-editor/src/runtime-editor/scene/runtime-scene-edit.ts
+  s_400c2d1e050e6a::t_dcd2bdf8b806ad 11-14,45,57,65-66,70,85,253-256,263,280,421-432,488-491,497,530,565,612,616,652,655-663,666
+packages/runtime-editor/src/runtime-editor/scene/runtime-scene-projection.ts
+  s_400c2d1e050e6a::t_817f586b584437 1,3,17,50-63,68,71-75,83-92,100-101,104,113,123,127-163,214-218,322-365,367,369-382,385-387,391-403,410-411,417-422,500-501,504-505,516-521,524,531-534,547,559-561,565,568,570,572,576-578,580,583,585-609,611,616-624,626,630-633,654,668,674-675,677,682,695,697,705,729-730,732,752-755,760-763,766,768,771-772,774,776,780-786,790-791,797,799,807-814,816,819-822,824-855,857-868,873,875-881,885-888,902-957
+packages/runtime-editor/tests/runtime-incremental-projection.spec.ts
+  s_400c2d1e050e6a::t_c977c526313324 1-838
+packages/runtime-editor/tests/runtime-preparation-context.spec.ts
+  s_400c2d1e050e6a::t_26c3a0962264bb 1-326
+packages/runtime-editor/tests/runtime-scene-journal-index.spec.ts
+  s_400c2d1e050e6a::t_71dc685745aa8c 1-53
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  s_400c2d1e050e6a::t_df73fc895066eb 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_400c2d1e050e6a::t_c5bffa9496547a 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_400c2d1e050e6a::t_ed282d7cb3c189 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  s_400c2d1e050e6a::t_cb2c28da6d12e4 1
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  s_400c2d1e050e6a::t_59d7db00b70a30 42,108,180,510-512
+packages/terrain/src/shaders/shared/Shadow.glsl
+  s_400c2d1e050e6a::t_130f4d4cb3fdaf 8-9
+packages/terrain/src/terrain/TerrainRenderer.ts
+  s_400c2d1e050e6a::t_5a5b7152a30ec0 1,8-45
+packages/terrain/src/terrain/clipmap/TerrainClipmap.ts
+  s_400c2d1e050e6a::t_c7659761b8e2e3 14,122,251-253,349,352,373-374,378,382,403,408,440,461-464,469-472,476,492-494,510-513,618-619,621-640,644-667,728,1080-1322
+packages/vegetation/src/world/SeedWorldGrassDensityLod.ts
+  s_400c2d1e050e6a::t_fa473a5f71792f 1-2,4
+packages/water/src/water/authoring/terrain/GridInterpolation.ts
+  s_400c2d1e050e6a::t_af563be3f6fa37 17,20,22-24,27-70,89-92
+packages/water/src/water/native/WaterBodyComponent.ts
+  s_400c2d1e050e6a::t_15827946a8d6be 7,20-25,329-330,524-535,552-554,579-580,654-655
+packages/water/src/water/native/WaterMaterial.ts
+  s_400c2d1e050e6a::t_d389f810300b56 96-153,161-216
+packages/water/src/water/runtime/ocean/FiniteOceanSurfaceGeometry.ts
+  s_400c2d1e050e6a::t_b7bcf3f9803cd8 17,616,827-859,861,866
+packages/water/src/water/runtime/ocean/OceanWaterBackend.ts
+  s_400c2d1e050e6a::t_c58caa515ca56a 409-411
+packages/water/src/water/runtime/ocean/OceanWaterRuntimeController.ts
+  s_400c2d1e050e6a::t_9c7f79176c5626 16,123-124,210-211,355-359,361-365,439,514,518-527,529
+packages/water/src/water/runtime/scene/WaterSceneRuntimeHost.ts
+  s_400c2d1e050e6a::t_6b98dc78d0e849 245,249-254,262-304,308-320,1045-1089
+packages/water/tests/WaterNativeMaterial.test.ts
+  s_400c2d1e050e6a::t_45e8bd50aab8c0 21-22,216-244
+packages/world-planning/src/integrations/grasslands/GrasslandsWaterBodyAuthoring.ts
+  s_400c2d1e050e6a::t_70f6e9e5ae54f5 51
+packages/world-planning/src/integrations/terrain/performance/TerrainPerformancePanel.ts
+  s_400c2d1e050e6a::t_fbb56be6dd7d37 270-271,572
+packages/world-planning/src/integrations/terrain/rock-formation/GrassRockAppearance.ts
+  s_400c2d1e050e6a::t_e16d0d21b4c3fe 6-9,11-91,95-96,99,102,135-142,164,168,172,177,182-198,201-211,217
+packages/world-planning/src/runtime/SeedWorldDetailInstancedMesh.ts
+  s_400c2d1e050e6a::t_bb8ef8157749b6 8-9,11-12,29-48,54-304,330-331,341-345,361-367,370-380,387-447
+packages/world-planning/src/runtime/SeedWorldFields.ts
+  s_400c2d1e050e6a::t_4921ebc9eeef7d 1-4,624-633,635,637,640-678
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  s_400c2d1e050e6a::t_8058d21814498e 1-1681
+packages/world-planning/src/runtime/SeedWorldGrassSampling.ts
+  s_400c2d1e050e6a::t_70180c9baf88f1 1-101
+packages/world-planning/src/runtime/SeedWorldGrassTerrainSurface.ts
+  s_400c2d1e050e6a::t_bc2bd11ff75fa2 9-10,56
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_400c2d1e050e6a::t_8a125073c77aec 1,8-12,351-352,503-508,512-637,852-854,874-887,894,1265,1271,1350-1353,1368-1421,1936,1950,1960,1972,2324,2354,2580,2585-2587,2598-2672,2734,2740,2868,2925-2928,2951-2954,2973-2976,3059-3060,3293,3298-3307,3435,3577-3579,3994-3997,4124-4125,4128,4130-4146,4169,4218,5647,7086-7087,7203-7204
+packages/world-planning/src/runtime/SeedWorldTerrainOcclusionCuller.ts
+  s_400c2d1e050e6a::t_eca5a955b3f1c7 2-8,347-426
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_400c2d1e050e6a::t_ed3471fb4966db 234-235,237
+packages/world-planning/src/semantic-study/ContextLandscape.ts
+  s_400c2d1e050e6a::t_b9682daa7bd118 16,258-259,290,352
+packages/world-planning/src/semantic-study/SignatureHash.ts
+  s_400c2d1e050e6a::t_96bdb327cc71f8 1-94
+packages/world-planning/src/spatial/PlanningDocument.ts
+  s_400c2d1e050e6a::t_aafdf98df2f2bf 721-722
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_400c2d1e050e6a::t_ea9b66698d1b8f 39,1262
+packages/world-planning/src/spatial/runtime/NativeWaterHost.ts
+  s_400c2d1e050e6a::t_7281dd951aebfe 53,62-63,66-67,73,87-92
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_400c2d1e050e6a::t_c010a18385ba44 765,767-772
+packages/world-planning/src/spatial/runtime/PlanningPopulationRuntime.ts
+  s_400c2d1e050e6a::t_54e0e276d58e9c 140-141,145-149
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_400c2d1e050e6a::t_eda5cd2ee0a229 55-56,127,543-574
+packages/world-planning/src/spatial/runtime/PlanningWorldPicking.ts
+  s_400c2d1e050e6a::t_861caafe0318c9 179
+packages/world-planning/src/world/SeedWorldDetailCandidateLattice.ts
+  s_400c2d1e050e6a::t_8d44eea55513b7 150-161,170-189,208-210,280-308
+packages/world-planning/src/world/SeedWorldPicker.ts
+  s_400c2d1e050e6a::t_0cc288ebaaad62 347-364,417-420
+tests/src/core/Animator.test.ts
+  s_400c2d1e050e6a::t_5478e8d2906cc5 9,17,81-104
+tests/src/core/ComponentDispatch.test.ts
+  s_400c2d1e050e6a::t_641105c230926a 1-137
+tests/src/core/Entity.test.ts
+  s_400c2d1e050e6a::t_58cdf1290e1e14 803-808
+tests/src/core/RenderPipeline/InstanceBuffer.test.ts
+  s_400c2d1e050e6a::t_dbabb2567d72da 1-2,25-95
+tests/src/core/input/PointerCanvasMapping.test.ts
+  s_400c2d1e050e6a::t_54880d3bf80442 1-44
+vitest.config.ts
+  s_400c2d1e050e6a::t_0e1c05d60d135e 5
+world/demos/seed-world/SeedWorldDemo.ts
+  s_400c2d1e050e6a::t_f67412d7fa1a46 291,431,848-849,875,879-885,1988-1994,2110-2113,2115-2120,2134-2137,2207,2209-2210,2358-2365,2406-2407
+world/demos/seed-world/masonry/BuildingSceneInitialization.ts
+  s_400c2d1e050e6a::t_497838c5ef953e 24-31
+world/demos/seed-world/src/SeedWorldLodDebugPanel.ts
+  s_400c2d1e050e6a::t_c3a116845bb445 1-505
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  s_400c2d1e050e6a::t_708e588a35842d 509-510
+world/scripts/acceptance/incremental-scene/README.md
+  s_400c2d1e050e6a::t_6591ad0d9e7a79 1-56
+world/scripts/acceptance/incremental-scene/diagnostic-instrumentation.mjs
+  s_400c2d1e050e6a::t_4eddb4119e2c76 1-41
+world/scripts/acceptance/incremental-scene/run.cjs
+  s_400c2d1e050e6a::t_bbc32e3830640d 1-216
+world/scripts/acceptance/incremental-scene/scenario.js
+  s_400c2d1e050e6a::t_2e40a2154ed4a4 1-321
+world/scripts/acceptance/incremental-scene/server.mjs
+  s_400c2d1e050e6a::t_12807c9ba56f75 1-263
+world/scripts/acceptance/incremental-scene/snapshot.cjs
+  s_400c2d1e050e6a::t_a3858ac5639178 1-65
+world/scripts/acceptance/incremental-scene/summarize.cjs
+  s_400c2d1e050e6a::t_ff5ed22b1b5f15 1-144
+world/tests/seed-world-browser/DecorationBounds.test.ts
+  s_400c2d1e050e6a::t_63518088e7d451 1-36
+world/tests/seed-world-browser/ForwardGrass.test.ts
+  s_400c2d1e050e6a::t_b8118686c47be6 1-275
+world/tests/seed-world-browser/ForwardGrassCulling.test.ts
+  s_400c2d1e050e6a::t_066bdcd2fed419 1-254
+world/tests/seed-world-browser/PickingAndCulling.test.ts
+  s_400c2d1e050e6a::t_296d2632fff8de 1-299
+world/tests/seed-world-browser/TransformFeedbackInstancing.test.ts
+  s_400c2d1e050e6a::t_6ccecfd2472289 1-88
+world/tests/seed-world-browser/vitest.config.mjs
+  s_400c2d1e050e6a::t_26124988454ee4 1-28
+world/tests/seed-world/AnimalMovementLifecycle.spec.ts
+  s_400c2d1e050e6a::t_0297ddaac561c3 351-352,613-672
+world/tests/seed-world/AnimalPlanningTasks.spec.ts
+  s_400c2d1e050e6a::t_35eb539f9e15e4 420,422,431
+world/tests/seed-world/Float32GridRaster.spec.ts
+  s_400c2d1e050e6a::t_86f1bac8cde271 1-83
+world/tests/seed-world/GrassSampling.spec.ts
+  s_400c2d1e050e6a::t_1048291941b07c 1-31
+world/tests/seed-world/GroundAnimalSnapshot.spec.ts
+  s_400c2d1e050e6a::t_a160b65b1ca939 1-172
+world/tests/seed-world/SeedWorldGrassDensityLod.spec.ts
+  s_400c2d1e050e6a::t_acef539cbb0fa4 1-101
+world/tests/seed-world/SeedWorldGrassRockAppearance.spec.ts
+  s_400c2d1e050e6a::t_9c8b37bb4ade5b 3,64,69-71,74,77-126
+world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
+  s_400c2d1e050e6a::t_31ef2d266c3d1b 344-348
+world/tests/seed-world/SeedWorldWaterOcclusion.spec.ts
+  s_400c2d1e050e6a::t_3816706b00d949 1-87
+world/tests/seed-world/TerrainFarShader.spec.ts
+  s_400c2d1e050e6a::t_14b79a8b348daf 12-18,117-173
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_400c2d1e050e6a::t_a79b647dee1582 1216-1221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8eeecfbaef6e70679fb544bc3bfc4c65fea8fdff",
+  "prompts": {},
+  "sessions": {
+    "s_400c2d1e050e6a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1eec7-99c5-78c0-a326-98cab4c67870",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

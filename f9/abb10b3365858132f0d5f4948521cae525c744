@@ -1,0 +1,33 @@
+tests/benchmarks/webgl2-submission/results/desktop-parity.md
+  s_3cd6502d102d7f::t_ff98b79f286875 21-22,24-26,30,32
+  s_3cd6502d102d7f::t_8f000763557065 1-10,12-13,16-17,20,33-38
+  s_3cd6502d102d7f::t_edcf835e715b03 11
+  s_3cd6502d102d7f::t_cda54e598a756d 14-15,18-19
+  s_3cd6502d102d7f::t_b5f1ab35ad8ae6 23,27-29,31,39
+tests/benchmarks/webgl2-submission/results/acceptance.md
+  s_3cd6502d102d7f::t_a9bd82e1c63753 40-44
+  s_3cd6502d102d7f::t_9f3e5f6ba53530 1-39
+tests/benchmarks/webgl2-submission/results/metal-s2.md
+  s_3cd6502d102d7f::t_2532cbb6789e71 55-56
+  s_3cd6502d102d7f::t_5ee07900eea8f7 53-54
+  s_3cd6502d102d7f::t_c2232f28e9ff85 3,5,7,9-20,22-32,34-35,87-89
+  s_3cd6502d102d7f::t_24e6f22d1b6bc8 21,80
+  s_3cd6502d102d7f::t_7b6e1239ef6007 1-2,4,6,8,57-79,81-86
+  s_3cd6502d102d7f::t_1b0e9ab53f73b9 33,36-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f9abb10b3365858132f0d5f4948521cae525c744",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

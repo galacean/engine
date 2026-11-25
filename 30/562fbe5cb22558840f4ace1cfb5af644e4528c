@@ -1,0 +1,19 @@
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_6e577c7c504f4f::t_2c664bef7b2c4f 91,344
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "30562fbe5cb22558840f4ace1cfb5af644e4528c",
+  "prompts": {},
+  "sessions": {
+    "s_6e577c7c504f4f": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1f2ce-eaa2-74f4-bbbb-10c5421a34cc",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

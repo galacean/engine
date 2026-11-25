@@ -1,0 +1,22 @@
+examples/seed-world/README.md
+  s_3cd6502d102d7f::t_149457aadf19da 7,11,14,17,21,24-25,35-38,40,43,46-47
+  s_3cd6502d102d7f::t_fa65c4e32f832f 10,39,41-42,44-45,48
+README.md
+  s_3cd6502d102d7f::t_75d0fdd51abbaa 24-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "01ed333485846d07cf50019458522cee5fcec60c",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

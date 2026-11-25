@@ -1,0 +1,24 @@
+packages/loader/src/SpriteAtlasLoader.ts
+  s_ac6cdffb5a346f::t_0931067b649efe 60,64-81,84-85,89
+  s_ac6cdffb5a346f::t_13e5c6749ba1d6 25-29,33-39,47,51,53,56-58,91-98,100-103,105-108
+packages/core/src/asset/ReferResource.ts
+  s_ac6cdffb5a346f::t_8f52661f534b14 60-62,130
+  s_ac6cdffb5a346f::t_fdf3b9e264a730 127-129
+  s_ac6cdffb5a346f::t_560dc3130e1691 131-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ea2cb17fc17a90e5fbd779ab7bc5be42999f48fc",
+  "prompts": {},
+  "sessions": {
+    "s_ac6cdffb5a346f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20899-6b12-76e3-b491-3ce5ef960b7b",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+packages/core/src/Scene.ts
+  s_eb7ebf3c3ff8b9::t_846cb2d036ecd9 76-77,363-372,374,378-381,383,403-409
+packages/core/src/SceneManager.ts
+  s_eb7ebf3c3ff8b9::t_4821d42a678a6e 120-125,127-132,142-143,145-159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9eb70f14183afc4920c4422b78f3d42191eb9a2f",
+  "prompts": {},
+  "sessions": {
+    "s_eb7ebf3c3ff8b9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ef5d-ae7e-7512-9057-6ffe80a3b716",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

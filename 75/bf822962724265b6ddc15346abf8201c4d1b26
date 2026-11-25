@@ -1,0 +1,22 @@
+packages/core/src/mesh/primitive/PolygonUtils.ts
+  s_f1a7b8285f1df2::t_84987e190135f5 665
+packages/core/src/mesh/ModelMesh.ts
+  s_f1a7b8285f1df2::t_0491fda612be63 715-716
+  s_f1a7b8285f1df2::t_632aa72a1c1d22 698,744
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "75bf822962724265b6ddc15346abf8201c4d1b26",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

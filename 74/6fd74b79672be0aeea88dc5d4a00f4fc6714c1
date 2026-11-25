@@ -1,0 +1,18 @@
+packages/core/src/mesh/ModelMesh.ts
+  h_171a11afaf879a 535-543,575-583
+tests/src/core/ContextRestoreAndMesh.test.ts
+  h_171a11afaf879a 58,103,161,175,178,187,203,207,241-271
+tests/src/loader/Nullability.test.ts
+  h_171a11afaf879a 2,5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "746fd74b79672be0aeea88dc5d4a00f4fc6714c1",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,55 @@
+packages/modify/src/native/core/src/RenderPipeline/RenderTargetPool.ts
+  s_2cb37b1ebe9df1::t_3ef9e4dccd747d 9,32,222-224,228
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  s_2cb37b1ebe9df1::t_8193d919da72d9 1,13,31,33,36,45-51,73,78-79,97-98,117-119,125-127,129-130,135-138,142-144,146-152
+packages/building/src/building/runtime/ConstructionDecorationLights.ts
+  s_2cb37b1ebe9df1::t_14a1b9a486c33b 1-10,17-21,44,93-97,111-116,119-126,137-138,146-155,170-173
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_2cb37b1ebe9df1::t_4892f05c2946cc 1654-1656,1983-1990,2094
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_2cb37b1ebe9df1::t_600685a0c8ffb9 56,125-161,294,296-305,307-309,311-313,315-317,319-320,324,361-366,377-382,551-582,700,702-705,707-716,718,741,749,828
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_2cb37b1ebe9df1::t_d67bc30a0291f5 212-213
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheSchedule.ts
+  s_2cb37b1ebe9df1::t_8bb6e841211c64 65-93,101-106
+packages/building/src/building/runtime/ConstructionDecorationLightPolicy.ts
+  s_2cb37b1ebe9df1::t_76dbe636bbcc72 67-74,96,101-103,108-113,116-138,153-156,162-168,171-192
+packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts
+  s_2cb37b1ebe9df1::t_01f41068af4ee0 14-21,87-122
+packages/water/src/water/runtime/effects/WaterContactEffects.ts
+  s_2cb37b1ebe9df1::t_552f0e74574065 7,32-36,209-210,252-253,256-257
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_2cb37b1ebe9df1::t_3f9039ea2c45c8 401,403-411,1142-1144
+packages/terrain/src/rock-formation/GrassPatches.ts
+  s_2cb37b1ebe9df1::t_5c279f27fcefa0 37-47,172,175-183,185-189,192-207,329-331,336-350
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_2cb37b1ebe9df1::t_e9cf76393d46a5 15-18,50-51,92-113,350,571-591,714,809-811
+world/demos/seed-world/SeedWorldDemo.ts
+  s_2cb37b1ebe9df1::t_62f1941dab8e57 867,883
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudMaterial.ts
+  s_2cb37b1ebe9df1::t_baf6c37feaed72 8-9,47-113,135,530-532,559-561,738,754-760,765,787-788,824,910-915,929,987-1009,1013-1015
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_2cb37b1ebe9df1::t_96bea840befd1c 961-969,1440-1467,2715-2723,2725,2728
+packages/building/src/building/runtime/MasonryResidency.ts
+  s_2cb37b1ebe9df1::t_8984cfe42917a2 114-121,129-136,139-146,151-158,407-412
+packages/modify/src/native/core/src/lighting/environment/RealtimeIBLBaker.ts
+  s_2cb37b1ebe9df1::t_02befad589de30 372-374,378,409,557-558,572-585,594,656-668,677-708
+packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheRenderer.ts
+  s_2cb37b1ebe9df1::t_7228811babd187 7,10,14,43-65,93-99,285-296,378-379,393-404,406,409-425,439-441
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "29e98db0d50a0a728ae2dbb505f850d87dd6f17b",
+  "prompts": {},
+  "sessions": {
+    "s_2cb37b1ebe9df1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d0cd-fa44-7fc3-8a7d-c6641c0c0f1c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

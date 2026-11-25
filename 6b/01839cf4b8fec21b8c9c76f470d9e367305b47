@@ -1,0 +1,14 @@
+packages/core/src/mesh/BlendShapeManager.ts
+  h_171a11afaf879a 332,335,337
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6b01839cf4b8fec21b8c9c76f470d9e367305b47",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

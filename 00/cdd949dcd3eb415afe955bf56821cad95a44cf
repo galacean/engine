@@ -1,0 +1,22 @@
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/seed-world-headless-fixture.ts
+  h_ddbf152d31b140 987-1013,1019
+packages/ai-chat/src/ai-chat/agent-native-files.ts
+  h_ddbf152d31b140 26,89,199,420-421,425,431,438,445,458-459,484-485
+packages/ai-chat/tests/agent-native-files.spec.ts
+  h_ddbf152d31b140 291,294-298,302-305,307,322-323,326-328,421,424-425,429-430,446,448,452-453,456-505
+packages/runtime-editor/src/skills/assets/use-prefab/SKILL.md
+  h_ddbf152d31b140 8
+packages/vegetation/src/skills/vegetation/SKILL.md
+  h_ddbf152d31b140 12,14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "00cdd949dcd3eb415afe955bf56821cad95a44cf",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

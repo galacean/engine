@@ -1,0 +1,56 @@
+packages/building/src/building/runtime/ConstructionPlasterShader.ts
+  h_ddbf152d31b140 52-53,55-59,61,63-64,96
+packages/building/src/building/runtime/EngineResidentScene.ts
+  h_ddbf152d31b140 72-75,77-78,102,122-126,129,162,166,178,398-399,599-605,612,813-816,878-882,886,888,978-979,1071,1074-1075,1088-1090
+packages/building/src/building/runtime/EngineShaderSource.ts
+  h_ddbf152d31b140 77-83,85,94-119,125-128,145-148,150,152-153
+packages/building/src/building/runtime/MaterialUnitLod.js
+  h_ddbf152d31b140 19-20,50-51,72,78,84-85,88-89
+packages/building/src/building/runtime/RawGlslInstructions.ts
+  h_ddbf152d31b140 11-12,22-23,36-41,43,46
+packages/building/tests/EngineShaderSource.spec.ts
+  h_ddbf152d31b140 1-95
+packages/building/tests/MaterialUnitLod.spec.ts
+  h_ddbf152d31b140 1-71
+packages/building/tests/RawGlslInstructions.spec.ts
+  h_ddbf152d31b140 46-54
+packages/modify/src/native/shader/src/ShaderLibrary/Lighting/VolumetricCloudShadow.glsl
+  h_ddbf152d31b140 16,25-28,34-35,38,40,44,95,106
+packages/modify/src/native/shader/src/Shaders/Sky/SkyProcedural.shader
+  h_ddbf152d31b140 578,611-616,621,624
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_ddbf152d31b140 146,169-171,202-203,229,277-279,372,374-382,447-451,456-475,485-510
+packages/terrain/src/shaders/shared/Shadow.glsl
+  h_ddbf152d31b140 65-69
+packages/terrain/src/shaders/shared/SurfaceClimate.glsl
+  h_ddbf152d31b140 303,321,335,352,354-362
+packages/terrain/src/shaders/surface/SurfaceEvaluation.glsl
+  h_ddbf152d31b140 121-124
+packages/terrain/src/shaders/vegetation/VegetationEvaluation.glsl
+  h_ddbf152d31b140 71,81,92,107,118
+packages/world-planning/src/world/SeedWorldShaderVariantCoverage.ts
+  h_ddbf152d31b140 174-190
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 26,35,595
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_ddbf152d31b140 118-145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a04742c8f7c726c3340189366763ad2c0049be5f",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+packages/world-planning/src/integrations/terrain/rock-formation/RockVariantCatalog.json
+  s_ae6fab0fbe1884::t_94032b305b77b2 2-3
+packages/world-planning/src/integrations/terrain/rock-formation/Authoring.ts
+  s_ae6fab0fbe1884::t_bf0875fb5bd383 9,29,37,44,46
+packages/world-planning/src/integrations/terrain/rock-formation/Panel.ts
+  s_ae6fab0fbe1884::t_bf0875fb5bd383 6,12,38,42,108
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_ae6fab0fbe1884::t_94032b305b77b2 1-2
+  s_ae6fab0fbe1884::t_bf0875fb5bd383 27-28,39,150,160
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  s_ae6fab0fbe1884::t_bf0875fb5bd383 1,10,43,57
+packages/world-planning/src/integrations/terrain/rock-formation/Publication.ts
+  s_ae6fab0fbe1884::t_bf0875fb5bd383 27,37,47,55,65,103
+packages/world-planning/src/integrations/terrain/rock-formation/Edit.ts
+  s_ae6fab0fbe1884::t_bf0875fb5bd383 6
+packages/world-planning/src/integrations/terrain/rock-formation/Settings.ts
+  s_ae6fab0fbe1884::t_bf0875fb5bd383 1-4,9,12,17,19,22,26-33,40-44
+packages/terrain/src/shaders/shared/GrassRockAppearance.glsl
+  s_ae6fab0fbe1884::t_4d36012569f72f 45
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  s_ae6fab0fbe1884::t_94032b305b77b2 40,139-140
+  s_ae6fab0fbe1884::t_bf0875fb5bd383 23,136-138,225
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  s_ae6fab0fbe1884::t_bf0875fb5bd383 6,8,12-14,30,54
+  s_ae6fab0fbe1884::t_f2f6ce8e522f59 27-29
+packages/world-planning/src/integrations/terrain/rock-formation/ColorPalette.ts
+  s_ae6fab0fbe1884::t_4d36012569f72f 30,45
+packages/world-planning/src/integrations/terrain/rock-formation/RockMaterial.ts
+  s_ae6fab0fbe1884::t_bf0875fb5bd383 1,4,6,8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "14f760992059d9d79525310c1cc9c878cd3fe525",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

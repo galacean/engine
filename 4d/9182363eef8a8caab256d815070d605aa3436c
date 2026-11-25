@@ -1,0 +1,14 @@
+world/vite.config.mjs
+  h_ddbf152d31b140 472-476
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4d9182363eef8a8caab256d815070d605aa3436c",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+packages/xr-webxr/package.json
+  s_d5a8b8f9cef6f5::t_3483f307ca2965 38,40-42
+packages/xr-webxr/src/WebXRDevice.ts
+  s_d5a8b8f9cef6f5::t_13f624eaf54d19 1,5,49
+packages/xr-webxr/src/WebXRFrame.ts
+  s_d5a8b8f9cef6f5::t_fd769cb08be7bf 2
+packages/xr-webxr/src/WebXRSession.ts
+  s_d5a8b8f9cef6f5::t_2d9983258b9305 1,79
+packages/xr-webxr/src/feature/WebXRPlaneTracking.ts
+  s_d5a8b8f9cef6f5::t_4424e378085463 2
+tests/src/xr/TrackingLoss.test.ts
+  s_d5a8b8f9cef6f5::t_2f1c36fd39cd60 1,3,112,117-121,138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "58293a105823aaee8cefdb3e6bc15907eb3fbcc4",
+  "prompts": {},
+  "sessions": {
+    "s_d5a8b8f9cef6f5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c131-ec64-72d1-aae2-b9035e3ba176",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

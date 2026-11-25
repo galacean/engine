@@ -1,0 +1,82 @@
+packages/core/src/texture/TextureUtils.ts
+  s_3ee6eea2868467::t_620236d6d6c65f 99,107,114
+  s_3ee6eea2868467::t_580ec79339b3ab 106
+packages/loader/src/ktx2/KTX2Loader.ts
+  s_3ee6eea2868467::t_8d48c30c851c4d 25-27,29-30,163,182,189,203-204,209-210,214
+  s_3ee6eea2868467::t_77581bdbd1d1f9 97-98,102-103,196
+  s_3ee6eea2868467::t_580ec79339b3ab 28,165,167,180,193,198,207,219
+  s_3ee6eea2868467::t_d09a869ef20956 99-101
+  s_3ee6eea2868467::t_b1cda644562e37 164,166,170-177,184-188,190-191,202,205-206,208,212-213,215-218,220
+  s_3ee6eea2868467::t_2f6529e88110e2 197
+  s_3ee6eea2868467::t_6be5e974ed68f4 20,31,150-162,168-169,178-179,181,183,192,194-195,199-201,211,222-229,349-353,374
+  s_3ee6eea2868467::t_b8b5dd7eb0bb42 91-96
+  s_3ee6eea2868467::t_2b9a22a20e9cc4 221
+packages/rhi-webgl/src/type.ts
+  s_3ee6eea2868467::t_620236d6d6c65f 53
+docs/texture-format-audit/README.md
+  s_3ee6eea2868467::t_20fc065c755f4a 1-11,13-66,70-77
+  s_3ee6eea2868467::t_c717ac146544ec 12
+  s_3ee6eea2868467::t_d36a24df1a8231 67-69
+packages/core/src/texture/enums/TextureFormat.ts
+  s_3ee6eea2868467::t_6be5e974ed68f4 27-28,31
+  s_3ee6eea2868467::t_2f6529e88110e2 29-30
+  s_3ee6eea2868467::t_580ec79339b3ab 32
+  s_3ee6eea2868467::t_620236d6d6c65f 33-38
+packages/core/src/texture/Texture.ts
+  s_3ee6eea2868467::t_b6887ad0101420 2,120-121,123-126
+  s_3ee6eea2868467::t_580ec79339b3ab 122
+packages/core/src/texture/Texture2DArray.ts
+  s_3ee6eea2868467::t_d49d9b291b2a97 180,190,195-196,200,210
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  s_3ee6eea2868467::t_10232703d53345 59
+  s_3ee6eea2868467::t_620236d6d6c65f 115,119
+packages/rhi-webgl/src/GLTexture.ts
+  s_3ee6eea2868467::t_9682f62484a58a 723-727
+  s_3ee6eea2868467::t_580ec79339b3ab 107,110-111,431,728
+  s_3ee6eea2868467::t_b6887ad0101420 109,112-115,127,435
+  s_3ee6eea2868467::t_b1cda644562e37 695,722,729-731
+  s_3ee6eea2868467::t_620236d6d6c65f 108,116-126,432-434,694,717
+  s_3ee6eea2868467::t_606f44f3f9d8dd 732-733
+tests/src/loader/NativeFloatKTX2.test.ts
+  s_3ee6eea2868467::t_1368b83f0bbcc0 1-33
+packages/rhi-webgl/src/GLTexture2D.ts
+  s_3ee6eea2868467::t_2b9a22a20e9cc4 43-46
+  s_3ee6eea2868467::t_483d40efc66c6d 47-49
+  s_3ee6eea2868467::t_7f2c7ad5fcb20d 1,20,56,66
+packages/core/src/texture/RenderTarget.ts
+  s_3ee6eea2868467::t_d09a869ef20956 222-227,264
+tests/src/core/texture/FloatTexture.test.ts
+  s_3ee6eea2868467::t_a7941a5191344b 39-44
+  s_3ee6eea2868467::t_b83ebe8b485f55 10-20,51-55,81,86
+  s_3ee6eea2868467::t_9f08f4d8f0caa9 21-38,45-50
+  s_3ee6eea2868467::t_2b9a22a20e9cc4 1-9,56-80,82-85,87
+packages/core/src/SystemInfo.ts
+  s_3ee6eea2868467::t_580ec79339b3ab 157
+  s_3ee6eea2868467::t_620236d6d6c65f 158-160
+packages/loader/src/ktx2/KTX2Container.ts
+  s_3ee6eea2868467::t_2f6529e88110e2 46-47,81-83
+packages/rhi-webgl/src/GLTextureCube.ts
+  s_3ee6eea2868467::t_483d40efc66c6d 48-50
+  s_3ee6eea2868467::t_2b9a22a20e9cc4 44-47
+  s_3ee6eea2868467::t_7f2c7ad5fcb20d 1,20,55,81
+tests/src/loader/fixtures/float-ktx2/README.md
+  s_3ee6eea2868467::t_1368b83f0bbcc0 1-8
+docs/texture-format-audit/roundtrip.json
+  s_3ee6eea2868467::t_0d940a9d8efa0c 1-286
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1b1e13a773b51643b3c37f4828555c0eea433592",
+  "prompts": {},
+  "sessions": {
+    "s_3ee6eea2868467": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e9f3-3257-7082-9101-0df93aec4a93",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

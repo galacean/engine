@@ -1,0 +1,29 @@
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_56478756509a4b::t_19f727de489c6c 19,97-107,139-140,143-144,146,149-151,153,155,167-171,174-177,181-182,188-191,194-195,216,219,221-225,228
+packages/core/src/postProcess/effects/BloomEffect.ts
+  s_56478756509a4b::t_60ce1d561d07b4 49,59-64
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl
+  s_56478756509a4b::t_d0b4bc3e941a57 1-2,9-10,14-16,18-37
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl
+  s_56478756509a4b::t_7d067fb067667d 9,11-12,15,17-23,26
+packages/shader/src/ShaderLibrary/index.ts
+  s_56478756509a4b::t_20b9a120278483 43,104
+packages/shader/src/Shaders/PostProcess/Bloom.shader
+  s_56478756509a4b::t_b691f4337b4aa0 16,26,29,35-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "405215d82f10ced6216841096efe2d1c05080d31",
+  "prompts": {},
+  "sessions": {
+    "s_56478756509a4b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c7-446c-7c03-b99f-314c88fd899b",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

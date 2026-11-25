@@ -1,0 +1,16 @@
+packages/core/src/asset/ResourceManager.ts
+  h_bd4dd7d663e619 437
+packages/loader/src/AnimatorControllerLoader.ts
+  h_bd4dd7d663e619 22-23,27-30,33,35,106,109-118,121,123,126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3bb16f389617850a65d0a8f824475db891b8c843",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

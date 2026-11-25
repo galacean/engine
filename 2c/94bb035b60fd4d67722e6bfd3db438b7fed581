@@ -1,0 +1,36 @@
+.agents/skills/seed-world-flash-publish/SKILL.md
+  h_ddbf152d31b140 1-83
+.agents/skills/seed-world-local-debug/SKILL.md
+  h_ddbf152d31b140 9
+packages/ai-chat/src/ai-chat/README.md
+  h_ddbf152d31b140 455
+packages/vegetation/src/asset-assembly/AssetAssemblyPresetFactory.ts
+  h_ddbf152d31b140 10,19
+world/README.md
+  h_ddbf152d31b140 70-71,78-79
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  h_ddbf152d31b140 1-134
+world/demos/seed-world/README.md
+  h_ddbf152d31b140 27
+world/package.json
+  h_ddbf152d31b140 16-18
+world/scripts/build-seed-world-flash-app.mjs
+  h_ddbf152d31b140 1-205
+world/scripts/build-seed-world-flash-source.mjs
+  h_ddbf152d31b140 1-437
+world/scripts/project-assets.mjs
+  h_ddbf152d31b140 4-22,25-26,28,33,36-91,93-99
+world/vite.config.mjs
+  h_ddbf152d31b140 5,26-27,37-88,91,95,100-101,116,118-123,128,130-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2c94bb035b60fd4d67722e6bfd3db438b7fed581",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

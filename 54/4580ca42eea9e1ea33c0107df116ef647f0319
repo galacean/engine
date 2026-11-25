@@ -1,0 +1,44 @@
+packages/world-planning/src/integrations/terrain/rock-formation/Authoring.ts
+  h_171a11afaf879a 5-6,13,27,47-49
+packages/world-planning/src/integrations/terrain/rock-formation/Collider.ts
+  h_171a11afaf879a 6
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  h_171a11afaf879a 200-202,205-207
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  h_171a11afaf879a 331-332
+packages/world-planning/src/spatial/RockCollisionPolicy.ts
+  h_171a11afaf879a 1-80
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  h_171a11afaf879a 2,44-45,963,1463-1467
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  h_171a11afaf879a 15-16
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  h_171a11afaf879a 2,6,208,259,281
+packages/world-planning/src/spatial/guidance/GuidanceRock.ts
+  h_171a11afaf879a 3,7-11,21
+packages/world-planning/src/spatial/layout/DerivedEdits.ts
+  h_171a11afaf879a 4,12-13,34-39
+packages/world-planning/src/spatial/layout/SpatialInstanceEdits.ts
+  h_171a11afaf879a 15-16,219-232,252-258,288,314-319
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  h_171a11afaf879a 6-7,262,1232
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_171a11afaf879a 6,14,39,72-77,208-216,466-505
+packages/world-planning/src/spatial/world-templates/LowPolyValley.ts
+  h_171a11afaf879a 20,30-31,33,43
+packages/world-planning/src/spatial/world-templates/OasisFloodplain.ts
+  h_171a11afaf879a 112
+world/tests/seed-world/SeedWorldRockCollider.spec.ts
+  h_171a11afaf879a 59-73,154-356
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "544580ca42eea9e1ea33c0107df116ef647f0319",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

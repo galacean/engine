@@ -1,0 +1,27 @@
+tests/src/rhi-webgl/GLCapability.test.ts
+  s_da48a1c3cefcb7::t_159f2e2c0c057b 125-133
+  s_da48a1c3cefcb7::t_031d8c53990ceb 124,134-169
+packages/rhi-webgl/src/GLTexture.ts
+  s_da48a1c3cefcb7::t_1ccd8c6f2436f6 529-530,532-536
+packages/rhi-webgl/src/GLCapability.ts
+  s_da48a1c3cefcb7::t_1ccd8c6f2436f6 171
+  s_da48a1c3cefcb7::t_0241770a8a4596 165-170,173-176,181
+tests/src/rhi-webgl/GLExtensions.test.ts
+  s_da48a1c3cefcb7::t_6edbe9d70a09f9 1-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "15c2ebbe6150f9fa90274e1c7978f5a9212ceefe",
+  "prompts": {},
+  "sessions": {
+    "s_da48a1c3cefcb7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1524d-29ee-7280-8621-925d13a5c914",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

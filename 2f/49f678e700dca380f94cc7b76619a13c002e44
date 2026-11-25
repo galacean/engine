@@ -1,0 +1,44 @@
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_0ad7efa77c17be::t_044290fa124916 2,24-25,29-32
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_0ad7efa77c17be::t_044290fa124916 92,100,103
+  s_9cc19efe6cb9e3::t_531778165dee34 856,882-884
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  s_0ad7efa77c17be::t_044290fa124916 3,46-58
+  s_0ad7efa77c17be::t_d816bb551fcde7 59
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_0ad7efa77c17be::t_044290fa124916 871
+  s_0ad7efa77c17be::t_ca5b48c37d9030 883
+world/demos/seed-world/src/DesertPresentation.ts
+  s_0ad7efa77c17be::t_ca5b48c37d9030 1-69
+world/demos/seed-world/SeedWorldDemo.ts
+  s_0ad7efa77c17be::t_ca5b48c37d9030 585-587,649,710
+packages/world-planning/src/integrations/terrain/lighting/IntegratedWorldPresentation.ts
+  s_0ad7efa77c17be::t_ca5b48c37d9030 1-7,29-30,33
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  s_0ad7efa77c17be::t_ca5b48c37d9030 10,13,638,640-648,672-673
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2f49f678e700dca380f94cc7b76619a13c002e44",
+  "prompts": {},
+  "sessions": {
+    "s_0ad7efa77c17be": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c9b0-c1c7-7c20-94e2-5d4a2cc750f7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_9cc19efe6cb9e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a5d0-adc0-7cf2-99f0-6032732bfb59",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

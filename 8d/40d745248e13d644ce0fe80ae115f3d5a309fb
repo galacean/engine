@@ -1,0 +1,29 @@
+packages/rhi-null/src/HeadlessEngine.ts
+  s_215c0b0d399b2f::t_78cb99be749e6e 20
+tests/package-consumer/HeadlessEngine.test.ts
+  s_d5a8b8f9cef6f5::t_c31b6e59fa0c17 585
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8d40d745248e13d644ce0fe80ae115f3d5a309fb",
+  "prompts": {},
+  "sessions": {
+    "s_215c0b0d399b2f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a18d8e-4ddf-7c00-89b3-270764b3b8b9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    },
+    "s_d5a8b8f9cef6f5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c131-ec64-72d1-aae2-b9035e3ba176",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}
