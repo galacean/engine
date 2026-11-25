@@ -1,0 +1,16 @@
+packages/modify/src/native/shader/src/Shaders/Pipeline/SSRReceiver.shader
+  h_171a11afaf879a 188-189
+packages/shader/src/ShaderLibrary/PBR/VertexPBR.glsl
+  h_171a11afaf879a 90-91,94-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "49e3b749757ed304e10a3db20dd68662183b3e06",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
