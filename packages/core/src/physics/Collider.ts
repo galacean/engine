@@ -353,11 +353,8 @@ export class Collider extends Component {
     if (actor) {
       actor.removeShape(this._native!);
       const body = this._attachedBody;
-      if (body) {
-        body._detachCollider(this);
-      } else {
-        (physicsScene ?? this._registeredScene!.physics)._nativePhysicsScene.removeActor(actor);
-      }
+      if (body) body._detachCollider(this);
+      else (physicsScene ?? this._registeredScene!.physics)._nativePhysicsScene.removeActor(actor);
       this._nativeActor = null;
       this._attachedBody = null;
     }
