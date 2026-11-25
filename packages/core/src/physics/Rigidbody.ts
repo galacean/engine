@@ -444,7 +444,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
       this._nativeActor?.setMotionState(value, this._useCCD);
       if (!value) this._wakeNative();
       // Revisit the hierarchy so excluded shapes rejoin on kinematic or re-evaluate dynamic constraints.
-      this._registeredScene && this._markCollidersDirty();
+      this._markCollidersDirty();
     }
   }
 
@@ -818,6 +818,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   /** @internal */
   override _onEnableInScene(): void {
+    // An earlier onEnable in the same activation batch can destroy this body.
+    if (this.destroyed) return;
     const scene = this.scene!;
     const actor = this._getNativeActor();
     this._detachOrphanedColliders();
@@ -896,14 +898,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    */
   _attachCollider(collider: Collider): void {
     this._attachedColliders.push(collider);
-    this._markMassDirty();
+    if (!collider.isTrigger) this._markMassDirty();
   }
 
   /**
    * @internal
    */
   _detachCollider(collider: Collider): void {
-    if (Utils.removeFromArray(this._attachedColliders, collider)) this._markMassDirty();
+    if (Utils.removeFromArray(this._attachedColliders, collider) && !collider.isTrigger) this._markMassDirty();
   }
 
   /**
@@ -1035,6 +1037,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._linearVelocity._onValueChanged = this._angularVelocity._onValueChanged = null;
     this._centerOfMass._onValueChanged = this._inertiaTensor._onValueChanged = null;
     super._onDestroy();
+    // During onDisable the Entity can already be inactive while this actor is still registered.
+    if (this._registeredScene) this._onDisableInScene();
     this.entity._updateFlagManager.removeListener(this._onTransformChanged);
     const joints = this._joints;
     if (joints) {
@@ -1157,7 +1161,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
    * Submits scene Collider edits, including those on disabled bodies, before consuming the requested mass changes.
    */
   private _getSyncedActor(changes = MassChanges.Mass | MassChanges.Geometry): IDynamicActor | null {
-    this.scene?.physics._syncColliders(false);
+    const scene = this._registeredScene ?? (this.entity._isActiveInScene ? this.scene : null);
+    scene?.physics._syncColliders(false);
     if (this._massChanges & changes && this._nativeActor) {
       this._updateMass();
     }

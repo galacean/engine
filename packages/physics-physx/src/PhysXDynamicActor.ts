@@ -84,7 +84,23 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
     inertiaTensorRotation: Quaternion | null
   ): void {
     const actor = this._pxActor;
-    actor.setMassAndUpdateInertia(mass);
+    // Unit density computes the solid shapes' centroid and inertia in their mass frame.
+    // Uniformly scaling the mass scales the diagonal without changing the principal axes.
+    const unitMass = actor.setDensity(1, centerOfMass === null, inertiaTensor === null);
+    if (unitMass === 0) {
+      // An empty shape set or an unrepresentable unit-density result can still accept an explicit mass.
+      actor.setMassAndUpdateInertia(mass);
+    } else if (unitMass !== mass) {
+      actor.setMass(mass);
+      if (!inertiaTensor) {
+        const diagonal = actor.getMassSpaceInertiaTensor();
+        const scale = mass / unitMass;
+        diagonal.x *= scale;
+        diagonal.y *= scale;
+        diagonal.z *= scale;
+        actor.setMassSpaceInertiaTensor(diagonal);
+      }
+    }
     centerOfMass && actor.setCMassLocalPose(centerOfMass);
     inertiaTensor && actor.setMassSpaceInertiaTensor(inertiaTensor);
     inertiaTensorRotation && actor.setInertiaTensorRotation(inertiaTensorRotation);

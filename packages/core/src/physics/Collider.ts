@@ -449,7 +449,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       shape !== previous && this._initializeNativeShape(shape);
       this._nativeScale.copyFrom(scale);
       this._geometryDirty = false;
-      this._attachedBody?._markMassDirty();
+      if (!this._isTrigger) this._attachedBody?._markMassDirty();
     }
     return shape;
   }
@@ -560,7 +560,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       nativePosition.copyFrom(position);
       (this._nativeRotation ||= new Quaternion()).copyFrom(rotation);
       shape.setLocalPose(position, rotation);
-      this._attachedBody?._markMassDirty();
+      if (!this._isTrigger) this._attachedBody?._markMassDirty();
     }
   }
 

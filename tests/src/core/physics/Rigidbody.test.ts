@@ -831,6 +831,17 @@ describe("Rigidbody", function () {
     expect(body.inertiaTensor.x).toBeCloseTo(1 / 3);
     expect(body.inertiaTensor.y).toBeCloseTo(1 / 3);
     expect(body.inertiaTensor.z).toBeCloseTo(1 / 3);
+
+    const inertia = body.inertiaTensor.clone();
+    body.isKinematic = true;
+    const trigger = entity.createChild().addComponent(PlaneCollider);
+    trigger.isTrigger = true;
+    expect(Vector3.equals(body.inertiaTensor, inertia)).toBe(true);
+    trigger.center.y = 3;
+    expect(Vector3.equals(body.inertiaTensor, inertia)).toBe(true);
+    shape.size.x = 2;
+    expect(body.inertiaTensor.x).toBeCloseTo(1 / 3, 5);
+    expect(body.inertiaTensor.y).toBeCloseTo(5 / 6, 5);
   });
 
   it.each([
@@ -2077,6 +2088,49 @@ describe("Rigidbody", function () {
     expect(body.inertiaTensor.x).toBeCloseTo(baseInertiaX * 5, 4);
   });
 
+  it("includes solid planes when freezing a disabled body after switching it to kinematic", () => {
+    const entity = rootEntity.createChild();
+    const body = entity.addComponent(Rigidbody);
+    const box = entity.addComponent(BoxCollider);
+    box.center.x = 3;
+    entity.createChild().addComponent(PlaneCollider);
+    expect(body.centerOfMass.x).toBe(3);
+
+    body.enabled = false;
+    body.isKinematic = true;
+    box.center.x = 7;
+    body.automaticCenterOfMass = false;
+    body.enabled = true;
+    // A solid plane has no finite mass, so the last computed center is retained.
+    expect(body.centerOfMass.x).toBe(3);
+  });
+
+  it("reads the updated actor pose when an earlier onDisable moves its entity across scenes", () => {
+    const otherScene = new Scene(engine);
+    engine.sceneManager.addScene(otherScene);
+    try {
+      const destination = otherScene.createRootEntity();
+      const parent = rootEntity.createChild();
+      const entity = parent.createChild();
+      const body = entity.addComponent(Rigidbody);
+      const center = body.getWorldCenterOfMass(new Vector3());
+      parent.createChild().addComponent(
+        class extends Script {
+          override onDisable(): void {
+            destination.addChild(entity);
+            entity.transform.position.x = 5;
+            body.getWorldCenterOfMass(center);
+          }
+        }
+      );
+
+      parent.isActive = false;
+      expect(center.x).toBe(5);
+    } finally {
+      otherScene.destroy();
+    }
+  });
+
   it("skips getGlobalPose for continuously sleeping bodies while preserving sleeping nested body world poses", () => {
     const physics = engine.sceneManager.activeScene.physics;
     const box = addBox(new Vector3(1, 1, 1), true, new Vector3(0, 30, 0));
@@ -2126,6 +2180,45 @@ describe("Rigidbody", function () {
     ).toBe(true);
     expect(hit.collider).toBe(box);
     expect(hit.point.y).toBeCloseTo(5.5, 2);
+  });
+
+  it("keeps a body destroyed by an earlier onEnable callback out of simulation", () => {
+    const entity = new Entity(engine);
+    entity.transform.position.y = 10;
+    entity.addComponent(
+      class extends Script {
+        override onEnable(): void {
+          body.destroy();
+        }
+      }
+    );
+    const body = entity.addComponent(Rigidbody);
+    entity.addComponent(BoxCollider);
+    rootEntity.addChild(entity);
+
+    useFixedTimeStep();
+    engine.update();
+    expect(entity.getComponent(Rigidbody)).toBeNull();
+    expect(entity.transform.worldPosition.y).toBe(10);
+  });
+
+  it("releases the registered actor when an earlier onDisable callback destroys the body", () => {
+    const entity = rootEntity.createChild();
+    entity.addComponent(
+      class extends Script {
+        override onDisable(): void {
+          body.destroy();
+        }
+      }
+    );
+    const createActor = vi.spyOn(backend, "createDynamicActor");
+    const body = entity.addComponent(Rigidbody);
+    const release = vi.spyOn(createActor.mock.results[0].value, "destroy");
+
+    entity.isActive = false;
+    expect(body.destroyed).toBe(true);
+    expect(createActor).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledTimes(1);
   });
 
   it("applies sleep() during entity deactivation without deferring sleep to re-activation", () => {

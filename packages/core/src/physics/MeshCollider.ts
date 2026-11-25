@@ -155,10 +155,10 @@ export class MeshCollider extends Collider {
       if (this._native && this._convex && this._nativeConvex) {
         this._native.setIsTrigger(value);
         this._nativeTrigger = value;
-        this._attachedBody?._markMassDirty();
       } else {
         this._markDirty();
       }
+      this._attachedBody?._markMassDirty();
     }
   }
 
@@ -213,12 +213,11 @@ export class MeshCollider extends Collider {
     const geometryChanged = needsCook || scaleChanged;
     geometryChanged && this._nativeScale.copyFrom(scale);
 
-    const triggerChanged = this._nativeTrigger !== this._isTrigger;
-    if (triggerChanged) {
+    if (this._nativeTrigger !== this._isTrigger) {
       shape.setIsTrigger(this._isTrigger);
       this._nativeTrigger = this._isTrigger;
     }
-    (geometryChanged || triggerChanged) && this._attachedBody?._markMassDirty();
+    if (geometryChanged && !this._isTrigger) this._attachedBody?._markMassDirty();
 
     return shape;
   }
