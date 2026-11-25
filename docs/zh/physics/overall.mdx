@@ -27,7 +27,7 @@ const engine = await WebGLEngine.create({
 
 UMD、ESM 和 CommonJS 入口默认从同级的 `./libs/` 加载包内运行时。自行托管时，将 `dist/libs/` 目录和入口文件放在一起。
 
-升级到 2.0 时，把直接导入资源的路径和 CDN 链接从 `@galacean/engine-physics-physx/libs/*` 改为 `@galacean/engine-physics-physx/dist/libs/*`。
+在 2.0 中，npm 直接导入和 jsDelivr 等 npm 镜像上的资源路径为 `@galacean/engine-physics-physx/dist/libs/*`。Galacean 官方 CDN 将 `dist/` 作为版本根目录，运行时路径为 `<version>/libs/*`。
 
 使用 Vite 开发时，将 `@galacean/engine-physics-physx` 加入 `optimizeDeps.exclude`，使资源按包内路径解析。
 

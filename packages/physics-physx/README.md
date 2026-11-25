@@ -28,4 +28,4 @@ const engine = await WebGLEngine.create({ canvas: "canvas-id", physics: new Phys
 engine.run();
 ```
 
-The UMD, ESM, and CommonJS entries load the runtime from the adjacent `libs/` directory. In 2.0, update direct imports and CDN links from `@galacean/engine-physics-physx/libs/*` to `@galacean/engine-physics-physx/dist/libs/*`.
+The UMD, ESM, and CommonJS entries load the runtime from the adjacent `libs/` directory. In 2.0, direct npm imports and URLs on npm mirrors such as jsDelivr use `@galacean/engine-physics-physx/dist/libs/*`. The Galacean CDN serves the runtime at `<version>/libs/*`.

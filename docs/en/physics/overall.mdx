@@ -27,7 +27,7 @@ const engine = await WebGLEngine.create({
 
 The UMD, ESM, and CommonJS entries load the packaged runtime from `./libs/` beside the entry file. When self-hosting, copy `dist/libs/` alongside that file.
 
-When upgrading to 2.0, change direct asset imports and CDN links from `@galacean/engine-physics-physx/libs/*` to `@galacean/engine-physics-physx/dist/libs/*`.
+In 2.0, direct npm imports and URLs on npm mirrors such as jsDelivr use `@galacean/engine-physics-physx/dist/libs/*`. The Galacean CDN serves `dist/` as the version root, so its runtime URLs use `<version>/libs/*`.
 
 In Vite development, add `@galacean/engine-physics-physx` to `optimizeDeps.exclude` so the assets resolve relative to the package.
 

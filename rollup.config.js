@@ -271,7 +271,7 @@ function shaderParserModuleConfig() {
   };
 }
 
-async function makeRollupConfig({ location, pkgJson, type, compress = true }) {
+function makeRollupConfig({ location, pkgJson, type, compress = true }) {
   const build = config({ location, pkgJson })[type](compress);
   const { assetDirectory } = pkgJson;
   if (assetDirectory) {
@@ -302,25 +302,6 @@ async function makeRollupConfig({ location, pkgJson, type, compress = true }) {
     );
   }
   return build;
-}
-
-let promises = [];
-
-switch (BUILD_TYPE) {
-  case "UMD":
-    promises.push(...getUMD());
-    break;
-  case "MODULE":
-    promises.push(...getModule());
-    break;
-  case "BUNDLED":
-    promises.push(...getBundled());
-    break;
-  case "ALL":
-    promises.push(...getAll());
-    break;
-  default:
-    break;
 }
 
 function getUMD() {
@@ -361,8 +342,19 @@ function getBundled() {
   return [];
 }
 
-function getAll() {
-  return [...getModule(), ...getUMD(), ...getBundled()];
+function getBuildConfigs() {
+  switch (BUILD_TYPE) {
+    case "UMD":
+      return getUMD();
+    case "MODULE":
+      return getModule();
+    case "BUNDLED":
+      return getBundled();
+    case "ALL":
+      return [...getModule(), ...getUMD(), ...getBundled()];
+    default:
+      return [];
+  }
 }
 
-export default Promise.all(promises);
+export default getBuildConfigs();
