@@ -86,15 +86,17 @@ export class PhysXDynamicActor extends PhysXActor implements IDynamicActor {
     const actor = this._pxActor;
     // Unit density computes the solid shapes' centroid and inertia in their mass frame.
     // Uniformly scaling the mass scales the diagonal without changing the principal axes.
+    const inertiaMass = mass || 1;
     const unitMass = actor.setDensity(1, centerOfMass === null, inertiaTensor === null);
     if (unitMass === 0) {
-      // An empty shape set or an unrepresentable unit-density result can still accept an explicit mass.
-      actor.setMassAndUpdateInertia(mass);
-    } else if (unitMass !== mass) {
-      actor.setMass(mass);
-      if (!inertiaTensor) {
+      // The explicit-mass solver also sets the defaults for an empty body.
+      const computed = actor.setMassAndUpdateInertia(inertiaMass);
+      if (!computed || mass === 0) actor.setMass(mass);
+    } else {
+      if (unitMass !== mass) actor.setMass(mass);
+      if (!inertiaTensor && unitMass !== inertiaMass) {
         const diagonal = actor.getMassSpaceInertiaTensor();
-        const scale = mass / unitMass;
+        const scale = inertiaMass / unitMass;
         diagonal.x *= scale;
         diagonal.y *= scale;
         diagonal.z *= scale;

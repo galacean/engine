@@ -63,7 +63,7 @@ export interface IDynamicActor extends IPhysicsActor {
   /**
    * Updates the mass and recomputes automatic center of mass and/or inertia properties from attached solid shapes,
    * preserving any non-null manual overrides.
-   * @param mass - Positive mass to apply during recomputation
+   * @param mass - Mass to apply. Zero gives infinite translational mass and uses unit mass for automatic inertia.
    * @param centerOfMass - Manual center of mass to preserve, or null to compute automatically
    * @param inertiaTensor - Manual diagonal inertia tensor to preserve, or null to compute automatically
    * @param inertiaTensorRotation - Manual principal-axis rotation matching `inertiaTensor`, or null when automatic

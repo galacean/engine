@@ -186,7 +186,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   /**
-   * The mass of the Rigidbody. PhysX treats zero as infinite mass.
+   * The mass of the Rigidbody. Zero gives infinite translational mass and uses unit mass for automatic inertia.
    * @throws When the value is neither zero nor a positive normal Float32.
    */
   get mass(): number {
@@ -426,7 +426,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
-      this._isKinematic = value;
+      const actor = this._nativeActor;
       this._poseSynced = false;
       if (value) {
         this._cancelPendingSleep();
@@ -441,7 +441,18 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
           }
         }
       }
-      this._nativeActor?.setMotionState(value, this._useCCD);
+      actor?.setMotionState(value, this._useCCD);
+      if (!value) {
+        // Refresh retained vectors while their change callbacks still cannot write to the actor.
+        if (actor) {
+          actor.getLinearVelocity(this._linearVelocity);
+          actor.getAngularVelocity(this._angularVelocity);
+        } else {
+          this._linearVelocity.set(0, 0, 0);
+          this._angularVelocity.set(0, 0, 0);
+        }
+      }
+      this._isKinematic = value;
       if (!value) this._wakeNative();
       // Revisit the hierarchy so excluded shapes rejoin on kinematic or re-evaluate dynamic constraints.
       this._markCollidersDirty();
@@ -1001,19 +1012,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const mass = this._mass;
     const autoCom = this._automaticCenterOfMass;
     const autoInertia = this._automaticInertiaTensor;
-    if (mass === 0) {
-      if (autoCom && changes & MassChanges.Geometry) {
-        const colliders = this._attachedColliders;
-        const count = colliders.length;
-        let i = 0;
-        while (i < count && colliders[i].isTrigger) i++;
-        // Reset an empty body to its origin. Unit density yields a solid body's center without changing its inertia.
-        if (i === count || actor.setDensity(1, true, false)) {
-          actor.setMassProperties(0, i === count ? Vector3._zero : undefined);
-          return;
-        }
-      }
-    } else if (autoCom || autoInertia) {
+    if (autoCom || autoInertia) {
       const colliders = this._attachedColliders;
       const count = colliders.length;
       // Dynamic actors already exclude kinematic-only geometry when their shapes attach.
@@ -1208,7 +1207,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   @ignoreClone
   private _setLinearVelocity(): void {
-    if (!this._isKinematic) {
+    if (!this._isKinematic && Rigidbody._isFiniteVectorF32(this._linearVelocity)) {
       this._cancelPendingSleep();
       this._nativeActor?.setLinearVelocity(this._linearVelocity);
     }
@@ -1216,7 +1215,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   @ignoreClone
   private _setAngularVelocity(): void {
-    if (!this._isKinematic) {
+    if (!this._isKinematic && Rigidbody._isFiniteVectorF32(this._angularVelocity)) {
       this._cancelPendingSleep();
       this._nativeActor?.setAngularVelocity(this._angularVelocity);
     }

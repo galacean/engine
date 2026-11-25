@@ -388,6 +388,61 @@ describe("Rigidbody", function () {
     expect(body.angularVelocity.z).toBeCloseTo(1);
   });
 
+  it.each([
+    [1, false],
+    [1, true],
+    [1e-15, false],
+    [1e-15, true]
+  ] as const)("derives consistent automatic inertia at zero mass (scale=%s, read=%s)", (scale, readFirst) => {
+    useFixedTimeStep();
+    const entity = rootEntity.createChild();
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    body.angularDamping = 0;
+    const box = entity.addComponent(BoxCollider);
+    box.size.set(2, 4, 6);
+    box.center.x = 3;
+    body.mass = 2;
+    if (readFirst) expect(body.inertiaTensor.z).toBeCloseTo(10 / 3);
+    entity.transform.setScale(scale, scale, scale);
+    body.mass = 0;
+
+    const clone = entity.clone();
+    clone.transform.setPosition(0, 0, 20);
+    rootEntity.addChild(clone);
+    const cloneBody = clone.getComponent(Rigidbody);
+    const impulse = new Vector3(0, 0, 4);
+    body.applyTorque(impulse, ForceMode.Impulse);
+    cloneBody.applyTorque(impulse, ForceMode.Impulse);
+    engine.update();
+
+    const inertia = scale === 1 ? 5 / 3 : 1;
+    expect(body.inertiaTensor.z).toBeCloseTo(inertia);
+    expect(body.angularVelocity.z).toBeCloseTo(4 / inertia);
+    expect(cloneBody.angularVelocity.z).toBeCloseTo(4 / inertia);
+  });
+
+  it("preserves a finite pose through a shrink animation and restores the mass frame when the shape grows again", () => {
+    useFixedTimeStep();
+    const entity = rootEntity.createChild();
+    const body = entity.addComponent(Rigidbody);
+    body.useGravity = false;
+    const box = entity.addComponent(BoxCollider);
+    box.center.x = 3;
+    for (let i = 0; i < 150; i++) {
+      entity.transform.scale.scale(0.8);
+      engine.update();
+    }
+    expect(entity.transform.worldPosition).toMatchObject({ x: 0, y: 0, z: 0 });
+
+    body.mass = 7;
+    body.applyForce(new Vector3(14, 0, 0), ForceMode.Impulse);
+    engine.update();
+    expect(body.linearVelocity.x).toBeCloseTo(2);
+    entity.transform.setScale(1, 1, 1);
+    expect(body.centerOfMass.x).toBe(3);
+  });
+
   it.each(["removed", "trigger"])("resets the automatic center when the last solid is %s at infinite mass", (edit) => {
     const entity = rootEntity.createChild();
     const body = entity.addComponent(Rigidbody);
@@ -810,6 +865,27 @@ describe("Rigidbody", function () {
     expect(body.linearVelocity.x).toBeCloseTo(applyImpulse ? 1 : 0);
     if (applyImpulse) expect(entity.transform.position.y).toBeLessThan(10);
     else expect(entity.transform.position.y).toBe(10);
+  });
+
+  it.each(["linearVelocity", "angularVelocity"] as const)("keeps initial sleep when %s is rejected", (property) => {
+    useFixedTimeStep();
+    const entity = new Entity(engine);
+    entity.transform.position.y = 10;
+    const body = entity.addComponent(Rigidbody);
+    entity.addComponent(BoxCollider);
+    body.sleep();
+    rootEntity.addChild(entity);
+    body[property] = new Vector3(3.5e38, 0, 0);
+    body[property].z = NaN;
+
+    engine.update();
+    expect(entity.transform.worldPosition.y).toBe(10);
+    expect(body.isSleeping()).toBe(true);
+
+    body[property] = new Vector3(1, 0, 0);
+    engine.update();
+    expect(body[property].x).toBeGreaterThan(0);
+    expect(entity.transform.worldPosition.y).toBeLessThan(10);
   });
 
   it("honors sleep requested before a world joint enters simulation", () => {
@@ -1336,6 +1412,39 @@ describe("Rigidbody", function () {
     clonedBody.angularVelocity.set(0, 0, 0);
     expect(Vector3.equals(body.linearVelocity, linear)).toBe(true);
     expect(Vector3.equals(body.angularVelocity, angular)).toBe(true);
+  });
+
+  it.each([
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true]
+  ] as const)("keeps velocities consistent before first enable (raycast=%s, edit=%s)", (query, edit) => {
+    useFixedTimeStep();
+    const entity = new Entity(engine);
+    entity.addComponent(BoxCollider);
+    const body = entity.addComponent(Rigidbody);
+    body.enabled = false;
+    body.useGravity = false;
+    const linear = body.linearVelocity.set(4, 0, 0);
+    const angular = body.angularVelocity.set(0, 0, 2);
+    body.isKinematic = true;
+    rootEntity.addChild(entity);
+    if (query) {
+      const ray = new Ray(new Vector3(10, 10, 10), new Vector3(1, 0, 0));
+      expect(engine.sceneManager.activeScene.physics.raycast(ray, 2)).toBe(false);
+    }
+    body.isKinematic = false;
+    if (edit) {
+      linear.y = 1;
+      angular.x = 1;
+    }
+    body.enabled = true;
+
+    engine.update();
+    expect(entity.transform.worldPosition.x).toBe(0);
+    expect(body.linearVelocity.length()).toBeCloseTo(edit ? 1 : 0);
+    expect(body.angularVelocity.length()).toBeCloseTo(edit ? 1 : 0);
   });
 
   it("inActive modification", function () {
