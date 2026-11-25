@@ -1,0 +1,50 @@
+packages/world-planning/src/world/MarkupStrokeField.shader
+  h_ddbf152d31b140 1-76
+packages/world-planning/src/world/MarkupViewport.shader
+  h_ddbf152d31b140 25-26,31-32,56-129,140-142,159-217,226,259-271,273-274,276,284,288-290
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  h_ddbf152d31b140 4,8,12,32,124-128,135-136,145,306,308-311,348-371,523-540,547-549,578-609,612-615,781-784,795-797,802-892,948-952,957,965-968,985,993,996,1002,1004,1021-1042,1088-1093,1120-1145,1155-1159
+packages/world-planning/src/world/SeedWorldPhotoPalette.ts
+  h_ddbf152d31b140 15-105,110-114
+packages/world-planning/src/world/SeedWorldPicker.ts
+  h_ddbf152d31b140 29-30,80-97,133,411-417,420-429,435,440-441,443,446,458-496,506-515,524-554,564-565,568-571,576,599-601,603,606-607,609,672
+packages/world-planning/src/world/SeedWorldStrokeSmoothing.ts
+  h_ddbf152d31b140 1-268
+packages/world-planning/src/world/SeedWorldViewSnapshot.ts
+  h_ddbf152d31b140 80-83,87-93
+packages/world-planning/tests/SeedWorldPhotoGraphics.spec.ts
+  h_ddbf152d31b140 1-322
+packages/world-planning/tests/SeedWorldPicker.spec.ts
+  h_ddbf152d31b140 6,9-37,41-48,158-330
+packages/world-planning/tests/SeedWorldStrokeSmoothing.spec.ts
+  h_ddbf152d31b140 1-98
+packages/world-planning/tests/SeedWorldViewSnapshot.spec.ts
+  h_ddbf152d31b140 541-584
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 3448-3449,3473-3474
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  h_ddbf152d31b140 1-6,102-107,109-112,114-116,119,121,739,1743,1747,1757,1763,1953,2007-2010,2018,2037,2039,2131-2132,2138-2142,2144-2145,2148-2150,2167-2171,2203-2212,2465-2467,2473-2477,2479-2484,2642,2659
+world/demos/seed-world/assistant/shaders/SeedWorldVoiceOrb.shader
+  h_ddbf152d31b140 172-173,178,218,223,228,239-240,273,275,277,285,287,289,294,296,298,303-307,314-318,321,324-325,328-330,334-335,337,340-341,344,350,352-354,356,358,361,363-365,368-369
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  h_ddbf152d31b140 1-5,28,31-34,262
+world/demos/seed-world/src/SeedWorldHudLayout.ts
+  h_ddbf152d31b140 1-8
+world/demos/seed-world/src/SeedWorldLassoPanel.ts
+  h_ddbf152d31b140 17-23,29,93-98,138-144
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  h_ddbf152d31b140 3,73-75,77,89-94,160-164,267-276,333-397,400,403-404,406-410,413-414,417,425-428,534,547-549,564,568,643,645-646,667-668,678,680-734,775-779,781-783,786,790,804,818-820,822-828,875-888,1041-1047,1159-1166,1195,1200-1202,1283-1286
+world/tests/seed-world/SeedWorldPhotoWorkspace.spec.ts
+  h_ddbf152d31b140 1-404
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3cf5e998436faae8356ac9db519f248c00b79508",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
