@@ -383,7 +383,7 @@ export class SeedWorldPicker {
     );
   }
 
-  /** Fast color-only capture (1 frame, zero pick shader compile / 2nd scene pass) for instant UI opening. */
+  /** Capture a color-only image. Use capture() when the image also needs pixel-aligned picking. */
   captureColorOnly(
     signal?: AbortSignal,
     budget?: ImageResourceBudget
@@ -406,7 +406,7 @@ export class SeedWorldPicker {
     );
   }
 
-  /** Populate the pixel-aligned ID + depth texture while the camera/world remains frozen at the captured view. */
+  /** Render identities for the current view. Pair with an existing image only if projection, viewport and scene still match. */
   captureIdentityBuffer(
     visit: SeedWorldPickSource,
     resolveRef: (batch: SeedWorldPickBatch) => ViewRef,

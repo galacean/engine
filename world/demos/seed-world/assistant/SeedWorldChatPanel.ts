@@ -735,8 +735,9 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
     if (!task || this._destroyed) return;
     const viewer = this.application.getViewerSnapshot();
     const attachment = this.application.viewSnapshots?.acquireAttachments();
+    let attachmentsAccepted = false;
     if (typeof document !== "undefined") {
-      document.dispatchEvent(new CustomEvent("seed-world-voice-submitted", { detail: { submittedToAgent: true } }));
+      document.dispatchEvent(new CustomEvent("seed-world-voice-submitted"));
     }
 
     try {
@@ -754,6 +755,7 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
           signal.throwIfAborted();
           return await attachment?.export() ?? [];
         },
+        onAttachmentsAccepted: () => { attachmentsAccepted = true; },
         release: () => attachment?.release()
       }, { asr, id: activeTraceInteractionId }).completion;
       if (this._state.kind === "voice") this._transition(this._agentPresentation ?? { kind: "idle" });
@@ -764,7 +766,8 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
         }
       } finally {
         if (typeof document !== "undefined") {
-          document.dispatchEvent(new CustomEvent("seed-world-voice-turn-ended"));
+          const snapshotIds = attachmentsAccepted && attachment ? attachment.currentSnapshotIds() : [];
+          document.dispatchEvent(new CustomEvent("seed-world-voice-turn-ended", { detail: { snapshotIds } }));
         }
       }
     } catch (error) {

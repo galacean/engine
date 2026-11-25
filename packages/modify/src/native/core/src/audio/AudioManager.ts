@@ -107,7 +107,12 @@ export class AudioManager {
    */
   static resume(): Promise<void> {
     AudioManager._suspendedByCaller = false;
-    return AudioManager._requestResume(AudioManager._isUserGestureActive());
+    try {
+      return AudioManager._requestResume(AudioManager._isUserGestureActive());
+    } catch (error) {
+      // Context construction can throw synchronously, before the native resume promise exists.
+      return Promise.reject(error);
+    }
   }
 
   /**

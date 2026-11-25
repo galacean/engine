@@ -407,10 +407,12 @@ describe("PhotoSurface stroke mask lifecycle & failure cleanup", () => {
 
     const surface = new PhotoSurface(graphics, image as any);
     surface.setFrameLayout(380, 608, 20, 0);
+    expect(surface.hasUserMarks).toBe(false);
 
     // Mid-sweep bakes into strokeMaskTarget through the exact real brush pipeline.
     surface.setHintLoop(0.5, 1.0);
     expect(graphics.renderStrokeField).toHaveBeenCalledTimes(1);
+    expect(surface.hasUserMarks).toBe(false);
 
     // Closing bakes once; subsequent pulse & fade frames at progress=1 must NOT trigger any extra GPU redraws.
     surface.setHintLoop(1.0, 1.0);
@@ -428,6 +430,9 @@ describe("PhotoSurface stroke mask lifecycle & failure cleanup", () => {
 
     surface.setHintLoop(0, 0);
     expect((surface as any).brushParams.y).toBe(1);
+    expect(surface.hasUserMarks).toBe(true);
+    surface.paint([]);
+    expect(surface.hasUserMarks).toBe(false);
     surface.dispose();
   });
 
@@ -544,6 +549,7 @@ describe("PhotoSurface stroke mask lifecycle & failure cleanup", () => {
 
     const loadedAudioRequests: Array<{ url: string; type: string }> = [];
     const fakeClip = { name: "shutter-clip" };
+    const decode = Promise.withResolvers<typeof fakeClip>();
     const mainScene = new (Scene as any)({}, "main");
     const engine: any = {
       canvas: { width: 800, height: 600 },
@@ -554,7 +560,7 @@ describe("PhotoSurface stroke mask lifecycle & failure cleanup", () => {
       resourceManager: {
         load: vi.fn(async (req: { url: string; type: string }) => {
           loadedAudioRequests.push(req);
-          return fakeClip;
+          return decode.promise;
         })
       }
     };
@@ -582,6 +588,10 @@ describe("PhotoSurface stroke mask lifecycle & failure cleanup", () => {
     // Cold click before prepare() captures the gesture via AudioManager.resume() and plays once the WAV AudioClip loads.
     graphics.playShutter();
     expect(state.audioResumeCalls).toBe(1);
+    await graphics.prepare();
+    expect(audioSource.clip).toBeNull();
+    expect(audioSource.playCalls).toEqual([]);
+    decode.resolve(fakeClip);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(loadedAudioRequests).toHaveLength(1);
     expect(loadedAudioRequests[0]!.type).toBe("Audio");

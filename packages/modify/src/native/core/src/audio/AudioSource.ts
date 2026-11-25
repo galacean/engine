@@ -318,13 +318,21 @@ export class AudioSource extends Component {
       return;
     }
 
+    let contextRunning: boolean;
+    try {
+      contextRunning = AudioManager.isAudioContextRunning();
+    } catch (error) {
+      console.warn("Failed to initialize AudioContext:", error);
+      return;
+    }
+
     if (offset !== undefined) {
       this._playbackOffset = Number.isFinite(offset) ? Math.max(0, offset) : 0;
       this._playbackStartTime = performance.now() / 1000;
     }
 
     const expired = this._isExpired(this._getPlaybackTime());
-    if (AudioManager.isAudioContextRunning()) {
+    if (contextRunning) {
       if (expired) {
         this.stop();
       }

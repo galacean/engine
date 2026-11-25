@@ -626,6 +626,7 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
   acquireAttachments():
     | {
         references: { imagePath: string; metadata: AgentViewObservation["metadata"] }[];
+        currentSnapshotIds(): string[];
         export(): Promise<AgentViewObservation[]>;
         release(): void;
       }
@@ -636,7 +637,7 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
         const entry = this.get(attachment.snapshotId),
           version = entry.versions.get(imagePath)!;
         const metadata = this.attachmentMetadata(attachment, version.annotations.length > 0);
-        return { entry, version, imagePath, metadata, id: attachment.snapshotId };
+        return { entry, version, attachment, imagePath, metadata, id: attachment.snapshotId };
       })
       .map((item) => {
         // Validate every image before acquiring any task ownership.
@@ -646,6 +647,12 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
     let released = false;
     return {
       references: selected.map(({ imagePath, metadata }) => ({ imagePath, metadata })),
+      // Reopening or editing republishes the attachment. A finished input may only remove
+      // the exact attachment it acquired, even if the user later restores identical strokes.
+      currentSnapshotIds: () =>
+        selected
+          .filter(({ id, attachment }) => this.attachments.get(id)?.attachment === attachment)
+          .map(({ id }) => id),
       export: async () => {
         if (released || this.disposed) throw new Error("Screenshot submission was released");
         // Each in-flight export keeps its snapshot alive even if its submission is cancelled.

@@ -155,9 +155,10 @@ Shader "SeedWorld/MarkupViewportV1" {
         // - outerAura / edgeRing carry the shifting Apple Intelligence rainbow halo
         // - bodyMask / coreMask form the clean translucent frosted-white brush base
         float outerAura = exp(-max(0.0, dGlow - 0.82) * 0.62) * smoothstep(0.0, 0.12, glowField) * 0.46 * breath;
-        float edgeRing = exp(-pow((dNorm - 1.16) * 1.25, 2.0)) * smoothstep(0.02, 0.16, glowField) * 0.70 * breath;
-        float bodyMask = smoothstep(1.34, 0.42, dNorm) * smoothstep(0.02, 0.14, nearField);
-        float coreMask = smoothstep(0.84, 0.08, dNorm) * smoothstep(0.02, 0.14, nearField);
+        float edgeDistance = (dNorm - 1.16) * 1.25;
+        float edgeRing = exp(-edgeDistance * edgeDistance) * smoothstep(0.02, 0.16, glowField) * 0.70 * breath;
+        float bodyMask = (1.0 - smoothstep(0.42, 1.34, dNorm)) * smoothstep(0.02, 0.14, nearField);
+        float coreMask = (1.0 - smoothstep(0.08, 0.84, dNorm)) * smoothstep(0.02, 0.14, nearField);
 
         // Sky-contrast iridescent cradle: on bright sky/clouds, tint the feathered edge gently with the flowing
         // cyan/violet/pink aura so the white brush ribbon floats crisply even across sunlit white clouds.

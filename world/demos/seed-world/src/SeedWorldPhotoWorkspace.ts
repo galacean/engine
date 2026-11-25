@@ -10,7 +10,6 @@ import {
   UnlitMaterial,
   type Camera,
   type Engine,
-  type ModelMesh,
   type Pointer,
   type PointerEventData
 } from "@galacean/engine";
@@ -79,7 +78,6 @@ export class SeedWorldPhotoWorkspace {
   private outsideTap?: { pointer: number; x: number; y: number; moved: boolean };
   private closeTap?: { pointer: number; x: number; y: number; moved: boolean };
   private discarding?: { entry: Entry; controller: AbortController };
-  private readonly submittedIds = new Set<string>();
   private readonly pendingClearIds = new Set<string>();
   private readonly clearingIds = new Set<string>();
   private clearSubmittedAbort?: AbortController;
@@ -332,15 +330,6 @@ export class SeedWorldPhotoWorkspace {
       if (!this.disposed) entry.surface.setHintLoop(0, 0);
     });
   }
-  /** Mark all currently active docked/editing photos as submitted to the active voice turn. */
-  markCurrentPhotosSubmitted(): void {
-    const discardingId = this.discarding?.entry.photo.snapshotId;
-    for (const id of this.entries.keys()) {
-      if (!this.clearingIds.has(id) && id !== discardingId) {
-        this.submittedIds.add(id);
-      }
-    }
-  }
   /** Immediately dispose any cards currently fading out after a finished voice turn. */
   flushClearingCards(): void {
     if (!this.clearingIds.size && !this.clearSubmittedAbort) return;
@@ -349,10 +338,8 @@ export class SeedWorldPhotoWorkspace {
     const ids = [...this.clearingIds];
     this.clearingIds.clear();
     for (const id of ids) {
-      this.submittedIds.delete(id);
       const entry = this.entries.get(id);
       if (!entry) continue;
-      this.actions.remove(id);
       entry.surface.dispose();
       entry.release();
       this.input.remove(id);
@@ -361,19 +348,17 @@ export class SeedWorldPhotoWorkspace {
     if (!this.disposed) this.layout();
   }
   /** Immediately dispose or gracefully fade away all docked cards that were submitted in a voice turn. */
-  clearSubmittedCards(immediate = false): void {
+  clearSubmittedCards(snapshotIds: readonly string[]): void {
     const cards: Entry[] = [];
-    for (const id of [...this.submittedIds]) {
+    for (const id of snapshotIds) {
       const entry = this.entries.get(id);
       if (!entry || entry === this.discarding?.entry || this.clearingIds.has(id)) {
-        if (!entry) this.submittedIds.delete(id);
         continue;
       }
       if (entry === this.editing?.entry) {
         // Turn ended before dismissSubmitted() finished shrinking/preparing identities:
         // detach immediately so the finished turn's photo can never leak into the next turn,
         // and fade out the card as soon as dismissSubmitted() completes.
-        this.submittedIds.delete(id);
         this.pendingClearIds.add(id);
         this.actions.remove(id);
         continue;
@@ -387,7 +372,6 @@ export class SeedWorldPhotoWorkspace {
     }
     for (const entry of cards) {
       const id = entry.photo.snapshotId;
-      this.submittedIds.delete(id);
       this.clearingIds.add(id);
       if (this.drag?.id === id) this.cancelDrag();
       // Free the attachment slot immediately; active AI turns already hold their own snapshot leases.
@@ -398,7 +382,6 @@ export class SeedWorldPhotoWorkspace {
       for (const card of cards) {
         const id = card.photo.snapshotId;
         if (!this.clearingIds.delete(id)) continue;
-        this.submittedIds.delete(id);
         if (this.entries.get(id) !== card) continue;
         card.surface.dispose();
         card.release();
@@ -407,7 +390,7 @@ export class SeedWorldPhotoWorkspace {
       }
       if (!this.disposed) this.layout();
     };
-    if (immediate || this.disposed) {
+    if (this.disposed) {
       disposeCards();
       return;
     }
@@ -441,7 +424,6 @@ export class SeedWorldPhotoWorkspace {
     signal: AbortSignal
   ): Promise<void> {
     const wasClearing = this.clearingIds.delete(photo.snapshotId);
-    this.submittedIds.delete(photo.snapshotId);
     this.pendingClearIds.delete(photo.snapshotId);
     if (wasClearing || !this.entries.has(photo.snapshotId)) {
       this.flushClearingCards();
@@ -623,8 +605,7 @@ export class SeedWorldPhotoWorkspace {
     this.editing = undefined;
     this.finish();
     if (this.pendingClearIds.delete(dismissedId) && this.entries.get(dismissedId) === entry) {
-      this.submittedIds.add(dismissedId);
-      this.clearSubmittedCards(false);
+      this.clearSubmittedCards([dismissedId]);
     }
   }
   cancel(): void {
@@ -671,7 +652,6 @@ export class SeedWorldPhotoWorkspace {
     this.freeze(false);
   }
   remove(id: string): void {
-    this.submittedIds.delete(id);
     this.pendingClearIds.delete(id);
     this.clearingIds.delete(id);
     const entry = this.entries.get(id);
@@ -810,8 +790,7 @@ export class SeedWorldPhotoWorkspace {
         cameraEnabled: this.graphics.camera.enabled,
         sceneActive: this.graphics.scene.isActive,
         rootActive: this.editing.entry.surface.root.isActiveInHierarchy,
-        inkActive: this.editing.entry.surface.ink.entity.isActiveInHierarchy,
-        vertices: (this.editing.entry.surface.ink.mesh as ModelMesh | null)?.vertexCount
+        hasUserMarks: this.editing.entry.surface.hasUserMarks
       });
   }
   private render(entry: Entry): void {
@@ -1179,11 +1158,9 @@ export class SeedWorldPhotoWorkspace {
       if (this.trace.enabled)
         this.trace.sample("paint", {
           elapsedMs: performance.now() - started,
-          vertices: (entry.surface.ink.mesh as ModelMesh | null)?.vertexCount,
           rootActive: entry.surface.root.isActiveInHierarchy,
-          inkActive: entry.surface.ink.entity.isActiveInHierarchy,
-          cameraEnabled: this.graphics.camera.enabled,
-          inkWorldMatrix: Array.from(entry.surface.ink.entity.transform.worldMatrix.elements)
+          hasUserMarks: entry.surface.hasUserMarks,
+          cameraEnabled: this.graphics.camera.enabled
         });
     } catch (error) {
       this.trace.record("paint-error", { error: String(error instanceof Error ? error.stack : error) });
@@ -1214,7 +1191,6 @@ export class SeedWorldPhotoWorkspace {
       this.openTransitionAbort?.abort(SeedWorldPhotoWorkspace.OPEN_HANDOFF);
       this.openTransitionAbort = undefined;
     }
-    this.submittedIds.delete(entry.photo.snapshotId);
     this.pendingClearIds.delete(entry.photo.snapshotId);
     this.clearingIds.delete(entry.photo.snapshotId);
     this.stopOnboardingHint();
@@ -1291,10 +1267,7 @@ export class SeedWorldPhotoWorkspace {
       if (this.drawing) this.cancelDrawing("escape");
       else if (this.drag) this.cancelDrag();
       else if (this.mode === "editing" && this.editing) this.actions.minimize();
-      else if (this.phase === "identities") {
-        const id = this.editing?.entry.photo.snapshotId;
-        if (!id || !this.submittedIds.has(id)) this.actions.cancel();
-      } else if (this.phase !== "return" && this.phase !== "discard") this.actions.cancel();
+      else if (this.phase !== "return" && this.phase !== "discard") this.actions.cancel();
     }
   }
   dispose(): void {
@@ -1304,7 +1277,6 @@ export class SeedWorldPhotoWorkspace {
     this.stopOnboardingHint();
     this.clearSubmittedAbort?.abort();
     this.clearSubmittedAbort = undefined;
-    this.submittedIds.clear();
     this.pendingClearIds.clear();
     this.clearingIds.clear();
     this.discarding?.controller.abort();

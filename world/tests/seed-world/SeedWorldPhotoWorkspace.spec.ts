@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => {
       isActiveInHierarchy: false,
       transform: { setPosition() {}, setRotation() {}, setScale() {} }
     };
-    readonly ink = { entity: { isActive: false, isActiveInHierarchy: false, transform: { worldMatrix: { elements: [] } } }, mesh: null };
+    hasUserMarks = false;
     layoutWidth = 100;
     layoutHeight = 100;
     frameRadius = 0;
@@ -48,9 +48,10 @@ const mocks = vi.hoisted(() => {
     }
     paintCalls = 0;
     throwOnPaint: Error | null = null;
-    paint() {
+    paint(marks: readonly unknown[]) {
       this.paintCalls++;
       if (this.throwOnPaint) throw this.throwOnPaint;
+      this.hasUserMarks = marks.length > 0;
     }
     dispose() {
       this.disposed = true;
@@ -105,7 +106,9 @@ vi.mock("../../demos/seed-world/src/SeedWorldPhotoInput.ts", () => ({
 
 vi.mock("../../demos/seed-world/src/SeedWorldPhotoInputTrace.ts", () => ({
   SeedWorldPhotoInputTrace: class {
-    enabled = false;
+    get enabled() {
+      return false;
+    }
     record() {}
     sample() {}
     dispose() {}
@@ -258,54 +261,47 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     vi.unstubAllGlobals();
   });
 
-  it("flushes prior fading batch on reentrant clearSubmittedCards(false) without leaking entries, pins, or camera", async () => {
+  it("traces the surface's user marks during paint and on subsequent frames", async () => {
+    const { ws } = createWorkspace({ reducedMotion: true });
+    const trace = ws["trace"];
+    vi.spyOn(trace, "sample");
+    vi.spyOn(trace, "enabled", "get").mockReturnValue(true);
+    try {
+      await ws.open(makeDoc("trace"), new AbortController().signal);
+      ws["tick"](1 / 60);
+      expect(trace.sample).toHaveBeenCalledWith("frame", expect.objectContaining({ hasUserMarks: false }));
+
+      const { x, y } = ws["editing"]!.entry.pose;
+      const pointer = { id: 1, button: 0, position: { x, y } };
+      ws["handlePointer"]("begin", { ...pointer, phase: 0 } as any);
+      ws["handlePointer"]("end", { ...pointer, phase: 2 } as any);
+      expect(trace.sample).toHaveBeenCalledWith("paint", expect.objectContaining({ hasUserMarks: true }));
+      ws["tick"](1 / 60);
+      expect(trace.sample).toHaveBeenLastCalledWith("frame", expect.objectContaining({ hasUserMarks: true }));
+    } finally {
+      ws.dispose();
+    }
+  });
+
+  it("flushes prior fading batch on overlapping submission completions without leaking entries, pins, or camera", async () => {
     const nowRef = { now: 1000 };
     vi.spyOn(performance, "now").mockImplementation(() => nowRef.now);
     const { ws, released, removed, advanceMs } = createWorkspace({ reducedMotion: false });
 
-    const docA = makeDoc("photo-A");
-    const openA = ws.open(docA, new AbortController().signal);
-    await Promise.resolve();
-    advanceMs(520, nowRef);
-    await openA;
-    const dismissA = ws.dismissSubmitted(new AbortController().signal);
-    advanceMs(420, nowRef);
-    await dismissA;
+    for (const id of ["photo-A", "photo-B"]) {
+      const opening = ws.open(makeDoc(id), new AbortController().signal);
+      await Promise.resolve();
+      advanceMs(520, nowRef);
+      await opening;
+      const dismissing = ws.dismissSubmitted(new AbortController().signal);
+      advanceMs(420, nowRef);
+      await dismissing;
+    }
 
-    ws.markCurrentPhotosSubmitted();
-
-    // Open B while A is docked, mark B submitted too, then end Turn 1 while B is still editing.
-    const docB = makeDoc("photo-B");
-    const openB = ws.open(docB, new AbortController().signal);
-    await Promise.resolve();
-    advanceMs(520, nowRef);
-    await openB;
-    ws.markCurrentPhotosSubmitted();
-
-    // Batch 1 starts fading A (260ms) while skipping editing B.
-    ws.clearSubmittedCards(false);
+    ws.clearSubmittedCards(["photo-A"]);
+    expect(removed).toEqual(["photo-A"]);
     advanceMs(48, nowRef);
-
-    // B finishes dismissing and Turn 2 ends mid-fade -> reentrant clearSubmittedCards(false).
-    const dismissB = ws.dismissSubmitted(new AbortController().signal);
-    advanceMs(420, nowRef);
-    await dismissB;
-    // Trigger a fresh overlapping fade scenario with C to test exact mid-260ms abort reentrancy as well:
-    const docC = makeDoc("photo-C");
-    const openC = ws.open(docC, new AbortController().signal);
-    await Promise.resolve();
-    advanceMs(520, nowRef);
-    await openC;
-    const dismissC = ws.dismissSubmitted(new AbortController().signal);
-    advanceMs(420, nowRef);
-    await dismissC;
-
-    // Now B and C are both docked; put B in submittedIds -> start 260ms fade; at 48ms put C in submittedIds -> reentrant clear!
-    (ws as any).submittedIds.add("photo-B");
-    ws.clearSubmittedCards(false);
-    advanceMs(48, nowRef);
-    (ws as any).submittedIds.add("photo-C");
-    ws.clearSubmittedCards(false);
+    ws.clearSubmittedCards(["photo-B"]);
     advanceMs(320, nowRef);
     await Promise.resolve();
     advanceMs(32, nowRef);
@@ -315,11 +311,9 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     expect(ws.size).toBe(0);
     expect(mocks.surfaces.get("photo-A")?.disposeCount).toBe(1);
     expect(mocks.surfaces.get("photo-B")?.disposeCount).toBe(1);
-    expect(mocks.surfaces.get("photo-C")?.disposeCount).toBe(1);
-    expect(released.sort()).toEqual(["photo-A", "photo-B", "photo-C"]);
+    expect(released.sort()).toEqual(["photo-A", "photo-B"]);
     expect(removed).toContain("photo-A");
     expect(removed).toContain("photo-B");
-    expect(removed).toContain("photo-C");
     expect(ws.graphics.camera.enabled).toBe(false);
 
     ws.dispose();
@@ -342,8 +336,7 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
       await pDismiss;
     }
 
-    ws.markCurrentPhotosSubmitted();
-    ws.clearSubmittedCards(false);
+    ws.clearSubmittedCards(["photo-A", "photo-B"]);
     advanceMs(60, nowRef);
 
     // Reopen photo-A mid-fade; photo-B should be flushed cleanly while photo-A remains live and editable.
@@ -563,12 +556,11 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     await openP;
 
     expect(ws.isEditing).toBe(true);
-    ws.markCurrentPhotosSubmitted();
     const dismissP = ws.dismissSubmitted(new AbortController().signal);
     advanceMs(80, nowRef);
 
     // Voice turn ends rapidly (e.g. user hit Stop or fast error) while 380ms shrink is still running.
-    ws.clearSubmittedCards(false);
+    ws.clearSubmittedCards([doc.snapshotId]);
     // Attachment slot must be freed immediately so the finished turn's photo cannot leak into Turn 2.
     expect(removed).toContain("p-fast-turn");
     expect(ws.size).toBe(0);
@@ -712,7 +704,6 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     await open2;
     const attachCountBeforeCancel = attached.length;
 
-    ws.markCurrentPhotosSubmitted();
     const dismiss2 = ws.dismissSubmitted(ctrl2.signal, {
       isPending: () => true,
       wait: (waitSignal) =>
@@ -725,7 +716,7 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     expect(ws.phase).toBe("identities");
 
     // Turn finishes -> moves p-reopen-pending into pendingClearIds and detaches immediately.
-    ws.clearSubmittedCards(false);
+    ws.clearSubmittedCards([doc.snapshotId]);
     expect(removed).toContain("p-reopen-pending");
     expect((ws as any).pendingClearIds.has("p-reopen-pending")).toBe(true);
 
@@ -794,14 +785,14 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
       }
     };
 
-    // Trigger open(), let capture resolve and enter fly (48ms), then fire submittedToAgent: true mid-fly.
+    // Trigger open(), let capture resolve and enter fly (48ms), then request dismissal mid-fly.
     const openPromise = panel.open();
     for (let i = 0; i < 6; i++) await Promise.resolve();
     expect(ws.phase).toBe("fly");
     expect(attachments.has("snap-1")).toBe(true);
 
     advanceMs(48);
-    document.dispatchEvent(new CustomEvent("seed-world-voice-submitted", { detail: { submittedToAgent: true } }));
+    document.dispatchEvent(new CustomEvent("seed-world-voice-submitted"));
     expect(ws.phase).toBe("return");
 
     await openPromise;
@@ -816,7 +807,7 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
     expect(surface.frameRadius).toBe(10);
 
     // Voice turn ends -> submitted card fades out and disposes completely.
-    document.dispatchEvent(new CustomEvent("seed-world-voice-turn-ended"));
+    document.dispatchEvent(new CustomEvent("seed-world-voice-turn-ended", { detail: { snapshotIds: ["snap-1"] } }));
     advanceMs(320);
     for (let i = 0; i < 4; i++) await Promise.resolve();
     expect(ws.size).toBe(0);

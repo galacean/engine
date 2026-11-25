@@ -71,10 +71,7 @@ import {
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterPublication";
 import { visitPlanningWorldPickBatches } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
 import { SeedWorldPicker } from "@galacean/engine-world-planning/world/SeedWorldPicker";
-import {
-  SeedWorldViewSnapshots,
-  type ViewIdentityBuffer
-} from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
+import { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { buildingScenePreparation, initializeBuildingScene } from "./masonry/BuildingSceneInitialization.ts";
 import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/building/resources/BuiltinBuildingAssets";
@@ -3443,98 +3440,17 @@ export async function mountSeedWorldDemo(
     let snapshotWarmup: Promise<void> | undefined;
     viewSnapshots = new SeedWorldViewSnapshots(
       async (signal, budget) => {
-        signal?.throwIfAborted();
-        // Fast color-first capture (1 frame, <16ms): opens the screen-markup canvas immediately
-        // without blocking on pick-shader compilation or a synchronous 2nd full-scene ID render.
-        // The world camera stays frozen until deferred ID+depth capture settles so dynamic view-culled
-        // batches (trees, grass, understory, lotus) stay 100% pixel-aligned with the color frame.
-        const { image, metadata, width, height } = await worldPicker!.captureColorOnly(signal, budget);
-        const identityAbort = new AbortController();
-        let resolvedIdentities: ViewIdentityBuffer | undefined;
-        let identityTask: Promise<void> | undefined;
-        let identityDisposed = false;
-        let identitySettled = false;
-        let bgTimer: ReturnType<typeof setTimeout> | undefined;
-        const emptyBytes = width * height * 4;
-
-        const populateIdentities = (): Promise<void> => {
-          if (resolvedIdentities || identityDisposed) return Promise.resolve();
-          if (identityTask) return identityTask;
-          if (bgTimer !== undefined) {
-            globalThis.clearTimeout(bgTimer);
-            bgTimer = undefined;
-          }
-          identityTask = (async () => {
-            await waitForSnapshotWarmup(snapshotWarmup, identityAbort.signal);
-            await pickPreparation!.flush(identityAbort.signal);
-            if (identityDisposed || identityAbort.signal.aborted || disposed) return;
-            const populated = worldPicker!.captureIdentityBuffer(
-              (visitor) => snapshotPicks.visit(visitor),
-              (batch) => inspection.target(batch.renderer),
-              image,
-              budget
-            );
-            if (identityDisposed || identityAbort.signal.aborted || disposed) {
-              populated.identities.dispose();
-              return;
-            }
-            resolvedIdentities = populated.identities;
-          })()
-            .catch((error) => {
-              if (!identityDisposed && !identityAbort.signal.aborted) {
-                console.warn("[seed-world-planner] deferred identity capture failed", error);
-              }
-            })
-            .finally(() => {
-              identitySettled = true;
-            });
-          return identityTask;
-        };
-
-        bgTimer = globalThis.setTimeout(() => {
-          bgTimer = undefined;
-          if (!identityDisposed && !disposed) void populateIdentities();
-        }, 300);
-
-        const deferredIdentities: ViewIdentityBuffer = {
-          get identityBits() {
-            return resolvedIdentities?.identityBits ?? 14;
-          },
-          get byteLength() {
-            return resolvedIdentities?.byteLength ?? emptyBytes;
-          },
-          estimatedPosition(pixels, offset, x, y) {
-            return resolvedIdentities?.estimatedPosition(pixels, offset, x, y);
-          },
-          read(x, y, w, h) {
-            return resolvedIdentities ? resolvedIdentities.read(x, y, w, h) : new Uint8Array(w * h * 4);
-          },
-          resolve(id) {
-            return resolvedIdentities?.resolve(id);
-          },
-          dispose() {
-            if (identityDisposed) return;
-            identityDisposed = true;
-            identitySettled = true;
-            if (bgTimer !== undefined) {
-              globalThis.clearTimeout(bgTimer);
-              bgTimer = undefined;
-            }
-            identityAbort.abort();
-            resolvedIdentities?.dispose();
-            resolvedIdentities = undefined;
-          }
-        };
-
-        return {
-          image,
-          metadata,
-          width,
-          height,
-          identities: deferredIdentities,
-          ensureIdentities: populateIdentities,
-          hasIdentities: () => identitySettled
-        };
+        // Join shared preparation before choosing the frame. The picker captures color, IDs and
+        // depth in one camera callback, before a resize or simulation tick can separate them.
+        await waitForSnapshotWarmup(snapshotWarmup, signal);
+        await pickPreparation!.flush(signal);
+        return worldPicker!.capture(
+          (visitor) => snapshotPicks.visit(visitor),
+          (batch) => inspection.target(batch.renderer),
+          signal,
+          budget,
+          () => pickPreparation!.ready
+        );
       },
       () => {
         const state = tools!.application.getViewState();

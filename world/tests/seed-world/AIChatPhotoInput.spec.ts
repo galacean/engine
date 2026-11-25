@@ -29,7 +29,7 @@ function readImage(imagePath: string) {
     function: { name: "read", arguments: JSON.stringify({ file_path: imagePath }) } }] };
 }
 function prepared(lease: NonNullable<ReturnType<SeedWorldViewSnapshots["acquireAttachments"]>>) {
-  return { prepare: vi.fn(() => lease.export()), release: vi.fn(() => lease.release()) };
+  return { prepare: vi.fn(() => lease.export()), onAttachmentsAccepted: vi.fn(), release: vi.fn(() => lease.release()) };
 }
 beforeEach(() => { request.mockReset(); request.mockResolvedValue(final); });
 afterEach(() => vi.unstubAllGlobals());
@@ -98,6 +98,7 @@ it("cancelling one input cannot invalidate another input sharing the same pendin
   gate.resolve({ width: 768, height: 432, blob: new Blob(["shared"], { type: "image/jpeg" }) });
   await second.completion;
   expect(request).toHaveBeenCalledOnce(); expect(frame.image.export).toHaveBeenCalledOnce();
+  expect(a.onAttachmentsAccepted).not.toHaveBeenCalled(); expect(b.onAttachmentsAccepted).toHaveBeenCalledOnce();
   expect(a.release).toHaveBeenCalledOnce(); expect(b.release).toHaveBeenCalledOnce();
   expect(request.mock.calls[0][0].messages.some(m => m.role === "user" && m.image)).toBe(true);
   session.dispose(); views.dispose(); await Promise.resolve(); expect(views.budget.stats.total).toBe(0);
@@ -111,7 +112,7 @@ it("stopping during a supplemental export preserves both prepared and pending in
   const initial = session.run("start work");
   const initialRejected = expect(initial).rejects.toThrow("cancelled");
   await vi.waitFor(() => expect(request).toHaveBeenCalledOnce());
-  const ready = { prepare: vi.fn(async () => []), release: vi.fn() };
+  const ready = { prepare: vi.fn(async () => []), onAttachmentsAccepted: vi.fn(), release: vi.fn() };
   const first = session.submit("first supplement", {}, "next-step", ready);
   const gate = Promise.withResolvers<Awaited<ReturnType<typeof frame.image.export>>>();
   frame.image.export.mockImplementationOnce(() => gate.promise);
@@ -125,6 +126,7 @@ it("stopping during a supplemental export preserves both prepared and pending in
   gate.resolve({ width: 768, height: 432, blob: new Blob(["later"], { type: "image/jpeg" }) });
   await (await session.continue()).completion; await first.completion; await second.completion;
   expect(ready.prepare).toHaveBeenCalledOnce(); expect(source.prepare).toHaveBeenCalledTimes(2);
+  expect(ready.onAttachmentsAccepted).not.toHaveBeenCalled(); expect(source.onAttachmentsAccepted).toHaveBeenCalledOnce();
   expect(ready.release).toHaveBeenCalledOnce(); expect(source.release).toHaveBeenCalledOnce();
   expect(views.resourceStats.turn).toBe(1);
   expect(request.mock.lastCall![0].messages.map(m => m.content).join("\n")).toContain("photo supplement");
@@ -181,6 +183,52 @@ it.each([false, true])("reads a near-limit fractional stroke in the same or late
   expect(readSystemInjection(worldState)?.type).toBe("world_state");
   expect(worldState).not.toContain("annotations"); expect(worldState).toContain('"available":false');
   session.dispose(); views.dispose();
+});
+
+it("clears only accepted attachment versions and keeps a failed export available for retry", async () => {
+  vi.stubGlobal("window", {});
+  const { SeedWorldVoiceHudController } = await import("../../demos/seed-world/assistant/SeedWorldChatPanel");
+  const events = new EventTarget();
+  vi.stubGlobal("document", events);
+  const { frame, views, session } = fixture();
+  const finished: string[][] = [];
+  events.addEventListener("seed-world-voice-turn-ended", (event) => {
+    const { snapshotIds } = (event as CustomEvent<{ snapshotIds: string[] }>).detail;
+    finished.push(snapshotIds);
+    for (const id of snapshotIds) views.removeAttachment(id);
+  });
+  const panel = Object.assign(Object.create(SeedWorldVoiceHudController.prototype), {
+    application: { getViewerSnapshot: () => ({}), viewSnapshots: views },
+    _activity: session, _state: { kind: "agent" }, _traceStore: { enabled: false },
+    _clearResultTimer() {}, async _waitForAsrCleanup() {}
+  });
+  try {
+    const a = await views.capture();
+    views.setAttachment(a.snapshotId, []);
+    frame.image.export.mockRejectedValueOnce(new Error("JPEG encoding failed"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await panel.submit("use this photo");
+    expect(request).not.toHaveBeenCalled();
+    expect(finished).toEqual([[]]);
+
+    // Retry the exact photo, alongside B. Reopen B while the Agent is using A and B.
+    const b = await views.capture();
+    views.setAttachment(b.snapshotId, []);
+    request.mockImplementationOnce(async () => {
+      views.setAttachment(b.snapshotId, []);
+      return final;
+    });
+    await panel.submit("retry");
+    expect(request).toHaveBeenCalledOnce();
+    expect(finished).toEqual([[], [a.snapshotId]]);
+    const remaining = views.acquireAttachments()!;
+    expect(remaining.currentSnapshotIds()).toEqual([b.snapshotId]);
+    remaining.release();
+  } finally {
+    vi.restoreAllMocks();
+    session.dispose();
+    views.dispose();
+  }
 });
 
 it("actual ChatPanel registers the input before export, so its public Stop gesture cannot be undone by a late export", async () => {

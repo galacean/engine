@@ -378,7 +378,7 @@ export class PhotoGraphics {
   prepare(): Promise<void> {
     return (this.loading ??= (async () => {
       if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
-      const shutterTask = this.ensureShutterClip();
+      void this.ensureShutterClip();
       const texture = new Texture2D(this.engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, true);
       texture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
       let surface: PhotoSurface | undefined;
@@ -448,8 +448,6 @@ export class PhotoGraphics {
         );
         if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
         this.renderStrokeField(strokeWarmupTarget, 64, 64, strokeWarmupMesh);
-        await shutterTask;
-        if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
       } catch (error) {
         if (this.disposed) throw new DOMException("Photo workspace disposed", "AbortError");
         throw error;
@@ -743,8 +741,6 @@ export class PhotoSurface {
   readonly root: Entity;
   readonly material: Material;
   readonly texture: Texture2D;
-  /** Retained for debug trace compatibility; active strokes render into an offscreen BlendOperation.Max SDF field. */
-  readonly ink: MeshRenderer;
   private readonly viewportRenderer: MeshRenderer;
   private readonly viewportMesh: ModelMesh;
   private readonly closeRenderer: MeshRenderer;
@@ -754,7 +750,7 @@ export class PhotoSurface {
   private readonly brushParams = new Vector4(0, 0, 0, 0);
   private strokeMaskTexture?: Texture2D;
   private strokeMaskTarget?: RenderTarget;
-  private hasUserMarks = false;
+  private _hasUserMarks = false;
   private hintRenderedProgress = -1;
   private hintRenderedTipEnergy = -1;
   layoutWidth = 1;
@@ -788,10 +784,6 @@ export class PhotoSurface {
       this.viewportRenderer.mesh = this.viewportMesh;
       this.viewportRenderer.setMaterial(this.material);
 
-      this.ink = this.root.createChild("Freehand annotation mesh").addComponent(MeshRenderer);
-      this.ink.entity.transform.setPosition(0, 0, 3.5);
-      this.ink.entity.isActive = false;
-
       // Sleek top-left circular × delete button rendered cleanly above viewport & strokes (z = +4.5).
       this.closeRenderer = this.root.createChild("Markup delete button").addComponent(MeshRenderer);
       this.closeMaterial = new UnlitMaterial(engine);
@@ -812,6 +804,11 @@ export class PhotoSurface {
       throw error;
     }
   }
+  /** Whether the stroke mask contains user marks, including an in-progress stroke. */
+  get hasUserMarks(): boolean {
+    return this._hasUserMarks;
+  }
+
   private ensureStrokeMaskTarget(): RenderTarget {
     if (this.strokeMaskTarget && this.strokeMaskTexture) return this.strokeMaskTarget;
     // Bounded UI render cache (at most maxPhotos live surfaces, <= 1024px each); intentionally decoupled
@@ -825,6 +822,8 @@ export class PhotoSurface {
       texture.wrapModeV = TextureWrapMode.Clamp;
       texture.filterMode = TextureFilterMode.Bilinear;
       const target = new RenderTarget(this.graphics.engine, width, height, texture, null, 1);
+      // The camera unbinds between strokes; the surface owns both resources until dispose().
+      target.isGCIgnored = true;
       this.strokeMaskTexture = texture;
       this.strokeMaskTarget = target;
       return target;
@@ -953,11 +952,10 @@ export class PhotoSurface {
   }
   paint(marks: readonly ViewAnnotation[], options?: PhotoStrokePaintOptions): void {
     if (this.disposed) return;
-    this.ink.entity.isActive = false;
     this.hintRenderedProgress = -1;
     this.hintRenderedTipEnergy = -1;
     if (!marks.length) {
-      this.hasUserMarks = false;
+      this._hasUserMarks = false;
       this.brushParams.y = 0;
       this.material.shaderData.setTexture("material_StrokeMaskTexture", this.graphics.emptyStrokeMaskTexture);
       this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
@@ -965,7 +963,7 @@ export class PhotoSurface {
     }
     const segments = buildStrokeCapsuleSegments(marks, this.image.width, this.image.height, options);
     if (!segments.length) {
-      this.hasUserMarks = false;
+      this._hasUserMarks = false;
       this.brushParams.y = 0;
       this.material.shaderData.setTexture("material_StrokeMaskTexture", this.graphics.emptyStrokeMaskTexture);
       this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
@@ -978,18 +976,17 @@ export class PhotoSurface {
     } finally {
       destroyOwnedMesh(fieldMesh);
     }
-    this.hasUserMarks = true;
     this.material.shaderData.setTexture("material_StrokeMaskTexture", this.strokeMaskTexture!);
     this.brushParams.y = 1;
     this.material.shaderData.setVector4("material_BrushParams", this.brushParams);
+    this._hasUserMarks = true;
   }
 
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    const mesh = this.ink.destroyed ? undefined : this.ink.mesh;
+    this._hasUserMarks = false;
     this.root.destroy();
-    destroyOwnedMesh(mesh as ModelMesh | undefined);
     destroyOwnedMesh(this.viewportMesh);
     destroyPhotoResources([this.strokeMaskTarget, this.strokeMaskTexture]);
     this.strokeMaskTarget = undefined;

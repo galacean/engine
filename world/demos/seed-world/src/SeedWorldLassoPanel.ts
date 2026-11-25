@@ -35,12 +35,8 @@ export class SeedWorldLassoPanel {
   private disposed = false;
   private confirming = false;
   private photoSerial = 0;
-  private readonly onVoiceSubmitted = (event: Event) => {
+  private readonly onVoiceSubmitted = () => {
     if (this.disposed) return;
-    const detail = (event as CustomEvent<{ submittedToAgent?: boolean }>).detail;
-    if (detail?.submittedToAgent) {
-      this.workspace.markCurrentPhotosSubmitted();
-    }
     if (!this.confirming && this.workspace.active) {
       if (this.workspace.isEditing) {
         void this.dismissSubmitted();
@@ -51,10 +47,9 @@ export class SeedWorldLassoPanel {
       }
     }
   };
-  private readonly onVoiceTurnEnded = () => {
-    if (!this.disposed) {
-      this.workspace.clearSubmittedCards(false);
-    }
+  private readonly onVoiceTurnEnded = (event: Event) => {
+    const ids = (event as CustomEvent<{ snapshotIds: string[] }>).detail?.snapshotIds;
+    if (!this.disposed && ids?.length) this.workspace.clearSubmittedCards(ids);
   };
   get active(): boolean {
     return !!this.captureAbort || this.workspace.active;
