@@ -5,7 +5,7 @@ import {
   OIL_PAINT_BRUSH_DEFAULT_SIZE,
   generateSeamlessImpastoPixels
 } from "@galacean/engine-world-planning/spatial/oil-paint/OilPaintBrushGenerator";
-import { OilPaintKuwaharaQuality, OilPaintPostEffect } from "../../demos/seed-world/src/oil-paint/OilPaintPostEffect";
+import { OilPaintPostEffect } from "../../demos/seed-world/src/oil-paint/OilPaintPostEffect";
 import { OIL_PAINT_POST_SHADER } from "../../demos/seed-world/src/oil-paint/OilPaintPostPass";
 
 describe("OilPaintBrush worker baking & Kuwahara post-process", () => {
@@ -113,26 +113,19 @@ describe("OilPaintBrush worker baking & Kuwahara post-process", () => {
     expect(OIL_PAINT_BRUSH_DEFAULT_SIZE).toBe(512);
   });
 
-  it("compiles all 6 OilPaintPostPass shader passes and blends kuwaharaQuality through PostProcessEffect._lerp", () => {
+  it("compiles single-pass zero-RT OilPaintPostPass shader and blends OilPaintPostEffect parameters", () => {
     const compiler = new ShaderCompiler();
     const compiled = compiler._parseShaderSource(OIL_PAINT_POST_SHADER);
     expect(compiled.subShaders.length).toBe(1);
     const passNames = compiled.subShaders[0].passes.map((p) => p.name);
-    expect(passNames).toEqual([
-      "PreparePerceptual",
-      "StructureTensor",
-      "TensorBlurH",
-      "TensorBlurV",
-      "AnisotropicKuwahara8Polar",
-      "CompositeMerged"
-    ]);
+    expect(passNames).toEqual(["OilPaintSinglePass"]);
 
     const blend = new OilPaintPostEffect();
     const source = new OilPaintPostEffect();
-    source.kuwaharaQuality.value = OilPaintKuwaharaQuality.Mobile;
-    source.brushRadius.value = 8;
+    source.painterlyStrength.value = 0.65;
+    source.brushRadius.value = 6.5;
     blend._lerp(source, 1);
-    expect(blend.kuwaharaQuality.value).toBe(OilPaintKuwaharaQuality.Mobile);
-    expect(blend.brushRadius.value).toBe(8);
+    expect(blend.painterlyStrength.value).toBeCloseTo(0.65);
+    expect(blend.brushRadius.value).toBeCloseTo(6.5);
   });
 });

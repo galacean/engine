@@ -239,15 +239,11 @@ export interface TerrainRuntimeDebugInspectorOptions {
   readonly oilPaint?: TerrainOilPaintDebugControl;
 }
 
-export type TerrainOilPaintKuwaharaQuality = "high" | "mobile";
-
 export interface TerrainOilPaintDebugSnapshot {
   readonly passActive: boolean;
   readonly shaderMacro: boolean;
-  readonly kuwaharaQuality: TerrainOilPaintKuwaharaQuality;
   readonly painterlyStrength: number;
   readonly brushRadius: number;
-  readonly strokeAnisotropy: number;
   readonly colorStylize: number;
   readonly screenImpasto: number;
   readonly impasto: number;
@@ -259,12 +255,10 @@ export interface TerrainOilPaintDebugControl {
   getSnapshot(): TerrainOilPaintDebugSnapshot;
   setPassActive(active: boolean): void | Promise<void>;
   setShaderMacro(enabled: boolean): void | Promise<void>;
-  setKuwaharaQuality(quality: TerrainOilPaintKuwaharaQuality): void;
   setParam(
     key:
       | "painterlyStrength"
       | "brushRadius"
-      | "strokeAnisotropy"
       | "colorStylize"
       | "screenImpasto"
       | "impasto"
@@ -834,17 +828,6 @@ export class TerrainRuntimeDebugInspector {
           });
         });
       oilPaintFolder
-        .add(state, "kuwaharaQuality", {
-          "High / 高画质 (720p・17tap 8扇区)": "high",
-          "Mobile / 移动端 (420p・17tap 8扇区)": "mobile"
-        })
-        .name("Kuwahara / 各向异性画质")
-        .onChange((quality: TerrainOilPaintKuwaharaQuality) => {
-          oilControl.setKuwaharaQuality(quality);
-          Object.assign(state, oilControl.getSnapshot());
-          oilPaintFolder?.updateDisplay();
-        });
-      oilPaintFolder
         .add(state, "shaderMacro")
         .name("Shader macro / 场景材质宏")
         .onChange((enabled: boolean) => {
@@ -858,13 +841,9 @@ export class TerrainRuntimeDebugInspector {
         .name("Painterly / 笔触油画强度")
         .onChange((v: number) => oilControl.setParam("painterlyStrength", v));
       oilPaintFolder
-        .add(state, "brushRadius", 1, 10, 0.25)
+        .add(state, "brushRadius", 0, 10, 0.25)
         .name("Brush radius / 笔触半径")
         .onChange((v: number) => oilControl.setParam("brushRadius", v));
-      oilPaintFolder
-        .add(state, "strokeAnisotropy", 0, 2.5, 0.05)
-        .name("Anisotropy / 各向异性拉长")
-        .onChange((v: number) => oilControl.setParam("strokeAnisotropy", v));
       oilPaintFolder
         .add(state, "colorStylize", 0, 1, 0.01)
         .name("Color stylize / 油画色阶")

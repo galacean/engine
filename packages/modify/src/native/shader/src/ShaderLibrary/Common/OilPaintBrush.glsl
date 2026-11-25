@@ -15,48 +15,37 @@
   vec4 scene_OilPaintWarmTint;
   vec4 scene_OilPaintShadeTint;
 
-  float oilPaintBrushHash21(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
-  }
-
-  float oilPaintBrushNoise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(
-      mix(oilPaintBrushHash21(i), oilPaintBrushHash21(i + vec2(1.0, 0.0)), u.x),
-      mix(oilPaintBrushHash21(i + vec2(0.0, 1.0)), oilPaintBrushHash21(i + vec2(1.0, 1.0)), u.x),
-      u.y
-    );
-  }
-
-  // Dual-rotated anti-tiling winner-takes-all brushstroke sampler for horizontal planes (meadow, snow, rooftops):
-  // eliminates periodic tiling while keeping each overlapping flat-brush dab sharp and unblurred.
+  // Lightweight dual-rotated height-blend anti-tiling for horizontal planes (zero sin/cos, zero procedural noise ALU).
   vec4 sampleOilPaintBrushPlanarAntiTile(vec2 xz, float scale) {
-    vec2 warp = vec2(sin(xz.x * 0.14 + xz.y * 0.09), cos(xz.y * 0.15 - xz.x * 0.11)) * 0.34;
-    vec2 uvA = (xz + warp) * scale;
-    vec2 wB = xz - warp * 0.65;
-    vec2 uvB = vec2(0.793 * wB.x - 0.609 * wB.y, 0.609 * wB.x + 0.793 * wB.y) * (scale * 0.68);
+    vec2 uvA = xz * scale;
+    vec2 uvB = vec2(0.793 * xz.x - 0.609 * xz.y, 0.609 * xz.x + 0.793 * xz.y) * (scale * 0.67);
     vec4 bA = texture2D(scene_OilPaintBrushTexture, uvA);
     vec4 bB = texture2D(scene_OilPaintBrushTexture, uvB);
-    float blend = smoothstep(0.25, 0.75, oilPaintBrushNoise(xz * 0.22));
-    float pickB = smoothstep(-0.025, 0.025, (bB.r + blend * 0.22) - (bA.r + (1.0 - blend) * 0.22));
+    float pickB = smoothstep(-0.04, 0.04, bB.r - bA.r);
     vec4 brush = mix(bA, bB, pickB);
     brush.a = fract(brush.a + (pickB > 0.5 ? 0.37 : 0.0));
     return brush;
   }
 
-  // Unified triplanar impasto brush sampler (anti-tiled on top/bottom planes, seamless on 3D faces).
+  // Conditional triplanar impasto brush sampler: skips zero-weight projection axes to cut 4K texture bandwidth ~3x.
   // Channels: R = thickness height, G = dH/dx, B = dH/dy, A = per-stroke pigment ID.
   vec4 sampleOilPaintBrush(vec3 samplePos, vec3 sampleNormal, float scale) {
-    vec3 w = pow(max(abs(sampleNormal), vec3(1e-4)), vec3(4.0));
+    vec3 a = max(abs(sampleNormal), vec3(1e-4));
+    vec3 a2 = a * a;
+    vec3 w = a2 * a2;
     w /= max(w.x + w.y + w.z, 1e-4);
-    vec4 bx = texture2D(scene_OilPaintBrushTexture, samplePos.zy * scale);
-    vec4 by = sampleOilPaintBrushPlanarAntiTile(samplePos.xz, scale);
-    vec4 bz = texture2D(scene_OilPaintBrushTexture, samplePos.xy * scale);
-    return bx * w.x + by * w.y + bz * w.z;
+
+    vec4 acc = vec4(0.0);
+    if (w.x > 0.05) {
+      acc += texture2D(scene_OilPaintBrushTexture, samplePos.zy * scale) * w.x;
+    }
+    if (w.y > 0.05) {
+      acc += sampleOilPaintBrushPlanarAntiTile(samplePos.xz, scale) * w.y;
+    }
+    if (w.z > 0.05) {
+      acc += texture2D(scene_OilPaintBrushTexture, samplePos.xy * scale) * w.z;
+    }
+    return acc;
   }
 
   vec3 sampleOilPaintSeasonDab(float pigment) {

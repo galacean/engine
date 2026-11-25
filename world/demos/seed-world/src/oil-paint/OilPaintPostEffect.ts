@@ -1,38 +1,23 @@
-import {
-  PostProcessEffect,
-  PostProcessEffectEnumParameter,
-  PostProcessEffectFloatParameter
-} from "@galacean/engine";
-
-export enum OilPaintKuwaharaQuality {
-  High = "high",
-  Mobile = "mobile"
-}
+import { PostProcessEffect, PostProcessEffectFloatParameter } from "@galacean/engine";
 
 /**
- * Pluggable Oil Paint stylization post-processing effect:
- * Genuine Kyprianidis (2009) perceptual-sRGB Gaussian-smoothed Structure-Tensor
- * + 8-Sector Polynomial Anisotropic Kuwahara + full-res scene-anchored paint-edge ridge & varnish glaze.
- * Defaults match Panel 3 reference (R=5, anisotropy=1.0, strength=1.0, q=8).
+ * Pluggable 120-FPS Oil Paint stylization post-processing effect:
+ * Single-pass, zero-extra-RT, zero-DepthPrePass native-resolution painterly Kuwahara
+ * with micro-detail protection (preserves animal eyes & diamond window mullions),
+ * painted sky & clouds, native impasto paint-edge ridge, and oil varnish glaze.
  */
 export class OilPaintPostEffect extends PostProcessEffect {
-  /** Quality tier for Anisotropic Kuwahara: High (640p, 37-tap 8-sector) vs Mobile (420p, 21-tap 8-sector). */
-  kuwaharaQuality = new PostProcessEffectEnumParameter(OilPaintKuwaharaQuality, OilPaintKuwaharaQuality.High);
+  /** Blend strength of the detail-preserving painterly Kuwahara pass (0..1). */
+  painterlyStrength = new PostProcessEffectFloatParameter(0.88, 0, 1);
 
-  /** Blend strength of the Anisotropic Kuwahara brushstroke transformation (0..1). */
-  painterlyStrength = new PostProcessEffectFloatParameter(1.0, 0, 1);
-
-  /** Resolution-normalized brushstroke radius (in 720px short-edge pixels, identical on PC & Mobile, 0..14). */
-  brushRadius = new PostProcessEffectFloatParameter(5.0, 0, 14);
-
-  /** Elongation ratio of brushstrokes along local image edges (0 = isotropic, 1.0 = Kyprianidis alpha=1, 2.5 = sweeping). */
-  strokeAnisotropy = new PostProcessEffectFloatParameter(1.0, 0, 2.5);
+  /** Resolution-normalized brushstroke radius (in 720px short-edge pixels, 0..10). */
+  brushRadius = new PostProcessEffectFloatParameter(5.0, 0, 10);
 
   /** Painterly pigment plane contrast, chroma richness & varnish glaze (0..1). */
-  colorStylize = new PostProcessEffectFloatParameter(0.35, 0, 1);
+  colorStylize = new PostProcessEffectFloatParameter(0.38, 0, 1);
 
-  /** Scene-anchored paint-edge ridge relief along brushstroke boundaries (0..1.5, zero sky/lens overlay). */
-  screenImpasto = new PostProcessEffectFloatParameter(0.22, 0, 1.5);
+  /** Native-resolution paint-edge ridge relief along brushstroke boundaries (0..1.5). */
+  screenImpasto = new PostProcessEffectFloatParameter(0.25, 0, 1.5);
 
   /** 3D surface shader impasto relief synced to `scene_OilPaintImpasto` (0..2). */
   impasto = new PostProcessEffectFloatParameter(1.4, 0, 2);

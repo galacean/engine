@@ -168,7 +168,6 @@ import { OrbitControl } from "@galacean/engine-toolkit-controls/dist/es/OrbitCon
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
 import type {
   TerrainOilPaintDebugControl,
-  TerrainOilPaintKuwaharaQuality,
   TerrainVistaDebugControl
 } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
 import { sampleTerrainSurfacePuddleMask } from "@galacean/engine-world-planning/integrations/terrain/environment/TerrainRainImpactSurface";
@@ -342,9 +341,6 @@ export async function mountSeedWorldDemo(
   let oilPaintMacroEnabled = false;
   let oilPaintMacroDesired = false;
   let oilPaintMacroRequestId = 0;
-  let oilPaintKuwaharaQuality: TerrainOilPaintKuwaharaQuality = "high";
-  let oilPaintDepthGuard: { active: boolean } | undefined;
-  let oilPaintDepthLease: CameraDepthTexturePrePassLease | undefined;
   let mojaveLayout: Entity | undefined;
   const readWorld = () => publication?.current?.world;
   const readRevision = () => publication?.current?.revision ?? 0;
@@ -651,8 +647,6 @@ export async function mountSeedWorldDemo(
     ["远景环山", () => vista?.destroy()],
     ["沙雾", () => sandstorm?.destroy()],
     ["油画后处理效果", () => {
-      oilPaintDepthLease?.destroy();
-      oilPaintDepthLease = undefined;
       oilPaintPostEntity?.destroy();
     }],
     ["油画后处理 Pass", () => oilPaintPostPass?.destroy()],
@@ -771,10 +765,6 @@ export async function mountSeedWorldDemo(
     );
     void commonBinaryBundleTask.catch(() => {});
     const requestedTemplateId = pageUrl.searchParams.get("template") ?? "original";
-    const requestedOilQualityParam = pageUrl.searchParams.get("oilQuality");
-    if (requestedOilQualityParam === "high" || requestedOilQualityParam === "mobile") {
-      oilPaintKuwaharaQuality = requestedOilQualityParam;
-    }
     const eagerBuildingBundle = requestedTemplateId !== "titan-wasteland" && requestedTemplateId !== "low-poly";
     let buildingBinaryBundleTask: Promise<void> | undefined = eagerBuildingBundle
       ? timed("loadBuildingBinaryBundle (parallel)", () =>
@@ -1169,11 +1159,10 @@ export async function mountSeedWorldDemo(
     };
 
     const OIL_PAINT_DEFAULTS = {
-      painterlyStrength: 1.0,
+      painterlyStrength: 0.88,
       brushRadius: 5.0,
-      strokeAnisotropy: 1.0,
-      colorStylize: 0.35,
-      screenImpasto: 0.22,
+      colorStylize: 0.38,
+      screenImpasto: 0.25,
       impasto: 1.4,
       brushScale: 0.72,
       compareSplit: 0
@@ -1185,23 +1174,11 @@ export async function mountSeedWorldDemo(
         import("./src/oil-paint/OilPaintPostPass")
       ]);
       if (disposed) return;
-      const mainCam = camera as Camera & { _enableForwardDepthResolve?: boolean };
       if (!oilPaintPostEntity) {
         oilPaintPostEntity = root.createChild("OilPaintPostProcess");
         const postProcess = oilPaintPostEntity.addComponent(PostProcess);
         postProcess.isGlobal = true;
         oilPaintPostEffect = postProcess.addEffect(OilPaintPostEffect);
-        if (oilPaintPostEffect) {
-          oilPaintPostEffect.kuwaharaQuality.value = oilPaintKuwaharaQuality as import("./src/oil-paint/OilPaintPostEffect").OilPaintKuwaharaQuality;
-        }
-        class OilPaintForwardDepthGuard extends Script {
-          active = false;
-          override onBeginRender(renderCam: Camera): void {
-            if (!this.active || renderCam !== mainCam) return;
-            mainCam._enableForwardDepthResolve = true;
-          }
-        }
-        oilPaintDepthGuard = oilPaintPostEntity.addComponent(OilPaintForwardDepthGuard);
       }
       if (!oilPaintPostPass) {
         oilPaintPostPass = new OilPaintPostPass(engine!);
@@ -1210,28 +1187,12 @@ export async function mountSeedWorldDemo(
       }
     };
     const setOilPaintPassActive = async (active: boolean) => {
-      const mainCam = camera as Camera & { _enableForwardDepthResolve?: boolean };
       if (active) {
         await ensureOilPaintPassMounted();
         if (disposed || !oilPaintPostPass) return;
-        oilPaintDepthLease ??= acquireCameraDepthTexturePrePass(
-          mainCam,
-          DepthTextureMode.PrePass,
-          "oil-paint-sky-mask"
-        );
-        mainCam._enableForwardDepthResolve = true;
-        if (oilPaintDepthGuard) oilPaintDepthGuard.active = true;
         oilPaintPostPass.isActive = true;
       } else {
         if (oilPaintPostPass) oilPaintPostPass.isActive = false;
-        if (oilPaintDepthGuard?.active) {
-          oilPaintDepthGuard.active = false;
-          oilPaintDepthLease?.destroy();
-          oilPaintDepthLease = undefined;
-          if (mainCam.depthTextureMode === DepthTextureMode.None) {
-            mainCam._enableForwardDepthResolve = false;
-          }
-        }
       }
     };
     const setOilPaintMacroEnabled = async (enabled: boolean) => {
@@ -1265,10 +1226,8 @@ export async function mountSeedWorldDemo(
       getSnapshot: () => ({
         passActive: oilPaintPostPass?.isActive ?? false,
         shaderMacro: oilPaintMacroEnabled,
-        kuwaharaQuality: (oilPaintPostEffect?.kuwaharaQuality.value ?? oilPaintKuwaharaQuality) as TerrainOilPaintKuwaharaQuality,
         painterlyStrength: oilPaintPostEffect?.painterlyStrength.value ?? OIL_PAINT_DEFAULTS.painterlyStrength,
         brushRadius: oilPaintPostEffect?.brushRadius.value ?? OIL_PAINT_DEFAULTS.brushRadius,
-        strokeAnisotropy: oilPaintPostEffect?.strokeAnisotropy.value ?? OIL_PAINT_DEFAULTS.strokeAnisotropy,
         colorStylize: oilPaintPostEffect?.colorStylize.value ?? OIL_PAINT_DEFAULTS.colorStylize,
         screenImpasto: oilPaintPostEffect?.screenImpasto.value ?? OIL_PAINT_DEFAULTS.screenImpasto,
         impasto: oilPaintPostEffect?.impasto.value ?? OIL_PAINT_DEFAULTS.impasto,
@@ -1277,13 +1236,6 @@ export async function mountSeedWorldDemo(
       }),
       setPassActive: (active) => setOilPaintPassActive(active),
       setShaderMacro: (enabled) => setOilPaintMacroEnabled(enabled),
-      setKuwaharaQuality: (quality) => {
-        oilPaintKuwaharaQuality = quality;
-        if (oilPaintPostEffect) {
-          oilPaintPostEffect.kuwaharaQuality.value = quality as import("./src/oil-paint/OilPaintPostEffect").OilPaintKuwaharaQuality;
-        }
-        canvas.dataset.oilPaintQuality = quality;
-      },
       setParam: (key, value) => {
         if (oilPaintPostEffect) {
           oilPaintPostEffect[key].value = value;
@@ -1292,19 +1244,15 @@ export async function mountSeedWorldDemo(
         if (key === "brushScale") scene?.shaderData.setFloat("scene_OilPaintBrushScale", value);
       },
       reset: () => {
-        oilPaintKuwaharaQuality = "high";
         if (oilPaintPostEffect) {
-          oilPaintPostEffect.kuwaharaQuality.value = "high" as import("./src/oil-paint/OilPaintPostEffect").OilPaintKuwaharaQuality;
           oilPaintPostEffect.painterlyStrength.value = OIL_PAINT_DEFAULTS.painterlyStrength;
           oilPaintPostEffect.brushRadius.value = OIL_PAINT_DEFAULTS.brushRadius;
-          oilPaintPostEffect.strokeAnisotropy.value = OIL_PAINT_DEFAULTS.strokeAnisotropy;
           oilPaintPostEffect.colorStylize.value = OIL_PAINT_DEFAULTS.colorStylize;
           oilPaintPostEffect.screenImpasto.value = OIL_PAINT_DEFAULTS.screenImpasto;
           oilPaintPostEffect.impasto.value = OIL_PAINT_DEFAULTS.impasto;
           oilPaintPostEffect.brushScale.value = OIL_PAINT_DEFAULTS.brushScale;
           oilPaintPostEffect.compareSplit.value = OIL_PAINT_DEFAULTS.compareSplit;
         }
-        canvas.dataset.oilPaintQuality = "high";
         scene?.shaderData.setFloat("scene_OilPaintImpasto", OIL_PAINT_DEFAULTS.impasto);
         scene?.shaderData.setFloat("scene_OilPaintBrushScale", OIL_PAINT_DEFAULTS.brushScale);
       }

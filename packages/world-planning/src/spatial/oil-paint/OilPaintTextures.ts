@@ -134,7 +134,7 @@ function uploadImpastoTexture(engine: Engine, pixels: Uint8Array, size: number):
   texture.filterMode = TextureFilterMode.Trilinear;
   texture.wrapModeU = TextureWrapMode.Repeat;
   texture.wrapModeV = TextureWrapMode.Repeat;
-  texture.anisoLevel = 4;
+  texture.anisoLevel = 1;
   const upload = (target: Texture2D) => {
     target.setPixelBuffer(pixels);
     target.generateMipmaps();
