@@ -343,10 +343,13 @@ export class PhysicsScene {
   }
 
   /**
-   * Synchronizes pending Transform and Collider changes to the physics scene immediately.
+   * Synchronizes pending Transform and Collider changes for enabled components in the physics scene immediately.
    * @remarks Useful when {@link autoSyncTransforms} is `false` and spatial queries or `CharacterController.move`
-   * need to observe recent Transform or Collider edits before the next simulation step. Mass and inertia
-   * recomputation remains deferred until the next simulation step or mass-dependent `Rigidbody` access.
+   * need to observe recent Transform or Collider edits before the next simulation step. Only `Collider` and
+   * `Rigidbody` components currently enabled in the scene are flushed (for example, pre-warming a `MeshCollider`
+   * cook via `syncTransforms()` requires both its Entity and component to be active and enabled in the scene).
+   * Mass and inertia recomputation remains deferred until the next simulation step or mass-dependent `Rigidbody`
+   * access.
    */
   syncTransforms(): void {
     this._syncColliders(false);

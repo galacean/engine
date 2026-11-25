@@ -65,6 +65,8 @@ scene.physics.syncTransforms();
 scene.physics.raycast(ray, hitResult);
 ```
 
+[syncTransforms](/apis/core/#PhysicsScene-syncTransforms) flushes pending changes immediately for `Collider` and `Rigidbody` components currently enabled in the scene (for example, to pre-warm a `MeshCollider` cook during loading, ensure its Entity and component are active and enabled in the scene before calling `syncTransforms()`).
+
 When `autoSyncTransforms` is `false`:
 - Spatial queries themselves do not flush pending scene changes; call [syncTransforms](/apis/core/#PhysicsScene-syncTransforms) whenever a spatial query or `CharacterController.move()` needs to see recent Transform or Collider edits before the next simulation step.
 - Fixed simulation steps still synchronize pending changes automatically, and `Rigidbody` APIs that depend on up-to-date actor/collider state (such as mass/inertia reads, `setDensity`, forces, point velocities, or kinematic `move`) may also flush pending scene changes.
