@@ -19,6 +19,14 @@ import { ReflectionParser } from "./ReflectionParser";
 
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext> {
+  /** @internal */
+  static _validateVersion(data: HierarchyFile, type: ParserType): void {
+    if (data.version !== "2.0") {
+      const resourceType = type === ParserType.Scene ? "scene" : "prefab";
+      throw new Error(`Unsupported ${resourceType} format version "${data.version}". Expected "2.0".`);
+    }
+  }
+
   readonly promise: Promise<T>;
 
   protected _resolve: (item: T) => void;
@@ -30,10 +38,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     public readonly data: HierarchyFile,
     public readonly context: V
   ) {
-    if (data.version !== "2.0") {
-      const resourceType = context.type === ParserType.Scene ? "scene" : "prefab";
-      throw new Error(`Unsupported ${resourceType} format version "${data.version}". Expected "2.0".`);
-    }
+    HierarchyParser._validateVersion(data, context.type);
 
     this._engine = this.context.engine;
     this.promise = new Promise<T>((resolve, reject) => {

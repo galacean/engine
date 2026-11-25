@@ -345,6 +345,29 @@ describe("ModelMesh Test", async function () {
     expect(vertexBufferBindings.length).eq(1);
   });
 
+  it("uploads pending positions after the position layout is redeclared", () => {
+    const mesh = new ModelMesh(engine);
+    const buffer = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      new Float32Array([1, 2, 3]),
+      BufferUsage.Static,
+      true
+    );
+    try {
+      const position = new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0);
+      mesh.setVertexBufferBinding(buffer, 12);
+      mesh.setVertexElements([position]);
+      mesh.setPositions([new Vector3(4, 5, 6)]);
+      mesh.setVertexElements([position]);
+      mesh.uploadData(false);
+      expect(new Float32Array(buffer.data!.buffer)).toEqual(new Float32Array([4, 5, 6]));
+    } finally {
+      mesh.destroy();
+      buffer.destroy();
+    }
+  });
+
   it("reuses a listener when vertex buffers are rebound", () => {
     const mesh = new ModelMesh(engine);
     const first = new Buffer(
@@ -637,5 +660,72 @@ describe("ModelMesh Test", async function () {
     mesh.setVertexBufferBinding(uvBuffer, 8, 1);
     mesh.uploadData(false);
     expect(mesh.vertexBufferBindings.length).eq(3);
+  });
+
+  it("does not advance vertex data version when buffer readback throws", () => {
+    const mesh = new ModelMesh(engine);
+    const makeVertexBuffer = (x: number, readable: boolean): Buffer =>
+      new Buffer(engine, BufferBindFlag.VertexBuffer, new Float32Array([x, 0, 0]), BufferUsage.Static, readable);
+
+    const initial = makeVertexBuffer(1, true);
+    const unreadable = makeVertexBuffer(3, false);
+    const recovered = makeVertexBuffer(3, true);
+    try {
+      mesh.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0)]);
+      mesh.setVertexBufferBinding(initial, 12, 0);
+      expect(mesh.getPositions()![0].x).toBe(1);
+
+      mesh.setVertexBufferBinding(unreadable, 12, 0);
+      expect(() => mesh.getPositions()).toThrow();
+      expect(() => mesh.getPositions()).toThrow();
+
+      mesh.setVertexBufferBinding(recovered, 12, 0);
+      expect(mesh.getPositions()![0].x).toBe(3);
+    } finally {
+      mesh.destroy();
+      initial.destroy();
+      unreadable.destroy();
+      recovered.destroy();
+    }
+  });
+
+  it("tracks geometry revision across position, layout, and index updates", () => {
+    const mesh = new ModelMesh(engine);
+    const bufferMesh = new ModelMesh(engine);
+    const buffer = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      new Float32Array([1, 2, 3, 4, 5, 6]),
+      BufferUsage.Static,
+      true
+    );
+    try {
+      const initialVersion = mesh._getGeometryVersion(false);
+      mesh.setPositions([new Vector3(1, 0, 0)]);
+      const afterSetPositions = mesh._getGeometryVersion(false);
+      expect(afterSetPositions).toBeGreaterThan(initialVersion);
+
+      mesh.setIndices(new Uint16Array([0, 0, 0]));
+      expect(mesh._getGeometryVersion(false)).toBe(afterSetPositions);
+      expect(mesh._getGeometryVersion(true)).toBeGreaterThan(afterSetPositions);
+
+      bufferMesh.setVertexBufferBinding(buffer, 24, 0);
+      bufferMesh.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0)]);
+      const decodedA = bufferMesh.getPositions()!;
+      const afterDecodeA = bufferMesh._getGeometryVersion(false);
+      expect(decodedA[0]).toMatchObject({ x: 1, y: 2, z: 3 });
+      expect(afterDecodeA).toBeGreaterThan(-1);
+
+      // Redeclaring position layout with a new byte offset forces fresh readback and advances revision.
+      bufferMesh.setVertexElements([new VertexElement(VertexAttribute.Position, 12, VertexElementFormat.Vector3, 0)]);
+      const decodedB = bufferMesh.getPositions()!;
+      const afterDecodeB = bufferMesh._getGeometryVersion(false);
+      expect(decodedB[0]).toMatchObject({ x: 4, y: 5, z: 6 });
+      expect(afterDecodeB).toBeGreaterThan(afterDecodeA);
+    } finally {
+      mesh.destroy();
+      bufferMesh.destroy();
+      buffer.destroy();
+    }
   });
 });

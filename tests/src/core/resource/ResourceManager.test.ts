@@ -1,4 +1,12 @@
-import { AssetPromise, AssetType, ResourceManager, Shader, ShaderLanguage, Texture2D } from "@galacean/engine";
+import {
+  AssetPromise,
+  AssetType,
+  PBRMaterial,
+  ResourceManager,
+  Shader,
+  ShaderLanguage,
+  Texture2D
+} from "@galacean/engine";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -582,6 +590,88 @@ describe("ResourceManager", () => {
 
       expect(loaderSpy).toHaveBeenCalled();
       loaderSpy.mockRestore();
+    });
+
+    it("hides loading resources from findResourcesByType() and retains their sub-resources across gc()", () => {
+      const resourceManager = engine.resourceManager;
+      const mat = new PBRMaterial(engine);
+      const tex = new Texture2D(engine, 4, 4);
+      mat.baseTexture = tex;
+      mat._isLoading = true;
+
+      expect(resourceManager.findResourcesByType(PBRMaterial)).not.toContain(mat);
+
+      // Concurrent gc() must keep both the loading resource and its downstream texture alive with clean refCount
+      resourceManager.gc();
+      expect(mat.destroyed).toBe(false);
+      expect(tex.destroyed).toBe(false);
+      expect(mat.refCount).toBe(0);
+      expect(tex.refCount).toBe(0);
+
+      // Clearing _isLoading makes the resource discoverable and eligible for gc() when unreferenced
+      mat._isLoading = false;
+      expect(resourceManager.findResourcesByType(PBRMaterial)).toContain(mat);
+
+      resourceManager.gc();
+      expect(mat.destroyed).toBe(true);
+      expect(tex.destroyed).toBe(true);
+    });
+
+    it("unregisters virtual resources, skips missing paths, and allows re-registration", async () => {
+      const resourceManager = engine.resourceManager;
+      const virtualPathA = "Assets/Unregister/a.txt";
+      const virtualPathB = "Assets/Unregister/b.txt";
+      const pathA1 = "blob:https://local.alipay.net/unregister-a1";
+      const pathA2 = "blob:https://local.alipay.net/unregister-a2";
+      const pathB = "blob:https://local.alipay.net/unregister-b";
+
+      resourceManager.registerVirtualResources([
+        { virtualPath: virtualPathA, path: pathA1, type: AssetType.Text },
+        { virtualPath: virtualPathB, path: pathB, type: AssetType.Text }
+      ]);
+      expect(resourceManager._getRemoteUrl(virtualPathA)).equal(pathA1);
+      expect(resourceManager._getRemoteUrl(virtualPathB)).equal(pathB);
+
+      // Unregister existing and missing virtual paths cleanly
+      resourceManager.unregisterVirtualResources([virtualPathA, virtualPathB, "Assets/Unregister/missing.txt"]);
+      expect(resourceManager._getRemoteUrl(virtualPathA)).equal(virtualPathA);
+      expect(resourceManager._getRemoteUrl(virtualPathB)).equal(virtualPathB);
+      await expect(resourceManager.getResourceByRef({ url: virtualPathA })).resolves.toBeNull();
+      await expect(resourceManager.getResourceByRef({ url: virtualPathB })).resolves.toBeNull();
+
+      // Re-registering after unregistration resolves and loads the new backing URL cleanly
+      const requestSpy = vi
+        .spyOn(resourceManager, "_requestByRemoteUrl")
+        .mockReturnValue(AssetPromise.resolve("re-registered") as any);
+      let loaded: any;
+      try {
+        resourceManager.registerVirtualResources([{ virtualPath: virtualPathA, path: pathA2, type: AssetType.Text }]);
+        loaded = await resourceManager.getResourceByRef({ url: virtualPathA });
+        expect(loaded?.text).toBe("re-registered");
+        expect(requestSpy).toHaveBeenCalledWith(pathA2, expect.anything());
+        // Unregistering only removes the mapping and never destroys loaded asset instances
+        resourceManager.unregisterVirtualResources([virtualPathA]);
+        expect(loaded.destroyed).toBe(false);
+        expect(resourceManager._getRemoteUrl(virtualPathA)).equal(virtualPathA);
+      } finally {
+        loaded?.destroy();
+        requestSpy.mockRestore();
+        resourceManager.unregisterVirtualResources([virtualPathA]);
+      }
+    });
+
+    it("ignores unregisterVirtualResources cleanly after engine destruction", async () => {
+      const tempEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const resourceManager = tempEngine.resourceManager;
+      resourceManager.registerVirtualResources([
+        {
+          virtualPath: "Assets/Temp/a.txt",
+          path: "blob:https://local.alipay.net/temp-a",
+          type: AssetType.Text
+        }
+      ]);
+      tempEngine.destroy();
+      expect(() => resourceManager.unregisterVirtualResources(["Assets/Temp/a.txt"])).not.toThrow();
     });
   });
 });
