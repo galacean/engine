@@ -1,4 +1,4 @@
-import { Vector2 } from "@galacean/engine-math";
+import { Vector2, Vector4 } from "@galacean/engine-math";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
@@ -8,7 +8,7 @@ import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
-import { ScreenSpaceReflectionPass, type SSRDiagnostics } from "../lighting/screenSpaceReflection";
+import { ScreenSpaceReflectionPass } from "../lighting/screenSpaceReflection";
 import { FinalPass } from "../postProcess";
 import { IHardwareRenderer } from "../renderingHardwareInterface";
 import { Shader } from "../shader/Shader";
@@ -29,14 +29,29 @@ import { Blitter } from "./Blitter";
 import { CullingResults } from "./CullingResults";
 import { DepthOnlyPass } from "./DepthOnlyPass";
 import { OpaqueTexturePass } from "./OpaqueTexturePass";
+import { type PipelineFrameResources, PipelinePass, PipelineResourceRequirements } from "./PipelinePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
 /**
+ * Internal descriptor for a conditional multi-stage pass registered in `BasicRenderPipeline`.
+ * Pre-allocated per pipeline instance so frame dispatch incurs zero heap allocations.
+ */
+interface MultiStagePassEntry {
+  readonly isEnabled: (camera: Camera) => boolean;
+  readonly getOrCreate: () => PipelinePass;
+  readonly getCurrent: () => PipelinePass | null;
+}
+
+/**
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
+  private static _isAmbientOcclusionEnabled(camera: Camera): boolean {
+    return camera.scene!.ambientOcclusion._isValid();
+  }
+
   /** @internal */
   _cullingResults: CullingResults;
 
@@ -53,6 +68,16 @@ export class BasicRenderPipeline {
   private _copyBackgroundTexture: Texture2D | null;
   private _shouldCopyBackgroundColor = false;
 
+  private readonly _activeStagePasses: PipelinePass[] = [];
+  private readonly _disabledStagePasses: PipelinePass[] = [];
+  private readonly _frameResources: PipelineFrameResources = {
+    isSubView: false,
+    fullDepthTarget: null,
+    resolvedColorTarget: null,
+    resolvedColorViewport: new Vector4(0, 0, 1, 1)
+  };
+  private readonly _stagePassEntries: readonly MultiStagePassEntry[];
+
   /**
    * Create a basic render pipeline.
    * @param camera - Camera
@@ -67,6 +92,18 @@ export class BasicRenderPipeline {
     this._saoPass = new ScalableAmbientObscurancePass(engine, shaders.scalableAmbientOcclusion);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine, shaders.finalSRGB, shaders.finalAntiAliasing);
+    this._stagePassEntries = [
+      {
+        isEnabled: BasicRenderPipeline._isAmbientOcclusionEnabled,
+        getOrCreate: () => this._saoPass,
+        getCurrent: () => this._saoPass
+      },
+      {
+        isEnabled: ScreenSpaceReflectionPass._isEnabled,
+        getOrCreate: () => this._getOrCreateSSRPass(),
+        getCurrent: () => this._ssrPass
+      }
+    ];
   }
 
   /**
@@ -74,7 +111,14 @@ export class BasicRenderPipeline {
    */
   destroy(): void {
     this._cullingResults.destroy();
-    this._ssrPass?.destroy();
+    const entries = this._stagePassEntries;
+    for (let i = 0, n = entries.length; i < n; i++) {
+      entries[i].getCurrent()?.onDestroy?.();
+    }
+    this._activeStagePasses.length = 0;
+    this._disabledStagePasses.length = 0;
+    this._frameResources.fullDepthTarget = null;
+    this._frameResources.resolvedColorTarget = null;
 
     const pool = this._camera.engine._renderTargetPool;
 
@@ -92,13 +136,11 @@ export class BasicRenderPipeline {
   }
 
   /** @internal */
-  _getScreenSpaceReflectionDiagnostics(): Readonly<SSRDiagnostics> {
-    return this._ssrPass ? this._ssrPass.getDiagnostics() : ScreenSpaceReflectionPass._disabledDiagnostics;
-  }
-
-  /** @internal */
-  _notifyScreenSpaceReflectionCut(): void {
-    this._ssrPass?.notifyCut();
+  _notifyHistoryInvalidated(): void {
+    const entries = this._stagePassEntries;
+    for (let i = 0, n = entries.length; i < n; i++) {
+      entries[i].getCurrent()?.onHistoryInvalidated?.();
+    }
   }
 
   private _getOrCreateSSRPass(): ScreenSpaceReflectionPass {
@@ -126,10 +168,12 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     const sunlight = scene._lightManager._sunlight;
     const depthOnlyPass = this._depthOnlyPass;
-    const ambientOcclusionEnabled = scene.ambientOcclusion._isValid();
+    const requirements = this._collectStagePasses(camera);
 
-    // Ambient occlusion enable will force enable depth prepass
-    const depthPassEnabled = camera.depthTextureMode === DepthTextureMode.PrePass || ambientOcclusionEnabled;
+    // Pre-pass depth requirement is declared before depth prepass selection
+    const depthPassEnabled =
+      camera.depthTextureMode === DepthTextureMode.PrePass ||
+      (requirements & PipelineResourceRequirements.FullDepth) !== 0;
     const finalClearFlags = camera.clearFlags & ~(ignoreClear ?? CameraClearFlags.None);
     const msaaSamples = Math.min(
       renderTarget ? renderTarget.antiAliasing : camera.msaaSamples,
@@ -159,10 +203,20 @@ export class BasicRenderPipeline {
     batcherManager.uploadBuffer();
 
     const pool = engine._renderTargetPool;
-    const ssrPass = ScreenSpaceReflectionPass._isEnabled(camera) ? this._getOrCreateSSRPass() : this._ssrPass;
+    const activePasses = this._activeStagePasses;
+    const disabledPasses = this._disabledStagePasses;
+    const frameResources = this._frameResources;
+    frameResources.isSubView = cubeFace !== undefined || (mipLevel ?? 0) > 0;
+    frameResources.fullDepthTarget = null;
+    frameResources.resolvedColorTarget = null;
 
     try {
-      ssrPass?.prepare(context, cullingResults, cubeFace !== undefined || (mipLevel ?? 0) > 0);
+      for (let i = 0, n = disabledPasses.length; i < n; i++) {
+        disabledPasses[i].onDisable?.(camera, context);
+      }
+      for (let i = 0, n = activePasses.length; i < n; i++) {
+        activePasses[i].onPrepare?.(context, cullingResults, frameResources);
+      }
 
       if (depthPassEnabled) {
         depthOnlyPass.onConfig(camera);
@@ -171,6 +225,7 @@ export class BasicRenderPipeline {
         depthOnlyPass.release();
         camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
       }
+      frameResources.fullDepthTarget = depthPassEnabled ? depthOnlyPass.renderTarget : null;
 
       // Check if need to create internal color texture or grab texture
       if (independentCanvasEnabled) {
@@ -214,21 +269,17 @@ export class BasicRenderPipeline {
         }
       }
 
-      // Scalable ambient obscurance pass
-      // Before opaque pass so materials can sample ambient occlusion in BRDF
-      const saoPass = this._saoPass;
-      if (ambientOcclusionEnabled) {
-        saoPass.onConfig(camera, this._depthOnlyPass.renderTarget!);
-        saoPass.onRender(context);
-      } else {
-        this._saoPass.release();
+      // Execute pre-forward stage passes (e.g. SAO writes camera_AOTexture before SSR and Forward)
+      for (let i = 0, n = activePasses.length; i < n; i++) {
+        activePasses[i].onPreForward?.(context, cullingResults, frameResources);
       }
-
-      ssrPass?.renderPreForward(context, cullingResults, depthPassEnabled ? depthOnlyPass.renderTarget : null);
 
       this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
     } finally {
-      ssrPass?.releaseFrameTargets();
+      frameResources.fullDepthTarget = null;
+      frameResources.resolvedColorTarget = null;
+      activePasses.length = 0;
+      disabledPasses.length = 0;
 
       // Return the per-frame leases so the next camera with matching shape can reuse them
       if (this._internalColorTarget) {
@@ -347,9 +398,15 @@ export class BasicRenderPipeline {
     // Revert stencil buffer generated by mask
     maskManager.clearMask(context, PipelineStage.Forward);
 
-    // Resolve the scene color once and share it with SSR history + PostProcessManager
+    // Resolve the scene color once and share it with post-transparent stage passes + PostProcessManager
     const colorTargetResolved = this._resolveSceneColorTarget(rhi, colorTarget, internalColorTarget);
-    this._ssrPass?.captureHistory(context, colorTarget, colorViewport);
+    const frameResources = this._frameResources;
+    frameResources.resolvedColorTarget = colorTargetResolved ? colorTarget : null;
+    frameResources.resolvedColorViewport.copyFrom(colorViewport);
+    const activePasses = this._activeStagePasses;
+    for (let i = 0, n = activePasses.length; i < n; i++) {
+      activePasses[i].onPostTransparent?.(context, frameResources);
+    }
 
     // Output render target of each stage
     let outputTarget: RenderTarget | null = null;
@@ -404,6 +461,32 @@ export class BasicRenderPipeline {
       cameraRenderTarget?._blitRenderTarget();
     }
     cameraRenderTarget?.generateMipmaps();
+  }
+
+  private _collectStagePasses(camera: Camera): PipelineResourceRequirements {
+    const activePasses = this._activeStagePasses;
+    const disabledPasses = this._disabledStagePasses;
+    activePasses.length = 0;
+    disabledPasses.length = 0;
+
+    let requirements = PipelineResourceRequirements.None;
+    const entries = this._stagePassEntries;
+    for (let i = 0, n = entries.length; i < n; i++) {
+      const entry = entries[i];
+      if (entry.isEnabled(camera)) {
+        const pass = entry.getOrCreate();
+        activePasses.push(pass);
+        if (pass.getResourceRequirements) {
+          requirements |= pass.getResourceRequirements(camera);
+        }
+      } else {
+        const pass = entry.getCurrent();
+        if (pass) {
+          disabledPasses.push(pass);
+        }
+      }
+    }
+    return requirements;
   }
 
   private _resolveSceneColorTarget(

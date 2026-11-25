@@ -125,5 +125,27 @@ describe("RenderTargetPool", () => {
       expect(b.destroyed).to.equal(true);
       expect(t.destroyed).to.equal(true);
     });
+
+    it("_onDeviceLost() notifies sweepers (supporting self-unregister) and clears free entries", () => {
+      const a = alloc(pool, 256, 256);
+      const t = allocTex(pool, 128, 128);
+      pool.freeRenderTarget(a);
+      pool.freeTexture(t);
+
+      let calls = 0;
+      const sweeper = {
+        _sweepIfIdle() {},
+        _onDeviceLost() {
+          calls++;
+          pool._unregisterIdleSweeper(sweeper);
+        }
+      };
+      pool._registerIdleSweeper(sweeper);
+      pool._onDeviceLost();
+
+      expect(calls).to.equal(1);
+      expect(a.destroyed).to.equal(true);
+      expect(t.destroyed).to.equal(true);
+    });
   });
 });

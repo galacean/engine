@@ -17,11 +17,7 @@ import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Downsampling } from "./enums/Downsampling";
 import { MSAASamples } from "./enums/MSAASamples";
 import { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
-import {
-  ScreenSpaceReflectionSettings,
-  type ScreenSpaceReflectionSettingsData,
-  type SSRDiagnostics
-} from "./lighting/screenSpaceReflection";
+import { ScreenSpaceReflection } from "./lighting/screenSpaceReflection";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -63,19 +59,9 @@ export class Camera extends Component {
   /** Whether screen-space reflection is enabled for this camera. */
   enableScreenSpaceReflection: boolean = true;
 
-  @ignoreClone
-  private _screenSpaceReflectionOverride: ScreenSpaceReflectionSettings | null = null;
-
   /** Optional per-camera override for screen-space reflection settings. */
-  get screenSpaceReflectionOverride(): ScreenSpaceReflectionSettings | null {
-    return this._screenSpaceReflectionOverride;
-  }
-
-  set screenSpaceReflectionOverride(
-    value: ScreenSpaceReflectionSettings | Partial<ScreenSpaceReflectionSettingsData> | null
-  ) {
-    this._screenSpaceReflectionOverride = ScreenSpaceReflectionSettings._normalizeOverride(value);
-  }
+  @ignoreClone
+  screenSpaceReflectionOverride: ScreenSpaceReflection | null = null;
 
   /**
    * Determining what to clear when rendering by a Camera.
@@ -829,17 +815,10 @@ export class Camera extends Component {
   }
 
   /**
-   * Read-only runtime diagnostics snapshot for screen-space reflection on this camera.
-   */
-  get screenSpaceReflectionDiagnostics(): Readonly<SSRDiagnostics> {
-    return this._renderPipeline._getScreenSpaceReflectionDiagnostics();
-  }
-
-  /**
    * Notify screen-space reflection that a camera cut or discontinuity occurred so history resets cleanly.
    */
   notifyScreenSpaceReflectionCut(): void {
-    this._renderPipeline._notifyScreenSpaceReflectionCut();
+    this._renderPipeline._notifyHistoryInvalidated();
   }
 
   /**

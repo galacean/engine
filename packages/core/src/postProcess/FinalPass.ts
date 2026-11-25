@@ -55,7 +55,7 @@ export class FinalPass extends PipelinePass {
     }
   }
 
-  override onRender(context: RenderContext): void {
+  onRender(context: RenderContext): void {
     const { engine } = this;
     const { camera } = context;
     const { viewport, renderTarget } = camera;

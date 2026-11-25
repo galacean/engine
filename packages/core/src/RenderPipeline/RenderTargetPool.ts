@@ -6,6 +6,7 @@ import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapM
  */
 export interface IIdleResourceSweeper {
   _sweepIfIdle(frameCount: number): void;
+  _onDeviceLost?(): void;
 }
 
 /**
@@ -196,6 +197,15 @@ export class RenderTargetPool {
     for (let i = sweepers.length - 1; i >= 0; i--) {
       sweepers[i]._sweepIfIdle(frame);
     }
+  }
+
+  /** @internal Notify registered sweepers and clear pooled free GPU resources on context loss. */
+  _onDeviceLost(): void {
+    const sweepers = this._idleSweepers;
+    for (let i = sweepers.length - 1; i >= 0; i--) {
+      sweepers[i]?._onDeviceLost?.();
+    }
+    this.gc();
   }
 
   gc(): void {

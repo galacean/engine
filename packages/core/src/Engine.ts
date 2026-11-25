@@ -678,6 +678,7 @@ export class Engine extends EventDispatcher {
     this._isDeviceLost = true;
     // Lose graphic resources
     this.resourceManager._lostGraphicResources();
+    this._renderTargetPool._onDeviceLost();
     this._renderingStatistics._reset();
     console.log("Device lost.");
     this.dispatch(EngineEventType.DeviceLost, this);

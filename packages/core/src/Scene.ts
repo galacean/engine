@@ -11,7 +11,7 @@ import { FogMode } from "./enums/FogMode";
 import { AmbientOcclusion, DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
-import { ScreenSpaceReflectionSettings } from "./lighting/screenSpaceReflection/ScreenSpaceReflectionSettings";
+import { ScreenSpaceReflection } from "./lighting/screenSpaceReflection/ScreenSpaceReflection";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";
@@ -62,8 +62,8 @@ export class Scene extends EngineObject {
    */
   readonly ambientOcclusion = new AmbientOcclusion(this);
 
-  /** Default screen-space reflection settings inherited by the scene cameras. */
-  readonly screenSpaceReflection = new ScreenSpaceReflectionSettings();
+  /** Screen-space reflection settings inherited by the scene cameras. */
+  readonly screenSpaceReflection = new ScreenSpaceReflection();
 
   /** @internal */
   _lightManager: LightManager = new LightManager();

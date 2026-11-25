@@ -8,6 +8,7 @@ import type { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
 import type { ShaderPass } from "../../shader/ShaderPass";
 import type { ShaderProgram } from "../../shader/ShaderProgram";
 import { ShaderProperty } from "../../shader/ShaderProperty";
+import { SSRUtils } from "./SSRUtils";
 
 /**
  * Resolves SSR-specific Forward/Receiver shader variants and caches texture-unit fallbacks.
@@ -133,43 +134,27 @@ export class SSRForwardProgramResolver implements IShaderProgramResolver {
       useBilateral = allowSSRForElement && camSSRBilateral && allowBilateral;
       useVerifyDepth =
         allowSSRForElement && !useBilateral && (camSSRVerifyDepth || (camSSRBilateral && !allowBilateral));
-      SSRForwardProgramResolver._syncMacro(
-        compileMacros,
-        SSRForwardProgramResolver._ssrEnableMacro,
-        allowSSRForElement
-      );
-      SSRForwardProgramResolver._syncMacro(
-        compileMacros,
-        SSRForwardProgramResolver._ssrVerifyDepthMacro,
-        useVerifyDepth
-      );
-      SSRForwardProgramResolver._syncMacro(compileMacros, SSRForwardProgramResolver._ssrBilateralMacro, useBilateral);
-      SSRForwardProgramResolver._syncMacro(
+      SSRUtils.setMacro(compileMacros, SSRForwardProgramResolver._ssrEnableMacro, allowSSRForElement);
+      SSRUtils.setMacro(compileMacros, SSRForwardProgramResolver._ssrVerifyDepthMacro, useVerifyDepth);
+      SSRUtils.setMacro(compileMacros, SSRForwardProgramResolver._ssrBilateralMacro, useBilateral);
+      SSRUtils.setMacro(
         compileMacros,
         SSRForwardProgramResolver._ssrPackedDepthMacro,
         allowSSRForElement && camSSRPackedDepth && (useVerifyDepth || useBilateral)
       );
-      SSRForwardProgramResolver._syncMacro(
+      SSRUtils.setMacro(
         compileMacros,
         SSRForwardProgramResolver._ssrPackedNormalMacro,
         allowSSRForElement && camSSRPackedNormal && useBilateral
       );
-      SSRForwardProgramResolver._syncMacro(
+      SSRUtils.setMacro(
         compileMacros,
         SSRForwardProgramResolver._ssrPackedHDRMacro,
         allowSSRForElement && camSSRPackedHDR
       );
     } else {
-      SSRForwardProgramResolver._syncMacro(
-        compileMacros,
-        SSRForwardProgramResolver._ssrPackedDepthMacro,
-        camSSRPackedDepth
-      );
-      SSRForwardProgramResolver._syncMacro(
-        compileMacros,
-        SSRForwardProgramResolver._ssrPackedNormalMacro,
-        camSSRPackedNormal
-      );
+      SSRUtils.setMacro(compileMacros, SSRForwardProgramResolver._ssrPackedDepthMacro, camSSRPackedDepth);
+      SSRUtils.setMacro(compileMacros, SSRForwardProgramResolver._ssrPackedNormalMacro, camSSRPackedNormal);
     }
 
     let program = shaderPass._getShaderProgram(engine, compileMacros);
@@ -196,12 +181,8 @@ export class SSRForwardProgramResolver implements IShaderProgramResolver {
         if (canTryLevel1) {
           compileMacros.disable(SSRForwardProgramResolver._ssrBilateralMacro);
           compileMacros.disable(SSRForwardProgramResolver._ssrPackedNormalMacro);
-          SSRForwardProgramResolver._syncMacro(
-            compileMacros,
-            SSRForwardProgramResolver._ssrVerifyDepthMacro,
-            camSSRVerifyDepth
-          );
-          SSRForwardProgramResolver._syncMacro(
+          SSRUtils.setMacro(compileMacros, SSRForwardProgramResolver._ssrVerifyDepthMacro, camSSRVerifyDepth);
+          SSRUtils.setMacro(
             compileMacros,
             SSRForwardProgramResolver._ssrPackedDepthMacro,
             camSSRPackedDepth && camSSRVerifyDepth
@@ -237,13 +218,5 @@ export class SSRForwardProgramResolver implements IShaderProgramResolver {
     }
 
     return program;
-  }
-
-  private static _syncMacro(collection: ShaderMacroCollection, macro: ShaderMacro, enabled: boolean): void {
-    if (enabled) {
-      collection.enable(macro);
-    } else {
-      collection.disable(macro);
-    }
   }
 }

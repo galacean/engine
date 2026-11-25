@@ -68,7 +68,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
   /**
    * @internal
    */
-  override onRender(context: RenderContext): void {
+  onRender(context: RenderContext): void {
     const light = this._camera.scene!._lightManager._sunlight!;
     this._updateShadowSettings();
     this._renderDirectShadowMap(context, light);

@@ -28,7 +28,7 @@ function loadRef<T extends EngineObject>(
 }
 
 /**
- * Apply scene-level data (ambient, background, shadow, fog, AO) to a Scene.
+ * Apply scene-level data (ambient, background, shadow, fog, AO, SSR) to a Scene.
  * @internal
  */
 export function applySceneData(
@@ -156,11 +156,17 @@ export function applySceneData(
   }
 
   // Screen Space Reflection
-  const ssrData = sceneData.screenSpaceReflection;
-  if (ssrData) {
-    scene.screenSpaceReflection.apply(ssrData);
-  } else {
-    scene.screenSpaceReflection.reset();
+  const screenSpaceReflection = sceneData.screenSpaceReflection;
+  if (screenSpaceReflection) {
+    const sceneSSR = scene.screenSpaceReflection;
+    if (screenSpaceReflection.enabled != undefined) sceneSSR.enabled = screenSpaceReflection.enabled;
+    if (screenSpaceReflection.quality != undefined) sceneSSR.quality = screenSpaceReflection.quality;
+    if (screenSpaceReflection.intensity != undefined) sceneSSR.intensity = screenSpaceReflection.intensity;
+    if (screenSpaceReflection.maxRoughness != undefined) sceneSSR.maxRoughness = screenSpaceReflection.maxRoughness;
+    if (screenSpaceReflection.maxDistance != undefined) sceneSSR.maxDistance = screenSpaceReflection.maxDistance;
+    if (screenSpaceReflection.thickness != undefined) sceneSSR.thickness = screenSpaceReflection.thickness;
+    if (screenSpaceReflection.edgeFade != undefined) sceneSSR.edgeFade = screenSpaceReflection.edgeFade;
+    if (screenSpaceReflection.temporalBlend != undefined) sceneSSR.temporalBlend = screenSpaceReflection.temporalBlend;
   }
 
   return Promise.all(promises).then(() => {});

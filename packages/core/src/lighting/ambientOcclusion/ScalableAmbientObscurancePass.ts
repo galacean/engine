@@ -3,7 +3,12 @@ import { Camera } from "../../Camera";
 import { Engine } from "../../Engine";
 import { Material } from "../../material";
 import { Blitter } from "../../RenderPipeline/Blitter";
-import { PipelinePass } from "../../RenderPipeline/PipelinePass";
+import { CullingResults } from "../../RenderPipeline/CullingResults";
+import {
+  type PipelineFrameResources,
+  PipelinePass,
+  PipelineResourceRequirements
+} from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Shader, ShaderData, ShaderProperty } from "../../shader";
@@ -49,48 +54,26 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     this._material = material;
   }
 
-  onConfig(camera: Camera, depthRenderTarget: RenderTarget): void {
-    const { engine } = this;
-    const { width, height } = camera.pixelViewport;
-
-    this._depthRenderTarget = depthRenderTarget;
-
-    const format = TextureFormat.R8G8B8_UNorm;
-
-    this._saoRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-      engine,
-      this._saoRenderTarget,
-      width,
-      height,
-      format,
-      null,
-      false,
-      false,
-      false,
-      1,
-      TextureWrapMode.Clamp,
-      TextureFilterMode.Bilinear
-    );
-    this._blurRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-      engine,
-      this._blurRenderTarget,
-      width,
-      height,
-      format,
-      null,
-      false,
-      false,
-      false,
-      1,
-      TextureWrapMode.Clamp,
-      TextureFilterMode.Bilinear
-    );
+  override getResourceRequirements(): PipelineResourceRequirements {
+    return PipelineResourceRequirements.FullDepth;
   }
 
-  override onRender(context: RenderContext): void {
+  override onPreForward(
+    context: RenderContext,
+    _cullingResults: CullingResults,
+    resources: PipelineFrameResources
+  ): void {
+    const depthRenderTarget = resources.fullDepthTarget;
+    if (!depthRenderTarget) {
+      this.onDisable(context.camera);
+      return;
+    }
+
     const { engine } = this;
     const { camera } = context;
-    const { viewport, pixelViewport } = camera;
+    this._configureTargets(camera, depthRenderTarget);
+
+    const { pixelViewport } = camera;
     const scene = camera.scene!;
     const { ambientOcclusion } = scene;
     const { shaderData } = this._material;
@@ -153,7 +136,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     camera.shaderData.setTexture(Camera._cameraAOTextureProperty, saoTexture);
   }
 
-  release(): void {
+  override onDisable(camera?: Camera): void {
     const pool = this.engine._renderTargetPool;
     if (this._saoRenderTarget) {
       pool.freeRenderTarget(this._saoRenderTarget);
@@ -164,6 +147,53 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       this._blurRenderTarget = null;
     }
     this._depthRenderTarget = null;
+    camera?.shaderData?.setTexture(Camera._cameraAOTextureProperty, null);
+  }
+
+  override onDestroy(): void {
+    this.onDisable();
+    if (!this._material.destroyed) {
+      this._material._addReferCount(-1);
+      this._material.destroy();
+    }
+  }
+
+  private _configureTargets(camera: Camera, depthRenderTarget: RenderTarget): void {
+    const { engine } = this;
+    const { width, height } = camera.pixelViewport;
+
+    this._depthRenderTarget = depthRenderTarget;
+
+    const format = TextureFormat.R8G8B8_UNorm;
+
+    this._saoRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+      engine,
+      this._saoRenderTarget,
+      width,
+      height,
+      format,
+      null,
+      false,
+      false,
+      false,
+      1,
+      TextureWrapMode.Clamp,
+      TextureFilterMode.Bilinear
+    );
+    this._blurRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
+      engine,
+      this._blurRenderTarget,
+      width,
+      height,
+      format,
+      null,
+      false,
+      false,
+      false,
+      1,
+      TextureWrapMode.Clamp,
+      TextureFilterMode.Bilinear
+    );
   }
 
   private _updateBlurKernel(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {

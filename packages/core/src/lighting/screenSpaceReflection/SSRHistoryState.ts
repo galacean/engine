@@ -1,5 +1,8 @@
 import { Matrix, Vector4 } from "@galacean/engine-math";
+import type { Camera } from "../../Camera";
 import type { RenderTarget, Texture2D } from "../../texture";
+import type { SSRCapabilities, SSRFrameConfig } from "./SSRConfig";
+import { SSRUtils } from "./SSRUtils";
 import { ScreenSpaceReflectionQuality } from "./ScreenSpaceReflectionQuality";
 
 /**
@@ -28,8 +31,6 @@ export class SSRHistoryState {
   lastUsesPackedNormal: boolean = false;
   lastUsesPackedHDR: boolean = false;
   lastUseHardwareStencil: boolean = true;
-  lastUseHighVirtual: boolean = false;
-  lastUseLinearTrace: boolean = false;
 
   /** Active write slot index (`0 | 1`) for temporal reflection and receiver ping-pong buffers. */
   temporalPingPongIndex: 0 | 1 = 0;
@@ -72,17 +73,71 @@ export class SSRHistoryState {
     const w = Math.max(0, width | 0);
     const h = Math.max(0, height | 0);
     for (let i = 0; i < 2; i++) {
-      const rr = this.recvSlotDirtyRect[i];
-      rr[0] = 0;
-      rr[1] = 0;
-      rr[2] = w;
-      rr[3] = h;
-      const sr = this.ssrSlotDirtyRect[i];
-      sr[0] = 0;
-      sr[1] = 0;
-      sr[2] = w;
-      sr[3] = h;
+      SSRUtils.setDirtyRect(this.recvSlotDirtyRect[i], 0, 0, w, h);
+      SSRUtils.setDirtyRect(this.ssrSlotDirtyRect[i], 0, 0, w, h);
     }
+  }
+
+  /**
+   * Check whether camera, resolution, projection, or format changes invalidate all cross-frame SSR history.
+   */
+  isDiscontinuous(
+    camera: Camera,
+    frame: SSRFrameConfig,
+    caps: SSRCapabilities,
+    frameCount: number,
+    cutRequested: boolean
+  ): boolean {
+    return (
+      cutRequested ||
+      (this.lastFrameCount !== -1 && (frameCount < this.lastFrameCount || frameCount - this.lastFrameCount > 30)) ||
+      this.lastTraceWidth !== frame.traceWidth ||
+      this.lastTraceHeight !== frame.traceHeight ||
+      this.lastColorWidth !== frame.colorWidth ||
+      this.lastColorHeight !== frame.colorHeight ||
+      this.lastIsOrthographic !== camera.isOrthographic ||
+      (caps.usesPackedDepthRG8 && this.lastFarClip !== camera.farClipPlane) ||
+      this.lastIsHDR !== camera.enableHDR ||
+      this.lastUsesPackedDepth !== caps.usesPackedDepthRG8 ||
+      this.lastUseHardwareStencil !== frame.useHardwareStencil
+    );
+  }
+
+  /**
+   * Check whether quality, aliasing, or packing changes invalidate only temporal reflection history.
+   */
+  isTemporalInvalidated(frame: SSRFrameConfig, caps: SSRCapabilities): boolean {
+    return (
+      this.lastQuality !== frame.settings.quality ||
+      this.lastAliasRecvNR !== frame.aliasRecvNR ||
+      this.lastUsesPackedNormal !== caps.usesPackedNormalOct8 ||
+      this.lastUsesPackedHDR !== caps.usesPackedHDRReinhard
+    );
+  }
+
+  /**
+   * Commit current-frame matrices and configuration metadata after color pyramid capture.
+   */
+  commitFrame(camera: Camera, frame: SSRFrameConfig, caps: SSRCapabilities, frameCount: number): void {
+    this.prevVPMat.copyFrom(frame.currentVPMat);
+    this.prevInvProjMat.copyFrom(frame.invProjMat);
+    this.prevInvViewMat.copyFrom(frame.invViewMat);
+    this.prevViewZRow.copyFrom(frame.currentViewZRow);
+    this.hasColorHistory = true;
+    this.lastFrameCount = frameCount;
+    this.lastTraceWidth = frame.traceWidth;
+    this.lastTraceHeight = frame.traceHeight;
+    this.lastColorWidth = frame.colorWidth;
+    this.lastColorHeight = frame.colorHeight;
+    this.lastIsOrthographic = camera.isOrthographic;
+    this.lastFarClip = camera.farClipPlane;
+    this.lastQuality = frame.settings.quality;
+    this.lastIsHDR = camera.enableHDR;
+    this.lastAliasRecvNR = frame.aliasRecvNR;
+    this.lastUsesPackedDepth = caps.usesPackedDepthRG8;
+    this.lastUsesPackedNormal = caps.usesPackedNormalOct8;
+    this.lastUsesPackedHDR = caps.usesPackedHDRReinhard;
+    this.lastUseHardwareStencil = frame.useHardwareStencil;
   }
 
   /**
@@ -117,8 +172,6 @@ export class SSRHistoryState {
     this.lastUsesPackedNormal = false;
     this.lastUsesPackedHDR = false;
     this.lastUseHardwareStencil = true;
-    this.lastUseHighVirtual = false;
-    this.lastUseLinearTrace = false;
     this.temporalPingPongIndex = 0;
     this.hiZPingPongIndex = 0;
     for (let i = 0; i < 2; i++) {

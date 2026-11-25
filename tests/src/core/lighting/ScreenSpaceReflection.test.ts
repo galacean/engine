@@ -4,6 +4,7 @@ import {
   BlinnPhongMaterial,
   Blitter,
   BloomEffect,
+  BoundingBox,
   Camera,
   CameraClearFlags,
   Color,
@@ -14,6 +15,7 @@ import {
   Entity,
   Loader,
   Material,
+  Matrix,
   MeshRenderer,
   MeshTopology,
   ModelMesh,
@@ -27,11 +29,10 @@ import {
   RenderQueueType,
   RenderTarget,
   Scene,
+  ScreenSpaceReflection,
   ScreenSpaceReflectionQuality,
-  ScreenSpaceReflectionSettings,
   Shader,
   ShaderMacro,
-  SSRRuntimeState,
   Texture2D,
   TextureCubeFace,
   TextureFilterMode,
@@ -61,6 +62,50 @@ function drainGlErrors(gl: WebGL2RenderingContext): number[] {
     err = gl.getError();
   }
   return errors;
+}
+
+const SSRState = {
+  Disabled: "disabled",
+  Skipped: "skipped",
+  WarmupColor: "warmup-color",
+  FirstTrace: "first-trace",
+  ActiveSteady: "active-steady",
+  ContextLost: "context-lost"
+} as const;
+
+function getSSRPass(cam: Camera): any {
+  // @ts-ignore access internal SSR pass
+  return cam._renderPipeline._ssrPass;
+}
+
+function isSSRActiveForCamera(cam: Camera): boolean {
+  const ssrPass = getSSRPass(cam);
+  return Boolean(ssrPass?._programResolver.forwardEnabled && cam.shaderData.getTexture("camera_SSRTexture"));
+}
+
+function getSSRRetainedBytes(ssrPass: any): number {
+  if (!ssrPass) return 0;
+  const res = ssrPass._resources;
+  const hist = ssrPass._history;
+  const textures: Array<Texture2D | null | undefined> = [
+    res.ssrDepthTex,
+    res.traceRawTex,
+    res.hitDistTex,
+    hist.prevColorPyramidTex,
+    hist.hiZTex[0],
+    hist.hiZTex[1],
+    hist.recvNRTex[0],
+    hist.recvNRTex[1],
+    hist.recvDepthTex[0],
+    hist.recvDepthTex[1],
+    hist.ssrPingPongTex[0],
+    hist.ssrPingPongTex[1]
+  ];
+  let total = 0;
+  for (const tex of textures) {
+    if (tex) total += tex._memorySize;
+  }
+  return total;
 }
 
 function createBlobURL(data: unknown, extension: string): string {
@@ -279,11 +324,12 @@ describe("ScreenSpaceReflection v2", () => {
     }
   });
 
-  it("enforces defaults, clamping, cloneTo, toJSON, and Material/Camera overrides", async () => {
+  it("enforces defaults, clamping, cloneTo, and Material/Camera overrides", async () => {
     const { engine, scene } = await createTestEngine();
     createdEngines.push(engine);
 
     const ssr = scene.screenSpaceReflection;
+    expect(ssr).toBeInstanceOf(ScreenSpaceReflection);
     expect(ssr.enabled).toBe(false);
     expect(ssr.quality).toBe(ScreenSpaceReflectionQuality.Medium);
     expect(ssr.intensity).toBe(1.0);
@@ -292,17 +338,19 @@ describe("ScreenSpaceReflection v2", () => {
     expect(ssr.thickness).toBe(0.15);
     expect(ssr.edgeFade).toBe(0.1);
     expect(ssr.temporalBlend).toBe(0.85);
-    expect(ssr.useLinearTrace).toBe(false);
 
     ssr.intensity = -2;
     expect(ssr.intensity).toBe(0);
+    ssr.intensity = 1.25;
     ssr.intensity = Number.NaN;
-    expect(ssr.intensity).toBe(1.0);
+    expect(ssr.intensity).toBe(1.25);
     ssr.maxRoughness = 3;
     expect(ssr.maxRoughness).toBe(1);
     ssr.maxDistance = 0.001;
     expect(ssr.maxDistance).toBe(0.1);
     ssr.maxDistance = 5000;
+    expect(ssr.maxDistance).toBe(1000);
+    ssr.maxDistance = Number.POSITIVE_INFINITY;
     expect(ssr.maxDistance).toBe(1000);
     ssr.thickness = 0;
     expect(ssr.thickness).toBe(0.005);
@@ -310,63 +358,47 @@ describe("ScreenSpaceReflection v2", () => {
     expect(ssr.edgeFade).toBe(0.5);
     ssr.temporalBlend = 2;
     expect(ssr.temporalBlend).toBe(0.95);
+    ssr.quality = ScreenSpaceReflectionQuality.High;
     // @ts-expect-error runtime guard for invalid quality
     ssr.quality = "invalid";
-    expect(ssr.quality).toBe(ScreenSpaceReflectionQuality.Medium);
+    expect(ssr.quality).toBe(ScreenSpaceReflectionQuality.High);
 
-    ssr.apply({
-      enabled: true,
-      quality: ScreenSpaceReflectionQuality.High,
-      intensity: 1.5,
-      maxDistance: 40,
-      useLinearTrace: true
-    });
+    ssr.enabled = true;
+    ssr.quality = ScreenSpaceReflectionQuality.High;
+    ssr.intensity = 1.5;
+    ssr.maxDistance = 40;
     expect(ssr.enabled).toBe(true);
     expect(ssr.quality).toBe(ScreenSpaceReflectionQuality.High);
     expect(ssr.intensity).toBe(1.5);
     expect(ssr.maxDistance).toBe(40);
-    expect(ssr.useLinearTrace).toBe(true);
-    expect(ssr.toJSON().maxDistance).toBe(40);
-
-    // Null / undefined fields in partial data should be ignored instead of overwriting existing values
-    ssr.apply({
-      enabled: null as unknown as boolean,
-      intensity: null as unknown as number,
-      maxDistance: undefined,
-      useLinearTrace: null as unknown as boolean
-    });
-    expect(ssr.enabled).toBe(true);
-    expect(ssr.intensity).toBe(1.5);
-    expect(ssr.maxDistance).toBe(40);
-    expect(ssr.useLinearTrace).toBe(true);
 
     ssr.quality = ScreenSpaceReflectionQuality.VeryHigh;
     expect(ssr.quality).toBe(ScreenSpaceReflectionQuality.VeryHigh);
-    expect(ssr.toJSON().quality).toBe(ScreenSpaceReflectionQuality.VeryHigh);
-    ssr.apply({ quality: ScreenSpaceReflectionQuality.High });
+    ssr.quality = ScreenSpaceReflectionQuality.High;
     expect(ssr.quality).toBe(ScreenSpaceReflectionQuality.High);
 
-    const copy = new ScreenSpaceReflectionSettings();
+    const copy = new ScreenSpaceReflection();
     ssr.cloneTo(copy);
-    expect(copy.toJSON()).toEqual(ssr.toJSON());
+    expect(copy.enabled).toBe(ssr.enabled);
+    expect(copy.quality).toBe(ssr.quality);
+    expect(copy.intensity).toBe(ssr.intensity);
+    expect(copy.maxRoughness).toBe(ssr.maxRoughness);
+    expect(copy.maxDistance).toBe(ssr.maxDistance);
+    expect(copy.thickness).toBe(ssr.thickness);
+    expect(copy.edgeFade).toBe(ssr.edgeFade);
+    expect(copy.temporalBlend).toBe(ssr.temporalBlend);
 
     const cloned = ssr.clone();
-    expect(cloned).toBeInstanceOf(ScreenSpaceReflectionSettings);
+    expect(cloned).toBeInstanceOf(ScreenSpaceReflection);
     expect(cloned).not.toBe(ssr);
-    expect(cloned.toJSON()).toEqual(ssr.toJSON());
-
-    cloned.reset();
-    expect(cloned.toJSON()).toEqual({
-      enabled: false,
-      quality: ScreenSpaceReflectionQuality.Medium,
-      intensity: 1.0,
-      maxRoughness: 0.6,
-      maxDistance: 25,
-      thickness: 0.15,
-      edgeFade: 0.1,
-      temporalBlend: 0.85,
-      useLinearTrace: false
-    });
+    expect(cloned.enabled).toBe(ssr.enabled);
+    expect(cloned.quality).toBe(ssr.quality);
+    expect(cloned.intensity).toBe(ssr.intensity);
+    expect(cloned.maxRoughness).toBe(ssr.maxRoughness);
+    expect(cloned.maxDistance).toBe(ssr.maxDistance);
+    expect(cloned.thickness).toBe(ssr.thickness);
+    expect(cloned.edgeFade).toBe(ssr.edgeFade);
+    expect(cloned.temporalBlend).toBe(ssr.temporalBlend);
 
     const camEnt = scene.createRootEntity("camA");
     const cam = camEnt.addComponent(Camera);
@@ -423,17 +455,14 @@ describe("ScreenSpaceReflection v2", () => {
       []
     );
 
-    expect(scene.screenSpaceReflection.toJSON()).toEqual({
-      enabled: true,
-      quality: ScreenSpaceReflectionQuality.Low,
-      intensity: 1.25,
-      maxRoughness: 0.45,
-      maxDistance: 18,
-      thickness: 0.25,
-      edgeFade: 0.15,
-      temporalBlend: 0.7,
-      useLinearTrace: false
-    });
+    expect(scene.screenSpaceReflection.enabled).toBe(true);
+    expect(scene.screenSpaceReflection.quality).toBe(ScreenSpaceReflectionQuality.Low);
+    expect(scene.screenSpaceReflection.intensity).toBe(1.25);
+    expect(scene.screenSpaceReflection.maxRoughness).toBe(0.45);
+    expect(scene.screenSpaceReflection.maxDistance).toBe(18);
+    expect(scene.screenSpaceReflection.thickness).toBe(0.25);
+    expect(scene.screenSpaceReflection.edgeFade).toBe(0.15);
+    expect(scene.screenSpaceReflection.temporalBlend).toBe(0.7);
 
     const mat = await engine.resourceManager.load<Material>({
       url: createBlobURL(
@@ -472,88 +501,98 @@ describe("ScreenSpaceReflection v2", () => {
     floorMat.roughness = 0.05;
     addPlane(engine, root, "floor", [0, 0, 0], 8, 8, floorMat);
 
+    // Warm up non-SSR pipeline baseline render targets before measuring SSR texture delta
+    engine.update();
+    const baselineTexMem = engine.renderingStatistics.textureMemory;
     scene.screenSpaceReflection.enabled = true;
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
 
     // Frame 1 -> WarmupColor
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.WarmupColor);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
+    const ssrPass = getSSRPass(cam);
+    expect(ssrPass._state).toBe(SSRState.WarmupColor);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
 
     // Frame 2 -> FirstTrace
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.FirstTrace);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
-    expect(cam.screenSpaceReflectionDiagnostics.traceWidth).toBe(100);
-    expect(cam.screenSpaceReflectionDiagnostics.traceHeight).toBe(50);
+    expect(ssrPass._state).toBe(SSRState.FirstTrace);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(100);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(50);
 
     // Frame 3 -> ActiveSteady
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
-    const mediumBytes = cam.screenSpaceReflectionDiagnostics.estimatedBytes;
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    const mediumBytes = getSSRRetainedBytes(ssrPass);
     expect(mediumBytes).toBeGreaterThan(0);
 
     // Camera cut resets history back to WarmupColor -> FirstTrace -> ActiveSteady
     cam.notifyScreenSpaceReflectionCut();
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.WarmupColor);
+    expect(ssrPass._state).toBe(SSRState.WarmupColor);
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
-    // Medium -> High transitions through FirstTrace (color history retained!)
+    // Medium -> High switches from 0-Hi-Z Linear trace to hierarchical Hi-Z (rebuilds Hi-Z mip chain while retaining color history):
+    // transitions WarmupColor -> FirstTrace -> ActiveSteady
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.FirstTrace);
+    expect(ssrPass._state).toBe(SSRState.WarmupColor);
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.FirstTrace);
+    engine.update();
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
     // High -> Low resizes trace targets (0.5x -> 0.25x) so it re-warms depth then drops temporal ping-pong buffers
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Low;
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.WarmupColor);
+    expect(ssrPass._state).toBe(SSRState.WarmupColor);
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.FirstTrace);
-    expect(cam.screenSpaceReflectionDiagnostics.traceWidth).toBe(50);
-    expect(cam.screenSpaceReflectionDiagnostics.traceHeight).toBe(25);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBeLessThan(mediumBytes);
+    expect(ssrPass._state).toBe(SSRState.FirstTrace);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(50);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(25);
+    expect(getSSRRetainedBytes(ssrPass)).toBeLessThan(mediumBytes);
 
     // Rough / zero-intensity receiver -> Skipped
     floorMat.screenSpaceReflectionIntensity = 0;
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Skipped);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
+    expect(ssrPass._state).toBe(SSRState.Skipped);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
 
     // Restore receiver & test Disabled cleanup
     floorMat.screenSpaceReflectionIntensity = 1;
     stepFrames(engine, 2);
     cam.enableScreenSpaceReflection = false;
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Disabled);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBe(0);
+    expect(ssrPass._state).toBe(SSRState.Disabled);
+    expect(getSSRRetainedBytes(ssrPass)).toBe(0);
+    expect(engine.renderingStatistics.textureMemory).toBe(baselineTexMem);
 
     // Re-enable then switch back to Medium before simulating DeviceLost / DeviceRestored
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     cam.enableScreenSpaceReflection = true;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
     // @ts-ignore simulate engine device loss & restore
-    engine._isDeviceLost = true;
-    engine.dispatch(EngineEventType.DeviceLost, engine);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ContextLost);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBe(0);
+    engine._onDeviceLost();
+    expect(ssrPass._state).toBe(SSRState.ContextLost);
+    expect(getSSRRetainedBytes(ssrPass)).toBe(0);
+    expect(engine.renderingStatistics.textureMemory).toBe(0);
     // @ts-ignore CR-004: persistent SSR GPU resources must be freed immediately on DeviceLost before DeviceRestored
     expect(cam._renderPipeline._ssrPass._history.prevColorPyramidTex).toBeNull();
     // @ts-ignore
-    expect(cam._renderPipeline._ssrPass._ssrDepthTex).toBeNull();
+    expect(cam._renderPipeline._ssrPass._resources.ssrDepthTex).toBeNull();
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ContextLost);
+    expect(ssrPass._state).toBe(SSRState.ContextLost);
 
+    const restored = new Promise<void>((resolve) => engine.once(EngineEventType.DeviceRestored, () => resolve()));
     // @ts-ignore
-    engine._isDeviceLost = false;
-    engine.dispatch(EngineEventType.DeviceRestored, engine);
+    engine._onDeviceRestored();
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    await restored;
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     expect(drainGlErrors(gl)).toEqual([]);
   });
 
@@ -592,11 +631,10 @@ describe("ScreenSpaceReflection v2", () => {
           ssrPass._useHardwareStencil = useHWStencil;
           ssrPass._forcePackedFormats = forcePacked;
           stepFrames(engine, 3);
-          const diag = cam.screenSpaceReflectionDiagnostics;
-          expect(diag.active).toBe(true);
-          expect(diag.useHardwareStencil).toBe(useHWStencil);
-          expect(diag.usesPackedDepthRG8).toBe(forcePacked);
-          expect(diag.usesPackedNormalOct8).toBe(forcePacked || expectPackedNormalByLDR);
+          expect(isSSRActiveForCamera(cam)).toBe(true);
+          expect(ssrPass._frame.useHardwareStencil).toBe(useHWStencil);
+          expect(ssrPass._caps.usesPackedDepthRG8).toBe(forcePacked);
+          expect(ssrPass._caps.usesPackedNormalOct8).toBe(forcePacked || expectPackedNormalByLDR);
           expect(drainGlErrors(gl)).toEqual([]);
         }
       }
@@ -608,10 +646,10 @@ describe("ScreenSpaceReflection v2", () => {
     ssrPass._useHardwareStencil = true;
     ssrPass._forcePackedFormats = false;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.usesPackedNormalOct8).toBe(true);
+    expect(ssrPass._caps.usesPackedNormalOct8).toBe(true);
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.usesPackedNormalOct8).toBe(false);
+    expect(ssrPass._caps.usesPackedNormalOct8).toBe(false);
     cam.enableHDR = false;
 
     // Combined with SAO (forces DepthOnlyPass at 1.0x -> exercises DownsampleDepth max + BuildHiZMip0 min)
@@ -620,7 +658,7 @@ describe("ScreenSpaceReflection v2", () => {
     scene.ambientOcclusion.enabled = true;
     cam.depthTextureMode = DepthTextureMode.PrePass;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     expect(drainGlErrors(gl)).toEqual([]);
   });
 
@@ -784,7 +822,7 @@ describe("ScreenSpaceReflection v2", () => {
     cam.isOrthographic = true;
     cam.orthographicSize = 2.5;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(getSSRPass(cam)._state).toBe(SSRState.ActiveSteady);
     const orthoFloor = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
     expect(orthoFloor.zeroBlackPixels).toBeLessThan(orthoFloor.count);
     expect(drainGlErrors(gl)).toEqual([]);
@@ -847,9 +885,9 @@ describe("ScreenSpaceReflection v2", () => {
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     stepFrames(engine, 3);
 
-    const diag = cam.screenSpaceReflectionDiagnostics;
-    expect(diag.state).toBe(SSRRuntimeState.ActiveSteady);
-    expect(diag.transparentReceiverCount).toBeGreaterThanOrEqual(2);
+    const ssrPass = getSSRPass(cam);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    expect(ssrPass._frame.transparentReceiverCount).toBeGreaterThanOrEqual(2);
     expect(drainGlErrors(gl)).toEqual([]);
 
     // Water must reflect green beacon even though discarded alphaCutoff wall is in front!
@@ -880,7 +918,7 @@ describe("ScreenSpaceReflection v2", () => {
     camBEnt.transform.lookAt(new Vector3(0, 0, 0));
     const camB = camBEnt.addComponent(Camera);
     camB.priority = 1;
-    const overrideB = new ScreenSpaceReflectionSettings();
+    const overrideB = new ScreenSpaceReflection();
     overrideB.enabled = true;
     overrideB.quality = ScreenSpaceReflectionQuality.Low;
     camB.screenSpaceReflectionOverride = overrideB;
@@ -898,10 +936,12 @@ describe("ScreenSpaceReflection v2", () => {
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
 
     stepFrames(engine, 3);
-    expect(camA.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
-    expect(camA.screenSpaceReflectionDiagnostics.traceWidth).toBe(80);
-    expect(camB.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.FirstTrace);
-    expect(camB.screenSpaceReflectionDiagnostics.traceWidth).toBe(40);
+    const ssrPassA = getSSRPass(camA);
+    const ssrPassB = getSSRPass(camB);
+    expect(ssrPassA._state).toBe(SSRState.ActiveSteady);
+    expect(ssrPassA._resources.ssrDepthTex!.width).toBe(80);
+    expect(ssrPassB._state).toBe(SSRState.FirstTrace);
+    expect(ssrPassB._resources.ssrDepthTex!.width).toBe(40);
     expect(drainGlErrors(gl)).toEqual([]);
 
     // Simulate tight mobile texture-unit ceiling (maxFragmentTextureUnits = 2) -> must downgrade to IBL cleanly without GL errors
@@ -945,11 +985,12 @@ describe("ScreenSpaceReflection v2", () => {
     scene.screenSpaceReflection.enabled = true;
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Low;
     stepFrames(engine, 3);
-    const lowBytes = cam.screenSpaceReflectionDiagnostics.estimatedBytes;
+    const ssrPass = getSSRPass(cam);
+    const lowBytes = getSSRRetainedBytes(ssrPass);
 
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 3);
-    const highBytes = cam.screenSpaceReflectionDiagnostics.estimatedBytes;
+    const highBytes = getSSRRetainedBytes(ssrPass);
 
     expect(lowBytes).toBeGreaterThan(0);
     expect(lowBytes).toBeLessThan(highBytes);
@@ -1186,8 +1227,12 @@ describe("ScreenSpaceReflection v2", () => {
       transMat.baseColor = new Color(1, 1, 1, 0.5);
       addPlane(engine, root, "transHelper", [0, -0.5, 0], 1, 1, transMat);
 
-      const downgradeAttempts: Array<{ valid: boolean; activeUnits: number; verifyDepth: boolean; bilateral: boolean }> =
-        [];
+      const downgradeAttempts: Array<{
+        valid: boolean;
+        activeUnits: number;
+        verifyDepth: boolean;
+        bilateral: boolean;
+      }> = [];
       progSpy.mockImplementation((eng, macros) => {
         const prog = origGetProgram(eng, macros);
         downgradeAttempts.push({
@@ -1353,7 +1398,7 @@ describe("ScreenSpaceReflection v2", () => {
       // @ts-ignore
       const lastWrittenIdx = history.temporalPingPongIndex === 0 ? 1 : 0;
       const depthTex = history.recvDepthTex[lastWrittenIdx]!;
-      const depths = readSSRDepthBuffer(depthTex, ssrPass._usesPackedDepthRG8, cam.farClipPlane);
+      const depths = readSSRDepthBuffer(depthTex, ssrPass._caps.usesPackedDepthRG8, cam.farClipPlane);
       const cx = Math.floor(depthTex.width / 2);
       const cy = Math.floor(depthTex.height / 2);
       return depths[cy * depthTex.width + cx];
@@ -1430,9 +1475,9 @@ describe("ScreenSpaceReflection v2", () => {
       // @ts-ignore
       const history = ssrPass._history;
       // @ts-ignore
-      const lastWrittenIdx = ssrPass._useTemporal ? (history.temporalPingPongIndex === 0 ? 1 : 0) : 0;
+      const lastWrittenIdx = ssrPass._frame.preset.useTemporal ? (history.temporalPingPongIndex === 0 ? 1 : 0) : 0;
       const depthTex = history.recvDepthTex[lastWrittenIdx]!;
-      return readSSRDepthBuffer(depthTex, ssrPass._usesPackedDepthRG8, cam.farClipPlane);
+      return readSSRDepthBuffer(depthTex, ssrPass._caps.usesPackedDepthRG8, cam.farClipPlane);
     };
 
     // Order A: Near drawn BEFORE Far (the failing case under max-downsample + DepthWrite=false)
@@ -1494,8 +1539,8 @@ describe("ScreenSpaceReflection v2", () => {
     const ssrPass = cam._renderPipeline._ssrPass;
     // @ts-ignore
     const material = ssrPass._material;
-    const packed = ssrPass._usesPackedDepthRG8;
-    const format = ssrPass._depthColorFormat;
+    const packed = ssrPass._caps.usesPackedDepthRG8;
+    const format = ssrPass._caps.depthColorFormat;
 
     const createDepthInput = (values: number[]): Texture2D => {
       const tex = new Texture2D(engine, values.length, 1, format, false, false);
@@ -1529,13 +1574,13 @@ describe("ScreenSpaceReflection v2", () => {
       dstTex.filterMode = TextureFilterMode.Point;
       const dstRT = new RenderTarget(engine, dstW, 1, dstTex, null, 1);
       // @ts-ignore
-      ssrPass._sourceTexelSize.set(1 / srcValues.length, 1, srcValues.length, 1);
+      ssrPass._pyramidBuilder.sourceTexelSize.set(1 / srcValues.length, 1, srcValues.length, 1);
       // @ts-ignore
-      ssrPass._destTexelSize.set(1 / dstW, 1, dstW, 1);
+      ssrPass._pyramidBuilder.destTexelSize.set(1 / dstW, 1, dstW, 1);
       // @ts-ignore
-      material.shaderData.setVector4("material_SSRSourceTexelSize", ssrPass._sourceTexelSize);
+      material.shaderData.setVector4("material_SSRSourceTexelSize", ssrPass._pyramidBuilder.sourceTexelSize);
       // @ts-ignore
-      material.shaderData.setVector4("material_SSRDestTexelSize", ssrPass._destTexelSize);
+      material.shaderData.setVector4("material_SSRDestTexelSize", ssrPass._pyramidBuilder.destTexelSize);
       engine._renderContext.camera = cam;
       Blitter.blitTexture(engine, srcTex, dstRT, 0, new Vector4(0, 0, 1, 1), material, 1, undefined, 0);
       const out = readSSRDepthBuffer(dstTex, packed, 100);
@@ -1716,7 +1761,7 @@ describe("ScreenSpaceReflection v2", () => {
       const history = ssrPass._history;
       const lastHiZIdx = history.hiZPingPongIndex === 0 ? 1 : 0;
       const traceDepthTex = history.hiZTex[lastHiZIdx]!;
-      const depths = readSSRDepthBuffer(traceDepthTex, ssrPass._usesPackedDepthRG8, cam.farClipPlane);
+      const depths = readSSRDepthBuffer(traceDepthTex, ssrPass._caps.usesPackedDepthRG8, cam.farClipPlane);
       const cx = Math.floor(traceDepthTex.width / 2);
       const cy = Math.floor(traceDepthTex.height / 2);
       return depths[cy * traceDepthTex.width + cx];
@@ -1750,7 +1795,7 @@ describe("ScreenSpaceReflection v2", () => {
     tex.destroy(true);
   });
 
-  it("CR-007: normalizes plain JSON Camera.screenSpaceReflectionOverride loaded via SceneLoader", async () => {
+  it("CR-007: deserializes $type Camera.screenSpaceReflectionOverride loaded via SceneLoader", async () => {
     const { engine, gl } = await createTestEngine(96, 64);
     createdEngines.push(engine);
 
@@ -1774,6 +1819,7 @@ describe("ScreenSpaceReflection v2", () => {
           type: "Camera",
           props: {
             screenSpaceReflectionOverride: {
+              $type: "ScreenSpaceReflection",
               enabled: true,
               quality: 1,
               maxDistance: 33
@@ -1796,7 +1842,7 @@ describe("ScreenSpaceReflection v2", () => {
 
     const camEnt = loadedScene.findEntityByName("camEntity")!;
     const cam = camEnt.getComponent(Camera)!;
-    expect(cam.screenSpaceReflectionOverride).toBeInstanceOf(ScreenSpaceReflectionSettings);
+    expect(cam.screenSpaceReflectionOverride).toBeInstanceOf(ScreenSpaceReflection);
     expect(cam.screenSpaceReflectionOverride!.enabled).toBe(true);
     expect(cam.screenSpaceReflectionOverride!.quality).toBe(ScreenSpaceReflectionQuality.Medium);
     expect(cam.screenSpaceReflectionOverride!.maxDistance).toBe(33);
@@ -1807,14 +1853,18 @@ describe("ScreenSpaceReflection v2", () => {
     addPlane(engine, loadedScene.findEntityByName("floor")!, "plane", [0, 0, 0], 6, 6, floorMat);
 
     expect(() => stepFrames(engine, 3)).not.toThrow();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(getSSRPass(cam)._state).toBe(SSRState.ActiveSteady);
 
-    // Direct plain-object assignment & clone also stay normalized
-    cam.screenSpaceReflectionOverride = { enabled: true, quality: 2, intensity: 1.4 };
-    expect(cam.screenSpaceReflectionOverride).toBeInstanceOf(ScreenSpaceReflectionSettings);
+    // Direct ScreenSpaceReflection instance assignment & clone also preserve override cleanly
+    const directOverride = new ScreenSpaceReflection();
+    directOverride.enabled = true;
+    directOverride.quality = ScreenSpaceReflectionQuality.High;
+    directOverride.intensity = 1.4;
+    cam.screenSpaceReflectionOverride = directOverride;
+    expect(cam.screenSpaceReflectionOverride).toBe(directOverride);
     expect(cam.screenSpaceReflectionOverride!.quality).toBe(ScreenSpaceReflectionQuality.High);
     const clonedCam = camEnt.clone().getComponent(Camera)!;
-    expect(clonedCam.screenSpaceReflectionOverride).toBeInstanceOf(ScreenSpaceReflectionSettings);
+    expect(clonedCam.screenSpaceReflectionOverride).toBeInstanceOf(ScreenSpaceReflection);
     expect(clonedCam.screenSpaceReflectionOverride).not.toBe(cam.screenSpaceReflectionOverride);
     expect(clonedCam.screenSpaceReflectionOverride!.intensity).toBe(1.4);
     expect(drainGlErrors(gl)).toEqual([]);
@@ -1846,10 +1896,9 @@ describe("ScreenSpaceReflection v2", () => {
 
     // Warm up color history so Frame 2 enters Hi-Z pyramid allocation
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.WarmupColor);
+    const ssrPass = getSSRPass(cam);
+    expect(ssrPass._state).toBe(SSRState.WarmupColor);
 
-    // @ts-ignore access internal scratch lists & persistent Hi-Z history
-    const ssrPass = cam._renderPipeline._ssrPass;
     const pool = engine._renderTargetPool;
     const origAlloc = pool.allocateRenderTarget.bind(pool);
     const rhi = engine._hardwareRenderer;
@@ -1857,14 +1906,14 @@ describe("ScreenSpaceReflection v2", () => {
 
     // 1) Inject failure on persistent Hi-Z colorRT allocation inside prepare()/_ensurePersistentResources()
     // @ts-ignore
-    ssrPass._releasePersistentResources();
+    ssrPass._deactivate(SSRState.Skipped, cam);
     let persistentHiZFailed = false;
     const spyPersistentHiZ = vi.spyOn(rhi, "createPlatformRenderTarget").mockImplementation((target) => {
       const colorTex = target.getColorTexture(0);
       if (
         !persistentHiZFailed &&
         colorTex &&
-        colorTex.format === ssrPass._depthColorFormat &&
+        colorTex.format === ssrPass._caps.depthColorFormat &&
         colorTex.mipmapCount > 1 &&
         target.depthTexture === null
       ) {
@@ -1882,19 +1931,19 @@ describe("ScreenSpaceReflection v2", () => {
     const afterHiZFail = sampleRegionRGB(tex, 0.35, 0.35, 0.65, 0.65);
     expect(afterHiZFail.avgB).toBeGreaterThan(200);
     // @ts-ignore
-    expect(ssrPass._hiZScratchRTs.length).toBe(0);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
+    expect(ssrPass._pyramidBuilder.hiZScratchRTs.length).toBe(0);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
 
     // Recover cleanly across next frames
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
     // 2) Cover Hi-Z fallback scratch allocation failure (1st pool depth RT when _forceHiZScratch = true)
     // @ts-ignore
     ssrPass._forceHiZScratch = true;
     let hiZFallbackAllocs = 0;
     const spyHiZFallback = vi.spyOn(pool, "allocateRenderTarget").mockImplementation((...args) => {
-      if (args[2] === ssrPass._depthColorFormat) {
+      if (args[2] === ssrPass._caps.depthColorFormat) {
         hiZFallbackAllocs++;
         if (hiZFallbackAllocs === 1) {
           throw new Error("Simulated Hi-Z scratch RT allocation failure");
@@ -1907,18 +1956,18 @@ describe("ScreenSpaceReflection v2", () => {
     // @ts-ignore
     ssrPass._forceHiZScratch = false;
     // @ts-ignore
-    expect(ssrPass._hiZScratchRTs.length).toBe(0);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
+    expect(ssrPass._pyramidBuilder.hiZScratchRTs.length).toBe(0);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
 
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
     // Inject failure on mip-1 ColorPyramid scratch allocation inside software fallback captureHistory
     // @ts-ignore
     ssrPass._forceSoftwareColorPyramidMipmaps = true;
     let colorPyrAllocs = 0;
     const spyColor = vi.spyOn(pool, "allocateRenderTarget").mockImplementation((...args) => {
-      if (args[2] === ssrPass._colorPyramidFormat && args[0] < 128) {
+      if (args[2] === ssrPass._caps.colorPyramidFormat && args[0] < 128) {
         colorPyrAllocs++;
         if (colorPyrAllocs === 1) {
           throw new Error("Simulated ColorPyramid RT allocation failure");
@@ -1933,14 +1982,14 @@ describe("ScreenSpaceReflection v2", () => {
     ssrPass._forceSoftwareColorPyramidMipmaps = false;
 
     // @ts-ignore
-    expect(ssrPass._colorScratchRTs.length).toBe(0);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
+    expect(ssrPass._pyramidBuilder.colorScratchRTs.length).toBe(0);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
     const afterColorFail = sampleRegionRGB(tex, 0.35, 0.35, 0.65, 0.65);
     expect(afterColorFail.avgB).toBeGreaterThan(200);
 
     // Must recover back to ActiveSteady afterwards with zero GL errors
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     expect(drainGlErrors(gl)).toEqual([]);
 
     rt.destroy(true);
@@ -1975,9 +2024,9 @@ describe("ScreenSpaceReflection v2", () => {
     // @ts-ignore
     const history = ssrPass._history;
     // @ts-ignore
-    expect(history.ssrPingPongRT[0]!.depthTexture).toBe(ssrPass._ssrDepthTex);
+    expect(history.ssrPingPongRT[0]!.depthTexture).toBe(ssrPass._resources.ssrDepthTex);
     // @ts-ignore
-    expect(history.ssrPingPongRT[1]!.depthTexture).toBe(ssrPass._ssrDepthTex);
+    expect(history.ssrPingPongRT[1]!.depthTexture).toBe(ssrPass._resources.ssrDepthTex);
 
     // Background corner pixel outside center receiver must stay (0,0,0,0) in active ping-pong output
     const writtenIdx = history.temporalPingPongIndex === 0 ? 1 : 0;
@@ -2036,12 +2085,12 @@ describe("ScreenSpaceReflection v2", () => {
     scene.screenSpaceReflection.maxRoughness = 0.5;
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(getSSRPass(cam)._state).toBe(SSRState.ActiveSteady);
     expect(drainGlErrors(gl)).toEqual([]);
 
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(getSSRPass(cam)._state).toBe(SSRState.ActiveSteady);
     expect(drainGlErrors(gl)).toEqual([]);
 
     varyingRoughTex.destroy(true);
@@ -2075,9 +2124,9 @@ describe("ScreenSpaceReflection v2", () => {
     // @ts-ignore
     const freeRTs: RenderTarget[] = engine._renderTargetPool._freeRenderTargets;
     // @ts-ignore
-    const depthBuckets = freeRTs.filter((rt) => rt.getColorTexture(0)?.format === ssrPass._depthColorFormat);
+    const depthBuckets = freeRTs.filter((rt) => rt.getColorTexture(0)?.format === ssrPass._caps.depthColorFormat);
     // @ts-ignore
-    const colorBuckets = freeRTs.filter((rt) => rt.getColorTexture(0)?.format === ssrPass._colorPyramidFormat);
+    const colorBuckets = freeRTs.filter((rt) => rt.getColorTexture(0)?.format === ssrPass._caps.colorPyramidFormat);
     // P1-1 + Plan 2: persistent ping-pong in-place Hi-Z uses 0 pool RTs (both 80x60 hiZTex[0/1] live in history) and hardware generateMipmaps uses 0 color scratches!
     expect(depthBuckets.length).toBe(0);
     expect(colorBuckets.length).toBe(0);
@@ -2085,10 +2134,14 @@ describe("ScreenSpaceReflection v2", () => {
     expect(`${ssrPass._history.hiZTex[0]!.width}x${ssrPass._history.hiZTex[0]!.height}`).toBe("80x60");
     // @ts-ignore
     expect(`${ssrPass._history.hiZTex[1]!.width}x${ssrPass._history.hiZTex[1]!.height}`).toBe("80x60");
-    // @ts-ignore
-    expect(ssrPass._lastHiZScratchBytes).toBe(0);
-    // @ts-ignore
-    expect(ssrPass._lastColorScratchBytes).toBe(0);
+    const scratchAllocSpy = vi.spyOn(engine._renderTargetPool, "allocateRenderTarget");
+    try {
+      stepFrames(engine, 1);
+      const ssrScratchAllocs = scratchAllocSpy.mock.calls.filter((args) => args[0] < 160 && args[7] === 1);
+      expect(ssrScratchAllocs.length).toBe(0);
+    } finally {
+      scratchAllocSpy.mockRestore();
+    }
 
     // Confirm downsampled mips 0..3 inside prevColorPyramidTex actually contain non-zero linear scene color
     // @ts-ignore
@@ -2109,17 +2162,17 @@ describe("ScreenSpaceReflection v2", () => {
     // Skipped for 2 frames keeps persistent resources (prevents brief pan thrash)
     floorMat.screenSpaceReflectionIntensity = 0;
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Skipped);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBeGreaterThan(0);
+    expect(ssrPass._state).toBe(SSRState.Skipped);
+    expect(getSSRRetainedBytes(ssrPass)).toBeGreaterThan(0);
 
     // Reaching 10 consecutive Skipped frames releases persistent resources to 0, then cleanly recovers
     stepFrames(engine, 8);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Skipped);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBe(0);
+    expect(ssrPass._state).toBe(SSRState.Skipped);
+    expect(getSSRRetainedBytes(ssrPass)).toBe(0);
 
     floorMat.screenSpaceReflectionIntensity = 1.0;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     expect(drainGlErrors(gl)).toEqual([]);
   });
 
@@ -2241,21 +2294,22 @@ describe("ScreenSpaceReflection v2", () => {
     // Frame 1 (active) -> WarmupColor
     cam.enabled = true;
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.WarmupColor);
+    const ssrPass = getSSRPass(cam);
+    expect(ssrPass._state).toBe(SSRState.WarmupColor);
 
     // Frame 2 skipped (30fps secondary camera), Frame 3 active -> must advance to FirstTrace
     cam.enabled = false;
     engine.update();
     cam.enabled = true;
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.FirstTrace);
+    expect(ssrPass._state).toBe(SSRState.FirstTrace);
 
     // Frame 4 skipped, Frame 5 active -> must advance to ActiveSteady
     cam.enabled = false;
     engine.update();
     cam.enabled = true;
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     expect(drainGlErrors(gl)).toEqual([]);
   });
 
@@ -2279,41 +2333,40 @@ describe("ScreenSpaceReflection v2", () => {
     cam.enableHDR = false;
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Low;
     stepFrames(engine, 3);
-    const lowDiag = { ...cam.screenSpaceReflectionDiagnostics };
-    expect(lowDiag.traceWidth).toBe(195);
-    expect(lowDiag.traceHeight).toBe(422);
-    expect(lowDiag.estimatedBytes).toBeLessThanOrEqual(4.5 * 1024 * 1024);
+    const ssrPass = getSSRPass(cam);
+    const lowBytes = getSSRRetainedBytes(ssrPass);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(195);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(422);
+    expect(lowBytes).toBeLessThanOrEqual(4.5 * 1024 * 1024);
 
     // Medium LDR (0.5x = 390x844, RGBA8 + Oct8 + aliased recvNR onto ssrPingPongTex)
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     stepFrames(engine, 3);
-    const medLDRDiag = { ...cam.screenSpaceReflectionDiagnostics };
+    const medLDRBytes = getSSRRetainedBytes(ssrPass);
     // @ts-ignore verify Medium aliases recvNR rather than holding separate recvNRTex buffers and aligns Hi-Z steps to 28
-    const ssrPass = cam._renderPipeline._ssrPass;
-    // @ts-ignore
     const history = ssrPass._history;
     // @ts-ignore
-    expect(ssrPass._traceSteps).toBe(28);
+    expect(ssrPass._frame.preset.maxSteps).toBe(28);
     expect(history.recvNRTex[0]).toBeNull();
     expect(history.recvNRTex[1]).toBeNull();
-    expect(medLDRDiag.estimatedBytes).toBeLessThanOrEqual(11 * 1024 * 1024);
+    expect(medLDRBytes).toBeLessThanOrEqual(11 * 1024 * 1024);
 
     // Medium HDR (R8G8B8A8 + Oct8 + reversible Reinhard HDR, still aliased cleanly)
     cam.enableHDR = true;
     stepFrames(engine, 3);
-    const medHDRDiag = { ...cam.screenSpaceReflectionDiagnostics };
+    const medHDRBytes = getSSRRetainedBytes(ssrPass);
     expect(history.recvNRTex[0]).toBeNull();
-    expect(medHDRDiag.usesPackedNormalOct8).toBe(true);
-    expect(medHDRDiag.estimatedBytes).toBe(medLDRDiag.estimatedBytes);
-    expect(medHDRDiag.estimatedBytes).toBeLessThanOrEqual(11 * 1024 * 1024);
+    expect(ssrPass._caps.usesPackedNormalOct8).toBe(true);
+    expect(medHDRBytes).toBe(medLDRBytes);
+    expect(medHDRBytes).toBeLessThanOrEqual(11 * 1024 * 1024);
 
     // High HDR
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 3);
-    const highHDRBytes = cam.screenSpaceReflectionDiagnostics.estimatedBytes;
+    const highHDRBytes = getSSRRetainedBytes(ssrPass);
 
-    expect(lowDiag.estimatedBytes).toBeLessThan(medLDRDiag.estimatedBytes);
-    expect(medHDRDiag.estimatedBytes).toBeLessThan(highHDRBytes);
+    expect(lowBytes).toBeLessThan(medLDRBytes);
+    expect(medHDRBytes).toBeLessThan(highHDRBytes);
     expect(drainGlErrors(gl)).toEqual([]);
   });
 
@@ -2399,9 +2452,9 @@ describe("ScreenSpaceReflection v2", () => {
     // @ts-ignore access internal scratch lists
     const ssrPass = cam._renderPipeline._ssrPass;
     // @ts-ignore
-    const hiZList = ssrPass._hiZScratchRTs;
+    const hiZList = ssrPass._pyramidBuilder.hiZScratchRTs;
     // @ts-ignore
-    const colorList = ssrPass._colorScratchRTs;
+    const colorList = ssrPass._pyramidBuilder.colorScratchRTs;
     const hiZSpliceSpy = vi.spyOn(hiZList, "splice");
     const colorSpliceSpy = vi.spyOn(colorList, "splice");
 
@@ -2524,15 +2577,13 @@ describe("ScreenSpaceReflection v2", () => {
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.VeryHigh;
     stepFrames(engine, 4);
 
-    const veryHighDiag = cam.screenSpaceReflectionDiagnostics;
-    expect(veryHighDiag.active).toBe(true);
-    expect(veryHighDiag.state).toBe(SSRRuntimeState.ActiveSteady);
-    expect(veryHighDiag.traceWidth).toBe(160);
-    expect(veryHighDiag.traceHeight).toBe(120);
-    expect(veryHighDiag.usesPackedNormalOct8).toBe(false);
+    const ssrPass = getSSRPass(cam);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(160);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(120);
+    expect(ssrPass._caps.usesPackedNormalOct8).toBe(false);
 
-    // @ts-ignore inspect internal history & Forward camera bindings
-    const ssrPass = cam._renderPipeline._ssrPass;
     // @ts-ignore
     const pyrTex = ssrPass._history.prevColorPyramidTex!;
     expect(pyrTex.width).toBe(160);
@@ -2592,7 +2643,7 @@ describe("ScreenSpaceReflection v2", () => {
     const veryHighFloor = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
     expect(veryHighFloor.maxR).toBeGreaterThan(offFloor.maxR + 60);
     expect(veryHighFloor.avgR).toBeGreaterThan(offFloor.avgR + 15);
-    const veryHighBytes = veryHighDiag.estimatedBytes;
+    const veryHighBytes = getSSRRetainedBytes(ssrPass);
 
     // 3. Adding a transparent receiver enables CAMERA_SSR_VERIFY_RECEIVER_DEPTH in Forward even in VeryHigh
     const waterMat = new PBRMaterial(engine);
@@ -2609,31 +2660,30 @@ describe("ScreenSpaceReflection v2", () => {
     expect(ssrPass._programResolver.verifyReceiverDepth).toBe(true);
     // @ts-ignore
     expect(ssrPass._programResolver.bilateralSample).toBe(false);
-    expect(
-      cam.shaderData._macroCollection.isEnable(ShaderMacro.getByName("CAMERA_SSR_VERIFY_RECEIVER_DEPTH"))
-    ).toBe(false);
+    expect(cam.shaderData._macroCollection.isEnable(ShaderMacro.getByName("CAMERA_SSR_VERIFY_RECEIVER_DEPTH"))).toBe(
+      false
+    );
     expect(cam._globalShaderMacro.isEnable(ShaderMacro.getByName("CAMERA_SSR_VERIFY_RECEIVER_DEPTH"))).toBe(false);
     waterEnt.destroy();
 
     // 4. Clean preset transitions: VeryHigh -> High -> Medium -> VeryHigh, plus SAO full-res depth 1:1 path
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 3);
-    const highDiag = cam.screenSpaceReflectionDiagnostics;
-    expect(highDiag.traceWidth).toBe(80);
-    expect(highDiag.traceHeight).toBe(60);
-    expect(veryHighBytes).toBeGreaterThan(highDiag.estimatedBytes);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(80);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(60);
+    expect(veryHighBytes).toBeGreaterThan(getSSRRetainedBytes(ssrPass));
 
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.VeryHigh;
     scene.ambientOcclusion.enabled = true;
     cam.depthTextureMode = DepthTextureMode.PrePass;
     stepFrames(engine, 4);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
-    expect(cam.screenSpaceReflectionDiagnostics.traceWidth).toBe(160);
-    expect(cam.screenSpaceReflectionDiagnostics.traceHeight).toBe(120);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(160);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(120);
 
     // 5. Split-screen horizontal viewport isolation under VeryHigh (1:1 full-res prefilter path)
     scene.ambientOcclusion.enabled = false;
@@ -2812,22 +2862,26 @@ describe("ScreenSpaceReflection v2", () => {
     addBox(engine, root, "greenBox", [0, 0.8, -1.5], [1, 1.6, 1], boxMat);
 
     scene.screenSpaceReflection.enabled = true;
-    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
+    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.FirstTrace);
+    const ssrPass = getSSRPass(cam);
+    expect(ssrPass._state).toBe(SSRState.FirstTrace);
 
     const origSetRange = (Texture2D.prototype as unknown as { _setMipLevelRange: (b: number, m: number) => boolean })
       ._setMipLevelRange;
     const observedRanges: Array<{ tex: Texture2D; base: number; max: number }> = [];
     const rangeSpy = vi
-      .spyOn(Texture2D.prototype as unknown as { _setMipLevelRange: (b: number, m: number) => boolean }, "_setMipLevelRange")
+      .spyOn(
+        Texture2D.prototype as unknown as { _setMipLevelRange: (b: number, m: number) => boolean },
+        "_setMipLevelRange"
+      )
       .mockImplementation(function (this: Texture2D, baseLevel: number, maxLevel: number) {
         observedRanges.push({ tex: this, base: baseLevel, max: maxLevel });
         return origSetRange.call(this, baseLevel, maxLevel);
       });
 
     stepFrames(engine, 1);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     expect(observedRanges.length).toBe(6); // 80x60 trace -> maxHiZMip = min(6, floor(log2(60))) = 5 -> m = 1..5 plus finally [0,1000]
     expect(observedRanges.map((c) => [c.base, c.max])).toEqual([
       [0, 0],
@@ -2870,21 +2924,25 @@ describe("ScreenSpaceReflection v2", () => {
     expect(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL)).toBe(0);
     expect(gl.getTexParameter(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL)).toBe(1000);
 
-    // @ts-ignore access internal pass
-    const ssrPass = cam._renderPipeline._ssrPass;
     // @ts-ignore
-    expect(ssrPass._hiZScratchRTs.length).toBe(0);
+    expect(ssrPass._pyramidBuilder.hiZScratchRTs.length).toBe(0);
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
     // Verify _forceHiZScratch fallback works cleanly and allocates mip-1 scratch
-    // @ts-ignore
+    const scratchAllocSpy = vi.spyOn(engine._renderTargetPool, "allocateRenderTarget");
     ssrPass._forceHiZScratch = true;
-    stepFrames(engine, 1);
-    // @ts-ignore
-    expect(ssrPass._lastHiZScratchBytes).toBeGreaterThan(0);
-    // @ts-ignore
-    ssrPass._forceHiZScratch = false;
+    try {
+      stepFrames(engine, 1);
+      const hiZScratchAllocs = scratchAllocSpy.mock.calls.filter(
+        (args) => args[0] === 40 && args[1] === 30 && args[2] === ssrPass._caps.depthColorFormat
+      );
+      expect(hiZScratchAllocs.length).toBe(1);
+      expect(ssrPass._pyramidBuilder.hiZScratchRTs.length).toBe(0);
+    } finally {
+      scratchAllocSpy.mockRestore();
+      ssrPass._forceHiZScratch = false;
+    }
     expect(drainGlErrors(gl)).toEqual([]);
   });
 
@@ -2932,50 +2990,68 @@ describe("ScreenSpaceReflection v2", () => {
     };
 
     // Medium -> hardware generateMipmaps(), zero scratch
-    stepFrames(engine, 2);
-    expect(genSpy).toHaveBeenCalledTimes(2);
-    // @ts-ignore
-    expect(ssrPass._lastColorScratchBytes).toBe(0);
-    assertMipsPopulated(pyrTex);
+    const colorScratchAllocSpy = vi.spyOn(engine._renderTargetPool, "allocateRenderTarget");
+    try {
+      stepFrames(engine, 2);
+      expect(genSpy).toHaveBeenCalledTimes(2);
+      expect(
+        colorScratchAllocSpy.mock.calls.filter((args) => args[2] === ssrPass._caps.colorPyramidFormat).length
+      ).toBe(0);
+      assertMipsPopulated(pyrTex);
 
-    // High -> still 0.5x color pyramid, uses hardware generateMipmaps()
-    genSpy.mockClear();
-    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
-    stepFrames(engine, 2);
-    expect(genSpy).toHaveBeenCalledTimes(2);
-    // @ts-ignore
-    expect(ssrPass._lastColorScratchBytes).toBe(0);
-    assertMipsPopulated(pyrTex);
+      // High -> still 0.5x color pyramid, uses hardware generateMipmaps()
+      genSpy.mockClear();
+      colorScratchAllocSpy.mockClear();
+      scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
+      stepFrames(engine, 2);
+      expect(genSpy).toHaveBeenCalledTimes(2);
+      expect(
+        colorScratchAllocSpy.mock.calls.filter((args) => args[2] === ssrPass._caps.colorPyramidFormat).length
+      ).toBe(0);
+      assertMipsPopulated(pyrTex);
 
-    // VeryHigh -> 1.0x color pyramid allocates new full-res prevColorPyramidTex & uses software Karis mip1 + downsample
-    const texGenProtoSpy = vi.spyOn(Texture2D.prototype, "generateMipmaps");
-    texGenProtoSpy.mockClear();
-    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.VeryHigh;
-    stepFrames(engine, 2);
-    // Note: generateMipmaps may only be called if cameraRenderTarget has mipmaps; prevColorPyramidTex must NOT use generateMipmaps on VeryHigh!
-    // @ts-ignore
-    const veryHighPyrTex = ssrPass._history.prevColorPyramidTex!;
-    expect(texGenProtoSpy.mock.instances.includes(veryHighPyrTex)).toBe(false);
-    // @ts-ignore
-    expect(ssrPass._lastColorScratchBytes).toBeGreaterThan(0);
-    assertMipsPopulated(veryHighPyrTex);
-    texGenProtoSpy.mockRestore();
+      // VeryHigh -> 1.0x color pyramid allocates new full-res prevColorPyramidTex & uses software Karis mip1 + downsample
+      const texGenProtoSpy = vi.spyOn(Texture2D.prototype, "generateMipmaps");
+      texGenProtoSpy.mockClear();
+      colorScratchAllocSpy.mockClear();
+      scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.VeryHigh;
+      stepFrames(engine, 2);
+      // Note: generateMipmaps may only be called if cameraRenderTarget has mipmaps; prevColorPyramidTex must NOT use generateMipmaps on VeryHigh!
+      // @ts-ignore
+      const veryHighPyrTex = ssrPass._history.prevColorPyramidTex!;
+      expect(texGenProtoSpy.mock.instances.includes(veryHighPyrTex)).toBe(false);
+      expect(
+        colorScratchAllocSpy.mock.calls.filter(
+          (args) => args[0] === 80 && args[1] === 60 && args[2] === ssrPass._caps.colorPyramidFormat
+        ).length
+      ).toBe(2);
+      expect(ssrPass._pyramidBuilder.colorScratchRTs.length).toBe(0);
+      assertMipsPopulated(veryHighPyrTex);
+      texGenProtoSpy.mockRestore();
 
-    // Software fallback on Medium when _forceSoftwareColorPyramidMipmaps = true
-    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
-    stepFrames(engine, 1);
-    // @ts-ignore
-    const medPyrTex2 = ssrPass._history.prevColorPyramidTex!;
-    const fallbackSpy = vi.spyOn(medPyrTex2, "generateMipmaps");
-    // @ts-ignore
-    ssrPass._forceSoftwareColorPyramidMipmaps = true;
-    stepFrames(engine, 2);
-    expect(fallbackSpy).not.toHaveBeenCalled();
-    // @ts-ignore
-    expect(ssrPass._lastColorScratchBytes).toBeGreaterThan(0);
-    assertMipsPopulated(medPyrTex2);
-    // @ts-ignore
-    ssrPass._forceSoftwareColorPyramidMipmaps = false;
+      // Software fallback on Medium when _forceSoftwareColorPyramidMipmaps = true
+      scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
+      stepFrames(engine, 1);
+      // @ts-ignore
+      const medPyrTex2 = ssrPass._history.prevColorPyramidTex!;
+      const fallbackSpy = vi.spyOn(medPyrTex2, "generateMipmaps");
+      colorScratchAllocSpy.mockClear();
+      // @ts-ignore
+      ssrPass._forceSoftwareColorPyramidMipmaps = true;
+      stepFrames(engine, 2);
+      expect(fallbackSpy).not.toHaveBeenCalled();
+      expect(
+        colorScratchAllocSpy.mock.calls.filter(
+          (args) => args[0] === 40 && args[1] === 30 && args[2] === ssrPass._caps.colorPyramidFormat
+        ).length
+      ).toBe(2);
+      expect(ssrPass._pyramidBuilder.colorScratchRTs.length).toBe(0);
+      assertMipsPopulated(medPyrTex2);
+    } finally {
+      colorScratchAllocSpy.mockRestore();
+      // @ts-ignore
+      ssrPass._forceSoftwareColorPyramidMipmaps = false;
+    }
 
     expect(drainGlErrors(gl)).toEqual([]);
   });
@@ -3002,8 +3078,8 @@ describe("ScreenSpaceReflection v2", () => {
     // 3020x1544 Low -> trace keeps 0.25x (755x386 <= 960), color pyramid capped to 960x490
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Low;
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.traceWidth).toBe(755);
-    expect(cam.screenSpaceReflectionDiagnostics.traceHeight).toBe(386);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(755);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(386);
     // @ts-ignore
     expect(ssrPass._history.prevColorPyramidTex?.width).toBe(960);
     // @ts-ignore
@@ -3012,8 +3088,8 @@ describe("ScreenSpaceReflection v2", () => {
     // 3020x1544 Medium -> both trace and color pyramid capped to 960x490
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.traceWidth).toBe(960);
-    expect(cam.screenSpaceReflectionDiagnostics.traceHeight).toBe(490);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(960);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(490);
     // @ts-ignore
     expect(ssrPass._history.prevColorPyramidTex?.width).toBe(960);
     // @ts-ignore
@@ -3022,10 +3098,9 @@ describe("ScreenSpaceReflection v2", () => {
     // 3020x1544 High -> capped to 960x490 (~28 MiB instead of ~68 MiB) & valid prefiltered color mip0
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 3);
-    const highDiag = cam.screenSpaceReflectionDiagnostics;
-    expect(highDiag.traceWidth).toBe(960);
-    expect(highDiag.traceHeight).toBe(490);
-    expect(highDiag.estimatedBytes).toBeLessThan(36 * 1024 * 1024);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(960);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(490);
+    expect(getSSRRetainedBytes(ssrPass)).toBeLessThan(36 * 1024 * 1024);
     // @ts-ignore
     const highPyrTex = ssrPass._history.prevColorPyramidTex!;
     expect(highPyrTex.width).toBe(960);
@@ -3039,8 +3114,8 @@ describe("ScreenSpaceReflection v2", () => {
     // 3020x1544 VeryHigh -> remains uncapped at 1.0x (3020x1544)
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.VeryHigh;
     stepFrames(engine, 1);
-    expect(cam.screenSpaceReflectionDiagnostics.traceWidth).toBe(3020);
-    expect(cam.screenSpaceReflectionDiagnostics.traceHeight).toBe(1544);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(3020);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(1544);
     // @ts-ignore
     expect(ssrPass._history.prevColorPyramidTex?.width).toBe(3020);
     // @ts-ignore
@@ -3051,15 +3126,15 @@ describe("ScreenSpaceReflection v2", () => {
     cam.renderTarget = rt4k;
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.traceWidth).toBe(960);
-    expect(cam.screenSpaceReflectionDiagnostics.traceHeight).toBe(540);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(960);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(540);
     // @ts-ignore
     expect(ssrPass._history.prevColorPyramidTex?.width).toBe(960);
 
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Low;
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.traceWidth).toBe(960);
-    expect(cam.screenSpaceReflectionDiagnostics.traceHeight).toBe(540);
+    expect(ssrPass._resources.ssrDepthTex!.width).toBe(960);
+    expect(ssrPass._resources.ssrDepthTex!.height).toBe(540);
 
     cam.renderTarget = null;
     rt4k.destroy(true);
@@ -3106,10 +3181,7 @@ describe("ScreenSpaceReflection v2", () => {
       calls.push({ target, attachments: Array.from(attachments) });
       return WebGL2RenderingContext.prototype.invalidateFramebuffer.call(this, target, attachments);
     });
-    const clearSpy = vi.spyOn(gl, "clear").mockImplementation(function (
-      this: WebGL2RenderingContext,
-      mask: number
-    ) {
+    const clearSpy = vi.spyOn(gl, "clear").mockImplementation(function (this: WebGL2RenderingContext, mask: number) {
       clearCalls.push({
         mask,
         scissorEnabled: this.isEnabled(this.SCISSOR_TEST),
@@ -3129,9 +3201,7 @@ describe("ScreenSpaceReflection v2", () => {
           (c) => c.target === gl.FRAMEBUFFER && c.attachments.length === 1 && c.attachments[0] === gl.COLOR_ATTACHMENT0
         )
       ).toBe(false);
-      expect(
-        clearCalls.some((c) => c.fbo !== null && c.mask === gl.COLOR_BUFFER_BIT && !c.scissorEnabled)
-      ).toBe(true);
+      expect(clearCalls.some((c) => c.fbo !== null && c.mask === gl.COLOR_BUFFER_BIT && !c.scissorEnabled)).toBe(true);
       expect(
         calls.some(
           (c) =>
@@ -3410,7 +3480,7 @@ describe("ScreenSpaceReflection v2", () => {
     camEnt.transform.setPosition(0.08, 1.35, 3.6);
     camEnt.transform.lookAt(new Vector3(0.08, 0.35, -1.2));
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     // @ts-ignore
     expect(ssrPass._history.hasTemporalHistory).toBe(true);
     const transFloor = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
@@ -3418,7 +3488,7 @@ describe("ScreenSpaceReflection v2", () => {
 
     // CR-010: setReplacementShader skips SSR cleanly WITHOUT destroying persistent SSR GPU resources
     // @ts-ignore
-    const preSkipDepthTex = ssrPass._ssrDepthTex;
+    const preSkipDepthTex = ssrPass._resources.ssrDepthTex;
     expect(preSkipDepthTex).not.toBeNull();
     const replacementShader = Shader.create(`Shader "Test/ReplacementSkipSSR" {
       SubShader "Default" {
@@ -3437,20 +3507,20 @@ describe("ScreenSpaceReflection v2", () => {
     try {
       cam.setReplacementShader(replacementShader);
       engine.update();
-      expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
-      expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Skipped);
+      expect(isSSRActiveForCamera(cam)).toBe(false);
+      expect(ssrPass._state).toBe(SSRState.Skipped);
       expect(engine._renderContext.programResolver).toBeNull();
       // @ts-ignore
       expect(ssrPass._programResolver.forwardEnabled).toBe(false);
       // @ts-ignore
-      expect(ssrPass._ssrDepthTex).toBe(preSkipDepthTex);
+      expect(ssrPass._resources.ssrDepthTex).toBe(preSkipDepthTex);
       expect(preSkipDepthTex.destroyed).toBe(false);
 
       cam.resetReplacementShader();
       engine.update();
-      expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
+      expect(isSSRActiveForCamera(cam)).toBe(true);
       // @ts-ignore
-      expect(ssrPass._ssrDepthTex).toBe(preSkipDepthTex);
+      expect(ssrPass._resources.ssrDepthTex).toBe(preSkipDepthTex);
     } finally {
       replacementShader.destroy(true);
     }
@@ -3512,7 +3582,7 @@ describe("ScreenSpaceReflection v2", () => {
     scene.background.solidColor.set(0, 0, 1, 1);
     cam.notifyScreenSpaceReflectionCut();
     stepFrames(engine, 4);
-    expect(cam.screenSpaceReflectionDiagnostics.usesPackedDepthRG8).toBe(false);
+    expect(ssrPass._caps.usesPackedDepthRG8).toBe(false);
     const skyFloor = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
     expect(skyFloor.maxB).toBeLessThan(15);
     expect(drainGlErrors(gl)).toEqual([]);
@@ -3558,10 +3628,9 @@ describe("ScreenSpaceReflection v2", () => {
     scene.screenSpaceReflection.enabled = true;
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     stepFrames(engine, 3);
-    const packedDiag = cam.screenSpaceReflectionDiagnostics;
-    expect(packedDiag.state).toBe(SSRRuntimeState.ActiveSteady);
-    expect(packedDiag.usesPackedDepthRG8).toBe(true);
-    expect(packedDiag.usesPackedNormalOct8).toBe(true);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    expect(ssrPass._caps.usesPackedDepthRG8).toBe(true);
+    expect(ssrPass._caps.usesPackedNormalOct8).toBe(true);
     const packedFloor = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
     expect(packedFloor.maxR).toBeGreaterThan(offFloor.maxR + 40);
 
@@ -3569,7 +3638,7 @@ describe("ScreenSpaceReflection v2", () => {
     // @ts-ignore
     ssrPass._forcePackedFormats = false;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     const rhi = engine._hardwareRenderer;
     const texCreateSpy = vi.spyOn(rhi, "createPlatformTexture2D");
     const rtCreateSpy = vi.spyOn(rhi, "createPlatformRenderTarget");
@@ -3648,7 +3717,7 @@ describe("ScreenSpaceReflection v2", () => {
       const history = ssrPass._history;
       const lastHiZIdx = history.hiZPingPongIndex === 0 ? 1 : 0;
       const traceDepthTex = history.hiZTex[lastHiZIdx]!;
-      const depths = readSSRDepthBuffer(traceDepthTex, ssrPass._usesPackedDepthRG8, cam.farClipPlane);
+      const depths = readSSRDepthBuffer(traceDepthTex, ssrPass._caps.usesPackedDepthRG8, cam.farClipPlane);
       const x = Math.min(traceDepthTex.width - 1, Math.max(0, Math.floor(u * traceDepthTex.width)));
       const y = Math.min(traceDepthTex.height - 1, Math.max(0, Math.floor(v * traceDepthTex.height)));
       return depths[y * traceDepthTex.width + x];
@@ -3686,14 +3755,20 @@ describe("ScreenSpaceReflection v2", () => {
     scene.screenSpaceReflection.enabled = true;
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    const ssrPass = getSSRPass(cam);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
     // A2: rendering a cubeFace sub-view on the same camera must NOT destroy main-view history
     // @ts-ignore
-    const ssrPass = cam._renderPipeline._ssrPass;
-    // @ts-ignore
     const origColorTex = ssrPass._history.prevColorPyramidTex;
-    const cubeRT = new RenderTarget(engine, 32, 32, new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8_UNorm, false), null, 1);
+    const cubeRT = new RenderTarget(
+      engine,
+      32,
+      32,
+      new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8_UNorm, false),
+      null,
+      1
+    );
     const prevRT = cam.renderTarget;
     cam.renderTarget = cubeRT;
     cam.render(TextureCubeFace.PositiveX, 0);
@@ -3705,11 +3780,11 @@ describe("ScreenSpaceReflection v2", () => {
     // @ts-ignore
     expect(ssrPass._history.hasColorHistory).toBe(true);
     stepFrames(engine, 1);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
     // P1.1: resizing/rotating immediately destroys old private textures (not pendingDestroy)
     // @ts-ignore
-    const oldDepthTex = ssrPass._ssrDepthTex!;
+    const oldDepthTex = ssrPass._resources.ssrDepthTex!;
     // @ts-ignore
     const oldColorTex = ssrPass._history.prevColorPyramidTex!;
     const rot = createReadbackRT(engine, 96, 128);
@@ -3726,45 +3801,47 @@ describe("ScreenSpaceReflection v2", () => {
     // F6: RG8 packed mode resets history when farClipPlane changes
     ssrPass._forcePackedFormats = true;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     cam.farClipPlane = 250;
     stepFrames(engine, 1);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.WarmupColor);
+    expect(ssrPass._state).toBe(SSRState.WarmupColor);
     ssrPass._forcePackedFormats = false;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
     // A3: transient RenderTarget failure during same-size rebuild must recover on next frame
     // @ts-ignore
-    ssrPass._releasePersistentResources();
-    const origDepthTexCtor = ssrPass._createPointClampTex.bind(ssrPass);
+    ssrPass._deactivate(SSRState.Skipped, cam);
+    const origDepthTexCtor = ssrPass._resources.createPointClampTex.bind(ssrPass._resources);
     let failOnce = true;
-    const spy = vi.spyOn(ssrPass, "_createPointClampTex").mockImplementation((w: number, h: number, fmt: TextureFormat) => {
-      if (failOnce) {
-        failOnce = false;
-        throw new Error("Simulated transient allocation failure");
-      }
-      return origDepthTexCtor(w, h, fmt);
-    });
+    const spy = vi
+      .spyOn(ssrPass._resources, "createPointClampTex")
+      .mockImplementation((w: number, h: number, fmt: TextureFormat) => {
+        if (failOnce) {
+          failOnce = false;
+          throw new Error("Simulated transient allocation failure");
+        }
+        return origDepthTexCtor(w, h, fmt);
+      });
     try {
       stepFrames(engine, 1);
-      expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Skipped);
+      expect(ssrPass._state).toBe(SSRState.Skipped);
     } finally {
       spy.mockRestore();
     }
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
 
     // A4: disabled camera reclaims persistent SSR resources after >= 10 idle engine frames
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBeGreaterThan(0);
+    expect(getSSRRetainedBytes(ssrPass)).toBeGreaterThan(0);
     cam.enabled = false;
     stepFrames(engine, 11);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBe(0);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
+    expect(getSSRRetainedBytes(ssrPass)).toBe(0);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
     // Re-enabling recovers cleanly
     cam.enabled = true;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     expect(drainGlErrors(gl)).toEqual([]);
   });
 
@@ -3983,7 +4060,7 @@ describe("ScreenSpaceReflection v2", () => {
     addBox(engine, root, "midPillar", [4.2, 2.5, -15], [1.6, 5.0, 1.6], pillarMat);
 
     scene.screenSpaceReflection.enabled = true;
-    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
+    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     scene.screenSpaceReflection.maxDistance = 120;
     scene.screenSpaceReflection.thickness = 0.2;
     scene.screenSpaceReflection.edgeFade = 0.02;
@@ -4150,8 +4227,9 @@ describe("ScreenSpaceReflection v2", () => {
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     scene.screenSpaceReflection.maxRoughness = 0.5;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
-    expect(cam.screenSpaceReflectionDiagnostics.opaqueReceiverCount).toBe(1);
+    const ssrPass = getSSRPass(cam);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
+    expect(ssrPass._frame.opaqueReceiverCount).toBe(1);
 
     // Built-in PBR scalar roughness >= maxRoughness still prunes properly
     const pbrMat = new PBRMaterial(engine);
@@ -4159,19 +4237,17 @@ describe("ScreenSpaceReflection v2", () => {
     pbrMat.screenSpaceReflectionIntensity = 1.0;
     floorEnt.getComponent(MeshRenderer)!.setMaterial(pbrMat);
     stepFrames(engine, 1);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
-    expect(cam.screenSpaceReflectionDiagnostics.opaqueReceiverCount).toBe(0);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
+    expect(ssrPass._frame.opaqueReceiverCount).toBe(0);
 
     // Restore eligible PBR material to trigger persistent allocations at Medium resolution, then resize to Low
     pbrMat.roughness = 0.05;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
 
     // 4. EngineObject._destroyImmediate synchronously destroys resized SSR textures without mutating engine._processingPendingDestroys
-    // @ts-ignore access internal pass texture to verify synchronous resize cleanup
-    const ssrPass = cam._renderPipeline._ssrPass;
     // @ts-ignore
-    const oldDepthTex: Texture2D = ssrPass._ssrDepthTex!;
+    const oldDepthTex: Texture2D = ssrPass._resources.ssrDepthTex!;
     expect(oldDepthTex).not.toBeNull();
     expect(oldDepthTex.destroyed).toBe(false);
 
@@ -4205,9 +4281,8 @@ describe("ScreenSpaceReflection v2", () => {
     // Lazy init: non-SSR camera must not allocate _ssrPass or register device listeners
     // @ts-ignore verify lazy SSR pass creation on non-SSR camera
     expect(cam._renderPipeline._ssrPass).toBeNull();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Disabled);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBe(0);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
+    expect(getSSRRetainedBytes(getSSRPass(cam))).toBe(0);
 
     // @ts-ignore access internal SSR pass and private material for lifecycle verification
     const ssrPass = cam._renderPipeline._getOrCreateSSRPass();
@@ -4215,14 +4290,14 @@ describe("ScreenSpaceReflection v2", () => {
     const privateMat = ssrPass._material;
     expect(privateMat.destroyed).toBe(false);
 
-    ssrPass.destroy();
+    ssrPass.onDestroy();
     expect(privateMat.destroyed).toBe(true);
     expect(privateMat._getReferCount()).toBe(0);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Disabled);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBe(0);
-    // Second destroy() must be idempotent without throwing or underflowing referCount
-    expect(() => ssrPass.destroy()).not.toThrow();
+    expect(ssrPass._state).toBe(SSRState.Disabled);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
+    expect(getSSRRetainedBytes(ssrPass)).toBe(0);
+    // Second onDestroy() must be idempotent without throwing or underflowing referCount
+    expect(() => ssrPass.onDestroy()).not.toThrow();
 
     const blinnMat = await engine.resourceManager.load<Material>({
       url: createBlobURL(
@@ -4296,8 +4371,8 @@ describe("ScreenSpaceReflection v2", () => {
 
     // @ts-ignore access internal pass for merged pass & RT lifecycle assertions
     const ssrPass = cam._renderPipeline._getOrCreateSSRPass();
-    const mergedSpy = vi.spyOn(ssrPass, "_runDownsampleAndBuildHiZMip0");
-    const legacyMip0Spy = vi.spyOn(ssrPass, "_runBuildHiZMip0");
+    // @ts-ignore
+    const buildMip0Spy = vi.spyOn(ssrPass._pyramidBuilder, "buildHiZMip0");
 
     scene.screenSpaceReflection.enabled = true;
 
@@ -4308,11 +4383,10 @@ describe("ScreenSpaceReflection v2", () => {
       frontCard.isActive = false;
       contribMat.contributeScreenSpaceReflectionDepth = false;
       stepFrames(engine, 3);
-      mergedSpy.mockClear();
-      legacyMip0Spy.mockClear();
+      buildMip0Spy.mockClear();
       engine.update();
-      expect(mergedSpy).toHaveBeenCalledTimes(1);
-      expect(legacyMip0Spy).not.toHaveBeenCalled();
+      expect(buildMip0Spy).toHaveBeenCalledTimes(1);
+      expect(buildMip0Spy.mock.calls[0][5]).toBe(true);
       const leftWithoutContrib = sampleRegionRGB(tex, 0.14, 0.68, 0.42, 0.95);
       const rightWithoutContrib = sampleRegionRGB(tex, 0.58, 0.68, 0.86, 0.95);
       expect(leftWithoutContrib.maxR).toBeGreaterThan(80);
@@ -4330,16 +4404,16 @@ describe("ScreenSpaceReflection v2", () => {
       // @ts-ignore
       const history = ssrPass._history;
       // @ts-ignore
-      const lastWrittenIdx = ssrPass._useTemporal ? (history.temporalPingPongIndex === 0 ? 1 : 0) : 0;
+      const lastWrittenIdx = ssrPass._frame.preset.useTemporal ? (history.temporalPingPongIndex === 0 ? 1 : 0) : 0;
       const lastHiZIdx = history.hiZPingPongIndex === 0 ? 1 : 0;
       const hiZMip0Depths = readSSRDepthBuffer(
         history.hiZTex[lastHiZIdx]!,
-        ssrPass._usesPackedDepthRG8,
+        ssrPass._caps.usesPackedDepthRG8,
         cam.farClipPlane
       );
       const recvDepths = readSSRDepthBuffer(
         history.recvDepthTex[lastWrittenIdx]!,
-        ssrPass._usesPackedDepthRG8,
+        ssrPass._caps.usesPackedDepthRG8,
         cam.farClipPlane
       );
       let overlapOpaqueUnoccludedCount = 0;
@@ -4464,7 +4538,7 @@ describe("ScreenSpaceReflection v2", () => {
 
     // Frame 0 (WarmupColor): writes hiZTex[0] mip 0, flips hiZPingPongIndex 0 -> 1 while temporalPingPongIndex remains 0
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.WarmupColor);
+    expect(ssrPass._state).toBe(SSRState.WarmupColor);
     expect(history.hasHiZHistory).toBe(true);
     expect(history.hiZPingPongIndex).toBe(1);
     expect(history.temporalPingPongIndex).toBe(0);
@@ -4473,7 +4547,7 @@ describe("ScreenSpaceReflection v2", () => {
     blitSpy.mockClear();
     queueRenderSpy.mockClear();
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.FirstTrace);
+    expect(ssrPass._state).toBe(SSRState.FirstTrace);
     expect(history.hiZPingPongIndex).toBe(0);
     expect(history.temporalPingPongIndex).toBe(1);
     // Empty opaque SSRReceiver queue guard: only transparentQueue runs SSRReceiver (1 call, not 3!)
@@ -4484,7 +4558,7 @@ describe("ScreenSpaceReflection v2", () => {
     blitSpy.mockClear();
     queueRenderSpy.mockClear();
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
     expect(history.hiZPingPongIndex).toBe(1);
     expect(history.temporalPingPongIndex).toBe(0);
     const steadyCopyCalls = blitSpy.mock.calls.filter((c) => c[6] === 2 /* PASS_COPY_TEXTURE */);
@@ -4506,8 +4580,8 @@ describe("ScreenSpaceReflection v2", () => {
     const prevHiZColorRT1 = history.hiZColorRT[1]!;
     waterMat.screenSpaceReflectionIntensity = 0;
     stepFrames(engine, 10);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Skipped);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBe(0);
+    expect(ssrPass._state).toBe(SSRState.Skipped);
+    expect(getSSRRetainedBytes(ssrPass)).toBe(0);
     expect(prevHiZTex0.destroyed).toBe(true);
     expect(prevHiZTex1.destroyed).toBe(true);
     expect(prevHiZColorRT0.destroyed).toBe(true);
@@ -4747,13 +4821,14 @@ describe("ScreenSpaceReflection v2", () => {
 
     // @ts-ignore access internal scissor state
     const ssrPass = cam._renderPipeline._ssrPass;
-    const diag = cam.screenSpaceReflectionDiagnostics;
-    expect(diag.active).toBe(true);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
+    const traceW = ssrPass._frame.traceWidth;
+    const traceH = ssrPass._frame.traceHeight;
     const scissor1 = ssrPass._lastReceiverScissor;
     expect(scissor1.z).toBeGreaterThan(0);
     expect(scissor1.w).toBeGreaterThan(0);
-    expect(scissor1.z).toBeLessThan(diag.traceWidth);
-    expect(scissor1.w).toBeLessThan(diag.traceHeight);
+    expect(scissor1.z).toBeLessThan(traceW);
+    expect(scissor1.w).toBeLessThan(traceH);
 
     const floorSample = sampleRegionRGB(tex, 0.35, 0.58, 0.65, 0.76);
     expect(floorSample.maxR).toBeGreaterThan(60);
@@ -4765,7 +4840,7 @@ describe("ScreenSpaceReflection v2", () => {
 
     const scissor2 = ssrPass._lastReceiverScissor;
     expect(scissor2.z).toBeGreaterThan(0);
-    expect(scissor2.z).toBeLessThan(diag.traceWidth);
+    expect(scissor2.z).toBeLessThan(traceW);
     const ssrTex = cam.shaderData.getTexture("camera_SSRTexture") as Texture2D;
     expect(ssrTex).toBeTruthy();
     const ssrW = ssrTex.width;
@@ -4803,7 +4878,7 @@ describe("ScreenSpaceReflection v2", () => {
     camEnt.transform.setPosition(0, 4.0, 20.0);
     camEnt.transform.lookAt(new Vector3(0, 4.0, 30.0));
     stepFrames(engine, 1);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
     expect(drainGlErrors(gl)).toEqual([]);
 
     rt.destroy(true);
@@ -4842,12 +4917,13 @@ describe("ScreenSpaceReflection v2", () => {
     cam.enableHDR = true;
     stepFrames(engine, 3);
 
-    expect(cam.screenSpaceReflectionDiagnostics.usesPackedNormalOct8).toBe(true);
+    const ssrPass = getSSRPass(cam);
+    expect(ssrPass._caps.usesPackedNormalOct8).toBe(true);
     const medHDRFloor = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
 
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.usesPackedNormalOct8).toBe(false);
+    expect(ssrPass._caps.usesPackedNormalOct8).toBe(false);
     const highHDRFloor = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
 
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
@@ -4865,7 +4941,7 @@ describe("ScreenSpaceReflection v2", () => {
     tex.destroy(true);
   });
 
-  it("SSR Linear Trace A/B: toggles useLinearTrace (Hi-Z <-> Linear), supports camera override, omits Hi-Z mips cleanly, preserves reflection, and leaks zero GL resources", async () => {
+  it("SSR Quality Trace Mode: Low/Medium use Linear trace (0-Hi-Z mips), High uses Hi-Z, Camera override switches cleanly, and zero GL resources leak", async () => {
     const { engine, scene, gl } = await createTestEngine(160, 120);
     createdEngines.push(engine);
 
@@ -4892,65 +4968,82 @@ describe("ScreenSpaceReflection v2", () => {
     wallMat.screenSpaceReflectionIntensity = 0;
     addBox(engine, root, "redWall", [0, 1.85, -1.8], [3.2, 2.0, 0.4], wallMat);
 
+    // Medium defaults to Linear trace (0-Hi-Z mips)
     scene.screenSpaceReflection.enabled = true;
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     stepFrames(engine, 3);
 
     // @ts-ignore access internal history state to verify Hi-Z mip allocation
     const ssrPass = cam._renderPipeline._ssrPass;
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
-    expect(cam.screenSpaceReflectionDiagnostics.useLinearTrace).toBe(false);
-    // @ts-ignore
-    expect(ssrPass._history.hiZTex[0]!.mipmapCount).toBeGreaterThan(1);
-    const hizBytes = cam.screenSpaceReflectionDiagnostics.estimatedBytes;
-    const hizSample = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
-    expect(hizSample.maxR).toBeGreaterThan(80);
-    expect(drainGlErrors(gl)).toEqual([]);
-
-    // Switch to Linear trace mode (0-Hi-Z mip passes) via public settings API
-    scene.screenSpaceReflection.useLinearTrace = true;
-    stepFrames(engine, 3);
-
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
-    expect(cam.screenSpaceReflectionDiagnostics.useLinearTrace).toBe(true);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
+    expect(ssrPass._frame.preset.useLinearTrace).toBe(true);
     // @ts-ignore
     expect(ssrPass._history.hiZTex[0]!.mipmapCount).toBe(1);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBeLessThan(hizBytes);
+    const linearBytes = getSSRRetainedBytes(ssrPass);
     const linearSample = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
     expect(linearSample.maxR).toBeGreaterThan(80);
     expect(drainGlErrors(gl)).toEqual([]);
 
-    // Verify Camera.screenSpaceReflectionOverride can override useLinearTrace back to Hi-Z
-    const override = new ScreenSpaceReflectionSettings();
+    // Low also defaults to Linear trace (0-Hi-Z mips)
+    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Low;
+    stepFrames(engine, 2);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
+    expect(ssrPass._frame.preset.useLinearTrace).toBe(true);
+    // @ts-ignore
+    expect(ssrPass._history.hiZTex[0]!.mipmapCount).toBe(1);
+
+    // Switch to High preset (hierarchical Hi-Z trace)
+    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
+    stepFrames(engine, 3);
+
+    expect(isSSRActiveForCamera(cam)).toBe(true);
+    expect(ssrPass._frame.preset.useLinearTrace).toBe(false);
+    // @ts-ignore
+    expect(ssrPass._history.hiZTex[0]!.mipmapCount).toBeGreaterThan(1);
+    const hizBytes = getSSRRetainedBytes(ssrPass);
+    expect(linearBytes).toBeLessThan(hizBytes);
+    const hizSample = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
+    expect(hizSample.maxR).toBeGreaterThan(80);
+    expect(drainGlErrors(gl)).toEqual([]);
+
+    // Verify Camera.screenSpaceReflectionOverride can override High back to Medium (Linear trace)
+    const override = new ScreenSpaceReflection();
     scene.screenSpaceReflection.cloneTo(override);
-    override.useLinearTrace = false;
+    override.quality = ScreenSpaceReflectionQuality.Medium;
     cam.screenSpaceReflectionOverride = override;
     stepFrames(engine, 3);
 
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
-    expect(cam.screenSpaceReflectionDiagnostics.useLinearTrace).toBe(false);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
+    expect(ssrPass._frame.preset.useLinearTrace).toBe(true);
     // @ts-ignore
-    expect(ssrPass._history.hiZTex[0]!.mipmapCount).toBeGreaterThan(1);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBe(hizBytes);
-    const overrideHiZSample = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
-    expect(overrideHiZSample.maxR).toBeGreaterThan(80);
+    expect(ssrPass._history.hiZTex[0]!.mipmapCount).toBe(1);
+    expect(getSSRRetainedBytes(ssrPass)).toBe(linearBytes);
+    const overrideLinearSample = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
+    expect(overrideLinearSample.maxR).toBeGreaterThan(80);
     expect(drainGlErrors(gl)).toEqual([]);
 
-    // Clearing override returns to Linear mode, and setting scene useLinearTrace = false restores Hi-Z cleanly
+    // Clearing override returns to Scene High (Hi-Z mode), and setting scene back to Medium restores Linear cleanly
     cam.screenSpaceReflectionOverride = null;
-    stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.useLinearTrace).toBe(true);
+    stepFrames(engine, 3);
+    expect(ssrPass._frame.preset.useLinearTrace).toBe(false);
 
-    scene.screenSpaceReflection.useLinearTrace = false;
+    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     stepFrames(engine, 3);
 
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
-    expect(cam.screenSpaceReflectionDiagnostics.useLinearTrace).toBe(false);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
+    expect(ssrPass._frame.preset.useLinearTrace).toBe(true);
     // @ts-ignore
-    expect(ssrPass._history.hiZTex[0]!.mipmapCount).toBeGreaterThan(1);
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBe(hizBytes);
-    const hizRestoredSample = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
-    expect(hizRestoredSample.maxR).toBeGreaterThan(80);
+    expect(ssrPass._history.hiZTex[0]!.mipmapCount).toBe(1);
+    expect(getSSRRetainedBytes(ssrPass)).toBe(linearBytes);
+    const linearRestoredSample = sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95);
+    expect(linearRestoredSample.maxR).toBeGreaterThan(80);
+
+    // Disabling SSR on an instantiated pass enters Disabled and releases retained SSR buffers
+    scene.screenSpaceReflection.enabled = false;
+    engine.update();
+    expect(ssrPass._state).toBe(SSRState.Disabled);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
+    expect(getSSRRetainedBytes(ssrPass)).toBe(0);
     expect(drainGlErrors(gl)).toEqual([]);
 
     rt.destroy(true);
@@ -5059,7 +5152,7 @@ describe("ScreenSpaceReflection v2", () => {
     const culler = ssrPass._occluderCuller;
     const centerMR = lateralOccluder.getComponent(MeshRenderer)!;
     const tinyMR = tinyProp.getComponent(MeshRenderer)!;
-    culler.prepare(cam, 540, cam.viewMatrix);
+    culler.prepare(cam, 960, 540, cam.viewMatrix);
     expect(culler._isBoundsLargeEnoughForDepth(centerMR.bounds)).toBe(true);
     expect(culler._isBoundsLargeEnoughForDepth(tinyMR.bounds)).toBe(false);
 
@@ -5073,7 +5166,7 @@ describe("ScreenSpaceReflection v2", () => {
     const history = ssrPass._history;
     const lastHiZIdx = history.hiZPingPongIndex === 0 ? 1 : 0;
     const hiZTex = history.hiZTex[lastHiZIdx]!;
-    const depths = readSSRDepthBuffer(hiZTex, ssrPass._usesPackedDepthRG8, cam.farClipPlane);
+    const depths = readSSRDepthBuffer(hiZTex, ssrPass._caps.usesPackedDepthRG8, cam.farClipPlane);
     const cy = Math.floor(hiZTex.height * 0.5);
     let minEdgeDepth = cam.farClipPlane;
     for (let x = Math.floor(hiZTex.width * 0.9); x < hiZTex.width; x++) {
@@ -5088,6 +5181,86 @@ describe("ScreenSpaceReflection v2", () => {
 
     rt.destroy(true);
     tex.destroy(true);
+  });
+
+  it("SSRDepthOccluderCuller: enforces short-edge threshold on portrait viewports, supports orthographic & instanced batches, and fails open on invalid inputs", async () => {
+    const { engine, scene } = await createTestEngine(432, 960);
+    createdEngines.push(engine);
+
+    const root = scene.createRootEntity("root");
+    const camEnt = root.createChild("cam");
+    camEnt.transform.setPosition(0, 0, 15);
+    camEnt.transform.lookAt(new Vector3(0, 0, 0));
+    const cam = camEnt.addComponent(Camera);
+    cam.fieldOfView = 60;
+    cam.nearClipPlane = 0.2;
+    cam.farClipPlane = 100;
+
+    const mat = new PBRMaterial(engine);
+    // On 432x960 portrait (fovY=60, depth=15): shortEdge=432 -> minPixels=17.28 (4% of width).
+    // Box [0.25, 0.25, 0.25] has R=0.2165 -> projected diameter ~24.4 px (~5.6% of width): must NOT be culled.
+    const portraitOccluder = addBox(engine, root, "portraitOccluder", [0, 0, 0], [0.25, 0.25, 0.25], mat);
+    const tinyA = addBox(engine, root, "tinyA", [0, 0, 0], [0.04, 0.04, 0.04], mat);
+    const tinyB = addBox(engine, root, "tinyB", [0.2, 0, 0], [0.04, 0.04, 0.04], mat);
+    const orthoLarge = addBox(engine, root, "orthoLarge", [0, 0, 0], [0.6, 0.6, 0.6], mat);
+    const orthoSmall = addBox(engine, root, "orthoSmall", [0, 0, 0], [0.2, 0.2, 0.2], mat);
+
+    const portraitMR = portraitOccluder.getComponent(MeshRenderer)!;
+    const tinyAMR = tinyA.getComponent(MeshRenderer)!;
+    const tinyBMR = tinyB.getComponent(MeshRenderer)!;
+    const orthoLargeMR = orthoLarge.getComponent(MeshRenderer)!;
+    const orthoSmallMR = orthoSmall.getComponent(MeshRenderer)!;
+
+    // @ts-ignore access internal culler
+    const ssrPass = cam._renderPipeline._getOrCreateSSRPass();
+    // @ts-ignore
+    const culler = ssrPass._occluderCuller;
+
+    // 1. Portrait short-edge threshold
+    culler.prepare(cam, 432, 960, cam.viewMatrix, cam.projectionMatrix);
+    expect(culler._isBoundsLargeEnoughForDepth(portraitMR.bounds)).toBe(true);
+    expect(culler._isBoundsLargeEnoughForDepth(tinyAMR.bounds)).toBe(false);
+
+    // 2. Instanced batches and material opt-out
+    expect(
+      culler.isOccluderElement({ material: mat, component: tinyAMR, instancedRenderers: [tinyAMR, tinyBMR] })
+    ).toBe(false);
+    expect(
+      culler.isOccluderElement({ material: mat, component: tinyAMR, instancedRenderers: [tinyAMR, portraitMR] })
+    ).toBe(true);
+    mat.screenSpaceReflectionOccluder = false;
+    expect(culler.isOccluderElement({ material: mat, component: portraitMR, instancedRenderers: [] })).toBe(false);
+    mat.screenSpaceReflectionOccluder = true;
+
+    // 3. Fail-open on inverted, zero-extent, and NaN bounds
+    const invertedBounds = new BoundingBox(new Vector3(1, 1, 1), new Vector3(0.99, 0.99, 0.99));
+    const zeroBounds = new BoundingBox(new Vector3(0, 0, 0), new Vector3(0, 0, 0));
+    const nanBounds = new BoundingBox(new Vector3(NaN, 0, 0), new Vector3(1, 1, 1));
+    expect(culler._isBoundsLargeEnoughForDepth(invertedBounds)).toBe(true);
+    expect(culler._isBoundsLargeEnoughForDepth(zeroBounds)).toBe(true);
+    expect(culler._isBoundsLargeEnoughForDepth(nanBounds)).toBe(true);
+
+    // 4. Orthographic camera branch (orthoSize=10, 800x450 -> minDiag = 0.8)
+    cam.isOrthographic = true;
+    cam.orthographicSize = 10;
+    cam.aspectRatio = 800 / 450;
+    culler.prepare(cam, 800, 450, cam.viewMatrix, cam.projectionMatrix);
+    expect(culler._isBoundsLargeEnoughForDepth(orthoLargeMR.bounds)).toBe(true);
+    expect(culler._isBoundsLargeEnoughForDepth(orthoSmallMR.bounds)).toBe(false);
+
+    // 5. Fail-open on non-finite viewMatrix / trace dimensions
+    cam.isOrthographic = false;
+    const badView = new Matrix();
+    badView.copyFrom(cam.viewMatrix);
+    badView.elements[2] = NaN;
+    culler.prepare(cam, 800, 450, badView, cam.projectionMatrix);
+    expect(culler._isBoundsLargeEnoughForDepth(tinyAMR.bounds)).toBe(true);
+
+    culler.prepare(cam, 800, Infinity, cam.viewMatrix, cam.projectionMatrix);
+    expect(culler._isBoundsLargeEnoughForDepth(tinyAMR.bounds)).toBe(true);
+
+    culler.prepare(cam, 0, 450, cam.viewMatrix, cam.projectionMatrix);
+    expect(culler._isBoundsLargeEnoughForDepth(tinyAMR.bounds)).toBe(true);
   });
 
   it("Allocation cleanup: cleans up partially created persistent SSR resources when first prepare() throws mid-allocation", async () => {
@@ -5131,7 +5304,7 @@ describe("ScreenSpaceReflection v2", () => {
     cam.enableScreenSpaceReflection = false;
     stepFrames(engine, 20);
     engine.resourceManager.gc();
-    expect(cam.screenSpaceReflectionDiagnostics.estimatedBytes).toBe(0);
+    expect(getSSRRetainedBytes(ssrPass)).toBe(0);
     // @ts-ignore
     expect(ssrPass._history.prevColorPyramidTex).toBeNull();
     expect(drainGlErrors(gl)).toEqual([]);
@@ -5163,7 +5336,7 @@ describe("ScreenSpaceReflection v2", () => {
     expect(recvNRTex).not.toBeNull();
     expect(ssrTex._getReferCount()).toBeGreaterThan(0);
 
-    // Direct camera destruction invokes Camera._onDestroy -> _renderPipeline.destroy() -> _ssrPass.destroy()
+    // Direct camera destruction invokes Camera._onDestroy -> _renderPipeline.destroy() -> _ssrPass.onDestroy()
     // while cam.destroyed is already true and cam.shaderData is about to release references.
     cam.destroy();
 
@@ -5341,18 +5514,8 @@ describe("ScreenSpaceReflection v2", () => {
 
     // Procedural XZ plane WITHOUT calculateBounds(): mesh.bounds stays at default (0,0,0)..(0,0,0)
     const procMesh = new ModelMesh(engine);
-    procMesh.setPositions([
-      new Vector3(-5, 0, -5),
-      new Vector3(5, 0, -5),
-      new Vector3(5, 0, 5),
-      new Vector3(-5, 0, 5)
-    ]);
-    procMesh.setNormals([
-      new Vector3(0, 1, 0),
-      new Vector3(0, 1, 0),
-      new Vector3(0, 1, 0),
-      new Vector3(0, 1, 0)
-    ]);
+    procMesh.setPositions([new Vector3(-5, 0, -5), new Vector3(5, 0, -5), new Vector3(5, 0, 5), new Vector3(-5, 0, 5)]);
+    procMesh.setNormals([new Vector3(0, 1, 0), new Vector3(0, 1, 0), new Vector3(0, 1, 0), new Vector3(0, 1, 0)]);
     procMesh.setUVs([new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1)]);
     procMesh.setIndices(new Uint16Array([0, 2, 1, 0, 3, 2]));
     procMesh.addSubMesh(0, 6, MeshTopology.Triangles);
@@ -5376,14 +5539,15 @@ describe("ScreenSpaceReflection v2", () => {
 
     // @ts-ignore access internal scissor state
     const ssrPass = cam._renderPipeline._ssrPass;
-    const diag = cam.screenSpaceReflectionDiagnostics;
-    expect(diag.active).toBe(true);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
+    const traceW = ssrPass._frame.traceWidth;
+    const traceH = ssrPass._frame.traceHeight;
     expect([
       ssrPass._lastReceiverScissor.x,
       ssrPass._lastReceiverScissor.y,
       ssrPass._lastReceiverScissor.z,
       ssrPass._lastReceiverScissor.w
-    ]).toEqual([0, 0, diag.traceWidth, diag.traceHeight]);
+    ]).toEqual([0, 0, traceW, traceH]);
 
     // Left and right sides of the procedural floor must both receive reflection (not clipped to a 4x4 point scissor)
     expect(sampleRegionRGB(tex, 0.15, 0.7, 0.3, 0.92).maxR).toBeGreaterThan(80);
@@ -5399,7 +5563,7 @@ describe("ScreenSpaceReflection v2", () => {
       ssrPass._lastReceiverScissor.y,
       ssrPass._lastReceiverScissor.z,
       ssrPass._lastReceiverScissor.w
-    ]).toEqual([0, 0, diag.traceWidth, diag.traceHeight]);
+    ]).toEqual([0, 0, traceW, traceH]);
 
     // Valid small flat plane (minY === maxY, non-zero X/Z) still tightens scissor
     const smallPlane = PrimitiveMesh.createPlane(engine, 1.4, 1.8);
@@ -5407,7 +5571,7 @@ describe("ScreenSpaceReflection v2", () => {
     floorEnt.transform.setPosition(0, 0, -0.4);
     stepFrames(engine, 2);
     expect(ssrPass._lastReceiverScissor.z).toBeGreaterThan(0);
-    expect(ssrPass._lastReceiverScissor.z).toBeLessThan(diag.traceWidth);
+    expect(ssrPass._lastReceiverScissor.z).toBeLessThan(traceW);
     expect(drainGlErrors(gl)).toEqual([]);
 
     procMesh.destroy();
@@ -5416,7 +5580,7 @@ describe("ScreenSpaceReflection v2", () => {
     tex.destroy(true);
   });
 
-  it("Linear trace toggle: runtime useLinearTrace switch enters WarmupColor when hiZTex rebuilds to keep depth and color aligned", async () => {
+  it("Linear trace toggle: runtime quality switch (High Hi-Z <-> Medium Linear) enters WarmupColor when hiZTex rebuilds to keep depth and color aligned", async () => {
     const { engine, scene, gl } = await createTestEngine(160, 120);
     createdEngines.push(engine);
 
@@ -5442,32 +5606,35 @@ describe("ScreenSpaceReflection v2", () => {
     addBox(engine, root, "redWall", [0, 1.85, -1.8], [3.2, 2.0, 0.4], wallMat);
 
     scene.screenSpaceReflection.enabled = true;
-    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
+    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    const ssrPass = getSSRPass(cam);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    expect(ssrPass._frame.preset.useLinearTrace).toBe(false);
 
-    // Toggle to LinearTrace on an active camera: first frame after hiZTex rebuild MUST run WarmupColor,
+    // Toggle to Medium (Linear trace) on an active camera: first frame after hiZTex rebuild MUST run WarmupColor,
     // then FirstTrace, then ActiveSteady with reflection intact.
-    scene.screenSpaceReflection.useLinearTrace = true;
+    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.WarmupColor);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
+    expect(ssrPass._state).toBe(SSRState.WarmupColor);
+    expect(isSSRActiveForCamera(cam)).toBe(false);
 
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.FirstTrace);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
+    expect(ssrPass._state).toBe(SSRState.FirstTrace);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
 
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
-    expect(cam.screenSpaceReflectionDiagnostics.useLinearTrace).toBe(true);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    expect(ssrPass._frame.preset.useLinearTrace).toBe(true);
     expect(sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95).maxR).toBeGreaterThan(80);
 
-    // Toggle back to Hi-Z: also transitions WarmupColor -> FirstTrace -> ActiveSteady cleanly
-    scene.screenSpaceReflection.useLinearTrace = false;
+    // Toggle back to High (Hi-Z): also transitions WarmupColor -> FirstTrace -> ActiveSteady cleanly
+    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.WarmupColor);
+    expect(ssrPass._state).toBe(SSRState.WarmupColor);
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    expect(ssrPass._frame.preset.useLinearTrace).toBe(false);
     expect(sampleRegionRGB(tex, 0.35, 0.68, 0.65, 0.95).maxR).toBeGreaterThan(80);
     expect(drainGlErrors(gl)).toEqual([]);
 
@@ -5503,14 +5670,14 @@ describe("ScreenSpaceReflection v2", () => {
     const ssrPass = cam._renderPipeline._ssrPass;
     const rhi = engine._hardwareRenderer as any;
     let scissorEnabledAfterPreForward: boolean | null = null;
-    const origPreForward = ssrPass.renderPreForward.bind(ssrPass);
-    const preForwardSpy = vi.spyOn(ssrPass, "renderPreForward").mockImplementation((...args) => {
+    const origPreForward = ssrPass.onPreForward.bind(ssrPass);
+    const preForwardSpy = vi.spyOn(ssrPass, "onPreForward").mockImplementation((...args) => {
       origPreForward(...args);
       scissorEnabledAfterPreForward = rhi._scissorEnable;
     });
     try {
       engine.update();
-      expect(cam.screenSpaceReflectionDiagnostics.active).toBe(false);
+      expect(isSSRActiveForCamera(cam)).toBe(false);
       // @ts-ignore
       expect(ssrPass._history.hasHiZHistory).toBe(true);
       // @ts-ignore
@@ -5523,7 +5690,7 @@ describe("ScreenSpaceReflection v2", () => {
     // Bring floor back into view -> resumes immediately with valid color + Hi-Z history and 0 GL errors
     floorEnt.transform.setPosition(0, 0, -0.8);
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
     expect(drainGlErrors(gl)).toEqual([]);
 
     rt.destroy(true);
@@ -5559,13 +5726,13 @@ describe("ScreenSpaceReflection v2", () => {
 
     scene.screenSpaceReflection.enabled = true;
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
-    scene.screenSpaceReflection.useLinearTrace = true;
     scene.screenSpaceReflection.maxDistance = 0.6;
     scene.screenSpaceReflection.thickness = 0.2;
     stepFrames(engine, 3);
 
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
-    expect(cam.screenSpaceReflectionDiagnostics.useLinearTrace).toBe(true);
+    const ssrPass = getSSRPass(cam);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    expect(ssrPass._frame.preset.useLinearTrace).toBe(true);
     expect(sampleRegionRGB(tex, 0.35, 0.62, 0.65, 0.88).maxR).toBeGreaterThan(80);
     expect(drainGlErrors(gl)).toEqual([]);
 
@@ -5573,7 +5740,7 @@ describe("ScreenSpaceReflection v2", () => {
     tex.destroy(true);
   });
 
-  it("Capability & Skip diagnostics: detects capabilities once per active frame and preserves usesPackedNormalOct8 across Skipped", async () => {
+  it("Capability & Skip behavior: detects capabilities once per active frame and preserves usesPackedNormalOct8 across Skipped", async () => {
     const { engine, scene, gl } = await createTestEngine(160, 120);
     createdEngines.push(engine);
 
@@ -5592,40 +5759,45 @@ describe("ScreenSpaceReflection v2", () => {
     scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 3);
 
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.ActiveSteady);
-    expect(cam.screenSpaceReflectionDiagnostics.usesPackedNormalOct8).toBe(false);
+    const ssrPass = getSSRPass(cam);
+    expect(ssrPass._state).toBe(SSRState.ActiveSteady);
+    expect(ssrPass._caps.usesPackedNormalOct8).toBe(false);
 
-    // @ts-ignore spy internal _detectCapabilities call count
-    const ssrPass = cam._renderPipeline._ssrPass;
-    // @ts-ignore
-    const detectSpy = vi.spyOn(ssrPass, "_detectCapabilities");
+    const rhi = engine._hardwareRenderer;
+    const supportsSpy = vi.spyOn(rhi, "supportsRenderTargetColorFormat");
+    const countR16CapabilityProbes = (): number =>
+      supportsSpy.mock.calls.filter((args) => args[0] === TextureFormat.R16_SFloat).length;
 
-    engine.update();
-    expect(detectSpy).toHaveBeenCalledTimes(1);
-    expect(cam.screenSpaceReflectionDiagnostics.usesPackedNormalOct8).toBe(false);
+    try {
+      engine.update();
+      expect(countR16CapabilityProbes()).toBe(1);
+      expect(ssrPass._caps.usesPackedNormalOct8).toBe(false);
 
-    // Zero receivers -> Skipped: does not re-run _detectCapabilities with false or clobber High usesPackedNormalOct8
-    detectSpy.mockClear();
-    floorMat.screenSpaceReflectionIntensity = 0;
-    engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Skipped);
-    expect(detectSpy).not.toHaveBeenCalled();
-    expect(cam.screenSpaceReflectionDiagnostics.usesPackedNormalOct8).toBe(false);
+      // Zero receivers -> Skipped: does not re-run capability detection with false or clobber High usesPackedNormalOct8
+      supportsSpy.mockClear();
+      floorMat.screenSpaceReflectionIntensity = 0;
+      engine.update();
+      expect(ssrPass._state).toBe(SSRState.Skipped);
+      expect(countR16CapabilityProbes()).toBe(0);
+      expect(ssrPass._caps.usesPackedNormalOct8).toBe(false);
 
-    // setReplacementShader -> Skipped: also preserves High usesPackedNormalOct8
-    floorMat.screenSpaceReflectionIntensity = 1.0;
-    stepFrames(engine, 3);
-    expect(cam.screenSpaceReflectionDiagnostics.usesPackedNormalOct8).toBe(false);
-    detectSpy.mockClear();
-    const unlitMat = new UnlitMaterial(engine);
-    cam.setReplacementShader(unlitMat.shader);
-    engine.update();
-    expect(cam.screenSpaceReflectionDiagnostics.state).toBe(SSRRuntimeState.Skipped);
-    expect(detectSpy).not.toHaveBeenCalled();
-    expect(cam.screenSpaceReflectionDiagnostics.usesPackedNormalOct8).toBe(false);
-    cam.resetReplacementShader();
-    unlitMat.destroy();
-    expect(drainGlErrors(gl)).toEqual([]);
+      // setReplacementShader -> Skipped: also preserves High usesPackedNormalOct8
+      floorMat.screenSpaceReflectionIntensity = 1.0;
+      stepFrames(engine, 3);
+      expect(ssrPass._caps.usesPackedNormalOct8).toBe(false);
+      supportsSpy.mockClear();
+      const unlitMat = new UnlitMaterial(engine);
+      cam.setReplacementShader(unlitMat.shader);
+      engine.update();
+      expect(ssrPass._state).toBe(SSRState.Skipped);
+      expect(countR16CapabilityProbes()).toBe(0);
+      expect(ssrPass._caps.usesPackedNormalOct8).toBe(false);
+      cam.resetReplacementShader();
+      unlitMat.destroy();
+      expect(drainGlErrors(gl)).toEqual([]);
+    } finally {
+      supportsSpy.mockRestore();
+    }
   });
 
   it("Early offscreen culling: skips BuildHiZMipN and DownsampleAndBuildHiZMip0 when receivers are offscreen and clears cached elements", async () => {
@@ -5657,7 +5829,7 @@ describe("ScreenSpaceReflection v2", () => {
     const floorEnt = addPlane(engine, root, "offscreenFloor", [50, 0, -0.4], 1.4, 1.8, floorMat);
 
     scene.screenSpaceReflection.enabled = true;
-    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.Medium;
+    scene.screenSpaceReflection.quality = ScreenSpaceReflectionQuality.High;
     stepFrames(engine, 2);
 
     // @ts-ignore inspect internal pass & blit passes during offscreen frame
@@ -5692,7 +5864,7 @@ describe("ScreenSpaceReflection v2", () => {
     // Move back into view -> resumes immediately with valid reflection
     floorEnt.transform.setPosition(0, 0, -0.4);
     stepFrames(engine, 2);
-    expect(cam.screenSpaceReflectionDiagnostics.active).toBe(true);
+    expect(isSSRActiveForCamera(cam)).toBe(true);
     expect(sampleRegionRGB(tex, 0.35, 0.58, 0.65, 0.76).maxR).toBeGreaterThan(60);
     expect(drainGlErrors(gl)).toEqual([]);
 

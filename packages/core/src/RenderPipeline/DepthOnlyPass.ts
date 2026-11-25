@@ -36,7 +36,7 @@ export class DepthOnlyPass extends PipelinePass {
     this.renderTarget = renderTarget;
   }
 
-  override onRender(context: RenderContext, cullingResults: CullingResults): void {
+  onRender(context: RenderContext, cullingResults: CullingResults): void {
     const engine = this.engine;
     const renderTarget = this.renderTarget;
     const camera = context.camera;

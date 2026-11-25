@@ -5,10 +5,4 @@ export { Light } from "./Light";
 export { PointLight } from "./PointLight";
 export { SpotLight } from "./SpotLight";
 export { AmbientOcclusion, AmbientOcclusionQuality } from "./ambientOcclusion";
-export {
-  ScreenSpaceReflectionQuality,
-  ScreenSpaceReflectionSettings,
-  SSRRuntimeState,
-  type ScreenSpaceReflectionSettingsData,
-  type SSRDiagnostics
-} from "./screenSpaceReflection";
+export { ScreenSpaceReflection, ScreenSpaceReflectionQuality } from "./screenSpaceReflection";

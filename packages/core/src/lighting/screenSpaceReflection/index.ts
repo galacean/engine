@@ -1,4 +1,3 @@
 export { ScreenSpaceReflectionQuality } from "./ScreenSpaceReflectionQuality";
-export { ScreenSpaceReflectionSettings, type ScreenSpaceReflectionSettingsData } from "./ScreenSpaceReflectionSettings";
-export { SSRRuntimeState, type SSRDiagnostics } from "./SSRDiagnostics";
+export { ScreenSpaceReflection } from "./ScreenSpaceReflection";
 export { ScreenSpaceReflectionPass } from "./ScreenSpaceReflectionPass";
