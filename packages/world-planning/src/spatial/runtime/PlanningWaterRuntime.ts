@@ -39,6 +39,12 @@ import {
   type SeedWorldWaterColorRgb
 } from "@galacean/engine-water/world/SeedWorldWaterColor";
 import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
+import {
+  createOilPaintLakeAppearanceAsset,
+  createOilPaintWaterResourceFactories,
+  OIL_PAINT_WATER_SWIRL_COLOR_RESOURCE,
+  OIL_PAINT_WATER_SWIRL_NORMAL_RESOURCE
+} from "../oil-paint/OilPaintWaterTextures";
 import { planningLakeRequests } from "../../semantic-study/PlanningLakeSource";
 import { planningWaterDependency } from "../../semantic-study/PlanningWaterDependency";
 import { hashCanonicalKey, planningHeightmap, type PlanningHeightmap } from "../../semantic-study/PlanningHeightmap";
@@ -191,6 +197,8 @@ export class PlanningWaterRuntime {
           for (const factory of createFarmlandsWaterResourceFactories(options.engine))
             host.ensureRuntimeResource(factory);
           host.ensureRuntimeResource(createLakeNormalResourceFactory(options.engine));
+          for (const factory of createOilPaintWaterResourceFactories(options.engine))
+            host.ensureRuntimeResource(factory);
           host.registerAuthoring(registerRiverWaterBodyPresets);
           host.registerAuthoring(registerRiverValleyLook);
           host.registerAuthoring(registerFarmlandsRiverLook);
@@ -369,20 +377,22 @@ export class PlanningWaterRuntime {
             body.waterId = request.bodyId;
             fresh.push(body);
           }
+          const useOilPaintLook = plan.parameters.worldTemplate?.id === "oil-paint" && request.asset.kind === "lake";
           const configuration: WaterBodyConfiguration = {
             ...(this.options.readBody ? { sourceSpace: "world" as const } : {}),
             asset:
               waterUpdate?.bodyId === request.bodyId && !waterUpdate.surface && body.configuration
                 ? body.configuration.asset
                 : own(new WaterBodyResource(this.options.engine, request.asset)),
-            look: input
-              ? undefined
-              : own(
-                  new WaterLookResource(
-                    this.options.engine,
-                    this.host.assets.getLookAuthoringSnapshot(request.instance.lookPresetId)!
-                  )
-                ),
+            look:
+              input && !useOilPaintLook
+                ? undefined
+                : own(
+                    new WaterLookResource(
+                      this.options.engine,
+                      this.host.assets.getLookAuthoringSnapshot(request.instance.lookPresetId)!
+                    )
+                  ),
             quality: input
               ? body!._compileQuality()
               : waterUpdate?.bodyId === request.bodyId && !waterUpdate.surface && body.configuration
@@ -393,7 +403,7 @@ export class PlanningWaterRuntime {
                       this.host.assets.getQualityPlan(request.instance.qualityPlanId)!
                     )
                   ),
-            material: input?.material,
+            material: useOilPaintLook ? undefined : input?.material,
             visible: input?.visible ?? request.instance.visible,
             priority: input?.priority ?? request.instance.priority,
             interaction: input?.interaction ?? request.instance.interaction,
@@ -999,67 +1009,120 @@ export class PlanningWaterRuntime {
       const lakeRequests = planningLakeRequests(plan, this.host, engine, this.riversVisible, changed);
       const templateId = plan.parameters.worldTemplate?.id;
       const templateWaters = templateId ? WORLD_TEMPLATE_ART[templateId]?.water : undefined;
-      requests.push(
-        ...lakeRequests.map((lakeRequest) => {
-          const pool = templateWaters?.find((entry) => lakeRequest.bodyId.endsWith(`:${entry.id}`));
-          const authoredColor = pool?.color as SeedWorldWaterColorRgb | undefined;
-          if (!authoredColor) return lakeRequest;
-          const lookId = `${LAKE_WATER_LOOK_PRESET_ID}:${templateId}:${lakeRequest.bodyId}`;
-          const baseSnapshot = this.host.assets.getLookAuthoringSnapshot(LAKE_WATER_LOOK_PRESET_ID);
-          if (!baseSnapshot) return lakeRequest;
-          const tinted = withSeedWorldWaterColor(baseSnapshot, authoredColor);
-          const appearanceAsset = tinted.appearance.appearance;
-          const depthMeters = pool?.depthTintDistanceM ?? 0.65;
-          const depthResponse =
-            appearanceAsset.depthResponse && "distanceMeters" in appearanceAsset.depthResponse
-              ? { ...appearanceAsset.depthResponse, distanceMeters: depthMeters }
-              : appearanceAsset.depthResponse;
-          const opticsProfile = {
-            ...tinted.optics.profile,
-            absorptionCoefficient: [1.75, 0.16, 0.3] as const,
-            scatteringCoefficient: 0.48,
-            scatteringColor: [0.05, 0.72, 0.58] as const,
-            maximumSurfaceOpticalDistance: 2.2,
-            reflectionIntensity: 0.62,
-            refractionStrength: 0.03
-          };
-          const appearanceId = `${lookId}:appearance`;
-          const opticsId = `${lookId}:optics`;
-          this.host.registerAuthoringOnce(lookId, hashRiverStableValue([authoredColor, depthMeters]), (registry) => {
+      const isOilPaint = templateId === "oil-paint";
+      const registerTemplateLakeLook = (
+        bodyId: string,
+        authoredColor: SeedWorldWaterColorRgb,
+        depthMeters: number
+      ): string | undefined => {
+        const lookId = `${LAKE_WATER_LOOK_PRESET_ID}:${templateId}:${bodyId}`;
+        const baseSnapshot = this.host.assets.getLookAuthoringSnapshot(LAKE_WATER_LOOK_PRESET_ID);
+        if (!baseSnapshot) return undefined;
+        const tinted = withSeedWorldWaterColor(baseSnapshot, authoredColor);
+        const appearanceAsset = tinted.appearance.appearance;
+        const depthResponse =
+          appearanceAsset.depthResponse && "distanceMeters" in appearanceAsset.depthResponse
+            ? { ...appearanceAsset.depthResponse, distanceMeters: depthMeters }
+            : appearanceAsset.depthResponse;
+        const opticsProfile = isOilPaint
+          ? {
+              ...tinted.optics.profile,
+              absorptionCoefficient: [1.15, 0.24, 0.22] as const,
+              scatteringCoefficient: 0.42,
+              scatteringColor: [0.08, 0.34, 0.4] as const,
+              maximumSurfaceOpticalDistance: 2.2,
+              roughness: 0.06,
+              reflectionIntensity: 0.82,
+              refractionStrength: 0.055
+            }
+          : {
+              ...tinted.optics.profile,
+              absorptionCoefficient: [1.75, 0.16, 0.3] as const,
+              scatteringCoefficient: 0.48,
+              scatteringColor: [0.05, 0.72, 0.58] as const,
+              maximumSurfaceOpticalDistance: 2.2,
+              reflectionIntensity: 0.62,
+              refractionStrength: 0.03
+            };
+        const appearanceId = `${lookId}:appearance`;
+        const opticsId = `${lookId}:optics`;
+        this.host.registerAuthoringOnce(
+          lookId,
+          hashRiverStableValue([authoredColor, depthMeters, isOilPaint ? "oil-paint-swirl-uastc-v6" : "default"]),
+          (registry) => {
+            if (isOilPaint) {
+              if (!registry.getResource(OIL_PAINT_WATER_SWIRL_NORMAL_RESOURCE.id)) {
+                registry.registerResource(OIL_PAINT_WATER_SWIRL_NORMAL_RESOURCE);
+              }
+              if (!registry.getResource(OIL_PAINT_WATER_SWIRL_COLOR_RESOURCE.id)) {
+                registry.registerResource(OIL_PAINT_WATER_SWIRL_COLOR_RESOURCE);
+              }
+            }
             registry.registerAppearancePreset({
               ...tinted.appearance,
               id: appearanceId,
-              appearance: { ...appearanceAsset, id: `${appearanceId}:asset`, depthResponse }
+              appearance: isOilPaint
+                ? createOilPaintLakeAppearanceAsset(appearanceAsset, `${appearanceId}:asset`, depthMeters)
+                : { ...appearanceAsset, id: `${appearanceId}:asset`, depthResponse }
             });
-            registry.registerOpticsPreset({ ...tinted.optics, id: opticsId, profile: opticsProfile });
+            registry.registerOpticsPreset({
+              ...tinted.optics,
+              id: opticsId,
+              caustics: isOilPaint ? true : tinted.optics.caustics,
+              profile: opticsProfile
+            });
             registry.registerLookPreset({
               ...tinted.look,
               id: lookId,
-              appearanceAssetId: appearanceId,
+              appearanceAssetId: `${appearanceId}:asset`,
               opticalProfileId: opticsId
             });
-          });
+          }
+        );
+        return lookId;
+      };
+      requests.push(
+        ...lakeRequests.map((lakeRequest) => {
+          const pool =
+            templateWaters?.find((entry) => lakeRequest.bodyId.endsWith(`:${entry.id}`)) ??
+            (isOilPaint ? templateWaters?.[0] : undefined);
+          const authoredColor =
+            (pool?.color as SeedWorldWaterColorRgb | undefined) ?? (isOilPaint ? ([38, 92, 114] as const) : undefined);
+          if (!authoredColor) return lakeRequest;
+          const lookId = registerTemplateLakeLook(lakeRequest.bodyId, authoredColor, pool?.depthTintDistanceM ?? 0.65);
+          if (!lookId) return lakeRequest;
           return { ...lakeRequest, instance: { ...lakeRequest.instance, lookPresetId: lookId } };
         })
       );
-    }
-    for (const { id, asset } of changed.size ? planningLakeAssets(plan, changed) : []) {
-      const authoring = this.host.registerAuthoring(registerSeedWorldAuthoredBasinAuthoringV1);
-      requests.push({
-        bodyId: id,
-        asset,
-        instance: createWaterBodyInstance({
-          id,
-          assetId: asset.id,
-          ...authoring,
-          transform: { position: [0, 0, 0], yawDegrees: 0, scaleXZ: [1, 1] },
-          visible: this.riversVisible,
-          priority: 14,
-          interaction: { query: true, buoyancy: false, wake: false }
-        }),
-        canonicalDescriptorHash: asset.sourceHash,
-        createRuntimeContext: (root) => ({ engine, root })
-      });
+      for (const { id, asset } of planningLakeAssets(plan, changed)) {
+        const authoring = this.host.registerAuthoring(registerSeedWorldAuthoredBasinAuthoringV1);
+        const pool =
+          templateWaters?.find((entry) => id.endsWith(`:${entry.id}`)) ??
+          (isOilPaint ? templateWaters?.[0] : undefined);
+        const oilLookId = isOilPaint
+          ? registerTemplateLakeLook(
+              id,
+              (pool?.color as SeedWorldWaterColorRgb | undefined) ?? ([38, 92, 114] as const),
+              pool?.depthTintDistanceM ?? 0.45
+            )
+          : undefined;
+        requests.push({
+          bodyId: id,
+          asset,
+          instance: createWaterBodyInstance({
+            id,
+            assetId: asset.id,
+            ...authoring,
+            ...(oilLookId ? { lookPresetId: oilLookId } : {}),
+            transform: { position: [0, 0, 0], yawDegrees: 0, scaleXZ: [1, 1] },
+            visible: this.riversVisible,
+            priority: 14,
+            interaction: { query: true, buoyancy: false, wake: false }
+          }),
+          canonicalDescriptorHash: asset.sourceHash,
+          createRuntimeContext: (root) => ({ engine, root })
+        });
+      }
     }
     for (const request of requests)
       if (dependencies.has(request.bodyId))
