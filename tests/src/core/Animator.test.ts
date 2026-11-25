@@ -2,6 +2,7 @@ import {
   AnimationClip,
   AnimationEvent,
   AnimationFloatCurve,
+  AnimationVector3Curve,
   Animator,
   AnimatorConditionMode,
   AnimatorController,
@@ -20,7 +21,7 @@ import {
 } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import type { GLTFResource } from "@galacean/engine-loader";
-import { Quaternion } from "@galacean/engine-math";
+import { Quaternion, Vector3, type Vector3Like } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { glbResource } from "./model/fox";
@@ -1681,6 +1682,39 @@ describe("Animator test", function () {
     expect(wrappedRoot.transform.position.x).to.eq(0);
     expect(hips.transform.position.x).to.eq(1);
     expect(spine.transform.position.y).to.eq(1);
+  });
+
+  it("samples whole vectors through a setter that freezes its value", () => {
+    class Direction extends Script {
+      private _value: Readonly<Vector3Like> = Object.freeze({ x: 1, y: 0, z: 0 });
+
+      get value(): Readonly<Vector3Like> {
+        return this._value;
+      }
+      set value(direction: Vector3) {
+        this._value = Object.freeze(direction);
+      }
+    }
+
+    const entity = engine.sceneManager.activeScene.createRootEntity();
+    try {
+      const direction = entity.addComponent(Direction);
+      const initial = direction.value;
+      const clip = new AnimationClip("direction");
+      const curve = new AnimationVector3Curve();
+      curve.addKey({ time: 0, value: new Vector3(0, 1, 0) });
+      curve.addKey({ time: 1, value: new Vector3(0, 0, 1) });
+      clip.addCurveBinding("", Direction, "value", curve);
+
+      clip.sampleAnimation(entity, 0);
+      const sampled = direction.value;
+      clip.sampleAnimation(entity, 1);
+      expect(initial).toMatchObject({ x: 1, y: 0, z: 0 });
+      expect(sampled).toMatchObject({ x: 0, y: 1, z: 0 });
+      expect(direction.value).toMatchObject({ x: 0, y: 0, z: 1 });
+    } finally {
+      entity.destroy();
+    }
   });
 
   it("sampleAnimation samples clip curves without firing AnimationEvents", () => {
