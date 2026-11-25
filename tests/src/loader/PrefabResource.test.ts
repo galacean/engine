@@ -1,6 +1,7 @@
 import { expect, beforeAll, afterAll, describe, it, vi } from "vitest";
 import { WebGLEngine } from "@galacean/engine";
-import { AssetPromise, Loader, MeshRenderer, Script } from "@galacean/engine-core";
+import { AssetPromise, Loader, MeshRenderer, Script, assignmentClone } from "@galacean/engine-core";
+import { Vector3, type Vector3Like } from "@galacean/engine-math";
 import { PrefabParser } from "../../../packages/loader/src/prefab/PrefabParser";
 import { PrefabResource } from "../../../packages/loader/src/prefab/PrefabResource";
 import type { PrefabFile } from "../../../packages/loader/src/schema/PrefabSchema";
@@ -29,10 +30,38 @@ class ReferenceScript extends Script {
   target: ReferenceScript = null;
 }
 
+class FrozenSnapshotScript extends Script {
+  @assignmentClone
+  private _direction: Readonly<Vector3Like> = Object.freeze(new Vector3(0, 1, 0));
+  @assignmentClone
+  private _plain: Readonly<{ x: number; y: number }> = Object.freeze({ x: 1, y: 2 });
+
+  get direction(): Readonly<Vector3Like> {
+    return this._direction;
+  }
+
+  set direction(value: Readonly<Vector3Like>) {
+    const length = Math.hypot(value.x, value.y, value.z);
+    if (length > 0) {
+      this._direction = Object.freeze(new Vector3(value.x / length, value.y / length, value.z / length));
+    }
+  }
+
+  get plain(): Readonly<{ x: number; y: number }> {
+    return this._plain;
+  }
+
+  set plain(value: Readonly<{ x: number; y: number }>) {
+    this._plain = Object.freeze({ x: value.x, y: value.y });
+  }
+}
+
 Loader.registerClass("MeshRenderer", MeshRenderer);
 Loader.registerClass("DiceScript", DiceScript);
 Loader.registerClass("OverrideCallScript", OverrideCallScript);
 Loader.registerClass("ReferenceScript", ReferenceScript);
+Loader.registerClass("FrozenSnapshotScript", FrozenSnapshotScript);
+Loader.registerClass("Vector3", Vector3);
 
 beforeAll(async () => {
   const canvas = document.createElement("canvas");
@@ -73,14 +102,12 @@ describe("PrefabResource refCount", () => {
     });
 
     let resolveNested!: (res: PrefabResource) => void;
-    const refSpy = vi
-      .spyOn(engine.resourceManager, "getResourceByRef")
-      .mockImplementationOnce(
-        () =>
-          new AssetPromise<PrefabResource>((resolve) => {
-            resolveNested = resolve;
-          }) as any
-      );
+    const refSpy = vi.spyOn(engine.resourceManager, "getResourceByRef").mockImplementationOnce(
+      () =>
+        new AssetPromise<PrefabResource>((resolve) => {
+          resolveNested = resolve;
+        }) as any
+    );
 
     try {
       const outerPromise = PrefabParser.parse(engine, "in-flight-outer.prefab", {
@@ -92,14 +119,14 @@ describe("PrefabResource refCount", () => {
       } as any);
 
       // In-flight PrefabResource must stay invisible to findResourcesByType and survive concurrent gc()
-      expect(engine.resourceManager.findResourcesByType(PrefabResource).some((r) => r.url === "in-flight-outer.prefab")).toBe(
-        false
-      );
+      expect(
+        engine.resourceManager.findResourcesByType(PrefabResource).some((r) => r.url === "in-flight-outer.prefab")
+      ).toBe(false);
       nestedPrefab.isGCIgnored = true;
       engine.resourceManager.gc();
-      expect(engine.resourceManager.findResourcesByType(PrefabResource).some((r) => r.url === "in-flight-outer.prefab")).toBe(
-        false
-      );
+      expect(
+        engine.resourceManager.findResourcesByType(PrefabResource).some((r) => r.url === "in-flight-outer.prefab")
+      ).toBe(false);
 
       resolveNested(nestedPrefab);
       const outerPrefab = await outerPromise;
@@ -956,5 +983,98 @@ describe("Cross-prefab $component ref", () => {
     root.destroy();
     // @ts-ignore
     delete engine.resourceManager._objectPool["deep-comp-nested.prefab"];
+  });
+});
+
+describe("Frozen snapshot properties", () => {
+  it("should apply partial overrides and full replacements to frozen snapshot properties", async () => {
+    const baseKey = "frozen-snapshot-base.prefab";
+    const basePrefabData: PrefabFile = {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "base", components: [0] }],
+      components: [{ type: "FrozenSnapshotScript" }],
+      root: 0
+    };
+    const basePrefab = await PrefabParser.parse(engine, baseKey, basePrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool[baseKey] = basePrefab;
+
+    const wrapperPrefabData: PrefabFile = {
+      version: "2.0",
+      refs: [{ url: baseKey }],
+      entities: [
+        { name: "wrapper", children: [1, 2, 3] },
+        { instance: { asset: 0 } },
+        {
+          instance: {
+            asset: 0,
+            overrides: {
+              componentProps: [
+                {
+                  path: [],
+                  selector: { type: "FrozenSnapshotScript", index: 0 },
+                  props: { direction: { x: 1 }, plain: { y: 9 } }
+                },
+                {
+                  path: [],
+                  selector: { type: "FrozenSnapshotScript", index: 0 },
+                  props: { direction: { z: 1 } }
+                }
+              ]
+            }
+          }
+        },
+        {
+          instance: {
+            asset: 0,
+            overrides: {
+              componentProps: [
+                {
+                  path: [],
+                  selector: { type: "FrozenSnapshotScript", index: 0 },
+                  props: { direction: { $type: "Vector3", $args: [0, 0, 2] } }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      components: [],
+      root: 0
+    };
+
+    let wrapper: ReturnType<typeof basePrefab.instantiate> | null = null;
+    let freshBase: ReturnType<typeof basePrefab.instantiate> | null = null;
+    try {
+      const wrapperPrefab = await PrefabParser.parse(engine, "frozen-snapshot-wrapper.prefab", wrapperPrefabData);
+      wrapper = wrapperPrefab.instantiate();
+      freshBase = basePrefab.instantiate();
+
+      const sibling = wrapper.children[0].getComponent(FrozenSnapshotScript);
+      const partial = wrapper.children[1].getComponent(FrozenSnapshotScript);
+      const replaced = wrapper.children[2].getComponent(FrozenSnapshotScript);
+      const fresh = freshBase.getComponent(FrozenSnapshotScript);
+
+      expect(sibling.direction).toMatchObject({ x: 0, y: 1, z: 0 });
+      expect(sibling.plain).toEqual({ x: 1, y: 2 });
+      expect(fresh.direction).toMatchObject({ x: 0, y: 1, z: 0 });
+      expect(fresh.plain).toEqual({ x: 1, y: 2 });
+
+      expect(partial.direction.x).toBeCloseTo(0.5);
+      expect(partial.direction.y).toBeCloseTo(0.5);
+      expect(partial.direction.z).toBeCloseTo(Math.SQRT1_2);
+      expect(partial.plain).toEqual({ x: 1, y: 9 });
+      expect(Object.isFrozen(partial.direction)).toBe(true);
+      expect(Object.isFrozen(partial.plain)).toBe(true);
+
+      expect(replaced.direction).toMatchObject({ x: 0, y: 0, z: 1 });
+      expect(Object.isFrozen(replaced.direction)).toBe(true);
+    } finally {
+      wrapper?.destroy();
+      freshBase?.destroy();
+      // @ts-ignore
+      delete engine.resourceManager._objectPool[baseKey];
+    }
   });
 });
