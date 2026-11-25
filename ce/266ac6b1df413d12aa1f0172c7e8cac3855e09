@@ -1,0 +1,20 @@
+packages/modify/src/native/core/src/Camera.ts
+  h_a3c79ce84ffdc2 9,216-219,734-867,1094-1095
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_a3c79ce84ffdc2 2-4,8-9,52-82,116,221-311,575-604,1131-1174
+packages/modify/src/native/core/src/RenderPipeline/index.ts
+  h_a3c79ce84ffdc2 2
+packages/modify/tests/ScreenSpaceReflection.test.ts
+  h_a3c79ce84ffdc2 8,16,32-33,5236-5714
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ce266ac6b1df413d12aa1f0172c7e8cac3855e09",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
