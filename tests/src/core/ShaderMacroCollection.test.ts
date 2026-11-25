@@ -9,7 +9,7 @@ import {
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 function getMacroAtWord(minWordIndex: number, label: string): ShaderMacro {
   let i = 0;
@@ -21,10 +21,11 @@ function getMacroAtWord(minWordIndex: number, label: string): ShaderMacro {
   }
 }
 
-describe("ShaderMacroCollection", async () => {
+describe("ShaderMacroCollection", () => {
   const lowMacro = ShaderMacro.getByName("TEST_MACRO_LOW");
   const midMacro = getMacroAtWord(lowMacro._maskIndex + 1, "MID");
   const highMacro = getMacroAtWord(lowMacro._maskIndex + 3, "HIGH");
+  const otherHighMacro = ShaderMacro.getByName("TEST_MACRO_OTHER_HIGH");
 
   it("trims all trailing zero words on disable so isEqual matches canonical collections", () => {
     const toggled = new ShaderMacroCollection();
@@ -91,62 +92,62 @@ describe("ShaderMacroCollection", async () => {
     expect(a.isEqual(canonical)).to.be.true;
   });
 
-  let engine: WebGLEngine;
+  it("trims the highest shared word when its enabled macros do not overlap", () => {
+    expect(otherHighMacro._maskIndex).to.equal(highMacro._maskIndex);
+    const left = new ShaderMacroCollection();
+    const right = new ShaderMacroCollection();
+    const expected = new ShaderMacroCollection();
 
-  beforeAll(async () => {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    left.enable(lowMacro);
+    left.enable(highMacro);
+    right.enable(lowMacro);
+    right.enable(otherHighMacro);
+    expected.enable(lowMacro);
+
+    left.intersectionCollection(right);
+
+    expect(left.isEqual(expected)).to.be.true;
   });
 
-  afterAll(() => {
-    engine.destroy();
-  });
-
-  it("keeps MeshRenderer WebGL2 instanced batching intact after enabling and disabling a high-word macro", () => {
-    if (!(engine as any)._hardwareRenderer.isWebGL2) return;
-
-    const scene = engine.sceneManager.activeScene;
-    const root = scene.createRootEntity("macro-batch-root");
-    const camEntity = root.createChild("cam");
-    camEntity.transform.setPosition(0, 0, 10);
-    camEntity.transform.lookAt(new Vector3(0, 0, 0));
-    const camera = camEntity.addComponent(Camera);
-    camera.enabled = false;
-    camera.cullingMask = Layer.Layer13;
-
-    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
-    const mat = new UnlitMaterial(engine);
-
-    const e1 = root.createChild("mr-untouched");
-    e1.layer = Layer.Layer13;
-    const mr1 = e1.addComponent(MeshRenderer);
-    mr1.mesh = mesh;
-    mr1.setMaterial(mat);
-
-    const e2 = root.createChild("mr-high-macro-toggled");
-    e2.layer = Layer.Layer13;
-    const mr2 = e2.addComponent(MeshRenderer);
-    mr2.mesh = mesh;
-    mr2.setMaterial(mat);
-
-    // Toggle a high-word macro on only mr2 (simulating picking / temporary highlight).
-    const batchHighMacro = getMacroAtWord(
-      Math.max(mr1.shaderData._macroCollection._length + 2, highMacro._maskIndex),
-      "BATCH_HIGH"
-    );
-    mr2.shaderData.enableMacro(batchHighMacro);
-    mr2.shaderData.disableMacro(batchHighMacro);
-
-    engine.pause();
+  it("restores MeshRenderer WebGL2 instancing after disabling a high-word macro", async () => {
+    const canvas = document.createElement("canvas");
+    const engine = await WebGLEngine.create({ canvas });
     try {
+      const gl = canvas.getContext("webgl2")!;
+      const drawElements = vi.spyOn(gl, "drawElements");
+      const drawElementsInstanced = vi.spyOn(gl, "drawElementsInstanced");
+      const root = engine.sceneManager.activeScene.createRootEntity("macro-batch-root");
+      const cameraEntity = root.createChild("camera");
+      cameraEntity.transform.setPosition(0, 0, 10);
+      cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
+      const camera = cameraEntity.addComponent(Camera);
+      camera.cullingMask = Layer.Layer13;
+
+      const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+      const material = new UnlitMaterial(engine);
+      const untouchedEntity = root.createChild("untouched");
+      const toggledEntity = root.createChild("toggled");
+      untouchedEntity.layer = toggledEntity.layer = Layer.Layer13;
+      const untouched = untouchedEntity.addComponent(MeshRenderer);
+      const toggled = toggledEntity.addComponent(MeshRenderer);
+      untouched.mesh = toggled.mesh = mesh;
+      untouched.setMaterial(material);
+      toggled.setMaterial(material);
+
+      const batchHighMacro = getMacroAtWord(untouched.shaderData._macroCollection._length + 2, "BATCH_HIGH");
+      toggled.shaderData.enableMacro(batchHighMacro);
       camera.render();
-      // @ts-ignore
-      const opaqueQueue = camera._renderPipeline._cullingResults.opaqueQueue;
-      expect(opaqueQueue.elements.length).to.equal(2);
-      expect(opaqueQueue.batchedElements.length).to.equal(1);
-      expect(opaqueQueue.batchedElements[0].instancedRenderers.length).to.equal(2);
+      expect(drawElements).toHaveBeenCalledTimes(2);
+      expect(drawElementsInstanced).not.toHaveBeenCalled();
+
+      toggled.shaderData.disableMacro(batchHighMacro);
+      drawElements.mockClear();
+      camera.render();
+      expect(drawElements).not.toHaveBeenCalled();
+      expect(drawElementsInstanced).toHaveBeenCalledTimes(1);
+      expect(drawElementsInstanced.mock.calls[0][4]).to.equal(2);
     } finally {
-      root.destroy();
-      engine.resume();
+      engine.destroy();
     }
   });
 });
