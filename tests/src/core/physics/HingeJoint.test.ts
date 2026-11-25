@@ -260,7 +260,6 @@ describe("HingeJoint", function () {
     const boxEntity = addBox(new Vector3(1, 1, 1), new Vector3(0, 5, 0));
     const boxEntity2 = addBox(new Vector3(1, 1, 1), new Vector3(0.5, 5, 0));
     const collider = boxEntity.getComponent(Rigidbody);
-    const collider2 = boxEntity2.getComponent(Rigidbody);
     collider.isKinematic = true;
     const joint = boxEntity.addComponent(HingeJoint);
     joint.connectedBody = boxEntity2.getComponent(Rigidbody);
@@ -580,6 +579,29 @@ describe("HingeJoint", function () {
       motor.targetVelocity = 5;
       limits.max = 30;
     }).not.toThrow();
+  });
+
+  it("detaches a cloned hinge from motor and limit settings supplied by its constructor", () => {
+    class DoorHinge extends HingeJoint {
+      constructor(entity: Entity) {
+        super(entity);
+        this.motor = new JointMotor();
+        this.limits = new JointLimits();
+      }
+    }
+    const door = rootEntity.createChild();
+    door.addComponent(DoorHinge);
+    const clone = door.clone();
+    rootEntity.addChild(clone);
+    const hinge = clone.getComponent(DoorHinge)!;
+    const { motor, limits } = hinge;
+    hinge.motor = null;
+    hinge.limits = null;
+    const body = clone.getComponent(Rigidbody)!;
+    body.sleep();
+    motor!.targetVelocity = 5;
+    limits!.max = 30;
+    expect(body.isSleeping()).toBe(true);
   });
 
   it("disables active drive and limits immediately when motor or limits are cleared to null", function () {

@@ -109,13 +109,14 @@ export class HingeJoint extends Joint {
   }
 
   set motor(value: JointMotor | null) {
-    if (this._jointMotor !== value) {
-      this._jointMotor?._updateFlagManager.removeListener(this._onMotorChanged);
-
+    const previous = this._jointMotor;
+    if (previous !== value) {
       this._jointMotor = value;
-      value?._updateFlagManager.addListener(this._onMotorChanged);
-
-      this._syncAndWake(this._syncMotorConfig);
+      if (this._nativeJoint) {
+        previous?._updateFlagManager.removeListener(this._onMotorChanged);
+        this._bindMotor(this._nativeJoint);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -127,13 +128,14 @@ export class HingeJoint extends Joint {
   }
 
   set limits(value: JointLimits | null) {
-    if (this._limits !== value) {
-      this._limits?._updateFlagManager.removeListener(this._onLimitsChanged);
-
+    const previous = this._limits;
+    if (previous !== value) {
       this._limits = value;
-      value?._updateFlagManager.addListener(this._onLimitsChanged);
-
-      this._syncAndWake(this._syncLimitsConfig);
+      if (this._nativeJoint) {
+        previous?._updateFlagManager.removeListener(this._onLimitsChanged);
+        this._bindLimits(this._nativeJoint);
+        this._wakeBodies();
+      }
     }
   }
 
@@ -143,18 +145,11 @@ export class HingeJoint extends Joint {
     this._onLimitsChanged = this._onLimitsChanged.bind(this);
   }
 
-  /**
-   * @internal
-   */
-  override _onClone(target: HingeJoint, cloneMap: ReadonlyMap<object, object>): void {
-    super._onClone(target, cloneMap);
-    target._jointMotor?._updateFlagManager.addListener(target._onMotorChanged);
-    target._limits?._updateFlagManager.addListener(target._onLimitsChanged);
-  }
-
   protected override _destroyNativeJoint(): void {
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
+      this._jointMotor?._updateFlagManager.removeListener(this._onMotorChanged);
+      this._limits?._updateFlagManager.removeListener(this._onLimitsChanged);
       this._angle = MathUtil.radianToDegree(nativeJoint.getAngle());
       this._velocity = nativeJoint.getVelocity();
     }
@@ -163,8 +158,6 @@ export class HingeJoint extends Joint {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._jointMotor?._updateFlagManager.removeListener(this._onMotorChanged);
-    this._limits?._updateFlagManager.removeListener(this._onLimitsChanged);
     this._jointMotor = this._limits = null;
   }
 
@@ -176,8 +169,8 @@ export class HingeJoint extends Joint {
     super._syncNative();
     const nativeJoint = this._nativeJoint!;
     nativeJoint.setAxis(this._axis);
-    this._syncMotorConfig(nativeJoint);
-    this._syncLimitsConfig(nativeJoint);
+    this._bindMotor(nativeJoint);
+    this._bindLimits(nativeJoint);
   }
 
   // Runtime Prefab calls use this method name.
@@ -219,12 +212,14 @@ export class HingeJoint extends Joint {
     nativeJoint.setDriveEnabled(this._useMotor && this._jointMotor !== null);
   }
 
-  private _syncMotorConfig(nativeJoint: IHingeJoint): void {
+  private _bindMotor(nativeJoint: IHingeJoint): void {
+    this._jointMotor?._updateFlagManager.addListener(this._onMotorChanged);
     this._syncMotorEnabled(nativeJoint);
     this._syncMotor(nativeJoint);
   }
 
-  private _syncLimitsConfig(nativeJoint: IHingeJoint): void {
+  private _bindLimits(nativeJoint: IHingeJoint): void {
+    this._limits?._updateFlagManager.addListener(this._onLimitsChanged);
     this._syncLimitsEnabled(nativeJoint);
     this._syncLimits(nativeJoint);
   }

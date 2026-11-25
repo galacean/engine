@@ -5,7 +5,7 @@ import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import type { Scene } from "../../Scene";
-import { type Transform, TransformModifyFlags } from "../../Transform";
+import { TransformModifyFlags } from "../../Transform";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
 import { PhysicsUtils } from "../PhysicsUtils";
@@ -19,20 +19,7 @@ import { Rigidbody } from "../Rigidbody";
 export abstract class Joint extends Component implements ICloneHook<Joint> {
   private static _tempVector3 = new Vector3();
   private static _tempQuat = new Quaternion();
-
-  private static _toSolverWorldAnchor(
-    transform: Transform,
-    anchor: Vector3,
-    out: Vector3,
-    actor?: IDynamicActor | null
-  ): void {
-    const position = actor ? Joint._tempVector3 : transform.worldPosition;
-    const rotation = actor ? Joint._tempQuat : transform.worldRotationQuaternion;
-    actor?.getWorldTransform(position, rotation);
-    Vector3.multiply(anchor, transform.lossyWorldScale, out);
-    Vector3.transformByQuat(out, rotation, out);
-    out.add(position);
-  }
+  private static _tempConnectedRotation = new Quaternion();
 
   @ignoreClone
   protected _nativeJoint: IJoint | null;
@@ -117,7 +104,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     this._automaticConnectedAnchor = value;
     const nativeJoint = this._nativeJoint;
     if (value && nativeJoint) {
-      this._syncConnectedAnchor(nativeJoint);
+      this._syncConnectedFrame(nativeJoint, false);
       this._wakeBodies();
     }
   }
@@ -291,9 +278,15 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
   _onBodyDestroyed(body: Rigidbody, registeredActor: IDynamicActor | null): void {
     if (this._connectedBody === body) {
       if (!this._automaticConnectedAnchor) {
+        const transform = body.entity.transform;
+        const position = registeredActor ? Joint._tempVector3 : transform.worldPosition;
+        const rotation = registeredActor ? Joint._tempQuat : transform.worldRotationQuaternion;
+        registeredActor?.getWorldTransform(position, rotation);
         const anchor = this._connectedBodyInfo.anchor;
         anchor._onValueChanged = null;
-        Joint._toSolverWorldAnchor(body.entity.transform, anchor, anchor, registeredActor);
+        Vector3.multiply(anchor, transform.lossyWorldScale, anchor);
+        Vector3.transformByQuat(anchor, rotation, anchor);
+        anchor.add(position);
         anchor._onValueChanged = this._handleConnectedAnchorChanged;
       }
       this.connectedBody = null;
@@ -370,48 +363,45 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     body && body.scene === this.scene && (!onlyIfSleeping || body.isSleeping()) && body._wakeNative();
   }
 
-  private _syncConnectedFrame(nativeJoint: IJoint): void {
-    this._syncConnectedAnchor(nativeJoint);
-
-    let rotation = this.entity.transform.worldRotationQuaternion;
-    const connectedBody = this._connectedBody;
-    if (connectedBody) {
-      const relativeRotation = Joint._tempQuat;
-      Quaternion.invert(connectedBody.entity.transform.worldRotationQuaternion, relativeRotation);
-      Quaternion.multiply(relativeRotation, rotation, relativeRotation);
-      rotation = relativeRotation;
-    }
-    nativeJoint.setRotation(rotation);
-  }
-
-  private _syncConnectedAnchor(nativeJoint: IJoint): void {
-    if (this._automaticConnectedAnchor) {
-      const anchor = this._connectedBodyInfo.anchor;
+  private _syncConnectedFrame(nativeJoint: IJoint, updateRotation = true): void {
+    const selfActor = this.entity.getComponent(Rigidbody)!._getActorWithCurrentPose()!;
+    const body = this._connectedBody;
+    const connectedActor = body?._getActorWithCurrentPose();
+    const position = Joint._tempVector3;
+    const rotation = Joint._tempQuat;
+    selfActor.getWorldTransform(position, rotation);
+    const automatic = this._automaticConnectedAnchor;
+    const anchor = this._connectedBodyInfo.anchor;
+    if (automatic) {
       anchor._onValueChanged = null;
-      Joint._toSolverWorldAnchor(this.entity.transform, this._bodyInfo.anchor, anchor);
-      const body = this._connectedBody;
-      if (body) {
-        const transform = body.entity.transform;
-        anchor.subtract(transform.worldPosition);
-        const invRotation = Joint._tempQuat;
-        Quaternion.invert(transform.worldRotationQuaternion, invRotation);
+      Vector3.transformByQuat(this._bodyInfo.actualAnchor, rotation, anchor);
+      anchor.add(position);
+    }
+    if (connectedActor) {
+      const invRotation = Joint._tempConnectedRotation;
+      connectedActor.getWorldTransform(position, invRotation);
+      Quaternion.invert(invRotation, invRotation);
+      if (automatic) {
+        anchor.subtract(position);
         Vector3.transformByQuat(anchor, invRotation, anchor);
-        const scale = transform.lossyWorldScale;
+        const scale = body!.entity.transform.lossyWorldScale;
         const x = anchor.x / scale.x;
         const y = anchor.y / scale.y;
         const z = anchor.z / scale.z;
         anchor.set(Number.isFinite(x) ? x : 0, Number.isFinite(y) ? y : 0, Number.isFinite(z) ? z : 0);
       }
-      anchor._onValueChanged = this._handleConnectedAnchorChanged;
+      if (updateRotation) Quaternion.multiply(invRotation, rotation, rotation);
     }
+    if (automatic) anchor._onValueChanged = this._handleConnectedAnchorChanged;
     this._syncAnchor(nativeJoint, this._connectedBodyInfo, true);
+    if (updateRotation) nativeJoint.setRotation(rotation);
   }
 
   @ignoreClone
   private _onAnchorChanged(): void {
     const nativeJoint = this._nativeJoint;
     if (nativeJoint && this._syncAnchor(nativeJoint, this._bodyInfo)) {
-      if (this._automaticConnectedAnchor) this._syncConnectedAnchor(nativeJoint);
+      if (this._automaticConnectedAnchor) this._syncConnectedFrame(nativeJoint, false);
       this._wakeBodies();
     }
   }

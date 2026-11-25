@@ -1203,7 +1203,7 @@ describe("Joint", function () {
     expect(explicitJoint.automaticConnectedAnchor).toBe(false);
   });
 
-  it("keeps the simulated world anchor after destroying a layout-aligned target", () => {
+  it("captures the simulated anchor of a layout-aligned body and preserves it on destruction", () => {
     const physics = engine.sceneManager.activeScene.physics;
     physics.gravity.set(0, 0, 0);
     const parent = rootEntity.createChild();
@@ -1223,6 +1223,13 @@ describe("Joint", function () {
     const before = follower.transform.worldPosition.x;
     expect(before).toBeCloseTo(10, 3);
 
+    const worldJoint = target.addComponent(FixedJoint);
+    expect(worldJoint.connectedAnchor.x).toBeCloseTo(8, 3);
+    worldJoint.destroy();
+    joint.connectedAnchor.x = -3;
+    joint.automaticConnectedAnchor = true;
+    expect(joint.connectedAnchor.x).toBeCloseTo(2, 3);
+    joint.automaticConnectedAnchor = false;
     targetBody.destroy();
     expect(joint.connectedAnchor.x).toBeCloseTo(before, 3);
     physics._update(physics.fixedTimeStep);

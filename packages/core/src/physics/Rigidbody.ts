@@ -841,6 +841,13 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     return this._registeredScene === scene ? this._nativeActor : null;
   }
 
+  /** @internal Returns the registered actor with any pending Transform pose applied. */
+  _getActorWithCurrentPose(): IDynamicActor | null {
+    if (!this._registeredScene) return null;
+    if (this._dirtyIndex !== -1) this._syncPose();
+    return this._nativeActor;
+  }
+
   /**
    * @internal
    * The native actor, created from the current fields and world pose on first use.
@@ -1032,9 +1039,7 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   }
 
   protected override _onDestroy(): void {
-    const registeredActor = this._registeredScene ? this._nativeActor : null;
-    // A manual joint anchor also observes pose edits made since the last simulation step.
-    if (this._dirtyIndex !== -1 && this._joints?.length) this._syncPose();
+    const registeredActor = this._joints?.length ? this._getActorWithCurrentPose() : null;
     this._linearVelocity._onValueChanged = this._angularVelocity._onValueChanged = null;
     this._centerOfMass._onValueChanged = this._inertiaTensor._onValueChanged = null;
     super._onDestroy();
