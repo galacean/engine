@@ -65,13 +65,7 @@ export class MeshRenderer extends Renderer {
    * @internal
    */
   protected override _onDestroy(): void {
-    const mesh = this._mesh;
-    if (mesh) {
-      mesh.destroyed || this._addResourceReferCount(mesh, -1);
-      mesh._updateFlagManager.removeListener(this._onMeshChanged);
-      this._mesh = null!;
-    }
-
+    if (this._mesh) this._setMesh(null!);
     super._onDestroy();
   }
 
