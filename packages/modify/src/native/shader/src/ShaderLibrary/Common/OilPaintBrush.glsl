@@ -15,19 +15,21 @@
   vec4 scene_OilPaintWarmTint;
   vec4 scene_OilPaintShadeTint;
 
-  // Lightweight dual-rotated height-blend anti-tiling for horizontal planes (zero sin/cos, zero procedural noise ALU).
-  vec4 sampleOilPaintBrushPlanarAntiTile(vec2 xz, float scale) {
-    vec2 uvA = xz * scale;
-    vec2 uvB = vec2(0.793 * xz.x - 0.609 * xz.y, 0.609 * xz.x + 0.793 * xz.y) * (scale * 0.67);
-    vec4 bA = texture2D(scene_OilPaintBrushTexture, uvA);
-    vec4 bB = texture2D(scene_OilPaintBrushTexture, uvB);
-    float pickB = smoothstep(-0.04, 0.04, bB.r - bA.r);
-    vec4 brush = mix(bA, bB, pickB);
-    brush.a = fract(brush.a + (pickB > 0.5 ? 0.37 : 0.0));
-    return brush;
-  }
+  #ifdef OIL_PAINT_BRUSH_PLANAR_ANTI_TILE
+    // Lightweight dual-rotated height-blend anti-tiling for large horizontal terrain planes (zero sin/cos, zero noise ALU).
+    vec4 sampleOilPaintBrushPlanarAntiTile(vec2 xz, float scale) {
+      vec2 uvA = xz * scale;
+      vec2 uvB = vec2(0.793 * xz.x - 0.609 * xz.y, 0.609 * xz.x + 0.793 * xz.y) * (scale * 0.67);
+      vec4 bA = texture2D(scene_OilPaintBrushTexture, uvA);
+      vec4 bB = texture2D(scene_OilPaintBrushTexture, uvB);
+      float pickB = smoothstep(-0.04, 0.04, bB.r - bA.r);
+      vec4 brush = mix(bA, bB, pickB);
+      brush.a = fract(brush.a + (pickB > 0.5 ? 0.37 : 0.0));
+      return brush;
+    }
+  #endif
 
-  // Conditional triplanar impasto brush sampler: skips zero-weight projection axes to cut 4K texture bandwidth ~3x.
+  // Conditional triplanar impasto brush sampler: 2-tap planar anti-tile on Terrain only, 1-tap elsewhere, skips zero-weight axes.
   // Channels: R = thickness height, G = dH/dx, B = dH/dy, A = per-stroke pigment ID.
   vec4 sampleOilPaintBrush(vec3 samplePos, vec3 sampleNormal, float scale) {
     vec3 a = max(abs(sampleNormal), vec3(1e-4));
@@ -40,7 +42,11 @@
       acc += texture2D(scene_OilPaintBrushTexture, samplePos.zy * scale) * w.x;
     }
     if (w.y > 0.05) {
-      acc += sampleOilPaintBrushPlanarAntiTile(samplePos.xz, scale) * w.y;
+      #ifdef OIL_PAINT_BRUSH_PLANAR_ANTI_TILE
+        acc += sampleOilPaintBrushPlanarAntiTile(samplePos.xz, scale) * w.y;
+      #else
+        acc += texture2D(scene_OilPaintBrushTexture, samplePos.xz * scale) * w.y;
+      #endif
     }
     if (w.z > 0.05) {
       acc += texture2D(scene_OilPaintBrushTexture, samplePos.xy * scale) * w.z;
