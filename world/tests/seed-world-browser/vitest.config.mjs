@@ -7,6 +7,7 @@ export default {
   ...worldConfig,
   optimizeDeps: {
     ...worldConfig.optimizeDeps,
+    include: [...worldConfig.optimizeDeps.include, "mdast-util-from-markdown"],
     noDiscovery: true,
     entries: [],
     needsInterop: ["typescript", "esbuild-wasm"]

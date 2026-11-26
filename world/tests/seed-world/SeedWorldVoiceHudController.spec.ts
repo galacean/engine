@@ -139,14 +139,14 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     f.emit({ type: "task_started", taskId: "real", input: "原始需求", inputSource: "text" });
     expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("原始需求");
     f.emit({ type: "model_started", taskId: "real", step: 1 });
-    expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("正在分析请求");
+    expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("正在还原");
     f.emit({ type: "model_finished", taskId: "real", step: { step: 1,
       decision: { type: "execute", code: "return {}" },
       attempts: [{ attempt: 1, rawContent: "先检查天气，再核对时间。", error: null }] } });
     expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("先检查天气，再核对时间。");
     expect(f.view.layout.setTranscriptDetails).toHaveBeenLastCalledWith("原始需求\n\n先检查天气，再核对时间。");
     f.emit({ type: "model_started", taskId: "real", step: 2 });
-    expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("正在分析请求");
+    expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("正在还原");
     expect(f.view.layout.setTranscriptDetails).toHaveBeenLastCalledWith("原始需求\n\n先检查天气，再核对时间。");
     f.controller.destroy();
   });
@@ -315,11 +315,14 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     expect(() => debug.setContextCompactionBudget({ triggerTokens: 100 })).toThrow("destroyed");
     debug.destroy();
   });
-  it("accepts steering and followups while executing and exposes stop/continue controls", async () => {
+  it("accepts steering without showing a button while executing, then offers retry after stopping", async () => {
     const fixture = await createControllerFixture();
     fixture.session.running = true;
     fixture.session.state = "executing";
     fixture.emit({ type: "task_started", taskId: "original", input: "original", inputSource: "text" });
+    expect(fixture.view.controlButton.entity.isActive).toBe(false);
+    expect(fixture.view.controlButton.interactive).toBe(false);
+    expect(fixture.view.layout.setControlVisible).toHaveBeenLastCalledWith(false);
     await fixture.controller.submit("supplement");
     expect(fixture.runAgent).toHaveBeenLastCalledWith("supplement", expect.objectContaining({
       context: expect.objectContaining({ viewer_at_submission: { position: { x: 1, y: 2, z: 3 } } })
@@ -335,7 +338,7 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     fixture.session.canContinue = true;
     fixture.emit({ type: "session_state", state: "stopped", canContinue: true });
     expect(fixture.view.controlButton.interactive).toBe(true);
-    expect(fixture.view.controlIcon.sprite).toBe(fixture.view.resources.retrySprite);
+    expect(fixture.view.controlButton.entity.isActive).toBe(true);
     await fixture.controller.continue();
     expect(fixture.session.continue).toHaveBeenCalledOnce();
     fixture.controller.destroy();
@@ -346,9 +349,10 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     f.session.running = true;
     f.session.state = "executing";
     f.emit({ type: "task_started", taskId: "one", input: "one", inputSource: "text" });
-    const gesture = f.controller.beginTaskControlGesture()!;
+    expect(f.controller.beginTaskControlGesture()).toBeUndefined();
+    const dismiss = f.controller.beginTurnDismissGesture()!;
     expect(f.session.stop).not.toHaveBeenCalled();
-    gesture.dismiss();
+    dismiss();
     expect(f.session.stop).toHaveBeenCalledOnce();
     f.emit({ type: "session_state", state: "stopping", canContinue: false });
     expect(f.view.layout.setPanelVisible).toHaveBeenLastCalledWith(false, undefined);
@@ -362,8 +366,8 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     f.session.state = "executing";
     f.emit({ type: "task_started", taskId: "two", input: "two", inputSource: "text" });
     expect(f.view.layout.setPanelVisible).toHaveBeenLastCalledWith(true, undefined);
-    expect(f.view.controlButton.entity.isActive).toBe(true);
-    gesture.click(); // a stale release must not stop the new turn
+    expect(f.view.controlButton.entity.isActive).toBe(false);
+    dismiss(); // a stale release must not stop the new turn
     expect(f.session.stop).toHaveBeenCalledOnce();
     f.controller.destroy();
   });
@@ -677,11 +681,9 @@ async function createControllerFixture(realSession?: AIChatSession, activity?: S
   const view = {
     root: { isActive: true, destroy: vi.fn() },
     controlButton: { entity: { isActive: false }, interactive: false, cancelGesture: vi.fn() },
-    controlImage: { color: { set: vi.fn() } },
-    controlIcon: { sprite: undefined as unknown, color: { set: vi.fn() } },
     pendingLabel: { text: "", entity: { isActive: false } },
     layout,
-    resources: { destroy: vi.fn(), stopSprite: {}, retrySprite: {} }
+    resources: { destroy: vi.fn() }
   };
   const debugController = {
     enable: vi.fn(),
@@ -822,7 +824,7 @@ it("real Session stops preparing photos, restores the HUD on remount, and keeps 
   await f.controller.stop();
   expect(session.state).toBe("stopped"); expect(f.controller.busy).toBe(false);
   expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("任务已停止。");
-  expect(f.view.controlIcon.sprite).toBe(f.view.resources.retrySprite);
+  expect(f.view.controlButton.entity.isActive).toBe(true);
   f.controller.destroy();
   expect(session.state).toBe("stopped"); expect(release).not.toHaveBeenCalled();
   const restored = await createControllerFixture(session, f.activity);

@@ -30,6 +30,7 @@ Shader "SeedWorld/LiquidGlassUiV6" {
       float material_SeedWorldCornerRadiusPixels;
       float material_SeedWorldGlassOpacity;
       float material_SeedWorldGlassRoughness;
+      float material_SeedWorldBackdropBlurPixels;
       float material_SeedWorldRimHighlight;
       float material_SeedWorldInteriorRefractionStrength;
       float material_SeedWorldWhiteTint;
@@ -108,6 +109,15 @@ Shader "SeedWorld/LiquidGlassUiV6" {
         return texture2DSRGB(material_SeedWorldSceneTexture, clamp(uv, vec2(0.002), vec2(0.998))).rgb;
       }
 
+      vec3 seedWorldSampleTransmission(vec2 uv, float footprintPx) {
+        if (footprintPx <= 0.0 || material_SeedWorldFrostMaxMip <= 0.0) return seedWorldSampleScene(uv);
+        // The first level is a quarter-sized copy of the scene. Each mip doubles its footprint.
+        float lod = clamp(log2(max(footprintPx * 0.25, 1.0)), 0.0, material_SeedWorldFrostMaxMip);
+        vec3 frost = texture2DLodEXT(material_SeedWorldFrostTexture, clamp(uv, 0.0, 1.0), lod).rgb;
+        if (footprintPx < 4.0) return mix(seedWorldSampleScene(uv), frost, smoothstep(0.0, 4.0, footprintPx));
+        return frost;
+      }
+
       vec3 seedWorldSampleRoughRow(vec2 uv, vec2 stepUv, float row) {
         return
           seedWorldSampleScene(uv + stepUv * vec2(-2.0, row)) +
@@ -171,6 +181,7 @@ Shader "SeedWorld/LiquidGlassUiV6" {
         vec2 screenUv = v.v_sceneUv;
         vec2 texelSize = material_SeedWorldSourceTexelSize;
         float roughness = clamp(material_SeedWorldGlassRoughness, 0.0, 1.0);
+        float footprintPx = min(panelPixelSize.x, panelPixelSize.y) * roughness * material_SeedWorldFrostScale;
         float fullLens = clamp(material_SeedWorldFullLensRefraction, 0.0, 1.0);
 
         // Dedicated fast path for full-sphere PBR refraction + hardware mipmap frosted glass (3 texture taps total).
@@ -203,34 +214,10 @@ Shader "SeedWorld/LiquidGlassUiV6" {
           vec2 uvG = clamp(screenUv + rayG.xy * distG * orbUvRadius, vec2(0.002), vec2(0.998));
           vec2 uvB = clamp(screenUv + rayB.xy * distB * orbUvRadius, vec2(0.002), vec2(0.998));
 
-          // Hardware mipmap frosted blur from the 1/4-res linear mip pyramid (3 trilinear LOD fetches total).
-          float frostMaxMip = max(material_SeedWorldFrostMaxMip, 0.0);
-          float blurPx = min(panelPixelSize.x, panelPixelSize.y) * roughness * max(material_SeedWorldFrostScale, 0.0);
-          vec3 lensColor;
-          if (roughness <= 0.001 || blurPx <= 0.01 || frostMaxMip <= 0.001) {
-            lensColor = vec3(
-              seedWorldSampleScene(uvR).r,
-              seedWorldSampleScene(uvG).g,
-              seedWorldSampleScene(uvB).b
-            );
-          } else {
-            // Frost pyramid mip 0 is already 1/4 resolution (~4px footprint); higher mips double it per level.
-            float frostLod = clamp(log2(max(blurPx * 0.25, 1.0)), 0.0, frostMaxMip);
-            vec3 frostedColor = vec3(
-              texture2DLodEXT(material_SeedWorldFrostTexture, uvR, frostLod).r,
-              texture2DLodEXT(material_SeedWorldFrostTexture, uvG, frostLod).g,
-              texture2DLodEXT(material_SeedWorldFrostTexture, uvB, frostLod).b
-            );
-            if (blurPx < 4.0) {
-              vec3 sharpColor = vec3(
-                seedWorldSampleScene(uvR).r,
-                seedWorldSampleScene(uvG).g,
-                seedWorldSampleScene(uvB).b
-              );
-              lensColor = mix(sharpColor, frostedColor, smoothstep(0.0, 4.0, blurPx));
-            } else {
-              lensColor = frostedColor;
-            }
+          vec3 lensColor = seedWorldSampleTransmission(uvG, footprintPx);
+          if (caStrength > 0.0) {
+            lensColor.r = seedWorldSampleTransmission(uvR, footprintPx).r;
+            lensColor.b = seedWorldSampleTransmission(uvB, footprintPx).b;
           }
 
           // Physically balanced linear-space Schlick Fresnel (no milky white fog lift).
@@ -262,21 +249,6 @@ Shader "SeedWorld/LiquidGlassUiV6" {
         vec2 offsetG = refractionOffset * refractionRatio.g;
         vec2 offsetB = refractionOffset * refractionRatio.b;
 
-        vec3 baseColor = seedWorldSampleScene(screenUv);
-        vec3 transmittedColor = roughness > 0.001
-          ? seedWorldSampleRoughScene(screenUv, texelSize, panelPixelSize, roughness)
-          : baseColor;
-        vec3 displacedColor;
-        if (roughness > 0.001) {
-          displacedColor = seedWorldSampleRoughScene(screenUv + offsetG, texelSize, panelPixelSize, roughness);
-        } else {
-          displacedColor = vec3(
-            seedWorldSampleScene(screenUv + offsetR).r,
-            seedWorldSampleScene(screenUv + offsetG).g,
-            seedWorldSampleScene(screenUv + offsetB).b
-          );
-        }
-
         float minimumHalfSize = min(halfSize.x, halfSize.y);
         float edgeRefractionWidth = min(
           SEED_WORLD_REFR_DIM,
@@ -285,13 +257,29 @@ Shader "SeedWorld/LiquidGlassUiV6" {
         float edgeRefractionWeight = smoothstep(-edgeRefractionWidth, 0.0, distanceToGlass);
         float interiorRefractionStrength = clamp(material_SeedWorldInteriorRefractionStrength, 0.0, 1.0);
         float refractionWeight = mix(edgeRefractionWeight, 1.0, interiorRefractionStrength);
-        vec3 refractedColor = mix(transmittedColor, displacedColor, refractionWeight);
-        float interior = smoothstep(epsilon, 0.0, distanceToGlass);
-        vec3 color = mix(baseColor, refractedColor, interior);
+        float interior = 1.0 - smoothstep(0.0, epsilon, distanceToGlass);
+        vec3 color;
+        if (material_SeedWorldBackdropBlurPixels > 0.0) {
+          color = seedWorldSampleTransmission(screenUv + offsetG * refractionWeight * interior, material_SeedWorldBackdropBlurPixels);
+        } else {
+          vec3 baseColor = seedWorldSampleScene(screenUv);
+          vec3 transmittedColor = baseColor;
+          vec3 displacedColor;
+          if (roughness > 0.001) {
+            transmittedColor = seedWorldSampleRoughScene(screenUv, texelSize, panelPixelSize, roughness);
+            displacedColor = seedWorldSampleRoughScene(screenUv + offsetG, texelSize, panelPixelSize, roughness);
+          } else {
+            displacedColor = vec3(
+              seedWorldSampleScene(screenUv + offsetR).r,
+              seedWorldSampleScene(screenUv + offsetG).g,
+              seedWorldSampleScene(screenUv + offsetB).b
+            );
+          }
+          color = mix(baseColor, mix(transmittedColor, displacedColor, refractionWeight), interior);
+        }
 
-        float edgeInterior = smoothstep(epsilon, 0.0, distanceToGlass);
         float edgePosition = seedWorldRemap01(-SEED_WORLD_EDGE_DIM, 0.0, distanceToGlass);
-        float edge = min(edgeInterior, edgePosition);
+        float edge = min(interior, edgePosition);
         float cosineEdge = 1.0 - cos(edge * SEED_WORLD_PI * 0.5);
         if (cosineEdge > 0.001) {
           float rimLightIntensity = abs(dot(normal, normalize(vec2(-1.0, 1.0))));

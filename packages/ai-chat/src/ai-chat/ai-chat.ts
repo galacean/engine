@@ -1,4 +1,4 @@
-import { recoveryStatus } from "./model-recovery";
+import { MODEL_REQUEST_STATUS, recoveryStatus } from "./model-recovery";
 import type { AgentSessionSnapshot } from "./session-data";
 import { AIChatSession, type AIChatSubmission } from "./ai-chat-session";
 import type { AgentInputTarget, AgentModelAttempt, AgentRunOptions, AgentStepRecord } from "./agent-types";
@@ -298,7 +298,7 @@ function projectMessages(snapshot: AgentSessionSnapshot, welcome: string): ChatM
     if (!task.outcome && progress) {
       if (progress.kind === "model")
         content =
-          progress.commentary ?? (progress.decision === "search_tool" ? "正在搜索相关文件内容…" : "正在分析请求");
+          progress.commentary ?? (progress.decision === "search_tool" ? "正在搜索相关文件内容…" : MODEL_REQUEST_STATUS);
       if (progress.kind === "recovery") content = recoveryStatus(progress.recovery);
       if (progress.kind === "tool") content = `正在执行工具：${progress.tool}`;
       if (progress.kind === "script") content = "正在执行 Agent Script…";

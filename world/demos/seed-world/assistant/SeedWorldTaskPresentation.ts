@@ -1,4 +1,4 @@
-import { recoveryStatus } from "@galacean/engine-ai-chat/ai-chat/model-recovery";
+import { MODEL_REQUEST_STATUS, recoveryStatus } from "@galacean/engine-ai-chat/ai-chat/model-recovery";
 import type { AgentSessionSnapshot } from "@galacean/engine-ai-chat/ai-chat/index";
 
 /** Pure projection: remounting a HUD gives the same text without replaying events. */
@@ -13,7 +13,7 @@ export function projectSeedWorldTask(snapshot: AgentSessionSnapshot): { text?: s
     switch (event.kind) {
       case "recovery": commentary = undefined; text = recoveryStatus(event.recovery); break;
       case "model":
-        if (!event.decision) { commentary = undefined; text = "正在分析请求"; break; }
+        if (!event.decision) { commentary = undefined; text = MODEL_REQUEST_STATUS; break; }
         commentary = event.decision === "final" ? undefined : event.commentary;
         { const next = commentary ?? (event.decision === "read_tool" ? "查阅相关操作说明"
           : event.decision === "list_tool" ? "查找相关资料和资源"

@@ -231,7 +231,7 @@ it("clears only accepted attachment versions and keeps a failed export available
   }
 });
 
-it("actual ChatPanel registers the input before export, so its public Stop gesture cannot be undone by a late export", async () => {
+it("actual ChatPanel registers the input before export, so a late export cannot undo stop()", async () => {
   vi.stubGlobal("window", {});
   const { SeedWorldVoiceHudController } = await import("../../demos/seed-world/assistant/SeedWorldChatPanel");
   const { frame, views, session } = fixture();
@@ -249,8 +249,7 @@ it("actual ChatPanel registers the input before export, so its public Stop gestu
   Object.setPrototypeOf(panel, SeedWorldVoiceHudController.prototype);
   const pending = SeedWorldVoiceHudController.prototype.submit.call(panel as any, "look at this picture");
   await vi.waitFor(() => expect(frame.image.export).toHaveBeenCalledOnce());
-  const gesture = SeedWorldVoiceHudController.prototype.beginTaskControlGesture.call(panel as any);
-  expect(gesture).toBeDefined(); gesture!.click();
+  await panel.stop();
   await vi.waitFor(() => expect(session.state).toBe("stopped"));
   gate.resolve({ width: 768, height: 432, blob: new Blob(["late"], { type: "image/jpeg" }) });
   await new Promise(resolve => setTimeout(resolve, 0));

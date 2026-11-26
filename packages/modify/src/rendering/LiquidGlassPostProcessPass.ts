@@ -169,6 +169,8 @@ export class SeedWorldLiquidGlassUiMaterial {
   private _destroyed = false;
   private _roughness = 0;
   private _fullLensRefraction = 0;
+  private _backdropBlurPixels = 0;
+  private _opacity = 1;
 
   /**
    * Creates one local liquid-glass material and binds it to the camera's existing post-process output.
@@ -182,6 +184,7 @@ export class SeedWorldLiquidGlassUiMaterial {
     material.shaderData.setFloat("material_SeedWorldCornerRadiusPixels", 0.5);
     material.shaderData.setFloat("material_SeedWorldGlassOpacity", 1);
     material.shaderData.setFloat("material_SeedWorldGlassRoughness", 0);
+    material.shaderData.setFloat("material_SeedWorldBackdropBlurPixels", 0);
     material.shaderData.setFloat("material_SeedWorldRimHighlight", 0);
     material.shaderData.setFloat("material_SeedWorldInteriorRefractionStrength", 1);
     material.shaderData.setFloat("material_SeedWorldWhiteTint", 0);
@@ -233,7 +236,21 @@ export class SeedWorldLiquidGlassUiMaterial {
    * @param value - Opacity in the 0-1 range.
    */
   setOpacity(value: number): void {
-    this._material.shaderData.setFloat("material_SeedWorldGlassOpacity", Math.max(0, Math.min(value, 1)));
+    const opacity = Math.max(0, Math.min(value, 1));
+    if (opacity === this._opacity) return;
+    const visibilityChanged = opacity > 0 !== this._opacity > 0;
+    this._opacity = opacity;
+    this._material.shaderData.setFloat("material_SeedWorldGlassOpacity", opacity);
+    if (visibilityChanged) this._updateFrostBinding();
+  }
+
+  /** Samples a flat panel's transmitted scene from the frost pyramid at the given screen-pixel footprint. */
+  setBackdropBlurPixels(value: number): void {
+    const pixels = Math.max(0, value);
+    if (this._backdropBlurPixels === pixels) return;
+    this._backdropBlurPixels = pixels;
+    this._material.shaderData.setFloat("material_SeedWorldBackdropBlurPixels", pixels);
+    this._updateFrostBinding();
   }
 
   /**
@@ -243,7 +260,7 @@ export class SeedWorldLiquidGlassUiMaterial {
   setRoughness(value: number): void {
     this._roughness = Math.max(0, Math.min(value, 1));
     this._material.shaderData.setFloat("material_SeedWorldGlassRoughness", this._roughness);
-    this._binder.setMaterialNeedsMipmaps(this._material, this._fullLensRefraction > 0.001 && this._roughness > 0.001);
+    this._updateFrostBinding();
   }
 
   /** Optional silhouette coverage for non-rectangular glass icons. */
@@ -278,7 +295,7 @@ export class SeedWorldLiquidGlassUiMaterial {
   setFullLensRefraction(value: number): void {
     this._fullLensRefraction = Math.max(0, Math.min(value, 1));
     this._material.shaderData.setFloat("material_SeedWorldFullLensRefraction", this._fullLensRefraction);
-    this._binder.setMaterialNeedsMipmaps(this._material, this._fullLensRefraction > 0.001 && this._roughness > 0.001);
+    this._updateFrostBinding();
   }
 
   /**
@@ -307,6 +324,11 @@ export class SeedWorldLiquidGlassUiMaterial {
   /** Full-lens Fresnel edge sheen strength. */
   setLensFresnel(value: number): void {
     this._material.shaderData.setFloat("material_SeedWorldLensFresnel", Math.max(0, Math.min(value, 4)));
+  }
+
+  private _updateFrostBinding(): void {
+    const needsFrost = this._backdropBlurPixels > 0 || (this._fullLensRefraction > 0.001 && this._roughness > 0.001);
+    this._binder.setMaterialNeedsMipmaps(this._material, this._opacity > 0 && needsFrost);
   }
 
   /** Releases the material and its camera-source binding. */

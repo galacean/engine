@@ -38,7 +38,7 @@ Shader "SeedWorld/VoiceOrbBakeV1" {
       vec4 material_OrbAzure;
       vec4 material_OrbViolet;
 
-      // Motion & geometry: x = flowSpeed, y = swayAmp, z = domeWarp, w = ribbonWidthScale
+      // Motion & geometry: x = flowSpeed, y = swayAmp, z = glass IOR, w = ribbonWidthScale
       vec4 material_OrbMotion;
       // Shell shading: x = washStrength, y = overlapGlow, z = crestStrength, w = waveFreq
       vec4 material_OrbRibbon;
@@ -124,9 +124,9 @@ Shader "SeedWorld/VoiceOrbBakeV1" {
       void frag(Varyings v) {
         vec2 p = v.v_uv * 2.0 - 1.0;
         float r2 = dot(p, p);
-        // Both glassBevelClearance and topGlint are identically 0 for r >= 0.94 (r2 >= 0.8836).
-        // Writing vec4(0.0) skips 11.6% of the circle and removes any need for RT clear calls.
-        if (r2 >= 0.8836) {
+        // Cover the last bake texel smoothly and leave the texture outside the sphere transparent.
+        float silhouette = 1.0 - smoothstep(1.0 - fwidth(r2), 1.0, r2);
+        if (r2 >= 1.0) {
           gl_FragColor = vec4(0.0);
           return;
         }
@@ -148,7 +148,7 @@ Shader "SeedWorld/VoiceOrbBakeV1" {
         float shellThick = material_OrbShellThickness > 0.001
           ? clamp(material_OrbShellThickness, 0.015, 0.30)
           : 0.025;
-        float glassIor = 1.04 + clamp(material_OrbMotion.z, 0.0, 1.2) * 0.22;
+        float glassIor = max(material_OrbMotion.z, 1.0);
         vec3 D = refract(V, N, 1.0 / glassIor);
         float chordLen = max(0.02, -2.0 * dot(N, D));
 
@@ -338,9 +338,10 @@ Shader "SeedWorld/VoiceOrbBakeV1" {
         float uHollow = r * (1.0 / 0.34);
         mediump float centerHollow = exp2(-1.442695 * (uHollow * uHollow));
         mediump float hollowAtten = 1.0 - centerHollow * centerClear * 0.36;
-        mediump float glassBevelClearance = 1.0 - smoothstep(0.79, 0.94, r);
+        float reflection = (glassIor - 1.0) / (glassIor + 1.0);
+        float transmission = (1.0 - reflection * reflection) * (1.0 - pow(1.0 - zOuter, 5.0));
         mediump float bodyAlpha = clamp(
-          silkCoverage * hollowAtten * material_OrbTone.z * glassBevelClearance,
+          silkCoverage * hollowAtten * material_OrbTone.z * transmission,
           0.0,
           0.92
         );
@@ -360,6 +361,7 @@ Shader "SeedWorld/VoiceOrbBakeV1" {
           outAlpha = nextA;
         }
 
+        outAlpha *= silhouette;
         if (outAlpha <= 0.002) {
           gl_FragColor = vec4(0.0);
           return;

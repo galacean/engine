@@ -66,7 +66,7 @@ Shader "SeedWorld/WorkingTextV1" {
           float sweepCenter = mod(material_SeedWorldWorkingTime * 0.48, 1.6) - 0.3;
           float distanceToSweep = abs(panelX - sweepCenter);
           float transparentBand = 1.0 - smoothstep(0.0, 0.15, distanceToSweep);
-          sweepOpacity = 1.0 - transparentBand;
+          sweepOpacity = 1.0 - transparentBand * 0.15;
         }
 
         gl_FragColor = vec4(v.v_color.rgb, v.v_color.a * coverage * sweepOpacity);

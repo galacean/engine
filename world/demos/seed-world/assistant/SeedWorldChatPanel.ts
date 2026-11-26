@@ -83,15 +83,12 @@ import {
   SeedWorldLiquidGlassUiMaterial,
   seedWorldWorkingTextShaderSource
 } from "./SeedWorldVoiceHudShaders.ts";
-import { SeedWorldVoiceOrbCache } from "./SeedWorldVoiceOrbCache.ts";
+import { SeedWorldVoiceOrbCache, VOICE_ORB_GLASS_IOR } from "./SeedWorldVoiceOrbCache.ts";
 
 import { projectSeedWorldTask } from "./SeedWorldTaskPresentation.ts";
 import { SeedWorldTurnGesture, turnDragIntent, TURN_DISMISS_DISTANCE, turnAnchorOffset, turnThrow } from "./SeedWorldTurnGesture.ts";
 
-// Galacean's dynamic font atlas rasterizes glyphs at Text.fontSize, without
-// multiplying by the output device pixel ratio. Author the HUD at 2x and let
-// the canvas scale it back to its original visual size so glyph texels stay
-// one-to-one with the DPR=2 output backbuffer instead of being bilinear-upscaled.
+// HUD layout is in reference units. The text atlas density follows the backbuffer separately.
 const HUD_RASTER_SCALE = 2;
 const HUD_VISUAL_SCALE = 0.5;
 const hudUnits = (designPixels: number): number => designPixels * HUD_RASTER_SCALE * HUD_VISUAL_SCALE;
@@ -183,7 +180,8 @@ function triggerVoiceHaptic(kind: VoiceHapticKind): void {
 }
 const TRANSCRIPT_HORIZONTAL_PADDING = hudUnits(28);
 const TRANSCRIPT_VERTICAL_PADDING = hudUnits(20);
-const TRANSCRIPT_FOOTER_HEIGHT = hudUnits(26);
+const TRANSCRIPT_FONT_SIZE = hudUnits(23);
+const PENDING_FONT_SIZE = hudUnits(18);
 const TASK_CONTROL_SIZE = hudUnits(48);
 const TASK_CONTROL_INSET = hudUnits(10);
 const TASK_CONTROL_SPACE = TASK_CONTROL_SIZE + TASK_CONTROL_INSET;
@@ -367,8 +365,7 @@ export function mountSeedWorldChatPanel(options: SeedWorldChatPanelOptions): See
     }
   });
   // The controller starts and settles traces at task boundaries, including queued turns.
-  const resources = createVoiceHudResources(options.engine, options.camera);
-  const view = createVoiceHudView(options, resources);
+  const view = createSeedWorldVoiceHudView(options);
   controller = new SeedWorldVoiceHudController(
     options,
     session,
@@ -389,7 +386,6 @@ interface VoiceHudResources {
   readonly whiteTexture: Texture2D;
   readonly whiteSprite: Sprite;
   readonly controlGlass: SeedWorldLiquidGlassUiMaterial;
-  readonly stopSprite: Sprite;
   readonly retrySprite: Sprite;
   readonly panelGlass: SeedWorldLiquidGlassUiMaterial;
   readonly orbGlass: SeedWorldLiquidGlassUiMaterial;
@@ -406,8 +402,6 @@ interface VoiceHudView {
   readonly layout: VoiceHudLayout;
   readonly resources: VoiceHudResources;
   readonly controlButton: VoiceTaskButton;
-  readonly controlImage: Image;
-  readonly controlIcon: Image;
   readonly pendingLabel?: Text;
 }
 
@@ -798,18 +792,13 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
   }
 
   private _updateControls(): void {
-    const running = this.session.running;
-    const visible = !this._turnHidden && this._state.kind !== "voice" && this._pressPointerId === undefined && (running || this.session.canContinue || this.session.continuationBlocked);
-    if (!visible || this.session.state === "stopping") this._view.controlButton.cancelGesture();
-    const dismissing = this._view.layout.dismissing;
-    this._view.controlButton.entity.isActive = visible || dismissing;
-    this._view.controlButton.interactive = visible && (running || this.session.canContinue) && this.session.state !== "stopping";
-    if (!dismissing) {
-      this._view.controlIcon.sprite = running ? this._view.resources.stopSprite : this._view.resources.retrySprite;
-      this._view.controlImage.color.set(1, running ? 0.52 : 0.87, running ? 0.55 : 0.42, 1);
-      const iconOpacity = this.session.state === "stopping" || this.session.continuationBlocked ? 0.4 : 1;
-      this._view.controlIcon.color.set(running ? 0.95 : 0.88, running ? 0.12 : 0.59, running ? 0.18 : 0.02, iconOpacity);
-      this._view.layout.setControlIconOpacity(iconOpacity);
+    const visible = !this._turnHidden && this._state.kind !== "voice" && this._pressPointerId === undefined &&
+      !this.session.running && (this.session.canContinue || this.session.continuationBlocked);
+    if (!visible) this._view.controlButton.cancelGesture();
+    this._view.controlButton.interactive = visible && this.session.canContinue;
+    if (!this._view.layout.dismissing) {
+      this._view.controlButton.entity.isActive = visible;
+      this._view.layout.setControlIconOpacity(this.session.continuationBlocked ? 0.4 : 1);
     }
     this._view.layout.setControlVisible(visible);
     if (this._view.pendingLabel) {
@@ -822,8 +811,7 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
   /** Captures intent and turn ownership on down; execution happens only on release. */
   beginTaskControlGesture(): { click(): void; dismiss(): void } | undefined {
     if (this._destroyed || this._turnHidden || this._state.kind === "voice" || this._transcriptOwnsWorldInput || this.session.state === "stopping") return;
-    const running = this.session.running;
-    if (!running && !this.session.canContinue) return;
+    if (this.session.running || !this.session.canContinue) return;
     const revision = this._turnRevision;
     this._view.layout.cancelReading();
     this._taskOwnsWorldInput = true;
@@ -831,9 +819,7 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
     const valid = () => !this._destroyed && revision === this._turnRevision && !this._turnHidden;
     return {
       click: () => {
-        if (!valid()) return;
-        if (running && this.session.canStop) void this.stop();
-        else if (!running && !this.session.running && this.session.canContinue) void this.continue();
+        if (valid() && !this.session.running && this.session.canContinue) void this.continue();
       },
       dismiss: this.beginTurnDismissGesture()!
     };
@@ -1748,7 +1734,7 @@ export class VoiceHudLayout extends Script {
   private _orbGlassShade = 1;
   transcriptViewport: Image | undefined;
   transcript: Text | undefined;
-  transcriptFooter: Text | undefined;
+  pendingLabel: Text | undefined;
   readingPointers: VoiceTranscriptPointer[] = [];
   onPhotoDockLayout?: () => void;
   private _publishedPhotoDockBottom = NaN;
@@ -1829,12 +1815,7 @@ export class VoiceHudLayout extends Script {
   private _clipMaterial: Material | undefined;
   private _clipViewportWidth = NaN;
   private _clipViewportHeight = NaN;
-  private _lineCount = 1;
-  private _visibleLines = 1;
-  private _footerFirst = -1;
-  private _footerLast = -1;
-  private _footerLineCount = -1;
-  private _lineHeight = 28;
+  private _glyphDensity = 0;
 
 
   get canScroll(): boolean { return this._expanded && this._scroll.maximum > 0; }
@@ -2027,10 +2008,13 @@ export class VoiceHudLayout extends Script {
   }
 
   private _updateTextShaderPosition(): void {
-    if (!this._width) return;
+    if (!this._width || !this.panelTransform || !this.transcriptMaterial) return;
     const scale = resolveSeedWorldHudScale(this._width, this._height);
-    this.transcriptMaterial?.shaderData.setFloat("material_SeedWorldPanelLeftUv",
-      (this._width * 0.5 + (this._panelX - this._panelWidth * 0.5) * scale) / this._width);
+    const centerX = 0.5 + this.panelTransform.alignCenter * scale / this._width;
+    const widthUv = this._panelWidth * scale / this._width;
+    const data = this.transcriptMaterial.shaderData;
+    data.setFloat("material_SeedWorldPanelLeftUv", centerX - widthUv / 2);
+    data.setFloat("material_SeedWorldPanelWidthUv", widthUv);
   }
 
   private _width = 0;
@@ -2096,7 +2080,6 @@ export class VoiceHudLayout extends Script {
     if (this.panelImage) this.panelImage.enabled = false;
     if (this.transcriptViewport) this.transcriptViewport.entity.isActive = false;
     if (this.transcript) this.transcript.entity.isActive = false;
-    if (this.transcriptFooter) this.transcriptFooter.entity.isActive = false;
   }
 
   setTranscriptColor(color: Color): void {
@@ -2131,6 +2114,14 @@ export class VoiceHudLayout extends Script {
       this._height = height;
       const orbLayout = resolveSeedWorldVoiceOrbLayout(width, height);
       const uiToPixelScale = orbLayout.hudScale;
+      // Cache one font atlas per integer density, including when the window moves between displays.
+      const density = Math.max(1, Math.ceil(uiToPixelScale));
+      if (this.transcript && density !== this._glyphDensity) {
+        this._glyphDensity = density;
+        this.entity.getComponent(UICanvas)!.referenceResolutionPerUnit = Engine._pixelsPerUnit / density;
+        this.transcript.fontSize = TRANSCRIPT_FONT_SIZE * density;
+        if (this.pendingLabel) this.pendingLabel.fontSize = PENDING_FONT_SIZE * density;
+      }
       const controlSize = TASK_CONTROL_SIZE * uiToPixelScale;
       this.controlGlass?.setLayout(controlSize, controlSize, controlSize / 2);
       const orbPixelSize = ORB_SIZE * uiToPixelScale;
@@ -2258,17 +2249,6 @@ export class VoiceHudLayout extends Script {
       this._clipBounds.set(-width / 2, -height / 2, width / 2, height / 2);
       material.shaderData.setVector4("material_SeedWorldTextClipBounds", this._clipBounds);
     }
-    if (this.transcriptFooter && this.canScroll) {
-      const first = Math.floor(Math.max(0, Math.min(this._scroll.maximum, this._scroll.offset)) / this._lineHeight);
-      const last = Math.min(first + this._visibleLines, this._lineCount);
-      // Format only when the visible line range changes, not on every idle or scrolling frame
-      if (first !== this._footerFirst || last !== this._footerLast || this._lineCount !== this._footerLineCount) {
-        this._footerFirst = first;
-        this._footerLast = last;
-        this._footerLineCount = this._lineCount;
-        this.transcriptFooter.text = `${first + 1}–${last} / ${this._lineCount} 行 · 上下滑动阅读 · 横向拖走`;
-      }
-    }
   }
 
   private _updatePanelFade(deltaTime: number): void {
@@ -2285,7 +2265,6 @@ export class VoiceHudLayout extends Script {
       if (this.panelImage) this.panelImage.enabled = false;
       if (this.transcriptViewport) this.transcriptViewport.entity.isActive = false;
       if (this.transcript) this.transcript.entity.isActive = false;
-      if (this.transcriptFooter) this.transcriptFooter.entity.isActive = false;
     }
   }
 
@@ -2294,7 +2273,6 @@ export class VoiceHudLayout extends Script {
     this.panelGlass?.setOpacity(opacity);
     this.controlGlass?.setOpacity(opacity);
     if (this.controlIcon) this.controlIcon.color.a = opacity * this._controlIconOpacity;
-    if (this.transcriptFooter) this.transcriptFooter.color.a = opacity * this._contentOpacity * 0.75;
     this.transcript?.color.set(this._transcriptRed, this._transcriptGreen, this._transcriptBlue, opacity * this._contentOpacity);
   }
 
@@ -2325,6 +2303,9 @@ export class VoiceHudLayout extends Script {
     const scale = resolveSeedWorldHudScale(this._width, this._height);
     this.panelGlass?.setLayout(this._panelWidth * scale, this._panelHeight * scale,
       this._singleLinePanelHeight * 0.5 * scale);
+    // A one-em footprint keeps the backdrop equally soft as the transcript expands.
+    this.panelGlass?.setBackdropBlurPixels(TRANSCRIPT_FONT_SIZE * scale);
+    this._updateTextShaderPosition();
   }
 
   private _updateTranscriptLayout(immediate = false): void {
@@ -2339,26 +2320,23 @@ export class VoiceHudLayout extends Script {
     const source = this._presentation === "progress" ? this._details || this._sourceTranscript : this._sourceTranscript;
     transcript.text = source;
     const metrics = this._measureTranscript(transcript, contentWidth);
-    this._lineHeight = metrics.lineHeight;
-    this._lineCount = Math.max(metrics.lines.length, 1);
-    this._hasDetails = this._lineCount > 1 || source !== this._sourceTranscript;
+    const lineCount = Math.max(metrics.lines.length, 1);
+    this._hasDetails = lineCount > 1 || source !== this._sourceTranscript;
     if (this._expanded && !this._hasDetails) this.setExpanded(false);
-    const footerHeight = this._expanded ? TRANSCRIPT_FOOTER_HEIGHT : 0;
     const maxHeight = this._panelMaxHeight;
-    this._visibleLines = this._expanded
-      ? Math.max(1, Math.floor((maxHeight - TRANSCRIPT_VERTICAL_PADDING * 2 - footerHeight) / metrics.lineHeight))
+    const visibleLines = this._expanded
+      ? Math.max(1, Math.floor((maxHeight - TRANSCRIPT_VERTICAL_PADDING * 2) / metrics.lineHeight))
       : 1;
-    this._scroll.setMaximum(this._expanded ? Math.max(0, this._lineCount - this._visibleLines) * this._lineHeight : 0);
+    this._scroll.setMaximum(this._expanded ? Math.max(0, lineCount - visibleLines) * metrics.lineHeight : 0);
     if (this._expanded) {
       transcript.text = metrics.lines.join("\n");
     } else {
       transcript.text = this._truncateTranscriptToLineLimit(transcript, contentWidth);
     }
-    const lineCount = Math.min(this._lineCount, this._visibleLines);
     this._singleLinePanelHeight = Math.min(maxHeight,
       Math.max(TASK_CONTROL_SIZE + TASK_CONTROL_INSET * 2, Math.ceil(metrics.lineHeight + TRANSCRIPT_VERTICAL_PADDING * 2)));
     const targetHeight = Math.min(maxHeight,
-      Math.max(this._singleLinePanelHeight, Math.ceil(metrics.lineHeight * lineCount + TRANSCRIPT_VERTICAL_PADDING * 2 + footerHeight)));
+      Math.max(this._singleLinePanelHeight, Math.ceil(metrics.lineHeight * Math.min(lineCount, visibleLines) + TRANSCRIPT_VERTICAL_PADDING * 2)));
     if (immediate || this._panelOpacity === 0 || this._panelTargetOpacity === 0) {
       this._heightTransition = undefined;
       this._panelHeight = targetHeight;
@@ -2368,27 +2346,11 @@ export class VoiceHudLayout extends Script {
       this._contentOpacity = 0;
     }
     this._panelTargetHeight = targetHeight;
-    viewport.alignBottom = TRANSCRIPT_VERTICAL_PADDING + footerHeight;
-    textTransform.size.y = this._expanded ? this._lineCount * this._lineHeight : this._singleLinePanelHeight - TRANSCRIPT_VERTICAL_PADDING * 2;
+    textTransform.size.y = this._expanded ? lineCount * metrics.lineHeight : this._singleLinePanelHeight - TRANSCRIPT_VERTICAL_PADDING * 2;
     transcript.verticalAlignment = this._expanded ? TextVerticalAlignment.Top : TextVerticalAlignment.Center;
-    if (this.transcriptFooter) {
-      this._footerFirst = -1;
-      this.transcriptFooter.entity.isActive = this._expanded && this._panelTargetOpacity > 0;
-      this.transcriptFooter.text = this._lineCount > this._visibleLines
-        ? "上下滑动阅读 · 横向拖走"
-        : "点击收起";
-    }
     this._applyPanelSize();
     this._applyPanelOpacity();
 
-    const uiToPixelScale = resolveSeedWorldHudScale(this._width, this._height);
-    const panelPixelWidth = this._panelWidth * uiToPixelScale;
-    const transcriptShaderData = this.transcriptMaterial?.shaderData;
-    transcriptShaderData?.setFloat(
-      "material_SeedWorldPanelLeftUv",
-      (this._width * 0.5 + this._panelX * uiToPixelScale - panelPixelWidth * 0.5) / this._width
-    );
-    transcriptShaderData?.setFloat("material_SeedWorldPanelWidthUv", panelPixelWidth / this._width);
     this._transcriptLayoutDirty = false;
   }
 
@@ -2416,38 +2378,36 @@ export class VoiceHudLayout extends Script {
   }
 
   private _measureTranscript(transcript: Text, contentWidth: number) {
-    return TextUtils.measureTextWithWrap(
-      transcript,
-      contentWidth,
-      this._panelMaxHeight,
-      transcript.lineSpacing * transcript.fontSize,
-      transcript.characterSpacing * transcript.fontSize
+    // Layout runs before Text renders and refreshes its cached subfont after a resize.
+    const { font, fontSize, fontStyle, lineSpacing, characterSpacing, text, overflowMode } = transcript;
+    const face = font!._getSubFont(fontSize, fontStyle);
+    face.nativeFontString = TextUtils.getNativeFontString(font!.name, fontSize, fontStyle);
+    const { lines, lineHeight } = TextUtils.measureTextWithWrap(
+      { text, overflowMode, lineSpacing, _getSubFont: () => face },
+      contentWidth * this._glyphDensity,
+      this._panelMaxHeight * this._glyphDensity,
+      lineSpacing * fontSize,
+      characterSpacing * fontSize
     );
+    return { lines, lineHeight: lineHeight / this._glyphDensity };
   }
 }
 
-/** Draw reusable white masks for the task-control symbols. */
-function createTaskIcon(engine: Engine, retry: boolean): { sprite: Sprite; texture: Texture2D } {
+function createRetryIcon(engine: Engine): { sprite: Sprite; texture: Texture2D } {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 96;
   const context = canvas.getContext("2d")!;
   context.scale(4, 4);
   context.fillStyle = context.strokeStyle = "white";
-  if (retry) {
-    // Two clockwise arrows, matching the supplied retry symbol.
-    context.lineWidth = 3.5;
-    context.lineCap = context.lineJoin = "round";
-    context.beginPath();
-    context.arc(12, 12, 8.5, Math.PI, Math.PI * 1.77);
-    context.stroke();
-    context.beginPath();
-    context.arc(12, 12, 8.5, 0, Math.PI * 0.77);
-    context.stroke();
-    context.fill(new Path2D("M21.5 2v8h-8zM2.5 22v-8h8z"));
-  } else {
-    context.fill(new Path2D("M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10s10-4.49 10-10S17.51 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8"));
-    context.fill(new Path2D("M13 8h2v8h-2zM9 8h2v8H9z"));
-  }
+  context.lineWidth = 3.5;
+  context.lineCap = context.lineJoin = "round";
+  context.beginPath();
+  context.arc(12, 12, 8.5, Math.PI, Math.PI * 1.77);
+  context.stroke();
+  context.beginPath();
+  context.arc(12, 12, 8.5, 0, Math.PI * 0.77);
+  context.stroke();
+  context.fill(new Path2D("M21.5 2v8h-8zM2.5 22v-8h8z"));
   const texture = new Texture2D(engine, 96, 96, TextureFormat.R8G8B8A8_UNorm, false, false);
   texture.setImageSource(canvas);
   return { sprite: new Sprite(engine, texture), texture };
@@ -2465,14 +2425,13 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
   const orbGlass = new SeedWorldLiquidGlassUiMaterial(camera);
   const controlGlass = new SeedWorldLiquidGlassUiMaterial(camera);
   controlGlass.setInteriorRefractionStrength(0.35);
-  const stopIcon = createTaskIcon(engine, false);
-  const retryIcon = createTaskIcon(engine, true);
+  const retryIcon = createRetryIcon(engine);
   panelGlass.setOpacity(0);
   panelGlass.setInteriorRefractionStrength(0);
-  // Restore the authentic original Liquid Glass orb lens:
-  // crystal-clear center (roughness = 0, interiorRefraction = 0) + signature 32% curved edge lens & specular rim reflection.
-  orbGlass.setOpacity(1);
-  orbGlass.setInteriorRefractionStrength(0);
+  // The scene and the baked ribbons refract through the same unit sphere.
+  orbGlass.setFullLensRefraction(1);
+  orbGlass.setLensIor(VOICE_ORB_GLASS_IOR);
+  orbGlass.setLensThickness(2);
   transcriptMaterial.isGCIgnored = true;
   transcriptMaterial.shaderData.setFloat("material_SeedWorldWorking", 0);
   transcriptMaterial.shaderData.setFloat("material_SeedWorldWorkingTime", 0);
@@ -2483,7 +2442,6 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
     whiteTexture,
     whiteSprite,
     controlGlass,
-    stopSprite: stopIcon.sprite,
     retrySprite: retryIcon.sprite,
     panelGlass,
     orbGlass,
@@ -2493,8 +2451,6 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
       if (destroyed) return;
       destroyed = true;
       controlGlass.destroy();
-      stopIcon.sprite.destroy();
-      stopIcon.texture.destroy();
       retryIcon.sprite.destroy();
       retryIcon.texture.destroy();
       panelGlass.destroy();
@@ -2507,7 +2463,9 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
   };
 }
 
-function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: VoiceHudResources): VoiceHudView {
+/** Creates the rendered HUD independently of the agent and microphone session. */
+export function createSeedWorldVoiceHudView(options: Pick<SeedWorldChatPanelOptions, "engine" | "camera" | "root">): VoiceHudView {
+  const resources = createVoiceHudResources(options.engine, options.camera);
   const root = options.root.createChild("Seed World Voice HUD");
   const canvas = root.addComponent(UICanvas);
   canvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
@@ -2525,7 +2483,6 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
   panelTransform.size.set(PANEL_MAX_WIDTH, PANEL_MAX_HEIGHT);
   const panelImage = panelEntity.addComponent(Image);
   panelImage.sprite = resources.whiteSprite;
-  panelImage.color = new Color(1, 1, 1, 1);
   panelImage.raycastEnabled = true;
   const panelPointer = panelEntity.addComponent(VoiceTranscriptPointer);
   panelPointer.scrollable = false;
@@ -2553,7 +2510,7 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
   transcriptTransform.alignLeft = transcriptTransform.alignRight = 0;
   transcriptTransform.alignTop = 0;
   const transcript = transcriptEntity.addComponent(Text);
-  transcript.fontSize = hudUnits(23);
+  transcript.fontSize = TRANSCRIPT_FONT_SIZE;
   transcript.lineSpacing = 0.2;
   transcript.enableWrapping = true;
   transcript.overflowMode = OverflowMode.Overflow;
@@ -2564,23 +2521,6 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
   transcript.setMaterial(resources.transcriptMaterial);
   transcriptEntity.isActive = false;
   const transcriptPointer = viewportEntity.addComponent(VoiceTranscriptPointer);
-  const footerEntity = panelEntity.createChild("Transcript reading controls");
-  const footerTransform = footerEntity.transform as UITransform;
-  footerTransform.horizontalAlignment = HorizontalAlignmentMode.LeftAndRight;
-  footerTransform.alignLeft = TRANSCRIPT_HORIZONTAL_PADDING;
-  footerTransform.alignRight = TRANSCRIPT_HORIZONTAL_PADDING;
-  footerTransform.verticalAlignment = VerticalAlignmentMode.Bottom;
-  footerTransform.alignBottom = hudUnits(12);
-  footerTransform.size.set(1, TRANSCRIPT_FOOTER_HEIGHT);
-  const footer = footerEntity.addComponent(Text);
-  footer.fontSize = hudUnits(14);
-  footer.raycastEnabled = true;
-  footer.color = new Color(1, 1, 1, 0.75);
-  footer.horizontalAlignment = TextHorizontalAlignment.Left;
-  footer.verticalAlignment = TextVerticalAlignment.Center;
-  const footerPointer = footerEntity.addComponent(VoiceTranscriptPointer);
-  footerPointer.scrollable = false;
-  footerEntity.isActive = false;
 
   const orbEntity = root.createChild("Siri voice orb");
   const orbTransform = orbEntity.transform as UITransform;
@@ -2609,7 +2549,8 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
   orbVisual.setMaterial(resources.orbCache.displayMaterial);
   resources.orbCache.isVisible = () => orbVisualEntity.isActiveInHierarchy && orbVisual.enabled;
 
-  const controlEntity = panelEntity.createChild("Stop or retry unfinished task");
+  const controlEntity = panelEntity.createChild("Retry unfinished task");
+  controlEntity.isActive = false;
   const controlTransform = controlEntity.transform as UITransform;
   controlTransform.horizontalAlignment = HorizontalAlignmentMode.Right;
   controlTransform.verticalAlignment = VerticalAlignmentMode.Middle;
@@ -2617,6 +2558,7 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
   controlTransform.size.set(TASK_CONTROL_SIZE, TASK_CONTROL_SIZE);
   const controlImage = controlEntity.addComponent(Image);
   controlImage.sprite = resources.whiteSprite;
+  controlImage.color.set(1, 0.87, 0.42, 1);
   controlImage.setMaterial(resources.controlGlass.material);
   const controlButton = controlEntity.addComponent(VoiceTaskButton);
   const iconEntity = controlEntity.createChild("Task control icon");
@@ -2625,7 +2567,8 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
   iconTransform.verticalAlignment = VerticalAlignmentMode.Middle;
   iconTransform.size.set(hudUnits(32), hudUnits(32));
   const controlIcon = iconEntity.addComponent(Image);
-  controlIcon.sprite = resources.stopSprite;
+  controlIcon.sprite = resources.retrySprite;
+  controlIcon.color.set(0.88, 0.59, 0.02, 1);
   controlIcon.raycastEnabled = false;
 
   const pendingEntity = root.createChild("Pending inputs");
@@ -2636,7 +2579,7 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
   pendingTransform.alignBottom = ORB_BOTTOM;
   pendingTransform.size.set(hudUnits(100), ORB_SIZE);
   const pendingLabel = pendingEntity.addComponent(Text);
-  pendingLabel.fontSize = hudUnits(18);
+  pendingLabel.fontSize = PENDING_FONT_SIZE;
   pendingLabel.horizontalAlignment = TextHorizontalAlignment.Right;
   pendingLabel.verticalAlignment = TextVerticalAlignment.Center;
   pendingLabel.color = CONTENT_TEXT_COLOR;
@@ -2657,12 +2600,12 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
   layout.orbTransform = orbTransform;
   layout.transcriptViewport = transcriptViewport;
   layout.transcript = transcript;
-  layout.transcriptFooter = footer;
-  layout.readingPointers = [transcriptPointer, footerPointer, panelPointer];
-  transcriptPointer.layout = footerPointer.layout = panelPointer.layout = layout;
+  layout.pendingLabel = pendingLabel;
+  layout.readingPointers = [transcriptPointer, panelPointer];
+  transcriptPointer.layout = panelPointer.layout = layout;
   return {
     root,
-    controlButton, controlImage, controlIcon, pendingLabel,
+    controlButton, pendingLabel,
     orbEntity,
     transcript,
     transcriptMaterial: resources.transcriptMaterial,

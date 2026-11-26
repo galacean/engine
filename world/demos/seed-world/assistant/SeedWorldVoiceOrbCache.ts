@@ -23,6 +23,8 @@ import {
 
 /** Offscreen cache resolution: soft aurora ribbons (FWHM ~4.7 texels) upsample cleanly to 1.72x pressed scale (-44% pixels vs 128px). */
 export const VOICE_ORB_CACHE_RESOLUTION = 96;
+/** Refractive index shared by the glass backdrop and the colored ribbons inside it. */
+export const VOICE_ORB_GLASS_IOR = 1.52;
 /** 1D cyclic aurora palette LUT width (power-of-two for hardware Repeat wrapping). */
 export const VOICE_ORB_SPECTRUM_LUT_WIDTH = 64;
 /** Idle breathing cadence (~30Hz, with 2ms margin so 60Hz/120Hz displays hit steady 2-frame/4-frame cadence). */
@@ -259,7 +261,7 @@ export class SeedWorldVoiceOrbCache {
     d.setVector4("material_OrbCyan", new Vector4(DEFAULT_ORB_CYAN[0], DEFAULT_ORB_CYAN[1], DEFAULT_ORB_CYAN[2], 1));
     d.setVector4("material_OrbAzure", new Vector4(DEFAULT_ORB_AZURE[0], DEFAULT_ORB_AZURE[1], DEFAULT_ORB_AZURE[2], 1));
     d.setVector4("material_OrbViolet", new Vector4(DEFAULT_ORB_VIOLET[0], DEFAULT_ORB_VIOLET[1], DEFAULT_ORB_VIOLET[2], 1));
-    d.setVector4("material_OrbMotion", new Vector4(0.9, 1.62, 0.26, 0.96));
+    d.setVector4("material_OrbMotion", new Vector4(0.9, 1.62, VOICE_ORB_GLASS_IOR, 0.96));
     d.setVector4("material_OrbRibbon", new Vector4(0.74, 0.28, 1.72, 1.42));
     d.setVector4("material_OrbDisp", new Vector4(0.036, 0.045, 0.42, 0));
     d.setVector4("material_OrbTone", new Vector4(1.16, 1.48, 0.92, 0.62));
