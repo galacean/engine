@@ -24,12 +24,6 @@ import {
   selectTargetApps
 } from "../../scripts/publish-seed-world-flash-apps.mjs";
 import { SEED_WORLD_TEMPLATE_IDS } from "../../scripts/seed-world-template-bundles.mjs";
-import {
-  FLASH_SOURCE_TEMPLATE_FILE,
-  resolveFlashSourceTemplate,
-  restoreFlashSourceEngine,
-  stageFlashSourceEngine
-} from "../../scripts/seed-world-flash-source-layout.mjs";
 
 const repoRoot = path.resolve(__dirname, "../../..");
 const tempDirs: string[] = [];
@@ -45,18 +39,6 @@ function write(file: string, text: string) {
   fs.writeFileSync(file, text);
 }
 
-function stagePreparedFixture(root: string, snapshotRoot: string) {
-  for (const file of [
-    "modify/.cache/shaders.ts", "core/dist/main.js", "design/dist/main.js", "math/dist/main.js",
-    "shader-compiler/dist/module.js", "shader-compiler/dist/precompile.main.js", "shader-parser/dist/main.js",
-    "shader-parser/dist/main.analyzer.js", "shader-parser/dist/module.js",
-    "shader-parser/dist/shared/GLESShaderInfo.main.js", "shader-parser/dist/shared/GLESShaderInfo.module.js"
-  ]) {
-    write(path.join(root, "packages", file), file);
-  }
-  stageFlashSourceEngine(root, snapshotRoot);
-}
-
 afterEach(() => {
   while (tempDirs.length > 0) {
     fs.rmSync(tempDirs.pop()!, { recursive: true, force: true });
@@ -64,23 +46,6 @@ afterEach(() => {
 });
 
 describe("Seed World 6-app Flash publishing", () => {
-  it("keeps build inputs in the importable source tree and restores the published template binding", () => {
-    const root = makeTempDir("sw-source-snapshot-");
-    const snapshotRoot = path.join(root, "snapshot");
-    stagePreparedFixture(root, snapshotRoot);
-    const archivedFiles = fs.readdirSync(snapshotRoot, { recursive: true }) as string[];
-    expect(archivedFiles.every((file) => !file.split(path.sep).some((segment) => segment === ".cache" || segment === "dist"))).toBe(true);
-    restoreFlashSourceEngine(snapshotRoot);
-    expect(fs.readFileSync(path.join(snapshotRoot, "packages/modify/.cache/shaders.ts"), "utf8"))
-      .toBe("modify/.cache/shaders.ts");
-    expect(fs.readFileSync(path.join(snapshotRoot, "packages/shader-parser/dist/shared/GLESShaderInfo.module.js"), "utf8"))
-      .toBe("shader-parser/dist/shared/GLESShaderInfo.module.js");
-    expect(resolveFlashSourceTemplate(snapshotRoot)).toBe("original");
-    expect(resolveFlashSourceTemplate(snapshotRoot, "oil-paint")).toBe("oil-paint");
-    write(path.join(snapshotRoot, FLASH_SOURCE_TEMPLATE_FILE), JSON.stringify({ templateId: "sakura-pearl" }));
-    expect(resolveFlashSourceTemplate(snapshotRoot, "original")).toBe("sakura-pearl");
-  });
-
   it("publishes the service-allocated version and isolates concurrent Artifacts", async () => {
     const engineRoot = makeTempDir("sw-version-check-");
     const publishScript = path.join(repoRoot, "world/scripts/publish-seed-world-flash-apps.mjs");
@@ -90,7 +55,6 @@ describe("Seed World 6-app Flash publishing", () => {
     const artifacts = { "sakura-pearl": "flashapp-35f3d2be4fb20307", "oil-paint": "flashapp-aa964a26bde230fb" };
     const logPath = path.join(engineRoot, "operations.jsonl");
     const entryUrl = "https://render.example.com/v1/index.html";
-    const snapshotRoot = path.join(engineRoot, "world/dist/seed-world-flash-source");
     let responseStatus = 503;
     let responseBody: unknown = { error: "Unavailable" };
     let ddlResponse = { success: true, code: "0", data: "执行DDL失败: 创建世界存档被拒绝" };
@@ -138,13 +102,10 @@ describe("Seed World 6-app Flash publishing", () => {
         const fs = require("node:fs");
         const { execFileSync } = require("node:child_process");
         exports.callAsap = request => {
-          const html = request.local_file && request.local_file.includes("release_")
+          const html = request.local_file && (request.local_file.includes("release_") || request.local_file.includes("backup_"))
             ? execFileSync("tar", ["-xOzf", request.local_file, "index.html"], { encoding: "utf8" })
             : undefined;
-          const sourceTemplate = request.local_file && request.local_file.includes("backup_")
-            ? JSON.parse(execFileSync("tar", ["-xOzf", request.local_file, ${JSON.stringify(FLASH_SOURCE_TEMPLATE_FILE)}], { encoding: "utf8" }))
-            : undefined;
-          fs.appendFileSync(${JSON.stringify(logPath)}, JSON.stringify({ ...request, html, sourceTemplate }) + "\n");
+          fs.appendFileSync(${JSON.stringify(logPath)}, JSON.stringify({ ...request, html }) + "\n");
           return { entry_url: "https://render.example.com/v3/index.html" };
         };
       `);
@@ -159,9 +120,8 @@ describe("Seed World 6-app Flash publishing", () => {
         console.log("SEED_WORLD_REGISTRY " + JSON.stringify(result));
       `);
       fs.chmodSync(registry, 0o755);
-      write(path.join(snapshotRoot, "source.txt"), "source");
       for (const template of Object.keys(artifacts)) {
-        write(path.join(engineRoot, "world/dist/seed-world-flash-apps", template, "index.html"), "<html><head></head></html>");
+        write(path.join(engineRoot, "world/dist/seed-world-flash-apps", template, "index.html"), `<html><head><meta name="seed-world-default-template" content="${template}" /></head></html>`);
       }
       const publisherContext = path.join(publisher, "scripts/app-context.local.json");
       const context = JSON.stringify({ artifactId: "flashapp-a3c0e021cb8cadb0", alipayUid: "2099123456789" });
@@ -191,13 +151,6 @@ describe("Seed World 6-app Flash publishing", () => {
       });
       expect(fs.existsSync(stateDir)).toBe(false);
       expect(fs.existsSync(logPath)).toBe(false);
-
-      responseBody = { versions: [{ artifact_version: "1", html_url: entryUrl }] };
-      await expect(run("--execute")).rejects.toMatchObject({
-        stderr: expect.stringContaining("Rebuild the source snapshot before publishing")
-      });
-      expect(fs.existsSync(logPath)).toBe(false);
-      stagePreparedFixture(engineRoot, snapshotRoot);
 
       responseBody = { versions: [{ artifact_version: "1", html_url: "https://wrong.example.com/" }] };
       await expect(run("--execute")).rejects.toMatchObject({ stderr: expect.stringContaining("ASAP registry does not match") });
@@ -238,7 +191,9 @@ describe("Seed World 6-app Flash publishing", () => {
         expect(appCalls.find((call) => call.operation === "ddl"))
           .toMatchObject({ artifactVersion: "3", params: { table_kind: "share" } });
         const [backup, release] = appCalls.filter((call) => call.operation === "upload");
-        expect(backup).toMatchObject({ object_name: backupOss, sourceTemplate: { templateId: template } });
+        expect(backup).toMatchObject({ object_name: backupOss });
+        expect(backup.html).toContain(`content="${template}"`);
+        expect(backup.html).not.toContain("window.artifactId");
         expect(path.basename(path.dirname(backup.local_file))).toContain(artifactId);
         expect(release.html).toContain(`window.artifactId = "${artifactId}"`);
         expect(release.html).toContain('window.artifactVersion = "3"');

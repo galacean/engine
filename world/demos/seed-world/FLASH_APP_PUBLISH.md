@@ -1,6 +1,6 @@
 # Seed World 灵光闪应用构建与发布指南（6 模板独立应用版）
 
-本文说明如何在当前 monorepo 结构下，通过 **1 次公共 npm 构建 + 6 份轻量模板派生**，将 Seed World 发布为 6 个独立的灵光闪应用（共享公共运行时、共享 MDN CDN 资产、共享可重建源码快照），并通过内部 PUGC 发布工具编排完成建表、上传、注册与线上验收。
+本文说明如何在当前 monorepo 结构下，通过 **1 次 pnpm 公共构建 + 6 份轻量模板派生**，将 Seed World 发布为 6 个独立的灵光闪应用（共享公共运行时与 MDN CDN 资产，各应用以自身已构建静态目录作为 OSS 备份），并通过内部 PUGC 发布工具编排完成建表、上传、注册与线上验收。
 
 若希望由 Agent 直接执行发布流程，可直接对 Agent 说“**发布闪应用**”（对应 Skill：[`.agents/skills/seed-world-flash-publish/SKILL.md`](../../../.agents/skills/seed-world-flash-publish/SKILL.md)）。本地 AI Chat / ASAP Wrapper 联调不属于线上发布流程，见 [`.agents/skills/seed-world-local-debug/SKILL.md`](../../../.agents/skills/seed-world-local-debug/SKILL.md)。
 
@@ -20,24 +20,17 @@ Seed World 6 个模板分别对应 6 个独立闪应用，元信息与本机状�
 每个独立 Demo（`world/demos/seed-world/{index,sakura-pearl,emerald-forest,low-poly,titan-wasteland,oil-paint}.html`）及对应派生闪应用均在 HTML 中声明 `<meta name="seed-world-default-template" content="<templateId>" />` 与应用 `<title>`：
 - 6 个应用与本地 Demo 均**严格单模板**，应用内已彻底移除启动 6 选 1 弹窗、规划器风格切换入口、`?template=` URL 参数与跨模板历史存档恢复分支。
 
-## 1. 前置环境
+## 1. 前置环境与构建产物（1 公共基座 + 6 模板运行目录）
 
-闪应用发布使用 Node.js ≥ 20.19 和 npm 10.9.3。先从要发布的提交创建独立 Git 工作树，再运行仓库内的构建入口。
-
-```bash
-git worktree add --detach ../seed-world-npm-release HEAD
-cd ../seed-world-npm-release
-node world/scripts/build-seed-world-npm.mjs
-```
-
-该入口在发布工作树中转换 `workspace:*` 依赖，生成并复用 `package-lock.json`，用 `npm ci` 安装依赖。随后编译引擎、刷新 Seed World 的着色器及地形预编译件，并一次生成公共运行基座、6 份模板派生运行目录和 1 份共享源码快照。开发工作树和 CI 继续使用仓库原有的 pnpm 配置。
-
-## 2. 构建闪应用产物（1 公共基座 + 6 模板运行目录）
-
-完整入口已构建全部运行产物。需要在已准备好的发布工作树中单独重建时执行：
+闪应用构建直接使用仓库默认的 `pnpm` 工作树（Node.js ≥ 20.19），无需额外创建 npm worktree 或转换 `package-lock.json`。若当前分支拉入了引擎/着色器改动，先刷新预编译件，再一次生成公共运行基座与全部 6 份模板运行目录：
 
 ```bash
-npm run build:seed-world-flash-app --workspace world
+# 如刚 rebase/修改引擎或地形着色器，先执行：
+pnpm --dir world prepare:engine
+node world/scripts/prepare-terrain-shaders.mjs Grass Surface Terrain Vegetation
+
+# 构建公共运行基座 + 自动派生 6 份单模板运行目录
+pnpm --dir world build:seed-world-flash-app
 ```
 
 产出目录结构如下：
@@ -62,29 +55,15 @@ world/dist/seed-world-flash-apps/oil-paint       # 实际发布目录：秋林�
   # 干跑检查待上传资产数量；非 0 时改用 --apply 上传并重编（自动刷新全部 6 份派生目录）
   "$ASAP_SERVICE_DIR/.venv/bin/python" world/scripts/sync-flash-app-cdn-assets.py
   "$ASAP_SERVICE_DIR/.venv/bin/python" world/scripts/sync-flash-app-cdn-assets.py --apply
-  npm run build:seed-world-flash-app --workspace world
+  pnpm --dir world build:seed-world-flash-app
   ```
   > 若 `project.json` 的 CDN URL 发生变化，合并文本包 `seed-world-project-text-bundle-*.json` 的哈希会更新，再执行一次 `--apply` 与 `build:seed-world-flash-app` 即可收敛至 `pending upload: 0`。
 - **6 份派生目录一致性门禁**：校验每个 `world/dist/seed-world-flash-apps/<templateId>` 均包含精准的 `<meta name="seed-world-default-template" content="<templateId>" />`、独立 `<title>`、相对入口脚本，且除 `index.html` 外与公共基座文件集合完全一致。
+- **静态产物备份机制**：发布时每个应用的 OSS 备份（`--source-dir`）直接指向该模板的静态构建目录 `world/dist/seed-world-flash-apps/<templateId>`（不含 `package.json`）。云端克隆（`copy`）恢复到工作区后，灵光平台会识别为静态项目、跳过 React 沙箱内的 `npm run build`，直接重新注入新实例的 `window.artifactId` / `window.artifactVersion` 并完成部署，保证 6 个模板克隆各自保真且数秒内完成。
 
 > 不要把仓库根目录、`world/dist/seed-world`（普通多 Demo 目录结构）或 `node_modules` 当作闪应用产物目录发布。
 
-## 3. 构建共享可重建源码快照
-
-6 个应用共用 1 份受控源码快照 `world/dist/seed-world-flash-source`。运行产物或 CDN 清单更新后，在发布工作树重建：
-
-```bash
-npm run build:seed-world-flash-source --workspace world
-```
-
-构建脚本（`world/scripts/build-seed-world-flash-source.mjs`）会：
-1. 复制 npm workspace 配置与锁文件（重写根 `package.json` 的 `workspaces` 与 `build` 脚本并移除 `prepare` / `electron`，裁剪锁文件中未打包的 workspace）、`world/`、13 个 World workspace 包和 13 个原生 Engine workspace 包。把最小编译件保存到 `seed-world-prepared-engine/`，让 ASAP 导入时保留这些文件。构建会将它们恢复到各包的 `.cache` 或 `dist`；
-2. 排除仅离线制作期使用且运行期无需或已有 KTX2 派生物的素材（如 `farming/catalog/plants/*/procedural/atlas.png`、`measured-white-birch` 与未引用法线 PNG）；
-3. 写入 `REBUILD.md` 与 `SOURCE_SNAPSHOT.json`（`schemaVersion: 5`）。恢复源码后执行 `npm ci && npm run build`，根 `dist/` 使用发布备份中 `seed-world-template.json` 绑定的固定模板名。共享的本地快照可用 `WORLD_FLASH_APP_TEMPLATE=<templateId>` 选择模板；
-4. 对当前仓库与源码快照各执行一次未压缩的闪应用 Vite 构建，逐文件比对文件集合与 SHA-256；
-5. 生成 `world/dist/seed-world-flash-source.tar.gz` 校验压缩体积 ≤ **100 MiB**。
-
-## 4. 本地静态冒烟验证（可选）
+## 2. 本地静态冒烟验证（可选）
 
 启动原版派生目录的静态服务。此目录同时用于下面的共享存档验收。
 

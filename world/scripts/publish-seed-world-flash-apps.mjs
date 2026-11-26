@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
- * Multi-template Seed World Flash App publish orchestrator (6 apps sharing 1 common runtime & 1 source snapshot).
+ * Multi-template Seed World Flash App publish orchestrator (6 apps sharing 1 common runtime).
  *
  * - Static app metadata (`templateId`, `title`, `artifactId`, `type`) lives in `world/demos/seed-world/flash-apps.json`.
  * - Each Artifact keeps its local publish state in its own file in `~/.config/galacean-flash-app/apps/`.
- * - ASAP reserves each version before packaging. The release and its source backup use that version.
+ * - Each Artifact backs up its own built static directory (`world/dist/seed-world-flash-apps/<templateId>`, no `package.json`)
+ *   so cloud `copy`/clone skips `npm run build` and directly re-injects the cloned `artifactId`/`artifactVersion`.
+ * - ASAP reserves each version before packaging. The release and its backup use that version.
  *
  * Defaults to `--dry-run`. Pass `--execute` to perform remote DB/OSS/Yuyan/PUGC operations.
  */
@@ -30,7 +32,6 @@ import {
 } from "./flash-app-variants.mjs";
 
 import { callFlashRegistry, deploySeedWorldFlashApp } from "./deploy-seed-world-flash-app.mjs";
-import { assertFlashSourceEngine } from "./seed-world-flash-source-layout.mjs";
 
 const require = createRequire(import.meta.url);
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -389,7 +390,7 @@ export function resolveAppReleasePlan({
     const needsDbInit = !app.reuseExisting && !dbInitialized && !options.skipDbInit;
 
     const projectDir = resolve(options.engineRoot, "world/dist/seed-world-flash-apps", app.templateId);
-    const sourceDir = resolve(options.engineRoot, "world/dist/seed-world-flash-source");
+    const sourceDir = projectDir;
 
     planItems.push({
       templateId: app.templateId,
@@ -584,11 +585,6 @@ async function main() {
     throw new Error(`ASAP Python interpreter not found: ${asapPython}`);
   }
   const ddlPath = resolve(options.engineRoot, WORLD_SAVE_DDL_RELATIVE);
-  const sourceDir = resolve(options.engineRoot, "world/dist/seed-world-flash-source");
-  if (!existsSync(sourceDir)) {
-    throw new Error(`Missing shared source snapshot: ${sourceDir}. Run build-seed-world-npm.mjs first.`);
-  }
-  assertFlashSourceEngine(sourceDir);
 
   // Validate pre-conditions for every selected app BEFORE making any remote calls.
   for (const item of plan.items) {

@@ -1,11 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, extname, resolve, sep } from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { Script } from "node:vm";
 import { PUGC_UNSUPPORTED_ASSET_EXTENSIONS } from "./project-assets.mjs";
-import { hasFlashSourceEngine, resolveFlashSourceTemplate, restoreFlashSourceEngine } from "./seed-world-flash-source-layout.mjs";
 import {
   DEFAULT_FLASH_APPS_CATALOG_RELATIVE,
   deriveFlashAppVariants,
@@ -39,15 +38,6 @@ const requiredClassicWorkers = Object.freeze([
   { label: "OilPaintBrush", pattern: /^OilPaintBrush\.worker-[a-f0-9]+\.js$/u }
 ]);
 
-const catalog = loadFlashAppsCatalog(flashAppsCatalogPath);
-const rootTemplate = process.argv.includes("--root-dist")
-  ? resolveFlashSourceTemplate(repoRoot, process.env.WORLD_FLASH_APP_TEMPLATE)
-  : undefined;
-if (rootTemplate && !catalog.apps.some((app) => app.templateId === rootTemplate)) {
-  throw new Error(`Unknown Seed World source template "${rootTemplate}". Valid templates: ${catalog.apps.map((app) => app.templateId).join(", ")}`);
-}
-
-if (hasFlashSourceEngine(repoRoot)) restoreFlashSourceEngine(repoRoot);
 ensurePreparedEngine();
 
 run(
@@ -67,6 +57,7 @@ console.log(
     `(${inspection.fileCount} files, ${formatBytes(inspection.totalBytes)})`
 );
 
+const catalog = loadFlashAppsCatalog(flashAppsCatalogPath);
 const derivedVariants = deriveFlashAppVariants({
   baseOutputDir: outputDirectory,
   variantsRoot: variantsRootDirectory,
@@ -76,14 +67,6 @@ console.log(
   `Derived ${derivedVariants.length} per-template Flash Apps under ${variantsRootDirectory}: ` +
     derivedVariants.map((v) => `${v.templateId} (${v.fileCount} files, ${formatBytes(v.totalBytes)})`).join(", ")
 );
-
-if (rootTemplate) {
-  const matched = derivedVariants.find((v) => v.templateId === rootTemplate);
-  const rootDistDirectory = resolve(repoRoot, "dist");
-  rmSync(rootDistDirectory, { recursive: true, force: true });
-  cpSync(matched.dir, rootDistDirectory, { recursive: true });
-  console.log(`Copied "${matched.templateId}" Flash App to ${rootDistDirectory}`);
-}
 
 function ensurePreparedEngine() {
   const shaderEntry = resolve(repoRoot, "packages/shader/compiledShaders/index.ts");

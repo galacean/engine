@@ -3,7 +3,6 @@ import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync }
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { FLASH_SOURCE_TEMPLATE_FILE } from "./seed-world-flash-source-layout.mjs";
 
 const registryScript = fileURLToPath(new URL("./seed-world-flash-registry.py", import.meta.url));
 
@@ -24,12 +23,8 @@ export function callFlashRegistry(asapPython, asapServiceDir, request) {
   return result;
 }
 
-function pack(source, archive, templateDirectory) {
-  const entries = readdirSync(source);
-  const members = templateDirectory
-    ? ["-C", templateDirectory, FLASH_SOURCE_TEMPLATE_FILE, "-C", source, ...entries.map((entry) => `./${entry}`)]
-    : ["-C", source, "--", ...entries];
-  const result = spawnSync("tar", ["-czf", archive, ...members], {
+function pack(source, archive) {
+  const result = spawnSync("tar", ["-czf", archive, "-C", source, "--", ...readdirSync(source)], {
     encoding: "utf8",
     env: { ...process.env, COPYFILE_DISABLE: "1" }
   });
@@ -54,8 +49,7 @@ export function deploySeedWorldFlashApp(item, version, { callAsap, appKey, timeo
       operation: "upload", local_file: join(staging, archive), object_name: `${prefix}/${archive}`
     });
 
-    writeFileSync(join(staging, FLASH_SOURCE_TEMPLATE_FILE), `${JSON.stringify({ templateId: item.templateId })}\n`);
-    pack(item.sourceDir, join(staging, backup), staging);
+    pack(item.sourceDir, join(staging, backup));
     pack(dist, join(staging, release));
     upload(backup);
     upload(release);
