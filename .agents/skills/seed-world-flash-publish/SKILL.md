@@ -77,6 +77,8 @@ python3 -m http.server 4180 --bind 127.0.0.1 --directory world/dist/seed-world-f
 
 统一使用 `world/scripts/publish-seed-world-flash-apps.mjs`（默认 `--dry-run`，默认 `--registry-mode http`）。执行时先查询线上最新版本对齐目标版本号，依次完成首次建表（如需）、独立临时目录打包与 OSS 上传、雨燕部署，并通过 `POST /api/flash-app/register` 完成注册与版本一致性核对（研发机无需直连 OceanBase/Layotto；若发生并发版本漂移会自动报错并推进本地版本号便于局部重试）。仅在具备 ASAP 数据库直连/Layotto 的发布机上可显式传 `--registry-mode direct-db` 做预占版本发布。
 
+**跳过云端构建的备份红线（必守）。** 云端 `copy` / 克隆沙箱通过检查 `backup_<version>.tar.gz` 根目录是否存在 `package.json` 来决定是否执行 `npm run build`——而沙箱不会运行 `npm ci` 且存在 60s `build_timeout`，一旦备份内包含 `package.json` 会直接报缺包或超时失败。因此**严禁在派生静态目录放入 `package.json`**；即便手工兜底调用 PUGC `deploy.cjs`，也必须令 `--source-dir` 与 `--project-dir` 同指向 `world/dist/seed-world-flash-apps/<templateId>`（绝不能传仓库根目录）。
+
 **PUGC 兼容性。** PUGC 默认分支的独立 CLI 读取共享的 `app-context.local.json`，且可能为不同应用生成同名的临时备份。Seed World 编排器只读取该配置并复用 PUGC 的底层助手，独立准备上下文和归档。
 ```bash
 # 1. 先干跑核对 6 应用计划表（Artifact ID、版本估计、逐应用 type、是否需要首次建表）

@@ -59,7 +59,7 @@ world/dist/seed-world-flash-apps/oil-paint       # 实际发布目录：秋林�
   ```
   > 若 `project.json` 的 CDN URL 发生变化，合并文本包 `seed-world-project-text-bundle-*.json` 的哈希会更新，再执行一次 `--apply` 与 `build:seed-world-flash-app` 即可收敛至 `pending upload: 0`。
 - **6 份派生目录一致性门禁**：校验每个 `world/dist/seed-world-flash-apps/<templateId>` 均包含精准的 `<meta name="seed-world-default-template" content="<templateId>" />`、独立 `<title>`、相对入口脚本，且除 `index.html` 外与公共基座文件集合完全一致。
-- **静态产物备份机制**：发布时每个应用的 OSS 备份（`--source-dir`）直接指向该模板的静态构建目录 `world/dist/seed-world-flash-apps/<templateId>`（不含 `package.json`）。云端克隆（`copy`）恢复到工作区后，灵光平台会识别为静态项目、跳过 React 沙箱内的 `npm run build`，直接重新注入新实例的 `window.artifactId` / `window.artifactVersion` 并完成部署，保证 6 个模板克隆各自保真且数秒内完成。
+- **静态产物备份机制（跳过云端构建红线）**：发布时每个应用的 OSS 备份（`--source-dir`）直接指向该模板的静态构建目录 `world/dist/seed-world-flash-apps/<templateId>`（不含 `package.json`）。云端克隆（`copy`）沙箱通过检查备份根目录是否存在 `package.json` 来决定是否运行 `npm run build`——沙箱不跑 `npm ci` 且有 60s `build_timeout`，因此**严禁把仓库根目录或任何含 `package.json` 的目录作为 `--source-dir`**；保持备份内无 `package.json` 才能让灵光平台识别为静态项目、跳过构建，直接重签新实例的 `window.artifactId` / `window.artifactVersion` 并秒级完成部署。
 
 > 不要把仓库根目录、`world/dist/seed-world`（普通多 Demo 目录结构）或 `node_modules` 当作闪应用产物目录发布。
 
