@@ -1,5 +1,5 @@
 import { Color, type Engine, Entity, Matrix, ModelMesh, PrimitiveMesh, Vector2, Vector3 } from "@galacean/engine";
-import { destroyOwnedMesh, destroyOwnedMeshSet } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { destroyOwnedMesh, destroyOwnedMeshSet } from "@galacean/engine-project/geometry/destroyOwnedMesh";
 import { buildHarvestProduce } from "./HarvestProduceShape";
 import { createWheatProduceGeometry } from "./WheatProduceGeometry";
 

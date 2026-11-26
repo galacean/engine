@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { engineModify } from "../../packages/modify/build/vite.mjs";
+import { workspaceEngine } from "../../packages/project/build/vite.mjs";
 import { cleanWaterShaderSource } from "./water-shader-cleanup.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -15,7 +15,7 @@ const texturesOnly = process.argv.includes("--textures-only");
 const server = await createServer({ root, configFile: false, plugins: [
   { name: "water-offline-source-paths", enforce: "pre", resolveId(source) {
     if (source.startsWith("/packages/")) return path.join(root, source);
-  } }, engineModify()], server: { middlewareMode: true, hmr: false },
+  } }, workspaceEngine()], server: { middlewareMode: true, hmr: false },
   optimizeDeps: { noDiscovery: true, entries: [] } });
 try {
   const { ShaderCompiler } = await server.ssrLoadModule("@galacean/engine-shader-compiler");

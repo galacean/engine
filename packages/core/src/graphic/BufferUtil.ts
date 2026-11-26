@@ -9,6 +9,7 @@ export interface ElementInfo {
   size: number;
   type: DataType;
   normalized: boolean;
+  integer?: boolean;
   normalizedScaleFactor: number;
 }
 
@@ -16,6 +17,65 @@ export interface ElementInfo {
  * @internal
  */
 export class BufferUtil {
+  /** Copy a readable vertex element to numeric data, applying its native normalization.
+   * Works with interleaved buffers and byte views; never reads back GPU memory.
+   */
+  static getVertexElementData(data: Uint8Array, format: VertexElementFormat, stride: number, offset: number): number[] {
+    const info = BufferUtil._getElementInfo(format);
+    const readers = {
+      [DataType.FLOAT]: [4, (v: DataView, i: number) => v.getFloat32(i, true)],
+      [DataType.BYTE]: [1, (v: DataView, i: number) => v.getInt8(i)],
+      [DataType.UNSIGNED_BYTE]: [1, (v: DataView, i: number) => v.getUint8(i)],
+      [DataType.SHORT]: [2, (v: DataView, i: number) => v.getInt16(i, true)],
+      [DataType.UNSIGNED_SHORT]: [2, (v: DataView, i: number) => v.getUint16(i, true)],
+      [DataType.UNSIGNED_INT]: [4, (v: DataView, i: number) => v.getUint32(i, true)]
+    } as Record<number, [number, (v: DataView, i: number) => number]>;
+    const reader = readers[info.type];
+    if (
+      !reader ||
+      !info.size ||
+      !Number.isSafeInteger(stride) ||
+      stride <= 0 ||
+      !Number.isSafeInteger(offset) ||
+      offset < 0 ||
+      offset + info.size * reader[0] > stride ||
+      data.byteLength % stride
+    )
+      throw new Error("Invalid readable vertex element layout");
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength),
+      result: number[] = [];
+    for (let start = offset; start < data.byteLength; start += stride) {
+      for (let channel = 0; channel < info.size; channel++) {
+        const value = reader[1](view, start + channel * reader[0]);
+        result.push(info.normalized ? Math.max(-1, value * info.normalizedScaleFactor) : value);
+      }
+    }
+    return result;
+  }
+
+  /** Copy a range from a readable native index buffer. */
+  static getIndexData(data: Uint8Array, format: IndexFormat, start = 0, count?: number): number[] {
+    const size = BufferUtil._getGLIndexByteCount(format);
+    count ??= data.byteLength / size - start;
+    if (
+      !size ||
+      data.byteLength % size ||
+      !Number.isSafeInteger(start) ||
+      !Number.isSafeInteger(count) ||
+      start < 0 ||
+      count < 0 ||
+      (start + count) * size > data.byteLength
+    )
+      throw new Error("Invalid readable index range");
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength),
+      result: number[] = [];
+    for (let i = start; i < start + count; i++)
+      result.push(
+        size === 4 ? view.getUint32(i * size, true) : size === 2 ? view.getUint16(i * size, true) : view.getUint8(i)
+      );
+    return result;
+  }
+
   static _getGLIndexType(indexFormat: IndexFormat): DataType {
     switch (indexFormat) {
       case IndexFormat.UInt8:
@@ -42,9 +102,15 @@ export class BufferUtil {
     let size!: number;
     let type!: DataType;
     let normalized: boolean = false;
+    let integer = false;
     let normalizedScaleFactor!: number;
 
     switch (format) {
+      case VertexElementFormat.UInt4:
+        size = 4;
+        type = DataType.UNSIGNED_INT;
+        integer = true;
+        break;
       case VertexElementFormat.Float:
         size = 1;
         type = DataType.FLOAT;
@@ -124,6 +190,6 @@ export class BufferUtil {
       default:
         break;
     }
-    return { size, type, normalized, normalizedScaleFactor };
+    return { size, type, normalized, normalizedScaleFactor, integer };
   }
 }

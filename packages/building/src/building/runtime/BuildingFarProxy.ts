@@ -33,8 +33,8 @@ import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
 import { masonryAppearance, srgbToLinear } from "./MasonryAppearance";
 import { buildingGroupKey, buildingPartKey } from "./BuildingObjectIdentity";
-import type { SeedWorldPickBatch } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
-import { restoreBuffer } from "@galacean/engine-modify/rendering/RestorableResources";
+import type { SeedWorldPickBatch } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
+import { restoreBuffer } from "@galacean/engine-project/rendering/RestorableResources";
 
 // Compact split layout: stream 0 = 32B static geometry (pos 12 + norm/pick 4 + uv 8 + tag 8), stream 1 = 4B u8x4 color+emission
 const COMPACT_GEOM_STRIDE_BYTES = 32;

@@ -3,7 +3,7 @@ import { DepthTextureMode, Downsampling } from "@galacean/engine-core";
 import {
   acquireCameraDepthTexturePrePass,
   type CameraDepthTexturePrePassLease
-} from "@galacean/engine-modify/rendering/CameraDepthTexturePrePass";
+} from "@galacean/engine-project/rendering/CameraDepthTexturePrePass";
 
 export type WaterCameraFeatureQuality = "low" | "medium" | "high";
 

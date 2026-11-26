@@ -309,7 +309,7 @@ vi.mock("@galacean/engine", () => {
   };
 });
 
-vi.mock("@galacean/engine-modify/geometry/destroyOwnedMesh", () => ({
+vi.mock("@galacean/engine-project/geometry/destroyOwnedMesh", () => ({
   destroyOwnedMesh(mesh?: { destroy?: () => void }) {
     mesh?.destroy?.();
   }

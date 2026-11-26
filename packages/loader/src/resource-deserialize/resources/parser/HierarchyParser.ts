@@ -60,6 +60,47 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   /** Root entity indices for this hierarchy (scene.rootEntities or [prefab.root]). */
+  /**
+   * Recreate selected linked instances in an existing hierarchy context.
+   * Reuses native reference/override semantics; unselected live entities are untouched.
+   * The caller owns attaching the returned roots and retiring their predecessors.
+   */
+  async instantiateInstances(indices: readonly number[]): Promise<void> {
+    const selected = new Set<number>();
+    const collect = (index: number) => {
+      if (selected.has(index)) return;
+      const record = this.data.entities[index];
+      if (!record) throw new Error("Invalid instance entity index");
+      selected.add(index);
+      if (HierarchyParser._isPrefabInstanceEntity(record)) {
+        for (const added of record.instance.overrides?.addedEntities ?? []) collect(added.entity);
+      } else for (const child of record.children ?? []) collect(child);
+    };
+    for (const index of indices) {
+      if (!HierarchyParser._isPrefabInstanceEntity(this.data.entities[index]))
+        throw new Error("Expected an instance entity");
+      collect(index);
+    }
+    const chosen = Array.from(selected);
+    const previous = chosen.map((index) => this.context.entityInstances[index]);
+    try {
+      await this._parseEntities(chosen);
+      this._organizeEntities(chosen, false);
+      this._parseComponents(chosen);
+      await this._parseComponentsPropsAndCalls();
+      await this._parsePrefabOverrides(chosen);
+    } catch (error) {
+      chosen.forEach((index, i) => {
+        const entity = this.context.entityInstances[index];
+        if (entity && entity !== previous[i] && !entity.destroyed) entity.destroy();
+        this.context.entityInstances[index] = previous[i];
+      });
+      throw error;
+    } finally {
+      this.context.pendingComponents.length = 0;
+    }
+  }
+
   protected abstract _getRootIndices(): number[];
   protected abstract _handleRootEntity(index: number): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
@@ -70,13 +111,13 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Stage 1: Create entity instances
   // ---------------------------------------------------------------------------
 
-  private _parseEntities(): Promise<unknown> {
+  private _parseEntities(indices = this.data.entities.map((_, index) => index)): Promise<unknown> {
     const entities = this.data.entities;
     const entityInstances = this.context.entityInstances;
     const engine = this._engine;
     const promises: Promise<void>[] = [];
 
-    for (let i = 0, n = entities.length; i < n; i++) {
+    for (const i of indices) {
       const entityConfig = entities[i];
 
       if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) {
@@ -93,18 +134,21 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       }
     }
 
-    return Promise.all(promises);
+    return Promise.allSettled(promises).then((results) => {
+      const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+      if (failed) throw failed.reason;
+    });
   }
 
   // ---------------------------------------------------------------------------
   // Stage 2: Build parent-child hierarchy
   // ---------------------------------------------------------------------------
 
-  private _organizeEntities(): void {
+  private _organizeEntities(indices = this.data.entities.map((_, index) => index), attachRoots = true): void {
     const entities = this.data.entities;
     const entityInstances = this.context.entityInstances;
 
-    for (let i = 0, n = entities.length; i < n; i++) {
+    for (const i of indices) {
       const entityConfig = entities[i];
       // Prefab instance entities manage their own children.
       if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
@@ -118,6 +162,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       }
     }
 
+    if (!attachRoots) return;
     const rootIndices = this._getRootIndices();
     for (let i = 0, n = rootIndices.length; i < n; i++) {
       this._handleRootEntity(rootIndices[i]);
@@ -128,14 +173,14 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Stage 3: Add components to entities
   // ---------------------------------------------------------------------------
 
-  private _parseComponents(): void {
+  private _parseComponents(indices = this.data.entities.map((_, index) => index)): void {
     const entities = this.data.entities;
     const allComponents = this.data.components;
     const entityInstances = this.context.entityInstances;
     const pendingComponents = this.context.pendingComponents;
     const refs = this.data.refs;
 
-    for (let i = 0, n = entities.length; i < n; i++) {
+    for (const i of indices) {
       const entityConfig = entities[i];
       const entity = entityInstances[i];
       if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) {
@@ -182,12 +227,12 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Stage 5: Apply prefab instance overrides
   // ---------------------------------------------------------------------------
 
-  private _parsePrefabOverrides(): Promise<unknown> {
+  private _parsePrefabOverrides(indices = this.data.entities.map((_, index) => index)): Promise<unknown> {
     const entities = this.data.entities;
     const entityInstances = this.context.entityInstances;
     const promises: Promise<unknown>[] = [];
 
-    for (let i = 0, n = entities.length; i < n; i++) {
+    for (const i of indices) {
       const entityConfig = entities[i];
       if (!HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
 
@@ -231,19 +276,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       }
     }
 
-    // removedEntities — pre-resolve all targets then destroy (destroy shifts sibling indices)
-    if (overrides.removedEntities) {
-      const removed = overrides.removedEntities;
-      const targets = new Array<Entity>(removed.length);
-      for (let j = 0, m = removed.length; j < m; j++) {
-        targets[j] = HierarchyParser._resolveEntity(rootEntity, removed[j]);
-      }
-      for (let j = 0, m = targets.length; j < m; j++) {
-        targets[j].destroy();
-      }
-    }
-
-    // removedComponents — pre-resolve all targets then destroy (destroy shifts component indices)
+    // Resolve component paths before entity removals shift sibling indices.
     if (overrides.removedComponents) {
       const targets: Component[] = [];
       for (let j = 0, m = overrides.removedComponents.length; j < m; j++) {
@@ -253,6 +286,17 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         for (let k = 0, p = selectors.length; k < p; k++) {
           targets.push(HierarchyParser._resolveComponent(entity, selectors[k]));
         }
+      }
+      for (let j = 0, m = targets.length; j < m; j++) {
+        targets[j].destroy();
+      }
+    }
+    // removedEntities — pre-resolve all targets then destroy (destroy shifts sibling indices)
+    if (overrides.removedEntities) {
+      const removed = overrides.removedEntities;
+      const targets = new Array<Entity>(removed.length);
+      for (let j = 0, m = removed.length; j < m; j++) {
+        targets[j] = HierarchyParser._resolveEntity(rootEntity, removed[j]);
       }
       for (let j = 0, m = targets.length; j < m; j++) {
         targets[j].destroy();

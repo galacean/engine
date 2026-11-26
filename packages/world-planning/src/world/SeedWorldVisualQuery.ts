@@ -1,7 +1,7 @@
 import { Ray } from "@galacean/engine-math";
 import type { Camera, Entity } from "@galacean/engine";
 import { SeedWorldPicker } from "./SeedWorldPicker";
-import type { SeedWorldPickSource } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickSource } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 
 /** One visual depth service for hints and actions. Hints may reuse a recent sample
  * of the same world target during small camera motions; actions require an exact ray/pose. */

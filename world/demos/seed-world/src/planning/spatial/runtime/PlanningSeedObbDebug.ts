@@ -10,7 +10,7 @@ import { planningWhiteboxes } from "@galacean/engine-world-planning/semantic-stu
 import { compilePlanningScene } from "@galacean/engine-world-planning/semantic-study/WorldPlanningScene";
 import { PLANNING_OBJECT_CSS, planningColor } from "@galacean/engine-world-planning/semantic-study/PlanningSurfacePalette";
 import { whiteboxGeometry } from "@galacean/engine-world-planning/geometry/V2WhiteboxGeometry";
-import { addV2Surface, destroyV2ViewResources, type V2ViewResources } from "@galacean/engine-modify/rendering/V2ViewGeometry";
+import { addV2Surface, destroyV2ViewResources, type V2ViewResources } from "@galacean/engine-project/rendering/V2ViewGeometry";
 import type { V2Mesh } from "@galacean/engine-world-planning/spatial/V2Model";
 import whiteboxShader from "@galacean/engine-world-planning/semantic-study/PlanningWhitebox.shader?raw";
 

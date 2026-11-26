@@ -19,8 +19,8 @@ import {
 import {
   acquireCameraDepthTexturePrePass,
   type CameraDepthTexturePrePassLease
-} from "@galacean/engine-modify/rendering/CameraDepthTexturePrePass";
-import { restoreBuffer } from "@galacean/engine-modify/rendering/RestorableResources";
+} from "@galacean/engine-project/rendering/CameraDepthTexturePrePass";
+import { restoreBuffer } from "@galacean/engine-project/rendering/RestorableResources";
 import type { FireflyPopulation } from "./FireflyPopulation";
 import shaderSource from "./Firefly.shader?raw";
 

@@ -14,7 +14,7 @@ import {
   type Camera
 } from "@galacean/engine";
 import { CanvasRenderMode, Image, ResolutionAdaptationMode, Text, UICanvas, UITransform } from "@galacean/engine-ui";
-import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
+import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
 import { FARM_ACTION_CUES, type FarmSelectionAction } from "./FarmingSelectionTexture";
 import { FARM_ACTION_INTERRUPT_PROGRESS } from "../config/FarmingActionConfig";
 import { FARM_TARGET_HINT_SHADER } from "./FarmingTargetHintShader";

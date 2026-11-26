@@ -14,8 +14,8 @@ import {
   type Camera
 } from "@galacean/engine";
 import { clipSurfaceTriangles, type SurfaceRectangle, type SurfaceTriangle } from "../geometry/SurfaceTriangles";
-import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
-import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
+import { destroyOwnedMesh } from "@galacean/engine-project/geometry/destroyOwnedMesh";
+import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
 import { drawFarmSelectionTexture, selectionNeedsOutline, type FarmSelectionAction } from "./FarmingSelectionTexture";
 
 import { FarmingTargetHint } from "./FarmingTargetHint";

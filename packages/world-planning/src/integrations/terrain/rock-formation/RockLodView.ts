@@ -20,7 +20,7 @@ import {
   createFarShadowMeshProxy,
   setFarShadowCascadeProxy,
   type FarShadowCascadeProxy
-} from "@galacean/engine-modify/rendering/FarShadowCascadeProxy";
+} from "@galacean/engine-project/rendering/FarShadowCascadeProxy";
 import type { SeedWorldTerrainOcclusionReadPort } from "../../../runtime/SeedWorldTerrainOcclusionCuller.ts";
 import {
   SeedWorldExactInstanceCellRuntime,

@@ -84,8 +84,8 @@ function prepareNpmWorkspace() {
   rewriteScript(
     manifests.get(worldPath),
     "prepare:engine",
-    "pnpm --filter @galacean/engine-shader-compiler build",
-    compiler
+    "pnpm --filter @galacean/engine-shader-compiler build && pnpm --filter @galacean/engine-shader precompile",
+    `${compiler} && npm --workspace @galacean/engine-shader run precompile`
   );
 
   for (const [path, manifest] of manifests) {

@@ -9,7 +9,7 @@ export default {
     ...base.test,
     include: [
       path.join(root, "tests/src/loader/MaterialLoader.test.ts"),
-      path.join(root, "packages/modify/tests/MaterialLoaderCompatibility.test.ts")
+      path.join(root, "world/tests/seed-world-browser/MaterialLoaderCompatibility.test.ts")
     ],
     // Native unsupported-field rejection is a different contract. Its original
     // tests remain unchanged and run separately without engineModify.

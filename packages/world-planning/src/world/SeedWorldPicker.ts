@@ -32,7 +32,7 @@ import {
   type Entity,
   Vector4
 } from "@galacean/engine";
-import type { SeedWorldPickBatch, SeedWorldPickSource } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickBatch, SeedWorldPickSource } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 
 import { FrozenViewIdentityTexture } from "./FrozenViewIdentityTexture";
 import type { ViewFrame, ViewCaptureMetadata } from "./SeedWorldViewSnapshot";

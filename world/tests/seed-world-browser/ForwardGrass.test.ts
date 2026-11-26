@@ -14,7 +14,7 @@ import {
   type ForwardGrassUpdateParams
 } from "../../../packages/world-planning/src/runtime/SeedWorldForwardGrass";
 import type { SeedWorldFields } from "../../../packages/world-planning/src/runtime/SeedWorldFields";
-import type { SeedWorldPickBatch } from "../../../packages/modify/src/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickBatch } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 
 it("preserves visible grass across pitch, visibility and orthographic size changes on the GPU", async () => {
   const canvas = document.createElement("canvas");

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const names = ["terrain", "water", "animals", "building", "farming", "vegetation", "environment", "ai-chat", "project", "retrieval", "runtime-editor", "world-planning", "modify"];
+const names = ["terrain", "water", "animals", "building", "farming", "vegetation", "environment", "ai-chat", "project", "retrieval", "runtime-editor", "world-planning"];
 const packages = new Map(names.map(name => [`@galacean/engine-${name}`, path.join(root, "packages", name)]));
 const errors = [];
 const manifests = new Map([...packages].map(([name, directory]) => [name, JSON.parse(fs.readFileSync(path.join(directory, "package.json"), "utf8"))]));
@@ -13,7 +13,7 @@ const demoOwner = file => file.startsWith(demoRoot) ? path.relative(demoRoot, fi
 const graph = new Map(names.map(name => [name, new Set()]));
 function* files(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    if (["node_modules", "dist", ".cache"].includes(entry.name) || entry.name === "native" && directory.endsWith("/modify/src")) continue;
+    if (["node_modules", "dist", ".cache"].includes(entry.name)) continue;
     const file = path.join(directory, entry.name);
     if (entry.isDirectory()) yield* files(file);
     else if (/\.[cm]?[jt]sx?$/.test(entry.name)) yield file;

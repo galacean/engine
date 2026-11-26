@@ -1,7 +1,7 @@
 import type { MeshRenderer, Vector3 } from "@galacean/engine";
 import type { PublishedPlanningSeedScene } from "./PlanningSeedScenePublication";
 import type { PlanningWaterRuntime } from "./PlanningWaterRuntime";
-import type { SeedWorldPickBatch, SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickBatch, SeedWorldPickVisitor } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import type { LandscapePlantInstance } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
 import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
 import { reliefField } from "../terrain/ReliefField";

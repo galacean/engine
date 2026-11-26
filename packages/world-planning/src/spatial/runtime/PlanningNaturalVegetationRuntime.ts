@@ -10,11 +10,11 @@ import { sampleSeedWorldHeight } from "../../runtime/SeedWorldFields.ts";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
-} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+} from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import {
   createFarShadowRenderersProxy,
   setFarShadowCascadeProxy
-} from "@galacean/engine-modify/rendering/FarShadowCascadeProxy";
+} from "@galacean/engine-project/rendering/FarShadowCascadeProxy";
 import { resolvePlanningNaturalPlantPick } from "./PlanningWorldPicking";
 import { VegetationColors, type VegetationColorSample } from "../VegetationColors";
 import {

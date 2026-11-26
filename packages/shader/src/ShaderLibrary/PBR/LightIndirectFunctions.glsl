@@ -27,7 +27,11 @@ vec3 getLightProbeRadiance(SurfaceData surfaceData, vec3 normal, float roughness
 
         vec4 envMapColor = textureLod( scene_EnvSpecularSampler, reflectVec, specularMIPLevel );
 
-        
+        #ifdef SCENE_USE_SPECULAR_ENV_BLEND
+            float specularMIPLevel2 = getSpecularMIPLevel(roughness, int(scene_EnvMapLight.mipMapLevel2));
+            vec4 envMapColor2 = textureCubeLodEXT(scene_EnvSpecularSampler2, reflectVec, specularMIPLevel2);
+            envMapColor = mix(envMapColor, envMapColor2, scene_EnvMapLight.specularTextureBlend);
+        #endif
         return envMapColor.rgb * scene_EnvMapLight.specularIntensity;
 
     #endif
@@ -40,5 +44,21 @@ float evaluateSpecularOcclusion(float dotNV, float diffuseAO, float roughness){
         #endif
     return specularAOFactor;
 }
+
+#ifdef MATERIAL_ENABLE_CLEAR_COAT
+vec3 evaluateClearCoatIBLResponse(SurfaceData surfaceData, BSDFData bsdfData) {
+    float specularAO = evaluateSpecularOcclusion(
+        surfaceData.clearCoatDotNV,
+        bsdfData.diffuseAO,
+        bsdfData.clearCoatRoughness
+    );
+    return specularAO * envBRDFApprox(
+        bsdfData.clearCoatSpecularColor,
+        1.0,
+        bsdfData.clearCoatRoughness,
+        surfaceData.clearCoatDotNV
+    );
+}
+#endif
 
 #endif

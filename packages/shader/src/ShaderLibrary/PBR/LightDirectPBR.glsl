@@ -39,7 +39,7 @@ void surfaceShading(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfDat
     FUNCTION_SPECULAR_LOBE(varyings, surfaceData, bsdfData, incidentDirection, attenuationIrradiance, specularColor);
     // Sheen Lobe
     FUNCTION_SHEEN_LOBE(varyings, surfaceData, bsdfData, incidentDirection, attenuationIrradiance, diffuseColor, specularColor);
-    
+
     totalDiffuseColor += diffuseColor;
     totalSpecularColor += specularColor;
 
@@ -95,12 +95,9 @@ void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BSDFData
             // warning: use `continue` syntax may trigger flickering bug in safri 16.1.
             if(!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])){
                     DirectLight directionalLight = getDirectLight(i);
-                
-                #ifdef NEED_CALCULATE_SHADOWS
-                    if (i == 0) { // Sun light index is always 0
-                        directionalLight.color *= shadowAttenuation;
-                    }
-                #endif
+                if (i == 0) { // Sun light index is always 0
+                    directionalLight.color *= shadowAttenuation;
+                }
                 addDirectionalDirectLightRadiance(varyings, surfaceData, bsdfData, directionalLight, totalDiffuseColor, totalSpecularColor );
             }
         }
@@ -111,20 +108,22 @@ void evaluateDirectRadiance(Varyings varyings, SurfaceData surfaceData, BSDFData
 
         for ( int i = 0; i < SCENE_POINT_LIGHT_COUNT; i ++ ) {
             if(!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])){
-                    PointLight pointLight = getPointLight(i);
-                addPointDirectLightRadiance(varyings, surfaceData, bsdfData, pointLight, totalDiffuseColor, totalSpecularColor);
-            } 
+                PointLight pointLight = getPointLight(i);
+                if (dot(pointLight.color, pointLight.color) > 0.0) {
+                    addPointDirectLightRadiance(varyings, surfaceData, bsdfData, pointLight, totalDiffuseColor, totalSpecularColor);
+                }
+            }
         }
 
     #endif
 
     #ifdef SCENE_SPOT_LIGHT_COUNT
-      
+
         for ( int i = 0; i < SCENE_SPOT_LIGHT_COUNT; i ++ ) {
             if(!isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])){
                     SpotLight spotLight = getSpotLight(i);
                 addSpotDirectLightRadiance( varyings, surfaceData, bsdfData, spotLight, totalDiffuseColor, totalSpecularColor);
-            } 
+            }
         }
 
     #endif

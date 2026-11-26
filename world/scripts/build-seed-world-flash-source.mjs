@@ -36,7 +36,6 @@ const worldWorkspacePackages = [
   "building",
   "environment",
   "farming",
-  "modify",
   "project",
   "retrieval",
   "runtime-editor",
@@ -232,9 +231,8 @@ function verifySnapshotWaterResources() {
 
 function verifySnapshotBuild() {
   const viteBin = resolve(dirname(vitePackagePath), "bin/vite.js");
-  const shaderCache = resolve(repoRoot, "packages/modify/.cache");
-  if (!existsSync(resolve(shaderCache, "shaders.ts"))) {
-    throw new Error("Seed World source verification requires `npm run prepare:engine --workspace world`");
+  if (!existsSync(resolve(repoRoot, "packages/shader/compiledShaders/index.ts"))) {
+    throw new Error("Seed World source verification requires `pnpm --dir world prepare:engine`");
   }
 
   const temporaryEntries = [];
@@ -278,11 +276,6 @@ function verifySnapshotBuild() {
   };
 
   try {
-    // Copy `.cache` and native packages instead of symlinking so relative imports like
-    // `../../shader/src/ShaderLibrary` and `engineModify` realpath checks stay inside the snapshot.
-    const snapshotShaderCache = resolve(outputDirectory, "packages/modify/.cache");
-    cpSync(shaderCache, snapshotShaderCache, { recursive: true, verbatimSymlinks: true });
-    temporaryEntries.push(snapshotShaderCache);
     for (const pkg of nativeEnginePackages) {
       copyNativePackage(pkg);
     }

@@ -50,9 +50,9 @@ console.log(
 );
 
 function ensurePreparedEngine() {
-  const shaderEntry = resolve(repoRoot, "packages/modify/.cache/shaders.ts");
+  const shaderEntry = resolve(repoRoot, "packages/shader/compiledShaders/index.ts");
   if (!existsSync(shaderEntry)) {
-    throw new Error("Missing packages/modify/.cache/shaders.ts. Run `npm run prepare:engine --workspace world` first.");
+    throw new Error("Missing packages/shader/compiledShaders/index.ts. Run `pnpm --dir world prepare:engine` first.");
   }
 }
 

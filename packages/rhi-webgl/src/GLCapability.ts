@@ -9,6 +9,7 @@ export class GLCapability {
   private _maxDrawBuffers: number;
   private _maxAnisoLevel: number;
   private _maxAntiAliasing: number;
+  private _maxFragmentTextureUnits: number;
 
   _rhi: WebGLGraphicDevice;
   capabilityList: Map<GLCapabilityType, boolean>;
@@ -19,6 +20,13 @@ export class GLCapability {
 
   get maxVertexUniformVectors(): number {
     return this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
+  }
+
+  get maxFragmentTextureUnits(): number {
+    if (!this._maxFragmentTextureUnits) {
+      this._maxFragmentTextureUnits = this._rhi.gl.getParameter(this._rhi.gl.MAX_TEXTURE_IMAGE_UNITS);
+    }
+    return this._maxFragmentTextureUnits;
   }
 
   get maxDrawBuffers() {

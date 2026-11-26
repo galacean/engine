@@ -71,7 +71,7 @@ import { templateLinearColor } from "../WorldTemplateCatalog";
 import type { TemplatePlantPlacement, TemplateProceduralPlantKind } from "../WorldTemplateVegetation";
 export type { TemplateProceduralPlantInstance, TemplateProceduralPlantKind } from "../WorldTemplateVegetation";
 import type { VegetationColors } from "../VegetationColors";
-import type { SeedWorldPickBatch, SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickBatch, SeedWorldPickVisitor } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 
 export interface TemplateProceduralPlantResources {
   readonly bushAsset?: ProceduralPlantAsset;

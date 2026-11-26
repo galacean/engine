@@ -16,13 +16,13 @@ import seedWorldUiAtlasTileShaderSourceAsset from "../src/shaders/SeedWorldUIAtl
 import {
   SEED_WORLD_LIQUID_GLASS_SHADER_NAME,
   seedWorldLiquidGlassShaderSource
-} from "@galacean/engine-modify/rendering/LiquidGlassPostProcessPass";
+} from "@galacean/engine-project/rendering/LiquidGlassPostProcessPass";
 
 export {
   SEED_WORLD_LIQUID_GLASS_SHADER_NAME,
   SeedWorldLiquidGlassUiMaterial,
   seedWorldLiquidGlassShaderSource
-} from "@galacean/engine-modify/rendering/LiquidGlassPostProcessPass";
+} from "@galacean/engine-project/rendering/LiquidGlassPostProcessPass";
 
 export const SEED_WORLD_VOICE_ORB_BAKE_SHADER_NAME = "SeedWorld/VoiceOrbBakeV1";
 export const SEED_WORLD_VOICE_ORB_DISPLAY_SHADER_NAME = "SeedWorld/VoiceOrbDisplayV1";

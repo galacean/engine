@@ -1,9 +1,82 @@
+import type { Engine } from "../Engine";
+import { DisorderedArray } from "../utils/DisorderedArray";
+import type { AudioListener } from "./AudioListener";
+import type { AudioSource } from "./AudioSource";
+
 /**
  * Audio Manager for managing global audio context and settings.
  */
 export class AudioManager {
   /** @internal */
   static _playingCount = 0;
+
+  /** @internal */
+  static readonly _spatialSources = new DisorderedArray<AudioSource>();
+  private static readonly _listeners: AudioListener[] = [];
+
+  /** Current playback state, without creating a context before a user gesture. */
+  static get state(): AudioContextState | "uninitialized" {
+    return AudioManager._context?.state ?? "uninitialized";
+  }
+
+  /** Audio timeline in seconds. Stops advancing while the context is suspended. */
+  static get currentTime(): number {
+    const context = AudioManager._context;
+    return context ? context.currentTime : 0;
+  }
+
+  /** @internal */
+  static _addSpatialSource(source: AudioSource): void {
+    if (source._spatialSourceIndex !== -1) return;
+    const sources = AudioManager._spatialSources;
+    source._spatialSourceIndex = sources.length;
+    sources.add(source);
+  }
+
+  /** @internal */
+  static _removeSpatialSource(source: AudioSource): void {
+    const index = source._spatialSourceIndex;
+    if (index === -1) return;
+    const replaced = AudioManager._spatialSources.deleteByIndex(index);
+    if (replaced) replaced._spatialSourceIndex = index;
+    source._spatialSourceIndex = -1;
+  }
+
+  /** @internal */
+  static _addListener(listener: AudioListener): void {
+    AudioManager._listeners.push(listener);
+    if (AudioManager._context) listener._synchronize(AudioManager._context);
+  }
+
+  /** @internal */
+  static _removeListener(listener: AudioListener): void {
+    const listeners = AudioManager._listeners;
+    const index = listeners.indexOf(listener);
+    if (index < 0) return;
+    listeners.splice(index, 1);
+    const context = AudioManager._context;
+    if (!context) return;
+    const current = listeners[listeners.length - 1];
+    if (current) current._synchronize(context);
+    else {
+      context.listener.setPosition(0, 0, 0);
+      context.listener.setOrientation(0, 0, -1, 0, 1, 0);
+    }
+  }
+
+  /** @internal */
+  static _update(engine: Engine): void {
+    const context = AudioManager._context;
+    if (!context || context.state !== "running") return;
+    const listeners = AudioManager._listeners;
+    const listener = listeners[listeners.length - 1];
+    if (listener?.engine === engine && !listener.pendingDestroy) listener._synchronize(context);
+    const sources = AudioManager._spatialSources;
+    for (let i = 0, n = sources.length; i < n; i++) {
+      const source = sources.get(i);
+      if (source.engine === engine && !source.pendingDestroy) source._synchronizePosition();
+    }
+  }
 
   private static _context: AudioContext;
   private static _gainNode: GainNode;
@@ -34,7 +107,12 @@ export class AudioManager {
    */
   static resume(): Promise<void> {
     AudioManager._suspendedByCaller = false;
-    return AudioManager._requestResume(AudioManager._isUserGestureActive());
+    try {
+      return AudioManager._requestResume(AudioManager._isUserGestureActive());
+    } catch (error) {
+      // Context construction can throw synchronously, before the native resume promise exists.
+      return Promise.reject(error);
+    }
   }
 
   /**
@@ -44,6 +122,8 @@ export class AudioManager {
     let context = AudioManager._context;
     if (!context) {
       AudioManager._context = context = new window.AudioContext();
+      const listeners = AudioManager._listeners;
+      listeners[listeners.length - 1]?._synchronize(context);
       document.addEventListener("visibilitychange", AudioManager._onVisibilityChange);
       // Handle iOS bfcache restores that skip visibilitychange
       window.addEventListener("pageshow", AudioManager._onPageShow);

@@ -37,7 +37,7 @@ import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 import { DecorationMaterial } from "./ConstructionDecorationMaterial";
 import { buildingGroupKey, buildingInstanceKey, buildingPartKey } from "./BuildingObjectIdentity";
 import type { masonryAppearance } from "./MasonryAppearance";
-import type { SeedWorldPickBatch } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickBatch } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import {
   SURFACE_KIND_DECORATION,
   SURFACE_KIND_DECORATION_GLASS,

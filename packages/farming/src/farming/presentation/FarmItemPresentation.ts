@@ -27,7 +27,7 @@ import { FarmItemLookDownPose } from "./FarmItemLookDownPose";
 import { FarmItemHighlight, FARM_ITEM_WARNING_SECONDS, farmItemWarningStrength } from "./FarmItemHighlight";
 import { FarmItemGroundPose } from "./FarmItemGroundPose";
 import { isNearbyFarmTool } from "../application/FarmingWorkTarget";
-import { destroyOwnedMesh, destroyOwnedMeshSet } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { destroyOwnedMesh, destroyOwnedMeshSet } from "@galacean/engine-project/geometry/destroyOwnedMesh";
 import { FarmingGrowthVisibility } from "./FarmingGrowthVisibility";
 import { preparePlantShaderPrograms } from "../procedural/runtime/preparePlantShaderPrograms";
 import {

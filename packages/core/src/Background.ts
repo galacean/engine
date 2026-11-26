@@ -91,9 +91,16 @@ export class Background {
    */
   destroy(): void {
     this.texture = null;
-    this._mesh._addReferCount(-1);
+    const mesh = this._mesh;
+    const buffers = new Set(mesh.vertexBufferBindings.filter(Boolean).map((binding) => binding!.buffer));
+    const indexBuffer = mesh._primitive.indexBufferBinding?.buffer;
+    if (indexBuffer) buffers.add(indexBuffer);
+    mesh._addReferCount(-1);
+    mesh.destroy(true);
+    buffers.forEach((buffer) => buffer.destroy(true));
     this._mesh = null!;
     this._material._addReferCount(-1);
+    this._material.destroy(true);
     this._material = null!;
     this.sky.destroy();
   }

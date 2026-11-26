@@ -56,7 +56,7 @@ import { TerrainScreenRelativeHeightRuntime } from "@galacean/engine-terrain/ter
 import {
   createFarShadowRenderersProxy,
   setFarShadowCascadeProxy
-} from "@galacean/engine-modify/rendering/FarShadowCascadeProxy";
+} from "@galacean/engine-project/rendering/FarShadowCascadeProxy";
 import { usesProjectPlantResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 import {
   configureAssetAssemblyRendererInstance,
@@ -88,7 +88,7 @@ import {
 } from "../WorldTemplateVegetation";
 import { fitTemplateAsset, stretchTemplateAsset, type TemplateNode } from "../WorldTemplateGeometry";
 import type { VegetationColors, VegetationColorPart, VegetationColorSample } from "../VegetationColors";
-import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickVisitor } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import { MeshPickBatch } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-mesh-picking";
 import {
   mountTemplateProceduralPlants,

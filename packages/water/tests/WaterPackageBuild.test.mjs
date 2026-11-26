@@ -132,8 +132,8 @@ test("all 4 Water package entries load in Node ESM with exact exports and workin
   );
   const byName = Object.fromEntries(nodeEntries.map((name, idx) => [name, loaded[idx]]));
 
-  // Verify water-runtime.js against the built local World Engine (which provides SSRRuntimeState & modify overrides).
-  const localEngineEntry = path.join(rootDir, "packages/modify/.cache/engine/packages/galacean/dist/module.js");
+  // Verify water-runtime.js against the built local Engine.
+  const localEngineEntry = path.join(rootDir, "packages/galacean/dist/module.js");
   let runtimeMod;
   const runtimeTmpDir = await realpath(await mkdtemp(path.join(tmpdir(), "water-runtime-node-esm-")));
   try {
@@ -320,7 +320,7 @@ test("Vite builds a standalone exported project importing dist/water-runtime.js 
 
 test("all 4 dist/water-*.d.mts typecheck cleanly under Bundler and NodeNext using only @galacean/engine types", async () => {
   const engineDtsCandidates = [
-    path.join(rootDir, "packages/modify/.cache/engine/packages/galacean/types/index.d.ts"),
+    path.join(rootDir, "packages/galacean/types/index.d.ts"),
     path.join(rootDir, "packages/galacean/src/index.ts")
   ];
   let engineTypes = engineDtsCandidates[1];

@@ -104,27 +104,35 @@ export class Buffer extends GraphicsResource {
     this._bufferUsage = bufferUsage;
     this._readable = readable;
 
-    if (typeof byteLengthOrData === "number") {
-      this._byteLength = byteLengthOrData;
-      this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLengthOrData, bufferUsage);
-      if (readable) {
-        this._data = new Uint8Array(byteLengthOrData);
+    try {
+      if (typeof byteLengthOrData === "number") {
+        this._byteLength = byteLengthOrData;
+        this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLengthOrData, bufferUsage);
+        if (readable) {
+          this._data = new Uint8Array(byteLengthOrData);
+        }
+      } else {
+        const data = byteLengthOrData;
+        const byteLength = data.byteLength;
+        this._byteLength = byteLength;
+        this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLength, bufferUsage, data);
+        if (readable) {
+          const buffer =
+            data.constructor === ArrayBuffer
+              ? data.slice(0)
+              : (<ArrayBufferView>data).buffer.slice(
+                  (<ArrayBufferView>data).byteOffset,
+                  (<ArrayBufferView>data).byteOffset + byteLength
+                );
+          this._data = new Uint8Array(buffer);
+        }
       }
-    } else {
-      const data = byteLengthOrData;
-      const byteLength = data.byteLength;
-      this._byteLength = byteLength;
-      this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLength, bufferUsage, data);
-      if (readable) {
-        const buffer =
-          data.constructor === ArrayBuffer
-            ? data.slice(0)
-            : (<ArrayBufferView>data).buffer.slice(
-                (<ArrayBufferView>data).byteOffset,
-                (<ArrayBufferView>data).byteOffset + byteLength
-              );
-        this._data = new Uint8Array(buffer);
-      }
+    } catch (error) {
+      // The constructor registered this resource, but memory has not been accounted yet.
+      // A failed platform allocation has no owner that could release it later.
+      this._byteLength = 0;
+      this.destroy(true);
+      throw error;
     }
 
     if (!engine._isDeviceLost) {
@@ -268,6 +276,6 @@ export class Buffer extends GraphicsResource {
     if (!this._engine._isDeviceLost) {
       this._engine._renderingStatistics._bufferMemory -= this._byteLength;
     }
-    this._platformBuffer.destroy();
+    this._platformBuffer?.destroy();
   }
 }

@@ -6,10 +6,12 @@ import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Layer } from "./Layer";
-import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
+import { BasicRenderPipeline, type CameraAuxiliaryRenderOptions } from "./RenderPipeline/BasicRenderPipeline";
+import type { RenderViewCullingSource, RenderViewCullingSourceRegistration } from "./RenderPipeline/RenderViewCulling";
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
+import { Logger } from "./base";
 import { ignoreClone } from "./clone/CloneDecorators";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
@@ -19,14 +21,20 @@ import { DepthTextureMode } from "./enums/DepthTextureMode";
 import { Downsampling } from "./enums/Downsampling";
 import { MSAASamples } from "./enums/MSAASamples";
 import { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
+import {
+  ScreenSpaceReflectionSettings,
+  type ScreenSpaceReflectionSettingsData,
+  type SSRDiagnostics
+} from "./lighting/screenSpaceReflection";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
-import { TextureFormat, TextureUtils } from "./texture";
+import { TextureFormat } from "./texture";
 import { RenderTarget } from "./texture/RenderTarget";
+import { TextureUtils } from "./texture/TextureUtils";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
 class MathTemp {
@@ -34,6 +42,9 @@ class MathTemp {
   static tempVec3 = new Vector3();
   static tempVec2 = new Vector2();
 }
+
+/** Depth texture source published by the Camera during its most recent render. */
+export type CameraDepthTextureSource = "none" | "prepass" | "forward-resolve";
 
 /**
  * Camera component, as the entrance to the three-dimensional world.
@@ -46,6 +57,8 @@ export class Camera extends Component {
   /** @internal */
   static _cameraOpaqueTextureProperty = ShaderProperty.getByName("camera_OpaqueTexture");
   /** @internal */
+  static _cameraPostProcessTextureProperty = ShaderProperty.getByName("camera_PostProcessTexture");
+  /** @internal */
   static _cameraAOTextureProperty = ShaderProperty.getByName("camera_AOTexture");
 
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
@@ -56,6 +69,35 @@ export class Camera extends Component {
 
   /** Whether to enable frustum culling, it is enabled by default. */
   enableFrustumCulling: boolean = true;
+
+  /** Whether screen-space reflection is enabled for this camera. */
+  enableScreenSpaceReflection: boolean = true;
+
+  @ignoreClone
+  private _screenSpaceReflectionOverride: ScreenSpaceReflectionSettings | null = null;
+
+  /** Optional per-camera override for screen-space reflection settings. */
+  get screenSpaceReflectionOverride(): ScreenSpaceReflectionSettings | null {
+    return this._screenSpaceReflectionOverride;
+  }
+
+  set screenSpaceReflectionOverride(
+    value: ScreenSpaceReflectionSettings | Partial<ScreenSpaceReflectionSettingsData> | null
+  ) {
+    if (value == null) {
+      this._screenSpaceReflectionOverride = null;
+    } else if (value instanceof ScreenSpaceReflectionSettings) {
+      this._screenSpaceReflectionOverride = value;
+    } else if (typeof value === "object") {
+      const normalized = new ScreenSpaceReflectionSettings();
+      normalized.apply(value);
+      this._screenSpaceReflectionOverride = normalized;
+    } else {
+      throw new Error(
+        "Invalid Camera.screenSpaceReflectionOverride: expected ScreenSpaceReflectionSettings, settings object, or null."
+      );
+    }
+  }
 
   /**
    * Determining what to clear when rendering by a Camera.
@@ -139,6 +181,12 @@ export class Camera extends Component {
   /** @internal */
   @ignoreClone
   _cameraIndex: number = -1;
+  /** @internal */
+  @ignoreClone
+  _depthTextureSource: CameraDepthTextureSource = "none";
+  /** @internal Opt-in for consumers that only sample Camera depth after opaque Forward. */
+  @ignoreClone
+  _enableForwardDepthResolve: boolean = false;
 
   private _priority: number = 0;
   private _isCustomViewMatrix = false;
@@ -151,7 +199,7 @@ export class Camera extends Component {
   private _opaqueTextureEnabled: boolean = false;
   private _enableHDR = false;
   private _enablePostProcess = false;
-  private _msaaSamples = MSAASamples.FourX;
+  private _msaaSamples: MSAASamples;
 
   private _renderTarget: RenderTarget | null = null;
   private _updateFlagManager: UpdateFlagManager;
@@ -165,6 +213,10 @@ export class Camera extends Component {
   private _pixelViewport: Rect = new Rect(0, 0, 0, 0);
   private _inverseProjectionMatrix: Matrix = new Matrix();
   private _invViewProjMat: Matrix = new Matrix();
+  @ignoreClone
+  private _auxVirtualCamera: VirtualCamera = new VirtualCamera();
+  @ignoreClone
+  private _auxFrustum: BoundingFrustum = new BoundingFrustum();
 
   /**
    * Whether to enable opaque texture.
@@ -178,6 +230,11 @@ export class Camera extends Component {
 
   set opaqueTextureEnabled(value: boolean) {
     this._opaqueTextureEnabled = value;
+  }
+
+  /** Depth texture source published during the Camera's most recent render. */
+  get depthTextureSource(): CameraDepthTextureSource {
+    return this._depthTextureSource;
   }
 
   /**
@@ -385,7 +442,6 @@ export class Camera extends Component {
   /**
    * Whether to enable HDR.
    * @defaultValue `false`
-   * @remarks Kept on this property across backends; rendering falls back to LDR when the device lacks HDR color targets.
    */
   get enableHDR(): boolean {
     return this._enableHDR;
@@ -430,14 +486,21 @@ export class Camera extends Component {
    * Higher sample counts (e.g., 2x, 4x, 8x) produce smoother edges.
    *
    * @defaultValue `MSAASamples.FourX`
-   * @remarks The requested count is kept; rendering uses at most the count supported by the device.
    */
   get msaaSamples(): MSAASamples {
     return this._msaaSamples;
   }
 
   set msaaSamples(value: MSAASamples) {
-    this._msaaSamples = value;
+    if (this._msaaSamples !== value) {
+      const maxMSAASamples = this._engine._hardwareRenderer.capability.maxAntiAliasing;
+      if (value > maxMSAASamples) {
+        Logger.warn(`MSAA samples exceeds the limit and is automatically downgraded to:${maxMSAASamples}`);
+        this._msaaSamples = maxMSAASamples;
+      } else {
+        this._msaaSamples = value;
+      }
+    }
   }
 
   /**
@@ -445,6 +508,8 @@ export class Camera extends Component {
    */
   constructor(entity: Entity) {
     super(entity);
+    // Includes hardware detection correction
+    this.msaaSamples = MSAASamples.FourX;
 
     this._isViewMatrixDirty = entity.registerWorldChangeFlag();
     this._isInvViewProjDirty = entity.registerWorldChangeFlag();
@@ -668,6 +733,157 @@ export class Camera extends Component {
   }
 
   /**
+   * Perform a stateless auxiliary forward render pass without mutating camera state or touching
+   * main-pipeline caches/passes (shadow, depth prepass, SAO, SSR, opaque texture, post-process).
+   * Must only be called between render passes (e.g. `onUpdate`, `onBeginRender`, `onEndRender`);
+   * throws if invoked re-entrantly while another render pass is active.
+   * @param options - Optional per-call overrides for target, viewport, culling, clear, shader replacement, aspect ratio, and filter
+   */
+  renderAuxiliary(options?: CameraAuxiliaryRenderOptions): void {
+    const scene = this.scene;
+    if (!scene || this.destroyed) {
+      return;
+    }
+
+    const engine = this._engine;
+    const context = engine._renderContext;
+    if (context.camera != null) {
+      throw new Error("Camera.renderAuxiliary cannot be called re-entrantly during an active render pass.");
+    }
+    const auxVirtualCamera = this._auxVirtualCamera;
+    const sourceVirtualCamera = this._virtualCamera;
+
+    auxVirtualCamera.isOrthographic = sourceVirtualCamera.isOrthographic;
+    auxVirtualCamera.nearClipPlane = sourceVirtualCamera.nearClipPlane;
+    auxVirtualCamera.farClipPlane = sourceVirtualCamera.farClipPlane;
+    auxVirtualCamera.viewMatrix.copyFrom(this.viewMatrix);
+
+    const overrideAspectRatio = options?.aspectRatio;
+    if (
+      overrideAspectRatio !== undefined &&
+      Number.isFinite(overrideAspectRatio) &&
+      overrideAspectRatio > 0 &&
+      !this._isCustomProjectionMatrix &&
+      overrideAspectRatio !== this.aspectRatio
+    ) {
+      if (!auxVirtualCamera.isOrthographic) {
+        Matrix.perspective(
+          MathUtil.degreeToRadian(this._fieldOfView),
+          overrideAspectRatio,
+          auxVirtualCamera.nearClipPlane,
+          auxVirtualCamera.farClipPlane,
+          auxVirtualCamera.projectionMatrix
+        );
+      } else {
+        const width = this._orthographicSize * overrideAspectRatio;
+        const height = this._orthographicSize;
+        Matrix.ortho(
+          -width,
+          width,
+          -height,
+          height,
+          auxVirtualCamera.nearClipPlane,
+          auxVirtualCamera.farClipPlane,
+          auxVirtualCamera.projectionMatrix
+        );
+      }
+    } else {
+      auxVirtualCamera.projectionMatrix.copyFrom(this.projectionMatrix);
+    }
+
+    Matrix.multiply(
+      auxVirtualCamera.projectionMatrix,
+      auxVirtualCamera.viewMatrix,
+      auxVirtualCamera.viewProjectionMatrix
+    );
+
+    const transform = this._entity.transform;
+    auxVirtualCamera.position.copyFrom(transform.worldPosition);
+    if (auxVirtualCamera.isOrthographic) {
+      auxVirtualCamera.forward.copyFrom(transform.worldForward);
+    }
+
+    const enableFrustumCulling = options?.enableFrustumCulling ?? this.enableFrustumCulling;
+    if (enableFrustumCulling) {
+      this._auxFrustum.calculateFromMatrix(auxVirtualCamera.viewProjectionMatrix);
+    }
+
+    const prevVirtualCamera = context.virtualCamera;
+    const prevViewMatrix = context.viewMatrix;
+    const prevProjectionMatrix = context.projectionMatrix;
+    const prevViewProjectionMatrix = context.viewProjectionMatrix;
+    const prevFlipProjection = context.flipProjection;
+    const prevReplacementShader = context.replacementShader;
+    const prevReplacementTag = context.replacementTag;
+    const prevReplacementFailureStrategy = context.replacementFailureStrategy;
+    const prevOnlyShadowCaster = context._onlyShadowCaster;
+
+    const replacementShader = options?.replacementShader ?? null;
+    const replacementTag =
+      replacementShader && options?.replacementTagName ? ShaderTagKey.getByName(options.replacementTagName) : null;
+    const replacementFailureStrategy = replacementShader
+      ? (options?.replacementFailureStrategy ?? ReplacementFailureStrategy.KeepOriginalShader)
+      : null;
+
+    context.camera = this;
+    context.virtualCamera = auxVirtualCamera;
+    context.replacementShader = replacementShader;
+    context.replacementTag = replacementTag;
+    context.replacementFailureStrategy = replacementFailureStrategy;
+    context._onlyShadowCaster = false;
+    context._ssrState.reset();
+
+    try {
+      this._updateShaderData();
+
+      // Union scene and camera macro so calls prior to main render (e.g. onUpdate Picker) have fresh macros.
+      ShaderMacroCollection.unionCollection(
+        scene.shaderData._macroCollection,
+        this.shaderData._macroCollection,
+        this._globalShaderMacro
+      );
+
+      this._renderPipeline.renderAuxiliary(context, auxVirtualCamera, this._auxFrustum, options);
+    } finally {
+      context._ssrState.reset();
+      context.replacementShader = prevReplacementShader;
+      context.replacementTag = prevReplacementTag;
+      context.replacementFailureStrategy = prevReplacementFailureStrategy;
+      context._onlyShadowCaster = prevOnlyShadowCaster;
+
+      if (prevVirtualCamera === sourceVirtualCamera) {
+        context.camera = this;
+        context.applyVirtualCamera(sourceVirtualCamera, prevFlipProjection);
+      } else {
+        context.virtualCamera = prevVirtualCamera;
+        context.viewMatrix = prevViewMatrix;
+        context.projectionMatrix = prevProjectionMatrix;
+        context.viewProjectionMatrix = prevViewProjectionMatrix;
+        context.flipProjection = prevFlipProjection;
+      }
+      context.camera = null!;
+      engine._renderCount++;
+    }
+  }
+
+  /**
+   * Registers a source-owned Renderer batch which is rebuilt for this Camera and each shadow cascade.
+   * The source owns spatial culling and explicitly submits only its visible Renderer batches.
+   * Keep source-owned Renderers disabled so normal scene traversal does not submit them a second time.
+   * @param source - External owner of the Renderer batches
+   * @returns Idempotent registration handle
+   */
+  registerRenderViewCullingSource(source: RenderViewCullingSource): RenderViewCullingSourceRegistration {
+    return this._renderPipeline._registerRenderViewCullingSource(source);
+  }
+
+  /** Visits source-owned batches submitted by the last main view. Borrow synchronously;
+   * this does not transfer ownership or run culling again. */
+  visitRenderViewRenderers(visitor: (renderer: Renderer) => void): void {
+    this._renderPipeline._visitRenderViewRenderers(visitor);
+  }
+
+  /**
    * Set the replacement shader.
    * @param shader - Replacement shader
    * @param replacementTagName - Sub shader tag name
@@ -803,7 +1019,12 @@ export class Camera extends Component {
    * @internal
    */
   _isTargetFormatHDR(): boolean {
-    return TextureUtils.isHDRFormat(this._getTargetColorTextureFormat());
+    const format = this._getTargetColorTextureFormat();
+    return (
+      format === TextureFormat.R16G16B16A16_SFloat ||
+      format === TextureFormat.R32G32B32A32_SFloat ||
+      format === TextureFormat.R11G11B10_UFloat
+    );
   }
 
   /**
@@ -818,6 +1039,31 @@ export class Camera extends Component {
    */
   _unRegisterModifyListener(onChange: (flag: CameraModifyFlags) => void): void {
     this._updateFlagManager?.removeListener(onChange);
+  }
+
+  /**
+   * Read-only runtime diagnostics snapshot for screen-space reflection on this camera.
+   */
+  get screenSpaceReflectionDiagnostics(): Readonly<SSRDiagnostics> {
+    return this._renderPipeline._getScreenSpaceReflectionDiagnostics();
+  }
+
+  /**
+   * Notify screen-space reflection that a camera cut or discontinuity occurred so history resets cleanly.
+   */
+  notifyScreenSpaceReflectionCut(): void {
+    this._renderPipeline._notifyScreenSpaceReflectionCut();
+  }
+
+  /** @internal */
+  _onClone(target: Camera): void {
+    if (this.screenSpaceReflectionOverride) {
+      const override = new ScreenSpaceReflectionSettings();
+      this.screenSpaceReflectionOverride.cloneTo(override);
+      target.screenSpaceReflectionOverride = override;
+    } else {
+      target.screenSpaceReflectionOverride = null;
+    }
   }
 
   /**
@@ -846,6 +1092,8 @@ export class Camera extends Component {
     this._viewport = null!;
     this._inverseProjectionMatrix = null!;
     this._invViewProjMat = null!;
+    this._auxVirtualCamera = null!;
+    this._auxFrustum = null!;
   }
 
   private _updatePixelViewport(): void {

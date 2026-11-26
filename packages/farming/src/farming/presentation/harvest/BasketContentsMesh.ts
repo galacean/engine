@@ -2,7 +2,7 @@ import { Color, ModelMesh, Vector3, type Engine } from "@galacean/engine";
 import { HARVEST_BASKET_CAPACITY, type BasketContent } from "../../domain/FarmItems";
 import { farmBasketProduceSlot } from "../../domain/FarmItemDimensions";
 import { createHarvestProduceMesh } from "./HarvestProduceMesh";
-import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { destroyOwnedMesh } from "@galacean/engine-project/geometry/destroyOwnedMesh";
 
 /** Real units, deterministic slots, one low-poly mixed batch. Inventory never comes from this mesh. */
 export function createBasketContentsMesh(engine: Engine, contents: readonly BasketContent[]): ModelMesh {

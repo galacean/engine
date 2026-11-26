@@ -1,4 +1,4 @@
-import { destroyOwnedMeshSet } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { destroyOwnedMeshSet } from "@galacean/engine-project/geometry/destroyOwnedMesh";
 import { MeshInteractionSurface, registerMeshInteractionSurface } from "./MeshInteractionSurface";
 import {
   AssetType,

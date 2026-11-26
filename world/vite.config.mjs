@@ -3,7 +3,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
-import { engineModify } from "@galacean/engine-modify/vite";
+import { workspaceEngine } from "../packages/project/build/vite.mjs";
 import { PUGC_UNSUPPORTED_ASSET_EXTENSIONS, projectAssets } from "./scripts/project-assets.mjs";
 import { createMobileDiagMiddleware } from "./scripts/mobile-diag-middleware.mjs";
 import { meshBrotliPlugin } from "./scripts/mesh-brotli.mjs";
@@ -592,11 +592,11 @@ export default {
   base: "./",
   plugins: [
     ...(!flashApp ? [mobileDiagPlugin(), previewGzipPlugin()] : []),
-    engineModify(),
+    workspaceEngine(),
     projectAssets(root, { pugcCompatible: flashApp }),
     treeBuild.createTreeReconstructionServer(),
     plantBuild.plantShaderPrecompile({
-      shaderLibrary: shaderLibrary(path.join(root, "packages/modify/.cache/shader-src/ShaderLibrary"))
+      shaderLibrary: shaderLibrary(path.join(root, "packages/shader/src/ShaderLibrary"))
     }),
     waterBuild.createWaterShaderProductionAssetPlugin(path.join(root, "packages/water/src/water/shaders")),
     ...(!flashApp && (demo === "seed-world" || demo === "all") ? [seedWorldPlantTextureDownloads()] : []),
@@ -617,7 +617,7 @@ export default {
   // Inline Workers must remain classic-script compatible, as in engine-next.
   worker: {
     format: "iife",
-    plugins: [engineModify(), projectAssets(root, { pugcCompatible: flashApp })],
+    plugins: [workspaceEngine(), projectAssets(root, { pugcCompatible: flashApp })],
     // WASM loaders may contain conditional imports; classic workers need one chunk.
     rollupOptions: {
       output: {

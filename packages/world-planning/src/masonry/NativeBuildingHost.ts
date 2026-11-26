@@ -6,7 +6,7 @@ import { BuildingManager } from "@galacean/engine-building/building/parts/archit
 import type { ConstructionTerrainSource } from "@galacean/engine-building/building/runtime/TerrainField";
 import type { PublishedPlanningSeedScene } from "../spatial/runtime/PlanningSeedScenePublication";
 import type { RockFormationMesh } from "@galacean/engine-terrain/rock-formation/types";
-import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickVisitor } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import { masonryRockTerrainSource, masonryTerrainSource } from "./MasonryPlacement";
 
 /** Application lifecycle only. Source components own authoring; the Scene manager

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { engineModify } from "../../../packages/modify/build/vite.mjs";
+import { workspaceEngine } from "../../../packages/project/build/vite.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const source = path.resolve(root, "../engine-next/world/.materialized/engine");
 const overlay = path.resolve(root, "../engine-next/world/engine/overlay/tests");
@@ -23,17 +23,12 @@ export default {
         const prefix = path.join(root, "world/.acceptance/packages") + path.sep;
         if (!candidate.startsWith(prefix)) return;
         const canonical = path.join(root, "packages", candidate.slice(prefix.length));
-        const overrides = new Set(
-          JSON.parse(fs.readFileSync(path.join(root, "packages/modify/native-overrides.json"))).map((e) =>
-            path.join(root, e.original)
-          )
-        );
         return [canonical, canonical + ".ts", canonical + ".js", path.join(canonical, "index.ts")].find(
-          (f) => overrides.has(f) || (fs.existsSync(f) && fs.statSync(f).isFile())
+          (f) => fs.existsSync(f) && fs.statSync(f).isFile()
         );
       }
     },
-    engineModify()
+    workspaceEngine()
   ],
   server: { port: 51205, fs: { allow: [root, source] } },
   esbuild: { tsconfigRaw: { compilerOptions: { experimentalDecorators: true, useDefineForClassFields: false } } },
@@ -42,8 +37,8 @@ export default {
       .filter((f) => f.endsWith(".test.ts") && !f.includes("GaussianSplat"))
       .map((f) => path.relative(overlay, f))
       .concat([
-        path.join(root, "packages/modify/tests/LegacyToolkit.test.ts"),
-        path.join(root, "packages/modify/tests/MaterialLoaderCompatibility.test.ts")
+        path.join(root, "world/tests/seed-world-browser/LegacyToolkit.test.ts"),
+        path.join(root, "world/tests/seed-world-browser/MaterialLoaderCompatibility.test.ts")
       ]),
     browser: {
       enabled: true,

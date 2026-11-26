@@ -48,7 +48,7 @@ import {
 import { buildingAssets, retainBuildingResource } from "../../resources/BuildingAssetKit";
 import { resolveDocument } from "../../runtime/PlacementDocument.js";
 import { inspectMasonrySurface } from "../../runtime/MasonrySurfaceInspection";
-import type { RuntimePickVisitor } from "@galacean/engine-modify/rendering/runtime-pick-source";
+import type { RuntimePickVisitor } from "@galacean/engine-project/rendering/runtime-pick-source";
 type BoundFocus = { entity: Entity; position: Vector3; forward?: Vector3 };
 function bindFocus(
   poses: readonly BuildingFocusPose[],

@@ -72,6 +72,6 @@
   "dependencies": {
     "@galacean/engine": "workspace:*",
     "@galacean/engine-ui": "workspace:*",
-    "@galacean/engine-modify": "workspace:*"
+    "@galacean/engine-project": "workspace:*"
   }
 }

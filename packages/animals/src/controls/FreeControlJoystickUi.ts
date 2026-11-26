@@ -8,7 +8,7 @@ import {
   UIGroup,
   UITransform
 } from "@galacean/engine-ui";
-import { SeedWorldLiquidGlassUiMaterial } from "@galacean/engine-modify/rendering/LiquidGlassPostProcessPass";
+import { SeedWorldLiquidGlassUiMaterial } from "@galacean/engine-project/rendering/LiquidGlassPostProcessPass";
 
 registerGUI();
 

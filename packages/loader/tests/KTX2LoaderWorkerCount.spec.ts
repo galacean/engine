@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KTX2Loader } from "../src/ktx2/KTX2Loader";
 
@@ -51,23 +50,5 @@ describe("KTX2Loader mobile worker cap", () => {
 
     expect(loader._getBinomialLLCTranscoder()).toBe(transcoder);
     expect(detectWorkerCount).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps packages/modify KTX2Loader override in sync with packages/loader _defaultWorkerCount (P1-4)", () => {
-    const loaderSrc = fs.readFileSync(new URL("../src/ktx2/KTX2Loader.ts", import.meta.url), "utf8");
-    const modifySrc = fs.readFileSync(
-      new URL("../../modify/src/native/loader/src/ktx2/KTX2Loader.ts", import.meta.url),
-      "utf8"
-    );
-    const extractBlock = (src: string) => {
-      const match = src.match(
-        /static _defaultWorkerCount\(\): number \{[\s\S]*?private static _getBinomialLLCTranscoder\([^)]*\) \{[\s\S]*?\n  \}/
-      );
-      expect(match).not.toBeNull();
-      return match![0];
-    };
-    const loaderBlock = extractBlock(loaderSrc);
-    const modifyBlock = extractBlock(modifySrc);
-    expect(modifyBlock).toBe(loaderBlock);
   });
 });
