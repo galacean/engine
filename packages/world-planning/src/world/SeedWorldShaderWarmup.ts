@@ -27,9 +27,11 @@ import {
   ShaderMacroCollection,
   ShaderPass,
   ShaderProperty,
+  ShadowType,
   SunLensFlareEffect,
   TextureFormat,
-  Vector3
+  Vector3,
+  VolumetricLightQuality
 } from "@galacean/engine";
 import photoCopySource from "./PhotoCopy.shader?raw";
 import {
@@ -125,6 +127,9 @@ export interface SeedWorldPostProcessWarmupState {
   readonly sunDirectionOverride?:
     | readonly [x: number, y: number, z: number]
     | { readonly x: number; readonly y: number; readonly z: number };
+  readonly volumetricLight?: boolean;
+  readonly volumetricLightQuality?: number;
+  readonly volumetricLightHeightFog?: boolean;
   readonly tonemappingMode?: number;
 }
 
@@ -181,6 +186,13 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly includeGenerationReveal?: boolean;
   /** Whether opaque SSR receivers (e.g. wet terrain during rain) are active in this template. Defaults to false when dry. */
   readonly includeOpaqueScreenSpaceReflection?: boolean;
+  /**
+   * Whether to also warm the history-color SSR fallback variants (Pass 1 `BuildHiZMip0` and
+   * Pass 4 `HiZTrace` without `SSR_CURRENT_FRAME_COLOR`) when `canReuseCurrentFrameColor` is true,
+   * preventing synchronous mid-exploration compilation hitches if runtime falls back to history color.
+   * Defaults to false (omitted from primary first-frame warmup; enabled in post-reveal background warmup).
+   */
+  readonly includeSsrHistoryFallback?: boolean;
   /** Whether to also warm the masked variant (`SEED_WORLD_GLASS_MASK`) for LiquidGlass overlay icons mounted after startup. Defaults to true. */
   readonly includeLiquidGlassMask?: boolean;
   /** Whether to warm `SeedWorld/PhotoCopy` used by the assistant screenshot capture pipeline. Defaults to false. */
@@ -1585,6 +1597,8 @@ function collectSeedWorldRendererVariantsInternal(
       _uberMaterial?: Material;
       _bloomMaterial?: Material;
       _sunLensFlareMaterial?: Material | null;
+      _volumetricLightMaterial?: Material | null;
+      _material?: Material | null;
     }[];
   };
   const blit = runtimeEngine._basicResources?.blitMaterial;
@@ -1601,7 +1615,8 @@ function collectSeedWorldRendererVariantsInternal(
     };
     _needFinalPass?: () => boolean;
   };
-  if (pipeline._needFinalPass?.()) {
+  const needFinalPass = Boolean(pipeline._needFinalPass?.());
+  if (needFinalPass) {
     const final = pipeline._renderPipeline?._finalPass;
     const fxaa = camera.antiAliasing === AntiAliasing.FXAA;
     auxiliary.push([final?._sRGBmaterial, fxaa || Boolean(camera.renderTarget)]);
@@ -1609,6 +1624,16 @@ function collectSeedWorldRendererVariantsInternal(
   }
   const sunLensFlareVisibleInPrimary =
     !options.onlyFrustumVisible || isSunLensFlareVisibleForCamera(camera, scene, options.postProcessState);
+  const volumetricLightWarmup = resolveVolumetricLightWarmupMode(
+    camera,
+    scene,
+    options.postProcessState,
+    depthPrepassEnabled || forwardDepthResolveEnabled
+  );
+  const volumetricLightActiveInPass =
+    Boolean(options.postProcessState?.volumetricLight) &&
+    (!options.onlyFrustumVisible || volumetricLightWarmup.visibleAtSpawn);
+  const finalPostProcessTarget = needFinalPass || Boolean(camera.renderTarget);
   if (camera.enablePostProcess && options.postProcessState?.enabled !== false)
     for (const pass of runtimeEngine._getActivePostProcessPasses?.() ?? []) {
       if (!pass.isActive) continue;
@@ -1631,7 +1656,53 @@ function collectSeedWorldRendererVariantsInternal(
           }
         }
       }
-      auxiliary.push([pass._uberMaterial, true, "uber"]);
+      if (volumetricLightActiveInPass && pass._volumetricLightMaterial) {
+        const vlMaterial = pass._volumetricLightMaterial;
+        if (!vlMaterial.destroyed && !vlMaterial.shader.destroyed) {
+          const vlSubShader = vlMaterial.shader.subShaders[0];
+          if (vlSubShader) {
+            const vlMacros = new ShaderMacroCollection();
+            ShaderMacroCollection.unionCollection(
+              cameraMacros,
+              (vlMaterial.shaderData as unknown as RuntimeShaderData)._macroCollection,
+              vlMacros
+            );
+            vlMacros.unionCollection((engine as RuntimeEngine)._macroCollection);
+            const vlOld: ShaderMacro[] = [];
+            (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(vlMacros, vlOld);
+            for (const macro of vlOld) {
+              if (
+                macro.name === "VOLUMETRIC_LIGHT_QUALITY" ||
+                macro.name === "VOLUMETRIC_LIGHT_HEIGHT_FOG" ||
+                macro.name === "ENGINE_OUTPUT_SRGB_CORRECT"
+              ) {
+                vlMacros.disable(macro);
+              }
+            }
+            if (volumetricLightWarmup.useRaymarch) {
+              vlMacros.enable(ShaderMacro.getByName("VOLUMETRIC_LIGHT_QUALITY", String(volumetricLightWarmup.quality)));
+              if (options.postProcessState?.volumetricLightHeightFog) {
+                vlMacros.enable(ShaderMacro.getByName("VOLUMETRIC_LIGHT_HEIGHT_FOG"));
+              }
+            }
+            const vlElements: ShaderMacro[] = [];
+            (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(vlMacros, vlElements);
+            const vlRecorded = vlElements.map((macro) =>
+              macro.value === undefined ? { n: macro.name } : { n: macro.name, v: macro.value }
+            );
+            const vlPassIndices = volumetricLightWarmup.useRaymarch ? [3, 4] : [0, 1, 2];
+            for (const pi of vlPassIndices) {
+              if (!vlSubShader.passes[pi]) continue;
+              variants.push({ shader: vlMaterial.shader.name, si: 0, pi, macros: vlRecorded });
+            }
+          }
+        }
+      }
+      if (pass._uberMaterial) {
+        auxiliary.push([pass._uberMaterial, true, "uber"]);
+      } else if (pass._material) {
+        auxiliary.push([pass._material, finalPostProcessTarget]);
+      }
     }
   for (const [material, target, kind] of auxiliary) {
     if (!material || material.destroyed || material.shader.destroyed) continue;
@@ -1653,6 +1724,8 @@ function collectSeedWorldRendererVariantsInternal(
               "ENABLE_EFFECT_BLOOM",
               "ENABLE_EFFECT_COLOR_ADJUSTMENTS",
               "ENABLE_EFFECT_SUN_LENS_FLARE",
+              "ENABLE_EFFECT_VOLUMETRIC_LIGHT",
+              "VOLUMETRIC_LIGHT_RAYMARCH",
               "ENABLE_EFFECT_TONEMAPPING",
               "TONEMAPPING_MODE"
             ]
@@ -1666,6 +1739,12 @@ function collectSeedWorldRendererVariantsInternal(
         if (state.bloomDirt) macros.enable(ShaderMacro.getByName("BLOOM_DIRT"));
         if (state.colorAdjustments) macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_COLOR_ADJUSTMENTS"));
         if (state.sunLensFlare) macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_SUN_LENS_FLARE"));
+        if (volumetricLightActiveInPass) {
+          macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_VOLUMETRIC_LIGHT"));
+          if (volumetricLightWarmup.useRaymarch) {
+            macros.enable(ShaderMacro.getByName("VOLUMETRIC_LIGHT_RAYMARCH"));
+          }
+        }
         if (state.tonemappingMode !== undefined) {
           macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_TONEMAPPING"));
           macros.enable(ShaderMacro.getByName("TONEMAPPING_MODE", String(state.tonemappingMode)));
@@ -1673,6 +1752,22 @@ function collectSeedWorldRendererVariantsInternal(
       }
     }
     appendShaderVariants(material.shader, macros, variants, false, target, undefined, supportsRendering);
+    // In 2D Low volumetric-light mode, rotating the camera away from the sun toggles
+    // ENABLE_EFFECT_VOLUMETRIC_LIGHT off dynamically; warm the off-state partner during
+    // full/background warmup so 360-degree exploration never misses PostProcess/Uber.
+    if (
+      state &&
+      kind === "uber" &&
+      volumetricLightActiveInPass &&
+      !options.onlyFrustumVisible &&
+      !volumetricLightWarmup.useRaymarch
+    ) {
+      const noVlMacros = new ShaderMacroCollection();
+      noVlMacros.unionCollection(macros);
+      noVlMacros.disable(ShaderMacro.getByName("ENABLE_EFFECT_VOLUMETRIC_LIGHT"));
+      noVlMacros.disable(ShaderMacro.getByName("VOLUMETRIC_LIGHT_RAYMARCH"));
+      appendShaderVariants(material.shader, noVlMacros, variants, false, target, undefined, supportsRendering);
+    }
   }
   // Warm deferred SSR DepthOnly / Forward SSR variants + exact Lighting/ScreenSpaceReflection v2 passes when receivers exist.
   const hasAnySsrReceivers = ssrContext.hasTransparentSsr || ssrContext.hasOpaqueSsr;
@@ -1779,7 +1874,8 @@ function collectSeedWorldRendererVariantsInternal(
             appendSsrPass(8, [...baseHiZ0Macros, { n: "SSR_HAS_CONTRIB_DEPTH" }]);
           }
         }
-        if (!hasFullDepthForSsr || !canReuseCurrentFrameColor || !subShader.passes[8]) {
+        const warmHistoryFallback = Boolean(options.includeSsrHistoryFallback) && canReuseCurrentFrameColor;
+        if (!hasFullDepthForSsr || !canReuseCurrentFrameColor || warmHistoryFallback || !subShader.passes[8]) {
           // WarmupColor frame 0 (when history color isn't reused) or fallback DepthOnly path uses Pass 1.
           appendSsrPass(1, baseHiZ0Macros);
           if (ssrContext.hasContribDepth) {
@@ -1795,6 +1891,10 @@ function collectSeedWorldRendererVariantsInternal(
         if (canReuseCurrentFrameColor) traceMacros.push({ n: "SSR_CURRENT_FRAME_COLOR" });
         if (ssrUseLinearTrace) traceMacros.push({ n: "SSR_LINEAR_TRACE" });
         appendSsrPass(4, traceMacros.length > 0 ? traceMacros : undefined); // Pass 4: HiZTrace
+        if (warmHistoryFallback) {
+          const fallbackTraceMacros = traceMacros.filter((macro) => macro.n !== "SSR_CURRENT_FRAME_COLOR");
+          appendSsrPass(4, fallbackTraceMacros.length > 0 ? fallbackTraceMacros : undefined);
+        }
         if (ssrQuality !== ScreenSpaceReflectionQuality.Low) {
           appendSsrPass(
             5,
@@ -2203,6 +2303,87 @@ function isSunLensFlareVisibleForCamera(
   const edgeDist = Math.max(Math.abs(sunU - 0.5), Math.abs(sunV - 0.5));
   // Runtime fades to 0 at edgeDist >= 0.88; keep a generous 0.95 margin for startup safety.
   return edgeDist < 0.95;
+}
+
+/**
+ * Mirrors `VolumetricLightEffect._resolveScreenState` + `PostProcessUberPass._setupVolumetricLight`
+ * with a slightly generous phase margin so primary warmup compiles the exact active VolumetricLight
+ * tier (`Low` passes 0..2 vs `Medium`/`High` raymarch passes 3..4) and `PostProcess/Uber` macro state
+ * without over-compiling behind-camera Low passes at spawn.
+ */
+function resolveVolumetricLightWarmupMode(
+  camera: Camera,
+  scene: Scene,
+  postProcessState: SeedWorldPostProcessWarmupState | undefined,
+  hasDepthTexture: boolean
+): { readonly visibleAtSpawn: boolean; readonly useRaymarch: boolean; readonly quality: number } {
+  const quality = postProcessState?.volumetricLightQuality ?? VolumetricLightQuality.Low;
+  if (!postProcessState?.volumetricLight) {
+    return { visibleAtSpawn: false, useRaymarch: false, quality };
+  }
+  const sceneLights = scene as unknown as {
+    castShadows?: boolean;
+    shadowDistance?: number;
+    _lightManager?: {
+      _sunlight?: { reverseDirection?: Vector3; shadowType?: ShadowType; shadowStrength?: number } | null;
+    };
+    sun?: { reverseDirection?: Vector3; shadowType?: ShadowType; shadowStrength?: number } | null;
+  };
+  const sunlight = sceneLights._lightManager?._sunlight ?? sceneLights.sun;
+  const canRaymarch =
+    quality !== VolumetricLightQuality.Low &&
+    hasDepthTexture &&
+    Boolean(
+      sceneLights.castShadows &&
+        (sceneLights.shadowDistance ?? 0) > 0.01 &&
+        sunlight &&
+        sunlight.shadowType !== ShadowType.None &&
+        (sunlight.shadowStrength ?? 0) > 0
+    );
+  if ((camera as unknown as { isOrthographic?: boolean }).isOrthographic) {
+    return { visibleAtSpawn: false, useRaymarch: canRaymarch, quality };
+  }
+  const viewMatrix = (camera as unknown as { viewMatrix?: Matrix }).viewMatrix;
+  if (!viewMatrix) {
+    return { visibleAtSpawn: true, useRaymarch: canRaymarch, quality };
+  }
+  let dx: number;
+  let dy: number;
+  let dz: number;
+  const overrideDir = resolveSunLensFlareDirectionOverride(scene, postProcessState);
+  if (overrideDir) {
+    const lenSq = overrideDir[0] * overrideDir[0] + overrideDir[1] * overrideDir[1] + overrideDir[2] * overrideDir[2];
+    const invLen = -1 / Math.sqrt(lenSq);
+    dx = overrideDir[0] * invLen;
+    dy = overrideDir[1] * invLen;
+    dz = overrideDir[2] * invLen;
+  } else {
+    const reverseDir = sunlight?.reverseDirection;
+    if (!reverseDir) {
+      return { visibleAtSpawn: true, useRaymarch: canRaymarch, quality };
+    }
+    const lenSq = reverseDir.x * reverseDir.x + reverseDir.y * reverseDir.y + reverseDir.z * reverseDir.z;
+    if (!Number.isFinite(lenSq) || lenSq <= 1e-6) {
+      return { visibleAtSpawn: false, useRaymarch: canRaymarch, quality };
+    }
+    const invLen = 1 / Math.sqrt(lenSq);
+    dx = reverseDir.x * invLen;
+    dy = reverseDir.y * invLen;
+    dz = reverseDir.z * invLen;
+  }
+  // Horizon fade drops to 0 at dirToSun.y <= -0.04; keep a conservative -0.06 floor.
+  if (dy <= -0.06) {
+    return { visibleAtSpawn: false, useRaymarch: canRaymarch, quality };
+  }
+  if (canRaymarch) {
+    return { visibleAtSpawn: true, useRaymarch: true, quality };
+  }
+  const dirToSun = new Vector3(dx, dy, dz);
+  const viewDir = new Vector3();
+  Vector3.transformNormal(dirToSun, viewMatrix, viewDir);
+  const forwardDot = -viewDir.z;
+  // Runtime Low phaseVisibility reaches 0 below -0.34 - 0.147 = -0.487; keep a generous -0.55 margin.
+  return { visibleAtSpawn: forwardDot > -0.55, useRaymarch: false, quality };
 }
 
 function resolveDepthMode(

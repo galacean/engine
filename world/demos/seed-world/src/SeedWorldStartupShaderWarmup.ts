@@ -368,6 +368,7 @@ export async function runSeedWorldStartupShaderWarmup(
         ...(handles.overlayRenderers !== undefined ? { overlayRenderers: handles.overlayRenderers } : {}),
         includeGenerationReveal: !deferSecondary,
         includeMasonryDither,
+        includeSsrHistoryFallback: true,
         additionalRenderers: additionalRenderers.length ? additionalRenderers : undefined,
         additionalInstancedRenderers: handles.vegetation?.renderers,
         additionalRendererMaterials,

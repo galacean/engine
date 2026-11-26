@@ -127,6 +127,9 @@ export interface TerrainPostProcessShaderWarmupState {
   readonly colorAdjustments: boolean;
   readonly sunLensFlare: boolean;
   readonly sunDirectionOverride?: readonly [x: number, y: number, z: number];
+  readonly volumetricLight?: boolean;
+  readonly volumetricLightQuality?: VolumetricLightQuality;
+  readonly volumetricLightHeightFog?: boolean;
   readonly tonemappingMode?: number;
 }
 
@@ -663,9 +666,13 @@ export class TerrainPostProcessRuntime extends Script {
     }
     const enabled = this._profileEnabled && this._postProcess.enabled;
     const bloom = enabled && this._bloom.isValid();
-    const overrideDir = this._sunLensFlare.sunDirectionOverride.value;
+    const volumetricLight = enabled && Boolean(this._volumetricLight?.isValid());
+    const overrideDir =
+      this._sunLensFlare.sunDirectionOverride.value.lengthSquared() > 1e-6
+        ? this._sunLensFlare.sunDirectionOverride.value
+        : this._volumetricLight?.sunDirectionOverride.value;
     const sunDirectionOverride =
-      overrideDir.lengthSquared() > 1e-6
+      overrideDir && overrideDir.lengthSquared() > 1e-6
         ? Object.freeze([overrideDir.x, overrideDir.y, overrideDir.z] as const)
         : undefined;
     return Object.freeze({
@@ -676,6 +683,13 @@ export class TerrainPostProcessRuntime extends Script {
       colorAdjustments: enabled && this._colorAdjustments.isValid(),
       sunLensFlare: enabled && this._sunLensFlare.isValid(),
       ...(sunDirectionOverride ? { sunDirectionOverride } : {}),
+      volumetricLight,
+      ...(volumetricLight
+        ? {
+            volumetricLightQuality: this._volumetricLight!.quality.value,
+            volumetricLightHeightFog: this._volumetricLight!.heightFalloff.value > 1e-4
+          }
+        : {}),
       tonemappingMode: enabled && this._tonemapping.isValid() ? this._tonemapping.mode.value : undefined
     });
   }

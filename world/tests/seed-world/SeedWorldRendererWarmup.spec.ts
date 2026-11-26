@@ -1,14 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   DepthTextureMode,
+  Matrix,
   MeshRenderer,
   Renderer,
   RenderQueueType,
   ScreenSpaceReflectionQuality,
   Shader,
+  ShadowType,
   SkinnedMeshRenderer,
   ShaderMacro,
-  ShaderMacroCollection
+  ShaderMacroCollection,
+  Vector3,
+  VolumetricLightQuality
 } from "@galacean/engine";
 import {
   collectSeedWorldRendererVariants,
@@ -895,6 +899,41 @@ describe("renderer warmup scope", () => {
       expect(postOpaquePass8.macros.some((m) => m.n === "SSR_DOWNSAMPLE_FROM_FULL_DEPTH")).toBe(true);
       expect(postOpaquePass8.macros.some((m) => m.n === "SSR_PACKED_HDR_REINHARD")).toBe(true);
       expect(postOpaquePass8.macros.some((m) => m.n === "SSR_PACKED_NORMAL_OCT8")).toBe(true);
+
+      // Post-reveal secondary warmup opts into `includeSsrHistoryFallback: true` so Pass 1 (BuildHiZMip0)
+      // and Pass 4 (HiZTrace without SSR_CURRENT_FRAME_COLOR) are precompiled in background, avoiding
+      // synchronous mid-roam compile hitches if runtime falls back from current-frame color to history color.
+      const postOpaqueWithFallback = collectSeedWorldRendererVariants(
+        { _macroCollection: new ShaderMacroCollection(), _hardwareRenderer: { supportsRendering: true } } as any,
+        {
+          shaderData: { _macroCollection: new ShaderMacroCollection() },
+          background: { mode: 0 },
+          screenSpaceReflection: sceneSsr
+        } as any,
+        postOpaqueCamera,
+        waterRoots,
+        {
+          includeGpuInstancing: false,
+          includeOpaqueScreenSpaceReflection: false,
+          includeSsrHistoryFallback: true
+        }
+      );
+      const fallbackSsr = postOpaqueWithFallback.filter((v) => v.shader === "Lighting/ScreenSpaceReflection");
+      expect(new Set(fallbackSsr.map((v) => v.pi))).toEqual(new Set([1, 3, 4, 5, 6, 8]));
+      const fallbackPass1 = fallbackSsr.find((v) => v.pi === 1)!;
+      expect(fallbackPass1.macros.some((m) => m.n === "SSR_DOWNSAMPLE_FROM_FULL_DEPTH")).toBe(true);
+      const fallbackPass4s = fallbackSsr.filter((v) => v.pi === 4);
+      expect(fallbackPass4s).toHaveLength(2);
+      expect(fallbackPass4s.some((v) => v.macros.some((m) => m.n === "SSR_CURRENT_FRAME_COLOR"))).toBe(true);
+      expect(
+        fallbackPass4s.some(
+          (v) =>
+            !v.macros.some((m) => m.n === "SSR_CURRENT_FRAME_COLOR") &&
+            v.macros.some((m) => m.n === "SSR_LINEAR_TRACE") &&
+            v.macros.some((m) => m.n === "SSR_PACKED_HDR_REINHARD") &&
+            v.macros.some((m) => m.n === "SSR_PACKED_NORMAL_OCT8")
+        )
+      ).toBe(true);
 
       // Linear trace mode (useLinearTrace: true) skips BuildHiZMipN (pass 2) and warms SSR_LINEAR_TRACE on HiZTrace (pass 4).
       camera.screenSpaceReflectionOverride = {
@@ -2387,5 +2426,150 @@ describe("renderer warmup scope", () => {
     } finally {
       findSpy.mockRestore();
     }
+  });
+
+  it("warms active VolumetricLight passes, Uber ENABLE_EFFECT_VOLUMETRIC_LIGHT, and custom PostProcessPass materials", () => {
+    const vlShader = {
+      name: "PostProcess/VolumetricLight",
+      destroyed: false,
+      subShaders: [
+        {
+          passes: [
+            { getTagValue: () => "Forward" },
+            { getTagValue: () => "Forward" },
+            { getTagValue: () => "Forward" },
+            { getTagValue: () => "Forward" },
+            { getTagValue: () => "Forward" }
+          ]
+        }
+      ]
+    };
+    const uberShader = {
+      name: "PostProcess/Uber",
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+    };
+    const oilPaintShader = {
+      name: "PostProcess/OilPaint",
+      destroyed: false,
+      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+    };
+    const vlMat = {
+      destroyed: false,
+      shader: vlShader,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    };
+    const uberMat = {
+      destroyed: false,
+      shader: uberShader,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    };
+    const oilPaintMat = {
+      destroyed: false,
+      shader: oilPaintShader,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    };
+    const oilPaintPass = { isActive: true, _material: oilPaintMat };
+    const engine = {
+      _macroCollection: new ShaderMacroCollection(),
+      _hardwareRenderer: { supportsRendering: true },
+      _getActivePostProcessPasses: () => [
+        { isActive: true, _uberMaterial: uberMat, _volumetricLightMaterial: vlMat },
+        oilPaintPass
+      ]
+    } as any;
+    const view = new Matrix();
+    const proj = new Matrix();
+    Matrix.lookAt(new Vector3(0, 5, 0), new Vector3(0, 5, -10), new Vector3(0, 1, 0), view);
+    Matrix.perspective((60 * Math.PI) / 180, 1.5, 0.1, 200, proj);
+    const camera = {
+      _updateShaderData() {},
+      _needFinalPass: () => true,
+      depthTextureMode: DepthTextureMode.PrePass,
+      enablePostProcess: true,
+      renderTarget: null,
+      viewMatrix: view,
+      projectionMatrix: proj,
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    } as any;
+    const frontSunScene = {
+      shaderData: { _macroCollection: new ShaderMacroCollection() },
+      background: { mode: 0 },
+      castShadows: true,
+      shadowDistance: 80,
+      sun: { reverseDirection: new Vector3(0, 0.5, -0.866), shadowType: ShadowType.Hard, shadowStrength: 1 }
+    } as any;
+    const behindSunScene = {
+      ...frontSunScene,
+      sun: { reverseDirection: new Vector3(0, 0.4, 0.916), shadowType: ShadowType.Hard, shadowStrength: 1 }
+    } as any;
+
+    const lowState = {
+      enabled: true,
+      bloom: false,
+      bloomHighQuality: false,
+      bloomDirt: false,
+      colorAdjustments: false,
+      volumetricLight: true,
+      volumetricLightQuality: VolumetricLightQuality.Low
+    };
+
+    // Primary warmup facing sun (Low): warms VolumetricLight passes 0/1/2, Uber WITH ENABLE_EFFECT_VOLUMETRIC_LIGHT,
+    // and active custom OilPaintPostPass (PostProcess/OilPaint pass 0).
+    const primaryFront = collectSeedWorldRendererVariants(engine, frontSunScene, camera, [], {
+      onlyFrustumVisible: true,
+      postProcessState: lowState
+    });
+    expect(new Set(primaryFront.filter((v) => v.shader === "PostProcess/VolumetricLight").map((v) => v.pi))).toEqual(
+      new Set([0, 1, 2])
+    );
+    const primaryFrontUber = primaryFront.filter((v) => v.shader === "PostProcess/Uber");
+    expect(primaryFrontUber).toHaveLength(1);
+    expect(primaryFrontUber[0]!.macros.some((m) => m.n === "ENABLE_EFFECT_VOLUMETRIC_LIGHT")).toBe(true);
+    expect(primaryFrontUber[0]!.macros.some((m) => m.n === "VOLUMETRIC_LIGHT_RAYMARCH")).toBe(false);
+    expect(primaryFront.some((v) => v.shader === "PostProcess/OilPaint" && v.pi === 0)).toBe(true);
+
+    // Primary warmup with sun behind camera (Low): defers VolumetricLight passes and keeps Uber WITHOUT macro.
+    const primaryBehind = collectSeedWorldRendererVariants(engine, behindSunScene, camera, [], {
+      onlyFrustumVisible: true,
+      postProcessState: lowState
+    });
+    expect(primaryBehind.some((v) => v.shader === "PostProcess/VolumetricLight")).toBe(false);
+    const primaryBehindUber = primaryBehind.filter((v) => v.shader === "PostProcess/Uber");
+    expect(primaryBehindUber).toHaveLength(1);
+    expect(primaryBehindUber[0]!.macros.some((m) => m.n === "ENABLE_EFFECT_VOLUMETRIC_LIGHT")).toBe(false);
+
+    // Full/background warmup (Low): warms passes 0/1/2 AND both Uber WITH/WITHOUT ENABLE_EFFECT_VOLUMETRIC_LIGHT.
+    const fullBehind = collectSeedWorldRendererVariants(engine, behindSunScene, camera, [], {
+      onlyFrustumVisible: false,
+      postProcessState: lowState
+    });
+    expect(new Set(fullBehind.filter((v) => v.shader === "PostProcess/VolumetricLight").map((v) => v.pi))).toEqual(
+      new Set([0, 1, 2])
+    );
+    const fullUber = fullBehind.filter((v) => v.shader === "PostProcess/Uber");
+    expect(fullUber.some((v) => v.macros.some((m) => m.n === "ENABLE_EFFECT_VOLUMETRIC_LIGHT"))).toBe(true);
+    expect(fullUber.some((v) => !v.macros.some((m) => m.n === "ENABLE_EFFECT_VOLUMETRIC_LIGHT"))).toBe(true);
+
+    // Medium/High raymarch mode: warms passes 3/4 with VOLUMETRIC_LIGHT_QUALITY & VOLUMETRIC_LIGHT_HEIGHT_FOG,
+    // plus Uber WITH VOLUMETRIC_LIGHT_RAYMARCH even when sun is behind camera (360-degree 3D raymarching).
+    oilPaintPass.isActive = false;
+    const raymarchPrimary = collectSeedWorldRendererVariants(engine, behindSunScene, camera, [], {
+      onlyFrustumVisible: true,
+      postProcessState: {
+        ...lowState,
+        volumetricLightQuality: VolumetricLightQuality.High,
+        volumetricLightHeightFog: true
+      }
+    });
+    const raymarchVl = raymarchPrimary.filter((v) => v.shader === "PostProcess/VolumetricLight");
+    expect(new Set(raymarchVl.map((v) => v.pi))).toEqual(new Set([3, 4]));
+    expect(raymarchVl[0]!.macros.some((m) => m.n === "VOLUMETRIC_LIGHT_QUALITY" && m.v === "2")).toBe(true);
+    expect(raymarchVl[0]!.macros.some((m) => m.n === "VOLUMETRIC_LIGHT_HEIGHT_FOG")).toBe(true);
+    const raymarchUber = raymarchPrimary.filter((v) => v.shader === "PostProcess/Uber");
+    expect(raymarchUber).toHaveLength(1);
+    expect(raymarchUber[0]!.macros.some((m) => m.n === "ENABLE_EFFECT_VOLUMETRIC_LIGHT")).toBe(true);
+    expect(raymarchUber[0]!.macros.some((m) => m.n === "VOLUMETRIC_LIGHT_RAYMARCH")).toBe(true);
+    expect(raymarchPrimary.some((v) => v.shader === "PostProcess/OilPaint")).toBe(false);
   });
 });
