@@ -1,0 +1,22 @@
+packages/core/src/animation/AnimationClip.ts
+  h_dd004f51a3e5ec 2,208-222,229
+packages/core/src/animation/Animator.ts
+  h_dd004f51a3e5ec 448-449,453
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  h_dd004f51a3e5ec 14-15,105-107,192,197-205,215-217,314,345,413-414,420-422
+packages/core/src/animation/animationCurve/AnimationQuaternionCurve.ts
+  h_dd004f51a3e5ec 105-132,210-216
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  h_dd004f51a3e5ec 16-17,85-91,95-96,218-222,253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "75d008ece98c753ef86c80d7d7c3e6dc99572353",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
