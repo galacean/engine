@@ -5,7 +5,6 @@
   "demos/terrain/seed-world-planner/spatial/WorldTemplateCatalog.ts": "packages/world-planning/src/spatial/WorldTemplateCatalog.ts",
   "demos/terrain/seed-world-planner/spatial/WorldTemplateEcology.ts": "packages/world-planning/src/spatial/WorldTemplateEcology.ts",
   "demos/terrain/seed-world-planner/spatial/WorldTemplateGeometry.ts": "packages/world-planning/src/spatial/WorldTemplateGeometry.ts",
-  "demos/terrain/seed-world-planner/spatial/WorldTemplatePicker.ts": "world/demos/seed-world/src/planning/spatial/WorldTemplatePicker.ts",
   "demos/terrain/seed-world-planner/spatial/WorldTemplatePlanning.ts": "packages/world-planning/src/spatial/WorldTemplatePlanning.ts",
   "demos/terrain/seed-world-planner/spatial/WorldTemplateView.ts": "packages/world-planning/src/spatial/WorldTemplateView.ts",
   "demos/terrain/seed-world-planner/spatial/runtime/WorldTemplateRuntime.ts": "packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts",

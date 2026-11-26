@@ -136,7 +136,7 @@ describe("Seed World 6-app Flash publishing", () => {
         };
       `);
       const run = (mode: string, template = "sakura-pearl", ...flags: string[]) => promisify(execFile)(process.execPath, [
-        publishScript, mode, "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
+        publishScript, mode, "--registry-mode", "direct-db", "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
         "--asap-service-dir", engineRoot, "--asap-python", registry, "--state-dir", stateDir,
         "--templates", template, ...flags
       ]);
@@ -207,6 +207,155 @@ describe("Seed World 6-app Flash publishing", () => {
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
+  });
+
+  it("publishes via ASAP HTTP /api/flash-app/register by default without direct DB access and detects version drift", async () => {
+    const engineRoot = makeTempDir("sw-http-register-");
+    const publishScript = path.join(repoRoot, "world/scripts/publish-seed-world-flash-apps.mjs");
+    const catalog = path.join(repoRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE);
+    const publisher = path.join(engineRoot, "publisher");
+    const stateDir = path.join(engineRoot, "state");
+    const artifactId = "flashapp-aa964a26bde230fb";
+    const logPath = path.join(engineRoot, "operations.jsonl");
+    const registerCalls: Array<Record<string, unknown>> = [];
+    let registerStatus = 200;
+    let registerResponse: Record<string, unknown> = {
+      success: true,
+      message: "新版本发布成功",
+      data: { artifact_id: artifactId, version_number: "2" }
+    };
+
+    const server = http.createServer((req, res) => {
+      if (req.url?.startsWith("/api/trace/versions_by_artifact")) {
+        res.writeHead(200, { "Content-Type": "application/json" }).end(
+          JSON.stringify({
+            versions: [{ artifact_version: "1", html_url: "https://render.example.com/v1/index.html" }],
+            type: "miniapp"
+          })
+        );
+        return;
+      }
+      if (req.url === "/api/flash-app/register") {
+        let body = "";
+        req.setEncoding("utf8");
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", () => {
+          registerCalls.push(JSON.parse(body));
+          res.writeHead(registerStatus, { "Content-Type": "application/json" }).end(JSON.stringify(registerResponse));
+        });
+        return;
+      }
+      res.writeHead(404).end(JSON.stringify({ success: false, message: "not found" }));
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const { port } = server.address() as { port: number };
+      write(path.join(publisher, "scripts/asap-service-url.cjs"),
+        `exports.asapServiceUrl = p => 'http://127.0.0.1:${port}' + p`);
+      write(path.join(publisher, "scripts/asap-publish.cjs"), String.raw`
+        const fs = require("node:fs");
+        exports.callAsap = request => {
+          fs.appendFileSync(${JSON.stringify(logPath)}, JSON.stringify(request) + "\n");
+          return { entry_url: "https://render.example.com/v2/index.html" };
+        };
+      `);
+      // Stub Python executable that fails if seed-world-flash-registry.py is ever invoked in default HTTP mode.
+      const dummyPython = path.join(engineRoot, ".venv/bin/python");
+      write(dummyPython, `#!/bin/sh\necho "direct-db registry should not be called in http mode" >&2\nexit 99\n`);
+      fs.chmodSync(dummyPython, 0o755);
+      write(
+        path.join(engineRoot, "world/dist/seed-world-flash-apps/oil-paint/index.html"),
+        '<html><head><meta name="seed-world-default-template" content="oil-paint" /></head></html>'
+      );
+      write(
+        path.join(publisher, "scripts/app-context.local.json"),
+        JSON.stringify({ artifactId: "flashapp-a3c0e021cb8cadb0", alipayUid: "2099123456789" })
+      );
+
+      const run = (...extra: string[]) => promisify(execFile)(process.execPath, [
+        publishScript, "--execute", "--skip-db-init",
+        "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
+        "--asap-service-dir", engineRoot, "--state-dir", stateDir,
+        "--templates", "oil-paint", ...extra
+      ]);
+
+      // 1. Default HTTP mode succeeds without direct-db registry access.
+      const ok = await run();
+      expect(ok.stdout).toContain(`| ${artifactId} | 2 | miniapp | skipped | OK |`);
+      expect(registerCalls).toHaveLength(1);
+      expect(registerCalls[0]).toEqual({
+        artifact_id: artifactId,
+        title: "Seed World · 秋林油画",
+        type: "miniapp",
+        backup_url: `leopard/sandbox/workspace/${artifactId}-2/backup_2.tar.gz`,
+        entry_url: "https://render.example.com/v2/index.html"
+      });
+      expect(JSON.parse(fs.readFileSync(path.join(stateDir, `${artifactId}.local.json`), "utf8"))).toMatchObject({
+        artifactId,
+        artifactVersion: "3",
+        lastPublishedVersion: "2"
+      });
+
+      // 2. Concurrent version drift (HTTP register allocates v4 while release targeted v3) fails loudly and advances local version.
+      registerResponse = {
+        success: true,
+        message: "新版本发布成功",
+        data: { artifact_id: artifactId, version_number: "4" }
+      };
+      await expect(run()).rejects.toMatchObject({
+        stderr: expect.stringContaining("ASAP allocated version 4 while release HTML/backup targeted 3")
+      });
+      expect(JSON.parse(fs.readFileSync(path.join(stateDir, `${artifactId}.local.json`), "utf8"))).toMatchObject({
+        artifactVersion: "5",
+        lastPublishedVersion: "4"
+      });
+
+      // 3. HTTP 409 type mismatch fails without retry.
+      registerStatus = 409;
+      registerResponse = { success: false, message: "type 不匹配" };
+      await expect(run()).rejects.toMatchObject({
+        stderr: expect.stringContaining("ASAP HTTP register rejected")
+      });
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("isolates local browser IndexedDB by explicit artifactId when present and by template otherwise", async () => {
+    const { resolveLocalWorldDbScope } = await import("../../demos/seed-world/base.js");
+    const fakeDoc = (meta: Record<string, string>) => ({
+      querySelector: (selector: string) => {
+        const match = /^meta\[name="([^"]+)"\]$/.exec(selector);
+        const content = match ? meta[match[1]] : undefined;
+        return content !== undefined ? { content } : null;
+      }
+    });
+
+    expect(resolveLocalWorldDbScope(fakeDoc({ "seed-world-default-template": "original" }), {})).toEqual({
+      name: "original",
+      importLegacyPreview: true
+    });
+    expect(resolveLocalWorldDbScope(fakeDoc({ "seed-world-default-template": "oil-paint" }), {})).toEqual({
+      name: "oil-paint",
+      importLegacyPreview: true
+    });
+    expect(
+      resolveLocalWorldDbScope(fakeDoc({ "seed-world-default-template": "original" }), {
+        artifactId: "flashapp-clone-a"
+      })
+    ).toEqual({
+      name: "flashapp-clone-a:original",
+      importLegacyPreview: false
+    });
+    expect(
+      resolveLocalWorldDbScope(
+        fakeDoc({ "seed-world-default-template": "original", "lingguang-local-db": "custom-slot" }),
+        { artifactId: "flashapp-clone-a" }
+      )
+    ).toEqual({
+      name: "custom-slot:original",
+      importLegacyPreview: false
+    });
   });
 
   it("resolves each standalone demo/Flash App strictly from its bound <meta> tag without URL ?template=", async () => {

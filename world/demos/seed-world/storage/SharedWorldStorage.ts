@@ -234,7 +234,7 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
     const version = appVersionNumber(appVersion);
     const olderApp = appVersionNumber(current.appVersion) > version;
     const head = await this.visibleHead(db, current, version);
-    if (!head) return { raw, olderApp, restoreFailed: Boolean(entryTemplate) };
+    if (!head) return { raw, olderApp };
     const { identity, checkpoint } = parseHead(head);
     if (entryTemplate && (!checkpoint || identity?.template !== entryTemplate)) {
       return { raw, olderApp, identity, restoreFailed: true };

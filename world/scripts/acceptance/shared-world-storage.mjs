@@ -203,8 +203,8 @@ try {
               };
             }
           };
-          window.artifactId = id;
           if (localDb) return;
+          window.artifactId = id;
           window.artifactVersion = String(version);
           const db = {
             role: async () => ({ role }),

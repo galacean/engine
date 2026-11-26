@@ -1,6 +1,6 @@
 ---
 name: seed-world-flash-publish
-description: 将 Seed World 构建为共享公共层、共享 MDN CDN 与共享源码快照的 6 个独立模板灵光闪应用产物（original 复用旧 Artifact，其余 5 模板各自独立 Artifact），校验根入口、classic Worker 与 PUGC 扩展名兼容，并复用 PUGC 的建表和部署接口，由 ASAP 分配发布版本。触发词：发布这个闪应用、发布闪应用、发布成灵光闪应用、更新闪应用、灵光闪应用上架、发布六个模板闪应用。不用于本地 ASAP/Wrapper 联调（见 seed-world-local-debug）。
+description: 将 Seed World 构建为共享公共运行时与共享 MDN CDN、以各自静态产物作为 OSS 备份的 6 个独立模板灵光闪应用产物（original 复用旧 Artifact，其余 5 模板各自独立 Artifact），校验根入口、classic Worker 与 PUGC 扩展名兼容，并通过 ASAP HTTP 注册接口完成建表、上传、部署与版本核对。触发词：发布这个闪应用、发布闪应用、发布成灵光闪应用、更新闪应用、灵光闪应用上架、发布六个模板闪应用。不用于本地 ASAP/Wrapper 联调（见 seed-world-local-debug）。
 ---
 
 # Seed World 灵光闪应用发布（6 模板独立应用版）
@@ -10,7 +10,7 @@ description: 将 Seed World 构建为共享公共层、共享 MDN CDN 与共享�
 
 ## 架构概览：1 次公共构建 + 6 份轻量应用派生
 
-Seed World 对外发布为 **6 个独立灵光闪应用**，但完全复用同一套公共运行时、MDN CDN 资产与源码快照：
+Seed World 对外发布为 **6 个独立灵光闪应用**，完全复用同一套公共运行时与 MDN CDN 资产：
 
 | 模板 ID | 默认标题 | Artifact 策略 |
 | --- | --- | --- |
@@ -75,7 +75,7 @@ python3 -m http.server 4180 --bind 127.0.0.1 --directory world/dist/seed-world-f
 
 ## 4. 执行 6 应用 PUGC 编排发布
 
-统一使用 `world/scripts/publish-seed-world-flash-apps.mjs`。默认干跑。执行时让 ASAP 的 `SERVER_ENV`、Artifact 注册库连接和 `ASAP_SERVICE_BASE_URL` 指向同一环境。编排器会用该环境的一条已发布记录核对注册库，然后依次预留版本、按该版本建表和打包、上传部署、提交预留版本。每个 Artifact 的归档放入独立临时目录。
+统一使用 `world/scripts/publish-seed-world-flash-apps.mjs`（默认 `--dry-run`，默认 `--registry-mode http`）。执行时先查询线上最新版本对齐目标版本号，依次完成首次建表（如需）、独立临时目录打包与 OSS 上传、雨燕部署，并通过 `POST /api/flash-app/register` 完成注册与版本一致性核对（研发机无需直连 OceanBase/Layotto；若发生并发版本漂移会自动报错并推进本地版本号便于局部重试）。仅在具备 ASAP 数据库直连/Layotto 的发布机上可显式传 `--registry-mode direct-db` 做预占版本发布。
 
 **PUGC 兼容性。** PUGC 默认分支的独立 CLI 读取共享的 `app-context.local.json`，且可能为不同应用生成同名的临时备份。Seed World 编排器只读取该配置并复用 PUGC 的底层助手，独立准备上下文和归档。
 ```bash
@@ -111,13 +111,13 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
   --timeout 300
 ```
 
-远端部署失败时，预留的版本仍处于未发布状态。只重试失败的模板，ASAP 会分配新版本。建表结果未确认时，脚本会读回实际表结构，确认 `world_save` 是符合预期的 Share 表后继续。
+远端部署或注册失败时，已成功模板的状态与新 ID 均已落盘，只重试失败模板即可；若在默认 HTTP 模式下发生并发版本漂移，本地版本号会自动推进，按提示重跑失败模板即可对齐。建表结果未确认时，脚本会读回实际表结构，确认 `world_save` 是符合预期的 Share 表后继续。
 
 ## 5. 交付与发布后验收清单
 
 交付时报告：
 - Engine 路径、分支、commit、是否存在未提交改动（若更新了 `world/demos/seed-world/flash-app-cdn-manifest.json` 或首次回写了 `world/demos/seed-world/flash-apps.json` 中的 5 个新 `artifactId`，明确提醒提交这两个文件）；
-- 产物统计（公共基座与 6 份派生目录文件数/体积、共享源码快照体积与压缩包体积）；
+- 产物统计（公共基座与 6 份派生静态目录文件数/体积）；
 - **6 应用发布汇总表**：每个模板的 `templateId`、`title`、`artifactId`、`artifactVersion`、`type`、建表状态与 `Entry URL`（不输出任何凭据、私钥或 `alipayUid`）。
 
 并明确提醒用户完成线上侧验收：

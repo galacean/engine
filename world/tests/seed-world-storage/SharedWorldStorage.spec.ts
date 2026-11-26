@@ -1093,6 +1093,18 @@ describe("Lingguang shared world checkpoints", () => {
     expect((await SharedWorldStorage.select(db, "2", identity.template)).checkpoint).toBeDefined();
   });
 
+  it("reports olderApp without restoreFailed when a newer checkpoint has no visible archive for the entry template", async () => {
+    const { db, sql } = instance();
+    seedLegacy(sql, project());
+    sql.exec("UPDATE world_save SET payload=json_set(payload,'$.appVersion','2') WHERE id='world'");
+    const selection = await SharedWorldStorage.select(db, "1", identity.template);
+    expect(selection.raw).toBeTypeOf("string");
+    expect(selection.olderApp).toBe(true);
+    expect(selection.identity).toBeUndefined();
+    expect(selection.checkpoint).toBeUndefined();
+    expect(selection.restoreFailed).toBeUndefined();
+  });
+
   it("keeps a retirement list larger than the 100000-character column limit in hashed index blocks", async () => {
     const { sql, open } = instance();
     seedLegacy(sql, project());
