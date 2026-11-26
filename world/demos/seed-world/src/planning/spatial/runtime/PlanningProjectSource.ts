@@ -64,6 +64,7 @@ import {
 } from "@galacean/engine-water/water/native/WaterMaterial";
 import { withSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
+import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 
 const ownedProperties = new Map<string, readonly string[]>([
   [WATER_COMPONENT, ["authoring", "enabled"]],
@@ -434,6 +435,29 @@ export function readPlanningProjectSource(draft: RuntimeProjectEdit, path: strin
   return document;
 }
 
+const lakeMaterial = "Water/Materials/lake.mat";
+
+function templateLakeMaterials(template: string, document: PlanningDocument, plan?: IslandPlan) {
+  if (template !== "titan-wasteland" && template !== "low-poly" && template !== "oil-paint") return [];
+  return (WORLD_TEMPLATE_ART[template]?.water ?? [])
+    .map(pool => ({
+      pool,
+      entityId: `lake:authored:template:${template}:water:${pool.id}`,
+      target: `Water/Materials/template-${template}-${pool.id}.mat`
+    }))
+    .filter(({ entityId }) => document.entities[entityId]?.components.lakes?.values.enabled ||
+      plan?.waters.some(water => water.id === entityId && water.kind === "lake" && water.lake));
+}
+
+/** A saved project can register the base material without keeping its contents in memory. */
+export function templateLakeSourceToLoad(pack: RuntimeProjectPackage, document: PlanningDocument, plan?: IslandPlan): string | undefined {
+  if (pack.contents[lakeMaterial] !== undefined) return;
+  const materials = templateLakeMaterials(templateId(document), document, plan);
+  if (!materials.length) return;
+  const assets = new Set(pack.project.files.map(file => file.virtualPath));
+  if (assets.has(lakeMaterial) && materials.some(({ target }) => !assets.has(target))) return lakeMaterial;
+}
+
 /** Update owned records in the existing Scene. Unrelated objects and stable IDs survive. */
 export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: string, document: PlanningDocument): void {
   const desired = exportPlanningScene(document),
@@ -441,17 +465,10 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
   const assets = new Set(draft.list().map((file) => file.virtualPath));
   const templateWaterMaterials = new Map<string, string>();
   const activeTemplateId = templateId(document);
-  const lakeMaterial = "Water/Materials/lake.mat";
-  if (
-    (activeTemplateId === "titan-wasteland" || activeTemplateId === "low-poly" || activeTemplateId === "oil-paint") &&
-    assets.has(lakeMaterial)
-  ) {
+  if (assets.has(lakeMaterial)) {
     const isLowPoly = activeTemplateId === "low-poly";
     const isOilPaint = activeTemplateId === "oil-paint";
-    for (const pool of WORLD_TEMPLATE_ART[activeTemplateId]?.water ?? []) {
-      const entityId = `lake:authored:template:${activeTemplateId}:water:${pool.id}`;
-      if (!document.entities[entityId]?.components.lakes?.values.enabled) continue;
-      const target = `Water/Materials/template-${activeTemplateId}-${pool.id}.mat`;
+    for (const { pool, entityId, target } of templateLakeMaterials(activeTemplateId, document)) {
       if (!assets.has(target)) {
         const file = JSON.parse(draft.read(lakeMaterial) as string) as WaterMaterialFile;
         if (file.shaderData && Object.keys(file.shaderData).length > 0) {

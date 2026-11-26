@@ -10,6 +10,7 @@ import {
 } from "../../../demos/seed-world/SeedWorldProject";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog.ts";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization.ts";
+import { createTemplatePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring.ts";
 import {
   PlanningProjectStorage,
   PLANNING_PROJECT_PATH
@@ -135,6 +136,43 @@ it.each(["runtime", "planning"] as const)(
     expect((await restoredStorage.load(42))?.entities.world.components.world.values.landCoverage).toBe(0.6);
   }
 );
+
+it("retries a template switch using the saved project's lazy lake material", async () => {
+  const f = storageFixture();
+  const lake = "Water/Materials/lake.mat";
+  const project = await openSeedWorldProject(f.url);
+  await project.save();
+  project.dispose();
+  const saved = f.records.get(project.id)!;
+  const file = saved.project.files.find(asset => asset.virtualPath === lake)!;
+  const material = JSON.parse(await readCatalogFile(file.path));
+  material.shaderData.material_CustomValue = { type: "Float", value: 0.37 };
+  file.path = new URL("custom-lake.mat", f.url).href;
+  delete saved.contents[lake];
+
+  const restored = await openSeedWorldProject(f.url);
+  sessions.push(restored);
+  expect(restored.projectPackage.contents[lake]).toBeUndefined();
+  const storage = new PlanningProjectStorage(restored);
+  const dry = createTemplatePlanningDocument(42, "low-poly");
+  dry.entities["lake:authored:template:low-poly:water:valley-pond"].components.lakes.values.enabled = false;
+  await storage.save(dry, "disable-pond", true);
+  expect(restored.projectPackage.contents[lake]).toBeUndefined();
+  const document = createTemplatePlanningDocument(42, "titan-wasteland");
+  const variant = "Water/Materials/template-titan-wasteland-oasis-lagoon.mat";
+  f.fetcher.mockClear();
+  f.fetcher.mockImplementationOnce(async () => new Response(null, { status: 503 }));
+  await expect(storage.save(document, "apply-titan", true)).rejects.toThrow("503");
+  expect(restored.projectPackage.project.files.some(asset => asset.virtualPath === variant)).toBe(false);
+  expect((await storage.load(42))?.entities.world.components.worldTemplate.values.id).toBe("low-poly");
+
+  f.fetcher.mockImplementationOnce(async () => new Response(JSON.stringify(material)));
+  await storage.save(document, "retry-titan", true);
+  expect(f.fetcher.mock.calls.map(([url]) => String(url))).toEqual([file.path, file.path]);
+  const derived = JSON.parse(restored.projectPackage.contents[variant] as string);
+  expect(derived.shaderData.material_CustomValue).toEqual(material.shaderData.material_CustomValue);
+  expect(JSON.parse(restored.projectPackage.contents[lake] as string)).toEqual(material);
+});
 
 it("closes the session and leaves storage untouched if catalog preparation fails", async () => {
   const f = storageFixture();
