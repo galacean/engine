@@ -1,0 +1,70 @@
+packages/core/src/Camera.ts
+  h_a3c79ce84ffdc2 20,63-64,821
+packages/core/src/Engine.ts
+  h_a3c79ce84ffdc2 681
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_a3c79ce84ffdc2 1,11,32,37-46,51-54,71-80,95-106,114-121,139-143,171,173-176,206-211,214-219,228,272-274,279-282,401,403-409,466-491
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  h_a3c79ce84ffdc2 39
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  h_a3c79ce84ffdc2 50
+packages/core/src/RenderPipeline/PipelinePass.ts
+  h_a3c79ce84ffdc2 1-6,9-40,46-76,78
+packages/core/src/RenderPipeline/RenderTargetPool.ts
+  h_a3c79ce84ffdc2 9,202-210
+packages/core/src/Scene.ts
+  h_a3c79ce84ffdc2 14,65-66
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  h_a3c79ce84ffdc2 6-11,57-58,61-71,74-76,139,150-196
+packages/core/src/lighting/index.ts
+  h_a3c79ce84ffdc2 8
+packages/core/src/lighting/screenSpaceReflection/SSRConfig.ts
+  h_a3c79ce84ffdc2 1-7,17-42,44-45,47-53,55-72,76-78,81-334
+packages/core/src/lighting/screenSpaceReflection/SSRDepthOccluderCuller.ts
+  h_a3c79ce84ffdc2 11-12,14-15,20-23,31,45-58,60-92,101,104-105,108-120
+packages/core/src/lighting/screenSpaceReflection/SSRForwardProgramResolver.ts
+  h_a3c79ce84ffdc2 11,137-140,145,150,156-157,184-185
+packages/core/src/lighting/screenSpaceReflection/SSRHistoryState.ts
+  h_a3c79ce84ffdc2 2,4-5,76-77,81-142
+packages/core/src/lighting/screenSpaceReflection/SSRPyramidBuilder.ts
+  h_a3c79ce84ffdc2 1-600
+packages/core/src/lighting/screenSpaceReflection/SSRResourceManager.ts
+  h_a3c79ce84ffdc2 1-542
+packages/core/src/lighting/screenSpaceReflection/SSRTraceExecutor.ts
+  h_a3c79ce84ffdc2 1-591
+packages/core/src/lighting/screenSpaceReflection/SSRUtils.ts
+  h_a3c79ce84ffdc2 1-388
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  h_a3c79ce84ffdc2 8-16,31,40-43,45,47,61-62,76-77,91-92,106-107,121-122,136-137,144-145,154
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_a3c79ce84ffdc2 1,6-10,16-17,21-25,30,42,47-51,54,60,69-71,80-89,91,96-100,107,109-110,114-115,119,122-123,125,129-130,134,138,140-144,147,156,159-160,163-169,171-174,178-180,182-188,190,192,196-197,199,201,208,211,219,227,230-231,233,235-238,242,244,248-250,252-257,259,262-265,270,275-276,284-286,289,292-294,297-298,301-302,304-306,309-313,316-318,321-323,326-328,331,334-335,337-338,340-353,355-356,363-368,370-378,380-383,385-389,392-396,400-401,403,406-415,418-422,424-428,431-433,436-441,444-446,448-449,452-467,471-478,481-484,487-497,500-501,504-510,513-519,522
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionQuality.ts
+  h_a3c79ce84ffdc2 5,7,9,11
+packages/core/src/lighting/screenSpaceReflection/index.ts
+  h_a3c79ce84ffdc2 2
+packages/core/src/postProcess/FinalPass.ts
+  h_a3c79ce84ffdc2 58
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_a3c79ce84ffdc2 71
+packages/loader/src/SceneLoader.ts
+  h_a3c79ce84ffdc2 31,159-169
+packages/loader/src/schema/SceneSchema.ts
+  h_a3c79ce84ffdc2 7,58-67
+tests/src/core/RenderPipeline/BasicRenderPipeline.test.ts
+  h_a3c79ce84ffdc2 1-214
+tests/src/core/RenderPipeline/RenderTargetPool.test.ts
+  h_a3c79ce84ffdc2 128-149
+tests/src/core/lighting/ScreenSpaceReflection.test.ts
+  h_a3c79ce84ffdc2 7,18,32,67-110,327,332,344,346,353-354,361,364,366-369,377,380,382-389,392,394-401,458-465,504-506,512-514,518-521,525-526,532,534,536-537,540-542,544,549,551-554,559-560,567-569,575,578-581,585,587,589,591,593-595,634-637,649,652,661,825,888-890,921,939-944,988-989,993,1230-1235,1401,1478,1480,1542-1543,1577,1579,1581,1583,1764,1798,1822,1845,1856-1864,1867,1899-1900,1909,1916,1934-1935,1939,1946,1959-1960,1963,1970,1985-1986,1992,2027,2029,2088,2093,2127,2129,2137-2144,2165-2166,2170-2171,2175,2297-2298,2305,2312,2336-2340,2345,2349,2352,2357,2359-2361,2366,2368-2369,2455,2457,2580-2585,2646,2663-2665,2672-2674,2678,2684-2686,2865,2867-2868,2874-2877,2884,2928,2930,2933,2935-2945,2993-3000,3002-3054,3081-3082,3091-3092,3101-3103,3117-3118,3129-3130,3136-3137,3184,3204,3483,3491,3510-3511,3516,3521,3523,3585,3631-3633,3641,3720,3758-3759,3764-3771,3783,3787,3804,3807,3810,3814-3815,3817-3825,3828,3833,3836,3839-3840,3844,4063,4230-4232,4240-4241,4246,4250,4284-4285,4293,4296-4300,4374-4375,4386,4388-4389,4407,4411,4416,4541,4550,4561,4583-4584,4824-4826,4830-4831,4843,4881,4920-4921,4926,4944,4971,4978-4979,4981-4984,4987-4996,4999-5000,5002-5006,5009-5010,5012,5016-5017,5019-5022,5025,5027-5028,5030,5033-5034,5036-5046,5155,5169,5186-5265,5307,5339,5517-5518,5542-5544,5550,5566,5574,5583,5609,5611-5613,5615,5617,5619-5620,5623-5624,5627-5628,5631-5632,5634,5636-5637,5673-5674,5680,5693,5733-5735,5743,5762-5764,5766-5769,5771-5774,5776-5782,5784-5800,5832,5867
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "45d9e526d568e0050eecb0915de35101b903d05a",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

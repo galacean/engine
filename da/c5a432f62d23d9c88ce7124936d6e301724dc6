@@ -1,0 +1,27 @@
+packages/core/src/physics/Collider.ts
+  s_b2443e4dfc4aa1::t_0ec5a8831c584b 249
+packages/core/src/physics/Rigidbody.ts
+  s_b2443e4dfc4aa1::t_899b64fcfb18ef 744-746
+packages/core/src/physics/joint/HingeJoint.ts
+  s_b2443e4dfc4aa1::t_6a708b2ccd4056 242-243
+tests/src/core/physics/MeshCollider.test.ts
+  s_b2443e4dfc4aa1::t_3c5f139a5ea5d2 1388-1389
+tests/src/core/physics/PhysicsScene.test.ts
+  s_b2443e4dfc4aa1::t_1bc20d95ccbd94 45-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dac5a432f62d23d9c88ce7124936d6e301724dc6",
+  "prompts": {},
+  "sessions": {
+    "s_b2443e4dfc4aa1": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a211c0-5d94-764f-afdb-89bf246b5af6",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

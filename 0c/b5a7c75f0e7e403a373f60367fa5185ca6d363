@@ -1,0 +1,39 @@
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_a906facbc0e1c1::t_ff362cd1034206 182
+  s_a906facbc0e1c1::t_95dfb0de96ec61 6,8-10,24,82-84,90-91,108,110,179,184,190,192,194,196-197
+  s_a906facbc0e1c1::t_5cb53e720dd5f2 26,28-29,85,88-89,174,176
+  s_a906facbc0e1c1::t_1c3cf70bee379d 7,25,27,81,86-87,92,181,183,191,195
+  s_a906facbc0e1c1::t_f5c2c343e52fae 79-80
+  s_a906facbc0e1c1::t_efc37dc7f95ee2 43-48,50-58,185-189
+  s_a906facbc0e1c1::t_655918301424aa 39-40,59-68,70,78,112,151-154,159,164,169,175,180
+tests/src/loader/PrefabResource.test.ts
+  s_a906facbc0e1c1::t_ff362cd1034206 12
+  s_a906facbc0e1c1::t_67f1b4bcea9039 31,487,493-496,523-524,1062-1065
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_a906facbc0e1c1::t_95dfb0de96ec61 228-229
+  s_a906facbc0e1c1::t_fcedcd27690b58 185,189,198,201-203,209-210,243,247,257
+packages/core/src/physics/Collider.ts
+  s_a906facbc0e1c1::t_efc37dc7f95ee2 53-54
+  s_a906facbc0e1c1::t_f0e44ba6142894 44-52,55-57,522,524-526,531-545,557-558
+tests/src/core/physics/Collider.test.ts
+  s_a906facbc0e1c1::t_f472cdfb21ad4f 289-307
+tests/src/loader/SceneFormatV2.test.ts
+  s_a906facbc0e1c1::t_f472cdfb21ad4f 528,536,541,571-572
+  s_a906facbc0e1c1::t_efc37dc7f95ee2 529-535,542-547,555-560
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0cb5a7c75f0e7e403a373f60367fa5185ca6d363",
+  "prompts": {},
+  "sessions": {
+    "s_a906facbc0e1c1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210ed-3fc5-7302-b74d-8f2376b79692",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
