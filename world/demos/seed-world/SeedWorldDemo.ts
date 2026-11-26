@@ -87,7 +87,8 @@ import {
 import type { SeedWorldPickVisitor } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
-import type { WorldSelection } from "./storage/SharedWorldStorage";
+import type { SeedWorldSaveSelection } from "./storage/SeedWorldStorageHost";
+import { SharedWorldStorage } from "./storage/SharedWorldStorage";
 import { seedWorldStorageHost } from "./storage/SeedWorldStorageHost";
 import { openSeedWorldProject } from "./SeedWorldProject.ts";
 import {
@@ -309,7 +310,7 @@ export async function mountSeedWorldDemo(
     persistPlayerState?: boolean;
     assetSources?: readonly ProjectFileProvider[];
     retrievalManifestUrl?: string;
-    storageSelection?: WorldSelection;
+    storageSelection?: SeedWorldSaveSelection;
   } = {}
 ): Promise<void> {
   let showAssistant = options.showAssistant !== false;
@@ -683,6 +684,7 @@ export async function mountSeedWorldDemo(
       runtimeReleaseIndex++;
     }
   };
+  const editorRestore: { pending?: { resumeWrites: () => void; migratingLegacy: boolean } } = {};
   const dispose = createSeedWorldProjectClose(
     async () => {
       tools?.dispose();
@@ -698,7 +700,7 @@ export async function mountSeedWorldDemo(
       await playerState?.dispose();
     },
     async () => {
-      await runtimeProject?.save();
+      if (!editorRestore.pending) await runtimeProject?.save();
     },
     async () => {
       await disposeRuntime();
@@ -741,13 +743,10 @@ export async function mountSeedWorldDemo(
         .catch(closeFailure);
     };
   };
-  window.addEventListener(
-    "pagehide",
-    () => {
-      void dispose().catch((error) => console.error("Seed World close failed", error));
-    },
-    { once: true }
-  );
+  const onPageHide = () => {
+    void dispose().catch((error) => console.error("Seed World close failed", error));
+  };
+  window.addEventListener("pagehide", onPageHide, { once: true });
   try {
     // Overlap Planning Worker boot and startup asset bundle fetches with WebGLEngine + Loading Orb initialization.
     planningWorker.prewarm();
@@ -986,7 +985,9 @@ export async function mountSeedWorldDemo(
       ).setDownloadUrls?.(urls);
     }
     runtimeProject = await timed("openSeedWorldProject", () =>
-      openSeedWorldProject(pageUrl, initialProject, prefetchedTextAssets, options.storageSelection)
+      openSeedWorldProject(pageUrl, initialProject, prefetchedTextAssets, options.storageSelection, (resumeWrites, migratingLegacy) => {
+        editorRestore.pending = { resumeWrites, migratingLegacy };
+      })
     );
     if (disposed) {
       runtimeProject.dispose();
@@ -3493,12 +3494,32 @@ export async function mountSeedWorldDemo(
     shaderAudit?.setPhase("post-ready");
     disconnectEditorAssets = timed("tools.connectProject", () => tools!.application.connectProject(runtimeProject!));
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
-    if (typeof savedEditor === "string")
-      await timed("restoreEditorDocument", () =>
-        tools!.application.restoreEditorDocument(JSON.parse(savedEditor), editorLifetime.signal, {
-          restoreCamera: false
-        })
-      );
+    try {
+      if (typeof savedEditor === "string") {
+        await timed("restoreEditorDocument", () =>
+          tools!.application.restoreEditorDocument(JSON.parse(savedEditor), editorLifetime.signal, { restoreCamera: false })
+        );
+      }
+      if (editorRestore.pending) {
+        const { resumeWrites, migratingLegacy } = editorRestore.pending;
+        resumeWrites();
+        if (migratingLegacy) await startupSaveTask;
+        editorRestore.pending = undefined;
+      }
+    } catch (error) {
+      if (!editorRestore.pending || disposed || editorLifetime.signal.aborted) throw error;
+      const { migratingLegacy } = editorRestore.pending;
+      const readOnly = !runtimeProject.canSave;
+      console.warn("恢复编辑器存档失败，将初始化入口模板", error);
+      await dispose();
+      window.removeEventListener("pagehide", onPageHide);
+      shell.remove();
+      const host = await seedWorldStorageHost();
+      const storageSelection = migratingLegacy && host
+        ? { ...await SharedWorldStorage.select(host.db, host.appVersion, requestedTemplateId), skipLegacyPreview: true }
+        : { olderApp: readOnly, restoreFailed: true };
+      return mountSeedWorldDemo(handoff, { ...options, storageSelection });
+    }
     if (disposed) throw new Error("Seed page disposed during editor restoration");
     if (debugSidebar) debugSidebar.setInputEnabled(true);
     else {

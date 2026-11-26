@@ -3,9 +3,14 @@ import { PLANNING_PROJECT_TYPE } from "./src/planning/spatial/runtime/PlanningPr
 import { planningFarmingAssetFormats } from "./src/planning/spatial/farming/PlanningFarmingAssets.ts";
 import type { RuntimeAssetFormat } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
+import { TERRAIN_SEASON_DEFAULT_COMPOSITIONS } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
 import { plantProjectFormats } from "@galacean/engine-world-planning/integrations/vegetation/PlantProjectFormats";
 
 export const SEED_WORLD_EDITOR_PATH = "World/Editor.json";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
 
 const jsonAssetFormat = nativeAssetFormats(() => ({})).get("JSON")!;
 export const seedWorldProjectFormats: ReadonlyMap<string, RuntimeAssetFormat> = new Map<string, RuntimeAssetFormat>([
@@ -58,17 +63,33 @@ export const seedWorldProjectFormats: ReadonlyMap<string, RuntimeAssetFormat> = 
         if (typeof content !== "string") throw new Error("Expected world editor JSON text");
         const value = JSON.parse(content);
         if (
-          value.format !== "seed-world-editor" ||
+          value?.format !== "seed-world-editor" ||
           value.version !== 2 ||
           !Number.isSafeInteger(value.revision) ||
           value.revision < 0 ||
-          !value.settings ||
+          !isRecord(value.settings) ||
           !Array.isArray(value.memory?.tags) ||
-          !Array.isArray(value.memory?.namedSelections) ||
-          !Number.isSafeInteger(value.memory?.semanticSerial) ||
+          !value.memory.tags.every((tag: unknown) =>
+            Array.isArray(tag) && typeof tag[0] === "string" && Array.isArray(tag[1]) &&
+            tag[1].every((label: unknown) => typeof label === "string")
+          ) ||
+          !Array.isArray(value.memory.namedSelections) ||
+          !value.memory.namedSelections.every((entry: unknown) =>
+            Array.isArray(entry) && typeof entry[0] === "string" && typeof entry[1]?.id === "string" &&
+            Array.isArray(entry[1]?.selection?.items)
+          ) ||
+          !Number.isSafeInteger(value.memory.semanticSerial) ||
           value.memory.semanticSerial < 0
         )
           throw new Error("Invalid world editor document");
+        const environment = value.settings.environment;
+        if (environment !== undefined && (
+          !isRecord(environment) ||
+          (environment.season !== undefined &&
+            (typeof environment.season !== "string" || !Object.hasOwn(TERRAIN_SEASON_DEFAULT_COMPOSITIONS, environment.season)))
+        )) {
+          throw new Error("Invalid world editor environment");
+        }
       },
       // Current world authoring records use world IDs, not native project asset references.
       referenceTypes: [],

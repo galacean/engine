@@ -9,7 +9,6 @@ const insert = "insert into world_save (id, generation, part_no, payload) values
 const update = "update world_save set payload = ? where id = ?";
 const compareAndSet = update + " and payload = ?";
 const remove = "delete from world_save where generation = ?";
-const legacyPreviewDatabase = "lingguang-world-save:null";
 
 function openDatabase(name, create = true) {
   return new Promise((resolve, reject) => {
@@ -50,36 +49,6 @@ function transact(db, mode, operation) {
       reject(error);
     }
   });
-}
-
-async function restoreLegacyPreview(target, template) {
-  const readHead = (rows, done) => {
-    const request = rows.get("world");
-    request.onsuccess = () => done(request.result);
-  };
-  if (await transact(target, "readonly", readHead)) return;
-  const legacy = await openDatabase(legacyPreviewDatabase, false);
-  if (!legacy) return;
-  try {
-    const entries = await transact(legacy, "readonly", (rows, done) => {
-      readHead(rows, (head) => {
-        let identity;
-        try { identity = head && JSON.parse(head.payload); }
-        catch { return; } // Keep an unidentifiable legacy checkpoint in its original database.
-        if (identity?.template !== template) return;
-        const request = rows.getAll();
-        request.onsuccess = () => done(request.result);
-      });
-    });
-    if (!entries) return;
-    // The head check and copy are atomic. Another tab may already have restored
-    // this template and saved a newer checkpoint during the legacy read.
-    await transact(target, "readwrite", (rows) => readHead(rows, (head) => {
-      if (!head) for (const entry of entries) rows.put(entry);
-    }));
-  } finally {
-    legacy.close();
-  }
 }
 
 function checkPayload(value) {
@@ -168,9 +137,8 @@ function execute(rows, sql, binds, done) {
   }
 }
 
-export function createLocalWorldDb(name, { restoreUnscopedPreview = false } = {}) {
+export function createLocalWorldDb(name, { create = true } = {}) {
   const databaseName = "lingguang-world-save:" + JSON.stringify(name);
-  let legacyRestore;
   /** @template T
    * @param {IDBTransactionMode} mode
    * @param {(rows: IDBObjectStore, sql: string, binds: Array<string | number>, done: (data: T) => void) => void} operation
@@ -180,8 +148,8 @@ export function createLocalWorldDb(name, { restoreUnscopedPreview = false } = {}
   async function run(mode, operation, input, emptyData) {
     let db;
     try {
-      db = await openDatabase(databaseName);
-      if (restoreUnscopedPreview) await (legacyRestore ??= restoreLegacyPreview(db, name));
+      db = await openDatabase(databaseName, create);
+      if (!db) return { success: true, data: emptyData };
       const sql = input.sql.trim().replace(/;$/, "").replace(/\s+/g, " ").toLowerCase();
       return { success: true, data: await transact(db, mode, (rows, done) => operation(rows, sql, input.binds, done)) };
     } catch (error) {

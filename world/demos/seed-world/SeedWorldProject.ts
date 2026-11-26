@@ -1,6 +1,6 @@
 import { PublishedWorldAssets } from "./storage/PublishedWorldAssets";
 import { SharedWorldStorage, WORLD_SAVE_VERSION, type WorldSelection } from "./storage/SharedWorldStorage";
-import { seedWorldStorageHost } from "./storage/SeedWorldStorageHost";
+import { loadSeedWorldLegacyPreview, seedWorldStorageHost, selectSeedWorldSave, type SeedWorldSaveSelection } from "./storage/SeedWorldStorageHost";
 import "@galacean/engine-building/building/parts/index";
 import "@galacean/engine-building/building/parts/BuildingParts";
 import { registerBuildingAssetComponents } from "@galacean/engine-building/building/resources/BuildingAssetKit";
@@ -11,7 +11,7 @@ import { Loader } from "@galacean/engine";
 import "@galacean/engine-world-planning/runtime/script-registry";
 import { registerNativeFarming } from "@galacean/engine-farming/farming/native/index";
 import { registerPlanningFarmingAssets } from "./src/planning/spatial/farming/PlanningFarmingAssets.ts";
-import { seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
+import { SEED_WORLD_EDITOR_PATH, seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
 import { seedWorldScriptModules } from "./systems/SeedWorldScriptModules.ts";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { RuntimeProjectStorage, type RuntimeProjectBackend, type RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
@@ -25,6 +25,7 @@ import { resolvePlantJSONReferences } from "@galacean/engine-vegetation/asset-as
 import { importRuntimeHierarchy, assertRuntimeHierarchyEquivalent } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-hierarchy-source";
 import { compileProjectResource } from "@galacean/engine-project/runtime-editor/scene/runtime-project-compiler";
 import { planningSourceIdentity, validatePlanningProject } from "./src/planning/spatial/runtime/PlanningProjectSource.ts";
+import { PLANNING_PROJECT_PATH, PlanningProjectStorage } from "./src/planning/spatial/runtime/PlanningProjectStorage.ts";
 import { registerPlantProjectAssets } from "@galacean/engine-world-planning/integrations/vegetation/PlantProjectFormats";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { registerNativeWater } from "@galacean/engine-water/water/native/index";
@@ -125,7 +126,8 @@ export async function openSeedWorldProject(
   pageUrl: URL,
   initial?: RuntimeProjectManifest,
   prefetchedTextAssets?: ReadonlyMap<string, string>,
-  selection?: WorldSelection
+  selection?: SeedWorldSaveSelection,
+  guardEditorRestore?: (resumeWrites: () => void, migratingLegacy: boolean) => void
 ): Promise<RuntimeProjectSession> {
   const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
   const raw = pageUrl.searchParams.get("seed");
@@ -170,6 +172,8 @@ export async function openSeedWorldProject(
     try {
       if (published && project.isPersistent && project.canSave) project.observeAssetReads((file, content) => published.recordRead(file, content));
       project.registerAssetFormats(seedWorldProjectFormats);
+      const savedEditor = project.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
+      if (savedEditor !== undefined) seedWorldProjectFormats.get("SeedWorldEditor")!.validate(savedEditor);
       await seedWorldBootTrace.span("openSeedWorldProject.migrateBuildingAssetPaths", () =>
         migrateBuildingAssetPaths(project, initialProject, projectUrl, prefetchedTextAssets)
       );
@@ -188,7 +192,12 @@ export async function openSeedWorldProject(
       await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#2", () =>
         project.initializeDependencies()
       );
-      if (project.restoredFromStorage) validatePlanningProject(project.projectPackage);
+      if (project.restoredFromStorage) {
+        validatePlanningProject(project.projectPackage);
+        if (project.projectPackage.contents[PLANNING_PROJECT_PATH] !== undefined) {
+          await new PlanningProjectStorage(project, seedWorldProjectFormats).load(seed);
+        }
+      }
       project.registerProjectValidator(validatePlanningProject);
       return project;
     } catch (error) {
@@ -203,25 +212,70 @@ export async function openSeedWorldProject(
     return project;
   }
 
+  const target = host;
+  const identity = { seed, template };
   let initializingFresh = false;
-  try {
-    selection ??= await SharedWorldStorage.select(host.db, host.appVersion, template);
-    if (!selection.restoreFailed) {
-      const storage = await SharedWorldStorage.open(
-        host.db, host.readOnly, host.appVersion, { seed, template }, published,
-        host.importLegacyPreview ? readLegacyPreview : undefined,
-        planningSourceIdentity, selection
-      );
-      const resumeWrites = storage.deferWrites();
-      const opened = await openSession(storage);
-      if (selection.checkpoint && !opened.restoredFromStorage) {
-        opened.dispose();
-      } else {
-        initializingFresh = !opened.restoredFromStorage;
-        const project = await prepareProject(opened);
-        resumeWrites();
-        return project;
+  async function prepareSharedProject(
+    chosen: WorldSelection,
+    legacy?: Awaited<ReturnType<typeof readLegacyPreview>>
+  ) {
+    const migratingLegacy = legacy !== undefined;
+    const storage = await SharedWorldStorage.open(
+      target.db, target.readOnly, target.appVersion, identity, published,
+      legacy && (async () => legacy), planningSourceIdentity, chosen
+    );
+    const resumeWrites = storage.deferWrites();
+    let opened: RuntimeProjectSession;
+    try {
+      opened = await openSession(storage);
+    } catch (error) {
+      storage.close();
+      throw error;
+    }
+    if (chosen.checkpoint && !opened.restoredFromStorage) {
+      opened.dispose();
+      return undefined;
+    }
+    initializingFresh = !opened.restoredFromStorage;
+    const project = await prepareProject(opened);
+    if (guardEditorRestore && project.restoredFromStorage && project.projectPackage.contents[SEED_WORLD_EDITOR_PATH] !== undefined) {
+      guardEditorRestore(resumeWrites, migratingLegacy);
+      return project;
+    }
+    resumeWrites();
+    if (migratingLegacy) {
+      try {
+        await project.save();
+      } catch (error) {
+        project.dispose();
+        throw error;
       }
+    }
+    return project;
+  }
+
+  try {
+    selection ??= await selectSeedWorldSave(host, template);
+    if (host.importLegacyPreview && !selection.skipLegacyPreview && !selection.restoreFailed && selection.raw === undefined) {
+      try {
+        const legacy = selection.legacyPreview;
+        const saved = legacy?.identity?.seed === seed
+          ? await loadSeedWorldLegacyPreview(host, identity, legacy)
+          : await readLegacyPreview(projectId);
+        if (saved) {
+          const project = await prepareSharedProject(selection, saved);
+          if (project) return project;
+        }
+      } catch (error) {
+        console.warn("恢复旧浏览器存档失败，将重新打开入口存档", error);
+        // The source was read-only. Honor a named checkpoint created by another tab.
+        selection = await SharedWorldStorage.select(host.db, host.appVersion, template);
+        initializingFresh = false;
+      }
+    }
+    if (!selection.restoreFailed) {
+      const project = await prepareSharedProject(selection);
+      if (project) return project;
     }
   } catch (error) {
     if (initializingFresh) throw error;

@@ -17,12 +17,9 @@ import {
   loadFlashAppsCatalog
 } from "../../scripts/flash-app-variants.mjs";
 import {
-  assertPublisherSupportsContextPath,
   isValidAlipayUidForDb,
   loadLocalState,
-  parseDeployStdout,
   resolveAppReleasePlan,
-  resolvePerAppContextPath,
   saveLocalState,
   selectTargetApps
 } from "../../scripts/publish-seed-world-flash-apps.mjs";
@@ -44,22 +41,22 @@ afterEach(() => {
 });
 
 describe("Seed World 6-app Flash publishing", () => {
-  it("stops before invoking PUGC when a selected Artifact version cannot be verified", async () => {
+  it("publishes the service-allocated version and isolates concurrent Artifacts", async () => {
     const engineRoot = makeTempDir("sw-version-check-");
     const publishScript = path.join(repoRoot, "world/scripts/publish-seed-world-flash-apps.mjs");
     const catalog = path.join(repoRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE);
     const publisher = path.join(engineRoot, "publisher");
     const stateDir = path.join(engineRoot, "state");
-    const deployMarker = path.join(engineRoot, "deploy-called");
+    const artifacts = { "sakura-pearl": "flashapp-35f3d2be4fb20307", "oil-paint": "flashapp-aa964a26bde230fb" };
+    const logPath = path.join(engineRoot, "operations.jsonl");
+    const entryUrl = "https://render.example.com/v1/index.html";
     const write = (file: string, text: string) => {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, text);
     };
     let responseStatus = 503;
     let responseBody: unknown = { error: "Unavailable" };
-    const versionRequests: Array<string | undefined> = [];
-    const server = http.createServer((req, res) => {
-      versionRequests.push(req.url);
+    const server = http.createServer((_req, res) => {
       res.writeHead(responseStatus).end(JSON.stringify(responseBody));
     });
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -67,43 +64,85 @@ describe("Seed World 6-app Flash publishing", () => {
       const { port } = server.address() as { port: number };
       write(path.join(publisher, "scripts/asap-service-url.cjs"),
         `exports.asapServiceUrl = path => 'http://127.0.0.1:${port}' + path`);
-      write(path.join(publisher, "scripts/app-context.cjs"), "module.exports = process.env.FLASH_APP_CONTEXT_PATH");
-      write(path.join(publisher, "scripts/deploy.cjs"), `
+      write(path.join(publisher, "scripts/asap-publish.cjs"), String.raw`
         const fs = require("node:fs");
-        const contextPath = process.env.FLASH_APP_CONTEXT_PATH;
-        const context = JSON.parse(fs.readFileSync(contextPath));
-        fs.writeFileSync(${JSON.stringify(deployMarker)}, context.artifactVersion);
-        console.log("Version: " + context.artifactVersion);
-        context.artifactVersion = String(Number(context.artifactVersion) + 1);
-        fs.writeFileSync(contextPath, JSON.stringify(context));
+        const { execFileSync } = require("node:child_process");
+        exports.callAsap = request => {
+          const html = request.local_file && request.local_file.includes("release_")
+            ? execFileSync("tar", ["-xOzf", request.local_file, "index.html"], { encoding: "utf8" })
+            : undefined;
+          fs.appendFileSync(${JSON.stringify(logPath)}, JSON.stringify({ ...request, html }) + "\n");
+          return { entry_url: "https://render.example.com/v3/index.html" };
+        };
       `);
+      const registry = path.join(engineRoot, "registry");
+      write(registry, String.raw`#!${process.execPath}
+        const fs = require("node:fs");
+        const request = JSON.parse(fs.readFileSync(0, "utf8"));
+        fs.appendFileSync(${JSON.stringify(logPath)}, JSON.stringify(request) + "\n");
+        const result = request.operation === "verify"
+          ? { matches: request.version === "1" && request.entryUrl === ${JSON.stringify(entryUrl)} }
+          : { version: "3" };
+        console.log("SEED_WORLD_REGISTRY " + JSON.stringify(result));
+      `);
+      fs.chmodSync(registry, 0o755);
       write(path.join(engineRoot, "world/dist/seed-world-flash-source/source.txt"), "source");
-      write(path.join(engineRoot, "world/dist/seed-world-flash-apps/sakura-pearl/index.html"), "<html></html>");
-      const run = (mode: string, ...flags: string[]) => promisify(execFile)(process.execPath, [
+      for (const template of Object.keys(artifacts)) {
+        write(path.join(engineRoot, "world/dist/seed-world-flash-apps", template, "index.html"), "<html><head></head></html>");
+      }
+      const publisherContext = path.join(publisher, "scripts/app-context.local.json");
+      const context = JSON.stringify({ artifactId: "flashapp-a3c0e021cb8cadb0", alipayUid: "2099123456789" });
+      write(publisherContext, context);
+      write(path.join(engineRoot, "world/demos/seed-world/storage/world_save.sql"), "CREATE TABLE world_save ...");
+      write(path.join(publisher, "scripts/asap-remote-skill.cjs"), String.raw`
+        exports.callRemoteSkill = async request => {
+          require("node:fs").appendFileSync(${JSON.stringify(logPath)}, JSON.stringify({ operation: "ddl", ...request.payload }) + "\n");
+        };
+      `);
+      const run = (mode: string, template = "sakura-pearl", ...flags: string[]) => promisify(execFile)(process.execPath, [
         publishScript, mode, "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
-        "--asap-service-dir", engineRoot, "--asap-python", process.execPath, "--state-dir", stateDir,
-        "--templates", "sakura-pearl", "--skip-db-init", ...flags
+        "--asap-service-dir", engineRoot, "--asap-python", registry, "--state-dir", stateDir,
+        "--templates", template, ...flags
       ]);
 
       await expect(run("--execute")).rejects.toMatchObject({ stderr: expect.stringContaining("HTTP 503") });
       expect((await run("--dry-run")).stderr).toContain("showing the local estimate");
-
       responseStatus = 200;
-      responseBody = { data: { versions: [{ artifact_version: "unknown" }] } };
+      responseBody = { versions: [{ artifact_version: "unknown" }] };
       await expect(run("--execute")).rejects.toMatchObject({ stderr: expect.stringContaining("Invalid Artifact version") });
-      await expect(run("--execute", "--skip-online-check")).rejects.toMatchObject({
+      await expect(run("--execute", "sakura-pearl", "--skip-online-check")).rejects.toMatchObject({
         stderr: expect.stringContaining("only supported with --dry-run")
       });
       expect(fs.existsSync(stateDir)).toBe(false);
-      expect(fs.existsSync(deployMarker)).toBe(false);
+      expect(fs.existsSync(logPath)).toBe(false);
 
-      responseBody = { versions: [] };
-      await run("--execute");
-      expect(fs.readFileSync(deployMarker, "utf8")).toBe("1");
-      responseBody = { versions: [{ artifact_version: "3" }, { artifact_version: "5" }] };
-      await run("--execute");
-      expect(fs.readFileSync(deployMarker, "utf8")).toBe("6");
-      expect(versionRequests).toEqual(Array(5).fill("/api/trace/versions_by_artifact?artifact_id=flashapp-35f3d2be4fb20307"));
+      responseBody = { versions: [{ artifact_version: "1", html_url: "https://wrong.example.com/" }] };
+      await expect(run("--execute")).rejects.toMatchObject({ stderr: expect.stringContaining("ASAP registry does not match") });
+      expect(fs.existsSync(stateDir)).toBe(false);
+      expect(fs.readFileSync(logPath, "utf8").trim().split("\n").length).toBe(1);
+      fs.rmSync(logPath);
+
+      // The HTTP endpoint shows v1, while v2 already exists as a draft in the registry.
+      responseBody = { versions: [{ artifact_version: "1", html_url: entryUrl }] };
+      const results = await Promise.all(Object.keys(artifacts).map((template) => run("--execute", template)));
+      const calls = fs.readFileSync(logPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+      for (const [index, [template, artifactId]] of Object.entries(artifacts).entries()) {
+        const prefix = `leopard/sandbox/workspace/${artifactId}-3/`;
+        const backupOss = prefix + "backup_3.tar.gz";
+        const appCalls = calls.filter((call) => call.artifactId === artifactId || call.object_name?.startsWith(prefix));
+        expect(appCalls.map((call) => call.operation)).toEqual(["verify", "reserve", "ddl", "upload", "upload", "deploy", "publish"]);
+        expect(appCalls[2]).toMatchObject({ artifactVersion: "3", params: { table_kind: "share" } });
+        expect(appCalls[3].object_name).toBe(backupOss);
+        expect(path.basename(path.dirname(appCalls[3].local_file))).toContain(artifactId);
+        expect(appCalls[4].html).toContain(`window.artifactId = "${artifactId}"`);
+        expect(appCalls[4].html).toContain('window.artifactVersion = "3"');
+        expect(appCalls[6]).toMatchObject({ version: "3", backupOss, entryUrl: "https://render.example.com/v3/index.html" });
+        expect(JSON.parse(fs.readFileSync(path.join(stateDir, artifactId + ".local.json"), "utf8"))).toMatchObject({
+          templateId: template, artifactId, artifactVersion: "4", lastPublishedVersion: "3", lastBackupOss: backupOss
+        });
+        expect(results[index].stdout).toContain(`| ${artifactId} | 3 | miniapp | initialized | OK |`);
+      }
+      expect(fs.readFileSync(publisherContext, "utf8")).toBe(context);
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
@@ -207,7 +246,7 @@ describe("Seed World 6-app Flash publishing", () => {
     }
   });
 
-  it("builds 6-app publish plans, guards original ID mismatch, mints 5 IDs only with --init-missing, and restores app-context.local.json", async () => {
+  it("builds 6-app publish plans, guards original ID mismatch, mints 5 IDs only with --init-missing, and keeps local state per Artifact", async () => {
     const catalog = loadFlashAppsCatalog(path.join(repoRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE));
     const subset = selectTargetApps(catalog, "original,oil-paint");
     expect(subset.map((a) => a.templateId)).toEqual(["original", "oil-paint"]);
@@ -294,46 +333,7 @@ describe("Seed World 6-app Flash publishing", () => {
     expect(isValidAlipayUidForDb("2099123456789")).toBe(true);
     expect(isValidAlipayUidForDb("2088123456789")).toBe(false);
 
-    const parsedOut = parseDeployStdout(`
-Artifact ID: flashapp-a3c0e021cb8cadb0
-Version: 56
-Entry URL: https://render.lingguangcontent.com/test/index.html
-Backup OSS: leopard/sandbox/workspace/flashapp-a3c0e021cb8cadb0-56/backup_56.tar.gz
-`);
-    expect(parsedOut.artifactId).toBe("flashapp-a3c0e021cb8cadb0");
-    expect(parsedOut.version).toBe("56");
-    expect(parsedOut.entryUrl).toBe("https://render.lingguangcontent.com/test/index.html");
-
-    // Per-app FLASH_APP_CONTEXT_PATH isolation + preflight guard on app-context.cjs
-    const fakePublisher = makeTempDir("sw-fake-pugc-");
-    const scriptsDir = path.join(fakePublisher, "scripts");
-    fs.mkdirSync(scriptsDir, { recursive: true });
-    fs.writeFileSync(path.join(scriptsDir, "app-context.cjs"), "const APP_CONTEXT_PATH = 'legacy';\n", "utf8");
-    expect(() => assertPublisherSupportsContextPath(fakePublisher)).toThrow(/FLASH_APP_CONTEXT_PATH/);
-    fs.writeFileSync(
-      path.join(scriptsDir, "app-context.cjs"),
-      "const APP_CONTEXT_PATH = process.env.FLASH_APP_CONTEXT_PATH || 'app-context.local.json';\n",
-      "utf8"
-    );
-    expect(() => assertPublisherSupportsContextPath(fakePublisher)).not.toThrow();
-
     const stateDir = path.join(makeTempDir("sw-state-"), "apps");
-    expect(
-      resolvePerAppContextPath(
-        stateDir,
-        fakePublisher,
-        { templateId: "original", artifactId: "flashapp-a3c0e021cb8cadb0", reuseExisting: true },
-        { artifactId: "flashapp-a3c0e021cb8cadb0" }
-      )
-    ).toBe(path.join(scriptsDir, "app-context.local.json"));
-    expect(
-      resolvePerAppContextPath(
-        stateDir,
-        fakePublisher,
-        { templateId: "oil-paint", artifactId: "flashapp-aa964a26bde230fb", reuseExisting: false },
-        { artifactId: "flashapp-a3c0e021cb8cadb0" }
-      )
-    ).toBe(path.join(stateDir, "contexts/flashapp-aa964a26bde230fb.local.json"));
 
     // Heterogeneous catalog types (`original`=game, 5 new=miniapp) resolve cleanly without --type,
     // reject conflicting global --type on multi-app runs, and allow --type on single-template runs.

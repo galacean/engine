@@ -1,6 +1,6 @@
 ---
 name: seed-world-flash-publish
-description: 将 Seed World 构建为共享公共层、共享 MDN CDN 与共享源码快照的 6 个独立模板灵光闪应用产物（original 复用旧 Artifact，其余 5 模板各自独立 Artifact），校验根入口、classic Worker 与 PUGC 扩展名兼容，并通过 pugc-flash-app-2 编排完成建表、上传、注册与线上验收指导。触发词：发布这个闪应用、发布闪应用、发布成灵光闪应用、更新闪应用、灵光闪应用上架、发布六个模板闪应用。不用于本地 ASAP/Wrapper 联调（见 seed-world-local-debug）。
+description: 将 Seed World 构建为共享公共层、共享 MDN CDN 与共享源码快照的 6 个独立模板灵光闪应用产物（original 复用旧 Artifact，其余 5 模板各自独立 Artifact），校验根入口、classic Worker 与 PUGC 扩展名兼容，并复用 PUGC 的建表和部署接口，由 ASAP 分配发布版本。触发词：发布这个闪应用、发布闪应用、发布成灵光闪应用、更新闪应用、灵光闪应用上架、发布六个模板闪应用。不用于本地 ASAP/Wrapper 联调（见 seed-world-local-debug）。
 ---
 
 # Seed World 灵光闪应用发布（6 模板独立应用版）
@@ -15,25 +15,25 @@ Seed World 对外发布为 **6 个独立灵光闪应用**，但完全复用同�
 | 模板 ID | 默认标题 | Artifact 策略 |
 | --- | --- | --- |
 | `original` | `Seed World AIChat` | **复用已有** `flashapp-a3c0e021cb8cadb0` 与现有版本线 |
-| `sakura-pearl` | `Seed World · 樱雪仙境` | 独立新申请 Artifact ID（首次建表 + 发布 v1） |
-| `emerald-forest` | `Seed World · 萤光巨木森林` | 独立新申请 Artifact ID（首次建表 + 发布 v1） |
-| `low-poly` | `Seed World · Low Poly` | 独立新申请 Artifact ID（首次建表 + 发布 v1） |
-| `titan-wasteland` | `Seed World · 幻兽荒原` | 独立新申请 Artifact ID（首次建表 + 发布 v1） |
-| `oil-paint` | `Seed World · 秋林油画` | 独立新申请 Artifact ID（首次建表 + 发布 v1） |
+| `sakura-pearl` | `Seed World · 樱雪仙境` | 独立 Artifact ID（首次发布时建表） |
+| `emerald-forest` | `Seed World · 萤光巨木森林` | 独立 Artifact ID（首次发布时建表） |
+| `low-poly` | `Seed World · Low Poly` | 独立 Artifact ID（首次发布时建表） |
+| `titan-wasteland` | `Seed World · 幻兽荒原` | 独立 Artifact ID（首次发布时建表） |
+| `oil-paint` | `Seed World · 秋林油画` | 独立 Artifact ID（首次发布时建表） |
 
 - **共享公共构建**：`build-seed-world-flash-app.mjs` 只执行 1 次 Vite 生产构建产出 `world/dist/seed-world-flash-app`，再按 `world/demos/seed-world/flash-apps.json` 自动派生 6 份运行目录 `world/dist/seed-world-flash-apps/<templateId>`。
 - **6 个独立 Demo / 严格单模板入口**：仓库提供 6 个独立 Demo HTML（`world/demos/seed-world/{index,sakura-pearl,emerald-forest,low-poly,titan-wasteland,oil-paint}.html`），每个 Demo 与对应派生闪应用均通过 `<meta name="seed-world-default-template" content="<templateId>" />` 与独立 `<title>` 绑定唯一模板。应用内已彻底移除 6 选 1 启动弹窗、规划器风格切换、`?template=` 参数与跨模板恢复逻辑。
 - **共享 CDN 与共享源码快照**：6 个模板（含 `oil-paint`）均走 SWB1 分包 + `mdn.alipayobjects.com` 不可变直链；6 个应用的 `--source-dir` 共用 1 份通用源码快照 `world/dist/seed-world-flash-source`（`< 100 MiB`，1 次未压缩构建逐文件 SHA-256 校验）。
 - **配置与状态分离**：
   - 仓库静态目录：`world/demos/seed-world/flash-apps.json`（记录 6 模板 ID、默认标题、线上 `artifactId` 与逐应用 `type`：`original` 为 `game`，其余 5 应用为 `miniapp`，**绝不存放 `alipayUid` 或凭据**）。
-  - 发布结果按 Artifact 分文件保存在 `~/.config/galacean-flash-app/apps/<artifactId>.local.json`，权限为 `0600`。通过 `FLASH_APP_CONTEXT_PATH` 将对应应用的发布上下文传给 PUGC。
+  - 发布结果按 Artifact 分文件保存在 `~/.config/galacean-flash-app/apps/<artifactId>.local.json`，权限为 `0600`。建表请求显式携带对应应用的 Artifact ID 和 ASAP 分配的版本。
 
 ## 1. 发布前核对
 
 1. 选定 Engine 提交，记录路径、分支和 HEAD。用独立 Git 工作树做 npm 发布构建。若要纳入当前未提交的应用源码，明确范围并应用到发布工作树。影响源码快照重建的原生引擎改动须纳入所选提交。
-2. 仅打包时执行第 2 节。发布时还需定位含 `scripts/deploy.cjs` 与 `scripts/db-update-table-schema.cjs` 的 PUGC checkout（`PUBLISHER_ROOT`，建议指向绑定 `flashapp-a3c0e021cb8cadb0` 的 `pugc-flash-app-2-seed-world`），以及具备 `.venv/bin/python` 的 ASAP checkout（`ASAP_SERVICE_DIR`）。
+2. 仅打包时执行第 2 节。发布时还需定位含 `scripts/asap-publish.cjs` 与 `scripts/asap-remote-skill.cjs` 的 PUGC checkout（`PUBLISHER_ROOT`，建议指向绑定 `flashapp-a3c0e021cb8cadb0` 的 `pugc-flash-app-2-seed-world`），以及具备 `.venv/bin/python` 和目标环境 Artifact 注册库读写权限的 ASAP checkout（`ASAP_SERVICE_DIR`）。
 3. 核对 `world/demos/seed-world/flash-apps.json` 与对应 Artifact 的本机状态文件。
-   - `original` 必须继续绑定 `flashapp-a3c0e021cb8cadb0`（`type: "game"`），其余 5 应用使用清单中各自登记的 `artifactId` 与 `type: "miniapp"`；发布前通过 `GET /api/trace/versions_by_artifact` 自动对齐线上最新版本号。多应用批量发布不要传全局 `--type`（避免覆盖异构类型导致 Step 5 失败）。
+   - `original` 必须继续绑定 `flashapp-a3c0e021cb8cadb0`（`type: "game"`），其余 5 应用使用清单中各自登记的 `artifactId` 与 `type: "miniapp"`；干跑通过 `GET /api/trace/versions_by_artifact` 查看已发布版本。执行时由 ASAP 分配正式版本。批量发布使用清单中的逐应用类型。
    - **首次创建其余 5 个新模板应用前**，必须先经用户明确确认新申请 5 个 ID 与标题，并确保 PUGC `app-context.local.json` 或对应 Artifact 状态文件已填好 `2099...` 开头的 `alipayUid`，以便为 5 个新应用自动执行首次 `world_save.sql` 建表。
 
 ## 2. 使用 npm 打包（1 次公共构建 + 6 份模板派生）
@@ -75,14 +75,11 @@ python3 -m http.server 4180 --bind 127.0.0.1 --directory world/dist/seed-world-f
 
 ## 4. 执行 6 应用 PUGC 编排发布
 
-统一使用 `world/scripts/publish-seed-world-flash-apps.mjs`（默认 `--dry-run`，需显式传 `--execute` 才会调用远端建表/上传/注册）。脚本通过 `FLASH_APP_CONTEXT_PATH` 为 6 个应用各自隔离上下文文件，不临时覆写共享 `app-context.local.json`。
+统一使用 `world/scripts/publish-seed-world-flash-apps.mjs`。默认干跑。执行时让 ASAP 的 `SERVER_ENV`、Artifact 注册库连接和 `ASAP_SERVICE_BASE_URL` 指向同一环境。编排器会用该环境的一条已发布记录核对注册库，然后依次预留版本、按该版本建表和打包、上传部署、提交预留版本。每个 Artifact 的归档放入独立临时目录。
 
-**PUGC 兼容性。** 当前 PUGC 默认分支只读取 `scripts/app-context.local.json`。如果 `PUBLISHER_ROOT` 指向该版本，Engine 脚本会拒绝 `--execute`，包括只选一个模板的情况。可继续构建，或用 `--dry-run --skip-online-check` 核对本地发布计划。执行发布需要 PUGC 的建表、发布和版本回写都遵循 `FLASH_APP_CONTEXT_PATH`。
-
-旧版 PUGC 的源码备份使用共享的临时文件名 `backup_<版本号>.tar.gz`。不同 Artifact 发布同一版本时可能互相覆盖备份。只有确认 PUGC 为每次发布分配了独立的临时备份目录，才可并发执行不同 Artifact 的发布。
-
+**PUGC 兼容性。** PUGC 默认分支的独立 CLI 读取共享的 `app-context.local.json`，且可能为不同应用生成同名的临时备份。Seed World 编排器只读取该配置并复用 PUGC 的底层助手，独立准备上下文和归档。
 ```bash
-# 1. 先干跑核对 6 应用计划表（Artifact ID、目标版本、逐应用 type、是否需要首次建表）
+# 1. 先干跑核对 6 应用计划表（Artifact ID、版本估计、逐应用 type、是否需要首次建表）
 node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
   --engine-root "$ENGINE_WORKTREE_ROOT" \
   --publisher-root "$PUBLISHER_ROOT" \
@@ -114,7 +111,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
   --timeout 300
 ```
 
-若 `GET /api/trace/versions_by_artifact` 未返回 `--type`，按 `original` 实际登记类型显式补充 `--type game` 或 `--type miniapp`。若某应用雨燕已返回入口但 Step 5 登记失败，先核对线上版本与 OSS 备份，确认尚未登记后复用入口重试登记。
+远端部署失败时，预留的版本仍处于未发布状态。只重试失败的模板，ASAP 会分配新版本。
 
 ## 5. 交付与发布后验收清单
 

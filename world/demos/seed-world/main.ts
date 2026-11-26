@@ -1,6 +1,5 @@
 import "./src/installInsecureContextCryptoFallback.ts";
-import { seedWorldStorageHost } from "./storage/SeedWorldStorageHost";
-import { SharedWorldStorage, type WorldSelection } from "./storage/SharedWorldStorage";
+import { seedWorldStorageHost, selectSeedWorldSave, type SeedWorldSaveSelection } from "./storage/SeedWorldStorageHost";
 import type { PlanningWorldHandoff } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
 import { planningStartupSeed } from "./src/planning/spatial/PlanningStartupSeed.ts";
 import { resolveAppTemplate } from "./src/planning/spatial/FlashAppTemplateBinding.ts";
@@ -12,7 +11,7 @@ import {
 import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
 
 /** The planning preview and native Seed page have independent renderer lifetimes. */
-async function enterSeedWorld(handoff?: PlanningWorldHandoff, selection?: WorldSelection): Promise<void> {
+async function enterSeedWorld(handoff?: PlanningWorldHandoff, selection?: SeedWorldSaveSelection): Promise<void> {
   document.getElementById("planning-app")?.remove();
   document.body.classList.remove("island-plan-page", "base-map-page");
   document.body.dataset.mode = "world";
@@ -60,15 +59,14 @@ async function start(): Promise<void> {
   const page = planningPageUrl();
   const storage = await seedWorldStorageHost();
   const appTemplate = resolveAppTemplate();
-  const selection: WorldSelection | undefined = storage && await SharedWorldStorage
-    .select(storage.db, storage.appVersion, appTemplate)
+  const selection: SeedWorldSaveSelection | undefined = storage && await selectSeedWorldSave(storage, appTemplate)
     .catch((error) => {
       console.warn("读取世界存档失败，将初始化入口模板", error);
       return { olderApp: false, restoreFailed: true };
     });
   const saved = selection?.raw === undefined ? undefined : selection;
   const readOnly = storage?.readOnly || saved?.olderApp;
-  const seed = saved?.identity?.seed ?? planningStartupSeed(page.url.searchParams);
+  const seed = (saved?.identity ?? selection?.legacyPreview?.identity)?.seed ?? planningStartupSeed(page.url.searchParams);
   let updateUrl = page.url.searchParams.get("seed") !== String(seed);
   if (readOnly && !selection?.restoreFailed && (!saved || (saved.olderApp && !saved.identity))) {
     const message = document.createElement("p");

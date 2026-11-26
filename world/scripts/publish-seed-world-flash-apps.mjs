@@ -4,13 +4,11 @@
  *
  * - Static app metadata (`templateId`, `title`, `artifactId`, `type`) lives in `world/demos/seed-world/flash-apps.json`.
  * - Each Artifact keeps its local publish state in its own file in `~/.config/galacean-flash-app/apps/`.
- * - Each template runs `db-update-table-schema.cjs` and `deploy.cjs` with its own `FLASH_APP_CONTEXT_PATH`,
- *   so apps stay isolated without mutating or locking a shared `app-context.local.json`.
+ * - ASAP reserves each version before packaging. The release and its source backup use that version.
  *
  * Defaults to `--dry-run`. Pass `--execute` to perform remote DB/OSS/Yuyan/PUGC operations.
  */
 
-import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import {
   chmodSync,
@@ -31,6 +29,9 @@ import {
   loadFlashAppsCatalog
 } from "./flash-app-variants.mjs";
 
+import { callFlashRegistry, deploySeedWorldFlashApp } from "./deploy-seed-world-flash-app.mjs";
+
+const require = createRequire(import.meta.url);
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultEngineRoot = resolve(scriptDirectory, "../..");
 const defaultStateDir = join(homedir(), ".config/galacean-flash-app/apps");
@@ -369,41 +370,8 @@ export function resolveAppReleasePlan({
   };
 }
 
-export function parseDeployStdout(output) {
-  const text = String(output || "");
-  const matchField = (label) => {
-    const m = text.match(new RegExp(`^\\s*${label}:\\s*(.+)$`, "m"));
-    return m ? m[1].trim() : null;
-  };
-  return {
-    artifactId: matchField("Artifact ID"),
-    version: matchField("Version"),
-    entryUrl: matchField("Entry URL"),
-    backupOss: matchField("Backup OSS"),
-    failedStep: text.match(/失败步骤:\s*(.+)/)?.[1]?.trim() || null,
-    errorMessage: text.match(/错误信息:\s*(.+)/)?.[1]?.trim() || null
-  };
-}
-
-export function resolvePerAppContextPath(stateDir, publisherRoot, item, publisherContext) {
-  if (item.reuseExisting && publisherRoot && publisherContext?.artifactId === item.artifactId) {
-    return resolve(publisherRoot, "scripts/app-context.local.json");
-  }
-  return resolve(stateDir, "contexts", artifactStateFileName(item.artifactId));
-}
-
-export function assertPublisherSupportsContextPath(publisherRoot) {
-  const helperPath = resolve(publisherRoot, "scripts/app-context.cjs");
-  if (!existsSync(helperPath) || !readFileSync(helperPath, "utf8").includes("FLASH_APP_CONTEXT_PATH")) {
-    throw new Error(
-      `${helperPath} does not support FLASH_APP_CONTEXT_PATH. Update pugc-flash-app-2/scripts/app-context.cjs first.`
-    );
-  }
-}
-
 export async function queryOnlineArtifactInfo(publisherRoot, artifactId) {
   const urlHelperPath = resolve(publisherRoot, "scripts/asap-service-url.cjs");
-  const require = createRequire(import.meta.url);
   try {
     if (!existsSync(urlHelperPath)) throw new Error(`Missing ${urlHelperPath}`);
     const { asapServiceUrl } = require(urlHelperPath);
@@ -415,13 +383,17 @@ export async function queryOnlineArtifactInfo(publisherRoot, artifactId) {
     const versions = data?.versions ?? data;
     if (json?.success === false || !Array.isArray(versions)) throw new Error("Invalid version list");
     let latestVersion = null;
+    let entryUrl = null;
     for (const version of versions) {
       const value = String(version?.version_number ?? version?.artifact_version ?? version?.version ?? "");
       const number = Number(value);
       if (!/^[0-9]+$/u.test(value) || !Number.isSafeInteger(number) || number < 1) {
         throw new Error("Invalid Artifact version");
       }
-      if (latestVersion === null || number > latestVersion) latestVersion = number;
+      if (latestVersion === null || number > latestVersion) {
+        latestVersion = number;
+        entryUrl = version.html_url ?? version.release_output_url ?? null;
+      }
     }
     const rawType = data?.type ?? data?.artifact_type ?? versions[0]?.type ?? versions[0]?.artifact_type;
     const type =
@@ -430,7 +402,7 @@ export async function queryOnlineArtifactInfo(publisherRoot, artifactId) {
         : rawType === "miniapp" || rawType === 2 || rawType === "2"
           ? "miniapp"
           : null;
-    return { latestVersion, type };
+    return { latestVersion, type, entryUrl };
   } catch (error) {
     throw new Error(`Could not verify online version for ${artifactId}: ${error.message}`, { cause: error });
   }
@@ -456,12 +428,12 @@ function printHelp() {
   console.log(`Usage:
   node world/scripts/publish-seed-world-flash-apps.mjs [options]
 
-Default mode is --dry-run (prints the exact 6-app publish plan without touching OSS/DB/PUGC).
-Pass --execute to perform remote DB schema initialization and PUGC deployments.
+Default mode is --dry-run (shows the 6-app plan and estimated versions without remote writes).
+Pass --execute to reserve ASAP versions, deploy and publish the builds.
 
 Options:
   --engine-root <dir>         Release worktree root (default: repo root)
-  --publisher-root <dir>      PUGC checkout containing scripts/deploy.cjs (or env PUBLISHER_ROOT)
+  --publisher-root <dir>      PUGC checkout containing scripts/asap-publish.cjs (or env PUBLISHER_ROOT)
   --asap-service-dir <dir>    ASAP checkout containing .venv/bin/python (or env ASAP_SERVICE_DIR)
   --asap-python <path>        Override ASAP Python path (default: <asap-service-dir>/.venv/bin/python)
   --templates <all|csv>       Templates to publish (default: all)
@@ -470,25 +442,13 @@ Options:
   --state-dir <path>          Per-Artifact state directory (default: ~/.config/galacean-flash-app/apps)
   --init-missing              Explicitly mint new Artifact IDs for templates with artifactId=null
   --sync-catalog              Write newly minted Artifact IDs back to world/demos/seed-world/flash-apps.json
-  --skip-db-init              Skip running db-update-table-schema.cjs for new templates
+  --skip-db-init              Skip creating world_save tables for new templates
   --skip-online-check        Preview the plan offline (requires --dry-run)
   --allow-context-mismatch    Allow publisher app-context.local.json artifactId to differ from original catalog
   --timeout <seconds>         Per-app deploy timeout in seconds (default: 300)
   --dry-run                   Preview plan only (default)
-  --execute                   Execute DB initialization and PUGC deployment
+  --execute                   Reserve versions and publish via ASAP
 `);
-}
-
-function runSubprocess(command, args, { cwd, env }) {
-  const res = spawnSync(command, args, { cwd, env, encoding: "utf8" });
-  if (res.stdout) process.stdout.write(res.stdout);
-  if (res.stderr) process.stderr.write(res.stderr);
-  return {
-    status: res.status ?? 1,
-    stdout: res.stdout || "",
-    stderr: res.stderr || "",
-    error: res.error || null
-  };
 }
 
 function printSummaryTable(rows, newlyMinted) {
@@ -555,7 +515,7 @@ async function main() {
         templateId: item.templateId,
         title: item.title,
         artifactId: item.artifactId,
-        version: item.targetVersion,
+        version: `~${item.targetVersion}`,
         type: item.type,
         dbStatus: item.needsDbInit ? "will-init" : item.dbInitialized ? "ready" : "skipped",
         status: existsSync(join(item.projectDir, "index.html")) ? "dry-run (build ready)" : "dry-run (build missing)",
@@ -567,8 +527,8 @@ async function main() {
     return;
   }
 
-  if (!options.publisherRoot || !existsSync(resolve(options.publisherRoot, "scripts/deploy.cjs"))) {
-    throw new Error("Missing valid --publisher-root containing scripts/deploy.cjs");
+  if (!options.publisherRoot || !existsSync(resolve(options.publisherRoot, "scripts/asap-publish.cjs"))) {
+    throw new Error("Missing valid --publisher-root containing scripts/asap-publish.cjs");
   }
   if (!options.asapServiceDir) {
     throw new Error("Missing --asap-service-dir (or env ASAP_SERVICE_DIR)");
@@ -585,6 +545,7 @@ async function main() {
 
   // Validate pre-conditions for every selected app BEFORE making any remote calls.
   for (const item of plan.items) {
+    artifactStateFileName(item.artifactId);
     if (!existsSync(join(item.projectDir, "index.html"))) {
       throw new Error(
         `Missing derived Flash App directory for "${item.templateId}": ${item.projectDir}. Run build:seed-world-flash-app first.`
@@ -606,13 +567,38 @@ async function main() {
     }
   }
 
-  assertPublisherSupportsContextPath(options.publisherRoot);
+  const registry = (request) => callFlashRegistry(asapPython, options.asapServiceDir, request);
+  // Ensure that the ASAP Python environment and the PUGC HTTP settings refer to the same registry.
+  let published = plan.items.find((item) => onlineInfoByTemplate[item.templateId]?.entryUrl);
+  if (!published) {
+    const original = catalog.apps.find((app) => app.reuseExisting && app.artifactId);
+    if (original) {
+      onlineInfoByTemplate[original.templateId] ??= await queryOnlineArtifactInfo(options.publisherRoot, original.artifactId);
+      published = original;
+    }
+  }
+  const reference = published && onlineInfoByTemplate[published.templateId];
+  if (!reference?.entryUrl || !registry({
+    operation: "verify", artifactId: published.artifactId,
+    version: String(reference.latestVersion), entryUrl: reference.entryUrl
+  }).matches) {
+    throw new Error("ASAP registry does not match a published Artifact from the configured HTTP service");
+  }
+
+  const { callAsap } = require(resolve(options.publisherRoot, "scripts/asap-publish.cjs"));
+  const callRemoteSkill = plan.items.some((item) => item.needsDbInit)
+    ? require(resolve(options.publisherRoot, "scripts/asap-remote-skill.cjs")).callRemoteSkill
+    : undefined;
+  delete process.env.OSS_ACCESS_KEY_ID;
+  delete process.env.OSS_SECRET_ACCESS_KEY;
+  process.env.ASAP_SERVICE_DIR = options.asapServiceDir;
+  process.env.ASAP_PYTHON = asapPython;
 
   // Persist newly minted IDs before publishing so a retry can resolve the same Artifact.
   if (plan.newlyMinted.length > 0) {
     for (const item of plan.items) {
       if (item.mintedNow) {
-        saveLocalState(options.stateDir, item, { artifactVersion: item.targetVersion, dbInitialized: false });
+        saveLocalState(options.stateDir, item, { dbInitialized: false });
       }
     }
     if (options.syncCatalog) {
@@ -623,121 +609,58 @@ async function main() {
     }
   }
 
-  const deployEnv = { ...process.env };
-  delete deployEnv.OSS_ACCESS_KEY_ID;
-  delete deployEnv.OSS_SECRET_ACCESS_KEY;
-  deployEnv.ASAP_SERVICE_DIR = options.asapServiceDir;
-  deployEnv.ASAP_PYTHON = asapPython;
-
   const summaryRows = [];
   const failedTemplates = [];
-
   for (const item of plan.items) {
-    console.log(`\n========== [${item.templateId}] ${item.title} (${item.artifactId} v${item.targetVersion}, type=${item.type}) ==========`);
-    const contextPath = resolvePerAppContextPath(options.stateDir, options.publisherRoot, item, publisherContext);
-    const contextForApp = {
+    const row = {
+      templateId: item.templateId,
+      title: item.title,
       artifactId: item.artifactId,
-      artifactVersion: item.targetVersion,
-      alipayUid: item.alipayUid,
-      sessionId: item.sessionId
+      version: "-",
+      type: item.type,
+      dbStatus: item.dbInitialized ? "ready" : "skipped",
+      status: "OK",
+      entryUrl: "-"
     };
-    const appDeployEnv = { ...deployEnv, FLASH_APP_CONTEXT_PATH: contextPath };
-
-    let dbStatus = item.dbInitialized ? "ready" : "skipped";
+    summaryRows.push(row);
     try {
-      writeFileAtomic(contextPath, `${JSON.stringify(contextForApp, null, 2)}\n`, 0o600);
+      const request = { artifactId: item.artifactId, title: item.title };
+      const { version } = registry({ ...request, operation: "reserve", type: item.type, reuseExisting: item.reuseExisting });
+      if (typeof version !== "string" || !/^[1-9][0-9]*$/u.test(version) || !Number.isSafeInteger(Number(version))) {
+        throw new Error("ASAP registry returned an invalid version");
+      }
+      row.version = version;
+      console.log(`\n========== [${item.templateId}] ${item.title} (${item.artifactId} v${version}, type=${item.type}) ==========`);
       if (item.needsDbInit) {
-        console.log(`[${item.templateId}] Initializing shared world_save table...`);
-        const dbRes = runSubprocess(
-          process.execPath,
-          [
-            resolve(options.publisherRoot, "scripts/db-update-table-schema.cjs"),
-            "--ddl-file",
-            ddlPath,
-            "--table-kind",
-            "share",
-            "--data-object",
-            "世界存档"
-          ],
-          { cwd: options.publisherRoot, env: appDeployEnv }
-        );
-        if (dbRes.status !== 0) {
-          throw new Error(`db-update-table-schema.cjs failed with exit code ${dbRes.status}`);
-        }
-        dbStatus = "initialized";
-        saveLocalState(options.stateDir, item, { artifactVersion: item.targetVersion, dbInitialized: true });
-      }
-
-      const result = runSubprocess(
-        process.execPath,
-        [
-          resolve(options.publisherRoot, "scripts/deploy.cjs"),
-          "--project-dir",
-          item.projectDir,
-          "--source-dir",
-          item.sourceDir,
-          "--title",
-          item.title,
-          "--type",
-          item.type,
-          "--app-key",
-          options.appKey,
-          "--timeout",
-          String(options.timeout)
-        ],
-        { cwd: options.publisherRoot, env: appDeployEnv }
-      );
-      const afterContext = existsSync(contextPath) ? JSON.parse(readFileSync(contextPath, "utf8")) : null;
-
-      const parsed = parseDeployStdout(result.stdout);
-      if (result.status !== 0) {
-        failedTemplates.push(item.templateId);
-        summaryRows.push({
-          templateId: item.templateId,
-          title: item.title,
-          artifactId: item.artifactId,
-          version: item.targetVersion,
-          type: item.type,
-          dbStatus,
-          status: `FAILED (${parsed.failedStep || `exit ${result.status}`})`,
-          entryUrl: parsed.entryUrl || "-"
+        const action = "lingguang.db.updateTableSchema";
+        await callRemoteSkill({
+          action, alipayUid: item.alipayUid, sessionId: item.sessionId,
+          payload: {
+            action, artifactId: item.artifactId, artifactVersion: version,
+            params: { ddl_sql: readFileSync(ddlPath, "utf8").trim(), table_kind: "share", data_object: "世界存档" }
+          }
         });
-        continue;
+        row.dbStatus = "initialized";
+        saveLocalState(options.stateDir, item, { dbInitialized: true });
       }
 
-      const publishedVersion = parsed.version || item.targetVersion;
-      const nextVersion = afterContext?.artifactVersion || String(Number.parseInt(publishedVersion, 10) + 1);
-      saveLocalState(options.stateDir, item, {
-        artifactVersion: nextVersion,
-        dbInitialized: dbStatus === "ready" || dbStatus === "initialized",
-        lastPublishedVersion: publishedVersion,
-        lastEntryUrl: parsed.entryUrl || "",
-        lastBackupOss: parsed.backupOss || ""
+      const { entryUrl, backupOss } = deploySeedWorldFlashApp(item, version, {
+        callAsap, appKey: options.appKey, timeout: options.timeout
       });
-
-      summaryRows.push({
-        templateId: item.templateId,
-        title: item.title,
-        artifactId: item.artifactId,
-        version: publishedVersion,
-        type: item.type,
-        dbStatus,
-        status: "OK",
-        entryUrl: parsed.entryUrl || "-"
+      row.entryUrl = entryUrl;
+      const published = registry({ ...request, operation: "publish", version, entryUrl, backupOss });
+      if (published.version !== version) throw new Error("ASAP confirmed a different version from the reservation");
+      saveLocalState(options.stateDir, item, {
+        artifactVersion: String(Number(version) + 1),
+        dbInitialized: row.dbStatus === "ready" || row.dbStatus === "initialized",
+        lastPublishedVersion: version,
+        lastEntryUrl: entryUrl,
+        lastBackupOss: backupOss
       });
     } catch (error) {
       failedTemplates.push(item.templateId);
       console.error(`[${item.templateId}] Error: ${error.message}`);
-      summaryRows.push({
-        templateId: item.templateId,
-        title: item.title,
-        artifactId: item.artifactId,
-        version: item.targetVersion,
-        type: item.type,
-        dbStatus,
-        status: `FAILED (${error.message})`,
-        entryUrl: "-"
-      });
+      row.status = `FAILED (${error.message})`;
     }
   }
 

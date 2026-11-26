@@ -103,7 +103,7 @@ node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180
 
 ## 5. 编排发布 6 个灵光闪应用
 
-使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排 6 个应用的建表与发布。脚本通过 `FLASH_APP_CONTEXT_PATH` 传入应用上下文。`original` 使用已绑定到同一 Artifact 的 PUGC `app-context.local.json`，其他应用各自使用状态目录下的 `contexts/<artifactId>.local.json`。可用 `--state-dir` 指定状态目录。
+使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排 6 个应用的建表与发布。执行环境需要访问目标 ASAP Artifact 注册库。脚本先通过 ASAP 原子预留版本，再用该版本建表、打包、部署并提交发布记录。可用 `--state-dir` 指定按 Artifact 隔离的本机状态目录。
 
 ```bash
 ENGINE_WORKTREE_ROOT=/absolute/path/to/seed-world-npm-release
@@ -144,9 +144,9 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 
 关键保护机制：
 - **防误切 checkout**：发布 `original` 时若 `$PUBLISHER_ROOT/scripts/app-context.local.json` 中的 `artifactId` 与 `flash-apps.json` 的 `flashapp-a3c0e021cb8cadb0` 不一致，默认直接拒绝执行。
-- **逐应用 `--type` 与版本对齐**：各应用登记类型由 `world/demos/seed-world/flash-apps.json` 分别声明（`original` 为 `game`，其余 5 个新应用为 `miniapp`）；执行前查询 `GET /api/trace/versions_by_artifact` 自动对齐线上最新版本。多应用批量发布时若传入与清单冲突的全局 `--type`，脚本会直接拒绝以防 Step 5 误覆盖（仅在配合单个 `--templates <id>` 时允许显式覆盖）。
+- **逐应用 `--type` 与版本对齐**：各应用登记类型由 `world/demos/seed-world/flash-apps.json` 分别声明（`original` 为 `game`，其余 5 个新应用为 `miniapp`）；干跑用已发布记录估计版本，执行以注册库分配的版本为准。只在发布单个模板时才使用与清单不同的 `--type`。
 - **防重复申请 ID**：新申请的 5 个 `artifactId` 在调用远端接口前即落盘到本地状态（传 `--sync-catalog` 时同步回写 `flash-apps.json`），失败重试时严格复用同一个 ID。
-- **首次自动建表**：对每个未建表的新应用，自动使用该应用的 `artifactId` 与作者 `2099...` `alipayUid` 执行 `db-update-table-schema.cjs --ddl-file world/demos/seed-world/storage/world_save.sql --table-kind share --data-object "世界存档"`，成功后标记 `dbInitialized: true`，后续版本跳过建表。
+- **首次自动建表**：对每个未建表的新应用，使用该应用的 `artifactId`、预留版本和作者的 `2099...` `alipayUid` 通过建表接口应用 `world_save.sql`，表类型为 `share`，成功后标记 `dbInitialized: true`，后续版本跳过建表。
 
 ## 6. 发布后验收与正式上架
 
@@ -154,7 +154,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 
 1. **6 个 Entry URL 核验**：逐一打开汇总表中的 6 个 Entry URL，确认页面已注入本次 `window.artifactId` / `window.artifactVersion`，免弹窗直接进入对应模板 3D 世界，局内无跨模板切换入口，AI Chat 可用。
 2. **新申请 5 个 ID 的线上能力与 ASAP 路由放行**：
-   - 新 `artifactId` 由脚本本地生成并通过 `deploy.cjs` 自动注册、`world_save` 表由 `db-update-table-schema.cjs` 自动建表，均无需人工额外申请；
+   - 编排器自动登记新 `artifactId` 并创建 `world_save` 表；
    - 5 个新 `artifactId` 需开放 `AI_STREAM_CHAT` 能力声明，且必须加入 `asap-service` 配置 `common_config.mini_app_ai_chat_model_mapping_enabled_artifact_ids`（目前该白名单只含 `original` 的 `flashapp-a3c0e021cb8cadb0`），否则 `model: "dsv41flash"` 不会路由到 `aisearch_dsv41flash`（核对 Agent Trace `debug.modelName` 与服务端 digest）。
 3. **共享存档与权限策略核验**：对 5 个新应用验证克隆新实例获得 `MANAGER` 且表为空、原实例访客（`USER`）允许读存档并拒绝写入。
 4. **灵光侧正式上架**：PUGC 更新后，在灵光侧为需要更新分享链接的应用重新执行正式发布 / 上架，并确认分享页内层 `meta[name="flash-app-html-url"]` 与主 JS hash 已切到本次 Entry。
@@ -167,5 +167,6 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 | `Template "<id>" has no artifactId yet` | 尚未为其余 5 个模板首次申请 ID | 确认新建意图后加 `--init-missing --sync-catalog` 执行一次，之后提交更新后的 `flash-apps.json` |
 | `requires first-time world_save.sql DB table creation, which needs a 2099... alipayUid` | 本地状态或 PUGC 上下文未填写 `2099...` UID（或误填了 `2088...`） | 在 PUGC `app-context.local.json` 或对应 Artifact 的状态文件补全 `alipayUid` 后重试 |
 | 构建警告 `Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json` | 新增或变更的资产（如 `oil-paint` SWB1 分包）尚未同步至 MDN CDN | 执行 `sync-flash-app-cdn-assets.py --apply` 并重编 `build:seed-world-flash-app`（收敛至 `pending upload: 0`），再重跑 `build:seed-world-flash-source` |
-| Step 5 报 `type 不匹配` | `--type` 与数据库已有记录不一致 | 对照 `versions_by_artifact` 实际登记类型显式传入 `--type`，复用已有入口重试登记 |
+| `Artifact type differs from the ASAP registry` | 发布类型与注册库记录不一致 | 核对该应用的登记类型和清单后重试 |
+| `ASAP registry does not match` | ASAP Python 环境无法核对 HTTP 服务返回的已发布版本 | 检查注册库访问权限以及对应的 `ASAP_SERVICE_BASE_URL` |
 | 源码备份超过 100 MiB | 源码目录新增未压缩制作源素材 | 检查 `build-seed-world-flash-source.mjs` 排除列表，在保留运行时 KTX2 派生物的前提下排除制作源图 |

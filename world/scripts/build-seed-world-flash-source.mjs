@@ -73,7 +73,9 @@ const excludedFiles = new Set([
   "packages/water/src/water/resources/ocean/textures/Caustics/Caustics_1.png",
   "packages/water/src/water/resources/ocean/textures/Foam/Foam1.png",
   "packages/water/src/water/resources/ocean/textures/IntersectionNoise.png",
+  "world/scripts/deploy-seed-world-flash-app.mjs",
   "world/scripts/publish-seed-world-flash-apps.mjs",
+  "world/scripts/seed-world-flash-registry.py",
   "world/scripts/set-flash-app-cdn-secret.sh",
   "world/scripts/sync-flash-app-cdn-assets.py"
 ]);
