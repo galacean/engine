@@ -173,6 +173,8 @@ export class StencilState extends DataObject {
     if (customStates) {
       const enabledState = customStates[RenderStateElementKey.StencilStateEnabled];
       enabledState !== undefined && (enabled = <boolean>enabledState);
+      const maskState = customStates[RenderStateElementKey.StencilStateMask];
+      maskState !== undefined && (mask = <number>maskState);
       const writeMaskState = customStates[RenderStateElementKey.StencilStateWriteMask];
       writeMaskState !== undefined && (writeMask = <number>writeMaskState);
       const referenceValueState = customStates[RenderStateElementKey.StencilStateReferenceValue];

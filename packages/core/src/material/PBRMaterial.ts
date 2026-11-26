@@ -57,6 +57,7 @@ export class PBRMaterial extends BaseMaterial {
   private static _specularColorProp = ShaderProperty.getByName("material_SpecularColor");
   private static _specularIntensityTextureProp = ShaderProperty.getByName("material_SpecularIntensityTexture");
   private static _specularColorTextureProp = ShaderProperty.getByName("material_SpecularColorTexture");
+  private static _ssrIntensityProp = ShaderProperty.getByName("material_ScreenSpaceReflectionIntensity");
 
   private _refractionMode: RefractionMode;
   private _anisotropyRotation: number = 0;
@@ -762,6 +763,17 @@ export class PBRMaterial extends BaseMaterial {
   }
 
   /**
+   * Screen-space reflection intensity multiplier on this material (`0` opts out; defaults to `1`).
+   */
+  get screenSpaceReflectionIntensity(): number {
+    return this.shaderData.getFloat(PBRMaterial._ssrIntensityProp);
+  }
+
+  set screenSpaceReflectionIntensity(value: number) {
+    this.shaderData.setFloat(PBRMaterial._ssrIntensityProp, Number.isFinite(value) ? Math.max(0, value) : 0);
+  }
+
+  /**
    * Create a pbr metallic-roughness workflow material instance.
    * @param engine - Engine to which the material belongs
    */
@@ -797,6 +809,7 @@ export class PBRMaterial extends BaseMaterial {
     shaderData.setColor(PBRMaterial._attenuationColorProp, new Color(1, 1, 1));
     shaderData.setFloat(PBRMaterial._specularIntensityProp, 1);
     shaderData.setColor(PBRMaterial._specularColorProp, new Color(1, 1, 1));
+    shaderData.setFloat(PBRMaterial._ssrIntensityProp, 1);
 
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);

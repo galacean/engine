@@ -27,6 +27,7 @@ export interface IHardwareRenderer {
     readonly maxTextureSize: number;
     readonly maxAntiAliasing: number;
     readonly maxVertexUniformVectors: number;
+    readonly maxDrawBuffers: number;
   };
   /** @internal */
   readonly _options: {

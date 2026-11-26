@@ -12,6 +12,10 @@ import Common_Transform from "./Common/Transform.glsl";
 import Lighting_AmbientOcclusion_BilateralBlur from "./Lighting/AmbientOcclusion/BilateralBlur.glsl";
 import Lighting_AmbientOcclusion_ScalableAmbientOcclusion from "./Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl";
 import Lighting_Light from "./Lighting/Light.glsl";
+import Lighting_ScreenSpaceReflection_BuildHiZMip0 from "./Lighting/ScreenSpaceReflection/BuildHiZMip0.glsl";
+import Lighting_ScreenSpaceReflection_SSRMaterial from "./Lighting/ScreenSpaceReflection/SSRMaterial.glsl";
+import Lighting_ScreenSpaceReflection_ScreenSpaceReflectionCommon from "./Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl";
+import Lighting_ScreenSpaceReflection_ScreenSpaceReflectionSample from "./Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl";
 import Noise_NoiseCommon from "./Noise/NoiseCommon.glsl";
 import Noise_NoiseSimplexGrad from "./Noise/NoiseSimplexGrad.glsl";
 import PBR_BSDF from "./PBR/BSDF.glsl";
@@ -73,6 +77,10 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Lighting_AmbientOcclusion_BilateralBlur, path: "ShaderLibrary/Lighting/AmbientOcclusion/BilateralBlur.glsl" },
   { source: Lighting_AmbientOcclusion_ScalableAmbientOcclusion, path: "ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl" },
   { source: Lighting_Light, path: "ShaderLibrary/Lighting/Light.glsl" },
+  { source: Lighting_ScreenSpaceReflection_BuildHiZMip0, path: "ShaderLibrary/Lighting/ScreenSpaceReflection/BuildHiZMip0.glsl" },
+  { source: Lighting_ScreenSpaceReflection_SSRMaterial, path: "ShaderLibrary/Lighting/ScreenSpaceReflection/SSRMaterial.glsl" },
+  { source: Lighting_ScreenSpaceReflection_ScreenSpaceReflectionCommon, path: "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl" },
+  { source: Lighting_ScreenSpaceReflection_ScreenSpaceReflectionSample, path: "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl" },
   { source: Noise_NoiseCommon, path: "ShaderLibrary/Noise/NoiseCommon.glsl" },
   { source: Noise_NoiseSimplexGrad, path: "ShaderLibrary/Noise/NoiseSimplexGrad.glsl" },
   { source: PBR_BSDF, path: "ShaderLibrary/PBR/BSDF.glsl" },

@@ -81,9 +81,14 @@ export class DepthState extends DataObject {
     const gl = rhi.gl;
     let { enabled, compareFunction, writeEnabled } = this;
 
+    // Apply per-pass overrides (e.g. RenderQueue.overrideRenderStates) on top of the material's depth state.
     if (customStates) {
       const enabledState = customStates[RenderStateElementKey.DepthStateEnabled];
       enabledState !== undefined && (enabled = <boolean>enabledState);
+      const compareFunctionState = customStates[RenderStateElementKey.DepthStateCompareFunction];
+      compareFunctionState !== undefined && (compareFunction = <CompareFunction>compareFunctionState);
+      const writeEnabledState = customStates[RenderStateElementKey.DepthStateWriteEnabled];
+      writeEnabledState !== undefined && (writeEnabled = <boolean>writeEnabledState);
     }
 
     if (enabled != lastState.enabled) {
