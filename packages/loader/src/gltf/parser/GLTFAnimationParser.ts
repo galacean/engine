@@ -13,8 +13,10 @@ import {
   TypedArray
 } from "@galacean/engine-core";
 import {
+  AccessorComponentType,
   AnimationChannelTargetPath,
   AnimationSamplerInterpolation,
+  IAccessor,
   IAnimation,
   IAnimationSampler
 } from "../GLTFSchema";
@@ -41,30 +43,8 @@ export class GLTFAnimationParser extends GLTFParser {
       this._loadSamplerAccessors(context, samplers),
       context.get<Entity>(GLTFParserType.Scene)
     ]).then(([data]) => {
-      let normalizedOutputs: Map<number, Float32Array> | undefined;
-
-      function samples(index: number, normalize = false): TypedArray {
-        const values = data.get(index)!;
-        if (normalize) {
-          const outputs = (normalizedOutputs ||= new Map());
-          const cached = outputs.get(index);
-          if (cached) return cached;
-          const scale = GLTFUtils.getNormalizedComponentScale(accessors![index].componentType);
-          const output = new Float32Array(values.length);
-          for (let i = 0, n = values.length; i < n; i++) {
-            // glTF 2.0 signed normalized min values (-128 BYTE, -32768 SHORT) exceed -1 and must clamp.
-            output[i] = Math.max(-1, values[i] * scale);
-          }
-          outputs.set(index, output);
-          return output;
-        }
-        // Detach sub-views from shared .bin/.glb ArrayBuffers so retained curves do not pin unrelated asset data.
-        if (values.byteLength === values.buffer.byteLength) return values;
-        const retained = values.slice();
-        data.set(index, retained);
-        return retained;
-      }
-
+      const rawSamples = new Map<number, TypedArray>();
+      const normalizedSamples = new Map<number, TypedArray>();
       // Animation extensions can rename or reparent targets between clips.
       const paths: (string | null | undefined)[] = [];
       const sceneRoots = context.glTFResource.sceneRoots;
@@ -72,16 +52,30 @@ export class GLTFAnimationParser extends GLTFParser {
         const glTFChannel = channels[j];
         const { target } = glTFChannel;
         const node = target.node;
-        let relativePath = paths[node];
-        if (relativePath === undefined) {
+        if (paths[node] === undefined) {
           let entity = entities[node];
-          relativePath = "";
+          let relativePath = "";
           while (entity.parent) {
             relativePath = relativePath === "" ? entity.name : `${entity.name}/${relativePath}`;
             entity = entity.parent;
           }
-          paths[node] = relativePath = sceneRoots.indexOf(entity) === -1 ? null : relativePath;
+          paths[node] = sceneRoots.indexOf(entity) === -1 ? null : relativePath;
         }
+        if (paths[node] === null) continue;
+
+        const { input, output } = samplers[glTFChannel.sampler];
+        rawSamples.set(input, data.get(input)!);
+        const outputSamples = accessors![output].normalized ? normalizedSamples : rawSamples;
+        outputSamples.set(output, data.get(output)!);
+      }
+
+      this._packSamples(accessors!, rawSamples, normalizedSamples);
+
+      for (let j = 0, m = channels.length; j < m; j++) {
+        const glTFChannel = channels[j];
+        const { target } = glTFChannel;
+        const node = target.node;
+        const relativePath = paths[node];
         if (relativePath === null) continue;
 
         let ComponentType: ComponentConstructor<Component>;
@@ -121,23 +115,75 @@ export class GLTFAnimationParser extends GLTFParser {
             break;
         }
         curve.interpolation = samplerInterpolation;
-        // glTF 2.0 §5.8.1 requires strictly increasing sampler input times; samples() detaches shared views.
+        // glTF 2.0 §5.8.1 requires strictly increasing sampler input times. Packed views are detached from the asset buffer.
         curve.setKeys(
-          samples(sampler.input),
-          samples(sampler.output, accessors![sampler.output].normalized),
+          rawSamples.get(sampler.input)!,
+          (accessors![sampler.output].normalized ? normalizedSamples : rawSamples).get(sampler.output)!,
           samplerInterpolation === InterpolationType.CubicSpine
         );
 
         if (target.path === AnimationChannelTargetPath.WEIGHTS) {
           const mesh = glTF.nodes![node].mesh;
           for (let i = 0, n = glTF.meshes![mesh!].primitives.length; i < n; i++) {
-            animationClip.addCurveBinding(relativePath, ComponentType, i, propertyName, curve);
+            animationClip.addCurveBinding(relativePath!, ComponentType, i, propertyName, curve);
           }
         } else {
-          animationClip.addCurveBinding(relativePath, ComponentType, propertyName, curve);
+          animationClip.addCurveBinding(relativePath!, ComponentType, propertyName, curve);
         }
       }
       return animationClip;
+    });
+  }
+
+  private static _packSamples(
+    accessors: IAccessor[],
+    rawSamples: Map<number, TypedArray>,
+    normalizedSamples: Map<number, TypedArray>
+  ): void {
+    const align = (offset: number, size: number) => Math.ceil(offset / size) * size;
+    const floatBytes = Float32Array.BYTES_PER_ELEMENT;
+
+    let byteLength = 0;
+    rawSamples.forEach((values) => {
+      if (values.byteLength !== values.buffer.byteLength) {
+        byteLength = align(byteLength, values.BYTES_PER_ELEMENT) + values.byteLength;
+      }
+    });
+    const normalizedOffset = align(byteLength, floatBytes);
+    normalizedSamples.forEach((values) => {
+      byteLength = align(byteLength, floatBytes) + values.length * floatBytes;
+    });
+    if (byteLength === 0) return;
+
+    // A curve retains its clip's sample buffer through its typed views, independent of the source asset.
+    const buffer = new ArrayBuffer(byteLength);
+    let offset = 0;
+    rawSamples.forEach((values, index) => {
+      if (values.byteLength === values.buffer.byteLength) return;
+      offset = align(offset, values.BYTES_PER_ELEMENT);
+      const ArrayType = GLTFUtils.getComponentType(accessors[index].componentType);
+      const output = new ArrayType(buffer, offset, values.length);
+      output.set(values);
+      rawSamples.set(index, output);
+      offset += values.byteLength;
+    });
+    offset = normalizedOffset;
+    normalizedSamples.forEach((values, index) => {
+      const { componentType } = accessors[index];
+      const scale = GLTFUtils.getNormalizedComponentScale(componentType);
+      const output = new Float32Array(buffer, offset, values.length);
+      if (componentType === AccessorComponentType.BYTE || componentType === AccessorComponentType.SHORT) {
+        // Signed normalized minimum integers divide to a value below -1.
+        for (let i = 0, n = values.length; i < n; i++) {
+          output[i] = Math.max(-1, values[i] * scale);
+        }
+      } else {
+        for (let i = 0, n = values.length; i < n; i++) {
+          output[i] = values[i] * scale;
+        }
+      }
+      normalizedSamples.set(index, output);
+      offset += output.byteLength;
     });
   }
 

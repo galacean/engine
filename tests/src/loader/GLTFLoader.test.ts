@@ -772,7 +772,7 @@ describe("glTF Loader test", function () {
     }
   });
 
-  it("samples flat glTF animation channels, sparse normalized rotations, morph remapping, and keyframe edits", async () => {
+  it.each(["gltf", "glb"])("packs animation samples in %s", async (format) => {
     const bytes = new ArrayBuffer(148);
     new Float32Array(bytes, 4, 8).set([0, 1, 1, 2, 3, 5, 6, 7]);
     new Int8Array(bytes, 36, 8).set([0, 0, 0, 127, 0, 0, 0, 127]);
@@ -781,7 +781,7 @@ describe("glTF Loader test", function () {
     new Float32Array(bytes, 52, 6).set([0, 0, 2, 0, 1, 0]); // cubic weight: in, value, out
     new Float32Array(bytes, 76, 9).set([0, 0, 0, 1, 0, 0, 0, 1, 0]); // triangle
     new Float32Array(bytes, 112, 9).set([0, 0, 1, 0, 0, 1, 0, 0, 1]); // morph deltas
-    const bufferUrl = URL.createObjectURL(new Blob([bytes]));
+    const bufferUrl = format === "gltf" ? URL.createObjectURL(new Blob([bytes])) : undefined;
     const glTF = {
       asset: { version: "2.0" },
       scene: 0,
@@ -843,7 +843,20 @@ describe("glTF Loader test", function () {
         }
       ]
     };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(glTF)], { type: "model/gltf+json" }));
+    const json = JSON.stringify(glTF);
+    let source: Blob;
+    if (format === "glb") {
+      const jsonBytes = new TextEncoder().encode(json);
+      const jsonLength = Math.ceil(jsonBytes.length / 4) * 4;
+      const header = new Uint32Array([0x46546c67, 2, 28 + jsonLength + bytes.byteLength, jsonLength, 0x4e4f534a]);
+      const jsonChunk = new Uint8Array(jsonLength).fill(0x20);
+      jsonChunk.set(jsonBytes);
+      const binHeader = new Uint32Array([bytes.byteLength, 0x004e4942]);
+      source = new Blob([header, jsonChunk, binHeader, bytes], { type: "model/gltf-binary" });
+    } else {
+      source = new Blob([json], { type: "model/gltf+json" });
+    }
+    const url = URL.createObjectURL(source);
     let resource: GLTFResource | undefined;
     let instance: Entity | undefined;
     try {
@@ -852,6 +865,17 @@ describe("glTF Loader test", function () {
       const [position, scale, rotation, weight, unplayedWeight, linearRotation] = clip.curveBindings.map(
         (binding) => binding.curve!
       );
+      const slab = position["_times"].buffer;
+      // Two timestamps, two translation vectors, and two normalized quaternions.
+      expect(slab.byteLength).toBe(64);
+      expect(scale).not.toBe(position);
+      for (const curve of [position, scale, rotation, weight, unplayedWeight, linearRotation]) {
+        expect(curve["_times"].buffer).toBe(slab);
+        expect(curve["_values"].buffer).toBe(slab);
+      }
+      expect(rotation["_values"]).toBe(linearRotation["_values"]);
+      const beforeEdit = new Uint8Array(slab).slice();
+
       expect(clip.length).toBe(1);
       expect(position.keyCount).toBe(2);
       expect(position.evaluate(0.5)).toMatchObject({ x: 3, y: 4, z: 5 });
@@ -861,6 +885,9 @@ describe("glTF Loader test", function () {
       (firstPos.value as Vector3).x = 11;
       position.setKey(0, firstPos);
       expect(position.evaluate(0.5)).toMatchObject({ x: 8, y: 4, z: 5 });
+      expect(position["_times"].buffer).not.toBe(slab);
+      expect(position["_values"].buffer).not.toBe(slab);
+      expect(new Uint8Array(slab)).toEqual(beforeEdit);
       scale.interpolation = InterpolationType.Step;
       expect(scale.evaluate(0.5)).toMatchObject({ x: 1, y: 2, z: 3 });
 
@@ -874,6 +901,9 @@ describe("glTF Loader test", function () {
       expect(linearRotation.evaluate(1)).toMatchObject({ x: 0, y: 0, z: -1, w: 0 });
       expect(weight.evaluate(0.5)).toEqual(new Float32Array([0.5]));
       const cubic = resource.animations![1].curveBindings[0].curve!;
+      expect(cubic["_times"].buffer).not.toBe(slab);
+      expect(cubic["_times"].buffer).toBe(cubic["_values"].buffer);
+      expect(cubic["_times"].buffer.byteLength).toBe(32);
       expect(cubic.evaluate(0)).toEqual(new Float32Array([0]));
       expect(cubic.evaluate(0.5)).toEqual(new Float32Array([0.75]));
       expect(cubic.evaluate(1)).toEqual(new Float32Array([1]));
@@ -910,7 +940,7 @@ describe("glTF Loader test", function () {
       instance?.destroy();
       resource?.destroy();
       URL.revokeObjectURL(url);
-      URL.revokeObjectURL(bufferUrl);
+      if (bufferUrl) URL.revokeObjectURL(bufferUrl);
     }
   });
 
