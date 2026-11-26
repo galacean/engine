@@ -11,6 +11,10 @@ export interface PlanningPlayerWorld {
   sampleHeight(x: number, z: number): number | undefined;
 }
 
+export function planningPlayerWorldId(seed: number, templateName?: string): string {
+  return templateName === undefined ? String(seed) : `${templateName}:${seed}`;
+}
+
 /** Reject an old centered-world pose outside the current planning domain; recover a buried roam pose. */
 export function restorePlanningPlayerBookmark(
   bookmark: SeedWorldCameraBookmark | undefined,
@@ -48,7 +52,8 @@ export class PlanningPlayerState {
     private readonly storage: () => Pick<Storage, "getItem" | "setItem">,
     private readonly capture: () => SeedWorldCameraBookmark,
     private readonly restore: (bookmark: SeedWorldCameraBookmark) => void,
-    private readonly onError: (error: unknown) => void = console.warn
+    private readonly onError: (error: unknown) => void = console.warn,
+    private readonly templateName?: string
   ) {}
 
   private readonly retired: SeedWorldPlayerState[] = [];
@@ -59,7 +64,11 @@ export class PlanningPlayerState {
     options: { restoreCamera?: boolean } = {}
   ): PreparedPlanningPlayerState | undefined {
     if (this.seed === world.seed) return undefined;
-    const state = new SeedWorldPlayerState(String(world.seed), this.storage, this.onError);
+    const state = new SeedWorldPlayerState(
+      planningPlayerWorldId(world.seed, this.templateName),
+      this.storage,
+      this.onError
+    );
     const bookmark = options.restoreCamera === false ? undefined : restorePlanningPlayerBookmark(state.load(), world);
     let phase: "prepared" | "committed" | "finalized" | "rolled-back" = "prepared";
     let previousState: SeedWorldPlayerState | undefined;

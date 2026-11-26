@@ -282,6 +282,35 @@ describe("PlanningPlayerState", () => {
     vi.restoreAllMocks();
   });
 
+  it("saves and restores separate cameras for the same seed in two named templates", async () => {
+    const { storage, data } = createMemoryStorage();
+    const world = { seed: 123, width: 100, depth: 100, groundClearance: 3, allowOrbit: false, sampleHeight: () => 1 };
+    const makePlayer = (name: string, position: [number, number, number]) =>
+      new PlanningPlayerState(
+        () => storage,
+        () => ({ position, yawDegrees: 0, pitchDegrees: 0, mode: "roam" }),
+        () => {},
+        undefined,
+        name
+      );
+    const original = makePlayer("original", [5, 20, 10]);
+    const sakura = makePlayer("sakura-pearl", [12, 20, 14]);
+    original.publish(world);
+    sakura.publish(world);
+    await Promise.all([original.dispose(), sakura.dispose()]);
+    expect([...data.keys()].sort()).toEqual([
+      seedWorldPlayerStateKey("original:123"),
+      seedWorldPlayerStateKey("sakura-pearl:123")
+    ]);
+    // Reopen with new owners, just as each entry does after a reload.
+    const reopenedOriginal = makePlayer("original", [0, 0, 0]).prepare(world);
+    const reopenedSakura = makePlayer("sakura-pearl", [0, 0, 0]).prepare(world);
+    expect(reopenedOriginal?.bookmark?.position).toEqual([5, 20, 10]);
+    expect(reopenedSakura?.bookmark?.position).toEqual([12, 20, 14]);
+    reopenedOriginal?.rollback();
+    reopenedSakura?.rollback();
+  });
+
   it("avoids retired.splice(0) on steady-state frames and still flushes retired states on seed transitions", async () => {
     const { storage, data } = createMemoryStorage();
     let position: [number, number, number] = [5, 20, 10];

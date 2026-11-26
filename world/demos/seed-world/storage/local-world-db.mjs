@@ -9,18 +9,77 @@ const insert = "insert into world_save (id, generation, part_no, payload) values
 const update = "update world_save set payload = ? where id = ?";
 const compareAndSet = update + " and payload = ?";
 const remove = "delete from world_save where generation = ?";
+const legacyPreviewDatabase = "lingguang-world-save:null";
 
-function openDatabase(name) {
+function openDatabase(name, create = true) {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(name, 1);
+    let missing = false;
     request.onupgradeneeded = () => {
+      if (!create) {
+        missing = true;
+        request.transaction.abort();
+        return;
+      }
       const rows = request.result.createObjectStore("world_save", { keyPath: "id" });
       rows.createIndex("generation", "generation");
       rows.createIndex("parts", ["generation", "part_no"]);
     };
-    request.onerror = () => reject(request.error);
+    request.onerror = () => missing ? resolve(undefined) : reject(request.error);
     request.onsuccess = () => resolve(request.result);
   });
+}
+
+/**
+ * @template T
+ * @param {IDBDatabase} db
+ * @param {IDBTransactionMode} mode
+ * @param {(rows: IDBObjectStore, done: (data: T) => void) => void} operation
+ * @returns {Promise<T>}
+ */
+function transact(db, mode, operation) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("world_save", mode);
+    let result;
+    tx.oncomplete = () => resolve(result);
+    tx.onabort = () => reject(tx.error || new Error("Local world transaction aborted"));
+    try {
+      operation(tx.objectStore("world_save"), value => { result = value; });
+    } catch (error) {
+      tx.abort();
+      reject(error);
+    }
+  });
+}
+
+async function restoreLegacyPreview(target, template) {
+  const readHead = (rows, done) => {
+    const request = rows.get("world");
+    request.onsuccess = () => done(request.result);
+  };
+  if (await transact(target, "readonly", readHead)) return;
+  const legacy = await openDatabase(legacyPreviewDatabase, false);
+  if (!legacy) return;
+  try {
+    const entries = await transact(legacy, "readonly", (rows, done) => {
+      readHead(rows, (head) => {
+        let identity;
+        try { identity = head && JSON.parse(head.payload); }
+        catch { return; } // Keep an unidentifiable legacy checkpoint in its original database.
+        if (identity?.template !== template) return;
+        const request = rows.getAll();
+        request.onsuccess = () => done(request.result);
+      });
+    });
+    if (!entries) return;
+    // The head check and copy are atomic. Another tab may already have restored
+    // this template and saved a newer checkpoint during the legacy read.
+    await transact(target, "readwrite", (rows) => readHead(rows, (head) => {
+      if (!head) for (const entry of entries) rows.put(entry);
+    }));
+  } finally {
+    legacy.close();
+  }
 }
 
 function checkPayload(value) {
@@ -109,8 +168,9 @@ function execute(rows, sql, binds, done) {
   }
 }
 
-export function createLocalWorldDb(name) {
+export function createLocalWorldDb(name, { restoreUnscopedPreview = false } = {}) {
   const databaseName = "lingguang-world-save:" + JSON.stringify(name);
+  let legacyRestore;
   /** @template T
    * @param {IDBTransactionMode} mode
    * @param {(rows: IDBObjectStore, sql: string, binds: Array<string | number>, done: (data: T) => void) => void} operation
@@ -121,21 +181,9 @@ export function createLocalWorldDb(name) {
     let db;
     try {
       db = await openDatabase(databaseName);
-      /** @type {Promise<T>} */
-      const completed = new Promise((resolve, reject) => {
-        const tx = db.transaction("world_save", mode);
-        let result;
-        tx.oncomplete = () => resolve(result);
-        tx.onabort = () => reject(tx.error || new Error("Local world transaction aborted"));
-        try {
-          const sql = input.sql.trim().replace(/;$/, "").replace(/\s+/g, " ").toLowerCase();
-          operation(tx.objectStore("world_save"), sql, input.binds, value => { result = value; });
-        } catch (error) {
-          tx.abort();
-          reject(error);
-        }
-      });
-      return { success: true, data: await completed };
+      if (restoreUnscopedPreview) await (legacyRestore ??= restoreLegacyPreview(db, name));
+      const sql = input.sql.trim().replace(/;$/, "").replace(/\s+/g, " ").toLowerCase();
+      return { success: true, data: await transact(db, mode, (rows, done) => operation(rows, sql, input.binds, done)) };
     } catch (error) {
       return { success: false, data: emptyData, message: String(error?.message || error) };
     } finally {

@@ -1,6 +1,9 @@
 import fs from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   FLASH_APP_DEFAULT_TEMPLATE_META,
@@ -41,6 +44,71 @@ afterEach(() => {
 });
 
 describe("Seed World 6-app Flash publishing", () => {
+  it("stops before invoking PUGC when a selected Artifact version cannot be verified", async () => {
+    const engineRoot = makeTempDir("sw-version-check-");
+    const publishScript = path.join(repoRoot, "world/scripts/publish-seed-world-flash-apps.mjs");
+    const catalog = path.join(repoRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE);
+    const publisher = path.join(engineRoot, "publisher");
+    const stateDir = path.join(engineRoot, "state");
+    const deployMarker = path.join(engineRoot, "deploy-called");
+    const write = (file: string, text: string) => {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, text);
+    };
+    let responseStatus = 503;
+    let responseBody: unknown = { error: "Unavailable" };
+    const versionRequests: Array<string | undefined> = [];
+    const server = http.createServer((req, res) => {
+      versionRequests.push(req.url);
+      res.writeHead(responseStatus).end(JSON.stringify(responseBody));
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const { port } = server.address() as { port: number };
+      write(path.join(publisher, "scripts/asap-service-url.cjs"),
+        `exports.asapServiceUrl = path => 'http://127.0.0.1:${port}' + path`);
+      write(path.join(publisher, "scripts/app-context.cjs"), "module.exports = process.env.FLASH_APP_CONTEXT_PATH");
+      write(path.join(publisher, "scripts/deploy.cjs"), `
+        const fs = require("node:fs");
+        const contextPath = process.env.FLASH_APP_CONTEXT_PATH;
+        const context = JSON.parse(fs.readFileSync(contextPath));
+        fs.writeFileSync(${JSON.stringify(deployMarker)}, context.artifactVersion);
+        console.log("Version: " + context.artifactVersion);
+        context.artifactVersion = String(Number(context.artifactVersion) + 1);
+        fs.writeFileSync(contextPath, JSON.stringify(context));
+      `);
+      write(path.join(engineRoot, "world/dist/seed-world-flash-source/source.txt"), "source");
+      write(path.join(engineRoot, "world/dist/seed-world-flash-apps/sakura-pearl/index.html"), "<html></html>");
+      const run = (mode: string, ...flags: string[]) => promisify(execFile)(process.execPath, [
+        publishScript, mode, "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
+        "--asap-service-dir", engineRoot, "--asap-python", process.execPath, "--state-dir", stateDir,
+        "--templates", "sakura-pearl", "--skip-db-init", ...flags
+      ]);
+
+      await expect(run("--execute")).rejects.toMatchObject({ stderr: expect.stringContaining("HTTP 503") });
+      expect((await run("--dry-run")).stderr).toContain("showing the local estimate");
+
+      responseStatus = 200;
+      responseBody = { data: { versions: [{ artifact_version: "unknown" }] } };
+      await expect(run("--execute")).rejects.toMatchObject({ stderr: expect.stringContaining("Invalid Artifact version") });
+      await expect(run("--execute", "--skip-online-check")).rejects.toMatchObject({
+        stderr: expect.stringContaining("only supported with --dry-run")
+      });
+      expect(fs.existsSync(stateDir)).toBe(false);
+      expect(fs.existsSync(deployMarker)).toBe(false);
+
+      responseBody = { versions: [] };
+      await run("--execute");
+      expect(fs.readFileSync(deployMarker, "utf8")).toBe("1");
+      responseBody = { versions: [{ artifact_version: "3" }, { artifact_version: "5" }] };
+      await run("--execute");
+      expect(fs.readFileSync(deployMarker, "utf8")).toBe("6");
+      expect(versionRequests).toEqual(Array(5).fill("/api/trace/versions_by_artifact?artifact_id=flashapp-35f3d2be4fb20307"));
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
   it("resolves each standalone demo/Flash App strictly from its bound <meta> tag without URL ?template=", async () => {
     const fakeDoc = (content?: string) => ({
       querySelector: (selector: string) =>

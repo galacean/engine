@@ -143,6 +143,30 @@ function refs(sql: DatabaseSync) {
 }
 
 describe("Lingguang shared world checkpoints", () => {
+  it("keeps a checkpoint untouched when startup preparation discards a pending save", async () => {
+    const { db, sql, open } = instance();
+    seedLegacy(sql, project());
+    const rows = sql.prepare("SELECT * FROM world_save ORDER BY id");
+    const original = rows.all();
+    const reader = await open();
+    reader.deferWrites();
+    await reader.load();
+    const saving = reader.save("", project("unaccepted migration"));
+    expect(db.execute).not.toHaveBeenCalled();
+    reader.close();
+    await expect(saving).rejects.toMatchObject({ name: "AbortError" });
+    expect(rows.all()).toEqual(original);
+
+    const restored = await open();
+    const resumeWrites = restored.deferWrites();
+    await restored.load();
+    const updated = restored.save("", project("accepted migration"));
+    expect(db.execute).not.toHaveBeenCalled();
+    resumeWrites();
+    await updated;
+    expect(await (await open(true)).load()).toEqual(stored(project("accepted migration")));
+  });
+
   it.each(["failure", "close"])("stops other file reads on restore %s", async (mode) => {
     const { db, sql, open } = instance();
     const owner = await open();

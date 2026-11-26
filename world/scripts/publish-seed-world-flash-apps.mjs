@@ -22,8 +22,6 @@ import {
   rmSync,
   writeFileSync
 } from "node:fs";
-import http from "node:http";
-import https from "node:https";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -141,6 +139,9 @@ export function parseCliArgs(argv) {
   }
   if (!Number.isFinite(parsed.timeout) || parsed.timeout <= 0) {
     throw new Error(`Invalid --timeout "${parsed.timeout}"`);
+  }
+  if (parsed.execute && parsed.skipOnlineCheck) {
+    throw new Error("--skip-online-check is only supported with --dry-run");
   }
 
   parsed.catalogPath = parsed.catalogPath || resolve(parsed.engineRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE);
@@ -401,52 +402,38 @@ export function assertPublisherSupportsContextPath(publisherRoot) {
 }
 
 export async function queryOnlineArtifactInfo(publisherRoot, artifactId) {
-  if (!publisherRoot || !artifactId || artifactId.startsWith("<")) return null;
   const urlHelperPath = resolve(publisherRoot, "scripts/asap-service-url.cjs");
-  if (!existsSync(urlHelperPath)) return null;
   const require = createRequire(import.meta.url);
-  const { asapServiceUrl } = require(urlHelperPath);
-  const endpoint = asapServiceUrl(`/api/trace/versions_by_artifact?artifact_id=${encodeURIComponent(artifactId)}`);
-
-  return new Promise((resolvePromise) => {
-    const parsed = new URL(endpoint);
-    const transport = parsed.protocol === "http:" ? http : https;
-    const req = transport.get(parsed, { timeout: 10000 }, (res) => {
-      let body = "";
-      res.on("data", (chunk) => (body += chunk));
-      res.on("end", () => {
-        try {
-          const json = JSON.parse(body);
-          const data = json?.data ?? json;
-          const versions = Array.isArray(data?.versions)
-            ? data.versions
-            : Array.isArray(data)
-              ? data
-              : [];
-          let latestVersion = 0;
-          for (const v of versions) {
-            const num = Number.parseInt(String(v?.version_number ?? v?.artifact_version ?? v?.version ?? "0"), 10);
-            if (Number.isFinite(num) && num > latestVersion) latestVersion = num;
-          }
-          const rawType = data?.type ?? data?.artifact_type ?? versions[0]?.type ?? versions[0]?.artifact_type;
-          const type =
-            rawType === "game" || rawType === 1 || rawType === "1"
-              ? "game"
-              : rawType === "miniapp" || rawType === 2 || rawType === "2"
-                ? "miniapp"
-                : null;
-          resolvePromise({ latestVersion: latestVersion || null, type });
-        } catch {
-          resolvePromise(null);
-        }
-      });
-    });
-    req.on("error", () => resolvePromise(null));
-    req.on("timeout", () => {
-      req.destroy();
-      resolvePromise(null);
-    });
-  });
+  try {
+    if (!existsSync(urlHelperPath)) throw new Error(`Missing ${urlHelperPath}`);
+    const { asapServiceUrl } = require(urlHelperPath);
+    const endpoint = asapServiceUrl(`/api/trace/versions_by_artifact?artifact_id=${encodeURIComponent(artifactId)}`);
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const json = await response.json();
+    const data = json?.data ?? json;
+    const versions = data?.versions ?? data;
+    if (json?.success === false || !Array.isArray(versions)) throw new Error("Invalid version list");
+    let latestVersion = null;
+    for (const version of versions) {
+      const value = String(version?.version_number ?? version?.artifact_version ?? version?.version ?? "");
+      const number = Number(value);
+      if (!/^[0-9]+$/u.test(value) || !Number.isSafeInteger(number) || number < 1) {
+        throw new Error("Invalid Artifact version");
+      }
+      if (latestVersion === null || number > latestVersion) latestVersion = number;
+    }
+    const rawType = data?.type ?? data?.artifact_type ?? versions[0]?.type ?? versions[0]?.artifact_type;
+    const type =
+      rawType === "game" || rawType === 1 || rawType === "1"
+        ? "game"
+        : rawType === "miniapp" || rawType === 2 || rawType === "2"
+          ? "miniapp"
+          : null;
+    return { latestVersion, type };
+  } catch (error) {
+    throw new Error(`Could not verify online version for ${artifactId}: ${error.message}`, { cause: error });
+  }
 }
 
 function writeCatalogArtifactIds(catalogPath, updatesByTemplate) {
@@ -484,7 +471,7 @@ Options:
   --init-missing              Explicitly mint new Artifact IDs for templates with artifactId=null
   --sync-catalog              Write newly minted Artifact IDs back to world/demos/seed-world/flash-apps.json
   --skip-db-init              Skip running db-update-table-schema.cjs for new templates
-  --skip-online-check         Skip querying GET /api/trace/versions_by_artifact before deploy
+  --skip-online-check        Preview the plan offline (requires --dry-run)
   --allow-context-mismatch    Allow publisher app-context.local.json artifactId to differ from original catalog
   --timeout <seconds>         Per-app deploy timeout in seconds (default: 300)
   --dry-run                   Preview plan only (default)
@@ -535,18 +522,16 @@ async function main() {
 
   const onlineInfoByTemplate = {};
   if (options.publisherRoot && !options.skipOnlineCheck) {
-    const queryList = new Map();
-    const originalCatalog = catalog.apps.find((a) => a.templateId === "original");
-    if (originalCatalog?.artifactId) {
-      queryList.set("original", originalCatalog.artifactId);
-    }
     for (const app of targetApps) {
-      const knownId = app.artifactId || state.apps[app.templateId]?.artifactId;
-      if (knownId) queryList.set(app.templateId, knownId);
-    }
-    for (const [templateId, artifactId] of queryList) {
-      const info = await queryOnlineArtifactInfo(options.publisherRoot, artifactId);
-      if (info) onlineInfoByTemplate[templateId] = info;
+      const artifactId = app.artifactId || state.apps[app.templateId]?.artifactId ||
+        (app.reuseExisting ? publisherContext?.artifactId : null);
+      if (!artifactId) continue;
+      try {
+        onlineInfoByTemplate[app.templateId] = await queryOnlineArtifactInfo(options.publisherRoot, artifactId);
+      } catch (error) {
+        if (options.execute) throw error;
+        console.warn(`[dry-run] ${error.message}; showing the local estimate for ${app.templateId}`);
+      }
     }
   }
 

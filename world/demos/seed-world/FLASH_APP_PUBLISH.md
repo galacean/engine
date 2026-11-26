@@ -85,17 +85,17 @@ npm run build:seed-world-flash-source --workspace world
 
 ## 4. 本地静态冒烟验证（可选）
 
-对任意单个模板的派生目录启静态服务验证直达体验（无需传 `?template=`）：
+启动原版派生目录的静态服务。此目录同时用于下面的共享存档验收。
 
 ```bash
 python3 -m http.server 4180 \
   --bind 127.0.0.1 \
-  --directory world/dist/seed-world-flash-apps/sakura-pearl
+  --directory world/dist/seed-world-flash-apps/original
 ```
 
-浏览器打开 `http://127.0.0.1:4180/?aiChat=1&bootTrace=1`，核对不弹 6 选 1 启动窗、自动加载目标模板、控制台无 404 / Worker 报错、SWB1 与合并文本包命中。
+浏览器打开 `http://127.0.0.1:4180/?aiChat=1&bootTrace=1`，核对是否直接进入原版世界、控制台是否有 404 或 Worker 报错，以及 SWB1 和合并文本包是否命中。
 
-本地 SQLite 共享存档验收（指向任一运行目录）：
+在另一个终端对上述原版服务执行 SQLite 共享存档验收。
 
 ```bash
 node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180

@@ -1745,7 +1745,8 @@ export async function mountSeedWorldDemo(
           navigation.synchronizeView();
           debugSidebar?.restoreCameraMode(bookmark.mode);
         },
-        (error) => console.warn("[seed-world-planner] player state persistence failed", error)
+        (error) => console.warn("[seed-world-planner] player state persistence failed", error),
+        requestedTemplateId
       );
     type SpawnView = PlanningSpawnView | (Pick<PlanningSpawnView, "eye" | "target"> & { framing: "authored" });
     const spawnViews = new WeakMap<IslandPlan, { key: string; view: SpawnView }>();

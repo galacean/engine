@@ -142,7 +142,7 @@ export async function openSeedWorldProject(
     }
   }
   const existingVirtualPaths = new Set(initial.files.map((file) => file.virtualPath));
-  initial = {
+  const initialProject = {
     ...initial,
     files: [
       ...initial.files,
@@ -156,64 +156,83 @@ export async function openSeedWorldProject(
   const published = host && !host.readOnly && !selection?.olderApp ? new PublishedWorldAssets(prefetchedTextAssets, isRegisteredComponent) : undefined;
   const projectId = seedWorldProjectStorageId(seed, projectUrl, template);
   const openSession = (storage?: RuntimeProjectBackend) =>
-    RuntimeProjectSession.open(projectId, initial, projectUrl, { storage, scriptModules: seedWorldScriptModules, prefetchedTextAssets });
+    seedWorldBootTrace.span("openSeedWorldProject.sessionOpen", () =>
+      RuntimeProjectSession.open(projectId, initialProject, projectUrl, { storage, scriptModules: seedWorldScriptModules, prefetchedTextAssets })
+    );
 
-  const project = await seedWorldBootTrace.span("openSeedWorldProject.sessionOpen", async () => {
-    if (!host) return openSession();
+  registerNativeFarming();
+  registerNativeWater();
+  registerPlanningFarmingAssets();
+  registerBuildingAssetComponents();
+  registerPlantProjectAssets();
+
+  async function prepareProject(project: RuntimeProjectSession): Promise<RuntimeProjectSession> {
     try {
-      selection ??= await SharedWorldStorage.select(host.db, host.appVersion, template);
-      if (!selection.restoreFailed) {
-        const storage = await SharedWorldStorage.open(
-          host.db, host.readOnly, host.appVersion, { seed, template }, published,
-          host.importLegacyPreview ? readLegacyPreview : undefined,
-          planningSourceIdentity, selection
-        );
-        const restored = await openSession(storage);
-        if (!selection.checkpoint || restored.restoredFromStorage) return restored;
-        restored.dispose();
-      }
+      if (published && project.isPersistent && project.canSave) project.observeAssetReads((file, content) => published.recordRead(file, content));
+      project.registerAssetFormats(seedWorldProjectFormats);
+      await seedWorldBootTrace.span("openSeedWorldProject.migrateBuildingAssetPaths", () =>
+        migrateBuildingAssetPaths(project, initialProject, projectUrl, prefetchedTextAssets)
+      );
+      await seedWorldBootTrace.span("openSeedWorldProject.migrateWaterTextures", () =>
+        migrateSeedWorldWaterTextures(project)
+      );
+      await seedWorldBootTrace.span("openSeedWorldProject.prepareEditableHierarchies", () =>
+        project.prepareEditableHierarchies(isRegisteredComponent)
+      );
+      await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#1", () =>
+        project.initializeDependencies()
+      );
+      await seedWorldBootTrace.span("openSeedWorldProject.migrateVegetationAssets", () =>
+        migrateVegetationAssets(project, initialProject, projectUrl)
+      );
+      await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#2", () =>
+        project.initializeDependencies()
+      );
+      if (project.restoredFromStorage) validatePlanningProject(project.projectPackage);
+      project.registerProjectValidator(validatePlanningProject);
+      return project;
     } catch (error) {
-      console.warn("恢复世界存档失败，将初始化入口模板", error);
+      project.dispose();
+      throw error;
     }
-    // Keep normalization, autosave and in-session edits away from the unreadable checkpoint.
-    const storage = Object.assign(RuntimeProjectStorage.createInMemory(), {
-      readOnly: host.readOnly || Boolean(selection?.olderApp)
-    });
-    return openSession(storage);
-  });
-  try {
-    if (published && project.isPersistent && project.canSave) project.observeAssetReads((file, content) => published.recordRead(file, content));
-    registerNativeFarming();
-    registerNativeWater();
-    registerPlanningFarmingAssets();
-    registerBuildingAssetComponents();
-    registerPlantProjectAssets();
-    project.registerAssetFormats(seedWorldProjectFormats);
-    await seedWorldBootTrace.span("openSeedWorldProject.migrateBuildingAssetPaths", () =>
-      migrateBuildingAssetPaths(project, initial, projectUrl, prefetchedTextAssets)
-    );
-    await seedWorldBootTrace.span("openSeedWorldProject.migrateWaterTextures", () =>
-      migrateSeedWorldWaterTextures(project)
-    );
-    await seedWorldBootTrace.span("openSeedWorldProject.prepareEditableHierarchies", () =>
-      project.prepareEditableHierarchies(isRegisteredComponent)
-    );
-    await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#1", () =>
-      project.initializeDependencies()
-    );
-    await seedWorldBootTrace.span("openSeedWorldProject.migrateVegetationAssets", () =>
-      migrateVegetationAssets(project, initial, projectUrl)
-    );
-    await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#2", () =>
-      project.initializeDependencies()
-    );
-    project.registerProjectValidator(validatePlanningProject);
-    if (!host && project.isPersistent) scheduleRetiredSeedWorldSaveCleanup(projectUrl, project);
-    return project;
-  } catch (error) {
-    project.dispose();
-    throw error;
   }
+
+  if (!host) {
+    const project = await prepareProject(await openSession());
+    if (project.isPersistent) scheduleRetiredSeedWorldSaveCleanup(projectUrl, project);
+    return project;
+  }
+
+  let initializingFresh = false;
+  try {
+    selection ??= await SharedWorldStorage.select(host.db, host.appVersion, template);
+    if (!selection.restoreFailed) {
+      const storage = await SharedWorldStorage.open(
+        host.db, host.readOnly, host.appVersion, { seed, template }, published,
+        host.importLegacyPreview ? readLegacyPreview : undefined,
+        planningSourceIdentity, selection
+      );
+      const resumeWrites = storage.deferWrites();
+      const opened = await openSession(storage);
+      if (selection.checkpoint && !opened.restoredFromStorage) {
+        opened.dispose();
+      } else {
+        initializingFresh = !opened.restoredFromStorage;
+        const project = await prepareProject(opened);
+        resumeWrites();
+        return project;
+      }
+    }
+  } catch (error) {
+    if (initializingFresh) throw error;
+    console.warn("恢复世界存档失败，将初始化入口模板", error);
+  }
+
+  // Keep normalization, autosave and in-session edits away from the unreadable checkpoint.
+  const storage = Object.assign(RuntimeProjectStorage.createInMemory(), {
+    readOnly: host.readOnly || Boolean(selection?.olderApp)
+  });
+  return prepareProject(await openSession(storage));
 }
 
 const SEED_WORLD_FLASH_CDN_HOST = "mdn.alipayobjects.com";
