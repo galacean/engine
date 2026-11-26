@@ -1,0 +1,19 @@
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  s_a61a893a3e253a::t_f9c26c5627fe7d 1827-1829,1880,1889-1901
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d23c6129ff0b9bf9b0f6c70cdefde68932152f2b",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

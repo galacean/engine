@@ -1,0 +1,47 @@
+packages/world-planning/src/spatial/runtime/PlanningPlayerState.ts
+  s_0f777c1d9c2fdd::t_01bd77fcca0678 14-17,55-56,67-71
+world/tests/seed-world-storage/SharedWorldStorage.spec.ts
+  s_0f777c1d9c2fdd::t_5c9a0c60e30a58 146-169
+world/tests/seed-world/SeedWorldPlayerState.spec.ts
+  s_0f777c1d9c2fdd::t_5c9a0c60e30a58 285-301,304-311
+  s_0f777c1d9c2fdd::t_114ec5ad0df8e4 302-303
+  s_0f777c1d9c2fdd::t_6bc6e31e88de19 312-313
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_0f777c1d9c2fdd::t_3b654e2984aa52 88,93,98
+  s_0f777c1d9c2fdd::t_a70fd35bc4838c 96
+world/scripts/publish-seed-world-flash-apps.mjs
+  s_0f777c1d9c2fdd::t_c1414991606ca7 143-145,407-436,474,526-534
+world/demos/seed-world/SeedWorldDemo.ts
+  s_0f777c1d9c2fdd::t_01bd77fcca0678 1743-1744
+world/tests/seed-world/SeedWorldFlashApps.spec.ts
+  s_0f777c1d9c2fdd::t_114ec5ad0df8e4 2,5-6,47-59,61,63-72,75-76,79-99,103-105,107-111
+  s_0f777c1d9c2fdd::t_3b654e2984aa52 60,62,73-74,77-78
+  s_0f777c1d9c2fdd::t_a70fd35bc4838c 100-102,106
+world/demos/seed-world/storage/local-world-db.mjs
+  s_0f777c1d9c2fdd::t_242e2eecf65579 12,14,17,19-23,28,33-84,171,173,184-186
+world/demos/seed-world/SeedWorldPlayerSave.ts
+  s_0f777c1d9c2fdd::t_01bd77fcca0678 4-5,33
+world/demos/seed-world/storage/SharedWorldStorage.ts
+  s_0f777c1d9c2fdd::t_8973fdc0b5c794 191,609,644-654,660
+world/demos/seed-world/base.js
+  s_0f777c1d9c2fdd::t_242e2eecf65579 7
+world/demos/seed-world/SeedWorldProject.ts
+  s_0f777c1d9c2fdd::t_9de8d493ae59f9 159,161-167,169,171-173,175-185,187-193,195-196,198-202,204-225,227-228,230-235
+  s_0f777c1d9c2fdd::t_f15a59858f7af7 145,160,174,186
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b040e79731f16e792b55f4116a2a4ce372a31365",
+  "prompts": {},
+  "sessions": {
+    "s_0f777c1d9c2fdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21602-e042-7613-91c0-4ebb1a28dbd5",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

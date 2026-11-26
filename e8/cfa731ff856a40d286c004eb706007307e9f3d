@@ -1,0 +1,14 @@
+packages/physics-physx/src/shape/PhysXShape.ts
+  h_dd004f51a3e5ec 109-118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e8cfa731ff856a40d286c004eb706007307e9f3d",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

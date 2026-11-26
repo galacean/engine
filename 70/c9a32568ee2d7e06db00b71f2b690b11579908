@@ -1,0 +1,39 @@
+world/tests/seed-world/SeedWorldTemplateBundles.spec.ts
+  s_dcadea7fd99279::t_376dca0bbd724f 370-372
+  s_dcadea7fd99279::t_6832a3b1df77c7 33,348-369,373-403
+  s_dcadea7fd99279::t_dcd040ab09d516 404
+packages/vegetation/tests/PlantResourceSafety.spec.ts
+  s_dcadea7fd99279::t_6832a3b1df77c7 2,4,14-31
+  s_dcadea7fd99279::t_8352a0b56cc32a 32-33
+tests/src/core/RenderPipeline/InstanceBuffer.test.ts
+  s_dcadea7fd99279::t_6832a3b1df77c7 48-77
+world/demos/seed-world/src/SeedWorldCommonBinaryBundle.ts
+  s_dcadea7fd99279::t_6832a3b1df77c7 8,26,345,353-355,361-362,391,406,411,443
+packages/water/tests/WaterBuiltinTextures.test.ts
+  s_dcadea7fd99279::t_19db3b5dcbf136 3-7,51-65
+  s_dcadea7fd99279::t_83b186406ba067 66-71
+packages/water/src/water/native/WaterBuiltinAssets.ts
+  s_dcadea7fd99279::t_376dca0bbd724f 71-72,79,88,94,124
+  s_dcadea7fd99279::t_19db3b5dcbf136 142
+packages/core/src/RenderPipeline/InstanceBuffer.ts
+  s_dcadea7fd99279::t_6832a3b1df77c7 48,56-59,99,123,126,128,130,132-137,140-141,143,145-146,148-151
+  s_dcadea7fd99279::t_376dca0bbd724f 100
+packages/vegetation/src/asset-assembly/TreeAssemblyInstancedMesh.ts
+  s_dcadea7fd99279::t_6832a3b1df77c7 170,176,180-187,190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "70c9a32568ee2d7e06db00b71f2b690b11579908",
+  "prompts": {},
+  "sessions": {
+    "s_dcadea7fd99279": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21356-8848-70c2-980b-85c8418ffb42",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}

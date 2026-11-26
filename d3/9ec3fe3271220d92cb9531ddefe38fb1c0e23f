@@ -1,0 +1,30 @@
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  h_ddbf152d31b140 11-14,37,48-107,204-205,207-217,238-239,276-283,312-348,374,392,397-398,404-405,444-445,461,514-518,770
+packages/world-planning/src/world/SeedWorldPhotoPalette.ts
+  h_ddbf152d31b140 100
+packages/world-planning/src/world/SeedWorldPhotoWarmup.ts
+  h_ddbf152d31b140 25
+packages/world-planning/tests/SeedWorldPhotoGraphics.spec.ts
+  h_ddbf152d31b140 7-17,189-223,276-279,536-609
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 3858,3860,3878,3885-3886
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  h_ddbf152d31b140 303-304
+world/demos/seed-world/src/SeedWorldLassoPanel.ts
+  h_ddbf152d31b140 1,65,72,125-126
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  h_ddbf152d31b140 4,11-12,22-27,114,127-130,134,141,168,192-194,221,239,428,469,482,523-524,615-616,635,698,706,818,820-821,858,861,875-876,1140,1151,1153,1178,1230-1231,1254
+world/tests/seed-world/SeedWorldPhotoWorkspace.spec.ts
+  h_ddbf152d31b140 75,82-84,189,199,201
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d39ec3fe3271220d92cb9531ddefe38fb1c0e23f",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

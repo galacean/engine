@@ -1,0 +1,34 @@
+tests/src/core/physics/Collider.test.ts
+  s_d2c65ec75a2f3e::t_35e1fdc3eb2376 455,464,469,474,477,481
+tests/src/core/physics/PhysicsScene.test.ts
+  s_d2c65ec75a2f3e::t_35e1fdc3eb2376 2026-2027,2074,2084-2085,2110,2114,2129-2130,2895,2897,2928-2929,2936,2940,2943,2948
+tests/src/core/physics/RigidbodyOwnership.test.ts
+  s_d2c65ec75a2f3e::t_35e1fdc3eb2376 704,726,729,731,737,744,832,862,875-876,878-879,892,897,899,1112,1148,1163,1166,1182,1185,1201
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_35e1fdc3eb2376 215-218,549-558,572-573
+packages/physics-physx/src/PhysXActor.ts
+  s_d2c65ec75a2f3e::t_35e1fdc3eb2376 35
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_35e1fdc3eb2376 59-62,82-100,274-275,1057,1115-1182,1191-1193,1207-1211
+  s_d2c65ec75a2f3e::t_567cd449cb3151 1212
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_d2c65ec75a2f3e::t_35e1fdc3eb2376 202
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_35e1fdc3eb2376 32-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7d223624304c3383912155b24d4a2fd202bf5e05",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

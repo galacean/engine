@@ -1,0 +1,99 @@
+packages/rhi-webgl/src/GLTextureCube.ts
+  s_d38fe2a3a29c8c::t_b9b397250335ab 3,77-79,113-130
+  s_d38fe2a3a29c8c::t_d54622d5abe914 18,20
+packages/core/src/shaderlib/pbr/btdf.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 22
+packages/core/src/postProcess/shaders/FinalSRGB.fs.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 6
+packages/shader/src/shaders/shadingPBR/BSDF.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 408
+packages/core/src/shaderlib/extra/Blit.fs.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 13,24,26
+packages/core/src/postProcess/shaders/UberPost.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 19,23,25,32
+packages/core/src/texture/TextureUtils.ts
+  s_d38fe2a3a29c8c::t_d54622d5abe914 2,34-40
+tests/src/shader-lab/ShaderLab.test.ts
+  s_d38fe2a3a29c8c::t_34054714927487 88
+packages/core/src/shaderlib/extra/text.fs.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 9
+tests/src/rhi-webgl/SRGBUpload.test.ts
+  s_d38fe2a3a29c8c::t_1a0ca29b9ac521 53,59,126,135,190,202,204-225,236,243,254,280
+  s_d38fe2a3a29c8c::t_cf3cfd4a99bbfe 271-272
+  s_d38fe2a3a29c8c::t_d996ae813f4dc9 1-52,54-58,60-125,127-134,136-189,191-201,203,226-235,237-242,244-253,255-270,273-279,281
+packages/rhi-webgl/src/GLTexture2D.ts
+  s_d38fe2a3a29c8c::t_d54622d5abe914 18,20
+  s_d38fe2a3a29c8c::t_b9b397250335ab 3,58-60,86-97
+  s_d38fe2a3a29c8c::t_13dcf143e3e769 98
+packages/core/src/shaderlib/begin_mobile_frag.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 9,13,21
+packages/core/src/shaderlib/extra/sprite.fs.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 9
+packages/ui/src/shader/uiDefault.fs.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 8
+tests/benchmarks/srgb-upload.ts
+  s_d38fe2a3a29c8c::t_34054714927487 1-157
+packages/core/src/shaderlib/extra/unlit.fs.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 16
+docs/en/core/color.mdx
+  s_d38fe2a3a29c8c::t_34054714927487 97,99-105
+packages/shader/src/shaders/Common.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 52,54
+packages/core/src/shaderlib/pbr/pbr_helper.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 103,196
+packages/rhi-webgl/src/GLTexture.ts
+  s_d38fe2a3a29c8c::t_b9b397250335ab 15,694-697
+  s_d38fe2a3a29c8c::t_d54622d5abe914 454-455,577-584,722
+packages/shader/src/shaders/shadingPBR/FragmentPBR.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 138,159,289
+docs/zh/core/color.mdx
+  s_d38fe2a3a29c8c::t_34054714927487 99,101-107
+packages/core/src/shaderlib/extra/background-texture.fs.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 7
+packages/core/src/postProcess/shaders/Bloom/BloomBlurV.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 11-15
+packages/core/src/shaderlib/common.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 50,52
+packages/core/src/shaderlib/extra/BlitScreen.fs.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 10-16,23
+packages/core/src/postProcess/shaders/Bloom/BloomBlurH.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 11-19
+packages/core/src/postProcess/shaders/Bloom/BloomPrefilter.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 11-23,34
+packages/core/src/postProcess/shaders/Bloom/BloomUpsample.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 11,14,16
+packages/core/src/shaderlib/extra/particle.fs.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 25,31
+packages/core/src/shaderlib/extra/trail.fs.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 21,27
+packages/core/src/shaderlib/pbr/pbr_frag.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 62
+packages/core/src/postProcess/shaders/Filtering.glsl
+  s_d38fe2a3a29c8c::t_d54622d5abe914 33,41-44
+packages/rhi-webgl/src/SRGBTextureConverter.ts
+  s_d38fe2a3a29c8c::t_34054714927487 76-82
+  s_d38fe2a3a29c8c::t_dddaee0b6cb913 1-11,14-18,20-74,84-98
+  s_d38fe2a3a29c8c::t_0efaeaf7c36e49 12-13,19,75,83
+tests/benchmarks/srgb-upload.perf.ts
+  s_d38fe2a3a29c8c::t_cf784e87ba0519 1-9
+tests/benchmarks/srgb-upload.workspace.ts
+  s_d38fe2a3a29c8c::t_46b28b537855e4 1-11
+tests/src/rhi-webgl/SRGBFallback.test.ts
+  s_d38fe2a3a29c8c::t_26d757c11e8f92 125,136,150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a259fffe65c081de93e8d6e2e1112172ac8bf704",
+  "prompts": {},
+  "sessions": {
+    "s_d38fe2a3a29c8c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a19249-28ae-7301-9850-276de3ebe437",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

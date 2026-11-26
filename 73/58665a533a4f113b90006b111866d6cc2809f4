@@ -1,0 +1,28 @@
+packages/core/src/physics/Collider.ts
+  s_b2443e4dfc4aa1::t_087fb5854672b1 293
+  s_b2443e4dfc4aa1::t_a9615769e824ac 335
+packages/core/src/physics/Rigidbody.ts
+  s_b2443e4dfc4aa1::t_4faed69b1ddf9b 828
+packages/physics-physx/src/PhysXDynamicActor.ts
+  s_b2443e4dfc4aa1::t_5c29c0724435bc 208
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_b2443e4dfc4aa1::t_8a56b98f70e5c6 41
+packages/physics-physx/src/shape/PhysXShape.ts
+  s_b2443e4dfc4aa1::t_de378cd60a9a3c 86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7358665a533a4f113b90006b111866d6cc2809f4",
+  "prompts": {},
+  "sessions": {
+    "s_b2443e4dfc4aa1": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a211c0-5d94-764f-afdb-89bf246b5af6",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

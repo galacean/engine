@@ -1,0 +1,69 @@
+packages/building/src/building/resources/PREFAB_AUTHORING.md
+  s_c72f930c19d1f3::t_e2edd810801c20 27
+packages/building/src/building/parts/README.md
+  s_c72f930c19d1f3::t_e2edd810801c20 37
+packages/world-planning/tests/NativeBuildingLifetime.spec.ts
+  s_c72f930c19d1f3::t_e2edd810801c20 127,133
+  s_c72f930c19d1f3::t_42d524156e03b1 142-143,157,199
+packages/building/src/building/runtime/BuildingWallBakeInput.ts
+  s_c72f930c19d1f3::t_e2edd810801c20 4-6,9-49,112,148
+packages/building/tests/ConstructionSceneLightingCompiler.spec.ts
+  s_c72f930c19d1f3::t_e2edd810801c20 76,90,92,97,114,144,182
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  s_c72f930c19d1f3::t_e2edd810801c20 397,443,454,459,462
+world/demos/building-lighting-study/main.ts
+  s_c72f930c19d1f3::t_f444143b5726b3 1
+packages/building/src/building/runtime/ConstructionSceneLighting.ts
+  s_c72f930c19d1f3::t_e2edd810801c20 20
+world/demos/building-lighting-study/README.md
+  s_c72f930c19d1f3::t_e27f08f77f5011 5
+  s_c72f930c19d1f3::t_f4023d1c458cee 3-4
+packages/building/tests/MasonryResidency.spec.ts
+  s_c72f930c19d1f3::t_e27f08f77f5011 118-144,554-557
+  s_c72f930c19d1f3::t_9e81bd370be000 558
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_c72f930c19d1f3::t_e2edd810801c20 656,674,679-680,700-701,1782,1801,1869
+  s_c72f930c19d1f3::t_0ae8beade58b4d 204-205,562-563,565-568
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  s_c72f930c19d1f3::t_e2edd810801c20 77,79-87,216,218-223
+world/demos/seed-world/systems/runtime-declarations-index.json
+  s_c72f930c19d1f3::t_9bef03364f11a1 1
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  s_c72f930c19d1f3::t_a952d4089de23b 370,392
+packages/building/src/building/parts/architecture/BuildingCpu.ts
+  s_c72f930c19d1f3::t_e2edd810801c20 20,127
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  s_c72f930c19d1f3::t_a952d4089de23b 302,1300
+world/demos/building-lighting-study/StudyScene.ts
+  s_c72f930c19d1f3::t_942141865307e7 101,221-226
+world/demos/seed-world/SeedWorldDemo.ts
+  s_c72f930c19d1f3::t_e2edd810801c20 322
+packages/building/src/building/parts/architecture/BuildingManager.ts
+  s_c72f930c19d1f3::t_98781550eaf58f 62,87,93,318-319
+packages/building/src/building/runtime/EngineResidentScene.ts
+  s_c72f930c19d1f3::t_4ed33f9763bba0 445,866,1542,1545-1546,1556
+packages/building/src/building/runtime/MasonryResidency.ts
+  s_c72f930c19d1f3::t_a796cf4ad4d703 70-71,85,105-118,368,388-405
+packages/building/tests/BuildingGlobalProxy.spec.ts
+  s_c72f930c19d1f3::t_489e2f8be00ccc 716,836
+packages/building/tests/BuildingOptimization.spec.ts
+  s_c72f930c19d1f3::t_3ea1e2ce72c152 1066
+packages/building/tests/ConstructionEntrance.spec.ts
+  s_c72f930c19d1f3::t_4e3946c2703be3 121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "db507a04df5a652641e2f864c258d567159628ec",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

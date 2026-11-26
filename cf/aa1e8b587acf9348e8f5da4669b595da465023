@@ -1,0 +1,36 @@
+tests/src/core/AnimationCurve.test.ts
+  s_c79b9768e5d16a::t_3820bb85c5e939 19,217-230,232,234-246
+tests/src/core/Animator.test.ts
+  s_c79b9768e5d16a::t_3820bb85c5e939 5,16,27,504,508-521,523-526,529,531,533-537,539-541,543,546-548,550-551,553
+  s_c79b9768e5d16a::t_edcdadeb83df8f 19-20,503,505-507,522,527-528,530,532,538,542,544-545,549,552
+  s_78fd17455f4436::t_b2c0a61080566f 554-555
+packages/core/src/animation/animationCurve/AnimationRectCurve.ts
+  s_c79b9768e5d16a::t_3b4796f0c8a984 1,12,19,38-67,133-136,138-143
+  s_c79b9768e5d16a::t_454ec975c085e8 6,85-86,88-89,94,98,100-113,116-132,144-151,153-163
+packages/core/src/animation/internal/AnimationCurvePack.ts
+  s_c79b9768e5d16a::t_454ec975c085e8 1,22,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cfaa1e8b587acf9348e8f5da4669b595da465023",
+  "prompts": {},
+  "sessions": {
+    "s_78fd17455f4436": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a215eb-313e-7ee0-97c6-22c3d0b4783c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_c79b9768e5d16a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a215df-ae38-7891-beaa-ba42aa076023",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+packages/vegetation/src/skills/vegetation/SKILL.md
+  s_ab59b8e40dc4d1::t_2f4ca260f1f51e 12
+packages/water/src/skills/water/SKILL.md
+  s_ab59b8e40dc4d1::t_61f022b97511fb 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8d5f7c889045f202f341d4a96ca19081d5118141",
+  "prompts": {},
+  "sessions": {
+    "s_ab59b8e40dc4d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ce4-cb2b-71d3-86f0-6aa015964ede",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

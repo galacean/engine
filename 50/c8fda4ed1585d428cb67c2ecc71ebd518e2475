@@ -1,0 +1,19 @@
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  s_02781447abdd68::t_31432a0645b853 535-538,574-583,1023-1025,1085-1087,1170-1185,1309-1312
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "50c8fda4ed1585d428cb67c2ecc71ebd518e2475",
+  "prompts": {},
+  "sessions": {
+    "s_02781447abdd68": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cdd2-e33f-7600-95dc-ac58eab2f9bb",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

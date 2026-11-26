@@ -1,0 +1,32 @@
+packages/world-planning/src/planning-data/template-wildlife.json
+  h_171a11afaf879a 15,19,23,25,27
+packages/world-planning/src/runtime/NaturalVegetationCell.ts
+  h_171a11afaf879a 205-211
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  h_171a11afaf879a 3-7,67-81,478-488,1544-1610,1612-1621,1737-1739,1741-1742,1744,1746,1748,1750-1751,1754,1757-1761,1764-1767,1770,1791,1793,1795-1799,1807,1811-1813
+packages/world-planning/src/spatial/runtime/NaturalUnderstoryInstancedPool.ts
+  h_171a11afaf879a 606-607,1078-1088,1176,1232-1234,1236-1244
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_171a11afaf879a 337,388-393,395-398,400-409,431-455,469,477,479,528-529,571-572,665-667
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_171a11afaf879a 277,713-717,796,802-805,807-808,1473-1493,1879,2026-2028,2074-2076,2456,2458-2460,2522,2536-2537,2540-2557,2559-2570,2574-2576,2578-2593,2596-2637,2642-2663,2665-2668,2670-2677,2691,2701-2703,2705-2707,3313-3330
+packages/world-planning/src/spatial/world-templates/OilPaintAutumn.ts
+  h_171a11afaf879a 289
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 407
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 256,259-262
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  h_171a11afaf879a 270
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c285831f2281d6c43143912c49dd2681f4603dde",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

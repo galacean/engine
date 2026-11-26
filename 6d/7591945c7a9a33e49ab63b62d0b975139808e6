@@ -1,0 +1,78 @@
+world/scripts/acceptance/shared-world-storage.mjs
+  s_8f3083c2e9dd72::t_297ce7ba8d1096 21-30,242,258,319
+  s_8f3083c2e9dd72::t_73a2832b3eb75e 227
+  s_8f3083c2e9dd72::t_ddc71f20021670 90,94,119-121,148-152,203,222-224,226,228-233
+  s_8f3083c2e9dd72::t_e05dba926fa54e 31-45,80-82,89,91-92,95,97,105,111,118,137-146,154-157,164,192-193,201,225,234-241,248,253,302,304-306,308-318,320-321
+  s_8f3083c2e9dd72::t_564ebef3e8f334 12,307
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_8f3083c2e9dd72::t_73a2832b3eb75e 49,58-62,96-101,112,345,347,487-488
+world/demos/seed-world/README.md
+  s_8f3083c2e9dd72::t_6321895822efc0 136
+  s_8f3083c2e9dd72::t_ddc71f20021670 137,142
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_8f3083c2e9dd72::t_6321895822efc0 203,206-211,259-262
+  s_8f3083c2e9dd72::t_99fffa7a3d4a51 263
+packages/runtime-editor/src/project/runtime-project-session.ts
+  s_8f3083c2e9dd72::t_dc08509b6f889a 274,306
+world/demos/seed-world/storage/WorldDbRateLimit.ts
+  s_8f3083c2e9dd72::t_424c58742d7742 14,32,52
+world/demos/seed-world/main.ts
+  s_8f3083c2e9dd72::t_dc08509b6f889a 66,70,73,85,116,130,146
+  s_8f3083c2e9dd72::t_493f27207fd791 3,15,56,64-65
+world/tests/seed-world-storage/SharedWorldStorage.spec.ts
+  s_8f3083c2e9dd72::t_3d1fc1f2fa6a86 540-557,1101-1103,1113
+  s_8f3083c2e9dd72::t_34ce4cd75e928f 538,1099-1100,1105,1109,1111-1112,1115,1119,1125,1128,1130-1140,1142-1152,1154-1155
+  s_8f3083c2e9dd72::t_424c58742d7742 37-39,46-47,56-79,138,251,260,282,392-430,432-526,528-537,563,569-575,606,780,812,1063,1071,1075,1223
+  s_8f3083c2e9dd72::t_92561bf199dd72 431,527,539,558-562,564-568,1098,1104,1106-1108,1110,1114,1116-1118,1120-1124,1126-1127,1129,1141,1153,1166,1221,1235
+vitest.config.ts
+  s_8f3083c2e9dd72::t_330b1ff0194d41 6-10,12
+  s_8f3083c2e9dd72::t_5886294c5e4b4c 1,11
+world/demos/seed-world/src/planning/spatial/SpatialEditor.css
+  s_8f3083c2e9dd72::t_73a2832b3eb75e 43,48-49,51-52,55
+  s_8f3083c2e9dd72::t_bd884f8e46b5a5 44-47,50,53-54
+world/demos/seed-world/storage/SharedWorldStorage.ts
+  s_8f3083c2e9dd72::t_f7feb3e431cd23 26-27,43,49-54,65-68,109-111,113-115,119-120,159-160,162,172,218-228,230-231,233-236,240,245,253-254,257-262,308,368-370,425,429-433,435-438,443-446,449-454,456-465,534-536,566-578,581,585,590,610,614-616,623-624,668,705,713,728-731
+  s_8f3083c2e9dd72::t_8dfc3e0b439416 103-108,116-118,121-122,124,197,202-203,232,252,256,297-298,439-441,466-467,470,472,507,647,651,658,671,733,736
+  s_8f3083c2e9dd72::t_9692288ee6692d 241,497-502,704,706-711
+  s_8f3083c2e9dd72::t_9390314ce6c53d 523
+  s_8f3083c2e9dd72::t_424c58742d7742 672-674
+  s_8f3083c2e9dd72::t_3d1fc1f2fa6a86 521,553,557-558,723-726
+  s_8f3083c2e9dd72::t_9421ef85f73a41 44,112,187-188,276,290,294-296,302-303,354,420-424,426-428,434,442,455,669-670,675-677,714-718,721-722,727,737-738
+  s_8f3083c2e9dd72::t_38a430216003bc 199,275,312,447-448,468-469,473-474,517-518,520,522,524,545,640-641,678,719-720
+world/demos/seed-world/SeedWorldDemo.ts
+  s_8f3083c2e9dd72::t_dc08509b6f889a 1060-1061,3681
+  s_8f3083c2e9dd72::t_ecf86f47932c8a 89,310,921
+world/demos/seed-world/SeedWorldProject.ts
+  s_8f3083c2e9dd72::t_6321895822efc0 26,124
+  s_8f3083c2e9dd72::t_dc08509b6f889a 112
+  s_8f3083c2e9dd72::t_53832b8fd7ff06 2,80-81,109,113
+world/tests/seed-world-storage/vitest.config.mjs
+  s_8f3083c2e9dd72::t_330b1ff0194d41 1-8
+world/demos/seed-world/storage/SeedWorldStorageHost.ts
+  s_8f3083c2e9dd72::t_e3698cc58ad796 37-51,53
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_8f3083c2e9dd72::t_330b1ff0194d41 102
+  s_8f3083c2e9dd72::t_ddc71f20021670 148-150
+world/demos/seed-world/storage/local-world-db.mjs
+  s_8f3083c2e9dd72::t_e3698cc58ad796 4-5,40-50,87-96
+world/demos/seed-world/src/planning/semantic-study/WorldLayoutEditor.ts
+  s_8f3083c2e9dd72::t_62b7d8a148b43d 1,30
+world/tests/seed-world/WorldDbRateLimit.spec.ts
+  s_8f3083c2e9dd72::t_d85cf270c87e7a 84-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6d7591945c7a9a33e49ab63b62d0b975139808e6",
+  "prompts": {},
+  "sessions": {
+    "s_8f3083c2e9dd72": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2131e-0eaf-71d1-956f-0ffd8d9ab6cf",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

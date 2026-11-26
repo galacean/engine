@@ -1,0 +1,43 @@
+packages/terrain/src/terrain/TerrainRenderer.ts
+  s_dcadea7fd99279::t_f96d859afe140b 1
+world/demos/seed-world/src/SeedWorldGrassDrawOrder.ts
+  s_dcadea7fd99279::t_9751e4b6276965 1-15,20-24,26-36,39-45,53-57,64-65,70-74,78,83-84,86-91,93-95
+  s_dcadea7fd99279::t_e67356deee80a3 25,46-52,61,67-68,77,79,85,92
+  s_dcadea7fd99279::t_2b34c9176ea87a 16-19,37-38,58-60,62-63,66,69,75-76,80-82
+packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts
+  s_dcadea7fd99279::t_f96d859afe140b 95,97,185
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_dcadea7fd99279::t_f96d859afe140b 223,287-288
+world/tests/seed-world-browser/GrassDrawOrder.test.ts
+  s_dcadea7fd99279::t_e67356deee80a3 1-79,81-95
+  s_dcadea7fd99279::t_2241034c363c2d 80
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_dcadea7fd99279::t_f96d859afe140b 54,56,125
+packages/core/src/RenderPipeline/CullingResults.ts
+  s_dcadea7fd99279::t_f96d859afe140b 3
+packages/core/src/RenderPipeline/BatcherManager.ts
+  s_dcadea7fd99279::t_f96d859afe140b 71
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_dcadea7fd99279::t_f96d859afe140b 716,827-828
+world/demos/seed-world/SeedWorldDemo.ts
+  s_dcadea7fd99279::t_e67356deee80a3 1212
+  s_dcadea7fd99279::t_9751e4b6276965 38,565,585-586
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_dcadea7fd99279::t_64e9c1ea6df2a4 905,1413,2003,2711-2712,2731-2753,3235-3236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "16fe4973d99247f66f0466912ba03ade19e5a51d",
+  "prompts": {},
+  "sessions": {
+    "s_dcadea7fd99279": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21356-8848-70c2-980b-85c8418ffb42",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}

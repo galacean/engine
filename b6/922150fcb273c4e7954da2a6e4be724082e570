@@ -1,0 +1,16 @@
+packages/shader-compiler/src/webgpu/ast/WGSLEmitter.ts
+  h_171a11afaf879a 88-101,708,1355-1376,1407-1410,1454-1455,1545-1559,2175,2210,2212-2216,2247-2248,2298-2301,2363
+tests/src/shader-compiler/ShaderLabWGSLConformance.test.ts
+  h_171a11afaf879a 1-385
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b6922150fcb273c4e7954da2a6e4be724082e570",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

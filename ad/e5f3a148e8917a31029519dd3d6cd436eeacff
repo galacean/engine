@@ -1,0 +1,68 @@
+packages/building/src/building/parts/architecture/BuildingCpuClient.ts
+  h_ddbf152d31b140 42
+packages/building/src/building/runtime/ConstructionPlasterShader.ts
+  h_ddbf152d31b140 87-89,92-94,103,107-113,122
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  h_ddbf152d31b140 33-35,37-39,44-46,49-51,53,56-57,75,83-84,86,88,96-99,103,106-110,132,149,172,178,182-183,185,187-189,219-223,250-251,253-254,256,258,266-268,273-277
+packages/building/src/building/runtime/EngineShaderSource.ts
+  h_ddbf152d31b140 2,161
+packages/building/src/building/runtime/MasonryFarProxy.shader
+  h_ddbf152d31b140 172-184
+packages/building/src/building/runtime/MasonryGlobalProxy.shader
+  h_ddbf152d31b140 312-324
+packages/building/src/building/runtime/OptimizeStorageReads.ts
+  h_ddbf152d31b140 539-546,550
+packages/building/tests/BuildingFarProxy.spec.ts
+  h_ddbf152d31b140 175-176,183-185
+packages/building/tests/ConstructionSceneLightingCompiler.spec.ts
+  h_ddbf152d31b140 115,123-124,127-177
+packages/building/tests/OptimizeStorageReads.spec.ts
+  h_ddbf152d31b140 5,280-291
+packages/core/src/RenderPipeline/PrimitiveChunk.ts
+  h_ddbf152d31b140 28-40,52-60,62,81-88,90-103,172,176-196,198,227-239,242-243,249-250,253,255,264,266-276,278-279,286-287,295-296,299,301,310,312-322,324-325,332-339,343-344,347-356,360-361,367-540
+packages/core/src/graphic/Primitive.ts
+  h_ddbf152d31b140 27-28,151-185
+packages/modify/src/native/rhi-webgl/src/GLPrimitive.ts
+  h_ddbf152d31b140 36-39,148,167-168
+packages/modify/src/rendering/LiquidGlassPostProcessPass.ts
+  h_ddbf152d31b140 168,195,220-230
+packages/modify/src/rendering/shaders/SeedWorldLiquidGlass.shader
+  h_ddbf152d31b140 43,62-64
+packages/rhi-webgl/src/GLPrimitive.ts
+  h_ddbf152d31b140 33-36,135,153-154
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_ddbf152d31b140 55-57,97,104,234,241,308,327,347,650,654,659,663,665-666,699
+packages/terrain/src/terrain/clipmap/TerrainClipmap.ts
+  h_ddbf152d31b140 44-49,51-53,55
+tests/src/core/RenderPipeline/PrimitiveChunk.test.ts
+  h_ddbf152d31b140 3,7,32,37-40,44,50-51,53-58,61-62,64-67,71-74,78-396,420,428,431,435,437,500,541,655,658-665,669,709-713,716-717,730-731,735-737,740-742,750,769-770,774-778,780,783,786
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  h_ddbf152d31b140 1716-1717,2153-2157,2436
+world/demos/seed-world/assistant/shaders/SeedWorldVoiceOrb.shader
+  h_ddbf152d31b140 28-30,66-68
+world/scripts/seed-world-template-bundles.mjs
+  h_ddbf152d31b140 121-124,137-140,172-176,178,203,244-245,264,270,285,297,306
+world/tests/seed-world-browser/SeedWorldPerfRegressions.test.ts
+  h_ddbf152d31b140 5,7,9-13,18,20-24,526-728
+world/tests/seed-world/SeedWorldTemplateBundles.spec.ts
+  h_ddbf152d31b140 9,82-101,103-110,112-115,118,124-163,514,551-554,559,561,565-588,599-606,616-618,620,625-626
+world/tests/seed-world/SeedWorldVoiceHudController.spec.ts
+  h_ddbf152d31b140 982-1061
+world/tests/seed-world/TerrainClipmapPriority.spec.ts
+  h_ddbf152d31b140 112,153,160,170-172,174-180
+world/tests/seed-world/TerrainFarShader.spec.ts
+  h_ddbf152d31b140 251,306-313,318-319,323-349,354-361,365,373,409,411-416,458,460,462-463
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ade5f3a148e8917a31029519dd3d6cd436eeacff",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

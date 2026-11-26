@@ -1,0 +1,14 @@
+packages/ui/src/component/UIBatchSorter.ts
+  h_ddbf152d31b140 46,48-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a1c2fbf47b2b078b955218b018339bfc8ab8eb08",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

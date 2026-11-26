@@ -1,0 +1,22 @@
+world/README.md
+  h_ddbf152d31b140 70,81
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  h_ddbf152d31b140 89,149
+world/package.json
+  h_ddbf152d31b140 19
+world/scripts/build-seed-world-flash-app.mjs
+  h_ddbf152d31b140 74
+world/scripts/sync-flash-app-cdn-assets.py
+  h_ddbf152d31b140 279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4d18494b5b0057f440e8c487a60690cf3414d3be",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,155 @@
+packages/building/src/building/parts/architecture/BuildingWorker.ts
+  s_c72f930c19d1f3::t_07f84614f15564 78
+packages/building/src/building/runtime/BuildingRenderPackage.ts
+  s_c72f930c19d1f3::t_3489b77f6bd107 260-261
+packages/building/src/building/runtime/BuildingWallBakeCache.ts
+  s_c72f930c19d1f3::t_3489b77f6bd107 8-9,80,91
+packages/building/src/building/runtime/ConstructionDecorations.ts
+  s_c72f930c19d1f3::t_3489b77f6bd107 54
+packages/building/src/building/runtime/MasonryDistanceSurface.shader
+  s_c72f930c19d1f3::t_548a8d22b4737a 60-76,80-84,89,123,143-145,222-224
+  s_c72f930c19d1f3::t_6b92bfa233c16d 186-187,199,202,205-207,209-220,225
+packages/modify/src/rendering/V2ViewGeometry.ts
+  s_c72f930c19d1f3::t_4e14e3c3d4a548 13,120-121,126
+  s_c72f930c19d1f3::t_baa2ae27caa4ee 122-125
+packages/building/tests/BuildingGlobalProxy.spec.ts
+  s_c72f930c19d1f3::t_f33e7da8368b04 244-245
+  s_c72f930c19d1f3::t_f5c8a26ed37b43 11,212,223-232,235,241-243,246-248,254,265,281-289
+world/demos/building-lighting-study/capture.mjs
+  s_c72f930c19d1f3::t_0e29be8bfa1771 16,43,46,143,146-151,158,202
+world/demos/building-lighting-study/main.ts
+  s_c72f930c19d1f3::t_1a044469125019 88
+  s_c72f930c19d1f3::t_22402116a4e254 86-87
+  s_c72f930c19d1f3::t_044c72e1d7741d 44-49,51,59-63,68-69
+  s_c72f930c19d1f3::t_0e29be8bfa1771 55,58,65,89,109-115,140-142,170
+  s_c72f930c19d1f3::t_77b38a6af0e800 70
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_c72f930c19d1f3::t_0429740ec0d1c7 367-368
+  s_c72f930c19d1f3::t_3489b77f6bd107 373
+  s_c72f930c19d1f3::t_cad13eec113148 37,360,1158,1964
+packages/building/src/building/runtime/DecorationNativeView.ts
+  s_c72f930c19d1f3::t_3489b77f6bd107 25,30,179
+packages/building/src/building/runtime/BuildingWallAtlas.ts
+  s_c72f930c19d1f3::t_07f84614f15564 1-4,6-7,12-13,17-25,27-31,38-40,44-45,47,49-52,55,63,83,86-88,108,127,137,149,152,180
+  s_c72f930c19d1f3::t_05d22499d11e1c 94-95,192
+  s_c72f930c19d1f3::t_6b1b0881a894a1 26,166-167,172-173
+  s_c72f930c19d1f3::t_5e36715af619c4 100,109-121,129-135,140-141
+  s_c72f930c19d1f3::t_186c0ef5ca9908 46,56-60,62,65,67-69,71,74-78,81,90,98-99,101-107,122-126,128,136,138-139,143-147,150-151,153-165,168-171,174-179,187-191,193-195,197-202,210-211,214,216-218
+  s_c72f930c19d1f3::t_cf2fbe34272115 142
+packages/building/src/building/runtime/MasonryGlobalProxy.shader
+  s_c72f930c19d1f3::t_d02b3cd6dcdad3 147,160,227-228,320
+  s_c72f930c19d1f3::t_548a8d22b4737a 133,148-149,161,321
+packages/building/src/building/runtime/UnitPacking.d.ts
+  s_c72f930c19d1f3::t_606eef41e2ee65 4
+world/demos/seed-world/SeedWorldDemo.ts
+  s_c72f930c19d1f3::t_3489b77f6bd107 1227
+world/demos/building-lighting-study/MasonryFixtures.ts
+  s_c72f930c19d1f3::t_f07ed23a0997f4 38-41
+  s_c72f930c19d1f3::t_10d4b7ff342f78 142-143,146,176,182,189-191,193,199
+  s_c72f930c19d1f3::t_e06374132c457c 4,186-188
+world/demos/building-lighting-study/README.md
+  s_c72f930c19d1f3::t_044c72e1d7741d 20
+  s_c72f930c19d1f3::t_63d9f247146ac8 14,16-17,19,22
+  s_c72f930c19d1f3::t_1a044469125019 18
+packages/building/src/building/runtime/BuildingWallBakeInput.ts
+  s_c72f930c19d1f3::t_05d22499d11e1c 211,216
+  s_c72f930c19d1f3::t_07f84614f15564 5,214-215
+packages/building/src/building/parts/README.md
+  s_c72f930c19d1f3::t_0429740ec0d1c7 37-38,42
+  s_c72f930c19d1f3::t_1a044469125019 39-41
+packages/building/src/building/runtime/BuildingWallGeometryUV.ts
+  s_c72f930c19d1f3::t_0560433a44190e 6
+  s_c72f930c19d1f3::t_cad13eec113148 1-5,12-15,20-24,30-44,47-48,52-55,57-58,64,67-68,70-71,73-74,81-88,90-95,98-99,113-114,116-117,119-121,141,147-148,160,164-165,167,169
+  s_c72f930c19d1f3::t_0429740ec0d1c7 7-11,16-19,25-29,45-46,49-51,56,65-66,69,75-80,89,96-97,100-112,115,118,122-140,142-146,149-159,161-163,166,168
+  s_c72f930c19d1f3::t_4ab40bb7e9a0ec 59-63,72
+world/demos/building-lighting-study/StudyBake.ts
+  s_c72f930c19d1f3::t_e897ae17d5888c 11-21,25-27,29-31,33-34,37-39,42-43,46-49,53-56,59-75,78-81,83-85,87,89-93,96-100,103-107,131-140,142-160,164,166,170-174,177-178,180
+  s_c72f930c19d1f3::t_044c72e1d7741d 58,108-120,122,124,161-163,167,169
+  s_c72f930c19d1f3::t_f07ed23a0997f4 22,86,176
+  s_c72f930c19d1f3::t_22402116a4e254 82,94-95,102,125-126,128-130,168,175
+  s_c72f930c19d1f3::t_1a044469125019 127
+  s_c72f930c19d1f3::t_0669baf19fdbac 44-45,123,165
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  s_c72f930c19d1f3::t_4e14e3c3d4a548 693,966
+  s_c72f930c19d1f3::t_baa2ae27caa4ee 207-209
+  s_c72f930c19d1f3::t_d02b3cd6dcdad3 34,206,707-708
+  s_c72f930c19d1f3::t_7c1b2bf333a257 36,210,327,703,1091,1144,1251,1447,1482-1484,1521-1524,1546
+  s_c72f930c19d1f3::t_54447adec4f0cd 390,547,587,625,627,629,1446,1549,1557
+world/demos/building-lighting-study/LowPolyWallReceiver.ts
+  s_c72f930c19d1f3::t_0560433a44190e 207-210
+  s_c72f930c19d1f3::t_10d4b7ff342f78 11-12,25-26,46-51,66,82,165-188,190,192-206,211-231,233
+  s_c72f930c19d1f3::t_f07ed23a0997f4 24,35
+  s_c72f930c19d1f3::t_a0fc5674873bb4 189,191
+packages/building/src/building/runtime/UnitPacking.js
+  s_c72f930c19d1f3::t_07f84614f15564 8
+packages/building/src/building/runtime/ConstructionDecorationRender.ts
+  s_c72f930c19d1f3::t_3489b77f6bd107 47,95,106,164-165,202
+world/demos/building-lighting-study/index.html
+  s_c72f930c19d1f3::t_0e29be8bfa1771 75
+  s_c72f930c19d1f3::t_044c72e1d7741d 74
+packages/building/src/building/runtime/EngineResidentScene.ts
+  s_c72f930c19d1f3::t_a5e1dc6a485d33 1,6,8,339,438,886-887,889-908,1210-1219
+  s_c72f930c19d1f3::t_693934f5bb98f0 997,1174
+  s_c72f930c19d1f3::t_21890a56da52dd 2-5,7,323-324,337-338,484-487,646-651,788,790-797,877-885,888,909-911,1173,1334,1403-1425,1449,1454-1459,1481,1598-1601,1603
+  s_c72f930c19d1f3::t_d552c2b23bd7bf 1177,1190,1364,1369,1381-1387,1426-1442,1445-1447
+  s_c72f930c19d1f3::t_5f91a0c28d7a51 459-460,912,1175,1448
+world/tests/seed-world/StudyWallAtlas.spec.ts
+  s_c72f930c19d1f3::t_63d9f247146ac8 2-3,6-11,14-15,18,20-25,27-35
+packages/building/src/building/runtime/BuildingUnitWallUVFeedback.ts
+  s_c72f930c19d1f3::t_cce13102673eb8 28,32-33,35,80,142
+  s_c72f930c19d1f3::t_46709a11611c41 1-27,29-31,36-79,81,124-141,143-224
+  s_c72f930c19d1f3::t_f33e7da8368b04 34,82-123
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  s_c72f930c19d1f3::t_4e14e3c3d4a548 1-2,113-116,122-138,515,537,545-548,598,616,688,760,765,877,1161
+  s_c72f930c19d1f3::t_baa2ae27caa4ee 17,117-121,721,745-751,766,861-867,890
+packages/building/src/building/runtime/BuildingWallBakeUV.ts
+  s_c72f930c19d1f3::t_6b1b0881a894a1 9-10,36,51
+  s_c72f930c19d1f3::t_186c0ef5ca9908 1-8,11-35,37-50,52-86
+packages/building/src/building/runtime/ConstructionPlasterRender.ts
+  s_c72f930c19d1f3::t_3489b77f6bd107 1-2,59-60,64-66,70,77,96-99,104-105,112,118
+  s_c72f930c19d1f3::t_0429740ec0d1c7 67-69
+packages/building/src/building/runtime/ConstructionSupportRender.ts
+  s_c72f930c19d1f3::t_3489b77f6bd107 2,60,64-65,74,76,78
+  s_c72f930c19d1f3::t_0429740ec0d1c7 54-59,61-63
+world/demos/building-lighting-study/StudyScene.ts
+  s_c72f930c19d1f3::t_0560433a44190e 25,39,65-71,73,117-118,127-128,198,201-204,207,210,213-219,227-232,242,244-247,249-250,252-253,312,319,329,337,340
+  s_c72f930c19d1f3::t_f07ed23a0997f4 24,274
+  s_c72f930c19d1f3::t_0e29be8bfa1771 64,206,209,211-212,220-226,311
+  s_c72f930c19d1f3::t_c616d4d457d580 72,248
+packages/building/src/building/runtime/BuildingUnitWallUV.ts
+  s_c72f930c19d1f3::t_21890a56da52dd 12,93-103,110-112
+  s_c72f930c19d1f3::t_a5e1dc6a485d33 13,159-193,198
+  s_c72f930c19d1f3::t_c8746fa2fe9f54 104-109
+  s_c72f930c19d1f3::t_358ba65cc616ed 1-11,14-92,113-158,194-197,199-238
+packages/building/src/building/runtime/BuildingWallBakeBinding.ts
+  s_c72f930c19d1f3::t_186c0ef5ca9908 12,16-17,19-22,25-27,34-44,47-64,66-77,79-80,85-91,93,96,107,109-111,118-133,135-138,141,143-144,146,157-158,164,166-170,173,175-179,181-184,190-218,238,261-269,271
+  s_c72f930c19d1f3::t_f33e7da8368b04 23-24,46,139,147-153,155,159-162,171-172,222-237,239-260
+  s_c72f930c19d1f3::t_d3b7c85ad8e32e 45,92,94-95,97-106,108,112-117,145,163,174,180
+  s_c72f930c19d1f3::t_83c208fd5b9ad7 81-84,185-189
+  s_c72f930c19d1f3::t_6b1b0881a894a1 134
+  s_c72f930c19d1f3::t_f16dc651e47a03 14
+  s_c72f930c19d1f3::t_044db180cd44bb 18,142
+  s_c72f930c19d1f3::t_a457494979b9c4 270
+packages/building/src/building/parts/architecture/BuildingRender.ts
+  s_c72f930c19d1f3::t_e65a879fcc065c 3,45-52
+packages/building/src/building/runtime/RawGlslInstructions.ts
+  s_c72f930c19d1f3::t_e8021ddd8ed867 12
+packages/building/tests/BuildingWallBakeInput.spec.ts
+  s_c72f930c19d1f3::t_b99609e9adc0b2 46-47,70-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "732c111757d6438d8b058f29eae3bd534b50abfe",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
