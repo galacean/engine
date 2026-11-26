@@ -1,0 +1,197 @@
+world/demos/seed-world/main.ts
+  s_dcadea7fd99279::t_a66f069406b314 130
+world/demos/seed-world/SeedWorldProject.ts
+  s_dcadea7fd99279::t_a66f069406b314 111-121,126-127,153-160,163,169,183,195
+  s_dcadea7fd99279::t_f55d45a07231df 109-110
+packages/runtime-editor/src/project/runtime-project-session.ts
+  s_dcadea7fd99279::t_94ae103c2a42c8 345-357,365
+packages/project/src/runtime-editor/project/runtime-project.ts
+  s_dcadea7fd99279::t_94ae103c2a42c8 528-538,543
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_dcadea7fd99279::t_7e7d4223e29a39 264
+world/demos/seed-world/SeedWorldDemo.ts
+  s_dcadea7fd99279::t_a6b16dd96ab532 988,1111,1118-1120,1195,3460-3463
+  s_dcadea7fd99279::t_1847f82797d8e6 1114-1117,1193,3541,3622,3681
+  s_dcadea7fd99279::t_25a41a41c3df36 89-90,310,313,982,989,1103-1110,1112-1113,1191-1192,1194,1380,3376,4241
+packages/runtime-editor/tests/runtime-project.spec.ts
+  s_dcadea7fd99279::t_a8330d8754f03b 2396-2427
+  s_dcadea7fd99279::t_7e7d4223e29a39 21-24,1639,1655,1663,2611
+world/demos/seed-world/src/planning/semantic-study/WorldLayoutEditor.ts
+  s_dcadea7fd99279::t_a66f069406b314 31
+.agents/skills/seed-world-flash-publish/SKILL.md
+  s_dcadea7fd99279::t_26bba2d0daafc3 13-33,47,61,66
+packages/modify/build/prepare.mjs
+  s_dcadea7fd99279::t_769122fd173140 27-29
+packages/modify/native-overrides.json
+  s_dcadea7fd99279::t_daf5bfd1df3dcd 773-788
+packages/modify/src/native/core/src/Camera.ts
+  s_dcadea7fd99279::t_0c57e928bf4ebe 9,216-219,734-867,1094-1095
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_dcadea7fd99279::t_2844ca509fab47 2-4,8-9,24,54-84,108,119,231-321,600-629,726-751,772-794,796-803,806-807,809-820,837-841,938-947,954-957,959-960,1002-1011,1187-1230
+packages/modify/src/native/core/src/RenderPipeline/Blitter.ts
+  s_dcadea7fd99279::t_7e7fe9f71d1c11 1,4-5,9,30,33-37,41,46,57-97,104-105,148-165
+packages/modify/src/native/core/src/RenderPipeline/DepthOnlyPass.ts
+  s_dcadea7fd99279::t_aa3c5b2bdf2360 4,42-45,51-52
+packages/modify/src/native/core/src/RenderPipeline/OpaqueTexturePass.ts
+  s_dcadea7fd99279::t_b3e4f1c7c0c7ee 4,80-84
+packages/modify/src/native/core/src/RenderPipeline/PipelinePass.ts
+  s_dcadea7fd99279::t_42a0c732d43c75 4,21-22
+packages/modify/src/native/core/src/RenderPipeline/RenderContext.ts
+  s_dcadea7fd99279::t_0ef291459d1995 6-7,109-151
+packages/modify/src/native/core/src/RenderPipeline/index.ts
+  s_dcadea7fd99279::t_2cf983334124e2 2
+packages/modify/src/native/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  s_dcadea7fd99279::t_5ef658dc41670a 9,139,141,145-149,154-158,161,163-167
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_dcadea7fd99279::t_0657c5d369c574 18,708-709,717-718,819-820,828-829,925-926,934-935,976-977,985-986,1171-1172,1181-1183,1228,1256-1257,1266-1268,1435-1436,1444-1445,1493-1494,1502-1503,2113-2120,2179-2180,2188-2189,2528-2555,2562-2563,2567-2568,2577-2579
+packages/modify/src/native/core/src/postProcess/FinalPass.ts
+  s_dcadea7fd99279::t_4e46be7e3e3a5c 9,61,65-69,74-86,88-92
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  s_dcadea7fd99279::t_ebe101a6c086ed 21,34-35,67-68,102,106,159-163,179,267,277-288,318-319,322,325,332,338-361,363-476,479-480,487,501,519-520,522-544,550,999-1001,1003-1007,1011-1015,1019,1021-1025
+packages/modify/src/native/core/src/postProcess/effects/VolumetricLightEffect.ts
+  s_dcadea7fd99279::t_8decb2a56c56e7 4,9,14-31,38-45,59-62,70-73,85-99,104-107,110,113,122-139,158,172-176,183,208-222,247-267
+packages/modify/src/native/core/src/postProcess/effects/index.ts
+  s_dcadea7fd99279::t_462a9b6f7a343d 5
+packages/modify/src/native/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_dcadea7fd99279::t_60e83cf4c68bbc 18,73-81
+packages/modify/src/native/core/src/renderingHardwareInterface/IPlatformRenderTarget.ts
+  s_dcadea7fd99279::t_20b147821c5f63 17
+packages/modify/src/native/core/src/renderingHardwareInterface/RenderPassDescriptor.ts
+  s_dcadea7fd99279::t_c651969846693b 1-84
+packages/modify/src/native/core/src/renderingHardwareInterface/RenderPassLoadAction.ts
+  s_dcadea7fd99279::t_0006fb30d368d2 1-18
+packages/modify/src/native/core/src/renderingHardwareInterface/RenderPassStoreAction.ts
+  s_dcadea7fd99279::t_7ae47499dfa77c 1-18
+packages/modify/src/native/core/src/renderingHardwareInterface/index.ts
+  s_dcadea7fd99279::t_09c1a146e63dab 1-14
+packages/modify/src/native/core/src/shadow/CascadedShadowCasterPass.ts
+  s_dcadea7fd99279::t_e249adcf7fb1aa 10,136-139,182
+packages/modify/src/native/core/src/texture/RenderTarget.ts
+  s_dcadea7fd99279::t_7fa79151551e05 272-273
+packages/modify/src/native/loader/src/ktx2/KTX2Loader.ts
+  s_dcadea7fd99279::t_bab82d828cfa10 157-193,200-205
+packages/modify/src/native/rhi-null/src/NullGraphicDevice.ts
+  s_dcadea7fd99279::t_3b34b30ec0d22c 83-84
+packages/modify/src/native/rhi-webgl/src/GLRenderTarget.ts
+  s_dcadea7fd99279::t_db1790d4c4a8ee 16-22,78-87,148-149,151-161,163-188,191-194,202-204,206-217,221-233,236-237,239-242,244,246-248,250-253,256-259,262-263,272-275
+packages/modify/src/native/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_dcadea7fd99279::t_654268b15a25f6 22-24,101-110,128-129,133-136,355,360-367,372-373,452,455-566,572,574-575,583,657-658,716-718,746,756-757,765-767,775,778,780-789,794,800-916
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  s_dcadea7fd99279::t_eeb3473fc748af 31-38,40-41,45-76,126-134
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/VolumetricLight.glsl
+  s_dcadea7fd99279::t_261f5b9acf30e1 6,8,16-39,60-82,85-97,99-103,105-106,108-109,112,120,122,128-131,136,150,168-361
+packages/modify/src/native/shader/src/Shaders/Pipeline/SSRReceiver.shader
+  s_dcadea7fd99279::t_dc838141cd35cb 188-189
+packages/modify/src/native/shader/src/Shaders/PostProcess/VolumetricLight.shader
+  s_dcadea7fd99279::t_53c75002626c72 3,10,16-29,41-66
+packages/modify/tests/ScreenSpaceReflection.test.ts
+  s_dcadea7fd99279::t_f8d767de2a1943 8,16,30-32,35-36,3143-3150,3163-3181,3185,3187,3193-3198,3203-3204,3211,3213,4212,4216-4223,4225-4229,4875,4877-4881,5254-5732
+packages/modify/tests/VolumetricLight.spec.ts
+  s_dcadea7fd99279::t_1d86d1ac638452 2-10,96-101,130-225
+packages/shader-compiler/src/bundler/cli.ts
+  s_dcadea7fd99279::t_d21fd0847d1aa7 9,19-20,27,39-40
+packages/shader-compiler/src/bundler/precompile.ts
+  s_dcadea7fd99279::t_8d46fde92defed 70-71,124,156,168,236,244-252,272,279-285
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_dcadea7fd99279::t_aa15446e13cfd9 8,59-66,84,567-568,570-573,578-752,767-791,796-797,799-801,809-811
+packages/shader/src/ShaderLibrary/PBR/VertexPBR.glsl
+  s_dcadea7fd99279::t_9f00f9562bcd1c 90-91,94-95
+packages/terrain/src/terrain/project/TerrainPostProcessRuntime.ts
+  s_dcadea7fd99279::t_04c4d36ac0cc60 13-14,105,107,112-117,161,163,168-173,452-518,528-536,713,715,720-725,768,770,774-780,907,909,914-919
+packages/water/package.json
+  s_dcadea7fd99279::t_d2e9388c1b45e9 11-26,28-43
+packages/water/src/water/native/index.ts
+  s_dcadea7fd99279::t_5c31ae12411572 42
+packages/water/src/water/native/registerNativeWater.ts
+  s_dcadea7fd99279::t_a659333c1c6a76 1-11
+packages/water/src/water/runtime/heightfield/HeightfieldWaterCompileWorkerClient.ts
+  s_dcadea7fd99279::t_f9bd0fbc9a47b7 24,143
+packages/water/src/water/runtime/heightfield/HeightfieldWaterCompileWorkerFactory.ts
+  s_dcadea7fd99279::t_eb1c816e4f6b34 1-5
+packages/water/src/water/runtime/river/RiverCompileWorkerClient.ts
+  s_dcadea7fd99279::t_cbd195e8e36814 7,39
+packages/water/src/water/runtime/river/RiverCompileWorkerFactory.ts
+  s_dcadea7fd99279::t_ba723aac63d19d 1-5
+packages/water/tests/WaterPackageBuild.test.mjs
+  s_dcadea7fd99279::t_d9a1d4ac143172 1-521
+packages/world-planning/src/integrations/terrain/debug/TerrainRuntimeDebugInspector.ts
+  s_dcadea7fd99279::t_271e797130c0ad 2,774-785,792-795,798,802,810,814-839
+pnpm-lock.yaml
+  s_dcadea7fd99279::t_c608ea62a3fa2a 874-876
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  s_dcadea7fd99279::t_b92ddb11195299 913-915
+vitest.config.ts
+  s_dcadea7fd99279::t_40e4138afbddde 1,6-12
+world/README.md
+  s_dcadea7fd99279::t_6383e909955f22 80
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_dcadea7fd99279::t_f08f3497c918ed 9,12-14,17,21-22,24,45,54,57,62,90-99,102,105,108,111,126,131-148,164,166-168,171,173
+world/demos/seed-world/README.md
+  s_dcadea7fd99279::t_aeabafe431ec05 123-149
+world/demos/seed-world/base.js
+  s_dcadea7fd99279::t_8caf7e98404855 1-11
+world/demos/seed-world/index.html
+  s_dcadea7fd99279::t_89489d72f0dc03 7
+world/demos/seed-world/src/planning/spatial/SpatialEditor.css
+  s_dcadea7fd99279::t_b4f43ab40c998b 43-55
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_dcadea7fd99279::t_04093cb21e5542 203,206-211,259-263
+world/demos/seed-world/storage/PublishedWorldAssets.ts
+  s_dcadea7fd99279::t_c45e227621f90a 1-59
+world/demos/seed-world/storage/SeedWorldStorageHost.ts
+  s_dcadea7fd99279::t_e8635d6ceec66c 1-64
+world/demos/seed-world/storage/SharedWorldFiles.ts
+  s_dcadea7fd99279::t_ecd3a1d0fb1ec5 1-90
+world/demos/seed-world/storage/SharedWorldStorage.ts
+  s_dcadea7fd99279::t_c53dc0592751c4 1-785
+world/demos/seed-world/storage/WorldDbRateLimit.ts
+  s_dcadea7fd99279::t_7d461c383d2605 1-68
+world/demos/seed-world/storage/WorldSaveCompression.ts
+  s_dcadea7fd99279::t_9775fa851ff31e 1-53
+world/demos/seed-world/storage/WorldSaveGzip.worker.ts
+  s_dcadea7fd99279::t_ad631bdc0a496e 1-10
+world/demos/seed-world/storage/gzipWorldBytes.ts
+  s_dcadea7fd99279::t_487f11c61a3dbf 1-7
+world/demos/seed-world/storage/local-world-db.mjs
+  s_dcadea7fd99279::t_b4d2d305f0815e 1-151
+world/demos/seed-world/storage/world_save.sql
+  s_dcadea7fd99279::t_aef1422fb7c4d7 1-7
+world/package.json
+  s_dcadea7fd99279::t_cd16c482f98923 9-10,34
+world/scripts/acceptance/shared-world-resources.mjs
+  s_dcadea7fd99279::t_a0d5ab645a4614 1-145
+world/scripts/acceptance/shared-world-storage.mjs
+  s_dcadea7fd99279::t_a5cb2b2df36d47 1-333
+world/scripts/build-seed-world-flash-app.mjs
+  s_dcadea7fd99279::t_82ac150bd9b277 4,9,37,55
+world/scripts/build-seed-world-flash-source.mjs
+  s_dcadea7fd99279::t_4269b46f4c3276 17,20,31,234,237,344-347,352,419-420,423
+world/scripts/build-seed-world-npm.mjs
+  s_dcadea7fd99279::t_86ef3ce61e7aae 1-111
+world/scripts/build-water.js
+  s_dcadea7fd99279::t_f7e056a9082e43 1-912
+world/scripts/sync-flash-app-cdn-assets.py
+  s_dcadea7fd99279::t_8bf6ee7781b51c 279
+world/tests/seed-world-storage/SharedWorldStorage.spec.ts
+  s_dcadea7fd99279::t_9d8232daca9ba9 1-1298
+world/tests/seed-world-storage/vitest.config.mjs
+  s_dcadea7fd99279::t_fbe6733b230279 1-8
+world/tests/seed-world/WorldDbRateLimit.spec.ts
+  s_dcadea7fd99279::t_e3b86311773c72 1-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "14aad55ec919f08221e92ccd2c75164ac9f8e552",
+  "prompts": {},
+  "sessions": {
+    "s_dcadea7fd99279": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21356-8848-70c2-980b-85c8418ffb42",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}
