@@ -1,0 +1,27 @@
+world/tests/seed-world/dependency-maintenance.spec.ts
+  s_dcadea7fd99279::t_558b063677083d 84,91-92
+  s_dcadea7fd99279::t_50443e6c06c9c9 99-106
+  s_dcadea7fd99279::t_1d0cb02e640cb9 7-11,85-90
+packages/runtime-editor/src/project/runtime-project-session.ts
+  s_dcadea7fd99279::t_de3ffd2071ff91 640,642,646,649-654,664-673
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  s_dcadea7fd99279::t_558b063677083d 113-117,125-127
+packages/terrain/src/data/seed-world/project.json
+  s_dcadea7fd99279::t_902df5fa4807f3 198-201,725-728,743-746,761-764,779-782,797-800,815-818,833-836,851-854,869-872,887-890,905-908,914-917,923-926,941-944,950-953,959-962,977-980,986-989,995-998,1013-1016,1031-1034,1049-1052,1067-1070,1085-1088,1103-1106,1121-1124,1139-1142,1157-1160,1175-1178,1193-1196,1211-1214,1229-1232,1247-1250,1265-1268,1283-1286,1301-1304,1319-1323,1338-1342,1357-1360
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0daf9c1d76681c25617a29bdc5cf5ed070336bd3",
+  "prompts": {},
+  "sessions": {
+    "s_dcadea7fd99279": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21356-8848-70c2-980b-85c8418ffb42",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}

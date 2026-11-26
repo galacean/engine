@@ -1,0 +1,28 @@
+packages/modify/src/native/loader/src/ktx2/KTX2Loader.ts
+  s_dcadea7fd99279::t_e366d07e5a3cb0 262-263
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_dcadea7fd99279::t_e366d07e5a3cb0 371-375,378
+packages/loader/tests/KTX2LoaderWorkerCount.spec.ts
+  s_dcadea7fd99279::t_a7c795ac3c182c 48,50
+  s_dcadea7fd99279::t_e366d07e5a3cb0 8,46-47,49,51-55,64
+packages/building/tests/BuildingBootOptimization.spec.ts
+  s_dcadea7fd99279::t_e366d07e5a3cb0 34-54
+packages/loader/src/ktx2/KTX2Loader.ts
+  s_dcadea7fd99279::t_e366d07e5a3cb0 207-208
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "534caf03a6cbad995e26069251fbc71f10b9a488",
+  "prompts": {},
+  "sessions": {
+    "s_dcadea7fd99279": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21356-8848-70c2-980b-85c8418ffb42",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+world/gallery/demos/terrain/project-tests/instant-camera/main.ts
+  s_b88eff05ec1924::t_e2e57c6304db8d 1-260
+world/gallery/demos/terrain/seed-world-planner/SeedWorldDemo.ts
+  s_b88eff05ec1924::t_e3f3e690d3cb90 1-2,11-13,206-209,215,259,267-268,323,1154-1155,1379-1408,1411,1437-1441
+world/gallery/demos/terrain/seed-world-planner/V2_IMPLEMENTATION.md
+  s_b88eff05ec1924::t_9709569b9e0d42 10223-10694
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldInstantCamera.ts
+  s_b88eff05ec1924::t_7ef24718a282b6 1-374
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldPhotoConfig.ts
+  s_b88eff05ec1924::t_9726650b0585f8 1-11
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldPhotoGraphics.ts
+  s_b88eff05ec1924::t_7c748c08d49a48 1-751
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldPhotoPalette.ts
+  s_b88eff05ec1924::t_15dbf79e8d9fc1 1-55
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldPhotoWorkspace.ts
+  s_b88eff05ec1924::t_bd6faf225131f1 1-923
+world/gallery/demos/terrain/seed-world-planner/systems/runtime-declarations.json
+  s_b88eff05ec1924::t_a5f5ab16690f89 45,49,85,89,103,106,147,220-221,223,225,316,322,333-335,344
+world/gallery/shared/rendering/shaders/SeedWorldLiquidGlass.shader
+  s_b88eff05ec1924::t_b1a4167167d0c8 34-37,55-57,154-156,213
+world/gallery/shared/runtime-inspection/tests/photo-resource-verification.ts
+  s_b88eff05ec1924::t_c819532f9ee904 1-279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "df5e790656437c51825b8c87c12c3915aa0ed36c",
+  "prompts": {},
+  "sessions": {
+    "s_b88eff05ec1924": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a154d1-f8c2-7e22-b9cf-0aa981dbfd49",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}
