@@ -42,8 +42,9 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   }
   const client = workerClient ?? new PlanningWorkerClient();
   if (!handoff) {
-    const template = initialPlanningTemplate(search, seed,
-      document ? exportPlanningRecipe(document).parameters.worldTemplate?.id ?? "" : undefined);
+    const template = initialPlanningTemplate(
+      document ? exportPlanningRecipe(document).parameters.worldTemplate?.id ?? "" : undefined
+    );
     if (template !== undefined) {
       replaceSavedTemplate = !!document;
       try {

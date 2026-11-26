@@ -48,7 +48,11 @@ const entries =
     ? JSON.parse(fs.readFileSync(path.join(world, "demos.json"), "utf8"))
         .filter((item) => item.mode === "static")
         .map((item) => path.join(world, item.entry))
-    : [entry];
+    : !flashApp && demo === "seed-world"
+      ? SEED_WORLD_TEMPLATE_IDS.map((id) =>
+          path.join(world, "demos/seed-world", id === "original" ? "index.html" : `${id}.html`)
+        )
+      : [entry];
 const outDir = process.env.WORLD_OUT_DIR
   ? path.resolve(process.env.WORLD_OUT_DIR)
   : path.join(world, "dist", flashApp ? "seed-world-flash-app" : demo);

@@ -249,6 +249,7 @@ import {
 } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 import { registerSeedWorldVoiceHudStartupShaders } from "./assistant/SeedWorldVoiceHudShaders.ts";
 import { planningPageUrl } from "./src/planning/spatial/PlanningPageUrl.ts";
+import { resolveAppTemplate } from "./src/planning/spatial/FlashAppTemplateBinding.ts";
 import type { PlanningSeedDebugSidebar } from "./src/planning/spatial/runtime/PlanningSeedDebugSidebar.ts";
 import type { PlanningSeedObbDebug } from "./src/planning/spatial/runtime/PlanningSeedObbDebug.ts";
 import type { PlanningSeedRuntimeDebug } from "./src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts";
@@ -796,7 +797,7 @@ export async function mountSeedWorldDemo(
         })
     );
     void commonBinaryBundleTask.catch(() => {});
-    const requestedTemplateId = pageUrl.searchParams.get("template") ?? "original";
+    const requestedTemplateId = resolveAppTemplate();
     const eagerBuildingBundle = requestedTemplateId !== "titan-wasteland" && requestedTemplateId !== "low-poly";
     let buildingBinaryBundleTask: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined = eagerBuildingBundle
       ? timed("loadBuildingBinaryBundle (parallel)", () =>

@@ -10,8 +10,7 @@ import { seedWorldProjectFormats } from "../../../SeedWorldProjectFormats.ts";
 import { createSeedWorldProjectClose } from "../../../SeedWorldProjectClose.ts";
 import { planningSourceDocument, retainPlanningWaterSource } from "./runtime/PlanningProjectSource.ts";
 import { exportPlanningScene, importPlanningScene } from "./PlanningSceneAsset.ts";
-import { createWorldStylePlanningDocument, refreshDesertAnimalPreset, worldTemplatePaletteValues } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
-import { mountWorldTemplatePicker } from "./WorldTemplatePicker.ts";
+import { refreshDesertAnimalPreset } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { wayfindingPolicy } from "@galacean/engine-world-planning/spatial/guidance/WayfindingPolicy";
 import { wayfindingHighlights } from "./guidance/WayfindingHighlights.ts";
 import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
@@ -117,8 +116,9 @@ export async function mountSpatialEditor(
   let initialDocument: PlanningDocument;
   let replacePlanning = false;
   try {
-    const template = initialPlanningTemplate(pageUrl.url.search, parameters.seed,
-      saved ? exportPlanningRecipe(saved).parameters.worldTemplate?.id ?? "" : undefined);
+    const template = initialPlanningTemplate(
+      saved ? exportPlanningRecipe(saved).parameters.worldTemplate?.id ?? "" : undefined
+    );
     initialDocument = template === undefined && saved ? saved : await client.initialize(parameters.seed, undefined, template);
     if (template !== undefined) initialDocument = storage.retainWater(initialDocument);
     refreshDesertAnimalPreset(initialDocument);
@@ -145,29 +145,6 @@ export async function mountSpatialEditor(
   let api: WorldPlanningHandle | undefined;
   const activeEdits = new Set<Promise<unknown>>();
   const abort = new AbortController();
-  const templatePicker = mountWorldTemplatePicker(
-    root.querySelector<HTMLElement>(".ip-topbar nav")!,
-    async (id, seed) => {
-      const document = createWorldStylePlanningDocument(session.document, seed, id, session.recipe().parameters.population);
-      applyPlanningTemplateSurface(document);
-      const receipt = await edit((draft) => draft.load(document), { resetWater: true });
-      if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "规划未接受");
-      if (storageWarning) throw new Error(storageWarning);
-      status(session.document.populationInitialization?.diagnostics.join("；") ?? "");
-    },
-    async id => {
-      const commands = Object.entries(worldTemplatePaletteValues(id)).map(([component, values]) => ({
-        op: "set" as const, entity: "world", component, values
-      }));
-      if (!commands.length) {
-        status("此主题沿用原始配色。");
-        return;
-      }
-      const receipt = await edit(draft => draft.dispatchParameters(commands));
-      if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "配色未接受");
-      if (storageWarning) throw new Error(storageWarning);
-    }
-  );
   function updateGenerateControl() {
     const unavailable = disposed || generating || clearingStorage || resettingPlanning || changingProjection || session.pending ||
       root.dataset.pending === "true" || !session.result;
@@ -175,7 +152,6 @@ export async function mountSpatialEditor(
     button("director").disabled = unavailable;
     button("clear").disabled = unavailable;
     button("clear-save").disabled = unavailable;
-    templatePicker.update(session.recipe().parameters.worldTemplate?.id, session.recipe().parameters.seed, unavailable);
   }
   function currentPlan(): IslandPlan {
     if (disposed) throw new Error("空间规划已关闭");
@@ -446,7 +422,6 @@ export async function mountSpatialEditor(
     root.dataset.revision = String(session.document.revision);
 
     root.dataset.seed = String(r.recipe.parameters.seed);
-    templatePicker.update(r.recipe.parameters.worldTemplate?.id, r.recipe.parameters.seed, session.pending);
     const intentURL = new URL("../scene-visual-intent/index.html", pageUrl.url);
     intentURL.searchParams.set("seed", String(r.recipe.parameters.seed));
     ui<HTMLAnchorElement>("visual-intent").href = intentURL.href;
@@ -683,7 +658,6 @@ export async function mountSpatialEditor(
     disposed = true;
     root.inert = true;
     abort.abort();
-    templatePicker.dispose();
     inspector.dispose();
     await Promise.allSettled([...activeEdits]);
     director.dispose();

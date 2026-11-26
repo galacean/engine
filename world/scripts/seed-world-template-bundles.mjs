@@ -38,7 +38,8 @@ export const SEED_WORLD_TEMPLATE_IDS = Object.freeze([
   "sakura-pearl",
   "emerald-forest",
   "low-poly",
-  "titan-wasteland"
+  "titan-wasteland",
+  "oil-paint"
 ]);
 
 /** Already-compressed or binary media extensions consolidated into uncompressed per-template SWB1 shards. */
@@ -95,6 +96,7 @@ const LOW_POLY_MEADOW_BLOCKS_PATTERN = /^meadow-blocks-/u;
 const SAKURA_ASSET_PATTERN = /^(?:pink-tree-|sakura-petal-)/u;
 const EMERALD_ASSET_PATTERN = /^forest-/u;
 const DESERT_ASSET_PATTERN = /^(?:dead-tree-bark-|oasis-butterflies-)/u;
+const OIL_PAINT_ASSET_PATTERN = /^oil-paint-water-swirl-/u;
 
 // Legacy retired `packages/terrain/src/data/seed-world/public/Texture/` hashes (small-stones.mat, birch-bark.mat,
 // broadleaf-branches.mat) — 0% pre-reveal hits across all 5 templates.
@@ -185,6 +187,7 @@ export function classifySeedWorldTemplateMediaAsset(fileName) {
     if (SAKURA_ASSET_PATTERN.test(base)) return "tpl_sakura";
     if (EMERALD_ASSET_PATTERN.test(base)) return "tpl_emerald";
     if (DESERT_ASSET_PATTERN.test(base)) return "tpl_desert";
+    if (OIL_PAINT_ASSET_PATTERN.test(base)) return "tpl_oil_paint";
     return null;
   }
 
@@ -308,6 +311,18 @@ const TEMPLATE_CATEGORY_SETS = Object.freeze({
     "veg_proc_shared",
     "water_pond",
     "tpl_desert"
+  ]),
+  "oil-paint": new Set([
+    "core_env",
+    "core_terrain_shared",
+    "core_terrain_lush",
+    "core_terrain_world_template",
+    "terrain_lush_props",
+    "veg_proc_shared",
+    "veg_proc_lush",
+    "water_pond",
+    "building_tex",
+    "tpl_oil_paint"
   ])
 });
 
@@ -334,10 +349,10 @@ export function templatesForSeedWorldJsonAsset(fileName) {
     return [...SEED_WORLD_TEMPLATE_IDS];
   }
   if (LUSH_ALL_TREE_STRUCTURE_JSONS.has(normalized)) {
-    return ["original", "sakura-pearl", "emerald-forest"];
+    return ["original", "sakura-pearl", "emerald-forest", "oil-paint"];
   }
   if (normalized === BIRCHTREE_07_STRUCTURE_JSON) {
-    return ["original", "sakura-pearl"];
+    return ["original", "sakura-pearl", "oil-paint"];
   }
   return [];
 }

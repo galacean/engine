@@ -16,6 +16,7 @@ import {
 import { dirname, relative, resolve, sep } from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { DEFAULT_FLASH_APPS_CATALOG_RELATIVE, loadFlashAppsCatalog } from "./flash-app-variants.mjs";
 
 const vitePackagePath = createRequire(import.meta.url).resolve("vite/package.json");
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -72,6 +73,7 @@ const excludedFiles = new Set([
   "packages/water/src/water/resources/ocean/textures/Caustics/Caustics_1.png",
   "packages/water/src/water/resources/ocean/textures/Foam/Foam1.png",
   "packages/water/src/water/resources/ocean/textures/IntersectionNoise.png",
+  "world/scripts/publish-seed-world-flash-apps.mjs",
   "world/scripts/set-flash-app-cdn-secret.sh",
   "world/scripts/sync-flash-app-cdn-assets.py"
 ]);
@@ -134,16 +136,23 @@ for (const pkg of worldWorkspacePackages) {
 verifySnapshotWaterResources();
 
 const gitMeta = readGitMetadata();
+const flashAppsCatalog = loadFlashAppsCatalog(resolve(repoRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE));
 const runtimeIndexPath = resolve(runtimeBuildDirectory, "index.html");
-writeFileSync(resolve(outputDirectory, "REBUILD.md"), createRebuildGuide(gitMeta));
+writeFileSync(resolve(outputDirectory, "REBUILD.md"), createRebuildGuide(gitMeta, flashAppsCatalog));
 const preManifestInspection = inspectDirectory(outputDirectory);
 const snapshotManifest = {
-  schemaVersion: 2,
-  purpose: "Seed World Flash App source snapshot",
+  schemaVersion: 3,
+  purpose: "Seed World Flash App shared source snapshot (all 6 templates)",
   baseCommit: gitMeta.headCommit,
   baseBranch: gitMeta.branch,
   nativeEngineBaseline: readNativeEngineBaseline(),
   runtimeIndexSha256: sha256(runtimeIndexPath),
+  flashApps: flashAppsCatalog.apps.map(({ templateId, title, artifactId, reuseExisting }) => ({
+    templateId,
+    title,
+    artifactId,
+    reuseExisting
+  })),
   verification:
     "independent unminified Flash App Vite builds of the repository and source snapshot must be byte-identical",
   sourceFileCount: preManifestInspection.fileCount + 1,
@@ -403,10 +412,13 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
-function createRebuildGuide(gitMeta) {
-  return `# Seed World Flash App source snapshot
+function createRebuildGuide(gitMeta, flashAppsCatalog) {
+  const appLines = flashAppsCatalog.apps
+    .map((app) => `- \`${app.templateId}\` -> \`world/dist/seed-world-flash-apps/${app.templateId}\` (${app.title})`)
+    .join("\n");
+  return `# Seed World Flash App shared source snapshot
 
-This snapshot contains the World workspace packages and Seed World source/assets needed to rebuild the Flash App.
+This shared snapshot contains the World workspace packages and Seed World source/assets needed to rebuild the common Flash App runtime and all ${flashAppsCatalog.apps.length} per-template Flash App packages.
 It intentionally excludes \`node_modules\`, tests, unrelated demos, Grasslands precomputed data, and authoring-only source artwork whose runtime KTX2 derivatives are already included.
 
 To rebuild, create a dedicated Git worktree at commit \`${gitMeta.headCommit}\` and copy this snapshot's root workspace files, \`packages/\`, and \`world/\` into it, preserving paths.
@@ -416,7 +428,10 @@ Run the following command from the worktree with Node.js >= 20.19 and npm 10.9.3
 node world/scripts/build-seed-world-npm.mjs
 \`\`\`
 
-The runtime build is emitted to \`world/dist/seed-world-flash-app\`.
-The publishable source directory is emitted to \`world/dist/seed-world-flash-source\`.
+Outputs:
+- Shared runtime base: \`world/dist/seed-world-flash-app\`
+- Per-template Flash App runtime packages (shared runtime + template default meta/title):
+${appLines}
+- Shared publishable source snapshot: \`world/dist/seed-world-flash-source\`
 `;
 }

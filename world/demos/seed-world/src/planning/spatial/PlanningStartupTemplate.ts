@@ -4,28 +4,26 @@ import { templateLinearColor, worldTemplate } from "@galacean/engine-world-plann
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 import {
   planningStartupSeed,
-  randomPlanningSeed,
-  selectPlanningStartupTemplate,
-  selectedPlanningStartupTemplate
+  randomPlanningSeed
 } from "./PlanningStartupSeed.ts";
-export { planningStartupSeed, randomPlanningSeed, selectPlanningStartupTemplate };
+import { resolveAppTemplate } from "./FlashAppTemplateBinding.ts";
+export { planningStartupSeed, randomPlanningSeed };
 
-/** Resolve new authoring without replacing a saved world's later edits on refresh.
- * @param search Current page query, carrying the initial template for a new world.
- * @param seed World identity being opened.
+/** Resolve new authoring without replacing a matching saved world's later edits on refresh.
  * @param savedTemplate Saved template identity, empty for the original world, undefined if absent.
- * @returns Template to initialize, or undefined to restore the saved document.
+ * @param appTemplate Fixed template ID bound to this standalone Seed World demo/app.
+ * @returns Template to initialize (empty string for original), or undefined to restore the saved document.
  */
-export function initialPlanningTemplate(search: string, seed: number, savedTemplate?: string): string | undefined {
-  const selection = selectedPlanningStartupTemplate();
-  const explicit = selection?.seed === seed ? selection.id : undefined;
-  if (savedTemplate === "" || worldTemplate(savedTemplate)) {
-    return explicit !== undefined && explicit !== savedTemplate ? explicit : undefined;
+export function initialPlanningTemplate(
+  savedTemplate?: string,
+  appTemplate: string = resolveAppTemplate()
+): string | undefined {
+  if (appTemplate !== "original" && !worldTemplate(appTemplate)) {
+    throw new Error("未知世界风格：" + appTemplate);
   }
-  const id = explicit ?? new URLSearchParams(search).get("template");
-  if (id === "original" || !id) return "";
-  if (!worldTemplate(id)) throw new Error("未知世界风格：" + id);
-  return id;
+  const target = appTemplate === "original" ? "" : appTemplate;
+  if (savedTemplate === target) return undefined;
+  return target;
 }
 
 /** Authoring is now owned natively by WorldTemplateAuthoring + WORLD_TEMPLATE_ART. */

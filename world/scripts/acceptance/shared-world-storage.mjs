@@ -87,13 +87,13 @@ function openInstance(id) {
 const browser = await chromium.launch({ args: ["--ignore-gpu-blocklist", "--use-angle=metal"] });
 try {
   for (const step of [
-    "empty visitor", "create", "share", "recall", "template", "reopen", "older visitor", "planner publication race", "reconciliation failure",
+    "empty visitor", "create", "share", "recall", "reopen", "older visitor", "planner publication race", "reconciliation failure",
     "incompatible visitor", "incompatible owner", "regenerated visitor", "retired template", "browser", "planner"
   ]) {
     const role = step === "share" || step.endsWith("visitor") ? "USER" : "MANAGER";
     const version = step === "create" || step === "older visitor" || step === "planner publication race" ? 1 : 2;
     const localDb = step === "browser" || step === "planner";
-    const clone = step === "recall" || step === "template";
+    const clone = step === "recall";
     const id = "flashapp-local-" + (clone || step === "retired template" || step === "planner" ? step : "source");
     const sql = openInstance(id);
     if (step === "incompatible visitor")
@@ -108,7 +108,7 @@ try {
         seed: 123, template: "retired-template", format: 1, engineVersion: 12, appVersion: "1", revision, parts: 1, digest
       }));
     }
-    const seed = step === "recall" || step === "planner" ? "124" : step === "template" ? "125" : "123";
+    const seed = step === "recall" || step === "planner" ? "124" : "123";
     const context = await browser.newContext({ viewport: { width: 800, height: 600 } });
     try {
       const page = await context.newPage();
@@ -200,8 +200,8 @@ try {
         },
         { role, localDb, version, id }
       );
-      const query = step === "planner" || step === "planner publication race" ? "?template=original&seed=123&debug=1" :
-        step === "create" || step === "recall" || step === "retired template" || step === "browser" ? "?template=original&seed=" + seed : "?seed=999";
+      const query = step === "planner" || step === "planner publication race" ? "?seed=123&debug=1" :
+        step === "create" || step === "recall" || step === "retired template" || step === "browser" ? "?seed=" + seed : "?seed=999";
       await page.goto(new URL(query, origin).href);
       if (step === "empty visitor") {
         await page.getByText("作者尚未保存这个世界。").waitFor();
@@ -215,15 +215,13 @@ try {
         console.log(step, "passed");
         continue;
       }
-      if (step === "template") {
-        await page.getByLabel("风格世界 Seed").fill(seed);
-        await page.locator("dialog [data-apply]").click();
-      }
       if (step === "planner publication race") {
-        await page.getByRole("button", { name: "风格选择" }).click({ timeout: 90000 });
-        await page.getByLabel("风格世界 Seed").fill("124");
-        await page.locator("dialog [data-apply]").click();
-        await page.locator("dialog [role=status]").filter({ hasText: "另一会话已保存世界" }).waitFor({ timeout: 90000 });
+        await page.locator('button[data-tab="world"]').click({ timeout: 90000 });
+        const seedInput = page.locator('input[data-component="world"][data-field="seed"]');
+        await seedInput.waitFor({ timeout: 90000 });
+        await seedInput.fill("124");
+        await seedInput.press("Enter");
+        await page.locator('[data-ui="save-warning"]').filter({ hasText: "另一会话已保存世界" }).waitFor({ timeout: 90000 });
         await page.locator('[data-ui="save-warning"]').filter({ hasText: "规划尚未保存" }).waitFor();
         assert.ok(returnedPriorHead);
         assert.equal(writes, 0);
@@ -233,11 +231,19 @@ try {
         continue;
       }
       if (step === "planner") {
-        await page.getByRole("button", { name: "风格选择" }).click({ timeout: 90_000 });
-        await page.getByLabel("风格世界 Seed").fill(seed);
-        await page.locator("dialog [data-apply]").click();
-        await page.locator("dialog.sp-template-dialog").waitFor({ state: "hidden", timeout: 90_000 });
-        await page.getByRole("button", { name: "生成 3D", exact: true }).click();
+        await page.locator('button[data-tab="world"]').click({ timeout: 90_000 });
+        const seedInput = page.locator('input[data-component="world"][data-field="seed"]');
+        await seedInput.waitFor({ timeout: 90_000 });
+        await seedInput.fill(seed);
+        await seedInput.press("Enter");
+        await page.waitForFunction(
+          (expected) => document.querySelector("#planning-app [data-seed]")?.getAttribute("data-seed") === expected,
+          seed,
+          { timeout: 90_000 }
+        );
+        const generateBtn = page.getByRole("button", { name: "生成 3D", exact: true });
+        await page.waitForFunction(() => !document.querySelector('button[data-action="generate"]')?.hasAttribute("disabled"), null, { timeout: 90_000 });
+        await generateBtn.click();
       }
       await waitForWorld(page);
       assert.equal(new URL(page.url()).searchParams.get("seed"), seed);

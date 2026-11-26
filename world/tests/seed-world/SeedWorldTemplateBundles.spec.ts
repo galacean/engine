@@ -129,14 +129,15 @@ describe("seed-world-template-bundles", () => {
     ]);
 
     // `989ee6ee7600c0e4.ktx2` (`Material/Vegetation/birch-leaves.mat`) is loaded only by WorldTemplateRuntime
-    // presets (`sakura-pearl`, `emerald-forest`, `low-poly`, `titan-wasteland`) and excluded from `original`.
+    // presets (`sakura-pearl`, `emerald-forest`, `low-poly`, `titan-wasteland`, `oil-paint`) and excluded from `original`.
     const worldTemplateLeafTex = "packages/terrain/src/data/seed-world/public/Texture/989ee6ee7600c0e4.ktx2";
     expect(classifySeedWorldTemplateMediaAsset(worldTemplateLeafTex)).toBe("core_terrain_world_template");
     expect(templatesForSeedWorldMediaAsset(worldTemplateLeafTex)).toEqual([
       "sakura-pearl",
       "emerald-forest",
       "low-poly",
-      "titan-wasteland"
+      "titan-wasteland",
+      "oil-paint"
     ]);
 
     // Procedural tree PNGs loaded via project virtual paths stay keyed under `packages/vegetation/...` because
@@ -159,7 +160,8 @@ describe("seed-world-template-bundles", () => {
       expect(templatesForSeedWorldMediaAsset(lushVegPng), lushVegPng).toEqual([
         "original",
         "sakura-pearl",
-        "emerald-forest"
+        "emerald-forest",
+        "oil-paint"
       ]);
     }
 
@@ -174,21 +176,27 @@ describe("seed-world-template-bundles", () => {
     expect(templatesForSeedWorldMediaAsset("assets/meadow-blocks-49000b14.jpg")).toEqual(["low-poly"]);
     expect(templatesForSeedWorldMediaAsset("assets/dead-tree-bark-albedo-4c6e1244.png")).toEqual(["titan-wasteland"]);
     expect(templatesForSeedWorldMediaAsset("assets/oasis-butterflies-510c9f29.png")).toEqual(["titan-wasteland"]);
+    expect(templatesForSeedWorldMediaAsset("assets/oil-paint-water-swirl-color-512-1d82cae4.ktx2")).toEqual([
+      "oil-paint"
+    ]);
+    expect(templatesForSeedWorldMediaAsset("assets/oil-paint-water-swirl-normal-512-d072ab7d.ktx2")).toEqual([
+      "oil-paint"
+    ]);
 
-    // Building textures & lush broadleaf-bark stay strictly in lush templates; bridges only in original
+    // Building textures stay strictly in building-bearing templates; broadleaf-bark also used by oil-paint; bridges only in original
     expect(
       templatesForSeedWorldMediaAsset("packages/building/src/building/assets/native/Textures/plaster_colors-neutral.ktx2")
-    ).toEqual(["original", "sakura-pearl", "emerald-forest"]);
+    ).toEqual(["original", "sakura-pearl", "emerald-forest", "oil-paint"]);
     expect(
       templatesForSeedWorldMediaAsset("packages/terrain/src/data/seed-world/public/Texture/ead4b76b302d6762.ktx2")
-    ).toEqual(["original", "sakura-pearl", "emerald-forest"]);
+    ).toEqual(["original", "sakura-pearl", "emerald-forest", "oil-paint"]);
     expect(templatesForSeedWorldMediaAsset("assets/farmlands-bridge-parts-dd5de3d3.glb")).toEqual(["original"]);
 
-    // Ocean textures excluded from continuous templates (`low-poly` and `titan-wasteland`)
+    // Ocean textures excluded from continuous templates (`low-poly`, `titan-wasteland`, `oil-paint`)
     expect(
       templatesForSeedWorldMediaAsset("packages/water/src/water/native/assets/Water/Textures/ocean-roughWaves.ktx2")
     ).toEqual(["original", "sakura-pearl", "emerald-forest"]);
-    // River water textures only in original & sakura-pearl; pond normal in original/sakura/low-poly/titan
+    // River water textures only in original & sakura-pearl; pond normal in original/sakura/low-poly/titan/oil-paint
     expect(
       templatesForSeedWorldMediaAsset(
         "packages/water/src/water/native/assets/Water/Textures/farmlands-caustics-color.ktx2"
@@ -198,7 +206,7 @@ describe("seed-world-template-bundles", () => {
       templatesForSeedWorldMediaAsset(
         "packages/water/src/water/native/assets/Water/Textures/grasslands-water-normal-1024.ktx2"
       )
-    ).toEqual(["original", "sakura-pearl", "low-poly", "titan-wasteland"]);
+    ).toEqual(["original", "sakura-pearl", "low-poly", "titan-wasteland", "oil-paint"]);
 
     // Shared core environment included in all 5 templates
     expect(classifySeedWorldTemplateMediaAsset("assets/cloud-blue-noise-df6f9a6e.png")).toBe("core_env");
@@ -296,7 +304,7 @@ describe("seed-world-template-bundles", () => {
       templatesForSeedWorldJsonAsset(
         "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_07-structure.json"
       )
-    ).toEqual(["original", "sakura-pearl"]);
+    ).toEqual(["original", "sakura-pearl", "oil-paint"]);
     for (const lushTreeJson of [
       "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_01-structure.json",
       "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_02-structure.json",
@@ -306,7 +314,8 @@ describe("seed-world-template-bundles", () => {
       expect(templatesForSeedWorldJsonAsset(lushTreeJson), lushTreeJson).toEqual([
         "original",
         "sakura-pearl",
-        "emerald-forest"
+        "emerald-forest",
+        "oil-paint"
       ]);
     }
     // Gallery-only plant-species.json stays excluded from Seed World templates

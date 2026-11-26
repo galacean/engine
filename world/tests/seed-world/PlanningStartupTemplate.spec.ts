@@ -17,34 +17,21 @@ it("draws a Seed for a new entry and reuses explicit shared Seeds", async () => 
   }
 });
 
-it("initializes a selected template only when no saved world exists", async () => {
+it("initializes the app's single bound template only when no matching saved world exists", async () => {
   const { initialPlanningTemplate } = await import("../../demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts");
-  expect(initialPlanningTemplate("?template=titan-wasteland", 1)).toBe("titan-wasteland");
-  expect(initialPlanningTemplate("?template=original", 1)).toBe("");
-  expect(initialPlanningTemplate("?template=titan-wasteland", 1, "titan-wasteland")).toBeUndefined();
-  // A saved world may have changed theme in the editor after the URL was created.
-  expect(initialPlanningTemplate("?template=titan-wasteland", 1, "sakura-pearl")).toBeUndefined();
+  expect(initialPlanningTemplate(undefined, "titan-wasteland")).toBe("titan-wasteland");
+  expect(initialPlanningTemplate(undefined, "original")).toBe("");
+  expect(initialPlanningTemplate("titan-wasteland", "titan-wasteland")).toBeUndefined();
+  expect(initialPlanningTemplate("", "original")).toBeUndefined();
+  // Cross-template or retired saves are replaced with the standalone app's fixed template.
+  expect(initialPlanningTemplate("sakura-pearl", "titan-wasteland")).toBe("titan-wasteland");
+  expect(initialPlanningTemplate("retired-theme", "emerald-forest")).toBe("emerald-forest");
+  expect(initialPlanningTemplate("retired-theme", "original")).toBe("");
 });
 
-it("honors an explicit launch choice without replacing matching saved authoring", async () => {
-  const { initialPlanningTemplate, selectPlanningStartupTemplate } = await import("../../demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts");
-  selectPlanningStartupTemplate("titan-wasteland", 2);
-  expect(initialPlanningTemplate("", 2, "")).toBe("titan-wasteland");
-  expect(initialPlanningTemplate("", 2, "titan-wasteland")).toBeUndefined();
-  expect(initialPlanningTemplate("", 3, "")).toBeUndefined();
-  selectPlanningStartupTemplate("", 2);
-  expect(initialPlanningTemplate("", 2, "titan-wasteland")).toBe("");
-});
-
-it("rejects an unknown new template before any planning", async () => {
+it("rejects an unknown bound template before any planning", async () => {
   const { initialPlanningTemplate } = await import("../../demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts");
-  expect(() => initialPlanningTemplate("?template=missing", 1)).toThrow("未知世界风格");
-});
-
-it("uses the launch choice when the saved theme is no longer registered", async () => {
-  const { initialPlanningTemplate } = await import("../../demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts");
-  expect(initialPlanningTemplate("?template=emerald-forest", 3, "retired-theme")).toBe("emerald-forest");
-  expect(initialPlanningTemplate("?template=original", 3, "retired-theme")).toBe("");
+  expect(() => initialPlanningTemplate(undefined, "missing")).toThrow("未知世界风格");
 });
 
 it("restores the sandbar flock when reopening a residents-only desert save", async () => {

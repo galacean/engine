@@ -18,6 +18,7 @@ import { RuntimeProjectStorage, type RuntimeProjectManifest } from "@galacean/en
 import { extractAssetDependencies } from "@galacean/engine-project/runtime-editor/project/runtime-project-dependencies";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
+import { resolveAppTemplate } from "./src/planning/spatial/FlashAppTemplateBinding.ts";
 import { SEMANTIC_DEFAULTS } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 import { PLANT_PROJECT_ROOT, PLANT_PROJECT_PRODUCTION, PLANT_PROJECT_CATALOG } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 import { resolvePlantJSONReferences } from "@galacean/engine-vegetation/asset-assembly/PlantParameterEncoding";
@@ -129,7 +130,7 @@ export async function openSeedWorldProject(
   const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
   const raw = pageUrl.searchParams.get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
-  const template = worldTemplate(pageUrl.searchParams.get("template"))?.id ?? "original";
+  const template = resolveAppTemplate();
   if (!initial) {
     const parsedPreloaded = parsePreloadedJson<RuntimeProjectManifest>(prefetchedTextAssets?.get(projectUrl));
     if (parsedPreloaded !== undefined) {

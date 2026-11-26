@@ -5,12 +5,19 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { Script } from "node:vm";
 import { PUGC_UNSUPPORTED_ASSET_EXTENSIONS } from "./project-assets.mjs";
+import {
+  DEFAULT_FLASH_APPS_CATALOG_RELATIVE,
+  deriveFlashAppVariants,
+  loadFlashAppsCatalog
+} from "./flash-app-variants.mjs";
 
 const vitePackagePath = createRequire(import.meta.url).resolve("vite/package.json");
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const worldDirectory = resolve(scriptDirectory, "..");
 const repoRoot = resolve(worldDirectory, "..");
 const outputDirectory = resolve(worldDirectory, "dist/seed-world-flash-app");
+const variantsRootDirectory = resolve(worldDirectory, "dist/seed-world-flash-apps");
+const flashAppsCatalogPath = resolve(repoRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE);
 const seedWorldProjectRelative = "packages/terrain/src/data/seed-world/project.json";
 const seedWorldCatalogRelative = "packages/terrain/src/data/seed-world/public/production-catalog.json";
 const plantSpeciesRelative =
@@ -27,7 +34,8 @@ const requiredClassicWorkers = Object.freeze([
   { label: "AgentChecker", pattern: /^AgentChecker\.worker-[a-f0-9]+\.js$/u },
   { label: "AgentScript", pattern: /^AgentScript\.worker-[a-f0-9]+\.js$/u },
   { label: "ProjectRegex", pattern: /^ProjectRegex\.worker-[a-f0-9]+\.js$/u },
-  { label: "Retrieval", pattern: /^Retrieval\.worker-[a-f0-9]+\.js$/u }
+  { label: "Retrieval", pattern: /^Retrieval\.worker-[a-f0-9]+\.js$/u },
+  { label: "OilPaintBrush", pattern: /^OilPaintBrush\.worker-[a-f0-9]+\.js$/u }
 ]);
 
 ensurePreparedEngine();
@@ -45,8 +53,19 @@ run(
 
 const inspection = inspectFlashAppBuild(outputDirectory);
 console.log(
-  `Seed World Flash App ready at ${outputDirectory} ` +
+  `Seed World Flash App base ready at ${outputDirectory} ` +
     `(${inspection.fileCount} files, ${formatBytes(inspection.totalBytes)})`
+);
+
+const catalog = loadFlashAppsCatalog(flashAppsCatalogPath);
+const derivedVariants = deriveFlashAppVariants({
+  baseOutputDir: outputDirectory,
+  variantsRoot: variantsRootDirectory,
+  catalog
+});
+console.log(
+  `Derived ${derivedVariants.length} per-template Flash Apps under ${variantsRootDirectory}: ` +
+    derivedVariants.map((v) => `${v.templateId} (${v.fileCount} files, ${formatBytes(v.totalBytes)})`).join(", ")
 );
 
 function ensurePreparedEngine() {
