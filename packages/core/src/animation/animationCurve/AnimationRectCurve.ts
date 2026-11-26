@@ -15,7 +15,7 @@ export class AnimationRectCurve extends AnimationCurve<Rect> {
   /** @internal */
   static readonly _isCopyMode = true;
   /** @internal */
-  static _supportInterpolationMode: boolean = false;
+  static readonly _supportInterpolationMode = false;
 
   /**
    * @internal

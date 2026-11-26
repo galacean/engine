@@ -12,7 +12,7 @@ export class AnimationRefCurve extends AnimationCurve<ReferResource | null> {
   /** @internal */
   static readonly _isCopyMode = false;
   /** @internal */
-  static _supportInterpolationMode: boolean = false;
+  static readonly _supportInterpolationMode = false;
 
   /**
    * @internal

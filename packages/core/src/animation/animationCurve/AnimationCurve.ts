@@ -314,7 +314,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     for (let i = 0; i < count; i++) {
       target[i] = values[i];
     }
-    this._hasTangents = false;
   }
 
   protected _prepareVariableValueSize(size: number, isSingleKeyReplace: boolean): void {
@@ -427,7 +426,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
         for (let i = count - 1; i >= 0; i--) {
           discreteValues[dstIndex + i] = discreteValues[srcIndex + i];
         }
-      } else if (dstIndex < srcIndex) {
+      } else {
         for (let i = 0; i < count; i++) {
           discreteValues[dstIndex + i] = discreteValues[srcIndex + i];
         }

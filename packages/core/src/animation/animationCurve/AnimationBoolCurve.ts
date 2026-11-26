@@ -12,7 +12,7 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /** @internal */
   static readonly _isCopyMode = false;
   /** @internal */
-  static _supportInterpolationMode: boolean = false;
+  static readonly _supportInterpolationMode = false;
 
   /**
    * @internal

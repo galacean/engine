@@ -16,7 +16,7 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   /** @internal */
   static readonly _isCopyMode = true;
   /** @internal */
-  static _supportInterpolationMode: boolean = true;
+  static readonly _supportInterpolationMode = true;
 
   /**
    * @internal

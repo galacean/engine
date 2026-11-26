@@ -14,7 +14,7 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Quaternion>>()
 export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /** @internal */
-  static _supportInterpolationMode: boolean = true;
+  static readonly _supportInterpolationMode = true;
   /** @internal */
   static readonly _isCopyMode = true;
 

@@ -16,7 +16,7 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   /** @internal */
   static readonly _isCopyMode = true;
   /** @internal */
-  static _supportInterpolationMode: boolean = true;
+  static readonly _supportInterpolationMode = true;
 
   /**
    * @internal

@@ -14,7 +14,7 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /** @internal */
   static readonly _isCopyMode = false;
   /** @internal */
-  static _supportInterpolationMode: boolean = true;
+  static readonly _supportInterpolationMode = true;
 
   /**
    * @internal

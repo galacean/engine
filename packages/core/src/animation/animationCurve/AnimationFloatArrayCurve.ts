@@ -20,7 +20,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /** @internal */
   static readonly _isCopyMode = true;
   /** @internal */
-  static _supportInterpolationMode: boolean = true;
+  static readonly _supportInterpolationMode = true;
 
   /**
    * @internal
