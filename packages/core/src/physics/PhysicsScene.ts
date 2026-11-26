@@ -26,7 +26,6 @@ export class PhysicsScene {
   private static readonly _tempPosition = new Vector3();
   private static readonly _tempRotation = new Quaternion();
   private static readonly _dispatchReceivers: (Rigidbody | Collider)[][] = [];
-  private static readonly _triggerReceiverPool: TriggerReceivers[] = [];
   private static readonly _parsedCastArgs = {
     orientation: PhysicsScene._identityQuaternion,
     distance: Number.MAX_VALUE,
@@ -37,8 +36,6 @@ export class PhysicsScene {
     element._entityScriptsIndex = index;
   };
   private static _activeHitResult: HitResult | null = null;
-  private static _activeHitResults: HitResult[] | null = null;
-  private static _activeHitCount = 0;
   private static readonly _onSingleHit = (
     colliderID: number,
     distance: number,
@@ -47,25 +44,6 @@ export class PhysicsScene {
   ): void => {
     PhysicsScene._setHitResult(PhysicsScene._activeHitResult!, colliderID, distance, position, normal);
   };
-  private static readonly _onMultiHit = (
-    colliderID: number,
-    hitDistance: number,
-    position: Vector3,
-    normal: Vector3
-  ): void => {
-    const hitResult = (PhysicsScene._activeHitResults![PhysicsScene._activeHitCount++] ||=
-      PhysicsScene._raycastHitPool.pop() ?? new HitResult());
-    PhysicsScene._setHitResult(hitResult, colliderID, hitDistance, position, normal);
-  };
-
-  private static _pruneTriggerReceiver(this: PhysicsScene, entry: TriggerReceivers, key: number): void {
-    if (entry.stamp !== this._triggerStepStamp) {
-      this._triggerReceivers.delete(key);
-      entry.receiver0 = entry.receiver1 = null!;
-      PhysicsScene._triggerReceiverPool.push(entry);
-    }
-  }
-
   private static _snapshotReceivers(
     events: readonly { shape0Id: number; shape1Id: number }[],
     count: number,
@@ -85,23 +63,26 @@ export class PhysicsScene {
     }
   }
 
-  private static _triggerPairKey(small: number, big: number): number {
-    const sum = small + big;
-    return sum * (sum + 1) * 0.5 + big;
-  }
-
-  private static _dispatchTriggerOwnerChange(
-    previous: Rigidbody | Collider,
+  private static _dispatchTrigger(
+    state: PhysicsEventState,
+    receiveStay: boolean,
     current: Rigidbody | Collider,
+    previous: Rigidbody | Collider | undefined,
     self: Collider,
     other: Collider
   ): void {
-    if (previous.entity !== current.entity) {
-      PhysicsScene._dispatchScripts(PhysicsEventState.Exit, previous, self, other);
-      PhysicsScene._dispatchScripts(PhysicsEventState.Enter, current, self, other);
-      return;
+    if (state === PhysicsEventState.Stay) {
+      if (previous && previous.entity !== current.entity) {
+        PhysicsScene._dispatchScripts(PhysicsEventState.Exit, previous, self, other);
+        PhysicsScene._dispatchScripts(PhysicsEventState.Enter, current, self, other);
+      } else if (receiveStay) {
+        PhysicsScene._dispatchScripts(state, current, self, other);
+      }
+    } else {
+      const receiver =
+        state === PhysicsEventState.Exit && previous && previous.entity !== current.entity ? previous : current;
+      PhysicsScene._dispatchScripts(state, receiver, self, other);
     }
-    PhysicsScene._dispatchScripts(PhysicsEventState.Stay, current, self, other);
   }
 
   private static _dispatchScripts(
@@ -258,11 +239,11 @@ export class PhysicsScene {
   private _massDirtyBodies: Rigidbody[] = [];
   private _pendingSleeps?: Rigidbody[];
   private _collision: Collision;
-  private readonly _triggerReceivers = new Map<number, TriggerReceivers>();
-  private _triggerStepStamp = 0;
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _contactEventConsumerCount = 0;
+  private _triggerEventConsumerCount = 0;
+  private _triggerStayConsumerCount = 0;
 
   /**
    * The gravity of physics scene.
@@ -448,17 +429,16 @@ export class PhysicsScene {
     let hitCount = 0;
     const normalizedDirection = distance > 0 ? this._syncCastDirection(ray.direction) : null;
     if (normalizedDirection) {
-      PhysicsScene._activeHitResults = outHitResults;
-      PhysicsScene._activeHitCount = 0;
-      this._nativePhysicsScene.raycastAll(
-        ray.origin,
-        normalizedDirection,
-        distance,
-        layerMask,
-        PhysicsScene._onMultiHit
-      );
-      hitCount = PhysicsScene._activeHitCount;
-      PhysicsScene._activeHitResults = null;
+      const hits = this._nativePhysicsScene.raycastAll(ray.origin, normalizedDirection, distance, layerMask);
+      for (let i = 0, n = hits.length; i < n; i += 9) {
+        const hit = (outHitResults[hitCount++] ||= pool.pop() ?? new HitResult());
+        const collider = Engine._physicalObjectsMap[hits[i]];
+        hit.entity = collider.entity;
+        hit.collider = collider;
+        hit.distance = hits[i + 1];
+        hit.point.set(hits[i + 2], hits[i + 3], hits[i + 4]);
+        hit.normal.set(hits[i + 5], hits[i + 6], hits[i + 7]);
+      }
     }
     const length = outHitResults.length;
     if (hitCount < length) {
@@ -866,14 +846,19 @@ export class PhysicsScene {
       nativePhysicsScene.update(fixedTimeStep);
       this._bodyOrderDirty && this._sortBodies();
       const count = bodies.length;
-      if (count > 0) {
+      let first = 0;
+      while (first < count && bodies[first]._hasSettledKinematicPose()) first++;
+      if (first < count) {
         const position = PhysicsScene._tempPosition;
         const rotation = PhysicsScene._tempRotation;
-        for (let j = 0; j < count; j++) {
-          bodies[j]._writeBack(position, rotation);
+        const poses = nativePhysicsScene.readBodyPoses();
+        const offset = poses.offset;
+        for (let j = first; j < count; j++) {
+          bodies[j]._writeBack(position, rotation, poses.values, offset + j * 8);
         }
       }
-      this._dispatchEvents(nativePhysicsScene.updateEvents());
+      const receiveStay = this._triggerStayConsumerCount > 0;
+      this._dispatchEvents(nativePhysicsScene.updateEvents(receiveStay), receiveStay);
     }
   }
 
@@ -927,6 +912,7 @@ export class PhysicsScene {
     this._nativePhysicsScene.addActor(actor);
     const bodies = this._bodies;
     body._index = bodies.length;
+    this._nativePhysicsScene.setBodyPoseActor(body._index, actor);
     bodies.push(body);
     if (body.entity._children.length > 0) {
       this._bodyOrderDirty = true;
@@ -954,8 +940,10 @@ export class PhysicsScene {
     if (last !== body) {
       bodies[body._index] = last;
       last._index = body._index;
+      this._nativePhysicsScene.setBodyPoseActor(last._index, last._getNativeActor());
       this._checkBodyOrder(last);
     }
+    this._nativePhysicsScene.setBodyPoseActor(bodies.length, null);
     body._index = -1;
     this._nativePhysicsScene.removeActor(body._getNativeActor());
   }
@@ -1009,14 +997,17 @@ export class PhysicsScene {
     wasEnabled !== enabled && this._nativePhysicsScene?.setContactEventEnabled(enabled);
   }
 
+  /** @internal */
+  _addTriggerEventConsumer(stay: boolean, delta: 1 | -1): void {
+    this._triggerEventConsumerCount += delta;
+    if (stay) this._triggerStayConsumerCount += delta;
+  }
+
   /**
    * @internal
    */
   _gc(): void {
-    PhysicsScene._raycastHitPool.length =
-      PhysicsScene._dispatchReceivers.length =
-      PhysicsScene._triggerReceiverPool.length =
-        0;
+    PhysicsScene._raycastHitPool.length = PhysicsScene._dispatchReceivers.length = 0;
     this._nativePhysicsScene?.gc();
   }
 
@@ -1025,11 +1016,7 @@ export class PhysicsScene {
    */
   _destroy(): void {
     this._gravity._onValueChanged = null;
-    PhysicsScene._raycastHitPool.length =
-      PhysicsScene._dispatchReceivers.length =
-      PhysicsScene._triggerReceiverPool.length =
-        0;
-    this._triggerReceivers.clear();
+    PhysicsScene._raycastHitPool.length = PhysicsScene._dispatchReceivers.length = 0;
     this._pendingSleeps = undefined;
     this._nativePhysicsScene?.destroy();
     this._nativePhysicsScene = null!;
@@ -1052,132 +1039,70 @@ export class PhysicsScene {
           bodies[index] = body;
           body._index = index;
           ancestor._index = i;
+          this._nativePhysicsScene.setBodyPoseActor(index, body._getNativeActor());
+          this._nativePhysicsScene.setBodyPoseActor(i, ancestor._getNativeActor());
           body = ancestor;
         }
       }
     }
   }
 
-  private _dispatchEvents(events: IPhysicsEvents): void {
+  private _dispatchEvents(events: IPhysicsEvents, receiveStay: boolean): void {
     const { contactEvents, contactEventCount, triggerEvents } = events;
     const triggerCount = triggerEvents.length;
     const triggerOffset = contactEventCount * 4;
-    if (contactEventCount > 0 || triggerCount > 0) {
-      // Snapshot both colliders and receivers before any script mutates Collider ownership or re-syncs the scene.
-      const receivers = PhysicsScene._dispatchReceivers.pop() ?? [];
+    // Contact callbacks can change trigger script subscriptions, so snapshot before dispatching either kind.
+    const snapshot = contactEventCount > 0 || (triggerCount > 0 && this._triggerEventConsumerCount > 0);
+    const receivers = snapshot ? (PhysicsScene._dispatchReceivers.pop() ?? []) : undefined;
+    if (receivers) {
       PhysicsScene._snapshotReceivers(contactEvents, contactEventCount, receivers, 0);
       PhysicsScene._snapshotReceivers(triggerEvents, triggerCount, receivers, triggerOffset);
+    }
 
-      if (contactEventCount > 0) {
-        const collision = (this._collision ||= new Collision());
-        for (let i = 0; i < contactEventCount; i++) {
-          const event = contactEvents[i];
-          const base = i * 4;
-          const collider0 = <Collider>receivers[base];
-          const receiver0 = receivers[base + 1];
-          const collider1 = <Collider>receivers[base + 2];
-          const receiver1 = receivers[base + 3];
-          collision._nativeCollision = event;
-          const state = event.state;
-          PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1, collision);
-          PhysicsScene._dispatchScripts(state, receiver1, collider1, collider0, collision);
-        }
-        collision._nativeCollision = null!;
-        collision.collider = null!;
-        collision.selfCollider = null!;
+    if (contactEventCount > 0) {
+      const collision = (this._collision ||= new Collision());
+      for (let i = 0; i < contactEventCount; i++) {
+        const event = contactEvents[i];
+        const base = i * 4;
+        const collider0 = <Collider>receivers![base];
+        const receiver0 = receivers![base + 1];
+        const collider1 = <Collider>receivers![base + 2];
+        const receiver1 = receivers![base + 3];
+        collision._nativeCollision = event;
+        const state = event.state;
+        PhysicsScene._dispatchScripts(state, receiver0, collider0, collider1, collision);
+        PhysicsScene._dispatchScripts(state, receiver1, collider1, collider0, collision);
       }
+      collision._nativeCollision = null!;
+      collision.collider = null!;
+      collision.selfCollider = null!;
+    }
 
-      if (triggerCount > 0) {
-        const triggerReceivers = this._triggerReceivers;
-        const stamp = ++this._triggerStepStamp;
-        let liveCount = 0;
-        for (let i = 0; i < triggerCount; i++) {
-          const event = triggerEvents[i];
-          const base = triggerOffset + i * 4;
-          let collider0 = <Collider>receivers[base];
-          let cur0 = receivers[base + 1];
-          let collider1 = <Collider>receivers[base + 2];
-          let cur1 = receivers[base + 3];
-          let small = collider0._id;
-          let big = collider1._id;
-          if (small > big) {
-            const tmpId = small;
-            small = big;
-            big = tmpId;
-            const tmpCollider = collider0;
-            collider0 = collider1;
-            collider1 = tmpCollider;
-            const tmpCur = cur0;
-            cur0 = cur1;
-            cur1 = tmpCur;
-          }
-          const key = PhysicsScene._triggerPairKey(small, big);
-          const state = event.state;
-          if (state === PhysicsEventState.Stay) {
-            const entry = triggerReceivers.get(key);
-            if (entry) {
-              entry.stamp = stamp;
-              liveCount++;
-              const prev0 = entry.receiver0;
-              if (prev0 === cur0) {
-                PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
-              } else {
-                entry.receiver0 = cur0;
-                PhysicsScene._dispatchTriggerOwnerChange(prev0, cur0, collider0, collider1);
-              }
-              const prev1 = entry.receiver1;
-              if (prev1 === cur1) {
-                PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
-              } else {
-                entry.receiver1 = cur1;
-                PhysicsScene._dispatchTriggerOwnerChange(prev1, cur1, collider1, collider0);
-              }
-            } else {
-              PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
-              PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
-            }
-          } else if (state === PhysicsEventState.Enter) {
-            let entry = PhysicsScene._triggerReceiverPool.pop();
-            if (entry) {
-              entry.receiver0 = cur0;
-              entry.receiver1 = cur1;
-              entry.stamp = stamp;
-            } else {
-              entry = { receiver0: cur0, receiver1: cur1, stamp };
-            }
-            triggerReceivers.set(key, entry);
-            liveCount++;
-            PhysicsScene._dispatchScripts(state, cur0, collider0, collider1);
-            PhysicsScene._dispatchScripts(state, cur1, collider1, collider0);
-          } else {
-            const entry = triggerReceivers.get(key);
-            let target0 = cur0;
-            let target1 = cur1;
-            if (entry) {
-              triggerReceivers.delete(key);
-              if (entry.receiver0.entity !== cur0.entity) target0 = entry.receiver0;
-              if (entry.receiver1.entity !== cur1.entity) target1 = entry.receiver1;
-              entry.receiver0 = entry.receiver1 = null!;
-              PhysicsScene._triggerReceiverPool.push(entry);
-            }
-            PhysicsScene._dispatchScripts(state, target0, collider0, collider1);
-            PhysicsScene._dispatchScripts(state, target1, collider1, collider0);
-          }
-        }
-        if (triggerReceivers.size > liveCount) {
-          triggerReceivers.forEach(PhysicsScene._pruneTriggerReceiver, this);
-        }
+    const objects = Engine._physicalObjectsMap;
+    for (let i = 0; i < triggerCount; i++) {
+      const event = triggerEvents[i];
+      const base = triggerOffset + i * 4;
+      const collider0 = receivers ? <Collider>receivers[base] : objects[event.shape0Id];
+      const collider1 = receivers ? <Collider>receivers[base + 2] : objects[event.shape1Id];
+      const current0 = receivers ? receivers[base + 1] : (collider0._attachedBody ?? collider0);
+      const current1 = receivers ? receivers[base + 3] : (collider1._attachedBody ?? collider1);
+      const state = event.state;
+      const previous0 = event.receiver0 as Rigidbody | Collider | undefined;
+      const previous1 = event.receiver1 as Rigidbody | Collider | undefined;
+      event.receiver0 = state === PhysicsEventState.Exit ? undefined : current0;
+      event.receiver1 = state === PhysicsEventState.Exit ? undefined : current1;
+      if (receivers && this._triggerEventConsumerCount > 0) {
+        PhysicsScene._dispatchTrigger(state, receiveStay, current0, previous0, collider0, collider1);
+        PhysicsScene._dispatchTrigger(state, receiveStay, current1, previous1, collider1, collider0);
       }
-      // Clear active slots in place without shrinking length so pooled arrays keep their backing storage.
+    }
+
+    if (receivers) {
       const totalSlots = triggerOffset + triggerCount * 4;
       for (let i = 0; i < totalSlots; i++) {
         receivers[i] = null!;
       }
       PhysicsScene._dispatchReceivers.push(receivers);
-    }
-    if (triggerCount === 0 && this._triggerReceivers.size > 0) {
-      ++this._triggerStepStamp;
-      this._triggerReceivers.forEach(PhysicsScene._pruneTriggerReceiver, this);
     }
   }
 
@@ -1191,10 +1116,4 @@ export class PhysicsScene {
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
   }
-}
-
-interface TriggerReceivers {
-  receiver0: Rigidbody | Collider;
-  receiver1: Rigidbody | Collider;
-  stamp: number;
 }

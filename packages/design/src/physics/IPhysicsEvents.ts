@@ -16,8 +16,12 @@ export interface IContactEvent extends ICollision {
 
 /**
  * A buffered trigger event from the physics backend.
+ * @remarks Reuse the same record across simulation steps until the overlap ends.
  */
 export interface ITriggerEvent {
+  /** @internal Previous dispatch receivers for this pair. Cleared when the pair retires. */
+  receiver0?: unknown;
+  receiver1?: unknown;
   readonly shape0Id: number;
   readonly shape1Id: number;
   readonly state: PhysicsEventState;

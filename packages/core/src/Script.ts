@@ -29,7 +29,7 @@ export class Script extends Component {
   _entityScriptsIndex: number = -1;
 
   @ignoreClone
-  private _contactEventRegistered: boolean = false;
+  private _physicsEventSubscriptions = PhysicsEventSubscription.None;
 
   /**
    * Called when be enabled first time, only once.
@@ -193,6 +193,7 @@ export class Script extends Component {
    */
   override _onEnable(): void {
     this.onEnable();
+    if (this._phasedActiveInScene && !this.destroyed) this._syncTriggerSubscription();
   }
 
   /**
@@ -229,14 +230,16 @@ export class Script extends Component {
     }
 
     this._entity._addScript(this);
+    const physics = this.scene!.physics;
     if (
       this.onCollisionEnter !== prototype.onCollisionEnter ||
       this.onCollisionExit !== prototype.onCollisionExit ||
       this.onCollisionStay !== prototype.onCollisionStay
     ) {
-      this._contactEventRegistered = true;
-      this.scene!.physics._addContactEventConsumer(1);
+      this._physicsEventSubscriptions |= PhysicsEventSubscription.Contact;
+      physics._addContactEventConsumer(1);
     }
+    this._syncTriggerSubscription();
   }
 
   /**
@@ -260,10 +263,30 @@ export class Script extends Component {
     }
 
     this._entity._removeScript(this);
-    if (this._contactEventRegistered) {
-      this._contactEventRegistered = false;
-      this.scene!.physics._addContactEventConsumer(-1);
+    const subscriptions = this._physicsEventSubscriptions;
+    const physics = this.scene!.physics;
+    this._physicsEventSubscriptions = PhysicsEventSubscription.None;
+    if (subscriptions & PhysicsEventSubscription.Contact) physics._addContactEventConsumer(-1);
+    if (subscriptions & (PhysicsEventSubscription.Trigger | PhysicsEventSubscription.TriggerStay)) {
+      physics._addTriggerEventConsumer(!!(subscriptions & PhysicsEventSubscription.TriggerStay), -1);
     }
+  }
+
+  private _syncTriggerSubscription(): void {
+    const { prototype } = Script;
+    const previous =
+      this._physicsEventSubscriptions & (PhysicsEventSubscription.Trigger | PhysicsEventSubscription.TriggerStay);
+    const stay = this.onTriggerStay !== prototype.onTriggerStay;
+    const next = stay
+      ? PhysicsEventSubscription.TriggerStay
+      : this.onTriggerEnter !== prototype.onTriggerEnter || this.onTriggerExit !== prototype.onTriggerExit
+        ? PhysicsEventSubscription.Trigger
+        : PhysicsEventSubscription.None;
+    if (previous === next) return;
+    const physics = this.scene!.physics;
+    if (previous) physics._addTriggerEventConsumer(previous === PhysicsEventSubscription.TriggerStay, -1);
+    if (next) physics._addTriggerEventConsumer(stay, 1);
+    this._physicsEventSubscriptions = (this._physicsEventSubscriptions & PhysicsEventSubscription.Contact) | next;
   }
 
   /**
@@ -286,3 +309,10 @@ const pointerMethods = [
   "onPointerEndDrag",
   "onPointerDrop"
 ] as const;
+
+const enum PhysicsEventSubscription {
+  None = 0,
+  Contact = 1,
+  Trigger = 2,
+  TriggerStay = 4
+}

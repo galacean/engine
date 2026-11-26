@@ -2616,31 +2616,26 @@ describe("Rigidbody", function () {
     body.isKinematic = true;
 
     physics._update(physics.fixedTimeStep);
-    const getWorldTransform = vi.spyOn(body._getNativeActor(), "getWorldTransform");
+    const publish = vi.spyOn(entity.transform, "worldPosition", "set");
     try {
       physics._update(physics.fixedTimeStep);
       physics._update(physics.fixedTimeStep);
-      physics._update(physics.fixedTimeStep);
-      expect(getWorldTransform).not.toHaveBeenCalled();
+      expect(publish).not.toHaveBeenCalled();
 
       body.move(new Vector3(2, 0, 0));
       physics._update(physics.fixedTimeStep);
-      expect(getWorldTransform).toHaveBeenCalledTimes(1);
+      expect(publish).toHaveBeenCalledTimes(1);
       expect(entity.transform.position.x).toBeCloseTo(2, 4);
 
       physics._update(physics.fixedTimeStep);
-      physics._update(physics.fixedTimeStep);
-      expect(getWorldTransform).toHaveBeenCalledTimes(1);
+      expect(publish).toHaveBeenCalledTimes(1);
 
       entity.transform.setPosition(5, 0, 0);
       physics._update(physics.fixedTimeStep);
       expect(entity.transform.position.x).toBeCloseTo(5, 4);
-      expect(getWorldTransform).toHaveBeenCalledTimes(2);
-
-      physics._update(physics.fixedTimeStep);
-      expect(getWorldTransform).toHaveBeenCalledTimes(2);
+      expect(publish).toHaveBeenCalledTimes(1);
     } finally {
-      getWorldTransform.mockRestore();
+      publish.mockRestore();
     }
 
     const parent = rootEntity.createChild("kinematic-parent");
@@ -2655,13 +2650,44 @@ describe("Rigidbody", function () {
     childBody.isKinematic = true;
 
     physics._update(physics.fixedTimeStep);
-    const getChildTransform = vi.spyOn(childBody._getNativeActor(), "getWorldTransform");
+    physics._update(physics.fixedTimeStep);
+    expect(parent.transform.worldPosition.x).toBeGreaterThan(0);
+    expect(child.transform.worldPosition.x).toBeCloseTo(0, 4);
+  });
+
+  it("writes nested sleeping poses when WASM memory grows during parent Transform publication", () => {
+    const physics = engine.sceneManager.activeScene.physics;
+    const parent = rootEntity.createChild("kinematic-parent");
+    const driver = parent.addComponent(Rigidbody);
+    driver.isKinematic = true;
+    const child = parent.createChild("sleeping-child");
+    child.transform.setPosition(0, 5, 0);
+    child.addComponent(BoxCollider);
+    const sleeping = child.addComponent(Rigidbody);
+    sleeping.useGravity = false;
+    sleeping.sleep();
+    physics._update(physics.fixedTimeStep);
+
+    const wasm = backend._physX;
+    const oldBuffer = wasm.HEAPF32.buffer;
+    const publishPosition = Object.getOwnPropertyDescriptor(Transform.prototype, "worldPosition")!.set!;
+    let allocation = 0;
+    const publish = vi.spyOn(parent.transform, "worldPosition", "set").mockImplementation((position) => {
+      allocation = wasm._malloc(oldBuffer.byteLength);
+      publishPosition.call(parent.transform, position);
+    });
     try {
+      driver.move(new Vector3(10, 0, 0));
       physics._update(physics.fixedTimeStep);
-      expect(getChildTransform).toHaveBeenCalledTimes(1);
+      expect(allocation).toBeGreaterThan(0);
+      expect(wasm.HEAPF32.buffer).not.toBe(oldBuffer);
+      expect(parent.transform.worldPosition.x).toBeCloseTo(10, 4);
       expect(child.transform.worldPosition.x).toBeCloseTo(0, 4);
+      expect(child.transform.worldPosition.y).toBeCloseTo(5, 4);
+      expect(sleeping.isSleeping()).toBe(true);
     } finally {
-      getChildTransform.mockRestore();
+      publish.mockRestore();
+      if (allocation) wasm._free(allocation);
     }
   });
 

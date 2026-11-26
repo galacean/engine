@@ -2,6 +2,7 @@ import { Vector3, Quaternion } from "@galacean/engine";
 import {
   IContactEvent,
   IContactPoint,
+  IDynamicActor,
   IFixedJoint,
   IHingeJoint,
   IPhysicsEvents,
@@ -93,12 +94,19 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _physXPhysics: PhysXPhysics;
   private _pxScene: any;
   private _pxSceneQueries: any;
+  private _pxBodyPoses: {
+    setActor(index: number, actor: unknown): void;
+    read(): number;
+    delete(): void;
+  } | null = null;
+  private readonly _bodyPoses: { readonly values: Float32Array; offset: number };
   private _physXSimulationCallbackInstance: any;
 
   private _contactFloatOffset = 0;
   private _iterShapeId = 0;
 
   private _activeTriggers: TriggerEvent[] = [];
+  private _changedTriggers: TriggerEvent[] = [];
   private readonly _physicsEvents = {
     contactEvents: [] as ContactEvent[],
     contactEventCount: 0,
@@ -107,7 +115,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   private _triggerEventPool: TriggerEvent[] = [];
   private _contactSetPool: Set<number>[] = [];
-  private _raycastBuffers?: Float64Array[];
   // Store each scene-local pair under its two collider IDs in ascending order.
   private _eventMap: Record<number, Record<number, TriggerEvent | undefined>> = Object.create(null);
   private _shapeChanges = new Map<number, ShapeChange>();
@@ -124,6 +131,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._physXPhysics = physXPhysics;
 
     const physX = physXPhysics._physX;
+    this._bodyPoses = {
+      get values(): Float32Array {
+        return physX.HEAPF32;
+      },
+      offset: 0
+    };
 
     const simulationCallback = {
       onContactBegin: (shape0ID: number, shape1ID: number, count: number, data: Float32Array) => {
@@ -149,7 +162,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         const existing = pairs[big];
         if (existing) {
           // Treat a rediscovered pair as a continuous overlap.
-          existing._pendingState = PhysicsEventState.Stay;
+          this._queueTrigger(existing, PhysicsEventState.Stay);
           return;
         }
         let event = this._triggerEventPool.pop();
@@ -159,14 +172,15 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         } else {
           event = new TriggerEvent(small, big);
         }
-        event._pendingState = PhysicsEventState.Enter;
+        event._activeIndex = this._activeTriggers.length;
         pairs[big] = event;
         this._activeTriggers.push(event);
+        this._queueTrigger(event, PhysicsEventState.Enter);
       },
       onTriggerEnd: (shape0ID: number, shape1ID: number) => {
         const pairs = this._eventMap[Math.min(shape0ID, shape1ID)];
         const big = Math.max(shape0ID, shape1ID);
-        pairs[big]!._pendingState = PhysicsEventState.Exit;
+        this._queueTrigger(pairs[big]!, PhysicsEventState.Exit);
         delete pairs[big];
       }
     };
@@ -264,6 +278,19 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._flushReplacedContactExits();
   }
 
+  /** @internal */
+  setBodyPoseActor(index: number, actor: IDynamicActor | null): void {
+    const poses = (this._pxBodyPoses ??= new this._physXPhysics._physX.SceneBodyPoses())!;
+    poses.setActor(index, (actor as PhysXActor | null)?._pxActor ?? null);
+  }
+
+  /** @internal */
+  readBodyPoses(): ReturnType<IPhysicsScene["readBodyPoses"]> {
+    const poses = this._bodyPoses;
+    poses.offset = this._pxBodyPoses!.read() >>> 2;
+    return poses;
+  }
+
   /**
    * {@inheritDoc IPhysicsScene.setContactEventEnabled }
    */
@@ -277,23 +304,27 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   /**
    * {@inheritDoc IPhysicsScene.updateEvents }
    */
-  updateEvents(): IPhysicsEvents {
+  updateEvents(reportTriggerStay: boolean): IPhysicsEvents {
     const physicsEvents = this._physicsEvents;
     const triggerEvents = physicsEvents.triggerEvents;
-    const activeTriggers = this._activeTriggers;
+    const changed = this._changedTriggers;
+    const source = reportTriggerStay ? this._activeTriggers : changed;
     let count = 0;
-    for (let i = 0; i < activeTriggers.length; ) {
-      const event = activeTriggers[i];
+    for (let i = 0; i < source.length; ) {
+      const event = source[i];
+      event._queued = false;
       const state = (event.state = event._pendingState);
       triggerEvents[count++] = event;
-      if (state === PhysicsEventState.Enter) {
+      if (state === PhysicsEventState.Exit) {
+        this._retireTrigger(event);
+        // Active storage swaps its last pair into the removed slot.
+        if (reportTriggerStay) continue;
+      } else {
         event._pendingState = PhysicsEventState.Stay;
-      } else if (state === PhysicsEventState.Exit) {
-        this._retireTrigger(event, i);
-        continue;
       }
       i++;
     }
+    changed.length = 0;
     triggerEvents.length = count;
     return physicsEvents;
   }
@@ -343,43 +374,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   /**
    * {@inheritDoc IPhysicsScene.raycastAll }
    */
-  raycastAll(
-    origin: Vector3,
-    direction: Vector3,
-    distance: number,
-    layerMask: number,
-    onHit: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): void {
-    const hits: Float64Array = this._pxSceneQueries.raycastAll(
-      origin,
-      direction,
-      Math.min(distance, 3.4e38),
-      layerMask,
-      true,
-      null,
-      false
-    );
-    const length = hits.length;
-    if (!length) return;
-    const hitStride = 9;
-    if (length === hitStride) {
-      this._readHit(hits, 0, onHit);
-      return;
-    }
-
-    // The first callback can overwrite unread hits by issuing another query.
-    const buffers = (this._raycastBuffers ||= []);
-    let buffer = buffers.pop();
-    if (!buffer || buffer.length < length) {
-      let nextLength = buffer ? buffer.length * 2 : 16 * hitStride;
-      while (nextLength < length) nextLength *= 2;
-      buffer = new Float64Array(nextLength);
-    }
-    buffer.set(hits);
-    for (let i = 0; i < length; i += hitStride) {
-      this._readHit(buffer, i, onHit);
-    }
-    buffers.push(buffer);
+  raycastAll(origin: Vector3, direction: Vector3, distance: number, layerMask: number): Readonly<Float64Array> {
+    return this._pxSceneQueries.raycastAll(origin, direction, Math.min(distance, 3.4e38), layerMask, true, null, false);
   }
 
   /**
@@ -499,9 +495,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   gc(): void {
     this._triggerEventPool.length = 0;
     this._contactSetPool.length = 0;
-    if (this._raycastBuffers) {
-      this._raycastBuffers.length = 0;
-    }
     const events = this._physicsEvents;
     events.contactEvents.length = 0;
     events.triggerEvents.length = 0;
@@ -519,6 +512,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     this._physXSimulationCallbackInstance.delete();
     this._pxSceneQueries.delete();
+    this._pxBodyPoses?.delete();
     // The controller manager releases its controllers through the scene.
     this._pxControllerManager?.release();
     this._pxScene.release();
@@ -653,11 +647,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       const first = changes.get(event.shape0Id);
       const second = changes.get(event.shape1Id);
       if (first === ShapeChange.Removed || second === ShapeChange.Removed) {
-        this._retireTrigger(event, i);
+        event.receiver0 = event.receiver1 = undefined;
+        this._retireTrigger(event);
         continue;
       } else if (first !== undefined || second !== undefined) {
         // Start with an exit and let PhysX restore the stay if it reports the pair again.
-        event._pendingState = PhysicsEventState.Exit;
+        this._queueTrigger(event, PhysicsEventState.Exit);
       }
       i++;
     }
@@ -665,11 +660,20 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     changes.clear();
   }
 
-  private _retireTrigger(event: TriggerEvent, index: number): void {
+  private _queueTrigger(event: TriggerEvent, state: PhysicsEventState): void {
+    if (!event._queued) {
+      event._queued = true;
+      this._changedTriggers.push(event);
+    }
+    event._pendingState = state;
+  }
+
+  private _retireTrigger(event: TriggerEvent): void {
     const activeTriggers = this._activeTriggers;
     const last = activeTriggers.pop()!;
     if (last !== event) {
-      activeTriggers[index] = last;
+      last._activeIndex = event._activeIndex;
+      activeTriggers[last._activeIndex] = last;
     }
     this._triggerEventPool.push(event);
     const pairs = this._eventMap[event.shape0Id];
@@ -776,6 +780,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
  */
 class TriggerEvent implements ITriggerEvent {
   state: PhysicsEventState;
+  receiver0?: unknown;
+  receiver1?: unknown;
+  _activeIndex: number;
+  _queued = false;
   /** @internal */
   _pendingState: PhysicsEventState;
 

@@ -15,7 +15,7 @@ import {
   SphereCollider
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
-import { PhysicsEventState, type IPhysicsEvents, type IPhysicsScene } from "@galacean/engine-design";
+import { type IPhysicsScene } from "@galacean/engine-design";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, beforeEach, afterAll, expect, it, afterEach } from "vitest";
 
@@ -154,6 +154,71 @@ describe("Physics Test", () => {
         destroyedPhysics.gravity.set(1, 2, 3);
       }).not.toThrow();
     });
+
+    it.each([true, false])(
+      "delivers Stay on the next step after enabling a script in an existing overlap (edge listeners: %s)",
+      (registerEdges) => {
+        const root = enginePhysX.sceneManager.activeScene.createRootEntity();
+        const sensor = root.createChild("sensor");
+        const trigger = sensor.addComponent(BoxCollider);
+        trigger.isTrigger = true;
+        const probe = root.createChild("probe");
+        const body = probe.addComponent(Rigidbody);
+        body.isKinematic = true;
+        const collider = probe.addComponent(BoxCollider);
+        const edges: string[] = [];
+        let stays = 0;
+        if (registerEdges) {
+          sensor.addComponent(
+            class extends Script {
+              override onTriggerEnter(other: Collider): void {
+                expect(other).toBe(collider);
+                edges.push("enter");
+              }
+              override onTriggerExit(other: Collider): void {
+                expect(other).toBe(collider);
+                edges.push("exit");
+              }
+            }
+          );
+        }
+        const step = () => physicsScene._update(physicsScene.fixedTimeStep);
+        try {
+          step();
+          step();
+          expect(edges).toEqual(registerEdges ? ["enter"] : []);
+          expect(stays).toBe(0);
+
+          const listener = sensor.addComponent(
+            class extends Script {
+              override onEnable(): void {
+                this.onTriggerStay = (other: Collider, self: Collider) => {
+                  expect(other).toBe(collider);
+                  expect(self).toBe(trigger);
+                  stays++;
+                };
+              }
+            }
+          );
+          step();
+          expect(stays).toBe(1);
+          expect(edges).toEqual(registerEdges ? ["enter"] : []);
+
+          listener.enabled = false;
+          step();
+          expect(stays).toBe(1);
+          listener.enabled = true;
+          step();
+          expect(stays).toBe(2);
+
+          probe.transform.setPosition(5, 0, 0);
+          step();
+          expect(edges).toEqual(registerEdges ? ["enter", "exit"] : []);
+        } finally {
+          root.destroy();
+        }
+      }
+    );
 
     it("fixedTimeStep", () => {
       // Test that set fixedTimeStep works correctly.
@@ -533,12 +598,9 @@ describe("Physics Test", () => {
       expect(results.every((result) => result.distance > 0)).to.eq(true);
 
       const nativeScene = (physicsScene as any)._nativePhysicsScene as IPhysicsScene;
-      const nativeHitIds: number[] = [];
-      nativeScene.raycastAll(ray.origin, ray.direction, Number.MAX_VALUE, Layer.Everything, (shapeUniqueID) =>
-        nativeHitIds.push(shapeUniqueID)
-      );
-      expect(nativeHitIds).to.have.length(2);
-      expect(new Set(nativeHitIds).size).to.eq(2);
+      const nativeHits = nativeScene.raycastAll(ray.origin, ray.direction, Number.MAX_VALUE, Layer.Everything);
+      expect(nativeHits).to.have.length(18);
+      expect([nativeHits[0], nativeHits[9]]).to.have.members([nearShape._id, farShape._id]);
 
       const previousHits = results.slice();
       const previousDistances = previousHits.map((hit) => hit.distance);
@@ -972,11 +1034,9 @@ describe("Physics Test", () => {
       nativeActor.addShape(nativeShape);
       nativeShape.setCollisionLayer(0);
       native.addActor(nativeActor);
-      const hits: number[] = [];
-      native.raycastAll(new Vector3(-3, 3, 0), new Vector3(1, 0, 0), 100, Layer.Everything, (shapeID) =>
-        hits.push(shapeID)
-      );
-      expect(hits).to.deep.equal([id]);
+      const hits = native.raycastAll(new Vector3(-3, 3, 0), new Vector3(1, 0, 0), 100, Layer.Everything);
+      expect(hits).to.have.length(9);
+      expect(hits[0]).to.eq(id);
       expect(Array.from(native.overlapSphereAll(new Vector3(0, 3, 0), 1, Layer.Everything))).to.deep.equal([id]);
       native.removeActor(nativeActor);
       nativeActor.removeShape(nativeShape);
@@ -985,7 +1045,7 @@ describe("Physics Test", () => {
       material.destroy();
     });
 
-    it("raycastAll preserves outer hits across nested queries and gc", () => {
+    it("exposes raycastAll hit records for synchronous consumption across queries and gc", () => {
       const nativeScene = physicsBackend.createPhysicsScene();
       const material = physicsBackend.createPhysicsMaterial({
         staticFriction: 0.5,
@@ -1011,35 +1071,24 @@ describe("Physics Test", () => {
         const outerOrigin = new Vector3(0, 0, 0);
         const innerOrigin = new Vector3(0, 4, 0);
 
-        const runNested = (): void => {
-          const outerIds: number[] = [];
-          const innerIds: number[] = [];
-          const retainedPositions: Vector3[] = [];
-          nativeScene.raycastAll(outerOrigin, direction, 10, Layer.Everything, (id, _distance, position) => {
-            outerIds.push(id);
-            retainedPositions.push(position.clone());
-            if (outerIds.length === 1) {
-              nativeScene.raycastAll(innerOrigin, direction, 10, Layer.Everything, (innerId) => {
-                innerIds.push(innerId);
-              });
-            }
-          });
-          expect(outerIds.sort((a, b) => a - b)).to.deep.equal([1, 2, 3]);
-          expect(innerIds.sort((a, b) => a - b)).to.deep.equal([4, 5, 6]);
-          expect(retainedPositions).to.have.length(3);
-          const sortedX = retainedPositions.map((position) => position.x).sort((a, b) => a - b);
-          expect(sortedX[0]).to.be.closeTo(1.5, 1e-5);
-          expect(sortedX[1]).to.be.closeTo(3.5, 1e-5);
-          expect(sortedX[2]).to.be.closeTo(5.5, 1e-5);
-          for (const position of retainedPositions) {
-            expect(position.y).to.be.closeTo(0, 1e-5);
-            expect(position.z).to.be.closeTo(0, 1e-5);
-          }
+        const read = (origin: Vector3): number[][] => {
+          const hits = nativeScene.raycastAll(origin, direction, 10, Layer.Everything);
+          const records: number[][] = [];
+          for (let i = 0; i < hits.length; i += 9) records.push(Array.from(hits.slice(i, i + 9)));
+          return records.sort((a, b) => a[0] - b[0]);
         };
-
-        runNested();
+        const outer = read(outerOrigin);
+        const inner = read(innerOrigin);
+        expect(outer.map((hit) => hit[0])).to.deep.equal([1, 2, 3]);
+        expect(inner.map((hit) => hit[0])).to.deep.equal([4, 5, 6]);
+        expect(outer.map((hit) => hit[1])).to.deep.equal([1.5, 3.5, 5.5]);
+        expect(outer.map((hit) => hit.slice(2, 8))).to.deep.equal([
+          [1.5, 0, 0, -1, 0, 0],
+          [3.5, 0, 0, -1, 0, 0],
+          [5.5, 0, 0, -1, 0, 0]
+        ]);
         nativeScene.gc();
-        runNested();
+        expect(read(outerOrigin)).to.deep.equal(outer);
       } finally {
         for (const { actor, shape } of bodies) {
           nativeScene.removeActor(actor);
@@ -2021,112 +2070,56 @@ describe("Physics Test", () => {
         }
       });
 
-      it("tracks trigger receivers by canonical pair ID rather than event object identity and leaves counts readonly", () => {
-        const root = enginePhysX.sceneManager.activeScene.createRootEntity("trigger-pair-key");
+      it("preserves Enter and Exit across compound ownership transfer without Stay listeners", () => {
+        const root = enginePhysX.sceneManager.activeScene.createRootEntity("trigger-ownership");
         root.transform.setPosition(0, 1600, 0);
-        const entityA = root.createChild("a");
-        const ownerB = root.createChild("ownerB");
-        ownerB.transform.setPosition(50, 0, 0);
-        ownerB.addComponent(Rigidbody).isKinematic = true;
-        const entityB = ownerB.createChild("b");
-        const entityC = root.createChild("c");
-        entityC.transform.setPosition(-50, 0, 0);
-        const colliderA = entityA.addComponent(BoxCollider);
-        colliderA.isTrigger = true;
-        const colliderB = entityB.addComponent(BoxCollider);
-        const colliderC = entityC.addComponent(BoxCollider);
-        const enterA = vi.fn();
-        const stayA = vi.fn();
-        const exitA = vi.fn();
-        const exitOwnerB = vi.fn();
-        const exitB = vi.fn();
-        const enterC = vi.fn();
-        const exitC = vi.fn();
-        entityA.addComponent(
+        const sensor = root.createChild("sensor");
+        const trigger = sensor.addComponent(BoxCollider);
+        trigger.isTrigger = true;
+        const oldOwner = root.createChild("old-owner");
+        const newOwner = root.createChild("new-owner");
+        oldOwner.addComponent(Rigidbody).isKinematic = true;
+        newOwner.addComponent(Rigidbody).isKinematic = true;
+        const child = oldOwner.createChild("shape");
+        const collider = child.addComponent(BoxCollider);
+        const sensorEnter = vi.fn();
+        const sensorExit = vi.fn();
+        const oldExit = vi.fn();
+        const newEnter = vi.fn();
+        const newExit = vi.fn();
+        sensor.addComponent(
           class extends Script {
-            onTriggerEnter = enterA;
-            onTriggerStay = stayA;
-            onTriggerExit = exitA;
+            onTriggerEnter = sensorEnter;
+            onTriggerExit = sensorExit;
           }
         );
-        ownerB.addComponent(
+        oldOwner.addComponent(
           class extends Script {
-            onTriggerExit = exitOwnerB;
+            onTriggerExit = oldExit;
           }
         );
-        entityB.addComponent(
+        newOwner.addComponent(
           class extends Script {
-            onTriggerExit = exitB;
-          }
-        );
-        entityC.addComponent(
-          class extends Script {
-            onTriggerEnter = enterC;
-            onTriggerExit = exitC;
+            onTriggerEnter = newEnter;
+            onTriggerExit = newExit;
           }
         );
 
-        const pooledSlot = { shape0Id: colliderA._id, shape1Id: colliderB._id, state: PhysicsEventState.Enter };
+        const step = () => physicsScene._update(physicsScene.fixedTimeStep);
         try {
-          physicsScene._syncColliders();
-          // Enter (A, B) in pooledSlot while colliderB is owned by ownerB.
-          (physicsScene as any)._dispatchEvents(
-            Object.freeze({
-              contactEvents: [],
-              contactEventCount: 0,
-              triggerEvents: [pooledSlot]
-            } satisfies IPhysicsEvents)
-          );
-          expect(enterA).toHaveBeenCalledOnce();
+          step();
+          expect(sensorEnter).toHaveBeenCalledExactlyOnceWith(collider, trigger);
+          newOwner.addChild(child);
+          step();
+          expect(oldExit).toHaveBeenCalledExactlyOnceWith(trigger, collider);
+          expect(newEnter).toHaveBeenCalledExactlyOnceWith(trigger, collider);
+          expect(sensorEnter).toHaveBeenCalledOnce();
+          expect(sensorExit).not.toHaveBeenCalled();
 
-          // Reuse the same pooledSlot object for (A, C) while (A, B) stays active under swapped order,
-          // and pass non-zero frozen contactEventCount to verify it is never mutated.
-          pooledSlot.shape0Id = colliderA._id;
-          pooledSlot.shape1Id = colliderC._id;
-          pooledSlot.state = PhysicsEventState.Enter;
-          const frozenStep2 = Object.freeze({
-            contactEvents: [
-              {
-                shape0Id: colliderA._id,
-                shape1Id: colliderB._id,
-                contactCount: 0,
-                state: PhysicsEventState.Enter,
-                getContact() {}
-              }
-            ],
-            contactEventCount: 1,
-            triggerEvents: [
-              { shape0Id: colliderB._id, shape1Id: colliderA._id, state: PhysicsEventState.Stay },
-              pooledSlot
-            ]
-          } satisfies IPhysicsEvents);
-          (physicsScene as any)._dispatchEvents(frozenStep2);
-          expect(frozenStep2.contactEventCount).toBe(1);
-          expect(stayA).toHaveBeenCalledOnce();
-          expect(enterC).toHaveBeenCalledExactlyOnceWith(colliderA, colliderC);
-
-          // Reparent entityB away from ownerB before Exit so delivery depends on historical lookup.
-          root.addChild(entityB);
-          physicsScene._syncColliders();
-
-          // Exit both using pooledSlot and swapped IDs.
-          pooledSlot.shape0Id = colliderA._id;
-          pooledSlot.shape1Id = colliderB._id;
-          pooledSlot.state = PhysicsEventState.Exit;
-          (physicsScene as any)._dispatchEvents(
-            Object.freeze({
-              contactEvents: [],
-              contactEventCount: 0,
-              triggerEvents: [
-                pooledSlot,
-                { shape0Id: colliderC._id, shape1Id: colliderA._id, state: PhysicsEventState.Exit }
-              ]
-            } satisfies IPhysicsEvents)
-          );
-          expect(exitA).toHaveBeenCalledTimes(2);
-          expect(exitOwnerB).toHaveBeenCalledExactlyOnceWith(colliderA, colliderB);
-          expect(exitB).not.toHaveBeenCalled();
-          expect(exitC).toHaveBeenCalledExactlyOnceWith(colliderA, colliderC);
+          newOwner.transform.setPosition(5, 0, 0);
+          step();
+          expect(sensorExit).toHaveBeenCalledExactlyOnceWith(collider, trigger);
+          expect(newExit).toHaveBeenCalledExactlyOnceWith(trigger, collider);
         } finally {
           root.destroy();
         }
@@ -2931,43 +2924,38 @@ describe("Physics Test", () => {
 
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(enters).toHaveLength(2);
-      const triggerReceivers = (physicsScene as any)._triggerReceivers as Map<number, unknown>;
-      expect(triggerReceivers.size).toBe(2);
+      const native = physicsScene._nativePhysicsScene as unknown as {
+        _triggerEventPool: Array<{ receiver0?: unknown; receiver1?: unknown }>;
+      };
+      const receiverPool = native._triggerEventPool;
 
       const dispatchPool = (PhysicsScene as any)._dispatchReceivers as (Rigidbody | Collider | null)[][];
       expect(dispatchPool).toHaveLength(1);
       expect(dispatchPool[0].length).toBeGreaterThanOrEqual(8);
       expect(dispatchPool[0].every((slot) => slot === null)).toBe(true);
 
-      // Silently retire one pair while the other stays active so the stale-entry prune sweep runs.
+      // Silently retire one pair while the other stays active.
       transient.enabled = false;
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(exits).toHaveLength(0);
-      expect(triggerReceivers.size).toBe(1);
       expect(stays).toEqual([persistent]);
-      const receiverPool = (PhysicsScene as any)._triggerReceiverPool as Array<{
-        receiver0: unknown;
-        receiver1: unknown;
-      }>;
       expect(receiverPool).toHaveLength(1);
-      expect(receiverPool[0].receiver0).toBeNull();
-      expect(receiverPool[0].receiver1).toBeNull();
+      expect(receiverPool[0].receiver0).toBeUndefined();
+      expect(receiverPool[0].receiver1).toBeUndefined();
 
-      // Re-enabling must emit a fresh Enter and reuse the pooled receiver entry.
+      // Re-enabling must emit a fresh Enter using the retired pair slot.
       enters.length = 0;
       transient.enabled = true;
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(enters).toEqual([transient]);
-      expect(triggerReceivers.size).toBe(2);
       expect(receiverPool).toHaveLength(0);
 
       // Retiring the remaining pairs when no triggers remain active returns entries to the pool too.
       persistent.enabled = false;
       transient.enabled = false;
       physicsScene._update(physicsScene.fixedTimeStep);
-      expect(triggerReceivers.size).toBe(0);
       expect(receiverPool).toHaveLength(2);
-      expect(receiverPool.every((entry) => entry.receiver0 === null && entry.receiver1 === null)).toBe(true);
+      expect(receiverPool.every((entry) => entry.receiver0 === undefined && entry.receiver1 === undefined)).toBe(true);
 
       enginePhysX.resourceManager.gc();
       expect(dispatchPool).toHaveLength(0);

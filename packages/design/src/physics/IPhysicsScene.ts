@@ -1,8 +1,17 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
+import { IDynamicActor } from "./IDynamicActor";
 import { IPhysicsActor } from "./IPhysicsActor";
 import { IPhysicsEvents } from "./IPhysicsEvents";
 import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
+
+/** @internal Positions, rotations and sleep flags in eight Float32 lanes per Rigidbody. */
+interface IPhysicsBodyPoses {
+  /** Current memory, which may change on WASM growth during writeback. */
+  readonly values: Float32Array;
+  /** Float32 offset. Valid until the next capture or scene destruction. */
+  readonly offset: number;
+}
 
 /**
  * A native simulation scene with joints, scene queries, and buffered events.
@@ -66,6 +75,12 @@ export interface IPhysicsScene {
    */
   update(elapsedTime: number): void;
 
+  /** @internal Set or append a writeback slot. Passing null removes the last slot. */
+  setBodyPoseActor(index: number, actor: IDynamicActor | null): void;
+
+  /** @internal Capture the completed step's poses by writeback slot. */
+  readBodyPoses(): IPhysicsBodyPoses;
+
   /**
    * Enable contact event delivery.
    * @param enabled - Whether collision contact events should be delivered for dispatch.
@@ -75,9 +90,10 @@ export interface IPhysicsScene {
   /**
    * Collect buffered collision and trigger events for the completed step.
    * @remarks Call once per step, after reading the new poses from physics.
-   * @returns Borrowed event records for immediate dispatch
+   * @param reportTriggerStay - Include unchanged overlaps for Stay listeners.
+   * @returns Borrowed event records for immediate dispatch, including rediscovered pairs after shape changes.
    */
-  updateEvents(): IPhysicsEvents;
+  updateEvents(reportTriggerStay: boolean): IPhysicsEvents;
 
   /**
    * Get whether two collision layers can collide with each other.
@@ -118,15 +134,10 @@ export interface IPhysicsScene {
    * @param direction - The normalized world-space ray direction
    * @param distance - The maximum query distance
    * @param layerMask - The collision layers to include
-   * @param onHit - The callback invoked for each hit
+   * @returns Borrowed records of nine floats: collider ID, distance, point XYZ, normal XYZ, face index.
+   * @remarks Consume the records synchronously before another physics operation.
    */
-  raycastAll(
-    origin: Vector3,
-    direction: Vector3,
-    distance: number,
-    layerMask: number,
-    onHit: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
-  ): void;
+  raycastAll(origin: Vector3, direction: Vector3, distance: number, layerMask: number): Readonly<Float64Array>;
 
   /**
    * Sweeps a box and reports the nearest hit with a positive distance.

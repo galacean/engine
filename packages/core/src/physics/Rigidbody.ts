@@ -952,21 +952,30 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     }
   }
 
+  /** @internal Whether this body can be skipped before capturing the step's poses. */
+  _hasSettledKinematicPose(): boolean {
+    return this._isKinematic && this._poseSynced && this._dirtyIndex === -1;
+  }
+
   /**
    * @internal
    * Write the simulated pose back to the Entity.
    */
-  _writeBack(position: Vector3, rotation: Quaternion): void {
-    const actor = this._nativeActor!;
-    if (this._dirtyIndex !== -1) {
+  _writeBack(position: Vector3, rotation: Quaternion, poses: Float32Array, offset: number): void {
+    const dirty = this._dirtyIndex !== -1;
+    const sleeping = poses[offset + 7] !== 0;
+    if (!dirty && this._poseSynced && (this._isKinematic || sleeping)) return;
+
+    position.set(poses[offset], poses[offset + 1], poses[offset + 2]);
+    rotation.set(poses[offset + 3], poses[offset + 4], poses[offset + 5], poses[offset + 6]);
+    if (dirty) {
       // A listener authored our pose after simulation. Compare it with this step's result at the next sync.
-      actor.getWorldTransform(this._nativePosition, this._nativeRotation);
+      this._nativePosition.copyFrom(position);
+      this._nativeRotation.copyFrom(rotation);
       return;
     }
-    if (this._poseSynced && (this._isKinematic || actor.isSleeping())) return;
     this._poseSynced = this._isKinematic;
 
-    actor.getWorldTransform(position, rotation);
     const transform = this.entity.transform;
     const worldPosition = transform.worldPosition;
     const positionChanged = PhysicsUtils.differsF32(position, worldPosition);
@@ -981,14 +990,15 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const changed = positionChanged || rotationChanged;
     this._nativePosition.copyFrom(changed ? transform.worldPosition : worldPosition);
     this._nativeRotation.copyFrom(changed ? transform.worldRotationQuaternion : worldRotation);
-    // Poll sleep once the pose settles, including transforms that constrain the simulated pose.
+    // Mark the pose settled once the body sleeps, including transforms that constrain the simulated pose.
     if (
       !this._isKinematic &&
       (!changed ||
         PhysicsUtils.differsF32(position, this._nativePosition) ||
         PhysicsUtils.rotationDiffersF32(rotation, this._nativeRotation))
     ) {
-      this._poseSynced = actor.isSleeping();
+      // Joint scale changes during earlier Transform publication can wake an endpoint after capture.
+      this._poseSynced = sleeping && this._nativeActor!.isSleeping();
     }
   }
 
