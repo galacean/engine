@@ -11,6 +11,7 @@ import {
   type Entity,
   type Material,
   Matrix,
+  ForwardOpaqueOrder,
   MeshRenderer,
   MeshTopology,
   type ModelMesh,
@@ -586,6 +587,7 @@ export class SeedWorldForwardGrass {
       const renderer = entity.addComponent(MeshRenderer);
       renderer.mesh = ringMesh.mesh;
       renderer.setMaterial(material);
+      renderer._forwardOpaqueOrder = ForwardOpaqueOrder.Coverage;
       configureRenderer(renderer);
       renderer.enabled = false;
       const pickBatch = new SeedWorldArrayPickBatch(renderer);

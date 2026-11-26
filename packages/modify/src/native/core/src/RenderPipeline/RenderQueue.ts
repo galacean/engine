@@ -92,9 +92,11 @@ export class RenderQueue {
     pipelineStageTagValue: string,
     maskType: RenderQueueMaskType = RenderQueueMaskType.No,
     overrideRenderStates?: RenderStateElementMap | null,
-    filter?: (element: RenderElement) => boolean
+    filter?: (element: RenderElement) => boolean,
+    batchedElements = this.batchedElements,
+    forwardAlphaTestStart = 0,
+    forwardAlphaTestEnd = 0
   ): void {
-    const batchedElements = this.batchedElements;
     const length = batchedElements.length;
     if (length === 0) {
       return;
@@ -128,6 +130,8 @@ export class RenderQueue {
 
     for (let i = 0; i < length; i++) {
       const curElement = batchedElements[i];
+      const elementQueueType =
+        i < forwardAlphaTestEnd && i >= forwardAlphaTestStart ? RenderQueueType.AlphaTest : renderQueueType;
       if (filter && !filter(curElement)) {
         continue;
       }
@@ -182,7 +186,7 @@ export class RenderQueue {
         const renderState = shaderPass._renderState;
         if (!needMaskType) {
           const passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
-          if (passQueueType !== renderQueueType) {
+          if (passQueueType !== elementQueueType) {
             continue;
           }
         }
@@ -313,6 +317,19 @@ export class RenderQueue {
     if (!filter) {
       this.rendererUpdateFlag = ContextRendererUpdateFlag.None;
     }
+  }
+
+  renderForward(context: RenderContext, elements: RenderElement[], coverageStart = 0, coverageEnd = 0): void {
+    this.render(
+      context,
+      PipelineStage.Forward,
+      RenderQueueMaskType.No,
+      null,
+      undefined,
+      elements,
+      coverageStart,
+      coverageEnd
+    );
   }
 
   clear(): void {

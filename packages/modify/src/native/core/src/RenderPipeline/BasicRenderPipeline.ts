@@ -50,6 +50,7 @@ import {
   type RenderViewCullingSource,
   type RenderViewCullingSourceRegistration
 } from "./RenderViewCulling";
+import { ForwardOpaqueOrder } from "./enums/ForwardOpaqueOrder";
 import { PipelineStage } from "./enums/PipelineStage";
 
 /**
@@ -88,6 +89,9 @@ export interface CameraAuxiliaryRenderOptions {
 export class BasicRenderPipeline {
   /** @internal */
   _cullingResults: CullingResults;
+
+  /** @internal Keep the original order for non-color renders, such as world picking. */
+  _reorderForwardOpaque = true;
 
   private _camera: Camera;
   private _lastCanvasSize = new Vector2();
@@ -713,7 +717,7 @@ export class BasicRenderPipeline {
     mipLevel?: number
   ) {
     const cullingResults = this._cullingResults;
-    const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
+    const { transparentQueue } = cullingResults;
 
     const { engine, renderTarget: cameraRenderTarget } = camera;
     const scene = camera.scene!;
@@ -824,8 +828,7 @@ export class BasicRenderPipeline {
       maskManager.hasStencilWritten = false;
     }
 
-    opaqueQueue.render(context, PipelineStage.Forward);
-    alphaTestQueue.render(context, PipelineStage.Forward);
+    cullingResults.renderForward(context, this._reorderForwardOpaque && !context.replacementShader);
     if (finalClearFlags & CameraClearFlags.Color) {
       if (background.mode === BackgroundMode.Sky) {
         background.sky._render(context);
@@ -1077,6 +1080,14 @@ export class BasicRenderPipeline {
       const renderQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, shaderData);
       if (onlyShadowCaster && renderQueueType === RenderQueueType.Transparent) {
         continue;
+      }
+
+      if (
+        renderQueueType === RenderQueueType.AlphaTest &&
+        shaderPass._pipelineStage === PipelineStage.Forward &&
+        renderElement.component._forwardOpaqueOrder === ForwardOpaqueOrder.Coverage
+      ) {
+        cullingResults.hasForwardCoverage = true;
       }
 
       const flag = 1 << renderQueueType;
