@@ -77,6 +77,10 @@ python3 -m http.server 4180 --bind 127.0.0.1 --directory world/dist/seed-world-f
 
 统一使用 `world/scripts/publish-seed-world-flash-apps.mjs`（默认 `--dry-run`，需显式传 `--execute` 才会调用远端建表/上传/注册）。脚本通过 `FLASH_APP_CONTEXT_PATH` 为 6 个应用各自隔离上下文文件，不临时覆写共享 `app-context.local.json`。
 
+**PUGC 兼容性。** 当前 PUGC 默认分支只读取 `scripts/app-context.local.json`。如果 `PUBLISHER_ROOT` 指向该版本，Engine 脚本会拒绝 `--execute`，包括只选一个模板的情况。可继续构建，或用 `--dry-run --skip-online-check` 核对本地发布计划。执行发布需要 PUGC 的建表、发布和版本回写都遵循 `FLASH_APP_CONTEXT_PATH`。
+
+旧版 PUGC 的源码备份使用共享的临时文件名 `backup_<版本号>.tar.gz`。不同 Artifact 发布同一版本时可能互相覆盖备份。只有确认 PUGC 为每次发布分配了独立的临时备份目录，才可并发执行不同 Artifact 的发布。
+
 ```bash
 # 1. 先干跑核对 6 应用计划表（Artifact ID、目标版本、逐应用 type、是否需要首次建表）
 node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \

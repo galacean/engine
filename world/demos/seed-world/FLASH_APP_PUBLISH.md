@@ -166,7 +166,6 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 | `Publisher app-context.local.json artifactId ... does not match catalog "original"` | `--publisher-root` 指向了非 `flashapp-a3c0e021cb8cadb0` 的 PUGC checkout | 切回 `pugc-flash-app-2-seed-world`，或在明确知道原因时传 `--allow-context-mismatch` |
 | `Template "<id>" has no artifactId yet` | 尚未为其余 5 个模板首次申请 ID | 确认新建意图后加 `--init-missing --sync-catalog` 执行一次，之后提交更新后的 `flash-apps.json` |
 | `requires first-time world_save.sql DB table creation, which needs a 2099... alipayUid` | 本地状态或 PUGC 上下文未填写 `2099...` UID（或误填了 `2088...`） | 在 PUGC `app-context.local.json` 或对应 Artifact 的状态文件补全 `alipayUid` 后重试 |
-| `... does not support FLASH_APP_CONTEXT_PATH` | `$PUBLISHER_ROOT/scripts/app-context.cjs` 版本过旧，尚未支持环境变量覆盖上下文路径 | 更新 `pugc-flash-app-2/scripts/app-context.cjs` 支持 `process.env.FLASH_APP_CONTEXT_PATH` |
 | 构建警告 `Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json` | 新增或变更的资产（如 `oil-paint` SWB1 分包）尚未同步至 MDN CDN | 执行 `sync-flash-app-cdn-assets.py --apply` 并重编 `build:seed-world-flash-app`（收敛至 `pending upload: 0`），再重跑 `build:seed-world-flash-source` |
 | Step 5 报 `type 不匹配` | `--type` 与数据库已有记录不一致 | 对照 `versions_by_artifact` 实际登记类型显式传入 `--type`，复用已有入口重试登记 |
 | 源码备份超过 100 MiB | 源码目录新增未压缩制作源素材 | 检查 `build-seed-world-flash-source.mjs` 排除列表，在保留运行时 KTX2 派生物的前提下排除制作源图 |
