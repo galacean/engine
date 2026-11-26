@@ -203,7 +203,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       this._force = value;
       const nativeJoint = this._nativeJoint;
       if (nativeJoint) {
-        nativeJoint.setBreakForce(value);
+        nativeJoint.setBreakForce(value, this._torque);
         this._wakeBodies();
       }
     }
@@ -221,7 +221,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       this._torque = value;
       const nativeJoint = this._nativeJoint;
       if (nativeJoint) {
-        nativeJoint.setBreakTorque(value);
+        nativeJoint.setBreakForce(this._force, value);
         this._wakeBodies();
       }
     }
@@ -352,8 +352,9 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     nativeJoint.setConnectedInertiaScale(this._connectedBodyInfo.inertiaScale);
     nativeJoint.setMassScale(this._bodyInfo.massScale);
     nativeJoint.setInertiaScale(this._bodyInfo.inertiaScale);
-    nativeJoint.setBreakForce(this._force);
-    nativeJoint.setBreakTorque(this._torque);
+    // Preserve the force limit when the authored torque is rejected.
+    nativeJoint.setBreakForce(this._force, Infinity);
+    nativeJoint.setBreakForce(this._force, this._torque);
   }
 
   protected _wakeBodies(onlyIfSleeping = false): void {

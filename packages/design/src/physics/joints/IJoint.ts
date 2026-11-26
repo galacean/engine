@@ -46,14 +46,9 @@ export interface IJoint {
   setInertiaScale(value: number): void;
 
   /**
-   * The maximum force the joint can apply before breaking.
+   * Set the maximum force and torque the joint can apply before breaking.
    */
-  setBreakForce(value: number): void;
-
-  /**
-   * The maximum torque the joint can apply before breaking.
-   */
-  setBreakTorque(value: number): void;
+  setBreakForce(force: number, torque: number): void;
 
   /**
    * Destroy the joint.

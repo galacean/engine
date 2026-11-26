@@ -14,8 +14,6 @@ export class PhysXJoint implements IJoint {
   protected _connectedAnchor: Vector3;
   protected _rotation: Quaternion = new Quaternion();
   protected _actor: PhysXActor;
-  private _breakForce: number = Number.MAX_VALUE;
-  private _breakTorque: number = Number.MAX_VALUE;
 
   /**
    * {@inheritDoc IJoint.setConnectedActor }
@@ -78,17 +76,8 @@ export class PhysXJoint implements IJoint {
   /**
    * {@inheritDoc IJoint.setBreakForce }
    */
-  setBreakForce(value: number): void {
-    this._breakForce = value;
-    this._pxJoint.setBreakForce(this._breakForce, this._breakTorque);
-  }
-
-  /**
-   * {@inheritDoc IJoint.setBreakTorque }
-   */
-  setBreakTorque(value: number): void {
-    this._breakTorque = value;
-    this._pxJoint.setBreakForce(this._breakForce, this._breakTorque);
+  setBreakForce(force: number, torque: number): void {
+    this._pxJoint.setBreakForce(force, torque);
   }
 
   /**
