@@ -37,6 +37,7 @@ const worldWorkspacePackages = [
   "building",
   "environment",
   "farming",
+  "modify",
   "project",
   "retrieval",
   "runtime-editor",
@@ -53,6 +54,7 @@ const nativeEnginePackages = [
   "loader",
   "math",
   "physics-physx",
+  "rhi-null",
   "rhi-webgl",
   "shader",
   "shader-analyzer",
@@ -61,7 +63,7 @@ const nativeEnginePackages = [
   "ui"
 ];
 
-const excludedDirectoryNames = new Set([".acceptance", ".cache", "dist", "e2e", "node_modules", "tests"]);
+const excludedDirectoryNames = new Set([".acceptance", ".bootstrap", ".cache", "bundler", "dist", "e2e", "node_modules", "tests", "types"]);
 
 // Keep derived runtime KTX2 textures and provenance manifests; retain authoring PNGs and internal CDN upload helpers only in the authoring repo.
 const excludedFiles = new Set([
@@ -73,12 +75,19 @@ const excludedFiles = new Set([
   "packages/water/src/water/resources/ocean/textures/Caustics/Caustics_1.png",
   "packages/water/src/water/resources/ocean/textures/Foam/Foam1.png",
   "packages/water/src/water/resources/ocean/textures/IntersectionNoise.png",
+  "world/demos/seed-world/assets/terrain-surface/MicroNormal.png",
+  "world/demos/seed-world/assets/terrain-surface/RippleNormal.png",
   "world/scripts/deploy-seed-world-flash-app.mjs",
   "world/scripts/publish-seed-world-flash-apps.mjs",
   "world/scripts/seed-world-flash-registry.py",
   "world/scripts/set-flash-app-cdn-secret.sh",
   "world/scripts/sync-flash-app-cdn-assets.py"
 ]);
+
+// Offline authoring atlases whose runtime KTX2 textures live in packages/farming/src/farming/assets/plant-textures.
+const excludedPathPatterns = [
+  /^packages\/farming\/src\/farming\/catalog\/plants\/[^/]+\/procedural\/atlas\.png$/u
+];
 
 const requiredWaterResources = [
   "packages/water/src/water/resources/lake/assets/grasslands-water-normal-512.ktx2",
@@ -94,6 +103,7 @@ const excludedPrefixes = [
   "packages/farming/src/farming/assets/prop-textures/source",
   "packages/vegetation/src/asset-assembly/source",
   "packages/vegetation/src/asset-assembly/offline",
+  "packages/vegetation/src/asset-assembly/generated/procedural-trees/measured-white-birch",
   "packages/water/src/water/resources/river/assets/drops",
   "world/demos",
   "world/migration",
@@ -132,9 +142,11 @@ for (const name of rootWorkspaceFiles) {
 for (const entry of worldRootEntries) {
   copyRepoPath(`world/${entry}`);
 }
-for (const pkg of worldWorkspacePackages) {
+for (const pkg of [...worldWorkspacePackages, ...nativeEnginePackages]) {
   copyRepoPath(`packages/${pkg}`);
 }
+copyPreparedEngineArtifacts();
+prepareSnapshotWorkspaceManifests();
 verifySnapshotWaterResources();
 
 const gitMeta = readGitMetadata();
@@ -143,8 +155,8 @@ const runtimeIndexPath = resolve(runtimeBuildDirectory, "index.html");
 writeFileSync(resolve(outputDirectory, "REBUILD.md"), createRebuildGuide(gitMeta, flashAppsCatalog));
 const preManifestInspection = inspectDirectory(outputDirectory);
 const snapshotManifest = {
-  schemaVersion: 3,
-  purpose: "Seed World Flash App shared source snapshot (all 6 templates)",
+  schemaVersion: 4,
+  purpose: "Seed World Flash App self-contained source snapshot (all 6 templates, standalone npm ci && npm run build)",
   baseCommit: gitMeta.headCommit,
   baseBranch: gitMeta.branch,
   nativeEngineBaseline: readNativeEngineBaseline(),
@@ -161,6 +173,7 @@ const snapshotManifest = {
   sourceBytesBeforeManifest: preManifestInspection.totalBytes,
   maximumCompressedBytes: maximumArchiveBytes,
   worldWorkspacePackages,
+  nativeEnginePackages,
   excludedDirectoryNames: [...excludedDirectoryNames].sort(),
   excludedFiles: [...excludedFiles].sort(),
   excludedPrefixes,
@@ -200,9 +213,98 @@ function shouldIncludeSourcePath(sourcePath) {
   if (!relativePath) return true;
   if (relativePath.split("/").some((segment) => excludedDirectoryNames.has(segment))) return false;
   if (excludedFiles.has(relativePath)) return false;
+  if (excludedPathPatterns.some((pattern) => pattern.test(relativePath))) return false;
   if (isSelectedPathOrAncestor(relativePath)) return true;
   if (excludedPrefixes.some((prefix) => isPathWithin(relativePath, prefix))) return false;
   return true;
+}
+
+function copyPreparedEngineArtifacts() {
+  const shaderCache = resolve(repoRoot, "packages/modify/.cache");
+  if (!existsSync(resolve(shaderCache, "shaders.ts"))) {
+    throw new Error("Seed World source snapshot requires `npm run prepare:engine --workspace world`");
+  }
+  cpSync(shaderCache, resolve(outputDirectory, "packages/modify/.cache"), {
+    recursive: true,
+    verbatimSymlinks: true
+  });
+
+  const requiredPreparedDistFiles = [
+    "packages/core/dist/main.js",
+    "packages/design/dist/main.js",
+    "packages/math/dist/main.js",
+    "packages/shader-compiler/dist/module.js",
+    "packages/shader-compiler/dist/precompile.main.js",
+    "packages/shader-parser/dist/main.js",
+    "packages/shader-parser/dist/main.analyzer.js",
+    "packages/shader-parser/dist/module.js",
+    "packages/shader-parser/dist/shared/GLESShaderInfo.main.js",
+    "packages/shader-parser/dist/shared/GLESShaderInfo.module.js"
+  ];
+  for (const relativeFile of requiredPreparedDistFiles) {
+    const sourceFile = resolve(repoRoot, relativeFile);
+    if (!existsSync(sourceFile)) {
+      throw new Error(`Seed World source snapshot requires \`npm run b:module\` (missing ${relativeFile})`);
+    }
+    const targetFile = resolve(outputDirectory, relativeFile);
+    mkdirSync(dirname(targetFile), { recursive: true });
+    cpSync(sourceFile, targetFile);
+  }
+}
+
+function prepareSnapshotWorkspaceManifests() {
+  const includedPackages = new Set([...worldWorkspacePackages, ...nativeEnginePackages]);
+  const rootPkgPath = resolve(outputDirectory, "package.json");
+  const rootPkg = JSON.parse(readFileSync(rootPkgPath, "utf8"));
+  rootPkg.workspaces = ["packages/*", "world"];
+  rootPkg.scripts = {
+    ...(rootPkg.scripts || {}),
+    build: "node world/scripts/build-seed-world-flash-app.mjs --root-dist"
+  };
+  delete rootPkg.scripts.prepare;
+  if (rootPkg.devDependencies?.electron) {
+    delete rootPkg.devDependencies.electron;
+  }
+  writeFileSync(rootPkgPath, `${JSON.stringify(rootPkg, null, 2)}\n`);
+
+  const lockPath = resolve(outputDirectory, "package-lock.json");
+  const lock = JSON.parse(readFileSync(lockPath, "utf8"));
+  if (lock?.packages && typeof lock.packages === "object") {
+    const removedWorkspaces = new Set();
+    for (const key of Object.keys(lock.packages)) {
+      if (!key || key === "world" || key.startsWith("node_modules/")) continue;
+      if (key.startsWith("packages/")) {
+        const pkgDir = key.slice("packages/".length);
+        if (!pkgDir.includes("/") && !includedPackages.has(pkgDir)) {
+          removedWorkspaces.add(key);
+        }
+        continue;
+      }
+      if (!key.includes("/")) {
+        removedWorkspaces.add(key);
+      }
+    }
+    const isUnderRemovedWorkspace = (key) => {
+      for (const ws of removedWorkspaces) {
+        if (key === ws || key.startsWith(`${ws}/`)) return true;
+      }
+      return false;
+    };
+    for (const key of Object.keys(lock.packages)) {
+      const entry = lock.packages[key];
+      if (isUnderRemovedWorkspace(key) || (entry?.link && removedWorkspaces.has(entry.resolved))) {
+        delete lock.packages[key];
+      }
+    }
+    if (lock.packages[""]?.workspaces) {
+      lock.packages[""].workspaces = ["packages/*", "world"];
+    }
+    if (lock.packages[""]?.devDependencies?.electron) {
+      delete lock.packages[""].devDependencies.electron;
+    }
+    delete lock.packages["node_modules/electron"];
+  }
+  writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
 }
 
 function isSelectedPathOrAncestor(relativePath) {
@@ -242,27 +344,7 @@ function verifySnapshotWaterResources() {
 
 function verifySnapshotBuild() {
   const viteBin = resolve(dirname(vitePackagePath), "bin/vite.js");
-  if (!existsSync(resolve(repoRoot, "packages/shader/compiledShaders/index.ts"))) {
-    throw new Error("Seed World source verification requires `pnpm --dir world prepare:engine`");
-  }
-
   const temporaryEntries = [];
-  const copyNativePackage = (pkg) => {
-    const source = resolve(repoRoot, "packages", pkg);
-    const target = resolve(outputDirectory, "packages", pkg);
-    if (!existsSync(source) || existsSync(target)) return;
-    cpSync(source, target, {
-      recursive: true,
-      verbatimSymlinks: true,
-      filter: (itemPath) => {
-        const rel = normalizePath(relative(source, itemPath));
-        if (!rel) return true;
-        const segments = rel.split("/");
-        return !segments.includes("node_modules") && !segments.includes("tests");
-      }
-    });
-    temporaryEntries.push(target);
-  };
   const mirrorNodeModules = (sourceDir, targetDir, recordRoot = true) => {
     if (!existsSync(sourceDir)) return;
     mkdirSync(targetDir, { recursive: true });
@@ -287,9 +369,6 @@ function verifySnapshotBuild() {
   };
 
   try {
-    for (const pkg of nativeEnginePackages) {
-      copyNativePackage(pkg);
-    }
     mirrorNodeModules(resolve(repoRoot, "node_modules"), resolve(outputDirectory, "node_modules"));
     mirrorNodeModules(resolve(worldDirectory, "node_modules"), resolve(outputDirectory, "world/node_modules"));
     for (const pkg of [...worldWorkspacePackages, ...nativeEnginePackages]) {
@@ -418,22 +497,24 @@ function createRebuildGuide(gitMeta, flashAppsCatalog) {
   const appLines = flashAppsCatalog.apps
     .map((app) => `- \`${app.templateId}\` -> \`world/dist/seed-world-flash-apps/${app.templateId}\` (${app.title})`)
     .join("\n");
-  return `# Seed World Flash App shared source snapshot
+  return `# Seed World Flash App self-contained source snapshot
 
-This shared snapshot contains the World workspace packages and Seed World source/assets needed to rebuild the common Flash App runtime and all ${flashAppsCatalog.apps.length} per-template Flash App packages.
-It intentionally excludes \`node_modules\`, tests, unrelated demos, Grasslands precomputed data, and authoring-only source artwork whose runtime KTX2 derivatives are already included.
+This self-contained snapshot contains all World and native Engine workspace packages, precompiled shader cache (\`packages/modify/.cache\`), and Seed World assets needed to rebuild directly without an external repo checkout.
+It intentionally excludes \`node_modules\`, tests, unrelated demos, Grasslands precomputed data, and offline-only source artwork whose runtime KTX2 derivatives are already included.
 
-To rebuild, create a dedicated Git worktree at commit \`${gitMeta.headCommit}\` and copy this snapshot's root workspace files, \`packages/\`, and \`world/\` into it, preserving paths.
-Run the following command from the worktree with Node.js >= 20.19 and npm 10.9.3. It restores the npm workspace manifests and installs from the snapshot's package-lock.json.
+To rebuild directly from this extracted snapshot (Node.js >= 20.19, npm 10.9.3):
 
 \`\`\`bash
-node world/scripts/build-seed-world-npm.mjs
+npm ci --no-audit --no-fund
+npm run build
 \`\`\`
 
+Optional: set \`WORLD_FLASH_APP_TEMPLATE=<templateId>\` before \`npm run build\` to copy a specific template variant into root \`dist/\` (defaults to \`original\`).
+
 Outputs:
+- Root runnable app: \`dist/\`
 - Shared runtime base: \`world/dist/seed-world-flash-app\`
-- Per-template Flash App runtime packages (shared runtime + template default meta/title):
+- Per-template Flash App runtime packages:
 ${appLines}
-- Shared publishable source snapshot: \`world/dist/seed-world-flash-source\`
 `;
 }

@@ -78,10 +78,11 @@ npm run build:seed-world-flash-source --workspace world
 ```
 
 构建脚本（`world/scripts/build-seed-world-flash-source.mjs`）会：
-1. 复制 npm workspace 配置与锁文件、`world/`（仅保留 `demos/seed-world`（含 `flash-apps.json`）与构建脚本，排除内部上传/编排脚本）及 13 个 World workspace 包；
-2. 写入包含全 6 模板派生说明的 `REBUILD.md` 与 `SOURCE_SNAPSHOT.json`（`schemaVersion: 3`）；
-3. 对当前仓库与源码快照各执行一次未压缩的闪应用 Vite 构建，逐文件比对文件集合与 SHA-256；
-4. 生成 `world/dist/seed-world-flash-source.tar.gz` 校验压缩体积 ≤ **100 MiB**。
+1. 复制 npm workspace 配置与锁文件（重写根 `package.json` 的 `workspaces` 与 `build` 脚本并移除 `prepare` / `electron`，裁剪锁文件中未打包的 workspace）、`world/`（仅保留 `demos/seed-world`（含 `flash-apps.json`）与构建脚本，排除内部上传/编排脚本）、13 个 World workspace 包、13 个原生 Engine workspace 包，以及已预编译的 `packages/modify/.cache` 与 `shader-compiler` / `shader-parser` 等构建期最小编译件；
+2. 排除仅离线制作期使用且运行期无需或已有 KTX2 派生物的素材（如 `farming/catalog/plants/*/procedural/atlas.png`、`measured-white-birch` 与未引用法线 PNG）；
+3. 写入支持独立解压后直接执行 `npm ci && npm run build`（产出根 `dist/`，支持 `WORLD_FLASH_APP_TEMPLATE=<templateId>`）的 `REBUILD.md` 与 `SOURCE_SNAPSHOT.json`（`schemaVersion: 4`）；
+4. 对当前仓库与源码快照各执行一次未压缩的闪应用 Vite 构建，逐文件比对文件集合与 SHA-256；
+5. 生成 `world/dist/seed-world-flash-source.tar.gz` 校验压缩体积 ≤ **100 MiB**。
 
 ## 4. 本地静态冒烟验证（可选）
 

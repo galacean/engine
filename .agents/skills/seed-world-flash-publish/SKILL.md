@@ -50,7 +50,7 @@ node world/scripts/build-seed-world-npm.mjs
 
 - `world/dist/seed-world-flash-app`：共享公共运行基座（根部含 `index.html`，校验相对路径、classic Worker（含 `OilPaintBrush`）、资源清单与 PUGC 扩展名）。
 - `world/dist/seed-world-flash-apps/<templateId>`：6 个独立模板运行目录（`original`、`sakura-pearl`、`emerald-forest`、`low-poly`、`titan-wasteland`、`oil-paint`），逐一校验默认模板 `<meta>`、`<title>` 与文件集一致性。
-- `world/dist/seed-world-flash-source`：6 应用共用的可重建源码快照（附带 npm 锁文件、`REBUILD.md`、`SOURCE_SNAPSHOT.json`，校验双次未压缩构建逐文件 SHA-256 一致且归档 ≤ 100 MiB）。
+- `world/dist/seed-world-flash-source`：6 应用共用的自包含可重建源码快照（含全部 World + 原生 Engine workspace、`packages/modify/.cache`、最小构建期编译件、裁剪后的 npm 锁文件、`REBUILD.md` 与 `SOURCE_SNAPSHOT.json`，解压后可直接 `npm ci && npm run build` 产出根 `dist/`，校验双次未压缩构建逐文件 SHA-256 一致且归档 ≤ 100 MiB）。
 
 若需增量同步 CDN（含新增的 `oil-paint` SWB1 分包或变更资源），在发布工作树内执行：
 

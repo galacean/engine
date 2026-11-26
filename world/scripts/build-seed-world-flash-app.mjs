@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { dirname, extname, resolve, sep } from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -67,6 +67,20 @@ console.log(
   `Derived ${derivedVariants.length} per-template Flash Apps under ${variantsRootDirectory}: ` +
     derivedVariants.map((v) => `${v.templateId} (${v.fileCount} files, ${formatBytes(v.totalBytes)})`).join(", ")
 );
+
+if (process.argv.includes("--root-dist")) {
+  const targetTemplate = (process.env.WORLD_FLASH_APP_TEMPLATE || "original").trim();
+  const matched = derivedVariants.find((v) => v.templateId === targetTemplate);
+  if (!matched) {
+    throw new Error(
+      `Unknown WORLD_FLASH_APP_TEMPLATE "${targetTemplate}". Valid templates: ${derivedVariants.map((v) => v.templateId).join(", ")}`
+    );
+  }
+  const rootDistDirectory = resolve(repoRoot, "dist");
+  rmSync(rootDistDirectory, { recursive: true, force: true });
+  cpSync(matched.dir, rootDistDirectory, { recursive: true });
+  console.log(`Copied "${matched.templateId}" Flash App to ${rootDistDirectory}`);
+}
 
 function ensurePreparedEngine() {
   const shaderEntry = resolve(repoRoot, "packages/shader/compiledShaders/index.ts");
