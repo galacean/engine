@@ -1,0 +1,36 @@
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_0f777c1d9c2fdd::t_7712581de18ff4 81,83,150
+world/scripts/build-seed-world-flash-app.mjs
+  s_0f777c1d9c2fdd::t_839eaa81c942d9 8,42-50,80-81
+world/tests/seed-world/SeedWorldFlashApps.spec.ts
+  s_0f777c1d9c2fdd::t_e3cf77ae1bf6bc 27-32,43-59,67-83,93,97-107,110-127,144-147,162,172-173,175,195-201,214-221,225-226,234-245
+world/scripts/seed-world-flash-source-layout.mjs
+  s_0f777c1d9c2fdd::t_d90e42ba6df8a6 7,15-18,33-34,59
+  s_0f777c1d9c2fdd::t_02da8ad5132af1 1-6,8-14,19-32,35-58,60-62
+world/scripts/build-seed-world-flash-source.mjs
+  s_0f777c1d9c2fdd::t_839eaa81c942d9 20,149,159,340,471,481
+world/scripts/deploy-seed-world-flash-app.mjs
+  s_0f777c1d9c2fdd::t_839eaa81c942d9 6,57
+  s_0f777c1d9c2fdd::t_2c87a158601488 27-32,58
+.agents/skills/seed-world-flash-publish/SKILL.md
+  s_0f777c1d9c2fdd::t_7712581de18ff4 53,114
+world/scripts/publish-seed-world-flash-apps.mjs
+  s_0f777c1d9c2fdd::t_d90e42ba6df8a6 43
+  s_0f777c1d9c2fdd::t_f805861ed7fa67 33,41-42,44-85,591,682
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2290f91048b04887179654459649e394e6ba9ac8",
+  "prompts": {},
+  "sessions": {
+    "s_0f777c1d9c2fdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21602-e042-7613-91c0-4ebb1a28dbd5",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}
