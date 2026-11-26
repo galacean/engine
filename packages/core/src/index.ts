@@ -13,7 +13,6 @@ export { Component } from "./Component";
 export { Script } from "./Script";
 export { Signal } from "./Signal";
 export { Renderer, RendererUpdateFlags } from "./Renderer";
-export { ForwardOpaqueOrder } from "./RenderPipeline/enums/ForwardOpaqueOrder";
 export { dependentComponents, DependentMode } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform, TransformModifyFlags } from "./Transform";

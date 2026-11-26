@@ -1,12 +1,9 @@
-import { BoundingBox, ForwardOpaqueOrder, MeshRenderer, RendererUpdateFlags, ShaderProperty } from "@galacean/engine";
+import { BoundingBox, MeshRenderer, RendererUpdateFlags, ShaderProperty } from "@galacean/engine";
 
 /** Clipmap segment renderer containing only segment-specific shader state. */
 export class TerrainRenderer extends MeshRenderer {
   private static readonly _lod = ShaderProperty.getByName("renderer_Lod");
   private static readonly _clipmapMeshSize = ShaderProperty.getByName("renderer_ClipmapMeshSize");
-
-  /** @internal */
-  override _forwardOpaqueOrder = ForwardOpaqueOrder.Background;
 
   private _localMinY: number | undefined;
   private _localMaxY: number | undefined;

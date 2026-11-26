@@ -6,7 +6,6 @@ import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
-import { ForwardOpaqueOrder } from "./RenderPipeline/enums/ForwardOpaqueOrder";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { ignoreClone } from "./clone/CloneDecorators";
 import type { ICloneHook } from "./clone/ICloneHook";
@@ -51,8 +50,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   /** @internal */
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
-  /** @internal */
-  _forwardOpaqueOrder = ForwardOpaqueOrder.Default;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;

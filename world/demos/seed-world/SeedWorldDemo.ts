@@ -35,6 +35,7 @@ import {
 } from "@galacean/engine-world-planning/masonry/NativeBuildingHost";
 import type { mountNativeBuildingPanel } from "@galacean/engine-world-planning/masonry/NativeBuildingPanel";
 import type { MobileSeedTickHost } from "./src/MobileFrameCapture.ts";
+import { installSeedWorldGrassDrawOrder } from "./src/SeedWorldGrassDrawOrder";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
@@ -561,6 +562,7 @@ export async function mountSeedWorldDemo(
   };
   let disconnectEditorAssets: (() => void) | undefined;
   let restoreLodCrossFade: (() => void) | undefined;
+  let restoreGrassDrawOrder: (() => void) | undefined;
   // Consumers must release overlays and subscriptions while their world still exists.
   // Advance only after success, so a release retry cannot destroy an earlier owner twice.
   const runtimeReleaseSteps: readonly [string, () => unknown][] = [
@@ -580,6 +582,8 @@ export async function mountSeedWorldDemo(
         runtimeDebug?.destroy();
         unregisterFarmingActivation?.();
         nativeWaterHost?.dispose();
+        restoreGrassDrawOrder?.();
+        restoreGrassDrawOrder = undefined;
         restoreLodCrossFade?.();
         restoreLodCrossFade = undefined;
       }
@@ -1205,6 +1209,7 @@ export async function mountSeedWorldDemo(
     ]);
     source.session.setFarmingStatePathReader(() => planningFarmingProjectStatePath(runtimeProject!));
     const camera = requiredComponent(scene!.rootEntities, Camera, "Camera");
+    restoreGrassDrawOrder = installSeedWorldGrassDrawOrder(camera, readWorld);
     // Keep the main world camera disabled while the opaque Loading Orb owns the viewport;
     // startup IBL/cloud warmup advances offscreen without rendering the full 3D world behind the orb.
     camera.enabled = false;

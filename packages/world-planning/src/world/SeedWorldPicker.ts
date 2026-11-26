@@ -644,8 +644,6 @@ export class SeedWorldPicker {
     const capturedProjection = camera.projectionMatrix.clone();
     const capturedViewport = camera.viewport.clone();
     const customProjection = (camera as unknown as { _isCustomProjectionMatrix: boolean })._isCustomProjectionMatrix;
-    const pipeline = camera._renderPipeline;
-    const reorderForwardOpaque = pipeline._reorderForwardOpaque;
     const hdr = camera.enableHDR,
       post = camera.enablePostProcess,
       aa = camera.antiAliasing;
@@ -668,7 +666,6 @@ export class SeedWorldPicker {
       }
       camera.renderTarget = this.target!;
       camera.clearFlags = CameraClearFlags.All;
-      pipeline._reorderForwardOpaque = false;
       camera.enableHDR = camera.enablePostProcess = camera.opaqueTextureEnabled = false;
       camera.antiAliasing = AntiAliasing.None;
       camera.depthTextureMode = DepthTextureMode.None;
@@ -721,7 +718,6 @@ export class SeedWorldPicker {
         this.materials[i] = undefined;
       }
       camera.renderTarget = target;
-      pipeline._reorderForwardOpaque = reorderForwardOpaque;
       if (capturedViewport) camera.viewport.copyFrom(capturedViewport);
       if (capturedProjection) {
         camera.projectionMatrix = capturedProjection;
