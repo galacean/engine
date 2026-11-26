@@ -10,6 +10,7 @@ import {
   IPhysicsScene,
   ISpringJoint,
   ITriggerEvent,
+  PhysicsBodyPoses,
   PhysicsEventState
 } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
@@ -98,7 +99,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     read(): number;
     delete(): void;
   } | null = null;
-  private readonly _bodyPoses: { readonly values: Float32Array; offset: number };
+  private readonly _bodyPoses: PhysicsBodyPoses;
   private _physXSimulationCallbackInstance: any;
 
   private _contactFloatOffset = 0;
@@ -269,19 +270,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     scene.simulate(elapsedTime, true);
     scene.fetchResults(true);
     this._flushReplacedContactExits();
-  }
-
-  /** @internal */
-  setBodyPoseActor(index: number, actor: IDynamicActor | null): void {
-    const poses = (this._pxBodyPoses ??= new this._physXPhysics._physX.SceneBodyPoses())!;
-    poses.setActor(index, (actor as PhysXActor | null)?._pxActor ?? null);
-  }
-
-  /** @internal */
-  readBodyPoses(): ReturnType<IPhysicsScene["readBodyPoses"]> {
-    const poses = this._bodyPoses;
-    poses.offset = this._pxBodyPoses!.read() >>> 2;
-    return poses;
   }
 
   /**
@@ -484,6 +472,19 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxScene.release();
   }
 
+  /** @internal */
+  _setBodyPoseActor(index: number, actor: IDynamicActor | null): void {
+    const poses = (this._pxBodyPoses ??= new this._physXPhysics._physX.SceneBodyPoses())!;
+    poses.setActor(index, (actor as PhysXActor | null)?._pxActor ?? null);
+  }
+
+  /** @internal */
+  _readBodyPoses(): Readonly<PhysicsBodyPoses> {
+    const poses = this._bodyPoses;
+    poses.offset = this._pxBodyPoses!.read() >>> 2;
+    return poses;
+  }
+
   /**
    * @internal
    */
@@ -583,7 +584,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       const first = changes.get(event.shape0Id);
       const second = changes.get(event.shape1Id);
       if (first === ShapeChange.Removed || second === ShapeChange.Removed) {
-        event.receiver0 = event.receiver1 = undefined;
+        event._receiver0 = event._receiver1 = undefined;
         this._retireTrigger(event);
         continue;
       } else if (first !== undefined || second !== undefined) {
@@ -713,11 +714,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
  */
 class TriggerEvent implements ITriggerEvent {
   state: PhysicsEventState;
-  receiver0?: unknown;
-  receiver1?: unknown;
+  /** @internal */
+  _receiver0?: unknown;
+  /** @internal */
+  _receiver1?: unknown;
   _activeIndex: number;
   _queued = false;
-  /** @internal */
   _pendingState: PhysicsEventState;
 
   constructor(
@@ -731,7 +733,6 @@ class ContactEvent implements IContactEvent {
   shape0Id: number;
   shape1Id: number;
   contactCount = 0;
-  /** @internal */
   _floatOffset = 0;
   private readonly _scene: PhysXPhysicsScene;
 

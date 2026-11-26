@@ -272,6 +272,11 @@ export class Script extends Component {
     }
   }
 
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this.onDestroy();
+  }
+
   private _syncTriggerSubscription(): void {
     const { prototype } = Script;
     const previous =
@@ -287,14 +292,6 @@ export class Script extends Component {
     if (previous) physics._addTriggerEventConsumer(previous === PhysicsEventSubscription.TriggerStay, -1);
     if (next) physics._addTriggerEventConsumer(stay, 1);
     this._physicsEventSubscriptions = (this._physicsEventSubscriptions & PhysicsEventSubscription.Contact) | next;
-  }
-
-  /**
-   * @internal
-   */
-  protected override _onDestroy(): void {
-    super._onDestroy();
-    this.onDestroy();
   }
 }
 

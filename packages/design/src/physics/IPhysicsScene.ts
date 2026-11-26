@@ -5,14 +5,6 @@ import { IPhysicsActor } from "./IPhysicsActor";
 import { IPhysicsEvents } from "./IPhysicsEvents";
 import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
 
-/** @internal Positions, rotations and sleep flags in eight Float32 lanes per Rigidbody. */
-interface IPhysicsBodyPoses {
-  /** Current memory, which may change on WASM growth during writeback. */
-  readonly values: Float32Array;
-  /** Float32 offset. Valid until the next capture or scene destruction. */
-  readonly offset: number;
-}
-
 /**
  * A native simulation scene with joints, scene queries, and buffered events.
  * @remarks
@@ -73,12 +65,6 @@ export interface IPhysicsScene {
    * @param elapsedTime - The step duration in seconds
    */
   update(elapsedTime: number): void;
-
-  /** @internal Set or append a writeback slot. Passing null removes the last slot. */
-  setBodyPoseActor(index: number, actor: IDynamicActor | null): void;
-
-  /** @internal Capture the completed step's poses by writeback slot. */
-  readBodyPoses(): IPhysicsBodyPoses;
 
   /**
    * Enable contact event delivery.
@@ -232,4 +218,18 @@ export interface IPhysicsScene {
    * Destroy the physics scene.
    */
   destroy(): void;
+
+  /** @internal Set or append a writeback slot. Passing null removes the last slot. */
+  _setBodyPoseActor(index: number, actor: IDynamicActor | null): void;
+
+  /** @internal Capture the completed step's poses by writeback slot. */
+  _readBodyPoses(): Readonly<PhysicsBodyPoses>;
+}
+
+/** @internal Positions, rotations and sleep flags in eight Float32 lanes per Rigidbody. */
+export interface PhysicsBodyPoses {
+  /** Current memory, which may change on WASM growth during writeback. */
+  readonly values: Float32Array;
+  /** Float32 offset. Valid until the next capture or scene destruction. */
+  offset: number;
 }

@@ -16,7 +16,7 @@ import {
   Transform
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
-import { type IPhysicsScene } from "@galacean/engine-design";
+import { type IPhysicsScene, type ITriggerEvent } from "@galacean/engine-design";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, beforeEach, afterAll, expect, it, afterEach } from "vitest";
 
@@ -2958,7 +2958,7 @@ describe("Physics Test", () => {
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(enters).toHaveLength(2);
       const native = physicsScene._nativePhysicsScene as unknown as {
-        _triggerEventPool: Array<{ receiver0?: unknown; receiver1?: unknown }>;
+        _triggerEventPool: ITriggerEvent[];
       };
       const receiverPool = native._triggerEventPool;
 
@@ -2973,8 +2973,8 @@ describe("Physics Test", () => {
       expect(exits).toHaveLength(0);
       expect(stays).toEqual([persistent]);
       expect(receiverPool).toHaveLength(1);
-      expect(receiverPool[0].receiver0).toBeUndefined();
-      expect(receiverPool[0].receiver1).toBeUndefined();
+      expect(receiverPool[0]._receiver0).toBeUndefined();
+      expect(receiverPool[0]._receiver1).toBeUndefined();
 
       // Re-enabling must emit a fresh Enter using the retired pair slot.
       enters.length = 0;
@@ -2988,7 +2988,9 @@ describe("Physics Test", () => {
       transient.enabled = false;
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(receiverPool).toHaveLength(2);
-      expect(receiverPool.every((entry) => entry.receiver0 === undefined && entry.receiver1 === undefined)).toBe(true);
+      expect(receiverPool.every((entry) => entry._receiver0 === undefined && entry._receiver1 === undefined)).toBe(
+        true
+      );
 
       enginePhysX.resourceManager.gc();
       expect(dispatchPool).toHaveLength(0);

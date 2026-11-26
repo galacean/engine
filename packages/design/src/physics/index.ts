@@ -3,7 +3,7 @@ export type { IPhysicsActor } from "./IPhysicsActor";
 export type { IDynamicActor } from "./IDynamicActor";
 export type { IPhysics } from "./IPhysics";
 export type { IPhysicsMaterial, IPhysicsMaterialProperties } from "./IPhysicsMaterial";
-export type { IPhysicsScene } from "./IPhysicsScene";
+export type { IPhysicsScene, PhysicsBodyPoses } from "./IPhysicsScene";
 export type { IStaticActor } from "./IStaticActor";
 export type { ICollision, IContactPoint } from "./ICollision";
 export type { IContactEvent, ITriggerEvent, IPhysicsEvents } from "./IPhysicsEvents";

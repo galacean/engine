@@ -793,7 +793,7 @@ export class PhysicsScene {
       if (first < count) {
         const position = PhysicsScene._tempPosition;
         const rotation = PhysicsScene._tempRotation;
-        const poses = nativePhysicsScene.readBodyPoses();
+        const poses = nativePhysicsScene._readBodyPoses();
         const offset = poses.offset;
         for (let j = first; j < count; j++) {
           bodies[j]._writeBack(position, rotation, poses.values, offset + j * 8);
@@ -854,7 +854,7 @@ export class PhysicsScene {
     this._nativePhysicsScene.addActor(actor);
     const bodies = this._bodies;
     body._index = bodies.length;
-    this._nativePhysicsScene.setBodyPoseActor(body._index, actor);
+    this._nativePhysicsScene._setBodyPoseActor(body._index, actor);
     bodies.push(body);
     if (body.entity._children.length > 0) {
       this._bodyOrderDirty = true;
@@ -882,10 +882,10 @@ export class PhysicsScene {
     if (last !== body) {
       bodies[body._index] = last;
       last._index = body._index;
-      this._nativePhysicsScene.setBodyPoseActor(last._index, last._getNativeActor());
+      this._nativePhysicsScene._setBodyPoseActor(last._index, last._getNativeActor());
       this._checkBodyOrder(last);
     }
-    this._nativePhysicsScene.setBodyPoseActor(bodies.length, null);
+    this._nativePhysicsScene._setBodyPoseActor(bodies.length, null);
     body._index = -1;
     this._nativePhysicsScene.removeActor(body._getNativeActor());
   }
@@ -981,8 +981,8 @@ export class PhysicsScene {
           bodies[index] = body;
           body._index = index;
           ancestor._index = i;
-          this._nativePhysicsScene.setBodyPoseActor(index, body._getNativeActor());
-          this._nativePhysicsScene.setBodyPoseActor(i, ancestor._getNativeActor());
+          this._nativePhysicsScene._setBodyPoseActor(index, body._getNativeActor());
+          this._nativePhysicsScene._setBodyPoseActor(i, ancestor._getNativeActor());
           body = ancestor;
         }
       }
@@ -1029,11 +1029,11 @@ export class PhysicsScene {
       const current0 = receivers ? receivers[base + 1] : (collider0._attachedBody ?? collider0);
       const current1 = receivers ? receivers[base + 3] : (collider1._attachedBody ?? collider1);
       const state = event.state;
-      const previous0 = event.receiver0 as Rigidbody | Collider | undefined;
-      const previous1 = event.receiver1 as Rigidbody | Collider | undefined;
-      event.receiver0 = state === PhysicsEventState.Exit ? undefined : current0;
-      event.receiver1 = state === PhysicsEventState.Exit ? undefined : current1;
-      if (receivers && this._triggerEventConsumerCount > 0) {
+      const previous0 = event._receiver0 as Rigidbody | Collider | undefined;
+      const previous1 = event._receiver1 as Rigidbody | Collider | undefined;
+      event._receiver0 = state === PhysicsEventState.Exit ? undefined : current0;
+      event._receiver1 = state === PhysicsEventState.Exit ? undefined : current1;
+      if (this._triggerEventConsumerCount > 0) {
         PhysicsScene._dispatchTrigger(state, receiveStay, current0, previous0, collider0, collider1);
         PhysicsScene._dispatchTrigger(state, receiveStay, current1, previous1, collider1, collider0);
       }
