@@ -8,7 +8,7 @@ import { Layer, Vector3, type Camera, type Engine, type Entity, type MeshRendere
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
-} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+} from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import { hashRiverStableValue, hashStableValue } from "@galacean/engine-water/water/compiler/index";
 import {
   createRiverWaterBodyInstance,

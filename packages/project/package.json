@@ -39,7 +39,15 @@
     "./runtime-editor/scene/runtime-project-compiler": "./src/runtime-editor/scene/runtime-project-compiler.ts",
     "./runtime-editor/scene/runtime-source-components": "./src/runtime-editor/scene/runtime-source-components.ts",
     "./runtime-editor/scripts/runtime-script-inputs": "./src/runtime-editor/scripts/runtime-script-inputs.ts",
-    "./runtime-editor/project/runtime-asset-read": "./src/runtime-editor/project/runtime-asset-read.ts"
+    "./runtime-editor/project/runtime-asset-read": "./src/runtime-editor/project/runtime-asset-read.ts",
+    "./geometry/destroyOwnedMesh": "./src/geometry/destroyOwnedMesh.ts",
+    "./rendering/CameraDepthTexturePrePass": "./src/rendering/CameraDepthTexturePrePass.ts",
+    "./rendering/FarShadowCascadeProxy": "./src/rendering/FarShadowCascadeProxy.ts",
+    "./rendering/LiquidGlassPostProcessPass": "./src/rendering/LiquidGlassPostProcessPass.ts",
+    "./rendering/RestorableResources": "./src/rendering/RestorableResources.ts",
+    "./rendering/SeedWorldPickBatch": "./src/rendering/SeedWorldPickBatch.ts",
+    "./rendering/V2ViewGeometry": "./src/rendering/V2ViewGeometry.ts",
+    "./rendering/runtime-pick-source": "./src/rendering/runtime-pick-source.ts"
   },
   "scripts": {},
   "dependencies": {
@@ -47,6 +55,7 @@
     "@galacean/engine-math": "workspace:*",
     "re2js": "2.9.0",
     "typescript": "5.6.3",
-    "zod": "4.4.3"
+    "zod": "4.4.3",
+    "@galacean/engine-core": "workspace:*"
   }
 }

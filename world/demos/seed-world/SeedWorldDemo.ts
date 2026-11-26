@@ -84,7 +84,7 @@ import {
   getRockLodCrossFadeEnabled,
   setRockLodCrossFadeEnabled
 } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/RockLodView";
-import type { SeedWorldPickVisitor } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickVisitor } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
 import type { WorldSelection } from "./storage/SharedWorldStorage";
@@ -114,7 +114,7 @@ import "./src/planning/spatial/runtime/PlanningAuthoringComponents.ts";
 import {
   acquireCameraDepthTexturePrePass,
   type CameraDepthTexturePrePassLease
-} from "@galacean/engine-modify/rendering/CameraDepthTexturePrePass";
+} from "@galacean/engine-project/rendering/CameraDepthTexturePrePass";
 import { PlanningEntityAuthoring } from "./src/planning/spatial/runtime/PlanningAuthoringComponents.ts";
 import {
   planningVegetationReferences,

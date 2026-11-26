@@ -16,12 +16,6 @@ function collect(directory, prefix = "") {
   }
 }
 collect(path.join(root, "packages/shader/src/ShaderLibrary"), "ShaderLibrary/");
-for (const { original, replacement } of JSON.parse(
-  fs.readFileSync(path.join(root, "packages/modify/native-overrides.json"), "utf8")
-)) {
-  if (original.startsWith("packages/shader/src/ShaderLibrary/") && original.endsWith(".glsl"))
-    includeMap[original.slice("packages/shader/src/".length)] = fs.readFileSync(path.join(root, replacement), "utf8");
-}
 const source = path.join(root, "packages/terrain/src/shaders");
 collect(source);
 const compiler = new ShaderPrecompiler();

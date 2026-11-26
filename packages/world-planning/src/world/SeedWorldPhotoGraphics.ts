@@ -1,4 +1,4 @@
-import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { destroyOwnedMesh } from "@galacean/engine-project/geometry/destroyOwnedMesh";
 import markupViewportSource from "./MarkupViewport.shader?raw";
 import markupStrokeFieldSource from "./MarkupStrokeField.shader?raw";
 import { destroyPhotoResources } from "./SeedWorldPhotoResources";

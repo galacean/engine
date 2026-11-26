@@ -75,6 +75,7 @@ Shader "Effect/ParticleFeedback" {
       #include "ShaderLibrary/Particle/Module/InheritVelocity.glsl"
       #include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
+      #include "ShaderLibrary/Particle/Module/WindOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/NoiseModule.glsl"
 
@@ -185,6 +186,21 @@ Shader "Effect/ParticleFeedback" {
           vec3 gravityLocal = rotationByQuaternions(gravityDelta, invWorldRotation);
           localVelocity += folDeltaLocal + gravityLocal;
 
+          vec3 windPositionCorrectionWS = vec3(0.0);
+          vec3 windRelaxedVelocityWS = vec3(0.0);
+
+          #ifdef RENDERER_WOL_MODULE_ENABLED
+              vec3 volAsWorld = rotationByQuaternions(volLocal, worldRotation) + volWorld;
+              vec3 totalWorldVelocity = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld;
+              applyWindVelocityRelaxation(
+                  totalWorldVelocity,
+                  dt,
+                  windRelaxedVelocityWS,
+                  windPositionCorrectionWS
+              );
+              localVelocity = rotationByQuaternions(windRelaxedVelocityWS - volAsWorld, invWorldRotation);
+          #endif
+
           // Step 2 & 3: Dampen + Drag. LimitVelocityOverLifetime applies to base and linear VOL velocity;
           // orbital/radial motion is applied below as positional orbit integration.
           #ifdef RENDERER_LVL_MODULE_ENABLED
@@ -230,6 +246,16 @@ Shader "Effect/ParticleFeedback" {
               } else {
                   localVelocity = rotationByQuaternions(totalVelocity - velocityOffset, invWorldRotation);
               }
+          #endif
+
+          #if defined(RENDERER_WOL_MODULE_ENABLED) && defined(RENDERER_LVL_MODULE_ENABLED)
+              // Wind owns the continuous displacement on influenced world axes. Rebase its analytic
+              // correction against the velocity that the integration stage will actually consume after
+              // LVL/drag; LVL still owns the stored endpoint velocity for the next simulation step.
+              vec3 integratedVelocityWS = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld;
+              vec3 windAffectedAxes = step(vec3(1e-8), clamp(renderer_WOLInfluence, vec3(0.0), vec3(1.0)));
+              windPositionCorrectionWS +=
+                  (windRelaxedVelocityWS - integratedVelocityWS) * dt * windAffectedAxes;
           #endif
 
           // Step 4: Integrate position
@@ -289,6 +315,20 @@ Shader "Effect/ParticleFeedback" {
           }
           #endif
           position += totalLinearVelocity * dt;
+
+          #ifdef RENDERER_WOL_MODULE_ENABLED
+              if (renderer_SimulationSpace == 0) {
+                  position += rotationByQuaternions(windPositionCorrectionWS, invWorldRotation);
+                  if (any(greaterThan(renderer_WOLWrapSize, vec3(0.0)))) {
+                      vec3 positionWS = rotationByQuaternions(position, worldRotation) + renderer_WorldPosition;
+                      positionWS = wrapWindPositionWS(positionWS);
+                      position = rotationByQuaternions(positionWS - renderer_WorldPosition, invWorldRotation);
+                  }
+              } else {
+                  position += windPositionCorrectionWS;
+                  position = wrapWindPositionWS(position);
+              }
+          #endif
       }
 
       Varyings main(Attributes attr) {

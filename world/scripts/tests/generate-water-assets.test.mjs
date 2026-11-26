@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { createServer } from "vite";
-import { engineModify } from "../../../packages/modify/build/vite.mjs";
+import { workspaceEngine } from "../../../packages/project/build/vite.mjs";
 import { cleanWaterShaderSource } from "../water-shader-cleanup.mjs";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
@@ -25,7 +25,7 @@ before(async () => {
   server = await createServer({ root, configFile: false, cacheDir: `${output}-vite-cache`, plugins: [
     { name: "water-generator-test-source-paths", enforce: "pre", resolveId(source) {
       if (source.startsWith("/packages/")) return path.join(root, source);
-    } }, engineModify()],
+    } }, workspaceEngine()],
     server: { middlewareMode: true }, optimizeDeps: { noDiscovery: true, entries: [] } });
 });
 after(async () => server?.close());

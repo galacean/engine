@@ -2,6 +2,9 @@ import type { RefItem } from "./CommonSchema";
 import type { IColor, IVector2, IVector3, IVector4 } from "./BasicSchema";
 
 interface MaterialData {
+  screenSpaceReflectionIntensity?: number;
+  contributeScreenSpaceReflectionDepth?: boolean;
+  screenSpaceReflectionBilateral?: boolean;
   name: string;
   shaderData: Record<string, MaterialShaderProperty>;
   macros: Array<{ name: string; value?: string }>;
@@ -31,7 +34,7 @@ export type MaterialShaderProperty =
   | { type: MaterialLoaderType.Color; value: IColor }
   | { type: MaterialLoaderType.Float | MaterialLoaderType.Integer; value: number }
   | { type: MaterialLoaderType.Boolean; value: boolean }
-  | { type: MaterialLoaderType.Texture; value: RefItem };
+  | { type: MaterialLoaderType.Texture; value: RefItem | null };
 
 export enum MaterialLoaderType {
   Vector2 = "Vector2",

@@ -7,6 +7,8 @@ export * from "./resources/animationClip/AnimationClipDecoder";
 export { ReflectionParser } from "./resources/parser/ReflectionParser";
 import "./resources/texture2D/Texture2DDecoder";
 import "./resources/textureCube/TextureCubeDecoder";
+export { parseTexturePixelsData } from "./resources/texture/TexturePixelsDecoder";
+export { parseBufferMeshData } from "./resources/mesh/BufferMeshDecoder";
 
 /**
  * Decode engine binary resource.

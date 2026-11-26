@@ -40,7 +40,7 @@ import vegetation from "../../../packages/terrain/src/data/seed-world/public/Sha
 import template from "../../../packages/world-planning/src/spatial/runtime/TemplateTranslucent.shader?raw";
 import { SeedWorldPicker } from "@galacean/engine-world-planning/world/SeedWorldPicker";
 import { decodeViewIdentity } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
-import type { SeedWorldPickBatch } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickBatch } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import project from "../../../packages/terrain/src/data/seed-world/project.json";
 
 it.each(["renderer", "instanced"])(

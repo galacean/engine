@@ -27,7 +27,7 @@ import {
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
-import { acquireCameraDepthTexturePrePass } from "@galacean/engine-modify/rendering/CameraDepthTexturePrePass";
+import { acquireCameraDepthTexturePrePass } from "@galacean/engine-project/rendering/CameraDepthTexturePrePass";
 import {
   resolveCameraLocalPrecipitationTraversalTime,
   resolveParticleSimulationWindVelocity,

@@ -10,10 +10,12 @@ export class GLPrimitive implements IPlatformPrimitive {
   private _attribLocArray: number[] = [];
   private readonly _primitive: Primitive;
 
+  private _rhi: WebGLGraphicDevice;
   private _gl: WebGL2RenderingContext;
   private _vaoMap: Map<number, WebGLVertexArrayObject | null> = new Map();
 
   constructor(rhi: WebGLGraphicDevice, primitive: Primitive) {
+    this._rhi = rhi;
     this._primitive = primitive;
     this._gl = rhi.gl;
   }
@@ -23,6 +25,7 @@ export class GLPrimitive implements IPlatformPrimitive {
    */
   draw(shaderProgram: IPlatformShaderProgram, subMesh: SubPrimitive): void {
     const gl = this._gl;
+    const rhi = this._rhi;
     const primitive = this._primitive;
     const useVao = primitive.enableVAO;
 
@@ -35,8 +38,9 @@ export class GLPrimitive implements IPlatformPrimitive {
       if (vao === undefined) {
         vao = this._registerVAO(shaderProgram, vaoKey);
       }
-      gl.bindVertexArray(vao);
+      rhi._bindVertexArray(vao);
     } else {
+      rhi._bindVertexArray(null);
       this._bindBufferAndAttrib(shaderProgram);
     }
 
@@ -71,10 +75,8 @@ export class GLPrimitive implements IPlatformPrimitive {
       }
     }
 
-    // Unbind
-    if (useVao) {
-      gl.bindVertexArray(null);
-    } else {
+    // Non-VAO path leaves attribute arrays enabled; VAO stays cached on rhi until changed or unbound.
+    if (!useVao) {
       this._disableAttrib();
     }
   }
@@ -114,7 +116,18 @@ export class GLPrimitive implements IPlatformPrimitive {
 
         gl.enableVertexAttribArray(loc);
         const elementInfo = element._formatMetaInfo;
-        gl.vertexAttribPointer(loc, elementInfo.size, elementInfo.type, elementInfo.normalized, stride, element.offset);
+        if (elementInfo.integer) {
+          gl.vertexAttribIPointer(loc, elementInfo.size, elementInfo.type, stride, element.offset);
+        } else {
+          gl.vertexAttribPointer(
+            loc,
+            elementInfo.size,
+            elementInfo.type,
+            elementInfo.normalized,
+            stride,
+            element.offset
+          );
+        }
         gl.vertexAttribDivisor(loc, element.instanceStepRate);
         this._attribLocArray.push(loc);
       } else {
@@ -134,10 +147,11 @@ export class GLPrimitive implements IPlatformPrimitive {
 
   private _registerVAO(shaderProgram: IPlatformShaderProgram, vaoKey: number): WebGLVertexArrayObject | null {
     const gl = this._gl;
+    const rhi = this._rhi;
     const vao = gl.createVertexArray();
 
     /** register VAO */
-    gl.bindVertexArray(vao);
+    rhi._bindVertexArray(vao);
 
     const { indexBufferBinding } = this._primitive;
     if (indexBufferBinding) {
@@ -146,7 +160,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     this._bindBufferAndAttrib(shaderProgram);
 
     /** unbind */
-    gl.bindVertexArray(null);
+    rhi._bindVertexArray(null);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
     this._disableAttrib();
 
@@ -156,7 +170,11 @@ export class GLPrimitive implements IPlatformPrimitive {
 
   private _clearVAO(): void {
     const gl = this._gl;
+    const rhi = this._rhi;
     this._vaoMap.forEach((vao) => {
+      if (rhi._currentBindVAO === vao) {
+        rhi._bindVertexArray(null);
+      }
       gl.deleteVertexArray(vao);
     });
     this._vaoMap.clear();

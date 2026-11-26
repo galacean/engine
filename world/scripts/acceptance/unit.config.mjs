@@ -3,7 +3,7 @@ import { nativePaths } from "./native-paths.mjs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
-import { engineModify } from "../../../packages/modify/build/vite.mjs";
+import { workspaceEngine } from "../../../packages/project/build/vite.mjs";
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const require = createRequire(import.meta.url);
 const { plantShaderPrecompile } = require("../../../packages/farming/src/farming/tools/plant-shader-precompile.cjs");
@@ -30,7 +30,7 @@ const groups = {
   ],
   environment: ["demos/volumetric-clouds/tests/**/*.spec.ts", "demos/screen-space-reflection/tests/**/*.spec.ts"]
 };
-const shaderRoot = path.join(repository, "packages/modify/.cache/shader-src/ShaderLibrary");
+const shaderRoot = path.join(repository, "packages/shader/src/ShaderLibrary");
 const shaderLibrary = [];
 function shaders(dir) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -45,7 +45,7 @@ export default {
   root,
   plugins: baseline
     ? [baselinePlant()]
-    : [nativePaths(repository), engineModify(), plantShaderPrecompile({ shaderLibrary })],
+    : [nativePaths(repository), workspaceEngine(), plantShaderPrecompile({ shaderLibrary })],
   define: { __buildVersion: JSON.stringify("migration-acceptance") },
   esbuild: { tsconfigRaw: { compilerOptions: { experimentalDecorators: true, useDefineForClassFields: false } } },
   resolve: {

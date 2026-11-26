@@ -3,7 +3,7 @@ import type {
   RuntimePickBatch,
   RuntimePickSource,
   RuntimePickVisitor
-} from "@galacean/engine-modify/rendering/runtime-pick-source";
+} from "@galacean/engine-project/rendering/runtime-pick-source";
 import type { RuntimeSceneInspection } from "./runtime-scene-inspection";
 
 export function meshPickShader(original: Shader): Shader {

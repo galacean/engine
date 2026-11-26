@@ -30,7 +30,7 @@ import {
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
-} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+} from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import { GRASS_AUTHORED_HEIGHT_METRES } from "../world/SeedWorldAssetPlacementProfile.ts";
 import {
   createSeedWorldDetailDensitySamplerInto,

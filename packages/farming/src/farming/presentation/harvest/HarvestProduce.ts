@@ -1,5 +1,5 @@
 import { createHarvestProduceMesh } from "./HarvestProduceMesh";
-import { destroyOwnedMesh } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { destroyOwnedMesh } from "@galacean/engine-project/geometry/destroyOwnedMesh";
 export { HARVEST_PRODUCE_IDS } from "./HarvestProduceShape";
 import { Color, Entity, MeshRenderer, ModelMesh, PBRMaterial, Shader, Vector3 } from "@galacean/engine";
 import { PLANT_HARVEST_SHADER } from "../PlantHarvestShader";

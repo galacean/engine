@@ -155,7 +155,6 @@
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-modify": "workspace:*",
     "@galacean/engine-runtime-editor": "workspace:*",
     "@galacean/engine-project": "workspace:*",
     "@galacean/engine-terrain": "workspace:*"

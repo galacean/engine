@@ -33,5 +33,7 @@ export enum VertexElementFormat {
   /** Four-dimensional 16-bit Normalized integer, range is[-1, 1] */
   NormalizedShort4,
   /** Four-dimensional 16-bit Normalized unsigned integer, range is [0, 1] */
-  NormalizedUShort4
+  NormalizedUShort4,
+  /** Four 32-bit unsigned integers, delivered to a uvec4 shader input (WebGL2). */
+  UInt4
 }

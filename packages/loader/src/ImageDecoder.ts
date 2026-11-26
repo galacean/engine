@@ -10,14 +10,31 @@ import { AssetPromise, Platform, SystemInfo } from "@galacean/engine-core";
  */
 export class ImageDecoder {
   static _decode(data: ArrayBuffer | ArrayBufferView, url: string, mimeType?: string): AssetPromise<HTMLImageElement> {
-    return new AssetPromise((resolve, reject) => {
+    return new AssetPromise((resolve, reject, _complete, _progress, onCancel) => {
       const objectUrl = URL.createObjectURL(
         new Blob([data as BlobPart], { type: mimeType || ImageDecoder._getMimeType(data) })
       );
       const image = new Image();
+      let rafId: number | null = null;
+      let released = false;
+      const release = () => {
+        if (released) return;
+        released = true;
+        if (rafId !== null && typeof cancelAnimationFrame !== "undefined") {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = null;
+        ImageDecoder._releaseObjectUrl(image, objectUrl);
+      };
+      onCancel(() => {
+        release();
+        image.src = "";
+      });
       image.onload = () => {
         const complete = () => {
-          ImageDecoder._releaseObjectUrl(image, objectUrl);
+          rafId = null;
+          if (released) return;
+          release();
           resolve(image);
         };
         if (
@@ -25,13 +42,14 @@ export class ImageDecoder {
           typeof requestAnimationFrame !== "undefined"
         ) {
           // Defer on iOS WebKit so the decoded image surface is ready before revoking the blob URL.
-          requestAnimationFrame(complete);
+          rafId = requestAnimationFrame(complete);
         } else {
           complete();
         }
       };
       image.onerror = image.onabort = () => {
-        ImageDecoder._releaseObjectUrl(image, objectUrl);
+        if (released) return;
+        release();
         reject(new Error(`TextureLoader: failed to decode texture "${url}" (${data.byteLength} bytes).`));
       };
       image.crossOrigin = "anonymous";

@@ -1,6 +1,6 @@
 import { Color, type Engine, Entity, MeshRenderer, type ModelMesh, PBRMaterial } from "@galacean/engine";
 import { createHarvestProduceMesh, measureHarvestProduceSize } from "../harvest/HarvestProduceMesh";
-import { destroyOwnedMeshSet } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { destroyOwnedMeshSet } from "@galacean/engine-project/geometry/destroyOwnedMesh";
 
 interface ProduceMesh {
   mesh: ModelMesh;

@@ -1,5 +1,5 @@
 import type { SurfaceTriangle } from "../../geometry/SurfaceTriangles";
-import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
+import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
 import {
   BoundingBox,
   Color,

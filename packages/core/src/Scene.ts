@@ -10,7 +10,9 @@ import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
 import { AmbientOcclusion, DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
+import { EnvironmentLighting } from "./lighting/environment";
 import { LightManager } from "./lighting/LightManager";
+import { ScreenSpaceReflectionSettings } from "./lighting/screenSpaceReflection/ScreenSpaceReflectionSettings";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";
@@ -24,6 +26,7 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
+  readonly screenSpaceReflection = new ScreenSpaceReflectionSettings();
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
   private static _prefilterdDFGProperty = ShaderProperty.getByName("scene_PrefilteredDFG");
@@ -60,6 +63,9 @@ export class Scene extends EngineObject {
    * such as corners, crevices, and contact points between surfaces.
    */
   readonly ambientOcclusion = new AmbientOcclusion(this);
+
+  /** Environment lighting controller. */
+  readonly environmentLighting: EnvironmentLighting;
 
   /** @internal */
   _lightManager: LightManager = new LightManager();
@@ -284,6 +290,7 @@ export class Scene extends EngineObject {
     const shaderData = this.shaderData;
     shaderData._addReferCount(1);
     this.ambientLight = new AmbientLight(engine);
+    this.environmentLighting = new EnvironmentLighting(this);
     engine.sceneManager._allCreatedScenes.push(this);
 
     shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
@@ -471,11 +478,18 @@ export class Scene extends EngineObject {
     const componentsManager = this._componentsManager;
     componentsManager._particleSystemManager.update(deltaTime);
     componentsManager.callRendererOnUpdate(deltaTime);
+    this._updateShaderData();
+  }
 
+  /**
+   * @internal
+   */
+  _updateShaderData(): void {
     const shaderData = this.shaderData;
     const engine = this._engine;
     const lightManager = this._lightManager;
 
+    this.environmentLighting.update(engine.time.deltaTime);
     engine.time._updateSceneShaderData(shaderData);
     lightManager._updateShaderData(this.shaderData);
 

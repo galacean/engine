@@ -1,5 +1,6 @@
 import { IPlatformTexture2D, Texture2D, TextureUsage } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
+import { readTexturePixelsAsync } from "./GLTextureReadback";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
@@ -82,5 +83,18 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
       throw new Error("Unable to read compressed texture");
     }
     super._getPixelBuffer(null, x, y, width, height, mipLevel, out);
+  }
+  /** @inheritdoc */
+  getPixelBufferAsync(out: Uint8Array, signal?: AbortSignal): Promise<void> {
+    if (!this._glTexture) return Promise.reject(new Error("Texture or device is unavailable"));
+    return readTexturePixelsAsync(
+      this._gl,
+      this._glTexture,
+      this._texture.width,
+      this._texture.height,
+      out,
+      () => this._texture.destroyed,
+      signal
+    );
   }
 }

@@ -11,6 +11,7 @@ import {
   RequestConfig,
   ResourceManager,
   Texture2D,
+  Texture2DArray,
   TextureCube,
   TextureCubeFace,
   TextureFormat,
@@ -22,8 +23,10 @@ import { KTX2TargetFormat } from "./KTX2TargetFormat";
 import { TranscodeResult } from "./transcoder/AbstractTranscoder";
 import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
 
+type KTX2Texture = Texture2D | Texture2DArray | TextureCube;
+
 @resourceLoader(AssetType.KTX2, ["ktx2"])
-export class KTX2Loader extends Loader<Texture2D | TextureCube> {
+export class KTX2Loader extends Loader<KTX2Texture> {
   private static _binomialLLCTranscoder: BinomialLLCTranscoder | null;
   private static _priorityFormats = {
     [ColorModel.ETC1S]: [
@@ -101,22 +104,33 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       });
   }
 
-  /** @internal */
+  /**
+   * @internal
+   * @param layerCount - KTX2 `layerCount`. A value above 0 declares an array texture, also for one layer.
+   */
   static _createTextureByBuffer(
     engine: Engine,
     isSRGB: boolean,
     transcodeResult: TranscodeResult,
     targetFormat: KTX2TargetFormat,
     params?: Uint8Array,
-    restoredTexture?: Texture2D | TextureCube
-  ): Texture2D | TextureCube {
+    restoredTexture?: KTX2Texture,
+    layerCount: number = 0
+  ): KTX2Texture {
     const { width, height, faces } = transcodeResult;
     const faceCount = faces.length;
     const mipmaps = faces[0];
     const mipmap = mipmaps.length > 1;
     const engineFormat = this._getEngineTextureFormat(targetFormat, transcodeResult);
-    let texture: Texture2D | TextureCube;
-    if (faceCount !== 6) {
+    let texture: KTX2Texture;
+    if (layerCount > 0) {
+      if (faceCount !== 1) throw new Error("KTX2 cube array textures are not supported");
+      texture = restoredTexture || new Texture2DArray(engine, width, height, layerCount, engineFormat, mipmap, isSRGB);
+      // The transcoder returns each level as its layers in order, which is the array upload layout.
+      for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
+        (<Texture2DArray>texture).setPixelBuffer(0, mipmaps[mipLevel].data, mipLevel);
+      }
+    } else if (faceCount !== 6) {
       texture = restoredTexture || new Texture2D(engine, width, height, engineFormat, mipmap, isSRGB);
       for (let mipLevel = 0; mipLevel < mipmaps.length; mipLevel++) {
         const { data } = mipmaps[mipLevel];
@@ -137,7 +151,44 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       texture.filterMode = params[2];
       texture.anisoLevel = params[3];
     }
-    return texture as Texture2D | TextureCube;
+    return texture;
+  }
+
+  private static _astc2DArraySupport = new WeakMap<object, boolean>();
+
+  private static _supportsCompressedTexture2DArrayASTC(renderer: any): boolean {
+    if (!renderer || typeof renderer !== "object") return true;
+    const cached = this._astc2DArraySupport.get(renderer);
+    if (cached !== undefined) return cached;
+    const gl = renderer.gl as WebGL2RenderingContext | undefined;
+    if (!gl || typeof gl.texStorage3D !== "function" || typeof gl.compressedTexSubImage3D !== "function") {
+      this._astc2DArraySupport.set(renderer, false);
+      return false;
+    }
+    // Some Android Chromium WebGL2 decoders (e.g. non-ANGLE validating decoder on Adreno) advertise
+    // WEBGL_compressed_texture_astc and accept texStorage3D, yet reject compressedTexSubImage3D
+    // with GL_INVALID_VALUE ("size is not correct for dimensions"). Probe a 4x4x1 block once.
+    let supported = false;
+    const prevTex = gl.getParameter(gl.TEXTURE_BINDING_2D_ARRAY);
+    const tex = gl.createTexture();
+    if (tex) {
+      try {
+        while (gl.getError() !== gl.NO_ERROR) {}
+        gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex);
+        const ASTC_4X4_RGBA = 0x93b0;
+        // Probe with depth=2 because the bug only manifests for multi-layer uploads (depth > 1).
+        gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, ASTC_4X4_RGBA, 4, 4, 2);
+        gl.compressedTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, 0, 4, 4, 2, ASTC_4X4_RGBA, new Uint8Array(32));
+        supported = gl.getError() === gl.NO_ERROR;
+      } catch {
+        supported = false;
+      } finally {
+        gl.bindTexture(gl.TEXTURE_2D_ARRAY, prevTex);
+        gl.deleteTexture(tex);
+      }
+    }
+    this._astc2DArraySupport.set(renderer, supported);
+    return supported;
   }
 
   private static _decideTargetFormat(
@@ -146,8 +197,12 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     priorityFormats?: KTX2TargetFormat[]
   ): KTX2TargetFormat {
     const renderer = (engine as any)._hardwareRenderer;
-    const { isSRGB, pixelWidth, pixelHeight } = ktx2Container;
-    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats!, isSRGB) as KTX2TargetFormat;
+    const { isSRGB, pixelWidth, pixelHeight, layerCount } = ktx2Container;
+    let formats = priorityFormats!;
+    if (layerCount > 0 && !this._supportsCompressedTexture2DArrayASTC(renderer)) {
+      formats = formats.filter((f) => f !== KTX2TargetFormat.ASTC && f !== KTX2TargetFormat.ASTC_HDR_4x4);
+    }
+    const targetFormat = this._detectSupportedFormat(renderer, formats, isSRGB) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
@@ -244,10 +299,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   /**
    * @internal
    */
-  load(
-    item: LoadItem & { params?: KTX2Params },
-    resourceManager: ResourceManager
-  ): AssetPromise<Texture2D | TextureCube> {
+  load(item: LoadItem & { params?: KTX2Params }, resourceManager: ResourceManager): AssetPromise<KTX2Texture> {
     const remoteUrl = resourceManager._getRemoteUrl(item.url!);
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       const requestConfig = <RequestConfig>{
@@ -260,7 +312,15 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params)
             .then(({ ktx2Container, engine, result, targetFormat, params }) =>
-              KTX2Loader._createTextureByBuffer(engine, ktx2Container.isSRGB, result, targetFormat, params)
+              KTX2Loader._createTextureByBuffer(
+                engine,
+                ktx2Container.isSRGB,
+                result,
+                targetFormat,
+                params,
+                undefined,
+                ktx2Container.layerCount
+              )
             )
             .then((texture) => {
               resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, remoteUrl, requestConfig));
@@ -272,16 +332,16 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   }
 }
 
-class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
+class KTX2ContentRestorer extends ContentRestorer<KTX2Texture> {
   constructor(
-    resource: Texture2D | TextureCube,
+    resource: KTX2Texture,
     public remoteUrl: string,
     public requestConfig: RequestConfig & { params?: KTX2Params }
   ) {
     super(resource);
   }
 
-  override restoreContent(): AssetPromise<Texture2D | TextureCube> {
+  override restoreContent(): AssetPromise<KTX2Texture> {
     const { resource, requestConfig } = this;
     const engine = resource.engine;
     return new AssetPromise((resolve, reject) => {
@@ -290,7 +350,15 @@ class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), engine, requestConfig.params).then(
             ({ ktx2Container, engine, result, targetFormat, params }) =>
-              KTX2Loader._createTextureByBuffer(engine, ktx2Container.isSRGB, result, targetFormat, params, resource)
+              KTX2Loader._createTextureByBuffer(
+                engine,
+                ktx2Container.isSRGB,
+                result,
+                targetFormat,
+                params,
+                resource,
+                ktx2Container.layerCount
+              )
           )
         )
         .then(resolve)

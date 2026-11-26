@@ -21,7 +21,7 @@ describe("published world picking identities", () => {
     const renderer = {};
     const scene = { plan: p, world: { visitPickBatches() {}, visitTerrainRenderers(visit: (renderer: unknown) => void) { visit(renderer); } },
       solids: { visitPickBatches() {} } } as any;
-    const batches: import("@galacean/engine-modify/rendering/SeedWorldPickBatch.ts").SeedWorldPickBatch[] = [];
+    const batches: import("@galacean/engine-project/rendering/SeedWorldPickBatch.ts").SeedWorldPickBatch[] = [];
     visitPlanningWorldPickBatches(scene, { visitPickBatches() {} } as any, batch => batches.push(batch));
     const snapshot = batches[0].snapshotResolver!();
     expect(snapshot.resolve({ x: 40, y: 0, z: 40 } as never)).toBe("mountain");

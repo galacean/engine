@@ -20,7 +20,7 @@ import {
   masonryTintRoles,
   masonryTintUniforms
 } from "./MasonryAppearance";
-import { restoreResource, restoreBuffer } from "@galacean/engine-modify/rendering/RestorableResources";
+import { restoreResource, restoreBuffer } from "@galacean/engine-project/rendering/RestorableResources";
 
 import { buildBeveledBrickGeometry } from "./BeveledBrickGeometry";
 import { WoodUnitLod, GableWoodUnitLod } from "./WoodUnitLod.js";

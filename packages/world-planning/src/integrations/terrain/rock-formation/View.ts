@@ -11,7 +11,7 @@ import { acquireRockVariantMesh } from "./Variants";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
-} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+} from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import { templateLinearColor, worldTemplate } from "../../../spatial/WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART } from "../../../spatial/WorldTemplateArtDirection";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";

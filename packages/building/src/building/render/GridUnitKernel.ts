@@ -26,7 +26,7 @@ import {
   type GridKernelInput,
   type GridKernelTerrainInfo
 } from "./GridUnitKernelInput";
-import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
+import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
 export {
   brickRecord,
   cpuBrickRecords,

@@ -14,6 +14,8 @@ export enum AssetType {
   Material = "Material",
   /** Shader. */
   Shader = "Shader",
+  /** Mesh. */
+  Mesh = "Mesh",
   /** AnimationClip. */
   AnimationClip = "AnimationClip",
   /** AnimatorController. */
@@ -50,4 +52,5 @@ export enum AssetType {
   PhysicsMaterial = "PhysicsMaterial",
   /** RenderTarget. */
   RenderTarget = "RenderTarget"
+  /** 3D Gaussian Splatting scene (.ply, .splat, .spz). */
 }

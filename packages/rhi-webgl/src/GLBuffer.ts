@@ -5,9 +5,11 @@ export class GLBuffer implements IPlatformBuffer {
   /** @internal */
   _glBuffer: WebGLBuffer | null;
 
+  private _rhi: WebGLGraphicDevice;
   private _gl: WebGL2RenderingContext;
   private _glBindTarget: number;
   private _glBufferUsage: number;
+  private _isIndexBuffer: boolean;
 
   constructor(
     rhi: WebGLGraphicDevice,
@@ -18,6 +20,7 @@ export class GLBuffer implements IPlatformBuffer {
   ) {
     const gl = rhi.gl;
     const glBuffer = gl.createBuffer();
+    if (!glBuffer) throw new Error("Failed to allocate WebGL buffer.");
     const glBufferUsage = this._getGLBufferUsage(gl, bufferUsage);
     let glBindTarget: number;
     switch (type) {
@@ -31,22 +34,30 @@ export class GLBuffer implements IPlatformBuffer {
         glBindTarget = gl.UNIFORM_BUFFER;
         break;
     }
+    this._rhi = rhi;
     this._gl = gl;
     this._glBuffer = glBuffer;
     this._glBufferUsage = glBufferUsage;
     this._glBindTarget = glBindTarget;
+    this._isIndexBuffer = type === BufferBindFlag.IndexBuffer;
 
-    this.bind();
-
-    if (data) {
-      gl.bufferData(glBindTarget, data, glBufferUsage);
-    } else {
-      gl.bufferData(glBindTarget, byteLength, glBufferUsage);
+    try {
+      this.bind();
+      if (data) gl.bufferData(glBindTarget, data, glBufferUsage);
+      else gl.bufferData(glBindTarget, byteLength, glBufferUsage);
+    } catch (error) {
+      gl.deleteBuffer(glBuffer);
+      throw error;
+    } finally {
+      gl.bindBuffer(glBindTarget, null);
     }
-    gl.bindBuffer(glBindTarget, null);
   }
 
   bind(): void {
+    // Binding an index buffer mutates the active VAO; unbind any cached VAO first.
+    if (this._isIndexBuffer) {
+      this._rhi._bindVertexArray(null);
+    }
     this._gl.bindBuffer(this._glBindTarget, this._glBuffer);
   }
 

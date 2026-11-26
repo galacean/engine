@@ -499,7 +499,6 @@
     "@galacean/engine-terrain": "workspace:*",
     "@galacean/engine-environment": "workspace:*",
     "@galacean/engine-farming": "workspace:*",
-    "@galacean/engine-modify": "workspace:*",
     "@galacean/engine-runtime-editor": "workspace:*",
     "@galacean/engine-project": "workspace:*",
     "@galacean/engine-animals": "workspace:*"

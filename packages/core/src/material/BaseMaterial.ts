@@ -1,5 +1,5 @@
 import { Engine } from "../Engine";
-import { BlendFactor, CullMode, Shader, ShaderProperty } from "../shader";
+import { BlendFactor, CullMode, Shader, ShaderData, ShaderProperty } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { BlendMode } from "./enums/BlendMode";
@@ -38,6 +38,28 @@ export class BaseMaterial extends Material {
   private static _destinationAlphaBlendFactorProp: ShaderProperty =
     ShaderProperty.getByName("destinationAlphaBlendFactor");
   private static _rasterStateCullModeProp: ShaderProperty = ShaderProperty.getByName("rasterStateCullMode");
+
+  /**
+   * Derive and populate `material_DepthOnlyRenderQueue` from already-loaded Forward render state on
+   * built-in materials when a legacy serialized `.mat` omits an explicit DepthOnly queue.
+   * @internal
+   */
+  static _syncDefaultDepthOnlyRenderQueue(shaderData: ShaderData): void {
+    if (shaderData.getFloat(BaseMaterial._depthOnlyRenderQueueProp) !== undefined) {
+      return;
+    }
+    let depthOnlyQueue: number | undefined = shaderData.getInt(BaseMaterial._renderQueueTypeProp);
+    if (depthOnlyQueue === undefined) {
+      if (shaderData.getInt(BaseMaterial._blendEnabledProp)) {
+        depthOnlyQueue = RenderQueueType.Transparent;
+      } else if (shaderData._macroCollection.isEnable(BaseMaterial._alphaCutoffMacro)) {
+        depthOnlyQueue = RenderQueueType.AlphaTest;
+      }
+    }
+    if (depthOnlyQueue !== undefined && Number.isFinite(depthOnlyQueue)) {
+      shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, depthOnlyQueue);
+    }
+  }
 
   private _renderFace: RenderFace = RenderFace.Front;
   protected _isTransparent: boolean = false;

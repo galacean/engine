@@ -3,7 +3,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { engineModify } from "../../modify/build/vite.mjs";
+import { workspaceEngine } from "../../project/build/vite.mjs";
 
 const require = createRequire(new URL("../../../world/package.json", import.meta.url));
 const { createServer } = await import(pathToFileURL(path.join(path.dirname(require.resolve("vite/package.json")), "dist/node/index.js")).href);
@@ -15,7 +15,7 @@ const input = process.env.WATER_BUILTIN_SHADER_INPUT ?? path.join(root, "package
 const server = await createServer({ root, configFile: false, cacheDir: "/tmp/opencode/water-builtins/vite-cache",
   plugins: [{ name: "water-builtin-source-paths", enforce: "pre", resolveId(source) {
     if (source.startsWith("/packages/")) return path.join(root, source);
-  } }, engineModify()], server: { middlewareMode: true, hmr: false }, optimizeDeps: { noDiscovery: true, entries: [] } });
+  } }, workspaceEngine()], server: { middlewareMode: true, hmr: false }, optimizeDeps: { noDiscovery: true, entries: [] } });
 try {
   const { ShaderPrecompiler } = await server.ssrLoadModule("/packages/shader-compiler/src/ShaderPrecompiler.ts");
   const { shaderLibrary } = await server.ssrLoadModule("/packages/shader/src/ShaderLibrary/index.ts");

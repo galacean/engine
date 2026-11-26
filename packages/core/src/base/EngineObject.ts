@@ -84,6 +84,21 @@ export class EngineObject {
     }
   }
 
+  /**
+   * Synchronously destroy this object without entering the frame-end deferred destroy queue.
+   * Intended strictly for internal engine-owned resources that must release GPU memory immediately
+   * without mutating `engine._processingPendingDestroys`.
+   * @internal
+   */
+  _destroyImmediate(): void {
+    if (this._destroyed) return;
+
+    this._pendingDestroy = false;
+    this._destroyed = true;
+    this._notifyBindingChange();
+    this._onDestroy();
+  }
+
   protected _onDestroy(): void {
     const engine = this._engine;
     if (engine) {
