@@ -1,3 +1,4 @@
+import { bindBuildingFilament, type BuildingLampMaterials } from "./BuildingLampShaderBinding";
 import {
   BoundingBox,
   Buffer,
@@ -29,6 +30,7 @@ import { constructionPlasterGLSL } from "./ConstructionPlasterShader";
 import { plasterLinearColor } from "./ConstructionPlasterPalette";
 import { constructionBrickLayer, uvU, uvV, type ConstructionPreviewPart, type PackedUv2 } from "./ConstructionPreview";
 import { DecorationMaterial } from "./ConstructionDecorationMaterial";
+import { f32ToHalf } from "./UnitPacking.js";
 import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
 import { masonryAppearance, srgbToLinear } from "./MasonryAppearance";
@@ -83,6 +85,23 @@ export const SURFACE_KIND_PLASTER = 3;
 export const SURFACE_KIND_STONE_PAVING = 4;
 export const SURFACE_KIND_DECORATION = 5;
 export const SURFACE_KIND_DECORATION_GLASS = 6;
+// The remaining tag values identify the lamp's authored palette entry (0–4).
+const SURFACE_KIND_LAMP = 7;
+
+export function proxyDecorationSurfaceKind(material: number | undefined, colorId = 0): number {
+  if (material === DecorationMaterial.lanternEmission) return SURFACE_KIND_LAMP + colorId;
+  return material === DecorationMaterial.glass ||
+    material === DecorationMaterial.texturedGlass ||
+    material === DecorationMaterial.lattice ||
+    material === DecorationMaterial.texturedLattice
+    ? SURFACE_KIND_DECORATION_GLASS
+    : SURFACE_KIND_DECORATION;
+}
+
+/** The compact tangent's Y channel carries plaster wear or the filament's half-float intensity. */
+export function proxyFilamentTagY(surfaceKind: number, intensity: number): number {
+  return surfaceKind >= SURFACE_KIND_LAMP ? f32ToHalf(Math.min(65504, intensity)) / 65535 : 0;
+}
 
 const COMPACT_ELEMENTS_INLINE_PICK: VertexElement[] = [
   new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
@@ -519,13 +538,8 @@ export function collapseDecorationToBoxes(dp: ConstructionDecorationPart): Const
     let r = b.sumR / b.n;
     let g = b.sumG / b.n;
     let bl = b.sumB / b.n;
-    let em = b.sumE / b.n;
-    if (isLanternEmission) {
-      r = Math.max(r, 1.0);
-      g = Math.max(g, 0.78);
-      bl = Math.max(bl, 0.25);
-      em = Math.max(em, 1.4);
-    } else if (isWindowGlass) {
+    const em = b.sumE / b.n;
+    if (isWindowGlass) {
       // Dark recessed interior base matching LOD1 glass.shaderc (sky brightness comes from physical Fresnel IBL).
       r = 0.05;
       g = 0.065;
@@ -554,7 +568,14 @@ export function collapseDecorationToBoxes(dp: ConstructionDecorationPart): Const
       emission: emission as unknown as number[],
       uvs: undefined,
       tintMask,
-      appearance: kinds ? ({ kinds } as ConstructionDecorationPart["appearance"]) : undefined
+      appearance: kinds
+        ? {
+            kinds,
+            colorIds: new Array<number>(24).fill(isLanternEmission ? (dp.appearance?.colorIds?.[0] ?? 0) : 0),
+            centers: [],
+            materialUVs: []
+          }
+        : undefined
     });
   };
   for (const b of buckets) {
@@ -915,7 +936,8 @@ export function createBuildingFarProxy(
   parts: readonly ConstructionPreviewPart[],
   colorOwners: readonly ({ id: string } & BuildingPaletteSlot)[],
   appearance: ReturnType<typeof masonryAppearance>,
-  decorationParts: readonly ConstructionDecorationPart[] = []
+  decorationParts: readonly ConstructionDecorationPart[] = [],
+  lampMaterials?: BuildingLampMaterials
 ): BuildingFarProxyHandle | undefined {
   const includedParts: ConstructionPreviewPart[] = [];
   const includedDecorations: ConstructionDecorationPart[] = [];
@@ -954,6 +976,13 @@ export function createBuildingFarProxy(
     }
   }
   if (totalVertices === 0 || totalIndices === 0) return undefined;
+  if (lampMaterials?.size) {
+    includedDecorations.sort((left, right) => {
+      const a = lampMaterials.has(left.id) ? left.id : "";
+      const b = lampMaterials.has(right.id) ? right.id : "";
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
+  }
 
   const ownerById = new Map(colorOwners.map((owner) => [owner.id, owner] as const));
 
@@ -979,6 +1008,8 @@ export function createBuildingFarProxy(
 
   let vertexBase = 0;
   let indexOffset = 0;
+  // Keep one mesh/pick table. Each independently controlled filament needs its own material range.
+  const lampRanges: Array<{ id: string; start: number; count: number }> = [];
 
   const appendCompact = (
     pickId: string,
@@ -1065,6 +1096,11 @@ export function createBuildingFarProxy(
     const dp = includedDecorations[dIdx]!;
     const uvs = dp.uvs ?? dp.appearance?.materialUVs;
     const appKinds = dp.appearance?.kinds;
+    if (lampMaterials?.has(dp.id)) {
+      const previous = lampRanges[lampRanges.length - 1];
+      if (previous?.id === dp.id) previous.count += dp.indices.length;
+      else lampRanges.push({ id: dp.id, start: indexOffset, count: dp.indices.length });
+    }
     // Collapsed 24-vert proxy boxes already baked their outward offset; only bias uncollapsed meshes.
     const isCollapsedBox = dp.uvs === undefined && dp.indices.length === 36 && dp.positions.length === 72;
     const decoNormalBias = isCollapsedBox ? 0 : proxyDecorationNormalBias(appKinds?.[0]);
@@ -1078,14 +1114,8 @@ export function createBuildingFarProxy(
       (i) => dp.emission[i] ?? 0,
       (i) => {
         const appKind = appKinds?.[i];
-        const surfaceKind =
-          appKind === DecorationMaterial.glass ||
-          appKind === DecorationMaterial.texturedGlass ||
-          appKind === DecorationMaterial.lattice ||
-          appKind === DecorationMaterial.texturedLattice
-            ? SURFACE_KIND_DECORATION_GLASS
-            : SURFACE_KIND_DECORATION;
-        return [surfaceKind, 0, 0, 0];
+        const surfaceKind = proxyDecorationSurfaceKind(appKind, dp.appearance?.colorIds?.[i]);
+        return [surfaceKind, proxyFilamentTagY(surfaceKind, dp.emission[i] ?? 0), 0, 0];
       }
     );
   }
@@ -1112,14 +1142,42 @@ export function createBuildingFarProxy(
   if (pickBuffer) mesh.setVertexBufferBinding(pickBuffer, Float32Array.BYTES_PER_ELEMENT, 2);
   mesh.setVertexElements(inlinePick ? COMPACT_ELEMENTS_INLINE_PICK : COMPACT_ELEMENTS_WITH_PICK_BUF);
   mesh.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, useUInt32 ? IndexFormat.UInt32 : IndexFormat.UInt16));
-  mesh.addSubMesh(0, totalIndices, MeshTopology.Triangles);
+  const subMeshLampIds: Array<string | undefined> = [];
+  let nextIndex = 0;
+  for (const range of lampRanges) {
+    if (nextIndex < range.start) {
+      mesh.addSubMesh(nextIndex, range.start - nextIndex, MeshTopology.Triangles);
+      subMeshLampIds.push(undefined);
+    }
+    mesh.addSubMesh(range.start, range.count, MeshTopology.Triangles);
+    subMeshLampIds.push(range.id);
+    nextIndex = range.start + range.count;
+  }
+  if (nextIndex < totalIndices) {
+    mesh.addSubMesh(nextIndex, totalIndices - nextIndex, MeshTopology.Triangles);
+    subMeshLampIds.push(undefined);
+  }
   mesh.bounds = new BoundingBox(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
 
   const root = parent.createChild("Far proxy surfaces");
   root.isActive = false;
   const renderer = root.addComponent(MeshRenderer);
   renderer.mesh = mesh;
-  renderer.setMaterial(getSharedFarProxyMaterial(engine, inlinePick));
+  const sharedMaterial = getSharedFarProxyMaterial(engine, inlinePick);
+  const filamentMaterials = new Map<string, Material>();
+  const unbindFilaments: Array<() => void> = [];
+  renderer.setMaterials(
+    subMeshLampIds.map((id) => {
+      if (id === undefined) return sharedMaterial;
+      let material = filamentMaterials.get(id);
+      if (!material) {
+        material = sharedMaterial.clone();
+        filamentMaterials.set(id, material);
+        unbindFilaments.push(bindBuildingFilament(material.shaderData, lampMaterials!.get(id)!));
+      }
+      return material;
+    })
+  );
   renderer.enableVertexColor = true;
   renderer.priority = hasPlaster ? -98 : -105;
   renderer.castShadows = false;
@@ -1152,12 +1210,14 @@ export function createBuildingFarProxy(
       renderer.shaderData.setVector4(PROP_FAR_LOD_DEBUG_COLOR, debugColor);
     },
     destroy() {
+      for (const unsubscribe of unbindFilaments) unsubscribe();
       const release = () => {
         mesh.destroy();
         geomBuffer.destroy(true);
         colorBuffer.destroy(true);
         pickBuffer?.destroy(true);
         indexBuffer.destroy(true);
+        for (const material of filamentMaterials.values()) material.destroy();
       };
       if (!root.destroyed) root.destroy();
       if (root.pendingDestroy) queueMicrotask(release);

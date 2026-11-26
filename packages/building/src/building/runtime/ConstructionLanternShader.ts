@@ -11,7 +11,12 @@ export const constructionLanternColors: readonly (readonly [number, number, numb
   [1.8232423067092896, 0.5469726920127869, 0.18232423067092896]
 ];
 
-export const constructionLanternGLSL = `
+export const constructionLampControlGLSL = `
+#ifndef MASONRY_LAMP_CONTROL_INCLUDED
+#define MASONRY_LAMP_CONTROL_INCLUDED
+#ifdef MATERIAL_MASONRY_LAMP_HDR
+uniform vec3 material_MasonryLampHDR;
+#endif
 vec3 masonryLanternColor(float colorId){
   if(colorId<0.5) return vec3(1.0,0.800000011920929,0.10000000149011612);
   if(colorId<1.5) return vec3(0.0,0.7359041571617126,3.679520606994629);
@@ -19,17 +24,26 @@ vec3 masonryLanternColor(float colorId){
   if(colorId<3.5) return vec3(0.8515304327011108,0.567686915397644,2.8384344577789307);
   return vec3(1.8232423067092896,0.5469726920127869,0.18232423067092896);
 }
+#endif
+`;
+export const constructionLanternGLSL = `
+${constructionLampControlGLSL}
 vec3 masonryLanternSurface(vec3 positionWS,vec3 centerWS,vec3 sourceColor,vec3 cameraWS,
  float intensity,float colorId,bool emissive,out vec3 emission,out float roughness){
   roughness=0.800000011920929;
   emission=vec3(0.0);
-  if(emissive&&intensity>0.0){
+  if(emissive){
     vec3 eyeToFragment=positionWS-cameraWS;
     vec3 ray=eyeToFragment*inversesqrt(max(dot(eyeToFragment,eyeToFragment),1e-12));
     vec3 filamentOffset=centerWS-(cameraWS+ray*dot(centerWS-cameraWS,ray));
     float radius2=dot(filamentOffset,filamentOffset);
     float filament=3.0*(0.800000011920929*exp2(-50.0*radius2)+2.0*exp2(-200.0*radius2));
-    emission=masonryLanternColor(colorId)*(1.399999976158142*intensity)*filament;
+    #ifdef MATERIAL_MASONRY_LAMP_HDR
+      vec3 hdr=material_MasonryLampHDR;
+    #else
+      vec3 hdr=masonryLanternColor(colorId)*intensity;
+    #endif
+    emission=hdr*(1.399999976158142*filament);
   }
   return sourceColor;
 }

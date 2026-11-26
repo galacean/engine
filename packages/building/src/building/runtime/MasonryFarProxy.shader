@@ -50,6 +50,7 @@ Shader "Masonry/FarProxy" {
    #include "Masonry/LodDither.glsl"
    #include "Masonry/Plaster.glsl"
    #include "Masonry/SceneLighting.glsl"
+   #include "Masonry/LampControl.glsl"
    struct Attributes {
     vec3 POSITION;
     vec4 NORMAL;
@@ -166,9 +167,10 @@ Shader "Masonry/FarProxy" {
        }
      }
      vec3 n = normalize(v.normalWS) * (gl_FrontFacing || (kind > 2.5 && kind < 3.5) ? 1.0 : -1.0);
-     vec3 baseLit = masonryFarProxyLight(kind > 5.5 ? vec3(0.05, 0.065, 0.075) : albedo, n, v.positionWS);
+     bool isGlass = kind > 5.5 && kind < 6.5;
+     vec3 baseLit = masonryFarProxyLight(isGlass ? vec3(0.05, 0.065, 0.075) : albedo, n, v.positionWS);
      vec3 lit;
-     if (kind > 5.5) {
+     if (isGlass) {
        // Lightweight GPR-neutral glass shading (no cubemap sampler, no envDFGApprox, no GGX/fwidth)
        // so Adreno wave occupancy stays flat on wall/roof pixels while keeping crisp reflective panes
        // inside the 4-bar hollow window frames.
@@ -182,6 +184,13 @@ Shader "Masonry/FarProxy" {
        vec3 skyRefl = mix(vec3(0.55, 0.68, 0.80), vec3(0.72, 0.92, 1.25), reflY) * skyLum;
        vec3 glassColor = baseLit + fresnel * skyRefl + vec3(0.88, 0.78, 0.24) * (v.color.a * 0.55);
        lit = mix(glassColor, baseLit * 0.28, 0.38);
+     } else if (kind > 6.5) {
+       #ifdef MATERIAL_MASONRY_LAMP_HDR
+        lit = baseLit + material_MasonryLampHDR;
+       #else
+        float filamentIntensity = unpackHalf2x16(uint(v.surfaceTag.y * 65535.0 + 0.5)).x;
+        lit = baseLit + masonryLanternColor(kind - 7.0) * filamentIntensity;
+       #endif
      } else {
        lit = baseLit + vec3(1.0, 0.57, 0.18) * v.color.a;
      }

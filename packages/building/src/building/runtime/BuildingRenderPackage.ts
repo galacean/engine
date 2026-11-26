@@ -1,3 +1,4 @@
+import type { BuildingLampMaterials } from "./BuildingLampShaderBinding";
 import { buildingPartKey } from "./BuildingObjectIdentity";
 import { decorationStoneBounds } from "./DecorationStoneBounds";
 import { decorationFrameBounds } from "./ConstructionDecorationFrames";
@@ -63,7 +64,11 @@ export function buildBuildingRenderPackage(
   globals: ConstructionBindings,
   rigidPoses?: ReadonlyMap<string, readonly number[]>,
   stoneGeometry?: import("./ConstructionGeometryAssets").ConstructionStoneGeometry,
-  options?: { skipDocumentClone?: boolean }
+  options?: {
+    lampMaterials?: BuildingLampMaterials;
+    skipDocumentClone?: boolean;
+    wallBakes?: import("./BuildingWallBakeBinding").BuildingWallBakeBindings;
+  }
 ) {
   const stones = input.decorations.flatMap((d) => d.stones);
   const frames = input.decorations.flatMap((d) => d.frames);
@@ -207,6 +212,7 @@ export function buildBuildingRenderPackage(
   const groupById = new Map<number, BuildingUnitDrawGroup>(input.groups.map((g) => [g.id, g]));
   for (const draw of result.package.draws) {
     const group = draw.group != null ? groupById.get(draw.group) : undefined;
+    if (group?.role === "wall" || group?.role === "floor-band") draw.wallBakeReceiver = true;
     if (group?.decorationId !== undefined) draw.pickId = group.decorationId;
   }
   result.package.colorOwners = input.colorOwners.map((o) => ({ ...o }));
@@ -238,7 +244,7 @@ export function buildBuildingRenderPackage(
     appendDecorationRenderPackage(
       result,
       [
-        ...constructionSupportParts(input.backingParts),
+        ...constructionSupportParts(input.backingParts, options?.wallBakes),
         ...input.decorations.flatMap((d) => d.parts),
         ...input.surfaceParts
           .filter((p) => p.roofSpire)
@@ -254,9 +260,11 @@ export function buildBuildingRenderPackage(
             uvs: p.uvs
           }))
       ],
-      rigidPoses
+      rigidPoses,
+      options?.lampMaterials
     ),
-    input.surfaceParts
+    input.surfaceParts,
+    options?.wallBakes
   );
   const rendered = appendWoodArchRenderPackage(
     appendStoneFloorRenderPackage(decorated, input.surfaceParts),

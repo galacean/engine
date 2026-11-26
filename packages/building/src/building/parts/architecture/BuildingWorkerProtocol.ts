@@ -4,6 +4,8 @@ import type { InitialBuildingGroupInput, InitialBuildingGroupOutput } from "./Bu
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
 import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
 
+import type { BuildingWallBakeAtlas, BuildingWallBakeInput } from "../../runtime/BuildingWallBakeInput";
+
 export type BuildingCpuPreview = Omit<BuildingCpuPreparation, "prepared">;
 export type BuildingCpuDetail = Awaited<ReturnType<typeof compileBuildingCpu>>;
 export type BuildingWorkerRequest =
@@ -50,7 +52,12 @@ export type BuildingWorkerRequest =
       workerSlim?: boolean;
       omitEmptyCells?: boolean;
     }
+  | { id: number; mode: "wall-bake"; input: BuildingWallBakeInput }
   | { mode: "release"; token: number };
 export type BuildingWorkerReply =
-  | { id: number; ok: true; result: BuildingCpuPreview | BuildingCpuDetail | InitialBuildingGroupOutput }
+  | {
+      id: number;
+      ok: true;
+      result: BuildingCpuPreview | BuildingCpuDetail | InitialBuildingGroupOutput | BuildingWallBakeAtlas;
+    }
   | { id: number; ok: false; error: string };

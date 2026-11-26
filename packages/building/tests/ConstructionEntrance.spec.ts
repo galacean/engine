@@ -118,7 +118,7 @@ describe("BuildingRuntime exiting view lifecycle", () => {
       occupancy: { withoutOwner: () => ({}) },
       worldMatrix: new Float64Array(16),
       occupancyMatrix: new Float64Array(16),
-      lights: [],
+      releaseLampMaterials() {},
       diagnostics: [],
       focus: new Map(),
       cpu: { valid: true, dispose() {} },

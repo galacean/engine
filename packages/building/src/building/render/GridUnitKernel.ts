@@ -26,6 +26,7 @@ import {
   type GridKernelInput,
   type GridKernelTerrainInfo
 } from "./GridUnitKernelInput";
+import { buildingTerrainAxes } from "../runtime/TerrainField";
 import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
 export {
   brickRecord,
@@ -102,9 +103,9 @@ float sampleHeightU16(ivec2 ij) {
 
 float sampleGroundY(float lx, float lz) {
   if (uHeightMeta.x < 1.5) return uGroundY;
-  // Matches prepareBuildingTerrain: wx = px + c * lx + s * lz, wz = pz - s * lx + c * lz
-  float wx = uFrameTransform.x + uFrameTransform.z * lx + uFrameTransform.w * lz;
-  float wz = uFrameTransform.y - uFrameTransform.w * lx + uFrameTransform.z * lz;
+  // Coordinates relative to the frame origin; height decode is already in local Y.
+  float wx = dot(uFrameTransform.xy, vec2(lx, lz));
+  float wz = dot(uFrameTransform.zw, vec2(lx, lz));
   float u = clamp((wx - uHeightOrigin.x) / uHeightMeta.y, 0.0, 1.0);
   float v = clamp((wz - uHeightOrigin.y) / uHeightMeta.y, 0.0, 1.0);
   int maxIdx = int(uHeightMeta.x) - 1;
@@ -262,15 +263,14 @@ export class GridUnitKernel {
     d.setTexture("uHeightMap", useTerrain ? this.heightMap! : getDummyHeightTexture(this.engine));
     if (useTerrain && p.terrain) {
       const t = p.terrain;
-      const c = Math.cos(t.frame.rotationY),
-        s = Math.sin(t.frame.rotationY);
-      d.setVector2("uHeightOrigin", new Vector2(t.origin[0], t.origin[1]));
-      d.setVector4("uHeightMeta", new Vector4(t.resolution, t.size, t.decode.offset, t.decode.scale));
-      d.setVector4("uFrameTransform", new Vector4(t.frame.position[0], t.frame.position[2], c, s));
+      const sy = t.frame.scale?.[1] ?? 1;
+      d.setVector2("uHeightOrigin", new Vector2(t.origin[0] - t.frame.position[0], t.origin[1] - t.frame.position[2]));
+      d.setVector4("uHeightMeta", new Vector4(t.resolution, t.size, t.decode.offset / sy, t.decode.scale / sy));
+      d.setVector4("uFrameTransform", new Vector4(...buildingTerrainAxes(t.frame)));
     } else {
       d.setVector2("uHeightOrigin", new Vector2(0, 0));
       d.setVector4("uHeightMeta", new Vector4(0, 1, 0, 1));
-      d.setVector4("uFrameTransform", new Vector4(0, 0, 1, 0));
+      d.setVector4("uFrameTransform", new Vector4(1, 0, 0, 1));
     }
     const holes = p.holes ?? [];
     const holeCount = Math.min(MAX_GRID_KERNEL_HOLES, holes.length);

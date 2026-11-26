@@ -1,12 +1,14 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Camera, Entity, Logger, MeshRenderer, Scene, Script, Shader, ShaderFactory, ShaderLanguage, type Engine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { NullBuffer } from "../../rhi-null/src/NullBuffer";
 import { HeadlessEngine } from "../../rhi-null/src/HeadlessEngine";
 import { ShaderMacroProcessor } from "../../core/src/shader/ShaderMacroProcessor";
 import { registerConstructionSceneLighting } from "../src/building/runtime/ConstructionSceneLighting";
 import { constructionPlasterGLSL } from "../src/building/runtime/ConstructionPlasterShader";
 import { masonryAppearance } from "../src/building/runtime/MasonryAppearance";
 import { BuildingGlobalProxy } from "../src/building/runtime/BuildingGlobalProxy";
+import { BuildingWallLightmapPage, type BuildingWallBakeTexture } from "../src/building/runtime/BuildingWallBakeBinding";
 import { createBuildingDistanceView } from "../src/building/runtime/BuildingDistanceView";
 import { BuildingManager } from "../src/building/parts/architecture/BuildingManager";
 import { CONSTRUCTION_EXIT_SECONDS } from "../src/building/runtime/ConstructionEntrance";
@@ -23,12 +25,8 @@ function createMockEngine(): Engine {
   const mockRhi = {
     supportsRendering: true,
     canIUse: () => true,
-    createPlatformBuffer: () => ({
-      bind: noop,
-      setData: noop,
-      getData: noop,
-      destroy: noop
-    }),
+    createPlatformBuffer: (_type: number, length: number, _usage: number, data?: ArrayBuffer | ArrayBufferView) =>
+      new NullBuffer(length, data),
     createPlatformPrimitive: () => ({
       draw: noop,
       destroy: noop
@@ -209,6 +207,88 @@ describe("BuildingGlobalProxy shader & spatial bucketing contract", () => {
         expect(fs.length).toBeGreaterThan(0);
       }
     }
+  });
+
+  it("samples the atlas once from vertex lightmap UVs on baked structural proxies", () => {
+    const compiler = registerIncludes();
+    const pass = compiler._parseShaderSource(globalProxyShaderSource).subShaders[0].passes[2];
+    const compiled = compiler._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300,
+      undefined,
+      pass.contentScopeStarts
+    )!;
+    const macros = new Map([["GRAPHICS_API_WEBGL2", ""], ["RENDERER_MASONRY_WALL_BAKE", ""]]);
+    const vs = ShaderMacroProcessor.evaluate(compiled.vertexShaderInstructions!, macros);
+    const fs = ShaderMacroProcessor.evaluate(compiled.fragmentShaderInstructions!, macros);
+    expect(vs).toContain("TEXCOORD_2");
+    expect(vs).not.toContain("material_ProxyWallWorld");
+    expect(fs.match(/texture(?:2D)?\s*\(\s*renderer_WallBakeAtlas\b/g)).toHaveLength(1);
+    expect(fs).not.toMatch(/renderer_WallBake(?:Index|Projection|Line)/);
+    macros.delete("RENDERER_MASONRY_WALL_BAKE");
+    macros.set("GLOBAL_PROXY_INSTANCED", "");
+    expect(ShaderMacroProcessor.evaluate(compiled.fragmentShaderInstructions!, macros)).not.toContain("renderer_WallBakeAtlas");
+  });
+
+  it("batches separate layouts on a shared page and preserves each transformed wall's UVs", () => {
+    installShaderCompiler();
+    const engine = createMockEngine(),
+      scene = createMockScene(engine);
+    activeScenes.push(scene);
+    const proxy = BuildingGlobalProxy.forScene(scene);
+    const bind = (data: import("@galacean/engine").ShaderData) => data.enableMacro("RENDERER_MASONRY_WALL_BAKE");
+    const page = Object.assign(Object.create(BuildingWallLightmapPage.prototype), { bind });
+    const tile = (offsetU: number): BuildingWallBakeTexture => ({
+      page, bakeMs: 0, bind, dispose() {}, isolatedChart() { return this; }, placement: { x: 0, y: 0, width: 32, height: 32 },
+      planar: true, unbounded: false, blackUV: [0, 0],
+      charts: [{nx: 0, nz: 1, plane: 0, start: -10, end: 10,
+        tile: {du: 0.02, dv: 0.02, offsetU, offsetV: 0.3, bounds: [offsetU, 0.3, offsetU + 0.19, 0.45], darkUV: [offsetU - 0.01, 0.29]}}]
+    });
+    const facade = {
+      ...makePlasterPart("house"),
+      positions: [0, 0, 0, 4, 0, -4, 4, 3, -4, 0, 3, 0],
+      normals: Array.from({ length: 12 }, (_, i) => (i % 3 === 1 ? 0 : Math.SQRT1_2))
+    };
+    const slots = [1, 12].map((x, i) => {
+      const frame = scene.createRootEntity("house");
+      frame.transform.setPosition(x, 0, 0);
+      frame.transform.setScale(2, 3, 4);
+      const slot = proxy.register({
+        root: frame.createChild("view"),
+        frame,
+        appearance: masonryAppearance({}),
+        colorOwners: [],
+        hiddenOwners: new Set(),
+        parts: [facade, makeNonBoxWallPart("paving")],
+        wallBakes: new Map([["house", { texture: tile(0.2 + 0.4 * i), origin: [0, 0, 0], yaw: Math.PI / 4 }]])
+      });
+      slot.updateState(true, true, 1, false);
+      return slot;
+    });
+    proxy.flushIfDirty();
+    const draws = proxy.root.children
+      .filter((e) => e.name.startsWith("GlobalProxyStruct_"))
+      .map((e) => e.getComponent(MeshRenderer)!);
+    const walls = draws.filter((r) => r.shaderData.getMacros().some((m) => m.name === "RENDERER_MASONRY_WALL_BAKE"));
+    expect(walls).toHaveLength(1);
+    expect(draws.length).toBeGreaterThan(walls.length);
+    // The scaled wall tangent is (8, 0, -16), so its packed world normal is (2, 0, 1) / sqrt(5).
+    const packedNormal = new Int8Array(3);
+    (walls[0]!.mesh as import("@galacean/engine").BufferMesh).vertexBufferBindings[0]!.buffer.getData(packedNormal, 12);
+    expect(Array.from(packedNormal)).toEqual([114, 0, 57]);
+    const stream = (walls[0]!.mesh as import("@galacean/engine").BufferMesh).vertexBufferBindings[0]!;
+    for (let i = 0; i < 2; i++) {
+      const uv = new Float32Array(2);
+      stream.buffer.getData(uv, i * 4 * stream.stride + 32);
+      expect(uv[0]).toBeCloseTo(0.2 + 0.4 * i);
+      expect(uv[1]).toBeCloseTo(0.3);
+      stream.buffer.getData(uv, (i * 4 + 2) * stream.stride + 32);
+      expect(uv[0]).toBeCloseTo(0.2 + 0.4 * i + 4 * Math.SQRT2 * 0.02);
+      expect(uv[1]).toBeCloseTo(0.36);
+    }
+    slots.forEach((s) => s.destroy());
   });
 
   it("buckets by 64m spatial cells, splits shadow/non-shadow chunks, toggles ShadowOnly material, preserves LOD2 picking, and prunes empty buckets", () => {
@@ -485,6 +565,13 @@ describe("BuildingGlobalProxy shader & spatial bucketing contract", () => {
         { unifiedGlobalProxy: true }
       );
       await view.ready;
+      const frustum = vi.spyOn(camera._frustum, "intersectsBox").mockImplementation((bounds) => bounds.max.x > 16);
+      expect(view.recentlyRendered).toBe(false);
+      frame.transform.setScale(2, 3, 4);
+      expect(view.recentlyRendered).toBe(true);
+      frame.transform.setScale(1, 1, 1);
+      expect(view.recentlyRendered).toBe(false);
+      frustum.mockRestore();
       view.setVisualVisible(true);
       view.setFarProxyActive(true);
       const proxy = BuildingGlobalProxy.existing(scene)!;
@@ -626,7 +713,7 @@ describe("BuildingGlobalProxy shader & spatial bucketing contract", () => {
           entranceInstanceKeys: [],
           worldMatrix: new Float64Array(16),
           occupancyMatrix: new Float64Array(16),
-          lights: [],
+          releaseLampMaterials() {},
           diagnostics: [],
           focus: new Map(),
           cpu: { valid: true, dispose() {} },
@@ -746,7 +833,7 @@ describe("BuildingGlobalProxy shader & spatial bucketing contract", () => {
           entranceInstanceKeys: [],
           worldMatrix: new Float64Array(16),
           occupancyMatrix: new Float64Array(16),
-          lights: [],
+          releaseLampMaterials() {},
           diagnostics: [],
           focus: new Map(),
           cpu: { valid: true, dispose() {} },

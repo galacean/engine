@@ -14,7 +14,17 @@ export interface ConstructionTerrainSource {
   revision: string | number;
   grid: ConstructionTerrainGrid;
 }
+/** XZ basis of an upright placement. Scale is applied in building-local axes before yaw. */
+export function buildingTerrainAxes(frame: { rotationY: number; scale?: readonly [number, number, number] }) {
+  const c = Math.cos(frame.rotationY),
+    s = Math.sin(frame.rotationY);
+  const sx = frame.scale?.[0] ?? 1,
+    sz = frame.scale?.[2] ?? 1;
+  return [c * sx, s * sz, -s * sx, c * sz] as const;
+}
 export interface ConstructionGrounding {
+  /** Converts solved local contact heights to world metres for diagnostics. Defaults to one. */
+  verticalScale?: number;
   originY: number;
   minWorldHeight?: number;
   maxWorldHeight?: number;

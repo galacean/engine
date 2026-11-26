@@ -130,6 +130,8 @@ Shader "Masonry/GlobalProxy" {
    #include "ShaderLibrary/Common/Transform.glsl"
    #include "Masonry/Plaster.glsl"
    #include "Masonry/SceneLighting.glsl"
+   #include "Masonry/LampControl.glsl"
+   #include "Masonry/WallBake.glsl"
    struct Attributes {
     vec3 POSITION;
     vec4 NORMAL;
@@ -143,9 +145,15 @@ Shader "Masonry/GlobalProxy" {
      vec4 TEXCOORD_4;
     #else
      float TEXCOORD_1;
+     #if defined(RENDERER_MASONRY_WALL_BAKE) && !defined(GLOBAL_PROXY_INSTANCED)
+      vec2 TEXCOORD_2;
+     #endif
     #endif
    };
    vec4 material_ProxyState[64];
+   #ifdef GLOBAL_PROXY_LAMP_HDR
+    vec4 material_ProxyLampHDR[64];
+   #endif
    #ifdef GLOBAL_PROXY_ENTRANCE
     vec4 material_ProxyEntrance[64];
    #endif
@@ -153,6 +161,19 @@ Shader "Masonry/GlobalProxy" {
     float renderer_WorldPickBase;
    #endif
    struct MasonryGlobalProxyVaryings {
+    #if defined(RENDERER_MASONRY_WALL_BAKE) && !defined(GLOBAL_PROXY_INSTANCED)
+     vec2 lightmapUV;
+     #if defined(GLOBAL_PROXY_LAMP_HDR) && !defined(RENDERER_MASONRY_WALL_LAYOUT)
+      vec3 wallSlotColor;
+     #endif
+     #ifdef RENDERER_MASONRY_WALL_LAYOUT
+      vec4 wallColorLayer;
+      vec4 wallBounds;
+      #ifdef RENDERER_MASONRY_WALL_OVERLAP
+       vec4 wallExtra;
+      #endif
+     #endif
+    #endif
     vec3 positionWS;
     vec3 normalWS;
     vec4 color;
@@ -217,6 +238,30 @@ Shader "Masonry/GlobalProxy" {
     #endif
     v.positionWS = positionWS;
     int clampedSlot = clamp(slot, 0, 63);
+    if (v.surfaceTag.x > 6.5) {
+     float intensity = unpackHalf2x16(uint(v.surfaceTag.y * 65535.0 + 0.5)).x;
+     vec3 hdr = masonryLanternColor(v.surfaceTag.x - 7.0) * intensity;
+     #ifdef GLOBAL_PROXY_LAMP_HDR
+      vec4 lamp = material_ProxyLampHDR[clampedSlot];
+      if (lamp.w > 0.5) hdr = lamp.rgb;
+     #endif
+     v.surfaceTag.yzw = hdr;
+    }
+    #if defined(RENDERER_MASONRY_WALL_BAKE) && !defined(GLOBAL_PROXY_INSTANCED)
+     #ifdef RENDERER_MASONRY_WALL_LAYOUT
+        #ifdef RENDERER_MASONRY_WALL_OVERLAP
+          v.wallExtra = masonryWallProject(a.TEXCOORD_2, v.lightmapUV, v.wallColorLayer, v.wallBounds);
+        #else
+          masonryWallProject(a.TEXCOORD_2, v.lightmapUV, v.wallColorLayer, v.wallBounds);
+        #endif
+      #else
+        v.lightmapUV = a.TEXCOORD_2;
+        #ifdef GLOBAL_PROXY_LAMP_HDR
+          vec4 wallLamp = material_ProxyLampHDR[clampedSlot];
+          v.wallSlotColor = wallLamp.w > 0.5 ? wallLamp.rgb : vec3(1.0);
+        #endif
+      #endif
+    #endif
     vec4 state = material_ProxyState[clampedSlot];
     v.lodFade = state.z;
     v.lodDebug = state.w;
@@ -306,9 +351,25 @@ Shader "Masonry/GlobalProxy" {
       }
      }
      vec3 n = normalize(v.normalWS) * (gl_FrontFacing || (kind > 2.5 && kind < 3.5) ? 1.0 : -1.0);
-     vec3 baseLit = masonryFarProxyLight(kind > 5.5 ? vec3(0.05, 0.065, 0.075) : albedo, n, v.positionWS);
+     bool isGlass = kind > 5.5 && kind < 6.5;
+     vec3 baseLit = masonryFarProxyLight(isGlass ? vec3(0.05, 0.065, 0.075) : albedo, n, v.positionWS);
+     #if defined(RENDERER_MASONRY_WALL_BAKE) && !defined(GLOBAL_PROXY_INSTANCED)
+      #ifdef RENDERER_MASONRY_WALL_LAYOUT
+        vec3 wallLight = masonryWallSample(v.lightmapUV,v.wallColorLayer,v.wallBounds);
+        #ifdef RENDERER_MASONRY_WALL_OVERLAP
+          wallLight += masonryWallAdditional(v.wallExtra);
+        #endif
+        baseLit += albedo * wallLight;
+      #else
+        #ifdef GLOBAL_PROXY_LAMP_HDR
+          baseLit += albedo * (texture2D(renderer_WallBakeAtlas, v.lightmapUV).r * v.wallSlotColor);
+        #else
+          baseLit += albedo * masonryWallIrradiance(v.lightmapUV);
+        #endif
+      #endif
+     #endif
      vec3 lit;
-     if (kind > 5.5) {
+     if (isGlass) {
       // Lightweight GPR-neutral glass shading (no cubemap sampler, no envDFGApprox, no GGX/fwidth)
       // so Adreno wave occupancy stays flat on wall/roof pixels while keeping crisp reflective panes
       // inside the 4-bar hollow window frames.
@@ -322,6 +383,8 @@ Shader "Masonry/GlobalProxy" {
       vec3 skyRefl = mix(vec3(0.55, 0.68, 0.80), vec3(0.72, 0.92, 1.25), reflY) * skyLum;
       vec3 glassColor = baseLit + fresnel * skyRefl + vec3(0.88, 0.78, 0.24) * (v.color.a * 0.55);
       lit = mix(glassColor, baseLit * 0.28, 0.38);
+     } else if (kind > 6.5) {
+      lit = baseLit + v.surfaceTag.yzw;
      } else {
       lit = baseLit + vec3(1.0, 0.57, 0.18) * v.color.a;
      }

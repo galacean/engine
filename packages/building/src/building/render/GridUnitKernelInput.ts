@@ -27,7 +27,11 @@ export interface GridKernelTerrainInfo {
   readonly origin: readonly [number, number];
   readonly size: number;
   readonly decode: { readonly offset: number; readonly scale: number };
-  readonly frame: { readonly position: readonly [number, number, number]; readonly rotationY: number };
+  readonly frame: {
+    readonly position: readonly [number, number, number];
+    readonly rotationY: number;
+    readonly scale?: readonly [number, number, number];
+  };
 }
 
 /** Everything the kernel reads. Its size does not depend on the number of units. */

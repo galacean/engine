@@ -7,7 +7,6 @@ import {
   BufferMesh,
   MeshRenderer,
   Matrix,
-  Quaternion,
   Vector3,
   type Entity,
   type Camera,
@@ -34,17 +33,26 @@ import { hasConstructionWallRoofJointParams } from "../../runtime/ConstructionWa
 import { createBuildingDistanceView } from "../../runtime/BuildingDistanceView";
 import { BuildingGlobalProxy } from "../../runtime/BuildingGlobalProxy";
 import {
+  BuildingWallBakeCache,
+  type BuildingWallLightmapInventory,
+  type WallBakeEventKind
+} from "../../runtime/BuildingWallBakeCache";
+import {
+  BuildingWallLightmapPages,
+  combineBuildingWallBakes,
+  type BuildingWallBakeBinding,
+  type BuildingWallBakeBindings,
+  type BuildingWallBakeTexture
+} from "../../runtime/BuildingWallBakeBinding";
+import { withBuildingWallBakeTransform, type BuildingWallBakeInput } from "../../runtime/BuildingWallBakeInput";
+import {
   MasonryResidency,
   createMasonryResidencyMetrics,
   type MasonryResidencyEntry
 } from "../../runtime/MasonryResidency";
 import { MasonryLodProbe } from "../../runtime/MasonryLodPolicy";
 import { MasonryLodTransition } from "../../runtime/MasonryLodTransition";
-import { constructionDecorationLights } from "../../runtime/ConstructionDecorationLightPolicy";
-import {
-  ConstructionDecorationLights,
-  type ConstructionDecorationLight
-} from "../../runtime/ConstructionDecorationLights";
+import { BuildingLampMaterial, type LampHDR } from "../../runtime/BuildingLampMaterial";
 import { buildingAssets, retainBuildingResource } from "../../resources/BuildingAssetKit";
 import { resolveDocument } from "../../runtime/PlacementDocument.js";
 import { inspectMasonrySurface } from "../../runtime/MasonrySurfaceInspection";
@@ -111,37 +119,11 @@ function localCandidate(
   return { ...preview, cpu };
 }
 type BuildingObjectBinding = { member: Component; inverse: readonly number[] };
-type BoundLight = { descriptor: ConstructionDecorationLight; member: Component; local: Vector3 };
 function rigidBindings(bindings: ReadonlyMap<string, BuildingObjectBinding>) {
   return {
     poses: new Map([...bindings].map(([key, binding]) => [key, binding.inverse])),
     resolve: (key: string) => bindings.get(key)?.member.entity
   };
-}
-function bindLights(
-  lights: ConstructionDecorationLight[],
-  bindings: ReadonlyMap<string, BuildingObjectBinding>,
-  frame: Entity
-): BoundLight[] {
-  return lights.map((light) => {
-    const id = light.decorationId !== undefined ? buildingPartKey(light.decorationId) : buildingGroupKey(light.ownerId),
-      binding = bindings.get(id);
-    if (!binding) throw Error(`Missing light binding ${id}`);
-    const inverse = new Matrix();
-    inverse.copyFromArray(binding.inverse);
-    const local = new Vector3(...light.position);
-    Vector3.transformCoordinate(local, inverse, local);
-    return {
-      descriptor: {
-        ...light,
-        id: buildingInstanceKey(frame, light.id),
-        ownerId: buildingInstanceKey(frame, buildingGroupKey(light.ownerId)),
-        position: [...light.position] as [number, number, number]
-      },
-      member: binding.member,
-      local
-    };
-  });
 }
 export type BuildingRuntimeInput = {
   assets?: PrefabResource;
@@ -153,17 +135,38 @@ export type BuildingRuntimeInput = {
   bodies: Component[];
   groupIds: Map<Component, string>;
   terrain: ConstructionTerrainSource;
-  worldFrame?: Matrix;
   signature: string;
 };
+/** Keep only identifiers on resident views so the geometry used to classify them can be released. */
+export interface BuildingWallBakeEvent {
+  kind: WallBakeEventKind;
+  frame: Entity;
+  owner: string;
+  lampId: string;
+  partId: string;
+  at: number;
+  width?: number;
+  height?: number;
+  bakeMs?: number;
+  error?: string;
+}
+type WallBakeKeys = Pick<BuildingWallBakeInput, "typeKey" | "key"> & { buildingId: string };
+function wallBakeKeys(frame: Entity, sources: readonly BuildingWallBakeInput[]): WallBakeKeys[] {
+  return sources.map(({ typeKey, key, owner }) => ({ typeKey, key, buildingId: buildingInstanceKey(frame, owner) }));
+}
+
+type SolvedBuilding = Awaited<ReturnType<BuildingCpuClient["prepare"]>> & { releaseAssets(): void };
 type ProfileView = MasonryResidencyEntry & {
+  wallBakes: BuildingWallBakeBindings;
+  lampMaterials: ReadonlyMap<string, BuildingLampMaterial>;
+  releaseLampMaterials(): void;
+  wallBakeKeys: readonly WallBakeKeys[];
   kind: "profile";
   entranceStates: Map<string, ConstructionEntranceState>;
   fine?: Candidate;
   frame: Entity;
   view: Awaited<ReturnType<typeof createBuildingDistanceView>>;
   signature: string;
-  lights: BoundLight[];
   bodies: Component[];
   groupIds: Map<Component, string>;
   entranceInstanceKeys: readonly string[];
@@ -173,7 +176,7 @@ type ProfileView = MasonryResidencyEntry & {
   worldOccupancy?: BuildingOccupancyQuery;
   occupancyMatrix: Float64Array;
   cpu: BuildingCpuHandle;
-  detailInput?: Pick<BuildingRuntimeInput, "assets" | "terrain" | "bindings" | "worldFrame" | "placement">;
+  detailInput?: Pick<BuildingRuntimeInput, "assets" | "terrain" | "bindings">;
   diagnostics: readonly { source: string; message: string }[];
   focus: Map<Component, BoundFocus>;
   inspection?: { controller: AbortController; result: Promise<ReturnType<typeof resolveDocument>["cells"]> };
@@ -190,6 +193,7 @@ function destroyView(view: View): void {
   view.inspection?.controller.abort();
   view.fine?.destroy();
   view.view.destroy();
+  view.releaseLampMaterials();
 }
 function showView(view: View, visible: boolean): void {
   viewRoot(view).isActive = visible;
@@ -213,6 +217,7 @@ export interface BuildingRuntimeHost {
   ): BuildingRuntimeInput;
 }
 type Build = {
+  wallBakeKeys?: readonly WallBakeKeys[];
   frame: Entity;
   bodies: Component[];
   signature: string;
@@ -342,6 +347,22 @@ export function masonryShaderFeatures(input: Pick<BuildingRuntimeInput, "draft">
  * residency and picking for any part collection. */
 export class BuildingRuntime extends Script {
   private readonly compiler = new BuildingCpuClient();
+  private wallLightmapPages?: BuildingWallLightmapPages;
+  private readonly wallBakeCache = new BuildingWallBakeCache<BuildingWallBakeTexture>((texture) => texture.dispose());
+  private terrainWallBakeKeys?: readonly WallBakeKeys[];
+  onWallBakeEvent?: (event: BuildingWallBakeEvent) => void;
+  onWallLightmapInventoryChange?: (inventory: BuildingWallLightmapInventory) => void;
+
+  /** One entry per lit author group, independent of camera distance or instance count. */
+  get wallLightmapInventory(): BuildingWallLightmapInventory {
+    if (this.terrainWallBakeKeys)
+      return this.wallBakeCache.inventory(this.terrainWallBakeKeys, this.wallLightmapPages?.pageCount);
+    const byFrame = new Map([...this.views].map(([frame, view]) => [frame, view.wallBakeKeys]));
+    for (const build of this.activeBuilds) {
+      if (build.wallBakeKeys) byFrame.set(build.frame, build.wallBakeKeys);
+    }
+    return this.wallBakeCache.inventory([...byFrame.values()].flat(), this.wallLightmapPages?.pageCount);
+  }
   /** Shared multi-worker Building CPU compiler pool owned by this runtime. */
   get cpuCompiler(): BuildingCpuClient {
     return this.compiler;
@@ -419,11 +440,14 @@ export class BuildingRuntime extends Script {
   private terrainUpdate?: { discard(): void };
   private inputUpdates = 0;
   private closed = false;
-  private lights?: ConstructionDecorationLights;
-  private lightsDirty = true;
-  private hasWorldDecorationLights = false;
-  private readonly lightDescriptors: ConstructionDecorationLight[] = [];
-  private readonly lightPosition = new Vector3();
+  // Preparing and retiring views may temporarily coexist with the published view.
+  private readonly lampStates = new WeakMap<
+    Entity,
+    {
+      overrides: Map<string, LampHDR>;
+      layouts: Set<ReadonlyMap<string, BuildingLampMaterial>>;
+    }
+  >();
   private readonly entrance = new ConstructionEntrance();
   private readonly exitingViews: {
     view: View;
@@ -435,6 +459,28 @@ export class BuildingRuntime extends Script {
   private entranceEnabled = false;
   private entranceStarted = false;
 
+  /** Set an absolute scene-linear material colour for exactly one native emitter on one instance.
+   * Omit the colour to restore that emitter's authored HDR. */
+  setWallLampHDR(frame: Entity, lampId: string, rgb?: LampHDR): void {
+    const state = this.lampStates.get(frame);
+    const view = this.views.get(frame);
+    if (!state || !view?.lampMaterials.has(lampId)) throw Error("Unknown wall lamp in this building");
+    if (rgb && (rgb.length !== 3 || rgb.some((v) => !Number.isFinite(v) || v < 0)))
+      throw Error("Lamp HDR requires three finite nonnegative values");
+    if (rgb) state.overrides.set(lampId, [rgb[0], rgb[1], rgb[2]]);
+    else state.overrides.delete(lampId);
+    for (const layout of state.layouts) layout.get(lampId)?.setHDR(rgb);
+  }
+
+  /** Read the actual emitters in the published geometry, including lamps authored off. */
+  listWallLamps(frame: Entity) {
+    return Array.from(this.views.get(frame)?.lampMaterials.values() ?? [], ({ lampId, partId, hdr, authoredHDR }) => ({
+      lampId,
+      partId,
+      authoredHDR: [...authoredHDR] as LampHDR,
+      hdr: [hdr.x, hdr.y, hdr.z] as LampHDR
+    }));
+  }
   /** Presentation visibility is independent of the manager's Engine tick. */
   get visible(): boolean {
     return this.shown;
@@ -443,7 +489,6 @@ export class BuildingRuntime extends Script {
     if (value === this.shown) return;
     this.shown = value;
     this.surfaceRevision++;
-    this.lightsDirty = true;
     for (const view of this.views.values()) showView(view, value);
     for (const item of this.exitingViews) {
       if (item.anchor && !item.anchor.destroyed) item.anchor.isActive = value;
@@ -454,7 +499,6 @@ export class BuildingRuntime extends Script {
       }
     }
     this.updateResidency(0);
-    this.updateLights(0);
   }
   get publicationRevision(): number {
     this.syncOccupancyRevision();
@@ -468,7 +512,6 @@ export class BuildingRuntime extends Script {
     this.entranceEnabled = true;
     this.entrance.publish();
     this.applyEntrance();
-    this.updateLights(0);
   }
   startEntrance(): void {
     if (!this.entranceEnabled) throw Error("Building entrance has not been published");
@@ -482,17 +525,13 @@ export class BuildingRuntime extends Script {
     const owners = body ? new Set([this.host!.groupIdentity(body)]) : undefined;
     this.entrance.replay(owners);
     this.applyEntrance();
-    this.updateLights(0);
   }
   private applyEntrance(changed?: ReadonlySet<string>): void {
-    let touched = false;
     for (const view of this.entries) {
       if (changed && !view.entranceInstanceKeys.some((key) => changed.has(key))) continue;
       view.view.setEntrance(view.entranceStates);
       view.fine?.runtime.setEntrance(view.entranceStates);
-      if (view.lights.length) touched = true;
     }
-    if (touched) this.lightsDirty = true;
   }
 
   bind(host: BuildingRuntimeHost): void {
@@ -504,7 +543,6 @@ export class BuildingRuntime extends Script {
     this.publishedTerrain = host.terrain;
     this.host = host;
     BuildingRuntime.clearInputCache(this);
-    this.lightsDirty = true;
     this.residency = new MasonryResidency(
       this.engine,
       host.camera,
@@ -539,7 +577,6 @@ export class BuildingRuntime extends Script {
     this.dirtyTransformMembers.delete(component);
     this.members.get(component)?.destroy();
     this.members.delete(component);
-    this.lightsDirty = true;
     if (this.host?.isBody(component)) {
       for (const build of this.activeBuilds) if (build.bodies.includes(component)) build.controller.abort();
       if (this.detailBuild?.bodies.includes(component)) this.detailBuild.controller.abort();
@@ -606,10 +643,7 @@ export class BuildingRuntime extends Script {
       dirtied = true;
     }
     this.dirtyTransformMembers.clear();
-    if (dirtied) {
-      this.lightsDirty = true;
-      this.invalidate();
-    }
+    if (dirtied) this.invalidate();
   }
   onUpdate(deltaTime: number): void {
     const mark = (globalThis as { __mobileSeedTickMark?: (name: string, ms: number) => void }).__mobileSeedTickMark;
@@ -627,14 +661,7 @@ export class BuildingRuntime extends Script {
       t0 = performance.now();
     }
     this.updateResidency(deltaTime);
-    if (mark) {
-      mark("bldg.residency", performance.now() - t0);
-      t0 = performance.now();
-    }
-    this.updateLights(deltaTime);
-    if (mark) {
-      mark("bldg.lights", performance.now() - t0);
-    }
+    if (mark) mark("bldg.residency", performance.now() - t0);
     if (this.host && !this.inputUpdates && !this.terrainUpdate && !this.pending && this.applied !== this.revision)
       void this.flush().catch(() => {});
   }
@@ -668,7 +695,6 @@ export class BuildingRuntime extends Script {
       this.updateResidency(0);
       const failure = this.entries.find((entry) => entry.error && this.residency!.desired.has(entry));
       if (failure) throw Error(failure.error);
-      this.updateLights(0);
     } finally {
       this.flushDepth = Math.max(0, this.flushDepth - 1);
     }
@@ -753,9 +779,7 @@ export class BuildingRuntime extends Script {
       }
       this.probeRevision = -1;
       this.detailDirty = true;
-      this.lightsDirty = true;
       this.updateResidency(0);
-      this.updateLights(0);
     };
     const destroy = (entries: View[]) => {
       for (const entry of entries) destroyView(entry);
@@ -765,6 +789,8 @@ export class BuildingRuntime extends Script {
       signal?.removeEventListener("abort", discard);
       if (this.terrainUpdate === token) this.terrainUpdate = undefined;
       // A settled transaction no longer owns the previous world or its views.
+      this.terrainWallBakeKeys = undefined;
+      this.onWallLightmapInventoryChange?.(this.wallLightmapInventory);
       previous = undefined;
       before.length = 0;
       beforeSignatures.clear();
@@ -795,28 +821,49 @@ export class BuildingRuntime extends Script {
       if (scene) BuildingGlobalProxy.beginSceneBatch(scene);
       const concurrency = Math.max(1, (this.compiler?.workerLimit ?? 3) + 1);
       let views: Array<{ view: View; signature: string }>;
+      const unpublished = new Set<SolvedBuilding>();
       try {
-        views = await runWithConcurrency(frameList, concurrency, async (frame) => {
+        // Solve every group first so the loading UI knows the full set of required
+        // lightmaps, including distant buildings, before the first bake starts.
+        const plans = await runWithConcurrency(frameList, concurrency, async (frame) => {
           check();
           const input = this.input(frame, next),
             old = this.views.get(frame);
-          const unchanged =
+          if (
             old &&
             previous &&
             old.signature === this.input(frame, previous).signature &&
             input.execution !== "main" &&
-            !terrainAffectsRegion(buildingWorldRegion(input.draft, input.placement), previous.grid, next.grid);
-          const view = unchanged ? old : await this.prepareView(frame, input, check, effectiveSignal);
-          if (!unchanged) {
-            if (finished) {
-              destroyView(view);
-              throw Error("Building environment candidate is stale");
-            }
-            prepared.push(view);
+            !terrainAffectsRegion(buildingWorldRegion(input.draft, input.placement), previous.grid, next.grid)
+          )
+            return { frame, input, old };
+          const solved = await this.solveBuilding(frame, input, effectiveSignal);
+          unpublished.add(solved);
+          check();
+          return { frame, input, solved };
+        });
+        check();
+        this.terrainWallBakeKeys = plans.flatMap(({ frame, old, solved }) =>
+          old ? old.wallBakeKeys : wallBakeKeys(frame, solved!.wallBakes)
+        );
+        this.onWallLightmapInventoryChange?.(this.wallLightmapInventory);
+        views = await runWithConcurrency(plans, concurrency, async ({ frame, input, old, solved }) => {
+          check();
+          if (old) return { view: old, signature: input.signature };
+          unpublished.delete(solved!);
+          const view = await this.prepareView(frame, input, check, effectiveSignal, solved!);
+          if (finished) {
+            destroyView(view);
+            throw Error("Building environment candidate is stale");
           }
+          prepared.push(view);
           return { view, signature: input.signature };
         });
       } finally {
+        for (const solved of unpublished) {
+          solved.cpu.dispose();
+          solved.releaseAssets();
+        }
         if (scene) BuildingGlobalProxy.endSceneBatch(scene);
       }
       check();
@@ -844,7 +891,6 @@ export class BuildingRuntime extends Script {
           check();
           return this.prepareShaderWarmupForViews(
             prepared.filter((view): view is ProfileView => view.kind === "profile"),
-            prepared,
             warmupSignal,
             next
           );
@@ -940,7 +986,7 @@ export class BuildingRuntime extends Script {
   private retire(view: View, animateExit = false): void {
     if (view.kind === "profile") this.residency?.desired.delete(view);
     this.views.delete(view.frame);
-    this.lightsDirty = true;
+    this.onWallLightmapInventoryChange?.(this.wallLightmapInventory);
     const index = view.kind === "profile" ? this.entries.indexOf(view) : -1;
     if (index >= 0) this.entries.splice(index, 1);
     const canAnimateExit =
@@ -1056,23 +1102,18 @@ export class BuildingRuntime extends Script {
     view.view.setEntrance(view.entranceStates);
     view.fine?.runtime.setEntrance(view.entranceStates);
   }
-  /** Allocates only derived, hidden geometry. No author state or live view changes. */
-  private async prepareView(
+  /** Retain the solved preview through inventory discovery and hidden view construction. */
+  private async solveBuilding(
     frame: Entity,
     input: BuildingRuntimeInput,
-    check: () => void,
     signal: AbortSignal
-  ): Promise<View> {
-    const { assets, draft, placement, signature, bindings, bodies, groupIds, terrain } = input;
+  ): Promise<SolvedBuilding> {
+    const { assets, draft, placement, terrain } = input;
     if (!assets) throw Error("Building parts require a native material library");
-    let distance: ProfileView["view"] | undefined;
+    signal.throwIfAborted();
     let cpu: BuildingCpuHandle | undefined;
     retainBuildingResource(assets, 1);
     try {
-      buildingAssets(assets);
-      check();
-      // A height function runs the same preparation on the main thread; a terrain grid
-      // travels to the Worker.
       const units = buildingAssets(assets).compilation;
       const candidate =
         input.execution === "main"
@@ -1084,7 +1125,113 @@ export class BuildingRuntime extends Script {
             )
           : await this.compiler.prepare(draft, terrain.grid, units, signal, { frame: placement });
       cpu = candidate.cpu;
-      const { preview: geometry, occupancy: occupancyData } = candidate;
+      signal.throwIfAborted();
+      return {
+        ...candidate,
+        wallBakes: candidate.wallBakes.map((source) =>
+          withBuildingWallBakeTransform(source, frame.transform.worldMatrix.elements)
+        ),
+        releaseAssets: () => retainBuildingResource(assets, -1)
+      };
+    } catch (error) {
+      cpu?.dispose();
+      retainBuildingResource(assets, -1);
+      throw error;
+    }
+  }
+
+  private async acquireWallBakes(
+    frame: Entity,
+    sources: readonly BuildingWallBakeInput[],
+    materials: ReadonlyMap<string, BuildingLampMaterial>
+  ): Promise<BuildingWallBakeBindings> {
+    const layers = await Promise.all(
+      sources.map(async (source) => {
+        const { owner, lampId, partId, origin, yaw } = source;
+        const texture = await this.wallBakeCache.getOrCreate(
+          source.key,
+          async (signal) => {
+            const atlas = await this.compiler.bakeWall(source, signal);
+            signal.throwIfAborted();
+            return (this.wallLightmapPages ??= new BuildingWallLightmapPages(this.engine)).add(atlas);
+          },
+          this.onWallBakeEvent &&
+            ((kind, value, error) => {
+              this.onWallBakeEvent?.({
+                kind,
+                frame,
+                owner,
+                lampId,
+                partId,
+                at: performance.now(),
+                width: value?.placement.width,
+                height: value?.placement.height,
+                bakeMs: value?.bakeMs,
+                error: error === undefined ? undefined : String(error)
+              });
+            })
+        );
+        this.onWallLightmapInventoryChange?.(this.wallLightmapInventory);
+        return { owner, binding: { texture, origin, yaw, material: materials.get(lampId)! } };
+      })
+    );
+    const grouped = new Map<string, BuildingWallBakeBinding[]>();
+    for (const { owner, binding } of layers) {
+      const group = grouped.get(owner);
+      if (group) group.push(binding);
+      else grouped.set(owner, [binding]);
+    }
+    const combined = new Map<string, BuildingWallBakeBinding>();
+    try {
+      for (const [owner, bindings] of grouped) combined.set(owner, combineBuildingWallBakes(this.engine, bindings));
+      return combined;
+    } catch (error) {
+      for (const binding of combined.values()) binding.disposeCombined?.();
+      throw error;
+    }
+  }
+
+  private async prepareView(
+    frame: Entity,
+    input: BuildingRuntimeInput,
+    check: () => void,
+    signal: AbortSignal,
+    prepared?: SolvedBuilding,
+    build?: Build
+  ): Promise<View> {
+    const { assets, signature, bindings, bodies, groupIds, terrain } = input;
+    const candidate = prepared ?? (await this.solveBuilding(frame, input, signal));
+    const { preview: geometry, occupancy: occupancyData, cpu } = candidate;
+    let distance: ProfileView["view"] | undefined;
+    const descriptors = candidate.wallLamps;
+    let state = this.lampStates.get(frame);
+    if (!state) this.lampStates.set(frame, (state = { overrides: new Map(), layouts: new Set() }));
+    const lampMaterials = new Map(
+      descriptors.map((light) => {
+        const [r, g, b] = light.color;
+        const material = new BuildingLampMaterial(light.id, light.decorationId ?? light.id, [
+          r * light.intensity,
+          g * light.intensity,
+          b * light.intensity
+        ]);
+        material.setHDR(state.overrides.get(light.id));
+        return [light.id, material];
+      })
+    );
+    state.layouts.add(lampMaterials);
+    let wallBakes: BuildingWallBakeBindings | undefined;
+    const releaseLampMaterials = () => {
+      state.layouts.delete(lampMaterials);
+      if (wallBakes) for (const binding of wallBakes.values()) binding.disposeCombined?.();
+    };
+    try {
+      check();
+      const keys = wallBakeKeys(frame, candidate.wallBakes);
+      if (build) {
+        build.wallBakeKeys = keys;
+        this.onWallLightmapInventoryChange?.(this.wallLightmapInventory);
+      }
+      wallBakes = await this.acquireWallBakes(frame, candidate.wallBakes, lampMaterials);
       check();
       const occupancy = BuildingOccupancyQuery.fromSnapshot(occupancyData!);
       const cpuHandle = cpu;
@@ -1096,11 +1243,13 @@ export class BuildingRuntime extends Script {
           rigidDecorations: rigidBindings(bindings)
         },
         geometry,
-        assets,
+        assets!,
         this.host!.camera,
         signal,
         {
           unifiedGlobalProxy: true,
+          lampMaterials,
+          wallBakes,
           loadPreview: cpuHandle.preview ? (s) => cpuHandle.preview!(s) : undefined
         }
       );
@@ -1110,7 +1259,6 @@ export class BuildingRuntime extends Script {
       check();
       if (!cpu.valid) throw Error("Building compilation snapshot expired during view preparation");
       if (this.closed) throw Error("Building system is disposed");
-      const lights = bindLights(constructionDecorationLights(geometry.decorationParts), bindings, frame);
       const entranceInstanceKeys: string[] = [];
       for (const id of new Set(groupIds.values()))
         entranceInstanceKeys.push(buildingInstanceKey(frame, buildingGroupKey(id)));
@@ -1120,19 +1268,16 @@ export class BuildingRuntime extends Script {
         frame,
         view: distance,
         signature,
-        lights,
+        lampMaterials,
+        releaseLampMaterials,
+        wallBakes,
+        wallBakeKeys: keys,
         bodies,
         groupIds,
         entranceInstanceKeys,
         occupancy,
         cpu,
-        detailInput: {
-          assets,
-          terrain,
-          bindings,
-          worldFrame: input.worldFrame,
-          placement
-        },
+        detailInput: { assets, terrain, bindings },
         diagnostics: candidate.diagnostics,
         focus: bindFocus(candidate.focus, bindings, frame, true),
         occupancyMatrix: new Float64Array(16).fill(NaN),
@@ -1150,11 +1295,12 @@ export class BuildingRuntime extends Script {
       // Only live edits retry failed GPU/texture loads automatically. Detached
       // environment failures belong to their caller's transaction.
       if (distance && !this.terrainUpdate) this.retryAt = performance.now() + 2000;
-      cpu?.dispose();
+      cpu.dispose();
       distance?.destroy();
+      releaseLampMaterials();
       throw error;
     } finally {
-      retainBuildingResource(assets, -1);
+      candidate.releaseAssets();
     }
   }
 
@@ -1203,7 +1349,9 @@ export class BuildingRuntime extends Script {
                     this.validateBuild(true);
                     build.controller.signal.throwIfAborted();
                   },
-                  build.controller.signal
+                  build.controller.signal,
+                  undefined,
+                  build
                 );
                 if (this.closed || this.inputUpdates || build.controller.signal.aborted) {
                   destroyView(candidate);
@@ -1215,7 +1363,6 @@ export class BuildingRuntime extends Script {
                 if (!currentOld || !currentOld.occupancy.hasSameGeometry(candidate.occupancy)) this.surfaceRevision++;
                 if (currentOld) this.retire(currentOld, false);
                 this.views.set(frame, candidate);
-                this.lightsDirty = true;
                 if (candidate.kind === "profile") this.entries.push(candidate);
                 this.refreshProbe(candidate);
                 showView(candidate, this.shown);
@@ -1239,6 +1386,7 @@ export class BuildingRuntime extends Script {
               } finally {
                 batchBuilds.delete(build);
                 this.activeBuilds.delete(build);
+                this.onWallLightmapInventoryChange?.(this.wallLightmapInventory);
               }
             });
           } finally {
@@ -1330,8 +1478,6 @@ export class BuildingRuntime extends Script {
         let detailAssets: PrefabResource | undefined;
         let detailTerrain: ConstructionTerrainSource | undefined;
         let detailBindings: Map<string, BuildingObjectBinding>;
-        let detailWorldFrame: Matrix | undefined;
-        let detailPlacement: BuildingPlacementFrame;
         let detailBodies: Component[];
         let detailSignature: string;
         if (usePreparedInput) {
@@ -1339,8 +1485,6 @@ export class BuildingRuntime extends Script {
           detailAssets = cached.assets;
           detailTerrain = this.publishedTerrain ?? cached.terrain;
           detailBindings = cached.bindings;
-          detailWorldFrame = cached.worldFrame;
-          detailPlacement = cached.placement;
           detailBodies = view.bodies;
           detailSignature = view.signature;
         } else {
@@ -1352,8 +1496,6 @@ export class BuildingRuntime extends Script {
           detailAssets = input.assets;
           detailTerrain = input.terrain;
           detailBindings = input.bindings;
-          detailWorldFrame = input.worldFrame;
-          detailPlacement = input.placement;
           detailBodies = input.bodies;
           detailSignature = input.signature;
         }
@@ -1372,6 +1514,8 @@ export class BuildingRuntime extends Script {
           signal: build.controller.signal,
           terrainGrid: detailTerrain?.grid,
           rigidDecorations: rigidBindings(detailBindings),
+          lampMaterials: view.lampMaterials,
+          wallBakes: view.wallBakes,
           yieldFrame: this.flushDepth === 0 ? () => this.yieldDetailFrame() : undefined
         });
         markGeneratedBuildingOutput(fine.runtime.root);
@@ -1383,19 +1527,6 @@ export class BuildingRuntime extends Script {
           continue;
         }
         fine.commit();
-        if (detailWorldFrame) {
-          const placement = detailPlacement,
-            rotation = new Quaternion(),
-            matrix = new Matrix();
-          Quaternion.rotationEuler(0, placement.rotationY, 0, rotation);
-          Matrix.affineTransformation(
-            new Vector3(1, 1, 1),
-            rotation,
-            new Vector3(...fine.grounding!.renderPosition),
-            matrix
-          );
-          fine.runtime.root.transform.worldMatrix = matrix;
-        }
         fine.runtime.setEntrance(view.entranceStates);
         view.fine = fine;
         view.view.releasePendingGeometry?.();
@@ -1417,33 +1548,6 @@ export class BuildingRuntime extends Script {
         this.detailBuild = undefined;
       }
     }
-  }
-  private updateLights(deltaSeconds: number): void {
-    if (!this.host) return;
-    if (this.lightsDirty) {
-      this.lightsDirty = false;
-      this.lightDescriptors.length = 0;
-      let hasAnyViewLights = false;
-      if (this.shown)
-        for (const view of this.views.values())
-          for (const light of view.lights) {
-            const object = light.member;
-            if (!this.members.has(object)) continue;
-            hasAnyViewLights = true;
-            if (view.kind === "profile" && (this.entrance.states.get(light.descriptor.ownerId)?.progress ?? 1) < 1)
-              continue;
-            Vector3.transformCoordinate(light.local, object.entity.transform.worldMatrix, this.lightPosition);
-            const p = light.descriptor.position;
-            p[0] = this.lightPosition.x;
-            p[1] = this.lightPosition.y;
-            p[2] = this.lightPosition.z;
-            this.lightDescriptors.push(light.descriptor);
-          }
-      this.hasWorldDecorationLights = hasAnyViewLights;
-    }
-    if (!this.lights && (this.lightDescriptors.length || this.hasWorldDecorationLights))
-      this.lights = new ConstructionDecorationLights(this.entity, 4);
-    this.lights?.update(this.lightDescriptors, this.host.camera, deltaSeconds, this.hasWorldDecorationLights);
   }
   private viewMatrixChanged(view: View, elements: Float32Array): boolean {
     const cached = view.occupancyMatrix;
@@ -1660,51 +1764,28 @@ export class BuildingRuntime extends Script {
   async prepareShaderWarmup(signal?: AbortSignal): Promise<{
     renderers: MeshRenderer[];
     extraMaterials: Map<MeshRenderer, Material[]>;
-    decorationPointLightBudget: number;
     dispose(): void;
   }> {
-    return this.prepareShaderWarmupForViews(this.entries, [...this.views.values()], signal, this.publishedTerrain);
+    return this.prepareShaderWarmupForViews(this.entries, signal);
   }
 
   private async prepareShaderWarmupForViews(
     profileEntries: readonly ProfileView[],
-    allViews: readonly View[],
     signal?: AbortSignal,
     publishedTerrain = this.publishedTerrain
   ): Promise<{
     renderers: MeshRenderer[];
     extraMaterials: Map<MeshRenderer, Material[]>;
-    decorationPointLightBudget: number;
     dispose(): void;
   }> {
     const empty = {
       renderers: [] as MeshRenderer[],
       extraMaterials: new Map<MeshRenderer, Material[]>(),
-      decorationPointLightBudget: 0,
       dispose() {}
     };
     if (this.closed || !this.host) return empty;
     signal?.throwIfAborted();
-
-    // Report the signed delta for the 4-slot decoration point-light pool:
-    // - Once a world with decoration lights is mounted, the pool stays active with zero-energy idle slots
-    //   so `SCENE_POINT_LIGHT_COUNT` stays constant instead of compiling dual 0-light / 4-light shader sets.
-    // - If the pool is active and the target world also has decoration lights, no point-light transition occurs (`0`).
-    // - If the pool is active and the target world has no decoration lights, precompile `-activeSlots` (lights-OFF)
-    //   even when `profileEntries.length === 0`.
-    // - If the pool is inactive and the target world has decoration lights, precompile `+4` (lights-ON).
-    const activeDecorationLights = this.lights?.root.isActiveInHierarchy ? this.lights.metrics.allocated : 0;
-    const targetHasDecorationLights = allViews.some((view) => view.lights.length > 0);
-    const decorationPointLightBudget =
-      activeDecorationLights > 0
-        ? targetHasDecorationLights
-          ? 0
-          : -activeDecorationLights
-        : targetHasDecorationLights
-          ? 4
-          : 0;
-
-    if (profileEntries.length === 0) return { ...empty, decorationPointLightBudget };
+    if (profileEntries.length === 0) return empty;
 
     const extraMaterials =
       BuildingGlobalProxy.existing(this.entity.scene!)?.getWarmupExtraMaterials() ??
@@ -1772,7 +1853,7 @@ export class BuildingRuntime extends Script {
         for (const f of candidates[bestIdx]!.features) seenFeatures.add(f);
       }
     }
-    if (selected.length === 0) return { renderers: [], extraMaterials, decorationPointLightBudget, dispose() {} };
+    if (selected.length === 0) return { renderers: [], extraMaterials, dispose() {} };
 
     const warmupRoot = this.entity.createChild("Masonry shader warmup");
     warmupRoot.isActive = false;
@@ -1809,7 +1890,9 @@ export class BuildingRuntime extends Script {
             camera: this.host!.camera,
             signal: controller.signal,
             terrainGrid: input.terrain?.grid,
-            rigidDecorations: rigidBindings(input.bindings)
+            rigidDecorations: rigidBindings(input.bindings),
+            lampMaterials: entry.lampMaterials,
+            wallBakes: entry.wallBakes
           });
           if (cleanedUp) {
             detail.destroy();
@@ -1827,7 +1910,6 @@ export class BuildingRuntime extends Script {
       return {
         renderers,
         extraMaterials,
-        decorationPointLightBudget,
         dispose: () => {
           cleanedUp = true;
           controller.abort();
@@ -1867,18 +1949,21 @@ export class BuildingRuntime extends Script {
     return { profileUnits, flatUnits, entityInstances };
   }
   onDestroy(): void {
+    this.onWallBakeEvent = undefined;
+    this.onWallLightmapInventoryChange = undefined;
     this.terrainUpdate?.discard();
     this.closed = true;
     if (this.activeBuilds) for (const build of this.activeBuilds) build.controller.abort();
     this.detailBuild?.controller.abort();
     this.clearExitingViews();
     for (const view of [...this.views.values()]) this.retire(view, false);
+    this.wallBakeCache.dispose();
+    this.wallLightmapPages?.dispose();
     this.compiler.dispose();
     for (const flag of this.members.values()) flag.destroy();
     this.members.clear();
     this.dirtyTransformMembers.clear();
     this.frameMembers?.clear();
     BuildingRuntime.clearInputCache(this);
-    this.lights?.dispose();
   }
 }

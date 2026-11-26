@@ -1,12 +1,16 @@
+import { isWallBakeSurface, type BuildingWallBakeBindings } from "./BuildingWallBakeBinding";
+import { withBuildingWallUVs } from "./BuildingWallGeometryUV";
 import type { ConstructionPreviewPart } from "./ConstructionPreview";
 import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 /** Thin support backs material units, shares UV cutouts with distance geometry.
  * It never reinstates a wall behind an authored hidden region or opening. */
-export function constructionSupportParts(parts: ConstructionPreviewPart[]): ConstructionDecorationPart[] {
+export function constructionSupportParts(
+  parts: ConstructionPreviewPart[],
+  wallBakes?: BuildingWallBakeBindings
+): ConstructionDecorationPart[] {
   const linear = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
   return parts.map((p, index) => {
     const posLen = p.positions.length;
-    const count = posLen / 3;
     const n = new Float32Array(posLen);
     for (let i = 0; i < p.indices.length; i += 3) {
       const ia = p.indices[i]! * 3,
@@ -47,8 +51,18 @@ export function constructionSupportParts(parts: ConstructionPreviewPart[]): Cons
       positions[i + 2] = p.positions[i + 2]! - n[i + 2]! * inset;
     }
     const color = (p.color ?? [0.55, 0.43, 0.31]).map(linear);
-    const colors = new Float32Array(posLen);
-    for (let i = 0; i < posLen; i += 3) {
+    const source = {
+      positions: positions as unknown as number[],
+      normals: n as unknown as number[],
+      indices: p.indices,
+      uvs: p.uvs
+    };
+    const binding = isWallBakeSurface(p) && wallBakes?.get(p.owner);
+    const geometry: typeof source & { lightmapUVs?: Float32Array } = binding
+      ? withBuildingWallUVs(source, binding)
+      : source;
+    const colors = new Float32Array(geometry.positions.length);
+    for (let i = 0; i < colors.length; i += 3) {
       colors[i] = color[0]!;
       colors[i + 1] = color[1]!;
       colors[i + 2] = color[2]!;
@@ -57,13 +71,11 @@ export function constructionSupportParts(parts: ConstructionPreviewPart[]): Cons
       id: `support/${p.owner}/${index}`,
       ownerId: p.owner,
       kind: "support",
+      wallBakeReceiver: !!geometry.lightmapUVs,
       tintRole: p.material === "wall" ? "brick" : p.material,
-      positions: positions as unknown as number[],
-      normals: n as unknown as number[],
+      ...geometry,
       colors: colors as unknown as number[],
-      emission: new Float32Array(count) as unknown as number[],
-      indices: p.indices,
-      uvs: p.uvs
+      emission: new Float32Array(colors.length / 3) as unknown as number[]
     };
   });
 }

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { European } from "../src/building/application/European";
 import {
+  buildingGround,
   buildingWorldRegion,
   compileBuildingCpu,
   prepareBuildingCpu
@@ -102,6 +103,37 @@ describe("core draft CPU preview/detail boundary", () => {
       constructionSupportHeight(grid, 10 + Math.cos(0.7) + 2 * Math.sin(0.7), 20 - Math.sin(0.7) + 2 * Math.cos(0.7))
     );
   });
+  it("grounds a rotated, non-uniformly scaled building in its local coordinates and includes outlying rock supports", async () => {
+    const grid: ConstructionTerrainGrid = {
+      ...terrain,
+      samples: new Uint16Array([0, 65535, 16000, 49000]),
+      decode: { offset: 20, scale: 10 }
+    };
+    const frame = {
+      position: [8, 0, 11] as [number, number, number],
+      rotationY: Math.PI / 2,
+      scale: [3, 2, 0.75] as [number, number, number]
+    };
+    const draft = European.buildHouses({ id: "scaled", rectangle: { center: [2, 0], size: [8, 4], rotation: 0 } });
+    const [minX, minZ, maxX, maxZ] = buildingWorldRegion(draft);
+    const region = buildingWorldRegion(draft, frame);
+    [8 + 0.75 * minZ, 11 - 3 * maxX, 8 + 0.75 * maxZ, 11 - 3 * minX].forEach((v, i) =>
+      expect(region[i]).toBeCloseTo(v, 9)
+    );
+    const rock = {
+      positions: new Float32Array([6, 48, -9, 10, 48, -9, 10, 48, -5, 6, 48, -5]),
+      indices: new Uint32Array([0, 2, 1, 0, 3, 2])
+    };
+    const ground = buildingGround(draft, { ...grid, supports: [rock] }, frame);
+    expect(ground.terrainInfo).toBeUndefined();
+    expect(ground.height(6, 0)).toBe(24);
+    expect(ground.height(0, 2) * 2).toBeCloseTo(constructionSupportHeight(grid, 9.5, 11), 9);
+    const cpu = await prepareBuildingCpu(draft, grid, constructionGeometry, { frame });
+    const { grounding } = await compileBuildingCpu(cpu.prepared);
+    expect(grounding.minWorldHeight).toBeCloseTo(2 * grounding.supports![0].minGround, 6);
+    expect(grounding.maxWorldHeight).toBeCloseTo(2 * grounding.supports![0].maxGround, 6);
+    expect(() => prepareBuildingTerrain(grid, { ...frame, scale: [1, 0, 1] })).toThrow("placement frame");
+  });
   it("reports parts the system cannot build and drafts that are not drafts", async () => {
     const draft = European.buildHouses({ id: "one" });
     (draft.parts[0] as { geometry: { generator: string } }).geometry.generator = "unknownShape";
@@ -153,6 +185,23 @@ it("emits heightmap-backed grid feedback for freeWall on sloped terrain and fall
   expect(Math.min(...lodYs)).toBeCloseTo(Math.min(...cpuYs), 3);
   expect(Math.max(...lodYs)).toBeCloseTo(Math.max(...cpuYs), 3);
   expect(Math.min(...lodYs)).toBeGreaterThan(14);
+
+  const scaled = await prepareBuildingCpu(draft, sloped, constructionGeometry, {
+    frame: { position: [8, 0, 11], rotationY: 0.43, scale: [2.7, 1.9, 0.65] }
+  });
+  const { renderInput } = await compileBuildingCpu(scaled.prepared, { feedbackGrid: true, omitEmptyCells: false });
+  const scaledGroup = renderInput.groups[0]!;
+  const scaledFb = scaledGroup.brickFeedback!;
+  if (scaledFb.kind !== "grid") throw Error("Expected scaled grid feedback");
+  expect(scaledFb.grid.terrain?.frame.scale).toEqual([2.7, 1.9, 0.65]);
+  const scaledLod = brickFeedbackLodBounds(scaledFb, sloped);
+  const centers = scaledGroup.cells.map((cell) => cell.center[1]).sort((a, b) => a - b);
+  const lodCenters = Array.from({ length: scaledFb.count }, (_, i) => i)
+    .filter((i) => scaledLod.cullRadius[i] > 0)
+    .map((i) => scaledLod.bounds[i * 4 + 1])
+    .sort((a, b) => a - b);
+  expect(lodCenters).toHaveLength(centers.length);
+  centers.forEach((y, i) => expect(lodCenters[i]).toBeCloseTo(y, 4));
 
   // When an overlapping rock support mesh raises part of the sloped wall, terrainInfo is omitted -> falls back to pack.
   const withRock: ConstructionTerrainGrid = {

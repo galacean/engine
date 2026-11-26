@@ -1,3 +1,4 @@
+import { buildingTerrainAxes } from "./TerrainField";
 import { MaterialUnitLod } from "./MaterialUnitLod.js";
 const HALF_SQRT3 = Math.sqrt(3) / 2;
 
@@ -120,8 +121,8 @@ export function brickFeedbackLodBounds(source, terrainGrid) {
     const tInfo = p.terrain && terrainGrid ? p.terrain : null;
     const tPx = tInfo ? tInfo.frame.position[0] : 0;
     const tPz = tInfo ? tInfo.frame.position[2] : 0;
-    const tCos = tInfo ? Math.cos(tInfo.frame.rotationY) : 1;
-    const tSin = tInfo ? Math.sin(tInfo.frame.rotationY) : 0;
+    const [xx, xz, zx, zz] = tInfo ? buildingTerrainAxes(tInfo.frame) : [1, 0, 0, 1];
+    const groundScaleY = tInfo?.frame.scale?.[1] ?? 1;
     const joint = (span, gap) => span - (gapLimit < 0 ? gap : Math.min(gap, span * gapLimit));
     for (let i = 0; i < count; i++) {
       if (cols <= 0) continue;
@@ -214,7 +215,7 @@ export function brickFeedbackLodBounds(source, terrainGrid) {
       const bx = cx + cos * x;
       const bz = cz + sin * x;
       const gy = tInfo
-        ? sampleTerrainHeight(terrainGrid, tPx + tCos * bx + tSin * bz, tPz - tSin * bx + tCos * bz)
+        ? sampleTerrainHeight(terrainGrid, tPx + xx * bx + xz * bz, tPz + zx * bx + zz * bz) / groundScaleY
         : groundY;
       const by = (ry0 + ry1) * 0.5 + gy;
       const br = (Math.abs(cos * sx) + Math.abs(-sin * sz)) * HALF_SQRT3;

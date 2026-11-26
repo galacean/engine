@@ -1,3 +1,4 @@
+import type { BuildingLampMaterials } from "./BuildingLampShaderBinding";
 import { buildingPartKey, buildingGroupKey } from "./BuildingObjectIdentity";
 const decorationBindingKey = (part: { decorationId?: string; ownerId: string }) =>
   part.decorationId !== undefined ? buildingPartKey(part.decorationId) : buildingGroupKey(part.ownerId);
@@ -30,7 +31,8 @@ export interface ConstructionRenderResult {
 export function appendDecorationRenderPackage(
   base: ConstructionRenderResult,
   parts: readonly ConstructionDecorationPart[],
-  rigidPoses?: ReadonlyMap<string, readonly number[]>
+  rigidPoses?: ReadonlyMap<string, readonly number[]>,
+  lampMaterials?: BuildingLampMaterials
 ): ConstructionRenderResult {
   if (!parts.length) return base;
   const vertexFloats = 20,
@@ -44,6 +46,7 @@ export function appendDecorationRenderPackage(
       part.normals.length !== count * 3 ||
       part.colors.length !== count * 3 ||
       part.emission.length !== count ||
+      (part.wallBakeReceiver && part.lightmapUVs?.length !== count * 2) ||
       (part.tintMask !== undefined && part.tintMask.length !== count) ||
       part.indices.length % 3 ||
       !part.indices.every((i) => Number.isInteger(i) && i >= 0 && i < count)
@@ -64,7 +67,12 @@ export function appendDecorationRenderPackage(
       throw Error("Invalid decoration appearance " + part.id);
     const material = part.assetUnit ? assets.decorations[part.assetUnit]?.material : assets.decorationMaterial;
     if (!material) throw Error("Missing native decoration Material: " + part.assetUnit);
-    const key = JSON.stringify([part.ownerId, material.instanceId]);
+    const key = JSON.stringify([
+      part.ownerId,
+      material.instanceId,
+      Boolean(part.wallBakeReceiver),
+      lampMaterials?.has(part.id) ? part.id : undefined
+    ]);
     const group = groups.get(key) ?? [];
     group.push(part);
     groups.set(key, group);
@@ -74,6 +82,7 @@ export function appendDecorationRenderPackage(
     programs = { ...base.package.programs };
   for (const [groupKey, group] of groups) {
     const ownerId = group[0].ownerId;
+    const lampId = lampMaterials?.has(group[0].id) ? group[0].id : undefined;
     const nativeMaterial = group[0].assetUnit
       ? assets.decorations[group[0].assetUnit]!.material!
       : assets.decorationMaterial;
@@ -91,6 +100,7 @@ export function appendDecorationRenderPackage(
     };
     const count = group.reduce((n, p) => n + p.positions.length / 3, 0),
       vertices = new Float32Array(count * vertexFloats),
+      lightmapUVs = group[0].wallBakeReceiver ? new Float32Array(count * 2) : undefined,
       useU16Indices = count <= 65535,
       indices = useU16Indices
         ? new Uint16Array(group.reduce((n, p) => n + p.indices.length, 0))
@@ -101,6 +111,7 @@ export function appendDecorationRenderPackage(
     let vertexOffset = 0,
       indexOffset = 0;
     for (const part of group) {
+      if (lightmapUVs) lightmapUVs.set(part.lightmapUVs!, vertexOffset * 2);
       pickIndices.fill(
         pickSlots.get(decorationBindingKey(part))!,
         vertexOffset,
@@ -152,17 +163,23 @@ export function appendDecorationRenderPackage(
     const id =
         "decorations/" +
         encodeURIComponent(ownerId) +
-        (nativeMaterial === assets.decorationMaterial ? "" : "/" + nativeMaterial.instanceId),
+        (nativeMaterial === assets.decorationMaterial ? "" : "/" + nativeMaterial.instanceId) +
+        (group[0].wallBakeReceiver ? "/wall-backing" : "") +
+        (lampId === undefined ? "" : "/lamp/" + encodeURIComponent(lampId)),
       vertexFile = "dynamic/" + id + "/vertices.bin",
       indexFile = "dynamic/" + id + "/indices.bin";
     if (draws.some((d) => d.id === id)) throw Error("Duplicate decoration owner " + ownerId);
     files.set(vertexFile, vertices.buffer);
+    const lightmapFile = "dynamic/" + id + "/lightmap-uv.bin";
+    if (lightmapUVs) files.set(lightmapFile, lightmapUVs.buffer);
     const pickFile = "dynamic/" + id + "/pick.bin";
     files.set(pickFile, pickIndices.buffer);
     files.set(indexFile, indices.buffer);
     draws.push({
       id,
       ownerId,
+      lampId,
+      wallBakeReceiver: group[0].wallBakeReceiver,
       pickIds,
       ...(rigidPoses
         ? {
@@ -192,6 +209,7 @@ export function appendDecorationRenderPackage(
       indexCount: indices.length,
       indices: indexFile,
       attributes: [
+        ...(lightmapUVs ? [{ location: 13, size: 2, stride: 8, offset: 0, file: lightmapFile }] : []),
         { location: 9, size: 1, stride: 4, offset: 0, file: pickFile },
         { location: 0, size: 3, stride, offset: 0, file: vertexFile },
         { location: 1, size: 3, stride, offset: 12, file: vertexFile },

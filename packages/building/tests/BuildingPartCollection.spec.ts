@@ -111,6 +111,35 @@ it("group transforms preserve local opening geometry and do not mutate definitio
   Matrix.invert(m.body.transform.localMatrix, expected);
   expect(input.bindings.get(buildingGroupKey("home"))!.inverse).toEqual(Array.from(expected.elements));
 });
+it("passes a rotated, independently scaled prefab frame to terrain compilation while keeping authored groups rigid", () => {
+  const m = model(mutable(European.buildHouses({ id: "home" })));
+  const flat = collectBuildingParts(m.frame, [m.group], m.members, undefined).terrain;
+  const collect = () => collectBuildingParts(m.frame, [m.group], m.members, flat);
+  const original = collect();
+  const rotation = new Quaternion();
+  Quaternion.rotationEuler(0, 0.43, 0, rotation);
+  Matrix.affineTransformation(
+    new Vector3(1.5, 0.8, 0.7),
+    rotation,
+    new Vector3(20, 0, -13),
+    m.frame.transform.worldMatrix
+  );
+  const scaled = collect();
+  expect(scaled.execution).toBe("worker");
+  expect(scaled.placement.position).toEqual([20, 0, -13]);
+  expect(scaled.placement.rotationY).toBeCloseTo(0.43);
+  for (const [axis, expected] of [1.5, 0.8, 0.7].entries()) expect(scaled.placement.scale![axis]).toBeCloseTo(expected);
+  expect(scaled.draft).toEqual(original.draft);
+  expect(scaled.signature).not.toBe(original.signature);
+  m.body.transform.localMatrix.elements[0] = 2;
+  expect(collect).toThrow(/horizontal rigid/);
+  m.body.transform.localMatrix.identity();
+  m.frame.transform.worldMatrix.elements[4] = 0.4;
+  expect(collect).toThrow(/horizontal rigid/);
+  m.frame.transform.worldMatrix.elements.fill(0);
+  expect(collect).toThrow(/positive finite scale/);
+});
+
 it("rejects unrelated frames and duplicate identities before publication", () => {
   const draft = mutable(European.buildHouses({ id: "home" })),
     m = model(draft);
@@ -143,7 +172,13 @@ it("validatePartCollection reads raw definitions without cloning", () => {
 
   const engine = {},
     scene = {};
-  const frameA: any = { engine, scene, destroyed: false, parent: null, transform: { localMatrix: new Matrix(), worldMatrix: new Matrix() } };
+  const frameA: any = {
+    engine,
+    scene,
+    destroyed: false,
+    parent: null,
+    transform: { localMatrix: new Matrix(), worldMatrix: new Matrix() }
+  };
   const bodyA: any = { engine, scene, destroyed: false, parent: frameA, transform: { localMatrix: new Matrix() } };
   let cloneReads = 0;
 

@@ -57,11 +57,38 @@ Shader "Masonry/SupportSurface" {
    #endif
    CullMode rasterStateCullMode;
    RasterState = { CullMode = rasterStateCullMode; }
-   #include "ShaderLibrary/Common/Attributes.glsl"
+   struct MasonrySurfaceAttributes {
+    vec3 POSITION;
+    vec3 NORMAL;
+    vec2 TEXCOORD_0;
+    #ifdef RENDERER_HAS_UV1
+     vec2 TEXCOORD_1;
+    #endif
+    #ifdef RENDERER_MASONRY_WALL_BAKE
+     vec2 TEXCOORD_2;
+    #endif
+    #ifdef RENDERER_HAS_TANGENT
+     vec4 TANGENT;
+    #endif
+    #ifdef RENDERER_ENABLE_VERTEXCOLOR
+     vec4 COLOR_0;
+    #endif
+   };
    #include "ShaderLibrary/Common/Transform.glsl"
    vec4 material_BaseColor;
    float material_Roughness;
-   struct MasonrySurfaceVaryings { vec3 localPosition; vec2 uv; vec2 uv1; vec3 positionWS; vec3 normalWS; vec4 color; vec4 decorationData; };
+   struct MasonrySurfaceVaryings {
+    #ifdef RENDERER_MASONRY_WALL_BAKE
+     vec2 lightmapUV;
+     #ifdef RENDERER_MASONRY_WALL_LAYOUT
+      vec4 wallColorLayer;
+      vec4 wallBounds;
+      #ifdef RENDERER_MASONRY_WALL_OVERLAP
+       vec4 wallExtra;
+      #endif
+     #endif
+    #endif
+    vec3 localPosition; vec2 uv; vec2 uv1; vec3 positionWS; vec3 normalWS; vec4 color; vec4 decorationData; };
    #include "Masonry/LodDither.glsl"
    #include "Masonry/Entrance.glsl"
    #include "Masonry/EntranceCoverage.glsl"
@@ -71,6 +98,7 @@ Shader "Masonry/SupportSurface" {
    #include "Masonry/Plaster.glsl"
    #include "Masonry/PlasterFinish.glsl"
    #include "Masonry/Decoration.glsl"
+   #include "Masonry/WallBake.glsl"
    #ifdef MASONRY_STONE_FLOOR
      #include "Masonry/StoneFloor.glsl"
      vec4 material_StoneFloorMapping;
@@ -99,7 +127,7 @@ Shader "Masonry/SupportSurface" {
      return vec2(1.0,0.0);
    }
    VertexShader = MasonrySurfaceVertex;
-   MasonrySurfaceVaryings MasonrySurfaceVertex(Attributes a) {
+   MasonrySurfaceVaryings MasonrySurfaceVertex(MasonrySurfaceAttributes a) {
      MasonrySurfaceVaryings v;
      vec3 positionOS=a.POSITION;
      v.localPosition=a.POSITION;
@@ -119,6 +147,17 @@ Shader "Masonry/SupportSurface" {
      v.positionWS=(renderer_ModelMat*vec4(positionOS,1.0)).xyz;
      v.normalWS=normalize(mat3(renderer_NormalMat)*a.NORMAL);
      v.uv=a.TEXCOORD_0;
+     #ifdef RENDERER_MASONRY_WALL_BAKE
+       #ifdef RENDERER_MASONRY_WALL_LAYOUT
+        #ifdef RENDERER_MASONRY_WALL_OVERLAP
+          v.wallExtra = masonryWallProject(a.TEXCOORD_2, v.lightmapUV, v.wallColorLayer, v.wallBounds);
+        #else
+          masonryWallProject(a.TEXCOORD_2, v.lightmapUV, v.wallColorLayer, v.wallBounds);
+        #endif
+      #else
+        v.lightmapUV = a.TEXCOORD_2;
+      #endif
+     #endif
      #ifdef RENDERER_HAS_UV1
        v.uv1=a.TEXCOORD_1;
      #else
@@ -159,6 +198,8 @@ Shader "Masonry/SupportSurface" {
     #else
     vec3 surfaceNormal=normalize(v.normalWS)*((material_MasonryPattern < -1.5 || gl_FrontFacing)?1.0:-1.0);
     vec3 surfaceAlbedo=material_BaseColor.rgb*v.color.rgb;
+    vec3 emission=vec3(1.0,.57,.18)*material_MasonryEmission;
+    float surfaceRoughness=material_Roughness;
     if(material_MasonryPattern < 0.0){
       #ifdef RENDERER_ENABLE_VERTEXCOLOR
         vec4 tint=masonryMaterialOverride(floor(v.color.a)-1.0);
@@ -168,48 +209,49 @@ Shader "Masonry/SupportSurface" {
           surfaceAlbedo=gray*tint.rgb;
         }
       #endif
-      vec3 n=normalize(surfaceNormal);
-      vec3 albedo=surfaceAlbedo;
       #ifdef MASONRY_PLASTER
         if(material_MasonryPattern < -1.5){
-          albedo=plasterFinish(v.uv,vec4(material_MasonryPlaster.xyz,v.color.a),albedo,plasterDetail,v.positionWS,n);
+          surfaceAlbedo=plasterFinish(v.uv,vec4(material_MasonryPlaster.xyz,v.color.a),surfaceAlbedo,plasterDetail,v.positionWS,surfaceNormal);
           if(plasterDetail.x<.5)discard;
           vec4 plasterTint=masonryMaterialOverride(0.0);
-          if(plasterTint.a>.5)albedo=vec3(dot(albedo,vec3(.2126,.7152,.0722)))*plasterTint.rgb;
+          if(plasterTint.a>.5)surfaceAlbedo=vec3(dot(surfaceAlbedo,vec3(.2126,.7152,.0722)))*plasterTint.rgb;
         }
       #endif
-      vec3 emission=vec3(1.0,.57,.18)*v.uv1.y;float roughness=.9;
-      if(material_MasonryPattern > -1.5) albedo=masonryDecorationFinish(v.uv,v.decorationData.w,v.decorationData.xyz,v.positionWS,albedo,v.uv1.y,camera_Position,n,emission,roughness);
-      vec3 outRgb = masonrySceneFog(masonryResidentSceneLight(albedo,n,v.positionWS,roughness)+emission,v.positionWS);
-      #ifdef RENDERER_MASONRY_ENTRANCE
-        float masonryRainbowW = clamp(masonryEntranceRainbowEdge(v.localPosition, masonryEntranceAmt) * 0.76, 0.0, 0.76);
-        outRgb = outRgb * (1.0 - masonryRainbowW) + masonryEntranceRainbow(v.localPosition, masonryEntranceAmt);
-      #endif
-      if (renderer_MasonryLodDebugColor.a > 0.0) outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
-      gl_FragColor=vec4(outRgb,1.0);
+      emission=vec3(1.0,.57,.18)*v.uv1.y;
+      surfaceRoughness=.9;
+      if(material_MasonryPattern > -1.5) surfaceAlbedo=masonryDecorationFinish(v.uv,v.decorationData.w,v.decorationData.xyz,v.positionWS,surfaceAlbedo,v.uv1.y,camera_Position,surfaceNormal,emission,surfaceRoughness);
     } else {
-    float surfaceRoughness=material_Roughness;
-    #ifdef MASONRY_STONE_FLOOR
-      surfaceAlbedo=stoneFloorFinish(v.uv,material_StoneFloorMapping,material_StoneFloorColor,v.positionWS,camera_Position,surfaceNormal,surfaceRoughness);
-    #else
-    vec2 detail = masonrySurfaceDetail(v.uv);
-    surfaceAlbedo *= detail.x;
-    vec3 dx = dFdx(v.positionWS), dy = dFdy(v.positionWS);
-    vec3 r1 = cross(dy,surfaceNormal), r2 = cross(surfaceNormal,dx);
-    float det = dot(dx,r1);
-    vec3 gradient = sign(det)*(dFdx(detail.y)*r1+dFdy(detail.y)*r2);
-    surfaceNormal = normalize(abs(det)*surfaceNormal-gradient+surfaceNormal*0.00000001);
-    #endif
+      #ifdef MASONRY_STONE_FLOOR
+        surfaceAlbedo=stoneFloorFinish(v.uv,material_StoneFloorMapping,material_StoneFloorColor,v.positionWS,camera_Position,surfaceNormal,surfaceRoughness);
+      #else
+      vec2 detail = masonrySurfaceDetail(v.uv);
+      surfaceAlbedo *= detail.x;
+      vec3 dx = dFdx(v.positionWS), dy = dFdy(v.positionWS);
+      vec3 r1 = cross(dy,surfaceNormal), r2 = cross(surfaceNormal,dx);
+      float det = dot(dx,r1);
+      vec3 gradient = sign(det)*(dFdx(detail.y)*r1+dFdy(detail.y)*r2);
+      surfaceNormal = normalize(abs(det)*surfaceNormal-gradient+surfaceNormal*0.00000001);
+      #endif
+    }
     vec3 color=masonryResidentSceneLight(surfaceAlbedo,surfaceNormal,v.positionWS,surfaceRoughness);
-    color+=vec3(1.0,.57,.18)*material_MasonryEmission;
-    vec3 outRgb=masonrySceneFog(color,v.positionWS);
+    #ifdef RENDERER_MASONRY_WALL_BAKE
+      #ifdef RENDERER_MASONRY_WALL_LAYOUT
+        vec3 wallLight = masonryWallSample(v.lightmapUV,v.wallColorLayer,v.wallBounds);
+        #ifdef RENDERER_MASONRY_WALL_OVERLAP
+          wallLight += masonryWallAdditional(v.wallExtra);
+        #endif
+        color += surfaceAlbedo * wallLight;
+      #else
+        color += surfaceAlbedo * masonryWallIrradiance(v.lightmapUV);
+      #endif
+    #endif
+    vec3 outRgb=masonrySceneFog(color+emission,v.positionWS);
     #ifdef RENDERER_MASONRY_ENTRANCE
       float masonryRainbowW = clamp(masonryEntranceRainbowEdge(v.localPosition, masonryEntranceAmt) * 0.76, 0.0, 0.76);
       outRgb = outRgb * (1.0 - masonryRainbowW) + masonryEntranceRainbow(v.localPosition, masonryEntranceAmt);
     #endif
     if (renderer_MasonryLodDebugColor.a > 0.0) outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
     gl_FragColor=vec4(outRgb,1.0);
-    }
     #endif
    }
   }

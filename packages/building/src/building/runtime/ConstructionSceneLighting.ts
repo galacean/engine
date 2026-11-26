@@ -1,9 +1,15 @@
 import { Shader, ShaderFactory, ShaderLanguage, type ShaderPass } from "@galacean/engine";
+import wallBake from "./BuildingWallBake.glsl?raw";
+import { constructionLampControlGLSL } from "./ConstructionLanternShader";
 import sceneLighting from "./ConstructionSceneLighting.glsl?raw";
 import { RAW_GLSL_MACROS, rawGlslInstructions } from "./RawGlslInstructions";
 
 type Instructions = ConstructorParameters<typeof ShaderPass>[2];
 export function registerConstructionSceneLighting() {
+  if (!ShaderFactory.includeMap["Masonry/LampControl.glsl"])
+    ShaderFactory.registerInclude("Masonry/LampControl.glsl", constructionLampControlGLSL.replace(/\buniform\s+/g, ""));
+  if (!ShaderFactory.includeMap["Masonry/WallBake.glsl"])
+    ShaderFactory.registerInclude("Masonry/WallBake.glsl", wallBake.replace(/\buniform\s+/g, ""));
   if (!ShaderFactory.includeMap["Masonry/SceneLighting.glsl"])
     ShaderFactory.registerInclude("Masonry/SceneLighting.glsl", sceneLighting);
 }
@@ -11,8 +17,7 @@ export function registerConstructionSceneLighting() {
 // Compile the engine libraries normally, preserving their runtime macro
 // instructions (SH/IBL, cascade count, cloud shadow, fog). Recovered ES shaders
 // cannot go through ShaderLab's attribute parser, so link only this helper code
-// into their raw fragment pass. Scene BSDF/sun/spot/IBL remain engine-owned;
-// building point lights share distance evaluation with their existing local lobe.
+// into their raw fragment pass.
 export const constructionLightingBridgeSource = `Shader "Masonry/SceneLightingBridge" {
  SubShader "Default" { Pass "Forward" {
   #include "Masonry/SceneLighting.glsl"

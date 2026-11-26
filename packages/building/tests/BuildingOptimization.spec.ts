@@ -31,7 +31,6 @@ import { MaterialUnitLod } from "../src/building/runtime/MaterialUnitLod.js";
 import { WoodUnitLod } from "../src/building/runtime/WoodUnitLod.js";
 import { f32BitsToHalf, packUnits } from "../src/building/runtime/UnitPacking.js";
 import { EngineResidentScene, VIEW_CONSTANTS_CAMERA_PATCH } from "../src/building/runtime/EngineResidentScene";
-import { ConstructionDecorationLights } from "../src/building/runtime/ConstructionDecorationLights";
 import { scaledNativeAttribute } from "../src/building/resources/BuildingGeometry";
 import type { ConstructionPreview, ConstructionPreviewPart } from "../src/building/runtime/ConstructionPreview";
 import { registerConstructionSceneLighting } from "../src/building/runtime/ConstructionSceneLighting";
@@ -1064,7 +1063,7 @@ describe("Building system optimization invariants", () => {
       // World-pick discards worn plaster before writing pick output; forward shading computes
       // plasterFinish() under uniform control flow (GLSL ES 3.00 §3.9.2 / §8.13.1) before discard
       // and skips downstream lighting/IBL shading.
-      const finishCall = distanceSurfaceShader.indexOf("albedo=plasterFinish(");
+      const finishCall = distanceSurfaceShader.indexOf("=plasterFinish(");
       const forwardDiscard = distanceSurfaceShader.indexOf("if(plasterDetail.x<.5)discard;", finishCall);
       const lightCall = distanceSurfaceShader.indexOf("masonryResidentSceneLight(");
       expect(finishCall).toBeGreaterThan(-1);
@@ -1360,70 +1359,6 @@ describe("Building system optimization invariants", () => {
 
       s2.destroy();
       expect(s2.metrics.residentBytes).toBe(0);
-    });
-
-    it("re-anchors ConstructionDecorationLights emitters when parent hierarchy moves", () => {
-      const engine = createMockEngine();
-      const scene = Object.assign(createMockScene(engine), {
-        _lightManager: { _attachPointLight() {}, _detachPointLight() {} },
-        _shaderData: { setFloatArray() {}, setInt() {}, getMacros() {} }
-      }) as unknown as Scene;
-      activeScenes.push(scene);
-      const camEntity = scene.createRootEntity("Cam");
-      const fakeCamera = { entity: camEntity } as unknown as Camera;
-      const host = scene.createRootEntity("Host");
-      const pool = new ConstructionDecorationLights(host, 2);
-      const lights = [
-        {
-          id: "lantern-1",
-          ownerId: "houseA",
-          position: [2, 3, 4] as [number, number, number],
-          color: [1, 0.8, 0.5] as [number, number, number],
-          intensity: 1,
-          range: 5,
-          height: 2,
-          kind: "lantern" as const
-        }
-      ];
-
-      pool.update(lights, fakeCamera, 1);
-      const slot0 = pool.root.findByName("slot-0")!;
-      expect(slot0.transform.worldPosition.x).toBeCloseTo(2);
-      expect(slot0.transform.worldPosition.y).toBeCloseTo(3);
-      expect(slot0.transform.worldPosition.z).toBeCloseTo(4);
-
-      // Move parent without moving camera or changing light descriptors.
-      host.transform.setPosition(10, 0, -5);
-      pool.update(lights, fakeCamera, 1);
-      expect(slot0.transform.worldPosition.x).toBeCloseTo(2);
-      expect(slot0.transform.worldPosition.y).toBeCloseTo(3);
-      expect(slot0.transform.worldPosition.z).toBeCloseTo(4);
-
-      pool.dispose();
-    });
-
-    it("keeps ConstructionDecorationLights pool active with zero-energy slots when keepPoolActive is true", () => {
-      const engine = createMockEngine();
-      const scene = Object.assign(createMockScene(engine), {
-        _lightManager: { _attachPointLight() {}, _detachPointLight() {} },
-        _shaderData: { setFloatArray() {}, setInt() {}, getMacros() {} }
-      }) as unknown as Scene;
-      activeScenes.push(scene);
-      const camEntity = scene.createRootEntity("Cam");
-      const fakeCamera = { entity: camEntity } as unknown as Camera;
-      const host = scene.createRootEntity("Host");
-      const pool = new ConstructionDecorationLights(host, 4);
-
-      pool.update([], fakeCamera, 1 / 60, true);
-      expect(pool.root.isActive).toBe(true);
-      expect(pool.metrics.active).toBe(0);
-      expect(pool.metrics.allocated).toBe(4);
-
-      // Turning keepPoolActive off with no active descriptors deactivates the pool immediately.
-      pool.update([], fakeCamera, 1 / 60, false);
-      expect(pool.root.isActive).toBe(false);
-
-      pool.dispose();
     });
 
     it("terminates cleanly on closedU EffectiveSurface with zero period", () => {

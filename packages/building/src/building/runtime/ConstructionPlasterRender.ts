@@ -1,3 +1,5 @@
+import { withBuildingWallUVs } from "./BuildingWallGeometryUV";
+import { isWallBakeSurface, type BuildingWallBakeBindings } from "./BuildingWallBakeBinding";
 import { plasterLinearColor } from "./ConstructionPlasterPalette";
 import { masonryTintGLSL } from "./MasonryAppearance";
 import { constructionPlasterWarpGLSL } from "./ConstructionPlasterWarp";
@@ -54,19 +56,25 @@ void main(){original_main();}`
  * or hidden-region reinterpretation: exact preview polygons reach both paths. */
 export function appendPlasterRenderPackage(
   base: ConstructionRenderResult,
-  parts: readonly ConstructionPreviewPart[]
+  parts: readonly ConstructionPreviewPart[],
+  wallBakes?: BuildingWallBakeBindings
 ): ConstructionRenderResult {
   const files = new Map<string, ArrayBuffer>(),
     draws = base.package.draws.slice();
-  for (const [index, p] of parts.entries()) {
-    if (!p.plaster || !p.indices.length) continue;
+  for (const [index, source] of parts.entries()) {
+    if (!source.plaster || !source.indices.length) continue;
+    const binding = isWallBakeSurface(source) && wallBakes?.get(source.owner);
+    const p: ConstructionPreviewPart & { lightmapUVs?: Float32Array } = binding
+      ? withBuildingWallUVs(source, binding)
+      : source;
+    const plaster = p.plaster!;
     const count = p.positions.length / 3;
     const pUvs = p.uvs as unknown as PackedUv2;
     if (
       !p.normals ||
       p.normals.length !== p.positions.length ||
       uvCount(pUvs) !== count ||
-      p.plaster.edgeDistances.length !== count
+      plaster.edgeDistances.length !== count
     )
       throw Error("Incomplete plaster geometry");
     const data = new Float32Array(count * 15),
@@ -85,25 +93,29 @@ export function appendPlasterRenderPackage(
       data[off + 8] = color[2]!;
       data[off + 9] = uvU(pUvs, i);
       data[off + 10] = uvV(pUvs, i);
-      data[off + 11] = p.plaster.wear;
-      data[off + 12] = p.plaster.wallLength;
-      data[off + 13] = p.plaster.color;
-      data[off + 14] = p.plaster.edgeDistances[i]!;
+      data[off + 11] = plaster.wear;
+      data[off + 12] = plaster.wallLength;
+      data[off + 13] = plaster.color;
+      data[off + 14] = plaster.edgeDistances[i]!;
     }
     const id = `plaster/${encodeURIComponent(p.owner)}/${index}`,
       vertexFile = `dynamic/${id}/vertices.bin`,
       indexFile = `dynamic/${id}/indices.bin`;
+    const lightmapFile = `dynamic/${id}/lightmap-uv.bin`;
+    if (p.lightmapUVs) files.set(lightmapFile, p.lightmapUVs.buffer as ArrayBuffer);
     files.set(vertexFile, data.buffer);
     files.set(indexFile, (count <= 65535 ? new Uint16Array(p.indices) : new Uint32Array(p.indices)).buffer);
     draws.push({
       id,
       ownerId: p.owner,
       family: "plaster",
+      wallBakeReceiver: !!p.lightmapUVs,
       program: "host-plaster",
       count: 1,
       indexCount: p.indices.length,
       indices: indexFile,
       attributes: [
+        ...(p.lightmapUVs ? [{ location: 13, size: 2, stride: 8, offset: 0, file: lightmapFile }] : []),
         { location: 0, size: 3, stride: 60, offset: 0, file: vertexFile },
         { location: 1, size: 3, stride: 60, offset: 12, file: vertexFile },
         { location: 2, size: 3, stride: 60, offset: 24, file: vertexFile },

@@ -66,9 +66,18 @@ describe("flat building CPU ownership", () => {
       lateMessage({ data: { id: next.sent[0].id, ok: true, result: { stale: true } } });
       lateError({ message: "late error" });
       expect(next.terminated).toBe(false);
-      next.reply(next.sent[0].id, { fresh: true });
+      const wallLamps = [{
+        id: "house/sconce/light",
+        decorationId: "sconce",
+        ownerId: "house",
+        position: [2, 2, 1],
+        color: [1, 0.8, 0.1],
+        intensity: 0,
+        range: 3.5
+      }];
+      next.reply(next.sent[0].id, { wallLamps });
       const fresh = await retry;
-      expect(fresh).toHaveProperty("fresh", true);
+      expect(fresh.wallLamps).toEqual(wallLamps);
       expect(fresh.cpu.valid).toBe(true);
       fresh.cpu.dispose();
       client.dispose();

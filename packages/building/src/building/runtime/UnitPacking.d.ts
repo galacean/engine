@@ -1,6 +1,7 @@
 import type { SupportCell } from "./PlacementSupport";
 import type { MaterialUnit } from "./UnitPlacementStyle";
 
+export function f32ToHalf(value: number): number;
 /** Round-to-nearest-even float32 bits to float16 bits. */
 export function f32BitsToHalf(bits: number): number;
 /** A 96-byte brick domain record to its 64-byte packed form. */

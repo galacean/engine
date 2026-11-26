@@ -5,7 +5,7 @@
 const _f32Buf = new ArrayBuffer(4);
 const _f32View = new DataView(_f32Buf);
 
-function f32ToHalf(value) {
+export function f32ToHalf(value) {
   _f32View.setFloat32(0, value, true);
   return f32BitsToHalf(_f32View.getUint32(0, true));
 }

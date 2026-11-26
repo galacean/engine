@@ -10,6 +10,7 @@ import {
   type Material
 } from "@galacean/engine";
 interface V2Mesh {
+  lightmapUVs?: Float32Array;
   uvs?: number[][] | Float32Array;
   pickIds?: number[];
   positions: ArrayLike<number>;
@@ -116,6 +117,13 @@ export function addV2Surface(
   mesh.setPositions(positions);
   mesh.setNormals(normals);
   mesh.setUVs(uvs);
+  if (geometry.lightmapUVs) {
+    const coords = geometry.lightmapUVs;
+    mesh.setUVs(
+      positions.map((_, i) => new Vector2(coords[i * 2], coords[i * 2 + 1])),
+      2
+    );
+  }
   if (geometry.pickIds)
     mesh.setUVs(
       geometry.pickIds.map((id) => new Vector2(id, 0)),

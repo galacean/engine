@@ -151,13 +151,6 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly additionalInstancedRenderers?: readonly Renderer[];
   /** Alternate materials swapped onto specific renderers at runtime (e.g. shadow-only proxy materials). */
   readonly additionalRendererMaterials?: ReadonlyMap<Renderer, readonly Material[]>;
-  /**
-   * Signed `SCENE_POINT_LIGHT_COUNT` deltas to precompile on Forward passes relative to the
-   * scene's baseline point light count (e.g. `[4]` when a lazy 4-slot decoration light pool is
-   * inactive, or `[-4]` when it is already active in-village so lights-OFF variants stay warm),
-   * clamped to `[0, LightManager capacity]`.
-   */
-  readonly additionalPointLightCounts?: readonly number[];
   /** Exact production emitters whose wind module can be enabled by weather changes. */
   readonly particleWindRenderers?: readonly ParticleRenderer[];
   /** Renderer feature macros that are enabled only during the entrance frame. */
@@ -1460,53 +1453,6 @@ function collectSeedWorldRendererVariantsInternal(
           !forcedCameraOnlyRenderers.has(sourceRenderer) &&
           (sourceRenderer.castShadows || material.shader.name === "Masonry/GlobalProxyShadowOnly");
         const macroSetKey = `${material.shader.name}/${passCastShadows}/${frustumShadowOnly ? "shadow" : "full"}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
-        const appendPointLightVariants = (targetShader: Shader, sourceMacros: ShaderMacroCollection): void => {
-          if (!options.additionalPointLightCounts?.length || !shaderConsumesPointLights(targetShader.name)) return;
-          // Startup entrance only runs under the scene's initial light state; steady-state gets alternate point-light counts.
-          if (sourceMacros.isEnable(MASONRY_ENTRANCE_MACRO) || sourceMacros.isEnable(GLOBAL_PROXY_ENTRANCE_MACRO))
-            return;
-          const manager = (scene as unknown as { _lightManager?: { _pointData?: { color: Float32Array } } })
-            ._lightManager;
-          const rawCapacity = (manager?._pointData?.color.length ?? 0) / 3;
-          const pointLightCapacity = Number.isInteger(rawCapacity) && rawCapacity > 0 ? rawCapacity : Infinity;
-          const basePointMacros: ShaderMacro[] = [];
-          (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(sourceMacros, basePointMacros);
-          let existingPointLightCount = 0;
-          for (const macro of basePointMacros) {
-            if (macro.name === "SCENE_POINT_LIGHT_COUNT") {
-              existingPointLightCount = Number(macro.value ?? 0) || 0;
-              break;
-            }
-          }
-          for (const delta of options.additionalPointLightCounts) {
-            if (!Number.isInteger(delta) || delta === 0) continue;
-            const targetPointLightCount = Math.max(0, Math.min(existingPointLightCount + delta, pointLightCapacity));
-            if (targetPointLightCount === existingPointLightCount) continue;
-            const pointLightMacros = new ShaderMacroCollection();
-            ShaderMacroCollection.unionCollection(sourceMacros, sourceMacros, pointLightMacros);
-            for (const macro of basePointMacros) {
-              if (macro.name === "SCENE_POINT_LIGHT_COUNT") pointLightMacros.disable(macro);
-            }
-            if (targetPointLightCount > 0) {
-              pointLightMacros.enable(ShaderMacro.getByName("SCENE_POINT_LIGHT_COUNT", String(targetPointLightCount)));
-            }
-            const pointKey = `${targetShader.name}/pl=${targetPointLightCount}/${contributionKey}?${shaderMacroCollectionKey(pointLightMacros)}`;
-            if (!collectedShaderMacroSets.has(pointKey)) {
-              collectedShaderMacroSets.add(pointKey);
-              appendShaderVariants(
-                targetShader,
-                pointLightMacros,
-                variants,
-                false,
-                renderToTexture,
-                material,
-                supportsRendering,
-                true,
-                ssrContext
-              );
-            }
-          }
-        };
         if (!collectedShaderMacroSets.has(macroSetKey)) {
           collectedShaderMacroSets.add(macroSetKey);
           appendShaderVariants(
@@ -1517,11 +1463,9 @@ function collectSeedWorldRendererVariantsInternal(
             renderToTexture,
             material,
             supportsRendering,
-            false,
             ssrContext,
             frustumShadowOnly
           );
-          if (!frustumShadowOnly) appendPointLightVariants(material.shader, compileMacros);
         }
         if (
           options.includeMasonryEntrance !== false &&
@@ -1546,11 +1490,9 @@ function collectSeedWorldRendererVariantsInternal(
               renderToTexture,
               material,
               supportsRendering,
-              false,
               ssrContext
             );
           }
-          appendPointLightVariants(material.shader, steadyMacros);
         }
         // BuildingGlobalProxy swaps between Masonry/GlobalProxy and Masonry/GlobalProxyShadowOnly
         // when cells transition between LOD2 and LOD1/LOD0; precompile both directions symmetrically.
@@ -1574,11 +1516,9 @@ function collectSeedWorldRendererVariantsInternal(
                 renderToTexture,
                 material,
                 supportsRendering,
-                false,
                 ssrContext
               );
             }
-            appendPointLightVariants(companionShader, compileMacros);
           }
         }
       }
@@ -2402,19 +2342,6 @@ function resolveDepthMode(
   return { depthPrepassEnabled, forwardDepthResolveEnabled };
 }
 
-function shaderConsumesPointLights(shaderName: string): boolean {
-  if (shaderName === "PBR" || shaderName === "BlinnPhong") return true;
-  if (shaderName.startsWith("Terrain/") || shaderName.startsWith("Farming/")) return true;
-  if (
-    shaderName.startsWith("Masonry/") &&
-    shaderName !== "Masonry/GlobalProxyShadowOnly" &&
-    shaderName !== "Masonry/ShadowSurface"
-  ) {
-    return true;
-  }
-  return false;
-}
-
 function appendShaderVariants(
   shader: Shader,
   macros: ShaderMacroCollection,
@@ -2423,7 +2350,6 @@ function appendShaderVariants(
   renderToTexture?: boolean,
   material?: Material,
   supportsRendering = true,
-  forwardOnly = false,
   context?: AppendShaderVariantContext,
   shadowOnly = false
 ): void {
@@ -2437,7 +2363,6 @@ function appendShaderVariants(
       const pass = shader.subShaders[si].passes[pi];
       const stage = pass.getTagValue("pipelineStage");
       if (shadowOnly && stage !== "ShadowCaster") continue;
-      if (forwardOnly && stage !== "Forward") continue;
       // Match shadow culling even while candidate roots are intentionally inactive.
       if (!castShadows && stage === "ShadowCaster") continue;
       if (stage === "TransformFeedback" && !supportsRendering) continue;

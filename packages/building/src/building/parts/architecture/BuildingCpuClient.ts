@@ -1,3 +1,8 @@
+import {
+  bakeBuildingWall,
+  type BuildingWallBakeAtlas,
+  type BuildingWallBakeInput
+} from "../../runtime/BuildingWallBakeInput";
 import type { BuildingCoreDraft as BuildingDraft } from "../../core";
 import type { BuildingCpuOptions } from "./BuildingCpu";
 import type { InitialBuildingGroupInput, InitialBuildingGroupOutput } from "./BuildingInitialGroup";
@@ -213,6 +218,24 @@ export class BuildingCpuClient {
 
     return { id, result };
   }
+  /** The scene cache issues one request per missing bake key, regardless of instance count. */
+  async bakeWall(input: BuildingWallBakeInput, signal: AbortSignal): Promise<BuildingWallBakeAtlas> {
+    signal.throwIfAborted();
+    if (this.closed) throw Error("Building compiler disposed");
+    if (typeof Worker === "undefined") return bakeBuildingWall(input);
+    try {
+      return await this.send<BuildingWallBakeAtlas>(this.pickSlot(), { mode: "wall-bake", input }, signal).result;
+    } catch (error) {
+      signal.throwIfAborted();
+      if (
+        this.closed ||
+        !(error instanceof BuildingWorkerError || (error instanceof DOMException && error.name === "SecurityError"))
+      )
+        throw error;
+      return bakeBuildingWall(input);
+    }
+  }
+
   async designInitialGroup(
     group: InitialBuildingGroupInput,
     terrain: ConstructionTerrainGrid,

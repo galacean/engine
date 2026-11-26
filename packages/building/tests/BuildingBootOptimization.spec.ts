@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { BuildingRuntime, masonryShaderFeatures } from "../src/building/parts/architecture/BuildingRuntime";
+import {
+  BuildingRuntime,
+  buildingInstanceKey,
+  masonryShaderFeatures
+} from "../src/building/parts/architecture/BuildingRuntime";
 import { European } from "../src/building/application/European";
 
 function makeTerrain(revision = 1) {
@@ -15,6 +19,7 @@ function makeTerrain(revision = 1) {
   } as any;
 }
 
+let frameSerial = 0;
 function makeMockFrame(scene: any, x = 0, z = 0) {
   const wm = new Float64Array(16);
   wm[0] = 1;
@@ -25,6 +30,7 @@ function makeMockFrame(scene: any, x = 0, z = 0) {
   wm[14] = z;
   return {
     scene,
+    instanceId: ++frameSerial,
     destroyed: false,
     transform: { worldMatrix: { elements: wm } }
   } as any;
@@ -94,13 +100,13 @@ describe("BuildingRuntime boot optimizations", () => {
       queriesFor: () => [],
       captureQueries: () => ({}),
       updateResidency() {},
-      updateLights() {},
+      solveBuilding: async () => ({ cpu: { dispose() {} }, wallBakes: [], wallLamps: [], releaseAssets() {} }),
       prepareView: async (targetFrame: any, input: any) => ({
         kind: "profile",
         frame: targetFrame,
         signature: input.signature,
         bodies: input.bodies,
-        lights: [],
+        releaseLampMaterials() {},
         view: { root: { isActive: false, destroyed: false }, bounds: { min: [0, 0, 0], max: [1, 1, 1] }, destroy() {} },
         cpu: { valid: true, dispose() {} },
         occupancy: { hasSameGeometry: () => false }
@@ -194,7 +200,7 @@ describe("BuildingRuntime boot optimizations", () => {
           frame: targetFrame,
           signature: input.signature,
           bodies: input.bodies,
-          lights: [],
+          releaseLampMaterials() {},
           view: { root: { isActive: false, destroyed: false }, bounds: { min: [0, 0, 0], max: [1, 1, 1] }, destroy() {} },
           cpu: { valid: true, dispose() {} },
           occupancy: { hasSameGeometry: () => false }
@@ -289,7 +295,6 @@ describe("BuildingRuntime boot optimizations", () => {
         entry: {
           kind: "profile",
           frame,
-          lights: [],
           lod: 2,
           view: {
             bounds: { min: [-2, 0, -2], max: [2, 4, 2] },
@@ -354,7 +359,6 @@ describe("BuildingRuntime boot optimizations", () => {
     await expect(
       (BuildingRuntime.prototype as any).prepareShaderWarmupForViews.call(
         runtime,
-        specs.map((s) => s.entry),
         specs.map((s) => s.entry)
       )
     ).rejects.toThrow("stop-after-selection");
@@ -491,8 +495,18 @@ describe("BuildingRuntime boot optimizations", () => {
       queriesFor: () => [],
       captureQueries: () => ({}),
       updateResidency() {},
-      updateLights() {},
+      solveBuilding: async (targetFrame: any) => ({
+        cpu: { dispose() {} },
+        wallBakes: [{ owner: "entrance", typeKey: targetFrame === frameA ? "house" : "tower", key: "shared wall layout" }],
+        wallLamps: [],
+        releaseAssets() {}
+      }),
       prepareView: async (targetFrame: any, input: any) => {
+        // Both frames must be known before either starts acquiring its atlas.
+        expect(runtime.terrainWallBakeKeys).toEqual([
+          { typeKey: "house", key: "shared wall layout", buildingId: buildingInstanceKey(frameA, "entrance") },
+          { typeKey: "tower", key: "shared wall layout", buildingId: buildingInstanceKey(frameB, "entrance") }
+        ]);
         if (targetFrame === frameB) {
           await gateB;
           return {
@@ -500,7 +514,7 @@ describe("BuildingRuntime boot optimizations", () => {
             frame: targetFrame,
             signature: input.signature,
             bodies: input.bodies,
-            lights: [],
+            releaseLampMaterials() {},
             view: {
               root: { isActive: false, destroyed: false },
               bounds: { min: [0, 0, 0], max: [1, 1, 1] },
@@ -522,7 +536,7 @@ describe("BuildingRuntime boot optimizations", () => {
           frame: targetFrame,
           signature: input.signature,
           bodies: input.bodies,
-          lights: [],
+          releaseLampMaterials() {},
           view: {
             root: { isActive: false, destroyed: false },
             bounds: { min: [0, 0, 0], max: [1, 1, 1] },

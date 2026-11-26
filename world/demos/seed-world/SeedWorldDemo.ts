@@ -1223,6 +1223,9 @@ export async function mountSeedWorldDemo(
       setRockLodCrossFadeEnabled(previousRockLodCrossFade);
     };
     nativeBuildingHost = new NativeBuildingHost(runtimeProject, nativeEditor.editor, scene!, camera);
+    nativeBuildingHost.system.onWallLightmapInventoryChange = (inventory) => {
+      canvas.dataset.wallLightmaps = JSON.stringify(inventory);
+    };
     sceneEntityEffectHost = new SeedWorldSceneEntityEffectHost(runtimeProject, nativeEditor.editor, scene!);
     if (pageUrl.searchParams.get("agentTrace") === "1") {
       const probe = camera.entity.addComponent(SeedCameraSubmissionProbe);
@@ -2785,9 +2788,6 @@ export async function mountSeedWorldDemo(
                 additionalRenderers: additionalRenderers.length ? additionalRenderers : undefined,
                 additionalInstancedRenderers: vegetationWarmup?.renderers,
                 additionalRendererMaterials: masonryWarmup?.extraMaterials,
-                additionalPointLightCounts: masonryWarmup?.decorationPointLightBudget
-                  ? [masonryWarmup.decorationPointLightBudget]
-                  : undefined,
                 includeGpuInstancing: true,
                 onlySharedMeshGpuInstancing: true,
                 includeLodDither: false,

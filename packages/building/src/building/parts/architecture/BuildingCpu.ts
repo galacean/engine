@@ -14,9 +14,10 @@ import {
   coreBuildingDiagnostics,
   deflateCoreBuildingLayout
 } from "../../render/CoreBuilding";
-import { groundSupportsInRegion, type ConstructionGrounding } from "../../runtime/TerrainField";
+import { buildingTerrainAxes, groundSupportsInRegion, type ConstructionGrounding } from "../../runtime/TerrainField";
 import type { ConstructionTerrainGrid } from "../../runtime/TerrainField";
 import type { GridKernelTerrainInfo } from "../../render/GridUnitKernelInput";
+import { buildingWallLamps, buildingWallBakeInputs, type WallBakeEdge } from "../../runtime/BuildingWallBakeInput";
 import { BuildingOccupancyQuery } from "../../runtime/BuildingOccupancyQuery";
 import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
 import type { TerrainHeight } from "../../runtime/PublishedWallProfile";
@@ -58,13 +59,12 @@ export function buildingWorldRegion(
   frame: BuildingPlacementFrame = { position: [0, 0, 0], rotationY: 0 }
 ): number[] {
   const local = buildingDraftRegion(draft) ?? [0, 0, 0, 0];
-  const c = Math.cos(frame.rotationY),
-    s = Math.sin(frame.rotationY);
+  const [xx, xz, zx, zz] = buildingTerrainAxes(frame);
   const region = [Infinity, Infinity, -Infinity, -Infinity];
   for (const x of [local[0], local[2]])
     for (const z of [local[1], local[3]]) {
-      const wx = frame.position[0] + c * x + s * z,
-        wz = frame.position[2] - s * x + c * z;
+      const wx = frame.position[0] + xx * x + xz * z,
+        wz = frame.position[2] + zx * x + zz * z;
       region[0] = Math.min(region[0], wx);
       region[1] = Math.min(region[1], wz);
       region[2] = Math.max(region[2], wx);
@@ -88,7 +88,11 @@ export function buildingGround(
           origin: [terrain.origin[0], terrain.origin[1]],
           size: terrain.size,
           decode: { offset: terrain.decode.offset, scale: terrain.decode.scale },
-          frame: { position: [frame.position[0], frame.position[1], frame.position[2]], rotationY: frame.rotationY }
+          frame: {
+            position: [...frame.position],
+            rotationY: frame.rotationY,
+            ...(frame.scale ? { scale: [...frame.scale] as [number, number, number] } : {})
+          }
         }
       : undefined;
   return { ...prepared, terrainInfo };
@@ -108,16 +112,25 @@ export function prepareBuildingOnGround(
   if (requireAll && result.diagnostics.length)
     throw Error(result.diagnostics.map((d) => d.source + ": " + d.message).join("\n"));
   const layout = coreBuildingLayout(result, registry, { environment, validateKeys: requireAll });
+  const contours = new Map<string, WallBakeEdge[]>();
   const preview = coreBuildingView(layout, {
+    onWallEdge(owner, ax, az, bx, bz) {
+      let edges = contours.get(owner);
+      if (!edges) contours.set(owner, (edges = []));
+      edges.push([ax, az, bx, bz]);
+    },
     assets,
     includeAppearance: true,
     retainDecorationParts: true
   });
   const occupancy = BuildingOccupancyQuery.fromBounds(preview.occupancyBounds).snapshot();
+  const wallLamps = buildingWallLamps(preview.decorationParts);
   return {
     prepared: { layout, preview, ground, assets },
     preview,
     occupancy,
+    wallLamps,
+    wallBakes: buildingWallBakeInputs(draft.groups, contours, wallLamps),
     appearance: coreBuildingPalette(layout),
     focus: coreBuildingFocus(layout),
     diagnostics: [...result.diagnostics, ...coreBuildingDiagnostics(layout)]

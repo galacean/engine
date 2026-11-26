@@ -3,6 +3,8 @@ import { runInNewContext } from "node:vm";
 import { expect, it, vi } from "vitest";
 import { BuildingManager } from "@galacean/engine-building/building/parts/architecture/BuildingManager.ts";
 import { validatePartCollection } from "@galacean/engine-building/building/parts/architecture/BuildingPartCollection.ts";
+import { BuildingRuntime } from "@galacean/engine-building/building/parts/architecture/BuildingRuntime.ts";
+import { BuildingWallBakeCache } from "@galacean/engine-building/building/runtime/BuildingWallBakeCache.ts";
 import { NativeBuildingWorld } from "../src/masonry/NativeBuildingHost";
 
 vi.hoisted(() => Object.defineProperty(globalThis, "window", { value: new EventTarget(), configurable: true }));
@@ -43,7 +45,6 @@ async function prepareEmptyScene() {
     frames: () => new Map(),
     queriesFor: () => [],
     updateResidency() {},
-    updateLights() {},
     visible: true
   };
   // Only rendering collaborators are replaced; the transaction/terminal methods are real.
@@ -102,13 +103,11 @@ it("routes NativeBuildingWorld.prepareShaderWarmup to the uncommitted candidate 
   const candidateWarmup = vi.fn(async () => ({
     renderers: [],
     extraMaterials: new Map(),
-    decorationPointLightBudget: 4,
     dispose() {}
   }));
   const systemWarmup = vi.fn(async () => ({
     renderers: [],
     extraMaterials: new Map(),
-    decorationPointLightBudget: 0,
     dispose() {}
   }));
   const system = { visible: true, bounds: [], captureOccupancyQuery: liveQuery, prepareShaderWarmup: systemWarmup };
@@ -125,61 +124,13 @@ it("routes NativeBuildingWorld.prepareShaderWarmup to the uncommitted candidate 
   const preCommit = await world.prepareShaderWarmup(signal);
   expect(candidateWarmup).toHaveBeenCalledWith(signal);
   expect(systemWarmup).not.toHaveBeenCalled();
-  expect(preCommit.decorationPointLightBudget).toBe(4);
+  expect(preCommit).toBe(await candidateWarmup.mock.results[0].value);
 
   world.commitPublication();
   world.activate();
   const postActivate = await world.prepareShaderWarmup(signal);
   expect(systemWarmup).toHaveBeenCalledWith(signal);
-  expect(postActivate.decorationPointLightBudget).toBe(0);
-});
-
-it("prepareTerrain candidate prepareShaderWarmup emits negative point-light delta when decoration lights are already active even for a building-free target", async () => {
-  const system = {
-    closed: false,
-    publishedTerrain: terrain(2),
-    host: { validate: validatePartCollection },
-    entries: [],
-    members: new Map(),
-    views: new Map(),
-    revision: 0,
-    lights: { root: { isActiveInHierarchy: true }, metrics: { allocated: 4 } },
-    residency: { desired: new Set(), invalidate() {} },
-    async flush() {},
-    readTransforms() {},
-    frames: () => new Map(),
-    queriesFor: () => [],
-    updateResidency() {},
-    updateLights() {},
-    visible: true,
-    prepareShaderWarmupForViews: (BuildingManager.prototype as any).prepareShaderWarmupForViews
-  };
-  const candidate = await BuildingManager.prototype.prepareTerrain.call(
-    system as any,
-    terrain(4),
-    new AbortController().signal
-  );
-  const warmup = await candidate.prepareShaderWarmup();
-  expect(warmup.decorationPointLightBudget).toBe(-4);
-  warmup.dispose();
-
-  // When decoration lights are inactive and target has no buildings, delta is 0.
-  system.lights.root.isActiveInHierarchy = false;
-  const inactiveWarmup = await candidate.prepareShaderWarmup();
-  expect(inactiveWarmup.decorationPointLightBudget).toBe(0);
-  inactiveWarmup.dispose();
-  candidate.discard();
-
-  // When decoration lights are already active and target views also own decoration lights,
-  // the pool stays active with zero-energy idle slots so delta is 0 (no 0-light/4-light doubling).
-  system.lights.root.isActiveInHierarchy = true;
-  const steadyWarmup = await (BuildingManager.prototype as any).prepareShaderWarmupForViews.call(
-    system,
-    [],
-    [{ lights: [{ descriptor: { ownerId: "house-1" } }] }]
-  );
-  expect(steadyWarmup.decorationPointLightBudget).toBe(0);
-  steadyWarmup.dispose();
+  expect(postActivate).toBe(await systemWarmup.mock.results[0].value);
 });
 
 it("releases retired terrain samples and avoids input thrash when preparing terrain with active buildings", async () => {
@@ -188,6 +139,11 @@ it("releases retired terrain samples and avoids input thrash when preparing terr
   const prevRef = new WeakRef(previous.grid.samples);
   const nextRef = new WeakRef(next.grid.samples);
   let collectCount = 0;
+  const wallBakeSource = { typeKey: "house", key: "wall-lamp", owner: "house-1" };
+  const wallBakeKeys = [{ ...wallBakeSource, buildingId: "frame-1/house-1" }];
+  const releaseTexture = vi.fn();
+  const wallBakeCache = new BuildingWallBakeCache(releaseTexture);
+  const inventoryChanged = vi.fn();
 
   const frame = { destroyed: false, scene: null as any } as any;
   const body = { entity: frame } as any;
@@ -197,9 +153,10 @@ it("releases retired terrain samples and avoids input thrash when preparing terr
     frame,
     bodies: [body],
     signature: "sig-512",
+    wallBakeKeys,
+    releaseLampMaterials() {},
     cpu: { valid: true, dispose() {} },
     view: { root: { isActive: true }, setVisualVisible() {}, setFarProxyActive() {}, destroy() {}, setEntrance() {} },
-    lights: [],
     entranceInstanceKeys: [],
     entranceStates: new Map()
   };
@@ -210,7 +167,6 @@ it("releases retired terrain samples and avoids input thrash when preparing terr
     generationSerial: 0,
     probeRevision: -1,
     detailDirty: false,
-    lightsDirty: false,
     revision: 1,
     applied: 1,
     frameRevision: 1,
@@ -224,6 +180,9 @@ it("releases retired terrain samples and avoids input thrash when preparing terr
     entries: [],
     members,
     views: new Map([[frame, existingView]]),
+    activeBuilds: new Set(),
+    wallBakeCache,
+    onWallLightmapInventoryChange: inventoryChanged,
     residency: { desired: new Set(), invalidate() {} },
     compiler: { dispose() {} },
     async flush() {},
@@ -235,14 +194,13 @@ it("releases retired terrain samples and avoids input thrash when preparing terr
     queriesFor: () => [],
     captureQueries: () => ({}),
     updateResidency() {},
-    updateLights() {},
     clearExitingViews() {},
     retire: (BuildingManager.prototype as any).retire,
-    prepareView: async (targetFrame: any, input: any) => ({
-      ...existingView,
-      frame: targetFrame,
-      signature: input.signature
-    }),
+    solveBuilding: async () => ({ wallBakes: [wallBakeSource], cpu: { dispose() {} }, releaseAssets() {} }),
+    prepareView: async (targetFrame: any, input: any) => {
+      await wallBakeCache.getOrCreate(wallBakeKeys[0].key, async () => ({}));
+      return { ...existingView, frame: targetFrame, signature: input.signature };
+    },
     host: {
       validate: () => {},
       isBody: () => true,
@@ -258,6 +216,11 @@ it("releases retired terrain samples and avoids input thrash when preparing terr
       }
     }
   };
+  Object.defineProperty(
+    system,
+    "wallLightmapInventory",
+    Object.getOwnPropertyDescriptor(BuildingRuntime.prototype, "wallLightmapInventory")!
+  );
   frame.scene = system.entity = { scene: { id: "scene" }, destroyed: false };
 
   // Warm cache on previous terrain.
@@ -270,9 +233,16 @@ it("releases retired terrain samples and avoids input thrash when preparing terr
     await BuildingManager.prototype.prepareTerrain.call(system, next, new AbortController().signal);
   expect(collectCount).toBe(1);
   expect(system.inputCacheTerrain).toBe(previous);
+  expect(inventoryChanged).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({ litBuildings: 1, litTypes: 1, mapTypes: 1, readyTypes: 0, bakesStarted: 0 })
+  );
 
   candidate.commit();
   candidate.finalize();
+  expect(inventoryChanged).toHaveBeenLastCalledWith(
+    expect.objectContaining({ litBuildings: 1, litTypes: 1, mapTypes: 1, readyTypes: 1, bakesCompleted: 1 })
+  );
   candidate = undefined;
   previous = undefined;
 
@@ -294,6 +264,7 @@ it("releases retired terrain samples and avoids input thrash when preparing terr
   // Populate cache on live `next`, then destroy runtime and verify `inputCacheTerrain` releases it.
   expect(system.input(frame).signature).toBe("sig-256");
   BuildingManager.prototype.onDestroy.call(system);
+  expect(releaseTexture).toHaveBeenCalledTimes(1);
   system.publishedTerrain = undefined;
   next = undefined;
   expect(system.inputCacheTerrain).toBeUndefined();

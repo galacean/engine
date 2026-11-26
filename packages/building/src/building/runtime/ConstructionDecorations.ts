@@ -50,6 +50,8 @@ export interface ConstructionDecorationAppearance {
   centers: number[];
 }
 export interface ConstructionDecorationPart {
+  wallBakeReceiver?: boolean;
+  lightmapUVs?: Float32Array;
   /** Native source unit whose material owns this part. */
   assetUnit?: string;
   /** Editable attachment identity, independent of its material parts and draw owner. */
@@ -67,8 +69,6 @@ export interface ConstructionDecorationPart {
   indices: number[];
   uvs?: number[][];
   appearance?: ConstructionDecorationAppearance;
-  /** Native scene emitter, distinct from the scaled shader filament. */
-  lightPosition?: [number, number, number];
 }
 export interface CompiledConstructionDecorations {
   woodArchFrames?: ConstructionWoodArchPart[];

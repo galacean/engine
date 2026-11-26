@@ -1,5 +1,7 @@
+import type { BuildingLampMaterials } from "../../runtime/BuildingLampShaderBinding";
 import type { Camera, Entity, PrefabResource } from "@galacean/engine";
 import { buildingAssets, retainBuildingResource } from "../../resources/BuildingAssetKit";
+import type { BuildingWallBakeBindings } from "../../runtime/BuildingWallBakeBinding";
 import { EngineResidentScene } from "../../runtime/EngineResidentScene";
 import { buildBuildingRenderPackage, type BuildingRenderInput } from "../../runtime/BuildingRenderPackage";
 import { buildingGlobals } from "../../runtime/BuildingGlobals";
@@ -19,6 +21,8 @@ export async function renderBuilding(
     releasePackageAfterApply?: boolean;
     /** Optional frame-pacing hook invoked between CPU package build and GPU upload during interactive roaming. */
     yieldFrame?: () => Promise<void>;
+    wallBakes?: BuildingWallBakeBindings;
+    lampMaterials?: BuildingLampMaterials;
   }
 ) {
   const { parent, camera, assets, signal } = options;
@@ -34,13 +38,21 @@ export async function renderBuilding(
       buildingGlobals(input.paletteSlots, library.frame),
       options.rigidDecorations?.poses,
       library.compilation.stoneGeometry,
-      slim ? { skipDocumentClone: true } : undefined
+      { skipDocumentClone: slim, wallBakes: options.wallBakes, lampMaterials: options.lampMaterials }
     );
     if (options.yieldFrame) {
       await options.yieldFrame();
       signal.throwIfAborted();
     }
-    runtime = new EngineResidentScene(parent.engine, parent, built.asset, options.bounds, options.terrainGrid);
+    runtime = new EngineResidentScene(
+      parent.engine,
+      parent,
+      built.asset,
+      options.bounds,
+      options.terrainGrid,
+      options.wallBakes,
+      options.lampMaterials
+    );
     runtime.root.isActive = false;
     await runtime.load(built.package);
     if (options.rigidDecorations) runtime.bindRigidDecorations(options.rigidDecorations.resolve);

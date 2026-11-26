@@ -612,7 +612,11 @@ function quad(mesh: Mesh, v: number[][], uv: number[][]) {
  * metres, v = height above the binding's chart base. The top follows the roof joint. The
  * areas removed from the walls, such as openings, stay open: `holes` are rects of perimeter
  * metres and heights. */
-function wallSurface(binding: CoreBinding, holes: readonly Rect[]) {
+function wallSurface(
+  binding: CoreBinding,
+  holes: readonly Rect[],
+  onEdge?: (owner: string, ax: number, az: number, bx: number, bz: number) => void
+) {
   const walls = binding.parts
     .flatMap((p) => (chartOf(p.part) ? [chartOf(p.part)!] : []))
     .sort((a, b) => (a.uOffset ?? 0) - (b.uOffset ?? 0));
@@ -661,6 +665,7 @@ function wallSurface(binding: CoreBinding, holes: readonly Rect[]) {
       b = ring[(e + 1) % n];
     const [ax, az] = outer(e),
       [bx, bz] = outer((e + 1) % n);
+    onEdge?.(binding.owner, ax, az, bx, bz);
     const ua = a.u,
       ub = closed && e === n - 1 ? perimeter : b.u;
     const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 0.5));
@@ -1189,6 +1194,8 @@ function unitBox(mesh: Mesh, part: ResolvedPart, u: LaidUnit, anchor?: number[])
 }
 
 export interface CoreBuildingViewOptions {
+  /** Oriented exterior contours, before tessellation for openings, paint and terrain. */
+  onWallEdge?: (owner: string, ax: number, az: number, bx: number, bz: number) => void;
   /** Units' footprints painted into each surface, for the distance view. */
   readonly includeAppearance?: boolean;
   /** Surface polygons for queries such as snapping and picking. */
@@ -1203,6 +1210,13 @@ export interface CoreBuildingViewOptions {
  * renderer and the distance view consume. */
 export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildingViewOptions = {}) {
   hydrateCoreBuildingLayout(layout);
+  const decorations = options.assets ? coreBuildingDecorations(layout, options.assets) : [];
+  const decorationParts = decorations.flatMap((d) => d.parts);
+  // Resolve lanterns once before walking the wall contours. Dark geometry never
+  // accumulates a candidate descriptor or crosses the Worker boundary for lighting.
+  const litOwners =
+    options.onWallEdge &&
+    new Set(decorationParts.filter((p) => p.kind === "wall-lamp" || p.kind === "lantern").map((p) => p.ownerId));
   const parts: ConstructionPreviewPart[] = [];
   const retainedWallUnits: RetainedWallUnits[] = [];
   const structure = new Map<string, ConstructionSurfacePart>();
@@ -1262,7 +1276,11 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
             .removedOver(face.domain.u[0], face.domain.u[1])
             .map((r): Rect => [r[0] + offset, r[1], r[2] + offset, r[3]]);
         });
-        const { mesh, perimeter, inset, finish } = wallSurface(binding, holes);
+        const { mesh, perimeter, inset, finish } = wallSurface(
+          binding,
+          holes,
+          litOwners?.has(owner.group.id) ? options.onWallEdge : undefined
+        );
         const base = chartBase(binding);
         // Bricks that stand out of the finish face, such as corner stones, stay solid at a
         // distance. Boards stand out everywhere; the distance view draws them on the surface.
@@ -1470,8 +1488,7 @@ export function coreBuildingView(layout: CoreBuildingLayout, options: CoreBuildi
           }
       }
     }
-  const decorations = options.assets ? coreBuildingDecorations(layout, options.assets) : [];
-  const decorationParts = decorations.flatMap((d) => d.parts);
+
   const stones = decorations.flatMap((d) => d.stones);
   const frames = decorations.flatMap((d) => d.frames);
   const woodArchFrames: ConstructionWoodArchPart[] = decorations.flatMap((d) => d.woodArchFrames ?? []);
@@ -1897,8 +1914,9 @@ export function coreBuildingGrounding(
     topY: Math.max(...o.charts.map((c) => c.topY)),
     layoutOriginY: 0
   }));
-  grounding.minWorldHeight = Math.min(...points.map((p) => p[1]));
-  grounding.maxWorldHeight = Math.max(...points.map((p) => p[1]));
+  const sy = grounding.verticalScale ?? 1;
+  grounding.minWorldHeight = Math.min(...points.map((p) => p[1])) * sy;
+  grounding.maxWorldHeight = Math.max(...points.map((p) => p[1])) * sy;
   const min = view.bounds.min.map((v) => v - 0.5) as [number, number, number],
     max = view.bounds.max.map((v) => v + 0.5) as [number, number, number];
   grounding.localBounds = { min, max };
@@ -1921,7 +1939,12 @@ export function coreBuildingGrounding(
           checks++;
         }
       }
-  grounding.contacts = { sampleError, aboveTerrain, belowTerrain, checks };
+  grounding.contacts = {
+    sampleError: sampleError * sy,
+    aboveTerrain: aboveTerrain * sy,
+    belowTerrain: belowTerrain * sy,
+    checks
+  };
   return grounding;
 }
 

@@ -1,3 +1,4 @@
+import { bakeBuildingWall } from "../../runtime/BuildingWallBakeInput";
 import { prepareBuildingCpu, compileBuildingCpu, type BuildingCpuPreparation } from "./BuildingCpu";
 import { designInitialBuildingGroup } from "./BuildingInitialGroup";
 import type { BuildingWorkerRequest, BuildingWorkerReply } from "./BuildingWorkerProtocol";
@@ -72,7 +73,10 @@ async function handle(input: BuildingWorkerRequest) {
   }
   const { id } = input;
   try {
-    if (input.mode === "preview" || input.mode === "previewOnly") {
+    if (input.mode === "wall-bake") {
+      const result = bakeBuildingWall(input.input);
+      reply({ id, ok: true, result }, [result.pixels.buffer]);
+    } else if (input.mode === "preview" || input.mode === "previewOnly") {
       const retainPreparation = input.mode === "preview";
       leases.set(id, { assetId: input.assetId, terrainId: input.terrainId });
       if (input.units) assets.set(input.assetId, input.units);

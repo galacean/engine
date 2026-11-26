@@ -1,3 +1,7 @@
+import { bindBuildingWall } from "./BuildingWallBakeBinding";
+import type { BuildingLampMaterials } from "./BuildingLampShaderBinding";
+import { isWallBakeSurface, type BuildingWallBakeBindings } from "./BuildingWallBakeBinding";
+import { withBuildingWallUVs } from "./BuildingWallGeometryUV";
 import { buildingPartKey, buildingGroupKey } from "./BuildingObjectIdentity";
 import type { PrefabResource } from "@galacean/engine";
 import { constructionStoneFloorGLSL } from "./ConstructionStoneFloorShader";
@@ -12,7 +16,7 @@ import {
 import { constructionEntranceRanges, type ConstructionEntranceState } from "./ConstructionEntrance";
 import entranceShadow from "./ConstructionEntranceShadow.shader?raw";
 import { subscribeDistanceAppearance } from "./MasonryDistanceAppearance";
-import { plannedMasonryVertexData, mergePlannedMasonryVertexData } from "./MasonryDistanceVertexData";
+import { mergePlannedMasonryVertexData } from "./MasonryDistanceVertexData";
 import { constructionDecorationGLSL } from "./ConstructionDecorationShader";
 import { leaseDecorationTextures } from "./ConstructionDecorationTextures";
 import { registerConstructionSceneLighting } from "./ConstructionSceneLighting";
@@ -107,6 +111,32 @@ const PROP_MASONRY_LOD_FADE =
 const PROP_MASONRY_LOD_DEBUG_COLOR =
   ShaderProperty?.getByName?.("renderer_MasonryLodDebugColor") ??
   ("renderer_MasonryLodDebugColor" as unknown as ShaderProperty);
+
+interface DistanceWallUVs {
+  lightmapUVs?: Float32Array;
+}
+function setDistanceVertexLayout(
+  engine: Engine,
+  mesh: ModelMesh,
+  elements: VertexElement[],
+  parts: readonly DistanceWallUVs[],
+  count: number
+): Buffer | undefined {
+  if (!parts[0]?.lightmapUVs) {
+    mesh.setVertexElements(elements);
+    return;
+  }
+  const coords = new Float32Array(count * 2);
+  let offset = 0;
+  for (const part of parts) {
+    coords.set(part.lightmapUVs!, offset);
+    offset += part.lightmapUVs!.length;
+  }
+  const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, coords, BufferUsage.Static, true);
+  mesh.setVertexElements([...elements, new VertexElement(VertexAttribute.UV2, 0, VertexElementFormat.Vector2, 1)]);
+  mesh.setVertexBufferBinding(buffer, 8, 1);
+  return buffer;
+}
 
 function packSignedByteDist(v: number): number {
   return Math.round(v < -1 ? -127 : v > 1 ? 127 : v * 127);
@@ -277,6 +307,8 @@ export async function createBuildingDistanceView(
   signal: AbortSignal = new AbortController().signal,
   options?: {
     unifiedGlobalProxy?: boolean;
+    wallBakes?: BuildingWallBakeBindings;
+    lampMaterials?: BuildingLampMaterials;
     loadPreview?: (signal: AbortSignal) => Promise<ConstructionPreview>;
   }
 ) {
@@ -326,7 +358,7 @@ export async function createBuildingDistanceView(
   // No forward/depth/picking pass, no extra vertex buffers or detailed tile draws.
   const visualRoot = resources.root.createChild("Visual surfaces");
   const visualResources: V2ViewResources = { root: visualRoot, meshes: [], materials: [] };
-  const unifiedGlobalProxy = Boolean(options?.unifiedGlobalProxy);
+  const unifiedGlobalProxy = Boolean(options?.unifiedGlobalProxy || (options?.wallBakes?.size && parent.scene));
   const loadPreview = options?.loadPreview;
   const shadowRoot = unifiedGlobalProxy ? undefined : resources.root.createChild("Shadow surfaces");
   const shadowMaterial = unifiedGlobalProxy
@@ -391,6 +423,7 @@ export async function createBuildingDistanceView(
   let nativeDecorationView: ReturnType<typeof createDecorationNativeView> | undefined;
   let farProxy: ReturnType<typeof createBuildingFarProxy> | undefined;
   let globalProxySlot: GlobalProxySlotHandle | undefined;
+  const boundsFlag = resources.root.transform.registerWorldChangeFlag();
   const nativeDecorationPicks: SeedWorldPickBatch[] = [];
   const clearDetailedRetryHooks = () => {
     if (detailedRetryTimer !== undefined) {
@@ -403,6 +436,7 @@ export async function createBuildingDistanceView(
   const disposeView = () => {
     if (disposed) return;
     disposed = true;
+    boundsFlag.destroy();
     detailedGeneration++;
     clearDetailedRetryHooks();
     previewAbort?.abort();
@@ -481,7 +515,7 @@ export async function createBuildingDistanceView(
         bucket.indexCount += indices.length;
       };
 
-      interface OpaqueBucketPart {
+      interface OpaqueBucketPart extends DistanceWallUVs {
         positions: readonly number[];
         uvs?: PackedUv2;
         indices: readonly number[];
@@ -490,6 +524,7 @@ export async function createBuildingDistanceView(
         layer: number;
       }
       interface OpaqueBucket {
+        receivesWallBake: boolean;
         owner: string;
         material: PBRMaterial;
         parts: OpaqueBucketPart[];
@@ -502,7 +537,7 @@ export async function createBuildingDistanceView(
         isPlaster: boolean;
         isDecoration: boolean;
         hasAppearance: boolean;
-        entries: Array<{ part: (typeof srcGeometry.parts)[number]; pickIndex: number }>;
+        entries: Array<{ part: (typeof srcGeometry.parts)[number] & DistanceWallUVs; pickIndex: number }>;
         pickIds: string[];
       }
       const opaqueMaterials = new Map<string, PBRMaterial>();
@@ -510,7 +545,10 @@ export async function createBuildingDistanceView(
       const plannedBuckets = new Map<string, PlannedBatchBucket>();
       const sharedOpaqueRefreshers: Array<() => void> = [];
 
-      for (const p of srcGeometry.parts) {
+      for (const source of srcGeometry.parts) {
+        if (!source.indices.length) continue;
+        const wall = isWallBakeSurface(source) && options?.wallBakes?.get(source.owner);
+        const p: typeof source & DistanceWallUVs = wall ? withBuildingWallUVs(source, wall) : source;
         let lodAppearanceId: number | undefined;
         if (p.lodAppearance) {
           lodAppearanceId = lodAppearanceIds.get(p.lodAppearance);
@@ -519,7 +557,6 @@ export async function createBuildingDistanceView(
             lodAppearanceIds.set(p.lodAppearance, lodAppearanceId);
           }
         }
-        if (!p.indices.length) continue;
 
         const owner = colorOwnerById.get(p.owner);
         const isOpaqueMerged =
@@ -561,10 +598,11 @@ export async function createBuildingDistanceView(
             opaqueMaterials.set(opaqueMatKey, mat);
           }
 
-          const bucketKey = `${p.owner}\0${opaqueMatKey}`;
+          const receivesWallBake = !!wall;
+          const bucketKey = `${p.owner}\0${opaqueMatKey}\0${receivesWallBake}`;
           let bucket = opaqueBuckets.get(bucketKey);
           if (!bucket) {
-            bucket = { owner: p.owner, material: mat, parts: [], vertexCount: 0, indexCount: 0 };
+            bucket = { owner: p.owner, receivesWallBake, material: mat, parts: [], vertexCount: 0, indexCount: 0 };
             opaqueBuckets.set(bucketKey, bucket);
           }
           const role = p.material === "wall" ? "brick" : p.material;
@@ -578,6 +616,7 @@ export async function createBuildingDistanceView(
           bucket.parts.push({
             positions: p.positions,
             uvs: p.uvs,
+            lightmapUVs: p.lightmapUVs,
             indices: p.indices,
             role,
             srcColor: [srgbToLinear(c[0] ?? 1), srgbToLinear(c[1] ?? 1), srgbToLinear(c[2] ?? 1)],
@@ -649,7 +688,7 @@ export async function createBuildingDistanceView(
           if (p.decoration) decorationMaterials.push(material);
         }
         if ((p.decoration || p.plaster) && p.colors && p.normals && p.emission) {
-          const plannedKey = `${p.owner}\0${materialKey}\0${p.appearance ? 1 : 0}\0${p.plaster ? 1 : 0}`;
+          const plannedKey = `${p.owner}\0${materialKey}\0${p.appearance ? 1 : 0}\0${p.plaster ? 1 : 0}\0${wall ? 1 : 0}`;
           let pb = plannedBuckets.get(plannedKey);
           if (!pb) {
             pb = {
@@ -682,6 +721,7 @@ export async function createBuildingDistanceView(
         entities.push(entity);
         visualOwnerEntities.set(p.owner, entities);
         const renderer = entity.getComponent(MeshRenderer)!;
+        if (wall) bindBuildingWall(renderer.shaderData, wall);
         renderer.priority = p.stonePaving || p.plaster ? -98 : p.decoration ? -102 : -105;
         renderer.castShadows = false;
         renderer.shaderData.setFloat(PROP_MASONRY_LOD_FADE, lastFade);
@@ -705,7 +745,13 @@ export async function createBuildingDistanceView(
         ];
         if (merged.hasAppearance)
           elements.push(new VertexElement(VertexAttribute.Tangent, 56, VertexElementFormat.Vector4, 0));
-        mesh.setVertexElements(elements);
+        const uvBuffer = setDistanceVertexLayout(
+          engine,
+          mesh,
+          elements,
+          pb.entries.map((entry) => entry.part),
+          merged.count
+        );
         const vb = new Buffer(engine, BufferBindFlag.VertexBuffer, merged.data, BufferUsage.Static, true);
         mesh.setVertexBufferBinding(vb, merged.stride);
         mesh.setIndices(merged.indices);
@@ -714,10 +760,13 @@ export async function createBuildingDistanceView(
         mesh.bounds.max.set(merged.bounds[3], merged.bounds[4], merged.bounds[5]);
         uploadRestorableModelMesh(mesh);
         vb.markAsUnreadable();
+        uvBuffer?.markAsUnreadable();
         const entity = visualRoot.createChild(pb.owner);
         const renderer = entity.addComponent(MeshRenderer);
         renderer.mesh = mesh;
         renderer.setMaterial(pb.material);
+        const wall = pb.entries[0].part.lightmapUVs && options?.wallBakes?.get(pb.owner);
+        if (wall) bindBuildingWall(renderer.shaderData, wall);
         renderer.enableVertexColor = true;
         renderer.castShadows = false;
         renderer.receiveShadows = true;
@@ -812,7 +861,13 @@ export async function createBuildingDistanceView(
 
         const mesh = new ModelMesh(engine, bucket.owner + " batched");
         visualResources.meshes.push(mesh);
-        mesh.setVertexElements(OPAQUE_BUCKET_VERTEX_ELEMENTS);
+        const uvBuffer = setDistanceVertexLayout(
+          engine,
+          mesh,
+          OPAQUE_BUCKET_VERTEX_ELEMENTS,
+          bucket.parts,
+          bucket.vertexCount
+        );
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertexBytes, BufferUsage.Static, true);
         mesh.setVertexBufferBinding(vertexBuffer, OPAQUE_BUCKET_STRIDE);
         mesh.setIndices(indicesArray);
@@ -822,6 +877,7 @@ export async function createBuildingDistanceView(
         const packed = uploadRestorableModelMesh(mesh);
         const retainedData = packed[0]?.data;
         vertexBuffer.markAsUnreadable();
+        uvBuffer?.markAsUnreadable();
 
         if (retainedData) {
           sharedOpaqueRefreshers.push(
@@ -833,6 +889,8 @@ export async function createBuildingDistanceView(
         const renderer = entity.addComponent(MeshRenderer);
         renderer.mesh = mesh;
         renderer.setMaterial(bucket.material);
+        const wall = bucket.receivesWallBake && options?.wallBakes?.get(bucket.owner);
+        if (wall) bindBuildingWall(renderer.shaderData, wall);
         renderer.enableVertexColor = true;
         renderer.priority = -105;
         renderer.castShadows = false;
@@ -940,11 +998,18 @@ export async function createBuildingDistanceView(
     );
 
     const hiddenOwners = new Set<string>();
-    const worldBounds = new BoundingBox(
+    const localBounds = new BoundingBox(
       new Vector3(boundsSnapshot.min[0] ?? 0, boundsSnapshot.min[1] ?? 0, boundsSnapshot.min[2] ?? 0),
       new Vector3(boundsSnapshot.max[0] ?? 0, boundsSnapshot.max[1] ?? 0, boundsSnapshot.max[2] ?? 0)
     );
-    worldBounds.transform(parent.transform.worldMatrix);
+    const worldBounds = new BoundingBox();
+    const currentBounds = () => {
+      if (boundsFlag.flag) {
+        BoundingBox.transform(localBounds, resources.root.transform.worldMatrix, worldBounds);
+        boundsFlag.flag = false;
+      }
+      return worldBounds;
+    };
 
     if (unifiedGlobalProxy && parent.scene) {
       globalProxySlot = BuildingGlobalProxy.forScene(parent.scene).register({
@@ -954,6 +1019,8 @@ export async function createBuildingDistanceView(
         colorOwners: group.colorOwners,
         appearance,
         decorationParts: geometry.decorationParts,
+        wallBakes: options?.wallBakes,
+        lampMaterials: options?.lampMaterials,
         hiddenOwners
       });
     } else {
@@ -963,7 +1030,8 @@ export async function createBuildingDistanceView(
         geometry.parts,
         group.colorOwners,
         appearance,
-        geometry.decorationParts
+        geometry.decorationParts,
+        options?.lampMaterials
       );
     }
 
@@ -1095,6 +1163,8 @@ export async function createBuildingDistanceView(
             {
               assets,
               retainedWallUnits: activeGeom.retainedWallUnits,
+              wallBakes: options?.wallBakes,
+              lampMaterials: options?.lampMaterials,
               parts: activeGeom.decorationParts,
               rigidDecorations: activeGroup.rigidDecorations,
               frames: activeGeom.frames,
@@ -1368,14 +1438,15 @@ export async function createBuildingDistanceView(
             globalProxySlot.updateEntrance(1, 0, 1);
           } else if (uniformProgress) {
             // Read from surviving resources.root (identity child of parent while live, reparented to anchor when exiting).
+            const bounds = currentBounds();
             const wm = (resources.root.destroyed ? parent : resources.root).transform.worldMatrix.elements;
             const yScale = Math.hypot(wm[4] ?? 0, wm[5] ?? 1, wm[6] ?? 0) || 1;
             const yOrigin = wm[13] ?? 0;
-            const worldMinY = Number.isFinite(localMinY) ? yOrigin + localMinY * yScale : worldBounds.min.y;
+            const worldMinY = Number.isFinite(localMinY) ? yOrigin + localMinY * yScale : bounds.min.y;
             const worldHeight =
               Number.isFinite(localMinY) && Number.isFinite(localMaxY)
                 ? Math.max(0.001, (localMaxY - localMinY) * yScale)
-                : Math.max(0.001, worldBounds.max.y - worldBounds.min.y);
+                : Math.max(0.001, bounds.max.y - bounds.min.y);
             globalProxySlot.updateEntrance(commonProgress, worldMinY, worldHeight);
           } else {
             globalProxySlot.updateEntrance(1, 0, 1);
@@ -1403,7 +1474,7 @@ export async function createBuildingDistanceView(
       get recentlyRendered() {
         if (globalProxySlot) {
           const frustum = (camera as { _frustum?: { intersectsBox(box: BoundingBox): boolean } } | undefined)?._frustum;
-          return frustum ? frustum.intersectsBox(worldBounds) : true;
+          return frustum ? frustum.intersectsBox(currentBounds()) : true;
         }
         return (
           (farProxy?.root.isActiveInHierarchy && !farProxy.renderer.isCulled) ||

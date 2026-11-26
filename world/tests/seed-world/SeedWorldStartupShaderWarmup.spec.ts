@@ -162,7 +162,6 @@ describe("startup shader publication boundary", () => {
         {
           prepareShaderWarmup: async () => ({
             renderers: [fakeRenderer],
-            decorationPointLightBudget: 4,
             dispose: disposeMasonry
           })
         },
@@ -198,12 +197,10 @@ describe("startup shader publication boundary", () => {
       includePhotoCopy: false
     });
     expect(f.collectVariants.mock.calls[0][4].additionalRenderers).toBeUndefined();
-    expect(f.collectVariants.mock.calls[0][4].additionalPointLightCounts).toBeUndefined();
     expect(f.collectVariants.mock.calls[1][4]).toMatchObject({
       includeGenerationReveal: false,
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
       additionalInstancedRenderers: [fakeVegRenderer],
-      additionalPointLightCounts: [4],
       includeLiquidGlassMask: true,
       includePhotoCopy: true
     });
@@ -224,7 +221,6 @@ describe("startup shader publication boundary", () => {
         {
           prepareShaderWarmup: async () => ({
             renderers: [fakeRenderer],
-            decorationPointLightBudget: 4,
             dispose: disposeMasonry
           })
         },
@@ -248,7 +244,6 @@ describe("startup shader publication boundary", () => {
       pollIntervalMilliseconds: 4,
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
       additionalInstancedRenderers: [fakeVegRenderer],
-      additionalPointLightCounts: [4],
       includeLodDither: false,
       includeOpaqueScreenSpaceReflection: false,
       includeLiquidGlassMask: true,
@@ -270,7 +265,6 @@ describe("startup shader publication boundary", () => {
         {
           prepareShaderWarmup: async () => ({
             renderers: [fakeRenderer],
-            decorationPointLightBudget: 4,
             dispose: disposeMasonry
           })
         },
@@ -305,8 +299,7 @@ describe("startup shader publication boundary", () => {
     expect(f.collectVariants.mock.calls[0][4].additionalRenderers).toBeUndefined();
     expect(f.collectVariants.mock.calls[1][4]).toMatchObject({
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
-      additionalInstancedRenderers: [fakeVegRenderer],
-      additionalPointLightCounts: [4]
+      additionalInstancedRenderers: [fakeVegRenderer]
     });
     expect(disposeMasonry).toHaveBeenCalledOnce();
     expect(disposeVegetation).toHaveBeenCalledOnce();
@@ -536,7 +529,6 @@ describe("startup shader publication boundary", () => {
         prepareMasonryShaderWarmup: async () => ({
           renderers: [],
           extraMaterials: new Map([[gpRenderer, [gpShadowOnlyMat as any]]]),
-          decorationPointLightBudget: 0,
           dispose: () => {}
         }),
         prepareVegetationShaderWarmup: () => ({ renderers: [vegRenderer], dispose: () => {} }),
@@ -1233,7 +1225,6 @@ describe("animal presentation preparation", () => {
     const prepareMasonry = vi.fn(async () => ({
       renderers: [masonryRenderer],
       extraMaterials: new Map([[masonryRenderer, [masonryMat]]]),
-      decorationPointLightBudget: 4,
       dispose: disposeMasonry
     }));
     const prepareAnimal = vi.fn(async () => ({
@@ -1306,9 +1297,7 @@ describe("animal presentation preparation", () => {
     expect(disposeAnimal).not.toHaveBeenCalled();
     expect(disposeVeg).not.toHaveBeenCalled();
 
-    // Post-reveal deferred collection prepares distant animals & unmaterialized vegetation,
-    // preserves startup masonry decoration point-light budget without re-running masonry prep,
-    // and includes deferred inactive roots.
+    // Post-reveal collection prepares distant animals, unmaterialized vegetation, and inactive roots.
     await result.collectDeferredVariants!();
     expect(prepareMasonry).toHaveBeenCalledOnce();
     expect(prepareRockGrass).toHaveBeenCalledOnce();
@@ -1320,7 +1309,6 @@ describe("animal presentation preparation", () => {
     expect(deferredOpts.additionalRenderers).toEqual([animalRenderer]);
     expect(deferredOpts.additionalInstancedRenderers).toEqual([vegRenderer]);
     expect(deferredOpts.additionalRendererMaterials.get(animalRenderer)).toEqual([animalMat]);
-    expect(deferredOpts.additionalPointLightCounts).toEqual([4]);
     expect(disposeAnimal).toHaveBeenCalledOnce();
     expect(disposeVeg).toHaveBeenCalledOnce();
   });

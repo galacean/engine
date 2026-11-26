@@ -10,14 +10,6 @@
 #include "ShaderLibrary/PBR/LightIndirectPBR.glsl"
 #include "ShaderLibrary/Common/OilPaintBrush.glsl"
 
-// Building-owned light metadata is refreshed at the camera boundary, after the
-// scene has packed its point-light list. Masks encode identity, never position.
-int scene_MasonryPointMask;
-int scene_MasonryLegacyMask;
-int scene_MasonryFallbackMask;
-vec4 scene_MasonryLightPositionRange[8];
-vec4 scene_MasonryLightColorIntensity[8];
-
 #if defined(SCENE_DIRECT_LIGHT_COUNT) && defined(NEED_CALCULATE_SHADOWS)
 // Single-cascade lookup avoids a second computeCascadeIndex() + cascade-blend sqrt/inversesqrt/tap.
 float masonrySampleShadow(vec3 positionWS) {
@@ -81,33 +73,18 @@ void masonryDirectRadiance(vec3 albedo, vec3 normalWS, vec3 positionWS,
       }
     #endif
     #ifdef SCENE_POINT_LIGHT_COUNT
-      uint legacyMask = uint(scene_MasonryLegacyMask);
-      uint pointMask = uint(scene_MasonryPointMask);
       for (int i = 0; i < SCENE_POINT_LIGHT_COUNT; i++) {
-        uint bit = 1u << uint(i);
-        bool pbr = !isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i]);
-        bool legacy = (legacyMask & bit) != 0u;
-        if (pbr || legacy) {
+        if (!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])) {
           PointLight light = getPointLight(i);
-          if (dot(light.color, light.color) > 0.0) {
-            vec3 delta = light.position - positionWS;
-            float d2 = dot(delta, delta);
-            float attenuation = getDistanceAttenuation(d2, light.distance);
-            if (attenuation > 0.0) {
-              float invD = inversesqrt(max(d2, 1e-12));
-              vec3 dir = delta * invD;
-              float dotNL = max(dot(normalWS, dir), 0.0);
-              if (dotNL > 0.0) {
-                if (pbr) {
-                  masonrySurfaceShading(normalWS, viewDir, albedo, roughness, glossy,
-                      dir, dotNL, light.color * attenuation, radiance);
-                }
-                if (legacy && (pointMask & bit) != 0u && light.distance > 0.0) {
-                  float cosine = d2 > 0.0001 ? dotNL : max(0.0, dot(normalWS, delta * inversesqrt(0.0001)));
-                  float falloff = 1.0 - (d2 / light.distance) / light.distance;
-                  radiance += albedo * light.color * (cosine * falloff * falloff / (1.0 + d2));
-                }
-              }
+          vec3 delta = light.position - positionWS;
+          float d2 = dot(delta, delta);
+          float attenuation = getDistanceAttenuation(d2, light.distance);
+          if (attenuation > 0.0) {
+            vec3 dir = delta * inversesqrt(max(d2, 1e-12));
+            float dotNL = max(dot(normalWS, dir), 0.0);
+            if (dotNL > 0.0) {
+              masonrySurfaceShading(normalWS, viewDir, albedo, roughness, glossy,
+                  dir, dotNL, light.color * attenuation, radiance);
             }
           }
         }
@@ -135,24 +112,6 @@ void masonryDirectRadiance(vec3 albedo, vec3 normalWS, vec3 positionWS,
         }
       }
     #endif
-    // Lights beyond the engine's point-light capacity contribute only the local lobe.
-    if (scene_MasonryFallbackMask != 0) {
-      for (int i = 0; i < 8; i++) {
-        if ((uint(scene_MasonryFallbackMask) & (1u << uint(i))) != 0u) {
-          vec4 p = scene_MasonryLightPositionRange[i], c = scene_MasonryLightColorIntensity[i];
-          vec3 col = c.rgb * c.a;
-          if (any(notEqual(col, vec3(0.0)))) {
-            vec3 delta = p.xyz - positionWS;
-            float d2 = dot(delta, delta), r2 = p.w * p.w;
-            if (d2 < r2 && p.w > 0.0) {
-              float cosine = max(0.0, dot(normalWS, delta * inversesqrt(max(d2, 0.0001))));
-              float falloff = 1.0 - d2 / r2;
-              radiance += albedo * col * (cosine * falloff * falloff / (1.0 + d2));
-            }
-          }
-        }
-      }
-    }
 }
 
 // The material producer supplies LINEAR albedo and a world-space surface normal.
@@ -252,35 +211,16 @@ vec3 masonryFarProxyLight(vec3 albedo, vec3 normalWS, vec3 positionWS) {
         }
       }
     #endif
-    // Preserve warm lantern/window point-light glow on LOD2 walls when scene point lights are active
-    // without specular/GGX or the dead 8-light overflow fallback loop.
     #ifdef SCENE_POINT_LIGHT_COUNT
-      uint legacyMask = uint(scene_MasonryLegacyMask);
-      uint pointMask = uint(scene_MasonryPointMask);
       for (int i = 0; i < SCENE_POINT_LIGHT_COUNT; i++) {
-        uint bit = 1u << uint(i);
-        bool pbr = !isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i]);
-        bool legacy = (legacyMask & bit) != 0u;
-        if (pbr || legacy) {
+        if (!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])) {
           PointLight light = getPointLight(i);
-          if (dot(light.color, light.color) > 0.0) {
-            vec3 delta = light.position - positionWS;
-            float d2 = dot(delta, delta);
-            float attenuation = getDistanceAttenuation(d2, light.distance);
-            if (attenuation > 0.0) {
-              float invD = inversesqrt(max(d2, 1e-12));
-              float ndotl = max(dot(normalWS, delta * invD), 0.0);
-              if (ndotl > 0.0) {
-                if (pbr) {
-                  diffuse += diffuseAlbedo * light.color * (ndotl * attenuation);
-                }
-                if (legacy && (pointMask & bit) != 0u && light.distance > 0.0) {
-                  float cosine = d2 > 0.0001 ? ndotl : max(0.0, dot(normalWS, delta * inversesqrt(0.0001)));
-                  float falloff = 1.0 - (d2 / light.distance) / light.distance;
-                  diffuse += (diffuseAlbedo * 1.0416667) * light.color * (cosine * falloff * falloff / (1.0 + d2));
-                }
-              }
-            }
+          vec3 delta = light.position - positionWS;
+          float d2 = dot(delta, delta);
+          float attenuation = getDistanceAttenuation(d2, light.distance);
+          if (attenuation > 0.0) {
+            float ndotl = max(dot(normalWS, delta * inversesqrt(max(d2, 1e-12))), 0.0);
+            diffuse += diffuseAlbedo * light.color * (ndotl * attenuation);
           }
         }
       }

@@ -1,3 +1,13 @@
+import { bindBuildingWall } from "./BuildingWallBakeBinding";
+import { bindBuildingFilament, type BuildingLampMaterials } from "./BuildingLampShaderBinding";
+import { partitionWallReceiverUnits } from "./BuildingUnitWallUVFeedback";
+import {
+  BuildingUnitWallUV,
+  residentWallUvVertex,
+  residentWallUvFragment,
+  restoreUnitTemplateBuffer
+} from "./BuildingUnitWallUV";
+import type { BuildingWallBakeBinding, BuildingWallBakeBindings } from "./BuildingWallBakeBinding";
 import { MountedDecorationRenderer } from "./MountedDecorationRenderer";
 import { RigidDecorationRenderer, type RigidDecorationBinding } from "./RigidDecorationRenderer";
 import { injectWallRoofJoint } from "./ConstructionWallRoofJointShader";
@@ -5,7 +15,7 @@ import type { ConstructionWallRoofJoint } from "./ConstructionWallRoofJoint";
 import { entranceBinding, injectConstructionEntrance } from "./ConstructionEntranceShader";
 import type { ConstructionEntranceState } from "./ConstructionEntrance";
 import { constructionLightingInstructions } from "./ConstructionSceneLighting";
-import { rawGlslInstructions } from "./RawGlslInstructions";
+import { rawGlslInstructions, RAW_GLSL_MACROS } from "./RawGlslInstructions";
 import { leaseBuildingTexture, textureSourceColors } from "../resources/BuildingTextures";
 import type { BuildingAssets, NativeBuildingUnit } from "../resources/BuildingAssetKit";
 import { scaledNativeAttribute } from "../resources/BuildingGeometry";
@@ -215,7 +225,7 @@ function residentShader(engine: Engine, vertex: string, fragment: string, cullMo
       // feature macros and the existing raw picking/deformation ABI.
       const pass = new ShaderPass(
         "Forward",
-        rawGlslInstructions(["RENDERER_MASONRY_ENTRANCE"], vertex),
+        rawGlslInstructions(RAW_GLSL_MACROS, vertex),
         constructionLightingInstructions(fragment),
         ShaderLanguage.GLSLES300
       );
@@ -312,6 +322,8 @@ interface UnitDrawLod {
   lists: Texture2D[];
   words: Uint32Array[];
   fades: Buffer[];
+  wallUV?: BuildingUnitWallUV[];
+  partition?: Uint32Array;
   forced: number;
   active: boolean;
   lodFade: number;
@@ -324,6 +336,11 @@ export interface ResidentResource {
   feedbackBrick?: BrickFeedbackSource;
 }
 export interface ResidentDraw {
+  /** Original native unit IDs retained by this particular lit or unlit draw. */
+  unitPartition?: Uint32Array;
+  unitWallBinding?: BuildingWallBakeBinding;
+  wallBakeReceiver?: boolean;
+  lampId?: string;
   nativeUnit?: NativeBuildingUnit;
   nativeMaterial?: Material;
   geometryScale?: readonly [number, number, number];
@@ -399,6 +416,7 @@ export class EngineResidentScene {
     string,
     {
       ownerId?: string;
+      wallBakeReceiver?: boolean;
       pickIds?: readonly string[];
       pickId?: string;
       rigidBindings?: readonly RigidDecorationBinding[];
@@ -420,6 +438,7 @@ export class EngineResidentScene {
   private readonly bufferCache = new Map<string, Promise<Buffer>>();
   private readonly storageCache = new Map<string, Promise<Texture2D>>();
   private readonly storageData = new Map<Texture2D, Uint32Array>();
+  private readonly brickStorage = new WeakMap<BrickFeedbackSource, Texture2D>();
   private readonly viewData = new Map<Texture2D, { words: Uint32Array; floats: Float32Array; patch: Uint32Array }>();
   private disposed = false;
   private lodStates: readonly { lodIndex: number; signedFade: number }[] = [{ lodIndex: 0, signedFade: 1 }];
@@ -440,7 +459,9 @@ export class EngineResidentScene {
     parent: Entity,
     private asset?: (name: string) => Promise<ArrayBuffer>,
     private readonly bounds?: { min: number[]; max: number[] },
-    private readonly terrainGrid?: ConstructionTerrainGrid
+    private readonly terrainGrid?: ConstructionTerrainGrid,
+    private readonly wallBakes?: BuildingWallBakeBindings,
+    private readonly lampMaterials?: BuildingLampMaterials
   ) {
     this.root = parent.createChild("Masonry");
   }
@@ -464,7 +485,10 @@ export class EngineResidentScene {
       const create = async () => {
         const raw = await this.asset!(name);
         this.metrics.uploadBytes += raw.byteLength;
-        return restoreBuffer(new Buffer(this.engine, kind, new Uint8Array(raw), BufferUsage.Static, false), raw);
+        return restoreUnitTemplateBuffer(
+          new Buffer(this.engine, kind, new Uint8Array(raw), BufferUsage.Static, false),
+          raw
+        );
       };
       p = create().then((r) => {
         this.metrics.residentBytes += r.byteLength;
@@ -623,6 +647,12 @@ export class EngineResidentScene {
           for (let i = 0; i < 2; i++) {
             if (!dirtyList[i]) continue;
             const c = counts[i]!;
+            if (lod.wallUV) {
+              const bytes = lod.wallUV[i].update(ids[i], fades[i], c);
+              this.metrics.lodUploadBytes += bytes;
+              this.metrics.uploadBytes += bytes;
+              continue;
+            }
             draw.meshes[i].instanceCount = c;
             if (c > 0) {
               lod.words[i].set(ids[i].subarray(0, c));
@@ -759,10 +789,16 @@ export class EngineResidentScene {
     ) => {
       const active = this.draws.get(dMeta.id);
       if (!active) return;
-      const count = ids ? ids.length : rangeCount;
+      let count = ids ? ids.length : rangeCount;
       if (active.unitLod) {
-        if (ids) active.unitLod.selector.select(ids);
-        else active.unitLod.selector.selectRange(rangeCount);
+        const { partition, selector } = active.unitLod;
+        if (partition) {
+          const allowed = ids && new Set(ids);
+          const selected = partition.filter((id) => (allowed ? allowed.has(id) : id < rangeCount));
+          selector.select(selected);
+          count = selected.length;
+        } else if (ids) selector.select(ids);
+        else selector.selectRange(rangeCount);
       } else if (active.visibility) {
         const mask = active.visibility.values;
         mask.fill(0);
@@ -842,6 +878,42 @@ export class EngineResidentScene {
     const isWood =
       (d.family === "wood" || d.family === "wood-gable") && !!d.lod && !d.instance_buffer && !d.resources.domain_roof;
     const isUnit = isBrick || isWood;
+    const unitSelector = isBrick
+      ? d.resources.storage_0_1?.feedbackBrick
+        ? BrickUnitLod.fromFeedback(d.resources.storage_0_1.feedbackBrick, this.terrainGrid)
+        : new BrickUnitLod(new Uint8Array(await this.asset!(d.resources.storage_0_1.file!)))
+      : isWood
+        ? new (d.family === "wood-gable" ? GableWoodUnitLod : WoodUnitLod)(
+            new Uint8Array(await this.asset!(d.resources.storage_0_0.file!))
+          )
+        : undefined;
+    let wallBinding =
+      d.unitWallBinding ?? (d.wallBakeReceiver && d.ownerId ? this.wallBakes?.get(d.ownerId) : undefined);
+    if (wallBinding && unitSelector && !d.unitPartition) {
+      const { lit, dark } = partitionWallReceiverUnits(wallBinding, unitSelector.bounds, unitSelector.cullRadius!);
+      // Each sibling is enumerated by the same document, picker, entrance and LOD paths.
+      // Preserve original IDs for every material selection, including later editing.
+      const groups: { ids: Uint32Array; binding?: BuildingWallBakeBinding }[] = [...lit];
+      if (dark.length) groups.push({ ids: dark });
+      const meta = { ...d };
+      for (const [i, group] of groups.entries()) {
+        const sibling =
+          i === 0
+            ? d
+            : {
+                ...meta,
+                id: meta.id + "/wall-partition-" + i,
+                resources: Object.fromEntries(Object.entries(meta.resources).map(([k, r]) => [k, { ...r }]))
+              };
+        sibling.unitPartition = group.ids;
+        sibling.unitWallBinding = group.binding;
+        sibling.wallBakeReceiver = Boolean(group.binding);
+        if (i === 0) wallBinding = group.binding;
+        else pack.draws.push(sibling);
+      }
+    }
+    if (unitSelector && d.unitPartition) unitSelector.select(d.unitPartition);
+    const hasWallUV = Boolean(wallBinding && (isUnit || d.attributes.some((attribute) => attribute.location === 13)));
     // Host plaster owns its albedo stage; native programs use the recovered G-buffer ABI.
     const tintRole = d.family !== "plaster" ? masonryFamilyTint(d.family) : undefined;
     const baseBindings = Object.entries(d.resources).flatMap(([sampler, r]) =>
@@ -926,6 +998,7 @@ export class EngineResidentScene {
       ),
       entrance = injectConstructionEntrance(v.source, f.source, d.family);
     let vertex = "uniform mat4 renderer_MVPMat;\n" + entrance.vertex;
+    if (hasWallUV && !isUnit) vertex = residentWallUvVertex(vertex);
     const declarations = new Map<number, { type: string; name: string }>();
     for (const m of vertex.matchAll(/layout\(location\s*=\s*(\d+)\) in (\w+) (\w+);/g))
       declarations.set(Number(m[1]), { type: m[2], name: m[3] });
@@ -1101,18 +1174,11 @@ export class EngineResidentScene {
       meshes.push(medium);
     }
     if (restoreFeedback) restoreResource(mesh, restoreFeedback);
-    const fragment = residentFragment(entrance.fragment);
-    const unitSelector = isBrick
-      ? d.resources.storage_0_1?.feedbackBrick
-        ? BrickUnitLod.fromFeedback(d.resources.storage_0_1.feedbackBrick, this.terrainGrid)
-        : new BrickUnitLod(new Uint8Array(await this.asset!(d.resources.storage_0_1.file!)))
-      : isWood
-        ? new (d.family === "wood-gable" ? GableWoodUnitLod : WoodUnitLod)(
-            new Uint8Array(await this.asset!(d.resources.storage_0_0.file!))
-          )
-        : undefined;
+    const captureVertex = vertex;
+    if (hasWallUV && isUnit) vertex = residentWallUvVertex(vertex, d.family);
+    const fragment = residentFragment(hasWallUV ? residentWallUvFragment(entrance.fragment) : entrance.fragment);
     let unitFades: Buffer[] | undefined;
-    if (isUnit) {
+    if (isUnit && !wallBinding) {
       unitFades = [unitSelector!.highFade, unitSelector!.lowFade].map((data) =>
         this.own(
           restoreBuffer(new Buffer(this.engine, BufferBindFlag.VertexBuffer, data, BufferUsage.Dynamic, false), data)
@@ -1124,8 +1190,8 @@ export class EngineResidentScene {
         ...elements,
         new VertexElement("masonryUnitFade", 0, VertexElementFormat.Float, binding, 1)
       ]);
-      vertex = unitVertex(vertex);
     }
+    if (isUnit) vertex = unitVertex(vertex);
     // Only closed outward-wound brick geometry can safely back-face cull; open shells
     // (roof, wood, plaster, stone-floor, decorations) and Brick SDF proxy boxes stay CullMode.Off.
     const highCullMode = d.family === "brick" ? CullMode.Back : CullMode.Off;
@@ -1135,6 +1201,8 @@ export class EngineResidentScene {
     );
     material.shader = shader;
     bindTint(material);
+    const lamp = d.lampId === undefined ? undefined : this.lampMaterials?.get(d.lampId);
+    if (lamp) this.resources.push({ destroy: bindBuildingFilament(material.shaderData, lamp) });
     const dormerGrid = new Vector4(...(pack.dormerGrid ?? NATIVE_DORMER_GRID));
     material.shaderData.setVector4("renderer_DormerGrid", dormerGrid);
     const resources = new Map<string, Texture2D>();
@@ -1145,10 +1213,16 @@ export class EngineResidentScene {
       }
       let texture: Texture2D;
       if (r.feedbackBrick) {
-        texture = this.own(buildBrickStorageFromFeedback(this.engine, r.feedbackBrick, this.terrainGrid));
-        const byteLength = Math.max(1, r.feedbackBrick.count) * 64;
-        this.metrics.uploadBytes += byteLength;
-        this.metrics.residentBytes += byteLength;
+        const source = r.feedbackBrick;
+        let shared = this.brickStorage.get(source);
+        if (!shared) {
+          shared = this.own(buildBrickStorageFromFeedback(this.engine, source, this.terrainGrid));
+          this.brickStorage.set(source, shared);
+          const byteLength = Math.max(1, source.count) * 64;
+          this.metrics.uploadBytes += byteLength;
+          this.metrics.residentBytes += byteLength;
+        }
+        texture = shared;
         delete r.feedbackBrick;
       } else {
         texture = await this.storage(r.file!);
@@ -1263,7 +1337,7 @@ export class EngineResidentScene {
           new Buffer(this.engine, BufferBindFlag.VertexBuffer, geom.isBevel, BufferUsage.Static, false),
           geom.isBevel
         );
-        const idxBuf = restoreBuffer(
+        const idxBuf = restoreUnitTemplateBuffer(
           new Buffer(this.engine, BufferBindFlag.IndexBuffer, geom.indices, BufferUsage.Static, false),
           geom.indices
         );
@@ -1293,12 +1367,12 @@ export class EngineResidentScene {
       lowMesh.setVertexBufferBinding(lowGeom.posBuf, 12, 0);
       lowMesh.setVertexBufferBinding(lowGeom.normBuf, 12, 1);
       lowMesh.setVertexBufferBinding(lowGeom.bevelBuf, 4, 2);
-      lowMesh.setVertexBufferBinding(unitFades![1], 4, 3);
+      if (unitFades) lowMesh.setVertexBufferBinding(unitFades[1], 4, 3);
       lowMesh.setVertexElements([
         new VertexElement(posAttr, 0, VertexElementFormat.Vector3, 0),
         new VertexElement(normAttr, 0, VertexElementFormat.Vector3, 1),
         new VertexElement(bevelAttr, 0, VertexElementFormat.Float, 2),
-        new VertexElement("masonryUnitFade", 0, VertexElementFormat.Float, 3, 1)
+        ...(unitFades ? [new VertexElement("masonryUnitFade", 0, VertexElementFormat.Float, 3, 1)] : [])
       ]);
       lowMesh.setIndexBufferBinding(lowGeom.idxBuf, IndexFormat.UInt16);
       lowMesh.addSubMesh(0, lowGeom.indexCount);
@@ -1310,11 +1384,13 @@ export class EngineResidentScene {
     } else if (isWood) {
       const medium = meshes[1],
         binding = medium.vertexBufferBindings.length;
-      medium.setVertexBufferBinding(unitFades![1], 4, binding);
-      medium.setVertexElements([
-        ...medium.vertexElements,
-        new VertexElement("masonryUnitFade", 0, VertexElementFormat.Float, binding, 1)
-      ]);
+      if (unitFades) {
+        medium.setVertexBufferBinding(unitFades[1], 4, binding);
+        medium.setVertexElements([
+          ...medium.vertexElements,
+          new VertexElement("masonryUnitFade", 0, VertexElementFormat.Float, binding, 1)
+        ]);
+      }
       lowMaterial = this.own(new Material(this.engine, shader));
       bindTint(lowMaterial);
       lowMaterial.shaderData.setVector4("renderer_DormerGrid", dormerGrid);
@@ -1330,26 +1406,63 @@ export class EngineResidentScene {
     if (isUnit) {
       if (!d.indirection) throw Error("Missing native material-unit indirection");
       const selector = unitSelector!;
-      const highList = resources.get(d.indirection)!;
-      const lowList = this.own(
-        new Texture2D(this.engine, highList.width, highList.height, TextureFormat.R32G32B32A32_UInt, false, false)
-      );
-      lowList.filterMode = TextureFilterMode.Point;
-      lowList.wrapModeU = lowList.wrapModeV = TextureWrapMode.Clamp;
-      lowMaterial!.shaderData.setTexture(d.indirection, lowList);
-      const highWords = this.storageData.get(highList)!;
-      const lowWords = new Uint32Array(highList.width * highList.height * 4);
-      restoreResource(lowList, () => lowList.setPixelBuffer(lowWords));
+      let unitWallUV: BuildingUnitWallUV[] | undefined;
+      if (wallBinding && d.unitPartition) {
+        unitWallUV = [material, lowMaterial!].map((native, i) => {
+          const rows = this.own(
+            new BuildingUnitWallUV(
+              this.engine,
+              meshes[i],
+              captureVertex,
+              d.family,
+              native,
+              wallBinding!,
+              selector.bounds,
+              d.unitPartition!
+            )
+          );
+          meshes[i] = rows.mesh;
+          this.metrics.residentBytes += rows.byteLength;
+          this.metrics.uploadBytes += rows.byteLength;
+          return rows;
+        });
+        renderer.mesh = meshes[0];
+        lodRenderer!.mesh = meshes[1];
+      }
+      const lists: Texture2D[] = [],
+        words: Uint32Array[] = [];
+      if (!unitWallUV) {
+        const highList = resources.get(d.indirection)!;
+        const lowList = this.own(
+          new Texture2D(this.engine, highList.width, highList.height, TextureFormat.R32G32B32A32_UInt, false, false)
+        );
+        lowList.filterMode = TextureFilterMode.Point;
+        lowList.wrapModeU = lowList.wrapModeV = TextureWrapMode.Clamp;
+        lowMaterial!.shaderData.setTexture(d.indirection, lowList);
+        const highWords = this.storageData.get(highList)!;
+        const lowWords = new Uint32Array(highList.width * highList.height * 4);
+        restoreResource(lowList, () => lowList.setPixelBuffer(lowWords));
+        lists.push(highList, lowList);
+        words.push(highWords, lowWords);
+        this.metrics.residentBytes += lowList.width * lowList.height * 16 + d.count * 8;
+      }
       unitLod = {
         selector,
-        lists: [highList, lowList],
-        words: [highWords, lowWords],
-        fades: unitFades!,
+        lists,
+        words,
+        fades: unitFades ?? [],
+        wallUV: unitWallUV,
+        partition: d.unitPartition,
         forced: -1,
         active: renderer.enabled,
         lodFade: 1
       };
-      this.metrics.residentBytes += lowList.width * lowList.height * 16 + d.count * 8;
+    }
+    if (hasWallUV && wallBinding) {
+      for (const target of [renderer, lodRenderer]) {
+        if (!target) continue;
+        bindBuildingWall(target.shaderData, wallBinding);
+      }
     }
     this.entranceBindings.push({
       owner: d.ownerId,
@@ -1363,6 +1476,7 @@ export class EngineResidentScene {
     }
     this.draws.set(d.id, {
       ownerId: d.ownerId,
+      wallBakeReceiver: d.wallBakeReceiver,
       pickIds: d.pickIds,
       pickId: d.pickId,
       rigidBindings: d.rigidBindings,
@@ -1370,7 +1484,7 @@ export class EngineResidentScene {
       renderer,
       lodRenderer,
       enabled: renderer.enabled,
-      mesh,
+      mesh: meshes[0],
       meshes,
       material,
       visibility,
@@ -1487,9 +1601,12 @@ export class EngineResidentScene {
           triangles += (mesh.instanceCount * mesh.subMesh!.count) / 3;
         }
         const selected = d.unitLod?.selector.selection.length;
-        full += ((selected ?? d.meshes[0].instanceCount) * d.meshes[0].subMesh!.count) / 3;
+        full +=
+          ((selected ?? d.meshes[0].instanceCount) *
+            (d.unitLod?.wallUV?.[0].baseIndexCount ?? d.meshes[0].subMesh!.count)) /
+          3;
         const low = d.meshes[d.meshes.length - 1];
-        medium += ((selected ?? low.instanceCount) * low.subMesh!.count) / 3;
+        medium += ((selected ?? low.instanceCount) * (d.unitLod?.wallUV?.[1].baseIndexCount ?? low.subMesh!.count)) / 3;
       }
     this.metrics.triangles = triangles;
     this.metrics.fullTriangles = full;

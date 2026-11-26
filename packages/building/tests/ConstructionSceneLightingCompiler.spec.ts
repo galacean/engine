@@ -73,12 +73,10 @@ describe("Construction lighting compiler bridge", () => {
     );
     expect(source).toContain("masonrySampleShadow");
     expect(source).toContain("masonrySurfaceShading");
-    // Both scene light types consume the engine cutoff encoding. Only the finite authored
-    // wall-lamp lobe may guard light.distance > 0 (the GPU value for an unlimited light is 0).
+    // Both scene light types consume the engine cutoff encoding, including unlimited range.
     const directBody = source.slice(source.indexOf("void masonryDirectRadiance")).replace(/\s+/g, "");
     expect(directBody.match(/getDistanceAttenuation\(d2,light\.distance\)/g)).toHaveLength(2);
     expect(directBody).not.toContain("if(d2<r2&&light.distance>0.0)");
-    expect(directBody).toContain("scene_MasonryLegacyMask");
     expect(source).toMatch(/bool\s+glossy\s*=\s*roughness\s*<\s*0\.72/);
     expect(source).not.toContain("masonryMatteDirectRadiance");
     expect(source).not.toMatch(/\binitBSDFData\s*\(/);
@@ -89,15 +87,14 @@ describe("Construction lighting compiler bridge", () => {
     expect(source).not.toMatch(/\bevaluateScreenSpaceReflectionWithDepth\s*\(/);
     expect(source).not.toMatch(/\bgetShadowCascadeBlend\s*\(/);
     expect(source).not.toMatch(/\bcamera_VPMat\b/);
-    // Single shared masonryDirectRadiance loop set: 1 direct + 1 point + 1 spot + 1 fallback = 4 loops max
-    // (0 duplicated matte loops -> avoids Apple M2 / mobile TBDR SIMD register-spill cliff).
+    // One loop per active scene light type, shared by matte and glossy surfaces.
     const loopCount = (source.match(/\bfor\s*\(/g) ?? []).length;
-    expect(loopCount).toBe(4);
+    expect(loopCount).toBe(3);
     expect(source.length).toBeLessThan(20_000);
     expect(source).not.toMatch(/\b(?:masonryBridge\w+|BridgeFragment|main)\b/);
     expect(source).not.toMatch(/\bout\s+vec4\s+\w+\s*;/);
 
-    // Without spot lights (Seed World original runtime macro set): strictly 3 loops (exact pre-P0 count).
+    // Removing spot lights leaves just the directional and point loops.
     const sourceNoSpot = ShaderMacroProcessor.evaluate(
       helpers,
       new Map([
@@ -114,7 +111,7 @@ describe("Construction lighting compiler bridge", () => {
         ["SCENE_FOG_MODE", "3"]
       ])
     );
-    expect((sourceNoSpot.match(/\bfor\s*\(/g) ?? []).length).toBe(3);
+    expect((sourceNoSpot.match(/\bfor\s*\(/g) ?? []).length).toBe(2);
     expect(sourceNoSpot.length).toBeLessThan(18_000);
   });
 
@@ -144,7 +141,7 @@ describe("Construction lighting compiler bridge", () => {
     expect(rimNormalWriteIdx).toBeLessThan(firstTexGradIdx);
   });
 
-  it("omits dead 8-light fallback loop and point-light loop from masonryFarProxyLight when no point lights are active", () => {
+  it("compiles the far proxy point-light loop only for scenes with point lights", () => {
     registerConstructionSceneLighting();
     const compiler = new ShaderCompiler();
     compiler._setIncludeMap(ShaderFactory.includeMap);
@@ -174,7 +171,6 @@ describe("Construction lighting compiler bridge", () => {
         ["SCENE_USE_SH", ""]
       ])
     );
-    expect(noPointLights).not.toContain("scene_MasonryFallbackMask");
     expect(noPointLights).not.toMatch(/\bgetPointLight\s*\(/);
     expect((noPointLights.match(/\bfor\s*\(/g) ?? []).length).toBe(1);
 
@@ -183,11 +179,10 @@ describe("Construction lighting compiler bridge", () => {
       new Map([
         ["GRAPHICS_API_WEBGL2", ""],
         ["SCENE_DIRECT_LIGHT_COUNT", "1"],
-        ["SCENE_POINT_LIGHT_COUNT", "4"],
+        ["SCENE_POINT_LIGHT_COUNT", "1"],
         ["SCENE_USE_SH", ""]
       ])
     );
-    expect(withPointLights).not.toContain("scene_MasonryFallbackMask");
     expect(withPointLights).toMatch(/\bgetPointLight\s*\(/);
     expect(withPointLights.replace(/\s+/g, "")).toContain("getDistanceAttenuation(d2,light.distance)");
     expect((withPointLights.match(/\bfor\s*\(/g) ?? []).length).toBe(2);

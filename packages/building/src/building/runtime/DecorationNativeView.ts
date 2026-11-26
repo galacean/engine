@@ -1,3 +1,4 @@
+import type { BuildingLampMaterials } from "./BuildingLampShaderBinding";
 import { buildingPartKey } from "./BuildingObjectIdentity";
 import { decorationStoneBounds } from "./DecorationStoneBounds";
 import { decorationFrameBounds } from "./ConstructionDecorationFrames";
@@ -22,10 +23,13 @@ import { ConstructionPackageBuilder } from "./ConstructionPackage";
 import { buildingAssets } from "../resources/BuildingAssetKit";
 import type { PrefabResource } from "@galacean/engine";
 import { packDecorationStoneInstances } from "./DecorationStoneInstance";
+import type { BuildingWallBakeBindings } from "./BuildingWallBakeBinding";
 import { EngineResidentScene } from "./EngineResidentScene";
 
 interface DecorationNativeViewOptions {
   assets: PrefabResource;
+  wallBakes?: BuildingWallBakeBindings;
+  lampMaterials?: BuildingLampMaterials;
   retainedWallUnits?: readonly RetainedWallUnits[];
   parts?: readonly ConstructionDecorationPart[];
   frames?: readonly ConstructionDecorationFrame[];
@@ -109,6 +113,7 @@ async function loadDecorationNativeView(
       wallRoofJoint: retained.wallRoofJoint
     });
     draw.pickId = retained.pickId;
+    draw.wallBakeReceiver = true;
   }
   const batches = new Map<string, ConstructionDecorationStone[]>();
   for (const stone of stones) {
@@ -171,9 +176,18 @@ async function loadDecorationNativeView(
   const built = appendDecorationRenderPackage(
     appendWoodArchRenderPackage(basePackage, options.woodArchFrames ?? [], globals),
     options.parts ?? [],
-    options.rigidDecorations?.poses
+    options.rigidDecorations?.poses,
+    options.lampMaterials
   );
-  state.scene = new EngineResidentScene(engine, parent, built.asset, options.bounds);
+  state.scene = new EngineResidentScene(
+    engine,
+    parent,
+    built.asset,
+    options.bounds,
+    undefined,
+    options.wallBakes,
+    options.lampMaterials
+  );
   state.scene.root.isActive = false;
   state.loading = true;
   try {
@@ -243,7 +257,12 @@ function decorationNativeViewControls(state: DecorationNativeViewState, ready: P
       visitor: (
         renderer: MeshRenderer,
         ownerId: string,
-        draw: { pickIds?: readonly string[]; pickId?: string; objectBinding?: { id: string } }
+        draw: {
+          wallBakeReceiver?: boolean;
+          pickIds?: readonly string[];
+          pickId?: string;
+          objectBinding?: { id: string };
+        }
       ) => void
     ) {
       // Register owned representations, not current visibility. Before the first

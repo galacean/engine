@@ -24,7 +24,7 @@ VFS：`Building/Units/Prefabs/wall-lantern.prefab`。
 资产包通过 `assemblies["wall-lantern/1"]` 引用它；键只选择公开类型及规格，不描述其内部零件。
 
 - 子节点的 `MeshRenderer` 持有原生 Mesh 和 Material。`BuildingUnitComponent.surfaceKind` 声明现有装饰 Shader 的表面语义（灯壳 / 发光内件等），不用于推导零件名称或层级。
-- `emissionOrigin` 是模型局部发光中心，随该节点的累计变换进入编译结果。壁灯与屋顶灯均在 Prefab 中定义；屋顶灯的发光内件必须提供它。保留既有灯光语义：Shader 灯芯随实例尺寸缩放，屋顶 PointLight 的安装偏移不随实例尺寸缩放；两者都从同一资产坐标派生。
+- `emissionOrigin` 是模型局部发光中心，随该节点的累计变换进入编译结果。壁灯与屋顶灯均在 Prefab 中定义；屋顶灯的发光内件必须提供它。渲染灯芯和烘焙墙面光晕使用同一个随实例变换的发光中心。
 - 支持中间分组、嵌套子节点、平移、Euler 旋转（度）和正数缩放。法线按逆转置处理，几何与包围范围均从变换后的 Mesh 派生；不改写共享 Mesh。
 - 节点名称组成派生零件路径：非根节点名字非空、不含 `/`，同一路径不能重名。改名不改变整盏灯的编辑／拾取对象身份。
 - 当前支持展开的、启用的静态 Source 层级；每个渲染节点一个 MeshRenderer、一个完整三角形 submesh 和一个 Material。暂不支持嵌套 Prefab 实例、Script、动画、禁用的资产子节点、镜像或退化缩放；建筑 Apply 必须报告错误而非静默丢弃。实例灯的启用仍由 WallLampComponent 管理。

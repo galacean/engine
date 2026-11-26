@@ -23,8 +23,6 @@ export interface DecorationPlacementFrame {
   /** Original assembly origin and scaled, mutually orthogonal basis columns. */
   origin: readonly number[];
   axes: readonly [readonly number[], readonly number[], readonly number[]];
-  /** Published world-space point light; independent of the model scale. */
-  lightPosition?: readonly [number, number, number];
   editUV: (source: readonly number[], world: readonly number[]) => number[];
 }
 
@@ -64,7 +62,6 @@ export function decorationAssemblyGeometry(
       uvs: [],
       appearance: { materialUVs: [], kinds: [], colorIds: [], centers: [] }
     };
-    if (material === M.lanternEmission && frame.lightPosition) part.lightPosition = [...frame.lightPosition];
     for (let i = 0; i < mesh.positions.length; i += 3) {
       const v = i / 3;
       const source = [mesh.positions[i], mesh.positions[i + 1], mesh.positions[i + 2]],

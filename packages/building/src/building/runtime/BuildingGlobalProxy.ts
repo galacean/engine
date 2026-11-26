@@ -1,3 +1,6 @@
+import { bindBuildingWall } from "./BuildingWallBakeBinding";
+import type { BuildingLampMaterial } from "./BuildingLampMaterial";
+import type { BuildingLampMaterials } from "./BuildingLampShaderBinding";
 import {
   BoundingBox,
   Buffer,
@@ -10,6 +13,8 @@ import {
   IndexBufferBinding,
   IndexFormat,
   Material,
+  Matrix,
+  Matrix3x3,
   MeshRenderer,
   MeshTopology,
   Script,
@@ -25,6 +30,13 @@ import {
   type Engine,
   type Scene
 } from "@galacean/engine";
+import {
+  isWallBakeSurface,
+  type BuildingWallBakeBindings,
+  type BuildingWallBakeBinding,
+  type BuildingWallLightmapPage
+} from "./BuildingWallBakeBinding";
+import { withBuildingWallUVs } from "./BuildingWallGeometryUV";
 import globalProxyShaderSource from "./MasonryGlobalProxy.shader?raw";
 import globalProxyShadowOnlyShaderSource from "./MasonryGlobalProxyShadowOnly.shader?raw";
 import globalProxyShadowCasterGlsl from "./MasonryGlobalProxyShadowCaster.glsl?raw";
@@ -34,13 +46,10 @@ import { constructionPlasterGLSL } from "./ConstructionPlasterShader";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
 import { uvU, uvV, type ConstructionPreviewPart, type PackedUv2 } from "./ConstructionPreview";
 import type { ConstructionDecorationPart } from "./ConstructionDecorations";
-import { DecorationMaterial } from "./ConstructionDecorationMaterial";
 import { buildingGroupKey, buildingInstanceKey, buildingPartKey } from "./BuildingObjectIdentity";
 import type { masonryAppearance } from "./MasonryAppearance";
 import type { SeedWorldPickBatch } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import {
-  SURFACE_KIND_DECORATION,
-  SURFACE_KIND_DECORATION_GLASS,
   SURFACE_KIND_PLASTER,
   buildCompactColorSpans,
   collapseDecorationToBoxes,
@@ -50,6 +59,8 @@ import {
   packU16Scaled,
   packU8Scaled,
   previewPartSurfaceKind,
+  proxyDecorationSurfaceKind,
+  proxyFilamentTagY,
   proxyDecorationNormalBias,
   proxyPartNormalBias,
   writeCompactFarProxyColors
@@ -194,6 +205,11 @@ const STRUCT_ELEMENTS: VertexElement[] = [
   new VertexElement("TEXCOORD_1", 0, VertexElementFormat.Float, 2)
 ];
 
+// TEXCOORD_1 is the pick index. Only wall receivers carry an extra UV stream.
+const LIT_STRUCT_ELEMENTS = [
+  ...STRUCT_ELEMENTS,
+  new VertexElement("TEXCOORD_2", STRUCT_GEOM_STRIDE_BYTES, VertexElementFormat.Vector2, 0)
+];
 function ensureGlobalProxyIncludes(): void {
   registerConstructionSceneLighting();
   if (!ShaderFactory.includeMap["Masonry/GlobalProxyShadowCaster.glsl"]) {
@@ -282,6 +298,8 @@ export interface GlobalProxyRegistrationInput {
   appearance: ReturnType<typeof masonryAppearance>;
   decorationParts?: readonly ConstructionDecorationPart[];
   hiddenOwners: ReadonlySet<string>;
+  wallBakes?: BuildingWallBakeBindings;
+  lampMaterials?: BuildingLampMaterials;
 }
 
 export interface GlobalProxySlotHandle {
@@ -291,6 +309,29 @@ export interface GlobalProxySlotHandle {
   refreshColors(): void;
   markTopologyDirty(): void;
   destroy(): void;
+}
+
+function combineProxySlots(handles: GlobalProxySlotHandle[]): GlobalProxySlotHandle {
+  return {
+    updateState(...args) {
+      for (const h of handles) h.updateState(...args);
+    },
+    updateEntrance(...args) {
+      for (const h of handles) h.updateEntrance(...args);
+    },
+    setPickable(value) {
+      for (const h of handles) h.setPickable(value);
+    },
+    refreshColors() {
+      for (const h of handles) h.refreshColors();
+    },
+    markTopologyDirty() {
+      for (const h of handles) h.markTopologyDirty();
+    },
+    destroy() {
+      for (const h of handles) h.destroy();
+    }
+  };
 }
 
 interface StoredChunkMeta {
@@ -309,7 +350,7 @@ interface StoredChunkMeta {
 type CachedAxisBox = ReturnType<typeof tryExtractLocalAxisBox>;
 
 interface CachedProxyPart {
-  readonly part: ConstructionPreviewPart;
+  readonly part: ConstructionPreviewPart & { lightmapUVs?: Float32Array };
   readonly localBox: CachedAxisBox;
   readonly normals: readonly number[] | Float32Array | undefined;
 }
@@ -334,6 +375,9 @@ interface SlotColorBinding {
 }
 
 interface SlotRecord {
+  lamp?: BuildingLampMaterial;
+  unsubscribeLamp?: () => void;
+  wallBake?: BuildingWallBakeBinding;
   id: number;
   bucket: BucketRenderState;
   localSlot: number;
@@ -371,6 +415,9 @@ interface StructChunkRender {
 }
 
 interface BucketRenderState {
+  lampUniform?: Float32Array;
+  wallBinding?: BuildingWallBakeBinding;
+  wallPage?: BuildingWallLightmapPage;
   id: number;
   cellKey: number;
   slots: SlotRecord[];
@@ -527,7 +574,7 @@ export class BuildingGlobalProxy {
     this.engine.on?.("devicerestored", this.handleDeviceRestored);
   }
 
-  private createBucket(cellKey: number): BucketRenderState {
+  private createBucket(cellKey: number, wallBake?: BuildingWallBakeBinding): BucketRenderState {
     const idx = this.nextBucketId++;
     const statesUniform = new Float32Array(MAX_SLOTS_PER_BUCKET * 4);
     const entranceUniform = new Float32Array(MAX_SLOTS_PER_BUCKET * 4);
@@ -567,6 +614,8 @@ export class BuildingGlobalProxy {
     const bucket: BucketRenderState = {
       id: idx,
       cellKey,
+      wallBinding: wallBake?.singleReceiver ? wallBake : undefined,
+      wallPage: wallBake?.texture.page,
       slots: [],
       statesUniform,
       entranceUniform,
@@ -604,10 +653,18 @@ export class BuildingGlobalProxy {
     if (idx !== -1) this.buckets.splice(idx, 1);
   }
 
-  private findOrCreateBucket(cellKey: number): BucketRenderState {
-    let targetBucket = this.buckets.find((b) => b.cellKey === cellKey && b.slots.length < MAX_SLOTS_PER_BUCKET);
-    if (!targetBucket) targetBucket = this.createBucket(cellKey);
-    return targetBucket;
+  private findOrCreateBucket(cellKey: number, wallBake?: BuildingWallBakeBinding): BucketRenderState {
+    const page = wallBake?.texture.page;
+    // A single-emitter slot carries its own HDR in the existing proxy palette.
+    // Multi-emitter slots also bind their own local palette and facade layout.
+    const bucket = this.buckets.find(
+      (b) =>
+        b.cellKey === cellKey &&
+        b.wallPage === page &&
+        b.wallBinding?.disposeCombined === wallBake?.disposeCombined &&
+        b.slots.length < MAX_SLOTS_PER_BUCKET
+    );
+    return bucket ?? this.createBucket(cellKey, wallBake);
   }
 
   private scheduleFlush(): void {
@@ -620,8 +677,62 @@ export class BuildingGlobalProxy {
   }
 
   register(input: GlobalProxyRegistrationInput): GlobalProxySlotHandle {
+    const lamps = input.lampMaterials;
+    if (!lamps?.size || !input.decorationParts?.length) return this.registerBuildingSurfaces(input);
+    const ordinary: ConstructionDecorationPart[] = [];
+    const handles: GlobalProxySlotHandle[] = [];
+    try {
+      for (const part of input.decorationParts) {
+        const lamp = lamps.get(part.id);
+        if (lamp)
+          handles.push(this.registerSurfaces({ ...input, parts: [], decorationParts: [part] }, undefined, lamp));
+        else ordinary.push(part);
+      }
+      if (!handles.length) return this.registerBuildingSurfaces(input);
+      if (input.parts.length || ordinary.length)
+        handles.push(this.registerBuildingSurfaces({ ...input, decorationParts: ordinary }));
+      return combineProxySlots(handles);
+    } catch (error) {
+      for (const handle of handles) handle.destroy();
+      throw error;
+    }
+  }
+
+  private registerBuildingSurfaces(input: GlobalProxyRegistrationInput): GlobalProxySlotHandle {
+    if (!input.wallBakes?.size) return this.registerSurfaces(input);
+    const unlit: ConstructionPreviewPart[] = [];
+    const byBinding = new Map<BuildingWallBakeBinding, ConstructionPreviewPart[]>();
+    for (const part of input.parts) {
+      const binding = isWallBakeSurface(part) && input.wallBakes.get(part.owner);
+      if (!binding) unlit.push(part);
+      else {
+        const parts = byBinding.get(binding);
+        if (parts) parts.push(part);
+        else byBinding.set(binding, [part]);
+      }
+    }
+    if (!byBinding.size) return this.registerSurfaces(input);
+    const handles: GlobalProxySlotHandle[] = [];
+    try {
+      if (unlit.length || input.decorationParts?.length)
+        handles.push(this.registerSurfaces({ ...input, parts: unlit }));
+      for (const [binding, parts] of byBinding)
+        handles.push(this.registerSurfaces({ ...input, parts, decorationParts: undefined }, binding));
+    } catch (error) {
+      for (const h of handles) h.destroy();
+      throw error;
+    }
+    return combineProxySlots(handles);
+  }
+
+  private registerSurfaces(
+    input: GlobalProxyRegistrationInput,
+    wallBake?: BuildingWallBakeBinding,
+    lamp?: BuildingLampMaterial
+  ): GlobalProxySlotHandle {
     const initialCellKey = spatialCellKey(input.frame.transform.worldMatrix.elements);
-    const targetBucket = this.findOrCreateBucket(initialCellKey);
+    const targetBucket = this.findOrCreateBucket(initialCellKey, wallBake);
+    if (wallBake && !wallBake.singleReceiver) lamp = wallBake.material;
 
     const compactParts: CachedProxyPart[] = [];
     for (const rawPart of input.parts) {
@@ -631,11 +742,12 @@ export class BuildingGlobalProxy {
         rawPart.decoration && !rawPart.roofSpire && rawPart.indices.length > 72
           ? collapsePreviewPartToBox(rawPart)
           : rawPart;
-      const part: ConstructionPreviewPart =
+      const source =
         collapsed.lodAppearance !== undefined || collapsed.regions !== undefined
           ? { ...collapsed, lodAppearance: undefined, regions: undefined }
           : collapsed;
-      const localBox = part.plaster ? undefined : tryExtractLocalAxisBox(part.positions, part.indices);
+      const part = wallBake ? withBuildingWallUVs(source, wallBake) : source;
+      const localBox = wallBake || part.plaster ? undefined : tryExtractLocalAxisBox(part.positions, part.indices);
       const normals = localBox
         ? undefined
         : part.normals?.length === part.positions.length
@@ -670,6 +782,8 @@ export class BuildingGlobalProxy {
     ).registerWorldChangeFlag?.();
     if (worldFlag) worldFlag.flag = false;
     const record: SlotRecord = {
+      lamp,
+      wallBake,
       id,
       bucket: targetBucket,
       localSlot,
@@ -694,6 +808,8 @@ export class BuildingGlobalProxy {
       worldFlag
     };
     targetBucket.slots.push(record);
+    this.syncSlotLamp(record);
+    if (lamp) record.unsubscribeLamp = lamp.subscribe(() => this.syncSlotLamp(record));
     this.slotsById.set(id, record);
     targetBucket.dirty = true;
     this.scheduleFlush();
@@ -765,6 +881,7 @@ export class BuildingGlobalProxy {
     for (let i = 0; i < b.slots.length; i++) {
       const s = b.slots[i]!;
       s.localSlot = i;
+      this.syncSlotLamp(s);
       this.syncSlotUniform(b, s);
     }
     const clearOff = b.slots.length * 4;
@@ -784,6 +901,7 @@ export class BuildingGlobalProxy {
     const rec = this.slotsById.get(id);
     if (!rec) return;
     this.slotsById.delete(id);
+    rec.unsubscribeLamp?.();
     rec.worldFlag?.destroy?.();
     rec.worldFlag = undefined;
     this.removeSlotFromBucket(rec.bucket, rec);
@@ -798,6 +916,25 @@ export class BuildingGlobalProxy {
     if (!slot.root.destroyed) return slot.root.transform.worldMatrix.elements;
     if (!slot.frame.destroyed) return slot.frame.transform.worldMatrix.elements;
     return slot.lastWorldMatrix;
+  }
+
+  /** One HDR array for controlled filaments and single-emitter wall slots. Slot indices are already in both mesh layouts. */
+  private syncSlotLamp(slot: SlotRecord): void {
+    const { bucket, lamp } = slot;
+    if (!bucket.lampUniform) {
+      if (!lamp) return;
+      bucket.lampUniform = new Float32Array(MAX_SLOTS_PER_BUCKET * 4);
+      for (const material of [bucket.boxMat, bucket.structMat]) {
+        material.shaderData.enableMacro("GLOBAL_PROXY_LAMP_HDR");
+        material.shaderData.setFloatArray("material_ProxyLampHDR", bucket.lampUniform);
+      }
+    }
+    const dst = bucket.lampUniform;
+    const off = slot.localSlot * 4;
+    dst[off] = lamp?.hdr.x ?? 0;
+    dst[off + 1] = lamp?.hdr.y ?? 0;
+    dst[off + 2] = lamp?.hdr.z ?? 0;
+    dst[off + 3] = lamp ? 1 : 0;
   }
 
   private syncSlotUniform(bucket: BucketRenderState, s: SlotRecord): void {
@@ -892,10 +1029,11 @@ export class BuildingGlobalProxy {
     const currentBucket = record.bucket;
     if (nextCellKey !== currentBucket.cellKey) {
       this.removeSlotFromBucket(currentBucket, record);
-      const nextBucket = this.findOrCreateBucket(nextCellKey);
+      const nextBucket = this.findOrCreateBucket(nextCellKey, record.wallBake);
       record.bucket = nextBucket;
       record.localSlot = nextBucket.slots.length;
       nextBucket.slots.push(record);
+      this.syncSlotLamp(record);
       this.syncSlotUniform(nextBucket, record);
       this.syncBucketVisibility(nextBucket);
       nextBucket.dirty = true;
@@ -1017,6 +1155,7 @@ export class BuildingGlobalProxy {
       pickOffset: number;
     }
     interface StructBuildPart {
+      lightmapUVs?: Float32Array;
       slot: number;
       slotId: number;
       vOff: number;
@@ -1057,14 +1196,19 @@ export class BuildingGlobalProxy {
       if (wz > maxZ) maxZ = wz;
     };
 
+    const world = new Matrix();
+    const slotNormals: Matrix3x3[] = [];
     for (let sIdx = 0; sIdx < bucket.slots.length; sIdx++) {
       const slot = bucket.slots[sIdx]!;
       const wm = this.slotWorldMatrix(slot);
+      const normal = new Matrix3x3();
+      Matrix3x3.normalMatrix(world.copyFromArray(wm), normal);
+      slotNormals.push(normal);
       slot.lastWorldMatrix.set(wm);
       this.syncSlotUniform(bucket, slot);
 
       const ownerById = new Map(slot.colorOwners.map((o) => [o.id, o] as const));
-      const incParts: ConstructionPreviewPart[] = [];
+      const incParts: CachedProxyPart["part"][] = [];
       const partBoxes: CachedAxisBox[] = [];
       const partNormals: (readonly number[] | Float32Array | undefined)[] = [];
       const incDecs: ConstructionDecorationPart[] = [];
@@ -1171,6 +1315,7 @@ export class BuildingGlobalProxy {
             normals: norms,
             indices: p.indices,
             uvs: p.uvs,
+            lightmapUVs: p.lightmapUVs,
             normalBias: proxyPartNormalBias(p),
             kind,
             wear: p.plaster ? p.plaster.wear : 0,
@@ -1192,13 +1337,8 @@ export class BuildingGlobalProxy {
         const vCnt = d.positions.length / 3;
         const pickKey = d.decorationId === undefined ? buildingGroupKey(d.ownerId) : buildingPartKey(d.decorationId);
         const appKind = d.appearance?.kinds?.[0];
-        const kind =
-          appKind === DecorationMaterial.glass ||
-          appKind === DecorationMaterial.texturedGlass ||
-          appKind === DecorationMaterial.lattice ||
-          appKind === DecorationMaterial.texturedLattice
-            ? SURFACE_KIND_DECORATION_GLASS
-            : SURFACE_KIND_DECORATION;
+        const kind = proxyDecorationSurfaceKind(appKind, d.appearance?.colorIds?.[0]);
+        const tagY = proxyFilamentTagY(kind, d.emission[0] ?? 0);
         const lb = decBoxes[i];
         if (lb) {
           const c0 = vOff * 4;
@@ -1214,7 +1354,7 @@ export class BuildingGlobalProxy {
             bU8: tmpColors[c0 + 2]!,
             eU8: tmpColors[c0 + 3]!,
             kind,
-            wear: 0,
+            wear: tagY,
             wallLength: 0,
             edgeDist: 0,
             castShadow: 0,
@@ -1235,7 +1375,7 @@ export class BuildingGlobalProxy {
             uvs: d.uvs ?? d.appearance?.materialUVs,
             normalBias: isCollapsedBox ? 0 : proxyDecorationNormalBias(appKind),
             kind,
-            wear: 0,
+            wear: tagY,
             wallLength: 0,
             isUnit: 0,
             castShadow: 0,
@@ -1365,7 +1505,8 @@ export class BuildingGlobalProxy {
 
       for (let gIdx = 0; gIdx < partGroups.length; gIdx++) {
         const grp = partGroups[gIdx]!;
-        const geomBytes = new Uint8Array(grp.verts * STRUCT_GEOM_STRIDE_BYTES);
+        const stride = STRUCT_GEOM_STRIDE_BYTES + (bucket.wallPage ? 8 : 0);
+        const geomBytes = new Uint8Array(grp.verts * stride);
         const geomF32 = new Float32Array(geomBytes.buffer);
         const geomI8 = new Int8Array(geomBytes.buffer);
         const geomU16 = new Uint16Array(geomBytes.buffer);
@@ -1393,22 +1534,23 @@ export class BuildingGlobalProxy {
             pickMap.set(mapKey, pickOffset);
           }
           const m = sp.wm;
+          const n = slotNormals[sp.slot].elements;
           const cnt = sp.positions.length / 3;
           const metaByte = (sp.slot & 63) + (sp.castShadow ? 64 : 0);
           colorBytes.set(sp.colorBytes, vBase * 4);
           for (let i = 0; i < cnt; i++) {
             const i3 = i * 3;
             const v = vBase + i;
-            const fB = v * (STRUCT_GEOM_STRIDE_BYTES / 4);
-            const bB = v * STRUCT_GEOM_STRIDE_BYTES;
-            const uB = v * (STRUCT_GEOM_STRIDE_BYTES / 2);
+            const fB = v * (stride / 4);
+            const bB = v * stride;
+            const uB = v * (stride / 2);
 
             const lnx = sp.normals[i3]!;
             const lny = sp.normals[i3 + 1]!;
             const lnz = sp.normals[i3 + 2]!;
-            let wnx = m[0]! * lnx + m[4]! * lny + m[8]! * lnz;
-            let wny = m[1]! * lnx + m[5]! * lny + m[9]! * lnz;
-            let wnz = m[2]! * lnx + m[6]! * lny + m[10]! * lnz;
+            let wnx = n[0] * lnx + n[3] * lny + n[6] * lnz;
+            let wny = n[1] * lnx + n[4] * lny + n[7] * lnz;
+            let wnz = n[2] * lnx + n[5] * lny + n[8] * lnz;
             const nLen = Math.hypot(wnx, wny, wnz) || 1;
             wnx /= nLen;
             wny /= nLen;
@@ -1438,6 +1580,10 @@ export class BuildingGlobalProxy {
 
             geomF32[fB + 4] = uvU(sp.uvs, i, 0);
             geomF32[fB + 5] = uvV(sp.uvs, i, 0);
+            if (sp.lightmapUVs) {
+              geomF32[fB + 8] = sp.lightmapUVs[i * 2];
+              geomF32[fB + 9] = sp.lightmapUVs[i * 2 + 1];
+            }
 
             geomU16[uB + 12] = Math.round(Math.max(0, Math.min(255, sp.kind))) * 257;
             geomU16[uB + 13] = packU16Scaled(sp.wear, 1);
@@ -1459,10 +1605,10 @@ export class BuildingGlobalProxy {
         const idxBuf = new Buffer(this.engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static, false);
 
         const mesh = new BufferMesh(this.engine, "MasonryGlobalProxyStruct");
-        mesh.setVertexBufferBinding(geomBuf, STRUCT_GEOM_STRIDE_BYTES, 0);
+        mesh.setVertexBufferBinding(geomBuf, stride, 0);
         mesh.setVertexBufferBinding(colorBuf, 4, 1);
         mesh.setVertexBufferBinding(metaBuf, STRUCT_META_STRIDE_BYTES, 2);
-        mesh.setVertexElements(STRUCT_ELEMENTS);
+        mesh.setVertexElements(bucket.wallPage ? LIT_STRUCT_ELEMENTS : STRUCT_ELEMENTS);
         mesh.setIndexBufferBinding(new IndexBufferBinding(idxBuf, useU32 ? IndexFormat.UInt32 : IndexFormat.UInt16));
         mesh.addSubMesh(0, grp.indices, MeshTopology.Triangles);
         mesh.bounds = new BoundingBox(new Vector3(cMinX, cMinY, cMinZ), new Vector3(cMaxX, cMaxY, cMaxZ));
@@ -1470,6 +1616,8 @@ export class BuildingGlobalProxy {
         const entity = this.root.createChild(`GlobalProxyStruct_${bucket.id}_${gIdx}`);
         const renderer = entity.addComponent(MeshRenderer);
         renderer.setMaterial(bucket.structMat);
+        if (bucket.wallBinding) bindBuildingWall(renderer.shaderData, bucket.wallBinding);
+        else bucket.wallPage?.bind(renderer.shaderData);
         renderer.enableVertexColor = true;
         renderer.priority = grp.castsShadow ? -102 : -98;
         renderer.castShadows = grp.castsShadow;
@@ -1582,6 +1730,7 @@ export class BuildingGlobalProxy {
     if (!this.root.destroyed) this.root.isActive = false;
     this.engine.off?.("devicerestored", this.handleDeviceRestored);
     for (const slot of this.slotsById.values()) {
+      slot.unsubscribeLamp?.();
       slot.worldFlag?.destroy?.();
       slot.worldFlag = undefined;
     }

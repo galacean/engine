@@ -1,5 +1,6 @@
 import { isGeneratedBuildingOutput, isInGeneratedBuildingOutput } from "../BuildingGeneratedOutput";
 import { buildingPartKey, buildingGroupKey } from "../../runtime/BuildingObjectIdentity";
+import { buildingFrameMetricKey } from "../../runtime/BuildingWallBakeInput";
 import { Matrix, Entity, ReferResource, type PrefabResource, type Component } from "@galacean/engine";
 import { BuildingGroupComponent } from "./BuildingGroupComponent";
 import { BuildingPartComponent } from "./BuildingPartComponent";
@@ -75,6 +76,22 @@ export function horizontalFrame(matrix: Matrix): BuildingPlacementFrame {
   )
     throw Error("Profile parts require a horizontal rigid frame at Y zero");
   return { position: [m[12], 0, m[14]], rotationY: Math.atan2(m[8], m[0]) };
+}
+/** Terrain is sampled in world space. Keep the authored group rules rigid, and
+ * allow an upright, independently scaled coordinate frame for the whole prefab. */
+function terrainPlacementFrame(matrix: Matrix): BuildingPlacementFrame {
+  const m = matrix.elements;
+  const scale: [number, number, number] = [
+    Math.hypot(m[0], m[1], m[2]),
+    Math.hypot(m[4], m[5], m[6]),
+    Math.hypot(m[8], m[9], m[10])
+  ];
+  if (scale.some((s) => !Number.isFinite(s) || s <= 0)) throw Error("Building frame requires positive finite scale");
+  if (scale.every((s) => Math.abs(s - 1) < 1e-6)) return horizontalFrame(matrix);
+  const rotation = matrix.clone();
+  for (let column = 0; column < 3; column++)
+    for (let row = 0; row < 3; row++) rotation.elements[column * 4 + row] /= scale[column];
+  return { ...horizontalFrame(rotation), scale };
 }
 export function validatePartCollection(members: Iterable<Component>) {
   const frames = new Map<
@@ -201,9 +218,9 @@ export function collectBuildingParts(
   }
   validateBuildingDraft(draft);
   if (draft.parts.length && !assets) throw Error("Building parts require a native material library");
-  const worldFrame = terrain && draft.parts.length ? frame.transform.worldMatrix.clone() : undefined;
+  const worldFrame = terrain && draft.parts.length ? frame.transform.worldMatrix : undefined;
   const placement = worldFrame
-    ? horizontalFrame(worldFrame)
+    ? terrainPlacementFrame(worldFrame)
     : { position: [0, 0, 0] as [number, number, number], rotationY: 0 };
   const region = buildingDraftRegion(draft) ?? [0, 0, 0, 0];
   const extent = Math.max(1, ...region.map(Math.abs)) + 2;
@@ -230,12 +247,12 @@ export function collectBuildingParts(
     bodies,
     groupIds,
     terrain: ground,
-    worldFrame,
     signature: buildingInputSignature([
       assets?.instanceId,
       draft,
       execution,
       placement,
+      worldFrame ? undefined : buildingFrameMetricKey(frame.transform.worldMatrix.elements),
       [...bindings].map(([key, value]) => [key, value.inverse]),
       ground.revision,
       parts.map((p) => [p._rawDefinition!.id, p.inputRevision])

@@ -30,6 +30,14 @@ LLM 的 `execute` 通过 `tools.building.generate({generator:"European.buildTowe
 
 核心层的概念和规则见 [../core/README.md](../core/README.md)，各构件类型的做法和与线上的差别见 [../MIGRATION.md](../MIGRATION.md)，编辑和保存的边界见 [../components/README.md](../components/README.md)。
 
+## 建筑壁灯贴图
+
+加载和建筑编辑共用场景的壁灯贴图缓存。Worker 按实际外墙、灯位和实例的世界尺度计算 R16F 光晕。相同布局复用已完成或正在生成的图块。无灯建筑跳过烘焙，场景销毁时释放资源。导入模型需要提供可接收光照的外墙和灯位描述。
+
+墙面使用独立的 lightmap UV，不受底色贴图平铺影响。相同壁灯在平墙上的局部光晕可共享一个图块，各墙将自己的灯位对齐到图块中心。圆塔沿实际外墙的圆弧连续展开。旋转、移动或正向非均匀缩放建筑后，系统按新布局查询缓存。
+
+灯芯和墙面使用各盏灯自己的线性 HDR 参数。默认壁灯沿用原暖黄色。调用 `BuildingManager.listWallLamps(frame)` 读取灯具和原色，`setWallLampHDR(frame, lampId, rgb)` 调整颜色与强度，省略 RGB 恢复原色。调色不触发烘焙。可通过 `wallLightmapInventory` 和 `onWallBakeEvent` 查看图块准备情况与缓存命中。
+
 ## 脚本里的网格
 
 `createBuildingPatch(engine, {segments, domain, point})` 按参数曲面生成一块网格，`buildingMeshData(mesh)` 读出网格的位置、UV 和索引。旧的通用构件 API（Point/Path/Mesh 支撑、`buildingPlacementAlgorithms` 等）已随线上路径删除。
