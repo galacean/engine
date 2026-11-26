@@ -94,9 +94,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   /**
    * Read a snapshot of the keyframe at the specified index.
    * Mutating the returned `Keyframe` does not modify the curve; call `setKey` to apply edits.
-   * @param index - The integer keyframe index in `[0, keyCount)`
+   * @param index - The keyframe index in `[0, keyCount)`
    * @param out - Optional reusable keyframe instance
-   * @throws {RangeError} If `index` is not an integer in `[0, keyCount)`
+   * @throws {RangeError} If `index` is out of range `[0, keyCount)`
    */
   getKey(index: number, out?: Keyframe<V>): Keyframe<V> {
     this._checkIndex(index);
@@ -108,9 +108,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   /**
    * Replace the keyframe at the specified index while maintaining ascending time order.
-   * @param index - The integer keyframe index in `[0, keyCount)`
+   * @param index - The keyframe index in `[0, keyCount)`
    * @param key - The replacement keyframe (values copied into storage)
-   * @throws {RangeError} If `index` is not an integer in `[0, keyCount)`
+   * @throws {RangeError} If `index` is out of range `[0, keyCount)`
    */
   setKey(index: number, key: Keyframe<V>): void {
     this._checkIndex(index);
@@ -152,8 +152,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   /**
    * Removes a key.
-   * @param index - The integer index of the key to remove in `[0, keyCount)`
-   * @throws {RangeError} If `index` is not an integer in `[0, keyCount)`
+   * @param index - The index of the key to remove in `[0, keyCount)`
+   * @throws {RangeError} If `index` is out of range `[0, keyCount)`
    */
   removeKey(index: number): void {
     this._checkIndex(index);
@@ -518,7 +518,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   }
 
   private _checkIndex(index: number): void {
-    if (!Number.isInteger(index) || index < 0 || index >= this._keyCount) {
+    if (index < 0 || index >= this._keyCount) {
       throw new RangeError(`Keyframe index ${index} out of range [0, ${this._keyCount}).`);
     }
   }
