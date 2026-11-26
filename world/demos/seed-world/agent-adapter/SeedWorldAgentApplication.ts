@@ -73,7 +73,7 @@ import { planningPickAssets } from "@galacean/engine-world-planning/spatial/runt
 import { getSeedWorldAssetPlacementProfile } from "@galacean/engine-world-planning/world/SeedWorldAssetPlacementProfile";
 import { resolveSeedWorldHillAtom } from "@galacean/engine-world-planning/world/SeedWorldHillAtom";
 import type { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
-import { SEED_WORLD_EDITOR_PATH } from "../SeedWorldProjectFormats.ts";
+import { SEED_WORLD_EDITOR_PATH, validateSeedWorldEditorDocument } from "../SeedWorldProjectFormats.ts";
 import {
   planningSourceDocument,
   planningVegetationReferences
@@ -206,19 +206,7 @@ export class SeedWorldAgentApplication {
     options: { restoreCamera?: boolean } = {}
   ): Promise<void> {
     signal.throwIfAborted();
-    if (
-      document?.format !== "seed-world-editor" ||
-      document.version !== 2 ||
-      !Number.isSafeInteger(document.revision) ||
-      document.revision < 0 ||
-      !document.settings ||
-      !document.memory ||
-      !Number.isSafeInteger(document.memory.semanticSerial) ||
-      document.memory.semanticSerial < 0 ||
-      ![document.memory.tags, document.memory.namedSelections].every(Array.isArray)
-    ) {
-      throw new Error("Invalid world editor document");
-    }
+    validateSeedWorldEditorDocument(document);
     const edit = this._engine.beginEdit?.("restore-project", this._editorSettings);
     if (!edit) throw new Error("Engine does not support project restoration");
     let published = false;

@@ -633,13 +633,19 @@ async function main() {
       console.log(`\n========== [${item.templateId}] ${item.title} (${item.artifactId} v${version}, type=${item.type}) ==========`);
       if (item.needsDbInit) {
         const action = "lingguang.db.updateTableSchema";
-        await callRemoteSkill({
+        const result = await callRemoteSkill({
           action, alipayUid: item.alipayUid, sessionId: item.sessionId,
           payload: {
             action, artifactId: item.artifactId, artifactVersion: version,
             params: { ddl_sql: readFileSync(ddlPath, "utf8").trim(), table_kind: "share", data_object: "世界存档" }
           }
         });
+        // ASAP returns the DDL outcome as text inside the successful remote-skill envelope.
+        const ddlResult = typeof result?.data === "string" ? result.data.trim() : "";
+        if (result?.success !== true || !ddlResult.startsWith("创建表成功！")) {
+          const detail = ddlResult.split(/\r?\n/u, 1)[0] || "ASAP did not confirm that world_save was created";
+          throw new Error(detail);
+        }
         row.dbStatus = "initialized";
         saveLocalState(options.stateDir, item, { dbInitialized: true });
       }

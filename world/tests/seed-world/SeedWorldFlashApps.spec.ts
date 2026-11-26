@@ -56,7 +56,12 @@ describe("Seed World 6-app Flash publishing", () => {
     };
     let responseStatus = 503;
     let responseBody: unknown = { error: "Unavailable" };
-    const server = http.createServer((_req, res) => {
+    let ddlResponse = { success: true, code: "0", data: "执行DDL失败: 创建世界存档被拒绝" };
+    const server = http.createServer((req, res) => {
+      if (req.url === "/api/remote_skill") {
+        res.end(JSON.stringify(ddlResponse));
+        return;
+      }
       res.writeHead(responseStatus).end(JSON.stringify(responseBody));
     });
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -97,6 +102,8 @@ describe("Seed World 6-app Flash publishing", () => {
       write(path.join(publisher, "scripts/asap-remote-skill.cjs"), String.raw`
         exports.callRemoteSkill = async request => {
           require("node:fs").appendFileSync(${JSON.stringify(logPath)}, JSON.stringify({ operation: "ddl", ...request.payload }) + "\n");
+          const endpoint = require("./asap-service-url.cjs").asapServiceUrl("/api/remote_skill");
+          return (await fetch(endpoint, { method: "POST" })).json();
         };
       `);
       const run = (mode: string, template = "sakura-pearl", ...flags: string[]) => promisify(execFile)(process.execPath, [
@@ -124,6 +131,15 @@ describe("Seed World 6-app Flash publishing", () => {
 
       // The HTTP endpoint shows v1, while v2 already exists as a draft in the registry.
       responseBody = { versions: [{ artifact_version: "1", html_url: entryUrl }] };
+      await expect(run("--execute")).rejects.toMatchObject({
+        stderr: expect.stringContaining("执行DDL失败: 创建世界存档被拒绝")
+      });
+      const attempted = fs.readFileSync(logPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+      expect(attempted.map((call) => call.operation)).toEqual(["verify", "reserve", "ddl"]);
+      expect(fs.existsSync(stateDir)).toBe(false);
+      fs.rmSync(logPath);
+
+      ddlResponse = { success: true, code: "0", data: "创建表成功！\n\n**表类型**: share" };
       const results = await Promise.all(Object.keys(artifacts).map((template) => run("--execute", template)));
       const calls = fs.readFileSync(logPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
       for (const [index, [template, artifactId]] of Object.entries(artifacts).entries()) {
