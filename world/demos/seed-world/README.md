@@ -4,7 +4,7 @@
 
 ## 入口与开发
 
-启动页和规划页顶部的「风格选择」提供原始 Seed World、樱雪仙境、萤光巨木森林、Low Poly 和幻兽荒原。选定风格与 Seed 后「应用」经 Session 整体载入作者配方，再由「生成 3D」交付当前规划；不会在进入 3D 时偷偷换一份布局。同一风格与 Seed 可重复生成；「随机 Seed」生成新变体。
+Seed World 以 6 个独立单模板 Demo 提供服务（原始 Seed World、樱雪仙境、萤光巨木森林、Low Poly、幻兽荒原、秋林油画），分别位于 `world/demos/seed-world/{index,sakura-pearl,emerald-forest,low-poly,titan-wasteland,oil-paint}.html`，每个入口直接进入对应世界；规划器内仍可在「全局规划」中编辑 Seed 与布局参数，再由「生成 3D」交付当前规划。
 
 2026-11-05 用户明确授权按原图为各模板配置光照，取代此前所有风格保留光照的限制。主题配方分别设置 lighting／postProcess。更换 Seed 保留之后的手动照明编辑。原始 Seed World 入口仍保留工程照明。草地、裸地道路、树叶、树干、花瓣与岩石分别设置固有色；天空散射、天顶／地平线渐变、月光和雾另按原图配置，不从材质主题色推导。显式 surfacePalette 同时解除原版道路色场对地面颜色的覆盖；空组件和 reset 保留原生色场。原生夜间月光散射与白天天空渐变是不同通道，均通过可序列化的 lighting 参数进入日照 owner。
 
@@ -18,8 +18,8 @@
 
 | URL / 文档 | 用途 |
 | --- | --- |
-| `/world/demos/seed-world/index.html` | 在选择页选定主题与 Seed 后进入全屏 3D |
-| 同地址加 `?debug=1` | 选择主题后进入空间规划器，点击「生成 3D」进入场景 |
+| `/world/demos/seed-world/{index,sakura-pearl,emerald-forest,low-poly,titan-wasteland,oil-paint}.html` | 6 个独立单模板入口，直接进入对应全屏 3D 世界 |
+| 同地址加 `?debug=1` | 进入空间规划器，点击「生成 3D」进入场景 |
 | 普通入口加 `buildingApiDebug=1` | 正式 V2 建筑 list/query/apply 调试；真实修改并保存当前 Seed，仅用于测试工程，不调用 LLM |
 | [空间框架](spatial/README.md)、[协作规则](AGENTS.md) | 数据契约、参数作用域、规则与素材接入 |
 | [配置目录](planning-data/README.md)、[框架审计](spatial/FRAMEWORK_AUDIT.md) | 配置入口、范围与未完成项 |
@@ -125,7 +125,7 @@ MANAGER 首次打开空表时从模板创建，后续打开按存档恢复 seed�
 分享访客读取相同存档，界面隐藏改造入口，初始化、浏览和退出均不写共享表。
 世界页通过 `window.lingguang.db` 的 `role`、`query` 和 `execute` 访问存档。
 `base.js` 在页面启动时复用已有的 `window.lingguang.db`；缺少该接口时挂载 IndexedDB 适配器，角色为 MANAGER。调试页和正式发布页使用同一规则。
-每个浏览器来源按应用 ID 隔离存档，没有应用 ID 的独立预览使用本来源的默认世界。首次打开匹配 seed 的旧本地工程时会读取已有存档。LLM 调试仍由 ASAP 桥接处理。相机浏览位置保存在设备上。
+浏览器存档按来源、应用 ID 和入口模板隔离。首次打开没有存档的新库时，会检查同一应用旧库中的同模板存档。没有应用 ID 的独立预览可读取同模板的旧默认世界。规划器「打开工程」只接受当前入口模板导出的工程。LLM 调试仍由 ASAP 桥接处理。相机浏览位置保存在设备上。
 
 存档中的 `project.json` 保留统一的 `virtualPath`。已发布的原始素材使用 HTTP(S) 地址，新增或覆盖文件使用 `lingguang://world/files/…`。
 保存只写变更的文件、文档和版本索引；工程清单变化时才重写 `project.json`。

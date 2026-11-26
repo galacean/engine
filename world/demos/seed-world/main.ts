@@ -1,9 +1,8 @@
 import "./src/installInsecureContextCryptoFallback.ts";
-import { seedWorldStorageHost } from "./storage/SeedWorldStorageHost";
-import { SharedWorldStorage, type WorldSelection } from "./storage/SharedWorldStorage";
+import { seedWorldStorageHost, selectSeedWorldSave, type SeedWorldSaveSelection } from "./storage/SeedWorldStorageHost";
 import type { PlanningWorldHandoff } from "./src/planning/spatial/runtime/PlanningWorldSource.ts";
-import { planningStartupSeed, selectPlanningStartupTemplate } from "./src/planning/spatial/PlanningStartupSeed.ts";
-import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
+import { planningStartupSeed } from "./src/planning/spatial/PlanningStartupSeed.ts";
+import { resolveAppTemplate } from "./src/planning/spatial/FlashAppTemplateBinding.ts";
 import {
   appendPreservedDiagParams,
   capturePreservedDiagParams,
@@ -12,13 +11,13 @@ import {
 import { seedWorldBootTrace } from "./src/SeedWorldBootTrace.ts";
 
 /** The planning preview and native Seed page have independent renderer lifetimes. */
-async function enterSeedWorld(handoff?: PlanningWorldHandoff, selection?: WorldSelection): Promise<void> {
+async function enterSeedWorld(handoff?: PlanningWorldHandoff, selection?: SeedWorldSaveSelection): Promise<void> {
   document.getElementById("planning-app")?.remove();
   document.body.classList.remove("island-plan-page", "base-map-page");
   document.body.dataset.mode = "world";
   const pageUrl = planningPageUrl().url;
   document.body.dataset.pageMode = pageUrl.searchParams.get("debug") === "1" ? "debug" : "runtime";
-  document.title = "Seed World";
+  if (!document.title?.trim()) document.title = "Seed World";
   const bootTraceParam = pageUrl.searchParams.get("bootTrace") === "1";
   const trace = pageUrl.searchParams.get("agentTrace") === "1" || bootTraceParam;
   seedWorldBootTrace.configure({
@@ -59,53 +58,29 @@ async function enterSeedWorld(handoff?: PlanningWorldHandoff, selection?: WorldS
 async function start(): Promise<void> {
   const page = planningPageUrl();
   const storage = await seedWorldStorageHost();
-  let template = page.url.searchParams.get("template");
-  const entryTemplate = template === "original" ? template : worldTemplate(template)?.id;
-  const selection = storage && await SharedWorldStorage.select(storage.db, storage.appVersion, entryTemplate);
+  const appTemplate = resolveAppTemplate();
+  const selection: SeedWorldSaveSelection | undefined = storage && await selectSeedWorldSave(storage, appTemplate)
+    .catch((error) => {
+      console.warn("读取世界存档失败，将初始化入口模板", error);
+      return { olderApp: false, restoreFailed: true };
+    });
   const saved = selection?.raw === undefined ? undefined : selection;
   const readOnly = storage?.readOnly || saved?.olderApp;
-  const seed = saved?.identity?.seed ?? planningStartupSeed(page.url.searchParams);
-  let entrySeed = seed;
+  const seed = (saved?.identity ?? selection?.legacyPreview?.identity)?.seed ?? planningStartupSeed(page.url.searchParams);
   let updateUrl = page.url.searchParams.get("seed") !== String(seed);
-  if (readOnly && (!saved || (saved.olderApp && !saved.identity))) {
+  if (readOnly && !selection?.restoreFailed && (!saved || (saved.olderApp && !saved.identity))) {
     const message = document.createElement("p");
     message.style.color = "white";
     message.textContent = saved?.olderApp ? "世界已更新，请从最新版本打开。" : "作者尚未保存这个世界。";
     document.body.append(message);
     return;
   }
-  if (saved) {
-    const savedTemplate = saved.identity?.template;
-    if (!saved.checkpoint && entryTemplate) template = entryTemplate;
-    else if (savedTemplate && (savedTemplate === "original" || worldTemplate(savedTemplate))) template = savedTemplate;
-    else template = worldTemplate(template)?.id ?? "original";
-    page.url.searchParams.set("template", template);
-    updateUrl = true;
-  }
   if (readOnly) {
     page.url.searchParams.delete("debug");
     updateUrl = true;
   }
-  if (template !== "original" && !worldTemplate(template)) {
-    document.body.dataset.mode = "template";
-    const host = document.createElement("div");
-    document.body.append(host);
-    const { mountWorldTemplatePicker } = await import("./src/planning/spatial/WorldTemplatePicker.ts");
-    const choice = await new Promise<{ id: string; seed: number }>(resolve => {
-      const picker = mountWorldTemplatePicker(host, async (id, seed) => {
-        resolve({ id, seed });
-        queueMicrotask(() => { picker.dispose(); host.remove(); });
-      }, undefined, true);
-      picker.update(undefined, seed, false);
-      picker.open();
-    });
-    selectPlanningStartupTemplate(choice.id, choice.seed);
-    entrySeed = choice.seed;
-    page.url.searchParams.set("template", choice.id || "original");
-    updateUrl = true;
-  }
   if (updateUrl) {
-    page.url.searchParams.set("seed", String(entrySeed));
+    page.url.searchParams.set("seed", String(seed));
     if (page.canReplaceHistory) history.replaceState(null, "", page.url);
     else {
       const source = document.querySelector<HTMLMetaElement>('meta[name="flash-app-html-url"]');
@@ -142,14 +117,13 @@ async function start(): Promise<void> {
         url.searchParams.set("debug", "1");
         url.searchParams.set("view", "3d");
         if (panel) url.searchParams.set("panel", "1");
-        url.searchParams.set("template", plan.parameters.worldTemplate?.id || "original");
         appendPreservedDiagParams(url.searchParams, preserved);
         if (page.canReplaceHistory) history.replaceState(null, "", url);
         else {
           const source = document.querySelector<HTMLMetaElement>('meta[name="flash-app-html-url"]');
           if (source) source.content = url.href;
         }
-        await enterSeedWorld(handoff);
+        await enterSeedWorld(handoff, handoff.temporaryStorage ? { olderApp: false, restoreFailed: true } : undefined);
       } catch (error) { showStartupError(error); }
     }
   });

@@ -51,6 +51,7 @@ export interface WorldSelection {
   readonly olderApp: boolean;
   readonly identity?: WorldIdentity;
   readonly checkpoint?: Head;
+  readonly restoreFailed?: boolean;
 }
 
 export const WORLD_SAVE_VERSION = 12;
@@ -187,6 +188,7 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
   private pinned?: { revision: string; generations: ReadonlySet<string> };
   private superseded = false;
   private loaded = false;
+  private deferredWrites?: Promise<void>;
   private readonly lifetime = new AbortController();
   private get closed(): boolean {
     return this.lifetime.signal.aborted;
@@ -233,14 +235,11 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
     const olderApp = appVersionNumber(current.appVersion) > version;
     const head = await this.visibleHead(db, current, version);
     if (!head) return { raw, olderApp };
-    const saved = { ...parseHead(head), raw, olderApp };
-    // Only inspect the nested format here if it can change which template the entry must start.
-    if (entryTemplate && saved.checkpoint && saved.identity?.template !== entryTemplate) {
-      const bytes = await this.readBlocks(db, saved.checkpoint);
-      const projectVersion = JSON.parse(textDecoder.decode(bytes))?.version;
-      if (!supportsProjectVersion(projectVersion)) return { ...saved, checkpoint: undefined };
+    const { identity, checkpoint } = parseHead(head);
+    if (entryTemplate && (!checkpoint || identity?.template !== entryTemplate)) {
+      return { raw, olderApp, identity, restoreFailed: true };
     }
-    return saved;
+    return { raw, olderApp, identity, checkpoint };
   }
 
   static async open(
@@ -607,7 +606,7 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
   private scheduleMaintenance() {
     clearTimeout(this.cleanupTimer);
     const state = this.collection;
-    if (this.closed || this.collecting || !state || state.superseded) return;
+    if (this.closed || this.deferredWrites || this.collecting || !state || state.superseded) return;
     const next = state.retired[state.collected];
     if (!next && state.recordedCount === state.collected) return;
     const due = next && state.recordedCount === state.collected ? next[0] || state.notBefore : 0;
@@ -642,11 +641,23 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
     this.scheduleMaintenance();
     this.pending = undefined;
   }
+  /** Keep startup migrations and maintenance from changing a checkpoint until its project has opened. */
+  deferWrites(): () => void {
+    let resume!: () => void;
+    this.deferredWrites = new Promise<void>((resolve) => { resume = resolve; });
+    return () => {
+      this.deferredWrites = undefined;
+      resume();
+      this.scheduleMaintenance();
+    };
+  }
+
   async save(_id: string, pack: RuntimeProjectPackage) {
     if (!this.loaded || this.readOnly || this.closed) throw new Error("当前会话不能保存世界");
     const identity = this.identityFromProject?.(pack) ?? this.identity;
     const files = captureFiles(pack, this.baseline, this.published);
     const index: FileIndex = { version: pack.version, hasDocuments: pack.documents !== undefined, files: [] };
+    if (this.deferredWrites) await abortable(this.deferredWrites, this.lifetime.signal);
     try {
       await this.publish(files, index, identity);
     } catch (error) {

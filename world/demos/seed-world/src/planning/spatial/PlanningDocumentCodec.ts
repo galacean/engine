@@ -4,6 +4,8 @@ import { planningSeed, switchPlanningLayoutScope } from "@galacean/engine-world-
 import { applySpatialCommands } from "@galacean/engine-world-planning/spatial/SpatialDocument";
 import { appendPreservedDiagParams, capturePreservedDiagParams } from "./PlanningPageUrl.ts";
 
+export const PLANNING_PROJECT_PATH = "World/Planning.json";
+
 /** Parse project authoring data without reading or writing browser storage. */
 export function parsePlanningDocument(raw: string, seed: number): PlanningDocument {
   const parsed = JSON.parse(raw) as PlanningDocument;
@@ -26,14 +28,12 @@ export function planningSeedURL(href: string, seed: number): string {
   const url = new URL(href);
   const debug = url.searchParams.get("debug") === "1";
   const panel = url.searchParams.get("panel") === "1";
-  const template = url.searchParams.get("template");
   const preserved = capturePreservedDiagParams(url.searchParams);
   url.search = "";
   url.hash = "";
   url.searchParams.set("seed", String(seed));
   if (debug) url.searchParams.set("debug", "1");
   if (debug && panel) url.searchParams.set("panel", "1");
-  if (template !== null) url.searchParams.set("template", template);
   appendPreservedDiagParams(url.searchParams, preserved);
   return url.href;
 }

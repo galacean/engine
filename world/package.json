@@ -14,10 +14,9 @@
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "farming:native-api:generate": "node ../packages/farming/src/farming/scripts/generate-native-api.mjs",
     "farming:native-api:check": "node ../packages/farming/src/farming/scripts/generate-native-api.mjs --check",
-    "prepare:engine": "pnpm --filter @galacean/engine-shader-compiler build && pnpm --filter @galacean/engine-shader precompile",
+    "prepare:engine": "pnpm -w run precompile",
     "build:all": "WORLD_DEMO=all vite build --config vite.config.mjs",
-    "build:seed-world-flash-app": "node scripts/build-seed-world-flash-app.mjs",
-    "build:seed-world-flash-source": "node scripts/build-seed-world-flash-source.mjs"
+    "build:seed-world-flash-app": "node scripts/build-seed-world-flash-app.mjs"
   },
   "dependencies": {
     "@galacean/engine": "workspace:*",

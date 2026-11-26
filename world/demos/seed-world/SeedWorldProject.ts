@@ -1,6 +1,6 @@
 import { PublishedWorldAssets } from "./storage/PublishedWorldAssets";
 import { SharedWorldStorage, WORLD_SAVE_VERSION, type WorldSelection } from "./storage/SharedWorldStorage";
-import { seedWorldStorageHost } from "./storage/SeedWorldStorageHost";
+import { loadSeedWorldLegacyPreview, seedWorldStorageHost, selectSeedWorldSave, type SeedWorldSaveSelection } from "./storage/SeedWorldStorageHost";
 import "@galacean/engine-building/building/parts/index";
 import "@galacean/engine-building/building/parts/BuildingParts";
 import { registerBuildingAssetComponents } from "@galacean/engine-building/building/resources/BuildingAssetKit";
@@ -11,19 +11,21 @@ import { Loader } from "@galacean/engine";
 import "@galacean/engine-world-planning/runtime/script-registry";
 import { registerNativeFarming } from "@galacean/engine-farming/farming/native/index";
 import { registerPlanningFarmingAssets } from "./src/planning/spatial/farming/PlanningFarmingAssets.ts";
-import { seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
+import { SEED_WORLD_EDITOR_PATH, seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
 import { seedWorldScriptModules } from "./systems/SeedWorldScriptModules.ts";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import { RuntimeProjectStorage, type RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import { RuntimeProjectStorage, type RuntimeProjectBackend, type RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { extractAssetDependencies } from "@galacean/engine-project/runtime-editor/project/runtime-project-dependencies";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
+import { resolveAppTemplate } from "./src/planning/spatial/FlashAppTemplateBinding.ts";
 import { SEMANTIC_DEFAULTS } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 import { PLANT_PROJECT_ROOT, PLANT_PROJECT_PRODUCTION, PLANT_PROJECT_CATALOG } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 import { resolvePlantJSONReferences } from "@galacean/engine-vegetation/asset-assembly/PlantParameterEncoding";
 import { importRuntimeHierarchy, assertRuntimeHierarchyEquivalent } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-hierarchy-source";
 import { compileProjectResource } from "@galacean/engine-project/runtime-editor/scene/runtime-project-compiler";
 import { planningSourceIdentity, validatePlanningProject } from "./src/planning/spatial/runtime/PlanningProjectSource.ts";
+import { PLANNING_PROJECT_PATH, PlanningProjectStorage } from "./src/planning/spatial/runtime/PlanningProjectStorage.ts";
 import { registerPlantProjectAssets } from "@galacean/engine-world-planning/integrations/vegetation/PlantProjectFormats";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { registerNativeWater } from "@galacean/engine-water/water/native/index";
@@ -124,12 +126,13 @@ export async function openSeedWorldProject(
   pageUrl: URL,
   initial?: RuntimeProjectManifest,
   prefetchedTextAssets?: ReadonlyMap<string, string>,
-  selection?: WorldSelection
+  selection?: SeedWorldSaveSelection,
+  guardEditorRestore?: (resumeWrites: () => void, migratingLegacy: boolean) => void
 ): Promise<RuntimeProjectSession> {
   const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, location.href).href;
   const raw = pageUrl.searchParams.get("seed");
   const seed = raw !== null && /^\d+$/.test(raw) && Number(raw) <= 0xffffffff ? Number(raw) : SEMANTIC_DEFAULTS.seed;
-  const template = worldTemplate(pageUrl.searchParams.get("template"))?.id ?? "original";
+  const template = resolveAppTemplate();
   if (!initial) {
     const parsedPreloaded = parsePreloadedJson<RuntimeProjectManifest>(prefetchedTextAssets?.get(projectUrl));
     if (parsedPreloaded !== undefined) {
@@ -141,7 +144,7 @@ export async function openSeedWorldProject(
     }
   }
   const existingVirtualPaths = new Set(initial.files.map((file) => file.virtualPath));
-  initial = {
+  const initialProject = {
     ...initial,
     files: [
       ...initial.files,
@@ -153,51 +156,137 @@ export async function openSeedWorldProject(
   const host = await seedWorldStorageHost();
   const isRegisteredComponent = (name: string) => Boolean(Loader.getClass(name));
   const published = host && !host.readOnly && !selection?.olderApp ? new PublishedWorldAssets(prefetchedTextAssets, isRegisteredComponent) : undefined;
-  const storage = host && await SharedWorldStorage.open(
-    host.db, host.readOnly, host.appVersion, { seed, template }, published,
-    host.importLegacyPreview ? readLegacyPreview : undefined,
-    planningSourceIdentity, selection
-  );
-  const project = await seedWorldBootTrace.span("openSeedWorldProject.sessionOpen", () =>
-    RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl, template), initial, projectUrl, {
-      storage,
-      scriptModules: seedWorldScriptModules,
-      prefetchedTextAssets
-    })
-  );
-  try {
-    if (published && project.canSave) project.observeAssetReads((file, content) => published.recordRead(file, content));
-    registerNativeFarming();
-    registerNativeWater();
-    registerPlanningFarmingAssets();
-    registerBuildingAssetComponents();
-    registerPlantProjectAssets();
-    project.registerAssetFormats(seedWorldProjectFormats);
-    await seedWorldBootTrace.span("openSeedWorldProject.migrateBuildingAssetPaths", () =>
-      migrateBuildingAssetPaths(project, initial, projectUrl, prefetchedTextAssets)
+  const projectId = seedWorldProjectStorageId(seed, projectUrl, template);
+  const openSession = (storage?: RuntimeProjectBackend) =>
+    seedWorldBootTrace.span("openSeedWorldProject.sessionOpen", () =>
+      RuntimeProjectSession.open(projectId, initialProject, projectUrl, { storage, scriptModules: seedWorldScriptModules, prefetchedTextAssets })
     );
-    await seedWorldBootTrace.span("openSeedWorldProject.migrateWaterTextures", () =>
-      migrateSeedWorldWaterTextures(project)
-    );
-    await seedWorldBootTrace.span("openSeedWorldProject.prepareEditableHierarchies", () =>
-      project.prepareEditableHierarchies(isRegisteredComponent)
-    );
-    await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#1", () =>
-      project.initializeDependencies()
-    );
-    await seedWorldBootTrace.span("openSeedWorldProject.migrateVegetationAssets", () =>
-      migrateVegetationAssets(project, initial, projectUrl)
-    );
-    await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#2", () =>
-      project.initializeDependencies()
-    );
-    project.registerProjectValidator(validatePlanningProject);
-    if (!host && project.isPersistent) scheduleRetiredSeedWorldSaveCleanup(projectUrl, project);
-    return project;
-  } catch (error) {
-    project.dispose();
-    throw error;
+
+  registerNativeFarming();
+  registerNativeWater();
+  registerPlanningFarmingAssets();
+  registerBuildingAssetComponents();
+  registerPlantProjectAssets();
+
+  async function prepareProject(project: RuntimeProjectSession): Promise<RuntimeProjectSession> {
+    try {
+      if (published && project.isPersistent && project.canSave) project.observeAssetReads((file, content) => published.recordRead(file, content));
+      project.registerAssetFormats(seedWorldProjectFormats);
+      const savedEditor = project.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
+      if (savedEditor !== undefined) seedWorldProjectFormats.get("SeedWorldEditor")!.validate(savedEditor);
+      await seedWorldBootTrace.span("openSeedWorldProject.migrateBuildingAssetPaths", () =>
+        migrateBuildingAssetPaths(project, initialProject, projectUrl, prefetchedTextAssets)
+      );
+      await seedWorldBootTrace.span("openSeedWorldProject.migrateWaterTextures", () =>
+        migrateSeedWorldWaterTextures(project)
+      );
+      await seedWorldBootTrace.span("openSeedWorldProject.prepareEditableHierarchies", () =>
+        project.prepareEditableHierarchies(isRegisteredComponent)
+      );
+      await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#1", () =>
+        project.initializeDependencies()
+      );
+      await seedWorldBootTrace.span("openSeedWorldProject.migrateVegetationAssets", () =>
+        migrateVegetationAssets(project, initialProject, projectUrl)
+      );
+      await seedWorldBootTrace.span("openSeedWorldProject.initializeDependencies#2", () =>
+        project.initializeDependencies()
+      );
+      if (project.restoredFromStorage) {
+        validatePlanningProject(project.projectPackage, template);
+        if (project.projectPackage.contents[PLANNING_PROJECT_PATH] !== undefined) {
+          await new PlanningProjectStorage(project, seedWorldProjectFormats).load(seed);
+        }
+      }
+      project.registerProjectValidator((candidate) => validatePlanningProject(candidate, template));
+      return project;
+    } catch (error) {
+      project.dispose();
+      throw error;
+    }
   }
+
+  if (!host) {
+    const project = await prepareProject(await openSession());
+    if (project.isPersistent) scheduleRetiredSeedWorldSaveCleanup(projectUrl, project);
+    return project;
+  }
+
+  const target = host;
+  const identity = { seed, template };
+  let initializingFresh = false;
+  async function prepareSharedProject(
+    chosen: WorldSelection,
+    legacy?: Awaited<ReturnType<typeof readLegacyPreview>>
+  ) {
+    const migratingLegacy = legacy !== undefined;
+    const storage = await SharedWorldStorage.open(
+      target.db, target.readOnly, target.appVersion, identity, published,
+      legacy && (async () => legacy), planningSourceIdentity, chosen
+    );
+    const resumeWrites = storage.deferWrites();
+    let opened: RuntimeProjectSession;
+    try {
+      opened = await openSession(storage);
+    } catch (error) {
+      storage.close();
+      throw error;
+    }
+    if (chosen.checkpoint && !opened.restoredFromStorage) {
+      opened.dispose();
+      return undefined;
+    }
+    initializingFresh = !opened.restoredFromStorage;
+    const project = await prepareProject(opened);
+    if (guardEditorRestore && project.restoredFromStorage && project.projectPackage.contents[SEED_WORLD_EDITOR_PATH] !== undefined) {
+      guardEditorRestore(resumeWrites, migratingLegacy);
+      return project;
+    }
+    resumeWrites();
+    if (migratingLegacy) {
+      try {
+        await project.save();
+      } catch (error) {
+        project.dispose();
+        throw error;
+      }
+    }
+    return project;
+  }
+
+  try {
+    selection ??= await selectSeedWorldSave(host, template);
+    if (host.legacyLocalDbName !== undefined && !selection.skipLegacyPreview && !selection.restoreFailed && selection.raw === undefined) {
+      try {
+        const legacy = selection.legacyPreview;
+        const saved = legacy?.identity?.seed === seed
+          ? await loadSeedWorldLegacyPreview(host, identity, legacy)
+          : host.legacyLocalDbName === null ? await readLegacyPreview(projectId) : undefined;
+        if (saved) {
+          const project = await prepareSharedProject(selection, saved);
+          if (project) return project;
+        }
+      } catch (error) {
+        console.warn("恢复旧浏览器存档失败，将重新打开入口存档", error);
+        // The source was read-only. Honor a named checkpoint created by another tab.
+        selection = await SharedWorldStorage.select(host.db, host.appVersion, template);
+        initializingFresh = false;
+      }
+    }
+    if (!selection.restoreFailed) {
+      const project = await prepareSharedProject(selection);
+      if (project) return project;
+    }
+  } catch (error) {
+    if (initializingFresh) throw error;
+    console.warn("恢复世界存档失败，将初始化入口模板", error);
+  }
+
+  // Keep normalization, autosave and in-session edits away from the unreadable checkpoint.
+  const storage = Object.assign(RuntimeProjectStorage.createInMemory(), {
+    readOnly: host.readOnly || Boolean(selection?.olderApp)
+  });
+  return prepareProject(await openSession(storage));
 }
 
 const SEED_WORLD_FLASH_CDN_HOST = "mdn.alipayobjects.com";

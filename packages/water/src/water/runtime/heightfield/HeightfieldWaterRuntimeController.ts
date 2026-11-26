@@ -315,7 +315,7 @@ export class HeightfieldWaterRuntimeController {
     }
   }
 
-  /** True when at least one non-occluded surface region intersects the current source-Camera frustum. */
+  /** True when at least one non-occluded surface chunk's renderer bounds intersect the current source Camera frustum. */
   hasCameraVisibleSurfaceChunk(provider: WaterCameraVisibilityProvider): boolean {
     const activeSet = this._activeSet;
     if (!activeSet) {
@@ -329,13 +329,12 @@ export class HeightfieldWaterRuntimeController {
       if (!renderer.enabled || !renderer.entity.isActiveInHierarchy) {
         continue;
       }
-      const layer = renderer.entity.layer;
-      const visibilityBounds = chunk.visibilityBounds;
-      for (let boundsIndex = 0; boundsIndex < visibilityBounds.length; boundsIndex++) {
-        const bounds = visibilityBounds[boundsIndex]!;
-        if (!bounds.terrainOccluded && provider.isVisible(bounds.worldBounds, layer)) {
-          return true;
-        }
+      // Stay consistent with BasicRenderPipeline / RiverRuntimeController / FiniteOceanSurfaceGeometry:
+      // once a chunk's MeshRenderer is enabled and its renderer bounds intersect the camera frustum,
+      // BasicRenderPipeline submits it to transparentQueue & SSRReceiver, so camera leases
+      // (opaqueTexture / depthTexture) must remain active instead of tearing down mid-reveal.
+      if (provider.isVisible(renderer.bounds, renderer.entity.layer)) {
+        return true;
       }
     }
     return false;

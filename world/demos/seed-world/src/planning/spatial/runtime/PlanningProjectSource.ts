@@ -1,3 +1,4 @@
+import { PLANNING_PROJECT_PATH } from "../PlanningDocumentCodec.ts";
 import { RuntimeProjectInputs } from "@galacean/engine-project/runtime-editor/project/runtime-project-inputs";
 import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import type { RuntimeProjectPackage } from "@galacean/engine-project/runtime-editor/project/runtime-project";
@@ -157,15 +158,18 @@ export const validatePlanningSource: RuntimeEditPreparation = async (edit) => {
 };
 
 /** Seed World's authored owner is mandatory after import; deleting it cannot silently start a new world. */
-export function validatePlanningProject(pack: RuntimeProjectPackage): void {
+export function validatePlanningProject(pack: RuntimeProjectPackage, entryTemplate?: string): void {
   const input = planningInputs(pack);
   input.document ??= { value: readPlanningSourceDocument(pack) };
   const document = input.document.value;
   if (!document) {
     if (pack.documents?.[`${pack.project.scene}.planning-source.json`])
       throw new Error("Imported project requires a PlanningProjectAuthoring owner");
+    const legacy = pack.contents[PLANNING_PROJECT_PATH];
+    if (entryTemplate && typeof legacy === "string") assertPlanningTemplate(JSON.parse(legacy), entryTemplate);
     return;
   }
+  if (entryTemplate) assertPlanningTemplate(document, entryTemplate);
   if (input.documentValidatedRevision !== planningRegistry.revision) {
     validateSpatialDocument(document, planningRegistry);
     input.documentValidatedRevision = planningRegistry.revision;
@@ -255,6 +259,11 @@ function templateId(document: PlanningDocument): string {
   return document.entities.world.components.worldTemplate
     ? String(resolveComponent(document, "world", "worldTemplate", planningRegistry).values.id ?? "")
     : "";
+}
+
+export function assertPlanningTemplate(document: PlanningDocument, entryTemplate: string): void {
+  const actual = templateId(document) || "original";
+  if (actual !== entryTemplate) throw new Error(`工程模板 ${actual} 与当前入口 ${entryTemplate} 不一致`);
 }
 
 export function planningSourceIdentity(pack: RuntimeProjectPackage) {

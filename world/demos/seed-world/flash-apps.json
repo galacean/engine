@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "apps": [
+    {
+      "templateId": "original",
+      "title": "Seed World AIChat",
+      "artifactId": "flashapp-a3c0e021cb8cadb0",
+      "type": "game",
+      "reuseExisting": true
+    },
+    {
+      "templateId": "sakura-pearl",
+      "title": "Seed World · 樱雪仙境",
+      "artifactId": "flashapp-35f3d2be4fb20307",
+      "type": "miniapp",
+      "reuseExisting": false
+    },
+    {
+      "templateId": "emerald-forest",
+      "title": "Seed World · 萤光巨木森林",
+      "artifactId": "flashapp-9e9249535a736f4c",
+      "type": "miniapp",
+      "reuseExisting": false
+    },
+    {
+      "templateId": "low-poly",
+      "title": "Seed World · Low Poly",
+      "artifactId": "flashapp-dcc7388d82750aa7",
+      "type": "miniapp",
+      "reuseExisting": false
+    },
+    {
+      "templateId": "titan-wasteland",
+      "title": "Seed World · 幻兽荒原",
+      "artifactId": "flashapp-ea26138401a1af3e",
+      "type": "miniapp",
+      "reuseExisting": false
+    },
+    {
+      "templateId": "oil-paint",
+      "title": "Seed World · 秋林油画",
+      "artifactId": "flashapp-aa964a26bde230fb",
+      "type": "miniapp",
+      "reuseExisting": false
+    }
+  ]
+}
