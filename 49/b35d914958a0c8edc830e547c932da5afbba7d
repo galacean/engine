@@ -1,0 +1,31 @@
+packages/core/src/shader/ShaderPass.ts
+  s_c72f930c19d1f3::t_f2d610acb6b3a3 415,417-435,458-469
+packages/rhi-webgpu/src/WebGPUGraphicDevice.ts
+  s_c72f930c19d1f3::t_72ce0de0a37414 692-694
+packages/shader-compiler/src/webgpu/ast/GLSLAst.ts
+  s_c72f930c19d1f3::t_f4656442125496 1-256
+packages/shader-compiler/src/webgpu/ast/GLSLParser.ts
+  s_c72f930c19d1f3::t_9474fc489d50ee 1-903
+packages/shader-compiler/src/webgpu/ast/WGSLEmitter.ts
+  s_c72f930c19d1f3::t_28a99110df9a2e 1-2408
+packages/shader-compiler/src/webgpu/ast/WGSLTypeSystem.ts
+  s_c72f930c19d1f3::t_58102ef3e80faa 1-369
+tests/src/shader-compiler/WebGPUBackend.test.ts
+  s_c72f930c19d1f3::t_5e7bf3a390246c 38,52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "49b35d914958a0c8edc830e547c932da5afbba7d",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

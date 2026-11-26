@@ -1,0 +1,48 @@
+packages/building/src/building/runtime/BuildingWallBakeBinding.ts
+  s_c72f930c19d1f3::t_ffa6f005d4ee42 38-42,52,90-103,129
+world/demos/building-lighting-study/MasonryFixtures.ts
+  s_c72f930c19d1f3::t_15cb8cba1be8e5 1,9-10,112,115-142,145-172
+  s_c72f930c19d1f3::t_c910ffab311224 114
+  s_c72f930c19d1f3::t_a54f866083049b 143-144
+world/demos/building-lighting-study/main.ts
+  s_c72f930c19d1f3::t_bd42a14c748a97 3-5,7,11-13,15-16,18-27,30-36,38-60,62-73,76-102,104-108,110-125,127-128,130-139,143-147
+world/demos.json
+  s_c72f930c19d1f3::t_66e54c913f706f 22
+world/demos/building-lighting-study/StudyScene.ts
+  s_c72f930c19d1f3::t_a1ed40bdd3c484 131-134
+  s_c72f930c19d1f3::t_eaf9c31574ffd4 14,17-18,20,25,76-85,87-96,171
+  s_c72f930c19d1f3::t_c910ffab311224 36,177
+  s_c72f930c19d1f3::t_9df5ad2d943e97 3,12-13,37-43,45-46,48,51,61,63-66,74-75,98-101,103-115,117-125,127,129-130,135-138,140-146,148-160,164-170,172-176,180-181,185-186,189-190
+world/demos/building-lighting-study/index.html
+  s_c72f930c19d1f3::t_bd42a14c748a97 38-41,66
+  s_c72f930c19d1f3::t_02bfd190e5b9ff 6-7,13,15-17,20-37,42-65,67-69
+world/demos/building-lighting-study/SeedSpawnHouse.ts
+  s_c72f930c19d1f3::t_15cb8cba1be8e5 7-12,14
+world/demos/building-lighting-study/style.css
+  s_c72f930c19d1f3::t_02bfd190e5b9ff 8-12,17,21,24-27,29-33,37-38,41,43-45,47,52-57,59,61,63-64,66-67,71-74,76-78,81,85-88,93,96-98,100,102,104-111,113-121,123,125-138,140-143,145-146,148,150-153,155-158,160-174,176-178,180,182,184-185,187-188
+  s_c72f930c19d1f3::t_bd42a14c748a97 83
+packages/building/src/building/parts/architecture/BuildingManager.ts
+  s_c72f930c19d1f3::t_979f3ded00c7c8 182-186
+world/demos/building-lighting-study/SeedPropFixture.ts
+  s_c72f930c19d1f3::t_c0f8eefa8f6bc9 3-6,10-11
+  s_c72f930c19d1f3::t_66e54c913f706f 1,7-9,12-18,21-35,37-41
+  s_c72f930c19d1f3::t_ff2161041a5f27 2,19-20,36
+world/demos/building-lighting-study/README.md
+  s_c72f930c19d1f3::t_c0f8eefa8f6bc9 1,3,5,7-10,12,14,21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8c8a13aaf95828a33096e280761fe116984219ae",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
