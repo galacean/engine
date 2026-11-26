@@ -19,6 +19,7 @@ export class WebGPUDepthTransfer {
   private static readonly _devices = new WeakMap<GPUDevice, WebGPUDepthTransfer>();
   private readonly _reads = new Map<GPUTextureFormat, GPUComputePipeline>();
   private readonly _writes = new Map<string, GPURenderPipeline>();
+  private readonly _params = new Uint32Array(4);
 
   static forDevice(hardware: WebGPUGraphicDevice): WebGPUDepthTransfer {
     let transfer = this._devices.get(hardware.device);
@@ -154,14 +155,18 @@ export class WebGPUDepthTransfer {
       for (let row = 0; row < height; row += maxRows) {
         const rows = Math.min(maxRows, height - row),
           count = rows * width;
-        const data = device.createBuffer({ size: count * 8, usage: GPUBufferUsage.STORAGE, mappedAtCreation: true });
-        const dst = new DataView(data.getMappedRange());
+        const data = device.createBuffer({ size: count * 8, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+        const bytes = new Uint8Array(count * 8);
+        const dst = new DataView(bytes.buffer);
         for (let i = 0; i < count; i++)
           WebGPUDepthTransfer._unpack(format, src, (slice * height + row) * width + i, dst, i * 8);
-        data.unmap();
-        const params = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM, mappedAtCreation: true });
-        new Uint32Array(params.getMappedRange()).set([x, y + row, width, rows]);
-        params.unmap();
+        device.queue.writeBuffer(data, 0, bytes);
+        const params = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+        this._params[0] = x;
+        this._params[1] = y + row;
+        this._params[2] = width;
+        this._params[3] = rows;
+        device.queue.writeBuffer(params, 0, this._params);
         const pass = hardware
           ._getCommandEncoder()
           .beginRenderPass({ colorAttachments: [], depthStencilAttachment: ds });

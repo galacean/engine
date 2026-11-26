@@ -243,6 +243,7 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
   private readonly _bundles: WebGPUDrawBundles;
   private readonly _vertexLayoutIds = new Map<string, number>();
   private readonly _computePipelines = new Map<string, GPUComputePipeline>();
+  private readonly _copyBytesParams = new Uint32Array(4);
   private readonly _deviceOptions: WebGPUGraphicDeviceOptions;
   private _lost = false;
   private _forcedLoss = false;
@@ -1225,9 +1226,11 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
       pipeline = this.device.createComputePipeline({ layout: "auto", compute: { module, entryPoint: "copyBytes" } });
       this._computePipelines.set(key, pipeline);
     }
-    const params = this.device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM, mappedAtCreation: true });
-    new Uint32Array(params.getMappedRange()).set([srcOffset, dstOffset, size]);
-    params.unmap();
+    const params = this.device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    this._copyBytesParams[0] = srcOffset;
+    this._copyBytesParams[1] = dstOffset;
+    this._copyBytesParams[2] = size;
+    this.device.queue.writeBuffer(params, 0, this._copyBytesParams);
     const pass = this._beginComputePass();
     pass.setPipeline(pipeline);
     pass.setBindGroup(

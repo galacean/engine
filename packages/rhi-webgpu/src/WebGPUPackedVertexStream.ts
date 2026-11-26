@@ -58,6 +58,7 @@ export class WebGPUPackedVertexStream {
   readonly layout: GPUVertexBufferLayout;
   private readonly _fields: PackedField[] = [];
   private readonly _vertexCount: number;
+  private readonly _params = new Uint32Array(12);
   buffer?: GPUBuffer;
   private _capacity = 0;
 
@@ -164,19 +165,17 @@ export class WebGPUPackedVertexStream {
       );
       if (rows < 1) throw Error("Packed vertex field exceeds the device storage binding limit.");
       const srcEnd = field.offset + Math.floor((first + rows - 1) / field.rate) * field.stride + field.words * 4;
-      const params = device.createBuffer({ size: 48, usage: GPUBufferUsage.UNIFORM, mappedAtCreation: true });
-      new Uint32Array(params.getMappedRange()).set([
-        first,
-        rows,
-        field.rate,
-        field.stride,
-        srcStart - srcBase,
-        firstSrc,
-        (dstStart - dstBase) / 4 + field.destination,
-        dstStride / 4,
-        field.words
-      ]);
-      params.unmap();
+      const params = device.createBuffer({ size: 48, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+      this._params[0] = first;
+      this._params[1] = rows;
+      this._params[2] = field.rate;
+      this._params[3] = field.stride;
+      this._params[4] = srcStart - srcBase;
+      this._params[5] = firstSrc;
+      this._params[6] = (dstStart - dstBase) / 4 + field.destination;
+      this._params[7] = dstStride / 4;
+      this._params[8] = field.words;
+      device.queue.writeBuffer(params, 0, this._params);
       hardware._retireBuffer(params);
       const group = device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),

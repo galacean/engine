@@ -104,8 +104,7 @@ export class WebGPUPrimitiveEmulation {
     if (cached) this._hardware._retireBuffer(cached.buffer);
     const buffer = this._hardware.device.createBuffer({
       size,
-      usage: GPUBufferUsage.INDEX | GPUBufferUsage.STORAGE,
-      mappedAtCreation: !binding
+      usage: GPUBufferUsage.INDEX | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
     });
     cached = {
       buffer,
@@ -124,7 +123,7 @@ export class WebGPUPrimitiveEmulation {
       this._params[3] = loop ? 1 : 0;
       this._dispatch(fanOrLoop, source, buffer, 1);
     } else if (!binding) {
-      const data = new Uint32Array(buffer.getMappedRange());
+      const data = new Uint32Array(size / 4);
       if (loop) {
         for (let i = 0; i < sub.count; i++) data[i] = sub.start + i;
         data[sub.count] = sub.start;
@@ -135,7 +134,7 @@ export class WebGPUPrimitiveEmulation {
           data[i * 3 + 2] = sub.start + i + 2;
         }
       }
-      buffer.unmap();
+      this._hardware.device.queue.writeBuffer(buffer, 0, data);
     }
     return buffer;
   }
@@ -190,9 +189,8 @@ export class WebGPUPrimitiveEmulation {
       });
       pipelines.set(code, pipeline);
     }
-    const params = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM, mappedAtCreation: true });
-    new Uint32Array(params.getMappedRange()).set(this._params);
-    params.unmap();
+    const params = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    device.queue.writeBuffer(params, 0, this._params);
     const bindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries: [

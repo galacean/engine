@@ -212,13 +212,18 @@ export class WebGPUBuffer implements IPlatformBuffer {
         this._markUsed(aligned, padded.length);
       } else this._device.device.queue.writeBuffer(this._gpuBuffer, aligned, padded);
     } else {
+      const alignedSize = Math.ceil(source.length / 4) * 4;
       const staging = this._device.device.createBuffer({
-        size: Math.ceil(source.length / 4) * 4,
-        usage: GPUBufferUsage.STORAGE,
-        mappedAtCreation: true
+        size: alignedSize,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
       });
-      new Uint8Array(staging.getMappedRange()).set(source);
-      staging.unmap();
+      if (alignedSize === source.length) {
+        this._device.device.queue.writeBuffer(staging, 0, source);
+      } else {
+        const padded = new Uint8Array(alignedSize);
+        padded.set(source);
+        this._device.device.queue.writeBuffer(staging, 0, padded);
+      }
       this._device._copyBytes(staging, this._gpuBuffer, 0, offset, source.length);
       this._device._retireBuffer(staging);
       this._markUsed(aligned, length);

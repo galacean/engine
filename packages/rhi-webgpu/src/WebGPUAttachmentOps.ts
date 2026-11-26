@@ -12,6 +12,8 @@ const triangle = `
 /** Backend attachment operations that need a raster pass, including scissored clears. */
 export class WebGPUAttachmentOps {
   private readonly _pipelines = new Map<string, GPURenderPipeline>();
+  private readonly _clearColor = new Float32Array(4);
+  private readonly _copyParams = new Float32Array(4);
   constructor(public deviceOwner: WebGPUGraphicDevice) {}
 
   clear(
@@ -71,9 +73,12 @@ export class WebGPUAttachmentOps {
     pass.setStencilReference(0);
     pass.setPipeline(pipeline);
     if (target.colorFormats.length) {
-      const buffer = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM, mappedAtCreation: true });
-      new Float32Array(buffer.getMappedRange()).set([color.r, color.g, color.b, color.a]);
-      buffer.unmap();
+      const buffer = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+      this._clearColor[0] = color.r;
+      this._clearColor[1] = color.g;
+      this._clearColor[2] = color.b;
+      this._clearColor[3] = color.a;
+      device.queue.writeBuffer(buffer, 0, this._clearColor);
       pass.setBindGroup(
         0,
         device.createBindGroup({
@@ -246,17 +251,15 @@ export class WebGPUAttachmentOps {
       });
       this._pipelines.set(key, pipeline);
     }
-    const params = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM, mappedAtCreation: true });
+    const params = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
     const mip = sourceView?.baseMipLevel ?? 0;
     const sx = destinationRect ? Math.max(1, source.width >> mip) / destinationRect.z : 1;
     const sy = destinationRect ? Math.max(1, source.height >> mip) / destinationRect.w : 1;
-    new Float32Array(params.getMappedRange()).set([
-      sx,
-      sy,
-      x - (destinationRect?.x ?? 0) * sx,
-      y - (destinationRect?.y ?? 0) * sy
-    ]);
-    params.unmap();
+    this._copyParams[0] = sx;
+    this._copyParams[1] = sy;
+    this._copyParams[2] = x - (destinationRect?.x ?? 0) * sx;
+    this._copyParams[3] = y - (destinationRect?.y ?? 0) * sy;
+    device.queue.writeBuffer(params, 0, this._copyParams);
     const view = destination.createView({
       dimension: "2d",
       baseMipLevel: destinationMip,
