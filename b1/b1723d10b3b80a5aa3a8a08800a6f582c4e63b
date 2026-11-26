@@ -1,0 +1,45 @@
+.agents/skills/seed-world-flash-publish/SKILL.md
+  s_0f777c1d9c2fdd::t_cf8940339b1806 29,35,37
+world/demos/seed-world/SeedWorldProject.ts
+  s_0f777c1d9c2fdd::t_012aa9a6f4022e 17,157-183,185
+world/demos/seed-world/storage/SharedWorldStorage.ts
+  s_0f777c1d9c2fdd::t_012aa9a6f4022e 54,236-239,241
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_0f777c1d9c2fdd::t_cf8940339b1806 18,106,120,168
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_0f777c1d9c2fdd::t_dc56500ed8b625 18-19
+world/tests/seed-world-storage/SharedWorldStorage.spec.ts
+  s_0f777c1d9c2fdd::t_dc56500ed8b625 1059,1062-1069
+world/scripts/publish-seed-world-flash-apps.mjs
+  s_0f777c1d9c2fdd::t_7ea1007ae06fab 6,20,38,49,80-81,179,183-208,224-235,327,387,391,483,534,565,616,624-626,630,652,683,725,730-731,766
+  s_0f777c1d9c2fdd::t_cf8940339b1806 180-181,286
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_0f777c1d9c2fdd::t_dc56500ed8b625 542
+world/demos/seed-world/base.js
+  s_0f777c1d9c2fdd::t_012aa9a6f4022e 6-8
+world/demos/seed-world/storage/local-world-db.mjs
+  s_0f777c1d9c2fdd::t_012aa9a6f4022e 112-113,123
+world/scripts/acceptance/shared-world-storage.mjs
+  s_0f777c1d9c2fdd::t_e0f32c284b4311 89,92-93,101-102,104-110,121-125,267,281-299,332-341
+world/demos/seed-world/main.ts
+  s_0f777c1d9c2fdd::t_012aa9a6f4022e 63-68,73
+  s_0f777c1d9c2fdd::t_dc56500ed8b625 128
+world/tests/seed-world/SeedWorldFlashApps.spec.ts
+  s_0f777c1d9c2fdd::t_dc56500ed8b625 19,252,255,263,268,325-333
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b1b1723d10b3b80a5aa3a8a08800a6f582c4e63b",
+  "prompts": {},
+  "sessions": {
+    "s_0f777c1d9c2fdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21602-e042-7613-91c0-4ebb1a28dbd5",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

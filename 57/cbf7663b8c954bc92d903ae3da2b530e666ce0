@@ -1,0 +1,59 @@
+packages/modify/src/rendering/shaders/SeedWorldLiquidGlass.shader
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 33,112-120,184,217-220,260-279,282
+packages/ai-chat/src/ai-chat/model-recovery.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 95-96,98
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 371
+packages/terrain/src/terrain/project/TerrainPostProcessRuntime.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 132,669-673,675,690
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_0f777c1d9c2fdd::t_b0870181cfeba8 108-109,171
+packages/ai-chat/src/ai-chat/ai-chat.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 1,301
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 30,132,189-195,1618-1619,1627,1633-1636,1659,1662-1680,1682-1696,1701-1704,1729,1742,1755-1770,1877-1878,1894-1897,2308-2314,2318-2322,2324-2330,2332-2386
+  s_0f777c1d9c2fdd::t_679e45fb99ab55 896,2392,2414-2415,2446
+packages/modify/src/rendering/LiquidGlassPostProcessPass.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 172-173,187,239-253,263,298,329-331
+  s_0f777c1d9c2fdd::t_c4ded9087a9c51 332-333
+world/demos/seed-world/assistant/shaders/SeedWorldVoiceOrbBake.shader
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 41,127-129,151,341-342,344,364
+world/tests/seed-world/AIChatPhotoInput.spec.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 234,252
+world/tests/seed-world/SeedWorldTaskPresentation.spec.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 36,69-70,77
+world/demos/seed-world/assistant/SeedWorldVoiceOrbCache.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 26-27,264
+world/demos/seed-world/assistant/shaders/SeedWorldWorkingText.shader
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 69
+world/tests/seed-world-browser/VoiceHudGlass.test.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 1-147
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 4,10,13-15,903-937,2431-2433,2435-2456,2459,2464,2469,2472,2475,2477-2478,2481-2484,2487-2488,2491-2492,2495,2497-2504,2507-2521,2523-2535,2537-2540,2542-2558,2560-2562,2565-2573
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 86,91,183-184,368,795-801,814,822,1737,1818,2011,2013-2017,2117-2124,2306-2308,2323-2324,2327-2328,2330,2339,2349,2381-2390,2392,2396,2402-2410,2428,2431-2434,2466-2468,2513,2552-2553,2561,2570-2571,2582,2603-2605,2608
+world/demos/seed-world/assistant/SeedWorldTaskPresentation.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 1,16
+world/tests/seed-world/SeedWorldVoiceHudController.spec.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 142,149,318,323-325,341,352-353,355,369-370,686,827
+world/tests/seed-world/SunLensFlareRuntime.spec.ts
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 2,44-60,82-92
+world/tests/seed-world-browser/vitest.config.mjs
+  s_0f777c1d9c2fdd::t_afe2c1b62106bb 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "57cbf7663b8c954bc92d903ae3da2b530e666ce0",
+  "prompts": {},
+  "sessions": {
+    "s_0f777c1d9c2fdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21602-e042-7613-91c0-4ebb1a28dbd5",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

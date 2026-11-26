@@ -1,0 +1,19 @@
+world/tests/seed-world/SunLensFlareRuntime.spec.ts
+  s_c72f930c19d1f3::t_7c75353b8ea5fd 2,44-60,82-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "af8337c6e42bc82e1d164587b0e29b29b1b44d4c",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

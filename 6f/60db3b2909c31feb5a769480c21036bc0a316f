@@ -1,0 +1,29 @@
+packages/ai-chat/src/ai-chat/asap-chat.ts
+  s_a61a893a3e253a::t_87353907ad7344 61,102-104,106-107,207-212,214-225,231-238,240-244,246-256,259,264-265,315,332-336,338-340,342,348,412-413,440-448,450,491-492,500,504
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  s_a61a893a3e253a::t_87353907ad7344 128,157,1291
+packages/ai-chat/src/ai-chat/agent-types.ts
+  s_a61a893a3e253a::t_87353907ad7344 616
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_a61a893a3e253a::t_87353907ad7344 340
+packages/ai-chat/tests/model-retry-transport.spec.ts
+  s_a61a893a3e253a::t_628f97d789d0e2 6-7,218-290
+world/demos/seed-world/assistant/SeedWorldActionProbe.ts
+  s_a61a893a3e253a::t_12fd69318116ba 33-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6f60db3b2909c31feb5a769480c21036bc0a316f",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

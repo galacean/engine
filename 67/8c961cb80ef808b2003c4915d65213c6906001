@@ -1,0 +1,792 @@
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.selection.save.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 11
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_d932b902720f7e::t_f9244eab32480d 39,110,115,836
+world/gallery/tests/llm/reference-paths/README.md
+  s_d932b902720f7e::t_f9244eab32480d 1-18,20-23,25-73
+  s_d932b902720f7e::t_f875f3915000f8 19,24
+world/gallery/demos/terrain/project-tests/RuntimeSceneInspection.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 49-50,96-100,116-147
+  s_d932b902720f7e::t_9dd8f3dbf6b5d6 148
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.parameters.inspect.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 11
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/terrain.update.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 12
+world/gallery/shared/ai-chat/tests/agent-native-files.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 54-71
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-highlands-fir-3-trunk.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/shared/ai-chat/README.md
+  s_d932b902720f7e::t_f9244eab32480d 79-92
+world/gallery/shared/farming/native/FarmingAPI.ts
+  s_d932b902720f7e::t_f9244eab32480d 1,201-202,340,403,417-420
+world/gallery/shared/farming/native/FarmingAPIDeclarations.ts
+  s_d932b902720f7e::t_f9244eab32480d 2,4
+world/gallery/shared/ai-chat/agent-types.ts
+  s_d932b902720f7e::t_f9244eab32480d 50,562,564-565
+world/gallery/shared/runtime-editor-agent/runtime-native-editor.ts
+  s_d932b902720f7e::t_f9244eab32480d 29
+world/gallery/tests/llm/reference-paths/catalog.md
+  s_d932b902720f7e::t_f9244eab32480d 1-123
+world/gallery/demos/terrain/data/seed-world/project.json
+  s_d932b902720f7e::t_f9244eab32480d 5-1548
+world/gallery/tests/llm/verification-fingerprint.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-16
+world/gallery/shared/gameplay/animal/FireflyPopulation.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-307
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningWorldPicking.ts
+  s_d932b902720f7e::t_f9244eab32480d 12,23,28-30,39
+world/gallery/demos/terrain/asset-assembly/PlantMaterialManifest.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-53
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/SeedWorldAgentApplication.ts
+  s_d932b902720f7e::t_f9244eab32480d 4-5,9,164,242-247,263-268,271,282,284,288,323-327,331,337-338,363,388-393,503-521,818-820,891-892,900-901,1665-1666,2218
+  s_d932b902720f7e::t_48ed042038bee8 502
+  s_d932b902720f7e::t_3c34d56c016ad1 2296
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldViewSnapshot.ts
+  s_d932b902720f7e::t_2d78452a0bc21b 183
+  s_d932b902720f7e::t_f9244eab32480d 181-182,261-263,265
+  s_d932b902720f7e::t_a8cc1b4604ce43 264
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/assets/MountainAsset.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 9,14
+world/gallery/tests/llm/reference-paths/support.md
+  s_d932b902720f7e::t_f9244eab32480d 1-138
+world/gallery/vite.config.js
+  s_d932b902720f7e::t_f9244eab32480d 109,111-112,153
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/ViewerRelation.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-24
+world/gallery/shared/ai-chat/tests/agent-read-window.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 46,49,51-58
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.animals.catalog.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10,13,16-17,26-34,43,48
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-highlands-bush-2-leaves.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/project-tests/LandscapeRingQuery.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-55
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/knowledge/animals/README.md
+  s_d932b902720f7e::t_f9244eab32480d 5,7,11,13,17-22,28,30,32-34
+world/gallery/tests/llm/native-files-oracles.mjs
+  s_d932b902720f7e::t_f9244eab32480d 65,72
+world/gallery/tests/llm/atomic-oracles.mjs
+  s_d932b902720f7e::t_f9244eab32480d 95
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/common/LiveWorldState.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 50
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-dead-tree.structure.json
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/spatial.check.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 9,36,52,54,56,58,60-64
+world/gallery/demos/terrain/project-tests/editor/seed-world-edit.spec.ts
+  s_d932b902720f7e::t_d0f8562ced1033 33-63
+world/gallery/demos/terrain/seed-world-planner/SeedWorldDemo.ts
+  s_d932b902720f7e::t_f9244eab32480d 31-34,261,310-318,323,357-358,361-362,368,387,588-589,641,1076,1250-1251,1422
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-b1be2e4a54f841e84a2a48b8f8e3a55cb3d5bfd5ab44ab80ce15ed90c4248c70.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/project-tests/PlanningHeightWorkerReuse.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 78-96
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.inspect.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 11
+world/gallery/shared/ai-chat/agent-message-state.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-8
+world/gallery/demos/terrain/asset-assembly/TreeSpeciesMaterialResources.ts
+  s_d932b902720f7e::t_f9244eab32480d 3,68-69,93,113-116
+world/gallery/demos/terrain/asset-assembly/PlantParameterEncoding.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-8
+world/gallery/tests/llm/seed-world-observer.ts
+  s_d932b902720f7e::t_f9244eab32480d 19
+  s_d932b902720f7e::t_48ed042038bee8 73
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-0dd3c8b3365d106cc0fe114252c37502d5554a18988822d32c7c8f1ad4fe0935.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/SeedWorldKnowledge.ts
+  s_d932b902720f7e::t_f9244eab32480d 45
+world/gallery/shared/ai-chat/agent-loop.ts
+  s_d932b902720f7e::t_48ed042038bee8 880
+  s_d932b902720f7e::t_f9244eab32480d 13,63,118,153-156,302,406-408,695-700,702,746-753,757,996,1008-1009,1166,1171-1178,1431
+  s_d932b902720f7e::t_97048bb81e8c1c 522
+world/gallery/tests/llm/release-gate.test.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-128
+world/gallery/demos/terrain/project-tests/PlanningWorldPicking.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 59,79,158-164
+  s_d932b902720f7e::t_5d120f114f9b93 165
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-9cedbdcdceb02c6c02e461bf995244de1e756f27c4b891d95d800cb172fcc7ce.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/assets/CanyonAsset.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 9,14
+world/engine/overlay/packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionProfiler.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-18
+world/gallery/demos/terrain/project-tests/PlanningLocalLandscape.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 34-58
+world/gallery/shared/water/tests/runtime/WaterShaderCompilation.test.ts
+  s_d932b902720f7e::t_f9244eab32480d 95-142
+world/gallery/demos/terrain/scripts/verify-seed-world-water-aot-production-build.mjs
+  s_d932b902720f7e::t_f9244eab32480d 13,37,40-42,45,67,87-89
+world/engine/overlay/packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionUpsamplingMode.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-9
+world/gallery/demos/terrain/asset-assembly/ProceduralPlantMaterialBindings.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-2,10,25,31-32,38,47-49,51,68,92,121-127
+world/gallery/demos/screen-space-reflection/index.html
+  s_d932b902720f7e::t_f9244eab32480d 39-45,106,116-118
+  s_d932b902720f7e::t_7fadadb5046b38 38,119
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-088c14665f567d1172c7a6709cb2aff63bdce2f77dc91f286cd4318e33d38a93.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/plant-material-tools.ts
+  s_d932b902720f7e::t_f9244eab32480d 26-27,78
+world/gallery/tests/llm/cases/native-files.json
+  s_d932b902720f7e::t_48ed042038bee8 45,97,149,204,272
+  s_d932b902720f7e::t_f9244eab32480d 30-31,44,47-82,96,99-134,148,151-186,202-203,208-211,213-247,270-271,276-279,281-315
+world/gallery/tests/llm/seed-world-cases.mjs
+  s_d932b902720f7e::t_f9244eab32480d 7,60,69-70
+world/gallery/demos/terrain/data/seed-world/source/Shader/Water/LakeHeightfieldHighHybrid.shader
+  s_d932b902720f7e::t_f9244eab32480d 191,2661-2664
+world/gallery/shared/farming/tests/native/FarmingAgronomy.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-21
+world/gallery/shared/gameplay/tests/runtime/verify-fireflies.cjs
+  s_d932b902720f7e::t_f9244eab32480d 1-229
+world/gallery/tests/llm/reference-paths/farming.md
+  s_d932b902720f7e::t_f9244eab32480d 1-1787
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-d5fbebc4ee751f292f92eb6c3230399b6e77ce917b3caffa52681a33b259bf5b.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/tests/llm/world-observer.ts
+  s_d932b902720f7e::t_f9244eab32480d 25-26,28
+world/gallery/demos/terrain/seed-world-planner/systems/runtime-declarations.json
+  s_d932b902720f7e::t_f9244eab32480d 2-123,126-128,133-135,144-145,158,162,164,175,186,190,201-202,204-207,211-213,216,227-228,230,237,246,250-315
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.selection.get.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 12
+world/gallery/demos/screen-space-reflection/main.ts
+  s_d932b902720f7e::t_f9244eab32480d 19-20,42,51-56,87-89,164-169,277-292,323-328,337-342,413-421,1010-1016,1069-1074,1085-1090
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-6a46de9fa1b56aa1d856cc34f932adadb3749f45a290b75637103dff54d919df.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/shared/farming/tests/native/FarmingNative.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 112-114
+world/gallery/shared/gameplay/animal/Firefly.shader
+  s_d932b902720f7e::t_f9244eab32480d 1-102
+world/gallery/shared/gameplay/tests/runtime/fireflies.html
+  s_d932b902720f7e::t_f9244eab32480d 1-47
+world/gallery/tests/llm/history.mjs
+  s_d932b902720f7e::t_f9244eab32480d 10-11
+world/gallery/tests/llm/render-report.mjs
+  s_d932b902720f7e::t_f9244eab32480d 50-53
+  s_d932b902720f7e::t_48ed042038bee8 105
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-dead-tree__dead-tree-trunk.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/assets/RidgeAsset.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 9,14
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/animal-tools.ts
+  s_d932b902720f7e::t_f9244eab32480d 2,38,41,50-51,56,58-61,144,146,153,161-162,198,203,205-208,238-241
+world/gallery/tests/llm/reference-paths/animals.md
+  s_d932b902720f7e::t_f9244eab32480d 1-215
+world/gallery/demos/terrain/project-tests/SeedWorldAgentApplication.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 1257-1287,1398-1444,1925-1941,1943-1963
+  s_d932b902720f7e::t_2d78452a0bc21b 1942
+world/gallery/tests/llm/history.test.mjs
+  s_d932b902720f7e::t_f9244eab32480d 92-105
+world/gallery/demos/terrain/project-tests/SeedWorldRuntimeEnginePort.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 6,71,508,512,563,610,625-645
+  s_d932b902720f7e::t_412a0e3a791503 646-647
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-dead-tree__dead-tree-leaves.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/asset-assembly/PlantSpeciesSources.ts
+  s_d932b902720f7e::t_f9244eab32480d 6-7,77-78
+world/gallery/shared/water/shaders/heightfield/ForwardPass.glsl
+  s_d932b902720f7e::t_f9244eab32480d 72
+world/gallery/demos/terrain/project-tests/SeedWorldProjectClose.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-31
+world/gallery/shared/ai-chat/agent-native-files.ts
+  s_d932b902720f7e::t_f9244eab32480d 36,131,144-145,148
+  s_d932b902720f7e::t_48ed042038bee8 53,55
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/SeedWorldAssetManager.ts
+  s_d932b902720f7e::t_f9244eab32480d 56-64
+world/gallery/demos/terrain/project-tests/PlanningStorage.spec.ts
+  s_d932b902720f7e::t_992b92ec8d1b69 124
+  s_d932b902720f7e::t_b9b22f31aa2432 125,128
+world/gallery/demos/terrain/src/environment/WorldEnvironmentRuntime.ts
+  s_d932b902720f7e::t_f9244eab32480d 716-718
+world/gallery/demos/terrain/src/project/TerrainWindRuntime.ts
+  s_d932b902720f7e::t_f9244eab32480d 78-79,259
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/knowledge/spatial/README.md
+  s_d932b902720f7e::t_f9244eab32480d 32-39
+world/gallery/demos/terrain/seed-world-planner/spatial/PlanningVisualAuthoring.ts
+  s_d932b902720f7e::t_f9244eab32480d 4,24-33
+world/gallery/demos/terrain/project-tests/SeedWorldKnowledge.spec.ts
+  s_d932b902720f7e::t_992b92ec8d1b69 74
+  s_d932b902720f7e::t_f4e8a97ce6c46a 1
+  s_d932b902720f7e::t_b9b22f31aa2432 62-63,73,75
+world/engine/overlay/packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_d932b902720f7e::t_f9244eab32480d 585-586,588,590-624,673-696
+world/gallery/tests/llm/cases/farming-atomic.json
+  s_d932b902720f7e::t_f9244eab32480d 27-28,48-51,55-89,114-115,135-138,142-176,196-199,203-237,257-260,264-298,318-321,325-359,379-382,386-420,440-443,447-481,501-504,508-542,567-568,587-591,595-631,651-654,658-692,712-715,719-753,778-779,803-805,809-843,872-873,902-903,928-930,934-968,992-994,998-1032,1056-1058,1062-1096,1120-1122,1126-1160,1187-1189,1193-1227,1258-1259,1279-1282,1286-1320,1340-1343,1347-1381,1402-1405,1409-1443,1468-1471,1475-1509,1533-1535,1539-1573,1597-1600,1604-1638,1663-1665,1669-1703,1728-1730,1734-1768
+world/gallery/shared/water/tests/runtime/CameraWaterFeatureBroker.test.ts
+  s_d932b902720f7e::t_f9244eab32480d 5,65,77
+world/gallery/tests/llm/world-atomic-oracles.mjs
+  s_d932b902720f7e::t_f9244eab32480d 6-18,51,64,67,74,79,81-82,88-89
+world/gallery/demos/terrain/asset-assembly/ProceduralPlantLibraryRuntime.ts
+  s_d932b902720f7e::t_f9244eab32480d 2,115-116,127
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningProjectStorage.ts
+  s_d932b902720f7e::t_f9244eab32480d 2-4,6-8,17-18,22-23,32-42,55-77,80-84,113-115
+world/gallery/tests/llm/landscape-atomic.test.mjs
+  s_d932b902720f7e::t_f9244eab32480d 3,52-76
+world/gallery/shared/runtime-editor-agent/tests/component-query-declarations.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-37,40-186
+  s_d932b902720f7e::t_49d3819a5fc307 38-39
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-meadow-plant-materials.json
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/tests/llm/cases/editor.json
+  s_d932b902720f7e::t_f9244eab32480d 19-22,28-32,34-69
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.animals.describe.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10
+world/gallery/demos/terrain/project-tests/SeedWorldRockSlopePanel.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 231,234,237
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-ad99fd7015c598512007b7e335170523cb3c1a5a10ee54ff844b15ab1537a41e.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/assets/ValleyAsset.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 9,14
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/celestial-tools.ts
+  s_d932b902720f7e::t_f9244eab32480d 26
+world/gallery/shared/water/shaders/river/ForwardPass.glsl
+  s_d932b902720f7e::t_f9244eab32480d 70,347-350
+world/gallery/demos/terrain/project-tests/SeedWorldWaterShaderAot.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 6,20-21,89-146,251
+world/gallery/tests/llm/transient-observer.ts
+  s_d932b902720f7e::t_f9244eab32480d 6,13-16,18-28
+world/gallery/demos/terrain/asset-assembly/AssetAssemblyCatalog.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-445
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.delete.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 12
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.query.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 16
+  s_d932b902720f7e::t_bf72e1ab2a5996 43,101
+world/gallery/shared/farming/domain/FarmingAgronomy.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-21
+world/gallery/demos/terrain/seed-world-planner/rock-formation/README.md
+  s_d932b902720f7e::t_f9244eab32480d 74-75,84-86,92
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/spatial.viewer.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-32
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/assets/BasinAsset.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 9,14
+world/gallery/demos/terrain/seed-world-planner/SeedWorldProjectClose.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-15
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.parameters.receipt.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 11
+world/gallery/demos/terrain/project-tests/SeedWorldTreeDensityTransition.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 12,28-29,43,62-64,68
+world/gallery/demos/terrain/project-tests/PlanningNaturalVegetation.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 40-42,74-100
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/common/Asset.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 14,47-54,59
+world/gallery/demos/terrain/seed-world-planner/masonry/BuildingInitializationInputs.ts
+  s_d932b902720f7e::t_f9244eab32480d 7,17-18
+world/gallery/shared/api-contract/scripts/declarations.mjs
+  s_d932b902720f7e::t_f9244eab32480d 84
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-339416d38428174e5ff12eea0038f145dd10dcae6c60ebc23abb3447bbf47eb8.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/tests/llm/release-suite.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-31
+world/engine/overlay/tests/src/core/ScreenSpaceReflection.test.ts
+  s_d932b902720f7e::t_f9244eab32480d 2,21-22,161-162,172-173,292-293,327,343-603,702,735,750,765,806,820,844,901,918,1879,2123-2124,2228,2235,2254-2262,2270,2277,2280,2601-2813
+  s_d932b902720f7e::t_743407219e3ff5 2814
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-e6cdb9fc63857d7f608a7a8a1bf4b0dd6b22e129373601da9cfdd4150350677d.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/runtime.entity.children.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10,29-31,45-50
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/time.get.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.animals.receipt.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10
+world/gallery/tests/llm/animal-fixtures.ts
+  s_d932b902720f7e::t_f9244eab32480d 5-8,11,21
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningProjectSource.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-219
+world/gallery/demos/terrain/project-tests/SeedWorldToolCatalog.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 35,100-101,103,571-572,691-698
+  s_d932b902720f7e::t_49d3819a5fc307 95-97
+world/gallery/shared/runtime-editor-agent/runtime-native-knowledge.ts
+  s_d932b902720f7e::t_48ed042038bee8 122
+  s_d932b902720f7e::t_f9244eab32480d 66-67
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningWorldSource.ts
+  s_d932b902720f7e::t_f9244eab32480d 28-29,33,37
+world/gallery/demos/terrain/asset-assembly/SeedWorldAssetSourceLibrary.ts
+  s_d932b902720f7e::t_f9244eab32480d 8,31
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/spatial.teleport.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 12
+world/gallery/tests/llm/reference-paths/world.md
+  s_d932b902720f7e::t_f9244eab32480d 1-33,35-1024,1026-1185,1187-1492
+  s_d932b902720f7e::t_a39e7007feb6e6 34,1025,1186
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generate-agent-contracts.ts
+  s_d932b902720f7e::t_f9244eab32480d 237-240,298-300,446-465,470,509,696-699,719-728,730-746
+  s_d932b902720f7e::t_fe19162e43fde4 729
+world/gallery/tests/llm/diagnoses.json
+  s_d932b902720f7e::t_f9244eab32480d 253-297
+world/gallery/shared/farming/native/FarmingKnowledge.ts
+  s_d932b902720f7e::t_f9244eab32480d 21-161
+world/gallery/demos/terrain/data/seed-world/public/Shader/Water/WaterAotManifest.ab2116410f123d550cc5c863779fa9d05e42a3098be582073e0ea65ab5589b32.json
+  s_d932b902720f7e::t_f9244eab32480d 1-156
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/spatial-tool-input.ts
+  s_d932b902720f7e::t_48ed042038bee8 6
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/runtime.component.read.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 11,17-22,24,30-32,42-47
+world/engine/overlay/packages/core/src/lighting/screenSpaceReflection/index.ts
+  s_d932b902720f7e::t_f9244eab32480d 4-5
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/spatial.resolve.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/vegetation.create.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 13
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/water.create.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 13
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-fe1cf696cc52d80649dae11e03561c617ab3b8db5d7bfc9209b6675b41ec81f0.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.parameters.describe.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 5-113
+world/gallery/demos/terrain/asset-assembly/ProceduralPlantResources.ts
+  s_d932b902720f7e::t_f9244eab32480d 2-3,8
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.tag.update.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 11
+world/gallery/demos/terrain/asset-assembly/TreeSpeciesRecipeLoader.ts
+  s_d932b902720f7e::t_f9244eab32480d 8-11,23-25,29,32-34,40-43,75
+world/gallery/shared/ai-chat/asap-chat.ts
+  s_d932b902720f7e::t_f9244eab32480d 16-17,446-448,451
+world/gallery/demos/terrain/asset-assembly/PlantProjectFormats.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-60
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningAuthoringComponents.ts
+  s_d932b902720f7e::t_f9244eab32480d 2,30-38,117-122,135-171,202,336
+world/gallery/shared/ai-chat/context-compaction.ts
+  s_d932b902720f7e::t_f9244eab32480d 2,118
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-cd3ea776295cfbd2882c296c69d90f72718794582d1e53b1086f5c862393f6e0.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/e2e/ssr.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 248,320,333,560,574,852
+world/gallery/demos/terrain/asset-assembly/TreeSpeciesCandidates.ts
+  s_d932b902720f7e::t_f9244eab32480d 14,20,22,26-30,32-33,38
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.parameters.materials.inspect.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10,25-28
+world/gallery/shared/gameplay/animal/AnimalPopulation.ts
+  s_d932b902720f7e::t_f9244eab32480d 1,42-43,155
+world/gallery/shared/runtime-editor-agent/generate-scene-api.mjs
+  s_d932b902720f7e::t_f9244eab32480d 4,12-13,15-16
+world/gallery/tests/llm/landscape-atomic-oracles.mjs
+  s_d932b902720f7e::t_f9244eab32480d 5-7,37,40-42
+world/gallery/tests/llm/query-catalog.test.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-102
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.animals.command.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10
+world/gallery/shared/farming/tests/native/FarmingComponentEditor.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 49-51,183-203
+  s_d932b902720f7e::t_6ed064f3389572 204
+world/gallery/tests/llm/reference-paths/sources.lock.json
+  s_d932b902720f7e::t_a39e7007feb6e6 4-6,8-9,12-13,16,21,26-27,31,33-34,42-45,48,52,57,62,65-67
+  s_d932b902720f7e::t_f9244eab32480d 1-3,7,10-11,14-15,17-20,22-25,28-30,32,35-41,46-47,49-51,53-56,58-61,63-64,68-70
+world/gallery/tests/llm/reference-paths/deviation-template.json
+  s_d932b902720f7e::t_f9244eab32480d 1-32
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/terrain.create.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 13
+world/gallery/tests/llm/release-gate.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-68
+world/package.json
+  s_d932b902720f7e::t_f9244eab32480d 46-48
+world/gallery/demos/terrain/project-tests/editor/environment-edit-fixture.ts
+  s_d932b902720f7e::t_b9b22f31aa2432 18,21
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/knowledge/README.md
+  s_d932b902720f7e::t_f9244eab32480d 7
+world/gallery/demos/terrain/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.9b47778bb0634af7abdcd78a370941e7d8e776ab4bbdca51e15aa7eb6b5463c3.shaderc
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/src/NaturalVegetationCell.ts
+  s_d932b902720f7e::t_f9244eab32480d 12-13,218
+world/gallery/shared/ai-chat/agent-file-read.ts
+  s_d932b902720f7e::t_f9244eab32480d 27
+world/gallery/tests/llm/reference-paths/test_build.py
+  s_d932b902720f7e::t_f9244eab32480d 1-58
+world/gallery/demos/terrain/scripts/generate-seed-world-water-shader-aot.mjs
+  s_d932b902720f7e::t_f9244eab32480d 418,420-426,442,449
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-ad28dfef0faadb171f7d0382c6ee193d5400b82d83306cd64167641513acf26d.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/shared/farming/domain/rules/FarmItemRules.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-2
+world/gallery/tests/llm/reference-paths/build.py
+  s_d932b902720f7e::t_f9244eab32480d 1-171,173-199,201,203-328
+  s_d932b902720f7e::t_97048bb81e8c1c 172,200,202
+world/gallery/shared/farming/storage/StoragePlacement.ts
+  s_d932b902720f7e::t_f9244eab32480d 116-117,161-162
+  s_d932b902720f7e::t_acc365d254d632 163-164
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/terrain.patch.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 11
+world/gallery/tests/llm/reload-oracle.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-18
+world/gallery/demos/terrain/asset-assembly/PlantSpeciesResources.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-27,30-36
+world/gallery/tests/llm/reference-paths/editor.md
+  s_d932b902720f7e::t_f9244eab32480d 1-575,579-640,644-709,713-778,782-1385,1388-1392,1394,1396,1398,1400,1402,1404-1407,1409-1413,1415-1424
+  s_d932b902720f7e::t_a39e7007feb6e6 576-578,641-643,710-712,779-781,1386-1387,1393,1395,1397,1399,1401,1403,1408,1414
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/atmosphere.update.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10,21
+world/gallery/demos/terrain/seed-world-planner/SeedWorldProject.ts
+  s_d932b902720f7e::t_f9244eab32480d 16-22,40,44-46,53-134
+  s_d932b902720f7e::t_6e5fef2d3b520b 135
+world/gallery/shared/farming/storage/StorageRules.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-2,205-206,219-221,285,382
+world/gallery/tests/llm/benchmark-review.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-27
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/spatial.search.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 9,31,50-53,72,74,76,78,80-84
+world/gallery/demos/terrain/project-tests/PlanningProjectSource.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-122
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/atmosphere.get.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10,38
+world/gallery/shared/farming/native/knowledge/system-editor.md
+  s_d932b902720f7e::t_f9244eab32480d 3,87-90
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  s_d932b902720f7e::t_f9244eab32480d 290-291
+world/gallery/shared/farming/domain/FarmingDiagnostics.ts
+  s_d932b902720f7e::t_f9244eab32480d 1,30,37,40-43,45-52,56-68,116-119
+world/gallery/demos/terrain/seed-world-planner/rock-formation/ColorPalette.ts
+  s_d932b902720f7e::t_f9244eab32480d 7-8,23-26,28,33
+world/gallery/demos/terrain/seed-world-planner/rock-formation/GrassRockAppearance.ts
+  s_d932b902720f7e::t_f9244eab32480d 9-11,15-16,19-21,26,28-33,35-42,45-55,64-72,74-75,77,79,83,88,91-98,101,105-112
+world/gallery/shared/gameplay/tests/FireflyPopulation.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-203
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningGroundWind.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-44
+world/gallery/tests/llm/cases/landscape-atomic.json
+  s_d932b902720f7e::t_f9244eab32480d 25-27,34-68,91-93,100-134,157-159,166-200,223-225,232-266,289-291,298-332,355-357,364-398,422-424,431-465,489-491,498-532,555-557,564-598
+world/gallery/tests/llm/cases/queries-time.json
+  s_d932b902720f7e::t_f9244eab32480d 1-158
+world/gallery/tests/llm/release-cli.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-23
+world/gallery/demos/terrain/data/seed-world/public/Shader/Water/ocean-near-detailed.35a302c7d057d146503d4b24183502a7e638ca373d214459585a9fad3d767542.shaderc
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-cfb1cf8cebceecf7fe3436b289a912d1a0ae484c05bd952bdef0630fcc1ea28a.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/project-tests/SeedWorldRockColorPalette.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 6-12,34
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-9b28229e8c3d3b7cf61d49b3212594133efdfe8030a1d8db0329faa85a860bbe.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/rock-formation/ColorControls.ts
+  s_d932b902720f7e::t_f9244eab32480d 9,21,25,28,35
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningNaturalVegetation.ts
+  s_d932b902720f7e::t_f9244eab32480d 7,39,201,254
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-plant-species.json
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/V2_IMPLEMENTATION.md
+  s_d932b902720f7e::t_48ed042038bee8 14227-14326
+  s_d932b902720f7e::t_140cff0158e126 14585-14595
+  s_d932b902720f7e::t_f9244eab32480d 1-97,118-135,13914-14053
+  s_d932b902720f7e::t_3e773a5a9a05bc 14327
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/spatial-tools.ts
+  s_d932b902720f7e::t_f9244eab32480d 178,202-208,212-213,257-272,324,363-364
+  s_d932b902720f7e::t_64fa837379d793 365
+world/gallery/tests/llm/atomic-fixtures.ts
+  s_d932b902720f7e::t_f9244eab32480d 14,16
+world/gallery/tests/llm/cases/queries-editor.json
+  s_d932b902720f7e::t_f9244eab32480d 1-269
+world/gallery/demos/terrain/asset-assembly/ProceduralShrubSource.ts
+  s_d932b902720f7e::t_f9244eab32480d 5-6,11-12,17-18,25-27
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningAnimalCatalog.ts
+  s_d932b902720f7e::t_f9244eab32480d 19-22,29-34
+  s_d932b902720f7e::t_7b823bfba7f02f 35
+world/gallery/shared/farming/application/IrrigationEffectSummary.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-22
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningSeedWorldSession.ts
+  s_d932b902720f7e::t_f9244eab32480d 2-4,87,110,113,123-125,235-250,273
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-e7e53fed9bb09e5453510332ba19724f3838b04f9aa76a89ac0832f70ea5faca.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/shared/ai-chat/tests/reasoning-continuation.spec.ts
+  s_d932b902720f7e::t_b9b22f31aa2432 87
+  s_d932b902720f7e::t_f9244eab32480d 1-86,89-108
+  s_d932b902720f7e::t_992b92ec8d1b69 88
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-786224f68a03c4d1b4edaf72ea1eeb4a2ad5cc845405d341b6ada5bcc0482bae.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/time.update.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 11
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/common/AssetKind.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 6
+world/gallery/tests/llm/atomic.test.mjs
+  s_d932b902720f7e::t_7c98bb293e03fc 12,15,17,29
+  s_d932b902720f7e::t_f9244eab32480d 123-133
+  s_d932b902720f7e::t_49d3819a5fc307 13
+world/gallery/demos/terrain/seed-world-planner/systems/runtime.ts
+  s_d932b902720f7e::t_f9244eab32480d 2-5
+world/gallery/tests/llm/reference-paths/paths.json
+  s_d932b902720f7e::t_f9244eab32480d 1-982,986-1013,1017-1048,1052-1083,1087-1749,1751-2232,2235-2236,2239-2240,2243-2246,2248-2250,2252-2292
+  s_d932b902720f7e::t_97048bb81e8c1c 983-985,1014-1016,1049-1051,1084-1086,1750,2233-2234,2237-2238,2241-2242,2247,2251
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/water.update.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 12
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/ports/SeedWorldEnginePort.ts
+  s_d932b902720f7e::t_f9244eab32480d 112
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningAnimalPanel.ts
+  s_d932b902720f7e::t_f9244eab32480d 35,116-118,165-166
+world/gallery/tests/llm/cases/editor-atomic.json
+  s_d932b902720f7e::t_f9244eab32480d 23-26,30-64,90-91,117-118,144-145,171-172,198-199,220-223,227-261,313-314,335-338,342-376,397-399,403-437,458-460,464-498,519-521,525-559,585-586,607-609,613-647,668-670,674-708,729-731,735-769,790-793,797-831,852-855,859-893,914-916,920-954,975-977,981-1015,1036-1038,1042-1076,1099-1100,1104-1138
+world/gallery/shared/runtime-inspection/runtime-inspection-contracts.ts
+  s_d932b902720f7e::t_f9244eab32480d 13-17,20-21,33-34,55-58,92-95
+world/gallery/demos/terrain/seed-world-planner/planning-data/animals/README.md
+  s_d932b902720f7e::t_f9244eab32480d 26-41
+world/gallery/demos/terrain/project-tests/SeedWorldRockFormationView.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 225-237,304
+world/gallery/demos/terrain/project-tests/TerrainVegetationPrefabData.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 465-474
+  s_d932b902720f7e::t_48f554c51cdfae 475-476
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/runtime.entity.inspect.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10,16-19,21,27-29,43-48
+world/gallery/tests/llm/verification-fingerprint.test.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-46
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.parameters.apply.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10
+world/gallery/shared/gameplay/animal/FireflyPresenter.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-149
+world/gallery/tests/llm/pack-evidence.py
+  s_d932b902720f7e::t_48ed042038bee8 26
+world/gallery/tests/llm/README.md
+  s_d932b902720f7e::t_f9244eab32480d 2,4,18-19,24-25,39,59-60,75,117-160
+  s_d932b902720f7e::t_8c56766be37fb9 161
+world/gallery/shared/farming/tests/native/FarmingStorage.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 136-152
+world/gallery/demos/terrain/seed-world-planner/rock-formation/View.ts
+  s_d932b902720f7e::t_f9244eab32480d 16,21,106,121,124-125,128,130-131,153,157,159-160,185-188,191,195,218,220
+world/gallery/tests/llm/atomic-capabilities.json
+  s_d932b902720f7e::t_7c98bb293e03fc 386
+  s_d932b902720f7e::t_f9244eab32480d 217-220,229-244,269-272
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/knowledge/terrain/README.md
+  s_d932b902720f7e::t_f9244eab32480d 10-11
+world/gallery/shared/runtime-inspection/README.md
+  s_d932b902720f7e::t_f9244eab32480d 9,12-14,24
+  s_d932b902720f7e::t_b2d058b420cf42 25
+world/gallery/tests/llm/world-atomic.test.mjs
+  s_d932b902720f7e::t_f9244eab32480d 48,54-58,73-117
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.animals.spawn.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-b476b9ecbbed376baec6fc6059c66218df95e9b6624145a38eb95be64a683828.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/assets/SlopeAsset.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 9,14
+world/gallery/demos/terrain/project-tests/SeedWorldAnimalTools.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 16,42,57,167-181
+  s_d932b902720f7e::t_e3c42486845b4d 182
+world/gallery/shared/farming/native/FarmingAPIContract.ts
+  s_d932b902720f7e::t_f9244eab32480d 1,57-62,67-68,82-85,106,217,232,317
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-dc4862fba476135e7fabbb845eb3f390b2ff4e1515fccf9dff297e650ed6096e.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/src/LandscapeRingQuery.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-73
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-e620f8f1f1fbb1df8ae80a8d6380dac9efea49a31165185e616742047362f05c.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/screen-space-reflection/e2e/ssr-demo.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 105,113-114,139-180,290-341
+  s_d932b902720f7e::t_f6ef60f68fd2bd 342
+world/gallery/tests/llm/farming-atomic-oracles.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1,18-48,58,73,101-109
+world/gallery/demos/terrain/project-tests/SeedWorldPopulationRuntimeResources.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 1061-1066,1130-1165
+  s_d932b902720f7e::t_d2d6e161ba4175 1166-1167
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldPopulationRuntime.ts
+  s_d932b902720f7e::t_f9244eab32480d 531,736-737,1236,1346,1351-1352,1376-1405,1422,2016,3088-3102
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/assets/TerrainAsset.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-18
+world/gallery/shared/farming/native/FarmingComponentEditor.ts
+  s_d932b902720f7e::t_f9244eab32480d 34-35
+world/gallery/tests/llm/cases/animals-atomic.json
+  s_d932b902720f7e::t_f9244eab32480d 22-25,29-63,83-86,90-124,139,145-148,152-186,213-214,241-242,258-259,281-283,287-321
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/SeedWorldAssetContracts.ts
+  s_d932b902720f7e::t_f9244eab32480d 8,73,79,96-97,100,324
+world/gallery/tests/llm/cases/world-atomic.json
+  s_d932b902720f7e::t_f9244eab32480d 22-25,29-63,85-87,91-125,145-148,152-186,208-210,214-248,268-271,275-309,331-333,337-371,397-398,423-424,444-447,451-485,506-509,513-547,569-572,576-610,634-636,640-674,696-699,703-737,761-763,767-801,822-825,829-863,885-887,892-926,954-955,975-978,985-1019,1041-1043,1050-1084,1104-1106,1110-1173
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.animals.query.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10-11,13,25-31,37-38,40,42,45-51
+world/gallery/tests/llm/cases/world.json
+  s_d932b902720f7e::t_f9244eab32480d 21-22,35-36
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  s_d932b902720f7e::t_f9244eab32480d 12-16,207-211,309,382,412,438-445,448,464,472,480,488,496,504,664,682,705,717,734,746,759,770,781,793,803,813,823,834,844,854,863-872,875,888,899,911,922,933,945,959,972,986,999,1013,1027,1037,1047,1058,1068,1079,1089,1099,1109,1119,1129,1139,1149
+  s_d932b902720f7e::t_1d101d30f86d73 4
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/run-agent-contracts.mjs
+  s_d932b902720f7e::t_f9244eab32480d 8-9
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/runtime-tools.ts
+  s_d932b902720f7e::t_f9244eab32480d 15,28
+world/gallery/shared/runtime-inspection/runtime-scene-inspection.ts
+  s_d932b902720f7e::t_f9244eab32480d 8-11,22-23,33,36-37,43,131,146,152,158,206-211
+world/gallery/shared/runtime-inspection/tests/browser.ts
+  s_d932b902720f7e::t_f9244eab32480d 272-274
+world/gallery/tests/llm/reference-paths/fragments.json
+  s_d932b902720f7e::t_f9244eab32480d 1-147,149-170
+  s_d932b902720f7e::t_97048bb81e8c1c 148
+world/gallery/demos/terrain/e2e/seed-world-view-pointer.spec.ts
+  s_d932b902720f7e::t_49d3819a5fc307 64,104,107,111-114,117-120,122-125,130-131,147-149
+  s_d932b902720f7e::t_abd46037e91f47 154
+  s_d932b902720f7e::t_f9244eab32480d 63,65-103,105-106,108-110,115-116,121,126-129,132-146,150-153,155-156
+world/gallery/demos/terrain/seed-world-planner/HEIGHT_TARGET_COMPATIBILITY.md
+  s_d932b902720f7e::t_f9244eab32480d 1-19
+world/gallery/demos/terrain/seed-world-planner/spatial/layout/SpatialWorld.ts
+  s_d932b902720f7e::t_f9244eab32480d 263-270,901-902,910
+world/gallery/shared/ai-chat/tests/AIChatSession.spec.ts
+  s_d932b902720f7e::t_49d3819a5fc307 101,116
+world/gallery/shared/ai-chat/tests/agent-images.spec.ts
+  s_d932b902720f7e::t_49d3819a5fc307 254
+  s_d932b902720f7e::t_3b246b58655a49 246-253,255-258
+world/gallery/demos/terrain/project-tests/PlantProjectAssets.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-131
+world/gallery/demos/terrain/asset-assembly/offline/generate-seed-world-assets.mjs
+  s_d932b902720f7e::t_f9244eab32480d 499
+world/engine/overlay/packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_d932b902720f7e::t_f9244eab32480d 5-6,30,49,65,99,123-127,180-183,202-205,219,290-352,391,408,421,434,472-475,518,541-550,898-907,934-937,966,1000,1066,1125,1164-1167,1245-1253,1275,1300-1302,1339,1352-1354,1397
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.parameters.materials.apply.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/SeedWorldProjectEdit.ts
+  s_d932b902720f7e::t_992b92ec8d1b69 66-73
+  s_d932b902720f7e::t_f9244eab32480d 7,14-15,30-31,36,51-63,83,88
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/runtime/SeedWorldRuntimeEnginePort.ts
+  s_d932b902720f7e::t_f9244eab32480d 225-226,235,280,491,1546,1580-1588,1608-1609
+world/gallery/tests/llm/farming-observer.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-3,9-16,18
+world/gallery/tests/llm/cases/queries-animals.json
+  s_d932b902720f7e::t_f9244eab32480d 1-36
+world/gallery/tests/llm/benchmark-preconditions.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-86
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-production-catalog.json
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningPopulationRuntime.ts
+  s_d932b902720f7e::t_f9244eab32480d 38
+world/gallery/package.json
+  s_d932b902720f7e::t_48ed042038bee8 87
+  s_d932b902720f7e::t_f9244eab32480d 18,88-89
+world/gallery/tests/llm/farming-atomic.test.mjs
+  s_d932b902720f7e::t_f9244eab32480d 106-161
+world/gallery/shared/farming/domain/FarmItemFootprint.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-21
+world/gallery/shared/farming/native/FarmingSystem.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-2,6,72-80
+world/gallery/demos/terrain/seed-world-planner/spatial/SpatialEditor.ts
+  s_d932b902720f7e::t_f9244eab32480d 7-9,51,70,92,97,99,109,265,340-345,355-357,359,361-366,369-373,379-380,389,476,484,500,524-540,576-577,582
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/ports/SeedWorldAnimalService.ts
+  s_d932b902720f7e::t_f9244eab32480d 11,111
+world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningAnimalRuntime.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-4,57-58,90,205,211,279,431-433,455,871,1026-1027,1105-1122,1143,1151
+world/gallery/tests/llm/report-cli.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-4,31-34,37-38
+world/gallery/tests/llm/run-seed-world.mjs
+  s_d932b902720f7e::t_f9244eab32480d 2-6,9,16-17,20,23,26-29,31-33,56,59,61,71,118,121-125,127,163-169,187,229,236
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/vegetation.update.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 13
+world/gallery/demos/terrain/asset-assembly/ProceduralTreeGenerator.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-2,31-32,1485
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/SeedWorldToolCatalog.ts
+  s_d932b902720f7e::t_f9244eab32480d 21
+world/gallery/tests/runtime-editor/agent-loop.integration.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 16,195-197,1175-1223
+  s_d932b902720f7e::t_005a0f3841edd6 1224
+world/gallery/demos/screen-space-reflection/README.md
+  s_d932b902720f7e::t_f9244eab32480d 1-72
+world/gallery/demos/terrain/seed-world-planner/SeedWorldProjectFormats.ts
+  s_d932b902720f7e::t_f9244eab32480d 6,12
+world/gallery/tests/llm/source-snapshot.mjs
+  s_d932b902720f7e::t_f9244eab32480d 6-7,19-27
+  s_d932b902720f7e::t_98a1a428c2e6db 28
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/tool-contract.ts
+  s_d932b902720f7e::t_f9244eab32480d 2,7,160,221,279,313,343,394
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.parameters.query.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10
+world/gallery/demos/terrain/seed-world-planner/spatial/PlanningSession.ts
+  s_d932b902720f7e::t_f9244eab32480d 33-34,137-140,150,195,795
+world/gallery/tests/llm/release-oracle.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-33
+world/engine/overlay/packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_d932b902720f7e::t_f9244eab32480d 14-15,17,38-40,63-70,110-114,118-119,237-238,256-264,273-276,280,286,292-324,333,335-337,344,349,352,355,359-364,369,375-402,408-409,414-437,478-479,517,519-520,552,563-575,577-596,600,603-604,610-611,614,632,634,640-641,701,705-712,716-717,721,723
+world/gallery/tests/llm/player-evaluation.mjs
+  s_d932b902720f7e::t_f9244eab32480d 4,15-16
+  s_d932b902720f7e::t_7c98bb293e03fc 3
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-ff2f518510a19b500445a3adf7f66694edddd4d58726ab457b5f3ffd1d7477fd.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/shared/farming/tests/native/IrrigationEffectSummary.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-15
+world/gallery/demos/terrain/asset-assembly/AssetAssemblySourceLibrary.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-2,16,213-214,292-294,297-298,685
+world/gallery/shared/farming/scripts/generate-native-api.mjs
+  s_d932b902720f7e::t_f9244eab32480d 2-3,113,117,135-157
+world/gallery/tests/llm/cases/queries-scene.json
+  s_d932b902720f7e::t_f9244eab32480d 1-36
+world/gallery/demos/terrain/project-tests/TreeLodDitherResources.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 3-4,7-10,14,20-26,28
+world/gallery/tests/llm/review.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1,29
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/runtime.component.query.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 10,24-26,36-41
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/assets/PlateauAsset.d.ts
+  s_d932b902720f7e::t_f9244eab32480d 9,14
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-material-765852221d071a6d1b363074fb9fad3f0fe263694211eba0d905ee42fa6efe65.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/project-tests/SeedWorldGrassRockAppearance.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 40-79
+world/gallery/shared/api-contract/scripts/component-query.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-36
+world/gallery/demos/terrain/asset-assembly/offline/publish-plant-project.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-184
+world/gallery/demos/terrain/data/seed-world/public/Shader/Water/ocean-far-graded.4ab365612b334d0b0e3c832d46f0450aecb70080f2137b94c3817ac28780b656.shaderc
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/parameter-tools.ts
+  s_d932b902720f7e::t_f9244eab32480d 57,136
+world/gallery/shared/farming/application/FarmingAgronomy.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-30
+world/gallery/tests/llm/cases/farming.json
+  s_d932b902720f7e::t_f9244eab32480d 24-25,35,37,42-44,46-82
+world/gallery/demos/terrain/project-tests/PlanningAnimalRuntime.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 14,27-29,142,148-149,174,1156-1183
+  s_d932b902720f7e::t_5b06309619acf5 1184-1185
+world/engine/overlay/packages/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  s_d932b902720f7e::t_f9244eab32480d 38-40,201-203,349-353,552,593-595
+world/gallery/demos/terrain/asset-assembly/generated/procedural-trees/plant-project-highlands-fir-3-leaves.mat
+  s_d932b902720f7e::t_f9244eab32480d 1
+world/gallery/demos/terrain/seed-world-planner/semantic-study/PlanningWorkerClient.ts
+  s_d932b902720f7e::t_f9244eab32480d 40-41,43,46-48,59
+world/gallery/shared/gameplay/tests/runtime/fireflies.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-146
+world/gallery/demos/terrain/asset-assembly/ProceduralTreeStructureValidation.ts
+  s_d932b902720f7e::t_f9244eab32480d 1-62
+world/gallery/tests/llm/release-oracle-transient.test.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-13
+world/gallery/tests/llm/query-preconditions.mjs
+  s_d932b902720f7e::t_f9244eab32480d 1-69
+world/gallery/demos/terrain/project-tests/SeedWorldRockFormationEdit.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 310
+world/gallery/shared/gameplay/animal/README.md
+  s_d932b902720f7e::t_f9244eab32480d 248-271
+world/gallery/tests/llm/cases/view-pointer.json
+  s_d932b902720f7e::t_f9244eab32480d 38-41,46-80
+  s_d932b902720f7e::t_48ed042038bee8 30-32
+world/gallery/demos/terrain/seed-world-planner/rock-formation/assets/painted-rock.provenance.json
+  s_d932b902720f7e::t_f9244eab32480d 13
+world/gallery/tests/llm/reference-paths/resolved.json
+  s_d932b902720f7e::t_f9244eab32480d 1-8,10-14,16-26,28-34,36-40,42-48,50-56,58-64,66-70,72-76,78-80,82,84-86,88,90-92,94,96-98,100,102-106,108-118,120-306,308-312,314-320,322-328,330-337,339-346,349-354,356-364,366-370,372-376,378-382,384-388,390-399,401-405,407-417,419-425,427-437,439-445,447-453,455-463,465-473,475-481,483-489,491-500,502-510,513-525,527-533,535-539,541-547,549-559,562-577,579-585,587-597,599-608,610-619,622-637,639-646,648-650,667-668,670-678,680-687,689-702,704-711,713-720,722-729,731-739,741-748,750-757,760-765,767-773,775-782,784-790,792-2444,2448-2510,2512-2518,2520-2526,2528-2597,2601-2669,2671-2677,2679-2685,2687-2759,2763-2831,2833-2839,2841-2847,2849-2921,2925-2993,2995-3001,3003-3009,3011-8335,8337-9701,9703-9792,9794-9885,9887-9978,9980-10071,10073-10607,10609-10646,10649-10650,10653-10656,10659-10661,10664-10666,10669-10699,10709-10713,10719-10722,10724-10726,10728-11734,11736-12131,12133-13209
+  s_d932b902720f7e::t_a39e7007feb6e6 9,15,27,35,41,49,57,65,71,77,81,83,87,89,93,95,99,101,107,119,307,313,321,329,338,347-348,355,365,371,377,383,389,400,406,418,426,438,446,454,464,474,482,490,501,511-512,526,534,540,548,560-561,578,586,598,609,620-621,638,647,651-666,669,679,688,703,712,721,730,740,749,758-759,766,774,783,791,2445-2447,2511,2519,2527,2598-2600,2670,2678,2686,2760-2762,2832,2840,2848,2922-2924,2994,3002,3010,8336,9702,9793,9886,9979,10072,10608,10647-10648,10651-10652,10657-10658,10662-10663,10667-10668,10700-10708,10714-10718,10723,10727,11735,12132
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/SeedWorldPlanningService.ts
+  s_d932b902720f7e::t_f9244eab32480d 2,6-13,22
+world/gallery/shared/water/shaders/heightfield/SurfaceReflection.glsl
+  s_d932b902720f7e::t_f9244eab32480d 31-34
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/knowledge/atmosphere/README.md
+  s_d932b902720f7e::t_f9244eab32480d 12-13
+world/gallery/demos/terrain/seed-world-planner/spatial/AnimalPopulationComponent.ts
+  s_d932b902720f7e::t_f9244eab32480d 1,28,31-35,70-72,180-183
+world/gallery/demos/terrain/project-tests/AnimalPopulationComponent.spec.ts
+  s_d932b902720f7e::t_f9244eab32480d 4,42,218-235
+  s_d932b902720f7e::t_99cada9bd7605b 236-237
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/common/Anchor.d.ts
+  s_d932b902720f7e::t_be66bb202f597b 9
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/common/Selector.d.ts
+  s_d932b902720f7e::t_776da1469630c2 34,92
+world/gallery/shared/ai-chat/vendor/deepseek-read/UPSTREAM.md
+  s_d932b902720f7e::t_7e2902ec62d89e 17,19
+world/gallery/shared/ai-chat/vendor/deepseek-read/read-window.ts
+  s_d932b902720f7e::t_d3c37b7806815c 4,6,21,26-27,33,40,44-46,56-59,61-62,70,90
+world/gallery/shared/runtime-editor-agent/runtime-scene-api.generated.ts
+  s_d932b902720f7e::t_776ad965a569cb 2
+world/gallery/tests/llm/view-pointer-oracle.mjs
+  s_d932b902720f7e::t_4ee053caef293e 78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "678c961cb80ef808b2003c4915d65213c6906001",
+  "prompts": {},
+  "sessions": {
+    "s_d932b902720f7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13e33-360d-7f61-a7aa-efca0f53b092",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}
