@@ -16,9 +16,10 @@ interface IPhysicsBodyPoses {
 /**
  * A native simulation scene with joints, scene queries, and buffered events.
  * @remarks
- * - Hit callbacks receive scratch vectors. Copy them before retaining the values or starting another query.
  * - Scene queries include shapes enabled for queries (including trigger shapes) matching the `layerMask`.
  * - Casts ignore initial overlaps (hits at distance <= 0) and backfaces.
+ * - Cast results are borrowed records of nine floats in order: collider ID, distance, point XYZ, normal XYZ, face index.
+ *   Consume them synchronously before another physics operation.
  */
 export interface IPhysicsScene {
   /**
@@ -117,16 +118,9 @@ export interface IPhysicsScene {
    * @param direction - The normalized world-space ray direction
    * @param distance - The maximum query distance
    * @param layerMask - The collision layers to include
-   * @param outHitResult - The optional hit callback receiving the hit point and normal
-   * @returns Whether an enabled query shape was hit
+   * @returns Zero or one hit record.
    */
-  raycast(
-    origin: Vector3,
-    direction: Vector3,
-    distance: number,
-    layerMask: number,
-    outHitResult?: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
-  ): boolean;
+  raycast(origin: Vector3, direction: Vector3, distance: number, layerMask: number): Readonly<Float64Array>;
 
   /**
    * Casts a ray and reports all hits with a positive distance, in unspecified order.
@@ -134,8 +128,7 @@ export interface IPhysicsScene {
    * @param direction - The normalized world-space ray direction
    * @param distance - The maximum query distance
    * @param layerMask - The collision layers to include
-   * @returns Borrowed records of nine floats: collider ID, distance, point XYZ, normal XYZ, face index.
-   * @remarks Consume the records synchronously before another physics operation.
+   * @returns The hit records.
    */
   raycastAll(origin: Vector3, direction: Vector3, distance: number, layerMask: number): Readonly<Float64Array>;
 
@@ -147,8 +140,7 @@ export interface IPhysicsScene {
    * @param direction - The normalized world-space sweep direction
    * @param distance - The maximum sweep distance
    * @param layerMask - The collision layers to include
-   * @param outHitResult - The optional hit callback receiving the hit point and normal
-   * @returns Whether an enabled query shape was hit
+   * @returns Zero or one hit record.
    */
   boxCast(
     center: Vector3,
@@ -156,9 +148,8 @@ export interface IPhysicsScene {
     halfExtents: Vector3,
     direction: Vector3,
     distance: number,
-    layerMask: number,
-    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): boolean;
+    layerMask: number
+  ): Readonly<Float64Array>;
 
   /**
    * Sweeps a sphere and reports the nearest hit with a positive distance.
@@ -167,17 +158,15 @@ export interface IPhysicsScene {
    * @param direction - The normalized world-space sweep direction
    * @param distance - The maximum sweep distance
    * @param layerMask - The collision layers to include
-   * @param outHitResult - The optional hit callback receiving the hit point and normal
-   * @returns Whether an enabled query shape was hit
+   * @returns Zero or one hit record.
    */
   sphereCast(
     center: Vector3,
     radius: number,
     direction: Vector3,
     distance: number,
-    layerMask: number,
-    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): boolean;
+    layerMask: number
+  ): Readonly<Float64Array>;
 
   /**
    * Sweeps a capsule and reports the nearest hit with a positive distance.
@@ -188,8 +177,7 @@ export interface IPhysicsScene {
    * @param direction - The normalized world-space sweep direction
    * @param distance - The maximum sweep distance
    * @param layerMask - The collision layers to include
-   * @param outHitResult - The optional hit callback receiving the hit point and normal
-   * @returns Whether an enabled query shape was hit
+   * @returns Zero or one hit record.
    */
   capsuleCast(
     center: Vector3,
@@ -198,9 +186,8 @@ export interface IPhysicsScene {
     orientation: Quaternion,
     direction: Vector3,
     distance: number,
-    layerMask: number,
-    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): boolean;
+    layerMask: number
+  ): Readonly<Float64Array>;
 
   /**
    * Finds query shapes overlapping a box, in unspecified order.

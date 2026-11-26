@@ -12,7 +12,8 @@ import {
   PhysicsScene,
   Scene,
   Script,
-  SphereCollider
+  SphereCollider,
+  Transform
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { type IPhysicsScene } from "@galacean/engine-design";
@@ -501,6 +502,38 @@ describe("Physics Test", () => {
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, Layer.Everything, outHitResult)).to.eq(false);
 
       root.destroy();
+    });
+
+    it("keeps the hit normal when writing the point triggers another raycast", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("reentrant-raycast");
+      const collider = root.createChild("box").addComponent(BoxCollider);
+      const innerRay = new Ray(new Vector3(0, 2, 0), new Vector3(0, -1, 0));
+      let innerHit = false;
+      const marker = new Entity(
+        enginePhysX,
+        "marker",
+        class extends Transform {
+          protected override _onPositionChanged(): void {
+            super._onPositionChanged();
+            innerHit = physicsScene.raycast(innerRay);
+          }
+        }
+      );
+      root.addChild(marker);
+      const hit = new HitResult();
+      hit.point = marker.transform.position;
+      const outerRay = new Ray(new Vector3(-2, 0, 0), new Vector3(1, 0, 0));
+
+      try {
+        expect(physicsScene.raycast(outerRay, hit)).toBe(true);
+        expect(innerHit).toBe(true);
+        expect(hit.collider).toBe(collider);
+        expect(hit.point.x).toBeCloseTo(-0.5);
+        expect(hit.normal).to.deep.include({ x: -1, y: 0, z: 0 });
+      } finally {
+        root.destroy();
+      }
     });
 
     it("non-unit direction", () => {

@@ -23,8 +23,6 @@ import { PhysXShape } from "./shape/PhysXShape";
  * Simulates actors and runs scene queries through PhysX.
  */
 export class PhysXPhysicsScene implements IPhysicsScene {
-  private static _tempPosition: Vector3 = new Vector3();
-  private static _tempNormal: Vector3 = new Vector3();
   private static _tempPose: { translation: Vector3; rotation: Quaternion } = {
     translation: new Vector3(),
     rotation: new Quaternion()
@@ -346,29 +344,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   /**
    * {@inheritDoc IPhysicsScene.raycast }
    */
-  raycast(
-    origin: Vector3,
-    direction: Vector3,
-    distance: number,
-    layerMask: number,
-    hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): boolean {
-    const hits: Float64Array = this._pxSceneQueries.raycast(
-      origin,
-      direction,
-      Math.min(distance, 3.4e38),
-      layerMask,
-      true,
-      null,
-      false
-    );
-    if (hits.length === 0) {
-      return false;
-    }
-    if (hit) {
-      this._readHit(hits, 0, hit);
-    }
-    return true;
+  raycast(origin: Vector3, direction: Vector3, distance: number, layerMask: number): Readonly<Float64Array> {
+    return this._pxSceneQueries.raycast(origin, direction, Math.min(distance, 3.4e38), layerMask, true, null, false);
   }
 
   /**
@@ -387,16 +364,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     halfExtents: Vector3,
     direction: Vector3,
     distance: number,
-    layerMask: number,
-    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): boolean {
+    layerMask: number
+  ): Readonly<Float64Array> {
     return this._sweepSingle(
       this._getBoxGeometry(halfExtents),
       PhysXPhysicsScene._queryPose(center, orientation),
       direction,
       distance,
-      layerMask,
-      outHitResult
+      layerMask
     );
   }
 
@@ -408,16 +383,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     radius: number,
     direction: Vector3,
     distance: number,
-    layerMask: number,
-    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): boolean {
+    layerMask: number
+  ): Readonly<Float64Array> {
     return this._sweepSingle(
       this._getSphereGeometry(radius),
       PhysXPhysicsScene._queryPose(center),
       direction,
       distance,
-      layerMask,
-      outHitResult
+      layerMask
     );
   }
 
@@ -431,16 +404,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     orientation: Quaternion,
     direction: Vector3,
     distance: number,
-    layerMask: number,
-    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): boolean {
+    layerMask: number
+  ): Readonly<Float64Array> {
     return this._sweepSingle(
       this._getCapsuleGeometry(radius, halfHeight),
       PhysXPhysicsScene._queryPose(center, orientation, PhysXShape._yAxis),
       direction,
       distance,
-      layerMask,
-      outHitResult
+      layerMask
     );
   }
 
@@ -588,26 +559,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return (this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, halfHeight));
   }
 
-  private _readHit(
-    hits: Float64Array,
-    offset: number,
-    onHit: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): void {
-    const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
-    position.set(hits[offset + 2], hits[offset + 3], hits[offset + 4]);
-    normal.set(hits[offset + 5], hits[offset + 6], hits[offset + 7]);
-    onHit(hits[offset], hits[offset + 1], position, normal);
-  }
-
   private _sweepSingle(
     geometry: any,
     pose: { translation: Vector3; rotation: Quaternion },
     direction: Vector3,
     distance: number,
-    layerMask: number,
-    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): boolean {
-    const hits: Float64Array = this._pxSceneQueries.sweep(
+    layerMask: number
+  ): Readonly<Float64Array> {
+    return this._pxSceneQueries.sweep(
       geometry,
       pose,
       direction,
@@ -618,13 +577,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       false,
       false
     );
-    if (hits.length === 0) {
-      return false;
-    }
-    if (outHitResult) {
-      this._readHit(hits, 0, outHitResult);
-    }
-    return true;
   }
 
   private _hasActiveTrigger(id: number): boolean {
@@ -698,10 +650,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       return;
     }
 
-    // Copy the raw contact floats into a flat arena and populate Vector3 fields only when read.
-    const floatCount = count * 10;
+    // Copy the native view as a block. The next contact overwrites any trailing velocity data.
+    const values = contacts!;
     const offset = this._contactFloatOffset;
-    const needed = offset + floatCount;
+    const needed = offset + values.length;
     let arena = this._contactData;
     if (!arena || needed > arena.length) {
       let nextLength = arena ? arena.length * 2 : 2560;
@@ -712,10 +664,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       }
       this._contactData = arena = grown;
     }
-    for (let i = 0; i < floatCount; i++) {
-      arena[offset + i] = contacts![i];
-    }
-    this._contactFloatOffset = needed;
+    arena.set(values, offset);
+    this._contactFloatOffset = offset + count * 10;
     event._floatOffset = offset;
   }
 

@@ -31,6 +31,8 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   private static readonly _tempVec0 = new Vector3();
   private static readonly _tempVec1 = new Vector3();
   private static readonly _tempVec2 = new Vector3();
+  private static _writingBackTransform: Transform | null = null;
+
   private static _validateNonNegativeFloat32(value: number, name: string): void {
     if (!(value >= 0 && Number.isFinite(Math.fround(value)))) {
       throw new RangeError(`Rigidbody ${name} must be finite and nonnegative.`);
@@ -71,9 +73,6 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
   /** @internal Index in the physics scene's enabled bodies. */
   @ignoreClone
   _index = -1;
-  @ignoreClone
-  private _writingBack = false;
-
   @ignoreClone
   private _poseSynced = false;
   @ignoreClone
@@ -979,12 +978,12 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     const transform = this.entity.transform;
     const worldPosition = transform.worldPosition;
     const positionChanged = PhysicsUtils.differsF32(position, worldPosition);
-    this._writingBack = true;
+    Rigidbody._writingBackTransform = transform;
     if (positionChanged) transform.worldPosition = position;
     const worldRotation = transform.worldRotationQuaternion;
     const rotationChanged = PhysicsUtils.rotationDiffersF32(rotation, worldRotation);
     if (rotationChanged) transform.worldRotationQuaternion = rotation;
-    this._writingBack = false;
+    Rigidbody._writingBackTransform = null;
 
     // A constrained Transform such as UITransform can publish a different pose from the one the actor supplied.
     const changed = positionChanged || rotationChanged;
@@ -992,13 +991,14 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
     this._nativeRotation.copyFrom(changed ? transform.worldRotationQuaternion : worldRotation);
     // Mark the pose settled once the body sleeps, including transforms that constrain the simulated pose.
     if (
+      sleeping &&
       !this._isKinematic &&
       (!changed ||
         PhysicsUtils.differsF32(position, this._nativePosition) ||
         PhysicsUtils.rotationDiffersF32(rotation, this._nativeRotation))
     ) {
       // Joint scale changes during earlier Transform publication can wake an endpoint after capture.
-      this._poseSynced = sleeping && this._nativeActor!.isSleeping();
+      this._poseSynced = this._nativeActor!.isSleeping();
     }
   }
 
@@ -1199,11 +1199,11 @@ export class Rigidbody extends Component implements ICloneHook<Rigidbody> {
 
   @ignoreClone
   private _onTransformChanged(_flags?: number, source?: Transform): void {
-    if (this._writingBack) return;
+    const writingBackTransform = Rigidbody._writingBackTransform;
+    if (this.entity.transform === writingBackTransform) return;
     this._poseSynced = false;
-    if (!this._registeredScene || this._dirtyIndex !== -1) return;
     // A parent's simulated motion invalidates our displayed pose without teleporting our actor.
-    if (source && source !== this.entity.transform && source.entity.getComponent(Rigidbody)?._writingBack) return;
+    if (!this._registeredScene || this._dirtyIndex !== -1 || source === writingBackTransform) return;
     this._registeredScene.physics._markBodyDirty(this);
   }
 
