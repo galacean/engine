@@ -9,9 +9,9 @@
 1. **先探活再开跑**：
    - 本地 `127.0.0.1:8082` 返回 HTTP 200 **不代表**上游模型网关可达。内网 VPN 断开时 `antchat.alipay.com` 会 DNS 解析超时，导致整套评测空等超时。务必先跑 `scripts/preflight.py`。
 2. **ASAP 8082 心跳帧与真实错误区分**：
-   - `asap-8082-transport.ts` 已处理 `lingguang_ai_chat_recovery` 保活心跳与 `lingguang_ai_chat_stream_result_bridge` 结构化校验；修改 transport 时切勿用粗暴正则（如裸匹配 `429`/`500` 数字子串）误杀正常文本流或心跳。
+   - `asap-8082-transport.ts` 已处理 `lingguang_seed_world_stream_recovery` 保活心跳与 `lingguang_seed_world_stream_result` 结构化校验；修改 transport 时切勿用粗暴正则（如裸匹配 `429`/`500` 数字子串）误杀正常文本流或心跳。
 3. **强制校验模型路由**：
-   - 永远保持 `BENCH_EXPECTED_MODEL`（默认 `DeepSeek-V4.1-Flash`）严格断言，防止 ASAP 配置变更导致静默切到其他模型，污染 A/B 对比口径。
+   - 保留对 `aisearch_dsv41flash` 的严格断言，防止 ASAP 配置变更导致静默切到其他模型，污染 A/B 对比口径。
 4. **串行 + 冷却 + 断点续跑**：
    - 本地 8082 上游并发低，严禁改成 Vitest 并发跑多题；保持串行、`BENCH_COOLDOWN_MS=1500` 与 `BENCH_SKIP_EXISTING=1`，中途断网恢复后可无缝续跑。
 

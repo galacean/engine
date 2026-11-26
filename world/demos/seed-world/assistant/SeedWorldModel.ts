@@ -1,2 +1,2 @@
-/** ASAP model route alias pinned for every Seed World Agent request. */
-export const SEED_WORLD_MODEL = "dsv41flash";
+/** Expected ASAP model name for Seed World route verification. */
+export const SEED_WORLD_MODEL = "aisearch_dsv41flash";

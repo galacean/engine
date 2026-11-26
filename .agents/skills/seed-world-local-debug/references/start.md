@@ -2,27 +2,33 @@
 
 ## 启动前核对
 
-确定 Engine、ASAP 的实际目录、Python 解释器和两个端口。
+确定 Engine、ASAP 和所选壳 checkout 的绝对路径、Python 解释器和监听端口。
 按[环境准备](prepare.md#1-定位或获取源码) fetch 所选来源分支，核对实际 HEAD 与同步差距；用户指定版本或保留 WIP 时记录差异，不强制更新。
 新终端重新设置下例路径变量，不假设变量会跨终端继承。
 检查 `SERVER_ENV`、`TEST_UID`、`PYTHONPATH` 是否意外继承了另一环境；不打印其他敏感环境变量。
 ASAP 本地启动不加 `--server-env prod/prepub/gray`，默认走 dev。
-首次启动或更换 checkout 时，先完成 [dev 本地模型配置](prepare.md#4-模型与协议前置检查)；已有服务若启动早于配置修改，应重启后再验收。
+首次启动或更换 checkout 时，先[核对专用 action 和模型](prepare.md#4-模型与协议前置检查)。
 
-macOS 用 `lsof -nP -iTCP:4173 -sTCP:LISTEN` 和 `lsof -nP -iTCP:8082 -sTCP:LISTEN` 检查占用。
+macOS 用 `lsof -nP -iTCP:5173 -sTCP:LISTEN` 和 `lsof -nP -iTCP:8082 -sTCP:LISTEN` 检查占用。
 对已存在的 PID，用 `ps -p <PID> -o pid,ppid,lstart,command`、`lsof -a -p <PID> -d cwd,0,1,2` 核对启动命令、工作目录与 `stdout` 去向；Linux 可检查 `/proc/<PID>/cwd` 与 `/proc/<PID>/fd/1`。
 正确且版本一致的服务可复用；不能因为占用了端口就杀进程。但若已存在的 ASAP `fd=1` 仍连在后台/旧 PTY（如 `/dev/ttys*`）且运行已久或请求明显卡顿，应先征得确认后停止并重定向到文件重启，避免 PTY 缓冲写满阻塞 `/api/message`。
-无关服务保留并选择其他空闲端口，完整 URL 随之重新生成。
+壳开发模式使用壳仓库允许的固定入口 `http://localhost:5173/app.html`。5173 被无关服务占用时，报告占用进程。
 
-## 终端 A：Engine
+## 终端 A：Engine 和壳
 
 ```bash
 ENGINE_ROOT=/chosen/path/engine-debug
-cd "$ENGINE_ROOT"
-BROWSER=none pnpm --dir world dev --host 127.0.0.1 --port 4173 --strictPort
+SHELL_ROOT=/chosen/path/flash-app
+SKILL_DIR="$ENGINE_ROOT/.agents/skills/seed-world-local-debug"
+node "$SKILL_DIR/scripts/serve-shell.mjs" "$ENGINE_ROOT" "$SHELL_ROOT"
 ```
 
-`world/vite.config.mjs` 默认使用 5193 端口并自动打开裸页面。这里用参数固定端口，并用 `BROWSER=none` 阻止打开；不要改用 `--open false`，它会打开 `/false`。
+脚本使用 Engine 的 Vite 配置，在同一个回环地址提供游戏、当前壳和配套 SDK。
+它在系统临时目录生成开发版壳，让 AppLoader 注入本机同一 checkout 的 SDK。
+此 AI 调试入口用游戏已有的 IndexedDB 存档适配器保存世界。线上数据库能力需单独验收。
+记下启动输出的 `app_shell_url`，核对生成的预览地址使用同一入口。
+更新壳后重新构建并重启此进程。
+仅排查 Engine/ASAP 时，可用 `BROWSER=none pnpm --dir world dev --host 127.0.0.1 --port 4173 --strictPort` 启动原有游戏服务，并在生成地址时选择 `--direct`。
 等待 Vite ready，保持前台进程存活。
 
 ## 终端 B：ASAP
@@ -40,6 +46,20 @@ ASAP_DISABLE_SLS_LOGGING=1 .venv/bin/python web/app.py --port 8082 > /tmp/asap-8
 保留终端或受管理的执行会话，记录 PID、cwd、commit、启动时间与重定向日志路径。
 服务一般监听 `0.0.0.0`；这是开发服务，不配置公网隧道或对外暴露。
 
+## 壳 SDK 回归
+
+设置 `SHELL_ROOT`、`ENGINE_ROOT` 和 `ASAP_ROOT` 为所选 checkout 的绝对路径。
+准备壳的 SDK、Engine 的 Playwright 依赖、本机 Chrome 以及 ASAP 的测试依赖后，执行壳仓库已有的浏览器回归。
+脚本默认使用 `$ASAP_ROOT/.venv/bin/python`。若调试服务使用其他解释器，设置 `PROBE_PYTHON` 为已核对的绝对路径。
+
+```bash
+cd "$SHELL_ROOT"
+node tests/seed-world-probe/browser.cjs "$ENGINE_ROOT" "$ASAP_ROOT"
+```
+
+该脚本加载当前 AppLoader、SDK 和 Engine transport，运行 ASAP Agent 的测试入口，使用模拟 CandyJar 和模型响应验证工具回传、恢复事件与停止。
+此回归独立运行，不使用 8082 的真实模型服务。
+
 ## 生成地址和 HTTP 检查
 
 将 `SKILL_DIR` 设为本 Skill 的安装目录；调用方要从正在读取的 SKILL.md 所在目录解析它，不硬编码其他人的路径。
@@ -48,34 +68,41 @@ ASAP_DISABLE_SLS_LOGGING=1 .venv/bin/python web/app.py --port 8082 > /tmp/asap-8
 ```bash
 python3 "$SKILL_DIR/scripts/preview.py" \
   --engine-root "$ENGINE_ROOT" --asap-root "$ASAP_ROOT" \
+  --shell-root "$SHELL_ROOT" \
   --asap-source "$ASAP_SOURCE_REF" \
-  --frontend-port 4173 --backend-port 8082 --check
+  --backend-port 8082 --check
 ```
 
-脚本输出两个 checkout 的版本、与来源分支的差距及 URL。
+壳入口是 `http://localhost:5173/__seed_world_shell/index.html`，游戏入口是 `http://localhost:5173/app.html`。
+暂时只有本地源码和构建产物时，可先运行上面的壳 SDK 回归。要单独打开 Engine/ASAP 游戏预览，把 `--shell-root "$SHELL_ROOT"` 换成 `--direct`。
+脚本输出所选模式、参与仓库的版本及预览 URL。
 `behindSource` 大于 0 表示 checkout 缺少来源分支上已 fetch 的提交；先向用户说明缺少哪些提交，再决定是否更新。
 `behindSource` 为 `null` 表示找不到来源引用；用 `--engine-source` 或 `--asap-source` 指定。
-输出里的 `mini_app_url` 与 `app_shell_url` 是同一个直接 Demo 地址，包含 `aiChat=1&agentTrace=1`。
+壳模式下，`mini_app_url` 指向游戏，`app_shell_url` 指向 flash-app 壳。直连模式才把两个参数都设为游戏地址。
 每次生成附带新的调试 revision，避免重复使用历史链接；revision 只是缓存标记，不是已验证产物身份。
 不传 `--check` 只生成，不发网络请求。
 HTTP 失败时不要继续宣称可调试；查看对应终端。
 
-用正常浏览器/用户指定浏览器打开输出的 Wrapper URL，而不是 4173 的裸页面。
+用正常浏览器/用户指定浏览器打开输出的 Wrapper URL，从游戏 iframe 核验。
 不要新建临时浏览器配置后声称是同事平时的浏览器。
-打开页面后核对 Network 中 Demo URL、加载资源、控制台错误和 3D 初始化情况。
+首次进入时选择一个世界并点击“进入”。在游戏 iframe 中核对 `document.body.dataset.worldReady === "true"`、画布状态为 `ready`，再开始测对话。
 
 ## 最小真实验收
 
+在游戏 iframe 的 Network 中确认实际加载了选定版本的 SDK，在游戏上下文检查 `typeof window.lingguang?.ai?.seedWorldStream` 和 `typeof window.lingguang?.ai?.seedWorldStop` 均为 `"function"`。
+Engine 的 `asap-chat.ts` 当前会在 localhost 或 127.0.0.1 优先走 CandyJar。验收游戏 SDK 链路时，在壳的 `seedWorldStream` 和 `seedWorldStop` 设置断点，发送和停止应分别命中。只命中 CandyJar 时将结果记为直连验证。
+验收预发壳时，从目标闪应用进入游戏，记录壳 SDK 版本，发送一条只读指令并核对回复，再在下一条请求进行中点击停止并核对服务端收到同一会话的取消。
+
 1. 进入 3D 后打开 Agent Trace，先用指令编辑器输入“现在世界里是几点？”验证文本链路，排除 ASR 干扰。
 2. 输入“把时间改成下午三点”验证实际 API 执行；这会修改当前测试场景，若用户只授权打开页面则不要代发，交由用户验收。
-3. 检查 Trace 的请求模型 `dsv41flash` 和响应 `debug.modelName`；必要时对照本地 `logs/asap-service/trace.log` 中同一个 trace ID 的 LLM 节点/digest，实际模型应为公共 `DeepSeek-V4.1-Flash`。
+3. 检查响应的 `telemetry.modelName` 是否为 `aisearch_dsv41flash`。调试回包的 `debug.modelRoute` 应为 `seed_world_action`，可用同一 trace ID 在 `logs/asap-service/trace.log` 核对服务端 Agent 和模型。
 4. 确认 `read` / `execute` 原生 Tool Call、`tool_call_id` 对应结果及最终 Assistant 回复；上下文已有声明时可不重复读取，不能强制固定调用序列。
 5. 检查 Tool 结果与 `worldAfter` 时间是否匹配，不能只凭“修改成功”的文案判通过。
 
 接口 HTTP 200、前端 requestedModel、URL 参数和 System Prompt 都不能单独证明实际模型路由。
 如果没有实际模型证据，写“模型待验证”，不要推定默认路由正确。
 只有文本回复且 `toolCalls` 为空时，只能确认文本链路，不能判定工具执行通过。
-本地调用公共模型成功不代表预发或生产服务地址已验收，也不代表图片、长上下文和并发额度已验证。
+本地调用专用模型成功不代表预发或生产服务地址已验收，也不代表图片、长上下文和并发额度已验证。
 如需语音，再授权麦克风并按住 Siri 球测试，分别记录 ASR 和 LLM 结果；Web ASR 不可用不代表手机原生壳同样不可用。
 Trace 可能含用户内容和内部信息，只保存/分享必要的脱敏证据。
 
@@ -104,9 +131,9 @@ Engine 的 AI Chat 或 ASAP 有改动时，在最小真实验收之后由用户�
 - 对话单步卡顿数十秒但模型本身只需几秒：先看 `logs/asap-service/app-default.log` 中 `benchmark_config_store` 到 `db.load_test_scope` 之间是否出现大段空窗，再用 `lsof -a -p <PID> -d 0,1,2` 检查 ASAP 的 `fd=1` 是否连在旧 PTY（`/dev/ttys*`）；确认后按「终端 B：ASAP」重定向到文件重启即可。
 - Node 版本太低：修正当前终端的 Node/PATH，再启动；不要重写用户全局 shell 配置。
 - Vite `esbuild service is no longer running`：检查进程退出原因，再重启该 Vite；不要删除用户浏览器缓存。
-- CandyJar 缺失/调用超时：先确认完整 Wrapper 链路、两个 URL 参数一致、主机名一致、没有额外 iframe，再检查后端日志。
-- 路由成 Ling：先按环境准备补齐 dev 本地身份放行、重启对应进程，再核对生效映射和请求级覆盖；不能通过旧实验分支冒充目标分支已修复。
-- Tool 定义缺失：核对前端信封、本地壳转发和 ASAP 解包三处；不要新增临时代理或另一条请求链路。
+- CandyJar 缺失/调用超时：先确认完整 Wrapper 链路、两个 URL 参数符合所选模式、主机名一致、没有额外 iframe，再检查后端日志。
+- 实际模型与预期不符时，核对端口进程的工作目录、Engine 发出的 action 和服务端 Agent。
+- Tool 定义缺失：核对专用 action 的顶层 tools、本地壳转发和 ASAP 收到的参数；不要新增临时代理或另一条请求链路。
 - 429/超时：保留 trace ID 与错误，检查既有重试/预算，不连续高频重发，更不要自动开始批量测试。
 
 交付时写清楚哪一层已通过、哪一层未验证；同事可直接使用返回 URL 继续调试。

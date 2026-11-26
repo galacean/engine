@@ -59,7 +59,6 @@ export class AIChatSession {
     waiters: PendingInput[];
     preparation?: { entry: PendingInput; controller: AbortController };
   };
-  #modelRoute: string | null = null;
   #machine: Machine = { kind: "idle" };
   // Physical cancellation barrier only; admission and UI state come from the machine.
   #driver?: Promise<void>;
@@ -118,10 +117,8 @@ export class AIChatSession {
     return this.#inbox.map(({ input, target }) => ({ input: structuredClone(input), target }));
   }
 
-  getContextRecordCount(model?: string): number {
-    return this.#modelRoute !== null && this.#modelRoute !== normalizeModelRoute(model)
-      ? 0
-      : this.#history.historyRecordCount;
+  getContextRecordCount(): number {
+    return this.#history.historyRecordCount;
   }
 
   subscribe(listener: AgentEventListener): () => void {
@@ -155,26 +152,7 @@ export class AIChatSession {
     if (this.#inbox.length >= 64) throw new Error("AIChatSession input queue is full");
     if (target !== "next-step" && target !== "next-turn") throw new Error("Invalid input target");
     const startingAfterStop = this.#halted;
-    const owner = startingAfterStop
-      ? this.#machine.kind === "stopping" && this.#machine.restart
-        ? this.#inbox[0]
-        : undefined
-      : this.#active && this.#data.current?.outcome
-        ? undefined
-        : (this.#active?.initial ?? this.#inbox[0]);
-    if (
-      target === "next-step" &&
-      owner &&
-      options.model !== undefined &&
-      normalizeModelRoute(options.model) !== normalizeModelRoute(owner.options.model)
-    ) {
-      throw new Error("Cannot change model while supplementing a task; queue a next-turn input instead");
-    }
-    const pendingOptions =
-      target === "next-step" && owner && options.model === undefined
-        ? { ...options, model: owner.options.model }
-        : options;
-    const pending = createPending(text, pendingOptions, target, preparation);
+    const pending = createPending(text, options, target, preparation);
     if (startingAfterStop && !(this.#machine.kind === "stopping" && this.#machine.restart)) {
       // Unconsumed steering belongs to the stopped turn. Explicit next-turn
       // requests retain FIFO order, after this newly requested turn.
@@ -268,7 +246,6 @@ export class AIChatSession {
     this.#data.clear();
     this.#agent.resetKnowledge();
     this.#agent.resetConversationImages();
-    this.#modelRoute = null;
     this.#transition({ kind: "idle" });
   }
 
@@ -347,15 +324,6 @@ export class AIChatSession {
           if (!this.#inbox.includes(initial)) continue;
           this.#inbox.splice(this.#inbox.indexOf(initial), 1);
         }
-        const modelRoute = normalizeModelRoute(initial.options.model);
-        if (this.#modelRoute !== null && this.#modelRoute !== modelRoute) {
-          this.#history.reset();
-          this.#transcript.clear();
-          this.#lastSettledFallbackMessage = undefined;
-          this.#agent.resetKnowledge();
-          this.#agent.resetConversationImages();
-        }
-        this.#modelRoute = modelRoute;
         if (!resume) this.#agent.beginConversationTurn(this.#history.beginTurn());
         const runOptions: AgentRunOptions = {
           ...initial.options,
@@ -557,10 +525,6 @@ function createPending(
     resolve,
     reject
   };
-}
-
-function normalizeModelRoute(model?: string): string {
-  return model?.trim() || "<default>";
 }
 
 function releasePreparation(entry: PendingInput): void {

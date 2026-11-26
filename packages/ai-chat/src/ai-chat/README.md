@@ -144,7 +144,6 @@ Conversation history contains the five most recent `{ timestamp, instruction, in
 Records are sorted from newest to oldest by `timestamp`, so the first record is the most recently completed task.
 History supplements context and references omitted by the current instruction but never overrides information the user stated in the current turn.
 It retains compact host execution receipts in result.executions so that a task-level failure cannot hide an earlier committed edit. It does not retain raw model messages, scripts, API calls, raw API results, traces, or older-turn summaries.
-Changing the ASAP model route resets this history.
 
 Within one task, every model Tool Call and paired execution result is appended to the canonical transcript. Image entries retain their original IDs and metadata, without duplicating pixels on each reread; original screenshots remain in the task image store. The active transcript replays these original Assistant/Tool messages until a validated server summary replaces a complete older group.
 A successful text read returns `{ path, offset, lines, totalLines, next }`. Each line has `{ number, text, column? }`; a non-null `next` supplies the next `offset` and `column`. Binary files return descriptors only. Long-line positions use UTF-16 code units without splitting surrogate pairs. Repeated reads of project files always return current content again; full reads of read-only `skills/` and `declare/` files may return a short deduplicated placeholder when the exact unchanged body is already present in the current active transcript (invalidated on `capabilities_changed`, compaction, or content updates). `editor/execute.js` contains the last submitted script in the current task; an external read can inspect it. Execution history archival is not part of .ai/.
@@ -174,7 +173,7 @@ Internal DeepSeek probes found ordinary-text matches but special-token and tool-
 
 ### Persistent server compaction
 
-Every AgentLoop request carries `responseFormat.params.contextCompaction = { version: 2, protectedPrefixLength }` through the existing transport bridge. The boundary is derived from the actual system and host sections (currently six messages), rebuilt for each model round, and bound to that request snapshot. The matching ASAP v2 implementation must be deployed with this frontend; the server retains v1 for existing callers. ASAP owns the existing compactor and estimator, with default trigger/target budgets of 80%/50% of its input limit. The frontend has no tokenizer, summarizer, or automatic budget calculation.
+Every AgentLoop request carries `contextCompaction = { version: 2, protectedPrefixLength }` in the dedicated request. The boundary is derived from the actual system and host sections (currently six messages), rebuilt for each model round, and bound to that request snapshot. The matching ASAP v2 implementation must be deployed with this frontend; the server retains v1 for existing callers. ASAP owns the existing compactor and estimator, with default trigger/target budgets of 80%/50% of its input limit. The frontend has no tokenizer, summarizer, or automatic budget calculation.
 
 Successful terminal results may return top-level `contextCompaction` independently of debug tracing:
 
@@ -424,7 +423,6 @@ An application provides:
 - an `AgentApplicationDefinition` containing the compact catalog and declaration graph, matching runtime API names, `provideWorldThumbnail()`, and only when necessary optional application constraints that cannot live in API contracts or runtime enforcement;
 - a `beginEdit` transaction provider for editing capabilities;
 - internal `AgentTool` bindings containing Zod input/output contracts and browser-side execution;
-- an optional ASAP model route alias;
 - DOM elements only if the optional reusable `AIChat` controller is used; engine-native or custom UI can submit commands to `AIChatSession` and render its `subscribeState` snapshot.
 
 `defineTool()` derives TypeScript input/output types and runtime validation from Zod. Inputs are parsed before application execution; outputs are parsed before they become script values. Zod and Draft-07 JSON Schema are not copied into the model prompt. Internal bindings do not provide cross-turn history projections because API results are never conversation history.
@@ -433,16 +431,15 @@ Every API binding receives an execution context containing the active task's `Ab
 
 ## Transport and local wrapper
 
-ASAP is the only model backend.
+The Seed World action selects `aisearch_dsv41flash` on the ASAP server.
 The canonical model request carries provider-native `tools`, `toolChoice: "auto"`, and `parallelToolCalls: true`.
-The currently deployed Flash App shell drops those top-level fields while preserving `responseFormat`, so `requestAsapChat()` temporarily tunnels them through a versioned `lingguang_ai_chat_transport_bridge` response-format envelope.
-ASAP removes that transport envelope before model routing and restores the canonical top-level request; neither the Agent protocol nor the model sees the compatibility layer.
-Local Wrapper previews use the same envelope so they exercise the deployed transport contract instead of bypassing it.
+Flash Apps call `window.lingguang.ai.seedWorldStream` with the tool fields at the top level.
+Local Wrapper previews send the same action through `FlashApp.remoteStreamSkill`.
+The request nonce identifies its recovery events and final result.
 ASAP maps Tool definitions, Assistant Tool Calls, Tool Results, Tool Call IDs and finish reasons without executing application Tools or choosing a business action.
 ASAP also owns transient Provider retry policy; browser runtimes must not retry model calls because they cannot prove whether an upstream attempt already produced a Tool Call.
 AgentLoop records a failed model request as attempt evidence for Trace, then rethrows the same normalized transport error so callers retain its structured type and recovery policy.
 Only responses that arrived successfully but violate the Agent protocol are represented as `AgentDecisionError` and corrected through another model turn.
-Local wrapper previews use `window.CandyJar.call("FlashApp", "remoteSkill", ...)`, while deployed Flash Apps use `window.lingguang.ai.chat(...)`.
 When a local Flash App runs inside the wrapper's child iframe without a directly injected `window.CandyJar`, AIChat installs the wrapper-compatible `postMessage` bridge itself.
 The bridge is local-only infrastructure: it forwards calls to the parent wrapper, validates that callbacks came from that parent and its referrer origin, and never replaces an existing native CandyJar channel.
 
@@ -502,9 +499,7 @@ const definition: AgentApplicationDefinition = {
 };
 
 const session = new AIChatSession({ agent: new AgentLoop({ definition, tools }) });
-await session.run("find the nearest selected entity", {
-  model: "provider-model-alias"
-});
+await session.run("find the nearest selected entity");
 ```
 
 When discovery is needed, the model retrieves a declaration through a native Tool Call:
@@ -635,6 +630,6 @@ Pick results contain runtime entity/component/instance identities, capture metad
 
 The conversation service owns image Blobs and GPU identity textures. Tasks and photo attachments hold leases. Point queries read small tiles; region queries read only the mask's bounding rectangle. Encoding is cached per immutable version. The shared memory budget reclaims unpinned frames first, and admission fails if in-use resources prevent allocation. History also expires after two unused turns. Task completion releases leases, not all conversation frames. These files never enter project persistence. Trace events contain references and metadata, not GPU buffers or host callbacks.
 
-本地 streamChat 为同一页面维持稳定 `sessionId`，每个请求独立生成随机 `queryId`（不复用 `streamResponseNonce`，避免 nonce 进入 Trace digest）；用户停止通过既有 CandyJar `remoteSkill` 调用 `lingguang.ai.stopChat` 并携带同一 `{ sessionId, queryId }`，无需修改 Wrapper。
+模型每轮生成独立的 sessionId、queryId 和 streamResponseNonce；停止时使用该轮的 sessionId。
 Session 立即停止接收结果；stopChat 的 `accepted` 只表示受理，不表示远端已终止。控制面失败会告警且不重发，模型总预算仍生效。
-本地 ASAP 入口负责登记现有取消 scope，公共退避等待感知该 scope；生产 SDK 路径仍使用其原有 AbortSignal 契约。
+在线壳调用 seedWorldStop，本地 Wrapper 通过 remoteSkill 调用 lingguang.ai.stopChat。

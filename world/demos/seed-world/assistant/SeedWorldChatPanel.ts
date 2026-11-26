@@ -66,7 +66,6 @@ import { createSeedWorldAgentDefinition } from "../agent-adapter/SeedWorldAgentD
 import type { SeedWorldAgentApplication } from "../agent-adapter/SeedWorldAgentApplication.ts";
 import { createSeedWorldTools } from "../agent-adapter/SeedWorldToolCatalog.ts";
 import { createSeedWorldImageResources } from "./SeedWorldImageResources.ts";
-import { SEED_WORLD_MODEL } from "./SeedWorldModel.ts";
 import {
   createSeedWorldAgentDebug,
   type SeedWorldAgentDebugApi,
@@ -336,7 +335,6 @@ export function mountSeedWorldChatPanel(options: SeedWorldChatPanelOptions): See
   const session = new AIChatSession({
     agent: new AgentLoop({
       ...configuration,
-      useSeedWorldAction: new URLSearchParams(window.location.search).get("seedWorldAction") === "1",
       maxToolCallsPerScript: SEED_WORLD_MAX_TOOL_CALLS_PER_SCRIPT,
       // Allow a 60s environment transition followed by the bounded 70s IBL publication wait.
       scriptTimeoutMs: 150_000
@@ -740,7 +738,6 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
       this._clearResultTimer();
       const completion = this._activity.submit(task, {
         ...(this._contextCompactionBudget ? { contextCompaction: this._contextCompactionBudget } : {}),
-        model: SEED_WORLD_MODEL,
         context: { user_selection_at_submission: null,
           viewer_at_submission: viewer as unknown as AgentValue },
         debugMode: this._traceStore.enabled,

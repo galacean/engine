@@ -212,11 +212,11 @@ Agent 的 `snapshot()` 与用户拍照共用 `SeedWorldViewSnapshots`：同一�
 
 ## LLM 流式传输
 
-AI Chat 通过线上 `window.lingguang.ai.streamChat` 和本地 Wrapper 的 `FlashApp.remoteStreamSkill` 调用 ASAP。
-图片观察继续序列化为 `image_url` 消息；原生 Tool 字段通过版本化 `responseFormat` 请求信封传输，完整终态结果由匹配本次随机标识的结果信封恢复。
+AI Chat 通过线上 SDK 的 `seedWorldStream` 或本地 Wrapper 的 `FlashApp.remoteStreamSkill` 调用同一个 `lingguang.ai.seedWorldStream` action。
+图片使用 `image_url` 消息，工具声明放在请求顶层，最终结果按该轮的 nonce 匹配。
 本地流事件按请求标识隔离；取消或传输超时后移除监听，迟到消息不能进入新任务。
 应用独立结束取消等待，即使现有壳不响应 `AbortSignal`；这不保证供应商立即停止计算或计费。
-每轮模型请求预算为 120 秒，前端传输预算为 130 秒；线上能力声明需要允许 `AI_STREAM_CHAT`，ASAP 必须支持对应流式信封。
+每轮模型请求预算为 120 秒，前端传输预算为 130 秒；壳需要提供 `seedWorldStream` 和 `seedWorldStop`。
 真实本地 Wrapper 联调与线上原生壳验收分别记录，不用替身测试代替真实链路验收。
 
 ## AI Chat 任务交互（2026-10-26）

@@ -58,38 +58,30 @@ export class AsapModelError extends Error {
 }
 
 type AsapChatOptions = {
-  useSeedWorldAction?: boolean;
   timeoutMs?: number;
   onRecovery?: (event: ModelRecoveryEvent) => void;
   imageBudget?: ImageResourceBudget;
   contextCompaction?: ContextCompactionRequest;
   messages: AgentMessage[];
-  model?: string;
   tools: AgentModelToolDefinition[];
   toolChoice?: "auto" | "required";
   debugMode: boolean;
   signal: AbortSignal;
 };
 
-type LingguangAiChatTransportBridge = {
-  type: "lingguang_ai_chat_transport_bridge";
+type SeedWorldStreamRequest = {
   version: 1;
-  params: {
-    tools?: AgentModelToolDefinition[];
-    toolChoice?: "auto" | "required";
-    parallelToolCalls?: boolean;
-    debugMode: boolean;
-    streamResponseNonce: string;
-    recoveryEvents: boolean;
-    contextCompaction?: ContextCompactionRequest;
-  };
-};
-
-type LingguangAiStreamChatRequest = {
+  sessionId: string;
+  queryId: string;
+  streamResponseNonce: string;
   messages: Array<Omit<AgentMessage, "content"> & { content: string | Array<Record<string, unknown>> }>;
-  model?: string;
-  responseFormat: LingguangAiChatTransportBridge;
+  tools?: AgentModelToolDefinition[];
+  toolChoice?: "auto" | "required";
+  parallelToolCalls?: boolean;
   timeout: number;
+  debugMode: boolean;
+  recoveryEvents: boolean;
+  contextCompaction?: ContextCompactionRequest;
   signal: AbortSignal;
   onEvent?: (event: LingguangAiChatStreamEvent) => void;
 };
@@ -99,13 +91,9 @@ type LingguangAiChatStreamEvent =
   | { type: "message_done"; content: string; finishReason?: string; traceId?: string }
   | { type: "error"; message: string; code?: string; traceId?: string };
 
-type SeedWorldStreamRequest = Omit<LingguangAiStreamChatRequest, "responseFormat" | "model"> &
-  LingguangAiChatTransportBridge["params"] & { version: 1; sessionId: string; queryId: string };
-
-type LingguangAiApi = {
-  seedWorldStream?(options: SeedWorldStreamRequest): Promise<unknown>;
-  seedWorldStop?(sessionId: string): Promise<unknown>;
-  streamChat(options: LingguangAiStreamChatRequest): Promise<AsapChatResult>;
+export type SeedWorldAiApi = {
+  seedWorldStream(options: SeedWorldStreamRequest): Promise<unknown>;
+  seedWorldStop(sessionId: string): Promise<unknown>;
 };
 
 declare global {
@@ -114,7 +102,7 @@ declare global {
     artifactId?: string;
     artifactVersion?: string;
     lingguang?: {
-      ai?: LingguangAiApi;
+      ai?: Partial<SeedWorldAiApi>;
       asr?: {
         start(options: {
           lang: string;
@@ -135,18 +123,14 @@ declare global {
 // Keep transport headroom and caller cancellation; this is a per-round budget.
 export const ASAP_MODEL_ROUND_TIMEOUT_MS = MODEL_ROUND_TIMEOUT_MS;
 const ASAP_TRANSPORT_TIMEOUT_MS = 130_000;
-const LINGGUANG_AI_CHAT_TRANSPORT_BRIDGE_TYPE = "lingguang_ai_chat_transport_bridge";
-const LINGGUANG_AI_CHAT_STREAM_RESULT_BRIDGE_TYPE = "lingguang_ai_chat_stream_result_bridge";
-const LINGGUANG_AI_CHAT_STREAM_RESULT_BRIDGE_VERSION = 1;
 const SEED_WORLD_STREAM_VERSION = 1;
 const SEED_WORLD_STREAM_RESULT_TYPE = "lingguang_seed_world_stream_result";
 const SEED_WORLD_STREAM_RECOVERY_TYPE = "lingguang_seed_world_stream_recovery";
 const REMOTE_STREAM_UPDATE_EVENT = "CandyJar.FlashApp.OnRemoteStreamUpdate";
-const localChatSessions = new WeakMap<Window, string>();
 export const ASAP_TPM_RATE_LIMIT_MESSAGE = "模型服务请求额度超限（HTTP 429，TPM_LIMIT_EXCEEDED），请稍后重试。";
 const FINISH_REASONS = new Set<AgentFinishReason>(["stop", "tool_calls", "length", "content_filter"]);
 
-export async function requestAsapChat(options: AsapChatOptions): Promise<AsapChatResult> {
+export async function requestAsapChat(options: AsapChatOptions, localApi?: SeedWorldAiApi): Promise<AsapChatResult> {
   const streamResponseNonce = createStreamResponseNonce();
   const timeoutMs = Math.max(
     1,
@@ -158,9 +142,8 @@ export async function requestAsapChat(options: AsapChatOptions): Promise<AsapCha
     lastSequence = event.sequence;
     options.onRecovery?.(event);
   };
-  const inspectProgress = (text: string) =>
-    stripRecoveryFrames(text, streamResponseNonce, onRecovery, options.useSeedWorldAction === true);
-  const bridgedToolParams = options.tools.length
+  const inspectProgress = (text: string) => stripRecoveryFrames(text, streamResponseNonce, onRecovery);
+  const toolParams = options.tools.length
     ? {
         tools: options.tools,
         toolChoice: options.toolChoice ?? "auto",
@@ -168,7 +151,7 @@ export async function requestAsapChat(options: AsapChatOptions): Promise<AsapCha
       }
     : {};
   const streamParams = {
-    ...bridgedToolParams,
+    ...toolParams,
     ...(options.contextCompaction ? { contextCompaction: options.contextCompaction } : {}),
     debugMode: options.debugMode,
     streamResponseNonce,
@@ -179,7 +162,11 @@ export async function requestAsapChat(options: AsapChatOptions): Promise<AsapCha
     options.messages.reduce((n, m) => n + (m.role === "user" && m.image ? m.image.blob.size * 8 : 0), 0)
   );
   try {
-    const commonParams: Pick<LingguangAiStreamChatRequest, "messages" | "timeout"> = {
+    const params: Omit<SeedWorldStreamRequest, "signal" | "onEvent"> = {
+      ...streamParams,
+      version: SEED_WORLD_STREAM_VERSION,
+      sessionId: `seed-world-${createStreamResponseNonce()}`,
+      queryId: createStreamResponseNonce(),
       messages: options.messages.some((message) => message.role === "user" && message.image)
         ? await Promise.all(
             options.messages.map(async (message) => {
@@ -197,52 +184,28 @@ export async function requestAsapChat(options: AsapChatOptions): Promise<AsapCha
         : options.messages,
       timeout: timeoutMs
     };
-    const legacy: Omit<LingguangAiStreamChatRequest, "signal" | "onEvent"> = {
-      ...commonParams,
-      ...(options.model ? { model: options.model } : {}),
-      responseFormat: { type: LINGGUANG_AI_CHAT_TRANSPORT_BRIDGE_TYPE, version: 1, params: streamParams }
-    };
-
     try {
       return await requestWithinTransportTimeout(
         options.signal,
         async (signal) => {
-          const identity = options.useSeedWorldAction
-            ? { sessionId: `seed-world-${createStreamResponseNonce()}`, queryId: createStreamResponseNonce() }
-            : undefined;
-          const dedicated = identity && {
-            ...commonParams,
-            ...streamParams,
-            ...identity,
-            version: SEED_WORLD_STREAM_VERSION
-          };
-          const ai = window.lingguang?.ai;
-          if (isLocalPreview()) {
-            return requestStreamThroughCandyJar(
-              dedicated ?? legacy,
-              signal,
-              streamResponseNonce,
-              inspectProgress,
-              options.signal
-            );
+          if (!localApi && isLocalPreview()) {
+            return requestStreamThroughCandyJar(params, signal, inspectProgress, options.signal);
           }
-          if (dedicated ? !ai?.seedWorldStream || !ai.seedWorldStop : !ai?.streamChat) {
-            throw new Error(
-              dedicated ? "当前环境没有注入 Seed World 专用流式接口" : "当前环境没有注入 ASAP AI_STREAM_CHAT"
-            );
+          const ai = localApi ?? window.lingguang?.ai;
+          if (!ai?.seedWorldStream || !ai.seedWorldStop) {
+            throw new Error("当前环境没有注入 Seed World 专用流式接口");
           }
           // Published SDKs can put the code only in onEvent, then reject with a
           // text-only Error and emit another generic error event. Keep one failure
           // per request; subsequent events may fill fields but cannot erase them.
           let failure: Extract<LingguangAiChatStreamEvent, { type: "error" }> | undefined;
           const stopDedicated = () => {
-            if (!dedicated) return;
             void Promise.resolve()
-              .then(() => ai!.seedWorldStop!(dedicated.sessionId))
+              .then(() => ai.seedWorldStop!(params.sessionId))
               .then(checkStopReceipt)
               .catch(reportStopFailure);
           };
-          if (dedicated) options.signal.addEventListener("abort", stopDedicated, { once: true });
+          options.signal.addEventListener("abort", stopDedicated, { once: true });
           try {
             const onEvent = (event: LingguangAiChatStreamEvent) => {
               if (signal.aborted) return;
@@ -258,12 +221,10 @@ export async function requestAsapChat(options: AsapChatOptions): Promise<AsapCha
                 )
               };
             };
-            const result = dedicated
-              ? await ai!.seedWorldStream!({ ...dedicated, signal, onEvent })
-              : await ai!.streamChat({ ...legacy, signal, onEvent });
+            const result = await ai.seedWorldStream({ ...params, signal, onEvent });
             if (signal.aborted) throw createAbortError();
             if (failure) throw failure;
-            return normalizeStreamAsapChatResult(result, streamResponseNonce, inspectProgress, Boolean(dedicated));
+            return normalizeStreamAsapChatResult(result, streamResponseNonce, inspectProgress);
           } catch (error) {
             if (signal.aborted) throw createAbortError();
             // The final rejection may carry details unavailable in the stream event.
@@ -272,7 +233,7 @@ export async function requestAsapChat(options: AsapChatOptions): Promise<AsapCha
             options.signal.removeEventListener("abort", stopDedicated);
           }
         },
-        timeoutMs + 10_000
+        timeoutMs + (localApi ? 5_000 : 10_000)
       );
     } catch (error) {
       throw normalizeAsapChatError(error);
@@ -319,9 +280,8 @@ async function requestWithinTransportTimeout<T>(
 }
 
 function requestStreamThroughCandyJar(
-  params: Omit<LingguangAiStreamChatRequest, "signal" | "onEvent"> | Omit<SeedWorldStreamRequest, "signal" | "onEvent">,
+  params: Omit<SeedWorldStreamRequest, "signal" | "onEvent">,
   signal: AbortSignal,
-  streamResponseNonce: string,
   inspectProgress: (text: string) => string,
   callerSignal: AbortSignal
 ): Promise<AsapChatResult> {
@@ -331,20 +291,13 @@ function requestStreamThroughCandyJar(
   }
   if (signal.aborted) return Promise.reject(createAbortError());
 
-  let sessionId = localChatSessions.get(window);
-  if (!sessionId) {
-    sessionId = `ai-chat-${createStreamResponseNonce()}`;
-    localChatSessions.set(window, sessionId);
-  }
-  const dedicated = "version" in params;
-  const identity = dedicated
-    ? { sessionId: params.sessionId, queryId: params.queryId }
-    : { sessionId, queryId: createStreamResponseNonce() };
-  const action = dedicated ? "lingguang.ai.seedWorldStream" : "lingguang.ai.streamChat";
+  const { sessionId, queryId, streamResponseNonce } = params;
+  const action = "lingguang.ai.seedWorldStream";
   const remoteSkillParams = {
     action,
     query: action,
-    ...(dedicated ? identity : {}),
+    sessionId,
+    queryId,
     extInfo: {
       action,
       debugStreamRequestId: streamResponseNonce,
@@ -353,12 +306,7 @@ function requestStreamThroughCandyJar(
       debugTraceId: window.trace_id || "",
       payload: JSON.stringify({
         action,
-        params: { ...params, ...identity },
-        // The local wrapper synthesizes a timestamped Flash App identity on every
-        // boot. That identity is not a deployable artifact and cannot participate
-        // in ASAP's explicit model-routing allowlist. Keep local requests on one
-        // stable development identity; production never enters this code path and
-        // continues to use the native shell's trusted artifact identity.
+        params,
         artifactId: "ai-chat-local",
         artifactVersion: window.artifactVersion || "1",
         debugTraceId: window.trace_id || ""
@@ -384,7 +332,7 @@ function requestStreamThroughCandyJar(
         // Stop accepting results immediately. The existing control plane can
         // cancel even before the stream has registered its runtime scope.
         reject(createAbortError());
-        if (callerSignal.aborted) requestLocalStop(candyJar, identity);
+        if (callerSignal.aborted) requestLocalStop(candyJar, { sessionId, queryId });
       });
     const onStreamUpdate = (event: Event) => {
       const fragment = getRemoteStreamFragment(event);
@@ -416,8 +364,7 @@ function requestStreamThroughCandyJar(
                   traceId: typeof fragment.trace_id === "string" ? fragment.trace_id : undefined
                 },
                 streamResponseNonce,
-                inspectProgress,
-                dedicated
+                inspectProgress
               )
             );
           } catch (error) {
@@ -495,25 +442,21 @@ function isMatchingStreamFragment(fragment: Record<string, unknown>, nonce: stri
 function normalizeStreamAsapChatResult(
   value: unknown,
   expectedNonce: string,
-  inspectProgress: (text: string) => string,
-  dedicated = false
+  inspectProgress: (text: string) => string
 ): AsapChatResult {
-  const streamedResult = normalizeAsapChatResult(value);
-  const terminalText = inspectProgress(streamedResult.content);
+  if (!isRecord(value) || typeof value.content !== "string") throw modelProtocolError("ASAP AI 流式结果缺少有效信封");
+  const terminalText = inspectProgress(value.content);
   let envelope: unknown;
   try {
     envelope = JSON.parse(terminalText);
   } catch {
-    if (dedicated) throw modelProtocolError("ASAP AI 流式结果缺少有效信封");
-    return streamedResult;
+    throw modelProtocolError("ASAP AI 流式结果缺少有效信封");
   }
-  const frameType = dedicated ? SEED_WORLD_STREAM_RESULT_TYPE : LINGGUANG_AI_CHAT_STREAM_RESULT_BRIDGE_TYPE;
-  if (!isRecord(envelope) || envelope.type !== frameType) {
-    if (dedicated) throw modelProtocolError("ASAP AI 流式结果缺少有效信封");
-    return streamedResult;
+  if (!isRecord(envelope) || envelope.type !== SEED_WORLD_STREAM_RESULT_TYPE) {
+    throw modelProtocolError("ASAP AI 流式结果缺少有效信封");
   }
   if (
-    envelope.version !== (dedicated ? SEED_WORLD_STREAM_VERSION : LINGGUANG_AI_CHAT_STREAM_RESULT_BRIDGE_VERSION) ||
+    envelope.version !== SEED_WORLD_STREAM_VERSION ||
     envelope.nonce !== expectedNonce ||
     !isRecord(envelope.result)
   ) {
@@ -716,14 +659,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** Negotiated NDJSON prefix; the existing nonce-correlated terminal remains atomic. */
-function stripRecoveryFrames(
-  text: string,
-  nonce: string,
-  onEvent: (event: ModelRecoveryEvent) => void,
-  dedicated: boolean
-): string {
-  const frameType = dedicated ? SEED_WORLD_STREAM_RECOVERY_TYPE : "lingguang_ai_chat_recovery";
-  const version = dedicated ? SEED_WORLD_STREAM_VERSION : LINGGUANG_AI_CHAT_STREAM_RESULT_BRIDGE_VERSION;
+function stripRecoveryFrames(text: string, nonce: string, onEvent: (event: ModelRecoveryEvent) => void): string {
   let offset = 0;
   while (true) {
     const end = text.indexOf("\n", offset);
@@ -734,9 +670,9 @@ function stripRecoveryFrames(
     } catch {
       return text.slice(offset);
     }
-    if (!isRecord(frame) || frame.type !== frameType) return text.slice(offset);
+    if (!isRecord(frame) || frame.type !== SEED_WORLD_STREAM_RECOVERY_TYPE) return text.slice(offset);
     const event = normalizeRecoveryEvent(frame.event);
-    if (frame.version !== version || frame.nonce !== nonce || !event)
+    if (frame.version !== SEED_WORLD_STREAM_VERSION || frame.nonce !== nonce || !event)
       throw Object.assign(new Error("ASAP 恢复状态信封无效"), { code: "MODEL_PROTOCOL_ERROR" });
     onEvent(event);
     offset = end + 1;

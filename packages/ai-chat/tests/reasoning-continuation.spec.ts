@@ -1,3 +1,4 @@
+import { seedWorldResponse } from "./seed-world-response";
 import { afterEach, expect, it, vi } from "vitest";
 import { requestAsapChat } from "../src/ai-chat/asap-chat";
 import { createTestAgentLoop } from "./AIChatTestRuntime";
@@ -12,10 +13,10 @@ const tool = (round: number) => ({ content: "", reasoningContent: states[round],
 const done = { content: "done", finishReason: "stop", reasoningContent: "native final state" };
 const definition = { scriptApi: { catalog: "API", entries: [], modules: [] }, toolNames: [] };
 function envelope(nonce: string, result: unknown) {
-  return JSON.stringify({ type: "lingguang_ai_chat_stream_result_bridge", version: 1, nonce, result });
+  return JSON.stringify({ type: "lingguang_seed_world_stream_result", version: 1, nonce, result });
 }
 
-it.each([false, true].flatMap(debugMode => ["sdk-direct", "sdk-envelope", "local"].map(transport => ({ debugMode, transport }))))(
+it.each([false, true].flatMap(debugMode => ["sdk-envelope", "local"].map(transport => ({ debugMode, transport }))))(
   "round-trips native state through two tool rounds ($transport, debug=$debugMode) without exporting it", async ({ transport, debugMode }) => {
     const requests: any[] = [];
     const respond = (params: any) => {
@@ -27,19 +28,19 @@ it.each([false, true].flatMap(debugMode => ["sdk-direct", "sdk-envelope", "local
       location: { hostname: "localhost" }, document,
       CandyJar: { call: (_method: string, _action: string, payload: any) => {
         const params = JSON.parse(payload.extInfo.payload).params;
-        const text = envelope(params.responseFormat.params.streamResponseNonce, respond(params));
+        const text = envelope(params.streamResponseNonce, respond(params));
         queueMicrotask(() => {
           for (const [content, hasNext] of [[text.slice(0, 45), true], [text.slice(45), false]] as const) {
             document.dispatchEvent(Object.assign(new Event("CandyJar.FlashApp.OnRemoteStreamUpdate"), {
-              detail: { htmlFragment: { success: true, content, hasNext, extInfo: { debugStreamRequestId: params.responseFormat.params.streamResponseNonce } } }
+              detail: { htmlFragment: { success: true, content, hasNext, extInfo: { debugStreamRequestId: params.streamResponseNonce } } }
             }));
           }
         });
       } }
     } : {
-      location: { hostname: "example.com" }, lingguang: { ai: { streamChat: async (params: any) => {
+      location: { hostname: "example.com" }, lingguang: { ai: { seedWorldStop: vi.fn(), seedWorldStream: async (params: any) => {
         const result = respond(params);
-        return transport === "sdk-direct" ? result : { content: envelope(params.responseFormat.params.streamResponseNonce, result) };
+        return { content: envelope(params.streamResponseNonce, result) };
       } } }
     });
     const loop = createTestAgentLoop({ tools: [], definition });
@@ -65,7 +66,7 @@ it.each([false, true].flatMap(debugMode => ["sdk-direct", "sdk-envelope", "local
 );
 
 it("does not reconstruct native state from visible content or diagnostic fields", async () => {
-  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { streamChat: async () => ({
+  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { seedWorldStop: vi.fn(), seedWorldStream: async (request: any) => seedWorldResponse(request, {
     content: "<think>visible text</think>done", finishReason: "stop", debug: { reasoningContent: "diagnostic-only" }
   }) } } });
   const result = await requestAsapChat({ messages: [], tools: [], debugMode: true, signal: new AbortController().signal });
@@ -74,23 +75,23 @@ it("does not reconstruct native state from visible content or diagnostic fields"
 });
 
 it.each([null, 42, {}, []])("rejects malformed native state instead of silently dropping it: %j", async reasoningContent => {
-  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { streamChat: async () => ({ ...done, reasoningContent }) } } });
+  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { seedWorldStop: vi.fn(), seedWorldStream: async (request: any) => seedWorldResponse(request, { ...done, reasoningContent }) } } });
   await expect(requestAsapChat({ messages: [], tools: [], debugMode: false, signal: new AbortController().signal })).rejects.toThrow("reasoningContent");
 });
 
 it("retains the matching native state through compaction and stop/continue, then clears it for a new task", async () => {
   const requests: any[] = [];
-  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { streamChat: async (params: any) => {
+  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { seedWorldStop: vi.fn(), seedWorldStream: async (params: any) => {
     requests.push(structuredClone(params.messages));
-    if (requests.length === 1) return tool(0);
-    if (requests.length === 2) return { ...tool(1), contextCompaction: {
+    if (requests.length === 1) return seedWorldResponse(params, tool(0));
+    if (requests.length === 2) return seedWorldResponse(params, { ...tool(1), contextCompaction: {
       version: 2, status: "compacted", strategy: "summary", beforeTokens: 1000, afterTokens: 400, durationMs: 1,
-      replacement: { prefixLength: params.responseFormat.params.contextCompaction.protectedPrefixLength, cutIndex: 3, summary: "first tool completed" }
-    } };
+      replacement: { prefixLength: params.contextCompaction.protectedPrefixLength, cutIndex: 3, summary: "first tool completed" }
+    } });
     if (requests.length === 3) return new Promise((_resolve, reject) => {
       params.signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
     });
-    return done;
+    return seedWorldResponse(params, done);
   } } } });
   const session = new AIChatSession({ agent: createTestAgentLoop({ tools: [], definition }) });
   const running = session.run("inspect twice");

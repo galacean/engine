@@ -204,16 +204,19 @@ export function isUserBuildingPrefab(virtualPath: string): boolean {
   return !virtualPath.startsWith("Building/Presets/") && !virtualPath.startsWith("Building/Units/");
 }
 
+export function verifiedModelTurns(turns: readonly TurnExecutionRecord[], count: number): boolean {
+  return count > 0 && turns.length === count && turns.every((turn) =>
+    turn.modelsSeen?.length > 0 && turn.modelsSeen.every((model) => model === SEED_WORLD_MODEL)
+  );
+}
+
 export function extractCaseTelemetry(
   def: BenchmarkCaseDefinition,
   turns: readonly TurnExecutionRecord[],
   checks: readonly CaseCheck[]
 ): CaseMetrics {
-  const expectedModel = process.env.BENCH_EXPECTED_MODEL?.trim() || "DeepSeek-V4.1-Flash";
   const modelsSeen = [...new Set(turns.flatMap((t) => t.modelsSeen))];
-  const modelVerified =
-    modelsSeen.length > 0 &&
-    (expectedModel === "*" || modelsSeen.every((m) => m === expectedModel || m === SEED_WORLD_MODEL));
+  const modelVerified = verifiedModelTurns(turns, def.turns.length);
   const outerCounts: Record<string, number> = {};
   const readCalls: ReadCallTelemetry[] = [];
   const innerScriptToolCalls: string[] = [];
