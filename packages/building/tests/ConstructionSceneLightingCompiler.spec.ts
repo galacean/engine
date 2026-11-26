@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { IShaderInfo } from "@galacean/engine-design";
-import { compileWebGPUShaderPass, createWebGPUShaderCompiler } from "../../shader-compiler/src/webgpu";
+import { compileWebGPUShaderPass, createWebGPUShaderCompiler } from "@galacean/engine-shader-compiler/webgpu";
 import { engineShaderSource } from "../src/building/runtime/EngineShaderSource";
 import { residentFragment } from "../src/building/runtime/EngineResidentScene";
 import { injectConstructionDecorationLighting } from "../src/building/runtime/ConstructionDecorationLightShader";
@@ -52,7 +52,7 @@ describe("Construction lighting compiler bridge", () => {
   it("compiles the recovered brick and wood forward passes with their scene lighting and entrance variants", async () => {
     const backend = await createWebGPUShaderCompiler();
     registerConstructionSceneLighting();
-    const compiler = new ShaderCompiler();
+    const compiler = new ShaderCompiler(backend);
     compiler._setIncludeMap(ShaderFactory._getRuntimeIncludes(webGPUIncludes));
     for (const family of ["brick", "wood"]) {
       const asset = new URL(`../src/building/assets/native/Shaders/${family}.shaderc`, import.meta.url);
@@ -66,8 +66,8 @@ describe("Construction lighting compiler bridge", () => {
       const entrance = injectConstructionEntrance(vertex, fragment, family);
       const forward = createConstructionForwardPass(compiler, entrance.vertex, residentFragment(entrance.fragment));
       const linked = forward as unknown as {
-        _vertexShaderInstructions: IShaderInfo["vertexShaderInstructions"];
-        _fragmentShaderInstructions: IShaderInfo["fragmentShaderInstructions"];
+        _wgslVertexInstructions: IShaderInfo["wgslVertexInstructions"];
+        _wgslFragmentInstructions: IShaderInfo["wgslFragmentInstructions"];
         _uniformBlocks: NonNullable<IShaderInfo["uniformBlocks"]>;
       };
       for (const animating of [false, true]) {
@@ -79,8 +79,8 @@ describe("Construction lighting compiler bridge", () => {
         ]);
         if (animating) features.set("RENDERER_MASONRY_ENTRANCE", "");
         const program = compileWebGPUShaderPass(backend, {
-          vertexShaderInstructions: linked._vertexShaderInstructions,
-          fragmentShaderInstructions: linked._fragmentShaderInstructions,
+          wgslVertexInstructions: linked._wgslVertexInstructions,
+          wgslFragmentInstructions: linked._wgslFragmentInstructions,
           uniformBlocks: linked._uniformBlocks
         }, features);
         expect(program.vertex).toContain("@vertex");

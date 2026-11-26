@@ -58,15 +58,20 @@ describe("published graphics backend isolation", () => {
     expect(RHIMode.WebGPU).toBe("webgpu");
   });
 
-  it("loads the native AST WGSL compiler from a CommonJS consumer without WASM", async () => {
+  it("loads the single-AST WGSL compiler from a CommonJS consumer without WASM", async () => {
     const consumer = createRequire(resolve("tests/package.json"));
+    const { ShaderLanguage } = require(consumer.resolve("@galacean/engine-core"));
+    const { ShaderCompiler } = require(consumer.resolve("@galacean/engine-shader-compiler"));
     const entry = consumer.resolve("@galacean/engine-shader-compiler/webgpu");
-    const compiler = await require(entry).createWebGPUShaderCompiler();
-    const pass = compiler.compileWebGPUVariant(
-      "void main(){gl_Position=vec4(1.0);}",
-      "out vec4 c; void main(){c=vec4(1.0);}"
+    const webgpu = await require(entry).createWebGPUShaderCompiler();
+    const compiler = new ShaderCompiler(webgpu);
+    const pass = compiler._parseShaderPass(
+      "void vert(){gl_Position=vec4(1.0);} void frag(){gl_FragColor=vec4(1.0);}",
+      "vert",
+      "frag",
+      ShaderLanguage.WGSL
     );
-    expect(pass.vertex).toContain("@vertex");
-    expect(pass.fragment).toContain("@fragment");
+    expect(pass?.vertex).toContain("@vertex");
+    expect(pass?.fragment).toContain("@fragment");
   });
 });

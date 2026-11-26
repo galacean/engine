@@ -18,18 +18,39 @@ const server = await createServer({ root, configFile: false, cacheDir: "/tmp/ope
   } }, workspaceEngine()], server: { middlewareMode: true, hmr: false }, optimizeDeps: { noDiscovery: true, entries: [] } });
 try {
   const { ShaderPrecompiler } = await server.ssrLoadModule("/packages/shader-compiler/src/ShaderPrecompiler.ts");
+  const { createWebGPUShaderCompiler, compileWebGPUShaderPass } = await server.ssrLoadModule("/packages/shader-compiler/src/webgpu.ts");
   const { shaderLibrary } = await server.ssrLoadModule("/packages/shader/src/ShaderLibrary/index.ts");
+  const { productFragmentInstructions } = await server.ssrLoadModule("/packages/core/src/shader/WorldShaderInstructions.ts");
   const { WATER_BUILTIN_SHADER_NAMES, waterBuiltinShaderSource } = await server.ssrLoadModule("/packages/water/src/water/native/WaterBuiltinShaderNames.ts");
+  const includes = Object.fromEntries(shaderLibrary.map(({ path, source }) => [path, source]));
   const compiler = new ShaderPrecompiler();
-  compiler.setIncludeMap(Object.fromEntries(shaderLibrary.map(({ path, source }) => [path, source])));
+  compiler.setIncludeMap(includes);
+  const webgpu = await createWebGPUShaderCompiler();
+  const wgslCompiler = new ShaderPrecompiler(webgpu);
+  wgslCompiler.setIncludeMap(includes);
   await mkdir(output, { recursive: true });
   const sources = {};
   for (const profile of Object.keys(WATER_BUILTIN_SHADER_NAMES)) {
     const source = waterBuiltinShaderSource(await readFile(path.join(input, `${profile}.shader`), "utf8"), profile);
     const data = compiler.precompile(source, 0);
+    const wgslData = wgslCompiler.precompile(source, 1);
+    const glslPasses = data.subShaders.flatMap((s) => s.passes);
+    const wgslPasses = wgslData.subShaders.flatMap((s) => s.passes);
+    for (let i = 0; i < glslPasses.length; i++) {
+      const gPass = glslPasses[i];
+      const wPass = wgslPasses[i];
+      if (gPass.isUsePass || !wPass?.wgslVertexInstructions || !wPass.wgslFragmentInstructions) continue;
+      gPass.wgslVertexInstructions = wPass.wgslVertexInstructions;
+      gPass.wgslFragmentInstructions = wPass.wgslFragmentInstructions;
+      gPass.wgsl = compileWebGPUShaderPass(webgpu, {
+        uniformBlocks: wPass.uniformBlocks,
+        wgslVertexInstructions: wPass.wgslVertexInstructions,
+        wgslFragmentInstructions: productFragmentInstructions(data.name, wPass.wgslFragmentInstructions)
+      });
+    }
     sources[profile] = createHash("sha256").update(source).digest("hex");
     await writeFile(path.join(output, `${profile}.json`), JSON.stringify(data) + "\n");
-    console.log(`Precompiled ${data.name}: ${data.subShaders.length} SubShaders`);
+    console.log(`Precompiled ${data.name}: ${data.subShaders.length} SubShaders (GLSL + WGSL)`);
   }
   await writeFile(path.join(output, "sources.json"), JSON.stringify(sources, null, 2) + "\n");
 } finally { await server.close(); }

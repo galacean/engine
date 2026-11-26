@@ -60,9 +60,14 @@ const workspaceShaderParserSource = {
 };
 
 export default [
+  // Repo-local bootstrap. Multi-entry shares one workspace shader-parser chunk so
+  // `.bootstrap/main.js` and `.bootstrap/webgpu.js` share identical ASTNode constructors.
   {
-    input: "src/webgpu.ts",
-    output: { file: ".bootstrap/webgpu.js", format: "cjs", sourcemap: true },
+    input: {
+      main: "src/precompile.ts",
+      webgpu: "src/webgpu.ts"
+    },
+    output: { dir: ".bootstrap", format: "cjs", sourcemap: true, entryFileNames: "[name].js" },
     external: [],
     plugins: [
       workspaceShaderParserSource,
@@ -79,19 +84,6 @@ export default [
     ],
     external: releaseRuntimeExternal,
     plugins: [resolve({ extensions: [".js", ".ts"] }), swcPluginRuntime, commonjs()]
-  },
-  // Repo-local bootstrap. Dependencies resolve from workspace source so the
-  // first shader precompile does not depend on pre-existing package dist files.
-  {
-    input: "src/precompile.ts",
-    output: { file: ".bootstrap/main.js", format: "cjs", sourcemap: true },
-    external: [],
-    plugins: [
-      workspaceShaderParserSource,
-      resolve({ extensions: [".js", ".ts"], mainFields: ["debug", "module", "main"] }),
-      swcPluginRuntime,
-      commonjs()
-    ]
   },
   // Publishable runtime. Parser is external so Analyzer and Compiler consume
   // one package-owned IR identity rather than embedding incompatible copies.

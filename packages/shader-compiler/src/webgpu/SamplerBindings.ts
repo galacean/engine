@@ -43,43 +43,108 @@ export function removeUnusedSamplers(source: string): {
     }
     return text;
   }
+  interface ParsedFn {
+    start: number;
+    end: number;
+    name: string;
+    parameters: string;
+    result: string;
+    body: string;
+  }
+  function scanFunctions(text: string): ParsedFn[] {
+    const fns: ParsedFn[] = [];
+    const header = /\bfn\s+(\w+)\s*\(/g;
+    let match: RegExpExecArray | null;
+    while ((match = header.exec(text)) !== null) {
+      const fnStart = match.index;
+      const name = match[1];
+      const paramStart = header.lastIndex;
+      let p = paramStart;
+      let pDepth = 1;
+      while (p < text.length && pDepth > 0) {
+        if (text[p] === "(") pDepth++;
+        else if (text[p] === ")") pDepth--;
+        p++;
+      }
+      if (pDepth !== 0) break;
+      const paramEnd = p - 1;
+      const braceOpen = text.indexOf("{", p);
+      if (braceOpen < 0) break;
+      const result = text.slice(p, braceOpen);
+      if (result.includes(";")) {
+        header.lastIndex = p;
+        continue;
+      }
+      let b = braceOpen + 1;
+      let bDepth = 1;
+      while (b < text.length && bDepth > 0) {
+        if (text[b] === "{") bDepth++;
+        else if (text[b] === "}") bDepth--;
+        b++;
+      }
+      if (bDepth !== 0) break;
+      fns.push({
+        start: fnStart,
+        end: b,
+        name,
+        parameters: text.slice(paramStart, paramEnd),
+        result,
+        body: text.slice(braceOpen + 1, b - 1)
+      });
+      header.lastIndex = b;
+    }
+    return fns;
+  }
   // Iterate to fixed point so callees declared after callers also elide unused samplers.
   let changed = true;
   while (changed) {
     changed = false;
     const removed = new Map<string, Set<number>>();
-    source = source.replace(
-      /\bfn (\w+)\(([^()]*)\)([^{}]*)\{([\s\S]*?\n)\}/g,
-      (_, name: string, parameters: string, result: string, body: string) => {
+    const fns = scanFunctions(source);
+    if (fns.length) {
+      const parts: string[] = [];
+      let cursor = 0;
+      for (const fn of fns) {
         const unused = new Set<number>();
-        const fields = splitArguments(parameters);
+        const fields = splitArguments(fn.parameters);
         fields.forEach((field, index) => {
           const param = /^\s*(\w+):\s*sampler(?:_comparison)?\s*$/.exec(field);
-          if (param && !new RegExp("\\b" + param[1] + "\\b").test(body)) unused.add(index);
+          if (param && !new RegExp("\\b" + param[1] + "\\b").test(fn.body)) unused.add(index);
         });
         if (unused.size) {
-          removed.set(name, unused);
+          removed.set(fn.name, unused);
           changed = true;
         }
-        return (
+        parts.push(
+          source.slice(cursor, fn.start),
           "fn " +
-          name +
-          "(" +
-          fields.filter((_, index) => !unused.has(index)).join(",") +
-          ")" +
-          result +
-          "{" +
-          body +
-          "}"
+            fn.name +
+            "(" +
+            fields.filter((_, index) => !unused.has(index)).join(",") +
+            ")" +
+            fn.result +
+            "{" +
+            fn.body +
+            "}"
         );
+        cursor = fn.end;
       }
-    );
+      parts.push(source.slice(cursor));
+      source = parts.join("");
+    }
     if (removed.size) {
-      source = source.replace(
-        /\bfn (\w+)\(([^()]*)\)([^{}]*)\{([\s\S]*?\n)\}/g,
-        (_, name: string, parameters: string, result: string, body: string) =>
-          "fn " + name + "(" + parameters + ")" + result + "{" + replaceCalls(body, removed) + "}"
-      );
+      const fns2 = scanFunctions(source);
+      const parts: string[] = [];
+      let cursor = 0;
+      for (const fn of fns2) {
+        parts.push(
+          source.slice(cursor, fn.start),
+          "fn " + fn.name + "(" + fn.parameters + ")" + fn.result + "{" + replaceCalls(fn.body, removed) + "}"
+        );
+        cursor = fn.end;
+      }
+      parts.push(source.slice(cursor));
+      source = parts.join("");
     }
   }
   const bindings = new Set<string>();

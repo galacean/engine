@@ -13,6 +13,7 @@ import {
   ScreenSpaceReflectionSettings,
   ShaderData,
   ShaderDataGroup,
+  ShaderLanguage,
   SSRRuntimeState,
   TextureFormat
 } from "@galacean/engine";
@@ -490,13 +491,19 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
   });
 
   it("derives sampler stage visibility from texture references independently of struct member names", async () => {
-    const compiler = await createWebGPUShaderCompiler();
-    const vertex = `struct Data { float pixels; };
-      void main() { Data d = Data(1.0); gl_Position = vec4(d.pixels); }`;
-    const fragment = `uniform sampler2D pixels;
-      out vec4 color;
-      void main() { color = texture(pixels, vec2(0.0)); }`;
-    const { reflection } = compiler.compileWebGPUVariant(vertex, fragment);
+    const webgpu = await createWebGPUShaderCompiler();
+    const { ShaderCompiler } = await import("@galacean/engine-shader-compiler");
+    const shaderCompiler = new ShaderCompiler(webgpu);
+    const program = shaderCompiler._parseShaderPass(
+      `struct Data { float pixels; };
+       sampler2D pixels;
+       void vert() { Data d = Data(1.0); gl_Position = vec4(d.pixels); }
+       void frag() { gl_FragColor = texture(pixels, vec2(0.0)); }`,
+      "vert",
+      "frag",
+      ShaderLanguage.WGSL
+    )!;
+    const { reflection } = program.wgsl!;
     expect(reflection.textures).toHaveLength(1);
     expect(reflection.textures[0]).toMatchObject({ name: "pixels", visibility: 2, samplerVisibility: 2 });
   });

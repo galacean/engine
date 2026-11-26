@@ -1,6 +1,7 @@
 import { type Engine, ShaderFactory, ShaderLanguage, ShaderPass } from "@galacean/engine";
 import sceneLighting from "./ConstructionSceneLighting.glsl?raw";
 import { RAW_GLSL_MACROS, rawGlslInstructions } from "./RawGlslInstructions";
+import { buildingGLSLToShaderLab } from "./BuildingShaderLab";
 
 type Instructions = ConstructorParameters<typeof ShaderPass>[2];
 type UniformBlocks = ConstructorParameters<typeof ShaderPass>[6];
@@ -109,17 +110,50 @@ export function createConstructionForwardPass(
   const normalizedFragment = helpersDeclareProjectionParams
     ? fragment.replace(CAMERA_PROJECTION_PARAMS_DECL_PATTERN, "\n")
     : fragment;
+  // When a WebGPU compiler is attached, also compile the converted ShaderLab source directly
+  // through the single AST (`WGSLVisitor`) so WebGPU specializes macros without any GLSL parser.
+  let wgsl: ConstructorParameters<typeof ShaderPass>[8];
+  let wgslVertexInstructions: ConstructorParameters<typeof ShaderPass>[10];
+  let wgslFragmentInstructions: ConstructorParameters<typeof ShaderPass>[11];
+  let finalUniformBlocks = uniformBlocks;
+  const hasWebGPU = Boolean((compiler as unknown as { webgpu?: unknown }).webgpu);
+  if (hasWebGPU) {
+    registerConstructionSceneLighting();
+    const shaderLab = buildingGLSLToShaderLab("Masonry/Resident", vertex, normalizedFragment, {
+      includeSceneLighting: true
+    });
+    const parsedPass = compiler._parseShaderSource(shaderLab).subShaders[0].passes[0];
+    const wgslProgram = compiler._parseShaderPass(
+      parsedPass.contents,
+      parsedPass.vertexEntry,
+      parsedPass.fragmentEntry,
+      ShaderLanguage.WGSL,
+      undefined,
+      parsedPass.contentScopeStarts
+    );
+    if (!wgslProgram?.wgslVertexInstructions || !wgslProgram?.wgslFragmentInstructions) {
+      throw new Error("Construction resident shader failed to compile to WGSL via ShaderLab.");
+    }
+    wgsl = wgslProgram.wgsl;
+    wgslVertexInstructions = wgslProgram.wgslVertexInstructions;
+    wgslFragmentInstructions = wgslProgram.wgslFragmentInstructions;
+    finalUniformBlocks = wgslProgram.uniformBlocks ?? uniformBlocks;
+  }
+
   // Append gates AFTER the helper instructions so their absolute jumps stay valid.
   // The explicit Scene and Camera blocks retain their compiled byte layout.
-  // The bridge's uniform plan and WGSL refer to its original entry points and
-  // instruction streams; the linked vertex and fragment must specialize anew.
   return new ShaderPass(
     "Forward",
     rawGlslInstructions(["RENDERER_MASONRY_ENTRANCE"], vertex),
     [...helpers, ...rawGlslInstructions(RAW_GLSL_MACROS, normalizedFragment, helpers.length)],
-    ShaderLanguage.GLSLES300,
+    hasWebGPU ? ShaderLanguage.WGSL : ShaderLanguage.GLSLES300,
     undefined,
     undefined,
-    uniformBlocks
+    finalUniformBlocks,
+    undefined,
+    wgsl,
+    undefined,
+    wgslVertexInstructions,
+    wgslFragmentInstructions
   );
 }

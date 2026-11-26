@@ -81,23 +81,27 @@ export class Shader implements IReferable {
       shaderPassesOrSubShadersOrPlatformTarget == undefined ||
       typeof shaderPassesOrSubShadersOrPlatformTarget === "number"
     ) {
+      const hasWebGPUCompiler = Boolean((Shader._shaderCompiler as unknown as { webgpu?: unknown })?.webgpu);
       const platformTarget =
         typeof shaderPassesOrSubShadersOrPlatformTarget === "number"
           ? shaderPassesOrSubShadersOrPlatformTarget
-          : ShaderLanguage.GLSLES300;
+          : hasWebGPUCompiler
+            ? ShaderLanguage.WGSL
+            : ShaderLanguage.GLSLES300;
       return Shader._createFromSource(nameOrShaderSource, platformTarget);
     }
 
     if (!Array.isArray(shaderPassesOrSubShadersOrPlatformTarget)) {
       const engine = shaderPassesOrSubShadersOrPlatformTarget;
       if (!engine._shaderCompiler) throw new Error("This engine was created without a shader compiler.");
+      const target = engine._hardwareRenderer.backend === "webgpu" ? ShaderLanguage.WGSL : ShaderLanguage.GLSLES300;
       return Shader._createFromSource(
         nameOrShaderSource,
-        engine._hardwareRenderer.backend === "webgpu" ? ShaderLanguage.WGSL : ShaderLanguage.GLSLES300,
+        target,
         undefined,
         engine._shaderCompiler,
         engine._builtinShaders.byName,
-        ShaderLanguage.GLSLES300
+        target
       );
     }
     if (shaderPassesOrSubShadersOrPlatformTarget.length === 0) {
@@ -155,15 +159,27 @@ export class Shader implements IReferable {
 
         const shaderPass = new ShaderPass(
           passSource.name,
-          shaderPassSource.vertexShaderInstructions!,
-          shaderPassSource.fragmentShaderInstructions!,
+          shaderPassSource.vertexShaderInstructions ?? [],
+          shaderPassSource.fragmentShaderInstructions ?? [],
           platformTarget,
           passSource.tags,
           shaderPassSource.vertexOutputNames,
           shaderPassSource.uniformBlocks,
           shaderPassSource.uniformPlan,
-          shaderPassSource.wgsl
+          shaderPassSource.wgsl,
+          undefined,
+          shaderPassSource.wgslVertexInstructions,
+          shaderPassSource.wgslFragmentInstructions
         );
+        if (!shaderPassSource.wgslVertexInstructions || !shaderPassSource.vertexShaderInstructions?.length) {
+          shaderPass._shaderLabSource = {
+            contents: passSource.contents,
+            vertexEntry: passSource.vertexEntry,
+            fragmentEntry: passSource.fragmentEntry,
+            sourceFile,
+            contentScopeStarts: passSource.contentScopeStarts
+          };
+        }
 
         Shader._applyRenderStates(
           shaderPass,
@@ -204,15 +220,21 @@ export class Shader implements IReferable {
 
         const shaderPass = new ShaderPass(
           passData.name,
-          passData.vertexShaderInstructions!,
-          passData.fragmentShaderInstructions!,
+          passData.vertexShaderInstructions ?? [],
+          passData.fragmentShaderInstructions ?? [],
           data.platformTarget as ShaderLanguage,
           passData.tags,
           passData.vertexOutputNames,
           passData.uniformBlocks,
           passData.uniformPlan,
           passData.wgsl,
-          productFragmentInstructions(data.name, passData.fragmentShaderInstructions!)
+          passData.fragmentShaderInstructions
+            ? productFragmentInstructions(data.name, passData.fragmentShaderInstructions)
+            : undefined,
+          passData.wgslVertexInstructions,
+          passData.wgslFragmentInstructions
+            ? productFragmentInstructions(data.name, passData.wgslFragmentInstructions)
+            : undefined
         );
 
         Shader._applyRenderStates(

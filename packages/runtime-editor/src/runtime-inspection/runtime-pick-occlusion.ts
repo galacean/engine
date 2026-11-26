@@ -25,6 +25,9 @@ type Pass = {
   _uniformPlan?: PassArguments[7];
   _wgsl?: PassArguments[8];
   _webGPUFragmentInstructions?: PassArguments[9];
+  _wgslVertexInstructions?: PassArguments[10];
+  _wgslFragmentInstructions?: PassArguments[11];
+  _shaderLabSource?: unknown;
   _renderState: any;
   _renderStateDataMap: Record<number, ShaderProperty>;
   _tagsMap: Record<number, string | number | boolean>;
@@ -50,9 +53,12 @@ export function pickOcclusionPass(original: ShaderPass) {
     src._uniformBlocks,
     src._uniformPlan,
     src._wgsl,
-    src._webGPUFragmentInstructions
+    src._webGPUFragmentInstructions,
+    src._wgslVertexInstructions,
+    src._wgslFragmentInstructions
   );
   const dst = output as unknown as Pass;
+  if (src._shaderLabSource) dst._shaderLabSource = src._shaderLabSource;
   dst._tagsMap = { ...src._tagsMap };
   const pipelineStage = original.getTagValue<string>("pipelineStage");
   output.deleteTag("pipelineStage");

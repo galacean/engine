@@ -430,6 +430,10 @@ export class ParserSemanticValidation {
       };
     }
 
+    // Array constructors (e.g. `vec3[3](v0, v1, v2)`) construct fixed arrays, not vectors/matrices.
+    const firstChild = functionIdentifier.children[0];
+    if (firstChild instanceof ASTNode.TypeSpecifier && firstChild.arraySpecifier) return;
+
     const matrixComponents = TypeSystem.matrixComponentCount(functionIdentifier.ident);
     const requiredComponents = TypeSystem.vectorComponentCount(functionIdentifier.ident) || matrixComponents;
     if (requiredComponents <= 0) return;

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createWebGPUShaderCompiler } from "@galacean/engine-shader-compiler/webgpu";
+import { compileWebGPUShaderPass, createWebGPUShaderCompiler } from "@galacean/engine-shader-compiler/webgpu";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import {
   Buffer,
   BufferBindFlag,
@@ -17,9 +18,10 @@ import {
   PrimitiveMesh,
   RenderState,
   RenderTarget,
-  RenderBufferLoadAction,
-  RenderBufferStoreAction,
+  RenderPassLoadAction,
+  RenderPassStoreAction,
   SetDataOptions,
+  ShaderLanguage,
   Texture2D,
   Texture2DArray,
   TextureCube,
@@ -301,10 +303,10 @@ describe.skipIf(!navigator.gpu)("Native WebGPU rendering", () => {
         false,
         0,
         undefined,
-        RenderBufferLoadAction.Load,
-        RenderBufferStoreAction.Resolve,
-        RenderBufferLoadAction.Load,
-        RenderBufferStoreAction.DontCare,
+        RenderPassLoadAction.Load,
+        RenderPassStoreAction.Resolve,
+        RenderPassLoadAction.Load,
+        RenderPassStoreAction.DontCare,
         "native store split"
       );
       rhi.clearRenderTarget(engine, CameraClearFlags.All, new Color(0, 0, 1, 1));
@@ -742,22 +744,32 @@ describe.skipIf(!navigator.gpu)("Native WebGPU rendering", () => {
         ])
       )
     };
-    const vertex =
-      "void main(){vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));gl_Position=vec4(p*2.0-1.0,0.0,1.0);}";
-    const fragment = `uniform sampler2D material_large; uniform sampler2D material_small; uniform sampler2D material_single;
-      out vec4 color;
-      vec4 fetch(sampler2D t,vec2 uv){
-        vec4 implicitSample=texture(t,uv);
-        vec4 grad=textureGrad(t,uv,vec2(0.04,0.11),vec2(0.21,0.01));
-        vec4 bias=texture(t,uv,0.75);
-        vec4 explicitSample=textureLod(t,uv,0.75);
-        return (implicitSample+grad+bias+explicitSample)*0.25;
+    const shaderCompiler = new ShaderCompiler(compiler);
+    const shaderPass = shaderCompiler._parseShaderPass(
+      `sampler2D material_large;
+      sampler2D material_small;
+      sampler2D material_single;
+      void vert() {
+        vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+        gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
       }
-      void main(){vec2 uv=gl_FragCoord.xy*vec2(0.145,-0.115);
-        vec4 sampled=(fetch(material_large,uv)+fetch(material_small,uv)+fetch(material_single,uv))/3.;
-        vec4 loaded=texelFetch(material_small,ivec2(1,0),1);
-        color=vec4(sampled.rg,(loaded.r+float(textureSize(material_small,0).x)/8.)*0.5,1.);
-      }`;
+      vec4 fetch(sampler2D t, vec2 uv) {
+        vec4 implicitSample = texture(t, uv);
+        vec4 grad = textureGrad(t, uv, vec2(0.04, 0.11), vec2(0.21, 0.01));
+        vec4 bias = texture(t, uv, 0.75);
+        vec4 explicitSample = textureLod(t, uv, 0.75);
+        return (implicitSample + grad + bias + explicitSample) * 0.25;
+      }
+      void frag() {
+        vec2 uv = gl_FragCoord.xy * vec2(0.145, -0.115);
+        vec4 sampled = (fetch(material_large, uv) + fetch(material_small, uv) + fetch(material_single, uv)) / 3.0;
+        vec4 loaded = texelFetch(material_small, ivec2(1, 0), 1);
+        gl_FragColor = vec4(sampled.rg, (loaded.r + float(textureSize(material_small, 0).x) / 8.0) * 0.5, 1.0);
+      }`,
+      "vert",
+      "frag",
+      ShaderLanguage.WGSL
+    )!;
     const width = 16,
       height = 16;
     const output = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, false);
@@ -772,7 +784,7 @@ describe.skipIf(!navigator.gpu)("Native WebGPU rendering", () => {
     state.rasterState.cullMode = CullMode.Off;
     let reference: Uint8Array | undefined;
     for (const limit of [16, 1]) {
-      const compiled = compiler.compileWebGPUVariant(vertex, fragment, { ...options, maxTexturesPerStage: limit });
+      const compiled = compileWebGPUShaderPass(compiler, shaderPass, new Map(), { ...options, maxTexturesPerStage: limit });
       if (limit === 1) expect(compiled.reflection.textures.map((t) => t.arrayMipOffset ?? 0)).toEqual([0, 2, 1]);
       const program = rhi.createPlatformShaderProgram(engine, {
         vertexSource: compiled.vertex,

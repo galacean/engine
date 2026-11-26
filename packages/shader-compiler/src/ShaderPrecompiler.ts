@@ -121,7 +121,9 @@ export class ShaderPrecompiler {
             uniformPlan: program.uniformPlan,
             wgsl: program.wgsl,
             vertexShaderInstructions: program.vertexShaderInstructions,
-            fragmentShaderInstructions: program.fragmentShaderInstructions
+            fragmentShaderInstructions: program.fragmentShaderInstructions,
+            wgslVertexInstructions: program.wgslVertexInstructions,
+            wgslFragmentInstructions: program.wgslFragmentInstructions
           };
         })
       }))

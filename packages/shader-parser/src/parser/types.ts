@@ -33,6 +33,8 @@ export type TraceStackItem = NoneTerminal | BaseToken;
 
 export class SymbolType extends SymbolDataType {}
 
+export type ParamDirection = "in" | "out" | "inout";
+
 export class StructProp implements IParamInfo {
   constructor(
     public typeInfo: SymbolType,
@@ -40,7 +42,9 @@ export class StructProp implements IParamInfo {
     public mrtIndex?: number,
     public isInMacroBranch = false,
     /** Whether the member carries the `flat` interpolation qualifier — integer varyings require it. */
-    public isFlat = false
+    public isFlat = false,
+    /** Whether the member carries the `centroid` sampling qualifier. */
+    public isCentroid = false
   ) {}
 }
 
@@ -49,5 +53,6 @@ export type NodeChild = TreeNode | BaseToken;
 export type IParamInfo = {
   ident?: BaseToken;
   typeInfo?: SymbolType;
+  direction?: ParamDirection;
   astNode?: ASTNode.ParameterDeclaration | ASTNode.MacroParamBlock;
 };

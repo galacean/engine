@@ -90,253 +90,243 @@ const EMPTY_GROUPS = new Float32Array(0);
 
 const RendererShaderData = ShaderData as unknown as new (group: ShaderDataGroup) => ShaderData;
 
-const TF_VERTEX_SHADER = `
-precision highp float;
-precision highp int;
+const TF_SHADER_SOURCE = `Shader "${TF_SHADER_NAME}" {
+  SubShader "Default" {
+    Pass "ForwardGrassTF" {
+      sampler2D u_TerrainTex;
+      sampler2D u_MaskTex;
+      vec4 u_GrassParams[8];
+      vec4 u_Frustum[6];
+      #define u_WindowOriginSize u_GrassParams[0]
+      #define u_WorldBounds u_GrassParams[1]
+      #define u_GridRect u_GrassParams[2]
+      #define u_CameraPosition u_GrassParams[3]
+      #define u_RingDistances u_GrassParams[4]
+      #define u_FeatherAndWidth u_GrassParams[5]
+      #define u_LodParams u_GrassParams[6]
+      #define u_ScaleParams u_GrassParams[7]
+      #define u_Frustum0 u_Frustum[0]
+      #define u_Frustum1 u_Frustum[1]
+      #define u_Frustum2 u_Frustum[2]
+      #define u_Frustum3 u_Frustum[3]
+      #define u_Frustum4 u_Frustum[4]
+      #define u_Frustum5 u_Frustum[5]
 
-uniform sampler2D u_TerrainTex;
-uniform sampler2D u_MaskTex;
-in float a_GrassGroup;
-uniform vec4 u_GrassParams[8];
-uniform vec4 u_Frustum[6];
-#define u_WindowOriginSize u_GrassParams[0]
-#define u_WorldBounds u_GrassParams[1]
-#define u_GridRect u_GrassParams[2]
-#define u_CameraPosition u_GrassParams[3]
-#define u_RingDistances u_GrassParams[4]
-#define u_FeatherAndWidth u_GrassParams[5]
-#define u_LodParams u_GrassParams[6]
-#define u_ScaleParams u_GrassParams[7]
-#define u_Frustum0 u_Frustum[0]
-#define u_Frustum1 u_Frustum[1]
-#define u_Frustum2 u_Frustum[2]
-#define u_Frustum3 u_Frustum[3]
-#define u_Frustum4 u_Frustum[4]
-#define u_Frustum5 u_Frustum[5]
+      struct Attributes {
+        float a_GrassGroup;
+      };
 
-out vec4 v_PositionRotation;
-out vec3 v_Scale;
-out vec3 v_SurfaceWeights;
-out vec3 v_TerrainNormal;
+      struct Varyings {
+        vec4 v_PositionRotation;
+        vec3 v_Scale;
+        vec3 v_SurfaceWeights;
+        vec3 v_TerrainNormal;
+      };
 
-uint forwardGrassHash(uint x) {
-  x ^= x >> 16u;
-  x *= 0x7feb352du;
-  x ^= x >> 15u;
-  x *= 0x846ca68bu;
-  x ^= x >> 16u;
-  return x;
-}
-
-uint forwardGrassCellHash(ivec2 cell) {
-  uint h = uint(cell.x) * 0x9e3779b9u ^ uint(cell.y) * 0x85ebca6bu;
-  return forwardGrassHash(h);
-}
-
-float forwardGrassUnitFloat(uint h) {
-  return float(h & 0x00ffffffu) / 16777216.0;
-}
-
-void emitCulled() {
-  v_PositionRotation = vec4(u_CameraPosition.x, 0.0, u_CameraPosition.y, 0.0);
-  v_Scale = vec3(0.0);
-  v_SurfaceWeights = vec3(0.0);
-  v_TerrainNormal = vec3(0.0, 1.0, 0.0);
-}
-
-bool forwardGrassBoxInFrustum(vec3 center, vec3 halfExtents) {
-  if (dot(u_Frustum0.xyz, center) + u_Frustum0.w + dot(abs(u_Frustum0.xyz), halfExtents) < 0.0) return false;
-  if (dot(u_Frustum1.xyz, center) + u_Frustum1.w + dot(abs(u_Frustum1.xyz), halfExtents) < 0.0) return false;
-  if (dot(u_Frustum2.xyz, center) + u_Frustum2.w + dot(abs(u_Frustum2.xyz), halfExtents) < 0.0) return false;
-  if (dot(u_Frustum3.xyz, center) + u_Frustum3.w + dot(abs(u_Frustum3.xyz), halfExtents) < 0.0) return false;
-  if (dot(u_Frustum4.xyz, center) + u_Frustum4.w + dot(abs(u_Frustum4.xyz), halfExtents) < 0.0) return false;
-  if (dot(u_Frustum5.xyz, center) + u_Frustum5.w + dot(abs(u_Frustum5.xyz), halfExtents) < 0.0) return false;
-  return true;
-}
-
-void main() {
-  int cellIndex = int(a_GrassGroup) + (gl_VertexID & 7) + ((gl_VertexID >> 3) << 10);
-  ivec2 cell = ivec2(u_WindowOriginSize.xy / u_LodParams.x) + ivec2(cellIndex & 1023, cellIndex >> 10);
-
-  uint baseSeed = forwardGrassCellHash(cell);
-  float rJitterX = forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0x68bc21ebu));
-  float rJitterZ = forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0x02e5be93u));
-  float stepMetres = u_LodParams.x;
-  vec2 worldXZ = (vec2(cell) + vec2(0.05) + vec2(rJitterX, rJitterZ) * 0.9) * stepMetres;
-
-  if (
-    worldXZ.x < u_WorldBounds.x ||
-    worldXZ.x > u_WorldBounds.z ||
-    worldXZ.y < u_WorldBounds.y ||
-    worldXZ.y > u_WorldBounds.w
-  ) {
-    emitCulled();
-    return;
-  }
-
-  vec2 toCell = worldXZ - u_CameraPosition.xy;
-  float dist = length(toCell);
-  float innerFeather = u_FeatherAndWidth.x;
-  float outerFeather = u_FeatherAndWidth.y;
-  float minBound = max(0.0, u_RingDistances.x - innerFeather);
-  float maxBound = u_RingDistances.y + outerFeather;
-  if (dist < minBound || dist > maxBound) {
-    emitCulled();
-    return;
-  }
-
-  // Ring 0 <-> Ring 1 share the exact 0.25m world lattice, so staggered distance jitter
-  // swaps each clump in-place at its identical position/yaw/scale over a 10m band.
-  // Ring 1 <-> Ring 2 use different lattice steps (0.25m vs 0.50m), so they crossfade smoothly in scale.
-  float ringLod = u_GridRect.w;
-  float lodBlendScale = 1.0;
-  if (ringLod < 0.5) {
-    float jitterOuter = (forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0x517cc1b7u)) * 2.0 - 1.0) * outerFeather;
-    if (outerFeather > 0.001) {
-      if (dist + jitterOuter >= u_RingDistances.y) {
-        emitCulled();
-        return;
+      uint forwardGrassHash(uint x) {
+        x ^= x >> 16u;
+        x *= 0x7feb352du;
+        x ^= x >> 15u;
+        x *= 0x846ca68bu;
+        x ^= x >> 16u;
+        return x;
       }
-    } else if (dist > u_RingDistances.y) {
-      emitCulled();
-      return;
+
+      uint forwardGrassCellHash(ivec2 cell) {
+        uint h = uint(cell.x) * 0x9e3779b9u ^ uint(cell.y) * 0x85ebca6bu;
+        return forwardGrassHash(h);
+      }
+
+      float forwardGrassUnitFloat(uint h) {
+        return float(h & 0x00ffffffu) / 16777216.0;
+      }
+
+      Varyings emitCulled() {
+        Varyings o;
+        o.v_PositionRotation = vec4(u_CameraPosition.x, 0.0, u_CameraPosition.y, 0.0);
+        o.v_Scale = vec3(0.0);
+        o.v_SurfaceWeights = vec3(0.0);
+        o.v_TerrainNormal = vec3(0.0, 1.0, 0.0);
+        return o;
+      }
+
+      bool forwardGrassBoxInFrustum(vec3 center, vec3 halfExtents) {
+        if (dot(u_Frustum0.xyz, center) + u_Frustum0.w + dot(abs(u_Frustum0.xyz), halfExtents) < 0.0) return false;
+        if (dot(u_Frustum1.xyz, center) + u_Frustum1.w + dot(abs(u_Frustum1.xyz), halfExtents) < 0.0) return false;
+        if (dot(u_Frustum2.xyz, center) + u_Frustum2.w + dot(abs(u_Frustum2.xyz), halfExtents) < 0.0) return false;
+        if (dot(u_Frustum3.xyz, center) + u_Frustum3.w + dot(abs(u_Frustum3.xyz), halfExtents) < 0.0) return false;
+        if (dot(u_Frustum4.xyz, center) + u_Frustum4.w + dot(abs(u_Frustum4.xyz), halfExtents) < 0.0) return false;
+        if (dot(u_Frustum5.xyz, center) + u_Frustum5.w + dot(abs(u_Frustum5.xyz), halfExtents) < 0.0) return false;
+        return true;
+      }
+
+      Varyings vert(Attributes a) {
+        gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+        int cellIndex = int(a.a_GrassGroup) + (gl_VertexID & 7) + ((gl_VertexID >> 3) << 10);
+        ivec2 cell = ivec2(u_WindowOriginSize.xy / u_LodParams.x) + ivec2(cellIndex & 1023, cellIndex >> 10);
+
+        uint baseSeed = forwardGrassCellHash(cell);
+        float rJitterX = forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0x68bc21ebu));
+        float rJitterZ = forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0x02e5be93u));
+        float stepMetres = u_LodParams.x;
+        vec2 worldXZ = (vec2(cell) + vec2(0.05) + vec2(rJitterX, rJitterZ) * 0.9) * stepMetres;
+
+        if (
+          worldXZ.x < u_WorldBounds.x ||
+          worldXZ.x > u_WorldBounds.z ||
+          worldXZ.y < u_WorldBounds.y ||
+          worldXZ.y > u_WorldBounds.w
+        ) {
+          return emitCulled();
+        }
+
+        vec2 toCell = worldXZ - u_CameraPosition.xy;
+        float dist = length(toCell);
+        float innerFeather = u_FeatherAndWidth.x;
+        float outerFeather = u_FeatherAndWidth.y;
+        float minBound = max(0.0, u_RingDistances.x - innerFeather);
+        float maxBound = u_RingDistances.y + outerFeather;
+        if (dist < minBound || dist > maxBound) {
+          return emitCulled();
+        }
+
+        // Ring 0 <-> Ring 1 share the exact 0.25m world lattice, so staggered distance jitter
+        // swaps each clump in-place at its identical position/yaw/scale over a 10m band.
+        // Ring 1 <-> Ring 2 use different lattice steps (0.25m vs 0.50m), so they crossfade smoothly in scale.
+        float ringLod = u_GridRect.w;
+        float lodBlendScale = 1.0;
+        if (ringLod < 0.5) {
+          float jitterOuter = (forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0x517cc1b7u)) * 2.0 - 1.0) * outerFeather;
+          if (outerFeather > 0.001) {
+            if (dist + jitterOuter >= u_RingDistances.y) {
+              return emitCulled();
+            }
+          } else if (dist > u_RingDistances.y) {
+            return emitCulled();
+          }
+        } else if (ringLod < 1.5) {
+          float jitterInner = (forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0x517cc1b7u)) * 2.0 - 1.0) * innerFeather;
+          if (u_RingDistances.x > 0.001 && dist + jitterInner < u_RingDistances.x) {
+            return emitCulled();
+          }
+          if (outerFeather > 0.001) {
+            lodBlendScale = 1.0 - smoothstep(u_RingDistances.y - outerFeather, u_RingDistances.y + outerFeather, dist);
+          } else if (dist > u_RingDistances.y) {
+            return emitCulled();
+          }
+        } else if (ringLod < 2.5) {
+          if (innerFeather > 0.001 && u_RingDistances.x > 0.001) {
+            lodBlendScale = smoothstep(u_RingDistances.x - innerFeather, u_RingDistances.x + innerFeather, dist);
+          }
+          if (outerFeather > 0.001) {
+            lodBlendScale *= 1.0 - smoothstep(u_RingDistances.y - outerFeather, u_RingDistances.y + outerFeather, dist);
+          } else if (dist > u_RingDistances.y) {
+            return emitCulled();
+          }
+        } else {
+          if (innerFeather > 0.001 && u_RingDistances.x > 0.001) {
+            lodBlendScale = smoothstep(u_RingDistances.x - innerFeather, u_RingDistances.x + innerFeather, dist);
+          }
+          if (dist > u_RingDistances.y) {
+            return emitCulled();
+          }
+        }
+        if (lodBlendScale <= 0.001) {
+          return emitCulled();
+        }
+
+        vec2 localPos = worldXZ - u_WindowOriginSize.xy;
+        if (
+          localPos.x < 0.0 ||
+          localPos.y < 0.0 ||
+          localPos.x >= u_WindowOriginSize.w - 1.0 ||
+          localPos.y >= u_WindowOriginSize.w - 1.0
+        ) {
+          return emitCulled();
+        }
+
+        // Toroidal physical addressing lets incremental 4m strips update edges without full-window copies.
+        vec2 maskUV = (mod(worldXZ, u_WindowOriginSize.w) + vec2(0.5)) * u_WindowOriginSize.z;
+        vec4 maskSample = texture(u_MaskTex, maskUV);
+        if (maskSample.r <= 0.0005) {
+          return emitCulled();
+        }
+
+        float fadeStart = u_FeatherAndWidth.w;
+        float t = clamp((dist - fadeStart) / max(u_LodParams.z - fadeStart, 0.001), 0.0, 1.0);
+        float lodDensity = 1.0 - (1.0 - u_LodParams.w) * (t * t * (3.0 - 2.0 * t));
+        float expectedClumps = maskSample.r * u_LodParams.y * lodDensity;
+        float acceptRand = forwardGrassUnitFloat(baseSeed);
+        float densityScale = smoothstep(acceptRand - 0.08, acceptRand + 0.02, expectedClumps);
+        if (densityScale <= 0.001) {
+          return emitCulled();
+        }
+
+        vec2 flooredWorld = floor(worldXZ);
+        ivec2 p0 = ivec2(flooredWorld) & ${WINDOW_TEXEL_MASK};
+        ivec2 p1 = (p0 + ivec2(1)) & ${WINDOW_TEXEL_MASK};
+        vec2 frac = clamp(worldXZ - flooredWorld, vec2(0.0), vec2(1.0));
+        vec4 t00 = texelFetch(u_TerrainTex, p0, 0);
+        vec4 t10 = texelFetch(u_TerrainTex, ivec2(p1.x, p0.y), 0);
+        vec4 t01 = texelFetch(u_TerrainTex, ivec2(p0.x, p1.y), 0);
+        vec4 t11 = texelFetch(u_TerrainTex, p1, 0);
+        vec4 terrainSample = mix(mix(t00, t10, frac.x), mix(t01, t11, frac.x), frac.y);
+
+        float bladeMaxHeight = u_ScaleParams.z > 0.5
+          ? max(maskSample.b, maskSample.a) * ${MAX_BAKED_ECO_HEIGHT_METRES.toFixed(1)} + ${FRUSTUM_TOP_PAD.toFixed(2)}
+          : max(u_ScaleParams.x, u_ScaleParams.y) * u_ScaleParams.w + ${FRUSTUM_TOP_PAD.toFixed(2)};
+        float boxCenterY = terrainSample.r + 0.5 * (bladeMaxHeight - ${FRUSTUM_BOTTOM_PAD.toFixed(2)});
+        float boxHalfY = 0.5 * (bladeMaxHeight + ${FRUSTUM_BOTTOM_PAD.toFixed(2)});
+        if (!forwardGrassBoxInFrustum(vec3(worldXZ.x, boxCenterY, worldXZ.y), vec3(${FRUSTUM_HALF_XZ.toFixed(2)}, boxHalfY, ${FRUSTUM_HALF_XZ.toFixed(2)}))) {
+          return emitCulled();
+        }
+
+        float grassWeight = terrainSample.a;
+        float covScale = clamp((grassWeight - 0.186363637) / (0.681818068 - 0.186363637), 0.0, 1.0);
+        if (covScale <= 0.0) {
+          return emitCulled();
+        }
+
+        float rYaw = forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0xc2b2ae35u));
+        float rScale = forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0x63d83595u));
+
+        float vertScale;
+        if (u_ScaleParams.z > 0.5) {
+          float ecoHeight = mix(maskSample.b, maskSample.a, rScale) * ${MAX_BAKED_ECO_HEIGHT_METRES.toFixed(1)};
+          vertScale = ecoHeight / max(u_ScaleParams.w, 0.001);
+        } else {
+          vertScale = mix(u_ScaleParams.x, u_ScaleParams.y, rScale);
+        }
+
+        float finalScale = vertScale * covScale * densityScale * lodBlendScale;
+        float densityPreserve = clamp(sqrt(max(1.0, maskSample.r * u_LodParams.y * lodDensity)), 1.0, 1.45);
+        float horizBoost = densityPreserve * u_FeatherAndWidth.z;
+        float nx = terrainSample.g;
+        float nz = terrainSample.b;
+        float ny = sqrt(max(0.0001, 1.0 - nx * nx - nz * nz));
+
+        Varyings o;
+        o.v_PositionRotation = vec4(worldXZ.x, terrainSample.r, worldXZ.y, rYaw * 6.2831853);
+        o.v_Scale = vec3(finalScale * horizBoost, finalScale, finalScale * horizBoost);
+        o.v_SurfaceWeights = vec3(grassWeight, maskSample.g, max(0.0, 1.0 - grassWeight - maskSample.g));
+        o.v_TerrainNormal = normalize(vec3(nx, ny, nz));
+        return o;
+      }
+
+      void frag() {
+        gl_FragColor = vec4(0.0);
+      }
+
+      VertexShader = vert;
+      FragmentShader = frag;
     }
-  } else if (ringLod < 1.5) {
-    float jitterInner = (forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0x517cc1b7u)) * 2.0 - 1.0) * innerFeather;
-    if (u_RingDistances.x > 0.001 && dist + jitterInner < u_RingDistances.x) {
-      emitCulled();
-      return;
-    }
-    if (outerFeather > 0.001) {
-      lodBlendScale = 1.0 - smoothstep(u_RingDistances.y - outerFeather, u_RingDistances.y + outerFeather, dist);
-    } else if (dist > u_RingDistances.y) {
-      emitCulled();
-      return;
-    }
-  } else if (ringLod < 2.5) {
-    if (innerFeather > 0.001 && u_RingDistances.x > 0.001) {
-      lodBlendScale = smoothstep(u_RingDistances.x - innerFeather, u_RingDistances.x + innerFeather, dist);
-    }
-    if (outerFeather > 0.001) {
-      lodBlendScale *= 1.0 - smoothstep(u_RingDistances.y - outerFeather, u_RingDistances.y + outerFeather, dist);
-    } else if (dist > u_RingDistances.y) {
-      emitCulled();
-      return;
-    }
-  } else {
-    if (innerFeather > 0.001 && u_RingDistances.x > 0.001) {
-      lodBlendScale = smoothstep(u_RingDistances.x - innerFeather, u_RingDistances.x + innerFeather, dist);
-    }
-    if (dist > u_RingDistances.y) {
-      emitCulled();
-      return;
-    }
   }
-  if (lodBlendScale <= 0.001) {
-    emitCulled();
-    return;
-  }
+}`;
 
-  vec2 localPos = worldXZ - u_WindowOriginSize.xy;
-  if (
-    localPos.x < 0.0 ||
-    localPos.y < 0.0 ||
-    localPos.x >= u_WindowOriginSize.w - 1.0 ||
-    localPos.y >= u_WindowOriginSize.w - 1.0
-  ) {
-    emitCulled();
-    return;
-  }
-
-  // Toroidal physical addressing lets incremental 4m strips update edges without full-window copies.
-  vec2 maskUV = (mod(worldXZ, u_WindowOriginSize.w) + vec2(0.5)) * u_WindowOriginSize.z;
-  vec4 maskSample = texture(u_MaskTex, maskUV);
-  if (maskSample.r <= 0.0005) {
-    emitCulled();
-    return;
-  }
-
-  float fadeStart = u_FeatherAndWidth.w;
-  float t = clamp((dist - fadeStart) / max(u_LodParams.z - fadeStart, 0.001), 0.0, 1.0);
-  float lodDensity = 1.0 - (1.0 - u_LodParams.w) * (t * t * (3.0 - 2.0 * t));
-  float expectedClumps = maskSample.r * u_LodParams.y * lodDensity;
-  float acceptRand = forwardGrassUnitFloat(baseSeed);
-  float densityScale = smoothstep(acceptRand - 0.08, acceptRand + 0.02, expectedClumps);
-  if (densityScale <= 0.001) {
-    emitCulled();
-    return;
-  }
-
-  vec2 flooredWorld = floor(worldXZ);
-  ivec2 p0 = ivec2(flooredWorld) & ${WINDOW_TEXEL_MASK};
-  ivec2 p1 = (p0 + ivec2(1)) & ${WINDOW_TEXEL_MASK};
-  vec2 frac = clamp(worldXZ - flooredWorld, vec2(0.0), vec2(1.0));
-  vec4 t00 = texelFetch(u_TerrainTex, p0, 0);
-  vec4 t10 = texelFetch(u_TerrainTex, ivec2(p1.x, p0.y), 0);
-  vec4 t01 = texelFetch(u_TerrainTex, ivec2(p0.x, p1.y), 0);
-  vec4 t11 = texelFetch(u_TerrainTex, p1, 0);
-  vec4 terrainSample = mix(mix(t00, t10, frac.x), mix(t01, t11, frac.x), frac.y);
-
-  float bladeMaxHeight = u_ScaleParams.z > 0.5
-    ? max(maskSample.b, maskSample.a) * ${MAX_BAKED_ECO_HEIGHT_METRES.toFixed(1)} + ${FRUSTUM_TOP_PAD.toFixed(2)}
-    : max(u_ScaleParams.x, u_ScaleParams.y) * u_ScaleParams.w + ${FRUSTUM_TOP_PAD.toFixed(2)};
-  float boxCenterY = terrainSample.r + 0.5 * (bladeMaxHeight - ${FRUSTUM_BOTTOM_PAD.toFixed(2)});
-  float boxHalfY = 0.5 * (bladeMaxHeight + ${FRUSTUM_BOTTOM_PAD.toFixed(2)});
-  if (!forwardGrassBoxInFrustum(vec3(worldXZ.x, boxCenterY, worldXZ.y), vec3(${FRUSTUM_HALF_XZ.toFixed(2)}, boxHalfY, ${FRUSTUM_HALF_XZ.toFixed(2)}))) {
-    emitCulled();
-    return;
-  }
-
-  float grassWeight = terrainSample.a;
-  float covScale = clamp((grassWeight - 0.186363637) / (0.681818068 - 0.186363637), 0.0, 1.0);
-  if (covScale <= 0.0) {
-    emitCulled();
-    return;
-  }
-
-  float rYaw = forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0xc2b2ae35u));
-  float rScale = forwardGrassUnitFloat(forwardGrassHash(baseSeed ^ 0x63d83595u));
-
-  float vertScale;
-  if (u_ScaleParams.z > 0.5) {
-    float ecoHeight = mix(maskSample.b, maskSample.a, rScale) * ${MAX_BAKED_ECO_HEIGHT_METRES.toFixed(1)};
-    vertScale = ecoHeight / max(u_ScaleParams.w, 0.001);
-  } else {
-    vertScale = mix(u_ScaleParams.x, u_ScaleParams.y, rScale);
-  }
-
-  float finalScale = vertScale * covScale * densityScale * lodBlendScale;
-  float densityPreserve = clamp(sqrt(max(1.0, maskSample.r * u_LodParams.y * lodDensity)), 1.0, 1.45);
-  float horizBoost = densityPreserve * u_FeatherAndWidth.z;
-  float nx = terrainSample.g;
-  float nz = terrainSample.b;
-  float ny = sqrt(max(0.0001, 1.0 - nx * nx - nz * nz));
-
-  v_PositionRotation = vec4(worldXZ.x, terrainSample.r, worldXZ.y, rYaw * 6.2831853);
-  v_Scale = vec3(finalScale * horizBoost, finalScale, finalScale * horizBoost);
-  v_SurfaceWeights = vec3(grassWeight, maskSample.g, max(0.0, 1.0 - grassWeight - maskSample.g));
-  v_TerrainNormal = normalize(vec3(nx, ny, nz));
-}
-`;
-
-const TF_FRAGMENT_SHADER = `
-precision highp float;
-out vec4 color;
-void main() {
-  color = vec4(0.0);
-}
-`;
-
-function getForwardGrassTfPass(): ShaderPass {
+function getForwardGrassTfPass(engine?: Engine): ShaderPass {
   let shader = Shader.find(TF_SHADER_NAME);
   if (!shader) {
-    const pass = new ShaderPass(
-      "ForwardGrassTF",
-      [[0, TF_VERTEX_SHADER]],
-      [[0, TF_FRAGMENT_SHADER]],
-      ShaderLanguage.GLSLES300
-    );
-    shader = Shader.create(TF_SHADER_NAME, [pass])!;
+    shader = engine ? Shader.create(TF_SHADER_SOURCE, engine)! : Shader.create(TF_SHADER_SOURCE)!;
   }
   return shader.subShaders[0].passes[0];
 }
@@ -563,7 +553,7 @@ export class SeedWorldForwardGrass {
     maskTex.isGCIgnored = true;
     this._maskTex = maskTex;
 
-    const tfPass = getForwardGrassTfPass();
+    const tfPass = getForwardGrassTfPass(engine);
     for (const config of RING_CONFIGS) {
       const simulator = new TransformFeedbackSimulator(
         engine,

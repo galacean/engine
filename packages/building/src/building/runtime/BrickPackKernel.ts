@@ -44,47 +44,61 @@ export type BrickFeedbackSource = BrickGridFeedbackInput | BrickPackFeedbackInpu
 const OUT_STRIDE = 64;
 const IN_STRIDE = 80; // 5 * vec4
 
-const PACK_SHADER_SOURCE = `
-precision highp float;
-precision highp int;
-uniform int uSlot;
-layout(location=0) in vec4 a0;
-layout(location=1) in vec4 a1;
-layout(location=2) in vec4 a2;
-layout(location=3) in vec4 a3;
-layout(location=4) in vec4 a4;
-flat out uvec4 result0;
-flat out uvec4 result1;
-flat out uvec4 result2;
-flat out uvec4 result3;
-
-uint roundShift(uint v, uint shift) {
-  uint q = v >> shift, r = v & ((1u << shift) - 1u), mid = 1u << (shift - 1u);
-  return q + ((r > mid || (r == mid && (q & 1u) == 1u)) ? 1u : 0u);
-}
-uint toHalf(float value) {
-  uint bits = floatBitsToUint(value);
-  uint sgn = (bits >> 16) & 0x8000u, exponent = (bits >> 23) & 255u, fraction = bits & 0x7fffffu;
-  if (exponent == 255u) return sgn | 0x7c00u | (fraction != 0u ? (fraction >> 13) | 0x200u : 0u);
-  if (exponent >= 143u) return sgn | 0x7c00u;
-  if (exponent < 102u) return sgn;
-  if (exponent <= 112u) return sgn | roundShift(0x800000u | fraction, 126u - exponent);
-  return sgn | (((exponent - 112u) << 10) + roundShift(fraction, 13u));
-}
-uint pair(float a, float b) { return toHalf(a) | (toHalf(b) << 16); }
-
-void main() {
-  gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
-  // a0 = (tx, ty, tz, bx), a1 = (by, bz, nx, ny), a2 = (nz, ox, oy, oz)
-  // a3 = (d0, d1, d2, d3), a4 = (span0, span1, uintBitsToFloat(seed), uintBitsToFloat(flags))
-  result0 = uvec4(pair(a0.x, a0.y), pair(a0.z, a0.w), pair(a1.x, a1.y), pair(a1.z, a1.w));
-  result1 = uvec4(toHalf(a2.x), floatBitsToUint(a2.y), floatBitsToUint(a2.z), floatBitsToUint(a2.w));
-  result2 = uvec4(pair(a3.x, a3.y), pair(a3.z, a3.w), pair(-100.0, -100.0), pair(-100.0, a4.x));
-  result3 = uvec4(toHalf(a4.y), floatBitsToUint(a4.z), uint(uSlot), floatBitsToUint(a4.w));
-}
-`;
-
 const PACK_SHADER_NAME = "Building/BrickPackKernel";
+const PACK_SHADER_LAB_SOURCE = `Shader "${PACK_SHADER_NAME}" {
+  SubShader "Default" {
+    Pass "BrickPack" {
+      int uSlot;
+      struct Attributes {
+        vec4 a0;
+        vec4 a1;
+        vec4 a2;
+        vec4 a3;
+        vec4 a4;
+      };
+      struct Varyings {
+        flat uvec4 result0;
+        flat uvec4 result1;
+        flat uvec4 result2;
+        flat uvec4 result3;
+      };
+
+      uint roundShift(uint v, uint shift) {
+        uint q = v >> shift, r = v & ((1u << shift) - 1u), mid = 1u << (shift - 1u);
+        return q + ((r > mid || (r == mid && (q & 1u) == 1u)) ? 1u : 0u);
+      }
+      uint toHalf(float value) {
+        uint bits = floatBitsToUint(value);
+        uint sgn = (bits >> 16) & 0x8000u, exponent = (bits >> 23) & 255u, fraction = bits & 0x7fffffu;
+        if (exponent == 255u) return sgn | 0x7c00u | (fraction != 0u ? (fraction >> 13) | 0x200u : 0u);
+        if (exponent >= 143u) return sgn | 0x7c00u;
+        if (exponent < 102u) return sgn;
+        if (exponent <= 112u) return sgn | roundShift(0x800000u | fraction, 126u - exponent);
+        return sgn | (((exponent - 112u) << 10) + roundShift(fraction, 13u));
+      }
+      uint pair(float a, float b) { return toHalf(a) | (toHalf(b) << 16); }
+
+      Varyings vert(Attributes a) {
+        gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+        // a0 = (tx, ty, tz, bx), a1 = (by, bz, nx, ny), a2 = (nz, ox, oy, oz)
+        // a3 = (d0, d1, d2, d3), a4 = (span0, span1, uintBitsToFloat(seed), uintBitsToFloat(flags))
+        Varyings v;
+        v.result0 = uvec4(pair(a.a0.x, a.a0.y), pair(a.a0.z, a.a0.w), pair(a.a1.x, a.a1.y), pair(a.a1.z, a.a1.w));
+        v.result1 = uvec4(toHalf(a.a2.x), floatBitsToUint(a.a2.y), floatBitsToUint(a.a2.z), floatBitsToUint(a.a2.w));
+        v.result2 = uvec4(pair(a.a3.x, a.a3.y), pair(a.a3.z, a.a3.w), pair(-100.0, -100.0), pair(-100.0, a.a4.x));
+        v.result3 = uvec4(toHalf(a.a4.y), floatBitsToUint(a.a4.z), uint(uSlot), floatBitsToUint(a.a4.w));
+        return v;
+      }
+
+      void frag() {
+        gl_FragColor = vec4(0.0);
+      }
+
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
 const VARYINGS = ["result0", "result1", "result2", "result3"];
 const IN_ELEMENTS = [0, 1, 2, 3, 4].map((i) => new VertexElement(`a${i}`, i * 16, VertexElementFormat.Vector4, 0));
 const RendererShaderData = ShaderData as unknown as new (group: ShaderDataGroup) => ShaderData;
@@ -123,16 +137,10 @@ export function getOrCreateTerrainHeightTexture(engine: Engine, grid: Constructi
   return texture;
 }
 
-function packKernelPass(): ShaderPass {
+function packKernelPass(engine?: Engine): ShaderPass {
   let shader = Shader.find(PACK_SHADER_NAME);
   if (!shader) {
-    const pass = new ShaderPass(
-      "BrickPack",
-      [[0, PACK_SHADER_SOURCE]],
-      [[0, "precision highp float; out vec4 color; void main(){ color = vec4(0.0); }"]],
-      ShaderLanguage.GLSLES300
-    );
-    shader = Shader.create(PACK_SHADER_NAME, [pass])!;
+    shader = engine ? Shader.create(PACK_SHADER_LAB_SOURCE, engine)! : Shader.create(PACK_SHADER_LAB_SOURCE)!;
   }
   return shader.subShaders[0].passes[0];
 }
@@ -172,7 +180,7 @@ export function buildBrickStorageFromFeedback(
     engine,
     OUT_STRIDE,
     count,
-    packKernelPass(),
+    packKernelPass(engine),
     VARYINGS,
     "output-only"
   );

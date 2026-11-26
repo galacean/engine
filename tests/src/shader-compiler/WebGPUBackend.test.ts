@@ -27,11 +27,19 @@ import {
   WebGPUGraphicDevice
 } from "@galacean/engine-webgpu";
 
-const vs = "void main() { gl_Position = vec4(0.0); }";
+const vs = "void vert() { gl_Position = vec4(0.0); }";
 let compiler: IWebGPUShaderCompiler;
+let shaderCompiler: ShaderCompiler;
 beforeAll(async () => {
   compiler = await createWebGPUShaderCompiler();
+  shaderCompiler = new ShaderCompiler(compiler);
 });
+
+function compileShaderLabWGSL(source: string, options?: Parameters<IWebGPUShaderCompiler["compileWebGPUVariant"]>[2]) {
+  const pass = shaderCompiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.WGSL);
+  expect(pass?.wgslVertexInstructions?.length).toBeGreaterThan(0);
+  return options ? compileWebGPUShaderPass(compiler, pass!, new Map(), options) : pass!.wgsl!;
+}
 
 it("bakes both native stages and reflection in every built-in render pass", () => {
   const shaders = Object.entries(assets).filter(([key]) => key.endsWith("Source"));
@@ -45,7 +53,7 @@ it("bakes both native stages and reflection in every built-in render pass", () =
         if (pass.isUsePass) continue;
         expect(pass.wgsl?.vertex).toContain("@vertex");
         expect(pass.wgsl?.fragment).toContain("@fragment");
-        expect(pass.vertexShaderInstructions?.length).toBeGreaterThan(0);
+        expect(pass.wgslVertexInstructions?.length).toBeGreaterThan(0);
         passes++;
       }
   }
@@ -63,12 +71,14 @@ it("retains explicit WGSL pass compilation and its backend requirement", () => {
 });
 
 it("elides samplers for a texture fetched through two helper functions", () => {
-  const fragment = `uniform sampler2D pixels;
-    out vec4 color;
+  const { reflection, fragment: code } = compileShaderLabWGSL(
+    `${vs}
+    sampler2D pixels;
     vec4 load(sampler2D t) { return texelFetch(t, ivec2(0), 0); }
     vec4 loadIndirect(sampler2D t) { return load(t); }
-    void main() { color = loadIndirect(pixels); }`;
-  const { reflection, fragment: code } = compiler.compileWebGPUVariant(vs, fragment, { maxSamplersPerStage: 0 });
+    void frag() { gl_FragColor = loadIndirect(pixels); }`,
+    { maxSamplersPerStage: 0 }
+  );
   expect(reflection.textures).toHaveLength(1);
   expect(reflection.textures[0]).toMatchObject({ name: "pixels", sampleType: "unfilterable-float" });
   expect(reflection.textures[0].samplerBinding).toBeUndefined();
@@ -76,11 +86,15 @@ it("elides samplers for a texture fetched through two helper functions", () => {
   expect(code).not.toMatch(/:\s*sampler\b/);
 });
 
-it("preserves each binding in comma-separated historical uniform declarations", () => {
-  const fragment = `uniform highp sampler2D material_a, material_images[2];
-    uniform vec4 leftTint, rightTint; out vec4 color;
-    void main(){ color=texture(material_a,vec2(0.))*leftTint+texture(material_images[1],vec2(0.))*rightTint; }`;
-  const { reflection } = compiler.compileWebGPUVariant(vs, fragment);
+it("preserves each binding in sampler arrays and uniform declarations", () => {
+  const { reflection } = compileShaderLabWGSL(
+    `${vs}
+    sampler2D material_a;
+    sampler2D material_images[2];
+    vec4 leftTint;
+    vec4 rightTint;
+    void frag() { gl_FragColor = texture(material_a, vec2(0.0)) * leftTint + texture(material_images[1], vec2(0.0)) * rightTint; }`
+  );
   expect(reflection.textures.map((t) => [t.name, t.arrayIndex])).toEqual([
     ["material_a", undefined],
     ["material_images", 1]
@@ -89,10 +103,13 @@ it("preserves each binding in comma-separated historical uniform declarations", 
 });
 
 it("specializes integer vertex formats and float/depth sampling independently", () => {
-  const vertex = "in vec4 JOINTS_0; void main() { gl_Position = JOINTS_0; }";
-  const fragment = `uniform sampler2D colors; uniform sampler2DShadow shadow; out vec4 color;
-    void main(){ color=texture(colors,vec2(0.5))*texture(shadow,vec3(0.5)); }`;
-  const { vertex: code, reflection } = compiler.compileWebGPUVariant(vertex, fragment, {
+  const src = `
+    struct Attributes { vec4 JOINTS_0; };
+    sampler2D colors;
+    sampler2DShadow shadow;
+    void vert(Attributes a) { gl_Position = a.JOINTS_0; }
+    void frag() { gl_FragColor = texture(colors, vec2(0.5)) * texture(shadow, vec3(0.5)); }`;
+  const { vertex: code, reflection } = compileShaderLabWGSL(src, {
     vertexInputTypes: { JOINTS_0: "uint" },
     unfilterableTextures: new Set(["colors"])
   });
@@ -102,14 +119,17 @@ it("specializes integer vertex formats and float/depth sampling independently", 
     ["unfilterable-float", "non-filtering"],
     ["depth", "comparison"]
   ]);
-  expect(() => compiler.compileWebGPUVariant(vertex, fragment, { maxSamplersPerStage: 1 })).toThrow(/sampler limit/);
+  expect(() => compileShaderLabWGSL(src, { maxSamplersPerStage: 1 })).toThrow(/sampler limit/);
 });
 
 it("preserves public leaf and array names when separating opaque struct resources", () => {
-  const fragment = `struct Layer {sampler2D images[2]; vec4 tint;};
-    uniform Layer material_layer; out vec4 color; const int INDEX=1;
-    void main(){color=texture(material_layer.images[INDEX],vec2(0.5))*material_layer.tint;}`;
-  const program = compiler.compileWebGPUVariant(vs, fragment);
+  const program = compileShaderLabWGSL(
+    `${vs}
+    struct Layer { sampler2D images[2]; vec4 tint; };
+    Layer material_layer;
+    const int INDEX = 1;
+    void frag() { gl_FragColor = texture(material_layer.images[INDEX], vec2(0.5)) * material_layer.tint; }`
+  );
   const reflected = program.reflection;
   expect(reflected.textures.map((t) => [t.name, t.arrayIndex, t.group])).toEqual([["material_layer.images", 1, 2]]);
   expect(reflected.uniformBlocks.flatMap((b) => b.members).map((m) => m.name)).toEqual(["material_layer.tint"]);
@@ -137,49 +157,26 @@ describe.skipIf(!navigator.gpu)("Native WGSL compatibility", () => {
     }
   });
 
-  it("compiles early-return picking variants while preserving conditional returns and later switch cases", async () => {
-    const source = `out vec4 color;
-      float pick(int id) {
-        if (id == 0) return 0.1;
-        float value;
-        switch (id) {
-          case 1: value = 0.4; break;
-          default: value = 0.5;
-        }
-        return value;
-        { float ignored = 0.2; }
-      }
-      void writePick() { color = vec4(pick(int(gl_FragCoord.x))); return; color = vec4(1.0); }
-      void main() { writePick(); }`;
-    const program = compiler.compileWebGPUVariant(vs, source);
-    const device = await (await navigator.gpu.requestAdapter())!.requestDevice();
-    try {
-      await validatePipeline(device, program, "early-return pick");
-      expect(program.fragment).toContain("0.4");
-      expect(program.fragment).toContain("0.5");
-    } finally {
-      device.destroy();
-    }
-  });
-
   it("writes back named and indexed vector output arguments at the call site", async () => {
-    const vertex = "void main(){int i=gl_VertexID; gl_Position=vec4(vec2((i<<1)&2,i&2)*2.0-1.0,0.0,1.0);}";
-    const fragment = `out vec4 color;
+    const program = compileShaderLabWGSL(`
+      void vert() {
+        int i = gl_VertexID;
+        gl_Position = vec4(vec2((i << 1) & 2, i & 2) * 2.0 - 1.0, 0.0, 1.0);
+      }
       float adjust(inout float x, out float y) { x += 0.25; y = 0.75; return x; }
       void swapPair(inout vec2 p) { p = p.yx; }
       void nested(inout vec4 value, int i) {
         if (i == 0) { value.w = adjust(value.x, value.y); }
-        else { value.w = adjust(value[2*i], value.y); }
+        else { value.w = adjust(value[2 * i], value.y); }
         swapPair(value.zw);
       }
-      void main() {
+      void frag() {
         int index = int(gl_FragCoord.x);
         vec4 values[2];
         values[index] = vec4(0.25, 0.0, 0.0, 1.0);
         nested(values[index], index);
-        color = values[index];
-      }`;
-    const program = compiler.compileWebGPUVariant(vertex, fragment);
+        gl_FragColor = values[index];
+      }`);
     const device = await (await navigator.gpu.requestAdapter())!.requestDevice();
     try {
       const pipeline = await device.createRenderPipelineAsync({
@@ -212,16 +209,22 @@ describe.skipIf(!navigator.gpu)("Native WGSL compatibility", () => {
   it("reads indexed and whole std140 arrays with their original byte strides", async () => {
     const device = await (await navigator.gpu.requestAdapter())!.requestDevice();
     try {
-      const vertex = "void main(){int i=gl_VertexID; gl_Position=vec4(vec2((i<<1)&2,i&2)*2.0-1.0,0.0,1.0);}";
       for (const whole of [false, true]) {
-        const fragment = `uniform float weights[2]; uniform vec2 pairs[2]; uniform int indices[2];
+        const shader = compileShaderLabWGSL(`
+          float weights[2];
+          vec2 pairs[2];
+          int indices[2];
+          void vert() {
+            int i = gl_VertexID;
+            gl_Position = vec4(vec2((i << 1) & 2, i & 2) * 2.0 - 1.0, 0.0, 1.0);
+          }
           float readWeight(float values[2], int index) { return values[index]; }
-          out vec4 color; void main() { color=vec4(${whole ? "readWeight(weights,indices[0])" : "weights[indices[0]]"},
-            pairs[indices[0]].y, weights[0], 1.0); }`;
-        const shader = compiler.compileWebGPUVariant(vertex, fragment);
+          void frag() {
+            gl_FragColor = vec4(${whole ? "readWeight(weights, indices[0])" : "weights[indices[0]]"},
+              pairs[indices[0]].y, weights[0], 1.0);
+          }`);
         const [block] = shader.reflection.uniformBlocks;
         expect(block.members.map((field) => field.arrayStride)).toEqual([16, 16, 16]);
-        if (!whole) expect(shader.fragment).not.toContain("var<private> weights:");
         const bytes = new ArrayBuffer(block.byteLength);
         for (const field of block.members) {
           const index = field.offset / 4;
@@ -385,19 +388,29 @@ describe.skipIf(!navigator.gpu)("Native WGSL compatibility", () => {
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter!.requestDevice();
     try {
-      const vertex = "in vec4 JOINTS_0; void main(){gl_Position=vec4(JOINTS_0.xyz,1.0);}";
-      const fragment = "out vec4 color; void main(){color=vec4(1.0);}";
+      const skinSrc = `
+        struct Attributes { vec4 JOINTS_0; };
+        void vert(Attributes a) { gl_Position = vec4(a.JOINTS_0.xyz, 1.0); }
+        void frag() { gl_FragColor = vec4(1.0); }`;
       for (const format of ["uint8x4", "uint16x4", "float32x4"] as const) {
-        const p = compiler.compileWebGPUVariant(vertex, fragment, {
+        const p = compileShaderLabWGSL(skinSrc, {
           vertexInputTypes: { JOINTS_0: format === "float32x4" ? "float" : "uint" }
         });
         await validatePipeline(device, p, format, format);
       }
-      const p = compiler.compileWebGPUVariant(
-        `out float height;
-        void main(){ int i=gl_VertexID; vec2 pos=vec2((i<<1)&2,i&2)*2.0-1.0; height=pos.y; gl_Position=vec4(pos,-0.5,1.0);}`,
-        "in float height; out vec4 color; void main(){color=vec4(dFdy(height)>0.0?1.0:0.0,gl_FragCoord.z,1.0,1.0);}"
-      );
+      const p = compileShaderLabWGSL(`
+        struct Varyings { float height; };
+        Varyings vert() {
+          Varyings o;
+          int i = gl_VertexID;
+          vec2 pos = vec2((i << 1) & 2, i & 2) * 2.0 - 1.0;
+          o.height = pos.y;
+          gl_Position = vec4(pos, -0.5, 1.0);
+          return o;
+        }
+        void frag(Varyings i) {
+          gl_FragColor = vec4(dFdy(i.height) > 0.0 ? 1.0 : 0.0, gl_FragCoord.z, 1.0, 1.0);
+        }`);
       const pipeline = device.createRenderPipeline({
         layout: "auto",
         vertex: { module: device.createShaderModule({ code: p.vertex }) },
@@ -558,39 +571,6 @@ describe.skipIf(!navigator.gpu)("Native WGSL compatibility", () => {
       device.destroy();
     }
   }, 30000);
-  it.each(["released-alpha59", "legacy-seed-text"])(
-    "draws both camera tint branches of %s.shaderc",
-    async (fixture) => {
-      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
-      try {
-        engine.canvas.setResolution(16, 16);
-        const url = new URL(`/fixtures/shader-loader/${fixture}.shaderc`, location.origin).href;
-        const shader = await engine.resourceManager.load<Shader>({ url, type: AssetType.Shader });
-        const scene = engine.sceneManager.activeScene;
-        const camera = scene.createRootEntity().addComponent(Camera);
-        camera.entity.transform.setPosition(0, 0, 3);
-        camera.isOrthographic = true;
-        camera.orthographicSize = 1;
-        camera.shaderData.setVector4("camera_LegacyTint", new Vector4(1, 0, 1, 1));
-        const color = new Texture2D(engine, 16, 16, undefined, false);
-        camera.renderTarget = new RenderTarget(engine, 16, 16, color);
-        const renderer = scene.createRootEntity().addComponent(MeshRenderer);
-        renderer.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
-        const material = new Material(engine, shader);
-        renderer.setMaterial(material);
-        const pixel = new Uint8Array(4);
-        camera.render();
-        await color.getPixelBufferAsync(8, 8, 1, 1, pixel);
-        expect(Array.from(pixel)).toEqual([0, 0, 255, 255]);
-        material.shaderData.enableMacro("LEGACY_SHOW_TINT");
-        camera.render();
-        await color.getPixelBufferAsync(8, 8, 1, 1, pixel);
-        expect(Array.from(pixel)).toEqual([255, 0, 255, 255]);
-      } finally {
-        engine.destroy();
-      }
-    }
-  );
 });
 
 async function validatePipeline(

@@ -192,6 +192,9 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitGlobalVariableDeclaration(node: ASTNode.VariableDeclaration): string {
+    if (node.isStatic) {
+      return this.defaultCodeGen(node.children);
+    }
     const children = node.children;
     const fullType = children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {

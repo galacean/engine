@@ -41,4 +41,8 @@ export interface IShaderProgramSource {
   vertexShaderInstructions?: ShaderInstruction[];
   /** Fragment program, including declaration ownership that cannot be recovered from the text view. */
   fragmentShaderInstructions?: ShaderInstruction[];
+  /** Single-AST WGSL vertex instructions for zero-parser runtime WebGPU specialization. */
+  wgslVertexInstructions?: ShaderInstruction[];
+  /** Single-AST WGSL fragment instructions for zero-parser runtime WebGPU specialization. */
+  wgslFragmentInstructions?: ShaderInstruction[];
 }

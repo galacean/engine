@@ -1,74 +1,101 @@
-import { ShaderMacroProcessor } from "@galacean/engine-core";
-import {
-  finalizeShaderUniforms,
-  type IShaderUniformSelection,
-  type IShaderInfo,
-  type IWebGPUShaderCompiler,
-  type IWebGPUShaderOptions,
-  type IWebGPUShaderProgram
+import { Logger, ReturnableObjectPool, ShaderMacroProcessor } from "@galacean/engine-core";
+import type {
+  IShaderInfo,
+  IWebGPUShaderCompiler,
+  IWebGPUShaderOptions,
+  IWebGPUShaderProgram
 } from "@galacean/engine-design";
-import { WGSLBackend } from "./webgpu/WGSLBackend";
-import { recoverLegacyInstancing } from "./webgpu/UniformDeclarations";
-import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
+import {
+  GLESShaderInfo,
+  GSError,
+  type ShaderClueIR,
+  type ShaderCoreInfo
+} from "@galacean/engine-shader-parser/internal";
+import { WGSLVisitor } from "./codeGen/WGSLVisitor";
+import { WGSLProgramLinker } from "./webgpu/WGSLProgramLinker";
 
-/** Compile an instruction-based pass for a concrete macro set and vertex layout. */
+const wgslVisitorPool = new ReturnableObjectPool(WGSLVisitor);
+
+/** Generate raw WGSL stage strings + metadata directly from the single ShaderLab IR (zero secondary AST). */
+export function generateWGSLFromIR(ir: ShaderClueIR, coreInfo: ShaderCoreInfo): IShaderInfo | undefined {
+  const glesInfo = new GLESShaderInfo(ir, coreInfo);
+  if (glesInfo.mrtOutputIssues.length || glesInfo.invalidMrtReturnLocations.length) {
+    Logger.error(
+      "MRT outputs require unique non-negative locations, vec4 members, and returns through an assigned struct variable."
+    );
+    return undefined;
+  }
+  if (glesInfo.invalidVaryingReturnLocations.length) {
+    Logger.error("Varying vertex entries must return a struct variable or same-type function result.");
+    return undefined;
+  }
+  if (glesInfo.structMemberOwnerIssues.length) {
+    Logger.error("A struct member reference cannot be lowered safely across runtime macro expansion.");
+    return undefined;
+  }
+  const visitor = wgslVisitorPool.get();
+  try {
+    return visitor.generate(ir, coreInfo);
+  } catch (error) {
+    visitor.dispose();
+    if (!(error instanceof GSError)) throw error;
+    Logger.error(`${error.file ? `${error.file}: ` : ""}${error.code ? `${error.code}: ` : ""}${error.toString()}`);
+    return undefined;
+  } finally {
+    wgslVisitorPool.return(visitor);
+  }
+}
+
+/** Compile a single-AST WGSL instruction-based pass for a concrete macro set and vertex layout. */
 export function compileWebGPUShaderPass(
   compiler: Pick<IWebGPUShaderCompiler, "compileWebGPUVariant">,
-  pass: Pick<IShaderInfo, "uniformBlocks" | "uniformPlan" | "vertexShaderInstructions" | "fragmentShaderInstructions">,
+  pass: Pick<IShaderInfo, "uniformBlocks" | "wgslVertexInstructions" | "wgslFragmentInstructions">,
   features: ReadonlyMap<string, string> = new Map(),
   options: IWebGPUShaderOptions = {}
 ): IWebGPUShaderProgram {
   const macros = new Map(ShaderMacroProcessor._defaultWebGPUMacros);
   features.forEach((value, name) => macros.set(name, value));
-  const vs: IShaderUniformSelection[] = [],
-    fs: IShaderUniformSelection[] = [];
-  const vertex = pass.vertexShaderInstructions!,
-    fragment = pass.fragmentShaderInstructions!;
-  const v = ShaderMacroProcessor.evaluate(
-    pass.uniformPlan ? vertex : ShaderInstructionEncoder.normalizeRawStage(vertex),
-    macros,
-    pass.uniformPlan?.vertex,
-    vs
-  );
-  const f = ShaderMacroProcessor.evaluate(
-    pass.uniformPlan ? fragment : ShaderInstructionEncoder.normalizeRawStage(fragment),
-    macros,
-    pass.uniformPlan?.fragment,
-    fs
-  );
-  const legacyInstances = !pass.uniformPlan && macros.has("RENDERER_GPU_INSTANCE");
-  const variant = legacyInstances
-    ? recoverLegacyInstancing(v, f, pass.uniformBlocks?.length ?? 0, options.maxUniformBlockBytes ?? 16384)
-    : finalizeShaderUniforms(v, f, vs, fs, {
-        maxBlockBytes: options.maxUniformBlockBytes ?? 16384,
-        maxBindings: 24,
-        explicitBlocks: pass.uniformBlocks?.length,
-        instancing: macros.has("RENDERER_GPU_INSTANCE") ? pass.uniformPlan?.instancing : undefined
-      });
-  if (variant.instanceOverflow) throw new Error("The selected instance does not fit a uniform buffer binding.");
-  const i = variant.instanceLayout;
-  return compiler.compileWebGPUVariant(variant.vertexSource, variant.fragmentSource, {
+  const vertex = pass.wgslVertexInstructions;
+  const fragment = pass.wgslFragmentInstructions;
+  if (!vertex || !fragment) {
+    throw new Error("WebGPU shader pass is missing WGSL instructions; recompile from ShaderLab source.");
+  }
+  const v = ShaderMacroProcessor.evaluate(vertex, macros);
+  const f = ShaderMacroProcessor.evaluate(fragment, macros);
+  const enableGPUInstancing = options.enableGPUInstancing ?? macros.has("RENDERER_GPU_INSTANCE");
+  const baseResolve = options.resolveConstant;
+  const resolveConstant = (name: string): number | undefined => {
+    const fromMacro = macros.get(name);
+    if (fromMacro !== undefined && /^-?\d+$/.test(fromMacro.trim())) return Number(fromMacro.trim());
+    return baseResolve?.(name);
+  };
+  const linked = compiler.compileWebGPUVariant(v, f, {
     ...options,
-    uniformBlocks: [...(pass.uniformBlocks ?? []), ...variant.uniformBlocks],
-    instanceBindingName: i?.bindingName,
-    instanceByteLength: i ? i.headerBytes + i.structSize * i.instanceMaxCount : undefined
+    uniformBlocks: options.uniformBlocks ?? pass.uniformBlocks,
+    enableGPUInstancing,
+    resolveConstant
   });
+  if (linked.instanceOverflow) {
+    throw new Error("The selected instance does not fit a uniform buffer binding.");
+  }
+  return linked;
 }
 
-/** Create the pure-TypeScript AST-based WebGPU WGSL compiler (zero external WASM). */
+/** Create the single-AST WebGPU WGSL compiler (`WGSLVisitor` + zero-AST `WGSLProgramLinker`). */
 export function createWebGPUShaderCompilerSync(): IWebGPUShaderCompiler {
-  const backend = new WGSLBackend();
+  const linker = new WGSLProgramLinker();
   return {
-    recoverLegacyInstancing,
-    normalizeRawStage: ShaderInstructionEncoder.normalizeRawStage,
-    compileWebGPUVariant: backend.compileWebGPUVariant.bind(backend),
+    generateWGSL(ir, coreInfo) {
+      return generateWGSLFromIR(ir as ShaderClueIR, coreInfo as ShaderCoreInfo);
+    },
+    compileWebGPUVariant: linker.link.bind(linker),
     compileDefaultVariant(program: IShaderInfo) {
-      return compileWebGPUShaderPass(backend, program);
+      return compileWebGPUShaderPass({ compileWebGPUVariant: linker.link.bind(linker) }, program);
     }
   };
 }
 
-/** Create the pure-TypeScript AST-based WebGPU WGSL compiler. */
+/** Create the single-AST WebGPU WGSL compiler. */
 export function createWebGPUShaderCompiler(): Promise<IWebGPUShaderCompiler> {
   return Promise.resolve(createWebGPUShaderCompilerSync());
 }

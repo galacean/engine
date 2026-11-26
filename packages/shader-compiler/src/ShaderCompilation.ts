@@ -47,7 +47,8 @@ export function generateParsedShaderPassData(
   fragmentEntry: string,
   backend: ShaderLanguage,
   coreInfo?: ShaderCoreInfo,
-  webgpu?: IWebGPUShaderCompiler
+  webgpu?: IWebGPUShaderCompiler,
+  requireDefaultVariant = true
 ): IShaderProgramSource | undefined {
   if (parsed.blockingErrors.length) {
     for (const error of parsed.blockingErrors) Logger.error(error.toString());
@@ -55,20 +56,71 @@ export function generateParsedShaderPassData(
   }
   if (!parsed.ir) return undefined;
   const resolvedCoreInfo = coreInfo ?? ShaderCoreInfo.create(parsed.ir, vertexEntry, fragmentEntry);
-  if (backend === ShaderLanguage.WGSL && !webgpu) {
-    throw new Error("WGSL compilation requires a backend from createWebGPUShaderCompiler().");
+  if (backend === ShaderLanguage.WGSL) {
+    if (!webgpu?.generateWGSL) {
+      throw new Error("WGSL compilation requires a backend from createWebGPUShaderCompiler().");
+    }
+    return generateWGSLShaderProgram(
+      parsed.ir,
+      resolvedCoreInfo,
+      parsed.preprocessorExpressions,
+      webgpu,
+      requireDefaultVariant
+    );
   }
-  const result = generateShaderProgram(
-    parsed.ir,
-    resolvedCoreInfo,
-    backend === ShaderLanguage.WGSL ? ShaderLanguage.GLSLES300 : backend,
-    parsed.preprocessorExpressions
-  );
-  if (result && backend === ShaderLanguage.WGSL) {
-    const wgsl = webgpu!.compileDefaultVariant(result);
+  return generateShaderProgram(parsed.ir, resolvedCoreInfo, backend, parsed.preprocessorExpressions);
+}
+
+function validateStageEntries(coreInfo: ShaderCoreInfo): boolean {
+  if (!coreInfo.vertexEntry.functions.length) {
+    Logger.error(`Vertex entry function '${coreInfo.vertexEntry.name}' not found.`);
+    return false;
+  }
+  if (!coreInfo.fragmentEntry.functions.length) {
+    Logger.error(`Fragment entry function '${coreInfo.fragmentEntry.name}' not found.`);
+    return false;
+  }
+  if (coreInfo.vertexEntry.hasDefiniteAmbiguity) {
+    Logger.error(`Vertex entry function '${coreInfo.vertexEntry.name}' resolves to multiple declarations.`);
+    return false;
+  }
+  if (coreInfo.fragmentEntry.hasDefiniteAmbiguity) {
+    Logger.error(`Fragment entry function '${coreInfo.fragmentEntry.name}' resolves to multiple declarations.`);
+    return false;
+  }
+  if (coreInfo.roleConflicts.length) {
+    Logger.error("A shader IO struct cannot serve multiple stage-interface roles.");
+    return false;
+  }
+  return true;
+}
+
+function generateWGSLShaderProgram(
+  ir: ShaderClueIR,
+  coreInfo: ShaderCoreInfo,
+  preprocessorExpressions: ParsedShaderPassData["preprocessorExpressions"],
+  webgpu: IWebGPUShaderCompiler,
+  requireDefaultVariant = true
+): IShaderProgramSource | undefined {
+  if (!validateStageEntries(coreInfo)) return undefined;
+  const result = webgpu.generateWGSL!(ir, coreInfo);
+  if (!result) return undefined;
+  result.wgslVertexInstructions = ShaderInstructionEncoder.parse(result.vertex, preprocessorExpressions);
+  result.wgslFragmentInstructions = ShaderInstructionEncoder.parse(result.fragment, preprocessorExpressions);
+  if (requireDefaultVariant) {
+    const wgsl = webgpu.compileDefaultVariant(result);
     result.wgsl = wgsl;
     result.vertex = wgsl.vertex;
     result.fragment = wgsl.fragment;
+  } else {
+    try {
+      const wgsl = webgpu.compileDefaultVariant(result);
+      result.wgsl = wgsl;
+      result.vertex = wgsl.vertex;
+      result.fragment = wgsl.fragment;
+    } catch {
+      // Runtime ShaderLab sources may require renderer/material macros before linking.
+    }
   }
   return result;
 }
@@ -79,26 +131,7 @@ function generateShaderProgram(
   backend: ShaderLanguage,
   preprocessorExpressions: ParsedShaderPassData["preprocessorExpressions"]
 ): IShaderProgramSource | undefined {
-  if (!coreInfo.vertexEntry.functions.length) {
-    Logger.error(`Vertex entry function '${coreInfo.vertexEntry.name}' not found.`);
-    return undefined;
-  }
-  if (!coreInfo.fragmentEntry.functions.length) {
-    Logger.error(`Fragment entry function '${coreInfo.fragmentEntry.name}' not found.`);
-    return undefined;
-  }
-  if (coreInfo.vertexEntry.hasDefiniteAmbiguity) {
-    Logger.error(`Vertex entry function '${coreInfo.vertexEntry.name}' resolves to multiple declarations.`);
-    return undefined;
-  }
-  if (coreInfo.fragmentEntry.hasDefiniteAmbiguity) {
-    Logger.error(`Fragment entry function '${coreInfo.fragmentEntry.name}' resolves to multiple declarations.`);
-    return undefined;
-  }
-  if (coreInfo.roleConflicts.length) {
-    Logger.error("A shader IO struct cannot serve multiple stage-interface roles.");
-    return undefined;
-  }
+  if (!validateStageEntries(coreInfo)) return undefined;
   const result = GLESBackend.generate(ir, coreInfo, backend);
   if (result) {
     result.vertexShaderInstructions = ShaderInstructionEncoder.parse(

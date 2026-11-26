@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { createWebGPUShaderCompilerSync } from "@galacean/engine-shader-compiler/webgpu";
 import { type IWebGPUShaderProgram } from "@galacean/engine-design";
-import { ShaderLanguage } from "@galacean/engine-webgpu";
+import { ShaderLanguage, ShaderMacroProcessor } from "@galacean/engine-webgpu";
 
 /**
  * Conformance suite scoped strictly to the GLSL ES 3.00 grammar, builtin
@@ -381,5 +381,241 @@ describe.skipIf(!navigator.gpu)("ShaderLab dev/2.0 WGSL conformance", () => {
         return o;
       }
     `);
+  });
+
+  /**
+   * Naga-derived Dual-RHI (WebGL2 vs WebGPU) A/B pixel execution conformance suite.
+   *
+   * Compiles the EXACT SAME `dev/2.0` ShaderLab source through BOTH backends on the
+   * single `@galacean/engine-shader-parser` AST (`GLES300Visitor` -> GLSL ES 3.00 and
+   * `WGSLVisitor` + `WGSLProgramLinker` -> WGSL), executes both on Chromium's real
+   * WebGL2 and WebGPU (Tint) pipelines, and asserts pixel-identical GPU output.
+   */
+  describe("Naga-derived ShaderLab dual-RHI (WebGL2 vs WebGPU) A/B execution", () => {
+    function executeWebGL2(source: string): Uint8Array {
+      const glslPass = compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES300);
+      expect(glslPass?.vertexShaderInstructions?.length).toBeGreaterThan(0);
+      const glMacros = new Map<string, string>([
+        ["GRAPHICS_API_WEBGL2", ""],
+        ["HAS_TEX_LOD", ""],
+        ["HAS_DERIVATIVES", ""],
+        ["GL_ES", "1"],
+        ["GL_FRAGMENT_PRECISION_HIGH", "1"],
+        ["__VERSION__", "300"]
+      ]);
+      const vsSrc = "#version 300 es\n" + ShaderMacroProcessor.evaluate(glslPass!.vertexShaderInstructions!, glMacros);
+      const fsSrc =
+        "#version 300 es\nprecision highp float;\nprecision highp int;\n" +
+        ShaderMacroProcessor.evaluate(glslPass!.fragmentShaderInstructions!, glMacros);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 4;
+      canvas.height = 4;
+      const gl = canvas.getContext("webgl2");
+      expect(gl).not.toBeNull();
+      const compile = (type: number, code: string) => {
+        const s = gl!.createShader(type)!;
+        gl!.shaderSource(s, code);
+        gl!.compileShader(s);
+        if (!gl!.getShaderParameter(s, gl!.COMPILE_STATUS)) {
+          throw new Error(`WebGL2 compile error: ${gl!.getShaderInfoLog(s)}\n---\n${code}`);
+        }
+        return s;
+      };
+      const vs = compile(gl!.VERTEX_SHADER, vsSrc);
+      const fs = compile(gl!.FRAGMENT_SHADER, fsSrc);
+      const prog = gl!.createProgram()!;
+      gl!.attachShader(prog, vs);
+      gl!.attachShader(prog, fs);
+      gl!.linkProgram(prog);
+      if (!gl!.getProgramParameter(prog, gl!.LINK_STATUS)) {
+        throw new Error(`WebGL2 link error: ${gl!.getProgramInfoLog(prog)}`);
+      }
+      gl!.viewport(0, 0, 4, 4);
+      gl!.clearColor(0, 0, 0, 0);
+      gl!.clear(gl!.COLOR_BUFFER_BIT);
+      gl!.useProgram(prog);
+      gl!.drawArrays(gl!.TRIANGLES, 0, 3);
+      const pixels = new Uint8Array(4 * 4 * 4);
+      gl!.readPixels(0, 0, 4, 4, gl!.RGBA, gl!.UNSIGNED_BYTE, pixels);
+      // Sample center pixel (x=1, y=1)
+      const offset = (1 * 4 + 1) * 4;
+      const center = pixels.slice(offset, offset + 4);
+      gl!.deleteProgram(prog);
+      gl!.deleteShader(vs);
+      gl!.deleteShader(fs);
+      return center;
+    }
+
+    async function executeWebGPUCenter(source: string): Promise<Uint8Array> {
+      const program = await validateWGSL(source);
+      const vMod = device.createShaderModule({ code: program.vertex });
+      const fMod = device.createShaderModule({ code: program.fragment });
+      const pipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: { module: vMod, entryPoint: "main" },
+        fragment: { module: fMod, entryPoint: "main", targets: [{ format: "rgba8unorm" }] }
+      });
+      const tex = device.createTexture({
+        size: [4, 4],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+      });
+      const readback = device.createBuffer({
+        size: 256 * 4,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+      });
+      const encoder = device.createCommandEncoder();
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [{ view: tex.createView(), loadOp: "clear", storeOp: "store", clearValue: [0, 0, 0, 0] }]
+      });
+      pass.setPipeline(pipeline);
+      pass.draw(3);
+      pass.end();
+      encoder.copyTextureToBuffer({ texture: tex }, { buffer: readback, bytesPerRow: 256 }, [4, 4]);
+      device.queue.submit([encoder.finish()]);
+      await readback.mapAsync(GPUMapMode.READ);
+      // WebGPU texture row 2 corresponds to WebGL2 bottom-up row 1 for a 4x4 target
+      const row2 = new Uint8Array(readback.getMappedRange(), 2 * 256 + 1 * 4, 4);
+      const result = new Uint8Array(row2);
+      readback.unmap();
+      readback.destroy();
+      tex.destroy();
+      return result;
+    }
+
+    async function assertDualRHIEqual(source: string, tolerance = 1): Promise<Uint8Array> {
+      const glPx = executeWebGL2(source);
+      const gpuPx = await executeWebGPUCenter(source);
+      for (let i = 0; i < 4; i++) {
+        expect(
+          Math.abs(glPx[i] - gpuPx[i]),
+          `channel ${i}: WebGL2=${glPx[i]} vs WebGPU=${gpuPx[i]} (gl=${Array.from(glPx)} gpu=${Array.from(gpuPx)})`
+        ).toBeLessThanOrEqual(tolerance);
+      }
+      return gpuPx;
+    }
+
+    it("matches Naga operators and control-flow identically on WebGL2 and WebGPU", async () => {
+      const px = await assertDualRHIEqual(`
+        void vert() {
+          vec2 pos = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0;
+          gl_Position = vec4(pos, 0.0, 1.0);
+        }
+        void frag() {
+          int sum = 0;
+          for (int i = 0; i < 8; i++) {
+            if (i == 2) continue;
+            if (i == 6) break;
+            sum += i;
+          }
+          int w = 0, k = 3;
+          while (k > 0) { w += k--; }
+          uint bits = ((0x0Fu << 2u) | 3u) ^ 1u;
+          ivec2 iv = ivec2(10, 20) & 7;
+          bool x = (sum == 13) ^^ (w == 99);
+          float r = x ? float(sum) / 20.0 : 0.0;
+          float g = float(w) / 10.0;
+          float b = float((bits & 0x3Fu) + uint(iv.x + iv.y)) / 100.0;
+          gl_FragColor = vec4(r, g, b, 1.0);
+        }
+      `);
+      expect(px[0]).toBeGreaterThan(150);
+      expect(px[1]).toBeGreaterThan(140);
+    });
+
+    it("matches Naga functions, overloads, out/inout swizzle writeback, and mutated params", async () => {
+      const px = await assertDualRHIEqual(`
+        void vert() {
+          vec2 pos = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0;
+          gl_Position = vec4(pos, 0.0, 1.0);
+        }
+        float scaleVal(float x) { x = x * 2.0; return x; }
+        vec2 scaleVal(vec2 v) { v += vec2(0.1, 0.2); return v; }
+        void writePair(inout vec2 p, out float s) {
+          p = p.yx + vec2(0.15, 0.25);
+          s = p.x + p.y;
+        }
+        void frag() {
+          vec4 c = vec4(0.2, 0.4, 0.0, 1.0);
+          float s;
+          writePair(c.xy, s);
+          vec2 sv = scaleVal(vec2(0.2, 0.3));
+          gl_FragColor = vec4(scaleVal(c.x * 0.5), c.y, clamp(sv.x + sv.y + s * 0.1, 0.0, 1.0), 1.0);
+        }
+      `);
+      expect(px[3]).toBe(255);
+    });
+
+    it("matches Naga math builtins, mod, bitcast, and half-float pack/unpack identically", async () => {
+      const px = await assertDualRHIEqual(`
+        void vert() {
+          vec2 pos = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0;
+          gl_Position = vec4(pos, 0.0, 1.0);
+        }
+        void frag() {
+          float m = mod(-0.25, 1.0);
+          float a = atan(1.0, 1.0) / 3.14159265;
+          uint h = packHalf2x16(vec2(0.375, 0.625));
+          vec2 uh = unpackHalf2x16(h);
+          float f = uintBitsToFloat(floatBitsToUint(uh.x + uh.y) & 0xFFFFFFFFu);
+          float inv = inversesqrt(4.0);
+          gl_FragColor = vec4(m, a, clamp(f * inv, 0.0, 1.0), 1.0);
+        }
+      `);
+      expect(px[0]).toBeGreaterThan(185);
+    });
+
+    it("matches Naga non-square matrices, inverse/determinant/outerProduct, structs, and arrays", async () => {
+      const px = await assertDualRHIEqual(`
+        struct Box { vec2 lo; vec2 hi; };
+        void vert() {
+          vec2 pos = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0;
+          gl_Position = vec4(pos, 0.0, 1.0);
+        }
+        void frag() {
+          mat3x4 m34 = mat3x4(
+            vec4(0.5, 0.0, 0.0, 0.0),
+            vec4(0.0, 0.25, 0.0, 0.0),
+            vec4(0.0, 0.0, 0.75, 1.0)
+          );
+          vec4 prod = m34 * vec3(1.0, 2.0, 0.5);
+          mat2 m2 = mat2(2.0, 0.0, 0.0, 4.0);
+          mat2 inv2 = inverse(m2);
+          float det = determinant(m2);
+          mat2 op = outerProduct(vec2(0.5, 0.25), vec2(1.0, 0.5));
+          mat2 cm = matrixCompMult(inv2, op);
+          Box a = Box(vec2(0.2, 0.3), vec2(0.8, 0.9));
+          Box b = Box(vec2(0.2, 0.3), vec2(0.8, 0.9));
+          float arr[3] = float[3](0.1, 0.2, 0.3);
+          float eq = (a == b && arr.length() == 3) ? 1.0 : 0.0;
+          gl_FragColor = vec4(clamp(prod.x + cm[0][0], 0.0, 1.0), clamp(prod.y, 0.0, 1.0), clamp(det * 0.05 * eq, 0.0, 1.0), 1.0);
+        }
+      `);
+      expect(px[0]).toBeGreaterThan(150);
+    });
+
+    it("matches Naga screen derivatives (dFdx/dFdy/fwidth) and clip-space depth remap identically", async () => {
+      const px = await assertDualRHIEqual(`
+        struct Varyings { vec2 uv; };
+        Varyings vert() {
+          Varyings o;
+          vec2 pos = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0;
+          o.uv = pos * 0.5 + 0.5;
+          gl_Position = vec4(pos, -0.5, 1.0);
+          return o;
+        }
+        void frag(Varyings i) {
+          float dx = dFdx(i.uv.x);
+          float dy = dFdy(i.uv.y);
+          float fw = fwidth(i.uv.x + i.uv.y);
+          gl_FragColor = vec4(dx > 0.0 ? 0.75 : 0.0, dy > 0.0 ? 0.75 : 0.0, clamp(gl_FragCoord.z + fw * 0.0, 0.0, 1.0), 1.0);
+        }
+      `);
+      expect(px[0]).toBeGreaterThan(180);
+      expect(px[1]).toBeGreaterThan(180);
+      expect(px[2]).toBeGreaterThan(55);
+      expect(px[2]).toBeLessThan(75);
+    });
   });
 });

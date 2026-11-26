@@ -1,7 +1,7 @@
 import type { ShaderInstruction } from "./ICondition";
 import type { IShaderUniformBlock } from "./IShaderProgramSource";
 import type { IShaderProgramSource } from "./IShaderProgramSource";
-
+import type { IShaderInstanceLayout } from "./ShaderInstancing";
 import type { IShaderUniformVariant } from "./ShaderUniformVariant";
 
 export type WebGPUShaderInputType = "float" | "sint" | "uint";
@@ -64,12 +64,20 @@ export interface IWebGPUShaderProgram {
   vertexEntryPoint: string;
   fragmentEntryPoint: string;
   reflection: IWebGPUShaderReflection;
+  /** Reflected GPU instancing layout when instancing was linked for this variant. */
+  instanceLayout?: IShaderInstanceLayout;
+  /** True when GPU instancing exceeded the uniform buffer size limit. */
+  instanceOverflow?: boolean;
 }
 
 export interface IWebGPUShaderOptions {
   uniformBlocks?: readonly IShaderUniformBlock[];
   instanceBindingName?: string;
   instanceByteLength?: number;
+  /** Enable automatic GPU instancing UBO synthesis during WGSL linking. */
+  enableGPUInstancing?: boolean;
+  /** Optional device constant resolver for array-length expressions (e.g. `gl_Max*`). */
+  resolveConstant?: (name: string) => number | undefined;
   vertexInputTypes?: Readonly<Record<string, WebGPUShaderInputType>>;
   unfilterableTextures?: ReadonlySet<string>;
   computeFeedback?: boolean;
@@ -83,6 +91,8 @@ export interface IWebGPUShaderOptions {
 }
 
 export interface IWebGPUShaderCompiler {
+  /** Generate raw WGSL stage strings + metadata directly from the single ShaderLab IR (zero secondary AST). */
+  generateWGSL?(ir: unknown, coreInfo: unknown): IShaderProgramSource | undefined;
   /** Reconstruct declaration sites for an already selected historical instancing variant. */
   recoverLegacyInstancing?(
     vertex: string,

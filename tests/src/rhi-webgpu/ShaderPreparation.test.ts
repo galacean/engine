@@ -1,5 +1,4 @@
 import {
-  AssetType,
   Camera,
   Color,
   Material,
@@ -16,33 +15,29 @@ import {
 } from "@galacean/engine-webgpu";
 import { expect, it, vi } from "vitest";
 
-it.skipIf(!navigator.gpu)("draws an older shaderc with a runtime macro on its first frame", async () => {
+it.skipIf(!navigator.gpu)("draws a ShaderLab shader with a runtime macro on its first frame", async () => {
   const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
   const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
-  const asset = {
-    name: "Tests/Legacy",
-    platformTarget: 0,
-    subShaders: [
-      {
-        name: "Default",
-        passes: [
-          {
-            name: "Forward",
-            isUsePass: false,
-            renderStates: { constantMap: {}, variableMap: {} },
-            vertexShaderInstructions: [[0, "in vec3 POSITION; void main(){gl_Position=vec4(POSITION.xy,0.,1.);}"]],
-            fragmentShaderInstructions: [
-              [0, "uniform float oldTint; out vec4 c; void main(){float r=oldTint*USER_STRENGTH;c=vec4(r,1.-r,0.,1.);}"]
-            ]
-          }
-        ]
-      }
-    ]
-  };
-  const url = URL.createObjectURL(new Blob([JSON.stringify(asset)]));
   device.pushErrorScope("validation");
   try {
-    const shader = await engine.resourceManager.load<Shader>({ url, type: AssetType.Shader });
+    const shader = Shader.create(
+      `Shader "Tests/RuntimeMacro" {
+        SubShader "Default" {
+          Pass "Forward" {
+            struct Attributes { vec3 POSITION; };
+            float oldTint;
+            void vert(Attributes a) { gl_Position = vec4(a.POSITION.xy, 0.0, 1.0); }
+            void frag() {
+              float r = oldTint * USER_STRENGTH;
+              gl_FragColor = vec4(r, 1.0 - r, 0.0, 1.0);
+            }
+            VertexShader = vert;
+            FragmentShader = frag;
+          }
+        }
+      }`,
+      engine
+    );
     const root = engine.sceneManager.activeScene.createRootEntity();
     const camera = root.createChild().addComponent(Camera);
     camera.entity.transform.setPosition(0, 0, 3);
@@ -62,57 +57,40 @@ it.skipIf(!navigator.gpu)("draws an older shaderc with a runtime macro on its fi
     }
     expect(await device.popErrorScope()).toBeNull();
   } finally {
-    URL.revokeObjectURL(url);
     engine.destroy();
   }
 });
 
 it.skipIf(!navigator.gpu)(
-  "instances historical raw GLSL with late renderer colors and independent transforms",
+  "instances ShaderLab shaders with late renderer colors and independent transforms",
   async () => {
     const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
     const rhi = engine._hardwareRenderer as WebGPUGraphicDevice;
-    const asset = {
-      name: "Tests/LegacyInstancing",
-      platformTarget: 0,
-      subShaders: [
-        {
-          name: "Default",
-          passes: [
-            {
-              name: "Forward",
-              isUsePass: false,
-              renderStates: { constantMap: {}, variableMap: {} },
-              vertexShaderInstructions: [
-                [
-                  0,
-                  "attribute vec3 POSITION;uniform mat4 renderer_MVPMat;void main(){gl_Position=renderer_MVPMat*vec4(POSITION,1.0);}"
-                ]
-              ],
-              fragmentShaderInstructions: [
-                [
-                  0,
-                  `
-          uniform vec4 legacyInstanceColor;uniform float legacyStrength[2];
-          void main() {
-          #ifdef RENDERER_GPU_INSTANCE
-            gl_FragColor = legacyInstanceColor * legacyStrength[1];
-          #else
-            gl_FragColor = vec4(0.0);
-          #endif
-          }
-        `
-                ]
-              ]
-            }
-          ]
-        }
-      ]
-    };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(asset)]));
     rhi.device.pushErrorScope("validation");
     try {
-      const shader = await engine.resourceManager.load<Shader>({ url, type: AssetType.Shader });
+      const shader = Shader.create(
+        `Shader "Tests/Instancing" {
+          SubShader "Default" {
+            Pass "Forward" {
+              struct Attributes { vec3 POSITION; };
+              mat4 renderer_MVPMat;
+              vec4 legacyInstanceColor;
+              float legacyStrength[2];
+              void vert(Attributes a) { gl_Position = renderer_MVPMat * vec4(a.POSITION, 1.0); }
+              void frag() {
+                #ifdef RENDERER_GPU_INSTANCE
+                  gl_FragColor = legacyInstanceColor * legacyStrength[1];
+                #else
+                  gl_FragColor = vec4(0.0);
+                #endif
+              }
+              VertexShader = vert;
+              FragmentShader = frag;
+            }
+          }
+        }`,
+        engine
+      );
       const root = engine.sceneManager.activeScene.createRootEntity();
       const camera = root.createChild().addComponent(Camera);
       camera.entity.transform.setPosition(0, 0, 5);
@@ -159,7 +137,6 @@ it.skipIf(!navigator.gpu)(
       expect(await rhi.device.popErrorScope()).toBeNull();
     } finally {
       vi.restoreAllMocks();
-      URL.revokeObjectURL(url);
       engine.destroy();
     }
   }

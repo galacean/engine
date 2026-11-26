@@ -139,11 +139,22 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
 
-  private readonly _vertexOutputNames?: Readonly<Record<string, string>>;
-  private readonly _uniformBlocks?: readonly IShaderUniformBlock[];
-  private readonly _uniformPlan?: IShaderUniformPlan;
-  private readonly _wgsl?: IWebGPUShaderProgram;
+  /** @internal Retained only for runtime `Shader.create()` passes when lazily compiling for the other RHI backend. */
+  _shaderLabSource?: {
+    contents: string;
+    vertexEntry: string;
+    fragmentEntry: string;
+    sourceFile?: string;
+    contentScopeStarts?: readonly number[];
+  };
+
+  private _vertexOutputNames?: Readonly<Record<string, string>>;
+  private _uniformBlocks?: readonly IShaderUniformBlock[];
+  private _uniformPlan?: IShaderUniformPlan;
+  private _wgsl?: IWebGPUShaderProgram;
   private readonly _webGPUFragmentInstructions?: ShaderInstruction[];
+  private _wgslVertexInstructions?: ShaderInstruction[];
+  private _wgslFragmentInstructions?: ShaderInstruction[];
   private _defaultWebGPUStages?: ReturnType<typeof evaluateDefaultStage>[];
 
   /**
@@ -167,7 +178,9 @@ export class ShaderPass extends ShaderPart {
     uniformBlocks?: readonly IShaderUniformBlock[],
     uniformPlan?: IShaderUniformPlan,
     wgsl?: IWebGPUShaderProgram,
-    webGPUFragmentInstructions?: ShaderInstruction[]
+    webGPUFragmentInstructions?: ShaderInstruction[],
+    wgslVertexInstructions?: ShaderInstruction[],
+    wgslFragmentInstructions?: ShaderInstruction[]
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
@@ -180,6 +193,8 @@ export class ShaderPass extends ShaderPart {
     this._uniformPlan = uniformPlan;
     this._wgsl = wgsl;
     this._webGPUFragmentInstructions = webGPUFragmentInstructions;
+    this._wgslVertexInstructions = wgslVertexInstructions;
+    this._wgslFragmentInstructions = wgslFragmentInstructions;
 
     const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };
     for (const key in mergedTags) {
@@ -404,70 +419,27 @@ export class ShaderPass extends ShaderPart {
     if (canUseBaked && !macroCollection._mask.slice(0, macroCollection._length).some(Boolean)) {
       return this._createBakedProgram(engine, baked!);
     }
-    const variant = this._compileShaderSource(engine, macroCollection, isGPUInstance, canUseBaked);
-    if (variant.matchesBaked) return this._createBakedProgram(engine, baked!);
-    let source: IPlatformShaderSource = {
+    const map = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
+    if (device.backend === "webgpu") {
+      return this._compileWebGPUProgram(
+        engine,
+        macroCollection,
+        isGPUInstance,
+        canUseBaked,
+        feedbackVaryings,
+        vertexInputTypes,
+        textureOptions,
+        cacheOnly,
+        map
+      );
+    }
+    const variant = this._compileShaderSource(engine, macroCollection, isGPUInstance, false);
+    const source: IPlatformShaderSource = {
       vertexSource: variant.vertexSource,
       fragmentSource: variant.fragmentSource,
       feedbackVaryings,
       looseUniforms: variant.looseUniforms
     };
-    const map = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
-    if (device.backend === "webgpu") {
-      const preKey = JSON.stringify([
-        variant.vertexSource,
-        variant.fragmentSource,
-        variant.uniformBlocks,
-        variant.instanceLayout,
-        variant.instanceBindingName,
-        vertexInputTypes,
-        textureOptions
-          ? {
-              ...textureOptions,
-              unfilterableTextures: textureOptions.unfilterableTextures
-                ? Array.from(textureOptions.unfilterableTextures).sort()
-                : undefined
-            }
-          : undefined,
-        feedbackVaryings
-      ]);
-      const cachedPre = map.getBySource(preKey);
-      if (cachedPre) return cachedPre;
-      const compiler = engine._webGPUShaderCompiler;
-      if (!compiler) throw new Error("WebGPU shader specialization requires a WebGPU shader compiler.");
-      const layout = variant.instanceLayout;
-      const compiled = compiler.compileWebGPUVariant(variant.vertexSource, variant.fragmentSource, {
-        uniformBlocks: variant.uniformBlocks,
-        vertexInputTypes,
-        ...textureOptions,
-        maxTexturesPerStage: device.maxSampledTexturesPerShaderStage,
-        maxSamplersPerStage: device.maxSamplersPerShaderStage,
-        maxUniformBlockBytes: device.maxUniformBlockSize,
-        computeFeedback: !!feedbackVaryings?.length,
-        instanceBindingName: variant.instanceBindingName,
-        instanceByteLength: layout ? (layout.headerBytes ?? 0) + layout.structSize * layout.instanceMaxCount : undefined
-      });
-      source = {
-        vertexSource: compiled.vertex,
-        fragmentSource: compiled.fragment,
-        vertexEntryPoint: compiled.vertexEntryPoint,
-        fragmentEntryPoint: compiled.fragmentEntryPoint,
-        reflection: compiled.reflection,
-        feedbackVaryings
-      };
-      const key = JSON.stringify([source, variant.uniformBlocks, variant.instanceLayout, variant.instanceBindingName]);
-      const existing = map.getBySource(key);
-      if (existing) {
-        map.cacheBySource(preKey, existing);
-        return existing;
-      }
-      if (cacheOnly) throw new Error("Unprepared Seed shader variant " + this.name);
-      const program = new ShaderProgram(engine, source, variant.uniformBlocks, variant.instanceBindingName);
-      map.cacheBySource(key, program);
-      map.cacheBySource(preKey, program);
-      program._instanceLayout = variant.instanceLayout;
-      return program;
-    }
     const key = JSON.stringify([source, variant.uniformBlocks, variant.instanceLayout, variant.instanceBindingName]);
     const existing = map.getBySource(key);
     if (existing) return existing;
@@ -475,6 +447,154 @@ export class ShaderPass extends ShaderPart {
     const program = new ShaderProgram(engine, source, variant.uniformBlocks, variant.instanceBindingName);
     map.cacheBySource(key, program);
     program._instanceLayout = variant.instanceLayout;
+    return program;
+  }
+
+  private _compileWebGPUProgram(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    isGPUInstance: boolean,
+    canUseBaked: boolean,
+    feedbackVaryings: string[] | undefined,
+    vertexInputTypes: Readonly<Record<string, "float" | "sint" | "uint">> | undefined,
+    textureOptions: ShaderTextureOptions | undefined,
+    cacheOnly: boolean,
+    map: ShaderProgramMap
+  ): ShaderProgram {
+    const device = engine._hardwareRenderer;
+    let baked = this._wgsl;
+    let wgslVS = this._wgslVertexInstructions;
+    let wgslFS = this._wgslFragmentInstructions;
+    if ((!wgslVS || !wgslFS) && this._shaderLabSource && engine._shaderCompiler) {
+      const src = this._shaderLabSource;
+      const compiled = engine._shaderCompiler._parseShaderPass(
+        src.contents,
+        src.vertexEntry,
+        src.fragmentEntry,
+        ShaderLanguage.WGSL,
+        src.sourceFile,
+        src.contentScopeStarts
+      );
+      if (compiled?.wgslVertexInstructions && compiled.wgslFragmentInstructions) {
+        this._wgslVertexInstructions = wgslVS = compiled.wgslVertexInstructions;
+        this._wgslFragmentInstructions = wgslFS = compiled.wgslFragmentInstructions;
+        if (compiled.wgsl) this._wgsl = baked = compiled.wgsl;
+        if (compiled.uniformBlocks?.length) this._uniformBlocks = compiled.uniformBlocks;
+        if (compiled.vertexOutputNames) this._vertexOutputNames = compiled.vertexOutputNames;
+        if (this._vertexShaderInstructions.length) this._shaderLabSource = undefined;
+      }
+    }
+    if (!wgslVS || !wgslFS) {
+      if (canUseBaked && baked) return this._createBakedProgram(engine, baked);
+      throw new Error(`WebGPU shader pass '${this.name}' is missing WGSL instructions; recompile from ShaderLab.`);
+    }
+
+    const shaderMacroList = ShaderPass._shaderMacroList;
+    shaderMacroList.length = 0;
+    ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
+    shaderMacroList.push(ShaderMacro.getByName("GRAPHICS_API_WEBGPU"));
+    shaderMacroList.push(ShaderMacro.getByName("HAS_TEX_LOD"));
+    shaderMacroList.push(ShaderMacro.getByName("HAS_DERIVATIVES"));
+
+    const macroMap = ShaderPass._macroMap;
+    macroMap.clear();
+    for (let i = 0, n = shaderMacroList.length; i < n; i++) {
+      const macro = shaderMacroList[i];
+      macroMap.set(macro.name, macro.value ?? "");
+    }
+    if (!isGPUInstance) macroMap.delete(InstanceBuffer.gpuInstanceMacro.name);
+    macroMap.set("GL_ES", "1");
+    macroMap.set("GL_FRAGMENT_PRECISION_HIGH", "1");
+    macroMap.set("__VERSION__", "300");
+
+    const vertexWGSL = ShaderMacroProcessor.evaluate(wgslVS, macroMap);
+    const fragmentWGSL = ShaderMacroProcessor.evaluate(wgslFS, macroMap);
+
+    if (canUseBaked && baked) {
+      const [defaultV, defaultF] = (this._defaultWebGPUStages ??= [
+        evaluateDefaultStage(wgslVS),
+        evaluateDefaultStage(wgslFS)
+      ]);
+      if (defaultV.source === vertexWGSL && defaultF.source === fragmentWGSL) {
+        return this._createBakedProgram(engine, baked);
+      }
+    }
+
+    const preKey = JSON.stringify([
+      vertexWGSL,
+      fragmentWGSL,
+      this._uniformBlocks,
+      isGPUInstance,
+      vertexInputTypes,
+      textureOptions
+        ? {
+            ...textureOptions,
+            unfilterableTextures: textureOptions.unfilterableTextures
+              ? Array.from(textureOptions.unfilterableTextures).sort()
+              : undefined
+          }
+        : undefined,
+      feedbackVaryings
+    ]);
+    const cachedPre = map.getBySource(preKey);
+    if (cachedPre) return cachedPre;
+
+    const compiler = engine._webGPUShaderCompiler;
+    if (!compiler) throw new Error("WebGPU shader specialization requires a WebGPU shader compiler.");
+
+    const resolveConstant = (name: string): number | undefined => {
+      const fromMacro = macroMap.get(name);
+      if (fromMacro !== undefined && /^-?\d+$/.test(fromMacro.trim())) return Number(fromMacro.trim());
+      return device.resolveShaderConstant?.(name);
+    };
+    let compiled = compiler.compileWebGPUVariant(vertexWGSL, fragmentWGSL, {
+      uniformBlocks: this._uniformBlocks,
+      enableGPUInstancing: isGPUInstance,
+      resolveConstant,
+      vertexInputTypes,
+      ...textureOptions,
+      maxTexturesPerStage: device.maxSampledTexturesPerShaderStage,
+      maxSamplersPerStage: device.maxSamplersPerShaderStage,
+      maxUniformBlockBytes: device.maxUniformBlockSize,
+      computeFeedback: !!feedbackVaryings?.length
+    });
+    if (compiled.instanceOverflow && isGPUInstance) {
+      compiled = compiler.compileWebGPUVariant(vertexWGSL, fragmentWGSL, {
+        uniformBlocks: this._uniformBlocks,
+        enableGPUInstancing: false,
+        resolveConstant,
+        vertexInputTypes,
+        ...textureOptions,
+        maxTexturesPerStage: device.maxSampledTexturesPerShaderStage,
+        maxSamplersPerStage: device.maxSamplersPerShaderStage,
+        maxUniformBlockBytes: device.maxUniformBlockSize,
+        computeFeedback: !!feedbackVaryings?.length
+      });
+    }
+
+    const instanceLayout = compiled.instanceLayout
+      ? ShaderFactory.createInstanceLayout(compiled.instanceLayout, [], [], this._uniformBlocks)
+      : null;
+    const instanceBindingName = compiled.instanceLayout?.bindingName;
+    const source: IPlatformShaderSource = {
+      vertexSource: compiled.vertex,
+      fragmentSource: compiled.fragment,
+      vertexEntryPoint: compiled.vertexEntryPoint,
+      fragmentEntryPoint: compiled.fragmentEntryPoint,
+      reflection: compiled.reflection,
+      feedbackVaryings
+    };
+    const key = JSON.stringify([source, instanceLayout, instanceBindingName]);
+    const existing = map.getBySource(key);
+    if (existing) {
+      map.cacheBySource(preKey, existing);
+      return existing;
+    }
+    if (cacheOnly) throw new Error("Unprepared Seed shader variant " + this.name);
+    const program = new ShaderProgram(engine, source, this._uniformBlocks, instanceBindingName);
+    map.cacheBySource(key, program);
+    map.cacheBySource(preKey, program);
+    program._instanceLayout = instanceLayout;
     return program;
   }
 
@@ -502,6 +622,25 @@ export class ShaderPass extends ShaderPart {
     instanceBindingName?: string;
     looseUniforms?: readonly IShaderUniformVariable[];
   } {
+    if (!this._vertexShaderInstructions.length && this._shaderLabSource && engine._shaderCompiler) {
+      const src = this._shaderLabSource;
+      const compiled = engine._shaderCompiler._parseShaderPass(
+        src.contents,
+        src.vertexEntry,
+        src.fragmentEntry,
+        ShaderLanguage.GLSLES300,
+        src.sourceFile,
+        src.contentScopeStarts
+      );
+      if (compiled?.vertexShaderInstructions && compiled.fragmentShaderInstructions) {
+        this._vertexShaderInstructions = compiled.vertexShaderInstructions;
+        this._fragmentShaderInstructions = compiled.fragmentShaderInstructions;
+        if (compiled.uniformBlocks?.length) this._uniformBlocks = compiled.uniformBlocks;
+        if (compiled.uniformPlan) this._uniformPlan = compiled.uniformPlan;
+        if (compiled.vertexOutputNames) this._vertexOutputNames = compiled.vertexOutputNames;
+        if (this._wgslVertexInstructions) this._shaderLabSource = undefined;
+      }
+    }
     const shaderMacroList = ShaderPass._shaderMacroList;
     shaderMacroList.length = 0;
     ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);

@@ -21,8 +21,14 @@ export function productFragmentInstructions(name: string, instructions: ShaderIn
         /(vec2\s+(screenU[vV])\s*=[^;]*?\b(?:clipPosition|positionCS)\s*\.\s*xy[^;]*;)/g,
         "$1 $2.y = 1.0 - $2.y;"
       )
+      .replace(
+        /(var\s+(screenU[vV])\s*:\s*vec2<f32>\s*=[^;]*?\b(?:clipPosition|positionCS)\s*\.\s*xy[^;]*;)/g,
+        "$1 $2.y = 1.0 - $2.y;"
+      )
       .replace(/(vec2\s+(refractionNormalDelta|refractionOffset)\s*=[^;]+;)/g, "$1 $2.y = -$2.y;")
-      .replace(/(vec2\s+ndc\s*=\s*uv\s*\*\s*2\.0\s*-\s*1\.0\s*;)/g, "$1 ndc.y = -ndc.y;");
+      .replace(/(var\s+(refractionNormalDelta|refractionOffset)\s*:\s*vec2<f32>\s*=[^;]+;)/g, "$1 $2.y = -$2.y;")
+      .replace(/(vec2\s+ndc\s*=\s*uv\s*\*\s*2\.0\s*-\s*1\.0\s*;)/g, "$1 ndc.y = -ndc.y;")
+      .replace(/(var\s+ndc\s*:\s*vec2<f32>\s*=\s*[^;]*\buv\b[^;]*;)/g, "$1 ndc.y = -ndc.y;");
     return oriented === source ? instruction : [0, oriented];
   });
 }

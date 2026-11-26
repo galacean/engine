@@ -39,25 +39,54 @@ const PROP_WALL_HEIGHT_DELTA = ShaderProperty.getByName("wallHeightDelta");
 const PROP_ROOF_PIVOT_Y = ShaderProperty.getByName("roofPivotY");
 const PROP_ANIMATION_T = ShaderProperty.getByName("animationT");
 
-function gravityPass(): ShaderPass {
+function gravityPass(engine?: Engine): ShaderPass {
   let shader = Shader.find(SHADER_NAME);
   if (!shader) {
     // Galacean's scalar uniform setter is signed; validated instance ranges fit int32.
-    const vertex = gravityVertexSource
-      .replace(/^#version 300 es\s*/, "")
-      .replace("uniform uint firstInstance;", "uniform int firstInstance;")
-      .replace("uniform uint instanceCount;", "uniform int instanceCount;")
+    const bodyMatch = /void\s+main\s*\(\s*\)\s*\{([\s\S]*)\}\s*$/.exec(gravityVertexSource);
+    const mainBody = (bodyMatch ? bodyMatch[1] : "")
       .replace(
         "i < firstInstance || i - firstInstance >= instanceCount",
         "i < uint(firstInstance) || i - uint(firstInstance) >= uint(instanceCount)"
-      );
-    const pass = new ShaderPass(
-      "Gravity64",
-      [[0, vertex]],
-      [[0, "precision highp float; out vec4 color; void main(){ color=vec4(0.0); }"]],
-      ShaderLanguage.GLSLES300
-    );
-    shader = Shader.create(SHADER_NAME, [pass])!;
+      )
+      .replace(/\breturn;/g, "return v;")
+      .replace(/\b(record[0-3])\b/g, "a.$1")
+      .replace(/\b(result[0-3])\b/g, "v.$1");
+    const shaderLab = `Shader "${SHADER_NAME}" {
+      SubShader "Default" {
+        Pass "Gravity64" {
+          int firstInstance;
+          int instanceCount;
+          float dt;
+          float wallHeightDelta;
+          float roofPivotY;
+          float animationT;
+          struct Attributes {
+            uvec4 record0;
+            uvec4 record1;
+            uvec4 record2;
+            uvec4 record3;
+          };
+          struct Varyings {
+            flat uvec4 result0;
+            flat uvec4 result1;
+            flat uvec4 result2;
+            flat uvec4 result3;
+          };
+          Varyings vert(Attributes a) {
+            Varyings v;
+            ${mainBody}
+            return v;
+          }
+          void frag() {
+            gl_FragColor = vec4(0.0);
+          }
+          VertexShader = vert;
+          FragmentShader = frag;
+        }
+      }
+    }`;
+    shader = engine ? Shader.create(shaderLab, engine)! : Shader.create(shaderLab)!;
   }
   return shader.subShaders[0].passes[0];
 }
@@ -93,7 +122,7 @@ export class EngineRoofFeedback {
     if (!bytes || bytes.byteLength % STRIDE) throw new Error("Roof feedback requires whole 64-byte records");
     this.count = bytes.byteLength / STRIDE;
     if (this.count > 0x7fffffff) throw new RangeError("Roof feedback exceeds signed draw count");
-    this._simulator = new TransformFeedbackSimulator(engine, STRIDE, this.count, gravityPass(), VARYINGS);
+    this._simulator = new TransformFeedbackSimulator(engine, STRIDE, this.count, gravityPass(engine), VARYINGS);
     try {
       if (bytes.length) this._simulator.readBinding.buffer.setData(bytes);
       this.metrics.uploadBytes = bytes.byteLength;

@@ -248,6 +248,16 @@ export class OceanWaterRuntimeController {
         const far = config.surfaceShader.subShaders.find((sub) => sub.name === "WaterFar");
         if (!far) throw new Error("NOT_SUPPORTED: Ocean Shader requires its authored WaterFar SubShader.");
         const passes = far.passes.map((source) => {
+          const src = source as unknown as {
+            _vertexOutputNames?: ConstructorParameters<typeof ShaderPass>[5];
+            _uniformBlocks?: ConstructorParameters<typeof ShaderPass>[6];
+            _uniformPlan?: ConstructorParameters<typeof ShaderPass>[7];
+            _wgsl?: ConstructorParameters<typeof ShaderPass>[8];
+            _webGPUFragmentInstructions?: ConstructorParameters<typeof ShaderPass>[9];
+            _wgslVertexInstructions?: ConstructorParameters<typeof ShaderPass>[10];
+            _wgslFragmentInstructions?: ConstructorParameters<typeof ShaderPass>[11];
+            _shaderLabSource?: unknown;
+          };
           const pass = new ShaderPass(
             source.name,
             source._vertexShaderInstructions,
@@ -255,8 +265,17 @@ export class OceanWaterRuntimeController {
             ShaderLanguage.GLSLES300,
             {
               pipelineStage: source.getTagValue("pipelineStage") ?? "Forward"
-            }
+            },
+            src._vertexOutputNames,
+            src._uniformBlocks,
+            src._uniformPlan,
+            src._wgsl,
+            src._webGPUFragmentInstructions,
+            src._wgslVertexInstructions,
+            src._wgslFragmentInstructions
           );
+          if (src._shaderLabSource)
+            (pass as unknown as { _shaderLabSource?: unknown })._shaderLabSource = src._shaderLabSource;
           pass._renderState = source._renderState;
           pass._renderStateDataMap = { ...source._renderStateDataMap };
           return pass;

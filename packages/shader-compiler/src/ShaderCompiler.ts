@@ -106,7 +106,7 @@ export class ShaderCompiler {
         runtimeParser,
         sourceScopeStarts
       );
-      return generateParsedShaderPassData(parsed, vertexEntry, fragmentEntry, backend, undefined, this.webgpu);
+      return generateParsedShaderPassData(parsed, vertexEntry, fragmentEntry, backend, undefined, this.webgpu, false);
     } finally {
       this._scheduleIdleCleanup();
     }

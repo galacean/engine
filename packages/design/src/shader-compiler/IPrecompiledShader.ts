@@ -17,6 +17,8 @@ export interface IPrecompiledPass
     IShaderProgramSource,
     | "vertexShaderInstructions"
     | "fragmentShaderInstructions"
+    | "wgslVertexInstructions"
+    | "wgslFragmentInstructions"
     | "vertexOutputNames"
     | "uniformBlocks"
     | "uniformPlan"
