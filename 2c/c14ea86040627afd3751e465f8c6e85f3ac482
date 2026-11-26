@@ -1,0 +1,21 @@
+tests/src/core/physics/PhysicsGameplay.test.ts
+  s_d2c65ec75a2f3e::t_f3555f3202d857 140,148,170-174,201-212
+tests/src/core/physics/Rigidbody.test.ts
+  s_d2c65ec75a2f3e::t_3aba75e8fc2f77 2210,2213,2220,2222-2223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2cc14ea86040627afd3751e465f8c6e85f3ac482",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

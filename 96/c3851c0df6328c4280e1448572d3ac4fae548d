@@ -1,0 +1,23 @@
+tests/src/loader/SceneFormatV2.test.ts
+  s_a906facbc0e1c1::t_f472cdfb21ad4f 528,536,541,571-572
+  s_a906facbc0e1c1::t_efc37dc7f95ee2 529-535,542-547,555-560
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_a906facbc0e1c1::t_efc37dc7f95ee2 43-48,50-58,185-189
+  s_a906facbc0e1c1::t_655918301424aa 39-40,59-68,70,78,112,151-154,159,164,169,175,180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "96c3851c0df6328c4280e1448572d3ac4fae548d",
+  "prompts": {},
+  "sessions": {
+    "s_a906facbc0e1c1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210ed-3fc5-7302-b74d-8f2376b79692",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

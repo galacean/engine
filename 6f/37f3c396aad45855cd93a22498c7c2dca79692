@@ -1,0 +1,20 @@
+packages/core/src/utils/DisorderedArray.ts
+  h_dd004f51a3e5ec 110-117,130-138,203,205,212-214
+tests/src/core/Animator.test.ts
+  h_dd004f51a3e5ec 5,1754-1802
+tests/src/core/ModelMesh.test.ts
+  h_dd004f51a3e5ec 691-730
+tests/src/core/Utils.test.ts
+  h_dd004f51a3e5ec 95-191
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6f37f3c396aad45855cd93a22498c7c2dca79692",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

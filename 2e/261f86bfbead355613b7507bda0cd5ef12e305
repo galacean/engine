@@ -1,0 +1,262 @@
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases-v4.ts
+  h_171a11afaf879a 623,627
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases.ts
+  h_171a11afaf879a 1228-1229
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/seed-world-headless-fixture.ts
+  h_171a11afaf879a 83,699-701,1007-1025,1029-1048,1064-1067,1069-1079,1081-1133,1136-1139,1638,1643,1661-1664,1688-1691,1856-1899,1909-1930
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/water-sampling.spec.ts
+  h_171a11afaf879a 1-62
+packages/ai-chat/src/ai-chat/README.md
+  h_171a11afaf879a 150,638
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  h_171a11afaf879a 12,14-16,74,80-83,142,151,245,256,350-351,362-363,421-422,427-428,459,474,498-501,509-511,620-634,957-958,1026-1034,1044-1045,1062-1080,1180,1183,1258-1286,1293-1300,1308-1314,1367
+packages/ai-chat/src/ai-chat/agent-native-files.ts
+  h_171a11afaf879a 11,27-28,39-40,42-43,45-50,53-54,56-57,60-64,136-152,181-182,211,215,217-220,227,229-253,255-256,259,261,263,267,271-275,469,478-483,489,569-579
+packages/ai-chat/src/ai-chat/agent-script-checker.ts
+  h_171a11afaf879a 170-267,340-349,353-363,365,367,369,371-375
+packages/ai-chat/src/ai-chat/ai-chat-session.ts
+  h_171a11afaf879a 44
+packages/ai-chat/src/ai-chat/asap-chat.ts
+  h_171a11afaf879a 304
+packages/ai-chat/src/ai-chat/context-compaction.ts
+  h_171a11afaf879a 260,264-292
+packages/ai-chat/tests/agent-file-tools.spec.ts
+  h_171a11afaf879a 446-532,620-698
+packages/ai-chat/tests/agent-native-files.spec.ts
+  h_171a11afaf879a 2-8,529-709
+packages/ai-chat/tests/context-compaction-loop.spec.ts
+  h_171a11afaf879a 243-423
+packages/ai-chat/tests/context-compaction.spec.ts
+  h_171a11afaf879a 280-309
+packages/ai-chat/tests/model-retry-transport.spec.ts
+  h_171a11afaf879a 179-215
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 207-216,1569-1572,1585-1590,1592-1599,1611-1614,1622-1624,1656,1667,1683,1692,1694,1696,1703-1709,1728,1736-1738
+packages/animals/src/gameplay/animal/GroundAnimalSteering.ts
+  h_171a11afaf879a 48
+packages/animals/src/skills/animals/SKILL.md
+  h_171a11afaf879a 49
+packages/building/src/skills/building/SKILL.md
+  h_171a11afaf879a 32
+packages/building/src/skills/building/references/structure.md
+  h_171a11afaf879a 3-14
+packages/building/src/skills/building/references/wall.md
+  h_171a11afaf879a 15
+packages/modify/src/native/core/src/asset/ResourceManager.ts
+  h_171a11afaf879a 216,220-224,283,410
+packages/project/src/project-files/virtual-project-files.ts
+  h_171a11afaf879a 35-37,47-49
+packages/project/src/runtime-editor/project/runtime-project-dependencies.ts
+  h_171a11afaf879a 97-101,103-144,151,169,181-186,205,212-221,231,269,278,326,329,351-365,368-371
+packages/project/src/runtime-editor/project/runtime-project.ts
+  h_171a11afaf879a 2,5,9-12,60-118,121-160,163-188,202,205-207,213,215,222,224-230,232-241,243-254,257-281,283,288-293,297-323,325-327,331-340,401-402,409-411,413-415,420-481,497,499,501-507,528-529,531-536,538-539,541-542,545,549-551,562,583-592,602-621,623-625,628,634-635,638-650,654-656,658,662,665-666,673-680,684-688,690-691,693-716,726-734,739,746,748,758
+packages/runtime-editor/src/project/project-save-control.ts
+  h_171a11afaf879a 13-64,69,80,82,89,118,139,203-204,208
+packages/runtime-editor/src/project/runtime-project-history.ts
+  h_171a11afaf879a 170-277,287,297
+packages/runtime-editor/src/project/runtime-project-session.ts
+  h_171a11afaf879a 2,18-19,22,29,38,47-53,83-87,100,106-130,139,141-146,148,153,160-167,169,173-175,181-182,187,272-294,309-312,483,565-568,570-571,573,575-584,617,855,859,861,872-875,896-897,906,909,912,939,1014,1016-1042,1048,1050,1066-1101,1131-1132,1136-1144,1154-1159,1171-1173,1175-1176,1179-1180,1183,1185-1186,1204,1217,1220,1263
+packages/runtime-editor/src/skills/components/SKILL.md
+  h_171a11afaf879a 24,26-35
+packages/runtime-editor/src/skills/history/SKILL.md
+  h_171a11afaf879a 11-12
+packages/runtime-editor/tests/runtime-project.spec.ts
+  h_171a11afaf879a 2-12,73-126,132-142,145-153,160,181-188,191,194-201,203,205-206,208,210-217,221-222,224,227-229,938-1849
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_171a11afaf879a 609-614
+packages/terrain/src/shaders/shared/GrassColorField.glsl
+  h_171a11afaf879a 121,123,125,127-129,133,174-189,193-194,196-224
+packages/terrain/src/shaders/shared/GrassSurfaceField.glsl
+  h_171a11afaf879a 7-8,10-20
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  h_171a11afaf879a 604,611,624,628,634-637
+packages/terrain/src/shaders/surface/SurfaceEvaluation.glsl
+  h_171a11afaf879a 156-157,163
+packages/terrain/src/shaders/terrain/TerrainEvaluation.glsl
+  h_171a11afaf879a 135-140
+packages/terrain/src/shaders/vegetation/VegetationEvaluation.glsl
+  h_171a11afaf879a 45-50
+packages/terrain/src/skills/terrain/SKILL.md
+  h_171a11afaf879a 10
+packages/terrain/src/terrain/loading/WorldBubbleLoadingScene.ts
+  h_171a11afaf879a 10,246
+packages/terrain/src/terrain/lod/TerrainLodGroupRendererRuntime.ts
+  h_171a11afaf879a 56,63-64,66
+packages/terrain/src/terrain/lod/TerrainLodGroupRuntime.ts
+  h_171a11afaf879a 3-5,114,125-126,128,132-134,141,150-155,176-177,216,259,264-279
+packages/terrain/src/terrain/project/TerrainProjectContract.ts
+  h_171a11afaf879a 270-271
+packages/ui/src/component/UIBatchSorter.ts
+  h_171a11afaf879a 30-33,49,65-67,69,113-114,141-145,149,152-156
+packages/vegetation/src/skills/vegetation/SKILL.md
+  h_171a11afaf879a 12
+packages/water/src/skills/water/SKILL.md
+  h_171a11afaf879a 8-10,17,40
+packages/water/src/water/runtime/ocean/OceanWaterCompiledResource.ts
+  h_171a11afaf879a 5-8,14,137-140,142-144,156,158,165-168,205-208,215,219-228,297-302
+packages/water/tests/OceanExclusions.test.ts
+  h_171a11afaf879a 1,5-16,125-223
+packages/world-planning/package.json
+  h_171a11afaf879a 117
+packages/world-planning/src/integrations/terrain/rock-formation/Authoring.ts
+  h_171a11afaf879a 5-6,13,27,47-55
+packages/world-planning/src/integrations/terrain/rock-formation/Collider.ts
+  h_171a11afaf879a 6,51-55
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  h_171a11afaf879a 14,54-55
+packages/world-planning/src/integrations/terrain/rock-formation/RockVariantCatalog.json
+  h_171a11afaf879a 8-12,17-21,26-30,35-39,44-48,55-59,64-68,73-77,83-87,92-96,102-106,111-115
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  h_171a11afaf879a 23,32-33,41-74,191-192,227-304,314-316,319-321
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  h_171a11afaf879a 32-67,234
+packages/world-planning/src/integrations/vegetation/AtomicAssetPreview.ts
+  h_171a11afaf879a 15,82,649-650,799-800
+packages/world-planning/src/runtime/SeedWorldGrassTerrainSurface.ts
+  h_171a11afaf879a 31-54,57-61,82-93,98-120
+packages/world-planning/src/runtime/SeedWorldPopulationPlan.ts
+  h_171a11afaf879a 116-125,141,145-147,191-194
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  h_171a11afaf879a 6930,6933,6937-6944,6952-6984,6986
+packages/world-planning/src/runtime/SeedWorldPopulationWaterImpact.ts
+  h_171a11afaf879a 66,69-82
+packages/world-planning/src/runtime/SeedWorldRockRuntime.ts
+  h_171a11afaf879a 2,403-404
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  h_171a11afaf879a 331-334
+packages/world-planning/src/spatial/PlanningComponents.ts
+  h_171a11afaf879a 1402-1404,1406-1412
+packages/world-planning/src/spatial/RockCollisionPolicy.ts
+  h_171a11afaf879a 1-86
+packages/world-planning/src/spatial/SpatialDocument.ts
+  h_171a11afaf879a 103-110,115,119-122,251-272,322
+packages/world-planning/src/spatial/V2Model.ts
+  h_171a11afaf879a 93-94
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  h_171a11afaf879a 2,53-54,992,1707-1711
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  h_171a11afaf879a 17-18
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  h_171a11afaf879a 2,6,209,260-261,283-284
+packages/world-planning/src/spatial/ecology/AuthoredVegetation.ts
+  h_171a11afaf879a 14,162,175-179
+packages/world-planning/src/spatial/ecology/CoverageRaster.ts
+  h_171a11afaf879a 3-10,25
+packages/world-planning/src/spatial/ecology/VegetationCoverage.ts
+  h_171a11afaf879a 2,9,31-34
+packages/world-planning/src/spatial/guidance/GuidanceRock.ts
+  h_171a11afaf879a 3,7-11,21
+packages/world-planning/src/spatial/guidance/VisualGuidance.ts
+  h_171a11afaf879a 14,518
+packages/world-planning/src/spatial/layout/DerivedEdits.ts
+  h_171a11afaf879a 4,12-13,34-39
+packages/world-planning/src/spatial/layout/LayoutPlanAdapter.ts
+  h_171a11afaf879a 7-8,30,82
+packages/world-planning/src/spatial/layout/SpatialInstanceEdits.ts
+  h_171a11afaf879a 15-16,219-241,261-267,297,323-328
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  h_171a11afaf879a 6-7,262,1232
+packages/world-planning/src/spatial/runtime/NaturalUnderstoryInstancedPool.ts
+  h_171a11afaf879a 31,48-50,232,238,240,1120
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_171a11afaf879a 883-899,903-913,981-988,1004-1011,1039-1051,1055-1057,1062-1066,1071-1074
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_171a11afaf879a 2,129,1554-1555,2230-2234
+packages/world-planning/src/spatial/runtime/PlanningPopulationData.ts
+  h_171a11afaf879a 12,102-105
+packages/world-planning/src/spatial/runtime/PlanningPopulationVisibility.ts
+  h_171a11afaf879a 4,56
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_171a11afaf879a 6,38,71-76,207-215,465-507
+packages/world-planning/src/spatial/world-templates/LowPolyValley.ts
+  h_171a11afaf879a 20,30-31,33,43
+packages/world-planning/src/spatial/world-templates/OasisFloodplain.ts
+  h_171a11afaf879a 112
+packages/world-planning/src/world/MarkupViewport.shader
+  h_171a11afaf879a 1-156
+packages/world-planning/src/world/SeedWorldDetailCandidateLattice.ts
+  h_171a11afaf879a 232,289-309,349-358
+packages/world-planning/src/world/SeedWorldExactInstanceCellRuntime.ts
+  h_171a11afaf879a 90-91,99-100,119-120,136-138
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  h_171a11afaf879a 3,17,26,33,37,39,175-277,293-294,298,303,309,335-336,448-473,478-484,489,495,504,509,515,526,528,546-549,559-560,588,675,698-758,761,764-769,778-779,781-783,792,794-799,802-807,809-813,815-836,838,845-890,895-900,905,907-909,911,913-919,926,932,939,953,955
+packages/world-planning/src/world/SeedWorldPhotoPalette.ts
+  h_171a11afaf879a 3-6,24-26,39-44,46,56,64,66,75,77-78,84-86
+packages/world-planning/src/world/SeedWorldPicker.ts
+  h_171a11afaf879a 386-413
+packages/world-planning/src/world/SeedWorldViewSnapshot.ts
+  h_171a11afaf879a 55-56,583-587,592-595
+tests/src/ui/UIBatchSorter.test.ts
+  h_171a11afaf879a 180-200
+world/README.md
+  h_171a11afaf879a 80-81
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 74-77,493-541,544,547-551,563,704,750-753,755,757,765,768,878-883,887-888,900-910,948-949,961,968,1057,3211,3615-3698,3805-3807,4071
+world/demos/seed-world/agent-adapter/skills/runtime/SKILL.md
+  h_171a11afaf879a 12
+world/demos/seed-world/agent-adapter/skills/spatial/SKILL.md
+  h_171a11afaf879a 14
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  h_171a11afaf879a 98-102,731-733,758-761,925-927,1699-1708,2170-2177
+world/demos/seed-world/main.ts
+  h_171a11afaf879a 5-9,113,120
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  h_171a11afaf879a 21-41,52-54,57-59,62-76,79-136,138-160,162,164-172,174-176,178-179,181-188,190-196,200-201,205-208,211-212,218-248,255-274,279,289-298,305-306
+world/demos/seed-world/src/SeedWorldLassoPanel.ts
+  h_171a11afaf879a 13,17-24,50-53,66-67,98,106,124,128,130-143,151,160-161
+world/demos/seed-world/src/SeedWorldMojavePreview.ts
+  h_171a11afaf879a 3,90-91
+world/demos/seed-world/src/SeedWorldPhotoInput.ts
+  h_171a11afaf879a 25,41-42,59-66,81-82
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  h_171a11afaf879a 3,18,68,70,72-75,101,152-162,210-227,229-241,251,254-355,361-367,393-396,402-403,406,408,411-422,424-426,428-432,434,436-438,440,443-455,461,464-466,470-507,518-528,530,532-534,543-544,551-555,563,609-615,643-644,667-669,687,689-696,699-703,717,742-750,756-757,759-760,850-857,862,870,874-885,889-892,912-913,966,1007,1048,1051,1053-1059,1061,1070,1075-1093,1096-1110,1119-1122,1132,1138-1141
+world/demos/seed-world/src/planning/spatial/PlanningDocumentCodec.ts
+  h_171a11afaf879a 5,30,37
+world/demos/seed-world/src/planning/spatial/PlanningPageUrl.ts
+  h_171a11afaf879a 3-28
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  h_171a11afaf879a 7,215,228-234,246,393-394,405-411
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  h_171a11afaf879a 21,90-91,96,160-162,168-171
+world/scripts/seed-world-plant-texture-downloads.mjs
+  h_171a11afaf879a 1-43
+world/scripts/tests/seed-world-plant-texture-downloads.test.mjs
+  h_171a11afaf879a 1-45
+world/tests/seed-world/ExactInstanceStaticReuse.spec.ts
+  h_171a11afaf879a 2-3,5,10-36
+world/tests/seed-world/Float32GridRaster.spec.ts
+  h_171a11afaf879a 83-168
+world/tests/seed-world/PlanningProjectInputs.spec.ts
+  h_171a11afaf879a 9,126-203
+world/tests/seed-world/PlanningStorage.spec.ts
+  h_171a11afaf879a 149,153-158
+world/tests/seed-world/ResourceManagerPrefetch.spec.ts
+  h_171a11afaf879a 2,11,16-34
+world/tests/seed-world/SeedWorldRockCollider.spec.ts
+  h_171a11afaf879a 59-77,158-488
+world/tests/seed-world/SeedWorldRockLodCells.spec.ts
+  h_171a11afaf879a 4-7,17,215-272
+world/tests/seed-world/dependency-maintenance.spec.ts
+  h_171a11afaf879a 94-96,98-106,114,116-117
+world/vite.config.mjs
+  h_171a11afaf879a 10,506
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2e261f86bfbead355613b7507bda0cd5ef12e305",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

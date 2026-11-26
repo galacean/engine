@@ -1,0 +1,26 @@
+packages/ai-chat/src/ai-chat/asap-chat.ts
+  s_a61a893a3e253a::t_761c2481df8fe5 141-142
+  s_a61a893a3e253a::t_a936030d62ec47 102,143,161-162,170-175,182,198-201,203,213-218,222,263,499,507,510-512,516,719-726,737,739
+packages/ai-chat/tests/model-retry-transport.spec.ts
+  s_a61a893a3e253a::t_04802105fea7b7 232,238,255,292-307
+world/demos/seed-world/assistant/SeedWorldActionProbe.ts
+  s_a61a893a3e253a::t_50cceaab3064a9 35
+world/demos/seed-world/tests/SeedWorldActionProbe.test.ts
+  s_a61a893a3e253a::t_b79c0dddcbda48 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "392cfed7f8866661cc29b33ee6d1b980838b6d04",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

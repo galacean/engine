@@ -1,0 +1,84 @@
+.agents/skills/seed-world-flash-publish/SKILL.md
+  h_ddbf152d31b140 3,6,8,11-30,34-37,39,41,49,51-53,55-64,68,71,74,76,78,81-110,113,118-120,123-126
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_ddbf152d31b140 1
+packages/terrain/src/terrain/project/TerrainPostProcessRuntime.ts
+  h_ddbf152d31b140 130-132,674,683-689
+packages/water/src/water/runtime/heightfield/HeightfieldWaterRuntimeController.ts
+  h_ddbf152d31b140 318,332-337
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 32-34,130-132,889-894,1595,1599-1600,1625-1630,1653-1691,1693-1695,1718-1719,1732-1737,2259-2323,2327-2328,2349-2353,2355-2356,2387-2388,2397
+world/demos.json
+  h_ddbf152d31b140 118-148
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  h_ddbf152d31b140 1,3,5-21,33,35,37,43,46-52,55,57-60,62,68,70,72,74,80-84,88,93,96,98,104,106,110,113-142,145-149,153,155-160,166-172
+world/demos/seed-world/README.md
+  h_ddbf152d31b140 7,21-22
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 251,796
+world/demos/seed-world/SeedWorldProject.ts
+  h_ddbf152d31b140 21,133
+world/demos/seed-world/emerald-forest.html
+  h_ddbf152d31b140 1-13
+world/demos/seed-world/flash-app-cdn-manifest.json
+  h_ddbf152d31b140 255-260,267-272,321-332,369-374,435-440,471-476,621-626,717-728,777-782,789-794,933-938,1005-1010,1035-1040,1143-1148,1341-1346,1353-1358,1365-1370,1407-1412,1455-1460,1485-1490,1653-1658,1689-1694,1809-1820,1827-1832,2091-2096,2235-2240,2277-2282,2367-2372,2409-2414,2427-2432,2613-2618,2637-2642,2727-2732,2799-2804
+world/demos/seed-world/flash-apps.json
+  h_ddbf152d31b140 1-47
+world/demos/seed-world/index.html
+  h_ddbf152d31b140 6-7
+world/demos/seed-world/low-poly.html
+  h_ddbf152d31b140 1-13
+world/demos/seed-world/main.ts
+  h_ddbf152d31b140 5-6,21,62-63,80
+world/demos/seed-world/oil-paint.html
+  h_ddbf152d31b140 1-13
+world/demos/seed-world/sakura-pearl.html
+  h_ddbf152d31b140 1-13
+world/demos/seed-world/src/planning/spatial/FlashAppTemplateBinding.ts
+  h_ddbf152d31b140 1-29
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  h_ddbf152d31b140 7,9-10,12,14-15,17-22,24-26
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  h_ddbf152d31b140 13,119-121
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  h_ddbf152d31b140 45-47
+world/demos/seed-world/titan-wasteland.html
+  h_ddbf152d31b140 1-13
+world/scripts/acceptance/shared-world-storage.mjs
+  h_ddbf152d31b140 90,96,111,203-204,219-224,234-246
+world/scripts/build-seed-world-flash-app.mjs
+  h_ddbf152d31b140 8-12,19-20,37-38,56,60-70
+world/scripts/build-seed-world-flash-source.mjs
+  h_ddbf152d31b140 19,77,140,142,145-146,151-156,422-426,428,438-442
+world/scripts/flash-app-variants.mjs
+  h_ddbf152d31b140 1-200
+world/scripts/publish-seed-world-flash-apps.mjs
+  h_ddbf152d31b140 1-774
+world/scripts/seed-world-template-bundles.mjs
+  h_ddbf152d31b140 41-42,99,190,314-325,352,355
+world/tests/seed-world/HeightfieldWaterVisibility.spec.ts
+  h_ddbf152d31b140 1-59
+world/tests/seed-world/PlanningStartupTemplate.spec.ts
+  h_ddbf152d31b140 20,22-29,32,34
+world/tests/seed-world/PlanningStorage.spec.ts
+  h_ddbf152d31b140 158
+world/tests/seed-world/SeedWorldFlashApps.spec.ts
+  h_ddbf152d31b140 1-328
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_ddbf152d31b140 2330-2438
+world/tests/seed-world/SeedWorldTemplateBundles.spec.ts
+  h_ddbf152d31b140 132,139-140,163-164,179-184,186,189,192,195,199,209,307,317-318
+world/vite.config.mjs
+  h_ddbf152d31b140 51-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3ba4f39417e59edc932d77aefc097021449e5dc0",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

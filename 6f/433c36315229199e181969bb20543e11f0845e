@@ -1,0 +1,20 @@
+.agents/skills/seed-world-flash-publish/SKILL.md
+  h_ddbf152d31b140 53
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  h_ddbf152d31b140 81-85
+world/scripts/build-seed-world-flash-app.mjs
+  h_ddbf152d31b140 2,71-84
+world/scripts/build-seed-world-flash-source.mjs
+  h_ddbf152d31b140 57,66,78-79,87-91,106,145,148-149,158-159,176,216,222-309,500,502-503,505,508-509,512-513,515,517
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6f433c36315229199e181969bb20543e11f0845e",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+packages/core/src/animation/animationCurve/AnimationFloatArrayCurve.ts
+  s_f842f9b6c651e4::t_1096180f866a3d 118
+tests/src/core/AnimationCurve.test.ts
+  s_f842f9b6c651e4::t_a0365abc2e0fee 131,136,140-142,144-145,163-164,166-167,169-178,180-182,235-237,355,358,363,366,371-373,380,405-410
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6cf511d3a3b71526b47bfc0307d45b26d19462c2",
+  "prompts": {},
+  "sessions": {
+    "s_f842f9b6c651e4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a211bf-088c-75d2-9f40-2ef940fb3dae",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

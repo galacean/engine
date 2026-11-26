@@ -1,0 +1,21 @@
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_d5da8c666c9067::t_54e49e54ffbe21 270,388
+tests/src/core/RenderPipeline/Blitter.test.ts
+  s_d5da8c666c9067::t_e4127dc03d2bc3 789-795,844-849,1167-1267
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "637b9a545ee0cf5b9e335ff422462d75fbf39965",
+  "prompts": {},
+  "sessions": {
+    "s_d5da8c666c9067": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21229-2698-7642-9db8-6417cc7a2560",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

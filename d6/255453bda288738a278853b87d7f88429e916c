@@ -1,0 +1,16 @@
+packages/core/src/animation/internal/animationCurveOwner/AnimationCurveOwner.ts
+  h_dd004f51a3e5ec 70-71
+tests/src/core/Animator.test.ts
+  h_dd004f51a3e5ec 1698-1701,1730-1749
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d6255453bda288738a278853b87d7f88429e916c",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  h_c385727b10f40c 8,59-66,84,567-568,570-573,578-752,767-791,796-797,799-801,809-811
+tests/src/shader-compiler/InterfaceMRTConversion.test.ts
+  h_c385727b10f40c 136-176
+tests/src/shader-compiler/ShaderCompiler.test.ts
+  h_c385727b10f40c 913-915
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e02e67eaaa4039c7379756692d85e9d6daeb53ee",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

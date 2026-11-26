@@ -1,0 +1,16 @@
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  h_171a11afaf879a 502-507
+packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/VolumetricLight.glsl
+  h_171a11afaf879a 5,102-132,135,304-309
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "10e19eb9eb3d26ce6f9c75ebd572ad97b765026e",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

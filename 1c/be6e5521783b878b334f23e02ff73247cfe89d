@@ -1,0 +1,19 @@
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_a61a893a3e253a::t_b6e14ff048b247 84,86,127,129,131,142,150-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1cbe6e5521783b878b334f23e02ff73247cfe89d",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
