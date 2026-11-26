@@ -58,22 +58,25 @@ export function installSeedWorldGrassDrawOrder(
     const grass = renderers[0]?.getMaterial();
     const pass = grass?.shader.subShaders[0]?.passes.find((pass) => pass._pipelineStage === PipelineStage.Forward);
     const queueKey = RenderStateElementKey.RenderQueueType;
-    const queueProperty = pass?._renderStateDataMap[queueKey] ?? grassQueue;
-    const grassCount = renderers.length;
-    world.clipmap.visitRenderers(collectTerrain);
     if (
       !grass ||
       !pass ||
       pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, grass.shaderData) !==
-        RenderQueueType.AlphaTest ||
-      renderers.length === grassCount
+        RenderQueueType.AlphaTest
     ) {
       renderers.length = priorities.length = 0;
       return render.call(this, cubeFace, mipLevel);
     }
 
+    const grassCount = renderers.length;
+    world.clipmap.visitRenderers(collectTerrain);
+    if (renderers.length === grassCount) {
+      renderers.length = priorities.length = 0;
+      return render.call(this, cubeFace, mipLevel);
+    }
+
     // Retain the stock AlphaTest default for other materials using this shader.
-    pass._renderStateDataMap[queueKey] ??= grassQueue;
+    const queueProperty = (pass._renderStateDataMap[queueKey] ??= grassQueue);
     const previousQueue = grass.shaderData.getFloat(queueProperty);
     try {
       grass.shaderData.setFloat(queueProperty, RenderQueueType.Opaque);

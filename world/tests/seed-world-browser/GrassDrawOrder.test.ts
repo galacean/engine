@@ -18,7 +18,7 @@ import { UnlitSource } from "@galacean/engine-shader";
 import { TerrainRenderer } from "../../../packages/terrain/src/terrain/TerrainRenderer";
 import { installSeedWorldGrassDrawOrder } from "../../demos/seed-world/src/SeedWorldGrassDrawOrder";
 
-it("orders grass before terrain on the depth-backed main camera and preserves the color-only draw", async () => {
+it("orders grass before terrain only on the depth-backed main camera with active grass", async () => {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 64;
   const engine = await WebGLEngine.create({ canvas, shaderCompiler: new ShaderCompiler() });
@@ -66,12 +66,22 @@ it("orders grass before terrain on the depth-backed main camera and preserves th
       if (args[0] === buildingMesh._primitive) order.push("building");
       return draw.apply(hardware, args);
     });
+    const visitTerrain = vi.fn((visit: (renderer: TerrainRenderer) => void) => visit(terrain));
     const restore = installSeedWorldGrassDrawOrder(camera, () => ({
       population: { visitForwardGrassRenderers: (visit) => visit(grass) },
-      clipmap: { visitRenderers: (visit) => visit(terrain) }
+      clipmap: { visitRenderers: visitTerrain }
     }));
     try {
       const pixel = new Uint8Array(4);
+      grass.enabled = false;
+      camera.render();
+      hardware.gl.readPixels(32, 32, 1, 1, hardware.gl.RGBA, hardware.gl.UNSIGNED_BYTE, pixel);
+      expect(visitTerrain).not.toHaveBeenCalled();
+      expect(order).toEqual(["terrain", "building"]);
+      expect([...pixel]).toEqual([255, 0, 0, 255]);
+
+      order.length = 0;
+      grass.enabled = true;
       camera.render();
       hardware.gl.readPixels(32, 32, 1, 1, hardware.gl.RGBA, hardware.gl.UNSIGNED_BYTE, pixel);
       expect(order).toEqual(["building", "grass", "terrain"]);
