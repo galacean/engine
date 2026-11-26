@@ -93,9 +93,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   /**
    * Read a snapshot of the keyframe at the specified index.
    * Mutating the returned `Keyframe` does not modify the curve; call `setKey` to apply edits.
-   * @param index - The keyframe index in `[0, keyCount)`
-   * @param out - Optional reusable keyframe instance
-   * @throws {RangeError} If `index` is out of range `[0, keyCount)`
+   * @param index - Keyframe index in `[0, keyCount)`
+   * @param out - Optional keyframe instance to populate and return (compatible `value` and tangent objects are reused in place)
+   * @throws RangeError If `index` is out of range `[0, keyCount)`
    */
   getKey(index: number, out?: Keyframe<V>): Keyframe<V> {
     this._checkIndex(index);
@@ -107,9 +107,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   /**
    * Replace the keyframe at the specified index while maintaining ascending time order.
-   * @param index - The keyframe index in `[0, keyCount)`
-   * @param key - The replacement keyframe (values copied into storage)
-   * @throws {RangeError} If `index` is out of range `[0, keyCount)`
+   * @param index - Keyframe index in `[0, keyCount)`
+   * @param key - Replacement keyframe (timestamps and numeric values are copied into storage)
+   * @throws RangeError If `index` is out of range `[0, keyCount)`
    */
   setKey(index: number, key: Keyframe<V>): void {
     this._checkIndex(index);
@@ -142,16 +142,17 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   /**
    * Evaluate the curve at time.
-   * @param time - The time within the curve you want to evaluate
+   * @param time - Time in seconds
+   * @returns Evaluated value, or `undefined` when the curve has no keys; mutable math/array results reuse an internal buffer overwritten by subsequent calls
    */
   evaluate(time: number): V | undefined {
     return this._evaluate(time, this._evaluateData);
   }
 
   /**
-   * Removes a key.
-   * @param index - The index of the key to remove in `[0, keyCount)`
-   * @throws {RangeError} If `index` is out of range `[0, keyCount)`
+   * Remove the keyframe at the specified index.
+   * @param index - Keyframe index in `[0, keyCount)`
+   * @throws RangeError If `index` is out of range `[0, keyCount)`
    */
   removeKey(index: number): void {
     this._checkIndex(index);
@@ -289,22 +290,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       valueSize = values.length / divisor;
     }
 
-    const order = this._prepareSetTimes(times);
-    if (order === null) {
-      this._values = values;
-    } else {
-      const stride = tangents ? valueSize * 3 : valueSize;
-      const sortedValues = new Float32Array(count * stride);
-      for (let i = 0; i < count; i++) {
-        const srcBase = order[i] * stride;
-        const dstBase = i * stride;
-        for (let j = 0; j < stride; j++) {
-          sortedValues[dstBase + j] = values[srcBase + j];
-        }
-      }
-      this._values = sortedValues;
-    }
-
+    this._assignTimes(times);
+    this._values = values;
     this._valueSize = valueSize;
     this._hasTangents = tangents;
   }
@@ -319,17 +306,11 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       return;
     }
 
-    const order = this._prepareSetTimes(times);
+    this._assignTimes(times);
     const target = this._discreteValues!;
     target.length = count;
-    if (order === null) {
-      for (let i = 0; i < count; i++) {
-        target[i] = values[i];
-      }
-    } else {
-      for (let i = 0; i < count; i++) {
-        target[i] = values[order[i]];
-      }
+    for (let i = 0; i < count; i++) {
+      target[i] = values[i];
     }
     this._hasTangents = false;
   }
@@ -392,7 +373,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   private _ensureWritable(minKeyCount: number, needTangents: boolean): void {
     const oldTimes = this._times;
-    if (this._isBufferShared || !(oldTimes instanceof Float64Array) || oldTimes.length < minKeyCount) {
+    // Copy borrowed timestamps into an owned Float64Array before mutating so added keys keep double precision.
+    if (this._isBufferShared || oldTimes.length < minKeyCount) {
       const nextCap = oldTimes.length < minKeyCount ? Math.max(4, minKeyCount, oldTimes.length * 2) : oldTimes.length;
       const nextTimes = new Float64Array(nextCap);
       nextTimes.set(oldTimes);
@@ -457,43 +439,11 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     }
   }
 
-  private _prepareSetTimes(times: TypedArray): number[] | null {
-    const count = times.length;
-    let prev = -Infinity;
-    let ordered = true;
-    for (let i = 0; i < count; i++) {
-      const time = times[i];
-      if (time < prev) {
-        ordered = false;
-        break;
-      }
-      prev = time;
-    }
-
-    if (ordered) {
-      this._times = times;
-      this._isBufferShared = true;
-      this._keyCount = count;
-      this._evaluateData.curKeyframeIndex = 0;
-      return null;
-    }
-
-    const order = new Array<number>(count);
-    for (let i = 0; i < count; i++) {
-      order[i] = i;
-    }
-    order.sort((a, b) => times[a] - times[b]);
-
-    const sortedTimes = times instanceof Float32Array ? new Float32Array(count) : new Float64Array(count);
-    for (let i = 0; i < count; i++) {
-      sortedTimes[i] = times[order[i]];
-    }
-
-    this._times = sortedTimes;
-    this._isBufferShared = false;
-    this._keyCount = count;
+  private _assignTimes(times: TypedArray): void {
+    this._times = times;
+    this._isBufferShared = true;
+    this._keyCount = times.length;
     this._evaluateData.curKeyframeIndex = 0;
-    return order;
   }
 
   private _checkIndex(index: number): void {

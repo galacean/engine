@@ -53,12 +53,13 @@ export class GLTFAnimationParser extends GLTFParser {
           const scale = GLTFUtils.getNormalizedComponentScale(accessors![index].componentType);
           const output = new Float32Array(values.length);
           for (let i = 0, n = values.length; i < n; i++) {
+            // glTF 2.0 signed normalized min values (-128 BYTE, -32768 SHORT) exceed -1 and must clamp.
             output[i] = Math.max(-1, values[i] * scale);
           }
           outputs.set(index, output);
           return output;
         }
-        // A dormant curve needs only its accessor's samples.
+        // Detach sub-views from shared .bin/.glb ArrayBuffers so retained curves do not pin unrelated asset data.
         if (values.byteLength === values.buffer.byteLength) return values;
         const retained = values.slice();
         data.set(index, retained);

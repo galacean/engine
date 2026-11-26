@@ -83,10 +83,11 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
 
   /**
    * Replace all keyframes with packed `Vector2` buffers.
-   * When `times` is already ascending, `times` and `values` are retained by reference without copying (copy-on-write on mutation) and must not be mutated by the caller; unsorted inputs or later edits copy `values` into `Float32Array`.
-   * @param times - Keyframe timestamps in seconds
-   * @param values - Packed keyframe scalars (`2` per key, or `6` per key as `[inTangent, value, outTangent]`)
+   * @param times - Keyframe timestamps in seconds; must be sorted in ascending (non-decreasing) order
+   * @param values - Packed scalars (`2` per key, or `6` per key interleaved as `[inTangent, value, outTangent]`)
    * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
+   * @throws Error If `values.length` does not match `times.length` and the expected stride
+   * @remarks Non-empty inputs retain `times` and `values` directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamp order; callers must pass non-decreasing `times` and must not mutate retained buffers.
    */
   setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
     this._setNumericKeys(times, values, 2, hasTangents);

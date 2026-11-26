@@ -874,8 +874,6 @@ describe("glTF Loader test", function () {
       // key 1 (2 morph targets): in, value, out
       2, 0, 1, 0, 0, 0
     ];
-    const unsortedTimes = [1, 0];
-    const unsortedTrans = [10, 20, 30, 1, 2, 3];
     const triangle = [0, 0, 0, 1, 0, 0, 0, 1, 0];
     const delta0 = [0, 0, 1, 0, 0, 1, 0, 0, 1];
     const delta1 = [0, 1, 0, 0, 1, 0, 0, 1, 0];
@@ -889,8 +887,6 @@ describe("glTF Loader test", function () {
       ...transStep,
       ...rotCubic,
       ...weightCubic,
-      ...unsortedTimes,
-      ...unsortedTrans,
       ...triangle,
       ...delta0,
       ...delta1
@@ -942,8 +938,6 @@ describe("glTF Loader test", function () {
     const transStepAcc = addAccessor("VEC3", 3, 2);
     const rotCubicAcc = addAccessor("VEC4", 4, 6);
     const weightCubicAcc = addAccessor("SCALAR", 1, 12);
-    const unsortedTimesAcc = addAccessor("SCALAR", 1, 2);
-    const unsortedTransAcc = addAccessor("VEC3", 3, 2);
     const posAcc = addAccessor("VEC3", 3, 3, true);
     const target0Acc = addAccessor("VEC3", 3, 3, true);
     const target1Acc = addAccessor("VEC3", 3, 3, true);
@@ -993,11 +987,6 @@ describe("glTF Loader test", function () {
             { sampler: 1, target: { node: 0, path: "rotation" } },
             { sampler: 2, target: { node: 0, path: "weights" } }
           ]
-        },
-        {
-          name: "unsorted",
-          samplers: [{ input: unsortedTimesAcc, output: unsortedTransAcc, interpolation: "LINEAR" }],
-          channels: [{ sampler: 0, target: { node: 0, path: "translation" } }]
         }
       ]
     };
@@ -1012,12 +1001,7 @@ describe("glTF Loader test", function () {
       const actor = instance.findByName("Actor")!;
       const renderer = actor.getComponent(SkinnedMeshRenderer)!;
       const animator = instance.getComponent(Animator)!;
-      const [baseClip, overlayClip, unsortedClip] = resource.animations!;
-
-      // Unsorted inputs normalize eagerly at load time into ascending flat buffers.
-      expect(unsortedClip.length).toBe(1);
-      expect(unsortedClip.curveBindings[0].curve!.getKey(0).time).toBe(0);
-      expect(unsortedClip.curveBindings[0].curve!.evaluate(0.5)).toMatchObject({ x: 5.5, y: 11, z: 16.5 });
+      const [baseClip, overlayClip] = resource.animations!;
 
       const additiveLayer = new AnimatorControllerLayer("additive");
       additiveLayer.blendingMode = AnimatorLayerBlendingMode.Additive;

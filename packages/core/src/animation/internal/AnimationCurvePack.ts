@@ -3,7 +3,8 @@ import { TypedArray } from "../../base/Constant";
 import { Keyframe } from "../Keyframe";
 
 /**
- * Evaluate a single scalar component of a cubic Hermite spline with precomputed basis terms.
+ * Evaluate one scalar cubic Hermite component using out-tangent `t0`, next in-tangent `t1`, and precomputed basis terms.
+ * Falls back to step hold (`p0`) when either tangent is non-finite.
  */
 export function evaluateHermiteScalar(
   p0: number,
@@ -44,6 +45,7 @@ export function readVec4Key<V extends Vector4 | Color | Quaternion>(
 
 /**
  * Cold-path write for 4-component numeric curves (`Vector4`, `Color`, `Quaternion`).
+ * Writes `NaN` for absent tangents when `hasTangents` is true.
  */
 export function writeVec4Key(
   values: TypedArray,
@@ -105,7 +107,7 @@ export function evaluateHermiteArray(
 }
 
 /**
- * Subtract keyframe 0's components from `out` in place for variable-width numeric curves.
+ * Subtract keyframe 0's components (up to `min(out.length, valueSize)`) from `out` in place for variable-width numeric curves.
  */
 export function subtractArrayFirstKey<V extends Float32Array | number[]>(
   values: TypedArray,
@@ -123,6 +125,7 @@ export function subtractArrayFirstKey<V extends Float32Array | number[]>(
 
 /**
  * Cold-path read for variable-width numeric curves (`Float32Array` and `number[]`).
+ * Callers must pass a `valueSize`-length `Float32Array` or reusable `number[]` as `dstValue`.
  */
 export function readArrayKey<V extends Float32Array | number[]>(
   values: TypedArray,
@@ -161,6 +164,7 @@ export function readArrayKey<V extends Float32Array | number[]>(
 
 /**
  * Cold-path write for variable-width numeric curves (`Float32Array` and `number[]`).
+ * Writes `NaN` for absent tangents when `hasTangents` is true.
  */
 export function writeArrayKey(
   values: TypedArray,

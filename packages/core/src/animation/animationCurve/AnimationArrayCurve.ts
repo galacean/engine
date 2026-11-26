@@ -97,10 +97,11 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
 
   /**
    * Replace all keyframes with packed scalar arrays; per-key element width is inferred from `values.length` and `times.length`.
-   * When `times` is already ascending, `times` and `values` are retained by reference without copying (copy-on-write on mutation) and must not be mutated by the caller; unsorted inputs or later edits copy `values` into `Float32Array`.
-   * @param times - Keyframe timestamps in seconds
-   * @param values - Packed keyframe scalars (`width` per key, or `width * 3` as `[inTangent, value, outTangent]`)
+   * @param times - Keyframe timestamps in seconds; must be sorted in ascending (non-decreasing) order
+   * @param values - Packed scalars (`width` per key, or `width * 3` interleaved as `[inTangent, value, outTangent]`)
    * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
+   * @throws Error If `times` is empty with non-empty `values`, or `values.length` is not a multiple of `times.length` (`times.length * 3` when `hasTangents` is true)
+   * @remarks Non-empty inputs retain `times` and `values` directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamp order; callers must pass non-decreasing `times` and must not mutate retained buffers.
    */
   setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
     this._setNumericKeys(times, values, 0, hasTangents);

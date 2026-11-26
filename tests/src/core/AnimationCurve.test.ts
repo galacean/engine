@@ -297,9 +297,9 @@ describe("AnimationCurve flat storage", () => {
     expect(arrayCurve._evaluateAdditive(1, { curKeyframeIndex: 0, value: [] })).toEqual([2, 3]);
   });
 
-  it("supports discrete Bool, String, and Ref curves including unsorted setKeys, middle removeKey, and clearKeys", () => {
+  it("supports discrete Bool, String, and Ref curves including sorted setKeys, middle removeKey, and clearKeys", () => {
     const boolCurve = new AnimationBoolCurve();
-    boolCurve.setKeys(new Float32Array([2, 0, 1]), [false, true, false]);
+    boolCurve.setKeys(new Float32Array([0, 1, 2]), [true, false, false]);
     expect(boolCurve.length).toBe(2);
     expect(boolCurve.evaluate(0.5)).toBe(true);
     expect(boolCurve.evaluate(1.5)).toBe(false);
@@ -341,19 +341,18 @@ describe("AnimationCurve flat storage", () => {
     expect(refCurve.keyCount).toBe(0);
   });
 
-  it("maintains ascending order across addKey, setKey, unsorted Float32/Float64 setKeys, and updates length on removeKey", () => {
+  it("maintains ascending order across addKey and setKey on shared Float32/Float64 buffers, and updates length on removeKey", () => {
     const curve = new AnimationVector3Curve();
-    const unsortedTimes = new Float64Array([2, 0, 1]);
-    const unsortedValues = new Float32Array([20, 0, 0, 0, 0, 0, 10, 0, 0]);
-    curve.setKeys(unsortedTimes, unsortedValues, false);
-    // Caller input arrays were not mutated.
-    expect(Array.from(unsortedTimes)).toEqual([2, 0, 1]);
+    const seededTimes = new Float32Array([0, 1, 2]);
+    const seededValues = new Float32Array([0, 0, 0, 10, 0, 0, 20, 0, 0]);
+    curve.setKeys(seededTimes, seededValues, false);
     expect(curve.length).toBe(2);
     expect(curve.evaluate(0.5)).toMatchObject({ x: 5, y: 0, z: 0 });
     expect(curve.evaluate(1.5)).toMatchObject({ x: 15, y: 0, z: 0 });
 
-    // Moving a key earlier and later via setKey re-sorts both times and packed values cleanly
+    // Moving a key earlier and later via setKey re-sorts both times and packed values cleanly without mutating inputs
     curve.setKey(2, { time: -1, value: new Vector3(-10, 0, 0) });
+    expect(Array.from(seededTimes)).toEqual([0, 1, 2]);
     expect([curve.getKey(0).time, curve.getKey(1).time, curve.getKey(2).time]).toEqual([-1, 0, 1]);
     expect([curve.getKey(0).value.x, curve.getKey(1).value.x, curve.getKey(2).value.x]).toEqual([-10, 0, 10]);
     expect(curve.length).toBe(1);

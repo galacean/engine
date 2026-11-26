@@ -197,6 +197,7 @@ export class AnimationClipDecoder {
     base: number,
     valueSize: number
   ): void {
+    // Binary .anim stream stores [value, inTangent, outTangent]; curve storage expects [inTangent, value, outTangent].
     const valueOffset = base + valueSize;
     for (let k = 0; k < valueSize; ++k) {
       values[valueOffset + k] = bufferReader.nextFloat32();

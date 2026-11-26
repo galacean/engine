@@ -59,10 +59,11 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
   }
 
   /**
-   * Replace all keyframes with parallel timestamp and value arrays.
-   * When `times` is already ascending, it is retained by reference without copying (copy-on-write on mutation) and must not be mutated by the caller; unsorted inputs are copied and sorted.
-   * @param times - Keyframe timestamps in seconds
-   * @param values - Keyframe boolean values matching `times`
+   * Replace all keyframes with parallel timestamp and boolean arrays.
+   * @param times - Keyframe timestamps in seconds; must be sorted in ascending (non-decreasing) order
+   * @param values - Keyframe boolean values aligned with `times` (copied into internal storage)
+   * @throws Error If `values.length` does not match `times.length`
+   * @remarks Non-empty inputs retain `times` directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamp order; callers must pass non-decreasing `times` and must not mutate retained `times`.
    */
   setKeys(times: TypedArray, values: readonly boolean[]): void {
     this._setDiscreteKeys(times, values);
