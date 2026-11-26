@@ -490,8 +490,7 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
   });
 
   it("derives sampler stage visibility from texture references independently of struct member names", async () => {
-    const require = createRequire(new URL("../../shader-compiler/package.json", import.meta.url));
-    const compiler = await createWebGPUShaderCompiler(fs.readFileSync(require.resolve("web-naga/web_naga_bg.wasm")));
+    const compiler = await createWebGPUShaderCompiler();
     const vertex = `struct Data { float pixels; };
       void main() { Data d = Data(1.0); gl_Position = vec4(d.pixels); }`;
     const fragment = `uniform sampler2D pixels;

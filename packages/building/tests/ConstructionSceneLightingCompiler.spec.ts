@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import type { IShaderInfo } from "@galacean/engine-design";
 import { compileWebGPUShaderPass, createWebGPUShaderCompiler } from "../../shader-compiler/src/webgpu";
 import { engineShaderSource } from "../src/building/runtime/EngineShaderSource";
@@ -51,8 +50,7 @@ describe("Construction lighting compiler bridge", () => {
   });
 
   it("compiles the recovered brick and wood forward passes with their scene lighting and entrance variants", async () => {
-    const fromCompiler = createRequire(new URL("../../shader-compiler/package.json", import.meta.url));
-    const backend = await createWebGPUShaderCompiler(readFileSync(fromCompiler.resolve("web-naga/web_naga_bg.wasm")));
+    const backend = await createWebGPUShaderCompiler();
     registerConstructionSceneLighting();
     const compiler = new ShaderCompiler();
     compiler._setIncludeMap(ShaderFactory._getRuntimeIncludes(webGPUIncludes));

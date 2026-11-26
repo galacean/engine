@@ -208,7 +208,7 @@ function writeProductAssets(records, writes, renamed) {
   for (const file of renamed) if (!writes.has(file)) fs.unlinkSync(file);
 }
 
-createWebGPUShaderCompiler(fs.readFileSync(load.resolve("web-naga/web_naga_bg.wasm")))
+createWebGPUShaderCompiler()
   .then((compiler) => {
     const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "world-webgpu-shaders-"));
     return Promise.resolve()

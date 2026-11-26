@@ -68,8 +68,7 @@
     "@galacean/engine-design": "workspace:*",
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-shader-parser": "workspace:*",
-    "@rollup/pluginutils": "^5.0.0",
-    "web-naga": "1.0.1"
+    "@rollup/pluginutils": "^5.0.0"
   },
   "typesVersions": {
     "*": {

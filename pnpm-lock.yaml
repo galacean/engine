@@ -542,9 +542,6 @@ importers:
       '@rollup/pluginutils':
         specifier: ^5.0.0
         version: 5.2.0(rollup@4.27.2)
-      web-naga:
-        specifier: 1.0.1
-        version: 1.0.1
 
   packages/shader-parser:
     dependencies:
@@ -5068,9 +5065,6 @@ packages:
       jsdom:
         optional: true
 
-  web-naga@1.0.1:
-    resolution: {integrity: sha512-1LyQpM+TaseiPhudn0zrpsZBiDZd5AsEsc6kWqp9zA65yl+Yp+F5kACV1y3oenClRTOWqjr48UqAU6c+0d0WnQ==}
-
   which-module@2.0.1:
     resolution: {integrity: sha512-iBdZ57RDvnOR9AGBhML2vFZf7h8vmBjhoaZqODJBFWHVtKkDmKuHai3cx5PgVMrX5YDNp27AofYbAwctSS+vhQ==}
 
@@ -9357,8 +9351,6 @@ snapshots:
       - sugarss
       - supports-color
       - terser
-
-  web-naga@1.0.1: {}
 
   which-module@2.0.1: {}
 

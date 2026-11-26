@@ -689,6 +689,9 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
     this.flush();
   }
   endRenderPass(): void {
+    if (!this._renderPass && this._pendingClearFlags !== CameraClearFlags.None) {
+      this._getRenderPass();
+    }
     this._endRenderPass(true);
     this._endComputePass();
     this._pendingClearFlags = CameraClearFlags.None;

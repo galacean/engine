@@ -412,7 +412,27 @@ export class ShaderPass extends ShaderPart {
       feedbackVaryings,
       looseUniforms: variant.looseUniforms
     };
+    const map = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     if (device.backend === "webgpu") {
+      const preKey = JSON.stringify([
+        variant.vertexSource,
+        variant.fragmentSource,
+        variant.uniformBlocks,
+        variant.instanceLayout,
+        variant.instanceBindingName,
+        vertexInputTypes,
+        textureOptions
+          ? {
+              ...textureOptions,
+              unfilterableTextures: textureOptions.unfilterableTextures
+                ? Array.from(textureOptions.unfilterableTextures).sort()
+                : undefined
+            }
+          : undefined,
+        feedbackVaryings
+      ]);
+      const cachedPre = map.getBySource(preKey);
+      if (cachedPre) return cachedPre;
       const compiler = engine._webGPUShaderCompiler;
       if (!compiler) throw new Error("WebGPU shader specialization requires a WebGPU shader compiler.");
       const layout = variant.instanceLayout;
@@ -435,8 +455,19 @@ export class ShaderPass extends ShaderPart {
         reflection: compiled.reflection,
         feedbackVaryings
       };
+      const key = JSON.stringify([source, variant.uniformBlocks, variant.instanceLayout, variant.instanceBindingName]);
+      const existing = map.getBySource(key);
+      if (existing) {
+        map.cacheBySource(preKey, existing);
+        return existing;
+      }
+      if (cacheOnly) throw new Error("Unprepared Seed shader variant " + this.name);
+      const program = new ShaderProgram(engine, source, variant.uniformBlocks, variant.instanceBindingName);
+      map.cacheBySource(key, program);
+      map.cacheBySource(preKey, program);
+      program._instanceLayout = variant.instanceLayout;
+      return program;
     }
-    const map = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     const key = JSON.stringify([source, variant.uniformBlocks, variant.instanceLayout, variant.instanceBindingName]);
     const existing = map.getBySource(key);
     if (existing) return existing;

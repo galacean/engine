@@ -10,7 +10,6 @@ import {
 import { WGSLBackend } from "./webgpu/WGSLBackend";
 import { recoverLegacyInstancing } from "./webgpu/UniformDeclarations";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
-import type { InitInput } from "web-naga";
 
 /** Compile an instruction-based pass for a concrete macro set and vertex layout. */
 export function compileWebGPUShaderPass(
@@ -56,34 +55,20 @@ export function compileWebGPUShaderPass(
   });
 }
 
-/** Load the WGSL translator only for applications or offline builds that request WebGPU. */
-export function createWebGPUShaderCompiler(moduleOrPath?: InitInput): Promise<IWebGPUShaderCompiler> {
-  return import("web-naga").then((naga) =>
-    naga.default(moduleOrPath ? { module_or_path: moduleOrPath } : undefined).then(() => {
-      const backend = new WGSLBackend((source, stage) => {
-        const frontend = naga.GlslFrontend.new();
-        try {
-          const module = frontend.parse(
-            source,
-            stage === "vertex" ? naga.ShaderStage.Vertex : naga.ShaderStage.Fragment
-          );
-          try {
-            return module.to_wgsl();
-          } finally {
-            module.free();
-          }
-        } finally {
-          frontend.free();
-        }
-      });
-      return {
-        recoverLegacyInstancing,
-        normalizeRawStage: ShaderInstructionEncoder.normalizeRawStage,
-        compileWebGPUVariant: backend.compileWebGPUVariant.bind(backend),
-        compileDefaultVariant(program: IShaderInfo) {
-          return compileWebGPUShaderPass(backend, program);
-        }
-      };
-    })
-  );
+/** Create the pure-TypeScript AST-based WebGPU WGSL compiler (zero external WASM). */
+export function createWebGPUShaderCompilerSync(): IWebGPUShaderCompiler {
+  const backend = new WGSLBackend();
+  return {
+    recoverLegacyInstancing,
+    normalizeRawStage: ShaderInstructionEncoder.normalizeRawStage,
+    compileWebGPUVariant: backend.compileWebGPUVariant.bind(backend),
+    compileDefaultVariant(program: IShaderInfo) {
+      return compileWebGPUShaderPass(backend, program);
+    }
+  };
+}
+
+/** Create the pure-TypeScript AST-based WebGPU WGSL compiler. */
+export function createWebGPUShaderCompiler(): Promise<IWebGPUShaderCompiler> {
+  return Promise.resolve(createWebGPUShaderCompilerSync());
 }

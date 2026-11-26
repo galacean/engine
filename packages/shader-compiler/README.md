@@ -89,7 +89,7 @@ Compile the same ShaderLab assets with `--target wgsl` to produce a separate Web
 shader-compiler-precompile Assets/Shaders build/shaders-webgpu --target wgsl --clean --emit-index
 ```
 
-The `@galacean/engine-webgpu` entry loads the Naga WebAssembly translator and matching built-in assets. Tools can load the translator once and specialize individual passes directly.
+The `@galacean/engine-webgpu` entry loads the native TypeScript AST-based WGSL compiler and matching built-in assets (no external WASM dependency). Tools can construct the compiler once and specialize individual passes directly.
 
 ```typescript
 import { createWebGPUShaderCompiler, compileWebGPUShaderPass } from "@galacean/engine-shader-compiler/webgpu";

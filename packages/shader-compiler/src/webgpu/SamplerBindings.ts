@@ -1,14 +1,13 @@
 import type { IWebGPUShaderTexture } from "@galacean/engine-design";
 
-/** Naga emits one WGSL function per overload and declares callees before callers.
- * Drop sampler arguments of helpers that only issue textureLoad/textureDimensions.
+/** Drop sampler arguments of helpers that only issue textureLoad/textureDimensions.
  * A texture is still required, but no sampler object or sampler slot is needed. */
 export function removeUnusedSamplers(source: string): {
   source: string;
   bindings: Set<string>;
 } {
-  const removed = new Map<string, Set<number>>();
   function splitArguments(text: string): string[] {
+    if (!text.trim()) return [];
     const fields: string[] = [];
     let start = 0,
       depth = 0;
@@ -24,7 +23,7 @@ export function removeUnusedSamplers(source: string): {
     fields.push(text.slice(start));
     return fields;
   }
-  function replaceCalls(text: string): string {
+  function replaceCalls(text: string, removed: Map<string, Set<number>>): string {
     for (const [name, skip] of removed) {
       const call = new RegExp("\\b" + name + "\\(", "g");
       for (; call.exec(text); ) {
@@ -44,24 +43,45 @@ export function removeUnusedSamplers(source: string): {
     }
     return text;
   }
-  // Naga prints a closing function brace at column zero; nested control flow
-  // and expression statements are indented inside the function.
-  source = source.replace(
-    /\bfn (\w+)\(([^()]*)\)([^{}]*)\{([\s\S]*?\n)\}/g,
-    (_, name: string, parameters: string, result: string, body: string) => {
-      body = replaceCalls(body);
-      const unused = new Set<number>();
-      const fields = splitArguments(parameters);
-      fields.forEach((field, index) => {
-        const param = /^\s*(\w+):\s*sampler(?:_comparison)?\s*$/.exec(field);
-        if (param && !new RegExp("\\b" + param[1] + "\\b").test(body)) unused.add(index);
-      });
-      if (unused.size) removed.set(name, unused);
-      return (
-        "fn " + name + "(" + fields.filter((_, index) => !unused.has(index)).join(",") + ")" + result + "{" + body + "}"
+  // Iterate to fixed point so callees declared after callers also elide unused samplers.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const removed = new Map<string, Set<number>>();
+    source = source.replace(
+      /\bfn (\w+)\(([^()]*)\)([^{}]*)\{([\s\S]*?\n)\}/g,
+      (_, name: string, parameters: string, result: string, body: string) => {
+        const unused = new Set<number>();
+        const fields = splitArguments(parameters);
+        fields.forEach((field, index) => {
+          const param = /^\s*(\w+):\s*sampler(?:_comparison)?\s*$/.exec(field);
+          if (param && !new RegExp("\\b" + param[1] + "\\b").test(body)) unused.add(index);
+        });
+        if (unused.size) {
+          removed.set(name, unused);
+          changed = true;
+        }
+        return (
+          "fn " +
+          name +
+          "(" +
+          fields.filter((_, index) => !unused.has(index)).join(",") +
+          ")" +
+          result +
+          "{" +
+          body +
+          "}"
+        );
+      }
+    );
+    if (removed.size) {
+      source = source.replace(
+        /\bfn (\w+)\(([^()]*)\)([^{}]*)\{([\s\S]*?\n)\}/g,
+        (_, name: string, parameters: string, result: string, body: string) =>
+          "fn " + name + "(" + parameters + ")" + result + "{" + replaceCalls(body, removed) + "}"
       );
     }
-  );
+  }
   const bindings = new Set<string>();
   source = source.replace(
     /@group\((\d+)\)\s*@binding\((\d+)\)\s*var (\w+): sampler(?:_comparison)?;/g,

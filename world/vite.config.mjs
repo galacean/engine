@@ -627,9 +627,7 @@ export default {
     }
   },
   optimizeDeps: {
-    include: ["typescript", "esbuild-wasm", "re2js"],
-    // web-naga resolves its WASM alongside the original ESM file.
-    exclude: ["web-naga"]
+    include: ["typescript", "esbuild-wasm", "re2js"]
   },
   build: {
     target: "esnext",

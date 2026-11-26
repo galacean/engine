@@ -33,7 +33,8 @@ describe("published graphics backend isolation", () => {
         if (gpu) {
           expect(files).toContain("/rhi-webgpu/dist/");
           expect(files).toMatch(/\/shader\/dist\/webgpu\.(?:module|main)\.js/);
-          expect(files).toContain("/web-naga/");
+          expect(files).toMatch(/\/shader-compiler\/dist\/webgpu\.(?:module|main)\.js/);
+          expect(files).not.toContain("web-naga");
           expect(files).not.toContain("/rhi-webgl/dist/");
           expect(files).not.toMatch(/\/shader\/dist\/(?:module|main)\.js/);
         } else {
@@ -57,11 +58,10 @@ describe("published graphics backend isolation", () => {
     expect(RHIMode.WebGPU).toBe("webgpu");
   });
 
-  it("loads the asynchronous WASM translator from a CommonJS consumer", async () => {
+  it("loads the native AST WGSL compiler from a CommonJS consumer without WASM", async () => {
     const consumer = createRequire(resolve("tests/package.json"));
     const entry = consumer.resolve("@galacean/engine-shader-compiler/webgpu");
-    const wasm = createRequire(entry).resolve("web-naga/web_naga_bg.wasm");
-    const compiler = await require(entry).createWebGPUShaderCompiler(readFileSync(wasm));
+    const compiler = await require(entry).createWebGPUShaderCompiler();
     const pass = compiler.compileWebGPUVariant(
       "void main(){gl_Position=vec4(1.0);}",
       "out vec4 c; void main(){c=vec4(1.0);}"

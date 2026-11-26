@@ -2,7 +2,7 @@
 
 The Seed templates ship their authored shader instructions together with the default WebGPU vertex/fragment modules and resource reflection. Both RHIs use the same project resources. WebGL2 evaluates the instructions. WebGPU selects the baked pair when the material, vertex layout and device match, and specializes the instructions when needed.
 
-After modifying Seed terrain or water ShaderLab shaders, regenerate the WebGPU modules, water content addresses, project references, and conversion receipts directly from the repository root using the workspace's ShaderLab compiler (`@galacean/engine-shader-compiler` + `web-naga`, no external `glslang`/`twgsl` required):
+After modifying Seed terrain or water ShaderLab shaders, regenerate the WebGPU modules, water content addresses, project references, and conversion receipts directly from the repository root using the workspace's native AST-based ShaderLab WGSL compiler (`@galacean/engine-shader-compiler`, zero external WASM or `glslang`/`twgsl` required):
 
 ```sh
 pnpm install --frozen-lockfile

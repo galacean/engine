@@ -35,7 +35,7 @@ beforeAll(async () => {
 
 it("bakes both native stages and reflection in every built-in render pass", () => {
   const shaders = Object.entries(assets).filter(([key]) => key.endsWith("Source"));
-  expect(shaders).toHaveLength(23);
+  expect(shaders).toHaveLength(37);
   let passes = 0;
   for (const [, asset] of shaders) {
     const shader = asset as IPrecompiledShader;
@@ -49,7 +49,7 @@ it("bakes both native stages and reflection in every built-in render pass", () =
         passes++;
       }
   }
-  expect(passes).toBe(27);
+  expect(passes).toBe(55);
 });
 
 it("retains explicit WGSL pass compilation and its backend requirement", () => {

@@ -15,7 +15,6 @@ export default defineProject({
       "@galacean/engine-rhi-null",
       "@galacean/engine-rhi-webgl",
       "@galacean/engine-webgpu",
-      "web-naga",
       "@galacean/engine-rhi-webgpu",
       "@galacean/engine-shader-compiler/webgpu",
       "@galacean/engine-shader/webgpu",

@@ -28,7 +28,7 @@ export function tokens(source: string): string[] {
   // several resources. Each resource needs its own binding and declaration span.
   for (let i = 0; i < words.length; i++) {
     // A baked picking or depth-only variant may return and leave its lighting code
-    // in the same block. Naga cannot emit WGSL with statements after a terminator.
+    // in the same block. Truncate unreachable statements after a return terminator.
     if (words[i] === "return" && ["{", "}", ";", ":"].includes(words[i - 1])) {
       const endReturn = words.indexOf(";", i + 1);
       if (endReturn < 0) throw new Error("Unterminated GLSL return statement.");
@@ -244,8 +244,7 @@ export function uniformBlock(
 }
 
 /** Scalar and two-lane std140 arrays occupy a 16-byte slot per element. Use a native
- * uniform array of four-lane vectors and project the requested element at its read.
- * Naga has already resolved GLSL names, member shadowing and array index expressions. */
+ * uniform array of four-lane vectors and project the requested element at its read. */
 export function padUniformArrays(
   source: string,
   block: IWebGPUShaderUniformBlock,

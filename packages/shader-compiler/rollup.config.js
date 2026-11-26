@@ -63,7 +63,7 @@ export default [
   {
     input: "src/webgpu.ts",
     output: { file: ".bootstrap/webgpu.js", format: "cjs", sourcemap: true },
-    external: ["web-naga"],
+    external: [],
     plugins: [
       workspaceShaderParserSource,
       resolve({ extensions: [".js", ".ts"], mainFields: ["debug", "module", "main"] }),
@@ -77,7 +77,7 @@ export default [
       { file: "dist/webgpu.main.js", format: "cjs", sourcemap: true },
       { file: "dist/webgpu.module.js", format: "es", sourcemap: true }
     ],
-    external: [...releaseRuntimeExternal, "web-naga"],
+    external: releaseRuntimeExternal,
     plugins: [resolve({ extensions: [".js", ".ts"] }), swcPluginRuntime, commonjs()]
   },
   // Repo-local bootstrap. Dependencies resolve from workspace source so the

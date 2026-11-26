@@ -230,8 +230,7 @@ function loadShaderCompiler(platformTarget?: number): Promise<ShaderPrecompilerI
     const { createWebGPUShaderCompiler }: typeof import("../webgpu") = localRequire(
       bootstrap ? "../.bootstrap/webgpu.js" : "../dist/webgpu.main.js"
     );
-    const wasm = fs.readFileSync(localRequire.resolve("web-naga/web_naga_bg.wasm"));
-    return createWebGPUShaderCompiler(wasm).then(create);
+    return createWebGPUShaderCompiler().then(create);
   });
 }
 

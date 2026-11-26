@@ -70,12 +70,7 @@ describe("published shader packages", () => {
     const source = `
       const compilerModule=${load}("@galacean/engine-shader-compiler/webgpu");
       const assetModule=${load}("@galacean/engine-shader/webgpu");
-      const {createRequire}=await import("node:module");
-      const {readFileSync}=await import("node:fs");
-      const fromConsumer=createRequire(process.cwd()+"/package.json");
-      const fromCompiler=createRequire(fromConsumer.resolve("@galacean/engine-shader-compiler/webgpu"));
-      const wasm=readFileSync(fromCompiler.resolve("web-naga/web_naga_bg.wasm"));
-      const backend=await compilerModule.createWebGPUShaderCompiler(wasm);
+      const backend=await compilerModule.createWebGPUShaderCompiler();
       const pass=assetModule.UnlitSource.subShaders[0].passes.find(p=>!p.isUsePass);
       const program=compilerModule.compileWebGPUShaderPass(backend,pass,new Map([["MATERIAL_HAS_BASETEXTURE",""]]));
       if(!pass.wgsl || !program.fragment.includes("@fragment") || !program.reflection.textures.length)throw Error("Invalid native shader package");
