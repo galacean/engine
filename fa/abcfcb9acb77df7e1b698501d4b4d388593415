@@ -1,0 +1,149 @@
+packages/runtime-editor/src/project/runtime-project-session.ts
+  s_0373997fdb8cbf::t_3c1389086a8834 21,25,328-332,358,359,361-364,366-375,1386-1392
+world/scripts/build-seed-world-flash-app.mjs
+  s_0373997fdb8cbf::t_6a5f42e7e7b283 195-197
+world/tests/seed-world/AnimalSuspendedRecovery.spec.ts
+  s_972b53da038c3c::t_9a1fcdae4b1811 161-162,365-404
+world/demos/seed-world/SeedWorldDemo.ts
+  s_a61a893a3e253a::t_d6bee9c44b45f3 4163,4165,4167
+  h_ddbf152d31b140 899
+world/demos/seed-world/src/SeedWorldAutoBench.ts
+  s_a61a893a3e253a::t_107842fe8253e4 15,17,19,617-655,661-678
+world/demos/seed-world/src/SeedWorldPerfPanel.ts
+  s_a61a893a3e253a::t_236810511299d9 157-158,232-235,248-255,257-259,261-265,330,792,800,806-807
+world/tests/seed-world-browser/SeedWorldPerfRegressions.test.ts
+  s_f135b9bf53eec4::t_aeacd4e1a5bff5 1-4,6-7,11-14,16,19-91,102-104,121,123-125,127-519
+  h_ddbf152d31b140 17-18,92-101,548,562,564,567-569,606-607,633,709-819
+packages/runtime-editor/tests/runtime-project.spec.ts
+  h_ddbf152d31b140 240,261-263,347-392
+  s_ab59b8e40dc4d1::t_757eed0d93ee15 2598-2610,2612-2671
+  s_ab59b8e40dc4d1::t_359ed57be0c806 530-589
+world/tests/seed-world/PlanningFarmCheckpoint.spec.ts
+  s_ab59b8e40dc4d1::t_8b2bd474c03008 1090,1325-1364
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 18-19,30,72-74
+packages/project/src/runtime-editor/project/runtime-project.ts
+  s_ab59b8e40dc4d1::t_e0d451286a18d2 483,547,673-674,683,687-703,707,771-774,776,778-785
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 96,483,554-555,563-568
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 41-46,64-65
+world/demos/seed-world/main.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 131-132
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_ab59b8e40dc4d1::t_359ed57be0c806 223-263,265-278
+packages/building/tests/BuildingSceneLifecycle.spec.ts
+  s_ab59b8e40dc4d1::t_359ed57be0c806 474-524
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 704-705,776-777,859-860
+world/demos/seed-world/src/planning/semantic-study/WorldLayoutEditor.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 3,32-33
+world/demos/seed-world/dev/scene-visual-intent/SceneVisualIntentGeneration.ts
+  s_ab59b8e40dc4d1::t_25929bd7dcb943 241,325-329
+packages/building/src/building/runtime/EngineShaderSource.ts
+  s_02781447abdd68::t_ca14e762fb9834 2,161
+packages/building/tests/BuildingFarProxy.spec.ts
+  s_a61a893a3e253a::t_45b2ade6e458a8 175-176,183-185
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_0373997fdb8cbf::t_1bfe308706b165 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_0373997fdb8cbf::t_e0702ae13813b5 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  s_0373997fdb8cbf::t_7228d88bb77fb1 1
+packages/modify/native-overrides.json
+  h_ddbf152d31b140 594-597
+packages/modify/src/native/core/src/shader/ShaderMacroCollection.ts
+  h_ddbf152d31b140 1-186
+packages/modify/tests/ShaderMacroCollection.spec.ts
+  h_ddbf152d31b140 1-99
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  s_a61a893a3e253a::t_f9c26c5627fe7d 1827-1829,1880,1889-1901
+  h_ddbf152d31b140 2330-2390
+packages/modify/src/rendering/shaders/SeedWorldLiquidGlass.shader
+  h_ddbf152d31b140 296-303
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_ddbf152d31b140 1858-1875
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  h_ddbf152d31b140 84,86,396,1745-1746,2175,2189,2207-2211,2213-2219,2235-2236,2460,2474,2490,2502,2606,2609-2610,2654-2655
+world/demos/seed-world/assistant/SeedWorldVoiceHudShaders.ts
+  h_ddbf152d31b140 12-13,15,27-28,30,35-36,41-42,44,47-50
+world/demos/seed-world/assistant/SeedWorldVoiceOrbCache.ts
+  h_ddbf152d31b140 1-417
+world/demos/seed-world/assistant/shaders/SeedWorldVoiceOrbBake.shader
+  h_ddbf152d31b140 1,6,10,19-36,41,43,49,55,64-65,69-71,74-78,80-81,83-85,87,89-96,100-101,104-118,120-121,126-133,135,141-143,145-146,155,158-183,186-222,226-319,322-324,326,332-334,337-342,348-350,353-369
+world/demos/seed-world/assistant/shaders/SeedWorldVoiceOrbDisplay.shader
+  h_ddbf152d31b140 1-66
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  h_ddbf152d31b140 7,12,15,18,35-36,93-94,112-115,121,140,148,152-154,178,186-189,200-206,214-216
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  h_ddbf152d31b140 96,762-780,784-787,792-794,804-809,835
+world/demos/seed-world/src/shaders/SeedWorldUIAtlasTile.shader
+  h_ddbf152d31b140 1-65
+world/tests/seed-world-browser/MarkupButton.test.ts
+  h_ddbf152d31b140 2,8,10,18-20,24-30,34,36-38,40-43,47,51-53,55-57,59-64,69-70,74-75,78-90
+world/tests/seed-world/SeedWorldPhotoWorkspace.spec.ts
+  h_ddbf152d31b140 824-848
+world/tests/seed-world/SeedWorldVoiceHudController.spec.ts
+  h_ddbf152d31b140 889-891,984,993-1006,1008,1032,1044-1046,1063-1070,1075-1087,1093,1101-1173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "faabcfcb9acb77df7e1b698501d4b4d388593415",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  },
+  "sessions": {
+    "s_02781447abdd68": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cdd2-e33f-7600-95dc-ac58eab2f9bb",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_0373997fdb8cbf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a192e5-99f1-7531-8f6e-963a84b12db4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_972b53da038c3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20b70-80eb-7ed2-a7c4-b88c943c4d92",
+        "model": "gpt-6-luna"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_ab59b8e40dc4d1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ce4-cb2b-71d3-86f0-6aa015964ede",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    },
+    "s_f135b9bf53eec4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d00c-69a4-7821-b09d-0ef677629e66",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

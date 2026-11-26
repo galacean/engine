@@ -1,0 +1,58 @@
+world/scripts/build-seed-world-flash-source.mjs
+  s_0f777c1d9c2fdd::t_8ee19cb1e29469 77,79
+world/demos/seed-world/src/planning/semantic-study/WorldLayoutEditor.ts
+  s_0f777c1d9c2fdd::t_8856e55e5febe5 1,31
+world/demos/seed-world/storage/local-world-db.mjs
+  s_0f777c1d9c2fdd::t_8856e55e5febe5 140,151-152
+world/tests/seed-world/SeedWorldFlashApps.spec.ts
+  s_0f777c1d9c2fdd::t_8ee19cb1e29469 72
+  s_0f777c1d9c2fdd::t_d7bf2f6c91e4ea 44,50-52,59,67,69-71,73-76,78-88,90-102,104-105,111,113,117-123,125-145,249
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_0f777c1d9c2fdd::t_8ee19cb1e29469 106,147,149,157,170-171
+world/demos/seed-world/base.js
+  s_0f777c1d9c2fdd::t_8856e55e5febe5 7
+world/scripts/deploy-seed-world-flash-app.mjs
+  s_0f777c1d9c2fdd::t_8ee19cb1e29469 2-30
+  s_0f777c1d9c2fdd::t_d8bf2270568125 1,31-64
+world/demos/seed-world/storage/SeedWorldStorageHost.ts
+  s_0f777c1d9c2fdd::t_99e4cdf235d40a 3-4,20-21,23-52
+  s_0f777c1d9c2fdd::t_544712b0e4ccf2 22
+  s_0f777c1d9c2fdd::t_b61587b4f97197 53
+.agents/skills/seed-world-flash-publish/SKILL.md
+  s_0f777c1d9c2fdd::t_2e79e13adc946c 78
+  s_0f777c1d9c2fdd::t_8f3bf87cf8d179 18-22
+  s_0f777c1d9c2fdd::t_8ee19cb1e29469 3,29,34,36,80,82,114
+world/demos/seed-world/SeedWorldProject.ts
+  s_0f777c1d9c2fdd::t_1eb32aea43e289 220,222,224-225,241-246,259,261-264,266,271-273,277
+  s_0f777c1d9c2fdd::t_544712b0e4ccf2 129-130,218-219,221,228-234,247-253,267,279
+  s_0f777c1d9c2fdd::t_d043dd9ba4afd9 3,14,28,175-176,195-200,215-216,223,226-227,235-240,254-256,258,260,265,268-270,276,278
+world/scripts/publish-seed-world-flash-apps.mjs
+  s_0f777c1d9c2fdd::t_be6804a4de0edb 7,32-34,386,393-396,405,431-432,436,445,450,518,530-531,548,570-595,601,615-617,619-623,625,627-630,632-641,643-644,647-648,650-658,663
+world/demos/seed-world/main.ts
+  s_0f777c1d9c2fdd::t_99e4cdf235d40a 2,14,62,69
+world/demos/seed-world/SeedWorldDemo.ts
+  s_0f777c1d9c2fdd::t_8ee19cb1e29469 90,3500-3501,3503
+  s_0f777c1d9c2fdd::t_8856e55e5febe5 89,312
+  s_0f777c1d9c2fdd::t_544712b0e4ccf2 742-745,984,986,3492-3497,3504,3508-3513,3516-3517
+  s_0f777c1d9c2fdd::t_f6cfaab7990a8f 683,699,985,3498-3499,3502,3505-3507,3514-3515
+world/demos/seed-world/SeedWorldProjectFormats.ts
+  s_0f777c1d9c2fdd::t_38d98356e34531 6,11-14,66,70,72-81,85-92
+world/scripts/seed-world-flash-registry.py
+  s_0f777c1d9c2fdd::t_3b2fb8e7d7667d 1-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "762733536b0e0155d89214a4932d97213c7a973f",
+  "prompts": {},
+  "sessions": {
+    "s_0f777c1d9c2fdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21602-e042-7613-91c0-4ebb1a28dbd5",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

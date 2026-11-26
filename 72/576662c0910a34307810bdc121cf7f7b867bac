@@ -1,0 +1,236 @@
+packages/core/src/asset/ReferResource.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 13-15,17-18,50-51,63-65,72-73,97-115,121,127-130
+packages/core/src/asset/ResourceManager.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 123,328,482-507,510-511,514-522,616-628
+  s_c72f930c19d1f3::t_8453cec3d62205 629-630
+packages/loader/src/gltf/parser/GLTFSceneParser.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 38,54,76,149,152,187
+packages/core/src/lighting/Light.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 11-18
+packages/loader/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/loader/src/GLTFLoader.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 42,51,54-59,61
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 11,40,42,44,87-89,91,94,96-104,108,110-125,146-148,158-159,168-207
+  s_c72f930c19d1f3::t_05eb47f1df7f92 208
+tests/src/loader/SpriteAtlasLoader.test.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 1,65-245
+world/tests/seed-world-browser/vitest.config.mjs
+  s_c72f930c19d1f3::t_71e160372d8a95 6,20-26
+packages/shader-parser/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/loader/src/gltf/GLTFResource.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 69-72,75-78
+examples/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/core/src/mesh/ModelMesh.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 487,644,646-649,658-659,666-670,705-707,712-717,761-762,764-765,831
+tests/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 4
+packages/modify/tests/ShaderMacroCollection.spec.ts
+  s_c72f930c19d1f3::t_ab8e9376831068 15
+tests/src/loader/GLTFLoader.test.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 12,817-819,827-829,912,915,922-1338
+packages/modify/src/native/core/src/Entity.ts
+  s_c72f930c19d1f3::t_d8f90449c9f789 537-538
+packages/modify/tests/NativeOverrides.spec.ts
+  s_c72f930c19d1f3::t_ab8e9376831068 1-17
+packages/modify/src/native/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_c72f930c19d1f3::t_fba8fd466fb957 22-29,41
+packages/building/tests/ConstructionSceneLightingCompiler.spec.ts
+  s_c72f930c19d1f3::t_f4f6c162cf848d 76-81,192
+packages/galacean/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/loader/src/gltf/parser/GLTFMaterialParser.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 185,191-194
+packages/core/src/graphic/Mesh.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 64
+packages/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 64-69,78-86
+world/tests/seed-world/TerrainFarShader.spec.ts
+  s_c72f930c19d1f3::t_f4f6c162cf848d 22-28,30-32,35-39,124,132-135,137,468-473
+  s_c72f930c19d1f3::t_fc7dc736152e24 21
+  s_c72f930c19d1f3::t_5c6f8da777d1f9 29,33-34
+examples/src/buffer-mesh-independent.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 74-75
+packages/loader/src/gltf/parser/GLTFAnimatorControllerParser.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 36
+e2e/case/physx-customUrl.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 79-80
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 27,32
+examples/src/buffer-mesh-interleaved.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 31-32
+tests/src/loader/PrefabResource.test.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 1,3,5,58-59,63-114,250-251,255
+packages/terrain/src/shaders/billboard/BillboardDeformation.glsl
+  s_c72f930c19d1f3::t_422f5b32b0a3da 1-4,14-86
+  s_c72f930c19d1f3::t_93f05695d6ef73 5-9,11
+  s_c72f930c19d1f3::t_9c09daa80acd9d 10,12-13
+tests/src/core/resource/ReferResource.test.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 1-22,25-30,84-469
+packages/shader-analyzer/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+e2e/case/animator-customAnimationClip.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 93,96,99,102,111,114,117,120
+packages/loader/src/gltf/extensions/KHR_texture_basisu.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 37,58-63,75
+packages/modify/src/native/core/src/asset/ReferResource.ts
+  s_c72f930c19d1f3::t_396ba0c90fdddf 71
+  s_c72f930c19d1f3::t_30cb0dc9641fc2 13-15,17-18,50-51,84-86,93-94,118-136,142,148-151
+packages/modify/src/native/shader/src/ShaderLibrary/Lighting/Light.glsl
+  s_c72f930c19d1f3::t_482677f09f36af 34-46
+packages/core/src/2d/atlas/SpriteAtlas.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 67,77-83
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  s_c72f930c19d1f3::t_ffc1e82aea32af 536-545,555-562
+tests/src/core/resource/ResourceManager.test.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 1-9,594-675
+packages/core/src/mesh/BlendShapeManager.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 268,289-314,322,343,360,362-363,372
+packages/xr/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/shader/src/ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 55-63,99-106,114-124
+packages/loader/src/gltf/extensions/KHR_materials_unlit.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 12
+packages/core/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+e2e/case/physx-mesh-collider.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 76-77
+packages/core/src/Entity.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 531-532
+packages/core/src/BasicResources.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 133,214-220
+packages/core/src/lighting/PointLight.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 25-40,70-71,99
+e2e/case/physx-collision.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 74-75
+packages/loader/src/prefab/PrefabParser.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 10,12,16-19,45
+packages/ui/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+tests/src/loader/AnimatorControllerLoader.test.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 1-136
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 35-37,61,74,80-82,122
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  s_c72f930c19d1f3::t_ffc1e82aea32af 94-97,103,105,107,121-124,129-132,268-271,275,277,279
+tests/src/math/Quaternion.test.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 134-146,301-318
+packages/math/src/Quaternion.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 257,259,261,263,267,270-274
+packages/design/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/loader/src/gltf/parser/GLTFMeshParser.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 50,74-75,91-93,132,156,271,274,277
+packages/core/src/lighting/AmbientLight.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 110-118,120-123,162,166-177,184-196,211,215-218
+  s_c72f930c19d1f3::t_70df7b0f53bb1e 219
+packages/loader/src/SpriteAtlasLoader.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 24-28,30-31,36-43,46,51,54,58,66-70,74,77-96,98-101
+e2e/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 4
+packages/xr-webxr/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  s_c72f930c19d1f3::t_402715e7eacf70 1
+packages/modify/src/native/core/src/asset/ResourceManager.ts
+  s_c72f930c19d1f3::t_baa64db0698891 13,500-505,514,518-519
+  s_c72f930c19d1f3::t_6828758ea4d64b 506-513,515-517
+  s_c72f930c19d1f3::t_8fc61da2d400b5 143,411,587-612,615-616,619-627,721-722,724-725,731-743
+  s_c72f930c19d1f3::t_5210fe0c417c76 744-745
+e2e/case/physx-collision-group.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 93
+e2e/case/physx-mesh-collider-data.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 237-238
+packages/loader/src/AnimatorControllerLoader.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 21-31,33,35,106,109-118
+packages/spine-core-4.2/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/modify/src/native/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl
+  s_c72f930c19d1f3::t_482677f09f36af 64-69,78-86
+packages/core/src/lighting/SpotLight.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 1,32,41-55,105-106,138
+packages/core/src/2d/sprite/Sprite.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 38,49-56,272
+packages/loader/src/gltf/extensions/KHR_lights_punctual.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 33-35
+packages/shader-compiler/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/spine/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+tests/src/core/lighting/LightAttenuation.test.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 1-17,19-24,26-27,29-49,52-54,56,59-64,67-141,143-144,146-150,152-169,172,174-188,191-215,217,219-243
+packages/physics-physx/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/spine-core-3.8/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_c72f930c19d1f3::t_5b7f4d220c8857 1
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 22-29,41
+packages/modify/src/native/loader/src/prefab/PrefabParser.ts
+  s_c72f930c19d1f3::t_e931d7707c4225 10,12,16-19,48
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  s_c72f930c19d1f3::t_396ba0c90fdddf 121,126,133,156
+packages/shader/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/math/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/modify/src/native/core/src/lighting/AmbientLight.ts
+  s_c72f930c19d1f3::t_85168f60b95fd4 128-131,143-146,201,204-205,208,212-218,223-234,269-289,307
+world/tests/seed-world-browser/ResourceOwnership.test.ts
+  s_c72f930c19d1f3::t_6828758ea4d64b 19,26-33
+  s_c72f930c19d1f3::t_e1fc38fa61a3e1 1-18,20-25,34-83
+packages/terrain/src/shaders/Billboard.shader
+  s_c72f930c19d1f3::t_68de16cad1533e 1-285
+packages/shader/src/ShaderLibrary/Lighting/Light.glsl
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 34-46
+packages/terrain/src/shaders/billboard/BillboardEvaluation.glsl
+  s_c72f930c19d1f3::t_6c3f2d9606b1e5 1-82
+packages/terrain/src/shaders/billboard/BillboardInstanceAttributes.glsl
+  s_c72f930c19d1f3::t_34a51eba9e04ac 1-25
+world/tests/seed-world-browser/BillboardShader.test.ts
+  s_c72f930c19d1f3::t_96436e0161159b 1-4,6-13,23-28,39,42,44-48
+  s_c72f930c19d1f3::t_d1a1fecb6ead0e 5,14-22,29-38,40-41,43
+packages/rhi-null/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/rhi-webgl/package.json
+  s_c72f930c19d1f3::t_5cec9bcd3d571a 3
+packages/terrain/src/shaders/billboard/BillboardInput.glsl
+  s_c72f930c19d1f3::t_d0a88ceed79927 1-41
+e2e/fixtures/originImage/Animator_animator-customAnimationClip.jpg
+  s_c72f930c19d1f3::t_0ac40417d9df37 2-3
+e2e/fixtures/originImage/Physics_physx-collision-group.jpg
+  s_c72f930c19d1f3::t_b49140b584f811 2-3
+e2e/fixtures/originImage/Physics_physx-collision.jpg
+  s_c72f930c19d1f3::t_f161fe34ac9250 2-3
+e2e/fixtures/originImage/Physics_physx-customUrl.jpg
+  s_c72f930c19d1f3::t_7131b2516482be 2-3
+e2e/fixtures/originImage/Physics_physx-mesh-collider-data.jpg
+  s_c72f930c19d1f3::t_e41166c6557e10 2-3
+e2e/fixtures/originImage/Physics_physx-mesh-collider.jpg
+  s_c72f930c19d1f3::t_5b075c56a0fe82 2-3
+packages/terrain/src/data/seed-world/public/Shader/Billboard.shaderc
+  s_c72f930c19d1f3::t_44b4659ddd1371 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "72576662c0910a34307810bdc121cf7f7b867bac",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

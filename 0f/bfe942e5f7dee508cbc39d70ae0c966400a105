@@ -1,0 +1,23 @@
+packages/core/src/physics/Rigidbody.ts
+  s_2180d985f4e67c::t_bdfe84c54ff6f6 3,285
+packages/core/src/physics/joint/HingeJoint.ts
+  s_2180d985f4e67c::t_bdfe84c54ff6f6 3,37
+packages/core/src/physics/CharacterController.ts
+  s_2180d985f4e67c::t_bdfe84c54ff6f6 3,125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0fbfe942e5f7dee508cbc39d70ae0c966400a105",
+  "prompts": {},
+  "sessions": {
+    "s_2180d985f4e67c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2130e-b48c-7362-85fc-be69f9dfd87b",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

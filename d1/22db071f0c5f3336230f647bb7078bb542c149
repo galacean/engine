@@ -1,0 +1,20 @@
+.agents/skills/seed-world-flash-publish/SKILL.md
+  s_0f777c1d9c2fdd::t_1d1248556a8e49 81-83
+  s_0f777c1d9c2fdd::t_fc17e779672759 80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d122db071f0c5f3336230f647bb7078bb542c149",
+  "prompts": {},
+  "sessions": {
+    "s_0f777c1d9c2fdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21602-e042-7613-91c0-4ebb1a28dbd5",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}
