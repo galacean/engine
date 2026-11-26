@@ -1,0 +1,19 @@
+packages/core/src/Camera.ts
+  s_2f6fe904c002e3::t_df67eb554a2f28 630
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d78bbf528128c60064f29645fa02f3049ae28e60",
+  "prompts": {},
+  "sessions": {
+    "s_2f6fe904c002e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a216ba-e901-7c62-b178-dfd0f67d14d8",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
