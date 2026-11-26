@@ -229,12 +229,13 @@ it.each([false, true])("runs the same screenshot, length retry and follow-up via
     expect(params.tools.map((tool: any) => tool.function.name)).toContain("snapshot");
     if (dedicated) {
       expect(responseFormat).toBeUndefined();
+      expect(model).toBeUndefined();
       expect(version).toBe(1);
       expect(sessionId).toMatch(/^seed-world-[0-9a-f]{32}$/);
       expect(queryId).not.toBe(params.streamResponseNonce);
     }
     const nonce = params.streamResponseNonce;
-    const recovery = JSON.stringify({ type: "lingguang_ai_chat_recovery", version: 1, nonce, event: observation }) + "\n";
+    const recovery = JSON.stringify({ type: dedicated ? "lingguang_seed_world_stream_recovery" : "lingguang_ai_chat_recovery", version: 1, nonce, event: observation }) + "\n";
     onEvent({ type: "text_delta", text: recovery, delta: recovery });
     const result = { content: "", toolCalls: [] as unknown[], finishReason: "stop" };
     if (requests.length === 1) {
@@ -251,7 +252,7 @@ it.each([false, true])("runs the same screenshot, length retry and follow-up via
       expect(JSON.stringify(messages)).toContain("The image shows a lake.");
       result.content = "The lake is still there.";
     }
-    const terminal = JSON.stringify({ type: "lingguang_ai_chat_stream_result_bridge", version: 1, nonce, result });
+    const terminal = JSON.stringify({ type: dedicated ? "lingguang_seed_world_stream_result" : "lingguang_ai_chat_stream_result_bridge", version: 1, nonce, result });
     return { content: recovery + terminal };
   });
   const stop = vi.fn();
@@ -287,4 +288,20 @@ it("stops just the in-flight dedicated model call and ignores its late result", 
   await expect(request).rejects.toMatchObject({ name: "AbortError" });
   expect(stop).toHaveBeenCalledExactlyOnceWith(sessionId);
   resolveLate({ content: "late" });
+});
+
+
+it.each(["foreign nonce", "old protocol", "wrong version"])("rejects a Seed World terminal with %s", async failure => {
+  const send = async (request: { streamResponseNonce: string }) => ({
+    content: JSON.stringify({
+      type: failure === "old protocol" ? "lingguang_ai_chat_stream_result_bridge" : "lingguang_seed_world_stream_result",
+      version: failure === "wrong version" ? 2 : 1,
+      nonce: failure === "foreign nonce" ? "different-request" : request.streamResponseNonce,
+      result: { content: "must not be accepted", toolCalls: [], finishReason: "stop" }
+    })
+  });
+  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { seedWorldStream: send, seedWorldStop: vi.fn() } } });
+  await expect(requestAsapChat({
+    messages: [], tools: [], debugMode: false, useSeedWorldAction: true, signal: new AbortController().signal
+  })).rejects.toMatchObject({ code: "MODEL_PROTOCOL_ERROR" });
 });

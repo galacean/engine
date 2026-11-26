@@ -5,7 +5,7 @@ import { startSeedWorldActionProbe } from "../assistant/SeedWorldActionProbe.ts"
 for (const variant of ["valid", "wrong nonce", "truncated", "unexpected tool"]) {
   test("snapshot probe handles " + variant, async t => {
     const reply = (request: Record<string, unknown>) => Promise.resolve({
-      type: "lingguang_ai_chat_stream_result_bridge",
+      type: "lingguang_seed_world_stream_result",
       version: 1,
       nonce: variant === "wrong nonce" ? "old-frame" : request.streamResponseNonce,
       result: {
