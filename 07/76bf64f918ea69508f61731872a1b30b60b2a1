@@ -1,0 +1,29 @@
+world/demos/seed-world/assistant/SeedWorldAgentDebug.ts
+  s_a61a893a3e253a::t_c02e2ff59b253a 1,22,85-87
+  s_a61a893a3e253a::t_958f800cad4e13 46
+  s_a61a893a3e253a::t_9967e134b24ee9 88-89
+world/demos/seed-world/tests/SeedWorldActionProbe.test.ts
+  s_a61a893a3e253a::t_c99f7372d1e50a 1-38
+world/demos/seed-world/assistant/SeedWorldActionProbe.ts
+  s_a61a893a3e253a::t_c02e2ff59b253a 1-11,13-16,18,20-27,30-31,33-45,47-51,53-59
+  s_a61a893a3e253a::t_958f800cad4e13 12,17,19,32,46,52
+  s_a61a893a3e253a::t_fe2389bd92f670 28-29
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_a61a893a3e253a::t_958f800cad4e13 353
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0776bf64f918ea69508f61731872a1b30b60b2a1",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
