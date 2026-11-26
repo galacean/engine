@@ -30,12 +30,58 @@ import {
 } from "./flash-app-variants.mjs";
 
 import { callFlashRegistry, deploySeedWorldFlashApp } from "./deploy-seed-world-flash-app.mjs";
+import { assertFlashSourceEngine } from "./seed-world-flash-source-layout.mjs";
 
 const require = createRequire(import.meta.url);
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultEngineRoot = resolve(scriptDirectory, "../..");
 const defaultStateDir = join(homedir(), ".config/galacean-flash-app/apps");
 const WORLD_SAVE_DDL_RELATIVE = "world/demos/seed-world/storage/world_save.sql";
+
+function matchesWorldSaveTable(schema) {
+  if (schema?.tableKind !== "share" || schema.tableName !== "world_save" ||
+      !Array.isArray(schema.primaryKeys) || schema.primaryKeys.length !== 1 || schema.primaryKeys[0] !== "id" ||
+      !Array.isArray(schema.columns) || schema.columns.length !== 4) {
+    return false;
+  }
+  // ASAP normalizes non-primary VARCHAR columns to VARCHAR(100000) under its default policy.
+  const expected = [
+    ["id", "VARCHAR", [128]],
+    ["generation", "VARCHAR", [64, 100000]],
+    ["part_no", "INT", [null]],
+    ["payload", "VARCHAR", [100000]]
+  ];
+  return expected.every(([name, type, lengths]) => {
+    const column = schema.columns.find((column) => column?.name === name);
+    return column?.dataType === type && column.nullable === false && lengths.includes(column.length);
+  });
+}
+
+async function ensureWorldSaveTable(callRemoteSkill, item, version, ddlSql) {
+  const callDb = (action, params) => callRemoteSkill({
+    action, alipayUid: item.alipayUid, sessionId: item.sessionId,
+    payload: { action, artifactId: item.artifactId, artifactVersion: version, params }
+  });
+  try {
+    const response = await callDb("lingguang.db.updateTableSchema", {
+      ddl_sql: ddlSql, table_kind: "share", data_object: "世界存档"
+    });
+    // ASAP returns the DDL outcome as text inside the successful remote-skill envelope.
+    const outcome = typeof response?.data === "string" ? response.data.trim() : "";
+    if (response?.success === true && outcome.startsWith("创建表成功！")) return;
+    throw new Error(outcome.split(/\r?\n/u, 1)[0] || "ASAP did not confirm that world_save was created");
+  } catch (createError) {
+    // The create may have committed before the reply was lost. Verify the stored schema before proceeding.
+    try {
+      const response = await callDb("lingguang.db.getTableSchema", { table_name: "world_save" });
+      const result = typeof response?.data === "string" ? JSON.parse(response.data) : response?.data;
+      if (response?.success === true && result?.success === true && matchesWorldSaveTable(result.data)) return;
+    } catch {
+      // Preserve the create error when the readback is unavailable.
+    }
+    throw new Error(`${createError.message}. ASAP could not confirm a matching world_save Share table.`, { cause: createError });
+  }
+}
 
 export function mintArtifactId() {
   return `flashapp-${randomBytes(8).toString("hex")}`;
@@ -542,6 +588,7 @@ async function main() {
   if (!existsSync(sourceDir)) {
     throw new Error(`Missing shared source snapshot: ${sourceDir}. Run build-seed-world-npm.mjs first.`);
   }
+  assertFlashSourceEngine(sourceDir);
 
   // Validate pre-conditions for every selected app BEFORE making any remote calls.
   for (const item of plan.items) {
@@ -632,20 +679,7 @@ async function main() {
       row.version = version;
       console.log(`\n========== [${item.templateId}] ${item.title} (${item.artifactId} v${version}, type=${item.type}) ==========`);
       if (item.needsDbInit) {
-        const action = "lingguang.db.updateTableSchema";
-        const result = await callRemoteSkill({
-          action, alipayUid: item.alipayUid, sessionId: item.sessionId,
-          payload: {
-            action, artifactId: item.artifactId, artifactVersion: version,
-            params: { ddl_sql: readFileSync(ddlPath, "utf8").trim(), table_kind: "share", data_object: "世界存档" }
-          }
-        });
-        // ASAP returns the DDL outcome as text inside the successful remote-skill envelope.
-        const ddlResult = typeof result?.data === "string" ? result.data.trim() : "";
-        if (result?.success !== true || !ddlResult.startsWith("创建表成功！")) {
-          const detail = ddlResult.split(/\r?\n/u, 1)[0] || "ASAP did not confirm that world_save was created";
-          throw new Error(detail);
-        }
+        await ensureWorldSaveTable(callRemoteSkill, item, version, readFileSync(ddlPath, "utf8").trim());
         row.dbStatus = "initialized";
         saveLocalState(options.stateDir, item, { dbInitialized: true });
       }

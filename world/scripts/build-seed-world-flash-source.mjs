@@ -17,6 +17,7 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_FLASH_APPS_CATALOG_RELATIVE, loadFlashAppsCatalog } from "./flash-app-variants.mjs";
+import { restoreFlashSourceEngine, stageFlashSourceEngine } from "./seed-world-flash-source-layout.mjs";
 
 const vitePackagePath = createRequire(import.meta.url).resolve("vite/package.json");
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -145,7 +146,7 @@ for (const entry of worldRootEntries) {
 for (const pkg of [...worldWorkspacePackages, ...nativeEnginePackages]) {
   copyRepoPath(`packages/${pkg}`);
 }
-copyPreparedEngineArtifacts();
+stageFlashSourceEngine(repoRoot, outputDirectory);
 prepareSnapshotWorkspaceManifests();
 verifySnapshotWaterResources();
 
@@ -155,7 +156,7 @@ const runtimeIndexPath = resolve(runtimeBuildDirectory, "index.html");
 writeFileSync(resolve(outputDirectory, "REBUILD.md"), createRebuildGuide(gitMeta, flashAppsCatalog));
 const preManifestInspection = inspectDirectory(outputDirectory);
 const snapshotManifest = {
-  schemaVersion: 4,
+  schemaVersion: 5,
   purpose: "Seed World Flash App self-contained source snapshot (all 6 templates, standalone npm ci && npm run build)",
   baseCommit: gitMeta.headCommit,
   baseBranch: gitMeta.branch,
@@ -217,39 +218,6 @@ function shouldIncludeSourcePath(sourcePath) {
   if (isSelectedPathOrAncestor(relativePath)) return true;
   if (excludedPrefixes.some((prefix) => isPathWithin(relativePath, prefix))) return false;
   return true;
-}
-
-function copyPreparedEngineArtifacts() {
-  const shaderCache = resolve(repoRoot, "packages/modify/.cache");
-  if (!existsSync(resolve(shaderCache, "shaders.ts"))) {
-    throw new Error("Seed World source snapshot requires `npm run prepare:engine --workspace world`");
-  }
-  cpSync(shaderCache, resolve(outputDirectory, "packages/modify/.cache"), {
-    recursive: true,
-    verbatimSymlinks: true
-  });
-
-  const requiredPreparedDistFiles = [
-    "packages/core/dist/main.js",
-    "packages/design/dist/main.js",
-    "packages/math/dist/main.js",
-    "packages/shader-compiler/dist/module.js",
-    "packages/shader-compiler/dist/precompile.main.js",
-    "packages/shader-parser/dist/main.js",
-    "packages/shader-parser/dist/main.analyzer.js",
-    "packages/shader-parser/dist/module.js",
-    "packages/shader-parser/dist/shared/GLESShaderInfo.main.js",
-    "packages/shader-parser/dist/shared/GLESShaderInfo.module.js"
-  ];
-  for (const relativeFile of requiredPreparedDistFiles) {
-    const sourceFile = resolve(repoRoot, relativeFile);
-    if (!existsSync(sourceFile)) {
-      throw new Error(`Seed World source snapshot requires \`npm run b:module\` (missing ${relativeFile})`);
-    }
-    const targetFile = resolve(outputDirectory, relativeFile);
-    mkdirSync(dirname(targetFile), { recursive: true });
-    cpSync(sourceFile, targetFile);
-  }
 }
 
 function prepareSnapshotWorkspaceManifests() {
@@ -369,6 +337,7 @@ function verifySnapshotBuild() {
   };
 
   try {
+    temporaryEntries.push(...restoreFlashSourceEngine(outputDirectory).map((path) => resolve(outputDirectory, path)));
     mirrorNodeModules(resolve(repoRoot, "node_modules"), resolve(outputDirectory, "node_modules"));
     mirrorNodeModules(resolve(worldDirectory, "node_modules"), resolve(outputDirectory, "world/node_modules"));
     for (const pkg of [...worldWorkspacePackages, ...nativeEnginePackages]) {
@@ -499,7 +468,7 @@ function createRebuildGuide(gitMeta, flashAppsCatalog) {
     .join("\n");
   return `# Seed World Flash App self-contained source snapshot
 
-This self-contained snapshot contains all World and native Engine workspace packages, precompiled shader cache (\`packages/modify/.cache\`), and Seed World assets needed to rebuild directly without an external repo checkout.
+This self-contained snapshot contains all World and native Engine workspace packages, precompiled engine files under \`seed-world-prepared-engine/\`, and Seed World assets needed to rebuild directly without an external repo checkout. The build restores the precompiled files to their normal package paths.
 It intentionally excludes \`node_modules\`, tests, unrelated demos, Grasslands precomputed data, and offline-only source artwork whose runtime KTX2 derivatives are already included.
 
 To rebuild directly from this extracted snapshot (Node.js >= 20.19, npm 10.9.3):
@@ -509,7 +478,7 @@ npm ci --no-audit --no-fund
 npm run build
 \`\`\`
 
-Optional: set \`WORLD_FLASH_APP_TEMPLATE=<templateId>\` before \`npm run build\` to copy a specific template variant into root \`dist/\` (defaults to \`original\`).
+A published app's \`seed-world-template.json\` selects its template for root \`dist/\`. For the shared local snapshot, set \`WORLD_FLASH_APP_TEMPLATE=<templateId>\` to pick a template. It defaults to \`original\`.
 
 Outputs:
 - Root runnable app: \`dist/\`

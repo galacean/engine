@@ -78,9 +78,9 @@ npm run build:seed-world-flash-source --workspace world
 ```
 
 构建脚本（`world/scripts/build-seed-world-flash-source.mjs`）会：
-1. 复制 npm workspace 配置与锁文件（重写根 `package.json` 的 `workspaces` 与 `build` 脚本并移除 `prepare` / `electron`，裁剪锁文件中未打包的 workspace）、`world/`（仅保留 `demos/seed-world`（含 `flash-apps.json`）与构建脚本，排除内部上传/编排脚本）、13 个 World workspace 包、13 个原生 Engine workspace 包，以及已预编译的 `packages/modify/.cache` 与 `shader-compiler` / `shader-parser` 等构建期最小编译件；
+1. 复制 npm workspace 配置与锁文件（重写根 `package.json` 的 `workspaces` 与 `build` 脚本并移除 `prepare` / `electron`，裁剪锁文件中未打包的 workspace）、`world/`、13 个 World workspace 包和 13 个原生 Engine workspace 包。把最小编译件保存到 `seed-world-prepared-engine/`，让 ASAP 导入时保留这些文件。构建会将它们恢复到各包的 `.cache` 或 `dist`；
 2. 排除仅离线制作期使用且运行期无需或已有 KTX2 派生物的素材（如 `farming/catalog/plants/*/procedural/atlas.png`、`measured-white-birch` 与未引用法线 PNG）；
-3. 写入支持独立解压后直接执行 `npm ci && npm run build`（产出根 `dist/`，支持 `WORLD_FLASH_APP_TEMPLATE=<templateId>`）的 `REBUILD.md` 与 `SOURCE_SNAPSHOT.json`（`schemaVersion: 4`）；
+3. 写入 `REBUILD.md` 与 `SOURCE_SNAPSHOT.json`（`schemaVersion: 5`）。恢复源码后执行 `npm ci && npm run build`，根 `dist/` 使用发布备份中 `seed-world-template.json` 绑定的固定模板名。共享的本地快照可用 `WORLD_FLASH_APP_TEMPLATE=<templateId>` 选择模板；
 4. 对当前仓库与源码快照各执行一次未压缩的闪应用 Vite 构建，逐文件比对文件集合与 SHA-256；
 5. 生成 `world/dist/seed-world-flash-source.tar.gz` 校验压缩体积 ≤ **100 MiB**。
 
@@ -147,7 +147,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 - **防误切 checkout**：发布 `original` 时若 `$PUBLISHER_ROOT/scripts/app-context.local.json` 中的 `artifactId` 与 `flash-apps.json` 的 `flashapp-a3c0e021cb8cadb0` 不一致，默认直接拒绝执行。
 - **逐应用 `--type` 与版本对齐**：各应用登记类型由 `world/demos/seed-world/flash-apps.json` 分别声明（`original` 为 `game`，其余 5 个新应用为 `miniapp`）；干跑用已发布记录估计版本，执行以注册库分配的版本为准。只在发布单个模板时才使用与清单不同的 `--type`。
 - **防重复申请 ID**：新申请的 5 个 `artifactId` 在调用远端接口前即落盘到本地状态（传 `--sync-catalog` 时同步回写 `flash-apps.json`），失败重试时严格复用同一个 ID。
-- **首次自动建表**：对每个未建表的新应用，使用该应用的 `artifactId`、预留版本和作者的 `2099...` `alipayUid` 通过建表接口应用 `world_save.sql`，表类型为 `share`，成功后标记 `dbInitialized: true`，后续版本跳过建表。
+- **首次自动建表**：对每个未建表的新应用，使用该应用的 `artifactId`、预留版本和作者的 `2099...` `alipayUid` 应用 `world_save.sql`。建表结果未确认时读取服务端表结构，只有确认 `world_save` 为符合预期的 Share 表才继续发布并标记 `dbInitialized: true`。
 
 ## 6. 发布后验收与正式上架
 

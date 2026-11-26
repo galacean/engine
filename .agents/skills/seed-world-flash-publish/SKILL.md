@@ -50,7 +50,7 @@ node world/scripts/build-seed-world-npm.mjs
 
 - `world/dist/seed-world-flash-app`：共享公共运行基座（根部含 `index.html`，校验相对路径、classic Worker（含 `OilPaintBrush`）、资源清单与 PUGC 扩展名）。
 - `world/dist/seed-world-flash-apps/<templateId>`：6 个独立模板运行目录（`original`、`sakura-pearl`、`emerald-forest`、`low-poly`、`titan-wasteland`、`oil-paint`），逐一校验默认模板 `<meta>`、`<title>` 与文件集一致性。
-- `world/dist/seed-world-flash-source`：6 应用共用的自包含可重建源码快照（含全部 World + 原生 Engine workspace、`packages/modify/.cache`、最小构建期编译件、裁剪后的 npm 锁文件、`REBUILD.md` 与 `SOURCE_SNAPSHOT.json`，解压后可直接 `npm ci && npm run build` 产出根 `dist/`，校验双次未压缩构建逐文件 SHA-256 一致且归档 ≤ 100 MiB）。
+- `world/dist/seed-world-flash-source`：6 应用共用的可重建源码快照，含 World 与原生 Engine workspace、`seed-world-prepared-engine/` 下的构建期编译件及裁剪后的 npm 锁文件。发布时每份源码备份都会写入固定模板名 `seed-world-template.json`。经 ASAP 恢复后执行 `npm ci && npm run build` 即可得到对应模板的根 `dist/`。
 
 若需增量同步 CDN（含新增的 `oil-paint` SWB1 分包或变更资源），在发布工作树内执行：
 
@@ -111,7 +111,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
   --timeout 300
 ```
 
-远端部署失败时，预留的版本仍处于未发布状态。只重试失败的模板，ASAP 会分配新版本。
+远端部署失败时，预留的版本仍处于未发布状态。只重试失败的模板，ASAP 会分配新版本。建表结果未确认时，脚本会读回实际表结构，确认 `world_save` 是符合预期的 Share 表后继续。
 
 ## 5. 交付与发布后验收清单
 
