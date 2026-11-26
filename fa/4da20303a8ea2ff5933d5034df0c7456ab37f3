@@ -1,0 +1,16 @@
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  h_dd004f51a3e5ec 97,99,111,113,155-156,521
+tests/src/core/AnimationCurve.test.ts
+  h_dd004f51a3e5ec 442,450-453
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fa4da20303a8ea2ff5933d5034df0c7456ab37f3",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
