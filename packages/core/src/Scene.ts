@@ -8,7 +8,7 @@ import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
-import { AmbientOcclusion, DirectLight } from "./lighting";
+import { AmbientOcclusion, DirectLight, ScreenSpaceReflection } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
@@ -60,6 +60,11 @@ export class Scene extends EngineObject {
    * such as corners, crevices, and contact points between surfaces.
    */
   readonly ambientOcclusion = new AmbientOcclusion(this);
+
+  /**
+   * Screen-space reflection settings.
+   */
+  readonly screenSpaceReflection = new ScreenSpaceReflection();
 
   /** @internal */
   _lightManager: LightManager = new LightManager();

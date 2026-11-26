@@ -168,14 +168,23 @@ export class PostProcessManager {
 
   /**
    * @internal
+   * @param isSourceResolved - Set to true when the caller already resolved `srcRenderTarget`'s MSAA buffer with no draws since, avoiding a duplicate full-screen blit.
    */
-  _render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget | null): void {
+  _render(
+    camera: Camera,
+    srcRenderTarget: RenderTarget,
+    destRenderTarget: RenderTarget | null,
+    isSourceResolved: boolean = false
+  ): void {
     const engine = this.scene.engine;
     this._srcRenderTarget = srcRenderTarget;
     this._destRenderTarget = destRenderTarget;
 
-    // Should blit to resolve the MSAA
-    srcRenderTarget._blitRenderTarget();
+    // Post-process shaders cannot sample an MSAA FBO directly and need it resolved first;
+    // skip when already resolved this frame (e.g. by SSR color capture) to avoid a redundant gl.blitFramebuffer.
+    if (!isSourceResolved) {
+      srcRenderTarget._blitRenderTarget();
+    }
 
     const activePasses = engine._getActivePostProcessPasses();
     this._remainActivePassCount = activePasses.length;

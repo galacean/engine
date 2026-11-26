@@ -8,6 +8,7 @@ import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
+import { ScreenSpaceReflectionPass } from "../lighting/screenSpaceReflection/ScreenSpaceReflectionPass";
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -31,6 +32,7 @@ import { PipelineUtils } from "./PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
+
 /**
  * Basic render pipeline.
  */
@@ -45,6 +47,7 @@ export class BasicRenderPipeline {
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _saoPass: ScalableAmbientObscurancePass;
+  private _ssrPass: ScreenSpaceReflectionPass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
   private _copyBackgroundTexture: Texture2D | null;
@@ -62,6 +65,7 @@ export class BasicRenderPipeline {
     this._cascadedShadowCasterPass = new CascadedShadowCasterPass(camera);
     this._depthOnlyPass = new DepthOnlyPass(engine);
     this._saoPass = new ScalableAmbientObscurancePass(engine, shaders.scalableAmbientOcclusion);
+    this._ssrPass = new ScreenSpaceReflectionPass(engine, shaders.screenSpaceReflection);
     this._opaqueTexturePass = new OpaqueTexturePass(engine);
     this._finalPass = new FinalPass(engine, shaders.finalSRGB, shaders.finalAntiAliasing);
   }
@@ -71,6 +75,8 @@ export class BasicRenderPipeline {
    */
   destroy(): void {
     this._cullingResults.destroy();
+    this._ssrPass.onDestroy(this._camera);
+    this._ssrPass = null!;
 
     const pool = this._camera.engine._renderTargetPool;
 
@@ -85,6 +91,25 @@ export class BasicRenderPipeline {
     }
 
     this._camera = null!;
+  }
+
+  /**
+   * @internal
+   * Release SSR persistent resources and camera texture bindings when the camera is disabled.
+   */
+  _onCameraDisabled(): void {
+    const camera = this._camera;
+    if (camera) {
+      this._ssrPass.onDisable(camera);
+    }
+  }
+
+  /**
+   * @internal
+   * Invalidate SSR temporal history after a camera cut or discontinuity.
+   */
+  _notifyHistoryInvalidated(): void {
+    this._ssrPass.onHistoryInvalidated();
   }
 
   /**
@@ -116,7 +141,7 @@ export class BasicRenderPipeline {
     );
 
     // Copy the background when MSAA prevents a direct blit or sRGB needs conversion to linear.
-    const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0)!.isSRGBColorSpace;
+    const isSRGBBackground = !renderTarget || Boolean(renderTarget.getColorTexture(0)?.isSRGBColorSpace);
     this._shouldCopyBackgroundColor =
       independentCanvasEnabled &&
       !(finalClearFlags & CameraClearFlags.Color) &&
@@ -137,6 +162,16 @@ export class BasicRenderPipeline {
     cullingResults.sortBatch(batcherManager);
     batcherManager.uploadBuffer();
 
+    const pool = engine._renderTargetPool;
+    // Evaluate SSR before DepthOnly/Forward so state transitions and Hi-Z requirements are settled first.
+    const ssrPass = ScreenSpaceReflectionPass.isEnabled(camera) ? this._ssrPass : null;
+    if (ssrPass) {
+      // Sub-views (cube faces or non-zero mip levels) skip SSR without wiping main-view history.
+      ssrPass.onPrepare(context, cullingResults, cubeFace !== undefined || (mipLevel ?? 0) > 0);
+    } else {
+      this._ssrPass.onDisable(camera, context);
+    }
+
     if (depthPassEnabled) {
       depthOnlyPass.onConfig(camera);
       depthOnlyPass.onRender(context, cullingResults);
@@ -144,8 +179,6 @@ export class BasicRenderPipeline {
       depthOnlyPass.release();
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
-
-    const pool = engine._renderTargetPool;
 
     // Check if need to create internal color texture or grab texture
     if (independentCanvasEnabled) {
@@ -199,7 +232,14 @@ export class BasicRenderPipeline {
       this._saoPass.release();
     }
 
-    this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
+    // Build depth/Hi-Z pyramids and execute SSR ray trace before Forward shaders sample reflections.
+    ssrPass?.onPreForward(context, cullingResults, depthPassEnabled ? depthOnlyPass.renderTarget : null);
+
+    this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel, ssrPass);
+
+    // Release transient SSR targets and unbind temporary camera textures before the next camera renders.
+    ssrPass?.onFrameEnd(context);
+    context.programResolver = null;
 
     // Return the per-frame leases so the next camera with matching shape can reuse them
     if (this._internalColorTarget) {
@@ -217,7 +257,8 @@ export class BasicRenderPipeline {
     camera: Camera,
     finalClearFlags: CameraClearFlags,
     cubeFace?: TextureCubeFace,
-    mipLevel?: number
+    mipLevel?: number,
+    ssrPass?: ScreenSpaceReflectionPass | null
   ) {
     const cullingResults = this._cullingResults;
     const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
@@ -313,6 +354,19 @@ export class BasicRenderPipeline {
     // Revert stencil buffer generated by mask
     maskManager.clearMask(context, PipelineStage.Forward);
 
+    // Share the resolved scene color with SSR before post-processing runs so we avoid a duplicate MSAA resolve.
+    const colorTargetResolved = Boolean(ssrPass && colorTarget && colorTarget.colorTextureCount > 0);
+    if (colorTargetResolved) {
+      colorTarget!._blitRenderTarget();
+    }
+    ssrPass?.onPostTransparent(
+      context,
+      colorTargetResolved ? colorTarget : null,
+      colorViewport,
+      mipLevel ?? 0,
+      Boolean(needFlipProjection)
+    );
+
     // Output render target of each stage
     let outputTarget: RenderTarget | null = null;
 
@@ -321,11 +375,11 @@ export class BasicRenderPipeline {
     const { postProcessManager } = scene;
     if (camera.enablePostProcess && postProcessManager._isValid()) {
       outputTarget = needFinalPass ? postProcessManager._getOutputRenderTarget(camera) : camera.renderTarget;
-      postProcessManager._render(camera, internalColorTarget!, outputTarget);
+      postProcessManager._render(camera, internalColorTarget!, outputTarget, colorTargetResolved);
     } else {
       // Maybe internalColorTarget or camera.renderTarget or null
       outputTarget = colorTarget;
-      if (internalColorTarget) {
+      if (internalColorTarget && !colorTargetResolved) {
         internalColorTarget._blitRenderTarget();
       }
       postProcessManager._releaseSwapRenderTarget();
