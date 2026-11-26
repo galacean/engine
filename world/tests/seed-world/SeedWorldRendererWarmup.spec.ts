@@ -2367,67 +2367,6 @@ describe("renderer warmup scope", () => {
     }
   });
 
-  it("warms VoiceOrbBakeV1 as renderToTexture without sRGB output macros and warms UIAtlasTileV1 with overlay macros", () => {
-    const fakeBakeShader = {
-      name: "SeedWorld/VoiceOrbBakeV1",
-      destroyed: false,
-      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
-    };
-    const fakeAtlasTileShader = {
-      name: "SeedWorld/UIAtlasTileV1",
-      destroyed: false,
-      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
-    };
-    const orbDisplayRenderer = renderer(true, false, [
-      {
-        destroyed: false,
-        shader: {
-          name: "SeedWorld/VoiceOrbDisplayV1",
-          destroyed: false,
-          subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
-        },
-        shaderData: { _macroCollection: new ShaderMacroCollection() }
-      }
-    ]);
-    const engine = {
-      _macroCollection: new ShaderMacroCollection(),
-      _hardwareRenderer: { supportsRendering: true }
-    } as any;
-    const scene = {
-      shaderData: { _macroCollection: new ShaderMacroCollection() },
-      background: { mode: 0 }
-    } as any;
-    const camera = {
-      _updateShaderData() {},
-      renderTarget: null,
-      shaderData: { _macroCollection: new ShaderMacroCollection() }
-    } as any;
-
-    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) => {
-      if (name === "SeedWorld/VoiceOrbBakeV1") return fakeBakeShader as any;
-      if (name === "SeedWorld/UIAtlasTileV1") return fakeAtlasTileShader as any;
-      return null;
-    });
-    try {
-      const variants = collectSeedWorldRendererVariants(engine, scene, camera, [], {
-        overlayRenderers: [orbDisplayRenderer as any]
-      });
-
-      const bakeVariant = variants.find((v) => v.shader === "SeedWorld/VoiceOrbBakeV1");
-      expect(bakeVariant).toBeDefined();
-      expect(bakeVariant!.macros.some((m) => m.n === "ENGINE_OUTPUT_SRGB_CORRECT")).toBe(false);
-      expect(bakeVariant!.macros.some((m) => m.n === "ENGINE_SHOULD_SRGB_CORRECT")).toBe(false);
-
-      const atlasVariant = variants.find((v) => v.shader === "SeedWorld/UIAtlasTileV1");
-      expect(atlasVariant).toBeDefined();
-      expect(atlasVariant!.macros.some((m) => m.n === "ENGINE_OUTPUT_SRGB_CORRECT")).toBe(true);
-      expect(atlasVariant!.macros.some((m) => m.n === "ENGINE_SHOULD_SRGB_CORRECT")).toBe(true);
-      expect(atlasVariant!.macros.some((m) => m.n === "RENDERER_IS_RECEIVE_SHADOWS")).toBe(true);
-    } finally {
-      findSpy.mockRestore();
-    }
-  });
-
   it("warms active VolumetricLight passes, Uber ENABLE_EFFECT_VOLUMETRIC_LIGHT, and custom PostProcessPass materials", () => {
     const vlShader = {
       name: "PostProcess/VolumetricLight",

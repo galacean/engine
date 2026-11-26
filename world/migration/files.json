@@ -1579,6 +1579,7 @@
   "demos/terrain/seed-world-planner/assistant/SeedWorldViewCapture.ts": "packages/world-planning/src/assistant/SeedWorldViewCapture.ts",
   "demos/terrain/seed-world-planner/assistant/SeedWorldModel.ts": "world/demos/seed-world/assistant/SeedWorldModel.ts",
   "demos/terrain/seed-world-planner/assistant/shaders/SeedWorldWorkingText.shader": "world/demos/seed-world/assistant/shaders/SeedWorldWorkingText.shader",
+  "demos/terrain/seed-world-planner/assistant/shaders/SeedWorldVoiceOrb.shader": "world/demos/seed-world/assistant/shaders/SeedWorldVoiceOrb.shader",
   "demos/terrain/seed-world-planner/landform-study/RockComposition.ts": "packages/world-planning/src/landforms/RockComposition.ts",
   "demos/terrain/seed-world-planner/landform-study/build-atom-reference.mjs": "world/demos/landform-study/build-atom-reference.mjs",
   "demos/terrain/seed-world-planner/landform-study/InteractivePage.ts": "world/demos/landform-study/InteractivePage.ts",

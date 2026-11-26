@@ -682,6 +682,7 @@ async function createControllerFixture(realSession?: AIChatSession, activity?: S
     root: { isActive: true, destroy: vi.fn() },
     controlButton: { entity: { isActive: false }, interactive: false, cancelGesture: vi.fn() },
     pendingLabel: { text: "", entity: { isActive: false } },
+    orbMaterial: { shaderData: { setFloat: vi.fn() } },
     layout,
     resources: { destroy: vi.fn() }
   };
@@ -888,9 +889,7 @@ it.each([
   const material = new Material({ resourceManager: {
     _addReferResource() {}, _deleteReferResource() {}, _deleteAsset() {}, _deleteContentRestorer() {}
   } } as any, { name: "hud-lifecycle", subShaders: [] } as any);
-  f.view.layout.setTranscriptWorking.mockImplementation((working: boolean) => {
-    material.shaderData.setFloat("material_SeedWorldWorking", working ? 1 : 0);
-  });
+  (f.view as any).orbMaterial = material;
   f.view.resources.destroy.mockImplementation(() => material.destroy());
   const first = f.controller.submit("original");
   await vi.waitFor(() => expect(request).toHaveBeenCalledOnce());
@@ -983,7 +982,7 @@ it("reuses canvas bounds for status refreshes and invalidates them on layout, vi
   expect(dispose).toHaveBeenCalledOnce();
 });
 
-it("drives VoiceOrb breathing and press expansion via GPU shader uniforms without dirtying orbTransform or orbGlassImage.color", async () => {
+it("drives VoiceOrb breathing and press expansion via GPU shader uniforms without ever calling orbTransform.setScale", async () => {
   const { VoiceHudLayout } = await import("../../demos/seed-world/assistant/SeedWorldChatPanel");
   const layout = Object.create(VoiceHudLayout.prototype) as InstanceType<typeof VoiceHudLayout>;
   const floatUniforms = new Map<string, number>();
@@ -992,22 +991,8 @@ it("drives VoiceOrb breathing and press expansion via GPU shader uniforms withou
   const setLayout = vi.fn();
   const setRimHighlight = vi.fn();
   const setOpacity = vi.fn();
-  const scheduleUpdate = vi.fn();
-  const webCanvas = { dataset: { photoPhase: "idle" } as Record<string, string> };
-  const orbGlassColor = {
-    r: 1,
-    g: 1,
-    b: 1,
-    a: 1,
-    set: vi.fn((r: number, g: number, b: number, a: number) => {
-      orbGlassColor.r = r;
-      orbGlassColor.g = g;
-      orbGlassColor.b = b;
-      orbGlassColor.a = a;
-    })
-  };
   Object.assign(layout as any, {
-    _engine: { canvas: { width: 822, height: 1602, _webCanvas: webCanvas }, time: { actualElapsedTime: 0 } },
+    _engine: { canvas: { width: 822, height: 1602 }, time: { actualElapsedTime: 0 } },
     _scroll: { update: vi.fn(), cancel: vi.fn(), offset: 0, maximum: 0 },
     readingPointers: [],
     _width: 0,
@@ -1031,7 +1016,7 @@ it("drives VoiceOrb breathing and press expansion via GPU shader uniforms withou
     _orbBreathPhase: 0,
     _orbListeningBlend: 0,
     _orbBasePixelSize: 148,
-    _orbGlassShade: 1,
+    _orbGlassOpacity: 1,
     _orbPressState: "idle",
     _panelHeld: false,
     _motion: undefined,
@@ -1043,9 +1028,7 @@ it("drives VoiceOrb breathing and press expansion via GPU shader uniforms withou
     _anchorX: 0,
     _anchorY: 0,
     orbTransform: { alignRight: 0, alignBottom: 0, setScale },
-    orbGlassImage: { color: orbGlassColor },
-    orbCache: { scheduleUpdate },
-    orbDisplayMaterial: { shaderData: { setFloat: vi.fn((k: string, v: number) => floatUniforms.set(k, v)) } },
+    orbMaterial: { shaderData: { setFloat: vi.fn((k: string, v: number) => floatUniforms.set(k, v)) } },
     orbGlass: { setQuadExpandPixels, setLayout, setRimHighlight, setOpacity }
   });
 
@@ -1062,114 +1045,19 @@ it("drives VoiceOrb breathing and press expansion via GPU shader uniforms withou
     expect(dy).toBeCloseTo(expand, 6);
   }
   expect(setScale).not.toHaveBeenCalled();
-  expect(orbGlassColor.set).not.toHaveBeenCalled();
-  expect(setOpacity).not.toHaveBeenCalled();
-  expect(scheduleUpdate).toHaveBeenCalledTimes(40);
-  expect(scheduleUpdate.mock.calls.at(-1)![0]).toBeCloseTo(3.2, 5);
-  expect(scheduleUpdate.mock.calls.at(-1)![1]).toBe(0);
-  expect(scheduleUpdate.mock.calls.at(-1)![2]).toBe(0.08);
-  expect(floatUniforms.has("material_Time")).toBe(false);
-  expect(floatUniforms.has("material_Listening")).toBe(false);
   // Base pixel size at 822x1602 = 148 * (822 / 720) ~= 168.967px -> ±2.5% is ±4.22px.
   expect(minExpand).toBeLessThan(-3.5);
   expect(maxExpand).toBeGreaterThan(3.5);
-
-  // Entering photo markup dims orbGlassImage.color smoothly to 0.56 and stops dirtying once settled.
-  webCanvas.dataset.photoPhase = "editing";
-  for (let i = 0; i < 15; i++) {
-    layout.onUpdate(0.08);
-  }
-  expect(orbGlassColor.r).toBe(0.56);
-  const callsAfterSettle = orbGlassColor.set.mock.calls.length;
-  expect(callsAfterSettle).toBeGreaterThan(0);
-  for (let i = 0; i < 10; i++) {
-    layout.onUpdate(0.08);
-  }
-  expect(orbGlassColor.set.mock.calls.length).toBe(callsAfterSettle);
 
   // Press/holding state (~1.72x expansion) also animates purely via shader uniforms with zero setScale calls.
   layout.setOrbPressState("holding");
   for (let i = 0; i < 15; i++) {
     layout.onUpdate(0.08);
   }
-  expect(scheduleUpdate.mock.calls.at(-1)![1]).toBeGreaterThan(0.95);
   const pressedExpand = floatUniforms.get("material_OrbScaleExpandPixels")!;
   expect(pressedExpand).toBeGreaterThan(100);
   const [pdx, pdy] = setQuadExpandPixels.mock.calls.at(-1)!;
   expect(pdx).toBeCloseTo(pressedExpand, 6);
   expect(pdy).toBeCloseTo(pressedExpand, 6);
   expect(setScale).not.toHaveBeenCalled();
-});
-
-it("precomputes column-major VoiceOrb rotation matrices matching GLSL orbRotZ*orbRotX*orbRotY and paces 30Hz idle / 60Hz listening bakes", async () => {
-  const { Matrix } = await import("@galacean/engine");
-  const {
-    writeOrbRotationMatrixZXY,
-    shouldBakeVoiceOrbFrame,
-    buildVoiceOrbSpectrumLutPixels,
-    VOICE_ORB_CACHE_RESOLUTION
-  } = await import("../../demos/seed-world/assistant/SeedWorldVoiceOrbCache");
-
-  expect(VOICE_ORB_CACHE_RESOLUTION).toBe(96);
-  const lut = buildVoiceOrbSpectrumLutPixels(64);
-  expect(lut.length).toBe(64 * 4);
-  // Start and end of cyclic LUT wrap seamlessly back to cyan (0, 245, 255).
-  expect(lut[0]).toBeLessThan(15);
-  expect(lut[1]).toBeGreaterThan(220);
-  expect(lut[2]).toBe(255);
-  expect(lut[63 * 4 + 2]).toBe(255);
-
-  // Reference column-major multiplication matching original GLSL orbRotZ * orbRotX * orbRotY.
-  const mul3 = (a: number[], b: number[]) => {
-    const out = new Array<number>(9).fill(0);
-    for (let col = 0; col < 3; col++) {
-      for (let row = 0; row < 3; row++) {
-        out[col * 3 + row] =
-          a[0 * 3 + row]! * b[col * 3 + 0]! +
-          a[1 * 3 + row]! * b[col * 3 + 1]! +
-          a[2 * 3 + row]! * b[col * 3 + 2]!;
-      }
-    }
-    return out;
-  };
-  const rotX = (a: number) => {
-    const c = Math.cos(a), s = Math.sin(a);
-    return [1, 0, 0, 0, c, -s, 0, s, c];
-  };
-  const rotY = (a: number) => {
-    const c = Math.cos(a), s = Math.sin(a);
-    return [c, 0, s, 0, 1, 0, -s, 0, c];
-  };
-  const rotZ = (a: number) => {
-    const c = Math.cos(a), s = Math.sin(a);
-    return [c, -s, 0, s, c, 0, 0, 0, 1];
-  };
-
-  for (const [rz, rx, ry] of [
-    [-1.2, 0.35, 0.21],
-    [1.625, 0.87, -0.55],
-    [-0.4, -0.61, 0.48]
-  ]) {
-    const expected = mul3(mul3(rotZ(rz), rotX(rx)), rotY(ry));
-    const mat = new Matrix();
-    writeOrbRotationMatrixZXY(rz, rx, ry, mat);
-    const e = mat.elements;
-    const actual = [e[0], e[1], e[2], e[4], e[5], e[6], e[8], e[9], e[10]];
-    for (let i = 0; i < 9; i++) {
-      expect(actual[i]).toBeCloseTo(expected[i]!, 6);
-    }
-  }
-
-  // First frame always bakes immediately.
-  expect(shouldBakeVoiceOrbFrame(0, 0, false, false)).toBe(true);
-  // 120Hz idle (8.33ms): frames 1, 2, 3 skip bake; frame 4 (33.3ms >= 31.3ms) bakes!
-  expect(shouldBakeVoiceOrbFrame(1 / 120, 0, false, true)).toBe(false);
-  expect(shouldBakeVoiceOrbFrame(2 / 120, 0, false, true)).toBe(false);
-  expect(shouldBakeVoiceOrbFrame(3 / 120, 0, false, true)).toBe(false);
-  expect(shouldBakeVoiceOrbFrame(4 / 120, 0, false, true)).toBe(true);
-  // Idle -> listening transition bakes immediately even before 30Hz interval.
-  expect(shouldBakeVoiceOrbFrame(1 / 120, 0.05, false, true)).toBe(true);
-  // Active listening (60Hz pacing): skips 1/120s, bakes at 2/120s (16.7ms >= 14.7ms).
-  expect(shouldBakeVoiceOrbFrame(1 / 120, 0.8, true, true)).toBe(false);
-  expect(shouldBakeVoiceOrbFrame(2 / 120, 0.8, true, true)).toBe(true);
 });

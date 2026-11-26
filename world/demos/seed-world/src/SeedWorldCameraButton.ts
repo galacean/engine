@@ -4,18 +4,14 @@ import {
   resolveSeedWorldVoiceOrbLayout
 } from "./SeedWorldHudLayout.ts";
 import atlas from "../assets/markup-pen.json";
-import uiAtlasTileShaderSource from "./shaders/SeedWorldUIAtlasTile.shader?raw";
 import {
   AssetType,
   Camera,
   Entity,
-  Material,
   Rect,
   Script,
-  Shader,
   Sprite,
   Texture2D,
-  Vector2,
   Vector4,
   type PointerEventData
 } from "@galacean/engine";
@@ -32,8 +28,6 @@ import {
 // Borderless animated Pen + live-drawing S-curve stroke UI (Pinterest Tile 3 motion iconography):
 // docked directly ABOVE the Voice Orb, horizontally centered on the orb's vertical axis in both wide & narrow HUD layouts.
 const ICON_SIZE = 112;
-const UI_ATLAS_TILE_SHADER_NAME = "SeedWorld/UIAtlasTileV1";
-const ATLAS_UV_OFFSET_PROPERTY = "material_AtlasUvOffset";
 const ORB_SIZE = SEED_WORLD_VOICE_ORB_LAYOUT.size;
 const BUTTON_GAP_WIDE = 24;
 const BUTTON_GAP_NARROW = 20;
@@ -90,8 +84,6 @@ export class SeedWorldCameraButton {
   private readonly root: Entity;
   private restingPen?: Texture2D;
   private readonly sprite: Sprite;
-  private readonly material: Material;
-  private readonly uvOffset = new Vector2(0, 0);
   private pressBlend = 0;
   private isPressed = false;
 
@@ -109,16 +101,11 @@ export class SeedWorldCameraButton {
 
     this.restingPen = createRestingPen(camera);
     this.sprite = new Sprite(engine, this.restingPen);
-    const shader = Shader.find(UI_ATLAS_TILE_SHADER_NAME) ?? Shader.create(uiAtlasTileShaderSource);
-    this.material = new Material(engine, shader);
-    this.material.isGCIgnored = true;
-    this.material.shaderData.setVector2(ATLAS_UV_OFFSET_PROPERTY, this.uvOffset);
 
     const target = this.root.createChild("Screen markup trigger");
     const iconImage = target.addComponent(Image);
     iconImage.sprite = this.sprite;
     iconImage.color.set(1, 1, 1, 1);
-    iconImage.setMaterial(this.material);
 
     const iconTransform = target.transform as UITransform;
     iconTransform.size.set(ICON_SIZE, ICON_SIZE);
@@ -137,7 +124,7 @@ export class SeedWorldCameraButton {
     let lastWidth = -1;
     let lastHeight = -1;
 
-    const baseRegion = new Rect(0, 0, 1 / atlas.columns, 1 / atlas.rows);
+    const region = new Rect(0, 0, 1 / atlas.columns, 1 / atlas.rows);
     let tile = 0;
     let time = 0;
     let atlasReady = false;
@@ -145,13 +132,11 @@ export class SeedWorldCameraButton {
       url: new URL("../assets/markup-pen.ktx2", import.meta.url).href,
       type: AssetType.KTX2
     }).then(texture => {
-      if (this.sprite.destroyed || this.material.destroyed) return;
+      if (this.sprite.destroyed) return;
       this.sprite.texture = texture;
       const [left, top, right, bottom] = atlas.trim;
       this.sprite.atlasRegionOffset = new Vector4(left, top, right, bottom);
-      this.sprite.atlasRegion = baseRegion;
-      this.uvOffset.set(0, 0);
-      this.material.shaderData.setVector2(ATLAS_UV_OFFSET_PROPERTY, this.uvOffset);
+      this.sprite.atlasRegion = region;
       this.restingPen?.destroy();
       this.restingPen = undefined;
       atlasReady = true;
@@ -175,7 +160,7 @@ export class SeedWorldCameraButton {
       const photoPhase = webCanvas?.dataset.photoPhase;
       const photoActive = Boolean(photoPhase && photoPhase !== "idle");
       const visible = !control.hidden && control.style.display !== "none" && !photoActive && voiceAlpha > 0.02;
-      if (target.isActive !== visible) target.isActive = visible;
+      target.isActive = visible;
       if (!visible) {
         this.isPressed = false;
         this.pressBlend = 0;
@@ -183,10 +168,8 @@ export class SeedWorldCameraButton {
       }
 
       const pressTarget = this.isPressed ? 1 : 0;
-      if (this.pressBlend !== pressTarget) {
-        this.pressBlend += (pressTarget - this.pressBlend) * (1 - Math.exp(-16 * dt));
-        if (Math.abs(pressTarget - this.pressBlend) < 0.001) this.pressBlend = pressTarget;
-      }
+      this.pressBlend += (pressTarget - this.pressBlend) * (1 - Math.exp(-16 * dt));
+      if (Math.abs(pressTarget - this.pressBlend) < 0.001) this.pressBlend = pressTarget;
       const scale = (1 - this.pressBlend * 0.12) * (0.86 + 0.14 * voiceAlpha);
       if (iconTransform.scale.x !== scale) iconTransform.setScale(scale, scale, 1);
       const opacity = (control.disabled ? 0.42 : 1) * voiceAlpha;
@@ -197,13 +180,9 @@ export class SeedWorldCameraButton {
         const next = atlas.frames[Math.floor(time * atlas.fps)];
         if (next !== tile) {
           tile = next;
-          // Shift atlas tiles via GPU vertex-shader UV offset so the shared UI PrimitiveChunk
-          // stays completely static (0 CPU UV rebuilds and 0 VBO uploads during idle).
-          this.uvOffset.set(
-            (tile % atlas.columns) / atlas.columns,
-            Math.floor(tile / atlas.columns) / atlas.rows
-          );
-          this.material.shaderData.setVector2(ATLAS_UV_OFFSET_PROPERTY, this.uvOffset);
+          region.x = (tile % atlas.columns) / atlas.columns;
+          region.y = Math.floor(tile / atlas.columns) / atlas.rows;
+          this.sprite.atlasRegion = region;
         }
       }
     };
@@ -211,8 +190,7 @@ export class SeedWorldCameraButton {
 
   dispose(): void {
     this.root.destroy();
-    this.material.destroy(true);
-    this.sprite.destroy(true);
-    this.restingPen?.destroy(true);
+    this.sprite.destroy();
+    this.restingPen?.destroy();
   }
 }

@@ -900,7 +900,6 @@ export async function mountSeedWorldDemo(
       "SeedWorld/LiquidGlass",
       "SeedWorld/VoiceOrb",
       "SeedWorld/WorkingText",
-      "SeedWorld/UIAtlasTile",
       "SeedWorld/PhotoCopy",
       "SeedWorld/SnapshotSurfacePack",
       "SeedWorld/InteractionDepthPack",
