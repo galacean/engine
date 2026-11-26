@@ -1,0 +1,150 @@
+packages/building/src/building/parts/architecture/BuildingRender.ts
+  s_c72f930c19d1f3::t_0bc13babd8cbae 52-53
+  s_c72f930c19d1f3::t_8e03c76abeb79f 3,23,39,48-51,54-55
+packages/building/tests/BuildingWorkerCpu.spec.ts
+  s_c72f930c19d1f3::t_55d72baf26ab9b 7,106-136,189-205
+packages/building/tests/BuildingPartCollection.spec.ts
+  s_c72f930c19d1f3::t_2dbe123141c3ef 114-142,175-181
+packages/building/tests/BuildingWallBakeInput.spec.ts
+  s_c72f930c19d1f3::t_187a433f2bfa27 1-5,9-25,27-38,42-44,48-49,80,83-84,89-96
+  s_c72f930c19d1f3::t_269df287b55aea 46-47,69-71
+  s_c72f930c19d1f3::t_a15844251e7ae6 6-8,26,50-68,72-79,81
+  s_c72f930c19d1f3::t_0bdb0a7f3797fd 39-41,45,82,85-88
+packages/building/src/building/parts/architecture/BuildingCpuClient.ts
+  s_c72f930c19d1f3::t_e71d5a73e55037 1-5
+  s_c72f930c19d1f3::t_c518b4f5c27f24 221-238
+packages/building/src/building/runtime/BuildingWallBakeBinding.ts
+  s_c72f930c19d1f3::t_42ed8e7abd1729 11,36,44-49,85,105,108
+  s_c72f930c19d1f3::t_bf047d46341677 58-77,91-99
+  s_c72f930c19d1f3::t_3f6de5f22b4ab8 1,10,12-27,35,37-43,50,78,86-90,100-104,106-107,109-112,114,117-118
+  s_c72f930c19d1f3::t_0bc13babd8cbae 2-9,28-34,51-57,79-84,113,115-116
+packages/building/tests/BuildingGlobalProxy.spec.ts
+  s_c72f930c19d1f3::t_038a79dde658ed 215-292
+  s_c72f930c19d1f3::t_b2e59d72285f7f 1,4,27-28,211-214,293-294,569-575
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  s_c72f930c19d1f3::t_3f6de5f22b4ab8 5,176-178
+packages/building/src/building/parts/architecture/BuildingWorker.ts
+  s_c72f930c19d1f3::t_e71d5a73e55037 78
+  s_c72f930c19d1f3::t_4433fe5ea29a42 1,76-77,79
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  s_c72f930c19d1f3::t_42ed8e7abd1729 67-68,295,348,386-387,544,546,573-576,581,590-591,629-630,634,648-655,658-663,665,668-671,690-692,698,747,882,884,894-895,984,1149-1150,1154-1156,1490,1504-1506,1568
+  s_c72f930c19d1f3::t_7b3296a28dcff5 13-14
+  s_c72f930c19d1f3::t_0bc13babd8cbae 30-35,631-633,656-657,664,666-667,672-689,693-696,883,885-893
+packages/building/src/building/runtime/DecorationNativeView.ts
+  s_c72f930c19d1f3::t_1bbcb7a53ce22d 112
+  s_c72f930c19d1f3::t_0bc13babd8cbae 247-252
+packages/building/src/building/runtime/ConstructionDecorationRender.ts
+  s_c72f930c19d1f3::t_a8e65c8e8a0c8b 67,167
+  s_c72f930c19d1f3::t_0bc13babd8cbae 155-156
+packages/building/src/building/render/GridUnitKernel.ts
+  s_c72f930c19d1f3::t_fb7fdb230c7e28 29,106-108,266-269,273
+world/demos/seed-world/SeedWorldDemo.ts
+  s_c72f930c19d1f3::t_db844ac2def363 1227
+  s_c72f930c19d1f3::t_aa134cb185f1cf 321,327,1223-1226,1228-1230
+packages/building/src/building/runtime/BuildingRenderPackage.ts
+  s_c72f930c19d1f3::t_02c1f4ecac52f4 66,210,242
+packages/building/src/building/runtime/BuildingWallBakeInput.ts
+  s_c72f930c19d1f3::t_12f1ff26657246 1,23,54,56,103,156,158,160-163,173,175,181-182,196-199,209,226,229
+  s_c72f930c19d1f3::t_d17d015c444630 2-9,13-22,24-39,49-53,55,57-60,104-111,151-152,157,159,176-177,179,183-184,200,210-211,217,230-231
+  s_c72f930c19d1f3::t_269df287b55aea 227
+  s_c72f930c19d1f3::t_3d28807f4b2d2f 102,154-155,202-208
+  s_c72f930c19d1f3::t_4713893d05be28 164-172,174,178,180
+  s_c72f930c19d1f3::t_7acbe29f92e566 61-63,66-94,96-101,218-219,228
+  s_c72f930c19d1f3::t_e71d5a73e55037 40-48,112-150,185-195,201,212-216,220-225
+  s_c72f930c19d1f3::t_0bdb0a7f3797fd 10-12,64-65,95,153
+packages/building/src/building/render/GridUnitKernelInput.ts
+  s_c72f930c19d1f3::t_fb7fdb230c7e28 30-34
+packages/building/src/building/runtime/BuildingWallBake.glsl
+  s_c72f930c19d1f3::t_3f6de5f22b4ab8 1-4,9-10,12-16,18-27,35-42,44-56,61-63
+  s_c72f930c19d1f3::t_42ed8e7abd1729 28,57,59
+  s_c72f930c19d1f3::t_0bc13babd8cbae 17,58,60
+  s_c72f930c19d1f3::t_bf047d46341677 5-8,11,29-34,43
+packages/world-planning/tests/NativeBuildingLifetime.spec.ts
+  h_ddbf152d31b140 252-255
+  s_c72f930c19d1f3::t_567b2c0788208d 6-7,193-196,206,234-236,251,271-275,288-291,295-297,319
+packages/building/src/building/runtime/EngineResidentScene.ts
+  s_c72f930c19d1f3::t_6db5521be9be1d 327,403,1368
+packages/building/src/building/runtime/BrickUnitLod.js
+  s_c72f930c19d1f3::t_fb7fdb230c7e28 1,124-125,218
+packages/building/tests/BuildingBootOptimization.spec.ts
+  s_c72f930c19d1f3::t_71ec4169fb3415 98
+  s_c72f930c19d1f3::t_440a3a2242a08c 496-500,502-506
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_c72f930c19d1f3::t_338c7685e9f0e1 1172,1176-1178
+  s_c72f930c19d1f3::t_b80dcb5bb915b3 35-40,170,172,360,362-372,796-797,828,830-832,836,841,844-850,852-861,863,867-870,1117,1135-1136,1140-1142,1144-1148,1163-1171,1175,1180,1182-1183,1196,1201,1211-1212,1215,1225,1251,1255,1304-1306,1342,1470,1895-1896,1961
+  s_c72f930c19d1f3::t_440a3a2242a08c 164-169,173,230,361,851,1179,1181,1226
+  s_c72f930c19d1f3::t_78f1194425bfa3 41,842-843,1112,1116,1137-1139,1150-1162,1174,1213-1214
+  s_c72f930c19d1f3::t_55bbc860aab46e 190,1173,1233
+  s_c72f930c19d1f3::t_c769742c4fb7d9 1149,1184
+  s_c72f930c19d1f3::t_71ec4169fb3415 994,1111,1119,1134,1143,1954
+packages/building/tests/BuildingWallBakeCache.spec.ts
+  s_c72f930c19d1f3::t_b0049bcc366d13 10-11,14
+  s_c72f930c19d1f3::t_7687d79716e796 1-9,12-13,15-18,25-57
+  s_c72f930c19d1f3::t_c6e02da5f9833d 19-24
+packages/building/src/building/runtime/ConstructionPlasterRender.ts
+  s_c72f930c19d1f3::t_5c8846353e1290 102
+packages/building/src/building/runtime/TerrainField.ts
+  s_c72f930c19d1f3::t_fb7fdb230c7e28 17-24,26-27
+packages/building/src/building/render/CoreBuilding.ts
+  s_c72f930c19d1f3::t_fb7fdb230c7e28 1917-1919
+  s_c72f930c19d1f3::t_9ca85efc35fd69 1942-1947
+  s_c72f930c19d1f3::t_e71d5a73e55037 616-617
+  s_c72f930c19d1f3::t_33ab93bbe41c0b 615,618-619,668,1197-1198,1213-1219,1279-1281,1283
+  s_c72f930c19d1f3::t_b2a835126e5f27 1282,1491
+packages/building/src/building/runtime/ConstructionDecorations.ts
+  s_c72f930c19d1f3::t_bf5f9af21cc302 53
+packages/building/src/building/parts/architecture/BuildingPartCollection.ts
+  s_c72f930c19d1f3::t_55bbc860aab46e 80-95,221,223
+  s_c72f930c19d1f3::t_78f1194425bfa3 3,255
+packages/building/src/building/parts/architecture/BuildingTerrain.ts
+  s_c72f930c19d1f3::t_fb7fdb230c7e28 2,14-21,28-32,34-35,37-38
+packages/building/src/building/runtime/MasonryGlobalProxy.shader
+  s_c72f930c19d1f3::t_42ed8e7abd1729 155-157,159-164,229-235,326-328
+packages/building/src/building/runtime/BuildingWallAtlas.ts
+  s_c72f930c19d1f3::t_269df287b55aea 151-152,268,287-312,314-316,318
+  s_c72f930c19d1f3::t_a1be50eeffe16b 1-150,153-267,269-286,313,317,319-354
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  s_c72f930c19d1f3::t_0bc13babd8cbae 331,396,409,497,569-570,573,691-692,729-730,846-847,955,959-966,976,1176-1177
+  s_c72f930c19d1f3::t_1f3c87713bd674 1393,1397,1401
+  s_c72f930c19d1f3::t_bdcfad5bc77e4a 1,281,1429
+packages/building/src/building/parts/architecture/BuildingWorkerProtocol.ts
+  s_c72f930c19d1f3::t_1b83afbef45915 7-8,55
+  s_c72f930c19d1f3::t_e71d5a73e55037 58-62
+packages/building/src/building/runtime/ConstructionSceneLighting.ts
+  s_c72f930c19d1f3::t_3f6de5f22b4ab8 2
+  s_c72f930c19d1f3::t_0bc13babd8cbae 8-9
+packages/building/src/building/parts/architecture/BuildingCpu.ts
+  s_c72f930c19d1f3::t_fb7fdb230c7e28 17,20-21,63,67-68,92-96
+  s_c72f930c19d1f3::t_e71d5a73e55037 120
+  s_c72f930c19d1f3::t_4ea9da2937a2e6 116,118-119,121-122,132
+packages/building/src/building/runtime/ConstructionSupportRender.ts
+  s_c72f930c19d1f3::t_0bc13babd8cbae 6-9
+  s_c72f930c19d1f3::t_15a18db97307b8 1,64
+packages/building/src/building/parts/README.md
+  s_c72f930c19d1f3::t_c6e02da5f9833d 37
+  s_c72f930c19d1f3::t_fd25cc4968533e 33-36,38
+world/demos/building-lighting-study/StudyWallAtlas.ts
+  s_c72f930c19d1f3::t_a1be50eeffe16b 1-6
+world/demos/seed-world/styles.css
+  s_c72f930c19d1f3::t_aa134cb185f1cf 492-493,495-503
+  s_c72f930c19d1f3::t_7f3fbce7092b15 494
+packages/building/src/building/runtime/BuildingWallBakeCache.ts
+  s_c72f930c19d1f3::t_12a415a6faf0bc 1-77,79-80,83,86-87,90-99
+  s_c72f930c19d1f3::t_f5aa12de3393c5 78,81-82,84-85,88-89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b629de90240dd4ce7f716c2917823abfe3fdd4a7",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

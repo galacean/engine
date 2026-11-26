@@ -1,0 +1,27 @@
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  s_147482a53e9f64::t_e644bf7133f19e 13,140-156,161-166,168-175
+  s_147482a53e9f64::t_0082a3abc683d8 157-160,167
+  s_147482a53e9f64::t_e69449360f55c6 176
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  s_147482a53e9f64::t_c7b1b99123a08c 40-41,54
+  s_147482a53e9f64::t_7b0b50c1cd9576 9,20,42-46,55,120-121,123,146-149
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_147482a53e9f64::t_bb7a48ff75e53b 67,440,442-449,453,455,471
+  s_147482a53e9f64::t_ee07b548628e07 438-439,441,450-452,454,456-460,468
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "534b6240a8dae9c6a5e2bd55842ab19bda1535ad",
+  "prompts": {},
+  "sessions": {
+    "s_147482a53e9f64": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2068a-0f66-7261-874f-d518cb87d5f4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "鸿岳 <owen.wjh@alipay.com>"
+    }
+  }
+}
