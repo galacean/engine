@@ -14,7 +14,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   protected _values: TypedArray = EMPTY_FLOAT32;
   protected _keyCount: number = 0;
   protected _valueSize: number = 0;
-  protected _length: number = 0;
   protected _hasTangents: boolean = false;
   protected _evaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null! };
   protected _interpolation: InterpolationType;
@@ -44,7 +43,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    * Animation curve length in seconds.
    */
   get length(): number {
-    return this._length;
+    const last = this._keyCount > 0 ? this._times[this._keyCount - 1] : 0;
+    return last > 0 ? last : 0;
   }
 
   /**
@@ -88,7 +88,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     times[insertIndex] = time;
     this._writeKeyAt(insertIndex, key);
     this._keyCount = count + 1;
-    this._updateLength();
   }
 
   /**
@@ -139,7 +138,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
     times[target] = newTime;
     this._writeKeyAt(target, key);
-    this._updateLength();
   }
 
   /**
@@ -172,7 +170,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     if (this._discreteValues !== null) {
       this._discreteValues.length = this._keyCount;
     }
-    this._updateLength();
   }
 
   /**
@@ -181,7 +178,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   clearKeys(): void {
     this._times = EMPTY_FLOAT64;
     this._keyCount = 0;
-    this._length = 0;
     this._hasTangents = false;
     this._isBufferShared = false;
     this._evaluateData.curKeyframeIndex = 0;
@@ -399,10 +395,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     if (this._isBufferShared || !(oldTimes instanceof Float64Array) || oldTimes.length < minKeyCount) {
       const nextCap = oldTimes.length < minKeyCount ? Math.max(4, minKeyCount, oldTimes.length * 2) : oldTimes.length;
       const nextTimes = new Float64Array(nextCap);
-      const count = this._keyCount;
-      for (let i = 0; i < count; i++) {
-        nextTimes[i] = oldTimes[i];
-      }
+      nextTimes.set(oldTimes);
       this._times = nextTimes;
     }
 
@@ -413,33 +406,27 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
     const count = this._keyCount;
     const valueSize = this._valueSize;
-    const oldHasTangents = this._hasTangents;
-    const newHasTangents = oldHasTangents || needTangents;
-    const oldStride = oldHasTangents ? valueSize * 3 : valueSize;
+    const newHasTangents = this._hasTangents || needTangents;
     const newStride = newHasTangents ? valueSize * 3 : valueSize;
     const oldValues = this._values;
-    const promoteTangents = newHasTangents && !oldHasTangents;
+    const promoteTangents = needTangents && !this._hasTangents;
     const minValuesLength = minKeyCount * newStride;
 
     if (promoteTangents || this._isBufferShared || oldValues.length < minValuesLength) {
       const nextValuesCap = this._times.length * newStride;
       const nextValues = nextValuesCap > 0 ? new Float32Array(nextValuesCap) : EMPTY_FLOAT32;
-      if (count > 0 && valueSize > 0 && oldValues.length > 0) {
-        if (promoteTangents) {
-          nextValues.fill(NaN, 0, count * newStride);
-          for (let i = 0; i < count; i++) {
-            const srcBase = i * valueSize;
-            const dstBase = i * newStride + valueSize;
-            for (let j = 0; j < valueSize; j++) {
-              nextValues[dstBase + j] = oldValues[srcBase + j];
-            }
-          }
-        } else {
-          const copyLen = count * oldStride;
-          for (let i = 0; i < copyLen; i++) {
-            nextValues[i] = oldValues[i];
+      if (promoteTangents && oldValues.length > 0) {
+        // Encode absent tangents as NaN so Hermite segments without tangents step-hold p0 instead of using slope 0.
+        nextValues.fill(NaN, 0, count * newStride);
+        for (let i = 0; i < count; i++) {
+          const srcBase = i * valueSize;
+          const dstBase = i * newStride + valueSize;
+          for (let j = 0; j < valueSize; j++) {
+            nextValues[dstBase + j] = oldValues[srcBase + j];
           }
         }
+      } else {
+        nextValues.set(oldValues);
       }
       this._values = nextValues;
     }
@@ -470,12 +457,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     }
   }
 
-  private _updateLength(): void {
-    const count = this._keyCount;
-    const last = count > 0 ? this._times[count - 1] : 0;
-    this._length = last > 0 ? last : 0;
-  }
-
   private _prepareSetTimes(times: TypedArray): number[] | null {
     const count = times.length;
     let prev = -Infinity;
@@ -494,7 +475,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       this._isBufferShared = true;
       this._keyCount = count;
       this._evaluateData.curKeyframeIndex = 0;
-      this._updateLength();
       return null;
     }
 
@@ -513,7 +493,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     this._isBufferShared = false;
     this._keyCount = count;
     this._evaluateData.curKeyframeIndex = 0;
-    this._updateLength();
     return order;
   }
 

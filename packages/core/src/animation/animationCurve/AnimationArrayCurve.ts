@@ -110,11 +110,6 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     this._prepareVariableValueSize(key.value.length, isSingleKeyReplace);
   }
 
-  protected override _clearValues(): void {
-    super._clearValues();
-    this._valueSize = 0;
-  }
-
   protected override _evaluateKey(index: number, out: number[]): number[] {
     const values = this._values;
     const valueSize = this._valueSize;
