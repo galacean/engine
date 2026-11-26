@@ -6,11 +6,11 @@ import { parsePlanningDocument } from "../PlanningDocumentCodec.ts";
 import { exportPlanningScene } from "../PlanningSceneAsset.ts";
 import { RuntimeProjectEdit, type RuntimeAssetFormat } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
-import { planningSourceDocument, retainPlanningWaterSource, writePlanningProjectSource } from "./PlanningProjectSource.ts";
+import { PLANNING_PROJECT_PATH, planningSourceDocument, retainPlanningWaterSource, writePlanningProjectSource } from "./PlanningProjectSource.ts";
 import { clearPlanningWaterSource, initializePlanningWater, initializePlanningOcean, installPlanningWaterDefaults, loadPlanningWaterDefaults, waterInitialization, waterInitializationPath } from "./PlanningWaterInitialization.ts";
 import type { SemanticResult } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 
-export const PLANNING_PROJECT_PATH = "World/Planning.json";
+export { PLANNING_PROJECT_PATH } from "./PlanningProjectSource.ts";
 export const PLANNING_PROJECT_TYPE = "SeedWorldPlanning";
 
 /** Project asset is the sole source of persisted planning state. */

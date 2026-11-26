@@ -8,7 +8,7 @@ import { clearSeedWorldPlayerSave } from "../../../SeedWorldPlayerSave.ts";
 import { PlanningProjectStorage } from "./runtime/PlanningProjectStorage.ts";
 import { seedWorldProjectFormats } from "../../../SeedWorldProjectFormats.ts";
 import { createSeedWorldProjectClose } from "../../../SeedWorldProjectClose.ts";
-import { planningSourceDocument, retainPlanningWaterSource } from "./runtime/PlanningProjectSource.ts";
+import { assertPlanningTemplate, planningSourceDocument, retainPlanningWaterSource } from "./runtime/PlanningProjectSource.ts";
 import { exportPlanningScene, importPlanningScene } from "./PlanningSceneAsset.ts";
 import { refreshDesertAnimalPreset } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { wayfindingPolicy } from "@galacean/engine-world-planning/spatial/guidance/WayfindingPolicy";
@@ -24,6 +24,7 @@ import { readSemanticParameters, ownerOf, type WorldPlanningHandle, type WorldPl
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { PlanningSession, type EditReceipt } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { planningSeedURL } from "./PlanningDocumentCodec.ts";
+import { resolveAppTemplate } from "./FlashAppTemplateBinding.ts";
 import { planningPageUrl } from "./PlanningPageUrl.ts";
 import { resolveSceneSelection } from "@galacean/engine-world-planning/spatial/PlanningScene";
 import { exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
@@ -627,12 +628,20 @@ export async function mountSpatialEditor(
   button("open").onclick = () => ui<HTMLInputElement>("file").click();
   ui<HTMLInputElement>("file").onchange = () => {
     const file = ui<HTMLInputElement>("file").files?.[0];
-    if (file)
+    if (file) {
+      ui<HTMLInputElement>("file").value = "";
       void file
         .text()
         .then(JSON.parse)
-        .then((document) => edit(draft => draft.load(importPlanningScene(document))))
-        .catch((e) => status(String(e)));
+        .then((source) => {
+          const imported = importPlanningScene(source);
+          assertPlanningTemplate(imported, resolveAppTemplate());
+          return edit(draft => draft.load(imported));
+        })
+        .catch((error) => {
+          if (!disposed) reportStorageWarning("打开工程失败。 " + String(error));
+        });
+    }
   };
   button("save").onclick = () => {
     const url = URL.createObjectURL(

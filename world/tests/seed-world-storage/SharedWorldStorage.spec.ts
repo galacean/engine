@@ -1322,6 +1322,6 @@ describe("Lingguang shared world checkpoints", () => {
       expect((await resolveStorageHost({ lingguang: { db } }))?.readOnly).toBe(readOnly);
     }
     db.role = async () => ({ role: "MANAGER" });
-    expect((await resolveStorageHost(scope, { source: "local", importLegacyPreview: true })).readOnly).toBe(false);
+    expect((await resolveStorageHost(scope, { source: "local", legacyLocalDbName: null })).readOnly).toBe(false);
   });
 });

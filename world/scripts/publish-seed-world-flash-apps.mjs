@@ -64,25 +64,52 @@ async function ensureWorldSaveTable(callRemoteSkill, item, version, ddlSql) {
     action, alipayUid: item.alipayUid, sessionId: item.sessionId,
     payload: { action, artifactId: item.artifactId, artifactVersion: version, params }
   });
+  async function readDb(action, params) {
+    const response = await callDb(action, params);
+    const result = typeof response?.data === "string" ? JSON.parse(response.data) : response?.data;
+    if (response?.success !== true || result?.success !== true) {
+      throw new Error(result?.message || response?.message || `ASAP could not confirm ${action}`);
+    }
+    return result.data;
+  }
+  async function verifySchema() {
+    const schema = await readDb("lingguang.db.getTableSchema", { table_name: "world_save" });
+    if (!matchesWorldSaveTable(schema)) throw new Error("world_save does not match the required Share table schema");
+  }
+
+  const tables = await readDb("lingguang.db.listTables", {});
+  if (!Array.isArray(tables) || tables.some((name) => typeof name !== "string")) {
+    throw new Error("ASAP returned an invalid list of database tables");
+  }
+  if (tables.includes("world_save")) {
+    await verifySchema();
+    return "ready";
+  }
+  if (ddlSql === undefined) throw new Error("world_save is missing and --skip-db-init disables table creation");
+
+  let createError;
   try {
     const response = await callDb("lingguang.db.updateTableSchema", {
       ddl_sql: ddlSql, table_kind: "share", data_object: "世界存档"
     });
     // ASAP returns the DDL outcome as text inside the successful remote-skill envelope.
     const outcome = typeof response?.data === "string" ? response.data.trim() : "";
-    if (response?.success === true && outcome.startsWith("创建表成功！")) return;
-    throw new Error(outcome.split(/\r?\n/u, 1)[0] || "ASAP did not confirm that world_save was created");
-  } catch (createError) {
-    // The create may have committed before the reply was lost. Verify the stored schema before proceeding.
-    try {
-      const response = await callDb("lingguang.db.getTableSchema", { table_name: "world_save" });
-      const result = typeof response?.data === "string" ? JSON.parse(response.data) : response?.data;
-      if (response?.success === true && result?.success === true && matchesWorldSaveTable(result.data)) return;
-    } catch {
-      // Preserve the create error when the readback is unavailable.
+    if (response?.success !== true || !outcome.startsWith("创建表成功！")) {
+      createError = new Error(outcome.split(/\r?\n/u, 1)[0] || "ASAP did not confirm that world_save was created");
     }
-    throw new Error(`${createError.message}. ASAP could not confirm a matching world_save Share table.`, { cause: createError });
+  } catch (error) {
+    createError = error;
   }
+  try {
+    // A concurrent create or a lost reply can leave the correct table in place.
+    await verifySchema();
+  } catch (error) {
+    if (!createError) throw error;
+    throw new Error(`${createError.message}. ASAP could not confirm a matching world_save Share table: ${error.message}`, {
+      cause: createError
+    });
+  }
+  return "initialized";
 }
 
 export function mintArtifactId() {
@@ -398,12 +425,6 @@ export function resolveAppReleasePlan({
 
     const resolvedType = options.type || online?.type || app.type || prevState.type || resolvedDefaultType;
     const title = options.titleOverrides[app.templateId] || app.title;
-    const dbInitialized =
-      app.reuseExisting
-        ? prevState.dbInitialized !== false
-        : Boolean(prevState.dbInitialized);
-    const needsDbInit = !app.reuseExisting && !dbInitialized && !options.skipDbInit;
-
     const projectDir = resolve(options.engineRoot, "world/dist/seed-world-flash-apps", app.templateId);
     const sourceDir = projectDir;
 
@@ -418,8 +439,6 @@ export function resolveAppReleasePlan({
       type: resolvedType,
       alipayUid: (prevState.alipayUid || sharedAlipayUid || "").trim(),
       sessionId: prevState.sessionId || `seed-world-${app.templateId}-${Date.now()}`,
-      needsDbInit,
-      dbInitialized,
       projectDir,
       sourceDir
     });
@@ -550,7 +569,7 @@ Options:
   --state-dir <path>          Per-Artifact state directory (default: ~/.config/galacean-flash-app/apps)
   --init-missing              Explicitly mint new Artifact IDs for templates with artifactId=null
   --sync-catalog              Write newly minted Artifact IDs back to world/demos/seed-world/flash-apps.json
-  --skip-db-init              Skip creating world_save tables for new templates
+  --skip-db-init              Require an existing, compatible world_save table
   --skip-online-check        Preview the plan offline (requires --dry-run)
   --allow-context-mismatch    Allow publisher app-context.local.json artifactId to differ from original catalog
   --timeout <seconds>         Per-app deploy timeout in seconds (default: 300)
@@ -644,7 +663,7 @@ async function main() {
         artifactId: item.artifactId,
         version: `~${item.targetVersion}`,
         type: item.type,
-        dbStatus: item.needsDbInit ? "will-init" : item.dbInitialized ? "ready" : "skipped",
+        dbStatus: options.skipDbInit ? "will-verify" : "will-verify/init",
         status: existsSync(join(item.projectDir, "index.html")) ? "dry-run (build ready)" : "dry-run (build missing)",
         entryUrl: state.apps[item.templateId]?.lastEntryUrl || "-"
       })),
@@ -673,23 +692,23 @@ async function main() {
         `Could not determine PUGC --type for "${item.templateId}". Pass --type game or --type miniapp explicitly.`
       );
     }
-    if (item.needsDbInit && !isValidAlipayUidForDb(item.alipayUid)) {
+    if (!isValidAlipayUidForDb(item.alipayUid)) {
       throw new Error(
-        `Template "${item.templateId}" requires first-time world_save.sql DB table creation, which needs a 2099... alipayUid ` +
-          `in publisher app-context.local.json or in the Artifact state file under ${options.stateDir}. Pass --skip-db-init only if already created.`
+        `Template "${item.templateId}" requires a 2099... alipayUid to verify world_save ` +
+          `in publisher app-context.local.json or in the Artifact state file under ${options.stateDir}.`
       );
-    }
-    if (item.needsDbInit && !existsSync(ddlPath)) {
-      throw new Error(`Missing world_save.sql DDL file: ${ddlPath}`);
     }
   }
 
+  const ddlSql = options.skipDbInit ? undefined : readFileSync(ddlPath, "utf8").trim();
   await verifyRegistry(options.publisherRoot, catalog, registry);
 
   const { callAsap } = require(resolve(options.publisherRoot, "scripts/asap-publish.cjs"));
-  const callRemoteSkill = plan.items.some((item) => item.needsDbInit)
-    ? require(resolve(options.publisherRoot, "scripts/asap-remote-skill.cjs")).callRemoteSkill
-    : undefined;
+  const { asapServiceUrl } = require(resolve(options.publisherRoot, "scripts/asap-service-url.cjs"));
+  const { callRemoteSkill, REMOTE_SKILL_API } = require(resolve(options.publisherRoot, "scripts/asap-remote-skill.cjs"));
+  if (REMOTE_SKILL_API !== asapServiceUrl("/api/remote_skill")) {
+    throw new Error("PUGC world_save and version endpoints must use the same ASAP environment");
+  }
   delete process.env.OSS_ACCESS_KEY_ID;
   delete process.env.OSS_SECRET_ACCESS_KEY;
   process.env.ASAP_SERVICE_DIR = options.asapServiceDir;
@@ -720,7 +739,7 @@ async function main() {
       artifactId: item.artifactId,
       version: "-",
       type: item.type,
-      dbStatus: item.dbInitialized ? "ready" : "skipped",
+      dbStatus: "unverified",
       status: "OK",
       entryUrl: "-"
     };
@@ -737,11 +756,7 @@ async function main() {
       }
       row.version = version;
       console.log(`\n========== [${item.templateId}] ${item.title} (${item.artifactId} v${version}, type=${item.type}) ==========`);
-      if (item.needsDbInit) {
-        await ensureWorldSaveTable(callRemoteSkill, item, version, readFileSync(ddlPath, "utf8").trim());
-        row.dbStatus = "initialized";
-        saveLocalState(options.stateDir, item, { dbInitialized: true });
-      }
+      row.dbStatus = await ensureWorldSaveTable(callRemoteSkill, item, version, ddlSql);
 
       const { entryUrl, backupOss } = deploySeedWorldFlashApp(item, version, {
         callAsap, appKey: options.appKey, timeout: options.timeout
@@ -751,7 +766,7 @@ async function main() {
       const path = receiptPath(options.stateDir, releaseId);
       const receipt = {
         item: { artifactId: item.artifactId, templateId: item.templateId, sessionId: item.sessionId, type: item.type },
-        dbInitialized: row.dbStatus === "ready" || row.dbStatus === "initialized",
+        dbInitialized: true,
         request: { operation: "publish", artifactId: item.artifactId, releaseId, version, entryUrl, backupOss }
       };
       writeFileAtomic(path, JSON.stringify(receipt));

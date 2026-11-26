@@ -193,12 +193,12 @@ export async function openSeedWorldProject(
         project.initializeDependencies()
       );
       if (project.restoredFromStorage) {
-        validatePlanningProject(project.projectPackage);
+        validatePlanningProject(project.projectPackage, template);
         if (project.projectPackage.contents[PLANNING_PROJECT_PATH] !== undefined) {
           await new PlanningProjectStorage(project, seedWorldProjectFormats).load(seed);
         }
       }
-      project.registerProjectValidator(validatePlanningProject);
+      project.registerProjectValidator((candidate) => validatePlanningProject(candidate, template));
       return project;
     } catch (error) {
       project.dispose();
@@ -256,12 +256,12 @@ export async function openSeedWorldProject(
 
   try {
     selection ??= await selectSeedWorldSave(host, template);
-    if (host.importLegacyPreview && !selection.skipLegacyPreview && !selection.restoreFailed && selection.raw === undefined) {
+    if (host.legacyLocalDbName !== undefined && !selection.skipLegacyPreview && !selection.restoreFailed && selection.raw === undefined) {
       try {
         const legacy = selection.legacyPreview;
         const saved = legacy?.identity?.seed === seed
           ? await loadSeedWorldLegacyPreview(host, identity, legacy)
-          : await readLegacyPreview(projectId);
+          : host.legacyLocalDbName === null ? await readLegacyPreview(projectId) : undefined;
         if (saved) {
           const project = await prepareSharedProject(selection, saved);
           if (project) return project;

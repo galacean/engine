@@ -7,16 +7,16 @@ export function resolveLocalWorldDbScope(doc, scope) {
   const template = doc?.querySelector('meta[name="seed-world-default-template"]')?.content.trim() || "original";
   return {
     name: explicitId ? `${explicitId}:${template}` : template,
-    importLegacyPreview: !explicitId
+    legacyLocalDbName: explicitId || null
   };
 }
 
 function installPageDatabase(scope) {
   const api = (scope.lingguang ??= {});
-  if (api.db) return { source: "sdk", importLegacyPreview: false };
-  const { name, importLegacyPreview } = resolveLocalWorldDbScope(document, scope);
+  if (api.db) return { source: "sdk", legacyLocalDbName: undefined };
+  const { name, legacyLocalDbName } = resolveLocalWorldDbScope(document, scope);
   api.db = createLocalWorldDb(name);
-  return { source: "local", importLegacyPreview };
+  return { source: "local", legacyLocalDbName };
 }
 
 export const pageDatabase = typeof document === "undefined" ? undefined : installPageDatabase(window);

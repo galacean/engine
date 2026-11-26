@@ -14,7 +14,7 @@ interface StorageHost {
   db: WorldDb;
   readOnly: boolean;
   appVersion: string;
-  importLegacyPreview: boolean;
+  legacyLocalDbName?: string | null;
 }
 
 export interface SeedWorldSaveSelection extends WorldSelection {
@@ -22,13 +22,16 @@ export interface SeedWorldSaveSelection extends WorldSelection {
   readonly skipLegacyPreview?: boolean;
 }
 
-const legacyPreviewDb = createLocalWorldDb(null, { create: false }) as WorldDb;
+function openLegacyLocalDb(name: string | null): WorldDb {
+  return createLocalWorldDb(name, { create: false }) as WorldDb;
+}
 
 export async function selectSeedWorldSave(host: StorageHost, template: string): Promise<SeedWorldSaveSelection> {
   const current = await SharedWorldStorage.select(host.db, host.appVersion, template);
-  if (current.raw !== undefined || !host.importLegacyPreview) return current;
+  const legacyName = host.legacyLocalDbName;
+  if (current.raw !== undefined || legacyName === undefined) return current;
   try {
-    const legacy = await SharedWorldStorage.select(legacyPreviewDb, host.appVersion, template);
+    const legacy = await SharedWorldStorage.select(openLegacyLocalDb(legacyName), host.appVersion, template);
     if (legacy.checkpoint) return { ...current, legacyPreview: legacy };
   } catch (error) {
     console.warn("读取旧浏览器存档失败，将初始化入口模板", error);
@@ -41,8 +44,10 @@ export async function loadSeedWorldLegacyPreview(
   identity: WorldIdentity,
   selection: WorldSelection
 ) {
+  const legacyName = host.legacyLocalDbName;
+  if (legacyName === undefined) return undefined;
   const storage = await SharedWorldStorage.open(
-    legacyPreviewDb, true, host.appVersion, identity, undefined, undefined, undefined, selection
+    openLegacyLocalDb(legacyName), true, host.appVersion, identity, undefined, undefined, undefined, selection
   );
   try {
     return await storage.load();
@@ -53,7 +58,7 @@ export async function loadSeedWorldLegacyPreview(
 
 export async function resolveStorageHost(
   scope: HostGlobals,
-  binding = { source: "sdk", importLegacyPreview: false }
+  binding: { source: string; legacyLocalDbName?: string | null } = { source: "sdk" }
 ): Promise<StorageHost> {
   const db = scope.lingguang.db;
   const appVersion = String(scope.lingguang._getArtifactVersion?.() || scope.artifactVersion || "1");
@@ -88,7 +93,7 @@ export async function resolveStorageHost(
     db: scheduled,
     appVersion,
     readOnly: role !== "MANAGER",
-    importLegacyPreview: binding.importLegacyPreview
+    legacyLocalDbName: binding.legacyLocalDbName
   };
 }
 

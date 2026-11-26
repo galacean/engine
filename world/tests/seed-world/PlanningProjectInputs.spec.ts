@@ -6,8 +6,10 @@ import {
 } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
+import { createTemplatePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { registerPlanningComponent } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 import {
+  PLANNING_PROJECT_PATH,
   planningSourceDocument,
   validatePlanningProject,
   writePlanningProjectSource
@@ -41,6 +43,25 @@ function fixture(): RuntimeProjectPackage {
   writePlanningProjectSource(draft, "Main.scene", createSeedPlanningDocument(1));
   return draft.finish();
 }
+
+it("enforces the entry template on native Scene and legacy planning publications", () => {
+  const original = fixture();
+  const other = createTemplatePlanningDocument(42, "sakura-pearl");
+  const draft = new RuntimeProjectEdit(original, nativeAssetFormats(() => ({})));
+  writePlanningProjectSource(draft, original.project.scene, other);
+  const candidate = draft.finish();
+
+  expect(() => validatePlanningProject(original, "original")).not.toThrow();
+  expect(() => validatePlanningProject(candidate, "sakura-pearl")).not.toThrow();
+  expect(() => validatePlanningProject(candidate, "original")).toThrow("工程模板 sakura-pearl 与当前入口 original 不一致");
+
+  const legacy = {
+    ...original,
+    contents: { [PLANNING_PROJECT_PATH]: JSON.stringify(other) }
+  };
+  expect(() => validatePlanningProject(legacy, "sakura-pearl")).not.toThrow();
+  expect(() => validatePlanningProject(legacy, "original")).toThrow("工程模板 sakura-pearl 与当前入口 original 不一致");
+});
 
 it("reuses parsed Source for host-only edits and isolates returned documents", () => {
   const pack = fixture(),

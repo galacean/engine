@@ -27,6 +27,14 @@ import { SEED_WORLD_TEMPLATE_IDS } from "../../scripts/seed-world-template-bundl
 
 const repoRoot = path.resolve(__dirname, "../../..");
 const tempDirs: string[] = [];
+const worldSaveSchema = {
+  tableName: "world_save", tableKind: "share", primaryKeys: ["id"], columns: [
+    { name: "id", dataType: "VARCHAR", length: 128, nullable: false },
+    { name: "generation", dataType: "VARCHAR", length: 100000, nullable: false },
+    { name: "part_no", dataType: "INT", length: null, nullable: false },
+    { name: "payload", dataType: "VARCHAR", length: 100000, nullable: false }
+  ]
+};
 
 function makeTempDir(prefix: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -59,16 +67,10 @@ describe("Seed World 6-app Flash publishing", () => {
     let responseBody: unknown = { error: "Unavailable" };
     let ddlResponse = { success: true, code: "0", data: "执行DDL失败: 创建世界存档被拒绝" };
     let simulateLostReply = false;
-    let sakuraTableCreated = false;
     let schemaUnavailable = false;
-    const schema = {
-      tableName: "world_save", tableKind: "user", primaryKeys: ["id"], columns: [
-        { name: "id", dataType: "VARCHAR", length: 128, nullable: false },
-        { name: "generation", dataType: "VARCHAR", length: 100000, nullable: false },
-        { name: "part_no", dataType: "INT", length: null, nullable: false },
-        { name: "payload", dataType: "VARCHAR", length: 100000, nullable: false }
-      ]
-    };
+    const originalId = "flashapp-a3c0e021cb8cadb0";
+    const createdTables = new Set<string>();
+    const schema = { ...worldSaveSchema };
     const server = http.createServer((req, res) => {
       if (req.url === "/api/remote_skill") {
         let body = "";
@@ -76,17 +78,22 @@ describe("Seed World 6-app Flash publishing", () => {
         req.on("data", (chunk) => { body += chunk; });
         req.on("end", () => {
           const { action, artifactId } = JSON.parse(body);
+          if (action === "lingguang.db.listTables") {
+            const tables = createdTables.has(artifactId) ? ["world_save"] : [];
+            return res.end(JSON.stringify({ success: true, data: JSON.stringify({ success: true, data: tables }) }));
+          }
           if (action === "lingguang.db.getTableSchema") {
             if (schemaUnavailable) return res.destroy();
-            return res.end(JSON.stringify({ success: true, data: JSON.stringify({ success: true, data: schema }) }));
+            const present = createdTables.has(artifactId);
+            return res.end(JSON.stringify({ success: true, data: JSON.stringify({
+              success: present, data: present ? schema : null
+            }) }));
           }
           if (simulateLostReply && artifactId === artifacts["sakura-pearl"]) {
-            if (sakuraTableCreated) {
-              return res.end(JSON.stringify({ success: true, data: "执行DDL失败: Table 'world_save' already exists" }));
-            }
-            sakuraTableCreated = true;
+            createdTables.add(artifactId);
             return res.destroy();
           }
+          if (ddlResponse.data.startsWith("创建表成功！")) createdTables.add(artifactId);
           res.end(JSON.stringify(ddlResponse));
         });
         return;
@@ -120,7 +127,7 @@ describe("Seed World 6-app Flash publishing", () => {
         console.log("SEED_WORLD_REGISTRY " + JSON.stringify(result));
       `);
       fs.chmodSync(registry, 0o755);
-      for (const template of Object.keys(artifacts)) {
+      for (const template of ["original", ...Object.keys(artifacts)]) {
         write(path.join(engineRoot, "world/dist/seed-world-flash-apps", template, "index.html"), `<html><head><meta name="seed-world-default-template" content="${template}" /></head></html>`);
       }
       const publisherContext = path.join(publisher, "scripts/app-context.local.json");
@@ -128,8 +135,13 @@ describe("Seed World 6-app Flash publishing", () => {
       write(publisherContext, context);
       write(path.join(engineRoot, "world/demos/seed-world/storage/world_save.sql"), "CREATE TABLE world_save ...");
       write(path.join(publisher, "scripts/asap-remote-skill.cjs"), String.raw`
+        exports.REMOTE_SKILL_API = require("./asap-service-url.cjs").asapServiceUrl("/api/remote_skill");
         exports.callRemoteSkill = async request => {
-          const operation = request.action === "lingguang.db.getTableSchema" ? "read-schema" : "ddl";
+          const operation = {
+            "lingguang.db.listTables": "list-tables",
+            "lingguang.db.getTableSchema": "read-schema",
+            "lingguang.db.updateTableSchema": "ddl"
+          }[request.action];
           require("node:fs").appendFileSync(${JSON.stringify(logPath)}, JSON.stringify({ operation, ...request.payload }) + "\n");
           const endpoint = require("./asap-service-url.cjs").asapServiceUrl("/api/remote_skill");
           return (await fetch(endpoint, { method: "POST", body: JSON.stringify(request.payload) })).json();
@@ -164,19 +176,18 @@ describe("Seed World 6-app Flash publishing", () => {
         stderr: expect.stringContaining("执行DDL失败: 创建世界存档被拒绝")
       });
       const attempted = fs.readFileSync(logPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
-      expect(attempted.map((call) => call.operation)).toEqual(["verify", "reserve", "ddl", "read-schema"]);
+      expect(attempted.map((call) => call.operation)).toEqual(["verify", "reserve", "list-tables", "ddl", "read-schema"]);
       expect(fs.existsSync(stateDir)).toBe(false);
       fs.rmSync(logPath);
 
       simulateLostReply = true;
       schemaUnavailable = true;
       await expect(run("--execute")).rejects.toMatchObject({ stderr: expect.stringContaining("fetch failed") });
-      expect(sakuraTableCreated).toBe(true);
+      expect(createdTables.has(artifacts["sakura-pearl"])).toBe(true);
       expect(fs.existsSync(stateDir)).toBe(false);
       fs.rmSync(logPath);
 
       schemaUnavailable = false;
-      schema.tableKind = "share";
       ddlResponse = { success: true, code: "0", data: "创建表成功！\n\n**表类型**: share" };
       const results = await Promise.all(Object.keys(artifacts).map((template) => run("--execute", template)));
       const calls = fs.readFileSync(logPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
@@ -187,12 +198,15 @@ describe("Seed World 6-app Flash publishing", () => {
         const prefix = `leopard/sandbox/workspace/${artifactId}-3/`;
         const backupOss = prefix + "backup_3.tar.gz";
         const appCalls = calls.filter((call) => call.artifactId === artifactId || call.object_name?.startsWith(prefix));
-        const databaseCalls = template === "sakura-pearl" ? ["ddl", "read-schema"] : ["ddl"];
+        const databaseCalls = template === "sakura-pearl"
+          ? ["list-tables", "read-schema"] : ["list-tables", "ddl", "read-schema"];
         expect(appCalls.map((call) => call.operation)).toEqual([
           "reserve", ...databaseCalls, "upload", "upload", "deploy", "publish"
         ]);
-        expect(appCalls.find((call) => call.operation === "ddl"))
-          .toMatchObject({ artifactVersion: "3", params: { table_kind: "share" } });
+        if (template === "oil-paint") {
+          expect(appCalls.find((call) => call.operation === "ddl"))
+            .toMatchObject({ artifactVersion: "3", params: { table_kind: "share" } });
+        }
         const [backup, release] = appCalls.filter((call) => call.operation === "upload");
         expect(backup).toMatchObject({ object_name: backupOss });
         expect(backup.html).toContain(`content="${template}"`);
@@ -204,8 +218,30 @@ describe("Seed World 6-app Flash publishing", () => {
         expect(JSON.parse(fs.readFileSync(path.join(stateDir, artifactId + ".local.json"), "utf8"))).toMatchObject({
           templateId: template, artifactId, artifactVersion: "4", lastPublishedVersion: "3", lastBackupOss: backupOss
         });
-        expect(results[index].stdout).toContain(`| ${artifactId} | 3 | miniapp | initialized | OK |`);
+        const dbStatus = template === "sakura-pearl" ? "ready" : "initialized";
+        expect(results[index].stdout).toContain(`| ${artifactId} | 3 | miniapp | ${dbStatus} | OK |`);
       }
+      write(path.join(stateDir, originalId + ".local.json"), JSON.stringify({ artifactId: originalId, dbInitialized: true }));
+      const operations = () => fs.readFileSync(logPath, "utf8").trim().split("\n")
+        .map((line) => JSON.parse(line).operation);
+      fs.rmSync(logPath);
+      await expect(run("--execute", "original", "--skip-db-init")).rejects.toMatchObject({
+        stderr: expect.stringContaining("world_save is missing")
+      });
+      expect(operations()).toEqual(["verify", "reserve", "list-tables"]);
+
+      fs.rmSync(logPath);
+      await expect(run("--execute", "original")).resolves.toMatchObject({
+        stdout: expect.stringContaining(`| ${originalId} | 3 | game | initialized | OK |`)
+      });
+      expect(operations()).toEqual(["verify", "reserve", "list-tables", "ddl", "read-schema", "upload", "upload", "deploy", "publish"]);
+
+      fs.rmSync(logPath);
+      schema.tableKind = "user";
+      await expect(run("--execute", "original")).rejects.toMatchObject({
+        stderr: expect.stringContaining("world_save does not match the required Share table schema")
+      });
+      expect(operations()).toEqual(["verify", "reserve", "list-tables", "read-schema"]);
       expect(fs.readFileSync(publisherContext, "utf8")).toBe(context);
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -234,6 +270,14 @@ describe("Seed World 6-app Flash publishing", () => {
           fs.appendFileSync(${JSON.stringify(logPath)}, JSON.stringify(request) + "\n");
           return { entry_url: "https://render.example.com/index.html" };
         };
+      `);
+      write(path.join(publisher, "scripts/app-context.local.json"), JSON.stringify({ alipayUid: "2099123456789" }));
+      write(path.join(publisher, "scripts/asap-remote-skill.cjs"), `
+        exports.REMOTE_SKILL_API = require("./asap-service-url.cjs").asapServiceUrl("/api/remote_skill");
+        exports.callRemoteSkill = async ({ action }) => ({
+          success: true,
+          data: { success: true, data: action === "lingguang.db.listTables" ? ["world_save"] : ${JSON.stringify(worldSaveSchema)} }
+        });
       `);
       const python = path.join(engineRoot, "registry");
       write(python, String.raw`#!${process.execPath}
@@ -302,11 +346,11 @@ describe("Seed World 6-app Flash publishing", () => {
 
     expect(resolveLocalWorldDbScope(fakeDoc({ "seed-world-default-template": "original" }), {})).toEqual({
       name: "original",
-      importLegacyPreview: true
+      legacyLocalDbName: null
     });
     expect(resolveLocalWorldDbScope(fakeDoc({ "seed-world-default-template": "oil-paint" }), {})).toEqual({
       name: "oil-paint",
-      importLegacyPreview: true
+      legacyLocalDbName: null
     });
     expect(
       resolveLocalWorldDbScope(fakeDoc({ "seed-world-default-template": "original" }), {
@@ -314,7 +358,7 @@ describe("Seed World 6-app Flash publishing", () => {
       })
     ).toEqual({
       name: "flashapp-clone-a:original",
-      importLegacyPreview: false
+      legacyLocalDbName: "flashapp-clone-a"
     });
     expect(
       resolveLocalWorldDbScope(
@@ -323,7 +367,7 @@ describe("Seed World 6-app Flash publishing", () => {
       )
     ).toEqual({
       name: "custom-slot:original",
-      importLegacyPreview: false
+      legacyLocalDbName: "custom-slot"
     });
   });
 
@@ -501,13 +545,11 @@ describe("Seed World 6-app Flash publishing", () => {
     expect(origPlan.artifactId).toBe("flashapp-a3c0e021cb8cadb0");
     expect(origPlan.targetVersion).toBe("56");
     expect(origPlan.type).toBe("miniapp");
-    expect(origPlan.needsDbInit).toBe(false);
 
     const oilPlan = plan.items.find((i) => i.templateId === "oil-paint")!;
     expect(oilPlan.artifactId).toBe("flashapp-0000000000000005");
     expect(oilPlan.targetVersion).toBe("1");
     expect(oilPlan.type).toBe("miniapp");
-    expect(oilPlan.needsDbInit).toBe(true);
 
     expect(isValidAlipayUidForDb("2099123456789")).toBe(true);
     expect(isValidAlipayUidForDb("2088123456789")).toBe(false);

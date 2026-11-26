@@ -65,6 +65,8 @@ import {
 import { withSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 
+export const PLANNING_PROJECT_PATH = "World/Planning.json";
+
 const ownedProperties = new Map<string, readonly string[]>([
   [WATER_COMPONENT, ["authoring", "enabled"]],
   ...PLANNING_VISUAL_AUTHORING.map(
@@ -156,15 +158,18 @@ export const validatePlanningSource: RuntimeEditPreparation = async (edit) => {
 };
 
 /** Seed World's authored owner is mandatory after import; deleting it cannot silently start a new world. */
-export function validatePlanningProject(pack: RuntimeProjectPackage): void {
+export function validatePlanningProject(pack: RuntimeProjectPackage, entryTemplate?: string): void {
   const input = planningInputs(pack);
   input.document ??= { value: readPlanningSourceDocument(pack) };
   const document = input.document.value;
   if (!document) {
     if (pack.documents?.[`${pack.project.scene}.planning-source.json`])
       throw new Error("Imported project requires a PlanningProjectAuthoring owner");
+    const legacy = pack.contents[PLANNING_PROJECT_PATH];
+    if (entryTemplate && typeof legacy === "string") assertPlanningTemplate(JSON.parse(legacy), entryTemplate);
     return;
   }
+  if (entryTemplate) assertPlanningTemplate(document, entryTemplate);
   if (input.documentValidatedRevision !== planningRegistry.revision) {
     validateSpatialDocument(document, planningRegistry);
     input.documentValidatedRevision = planningRegistry.revision;
@@ -254,6 +259,11 @@ function templateId(document: PlanningDocument): string {
   return document.entities.world.components.worldTemplate
     ? String(resolveComponent(document, "world", "worldTemplate", planningRegistry).values.id ?? "")
     : "";
+}
+
+export function assertPlanningTemplate(document: PlanningDocument, entryTemplate: string): void {
+  const actual = templateId(document) || "original";
+  if (actual !== entryTemplate) throw new Error(`工程模板 ${actual} 与当前入口 ${entryTemplate} 不一致`);
 }
 
 export function planningSourceIdentity(pack: RuntimeProjectPackage) {

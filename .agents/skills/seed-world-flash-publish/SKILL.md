@@ -31,10 +31,10 @@ Seed World 对外发布为 **6 个独立灵光闪应用**，完全复用同一�
 ## 1. 发布前核对
 
 1. 选定 Engine 提交，记录路径、分支和 HEAD，直接在 pnpm 开发工作树构建即可（无需新建 npm worktree）。
-2. 仅打包时执行第 2 节。发布时还需定位 PUGC checkout（`PUBLISHER_ROOT`，建议指向绑定 `flashapp-a3c0e021cb8cadb0` 的 `pugc-flash-app-2-seed-world`），以及具备 `.venv/bin/python` 的 ASAP checkout（`ASAP_SERVICE_DIR`）。
+2. 仅打包时执行第 2 节。发布时还需定位 PUGC checkout（`PUBLISHER_ROOT`，需提供配置在同一 ASAP 环境的发布、版本查询和存档接口，并绑定原版 Artifact），以及具备 `.venv/bin/python` 的 ASAP checkout（`ASAP_SERVICE_DIR`）。
 3. 核对 `world/demos/seed-world/flash-apps.json` 与对应 Artifact 的本机状态文件。
    - `original` 必须继续绑定 `flashapp-a3c0e021cb8cadb0`（`type: "game"`），其余 5 应用使用清单中各自登记的 `artifactId` 与 `type: "miniapp"`；干跑通过 `GET /api/trace/versions_by_artifact` 查看已发布版本。执行时由 ASAP 分配正式版本。批量发布使用清单中的逐应用类型。
-   - **首次创建其余 5 个新模板应用前**，必须先经用户明确确认新申请 5 个 ID 与标题，并确保 PUGC `app-context.local.json` 或对应 Artifact 状态文件已填好 `2099...` 开头的 `alipayUid`，以便为 5 个新应用自动执行首次 `world_save.sql` 建表。
+   - **首次创建其余 5 个新模板应用前**，必须先经用户明确确认新申请 5 个 ID 与标题。发布任一应用时，在 PUGC `app-context.local.json` 或对应 Artifact 状态文件填入作者的 `2099...` `alipayUid`，用于核对存档表和缺表时建表。
 
 ## 2. 使用 pnpm 打包（1 次公共构建 + 6 份模板派生）
 
@@ -81,7 +81,7 @@ python3 -m http.server 4180 --bind 127.0.0.1 --directory world/dist/seed-world-f
 
 **PUGC 兼容性。** PUGC 默认分支的独立 CLI 读取共享的 `app-context.local.json`，且可能为不同应用生成同名的临时备份。Seed World 编排器只读取该配置并复用 PUGC 的底层助手，独立准备上下文和归档。
 ```bash
-# 1. 先干跑核对 6 应用计划表（Artifact ID、版本估计、逐应用 type、是否需要首次建表）
+# 1. 先干跑核对 6 应用计划表（Artifact ID、版本估计、逐应用 type、存档校验和建表计划）
 node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
   --engine-root "$ENGINE_WORKTREE_ROOT" \
   --publisher-root "$PUBLISHER_ROOT" \
@@ -113,7 +113,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
   --timeout 300
 ```
 
-部署后登记失败时，使用脚本输出的 `--resume-release <id>` 重放保存的发布回执。建表结果未确认时，脚本会读回表结构，确认 `world_save` 为预期的 Share 表后继续。
+部署后登记失败时，使用脚本输出的 `--resume-release <id>` 重放保存的发布回执。上传前，编排器逐应用从目标环境确认 `world_save` 的 Share 表结构，包括复用的原版应用。只有确认缺表时才执行建表，并在建表后读回结构。传入 `--skip-db-init` 时要求表已存在且结构匹配。
 
 ## 5. 交付与发布后验收清单
 

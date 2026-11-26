@@ -83,11 +83,11 @@ node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180
 
 ## 3. 编排发布 6 个灵光闪应用
 
-使用 `world/scripts/publish-seed-world-flash-apps.mjs` 在能访问目标 OceanBase/Layotto 登记库的发布机执行。先用 `--verify-registry` 只读核对发布机的登记库与 PUGC HTTP 服务环境。编排器先预留版本，再使用该版本建表、打包、上传和部署，最后提交登记。预留或登记重试沿用同一个发布 ID。 `PUBLISHER_ROOT` 下的 `scripts` 目录须提供 `asap-publish.cjs` 和 `asap-service-url.cjs`。
+使用 `world/scripts/publish-seed-world-flash-apps.mjs` 在能访问目标 OceanBase/Layotto 登记库的发布机执行。先用 `--verify-registry` 只读核对发布机的登记库与 PUGC HTTP 服务环境。编排器先预留版本，再使用该版本核对存档表、打包、上传和部署，最后提交登记。预留或登记重试沿用同一个发布 ID。 `PUBLISHER_ROOT` 下的 `scripts` 目录须提供 `asap-publish.cjs`、`asap-service-url.cjs` 和 `asap-remote-skill.cjs`。存档接口和版本查询须指向同一 ASAP 环境。
 
 ```bash
 ENGINE_WORKTREE_ROOT=/absolute/path/to/engine
-PUBLISHER_ROOT=/absolute/path/to/pugc-flash-app-2-seed-world
+PUBLISHER_ROOT=/absolute/path/to/compatible-pugc-publisher
 ASAP_SERVICE_DIR=/absolute/path/to/asap-service
 
 # 0. 只读核对发布机的登记库
@@ -130,7 +130,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 - **防误切 checkout**：发布 `original` 时若 `$PUBLISHER_ROOT/scripts/app-context.local.json` 中的 `artifactId` 与 `flash-apps.json` 的 `flashapp-a3c0e021cb8cadb0` 不一致，默认直接拒绝执行。
 - **逐应用类型与版本**。应用类型由清单声明，服务端在预留版本时核对类型。只有发布单个模板时才能使用与清单不同的 `--type`。
 - **防重复申请 ID**：新申请的 5 个 `artifactId` 在调用远端接口前即落盘到本地状态（传 `--sync-catalog` 时同步回写 `flash-apps.json`），失败重试时严格复用同一个 ID。
-- **首次自动建表**：对每个未建表的新应用，使用该应用的 `artifactId`、目标版本和作者的 `2099...` `alipayUid` 应用 `world_save.sql`。建表结果未确认时读取服务端表结构，只有确认 `world_save` 为符合预期的 Share 表才继续发布并标记 `dbInitialized: true`。
+- **上传前核对共享存档**。每个应用（包括复用的原版）均使用对应的 Artifact ID、预留版本和作者的 `2099...` `alipayUid` 核对目标环境。确认无 `world_save` 时执行 `world_save.sql`。脚本读回符合预期的 Share 表结构后才上传。使用 `--skip-db-init` 时要求表已存在且结构匹配。
 
 ## 4. 发布后验收与正式上架
 
@@ -149,7 +149,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 | --- | --- | --- |
 | `Publisher app-context.local.json artifactId ... does not match catalog "original"` | `--publisher-root` 指向了非 `flashapp-a3c0e021cb8cadb0` 的 PUGC checkout | 切回 `pugc-flash-app-2-seed-world`，或在明确知道原因时传 `--allow-context-mismatch` |
 | `Template "<id>" has no artifactId yet` | 尚未为其余 5 个模板首次申请 ID | 确认新建意图后加 `--init-missing --sync-catalog` 执行一次，之后提交更新后的 `flash-apps.json` |
-| `requires first-time world_save.sql DB table creation, which needs a 2099... alipayUid` | 本地状态或 PUGC 上下文未填写 `2099...` UID（或误填了 `2088...`） | 在 PUGC `app-context.local.json` 或对应 Artifact 的状态文件补全 `alipayUid` 后重试 |
+| `requires a 2099... alipayUid to verify world_save` | 本地状态或 PUGC 上下文未填写 `2099...` UID（或误填了 `2088...`） | 在 PUGC `app-context.local.json` 或对应 Artifact 的状态文件补全 `alipayUid` 后重试 |
 | 构建警告 `Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json` | 新增或变更的资产（如 `oil-paint` SWB1 分包）尚未同步至 MDN CDN | 执行 `sync-flash-app-cdn-assets.py --apply` 并重编 `pnpm --dir world build:seed-world-flash-app`（收敛至 `pending upload: 0`） |
 | 完成登记失败，输出 `--resume-release <id>` | 产物已部署，登记结果待确认 | 用输出的命令重放本机发布回执。该命令只完成原预留版本的登记 |
 | `Artifact type differs from the ASAP registry` | 发布类型与线上记录不一致 | 核对该应用的登记类型和 `flash-apps.json` 后重试 |
