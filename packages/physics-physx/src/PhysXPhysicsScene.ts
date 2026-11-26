@@ -714,9 +714,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
  */
 class TriggerEvent implements ITriggerEvent {
   state: PhysicsEventState;
-  /** @internal */
   _receiver0?: unknown;
-  /** @internal */
   _receiver1?: unknown;
   _activeIndex: number;
   _queued = false;

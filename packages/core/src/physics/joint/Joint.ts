@@ -355,7 +355,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     nativeJoint.setConnectedInertiaScale(this._connectedBodyInfo.inertiaScale);
     nativeJoint.setMassScale(this._bodyInfo.massScale);
     nativeJoint.setInertiaScale(this._bodyInfo.inertiaScale);
-    nativeJoint.setBreakForce(this._force, Number.isNaN(this._torque) ? Infinity : this._torque);
+    nativeJoint.setBreakForce(this._force, this._torque);
   }
 
   protected _wakeBodies(onlyIfSleeping = false): void {
