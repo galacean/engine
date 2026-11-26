@@ -293,12 +293,14 @@ Shader "SeedWorld/LiquidGlassUiV6" {
         float edgePosition = seedWorldRemap01(-SEED_WORLD_EDGE_DIM, 0.0, distanceToGlass);
         float edge = min(edgeInterior, edgePosition);
         float cosineEdge = 1.0 - cos(edge * SEED_WORLD_PI * 0.5);
-        float rimLightIntensity = abs(dot(normal, normalize(vec2(-1.0, 1.0))));
-        vec3 rimLight = vec3(1.0) * 0.15 * rimLightIntensity;
-        vec2 reflectionOffset =
-          (SEED_WORLD_REFL_OFFSET_MIN + SEED_WORLD_REFL_OFFSET_MAG * cosineEdge) * normal;
-        vec3 reflectionColor = seedWorldBufferD(screenUv + reflectionOffset, texelSize);
-        color = mix(color, max(color, seedWorldBlendScreen(rimLight, reflectionColor)), cosineEdge);
+        if (cosineEdge > 0.001) {
+          float rimLightIntensity = abs(dot(normal, normalize(vec2(-1.0, 1.0))));
+          vec3 rimLight = vec3(1.0) * 0.15 * rimLightIntensity;
+          vec2 reflectionOffset =
+            (SEED_WORLD_REFL_OFFSET_MIN + SEED_WORLD_REFL_OFFSET_MAG * cosineEdge) * normal;
+          vec3 reflectionColor = seedWorldBufferD(screenUv + reflectionOffset, texelSize);
+          color = mix(color, max(color, seedWorldBlendScreen(rimLight, reflectionColor)), cosineEdge);
+        }
 
         color = mix(color, max(color, vec3(1.0)),
           cosineEdge * clamp(material_SeedWorldRimHighlight, 0.0, 1.0));
