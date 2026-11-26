@@ -33,7 +33,7 @@ export class AnimationClipCurveBinding {
   /** The animation curve. */
   curve: AnimationCurve<KeyframeValueType> | undefined;
 
-  private _tempCurveOwner = new WeakMap<Entity, AnimationCurveOwner<KeyframeValueType>>();
+  private _tempCurveOwner?: WeakMap<Entity, AnimationCurveOwner<KeyframeValueType>>;
 
   /**
    * @internal
@@ -63,10 +63,11 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _getTempCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
-    let owner = this._tempCurveOwner.get(entity);
+    const owners = (this._tempCurveOwner ||= new WeakMap());
+    let owner = owners.get(entity);
     if (!owner) {
       owner = this._createCurveOwner(entity, component);
-      this._tempCurveOwner.set(entity, owner);
+      owners.set(entity, owner);
     }
     return owner;
   }

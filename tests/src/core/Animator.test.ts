@@ -118,6 +118,46 @@ describe("Animator test", function () {
       }
     }
   });
+  it("samples the first pose and reuses the binding owner separately for each entity", () => {
+    class SampleTarget extends Script {
+      reads = 0;
+      current = 0;
+
+      get value(): number {
+        this.reads++;
+        return this.current;
+      }
+
+      set value(value: number) {
+        this.current = value;
+      }
+    }
+
+    const first = new Entity(engine);
+    const second = new Entity(engine);
+    const clip = new AnimationClip("sample");
+    const curve = new AnimationFloatCurve();
+    curve.addKey({ time: 0, value: 0 });
+    curve.addKey({ time: 1, value: 4 });
+    clip.addCurveBinding("", SampleTarget, "value", curve);
+
+    try {
+      const a = first.addComponent(SampleTarget);
+      const b = second.addComponent(SampleTarget);
+
+      clip.sampleAnimation(first, 0.5);
+      expect([a.current, a.reads, b.current, b.reads]).toEqual([2, 1, 0, 0]);
+      clip.sampleAnimation(first, 0.75);
+      expect([a.current, a.reads]).toEqual([3, 1]);
+      clip.sampleAnimation(second, 0.25);
+      expect([a.current, a.reads, b.current, b.reads]).toEqual([3, 1, 1, 1]);
+    } finally {
+      clip.destroy();
+      first.destroy();
+      second.destroy();
+    }
+  });
+
   it("constructor", () => {
     // Test default values
     expect(animator).not.to.be.undefined;
