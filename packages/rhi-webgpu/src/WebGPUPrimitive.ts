@@ -252,7 +252,8 @@ export class WebGPUPrimitive implements IPlatformPrimitive {
     const { defaultBufferSlot, streams } = vertex;
     for (let i = 0; i < streams.length; i++) {
       const stream = streams[i];
-      const buffer = (stream.buffer._platformBuffer as WebGPUBuffer)._useForDraw();
+      const binding = primitive.vertexBufferBindings[stream.binding];
+      const buffer = ((binding ? binding.buffer : stream.buffer)._platformBuffer as WebGPUBuffer)._useForDraw();
       this._device._setVertexBuffer(pass, stream.slot, stream.expanded ?? buffer);
     }
     if (vertex.packedStreams) {
